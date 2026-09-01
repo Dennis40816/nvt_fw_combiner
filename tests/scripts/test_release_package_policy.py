@@ -244,6 +244,15 @@ def release_admission_fixture(
     comparison_status = "ahead"
     if scenario == "invalid_recovery_ancestry":
         comparison_status = "diverged"
+    comparison: dict[str, Any] = {
+        "base_commit": {"sha": RELEASE_MAIN_SHA},
+        "merge_base_commit": {"sha": RELEASE_MAIN_SHA},
+        "status": comparison_status,
+    }
+    if scenario == "missing_compare_base":
+        comparison.pop("base_commit")
+    elif scenario == "malformed_compare_base":
+        comparison["base_commit"] = {"sha": True}
     api = {
         f"repos/{repository}/git/commits/{RELEASE_REVIEW_HEAD_SHA}": {
             "tree": {"sha": RELEASE_SOURCE_TREE}
@@ -255,17 +264,39 @@ def release_admission_fixture(
         f"repos/{repository}/git/ref/heads/main": {
             "object": {"sha": remote_source_sha}
         },
-        (f"repos/{repository}/compare/{RELEASE_MAIN_SHA}...{remote_source_sha}"): {
-            "baseSha": RELEASE_MAIN_SHA,
-            "mergeBaseSha": RELEASE_MAIN_SHA,
-            "status": comparison_status,
-        },
+        (
+            f"repos/{repository}/compare/{RELEASE_MAIN_SHA}...{remote_source_sha}"
+        ): comparison,
         **tag_rulesets,
     }
     if scenario == "unprotected_main":
         api[f"repos/{repository}/branches/main"]["protected"] = False
+    elif scenario == "main_drift":
+        api[f"repos/{repository}/branches/main"]["commit"]["sha"] = (
+            RELEASE_ADVANCED_SOURCE_SHA
+        )
+    elif scenario == "tag_ruleset_drift":
+        api[f"repos/{repository}/rulesets/29"]["rules"] = [{"type": "deletion"}]
+    elif scenario in {"open_p0", "open_p1"}:
+        review_thread_pages[1]["data"]["repository"]["pullRequest"]["reviewThreads"][
+            "nodes"
+        ][0]["comments"]["nodes"][0][
+            "body"
+        ] = f"[{scenario[-2:].upper()}] blocking release finding"
+
+    tag_object_sha = "e" * 40
+    api[f"repos/{repository}/git/ref/tags/v1.1.1"] = {
+        "object": {"type": "tag", "sha": tag_object_sha}
+    }
+    api[f"repos/{repository}/git/tags/{tag_object_sha}"] = {
+        "sha": tag_object_sha,
+        "tag": "v1.1.1",
+        "message": "intentionally invalid fixture message",
+        "object": {"type": "commit", "sha": RELEASE_MAIN_SHA},
+    }
     return {
         "tagState": tag_state,
+        "tagMutation": {"tagObjectSha": tag_object_sha},
         "pr": {
             "number": 406,
             "state": "MERGED",
@@ -364,12 +395,65 @@ function gh {
         return
     }
     if ($arguments.Count -ge 2 -and $arguments[0] -eq 'api') {
-        $endpoint = $arguments[1]
+        $method = 'GET'
+        $endpointIndex = 1
+        $methodIndex = [Array]::IndexOf($arguments, '--method')
+        if ($methodIndex -ge 0) {
+            if ($methodIndex + 2 -ge $arguments.Count) {
+                throw 'Fake GitHub method invocation is malformed.'
+            }
+            $method = $arguments[$methodIndex + 1]
+            $endpointIndex = $methodIndex + 2
+        }
+        $endpoint = $arguments[$endpointIndex]
+        if ($method -eq 'POST') {
+            if ($endpoint -eq "repos/$env:NFC_REPOSITORY/git/tags") {
+                $jqIndex = [Array]::IndexOf($arguments, '--jq')
+                if ($jqIndex -lt 0 -or $arguments[$jqIndex + 1] -ne '.sha') {
+                    throw 'Annotated-tag mutation must select the exact tag-object SHA.'
+                }
+                Write-Output ([string]$script:FixtureData.tagMutation.tagObjectSha)
+                return
+            }
+            if ($endpoint -eq "repos/$env:NFC_REPOSITORY/git/refs") { return }
+            throw "Unexpected fake GitHub POST endpoint: $endpoint"
+        }
         $property = $script:FixtureData.api.PSObject.Properties[$endpoint]
         if ($null -eq $property) {
             throw "Unexpected fake GitHub endpoint: $endpoint"
         }
-        Write-FakeJson $property.Value
+        $value = $property.Value
+        $jqIndex = [Array]::IndexOf($arguments, '--jq')
+        if ($endpoint -like '*/compare/*') {
+            $expectedJq = '{baseSha: .base_commit.sha, mergeBaseSha: .merge_base_commit.sha, status: .status}'
+            if ($jqIndex -lt 0 -or $jqIndex + 1 -ge $arguments.Count -or
+                $arguments[$jqIndex + 1] -cne $expectedJq) {
+                throw 'Compare evidence did not use the exact approved GitHub projection.'
+            }
+            $baseCommit = $value.PSObject.Properties['base_commit']
+            $mergeBaseCommit = $value.PSObject.Properties['merge_base_commit']
+            $status = $value.PSObject.Properties['status']
+            $projection = [ordered]@{
+                baseSha = if ($null -eq $baseCommit) { $null } else { $baseCommit.Value.sha }
+                mergeBaseSha = if ($null -eq $mergeBaseCommit) { $null } else { $mergeBaseCommit.Value.sha }
+                status = if ($null -eq $status) { $null } else { $status.Value }
+            }
+            Write-FakeJson $projection
+            return
+        }
+        if ($jqIndex -ge 0) {
+            if ($jqIndex + 1 -ge $arguments.Count) { throw 'Fake GitHub jq invocation is malformed.' }
+            if ($arguments[$jqIndex + 1] -eq '.object.sha') {
+                Write-Output ([string]$value.object.sha)
+                return
+            }
+            if ($arguments[$jqIndex + 1] -eq '.sha') {
+                Write-Output ([string]$value.sha)
+                return
+            }
+            throw "Unexpected fake GitHub jq expression: $($arguments[$jqIndex + 1])"
+        }
+        Write-FakeJson $value
         return
     }
     throw "Unexpected fake gh invocation: $($arguments -join ' ')"
@@ -437,6 +521,45 @@ def initialize_minimal_package_repository(repository_root: Path) -> str:
     return subprocess.run(
         ["git", "rev-parse", "HEAD"],
         cwd=repository_root,
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout.strip()
+
+
+def prepare_ci_owned_packager_worktree(worktree: Path) -> str:
+    """Give a detached fixture a CI-owned version without changing real source."""
+
+    (worktree / "VERSION").write_bytes(b"1.1.1\n")
+    subprocess.run(
+        ["git", "add", "VERSION"],
+        cwd=worktree,
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    subprocess.run(
+        [
+            "git",
+            "-c",
+            "user.name=Release Package Test",
+            "-c",
+            "user.email=release-package-test@example.invalid",
+            "-c",
+            "commit.gpgsign=false",
+            "commit",
+            "-q",
+            "-m",
+            "test: use CI-owned package version",
+        ],
+        cwd=worktree,
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    return subprocess.run(
+        ["git", "rev-parse", "HEAD"],
+        cwd=worktree,
         check=True,
         capture_output=True,
         text=True,
@@ -838,6 +961,7 @@ class ReleasePackagePolicyTests(unittest.TestCase):
                 "NFC_REQUESTED_SHA": RELEASE_MAIN_SHA,
                 "NFC_WORKFLOW_SHA": RELEASE_MAIN_SHA,
                 "NFC_WORKFLOW_REF": "refs/heads/main",
+                "NFC_RUN_ID": "987654321",
                 "NFC_SOURCE_SHA": RELEASE_MAIN_SHA,
                 "NFC_SOURCE_TREE": RELEASE_SOURCE_TREE,
                 "NFC_SOURCE_BRANCH": "main",
@@ -846,6 +970,8 @@ class ReleasePackagePolicyTests(unittest.TestCase):
                 "NFC_REVIEW_HEAD_SHA": RELEASE_REVIEW_HEAD_SHA,
                 "NFC_TAG": f"v{source_version}",
                 "NFC_MANIFEST_NAME": manifest_name,
+                "NFC_MANIFEST_SHA256": "f" * 64,
+                "NFC_ARTIFACT_DIGEST": f"sha256:{'1' * 64}",
                 "NFC_REPOSITORY_OWNER": "owner",
                 "NFC_WORKFLOW_ACTOR": "owner",
                 "NFC_OWNER_SELF_APPROVAL_EXCEPTION": "false",
@@ -1431,13 +1557,7 @@ finally {
                 capture_output=True,
                 text=True,
             )
-            repository_head = subprocess.run(
-                [str(actual_git), "rev-parse", "HEAD"],
-                cwd=invocation_root,
-                check=True,
-                capture_output=True,
-                text=True,
-            ).stdout.strip()
+            repository_head = prepare_ci_owned_packager_worktree(invocation_root)
             repository_version = (
                 (invocation_root / "VERSION").read_text(encoding="utf-8").strip()
             )
@@ -1568,16 +1688,10 @@ finally {
             source_policy_bytes = b""
             snapshot_root: Path | None = None
             try:
+                repository_head = prepare_ci_owned_packager_worktree(invocation_root)
                 repository_version = (
                     (invocation_root / "VERSION").read_text(encoding="utf-8").strip()
                 )
-                repository_head = subprocess.run(
-                    ["git", "rev-parse", "HEAD"],
-                    cwd=invocation_root,
-                    check=True,
-                    capture_output=True,
-                    text=True,
-                ).stdout.strip()
                 environment = os.environ.copy()
                 environment["TEMP"] = str(runtime_temp)
                 environment["TMP"] = str(runtime_temp)
@@ -1687,7 +1801,7 @@ finally {
     ) -> None:
         release_workflow_path = ROOT / ".github/workflows/release.yml"
         self.assertEqual(
-            "8aa1f8d335600c2332e262f29fef620d59d76ab1993a132cdff543bf214a1d71",
+            "cdeccf6c6cb9f7cb37fe8dcd8d0108debc80a141f3223a033fb2412e760f4ae0",
             hashlib.sha256(release_workflow_path.read_bytes()).hexdigest(),
             "the reviewed release workflow must remain byte-exact",
         )
@@ -2275,7 +2389,7 @@ finally {
         self.assertIn("foreach ($page in $pages)", release_workflow)
         self.assertIn("foreach ($item in $page)", release_workflow)
         self.assertEqual(
-            2, release_workflow.count("gh api --paginate --slurp $endpoint")
+            3, release_workflow.count("gh api --paginate --slurp $endpoint")
         )
         self.assertNotIn("--jq 'add'", release_workflow)
         self.assertIn("$requiredCheckNames = @(", release_workflow)
@@ -2444,10 +2558,10 @@ finally {
             "review-head-sha: ${{ steps.admission.outputs.review-head-sha }}", release
         )
         self.assertIn("repositoryAdmission = [ordered]@{", release)
-        self.assertEqual(2, release.count("reviewThreads(first: 100, after: $cursor)"))
-        self.assertEqual(2, release.count("rules/branches/main?per_page=100"))
+        self.assertEqual(3, release.count("reviewThreads(first: 100, after: $cursor)"))
+        self.assertEqual(3, release.count("rules/branches/main?per_page=100"))
         self.assertEqual(
-            2,
+            3,
             release.count("rulesets?includes_parents=true&targets=tag&per_page=100"),
         )
         self.assertIn("ref: ${{ needs.candidate.outputs.workflow-sha }}", promote)
@@ -2616,6 +2730,73 @@ finally {
     @unittest.skipUnless(
         PWSH, "PowerShell 7 is required for exact release-workflow execution"
     )
+    def test_exact_tag_creation_rereads_authority_before_ordered_post_mutations(
+        self,
+    ) -> None:
+        result, _, calls = self.run_release_workflow_step(
+            "promote", "Create or verify immutable annotated tag"
+        )
+        output = normalize_console_output(result.stdout + result.stderr)
+        self.assertEqual(0, result.returncode, output)
+
+        main_index = next(
+            index
+            for index, call in enumerate(calls)
+            if call[:3] == ["gh", "api", "repos/owner/repository/branches/main"]
+        )
+        source_index = next(
+            index
+            for index, call in enumerate(calls)
+            if call[:3] == ["gh", "api", "repos/owner/repository/git/ref/heads/main"]
+        )
+        post_calls = [
+            (index, call)
+            for index, call in enumerate(calls)
+            if call[:4] == ["gh", "api", "--method", "POST"]
+        ]
+        self.assertEqual(2, len(post_calls), calls)
+        self.assertEqual(
+            "repos/owner/repository/git/tags", post_calls[0][1][4], post_calls
+        )
+        self.assertEqual(
+            "repos/owner/repository/git/refs", post_calls[1][1][4], post_calls
+        )
+        self.assertLess(main_index, source_index)
+        self.assertLess(source_index, post_calls[0][0])
+        self.assertLess(post_calls[0][0], post_calls[1][0])
+
+    @unittest.skipUnless(
+        PWSH, "PowerShell 7 is required for exact release-workflow execution"
+    )
+    def test_exact_tag_block_authority_failures_have_zero_post_mutations(
+        self,
+    ) -> None:
+        cases = (
+            {"scenario": "unprotected_main"},
+            {"scenario": "main_drift"},
+            {"scenario": "success", "remote_source_sha": RELEASE_ADVANCED_SOURCE_SHA},
+            {"scenario": "success", "tag_state": "unknown"},
+            {"scenario": "success", "tag_state": "present"},
+        )
+        for arguments in cases:
+            with self.subTest(arguments=arguments):
+                result, _, calls = self.run_release_workflow_step(
+                    "promote",
+                    "Create or verify immutable annotated tag",
+                    **arguments,
+                )
+                output = normalize_console_output(result.stdout + result.stderr)
+                self.assertNotEqual(0, result.returncode, output)
+                self.assertFalse(
+                    any(
+                        call[:4] == ["gh", "api", "--method", "POST"] for call in calls
+                    ),
+                    calls,
+                )
+
+    @unittest.skipUnless(
+        PWSH, "PowerShell 7 is required for exact release-workflow execution"
+    )
     def test_historical_present_tag_recovery_requires_fresh_ancestry(self) -> None:
         step_name = "Revalidate live repository admission before tag mutation"
         result, _, calls = self.run_release_workflow_step(
@@ -2629,8 +2810,11 @@ finally {
         self.assertEqual(0, result.returncode, output)
         compare_call = next(call for call in calls if "/compare/" in " ".join(call))
         self.assertIn("--jq", compare_call)
-        self.assertTrue(any("baseSha:" in argument for argument in compare_call))
-        self.assertTrue(any("mergeBaseSha:" in argument for argument in compare_call))
+        jq_index = compare_call.index("--jq")
+        self.assertEqual(
+            "{baseSha: .base_commit.sha, mergeBaseSha: .merge_base_commit.sha, status: .status}",
+            compare_call[jq_index + 1],
+        )
         self.assertTrue(
             any(
                 call[0] == "python" and "validate-live-branch-authority" in call
@@ -2659,51 +2843,70 @@ finally {
     @unittest.skipUnless(
         PWSH, "PowerShell 7 is required for exact release-workflow execution"
     )
-    def test_release_create_and_historical_upload_revalidate_before_mutation(
-        self,
-    ) -> None:
-        step_name = "Publish or validate GitHub Release"
-        cases = (
-            ("1.1.1", "absent", RELEASE_MAIN_SHA, "create"),
-            ("1.1.0", "present", RELEASE_ADVANCED_SOURCE_SHA, "upload"),
-        )
-        for version, state, remote_source_sha, mutation in cases:
-            with self.subTest(version=version, mutation=mutation):
+    def test_raw_compare_projection_failures_prevent_release_mutation(self) -> None:
+        for scenario in ("missing_compare_base", "malformed_compare_base"):
+            with self.subTest(scenario=scenario):
                 result, _, calls = self.run_release_workflow_step(
                     "promote",
-                    step_name,
-                    source_version=version,
-                    tag_state=state,
-                    remote_source_sha=remote_source_sha,
+                    "Publish or validate GitHub Release",
+                    scenario=scenario,
+                    source_version="1.1.0",
+                    tag_state="present",
+                    remote_source_sha=RELEASE_ADVANCED_SOURCE_SHA,
                 )
                 output = normalize_console_output(result.stdout + result.stderr)
-                self.assertEqual(0, result.returncode, output)
-                authority_index = next(
-                    index
-                    for index, call in enumerate(calls)
-                    if call[0] == "python" and "validate-live-branch-authority" in call
+                self.assertNotEqual(0, result.returncode, output)
+                compare_call = next(
+                    call for call in calls if "/compare/" in " ".join(call)
                 )
-                mutation_calls = [
-                    (index, call)
-                    for index, call in enumerate(calls)
-                    if call[:3] == ["gh", "release", mutation]
-                ]
-                self.assertEqual(1, len(mutation_calls), calls)
-                self.assertLess(authority_index, mutation_calls[0][0])
-                if mutation == "upload":
-                    self.assertGreaterEqual(
-                        len(
-                            [
-                                argument
-                                for argument in mutation_calls[0][1]
-                                if argument.endswith(
-                                    ("payload.bin", "candidate.json", "assets.sha256")
-                                )
-                            ]
-                        ),
-                        3,
-                        mutation_calls[0][1],
-                    )
+                jq_index = compare_call.index("--jq")
+                self.assertEqual(
+                    "{baseSha: .base_commit.sha, mergeBaseSha: .merge_base_commit.sha, status: .status}",
+                    compare_call[jq_index + 1],
+                )
+                self.assertFalse(
+                    any(
+                        call[:3]
+                        in (
+                            ["gh", "release", "create"],
+                            ["gh", "release", "upload"],
+                        )
+                        for call in calls
+                    ),
+                    calls,
+                )
+
+    @unittest.skipUnless(
+        PWSH, "PowerShell 7 is required for exact release-workflow execution"
+    )
+    def test_release_create_revalidates_before_mutation(self) -> None:
+        step_name = "Publish or validate GitHub Release"
+        result, _, calls = self.run_release_workflow_step(
+            "promote",
+            step_name,
+            source_version="1.1.1",
+            tag_state="absent",
+        )
+        output = normalize_console_output(result.stdout + result.stderr)
+        self.assertEqual(0, result.returncode, output)
+        authority_index = next(
+            index
+            for index, call in enumerate(calls)
+            if call[0] == "python" and "validate-live-branch-authority" in call
+        )
+        repository_admission_index = next(
+            index
+            for index, call in enumerate(calls)
+            if call[0] == "python" and "validate-repository-admission" in call
+        )
+        mutation_calls = [
+            (index, call)
+            for index, call in enumerate(calls)
+            if call[:3] == ["gh", "release", "create"]
+        ]
+        self.assertEqual(1, len(mutation_calls), calls)
+        self.assertLess(authority_index, repository_admission_index)
+        self.assertLess(repository_admission_index, mutation_calls[0][0])
 
     @unittest.skipUnless(
         PWSH, "PowerShell 7 is required for exact release-workflow execution"
@@ -2756,6 +2959,58 @@ finally {
         release_block = release_workflow_run_block("promote", step_name)
         self.assertNotIn("$comparison.head_commit.sha", release_block)
         self.assertIn("headSha = $observedSourceSha", release_block)
+
+    @unittest.skipUnless(
+        PWSH, "PowerShell 7 is required for exact release-workflow execution"
+    )
+    def test_v111_publish_strict_admission_drift_has_zero_release_mutation(
+        self,
+    ) -> None:
+        scenarios = (
+            "tag_ruleset_drift",
+            "missing_required",
+            "truncated_checks",
+            "open_p0",
+            "open_p1",
+        )
+        for scenario in scenarios:
+            with self.subTest(scenario=scenario):
+                result, _, calls = self.run_release_workflow_step(
+                    "promote",
+                    "Publish or validate GitHub Release",
+                    scenario=scenario,
+                    source_version="1.1.1",
+                    tag_state="absent",
+                )
+                output = normalize_console_output(result.stdout + result.stderr)
+                self.assertNotEqual(0, result.returncode, output)
+                self.assertTrue(
+                    any(
+                        call[0] == "python" and "validate-live-branch-authority" in call
+                        for call in calls
+                    ),
+                    calls,
+                )
+                strict_admission_calls = [
+                    call
+                    for call in calls
+                    if call[0] == "python" and "validate-repository-admission" in call
+                ]
+                if scenario == "truncated_checks":
+                    self.assertEqual([], strict_admission_calls, calls)
+                else:
+                    self.assertEqual(1, len(strict_admission_calls), calls)
+                self.assertFalse(
+                    any(
+                        call[:3]
+                        in (
+                            ["gh", "release", "create"],
+                            ["gh", "release", "upload"],
+                        )
+                        for call in calls
+                    ),
+                    calls,
+                )
 
     def test_update_source_registry_seed_is_the_owner_approved_default_root(
         self,

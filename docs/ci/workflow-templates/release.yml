@@ -33,8 +33,11 @@ permissions:
 # 0.9.17/0.9.17, 0.9.18/0.9.18, and 0.9.19/0.9.19 maintenance pairs. Release-environment approval unlocks the only
 # contents:write job, which checks out the exact candidate workflow SHA,
 # revalidates fresh main/source authority for every version, reruns strict
-# repository admission for v1.1.1+, creates one annotated tag, and publishes
-# the already verified, manifest-bound closed asset set. v1.1.1+
+# repository admission for v1.1.1+ before tag mutation, and repeats both the
+# live authority and a newly collected complete strict-admission snapshot
+# immediately before every Release create/upload mutation. Historical versions
+# retain only the live-authority check. The job creates one annotated tag and
+# publishes the already verified, manifest-bound closed asset set. v1.1.1+
 # requires REST immutable=true plus exact uploaded asset names/sizes/digests,
 # then independently downloads and hashes every asset. A separate read-only,
 # token-free execution step smokes the published

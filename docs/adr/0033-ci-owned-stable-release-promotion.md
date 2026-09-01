@@ -92,8 +92,11 @@ is the final tag confirmation. After approval, a narrow job receives
    prepared SHA/tree, selected release-branch identity, protected-`main`
    authority, closed checks, review-thread disposition, and tag ruleset have not
    changed;
-2. rejects any pre-existing stable tag or conflicting Release;
-3. creates one annotated stable tag for the prepared SHA;
+2. rejects any conflicting, moved, or non-exact stable tag or Release; an
+   explicitly allowed historical recovery may validate an exact existing
+   annotated tag without replacing it;
+3. creates one annotated stable tag for the prepared SHA only when that tag is
+   absent;
 4. checks out and verifies the immutable tag identity;
 5. publishes the already verified candidate assets and complete notes;
 6. confirms GitHub's tag-derived source ZIP and tar.gz downloads resolve; and

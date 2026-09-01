@@ -1045,10 +1045,21 @@ jobs:
           NFC_REPOSITORY: ${{ github.repository }}
           NFC_TAG: ${{ needs.candidate.outputs.tag }}
           NFC_MANIFEST_NAME: ${{ needs.candidate.outputs.manifest-name }}
+          NFC_PULL_REQUEST: ${{ needs.candidate.outputs.pull-request }}
+          NFC_REVIEW_HEAD_SHA: ${{ needs.candidate.outputs.review-head-sha }}
           NFC_SOURCE_SHA: ${{ needs.candidate.outputs.source-sha }}
           NFC_SOURCE_BRANCH: ${{ needs.candidate.outputs.source-branch }}
+          NFC_SOURCE_VERSION: ${{ needs.candidate.outputs.version }}
           NFC_WORKFLOW_SHA: ${{ needs.candidate.outputs.workflow-sha }}
         run: |
+          function Get-PaginatedGitHubArray([string]$endpoint, [string]$failureMessage) {
+            $pagesText = gh api --paginate --slurp $endpoint
+            if ($LASTEXITCODE -ne 0) { throw $failureMessage }
+            $pages = $pagesText | ConvertFrom-Json -NoEnumerate
+            foreach ($page in $pages) {
+              foreach ($item in $page) { Write-Output $item }
+            }
+          }
           function Assert-LiveReleaseMutationAuthority {
             $mainBranchText = gh api "repos/$env:NFC_REPOSITORY/branches/main"
             if ($LASTEXITCODE -ne 0) { throw 'Release-mutation remote main evidence could not be read.' }
@@ -1091,6 +1102,125 @@ jobs:
               --snapshot $liveAuthorityPath --main-sha $env:NFC_WORKFLOW_SHA `
               --source-sha $env:NFC_SOURCE_SHA
             if ($LASTEXITCODE -ne 0) { throw 'Release-mutation live branch authority failed.' }
+            if ([version]$env:NFC_SOURCE_VERSION -lt [version]'1.1.1') {
+              Write-Host 'Strict repository admission starts at v1.1.1; release-mutation live branch authority still passed.'
+              return
+            }
+            $mainRules = @(Get-PaginatedGitHubArray `
+              "repos/$env:NFC_REPOSITORY/rules/branches/main?per_page=100" `
+              'Release-mutation applied main rules evidence could not be read.')
+            $tagRulesetSummaries = @(Get-PaginatedGitHubArray `
+              "repos/$env:NFC_REPOSITORY/rulesets?includes_parents=true&targets=tag&per_page=100" `
+              'Release-mutation stable tag ruleset inventory could not be read.')
+            $tagRulesets = @($tagRulesetSummaries | ForEach-Object {
+              if ($_.id -notmatch '^[1-9][0-9]*$') {
+                throw 'Release-mutation stable tag ruleset id is malformed.'
+              }
+              $rulesetText = gh api "repos/$env:NFC_REPOSITORY/rulesets/$($_.id)"
+              if ($LASTEXITCODE -ne 0) {
+                throw 'Release-mutation stable tag ruleset detail could not be read.'
+              }
+              try { $rulesetText | ConvertFrom-Json -ErrorAction Stop }
+              catch { throw "Release-mutation stable tag ruleset detail is malformed: $rulesetText" }
+            })
+            $checkRunsText = gh api --paginate --slurp `
+              "repos/$env:NFC_REPOSITORY/commits/$env:NFC_REVIEW_HEAD_SHA/check-runs?filter=latest&per_page=100"
+            if ($LASTEXITCODE -ne 0) {
+              throw 'Release-mutation required check-run evidence could not be read.'
+            }
+            try { $checkRunPages = $checkRunsText | ConvertFrom-Json -NoEnumerate -ErrorAction Stop }
+            catch { throw "Release-mutation required check-run evidence is malformed: $checkRunsText" }
+            if ($checkRunPages.Count -eq 0 -or
+                [string]$checkRunPages[0].total_count -notmatch '^[0-9]+$') {
+              throw 'Release-mutation required check-run pagination metadata is malformed.'
+            }
+            $rawCheckRuns = @($checkRunPages | ForEach-Object { @($_.check_runs) })
+            if ($rawCheckRuns.Count -ne [int]$checkRunPages[0].total_count) {
+              throw 'Release-mutation required check-run pagination is incomplete.'
+            }
+            $checkRuns = @($rawCheckRuns | ForEach-Object {
+              [ordered]@{
+                name = [string]$_.name
+                headSha = [string]$_.head_sha
+                appSlug = [string]$_.app.slug
+                status = [string]$_.status
+                conclusion = [string]$_.conclusion
+              }
+            })
+            $repositoryParts = $env:NFC_REPOSITORY.Split('/', 2)
+            if ($repositoryParts.Count -ne 2) { throw 'Repository identity is malformed.' }
+            $reviewThreadQuery = @(
+              'query($owner: String!, $name: String!, $number: Int!, $cursor: String) {'
+              'repository(owner: $owner, name: $name) {'
+              'pullRequest(number: $number) {'
+              'reviewThreads(first: 100, after: $cursor) {'
+              'pageInfo { hasNextPage endCursor }'
+              'nodes { isResolved isOutdated comments(first: 1) { nodes { body } } }'
+              '} } } }'
+            ) -join ' '
+            $reviewThreads = @()
+            $reviewThreadCursor = $null
+            do {
+              $graphqlArguments = @(
+                'api', 'graphql', '-f', "query=$reviewThreadQuery",
+                '-F', "owner=$($repositoryParts[0])",
+                '-F', "name=$($repositoryParts[1])",
+                '-F', "number=$env:NFC_PULL_REQUEST"
+              )
+              if ($null -ne $reviewThreadCursor) {
+                $graphqlArguments += @('-F', "cursor=$reviewThreadCursor")
+              }
+              $reviewThreadText = & gh @graphqlArguments
+              if ($LASTEXITCODE -ne 0) {
+                throw 'Release-mutation final PR review-thread evidence could not be read.'
+              }
+              try { $reviewThreadPage = $reviewThreadText | ConvertFrom-Json -ErrorAction Stop }
+              catch { throw "Release-mutation final PR review-thread evidence is malformed: $reviewThreadText" }
+              $connection = $reviewThreadPage.data.repository.pullRequest.reviewThreads
+              if ($null -eq $connection -or $null -eq $connection.pageInfo) {
+                throw 'Release-mutation final PR review-thread connection is malformed.'
+              }
+              foreach ($thread in @($connection.nodes)) {
+                $commentNodes = @($thread.comments.nodes)
+                $reviewThreads += [ordered]@{
+                  isResolved = $thread.isResolved
+                  isOutdated = $thread.isOutdated
+                  body = if ($commentNodes.Count -eq 1) { [string]$commentNodes[0].body } else { '' }
+                }
+              }
+              if ($connection.pageInfo.hasNextPage -eq $true) {
+                $nextCursor = [string]$connection.pageInfo.endCursor
+                if ([string]::IsNullOrWhiteSpace($nextCursor) -or
+                    $nextCursor -eq $reviewThreadCursor) {
+                  throw 'Release-mutation final PR review-thread pagination did not advance.'
+                }
+                $reviewThreadCursor = $nextCursor
+              }
+              else { $reviewThreadCursor = $null }
+            } while ($connection.pageInfo.hasNextPage -eq $true)
+            $snapshot = [ordered]@{
+              remoteMain = [ordered]@{
+                sha = [string]$mainBranch.commit.sha
+                protected = $mainBranch.protected
+              }
+              mainRulesPaginationComplete = $true
+              mainRules = @($mainRules)
+              checkRunsPaginationComplete = $true
+              checkRuns = @($checkRuns)
+              reviewThreadsPaginationComplete = $true
+              reviewThreads = @($reviewThreads)
+              tagRulesetsPaginationComplete = $true
+              tagRulesets = @($tagRulesets)
+            }
+            $snapshotPath = Join-Path $env:RUNNER_TEMP 'release-mutation-repository-admission.json'
+            $snapshot | ConvertTo-Json -Depth 20 | Set-Content `
+              -LiteralPath $snapshotPath -Encoding utf8NoBOM
+            python $env:NFC_RELEASE_POLICY validate-repository-admission `
+              --snapshot $snapshotPath --main-sha $env:NFC_WORKFLOW_SHA `
+              --review-head-sha $env:NFC_REVIEW_HEAD_SHA --expected-tag $env:NFC_TAG
+            if ($LASTEXITCODE -ne 0) {
+              throw 'Release-mutation repository admission policy failed.'
+            }
           }
           $releaseRoot = Resolve-Path -LiteralPath ./artifacts/release
           $notesPath = Join-Path $releaseRoot 'RELEASE-NOTES.md'
