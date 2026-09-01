@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 2,
+  "taskId": "REL-108-IDENTITY-01",
+  "capability": "Synchronize the repository's unpublished stable v1.0.8 candidate identity and complete release-note projection after the implementation scope is frozen",
+  "integrationBase": "add334124508658dbcf417b96f83d41c77391dc1",
+  "risk": "R2",
+  "kind": "governance",
+  "state": "final-complete",
+  "mutablePaths": [
+    "docs/governance/development-tags.md"
+  ],
+  "implementationOwner": "release_identity_implementer",
+  "searchEvidence": [
+    "REL-103, REL-104, REL-105, and REL-106 establish the existing synchronized identity pattern across VERSION, SPEC.md, CHANGELOG.md, docs/references/verification-report.md, and docs/governance/development-tags.md; only development-tags.md is governed mutable authority.",
+    "Directory.Build.props derives public product, file, and informational versions from VERSION while its internal project/package version remains deliberately fixed at 1.0.0; no project file or build-property edit is needed.",
+    "scripts/render_release_notes.py is the existing exact release-note extractor plus structural and limited lexical validator. The protected release workflow projects the accepted v1.0.8 CHANGELOG section into the GitHub Release body and Catalog releaseNotes; a separate independent human frozen-head semantic audit, not the renderer, owns claim truth, evidence sufficiency, compatibility/support accuracy, limitations, and disclosure review.",
+    "The protected release workflow already accepts generic stable 1.x identity when source_branch is main. Direct release from branch 1.0.8 is intentionally outside the allowlist and is not changed by this identity slice."
+  ],
+  "semanticOwner": "Existing branch/version/release governance and synchronized stable identity projections",
+  "terminalContract": "Only after the v1.0.8 implementation scope is frozen, VERSION, SPEC status, one complete canonical six-section CHANGELOG entry, verification report, and development milestone agree on one unpublished stable-format v1.0.8 Windows candidate with immutable v1.0.7 as predecessor. The CHANGELOG claims only completed and evidenced v1.0.8 behavior; roadmap-only v1.0.9-v1.0.13 work, incomplete placeholders, private disclosures, unverified release evidence, and publication claims are excluded. An independent human frozen-head semantic audit verifies every behavior, verification, compatibility/support, limitation, and disclosure statement; the renderer supplies structure and bounded lexical checks only. Directory.Build.props internal project/package version remains 1.0.0 while public projections derive 1.0.8 from VERSION. This identity slice creates no tag, GitHub Release, package/assets, Catalog/Registry publication, support promotion, firmware/profile/range/CRC/output-byte change, runtime expansion, or workflow allowlist change. Subsequent mandatory gates are: frozen implementation head with scoped Polytail/final review and verify.py --all; reviewed PR-head tree equivalence to the merge commit on current protected main with required exact-head checks; exact ten-asset package closure with size/SHA-256, SBOM, provenance, candidate manifest, outer checksum, package smoke, visible Desktop/Launcher smoke, and clean-machine evidence; real installed v1.0.7-to-v1.0.8 Catalog-v1 canary plus staged Catalog-v2 canary before separately approved live cutover; protected release-environment and release-owner approval; immutable annotated tag and GitHub Release; exact Release body/assets/source archives with fresh-download digest and smoke verification; and remaining legal/redistribution evidence.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "review_v108_identity_design",
+    "outcome": "findings-incorporated",
+    "evidence": "Independent final R2 re-review confirmed P0-P3 = 0 and scoped Polytail PASS-WITH-HUMAN-GATE after incorporating the release-note authority, semantic-truth, disclosure, and exact later-gate findings. The design reuses the established REL-103/104/105/106 synchronized projection across VERSION, SPEC.md, CHANGELOG.md, docs/references/verification-report.md, and docs/governance/development-tags.md while limiting governed mutable authority exactly to development-tags.md. Integration base add334124508658dbcf417b96f83d41c77391dc1 remains the current v1.0.8 batch checkpoint; annotated v1.0.7 peels to current HEAD dac8deb0a15de562afa73c96868c9d080b779fee with tree 98ac2b3e84520699adcf96897a1bde3f41270084. The renderer is credited only with exact extraction plus structural and bounded lexical validation, while an independent human frozen-head semantic audit owns claim truth, evidence sufficiency, compatibility/support accuracy, limitations, and disclosure review. The terminal contract now preserves protected-main PR-head/merge-tree equivalence, exact ten-asset size/hash/SBOM/provenance closure, package/visible/clean-machine smoke, real Catalog-v1 and staged Catalog-v2 canaries, protected release-owner approval, immutable tag/Release, fresh-download verification, and legal/redistribution evidence as subsequent gates. No tag, publication, package, support, firmware/profile/range/CRC/output-byte, runtime, or workflow-allowlist change is admitted by this identity slice."
+  },
+  "implementationHead": "ee42a88884bd99f10447e5e48196ca8d624b2f83",
+  "reviewedHead": "ee42a88884bd99f10447e5e48196ca8d624b2f83",
+  "pathStateDigest": "4e676dbdb2ecd4994aaaf4fef81102b603ea5e16a051c38a8fcbcbf8d50ceed9",
+  "finalReview": {
+    "reviewer": "review_v108_identity_design",
+    "outcome": "findings-incorporated",
+    "evidence": "Exact head ee42a88884bd99f10447e5e48196ca8d624b2f83 and tree e1bc23408c1f85bb17834feee5ced3b7b814d55c contain synchronized v1.0.8 VERSION, SPEC, CHANGELOG, verification-report, and development-tag projections with truthful six-section notes, formal v1.0.7 predecessor, and no completed package, canary, tag, or Release claim. Renderer tests and structure verification passed; independent human frozen-head semantic audit, full verifier, package, and release gates remain."
+  }
+}

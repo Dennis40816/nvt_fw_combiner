@@ -36,6 +36,10 @@ $ApprovedCanonicalCapabilityPolicyPackageContract = [pscustomobject]@{
     role = 'capabilityPolicy'
     sha256 = 'bf818a4c9aa4d539882e4bc4a0a662ef70ece67a44e78ae83356430365828f50'
 }
+$ApprovedCanonicalGoldenAllowlistPath = Join-Path $PSScriptRoot '../testdata/golden/release-canonical-v1.json'
+$ApprovedCanonicalGoldenAllowlistSha256 = '88f3a1261cc82e32437726ec8a2a8043f1e382a15fdc7a9596bf5069f3dcfa06'
+$CanonicalGoldenPackagePrefix = 'reference/testdata/golden/canonical'
+$CanonicalGoldenAllowlistPackagePath = 'reference/testdata/golden/release-canonical-v1.json'
 $RetiredSupportPublicationPolicyPackagePaths = @(
     'docs/contracts/support-publication-policy-v1.0.0.json',
     'docs/contracts/support-publication-policy-v1.json'
@@ -105,6 +109,216 @@ function Assert-FileHash {
     if ($actual -ne [string]$Entry.sha256) {
         throw "Manifest hash mismatch: $($Entry.path)"
     }
+}
+
+function Assert-CanonicalGoldenReference {
+    param(
+        [Parameter(Mandatory = $true)][string]$PackageRoot,
+        [Parameter(Mandatory = $true)]$ReleaseManifest
+    )
+
+    if (-not (Test-Path -LiteralPath $ApprovedCanonicalGoldenAllowlistPath -PathType Leaf) -or
+        (Get-LowerSha256 -Path $ApprovedCanonicalGoldenAllowlistPath) -cne $ApprovedCanonicalGoldenAllowlistSha256) {
+        throw 'Protected smoke does not have the exact approved canonical Golden allowlist.'
+    }
+    $PackagedAllowlistPath = Join-Path $PackageRoot $CanonicalGoldenAllowlistPackagePath
+    $AllowlistEntries = @($ReleaseManifest.files | Where-Object {
+        [string]$_.path -ceq $CanonicalGoldenAllowlistPackagePath
+    })
+    if ($AllowlistEntries.Count -ne 1 -or
+        [string]$AllowlistEntries[0].role -cne 'reference' -or
+        [string]$AllowlistEntries[0].sha256 -cne $ApprovedCanonicalGoldenAllowlistSha256 -or
+        (Get-LowerSha256 -Path $PackagedAllowlistPath) -cne $ApprovedCanonicalGoldenAllowlistSha256) {
+        throw 'Release package canonical Golden allowlist identity or reference role differs from the approved authority.'
+    }
+
+    $Allowlist = Get-Content -LiteralPath $PackagedAllowlistPath -Raw | ConvertFrom-Json -Depth 100
+    if ($Allowlist.schemaVersion -ne '1.0' -or
+        $Allowlist.policyId -ne 'canonical-reference-v1' -or
+        $Allowlist.authorizedForVersion -ne '1.0.8' -or
+        $Allowlist.releaseStatus -ne 'human-gated-allowlist' -or
+        $Allowlist.authorityLimits.runtimeSupportPromotion -ne $false -or
+        $Allowlist.authorityLimits.fullByteParityClaim -ne $false -or
+        [int]$Allowlist.selectionSummary.caseCount -ne 34 -or
+        [int]$Allowlist.selectionSummary.directGoldenCount -ne 25 -or
+        [int]$Allowlist.selectionSummary.factScopedAliasCount -ne 9 -or
+        [int]$Allowlist.selectionSummary.artifactDeclarationCount -ne 159 -or
+        [int]$Allowlist.selectionSummary.uniqueArtifactPathCount -ne 156) {
+        throw 'Release package canonical Golden allowlist semantics differ from the approved 34-case scope.'
+    }
+    $CanonicalReadmePackagePath = "$CanonicalGoldenPackagePrefix/README.md"
+    $CanonicalReadmePath = Join-Path $PackageRoot $CanonicalReadmePackagePath
+    $CanonicalReadmeEntries = @($ReleaseManifest.files | Where-Object {
+        [string]$_.path -ceq $CanonicalReadmePackagePath
+    })
+    if ($CanonicalReadmeEntries.Count -ne 1 -or
+        [string]$CanonicalReadmeEntries[0].role -cne 'reference' -or
+        [string]$Allowlist.canonicalReadmeSha256 -cnotmatch '^[0-9a-f]{64}$' -or
+        [string]$CanonicalReadmeEntries[0].sha256 -cne [string]$Allowlist.canonicalReadmeSha256 -or
+        (Get-LowerSha256 -Path $CanonicalReadmePath) -cne [string]$Allowlist.canonicalReadmeSha256) {
+        throw 'Release package canonical Golden README exact bytes or reference role differ.'
+    }
+
+    $ProjectionPackagePath = "$CanonicalGoldenPackagePrefix/manifest.json"
+    $ProjectionPath = Join-Path $PackageRoot $ProjectionPackagePath
+    $ProjectionEntries = @($ReleaseManifest.files | Where-Object {
+        [string]$_.path -ceq $ProjectionPackagePath
+    })
+    if ($ProjectionEntries.Count -ne 1 -or [string]$ProjectionEntries[0].role -cne 'reference') {
+        throw 'Release package canonical Golden projection manifest must have reference role.'
+    }
+    $Projection = Get-Content -LiteralPath $ProjectionPath -Raw | ConvertFrom-Json -Depth 100
+    if ($Projection.schemaVersion -ne '1.0' -or
+        $Projection.payloadClass -ne 'owner-approved-golden' -or
+        $Projection.binaryPayloadsIncluded -ne $true -or
+        $Projection.inventoryScope -ne 'release-canonical-v1' -or
+        @($Projection.cases).Count -ne 34) {
+        throw 'Release package canonical Golden projection manifest has invalid scope.'
+    }
+    $ProjectionCases = @{}
+    foreach ($Entry in $Projection.cases) {
+        $CaseId = [string]$Entry.caseId
+        if ([string]::IsNullOrWhiteSpace($CaseId) -or $ProjectionCases.ContainsKey($CaseId)) {
+            throw "Release package canonical Golden projection has invalid or duplicate case '$CaseId'."
+        }
+        $ProjectionCases[$CaseId] = [string]$Entry.manifestPath
+    }
+
+    $SelectedCases = @{}
+    $ExpectedCanonicalFiles = [Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
+    [void]$ExpectedCanonicalFiles.Add('README.md')
+    [void]$ExpectedCanonicalFiles.Add('manifest.json')
+    $ExpectedArtifacts = @{}
+    $ArtifactDeclarationCount = 0
+    foreach ($ApprovedCase in $Allowlist.cases) {
+        $CaseId = [string]$ApprovedCase.caseId
+        if ([string]::IsNullOrWhiteSpace($CaseId) -or $SelectedCases.ContainsKey($CaseId)) {
+            throw "Release package canonical Golden allowlist has invalid or duplicate case '$CaseId'."
+        }
+        if (-not $ProjectionCases.ContainsKey($CaseId) -or
+            $ProjectionCases[$CaseId] -cne [string]$ApprovedCase.manifestPath) {
+            throw "Release package canonical Golden projection differs for case '$CaseId'."
+        }
+        $SelectedCases[$CaseId] = $ApprovedCase
+        [void]$ExpectedCanonicalFiles.Add([string]$ApprovedCase.manifestPath)
+        $CasePackagePath = "$CanonicalGoldenPackagePrefix/$($ApprovedCase.manifestPath)"
+        $CaseManifestPath = Join-Path $PackageRoot $CasePackagePath
+        $CaseEntries = @($ReleaseManifest.files | Where-Object { [string]$_.path -ceq $CasePackagePath })
+        if ($CaseEntries.Count -ne 1 -or
+            [string]$CaseEntries[0].role -cne 'reference' -or
+            [string]$ApprovedCase.manifestSha256 -cnotmatch '^[0-9a-f]{64}$' -or
+            [string]$CaseEntries[0].sha256 -cne [string]$ApprovedCase.manifestSha256 -or
+            (Get-LowerSha256 -Path $CaseManifestPath) -cne [string]$ApprovedCase.manifestSha256) {
+            throw "Release package canonical case manifest '$CaseId' exact bytes or reference role differ."
+        }
+        $Case = Get-Content -LiteralPath $CaseManifestPath -Raw | ConvertFrom-Json -Depth 100
+        $CaseDirectEvidence = if ($Case.PSObject.Properties.Name -contains 'directEvidence') {
+            $Case.directEvidence
+        }
+        else { $false }
+        if ([string]$Case.caseId -cne $CaseId -or
+            [string]$Case.workflow -cne [string]$ApprovedCase.workflow -or
+            [string]$Case.testDisposition.kind -cne [string]$ApprovedCase.testDispositionKind -or
+            $Case.directGolden -ne $ApprovedCase.directGolden -or
+            $CaseDirectEvidence -ne $false -or
+            $ApprovedCase.directEvidence -ne $false) {
+            throw "Release package canonical case '$CaseId' identity, disposition, or direct/alias kind drifted."
+        }
+        if ($ApprovedCase.directGolden -eq $false) {
+            if (($Case.alias | ConvertTo-Json -Compress -Depth 20) -cne
+                ($ApprovedCase.alias | ConvertTo-Json -Compress -Depth 20) -or
+                @($ApprovedCase.artifacts).Count -ne 0) {
+                throw "Release package canonical alias '$CaseId' differs from the approved fact scope."
+            }
+            continue
+        }
+        $CanonicalArtifacts = @{}
+        foreach ($Artifact in $Case.artifacts) {
+            $CanonicalArtifacts[[string]$Artifact.artifactId] = $Artifact
+        }
+        foreach ($ApprovedArtifact in $ApprovedCase.artifacts) {
+            $ArtifactId = [string]$ApprovedArtifact.artifactId
+            $CanonicalArtifact = $CanonicalArtifacts[$ArtifactId]
+            if ($null -eq $CanonicalArtifact -or
+                [string]$CanonicalArtifact.role -cne [string]$ApprovedArtifact.role -or
+                [string]$CanonicalArtifact.path -cne [string]$ApprovedArtifact.path -or
+                [long]$CanonicalArtifact.size -ne [long]$ApprovedArtifact.size -or
+                [string]$CanonicalArtifact.sha256 -cne [string]$ApprovedArtifact.sha256) {
+                throw "Release package canonical artifact '$CaseId/$ArtifactId' differs from the approved declaration."
+            }
+            $ArtifactDeclarationCount++
+            $ArtifactRelativePath = [string]$ApprovedArtifact.path
+            if ($ExpectedArtifacts.ContainsKey($ArtifactRelativePath)) {
+                $Existing = $ExpectedArtifacts[$ArtifactRelativePath]
+                if ([long]$Existing.size -ne [long]$ApprovedArtifact.size -or
+                    [string]$Existing.sha256 -cne [string]$ApprovedArtifact.sha256) {
+                    throw "Release package canonical artifact path '$ArtifactRelativePath' has conflicting declarations."
+                }
+            }
+            else {
+                $ExpectedArtifacts[$ArtifactRelativePath] = $ApprovedArtifact
+                [void]$ExpectedCanonicalFiles.Add($ArtifactRelativePath)
+            }
+        }
+        if ($CanonicalArtifacts.Count -ne @($ApprovedCase.artifacts).Count) {
+            throw "Release package canonical case '$CaseId' has an omitted or extra artifact declaration."
+        }
+    }
+    if ($ProjectionCases.Count -ne $SelectedCases.Count) {
+        throw 'Release package canonical Golden projection contains an unapproved case.'
+    }
+    foreach ($ApprovedCase in $Allowlist.cases) {
+        if ($ApprovedCase.directGolden -eq $true) { continue }
+        $SourceCaseId = [string]$ApprovedCase.alias.sourceCaseId
+        $Source = $SelectedCases[$SourceCaseId]
+        if ($null -eq $Source -or
+            $Source.directGolden -ne $true -or
+            [string]$Source.workflow -cne [string]$ApprovedCase.workflow) {
+            throw "Release package canonical alias '$($ApprovedCase.caseId)' lacks its exact same-workflow direct Golden source."
+        }
+    }
+    if ($SelectedCases.Count -ne 34 -or
+        $ArtifactDeclarationCount -ne 159 -or
+        $ExpectedArtifacts.Count -ne 156) {
+        throw 'Release package canonical Golden counts differ from the approved scope.'
+    }
+
+    $CanonicalRoot = Join-Path $PackageRoot $CanonicalGoldenPackagePrefix
+    $ActualCanonicalFiles = @(
+        Get-ChildItem -LiteralPath $CanonicalRoot -File -Recurse |
+            ForEach-Object { [IO.Path]::GetRelativePath($CanonicalRoot, $_.FullName).Replace('\', '/') } |
+            Sort-Object
+    )
+    $ExpectedCanonicalFileArray = @($ExpectedCanonicalFiles | Sort-Object)
+    if (Compare-Object -ReferenceObject $ExpectedCanonicalFileArray -DifferenceObject $ActualCanonicalFiles) {
+        throw 'Release package canonical Golden tree contains omitted or unapproved files.'
+    }
+
+    foreach ($ArtifactRelativePath in $ExpectedArtifacts.Keys) {
+        $ApprovedArtifact = $ExpectedArtifacts[$ArtifactRelativePath]
+        $ArtifactPackagePath = "$CanonicalGoldenPackagePrefix/$ArtifactRelativePath"
+        $ExpectedRole = if ($ArtifactRelativePath.EndsWith('.bin', [StringComparison]::OrdinalIgnoreCase)) {
+            'goldenFixture'
+        }
+        else { 'reference' }
+        $Entries = @($ReleaseManifest.files | Where-Object { [string]$_.path -ceq $ArtifactPackagePath })
+        $ArtifactPath = Join-Path $PackageRoot $ArtifactPackagePath
+        if ($Entries.Count -ne 1 -or
+            [string]$Entries[0].role -cne $ExpectedRole -or
+            [long]$Entries[0].size -ne [long]$ApprovedArtifact.size -or
+            [string]$Entries[0].sha256 -cne [string]$ApprovedArtifact.sha256 -or
+            -not (Test-Path -LiteralPath $ArtifactPath -PathType Leaf) -or
+            (Get-Item -LiteralPath $ArtifactPath).Length -ne [long]$ApprovedArtifact.size -or
+            (Get-LowerSha256 -Path $ArtifactPath) -cne [string]$ApprovedArtifact.sha256) {
+            throw "Release package canonical artifact '$ArtifactRelativePath' has incorrect bytes or role."
+        }
+        if (($ArtifactRelativePath.EndsWith('.bat', [StringComparison]::OrdinalIgnoreCase) -or
+             $ArtifactRelativePath.EndsWith('.config', [StringComparison]::OrdinalIgnoreCase)) -and
+            $ExpectedRole -cne 'reference') {
+            throw "Release package provenance '$ArtifactRelativePath' must remain inert reference material."
+        }
+    }
+
 }
 
 function Assert-AssetFileName {
@@ -282,7 +496,6 @@ try {
     if ($null -eq $manifest.files -or $manifest.files.Count -eq 0) {
         throw 'Release manifest has no file entries.'
     }
-
     if (Test-Path -LiteralPath (Join-Path $packageRoot 'NvtFwCombiner.Bootstrap.exe') -PathType Leaf) {
         throw 'Immutable Bootstrap must remain outside every version update package.'
     }
@@ -479,6 +692,16 @@ try {
     )
     if (Compare-Object -ReferenceObject $ApprovedRuntimeCatalogPackagePaths -DifferenceObject $DeclaredRuntimeCatalogPaths) {
         throw 'Release manifest runtime catalog files differ from the approved allowlist.'
+    }
+    $RequiresCanonicalGoldenReference = $true
+    if ($ManifestVersion -match '^(\d+)\.(\d+)\.(\d+)') {
+        $RequiresCanonicalGoldenReference =
+            [int]$Matches[1] -gt 1 -or
+            ([int]$Matches[1] -eq 1 -and [int]$Matches[2] -gt 0) -or
+            ([int]$Matches[1] -eq 1 -and [int]$Matches[2] -eq 0 -and [int]$Matches[3] -ge 8)
+    }
+    if ($RequiresCanonicalGoldenReference) {
+        Assert-CanonicalGoldenReference -PackageRoot $packageRoot -ReleaseManifest $manifest
     }
 
     foreach ($entry in $manifest.files) {

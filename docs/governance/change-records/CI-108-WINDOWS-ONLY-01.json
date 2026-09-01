@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 2,
+  "taskId": "CI-108-WINDOWS-ONLY-01",
+  "capability": "Run the retained protected CI topology only on Windows without changing its required checks, evidence producers, or finalizer",
+  "integrationBase": "add334124508658dbcf417b96f83d41c77391dc1",
+  "risk": "R3",
+  "kind": "release",
+  "state": "final-complete",
+  "mutablePaths": [
+    ".github/workflows/ci.yml",
+    "scripts/validate_repository.py"
+  ],
+  "implementationOwner": "ci_windows_only_implementer",
+  "searchEvidence": [
+    ".github/workflows/ci.yml already owns the five-job protected CI topology; python-worker, dotnet-build, and all dotnet-test shards use windows-latest, while only the structure job and dotnet evidence finalizer still use ubuntu-latest.",
+    "docs/ci/workflow-templates/ci.yml is the existing reviewed projection of the same topology and repeats the two Ubuntu runners; it is not a second executable workflow and remains outside capability-reuse governed-path coverage.",
+    "scripts/validate_repository.py already validates required check names, the one build plus three-shard plus finalizer topology, canonical verifier commands, separate evidence roots, action pins, and forbidden pull_request_target; extending this owner is smaller than adding another workflow validator.",
+    "CI-PR-HEAD-102-01 and test_ci_jobs_bind_one_exact_event_source_and_current_base already own the exact event-head equality, exact reviewed-base ancestry, immutable checkout source, full-history, and non-persisted credential contract; the PowerShell translation extends that owner and must preserve explicit native-command status handling and case-sensitive SHA equality.",
+    "The structure job's exact reviewed-base ancestry guard is the only Bash-specific command: it can preserve the same two git checks under pwsh. The finalizer executes Python and pinned Actions only and requires no Unix behavior.",
+    "docs/ci/pull-request-ci.md is the canonical producer/finalizer trust-boundary explanation and currently calls the finalizer Ubuntu; the ungoverned documentation projection must become platform-neutral when the runner changes."
+  ],
+  "semanticOwner": "The existing .github/workflows/ci.yml protected check topology and scripts/validate_repository.py workflow policy validator",
+  "terminalContract": "The executable CI workflow and its reviewed template projection retain exactly the five existing job keys structure, python-worker, dotnet-build, dotnet-test, and dotnet and their stable required check/evidence topology, but every runs-on value is the exact scalar windows-latest. The structure job uses pwsh, requires successful git rev-parse --verify HEAD, trims the returned identity, compares it case-sensitively with NFC_PR_HEAD_SHA, and immediately captures and rejects the native git merge-base --is-ancestor NFC_PR_BASE_SHA HEAD exit status before any later command can overwrite it. Every existing verifier mode, artifact boundary, action pin, read-only permission, timeout, draft gate, source identity, and required check name remains unchanged. The existing repository workflow validator parses both the executable CI and reviewed template and rejects any missing or extra job, missing runner, non-scalar runner, expression, self-hosted label, or other value besides windows-latest. The existing parsed ancestry test remains the executable owner of the exact-head safety contract, and the canonical CI trust-boundary document becomes platform-neutral. No new workflow, job, verifier, platform abstraction, permission, secret, production behavior, firmware fact, package identity, or release authority is added.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "review_ci_windows_only_design",
+    "outcome": "findings-incorporated",
+    "evidence": "Independent R3 re-review confirmed P0-P3 = 0 after the two P1 fail-closed test/design gaps and one P2 stale-document gap were incorporated. The design reuses CI-PR-HEAD-102-01 and its existing parsed ancestry test, requires explicit PowerShell native-command status handling plus case-sensitive exact-head comparison, extends the existing parsed repository workflow validator over the exact five-job and scalar windows-latest domain, adds behavioral negatives for arbitrary runners/topology drift, and includes the canonical trust-boundary wording update. Scoped Polytail design verdict: PASS-WITH-HUMAN-GATE; approved for implementation but not merge or release. Exact-head human workflow review, final verifier, protected Windows CI, and release-owner attestation remain mandatory."
+  },
+  "implementationHead": "ee42a88884bd99f10447e5e48196ca8d624b2f83",
+  "reviewedHead": "ee42a88884bd99f10447e5e48196ca8d624b2f83",
+  "pathStateDigest": "fd798cafe4d989a05ccb0e3bfd706314a49e212301a64525a2df0378461a00bd",
+  "finalReview": {
+    "reviewer": "review_deploy_script_design",
+    "outcome": "approved",
+    "evidence": "Exact reviewed head ee42a88884bd99f10447e5e48196ca8d624b2f83 and tree e1bc23408c1f85bb17834feee5ced3b7b814d55c contain the exact five governed Windows-only jobs with fail-closed PowerShell ancestry while topology, checks, action pins, permissions, and verifier modes remain unchanged. No P0-P2 finding remains. Full verifier, protected actual-Windows CI, exact-head human workflow review, and release-owner attestation remain release gates."
+  }
+}

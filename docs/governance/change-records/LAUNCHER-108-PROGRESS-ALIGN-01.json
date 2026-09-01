@@ -1,0 +1,34 @@
+{
+  "schemaVersion": 2,
+  "taskId": "LAUNCHER-108-PROGRESS-ALIGN-01",
+  "capability": "Align the Setup operation-status text with its progress bar and the established setup content axis at both supported launcher window sizes",
+  "integrationBase": "add334124508658dbcf417b96f83d41c77391dc1",
+  "risk": "R1",
+  "kind": "ui",
+  "state": "final-complete",
+  "mutablePaths": [
+    "src/NvtFwCombiner.DistributionLauncher/LauncherWindow.axaml"
+  ],
+  "implementationOwner": "implement_progress_align",
+  "searchEvidence": [
+    "LauncherWindow.axaml gives OperationProgressText a left and right margin of 2 pixels while OperationProgressBar and SourceStatusText have no horizontal inset.",
+    "DistributionLauncherLayoutTests.SetupOperationProgressRendersActualPercentAndIndeterminateStages currently asserts the two-pixel margin but does not compare rendered left-edge geometry.",
+    "The launcher declares 960 by 640 as its default size and 760 by 560 as its minimum supported size, and the existing UI smoke already exercises both sizes."
+  ],
+  "semanticOwner": "NvtFwCombiner.DistributionLauncher LauncherWindow.axaml setup progress presentation",
+  "terminalContract": "Whenever Setup operation progress is visible, OperationProgressText and OperationProgressBar share the same rendered left edge within 0.5 device-independent pixels at both 960x640 and 760x560, while the existing nine-pixel vertical spacing, progress height, setup/action geometry, progress semantics, accessibility identifiers, status wording, commands, package behavior, update behavior, and firmware semantics remain unchanged.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": null,
+    "outcome": "not-required",
+    "evidence": ""
+  },
+  "implementationHead": "ee42a88884bd99f10447e5e48196ca8d624b2f83",
+  "reviewedHead": "ee42a88884bd99f10447e5e48196ca8d624b2f83",
+  "pathStateDigest": "45a1e5d5163376d6802c9605b130449d438ee4f1656dc932155df54bb86c0116",
+  "finalReview": {
+    "reviewer": "review_v108_identity_design",
+    "outcome": "approved",
+    "evidence": "Exact head ee42a88884bd99f10447e5e48196ca8d624b2f83 and tree e1bc23408c1f85bb17834feee5ced3b7b814d55c change only the OperationProgressText horizontal margin to align text and bar left edges. Focused geometry covers 960x640 and 760x560 while vertical spacing, semantics, accessibility, commands, and runtime behavior remain unchanged. Structure verification passed; packaged visible smoke remains."
+  }
+}

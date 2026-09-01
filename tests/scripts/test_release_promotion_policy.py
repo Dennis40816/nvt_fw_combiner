@@ -763,6 +763,7 @@ class ReleasePromotionPolicyTests(unittest.TestCase):
         arguments = {
             **self.candidate_arguments(),
             "owner_self_approval_exception": True,
+            "source_version": "1.0.8",
         }
 
         MODULE.validate_candidate_context(snapshot, **arguments)
@@ -786,11 +787,41 @@ class ReleasePromotionPolicyTests(unittest.TestCase):
             ("workflowActor", "other-user", "identity differs"),
             ("ownerSelfApprovalException", False, "not recorded"),
             ("reviewDecision", "CHANGES_REQUESTED", "not approved"),
+            ("baseRefName", "other", "target the selected release source branch"),
+            ("mergeCommitSha", "5" * 40, "merge commit is not the candidate"),
+            ("headTree", "f" * 40, "tree differs from the candidate tree"),
+            ("requiredChecks", [], "no required checks"),
+            (
+                "requiredChecks",
+                [{"name": "dotnet / build-test", "bucket": "fail"}],
+                "required checks are not passing",
+            ),
         ):
             with self.subTest(key=key):
                 mutated = {**snapshot, key: value}
                 with self.assertRaisesRegex(ValueError, message):
                     MODULE.validate_candidate_context(mutated, **arguments)
+
+        for overrides, message in (
+            ({"requested_sha": "5" * 40}, "requested and checkout source SHAs"),
+            (
+                {"requested_sha": "5" * 40, "source_sha": "5" * 40},
+                "main release source must be the current protected main SHA",
+            ),
+            ({"workflow_sha": "5" * 40}, "current protected main SHA"),
+            (
+                {"workflow_sha": "5" * 40, "main_sha": "5" * 40},
+                "main release source must be the current protected main SHA",
+            ),
+        ):
+            with self.subTest(overrides=overrides):
+                with self.assertRaisesRegex(ValueError, message):
+                    MODULE.validate_candidate_context(
+                        snapshot, **{**arguments, **overrides}
+                    )
+
+        required_arguments = {**arguments, "source_version": "1.2.0"}
+        MODULE.validate_candidate_context(snapshot, **required_arguments)
 
         for key, value, message in (
             ("codexReview", None, "no Codex review evidence"),
@@ -809,11 +840,21 @@ class ReleasePromotionPolicyTests(unittest.TestCase):
                 {**snapshot["codexReview"], "source": "unknown"},
                 "Codex review source is invalid",
             ),
+            (
+                "codexReview",
+                {**snapshot["codexReview"], "reviewer": "other-reviewer"},
+                "Codex reviewer is invalid",
+            ),
+            (
+                "codexReview",
+                {**snapshot["codexReview"], "submittedAt": ""},
+                "Codex review has no submission time",
+            ),
         ):
             with self.subTest(key=key):
                 mutated = {**snapshot, key: value}
                 with self.assertRaisesRegex(ValueError, message):
-                    MODULE.validate_candidate_context(mutated, **arguments)
+                    MODULE.validate_candidate_context(mutated, **required_arguments)
 
         issue_comment = {
             **snapshot["codexReview"],
@@ -821,7 +862,7 @@ class ReleasePromotionPolicyTests(unittest.TestCase):
             "reviewedCommitPrefix": ("4" * 40)[:10],
         }
         MODULE.validate_candidate_context(
-            {**snapshot, "codexReview": issue_comment}, **arguments
+            {**snapshot, "codexReview": issue_comment}, **required_arguments
         )
         with self.assertRaisesRegex(ValueError, "issue comment is stale"):
             MODULE.validate_candidate_context(
@@ -832,8 +873,47 @@ class ReleasePromotionPolicyTests(unittest.TestCase):
                         "reviewedCommitPrefix": "5" * 10,
                     },
                 },
-                **arguments,
+                **required_arguments,
             )
+
+    def test_owner_codex_review_deferral_is_exactly_version_bounded(self) -> None:
+        snapshot = valid_snapshot()
+        snapshot["reviewDecision"] = ""
+        snapshot["approvals"] = []
+        snapshot["authorLogin"] = "release-owner"
+        snapshot["repositoryOwner"] = "release-owner"
+        snapshot["workflowActor"] = "release-owner"
+        snapshot["ownerSelfApprovalException"] = True
+        snapshot["codexReview"] = None
+        arguments = {
+            **self.candidate_arguments(),
+            "owner_self_approval_exception": True,
+        }
+
+        for source_version in ("1.0.8", "1.0.9", "1.1.0", "1.1.999"):
+            with self.subTest(source_version=source_version, expected="accepted"):
+                MODULE.validate_candidate_context(
+                    snapshot, **{**arguments, "source_version": source_version}
+                )
+
+        for source_branch, source_version in (
+            ("0.9.19", "0.9.19"),
+            ("main", "1.0.7"),
+            ("main", "1.2.0"),
+            ("main", "1.2.1"),
+            ("main", "2.0.0"),
+        ):
+            with self.subTest(source_version=source_version, expected="rejected"):
+                candidate_snapshot = {**snapshot, "baseRefName": source_branch}
+                with self.assertRaisesRegex(ValueError, "no Codex review evidence"):
+                    MODULE.validate_candidate_context(
+                        candidate_snapshot,
+                        **{
+                            **arguments,
+                            "source_branch": source_branch,
+                            "source_version": source_version,
+                        },
+                    )
 
     def test_rejects_codex_as_an_ordinary_pr_approval(self) -> None:
         snapshot = valid_snapshot()

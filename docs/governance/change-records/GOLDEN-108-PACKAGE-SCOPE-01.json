@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 2,
+  "taskId": "GOLDEN-108-PACKAGE-SCOPE-01",
+  "capability": "Authorize the exact self-contained canonical Golden reference scope redistributed in the v1.0.8 Windows package",
+  "integrationBase": "add334124508658dbcf417b96f83d41c77391dc1",
+  "risk": "R3",
+  "kind": "release",
+  "state": "final-complete",
+  "mutablePaths": [
+    "docs/contracts/canonical-golden-manifest-v1.md",
+    "scripts/canonical_golden_validation.py",
+    "testdata/golden/canonical/README.md",
+    "testdata/golden/release-canonical-v1.json"
+  ],
+  "implementationOwner": "canonical-golden-allowlist-implementer",
+  "searchEvidence": [
+    "The repository contains 25 direct Golden cases, 12 fact-scoped aliases, and two directEvidence input-only cases across Standard Merge, AB Merge, and CtrlRAM Replace; the former release allowlist selects only ten Standard Merge cases.",
+    "Three aliases depend on the two input-only cases and cannot form self-contained packaged authority, so the exact release scope is 25 direct Golden plus nine aliases whose source direct Golden is also shipped.",
+    "The 34 selected cases retain 159 artifact declarations over 156 unique paths; the two input-only cases and three dependent aliases remain repository-only evidence allocated to a 1.1.x evidence-closure TODO."
+  ],
+  "semanticOwner": "The versioned release-canonical Golden allowlist owns redistribution admission while canonical case manifests and canonical_golden_validation.py retain evidence identity and validation truth",
+  "terminalContract": "Add one checked-in, versioned exact release allowlist for all and only 25 direct Golden cases and nine self-contained fact-scoped aliases across Standard Merge, AB Merge, and CtrlRAM Replace. Pin the canonical README exact-byte SHA-256 and every selected case ID, manifest path, manifest exact-byte SHA-256, workflow, disposition, alias source, and all 159 logical artifact declarations with exact path/size/SHA-256; enforce 156 unique paths. Record the owner's 2026-09-01 reference-redistribution authorization without rewriting historical case-level no-redistribution evidence or implying support promotion/full-byte parity beyond each declared case scope. Exclude the two directEvidence input-only cases and their three dependent aliases (nt51917-fw132-cascade2-nt51927-alias, nt51917-fw140-cascade3-nt51927-alias, nt51928-fw132-non-nb-cascade2-nt51927-alias), plus diagnostics, owner-handoff/private/quarantine material, retired ICs, generated output, future unapproved cases, and every unlisted path. Preserve all excluded repository evidence and every existing firmware/expected byte and hash. Require alias source to be a same-workflow selected direct Golden. Treat one BAT and one CONFIG only as inert hash-pinned provenance reference; they never become Golden runtime, processor, external tool, or command authority. Runtime profiles, capability policy, support, firmware operations/ranges, CRC/header behavior, and output naming remain unchanged. Focused canonical validation, independent exact-head evidence review, and an exact-head firmware-owner redistribution attestation are mandatory.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "review_all_golden_package",
+    "outcome": "findings-incorporated",
+    "evidence": "Independent R3 evidence review selected the only self-contained closure: 25 direct Golden plus nine aliases, excluded two input-only sources and their three dependent aliases, fixed 159 declarations/156 paths, rejected tree-sweep or runtime-derived release authority, and required an explicit newer redistribution allowlist without changing Golden identity or support semantics."
+  },
+  "implementationHead": "ee42a88884bd99f10447e5e48196ca8d624b2f83",
+  "reviewedHead": "ee42a88884bd99f10447e5e48196ca8d624b2f83",
+  "pathStateDigest": "f2aa5f325a6687df3df586c95883a90b01bdc51d7b7afcd6b14add3bfa158033",
+  "finalReview": {
+    "reviewer": "review_deploy_script_design",
+    "outcome": "approved",
+    "evidence": "Exact reviewed head ee42a88884bd99f10447e5e48196ca8d624b2f83 and tree e1bc23408c1f85bb17834feee5ced3b7b814d55c preserve the declared 34 release cases, 159 logical declarations, and 156 unique paths; input-only and dependent aliases remain excluded and BAT/CONFIG remain inert hash-pinned references. No P0-P2 finding remains. Full verifier, frozen-package projection evidence, and firmware-owner redistribution attestation remain release gates."
+  }
+}

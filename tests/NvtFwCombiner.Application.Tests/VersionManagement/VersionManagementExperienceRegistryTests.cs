@@ -9,6 +9,272 @@ public sealed partial class VersionManagementExperienceTests
     private const string SecondRegistryDigest =
         "2222222222222222222222222222222222222222222222222222222222222222";
 
+    /// <summary>All-manual Registry authority is readmitted under the lease with zero package I/O.</summary>
+    [Fact]
+    public async Task RegistryAutomaticAllManualReadmitsAuthorityAndAdvancesOnlyExistingCompatibleState()
+    {
+        string latest = SourcePath("catalog-v2-latest");
+        VersionManagerState initial = State(
+            [Admission("1.0.6")],
+            active: "1.0.6",
+            lastKnownGood: "1.0.6",
+            source: latest,
+            sourceRegistryState: new(1, FirstRegistryDigest, isManualPin: false));
+        var stateStore = new LeaseCountingStateStore(initial);
+        var repository = new CountingRepository();
+        UpdateCatalogSnapshot catalog = CatalogV2(("1.0.8", "manual-only"));
+        var catalogResult = new UpdateCatalogLoadResult(
+            catalog,
+            UpdateCatalogLoadIssue.None,
+            new(2, CatalogContentDigest));
+        using VersionManagementExperience experience = VersionManagementExperienceTestFactory.Create(
+            ManagedAppVersion.Parse("1.0.6"),
+            "managed-root",
+            stateStore,
+            new PathCatalogSource((latest, catalogResult)),
+            repository,
+            new SequenceRegistrySource(
+                RegistryWithPublication("1.0.8", 2, CatalogContentDigest, 2, SecondRegistryDigest,
+                    (latest, UpdateSourceRegistryEntryStatus.Latest)),
+                RegistryWithPublication("1.0.8", 2, CatalogContentDigest, 2, SecondRegistryDigest,
+                    (latest, UpdateSourceRegistryEntryStatus.Latest))));
+
+        VersionManagementSnapshot result = await experience.CheckAsync(
+            isAutomatic: true,
+            TestContext.Current.CancellationToken);
+
+        Assert.Empty(repository.VerifiedVersions);
+        Assert.Equal(1, stateStore.SaveCount);
+        Assert.Equal(new VersionSourceRegistryState(2, SecondRegistryDigest, false), stateStore.State.SourceRegistryState);
+        VersionManagerState expected = initial.WithUpdateSource(
+            latest,
+            new(2, SecondRegistryDigest, isManualPin: false));
+        Assert.True(expected.CreateDurableSnapshotToken().Matches(
+            stateStore.State.CreateDurableSnapshotToken()));
+        Assert.Null(result.Catalog);
+        Assert.Null(result.VerifiedCandidate);
+        Assert.Equal(VersionSourceStatus.Connected, result.SourceStatus);
+        Assert.Equal(UpdateCatalogLoadIssue.None, result.CatalogIssue);
+        Assert.False(result.ShouldPromptForUpdate);
+        Assert.Equal(VersionRegistryStatus.LatestSelected, result.RegistryStatus);
+        Assert.Equal(UpdateSourceRegistryIssue.None, result.RegistryIssue);
+    }
+
+    /// <summary>Registry automatic checks admit only the newest eligible notify row before package I/O.</summary>
+    [Fact]
+    public async Task RegistryAutomaticMixedCatalogVerifiesAndPublishesOnlyNewestNotifyRow()
+    {
+        string latest = SourcePath("catalog-v2-latest");
+        VersionManagerState initial = State(
+            [Admission("1.0.6")],
+            active: "1.0.6",
+            lastKnownGood: "1.0.6");
+        var stateStore = new MemoryStateStore(initial);
+        var repository = new CountingRepository();
+        UpdateCatalogSnapshot catalog = CatalogV2(
+            ("1.0.9", "manual-only"),
+            ("1.0.8", "notify"),
+            ("1.0.7", "manual-only"));
+        var catalogResult = new UpdateCatalogLoadResult(
+            catalog,
+            UpdateCatalogLoadIssue.None,
+            new(2, CatalogContentDigest));
+        UpdateSourceRegistryLoadResult registry = RegistryWithPublication(
+            "1.0.9",
+            2,
+            CatalogContentDigest,
+            2,
+            SecondRegistryDigest,
+            (latest, UpdateSourceRegistryEntryStatus.Latest));
+        using VersionManagementExperience experience = VersionManagementExperienceTestFactory.Create(
+            ManagedAppVersion.Parse("1.0.6"),
+            "managed-root",
+            stateStore,
+            new PathCatalogSource((latest, catalogResult)),
+            repository,
+            new SequenceRegistrySource(registry, registry));
+
+        VersionManagementSnapshot result = await experience.CheckAsync(
+            isAutomatic: true,
+            TestContext.Current.CancellationToken);
+
+        Assert.Equal(
+            [ManagedAppVersion.Parse("1.0.8"), ManagedAppVersion.Parse("1.0.8")],
+            repository.VerifiedVersions);
+        UpdateCatalogVersionSnapshot visible = Assert.Single(result.Catalog!.Versions);
+        Assert.Equal(ManagedAppVersion.Parse("1.0.8"), visible.Version);
+        Assert.Equal(UpdateNotificationPolicy.Notify, visible.NotificationPolicy);
+        Assert.Equal(visible.Version, result.VerifiedCandidate!.Version);
+        Assert.True(result.ShouldPromptForUpdate);
+        Assert.Equal(latest, stateStore.State.UpdateSource);
+        Assert.Equal(
+            new VersionSourceRegistryState(2, SecondRegistryDigest, isManualPin: false),
+            stateStore.State.SourceRegistryState);
+    }
+
+    /// <summary>All-manual authority with no effective source never writes a v1.0.7-incompatible state.</summary>
+    [Fact]
+    public async Task RegistryAutomaticAllManualWithNullSourceDoesNotSaveRegistryState()
+    {
+        string latest = SourcePath("catalog-v2-latest");
+        ManagedAppVersion version = ManagedAppVersion.Parse("1.0.6");
+        VersionManagerState initial = VersionManagerState.Create(
+            null,
+            version,
+            version,
+            [Admission("1.0.6")],
+            null,
+            null,
+            false,
+            managedRootIdentity: "managed-root");
+        var stateStore = new LeaseCountingStateStore(initial);
+        var repository = new CountingRepository();
+        var catalogResult = new UpdateCatalogLoadResult(
+            CatalogV2(("1.0.8", "manual-only")),
+            UpdateCatalogLoadIssue.None,
+            new(2, CatalogContentDigest));
+        using VersionManagementExperience experience = VersionManagementExperienceTestFactory.Create(
+            version,
+            "managed-root",
+            stateStore,
+            new PathCatalogSource((latest, catalogResult)),
+            repository,
+            new SequenceRegistrySource(
+                RegistryWithPublication("1.0.8", 2, CatalogContentDigest, 2, SecondRegistryDigest,
+                    (latest, UpdateSourceRegistryEntryStatus.Latest)),
+                RegistryWithPublication("1.0.8", 2, CatalogContentDigest, 2, SecondRegistryDigest,
+                    (latest, UpdateSourceRegistryEntryStatus.Latest))));
+
+        VersionManagementSnapshot result = await experience.CheckAsync(
+            isAutomatic: true,
+            TestContext.Current.CancellationToken);
+
+        Assert.Empty(repository.VerifiedVersions);
+        Assert.Equal(0, stateStore.SaveCount);
+        Assert.Same(initial, stateStore.State);
+        Assert.Null(stateStore.State.UpdateSource);
+        Assert.Null(stateStore.State.SourceRegistryState);
+        Assert.Null(result.Catalog);
+        Assert.Equal(VersionSourceStatus.Connected, result.SourceStatus);
+    }
+
+    /// <summary>Missing Registry coupling and selected-root mismatch both admit authority without saving.</summary>
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task RegistryAutomaticAllManualIncompatibleCouplingDoesNotSave(bool sourceMismatch)
+    {
+        string latest = SourcePath("catalog-v2-latest");
+        string effectiveSource = sourceMismatch ? SourcePath("other") : latest;
+        VersionManagerState initial = State(
+            [Admission("1.0.6")],
+            active: "1.0.6",
+            lastKnownGood: "1.0.6",
+            source: effectiveSource,
+            sourceRegistryState: sourceMismatch
+                ? new(1, FirstRegistryDigest, isManualPin: false)
+                : null);
+        var stateStore = new LeaseCountingStateStore(initial);
+        var catalogResult = new UpdateCatalogLoadResult(
+            CatalogV2(("1.0.8", "manual-only")),
+            UpdateCatalogLoadIssue.None,
+            new(2, CatalogContentDigest));
+        UpdateSourceRegistryLoadResult registry = RegistryWithPublication(
+            "1.0.8",
+            2,
+            CatalogContentDigest,
+            2,
+            SecondRegistryDigest,
+            (latest, UpdateSourceRegistryEntryStatus.Latest));
+        using VersionManagementExperience experience = VersionManagementExperienceTestFactory.Create(
+            ManagedAppVersion.Parse("1.0.6"),
+            "managed-root",
+            stateStore,
+            new PathCatalogSource((latest, catalogResult)),
+            new CountingRepository(),
+            new SequenceRegistrySource(registry, registry));
+
+        VersionManagementSnapshot result = await experience.CheckAsync(
+            isAutomatic: true,
+            TestContext.Current.CancellationToken);
+
+        Assert.Equal(0, stateStore.SaveCount);
+        Assert.Same(initial, stateStore.State);
+        Assert.Null(result.Catalog);
+        Assert.Equal(VersionSourceStatus.Connected, result.SourceStatus);
+    }
+
+    /// <summary>Every compatibility guard rejects an all-manual authority-only state write.</summary>
+    [Fact]
+    public void AllManualAuthoritySaveRequiresSourceExistingRegistryNonPinAndMatchingRoot()
+    {
+        string selected = SourcePath("selected");
+        string other = SourcePath("other");
+        ManagedAppVersion version = ManagedAppVersion.Parse("1.0.6");
+        ManagedVersionAdmission admission = Admission("1.0.6");
+        VersionManagerState nullSource = VersionManagerState.Create(
+            null, version, version, [admission], null, null, false, managedRootIdentity: "managed-root");
+        VersionManagerState missingRegistry = VersionManagerState.Create(
+            selected, version, version, [admission], null, null, false, managedRootIdentity: "managed-root");
+        VersionManagerState manualPin = VersionManagerState.Create(
+            selected, version, version, [admission], null, null, false,
+            managedRootIdentity: "managed-root", sourceRegistryState: new(1, FirstRegistryDigest, true));
+        VersionManagerState mismatch = VersionManagerState.Create(
+            other, version, version, [admission], null, null, false,
+            managedRootIdentity: "managed-root", sourceRegistryState: new(1, FirstRegistryDigest, false));
+        VersionManagerState compatible = VersionManagerState.Create(
+            selected, version, version, [admission], null, null, false,
+            managedRootIdentity: "managed-root", sourceRegistryState: new(1, FirstRegistryDigest, false));
+
+        Assert.False(VersionManagementExperience.CanPersistAllManualRegistryAuthority(nullSource, selected));
+        Assert.False(VersionManagementExperience.CanPersistAllManualRegistryAuthority(missingRegistry, selected));
+        Assert.False(VersionManagementExperience.CanPersistAllManualRegistryAuthority(manualPin, selected));
+        Assert.False(VersionManagementExperience.CanPersistAllManualRegistryAuthority(mismatch, selected));
+        Assert.True(VersionManagementExperience.CanPersistAllManualRegistryAuthority(compatible, selected));
+    }
+
+    /// <summary>A policy-only correction during Registry readmission rejects the in-flight check.</summary>
+    [Theory]
+    [InlineData("notify", "manual-only", 1)]
+    [InlineData("manual-only", "notify", 0)]
+    public async Task RegistryPolicyCorrectionDuringReadmissionRejectsWithoutStateMutation(
+        string initialPolicy,
+        string correctedPolicy,
+        int expectedVerificationCount)
+    {
+        string latest = SourcePath("catalog-v2-latest");
+        VersionManagerState initial = State(
+            [Admission("1.0.6")],
+            active: "1.0.6",
+            lastKnownGood: "1.0.6");
+        var stateStore = new MemoryStateStore(initial);
+        var catalogs = new SequencePathCatalogSource(
+            latest,
+            CatalogV2(("1.0.8", initialPolicy)),
+            CatalogV2(("1.0.8", correctedPolicy)));
+        var repository = new CountingRepository();
+        using VersionManagementExperience experience = VersionManagementExperienceTestFactory.Create(
+            ManagedAppVersion.Parse("1.0.6"),
+            "managed-root",
+            stateStore,
+            catalogs,
+            repository,
+            new SequenceRegistrySource(
+                RegistryWithPublication("1.0.8", 1, CatalogContentDigest, 2, SecondRegistryDigest,
+                    (latest, UpdateSourceRegistryEntryStatus.Latest)),
+                RegistryWithPublication("1.0.8", 1, CatalogContentDigest, 2, SecondRegistryDigest,
+                    (latest, UpdateSourceRegistryEntryStatus.Latest))));
+
+        VersionManagementSnapshot result = await experience.CheckAsync(
+            isAutomatic: true,
+            TestContext.Current.CancellationToken);
+
+        Assert.Equal(expectedVerificationCount, repository.VerifiedVersions.Count);
+        Assert.Equal(0, stateStore.SaveCount);
+        Assert.Same(initial, stateStore.State);
+        Assert.Equal(UpdateSourceRegistryIssue.RegistryChanged, result.RegistryIssue);
+    }
+
     /// <summary>Latest then ordered available is the only automatic candidate order.</summary>
     [Fact]
     public async Task RegistryUsesLatestThenAvailableAndNeverProbesDeprecated()
@@ -615,6 +881,48 @@ public sealed partial class VersionManagementExperienceTests
             new SequenceRegistrySource(Registry(
                 9,
                 FirstRegistryDigest,
+                (latest, UpdateSourceRegistryEntryStatus.Latest))));
+
+        VersionManagementSnapshot result = await experience.CheckAsync(
+            isAutomatic: false,
+            TestContext.Current.CancellationToken);
+
+        Assert.Equal(0, stateStore.SaveCount);
+        Assert.Same(changed, stateStore.State);
+        Assert.Equal(UpdateSourceRegistryIssue.StateUnavailable, result.RegistryIssue);
+    }
+
+    /// <summary>Revision-only and digest-only durable Registry drift reject lease-held readmission.</summary>
+    [Theory]
+    [InlineData(2, FirstRegistryDigest)]
+    [InlineData(1, SecondRegistryDigest)]
+    public async Task DurableRegistryAuthorityChangeDuringReadmissionCausesZeroMutation(
+        long changedRevision,
+        string changedDigest)
+    {
+        string latest = SourcePath("latest");
+        VersionManagerState initial = State(
+            [Admission("0.10.5")],
+            active: "0.10.5",
+            lastKnownGood: "0.10.5",
+            source: latest,
+            sourceRegistryState: new(1, FirstRegistryDigest, false));
+        VersionManagerState changed = State(
+            [Admission("0.10.5")],
+            active: "0.10.5",
+            lastKnownGood: "0.10.5",
+            source: latest,
+            sourceRegistryState: new(changedRevision, changedDigest, false));
+        var stateStore = new ReloadChangedStateStore(initial, changed);
+        using VersionManagementExperience experience = VersionManagementExperienceTestFactory.Create(
+            ManagedAppVersion.Parse("0.10.5"),
+            "managed-root",
+            stateStore,
+            new PathCatalogSource((latest, new(Catalog("0.10.6"), UpdateCatalogLoadIssue.None))),
+            new HealthyRepository(),
+            new SequenceRegistrySource(Registry(
+                3,
+                new string('3', 64),
                 (latest, UpdateSourceRegistryEntryStatus.Latest))));
 
         VersionManagementSnapshot result = await experience.CheckAsync(

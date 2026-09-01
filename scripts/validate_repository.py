@@ -15,6 +15,8 @@ from pathlib import Path, PurePosixPath
 from typing import Any, Iterable
 from urllib.parse import unquote
 
+import yaml
+
 from ab_merge_fixture_validation import validate_ab_merge_golden_fixtures
 from canonical_golden_validation import (
     validate_canonical_golden,
@@ -1277,11 +1279,54 @@ def validate_action_pins_in(path: Path, errors: list[str]) -> None:
         errors.append(f"pull_request_target is forbidden: {path.relative_to(ROOT)}")
 
 
+def _validate_windows_only_ci_topology(path: Path, errors: list[str]) -> None:
+    path_label = (
+        path.relative_to(ROOT).as_posix() if path.is_relative_to(ROOT) else path.name
+    )
+    expected_jobs = {
+        "structure",
+        "python-worker",
+        "dotnet-build",
+        "dotnet-test",
+        "dotnet",
+    }
+    try:
+        workflow = yaml.safe_load(path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeError, yaml.YAMLError) as error:
+        errors.append(f"cannot parse CI workflow {path_label}: {error}")
+        return
+
+    if not isinstance(workflow, dict) or not isinstance(workflow.get("jobs"), dict):
+        errors.append(f"CI workflow must declare a parsed jobs mapping: {path_label}")
+        return
+
+    jobs = workflow["jobs"]
+    if set(jobs) != expected_jobs:
+        errors.append(
+            f"CI workflow must retain exactly these jobs in {path_label}: "
+            f"{', '.join(sorted(expected_jobs))}"
+        )
+        return
+
+    for job_name in sorted(expected_jobs):
+        job = jobs[job_name]
+        runner = job.get("runs-on") if isinstance(job, dict) else None
+        if not isinstance(runner, str) or runner != "windows-latest":
+            errors.append(
+                f"CI job {job_name} must use the scalar windows-latest runner in "
+                f"{path_label}"
+            )
+
+
 def validate_workflows(errors: list[str]) -> None:
     for base in (ROOT / ".github/workflows", ROOT / "docs/ci/workflow-templates"):
         if base.is_dir():
             for path in sorted(base.glob("*.yml")):
                 validate_action_pins_in(path, errors)
+    _validate_windows_only_ci_topology(ROOT / ".github/workflows/ci.yml", errors)
+    _validate_windows_only_ci_topology(
+        ROOT / "docs/ci/workflow-templates/ci.yml", errors
+    )
     ci = (ROOT / ".github/workflows/ci.yml").read_text(encoding="utf-8")
     for name in ("policy / polytail", "python-worker / verify", "dotnet / build-test"):
         if f"name: {name}" not in ci:

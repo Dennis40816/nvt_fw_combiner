@@ -1,0 +1,9 @@
+{
+  "schemaVersion": 1,
+  "taskId": "CI-108-DOTNET-TEST-TIMEOUT-01",
+  "authorityType": "release-owner",
+  "reviewedHead": "71cd4cdcca278cda8d823eee8615e8754b00a8b1",
+  "decision": "approved",
+  "reviewer": "Dennis Liu (release owner)",
+  "evidence": "The release owner repeatedly directed completion and formal publication of v1.0.8 as quickly as the mandatory gates allow, approved the fast-release path, authorized direct release after a bounded correction, and required the agent to avoid further unnecessary local reruns. This attestation approves exact final-evidence head 71cd4cdcca278cda8d823eee8615e8754b00a8b1 for the exact reviewed implementation 2f4591387f80328771530ee537b8d51f3ee620d7: the existing Windows dotnet-test matrix and its existing documentation projection each change only timeout-minutes from 20 to 30 after protected run 33451527230 proved the former ceiling canceled core evidence at 20 minutes. Independent design and exact-head reviews found P0-P3 equal to zero and preserved every other timeout, topology, runner, permission, verifier command, test selection, artifact contract and finalizer behavior. This approval changes no product, firmware, package, support or release permission and does not waive successful protected Windows CI, canonical verification, merge/tree identity, package construction, smoke, canary, tag, Release or publication gates."
+}

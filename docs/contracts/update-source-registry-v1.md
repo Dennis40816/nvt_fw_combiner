@@ -61,7 +61,8 @@ a higher revision can never replace that authority.
 `catalogPublication` contains exactly `latestVersion`,
 `catalogSchemaVersion`, and lowercase `catalogSha256`. They are consistency
 assertions: the selected Catalog's first version, wire schema, and exact raw
-bytes must match all three before candidate/package admission continues.
+bytes must match all three before package/source candidate admission or ADR
+0066's bounded authority-publication admission continues.
 `publishedAtUtc` is audit/display metadata only. The Registry does not contain
 the complete version list, package paths or hashes, release notes, or a
 minimum-supported-version policy; those remain under the existing Catalog and
@@ -86,6 +87,24 @@ Complete catalog publication identity is the ordered value sequence of every
 entry's Version, PublishedAt, PackagePath, PackageSize, PackageSha256,
 ReleaseManifestSha256, and ReleaseNotes. A change to any non-newest entry or
 release note also rejects the commit.
+
+ADR 0066 adds one non-candidate exception for an automatic Catalog v2 check
+whose admitted newer entries are all `manual-only`. It performs zero package
+I/O, repeats exact Registry/Catalog authority admission under the writer lease,
+and confirms the same complete Catalog publication plus the absence of an
+eligible `notify` row. Effective notification policy participates in this
+first/second publication equality. This is authority-publication admission,
+not a package/source candidate, and it never assigns an effective source.
+
+That branch may persist only accepted Registry revision/digest when the
+reloaded state already has a normalized non-null effective source, an existing
+Registry state with `IsManualPin = false`, and the selected entry's source root
+path-equals that effective source. It preserves every other durable field. A
+null source, missing Registry state, manual pin, or source mismatch performs no
+durable save and still returns the existing connected/no-candidate result.
+Consequently, before the first explicit package/source admission, the current
+two reads prevent within-check rollback/TOCTOU but no high-watermark advancement
+is remembered across restart.
 
 The live Registry document and its route entries are external operator routing
 state. They are intentionally
@@ -204,6 +223,9 @@ prior pin and source unchanged.
 
 Registry state requires one non-empty, fully qualified, already normalized
 effective source. Revision zero/null digest is valid only for a manual pin.
+v1.0.8 preserves v1.0.7 backward-read compatibility by never serializing a
+non-null Registry state with a null effective source; the ADR 0066 all-manual
+automatic branch performs no save in that case.
 ADR 0056 classifies manual source, registry selection, and Resume commits as
 application-state mutations; any pending launcher transaction fences them even
 while the OS lease is temporarily free.
@@ -264,4 +286,5 @@ remain version 2. A first manual pin uses revision zero/null digest; a later pin
 preserves the accepted revision/digest. No sidecar exists. This keeps one atomic
 file, one state-path lease, and one writer. Reverse reading a version-2 state
 with internal `0.10.x` builds is unsupported; `1.0.0` is the first distributed
-managed baseline.
+managed baseline. The released v1.0.7 reader remains supported: v1.0.8 never
+writes the null-source/non-null-Registry combination that reader rejects.

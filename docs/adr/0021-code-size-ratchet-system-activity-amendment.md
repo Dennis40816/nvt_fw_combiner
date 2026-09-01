@@ -403,3 +403,31 @@ runtime, 5 Domain/Profiles, 11,261 Application, 1,661
 Bootstrap/CLI/Desktop/Launcher, and 15,248
 Infrastructure/Contracts/worker/Platform above the frozen base ratchets. This
 R3 allowance is exact and non-transferable; any later deletion lowers it.
+
+## 2026-09-01 Catalog v2 notification-policy delivery
+
+ARCH-108-CATALOG-V2-01 extends the existing managed-version owners with a
+strict, distinct Catalog v2 document and exact `manual-only` / `notify`
+selection while retaining Catalog v1 backward readability. Application owns
+notification selection and durable Registry-state compatibility;
+Infrastructure keeps one source adapter and source-generated JSON projection.
+The fixed v2 and v1 filenames now require their matching schema and fail
+closed on a cross-named document, while an exact Registry-selected path keeps
+the existing content-based schema dispatch. No second serializer, reader,
+selection policy, persistence owner, or verifier is introduced.
+
+Full production is 136,381 nonblank lines and runtime production is 98,551.
+Domain plus Profiles remains 20,632; Application is 42,197; Bootstrap, CLI,
+Desktop and Launcher remains 5,039; Infrastructure, Contracts, worker and
+Platform is 30,683. Relative to the v1.0.7 checkpoint this is +325
+full-production/runtime lines: +246 Application and +79 Infrastructure, with
+every other slice unchanged. The four runtime slices sum exactly to 98,551.
+
+The executable general production threshold becomes 136,381. Allowances become
+exactly 33,485 full production, 28,495 runtime, 5 Domain/Profiles, 11,507
+Application, 1,661 Bootstrap/CLI/Desktop/Launcher, and 15,327
+Infrastructure/Contracts/worker/Platform above the frozen base ratchets. This
+named R2 allowance is exact, descending, and non-transferable; any later
+simplification lowers it. It changes no firmware profile, range, mutation
+order, output byte, CRC/header, processor, naming, support, Golden expected
+bytes, package payload, Registry routing, UI behavior, or release permission.

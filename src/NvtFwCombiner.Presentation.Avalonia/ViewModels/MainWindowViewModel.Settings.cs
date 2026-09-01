@@ -7,7 +7,7 @@ internal sealed partial class MainWindowViewModel
     public SettingsViewModel Settings { get; }
 
     [ObservableProperty]
-    public partial string SelectedTheme { get; set; } = "System";
+    public partial string SelectedTheme { get; set; } = ShellPreferenceSnapshot.Default.Theme;
 
     [ObservableProperty]
     public partial string SelectedLanguage { get; set; } = "English";

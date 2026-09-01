@@ -21,6 +21,34 @@ This repository uses protected `main`, version integration branches named with t
 8. Run the final gate selected by `AGENTS.md`: `python scripts/verify.py --all` for `R1`-`R3`, or `python scripts/verify.py --structure-only` for a qualifying `R0` documentation/governance-only change.
 9. Merge feature work to the version branch, then open the final PR from that version branch to `main` using a Conventional Commit style title.
 
+## Fixed test area
+
+Create one absolute test root outside the repository once and persist it as the
+user-level `NFC_TEST_AREA_ROOT`. On Windows the canonical local root is
+`D:\NvtFwCombiner-TestArea` when that drive is available:
+
+```powershell
+$testArea = 'D:\NvtFwCombiner-TestArea'
+New-Item -ItemType Directory -Force $testArea, (Join-Path $testArea 'temp')
+[Environment]::SetEnvironmentVariable('NFC_TEST_AREA_ROOT', $testArea, 'User')
+```
+
+Every new PowerShell process explicitly loads the declaration and pins all
+ambient temporary paths before a verifier or direct narrow test:
+
+```powershell
+$env:NFC_TEST_AREA_ROOT = [Environment]::GetEnvironmentVariable('NFC_TEST_AREA_ROOT', 'User')
+$env:TEMP = Join-Path $env:NFC_TEST_AREA_ROOT 'temp'
+$env:TMP = $env:TEMP
+$env:TMPDIR = $env:TEMP
+python scripts/verify.py --structure-only
+```
+
+Use the same preamble for `python scripts/verify.py --all`, `dotnet test`,
+`python -m unittest`, and `python -m pytest`; a direct narrow test never selects
+an arbitrary temporary directory. GitHub Actions supplies only `RUNNER_TEMP`;
+the verifier derives its exact test root and rejects a conflicting declaration.
+
 ## Pull request evidence
 
 Each PR must state:

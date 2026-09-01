@@ -7,6 +7,7 @@ namespace NvtFwCombiner.Infrastructure.VersionManagement;
     GenerationMode = JsonSourceGenerationMode.Metadata,
     PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase)]
 [JsonSerializable(typeof(UpdateCatalogDocument))]
+[JsonSerializable(typeof(UpdateCatalogV2Document))]
 [JsonSerializable(typeof(UpdateSourceRegistryDocument))]
 [JsonSerializable(typeof(VersionManagerStateDocument))]
 [JsonSerializable(typeof(ManagedVersionAdmissionFileDocument))]

@@ -94,35 +94,41 @@ notes. Auto-generated commits may be appended, but they do not replace this
 structure:
 
 ```markdown
-## Summary
+### Summary
 Who benefits and what the release changes.
 
-## Feature changes
-### Feature name
-- Before:
-- After:
-- Affects: screen/workflow, IC/mode/persona
+### Product changes
+#### Feature name
+- Before → After:
+- Affected: screen/workflow, IC/mode/persona
 - Support status: promoted | unchanged/support-neutral | removed
-- Compatibility or migration:
+- Compatibility:
 - Verification:
-- Limitations/deferred:
+- Limitations:
 
-## Fixes
-User-observable corrections and their impact.
+### Security
+Security-relevant changes, or an explicit statement that no security boundary changed.
 
-## Performance and package
-Only measured startup, responsiveness, working-set, and size claims.
+### Known issues
+Anything intentionally deferred, support-neutral, or still requiring a human gate.
 
-## Known issues and human gates
-Anything not verified or intentionally support-neutral.
+### Upgrade and rollback
+Supported predecessor, upgrade path, rollback compatibility, and migration impact.
 
-## Downloads and integrity
+### Downloads and integrity
 Portable ZIP, source archives, SBOM, provenance, hashes, and platform/runtime.
 ```
 
 Do not list only commit subjects. Do not imply firmware support from authoring UI,
 synthetic tests, or available profiles. Do not expose private evidence paths,
-firmware names, secrets, or internal audit identifiers.
+firmware names, secrets, or internal audit identifiers. The renderer requires
+each canonical heading exactly once in order and requires every Product changes
+feature to contain each canonical non-empty field. It permits supplemental prose
+and rejects a bounded set of incomplete or secret-like tokens; it does not prove
+that claims are true or detect every possible private path. Before release, an
+independent human frozen-head semantic review must verify every behavior,
+verification, compatibility, support, limitation, and disclosure statement
+against exact evidence.
 
 ## Close PRs And Retire Branches After Release
 

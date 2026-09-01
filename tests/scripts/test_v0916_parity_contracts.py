@@ -362,7 +362,7 @@ class V0916ParityContractTests(V0916ParityTestBase):
         authority = raw_plan["canonicalInputAuthority"]
         # Keep the host-created Windows snapshot root short enough for the
         # existing canonical validator's longest governed artifact path.
-        with tempfile.TemporaryDirectory(dir=ROOT.parent) as temporary:
+        with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
             drifted_worktree = root / "drifted-worktree"
             drifted_manifest = drifted_worktree / authority["manifestPath"]
@@ -432,7 +432,7 @@ class V0916ParityContractTests(V0916ParityTestBase):
             def read_file(self, _commit: str, _path: str) -> bytes:
                 return b"{}"
 
-        with tempfile.TemporaryDirectory(dir=ROOT.parent) as temporary:
+        with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
             for label, reader in (
                 ("symlink", BoundedReader("120000", "blob")),
@@ -502,7 +502,7 @@ class V0916ParityContractTests(V0916ParityTestBase):
             cwd=ROOT,
         )
         if not PRODUCTION_AVAILABLE:
-            with tempfile.TemporaryDirectory(dir=ROOT.parent) as temporary:
+            with tempfile.TemporaryDirectory() as temporary:
                 reader = RecordingPinnedCanonicalReader(ROOT, {alias_path: b"{}"})
                 MODULE.materialize_and_validate_canonical_input_authority(
                     raw_plan,
@@ -521,7 +521,7 @@ class V0916ParityContractTests(V0916ParityTestBase):
                 json.dumps(invalid_alias, indent=2, ensure_ascii=False) + "\n"
             ).encode("utf-8")
             reader = RecordingPinnedCanonicalReader(ROOT, {alias_path: invalid_bytes})
-            with tempfile.TemporaryDirectory(dir=ROOT.parent) as temporary:
+            with tempfile.TemporaryDirectory() as temporary:
                 destination = Path(temporary) / f"rejected-{mutation}"
                 with mock.patch.object(
                     MODULE,
@@ -572,7 +572,7 @@ class V0916ParityContractTests(V0916ParityTestBase):
             path.resolve()
             for path in Path(tempfile.gettempdir()).glob("nfc-v0916-authority-*")
         }
-        with tempfile.TemporaryDirectory(dir=ROOT.parent) as temporary:
+        with tempfile.TemporaryDirectory() as temporary:
             output_root = Path(temporary) / "comparison-output"
             with self.assertRaises(MODULE.ParityError) as captured:
                 MODULE.main(

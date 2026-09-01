@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 2,
+  "taskId": "ARCH-ROADMAP-108-130-01",
+  "capability": "Allocate the remaining 1.0.x release sequence through documentation convergence in v1.0.13, a post-v1.1.0 conductor/architect process retrospective, and bounded 1.1.x, 1.1.1, and 1.3.0 follow-up work without expanding the v1.0.8 release boundary",
+  "integrationBase": "add334124508658dbcf417b96f83d41c77391dc1",
+  "risk": "R2",
+  "kind": "governance",
+  "state": "final-complete",
+  "mutablePaths": [
+    "docs/governance/post-v1.1.0-tool-development-process-retrospective-handoff.md"
+  ],
+  "implementationOwner": "primary-agent",
+  "searchEvidence": [
+    "docs/architecture/nfc_roadmap.md owns future milestone order and release boundaries but did not yet allocate v1.0.8 through v1.0.13, the post-v1.1.0 development-process retrospective, the v1.1.x input-only evidence closure, v1.1.1 Memory Layout review, or the v1.3.0 Launcher/publication extraction review.",
+    "ADR 0021 already owns documentation convergence: remove boilerplate or move repeated information to its canonical owner while preserving useful public-contract, firmware, evidence, security, mutation, lifetime, concurrency, and fail-closed rationale; the existing ADR lifecycle preserves superseded decision history and reciprocal successor links, so v1.0.13 applies those owners instead of creating another documentation framework.",
+    "RepositoryBoundaryTests.Roadmap already locks the canonical roadmap sequencing and predecessor language, so the existing architecture test is extended for the release-bounded v1.0.8-v1.0.13 sequence instead of adding a second roadmap validator.",
+    "Four owner-supplied CtrlRAM Replace screenshots show crowded selector information at constrained width, unequal primary horizontal anchors, hover-dependent nested outline emphasis, and insufficient separation after wrapped file/type text before Verified or other badges and the following filename/status row.",
+    "The canonical Golden inventory contains two input-only cases without independent expected output and three dependent aliases; the approved v1.0.8 release snapshot excludes all five while preserving them as repository evidence."
+  ],
+  "semanticOwner": "NFC roadmap milestone ordering, ADR 0021 documentation-convergence rule and the existing ADR lifecycle, shared Presentation selector/group/card visual hierarchy, and the queued post-v1.1.0 Tool-development-process retrospective handoff",
+  "terminalContract": "The roadmap allocates release-bounded v1.0.8 through v1.0.13 work, keeps later UI and product refinements off the v1.0.8 critical path, adds a reference-first Settings Version proportion audit to v1.0.9, and reserves v1.0.13 for evidence-preserving consolidation by applying ADR 0021 and the existing ADR lifecycle to one canonical document owner and the smallest correct agent reading path without adding another documentation framework. Representative architecture, firmware, Golden, release, and UI task routes record before/after mandatory read sets in existing change or release evidence and remove or redirect redundant reads without losing applicable authority. It queues an evidence-backed reusable Tool-development-process and conductor/architect retrospective that begins only after the official v1.1.0 release and exact release-evidence closure. The retrospective is not a v1.1.0 release gate, does not alter active governance, and every resulting workflow requires separate owner approval. The roadmap requires independent expected output before the five retained input-only/dependent-alias entries can be packaged or called Golden, assigns per-section Memory Layout review to v1.1.1, and treats any v1.3.0 Launcher/publication repository extraction as ADR-gated. The proposed v1.0.9 CtrlRAM reference is an annotated board rather than a viewport pixel oracle; it aligns primary surfaces, uses one section plus one inset-card outline, preserves geometry on hover, changes only vertical spacing at constrained viewports, and reserves the full multi-line height plus explicit gaps between wrapped text, badge rows, and following filename/status rows. No production UI, firmware, profile, range, processor, composition, evidence rank, support, package, updater, Launcher, publication, or active governance behavior changes in this planning slice.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "review_v1013_docs_plan",
+    "outcome": "findings-incorporated",
+    "evidence": "Independent R2 review found P0-P3 = 0 after the roadmap was corrected to apply the existing ADR 0021 documentation-convergence rule and ADR lifecycle, keep representative before/after read sets in existing change or release evidence, preserve unique authority and history, and forbid a second framework, generator, or duplicate index. The existing roadmap architecture test was updated for the latest retained 1.0.x predecessor and v1.0.8-v1.0.13 sequence and passed 1/1 under the fixed D test area. Schema admission uses kind governance and lists only the existing governed handoff path; roadmap, UI-reference, and architecture-test planning files remain outside capability-reuse governed-path coverage rather than inventing another gate. Outcome: findings-incorporated."
+  },
+  "implementationHead": "ee42a88884bd99f10447e5e48196ca8d624b2f83",
+  "reviewedHead": "ee42a88884bd99f10447e5e48196ca8d624b2f83",
+  "pathStateDigest": "2791e0788a783df09caa46629d349d4ac58d2661b547b14c22925be2e9fb4005",
+  "finalReview": {
+    "reviewer": "review_v108_identity_design",
+    "outcome": "findings-incorporated",
+    "evidence": "Exact head ee42a88884bd99f10447e5e48196ca8d624b2f83 and tree e1bc23408c1f85bb17834feee5ced3b7b814d55c preserve ordered v1.0.8-v1.0.13 boundaries, the post-v1.1.0 retrospective as a non-gate, v1.1.x evidence closure, v1.1.1 Memory Layout review, and ADR-gated v1.3.0 extraction without active runtime or governance change. Focused roadmap evidence and structure verification passed; later owner approvals remain."
+  }
+}

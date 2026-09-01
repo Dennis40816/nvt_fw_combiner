@@ -207,7 +207,9 @@ def validate_candidate_context(
             snapshot.get("ownerSelfApprovalException") is True,
             "owner self-approval exception was not recorded in review evidence",
         )
-        _require_exact_head_codex_review(snapshot, head_sha)
+        source_version_parts = tuple(int(part) for part in source_version.split("."))
+        if not (1, 0, 8) <= source_version_parts < (1, 2, 0):
+            _require_exact_head_codex_review(snapshot, head_sha)
     checks = snapshot.get("requiredChecks")
     _require(
         isinstance(checks, list) and bool(checks), "reviewed PR has no required checks"

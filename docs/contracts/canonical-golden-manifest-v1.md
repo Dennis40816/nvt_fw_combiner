@@ -157,12 +157,29 @@ The retired active CtrlRAM fixture authority (`ctrlram-replace/manifest.json`, i
 provenance. The separately indexed `fixtures/20260717` tree remains diagnostic quarantine and is not
 an executable golden source.
 
-`testdata/golden/release-standard-merge-v1.json` is the current human-gated release selection. It
-pins every selected `caseId`, case-manifest path, `artifactId`, artifact path, byte size, and SHA-256.
-The packager fails closed if canonical facts drift from that independent allowlist. Changing the
-allowlist is an R3 release/security action and still requires firmware-owner and release review.
+`testdata/golden/release-canonical-v1.json` is the v1.0.8 human-gated redistribution authority. It
+pins the canonical README by exact-byte `canonicalReadmeSha256` and every selected `caseId`,
+case-manifest path and exact-byte `manifestSha256`, workflow, test-disposition kind, alias source, and
+logical artifact declaration including role, path, byte size, and SHA-256. Its 2026-09-01 owner
+authorization is limited to immutable reference-payload redistribution. It neither rewrites older
+case provenance nor promotes runtime support or widens a case's declared parity scope.
+
+The closed selection contains 25 direct Goldens and nine fact-scoped aliases whose exact
+same-workflow direct Golden source is also selected: 34 cases, 159 logical artifact declarations,
+and 156 unique physical paths. Matching parsed case facts or a self-consistent replacement does not
+satisfy the case-manifest exact-byte identity. Eleven direct cases declare full-output comparison and fourteen
+declare reviewed allowed-byte differences. The two direct input-evidence cases and the three aliases
+that depend on them remain repository-only evidence; they are not release Goldens. Diagnostics,
+owner-handoff, quarantine, retired-IC, generated, private, and unlisted material is likewise
+excluded. A canonical path alone never admits content to the package.
+
+The allowlist treats its BAT and CONFIG provenance artifacts as inert, hash-pinned reference bytes.
+They are not processors, tools, commands, or executable Golden runtime. The packager fails closed if
+canonical facts, disposition, alias closure, or artifact identity drift from the independent
+allowlist. Changing this authority is an R3 Golden and release/security action and still requires
+firmware-owner and release-owner review.
 
 `scripts/canonical_golden_validation.py` is the executable repository validator for this contract.
 It uses only the Python standard library and verifies path confinement, exact inventory, hash/size,
 direct-case completeness, typed dispositions, reviewed difference ranges, evidence references,
-retired active authority, and fact-scoped alias integrity.
+retired active authority, exact release counts, and self-contained fact-scoped alias integrity.

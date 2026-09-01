@@ -31,6 +31,46 @@ SPEC.loader.exec_module(MODULE)
 
 
 class VerifyOrchestrationTests(unittest.TestCase):
+    TEST_SESSION_ENVIRONMENT_VARIABLES = (
+        "NFC_TEST_AREA_ROOT",
+        "NFC_TEST_SESSION_ROOT",
+        "GITHUB_ACTIONS",
+        "RUNNER_TEMP",
+        "TEMP",
+        "TMP",
+        "TMPDIR",
+        "DOTNET_BUNDLE_EXTRACT_BASE_DIR",
+        "RUFF_CACHE_DIR",
+        "PYTHONPYCACHEPREFIX",
+    )
+
+    @contextlib.contextmanager
+    def verifier_environment(self, **values: str):
+        previous = {
+            name: os.environ.get(name)
+            for name in self.TEST_SESSION_ENVIRONMENT_VARIABLES
+        }
+        try:
+            for name in self.TEST_SESSION_ENVIRONMENT_VARIABLES:
+                os.environ.pop(name, None)
+            os.environ.update(values)
+            yield
+        finally:
+            for name in self.TEST_SESSION_ENVIRONMENT_VARIABLES:
+                os.environ.pop(name, None)
+            for name, value in previous.items():
+                if value is not None:
+                    os.environ[name] = value
+
+    @contextlib.contextmanager
+    def nested_public_verifier_invocation(self):
+        inherited = os.environ.pop("NFC_TEST_SESSION_ROOT", None)
+        try:
+            yield
+        finally:
+            if inherited is not None:
+                os.environ["NFC_TEST_SESSION_ROOT"] = inherited
+
     @staticmethod
     def timeout_after_file_exists(path: Path, timeout_seconds: float = 0.2):
         def wait_for_file(_requested_timeout: float | None = None) -> float:
@@ -1775,6 +1815,7 @@ class VerifyOrchestrationTests(unittest.TestCase):
             patch.object(MODULE, "run_lanes") as run_lanes,
             contextlib.redirect_stdout(io.StringIO()),
             contextlib.redirect_stderr(io.StringIO()),
+            self.nested_public_verifier_invocation(),
         ):
             result = MODULE.main()
 
@@ -1783,20 +1824,107 @@ class VerifyOrchestrationTests(unittest.TestCase):
 
     def test_main_returns_sigterm_exit_code_after_owned_cleanup_path(self) -> None:
         cancellation = threading.Event()
+        owned_session: Path | None = None
 
+        def request_sigterm(_args: argparse.Namespace) -> int:
+            nonlocal owned_session
+            owned_session = Path(os.environ["NFC_TEST_SESSION_ROOT"])
+            signal.raise_signal(signal.SIGTERM)
+            return 0
+
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            stale = root / "sessions" / "stale"
+            stale.mkdir(parents=True)
+            (stale / "keep.txt").write_text("keep", encoding="utf-8")
+            coverage = root / "coverage"
+            upload = root / "upload"
+            coverage.mkdir()
+            upload.mkdir()
+            (coverage / "sentinel").write_text("coverage", encoding="utf-8")
+            (upload / "sentinel").write_text("upload", encoding="utf-8")
+            with self.verifier_environment(
+                NFC_TEST_AREA_ROOT=str(root),
+                TEMP="prior-temp",
+                TMP="prior-tmp",
+                TMPDIR="prior-tmpdir",
+            ):
+                original_tempdir = tempfile.tempdir
+                original_dotnet_work = MODULE.DOTNET_COVERAGE_WORK_ROOT
+                original_ci_work = MODULE.CI_DOTNET_EVIDENCE_ROOT
+                with (
+                    patch.object(
+                        MODULE, "PROCESS_CANCELLATION_REQUESTED", cancellation
+                    ),
+                    patch.object(
+                        MODULE,
+                        "parse_args",
+                        return_value=MagicMock(internal_lane=None),
+                    ),
+                    patch.object(
+                        MODULE,
+                        "execute_verification",
+                        side_effect=request_sigterm,
+                    ),
+                    patch.object(MODULE, "COVERAGE_ROOT", coverage),
+                    patch.object(MODULE, "CI_DOTNET_UPLOAD_ROOT", upload),
+                ):
+                    result = MODULE.main()
+                self.assertEqual("prior-temp", os.environ["TEMP"])
+                self.assertEqual("prior-tmp", os.environ["TMP"])
+                self.assertEqual("prior-tmpdir", os.environ["TMPDIR"])
+                self.assertEqual(original_tempdir, tempfile.tempdir)
+                self.assertEqual(original_dotnet_work, MODULE.DOTNET_COVERAGE_WORK_ROOT)
+                self.assertEqual(original_ci_work, MODULE.CI_DOTNET_EVIDENCE_ROOT)
+
+            assert owned_session is not None
+            self.assertFalse(owned_session.exists())
+            self.assertEqual("keep", (stale / "keep.txt").read_text(encoding="utf-8"))
+            self.assertEqual(
+                "coverage", (coverage / "sentinel").read_text(encoding="utf-8")
+            )
+            self.assertEqual(
+                "upload", (upload / "sentinel").read_text(encoding="utf-8")
+            )
+
+        self.assertEqual(128 + signal.SIGTERM, result)
+        self.assertFalse(cancellation.is_set())
+
+    def test_sigterm_main_does_not_poison_the_next_owned_command(self) -> None:
         def request_sigterm(_args: argparse.Namespace) -> int:
             signal.raise_signal(signal.SIGTERM)
             return 0
 
-        with (
-            patch.object(MODULE, "PROCESS_CANCELLATION_REQUESTED", cancellation),
-            patch.object(MODULE, "parse_args", return_value=MagicMock()),
-            patch.object(MODULE, "execute_verification", side_effect=request_sigterm),
-        ):
-            result = MODULE.main()
+        MODULE.PROCESS_CANCELLATION_REQUESTED.clear()
+        try:
+            with tempfile.TemporaryDirectory() as temporary:
+                root = Path(temporary)
+                command_log = root / "after-sigterm.log"
+                with (
+                    self.verifier_environment(NFC_TEST_AREA_ROOT=str(root)),
+                    patch.object(
+                        MODULE,
+                        "parse_args",
+                        return_value=MagicMock(internal_lane=None),
+                    ),
+                    patch.object(
+                        MODULE,
+                        "execute_verification",
+                        side_effect=request_sigterm,
+                    ),
+                    contextlib.redirect_stdout(io.StringIO()),
+                ):
+                    self.assertEqual(128 + signal.SIGTERM, MODULE.main())
+                    self.assertFalse(MODULE.PROCESS_CANCELLATION_REQUESTED.is_set())
+                    MODULE.run(
+                        [sys.executable, "-c", "print('after-sigterm')"],
+                        cwd=root,
+                        log_path=command_log,
+                    )
 
-        self.assertEqual(128 + signal.SIGTERM, result)
-        self.assertTrue(cancellation.is_set())
+                self.assertIn("after-sigterm", command_log.read_text(encoding="utf-8"))
+        finally:
+            MODULE.PROCESS_CANCELLATION_REQUESTED.clear()
 
     def test_idle_worker_cleanup_warnings_are_written_to_the_active_lane_log(
         self,
@@ -2032,7 +2160,7 @@ class VerifyOrchestrationTests(unittest.TestCase):
             cancellation_handoffs.append("cancel")
             cancellation.set()
 
-        with tempfile.TemporaryDirectory(dir=MODULE.ROOT) as temporary:
+        with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
             coverage = root / "coverage"
             coverage.mkdir()
@@ -2046,6 +2174,7 @@ class VerifyOrchestrationTests(unittest.TestCase):
                     return_value=coverage,
                 ),
                 patch.object(MODULE, "DOTNET_COVERAGE_WORK_ROOT", work),
+                patch.object(MODULE, "ROOT", root),
                 patch.object(MODULE, "run_dotnet_commands"),
                 patch.object(
                     MODULE, "flatten_ci_dotnet_projects", return_value=projects
@@ -4160,6 +4289,1262 @@ class VerifyOrchestrationTests(unittest.TestCase):
             with self.assertRaises(SystemExit):
                 MODULE.parse_args(["--lane-timeout-seconds", "59"])
 
+    def test_local_public_session_requires_an_explicit_absolute_test_area(
+        self,
+    ) -> None:
+        with self.verifier_environment():
+            with self.assertRaisesRegex(RuntimeError, "NFC_TEST_AREA_ROOT"):
+                with MODULE.verification_test_session(internal_lane=False):
+                    self.fail("missing test area must fail closed")
+
+        with self.verifier_environment(NFC_TEST_AREA_ROOT="relative-test-area"):
+            with self.assertRaisesRegex(RuntimeError, "absolute"):
+                with MODULE.verification_test_session(internal_lane=False):
+                    self.fail("relative test area must fail closed")
+
+    def test_test_area_normalizes_dot_segments_before_session_creation(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary) / "declared"
+            nested = root / "nested"
+            nested.mkdir(parents=True)
+            declared = nested / ".."
+            with self.verifier_environment(NFC_TEST_AREA_ROOT=str(declared)):
+                with MODULE.verification_test_session(internal_lane=False) as session:
+                    self.assertEqual(
+                        root.resolve(), Path(os.environ["NFC_TEST_AREA_ROOT"])
+                    )
+                    self.assertEqual(root.resolve() / "sessions", session.parent)
+                    self.assertNotIn("..", session.parts)
+
+    def test_main_reports_test_area_admission_failure_without_a_traceback(self) -> None:
+        environment = os.environ.copy()
+        environment["NFC_TEST_AREA_ROOT"] = "relative-test-area"
+        environment.pop("NFC_TEST_SESSION_ROOT", None)
+        result = subprocess.run(
+            [sys.executable, str(SCRIPT), "--structure-only"],
+            cwd=MODULE.ROOT,
+            env=environment,
+            text=True,
+            capture_output=True,
+            check=False,
+        )
+
+        self.assertEqual(1, result.returncode)
+        self.assertIn("VERIFICATION FAILED", result.stderr)
+        self.assertNotIn("Traceback", result.stderr)
+
+    def test_session_setup_failure_removes_the_exact_unmarked_child(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            with (
+                self.verifier_environment(NFC_TEST_AREA_ROOT=str(root)),
+                patch.object(
+                    MODULE,
+                    "test_session_marker_bytes",
+                    side_effect=RuntimeError("marker setup probe"),
+                ),
+                self.assertRaisesRegex(RuntimeError, "marker setup probe"),
+            ):
+                with MODULE.verification_test_session(internal_lane=False):
+                    self.fail("session setup failure must not enter the workload")
+
+            self.assertEqual((), tuple((root / "sessions").iterdir()))
+
+    def test_session_identity_probe_failure_removes_the_exact_unmarked_child(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            actual_identity = MODULE.filesystem_identity
+            failed = False
+
+            def fail_first_session_probe(path: Path) -> tuple[int, int]:
+                nonlocal failed
+                if path.name.startswith("s-") and not failed:
+                    failed = True
+                    raise RuntimeError("identity setup probe")
+                return actual_identity(path)
+
+            with (
+                self.verifier_environment(NFC_TEST_AREA_ROOT=str(root)),
+                patch.object(
+                    MODULE,
+                    "filesystem_identity",
+                    side_effect=fail_first_session_probe,
+                ),
+                self.assertRaisesRegex(RuntimeError, "identity setup probe"),
+            ):
+                with MODULE.verification_test_session(internal_lane=False):
+                    self.fail("session setup failure must not enter the workload")
+
+            self.assertEqual((), tuple((root / "sessions").iterdir()))
+
+    @unittest.skipUnless(sys.platform == "win32", "Windows custody contract")
+    def test_provisional_session_reacquire_race_retains_marker_and_replacement(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            base = Path(temporary)
+            root = base / "test-area"
+            root.mkdir()
+            external = base / "external"
+            external.mkdir()
+            (external / "sentinel").write_text("external", encoding="utf-8")
+            actual_identity = MODULE.filesystem_identity
+            identity_failed = False
+            replacement_blocked = False
+            replacement_succeeded = False
+            displaced: Path | None = None
+            session_path: Path | None = None
+
+            def fail_session_probe(path: Path) -> tuple[int, int]:
+                nonlocal identity_failed
+                if (
+                    path.parent.name == "sessions"
+                    and path.name.startswith("s-")
+                    and not identity_failed
+                ):
+                    identity_failed = True
+                    raise RuntimeError("identity setup probe")
+                return actual_identity(path)
+
+            def replace_before_session_reacquire(
+                path: Path,
+                expected_identity: tuple[int, int],
+                *,
+                share_write: bool = True,
+                read_data: bool = False,
+            ) -> tuple[int, int, bool]:
+                nonlocal displaced
+                nonlocal replacement_blocked
+                nonlocal replacement_succeeded
+                nonlocal session_path
+                if (
+                    path.parent.name == "sessions"
+                    and path.name.startswith("s-")
+                    and session_path is None
+                ):
+                    displaced = path.with_name(f"{path.name}-original")
+                    session_path = path
+                    try:
+                        path.rename(displaced)
+                    except OSError:
+                        replacement_blocked = True
+                    else:
+                        replacement_succeeded = True
+                    raise RuntimeError("session reacquire probe")
+                self.fail(
+                    f"unexpected cleanup handle request during transition: {path}"
+                )
+
+            with (
+                self.verifier_environment(NFC_TEST_AREA_ROOT=str(root)),
+                patch.object(
+                    MODULE,
+                    "filesystem_identity",
+                    side_effect=fail_session_probe,
+                ),
+                patch.object(
+                    MODULE,
+                    "_require_windows_cleanup_handle",
+                    side_effect=replace_before_session_reacquire,
+                ),
+                self.assertRaisesRegex(RuntimeError, "diagnostic residue"),
+            ):
+                with MODULE.verification_test_session(internal_lane=False):
+                    self.fail("session setup race must not enter the workload")
+
+            self.assertTrue(replacement_blocked)
+            self.assertFalse(replacement_succeeded)
+            assert displaced is not None
+            assert session_path is not None
+            marker = session_path / MODULE.TEST_SESSION_MARKER_NAME
+            self.assertTrue(marker.is_file())
+            self.assertEqual(
+                session_path.name, json.loads(marker.read_text())["sessionId"]
+            )
+            self.assertFalse(displaced.exists())
+            self.assertEqual(
+                "external",
+                (external / "sentinel").read_text(encoding="utf-8"),
+            )
+
+    @unittest.skipUnless(sys.platform == "win32", "Windows custody contract")
+    def test_session_setup_retains_parent_custody_through_marker_write(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            base = Path(temporary)
+            root = base / "test-area"
+            root.mkdir()
+            external = base / "external"
+            external.mkdir()
+            (external / "sentinel").write_text("external", encoding="utf-8")
+            actual_marker_bytes = MODULE.test_session_marker_bytes
+            displaced = root / "sessions-displaced"
+            parent_swap_blocked = False
+
+            def attempt_parent_swap(owner: Path, session: Path) -> bytes:
+                nonlocal parent_swap_blocked
+                sessions = owner / "sessions"
+                try:
+                    sessions.rename(displaced)
+                except OSError:
+                    parent_swap_blocked = True
+                else:
+                    displaced.rename(sessions)
+                return actual_marker_bytes(owner, session)
+
+            with (
+                self.verifier_environment(NFC_TEST_AREA_ROOT=str(root)),
+                patch.object(
+                    MODULE,
+                    "test_session_marker_bytes",
+                    side_effect=attempt_parent_swap,
+                ),
+            ):
+                with MODULE.verification_test_session(internal_lane=False):
+                    pass
+
+            self.assertTrue(parent_swap_blocked)
+            self.assertEqual((), tuple((root / "sessions").iterdir()))
+            self.assertEqual(
+                "external", (external / "sentinel").read_text(encoding="utf-8")
+            )
+            self.assertFalse((external / MODULE.TEST_SESSION_MARKER_NAME).exists())
+
+    @unittest.skipUnless(sys.platform == "win32", "Windows custody contract")
+    def test_sessions_root_creation_is_handle_relative_during_parent_swap(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            base = Path(temporary)
+            root = base / "test-area"
+            root.mkdir()
+            external = base / "external"
+            external.mkdir()
+            (external / "sentinel").write_text("external", encoding="utf-8")
+            displaced = base / "test-area-displaced"
+            actual_create_relative = MODULE._create_windows_relative_path
+            parent_swapped = False
+            external_write_seen = False
+
+            def swap_before_sessions_creation(
+                root_handle: int,
+                name: str,
+                *,
+                directory: bool,
+            ) -> int:
+                nonlocal parent_swapped
+                nonlocal external_write_seen
+                if name == "sessions" and not parent_swapped:
+                    root.rename(displaced)
+                    external.rename(root)
+                    parent_swapped = True
+                handle = actual_create_relative(
+                    root_handle,
+                    name,
+                    directory=directory,
+                )
+                if parent_swapped:
+                    external_write_seen = (root / "sessions").exists()
+                return handle
+
+            try:
+                with (
+                    self.verifier_environment(NFC_TEST_AREA_ROOT=str(root)),
+                    patch.object(
+                        MODULE,
+                        "_create_windows_relative_path",
+                        side_effect=swap_before_sessions_creation,
+                    ),
+                    self.assertRaisesRegex(RuntimeError, "identity"),
+                ):
+                    with MODULE.verification_test_session(internal_lane=False):
+                        self.fail("parent replacement must fail before workload")
+            finally:
+                if parent_swapped:
+                    root.rename(external)
+                    displaced.rename(root)
+
+            self.assertTrue(parent_swapped)
+            self.assertFalse(external_write_seen)
+            self.assertEqual(
+                "external", (external / "sentinel").read_text(encoding="utf-8")
+            )
+
+    @unittest.skipUnless(sys.platform == "win32", "Windows custody contract")
+    def test_workload_custody_blocks_session_and_sessions_root_replacement(
+        self,
+    ) -> None:
+        for target_kind in ("session", "sessions-root"):
+            with self.subTest(target_kind=target_kind):
+                with tempfile.TemporaryDirectory() as temporary:
+                    base = Path(temporary)
+                    root = base / "test-area"
+                    root.mkdir()
+                    stale = root / "sessions" / "stale"
+                    stale.mkdir(parents=True)
+                    (stale / "sentinel").write_text("stale", encoding="utf-8")
+                    external = base / "external"
+                    external.mkdir()
+                    (external / "sentinel").write_text("external", encoding="utf-8")
+                    session: Path | None = None
+                    displaced: Path | None = None
+                    escaped_write: Path | None = None
+                    replacement_blocked = False
+                    cleanup_error: BaseException | None = None
+                    try:
+                        with self.verifier_environment(NFC_TEST_AREA_ROOT=str(root)):
+                            try:
+                                with MODULE.verification_test_session(
+                                    internal_lane=False
+                                ) as session:
+                                    if target_kind == "session":
+                                        displaced = session.with_name(
+                                            f"{session.name}-displaced"
+                                        )
+                                        replacement = session
+                                        external_temp = external / "temp"
+                                    else:
+                                        sessions_root = session.parent
+                                        displaced = root / "sessions-displaced"
+                                        replacement = sessions_root
+                                        external_temp = external / session.name / "temp"
+                                    external_temp.mkdir(parents=True)
+                                    escaped_write = (
+                                        external_temp / "first-workload-write.txt"
+                                    )
+                                    try:
+                                        replacement.rename(displaced)
+                                    except OSError:
+                                        replacement_blocked = True
+                                    else:
+                                        subprocess.run(
+                                            [
+                                                "cmd",
+                                                "/c",
+                                                "mklink",
+                                                "/J",
+                                                str(replacement),
+                                                str(external),
+                                            ],
+                                            check=True,
+                                            capture_output=True,
+                                            text=True,
+                                        )
+                                        Path(os.environ["TEMP"]).joinpath(
+                                            "first-workload-write.txt"
+                                        ).write_text("escaped", encoding="utf-8")
+                            except BaseException as error:
+                                cleanup_error = error
+                    finally:
+                        if not replacement_blocked and displaced is not None:
+                            replacement = (
+                                session
+                                if target_kind == "session"
+                                else root / "sessions"
+                            )
+                            if replacement.is_junction():
+                                os.rmdir(replacement)
+                            displaced.rename(replacement)
+                            assert session is not None
+                            MODULE.cleanup_test_session(
+                                MODULE.validate_test_session(root, session)
+                            )
+
+                    self.assertTrue(replacement_blocked)
+                    self.assertIsNone(cleanup_error)
+                    assert escaped_write is not None
+                    self.assertFalse(escaped_write.exists())
+                    self.assertEqual(
+                        "external",
+                        (external / "sentinel").read_text(encoding="utf-8"),
+                    )
+                    self.assertEqual(
+                        "stale", (stale / "sentinel").read_text(encoding="utf-8")
+                    )
+
+    def test_termination_boundary_wraps_session_setup_workload_and_cleanup(
+        self,
+    ) -> None:
+        events: list[str] = []
+        termination_active = False
+
+        @contextlib.contextmanager
+        def termination_boundary():
+            nonlocal termination_active
+            termination_active = True
+            events.append("termination-enter")
+            try:
+                yield
+            finally:
+                events.append("termination-exit")
+                termination_active = False
+
+        @contextlib.contextmanager
+        def session_boundary(*, internal_lane: bool):
+            self.assertFalse(internal_lane)
+            self.assertTrue(termination_active)
+            events.append("session-enter")
+            try:
+                yield Path("session")
+            finally:
+                self.assertTrue(termination_active)
+                events.append("session-exit")
+
+        with (
+            patch.object(
+                MODULE,
+                "parse_args",
+                return_value=MagicMock(internal_lane=None),
+            ),
+            patch.object(MODULE, "handle_external_termination", termination_boundary),
+            patch.object(MODULE, "verification_test_session", session_boundary),
+            patch.object(MODULE, "execute_verification", return_value=0),
+        ):
+            self.assertEqual(0, MODULE.main())
+
+        self.assertEqual(
+            [
+                "termination-enter",
+                "session-enter",
+                "session-exit",
+                "termination-exit",
+            ],
+            events,
+        )
+
+    def test_sigterm_during_scratch_setup_cleans_the_owned_session(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            real_mkdir = MODULE.Path.mkdir
+
+            def interrupt_scratch(path: Path, *args: object, **kwargs: object):
+                result = real_mkdir(path, *args, **kwargs)
+                if path.name == "ruff-cache":
+                    signal.raise_signal(signal.SIGTERM)
+                return result
+
+            with (
+                self.verifier_environment(NFC_TEST_AREA_ROOT=str(root)),
+                patch.object(
+                    MODULE,
+                    "parse_args",
+                    return_value=MagicMock(internal_lane=None),
+                ),
+                patch.object(
+                    MODULE.Path, "mkdir", autospec=True, side_effect=interrupt_scratch
+                ),
+                patch.object(MODULE, "execute_verification") as execute,
+            ):
+                result = MODULE.main()
+
+            self.assertEqual(128 + signal.SIGTERM, result)
+            execute.assert_not_called()
+            self.assertEqual((), tuple((root / "sessions").iterdir()))
+
+    def test_sigterm_during_cleanup_is_deferred_until_exact_session_removal(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            interrupted = False
+            real_delete = MODULE._delete_windows_session_entry
+
+            def interrupt_cleanup(path: Path) -> None:
+                nonlocal interrupted
+                if not interrupted:
+                    interrupted = True
+                    signal.raise_signal(signal.SIGTERM)
+                real_delete(path)
+
+            def create_cleanup_probe(_args: argparse.Namespace) -> int:
+                session = Path(os.environ["NFC_TEST_SESSION_ROOT"])
+                (session / "cleanup-probe.txt").write_text("probe", encoding="utf-8")
+                return 0
+
+            with (
+                self.verifier_environment(NFC_TEST_AREA_ROOT=str(root)),
+                patch.object(
+                    MODULE,
+                    "parse_args",
+                    return_value=MagicMock(internal_lane=None),
+                ),
+                patch.object(
+                    MODULE,
+                    "execute_verification",
+                    side_effect=create_cleanup_probe,
+                ),
+                patch.object(
+                    MODULE,
+                    "_delete_windows_session_entry",
+                    side_effect=interrupt_cleanup,
+                ),
+            ):
+                result = MODULE.main()
+
+            self.assertTrue(interrupted)
+            self.assertEqual(128 + signal.SIGTERM, result)
+            self.assertEqual((), tuple((root / "sessions").iterdir()))
+
+    def test_public_session_rejects_an_externally_supplied_session(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            with self.verifier_environment(
+                NFC_TEST_AREA_ROOT=str(root),
+                NFC_TEST_SESSION_ROOT=str(root / "sessions" / "external"),
+            ):
+                with self.assertRaisesRegex(RuntimeError, "NFC_TEST_SESSION_ROOT"):
+                    with MODULE.verification_test_session(internal_lane=False):
+                        self.fail("public callers must not select a session")
+
+    def test_local_test_area_rejects_files_roots_and_repository_overlap(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            file_root = root / "not-a-directory"
+            file_root.write_text("probe", encoding="utf-8")
+            candidates = (
+                (file_root, "directory"),
+                (Path(root.anchor), "filesystem root"),
+                (MODULE.ROOT.parent, "overlap"),
+                (MODULE.ROOT / "tests", "overlap"),
+            )
+            for candidate, expected in candidates:
+                with (
+                    self.subTest(candidate=candidate),
+                    self.verifier_environment(NFC_TEST_AREA_ROOT=str(candidate)),
+                    self.assertRaisesRegex(RuntimeError, expected),
+                ):
+                    with MODULE.verification_test_session(internal_lane=False):
+                        self.fail("unsafe test area must fail closed")
+
+    def test_test_area_rejects_an_existing_reparse_component_before_writing(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            with (
+                self.verifier_environment(NFC_TEST_AREA_ROOT=str(root)),
+                patch.object(
+                    MODULE,
+                    "is_reparse_point",
+                    side_effect=lambda path: path == root,
+                ),
+                self.assertRaisesRegex(RuntimeError, "reparse"),
+            ):
+                with MODULE.verification_test_session(internal_lane=False):
+                    self.fail("reparse test area must fail closed")
+            self.assertFalse((root / "sessions").exists())
+
+    def test_reparse_detection_uses_the_windows_file_attribute(self) -> None:
+        status = MagicMock(
+            st_mode=MODULE.stat.S_IFDIR,
+            st_file_attributes=MODULE.stat.FILE_ATTRIBUTE_REPARSE_POINT,
+        )
+        with (
+            patch.object(MODULE.os, "lstat", return_value=status),
+            patch.object(MODULE.Path, "is_symlink", return_value=False),
+            patch.object(MODULE.Path, "is_junction", return_value=False),
+        ):
+            self.assertTrue(MODULE.is_reparse_point(Path("attribute-probe")))
+
+    def test_reparse_probe_errors_fail_closed_before_test_area_writes(self) -> None:
+        for error in (PermissionError("denied"), OSError("probe failed")):
+            with self.subTest(error=type(error).__name__):
+                with tempfile.TemporaryDirectory() as temporary:
+                    root = Path(temporary)
+                    with (
+                        self.verifier_environment(NFC_TEST_AREA_ROOT=str(root)),
+                        patch.object(MODULE.os, "lstat", side_effect=error),
+                        self.assertRaises(type(error)),
+                    ):
+                        with MODULE.verification_test_session(internal_lane=False):
+                            self.fail("reparse probe failure must stop before writes")
+
+                    self.assertFalse((root / "sessions").exists())
+
+    @unittest.skipUnless(sys.platform == "win32", "Windows junction contract")
+    def test_cleanup_rejects_a_real_descendant_junction_without_touching_target(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            external = root / "external"
+            external.mkdir()
+            (external / "sentinel").write_text("external", encoding="utf-8")
+            with (
+                self.verifier_environment(NFC_TEST_AREA_ROOT=str(root)),
+                self.assertRaisesRegex(RuntimeError, "reparse"),
+            ):
+                with MODULE.verification_test_session(internal_lane=False) as session:
+                    junction = session / "junction"
+                    subprocess.run(
+                        ["cmd", "/c", "mklink", "/J", str(junction), str(external)],
+                        check=True,
+                        capture_output=True,
+                        text=True,
+                    )
+
+            self.assertEqual(
+                "external", (external / "sentinel").read_text(encoding="utf-8")
+            )
+            self.assertTrue(junction.is_junction())
+            os.rmdir(junction)
+
+    @unittest.skipUnless(sys.platform == "win32", "Windows cleanup contract")
+    def test_windows_session_cleanup_never_uses_broad_rmtree(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            with (
+                self.verifier_environment(NFC_TEST_AREA_ROOT=str(root)),
+                patch.object(
+                    MODULE.shutil,
+                    "rmtree",
+                    side_effect=AssertionError("broad rmtree must not run"),
+                ),
+            ):
+                with MODULE.verification_test_session(internal_lane=False) as session:
+                    (session / "scratch.txt").write_text("scratch", encoding="utf-8")
+
+            self.assertEqual((), tuple((root / "sessions").iterdir()))
+
+    @unittest.skipUnless(sys.platform == "win32", "Windows readonly contract")
+    def test_windows_cleanup_removes_readonly_file_and_directory_exactly(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            base = Path(temporary)
+            root = base / "test-area"
+            root.mkdir()
+            external = base / "external"
+            external.mkdir()
+            (external / "sentinel").write_text("external", encoding="utf-8")
+            stale = root / "sessions" / "stale"
+            stale.mkdir(parents=True)
+            (stale / "sentinel").write_text("stale", encoding="utf-8")
+            session: Path | None = None
+            readonly_directory: Path | None = None
+            readonly_file: Path | None = None
+            try:
+                with self.verifier_environment(NFC_TEST_AREA_ROOT=str(root)):
+                    with MODULE.verification_test_session(
+                        internal_lane=False
+                    ) as session:
+                        readonly_directory = session / "readonly-directory"
+                        readonly_directory.mkdir()
+                        readonly_file = readonly_directory / "readonly.txt"
+                        readonly_file.write_text("readonly", encoding="utf-8")
+                        subprocess.run(["attrib", "+R", str(readonly_file)], check=True)
+                        subprocess.run(
+                            ["attrib", "+R", str(readonly_directory)], check=True
+                        )
+                        self.assertTrue(
+                            os.lstat(readonly_file).st_file_attributes
+                            & MODULE.stat.FILE_ATTRIBUTE_READONLY
+                        )
+                        self.assertTrue(
+                            os.lstat(readonly_directory).st_file_attributes
+                            & MODULE.stat.FILE_ATTRIBUTE_READONLY
+                        )
+            finally:
+                if session is not None and session.exists():
+                    assert readonly_directory is not None
+                    assert readonly_file is not None
+                    subprocess.run(["attrib", "-R", str(readonly_file)], check=True)
+                    subprocess.run(
+                        ["attrib", "-R", str(readonly_directory)], check=True
+                    )
+                    MODULE.cleanup_test_session(
+                        MODULE.validate_test_session(root, session)
+                    )
+
+            assert session is not None
+            self.assertFalse(session.exists())
+            self.assertEqual("stale", (stale / "sentinel").read_text(encoding="utf-8"))
+            self.assertEqual(
+                "external", (external / "sentinel").read_text(encoding="utf-8")
+            )
+
+    def test_github_session_uses_only_the_runner_temp_derived_test_area(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            runner_temp = Path(temporary)
+            derived_root = runner_temp / "NvtFwCombiner-TestArea"
+            with self.verifier_environment(
+                GITHUB_ACTIONS="true",
+                RUNNER_TEMP=str(runner_temp),
+            ):
+                with MODULE.verification_test_session(internal_lane=False) as session:
+                    self.assertEqual(
+                        derived_root.resolve(), session.parents[1].resolve()
+                    )
+                    self.assertRegex(session.name, r"^s-[a-z2-7]{26}$")
+                    self.assertEqual("t", Path(os.environ["TEMP"]).name)
+
+            self.assertTrue(derived_root.is_dir())
+            self.assertTrue((derived_root / "sessions").is_dir())
+            self.assertEqual((), tuple((derived_root / "sessions").iterdir()))
+
+            conflicting_root = runner_temp / "conflict"
+            conflicting_root.mkdir()
+            with self.verifier_environment(
+                GITHUB_ACTIONS="true",
+                RUNNER_TEMP=str(runner_temp),
+                NFC_TEST_AREA_ROOT=str(conflicting_root),
+            ):
+                with self.assertRaisesRegex(RuntimeError, "conflicts"):
+                    with MODULE.verification_test_session(internal_lane=False):
+                        self.fail("conflicting GitHub test root must fail closed")
+
+    @unittest.skipUnless(sys.platform == "win32", "Windows custody contract")
+    def test_created_session_custody_allows_nested_nondelete_custody(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            runner_temp = Path(temporary)
+            with self.verifier_environment(
+                GITHUB_ACTIONS="true",
+                RUNNER_TEMP=str(runner_temp),
+            ):
+                with MODULE.verification_test_session(internal_lane=False) as session:
+                    handles: list[int] = []
+                    try:
+                        for path in (session.parents[1], session.parent, session):
+                            handles.append(
+                                MODULE._open_windows_path(
+                                    path,
+                                    delete_access=False,
+                                    share_delete=False,
+                                )
+                            )
+                    finally:
+                        for handle in reversed(handles):
+                            MODULE._close_windows_handle(handle)
+
+    @unittest.skipUnless(sys.platform == "win32", "Windows path budget contract")
+    def test_session_path_budget_creates_previous_canonical_projection(self) -> None:
+        root_value = os.environ.get("NFC_TEST_AREA_ROOT")
+        self.assertIsNotNone(root_value)
+        assert root_value is not None
+        relative = Path(
+            "outputs-precursor-map-mismatch",
+            "route-7-nt51917-15-ctrlram-replace-4-1-ic-39-nt51927-ctrlram-fw141-single-full-flash",
+            "workflow",
+            "00-preview",
+            "input-01-02-postbuild-mp-ctrlram.bin",
+        )
+        with self.verifier_environment(NFC_TEST_AREA_ROOT=root_value):
+            with MODULE.verification_test_session(internal_lane=False) as session:
+                target = Path(os.environ["TEMP"]) / "tmpfwezljm6" / relative
+                self.assertRegex(session.name, r"^s-[a-z2-7]{26}$")
+                self.assertLessEqual(len(str(target)), 259)
+                target.parent.mkdir(parents=True)
+                target.write_bytes(b"path-budget")
+                self.assertEqual(b"path-budget", target.read_bytes())
+
+    def test_public_session_owns_scratch_environment_and_restores_process_state(
+        self,
+    ) -> None:
+        scratch_names = (
+            "TEMP",
+            "TMP",
+            "TMPDIR",
+            "DOTNET_BUNDLE_EXTRACT_BASE_DIR",
+            "RUFF_CACHE_DIR",
+            "PYTHONPYCACHEPREFIX",
+        )
+        original_tempdir = tempfile.tempdir
+        original_dotnet_work = MODULE.DOTNET_COVERAGE_WORK_ROOT
+        original_ci_work = MODULE.CI_DOTNET_EVIDENCE_ROOT
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            stale = root / "sessions" / "stale-sibling"
+            stale.mkdir(parents=True)
+            (stale / "keep.txt").write_text("keep", encoding="utf-8")
+            with self.verifier_environment(
+                NFC_TEST_AREA_ROOT=str(root),
+                TEMP="prior-temp",
+                TMP="prior-tmp",
+                TMPDIR="prior-tmpdir",
+            ):
+                with MODULE.verification_test_session(internal_lane=False) as session:
+                    self.assertEqual(session, Path(os.environ["NFC_TEST_SESSION_ROOT"]))
+                    for name in scratch_names:
+                        scratch = Path(os.environ[name])
+                        self.assertTrue(scratch.is_dir(), name)
+                        self.assertTrue(scratch.is_relative_to(session), name)
+                    self.assertEqual(os.environ["TEMP"], tempfile.tempdir)
+                    self.assertTrue(
+                        MODULE.DOTNET_COVERAGE_WORK_ROOT.is_relative_to(session)
+                    )
+                    self.assertTrue(
+                        MODULE.CI_DOTNET_EVIDENCE_ROOT.is_relative_to(session)
+                    )
+                    marker = json.loads(
+                        (session / MODULE.TEST_SESSION_MARKER_NAME).read_text(
+                            encoding="utf-8"
+                        )
+                    )
+                    self.assertEqual(
+                        MODULE.TEST_SESSION_MARKER_SCHEMA_VERSION,
+                        marker["schemaVersion"],
+                    )
+                    self.assertEqual(session.name, marker["sessionId"])
+                    self.assertEqual(
+                        os.path.normcase(str(root.resolve())), marker["normalizedRoot"]
+                    )
+                self.assertFalse(session.exists())
+                self.assertEqual("prior-temp", os.environ["TEMP"])
+                self.assertEqual("prior-tmp", os.environ["TMP"])
+                self.assertEqual("prior-tmpdir", os.environ["TMPDIR"])
+                self.assertEqual(original_tempdir, tempfile.tempdir)
+                self.assertEqual(original_dotnet_work, MODULE.DOTNET_COVERAGE_WORK_ROOT)
+                self.assertEqual(original_ci_work, MODULE.CI_DOTNET_EVIDENCE_ROOT)
+                self.assertEqual(
+                    "keep", (stale / "keep.txt").read_text(encoding="utf-8")
+                )
+
+    def test_session_cleanup_restores_every_owner_for_terminal_failures(self) -> None:
+        failures = (
+            RuntimeError("runtime probe"),
+            subprocess.TimeoutExpired(["probe"], 1),
+            KeyboardInterrupt(),
+        )
+        for failure in failures:
+            with self.subTest(failure=type(failure).__name__):
+                original_dotnet_work = MODULE.DOTNET_COVERAGE_WORK_ROOT
+                original_ci_work = MODULE.CI_DOTNET_EVIDENCE_ROOT
+                with tempfile.TemporaryDirectory() as temporary:
+                    original_tempdir = tempfile.tempdir
+                    root = Path(temporary)
+                    stale = root / "sessions" / "stale"
+                    stale.mkdir(parents=True)
+                    (stale / "keep.txt").write_text("keep", encoding="utf-8")
+                    with self.verifier_environment(
+                        NFC_TEST_AREA_ROOT=str(root),
+                        TEMP="prior-temp",
+                        TMP="prior-tmp",
+                        TMPDIR="prior-tmpdir",
+                    ):
+                        with self.assertRaises(type(failure)):
+                            with MODULE.verification_test_session(
+                                internal_lane=False
+                            ) as session:
+                                raise failure
+                        self.assertFalse(session.exists())
+                        self.assertEqual("prior-temp", os.environ["TEMP"])
+                        self.assertEqual("prior-tmp", os.environ["TMP"])
+                        self.assertEqual("prior-tmpdir", os.environ["TMPDIR"])
+                        self.assertEqual(original_tempdir, tempfile.tempdir)
+                        self.assertEqual(
+                            original_dotnet_work, MODULE.DOTNET_COVERAGE_WORK_ROOT
+                        )
+                        self.assertEqual(
+                            original_ci_work, MODULE.CI_DOTNET_EVIDENCE_ROOT
+                        )
+                        self.assertEqual(
+                            "keep", (stale / "keep.txt").read_text(encoding="utf-8")
+                        )
+
+    def test_workload_failure_remains_primary_when_session_cleanup_also_fails(
+        self,
+    ) -> None:
+        failures = (
+            RuntimeError("workload runtime"),
+            subprocess.TimeoutExpired("workload", 1),
+            KeyboardInterrupt("workload interrupt"),
+        )
+        for failure in failures:
+            with self.subTest(failure=type(failure).__name__):
+                with tempfile.TemporaryDirectory() as temporary:
+                    root = Path(temporary)
+                    session: Path | None = None
+                    with self.verifier_environment(
+                        NFC_TEST_AREA_ROOT=str(root),
+                        TEMP="prior-temp",
+                        TMP="prior-tmp",
+                        TMPDIR="prior-tmpdir",
+                    ):
+                        with (
+                            patch.object(
+                                MODULE,
+                                "cleanup_test_session",
+                                side_effect=RuntimeError(
+                                    "cleanup failed; exact residue retained"
+                                ),
+                            ),
+                            self.assertRaises(type(failure)) as captured,
+                        ):
+                            with MODULE.verification_test_session(
+                                internal_lane=False
+                            ) as session:
+                                raise failure
+
+                        self.assertIs(failure, captured.exception)
+                        notes = getattr(captured.exception, "__notes__", ())
+                        self.assertTrue(
+                            any(
+                                "cleanup failed; exact residue retained" in note
+                                for note in notes
+                            )
+                        )
+                        self.assertEqual("prior-temp", os.environ["TEMP"])
+                        self.assertEqual("prior-tmp", os.environ["TMP"])
+                        self.assertEqual("prior-tmpdir", os.environ["TMPDIR"])
+
+                    assert session is not None
+                    MODULE.cleanup_test_session(
+                        MODULE.validate_test_session(root, session)
+                    )
+
+    @unittest.skipUnless(sys.platform == "win32", "Windows custody contract")
+    def test_custody_close_attempts_all_handles_and_restores_process_state(
+        self,
+    ) -> None:
+        cases = (
+            ("workload", RuntimeError("workload primary")),
+            ("cleanup", None),
+        )
+        actual_create = MODULE._create_windows_test_session_child
+        actual_close = MODULE._close_windows_handle
+        for case, workload_error in cases:
+            with self.subTest(case=case), tempfile.TemporaryDirectory() as temporary:
+                root = Path(temporary)
+                cleanup_error = RuntimeError("cleanup primary")
+                primary_error = workload_error or cleanup_error
+                original_tempdir = tempfile.tempdir
+                original_dotnet_work = MODULE.DOTNET_COVERAGE_WORK_ROOT
+                original_ci_work = MODULE.CI_DOTNET_EVIDENCE_ROOT
+                ownerships: list[MODULE.TestSessionOwnership] = []
+                custody_handles: list[int] = []
+                close_attempts: list[int] = []
+                successfully_closed: set[int] = set()
+                session: Path | None = None
+
+                def capture_ownership(*args, **kwargs):
+                    ownership = actual_create(*args, **kwargs)
+                    custody = ownership.custody
+                    assert custody is not None
+                    handles = (
+                        custody.marker_handle,
+                        custody.session_handle,
+                        custody.sessions.windows_handle,
+                        custody.root.windows_handle,
+                    )
+                    assert all(handle is not None for handle in handles)
+                    ownerships.append(ownership)
+                    custody_handles.extend(int(handle) for handle in handles)
+                    return ownership
+
+                def fail_first_custody_close(handle: int) -> None:
+                    if handle not in custody_handles:
+                        actual_close(handle)
+                        return
+                    close_attempts.append(handle)
+                    if handle == custody_handles[0]:
+                        raise OSError("first custody close failed")
+                    actual_close(handle)
+                    successfully_closed.add(handle)
+
+                try:
+                    with self.verifier_environment(
+                        NFC_TEST_AREA_ROOT=str(root),
+                        TEMP="prior-temp",
+                        TMP="prior-tmp",
+                        TMPDIR="prior-tmpdir",
+                    ):
+                        with (
+                            patch.object(
+                                MODULE,
+                                "_create_windows_test_session_child",
+                                side_effect=capture_ownership,
+                            ),
+                            patch.object(
+                                MODULE,
+                                "cleanup_test_session",
+                                side_effect=cleanup_error,
+                            ),
+                            patch.object(
+                                MODULE,
+                                "_close_windows_handle",
+                                side_effect=fail_first_custody_close,
+                            ),
+                            self.assertRaises(type(primary_error)) as captured,
+                        ):
+                            with MODULE.verification_test_session(
+                                internal_lane=False
+                            ) as session:
+                                if workload_error is not None:
+                                    raise workload_error
+
+                        self.assertIs(primary_error, captured.exception)
+                        self.assertEqual(4, len(set(custody_handles)))
+                        self.assertEqual(custody_handles, close_attempts)
+                        for handle in custody_handles:
+                            self.assertEqual(1, close_attempts.count(handle))
+                        notes = getattr(captured.exception, "__notes__", ())
+                        self.assertTrue(
+                            any("first custody close failed" in note for note in notes)
+                        )
+                        if workload_error is not None:
+                            self.assertTrue(
+                                any("cleanup primary" in note for note in notes)
+                            )
+                        self.assertEqual("prior-temp", os.environ["TEMP"])
+                        self.assertEqual("prior-tmp", os.environ["TMP"])
+                        self.assertEqual("prior-tmpdir", os.environ["TMPDIR"])
+                        self.assertEqual(original_tempdir, tempfile.tempdir)
+                        self.assertEqual(
+                            original_dotnet_work, MODULE.DOTNET_COVERAGE_WORK_ROOT
+                        )
+                        self.assertEqual(
+                            original_ci_work, MODULE.CI_DOTNET_EVIDENCE_ROOT
+                        )
+                finally:
+                    tempfile.tempdir = original_tempdir
+                    MODULE.DOTNET_COVERAGE_WORK_ROOT = original_dotnet_work
+                    MODULE.CI_DOTNET_EVIDENCE_ROOT = original_ci_work
+                    for handle in custody_handles:
+                        if handle not in successfully_closed:
+                            actual_close(handle)
+                    if session is not None and session.exists():
+                        MODULE.cleanup_test_session(
+                            MODULE.validate_test_session(root, session)
+                        )
+
+                self.assertEqual(1, len(ownerships))
+
+    def test_cleanup_rejects_a_descendant_reparse_and_preserves_other_roots(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            stale = root / "sessions" / "stale"
+            stale.mkdir(parents=True)
+            (stale / "keep.txt").write_text("keep", encoding="utf-8")
+            coverage = root / "coverage-final"
+            upload = root / "upload-final"
+            coverage.mkdir()
+            upload.mkdir()
+            (coverage / "sentinel").write_text("coverage", encoding="utf-8")
+            (upload / "sentinel").write_text("upload", encoding="utf-8")
+            actual_is_reparse = MODULE.is_reparse_point
+            descendant: Path | None = None
+            with (
+                self.verifier_environment(NFC_TEST_AREA_ROOT=str(root)),
+                patch.object(MODULE, "COVERAGE_ROOT", coverage),
+                patch.object(MODULE, "CI_DOTNET_UPLOAD_ROOT", upload),
+                patch.object(
+                    MODULE,
+                    "is_reparse_point",
+                    side_effect=lambda path: (
+                        path == descendant or actual_is_reparse(path)
+                    ),
+                ),
+                self.assertRaisesRegex(RuntimeError, "reparse"),
+            ):
+                with MODULE.verification_test_session(internal_lane=False) as session:
+                    descendant = session / "descendant"
+                    descendant.mkdir()
+
+            self.assertTrue(session.is_dir())
+            assert descendant is not None
+            self.assertTrue(descendant.is_dir())
+            self.assertEqual("keep", (stale / "keep.txt").read_text(encoding="utf-8"))
+            self.assertEqual(
+                "coverage", (coverage / "sentinel").read_text(encoding="utf-8")
+            )
+            self.assertEqual(
+                "upload", (upload / "sentinel").read_text(encoding="utf-8")
+            )
+
+    def test_workload_custody_blocks_session_identity_replacement(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            with self.verifier_environment(NFC_TEST_AREA_ROOT=str(root)):
+                with MODULE.verification_test_session(internal_lane=False) as session:
+                    original = session.with_name(f"{session.name}-original")
+                    with self.assertRaises(OSError):
+                        session.rename(original)
+
+            self.assertFalse(original.exists())
+            self.assertFalse(session.exists())
+
+    def test_workload_custody_blocks_marker_identity_replacement_with_identical_bytes(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            with self.verifier_environment(NFC_TEST_AREA_ROOT=str(root)):
+                with MODULE.verification_test_session(internal_lane=False) as session:
+                    marker = session / MODULE.TEST_SESSION_MARKER_NAME
+                    original = session / "original-marker"
+                    with self.assertRaises(OSError):
+                        marker.replace(original)
+
+            self.assertFalse(original.exists())
+            self.assertFalse(marker.exists())
+
+    def test_cleanup_rejects_descendant_identity_drift_before_deletion(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            drift = False
+            real_identity = MODULE.filesystem_identity
+
+            def observed_identity(path: Path):
+                identity = real_identity(path)
+                if drift and path.name == "race.txt":
+                    return (identity[0], identity[1] + 1)
+                return identity
+
+            with (
+                self.verifier_environment(NFC_TEST_AREA_ROOT=str(root)),
+                patch.object(
+                    MODULE, "filesystem_identity", side_effect=observed_identity
+                ),
+                self.assertRaisesRegex(RuntimeError, "identity"),
+            ):
+                with MODULE.verification_test_session(internal_lane=False) as session:
+                    raced = session / "race.txt"
+                    raced.write_text("race", encoding="utf-8")
+                    drift = True
+
+            self.assertTrue(session.is_dir())
+            self.assertTrue(raced.is_file())
+
+    def test_internal_lane_inherits_the_exact_parent_session_and_never_cleans_it(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            with self.verifier_environment(NFC_TEST_AREA_ROOT=str(root)):
+                with MODULE.verification_test_session(internal_lane=False) as parent:
+                    marker = parent / MODULE.TEST_SESSION_MARKER_NAME
+                    with MODULE.verification_test_session(
+                        internal_lane=True
+                    ) as inherited:
+                        self.assertEqual(parent, inherited)
+                    self.assertTrue(parent.is_dir())
+                    self.assertTrue(marker.is_file())
+
+    def test_isolated_and_dotnet_descendants_receive_the_exact_session_environment(
+        self,
+    ) -> None:
+        scratch_names = (
+            "TEMP",
+            "TMP",
+            "TMPDIR",
+            "DOTNET_BUNDLE_EXTRACT_BASE_DIR",
+            "RUFF_CACHE_DIR",
+            "PYTHONPYCACHEPREFIX",
+        )
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            with self.verifier_environment(NFC_TEST_AREA_ROOT=str(root)):
+                with (
+                    MODULE.verification_test_session(internal_lane=False) as parent,
+                    patch.object(MODULE, "run") as run_command,
+                ):
+                    MODULE.run_isolated_lane("structure", parent / "lane.log")
+                    isolated_environment = run_command.call_args.kwargs["environment"]
+                    dotnet_environment = MODULE.dotnet_batch_environment()
+                    for environment in (isolated_environment, dotnet_environment):
+                        self.assertEqual(
+                            str(parent),
+                            environment[MODULE.TEST_SESSION_ENVIRONMENT_VARIABLE],
+                        )
+                        for name in scratch_names:
+                            value = Path(environment[name])
+                            self.assertTrue(value.is_relative_to(parent), name)
+                    with MODULE.verification_test_session(
+                        internal_lane=True
+                    ) as inherited:
+                        self.assertEqual(parent, inherited)
+                    self.assertTrue(parent.is_dir())
+
+    def test_repository_script_descendant_can_run_nested_main_under_parent_session(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            with self.verifier_environment(NFC_TEST_AREA_ROOT=str(root)):
+                with MODULE.verification_test_session(internal_lane=False):
+                    result = subprocess.run(
+                        [
+                            sys.executable,
+                            "-m",
+                            "unittest",
+                            (
+                                "tests.scripts.test_verify_orchestration."
+                                "VerifyOrchestrationTests."
+                                "test_public_lane_rejects_the_parent_owned_marker"
+                            ),
+                        ],
+                        cwd=MODULE.ROOT,
+                        text=True,
+                        capture_output=True,
+                        check=False,
+                    )
+            self.assertEqual(0, result.returncode, result.stdout + result.stderr)
+
+    def test_cleanup_refuses_a_marker_mismatch_but_restores_process_state(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            original_tempdir = tempfile.tempdir
+            root = Path(temporary)
+            with self.verifier_environment(
+                NFC_TEST_AREA_ROOT=str(root), TEMP="prior-temp"
+            ):
+                with self.assertRaisesRegex(RuntimeError, "marker"):
+                    with MODULE.verification_test_session(
+                        internal_lane=False
+                    ) as session:
+                        (session / MODULE.TEST_SESSION_MARKER_NAME).write_text(
+                            "tampered\n", encoding="utf-8"
+                        )
+                self.assertTrue(session.is_dir())
+                self.assertEqual("prior-temp", os.environ["TEMP"])
+                self.assertEqual(original_tempdir, tempfile.tempdir)
+
+    def test_python_verification_pins_pytest_base_and_cache_to_the_session(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            commands: list[list[str]] = []
+            with self.verifier_environment(NFC_TEST_AREA_ROOT=str(root)):
+                with (
+                    MODULE.verification_test_session(internal_lane=False) as session,
+                    patch.object(MODULE, "require_python_modules"),
+                    patch.object(MODULE, "require_python_distribution_versions"),
+                    patch.object(
+                        MODULE,
+                        "load_baseline",
+                        return_value={
+                            "collection": {
+                                "python": {
+                                    "coveragePyVersion": "1",
+                                    "pytestCovVersion": "1",
+                                }
+                            }
+                        },
+                    ),
+                    patch.object(
+                        MODULE,
+                        "reset_coverage_directory",
+                        return_value=MODULE.COVERAGE_ROOT / "python",
+                    ),
+                    patch.object(
+                        MODULE,
+                        "run",
+                        side_effect=lambda command, **_kwargs: commands.append(command),
+                    ),
+                    patch.object(MODULE, "verify_coverage"),
+                ):
+                    MODULE.verify_python()
+
+            pytest_command = next(
+                command for command in commands if "pytest" in command
+            )
+            self.assertIn(f"--basetemp={session / 'pytest' / 'base'}", pytest_command)
+            self.assertIn(
+                f"cache_dir={session / 'pytest' / 'cache'}",
+                pytest_command,
+            )
+
     def test_parser_rejects_public_option_abbreviations(self) -> None:
         for arguments in (
             ["--job=3"],
@@ -4210,6 +5595,7 @@ class VerifyOrchestrationTests(unittest.TestCase):
                 {MODULE.INTERNAL_LANE_ENVIRONMENT_VARIABLE: "1"},
             ),
             patch.object(MODULE, "run_selected_lanes") as run_selected,
+            self.nested_public_verifier_invocation(),
             self.assertRaisesRegex(
                 SystemExit, "process marker is reserved for --internal-lane"
             ),

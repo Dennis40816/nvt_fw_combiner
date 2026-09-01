@@ -1,0 +1,9 @@
+{
+  "schemaVersion": 1,
+  "taskId": "RELEASE-108-UPDATE-SOURCE-DEPLOY-01",
+  "authorityType": "release-owner",
+  "reviewedHead": "06eaf4638b1acb4d5c8d822f77bf8bae116c7c0a",
+  "decision": "approved",
+  "reviewer": "Dennis Liu (release owner)",
+  "evidence": "The release owner requested a simpler script for downloading a specific GitHub release asset and manually deploying a Catalog source, approved the resulting direction, and required v1.0.8 manual-only support. This attestation approves exact final-evidence head 06eaf4638b1acb4d5c8d822f77bf8bae116c7c0a for the thin Windows-only deployment wrapper reviewed at implementation head ee42a88884bd99f10447e5e48196ca8d624b2f83 with P0-P2 equal to zero and focused fixed-D evidence 17/17. The wrapper remains pinned to Dennis40816/nvt_fw_combiner, authenticates exact Release, asset, size, digest, and canonical Catalog timestamp, delegates serialization and atomic replacement to the existing Catalog helper, uses one ShouldProcess boundary, rejects drive or share roots and reparse or identity drift, never overwrites mismatched content, never automatically deletes an admitted ZIP, and never edits Registry. Catalog v1 stays the default canary and v2 requires complete manual-only or notify assignments. Real local and UNC canaries, staged v2 canary, full verifier, protected CI, published package, tag, Release, and fresh-download gates remain pending until separately evidenced."
+}

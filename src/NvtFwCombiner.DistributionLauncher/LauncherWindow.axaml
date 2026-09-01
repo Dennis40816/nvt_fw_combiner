@@ -109,7 +109,7 @@
               Margin="0,24,0,0" RowDefinitions="Auto,Auto" ColumnDefinitions="*,Auto,12,Auto">
           <Grid x:Name="OperationProgressPanel" Grid.ColumnSpan="4" Margin="0,0,0,18"
                 RowDefinitions="Auto,3" IsVisible="False">
-            <TextBlock x:Name="OperationProgressText" Margin="2,0,2,9" FontSize="13"
+            <TextBlock x:Name="OperationProgressText" Margin="0,0,0,9" FontSize="13"
                        AutomationProperties.AutomationId="OperationProgressText"
                        Foreground="{DynamicResource NfcTextSecondaryBrush}"
                        AutomationProperties.LiveSetting="Polite" />

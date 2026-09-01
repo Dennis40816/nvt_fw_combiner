@@ -142,6 +142,175 @@ def test_release_catalog_package_size_ceiling_is_version_independent(
         )
 
 
+def test_catalog_v2_first_publication_imports_v1_metadata_and_preserves_v1(
+    tmp_path: Path,
+) -> None:
+    source = _build_update_source(tmp_path)
+    builder = _load_catalog_module()
+    v1_path = source / builder.CATALOG_NAME
+    v1_bytes = v1_path.read_bytes()
+    v1 = json.loads(v1_bytes)
+    policies = {
+        entry["version"]: ("manual-only" if index == 0 else "notify")
+        for index, entry in enumerate(v1["versions"])
+    }
+
+    destination = builder.build_catalog(source, {}, {}, 2, policies)
+
+    assert destination == source / builder.CATALOG_V2_NAME
+    assert v1_path.read_bytes() == v1_bytes
+    v2 = json.loads(destination.read_bytes())
+    assert v2["schemaVersion"] == 2
+    assert {
+        entry["version"]: entry["notificationPolicy"] for entry in v2["versions"]
+    } == policies
+    assert {
+        entry["version"]: (entry["publishedAt"], entry["releaseNotes"])
+        for entry in v2["versions"]
+    } == {
+        entry["version"]: (entry["publishedAt"], entry["releaseNotes"])
+        for entry in v1["versions"]
+    }
+
+
+@pytest.mark.parametrize(
+    ("initial_policy", "corrected_policy"),
+    [("manual-only", "notify"), ("notify", "manual-only")],
+)
+def test_catalog_v2_correction_uses_strict_v2_when_stale_v1_is_invalid(
+    tmp_path: Path,
+    initial_policy: str,
+    corrected_policy: str,
+) -> None:
+    source = _build_update_source(tmp_path)
+    builder = _load_catalog_module()
+    versions = [
+        entry["version"]
+        for entry in json.loads((source / builder.CATALOG_NAME).read_bytes())["versions"]
+    ]
+    initial = {version: initial_policy for version in versions}
+    v2_path = builder.build_catalog(source, {}, {}, 2, initial)
+    stable = json.loads(v2_path.read_bytes())
+    (source / builder.CATALOG_NAME).write_text("not-json", encoding="utf-8")
+    corrected = {version: corrected_policy for version in versions}
+
+    builder.build_catalog(source, {}, {}, 2, corrected)
+
+    result = json.loads(v2_path.read_bytes())
+    assert [entry["releaseNotes"] for entry in result["versions"]] == [
+        entry["releaseNotes"] for entry in stable["versions"]
+    ]
+    assert all(
+        entry["notificationPolicy"] == corrected_policy for entry in result["versions"]
+    )
+
+
+def test_catalog_v2_correction_rejects_malformed_existing_v2_without_v1_fallback(
+    tmp_path: Path,
+) -> None:
+    source = _build_update_source(tmp_path)
+    builder = _load_catalog_module()
+    versions = [
+        entry["version"]
+        for entry in json.loads((source / builder.CATALOG_NAME).read_bytes())["versions"]
+    ]
+    v2_path = builder.build_catalog(
+        source,
+        {},
+        {},
+        2,
+        {version: "manual-only" for version in versions},
+    )
+    v2_path.write_text("not-json", encoding="utf-8")
+    v1_bytes = (source / builder.CATALOG_NAME).read_bytes()
+
+    with pytest.raises(ValueError, match="existing update catalog"):
+        builder.build_catalog(
+            source,
+            {},
+            {},
+            2,
+            {version: "notify" for version in versions},
+        )
+
+    assert v2_path.read_text(encoding="utf-8") == "not-json"
+    assert (source / builder.CATALOG_NAME).read_bytes() == v1_bytes
+
+
+@pytest.mark.parametrize(
+    "policy_builder",
+    [
+        lambda versions: {},
+        lambda versions: {**{version: "notify" for version in versions}, "9.9.9": "notify"},
+        lambda versions: {version: "Notify" for version in versions},
+    ],
+)
+def test_catalog_v2_policy_failures_occur_before_catalog_write(
+    tmp_path: Path,
+    policy_builder,
+) -> None:
+    source = _build_update_source(tmp_path)
+    builder = _load_catalog_module()
+    versions = [
+        entry["version"]
+        for entry in json.loads((source / builder.CATALOG_NAME).read_bytes())["versions"]
+    ]
+    destination = source / builder.CATALOG_V2_NAME
+
+    with pytest.raises(ValueError, match="notification"):
+        builder.build_catalog(source, {}, {}, 2, policy_builder(versions))
+
+    assert not destination.exists()
+
+
+def test_catalog_v1_rejects_v2_policy_options_without_rewriting_bytes(
+    tmp_path: Path,
+) -> None:
+    source = _build_update_source(tmp_path)
+    builder = _load_catalog_module()
+    destination = source / builder.CATALOG_NAME
+    before = destination.read_bytes()
+
+    with pytest.raises(ValueError, match="v1 does not accept"):
+        builder.build_catalog(source, {}, {}, 1, {"0.10.6": "notify"})
+
+    assert destination.read_bytes() == before
+
+
+def test_registry_renderer_binds_exact_catalog_v2_schema_and_digest(
+    tmp_path: Path,
+) -> None:
+    source = _build_update_source(tmp_path)
+    builder = _load_catalog_module()
+    versions = [
+        entry["version"]
+        for entry in json.loads((source / builder.CATALOG_NAME).read_bytes())["versions"]
+    ]
+    catalog = builder.build_catalog(
+        source,
+        {},
+        {},
+        2,
+        {version: "manual-only" for version in versions},
+    )
+    registry = tmp_path / "update-source-registry.json"
+
+    builder.render_registry(
+        REGISTRY_TEMPLATE,
+        catalog,
+        registry,
+        42,
+        "2026-09-01T00:00:00Z",
+    )
+
+    rendered = json.loads(registry.read_bytes())
+    assert rendered["catalogPublication"] == {
+        "latestVersion": max(versions, key=lambda version: tuple(map(int, version.split(".")))),
+        "catalogSchemaVersion": 2,
+        "catalogSha256": hashlib.sha256(catalog.read_bytes()).hexdigest(),
+    }
+
+
 def test_release_registry_is_rendered_from_exact_catalog_identity(
     tmp_path: Path,
 ) -> None:
@@ -708,6 +877,61 @@ def test_combined_handoff_cli_preflights_registry_before_catalog_publication(
     assert not registry.exists()
 
 
+def test_combined_handoff_preflights_manifest_before_any_output_publication(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    source = _build_update_source(tmp_path)
+    builder = _load_catalog_module()
+    v1_path = source / builder.CATALOG_NAME
+    v1_bytes = v1_path.read_bytes()
+    v2_path = source / builder.CATALOG_V2_NAME
+    manifest = source / "RELEASE-MANIFEST.json"
+    registry = source / "update-source-registry.json"
+    real_replace = builder.os.replace
+    replaced_destinations: list[Path] = []
+
+    def observe_replace(source_path: str, destination_path: Path) -> None:
+        replaced_destinations.append(Path(destination_path))
+        real_replace(source_path, destination_path)
+
+    monkeypatch.setattr(builder.os, "replace", observe_replace)
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            str(CATALOG_SCRIPT),
+            "--source-root",
+            str(source),
+            "--catalog-schema-version",
+            "2",
+            "--notification-policy",
+            "0.10.5=notify",
+            "--notification-policy",
+            "0.10.6=manual-only",
+            "--manifest-copy",
+            f"9.9.9={manifest}",
+            "--registry-template",
+            str(REGISTRY_TEMPLATE),
+            "--registry-output",
+            str(registry),
+            "--registry-revision",
+            "42",
+            "--registry-published-at",
+            "2026-09-01T00:00:00Z",
+        ],
+    )
+
+    with pytest.raises(ValueError, match="version is not in catalog"):
+        builder.main()
+
+    assert replaced_destinations == []
+    assert v1_path.read_bytes() == v1_bytes
+    assert not v2_path.exists()
+    assert not manifest.exists()
+    assert not registry.exists()
+
+
 def test_registry_renderer_rejects_two_catalogs_under_one_source_root() -> None:
     catalog_builder = _load_catalog_module()
 
@@ -763,17 +987,16 @@ def test_combined_handoff_preserves_competitor_manifest_during_rollback(
     catalog_builder = _load_catalog_module()
 
     def competitor_manifest(
-        source_root: Path,
-        version: str,
         destination: Path,
-    ) -> Path:
-        del source_root, version
+        manifest_bytes: bytes,
+    ) -> tuple[Path, bytes]:
+        del manifest_bytes
         destination.write_bytes(b"competitor-manifest")
         raise FileExistsError("competitor won manifest publication")
 
     monkeypatch.setattr(
         catalog_builder,
-        "_publish_release_manifest",
+        "_publish_prepared_release_manifest",
         competitor_manifest,
     )
     monkeypatch.setattr(
@@ -816,17 +1039,18 @@ def test_combined_handoff_preserves_competitor_registry_during_rollback(
     catalog_builder = _load_catalog_module()
 
     def competitor_registry(
-        template_path: Path,
-        rendered_catalog: Path,
         destination: Path,
-        revision: int,
-        published_at: str,
+        encoded: bytes,
     ) -> Path:
-        del template_path, rendered_catalog, revision, published_at
+        del encoded
         destination.write_bytes(b"competitor-registry")
         raise FileExistsError("competitor won Registry publication")
 
-    monkeypatch.setattr(catalog_builder, "render_registry", competitor_registry)
+    monkeypatch.setattr(
+        catalog_builder,
+        "_publish_prepared_registry",
+        competitor_registry,
+    )
     monkeypatch.setattr(
         sys,
         "argv",
@@ -865,33 +1089,29 @@ def test_combined_handoff_preserves_manifest_replaced_after_publication(
     manifest = source / "RELEASE-MANIFEST.json"
     registry = source / "update-source-registry.json"
     catalog_builder = _load_catalog_module()
-    original_publish = catalog_builder._publish_release_manifest
+    original_publish = catalog_builder._publish_prepared_release_manifest
 
     def replaced_manifest(
-        source_root: Path,
-        version: str,
         destination: Path,
+        manifest_bytes: bytes,
     ) -> tuple[Path, bytes]:
-        published, owned_bytes = original_publish(source_root, version, destination)
+        published, owned_bytes = original_publish(destination, manifest_bytes)
         published.write_bytes(b"competitor-after-publication")
         return published, owned_bytes
 
     def fail_registry(
-        template_path: Path,
-        rendered_catalog: Path,
         destination: Path,
-        revision: int,
-        published_at: str,
+        encoded: bytes,
     ) -> Path:
-        del template_path, rendered_catalog, destination, revision, published_at
+        del destination, encoded
         raise OSError("force rollback after manifest publication")
 
     monkeypatch.setattr(
         catalog_builder,
-        "_publish_release_manifest",
+        "_publish_prepared_release_manifest",
         replaced_manifest,
     )
-    monkeypatch.setattr(catalog_builder, "render_registry", fail_registry)
+    monkeypatch.setattr(catalog_builder, "_publish_prepared_registry", fail_registry)
     monkeypatch.setattr(
         sys,
         "argv",
@@ -931,17 +1151,18 @@ def test_combined_handoff_preserves_competitor_catalog_during_rollback(
     catalog_builder = _load_catalog_module()
 
     def competitor_catalog(
-        template_path: Path,
-        rendered_catalog: Path,
         destination: Path,
-        revision: int,
-        published_at: str,
+        encoded: bytes,
     ) -> Path:
-        del template_path, destination, revision, published_at
-        rendered_catalog.write_bytes(b"competitor-catalog")
+        del destination, encoded
+        catalog_path.write_bytes(b"competitor-catalog")
         raise FileExistsError("competitor changed Catalog publication")
 
-    monkeypatch.setattr(catalog_builder, "render_registry", competitor_catalog)
+    monkeypatch.setattr(
+        catalog_builder,
+        "_publish_prepared_registry",
+        competitor_catalog,
+    )
     monkeypatch.setattr(
         sys,
         "argv",
@@ -1017,13 +1238,10 @@ def test_combined_handoff_blocks_second_publisher_during_catalog_restore(
     observed_restore_window = False
 
     def fail_registry(
-        template_path: Path,
-        rendered_catalog: Path,
         destination: Path,
-        revision: int,
-        published_at: str,
+        encoded: bytes,
     ) -> Path:
-        del template_path, rendered_catalog, destination, revision, published_at
+        del destination, encoded
         raise OSError("force combined rollback")
 
     def guarded_replace(source_path: str, destination_path: Path) -> None:
@@ -1034,7 +1252,7 @@ def test_combined_handoff_blocks_second_publisher_during_catalog_restore(
                 catalog_builder.build_catalog(source, {}, {})
         original_replace(source_path, destination_path)
 
-    monkeypatch.setattr(catalog_builder, "render_registry", fail_registry)
+    monkeypatch.setattr(catalog_builder, "_publish_prepared_registry", fail_registry)
     monkeypatch.setattr(catalog_builder.os, "replace", guarded_replace)
     monkeypatch.setattr(
         sys,

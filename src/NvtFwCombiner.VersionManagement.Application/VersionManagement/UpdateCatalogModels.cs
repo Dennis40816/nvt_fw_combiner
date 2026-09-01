@@ -29,6 +29,17 @@ public enum UpdateCatalogIssueCode
     ReleaseNotesTooLarge,
     /// <summary>An entry omits the required release notes field.</summary>
     MissingReleaseNotes,
+    /// <summary>A Catalog v2 entry has a missing or non-canonical notification policy.</summary>
+    InvalidNotificationPolicy,
+}
+
+/// <summary>Closed effective policy for background update notification.</summary>
+public enum UpdateNotificationPolicy
+{
+    /// <summary>The entry remains visible only to explicit checks and explicit install.</summary>
+    ManualOnly,
+    /// <summary>The entry may become the existing automatic notification candidate.</summary>
+    Notify,
 }
 
 /// <summary>One stable catalog issue with an optional entry identity.</summary>
@@ -47,7 +58,8 @@ public sealed class UpdateCatalogVersionSnapshot
         long packageSize,
         string packageSha256,
         string releaseManifestSha256,
-        string releaseNotes)
+        string releaseNotes,
+        UpdateNotificationPolicy notificationPolicy = UpdateNotificationPolicy.Notify)
     {
         Version = version;
         PublishedAt = publishedAt;
@@ -56,6 +68,7 @@ public sealed class UpdateCatalogVersionSnapshot
         PackageSha256 = packageSha256;
         ReleaseManifestSha256 = releaseManifestSha256;
         ReleaseNotes = releaseNotes;
+        NotificationPolicy = notificationPolicy;
         Identity = string.Join(
             '|',
             Version,
@@ -86,6 +99,9 @@ public sealed class UpdateCatalogVersionSnapshot
     /// <summary>Gets the bounded release notes.</summary>
     public string ReleaseNotes { get; }
 
+    /// <summary>Gets the Application-owned effective background-notification policy.</summary>
+    public UpdateNotificationPolicy NotificationPolicy { get; }
+
     /// <summary>Gets the location-independent catalog-entry identity.</summary>
     public string Identity { get; }
 }
@@ -107,6 +123,14 @@ public sealed class UpdateCatalogSnapshot
     public UpdateCatalogVersionSnapshot? FindNewestNewerThan(ManagedAppVersion current)
     {
         return Versions.FirstOrDefault(version => version.Version > current);
+    }
+
+    /// <summary>Finds the newest newer entry eligible for the existing automatic prompt.</summary>
+    public UpdateCatalogVersionSnapshot? FindNewestNotifyNewerThan(ManagedAppVersion current)
+    {
+        return Versions.FirstOrDefault(version =>
+            version.Version > current &&
+            version.NotificationPolicy == UpdateNotificationPolicy.Notify);
     }
 }
 

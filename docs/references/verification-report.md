@@ -8,12 +8,37 @@ version-only 1.0.1 release, the stable 1.0.2 mode-selector hotfix, the 1.0.3
 page-publication hardening milestone, the 1.0.4 managed Setup and Launcher
 source milestone, the 1.0.5 read-only recovery-diagnosis milestone, and the
 1.0.6 tag-only integration milestone, and the 1.0.7 formal Distribution
-Launcher release. Current
+Launcher release, through the 1.0.8 unpublished Windows release candidate.
+Current
 verification evidence is produced by the canonical
 `python scripts/verify.py --structure-only` and `python scripts/verify.py --all`
 commands.
 
-Specification package version: `1.0.7`
+Specification package version: `1.0.8`
+
+## 1.0.8 unpublished Windows release candidate
+
+This candidate preserves firmware behavior while adding strict Catalog v2
+`manual-only` / `notify` policy with Catalog v1 fallback, a bounded Windows
+update-source deployment wrapper over the existing Catalog publisher,
+Windows-only CI, and fixed-test-area confinement for canonical verification.
+The approved package snapshot contains 25 direct Golden cases and nine self-
+contained fact-scoped aliases. Fresh preference state now selects Light while
+persisted theme choices remain authoritative, and the Launcher aligns its
+existing typed Setup progress presentation.
+
+Focused tests and independent reviews cover the Catalog v1/v2 contracts,
+publisher mutation ordering, deployment-wrapper custody and failure paths,
+fixed-area confinement, Windows CI projection, canonical Golden package
+policy, Light preference behavior, and Launcher layout. These are scoped
+implementation evidence, not formal release authorization.
+
+Frozen-head `python scripts/verify.py --all`, final package and exact asset
+closure, visible and clean-machine smoke, hashes/SBOM/provenance, the real
+installed v1.0.7-to-v1.0.8 Catalog-v1 canary, staged Catalog-v2 canary,
+protected release-owner approval, immutable tag and GitHub Release, and fresh-
+download verification remain mandatory gates. No completed canary, package,
+tag, live Registry cutover, or publication is claimed here.
 
 ## 1.0.7 formal Distribution Launcher release
 

@@ -197,6 +197,109 @@ public sealed partial class VersionManagementExperienceTests
         Assert.False(snapshot.ShouldPromptForUpdate);
     }
 
+    /// <summary>An automatic all-manual Catalog performs zero package I/O and publishes no policy-bearing row.</summary>
+    [Fact]
+    public async Task AutomaticAllManualCatalogSkipsPackageAndPublishesExactConnectedSnapshot()
+    {
+        var repository = new HealthyRepository();
+        using VersionManagementExperience experience = VersionManagementExperienceTestFactory.Create(
+            ManagedAppVersion.Parse("1.0.6"),
+            "managed-root",
+            new MemoryStateStore(State([Admission("1.0.6")], "1.0.6", "1.0.6")),
+            new FixedCatalogSource(CatalogV2(("1.0.8", "manual-only"))),
+            repository);
+
+        VersionManagementSnapshot snapshot = await experience.CheckAsync(
+            isAutomatic: true,
+            TestContext.Current.CancellationToken);
+
+        Assert.Equal(0, repository.VerifyCount);
+        Assert.Null(snapshot.Catalog);
+        Assert.Null(snapshot.VerifiedCandidate);
+        Assert.Equal(VersionSourceStatus.Connected, snapshot.SourceStatus);
+        Assert.Equal(UpdateCatalogLoadIssue.None, snapshot.CatalogIssue);
+        Assert.False(snapshot.ShouldPromptForUpdate);
+    }
+
+    /// <summary>Automatic checks verify and expose only the newest eligible notify row.</summary>
+    [Fact]
+    public async Task AutomaticMixedCatalogVerifiesAndExposesOnlyNewestNotifyRow()
+    {
+        var repository = new HealthyRepository();
+        using VersionManagementExperience experience = VersionManagementExperienceTestFactory.Create(
+            ManagedAppVersion.Parse("1.0.6"),
+            "managed-root",
+            new MemoryStateStore(State([Admission("1.0.6")], "1.0.6", "1.0.6")),
+            new FixedCatalogSource(CatalogV2(
+                ("1.0.8", "manual-only"),
+                ("1.0.7", "notify"))),
+            repository);
+
+        VersionManagementSnapshot snapshot = await experience.CheckAsync(
+            isAutomatic: true,
+            TestContext.Current.CancellationToken);
+
+        Assert.Equal(1, repository.VerifyCount);
+        Assert.Equal("1.0.7", snapshot.VerifiedCandidate!.Version.ToString());
+        UpdateCatalogVersionSnapshot visible = Assert.Single(snapshot.Catalog!.Versions);
+        Assert.Equal("1.0.7", visible.Version.ToString());
+        Assert.Equal(UpdateNotificationPolicy.Notify, visible.NotificationPolicy);
+        Assert.DoesNotContain(snapshot.Catalog.Versions, entry => entry.Version.ToString() == "1.0.8");
+    }
+
+    /// <summary>An explicit check preserves all admitted rows including manual-only entries.</summary>
+    [Fact]
+    public async Task ExplicitMixedCatalogExposesAllRowsAndSelectsNewestRegardlessOfPolicy()
+    {
+        var repository = new HealthyRepository();
+        using VersionManagementExperience experience = VersionManagementExperienceTestFactory.Create(
+            ManagedAppVersion.Parse("1.0.6"),
+            "managed-root",
+            new MemoryStateStore(State([Admission("1.0.6")], "1.0.6", "1.0.6")),
+            new FixedCatalogSource(CatalogV2(
+                ("1.0.8", "manual-only"),
+                ("1.0.7", "notify"))),
+            repository);
+
+        VersionManagementSnapshot snapshot = await experience.CheckAsync(
+            isAutomatic: false,
+            TestContext.Current.CancellationToken);
+
+        Assert.Equal(1, repository.VerifyCount);
+        Assert.Equal("1.0.8", snapshot.VerifiedCandidate!.Version.ToString());
+        Assert.Equal(["1.0.8", "1.0.7"], snapshot.Catalog!.Versions.Select(entry => entry.Version.ToString()));
+        Assert.False(snapshot.ShouldPromptForUpdate);
+    }
+
+    /// <summary>Install consumes the checked Catalog snapshot and never rereads corrected policy authority.</summary>
+    [Fact]
+    public async Task InstallUsesCheckedV2SnapshotWithoutCatalogReread()
+    {
+        UpdateCatalogSnapshot checkedCatalog = CatalogV2(("1.0.8", "notify"));
+        var source = new MutableCatalogSource(checkedCatalog);
+        using VersionManagementExperience experience = VersionManagementExperienceTestFactory.Create(
+            ManagedAppVersion.Parse("1.0.6"),
+            "managed-root",
+            new MemoryStateStore(State([Admission("1.0.6")], "1.0.6", "1.0.6")),
+            source,
+            new HealthyRepository());
+
+        _ = await experience.CheckAsync(
+            isAutomatic: false,
+            TestContext.Current.CancellationToken);
+        source.Snapshot = CatalogV2(("1.0.8", "manual-only"));
+
+        VersionInstallOperationResult result = await experience.InstallAsync(
+            ManagedAppVersion.Parse("1.0.8"),
+            TestContext.Current.CancellationToken);
+
+        Assert.True(result.Install.IsSuccess);
+        Assert.Equal(1, source.LoadCount);
+        Assert.Equal(
+            Assert.Single(checkedCatalog.Versions).Identity,
+            result.Install.Admission!.AdmissionIdentity);
+    }
+
     /// <summary>No configured source short-circuits discovery and remains explicitly NotConfigured.</summary>
     [Fact]
     public async Task MissingConfiguredSourceSkipsCatalogRead()
@@ -427,6 +530,24 @@ public sealed partial class VersionManagementExperienceTests
         return Assert.IsType<UpdateCatalogSnapshot>(UpdateCatalogValidator.Validate(document).Snapshot);
     }
 
+    private static UpdateCatalogSnapshot CatalogV2(params (string Version, string Policy)[] versions)
+    {
+        var document = new UpdateCatalogV2Document(
+            2,
+            "NVT FW Combiner",
+            "win-x64",
+            [.. versions.Select(entry => new UpdateCatalogV2VersionDocument(
+                entry.Version,
+                "2026-09-01T00:00:00Z",
+                $"packages/NvtFwCombiner-v{entry.Version}-win-x64.zip",
+                42,
+                Hash,
+                Hash,
+                $"Release {entry.Version}",
+                entry.Policy))]);
+        return Assert.IsType<UpdateCatalogSnapshot>(UpdateCatalogValidator.Validate(document).Snapshot);
+    }
+
     private sealed class FixedCatalogSource(UpdateCatalogSnapshot snapshot) : IRootCatalogSourceTestDouble
     {
         public ValueTask<UpdateCatalogLoadResult> LoadAsync(
@@ -444,10 +565,13 @@ public sealed partial class VersionManagementExperienceTests
     {
         internal UpdateCatalogSnapshot Snapshot { get; set; } = snapshot;
 
+        internal int LoadCount { get; private set; }
+
         public ValueTask<UpdateCatalogLoadResult> LoadAsync(
             string sourceRoot,
             CancellationToken cancellationToken)
         {
+            LoadCount++;
             return ValueTask.FromResult(new UpdateCatalogLoadResult(Snapshot, UpdateCatalogLoadIssue.None));
         }
     }
@@ -579,11 +703,14 @@ public sealed partial class VersionManagementExperienceTests
     {
         internal List<ManagedAppVersion> Deleted { get; } = [];
 
+        internal int VerifyCount { get; private set; }
+
         public ValueTask<ManagedPackageVerificationResult> VerifyPackageAsync(
             string sourceRoot,
             UpdateCatalogVersionSnapshot package,
             CancellationToken cancellationToken)
         {
+            VerifyCount++;
             return ValueTask.FromResult(verificationResult ?? (verifyPackages
                 ? new ManagedPackageVerificationResult(
                     new(package.Version, package.Identity, package.ReleaseNotes),

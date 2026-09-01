@@ -277,6 +277,16 @@ and release verifier. The pull-request workflow may execute its .NET evidence
 owners on separate runners only through the following closed DAG, which
 supersedes the earlier single-runner planning restriction:
 
+Canonical scratch isolation is part of that command contract. Local runs load
+one user-initialized, fixed, absolute, existing `NFC_TEST_AREA_ROOT` outside the
+repository and explicitly bind `TEMP`, `TMP`, and `TMPDIR` in every invoking
+process, including direct narrow tests. The verifier owns one marker-bound
+child session and deletes only that session. On Windows, identity-bound,
+non-reparse custody handles remain open from admission through scratch setup,
+child-process handoff, the complete workload, and exact cleanup; every exit
+closes them. GitHub Actions instead derives the test root exclusively from
+`RUNNER_TEMP`; workflows do not provide a competing local declaration.
+
 - one Windows producer owns the pinned SDK, Windows process-orchestration
   probe, restore, evaluated source-ownership check, whitespace formatter, and
   complete Release solution build;

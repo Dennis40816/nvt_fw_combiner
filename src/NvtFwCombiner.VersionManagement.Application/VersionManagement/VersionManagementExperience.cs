@@ -291,21 +291,24 @@ public sealed partial class VersionManagementExperience :
                 sourceRoot,
                 ownedToken).ConfigureAwait(false);
             VerifiedUpdateCandidate? verified = null;
+            UpdateCatalogVersionSnapshot? selectedPackage = null;
             if (loaded.IsSuccess)
             {
                 ManagedAppVersion currentVersion = current.State.ActiveVersion ?? _currentAppVersion;
-                UpdateCatalogVersionSnapshot? newest = loaded.Snapshot!.FindNewestNewerThan(currentVersion);
-                if (newest is not null)
+                selectedPackage = isAutomatic
+                    ? loaded.Snapshot!.FindNewestNotifyNewerThan(currentVersion)
+                    : loaded.Snapshot!.FindNewestNewerThan(currentVersion);
+                if (selectedPackage is not null)
                 {
                     ManagedPackageVerificationResult verification = await _repository.VerifyPackageAsync(
                         sourceRoot,
-                        newest,
+                        selectedPackage,
                         ownedToken).ConfigureAwait(false);
                     verified = verification is { IsVerified: true, Candidate: { } candidate } &&
-                               candidate.Version == newest.Version &&
+                               candidate.Version == selectedPackage.Version &&
                                string.Equals(
                                    candidate.AdmissionIdentity,
-                                   newest.Identity,
+                                   selectedPackage.Identity,
                                    StringComparison.Ordinal)
                         ? candidate
                         : null;
@@ -323,11 +326,18 @@ public sealed partial class VersionManagementExperience :
                                         generation,
                                         current.State.ActiveVersion ?? _currentAppVersion,
                                         verified);
-                VersionSourceStatus status = ResolveSourceStatus(loaded, verified, current);
+                VersionSourceStatus status = loaded.IsSuccess && selectedPackage is null
+                    ? VersionSourceStatus.Connected
+                    : ResolveSourceStatus(loaded, verified, current);
+                UpdateCatalogSnapshot? visibleCatalog = isAutomatic
+                    ? verified is not null && selectedPackage is not null
+                        ? new([selectedPackage])
+                        : null
+                    : loaded.Snapshot;
                 _current = new(
                     current.State,
                     current.Inventory,
-                    loaded.Snapshot,
+                    visibleCatalog,
                     verified,
                     status,
                     loaded.Issue,

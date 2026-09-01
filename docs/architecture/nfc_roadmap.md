@@ -132,9 +132,73 @@ explicit deletion. Renaming the `1.0.0` ZIP, directory, executable, manifest,
 or catalog entry is not a valid `1.0.1` package. The validation package is not
 an official stable release unless the owner separately approves publication.
 
+## `1.0.8` through `1.0.13`: update delivery and release-flow closure
+
+The remaining `1.0.x` sequence is intentionally release-bounded. A later item
+does not delay an earlier stable release unless it exposes a P0/P1 defect in
+that earlier release's owned behavior.
+
+1. `v1.0.8` makes Light the fresh-install shell default; confines canonical
+   verification scratch work to the declared fixed test area; ships the
+   owner-approved canonical evidence snapshot as 25 direct Golden cases plus
+   nine self-contained fact-scoped aliases; moves CI to Windows-only; adds the
+   bounded one-package deployment/publish wrapper; and introduces strict
+   Catalog v2 `manual-only` / `notify` policy while retaining Catalog v1 for
+   the genuine installed `v1.0.7` to `v1.0.8` canary. Live Catalog v2 Registry
+   cutover remains a separate R3 release-owner operation after the v1 and v2
+   canaries pass.
+2. `v1.0.9` adds privacy-filtered current-session diagnostics/history and a
+   user-visible version change list sourced only from typed admitted Catalog
+   `releaseNotes`. It also owns the selector visual corrections recorded in
+   [`v1.0.9 CtrlRAM selector visual contract`](../ui/v1.0.9-ctrlram-selector-visual-contract.md):
+   increase only vertical information-row spacing at constrained viewports,
+   give Base firmware and every CtrlRAM group the same horizontal anchors, and
+   replace hover-dependent nested outlines with one stable section outline and
+   one inset input-card outline. A wrapped file/type title or filename must
+   reserve its full multi-line height and keep a clear gap before `Verified`
+   or other badges and before the following filename/status row.
+   `v1.0.9` also performs one complete-page Settings Version proportion audit;
+   the owner first approves a full-page reference at exact viewports before
+   implementation changes content width, column ratio, modal/page scale, or
+   minimum-size behavior. This audit is not permission for a page redesign.
+3. `v1.0.10` owns the interactive architecture artifact, version-rule
+   documentation, evidence-backed dead-code/minimality review, and measured
+   test-runtime reduction. Test work first profiles lane and fixture cost, then
+   reuses accepted component evidence, improves narrow-test selection, and
+   removes duplicated setup; it cannot hide coverage, weaken a release gate,
+   or replace the frozen-candidate full verifier with an unproven shortcut.
+   The slice may delete redundancy but cannot create a second semantic owner.
+4. `v1.0.11` owns bounded Installer and Launcher experience refinements that
+   preserve the existing managed-version, custody, READY, offline, rollback,
+   and recovery contracts.
+5. `v1.0.12` owns delta-download minimization. Delta transport cannot redefine
+   package identity, installed bytes, full-package verification, recovery, or
+   rollback authority.
+6. `v1.0.13` applies the existing documentation-convergence rule in
+   [`ADR 0021`](../adr/0021-code-size-ratchet-and-convergence.md) and the
+   existing [ADR lifecycle](../adr/README.md) to consolidate repository
+   documentation for minimum correct agent reading. It inventories one
+   canonical owner for each normative product,
+   architecture, firmware, governance, test, and release fact; merges repeated
+   normative text; deletes only documents proven obsolete and evidence-free;
+   and marks retained historical release/evidence material archived or
+   superseded so it leaves the default task-reading path. AGENTS and skill
+   routing point each task to the smallest sufficient document set. Before and
+   after inventories for representative architecture, firmware, Golden,
+   release, and UI tasks must show which mandatory reads were removed or
+   redirected without losing an applicable authority; those inventories stay
+   in the existing change or release evidence rather than becoming a new
+   registry. The slice must preserve unique decision/provenance/history
+   evidence and validated links, and must not add a second documentation
+   framework, speculative generator, or duplicate index merely to organize the
+   cleanup.
+
 ## `1.1.0`: deferred product expansion and analyzer cleanup
 
-`1.1.0` starts only from the official reviewed `v1.0.0` predecessor. It owns:
+`1.1.0` starts only after the release-bounded `1.0.x` sequence is closed and
+from its latest official reviewed stable predecessor. It cannot bypass, drop,
+or reconstruct behavior or evidence already published by any retained
+`1.0.x` release. It owns:
 
 1. complete General Merge and General Replace authoring;
 2. saved/customized-rule authoring, persistence, import, and validation through
@@ -155,6 +219,40 @@ firmware behavior.
 
 One topology, IC, workflow, or fact-scoped alias never certifies another beyond
 its owner-approved evidence scope.
+
+Only after `v1.1.0` is formally published and its exact release evidence is
+closed, start the
+[`post-v1.1.0 Tool development process retrospective handoff`](../governance/post-v1.1.0-tool-development-process-retrospective-handoff.md).
+That discussion evaluates which decisions produced good outcomes, which caused
+avoidable delay or rework, how this process compares with mature large-company
+engineering systems, and which changes should become a reusable workflow for
+future Tool projects. It is not a `v1.1.0` release gate and cannot retroactively
+rewrite release evidence.
+
+## `1.1.x`: Golden evidence closure and `1.1.1` Memory Layout review
+
+The first suitable `1.1.x` evidence slice supplies independent expected output
+for the two retained input-only canonical cases and then re-reviews the three
+fact-scoped aliases that currently depend on them. Until those expected outputs
+and firmware-owner evidence exist, all five entries remain repository-only and
+must not be packaged, called Golden, or used to promote runtime support.
+
+`v1.1.1` owns a Memory Layout review of the per-section presentation contract.
+It must make each canonical section and its address-space/range boundaries
+explicit rather than visually flattening independent sections. This is a
+typed Application-to-Presentation projection review; it cannot move firmware
+facts, range authority, or memory interpretation into UI code.
+
+## `1.3.0`: Launcher and publication-system extraction review
+
+`v1.3.0` strengthens the Launcher and release/publication system as a bounded
+delivery platform. The preferred direction is an independently versioned
+repository when the shared contracts, ownership, migration, security, and
+release lifecycle can be separated without duplicating NVT FW Combiner's
+managed-version semantics. Extraction is not pre-approved: an ADR must first
+define the public contracts, migration/deletion milestones, repository trust
+boundary, and rollback path. No extracted component may own firmware facts,
+composition, profiles, Golden authority, or product-specific support policy.
 
 ## Later owner queue
 

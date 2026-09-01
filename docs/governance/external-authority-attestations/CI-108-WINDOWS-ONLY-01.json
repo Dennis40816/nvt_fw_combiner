@@ -1,0 +1,9 @@
+{
+  "schemaVersion": 1,
+  "taskId": "CI-108-WINDOWS-ONLY-01",
+  "authorityType": "release-owner",
+  "reviewedHead": "06eaf4638b1acb4d5c8d822f77bf8bae116c7c0a",
+  "decision": "approved",
+  "reviewer": "Dennis Liu (release owner)",
+  "evidence": "The release owner stated that the tool currently has no non-Windows platform plan and, after correcting the requested version boundary, explicitly directed removal of non-Windows CI in v1.0.8. This attestation approves exact final-evidence head 06eaf4638b1acb4d5c8d822f77bf8bae116c7c0a for the exact five-job Windows-only CI projection reviewed at implementation head ee42a88884bd99f10447e5e48196ca8d624b2f83 with P0-P2 equal to zero. Existing job topology, action pins, permissions, verifier modes, required semantics, and fail-closed PR ancestry remain intact; no product, firmware, package, support, or release-permission behavior is approved by this CI scope. It does not represent the actual protected Windows jobs, full verifier, merge, package, smoke, tag, Release, or publication as passing."
+}

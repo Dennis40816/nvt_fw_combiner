@@ -38,6 +38,140 @@ public sealed class FileSystemUpdateCatalogSourceTests
             result.ContentIdentity.Sha256);
     }
 
+    /// <summary>A direct source prefers strict v2 while exact-path loading dispatches by schema.</summary>
+    [Fact]
+    public async Task DirectSourcePrefersPresentValidV2AndPublishesItsSchemaIdentity()
+    {
+        using var workspace = TempWorkspace.Create();
+        string root = workspace.PathFor("source");
+        _ = Directory.CreateDirectory(root);
+        await WriteCatalogAsync(root);
+        await WriteCatalogV2Async(root, "manual-only");
+
+        UpdateCatalogLoadResult result = await new FileSystemUpdateCatalogSource().LoadAsync(
+            root,
+            TestContext.Current.CancellationToken);
+
+        Assert.True(result.IsSuccess);
+        Assert.Equal(2, result.ContentIdentity!.SchemaVersion);
+        Assert.Equal(
+            UpdateNotificationPolicy.ManualOnly,
+            Assert.Single(result.Snapshot!.Versions).NotificationPolicy);
+    }
+
+    /// <summary>Direct roots deliberately return to v1 when a previously admitted v2 file is removed.</summary>
+    [Fact]
+    public async Task DirectSourceUsesV1AfterPreviouslyAdmittedV2IsRemoved()
+    {
+        using var workspace = TempWorkspace.Create();
+        string root = workspace.PathFor("source");
+        _ = Directory.CreateDirectory(root);
+        await WriteCatalogAsync(root);
+        await WriteCatalogV2Async(root, "manual-only");
+        var source = new FileSystemUpdateCatalogSource();
+
+        UpdateCatalogLoadResult first = await source.LoadAsync(
+            root,
+            TestContext.Current.CancellationToken);
+        File.Delete(Path.Combine(root, FileSystemUpdateCatalogSource.CatalogV2FileName));
+        UpdateCatalogLoadResult second = await source.LoadAsync(
+            root,
+            TestContext.Current.CancellationToken);
+
+        Assert.Equal(2, first.ContentIdentity!.SchemaVersion);
+        Assert.Equal(1, second.ContentIdentity!.SchemaVersion);
+        Assert.Equal(
+            UpdateNotificationPolicy.Notify,
+            Assert.Single(second.Snapshot!.Versions).NotificationPolicy);
+    }
+
+    /// <summary>A present invalid v2 publication fails closed and never falls back to valid v1.</summary>
+    [Fact]
+    public async Task PresentInvalidV2FailsClosedWithoutV1Fallback()
+    {
+        using var workspace = TempWorkspace.Create();
+        string root = workspace.PathFor("source");
+        _ = Directory.CreateDirectory(root);
+        await WriteCatalogAsync(root);
+        await WriteCatalogV2Async(root, "Notify");
+
+        UpdateCatalogLoadResult result = await new FileSystemUpdateCatalogSource().LoadAsync(
+            root,
+            TestContext.Current.CancellationToken);
+
+        Assert.False(result.IsSuccess);
+        Assert.Equal(UpdateCatalogLoadIssue.InvalidManifest, result.Issue);
+    }
+
+    /// <summary>A v1 document published under the reserved v2 name is invalid and cannot expose v1 fallback.</summary>
+    [Fact]
+    public async Task V1DocumentAtV2NameFailsClosedWithoutV1Fallback()
+    {
+        using var workspace = TempWorkspace.Create();
+        string root = workspace.PathFor("source");
+        _ = Directory.CreateDirectory(root);
+        await WriteCatalogAsync(root);
+        File.Copy(
+            Path.Combine(root, FileSystemUpdateCatalogSource.CatalogFileName),
+            Path.Combine(root, FileSystemUpdateCatalogSource.CatalogV2FileName));
+
+        UpdateCatalogLoadResult result = await new FileSystemUpdateCatalogSource().LoadAsync(
+            root,
+            TestContext.Current.CancellationToken);
+
+        Assert.False(result.IsSuccess);
+        Assert.Equal(UpdateCatalogLoadIssue.InvalidManifest, result.Issue);
+        Assert.Null(result.Snapshot);
+    }
+
+    /// <summary>A v2 document published under the reserved v1 name is invalid even when no v2 file exists.</summary>
+    [Fact]
+    public async Task V2DocumentAtV1NameFailsClosed()
+    {
+        using var workspace = TempWorkspace.Create();
+        string root = workspace.PathFor("source");
+        _ = Directory.CreateDirectory(root);
+        await WriteCatalogV2Async(root, "notify");
+        File.Move(
+            Path.Combine(root, FileSystemUpdateCatalogSource.CatalogV2FileName),
+            Path.Combine(root, FileSystemUpdateCatalogSource.CatalogFileName));
+
+        UpdateCatalogLoadResult result = await new FileSystemUpdateCatalogSource().LoadAsync(
+            root,
+            TestContext.Current.CancellationToken);
+
+        Assert.False(result.IsSuccess);
+        Assert.Equal(UpdateCatalogLoadIssue.InvalidManifest, result.Issue);
+        Assert.Null(result.Snapshot);
+    }
+
+    /// <summary>Every non-exact v2 policy shape is invalid and cannot expose stale v1 authority.</summary>
+    [Theory]
+    [MemberData(nameof(InvalidStrictV2Documents))]
+    public async Task StrictV2PolicyShapeFailsClosedWithoutV1Fallback(
+        string caseId,
+        string v2Document)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(caseId);
+        ArgumentNullException.ThrowIfNull(v2Document);
+        using var workspace = TempWorkspace.Create();
+        string root = workspace.PathFor("source");
+        _ = Directory.CreateDirectory(root);
+        await WriteCatalogAsync(root);
+        await File.WriteAllTextAsync(
+            Path.Combine(root, FileSystemUpdateCatalogSource.CatalogV2FileName),
+            v2Document,
+            TestContext.Current.CancellationToken);
+
+        UpdateCatalogLoadResult result = await new FileSystemUpdateCatalogSource().LoadAsync(
+            root,
+            TestContext.Current.CancellationToken);
+
+        Assert.False(result.IsSuccess);
+        Assert.Equal(UpdateCatalogLoadIssue.InvalidManifest, result.Issue);
+        Assert.Null(result.Snapshot);
+    }
+
     /// <summary>Moving identical source content preserves every admitted package identity.</summary>
     [Fact]
     public async Task IdenticalCatalogMovedToAnotherFolderKeepsIdentity()
@@ -333,5 +467,49 @@ public sealed class FileSystemUpdateCatalogSourceTests
             Path.Combine(root, FileSystemUpdateCatalogSource.CatalogFileName),
             JsonSerializer.Serialize(document, JsonOptions),
             TestContext.Current.CancellationToken);
+    }
+
+    private static async Task WriteCatalogV2Async(string root, string policy)
+    {
+        var document = new UpdateCatalogV2Document(
+            2,
+            "NVT FW Combiner",
+            "win-x64",
+            [new(
+                "1.0.8",
+                "2026-09-01T00:00:00Z",
+                "packages/NvtFwCombiner-v1.0.8-win-x64.zip",
+                42,
+                "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+                "abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789",
+                "Release 1.0.8",
+                policy)]);
+        await File.WriteAllTextAsync(
+            Path.Combine(root, FileSystemUpdateCatalogSource.CatalogV2FileName),
+            JsonSerializer.Serialize(document, JsonOptions),
+            TestContext.Current.CancellationToken);
+    }
+
+    /// <summary>Malformed v2 documents exercising required, typed, closed policy shape.</summary>
+    public static TheoryData<string, string> InvalidStrictV2Documents
+    {
+        get
+        {
+            const string prefix =
+                """
+                {"schemaVersion":2,"product":"NVT FW Combiner","runtimeIdentifier":"win-x64","versions":[{"version":"1.0.8","publishedAt":"2026-09-01T00:00:00Z","packagePath":"packages/NvtFwCombiner-v1.0.8-win-x64.zip","packageSize":42,"packageSha256":"0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef","releaseManifestSha256":"abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789","releaseNotes":"Release 1.0.8"
+                """;
+            TheoryData<string, string> data = [];
+            data.Add("missing-policy", prefix + "}]}");
+            data.Add("null-policy", prefix + ",\"notificationPolicy\":null}]}");
+            data.Add("numeric-policy", prefix + ",\"notificationPolicy\":2}]}");
+            data.Add(
+                "unexpected-field",
+                prefix + ",\"notificationPolicy\":\"notify\",\"unexpected\":true}]}");
+            data.Add(
+                "duplicate-policy",
+                prefix + ",\"notificationPolicy\":\"manual-only\",\"notificationPolicy\":\"notify\"}]}");
+            return data;
+        }
     }
 }

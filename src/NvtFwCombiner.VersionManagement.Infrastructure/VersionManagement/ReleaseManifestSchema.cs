@@ -130,6 +130,21 @@ internal static class UpdateCatalogSchema
     }
 }
 
+/// <summary>Canonical strict update-catalog v2 contract used before DTO projection.</summary>
+internal static class UpdateCatalogV2Schema
+{
+    private static readonly Lazy<JsonSchema> Schema = new(() => EmbeddedVersionManagementSchema.Load(
+        typeof(UpdateCatalogV2Schema),
+        "NvtFwCombiner.VersionManagement.Infrastructure.Contracts.update-catalog-v2.schema.json",
+        "https://schemas.example.invalid/nvt_fw_combiner/update-catalog-v2.schema.json",
+        "Canonical update-catalog v2 schema is unavailable."));
+
+    internal static bool IsValid(JsonElement document)
+    {
+        return EmbeddedVersionManagementSchema.IsValid(Schema.Value, document);
+    }
+}
+
 /// <summary>Canonical fixed update-source registry contract.</summary>
 internal static class UpdateSourceRegistrySchema
 {

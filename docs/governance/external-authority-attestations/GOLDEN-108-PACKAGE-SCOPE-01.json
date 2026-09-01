@@ -1,0 +1,9 @@
+{
+  "schemaVersion": 1,
+  "taskId": "GOLDEN-108-PACKAGE-SCOPE-01",
+  "authorityType": "firmware-owner",
+  "reviewedHead": "06eaf4638b1acb4d5c8d822f77bf8bae116c7c0a",
+  "decision": "approved",
+  "reviewer": "Dennis Liu (firmware owner)",
+  "evidence": "The firmware owner explicitly directed v1.0.8 to include every currently useful Golden and separately assigned the three aliases that lack expected output and have input-only evidence to the v1.1.x TODO. This attestation approves redistribution of the exact release-canonical projection at final-evidence head 06eaf4638b1acb4d5c8d822f77bf8bae116c7c0a: 25 direct cases plus nine self-contained same-workflow aliases, 159 logical artifact declarations, and 156 unique paths, independently recalculated at implementation head ee42a88884bd99f10447e5e48196ca8d624b2f83. The two input-only direct cases and their three dependent aliases remain excluded, as do diagnostics, private or quarantined material, retired ICs, generated output, and every unlisted path; the selected BAT and CONFIG remain inert hash-pinned provenance only. No firmware byte, expected byte, range, mutation order, CRC or header behavior, support status, or full-byte parity claim is created or changed. Frozen package projection, full verification, package smoke, provenance, publication, and fresh-download evidence remain separate gates."
+}

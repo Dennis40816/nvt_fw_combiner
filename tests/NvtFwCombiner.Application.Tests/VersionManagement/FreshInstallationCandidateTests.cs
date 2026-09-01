@@ -4,6 +4,40 @@ namespace NvtFwCombiner.Application.Tests.VersionManagement;
 
 public sealed partial class VersionManagementExperienceTests
 {
+    /// <summary>Fresh-install inspect and reverify ignore notification policy and verify v2 newest package.</summary>
+    [Fact]
+    public async Task FreshAdmissionVerifiesManualOnlyV2NewestPackage()
+    {
+        string latest = SourcePath("fresh-v2-manual");
+        var repository = new CountingRepository();
+        var catalog = new UpdateCatalogLoadResult(
+            CatalogV2(("1.0.8", "manual-only")),
+            UpdateCatalogLoadIssue.None,
+            new(2, CatalogContentDigest));
+        UpdateSourceRegistryLoadResult registry = RegistryWithPublication(
+            "1.0.8", 2, CatalogContentDigest, 2, SecondRegistryDigest,
+            (latest, UpdateSourceRegistryEntryStatus.Latest));
+        using VersionManagementExperience experience = VersionManagementExperienceTestFactory.Create(
+            ManagedAppVersion.Parse("1.0.7"),
+            "managed-root",
+            new ForbiddenStateStore(),
+            new PathCatalogSource((latest, catalog)),
+            repository,
+            new SequenceRegistrySource(registry, registry));
+
+        FreshInstallationCandidateResult inspected = await experience.InspectFreshInstallationAsync(
+            TestContext.Current.CancellationToken);
+        FreshInstallationCandidateResult reverified = await experience.ReverifyFreshInstallationAsync(
+            inspected.Candidate!,
+            TestContext.Current.CancellationToken);
+
+        Assert.True(inspected.IsSuccess);
+        Assert.True(reverified.IsSuccess);
+        Assert.Equal(
+            [ManagedAppVersion.Parse("1.0.8"), ManagedAppVersion.Parse("1.0.8")],
+            repository.VerifiedVersions);
+    }
+
     /// <summary>Every declared Registry read failure maps to one typed fresh-install result before downstream access.</summary>
     [Theory]
     [InlineData(UpdateSourceRegistryLoadIssue.None, FreshInstallationCandidateIssue.SourceRejected)]
