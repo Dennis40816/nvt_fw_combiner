@@ -1,0 +1,45 @@
+{
+  "schemaVersion": 2,
+  "taskId": "RELEASE-111-PARITY-AUTHORITY-TRANSFER-07",
+  "capability": "Renew the existing fail-closed v0.9.16 source-built candidate authority after the v1.1.1 release-package fixture correction",
+  "integrationBase": "e1a8a871553c23f3fb30dc3933e87b40be9be306",
+  "risk": "R3",
+  "kind": "release",
+  "state": "design-active",
+  "mutablePaths": [
+    "docs/adr/0057-v0916-black-box-parity-certification.md",
+    "docs/contracts/v0916-parity-certification-v1.json",
+    "docs/contracts/v0916-parity-certification-v1.md",
+    "docs/contracts/v0916-parity-certification-v1.schema.json",
+    "docs/contracts/v0916-parity-comparison-v1.schema.json",
+    "docs/contracts/v0916-parity-evidence-v1.schema.json",
+    "docs/contracts/v0916-parity-finalize-v1.schema.json",
+    "docs/contracts/v0916-parity-run-v1.schema.json",
+    "docs/contracts/v0916-parity-workflow-v1.json",
+    "docs/contracts/v0916-parity-workflow-v1.schema.json",
+    "docs/contracts/v100-candidate-source-executor-v1.json"
+  ],
+  "implementationOwner": "primary-agent",
+  "searchEvidence": [
+    "scripts/v0916_parity_certification.py already owns the exact H1 source, direct H2 binding, H3 final record, H4 external release-owner attestation, and package-source validator. Reuse that owner and the prior append-only transfer rather than add a verifier, migration path, executor, or release workflow branch.",
+    "Checkpoint 77ad467bb8baddad7917bce77b17c990c9e600ac changes only tests/scripts/test_release_package_policy.py: the existing detached-fixture helper permits an empty CI-owned child commit when VERSION is already 1.1.1, and the v1.1.1 commit-mismatch fixture no longer requests the v1.1.0-only ManualOnly mode. The three exact failing CI cases pass locally; production package.ps1, release.yml, VERSION, firmware, runtime, UI, Version deployment, and v1.0.8 remain unchanged.",
+    "The latest capability final-evidence checkpoint remains e1a8a871553c23f3fb30dc3933e87b40be9be306. The prior H4 attestation and the ungoverned test-only checkpoint do not advance capability coverage, while 77ad467bb8baddad7917bce77b17c990c9e600ac is the exact source parent for the new one-path H1.",
+    "The existing certification plan, source-executor contract, workflow semantic contract, seven schema projections, ADR, narrative, and two parity tests carry every required head/tree/raw-hash fact. Two new empty tracked-clean detached worktrees at exact H1 39dbf710c0514796f4df8e0d022c578ace19561a independently completed the pinned SDK 10.0.303 locked restore and deterministic Release build with zero warnings and zero errors. Both produced the same 162304-byte CLI SHA-256 ba84481f06698f89f0831246443af6bf7592937457530ecd1401fe2fbbd1bbc4 and the same complete 384-file, 92147320-byte runtime closure SHA-256 dd778eb5e9d22b1ff90cba702f0c3919ff3ae37ce3d091124cfcd747c32a78f2; all four authority subtrees remain byte-identical."
+  ],
+  "semanticOwner": "The existing parity certification plan, candidate source-executor contract, protected-workflow contract, ADR 0057, and package-source validator jointly own the closed source-built candidate authority and append-only H1-to-H4 transfer",
+  "terminalContract": "H1 39dbf710c0514796f4df8e0d022c578ace19561a is the exact single-parent child of source checkpoint 77ad467bb8baddad7917bce77b17c990c9e600ac and changes only docs/contracts/v0916-parity-certification-v1.json to predeclare the exact sorted fourteen-path H2, one-record H3, and one-attestation H4. Two empty clean detached H1 worktrees use the contract-pinned SDK, locked restore, and deterministic Release build with no pre-existing or ignored bin/obj outputs; both CLI and full runtime inventories must match each other. H2 is H1's direct child and changes exactly the fourteen declared paths: eleven governed contract/narrative projections, two existing tests, and this record. It updates only candidate H1 head/tree, fresh build closure, workflow candidateImplementationHead, and mechanically propagated raw sizes/hashes while release.yml, workflow job/step semantics, four authority trees, canonical policy, firmware semantics, and build commands remain frozen. H3 is H2's direct child and modifies only this record to final-complete. H4 is H3's direct child and adds only its matching release-owner attestation; H4 becomes the sole new package-source head and the existing validator must pass. This renews source/build identity only and does not claim terminal 64-route parity, full verification, protected CI, package smoke, publication, Version deployment, or v1.0.8 completion.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "admission_batch_architecture",
+    "outcome": "findings-incorporated",
+    "evidence": "Independent bounded R3 design review found and corrected one P1: integrationBase must remain the latest final-record checkpoint e1a8a871 rather than the ungoverned test-only source parent 77ad467b. With that distinction incorporated, it approved the same single-record exact one-path H1, fourteen-path H2, one-record H3, one-attestation H4, and two fresh detached exact-H1 builds; P0=0, P1=0, P2=0, and P3=0."
+  },
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": {
+    "reviewer": null,
+    "outcome": "pending",
+    "evidence": ""
+  }
+}
