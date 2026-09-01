@@ -2261,11 +2261,6 @@ class VerifyOrchestrationTests(unittest.TestCase):
         )
         adapter = Path(".packages/coverlet.collector/6.0.4/build/netstandard2.0")
         results = Path("artifacts/coverage/dotnet/NvtFwCombiner.Infrastructure.Tests")
-        project = next(
-            project
-            for project in MODULE.CI_DOTNET_SHARDS["core"]
-            if project.name == "NvtFwCombiner.Infrastructure.Tests"
-        )
         expected_settings = [
             "DataCollectionRunSettings.DataCollectors.DataCollector."
             "Configuration.Format=json,cobertura",
@@ -2283,10 +2278,7 @@ class VerifyOrchestrationTests(unittest.TestCase):
             "dotnet",
             assembly,
         )
-        ci_command = MODULE.ci_dotnet_test_command("dotnet", project, results)
-
         self.assertEqual(expected_settings, local_command[-3:])
-        self.assertEqual(expected_settings, ci_command[-3:])
         self.assertEqual(["--", *expected_settings[-2:]], discovery_command[-3:])
 
     def test_coverlet_adapter_comes_only_from_baseline_and_repository_packages(
@@ -3649,22 +3641,29 @@ class VerifyOrchestrationTests(unittest.TestCase):
 
     def test_ci_dotnet_build_command_prepares_the_immutable_snapshot(self) -> None:
         project = MODULE.CI_DOTNET_SHARDS["bootstrap"][0]
+        assembly = Path(
+            "tests/NvtFwCombiner.Bootstrap.Tests/bin/Release/net10.0/"
+            "NvtFwCombiner.Bootstrap.Tests.dll"
+        )
+        adapter = Path(".packages/coverlet.collector/6.0.4/build/netstandard2.0")
         results = Path("artifacts/ci-dotnet-work/results")
 
         command = MODULE.ci_dotnet_build_command("dotnet", project)
-        test_command = MODULE.ci_dotnet_test_command("dotnet", project, results)
+        test_command = MODULE.local_dotnet_vstest_command(
+            "dotnet",
+            assembly,
+            adapter,
+            results,
+        )
 
         self.assertEqual("build", command[1])
         self.assertEqual(str(MODULE.ROOT / project.relative_path), command[2])
         self.assertIn("--no-restore", command)
         self.assertNotIn("--filter", command)
-        self.assertEqual("test", test_command[1])
-        self.assertIn("--no-build", test_command)
-        self.assertIn("--collect:XPlat Code Coverage", test_command)
-        self.assertEqual(
-            str(results),
-            test_command[test_command.index("--results-directory") + 1],
-        )
+        self.assertEqual(["dotnet", "vstest", str(assembly)], test_command[:3])
+        self.assertIn(f"--TestAdapterPath:{adapter}", test_command)
+        self.assertIn("--Collect:XPlat Code Coverage", test_command)
+        self.assertIn(f"--ResultsDirectory:{results}", test_command)
 
     def test_ci_coverage_normalization_removes_the_windows_producer_root(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
@@ -4380,6 +4379,8 @@ class VerifyOrchestrationTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
             evidence_root = root / "artifacts/ci-dotnet-work"
+            adapter = root / "adapter"
+            resolve_adapter = MagicMock(return_value=adapter)
             output = root / "output"
             output.mkdir()
             (output / f"{second.name}.dll").write_bytes(b"test assembly")
@@ -4395,6 +4396,11 @@ class VerifyOrchestrationTests(unittest.TestCase):
                 ),
                 patch.dict(MODULE.CI_DOTNET_SHARDS, {"probe": (first, second)}),
                 patch.object(MODULE, "resolve_dotnet", return_value="dotnet"),
+                patch.object(
+                    MODULE,
+                    "resolve_coverlet_adapter_path",
+                    resolve_adapter,
+                ),
                 patch.object(MODULE, "repository_sdk_version", return_value="10.0.301"),
                 patch.object(MODULE, "require_logged_sdk_version"),
                 patch.object(MODULE, "run", side_effect=fake_run),
@@ -4434,19 +4440,29 @@ class VerifyOrchestrationTests(unittest.TestCase):
             ):
                 MODULE.verify_ci_dotnet_test_shard("probe")
 
+        resolve_adapter.assert_called_once_with(root)
         build_commands = [command for command in commands if "build" in command]
         self.assertEqual(2, len(build_commands))
         self.assertIn("First.csproj", build_commands[0][2])
         self.assertIn("Second.csproj", build_commands[1][2])
-        test_commands = [command for command in commands if "test" in command]
-        self.assertEqual(1, len(test_commands))
-        self.assertIn("Second.csproj", test_commands[0][2])
+        vstest_commands = [command for command in commands if command[1] == "vstest"]
+        self.assertEqual(2, len(vstest_commands))
+        expected_assembly = str(output / "Second.dll")
+        self.assertTrue(all(command[2] == expected_assembly for command in vstest_commands))
+        execution_commands = [
+            command
+            for command in vstest_commands
+            if "--Collect:XPlat Code Coverage" in command
+        ]
+        self.assertEqual(1, len(execution_commands))
+        self.assertIn(f"--TestAdapterPath:{adapter}", execution_commands[0])
 
     def test_ci_dotnet_shard_rejects_snapshot_hash_drift_before_evidence(self) -> None:
         project = MODULE.CiDotnetProject("tests/Probe/Probe.csproj")
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
             collect = MagicMock()
+            resolve_adapter = MagicMock(return_value=root / "adapter")
             output = root / "output"
             output.mkdir()
             (output / f"{project.name}.dll").write_bytes(b"test assembly")
@@ -4466,6 +4482,11 @@ class VerifyOrchestrationTests(unittest.TestCase):
                 ),
                 patch.dict(MODULE.CI_DOTNET_SHARDS, {"probe": (project,)}),
                 patch.object(MODULE, "resolve_dotnet", return_value="dotnet"),
+                patch.object(
+                    MODULE,
+                    "resolve_coverlet_adapter_path",
+                    resolve_adapter,
+                ),
                 patch.object(MODULE, "repository_sdk_version", return_value="10.0.301"),
                 patch.object(MODULE, "require_logged_sdk_version"),
                 patch.object(MODULE, "run"),
@@ -4487,6 +4508,7 @@ class VerifyOrchestrationTests(unittest.TestCase):
             ):
                 MODULE.verify_ci_dotnet_test_shard("probe")
 
+            resolve_adapter.assert_called_once_with(root)
             collect.assert_not_called()
 
     def test_ci_dotnet_shard_timeout_stops_before_the_next_project(self) -> None:
@@ -4501,6 +4523,7 @@ class VerifyOrchestrationTests(unittest.TestCase):
 
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
+            resolve_adapter = MagicMock(return_value=root / "adapter")
             with (
                 patch.dict(os.environ, {"GITHUB_SHA": "4" * 40}, clear=False),
                 patch.object(MODULE, "ROOT", root),
@@ -4522,13 +4545,14 @@ class VerifyOrchestrationTests(unittest.TestCase):
                 patch.object(
                     MODULE,
                     "resolve_coverlet_adapter_path",
-                    return_value=root / "adapter",
+                    resolve_adapter,
                 ),
                 patch.object(MODULE, "cleanup_dotnet_batch"),
                 self.assertRaises(subprocess.TimeoutExpired),
             ):
                 MODULE.verify_ci_dotnet_test_shard("probe")
 
+        resolve_adapter.assert_called_once_with(root)
         self.assertEqual(1, sum(command[1] == "build" for command in commands))
 
     def test_parser_defaults_to_bounded_parallelism_and_rejects_excessive_jobs(

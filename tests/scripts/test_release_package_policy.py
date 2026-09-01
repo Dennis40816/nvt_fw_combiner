@@ -2250,17 +2250,25 @@ finally {
                             kernel32.CreateFileW.restype = wintypes.HANDLE
                             kernel32.CloseHandle.argtypes = (wintypes.HANDLE,)
                             kernel32.CloseHandle.restype = wintypes.BOOL
-                            handle = kernel32.CreateFileW(
-                                target,
-                                0x80000000 | 0x40000000,
-                                0x1 | 0x2,
-                                None,
-                                3,
-                                0x80,
-                                None,
-                            )
-                            if handle == ctypes.c_void_p(-1).value:
-                                raise ctypes.WinError(ctypes.get_last_error())
+                            while True:
+                                handle = kernel32.CreateFileW(
+                                    target,
+                                    0x80000000 | 0x40000000,
+                                    0x1 | 0x2,
+                                    None,
+                                    3,
+                                    0x80,
+                                    None,
+                                )
+                                if handle != ctypes.c_void_p(-1).value:
+                                    break
+                                error_code = ctypes.get_last_error()
+                                if (
+                                    error_code not in (2, 3)
+                                    or time.monotonic() >= deadline
+                                ):
+                                    raise ctypes.WinError(error_code)
+                                time.sleep(0.01)
                             try:
                                 lock_ready.write_text("ready", encoding="ascii")
                                 lock_release.wait(

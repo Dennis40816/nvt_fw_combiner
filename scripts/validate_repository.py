@@ -1366,17 +1366,18 @@ def validate_workflows(errors: list[str]) -> None:
     verifier = (ROOT / "scripts/verify.py").read_text(encoding="utf-8")
     required_dotnet_coverage_markers = (
         "CI_DOTNET_SHARDS",
-        "def ci_dotnet_test_command(",
+        "def local_dotnet_vstest_command(",
         '        "--no-restore",',
-        '"--collect:XPlat Code Coverage",',
-        '"--results-directory",',
-        '"trx;LogFileName=test-results.trx",',
+        '"--Collect:XPlat Code Coverage",',
+        'f"--ResultsDirectory:{results_directory}",',
+        '"--Logger:trx;LogFileName=test-results.trx",',
+        "adapter_path = resolve_coverlet_adapter_path(ROOT)",
         "def finalize_ci_dotnet_evidence(",
     )
     if any(marker not in verifier for marker in required_dotnet_coverage_markers):
         errors.append(
             "canonical verifier must own the closed .NET shard map, unfiltered "
-            "coverage/TRX collection, and evidence finalization"
+            "exact-assembly coverage/TRX collection, and evidence finalization"
         )
     if verifier.count('"--evaluated-source-ownership-only"') != 1:
         errors.append(

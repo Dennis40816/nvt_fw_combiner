@@ -2580,7 +2580,7 @@ def local_dotnet_vstest_command(
     adapter_path: Path,
     results_directory: Path,
 ) -> list[str]:
-    """Build one unfiltered shadow-assembly command with paired coverage evidence."""
+    """Build one unfiltered exact-assembly command with paired coverage evidence."""
 
     command = [
         dotnet,
@@ -3260,34 +3260,6 @@ def ci_dotnet_build_command(
     ]
 
 
-def ci_dotnet_test_command(
-    dotnet: str,
-    project: CiDotnetProject,
-    results_directory: Path,
-) -> list[str]:
-    """Execute one prebuilt Release project with paired coverage/TRX evidence."""
-
-    command = [
-        dotnet,
-        "test",
-        str(ROOT / project.relative_path),
-        "-c",
-        "Release",
-        "--no-restore",
-        "--no-build",
-        "--collect:XPlat Code Coverage",
-        "--results-directory",
-        str(results_directory),
-        "--logger",
-        "trx;LogFileName=test-results.trx",
-        "--",
-        "DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Format=json,cobertura",
-    ]
-    if project.name == INFRASTRUCTURE_TEST_PROJECT:
-        command.extend(INFRASTRUCTURE_VSTEST_SETTINGS)
-    return command
-
-
 def require_ci_source_sha() -> str:
     source_sha = os.environ.get("GITHUB_SHA", "").strip().casefold()
     if CI_SOURCE_SHA_PATTERN.fullmatch(source_sha) is None:
@@ -3891,6 +3863,7 @@ def verify_ci_dotnet_test_shard(shard: str) -> None:
             environment=environment,
             log_path=log_path,
         )
+        adapter_path = resolve_coverlet_adapter_path(ROOT)
         for project in projects:
             results_directory = results_root / project.name
             results_directory.mkdir(parents=True)
@@ -3915,7 +3888,12 @@ def verify_ci_dotnet_test_shard(shard: str) -> None:
                     log_path=discovery_report,
                 )
                 run(
-                    ci_dotnet_test_command(dotnet, project, results_directory),
+                    local_dotnet_vstest_command(
+                        dotnet,
+                        test_assembly,
+                        adapter_path,
+                        results_directory,
+                    ),
                     environment=environment,
                     log_path=log_path,
                 )
