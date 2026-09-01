@@ -1,0 +1,9 @@
+{
+  "schemaVersion": 1,
+  "taskId": "RELEASE-111-PARITY-AUTHORITY-TRANSFER-09",
+  "authorityType": "release-owner",
+  "reviewedHead": "4c1cce2f9c96f8558b07abaa8c43d85edb7a0b7a",
+  "decision": "approved",
+  "reviewer": "Dennis Liu (release owner)",
+  "evidence": "The release owner approved continuing the fastest safe formal v1.1.1 publication while keeping v1.0.8 and Version deployment unchanged. Exact H3 4c1cce2f9c96f8558b07abaa8c43d85edb7a0b7a closes the independently reviewed corrected-H1 dfaedec4519fae185e5934b79a225b6c67c7d547 to H2 0deb3aad4d5898f2e763a1a3c455493e6c28ad94 source-authority chain. Independent exact-H2 R3 review reported P0=0, P1=0, P2=0 and P3=0; two fresh tracked-clean H1 builds reproduced the same CLI and complete runtime closure; and ten first-party embedded PDB SourceLink records in both builds bind only corrected H1 with identical inventories. This approval renews source/build identity only. It does not declare terminal 64-route parity, waive protected exact-head CI, package or published smoke, formal publication, protected-environment approval or fresh-download gates, enable Version deployment or modify v1.0.8."
+}
