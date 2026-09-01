@@ -1,0 +1,9 @@
+{
+  "schemaVersion": 1,
+  "taskId": "RELEASE-111-STRICT-ADMISSION-COLLECTOR-03",
+  "authorityType": "release-owner",
+  "reviewedHead": "18bd859617804a3e0a65177c5282e383b13fd883",
+  "decision": "approved",
+  "reviewer": "Dennis Liu (release owner)",
+  "evidence": "The release owner approved continuing the v1.1.1 release quickly without weakening its safety gates and accepted a protected post-approval release automation target of P95 at or below 25 minutes rather than forcing the entire process below 15 minutes. Exact finalization head 18bd859617804a3e0a65177c5282e383b13fd883 binds the centralized read-only admission collector reviewed at d358cd2f9b361c2294e84590eabb2dec21ee5649. Three independent exact-head reviews reported P0=0, P1=0, and P2=0, and the narrow policy/package suites passed 60/60 and 71/71. This approval authorizes only the bounded collector consolidation while preserving fresh candidate, pre-tag, and pre-publication admission, workflow-only tag/Release mutation, protected-environment approval, historical behavior, and fail-closed pagination and bypass checks. It does not approve publication by itself, waive renewed parity, full verification, protected CI, package/smoke or fresh-download evidence, modify firmware or package contents, enable Version deployment, or modify v1.0.8."
+}
