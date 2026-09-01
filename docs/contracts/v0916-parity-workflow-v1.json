@@ -17,8 +17,8 @@
     "uploadArtifact": "actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a"
   },
   "jobInventorySha256": {
-    "candidate": "13c4dfeff5321907ba15bb259b99f633bf692365615b812988f4a8a089575ee0",
-    "promote": "3f392cac69e512f3a90d44669be88aca2f1947b6bdc11b4fa428bb547d23a4cc",
+    "candidate": "92f71bcf974b9689ad4c51a8ecc5530d4dea9a4bb6081a700d73c7e9866033ec",
+    "promote": "26b156d5389f6f7ef58738e1f6418d8afb72ab6e56e392b16822819c6612dc03",
     "published-smoke": "60d865fcd4c539dbc1bcbcd4617e645e94f2ce4c00e5ece2dbff08d01b8e9332",
     "v0916-parity-compare": "2c065e009b7a6380dfc6e1be051a30df983618d6bf1e8be7385fb52ff808f663",
     "v0916-parity-attestation": "c50c30b681bfb736e4083baf50ce32cd8897a3f9becf7df4f4f4eb0413fc5bca",
@@ -266,17 +266,18 @@
       "Reconfirm release authority and source identity",
       "Download prepared candidate assets",
       "Verify closed candidate identity and digests",
+      "Revalidate live repository admission before tag mutation",
       "Create or verify immutable annotated tag",
-      "Publish or recover immutable GitHub Release",
+      "Publish or validate GitHub Release",
       "Verify published assets and source downloads"
     ],
-    "stepsSha256": "0049b31518cf003bd096ddc24d975d9a5003f51444f55d929e982824b8e10f68",
+    "stepsSha256": "5cfc16ac95498d2ba89636f6563d2ad76906796f65be15517ade910d3ea22cf1",
     "steps": [
       {
         "name": "Checkout protected release authority",
         "uses": "actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0",
         "with": {
-          "ref": "main",
+          "ref": "${{ needs.candidate.outputs.workflow-sha }}",
           "fetch-depth": 0,
           "persist-credentials": false
         }

@@ -88,8 +88,8 @@
         },
         "stepNames": {
           "type": "array",
-          "minItems": 11,
-          "maxItems": 11,
+          "minItems": 12,
+          "maxItems": 12,
           "items": { "type": "string", "minLength": 1 }
         },
         "stepsSha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },

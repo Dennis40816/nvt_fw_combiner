@@ -1,0 +1,43 @@
+{
+  "schemaVersion": 2,
+  "taskId": "RELEASE-111-PARITY-CONTRACT-SYNC-01",
+  "capability": "Synchronize the existing fail-closed v0.9.16 protected-workflow certification contract with the already approved v1.1.1 release hardening",
+  "integrationBase": "65fb0bb19b83f40943535e2a914b775194ba54ce",
+  "risk": "R3",
+  "kind": "release",
+  "state": "design-active",
+  "mutablePaths": [
+    "docs/contracts/v0916-parity-certification-v1.json",
+    "docs/contracts/v0916-parity-certification-v1.schema.json",
+    "docs/contracts/v0916-parity-comparison-v1.schema.json",
+    "docs/contracts/v0916-parity-evidence-v1.schema.json",
+    "docs/contracts/v0916-parity-finalize-v1.schema.json",
+    "docs/contracts/v0916-parity-run-v1.schema.json",
+    "docs/contracts/v0916-parity-workflow-v1.json",
+    "docs/contracts/v0916-parity-workflow-v1.schema.json"
+  ],
+  "implementationOwner": "parity-contract-sync-implementer",
+  "searchEvidence": [
+    "The exact-head protected CI run 33509656791 and canonical local verifier both fail only the Python lane because validate_protected_workflow_semantics rejects the stale v0.9.16 workflow contract before downstream owner-approval assertions execute.",
+    "scripts/v0916_parity_certification.py is the existing sole fail-closed workflow semantic validator; it correctly rejects the stale closed job inventory, so neither its scope nor error ordering should be weakened.",
+    "The three v0916-parity-* jobs and published-smoke retain their admitted canonical hashes. Only candidate and promote changed under the independently reviewed release hardening: current exact hashes are 92f71bcf974b9689ad4c51a8ecc5530d4dea9a4bb6081a700d73c7e9866033ec and 26b156d5389f6f7ef58738e1f6418d8afb72ab6e56e392b16822819c6612dc03.",
+    "The existing workflow contract still declares the former eleven-step promotion tail, omits Revalidate live repository admission before tag mutation, retains the old Publish step identity and moving-main checkout reference, and therefore no longer describes the approved exact-candidate release path.",
+    "The certification plan and comparison, run, finalize, and evidence schemas already own the raw semantic-contract digest binding; synchronize those existing references and the two test fixture pins rather than add a second contract, validator, workflow, or compatibility path."
+  ],
+  "semanticOwner": "docs/contracts/v0916-parity-workflow-v1.json remains the single closed protected-workflow semantic contract, with its existing schema and certification artifact schemas carrying the exact raw-contract identity",
+  "terminalContract": "The canonical v0.9.16 protected-workflow contract must validate the exact already reviewed release.yml bytes at SHA-256 cdeccf6c6cb9f7cb37fe8dcd8d0108debc80a141f3223a033fb2412e760f4ae0 without relaxing closed job inventory, exact job hashes, promotion ordering, action pins, permissions, fail-closed validation, or parity owner authority. Candidate and promote bind their current exact canonical hashes; the promotion contract names all twelve current steps, includes Revalidate live repository admission before tag mutation, binds the exact candidate workflow SHA checkout, and uses the exact current step-list digest. The workflow contract schema retains a closed exact step count of twelve. The contract's resulting exact byte size and SHA-256 propagate through the existing certification plan and certification, comparison, run, finalize, and evidence schema consts plus existing test fixtures. No production workflow, validator, error precedence, parity job, firmware/profile/range/CRC/output, package content, Version deployment, v1.0.8, or runtime support behavior changes in this corrective slice.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "fixed_head_runtime_review",
+    "outcome": "approved",
+    "evidence": "Independent read-only diagnosis reproduced the failure in 0.91 seconds and traced every 62 failure and seven error cascades to the same stale workflow contract. It confirmed the three parity jobs and published-smoke are byte-semantically unchanged, rejected changing expected errors or weakening the production validator, and verified an in-memory exact synchronization against the current production workflow. The smallest safe R3 correction is a new bounded record updating only the existing canonical contract, exact schema/count/digest references, and non-governed fixture pins; the predicted canonical contract is 14,356 bytes with SHA-256 eed09ee574b9e27588f174fb482fd406cd10e61c9d24dc4ea82301db93c19d4a."
+  },
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": {
+    "reviewer": null,
+    "outcome": "pending",
+    "evidence": ""
+  }
+}
