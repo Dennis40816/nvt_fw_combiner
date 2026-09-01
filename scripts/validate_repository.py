@@ -8,6 +8,7 @@ import json
 import re
 import subprocess
 import sys
+import tempfile
 import tomllib
 import xml.etree.ElementTree as ET
 from dataclasses import dataclass
@@ -1618,6 +1619,15 @@ class _CapabilityRecordHistory:
     admitted_field_violation: str | None
 
 
+@dataclass
+class _ImmutableHistoryAuditCache:
+    """Invocation-local immutable results for overlapping post-final audits."""
+
+    revisions_after: dict[str, tuple[tuple[str, ...], str | None]]
+    changed_paths: dict[str, tuple[frozenset[str], str | None]]
+    containment_merges: dict[str, tuple[bool, str | None]]
+
+
 @dataclass(frozen=True)
 class _TrustedCapabilityCheckpoint:
     activation_commit: str
@@ -1800,6 +1810,132 @@ def _git_object(root: Path, arguments: list[str]) -> tuple[bytes, str | None]:
     return result.stdout, None
 
 
+_CAPABILITY_HISTORY_COMMIT_PREFIX = b"NFC-CAPABILITY-COMMIT:"
+_CAPABILITY_HISTORY_MAX_INVENTORY_BYTES = 16 * 1024 * 1024
+_CAPABILITY_HISTORY_MAX_HEADER_BYTES = 4 * 1024
+
+
+def _git_capability_history_inventory(
+    root: Path,
+) -> tuple[dict[str, list[str]], str | None]:
+    """Inventory record revisions once, using NUL-framed Git path output."""
+    with tempfile.TemporaryFile() as stderr:
+        try:
+            process = subprocess.Popen(
+                [
+                    "git",
+                    "log",
+                    "--reverse",
+                    "--format=NFC-CAPABILITY-COMMIT:%H",
+                    "--name-only",
+                    "-z",
+                    "--no-renames",
+                    "--diff-filter=ADMR",
+                    "--",
+                    CAPABILITY_REUSE_CHANGE_RECORD_ROOT.as_posix(),
+                ],
+                cwd=root,
+                stdin=subprocess.DEVNULL,
+                stdout=subprocess.PIPE,
+                stderr=stderr,
+            )
+        except OSError as exc:
+            return {}, str(exc)
+        assert process.stdout is not None
+        output = process.stdout.read(_CAPABILITY_HISTORY_MAX_INVENTORY_BYTES + 1)
+        process.stdout.close()
+        if len(output) > _CAPABILITY_HISTORY_MAX_INVENTORY_BYTES:
+            process.kill()
+        returncode = process.wait()
+        stderr.seek(0)
+        detail = stderr.read().decode("utf-8", errors="replace").strip()
+        if len(output) > _CAPABILITY_HISTORY_MAX_INVENTORY_BYTES:
+            return {}, "capability history inventory exceeds the protocol bound"
+        if returncode != 0:
+            return {}, detail or f"git exited {returncode}"
+        if output and not output.endswith(b"\0"):
+            return {}, "truncated capability history inventory frame"
+        revisions_by_path: dict[str, list[str]] = {}
+        revision: str | None = None
+        first_path = False
+        try:
+            for frame in output.split(b"\0")[:-1]:
+                if frame.startswith(_CAPABILITY_HISTORY_COMMIT_PREFIX):
+                    encoded_revision = frame[len(_CAPABILITY_HISTORY_COMMIT_PREFIX) :]
+                    if re.fullmatch(rb"[0-9a-f]{40}", encoded_revision) is None:
+                        raise ValueError("invalid capability history commit frame")
+                    revision = encoded_revision.decode("ascii")
+                    first_path = True
+                    continue
+                if revision is None:
+                    raise ValueError("capability history path preceded its commit frame")
+                if first_path:
+                    if not frame.startswith(b"\n"):
+                        raise ValueError("capability history first path frame lacks separator")
+                    frame = frame[1:]
+                    first_path = False
+                relative = frame.decode("utf-8", errors="strict")
+                root_prefix = f"{CAPABILITY_REUSE_CHANGE_RECORD_ROOT.as_posix()}/"
+                if not relative.startswith(root_prefix):
+                    raise ValueError(
+                        f"capability history path escaped its requested root: {relative}"
+                    )
+                revisions = revisions_by_path.setdefault(relative, [])
+                if revisions and revisions[-1] == revision:
+                    raise ValueError(
+                        f"capability history repeated one path in a commit: {relative}"
+                    )
+                revisions.append(revision)
+        except (UnicodeDecodeError, ValueError) as exc:
+            return {}, str(exc)
+        return revisions_by_path, None
+
+
+def _read_exact_git_bytes(stream: Any, size: int) -> bytes | None:
+    content = bytearray()
+    while len(content) < size:
+        chunk = stream.read(min(64 * 1024, size - len(content)))
+        if not chunk:
+            return None
+        content.extend(chunk)
+    return bytes(content)
+
+
+def _read_git_batch_blob(
+    stdin: Any,
+    stdout: Any,
+    revision: str,
+    relative: str,
+) -> tuple[bytes | None, str | None]:
+    if "\n" in relative or "\r" in relative:
+        return None, f"capability history path cannot be batch-framed: {relative!r}"
+    object_spec = f"{revision}:{relative}".encode("utf-8")
+    try:
+        stdin.write(object_spec + b"\n")
+        stdin.flush()
+    except (BrokenPipeError, OSError) as exc:
+        return None, str(exc)
+    header = stdout.readline(_CAPABILITY_HISTORY_MAX_HEADER_BYTES + 1)
+    if not header.endswith(b"\n") or len(header) > _CAPABILITY_HISTORY_MAX_HEADER_BYTES:
+        return None, "malformed or oversized Git batch header"
+    header = header[:-1]
+    if header == object_spec + b" missing":
+        return None, None
+    fields = header.split(b" ")
+    if (
+        len(fields) != 3
+        or re.fullmatch(rb"[0-9a-f]{40}", fields[0]) is None
+        or fields[1] != b"blob"
+        or re.fullmatch(rb"(?:0|[1-9][0-9]*)", fields[2]) is None
+    ):
+        return None, "invalid Git batch object header"
+    size = int(fields[2])
+    content = _read_exact_git_bytes(stdout, size)
+    if content is None or stdout.read(1) != b"\n":
+        return None, "truncated Git batch object payload"
+    return content, None
+
+
 def _capability_path_state_digest(
     root: Path,
     revision: str,
@@ -1846,82 +1982,109 @@ def _historical_final_records(
     root: Path,
 ) -> tuple[dict[str, _CapabilityRecordHistory], set[str], str | None]:
     """Return committed active/final snapshots for every historical task path."""
-    output, error = _git_object(
-        root,
-        [
-            "log",
-            "--format=",
-            "--name-only",
-            "--diff-filter=ADMR",
-            "--",
-            CAPABILITY_REUSE_CHANGE_RECORD_ROOT.as_posix(),
-        ],
-    )
+    revisions_by_path, error = _git_capability_history_inventory(root)
     if error is not None:
         return {}, set(), error
-    candidates = {
-        value.decode("utf-8", errors="strict")
-        for value in output.splitlines()
-        if value
-    }
     history: dict[str, _CapabilityRecordHistory] = {}
     invalid_nested_paths: set[str] = set()
-    for relative in sorted(candidates):
+    direct_paths: list[str] = []
+    for relative in sorted(revisions_by_path):
         path = PurePosixPath(relative)
         if path.suffix != ".json":
             continue
         if path.parent != CAPABILITY_REUSE_CHANGE_RECORD_ROOT:
             invalid_nested_paths.add(relative)
             continue
-        revisions, revision_error = _git_object(
-            root,
-            ["rev-list", "--reverse", "HEAD", "--", relative],
-        )
-        if revision_error is not None:
-            return {}, invalid_nested_paths, revision_error
-        first_active: _CommittedCapabilityRecord | None = None
-        first_final: _CommittedCapabilityRecord | None = None
-        latest_active: _CommittedCapabilityRecord | None = None
-        admitted_field_violation: str | None = None
-        for revision_value in revisions.splitlines():
-            revision = revision_value.decode("ascii")
-            content, content_error = _git_object(
-                root,
-                ["show", f"{revision}:{relative}"],
+        direct_paths.append(relative)
+    if not direct_paths:
+        return history, invalid_nested_paths, None
+
+    with tempfile.TemporaryFile() as stderr:
+        try:
+            process = subprocess.Popen(
+                ["git", "cat-file", "--batch"],
+                cwd=root,
+                stdin=subprocess.PIPE,
+                stdout=subprocess.PIPE,
+                stderr=stderr,
             )
-            if content_error is not None:
-                continue
-            try:
-                value = json.loads(content.decode("utf-8"))
-            except (UnicodeDecodeError, json.JSONDecodeError):
-                continue
-            if not isinstance(value, dict) or value.get("schemaVersion") != 2:
-                continue
-            committed = _CommittedCapabilityRecord(revision, content, value)
-            if value.get("state") == "design-active":
-                if first_active is None:
-                    first_active = committed
-                elif any(
-                    first_active.value.get(field) != value.get(field)
-                    for field in CAPABILITY_REUSE_RECORD_FIELDS - CAPABILITY_REUSE_FINALIZED_FIELDS
-                ):
-                    admitted_field_violation = revision
-                latest_active = committed
-            elif value.get("state") == "final-complete":
-                if first_active is not None and any(
-                    first_active.value.get(field) != value.get(field)
-                    for field in CAPABILITY_REUSE_RECORD_FIELDS - CAPABILITY_REUSE_FINALIZED_FIELDS
-                ):
-                    admitted_field_violation = revision
-                first_final = committed
+        except OSError as exc:
+            return {}, invalid_nested_paths, str(exc)
+        assert process.stdin is not None
+        assert process.stdout is not None
+        batch_error: str | None = None
+        for relative in direct_paths:
+            first_active: _CommittedCapabilityRecord | None = None
+            first_final: _CommittedCapabilityRecord | None = None
+            latest_active: _CommittedCapabilityRecord | None = None
+            admitted_field_violation: str | None = None
+            for revision in revisions_by_path[relative]:
+                content, content_error = _read_git_batch_blob(
+                    process.stdin,
+                    process.stdout,
+                    revision,
+                    relative,
+                )
+                if content_error is not None:
+                    batch_error = content_error
+                    break
+                if content is None:
+                    continue
+                try:
+                    value = json.loads(content.decode("utf-8"))
+                except (UnicodeDecodeError, json.JSONDecodeError):
+                    continue
+                if not isinstance(value, dict) or value.get("schemaVersion") != 2:
+                    continue
+                committed = _CommittedCapabilityRecord(revision, content, value)
+                if value.get("state") == "design-active":
+                    if first_active is None:
+                        first_active = committed
+                    elif any(
+                        first_active.value.get(field) != value.get(field)
+                        for field in CAPABILITY_REUSE_RECORD_FIELDS
+                        - CAPABILITY_REUSE_FINALIZED_FIELDS
+                    ):
+                        admitted_field_violation = revision
+                    latest_active = committed
+                elif value.get("state") == "final-complete":
+                    if first_active is not None and any(
+                        first_active.value.get(field) != value.get(field)
+                        for field in CAPABILITY_REUSE_RECORD_FIELDS
+                        - CAPABILITY_REUSE_FINALIZED_FIELDS
+                    ):
+                        admitted_field_violation = revision
+                    first_final = committed
+                    break
+            if batch_error is not None:
                 break
-        if first_final is not None or latest_active is not None:
-            history[relative] = _CapabilityRecordHistory(
-                first_active=first_active,
-                first_final=first_final,
-                latest_unfinalized_active=None if first_final is not None else latest_active,
-                admitted_field_violation=admitted_field_violation,
-            )
+            if first_final is not None or latest_active is not None:
+                history[relative] = _CapabilityRecordHistory(
+                    first_active=first_active,
+                    first_final=first_final,
+                    latest_unfinalized_active=(
+                        None if first_final is not None else latest_active
+                    ),
+                    admitted_field_violation=admitted_field_violation,
+                )
+        try:
+            process.stdin.close()
+            if batch_error is None:
+                if process.stdout.read(1):
+                    batch_error = "trailing Git batch payload"
+        except OSError as exc:
+            if batch_error is None:
+                batch_error = str(exc)
+        process.stdout.close()
+        if batch_error is not None and process.poll() is None:
+            process.kill()
+        returncode = process.wait()
+        stderr.seek(0)
+        detail = stderr.read().decode("utf-8", errors="replace").strip()
+        if batch_error is not None:
+            return {}, invalid_nested_paths, batch_error
+        if returncode != 0:
+            return {}, invalid_nested_paths, detail or f"git exited {returncode}"
     return history, invalid_nested_paths, None
 
 
@@ -1973,43 +2136,65 @@ def _record_changed_in_commits_after(
     root: Path,
     relative: str,
     revision: str,
+    cache: _ImmutableHistoryAuditCache | None = None,
 ) -> tuple[bool, str | None]:
-    revisions, revisions_error = _git_object(
-        root,
-        ["rev-list", "--ancestry-path", f"{revision}..HEAD"],
-    )
+    if cache is None:
+        cache = _ImmutableHistoryAuditCache({}, {}, {})
+    revision_result = cache.revisions_after.get(revision)
+    if revision_result is None:
+        revisions, revisions_error = _git_object(
+            root,
+            ["rev-list", "--ancestry-path", f"{revision}..HEAD"],
+        )
+        try:
+            candidates = tuple(item.decode("ascii") for item in revisions.splitlines())
+        except UnicodeDecodeError as exc:
+            candidates, revisions_error = (), str(exc)
+        revision_result = candidates, revisions_error
+        cache.revisions_after[revision] = revision_result
+    candidates, revisions_error = revision_result
     if revisions_error is not None:
         return False, revisions_error
-    for candidate in revisions.splitlines():
-        changed, changed_error = _git_object(
-            root,
-            [
-                "diff-tree",
-                "--no-commit-id",
-                "--name-status",
-                "-z",
-                "-r",
-                "-m",
-                "--find-renames",
-                candidate.decode("ascii"),
-                "--",
-            ],
-        )
+    for candidate in candidates:
+        changed_result = cache.changed_paths.get(candidate)
+        if changed_result is None:
+            changed, changed_error = _git_object(
+                root,
+                [
+                    "diff-tree",
+                    "--no-commit-id",
+                    "--name-status",
+                    "-z",
+                    "-r",
+                    "-m",
+                    "--find-renames",
+                    candidate,
+                    "--",
+                ],
+            )
+            try:
+                paths = frozenset(_parse_git_name_status(changed))
+            except (UnicodeDecodeError, ValueError) as exc:
+                paths, changed_error = frozenset(), str(exc)
+            changed_result = paths, changed_error
+            cache.changed_paths[candidate] = changed_result
+        changed_paths, changed_error = changed_result
         if changed_error is not None:
             return False, changed_error
-        try:
-            if relative in _parse_git_name_status(changed):
-                redundant, redundant_error = _is_tree_transparent_containment_merge(
+        if relative in changed_paths:
+            merge_result = cache.containment_merges.get(candidate)
+            if merge_result is None:
+                merge_result = _is_tree_transparent_containment_merge(
                     root,
-                    candidate.decode("ascii"),
+                    candidate,
                 )
-                if redundant_error is not None:
-                    return False, redundant_error
-                if redundant:
-                    continue
-                return True, None
-        except (UnicodeDecodeError, ValueError) as exc:
-            return False, str(exc)
+                cache.containment_merges[candidate] = merge_result
+            redundant, redundant_error = merge_result
+            if redundant_error is not None:
+                return False, redundant_error
+            if redundant:
+                continue
+            return True, None
     return False, None
 
 
@@ -2072,6 +2257,7 @@ def _is_tree_transparent_containment_merge(
 def _load_trusted_capability_checkpoint(
     root: Path,
     errors: list[str],
+    audit_cache: _ImmutableHistoryAuditCache,
 ) -> _TrustedCapabilityCheckpoint | None:
     """Load and audit the one-time owner-approved legacy-record activation."""
     relative = CAPABILITY_REUSE_TRUSTED_CHECKPOINT_PATH.as_posix()
@@ -2115,7 +2301,12 @@ def _load_trusted_capability_checkpoint(
         else:
             if worktree_content != manifest_content:
                 errors.append("trusted capability checkpoint index/worktree content differs")
-    changed, changed_error = _record_changed_in_commits_after(root, relative, activation_commit)
+    changed, changed_error = _record_changed_in_commits_after(
+        root,
+        relative,
+        activation_commit,
+        audit_cache,
+    )
     if changed_error is not None:
         errors.append(f"trusted capability checkpoint history could not be audited: {changed_error}")
     elif changed:
@@ -2307,6 +2498,7 @@ def _load_trusted_capability_checkpoint(
             root,
             record_path,
             activation_commit,
+            audit_cache,
         )
         if record_changed_error is not None:
             errors.append(f"trusted capability checkpoint retired history could not be read: {task_id}")
@@ -2326,6 +2518,7 @@ def _validate_external_authority_attestations(
     root: Path,
     required: dict[str, str | None],
     errors: list[str],
+    audit_cache: _ImmutableHistoryAuditCache,
 ) -> dict[str, str]:
     """Validate immutable exact-head evidence commits for required R3 owners."""
     root_relative = CAPABILITY_REUSE_EXTERNAL_AUTHORITY_ROOT.as_posix()
@@ -2417,7 +2610,12 @@ def _validate_external_authority_attestations(
             continue
         addition_commit = candidates[0]
         committed, committed_error = _git_object(root, ["show", f"{addition_commit}:{relative}"])
-        changed, changed_error = _record_changed_in_commits_after(root, relative, addition_commit)
+        changed, changed_error = _record_changed_in_commits_after(
+            root,
+            relative,
+            addition_commit,
+            audit_cache,
+        )
         if committed_error is not None or committed != content or changed_error is not None or changed:
             errors.append(f"external authority attestation is immutable after commit: {relative}")
             continue
@@ -2775,7 +2973,8 @@ def validate_capability_reuse_governance(
                 f"capability-reuse record parent must be exactly "
                 f"{CAPABILITY_REUSE_CHANGE_RECORD_ROOT.as_posix()}: {relative}"
             )
-    trusted_checkpoint = _load_trusted_capability_checkpoint(root, errors)
+    audit_cache = _ImmutableHistoryAuditCache({}, {}, {})
+    trusted_checkpoint = _load_trusted_capability_checkpoint(root, errors, audit_cache)
     retired_record_paths = (
         set(trusted_checkpoint.retired_records)
         if trusted_checkpoint is not None
@@ -2805,6 +3004,7 @@ def validate_capability_reuse_governance(
                 root,
                 relative,
                 first_final.revision,
+                audit_cache,
             )
             if changed_error is not None:
                 errors.append(
@@ -2890,6 +3090,7 @@ def validate_capability_reuse_governance(
         root,
         required_external_authorities,
         errors,
+        audit_cache,
     )
     for record in current_r3_final_records:
         task_id = str(record.get("taskId"))

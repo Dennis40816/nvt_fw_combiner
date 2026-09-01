@@ -204,7 +204,8 @@ internal static class PresentationTestHost
 
     private static ExternalProcessorRuntimeEnvironment LoadExternalEnvironment()
     {
-        var loader = new ExternalProcessorEnvironmentLoader();
+        var loader = new ExternalProcessorEnvironmentLoader(
+            RepositoryPaths.FromRepositoryRoot("external-tools"));
         Assert.True(((IExternalProcessorEnvironmentLoader)loader)
             .LoadToCompletionAsync(null, CancellationToken.None)
             .GetAwaiter().GetResult().Succeeded);

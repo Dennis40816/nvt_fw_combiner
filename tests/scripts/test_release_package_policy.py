@@ -2570,8 +2570,11 @@ finally {
     def run_smoke_with_manifested_external_tool(
         self, relative_path: Path
     ) -> subprocess.CompletedProcess[str]:
+        test_area_work = Path(os.environ["NFC_TEST_AREA_ROOT"]) / "work"
+        test_area_work.mkdir(parents=True, exist_ok=True)
         with tempfile.TemporaryDirectory(
-            prefix="nvt-release-policy-test-"
+            prefix="rp-",
+            dir=test_area_work,
         ) as temporary_directory:
             temporary_root = Path(temporary_directory)
             package_name = "NvtFwCombiner-v0.0.0-win-x64"
@@ -2717,8 +2720,11 @@ finally {
     def test_release_smoke_rejects_profile_entry_drift_with_updated_release_hash(
         self,
     ) -> None:
+        test_area_work = Path(os.environ["NFC_TEST_AREA_ROOT"]) / "work"
+        test_area_work.mkdir(parents=True, exist_ok=True)
         with tempfile.TemporaryDirectory(
-            prefix="nvt-release-profile-closure-test-"
+            prefix="pc-",
+            dir=test_area_work,
         ) as temporary_directory:
             temporary_root = Path(temporary_directory)
             package_name = "NvtFwCombiner-v0.0.0-win-x64"

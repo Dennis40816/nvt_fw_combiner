@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 2,
+  "taskId": "VERIFY-111-REGISTRY-CLOCK-01",
+  "capability": "Make the existing fixed-registry replica deadline deterministically testable without changing its production clock, deadline, selection, or single-flight behavior",
+  "integrationBase": "c24ea50a1e5d59d6aa55250553b0f1f9fbaea7f2",
+  "risk": "R2",
+  "kind": "behavior",
+  "state": "design-active",
+  "mutablePaths": [
+    "src/NvtFwCombiner.VersionManagement.Application/VersionManagement/UpdateSourceRegistry.cs"
+  ],
+  "implementationOwner": "registry_clock_implementer",
+  "searchEvidence": [
+    "ReplicatedUpdateSourceRegistry and its private ReplicaReadSlot in UpdateSourceRegistry.cs already own ordered concurrent replica reads, the fixed 45-second production deadline, single-flight physical reads, timeout abandonment, late-result retirement, and typed publication. The correction extends this owner and adds no registry reader, scheduler, retry loop, or selection path.",
+    "The only production construction sites are CompositionHostServices and ManagedDistributionLauncherHostServices; both call the existing public replicas-only constructor. That public path must retain DefaultReplicaTimeout and TimeProvider.System without a caller or public API change.",
+    "The fixed-registry contract lines 32-39 require both replica reads to start concurrently with independent 45-second user-visible deadlines, allow the other valid replica after one timeout, and ignore late completion. ADR 0053 owns the same timeout, outage, and failover evidence; neither owner requires wall-clock-based tests.",
+    "CI run 33460733265 failed ConcurrentTimeoutsKeepOnePhysicalReadPerReplica because all eight callers observed RegistryTimedOut for the valid backup before its Task.Run was scheduled inside the test-only 100-millisecond wall-clock budget. The failure did not report more than one physical read, and the complete Application suite subsequently passed 1392/1392 locally in 13.416 seconds, so there is no evidence of a production 45-second outage or selection defect.",
+    "The Application test assembly already contains two purpose-specific clocks: the timer-capable private ManualTimeProvider in ManagedLauncherEntryCoordinatorTests.HealthDeadline.cs and the distinct timestamp-only SetupManualTimeProvider in ManagedFirstInstallationExperienceTests.BootstrapOutcomes.cs. Cross-fixture timer control requires moving the timer-capable implementation unchanged into shared VersionManagement test support and reusing it; SetupManualTimeProvider remains unchanged, and a third fake clock, package, production clock abstraction, or wall-clock threshold is unnecessary."
+  ],
+  "semanticOwner": "ReplicatedUpdateSourceRegistry and its private ReplicaReadSlot remain the sole Application owners of fixed-registry replica scheduling, deadlines, single-flight reads, abandonment, and selection",
+  "terminalContract": "Retain the existing public replicas-only constructor, exact 45-second DefaultReplicaTimeout, both production composition callers, ordered concurrent Task.Run reads, at-most-one physical read per replica, caller-cancellation precedence, timeout abandonment, late-result ignore and retirement, replica observations, conflict handling, and newest-valid-publication selection. Add only one final optional TimeProvider parameter to the existing internal constructor, normalize null to TimeProvider.System once, pass that same provider into every existing private ReplicaReadSlot, and change only the existing timeout await to Task.WaitAsync(timeout, timeProvider, cancellationToken). Do not change Task.Run, _read, _abandoned, locking, exception mapping, continuation/retirement, observations, conflicts, or publication selection. Move the existing timer-capable ManualTimeProvider implementation unchanged from the launcher deadline fixture into namespace-level shared VersionManagement test support and reuse that same type from both launcher and registry fixtures; preserve the separate timestamp-only SetupManualTimeProvider unchanged. Do not add a third fake clock, package, service, interface, scheduler, retry, timeout increase, public overload, or production caller change. The deterministic regression creates all eight logical callers before time advances, proves through explicit barriers that both physical delegates entered, keeps the primary blocked, lets the valid backup return, advances exactly to the 100-millisecond test deadline, and asserts for every caller that the backup is selected and the primary is RegistryTimedOut while both physical load counts equal one. Release the primary in finally and use TestContext cancellation only as a hang guard; add no real delay or wall-clock CancellationTokenSource. Retain the repeated-timeout, single-replica, caller-cancellation, late-completion retirement/recovery, conflict, and revision-selection regressions. No Registry document, locator, revision, Catalog, durable state, launcher, firmware, UI, package, release, or authority semantics change.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "launcher_fixture_review",
+    "outcome": "findings-incorporated",
+    "evidence": "Independent R2 review confirmed that ReplicatedUpdateSourceRegistry and ReplicaReadSlot remain the existing scheduling/deadline/single-flight owners, production callers retain the public System-clock 45-second path, and the internal TimeProvider-to-WaitAsync seam changes no selection or late-result semantics. Review found one P2 in the test-reuse inventory: the draft treated the timer-capable launcher ManualTimeProvider as the assembly's only fake and made extraction conditional, despite a separate timestamp-only SetupManualTimeProvider. The incorporated contract inventories both, requires relocating the timer-capable implementation unchanged into shared VersionManagement test support for launcher and registry reuse, preserves SetupManualTimeProvider unchanged, and forbids a third clock, package, public overload, or production abstraction. Deterministic physical-read start barriers plus manual advancement retain eight callers, valid-backup selection, one physical read per replica, typed timeout, cancellation, late-completion, and recovery evidence."
+  },
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": {
+    "reviewer": null,
+    "outcome": "pending",
+    "evidence": ""
+  }
+}

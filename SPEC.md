@@ -1,6 +1,6 @@
 # NVT FW Combiner（NFC）實作規格
 
-> 文件狀態：`1.1.0 manual-only Windows release candidate; v1.0.8 source remains frozen and unpublished`
+> 文件狀態：`1.1.0 published manual-only Windows release; frozen v1.0.8 Application behavior retained`
 > 文件版本：`1.1.0`
 > 基準日期：`2026-09-01`
 > 產品名稱：`NVT FW Combiner`
@@ -33,10 +33,11 @@
 `0.10.7` is the internal final-effect candidate. By owner decision on
 2026-08-24, ordinary DP Replace authoring is hidden in `0.10.7` and the initial
 `1.0.0`; all profiles, compiler/executor semantics, publication/evidence facts,
-and Golden regressions remain retained until the owner decides at `1.1.0`
-whether to retire or reopen the feature. The preceding `0.10.6` managed-version
-implementation follows the owner-approved specification and ADR 0051. This
-does not waive the public `1.0.0` release/security gates. It builds on the
+and Golden regressions remain retained. Published `v1.1.0` made no decision to
+retire or reopen the feature; that decision remains owner-unallocated. The
+preceding `0.10.6` managed-version implementation follows the owner-approved
+specification and ADR 0051. This does not waive the public `1.0.0`
+release/security gates. It builds on the
 completed `0.10.5` bounded lifecycle contract in ADR 0049. The
 stable `v0.10.4` package preserved one Application-owned accepted-session route
 for all six Merge/Replace workflows, truthful foreground catalog progress,
@@ -941,7 +942,8 @@ Reports and diagnostics are secondary surfaces. Preview/Build reports and diagno
 Replace taxonomy groups experiences by user mental model：
 
 - DP Replace（retained but hidden from ordinary authoring in `0.10.7` and the
-  initial `1.0.0`; retirement or reopening is decided at `1.1.0`）。
+  initial `1.0.0`; published `v1.1.0` made no retirement-or-reopening decision,
+  which remains owner-unallocated）。
 - CtrlRAM Replace。
 - General Replace。
 

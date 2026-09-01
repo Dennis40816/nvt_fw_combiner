@@ -35,13 +35,13 @@ class CodeSizePolicyTests(unittest.TestCase):
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(content, encoding="utf-8")
 
-    def test_frozen_release_baseline_emits_no_full_production_warning(self) -> None:
+    def test_current_reviewed_baseline_emits_no_full_production_warning(self) -> None:
         snapshot = measure_code_size(REPOSITORY_ROOT)
 
-        self.assertEqual(136_381, snapshot.production_nonblank)
-        self.assertEqual(98_551, snapshot.runtime_production_nonblank)
+        self.assertEqual(136_389, snapshot.production_nonblank)
+        self.assertEqual(98_559, snapshot.runtime_production_nonblank)
         self.assertEqual(20_632, snapshot.domain_profiles_nonblank)
-        self.assertEqual(42_197, snapshot.application_nonblank)
+        self.assertEqual(42_205, snapshot.application_nonblank)
         self.assertEqual(5_039, snapshot.bootstrap_cli_nonblank)
         self.assertEqual(30_683, snapshot.infrastructure_contracts_worker_nonblank)
         self.assertEqual(snapshot.production_nonblank, DEFAULT_LIMITS.production_nonblank)

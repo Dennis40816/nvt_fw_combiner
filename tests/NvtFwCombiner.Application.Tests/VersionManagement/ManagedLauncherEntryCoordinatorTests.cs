@@ -390,20 +390,25 @@ public sealed partial class ManagedLauncherEntryCoordinatorTests
     public async Task CandidateTimeoutThenRollbackReadyCompletesWithinOuterBudget()
     {
         string root = Root("candidate-timeout-rollback-ready");
-        var handoff = new TwoAttemptBootstrapHandoff(TimeSpan.FromMilliseconds(30));
+        var time = new ManualTimeProvider();
+        var handoff = new TwoAttemptBootstrapHandoff(
+            time,
+            TimeSpan.FromMilliseconds(30));
         ManagedLauncherEntryCoordinator coordinator = Create(
             root,
             new EntryStateStore(BoundState(root)),
             new RecordingRootProbe(ManagedInstallationRootStatus.Present),
             handoff,
             admissionDeadline: TimeSpan.FromMilliseconds(25),
-            completionDeadline: TimeSpan.FromMilliseconds(100));
+            completionDeadline: TimeSpan.FromMilliseconds(100),
+            timeProvider: time);
 
         ManagedLauncherEntryResult result = await coordinator.RunAsync(
             TestContext.Current.CancellationToken);
 
         Assert.Equal(ManagedLauncherEntryOutcome.LaunchInstalled, result.Outcome);
         Assert.Equal(2, handoff.CompletedAttemptCount);
+        Assert.Equal(TimeSpan.FromMilliseconds(60), result.TotalElapsed);
         Assert.True(result.AdmissionElapsed < result.TotalElapsed);
     }
 

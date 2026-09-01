@@ -79,6 +79,7 @@ CLEANUP_DEADLINE: ContextVar[float | None] = ContextVar(
 INTERNAL_LANE_ENVIRONMENT_VARIABLE = "NFC_VERIFY_INTERNAL_LANE"
 TEST_AREA_ENVIRONMENT_VARIABLE = "NFC_TEST_AREA_ROOT"
 TEST_SESSION_ENVIRONMENT_VARIABLE = "NFC_TEST_SESSION_ROOT"
+TEST_REPOSITORY_ROOT_ENVIRONMENT_VARIABLE = "NFC_TEST_REPOSITORY_ROOT"
 TEST_SESSION_MARKER_NAME = ".nfc-test-session.json"
 TEST_SESSION_MARKER_SCHEMA_VERSION = 1
 TEST_SESSION_SCRATCH_DIRECTORIES = {
@@ -332,6 +333,7 @@ class CiDotnetProject:
 
     relative_path: str
     requires_exclusive_local_coverage: bool = False
+    requires_external_tools_fixture: bool = False
 
     @property
     def name(self) -> str:
@@ -350,6 +352,9 @@ class LocalDotnetCoverageStage:
     results_directory: Path
     source_hashes: dict[str, str]
     canonical_hashes: tuple[tuple[Path, str], ...]
+    external_tools_source_root: Path | None = None
+    external_tools_shadow_root: Path | None = None
+    external_tools_hashes: dict[str, str] | None = None
 
 
 @dataclass(frozen=True)
@@ -383,6 +388,7 @@ CI_DOTNET_SHARDS: dict[str, tuple[CiDotnetProject, ...]] = {
     "bootstrap": (
         CiDotnetProject(
             "tests/NvtFwCombiner.Bootstrap.Tests/NvtFwCombiner.Bootstrap.Tests.csproj",
+            requires_external_tools_fixture=True,
         ),
     ),
     "ui": (
@@ -2454,6 +2460,7 @@ def dotnet_batch_environment() -> dict[str, str]:
     """Return the shared non-interactive MSBuild environment for every .NET owner."""
 
     environment = os.environ.copy()
+    environment[TEST_REPOSITORY_ROOT_ENVIRONMENT_VARIABLE] = str(ROOT)
     environment["MSBUILDDISABLENODEREUSE"] = "1"
     environment["DOTNET_CLI_DO_NOT_USE_MSBUILD_SERVER"] = "1"
     return environment
@@ -2861,6 +2868,18 @@ def prepare_local_dotnet_coverage_stage(
         source_boundary=repository_root,
         destination_boundary=work_root,
     )
+    external_tools_source_root: Path | None = None
+    external_tools_shadow_root: Path | None = None
+    external_tools_hashes: dict[str, str] | None = None
+    if project.requires_external_tools_fixture:
+        external_tools_source_root = repository_root / "external-tools"
+        external_tools_shadow_root = work_root / project_token / "external-tools"
+        external_tools_hashes = snapshot_regular_tree(
+            external_tools_source_root,
+            external_tools_shadow_root,
+            source_boundary=repository_root,
+            destination_boundary=work_root,
+        )
     test_assembly = shadow_output / f"{project.name}.dll"
     if not test_assembly.is_file() or is_reparse_point(test_assembly):
         raise RuntimeError(f"missing shadow test assembly: {test_assembly}")
@@ -2878,6 +2897,9 @@ def prepare_local_dotnet_coverage_stage(
         results_directory,
         source_hashes,
         canonical_hashes,
+        external_tools_source_root,
+        external_tools_shadow_root,
+        external_tools_hashes,
     )
 
 
@@ -2938,10 +2960,31 @@ def run_local_dotnet_coverage_project(
 def require_local_dotnet_sources_unchanged(
     stages: Sequence[LocalDotnetCoverageStage],
     repository_root: Path,
+    work_owner_root: Path | None = None,
 ) -> None:
     """Prove source, execution shadow, and canonical production stayed immutable."""
 
+    shadow_owner_root = repository_root if work_owner_root is None else work_owner_root
     for stage in stages:
+        external_tools_evidence = (
+            stage.external_tools_source_root,
+            stage.external_tools_shadow_root,
+            stage.external_tools_hashes,
+        )
+        has_external_tools_evidence = all(
+            evidence is not None for evidence in external_tools_evidence
+        )
+        has_any_external_tools_evidence = any(
+            evidence is not None for evidence in external_tools_evidence
+        )
+        if (
+            has_any_external_tools_evidence != has_external_tools_evidence
+            or stage.project.requires_external_tools_fixture
+            != has_external_tools_evidence
+        ):
+            raise RuntimeError(
+                f"{stage.project.name} external-tools fixture evidence is incomplete"
+            )
         require_regular_tree_hashes(
             stage.source_output,
             stage.source_hashes,
@@ -2951,9 +2994,26 @@ def require_local_dotnet_sources_unchanged(
         require_regular_tree_hashes(
             stage.shadow_output,
             stage.source_hashes,
-            boundary=repository_root,
+            boundary=shadow_owner_root,
             description=f"{stage.project.name} shadow test output",
         )
+        if (
+            stage.external_tools_source_root is not None
+            and stage.external_tools_shadow_root is not None
+            and stage.external_tools_hashes is not None
+        ):
+            require_regular_tree_hashes(
+                stage.external_tools_source_root,
+                stage.external_tools_hashes,
+                boundary=repository_root,
+                description=f"{stage.project.name} external-tools source fixture",
+            )
+            require_regular_tree_hashes(
+                stage.external_tools_shadow_root,
+                stage.external_tools_hashes,
+                boundary=shadow_owner_root,
+                description=f"{stage.project.name} external-tools shadow fixture",
+            )
         for path, expected_hash in stage.canonical_hashes:
             current = optional_regular_file(
                 path,
@@ -2979,9 +3039,10 @@ def collect_local_dotnet_coverage(
     """Run every exact project against a private snapshot, then apply one policy."""
 
     projects = flatten_ci_dotnet_projects()
+    owner_root = repository_root if work_owner_root is None else work_owner_root
     work = validated_disposable_directory(
         work_root,
-        repository_root if work_owner_root is None else work_owner_root,
+        owner_root,
     )
     if work.exists():
         shutil.rmtree(work)
@@ -3041,7 +3102,11 @@ def collect_local_dotnet_coverage(
                 break
         report_lane_results(results)
         try:
-            require_local_dotnet_sources_unchanged(stages, repository_root)
+            require_local_dotnet_sources_unchanged(
+                stages,
+                repository_root,
+                owner_root,
+            )
         except BaseException as error:
             failure = combine_failures(failure, error, secondary_label="freshness gate")
         failed_projects = tuple(

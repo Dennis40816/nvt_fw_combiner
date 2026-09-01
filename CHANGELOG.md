@@ -4,7 +4,10 @@ All notable changes to NVT FW Combiner are documented here. The project follows 
 
 ## [Unreleased]
 
-No product changes are recorded after v1.1.0.
+No product changes are recorded after v1.1.0. Published release closure lives
+in the [verification report](docs/references/verification-report.md), and future
+milestone order lives in the [NFC roadmap](docs/architecture/nfc_roadmap.md).
+This entry is non-normative and does not duplicate either authority.
 
 ## [1.1.0] - 2026-09-01
 

@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 2,
+  "taskId": "VERIFY-111-SHADOW-ROOT-01",
+  "capability": "Run repository-reading .NET tests from a fixed-area shadow while validating repository and shadow freshness against their distinct existing owner roots",
+  "integrationBase": "c24ea50a1e5d59d6aa55250553b0f1f9fbaea7f2",
+  "risk": "R2",
+  "kind": "governance",
+  "state": "design-active",
+  "mutablePaths": [
+    "scripts/verify.py"
+  ],
+  "implementationOwner": "shadow_root_implementer",
+  "searchEvidence": [
+    "scripts/verify.py::dotnet_batch_environment is the sole .NET verifier child-environment owner, and snapshot_regular_tree plus validated_path_within_root already own strict split source and destination boundary validation.",
+    "A shadow VSTest reproduction from repository cwd fails because NvtFwCombiner.TestSupport.RepositoryPaths and two Architecture locators only walk upward from AppContext.BaseDirectory; cwd therefore cannot supply repository identity.",
+    "The byte-identical fixed-area UiSmoke shadow also exposes one test-host-only hidden dependency: ExternalProcessorEnvironmentLoader.FindExternalToolsRoot walks upward from AppContext.BaseDirectory, so repository-local output finds external-tools while the relocated shadow publishes zero manifests and blocks otherwise Valid/Ready CtrlRAM and AB sessions with external-tool.binding.unknown.",
+    "After explicit-root injection fixed UiSmoke 853/853 and eight Bootstrap composition-root cases, five public CLI cases still failed through CliApplication.RunAsync -> CompositionHostServices.Create -> default AppContext-based discovery. Those tests intentionally certify the public/default host, so replacing their composition root with a test seam would weaken their evidence.",
+    "A split-root synthetic freshness probe fails before hashing because require_local_dotnet_sources_unchanged validates the test-area shadow against repository_root even though the verifier already holds a validated work owner root.",
+    "NvtFwCombiner.TestSupport.RepositoryPaths is the existing shared fixture-root helper. Multiple test projects already source-link TestSupport files, so the dependency-free Architecture project can reuse the same helper without a production ProjectReference; the Bootstrap composition root, its direct execution support, and the UiSmoke host can inject their validated external-tools fixture root through the existing explicit-root loader constructor.",
+    "tests/scripts/test_verify_orchestration.py, RepositoryPathsTests, the Bootstrap and UiSmoke test composition roots, representative runtime-readiness tests, and Architecture tests are the existing non-governed evidence owners for verifier environment, containment, fixture paths, runtime dependency evidence, and dependency boundaries."
+  ],
+  "semanticOwner": "scripts/verify.py owns .NET shadow orchestration, child repository identity, and the Bootstrap-only public-host support snapshot; NvtFwCombiner.TestSupport.RepositoryPaths remains the shared test fixture-root consumer for injectable test composition roots",
+  "terminalContract": "The canonical verifier overwrites one NFC test-specific child environment value with its own canonical repository ROOT, returns an isolated environment copy, and never trusts cwd or an inherited value. Shared RepositoryPaths accepts that configured value only when it is nonempty, fully qualified, exists as a directory, and contains a regular NvtFwCombiner.slnx marker; any configured invalid value fails closed, while an unset value preserves direct-local upward discovery. The dependency-free Architecture project source-links that shared helper and removes or delegates both duplicate locators without adding a production reference. The Bootstrap composition root, its direct external-environment support, and the UiSmoke test host reuse the shared helper and existing explicit-root ExternalProcessorEnvironmentLoader constructor. To retain the five tests that deliberately exercise public CliApplication.RunAsync and its default production composition root, only the flagged Bootstrap coverage stage snapshots the repository's exact regular-file external-tools tree into <work>/<project-token>/external-tools, outside the immutable shadow_output but at its nearest searched ancestor. The source and staged support inventories and hashes are captured before execution and both are revalidated after execution against the existing repository and work owner roots; either mutation, an unexpected fixture for another project, a reparse/special file, or any boundary escape fails closed. This does not change production discovery or add files to the exact test-output shadow. Post-run freshness also validates repository source and canonical outputs under repository_root and shadow outputs under the existing validated work owner root. Cleanup remains limited to the exact canonical session. Tests cover inherited-value overwrite, no parent-environment mutation, sibling repo and test-area roots, source/shadow/support mutation, valid and invalid configured roots, unset fallback, source-link reuse, retained Architecture independence, explicit test-host binding, Bootstrap-only support staging, and representative CtrlRAM/AB public-host readiness from the relocated shadow. No child cwd change, unbounded repository copy, shadow/freshness disablement, CLI host substitution, second locator policy, second verifier, product runtime, firmware, package, or release behavior is admitted.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "ui_smoke_common_root_trace; bootstrap_shadow_architecture",
+    "outcome": "findings-incorporated",
+    "evidence": "The original independent R2 review confirmed that scripts/verify.py remains the sole .NET shadow-orchestration owner and corrected the complete Architecture source-link evidence path. A byte-for-byte shadow diagnosis proved that 410 source and shadow files matched but AppContext-only external-tool discovery published zero manifests. Explicit RepositoryPaths injection restored UiSmoke 853/853 and the injectable Bootstrap paths. Independent follow-up architecture review rejected substituting a test host for the five remaining public CliApplication cases because that would weaken their production-default-host evidence; it approved only a Bootstrap-flagged, exact regular-file support snapshot at the project-token ancestor with source and staged pre/post hashes, canonical cleanup, unchanged shadow_output, and no product-discovery change."
+  },
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": {
+    "reviewer": null,
+    "outcome": "pending",
+    "evidence": ""
+  }
+}

@@ -1,5 +1,6 @@
 using System.Text.Json;
 using System.Text.RegularExpressions;
+using NvtFwCombiner.TestSupport;
 
 namespace NvtFwCombiner.Architecture.Tests;
 
@@ -304,17 +305,6 @@ public sealed partial class RepositoryBoundaryTests
 
     private static DirectoryInfo LocateRepositoryRoot()
     {
-        DirectoryInfo? current = new(AppContext.BaseDirectory);
-        while (current is not null)
-        {
-            if (File.Exists(Path.Combine(current.FullName, "NvtFwCombiner.slnx")))
-            {
-                return current;
-            }
-
-            current = current.Parent;
-        }
-
-        throw new InvalidOperationException("Could not locate repository root from test output directory.");
+        return new DirectoryInfo(RepositoryPaths.FindRepositoryRoot());
     }
 }

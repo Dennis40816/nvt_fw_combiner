@@ -484,7 +484,9 @@ public sealed partial class ManagedLauncherEntryCoordinatorTests
         }
     }
 
-    private sealed class TwoAttemptBootstrapHandoff(TimeSpan attemptDuration)
+    private sealed class TwoAttemptBootstrapHandoff(
+        ManualTimeProvider timeProvider,
+        TimeSpan attemptDuration)
         : IImmutableBootstrapHandoff
     {
         internal int CompletedAttemptCount { get; private set; }
@@ -498,12 +500,13 @@ public sealed partial class ManagedLauncherEntryCoordinatorTests
         {
             cancellationToken.ThrowIfCancellationRequested();
             return ValueTask.FromResult(new ImmutableBootstrapStartResult(
-                new TwoAttemptBootstrapLaunch(this, attemptDuration),
+                new TwoAttemptBootstrapLaunch(this, timeProvider, attemptDuration),
                 ImmutableBootstrapStartIssue.None));
         }
 
         private sealed class TwoAttemptBootstrapLaunch(
             TwoAttemptBootstrapHandoff owner,
+            ManualTimeProvider timeProvider,
             TimeSpan duration) : IImmutableBootstrapLaunch
         {
             public ValueTask<ImmutableBootstrapAdmissionResult> WaitForAdmissionAsync(
@@ -515,17 +518,19 @@ public sealed partial class ManagedLauncherEntryCoordinatorTests
                     ImmutableBootstrapAdmissionOutcome.Admitted));
             }
 
-            public async ValueTask<ImmutableBootstrapCompletionResult> WaitForCompletionAsync(
+            public ValueTask<ImmutableBootstrapCompletionResult> WaitForCompletionAsync(
                 ImmutableBootstrapWaitBudget budget,
                 CancellationToken cancellationToken)
             {
-                await Task.Delay(duration, cancellationToken);
+                cancellationToken.ThrowIfCancellationRequested();
+                timeProvider.Advance(duration);
                 owner.CompletedAttemptCount++;
-                await Task.Delay(duration, cancellationToken);
+                cancellationToken.ThrowIfCancellationRequested();
+                timeProvider.Advance(duration);
                 owner.CompletedAttemptCount++;
-                return new(
+                return ValueTask.FromResult(new ImmutableBootstrapCompletionResult(
                     ImmutableBootstrapCompletionOutcome.RolledBack,
-                    ImmutableBootstrapExitCodeCodec.RolledBack);
+                    ImmutableBootstrapExitCodeCodec.RolledBack));
             }
 
             public void Dispose()

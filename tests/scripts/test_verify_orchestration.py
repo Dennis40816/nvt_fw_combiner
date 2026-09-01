@@ -34,6 +34,7 @@ class VerifyOrchestrationTests(unittest.TestCase):
     TEST_SESSION_ENVIRONMENT_VARIABLES = (
         "NFC_TEST_AREA_ROOT",
         "NFC_TEST_SESSION_ROOT",
+        "NFC_TEST_REPOSITORY_ROOT",
         "GITHUB_ACTIONS",
         "RUNNER_TEMP",
         "TEMP",
@@ -2524,18 +2525,77 @@ class VerifyOrchestrationTests(unittest.TestCase):
             with self.assertRaisesRegex(RuntimeError, "production output hash changed"):
                 MODULE.require_local_dotnet_sources_unchanged((stage,), root)
 
+    def test_post_collector_freshness_uses_distinct_repository_and_work_roots(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            owner = Path(temporary)
+            repository_root = owner / "repository"
+            work_owner_root = owner / "test-area"
+            source = repository_root / "source"
+            source.mkdir(parents=True)
+            source_file = source / "Probe.Tests.dll"
+            source_file.write_bytes(b"test")
+            canonical = repository_root / "canonical/NvtFwCombiner.Probe.dll"
+            canonical.parent.mkdir()
+            canonical.write_bytes(b"product")
+            shadow = work_owner_root / "work/shadow"
+            source_hashes = MODULE.snapshot_regular_tree(
+                source,
+                shadow,
+                source_boundary=repository_root,
+                destination_boundary=work_owner_root,
+            )
+            stage = MODULE.LocalDotnetCoverageStage(
+                MODULE.CiDotnetProject("tests/Probe/Probe.Tests.csproj"),
+                source,
+                shadow,
+                shadow / "Probe.Tests.dll",
+                work_owner_root / "work/discovered-tests.txt",
+                work_owner_root / "results",
+                source_hashes,
+                ((canonical, MODULE.sha256_file(canonical)),),
+            )
+
+            MODULE.require_local_dotnet_sources_unchanged(
+                (stage,),
+                repository_root,
+                work_owner_root,
+            )
+
+            source_file.write_bytes(b"mutated")
+            with self.assertRaisesRegex(RuntimeError, "canonical test output"):
+                MODULE.require_local_dotnet_sources_unchanged(
+                    (stage,),
+                    repository_root,
+                    work_owner_root,
+                )
+            source_file.write_bytes(b"test")
+            (shadow / "Probe.Tests.dll").write_bytes(b"mutated")
+            with self.assertRaisesRegex(
+                RuntimeError,
+                "shadow test output inventory or hash changed",
+            ):
+                MODULE.require_local_dotnet_sources_unchanged(
+                    (stage,),
+                    repository_root,
+                    work_owner_root,
+                )
+
     def test_post_collector_freshness_rejects_shadow_output_mutation(self) -> None:
         project = MODULE.CiDotnetProject("tests/Probe/Probe.Tests.csproj")
         with tempfile.TemporaryDirectory() as temporary:
-            root = Path(temporary)
-            work = root / "work"
-            coverage = root / "coverage"
-            coverage.mkdir()
-            source = root / "source/bin/Release/net10.0"
+            owner = Path(temporary)
+            repository_root = owner / "repository"
+            work_owner_root = owner / "test-area"
+            work = work_owner_root / "work"
+            coverage = repository_root / "coverage"
+            coverage.mkdir(parents=True)
+            source = repository_root / "source/bin/Release/net10.0"
             source.mkdir(parents=True)
             (source / "Probe.Tests.dll").write_bytes(b"test")
             (source / "NvtFwCombiner.Probe.dll").write_bytes(b"product")
-            canonical = root / "canonical/NvtFwCombiner.Probe.dll"
+            canonical = repository_root / "canonical/NvtFwCombiner.Probe.dll"
             canonical.parent.mkdir()
             canonical.write_bytes(b"product")
 
@@ -2544,8 +2604,8 @@ class VerifyOrchestrationTests(unittest.TestCase):
                 hashes = MODULE.snapshot_regular_tree(
                     source,
                     shadow,
-                    source_boundary=root,
-                    destination_boundary=work,
+                    source_boundary=repository_root,
+                    destination_boundary=work_owner_root,
                 )
                 results = coverage / project.name
                 results.mkdir()
@@ -2572,7 +2632,7 @@ class VerifyOrchestrationTests(unittest.TestCase):
                 patch.object(
                     MODULE,
                     "resolve_coverlet_adapter_path",
-                    return_value=root / "adapter",
+                    return_value=repository_root / "adapter",
                 ),
                 patch.object(
                     MODULE,
@@ -2585,7 +2645,10 @@ class VerifyOrchestrationTests(unittest.TestCase):
                     side_effect=mutate_shadow,
                 ),
                 patch.object(MODULE, "verify_coverage") as verify_coverage,
-                self.assertRaisesRegex(RuntimeError, "shadow.*changed|hash changed"),
+                self.assertRaisesRegex(
+                    RuntimeError,
+                    "shadow test output inventory or hash changed",
+                ),
             ):
                 MODULE.collect_local_dotnet_coverage(
                     "dotnet",
@@ -2593,7 +2656,8 @@ class VerifyOrchestrationTests(unittest.TestCase):
                     work,
                     {},
                     None,
-                    repository_root=root,
+                    repository_root=repository_root,
+                    work_owner_root=work_owner_root,
                 )
 
             verify_coverage.assert_not_called()
@@ -2767,6 +2831,175 @@ class VerifyOrchestrationTests(unittest.TestCase):
                 stage.test_assembly,
             )
             self.assertNotIn("NvtFwCombiner.DeepFixture.Tests", expected_token)
+
+    def test_local_stage_copies_external_tools_only_for_flagged_project(self) -> None:
+        flagged = MODULE.CiDotnetProject(
+            "tests/Flagged/Flagged.Tests.csproj",
+            requires_external_tools_fixture=True,
+        )
+        unflagged = MODULE.CiDotnetProject("tests/Plain/Plain.Tests.csproj")
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            external_tools = root / "external-tools"
+            (external_tools / "bindings").mkdir(parents=True)
+            (external_tools / "bindings/manifest.json").write_text(
+                "{}",
+                encoding="utf-8",
+            )
+            work = root / "work"
+            coverage = root / "coverage"
+            coverage.mkdir()
+            release_suffix = Path("bin/Release/net10.0")
+
+            def prepare(
+                project: MODULE.CiDotnetProject,
+            ) -> MODULE.LocalDotnetCoverageStage:
+                source = root / project.name / release_suffix
+                source.mkdir(parents=True)
+                (source / f"{project.name}.dll").write_bytes(b"test")
+                with (
+                    patch.object(
+                        MODULE,
+                        "find_project_release_output",
+                        return_value=(source, release_suffix),
+                    ),
+                    patch.object(
+                        MODULE,
+                        "canonical_production_release_outputs",
+                        return_value={},
+                    ),
+                    patch.object(
+                        MODULE,
+                        "require_production_release_matches",
+                        return_value=(),
+                    ),
+                ):
+                    return MODULE.prepare_local_dotnet_coverage_stage(
+                        project,
+                        work,
+                        coverage,
+                        repository_root=root,
+                    )
+
+            flagged_stage = prepare(flagged)
+            unflagged_stage = prepare(unflagged)
+
+            self.assertEqual(external_tools, flagged_stage.external_tools_source_root)
+            self.assertEqual(
+                flagged_stage.shadow_output.parents[2] / "external-tools",
+                flagged_stage.external_tools_shadow_root,
+            )
+            self.assertEqual(
+                {
+                    "bindings/manifest.json": MODULE.sha256_file(
+                        external_tools / "bindings/manifest.json"
+                    )
+                },
+                flagged_stage.external_tools_hashes,
+            )
+            self.assertEqual(
+                b"{}",
+                (
+                    flagged_stage.external_tools_shadow_root / "bindings/manifest.json"
+                ).read_bytes(),
+            )
+            self.assertIsNone(unflagged_stage.external_tools_source_root)
+            self.assertIsNone(unflagged_stage.external_tools_shadow_root)
+            self.assertIsNone(unflagged_stage.external_tools_hashes)
+            self.assertFalse(
+                (unflagged_stage.shadow_output.parents[2] / "external-tools").exists()
+            )
+
+    def test_post_collector_freshness_rejects_external_tools_fixture_mutation(
+        self,
+    ) -> None:
+        project = MODULE.CiDotnetProject(
+            "tests/Probe/Probe.Tests.csproj",
+            requires_external_tools_fixture=True,
+        )
+        with tempfile.TemporaryDirectory() as temporary:
+            owner = Path(temporary)
+            repository_root = owner / "repository"
+            work_owner_root = owner / "test-area"
+            source = repository_root / "source"
+            source.mkdir(parents=True)
+            (source / "Probe.Tests.dll").write_bytes(b"test")
+            shadow = work_owner_root / "work/project/bin/Release/net10.0"
+            source_hashes = MODULE.snapshot_regular_tree(
+                source,
+                shadow,
+                source_boundary=repository_root,
+                destination_boundary=work_owner_root,
+            )
+            fixture_source = repository_root / "external-tools"
+            fixture_source.mkdir()
+            fixture_file = fixture_source / "manifest.json"
+            fixture_file.write_bytes(b"accepted")
+            fixture_shadow = work_owner_root / "work/project/external-tools"
+            fixture_hashes = MODULE.snapshot_regular_tree(
+                fixture_source,
+                fixture_shadow,
+                source_boundary=repository_root,
+                destination_boundary=work_owner_root,
+            )
+            stage = MODULE.LocalDotnetCoverageStage(
+                project,
+                source,
+                shadow,
+                shadow / "Probe.Tests.dll",
+                work_owner_root / "work/project/discovered-tests.txt",
+                work_owner_root / "results",
+                source_hashes,
+                (),
+                fixture_source,
+                fixture_shadow,
+                fixture_hashes,
+            )
+
+            MODULE.require_local_dotnet_sources_unchanged(
+                (stage,),
+                repository_root,
+                work_owner_root,
+            )
+
+            incomplete_stage = MODULE.LocalDotnetCoverageStage(
+                stage.project,
+                stage.source_output,
+                stage.shadow_output,
+                stage.test_assembly,
+                stage.discovery_report,
+                stage.results_directory,
+                stage.source_hashes,
+                stage.canonical_hashes,
+                stage.external_tools_source_root,
+                stage.external_tools_shadow_root,
+                None,
+            )
+            with self.assertRaisesRegex(
+                RuntimeError,
+                "external-tools fixture evidence is incomplete",
+            ):
+                MODULE.require_local_dotnet_sources_unchanged(
+                    (incomplete_stage,),
+                    repository_root,
+                    work_owner_root,
+                )
+
+            fixture_file.write_bytes(b"source-mutated")
+            with self.assertRaisesRegex(RuntimeError, "external-tools source fixture"):
+                MODULE.require_local_dotnet_sources_unchanged(
+                    (stage,),
+                    repository_root,
+                    work_owner_root,
+                )
+            fixture_file.write_bytes(b"accepted")
+            (fixture_shadow / "manifest.json").write_bytes(b"shadow-mutated")
+            with self.assertRaisesRegex(RuntimeError, "external-tools shadow fixture"):
+                MODULE.require_local_dotnet_sources_unchanged(
+                    (stage,),
+                    repository_root,
+                    work_owner_root,
+                )
 
     def test_local_project_evidence_requires_exact_counter_trx_and_pair(self) -> None:
         project = MODULE.CiDotnetProject("tests/Probe/Probe.Tests.csproj")
@@ -3176,6 +3409,18 @@ class VerifyOrchestrationTests(unittest.TestCase):
                 for projects in MODULE.CI_DOTNET_SHARDS.values()
                 for project in projects
                 if project.requires_exclusive_local_coverage
+            ],
+        )
+        self.assertEqual(
+            [
+                "tests/NvtFwCombiner.Bootstrap.Tests/"
+                "NvtFwCombiner.Bootstrap.Tests.csproj"
+            ],
+            [
+                project.relative_path
+                for projects in MODULE.CI_DOTNET_SHARDS.values()
+                for project in projects
+                if project.requires_external_tools_fixture
             ],
         )
         flattened = [path for projects in actual.values() for path in projects]
@@ -5455,6 +5700,22 @@ class VerifyOrchestrationTests(unittest.TestCase):
                     ) as inherited:
                         self.assertEqual(parent, inherited)
                     self.assertTrue(parent.is_dir())
+
+    def test_dotnet_batch_environment_overwrites_repository_root_without_parent_mutation(
+        self,
+    ) -> None:
+        variable = MODULE.TEST_REPOSITORY_ROOT_ENVIRONMENT_VARIABLE
+        with patch.dict(
+            os.environ,
+            {variable: str(Path("Z:/inherited-wrong-repository"))},
+            clear=False,
+        ):
+            parent_environment = os.environ.copy()
+
+            child_environment = MODULE.dotnet_batch_environment()
+
+            self.assertEqual(str(MODULE.ROOT), child_environment[variable])
+            self.assertEqual(parent_environment, dict(os.environ))
 
     def test_repository_script_descendant_can_run_nested_main_under_parent_session(
         self,

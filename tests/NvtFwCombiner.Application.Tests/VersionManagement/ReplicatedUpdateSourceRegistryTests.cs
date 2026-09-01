@@ -155,15 +155,25 @@ public sealed class ReplicatedUpdateSourceRegistryTests
         using var releasePrimary = new ManualResetEventSlim();
         var blocked = new SynchronouslyBlockingRegistry(releasePrimary);
         UpdateSourceRegistrySnapshot backup = Snapshot(4, 'c');
+        var available = new SignalingRegistry(Success(backup));
+        var time = new ManualTimeProvider();
         var registry = new ReplicatedUpdateSourceRegistry(
-            [blocked, new StubRegistry(Success(backup))],
-            TimeSpan.FromMilliseconds(100));
+            [blocked, available],
+            TimeSpan.FromMilliseconds(100),
+            time);
 
         try
         {
-            UpdateSourceRegistryLoadResult[] results = await Task.WhenAll(
+            Task<UpdateSourceRegistryLoadResult>[] pending =
+            [..
                 Enumerable.Range(0, 8).Select(
-                    _ => registry.LoadAsync(TestContext.Current.CancellationToken).AsTask()));
+                    _ => registry.LoadAsync(TestContext.Current.CancellationToken).AsTask())
+            ];
+            await blocked.FirstLoadStarted.Task.WaitAsync(TestContext.Current.CancellationToken);
+            await available.FirstLoadStarted.Task.WaitAsync(TestContext.Current.CancellationToken);
+            time.Advance(TimeSpan.FromMilliseconds(100));
+
+            UpdateSourceRegistryLoadResult[] results = await Task.WhenAll(pending);
 
             Assert.All(results, result =>
             {
@@ -171,8 +181,10 @@ public sealed class ReplicatedUpdateSourceRegistryTests
                 Assert.Equal(
                     UpdateSourceRegistryLoadIssue.RegistryTimedOut,
                     result.Replicas![0].Issue);
+                Assert.True(result.Replicas[1].IsSelected);
             });
             Assert.Equal(1, blocked.LoadCount);
+            Assert.Equal(1, available.LoadCount);
         }
         finally
         {
@@ -330,6 +342,24 @@ public sealed class ReplicatedUpdateSourceRegistryTests
         }
     }
 
+    private sealed class SignalingRegistry(UpdateSourceRegistryLoadResult result) : IUpdateSourceRegistry
+    {
+        private int _loadCount;
+
+        internal int LoadCount => Volatile.Read(ref _loadCount);
+
+        internal TaskCompletionSource FirstLoadStarted { get; } =
+            new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        public ValueTask<UpdateSourceRegistryLoadResult> LoadAsync(CancellationToken cancellationToken)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            _ = Interlocked.Increment(ref _loadCount);
+            _ = FirstLoadStarted.TrySetResult();
+            return ValueTask.FromResult(result);
+        }
+    }
+
     private sealed class SynchronouslyBlockingRegistry(ManualResetEventSlim release)
         : IUpdateSourceRegistry
     {
@@ -340,10 +370,14 @@ public sealed class ReplicatedUpdateSourceRegistryTests
         internal TaskCompletionSource FirstLoadCompleted { get; } =
             new(TaskCreationOptions.RunContinuationsAsynchronously);
 
+        internal TaskCompletionSource FirstLoadStarted { get; } =
+            new(TaskCreationOptions.RunContinuationsAsynchronously);
+
         public ValueTask<UpdateSourceRegistryLoadResult> LoadAsync(
             CancellationToken cancellationToken)
         {
             _ = Interlocked.Increment(ref _loadCount);
+            _ = FirstLoadStarted.TrySetResult();
             release.Wait(CancellationToken.None);
             _ = FirstLoadCompleted.TrySetResult();
             cancellationToken.ThrowIfCancellationRequested();

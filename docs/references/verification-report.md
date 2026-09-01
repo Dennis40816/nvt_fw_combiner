@@ -9,7 +9,7 @@ page-publication hardening milestone, the 1.0.4 managed Setup and Launcher
 source milestone, the 1.0.5 read-only recovery-diagnosis milestone, and the
 1.0.6 tag-only integration milestone, and the 1.0.7 formal Distribution
 Launcher release, through the 1.0.8 unpublished Windows release candidate and
-the 1.1.0 manual-only Windows release candidate.
+the published 1.1.0 manual-only Windows release.
 Current
 verification evidence is produced by the canonical
 `python scripts/verify.py --structure-only` and `python scripts/verify.py --all`
@@ -17,19 +17,122 @@ commands.
 
 Specification package version: `1.1.0`
 
-## 1.1.0 manual-only Windows release candidate
+## 1.1.0 published manual-only Windows release
 
-This candidate preserves the frozen v1.0.8 Application behavior and changes
-only its distribution boundary. The canonical packager emits release-manifest
-schema 1.3 with `distributionMode: manual-only`, no Launcher, Setup, Bootstrap,
-Catalog/Registry handoff, automatic update, Version deployment, or packaged
-reference/Golden evidence. The managed Version verifier rejects it fail closed.
+This release preserves the frozen v1.0.8 Application behavior and changes only
+its distribution boundary. Release-manifest schema 1.3 declares
+`distributionMode: manual-only`; the package contains no Launcher, Setup,
+Bootstrap, Catalog/Registry handoff, automatic update, Version deployment, or
+packaged reference/Golden evidence. The managed Version verifier rejects it
+fail closed.
 
-The scoped evidence is the schema/package/smoke contract tests, real Version
-verifier rejection regression, exact-head independent review, protected-main
-CI, exact three-asset hashes, closed package smoke, and fresh-download visible
-Application startup. The dated owner waiver records that the broad verifier and
-managed release workflow are not rerun and must not be claimed green.
+### Stable identity and reviewed-tree equivalence
+
+The annotated `v1.1.0` tag object is
+`0aaf18b31f8786a38ab05d9bfc7c3bb98b83b685`. It peels to remote `main`
+commit `40cf3be5162b3c5b9c266654b4993bc5b9669b5e`, whose tree is
+`d5375f30833389bc81f45c3033d0d9a3e17cfc52`. PR #406 reviewed head
+`3af68461eb7d9d62c773eddc79ffeeb46b5cac98` has that same tree. PR CI run
+`33461699209` and post-merge `main` CI run `33462718850` both completed green.
+
+The published stable Release is tag `v1.1.0` in the canonical NVT FW Combiner
+repository.
+Repository policy prohibits moving or replacing its stable tag or assets, but a
+2026-09-01 GitHub API check reported `immutable: false` for the Release. The
+platform therefore does not currently enforce the immutable-Release claim.
+
+### Published assets and source archives
+
+The Release has exactly these three uploaded assets:
+
+| Asset | Size (bytes) | SHA-256 |
+| --- | ---: | --- |
+| `NvtFwCombiner-v1.1.0-win-x64.zip` | 78,148,699 | `acb8cd8777f055b8594d361f4c0d73c2a7c6845486e6fa8d10347869f329234a` |
+| `NvtFwCombiner-v1.1.0-win-x64.spdx.json` | 105,758 | `7c54d6679e060b65c563c25e22e6c1011615afcc270c0c61b781ae91c2a9c7f4` |
+| `NvtFwCombiner-v1.1.0-win-x64.provenance.json` | 36,500 | `6bf9638d3a71ec4d32620ce2b2003c2675c578fffda68fb80f3e0f97dddec223` |
+
+The GitHub-generated source ZIP and source tarball each returned HTTP 200.
+They are source archives, not product assets.
+
+### Provenance, smoke, and release notes
+
+The published provenance records source commit
+`40cf3be5162b3c5b9c266654b4993bc5b9669b5e`, tag `v1.1.0`, builder
+`scripts/package.ps1 manual-only operator build`, and RID `win-x64`.
+Fresh downloads matched all three hashes. Closed-package smoke and visible
+Application startup passed from the fixed `D:\NvtFwCombiner-TestArea` test area
+on the current Windows host; this is not a clean-Windows claim. After LF
+normalization and outer trimming, the rendered release-note content exactly
+matches the equivalently normalized published body; that normalized content has
+SHA-256
+`2dd77e5715cf8408ba592b59c4b8ba6d8715be649a6013a73c1e66b518ebd67e`.
+The exact fresh-download invocation transcript, session/result identity, and
+worker self-test result are not preserved in a durable external attestation;
+the same-host observation therefore cannot replace a terminal release gate.
+
+### Retry, waiver, review, and residual record
+
+The first long-path local package attempt failed before build. The short-path
+retry passed. Release run `33454068996` belongs to the frozen `v1.0.8`
+predecessor evidence and failed on shadow-output repository-root discovery; it
+was not a `v1.1.0` retry. The local command
+`python scripts/verify.py --structure-only`, run from
+`C:\Users\liusx\.codex\worktrees\1100\nvt_fw_combiner` between 09:21:50 and
+09:31:50 Asia/Taipei, reached the 600-second capability-history timeout. That
+local timeout is distinct from post-merge `main` CI run `33462718850`, whose
+structure lane passed. `python scripts/verify.py --all` was not run. The
+managed release workflow and clean-Windows profile-load, synthetic
+Preview/Build, and report-generation checks were waived for this single
+release by
+[`REL-110-FULL-VERIFY-OWNER-WAIVER-01`](../governance/waivers/REL-110-FULL-VERIFY-OWNER-WAIVER-01.md).
+Those gates are not claimed green, and their historical JSON record and dated
+waiver remain unchanged.
+
+The release is published, but its terminal closure is **not fully green**. A
+2026-09-01 live GitHub check returned `protected: false` for `main` and an empty
+repository ruleset list. The mandatory protected-main gate in the REL-110
+terminal contract was therefore not proved and is not covered by the waiver.
+Together with the Release API's `immutable: false` result and absence of a tag-
+protection ruleset, this is an unwaived historical release-closure failure, not
+a passed gate or an ordinary deferred optimization. The currently observed tag,
+tree, asset count, sizes, and digests remain exact; platform enforcement is the
+missing fact.
+
+PR #406 Codex review raised three P1 observations. The evidence-ancestry
+observation is technically dispositioned as a false positive: reviewed head
+`3af68461eb7d9d62c773eddc79ffeeb46b5cac98` has parent
+`c24ea50a1e5d59d6aa55250553b0f1f9fbaea7f2`, which has parent
+`ab1629a141b759aaa312b65cf3e36654ca97b7d0`; `git merge-base --is-ancestor`
+returned 0 for both ancestors against the reviewed head, and post-merge `main`
+CI run `33462718850` passed structure/policy. The GitHub review thread remains
+unresolved, so technical disposition is not represented as platform closure.
+Two substantive P1 residuals were open at publication: stale user-facing
+`At 1.1.0` DP retirement-decision text and the fact that non-`ManualOnly`
+package invocation for semantic version `1.1.0` is not globally fail closed.
+This roadmap rebaseline corrects the active DP wording to owner-unallocated;
+that documentation correction does not retroactively make the `v1.1.0`
+release closure green. The non-`ManualOnly` invocation guard remains open.
+
+`v1.1.1` must add a fail-closed pre-tag release preflight that verifies the
+exact remote-main SHA, active branch protection/ruleset, required checks, and
+zero unresolved release-blocking P0/P1 findings, with protected and unprotected
+fixture coverage. It must also reject `1.1.0` package invocation without
+`ManualOnly`. Post-publication verification must inspect tag peeling, Release
+flags, exact assets, and digests, and must never generate an immutable claim
+when the GitHub API reports `immutable: false`. The same milestone explicitly
+owns measured CI-flow optimization across PR, post-merge `main`, package
+preview, and release-candidate lanes while retaining the one canonical
+verifier, bounded independent-lane concurrency, isolated logs, and a serial
+fallback.
+
+Two additional observed flaky tests are `v1.1.1` diagnosis inputs, not failed
+publication gates. In run `33396845258`,
+`ManagedLauncherEntryCoordinatorTests.CandidateTimeoutThenRollbackReadyCompletesWithinOuterBudget`
+failed after 107 ms at assertion line 405 with expected `LaunchInstalled` and
+actual `TerminationUnconfirmed`. In run `33460733265`,
+`ReplicatedUpdateSourceRegistryTests.ConcurrentTimeoutsKeepOnePhysicalReadPerReplica`
+failed. Both tests passed in green runs `33461699209` and `33462718850`; their
+intermittent observations and root causes are not claimed closed.
 
 ## 1.0.8 unpublished Windows release candidate
 
@@ -136,7 +239,8 @@ independently frozen 89-route denominator and the current executable route
 fingerprints. The 2026-08-25 owner decision publishes all 64 exact Standard
 Merge, AB Merge, and CtrlRAM Replace routes as `Supported` and makes ordinary
 authoring `Available`. All 14 DP Replace routes remain `Internal` and
-`Unavailable` until the `1.1.0` decision; General retains its existing ten
+`Unavailable`; published `v1.1.0` made no retirement-or-reopening decision, so
+that decision remains owner-unallocated. General retains its existing ten
 internal and one test-only routes.
 
 Evidence remains a separate fact. The complete catalog contains 28 Direct
@@ -175,9 +279,10 @@ release-owner approval remain open.
 The owner approved hiding ordinary DP Replace authoring in `0.10.7` and the
 initial `1.0.0`, while retaining its profiles, execution semantics, publication
 and evidence decisions, fingerprints, and Golden regressions. Product UI/CLI
-discovery is fail-closed through canonical policy catalog `1.10.0`; retirement
-or reopening is deferred to `1.1.0`. This is not a firmware-byte or support
-promotion change, and no package or tag is authorized by this report.
+discovery is fail-closed through canonical policy catalog `1.10.0`. Published
+`v1.1.0` made no retirement-or-reopening decision; that decision remains owner-
+unallocated. This is not a firmware-byte or support promotion change, and no
+package or tag is authorized by this report.
 
 ## 0.10.6 internal managed-version candidate
 

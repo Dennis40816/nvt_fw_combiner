@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 2,
+  "taskId": "VERIFY-111-HISTORY-BATCH-01",
+  "capability": "Read committed capability-record lifecycle and immutable post-final history with bounded read-only Git process fan-out while preserving the canonical validator and ADR 0061 merge semantics",
+  "integrationBase": "c24ea50a1e5d59d6aa55250553b0f1f9fbaea7f2",
+  "risk": "R2",
+  "kind": "governance",
+  "state": "design-active",
+  "mutablePaths": [
+    "scripts/validate_repository.py"
+  ],
+  "implementationOwner": "history_batch_implementer",
+  "searchEvidence": [
+    "scripts/validate_repository.py::_historical_final_records is the sole capability-record history owner. A real-head probe returned 98 record histories but started 298 Git processes: one log, 98 rev-list, and 199 show invocations.",
+    "A two-record active-to-final fixture starts seven Git processes and supplies a deterministic red regression based on subprocess count rather than wall-clock timing.",
+    "scripts/v0916_parity_certification.py::PinnedGitReader proves the repository already uses strict git cat-file batch framing, but its parity-specific snapshot, size, and error authority must not be imported into the governance validator. This change reuses only that proven protocol pattern inside the existing validator owner.",
+    "A read-only prototype matched the current ordered histories and nested-path result for all 98 records. Of 200 requested revision:path objects, 30 are missing, so missing/deletion skip semantics must remain explicit.",
+    "After the lifecycle scan was reduced to two Git processes, the exact staged structure gate still timed out at 600 seconds. The remaining immutable-history owner audits 69 finalized records over an aggregate 4,945 later commits; one unchanged representative starts 164 Git processes in 7.06 seconds, proving repeated per-record commit inspection is the remaining fan-out.",
+    "A proposed path-filtered rev-list shortcut was rejected because Git history simplification can omit a merge whose complete tree equals the audited revision while a non-contained parent changes the exact path. The existing per-parent diff-tree -m, rename parser, and ADR 0061 containment classification must remain authoritative.",
+    "tests/scripts/test_agent_governance.py is the existing non-governed evidence owner for capability-record lifecycle, history, merge, deletion, and fail-closed validator behavior."
+  ],
+  "semanticOwner": "scripts/validate_repository.py remains the sole capability lifecycle and immutable post-final history authority through _historical_final_records, _record_changed_in_commits_after, the existing per-parent diff parser, and ADR 0061 containment classifier",
+  "terminalContract": "Replace per-path rev-list and per-revision show process fan-out with one fixed-argv reverse history inventory and one private, strictly framed, read-only git cat-file --batch stream. Preserve sorted candidate paths; oldest-to-newest lifecycle observation; direct-parent and .json filtering; nested-path reporting; invalid UTF-8, invalid JSON, wrong-schema, unrelated-state and missing-object skip behavior; first_active, latest_unfinalized_active, first_final and admitted-field-violation semantics; and stopping after the first final-complete record. Inventory or batch process failure, malformed headers, non-blob objects, invalid lengths, truncation, missing terminators, or trailing bytes fail closed. Within one validate_capability_reuse_governance invocation only, share exact results for immutable commit identities so each existing fixed-argv diff-tree -m --find-renames parse and ADR 0061 containment lookup executes at most once per commit. The cache is private, in-memory, invocation-local, never persisted or module-global, stores and replays exact errors as fail-closed results, and neither filters revisions by path nor changes ancestry, per-parent diff, rename, mutation-and-restore, redundant containment, non-contained parent, equal-tree, octopus, or inspection-error semantics. Deterministic tests must combine full semantic assertions with bounded process/unique-lookup counts and no wall-clock threshold. No persistent or cross-invocation cache, database, checkout read, write path, second validator, timeout increase, path-history shortcut, firmware, package, workflow, release, or authority change is admitted.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "verify_fix_design_review",
+    "outcome": "findings-incorporated",
+    "evidence": "Independent R2 review first confirmed that ADR 0054's canonical lifecycle authority remains in validate_repository.py and approved one fixed-argv reverse inventory plus one privately framed read-only cat-file batch stream. After the exact structure gate exposed a second fan-out, review rejected path-limited rev-list because Git history simplification can omit a merge whose tree equals the audited revision while another non-contained parent changes the exact path, violating ADR 0061. The incorporated minimum preserves the existing ancestry, diff-tree -m --find-renames, parser, and containment owners while sharing only invocation-local immutable commit and merge results, with deterministic one-lookup-per-identity regressions and no persistent cache, timeout increase, second validator, working-tree read, or governance-semantic change."
+  },
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": {
+    "reviewer": null,
+    "outcome": "pending",
+    "evidence": ""
+  }
+}

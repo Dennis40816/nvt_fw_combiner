@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 2,
+  "taskId": "VERIFY-111-REGISTRY-CLOCK-SIZE-01",
+  "capability": "Bind the exact non-transferable eight-line production-size cost of the approved deterministic Registry deadline test seam without compressing formatting, creating reusable budget, or weakening convergence policy",
+  "integrationBase": "c24ea50a1e5d59d6aa55250553b0f1f9fbaea7f2",
+  "risk": "R2",
+  "kind": "governance",
+  "state": "design-active",
+  "mutablePaths": [
+    "docs/adr/0021-code-size-ratchet-system-activity-amendment.md",
+    "scripts/code_size_policy.py"
+  ],
+  "implementationOwner": "primary-agent",
+  "searchEvidence": [
+    "The frozen v1.0.8 executable ceilings are full production 136381, runtime 98551, and Application 42197. The independently reviewed VERIFY-111-REGISTRY-CLOCK-01 implementation measures exactly 136389 full production, 98559 runtime, and 42205 Application, while Domain/Profiles remains 20632, Bootstrap/CLI/Desktop/Launcher remains 5039, and Infrastructure/Contracts/worker/Platform remains 30683; the four runtime slices sum exactly to 98559.",
+    "The exact eight counted lines are confined to ReplicatedUpdateSourceRegistry's approved deterministic test seam: +1 for the final optional internal TimeProvider parameter, +1 for one null-to-TimeProvider.System normalization, +4 for readable construction of the existing replica slots after passing the clock, +1 for the private slot clock parameter, and +1 for the TimeProvider argument on the existing WaitAsync deadline. The public constructor, production callers, fixed 45-second production deadline, ordered Task.Run reads, single-flight, cancellation, abandonment, retirement, and selection remain unchanged.",
+    "Compressing the collection expression would save only four lines, leave the gate failing, and violate ADR 0021's prohibition on formatting compression. Inlining the clock fallback would save only one line, deviate from the independently reviewed normalize-once contract, and still leave the gate failing. Mutable global test state, unrelated deletion, or another scheduler would weaken the reviewed seam or expand ownership. No equivalent safe deletion exists in the admitted Registry scope.",
+    "ADR 0021 and its system-activity appendix already own exact named non-transferable size amendments; scripts/code_size_policy.py is the existing executable owner. This slice extends those owners and the ordinary snapshot test rather than adding another metric, allowance pool, ledger, or verifier."
+  ],
+  "semanticOwner": "ADR 0021 system-activity amendments own reviewed non-transferable production-size exceptions and scripts/code_size_policy.py owns their executable exact ceilings",
+  "terminalContract": "Record full production 136389 and runtime production 98559 nonblank lines, with Domain/Profiles 20632, Application 42205, Bootstrap/CLI/Desktop/Launcher 5039, and Infrastructure/Contracts/worker/Platform 30683; the four runtime slices must continue to sum exactly to 98559. Change the executable general production_nonblank threshold from 136381 to 136389 and only the full allowance from 33485 to 33493, runtime allowance from 28495 to 28503, and Application allowance from 11507 to 11515. All frozen base ratchets remain unchanged: full production 102896, runtime production 70056, Domain/Profiles 20627, Application 30690, Bootstrap/CLI/Desktop/Launcher 3378, and Infrastructure/Contracts/worker/Platform 15356. Domain/Profiles allowance 5, Bootstrap/CLI/Desktop/Launcher allowance 1661, and Infrastructure/Contracts/worker/Platform allowance 15327 also remain unchanged. The non-governed focused snapshot test in tests/scripts/test_code_size_policy.py binds 136389, 98559, and 42205 while retaining 20632, 5039, and 30683 for the unaffected slices. Rename `test_frozen_release_baseline_emits_no_full_production_warning` to `test_current_reviewed_baseline_emits_no_full_production_warning` because this amendment does not rewrite the published v1.0.8 snapshot. This is an exact descending named R2 allowance for the already approved Registry TimeProvider seam, not reusable budget or authority for unrelated growth, cross-slice relocation, line packing, generated-source exclusion, documentation deletion, or a second verifier. Preserve the existing public constructor, TimeProvider.System production default, exact 45-second deadline, production callers, caller cancellation, Task.Run scheduling, one physical read per replica, timeout abandonment, late-result retirement, observations, conflict handling, and replica selection. Registry/Catalog documents and routing, durable state, Launcher, UI, firmware profiles, address ranges, mutation order, output bytes, CRC/header, processor, naming, support, Golden evidence, package contents, and release permission remain unchanged. Focused code-size tests, deterministic Registry regression, complete Application suite, independent R2 review, structure-only verification, and the frozen candidate's full verifier remain required.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "registry_ratchet_resolution",
+    "outcome": "findings-incorporated",
+    "evidence": "Independent R2 architecture and code-size review reproduced the exact 136389 full, 98559 runtime, 42205 Application, 20632 Domain/Profiles, 5039 host, and 30683 Infrastructure snapshot and attributed the entire eight-line delta to the already reviewed Registry TimeProvider seam. Its exact-draft review required all six frozen base ratchets and three unaffected allowances to remain explicit, the auditable +1 +1 +4 +1 +1 = +8 attribution, the exact tests/scripts/test_code_size_policy.py path and method rename, and a narrower statement that inlining deviates from the reviewed normalize-once contract and still cannot close the gate. The incorporated design rejects line packing, mutable clock state, unrelated deletion, and additional abstractions; requires a separate exact named amendment to the existing ADR 0021 and code_size_policy.py owners; and retains focused size tests, Registry/Application evidence, independent final review, structure-only verification, and the full verifier. No additional firmware, runtime, compatibility, security, package, or release-authority finding remained."
+  },
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": {
+    "reviewer": null,
+    "outcome": "pending",
+    "evidence": ""
+  }
+}

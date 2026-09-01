@@ -5,10 +5,28 @@ namespace NvtFwCombiner.TestSupport;
 /// <summary>Shared repository path helpers for tests that need committed fixtures.</summary>
 public static class RepositoryPaths
 {
-    /// <summary>Finds the repository root from the current test binary location.</summary>
+    private const string RepositoryRootEnvironmentVariable = "NFC_TEST_REPOSITORY_ROOT";
+
+    /// <summary>Finds the verifier-selected root or falls back from a direct-local test binary.</summary>
     public static string FindRepositoryRoot()
     {
-        DirectoryInfo? directory = new(AppContext.BaseDirectory);
+        return FindRepositoryRoot(
+            Environment.GetEnvironmentVariable(RepositoryRootEnvironmentVariable),
+            new DirectoryInfo(AppContext.BaseDirectory));
+    }
+
+    internal static string FindRepositoryRoot(
+        string? configuredRoot,
+        DirectoryInfo startingDirectory)
+    {
+        ArgumentNullException.ThrowIfNull(startingDirectory);
+
+        if (configuredRoot is not null)
+        {
+            return ValidateConfiguredRepositoryRoot(configuredRoot);
+        }
+
+        DirectoryInfo? directory = startingDirectory;
         while (directory is not null)
         {
             if (File.Exists(Path.Combine(directory.FullName, "NvtFwCombiner.slnx")))
@@ -20,6 +38,30 @@ public static class RepositoryPaths
         }
 
         throw new DirectoryNotFoundException("Could not locate repository root.");
+    }
+
+    private static string ValidateConfiguredRepositoryRoot(string configuredRoot)
+    {
+        if (string.IsNullOrWhiteSpace(configuredRoot) ||
+            !Path.IsPathFullyQualified(configuredRoot))
+        {
+            throw new InvalidOperationException(
+                $"{RepositoryRootEnvironmentVariable} must name a fully qualified directory.");
+        }
+
+        string fullRoot = Path.GetFullPath(configuredRoot);
+        var directory = new DirectoryInfo(fullRoot);
+        if (!directory.Exists)
+        {
+            throw new InvalidOperationException(
+                $"{RepositoryRootEnvironmentVariable} directory does not exist: {fullRoot}");
+        }
+
+        var marker = new FileInfo(Path.Combine(fullRoot, "NvtFwCombiner.slnx"));
+        return marker.Exists && (marker.Attributes & FileAttributes.ReparsePoint) == 0
+            ? directory.FullName
+            : throw new InvalidOperationException(
+                $"{RepositoryRootEnvironmentVariable} does not contain a regular NvtFwCombiner.slnx: {fullRoot}");
     }
 
     /// <summary>Builds a path from the repository root and normalizes manifest-style separators.</summary>

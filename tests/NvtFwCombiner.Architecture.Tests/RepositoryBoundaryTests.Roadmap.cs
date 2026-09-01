@@ -4,14 +4,56 @@ public sealed partial class RepositoryBoundaryTests
 {
     /// <summary>Keeps future scope in the single NFC roadmap while preserving the 0.9.x hot-fix record.</summary>
     [Fact]
-    public void NfcRoadmapRecordsV0916AndSequencesV010xV100AndV110()
+    public void NfcRoadmapRecordsPublishedV110AndCurrentAllocations()
     {
         string roadmap = ReadText("docs/architecture/0.9.x-completion-roadmap.md");
         string tags = ReadText("docs/governance/development-tags.md");
         string deliveryRoadmap = ReadText("docs/architecture/v0.9.15-0.9.17-roadmap.md");
         string nfcRoadmap = ReadText("docs/architecture/nfc_roadmap.md");
-        string normalizedNfcRoadmap = nfcRoadmap.ReplaceLineEndings(" ");
+        string normalizedNfcRoadmap = string.Join(
+            ' ',
+            nfcRoadmap.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));
         string spec = ReadText("SPEC.md");
+        string informationArchitecture = ReadText("docs/ui/information-architecture.md");
+        string supportedIcMatrix = ReadText("docs/architecture/supported-ic-matrix.md");
+        string replacementRecord = ReadText(
+            "docs/governance/change-records/ARCH-ROADMAP-111-REBASELINE-01.json");
+        string navigationHandoff = ReadText(
+            "docs/ui/post-v1.1.0-navigation-and-ctrlram-first-open-handoff.md");
+        string bundleRenameHandoff = ReadText(
+            "docs/ui/v1.1.x-bundle-primary-output-rename-handoff.md");
+        string normalizedBundleRenameHandoff = string.Join(
+            ' ',
+            bundleRenameHandoff.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));
+        string reportHistoryUsabilityHandoff = ReadText(
+            "docs/ui/v1.1.x-report-history-usability-handoff.md");
+        string normalizedReportHistoryUsabilityHandoff = string.Join(
+            ' ',
+            reportHistoryUsabilityHandoff.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));
+        string abDpMetadataLayoutHandoff = ReadText(
+            "docs/ui/v1.1.x-ab-dp-metadata-layout-handoff.md");
+        string normalizedAbDpMetadataLayoutHandoff = string.Join(
+            ' ',
+            abDpMetadataLayoutHandoff.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));
+        string abIcSelectorScopeHandoff = ReadText(
+            "docs/ui/v1.1.x-ab-ic-selector-scope-handoff.md");
+        string normalizedAbIcSelectorScopeHandoff = string.Join(
+            ' ',
+            abIcSelectorScopeHandoff.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));
+        string reportChangesCompareHandoff = ReadText(
+            "docs/ui/v1.1.x-report-changes-compare-handoff.md");
+        string normalizedReportChangesCompareHandoff = string.Join(
+            ' ',
+            reportChangesCompareHandoff.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));
+        string standardMergeVerificationFeedbackHandoff = ReadText(
+            "docs/ui/v1.1.x-standard-merge-input-verification-feedback-handoff.md");
+        string normalizedStandardMergeVerificationFeedbackHandoff = string.Join(
+            ' ',
+            standardMergeVerificationFeedbackHandoff.Split(
+                (char[]?)null,
+                StringSplitOptions.RemoveEmptyEntries));
+        string selectorContract = ReadText("docs/ui/v1.1.2-ctrlram-selector-visual-contract.md");
+        string selectorReference = ReadText("docs/ui/references/v1.1.2-ctrlram-selector-reference.svg");
         string sizeAdr = ReadText("docs/adr/0021-code-size-ratchet-and-convergence.md");
         string dependencyPlan = ReadText("docs/governance/0.10.x-ticket-dependency-plan.md");
         string[] coreAuthorities = [spec, sizeAdr, dependencyPlan];
@@ -41,35 +83,288 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("#207, #214, #219, and #221", nfcRoadmap, StringComparison.Ordinal);
         Assert.Contains("Dependency depth is not a release version.", normalizedNfcRoadmap, StringComparison.Ordinal);
         Assert.Contains(
-            "## `1.1.0`: deferred product expansion and analyzer cleanup",
+            "## `1.1.0`: published manual-only Windows baseline",
             nfcRoadmap,
             StringComparison.Ordinal);
         Assert.Contains(
-            "`1.1.0` starts only after the release-bounded `1.0.x` sequence is closed and from its latest official reviewed stable predecessor.",
+            "`v1.1.0` was published on 2026-09-01 as the bounded direct-run Windows x64 distribution.",
             normalizedNfcRoadmap,
             StringComparison.Ordinal);
         Assert.Contains(
+            "## `1.1.1`: verification, test, CI, and release architecture only",
+            nfcRoadmap,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "`v1.1.1` owns only the verification, test, CI, and release architecture review",
+            nfcRoadmap,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "The former measured test-runtime component is absorbed exclusively by `v1.1.1`",
+            normalizedNfcRoadmap,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "## `1.1.2`: complete former `v1.0.9` bundle",
+            nfcRoadmap,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "The complete bundle formerly assigned to `v1.0.9` moves together to `v1.1.2`; none of it remains allocated to `v1.0.9` or is split into `v1.1.1`.",
+            normalizedNfcRoadmap,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "../ui/v1.1.2-ctrlram-selector-visual-contract.md",
+            nfcRoadmap,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "## `1.1.3`: Memory Layout review",
+            nfcRoadmap,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "`v1.1.3` owns a Memory Layout review",
+            nfcRoadmap,
+            StringComparison.Ordinal);
+        Assert.Contains("## Explicit owner-unallocated queue", nfcRoadmap, StringComparison.Ordinal);
+        Assert.Contains("Former `v1.0.10`", nfcRoadmap, StringComparison.Ordinal);
+        Assert.Contains("Former `v1.0.13`", nfcRoadmap, StringComparison.Ordinal);
+        Assert.Contains("Former planned `v1.1.0` product-expansion/analyzer bundle", nfcRoadmap, StringComparison.Ordinal);
+        Assert.Contains("Former generic `v1.1.x` Golden-evidence item", nfcRoadmap, StringComparison.Ordinal);
+        Assert.Contains(
+            "The published `v1.1.0` made no ordinary DP Replace retirement-or-reopening decision, so that decision is also owner-unallocated.",
+            normalizedNfcRoadmap,
+            StringComparison.Ordinal);
+        Assert.DoesNotContain(
             "## `1.0.8` through `1.0.13`: update delivery and release-flow closure",
             nfcRoadmap,
             StringComparison.Ordinal);
+        Assert.DoesNotContain(
+            "## `1.1.0`: deferred product expansion and analyzer cleanup",
+            nfcRoadmap,
+            StringComparison.Ordinal);
+        Assert.DoesNotContain("v1.0.9-ctrlram-selector-visual-contract.md", nfcRoadmap, StringComparison.Ordinal);
+
+        Assert.Contains("published `v1.1.0` made no retirement-or-reopening decision", informationArchitecture, StringComparison.Ordinal);
+        Assert.Contains("owner-unallocated", informationArchitecture, StringComparison.Ordinal);
+        Assert.DoesNotContain("without the `1.1.0` owner decision", informationArchitecture, StringComparison.Ordinal);
+        Assert.Contains("Published `v1.1.0` made no retirement-or-reopening decision", supportedIcMatrix, StringComparison.Ordinal);
+        Assert.Contains("owner-unallocated", supportedIcMatrix, StringComparison.Ordinal);
+        Assert.DoesNotContain("Owner decision at `1.1.0`", supportedIcMatrix, StringComparison.Ordinal);
+        Assert.DoesNotContain("retirement or reopening is decided at", supportedIcMatrix, StringComparison.Ordinal);
+        Assert.DoesNotContain("owner will decide the feature at `1.1.0`", supportedIcMatrix, StringComparison.Ordinal);
+
         Assert.Contains(
-            "`v1.0.13` applies the existing documentation-convergence rule",
+            "\"taskId\": \"ARCH-ROADMAP-111-REBASELINE-01\"",
+            replacementRecord,
+            StringComparison.Ordinal);
+        Assert.Contains("ARCH-ROADMAP-108-130-01", replacementRecord, StringComparison.Ordinal);
+        Assert.Contains("v1.1.1 verification, test, CI, and release architecture only", replacementRecord, StringComparison.Ordinal);
+        Assert.Contains("measured CI-flow optimization", replacementRecord, StringComparison.Ordinal);
+        Assert.Contains("v1.1.2 complete former v1.0.9 bundle", replacementRecord, StringComparison.Ordinal);
+        Assert.Contains("v1.1.3 Memory Layout review", replacementRecord, StringComparison.Ordinal);
+        Assert.Contains("fail-closed pre-tag release preflight", replacementRecord, StringComparison.Ordinal);
+        Assert.Contains("post-publish verification", replacementRecord, StringComparison.Ordinal);
+        Assert.Contains("is not claimed fully green here", replacementRecord, StringComparison.Ordinal);
+        Assert.Contains("owner-unallocated", replacementRecord, StringComparison.Ordinal);
+        Assert.Contains("proposed and pending product-owner approval", replacementRecord, StringComparison.Ordinal);
+        Assert.Contains("grants no product, firmware, support, or implementation authority", replacementRecord, StringComparison.Ordinal);
+
+        Assert.Contains(
+            "../ui/post-v1.1.0-navigation-and-ctrlram-first-open-handoff.md",
             nfcRoadmap,
             StringComparison.Ordinal);
         Assert.Contains(
-            "NT51950 AB `1 IC`/`Cascade`, selector-free NT51951 AB, Perfect-family, and",
+            "Status: queued owner-unallocated product investigation.",
+            navigationHandoff,
+            StringComparison.Ordinal);
+        Assert.True(File.Exists(Path.Combine(
+            Root.FullName,
+            "docs",
+            "ui",
+            "post-v1.1.0-navigation-and-ctrlram-first-open-handoff.md")));
+        Assert.Contains(
+            "../ui/v1.1.x-bundle-primary-output-rename-handoff.md",
             nfcRoadmap,
             StringComparison.Ordinal);
         Assert.Contains(
-            "`ldc-tp-only` evidence tracks",
+            "Status: owner-requested minor UI follow-up; exact `v1.1.x` release unallocated.",
+            bundleRenameHandoff,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "CompositionOutputNamingExperience.ResolveAcceptedOutput",
+            bundleRenameHandoff,
+            StringComparison.Ordinal);
+        Assert.Contains("OutputNamingSummary.IsExplicitOverride", bundleRenameHandoff, StringComparison.Ordinal);
+        Assert.Contains(
+            "Bundle folder name** and **Output filename** are independent fields",
+            bundleRenameHandoff,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "excluded from the verification-only `v1.1.1` release",
+            normalizedBundleRenameHandoff,
+            StringComparison.Ordinal);
+        Assert.True(File.Exists(Path.Combine(
+            Root.FullName,
+            "docs",
+            "ui",
+            "v1.1.x-bundle-primary-output-rename-handoff.md")));
+        Assert.Contains(
+            "../ui/v1.1.x-report-history-usability-handoff.md",
             nfcRoadmap,
             StringComparison.Ordinal);
         Assert.Contains(
-            "saved/customized-rule authoring, persistence, import, and validation through",
+            "Status: owner-requested `v1.1.x` UI correction; exact release unallocated.",
+            reportHistoryUsabilityHandoff,
+            StringComparison.Ordinal);
+        Assert.Contains("OpenReportHistoryEntryAsyncCommand", reportHistoryUsabilityHandoff, StringComparison.Ordinal);
+        Assert.Contains("RemoveReportHistoryEntryCommand", reportHistoryUsabilityHandoff, StringComparison.Ordinal);
+        Assert.Contains("leading source hypothesis", normalizedReportHistoryUsabilityHandoff, StringComparison.Ordinal);
+        Assert.Contains("real control-click regression", reportHistoryUsabilityHandoff, StringComparison.Ordinal);
+        Assert.Contains("Segoe Fluent", reportHistoryUsabilityHandoff, StringComparison.Ordinal);
+        Assert.Contains("LoadedReportJson", reportHistoryUsabilityHandoff, StringComparison.Ordinal);
+        Assert.Contains("failing `SetTextAsync`", reportHistoryUsabilityHandoff, StringComparison.Ordinal);
+        Assert.Contains("LoadReportJsonButton_OnClick", reportHistoryUsabilityHandoff, StringComparison.Ordinal);
+        Assert.Contains("first import impossible", normalizedReportHistoryUsabilityHandoff, StringComparison.Ordinal);
+        Assert.Contains(
+            "returns keyboard focus to the invoking Load report action",
+            normalizedReportHistoryUsabilityHandoff,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "moves focus to the opened report heading",
+            normalizedReportHistoryUsabilityHandoff,
+            StringComparison.Ordinal);
+        Assert.Contains("not part of the verification-only `v1.1.1`", normalizedReportHistoryUsabilityHandoff, StringComparison.Ordinal);
+        Assert.True(File.Exists(Path.Combine(
+            Root.FullName,
+            "docs",
+            "ui",
+            "v1.1.x-report-history-usability-handoff.md")));
+        Assert.Contains(
+            "../ui/v1.1.x-ab-dp-metadata-layout-handoff.md",
             nfcRoadmap,
             StringComparison.Ordinal);
         Assert.Contains(
-            "IC family/rule authoring UI beyond the `1.1.0` admitted capability set",
+            "Status: owner-requested `v1.1.x` UI correction; exact release unallocated.",
+            abDpMetadataLayoutHandoff,
+            StringComparison.Ordinal);
+        Assert.Contains("CompiledInputVersionObservation", abDpMetadataLayoutHandoff, StringComparison.Ordinal);
+        Assert.Contains("FormatAbVersion", abDpMetadataLayoutHandoff, StringComparison.Ordinal);
+        Assert.Contains("FirmwareSlotInformationFactTemplate", abDpMetadataLayoutHandoff, StringComparison.Ordinal);
+        Assert.Contains("four-column desktop `UniformGrid`", normalizedAbDpMetadataLayoutHandoff, StringComparison.Ordinal);
+        Assert.Contains("DP1 Version**, optional **DP1 Jira Index**, **DP2 Version**, optional **DP2 Jira Index", normalizedAbDpMetadataLayoutHandoff, StringComparison.Ordinal);
+        Assert.Contains("no value containing ` · `", normalizedAbDpMetadataLayoutHandoff, StringComparison.Ordinal);
+        Assert.Contains("omits that bank's Jira Index fact", normalizedAbDpMetadataLayoutHandoff, StringComparison.Ordinal);
+        Assert.Contains("`FormatAbVersion` is removed", normalizedAbDpMetadataLayoutHandoff, StringComparison.Ordinal);
+        Assert.Contains("Compact height may grow only by the existing second fact row", normalizedAbDpMetadataLayoutHandoff, StringComparison.Ordinal);
+        Assert.Contains("all four values, including `AUTO_PRJ-4095`, render without ellipsis", normalizedAbDpMetadataLayoutHandoff, StringComparison.Ordinal);
+        Assert.Contains("not part of the verification-only `v1.1.1`", normalizedAbDpMetadataLayoutHandoff, StringComparison.Ordinal);
+        Assert.True(File.Exists(Path.Combine(
+            Root.FullName,
+            "docs",
+            "ui",
+            "v1.1.x-ab-dp-metadata-layout-handoff.md")));
+        Assert.Contains(
+            "../ui/v1.1.x-ab-ic-selector-scope-handoff.md",
+            nfcRoadmap,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "Status: owner-requested `v1.1.x` selector correction; exact release unallocated.",
+            abIcSelectorScopeHandoff,
+            StringComparison.Ordinal);
+        Assert.Contains("CapabilitySelectorPublication.Create", abIcSelectorScopeHandoff, StringComparison.Ordinal);
+        Assert.Contains("WorkflowSelectorProjection.WorkflowIcChoices", abIcSelectorScopeHandoff, StringComparison.Ordinal);
+        Assert.Contains("PublishAcceptedMergeSharedContext", abIcSelectorScopeHandoff, StringComparison.Ordinal);
+        Assert.Contains("PublishCanonicalCatalogIcChoices", abIcSelectorScopeHandoff, StringComparison.Ordinal);
+        Assert.Contains("retains the collection obtained while Standard Merge was active", normalizedAbIcSelectorScopeHandoff, StringComparison.Ordinal);
+        Assert.Contains("synchronously republishes `IcChoices` exactly once", normalizedAbIcSelectorScopeHandoff, StringComparison.Ordinal);
+        Assert.Contains("must not add a dispatcher", normalizedAbIcSelectorScopeHandoff, StringComparison.Ordinal);
+        Assert.Contains("must not hard-code IC identifiers in XAML", normalizedAbIcSelectorScopeHandoff, StringComparison.Ordinal);
+        Assert.Contains("not part of the verification-only `v1.1.1`", normalizedAbIcSelectorScopeHandoff, StringComparison.Ordinal);
+        Assert.True(File.Exists(Path.Combine(
+            Root.FullName,
+            "docs",
+            "ui",
+            "v1.1.x-ab-ic-selector-scope-handoff.md")));
+        Assert.Contains(
+            "../ui/v1.1.x-report-changes-compare-handoff.md",
+            nfcRoadmap,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "Status: owner-requested `v1.1.x` UI correction; exact release unallocated.",
+            reportChangesCompareHandoff,
+            StringComparison.Ordinal);
+        Assert.Contains("ListBox.reportHexDiffRanges", reportChangesCompareHandoff, StringComparison.Ordinal);
+        Assert.Contains("contentScrollSurface", reportChangesCompareHandoff, StringComparison.Ordinal);
+        Assert.Contains("VirtualizingStackPanel", reportChangesCompareHandoff, StringComparison.Ordinal);
+        Assert.Contains("ByteDiff.FindChangedRanges", reportChangesCompareHandoff, StringComparison.Ordinal);
+        Assert.Contains("physical `SectionLabel`", reportChangesCompareHandoff, StringComparison.Ordinal);
+        Assert.Contains("A nested ScrollViewer is forbidden", normalizedReportChangesCompareHandoff, StringComparison.Ordinal);
+        Assert.Contains("must not change `ByteDiff`", normalizedReportChangesCompareHandoff, StringComparison.Ordinal);
+        Assert.Contains("must not alias error, caution, controller-input, or reference-slot tokens", normalizedReportChangesCompareHandoff, StringComparison.Ordinal);
+        Assert.Contains("fixed English-only width guesses are forbidden", normalizedReportChangesCompareHandoff, StringComparison.Ordinal);
+        Assert.Contains(
+            "not part of the verification-only `v1.1.1`",
+            normalizedReportChangesCompareHandoff,
+            StringComparison.Ordinal);
+        Assert.True(File.Exists(Path.Combine(
+            Root.FullName,
+            "docs",
+            "ui",
+            "v1.1.x-report-changes-compare-handoff.md")));
+        Assert.Contains(
+            "../ui/v1.1.x-standard-merge-input-verification-feedback-handoff.md",
+            nfcRoadmap,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "Status: owner-requested `v1.1.x` UI correction; exact release unallocated.",
+            standardMergeVerificationFeedbackHandoff,
+            StringComparison.Ordinal);
+        Assert.Contains("FileContentSnapshotInspector", standardMergeVerificationFeedbackHandoff, StringComparison.Ordinal);
+        Assert.Contains("CompiledInputArtifactInspectionService", standardMergeVerificationFeedbackHandoff, StringComparison.Ordinal);
+        Assert.Contains("CompiledInputLoadValidationEvaluator", standardMergeVerificationFeedbackHandoff, StringComparison.Ordinal);
+        Assert.Contains("DP_UNIFORM_CONTENT_WARNING", standardMergeVerificationFeedbackHandoff, StringComparison.Ordinal);
+        Assert.Contains("TP_UNIFORM_CONTENT_WARNING", standardMergeVerificationFeedbackHandoff, StringComparison.Ordinal);
+        Assert.Contains("`BlocksBuild=false`", standardMergeVerificationFeedbackHandoff, StringComparison.Ordinal);
+        Assert.Contains(
+            "The **Verified** badge is deliberately narrower than “this firmware is known good.”",
+            normalizedStandardMergeVerificationFeedbackHandoff,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "Presentation must not reread the file",
+            normalizedStandardMergeVerificationFeedbackHandoff,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "does not block Build",
+            normalizedStandardMergeVerificationFeedbackHandoff,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "not part of the verification-only `v1.1.1`",
+            normalizedStandardMergeVerificationFeedbackHandoff,
+            StringComparison.Ordinal);
+        Assert.True(File.Exists(Path.Combine(
+            Root.FullName,
+            "docs",
+            "ui",
+            "v1.1.x-standard-merge-input-verification-feedback-handoff.md")));
+        Assert.Contains("# v1.1.2 CtrlRAM selector visual contract", selectorContract, StringComparison.Ordinal);
+        Assert.Contains("Status: proposed reference for product-owner approval.", selectorContract, StringComparison.Ordinal);
+        Assert.Contains("pending product-owner approval", selectorContract, StringComparison.Ordinal);
+        Assert.Contains("v1.1.2 CtrlRAM selector — annotated geometry board", selectorReference, StringComparison.Ordinal);
+        Assert.True(File.Exists(Path.Combine(
+            Root.FullName,
+            "docs",
+            "ui",
+            "v1.1.2-ctrlram-selector-visual-contract.md")));
+        Assert.False(File.Exists(Path.Combine(
+            Root.FullName,
+            "docs",
+            "ui",
+            "v1.0.9-ctrlram-selector-visual-contract.md")));
+        Assert.False(File.Exists(Path.Combine(
+            Root.FullName,
+            "docs",
+            "ui",
+            "references",
+            "v1.0.9-ctrlram-selector-reference.svg")));
+        Assert.Contains(
+            "IC family/rule authoring UI after the trusted-bundle and evidence models are",
             nfcRoadmap,
             StringComparison.Ordinal);
         Assert.Contains("agent-skill-inventory.md", nfcRoadmap, StringComparison.Ordinal);

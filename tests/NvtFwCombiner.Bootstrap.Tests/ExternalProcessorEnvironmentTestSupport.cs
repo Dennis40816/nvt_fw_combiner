@@ -1,4 +1,5 @@
 using NvtFwCombiner.Infrastructure.ExternalTools;
+using NvtFwCombiner.TestSupport;
 
 namespace NvtFwCombiner.Bootstrap.Tests;
 
@@ -18,7 +19,8 @@ internal static class ExternalProcessorEnvironmentTestSupport
 
     private static ExternalProcessorEnvironmentLoader CreateLoaded()
     {
-        var loader = new ExternalProcessorEnvironmentLoader();
+        var loader = new ExternalProcessorEnvironmentLoader(
+            RepositoryPaths.FromRepositoryRoot("external-tools"));
         return ((Application.ExternalTools.IExternalProcessorEnvironmentLoader)loader)
             .LoadToCompletionAsync(null, CancellationToken.None)
             .GetAwaiter().GetResult().Succeeded

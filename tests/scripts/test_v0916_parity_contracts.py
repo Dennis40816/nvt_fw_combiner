@@ -387,8 +387,9 @@ class V0916ParityContractTests(V0916ParityTestBase):
                     destination=destination,
                 )
             validator_spy.assert_called_once()
+            native_destination = Path(MODULE._native_path(destination))
             self.assertEqual(
-                Path(MODULE._native_path(destination)), validator_spy.call_args.args[0]
+                native_destination, validator_spy.call_args.args[0]
             )
             self.assertEqual(authority["manifestRawSha256"], materialized.manifest_sha256)
             self.assertNotEqual(
@@ -401,8 +402,8 @@ class V0916ParityContractTests(V0916ParityTestBase):
             self.assertEqual(
                 set(inventory),
                 {
-                    path.relative_to(destination).as_posix()
-                    for path in destination.rglob("*")
+                    path.relative_to(native_destination).as_posix()
+                    for path in native_destination.rglob("*")
                     if path.is_file()
                 },
             )

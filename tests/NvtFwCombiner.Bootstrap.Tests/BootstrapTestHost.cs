@@ -1,4 +1,6 @@
 using NvtFwCombiner.Application.Capabilities;
+using NvtFwCombiner.Infrastructure.ExternalTools;
+using NvtFwCombiner.TestSupport;
 
 namespace NvtFwCombiner.Bootstrap.Tests;
 
@@ -20,6 +22,7 @@ internal static class BootstrapTestHost
     internal static CompositionHostServices CreateServices()
     {
         var services = CompositionHostServices.Create(
+            CreateExternalEnvironmentLoader(),
             NvtFwCombiner.TestSupport.RetainedDpReplaceRegressionPolicy.Load);
         return services.ExternalEnvironmentLoader
             .LoadToCompletionAsync(null, CancellationToken.None)
@@ -30,7 +33,7 @@ internal static class BootstrapTestHost
 
     internal static CompositionHostServices CreateProductServices()
     {
-        var services = CompositionHostServices.Create();
+        var services = CompositionHostServices.Create(CreateExternalEnvironmentLoader());
         if (!services.ExternalEnvironmentLoader
             .LoadToCompletionAsync(null, CancellationToken.None)
             .GetAwaiter().GetResult().Succeeded)
@@ -59,6 +62,12 @@ internal static class BootstrapTestHost
             ? services
             : throw new InvalidOperationException(
                 "The product-policy canonical catalog did not load.");
+    }
+
+    private static ExternalProcessorEnvironmentLoader CreateExternalEnvironmentLoader()
+    {
+        return new ExternalProcessorEnvironmentLoader(
+            RepositoryPaths.FromRepositoryRoot("external-tools"));
     }
 }
 

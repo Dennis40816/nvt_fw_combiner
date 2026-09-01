@@ -431,3 +431,38 @@ named R2 allowance is exact, descending, and non-transferable; any later
 simplification lowers it. It changes no firmware profile, range, mutation
 order, output byte, CRC/header, processor, naming, support, Golden expected
 bytes, package payload, Registry routing, UI behavior, or release permission.
+
+## 2026-09-01 deterministic Registry deadline test clock
+
+VERIFY-111-REGISTRY-CLOCK-SIZE-01 binds the exact production-size cost of the
+already approved deterministic Registry deadline test seam. The existing
+internal `ReplicatedUpdateSourceRegistry` constructor receives one final
+optional `TimeProvider`, normalizes null once to `TimeProvider.System`, passes
+that same clock through each existing private replica slot, and supplies it to
+the existing `WaitAsync` deadline. The public constructor, both production
+callers, fixed 45-second production deadline, ordered `Task.Run` reads,
+single-flight behavior, caller cancellation, timeout abandonment, late-result
+retirement, observations, conflicts, and replica selection remain unchanged.
+
+Full production is 136,389 nonblank lines and runtime production is 98,559.
+Domain plus Profiles remains 20,632; Application is 42,205; Bootstrap, CLI,
+Desktop and Launcher remains 5,039; Infrastructure, Contracts, worker and
+Platform remains 30,683. Relative to the v1.0.8 Catalog v2 checkpoint this is
+exactly +8 full-production/runtime/Application lines and zero in every other
+slice. The delta is auditable as +1 final internal clock parameter, +1
+normalize-once fallback, +4 readable existing replica-slot construction, +1
+private slot clock parameter, and +1 existing deadline argument.
+
+The executable general production threshold becomes 136,389. Allowances become
+exactly 33,493 full production, 28,503 runtime, 5 Domain/Profiles, 11,515
+Application, 1,661 Bootstrap/CLI/Desktop/Launcher, and 15,327
+Infrastructure/Contracts/worker/Platform above the frozen base ratchets. Every
+base ratchet remains unchanged. This named R2 allowance is exact, descending,
+and non-transferable; it is not reusable budget and does not permit line
+packing, cross-slice transfer, generated-source exclusion, unrelated deletion,
+or another verifier. Any later simplification lowers the corresponding ceiling.
+
+This amendment changes no Registry/Catalog document or routing, durable state,
+Launcher, UI, firmware profile, address range, mutation order, output byte,
+CRC/header, processor, naming, support, Golden evidence, package content, or
+release permission.

@@ -207,7 +207,8 @@ public sealed class ReplicatedUpdateSourceRegistry : IUpdateSourceRegistry
 
     internal ReplicatedUpdateSourceRegistry(
         IReadOnlyList<IUpdateSourceRegistry> replicas,
-        TimeSpan replicaTimeout)
+        TimeSpan replicaTimeout,
+        TimeProvider? timeProvider = null)
     {
         ArgumentNullException.ThrowIfNull(replicas);
         if (replicas.Count is < 1 or > 8 ||
@@ -216,7 +217,12 @@ public sealed class ReplicatedUpdateSourceRegistry : IUpdateSourceRegistry
         {
             throw new ArgumentException("Registry replica set is invalid.", nameof(replicas));
         }
-        _replicas = [.. replicas.Select(replica => new ReplicaReadSlot(replica, replicaTimeout))];
+        TimeProvider effectiveTimeProvider = timeProvider ?? TimeProvider.System;
+        _replicas =
+        [
+            .. replicas.Select(
+                replica => new ReplicaReadSlot(replica, replicaTimeout, effectiveTimeProvider)),
+        ];
     }
 
     /// <inheritdoc />
@@ -250,7 +256,8 @@ public sealed class ReplicatedUpdateSourceRegistry : IUpdateSourceRegistry
 
     private sealed class ReplicaReadSlot(
         IUpdateSourceRegistry replica,
-        TimeSpan timeout)
+        TimeSpan timeout,
+        TimeProvider timeProvider)
     {
         private readonly Lock _sync = new();
         private Task<UpdateSourceRegistryLoadResult>? _read;
@@ -286,6 +293,7 @@ public sealed class ReplicatedUpdateSourceRegistry : IUpdateSourceRegistry
             {
                 UpdateSourceRegistryLoadResult result = await read.WaitAsync(
                     timeout,
+                    timeProvider,
                     cancellationToken).ConfigureAwait(false);
                 lock (_sync)
                 {

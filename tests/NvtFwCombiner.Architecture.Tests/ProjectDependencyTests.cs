@@ -1,4 +1,5 @@
 using System.Xml.Linq;
+using NvtFwCombiner.TestSupport;
 
 namespace NvtFwCombiner.Architecture.Tests;
 
@@ -174,16 +175,113 @@ public sealed class ProjectDependencyTests
         }
     }
 
+    /// <summary>Architecture tests reuse the shared root helper without a project dependency.</summary>
+    [Fact]
+    public void ArchitectureTestsSourceLinkSharedRepositoryPathsWithoutProjectReference()
+    {
+        DirectoryInfo root = FindRepositoryRoot();
+        string projectPath = Path.Combine(
+            root.FullName,
+            "tests",
+            "NvtFwCombiner.Architecture.Tests",
+            "NvtFwCombiner.Architecture.Tests.csproj");
+        var project = XDocument.Load(projectPath);
+
+        Assert.Contains(
+            project.Descendants("Compile"),
+            element => string.Equals(
+                element.Attribute("Link")?.Value,
+                "RepositoryPaths.cs",
+                StringComparison.Ordinal));
+        Assert.Empty(project.Descendants("ProjectReference"));
+    }
+
+    /// <summary>An unset configured root preserves direct-local upward discovery.</summary>
+    [Fact]
+    public void SharedRepositoryPathsPreservesUnsetUpwardDiscovery()
+    {
+        string owner = Path.Combine(
+            Path.GetTempPath(),
+            $"nvt-fw-combiner-architecture-root-{Guid.NewGuid():N}");
+        string nested = Path.Combine(owner, "nested", "output");
+        _ = Directory.CreateDirectory(nested);
+        File.WriteAllText(Path.Combine(owner, "NvtFwCombiner.slnx"), string.Empty);
+        try
+        {
+            Assert.Equal(
+                Path.GetFullPath(owner),
+                RepositoryPaths.FindRepositoryRoot(null, new DirectoryInfo(nested)));
+        }
+        finally
+        {
+            Directory.Delete(owner, recursive: true);
+        }
+    }
+
+    /// <summary>Relocated test outputs bind external-tool evidence through the shared root.</summary>
+    [Fact]
+    public void TestHostsUseSharedRepositoryRootForExternalToolEvidence()
+    {
+        DirectoryInfo root = FindRepositoryRoot();
+        string[] testHosts =
+        [
+            Path.Combine(
+                root.FullName,
+                "tests",
+                "NvtFwCombiner.Bootstrap.Tests",
+                "BootstrapTestHost.cs"),
+            Path.Combine(
+                root.FullName,
+                "tests",
+                "NvtFwCombiner.Bootstrap.Tests",
+                "ExternalProcessorEnvironmentTestSupport.cs"),
+            Path.Combine(
+                root.FullName,
+                "tests",
+                "NvtFwCombiner.UiSmoke.Tests",
+                "PresentationTestHost.cs"),
+        ];
+
+        foreach (string testHostPath in testHosts)
+        {
+            string testHost = File.ReadAllText(testHostPath);
+            Assert.Contains(
+                "RepositoryPaths.FromRepositoryRoot(\"external-tools\")",
+                testHost,
+                StringComparison.Ordinal);
+            Assert.DoesNotContain(
+                "var loader = new ExternalProcessorEnvironmentLoader();",
+                testHost,
+                StringComparison.Ordinal);
+        }
+    }
+
+    /// <summary>Public CLI regressions retain the real default composition root.</summary>
+    [Fact]
+    public void PublicCliTestsRetainTheDefaultProductionCompositionRoot()
+    {
+        DirectoryInfo root = FindRepositoryRoot();
+        string harness = File.ReadAllText(Path.Combine(
+            root.FullName,
+            "tests",
+            "NvtFwCombiner.Bootstrap.Tests",
+            "CliTestHarness.cs"));
+        string application = File.ReadAllText(Path.Combine(
+            root.FullName,
+            "src",
+            "NvtFwCombiner.Cli",
+            "CliApplication.cs"));
+
+        Assert.Contains("CliApplication.RunAsync", harness, StringComparison.Ordinal);
+        Assert.Contains(
+            "var host = CompositionHostServices.Create();",
+            application,
+            StringComparison.Ordinal);
+    }
+
     private static DirectoryInfo FindRepositoryRoot()
     {
-        var current = new DirectoryInfo(AppContext.BaseDirectory);
-        while (current is not null &&
-               !File.Exists(Path.Combine(current.FullName, "NvtFwCombiner.slnx")))
-        {
-            current = current.Parent;
-        }
-
-        return current ?? throw new DirectoryNotFoundException("Repository root was not found.");
+        return new DirectoryInfo(RepositoryPaths.FindRepositoryRoot());
     }
 
     private static string[] ProjectReferences(string projectName)

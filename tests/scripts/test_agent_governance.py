@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+import io
 import json
 import subprocess
 import sys
@@ -169,6 +170,18 @@ class AgentGovernanceTests(unittest.TestCase):
         self._commit_candidate_with_active_record()
         self._write_record(self._final_record())
         self._git("commit", "-q", "-m", "finalize capability evidence")
+        return self._git("rev-parse", "HEAD").stdout.strip()
+
+    def _finalize_two_record_batch(self) -> str:
+        self._change()
+        self._change("src/Product/Other.cs")
+        self._write_record(self._record("TEST-01"))
+        self._write_record(self._record("TEST-02", ["src/Product/Other.cs"]))
+        self._git("add", "--", "src/Product/Owner.cs", "src/Product/Other.cs")
+        self._git("commit", "-q", "-m", "implement two admitted behaviors")
+        self._write_record(self._final_record("TEST-01"))
+        self._write_record(self._final_record("TEST-02", ["src/Product/Other.cs"]))
+        self._git("commit", "-q", "-m", "finalize two capability records")
         return self._git("rev-parse", "HEAD").stdout.strip()
 
     def _validate_derived_checkpoint(self) -> list[str]:
@@ -718,6 +731,164 @@ class AgentGovernanceTests(unittest.TestCase):
 
         self.assertEqual([], self.validate())
 
+    def test_historical_record_scan_preserves_lifecycle_with_bounded_git_processes(self) -> None:
+        self._write_record(self._record("TEST-01"))
+        self._write_record(self._record("TEST-02", ["src/Product/Other.cs"]))
+        self._git("commit", "-q", "-m", "admit two capability records")
+        active_head = self._git("rev-parse", "HEAD").stdout.strip()
+        self._write_record(self._final_record("TEST-01"))
+        self._write_record(self._final_record("TEST-02", ["src/Product/Other.cs"]))
+        self._git("commit", "-q", "-m", "finalize two capability records")
+        final_head = self._git("rev-parse", "HEAD").stdout.strip()
+        original_popen = subprocess.Popen
+
+        with mock.patch.object(
+            repository_validator.subprocess,
+            "Popen",
+            wraps=original_popen,
+        ) as popen:
+            history, nested_paths, error = repository_validator._historical_final_records(
+                self.root
+            )
+
+        self.assertIsNone(error)
+        self.assertEqual(set(), nested_paths)
+        self.assertEqual(
+            [
+                "docs/governance/change-records/TEST-01.json",
+                "docs/governance/change-records/TEST-02.json",
+            ],
+            list(history),
+        )
+        for record_history in history.values():
+            self.assertEqual(active_head, record_history.first_active.revision)
+            self.assertEqual(final_head, record_history.first_final.revision)
+            self.assertIsNone(record_history.latest_unfinalized_active)
+            self.assertIsNone(record_history.admitted_field_violation)
+        self.assertLessEqual(popen.call_count, 3)
+
+    def test_historical_record_scan_preserves_skips_paths_and_merged_history(self) -> None:
+        record_root = self.root / "docs/governance/change-records"
+        record_root.mkdir(parents=True, exist_ok=True)
+        recovered_relative = "docs/governance/change-records/RECOVERED.json"
+        deleted_relative = "docs/governance/change-records/DELETED.json"
+        source_relative = "docs/governance/change-records/RENAMED-SOURCE.json"
+        target_relative = "docs/governance/change-records/RENAMED-TARGET.json"
+        nested_relative = "docs/governance/change-records/nested/NESTED.json"
+        wrong_schema_relative = "docs/governance/change-records/WRONG-SCHEMA.json"
+        merged_relative = "docs/governance/change-records/MERGED.json"
+        (self.root / recovered_relative).write_bytes(b"\xff")
+        self._write_record(self._record("DELETED"), deleted_relative)
+        self._write_record(self._record("RENAMED-SOURCE"), source_relative)
+        self._write_record(self._record("NESTED"), nested_relative)
+        self._write_record(
+            self._record("WRONG-SCHEMA", schemaVersion=1),
+            wrong_schema_relative,
+        )
+        self._git("add", "--", recovered_relative)
+        self._git("commit", "-q", "-m", "add historical edge records")
+        initial_active_head = self._git("rev-parse", "HEAD").stdout.strip()
+
+        self._write(recovered_relative, "{ invalid\n")
+        self._git("add", "--", recovered_relative)
+        self._git("commit", "-q", "-m", "replace invalid encoding with invalid json")
+        self._write_record(self._record("RECOVERED"), recovered_relative)
+        self._git("commit", "-q", "-m", "recover a valid active record")
+        recovered_head = self._git("rev-parse", "HEAD").stdout.strip()
+        self._git("rm", "--", deleted_relative)
+        self._git("mv", source_relative, target_relative)
+        self._git("commit", "-q", "-m", "delete and rename capability records")
+        rename_head = self._git("rev-parse", "HEAD").stdout.strip()
+
+        base_branch = self._git("branch", "--show-current").stdout.strip()
+        self._git("checkout", "-q", "-b", "history-side")
+        self._write_record(self._record("MERGED"), merged_relative)
+        self._git("commit", "-q", "-m", "add record on merged history")
+        merged_record_head = self._git("rev-parse", "HEAD").stdout.strip()
+        self._git("checkout", "-q", base_branch)
+        self._write("scratch/main.txt", "force a merge commit\n")
+        self._git("add", "--", "scratch/main.txt")
+        self._git("commit", "-q", "-m", "advance main history")
+        self._git("merge", "--no-ff", "-q", "-m", "merge record history", "history-side")
+
+        history, nested_paths, error = repository_validator._historical_final_records(
+            self.root
+        )
+
+        self.assertIsNone(error)
+        self.assertEqual({nested_relative}, nested_paths)
+        self.assertNotIn(wrong_schema_relative, history)
+        self.assertEqual(recovered_head, history[recovered_relative].first_active.revision)
+        self.assertEqual(initial_active_head, history[deleted_relative].first_active.revision)
+        self.assertEqual(initial_active_head, history[source_relative].first_active.revision)
+        self.assertEqual(rename_head, history[target_relative].first_active.revision)
+        self.assertEqual(merged_record_head, history[merged_relative].first_active.revision)
+        for relative in (
+            recovered_relative,
+            deleted_relative,
+            source_relative,
+            target_relative,
+            merged_relative,
+        ):
+            self.assertIsNone(history[relative].first_final)
+            self.assertIsNotNone(history[relative].latest_unfinalized_active)
+
+    def test_git_batch_blob_reader_rejects_corrupt_protocol_frames(self) -> None:
+        revision = "a" * 40
+        relative = "docs/governance/change-records/TEST-01.json"
+        object_id = b"b" * 40
+        cases = {
+            "unterminated header": (b"unterminated", "malformed or oversized"),
+            "non-blob object": (object_id + b" tree 0\n", "invalid Git batch"),
+            "invalid length": (object_id + b" blob -1\n", "invalid Git batch"),
+            "truncated payload": (object_id + b" blob 3\nab", "truncated Git batch"),
+            "missing terminator": (object_id + b" blob 2\n{}x", "truncated Git batch"),
+        }
+
+        for name, (response, expected_error) in cases.items():
+            with self.subTest(name=name):
+                request = io.BytesIO()
+                content, error = repository_validator._read_git_batch_blob(
+                    request,
+                    io.BytesIO(response),
+                    revision,
+                    relative,
+                )
+
+                self.assertIsNone(content)
+                self.assertIn(expected_error, str(error))
+                self.assertEqual(f"{revision}:{relative}\n".encode(), request.getvalue())
+
+    def test_historical_record_scan_fails_closed_when_git_processes_fail(self) -> None:
+        history, nested_paths, error = repository_validator._historical_final_records(
+            self.root / "missing"
+        )
+        self.assertEqual({}, history)
+        self.assertEqual(set(), nested_paths)
+        self.assertIsNotNone(error)
+
+        self._write_record(self._record("TEST-01"))
+        self._git("commit", "-q", "-m", "admit capability record")
+        original_popen = subprocess.Popen
+
+        def start_process(arguments: list[str], **kwargs: Any) -> Any:
+            if arguments == ["git", "cat-file", "--batch"]:
+                raise OSError("batch start failed")
+            return original_popen(arguments, **kwargs)
+
+        with mock.patch.object(
+            repository_validator.subprocess,
+            "Popen",
+            side_effect=start_process,
+        ):
+            history, nested_paths, error = repository_validator._historical_final_records(
+                self.root
+            )
+
+        self.assertEqual({}, history)
+        self.assertEqual(set(), nested_paths)
+        self.assertEqual("batch start failed", error)
+
     def test_committed_admission_rejects_mutable_paths_change(self) -> None:
         self._commit_candidate_with_active_record()
         self._write_record(self._record(paths=["src/Product/Other.cs"]))
@@ -829,6 +1000,37 @@ class AgentGovernanceTests(unittest.TestCase):
 
         self.assertEqual([], self.validate())
 
+    def test_overlapping_final_record_audits_diff_each_unique_commit_once(self) -> None:
+        self._finalize_two_record_batch()
+        for number in (1, 2):
+            self._write(f"scratch/unrelated-{number}.txt", f"unrelated {number}\n")
+            self._git("add", "--", f"scratch/unrelated-{number}.txt")
+            self._git("commit", "-q", "-m", f"add unrelated commit {number}")
+        original_popen = subprocess.Popen
+
+        with mock.patch.object(
+            repository_validator.subprocess,
+            "Popen",
+            wraps=original_popen,
+        ) as popen:
+            errors = self.validate()
+
+        diff_tree_commands = [
+            call.args[0]
+            for call in popen.call_args_list
+            if call.args and call.args[0][:2] == ["git", "diff-tree"]
+        ]
+        ancestry_commands = [
+            call.args[0]
+            for call in popen.call_args_list
+            if call.args
+            and call.args[0][:3] == ["git", "rev-list", "--ancestry-path"]
+        ]
+        self.assertEqual([], errors)
+        self.assertEqual(1, len(ancestry_commands))
+        self.assertEqual(2, len(diff_tree_commands))
+        self.assertEqual(2, len({tuple(command) for command in diff_tree_commands}))
+
     def test_committed_final_record_cannot_be_tampered(self) -> None:
         self._commit_candidate_with_active_record()
         record = self._final_record()
@@ -845,6 +1047,69 @@ class AgentGovernanceTests(unittest.TestCase):
         self._merge_descendant_as_redundant_second_parent(evidence_commit, reviewed_head)
 
         self.assertEqual([], self.validate())
+
+    def test_overlapping_record_audits_classify_one_redundant_merge_once(self) -> None:
+        evidence_commit = self._finalize_two_record_batch()
+        reviewed_head = self._git("rev-parse", f"{evidence_commit}^").stdout.strip()
+        merge_head = self._merge_descendant_as_redundant_second_parent(
+            evidence_commit,
+            reviewed_head,
+        )
+        original_popen = subprocess.Popen
+
+        with mock.patch.object(
+            repository_validator.subprocess,
+            "Popen",
+            wraps=original_popen,
+        ) as popen:
+            errors = self.validate()
+
+        parent_lookups = [
+            call
+            for call in popen.call_args_list
+            if call.args
+            and call.args[0] == ["git", "rev-list", "--parents", "-n", "1", merge_head]
+        ]
+        self.assertEqual([], errors)
+        self.assertEqual(1, len(parent_lookups))
+
+    def test_redundant_merge_inspection_error_is_cached_and_replayed_fail_closed(self) -> None:
+        evidence_commit = self._finalize_two_record_batch()
+        reviewed_head = self._git("rev-parse", f"{evidence_commit}^").stdout.strip()
+        merge_head = self._merge_descendant_as_redundant_second_parent(
+            evidence_commit,
+            reviewed_head,
+        )
+        real_run = subprocess.run
+        lookup_count = 0
+
+        def fail_parent_lookup(
+            arguments: list[str],
+            **kwargs: Any,
+        ) -> subprocess.CompletedProcess[Any]:
+            nonlocal lookup_count
+            if arguments == ["git", "rev-list", "--parents", "-n", "1", merge_head]:
+                lookup_count += 1
+                return subprocess.CompletedProcess(
+                    arguments,
+                    128,
+                    stdout=b"",
+                    stderr=b"synthetic cached topology failure",
+                )
+            return real_run(arguments, **kwargs)
+
+        with mock.patch.object(
+            repository_validator.subprocess,
+            "run",
+            side_effect=fail_parent_lookup,
+        ):
+            errors = self.validate()
+
+        self.assertEqual(1, lookup_count)
+        self.assertEqual(
+            2,
+            sum("final-complete capability-reuse history could not be audited" in error for error in errors),
+        )
 
     def test_distinct_merge_tree_does_not_bypass_final_record_immutability(self) -> None:
         evidence_commit = self._finalize_first_batch()
@@ -869,6 +1134,14 @@ class AgentGovernanceTests(unittest.TestCase):
         self._git("read-tree", "--reset", "-u", evidence_branch)
         self._git("commit", "-q", "-m", "select reviewed tree from noncontained branch")
 
+        self.assertEqual(
+            (True, None),
+            repository_validator._record_changed_in_commits_after(
+                self.root,
+                "docs/governance/change-records/TEST-01.json",
+                evidence_commit,
+            ),
+        )
         self.assertTrue(any("changed in commit history" in error for error in self.validate()))
 
     def test_underlying_record_mutation_is_detected_through_redundant_merge(self) -> None:
