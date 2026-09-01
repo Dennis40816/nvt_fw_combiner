@@ -62,7 +62,9 @@ release because of the known shadow-output repository-root failure recorded in
 release run `33454068996` and the 600-second capability-history timeout. The
 waiver does not claim those gates are green; v1.1.1 is reserved for the test,
 verification, and release architecture review. Version deployment is not
-enabled in v1.1.0.
+enabled in v1.1.0. The clean-Windows profile-load, synthetic preview/build,
+and report-generation workflow is also waived for this one release; only the
+current Windows host's closed-package and visible-startup evidence is claimed.
 
 ### Upgrade and rollback
 
