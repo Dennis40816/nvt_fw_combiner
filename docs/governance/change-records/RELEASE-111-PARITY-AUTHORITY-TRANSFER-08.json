@@ -5,7 +5,7 @@
   "integrationBase": "66e39417270206b8175f1b68576b8636ead94443",
   "risk": "R3",
   "kind": "release",
-  "state": "design-active",
+  "state": "final-complete",
   "mutablePaths": [
     "docs/adr/0057-v0916-black-box-parity-certification.md",
     "docs/contracts/v0916-parity-certification-v1.json",
@@ -34,12 +34,12 @@
     "outcome": "approved",
     "evidence": "Independent bounded R3 design review reported P0=0, P1=0, P2=0 and P3=0. It confirmed integrationBase 66e39417270206b8175f1b68576b8636ead94443 is the latest final-record capability checkpoint, H1 is its one-path direct child, and the thirteen existing H2 projection/test changes exactly equal the H1-declared sorted fourteen-path batch minus this new record. The review approved reuse of the unchanged H1-to-H4 authority-transfer owner because only source/build identity and mechanically derived hashes advance; release.yml, workflow semantics, authority trees, build inputs, firmware/product/package behavior, Version deployment and v1.0.8 remain frozen."
   },
-  "implementationHead": null,
-  "reviewedHead": null,
-  "pathStateDigest": null,
+  "implementationHead": "da7ea4a5ebf23e8e7f7227f9aa613e1bba6d1836",
+  "reviewedHead": "da7ea4a5ebf23e8e7f7227f9aa613e1bba6d1836",
+  "pathStateDigest": "609e518da62167b5b998a0ea33b82a36ce7cc51e837e7db6ec2429e117d29de4",
   "finalReview": {
-    "reviewer": null,
-    "outcome": "pending",
-    "evidence": ""
+    "reviewer": "admission_batch_architecture",
+    "outcome": "approved",
+    "evidence": "Independent bounded exact-H2 R3 review fixed da7ea4a5ebf23e8e7f7227f9aa613e1bba6d1836 and reported P0=0, P1=0, P2=0 and P3=0; scoped Polytail passed. It proved H1 0f6692c2d7af8e49ed9b076a13297ee193956697 is the one-path direct child of final capability checkpoint 66e39417270206b8175f1b68576b8636ead94443, H2 is H1's exact fourteen-path direct child, integrationBase correctly remains 66e39417270206b8175f1b68576b8636ead94443, and the production authority-transfer validator returns that exact H1/H2 pair. Both fresh tracked-clean detached H1 builds used SDK 10.0.303 with locked restore and deterministic Release build, produced identical 162304-byte CLI SHA-256 ba84481f06698f89f0831246443af6bf7592937457530ecd1401fe2fbbd1bbc4, and matched file-by-file across the complete 384-file, 92147320-byte runtime closure SHA-256 6b173a2dedd42266a39cfa3dd1d8bc4285cc8e4a1b0a7675ea2f680bf67dd796. Release.yml remains SHA-256 8be6640a82efadf23be39b52d940f2e1e4a0520713281c0ee30f55795b5a5768; policy, workflow semantics, four authority trees, SDK/build inputs, production, firmware/runtime/UI, Version deployment, VERSION and v1.0.8 remain frozen. Parity owner tests passed 32 with one explicit external package-lab skip. This approves source/build authority only, not terminal parity, full verification, protected CI, package smoke, publication or the required H4 release-owner attestation."
   }
 }
