@@ -1,0 +1,9 @@
+{
+  "schemaVersion": 1,
+  "taskId": "REL-110-MANUAL-ONLY-PACKAGE-01",
+  "authorityType": "release-owner",
+  "reviewedHead": "c24ea50a1e5d59d6aa55250553b0f1f9fbaea7f2",
+  "decision": "approved",
+  "reviewer": "Dennis Liu (release owner)",
+  "evidence": "The release owner approved the accelerated v1.1.0 manual-only release direction, instructed that v1.0.8 remain unchanged, excluded Version deployment from scope, and authorized direct publication when the bounded risk assessment found no major issue. This attestation approves the corrected independently reviewed implementation ab1629a141b759aaa312b65cf3e36654ca97b7d0 and its one-release waiver as finalized by exact evidence commit c24ea50a1e5d59d6aa55250553b0f1f9fbaea7f2. The correction changes only the capability record integrationBase to the repository's latest evidence checkpoint; all substantive implementation bytes remain those previously approved. This attestation does not claim the waived verifier, managed workflow, or clean-Windows gates as passed, and it does not replace protected-main CI, merge-tree identity, clean exact-main packaging, visible startup, exact three-asset digest approval, immutable tag creation, or fixed-D fresh-download verification."
+}
