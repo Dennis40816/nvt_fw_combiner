@@ -5,7 +5,7 @@
   "integrationBase": "c611ec34bb45219346a96b64841d2e2389bfb01c",
   "risk": "R3",
   "kind": "release",
-  "state": "design-active",
+  "state": "final-complete",
   "mutablePaths": [
     ".github/workflows/release.yml",
     "docs/adr/0033-ci-owned-stable-release-promotion.md",
@@ -31,12 +31,12 @@
     "outcome": "findings-incorporated",
     "evidence": "Independent R3 architecture review approved extending only the existing Python policy, executable workflow evidence collector, package owner, ADR 0033, and release documentation, with no second verifier, schema, downloader, or release authority. It required promote to execute exact candidate/workflow policy bytes, an immediate fresh remote-main/protection/check/review admission before tag mutation, exact closed required-check identities, fail-closed review-thread classification, v1.1.0 early ManualOnly enforcement, and post-publication REST immutability plus asset name/state/size/digest equality while retaining fresh-download hashes. The review identified current repository protection, required-check rules, Release immutability, and unresolved P1 threads as external blocking owner gates rather than workflow-mutated settings. P0=0; verdict APPROVE-WITH-BLOCKING-CONDITIONS pending implementation review, protected settings, release-owner attestation, canonical verification, package/smoke evidence, and publication."
   },
-  "implementationHead": null,
-  "reviewedHead": null,
-  "pathStateDigest": null,
+  "implementationHead": "f36ee725286fd2fbf6aa5ce7c6ea6b88b6acfca0",
+  "reviewedHead": "f36ee725286fd2fbf6aa5ce7c6ea6b88b6acfca0",
+  "pathStateDigest": "f8d025af85d4904504e04712f779e5f984920dd6e560df079ae23296e09aaca4",
   "finalReview": {
-    "reviewer": null,
-    "outcome": "pending",
-    "evidence": ""
+    "reviewer": "chatgpt-codex-connector[bot]",
+    "outcome": "approved",
+    "evidence": "Independent GitHub Codex exact-head review completed against f36ee725286fd2fbf6aa5ce7c6ea6b88b6acfca0 on PR 407 and reported no major issues, with zero review comments or unresolved findings; evidence: https://github.com/Dennis40816/nvt_fw_combiner/pull/407#issuecomment-5494069751. The exact reviewed head extends only the existing release policy, executable workflow collector, package owner, ADR 0033, release documentation, and their deterministic regressions. Release-policy tests passed 53/53; the package/workflow suite has complete passing evidence from 70 unchanged passing cases plus the three console-normalization assertions rerun passing after their only test-harness correction; Ruff, YAML parsing, and git diff checks passed. The owner-approved correction makes v1.1.0 read-only historical evidence, rejects both candidate and promotion CI recovery before mutation, preserves eligible exact historical recovery, and requires a new version for any v1.1.0 defect or missing asset. No v1.0.8, Version deployment, firmware/profile/range/CRC/output, package-content, or runtime-support semantics changed. Protected CI, release-owner attestation, canonical full verification, package/smoke evidence, protected-environment approval, and publication remain subsequent release gates."
   }
 }
