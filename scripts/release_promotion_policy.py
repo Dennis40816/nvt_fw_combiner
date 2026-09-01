@@ -379,6 +379,11 @@ def _validate_release_source(source_branch: str, source_version: str) -> None:
         STABLE_VERSION.fullmatch(source_version) is not None,
         "release source VERSION must be stable SemVer",
     )
+    _require(
+        source_version != "1.1.0",
+        "v1.1.0 is a manual-only operator release and cannot be rebuilt or "
+        "recovered by CI; publish a new version",
+    )
     if source_branch == "main":
         return
     _require(

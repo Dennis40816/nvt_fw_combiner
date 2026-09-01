@@ -876,6 +876,7 @@ class ReleasePackagePolicyTests(unittest.TestCase):
         *,
         scenario: str = "success",
         source_version: str = "1.1.1",
+        source_branch: str = "main",
         tag_state: str = "absent",
         remote_source_sha: str = RELEASE_MAIN_SHA,
     ) -> tuple[subprocess.CompletedProcess[str], Path, list[list[str]]]:
@@ -886,6 +887,10 @@ class ReleasePackagePolicyTests(unittest.TestCase):
             tag_state=tag_state,
             remote_source_sha=remote_source_sha,
         )
+        if source_branch != "main":
+            fixture["api"][f"repos/owner/repository/git/ref/heads/{source_branch}"] = (
+                fixture["api"].pop("repos/owner/repository/git/ref/heads/main")
+            )
         temporary_directory = tempfile.mkdtemp(
             prefix=f"release-{job_name}-admission-",
             dir=release_test_temp_root(),
@@ -964,7 +969,7 @@ class ReleasePackagePolicyTests(unittest.TestCase):
                 "NFC_RUN_ID": "987654321",
                 "NFC_SOURCE_SHA": RELEASE_MAIN_SHA,
                 "NFC_SOURCE_TREE": RELEASE_SOURCE_TREE,
-                "NFC_SOURCE_BRANCH": "main",
+                "NFC_SOURCE_BRANCH": source_branch,
                 "NFC_SOURCE_VERSION": source_version,
                 "NFC_MAIN_SHA": RELEASE_MAIN_SHA,
                 "NFC_REVIEW_HEAD_SHA": RELEASE_REVIEW_HEAD_SHA,
@@ -2699,10 +2704,13 @@ finally {
         self,
     ) -> None:
         step_name = "Revalidate live repository admission before tag mutation"
-        for version in ("1.0.1", "1.1.0", "1.1.1", "2.0.0"):
+        for version in ("0.9.19", "1.0.1", "1.1.1", "2.0.0"):
             with self.subTest(version=version):
                 result, _, calls = self.run_release_workflow_step(
-                    "promote", step_name, source_version=version
+                    "promote",
+                    step_name,
+                    source_version=version,
+                    source_branch=version if version == "0.9.19" else "main",
                 )
                 output = normalize_console_output(result.stdout + result.stderr)
                 self.assertEqual(0, result.returncode, output)
@@ -2726,6 +2734,32 @@ finally {
             revalidation.index("validate-live-branch-authority"),
             revalidation.index("[version]$env:NFC_SOURCE_VERSION -lt [version]'1.1.1'"),
         )
+
+    @unittest.skipUnless(
+        PWSH, "PowerShell 7 is required for exact release-workflow execution"
+    )
+    def test_v110_candidate_policy_rejects_before_package_and_promote(self) -> None:
+        result, _, calls = self.run_release_workflow_step(
+            "candidate",
+            "Collect and validate final PR review/check evidence",
+            source_version="1.1.0",
+        )
+        output = normalize_console_output(result.stdout + result.stderr)
+        self.assertNotEqual(0, result.returncode, output)
+        self.assertIn("manual-only operator release", output)
+        self.assertFalse(
+            any(call[:2] == ["gh", "release"] for call in calls),
+            calls,
+        )
+
+        workflow = yaml.safe_load(RELEASE_WORKFLOW.read_text(encoding="utf-8"))
+        candidate_steps = workflow["jobs"]["candidate"]["steps"]
+        names = [step.get("name") for step in candidate_steps]
+        self.assertLess(
+            names.index("Collect and validate final PR review/check evidence"),
+            names.index("Build closed-allowlist release package"),
+        )
+        self.assertIn("candidate", workflow["jobs"]["promote"]["needs"])
 
     @unittest.skipUnless(
         PWSH, "PowerShell 7 is required for exact release-workflow execution"
@@ -2802,7 +2836,8 @@ finally {
         result, _, calls = self.run_release_workflow_step(
             "promote",
             step_name,
-            source_version="1.1.0",
+            source_version="0.9.19",
+            source_branch="0.9.19",
             tag_state="present",
             remote_source_sha=RELEASE_ADVANCED_SOURCE_SHA,
         )
@@ -2826,7 +2861,8 @@ finally {
             "promote",
             step_name,
             scenario="invalid_recovery_ancestry",
-            source_version="1.1.0",
+            source_version="0.9.19",
+            source_branch="0.9.19",
             tag_state="present",
             remote_source_sha=RELEASE_ADVANCED_SOURCE_SHA,
         )
@@ -2850,7 +2886,8 @@ finally {
                     "promote",
                     "Publish or validate GitHub Release",
                     scenario=scenario,
-                    source_version="1.1.0",
+                    source_version="0.9.19",
+                    source_branch="0.9.19",
                     tag_state="present",
                     remote_source_sha=RELEASE_ADVANCED_SOURCE_SHA,
                 )
@@ -2911,6 +2948,52 @@ finally {
     @unittest.skipUnless(
         PWSH, "PowerShell 7 is required for exact release-workflow execution"
     )
+    def test_eligible_historical_upload_revalidates_without_strict_admission(
+        self,
+    ) -> None:
+        result, _, calls = self.run_release_workflow_step(
+            "promote",
+            "Publish or validate GitHub Release",
+            source_version="0.9.19",
+            source_branch="0.9.19",
+            tag_state="present",
+            remote_source_sha=RELEASE_ADVANCED_SOURCE_SHA,
+        )
+        output = normalize_console_output(result.stdout + result.stderr)
+        self.assertEqual(0, result.returncode, output)
+        live_authority_calls = [
+            call
+            for call in calls
+            if call[0] == "python" and "validate-live-branch-authority" in call
+        ]
+        strict_admission_calls = [
+            call
+            for call in calls
+            if call[0] == "python" and "validate-repository-admission" in call
+        ]
+        upload_calls = [
+            call for call in calls if call[:3] == ["gh", "release", "upload"]
+        ]
+        self.assertEqual(1, len(live_authority_calls), calls)
+        self.assertEqual([], strict_admission_calls, calls)
+        self.assertEqual(1, len(upload_calls), calls)
+        self.assertGreaterEqual(
+            len(
+                [
+                    argument
+                    for argument in upload_calls[0]
+                    if argument.endswith(
+                        ("payload.bin", "candidate.json", "assets.sha256")
+                    )
+                ]
+            ),
+            3,
+            upload_calls[0],
+        )
+
+    @unittest.skipUnless(
+        PWSH, "PowerShell 7 is required for exact release-workflow execution"
+    )
     def test_release_authority_failure_prevents_create_and_upload_mutations(
         self,
     ) -> None:
@@ -2918,7 +3001,7 @@ finally {
         cases = (
             ("1.1.1", "absent", RELEASE_MAIN_SHA, "unprotected_main"),
             (
-                "1.1.0",
+                "0.9.19",
                 "present",
                 RELEASE_ADVANCED_SOURCE_SHA,
                 "invalid_recovery_ancestry",
@@ -2931,6 +3014,7 @@ finally {
                     step_name,
                     scenario=scenario,
                     source_version=version,
+                    source_branch="0.9.19" if version == "0.9.19" else "main",
                     tag_state=state,
                     remote_source_sha=remote_source_sha,
                 )
@@ -3381,11 +3465,12 @@ finally {
             ).encode()
 
         result = self.run_smoke_with_canonical_golden_mutation(substitute)
+        output = normalize_console_output(result.stdout + result.stderr)
 
-        self.assertNotEqual(0, result.returncode, result.stdout + result.stderr)
+        self.assertNotEqual(0, result.returncode, output)
         self.assertIn(
             "canonical Golden allowlist identity or reference role differs",
-            result.stdout + result.stderr,
+            output,
         )
 
     @unittest.skipUnless(
@@ -3408,11 +3493,12 @@ finally {
             ).encode()
 
         result = self.run_smoke_with_canonical_golden_mutation(substitute)
+        output = normalize_console_output(result.stdout + result.stderr)
 
-        self.assertNotEqual(0, result.returncode, result.stdout + result.stderr)
+        self.assertNotEqual(0, result.returncode, output)
         self.assertIn(
             "canonical Golden allowlist identity or reference role differs",
-            result.stdout + result.stderr,
+            output,
         )
 
     @unittest.skipUnless(
@@ -3437,12 +3523,13 @@ finally {
             removed.append(package_path)
 
         result = self.run_smoke_with_canonical_golden_mutation(omit_artifact)
+        output = normalize_console_output(result.stdout + result.stderr)
 
-        self.assertNotEqual(0, result.returncode, result.stdout + result.stderr)
+        self.assertNotEqual(0, result.returncode, output)
         self.assertEqual(1, len(removed))
         self.assertIn(
             "canonical Golden tree contains omitted or unapproved files",
-            result.stdout + result.stderr,
+            output,
         )
 
     @unittest.skipUnless(

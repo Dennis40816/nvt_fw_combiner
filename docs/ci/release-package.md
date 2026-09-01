@@ -22,6 +22,14 @@ restore, or build, including attempted `-AllowPrerelease` and
 `-ExternalToolPolicyDryRun` combinations. `-ManualOnly` remains invalid for
 every other version.
 
+The published v1.1.0 assets are read-only historical evidence. Stable CI
+candidate and promotion policies reject v1.1.0, so Actions never rebuilds,
+replays, replaces, or attaches assets to that manual-only Release. If any
+v1.1.0 asset or metadata is missing, damaged, or conflicting, recovery requires
+a new version; it is not repaired in place and receives no retroactive green or
+immutable claim. Other explicitly admitted pre-v1.1.1 recovery candidates keep
+their existing exact-source, exact-tag, exact-asset, and no-clobber gates.
+
 The controlled procedure is fail closed:
 
 1. Obtain an independent exact-head R3 implementation review and record the
@@ -303,11 +311,12 @@ digest is bound into the annotated-tag message.
 The protected `release` environment is the final tag confirmation. Only after
 approval does a narrow `contents: write` job check out the exact candidate
 workflow SHA and revalidate the downloaded candidate. Immediately before any
-new-tag or existing-tag Release mutation, every version re-reads exact remote
-main protection and the selected source-branch head through the same Python
-owner. From v1.1.1 onward it additionally gathers fresh ruleset, exact check-run,
-and review-thread evidence through the repository-admission owner; it never
-executes policy from a moving `main`. A new tag requires the candidate to remain
+new-tag or existing-tag Release mutation, every CI-eligible version re-reads
+exact remote main protection and the selected source-branch head through the
+same Python owner. v1.1.0 is not CI-eligible and fails during candidate
+admission. From v1.1.1 onward the workflow additionally gathers fresh ruleset,
+exact check-run, and review-thread evidence through the repository-admission
+owner; it never executes policy from a moving `main`. A new tag requires the candidate to remain
 the exact current selected release-branch head. Existing-tag recovery may
 observe a newer branch head only when fresh GitHub comparison evidence proves
 the candidate remains its ancestor. In both cases the workflow definition must
@@ -333,8 +342,9 @@ protected-main smoke tooling in a second step where neither `GH_TOKEN` nor
 immediately before creating a new tag object and fails if it advanced. A
 pre-approval failure creates no tag. If promotion fails after tag creation,
 rerun only the failed promotion job in the same workflow run so the original
-run id and artifact digest remain authoritative. Historical releases may retain
-their bounded matching recovery behavior; an immutable v1.1.1-or-later Release
+run id and artifact digest remain authoritative. Eligible historical releases
+may retain their bounded matching recovery behavior; an immutable
+v1.1.1-or-later Release
 must already be complete and cannot be repaired in place. Any
 moved/lightweight tag, conflicting body, extra name, or conflicting byte fails
 closed. A new workflow run cannot reuse the old stable version.
@@ -468,6 +478,8 @@ Release evidence must include:
   attests the no-bypass setting GitHub omits from least-privilege API responses;
 - GitHub immutable Releases enabled before v1.1.1 publication; a false result
   after publication is a new-version decision, not a workflow repair;
+- v1.1.0 remains the closed manual-only historical Release; CI cannot rebuild
+  or recover it, and any later defect requires a new version;
 - SBOM/provenance retention policy; generation is implemented by the packager;
 - private golden regression runner and firmware-owner approval;
 - clean Windows smoke without development runtimes;

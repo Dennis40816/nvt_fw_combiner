@@ -915,13 +915,28 @@ class ReleasePromotionPolicyTests(unittest.TestCase):
                 expected_tag="v1.1.1",
             )
 
-    def test_repository_admission_boundary_does_not_rewrite_v110_history(self) -> None:
+    def test_v110_ci_promotion_is_rejected_without_rewriting_history(self) -> None:
         snapshot = valid_snapshot()
         snapshot.pop("repositoryAdmission")
-        MODULE.validate_candidate_context(
-            snapshot,
-            **{**self.candidate_arguments(), "source_version": "1.1.0"},
-        )
+        with self.assertRaisesRegex(ValueError, "manual-only operator release"):
+            MODULE.validate_candidate_context(
+                snapshot,
+                **{**self.candidate_arguments(), "source_version": "1.1.0"},
+            )
+        with self.assertRaisesRegex(ValueError, "manual-only operator release"):
+            MODULE.validate_promotion_source_state(
+                source_sha=SHA,
+                source_tree=TREE,
+                checkout_sha=SHA,
+                checkout_tree=TREE,
+                source_branch="main",
+                source_version="1.1.0",
+                source_branch_sha=SHA,
+                workflow_sha=SHA,
+                main_sha=SHA,
+                tag_state="present",
+                source_is_branch_ancestor=True,
+            )
         with self.assertRaisesRegex(ValueError, "no repository admission evidence"):
             MODULE.validate_candidate_context(
                 snapshot,
@@ -1326,11 +1341,16 @@ class ReleasePromotionPolicyTests(unittest.TestCase):
             "owner_self_approval_exception": True,
         }
 
-        for source_version in ("1.0.8", "1.0.9", "1.1.0", "1.1.999"):
+        for source_version in ("1.0.8", "1.0.9", "1.1.999"):
             with self.subTest(source_version=source_version, expected="accepted"):
                 MODULE.validate_candidate_context(
                     snapshot, **{**arguments, "source_version": source_version}
                 )
+
+        with self.assertRaisesRegex(ValueError, "manual-only operator release"):
+            MODULE.validate_candidate_context(
+                snapshot, **{**arguments, "source_version": "1.1.0"}
+            )
 
         for source_branch, source_version in (
             ("0.9.19", "0.9.19"),

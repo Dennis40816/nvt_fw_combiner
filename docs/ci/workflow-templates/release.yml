@@ -32,11 +32,13 @@ permissions:
 # least-privilege API responses. Product source is current main or the explicit
 # 0.9.17/0.9.17, 0.9.18/0.9.18, and 0.9.19/0.9.19 maintenance pairs. Release-environment approval unlocks the only
 # contents:write job, which checks out the exact candidate workflow SHA,
-# revalidates fresh main/source authority for every version, reruns strict
+# revalidates fresh main/source authority for every CI-eligible version, reruns strict
 # repository admission for v1.1.1+ before tag mutation, and repeats both the
 # live authority and a newly collected complete strict-admission snapshot
-# immediately before every Release create/upload mutation. Historical versions
-# retain only the live-authority check. The job creates one annotated tag and
+# immediately before every Release create/upload mutation. Eligible historical
+# versions retain only the live-authority check; v1.1.0 is manual-only evidence,
+# is rejected by CI candidate/promotion policy, and requires a new version if
+# incomplete. The job creates one annotated tag and
 # publishes the already verified, manifest-bound closed asset set. v1.1.1+
 # requires REST immutable=true plus exact uploaded asset names/sizes/digests,
 # then independently downloads and hashes every asset. A separate read-only,

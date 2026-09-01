@@ -159,10 +159,13 @@ even though CI rather than a local operator creates that tag.
   uploaded asset, or any missing, extra, duplicate, size-drifted, or digest-
   drifted asset is a release failure. REST digests never replace the fresh
   download-and-hash gate.
-- A failure after tag creation never moves or replaces the tag. A historical
-  pre-v1.1.1 recovery run may attach missing assets only when tag SHA, source
-  tree, candidate run id, version, and every digest match exactly. An incomplete
-  immutable v1.1.1-or-later Release requires a new version decision.
+- A failure after tag creation never moves or replaces the tag. An eligible
+  historical pre-v1.1.1 recovery run may attach missing assets only when tag
+  SHA, source tree, candidate run id, version, and every digest match exactly.
+  v1.1.0 is excluded: it remains read-only manual-only operator evidence and CI
+  rejects both rebuild and recovery; any defect requires a new version. An
+  incomplete immutable v1.1.1-or-later Release likewise requires a new version
+  decision.
 - Stable assets are never clobbered.
 
 ## Operational prerequisites
@@ -183,8 +186,8 @@ workflow permission.
   notes, unprotected main, missing/extra/duplicate/stale required checks,
   truncated pagination, unresolved P0/P1, unclassifiable review threads,
   inactive tag rules, failing candidate verification, rejected approval,
-  existing tag, immutable=false, asset state/size/digest drift, and historical
-  matching recovery;
+  existing tag, immutable=false, asset state/size/digest drift, and eligible
+  historical matching recovery;
 - a dry-run path produces candidate artifacts without tag or Release authority;
 - release evidence records final PR tree, main SHA/tree, tag object and peeled
   SHA, workflow run, asset names/sizes/digests, source downloads, provenance,
