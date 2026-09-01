@@ -5,7 +5,7 @@
   "integrationBase": "ac503bde27d1f12e59a8b0f25d1da4e866d95175",
   "risk": "R2",
   "kind": "governance",
-  "state": "design-active",
+  "state": "final-complete",
   "mutablePaths": [
     "scripts/verify.py"
   ],
@@ -25,12 +25,12 @@
     "outcome": "approved",
     "evidence": "Independent bounded R2 design review reported P0=0, P1=0, P2=0 and P3=0 and required no ADR. It confirmed scripts/verify.py is the single public --all lane-policy owner; selecting the existing 900-second ceiling as its shared default changes feedback latency only and does not weaken any verdict. It preferred the canonical default over a release.yml override because the latter would create a release-only policy split and mutate frozen R3 workflow identity. It approved narrow parser/range evidence, structure verification, exact-head PR/main CI and a new exact-source release candidate without a local full rerun."
   },
-  "implementationHead": null,
-  "reviewedHead": null,
-  "pathStateDigest": null,
+  "implementationHead": "5c65d54ef9bde9bfa1e2e0aa7240acd14f1b15c2",
+  "reviewedHead": "5c65d54ef9bde9bfa1e2e0aa7240acd14f1b15c2",
+  "pathStateDigest": "6b64316f31e591ba57b6fb0d80f0f780dd7b0d0f474a371af303ae6b779e18ad",
   "finalReview": {
-    "reviewer": null,
-    "outcome": "pending",
-    "evidence": ""
+    "reviewer": "admission_batch_architecture",
+    "outcome": "approved",
+    "evidence": "Independent bounded R2 exact-head review approved implementation 5c65d54ef9bde9bfa1e2e0aa7240acd14f1b15c2, the direct child of design admission fdd00fa7abc7549ffca2893e693458cc6959d635 at integration checkpoint ac503bde27d1f12e59a8b0f25d1da4e866d95175. The exact implementation diff changes only scripts/verify.py DEFAULT_LANE_TIMEOUT_SECONDS from 600 to the already admitted MAXIMUM_LANE_TIMEOUT_SECONDS value 900 and updates the existing parser regression to require default 900, retain explicit 600 compatibility, and reject 59 and 901. The canonical parse/run/execute owner, 60..900 range, internal-lane override prohibition, fixed cleanup and process-termination boundaries, test inventory, filters, retries, skips, evidence reconciliation and terminal verdicts are unchanged; an unfinished lane at 900 seconds still fails closed. No workflow, product, firmware, package, permission or release identity bytes changed, and no duplicate timeout owner or abstraction was added. Focused regression passed 1/1; structure completed in 122.7 seconds and its remaining design-active lifecycle failure is closed only by the direct-child final-complete record. P0/P1/P2/P3 = 0/0/0/0; scoped Polytail approved."
   }
 }
