@@ -2,8 +2,8 @@
   "schemaVersion": "1.0",
   "kind": "candidate-source-built-cli",
   "source": {
-    "implementationHead": "0f6692c2d7af8e49ed9b076a13297ee193956697",
-    "implementationTree": "b8c3a48d83ca83df89f0c8fed72fbd51c9206e75",
+    "implementationHead": "dfaedec4519fae185e5934b79a225b6c67c7d547",
+    "implementationTree": "03f0041524c85b13e366baf0951b4a45850233ea",
     "authorityTrees": {
       "src": "02a6242ef8d46dfceb0b4fbed297bf30919fc945",
       "profiles": "7f8bd06e23ee78954e2e2c222f7b44a315049330",
@@ -60,6 +60,6 @@
     "root": "src/NvtFwCombiner.Cli/bin/Release/net10.0/win-x64",
     "fileCount": 384,
     "totalSize": 92147320,
-    "sha256": "6b173a2dedd42266a39cfa3dd1d8bc4285cc8e4a1b0a7675ea2f680bf67dd796"
+    "sha256": "b688a055f5885103be51447108020de518627ab41aa32127f51fc7b35afea165"
   }
 }

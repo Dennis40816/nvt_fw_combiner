@@ -202,13 +202,13 @@ as containing a CLI. Candidate receipts use `candidate-source-cli`, built from
 the exact clean `candidateAuthority` head/tree with the repository-pinned SDK
 and locked dependencies. The plan pins
 `docs/contracts/v100-candidate-source-executor-v1.json` at raw SHA-256
-`19fdc49a5aaabdf71dcfe2be529b05d25d72c20bb1cafcb0098c0ca6cabbdcdf`,
-head `0f6692c2d7af8e49ed9b076a13297ee193956697`, tree
-`b8c3a48d83ca83df89f0c8fed72fbd51c9206e75`, and CLI executable SHA-256
+`9b47da4bf75cfdb86c976ebcce18b0dcba42fcfb35a580e4e9b0781936c5476d`,
+head `dfaedec4519fae185e5934b79a225b6c67c7d547`, tree
+`03f0041524c85b13e366baf0951b4a45850233ea`, and CLI executable SHA-256
 `ba84481f06698f89f0831246443af6bf7592937457530ecd1401fe2fbbd1bbc4`.
 Two clean detached worktrees produced the same 162304-byte executable and the
 same 384-file, 92147320-byte runtime closure SHA-256
-`6b173a2dedd42266a39cfa3dd1d8bc4285cc8e4a1b0a7675ea2f680bf67dd796`;
+`b688a055f5885103be51447108020de518627ab41aa32127f51fc7b35afea165`;
 the exact lock inventory includes the transitive `NvtFwCombiner.Platform`
 project. The apphost executable remains byte-identical to the prior authority,
 while the complete managed runtime closure is rebound to the new Git head;
@@ -241,7 +241,7 @@ subjects, source commit, and source tree to agree. A forged ZIP with a copied
 match the independently queried run, repository, branch, and head SHA.
 The authenticated protected-main workflow commit is intentionally independent
 of candidate implementation/package head
-`0f6692c2d7af8e49ed9b076a13297ee193956697`; each retains its own
+`dfaedec4519fae185e5934b79a225b6c67c7d547`; each retains its own
 identity and neither may substitute for the other. The decoded workflow is
 validated against the raw-pinned closed semantic workflow contract, including
 trigger, read-only permissions, exact parity jobs/dependencies/conditions,

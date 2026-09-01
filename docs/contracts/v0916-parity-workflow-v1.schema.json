@@ -24,7 +24,7 @@
     "workflowPath": { "const": ".github/workflows/release.yml" },
     "workflowRef": { "const": "refs/heads/main" },
     "workflowHeadRelation": { "const": "authenticated-protected-main-independent-of-candidate-source" },
-    "candidateImplementationHead": { "const": "0f6692c2d7af8e49ed9b076a13297ee193956697" },
+    "candidateImplementationHead": { "const": "dfaedec4519fae185e5934b79a225b6c67c7d547" },
     "trigger": { "const": "workflow_dispatch" },
     "topLevelPermissions": { "$ref": "#/$defs/readPermissions" },
     "topLevelSha256": { "$ref": "#/$defs/sha256" },

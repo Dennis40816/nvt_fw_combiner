@@ -3,7 +3,7 @@
   "workflowPath": ".github/workflows/release.yml",
   "workflowRef": "refs/heads/main",
   "workflowHeadRelation": "authenticated-protected-main-independent-of-candidate-source",
-  "candidateImplementationHead": "0f6692c2d7af8e49ed9b076a13297ee193956697",
+  "candidateImplementationHead": "dfaedec4519fae185e5934b79a225b6c67c7d547",
   "trigger": "workflow_dispatch",
   "topLevelPermissions": {
     "actions": "read",
@@ -17,7 +17,7 @@
     "uploadArtifact": "actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a"
   },
   "jobInventorySha256": {
-    "candidate": "f8fef0dc111b18302b1b8f08661ceb6d21cf1141b9af039b7c1648e61c95b5ea",
+    "candidate": "7f3ec7df275b0edfcb98a2c6f89b3c5385186ee9358e88365d288c9dfbee1c10",
     "promote": "c899059ac0d034c67a01b0a472033861ab3cdc31d0be435327c44656cd07ae6b",
     "published-smoke": "60d865fcd4c539dbc1bcbcd4617e645e94f2ce4c00e5ece2dbff08d01b8e9332",
     "v0916-parity-compare": "2c065e009b7a6380dfc6e1be051a30df983618d6bf1e8be7385fb52ff808f663",

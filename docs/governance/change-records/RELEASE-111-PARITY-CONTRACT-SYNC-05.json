@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 2,
+  "taskId": "RELEASE-111-PARITY-CONTRACT-SYNC-05",
+  "capability": "Synchronize the existing fail-closed v0.9.16 protected-workflow contract with the frozen v1.1.1 multi-suite repository-admission workflow",
+  "integrationBase": "cb87cf9cdd96906998fdb52f6fb0882c98e7fd99",
+  "risk": "R3",
+  "kind": "release",
+  "state": "design-active",
+  "mutablePaths": [
+    "docs/contracts/v0916-parity-certification-v1.json",
+    "docs/contracts/v0916-parity-certification-v1.schema.json",
+    "docs/contracts/v0916-parity-comparison-v1.schema.json",
+    "docs/contracts/v0916-parity-evidence-v1.schema.json",
+    "docs/contracts/v0916-parity-finalize-v1.schema.json",
+    "docs/contracts/v0916-parity-run-v1.schema.json",
+    "docs/contracts/v0916-parity-workflow-v1.json",
+    "docs/contracts/v0916-parity-workflow-v1.schema.json"
+  ],
+  "implementationOwner": "primary-agent",
+  "searchEvidence": [
+    "scripts/v0916_parity_certification.py already owns the closed protected-workflow semantic validator and exact H1-to-H4 package-source transfer. Reuse that owner and its existing contracts instead of adding a verifier, schema owner, compatibility path or workflow-specific mutator.",
+    "The frozen .github/workflows/release.yml is 64329 bytes, Git blob d08966fe9047bf03fa4adca211fe42d93411e02a and SHA-256 12d43d0ffae3931948d7e10a9c174fe73c5da36a423812a7de6be980ba0c3728. Only the candidate job changed for the approved all-same-name fail-closed check-suite projection; its exact job SHA-256 is 7f3ec7df275b0edfcb98a2c6f89b3c5385186ee9358e88365d288c9dfbee1c10.",
+    "The promote job remains SHA-256 c899059ac0d034c67a01b0a472033861ab3cdc31d0be435327c44656cd07ae6b with eleven ordered steps and step-list SHA-256 3a4715a72e4d8af8f98b79c9b5a370bcadc5832624235f72e67b8614c35ea03d. Top-level trigger and permissions, published-smoke, all three parity jobs, action pins, dependencies, conditions, environments, timeouts, commands and artifact ordering remain closed by the existing semantic owner.",
+    "Corrected H1 dfaedec4519fae185e5934b79a225b6c67c7d547 predeclares the exact sorted fifteen-path H2, two-record H3 and two-attestation H4 topology. The certification plan and seven schemas already carry the workflow contract raw digest, while the two existing parity tests carry fixture, semantic and package-source topology evidence."
+  ],
+  "semanticOwner": "docs/contracts/v0916-parity-workflow-v1.json remains the single closed protected-workflow semantic contract, with the existing certification plan and schemas carrying its exact raw identity",
+  "terminalContract": "The canonical workflow contract validates the exact frozen 64329-byte release.yml, Git blob d08966fe9047bf03fa4adca211fe42d93411e02a and SHA-256 12d43d0ffae3931948d7e10a9c174fe73c5da36a423812a7de6be980ba0c3728 without changing release.yml or scripts/v0916_parity_certification.py. Candidate binds job SHA-256 7f3ec7df275b0edfcb98a2c6f89b3c5385186ee9358e88365d288c9dfbee1c10; promote remains c899059ac0d034c67a01b0a472033861ab3cdc31d0be435327c44656cd07ae6b with exact eleven-step digest 3a4715a72e4d8af8f98b79c9b5a370bcadc5832624235f72e67b8614c35ea03d. The resulting exact 14322-byte workflow-contract SHA-256 propagates through all eight existing owned paths and two existing parity fixture paths. Corrected H1 dfaedec4519fae185e5934b79a225b6c67c7d547 is the direct parent of the fifteen-path H2; H3 modifies only both final records and H4 adds only both release-owner attestations. The paired authority-transfer record renews source/build identity. No firmware, profile, range, CRC/header, output bytes, package content, runtime support, Version deployment or v1.0.8 change is permitted.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "admission_batch_architecture",
+    "outcome": "approved",
+    "evidence": "Independent bounded R3 design re-review reported P0=0, P1=0, P2=0 and P3=0 and approved the corrected two-owner fifteen-path topology. It confirmed this record exclusively owns the eight workflow-contract projection paths, the paired transfer record owns the three source/narrative paths, the two existing tests remain regression evidence, and no record owns itself. It requires exact-H2 execution of the existing workflow semantic validator, full projection tests and exact-H2 final review before the two-record H3 and two-attestation H4."
+  },
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": {
+    "reviewer": null,
+    "outcome": "pending",
+    "evidence": ""
+  }
+}

@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 2,
+  "taskId": "RELEASE-111-PARITY-AUTHORITY-TRANSFER-09",
+  "capability": "Renew the existing fail-closed v0.9.16 source-built candidate authority after the v1.1.1 multi-suite repository-admission correction",
+  "integrationBase": "cb87cf9cdd96906998fdb52f6fb0882c98e7fd99",
+  "risk": "R3",
+  "kind": "release",
+  "state": "design-active",
+  "mutablePaths": [
+    "docs/adr/0057-v0916-black-box-parity-certification.md",
+    "docs/contracts/v0916-parity-certification-v1.md",
+    "docs/contracts/v100-candidate-source-executor-v1.json"
+  ],
+  "implementationOwner": "primary-agent",
+  "searchEvidence": [
+    "scripts/v0916_parity_certification.py already owns the exact H1 source, direct H2 binding, H3 final records, H4 external release-owner attestations and package-source validator. Reuse that owner and prior dual-record transfers rather than add a verifier, executor or release-workflow branch.",
+    "Checkpoint cb87cf9cdd96906998fdb52f6fb0882c98e7fd99 is the latest final capability-evidence checkpoint; 7130b79ea9e0dfcf5da1033e923821b8628477d6 adds only its matching release-owner attestation. H1 19adc29c7a6bd973bb50461ef1ad9dc39f0e4dda first predeclared transfer 09, and corrective H1 dfaedec4519fae185e5934b79a225b6c67c7d547 is its one-plan-path direct child that closes the required dual-record fifteen-path topology.",
+    "Two new tracked-clean detached worktrees at exact corrected H1 used SDK 10.0.303, locked restore and the existing deterministic Release build with zero warnings and zero errors. Both produced the same 162304-byte CLI SHA-256 ba84481f06698f89f0831246443af6bf7592937457530ecd1401fe2fbbd1bbc4 and the same complete 384-file, 92147320-byte runtime closure SHA-256 b688a055f5885103be51447108020de518627ab41aa32127f51fc7b35afea165.",
+    "The existing source-executor contract, ADR and narrative carry exact corrected H1 head/tree/build closure. Four authority subtrees, canonical policy, toolchain, locks, external tools, build commands, firmware/product/package behavior, Version deployment and v1.0.8 remain unchanged.",
+    "Read-only System.Reflection.Metadata inspection found the complete ten first-party embedded-portable-PDB set in each build: NvtFwCombiner.Application.dll/Application.pdb, Bootstrap.dll/Bootstrap.pdb, Cli.dll/Cli.pdb, Contracts.dll/Contracts.pdb, Domain.dll/Domain.pdb, Infrastructure.dll/Infrastructure.pdb, Platform.dll/Platform.pdb, Profiles.dll/Profiles.pdb, VersionManagement.Application.dll/VersionManagement.Application.pdb and VersionManagement.Infrastructure.dll/VersionManagement.Infrastructure.pdb. Every assembly has exactly one embedded PDB and one SourceLink record; every SourceLink JSON is SHA-256 32cc06823ff97dd7d05213aff974a89e9cdab691b5d2080505d563d295eae336 and binds only corrected H1 dfaedec4519fae185e5934b79a225b6c67c7d547. Both full assembly/PDB/checksum/SourceLink inventories are byte-identical at SHA-256 40edd4f5fe123dcf70eadab11e50e25bfd425489198daec889427e6ece78aeca."
+  ],
+  "semanticOwner": "The existing parity certification plan, candidate source-executor contract, protected-workflow contract, ADR 0057 and package-source validator jointly own the closed source-built candidate authority and append-only H1-to-H4 transfer",
+  "terminalContract": "Corrected H1 dfaedec4519fae185e5934b79a225b6c67c7d547 is the exact single-parent child of plan-only H1 19adc29c7a6bd973bb50461ef1ad9dc39f0e4dda and changes only docs/contracts/v0916-parity-certification-v1.json to predeclare the exact sorted fifteen-path H2, two-record H3 and two-attestation H4. Two empty tracked-clean detached corrected-H1 worktrees use the contract-pinned SDK, locked restore and deterministic Release build; CLI and full runtime inventories must match, and all ten first-party portable-PDB SourceLink records must bind corrected H1. H2 is corrected H1's direct child and changes exactly fifteen declared paths: eight workflow-contract projections, three source/narrative projections, two existing tests and two design-active records. The paired contract-sync record owns workflow semantic changes. H3 is H2's direct child and modifies only both records to final-complete. H4 is H3's direct child and adds only both matching release-owner attestations; H4 becomes the sole package-source head and the existing validator must pass. This renews source/build and workflow-contract identity only and does not claim terminal 64-route parity, full verification, protected CI, package smoke, publication, Version deployment or v1.0.8 completion.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "admission_batch_architecture",
+    "outcome": "approved",
+    "evidence": "Independent bounded R3 design re-review reported P0=0, P1=0, P2=0 and P3=0 and approved corrected H1 dfaedec4519fae185e5934b79a225b6c67c7d547 plus the existing dual-owner fifteen-path topology. It confirmed integrationBase cb87cf9cdd96906998fdb52f6fb0882c98e7fd99, this record's exclusive three-path ownership, two fresh deterministic builds with matching complete inventories, unchanged authority trees, and the requirement for exact-H2 SourceLink inspection, semantic-validator execution and parity regression tests before final review."
+  },
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": {
+    "reviewer": null,
+    "outcome": "pending",
+    "evidence": ""
+  }
+}
