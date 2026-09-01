@@ -5,7 +5,7 @@
   "integrationBase": "f9ca722ffcc6248c0c77057994fff1d875ca3664",
   "risk": "R3",
   "kind": "release",
-  "state": "design-active",
+  "state": "final-complete",
   "mutablePaths": [
     ".github/workflows/ci.yml"
   ],
@@ -25,12 +25,12 @@
     "outcome": "approved",
     "evidence": "Independent R3 release-workflow design review against integration base f9ca722ffcc6248c0c77057994fff1d875ca3664 found P0-P3 = 0 and scoped design Polytail PASS-WITH-HUMAN-GATE. Read-only GitHub evidence confirmed that PR run 33451527230 passed policy, python-worker, dotnet build, bootstrap and ui, while core job 99682272049 ran Produce canonical test evidence from 23:38:57 to 23:58:33 before the exact 20-minute job ceiling canceled it; its always-run upload then found no artifacts/ci-dotnet-upload, and finalizer job 99686492062 correctly received the cancelled producer result and failed closed. Preceding run 33449437817 stopped after about four minutes at the former Infrastructure discovered/executed identity failure and therefore did not measure the full core shard. The design extends the existing .github/workflows/ci.yml dotnet-test matrix owner by changing only its bounded timeout from 20 to 30 minutes and synchronizes only that scalar in the existing ungoverned docs/ci/workflow-templates/ci.yml projection. It adds no workflow, job, shard, runner, command, test selection, verifier, artifact path, permission or release bypass, and changes no product, firmware, memory-range, mutation-order, CRC/checksum, package or release semantics. Exact two-scalar implementation review, structure validation, successful protected Windows bootstrap/ui/core evidence production and aggregation within the new ceiling, canonical full verification, exact-head human workflow review, and release-owner attestation remain mandatory; 30 minutes is a bounded unblocker and not proof that suite duration is acceptable."
   },
-  "implementationHead": null,
-  "reviewedHead": null,
-  "pathStateDigest": null,
+  "implementationHead": "2f4591387f80328771530ee537b8d51f3ee620d7",
+  "reviewedHead": "2f4591387f80328771530ee537b8d51f3ee620d7",
+  "pathStateDigest": "b3aacdac0fda1f03682e697eaffd79ee8486e30d9de187c170c67b6fc9de88a6",
   "finalReview": {
-    "reviewer": null,
-    "outcome": "pending",
-    "evidence": ""
+    "reviewer": "review_v108_identity_design",
+    "outcome": "approved",
+    "evidence": "Independent exact-head R3 implementation review of 2f4591387f80328771530ee537b8d51f3ee620d7 (tree 0c3180bc6b97efb7c4de9d5e9066d0f47c129ffe) against direct design-admission parent 826a104b7bf27bc73ec7c9ffd693ca0ba50baf3a and integration base f9ca722ffcc6248c0c77057994fff1d875ca3664 found P0-P3 = 0, implementation correctness PASS, and scoped R3 Polytail PASS-WITH-HUMAN-GATE. The exact diff contains only two synchronized scalar changes: .github/workflows/ci.yml blob 3f9546146d9a96241ab170fd3f894defd9b1811a changes the existing dotnet-test matrix timeout from 20 to 30 minutes, and ungoverned template blob efee4e5ef6f610dd9d895948641371d7606cacf6 mirrors that value. Every other timeout, the exact five-key Windows topology, bootstrap/ui/core matrix, fail-fast setting, required check names, runner, read-only permission, exact-head checkout, action pins, canonical verifier command, artifact names/paths/retention/failure behavior, and build-test finalizer bytes are unchanged. No verifier, test selection, assertion, product, firmware, memory-range, mutation-order, CRC/checksum, Golden, package, release-permission, secret or private payload semantics changed. The 30-minute ceiling remains bounded and does not itself prove acceptable suite duration. Successful protected Windows evidence production/upload/aggregation within the new ceiling, canonical full verification, exact-head human workflow review, and release-owner attestation remain mandatory gates and were not replaced by this review."
   }
 }
