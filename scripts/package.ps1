@@ -12,6 +12,8 @@ param(
 
     [switch]$AllowPrerelease,
 
+    [switch]$ManualOnly,
+
     [switch]$ExternalToolPolicyDryRun
 )
 
@@ -31,6 +33,16 @@ $SourceTag = if ($Version.StartsWith('v', [StringComparison]::Ordinal)) { $Versi
 $SemanticVersion = $SourceTag.Substring(1)
 $StableSemVerPattern = '^[0-9]+\.[0-9]+\.[0-9]+$'
 $PackageSemVerPattern = '^[0-9]+\.[0-9]+\.[0-9]+(?:-[0-9A-Za-z.-]+)?$'
+
+if ($ManualOnly -and $AllowPrerelease) {
+    throw 'ManualOnly cannot be combined with AllowPrerelease.'
+}
+if ($ManualOnly -and $ExternalToolPolicyDryRun) {
+    throw 'ManualOnly cannot be combined with ExternalToolPolicyDryRun.'
+}
+if ($ManualOnly -and $SemanticVersion -cne '1.1.0') {
+    throw 'ManualOnly is available only for v1.1.0.'
+}
 
 function Assert-CanonicalJsonSchema {
     param(
@@ -1252,7 +1264,7 @@ New-Item -ItemType Directory -Force -Path $ReleaseRoot, $PackageRoot, $AppPublis
 
 $AppProject = Join-Path $RepoRoot 'src/NvtFwCombiner.Desktop/NvtFwCombiner.Desktop.csproj'
 $LauncherProject = Join-Path $RepoRoot 'src/NvtFwCombiner.Launcher/NvtFwCombiner.Launcher.csproj'
-$IncludeManagedLauncher = -not $AllowPrerelease
+$IncludeManagedLauncher = -not ($AllowPrerelease -or $ManualOnly)
 $SourcePackageLockSnapshots = Save-SourcePackageLocks
 try {
     & $DotNet restore $AppProject -r win-x64 -p:PublishReadyToRun=true
@@ -1360,8 +1372,9 @@ $ExternalToolsDestination = Join-Path $PackageRoot 'external-tools'
 Copy-ApprovedExternalToolPackageFiles -DestinationRoot $PackageRoot
 
 $ReferenceDestination = Join-Path $PackageRoot 'reference'
-New-Item -ItemType Directory -Force -Path $ReferenceDestination | Out-Null
-@"
+if (-not $ManualOnly) {
+    New-Item -ItemType Directory -Force -Path $ReferenceDestination | Out-Null
+    @"
 NVT FW Combiner reference payload
 
 This directory contains human-review reference evidence and owner-approved golden fixtures shipped with the release package.
@@ -1374,35 +1387,36 @@ Included:
 Non-allowlisted private firmware, diagnostics, owner-handoff records, unmanifested BIN files, generated firmware outputs, refcode, source trees, and test projects are not shipped here.
 "@ | Set-Content -LiteralPath (Join-Path $ReferenceDestination 'README.txt') -Encoding utf8NoBOM
 
-$ReferenceFiles = @(
-    'docs/references/verification-report.md',
-    'docs/references/tddi-flash-header.md',
-    'docs/references/nvt-fwconfig-copy-validation.md',
-    'docs/references/tddi-flash-header/TDDI_Flash_Header.xlsx',
-    'docs/architecture/ctrlram-postbuild-command-matrix.md',
-    'docs/architecture/ctrlram-postbuild-investigation-reference.md',
-    'docs/architecture/ctrlram-postbuild-original-pasteback.md',
-    'docs/architecture/ic-workflow-flowcharts.md',
-    'docs/architecture/supported-ic-matrix.md'
-)
-foreach ($ReferenceFile in $ReferenceFiles) {
-    Copy-PackageFile -RelativePath $ReferenceFile -DestinationRoot $ReferenceDestination
-}
+    $ReferenceFiles = @(
+        'docs/references/verification-report.md',
+        'docs/references/tddi-flash-header.md',
+        'docs/references/nvt-fwconfig-copy-validation.md',
+        'docs/references/tddi-flash-header/TDDI_Flash_Header.xlsx',
+        'docs/architecture/ctrlram-postbuild-command-matrix.md',
+        'docs/architecture/ctrlram-postbuild-investigation-reference.md',
+        'docs/architecture/ctrlram-postbuild-original-pasteback.md',
+        'docs/architecture/ic-workflow-flowcharts.md',
+        'docs/architecture/supported-ic-matrix.md'
+    )
+    foreach ($ReferenceFile in $ReferenceFiles) {
+        Copy-PackageFile -RelativePath $ReferenceFile -DestinationRoot $ReferenceDestination
+    }
 
-Copy-PackageReferenceTree -RelativeRoot 'docs/references/ic-flashmap' -AllowedExtensions @('.bat', '.h', '.json', '.md', '.xlsx')
+    Copy-PackageReferenceTree -RelativeRoot 'docs/references/ic-flashmap' -AllowedExtensions @('.bat', '.h', '.json', '.md', '.xlsx')
 
-$CanonicalGoldenPaths = Get-DeclaredCanonicalGoldenPaths
-foreach ($GoldenPath in $CanonicalGoldenPaths) {
-    Copy-PackageFile -RelativePath $GoldenPath -DestinationRoot $ReferenceDestination
+    $CanonicalGoldenPaths = Get-DeclaredCanonicalGoldenPaths
+    foreach ($GoldenPath in $CanonicalGoldenPaths) {
+        Copy-PackageFile -RelativePath $GoldenPath -DestinationRoot $ReferenceDestination
+    }
+    Copy-PackageFile `
+        -RelativePath 'testdata/golden/release-canonical-v1.json' `
+        -DestinationRoot $ReferenceDestination
+    $PackagedGoldenManifestPath = Join-Path $ReferenceDestination 'testdata/golden/canonical/manifest.json'
+    New-Item -ItemType Directory -Force -Path (Split-Path -Parent $PackagedGoldenManifestPath) | Out-Null
+    $script:CanonicalGoldenPackageManifest |
+        ConvertTo-Json -Depth 12 |
+        Set-Content -LiteralPath $PackagedGoldenManifestPath -Encoding utf8NoBOM
 }
-Copy-PackageFile `
-    -RelativePath 'testdata/golden/release-canonical-v1.json' `
-    -DestinationRoot $ReferenceDestination
-$PackagedGoldenManifestPath = Join-Path $ReferenceDestination 'testdata/golden/canonical/manifest.json'
-New-Item -ItemType Directory -Force -Path (Split-Path -Parent $PackagedGoldenManifestPath) | Out-Null
-$script:CanonicalGoldenPackageManifest |
-    ConvertTo-Json -Depth 12 |
-    Set-Content -LiteralPath $PackagedGoldenManifestPath -Encoding utf8NoBOM
 
 $SelfTestRequest = '{"protocolVersion":"1.0","requestId":"package-self-test","operation":"calculate","algorithmId":"crc-32-mpeg-2","payloadBase64":"MTIzNDU2Nzg5"}'
 $SelfTestRaw = $SelfTestRequest | & $WorkerExe
@@ -1414,7 +1428,26 @@ if ($SelfTest.result.valueHex -ne '0x0376E6E7') {
 
 Copy-Item -LiteralPath (Join-Path $RepoRoot 'LICENSE') -Destination (Join-Path $PackageRoot 'LICENSE.txt')
 Copy-Item -LiteralPath (Join-Path $RepoRoot 'THIRD_PARTY_NOTICES.md') -Destination (Join-Path $PackageRoot 'THIRD-PARTY-NOTICES.txt')
-@"
+if ($ManualOnly) {
+    @"
+NVT FW Combiner $SemanticVersion
+Distribution owner: $DistributionOwner
+
+This is a Windows x64 manual-download package. Run NvtFwCombiner.exe directly.
+
+Contents:
+- NvtFwCombiner.exe: self-contained Windows x64 desktop application
+- external-tools/crc-worker/0.1.0/Nfc.CrcWorker.exe: constrained external checksum/header worker
+- profiles/built-in/: exact package trust index, materialized bundles, and runtime catalogs
+- external-tools/: generated CRC Worker and approved legacy Combiner runtime packages
+- RELEASE-MANIFEST.json: source and file integrity metadata
+- SHA256SUMS.txt: package file hashes
+
+Launcher, Setup, Bootstrap, Catalog/Registry deployment, automatic update, Version deployment, and reference/Golden evidence are intentionally absent. This package is not a managed-install or update candidate.
+"@ | Set-Content -LiteralPath (Join-Path $PackageRoot 'README.txt') -Encoding utf8NoBOM
+}
+else {
+    @"
 NVT FW Combiner $SemanticVersion
 Distribution owner: $DistributionOwner
 
@@ -1430,6 +1463,7 @@ Contents:
 
 This package includes 25 release-selected direct Golden cases and nine self-contained evidence aliases across Standard Merge, AB Merge, and CtrlRAM Replace under reference/testdata/golden/canonical. Eleven direct cases use full-output comparison; fourteen retain their reviewed allowed-byte-difference scope. Two input-only evidence cases and their three dependent aliases remain repository-only. Diagnostics, owner handoff records, private or quarantine evidence, unmanifested BIN files, generated firmware outputs, refcode, production source tree, test projects, editable source profiles, Python runtime installation, and .NET installation requirements are excluded. The packaged BAT and CONFIG provenance are inert reference bytes only and are never tools, processors, or commands. Packaging reference evidence does not promote runtime support.
 "@ | Set-Content -LiteralPath (Join-Path $PackageRoot 'README.txt') -Encoding utf8NoBOM
+}
 
 $AppHash = Get-LowerSha256 -Path $AppExe
 $WorkerHash = Get-LowerSha256 -Path $WorkerExe
@@ -1449,14 +1483,17 @@ $BuiltInProfileEntries = @(Get-BuiltInProfileManifestEntries `
     -PackagePaths $BuiltInProfilePackagePaths)
 $CanonicalCapabilityPolicyEntry = Get-CanonicalCapabilityPolicyManifestEntry `
     -PackageRoot $PackageRoot
-$ReferencePayloadFiles = @(Get-ChildItem -LiteralPath $ReferenceDestination -File -Recurse | ForEach-Object FullName)
-$ReferencePayloadEntries = @(
-    $ReferencePayloadFiles | Sort-Object | ForEach-Object {
-        $RelativePath = [System.IO.Path]::GetRelativePath($PackageRoot, $_).Replace('\', '/')
-        $Role = if ($_.EndsWith('.bin', [StringComparison]::OrdinalIgnoreCase)) { 'goldenFixture' } else { 'reference' }
-        [ordered]@{ path = $RelativePath; size = (Get-Item $_).Length; sha256 = (Get-LowerSha256 $_); role = $Role }
-    }
-)
+$ReferencePayloadEntries = @()
+if (-not $ManualOnly) {
+    $ReferencePayloadFiles = @(Get-ChildItem -LiteralPath $ReferenceDestination -File -Recurse | ForEach-Object FullName)
+    $ReferencePayloadEntries = @(
+        $ReferencePayloadFiles | Sort-Object | ForEach-Object {
+            $RelativePath = [System.IO.Path]::GetRelativePath($PackageRoot, $_).Replace('\', '/')
+            $Role = if ($_.EndsWith('.bin', [StringComparison]::OrdinalIgnoreCase)) { 'goldenFixture' } else { 'reference' }
+            [ordered]@{ path = $RelativePath; size = (Get-Item $_).Length; sha256 = (Get-LowerSha256 $_); role = $Role }
+        }
+    )
+}
 $ApprovedProcessorIds = @(
     'nfc.crc32-mpeg2.calculate-v1',
     'nfc.nt51917.ctrlram-postbuild-v1',
@@ -1492,7 +1529,7 @@ if ($IncludeManagedLauncher) {
 }
 
 $Manifest = [ordered]@{
-    schemaVersion = if ($IncludeManagedLauncher) { '1.2' } else { '1.1' }
+    schemaVersion = if ($ManualOnly) { '1.3' } elseif ($IncludeManagedLauncher) { '1.2' } else { '1.1' }
     product = 'NVT FW Combiner'
     version = $SemanticVersion
     sourceCommit = $Commit
@@ -1508,7 +1545,10 @@ $Manifest = [ordered]@{
     sbomAsset = $SbomName
     provenanceAsset = $ProvenanceName
 }
-if ($IncludeManagedLauncher) {
+if ($ManualOnly) {
+    $Manifest.distributionMode = 'manual-only'
+}
+elseif ($IncludeManagedLauncher) {
     $Manifest.versionManagementProtocolVersion = 1
     $Manifest.launcher = [ordered]@{
         launcherVersion = $SemanticVersion
@@ -1566,7 +1606,7 @@ $Provenance = [ordered]@{
     sourceRepository = $SourceIdentity
     sourceCommit = $Commit
     sourceTag = $SourceTag
-    builder = 'GitHub Actions / scripts/package.ps1'
+    builder = if ($ManualOnly) { 'scripts/package.ps1 manual-only operator build' } else { 'GitHub Actions / scripts/package.ps1' }
     runtimeIdentifier = 'win-x64'
     subjects = $FileEntries | ForEach-Object { [ordered]@{ name = $_.path; sha256 = $_.sha256 } }
 }
@@ -1636,7 +1676,7 @@ finally {
     }
 }
 
-if (-not $AllowPrerelease -and [version]$SemanticVersion -ge [version]'1.0.6') {
+if (-not $ManualOnly -and -not $AllowPrerelease -and [version]$SemanticVersion -ge [version]'1.0.6') {
     $DistributionLauncherPackager = Join-Path `
         $InvocationRepoRoot 'scripts/package-distribution-launcher.ps1'
     & $DistributionLauncherPackager `

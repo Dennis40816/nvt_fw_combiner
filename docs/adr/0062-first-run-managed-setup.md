@@ -441,6 +441,21 @@ gate passes.
 - The exact release candidate requires independent R3 review and release-owner
   attestation. Repository tests cannot replace that authority.
 
+### v1.1.0 bounded direct-package exception
+
+v1.1.0 may be distributed as one Windows x64 manual-download Application ZIP
+without Launcher, Setup, Bootstrap, Catalog, Registry, automatic update,
+Version deployment, or reference payload. The ZIP uses release-manifest schema
+1.3 with `distributionMode: manual-only` and is rejected by managed Version
+verification. Users extract it and run `NvtFwCombiner.exe` directly.
+
+This exception does not amend the managed-first authority above for Setup or
+update, does not make the Desktop Application a second updater, and does not
+authorize Catalog/Registry mutation. It is limited to v1.1.0 and the exact
+three published assets: ZIP, SPDX SBOM, and provenance. Any future managed
+distribution continues to require the Launcher/Bootstrap contract and its
+independent gates.
+
 ## Rejected options
 
 - A separate user-facing Setup executable.

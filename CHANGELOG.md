@@ -4,9 +4,55 @@ All notable changes to NVT FW Combiner are documented here. The project follows 
 
 ## [Unreleased]
 
-No product changes are recorded after the `v1.0.8` candidate scope freeze.
-Its full verifier, package and canary evidence, tag, and formal publication
-remain release gates rather than unreleased product changes.
+No product changes are recorded after v1.1.0.
+
+## [1.1.0] - 2026-09-01
+
+### Summary
+
+This release republishes the frozen v1.0.8 Application behavior as a direct
+Windows x64 manual-download package. It intentionally does not enable the
+managed Launcher, Setup, Catalog, Registry, automatic-update, or Version
+deployment path and does not change firmware composition bytes.
+
+### Product changes
+
+#### Manual-only Windows distribution
+
+- Before → After: the stable packager assumed every 1.x package was a managed
+  update payload with a version-scoped Launcher and packaged reference
+  evidence; v1.1.0 now has one explicit `manual-only` mode that produces an
+  Application ZIP for users to extract and run directly.
+- Affected: only release packaging, manifest admission, package smoke, and
+  release documentation. The Desktop Application, profiles, processors,
+  firmware workflows, and output naming remain the frozen v1.0.8 behavior.
+- Compatibility: schema 1.3 marks this package as `manual-only`; the managed
+  Version verifier rejects it fail closed. It is not a Setup, update-Catalog,
+  Registry, Launcher, or automatic-update candidate.
+- Package contents: the ZIP retains the self-contained Windows x64
+  Application, built-in runtime profiles, capability policy, CRC worker,
+  approved legacy Combiner, legal notices, closed manifest, and checksums. It
+  omits Launcher, Bootstrap, Setup, deployment data, and all reference/Golden
+  evidence payloads.
+- Published assets: exactly
+  `NvtFwCombiner-v1.1.0-win-x64.zip`, its SPDX SBOM, and its provenance JSON.
+
+### Security
+
+The canonical packager still binds the exact clean source commit, validates a
+closed manifest twice, hashes every shipped file, self-tests the CRC worker,
+and emits adjacent SBOM and provenance. The tag is immutable and must bind the
+reviewed protected-main SHA/tree and all three published asset digests.
+
+### Known issues
+
+The broad `python scripts/verify.py --all`, the structure-only completion gate,
+and managed release workflow are explicitly waived only for this manual-only
+release because of the known shadow-output repository-root failure recorded in
+release run `33454068996` and the 600-second capability-history timeout. The
+waiver does not claim those gates are green; v1.1.1 is reserved for the test,
+verification, and release architecture review. Version deployment is not
+enabled in v1.1.0.
 
 ## [1.0.8] - 2026-09-01
 

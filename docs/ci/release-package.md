@@ -1,5 +1,46 @@
 # Minimal Windows Release Package
 
+## v1.1.0 controlled manual-only operator release
+
+v1.1.0 is the one bounded direct-package exception to the managed distribution
+flow. Construct it only through the existing packager:
+
+```powershell
+./scripts/package.ps1 -Version 1.1.0 -Commit <exact-main-sha> -ManualOnly
+```
+
+The operation publishes exactly three immutable assets: the Windows x64 ZIP,
+its SPDX SBOM, and its provenance JSON. Release notes must state that Launcher,
+Setup, Bootstrap, Catalog, Registry, automatic update, Version deployment, and
+reference/Golden evidence are absent. The provenance builder identity is
+`scripts/package.ps1 manual-only operator build`; it must not claim GitHub
+Actions constructed a locally built package.
+
+The controlled procedure is fail closed:
+
+1. Obtain an independent exact-head R3 implementation review and record the
+   complete dated owner waiver for the full verifier and managed workflow.
+2. Merge through protected `main`; prove the reviewed tree equals the merge
+   tree exactly. Stop if protected-main CI or any non-waived P0/P1 gate fails.
+3. Before building, prove tag `v1.1.0` is absent. Never move, replace, or
+   overwrite an existing stable tag or Release.
+4. Materialize one clean detached worktree at the exact current
+   `origin/main` merge SHA outside the fixed test area. Build once with the
+   command above while all temporary, NuGet, .NET, and PyInstaller paths remain
+   under `D:\NvtFwCombiner-TestArea`.
+5. Run narrow release-contract tests and `scripts/smoke-release.ps1` with a
+   visible Application startup. Record the exact source SHA/tree plus the
+   names, sizes, and SHA-256 digests of the ZIP, SPDX, and provenance assets.
+6. Obtain release-owner approval of those exact three digests. Create one
+   annotated tag whose message binds the source SHA/tree and all three digests,
+   then publish exactly those three assets to one GitHub Release.
+7. Download all three published assets into a fresh session beneath
+   `D:\NvtFwCombiner-TestArea`. Compare every digest, rerun closed package
+   smoke and worker self-test, and visibly start the downloaded Application.
+
+The v1.1.0 waiver never authorizes a claim that `verify.py --all` or the
+managed release workflow is green, and it cannot be reused by another release.
+
 ## Managed-version transition boundary
 
 The portable ZIP described below remains the current production distribution

@@ -8,13 +8,28 @@ version-only 1.0.1 release, the stable 1.0.2 mode-selector hotfix, the 1.0.3
 page-publication hardening milestone, the 1.0.4 managed Setup and Launcher
 source milestone, the 1.0.5 read-only recovery-diagnosis milestone, and the
 1.0.6 tag-only integration milestone, and the 1.0.7 formal Distribution
-Launcher release, through the 1.0.8 unpublished Windows release candidate.
+Launcher release, through the 1.0.8 unpublished Windows release candidate and
+the 1.1.0 manual-only Windows release candidate.
 Current
 verification evidence is produced by the canonical
 `python scripts/verify.py --structure-only` and `python scripts/verify.py --all`
 commands.
 
-Specification package version: `1.0.8`
+Specification package version: `1.1.0`
+
+## 1.1.0 manual-only Windows release candidate
+
+This candidate preserves the frozen v1.0.8 Application behavior and changes
+only its distribution boundary. The canonical packager emits release-manifest
+schema 1.3 with `distributionMode: manual-only`, no Launcher, Setup, Bootstrap,
+Catalog/Registry handoff, automatic update, Version deployment, or packaged
+reference/Golden evidence. The managed Version verifier rejects it fail closed.
+
+The scoped evidence is the schema/package/smoke contract tests, real Version
+verifier rejection regression, exact-head independent review, protected-main
+CI, exact three-asset hashes, closed package smoke, and fresh-download visible
+Application startup. The dated owner waiver records that the broad verifier and
+managed release workflow are not rerun and must not be claimed green.
 
 ## 1.0.8 unpublished Windows release candidate
 

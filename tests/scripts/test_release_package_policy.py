@@ -599,6 +599,21 @@ finally {
             normalize_console_output(result.stdout + result.stderr),
         )
 
+    def test_manual_only_mode_reuses_packager_and_guards_reference_and_launcher_paths(
+        self,
+    ) -> None:
+        script = PACKAGE_SCRIPT.read_text(encoding="utf-8")
+
+        self.assertIn("[switch]$ManualOnly", script)
+        self.assertIn("$IncludeManagedLauncher = -not ($AllowPrerelease -or $ManualOnly)", script)
+        self.assertIn("ManualOnly cannot be combined with AllowPrerelease", script)
+        self.assertIn("ManualOnly cannot be combined with ExternalToolPolicyDryRun", script)
+        self.assertIn("ManualOnly is available only for v1.1.0", script)
+        self.assertIn("$ReferencePayloadEntries = @()", script)
+        self.assertIn("if (-not $ManualOnly) {", script)
+        self.assertIn("-not $ManualOnly -and", script)
+        self.assertEqual(1, script.count("scripts/package-distribution-launcher.ps1"))
+
     @unittest.skipUnless(
         POWERSHELL, "PowerShell is required for Windows release-policy tests"
     )
@@ -1136,7 +1151,7 @@ finally {
         )
         launcher_block = package_script[cleanup_index:]
         self.assertIn(
-            "if (-not $AllowPrerelease -and "
+            "if (-not $ManualOnly -and -not $AllowPrerelease -and "
             "[version]$SemanticVersion -ge [version]'1.0.6')",
             launcher_block,
         )

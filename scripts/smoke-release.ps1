@@ -419,11 +419,18 @@ function Assert-ReleaseSidecars {
     Assert-DeclaredSubjectHashes -ManifestEntries @($Manifest.files) -Subjects $sbomSubjects -ArtifactKind 'Release SBOM'
 
     $provenance = Get-Content -LiteralPath $provenancePath -Raw | ConvertFrom-Json
+    $ExpectedBuilder = if ([string]$Manifest.schemaVersion -eq '1.3') {
+        'scripts/package.ps1 manual-only operator build'
+    }
+    else {
+        'GitHub Actions / scripts/package.ps1'
+    }
     if ($provenance.schemaVersion -ne '1.0' -or
         $provenance.product -ne $Manifest.product -or
         $provenance.version -ne $Manifest.version -or
         $provenance.sourceCommit -ne $Manifest.sourceCommit -or
         $provenance.sourceTag -ne $Manifest.sourceTag -or
+        $provenance.builder -ne $ExpectedBuilder -or
         $provenance.runtimeIdentifier -ne $Manifest.runtimeIdentifier) {
         throw 'Release provenance identity does not match the package manifest.'
     }
@@ -512,6 +519,10 @@ try {
         $manifest.launcher
     }
     else { $null }
+    $ManifestDistributionMode = if ($manifest.PSObject.Properties.Name -contains 'distributionMode') {
+        [string]$manifest.distributionMode
+    }
+    else { $null }
     $ManifestVersion = if ($manifest.PSObject.Properties.Name -contains 'version') {
         [string]$manifest.version
     }
@@ -520,7 +531,30 @@ try {
         [int]$manifest.versionManagementProtocolVersion
     }
     else { 0 }
-    if ($ManifestSchemaVersion -eq '1.2') {
+    $IsManualOnlyManifest = $ManifestSchemaVersion -eq '1.3'
+    if ($IsManualOnlyManifest) {
+        if ($ManifestDistributionMode -ne 'manual-only' -or
+            $ManifestVersion -ne '1.1.0' -or
+            [string]$manifest.sourceTag -ne 'v1.1.0' -or
+            $ManifestProtocolVersion -ne 0 -or
+            $null -ne $ManifestLauncher -or
+            $LauncherEntries.Count -ne 0) {
+            throw 'Release manifest manual-only identity is inconsistent.'
+        }
+        $ForbiddenManualOnlyEntries = @(
+            $manifest.files | Where-Object {
+                $Path = [string]$_.path
+                $Role = [string]$_.role
+                $Path -match '^(reference/|launcher/|deployment/|catalog/|registry/)' -or
+                $Path -match '^(NvtFwCombiner\.Bootstrap\.exe|catalog(?:\.v[0-9]+)?\.json|registry(?:\.v[0-9]+)?\.json|update-catalog[^/]*\.json|update-source-registry[^/]*\.json)$' -or
+                $Role -in @('reference', 'goldenFixture', 'launcher')
+            }
+        )
+        if ($ForbiddenManualOnlyEntries.Count -ne 0) {
+            throw 'Manual-only release package contains forbidden deployment or reference content.'
+        }
+    }
+    elseif ($ManifestSchemaVersion -eq '1.2') {
         if ($ManifestProtocolVersion -ne 1 -or
             $null -eq $ManifestLauncher -or
             [int]$ManifestLauncher.protocolVersion -ne 1 -or
@@ -538,7 +572,8 @@ try {
         ($LauncherEntries.Count -ne 0 -or $null -ne $ManifestLauncher)) {
         throw 'Legacy release manifest must not declare managed launcher identity.'
     }
-    if ($ManifestVersion -match '^(\d+)\.\d+\.\d+$' -and
+    if (-not $IsManualOnlyManifest -and
+        $ManifestVersion -match '^(\d+)\.\d+\.\d+$' -and
         [int]$Matches[1] -ge 1 -and
         $ManifestSchemaVersion -ne '1.2') {
         throw 'Version 1.0.0 and newer require the managed launcher contract.'
@@ -693,8 +728,9 @@ try {
     if (Compare-Object -ReferenceObject $ApprovedRuntimeCatalogPackagePaths -DifferenceObject $DeclaredRuntimeCatalogPaths) {
         throw 'Release manifest runtime catalog files differ from the approved allowlist.'
     }
-    $RequiresCanonicalGoldenReference = $true
-    if ($ManifestVersion -match '^(\d+)\.(\d+)\.(\d+)') {
+    $RequiresCanonicalGoldenReference = -not $IsManualOnlyManifest
+    if ($RequiresCanonicalGoldenReference -and
+        $ManifestVersion -match '^(\d+)\.(\d+)\.(\d+)') {
         $RequiresCanonicalGoldenReference =
             [int]$Matches[1] -gt 1 -or
             ([int]$Matches[1] -eq 1 -and [int]$Matches[2] -gt 0) -or

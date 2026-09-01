@@ -129,6 +129,13 @@ commit.
   package/assets and smoke evidence, real installed v1.0.7 Catalog-v1 and
   staged Catalog-v2 canaries, protected release-owner approval, and fresh-
   download verification.
+- `v1.1.0` — bounded Windows x64 manual-only distribution release: preserve
+  the frozen v1.0.8 Application behavior while publishing only the direct-run
+  ZIP, SPDX SBOM, and provenance. Release-manifest schema 1.3 explicitly
+  excludes Launcher, Setup, Bootstrap, Catalog, Registry, automatic update,
+  Version deployment, and reference/Golden payloads; managed Version
+  verification rejects the package fail closed. It changes no firmware
+  semantics, profiles, ranges, processors, support, or output naming.
 
 ### Recorded `v0.10.2` pre-deletion comparison point
 

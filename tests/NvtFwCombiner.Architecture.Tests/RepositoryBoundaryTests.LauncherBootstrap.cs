@@ -542,8 +542,9 @@ public sealed partial class RepositoryBoundaryTests
 
         AssertContainsAll(
             schema,
-            "\"schemaVersion\": { \"enum\": [\"1.1\", \"1.2\"] }",
+            "\"schemaVersion\": { \"enum\": [\"1.1\", \"1.2\", \"1.3\"] }",
             "\"versionManagementProtocolVersion\": { \"const\": 1 }",
+            "\"distributionMode\": { \"const\": \"manual-only\" }",
             "\"path\": { \"const\": \"launcher/NvtFwCombiner.Launcher.exe\" }",
             "\"maxContains\": 1");
     }
