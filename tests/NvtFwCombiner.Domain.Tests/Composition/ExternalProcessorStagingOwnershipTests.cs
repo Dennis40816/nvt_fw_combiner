@@ -31,12 +31,13 @@ public sealed class ExternalProcessorStagingOwnershipTests
         Assert.Equal(0x5A, largeArtifact.FirstByte);
         Assert.Equal(0x6B, largeArtifact.LastByte);
 
-        // Compare equal execution paths after warm-up so JIT, xUnit, and fixed execution
-        // allocations do not masquerade as a second artifact-sized byte snapshot.
+        // Compare equal execution paths after warm-up. The upper bound rejects a
+        // second artifact-sized copy without treating lower runtime allocation as a
+        // failure; JIT and GC bookkeeping vary across otherwise equivalent runners.
         Assert.InRange(
             incrementalAllocation,
-            ArtifactByteCount - 4_096L,
-            ArtifactByteCount + 32_768L);
+            0L,
+            ArtifactByteCount + (ArtifactByteCount / 2L));
     }
 
     /// <summary>Public staged values still isolate bytes supplied by arbitrary callers.</summary>

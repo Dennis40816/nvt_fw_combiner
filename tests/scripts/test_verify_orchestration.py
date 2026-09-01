@@ -2247,8 +2247,12 @@ class VerifyOrchestrationTests(unittest.TestCase):
             "DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Format=json,cobertura",
             command[-1],
         )
+        self.assertEqual(
+            ["dotnet", "vstest", str(assembly), "--ListTests"],
+            MODULE.dotnet_vstest_discovery_command("dotnet", assembly),
+        )
 
-    def test_infrastructure_vstest_execution_serializes_xunit_collections(
+    def test_infrastructure_vstest_discovery_and_execution_share_xunit_settings(
         self,
     ) -> None:
         assembly = Path(
@@ -2275,10 +2279,15 @@ class VerifyOrchestrationTests(unittest.TestCase):
             adapter,
             results,
         )
+        discovery_command = MODULE.dotnet_vstest_discovery_command(
+            "dotnet",
+            assembly,
+        )
         ci_command = MODULE.ci_dotnet_test_command("dotnet", project, results)
 
         self.assertEqual(expected_settings, local_command[-3:])
         self.assertEqual(expected_settings, ci_command[-3:])
+        self.assertEqual(["--", *expected_settings[-2:]], discovery_command[-3:])
 
     def test_coverlet_adapter_comes_only_from_baseline_and_repository_packages(
         self,

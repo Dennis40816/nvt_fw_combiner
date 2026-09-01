@@ -2601,7 +2601,11 @@ def local_dotnet_vstest_command(
 def dotnet_vstest_discovery_command(dotnet: str, test_assembly: Path) -> list[str]:
     """Return the compiled-test discovery command used by local and CI gates."""
 
-    return [dotnet, "vstest", str(test_assembly), "--ListTests"]
+    command = [dotnet, "vstest", str(test_assembly), "--ListTests"]
+    if test_assembly.stem == INFRASTRUCTURE_TEST_PROJECT:
+        command.append("--")
+        command.extend(INFRASTRUCTURE_VSTEST_SETTINGS)
+    return command
 
 
 def canonical_vstest_identity(display_name: str) -> str:

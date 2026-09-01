@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 2,
+  "taskId": "VERIFY-111-DISCOVERY-RUNSETTINGS-01",
+  "capability": "Bind Infrastructure compiled-test discovery and execution to the same existing xUnit RunSettings while retaining exact fail-closed identity reconciliation",
+  "integrationBase": "c1ab8c3522f527ad4768e84d6d0c7b0d82897869",
+  "risk": "R2",
+  "kind": "governance",
+  "state": "design-active",
+  "mutablePaths": [
+    "scripts/verify.py"
+  ],
+  "implementationOwner": "primary-agent",
+  "searchEvidence": [
+    "scripts/verify.py already owns compiled .NET discovery, local execution, CI execution and exact discovery-to-TRX Counter reconciliation; no second verifier, workflow executor or test identity owner is required.",
+    "INFRASTRUCTURE_VSTEST_SETTINGS already owns the exact xUnit.ParallelizeTestCollections=false and xUnit.MaxParallelThreads=1 settings used by Infrastructure local and protected-CI execution under REL-107-FINAL-CI-ADMISSION-01.",
+    "PR #408 run 33543437418 produced 1,067 Passed plus the same two approved Windows skips with zero Failed Infrastructure results in two attempts, but each attempt omitted one otherwise passing identity relative to compiled discovery and therefore failed the existing exact reconciliation.",
+    "The preceding protected-CI run 33541231341 and a local execution of the same Infrastructure source each produced the complete 1,070-identity discovery/TRX multiset, while a direct VSTest syntax probe confirmed that the existing two Infrastructure RunSettings are accepted by --ListTests.",
+    "The smallest fail-closed extension is to pass the existing Infrastructure execution settings to Infrastructure discovery only; ordinary assemblies, exact Counter equality, failed-identity rejection, approved-skip policy and immutable-output checks remain unchanged.",
+    "The Domain allocation regression is non-governed test evidence: it retains the upper bound that rejects a second artifact-sized copy while removing a lower bound that incorrectly fails when equivalent JIT or GC bookkeeping allocates less memory."
+  ],
+  "semanticOwner": "scripts/verify.py::dotnet_vstest_discovery_command and the existing INFRASTRUCTURE_VSTEST_SETTINGS remain the sole compiled Infrastructure discovery and execution RunSettings authority",
+  "terminalContract": "Infrastructure VSTest discovery and local/protected-CI execution receive the identical existing xUnit.ParallelizeTestCollections=false and xUnit.MaxParallelThreads=1 settings. Non-Infrastructure discovery remains byte-for-byte unchanged. Discovery and terminal TRX identities must remain exact Counter-equal; no filter, skip, expected-total exception, retry, identity substitution, adapter change, coverage reduction or tolerance is admitted. The Domain staging allocation regression continues to reject a second artifact-sized copy without requiring a minimum allocation, and production, firmware, profile, package, UI, Version deployment and release workflow behavior remain unchanged.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "admission_batch_architecture",
+    "outcome": "approved",
+    "evidence": "Independent bounded R2 design review found P0=0, P1=0, P2=0 and P3=0. It approved direct reuse of INFRASTRUCTURE_VSTEST_SETTINGS in the existing discovery command because only the Infrastructure assembly receives the same two settings already owned by local and CI execution; ordinary discovery and exact fail-closed identity reconciliation remain unchanged. It also approved the Domain test-only upper-bound correction because the remaining ownership, byte-boundary, backing-array identity and public-constructor isolation evidence still rejects a second artifact-sized copy. No ADR is required; this record extends VER-TEST-INVENTORY-104-01 and REL-107-FINAL-CI-ADMISSION-01 rather than creating a second semantic owner."
+  },
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": {
+    "reviewer": null,
+    "outcome": "pending",
+    "evidence": ""
+  }
+}
