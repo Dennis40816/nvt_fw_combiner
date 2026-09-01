@@ -589,7 +589,7 @@ def initialize_minimal_package_repository(repository_root: Path) -> str:
 
 
 def prepare_ci_owned_packager_worktree(worktree: Path) -> str:
-    """Give a detached fixture a CI-owned version without changing real source."""
+    """Give a detached fixture a CI-owned source commit without changing real source."""
 
     (worktree / "VERSION").write_bytes(b"1.1.1\n")
     subprocess.run(
@@ -610,6 +610,7 @@ def prepare_ci_owned_packager_worktree(worktree: Path) -> str:
             "commit.gpgsign=false",
             "commit",
             "-q",
+            "--allow-empty",
             "-m",
             "test: use CI-owned package version",
         ],
@@ -1434,7 +1435,6 @@ finally {
             repository_version,
             "-Commit",
             "1" * 40,
-            "-ManualOnly",
         )
 
         self.assertNotEqual(0, result.returncode, result.stdout + result.stderr)
