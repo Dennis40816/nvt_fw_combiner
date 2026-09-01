@@ -327,13 +327,18 @@ jobs:
           $checks = @($requiredCheckNames | ForEach-Object {
             $requiredName = $_
             $matches = @($checkRuns | Where-Object {
-              $_.name -eq $requiredName -and $_.appSlug -eq 'github-actions'
+              $_.name -eq $requiredName
+            })
+            $nonPassingMatches = @($matches | Where-Object {
+              $_.headSha -ne $pr.headRefOid -or
+              $_.appSlug -ne 'github-actions' -or
+              $_.status -ne 'completed' -or
+              $_.conclusion -ne 'success'
             })
             [ordered]@{
               name = $requiredName
-              bucket = if ($matches.Count -eq 1 -and
-                $matches[0].status -eq 'completed' -and
-                $matches[0].conclusion -eq 'success') { 'pass' } else { 'fail' }
+              bucket = if ($matches.Count -ge 1 -and
+                $nonPassingMatches.Count -eq 0) { 'pass' } else { 'fail' }
             }
           })
           $snapshot = [ordered]@{

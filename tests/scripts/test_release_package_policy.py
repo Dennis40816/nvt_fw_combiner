@@ -139,6 +139,26 @@ def release_admission_fixture(
         }
         for name in RELEASE_REQUIRED_CHECKS
     ]
+    check_runs.extend(dict(check) for check in tuple(check_runs))
+    check_runs.append(
+        {
+            "name": "release / candidate",
+            "head_sha": RELEASE_REVIEW_HEAD_SHA,
+            "app": {"slug": "github-actions"},
+            "status": "in_progress",
+            "conclusion": None,
+        }
+    )
+    duplicate = check_runs[len(RELEASE_REQUIRED_CHECKS)]
+    if scenario == "check_duplicate_wrong_head":
+        duplicate["head_sha"] = "9" * 40
+    elif scenario == "check_duplicate_wrong_app":
+        duplicate["app"] = {"slug": "external-app"}
+    elif scenario == "check_duplicate_pending":
+        duplicate["status"] = "in_progress"
+        duplicate["conclusion"] = None
+    elif scenario == "check_duplicate_failure":
+        duplicate["conclusion"] = "failure"
     check_run_pages = [
         {"total_count": len(check_runs), "check_runs": check_runs[:2]},
         {"total_count": len(check_runs), "check_runs": check_runs[2:]},
@@ -2491,7 +2511,12 @@ finally {
             "dotnet / build-test",
         ):
             self.assertIn(required_check, release_workflow)
-        self.assertIn("$_.appSlug -eq 'github-actions'", release_workflow)
+        self.assertIn("$_.headSha -ne $pr.headRefOid", release_workflow)
+        self.assertIn("$_.appSlug -ne 'github-actions'", release_workflow)
+        self.assertIn("$_.status -ne 'completed'", release_workflow)
+        self.assertIn("$_.conclusion -ne 'success'", release_workflow)
+        self.assertIn("$matches.Count -ge 1", release_workflow)
+        self.assertIn("$nonPassingMatches.Count -eq 0", release_workflow)
         self.assertEqual(3, release_workflow.count("collect-repository-admission"))
         self.assertNotIn("comments(first: 1)", release_workflow)
         self.assertNotIn("$checkRunPages = @(", release_workflow)
@@ -2694,7 +2719,15 @@ finally {
                 admission = snapshot[admission_key] if admission_key else snapshot
                 self.assertEqual(2, len(admission["mainRules"]))
                 self.assertEqual(2, len(admission["tagRulesets"]))
-                self.assertEqual(3, len(admission["checkRuns"]))
+                self.assertEqual(7, len(admission["checkRuns"]))
+                pending = [
+                    run
+                    for run in admission["checkRuns"]
+                    if run["name"] == "release / candidate"
+                ]
+                self.assertEqual(1, len(pending))
+                self.assertEqual("in_progress", pending[0]["status"])
+                self.assertIsNone(pending[0]["conclusion"])
                 self.assertEqual(2, len(admission["reviewThreads"]))
                 graphql_calls = [
                     call for call in calls if call[:3] == ["gh", "api", "graphql"]
@@ -2709,6 +2742,48 @@ finally {
                     and any(value.startswith("page=") for value in call)
                 ]
                 self.assertGreaterEqual(len(bounded_page_calls), 8)
+
+    @unittest.skipUnless(
+        PWSH, "PowerShell 7 is required for exact release-workflow execution"
+    )
+    def test_exact_candidate_admission_rejects_every_mixed_duplicate_dimension(
+        self,
+    ) -> None:
+        step_name = "Collect and validate final PR review/check evidence"
+        for scenario in (
+            "check_duplicate_wrong_head",
+            "check_duplicate_wrong_app",
+            "check_duplicate_pending",
+            "check_duplicate_failure",
+        ):
+            with self.subTest(scenario=scenario):
+                result, _, calls = self.run_release_workflow_step(
+                    "candidate",
+                    step_name,
+                    scenario=scenario,
+                )
+                output = normalize_console_output(result.stdout + result.stderr)
+                self.assertNotEqual(0, result.returncode, output)
+                self.assertIn("check runs", output)
+                self.assertFalse(
+                    any(call[:4] == ["gh", "api", "--method", "POST"] for call in calls),
+                    calls,
+                )
+
+    def test_candidate_check_projection_requires_all_name_matches_to_pass(
+        self,
+    ) -> None:
+        block = release_workflow_run_block(
+            "candidate",
+            "Collect and validate final PR review/check evidence",
+        )
+        self.assertIn("$_.name -eq $requiredName", block)
+        self.assertIn("$_.headSha -ne $pr.headRefOid", block)
+        self.assertIn("$_.appSlug -ne 'github-actions'", block)
+        self.assertIn("$_.status -ne 'completed'", block)
+        self.assertIn("$_.conclusion -ne 'success'", block)
+        self.assertIn("$matches.Count -ge 1", block)
+        self.assertIn("$nonPassingMatches.Count -eq 0", block)
 
     @unittest.skipUnless(
         PWSH, "PowerShell 7 is required for exact release-workflow execution"

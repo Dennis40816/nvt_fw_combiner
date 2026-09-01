@@ -1,6 +1,6 @@
 # ADR 0033: Promote stable releases through one protected CI workflow
 
-- Status: Accepted; amended 2026-09-01 for v1.1.1 repository-admission and immutable-Release closure
+- Status: Accepted; amended 2026-09-02 for multi-suite exact-check admission
 - Date: 2026-07-22
 - Owners: Product owner, release owner, security/repository owner
 
@@ -55,9 +55,10 @@ the workflow:
    `dotnet / build-test`, the selected product SHA is the exact source-branch
    head, and its tree equals the reviewed final-PR tree;
 2. validates version and release-note consistency;
-3. proves check-run and review-thread pagination is complete, requires exactly
-   one completed successful GitHub Actions run for each closed required-check
-   name at the reviewed head, and classifies every unresolved review thread from
+3. proves check-run and review-thread pagination is complete, requires one or
+   more GitHub Actions runs for each closed required-check name and requires
+   every same-name run to bind the exact reviewed head with completed/success
+   status, and classifies every unresolved review thread from
    one recognized P0-P3 marker; unresolved P0/P1 or unclassifiable evidence
    blocks, while independently scoped P2/P3 may remain visible and proceed in
    parallel;
@@ -83,6 +84,15 @@ environment's release owner must inspect and attest the omitted no-bypass
 setting.
 These requirements begin at `v1.1.1`; historical Release evidence is not
 relabeled.
+
+The same exact commit may carry both final-PR and protected-main-push check
+suites. Duplicate same-name evidence is admitted only when at least one match
+exists and every match has the exact reviewed head, `appSlug=github-actions`,
+`status=completed`, and `conclusion=success`. A mixed failed, pending,
+wrong-head, or wrong-app duplicate fails closed; the workflow never selects one
+latest or successful run to hide another result. Non-required in-progress runs
+may retain GitHub's null conclusion in the collected snapshot, but a completed
+run with a null conclusion is malformed and a pending required run cannot pass.
 
 An ordinary `main` push does not automatically package. `main-package` becomes a
 reusable/manual preview path or is retired once the promotion workflow provides
@@ -196,7 +206,8 @@ workflow permission.
 - architecture/policy tests prove PR workflows have read-only permissions and
   never use `pull_request_target`;
 - workflow tests cover invalid version, non-main SHA, tree mismatch, missing
-  notes, unprotected main, missing/extra/duplicate/stale required checks,
+  notes, unprotected main, missing/stale required checks, all-green duplicate
+  suites, mixed failed/pending/wrong-head/wrong-app duplicates,
   truncated pagination, unresolved P0/P1, unclassifiable review threads,
   inactive tag rules, failing candidate verification, rejected approval,
   existing tag, immutable=false, asset state/size/digest drift, and eligible

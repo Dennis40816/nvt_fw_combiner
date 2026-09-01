@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 2,
+  "taskId": "REL-111-CHECK-RUN-MULTI-SUITE-01",
+  "capability": "Admit every exact passing required-check suite on one reviewed release head without letting pending or mixed duplicate evidence mask a failure",
+  "integrationBase": "a1681355b627dc4b1fcbd992116cc32d2631e906",
+  "risk": "R3",
+  "kind": "release",
+  "state": "design-active",
+  "mutablePaths": [
+    ".github/workflows/release.yml",
+    "docs/adr/0033-ci-owned-stable-release-promotion.md",
+    "scripts/release_promotion_policy.py"
+  ],
+  "implementationOwner": "primary-agent",
+  "searchEvidence": [
+    "scripts/release_promotion_policy.py::_collect_check_runs is the sole bounded GitHub check-run collector and validate_repository_admission is the sole semantic release-admission owner; .github/workflows/release.yml only projects the same evidence into the existing candidate snapshot.",
+    "Formal release run 33550293195 at exact protected-main SHA 2d2b2660a64d4ecff4d70e328a6dc3a3348d23b9 failed before build or package mutation because the collector required conclusion to be a string while the current release candidate and concurrent main CI exposed legitimate in-progress check runs with conclusion=null.",
+    "After automatic main CI run 33550253529 completed successfully, a canonical local collect against the same exact SHA still failed because GitHub filter=latest returned both PR and push suites: each closed required name had two exact completed successful github-actions matches while the admitted policy required exactly one.",
+    "Selecting one latest or any successful check would allow a good suite to hide a same-name failed, pending, wrong-head or wrong-app duplicate. Requiring one or more name matches and requiring every match to satisfy the exact passing predicate preserves fail-closed evidence under multiple GitHub check suites.",
+    "ADR 0033 owns the prior exactly-one cardinality and is amended in the same batch. Historical final records remain immutable. The executable release workflow change invalidates the current parity workflow projection, so a separate append-only H1-to-H4 parity renewal remains mandatory after these bytes freeze."
+  ],
+  "semanticOwner": "scripts/release_promotion_policy.py remains the sole bounded repository-admission collector and validator; .github/workflows/release.yml remains the sole release mutation owner; ADR 0033 owns the durable stable-promotion security contract",
+  "terminalContract": "Collect every bounded filter=latest check-run page for the exact reviewed commit. Name, headSha, appSlug and status remain required strings; conclusion may be null only while status is not completed, and a completed check with null conclusion is malformed. For each closed required-check name, admission requires one or more same-name entries and every same-name entry must bind the exact review head, appSlug github-actions, status completed and conclusion success. No entry is prefiltered by app, head, status or conclusion before the universal predicate; zero matches, mixed failure, pending, wrong-head or wrong-app duplicates all fail closed. The PowerShell review-snapshot projection mirrors the same name-only >=1-and-all-exact-pass rule. Exact required-name rules, pagination, temporal candidate/pre-tag/pre-Release boundaries, review-thread and tag-ruleset gates, least privilege, package contents, product, firmware, profiles, UI, Version deployment and v1.0.8 remain unchanged. Freeze and independently review these bytes, then complete a separate append-only parity authority renewal before release.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "admission_batch_architecture",
+    "outcome": "findings-incorporated",
+    "evidence": "Independent bounded R3 design review approved the core >=1 plus all same-name exact-pass predicate and confirmed integrationBase a1681355b627dc4b1fcbd992116cc32d2631e906. Its two P1 findings are incorporated by amending ADR 0033 in the same governed batch and by making a new append-only parity H1-to-H4 renewal an explicit post-freeze release gate. Its P2 evidence finding is incorporated through parameterized wrong-head, wrong-app, pending and failed duplicate regressions, zero-match rejection, unrelated in-progress null collection, completed-null rejection, required-pending rejection and exact PowerShell workflow execution with duplicate suites. No new verifier, executor, suite selector, latest-success picker or ADR is introduced."
+  },
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": {
+    "reviewer": null,
+    "outcome": "pending",
+    "evidence": ""
+  }
+}

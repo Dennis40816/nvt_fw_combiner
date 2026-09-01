@@ -249,15 +249,17 @@ def validate_repository_admission(
     for required_name in REQUIRED_RELEASE_CHECKS:
         matches = [item for item in check_runs if item.get("name") == required_name]
         _require(
-            len(matches) == 1,
-            f"required check runs must contain exactly one {required_name}",
+            bool(matches),
+            f"required check runs must contain at least one {required_name}",
         )
-        match = matches[0]
         _require(
-            match.get("headSha") == review_head_sha
-            and match.get("appSlug") == "github-actions"
-            and match.get("status") == "completed"
-            and match.get("conclusion") == "success",
+            all(
+                match.get("headSha") == review_head_sha
+                and match.get("appSlug") == "github-actions"
+                and match.get("status") == "completed"
+                and match.get("conclusion") == "success"
+                for match in matches
+            ),
             f"required check runs are not exact and passing: {required_name}",
         )
 
@@ -928,7 +930,17 @@ def _collect_check_runs(repository: str, review_head_sha: str) -> list[dict[str,
                 "conclusion": item.get("conclusion"),
             }
             _require(
-                all(isinstance(value, str) for value in normalized.values()),
+                all(
+                    isinstance(normalized[field], str)
+                    for field in ("name", "headSha", "appSlug", "status")
+                )
+                and (
+                    isinstance(normalized["conclusion"], str)
+                    or (
+                        normalized["conclusion"] is None
+                        and normalized["status"] != "completed"
+                    )
+                ),
                 "required check-run entry is malformed",
             )
             check_runs.append(normalized)

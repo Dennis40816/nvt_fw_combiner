@@ -313,7 +313,27 @@ class ReleasePromotionPolicyTests(unittest.TestCase):
                         }}
                         for name in {REQUIRED_RELEASE_CHECKS!r}
                     ]
-                    total_count = 4 if scenario == "truncated_checks" else 3
+                    if scenario == "duplicate_success":
+                        runs.extend(dict(run) for run in runs)
+                    elif scenario == "in_progress_unrelated":
+                        runs.append({{
+                            "name": "release / candidate",
+                            "head_sha": "{REVIEW_HEAD_SHA}",
+                            "app": {{"slug": "github-actions"}},
+                            "status": "in_progress",
+                            "conclusion": None
+                        }})
+                    elif scenario == "completed_null":
+                        runs.append({{
+                            "name": "release / candidate",
+                            "head_sha": "{REVIEW_HEAD_SHA}",
+                            "app": {{"slug": "github-actions"}},
+                            "status": "completed",
+                            "conclusion": None
+                        }})
+                    elif scenario == "required_pending":
+                        runs[0] = {{**runs[0], "status": "in_progress", "conclusion": None}}
+                    total_count = len(runs) + 1 if scenario == "truncated_checks" else len(runs)
                     if scenario == "low_total_late_duplicate":
                         page_runs = {{1: runs, 2: [runs[0]]}}.get(page_number, [])
                     else:
@@ -1095,16 +1115,6 @@ class ReleasePromotionPolicyTests(unittest.TestCase):
                 "required status checks",
             ),
             ({**admission, "checkRuns": admission["checkRuns"][:-1]}, "check runs"),
-            (
-                {
-                    **admission,
-                    "checkRuns": [
-                        *admission["checkRuns"],
-                        admission["checkRuns"][0],
-                    ],
-                },
-                "check runs",
-            ),
             ({**admission, "tagRulesets": []}, "stable tag"),
         )
         for mutated_admission, message in cases:
@@ -1114,6 +1124,23 @@ class ReleasePromotionPolicyTests(unittest.TestCase):
                         {**snapshot, "repositoryAdmission": mutated_admission},
                         **{**self.candidate_arguments(), "source_version": "1.1.1"},
                     )
+
+    def test_v111_repository_admission_accepts_multiple_exact_passing_suites(
+        self,
+    ) -> None:
+        admission = valid_repository_admission()
+        MODULE.validate_repository_admission(
+            {
+                **admission,
+                "checkRuns": [
+                    *admission["checkRuns"],
+                    *(dict(check) for check in admission["checkRuns"]),
+                ],
+            },
+            main_sha=SHA,
+            review_head_sha=REVIEW_HEAD_SHA,
+            expected_tag="v1.1.1",
+        )
 
     def test_v111_tag_ruleset_inventory_rejects_malformed_entries_after_match(
         self,
@@ -1216,6 +1243,46 @@ class ReleasePromotionPolicyTests(unittest.TestCase):
                 ),
                 calls,
             )
+
+    def test_repository_admission_collector_preserves_unrelated_pending_check(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory(
+            prefix="release-admission-pending-"
+        ) as temporary:
+            root = Path(temporary)
+            result = self.run_admission_collector(
+                root,
+                scenario="in_progress_unrelated",
+            )
+            self.assertEqual(0, result.returncode, result.stderr)
+            snapshot = json.loads(
+                (root / "admission.json").read_text(encoding="utf-8")
+            )
+            pending = [
+                run
+                for run in snapshot["checkRuns"]
+                if run["name"] == "release / candidate"
+            ]
+            self.assertEqual(1, len(pending))
+            self.assertEqual("in_progress", pending[0]["status"])
+            self.assertIsNone(pending[0]["conclusion"])
+
+    def test_repository_admission_collector_rejects_invalid_null_or_required_pending(
+        self,
+    ) -> None:
+        for scenario, message in (
+            ("completed_null", "malformed"),
+            ("required_pending", "check runs"),
+        ):
+            with self.subTest(scenario=scenario), tempfile.TemporaryDirectory(
+                prefix="release-admission-invalid-check-"
+            ) as temporary:
+                root = Path(temporary)
+                result = self.run_admission_collector(root, scenario=scenario)
+                self.assertNotEqual(0, result.returncode)
+                self.assertIn(message, result.stderr)
+                self.assertFalse((root / "admission.json").exists())
 
     def test_repository_admission_collector_fails_on_late_p1_or_visible_bypass(
         self,
@@ -1360,7 +1427,10 @@ class ReleasePromotionPolicyTests(unittest.TestCase):
             with self.subTest(key=key):
                 mutated = {
                     **admission,
-                    "checkRuns": [{**first, key: value}, *admission["checkRuns"][1:]],
+                    "checkRuns": [
+                        *admission["checkRuns"],
+                        {**first, key: value},
+                    ],
                 }
                 with self.assertRaisesRegex(ValueError, "check runs"):
                     MODULE.validate_repository_admission(
