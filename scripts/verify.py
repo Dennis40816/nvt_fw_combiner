@@ -1148,6 +1148,29 @@ def _windows_file_api():
     return kernel32
 
 
+def _windows_file_api_path(path: Path) -> str:
+    """Return an absolute extended-length path without resolving filesystem state."""
+
+    absolute = str(path.absolute())
+    if absolute.startswith("\\\\.\\"):
+        raise RuntimeError("Windows device namespace paths are forbidden")
+    if absolute.startswith("\\\\?\\"):
+        extended = absolute[4:]
+        is_drive = re.match(r"^[A-Za-z]:\\", extended) is not None
+        unc_parts = (
+            extended[4:].split("\\")
+            if extended[:4].casefold() == "unc\\"
+            else []
+        )
+        is_unc = len(unc_parts) >= 2 and all(unc_parts[:2])
+        if not (is_drive or is_unc):
+            raise RuntimeError("Windows extended namespace paths are forbidden")
+        return absolute
+    if absolute.startswith("\\\\"):
+        return "\\\\?\\UNC\\" + absolute[2:]
+    return "\\\\?\\" + absolute
+
+
 def _open_windows_path(
     path: Path,
     *,
@@ -1169,7 +1192,7 @@ def _open_windows_path(
         share_mode |= 0x00000004
     flags = 0x02000000 | 0x00200000
     handle = kernel32.CreateFileW(
-        str(path),
+        _windows_file_api_path(path),
         desired_access,
         share_mode,
         None,

@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 2,
+  "taskId": "VERIFY-111-LONG-PATH-CLEANUP-01",
+  "capability": "Clean one marker-owned Windows verifier session when a regular descendant exceeds the legacy Win32 path length without broad deletion, retry, fallback, or custody weakening",
+  "integrationBase": "55bdd92cd171159aeea3f98f552b50f6d1ffb2df",
+  "risk": "R2",
+  "kind": "governance",
+  "state": "design-active",
+  "mutablePaths": [
+    "scripts/verify.py"
+  ],
+  "implementationOwner": "primary-agent",
+  "searchEvidence": [
+    "The canonical full verifier at 55bdd92cd171159aeea3f98f552b50f6d1ffb2df passed structure and 810 of 811 repository-script tests; its only test error was TemporaryDirectory cleanup of a pinned canonical snapshot where the parent directory path was 224 characters and the remaining ordinary BIN made the full path exceed 260 characters.",
+    "The failed run retained its exact marker-bound session instead of deleting broadly. Revalidation through validate_test_session succeeded, but the canonical cleanup_test_session then reproduced WinError 3 in filesystem_identity -> _open_windows_path while descending to the same long ordinary file, proving the verifier cleanup owner shares the textual CreateFileW path defect.",
+    "scripts/verify.py::_open_windows_path is the sole Win32 handle-open boundary used by filesystem identity, retained custody, reparse-safe exact deletion, and session cleanup. It currently passes str(path) directly to CreateFileW while retaining all identity, OPEN_REPARSE_POINT, share, access, and delete behavior in surrounding owners.",
+    "scripts/v0916_parity_certification.py::_native_path already proves the three-branch extended-length textual protocol for an already absolute local path, but importing the parity authority into the canonical verifier or extracting another shared module would create the wrong dependency and unnecessary ownership. The verifier must reuse only that bounded protocol pattern inside its existing Win32 adapter.",
+    "tests/scripts/test_verify_orchestration.py already owns real Windows marker/session cleanup evidence for broad-rmtree prohibition, readonly entries, reparse rejection, sibling preservation, identity races, and exact handle deletion. tests/scripts/test_v0916_parity_contracts.py already exercises the parity runner's controlled_temporary_directory and is the correct existing helper for its large pinned snapshot."
+  ],
+  "semanticOwner": "scripts/verify.py::_open_windows_path remains the sole textual-to-Win32 handle admission boundary, while validate_test_session, cleanup_test_session, and the existing custody/deletion helpers remain the sole marker, identity, containment, reparse, inventory, and deletion owners",
+  "terminalContract": "Add one private textual normalizer immediately at the existing _open_windows_path boundary. It uses str(path.absolute()) without resolve or any filesystem traversal; preserves only syntactically ordinary already-extended drive and UNC forms; converts an ordinary UNC path to \\\\?\\UNC\\server\\share form; and converts an ordinary absolute drive path to \\\\?\\C:\\... form before the existing CreateFileW call. It explicitly rejects the \\\\.\\ device namespace and every extended namespace other than \\\\?\\C:\\... or case-insensitive \\\\?\\UNC\\server\\share forms, and leaves every CreateFileW failure fail-closed. Retain the exact desired access, OPEN_REPARSE_POINT, backup semantics, share read/write/delete settings, handle identity checks, marker bytes, direct-child session boundary, recursive inventory order, readonly handling, deletion-by-owned-handle, cleanup deadline, signal deferral, and residue-on-error behavior. Add no resolve call, cwd dependence, retry, sleep, broad shutil.rmtree, Remove-Item, fallback deletion, second cleanup owner, shared module, parity import, or path-length waiver. A real Windows regression creates one regular file whose parent path remains below 260 characters and whose complete path exceeds 260, then proves true cleanup_test_session removes only the newly marker-owned session while a stale sessions sibling and an external sentinel remain. A pure matrix binds drive, UNC, permitted already-extended drive/UNC, relative-to-absolute, and rejected device/GLOBALROOT/Volume/pipe textual behavior. The pinned canonical materialization regression reuses the existing controlled_temporary_directory and no new test cleanup helper. Focused parity and Windows cleanup tests, all existing session custody/reparse/readonly/broad-delete tests, structure-only, the canonical full verifier, and independent exact-head R2 semantic/Polytail review remain required. No product, firmware, profile, range, mutation, CRC/header, Golden, package, workflow, release, UI, or support semantics change.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "v111_release_architecture_review",
+    "outcome": "findings-incorporated",
+    "evidence": "Independent R2 design review reproduced the WinError 3 boundary and approved only a textual correction at the existing _open_windows_path adapter. It required path.absolute rather than resolve, ordinary UNC and drive conversion, no device-namespace expansion, and no change to handle identity, OPEN_REPARSE_POINT, share/delete, marker, recursive inventory, retry, fallback, or residue semantics. Review rejected importing the parity-specific helper or extracting a shared module as wrong-owner over-engineering, required a real long ordinary file cleanup regression plus a pure normalization matrix, retained all existing destructive-containment tests, and found no firmware, runtime, package, release, or architectural authority change. Exact-head review then found one P1 because the first implementation preserved every \\\\?\\ namespace, including GLOBALROOT, Volume GUID, and pipe forms. The incorporated design and tests now preserve only syntactically ordinary extended drive and case-insensitive extended UNC forms and reject every other extended namespace before CreateFileW."
+  },
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": {
+    "reviewer": null,
+    "outcome": "pending",
+    "evidence": ""
+  }
+}

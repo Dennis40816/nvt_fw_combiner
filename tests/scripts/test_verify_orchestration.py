@@ -5207,6 +5207,80 @@ class VerifyOrchestrationTests(unittest.TestCase):
                 "external", (external / "sentinel").read_text(encoding="utf-8")
             )
 
+    @unittest.skipUnless(sys.platform == "win32", "Windows long-path cleanup contract")
+    def test_windows_file_api_path_uses_extended_length_namespace(self) -> None:
+        drive = Path(r"C:\workspace\payload.bin")
+        unc = Path(r"\\server\share\payload.bin")
+        extended = Path(r"\\?\C:\workspace\payload.bin")
+        extended_unc = Path(r"\\?\unc\server\share\payload.bin")
+        relative = Path("relative-payload.bin")
+
+        self.assertEqual(
+            r"\\?\C:\workspace\payload.bin",
+            MODULE._windows_file_api_path(drive),
+        )
+        self.assertEqual(
+            r"\\?\UNC\server\share\payload.bin",
+            MODULE._windows_file_api_path(unc),
+        )
+        self.assertEqual(str(extended), MODULE._windows_file_api_path(extended))
+        self.assertEqual(
+            str(extended_unc), MODULE._windows_file_api_path(extended_unc)
+        )
+        self.assertEqual(
+            "\\\\?\\" + str(relative.absolute()),
+            MODULE._windows_file_api_path(relative),
+        )
+        with self.assertRaisesRegex(RuntimeError, "device namespace"):
+            MODULE._windows_file_api_path(Path(r"\\.\C:\payload.bin"))
+        for forbidden in (
+            Path(r"\\?\GLOBALROOT\Device\HarddiskVolume1\payload.bin"),
+            Path(r"\\?\Volume{01234567-89ab-cdef-0123-456789abcdef}\payload.bin"),
+            Path(r"\\?\pipe\nfc-cleanup-probe"),
+        ):
+            with self.subTest(forbidden=forbidden), self.assertRaisesRegex(
+                RuntimeError, "extended namespace"
+            ):
+                MODULE._windows_file_api_path(forbidden)
+
+    @unittest.skipUnless(sys.platform == "win32", "Windows long-path cleanup contract")
+    def test_windows_cleanup_removes_extended_length_descendant_exactly(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            base = Path(temporary)
+            root = base / "test-area"
+            root.mkdir()
+            external = base / "external"
+            external.mkdir()
+            (external / "sentinel").write_text("external", encoding="utf-8")
+            stale = root / "sessions" / "stale"
+            stale.mkdir(parents=True)
+            (stale / "sentinel").write_text("stale", encoding="utf-8")
+
+            with self.verifier_environment(NFC_TEST_AREA_ROOT=str(root)):
+                with MODULE.verification_test_session(
+                    internal_lane=False
+                ) as session:
+                    long_parent = session / "long-path"
+                    segment = "segment-xxxxxxxxxxxxxxxx"
+                    while len(str(long_parent)) < 210:
+                        long_parent /= segment
+                    payload = long_parent / (
+                        "payload-yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy.bin"
+                    )
+                    self.assertLess(len(str(long_parent)), 260)
+                    self.assertGreater(len(str(payload)), 260)
+                    native_parent = Path("\\\\?\\" + str(long_parent.absolute()))
+                    native_parent.mkdir(parents=True)
+                    native_payload = native_parent / payload.name
+                    native_payload.write_bytes(b"long-path")
+                    self.assertEqual(b"long-path", native_payload.read_bytes())
+
+            self.assertFalse(session.exists())
+            self.assertEqual("stale", (stale / "sentinel").read_text(encoding="utf-8"))
+            self.assertEqual(
+                "external", (external / "sentinel").read_text(encoding="utf-8")
+            )
+
     def test_github_session_uses_only_the_runner_temp_derived_test_area(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             runner_temp = Path(temporary)

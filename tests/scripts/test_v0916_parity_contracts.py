@@ -360,10 +360,11 @@ class V0916ParityContractTests(V0916ParityTestBase):
     def test_pinned_canonical_materialization_ignores_worktree_drift_and_reuses_validator(self) -> None:
         raw_plan = json.loads(self.plan_path.read_text(encoding="utf-8"))
         authority = raw_plan["canonicalInputAuthority"]
-        # Keep the host-created Windows snapshot root short enough for the
-        # existing canonical validator's longest governed artifact path.
-        with tempfile.TemporaryDirectory() as temporary:
-            root = Path(temporary)
+        # Reuse the parity runner's exact-root, extended-length cleanup because
+        # the longest governed artifact exceeds legacy Windows path limits.
+        with MODULE.controlled_temporary_directory(
+            "nfc-pinned-authority-test-"
+        ) as root:
             drifted_worktree = root / "drifted-worktree"
             drifted_manifest = drifted_worktree / authority["manifestPath"]
             drifted_manifest.parent.mkdir(parents=True)
