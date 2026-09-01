@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 2,
+  "taskId": "VERIFY-111-CI-ASSEMBLY-EXECUTION-02",
+  "capability": "Bind protected-CI compiled-test discovery and execution to the same prebuilt assembly-level VSTest owner while retaining exact fail-closed identity and coverage evidence",
+  "integrationBase": "4c1cce2f9c96f8558b07abaa8c43d85edb7a0b7a",
+  "risk": "R2",
+  "kind": "governance",
+  "state": "design-active",
+  "mutablePaths": [
+    "scripts/validate_repository.py",
+    "scripts/verify.py"
+  ],
+  "implementationOwner": "primary-agent",
+  "searchEvidence": [
+    "scripts/verify.py already owns compiled .NET discovery, local assembly-level VSTest execution, protected-CI project-level execution, pinned Coverlet adapter resolution and exact discovery-to-TRX Counter reconciliation; no second verifier, runner or inventory owner is required.",
+    "PR #409 run 33555736774 and a fresh local canonical core shard at source 083d2503f7a8a7d6b478c18cff832e317f50eb84 each discovered 1,070 Infrastructure identities but executed 1,069 with 1,067 Passed, the same two approved Windows skips and zero Failed. The exact missing execution identity was NvtFwCombiner.Infrastructure.Tests.VersionManagement.ManagedDistributionLauncherRuntimeTests.PromotedCustodyCloneStartsWhileRootReplacementBlocked.",
+    "The failing CI path discovers with dotnet vstest against the exact compiled assembly but executes with dotnet test against the project. The existing local_dotnet_vstest_command already executes that exact assembly with the repository-pinned Coverlet adapter and the same owned Infrastructure xUnit settings.",
+    "The smallest owner-preserving correction is for protected CI to reuse the existing assembly-level VSTest execution command and pinned adapter after its existing immutable Release build. Exact Counter equality, failed-result rejection, approved producer-platform skips, coverage pairing, assembly immutability and source-tree immutability remain unchanged; no filter, retry, expected-count exception or tolerance is admitted.",
+    "The independent Python release-policy failure is a test-harness synchronization race: after the wrapper publishes a lock-target path, the background holder can observe a transient ERROR_FILE_NOT_FOUND or ERROR_PATH_NOT_FOUND before opening the residual. A bounded retry under the existing ten-second deadline changes no product cleanup behavior and still rejects every other Win32 error immediately.",
+    "scripts/validate_repository.py already audits the canonical verifier's .NET coverage command markers but names the obsolete project-level ci_dotnet_test_command and lowercase dotnet-test options. Synchronizing that existing audit to the reused exact-assembly owner is required to remove the redundant facade without weakening the structure gate."
+  ],
+  "semanticOwner": "scripts/verify.py::local_dotnet_vstest_command, dotnet_vstest_discovery_command and require_discovered_test_results remain the sole compiled discovery, execution and exact identity reconciliation owners for both local and protected-CI evidence; scripts/validate_repository.py only audits that owner contract and neither executes nor redefines test semantics",
+  "terminalContract": "Protected CI discovers and executes every prebuilt test project from the same exact Release assembly through VSTest, using the existing repository-pinned Coverlet adapter and owned Infrastructure xUnit settings. The repository structure gate requires that exact owner and rejects reintroduction of the obsolete project-level execution markers. Discovery and terminal TRX identities remain exact Counter-equal; failed identities, unapproved skips, filters, retries, expected-total exceptions, adapter fallback, coverage reduction and output mutation remain forbidden. The release-policy lock test may retry only Win32 path-not-yet-visible errors under its existing ten-second test deadline; production package cleanup is unchanged.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "admission_batch_architecture",
+    "outcome": "findings-incorporated",
+    "evidence": "Independent bounded R2 design review reported P0=0, P1=0, P2=1 and P3=2. The required P2 is incorporated by passing the explicit current ROOT to the pinned adapter resolver and asserting one isolated resolver call in shard regressions. The P3 single-owner recommendation is incorporated by deleting the redundant CI execution facade, calling local_dotnet_vstest_command directly, updating its exact-assembly contract text and synchronizing the existing structure audit to those exact command markers. The reviewer approved the bounded Win32 2/3 retry under the unchanged shared ten-second test deadline and required no ADR."
+  },
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": {
+    "reviewer": null,
+    "outcome": "pending",
+    "evidence": ""
+  }
+}
