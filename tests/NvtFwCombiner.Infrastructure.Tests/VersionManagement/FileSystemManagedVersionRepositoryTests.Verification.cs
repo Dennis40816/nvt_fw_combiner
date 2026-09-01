@@ -48,6 +48,29 @@ public sealed partial class FileSystemManagedVersionRepositoryTests
         Assert.True(managed.HasSupportedManagedLauncher);
     }
 
+    /// <summary>A manual-only release is intentionally not a managed Version install candidate.</summary>
+    [Fact]
+    public async Task ManualOnlyReleaseManifestFailsClosedFromManagedVersionVerification()
+    {
+        using var workspace = TempWorkspace.Create();
+        string sourceRoot = workspace.PathFor("manual-only-source");
+        UpdateCatalogVersionSnapshot package = CreatePackage(
+            sourceRoot,
+            "1.1.0",
+            mutateManifest: static manifest =>
+            {
+                manifest["schemaVersion"] = "1.3";
+                manifest["distributionMode"] = "manual-only";
+            });
+
+        ManagedPackageVerificationResult result = await new FileSystemManagedVersionRepository()
+            .VerifyPackageAsync(sourceRoot, package, TestContext.Current.CancellationToken);
+
+        Assert.False(result.IsVerified);
+        Assert.Equal(ManagedVersionInstallIssue.InvalidPayload, result.Issue);
+        Assert.False(result.HasSupportedManagedLauncher);
+    }
+
     /// <summary>JSON-null manifest collections fail closed as invalid payload.</summary>
     [Fact]
     public async Task NullManifestCollectionsFailAsInvalidPayload()
