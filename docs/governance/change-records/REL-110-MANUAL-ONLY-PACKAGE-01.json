@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 2,
+  "taskId": "REL-110-MANUAL-ONLY-PACKAGE-01",
+  "capability": "Publish v1.1.0 as a canonical Windows x64 manual-only Application package",
+  "integrationBase": "71cd4cdcca278cda8d823eee8615e8754b00a8b1",
+  "risk": "R3",
+  "kind": "release",
+  "state": "design-review-required",
+  "mutablePaths": [
+    "VERSION",
+    "CHANGELOG.md",
+    "scripts/package.ps1",
+    "scripts/smoke-release.ps1",
+    "docs/contracts/release-manifest-v1.schema.json",
+    "docs/contracts/release-manifest-v1.md",
+    "docs/ci/release-package.md",
+    "tests/scripts/test_release_smoke_policy.py",
+    "tests/scripts/test_release_package_policy.py",
+    "tests/NvtFwCombiner.Architecture.Tests/RepositoryBoundaryTests.LauncherBootstrap.cs"
+  ],
+  "implementationOwner": "/root",
+  "searchEvidence": [
+    "scripts/package.ps1 is the sole package-construction owner. Its existing AllowPrerelease branch already projects the Application without either managed Launcher, so ManualOnly must extend that seam rather than introduce a second packager.",
+    "Release-manifest schema 1.1 is historical preview compatibility and ManagedPackageVerifier still admits it. A distinct schema 1.3 distributionMode=manual-only lets the existing Version flow reject the artifact fail-closed without changing Version runtime behavior.",
+    "The frozen v1.0.8 packager deterministically rejects six zero-byte Golden provenance placeholders before ZIP creation. Manual-only is a user runtime package, so it omits the entire reference/Golden evidence payload and leaves the v1.0.8 redistribution authority unchanged.",
+    "scripts/smoke-release.ps1 already owns closed inventory, hashes, SBOM/provenance, CRC worker and visible Application startup. It remains the only artifact smoke owner and gains only the schema 1.3 admission branch.",
+    "The owner explicitly excluded Launcher, Setup, Catalog, Registry, automatic update and Version deployment, and directed that v1.1.0 not rerun the full release workflow. The known full verifier shadow/repository-root failure is assigned to the v1.1.1 verification-architecture milestone."
+  ],
+  "semanticOwner": "scripts/package.ps1 plus docs/contracts/release-manifest-v1.schema.json and scripts/smoke-release.ps1",
+  "terminalContract": "Add one explicit -ManualOnly stable package mode to the existing packager. VERSION, executable metadata, source tag, ZIP, manifest, SBOM and provenance must all be 1.1.0. Emit schema 1.3 with distributionMode=manual-only; omit the ZIP managed Launcher, all Distribution Launcher assets, every reference/Golden payload, Bootstrap, Catalog and Registry handoff content. Preserve the existing managed stable and prerelease branches byte-for-policy. Smoke must reject any Launcher, Bootstrap or reference path in schema 1.3 while retaining the closed allowlist, hashes, sidecars, CRC worker and visible Application startup. The managed Version flow must continue to reject schema 1.3. Publish only the ZIP, SPDX SBOM and provenance assets with explicit Windows x64 manual-download notes. Do not change firmware composition, profiles, byte ranges, CRC behavior, runtime support, Catalog/Registry behavior or v1.0.8 source/history. By owner direction, do not run verify.py --all or the managed release workflow; run only release-contract tests, package construction, package smoke, visible startup and fresh-download verification.",
+  "disposition": "extend-owner"
+}
