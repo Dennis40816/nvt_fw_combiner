@@ -1,0 +1,9 @@
+{
+  "schemaVersion": 1,
+  "taskId": "REL-111-ZERO-BYTE-REFERENCE-01",
+  "authorityType": "release-owner",
+  "reviewedHead": "6af369be4873fb9427d1d7ed778728275c09428b",
+  "decision": "approved",
+  "reviewer": "Dennis Liu (release owner)",
+  "evidence": "The release owner explicitly approved the fastest safe v1.1.1 publication and directed that, once a clear release blocker is found and corrected, unrelated local full verification need not be rerun before release. This attestation approves exact final-evidence head 6af369be4873fb9427d1d7ed778728275c09428b for the bounded canonical release-manifest correction reviewed at implementation 1d0f85dac219994adf1b66ca08f0b193849afa4c with P0=P1=P2=P3=0. The change admits only exact zero-byte reference evidence with the standard empty-byte SHA-256, retains non-empty application, launcher, legal/readme, capability, profile, external-tool and goldenFixture entries, and changes no package construction, product, firmware, profile, Golden bytes, support or Version deployment behavior. Targeted executable schema evidence and the actual v1.1.1 manifest passed. This approval does not waive protected exact-head PR/main CI, canonical release packaging and smoke, immutable tag, GitHub Release, or fresh-download audit gates."
+}
