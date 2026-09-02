@@ -1,0 +1,9 @@
+{
+  "schemaVersion": 1,
+  "taskId": "VERIFY-111-LOCK-PROJECTION-CUSTODY-01",
+  "authorityType": "release-owner",
+  "reviewedHead": "7085a7d77d3125e14c637a01bde3d8dd342ea0ec",
+  "decision": "approved",
+  "reviewer": "Dennis Liu (release owner)",
+  "evidence": "The release owner explicitly approved proceeding with the v1.1.1 release, directed that a clear release blocker may be fixed without rerunning unrelated local verification, and instructed publication as soon as no major issue remains. This attestation approves exact final-evidence head 7085a7d77d3125e14c637a01bde3d8dd342ea0ec for the bounded verifier lock-projection custody implementation reviewed at 7d8301bc1a418a2cbabd6d5f1636edad236f8691 with P0=P1=P2=P3=0. The approved scope preserves the exact committed Windows RID projections across canonical solution restore through the existing verifier owner, admits only the closed 25-project/25-lock src/tests inventory, rejects non-RID semantic drift before writes, and restores only approved RID-removal deltas atomically to exact bytes. It does not waive protected Windows CI, the canonical release verifier, package cleanliness, immutable tag, GitHub Release, or fresh-download audit gates."
+}
