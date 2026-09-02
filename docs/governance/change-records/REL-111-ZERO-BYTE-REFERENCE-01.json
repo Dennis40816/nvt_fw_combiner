@@ -5,7 +5,7 @@
   "integrationBase": "9f2a25f5d48e11eae4cd736b2f31f686d4d20b4e",
   "risk": "R3",
   "kind": "release",
-  "state": "design-active",
+  "state": "final-complete",
   "mutablePaths": [
     "docs/contracts/release-manifest-v1.md",
     "docs/contracts/release-manifest-v1.schema.json"
@@ -25,12 +25,12 @@
     "outcome": "findings-incorporated",
     "evidence": "Independent R3 review first reported P0=0, P1=0, P2=2, P3=0: the draft did not pin the empty-byte SHA and its test inspected schema structure without executing instance validation. Both findings were incorporated. Re-review approved the bounded existing-owner extension with P0=P1=P2=P3=0: size==0 now implies role=reference and exact empty SHA; fileCommon still rejects negative/non-integer sizes; existing oneOf keeps reference/golden paths closed; a real PowerShell Test-Json five-case matrix plus the actual generated v1.1.1 manifest and wrong-hash mutation prove the projection. No ADR, new owner, packager, workflow, product, firmware, profile, golden-byte, or Version runtime change is required."
   },
-  "implementationHead": null,
-  "reviewedHead": null,
-  "pathStateDigest": null,
+  "implementationHead": "1d0f85dac219994adf1b66ca08f0b193849afa4c",
+  "reviewedHead": "1d0f85dac219994adf1b66ca08f0b193849afa4c",
+  "pathStateDigest": "517dc4cc8ef1936d26f5c07cf7cbd991300c1d674433b7651af94ddc1b2b95b9",
   "finalReview": {
-    "reviewer": null,
-    "outcome": "pending",
-    "evidence": ""
+    "reviewer": "admission_batch_architecture",
+    "outcome": "approved",
+    "evidence": "Independent frozen exact-head R3 correctness and scoped Polytail review approved implementation 1d0f85dac219994adf1b66ca08f0b193849afa4c, parent 49f5d609, with P0=P1=P2=P3=0. The exact three-path implementation diff matches the approved working-tree design; integrationBase 9f2a25f5d48e11eae4cd736b2f31f686d4d20b4e is ancestral; and the governed mutable paths are exactly the canonical schema and contract document while the Python regression remains executable evidence. The schema binds every zero size to role reference and the exact empty-byte SHA, while the existing oneOf, closed inventory and non-empty runtime/tool/profile/golden roles remain fail closed. A real PowerShell Test-Json five-case matrix passed, the actual generated v1.1.1 manifest passed, a wrong-empty-hash mutation failed, targeted pytest passed 3/3, and ruff passed. The diff adds no duplicate validator, packager or workflow bypass and changes no product, firmware, profile, Golden byte, support or Version compatibility behavior."
   }
 }
