@@ -1,0 +1,9 @@
+{
+  "schemaVersion": 1,
+  "taskId": "RELEASE-111-PACKAGE-DIRTY-EVIDENCE-01",
+  "authorityType": "release-owner",
+  "reviewedHead": "b5f2adffdf50f6c9665bf53d09796d789834f6e9",
+  "decision": "approved",
+  "reviewer": "Dennis Liu (release owner)",
+  "evidence": "The release owner explicitly approved the fastest safe formal v1.1.1 publication, authorized continuing after bounded risk assessment, and required that repeated release-flow gaps be diagnosed rather than hidden. Final evidence head b5f2adffdf50f6c9665bf53d09796d789834f6e9 closes exact implementation aae1bd8b417bc3dd471d5a83e807d3a93fcc85bb, which preserves the existing fail-closed dirty-worktree predicate and only exposes the already captured Git porcelain entries after three protected release candidates completed the full verifier but stopped at the generic package cleanliness exception. Independent exact-head R3 review reported P0=0, P1=0, P2=0 and P3=0 with scoped Polytail PASS-WITH-HUMAN-GATE; the focused staged, unstaged and untracked regression passed all three subcases. This approval does not waive exact-head protected CI, protected release-environment approval, removal of the actual dirty entry, package construction, publication, published smoke or fresh-download audit and does not modify firmware, product/package payload behavior, Version deployment or v1.0.8."
+}
