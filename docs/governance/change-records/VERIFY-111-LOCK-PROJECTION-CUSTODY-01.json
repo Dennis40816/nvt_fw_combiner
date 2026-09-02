@@ -5,7 +5,7 @@
   "integrationBase": "b5f2adffdf50f6c9665bf53d09796d789834f6e9",
   "risk": "R3",
   "kind": "release",
-  "state": "design-active",
+  "state": "final-complete",
   "mutablePaths": [
     "scripts/verify.py"
   ],
@@ -24,12 +24,12 @@
     "outcome": "findings-incorporated",
     "evidence": "Independent bounded R3 design review reported P0=0, P1=0, P2=2, and P3=0 and approved the verifier-owner extension after requiring the 25-project/25-lock closed inventory, src/tests-only ordinary non-reparse paths, full-set classification before any write, at-least-one exact /win-x64 removal, recursive duplicate-key rejection, atomic exact-byte restoration with postcheck, complete exception/residue custody, and explicit shared call sites. Both native locked-mode alternatives were independently disproved, so no ADR or workflow change is required."
   },
-  "implementationHead": null,
-  "reviewedHead": null,
-  "pathStateDigest": null,
+  "implementationHead": "7d8301bc1a418a2cbabd6d5f1636edad236f8691",
+  "reviewedHead": "7d8301bc1a418a2cbabd6d5f1636edad236f8691",
+  "pathStateDigest": "d33f55112b330ceda41af79460d26561509ea72fd57ecaa3d1ccea3baadf8633",
   "finalReview": {
-    "reviewer": null,
-    "outcome": "pending",
-    "evidence": ""
+    "reviewer": "admission_batch_architecture",
+    "outcome": "approved",
+    "evidence": "Independent exact-head R3 correctness and scoped Polytail review reported P0=0, P1=0, P2=0, and P3=0. Transfer confirmation verified that implementation head 7d8301bc1a418a2cbabd6d5f1636edad236f8691 has the same three implementation and test blobs as the previously approved candidate: scripts/verify.py c28fa03d453fb205d7141f6172f06c0f2bf487d4, tests/scripts/test_coverage_ci_contract.py f6a96b5a4ce35ee321756a0ad52dc5df4a8a4a36, and tests/scripts/test_verify_orchestration.py 8f8f57e169718dd60e456f2454a1c8a13d012504. The corrected design binds the actual latest final evidence checkpoint b5f2adffdf50f6c9665bf53d09796d789834f6e9. Missing Project paths, valid inventory substitutions, and partial multi-lock cleanup remain fail-closed and preserve primary failure and exact restoration custody; the 25-project/25-lock closed inventory, recursive duplicate-key admission, RID-only delta classification, atomic exact-byte restoration, and explicit shared verifier owners remain intact."
   }
 }
