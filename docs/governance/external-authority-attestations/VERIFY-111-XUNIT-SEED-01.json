@@ -1,0 +1,9 @@
+{
+  "schemaVersion": 1,
+  "taskId": "VERIFY-111-XUNIT-SEED-01",
+  "authorityType": "release-owner",
+  "reviewedHead": "9f2a25f5d48e11eae4cd736b2f31f686d4d20b4e",
+  "decision": "approved",
+  "reviewer": "Dennis Liu (release owner)",
+  "evidence": "The release owner explicitly approved the fastest safe v1.1.1 publication, authorized a clear release blocker to be corrected without rerunning unrelated local verification, and directed release as soon as no major issue remains. This attestation approves exact final-evidence head 9f2a25f5d48e11eae4cd736b2f31f686d4d20b4e for the bounded deterministic Infrastructure VSTest containment reviewed at 4eeedd8b1096fa453acf1ac2c2a7c69b955657a1 with P0=P1=P2=P3=0. The change adds only immutable xUnit.Seed=1738590270 to the existing shared Infrastructure discovery and execution settings, retains universal 1070 identity reconciliation, zero failures, existing approved skips, coverage and TRX, and introduces no retry, filter, tolerance, package, product, firmware, profile, or byte change. The seed-1 launcher-process isolation defect and four-seed deletion gate remain allocated to v1.1.2. This approval does not waive protected exact-head PR/main CI, the canonical release verifier, package cleanliness, immutable tag, GitHub Release, or fresh-download audit gates."
+}
