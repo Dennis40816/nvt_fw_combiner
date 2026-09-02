@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 2,
+  "taskId": "VERIFY-111-LOCK-PROJECTION-CUSTODY-01",
+  "capability": "Preserve the exact committed Windows RID lock projections across canonical solution restore without admitting dependency drift or unowned write paths",
+  "integrationBase": "b5f2adffdf50f6c9665bf53d09796d789834f6e9",
+  "risk": "R3",
+  "kind": "release",
+  "state": "design-active",
+  "mutablePaths": [
+    "scripts/verify.py"
+  ],
+  "implementationOwner": "primary-agent",
+  "searchEvidence": [
+    "scripts/verify.py::dotnet_build_commands and verify_ci_dotnet_test_shard are the existing canonical solution-restore call sites; scripts/package.ps1::Save-SourcePackageLocks/Restore-SourcePackageLocks is the existing package-side exact-byte snapshot pattern, so no second verifier or release workflow reorder is needed.",
+    "Release run 33587931781 passed the complete verifier and then failed the package clean gate because bare solution restore removed the net10.0/win-x64 projection from exactly 13 tracked source packages.lock.json files; isolated exact-5517 evidence showed 13 insertions and 70 deletions with no package-version drift.",
+    "A clean exact-5517 test-area worktree proved native solution restore --locked-mode fails because 13 source locks carry a Windows RID target, while solution restore -r win-x64 --locked-mode fails because Desktop, Presentation, and test locks are neutral; one native locked solution restore cannot satisfy the mixed committed topology.",
+    "scripts/verify.py::validated_path_within_root, is_reparse_point, and require_regular_file already own lexical/root, path-chain, reparse, and ordinary-file admission and must be reused for every solution, project, lock, staging, and destination path."
+  ],
+  "semanticOwner": "scripts/verify.py canonical .NET solution-restore plan and fail-closed package-lock projection custody",
+  "terminalContract": "Before restore, the canonical owner admits regular non-reparse NvtFwCombiner.slnx and parses exactly 25 unique repo-relative Project paths, each under src/ or tests/, with no absolute, empty, dot, parent, duplicate, escaped, non-project, missing, nonregular, symlink, junction, or reparse component. Those 25 projects map one-to-one to 25 unique sibling packages.lock.json files; only that closed set receives snapshot or restoration authority, and no recursive filesystem enumeration or unowned lock can grant a write. The complete closed set and exact bytes are captured before restore and re-admitted after restore; any missing, duplicate, reordered/set-drifted, unreadable, malformed, recursively duplicate-key, root, non-RID, dependency, or other semantic drift is classified across the entire set before any restoration, retains the observed bytes, and fails terminally. A changed lock is restorable only when at least one existing case-exact /win-x64 dependency target was removed and the complete remaining parsed document is otherwise equal to its snapshot. Only after all 25 paths classify cleanly may each admitted change use a same-directory exclusive temporary regular file, exact snapshot bytes, flush and fsync, full temp/destination path-chain revalidation, atomic os.replace, and post-replace regular-file plus exact-byte verification. Partial restoration, secondary inspection/write failure, or staging residue is listed and terminal; an original restore failure retains its type and message by cause or exception note. run_dotnet_build_plan and the CI test-shard restore call the same explicit owner without command-shape inference. Product, firmware, package bytes, release workflow, verification ordering, test inventory, coverage, and lock authority remain unchanged.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "admission_batch_architecture",
+    "outcome": "findings-incorporated",
+    "evidence": "Independent bounded R3 design review reported P0=0, P1=0, P2=2, and P3=0 and approved the verifier-owner extension after requiring the 25-project/25-lock closed inventory, src/tests-only ordinary non-reparse paths, full-set classification before any write, at-least-one exact /win-x64 removal, recursive duplicate-key rejection, atomic exact-byte restoration with postcheck, complete exception/residue custody, and explicit shared call sites. Both native locked-mode alternatives were independently disproved, so no ADR or workflow change is required."
+  },
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": {
+    "reviewer": null,
+    "outcome": "pending",
+    "evidence": ""
+  }
+}
