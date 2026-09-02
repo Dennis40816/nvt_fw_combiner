@@ -5,7 +5,7 @@
   "integrationBase": "e14213439d8811d430553c36dd77b4886331c301",
   "risk": "R3",
   "kind": "release",
-  "state": "design-active",
+  "state": "final-complete",
   "mutablePaths": [
     "scripts/package.ps1"
   ],
@@ -24,12 +24,12 @@
     "outcome": "approved",
     "evidence": "Independent bounded R3 design review found P0/P1/P2/P3 = 0/0/0/0 and scoped Polytail PASS-WITH-HUMAN-GATE. scripts/package.ps1 already solely owns exact repository HEAD and clean index/worktree admission through one fail-closed git status --porcelain=v1 --untracked-files=all invocation. The approved change preserves that command, native exit-code rejection and the non-empty-status terminal predicate byte-for-byte, and only appends the already captured porcelain entries joined with '; ' to the existing dirty-worktree exception. It adds no parser, second status invocation, allowlist, ignore, retry, cleanup, workflow override or successful path for dirty input. Focused staged, unstaged and untracked regressions must retain the nonzero verdict and generic contract while proving each exact porcelain entry is visible. No verifier, workflow, product, firmware, package payload/content, permission or release-promotion semantics change. No ADR is required; exact-head R3 review, narrow policy tests, structure validation and release-owner approval remain mandatory, and the next release candidate must still diagnose and remove the reported dirty entry before packaging can proceed."
   },
-  "implementationHead": null,
-  "reviewedHead": null,
-  "pathStateDigest": null,
+  "implementationHead": "aae1bd8b417bc3dd471d5a83e807d3a93fcc85bb",
+  "reviewedHead": "aae1bd8b417bc3dd471d5a83e807d3a93fcc85bb",
+  "pathStateDigest": "11237a498f656ed8b94bc6ac29b97cc13bf2d20766dbd1f14447111b15b0c715",
   "finalReview": {
-    "reviewer": null,
-    "outcome": "pending",
-    "evidence": ""
+    "reviewer": "admission_batch_architecture",
+    "outcome": "approved",
+    "evidence": "Independent bounded R3 exact-head review approved implementation aae1bd8b417bc3dd471d5a83e807d3a93fcc85bb, the direct child of design admission 4a9988abb6f38fa051cc77a18a3620ba7963cc3e at integration checkpoint e14213439d8811d430553c36dd77b4886331c301. The exact diff changes only scripts/package.ps1 and its existing staged/unstaged/untracked policy regression. The sole package owner still invokes git status --porcelain=v1 --untracked-files=all once, rejects native Git failure, and rejects every non-empty captured status through the unchanged predicate; only the terminal dirty-worktree message now appends the already captured entries joined with '; '. The regression retains the nonzero and generic-error contract and proves normalized A staged.cs, M tracked.txt and ?? untracked.cs diagnostics for all three dirty classes; focused evidence passed 1/1 with three subcases. No parser, ignore, retry, cleanup, second status call, duplicate owner, clean-path behavior, workflow, verifier, product, firmware, package payload/content, permission or promotion semantic changed. P0/P1/P2/P3 = 0/0/0/0; scoped Polytail PASS-WITH-HUMAN-GATE and finalReview approved. Final-record structure validation and release-owner approval remain mandatory R3 gates."
   }
 }
