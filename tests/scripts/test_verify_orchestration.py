@@ -2772,6 +2772,7 @@ class VerifyOrchestrationTests(unittest.TestCase):
             "Configuration.Format=json,cobertura",
             "xUnit.ParallelizeTestCollections=false",
             "xUnit.MaxParallelThreads=1",
+            "xUnit.Seed=1738590270",
         ]
 
         local_command = MODULE.local_dotnet_vstest_command(
@@ -2784,8 +2785,29 @@ class VerifyOrchestrationTests(unittest.TestCase):
             "dotnet",
             assembly,
         )
-        self.assertEqual(expected_settings, local_command[-3:])
-        self.assertEqual(["--", *expected_settings[-2:]], discovery_command[-3:])
+        self.assertEqual(expected_settings, local_command[-4:])
+        self.assertEqual(["--", *expected_settings[-3:]], discovery_command[-4:])
+        self.assertEqual(1, local_command.count("xUnit.Seed=1738590270"))
+        self.assertEqual(1, discovery_command.count("xUnit.Seed=1738590270"))
+
+        ordinary_assembly = Path(
+            "shadow/NvtFwCombiner.Domain.Tests/bin/Release/net10.0/"
+            "NvtFwCombiner.Domain.Tests.dll"
+        )
+        ordinary_local = MODULE.local_dotnet_vstest_command(
+            "dotnet",
+            ordinary_assembly,
+            adapter,
+            results,
+        )
+        ordinary_discovery = MODULE.dotnet_vstest_discovery_command(
+            "dotnet",
+            ordinary_assembly,
+        )
+        self.assertFalse(any(part.startswith("xUnit.Seed=") for part in ordinary_local))
+        self.assertFalse(
+            any(part.startswith("xUnit.Seed=") for part in ordinary_discovery)
+        )
 
     def test_coverlet_adapter_comes_only_from_baseline_and_repository_packages(
         self,

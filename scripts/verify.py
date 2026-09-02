@@ -427,6 +427,7 @@ INFRASTRUCTURE_TEST_PROJECT = "NvtFwCombiner.Infrastructure.Tests"
 INFRASTRUCTURE_VSTEST_SETTINGS = (
     "xUnit.ParallelizeTestCollections=false",
     "xUnit.MaxParallelThreads=1",
+    "xUnit.Seed=1738590270",
 )
 
 
