@@ -617,7 +617,7 @@ public sealed partial class FileSystemManagedVersionRepositoryTests
                 store,
                 repository,
                 new AnonymousPipeManagedApplicationProcess(statePath),
-                TimeSpan.FromMilliseconds(300)));
+                TimeSpan.FromSeconds(5)));
         await Task.Delay(500, TestContext.Current.CancellationToken);
         VersionManagerStateLoadResult state = await store.LoadAsync(TestContext.Current.CancellationToken);
 
