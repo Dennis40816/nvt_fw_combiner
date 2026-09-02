@@ -120,7 +120,7 @@ if (-not $PolicyDryRunSentinel) {
         throw "Repository status could not be read: $($RepositoryStatus -join ' ')"
     }
     if (@($RepositoryStatus).Count -ne 0) {
-        throw 'Release packaging requires a clean repository worktree and index.'
+        throw "Release packaging requires a clean repository worktree and index: $($RepositoryStatus -join '; ')"
     }
 }
 if (

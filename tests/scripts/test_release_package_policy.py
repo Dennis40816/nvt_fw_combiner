@@ -1507,6 +1507,7 @@ finally {
                 ).stdout.strip()
 
                 if dirty_kind == "staged":
+                    expected_dirty_entry = "A staged.cs"
                     (repository_root / "staged.cs").write_text(
                         "internal sealed class Staged {}\n", encoding="utf-8"
                     )
@@ -1516,8 +1517,10 @@ finally {
                         check=True,
                     )
                 elif dirty_kind == "unstaged":
+                    expected_dirty_entry = "M tracked.txt"
                     tracked_path.write_text("changed\n", encoding="utf-8")
                 else:
+                    expected_dirty_entry = "?? untracked.cs"
                     (repository_root / "untracked.cs").write_text(
                         "internal sealed class Untracked {}\n", encoding="utf-8"
                     )
@@ -1532,10 +1535,14 @@ finally {
                 )
 
                 self.assertNotEqual(0, result.returncode, result.stdout + result.stderr)
+                normalized_output = normalize_console_output(
+                    result.stdout + result.stderr
+                )
                 self.assertIn(
                     "Release packaging requires a clean repository worktree and index",
-                    normalize_console_output(result.stdout + result.stderr),
+                    normalized_output,
                 )
+                self.assertIn(expected_dirty_entry, normalized_output)
 
     @unittest.skipUnless(
         POWERSHELL, "PowerShell is required for Windows release-policy tests"
