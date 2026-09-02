@@ -2140,6 +2140,488 @@ class VerifyOrchestrationTests(unittest.TestCase):
             collect_coverage.call_args.args[1],
         )
 
+    def test_solution_restore_restores_only_removed_windows_rid_projection(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            original = {
+                "version": 1,
+                "dependencies": {
+                    "net10.0": {"Package": {"type": "Direct", "resolved": "1.0.0"}},
+                    "net10.0/win-x64": {
+                        "Runtime.Package": {"type": "Direct", "resolved": "2.0.0"}
+                    },
+                },
+            }
+            original_bytes = json.dumps(original, indent=2).encode("utf-8")
+            lock_path, solution = self.create_solution_lock_fixture(
+                root, original_bytes
+            )
+            second_lock = root / "src" / "Product01" / "packages.lock.json"
+
+            def restore(_command, **_kwargs):
+                projected = dict(original)
+                projected["dependencies"] = {
+                    "net10.0": original["dependencies"]["net10.0"]
+                }
+                lock_path.write_text(json.dumps(projected), encoding="utf-8")
+                second_lock.write_text(json.dumps(projected), encoding="utf-8")
+
+            with patch.object(MODULE, "run", side_effect=restore):
+                MODULE.run_solution_restore_preserving_lock_projections(
+                    ["dotnet", "restore", "solution"],
+                    environment={},
+                    log_path=None,
+                    repository_root=root,
+                    solution=solution,
+                )
+
+            self.assertEqual(original_bytes, lock_path.read_bytes())
+            self.assertEqual(original_bytes, second_lock.read_bytes())
+
+    def test_solution_restore_retains_and_rejects_dependency_drift(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            original = {
+                "version": 1,
+                "dependencies": {
+                    "net10.0": {"Package": {"type": "Direct", "resolved": "1.0.0"}},
+                    "net10.0/win-x64": {},
+                },
+            }
+            lock_path, solution = self.create_solution_lock_fixture(
+                root, json.dumps(original).encode("utf-8")
+            )
+
+            def restore(_command, **_kwargs):
+                drifted = {
+                    "version": 1,
+                    "dependencies": {
+                        "net10.0": {"Package": {"type": "Direct", "resolved": "1.0.1"}}
+                    },
+                }
+                lock_path.write_text(json.dumps(drifted), encoding="utf-8")
+
+            with (
+                patch.object(MODULE, "run", side_effect=restore),
+                self.assertRaisesRegex(
+                    RuntimeError, "package-lock inspection failed"
+                ),
+            ):
+                MODULE.run_solution_restore_preserving_lock_projections(
+                    ["dotnet", "restore", "solution"],
+                    environment={},
+                    log_path=None,
+                    repository_root=root,
+                    solution=solution,
+                )
+
+            self.assertIn('"1.0.1"', lock_path.read_text(encoding="utf-8"))
+
+    def create_solution_lock_fixture(
+        self, root: Path, lock_bytes: bytes
+    ) -> tuple[Path, Path]:
+        projects: list[Path] = []
+        for index in range(25):
+            name = "Product" if index == 0 else f"Product{index:02d}"
+            project = root / "src" / name / f"{name}.csproj"
+            project.parent.mkdir(parents=True)
+            project.write_text("<Project />", encoding="utf-8")
+            (project.parent / "packages.lock.json").write_bytes(lock_bytes)
+            projects.append(project)
+        lock = projects[0].parent / "packages.lock.json"
+        solution = root / "NvtFwCombiner.slnx"
+        solution.write_text(
+            "<Solution>"
+            + "".join(
+                f'<Project Path="{project.relative_to(root).as_posix()}" />'
+                for project in projects
+            )
+            + "</Solution>",
+            encoding="utf-8",
+        )
+        return lock, solution
+
+    def test_solution_restore_restores_projection_before_rethrowing_failure(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            original = {
+                "version": 1,
+                "dependencies": {"net10.0": {}, "net10.0/win-x64": {}},
+            }
+            original_bytes = json.dumps(original).encode("utf-8")
+            lock, solution = self.create_solution_lock_fixture(root, original_bytes)
+
+            def restore(_command, **_kwargs):
+                lock.write_text(
+                    json.dumps({"version": 1, "dependencies": {"net10.0": {}}}),
+                    encoding="utf-8",
+                )
+                raise RuntimeError("restore primary")
+
+            with (
+                patch.object(MODULE, "run", side_effect=restore),
+                self.assertRaisesRegex(RuntimeError, "restore primary"),
+            ):
+                MODULE.run_solution_restore_preserving_lock_projections(
+                    ["dotnet", "restore", "solution"],
+                    environment={},
+                    log_path=None,
+                    repository_root=root,
+                    solution=solution,
+                )
+
+            self.assertEqual(original_bytes, lock.read_bytes())
+
+    def test_solution_restore_rejects_duplicate_json_and_retains_it(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            original = b'{"version":1,"dependencies":{"net10.0":{},"net10.0/win-x64":{}}}'
+            lock, solution = self.create_solution_lock_fixture(root, original)
+            duplicate = (
+                b'{"version":1,"dependencies":{"net10.0":{"Package":'
+                b'{"type":"Direct","type":"Direct"}}}}'
+            )
+
+            with (
+                patch.object(
+                    MODULE,
+                    "run",
+                    side_effect=lambda *_args, **_kwargs: lock.write_bytes(duplicate),
+                ),
+                self.assertRaisesRegex(RuntimeError, "duplicate package-lock key"),
+            ):
+                MODULE.run_solution_restore_preserving_lock_projections(
+                    ["dotnet", "restore", "solution"],
+                    environment={},
+                    log_path=None,
+                    repository_root=root,
+                    solution=solution,
+                )
+
+            self.assertEqual(duplicate, lock.read_bytes())
+
+    def test_solution_restore_rejects_malformed_snapshot_before_running(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            _, solution = self.create_solution_lock_fixture(
+                root, b'{"version":1,"dependencies":{"net10.0":{},}}'
+            )
+            execute = MagicMock()
+            with (
+                patch.object(MODULE, "run", execute),
+                self.assertRaisesRegex(RuntimeError, "invalid committed"),
+            ):
+                MODULE.run_solution_restore_preserving_lock_projections(
+                    ["dotnet", "restore", "solution"],
+                    environment={},
+                    log_path=None,
+                    repository_root=root,
+                    solution=solution,
+                )
+            execute.assert_not_called()
+
+    def test_solution_restore_ignores_unowned_lock_and_rejects_missing_owned_lock(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            original = b'{"version":1,"dependencies":{"net10.0":{}}}'
+            lock, solution = self.create_solution_lock_fixture(root, original)
+            unowned = root / "src" / "Unowned" / "packages.lock.json"
+            unowned.parent.mkdir(parents=True)
+            unowned.write_bytes(b"unowned")
+            with patch.object(MODULE, "run"):
+                MODULE.run_solution_restore_preserving_lock_projections(
+                    ["dotnet", "restore", "solution"],
+                    environment={},
+                    log_path=None,
+                    repository_root=root,
+                    solution=solution,
+                )
+            self.assertEqual(b"unowned", unowned.read_bytes())
+
+            with (
+                patch.object(MODULE, "run", side_effect=lambda *_a, **_k: lock.unlink()),
+                self.assertRaisesRegex(RuntimeError, "inventory"),
+            ):
+                MODULE.run_solution_restore_preserving_lock_projections(
+                    ["dotnet", "restore", "solution"],
+                    environment={},
+                    log_path=None,
+                    repository_root=root,
+                    solution=solution,
+                )
+            self.assertFalse(lock.exists())
+
+    def test_solution_restore_rejects_rewrite_without_removed_windows_rid(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            original = b'{"version":1,"dependencies":{"net10.0":{}}}'
+            lock, solution = self.create_solution_lock_fixture(root, original)
+            rewritten = b'{\n  "version": 1,\n  "dependencies": {"net10.0": {}}\n}'
+            with (
+                patch.object(
+                    MODULE,
+                    "run",
+                    side_effect=lambda *_args, **_kwargs: lock.write_bytes(rewritten),
+                ),
+                self.assertRaisesRegex(RuntimeError, "removed no case-exact"),
+            ):
+                MODULE.run_solution_restore_preserving_lock_projections(
+                    ["dotnet", "restore", "solution"],
+                    environment={},
+                    log_path=None,
+                    repository_root=root,
+                    solution=solution,
+                )
+            self.assertEqual(rewritten, lock.read_bytes())
+
+    def test_solution_restore_rejects_invalid_or_duplicate_project_inventory(
+        self,
+    ) -> None:
+        for invalid_project in (
+            "../Escape/Escape.csproj",
+            "src/./Product/Product.csproj",
+            "src/Product/Product.csproj",
+        ):
+            with (
+                self.subTest(project=invalid_project),
+                tempfile.TemporaryDirectory() as temporary,
+            ):
+                root = Path(temporary)
+                _, solution = self.create_solution_lock_fixture(
+                    root, b'{"version":1,"dependencies":{"net10.0":{}}}'
+                )
+                document = MODULE.ET.parse(solution)
+                MODULE.ET.SubElement(
+                    document.getroot(), "Project", Path=invalid_project
+                )
+                document.write(solution, encoding="utf-8")
+                execute = MagicMock()
+                with (
+                    patch.object(MODULE, "run", execute),
+                    self.assertRaises(RuntimeError),
+                ):
+                    MODULE.run_solution_restore_preserving_lock_projections(
+                        ["dotnet", "restore", "solution"],
+                        environment={},
+                        log_path=None,
+                        repository_root=root,
+                        solution=solution,
+                    )
+                execute.assert_not_called()
+
+    def test_solution_restore_aggregates_set_substitution_with_primary_failure(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            original = b'{"version":1,"dependencies":{"net10.0":{}}}'
+            _, solution = self.create_solution_lock_fixture(root, original)
+
+            def substitute_then_fail(_command, **_kwargs):
+                replacement = root / "src" / "Replacement" / "Replacement.csproj"
+                replacement.parent.mkdir(parents=True)
+                replacement.write_text("<Project />", encoding="utf-8")
+                (replacement.parent / "packages.lock.json").write_bytes(original)
+                document = MODULE.ET.parse(solution)
+                projects = document.getroot().findall("Project")
+                projects[-1].set("Path", "src/Replacement/Replacement.csproj")
+                document.write(solution, encoding="utf-8")
+                raise RuntimeError("restore primary")
+
+            with (
+                patch.object(MODULE, "run", side_effect=substitute_then_fail),
+                self.assertRaisesRegex(RuntimeError, "unowned package lock") as raised,
+            ):
+                MODULE.run_solution_restore_preserving_lock_projections(
+                    ["dotnet", "restore", "solution"],
+                    environment={},
+                    log_path=None,
+                    repository_root=root,
+                    solution=solution,
+                )
+
+            self.assertIn("restore primary", " ".join(raised.exception.__notes__))
+
+    def test_solution_restore_rejects_reparse_owned_lock_before_running(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            lock, solution = self.create_solution_lock_fixture(
+                root, b'{"version":1,"dependencies":{"net10.0":{}}}'
+            )
+            execute = MagicMock()
+            actual_is_reparse = MODULE.is_reparse_point
+
+            with (
+                patch.object(
+                    MODULE,
+                    "is_reparse_point",
+                    side_effect=lambda path: path == lock or actual_is_reparse(path),
+                ),
+                patch.object(MODULE, "run", execute),
+                self.assertRaisesRegex(RuntimeError, "reparse-point"),
+            ):
+                MODULE.run_solution_restore_preserving_lock_projections(
+                    ["dotnet", "restore", "solution"],
+                    environment={},
+                    log_path=None,
+                    repository_root=root,
+                    solution=solution,
+                )
+            execute.assert_not_called()
+
+    def test_solution_restore_reports_read_and_atomic_write_failures(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            original = b'{"version":1,"dependencies":{"net10.0":{},"net10.0/win-x64":{}}}'
+            lock, solution = self.create_solution_lock_fixture(root, original)
+            actual_read = Path.read_bytes
+            reads = 0
+
+            def fail_second_lock_read(path: Path) -> bytes:
+                nonlocal reads
+                if path == lock:
+                    reads += 1
+                    if reads == 2:
+                        raise OSError("read probe")
+                return actual_read(path)
+
+            with (
+                patch.object(Path, "read_bytes", fail_second_lock_read),
+                patch.object(MODULE, "run"),
+                self.assertRaisesRegex(RuntimeError, "read probe"),
+            ):
+                MODULE.run_solution_restore_preserving_lock_projections(
+                    ["dotnet", "restore", "solution"],
+                    environment={},
+                    log_path=None,
+                    repository_root=root,
+                    solution=solution,
+                )
+
+            projected = b'{"version":1,"dependencies":{"net10.0":{}}}'
+
+            def restore_then_fail(_command, **_kwargs):
+                lock.write_bytes(projected)
+                raise RuntimeError("restore primary")
+
+            with (
+                patch.object(MODULE, "run", side_effect=restore_then_fail),
+                patch.object(MODULE.os, "replace", side_effect=OSError("write probe")),
+                self.assertRaisesRegex(RuntimeError, "write probe") as raised,
+            ):
+                MODULE.run_solution_restore_preserving_lock_projections(
+                    ["dotnet", "restore", "solution"],
+                    environment={},
+                    log_path=None,
+                    repository_root=root,
+                    solution=solution,
+                )
+
+            self.assertIn("restore primary", " ".join(raised.exception.__notes__))
+            self.assertEqual(projected, lock.read_bytes())
+            self.assertTrue(
+                tuple(lock.parent.glob(f".{lock.name}.nfc-restore-*.tmp"))
+            )
+
+    def test_solution_restore_reports_partial_multi_lock_restoration(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            original = b'{"version":1,"dependencies":{"net10.0":{},"net10.0/win-x64":{}}}'
+            first, solution = self.create_solution_lock_fixture(root, original)
+            second = root / "src" / "Product01" / "packages.lock.json"
+            projected = b'{"version":1,"dependencies":{"net10.0":{}}}'
+            actual_replace = os.replace
+            replacements = 0
+
+            def fail_second_replace(source, destination):
+                nonlocal replacements
+                replacements += 1
+                if replacements == 2:
+                    raise OSError("second replace probe")
+                actual_replace(source, destination)
+
+            def mutate_two(_command, **_kwargs):
+                first.write_bytes(projected)
+                second.write_bytes(projected)
+
+            with (
+                patch.object(MODULE, "run", side_effect=mutate_two),
+                patch.object(MODULE.os, "replace", side_effect=fail_second_replace),
+                self.assertRaisesRegex(
+                    RuntimeError, "successfully restored before failure.*Product"
+                ),
+            ):
+                MODULE.run_solution_restore_preserving_lock_projections(
+                    ["dotnet", "restore", "solution"],
+                    environment={},
+                    log_path=None,
+                    repository_root=root,
+                    solution=solution,
+                )
+
+            self.assertEqual(original, first.read_bytes())
+            self.assertEqual(projected, second.read_bytes())
+
+    def test_solution_restore_rejects_failed_exact_byte_postcheck(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            original = b'{"version":1,"dependencies":{"net10.0":{},"net10.0/win-x64":{}}}'
+            lock, solution = self.create_solution_lock_fixture(root, original)
+            projected = b'{"version":1,"dependencies":{"net10.0":{}}}'
+            actual_replace = os.replace
+
+            def corrupt_after_replace(source, destination):
+                actual_replace(source, destination)
+                Path(destination).write_bytes(b"corrupt")
+
+            with (
+                patch.object(
+                    MODULE,
+                    "run",
+                    side_effect=lambda *_args, **_kwargs: lock.write_bytes(projected),
+                ),
+                patch.object(MODULE.os, "replace", side_effect=corrupt_after_replace),
+                self.assertRaisesRegex(RuntimeError, "differs"),
+            ):
+                MODULE.run_solution_restore_preserving_lock_projections(
+                    ["dotnet", "restore", "solution"],
+                    environment={},
+                    log_path=None,
+                    repository_root=root,
+                    solution=solution,
+                )
+
+            self.assertEqual(b"corrupt", lock.read_bytes())
+
+    def test_dotnet_build_plan_routes_restore_through_one_explicit_owner(self) -> None:
+        restore = MagicMock()
+        commands: list[list[str]] = []
+        with (
+            patch.object(MODULE, "run", side_effect=lambda command, **_k: commands.append(command)),
+            patch.object(
+                MODULE,
+                "run_solution_restore_preserving_lock_projections",
+                restore,
+            ),
+        ):
+            MODULE.run_dotnet_build_plan("dotnet", environment={}, log_path=None)
+
+        restore.assert_called_once_with(
+            ["dotnet", "restore", str(MODULE.SOLUTION)],
+            environment={},
+            log_path=None,
+            repository_root=MODULE.ROOT,
+            solution=MODULE.SOLUTION,
+        )
+        self.assertEqual(["dotnet", "--version"], commands[0])
+        self.assertFalse(any(command[1] == "restore" for command in commands))
+
     def test_local_dotnet_preserves_primary_and_cleanup_failures(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
@@ -2199,6 +2681,7 @@ class VerifyOrchestrationTests(unittest.TestCase):
                 ),
                 patch.object(MODULE, "DOTNET_COVERAGE_WORK_ROOT", work),
                 patch.object(MODULE, "ROOT", root),
+                patch.object(MODULE, "run_dotnet_build_plan"),
                 patch.object(MODULE, "run_dotnet_commands"),
                 patch.object(
                     MODULE, "flatten_ci_dotnet_projects", return_value=projects
@@ -4389,6 +4872,7 @@ class VerifyOrchestrationTests(unittest.TestCase):
         first = MODULE.CiDotnetProject("tests/First/First.csproj")
         second = MODULE.CiDotnetProject("tests/Second/Second.csproj")
         commands: list[list[str]] = []
+        restore = MagicMock()
 
         def fake_run(command: list[str], **_kwargs: object) -> None:
             commands.append(command)
@@ -4429,6 +4913,11 @@ class VerifyOrchestrationTests(unittest.TestCase):
                 patch.object(MODULE, "run", side_effect=fake_run),
                 patch.object(
                     MODULE,
+                    "run_solution_restore_preserving_lock_projections",
+                    restore,
+                ),
+                patch.object(
+                    MODULE,
                     "find_project_release_output",
                     return_value=(output, Path("bin/Release/net10.0")),
                 ),
@@ -4464,6 +4953,25 @@ class VerifyOrchestrationTests(unittest.TestCase):
                 MODULE.verify_ci_dotnet_test_shard("probe")
 
         resolve_adapter.assert_called_once_with(root)
+        restore.assert_called_once()
+        self.assertEqual(
+            ["dotnet", "restore", str(root / "NvtFwCombiner.slnx")],
+            restore.call_args.args[0],
+        )
+        self.assertEqual(
+            str(root),
+            restore.call_args.kwargs["environment"][
+                MODULE.TEST_REPOSITORY_ROOT_ENVIRONMENT_VARIABLE
+            ],
+        )
+        self.assertEqual(
+            evidence_root / "shards/probe/shard.log",
+            restore.call_args.kwargs["log_path"],
+        )
+        self.assertEqual(root, restore.call_args.kwargs["repository_root"])
+        self.assertEqual(
+            root / "NvtFwCombiner.slnx", restore.call_args.kwargs["solution"]
+        )
         build_commands = [command for command in commands if "build" in command]
         self.assertEqual(2, len(build_commands))
         self.assertIn("First.csproj", build_commands[0][2])
@@ -4513,6 +5021,9 @@ class VerifyOrchestrationTests(unittest.TestCase):
                 patch.object(MODULE, "repository_sdk_version", return_value="10.0.301"),
                 patch.object(MODULE, "require_logged_sdk_version"),
                 patch.object(MODULE, "run"),
+                patch.object(
+                    MODULE, "run_solution_restore_preserving_lock_projections"
+                ),
                 patch.object(
                     MODULE,
                     "find_project_release_output",
@@ -4565,6 +5076,9 @@ class VerifyOrchestrationTests(unittest.TestCase):
                 patch.object(MODULE, "resolve_dotnet", return_value="dotnet"),
                 patch.object(MODULE, "repository_sdk_version", return_value="10.0.301"),
                 patch.object(MODULE, "run", side_effect=fake_run),
+                patch.object(
+                    MODULE, "run_solution_restore_preserving_lock_projections"
+                ),
                 patch.object(
                     MODULE,
                     "resolve_coverlet_adapter_path",

@@ -145,16 +145,26 @@ class CoverageCiContractTests(unittest.TestCase):
 
     def test_dotnet_lane_restores_before_its_evaluated_source_check(self) -> None:
         verifier = VERIFIER.read_text(encoding="utf-8")
-        dotnet_plan = verifier[
+        post_restore_plan = verifier[
             verifier.index("def dotnet_build_commands(") : verifier.index(
-                "def run_dotnet_commands("
+                "def flatten_ci_dotnet_projects("
+            )
+        ]
+        build_owner = verifier[
+            verifier.index("def run_dotnet_build_plan(") : verifier.index(
+                "def cleanup_dotnet_batch("
             )
         ]
 
-        self.assertEqual(1, dotnet_plan.count('"--evaluated-source-ownership-only"'))
+        self.assertEqual(
+            1, post_restore_plan.count('"--evaluated-source-ownership-only"')
+        )
+        self.assertEqual(
+            1, build_owner.count("run_solution_restore_preserving_lock_projections(")
+        )
         self.assertLess(
-            dotnet_plan.index('[dotnet, "restore", str(SOLUTION)]'),
-            dotnet_plan.index('"--evaluated-source-ownership-only"'),
+            build_owner.index("run_solution_restore_preserving_lock_projections("),
+            build_owner.index("run_dotnet_commands("),
         )
 
     def test_release_build_owns_style_and_analyzer_diagnostics(self) -> None:

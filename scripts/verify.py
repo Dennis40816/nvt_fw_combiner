@@ -2490,11 +2490,9 @@ def dotnet_batch_environment() -> dict[str, str]:
 
 
 def dotnet_build_commands(dotnet: str) -> tuple[list[str], ...]:
-    """Return the one canonical restore, ownership, format, and Release build plan."""
+    """Return the canonical post-restore ownership, format, and Release build plan."""
 
     return (
-        [dotnet, "--version"],
-        [dotnet, "restore", str(SOLUTION)],
         [
             sys.executable,
             "scripts/validate_repository.py",
@@ -2510,6 +2508,250 @@ def dotnet_build_commands(dotnet: str) -> tuple[list[str], ...]:
         ],
         [dotnet, "build", str(SOLUTION), "-c", "Release", "--no-restore"],
     )
+
+
+def solution_package_lock_paths(
+    repository_root: Path = ROOT,
+    solution: Path = SOLUTION,
+) -> tuple[Path, ...]:
+    """Return the exact ordinary package locks owned by the solution projects."""
+
+    solution = require_regular_file(
+        solution,
+        repository_root,
+        description="canonical solution package-lock inventory",
+    )
+    paths: list[Path] = []
+    projects: set[Path] = set()
+    for node in ET.parse(solution).findall(".//Project"):
+        project_path = node.attrib.get("Path")
+        if not isinstance(project_path, str) or not project_path:
+            raise RuntimeError("solution project is missing its Path attribute")
+        relative_text = project_path.replace("\\", "/")
+        relative = PurePosixPath(relative_text)
+        if (
+            relative.is_absolute()
+            or relative.as_posix() != relative_text
+            or not relative.parts
+            or relative.parts[0] not in {"src", "tests"}
+            or any(part in {"", ".", ".."} for part in relative_text.split("/"))
+            or relative.suffix.casefold() != ".csproj"
+        ):
+            raise RuntimeError(f"invalid solution project path: {relative}")
+        project = require_regular_file(
+            repository_root.joinpath(*relative.parts),
+            repository_root,
+            description="solution project",
+        )
+        if project in projects:
+            raise RuntimeError(f"duplicate solution project: {project}")
+        projects.add(project)
+        lock = require_regular_file(
+            project.parent / "packages.lock.json",
+            repository_root,
+            description="solution package lock",
+        )
+        if lock in paths:
+            raise RuntimeError(f"duplicate solution package lock: {lock}")
+        paths.append(lock)
+    if len(projects) != 25 or len(paths) != 25:
+        raise RuntimeError(
+            "solution package-lock inventory must contain exactly 25 projects and locks"
+        )
+    return tuple(paths)
+
+
+def load_package_lock(raw: bytes) -> object:
+    """Decode one package lock while rejecting duplicate JSON keys."""
+
+    def unique_object(pairs: list[tuple[str, object]]) -> dict[str, object]:
+        document: dict[str, object] = {}
+        for name, value in pairs:
+            if name in document:
+                raise ValueError(f"duplicate package-lock key: {name}")
+            document[name] = value
+        return document
+
+    return json.loads(raw.decode("utf-8"), object_pairs_hook=unique_object)
+
+
+def lock_without_windows_rid_projections(document: object) -> object:
+    """Remove only Windows RID targets that normal solution restore omits."""
+
+    if not isinstance(document, dict):
+        raise ValueError("package lock root must be an object")
+    dependencies = document.get("dependencies")
+    if not isinstance(dependencies, dict):
+        raise ValueError("package lock dependencies must be an object")
+    normalized = dict(document)
+    normalized_dependencies = dict(dependencies)
+    removed = 0
+    for target in tuple(normalized_dependencies):
+        if isinstance(target, str) and target.endswith("/win-x64"):
+            normalized_dependencies.pop(target)
+            removed += 1
+    if removed == 0:
+        raise ValueError("changed package lock removed no case-exact /win-x64 target")
+    normalized["dependencies"] = normalized_dependencies
+    return normalized
+
+
+def run_solution_restore_preserving_lock_projections(
+    command: list[str],
+    *,
+    environment: dict[str, str],
+    log_path: Path | None,
+    repository_root: Path = ROOT,
+    solution: Path = SOLUTION,
+) -> None:
+    """Run solution restore without leaving its known RID projection mutation."""
+
+    lock_paths = solution_package_lock_paths(repository_root, solution)
+    snapshots = {path: path.read_bytes() for path in lock_paths}
+    for path, snapshot in snapshots.items():
+        try:
+            load_package_lock(snapshot)
+        except (UnicodeDecodeError, json.JSONDecodeError, ValueError) as error:
+            raise RuntimeError(
+                f"invalid committed solution package lock "
+                f"{path.relative_to(repository_root).as_posix()}: {error}"
+            ) from error
+    failure: BaseException | None = None
+    try:
+        run(command, environment=environment, log_path=log_path)
+    except BaseException as error:
+        failure = error
+
+    inspection_errors: list[str] = []
+    unexpected: list[str] = []
+    restorable: list[Path] = []
+    try:
+        observed_paths = solution_package_lock_paths(repository_root, solution)
+    except (OSError, RuntimeError, ET.ParseError) as error:
+        observed_paths = ()
+        inspection_errors.append(f"package-lock inventory: {error}")
+    if observed_paths and observed_paths != lock_paths:
+        unexpected.append("the canonical solution package-lock inventory changed")
+    snapshot_path_set = set(lock_paths)
+    observed_path_set = set(observed_paths)
+    for path in sorted(snapshot_path_set - observed_path_set):
+        unexpected.append(
+            f"snapshot-owned package lock disappeared: "
+            f"{path.relative_to(repository_root).as_posix()}"
+        )
+    for path in sorted(observed_path_set - snapshot_path_set):
+        unexpected.append(
+            f"unowned package lock appeared: "
+            f"{path.relative_to(repository_root).as_posix()}"
+        )
+    for path in observed_paths:
+        if path not in snapshots:
+            continue
+        try:
+            observed = path.read_bytes()
+        except OSError as error:
+            inspection_errors.append(
+                f"{path.relative_to(repository_root).as_posix()}: {error}"
+            )
+            continue
+        expected = snapshots[path]
+        if observed == expected:
+            continue
+        try:
+            before = load_package_lock(expected)
+            after = load_package_lock(observed)
+            if after != lock_without_windows_rid_projections(before):
+                raise ValueError(
+                    "change is not the normal Windows RID projection removal"
+                )
+        except (UnicodeDecodeError, json.JSONDecodeError, ValueError) as error:
+            unexpected.append(
+                f"{path.relative_to(repository_root).as_posix()}: {error}"
+            )
+            continue
+        restorable.append(path)
+
+    if inspection_errors or unexpected:
+        error = RuntimeError(
+            "solution restore package-lock inspection failed; unexpected bytes were "
+            "retained for inspection: "
+            + "; ".join(inspection_errors + unexpected)
+        )
+        if failure is not None:
+            error.add_note(
+                f"solution restore also failed: {type(failure).__name__}: {failure}"
+            )
+        raise error
+
+    restore_errors: list[str] = []
+    restored_paths: list[str] = []
+    for path in restorable:
+        temporary: Path | None = None
+        try:
+            path = require_regular_file(
+                path,
+                repository_root,
+                description="solution package lock before restoration",
+            )
+            with tempfile.NamedTemporaryFile(
+                mode="wb",
+                prefix=f".{path.name}.nfc-restore-",
+                suffix=".tmp",
+                dir=path.parent,
+                delete=False,
+            ) as stream:
+                temporary = Path(stream.name)
+                stream.write(snapshots[path])
+                stream.flush()
+                os.fsync(stream.fileno())
+            require_regular_file(
+                temporary,
+                repository_root,
+                description="solution package-lock restoration staging",
+            )
+            path = require_regular_file(
+                path,
+                repository_root,
+                description="solution package lock before atomic restoration",
+            )
+            os.replace(temporary, path)
+            temporary = None
+            path = require_regular_file(
+                path,
+                repository_root,
+                description="atomically restored solution package lock",
+            )
+            if path.read_bytes() != snapshots[path]:
+                raise RuntimeError(
+                    f"atomically restored solution package lock differs: {path}"
+                )
+            restored_paths.append(path.relative_to(repository_root).as_posix())
+        except OSError as error:
+            restore_errors.append(
+                f"{path.relative_to(repository_root).as_posix()}: {error}"
+            )
+        except RuntimeError as error:
+            restore_errors.append(str(error))
+        if temporary is not None:
+            restore_errors.append(f"restoration residue retained at {temporary}")
+    if restore_errors:
+        restored_evidence = (
+            "; successfully restored before failure: " + ", ".join(restored_paths)
+            if restored_paths
+            else ""
+        )
+        error = RuntimeError(
+            "solution restore lock-projection cleanup failed: "
+            + "; ".join(restore_errors)
+            + restored_evidence
+        )
+        if failure is not None:
+            error.add_note(
+                f"solution restore also failed: {type(failure).__name__}: {failure}"
+            )
+        raise error
+    if failure is not None:
+        raise failure
 
 
 def flatten_ci_dotnet_projects() -> tuple[CiDotnetProject, ...]:
@@ -3186,6 +3428,29 @@ def run_dotnet_commands(
             run(command, environment=environment, log_path=log_path)
 
 
+def run_dotnet_build_plan(
+    dotnet: str,
+    *,
+    environment: dict[str, str],
+    log_path: Path | None,
+) -> None:
+    """Run the one explicit SDK, solution-restore, and Release-build owner."""
+
+    run([dotnet, "--version"], environment=environment, log_path=log_path)
+    run_solution_restore_preserving_lock_projections(
+        [dotnet, "restore", str(SOLUTION)],
+        environment=environment,
+        log_path=log_path,
+        repository_root=ROOT,
+        solution=SOLUTION,
+    )
+    run_dotnet_commands(
+        dotnet_build_commands(dotnet),
+        environment=environment,
+        log_path=log_path,
+    )
+
+
 def cleanup_dotnet_batch(
     dotnet: str,
     environment: dict[str, str],
@@ -3215,10 +3480,9 @@ def verify_dotnet(log_path: Path | None = None) -> None:
     dotnet = resolve_dotnet()
     coverage_directory = reset_coverage_directory("dotnet")
     environment = dotnet_batch_environment()
-    commands = dotnet_build_commands(dotnet)
     failure: BaseException | None = None
     try:
-        run_dotnet_commands(commands, environment=environment, log_path=log_path)
+        run_dotnet_build_plan(dotnet, environment=environment, log_path=log_path)
         collect_local_dotnet_coverage(
             dotnet,
             coverage_directory,
@@ -3789,11 +4053,7 @@ def verify_ci_dotnet_build() -> None:
     failure: BaseException | None = None
     try:
         verify_windows_process_orchestration(log_path)
-        run_dotnet_commands(
-            dotnet_build_commands(dotnet),
-            environment=environment,
-            log_path=log_path,
-        )
+        run_dotnet_build_plan(dotnet, environment=environment, log_path=log_path)
         require_logged_sdk_version(log_path, repository_sdk_version())
     except BaseException as error:
         failure = error
@@ -3858,10 +4118,12 @@ def verify_ci_dotnet_test_shard(shard: str) -> None:
             environment=environment,
             log_path=log_path,
         )
-        run(
+        run_solution_restore_preserving_lock_projections(
             [dotnet, "restore", str(SOLUTION)],
             environment=environment,
             log_path=log_path,
+            repository_root=ROOT,
+            solution=SOLUTION,
         )
         adapter_path = resolve_coverlet_adapter_path(ROOT)
         for project in projects:
