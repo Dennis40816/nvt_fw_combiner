@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 2,
+  "taskId": "REL-111-ZERO-BYTE-REFERENCE-01",
+  "capability": "Admit exact zero-byte reference evidence in the canonical release manifest without allowing empty runtime, tool, profile, or golden payloads",
+  "integrationBase": "9f2a25f5d48e11eae4cd736b2f31f686d4d20b4e",
+  "risk": "R3",
+  "kind": "release",
+  "state": "design-active",
+  "mutablePaths": [
+    "docs/contracts/release-manifest-v1.md",
+    "docs/contracts/release-manifest-v1.schema.json"
+  ],
+  "implementationOwner": "primary-agent",
+  "searchEvidence": [
+    "scripts/package.ps1 remains the sole release-package construction owner and already projects every selected canonical reference byte into one RELEASE-MANIFEST.json; no second packager, verifier, workflow branch, or version-specific bypass is required.",
+    "Failed release run 33598221768 and an exact local package projection both produced six canonical zero-byte provenance text entries with role=reference, size=0, and the SHA-256 of empty bytes; removing only those entries from the in-memory manifest made the unchanged schema validation pass.",
+    "REL-110-MANUAL-ONLY-PACKAGE-01 had already recorded the same six zero-byte Golden provenance placeholders, but v1.1.0 avoided the conflict by intentionally omitting all reference payloads. The managed v1.1.1 package restores those declared references and therefore requires the canonical schema owner to represent their exact bytes.",
+    "The existing release-manifest file item schema and package hash inventory are reused. The bounded extension admits size zero only when role is reference and sha256 is exactly e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855; all other roles remain non-empty and actual package size/hash reconciliation remains unchanged."
+  ],
+  "semanticOwner": "docs/contracts/release-manifest-v1.schema.json canonical package inventory contract",
+  "terminalContract": "Extend only the existing release-manifest file schema so an integer size of zero requires role=reference and the exact SHA-256 of empty bytes. Preserve all path/role oneOf restrictions, closed inventory, actual byte-size and SHA reconciliation, non-empty application, launcher, legal/readme, capability, profile, external-tool and goldenFixture entries, schema 1.1/1.2/1.3 behavior, package construction, smoke, workflow, product, firmware, profile, processor and byte semantics. Document the exact bounded exception. Executable regression evidence must prove empty reference with empty SHA passes; wrong empty SHA, empty goldenFixture and empty application fail; non-empty reference passes; and the actual generated v1.1.1 manifest passes while a wrong-hash mutation fails. This change makes no backward managed-Version compatibility claim; Version deployment remains outside the owner-approved v1.1.1 release scope.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "admission_batch_architecture",
+    "outcome": "findings-incorporated",
+    "evidence": "Independent R3 review first reported P0=0, P1=0, P2=2, P3=0: the draft did not pin the empty-byte SHA and its test inspected schema structure without executing instance validation. Both findings were incorporated. Re-review approved the bounded existing-owner extension with P0=P1=P2=P3=0: size==0 now implies role=reference and exact empty SHA; fileCommon still rejects negative/non-integer sizes; existing oneOf keeps reference/golden paths closed; a real PowerShell Test-Json five-case matrix plus the actual generated v1.1.1 manifest and wrong-hash mutation prove the projection. No ADR, new owner, packager, workflow, product, firmware, profile, golden-byte, or Version runtime change is required."
+  },
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": {
+    "reviewer": null,
+    "outcome": "pending",
+    "evidence": ""
+  }
+}
