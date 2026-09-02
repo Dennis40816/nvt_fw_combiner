@@ -123,7 +123,7 @@ public sealed partial class AnonymousPipeManagedApplicationProcessTests
             ManagedProcessTermination.Instance);
     }
 
-    private static async Task<int> WaitForProcessMarkerAsync(string marker)
+    internal static async Task<int> WaitForProcessMarkerAsync(string marker)
     {
         long deadline = Environment.TickCount64 + 5_000;
         while (Environment.TickCount64 < deadline)

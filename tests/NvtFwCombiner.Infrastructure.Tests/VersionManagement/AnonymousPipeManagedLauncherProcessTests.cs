@@ -325,12 +325,10 @@ public sealed partial class AnonymousPipeManagedLauncherProcessTests
                 argumentsPath: null,
                 TimeSpan.FromSeconds(5),
                 TestContext.Current.CancellationToken);
-            rootId = int.Parse(await File.ReadAllTextAsync(
-                marker + ".root",
-                TestContext.Current.CancellationToken), System.Globalization.CultureInfo.InvariantCulture);
-            int childId = int.Parse(await File.ReadAllTextAsync(
-                marker + ".child",
-                TestContext.Current.CancellationToken), System.Globalization.CultureInfo.InvariantCulture);
+            rootId = await AnonymousPipeManagedApplicationProcessTests.WaitForProcessMarkerAsync(
+                marker + ".root");
+            int childId = await AnonymousPipeManagedApplicationProcessTests.WaitForProcessMarkerAsync(
+                marker + ".child");
 
             Assert.Equal(LauncherProcessStartOutcome.Ready, result.Outcome);
             long exitDeadline = Environment.TickCount64 + 5_000;
@@ -361,8 +359,10 @@ public sealed partial class AnonymousPipeManagedLauncherProcessTests
                 }
             }
             string childMarker = marker + ".child";
-            if (File.Exists(childMarker) && int.TryParse(File.ReadAllText(childMarker), out int childId))
+            if (File.Exists(childMarker))
             {
+                int childId = await AnonymousPipeManagedApplicationProcessTests.WaitForProcessMarkerAsync(
+                    childMarker);
                 try
                 {
                     using Process child = Process.GetProcessById(childId);
