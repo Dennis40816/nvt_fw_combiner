@@ -2140,6 +2140,80 @@ class VerifyOrchestrationTests(unittest.TestCase):
             collect_coverage.call_args.args[1],
         )
 
+    def test_solution_restore_restores_only_removed_windows_rid_projection(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            lock_path = root / "src" / "Product" / "packages.lock.json"
+            lock_path.parent.mkdir(parents=True)
+            original = {
+                "version": 1,
+                "dependencies": {
+                    "net10.0": {"Package": {"type": "Direct", "resolved": "1.0.0"}},
+                    "net10.0/win-x64": {
+                        "Runtime.Package": {"type": "Direct", "resolved": "2.0.0"}
+                    },
+                },
+            }
+            original_bytes = json.dumps(original, indent=2).encode("utf-8")
+            lock_path.write_bytes(original_bytes)
+
+            def restore(_command, **_kwargs):
+                projected = dict(original)
+                projected["dependencies"] = {
+                    "net10.0": original["dependencies"]["net10.0"]
+                }
+                lock_path.write_text(json.dumps(projected), encoding="utf-8")
+
+            with patch.object(MODULE, "run", side_effect=restore):
+                MODULE.run_solution_restore_preserving_lock_projections(
+                    ["dotnet", "restore", "solution"],
+                    environment={},
+                    log_path=None,
+                    repository_root=root,
+                )
+
+            self.assertEqual(original_bytes, lock_path.read_bytes())
+
+    def test_solution_restore_retains_and_rejects_dependency_drift(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            lock_path = root / "src" / "Product" / "packages.lock.json"
+            lock_path.parent.mkdir(parents=True)
+            original = {
+                "version": 1,
+                "dependencies": {
+                    "net10.0": {"Package": {"type": "Direct", "resolved": "1.0.0"}},
+                    "net10.0/win-x64": {},
+                },
+            }
+            lock_path.write_text(json.dumps(original), encoding="utf-8")
+
+            def restore(_command, **_kwargs):
+                drifted = {
+                    "version": 1,
+                    "dependencies": {
+                        "net10.0": {"Package": {"type": "Direct", "resolved": "1.0.1"}}
+                    },
+                }
+                lock_path.write_text(json.dumps(drifted), encoding="utf-8")
+
+            with (
+                patch.object(MODULE, "run", side_effect=restore),
+                self.assertRaisesRegex(
+                    RuntimeError, "outside the approved Windows RID"
+                ),
+            ):
+                MODULE.run_solution_restore_preserving_lock_projections(
+                    ["dotnet", "restore", "solution"],
+                    environment={},
+                    log_path=None,
+                    repository_root=root,
+                )
+
+            self.assertIn('"1.0.1"', lock_path.read_text(encoding="utf-8"))
+
     def test_local_dotnet_preserves_primary_and_cleanup_failures(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)

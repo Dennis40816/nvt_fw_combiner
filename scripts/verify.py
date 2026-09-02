@@ -2512,6 +2512,96 @@ def dotnet_build_commands(dotnet: str) -> tuple[list[str], ...]:
     )
 
 
+def package_lock_paths(repository_root: Path = ROOT) -> tuple[Path, ...]:
+    """Return the complete tracked source/test NuGet lock inventory."""
+
+    return tuple(
+        sorted((repository_root / "src").rglob("packages.lock.json"))
+        + sorted((repository_root / "tests").rglob("packages.lock.json"))
+    )
+
+
+def lock_without_windows_rid_projections(document: object) -> object:
+    """Remove only Windows RID targets that normal solution restore omits."""
+
+    if not isinstance(document, dict):
+        raise ValueError("package lock root must be an object")
+    dependencies = document.get("dependencies")
+    if not isinstance(dependencies, dict):
+        raise ValueError("package lock dependencies must be an object")
+    normalized = dict(document)
+    normalized_dependencies = dict(dependencies)
+    for target in tuple(normalized_dependencies):
+        if isinstance(target, str) and target.endswith("/win-x64"):
+            normalized_dependencies.pop(target)
+    normalized["dependencies"] = normalized_dependencies
+    return normalized
+
+
+def run_solution_restore_preserving_lock_projections(
+    command: list[str],
+    *,
+    environment: dict[str, str],
+    log_path: Path | None,
+    repository_root: Path = ROOT,
+) -> None:
+    """Run solution restore without leaving its known RID projection mutation."""
+
+    lock_paths = package_lock_paths(repository_root)
+    snapshots = {path: path.read_bytes() for path in lock_paths}
+    failure: BaseException | None = None
+    try:
+        run(command, environment=environment, log_path=log_path)
+    except BaseException as error:
+        failure = error
+
+    observed_paths = package_lock_paths(repository_root)
+    unexpected: list[str] = []
+    restorable: list[Path] = []
+    if observed_paths != lock_paths:
+        unexpected.append("the package-lock inventory changed")
+    for path in set(lock_paths).intersection(observed_paths):
+        observed = path.read_bytes()
+        expected = snapshots[path]
+        if observed == expected:
+            continue
+        try:
+            before = json.loads(expected.decode("utf-8"))
+            after = json.loads(observed.decode("utf-8"))
+            if after != lock_without_windows_rid_projections(before):
+                raise ValueError(
+                    "change is not the normal Windows RID projection removal"
+                )
+        except (UnicodeDecodeError, json.JSONDecodeError, ValueError) as error:
+            unexpected.append(
+                f"{path.relative_to(repository_root).as_posix()}: {error}"
+            )
+            continue
+        restorable.append(path)
+
+    restore_errors: list[str] = []
+    for path in restorable:
+        try:
+            path.write_bytes(snapshots[path])
+        except OSError as error:
+            restore_errors.append(
+                f"{path.relative_to(repository_root).as_posix()}: {error}"
+            )
+    if restore_errors:
+        raise RuntimeError(
+            "solution restore lock-projection cleanup failed: "
+            + "; ".join(restore_errors)
+        ) from failure
+    if unexpected:
+        raise RuntimeError(
+            "solution restore changed package locks outside the approved Windows RID "
+            "projection; unexpected bytes were retained for inspection: "
+            + "; ".join(unexpected)
+        ) from failure
+    if failure is not None:
+        raise failure
+
+
 def flatten_ci_dotnet_projects() -> tuple[CiDotnetProject, ...]:
     """Return the one closed local/CI project-and-counter inventory."""
 
@@ -3170,6 +3260,13 @@ def run_dotnet_commands(
 
     build_log = os.environ.get("NFC_DOTNET_BUILD_LOG")
     for command in commands:
+        if command == [command[0], "restore", str(SOLUTION)]:
+            run_solution_restore_preserving_lock_projections(
+                command,
+                environment=environment,
+                log_path=log_path,
+            )
+            continue
         if build_log and len(command) > 1 and command[1] == "build":
             build_log_path = Path(build_log)
             build_log_path.unlink(missing_ok=True)
@@ -3858,7 +3955,7 @@ def verify_ci_dotnet_test_shard(shard: str) -> None:
             environment=environment,
             log_path=log_path,
         )
-        run(
+        run_solution_restore_preserving_lock_projections(
             [dotnet, "restore", str(SOLUTION)],
             environment=environment,
             log_path=log_path,
