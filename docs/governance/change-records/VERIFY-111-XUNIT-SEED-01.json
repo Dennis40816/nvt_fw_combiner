@@ -5,7 +5,7 @@
   "integrationBase": "7085a7d77d3125e14c637a01bde3d8dd342ea0ec",
   "risk": "R3",
   "kind": "release",
-  "state": "design-active",
+  "state": "final-complete",
   "mutablePaths": [
     "scripts/verify.py"
   ],
@@ -24,12 +24,12 @@
     "outcome": "findings-incorporated",
     "evidence": "Independent R3 design review reported P0=0, P1=0, P2=2, and P3=0 and approved a reversible pin inside the existing verifier RunSettings owner only after retaining universal 1070 identity reconciliation, forbidding retry/filter/skip/tolerance and environment override, requiring exact once-only shared discovery/execution projection and ordinary-project non-projection, and allocating the seed-1 launcher-process isolation defect plus four-seed deletion gate to v1.1.2. It found no ADR necessary for the reversible parameter; a permanent multi-seed or order policy requires separate review."
   },
-  "implementationHead": null,
-  "reviewedHead": null,
-  "pathStateDigest": null,
+  "implementationHead": "4eeedd8b1096fa453acf1ac2c2a7c69b955657a1",
+  "reviewedHead": "4eeedd8b1096fa453acf1ac2c2a7c69b955657a1",
+  "pathStateDigest": "be6e70c75b838aeed7a9ed2f3e41fc9ffac36266f42e974dae947fb200834c4b",
   "finalReview": {
-    "reviewer": null,
-    "outcome": "pending",
-    "evidence": ""
+    "reviewer": "admission_batch_architecture",
+    "outcome": "approved",
+    "evidence": "Independent exact-head R3 correctness and scoped Polytail review approved implementation 4eeedd8b1096fa453acf1ac2c2a7c69b955657a1 with P0=0, P1=0, P2=0, and P3=0. It confirmed scripts/verify.py appends only the exact immutable decimal xUnit.Seed=1738590270 to the existing shared Infrastructure settings tuple; the two existing command owners each extend that tuple once with no environment branch. Command regressions bind the complete three-setting suffix, exact-once seed projection for discovery and execution, and absence from ordinary local and discovery commands. The exact diff introduces no filter, retry, tolerance, skip, inventory, coverage, TRX, timeout, cleanup, product, firmware, package, workflow, or release semantic change. Local evidence reports 1070 discovered, 1070 TRX identities, zero failures, two approved skips, coverage enabled, and runner adoption of seed 1738590270. Protected exact-head PR/main CI and the release-owner attestation remain subsequent gates."
   }
 }
