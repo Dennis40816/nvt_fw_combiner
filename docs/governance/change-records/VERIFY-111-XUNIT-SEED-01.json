@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 2,
+  "taskId": "VERIFY-111-XUNIT-SEED-01",
+  "capability": "Make the canonical Infrastructure discovery and execution order deterministic across local, pull-request, main, and release checkouts without weakening exact test identity reconciliation",
+  "integrationBase": "7085a7d77d3125e14c637a01bde3d8dd342ea0ec",
+  "risk": "R3",
+  "kind": "release",
+  "state": "design-active",
+  "mutablePaths": [
+    "scripts/verify.py"
+  ],
+  "implementationOwner": "primary-agent",
+  "searchEvidence": [
+    "scripts/verify.py::INFRASTRUCTURE_VSTEST_SETTINGS is the existing single owner projected by both local_dotnet_vstest_command and dotnet_vstest_discovery_command; no second verifier, test selector, retry, tolerance, skip, or workflow-specific command is required.",
+    "Protected PR run 33592546374 executed 1070/1070 Infrastructure identities successfully, while exact-tree main run 33593100626 executed 1069/1070 twice with zero assertion failures; release run 33594281512 then rejected the failed exact-head duplicate check as designed.",
+    "Local designated-test-area evidence proved xUnit v3 computed different implicit seeds for ordinary, CI main, and PR-merge builds. Explicit seed 1738590270 retained 1070/1070, while diagnostic seed 1 exposed existing launcher-process test isolation defects, TerminationUnconfirmed outcomes, and a stalled run that was interrupted before a gentle build-server shutdown with no residual test processes.",
+    "The seed-1 defect is allocated to v1.1.2 test and CI architecture work: the owner must isolate launcher process, environment, handle, job, and resource custody and prove seeds 1, 1738590270, 460925769, and 1950330798 each produce 1070 discovered, 1070 observed, zero failures, and only the existing approved skips before removing this pin or separately approving a permanent seed/stress policy. This evidence cannot be interpreted as a product pass or failure and v1.1.1 makes no order-independence or best-verification claim."
+  ],
+  "semanticOwner": "scripts/verify.py canonical Infrastructure VSTest settings shared by discovery and execution",
+  "terminalContract": "Extend only INFRASTRUCTURE_VSTEST_SETTINGS with the exact decimal setting xUnit.Seed=1738590270, with no environment override. The Infrastructure discovery and execution commands each receive that setting exactly once and receive identical xUnit settings; ordinary test assemblies receive no seed. Preserve the unfiltered exact assembly, exact discovery-to-TRX identity multiset reconciliation, zero-failure requirement, owner-approved skip identities, coverage collection, TRX and hash evidence, timeout, cleanup, package, release, product, firmware, profile, and byte behavior. Command regressions must prove same seed, exactly-once projection, ordinary-project non-projection, and no filter. Local exact CI-build evidence and protected PR/main evidence must each report 1070 discovered and 1070 observed with the runner log proving the exact seed; any 1069 result remains terminal. The pin is temporary containment only; v1.1.2 owns the recorded multi-seed isolation and deletion gate.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "admission_batch_architecture",
+    "outcome": "findings-incorporated",
+    "evidence": "Independent R3 design review reported P0=0, P1=0, P2=2, and P3=0 and approved a reversible pin inside the existing verifier RunSettings owner only after retaining universal 1070 identity reconciliation, forbidding retry/filter/skip/tolerance and environment override, requiring exact once-only shared discovery/execution projection and ordinary-project non-projection, and allocating the seed-1 launcher-process isolation defect plus four-seed deletion gate to v1.1.2. It found no ADR necessary for the reversible parameter; a permanent multi-seed or order policy requires separate review."
+  },
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": {
+    "reviewer": null,
+    "outcome": "pending",
+    "evidence": ""
+  }
+}
