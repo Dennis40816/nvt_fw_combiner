@@ -155,7 +155,7 @@
       "required": ["path", "size", "sha256", "role"],
       "properties": {
         "path": { "type": "string" },
-        "size": { "type": "integer", "minimum": 1 },
+        "size": { "type": "integer", "minimum": 0 },
         "sha256": { "$ref": "#/$defs/sha256" },
         "role": { "type": "string" },
         "signingIdentity": { "type": "string", "minLength": 1, "maxLength": 512 }
@@ -195,6 +195,18 @@
     "file": {
       "allOf": [
         { "$ref": "#/$defs/fileCommon" },
+        {
+          "if": {
+            "properties": { "size": { "const": 0 } },
+            "required": ["size"]
+          },
+          "then": {
+            "properties": {
+              "role": { "const": "reference" },
+              "sha256": { "const": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855" }
+            }
+          }
+        },
         {
           "oneOf": [
             { "properties": { "path": { "const": "NvtFwCombiner.exe" }, "role": { "const": "application" } }, "required": ["path", "role"] },

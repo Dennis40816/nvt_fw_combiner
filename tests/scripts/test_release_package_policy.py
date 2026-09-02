@@ -30,6 +30,7 @@ sys.path.insert(0, str(SCRIPTS))
 import verify as verify_script  # noqa: E402
 
 PACKAGE_SCRIPT = ROOT / "scripts" / "package.ps1"
+RELEASE_MANIFEST_SCHEMA = ROOT / "docs" / "contracts" / "release-manifest-v1.schema.json"
 RELEASE_WORKFLOW = ROOT / ".github" / "workflows" / "release.yml"
 LAUNCHER_PACKAGE_SCRIPT = ROOT / "scripts" / "package-distribution-launcher.ps1"
 SMOKE_SCRIPT = ROOT / "scripts" / "smoke-release.ps1"
@@ -748,6 +749,134 @@ class ReleasePackagePolicyTests(unittest.TestCase):
         self.assertLess(manifest_write_index, validation_indexes[0])
         self.assertLess(validation_indexes[0], validation_indexes[1])
         self.assertLess(validation_indexes[1], archive_index)
+
+    def test_release_manifest_allows_empty_reference_evidence_only(self) -> None:
+        schema = json.loads(RELEASE_MANIFEST_SCHEMA.read_text(encoding="utf-8"))
+        file_common = schema["$defs"]["fileCommon"]
+        self.assertEqual(0, file_common["properties"]["size"]["minimum"])
+
+        reference_size_gate = schema["$defs"]["file"]["allOf"][1]
+        self.assertEqual(
+            {
+                "properties": {"size": {"const": 0}},
+                "required": ["size"],
+            },
+            reference_size_gate["if"],
+        )
+        self.assertEqual(
+            {
+                "properties": {
+                    "role": {"const": "reference"},
+                    "sha256": {
+                        "const": (
+                            "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+                        )
+                    },
+                }
+            },
+            reference_size_gate["then"],
+        )
+
+    @unittest.skipUnless(
+        POWERSHELL, "PowerShell is required for release-manifest schema tests"
+    )
+    def test_release_manifest_executes_empty_reference_evidence_matrix(self) -> None:
+        empty_sha256 = (
+            "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        )
+        ordinary_sha256 = "0" * 64
+
+        def entry(path: str, role: str, size: int = 1, sha256: str = ordinary_sha256):
+            return {"path": path, "size": size, "sha256": sha256, "role": role}
+
+        files = [
+            entry("NvtFwCombiner.exe", "application"),
+            entry("THIRD-PARTY-NOTICES.txt", "notices"),
+            entry("LICENSE.txt", "license"),
+            entry("README.txt", "readme"),
+            entry(
+                "docs/contracts/canonical-capability-policy-v1.json",
+                "capabilityPolicy",
+            ),
+            entry("profiles/built-in/example/catalog.json", "builtInProfile"),
+            entry(
+                "external-tools/crc-worker/0.1.0/Nfc.CrcWorker.exe",
+                "externalTool",
+            ),
+            entry("launcher/NvtFwCombiner.Launcher.exe", "launcher"),
+            entry("reference/provenance/evidence.txt", "reference"),
+        ]
+        manifest = {
+            "schemaVersion": "1.2",
+            "product": "NVT FW Combiner",
+            "version": "1.1.1",
+            "sourceCommit": "a" * 40,
+            "sourceTag": "v1.1.1",
+            "runtimeIdentifier": "win-x64",
+            "licenseSpdx": "MIT",
+            "workerProtocolVersions": ["1.0"],
+            "approvedProcessorIds": [],
+            "processorBundleSha256": ordinary_sha256,
+            "embeddedProfileCatalogSha256": ordinary_sha256,
+            "embeddedSchemaBundleSha256": ordinary_sha256,
+            "files": files,
+            "sbomAsset": "NvtFwCombiner-v1.1.1-win-x64.spdx.json",
+            "provenanceAsset": "NvtFwCombiner-v1.1.1-win-x64.provenance.json",
+            "versionManagementProtocolVersion": 1,
+            "launcher": {
+                "launcherVersion": "1.1.1",
+                "protocolVersion": 1,
+                "executableRelativePath": "launcher/NvtFwCombiner.Launcher.exe",
+                "size": 1,
+                "sha256": ordinary_sha256,
+            },
+        }
+        cases = (
+            ("empty-reference", "reference", 0, empty_sha256, 1, True),
+            ("empty-reference-wrong-hash", "reference", 0, ordinary_sha256, 1, False),
+            ("empty-golden", "goldenFixture", 0, empty_sha256, 1, False),
+            ("empty-application", "reference", 1, ordinary_sha256, 0, False),
+            ("nonempty-reference", "reference", 1, ordinary_sha256, 1, True),
+        )
+        command = (
+            "& { param([string]$jsonPath,[string]$schemaPath) "
+            "$json = Get-Content -LiteralPath $jsonPath -Raw; "
+            "if (-not ($json | Test-Json -SchemaFile $schemaPath -ErrorAction Stop)) "
+            "{ exit 2 } }"
+        )
+
+        with tempfile.TemporaryDirectory(
+            prefix="release-manifest-schema-", dir=release_test_temp_root()
+        ) as temporary_directory:
+            manifest_path = Path(temporary_directory) / "manifest.json"
+            for name, role, size, sha256, application_size, expected in cases:
+                candidate = json.loads(json.dumps(manifest))
+                candidate["files"][-1].update(
+                    {"role": role, "size": size, "sha256": sha256}
+                )
+                candidate["files"][0]["size"] = application_size
+                manifest_path.write_text(json.dumps(candidate), encoding="utf-8")
+                result = subprocess.run(
+                    [
+                        str(POWERSHELL),
+                        "-NoProfile",
+                        "-Command",
+                        command,
+                        str(manifest_path),
+                        str(RELEASE_MANIFEST_SCHEMA),
+                    ],
+                    cwd=ROOT,
+                    check=False,
+                    capture_output=True,
+                    text=True,
+                    encoding="utf-8",
+                    errors="replace",
+                )
+                self.assertEqual(
+                    expected,
+                    result.returncode == 0,
+                    f"{name}: {result.stdout}{result.stderr}",
+                )
 
     def test_packager_restores_then_cleans_and_smoke_requires_window(self) -> None:
         package_script = PACKAGE_SCRIPT.read_text(encoding="utf-8")
