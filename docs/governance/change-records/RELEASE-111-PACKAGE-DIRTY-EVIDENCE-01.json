@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 2,
+  "taskId": "RELEASE-111-PACKAGE-DIRTY-EVIDENCE-01",
+  "capability": "Expose the already captured Git porcelain entries when the v1.1.1 packager rejects a dirty invocation repository",
+  "integrationBase": "e14213439d8811d430553c36dd77b4886331c301",
+  "risk": "R3",
+  "kind": "release",
+  "state": "design-active",
+  "mutablePaths": [
+    "scripts/package.ps1"
+  ],
+  "implementationOwner": "primary-agent",
+  "searchEvidence": [
+    "scripts/package.ps1 already performs the sole invocation-repository HEAD and clean index/worktree admission before materializing its exact detached source snapshot.",
+    "Release workflow runs 33575514114 attempts 1 and 2 and run 33581768871 each completed the canonical full verifier and then failed immediately at the same generic package clean-worktree exception on GitHub Windows runners.",
+    "Local Python-only verification passed and left a clean Git status; local .NET-only verification left a clean Git status even when its slower Infrastructure lane reached the existing timeout. Ignoring standard .coverage.* subprocess shards did not change the remote failure.",
+    "The existing dirty-repository policy regression already exercises staged, unstaged and untracked states, so extending that test is sufficient evidence without adding another clean-worktree owner or packaging path."
+  ],
+  "semanticOwner": "scripts/package.ps1 remains the sole exact repository HEAD and clean invocation index/worktree admission owner before its existing detached exact-source snapshot",
+  "terminalContract": "The packager continues to invoke git status --porcelain=v1 --untracked-files=all exactly once, reject native Git failure, and reject every non-empty captured status. The diagnostic-only extension appends the already captured porcelain entries joined with '; ' to the existing dirty-worktree exception. It does not parse, ignore, clean, retry or admit any dirty input and does not change verifier, workflow, product, firmware, package payload, permission or promotion behavior.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "admission_batch_architecture",
+    "outcome": "approved",
+    "evidence": "Independent bounded R3 design review found P0/P1/P2/P3 = 0/0/0/0 and scoped Polytail PASS-WITH-HUMAN-GATE. scripts/package.ps1 already solely owns exact repository HEAD and clean index/worktree admission through one fail-closed git status --porcelain=v1 --untracked-files=all invocation. The approved change preserves that command, native exit-code rejection and the non-empty-status terminal predicate byte-for-byte, and only appends the already captured porcelain entries joined with '; ' to the existing dirty-worktree exception. It adds no parser, second status invocation, allowlist, ignore, retry, cleanup, workflow override or successful path for dirty input. Focused staged, unstaged and untracked regressions must retain the nonzero verdict and generic contract while proving each exact porcelain entry is visible. No verifier, workflow, product, firmware, package payload/content, permission or release-promotion semantics change. No ADR is required; exact-head R3 review, narrow policy tests, structure validation and release-owner approval remain mandatory, and the next release candidate must still diagnose and remove the reported dirty entry before packaging can proceed."
+  },
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": {
+    "reviewer": null,
+    "outcome": "pending",
+    "evidence": ""
+  }
+}
