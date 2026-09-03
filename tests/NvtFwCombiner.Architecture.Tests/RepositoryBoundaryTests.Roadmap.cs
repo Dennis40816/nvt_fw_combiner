@@ -943,4 +943,31 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("NT51927", row[3], StringComparison.Ordinal);
         Assert.DoesNotContain("TPB", string.Join(' ', row), StringComparison.Ordinal);
     }
+
+    /// <summary>Preserves historical planning evidence while routing current ownership to canonical documents.</summary>
+    [Fact]
+    public void HistoricalPlanningDocumentsPointToCanonicalRoadmapAndCurrentUiArchitecture()
+    {
+        string historicalPlan = ReadText("docs/architecture/0.7.0-refactor-and-evidence-plan.md");
+        string onboardingRunbook = ReadText("docs/architecture/adding-ic-merge-replace-workflow.md");
+        string demoPlan = ReadText("docs/ui/0.1.1-demo-interface-plan.md");
+
+        Assert.Contains("Status: Historical", historicalPlan, StringComparison.Ordinal);
+        Assert.Contains(
+            "Active version allocation and completion status are maintained only in [`NFC Roadmap`](nfc_roadmap.md).",
+            historicalPlan,
+            StringComparison.Ordinal);
+
+        Assert.DoesNotContain(
+            "That document is the active checklist",
+            onboardingRunbook,
+            StringComparison.Ordinal);
+        Assert.Contains("retained historical checklist", onboardingRunbook, StringComparison.Ordinal);
+        Assert.Contains("[`NFC Roadmap`](nfc_roadmap.md)", onboardingRunbook, StringComparison.Ordinal);
+
+        Assert.Contains(
+            "For the current information architecture, see [`information-architecture.md`](information-architecture.md).",
+            demoPlan,
+            StringComparison.Ordinal);
+    }
 }
