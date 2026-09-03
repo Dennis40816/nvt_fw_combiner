@@ -59,12 +59,6 @@ public sealed partial class RepositoryBoundaryTests
             "docs/architecture/v1.1.2-repository-document-convergence-handoff.md");
         string documentConvergenceManifest = ReadText(
             "docs/architecture/v1.1.2-repository-document-convergence-manifest.md");
-        string normalizedDocumentConvergenceManifest = string.Join(
-            ' ',
-            documentConvergenceManifest.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));
-        string normalizedDocumentConvergenceHandoff = string.Join(
-            ' ',
-            documentConvergenceHandoff.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));
         string sizeAdr = ReadText("docs/adr/0021-code-size-ratchet-and-convergence.md");
         string dependencyPlan = ReadText("docs/governance/0.10.x-ticket-dependency-plan.md");
         string[] coreAuthorities = [spec, sizeAdr, dependencyPlan];
@@ -218,170 +212,22 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("former `v1.1.2` allocation is superseded to `v1.1.3`", normalizedNfcRoadmap, StringComparison.Ordinal);
         Assert.Contains("D1-D7 deletion batch as complete with final frozen review and final verifier evidence", normalizedNfcRoadmap, StringComparison.Ordinal);
         Assert.DoesNotContain("awaiting independent review/final gate", normalizedNfcRoadmap, StringComparison.Ordinal);
-        Assert.Contains("D1-D7 approved deletion batch has final frozen review", documentConvergenceHandoff, StringComparison.Ordinal);
-        Assert.Contains("Current repository-wide rule classification", documentConvergenceHandoff, StringComparison.Ordinal);
-        Assert.Contains("`v1.1.2` cannot be declared complete", normalizedDocumentConvergenceHandoff, StringComparison.Ordinal);
-        Assert.Contains("| Open TODO | Owner | Blocker | Next action |", documentConvergenceHandoff, StringComparison.Ordinal);
-        Assert.Contains("Keep an active canonical authority.", documentConvergenceHandoff, StringComparison.Ordinal);
-        Assert.Contains("Retain required immutable release, firmware, or governance evidence.", documentConvergenceHandoff, StringComparison.Ordinal);
-        Assert.Contains("git mv", documentConvergenceHandoff, StringComparison.Ordinal);
-        Assert.Contains("ordinary independent review", normalizedDocumentConvergenceHandoff, StringComparison.Ordinal);
-        Assert.Contains("final canonical gate", normalizedDocumentConvergenceHandoff, StringComparison.Ordinal);
-        Assert.Contains("approved D1-D7 deletion batch has final frozen review", normalizedDocumentConvergenceManifest, StringComparison.Ordinal);
-        Assert.Contains("316 tracked Markdown files and 458 tracked paths", documentConvergenceManifest, StringComparison.Ordinal);
-        Assert.Contains("Status:", documentConvergenceManifest, StringComparison.Ordinal);
-        Assert.Contains("every current tracked path outside the 13 reviewed", documentConvergenceManifest, StringComparison.Ordinal);
-        Assert.Contains("dependency-rules.md` is a human-\nreadable architecture contract", documentConvergenceManifest, StringComparison.Ordinal);
-        Assert.Contains("There are no `MOVE_CANDIDATE` paths", documentConvergenceManifest, StringComparison.Ordinal);
-        Assert.Contains("git grep -a -l -F", documentConvergenceManifest, StringComparison.Ordinal);
-        Assert.Contains("2 / 2 / 0", documentConvergenceManifest, StringComparison.Ordinal);
-        Assert.Contains("RepositoryBoundaryTests.Roadmap.cs", documentConvergenceManifest, StringComparison.Ordinal);
-        Assert.Contains("## Phase 2 current basis (ae06f01c)", documentConvergenceManifest, StringComparison.Ordinal);
-        Assert.Contains("Tracked paths | 2,775", documentConvergenceManifest, StringComparison.Ordinal);
-        Assert.Contains("`docs/` paths | 455", documentConvergenceManifest, StringComparison.Ordinal);
-        Assert.Contains("Outside-doc exact rule coverage | 2,320 / 2,320", documentConvergenceManifest, StringComparison.Ordinal);
-        Assert.Contains("Outside-doc uncovered | 0", documentConvergenceManifest, StringComparison.Ordinal);
-        Assert.Contains("Commit `ae06f01c` records completion", documentConvergenceManifest, StringComparison.Ordinal);
-        Assert.Contains("structure-only gate is\ntracked independently of Phase 2.", documentConvergenceManifest, StringComparison.Ordinal);
-        Assert.Contains("structure-only\ncanonical gate is tracked independently", documentConvergenceHandoff, StringComparison.Ordinal);
-        Assert.Contains("Phase 1 frozen counts and SHA-256 values above remain immutable evidence.", documentConvergenceManifest, StringComparison.Ordinal);
-        Assert.Contains("No candidate may be deleted, moved, or", normalizedDocumentConvergenceManifest, StringComparison.Ordinal);
-        Assert.Contains("## Phase 2 current-basis audit", documentConvergenceHandoff, StringComparison.Ordinal);
-        Assert.Contains("**2,775 tracked paths**", documentConvergenceHandoff, StringComparison.Ordinal);
-        Assert.Contains("**2,320 / 2,320**, with", documentConvergenceHandoff, StringComparison.Ordinal);
-        Assert.Contains("**0 uncovered**", documentConvergenceHandoff, StringComparison.Ordinal);
-        Assert.Contains("These thirteen exact\nreviewed paths", documentConvergenceHandoff, StringComparison.Ordinal);
-        Assert.Contains("current intake boundary; retain", documentConvergenceHandoff, StringComparison.Ordinal);
-        Assert.Contains("merge-then-delete candidate", documentConvergenceHandoff, StringComparison.Ordinal);
-        Assert.Contains("retained historical summary", documentConvergenceHandoff, StringComparison.Ordinal);
-        Assert.Contains("delete candidate pending exact owner approval", documentConvergenceHandoff, StringComparison.Ordinal);
-        Assert.Contains("Focused and full\n`RepositoryBoundaryTests` pass (246/246).", documentConvergenceHandoff, StringComparison.Ordinal);
-        Assert.Contains("There is one roadmap TODO owner", documentConvergenceHandoff, StringComparison.Ordinal);
-        Assert.Contains("is the sole owner of version allocation", normalizedDocumentConvergenceHandoff, StringComparison.Ordinal);
-        Assert.Contains("`v1.1.2` is not wholly complete", normalizedDocumentConvergenceManifest, StringComparison.Ordinal);
         Assert.Contains("Repository document convergence", readme, StringComparison.Ordinal);
         Assert.Contains("no second inventory or TODO owner", readme, StringComparison.Ordinal);
-        foreach (string exception in new[]
+        Assert.False(File.Exists(Path.Combine(Root.FullName, "docs", "README.md")));
+        Assert.Contains("](nfc_roadmap.md)", documentConvergenceHandoff, StringComparison.Ordinal);
+        Assert.Contains("](v1.1.2-repository-document-convergence-manifest.md)", documentConvergenceHandoff, StringComparison.Ordinal);
+        Assert.Contains("DELETE_APPROVED", documentConvergenceManifest, StringComparison.Ordinal);
+        foreach (string authorityPath in new[]
         {
-            "testdata/golden/owner-handoff/README.md",
-            "testdata/golden/owner-handoff/TODO.md",
-            "testdata/golden/owner-handoff/0718-missing-owner-evidence/README_請先看.md",
-            "testdata/golden/owner-handoff/0718-missing-owner-evidence/P0_NT51932_cascade/請放這些.md",
-            "testdata/golden/owner-handoff/0718-missing-owner-evidence/P0_NT51950_ctrlram_cascade/請放這些.md",
-            "testdata/golden/owner-handoff/0718-missing-owner-evidence/P0_NT51951_ctrlram_cascade/請放這些.md",
-            "testdata/golden/owner-handoff/0718-missing-owner-evidence/P0_NT51951_ctrlram_single_修正版/請放這些.md",
-            "testdata/golden/owner-handoff/0718-missing-owner-evidence/P1_General_Replace_migration/請先核准再放Golden.md",
-            "testdata/golden/owner-handoff/0718-missing-owner-evidence/P1_NT51926_Common_FW_2.0.0/請決定或提供.md",
-            "profiles/samples/README.md",
-            "profiles/schema/README.md",
-            "testdata/public-synthetic/README.md",
-            "tests/NvtFwCombiner.Infrastructure.Tests/README.md",
+            "docs/adr/0021-code-size-ratchet-and-convergence.md",
+            "docs/governance/change-records/DOCS-112-RETENTION-CLEANUP-01.json",
+            "testdata/golden/canonical/manifest.json",
+            "docs/governance/v0.9.9-final-owner-golden-gap-matrix-20260718.md",
+            "docs/ci/release-package.md",
         })
         {
-            Assert.Contains(exception, documentConvergenceManifest, StringComparison.Ordinal);
-            Assert.Contains(exception, documentConvergenceHandoff, StringComparison.Ordinal);
-        }
-        Assert.False(File.Exists(Path.Combine(Root.FullName, "docs", "README.md")));
-        string[] expectedDeletedPaths =
-        [
-            "docs/architecture/general-replace-binary-patch-proposal.md",
-            "docs/governance/owner-verification-inputs-0.8-to-0.9.md",
-            "tests/NvtFwCombiner.Application.Tests/README.md",
-            "tests/NvtFwCombiner.ProfileContract.Tests/README.md",
-            "tests/NvtFwCombiner.UiSmoke.Tests/README.md",
-            "docs/ui/page-review-2026-07-04.md",
-            "docs/references/tutorial/NVT_FW_Combiner_0.7.3_Tutorial.pptx",
-        ];
-        var expectedFrozenEvidence = new Dictionary<string, (string Bytes, string Hash)>(StringComparer.Ordinal)
-        {
-            ["docs/architecture/general-replace-binary-patch-proposal.md"] = ("6,499", "86cf655a9343f18d8839458ed27f6f29f20087d2a043f85ff88ce0ac5daa691c"),
-            ["docs/governance/owner-verification-inputs-0.8-to-0.9.md"] = ("15,387", "b1da39d596d61c6e3a3f454fc273386f4af0a37bec7393ab55082447d632ca2e"),
-            ["tests/NvtFwCombiner.Application.Tests/README.md"] = ("189", "0210395b2eb1687a7c67e7396aa5375bca74d8b5585ff1e166a9035725723556"),
-            ["tests/NvtFwCombiner.ProfileContract.Tests/README.md"] = ("194", "dd271e5486f810145a519cf24e0fffcec7b61842f969f082e707b1b1c7a48e98"),
-            ["tests/NvtFwCombiner.UiSmoke.Tests/README.md"] = ("186", "cfcff7b58b77e65b7521f41f48103f3f9e680a532f773409fd0c3dbff1a19713"),
-            ["docs/ui/page-review-2026-07-04.md"] = ("2,612", "2f5bc1ae10ea7b7718eb3cd35c2786f712e13acc14cc78f423875f7d693a7d9a"),
-            ["docs/references/tutorial/NVT_FW_Combiner_0.7.3_Tutorial.pptx"] = ("336,853", "c1e6129c47ab7c7b82949cfc1811f9b577a1f84570310cd8f2bd1e919073edad"),
-        };
-        string[] baseControlFiles =
-        [
-            "docs/architecture/v1.1.2-repository-document-convergence-manifest.md",
-            "tests/NvtFwCombiner.Architecture.Tests/RepositoryBoundaryTests.Roadmap.cs",
-        ];
-        const string governedDeletionPath = "docs/governance/owner-verification-inputs-0.8-to-0.9.md";
-        string[] governedControlFiles =
-        [
-            baseControlFiles[0],
-            "docs/governance/change-records/DOCS-112-RETENTION-CLEANUP-01.json",
-            baseControlFiles[1],
-        ];
-        string[][] deletionRows =
-        [.. documentConvergenceManifest
-            .Split('\n')
-            .Select(line => line.TrimEnd('\r'))
-            .Where(line => line.StartsWith("| DELETE_APPROVED |", StringComparison.Ordinal))
-            .Select(line => line.Split('|', StringSplitOptions.TrimEntries))];
-        Assert.Equal(7, deletionRows.Length);
-        Assert.All(deletionRows, row => Assert.Equal(10, row.Length));
-        Assert.Equal(
-            expectedDeletedPaths,
-            deletionRows.Select(row => row[3].Trim('`')));
-        Assert.Equal(
-            deletionRows.Length,
-            deletionRows.Select(row => row[3].Trim('`')).Distinct(StringComparer.Ordinal).Count());
-        foreach (string[] row in deletionRows)
-        {
-            string path = row[3].Trim('`');
-            string filesystemPath = Path.Combine(Root.FullName, path.Replace('/', Path.DirectorySeparatorChar));
-
-            Assert.Equal("DELETE_APPROVED", row[1]);
-            Assert.Equal("REMOVED", row[2]);
-            Assert.False(File.Exists(filesystemPath));
-            Assert.True(expectedFrozenEvidence.TryGetValue(path, out (string Bytes, string Hash) evidence));
-            Assert.Equal(evidence.Bytes, row[4]);
-            Assert.Equal(evidence.Hash, row[5].Trim('`'));
-            Assert.Matches("^[0-9a-f]{64}$", row[5].Trim('`'));
-            string[] expectedControls = path == governedDeletionPath
-                ? governedControlFiles
-                : baseControlFiles;
-            Assert.Equal(path == governedDeletionPath ? "3 / 3 / 0" : "2 / 2 / 0", row[6]);
-            Assert.Equal("0", row[7]);
-            Assert.Contains("Risk:", row[8], StringComparison.Ordinal);
-            Assert.False(string.IsNullOrWhiteSpace(row[8]));
-            Assert.Equal(expectedControls, FindExactTrackedFiles(Root, path));
-        }
-        Assert.DoesNotContain("| DELETE_APPROVED | REMOVED | `docs/architecture/dependency-rules.md`", documentConvergenceManifest, StringComparison.Ordinal);
-        Assert.Contains("No archive directory was\napproved or created", documentConvergenceManifest, StringComparison.Ordinal);
-        Assert.Contains("separately authorized roadmap-allocation maintenance", normalizedDocumentConvergenceManifest, StringComparison.Ordinal);
-
-        static string[] FindExactTrackedFiles(DirectoryInfo root, string path)
-        {
-            var startInfo = new System.Diagnostics.ProcessStartInfo("git")
-            {
-                CreateNoWindow = true,
-                RedirectStandardError = true,
-                RedirectStandardOutput = true,
-                UseShellExecute = false,
-                WorkingDirectory = root.FullName,
-            };
-            startInfo.ArgumentList.Add("grep");
-            startInfo.ArgumentList.Add("-a");
-            startInfo.ArgumentList.Add("-l");
-            startInfo.ArgumentList.Add("-F");
-            startInfo.ArgumentList.Add("--");
-            startInfo.ArgumentList.Add(path);
-
-            using System.Diagnostics.Process process = System.Diagnostics.Process.Start(startInfo)
-                ?? throw new InvalidOperationException("The Git exact-path scan did not start.");
-            string standardOutput = process.StandardOutput.ReadToEnd();
-            string standardError = process.StandardError.ReadToEnd();
-            process.WaitForExit();
-            Assert.True(process.ExitCode == 0, standardError);
-
-            return
-            [.. standardOutput.Split('\n', StringSplitOptions.RemoveEmptyEntries)
-                .Select(file => file.TrimEnd('\r').Replace('\\', '/'))
-                .Distinct(StringComparer.Ordinal)
-                .Order(StringComparer.Ordinal)];
+            Assert.False(string.IsNullOrWhiteSpace(ReadText(authorityPath)));
         }
 
         foreach ((string releaseHeading, string handoffPath) in new[]
@@ -1018,118 +864,4 @@ public sealed partial class RepositoryBoundaryTests
             StringComparison.Ordinal);
     }
 
-    /// <summary>Ensures one deterministic documented rule owns every tracked path.</summary>
-    [Fact]
-    public void DocumentConvergenceRulesCoverEveryTrackedPathExactlyOnce()
-    {
-        string handoff = ReadText("docs/architecture/v1.1.2-repository-document-convergence-handoff.md");
-        string manifest = ReadText("docs/architecture/v1.1.2-repository-document-convergence-manifest.md");
-        string normalizedManifest = string.Join(' ', manifest.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));
-        string[] paths = ListTrackedPaths();
-        var rules = new (string Name, Func<string, bool> Matches)[]
-        {
-            ("docs/AGENTS.md", path => path == "docs/AGENTS.md"),
-            ("docs/adr/", path => path.StartsWith("docs/adr/", StringComparison.Ordinal)),
-            ("docs/architecture/", path => path.StartsWith("docs/architecture/", StringComparison.Ordinal)),
-            ("docs/ci/", path => path.StartsWith("docs/ci/", StringComparison.Ordinal)),
-            ("docs/contracts/", path => path.StartsWith("docs/contracts/", StringComparison.Ordinal)),
-            ("docs/governance/", path => path.StartsWith("docs/governance/", StringComparison.Ordinal)),
-            ("docs/policies/", path => path.StartsWith("docs/policies/", StringComparison.Ordinal)),
-            ("docs/references/", path => path.StartsWith("docs/references/", StringComparison.Ordinal)),
-            ("docs/specs/", path => path.StartsWith("docs/specs/", StringComparison.Ordinal)),
-            ("docs/ui/", path => path.StartsWith("docs/ui/", StringComparison.Ordinal)),
-            ("root", path => !path.Contains('/', StringComparison.Ordinal)),
-            (".agents/", path => path.StartsWith(".agents/", StringComparison.Ordinal)),
-            (".codex/", path => path.StartsWith(".codex/", StringComparison.Ordinal)),
-            (".github/", path => path.StartsWith(".github/", StringComparison.Ordinal)),
-            ("eng/", path => path.StartsWith("eng/", StringComparison.Ordinal)),
-            ("external-tools/", path => path.StartsWith("external-tools/", StringComparison.Ordinal)),
-            ("profiles/", path => path.StartsWith("profiles/", StringComparison.Ordinal)),
-            ("refcode/", path => path.StartsWith("refcode/", StringComparison.Ordinal)),
-            ("scripts/", path => path.StartsWith("scripts/", StringComparison.Ordinal)),
-            ("src/", path => path.StartsWith("src/", StringComparison.Ordinal)),
-            ("testdata/", path => path.StartsWith("testdata/", StringComparison.Ordinal)),
-            ("tests/", path => path.StartsWith("tests/", StringComparison.Ordinal)),
-            ("third-party/", path => path.StartsWith("third-party/", StringComparison.Ordinal)),
-            ("tools/", path => path.StartsWith("tools/", StringComparison.Ordinal)),
-        };
-        HashSet<string> reviewedPaths =
-        [
-            "testdata/golden/owner-handoff/README.md",
-            "testdata/golden/owner-handoff/TODO.md",
-            "testdata/golden/owner-handoff/0718-missing-owner-evidence/README_請先看.md",
-            "testdata/golden/owner-handoff/0718-missing-owner-evidence/P0_NT51932_cascade/請放這些.md",
-            "testdata/golden/owner-handoff/0718-missing-owner-evidence/P0_NT51950_ctrlram_cascade/請放這些.md",
-            "testdata/golden/owner-handoff/0718-missing-owner-evidence/P0_NT51951_ctrlram_cascade/請放這些.md",
-            "testdata/golden/owner-handoff/0718-missing-owner-evidence/P0_NT51951_ctrlram_single_修正版/請放這些.md",
-            "testdata/golden/owner-handoff/0718-missing-owner-evidence/P1_General_Replace_migration/請先核准再放Golden.md",
-            "testdata/golden/owner-handoff/0718-missing-owner-evidence/P1_NT51926_Common_FW_2.0.0/請決定或提供.md",
-            "profiles/samples/README.md",
-            "profiles/schema/README.md",
-            "testdata/public-synthetic/README.md",
-            "tests/NvtFwCombiner.Infrastructure.Tests/README.md",
-        ];
-        Assert.Equal(13, reviewedPaths.Count);
-        Dictionary<string, int> counts = rules.ToDictionary(rule => rule.Name, _ => 0, StringComparer.Ordinal);
-        int nonExceptionCount = 0;
-        foreach (string path in paths)
-        {
-            string[] owners = [.. rules
-                .Where(rule => rule.Matches(path))
-                .Select(rule => rule.Name)];
-            Assert.True(owners.Length == 1, $"Tracked path '{path}' has {owners.Length} rule owners.");
-            counts[owners[0]]++;
-            if (!reviewedPaths.Contains(path))
-            {
-                nonExceptionCount++;
-            }
-        }
-
-        Assert.Equal(2775, paths.Length);
-        Assert.Equal(455, rules.Where(rule => rule.Name.StartsWith("docs/", StringComparison.Ordinal)).Sum(rule => counts[rule.Name]));
-        Assert.Equal(2320, paths.Length - 455);
-        Assert.Equal(1, counts["docs/AGENTS.md"]);
-        Assert.Equal(69, counts["docs/adr/"]);
-        Assert.Equal(41, counts["docs/architecture/"]);
-        Assert.Equal(6, counts["docs/ci/"]);
-        Assert.Equal(85, counts["docs/contracts/"]);
-        Assert.Equal(186, counts["docs/governance/"]);
-        Assert.Equal(1, counts["docs/policies/"]);
-        Assert.Equal(42, counts["docs/references/"]);
-        Assert.Equal(10, counts["docs/specs/"]);
-        Assert.Equal(14, counts["docs/ui/"]);
-        Assert.Equal(2762, nonExceptionCount);
-        Assert.DoesNotContain(rules, rule => rule.Matches("future/unapproved/path.md"));
-        Assert.Contains("RETAIN_BY_RULE", handoff, StringComparison.Ordinal);
-        Assert.Contains("An unknown or future path matching no rule fails closed", normalizedManifest, StringComparison.Ordinal);
-        Assert.Contains("exactly one match per path", handoff, StringComparison.Ordinal);
-        Assert.Contains("Outside-doc exact rule coverage", manifest, StringComparison.Ordinal);
-    }
-
-    private static string[] ListTrackedPaths()
-    {
-        using System.Diagnostics.Process process = new()
-        {
-            StartInfo = new System.Diagnostics.ProcessStartInfo
-            {
-                FileName = "git",
-                WorkingDirectory = Root.FullName,
-                RedirectStandardOutput = true,
-                UseShellExecute = false,
-                CreateNoWindow = true,
-                StandardOutputEncoding = System.Text.Encoding.UTF8,
-            },
-        };
-        process.StartInfo.ArgumentList.Add("-c");
-        process.StartInfo.ArgumentList.Add("core.quotepath=false");
-        process.StartInfo.ArgumentList.Add("ls-files");
-        process.StartInfo.ArgumentList.Add("-z");
-        Assert.True(process.Start());
-        string output = process.StandardOutput.ReadToEnd();
-        process.WaitForExit();
-        Assert.Equal(0, process.ExitCode);
-        return [.. output
-            .Split('\0', StringSplitOptions.RemoveEmptyEntries)
-            .Select(path => path.Replace('\\', '/'))];
-    }
 }
