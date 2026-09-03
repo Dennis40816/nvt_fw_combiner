@@ -218,6 +218,47 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("](nfc_roadmap.md)", documentConvergenceHandoff, StringComparison.Ordinal);
         Assert.Contains("](v1.1.2-repository-document-convergence-manifest.md)", documentConvergenceHandoff, StringComparison.Ordinal);
         Assert.Contains("DELETE_APPROVED", documentConvergenceManifest, StringComparison.Ordinal);
+        var expectedFrozenDeletions = new Dictionary<string, (string Bytes, string Sha256)>(StringComparer.Ordinal)
+        {
+            ["docs/architecture/general-replace-binary-patch-proposal.md"] = ("6,499", "86cf655a9343f18d8839458ed27f6f29f20087d2a043f85ff88ce0ac5daa691c"),
+            ["docs/governance/owner-verification-inputs-0.8-to-0.9.md"] = ("15,387", "b1da39d596d61c6e3a3f454fc273386f4af0a37bec7393ab55082447d632ca2e"),
+            ["tests/NvtFwCombiner.Application.Tests/README.md"] = ("189", "0210395b2eb1687a7c67e7396aa5375bca74d8b5585ff1e166a9035725723556"),
+            ["tests/NvtFwCombiner.ProfileContract.Tests/README.md"] = ("194", "dd271e5486f810145a519cf24e0fffcec7b61842f969f082e707b1b1c7a48e98"),
+            ["tests/NvtFwCombiner.UiSmoke.Tests/README.md"] = ("186", "cfcff7b58b77e65b7521f41f48103f3f9e680a532f773409fd0c3dbff1a19713"),
+            ["docs/ui/page-review-2026-07-04.md"] = ("2,612", "2f5bc1ae10ea7b7718eb3cd35c2786f712e13acc14cc78f423875f7d693a7d9a"),
+            ["docs/references/tutorial/NVT_FW_Combiner_0.7.3_Tutorial.pptx"] = ("336,853", "c1e6129c47ab7c7b82949cfc1811f9b577a1f84570310cd8f2bd1e919073edad"),
+        };
+        string[][] frozenDeletionRows =
+        [.. documentConvergenceManifest
+            .Split('\n')
+            .Select(line => line.TrimEnd('\r'))
+            .Where(line => line.StartsWith("| DELETE_APPROVED | REMOVED |", StringComparison.Ordinal))
+            .Select(line => line.Split('|', StringSplitOptions.TrimEntries))];
+        Assert.Equal(7, frozenDeletionRows.Length);
+        Assert.Equal(7, frozenDeletionRows.Select(row => row[3].Trim('`')).Distinct(StringComparer.Ordinal).Count());
+        foreach (string[] row in frozenDeletionRows)
+        {
+            Assert.Equal(8, row.Length);
+            Assert.True(expectedFrozenDeletions.TryGetValue(row[3].Trim('`'), out (string Bytes, string Sha256) expected));
+            Assert.Equal(expected.Bytes, row[4]);
+            Assert.Equal(expected.Sha256, row[5].Trim('`'));
+            Assert.False(File.Exists(Path.Combine(Root.FullName, row[3].Trim('`').Replace('/', Path.DirectorySeparatorChar))));
+            Assert.Contains("owner approval", row[6], StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("final review", row[6], StringComparison.OrdinalIgnoreCase);
+        }
+        Assert.Contains("Frozen implementation identity", documentConvergenceManifest, StringComparison.Ordinal);
+        Assert.Contains("final verifier and independent review passed", documentConvergenceManifest, StringComparison.Ordinal);
+        Assert.Contains("No archive, relocation, or regeneration was approved", documentConvergenceManifest, StringComparison.Ordinal);
+        Assert.Contains("](../governance/change-records/DOCS-112-RETENTION-CLEANUP-01.json)", frozenDeletionRows.Single(row => row[3] == "`docs/governance/owner-verification-inputs-0.8-to-0.9.md`")[6], StringComparison.Ordinal);
+        Assert.All(
+            frozenDeletionRows.Where(row => row[3] != "`docs/governance/owner-verification-inputs-0.8-to-0.9.md`"),
+            row =>
+            {
+                Assert.Contains("zero non-control caller", row[6], StringComparison.OrdinalIgnoreCase);
+                Assert.True(
+                    row[6].Contains("successor", StringComparison.OrdinalIgnoreCase)
+                    || row[6].Contains("no unique current authority", StringComparison.OrdinalIgnoreCase));
+            });
         foreach (string authorityPath in new[]
         {
             "docs/adr/0021-code-size-ratchet-and-convergence.md",
