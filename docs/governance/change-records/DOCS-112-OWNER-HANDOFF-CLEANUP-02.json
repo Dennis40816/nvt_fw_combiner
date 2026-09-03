@@ -5,7 +5,7 @@
   "integrationBase": "95037eb18ac66a651f2eaf950283cccb6a5e72e1",
   "risk": "R3",
   "kind": "governance",
-  "state": "design-active",
+  "state": "final-complete",
   "mutablePaths": [
     "testdata/golden/owner-handoff/README.md",
     "testdata/golden/owner-handoff/TODO.md",
@@ -33,12 +33,12 @@
     "outcome": "approved",
     "evidence": "The owner explicitly approved the exact seven deletions, retention of the 0718 historical README, and the NT51927 link-only repair; this record does not broaden Golden authority."
   },
-  "implementationHead": null,
-  "reviewedHead": null,
-  "pathStateDigest": null,
+  "implementationHead": "ef534793072f1718ba6abfc5c61ae24bd0813b81",
+  "reviewedHead": "ef534793072f1718ba6abfc5c61ae24bd0813b81",
+  "pathStateDigest": "de2f85179c5fb29ba6655d6889356f0f3106690295fad63641434babb8f18693",
   "finalReview": {
-    "reviewer": null,
-    "outcome": "pending",
-    "evidence": ""
+    "reviewer": "gpt-5.6-sol/high independent evidence reviewer",
+    "outcome": "approved",
+    "evidence": "Independent fixed-head review approved the exact 15-path/10-governed C1: seven deletions, NT51927 link-only repair, diagnostic 57/5809af7997455afa8d918d949328810f79a0e2858f5e1676a9ac59acf48b2b38, diagnostic 11/11, RepositoryBoundary 256/256, and no P0-P3; the only expected C1 structure-only lifecycle residual was the pending external attestation."
   }
 }
