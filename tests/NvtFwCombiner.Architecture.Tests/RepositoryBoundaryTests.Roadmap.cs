@@ -224,6 +224,7 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("Retain required immutable release, firmware, or governance evidence.", documentConvergenceHandoff, StringComparison.Ordinal);
         Assert.Contains("git mv", documentConvergenceHandoff, StringComparison.Ordinal);
         Assert.Contains("ordinary independent review", normalizedDocumentConvergenceHandoff, StringComparison.Ordinal);
+        Assert.Contains("final canonical gate", normalizedDocumentConvergenceHandoff, StringComparison.Ordinal);
         Assert.Contains("approved D1-D7 deletion batch has final frozen review", normalizedDocumentConvergenceManifest, StringComparison.Ordinal);
         Assert.Contains("316 tracked Markdown files and 458 tracked paths", documentConvergenceManifest, StringComparison.Ordinal);
         Assert.Contains("Status:", documentConvergenceManifest, StringComparison.Ordinal);
