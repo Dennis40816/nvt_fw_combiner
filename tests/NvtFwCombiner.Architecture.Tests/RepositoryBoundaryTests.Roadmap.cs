@@ -216,8 +216,10 @@ public sealed partial class RepositoryBoundaryTests
             StringComparison.Ordinal);
         Assert.Contains("immutable historical evidence", normalizedNfcRoadmap, StringComparison.Ordinal);
         Assert.Contains("former `v1.1.2` allocation is superseded to `v1.1.3`", normalizedNfcRoadmap, StringComparison.Ordinal);
+        Assert.Contains("D1-D7 deletion batch as complete with final frozen review and final verifier evidence", normalizedNfcRoadmap, StringComparison.Ordinal);
+        Assert.DoesNotContain("awaiting independent review/final gate", normalizedNfcRoadmap, StringComparison.Ordinal);
         Assert.Contains("D1-D7 approved deletion batch has final frozen review", documentConvergenceHandoff, StringComparison.Ordinal);
-        Assert.Contains("repository-wide remainder is `KEEP_PENDING_EVIDENCE`", documentConvergenceHandoff, StringComparison.Ordinal);
+        Assert.Contains("Current repository-wide rule classification", documentConvergenceHandoff, StringComparison.Ordinal);
         Assert.Contains("`v1.1.2` cannot be declared complete", normalizedDocumentConvergenceHandoff, StringComparison.Ordinal);
         Assert.Contains("| Open TODO | Owner | Blocker | Next action |", documentConvergenceHandoff, StringComparison.Ordinal);
         Assert.Contains("Keep an active canonical authority.", documentConvergenceHandoff, StringComparison.Ordinal);
@@ -228,12 +230,56 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("approved D1-D7 deletion batch has final frozen review", normalizedDocumentConvergenceManifest, StringComparison.Ordinal);
         Assert.Contains("316 tracked Markdown files and 458 tracked paths", documentConvergenceManifest, StringComparison.Ordinal);
         Assert.Contains("Status:", documentConvergenceManifest, StringComparison.Ordinal);
-        Assert.Contains("every tracked document not listed below is\n`KEEP_PENDING_EVIDENCE`", documentConvergenceManifest, StringComparison.Ordinal);
+        Assert.Contains("every current tracked path outside the 13 reviewed", documentConvergenceManifest, StringComparison.Ordinal);
         Assert.Contains("dependency-rules.md` is a human-\nreadable architecture contract", documentConvergenceManifest, StringComparison.Ordinal);
         Assert.Contains("There are no `MOVE_CANDIDATE` paths", documentConvergenceManifest, StringComparison.Ordinal);
         Assert.Contains("git grep -a -l -F", documentConvergenceManifest, StringComparison.Ordinal);
         Assert.Contains("2 / 2 / 0", documentConvergenceManifest, StringComparison.Ordinal);
         Assert.Contains("RepositoryBoundaryTests.Roadmap.cs", documentConvergenceManifest, StringComparison.Ordinal);
+        Assert.Contains("## Phase 2 current basis (ae06f01c)", documentConvergenceManifest, StringComparison.Ordinal);
+        Assert.Contains("Tracked paths | 2,775", documentConvergenceManifest, StringComparison.Ordinal);
+        Assert.Contains("`docs/` paths | 455", documentConvergenceManifest, StringComparison.Ordinal);
+        Assert.Contains("Outside-doc exact rule coverage | 2,320 / 2,320", documentConvergenceManifest, StringComparison.Ordinal);
+        Assert.Contains("Outside-doc uncovered | 0", documentConvergenceManifest, StringComparison.Ordinal);
+        Assert.Contains("Commit `ae06f01c` records completion", documentConvergenceManifest, StringComparison.Ordinal);
+        Assert.Contains("pre-existing `46ee8ddf` firmware metadata/profile", documentConvergenceManifest, StringComparison.Ordinal);
+        Assert.Contains("Phase 1 frozen counts and SHA-256 values above remain immutable evidence.", documentConvergenceManifest, StringComparison.Ordinal);
+        Assert.Contains("No candidate may be deleted, moved, or", normalizedDocumentConvergenceManifest, StringComparison.Ordinal);
+        Assert.Contains("## Phase 2 current-basis audit", documentConvergenceHandoff, StringComparison.Ordinal);
+        Assert.Contains("**2,775 tracked paths**", documentConvergenceHandoff, StringComparison.Ordinal);
+        Assert.Contains("**2,320 / 2,320**, with", documentConvergenceHandoff, StringComparison.Ordinal);
+        Assert.Contains("**0 uncovered**", documentConvergenceHandoff, StringComparison.Ordinal);
+        Assert.Contains("These thirteen exact\nreviewed paths", documentConvergenceHandoff, StringComparison.Ordinal);
+        Assert.Contains("current intake boundary; retain", documentConvergenceHandoff, StringComparison.Ordinal);
+        Assert.Contains("merge-then-delete candidate", documentConvergenceHandoff, StringComparison.Ordinal);
+        Assert.Contains("retained historical summary", documentConvergenceHandoff, StringComparison.Ordinal);
+        Assert.Contains("delete candidate pending exact owner approval", documentConvergenceHandoff, StringComparison.Ordinal);
+        Assert.Contains("Focused and full\n`RepositoryBoundaryTests` pass (246/246).", documentConvergenceHandoff, StringComparison.Ordinal);
+        Assert.Contains("There is one roadmap TODO owner", documentConvergenceHandoff, StringComparison.Ordinal);
+        Assert.Contains("is the sole owner of version allocation", normalizedDocumentConvergenceHandoff, StringComparison.Ordinal);
+        Assert.Contains("`v1.1.2` is not wholly complete", normalizedDocumentConvergenceManifest, StringComparison.Ordinal);
+        Assert.Contains("Repository document convergence", readme, StringComparison.Ordinal);
+        Assert.Contains("no second inventory or TODO owner", readme, StringComparison.Ordinal);
+        foreach (string exception in new[]
+        {
+            "testdata/golden/owner-handoff/README.md",
+            "testdata/golden/owner-handoff/TODO.md",
+            "testdata/golden/owner-handoff/0718-missing-owner-evidence/README_請先看.md",
+            "testdata/golden/owner-handoff/0718-missing-owner-evidence/P0_NT51932_cascade/請放這些.md",
+            "testdata/golden/owner-handoff/0718-missing-owner-evidence/P0_NT51950_ctrlram_cascade/請放這些.md",
+            "testdata/golden/owner-handoff/0718-missing-owner-evidence/P0_NT51951_ctrlram_cascade/請放這些.md",
+            "testdata/golden/owner-handoff/0718-missing-owner-evidence/P0_NT51951_ctrlram_single_修正版/請放這些.md",
+            "testdata/golden/owner-handoff/0718-missing-owner-evidence/P1_General_Replace_migration/請先核准再放Golden.md",
+            "testdata/golden/owner-handoff/0718-missing-owner-evidence/P1_NT51926_Common_FW_2.0.0/請決定或提供.md",
+            "profiles/samples/README.md",
+            "profiles/schema/README.md",
+            "testdata/public-synthetic/README.md",
+            "tests/NvtFwCombiner.Infrastructure.Tests/README.md",
+        })
+        {
+            Assert.Contains(exception, documentConvergenceManifest, StringComparison.Ordinal);
+            Assert.Contains(exception, documentConvergenceHandoff, StringComparison.Ordinal);
+        }
         Assert.False(File.Exists(Path.Combine(Root.FullName, "docs", "README.md")));
         string[] expectedDeletedPaths =
         [
@@ -969,5 +1015,120 @@ public sealed partial class RepositoryBoundaryTests
             "For the current information architecture, see [`information-architecture.md`](information-architecture.md).",
             demoPlan,
             StringComparison.Ordinal);
+    }
+
+    /// <summary>Ensures one deterministic documented rule owns every tracked path.</summary>
+    [Fact]
+    public void DocumentConvergenceRulesCoverEveryTrackedPathExactlyOnce()
+    {
+        string handoff = ReadText("docs/architecture/v1.1.2-repository-document-convergence-handoff.md");
+        string manifest = ReadText("docs/architecture/v1.1.2-repository-document-convergence-manifest.md");
+        string normalizedManifest = string.Join(' ', manifest.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));
+        string[] paths = ListTrackedPaths();
+        var rules = new (string Name, Func<string, bool> Matches)[]
+        {
+            ("docs/AGENTS.md", path => path == "docs/AGENTS.md"),
+            ("docs/adr/", path => path.StartsWith("docs/adr/", StringComparison.Ordinal)),
+            ("docs/architecture/", path => path.StartsWith("docs/architecture/", StringComparison.Ordinal)),
+            ("docs/ci/", path => path.StartsWith("docs/ci/", StringComparison.Ordinal)),
+            ("docs/contracts/", path => path.StartsWith("docs/contracts/", StringComparison.Ordinal)),
+            ("docs/governance/", path => path.StartsWith("docs/governance/", StringComparison.Ordinal)),
+            ("docs/policies/", path => path.StartsWith("docs/policies/", StringComparison.Ordinal)),
+            ("docs/references/", path => path.StartsWith("docs/references/", StringComparison.Ordinal)),
+            ("docs/specs/", path => path.StartsWith("docs/specs/", StringComparison.Ordinal)),
+            ("docs/ui/", path => path.StartsWith("docs/ui/", StringComparison.Ordinal)),
+            ("root", path => !path.Contains('/', StringComparison.Ordinal)),
+            (".agents/", path => path.StartsWith(".agents/", StringComparison.Ordinal)),
+            (".codex/", path => path.StartsWith(".codex/", StringComparison.Ordinal)),
+            (".github/", path => path.StartsWith(".github/", StringComparison.Ordinal)),
+            ("eng/", path => path.StartsWith("eng/", StringComparison.Ordinal)),
+            ("external-tools/", path => path.StartsWith("external-tools/", StringComparison.Ordinal)),
+            ("profiles/", path => path.StartsWith("profiles/", StringComparison.Ordinal)),
+            ("refcode/", path => path.StartsWith("refcode/", StringComparison.Ordinal)),
+            ("scripts/", path => path.StartsWith("scripts/", StringComparison.Ordinal)),
+            ("src/", path => path.StartsWith("src/", StringComparison.Ordinal)),
+            ("testdata/", path => path.StartsWith("testdata/", StringComparison.Ordinal)),
+            ("tests/", path => path.StartsWith("tests/", StringComparison.Ordinal)),
+            ("third-party/", path => path.StartsWith("third-party/", StringComparison.Ordinal)),
+            ("tools/", path => path.StartsWith("tools/", StringComparison.Ordinal)),
+        };
+        HashSet<string> reviewedPaths =
+        [
+            "testdata/golden/owner-handoff/README.md",
+            "testdata/golden/owner-handoff/TODO.md",
+            "testdata/golden/owner-handoff/0718-missing-owner-evidence/README_請先看.md",
+            "testdata/golden/owner-handoff/0718-missing-owner-evidence/P0_NT51932_cascade/請放這些.md",
+            "testdata/golden/owner-handoff/0718-missing-owner-evidence/P0_NT51950_ctrlram_cascade/請放這些.md",
+            "testdata/golden/owner-handoff/0718-missing-owner-evidence/P0_NT51951_ctrlram_cascade/請放這些.md",
+            "testdata/golden/owner-handoff/0718-missing-owner-evidence/P0_NT51951_ctrlram_single_修正版/請放這些.md",
+            "testdata/golden/owner-handoff/0718-missing-owner-evidence/P1_General_Replace_migration/請先核准再放Golden.md",
+            "testdata/golden/owner-handoff/0718-missing-owner-evidence/P1_NT51926_Common_FW_2.0.0/請決定或提供.md",
+            "profiles/samples/README.md",
+            "profiles/schema/README.md",
+            "testdata/public-synthetic/README.md",
+            "tests/NvtFwCombiner.Infrastructure.Tests/README.md",
+        ];
+        Assert.Equal(13, reviewedPaths.Count);
+        Dictionary<string, int> counts = rules.ToDictionary(rule => rule.Name, _ => 0, StringComparer.Ordinal);
+        int nonExceptionCount = 0;
+        foreach (string path in paths)
+        {
+            string[] owners = [.. rules
+                .Where(rule => rule.Matches(path))
+                .Select(rule => rule.Name)];
+            Assert.True(owners.Length == 1, $"Tracked path '{path}' has {owners.Length} rule owners.");
+            counts[owners[0]]++;
+            if (!reviewedPaths.Contains(path))
+            {
+                nonExceptionCount++;
+            }
+        }
+
+        Assert.Equal(2775, paths.Length);
+        Assert.Equal(455, rules.Where(rule => rule.Name.StartsWith("docs/", StringComparison.Ordinal)).Sum(rule => counts[rule.Name]));
+        Assert.Equal(2320, paths.Length - 455);
+        Assert.Equal(1, counts["docs/AGENTS.md"]);
+        Assert.Equal(69, counts["docs/adr/"]);
+        Assert.Equal(41, counts["docs/architecture/"]);
+        Assert.Equal(6, counts["docs/ci/"]);
+        Assert.Equal(85, counts["docs/contracts/"]);
+        Assert.Equal(186, counts["docs/governance/"]);
+        Assert.Equal(1, counts["docs/policies/"]);
+        Assert.Equal(42, counts["docs/references/"]);
+        Assert.Equal(10, counts["docs/specs/"]);
+        Assert.Equal(14, counts["docs/ui/"]);
+        Assert.Equal(2762, nonExceptionCount);
+        Assert.DoesNotContain(rules, rule => rule.Matches("future/unapproved/path.md"));
+        Assert.Contains("RETAIN_BY_RULE", handoff, StringComparison.Ordinal);
+        Assert.Contains("An unknown or future path matching no rule fails closed", normalizedManifest, StringComparison.Ordinal);
+        Assert.Contains("exactly one match per path", handoff, StringComparison.Ordinal);
+        Assert.Contains("Outside-doc exact rule coverage", manifest, StringComparison.Ordinal);
+    }
+
+    private static string[] ListTrackedPaths()
+    {
+        using System.Diagnostics.Process process = new()
+        {
+            StartInfo = new System.Diagnostics.ProcessStartInfo
+            {
+                FileName = "git",
+                WorkingDirectory = Root.FullName,
+                RedirectStandardOutput = true,
+                UseShellExecute = false,
+                CreateNoWindow = true,
+                StandardOutputEncoding = System.Text.Encoding.UTF8,
+            },
+        };
+        process.StartInfo.ArgumentList.Add("-c");
+        process.StartInfo.ArgumentList.Add("core.quotepath=false");
+        process.StartInfo.ArgumentList.Add("ls-files");
+        process.StartInfo.ArgumentList.Add("-z");
+        Assert.True(process.Start());
+        string output = process.StandardOutput.ReadToEnd();
+        process.WaitForExit();
+        Assert.Equal(0, process.ExitCode);
+        return [.. output
+            .Split('\0', StringSplitOptions.RemoveEmptyEntries)
+            .Select(path => path.Replace('\\', '/'))];
     }
 }

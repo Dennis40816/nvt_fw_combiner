@@ -182,10 +182,12 @@ Launcher refinement, or former product-expansion item belongs to `v1.1.1`.
 and cleanup planning only. The detailed classification/manifest gate is the
 [`v1.1.2 repository document convergence handoff`](v1.1.2-repository-document-convergence-handoff.md).
 Its Phase 1 [manifest](v1.1.2-repository-document-convergence-manifest.md)
-records the owner-approved D1-D7 deletion batch as implemented and awaiting
-independent review/final gate. The unlisted repository-wide remainder stays
-`KEEP_PENDING_EVIDENCE`; this allocation neither approves more deletion nor
-claims `v1.1.2` complete.
+records the owner-approved D1-D7 deletion batch as complete with final frozen
+review and final verifier evidence. Repository-wide current paths are now
+classified by the exactly-one approved matcher as `RETAIN_BY_RULE`, except for
+the 13 exact reviewed paths with explicit dispositions. Unknown or future
+paths fail closed; this classification neither approves deletion nor grants
+permanent immutability, and does not claim `v1.1.2` complete.
 
 ## `1.1.3`: infrastructure determinism and isolation
 

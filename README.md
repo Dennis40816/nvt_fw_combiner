@@ -129,6 +129,7 @@ each linked canonical source owns its scoped facts.
 | Need | Canonical route |
 | --- | --- |
 | Current TODO and version allocation | [NFC roadmap](docs/architecture/nfc_roadmap.md) — linked handoffs provide detail; its owner-unallocated queue is not approved work. |
+| Repository document convergence | [v1.1.2 handoff](docs/architecture/v1.1.2-repository-document-convergence-handoff.md) and [manifest](docs/architecture/v1.1.2-repository-document-convergence-manifest.md) — Phase 1 frozen evidence and the current Phase 2 basis; no second inventory or TODO owner. |
 | Product and behavior | [SPEC.md](SPEC.md) |
 | Architecture decisions | [ADR index](docs/adr/README.md) |
 | Development and agent workflow | [AGENTS.md](AGENTS.md), [development execution workflow](docs/governance/development-execution-workflow.md), [branch/version/release governance](docs/governance/branch-version-and-release-governance.md), [agent-skill routing](docs/governance/agent-skill-routing.md), and generated [agent-skill inventory](docs/governance/agent-skill-inventory.md) |
