@@ -121,27 +121,18 @@ complete-route workflow in
 Lower-level package, handoff, and validation evidence remains in
 [`docs/ci/release-package.md`](docs/ci/release-package.md).
 
-## Repository map
+## Documentation start point
 
-- `src/` — C# Domain, Contracts, Application, Profiles, Infrastructure, Bootstrap, CLI, and Avalonia presentation projects.
-- `profiles/` — schema, built-in profiles, and non-firmware samples.
-- `tools/crc-worker/` — constrained external Python checksum/header worker.
-- `tests/` and `testdata/` — public synthetic tests and private-evidence manifests.
-- `refcode/` — exactly two immutable Python references; never compiled or packaged.
-- `.agents/skills/`, `.codex/`, and layered `AGENTS.md` — Codex development policy.
-- `.github/workflows/` — pull-request verification and stable-tag release packaging.
+Start documentation work here. This is navigation, not a second TODO list;
+each linked canonical source owns its scoped facts.
 
-## Codex start point
-
-Codex must read root `AGENTS.md`, the nearest nested instructions, the relevant ADR/contract, and the matching skill before editing. Every non-trivial change ends with the `polytail` skill and the final canonical gate selected by `AGENTS.md`.
-
-The current `0.10.x` ordering is in
-[`docs/governance/0.10.x-ticket-dependency-plan.md`](docs/governance/0.10.x-ticket-dependency-plan.md).
-The risk-adaptive development cadence, review checkpoints, retry policy, and
-test matrix are in
-[`docs/governance/development-execution-workflow.md`](docs/governance/development-execution-workflow.md).
-Development tag nodes are in
-[`docs/governance/development-tags.md`](docs/governance/development-tags.md).
+| Need | Canonical route |
+| --- | --- |
+| Current TODO and version allocation | [NFC roadmap](docs/architecture/nfc_roadmap.md) — linked handoffs provide detail; its owner-unallocated queue is not approved work. |
+| Product and behavior | [SPEC.md](SPEC.md) |
+| Architecture decisions | [ADR index](docs/adr/README.md) |
+| Development and agent workflow | [AGENTS.md](AGENTS.md), [development execution workflow](docs/governance/development-execution-workflow.md), [branch/version/release governance](docs/governance/branch-version-and-release-governance.md), [agent-skill routing](docs/governance/agent-skill-routing.md), and generated [agent-skill inventory](docs/governance/agent-skill-inventory.md) |
+| Release history and evidence | [CHANGELOG.md](CHANGELOG.md), [verification report](docs/references/verification-report.md), and [release package](docs/ci/release-package.md) |
 
 ## Reference and license boundary
 

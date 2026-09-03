@@ -1,6 +1,7 @@
 # NFC Roadmap
 
-Status: active owner roadmap, release-closure and allocation checkpoint 2026-09-01.
+Status: active owner roadmap; release-closure checkpoint 2026-09-01;
+subsequent owner allocation amendments are recorded below.
 
 2026-08-09 planning amendment: the owner approved complete removal of the
 remaining legacy architecture, one production path per module, the
@@ -175,16 +176,41 @@ No product feature, firmware behavior, support promotion, selector/Settings
 change, Memory Layout review, generic Golden-evidence closure, Installer or
 Launcher refinement, or former product-expansion item belongs to `v1.1.1`.
 
-## `1.1.2`: complete former `v1.0.9` bundle
+## `1.1.2`: repository document convergence planning
 
-The complete bundle formerly assigned to `v1.0.9` moves together to `v1.1.2`;
-none of it remains allocated to `v1.0.9` or is split into `v1.1.1`.
+`v1.1.2` owns physical whole-repository document inventory, topology, retention,
+and cleanup planning only. The detailed classification/manifest gate is the
+[`v1.1.2 repository document convergence handoff`](v1.1.2-repository-document-convergence-handoff.md).
+Its Phase 1 [manifest](v1.1.2-repository-document-convergence-manifest.md)
+records the owner-approved D1-D7 deletion batch as implemented and awaiting
+independent review/final gate. The unlisted repository-wide remainder stays
+`KEEP_PENDING_EVIDENCE`; this allocation neither approves more deletion nor
+claims `v1.1.2` complete.
 
-`v1.1.2` adds privacy-filtered current-session diagnostics/history and a user-
-visible version change list sourced only from typed admitted Catalog
-`releaseNotes`. It also owns the selector visual corrections recorded in the
-proposed, pending-owner-approval
-[`v1.1.2 CtrlRAM selector visual contract`](../ui/v1.1.2-ctrlram-selector-visual-contract.md):
+## `1.1.3`: infrastructure determinism and isolation
+
+`v1.1.3` owns four-seed infrastructure determinism/isolation, deletion of the
+temporary seed pin, and an evidence-backed CI duplication assessment. It may
+contain at most one separately approved, equivalence-proven mechanical setup
+convergence. It must not reduce a gate, verifier, or trust boundary. The exact
+residual [VERIFY-111-XUNIT-SEED-01](../governance/change-records/VERIFY-111-XUNIT-SEED-01.json)
+is immutable historical evidence; its former `v1.1.2` allocation is superseded
+to `v1.1.3` by the current owner decision.
+
+## `1.1.4`: session diagnostics and Version-page review
+
+`v1.1.4` owns privacy-filtered current-session diagnostics/history, a Catalog
+releaseNotes version list, and a complete-page Settings Version proportion
+audit. The version list remains sourced only from typed admitted Catalog
+`releaseNotes`. The owner first approves a full-page reference at exact
+viewports before implementation changes content width, column ratio, modal/page
+scale, or minimum-size behavior; this audit is not permission for a redesign.
+
+## `1.1.5`: CtrlRAM selector visual contract
+
+`v1.1.5` owns only the selector visual corrections in the proposed,
+pending-owner-approval
+[`v1.1.5 CtrlRAM selector visual contract`](../ui/v1.1.5-ctrlram-selector-visual-contract.md):
 increase only vertical information-row spacing at constrained viewports, give
 Base firmware and every CtrlRAM group the same horizontal anchors, and replace
 hover-dependent nested outlines with one stable section outline and one inset
@@ -192,30 +218,89 @@ input-card outline. A wrapped file/type title or filename must reserve its full
 multi-line height and keep a clear gap before `Verified` or other badges and
 before the following filename/status row.
 
-The same indivisible `v1.1.2` bundle performs one complete-page Settings Version
-proportion audit. The owner first approves a full-page reference at exact
-viewports before implementation changes content width, column ratio, modal/page
-scale, or minimum-size behavior. This audit is not permission for a page
-redesign.
+## `1.1.6`: first-entry selection and CtrlRAM Replace diagnosis
 
-## `1.1.3`: Memory Layout review
+`v1.1.6` owns the shared first-entry IC-selection reuse decision and a
+controlled CtrlRAM Replace cold-versus-warm first-open diagnosis. It authorizes
+neither implementation nor a performance claim until a measured target and
+separate owner approval exist. The recorded boundary is the
+[`post-v1.1.0 navigation and CtrlRAM first-open handoff`](../ui/post-v1.1.0-navigation-and-ctrlram-first-open-handoff.md).
 
-`v1.1.3` owns a Memory Layout review of the per-section presentation contract.
+## `1.1.7`: Memory Layout review
+
+`v1.1.7` owns a Memory Layout review of the per-section presentation contract.
 It must make each canonical section and its address-space/range boundaries
 explicit rather than visually flattening independent sections. This is a typed
 Application-to-Presentation projection review; it cannot move firmware facts,
 range authority, or memory interpretation into UI code.
 
+## `1.1.8`: AB selector and DP metadata layout
+
+`v1.1.8` owns the [AB IC selector scope correction](../ui/v1.1.x-ab-ic-selector-scope-handoff.md)
+and [AB DP metadata layout](../ui/v1.1.x-ab-dp-metadata-layout-handoff.md).
+
+## `1.1.9`: Standard Merge verification feedback
+
+`v1.1.9` owns [Standard Merge input-verification feedback](../ui/v1.1.x-standard-merge-input-verification-feedback-handoff.md)
+only.
+
+## `1.1.10`: Report History usability
+
+`v1.1.10` owns [Report History usability](../ui/v1.1.x-report-history-usability-handoff.md)
+only.
+
+## `1.1.11`: Report Changes compare
+
+`v1.1.11` owns [Report Changes compare](../ui/v1.1.x-report-changes-compare-handoff.md)
+only.
+
+## `1.1.12`: bundle primary-output rename
+
+`v1.1.12` owns the [bundle primary-output rename correction](../ui/v1.1.x-bundle-primary-output-rename-handoff.md)
+only.
+
+## `1.1.13`: agent execution workflow and AI-skill pilot
+
+`v1.1.13` owns the agent execution workflow/AI-skill audit and bounded pilot:
+capability/difficulty/risk-based conductor and worker routing, inventory and
+routing consistency, and forward-testing. Its retained discussion evidence is
+the [`post-v1.1.0 Tool development process retrospective handoff`](../governance/post-v1.1.0-tool-development-process-retrospective-handoff.md).
+
+## `1.1.14`: evidence-preserving semantic convergence and minimality
+
+After `v1.1.2` physical document-cleanup planning, `v1.1.14` owns
+evidence-preserving semantic architecture/version-rule convergence and a
+dead-code/minimality review. It reconciles stale SPEC/release evidence and
+current-versus-historical headings, and normalizes every active handoff's open
+TODO, owner, blocker, and next-action summary. It preserves historical evidence
+and must not add a parallel documentation framework.
+
+## `1.2.0`: bounded Launcher hardening and development
+
+Launcher work remains secondary to every `v1.1.x` UI and performance priority,
+but `v1.2.0` begins real bounded Launcher hardening/development. It starts with
+a comprehensive current defect, security, and evidence inventory, then
+implements one owner-approved, reviewable remediation tranche. This is a
+development allocation, not merely an extraction or architecture review. It
+does not claim Catalog/Registry production activation or release readiness;
+activation remains **NO-GO** until separate R3 security/evidence closure.
+Existing package identity, installed bytes, managed-version, verification,
+recovery, and rollback authority remain unchanged.
+
 ## `1.3.0`: Launcher and publication-system extraction review
 
-`v1.3.0` strengthens the Launcher and release/publication system as a bounded
-delivery platform. The preferred direction is an independently versioned
+After `v1.2.0` begins the first Launcher remediation tranche, `v1.3.0` is the
+subsequent architecture/repository extraction review for the Launcher and
+release/publication system. It is not the first Launcher delivery. The preferred
+direction is an independently versioned
 repository when the shared contracts, ownership, migration, security, and
 release lifecycle can be separated without duplicating NVT FW Combiner's
 managed-version semantics. Extraction is not pre-approved: an ADR must first
 define the public contracts, migration/deletion milestones, repository trust
 boundary, and rollback path. No extracted component may own firmware facts,
 composition, profiles, Golden authority, or product-specific support policy.
+It remains secondary to the `v1.1.x` plan and is not allocated to a current
+`v1.1.x` release.
 
 ## Explicit owner-unallocated queue
 
@@ -223,120 +308,32 @@ The following work has no approved release version. Its former version labels
 are provenance only, not current assignments. Nothing in this queue begins
 until the owner separately allocates a bounded milestone and its gates.
 
-1. Former `v1.0.10`: interactive architecture artifact, version-rule
-   documentation, and evidence-backed dead-code/minimality review. The former
-   measured test-runtime component is absorbed exclusively by `v1.1.1` and is
-   not part of this queue. This unallocated slice may delete redundancy but
-   cannot create a second semantic owner.
-2. Former `v1.0.11`: bounded Installer and Launcher experience refinements that
-   preserve the existing managed-version, custody, READY, offline, rollback,
-   and recovery contracts.
-3. Former `v1.0.12`: delta-download minimization. Delta transport cannot
-   redefine package identity, installed bytes, full-package verification,
-   recovery, or rollback authority.
-4. Former `v1.0.13`: evidence-preserving documentation convergence under
-   [`ADR 0021`](../adr/0021-code-size-ratchet-and-convergence.md) and the
-   existing [ADR lifecycle](../adr/README.md). It may consolidate repeated
-   normative text and remove only proven obsolete, evidence-free documents;
-   it must retain unique decision/provenance/history evidence, validated links,
-   and the smallest sufficient task-reading path without adding a duplicate
-   documentation framework, generator, index, or evidence registry.
-5. Former planned `v1.1.0` product-expansion/analyzer bundle: complete General
+1. Catalog/Registry production activation, remaining publisher
+   trust/signing/security closure, delta-download minimization, and later
+   Launcher/Installer residual refinements remain secondary and
+   owner-unallocated after the first `v1.2.0` remediation tranche. Launcher
+   activation is **NO-GO** until separately approved R3 security/evidence
+   closure; no unallocated delivery item can redefine package identity,
+   installed bytes, verification, recovery, or rollback authority.
+2. Former planned `v1.1.0` product-expansion/analyzer bundle: complete General
    Merge and General Replace authoring; saved/customized-rule authoring,
    persistence, import, and validation through the existing typed operation
-   model; new IC and firmware-capability intake under normal profile, Golden,
-   and firmware-owner gates; NT51950 AB `1 IC`/`Cascade`, selector-free NT51951
+   model; new IC and firmware-evidence/capability intake under normal profile,
+   Golden, and firmware-owner gates; NT51950 AB `1 IC`/`Cascade`, selector-free NT51951
    AB, Perfect-family, and `ldc-tp-only` evidence tracks; and repository-wide
    analyzer cleanup. The published `v1.1.0` made no ordinary DP Replace
    retirement-or-reopening decision, so that decision is also owner-unallocated.
    The analyzer baseline remains 169 deferred style diagnostics: `IDE0007` 142,
    `IDE0002` 10, `IDE0001` 7, `JSON002` 5, `IDE0008` 4, and `IDE0003` 1.
-6. Former generic `v1.1.x` Golden-evidence item: supply independent expected
+3. Former generic `v1.1.x` Golden-evidence item: supply independent expected
    output for the two retained input-only canonical cases and re-review the
    three fact-scoped aliases that depend on them. Until those outputs and
    firmware-owner evidence exist, all five entries remain repository-only and
    must not be packaged, called Golden, or used to promote runtime support. One
    topology, IC, workflow, or fact-scoped alias never certifies another beyond
    its owner-approved evidence scope.
-7. The
-   [`post-v1.1.0 Tool development process retrospective handoff`](../governance/post-v1.1.0-tool-development-process-retrospective-handoff.md),
-   which may evaluate reusable workflow changes now that publication and exact
-   closure evidence exist, but cannot rewrite release evidence or change active
-   governance without separate owner approval.
-8. IC family/rule authoring UI after the trusted-bundle and evidence models are
+4. IC family/rule authoring UI after the trusted-bundle and evidence models are
    implemented and reviewed.
-9. The owner-observed shared first-entry IC-selection and CtrlRAM Replace cold
-   first-open problems recorded in the
-   [`post-v1.1.0 navigation and CtrlRAM first-open handoff`](../ui/post-v1.1.0-navigation-and-ctrlram-first-open-handoff.md).
-   The first item requires a reuse-first decision on accepted IC-context
-   lifetime and safe chooser skipping; the second requires a controlled
-   cold-versus-warm diagnosis before an optimization target exists. Neither is
-   assigned to `v1.1.1` or another release by this record.
-10. The owner-requested `v1.1.x` minor UI-delivery correction recorded in the
-    [`bundle primary-output rename handoff`](../ui/v1.1.x-bundle-primary-output-rename-handoff.md):
-    enabling bundle-folder output must not disable or discard the existing
-    manual primary-output filename override. The folder name and generated
-    primary BIN name remain independent, while the existing canonical naming,
-    Windows validation, collision, atomic publication, report identity, and
-    source-name owners are reused. It is excluded from `v1.1.1`; its exact
-    later `v1.1.x` release remains owner-unallocated.
-11. The owner-observed Report History interaction failures and small visual
-    corrections recorded in the
-    [`v1.1.x Report History usability handoff`](../ui/v1.1.x-report-history-usability-handoff.md):
-    restore actual single-entry delete and one-click individual-report open,
-    match the selector trash-can delete treatment, and add a top-right exact
-    raw-JSON copy action. The existing global Load report action also moves
-    into an always-reachable Report header or empty Report hub without creating
-    a second picker/loader. Existing report commands, queued persistence,
-    selector styling, bounded file loader, report projection, and clipboard
-    pattern must be reused.
-    It is excluded from `v1.1.1`; its exact later `v1.1.x` release remains
-    owner-unallocated.
-12. The owner-observed AB Code Merge DP metadata truncation recorded in the
-    [`v1.1.x AB DP metadata layout handoff`](../ui/v1.1.x-ab-dp-metadata-layout-handoff.md):
-    the DP_AB card currently joins each bank's version and `AUTO_PRJ` project
-    into one trimmable value while the shared desktop selector reserves four
-    equal fact columns. Reuse the existing typed input observations, Standard DP
-    Version/Jira Index pattern, AB Presentation projection, firmware fact
-    model/template, and four-/two-column card response to show ordered DP1 and
-    DP2 Version facts plus Jira Index only when the corresponding tracker exists;
-    unknown banks keep an Unknown Version and do not fabricate Jira data. It is
-    excluded from `v1.1.1`; its exact later `v1.1.x` release remains
-    owner-unallocated.
-13. The owner-observed AB Code IC selector scope defect recorded in the
-    [`v1.1.x AB IC selector scope handoff`](../ui/v1.1.x-ab-ic-selector-scope-handoff.md):
-    the canonical workflow projection already contains only AB-authorable ICs,
-    but an in-page mode switch deliberately omits the `IcChoices` publication
-    that would replace the broader Merge-page `ItemsSource` during the first
-    selector event. Reuse the canonical publication, workflow projection, and
-    existing guarded canonical-choice publisher to synchronously republish the
-    AB list after the accepted mode state is assigned, then restore the page
-    projection when leaving AB; do not add a dispatcher, hard-code ICs, or
-    change profiles to repair the stale binding. It is excluded from `v1.1.1`;
-    its exact later `v1.1.x` release remains owner-unallocated.
-14. The owner-observed Report Changes comparison defects recorded in the
-    [`v1.1.x Report Changes compare handoff`](../ui/v1.1.x-report-changes-compare-handoff.md):
-    keep the right-side scrollbar outside the byte content by reusing the
-    existing non-overlay scroll treatment without nesting scroll viewers;
-    present one physical CtrlRAM section as the primary navigator group while
-    retaining every raw contiguous range, hash, replay, and acceptance fact;
-    restore an independent pale Original semantic palette instead of the
-    controller/reference purple mapping; and reserve a measured address-label
-    gutter so the Original label cannot cover bytes. It is excluded from
-    `v1.1.1`; its exact later `v1.1.x` release remains owner-unallocated.
-15. The owner-requested explanation of Standard Merge DP/TP card verification
-    and uniform-content warnings recorded in the
-    [`v1.1.x Standard Merge input verification feedback handoff`](../ui/v1.1.x-standard-merge-input-verification-feedback-handoff.md):
-    retain the canonical compiled input inspection as the sole health owner,
-    explain that Verified means a stable readable `.bin` satisfied its compiled
-    length/coverage contract with no warning, and replace raw
-    `DP_UNIFORM_CONTENT_WARNING`/`TP_UNIFORM_CONTENT_WARNING`-first help with
-    localized wording that says the declared range contains one repeated byte,
-    why that may indicate blank/placeholder input, what to review, and that
-    Build remains available. Reuse the existing focusable status disclosure and
-    tooltip; Presentation must not reread firmware or invent another validator.
-    It is excluded from `v1.1.1`; its exact later `v1.1.x` release remains
-    owner-unallocated.
 
 ## Update rule
 

@@ -1,0 +1,40 @@
+{
+  "schemaVersion": 2,
+  "taskId": "ROADMAP-111-AGENT-WORKFLOW-01",
+  "capability": "Allocate the approved v1.1.2-v1.1.14 roadmap sequence and make the existing implicit supervised-branch-development skill the single operational owner of capability/difficulty/risk-based delegated model routing",
+  "integrationBase": "6af369be4873fb9427d1d7ed778728275c09428b",
+  "risk": "R2",
+  "kind": "governance",
+  "state": "design-active",
+  "mutablePaths": [
+    ".agents/skills/manifest.json",
+    ".agents/skills/supervised-branch-development/SKILL.md",
+    ".agents/skills/supervised-branch-development/agents/openai.yaml",
+    "docs/governance/agent-skill-inventory.md",
+    "docs/governance/agent-skill-routing.md",
+    "docs/governance/post-v1.1.0-tool-development-process-retrospective-handoff.md"
+  ],
+  "implementationOwner": "primary-agent",
+  "searchEvidence": [
+    "docs/governance/agent-skill-routing.md routes supervised-branch-development for multi-agent reconstruction, R3 migration, release integration, or large conflict-resolution work.",
+    ".agents/skills/manifest.json and .agents/skills/supervised-branch-development/agents/openai.yaml declare supervised-branch-development as the implicit branch-coordination skill, so the existing skill must be extended instead of adding a second routing or handoff owner.",
+    "docs/architecture/nfc_roadmap.md is the canonical owner of future milestone order and release boundaries; docs/governance/post-v1.1.0-tool-development-process-retrospective-handoff.md is retained discussion evidence and must point to the roadmap rather than duplicate version allocation.",
+    "tests/scripts/test_skill_inventory_validation.py already validates the manifest invocation policy and supervised-workflow boundary, while RepositoryBoundaryTests.Roadmap.cs is the existing architecture seam for release ordering, visual-reference links, and handoff status boundaries."
+  ],
+  "semanticOwner": "The existing agent-skill routing contract owns invocation and authority routing; the existing supervised-branch-development skill owns delegated branch execution; the NFC roadmap owns exact release allocation; and the retrospective handoff owns only its preserved evidence and discussion boundary.",
+  "terminalContract": "The primary-agent retains decision and integration ownership; the selected delegated writer owns its mutable surface. The implicit supervised skill selects current models by capability, difficulty, and risk, never downgrades risk or gates for model cost, and discloses each dispatch and worker-report model configuration without guessing. It preserves one writer per surface, a fixed dispatch envelope, frozen-head independent review, same-writer correction loop, and branch hygiene without parallel semantic routing or an extra branch/worktree absent an independent need. The retrospective handoff records the owner-approved near-term AI-skill/documentation priority and links to the canonical roadmap without duplicating allocation or activating a workflow change. The later final-complete evidence may change lifecycle/final-evidence fields only after exact-head independent review; it must not delete this record, add a parallel routing/documentation owner, alter the admitted paths, or claim product, firmware, Launcher, security, release, or publication closure.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "Luna frozen reviewer",
+    "outcome": "findings-incorporated",
+    "evidence": "The independent frozen review found the missing capability-reuse admission for exactly the existing supervised skill and governance retrospective handoff. The approved correction adds one R2 design-active record at the latest final evidence checkpoint, covers those two and only those governed paths, retains the existing semantic owners, and leaves roadmap/UI/test projections outside this governed mutable-path set."
+  },
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": {
+    "reviewer": null,
+    "outcome": "pending",
+    "evidence": ""
+  }
+}

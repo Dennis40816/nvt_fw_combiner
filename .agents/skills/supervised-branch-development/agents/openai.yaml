@@ -1,6 +1,6 @@
 interface:
   display_name: "Supervised Branch Development"
-  short_description: "Coordinate explicit multi-agent branch integration"
-  default_prompt: "Use $supervised-branch-development for this explicit multi-agent or high-risk branch integration."
+  short_description: "Coordinate multi-agent branch integration"
+  default_prompt: "Use $supervised-branch-development for multi-agent, reconstruction, R3 migration, release integration, or large conflict resolution."
 policy:
-  allow_implicit_invocation: false
+  allow_implicit_invocation: true

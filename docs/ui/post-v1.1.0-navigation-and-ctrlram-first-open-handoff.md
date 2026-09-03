@@ -1,12 +1,12 @@
 # Post-v1.1.0 navigation and CtrlRAM first-open handoff
 
-Status: queued owner-unallocated product investigation.
+Status: allocated to `v1.1.6` for reuse decision and controlled diagnosis only.
 
 This handoff records two owner-observed usability/performance problems. It is
-not part of `v1.1.1`, does not assign either item to a release, and does not
-authorize a UI, Application, preload, profile, firmware, or support change.
-Allocation and implementation require a separate owner decision after the
-reuse inventory and measured diagnosis below.
+not part of `v1.1.1`, and does not authorize a UI, Application, preload,
+profile, firmware, or support change. `v1.1.6` allocates the reuse decision and
+measured diagnosis below; implementation and any performance claim still
+require a measured target and separate owner approval.
 
 ## 1. Shared first-entry IC selection
 

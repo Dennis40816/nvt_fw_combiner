@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 2,
+  "taskId": "DOCS-112-RETENTION-CLEANUP-01",
+  "capability": "Remove the owner-approved superseded governance verification-input checklist while retaining the current Golden evidence authorities and frozen deletion evidence",
+  "integrationBase": "6af369be4873fb9427d1d7ed778728275c09428b",
+  "risk": "R2",
+  "kind": "governance",
+  "state": "design-active",
+  "mutablePaths": [
+    "docs/governance/owner-verification-inputs-0.8-to-0.9.md"
+  ],
+  "implementationOwner": "gpt-5.6-terra/high sole writer",
+  "searchEvidence": [
+    "The exact pre-delete path is a 15,387-byte tracked file with SHA-256 b1da39d596d61c6e3a3f454fc273386f4af0a37bec7393ab55082447d632ca2e and Git blob 224707becd9f0c19acefd3bb637506a1b07ebc62 at the current capability checkpoint diff.",
+    "The owner explicitly approved D1-D7 deletion; this record admits only the governed D2 checklist path, not the other six ungoverned document removals or the ROADMAP-111 workflow surface.",
+    "Binary-safe exact-path scans using git grep -a -l -F return exactly docs/architecture/v1.1.2-repository-document-convergence-manifest.md, docs/governance/change-records/DOCS-112-RETENTION-CLEANUP-01.json, and tests/NvtFwCombiner.Architecture.Tests/RepositoryBoundaryTests.Roadmap.cs, with zero non-control inbound callers.",
+    "testdata/golden/canonical/manifest.json and docs/governance/v0.9.9-final-owner-golden-gap-matrix-20260718.md remain the current Golden inventory and final-gap authorities; the removed checklist has no unique current authority."
+  ],
+  "semanticOwner": "testdata/golden/canonical/manifest.json owns the canonical Golden inventory and docs/governance/v0.9.9-final-owner-golden-gap-matrix-20260718.md owns the final owner-gap matrix; the v1.1.2 manifest owns only frozen deletion evidence.",
+  "terminalContract": "Delete exactly docs/governance/owner-verification-inputs-0.8-to-0.9.md after its owner-approved path, tracked state, 15,387-byte size, SHA-256 b1da39d596d61c6e3a3f454fc273386f4af0a37bec7393ab55082447d632ca2e, and zero non-control exact-path callers are rechecked. Retain the frozen evidence in the v1.1.2 manifest and reuse the existing canonical Golden manifest and final-gap matrix rather than creating a replacement checklist or second documentation authority. The deletion changes no product, firmware, profile, range, Golden expected byte, package, signing, release, or runtime semantics. An independent frozen review, focused roadmap architecture test, structure validation, exact link audit, scoped Polytail, diff checks, and only then the repository final verifier remain required. This admission grants no other deletion, archive, relocation, regeneration, or mutable path.",
+  "disposition": "reuse",
+  "designReview": {
+    "reviewer": "post-delete independent reviewer",
+    "outcome": "findings-incorporated",
+    "evidence": "The post-delete reviewer found that the governed docs/governance checklist deletion lacked its own current R2 admission. The corrected boundary uses the latest capability checkpoint, isolates that one exact path, preserves its pre-delete blob/hash/size and no-caller evidence, and reuses the two existing Golden authorities without adding a replacement owner."
+  },
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": {
+    "reviewer": null,
+    "outcome": "pending",
+    "evidence": ""
+  }
+}

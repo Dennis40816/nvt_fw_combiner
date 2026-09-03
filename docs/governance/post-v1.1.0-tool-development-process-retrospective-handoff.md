@@ -1,10 +1,16 @@
 # Post-v1.1.0 Tool development process retrospective handoff
 
-Status: queued discussion; begin only after the official `v1.1.0` release and
-exact release-evidence closure.
+Status: owner-approved near-term AI-skill/documentation priority; begin only
+after the official `v1.1.0` release and exact release-evidence closure.
 
 This handoff is not a `v1.1.0` release gate. It does not authorize a process
 rewrite, new repository, tool migration, or deletion by itself.
+
+The canonical roadmap owns the exact version allocation for the bounded
+AI-skill/workflow pilot and evidence-preserving documentation convergence:
+[`nfc_roadmap.md`](../architecture/nfc_roadmap.md). This handoff preserves the
+retrospective evidence and discussion boundary; it does not duplicate release
+scope or activate a workflow change without separate approval.
 
 ## Objective
 
