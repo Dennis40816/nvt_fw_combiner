@@ -6,6 +6,7 @@ import argparse
 import base64
 import codecs
 import ctypes
+from fnmatch import fnmatch
 import hashlib
 import importlib.util
 import json
@@ -30,6 +31,7 @@ from dataclasses import dataclass
 from importlib import metadata as importlib_metadata
 from pathlib import Path, PurePosixPath
 from time import monotonic
+from unittest.loader import VALID_MODULE_NAME
 
 if __package__:
     from .coverage_policy import (
@@ -50,6 +52,11 @@ SOLUTION = ROOT / "NvtFwCombiner.slnx"
 CTRL_RAM_SENTINEL_CREATOR = ROOT / "scripts" / "create_ctrlram_universal_sentinel.py"
 IDLE_BUILD_WORKER_STOPPER = ROOT / "scripts" / "stop-idle-build-workers.ps1"
 REPOSITORY_SCRIPT_TESTS = ROOT / "tests" / "scripts"
+REPOSITORY_SCRIPT_TEST_SHARDS = (
+    ("repository-scripts-a-q", "test_[a-q]*.py"),
+    ("repository-scripts-r", "test_r*.py"),
+    ("repository-scripts-s-z", "test_[s-z]*.py"),
+)
 COVERAGE_ROOT = ROOT / "artifacts" / "coverage"
 DOTNET_COVERAGE_WORK_ROOT = ROOT / "artifacts" / "cov-shadow"
 CI_DOTNET_EVIDENCE_ROOT = ROOT / "artifacts" / "ci-dotnet-work"
@@ -946,7 +953,10 @@ def verify_structure(log_path: Path | None = None) -> None:
     )
 
 
-def verify_repository_scripts(log_path: Path | None = None) -> None:
+def verify_repository_scripts(
+    log_path: Path | None = None,
+    pattern: str = "test_*.py",
+) -> None:
     run(
         [
             sys.executable,
@@ -956,7 +966,7 @@ def verify_repository_scripts(log_path: Path | None = None) -> None:
             "-s",
             str(REPOSITORY_SCRIPT_TESTS),
             "-p",
-            "test_*.py",
+            pattern,
         ],
         log_path=log_path,
     )
@@ -4609,7 +4619,13 @@ def parse_args(arguments: Sequence[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--skip-structure", action="store_true")
     parser.add_argument(
         "--internal-lane",
-        choices=("structure", "python", "dotnet", "dotnet-windows"),
+        choices=(
+            "structure",
+            *(name for name, _pattern in REPOSITORY_SCRIPT_TEST_SHARDS),
+            "python",
+            "dotnet",
+            "dotnet-windows",
+        ),
         help=argparse.SUPPRESS,
     )
     parser.add_argument(
@@ -4660,12 +4676,40 @@ def parse_args(arguments: Sequence[str] | None = None) -> argparse.Namespace:
     return args
 
 
-def repository_script_and_python_lane() -> LaneAction:
-    """Return the sole owner for repository-script and Python verification."""
+def repository_script_test_shards() -> tuple[tuple[str, str], ...]:
+    """Fail closed unless every repository-script test belongs to one shard."""
+
+    test_paths = tuple(sorted(REPOSITORY_SCRIPT_TESTS.rglob("test_*.py")))
+    invalid = []
+    for path in test_paths:
+        relative_path = path.relative_to(REPOSITORY_SCRIPT_TESTS).as_posix()
+        if path.parent != REPOSITORY_SCRIPT_TESTS:
+            invalid.append(f"{relative_path}=unsupported nesting")
+            continue
+        if VALID_MODULE_NAME.match(path.name) is None:
+            invalid.append(f"{relative_path}=invalid module filename")
+            continue
+        matches = tuple(
+            name
+            for name, pattern in REPOSITORY_SCRIPT_TEST_SHARDS
+            if fnmatch(path.name, pattern)
+        )
+        if len(matches) != 1:
+            invalid.append(f"{relative_path}={','.join(matches) or '<none>'}")
+    if not test_paths or invalid:
+        details = "; ".join(invalid) if invalid else "no test_*.py files found"
+        raise RuntimeError(
+            "repository-script test shards must assign each test_*.py filename "
+            f"exactly once: {details}"
+        )
+    return REPOSITORY_SCRIPT_TEST_SHARDS
+
+
+def repository_script_test_action(pattern: str) -> LaneAction:
+    """Project one discovered repository-script shard onto its existing owner."""
 
     def run_lane(log_path: Path | None) -> None:
-        verify_repository_scripts(log_path)
-        verify_python(log_path)
+        verify_repository_scripts(log_path, pattern)
 
     return run_lane
 
@@ -4680,11 +4724,15 @@ def selected_lanes(args: argparse.Namespace) -> tuple[VerificationLane, ...]:
         )
     if not args.structure_only:
         if not args.skip_python:
-            lanes.append(
-                VerificationLane(
-                    "python", repository_script_and_python_lane(), isolate_action=True
+            for name, pattern in repository_script_test_shards():
+                lanes.append(
+                    VerificationLane(
+                        name,
+                        repository_script_test_action(pattern),
+                        isolate_action=True,
+                    )
                 )
-            )
+            lanes.append(VerificationLane("python", verify_python, isolate_action=True))
         if not args.skip_dotnet:
             internal_name = (
                 "dotnet-windows"
@@ -4707,10 +4755,16 @@ def run_internal_lane(name: str) -> None:
 
     actions: dict[str, LaneAction] = {
         "structure": verify_structure,
-        "python": repository_script_and_python_lane(),
+        "python": verify_python,
         "dotnet": verify_dotnet,
         "dotnet-windows": verify_windows_process_orchestration_and_dotnet,
     }
+    actions.update(
+        {
+            shard_name: repository_script_test_action(pattern)
+            for shard_name, pattern in repository_script_test_shards()
+        }
+    )
     actions[name](None)
 
 
@@ -4951,29 +5005,14 @@ def execute_verification(args: argparse.Namespace) -> int:
 
     try:
         lanes = selected_lanes(args)
-        if any(lane.name == "structure" for lane in lanes) and any(
-            lane.name == "dotnet" for lane in lanes
-        ):
+        if not lanes:
+            raise RuntimeError("verification plan selected no lanes")
+        for lane in lanes:
             run_selected_lanes(
-                tuple(lane for lane in lanes if lane.name == "structure"),
+                (lane,),
                 jobs=args.jobs,
                 lane_timeout_seconds=args.lane_timeout_seconds,
             )
-            lanes = tuple(lane for lane in lanes if lane.name != "structure")
-        if any(lane.name == "python" for lane in lanes) and any(
-            lane.name == "dotnet" for lane in lanes
-        ):
-            run_selected_lanes(
-                tuple(lane for lane in lanes if lane.name == "python"),
-                jobs=args.jobs,
-                lane_timeout_seconds=args.lane_timeout_seconds,
-            )
-            lanes = tuple(lane for lane in lanes if lane.name != "python")
-        run_selected_lanes(
-            lanes,
-            jobs=args.jobs,
-            lane_timeout_seconds=args.lane_timeout_seconds,
-        )
     except (RuntimeError, ValueError, subprocess.CalledProcessError) as exc:
         print(f"\nVERIFICATION FAILED: {exc}", file=sys.stderr)
         return 1

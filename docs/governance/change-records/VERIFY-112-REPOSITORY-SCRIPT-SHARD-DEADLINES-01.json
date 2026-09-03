@@ -1,0 +1,34 @@
+{
+  "schemaVersion": 2,
+  "taskId": "VERIFY-112-REPOSITORY-SCRIPT-SHARD-DEADLINES-01",
+  "capability": "Split canonical repository-script verification into exhaustive, disjoint filename shards with independent existing lane deadlines while preserving exact-once coverage and serial execution",
+  "integrationBase": "fef8888bffcb6b03c2e70a12236c0397122ba0ba",
+  "risk": "R2",
+  "kind": "behavior",
+  "state": "design-active",
+  "mutablePaths": [
+    "scripts/verify.py"
+  ],
+  "implementationOwner": "gpt-5.6-terra/high implementer",
+  "searchEvidence": [
+    "The existing verify_repository_scripts owner was one unittest discovery under one 900-second lane; the canonical run timed out at 900 seconds before verify_python started.",
+    "python -u -m unittest tests.scripts.test_release_package_policy -v passed 75 tests in 277.548 seconds.",
+    "Existing VerificationLane, run_internal_lane, and run_selected_lanes are reused; no second verifier was found or needed."
+  ],
+  "semanticOwner": "scripts/verify.py canonical VerificationLane/internal-lane orchestration and verify_repository_scripts owner",
+  "terminalContract": "Use exactly test_[a-q]*.py, test_r*.py, and test_[s-z]*.py; recursively validate every tests/scripts/test_*.py matches exactly once; execute structure, each repository shard, worker Python, and .NET serially with unchanged 900-second per-lane timeout and process isolation. Preserve public flags, cleanup, and all tests; add no skip, retry, timeout increase, concurrency, or second verifier.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "primary-agent",
+    "outcome": "approved",
+    "evidence": "Main independently reviewed current design at exact head 4150db122aa30d08a1a445c3315b0baf0dbbf6f2, rejected the earlier worker-only split because it did not address the monolithic repository-script timeout, and required exhaustive/disjoint recursive shards, serial phases, unchanged timeout, exact-once coverage, and removal of duplicate test evidence. The independent Sol finding is incorporated: this record covers only the governed canonical owner; tests remain evidence, not admitted mutable authority. The current design has no firmware, profile, or package semantic change."
+  },
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": {
+    "reviewer": null,
+    "outcome": "pending",
+    "evidence": ""
+  }
+}
