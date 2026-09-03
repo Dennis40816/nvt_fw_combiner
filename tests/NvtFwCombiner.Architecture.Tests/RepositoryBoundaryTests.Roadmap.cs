@@ -59,6 +59,9 @@ public sealed partial class RepositoryBoundaryTests
             "docs/architecture/v1.1.2-repository-document-convergence-handoff.md");
         string documentConvergenceManifest = ReadText(
             "docs/architecture/v1.1.2-repository-document-convergence-manifest.md");
+        string ownerHandoffReadme = ReadText("testdata/golden/owner-handoff/README.md");
+        string ownerHandoffRecord = ReadText(
+            "docs/governance/change-records/DOCS-112-OWNER-HANDOFF-CLEANUP-02.json");
         string sizeAdr = ReadText("docs/adr/0021-code-size-ratchet-and-convergence.md");
         string dependencyPlan = ReadText("docs/governance/0.10.x-ticket-dependency-plan.md");
         string[] coreAuthorities = [spec, sizeAdr, dependencyPlan];
@@ -218,6 +221,53 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("](nfc_roadmap.md)", documentConvergenceHandoff, StringComparison.Ordinal);
         Assert.Contains("](v1.1.2-repository-document-convergence-manifest.md)", documentConvergenceHandoff, StringComparison.Ordinal);
         Assert.Contains("DELETE_APPROVED", documentConvergenceManifest, StringComparison.Ordinal);
+        Assert.Contains("DOCS-112-OWNER-HANDOFF-CLEANUP-02", documentConvergenceHandoff, StringComparison.Ordinal);
+        Assert.Contains("design-active R3 checkpoint", documentConvergenceManifest, StringComparison.Ordinal);
+        Assert.Contains("57 files", documentConvergenceManifest, StringComparison.Ordinal);
+        Assert.Contains("5809af7997455afa8d918d949328810f79a0e2858f5e1676a9ac59acf48b2b38", documentConvergenceManifest, StringComparison.Ordinal);
+        Assert.Contains("../canonical/manifest.json", ownerHandoffReadme, StringComparison.Ordinal);
+        Assert.Contains("ctrlram-replace", ownerHandoffReadme, StringComparison.Ordinal);
+        Assert.Contains(
+            "../../../docs/governance/v0.9.9-final-owner-golden-gap-matrix-20260718.md",
+            ownerHandoffReadme,
+            StringComparison.Ordinal);
+        Assert.Contains("agent-owned gates，不是 owner-input", ownerHandoffReadme, StringComparison.Ordinal);
+        Assert.Contains("V1/V2/expected parity", ownerHandoffReadme, StringComparison.Ordinal);
+        Assert.Contains("tool experiment", ownerHandoffReadme, StringComparison.Ordinal);
+        using var ownerHandoffRecordJson = System.Text.Json.JsonDocument.Parse(ownerHandoffRecord);
+        string[] actualOwnerHandoffMutablePaths =
+        [.. ownerHandoffRecordJson.RootElement.GetProperty("mutablePaths").EnumerateArray()
+            .Select(path => path.GetString()!)];
+        string[] expectedOwnerHandoffMutablePaths =
+        [
+            "testdata/golden/owner-handoff/README.md",
+            "testdata/golden/owner-handoff/TODO.md",
+            "testdata/golden/owner-handoff/0718-missing-owner-evidence/P0_NT51932_cascade/請放這些.md",
+            "testdata/golden/owner-handoff/0718-missing-owner-evidence/P0_NT51950_ctrlram_cascade/請放這些.md",
+            "testdata/golden/owner-handoff/0718-missing-owner-evidence/P0_NT51951_ctrlram_cascade/請放這些.md",
+            "testdata/golden/owner-handoff/0718-missing-owner-evidence/P0_NT51951_ctrlram_single_修正版/請放這些.md",
+            "testdata/golden/owner-handoff/0718-missing-owner-evidence/P1_General_Replace_migration/請先核准再放Golden.md",
+            "testdata/golden/owner-handoff/0718-missing-owner-evidence/P1_NT51926_Common_FW_2.0.0/請決定或提供.md",
+            "testdata/golden/owner-handoff/ctrlram-replace/nt51927/CASE.md",
+            "testdata/golden/owner-handoff/.gitignore",
+        ];
+        Assert.Equal(expectedOwnerHandoffMutablePaths, actualOwnerHandoffMutablePaths);
+        Assert.Contains("four C1 control paths", ownerHandoffRecord, StringComparison.Ordinal);
+        Assert.True(File.Exists(Path.Combine(Root.FullName, "testdata", "golden", "owner-handoff", "README.md")));
+        Assert.True(File.Exists(Path.Combine(Root.FullName, "testdata", "golden", "owner-handoff", "0718-missing-owner-evidence", "README_請先看.md")));
+        foreach (string removedPath in new[]
+        {
+            "testdata/golden/owner-handoff/TODO.md",
+            "testdata/golden/owner-handoff/0718-missing-owner-evidence/P0_NT51932_cascade/請放這些.md",
+            "testdata/golden/owner-handoff/0718-missing-owner-evidence/P0_NT51950_ctrlram_cascade/請放這些.md",
+            "testdata/golden/owner-handoff/0718-missing-owner-evidence/P0_NT51951_ctrlram_cascade/請放這些.md",
+            "testdata/golden/owner-handoff/0718-missing-owner-evidence/P0_NT51951_ctrlram_single_修正版/請放這些.md",
+            "testdata/golden/owner-handoff/0718-missing-owner-evidence/P1_General_Replace_migration/請先核准再放Golden.md",
+            "testdata/golden/owner-handoff/0718-missing-owner-evidence/P1_NT51926_Common_FW_2.0.0/請決定或提供.md",
+        })
+        {
+            Assert.False(File.Exists(Path.Combine(Root.FullName, removedPath.Replace('/', Path.DirectorySeparatorChar))));
+        }
         var expectedFrozenDeletions = new Dictionary<string, (string Bytes, string Sha256)>(StringComparer.Ordinal)
         {
             ["docs/architecture/general-replace-binary-patch-proposal.md"] = ("6,499", "86cf655a9343f18d8839458ed27f6f29f20087d2a043f85ff88ce0ac5daa691c"),

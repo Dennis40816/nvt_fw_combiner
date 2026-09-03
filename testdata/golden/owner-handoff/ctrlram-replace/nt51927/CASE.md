@@ -16,6 +16,6 @@ outputs generated from the exact committed fixture hashes:
 For direct product goldens, each case instead needs its same-run `base.bin`,
 actual physical replacement files under `inputs/`, and complete `expected.bin`.
 The committed base is reused; do not provide another base. Exact filenames and sizes are listed in the root
-[`TODO.md`](../../TODO.md).
+[`README.md`](../../README.md).
 
 NT51927 single is not requested in this batch.
