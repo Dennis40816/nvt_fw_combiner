@@ -242,7 +242,8 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("Outside-doc exact rule coverage | 2,320 / 2,320", documentConvergenceManifest, StringComparison.Ordinal);
         Assert.Contains("Outside-doc uncovered | 0", documentConvergenceManifest, StringComparison.Ordinal);
         Assert.Contains("Commit `ae06f01c` records completion", documentConvergenceManifest, StringComparison.Ordinal);
-        Assert.Contains("pre-existing `46ee8ddf` firmware metadata/profile", documentConvergenceManifest, StringComparison.Ordinal);
+        Assert.Contains("structure-only gate is\ntracked independently of Phase 2.", documentConvergenceManifest, StringComparison.Ordinal);
+        Assert.Contains("structure-only\ncanonical gate is tracked independently", documentConvergenceHandoff, StringComparison.Ordinal);
         Assert.Contains("Phase 1 frozen counts and SHA-256 values above remain immutable evidence.", documentConvergenceManifest, StringComparison.Ordinal);
         Assert.Contains("No candidate may be deleted, moved, or", normalizedDocumentConvergenceManifest, StringComparison.Ordinal);
         Assert.Contains("## Phase 2 current-basis audit", documentConvergenceHandoff, StringComparison.Ordinal);
