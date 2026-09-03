@@ -5,7 +5,7 @@
   "integrationBase": "fef8888bffcb6b03c2e70a12236c0397122ba0ba",
   "risk": "R2",
   "kind": "behavior",
-  "state": "design-active",
+  "state": "final-complete",
   "mutablePaths": [
     "scripts/verify.py"
   ],
@@ -23,12 +23,12 @@
     "outcome": "approved",
     "evidence": "Main independently reviewed current design at exact head 4150db122aa30d08a1a445c3315b0baf0dbbf6f2, rejected the earlier worker-only split because it did not address the monolithic repository-script timeout, and required exhaustive/disjoint recursive shards, serial phases, unchanged timeout, exact-once coverage, and removal of duplicate test evidence. The independent Sol finding is incorporated: this record covers only the governed canonical owner; tests remain evidence, not admitted mutable authority. The current design has no firmware, profile, or package semantic change."
   },
-  "implementationHead": null,
-  "reviewedHead": null,
-  "pathStateDigest": null,
+  "implementationHead": "68496bd82429caffc82994a9ac755e6ecbfe9b57",
+  "reviewedHead": "68496bd82429caffc82994a9ac755e6ecbfe9b57",
+  "pathStateDigest": "b7e82863f83739769e068ad08c2dfbcd2ebd3562246658d0ab3ff90ab48862d8",
   "finalReview": {
-    "reviewer": null,
-    "outcome": "pending",
-    "evidence": ""
+    "reviewer": "gpt-5.6-sol/high independent exact-head reviewer",
+    "outcome": "approved",
+    "evidence": "Independent exact-head review of fef8888bffcb6b03c2e70a12236c0397122ba0ba..68496bd82429caffc82994a9ac755e6ecbfe9b57 found P0=P1=P2=P3=0 and scoped Polytail PASS. It confirmed that the record now binds the latest capability evidence checkpoint fef8888b; the intermediate 30d0c861 commit changes only external-authority attestation outside this admitted authority; mutable-path admission is limited to scripts/verify.py; and the verifier and orchestration-test blobs are byte-identical to the prior reviewed implementation. The recursive inventory fails closed on nested candidates, invalid CPython unittest module names, unmatched roots, and overlaps; the exact three filename shards preserve serial phase order, the separate worker lane, the unchanged 900-second deadline, public flags, cleanup, and exact-once coverage without retry, skip, concurrency, or a second verifier. Focused partition coverage passed 1/1, the unchanged complete orchestration suite previously passed 182 tests with 4 expected platform skips, Ruff passed, git diff --check passed, and the worktree was clean. The final clean full verifier remains the repository release gate and must prove all real shards and downstream worker/.NET lanes complete."
   }
 }
