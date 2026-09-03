@@ -216,15 +216,15 @@ public sealed partial class RepositoryBoundaryTests
             StringComparison.Ordinal);
         Assert.Contains("immutable historical evidence", normalizedNfcRoadmap, StringComparison.Ordinal);
         Assert.Contains("former `v1.1.2` allocation is superseded to `v1.1.3`", normalizedNfcRoadmap, StringComparison.Ordinal);
-        Assert.Contains("D1-D7 approved deletion batch implemented", documentConvergenceHandoff, StringComparison.Ordinal);
+        Assert.Contains("D1-D7 approved deletion batch has final frozen review", documentConvergenceHandoff, StringComparison.Ordinal);
         Assert.Contains("repository-wide remainder is `KEEP_PENDING_EVIDENCE`", documentConvergenceHandoff, StringComparison.Ordinal);
-        Assert.Contains("`v1.1.2` is not wholly complete", documentConvergenceHandoff, StringComparison.Ordinal);
+        Assert.Contains("`v1.1.2` cannot be declared complete", normalizedDocumentConvergenceHandoff, StringComparison.Ordinal);
         Assert.Contains("| Open TODO | Owner | Blocker | Next action |", documentConvergenceHandoff, StringComparison.Ordinal);
         Assert.Contains("Keep an active canonical authority.", documentConvergenceHandoff, StringComparison.Ordinal);
         Assert.Contains("Retain required immutable release, firmware, or governance evidence.", documentConvergenceHandoff, StringComparison.Ordinal);
         Assert.Contains("git mv", documentConvergenceHandoff, StringComparison.Ordinal);
-        Assert.Contains("Independent review and the final gate are still required", normalizedDocumentConvergenceHandoff, StringComparison.Ordinal);
-        Assert.Contains("approved D1-D7 deletion batch implemented", normalizedDocumentConvergenceManifest, StringComparison.Ordinal);
+        Assert.Contains("ordinary independent review", normalizedDocumentConvergenceHandoff, StringComparison.Ordinal);
+        Assert.Contains("approved D1-D7 deletion batch has final frozen review", normalizedDocumentConvergenceManifest, StringComparison.Ordinal);
         Assert.Contains("316 tracked Markdown files and 458 tracked paths", documentConvergenceManifest, StringComparison.Ordinal);
         Assert.Contains("Status:", documentConvergenceManifest, StringComparison.Ordinal);
         Assert.Contains("every tracked document not listed below is\n`KEEP_PENDING_EVIDENCE`", documentConvergenceManifest, StringComparison.Ordinal);
@@ -439,12 +439,27 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("proposed and pending product-owner approval", replacementRecord, StringComparison.Ordinal);
         Assert.Contains("grants no product, firmware, support, or implementation authority", replacementRecord, StringComparison.Ordinal);
 
+        foreach (string handoff in new[]
+        {
+            navigationHandoff,
+            bundleRenameHandoff,
+            reportHistoryUsabilityHandoff,
+            abDpMetadataLayoutHandoff,
+            abIcSelectorScopeHandoff,
+            reportChangesCompareHandoff,
+            standardMergeVerificationFeedbackHandoff,
+        })
+        {
+            Assert.DoesNotContain("Status: allocated", handoff, StringComparison.Ordinal);
+        }
+
         Assert.Contains(
             "../ui/post-v1.1.0-navigation-and-ctrlram-first-open-handoff.md",
             nfcRoadmap,
             StringComparison.Ordinal);
+        Assert.Contains("Status: handoff-only scope, acceptance, diagnosis, and evidence.", navigationHandoff, StringComparison.Ordinal);
         Assert.Contains(
-            "Status: allocated to `v1.1.6` for reuse decision and controlled diagnosis only.",
+            "[NFC roadmap `v1.1.6` milestone](../architecture/nfc_roadmap.md#116-first-entry-selection-and-ctrlram-replace-diagnosis)",
             navigationHandoff,
             StringComparison.Ordinal);
         Assert.True(File.Exists(Path.Combine(
@@ -456,8 +471,9 @@ public sealed partial class RepositoryBoundaryTests
             "../ui/v1.1.x-bundle-primary-output-rename-handoff.md",
             nfcRoadmap,
             StringComparison.Ordinal);
+        Assert.Contains("Status: handoff-only scope, acceptance, diagnosis, and evidence.", bundleRenameHandoff, StringComparison.Ordinal);
         Assert.Contains(
-            "Status: allocated `v1.1.12` minor UI follow-up.",
+            "[NFC roadmap `v1.1.12` milestone](../architecture/nfc_roadmap.md#1112-bundle-primary-output-rename)",
             bundleRenameHandoff,
             StringComparison.Ordinal);
         Assert.Contains(
@@ -482,8 +498,9 @@ public sealed partial class RepositoryBoundaryTests
             "../ui/v1.1.x-report-history-usability-handoff.md",
             nfcRoadmap,
             StringComparison.Ordinal);
+        Assert.Contains("Status: handoff-only scope, acceptance, diagnosis, and evidence.", reportHistoryUsabilityHandoff, StringComparison.Ordinal);
         Assert.Contains(
-            "Status: allocated `v1.1.10` UI correction.",
+            "[NFC roadmap `v1.1.10` milestone](../architecture/nfc_roadmap.md#1110-report-history-usability)",
             reportHistoryUsabilityHandoff,
             StringComparison.Ordinal);
         Assert.Contains("OpenReportHistoryEntryAsyncCommand", reportHistoryUsabilityHandoff, StringComparison.Ordinal);
@@ -513,8 +530,9 @@ public sealed partial class RepositoryBoundaryTests
             "../ui/v1.1.x-ab-dp-metadata-layout-handoff.md",
             nfcRoadmap,
             StringComparison.Ordinal);
+        Assert.Contains("Status: handoff-only scope, acceptance, diagnosis, and evidence.", abDpMetadataLayoutHandoff, StringComparison.Ordinal);
         Assert.Contains(
-            "Status: allocated `v1.1.8` UI correction.",
+            "[NFC roadmap `v1.1.8` milestone](../architecture/nfc_roadmap.md#118-ab-selector-and-dp-metadata-layout)",
             abDpMetadataLayoutHandoff,
             StringComparison.Ordinal);
         Assert.Contains("CompiledInputVersionObservation", abDpMetadataLayoutHandoff, StringComparison.Ordinal);
@@ -537,8 +555,9 @@ public sealed partial class RepositoryBoundaryTests
             "../ui/v1.1.x-ab-ic-selector-scope-handoff.md",
             nfcRoadmap,
             StringComparison.Ordinal);
+        Assert.Contains("Status: handoff-only scope, acceptance, diagnosis, and evidence.", abIcSelectorScopeHandoff, StringComparison.Ordinal);
         Assert.Contains(
-            "Status: allocated `v1.1.8` selector correction.",
+            "[NFC roadmap `v1.1.8` milestone](../architecture/nfc_roadmap.md#118-ab-selector-and-dp-metadata-layout)",
             abIcSelectorScopeHandoff,
             StringComparison.Ordinal);
         Assert.Contains("CapabilitySelectorPublication.Create", abIcSelectorScopeHandoff, StringComparison.Ordinal);
@@ -559,8 +578,9 @@ public sealed partial class RepositoryBoundaryTests
             "../ui/v1.1.x-report-changes-compare-handoff.md",
             nfcRoadmap,
             StringComparison.Ordinal);
+        Assert.Contains("Status: handoff-only scope, acceptance, diagnosis, and evidence.", reportChangesCompareHandoff, StringComparison.Ordinal);
         Assert.Contains(
-            "Status: allocated `v1.1.11` UI correction.",
+            "[NFC roadmap `v1.1.11` milestone](../architecture/nfc_roadmap.md#1111-report-changes-compare)",
             reportChangesCompareHandoff,
             StringComparison.Ordinal);
         Assert.Contains("ListBox.reportHexDiffRanges", reportChangesCompareHandoff, StringComparison.Ordinal);
@@ -585,8 +605,9 @@ public sealed partial class RepositoryBoundaryTests
             "../ui/v1.1.x-standard-merge-input-verification-feedback-handoff.md",
             nfcRoadmap,
             StringComparison.Ordinal);
+        Assert.Contains("Status: handoff-only scope, acceptance, diagnosis, and evidence.", standardMergeVerificationFeedbackHandoff, StringComparison.Ordinal);
         Assert.Contains(
-            "Status: allocated `v1.1.9` UI correction.",
+            "[NFC roadmap `v1.1.9` milestone](../architecture/nfc_roadmap.md#119-standard-merge-verification-feedback)",
             standardMergeVerificationFeedbackHandoff,
             StringComparison.Ordinal);
         Assert.Contains("FileContentSnapshotInspector", standardMergeVerificationFeedbackHandoff, StringComparison.Ordinal);
