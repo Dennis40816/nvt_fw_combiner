@@ -1,0 +1,9 @@
+{
+  "schemaVersion": 1,
+  "taskId": "RELEASE-CANONICAL-112-01",
+  "authorityType": "release-owner",
+  "reviewedHead": "42e189c8b2a39d9a94d98ab5e4ee45d9fc17d570",
+  "decision": "approved",
+  "reviewer": "Dennis Liu (release owner)",
+  "evidence": "The release owner approved only the exact schema-1.1 v1.1.2 release-canonical allowlist SHA-256 3fa22d263cee83a07ee30d2977dbf4afde2b5bcca685f9ded51f9d54c1f26ee7: 35 cases, 25 Direct Goldens, one owner-certified input-only evidence case, nine self-contained aliases, 161 artifact declarations, 158 unique artifact paths, 194 projected canonical paths, and 148 packaged canonical BINs. The one selected NT51929 evidence case contributes exactly two neutral-named raw BIN entries in the outer ZIP; no nested archive or raw bypass is approved. Older input-only evidence and dependent aliases, archive/CJK14/HackMD, private, generated, diagnostic, owner-handoff, and unlisted material remain excluded. `goldenFixture` remains an inert storage role only. This authority approves final evidence head 42e189c8b2a39d9a94d98ab5e4ee45d9fc17d570 for the final-complete RELEASE-CANONICAL-112-01 record. It does not approve Direct-Golden relabeling, fabricated expected output, full-byte parity, runtime or support promotion, a parallel manifest, an automatic tree sweep, or any actual package publication; full verification and actual frozen-package release gates remain pending."
+}

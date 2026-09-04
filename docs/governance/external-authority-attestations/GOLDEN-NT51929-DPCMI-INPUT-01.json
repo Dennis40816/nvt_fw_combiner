@@ -1,0 +1,9 @@
+{
+  "schemaVersion": 1,
+  "taskId": "GOLDEN-NT51929-DPCMI-INPUT-01",
+  "authorityType": "firmware-owner",
+  "reviewedHead": "42e189c8b2a39d9a94d98ab5e4ee45d9fc17d570",
+  "decision": "approved",
+  "reviewer": "Dennis Liu (firmware owner)",
+  "evidence": "The firmware owner certified exactly two independent 524288-byte NT51929 observations for public Git and stable-release-package redistribution: Initial Code SHA-256 5ccf5802511635dbed73fc8043acb0021ed379568e8479028b640dda5ec2b02a and FlashCode SHA-256 69fa975a9883db2494d2c2cf5dce05507573c9a753efb6f62589fa3acded68d4. Both independently observe cmd1-page0 half-open [0x401A,0x401D) bytes 5F 09 12, decoded only by the existing DPCMI contract as DP major 09, DP sub-version/minor 01, Jira 607; compact bytes at 0x66-0x68 remain legacy evidence only. This authority approves final evidence head 42e189c8b2a39d9a94d98ab5e4ee45d9fc17d570 for the final-complete GOLDEN-NT51929-DPCMI-INPUT-01 record. It does not relabel either observation as a Direct Golden, Standard/AB input-output pair, expected output, full-byte parity claim, runtime semantic, profile route, or support promotion. Full verification and actual frozen-package release gates remain pending."
+}
