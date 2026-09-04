@@ -5,7 +5,7 @@
   "integrationBase": "4bb8a81fdca309a3e132f42d3b04e5aa94009c21",
   "risk": "R3",
   "kind": "governance",
-  "state": "design-active",
+  "state": "final-complete",
   "mutablePaths": [
     "docs/adr/0057-v0916-black-box-parity-certification.md",
     "docs/contracts/v0916-parity-certification-v1.md",
@@ -25,12 +25,12 @@
     "outcome": "approved",
     "evidence": "The owner-approved rolling-Golden decision and root architecture classification require the minimal reuse of PinnedGitReader plus the existing captured-byte plan seam; no second validator, active-reference pointer, policy registry, parity engine, Golden payload change, or firmware/profile mutation is admitted."
   },
-  "implementationHead": null,
-  "reviewedHead": null,
-  "pathStateDigest": null,
+  "implementationHead": "c099b0ac81bf88387e99640182d33df5f5cbf13d",
+  "reviewedHead": "c099b0ac81bf88387e99640182d33df5f5cbf13d",
+  "pathStateDigest": "99f5507146790db00b5801954e54f31bea708361ae29acf8ac547278298d2bbb",
   "finalReview": {
-    "reviewer": null,
-    "outcome": "pending",
-    "evidence": ""
+    "reviewer": "/root/review_rolling_golden_architecture (GPT-5.6 Sol/high architect) + /root/review_rolling_golden_evidence (GPT-5.6 Luna/high evidence reviewer)",
+    "outcome": "approved",
+    "evidence": "Independent read-only exact-head R3 architecture and evidence reviews both returned PASS-WITH-HUMAN-GATE for c099b0ac81bf88387e99640182d33df5f5cbf13d, tree 7f966bdb72a9206445e05b190ec6a22508024934, with P0/P1/P2/P3 = 0/0/0/0. The tree is identical to the prior reviewed 6fbeab75170260ea2ed3a0587a19ba077f7fbcd1 tree and the design-active record blob remains 18acc9321b0da542c2aedb70e1e7db065fd5bcfc. PinnedGitReader continues to fail-close lower-hex commit and object-graph identities; both historical consumers load policy and manifest from the same pinned revision, while the existing canonical Golden validator remains the sole active validator and no pointer, registry, or second validator was introduced. The historical 64-route plan retains 53 case-bound input identities, 11 input-only evidence routes, and 27 routes of non-terminal parity evidence debt, none relabelled Verified. No Golden payload or manifest, canonical active policy, profile, firmware byte/range/processor/support/naming/composition/release-policy, VERSION, CHANGELOG, dependency, or expected-output authority changed. The required release-owner attestation and frozen-candidate full verifier remain separate human gates."
   }
 }
