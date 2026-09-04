@@ -38,12 +38,20 @@ class CodeSizePolicyTests(unittest.TestCase):
     def test_current_reviewed_baseline_emits_no_full_production_warning(self) -> None:
         snapshot = measure_code_size(REPOSITORY_ROOT)
 
-        self.assertEqual(136_389, snapshot.production_nonblank)
+        self.assertEqual(136_413, snapshot.production_nonblank)
         self.assertEqual(98_559, snapshot.runtime_production_nonblank)
         self.assertEqual(20_632, snapshot.domain_profiles_nonblank)
         self.assertEqual(42_205, snapshot.application_nonblank)
         self.assertEqual(5_039, snapshot.bootstrap_cli_nonblank)
         self.assertEqual(30_683, snapshot.infrastructure_contracts_worker_nonblank)
+        workflow_session = next(
+            partial_type
+            for partial_type in snapshot.partial_types
+            if partial_type.name
+            == "NvtFwCombiner.Presentation.Avalonia.ViewModels.WorkflowSessionPresentationViewModel"
+        )
+        self.assertEqual(12, workflow_session.file_count)
+        self.assertEqual(2_627, workflow_session.nonblank_lines)
         self.assertEqual(snapshot.production_nonblank, DEFAULT_LIMITS.production_nonblank)
         self.assertEqual([], validate_code_size_policy(REPOSITORY_ROOT))
         self.assertFalse(

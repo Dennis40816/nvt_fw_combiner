@@ -8,6 +8,7 @@ import importlib.util
 import io
 import json
 import subprocess
+import tempfile
 import unittest
 from pathlib import Path
 
@@ -18,6 +19,21 @@ ROOT = Path(__file__).resolve().parents[2]
 MODULE_PATH = ROOT / "scripts" / "v0916_parity_certification.py"
 SPEC = importlib.util.spec_from_file_location("v0916_parity_certification", MODULE_PATH)
 assert SPEC is not None and SPEC.loader is not None
+_PINNED_POLICY_PLAN = json.loads(
+    (ROOT / "docs/contracts/v0916-parity-certification-v1.json").read_text(
+        encoding="utf-8"
+    )
+)
+_PINNED_POLICY_BYTES = subprocess.check_output(
+    [
+        "git",
+        "cat-file",
+        "blob",
+        f"{_PINNED_POLICY_PLAN['canonicalInputAuthority']['repositoryCommit']}:"
+        f"{_PINNED_POLICY_PLAN['policyBinding']['path']}",
+    ],
+    cwd=ROOT,
+)
 
 
 def parity_workflow_fixture_from_contract(
@@ -316,9 +332,10 @@ class V0916ParityTestBase(unittest.TestCase):
         self.plan_path = (
             ROOT / "docs" / "contracts" / "v0916-parity-certification-v1.json"
         )
-        self.policy_path = (
-            ROOT / "docs" / "contracts" / "canonical-capability-policy-v1.json"
-        )
+        self._pinned_policy_directory = tempfile.TemporaryDirectory()
+        self.addCleanup(self._pinned_policy_directory.cleanup)
+        self.policy_path = Path(self._pinned_policy_directory.name) / "policy.json"
+        self.policy_path.write_bytes(_PINNED_POLICY_BYTES)
 
     @staticmethod
     def artifact(path: Path) -> dict[str, object]:

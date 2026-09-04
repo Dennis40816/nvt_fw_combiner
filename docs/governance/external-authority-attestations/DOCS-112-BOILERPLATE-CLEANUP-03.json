@@ -1,0 +1,9 @@
+{
+  "schemaVersion": 1,
+  "taskId": "DOCS-112-BOILERPLATE-CLEANUP-03",
+  "authorityType": "release-owner",
+  "reviewedHead": "5f252d51f41fc053275085207d37b3c18067baff",
+  "decision": "approved",
+  "reviewer": "Dennis Liu (release owner)",
+  "evidence": "The release owner’s prior explicit ‘Ok 刪除’ decision and instruction to continue bind to exact final-evidence head 5f252d51f41fc053275085207d37b3c18067baff and approve exactly these four standalone README deletions: profiles/samples/README.md, profiles/schema/README.md, testdata/public-synthetic/README.md, and tests/NvtFwCombiner.Infrastructure.Tests/README.md. The recursive profile tree changes only from 115 to 113 files with post-delete digest 3d95ab4b0c24e9ad4ad401c8f487c1872a32a4babd109ec695b36f8ce2df332b. Packaged payload inventory, profile-file projection, package scripts, and trust index remain unchanged; RELEASE-MANIFEST embeddedProfileCatalogSha256, resulting archive digest, and provenance identity intentionally change. Exact-head independent review reported P0/P1/P2/P3=0/0/0/0, and the focused roadmap and release-package policy checks passed. No firmware, runtime, profile JSON/schema/family, Golden, support, VERSION/CHANGELOG, launcher, UI, or performance change is approved. This attestation does not claim a full verifier, final package or smokes, protected CI, tag, publication, or v1.1.2 completion."
+}

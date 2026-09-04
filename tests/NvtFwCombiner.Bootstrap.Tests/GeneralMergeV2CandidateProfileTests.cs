@@ -67,7 +67,7 @@ public sealed class GeneralMergeV2CandidateProfileTests
         "nt51951-general-merge-logical-candidate")]
     [InlineData(
         "nt51919-nt51929-nt51932-general-merge-logical-candidate",
-        "d6513b7026c6438f574c334476176bf3bd704aed9bd0279733706942aeb02910",
+        "6436c668b48899524e731cf897244144e1dff39d64c75ff886d90a7408448d14",
         "nt51929-standard-merge",
         "nt51929-nt51932.json",
         "nt51929-nt51932",
@@ -75,7 +75,7 @@ public sealed class GeneralMergeV2CandidateProfileTests
         "nt51919-general-merge-logical-candidate")]
     [InlineData(
         "nt51919-nt51929-nt51932-general-merge-logical-candidate",
-        "d6513b7026c6438f574c334476176bf3bd704aed9bd0279733706942aeb02910",
+        "6436c668b48899524e731cf897244144e1dff39d64c75ff886d90a7408448d14",
         "nt51929-standard-merge",
         "nt51929-nt51932.json",
         "nt51929-nt51932",
@@ -83,7 +83,7 @@ public sealed class GeneralMergeV2CandidateProfileTests
         "nt51929-general-merge-logical-candidate")]
     [InlineData(
         "nt51919-nt51929-nt51932-general-merge-logical-candidate",
-        "d6513b7026c6438f574c334476176bf3bd704aed9bd0279733706942aeb02910",
+        "6436c668b48899524e731cf897244144e1dff39d64c75ff886d90a7408448d14",
         "nt51929-standard-merge",
         "nt51929-nt51932.json",
         "nt51929-nt51932",

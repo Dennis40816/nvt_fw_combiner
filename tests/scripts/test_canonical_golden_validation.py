@@ -6,6 +6,7 @@ import json
 import os
 import tempfile
 import unittest
+from copy import deepcopy
 from pathlib import Path
 from types import ModuleType
 
@@ -26,6 +27,7 @@ def load_validator_module() -> ModuleType:
 
 
 VALIDATOR = load_validator_module()
+REPOSITORY_ROOT = VALIDATOR_PATH.parents[1]
 
 
 class CanonicalGoldenValidationTests(unittest.TestCase):
@@ -176,12 +178,12 @@ class CanonicalGoldenValidationTests(unittest.TestCase):
             ],
         }
         self.release_allowlist = {
-            "schemaVersion": "1.0",
+            "schemaVersion": "1.1",
             "policyId": "canonical-reference-v1",
-            "authorizedForVersion": "1.0.8",
+            "authorizedForVersion": "1.1.2",
             "releaseStatus": "human-gated-allowlist",
             "redistributionAuthorization": {
-                "authorizedOn": "2026-09-01",
+                "authorizedOn": "2026-09-04",
                 "authorizedBy": "repository owner",
                 "scope": "reference-payload-only",
                 "supersedesHistoricalCaseRestrictions": True,
@@ -196,6 +198,7 @@ class CanonicalGoldenValidationTests(unittest.TestCase):
             "selectionSummary": {
                 "caseCount": 1,
                 "directGoldenCount": 1,
+                "directInputEvidenceCount": 0,
                 "factScopedAliasCount": 0,
                 "artifactDeclarationCount": 2,
                 "uniqueArtifactPathCount": 2,
@@ -770,6 +773,66 @@ class CanonicalGoldenValidationTests(unittest.TestCase):
 
         self.assertEqual([], self.validate())
 
+    def test_nt51929_certified_dpcmi_observations_are_input_only_and_exact(self) -> None:
+        case_path = (
+            REPOSITORY_ROOT
+            / "testdata/golden/canonical/NT51929/standard-merge/"
+            "certified-metadata-inputs/topology-unscoped/"
+            "nt51929-certified-metadata-inputs-20260904/provenance/case.json"
+        )
+        case = json.loads(case_path.read_text(encoding="utf-8"))
+        canonical_root = REPOSITORY_ROOT / "testdata/golden/canonical"
+        roles = [artifact["role"] for artifact in case["artifacts"]]
+
+        errors: list[str] = []
+        VALIDATOR._validate_certified_nt51929_dpcmi_input_evidence(
+            canonical_root,
+            case,
+            roles,
+            "certified NT51929 test case",
+            errors,
+        )
+
+        self.assertEqual([], errors)
+        self.assertFalse(case["directGolden"])
+        self.assertTrue(case["directEvidence"])
+        self.assertEqual("input-only-evidence", case["testDisposition"]["kind"])
+        self.assertEqual({"input"}, set(roles))
+        for artifact in case["artifacts"]:
+            with self.subTest(artifact=artifact["artifactId"]):
+                payload = (canonical_root / artifact["path"]).read_bytes()
+                self.assertEqual(524288, len(payload))
+                self.assertEqual(
+                    bytes.fromhex("5F0912"), payload[0x401A:0x401D]
+                )
+
+        for mutation in (
+            lambda value: value.pop("directEvidence"),
+            lambda value: value.__setitem__("directEvidence", "true"),
+            lambda value: value.__setitem__("directEvidence", False),
+            lambda value: value.__setitem__("directGolden", True),
+            lambda value: value["artifacts"][0].__setitem__("role", "expected"),
+            lambda value: value["artifacts"][0].__setitem__("role", "provenance"),
+            lambda value: value["artifacts"][0].__setitem__("role", "executable"),
+            lambda value: value.__setitem__("alias", {"sourceCaseId": "other"}),
+            lambda value: value.__setitem__("artifacts", []),
+        ):
+            with self.subTest(mutation=mutation):
+                changed = deepcopy(case)
+                mutation(changed)
+                changed_roles = [
+                    artifact["role"] for artifact in changed.get("artifacts", [])
+                ]
+                errors = []
+                VALIDATOR._validate_certified_nt51929_dpcmi_input_evidence(
+                    canonical_root,
+                    changed,
+                    changed_roles,
+                    "certified NT51929 test case",
+                    errors,
+                )
+                self.assertTrue(errors)
+
     def test_accepts_alias_to_direct_input_evidence(self) -> None:
         self.convert_direct_golden_to_input_evidence()
         self.add_alias("nt51927-standard-merge-gen-flash")
@@ -907,6 +970,7 @@ class CanonicalGoldenValidationTests(unittest.TestCase):
             {
                 "caseCount": 1,
                 "directGoldenCount": 0,
+                "directInputEvidenceCount": 0,
                 "factScopedAliasCount": 1,
                 "artifactDeclarationCount": 0,
                 "uniqueArtifactPathCount": 0,
@@ -931,13 +995,97 @@ class CanonicalGoldenValidationTests(unittest.TestCase):
             )
         )
 
-    def test_rejects_release_selection_of_direct_input_evidence(self) -> None:
+    def test_accepts_explicit_release_selection_of_direct_input_evidence(self) -> None:
+        self.validate_release_allowlist()
+        self.convert_direct_golden_to_input_evidence()
+        selected = self.release_allowlist["cases"][0]
+        selected["manifestSha256"] = hashlib.sha256(
+            (self.canonical / selected["manifestPath"]).read_bytes()
+        ).hexdigest()
+        selected["testDispositionKind"] = "input-only-evidence"
+        selected["directGolden"] = False
+        selected["directEvidence"] = True
+        selected["artifacts"] = [
+            {
+                key: artifact[key]
+                for key in ("artifactId", "role", "path", "size", "sha256")
+            }
+            for artifact in self.case_manifest["artifacts"]
+        ]
+        self.release_allowlist["selectionSummary"] = {
+            "caseCount": 1,
+            "directGoldenCount": 0,
+            "directInputEvidenceCount": 1,
+            "factScopedAliasCount": 0,
+            "artifactDeclarationCount": 1,
+            "uniqueArtifactPathCount": 1,
+        }
+        self.write_json(
+            self.root / "testdata/golden/release-canonical-v1.json",
+            self.release_allowlist,
+        )
+
+        errors: list[str] = []
+        VALIDATOR.validate_canonical_release_allowlist(
+            self.root,
+            errors,
+            expected_summary=self.release_allowlist["selectionSummary"],
+        )
+
+        self.assertEqual([], errors)
+
+    def test_rejects_release_alias_sourced_from_selected_nt51929_direct_input_evidence(
+        self,
+    ) -> None:
+        self.validate_release_allowlist()
+        certified_case_id = "nt51929-certified-metadata-inputs-20260904"
+        self.case_manifest["caseId"] = certified_case_id
+        self.root_manifest["cases"][0]["caseId"] = certified_case_id
+        self.rewrite_case()
+        self.rewrite_root()
         self.convert_direct_golden_to_input_evidence()
 
-        errors = self.validate_release_allowlist()
+        selected = self.release_allowlist["cases"][0]
+        selected["caseId"] = certified_case_id
+        selected["manifestSha256"] = hashlib.sha256(
+            (self.canonical / selected["manifestPath"]).read_bytes()
+        ).hexdigest()
+        selected["testDispositionKind"] = "input-only-evidence"
+        selected["directGolden"] = False
+        selected["directEvidence"] = True
+        selected["artifacts"] = [
+            {
+                key: artifact[key]
+                for key in ("artifactId", "role", "path", "size", "sha256")
+            }
+            for artifact in self.case_manifest["artifacts"]
+        ]
+        self.release_allowlist["selectionSummary"] = {
+            "caseCount": 1,
+            "directGoldenCount": 0,
+            "directInputEvidenceCount": 1,
+            "factScopedAliasCount": 0,
+            "artifactDeclarationCount": 1,
+            "uniqueArtifactPathCount": 1,
+        }
+        self.add_release_alias()
+        self.write_json(
+            self.root / "testdata/golden/release-canonical-v1.json",
+            self.release_allowlist,
+        )
+
+        errors: list[str] = []
+        VALIDATOR.validate_canonical_release_allowlist(
+            self.root,
+            errors,
+            expected_summary=self.release_allowlist["selectionSummary"],
+        )
 
         self.assertTrue(
-            any("cannot select direct input evidence" in error for error in errors)
+            any(
+                "must select its exact same-workflow direct Golden source" in error
+                for error in errors
+            )
         )
 
     def test_rejects_release_artifact_hash_drift(self) -> None:

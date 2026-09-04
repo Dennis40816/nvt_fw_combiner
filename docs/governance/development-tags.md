@@ -146,6 +146,18 @@ commit.
   manual-only exception but does not deploy Catalog/Registry state, enable
   Version deployment, change product UI or firmware semantics, or promote
   support.
+- `v1.1.2` — support-neutral release candidate: complete repository document
+  convergence and boilerplate cleanup without a new inventory/TODO/archive
+  framework; record bounded verifier sharding/deadline work without skipping a
+  gate or adding a verifier; correct AB selector cold-start Mode/IC context
+  without support promotion; admit public NT51929 input-only evidence without
+  expected-output, Golden-parity, or support claims; and use CMD1 Page 0 DPCMI
+  authority for Standard NT51919/NT51929/NT51932 while AB remains per-bank and
+  General has no reader. Dummy DP is post-1.1.2 and unallocated; FWConfig and
+  unrelated metadata are excluded. Launcher remains secondary, with bounded
+  development beginning in 1.2.0 and activation separately gated. Full
+  verification, protected CI, package/smoke, release approval, publication, and
+  fresh-download verification remain mandatory no-waiver gates.
 
 ### Recorded `v0.10.2` pre-deletion comparison point
 

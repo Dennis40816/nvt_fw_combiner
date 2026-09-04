@@ -1,0 +1,9 @@
+{
+  "schemaVersion": 1,
+  "taskId": "DOCS-112-OWNER-HANDOFF-CLEANUP-02",
+  "authorityType": "firmware-owner",
+  "reviewedHead": "fef8888bffcb6b03c2e70a12236c0397122ba0ba",
+  "decision": "approved",
+  "reviewer": "Dennis Liu (firmware owner)",
+  "evidence": "The firmware owner explicitly approved deletion of the owner-handoff root TODO and six named placeholder leaves, retention of 0718-missing-owner-evidence/README_請先看.md as Historical, and only the NT51927 CASE ../../TODO.md to ../../README.md link repair. This attestation approves final record head fef8888bffcb6b03c2e70a12236c0397122ba0ba, which finalizes independently reviewed C1 ef534793072f1718ba6abfc5c61ae24bd0813b81 for exactly the ten governed owner-handoff paths: root README, root TODO, six leaves, owner-handoff .gitignore, and NT51927 CASE. The four control paths remain evidence-only, not governed scope. Diagnostic identity is 57 files / 5809af7997455afa8d918d949328810f79a0e2858f5e1676a9ac59acf48b2b38; review found P0-P3=0. No firmware payload, Golden expected hash, profile, package, release, VERSION, CHANGELOG, support, routing, runtime behavior, or private payload is approved or changed."
+}

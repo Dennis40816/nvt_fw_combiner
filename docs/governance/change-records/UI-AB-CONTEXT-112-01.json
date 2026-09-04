@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 2,
+  "taskId": "UI-AB-CONTEXT-112-01",
+  "capability": "Keep the active Merge AB device choices and staged workflow mode bound to the accepted canonical IC during context navigation",
+  "integrationBase": "5f252d51f41fc053275085207d37b3c18067baff",
+  "risk": "R2",
+  "kind": "ui",
+  "state": "final-complete",
+  "mutablePaths": [
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MergePresentationViewModel.State.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/WorkflowSessionPresentationViewModel.DeviceContextNotifications.cs"
+  ],
+  "implementationOwner": "gpt-5.6-terra/high sole writer",
+  "searchEvidence": [
+    "PublishCanonicalCatalogIcChoices is the existing guarded canonical selector publication owner. Its recursion/null guard must be reused before the existing shared text and run-state notifications; no Presentation classifier, cache, or re-derived AB/IC list is admitted.",
+    "Runtime evidence disproved the WorkflowContext selection.IcId hypothesis: ConfirmWorkflowContext commits the selected IC to the page context before staging. The live top-right selector proves an ephemeral MergeModeChoices projection permits stale Standard/null TwoWay writeback during staged navigation, including after a synchronous notification-order-only attempt.",
+    "The UI smoke evidence covers real TwoWay device/mode ComboBoxes, the single IcChoices publication, list filtering, mode ItemsSource stability, retained Standard-to-Home navigation, accepted NT51950 AB context, and dispatcher-drained selected mode/page state without adding a Presentation classifier, cache, or new semantic owner."
+  ],
+  "semanticOwner": "CapabilitySelectorPublication and the existing guarded PublishCanonicalCatalogIcChoices publisher own canonical device choices; MergePresentationViewModel.PublishContextCore owns the stable instance-local observable MergeModeChoices projection for its existing full mode-context refresh.",
+  "terminalContract": "For a real TwoWay Merge device/mode selection, publishing AB mode reuses PublishCanonicalCatalogIcChoices before existing text/run-state notifications so one IcChoices notification publishes the active AB list without replacing the device selector ItemsSource. PublishContextCore reconciles its existing instance-local observable MergeModeChoices projection in place to the canonical authorable Merge modes, using retain/move/insert before tail removal and never Clear, Reset, replace the collection, or raise a MergeModeChoices property notification; only then it publishes SelectedMergeMode. Direct user mode selection remains on its existing includeModeChoices=false path. The UI neither classifies profiles nor changes firmware, profile, range, support, processor, or runtime semantics.",
+  "disposition": "reuse",
+  "designReview": {
+    "reviewer": "/root/architect_mode_transaction (gpt-5.6-sol/high)",
+    "outcome": "findings-incorporated",
+    "evidence": "Independent architecture review found P0/P1/P2/P3=0/0/0/0. Runtime evidence disproved the WorkflowContext selection.IcId hypothesis and found stale live TwoWay mode writeback from an ephemeral projection; a synchronous writeback-suppression guard was insufficient after deferred binding dispatch. Approved the existing MergePresentationViewModel.State owner only: stable instance-local ObservableCollection projection reconciled in place by retain/move/insert then tail removal before SelectedMergeMode publication, without Clear, Reset, replacement, or property notification. Direct includeModeChoices=false user selection remains unchanged. No duplicate classifier, cache, or new semantic owner is admitted."
+  },
+  "implementationHead": "6c0e16740574ea42b8b0ac0715d0f9dee4572f9a",
+  "reviewedHead": "6c0e16740574ea42b8b0ac0715d0f9dee4572f9a",
+  "pathStateDigest": "cd3d6f2d0d2497588f53b5da6a0c6d359d7f57348200c8020090daf6e761e401",
+  "finalReview": {
+    "reviewer": "/root/review_ui_ab_h1_retry",
+    "outcome": "approved",
+    "evidence": "Independent exact-head R2 semantic, UI-binding, evidence, and scoped Polytail review approved implementation 6c0e16740574ea42b8b0ac0715d0f9dee4572f9a with P0/P1/P2/P3 = 0/0/0/0. The stable instance-local ObservableCollection MergeModeChoices projection is reconciled in canonical workflow order by retain/move/insert followed by tail removal before SelectedMergeMode publication, without Clear, Reset, collection replacement, or MergeModeChoices property notification; direct user selection retains the existing non-reconciliation path. Accepted Merge mode changes reuse the guarded canonical IcChoices publisher exactly once before shared context notifications. Real MainWindow and focused binding/catalog regressions cover direct selection, staged Home AB confirmation, collection identity, notification order, hidden-page isolation, catalog withdrawal, zero choices, and recovery without a duplicate classifier or semantic owner. Recorded focused evidence passed exact 10/10, catalog 10/10, matrix 8/8, validate_repository, and structure-only; an independent bounded critical-path rerun passed 7/7. The complete UiSmoke run was inconclusive and is not claimed. No firmware, profile, memory-range, mutation-order, CRC/checksum, support, compatibility, package, release-content, secret, private-payload, or generated-binary authority changed. Scoped Polytail PASS; the final repository verifier remains a separate lifecycle gate."
+  }
+}

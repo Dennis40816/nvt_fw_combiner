@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import contextlib
+from fnmatch import fnmatch
 import hashlib
 import importlib.util
 import io
@@ -319,10 +320,97 @@ class VerifyOrchestrationTests(unittest.TestCase):
         lanes = MODULE.selected_lanes(MODULE.parse_args(["--all"]))
 
         self.assertEqual(
-            ["structure", "python", "dotnet"], [lane.name for lane in lanes]
+            [
+                "structure",
+                "repository-scripts-a-q",
+                "repository-scripts-r",
+                "repository-scripts-s-z",
+                "python",
+                "dotnet",
+            ],
+            [lane.name for lane in lanes],
         )
         self.assertEqual(len(lanes), len({lane.name for lane in lanes}))
         self.assertTrue(all(lane.isolate_action for lane in lanes))
+
+    def test_repository_script_shards_partition_discovery_is_exhaustive_and_fail_closed(
+        self,
+    ) -> None:
+        shards = MODULE.repository_script_test_shards()
+        test_paths = tuple(
+            sorted(MODULE.REPOSITORY_SCRIPT_TESTS.rglob("test_*.py"))
+        )
+        matches = {
+            path.relative_to(MODULE.REPOSITORY_SCRIPT_TESTS).as_posix(): tuple(
+                name for name, pattern in shards if fnmatch(path.name, pattern)
+            )
+            for path in test_paths
+        }
+
+        self.assertEqual(
+            [
+                "repository-scripts-a-q",
+                "repository-scripts-r",
+                "repository-scripts-s-z",
+            ],
+            [name for name, _pattern in shards],
+        )
+        self.assertTrue(test_paths)
+        self.assertTrue(all(len(names) == 1 for names in matches.values()), matches)
+        self.assertEqual(
+            {
+                path.relative_to(MODULE.REPOSITORY_SCRIPT_TESTS).as_posix()
+                for path in test_paths
+            },
+            {path for path, names in matches.items() if len(names) == 1},
+        )
+        with tempfile.TemporaryDirectory() as temporary:
+            shard_root = Path(temporary)
+            nested = shard_root / "nested"
+            nested.mkdir()
+            (nested / "test_agent_future.py").touch()
+            with (
+                patch.object(MODULE, "REPOSITORY_SCRIPT_TESTS", shard_root),
+                self.assertRaisesRegex(
+                    RuntimeError,
+                    r"nested/test_agent_future.py=unsupported nesting",
+                ),
+            ):
+                MODULE.repository_script_test_shards()
+
+            (nested / "test_agent_future.py").unlink()
+            (shard_root / "test_agent-future.py").touch()
+            with (
+                patch.object(MODULE, "REPOSITORY_SCRIPT_TESTS", shard_root),
+                self.assertRaisesRegex(
+                    RuntimeError,
+                    r"test_agent-future.py=invalid module filename",
+                ),
+            ):
+                MODULE.repository_script_test_shards()
+
+            (shard_root / "test_agent-future.py").unlink()
+            (shard_root / "test_0_future.py").touch()
+            with (
+                patch.object(MODULE, "REPOSITORY_SCRIPT_TESTS", shard_root),
+                self.assertRaisesRegex(RuntimeError, r"test_0_future.py=<none>"),
+            ):
+                MODULE.repository_script_test_shards()
+
+            (shard_root / "test_0_future.py").unlink()
+            (shard_root / "test_agent_future.py").touch()
+            with (
+                patch.object(MODULE, "REPOSITORY_SCRIPT_TESTS", shard_root),
+                patch.object(
+                    MODULE,
+                    "REPOSITORY_SCRIPT_TEST_SHARDS",
+                    (("first", "test_*.py"), ("second", "test_a*.py")),
+                ),
+                self.assertRaisesRegex(
+                    RuntimeError, r"test_agent_future.py=first,second"
+                ),
+            ):
+                MODULE.repository_script_test_shards()
 
     def test_public_full_plan_sequences_lock_reader_before_restore_writer(
         self,
@@ -348,6 +436,21 @@ class VerifyOrchestrationTests(unittest.TestCase):
             [
                 (
                     ["structure"],
+                    MODULE.DEFAULT_VERIFY_JOBS,
+                    MODULE.DEFAULT_LANE_TIMEOUT_SECONDS,
+                ),
+                (
+                    ["repository-scripts-a-q"],
+                    MODULE.DEFAULT_VERIFY_JOBS,
+                    MODULE.DEFAULT_LANE_TIMEOUT_SECONDS,
+                ),
+                (
+                    ["repository-scripts-r"],
+                    MODULE.DEFAULT_VERIFY_JOBS,
+                    MODULE.DEFAULT_LANE_TIMEOUT_SECONDS,
+                ),
+                (
+                    ["repository-scripts-s-z"],
                     MODULE.DEFAULT_VERIFY_JOBS,
                     MODULE.DEFAULT_LANE_TIMEOUT_SECONDS,
                 ),
@@ -713,7 +816,7 @@ class VerifyOrchestrationTests(unittest.TestCase):
             patch.object(
                 MODULE,
                 "verify_repository_scripts",
-                side_effect=lambda _log_path: calls.append("repository-scripts"),
+                side_effect=lambda _log_path, pattern: calls.append(pattern),
             ),
             patch.object(
                 MODULE,
@@ -734,7 +837,10 @@ class VerifyOrchestrationTests(unittest.TestCase):
         ):
             expected_calls = {
                 "structure": ["structure"],
-                "python": ["repository-scripts", "python"],
+                "repository-scripts-a-q": ["test_[a-q]*.py"],
+                "repository-scripts-r": ["test_r*.py"],
+                "repository-scripts-s-z": ["test_[s-z]*.py"],
+                "python": ["python"],
                 "dotnet": ["dotnet"],
                 "dotnet-windows": ["windows-orchestration", "dotnet"],
             }

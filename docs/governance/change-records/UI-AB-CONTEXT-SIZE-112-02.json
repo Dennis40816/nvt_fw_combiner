@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 2,
+  "taskId": "UI-AB-CONTEXT-SIZE-112-02",
+  "capability": "Account for the accepted UI-AB-CONTEXT presentation artifact without changing its product behavior",
+  "integrationBase": "7b99ab0e7a2e3393f0839a77c1f782fb62c46c9f",
+  "risk": "R2",
+  "kind": "governance",
+  "state": "final-complete",
+  "mutablePaths": [
+    "docs/adr/0021-code-size-ratchet-accepted-artifact-amendment.md",
+    "scripts/code_size_policy.py"
+  ],
+  "implementationOwner": "gpt-5.6-terra/high sole writer",
+  "searchEvidence": [
+    "The exact code-size policy owns the production and named-partial ratchets; its focused unittest already measures the current repository snapshot.",
+    "The accepted UI-AB-CONTEXT-112-01 artifact is the sole attributable source: MergePresentationViewModel.State.cs grows by 23 nonblank lines and WorkflowSessionPresentationViewModel.DeviceContextNotifications.cs by 1, with no file-count change.",
+    "The earlier immutable UI final record is not changed: current reproducible focused policy coverage fails only because its full-production ceiling remains the stale 136389 value."
+  ],
+  "semanticOwner": "scripts/code_size_policy.py remains the sole measurement and acceptance owner; the existing ADR 0021 amendment remains the accepted-artifact rationale owner.",
+  "terminalContract": "Raise only production_nonblank from 136389 to 136413, full_production_allowance from 33493 to 33517 above frozen full base 102896, and the named WorkflowSessionPresentationViewModel ceiling from 2626 to 2627. Account exactly for +23 MergePresentationViewModel.State.cs and +1 WorkflowSessionPresentationViewModel.DeviceContextNotifications.cs. Keep runtime 98559; Domain/Profiles 20632; Application 42205; Bootstrap/CLI/Desktop/Launcher 5039; Infrastructure/Contracts/worker/Platform 30683; all file counts; all runtime and slice baselines and allowances unchanged. The 33517 allowance and 2627 ceiling are non-transferable; no line packing or unrelated deletion is admitted. Do not change UI product behavior, firmware, profiles, ranges, output bytes, or support, and do not rewrite the immutable UI-AB-CONTEXT-112-01 record.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "root-architecture-review",
+    "outcome": "approved",
+    "evidence": "Root approved the smallest R2 accepted-artifact accounting after independent GPT-5.6 Luna/medium audit confirmed the exact +24 Presentation-only attribution, unchanged slices, and no product or firmware semantic change."
+  },
+  "implementationHead": "510e2ffd2d27459ba4315ecdf69933d11c616997",
+  "reviewedHead": "510e2ffd2d27459ba4315ecdf69933d11c616997",
+  "pathStateDigest": "44407999504281f067ea241d0b71e4d92bf56ef526bab6aad616a2825e4d8360",
+  "finalReview": {
+    "reviewer": "/root/ui_code_size_audit (GPT-5.6 Luna/medium)",
+    "outcome": "approved",
+    "evidence": "Independent exact-head R2 review approved implementation 510e2ffd2d27459ba4315ecdf69933d11c616997, tree 5439fe0e37fea11a4ba479c20275a06e2ae3ab25, against direct parent a387509533135fb4d3769351ad15e5224103e9d3 with P0/P1/P2/P3 = 0/0/0/0. The record correctly binds latest final evidence checkpoint 7b99ab0e7a2e3393f0839a77c1f782fb62c46c9f; comparison with the prior reviewed draft proves that integrationBase is its sole correction and the ADR, policy, and test blobs are byte-identical. The exact four-path implementation contains only the existing accepted-artifact ADR, this record, the sole code-size policy owner, and its focused ungoverned test; no src, firmware, profile, Golden, range, processor, output-byte, or product implementation path changed. The policy changes only full production 136389 to 136413, its allowance 33493 to 33517 above frozen base 102896, and the twelve-file WorkflowSessionPresentationViewModel named ceiling 2626 to 2627. Runtime remains 98559 and the unchanged slices remain Domain/Profiles 20632, Application 42205, Bootstrap/CLI/Desktop/Launcher 5039, and Infrastructure/Contracts/worker/Platform 30683. The ADR binds the exact Presentation-only +23 plus +1 attribution, rejects transferable budget and line packing, and explicitly does not rely on the earlier immutable UI record's unsupported structure-only sentence. Independent focused code-size coverage passed 19/19 and returned no policy problem; exact measurement, JSON, diff, path, and scoped Polytail checks passed. Full repository verification remains a separate release gate."
+  }
+}

@@ -282,7 +282,7 @@ class RepositorySkillRoutingContractTests(unittest.TestCase):
             all(entry["status"] == "active" for entry in self.entries.values())
         )
 
-    def test_only_supervision_and_polling_are_explicit(self) -> None:
+    def test_only_polling_and_grilling_are_explicit(self) -> None:
         explicit = {
             name
             for name, entry in self.entries.items()
@@ -292,7 +292,6 @@ class RepositorySkillRoutingContractTests(unittest.TestCase):
             {
                 "github-review-polling",
                 "grilling",
-                "supervised-branch-development",
             },
             explicit,
         )
@@ -332,8 +331,52 @@ class RepositorySkillRoutingContractTests(unittest.TestCase):
 
     def test_supervision_is_not_the_default_workflow(self) -> None:
         text = self.read_skill("supervised-branch-development")
-        self.assertIn("Ordinary work uses single-writer mode", text)
-        self.assertIn("primary agent or owner is the default integrator", text)
+        self.assertIn("Ordinary work remains single-writer", text)
+        self.assertIn("The primary agent or owner integrates reviewed checkpoints", text)
+
+    def test_supervision_routes_models_and_preserves_single_writer_hygiene(self) -> None:
+        text = self.read_skill("supervised-branch-development")
+        normalized = " ".join(text.split())
+
+        for selection_rule in (
+            "capability, difficulty, and risk",
+            "strongest suitable reasoning model",
+            "capable implementation model",
+            "faster, lower-cost model",
+            "not hard requirements",
+            "An explicit owner model request wins",
+        ):
+            with self.subTest(selection_rule=selection_rule):
+                self.assertIn(selection_rule, normalized)
+
+        self.assertEqual("implicit", self.entries["supervised-branch-development"]["invocation"])
+        metadata = (
+            self.skills_root
+            / "supervised-branch-development"
+            / "agents"
+            / "openai.yaml"
+        ).read_text(encoding="utf-8")
+        self.assertIn("allow_implicit_invocation: true", metadata)
+        self.assertIn("never downgrades repository risk, required gates, or evidence", normalized)
+        self.assertIn("`capability-reuse disposition`", text)
+        self.assertIn("Before every dispatch", text)
+        for disclosure in (
+            "role / model / reasoning effort / inherited-or-override",
+            "read-only-or-write / scope / selection reason",
+            "inherits parent",
+            "parent identity only when known",
+            "never guess",
+        ):
+            with self.subTest(disclosure=disclosure):
+                self.assertIn(disclosure, normalized)
+        self.assertIn("final report repeats actual model/config when known", normalized)
+        self.assertIn("never guessing", normalized)
+        self.assertNotIn("Terra** is the sole writer", text)
+        self.assertIn("Review the frozen head independently", text)
+        self.assertIn("Route every correction to the same writer", normalized)
+        self.assertIn("Reuse one task/version branch", text)
+        self.assertIn("lists tracked and untracked changes", text)
+        self.assertIn("never cleans up or deletes files without owner authorization", normalized)
 
     def test_removed_meta_skills_are_not_repository_routes(self) -> None:
         for name in (

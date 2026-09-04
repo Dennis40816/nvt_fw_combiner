@@ -107,18 +107,46 @@ public sealed partial class ShellNavigationSystemTests
         _ = selector.Bind(
             ComboBox.SelectedItemProperty,
             new Binding("WorkflowSession.SelectedIc") { Mode = BindingMode.TwoWay });
+        var modeSelector = new ComboBox { DataContext = viewModel.Merge };
+        _ = modeSelector.Bind(
+            ItemsControl.ItemsSourceProperty,
+            new Binding(nameof(MergePresentationViewModel.MergeModeChoices)));
+        _ = modeSelector.Bind(
+            ComboBox.SelectedItemProperty,
+            new Binding(nameof(MergePresentationViewModel.SelectedMergeMode))
+            {
+                Mode = BindingMode.TwoWay,
+            });
         Dispatcher.UIThread.RunJobs();
+        object? originalModeItemsSource = modeSelector.ItemsSource;
+        Assert.NotNull(originalModeItemsSource);
         var changes = new List<string?>();
+        var modeProjectionChanges = new List<string>();
+        System.Collections.Specialized.INotifyCollectionChanged modeProjection =
+            Assert.IsType<System.Collections.Specialized.INotifyCollectionChanged>(
+                viewModel.Merge.MergeModeChoices,
+                exactMatch: false);
+        modeProjection.CollectionChanged += (_, args) => modeProjectionChanges.Add(args.Action.ToString());
         viewModel.WorkflowSession.PropertyChanged += (_, args) => changes.Add(args.PropertyName);
+        viewModel.MessageCenter.ToggleDebugActivityCommand.Execute(null);
+        int modeActivityCount = viewModel.MessageCenter.ActivityItems.Count(static item =>
+            item.Title == "Mode selected");
 
         policy.DisableAbFor("NT51950");
         await viewModel.MessageCenter.RefreshCommand.ExecuteAsync(null);
         Dispatcher.UIThread.RunJobs();
+        Dispatcher.UIThread.RunJobs();
 
         Assert.Equal(ExperienceIds.StandardMerge, viewModel.Merge.SelectedMergeMode);
+        Assert.Same(originalModeItemsSource, modeSelector.ItemsSource);
+        Assert.Equal(ExperienceIds.StandardMerge, modeSelector.SelectedItem);
         Assert.Equal("NT51950", viewModel.WorkflowSession.SelectedIc);
         Assert.Equal("NT51950", selector.SelectedItem);
         Assert.Contains("NT51950", selector.Items.Cast<string>());
+        Assert.Contains("Remove", modeProjectionChanges);
+        Assert.DoesNotContain("Reset", modeProjectionChanges);
+        Assert.Equal(modeActivityCount, viewModel.MessageCenter.ActivityItems.Count(static item =>
+            item.Title == "Mode selected"));
         Assert.True(
             changes.IndexOf(nameof(WorkflowSessionPresentationViewModel.IcChoices)) <
             changes.IndexOf(nameof(WorkflowSessionPresentationViewModel.SelectedIc)));
@@ -148,7 +176,18 @@ public sealed partial class ShellNavigationSystemTests
         var selectorChanges = new List<string?>();
         var mergeChanges = new List<string?>();
         var timeline = new List<string>();
+        var modeProjectionChanges = new List<string>();
         int modeChangeCount = 0;
+        System.Collections.Specialized.INotifyCollectionChanged modeProjection =
+            Assert.IsType<System.Collections.Specialized.INotifyCollectionChanged>(
+                viewModel.Merge.MergeModeChoices,
+                exactMatch: false);
+        modeProjection.CollectionChanged += (_, args) =>
+        {
+            string action = args.Action.ToString();
+            modeProjectionChanges.Add(action);
+            timeline.Add($"{nameof(MergePresentationViewModel.MergeModeChoices)}.{action}");
+        };
         authoring.Reset(() => destinationPublished, timeline.Add);
         viewModel.WorkflowSession.PropertyChanged += (_, args) =>
         {
@@ -198,19 +237,17 @@ public sealed partial class ShellNavigationSystemTests
         Assert.Equal(3, authoring.Calls.Count);
         _ = Assert.Single(authoring.Calls, call =>
             call.Method == nameof(IStandardMergeAuthoring.GetRequiredAddressSpaces));
-        Assert.Equal(
-            [
-                nameof(IStandardMergeAuthoring.GetRequiredAddressSpaces),
-                nameof(IStandardMergeAuthoring.GetInputAddressSpaces),
-                nameof(IStandardMergeAuthoring.GetAuthoringSnapshot),
-                nameof(WorkflowSessionPresentationViewModel.IcChoices),
-                nameof(WorkflowSessionPresentationViewModel.SelectedIc),
-                nameof(MergePresentationViewModel.SelectedMergeMode),
-            ],
+        Assert.Contains(
+            $"{nameof(MergePresentationViewModel.MergeModeChoices)}.Remove",
             timeline);
+        Assert.DoesNotContain("Reset", modeProjectionChanges);
+        Assert.True(
+            timeline.IndexOf(nameof(WorkflowSessionPresentationViewModel.SelectedIc)) <
+            timeline.IndexOf($"{nameof(MergePresentationViewModel.MergeModeChoices)}.Remove"));
+        Assert.True(
+            timeline.IndexOf($"{nameof(MergePresentationViewModel.MergeModeChoices)}.Remove") <
+            timeline.IndexOf(nameof(MergePresentationViewModel.SelectedMergeMode)));
         Assert.Equal(1, modeChangeCount);
-        Assert.Equal(1, mergeChanges.Count(propertyName =>
-            propertyName == nameof(MergePresentationViewModel.MergeModeChoices)));
         Assert.Equal(1, mergeChanges.Count(propertyName =>
             propertyName == nameof(MergePresentationViewModel.IsNormalMergeModeSelected)));
         Assert.Equal(1, mergeChanges.Count(propertyName =>

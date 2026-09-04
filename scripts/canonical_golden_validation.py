@@ -22,12 +22,16 @@ CANONICAL_RELEASE_ALLOWLIST = PurePosixPath(
     "testdata/golden/release-canonical-v1.json"
 )
 CANONICAL_RELEASE_SELECTION_SUMMARY = {
-    "caseCount": 34,
+    "caseCount": 35,
     "directGoldenCount": 25,
+    "directInputEvidenceCount": 1,
     "factScopedAliasCount": 9,
-    "artifactDeclarationCount": 159,
-    "uniqueArtifactPathCount": 156,
+    "artifactDeclarationCount": 161,
+    "uniqueArtifactPathCount": 158,
 }
+CERTIFIED_NT51929_DPCMI_CASE_ID = "nt51929-certified-metadata-inputs-20260904"
+CERTIFIED_NT51929_DPCMI_RANGE = (0x401A, 0x401D)
+CERTIFIED_NT51929_DPCMI_BYTES = bytes.fromhex("5F0912")
 CAPABILITY_POLICY = PurePosixPath("docs/contracts/canonical-capability-policy-v1.json")
 ROOT_FILES = {PurePosixPath("README.md"), PurePosixPath("manifest.json")}
 LEGACY_GOLDEN_ROOTS = {
@@ -882,9 +886,14 @@ def _validate_test_disposition(
                 f"{label} {kind} disposition requires directGolden=true and exactly one expected artifact"
             )
     elif kind == "input-only-evidence":
-        if direct or not direct_evidence or expected_count != 0:
+        if (
+            direct
+            or not direct_evidence
+            or case.get("directEvidence") is not True
+            or expected_count != 0
+        ):
             errors.append(
-                f"{label} input-only-evidence disposition requires only directEvidence=true with no expected artifact"
+                f"{label} input-only-evidence disposition requires an explicit directEvidence=true with no expected artifact"
             )
     elif kind == "fact-scoped-alias":
         if direct or direct_evidence or roles:
@@ -913,6 +922,80 @@ def _validate_test_disposition(
             f"{label}.testDisposition.routeBlockingEvidenceRefs",
             errors,
         )
+
+
+def _validate_certified_nt51929_dpcmi_input_evidence(
+    canonical_root: Path,
+    case: dict[str, Any],
+    roles: list[str],
+    label: str,
+    errors: list[str],
+) -> None:
+    """Validate the one owner-certified storage observation without adding a runtime decoder."""
+    if case.get("caseId") != CERTIFIED_NT51929_DPCMI_CASE_ID:
+        return
+
+    if case.get("directGolden") is not False or case.get("directEvidence") is not True:
+        errors.append(f"{label} must remain directEvidence=true and directGolden=false")
+    disposition = case.get("testDisposition")
+    if not isinstance(disposition, dict) or disposition.get("kind") != "input-only-evidence":
+        errors.append(f"{label} must remain input-only evidence")
+    if not roles or any(role != "input" for role in roles):
+        errors.append(f"{label} must declare only non-empty input artifacts")
+    if "alias" in case:
+        errors.append(f"{label} cannot declare an alias")
+
+    observation = case.get("certifiedDpcmiObservation")
+    expected_observation = {
+        "contractReference": "src/NvtFwCombiner.Application/Metadata/DpcmiMetadataProjector.cs#DpcmiMetadataContract",
+        "addressSpaceId": "cmd1-page0",
+        "range": {"start": "0x401A", "endExclusive": "0x401D"},
+        "bytesHex": "5F0912",
+        "dpMajor": 9,
+        "dpMinor": 1,
+        "jira": 607,
+        "legacyCompactEvidence": {
+            "range": {"start": "0x66", "endExclusive": "0x69"},
+            "authority": "legacy-evidence-only",
+        },
+    }
+    if observation != expected_observation:
+        errors.append(f"{label} certified DPCMI observation differs from the approved contract")
+
+    artifacts = case.get("artifacts")
+    if not isinstance(artifacts, list) or len(artifacts) != 2:
+        errors.append(f"{label} must declare exactly two certified input observations")
+        return
+    expected_artifacts = {
+        "initial-code-observation": "5ccf5802511635dbed73fc8043acb0021ed379568e8479028b640dda5ec2b02a",
+        "flashcode-observation": "69fa975a9883db2494d2c2cf5dce05507573c9a753efb6f62589fa3acded68d4",
+    }
+    for artifact in artifacts:
+        if not isinstance(artifact, dict):
+            continue
+        artifact_id = artifact.get("artifactId")
+        if (
+            artifact.get("role") != "input"
+            or artifact.get("size") != 524288
+            or artifact.get("sha256") != expected_artifacts.get(artifact_id)
+        ):
+            errors.append(f"{label} has an unapproved certified input declaration")
+            continue
+        artifact_path = _relative_path(artifact.get("path"), label, errors)
+        if artifact_path is None:
+            continue
+        payload = _read_confined_file(
+            canonical_root / Path(artifact_path),
+            canonical_root,
+            "certified NT51929 DPCMI input",
+            errors,
+        )
+        if payload is not None and payload[
+            CERTIFIED_NT51929_DPCMI_RANGE[0] : CERTIFIED_NT51929_DPCMI_RANGE[1]
+        ] != CERTIFIED_NT51929_DPCMI_BYTES:
+            errors.append(
+                f"{label} DPCMI CMD1 Page 0 [0x401A,0x401D) bytes must be 5F0912"
+            )
 
 
 def _case_directory(
@@ -946,6 +1029,8 @@ def _validate_artifact(
     artifact_ids: set[str],
     roles: list[str],
     errors: list[str],
+    *,
+    requires_legacy_paths: bool = True,
 ) -> None:
     if not isinstance(artifact, dict):
         errors.append(f"{label} must be an object")
@@ -1012,6 +1097,8 @@ def _validate_artifact(
             f"expected {expected_sha}, actual {actual_sha}"
         )
     legacy_paths = artifact.get("legacyPaths")
+    if not requires_legacy_paths and legacy_paths is None:
+        return
     if not isinstance(legacy_paths, list) or not legacy_paths:
         errors.append(f"{label} must retain at least one legacyPaths entry")
     else:
@@ -1162,6 +1249,7 @@ def validate_canonical_golden(repository_root: Path, errors: list[str]) -> None:
                     artifact_ids,
                     roles,
                     errors,
+                    requires_legacy_paths=case_id != CERTIFIED_NT51929_DPCMI_CASE_ID,
                 )
                 if (
                     isinstance(artifact, dict)
@@ -1181,6 +1269,8 @@ def validate_canonical_golden(repository_root: Path, errors: list[str]) -> None:
                 errors.append(
                     f"{label} direct evidence cannot declare an expected artifact"
                 )
+            if direct_evidence and any(role != "input" for role in roles):
+                errors.append(f"{label} direct evidence can declare only input artifacts")
             if "alias" in case:
                 errors.append(f"{label} direct case cannot declare alias")
         else:
@@ -1225,6 +1315,9 @@ def validate_canonical_golden(repository_root: Path, errors: list[str]) -> None:
             expected_size,
             label,
             errors,
+        )
+        _validate_certified_nt51929_dpcmi_input_evidence(
+            canonical_root, case, roles, label, errors
         )
 
     for alias_case_id, alias_workflow, source_case_id in alias_sources:
@@ -1306,12 +1399,12 @@ def validate_canonical_release_allowlist(
     }
     if set(allowlist) != expected_keys:
         errors.append("canonical release allowlist fields must match the closed contract")
-    if allowlist.get("schemaVersion") != "1.0":
-        errors.append("canonical release allowlist schemaVersion must be 1.0")
+    if allowlist.get("schemaVersion") != "1.1":
+        errors.append("canonical release allowlist schemaVersion must be 1.1")
     if allowlist.get("policyId") != "canonical-reference-v1":
         errors.append("canonical release allowlist policyId must be canonical-reference-v1")
-    if allowlist.get("authorizedForVersion") != "1.0.8":
-        errors.append("canonical release allowlist must be authorized for version 1.0.8")
+    if allowlist.get("authorizedForVersion") != "1.1.2":
+        errors.append("canonical release allowlist must be authorized for version 1.1.2")
     if allowlist.get("releaseStatus") != "human-gated-allowlist":
         errors.append("canonical release allowlist releaseStatus must be human-gated-allowlist")
     authorization = allowlist.get("redistributionAuthorization")
@@ -1323,8 +1416,8 @@ def validate_canonical_release_allowlist(
     }:
         errors.append("canonical release allowlist redistribution authorization is incomplete")
     else:
-        if authorization.get("authorizedOn") != "2026-09-01":
-            errors.append("canonical release redistribution authorization date must be 2026-09-01")
+        if authorization.get("authorizedOn") != "2026-09-04":
+            errors.append("canonical release redistribution authorization date must be 2026-09-04")
         if authorization.get("authorizedBy") != "repository owner":
             errors.append(
                 "canonical release redistribution must be authorized by the repository owner"
@@ -1380,6 +1473,7 @@ def validate_canonical_release_allowlist(
         return
     seen_case_ids: set[str] = set()
     direct_count = 0
+    direct_input_evidence_count = 0
     alias_count = 0
     artifact_declaration_count = 0
     artifact_paths: set[str] = set()
@@ -1448,10 +1542,12 @@ def validate_canonical_release_allowlist(
             errors.append(f"{label}.workflow differs from canonical case {case_id}")
         if case.get("workflow") not in {"standard-merge", "ab-merge", "ctrlram-replace"}:
             errors.append(f"{label} selects a workflow outside the approved reference scope")
-        if release_case.get("directEvidence") is not False:
-            errors.append(f"{label}.directEvidence must be false")
-        if case.get("directEvidence") is True:
-            errors.append(f"{label} cannot select direct input evidence for release")
+        release_direct_evidence = release_case.get("directEvidence")
+        canonical_direct_evidence = case.get("directEvidence", False)
+        if type(release_direct_evidence) is not bool:
+            errors.append(f"{label}.directEvidence must be a boolean")
+        elif release_direct_evidence != canonical_direct_evidence:
+            errors.append(f"{label}.directEvidence differs from the canonical case")
         release_direct = release_case.get("directGolden")
         canonical_direct = case.get("directGolden")
         if type(release_direct) is not bool:
@@ -1481,8 +1577,20 @@ def validate_canonical_release_allowlist(
             continue
         if canonical_direct is True:
             direct_count += 1
+            if release_direct_evidence is not False:
+                errors.append(f"{label} direct Golden must not be direct input evidence")
+        elif canonical_direct_evidence is True:
+            direct_input_evidence_count += 1
+            if release_direct_evidence is not True:
+                errors.append(f"{label} direct input evidence must be explicitly selected")
+            if canonical_disposition_kind != "input-only-evidence":
+                errors.append(f"{label} direct input evidence must remain input-only")
+            if release_case.get("alias") is not None:
+                errors.append(f"{label} direct input evidence cannot declare an alias")
         else:
             alias_count += 1
+            if release_direct_evidence is not False:
+                errors.append(f"{label} alias must not be direct input evidence")
             canonical_alias = case.get("alias")
             if release_case.get("alias") != canonical_alias:
                 errors.append(f"{label}.alias differs from canonical case {case_id}")
@@ -1548,6 +1656,7 @@ def validate_canonical_release_allowlist(
     actual_summary = {
         "caseCount": len(release_cases),
         "directGoldenCount": direct_count,
+        "directInputEvidenceCount": direct_input_evidence_count,
         "factScopedAliasCount": alias_count,
         "artifactDeclarationCount": artifact_declaration_count,
         "uniqueArtifactPathCount": len(artifact_paths),

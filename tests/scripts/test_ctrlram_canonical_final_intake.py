@@ -81,7 +81,7 @@ class CtrlRamCanonicalFinalIntakeTests(unittest.TestCase):
             {
                 "direct-full-output": 11,
                 "allowed-byte-difference": 14,
-                "input-only-evidence": 2,
+                "input-only-evidence": 3,
                 "fact-scoped-alias": 12,
             },
             dict(counts),
@@ -121,14 +121,14 @@ class CtrlRamCanonicalFinalIntakeTests(unittest.TestCase):
             ).encode("utf-8")
             return hashlib.sha256(payload).hexdigest()
 
-        self.assertEqual(39, len(cases))
+        self.assertEqual(40, len(cases))
         self.assertEqual(
-            "fe3d025b89e987e5a546bf09ba1ced859107eb60debfabd9e0a41e3a847eaba2",
+            "f46b2e934bc614159b62ff22f83bb671fdc12cf10f61a4a7de3e1f21b134d039",
             normalized_sha256(cases),
         )
-        self.assertEqual(175, len(artifact_facts))
+        self.assertEqual(177, len(artifact_facts))
         self.assertEqual(
-            "95209722dee66562b619e89c7176c4df94c9b5996ee2c2bda5ce40ea84da2f28",
+            "c861abf92a3d35c897b47a7152a998d2c2d048879a70445e7b95cbeedd1dd395",
             normalized_sha256(artifact_facts),
         )
 

@@ -216,8 +216,15 @@ public sealed partial class ShellNavigationSystemTests
         string activeMergeIc = viewModel.WorkflowSession.SelectedIc;
         string activeMergeNumber = viewModel.WorkflowSession.SelectedNumber;
         var mergeChanges = new List<string?>();
+        var mergeModeProjectionChanges = new List<string>();
         var replaceChanges = new List<string?>();
         var workflowChanges = new List<string?>();
+        System.Collections.Specialized.INotifyCollectionChanged mergeModeProjection =
+            Assert.IsType<System.Collections.Specialized.INotifyCollectionChanged>(
+                viewModel.Merge.MergeModeChoices,
+                exactMatch: false);
+        mergeModeProjection.CollectionChanged += (_, args) =>
+            mergeModeProjectionChanges.Add(args.Action.ToString());
         viewModel.Merge.PropertyChanged += (_, args) => mergeChanges.Add(args.PropertyName);
         viewModel.Replace.PropertyChanged += (_, args) => replaceChanges.Add(args.PropertyName);
         viewModel.WorkflowSession.PropertyChanged += (_, args) => workflowChanges.Add(args.PropertyName);
@@ -234,8 +241,7 @@ public sealed partial class ShellNavigationSystemTests
             viewModel.WorkflowSession.GetWorkflowPageIc(WorkflowInspectionOwner.Replace));
         Assert.Equal(fallbackMode, viewModel.Replace.SelectedReplaceMode);
         Assert.Equal(0, sentinel.ArmedCallCounts[ReplaceAuthoringPortIndex(withdrawnMode)]);
-        Assert.Equal(1, mergeChanges.Count(propertyName =>
-            propertyName == nameof(MergePresentationViewModel.MergeModeChoices)));
+        Assert.Empty(mergeModeProjectionChanges);
         Assert.Equal(1, mergeChanges.Count(propertyName =>
             propertyName == nameof(MergePresentationViewModel.SelectedMergeMode)));
         Assert.Equal(1, mergeChanges.Count(propertyName =>

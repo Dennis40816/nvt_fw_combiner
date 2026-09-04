@@ -149,7 +149,7 @@
       "name": "supervised-branch-development",
       "status": "active",
       "scope": "repo",
-      "invocation": "explicit",
+      "invocation": "implicit",
       "authority": "branch-coordination",
       "owner": "repository",
       "replaces": ["handoff"]

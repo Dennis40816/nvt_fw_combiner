@@ -321,3 +321,27 @@ one required initializer lookup instead of passing redundant state. These
 semantic-preserving simplifications lower Domain/Profiles from 20,632 to
 20,627 nonblank lines and the V2 compiler aggregate to 2,796. The exact
 Domain/Profiles ratchet is therefore lowered to 20,627 with no transfer.
+
+## 2026-09-04 UI AB context accepted-artifact accounting
+
+The already accepted `UI-AB-CONTEXT-112-01` Presentation artifact adds exactly
+24 nonblank production lines: +23 in `MergePresentationViewModel.State.cs` and
++1 in `WorkflowSessionPresentationViewModel.DeviceContextNotifications.cs`.
+Full production therefore ratchets from 136,389 to 136,413. Runtime remains
+98,559; Domain plus Profiles remains 20,632; Application remains 42,205;
+Bootstrap/CLI/Desktop/Launcher remains 5,039; Infrastructure/Contracts/worker/
+Platform remains 30,683; and all file counts and every runtime or slice
+baseline and allowance remain unchanged.
+
+The frozen full-production base remains 102,896, so the exact non-transferable
+full-production allowance is 33,517. The 12-file
+`WorkflowSessionPresentationViewModel` aggregate receives only its measured
+2,627-line named ceiling. Neither value creates a transferable budget, permits
+line packing, or funds unrelated deletion. This is accounting only: it changes
+no UI product behavior, firmware/profile/range/output byte, support, or other
+semantic contract.
+
+The earlier immutable UI final record's structure-only success sentence is not
+relied on. The reproducible focused policy test failed 1/19 solely because its
+full-production threshold was stale at 136,389; this amendment closes that
+accounting mismatch without rewriting the immutable record.

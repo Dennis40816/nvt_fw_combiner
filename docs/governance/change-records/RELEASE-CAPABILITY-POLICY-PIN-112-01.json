@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 2,
+  "taskId": "RELEASE-CAPABILITY-POLICY-PIN-112-01",
+  "capability": "Synchronize the active release package and smoke canonical-capability-policy hash pins with the authoritative policy bytes",
+  "integrationBase": "541ee40a4e19a3e485b5452208e3e64a0e59906a",
+  "risk": "R3",
+  "kind": "release",
+  "state": "final-complete",
+  "mutablePaths": [
+    "scripts/package.ps1",
+    "scripts/smoke-release.ps1"
+  ],
+  "implementationOwner": "/root/release_policy_pin_sync (GPT-5.6 Terra/high sole writer)",
+  "searchEvidence": [
+    "docs/contracts/canonical-capability-policy-v1.json is the canonical policy owner; its exact LF-byte SHA-256 is 6207923baf537c4031f2095942d363660c7a1c5cbd35e704ec14b28c509aef0f, and BuiltInCanonicalCapabilityPolicy already pins the same value.",
+    "scripts/package.ps1 and scripts/smoke-release.ps1 are the active release projections with the stale bf818a4c9aa4d539882e4bc4a0a662ef70ece67a44e78ae83356430365828f50 scalar, while tests/scripts/test_release_package_policy.py has the matching stale test fixture constant and docs/references/verification-report.md is the current v1.1.2 verification projection.",
+    "docs/architecture/2026-08-22-single-implementation-and-layering-audit.md and docs/contracts/v0916-parity-certification-v1.json bind historical evidence snapshots and are deliberately excluded; they must retain their historical old SHA."
+  ],
+  "semanticOwner": "docs/contracts/canonical-capability-policy-v1.json remains the sole canonical capability-policy owner; package.ps1 and smoke-release.ps1 remain its existing release projections, and the release-package policy test remains their existing executable assertion owner.",
+  "terminalContract": "Change exactly scripts/package.ps1, scripts/smoke-release.ps1, tests/scripts/test_release_package_policy.py, docs/references/verification-report.md, and this record. Synchronize only the active package, smoke, test-fixture, and current v1.1.2 verification-report SHA scalar from bf818a4c9aa4d539882e4bc4a0a662ef70ece67a44e78ae83356430365828f50 to the authoritative LF-byte SHA-256 6207923baf537c4031f2095942d363660c7a1c5cbd35e704ec14b28c509aef0f. Preserve historical SHA projections in docs/architecture/2026-08-22-single-implementation-and-layering-audit.md and docs/contracts/v0916-parity-certification-v1.json. Do not change canonical policy JSON, runtime, profiles, Golden or BIN data, package allowlist content, workflow or permissions, package semantics, cleanup behavior, release assets, or firmware/product semantics. Independent R3 final review, release-owner attestation, and the one frozen-candidate full verifier remain mandatory and pending.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "root-architecture-review",
+    "outcome": "approved",
+    "evidence": "Root approved the minimal R3 release-trust pin synchronization after two independent read-only diagnostics established the canonical LF-byte policy hash, isolated all active stale pins, and distinguished the two historical evidence projections that must remain immutable."
+  },
+  "implementationHead": "c63c041fa7fbab994202ecf97cabe64bbd60e136",
+  "reviewedHead": "c63c041fa7fbab994202ecf97cabe64bbd60e136",
+  "pathStateDigest": "caf82ee7b2f9c6c53e3e7ada999d85eb94300cec7663b2830d958a727bff088e",
+  "finalReview": {
+    "reviewer": "/root/review_release_policy_pin_sync (GPT-5.6 Luna/high)",
+    "outcome": "approved",
+    "evidence": "Independent exact-head R3 review approved implementation c63c041fa7fbab994202ecf97cabe64bbd60e136, tree cde2f72ac6faa4f4b3df6b20feaa0c659628fb07, against parent 609910457e08376935ba1cba06bf3743aa2b861c with P0/P1/P2/P3 = 0/0/0/0. The diff is exactly this record plus four existing projections. The authoritative LF-only canonical policy bytes hash to 6207923baf537c4031f2095942d363660c7a1c5cbd35e704ec14b28c509aef0f, and package.ps1, smoke-release.ps1, the release-policy test fixture, and the current v1.1.2 verification report now pin that value. The 2026-08-22 audit and v0.9.16 certification retain their historical bf818a4c9aa4d539882e4bc4a0a662ef70ece67a44e78ae83356430365828f50 binding. Canonical policy bytes, runtime, profiles, Golden/BIN data, release allowlist contents and asset roles/counts, workflow permissions, package semantics, and cleanup behavior are unchanged. Writer evidence passed four committed-head release-policy tests including the snapshot-removal failure path; the reviewer independently passed five capability-policy tests. Diff checking and the scoped Polytail audit passed. Full verifier, protected CI, release workflow, publication, and post-publication verification remain separate mandatory gates."
+  }
+}

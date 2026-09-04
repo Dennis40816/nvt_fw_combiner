@@ -10,6 +10,7 @@ public sealed partial class RepositoryBoundaryTests
         string tags = ReadText("docs/governance/development-tags.md");
         string deliveryRoadmap = ReadText("docs/architecture/v0.9.15-0.9.17-roadmap.md");
         string nfcRoadmap = ReadText("docs/architecture/nfc_roadmap.md");
+        string readme = ReadText("README.md");
         string normalizedNfcRoadmap = string.Join(
             ' ',
             nfcRoadmap.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));
@@ -52,8 +53,15 @@ public sealed partial class RepositoryBoundaryTests
             standardMergeVerificationFeedbackHandoff.Split(
                 (char[]?)null,
                 StringSplitOptions.RemoveEmptyEntries));
-        string selectorContract = ReadText("docs/ui/v1.1.2-ctrlram-selector-visual-contract.md");
-        string selectorReference = ReadText("docs/ui/references/v1.1.2-ctrlram-selector-reference.svg");
+        string selectorContract = ReadText("docs/ui/v1.1.5-ctrlram-selector-visual-contract.md");
+        string selectorReference = ReadText("docs/ui/references/v1.1.5-ctrlram-selector-reference.svg");
+        string documentConvergenceHandoff = ReadText(
+            "docs/architecture/v1.1.2-repository-document-convergence-handoff.md");
+        string documentConvergenceManifest = ReadText(
+            "docs/architecture/v1.1.2-repository-document-convergence-manifest.md");
+        string ownerHandoffReadme = ReadText("testdata/golden/owner-handoff/README.md");
+        string ownerHandoffRecord = ReadText(
+            "docs/governance/change-records/DOCS-112-OWNER-HANDOFF-CLEANUP-02.json");
         string sizeAdr = ReadText("docs/adr/0021-code-size-ratchet-and-convergence.md");
         string dependencyPlan = ReadText("docs/governance/0.10.x-ticket-dependency-plan.md");
         string[] coreAuthorities = [spec, sizeAdr, dependencyPlan];
@@ -63,6 +71,24 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("Future\nmilestone scope, sequencing, and dates are maintained only", tags, StringComparison.Ordinal);
 
         Assert.Contains("# NFC Roadmap", nfcRoadmap, StringComparison.Ordinal);
+        foreach (string route in new[]
+        {
+            "docs/architecture/nfc_roadmap.md",
+            "SPEC.md",
+            "docs/adr/README.md",
+            "AGENTS.md",
+            "docs/governance/development-execution-workflow.md",
+            "docs/governance/branch-version-and-release-governance.md",
+            "docs/governance/agent-skill-routing.md",
+            "docs/governance/agent-skill-inventory.md",
+            "CHANGELOG.md",
+            "docs/references/verification-report.md",
+            "docs/ci/release-package.md",
+        })
+        {
+            Assert.Contains($"]({route})", readme, StringComparison.Ordinal);
+        }
+        Assert.DoesNotContain("0.10.x-ticket-dependency-plan.md", readme, StringComparison.Ordinal);
         Assert.Contains("This file owns future milestone order and release boundaries only.", nfcRoadmap, StringComparison.Ordinal);
         Assert.Contains("`0.10.0` reconciles its original `v0.9.15` planning baseline", nfcRoadmap, StringComparison.Ordinal);
         Assert.Contains("reviewed `v0.9.16` hot-fix", nfcRoadmap, StringComparison.Ordinal);
@@ -99,32 +125,265 @@ public sealed partial class RepositoryBoundaryTests
             nfcRoadmap,
             StringComparison.Ordinal);
         Assert.Contains(
-            "The former measured test-runtime component is absorbed exclusively by `v1.1.1`",
+            "then reusing accepted component evidence, improving narrow-test selection, and removing duplicated setup",
             normalizedNfcRoadmap,
             StringComparison.Ordinal);
         Assert.Contains(
-            "## `1.1.2`: complete former `v1.0.9` bundle",
+            "## `1.1.2`: support-neutral repository and DPCMI convergence",
             nfcRoadmap,
             StringComparison.Ordinal);
         Assert.Contains(
-            "The complete bundle formerly assigned to `v1.0.9` moves together to `v1.1.2`; none of it remains allocated to `v1.0.9` or is split into `v1.1.1`.",
+            "approved support-neutral release-candidate scope for completed whole-repository document convergence",
             normalizedNfcRoadmap,
             StringComparison.Ordinal);
         Assert.Contains(
-            "../ui/v1.1.2-ctrlram-selector-visual-contract.md",
+            "v1.1.2-repository-document-convergence-handoff.md",
             nfcRoadmap,
             StringComparison.Ordinal);
         Assert.Contains(
-            "## `1.1.3`: Memory Layout review",
+            "v1.1.2-repository-document-convergence-manifest.md",
             nfcRoadmap,
             StringComparison.Ordinal);
         Assert.Contains(
-            "`v1.1.3` owns a Memory Layout review",
+            "## `1.1.3`: infrastructure determinism and isolation",
             nfcRoadmap,
             StringComparison.Ordinal);
+        Assert.Contains(
+            "four-seed infrastructure determinism/isolation",
+            normalizedNfcRoadmap,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "It must not reduce a gate, verifier, or trust boundary.",
+            normalizedNfcRoadmap,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "## `1.1.4`: session diagnostics and Version-page review",
+            nfcRoadmap,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "privacy-filtered current-session diagnostics/history",
+            normalizedNfcRoadmap,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "## `1.1.5`: CtrlRAM selector visual contract",
+            nfcRoadmap,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "../ui/v1.1.5-ctrlram-selector-visual-contract.md",
+            nfcRoadmap,
+            StringComparison.Ordinal);
+        string[] expectedV11Allocations =
+        [
+            "## `1.1.2`: support-neutral repository and DPCMI convergence",
+            "## `1.1.3`: infrastructure determinism and isolation",
+            "## `1.1.4`: session diagnostics and Version-page review",
+            "## `1.1.5`: CtrlRAM selector visual contract",
+            "## `1.1.6`: first-entry selection and CtrlRAM Replace diagnosis",
+            "## `1.1.7`: Memory Layout review",
+            "## `1.1.8`: AB DP metadata layout",
+            "## `1.1.9`: Standard Merge verification feedback",
+            "## `1.1.10`: Report History usability",
+            "## `1.1.11`: Report Changes compare",
+            "## `1.1.12`: bundle primary-output rename",
+            "## `1.1.13`: agent execution workflow and AI-skill pilot",
+            "## `1.1.14`: evidence-preserving semantic convergence and minimality",
+        ];
+        string[] actualV11Allocations =
+        [.. nfcRoadmap
+            .Split('\n')
+            .Select(line => line.TrimEnd('\r'))
+            .Where(line => line.StartsWith("## `1.1.", StringComparison.Ordinal)
+                && !line.StartsWith("## `1.1.0`", StringComparison.Ordinal)
+                && !line.StartsWith("## `1.1.1`", StringComparison.Ordinal))];
+        Assert.Equal(expectedV11Allocations, actualV11Allocations);
+
+        int v1114SectionStart = nfcRoadmap.IndexOf(expectedV11Allocations[^1], StringComparison.Ordinal);
+        int v1114SectionEnd = nfcRoadmap.IndexOf("\n## ", v1114SectionStart + expectedV11Allocations[^1].Length, StringComparison.Ordinal);
+        string v1114Section = nfcRoadmap[v1114SectionStart..v1114SectionEnd];
+        string normalizedV1114Section = string.Join(
+            ' ',
+            v1114Section.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));
+        Assert.Contains("stale SPEC/release evidence", normalizedV1114Section, StringComparison.Ordinal);
+        Assert.Contains("current-versus-historical headings", normalizedV1114Section, StringComparison.Ordinal);
+        Assert.Contains("active handoff's open TODO, owner, blocker, and next-action summary", normalizedV1114Section, StringComparison.Ordinal);
+        Assert.Contains("must not add a parallel documentation framework", normalizedV1114Section, StringComparison.Ordinal);
+        Assert.Contains(
+            "../governance/change-records/VERIFY-111-XUNIT-SEED-01.json",
+            nfcRoadmap,
+            StringComparison.Ordinal);
+        Assert.Contains("immutable historical evidence", normalizedNfcRoadmap, StringComparison.Ordinal);
+        Assert.Contains("former `v1.1.2` allocation is superseded to `v1.1.3`", normalizedNfcRoadmap, StringComparison.Ordinal);
+        Assert.Contains("D1-D7 and C1 final historical evidence", normalizedNfcRoadmap, StringComparison.Ordinal);
+        Assert.Contains("completed boilerplate cleanup", normalizedNfcRoadmap, StringComparison.Ordinal);
+        Assert.Contains("do not authorize further cleanup", normalizedNfcRoadmap, StringComparison.Ordinal);
+        Assert.Contains("General has no DPCMI reader", normalizedNfcRoadmap, StringComparison.Ordinal);
+        Assert.Contains("Dummy DP is deferred past `v1.1.2` and unallocated", normalizedNfcRoadmap, StringComparison.Ordinal);
+        Assert.DoesNotContain("awaiting independent review/final gate", normalizedNfcRoadmap, StringComparison.Ordinal);
+        Assert.Contains("Repository document convergence", readme, StringComparison.Ordinal);
+        Assert.Contains("no second inventory or TODO owner", readme, StringComparison.Ordinal);
+        Assert.False(File.Exists(Path.Combine(Root.FullName, "docs", "README.md")));
+        Assert.Contains("](nfc_roadmap.md)", documentConvergenceHandoff, StringComparison.Ordinal);
+        Assert.Contains("](v1.1.2-repository-document-convergence-manifest.md)", documentConvergenceHandoff, StringComparison.Ordinal);
+        Assert.Contains("DELETE_APPROVED", documentConvergenceManifest, StringComparison.Ordinal);
+        Assert.Contains("DOCS-112-OWNER-HANDOFF-CLEANUP-02", documentConvergenceHandoff, StringComparison.Ordinal);
+        Assert.Contains("is a final-complete, externally attested R3\ncheckpoint", documentConvergenceManifest, StringComparison.Ordinal);
+        Assert.Contains("57 files", documentConvergenceManifest, StringComparison.Ordinal);
+        Assert.Contains("5809af7997455afa8d918d949328810f79a0e2858f5e1676a9ac59acf48b2b38", documentConvergenceManifest, StringComparison.Ordinal);
+        Assert.Contains("../canonical/manifest.json", ownerHandoffReadme, StringComparison.Ordinal);
+        Assert.Contains("ctrlram-replace", ownerHandoffReadme, StringComparison.Ordinal);
+        Assert.Contains(
+            "../../../docs/governance/v0.9.9-final-owner-golden-gap-matrix-20260718.md",
+            ownerHandoffReadme,
+            StringComparison.Ordinal);
+        Assert.Contains("agent-owned gates，不是 owner-input", ownerHandoffReadme, StringComparison.Ordinal);
+        Assert.Contains("V1/V2/expected parity", ownerHandoffReadme, StringComparison.Ordinal);
+        Assert.Contains("tool experiment", ownerHandoffReadme, StringComparison.Ordinal);
+        using var ownerHandoffRecordJson = System.Text.Json.JsonDocument.Parse(ownerHandoffRecord);
+        string[] actualOwnerHandoffMutablePaths =
+        [.. ownerHandoffRecordJson.RootElement.GetProperty("mutablePaths").EnumerateArray()
+            .Select(path => path.GetString()!)];
+        string[] expectedOwnerHandoffMutablePaths =
+        [
+            "testdata/golden/owner-handoff/README.md",
+            "testdata/golden/owner-handoff/TODO.md",
+            "testdata/golden/owner-handoff/0718-missing-owner-evidence/P0_NT51932_cascade/請放這些.md",
+            "testdata/golden/owner-handoff/0718-missing-owner-evidence/P0_NT51950_ctrlram_cascade/請放這些.md",
+            "testdata/golden/owner-handoff/0718-missing-owner-evidence/P0_NT51951_ctrlram_cascade/請放這些.md",
+            "testdata/golden/owner-handoff/0718-missing-owner-evidence/P0_NT51951_ctrlram_single_修正版/請放這些.md",
+            "testdata/golden/owner-handoff/0718-missing-owner-evidence/P1_General_Replace_migration/請先核准再放Golden.md",
+            "testdata/golden/owner-handoff/0718-missing-owner-evidence/P1_NT51926_Common_FW_2.0.0/請決定或提供.md",
+            "testdata/golden/owner-handoff/ctrlram-replace/nt51927/CASE.md",
+            "testdata/golden/owner-handoff/.gitignore",
+        ];
+        Assert.Equal(expectedOwnerHandoffMutablePaths, actualOwnerHandoffMutablePaths);
+        Assert.Contains("four C1 control paths", ownerHandoffRecord, StringComparison.Ordinal);
+        Assert.True(File.Exists(Path.Combine(Root.FullName, "testdata", "golden", "owner-handoff", "README.md")));
+        Assert.True(File.Exists(Path.Combine(Root.FullName, "testdata", "golden", "owner-handoff", "0718-missing-owner-evidence", "README_請先看.md")));
+        foreach (string removedPath in new[]
+        {
+            "testdata/golden/owner-handoff/TODO.md",
+            "testdata/golden/owner-handoff/0718-missing-owner-evidence/P0_NT51932_cascade/請放這些.md",
+            "testdata/golden/owner-handoff/0718-missing-owner-evidence/P0_NT51950_ctrlram_cascade/請放這些.md",
+            "testdata/golden/owner-handoff/0718-missing-owner-evidence/P0_NT51951_ctrlram_cascade/請放這些.md",
+            "testdata/golden/owner-handoff/0718-missing-owner-evidence/P0_NT51951_ctrlram_single_修正版/請放這些.md",
+            "testdata/golden/owner-handoff/0718-missing-owner-evidence/P1_General_Replace_migration/請先核准再放Golden.md",
+            "testdata/golden/owner-handoff/0718-missing-owner-evidence/P1_NT51926_Common_FW_2.0.0/請決定或提供.md",
+        })
+        {
+            Assert.False(File.Exists(Path.Combine(Root.FullName, removedPath.Replace('/', Path.DirectorySeparatorChar))));
+        }
+        var expectedFrozenDeletions = new Dictionary<string, (string Bytes, string Sha256)>(StringComparer.Ordinal)
+        {
+            ["docs/architecture/general-replace-binary-patch-proposal.md"] = ("6,499", "86cf655a9343f18d8839458ed27f6f29f20087d2a043f85ff88ce0ac5daa691c"),
+            ["docs/governance/owner-verification-inputs-0.8-to-0.9.md"] = ("15,387", "b1da39d596d61c6e3a3f454fc273386f4af0a37bec7393ab55082447d632ca2e"),
+            ["tests/NvtFwCombiner.Application.Tests/README.md"] = ("189", "0210395b2eb1687a7c67e7396aa5375bca74d8b5585ff1e166a9035725723556"),
+            ["tests/NvtFwCombiner.ProfileContract.Tests/README.md"] = ("194", "dd271e5486f810145a519cf24e0fffcec7b61842f969f082e707b1b1c7a48e98"),
+            ["tests/NvtFwCombiner.UiSmoke.Tests/README.md"] = ("186", "cfcff7b58b77e65b7521f41f48103f3f9e680a532f773409fd0c3dbff1a19713"),
+            ["docs/ui/page-review-2026-07-04.md"] = ("2,612", "2f5bc1ae10ea7b7718eb3cd35c2786f712e13acc14cc78f423875f7d693a7d9a"),
+            ["docs/references/tutorial/NVT_FW_Combiner_0.7.3_Tutorial.pptx"] = ("336,853", "c1e6129c47ab7c7b82949cfc1811f9b577a1f84570310cd8f2bd1e919073edad"),
+        };
+        string[][] frozenDeletionRows =
+        [.. documentConvergenceManifest
+            .Split('\n')
+            .Select(line => line.TrimEnd('\r'))
+            .Where(line => line.StartsWith("| DELETE_APPROVED | REMOVED |", StringComparison.Ordinal))
+            .Select(line => line.Split('|', StringSplitOptions.TrimEntries))];
+        Assert.Equal(7, frozenDeletionRows.Length);
+        Assert.Equal(7, frozenDeletionRows.Select(row => row[3].Trim('`')).Distinct(StringComparer.Ordinal).Count());
+        foreach (string[] row in frozenDeletionRows)
+        {
+            Assert.Equal(8, row.Length);
+            Assert.True(expectedFrozenDeletions.TryGetValue(row[3].Trim('`'), out (string Bytes, string Sha256) expected));
+            Assert.Equal(expected.Bytes, row[4]);
+            Assert.Equal(expected.Sha256, row[5].Trim('`'));
+            Assert.False(File.Exists(Path.Combine(Root.FullName, row[3].Trim('`').Replace('/', Path.DirectorySeparatorChar))));
+            Assert.Contains("owner approval", row[6], StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("final review", row[6], StringComparison.OrdinalIgnoreCase);
+        }
+        Assert.Contains("Frozen implementation identity", documentConvergenceManifest, StringComparison.Ordinal);
+        Assert.Contains("final verifier and independent review passed", documentConvergenceManifest, StringComparison.Ordinal);
+        Assert.Contains("No archive, relocation, or regeneration was approved", documentConvergenceManifest, StringComparison.Ordinal);
+        Assert.Contains("](../governance/change-records/DOCS-112-RETENTION-CLEANUP-01.json)", frozenDeletionRows.Single(row => row[3] == "`docs/governance/owner-verification-inputs-0.8-to-0.9.md`")[6], StringComparison.Ordinal);
+        Assert.All(
+            frozenDeletionRows.Where(row => row[3] != "`docs/governance/owner-verification-inputs-0.8-to-0.9.md`"),
+            row =>
+            {
+                Assert.Contains("zero non-control caller", row[6], StringComparison.OrdinalIgnoreCase);
+                Assert.True(
+                    row[6].Contains("successor", StringComparison.OrdinalIgnoreCase)
+                    || row[6].Contains("no unique current authority", StringComparison.OrdinalIgnoreCase));
+            });
+        foreach (string authorityPath in new[]
+        {
+            "docs/adr/0021-code-size-ratchet-and-convergence.md",
+            "docs/governance/change-records/DOCS-112-RETENTION-CLEANUP-01.json",
+            "testdata/golden/canonical/manifest.json",
+            "docs/governance/v0.9.9-final-owner-golden-gap-matrix-20260718.md",
+            "docs/ci/release-package.md",
+        })
+        {
+            Assert.False(string.IsNullOrWhiteSpace(ReadText(authorityPath)));
+        }
+
+        foreach ((string releaseHeading, string handoffPath) in new[]
+        {
+            ("## `1.1.2`: support-neutral repository and DPCMI convergence", "v1.1.2-repository-document-convergence-handoff.md"),
+            ("## `1.1.5`: CtrlRAM selector visual contract", "../ui/v1.1.5-ctrlram-selector-visual-contract.md"),
+            ("## `1.1.6`: first-entry selection and CtrlRAM Replace diagnosis", "../ui/post-v1.1.0-navigation-and-ctrlram-first-open-handoff.md"),
+            ("## `1.1.8`: AB DP metadata layout", "../ui/v1.1.x-ab-dp-metadata-layout-handoff.md"),
+            ("## `1.1.9`: Standard Merge verification feedback", "../ui/v1.1.x-standard-merge-input-verification-feedback-handoff.md"),
+            ("## `1.1.10`: Report History usability", "../ui/v1.1.x-report-history-usability-handoff.md"),
+            ("## `1.1.11`: Report Changes compare", "../ui/v1.1.x-report-changes-compare-handoff.md"),
+            ("## `1.1.12`: bundle primary-output rename", "../ui/v1.1.x-bundle-primary-output-rename-handoff.md"),
+            ("## `1.1.13`: agent execution workflow and AI-skill pilot", "../governance/post-v1.1.0-tool-development-process-retrospective-handoff.md"),
+        })
+        {
+            int sectionStart = nfcRoadmap.IndexOf(releaseHeading, StringComparison.Ordinal);
+            int sectionEnd = nfcRoadmap.IndexOf("\n## ", sectionStart + releaseHeading.Length, StringComparison.Ordinal);
+            string section = nfcRoadmap[sectionStart..(sectionEnd < 0 ? nfcRoadmap.Length : sectionEnd)];
+
+            Assert.Contains(handoffPath, section, StringComparison.Ordinal);
+        }
+        const string v1120Heading = "## `1.2.0`: bounded Launcher hardening and development";
+        const string v1130Heading = "## `1.3.0`: Launcher and publication-system extraction review";
+        int v1114Index = nfcRoadmap.IndexOf(expectedV11Allocations[^1], StringComparison.Ordinal);
+        int v1120Index = nfcRoadmap.IndexOf(v1120Heading, StringComparison.Ordinal);
+        int v1130Index = nfcRoadmap.IndexOf(v1130Heading, StringComparison.Ordinal);
+        Assert.Equal(v1120Index, nfcRoadmap.LastIndexOf(v1120Heading, StringComparison.Ordinal));
+        Assert.True(v1114Index < v1120Index && v1120Index < v1130Index);
+
+        string v1120Section = nfcRoadmap[v1120Index..v1130Index];
+        int unallocatedQueueIndex = nfcRoadmap.IndexOf("\n## Explicit owner-unallocated queue", v1130Index + v1130Heading.Length, StringComparison.Ordinal);
+        string v1130Section = nfcRoadmap[v1130Index..unallocatedQueueIndex];
+        string unallocatedQueueSection = nfcRoadmap[unallocatedQueueIndex..];
+        string normalizedV1130Section = string.Join(
+            ' ',
+            v1130Section.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));
+        string normalizedUnallocatedQueueSection = string.Join(
+            ' ',
+            unallocatedQueueSection.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));
+        Assert.Contains("Launcher work remains secondary to every `v1.1.x` UI and performance priority", v1120Section, StringComparison.Ordinal);
+        Assert.Contains("begins real bounded Launcher hardening/development", v1120Section, StringComparison.Ordinal);
+        Assert.Contains("comprehensive current defect, security, and evidence inventory", v1120Section, StringComparison.Ordinal);
+        Assert.Contains("owner-approved, reviewable remediation tranche", v1120Section, StringComparison.Ordinal);
+        Assert.Contains("does not claim Catalog/Registry production activation or release readiness", v1120Section, StringComparison.Ordinal);
+        Assert.Contains("activation remains **NO-GO** until separate R3 security/evidence closure", v1120Section, StringComparison.Ordinal);
+        Assert.Contains("subsequent architecture/repository extraction review", v1130Section, StringComparison.Ordinal);
+        Assert.Contains("not the first Launcher delivery", v1130Section, StringComparison.Ordinal);
+        Assert.Contains("remains secondary to the `v1.1.x` plan", v1130Section, StringComparison.Ordinal);
+        Assert.Contains("not allocated to a current `v1.1.x` release", normalizedV1130Section, StringComparison.Ordinal);
+        Assert.Contains("after the first `v1.2.0` remediation tranche", unallocatedQueueSection, StringComparison.Ordinal);
+        Assert.Contains("Catalog/Registry production activation", unallocatedQueueSection, StringComparison.Ordinal);
+        Assert.Contains("remaining publisher trust/signing/security closure", normalizedUnallocatedQueueSection, StringComparison.Ordinal);
         Assert.Contains("## Explicit owner-unallocated queue", nfcRoadmap, StringComparison.Ordinal);
-        Assert.Contains("Former `v1.0.10`", nfcRoadmap, StringComparison.Ordinal);
-        Assert.Contains("Former `v1.0.13`", nfcRoadmap, StringComparison.Ordinal);
+        Assert.Contains(
+            "Launcher activation is **NO-GO** until separately approved R3 security/evidence closure",
+            normalizedNfcRoadmap,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "Catalog/Registry production activation",
+            nfcRoadmap,
+            StringComparison.Ordinal);
         Assert.Contains("Former planned `v1.1.0` product-expansion/analyzer bundle", nfcRoadmap, StringComparison.Ordinal);
         Assert.Contains("Former generic `v1.1.x` Golden-evidence item", nfcRoadmap, StringComparison.Ordinal);
         Assert.Contains(
@@ -140,6 +399,8 @@ public sealed partial class RepositoryBoundaryTests
             nfcRoadmap,
             StringComparison.Ordinal);
         Assert.DoesNotContain("v1.0.9-ctrlram-selector-visual-contract.md", nfcRoadmap, StringComparison.Ordinal);
+        Assert.DoesNotContain("Former `v1.0.10`", nfcRoadmap, StringComparison.Ordinal);
+        Assert.DoesNotContain("Former `v1.0.13`", nfcRoadmap, StringComparison.Ordinal);
 
         Assert.Contains("published `v1.1.0` made no retirement-or-reopening decision", informationArchitecture, StringComparison.Ordinal);
         Assert.Contains("owner-unallocated", informationArchitecture, StringComparison.Ordinal);
@@ -166,12 +427,27 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("proposed and pending product-owner approval", replacementRecord, StringComparison.Ordinal);
         Assert.Contains("grants no product, firmware, support, or implementation authority", replacementRecord, StringComparison.Ordinal);
 
+        foreach (string handoff in new[]
+        {
+            navigationHandoff,
+            bundleRenameHandoff,
+            reportHistoryUsabilityHandoff,
+            abDpMetadataLayoutHandoff,
+            abIcSelectorScopeHandoff,
+            reportChangesCompareHandoff,
+            standardMergeVerificationFeedbackHandoff,
+        })
+        {
+            Assert.DoesNotContain("Status: allocated", handoff, StringComparison.Ordinal);
+        }
+
         Assert.Contains(
             "../ui/post-v1.1.0-navigation-and-ctrlram-first-open-handoff.md",
             nfcRoadmap,
             StringComparison.Ordinal);
+        Assert.Contains("Status: handoff-only scope, acceptance, diagnosis, and evidence.", navigationHandoff, StringComparison.Ordinal);
         Assert.Contains(
-            "Status: queued owner-unallocated product investigation.",
+            "[NFC roadmap `v1.1.6` milestone](../architecture/nfc_roadmap.md#116-first-entry-selection-and-ctrlram-replace-diagnosis)",
             navigationHandoff,
             StringComparison.Ordinal);
         Assert.True(File.Exists(Path.Combine(
@@ -183,8 +459,9 @@ public sealed partial class RepositoryBoundaryTests
             "../ui/v1.1.x-bundle-primary-output-rename-handoff.md",
             nfcRoadmap,
             StringComparison.Ordinal);
+        Assert.Contains("Status: handoff-only scope, acceptance, diagnosis, and evidence.", bundleRenameHandoff, StringComparison.Ordinal);
         Assert.Contains(
-            "Status: owner-requested minor UI follow-up; exact `v1.1.x` release unallocated.",
+            "[NFC roadmap `v1.1.12` milestone](../architecture/nfc_roadmap.md#1112-bundle-primary-output-rename)",
             bundleRenameHandoff,
             StringComparison.Ordinal);
         Assert.Contains(
@@ -209,8 +486,9 @@ public sealed partial class RepositoryBoundaryTests
             "../ui/v1.1.x-report-history-usability-handoff.md",
             nfcRoadmap,
             StringComparison.Ordinal);
+        Assert.Contains("Status: handoff-only scope, acceptance, diagnosis, and evidence.", reportHistoryUsabilityHandoff, StringComparison.Ordinal);
         Assert.Contains(
-            "Status: owner-requested `v1.1.x` UI correction; exact release unallocated.",
+            "[NFC roadmap `v1.1.10` milestone](../architecture/nfc_roadmap.md#1110-report-history-usability)",
             reportHistoryUsabilityHandoff,
             StringComparison.Ordinal);
         Assert.Contains("OpenReportHistoryEntryAsyncCommand", reportHistoryUsabilityHandoff, StringComparison.Ordinal);
@@ -240,8 +518,9 @@ public sealed partial class RepositoryBoundaryTests
             "../ui/v1.1.x-ab-dp-metadata-layout-handoff.md",
             nfcRoadmap,
             StringComparison.Ordinal);
+        Assert.Contains("Status: handoff-only scope, acceptance, diagnosis, and evidence.", abDpMetadataLayoutHandoff, StringComparison.Ordinal);
         Assert.Contains(
-            "Status: owner-requested `v1.1.x` UI correction; exact release unallocated.",
+            "[NFC roadmap `v1.1.8` milestone](../architecture/nfc_roadmap.md#118-ab-selector-and-dp-metadata-layout)",
             abDpMetadataLayoutHandoff,
             StringComparison.Ordinal);
         Assert.Contains("CompiledInputVersionObservation", abDpMetadataLayoutHandoff, StringComparison.Ordinal);
@@ -260,14 +539,11 @@ public sealed partial class RepositoryBoundaryTests
             "docs",
             "ui",
             "v1.1.x-ab-dp-metadata-layout-handoff.md")));
-        Assert.Contains(
+        Assert.DoesNotContain(
             "../ui/v1.1.x-ab-ic-selector-scope-handoff.md",
             nfcRoadmap,
             StringComparison.Ordinal);
-        Assert.Contains(
-            "Status: owner-requested `v1.1.x` selector correction; exact release unallocated.",
-            abIcSelectorScopeHandoff,
-            StringComparison.Ordinal);
+        Assert.Contains("Status: handoff-only scope, acceptance, diagnosis, and evidence.", abIcSelectorScopeHandoff, StringComparison.Ordinal);
         Assert.Contains("CapabilitySelectorPublication.Create", abIcSelectorScopeHandoff, StringComparison.Ordinal);
         Assert.Contains("WorkflowSelectorProjection.WorkflowIcChoices", abIcSelectorScopeHandoff, StringComparison.Ordinal);
         Assert.Contains("PublishAcceptedMergeSharedContext", abIcSelectorScopeHandoff, StringComparison.Ordinal);
@@ -286,8 +562,9 @@ public sealed partial class RepositoryBoundaryTests
             "../ui/v1.1.x-report-changes-compare-handoff.md",
             nfcRoadmap,
             StringComparison.Ordinal);
+        Assert.Contains("Status: handoff-only scope, acceptance, diagnosis, and evidence.", reportChangesCompareHandoff, StringComparison.Ordinal);
         Assert.Contains(
-            "Status: owner-requested `v1.1.x` UI correction; exact release unallocated.",
+            "[NFC roadmap `v1.1.11` milestone](../architecture/nfc_roadmap.md#1111-report-changes-compare)",
             reportChangesCompareHandoff,
             StringComparison.Ordinal);
         Assert.Contains("ListBox.reportHexDiffRanges", reportChangesCompareHandoff, StringComparison.Ordinal);
@@ -312,8 +589,9 @@ public sealed partial class RepositoryBoundaryTests
             "../ui/v1.1.x-standard-merge-input-verification-feedback-handoff.md",
             nfcRoadmap,
             StringComparison.Ordinal);
+        Assert.Contains("Status: handoff-only scope, acceptance, diagnosis, and evidence.", standardMergeVerificationFeedbackHandoff, StringComparison.Ordinal);
         Assert.Contains(
-            "Status: owner-requested `v1.1.x` UI correction; exact release unallocated.",
+            "[NFC roadmap `v1.1.9` milestone](../architecture/nfc_roadmap.md#119-standard-merge-verification-feedback)",
             standardMergeVerificationFeedbackHandoff,
             StringComparison.Ordinal);
         Assert.Contains("FileContentSnapshotInspector", standardMergeVerificationFeedbackHandoff, StringComparison.Ordinal);
@@ -343,11 +621,16 @@ public sealed partial class RepositoryBoundaryTests
             "docs",
             "ui",
             "v1.1.x-standard-merge-input-verification-feedback-handoff.md")));
-        Assert.Contains("# v1.1.2 CtrlRAM selector visual contract", selectorContract, StringComparison.Ordinal);
+        Assert.Contains("# v1.1.5 CtrlRAM selector visual contract", selectorContract, StringComparison.Ordinal);
         Assert.Contains("Status: proposed reference for product-owner approval.", selectorContract, StringComparison.Ordinal);
         Assert.Contains("pending product-owner approval", selectorContract, StringComparison.Ordinal);
-        Assert.Contains("v1.1.2 CtrlRAM selector — annotated geometry board", selectorReference, StringComparison.Ordinal);
+        Assert.Contains("v1.1.5 CtrlRAM selector — annotated geometry board", selectorReference, StringComparison.Ordinal);
         Assert.True(File.Exists(Path.Combine(
+            Root.FullName,
+            "docs",
+            "ui",
+            "v1.1.5-ctrlram-selector-visual-contract.md")));
+        Assert.False(File.Exists(Path.Combine(
             Root.FullName,
             "docs",
             "ui",
@@ -356,13 +639,19 @@ public sealed partial class RepositoryBoundaryTests
             Root.FullName,
             "docs",
             "ui",
-            "v1.0.9-ctrlram-selector-visual-contract.md")));
+            "v1.1.4-ctrlram-selector-visual-contract.md")));
         Assert.False(File.Exists(Path.Combine(
             Root.FullName,
             "docs",
             "ui",
             "references",
-            "v1.0.9-ctrlram-selector-reference.svg")));
+            "v1.1.2-ctrlram-selector-reference.svg")));
+        Assert.False(File.Exists(Path.Combine(
+            Root.FullName,
+            "docs",
+            "ui",
+            "references",
+            "v1.1.4-ctrlram-selector-reference.svg")));
         Assert.Contains(
             "IC family/rule authoring UI after the trusted-bundle and evidence models are",
             nfcRoadmap,
@@ -637,4 +926,32 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("NT51927", row[3], StringComparison.Ordinal);
         Assert.DoesNotContain("TPB", string.Join(' ', row), StringComparison.Ordinal);
     }
+
+    /// <summary>Preserves historical planning evidence while routing current ownership to canonical documents.</summary>
+    [Fact]
+    public void HistoricalPlanningDocumentsPointToCanonicalRoadmapAndCurrentUiArchitecture()
+    {
+        string historicalPlan = ReadText("docs/architecture/0.7.0-refactor-and-evidence-plan.md");
+        string onboardingRunbook = ReadText("docs/architecture/adding-ic-merge-replace-workflow.md");
+        string demoPlan = ReadText("docs/ui/0.1.1-demo-interface-plan.md");
+
+        Assert.Contains("Status: Historical", historicalPlan, StringComparison.Ordinal);
+        Assert.Contains(
+            "Active version allocation and completion status are maintained only in [`NFC Roadmap`](nfc_roadmap.md).",
+            historicalPlan,
+            StringComparison.Ordinal);
+
+        Assert.DoesNotContain(
+            "That document is the active checklist",
+            onboardingRunbook,
+            StringComparison.Ordinal);
+        Assert.Contains("retained historical checklist", onboardingRunbook, StringComparison.Ordinal);
+        Assert.Contains("[`NFC Roadmap`](nfc_roadmap.md)", onboardingRunbook, StringComparison.Ordinal);
+
+        Assert.Contains(
+            "For the current information architecture, see [`information-architecture.md`](information-architecture.md).",
+            demoPlan,
+            StringComparison.Ordinal);
+    }
+
 }

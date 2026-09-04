@@ -30,14 +30,14 @@ $ApprovedRuntimeCatalogPackagePaths = @(
     'profiles/built-in/ctrlram-postbuild-v2/flash-map.json'
 ) | Sort-Object
 $PackageTrustIndexPackagePath = 'profiles/built-in/package-trust-index.json'
-$ApprovedPackageTrustIndexSha256 = 'e365b73e53aff65faa107347400aac82546a3dc700160914b1412f6858fe276d'
+$ApprovedPackageTrustIndexSha256 = 'd680ef81830e3ad1870b8ef6bb79b5e6a251590301afcd0a400c9a9d3f4369b2'
 $ApprovedCanonicalCapabilityPolicyPackageContract = [pscustomobject]@{
     path = 'docs/contracts/canonical-capability-policy-v1.json'
     role = 'capabilityPolicy'
-    sha256 = 'bf818a4c9aa4d539882e4bc4a0a662ef70ece67a44e78ae83356430365828f50'
+    sha256 = '6207923baf537c4031f2095942d363660c7a1c5cbd35e704ec14b28c509aef0f'
 }
 $ApprovedCanonicalGoldenAllowlistPath = Join-Path $PSScriptRoot '../testdata/golden/release-canonical-v1.json'
-$ApprovedCanonicalGoldenAllowlistSha256 = '88f3a1261cc82e32437726ec8a2a8043f1e382a15fdc7a9596bf5069f3dcfa06'
+$ApprovedCanonicalGoldenAllowlistSha256 = '3fa22d263cee83a07ee30d2977dbf4afde2b5bcca685f9ded51f9d54c1f26ee7'
 $CanonicalGoldenPackagePrefix = 'reference/testdata/golden/canonical'
 $CanonicalGoldenAllowlistPackagePath = 'reference/testdata/golden/release-canonical-v1.json'
 $RetiredSupportPublicationPolicyPackagePaths = @(
@@ -133,18 +133,19 @@ function Assert-CanonicalGoldenReference {
     }
 
     $Allowlist = Get-Content -LiteralPath $PackagedAllowlistPath -Raw | ConvertFrom-Json -Depth 100
-    if ($Allowlist.schemaVersion -ne '1.0' -or
+    if ($Allowlist.schemaVersion -ne '1.1' -or
         $Allowlist.policyId -ne 'canonical-reference-v1' -or
-        $Allowlist.authorizedForVersion -ne '1.0.8' -or
+        $Allowlist.authorizedForVersion -ne '1.1.2' -or
         $Allowlist.releaseStatus -ne 'human-gated-allowlist' -or
         $Allowlist.authorityLimits.runtimeSupportPromotion -ne $false -or
         $Allowlist.authorityLimits.fullByteParityClaim -ne $false -or
-        [int]$Allowlist.selectionSummary.caseCount -ne 34 -or
+        [int]$Allowlist.selectionSummary.caseCount -ne 35 -or
         [int]$Allowlist.selectionSummary.directGoldenCount -ne 25 -or
+        [int]$Allowlist.selectionSummary.directInputEvidenceCount -ne 1 -or
         [int]$Allowlist.selectionSummary.factScopedAliasCount -ne 9 -or
-        [int]$Allowlist.selectionSummary.artifactDeclarationCount -ne 159 -or
-        [int]$Allowlist.selectionSummary.uniqueArtifactPathCount -ne 156) {
-        throw 'Release package canonical Golden allowlist semantics differ from the approved 34-case scope.'
+        [int]$Allowlist.selectionSummary.artifactDeclarationCount -ne 161 -or
+        [int]$Allowlist.selectionSummary.uniqueArtifactPathCount -ne 158) {
+        throw 'Release package canonical Golden allowlist semantics differ from the approved 35-case scope.'
     }
     $CanonicalReadmePackagePath = "$CanonicalGoldenPackagePrefix/README.md"
     $CanonicalReadmePath = Join-Path $PackageRoot $CanonicalReadmePackagePath
@@ -172,7 +173,7 @@ function Assert-CanonicalGoldenReference {
         $Projection.payloadClass -ne 'owner-approved-golden' -or
         $Projection.binaryPayloadsIncluded -ne $true -or
         $Projection.inventoryScope -ne 'release-canonical-v1' -or
-        @($Projection.cases).Count -ne 34) {
+        @($Projection.cases).Count -ne 35) {
         throw 'Release package canonical Golden projection manifest has invalid scope.'
     }
     $ProjectionCases = @{}
@@ -190,6 +191,7 @@ function Assert-CanonicalGoldenReference {
     [void]$ExpectedCanonicalFiles.Add('manifest.json')
     $ExpectedArtifacts = @{}
     $ArtifactDeclarationCount = 0
+    $DirectInputEvidenceCount = 0
     foreach ($ApprovedCase in $Allowlist.cases) {
         $CaseId = [string]$ApprovedCase.caseId
         if ([string]::IsNullOrWhiteSpace($CaseId) -or $SelectedCases.ContainsKey($CaseId)) {
@@ -220,11 +222,10 @@ function Assert-CanonicalGoldenReference {
             [string]$Case.workflow -cne [string]$ApprovedCase.workflow -or
             [string]$Case.testDisposition.kind -cne [string]$ApprovedCase.testDispositionKind -or
             $Case.directGolden -ne $ApprovedCase.directGolden -or
-            $CaseDirectEvidence -ne $false -or
-            $ApprovedCase.directEvidence -ne $false) {
+            $CaseDirectEvidence -ne $ApprovedCase.directEvidence) {
             throw "Release package canonical case '$CaseId' identity, disposition, or direct/alias kind drifted."
         }
-        if ($ApprovedCase.directGolden -eq $false) {
+        if ($ApprovedCase.directGolden -eq $false -and $ApprovedCase.directEvidence -eq $false) {
             if (($Case.alias | ConvertTo-Json -Compress -Depth 20) -cne
                 ($ApprovedCase.alias | ConvertTo-Json -Compress -Depth 20) -or
                 @($ApprovedCase.artifacts).Count -ne 0) {
@@ -232,6 +233,14 @@ function Assert-CanonicalGoldenReference {
             }
             continue
         }
+        if ($ApprovedCase.directGolden -eq $false -and
+            ($ApprovedCase.directEvidence -ne $true -or
+             $Case.testDisposition.kind -ne 'input-only-evidence' -or
+             @($Case.artifacts | Where-Object { $_.role -ne 'input' }).Count -ne 0 -or
+             @($Case.artifacts).Count -eq 0)) {
+            throw "Release package canonical direct input evidence '$CaseId' must declare only input artifacts."
+        }
+        if ($ApprovedCase.directEvidence -eq $true) { $DirectInputEvidenceCount++ }
         $CanonicalArtifacts = @{}
         foreach ($Artifact in $Case.artifacts) {
             $CanonicalArtifacts[[string]$Artifact.artifactId] = $Artifact
@@ -268,7 +277,7 @@ function Assert-CanonicalGoldenReference {
         throw 'Release package canonical Golden projection contains an unapproved case.'
     }
     foreach ($ApprovedCase in $Allowlist.cases) {
-        if ($ApprovedCase.directGolden -eq $true) { continue }
+        if ($ApprovedCase.directGolden -eq $true -or $ApprovedCase.directEvidence -eq $true) { continue }
         $SourceCaseId = [string]$ApprovedCase.alias.sourceCaseId
         $Source = $SelectedCases[$SourceCaseId]
         if ($null -eq $Source -or
@@ -277,9 +286,10 @@ function Assert-CanonicalGoldenReference {
             throw "Release package canonical alias '$($ApprovedCase.caseId)' lacks its exact same-workflow direct Golden source."
         }
     }
-    if ($SelectedCases.Count -ne 34 -or
-        $ArtifactDeclarationCount -ne 159 -or
-        $ExpectedArtifacts.Count -ne 156) {
+    if ($SelectedCases.Count -ne 35 -or
+        $DirectInputEvidenceCount -ne 1 -or
+        $ArtifactDeclarationCount -ne 161 -or
+        $ExpectedArtifacts.Count -ne 158) {
         throw 'Release package canonical Golden counts differ from the approved scope.'
     }
 

@@ -1,0 +1,44 @@
+{
+  "schemaVersion": 2,
+  "taskId": "DOCS-112-OWNER-HANDOFF-CLEANUP-02",
+  "capability": "Remove the owner-approved obsolete owner-handoff TODO and six placeholder leaves while retaining the historical summary and current intake boundary",
+  "integrationBase": "95037eb18ac66a651f2eaf950283cccb6a5e72e1",
+  "risk": "R3",
+  "kind": "governance",
+  "state": "final-complete",
+  "mutablePaths": [
+    "testdata/golden/owner-handoff/README.md",
+    "testdata/golden/owner-handoff/TODO.md",
+    "testdata/golden/owner-handoff/0718-missing-owner-evidence/P0_NT51932_cascade/請放這些.md",
+    "testdata/golden/owner-handoff/0718-missing-owner-evidence/P0_NT51950_ctrlram_cascade/請放這些.md",
+    "testdata/golden/owner-handoff/0718-missing-owner-evidence/P0_NT51951_ctrlram_cascade/請放這些.md",
+    "testdata/golden/owner-handoff/0718-missing-owner-evidence/P0_NT51951_ctrlram_single_修正版/請放這些.md",
+    "testdata/golden/owner-handoff/0718-missing-owner-evidence/P1_General_Replace_migration/請先核准再放Golden.md",
+    "testdata/golden/owner-handoff/0718-missing-owner-evidence/P1_NT51926_Common_FW_2.0.0/請決定或提供.md",
+    "testdata/golden/owner-handoff/ctrlram-replace/nt51927/CASE.md",
+    "testdata/golden/owner-handoff/.gitignore"
+  ],
+  "implementationOwner": "gpt-5.6-terra/high sole writer",
+  "searchEvidence": [
+    "Owner approved deletion of exactly the root TODO and six named placeholder leaves, retention of the 0718 historical README, and only the NT51927 ../../TODO.md to ../../README.md link repair.",
+    "Frozen deletions: TODO.md 630 bytes SHA-256 01e4066d6930c0bc089fa921fbe4ccea5e25a432f75708b342d6312931533ac3 blob e286d1d1c0a6e2aff4ac9e8b29798ef9c9ae532; P0_NT51932_cascade/請放這些.md 691 bytes d3d21213cc86e68d01818091c6e5add689769424d16fa2a37b582d35e0d38ef3 blob 2e56de80c364831902157e3ef487224d322c971f; P0_NT51950_ctrlram_cascade/請放這些.md 557 bytes 7869f76780831db60259a67afc958821f6b7fe93ca5f32d31f863b6abe098c4b blob fe0d1dd2785fb1b6dd21d94692e1231fae192ba6; P0_NT51951_ctrlram_cascade/請放這些.md 399 bytes b541f1407e89345479c1fd5140f17fde31f4774f84a6726d06b41e8fda261650 blob 8df3514b710ac766b6e34be25edffb55f9dec642; P0_NT51951_ctrlram_single_修正版/請放這些.md 595 bytes e812231e150a75d024e8bd3f2d38829f65a4eab9779c9ef3a7a880cf268f9c9f blob 4c3e39c373f1f5d42e63f74883024aca3290ddc8; P1_General_Replace_migration/請先核准再放Golden.md 702 bytes d4ae22199f1ba378f907b86db6a9af350b7a2ba3e7b8fa76b290b39dc6a2e18e blob 62210fd7298c13f944e0f37836430eca9fe2e3f3; P1_NT51926_Common_FW_2.0.0/請決定或提供.md 383 bytes accb1db3d3f7ef3267918a10c51ecf22546d4e863c6ee84f4e1d280c13e32dc9 blob ce05bb82e6cc1da33bc8611a92308088074ef761.",
+    "The four C1 control paths—v1.1.2 handoff, v1.1.2 manifest, RepositoryBoundaryTests.Roadmap.cs, and testdata/diagnostics/golden-evidence/manifest.json—are exact mutation-allowlist, terminal-contract, and final-review evidence only; they are not governed mutablePaths. Exact path scans found no non-control callers for the seven deletions.",
+    "No Golden payload, expected hash, firmware, profile, package, release, or runtime authority is mutable in this record."
+  ],
+  "semanticOwner": "testdata/golden/owner-handoff/README.md is the current intake boundary; the retained 0718 README is Historical; scripts/diagnostic_golden_validation.py owns the diagnostic manifest identity.",
+  "terminalContract": "The ten governed mutablePaths are only the root README, root TODO, six named leaves, owner-handoff .gitignore, and NT51927 CASE. C1 controls the exact four non-governed evidence paths named in searchEvidence, removes only the seven owner-approved Markdown paths, repairs only the NT51927 Markdown link, and records diagnostic identity 57/5809af7997455afa8d918d949328810f79a0e2858f5e1676a9ac59acf48b2b38. Independent fixed-head review, final record, external owner attestation, and final lifecycle gates remain pending.",
+  "disposition": "reuse",
+  "designReview": {
+    "reviewer": "owner-approved Lane C design boundary",
+    "outcome": "approved",
+    "evidence": "The owner explicitly approved the exact seven deletions, retention of the 0718 historical README, and the NT51927 link-only repair; this record does not broaden Golden authority."
+  },
+  "implementationHead": "ef534793072f1718ba6abfc5c61ae24bd0813b81",
+  "reviewedHead": "ef534793072f1718ba6abfc5c61ae24bd0813b81",
+  "pathStateDigest": "de2f85179c5fb29ba6655d6889356f0f3106690295fad63641434babb8f18693",
+  "finalReview": {
+    "reviewer": "gpt-5.6-sol/high independent evidence reviewer",
+    "outcome": "approved",
+    "evidence": "Independent fixed-head review approved the exact 15-path/10-governed C1: seven deletions, NT51927 link-only repair, diagnostic 57/5809af7997455afa8d918d949328810f79a0e2858f5e1676a9ac59acf48b2b38, diagnostic 11/11, RepositoryBoundary 256/256, and no P0-P3; the only expected C1 structure-only lifecycle residual was the pending external attestation."
+  }
+}

@@ -1,0 +1,43 @@
+{
+  "schemaVersion": 2,
+  "taskId": "GOLDEN-NT51929-DPCMI-INPUT-01",
+  "capability": "Record and validate the owner-certified NT51929 DPCMI input-only evidence case without changing runtime firmware authority",
+  "integrationBase": "63e635489abc990695b01e1339539cc835d1bd2e",
+  "risk": "R3",
+  "kind": "release",
+  "state": "final-complete",
+  "mutablePaths": [
+    "SPEC.md",
+    "docs/adr/0067-release-synchronized-canonical-input-evidence.md",
+    "docs/contracts/canonical-golden-manifest-v1.md",
+    "scripts/canonical_golden_validation.py",
+    "testdata/golden/canonical/README.md",
+    "testdata/golden/canonical/manifest.json",
+    "testdata/golden/release-canonical-v1.json",
+    "testdata/golden/canonical/NT51929/standard-merge/certified-metadata-inputs/topology-unscoped/nt51929-certified-metadata-inputs-20260904/provenance/case.json",
+    "testdata/golden/canonical/NT51929/standard-merge/certified-metadata-inputs/topology-unscoped/nt51929-certified-metadata-inputs-20260904/inputs/nt51929-initial-code-observation.bin",
+    "testdata/golden/canonical/NT51929/standard-merge/certified-metadata-inputs/topology-unscoped/nt51929-certified-metadata-inputs-20260904/inputs/nt51929-flashcode-observation.bin"
+  ],
+  "implementationOwner": "implement_release_golden_sync",
+  "searchEvidence": [
+    "scripts/canonical_golden_validation.py owns canonical case identity, artifact integrity, directEvidence disposition checks, and the exact release-canonical allowlist; the approved disposition extends it rather than adding a second manifest or selector.",
+    "scripts/package.ps1 and scripts/smoke-release.ps1 already project and verify only hash-pinned allowlist entries, while src/NvtFwCombiner.Application/Metadata/DpcmiMetadataProjector.cs owns DPCMI decoding; no profile, runtime route, support policy, or execution owner is added.",
+    "The approved snapshot names only nt51929-certified-metadata-inputs-20260904 and its two fixed SHA-256 artifacts. The canonical tree and directEvidence inventory are not a release-selection source."
+  ],
+  "semanticOwner": "Canonical case manifests and scripts/canonical_golden_validation.py retain evidence identity and integrity validation; DpcmiMetadataContract remains the sole DPCMI decoding vocabulary, and the versioned release-canonical allowlist remains the sole redistribution-admission owner.",
+  "terminalContract": "Add exactly one NT51929 standard-merge input-only evidence case with two role=input 524288-byte artifacts and no expected, provenance, executable, alias, Direct Golden, output-pair, parity, support, or runtime claim. Bind the two exact SHA-256 values and the existing DPCMI CMD1 Page 0 [0x401A,0x401D) observation (5F 09 12, DP 09.01, Jira 607); legacy compact bytes are explicitly non-authoritative. The validator must reject a missing/nonboolean/mismatched directEvidence flag, Direct-Golden relabel, fake expected artifact, non-input role, alias, or zero inputs, and must not add a parallel decoder, offset selector, profile, or support route. Release admission is later explicit only: never tree-sweep canonical/directEvidence cases, fabricate an expected output, relabel this evidence as Direct Golden, bypass raw-BIN checks, or package a nested archive.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "architect_release_golden_sync",
+    "outcome": "findings-incorporated",
+    "evidence": "The approved R3 design resolves all P1 constraints: it preserves input-only classification rather than fabricating expected bytes or relabeling a Direct Golden; it selects no tree-wide evidence; it requires an explicit direct-Golden/direct-input-evidence/alias branch; and it admits raw BINs only as individually hash-pinned outer-ZIP entries, never through an archive or raw-file bypass. Evidence, execution, publication, and support remain separate."
+  },
+  "implementationHead": "960901ea37f51584b3ebc2f4e966c30a2afed1d4",
+  "reviewedHead": "960901ea37f51584b3ebc2f4e966c30a2afed1d4",
+  "pathStateDigest": "d5ccebbd023293a60862f983d4b85045012db346f17cb748944f97ecaf3f1842",
+  "finalReview": {
+    "reviewer": "architect_release_golden_sync",
+    "outcome": "approved",
+    "evidence": "Independent exact-head R3 review approved implementation `960901ea37f51584b3ebc2f4e966c30a2afed1d4` against integration base `63e635489abc990695b01e1339539cc835d1bd2e` with P0/P1/P2/P3 = 0/0/0/0. The reviewed 18-path diff adds exactly one owner-certified NT51929 directEvidence input-only case with two independently hash-pinned 524288-byte inputs; preserves repository-level same-workflow aliases to Direct Golden or direct input evidence while restricting release aliases to selected same-workflow Direct Goldens; and projects exactly 35 cases, 161 declarations, 158 unique artifacts, 194 selected source paths, and 148 raw BINs through the sole schema-1.1 release allowlist SHA-256 `3fa22d263cee83a07ee30d2977dbf4afde2b5bcca685f9ded51f9d54c1f26ee7`. Package and smoke retain one closed projection, raw outer-ZIP entries, inert `goldenFixture` roles, and complete manifest/SBOM/provenance/checksum coverage. No runtime, profile, support, planner/executor, processor, CRC, naming, expected-output, or output-byte authority changed. Writer-reported evidence passed: canonical unittest 78/78 at the immediately preceding content-equivalent canonical head, then exact-head nine focused release-policy tests exit 0, ExternalToolPolicyDryRun exit 0, structure-only exit 0, and diff check clean. Full verification and actual frozen-package release gates remain pending."
+  }
+}

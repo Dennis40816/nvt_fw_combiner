@@ -19,7 +19,7 @@
   "mapBinding": {
     "familyId": "nt51919-nt51929-nt51932-ab-merge",
     "familyVersion": "0.3.0",
-    "familyContentHash": "7af00a6a46bc5f854cf014257df954bdc00f905988fb3329636f9a9bc0a1bfaa",
+    "familyContentHash": "a2b311942d5f7740c4251127b5d79912d90a35d21c9d21b9837afccdb0756989",
     "mapIds": ["nt51932-ab-merge-512k"],
     "requiredRegionIds": ["ab-image", "a-cmi-dp-version", "b-cmi-dp-version", "tpa-code", "tpb-code"],
     "requiredMetadataStructureIds": [

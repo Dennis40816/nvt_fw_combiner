@@ -1,0 +1,124 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="900" viewBox="0 0 1440 900">
+  <defs>
+    <style>
+      .title { font: 700 22px Inter, "Segoe UI", sans-serif; fill: #172033; }
+      .h2 { font: 650 16px Inter, "Segoe UI", sans-serif; fill: #172033; }
+      .body { font: 400 13px Inter, "Segoe UI", sans-serif; fill: #55647a; }
+      .meta { font: 400 12px Inter, "Segoe UI", sans-serif; fill: #64748b; }
+      .strong { font: 650 13px Inter, "Segoe UI", sans-serif; fill: #172033; }
+      .note { font: 500 13px Inter, "Segoe UI", sans-serif; fill: #314158; }
+      .small { font: 600 11px Inter, "Segoe UI", sans-serif; fill: #44536a; }
+    </style>
+    <marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+      <path d="M0,0 L8,4 L0,8 Z" fill="#516784"/>
+    </marker>
+  </defs>
+
+  <rect width="1440" height="900" fill="#f4f7fb"/>
+  <text x="24" y="38" class="title">v1.1.5 CtrlRAM selector — annotated geometry board</text>
+  <text x="24" y="61" class="body">Not a production viewport render · targets: 980 × 640 and 1440 × 900</text>
+
+  <rect x="20" y="82" width="1000" height="790" rx="12" fill="#ffffff" stroke="#d6deea" stroke-width="1.5"/>
+  <line x1="44" y1="92" x2="44" y2="844" stroke="#8db8ff" stroke-dasharray="4 5" opacity="0.8"/>
+  <line x1="992" y1="92" x2="992" y2="844" stroke="#8db8ff" stroke-dasharray="4 5" opacity="0.8"/>
+
+  <text x="44" y="119" class="h2">Input files</text>
+  <text x="44" y="139" class="body">Use a complete FlashCode or TP FW as Reference firmware.</text>
+
+  <rect x="44" y="158" width="948" height="142" rx="9" fill="#eef5ff" stroke="#4f9bff" stroke-width="1.5"/>
+  <rect x="64" y="182" width="30" height="30" rx="8" fill="#f1edff" stroke="#a58cff"/>
+  <text x="73" y="203" font-family="Segoe UI Symbol" font-size="16" fill="#714bff">▣</text>
+  <text x="108" y="191" class="h2">Base firmware (FlashCode /</text>
+  <text x="108" y="211" class="h2">TP FW)</text>
+  <rect x="108" y="221" width="68" height="22" rx="11" fill="#e7fbef" stroke="#6cdf9b"/>
+  <text x="124" y="236" class="small" style="fill:#17864b">✓ Verified</text>
+  <text x="64" y="278" class="strong">NT51926_CASCADE_3_TPFW.bin</text>
+  <text x="350" y="207" class="meta">Common FW Version</text>
+  <text x="350" y="226" class="strong">2.0.0</text>
+  <text x="565" y="207" class="meta">TP Version</text>
+  <text x="565" y="226" class="strong">T00-00</text>
+  <text x="745" y="207" class="meta">PID</text>
+  <text x="745" y="226" class="strong">0x1309</text>
+  <rect x="866" y="201" width="92" height="36" rx="18" fill="#f3f7ff" stroke="#99c5ff"/>
+  <text x="888" y="224" class="strong" style="fill:#225ed8">Browse</text>
+
+  <rect x="44" y="324" width="948" height="236" rx="9" fill="#ffffff" stroke="#c9d4e3" stroke-width="1.5"/>
+  <rect x="45" y="325" width="946" height="68" rx="8" fill="#f5f8fd"/>
+  <path d="M45 384 H991 V393 H45 Z" fill="#f5f8fd"/>
+  <text x="68" y="356" class="h2">Cascade</text>
+  <text x="68" y="376" class="meta">1 area. None selected.</text>
+  <rect x="878" y="343" width="42" height="22" rx="11" fill="#ffffff" stroke="#c7d2e2"/>
+  <text x="889" y="358" class="small">0/1</text>
+  <rect x="928" y="336" width="42" height="36" rx="7" fill="#e8eef7"/>
+  <path d="M940 358 L949 349 L958 358" fill="none" stroke="#44536a" stroke-width="1.8"/>
+
+  <rect x="68" y="413" width="900" height="122" rx="8" fill="#ffffff" stroke="#c5d1e1" stroke-width="1.5"/>
+  <rect x="88" y="433" width="30" height="30" rx="8" fill="#f1edff" stroke="#a58cff"/>
+  <text x="97" y="454" font-family="Segoe UI Symbol" font-size="16" fill="#714bff">▣</text>
+  <text x="132" y="452" class="h2">DiffDLM</text>
+  <rect x="214" y="432" width="72" height="22" rx="11" fill="#ffffff" stroke="#cad5e4"/>
+  <text x="227" y="447" class="small">Optional</text>
+  <text x="88" y="482" class="body">DiffDLM.bin · DIFF CtrlRAM: max 10240 B → 0x27800</text>
+  <text x="88" y="512" class="strong">No BIN selected</text>
+  <rect x="832" y="448" width="92" height="36" rx="18" fill="#f3f7ff" stroke="#99c5ff"/>
+  <text x="854" y="471" class="strong" style="fill:#225ed8">Browse</text>
+  <rect x="934" y="448" width="34" height="36" rx="7" fill="#f7f9fc" stroke="#d4dce8"/>
+  <text x="944" y="472" font-family="Segoe UI Symbol" font-size="16" fill="#7890b0">♲</text>
+
+  <rect x="44" y="584" width="948" height="236" rx="9" fill="#ffffff" stroke="#c9d4e3" stroke-width="1.5"/>
+  <text x="68" y="616" class="h2">Common</text>
+  <text x="68" y="636" class="meta">1 selected / 4 areas.</text>
+  <rect x="878" y="603" width="42" height="22" rx="11" fill="#ffffff" stroke="#c7d2e2"/>
+  <text x="889" y="618" class="small">1/4</text>
+  <path d="M940 620 L949 611 L958 620" fill="none" stroke="#44536a" stroke-width="1.8"/>
+
+  <rect x="68" y="673" width="900" height="122" rx="8" fill="#ffffff" stroke="#c5d1e1" stroke-width="1.5"/>
+  <rect x="88" y="693" width="30" height="30" rx="8" fill="#f1edff" stroke="#a58cff"/>
+  <text x="97" y="714" font-family="Segoe UI Symbol" font-size="16" fill="#714bff">▣</text>
+  <text x="132" y="712" class="h2">MP CtrlRAM</text>
+  <rect x="238" y="692" width="72" height="22" rx="11" fill="#ffffff" stroke="#cad5e4"/>
+  <text x="251" y="707" class="small">Optional</text>
+  <text x="88" y="742" class="body">MP_CtrlRAM.bin · Target region 0x1000 B</text>
+  <text x="88" y="772" class="strong">MP_CtrlRAM.bin selected</text>
+
+  <rect x="1044" y="82" width="372" height="790" rx="12" fill="#ffffff" stroke="#d6deea" stroke-width="1.5"/>
+  <text x="1072" y="120" class="h2">Hierarchy</text>
+
+  <circle cx="1076" cy="160" r="12" fill="#eaf2ff"/><text x="1072" y="165" class="small" style="fill:#245fc7">1</text>
+  <text x="1100" y="154" class="note">Equal primary anchors</text>
+  <text x="1100" y="176" class="body">Base, Cascade, and Common share</text>
+  <text x="1100" y="194" class="body">the same left and right bounds.</text>
+  <path d="M1044 186 C1018 186 1008 186 994 186" fill="none" stroke="#516784" marker-end="url(#arrow)"/>
+
+  <circle cx="1076" cy="246" r="12" fill="#eaf2ff"/><text x="1072" y="251" class="small" style="fill:#245fc7">2</text>
+  <text x="1100" y="240" class="note">Two stable outline levels</text>
+  <text x="1100" y="262" class="body">One section outline + one outline</text>
+  <text x="1100" y="280" class="body">per inset input card. No middle box.</text>
+  <path d="M1044 274 C1018 274 1008 348 992 348" fill="none" stroke="#516784" marker-end="url(#arrow)"/>
+
+  <circle cx="1076" cy="332" r="12" fill="#eaf2ff"/><text x="1072" y="337" class="small" style="fill:#245fc7">3</text>
+  <text x="1100" y="326" class="note">Hover is geometry-neutral</text>
+  <text x="1100" y="348" class="body">Only header fill / chevron accent</text>
+  <text x="1100" y="366" class="body">changes. Borders never appear/disappear.</text>
+  <path d="M1044 350 C1016 350 1007 360 970 360" fill="none" stroke="#516784" marker-end="url(#arrow)"/>
+
+  <circle cx="1076" cy="418" r="12" fill="#eaf2ff"/><text x="1072" y="423" class="small" style="fill:#245fc7">4</text>
+  <text x="1100" y="412" class="note">Vertical rhythm only</text>
+  <text x="1100" y="434" class="body">Title → metadata: 6–8 px</text>
+  <text x="1100" y="452" class="body">Metadata → status: 10–12 px</text>
+  <text x="1100" y="470" class="body">Wrapped title → badge: 8–12 px</text>
+  <text x="1100" y="488" class="body">Badge → filename/status: 12–16 px</text>
+
+  <line x1="1072" y1="508" x2="1388" y2="508" stroke="#e0e6ef"/>
+  <text x="1072" y="542" class="h2">Acceptance matrix</text>
+  <text x="1072" y="574" class="body">Viewport</text><text x="1188" y="574" class="strong">980×640, 1440×900</text>
+  <text x="1072" y="606" class="body">Theme</text><text x="1188" y="606" class="strong">Light, Dark, HC</text>
+  <text x="1072" y="638" class="body">Language</text><text x="1188" y="638" class="strong">English, zh-TW</text>
+  <text x="1072" y="670" class="body">Scale</text><text x="1188" y="670" class="strong">100%, 125%</text>
+  <text x="1072" y="702" class="body">Anchor tolerance</text><text x="1220" y="702" class="strong">≤0.5 px</text>
+
+  <rect x="1072" y="748" width="316" height="84" rx="8" fill="#f7f9fc" stroke="#d8e0ec"/>
+  <text x="1092" y="776" class="note">No firmware-semantic change</text>
+  <text x="1092" y="800" class="body">Shared selector/group/card owners only.</text>
+  <text x="1092" y="820" class="body">Focus remains separately visible.</text>
+</svg>

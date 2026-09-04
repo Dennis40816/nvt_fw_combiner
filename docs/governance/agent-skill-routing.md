@@ -45,8 +45,8 @@ CRC/header behavior, evidence, support, release authority, or permissions.
 - Split only owner-approved specifications with `$to-tickets`; headless
   Application/CLI use-case paths are valid vertical slices.
 - Recover conflicts with `$resolving-merge-conflicts`.
-- Use `$supervised-branch-development` only for explicit multi-agent,
-  reconstruction, R3 migration, or release integration.
+- Use `$supervised-branch-development` for multi-agent reconstruction, R3
+  migration, release integration, or large conflict resolution.
 - Use `$github-review-polling` only for an explicitly requested exact-head
   GitHub review wait.
 

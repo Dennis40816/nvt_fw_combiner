@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 2,
+  "taskId": "ROLLING-GOLDEN-HISTORY-112-01",
+  "capability": "Keep the active Golden rolling while historical v0.9.16 parity evidence resolves its policy and manifest from one immutable pinned Git revision",
+  "integrationBase": "4bb8a81fdca309a3e132f42d3b04e5aa94009c21",
+  "risk": "R3",
+  "kind": "governance",
+  "state": "final-complete",
+  "mutablePaths": [
+    "docs/adr/0057-v0916-black-box-parity-certification.md",
+    "docs/contracts/v0916-parity-certification-v1.md",
+    "scripts/v0916_parity_certification.py"
+  ],
+  "implementationOwner": "/root/implement_rolling_golden_v0916_history (GPT-5.6 Terra/high sole writer)",
+  "searchEvidence": [
+    "PinnedGitReader is the existing read-only Git-object adapter; materialize_and_validate_canonical_input_authority authenticates the exact commit capture and binds canonicalRootTree plus manifestBlob before invoking the sole canonical Golden validator.",
+    "load_and_validate_plan is the existing captured-byte policy seam; _load_repository_comparison_plan and _compare_command were the only production historical consumers that injected the current worktree policy path.",
+    "The owner-approved decision in this thread fixes a rolling active Golden at the exact candidate source commit, immutable annotated-tag snapshots, no pointer/registry/second validator, and no candidate-derived expected-output rebaseline."
+  ],
+  "semanticOwner": "The existing v0.9.16 parity comparator and PinnedGitReader remain the sole historical-plan authority; the existing canonical Golden validator at candidate HEAD remains the sole active-Golden validator.",
+  "terminalContract": "Change exactly the three governed paths, the three named test projections, and this record. Historical v0.9.16 plan consumers must capture policyBinding.path through PinnedGitReader at canonicalInputAuthority.repositoryCommit and validate those same captured bytes against policyBinding.sha256; PinnedGitReader must admit only the exact lower-hex commit object and materialization must bind canonicalRootTree and manifestBlob from that same capture before its existing manifest size/raw-SHA validation. The one historical pipeline fixture must likewise materialize its manifest from that same declared revision without changing execution expectations, route counts, or error semantics. Missing, malformed, non-regular, unreadable, or object-mismatched pins fail PARITY_AUTHORITY_MISMATCH and acquired wrong-SHA policy bytes fail PARITY_POLICY_DRIFT. Preserve the explicit low-level direct-path drift seam, the current active canonical Golden validator, the immutable v0.9.16 plan hashes, all Golden payloads/manifests, profiles, release policy, VERSION, CHANGELOG, dependencies, and firmware semantics. Focused v0916 contracts/pipeline/reports/approval coverage, independent R3 architecture and release-evidence review, release-owner lifecycle attestation, and one frozen-candidate full verifier remain required before finalization.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "root-architecture-review",
+    "outcome": "approved",
+    "evidence": "The owner-approved rolling-Golden decision and root architecture classification require the minimal reuse of PinnedGitReader plus the existing captured-byte plan seam; no second validator, active-reference pointer, policy registry, parity engine, Golden payload change, or firmware/profile mutation is admitted."
+  },
+  "implementationHead": "c099b0ac81bf88387e99640182d33df5f5cbf13d",
+  "reviewedHead": "c099b0ac81bf88387e99640182d33df5f5cbf13d",
+  "pathStateDigest": "99f5507146790db00b5801954e54f31bea708361ae29acf8ac547278298d2bbb",
+  "finalReview": {
+    "reviewer": "/root/review_rolling_golden_architecture (GPT-5.6 Sol/high architect) + /root/review_rolling_golden_evidence (GPT-5.6 Luna/high evidence reviewer)",
+    "outcome": "approved",
+    "evidence": "Independent read-only exact-head R3 architecture and evidence reviews both returned PASS-WITH-HUMAN-GATE for c099b0ac81bf88387e99640182d33df5f5cbf13d, tree 7f966bdb72a9206445e05b190ec6a22508024934, with P0/P1/P2/P3 = 0/0/0/0. The tree is identical to the prior reviewed 6fbeab75170260ea2ed3a0587a19ba077f7fbcd1 tree and the design-active record blob remains 18acc9321b0da542c2aedb70e1e7db065fd5bcfc. PinnedGitReader continues to fail-close lower-hex commit and object-graph identities; both historical consumers load policy and manifest from the same pinned revision, while the existing canonical Golden validator remains the sole active validator and no pointer, registry, or second validator was introduced. The historical 64-route plan retains 53 case-bound input identities, 11 input-only evidence routes, and 27 routes of non-terminal parity evidence debt, none relabelled Verified. No Golden payload or manifest, canonical active policy, profile, firmware byte/range/processor/support/naming/composition/release-policy, VERSION, CHANGELOG, dependency, or expected-output authority changed. The required release-owner attestation and frozen-candidate full verifier remain separate human gates."
+  }
+}

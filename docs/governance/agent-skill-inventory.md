@@ -25,7 +25,7 @@ skills; they are not repository authority.
 | `polytail` | implicit | quality-gate | — |
 | `release-readiness` | implicit | release | — |
 | `resolving-merge-conflicts` | implicit | conflict-recovery | — |
-| `supervised-branch-development` | explicit | branch-coordination | handoff |
+| `supervised-branch-development` | implicit | branch-coordination | handoff |
 | `to-spec` | implicit | specification-draft | — |
 | `to-tickets` | implicit | ticket-planning | — |
 | `ui-experience-change` | implicit | presentation | prototype |

@@ -1,10 +1,10 @@
 {
-  "schemaVersion": "1.0",
+  "schemaVersion": "1.1",
   "policyId": "canonical-reference-v1",
-  "authorizedForVersion": "1.0.8",
+  "authorizedForVersion": "1.1.2",
   "releaseStatus": "human-gated-allowlist",
   "redistributionAuthorization": {
-    "authorizedOn": "2026-09-01",
+    "authorizedOn": "2026-09-04",
     "authorizedBy": "repository owner",
     "scope": "reference-payload-only",
     "supersedesHistoricalCaseRestrictions": true
@@ -13,13 +13,14 @@
     "runtimeSupportPromotion": false,
     "fullByteParityClaim": false
   },
-  "canonicalReadmeSha256": "0dfed270963130f69a5e044af0d62dc28837190a8ecc0fef07888d6bc5561cb9",
+  "canonicalReadmeSha256": "7692f828b0aaa286437cd786ccb7620acc85db33487ebd68b793d5b771070728",
   "selectionSummary": {
-    "caseCount": 34,
+    "caseCount": 35,
     "directGoldenCount": 25,
+    "directInputEvidenceCount": 1,
     "factScopedAliasCount": 9,
-    "artifactDeclarationCount": 159,
-    "uniqueArtifactPathCount": 156
+    "artifactDeclarationCount": 161,
+    "uniqueArtifactPathCount": 158
   },
   "cases": [
     {
@@ -1618,6 +1619,31 @@
         ]
       },
       "artifacts": []
+    },
+    {
+      "caseId": "nt51929-certified-metadata-inputs-20260904",
+      "manifestPath": "NT51929/standard-merge/certified-metadata-inputs/topology-unscoped/nt51929-certified-metadata-inputs-20260904/provenance/case.json",
+      "manifestSha256": "4fe9e347ebbe46f5b45edaa1fc611e3bc842ebbf1fa729a1e31cc2b909a12d89",
+      "workflow": "standard-merge",
+      "testDispositionKind": "input-only-evidence",
+      "directGolden": false,
+      "directEvidence": true,
+      "artifacts": [
+        {
+          "artifactId": "initial-code-observation",
+          "role": "input",
+          "path": "NT51929/standard-merge/certified-metadata-inputs/topology-unscoped/nt51929-certified-metadata-inputs-20260904/inputs/nt51929-initial-code-observation.bin",
+          "size": 524288,
+          "sha256": "5ccf5802511635dbed73fc8043acb0021ed379568e8479028b640dda5ec2b02a"
+        },
+        {
+          "artifactId": "flashcode-observation",
+          "role": "input",
+          "path": "NT51929/standard-merge/certified-metadata-inputs/topology-unscoped/nt51929-certified-metadata-inputs-20260904/inputs/nt51929-flashcode-observation.bin",
+          "size": 524288,
+          "sha256": "69fa975a9883db2494d2c2cf5dce05507573c9a753efb6f62589fa3acded68d4"
+        }
+      ]
     }
   ]
 }

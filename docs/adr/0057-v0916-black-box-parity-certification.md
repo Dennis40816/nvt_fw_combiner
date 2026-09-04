@@ -94,6 +94,17 @@ selected routes and leaves 27 exact route ids without case input authority;
 those routes remain in the denominator but block all execution with
 `PARITY_FIXTURE_MISSING` until canonical evidence supplies them.
 
+Active Golden is rolling, not a pointer or a second validator: the canonical
+manifest and canonical policy at the exact candidate source commit are the one
+active reference. An annotated stable tag freezes that snapshot; the next
+owner-approved Golden change makes the next candidate commit active. Old tags,
+commits, and this v0.9.16 plan remain immutable historical evidence. Historical
+consumers read both this plan's policy and manifest only from
+`canonicalInputAuthority.repositoryCommit`; the current canonical Golden
+validator at candidate HEAD remains the sole active-Golden validator. Neither
+candidate-generated output nor input-only evidence may self-rebaseline expected
+output bytes.
+
 The release owner explicitly deferred this terminal 64-route promotion gate
 from 1.x to 2.0.0. For 1.x the protected parity jobs are skipped; the 27 routes
 remain parity evidence debt and do not block selector, Build, or output, but
@@ -114,7 +125,9 @@ route identities declared by the plan. Complete-output equality compares
 size, every byte, and SHA-256. A mismatch, missing artifact, changed route
 fingerprint, changed package identity, or unknown proof kind fails closed.
 
-The eleven shortened TP routes use the owner-approved transitive proof:
+The eleven shortened TP routes use the owner-approved transitive proof. They
+are three NT51917, two NT51923, three NT51927, and three NT51928 TP-only work
+images at 212 KiB or 240 KiB:
 
 ```text
 current TP output

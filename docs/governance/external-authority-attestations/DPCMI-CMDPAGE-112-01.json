@@ -1,0 +1,9 @@
+{
+  "schemaVersion": 1,
+  "taskId": "DPCMI-CMDPAGE-112-01",
+  "authorityType": "firmware-owner",
+  "reviewedHead": "7b99ab0e7a2e3393f0839a77c1f782fb62c46c9f",
+  "decision": "approved",
+  "reviewer": "Dennis Liu (firmware owner)",
+  "evidence": "The firmware owner approved the exact DP CMI/DPCMI correction for the NT51919/NT51929/NT51932 perfect family. Standard Merge must read the three-byte DPCMI only from CMD1 Page 0 [0x401A,0x401D), rooted at the declared [0x4004,0x401D) anchor with relative offset 0x16; the retired compact bytes [0x66,0x69) are not runtime or release authority and must never be used as fallback. AB retains its two existing per-bank CMD Page reads at [0x401A,0x401D) and [0x4401A,0x4401D), and General Merge retains no DPCMI reader. The owner accepts the resulting Standard output-name correction from D0200 to the authoritative D2004 while the Golden output bytes and SHA-256 remain unchanged. This approval is limited to DPCMI: it does not authorize any FWConfig, TP-header, Dummy-DP, support, processor, CRC, mutation-order, or output-byte change. It approves final evidence head 7b99ab0e7a2e3393f0839a77c1f782fb62c46c9f for DPCMI-CMDPAGE-112-01; full repository verification and actual release publication remain separate gates."
+}

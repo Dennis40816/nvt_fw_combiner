@@ -1,0 +1,9 @@
+{
+  "schemaVersion": 1,
+  "taskId": "ROLLING-GOLDEN-HISTORY-112-01",
+  "authorityType": "release-owner",
+  "reviewedHead": "a83fe2fd5bb8e417f7626635f0f07c33a0fe7c0c",
+  "decision": "approved",
+  "reviewer": "Dennis Liu (release owner)",
+  "evidence": "The release owner approves only the bounded rolling-active-Golden and immutable-v0.9.16-history lifecycle evidence finalized at a83fe2fd5bb8e417f7626635f0f07c33a0fe7c0c. Active Golden remains the existing candidate-HEAD authority; immutable annotated release tags preserve historical evidence, and both historical consumers bind policy and manifest from the same pinned Git revision through PinnedGitReader. This approval preserves the existing canonical Golden validator as the sole active validator and does not approve a pointer, registry, second validator, Golden payload or manifest change, canonical active policy, profile, firmware byte/range/processor/support/naming/composition/release-policy change, VERSION, CHANGELOG, dependency, expected-output rebaseline, or firmware-owner approval. The historical 64-route plan retains 53 case-bound input identities, 11 input-only evidence routes, and 27 routes of non-terminal parity evidence debt; no debt route becomes Verified. This authority approves final evidence head a83fe2fd5bb8e417f7626635f0f07c33a0fe7c0c for ROLLING-GOLDEN-HISTORY-112-01. The frozen-candidate full verifier, protected CI, release workflow approval, immutable tag and Release creation, exact asset verification, and fresh-download smoke remain separate mandatory gates."
+}

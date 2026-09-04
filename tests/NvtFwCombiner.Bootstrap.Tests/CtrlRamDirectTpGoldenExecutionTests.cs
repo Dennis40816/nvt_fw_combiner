@@ -49,11 +49,11 @@ public sealed class CtrlRamDirectTpGoldenExecutionTests
                 CapabilityEvidenceStatus.DirectGolden),
             [("NT51929", "single", "nt51929-ctrlram-fw200-single-full-flash")] = new(
                 "route-7-nt51929-15-ctrlram-replace-4-1-ic-39-nt51929-ctrlram-fw200-single-full-flash",
-                "842dc2b4065d94f0558910b2717450490dabd42b205277376e2418987b0dca52",
+                "f94a618a45912da9a3165a9a0f78205076f318b1cdf910cc5b574c8b988244d5",
                 CapabilityEvidenceStatus.DirectGolden),
             [("NT51932", IcNumberSelectionTokens.CascadeTwoToEight, "nt51932-ctrlram-fw200-cascade-full-flash")] = new(
                 "route-7-nt51932-15-ctrlram-replace-6-2-8-ic-40-nt51932-ctrlram-fw200-cascade-full-flash",
-                "79e337b555022db0c24d98104f255052eb12b227144c3b613a74ff335357b6a2",
+                "edaad3b247017da83a8bc1b3baa09193ee7b35e0a13d3d284c03eb018979a560",
                 CapabilityEvidenceStatus.DirectGolden),
             [("NT51950", "single", "nt51950-ctrlram-fw200-single-tp-work")] = new(
                 "route-7-nt51950-15-ctrlram-replace-4-1-ic-36-nt51950-ctrlram-fw200-single-tp-work",

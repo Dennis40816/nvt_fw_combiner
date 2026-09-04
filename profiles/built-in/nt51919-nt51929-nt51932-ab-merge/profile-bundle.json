@@ -3,7 +3,7 @@
   "bundleId": "nt51919-nt51929-nt51932-ab-merge-family",
   "bundleVersion": "0.10.5-family-reference.1",
   "hashAlgorithm": "sha256-rfc8785-entry-array-v1",
-  "contentHash": "dda53555eefe4ee5e92ea54717a125833e76275058679409eb3da0d3fd0e9272",
+  "contentHash": "3b6dcc3d1c87ab31e43852d3638b9658a64e886eae95c725e67b2d07f1cb8a61",
   "trustAnchorBindingId": "built-in-profile-bundle-v2",
   "entries": [
     {
@@ -25,28 +25,28 @@
       "kind": "composition-profile",
       "path": "profiles/nt51919-ab-merge.json",
       "schemaId": "https://example.invalid/nfc/schemas/composition-profile-v2.schema.json",
-      "contentHash": "e588df9e66bcf8d5ac9ef06d602c7106fceb5be847cc7fd4987d16f0a6d55445"
+      "contentHash": "8674a6aaf29283f8576acbfd950d7677d4a0ba2c2d5f984d7588dbd2ff45212d"
     },
     {
       "entryId": "nt51919-nt51929-nt51932-ab-merge-family",
       "kind": "firmware-family",
       "path": "families/nt51919-nt51929-nt51932-ab-merge.json",
       "schemaId": "https://example.invalid/nfc/schemas/firmware-family-v1.schema.json",
-      "contentHash": "7af00a6a46bc5f854cf014257df954bdc00f905988fb3329636f9a9bc0a1bfaa"
+      "contentHash": "a2b311942d5f7740c4251127b5d79912d90a35d21c9d21b9837afccdb0756989"
     },
     {
       "entryId": "nt51929-ab-merge-profile",
       "kind": "composition-profile",
       "path": "profiles/nt51929-ab-merge.json",
       "schemaId": "https://example.invalid/nfc/schemas/composition-profile-v2.schema.json",
-      "contentHash": "1ce5307181f0207889fa0da584921889cda99b1285303cae9618e88f00c56bb3"
+      "contentHash": "3d6084ac9adbd3bbb40f2f5ef189dfa73de00643f9dc4cf141b2f5a708c2f514"
     },
     {
       "entryId": "nt51932-ab-merge-profile",
       "kind": "composition-profile",
       "path": "profiles/nt51932-ab-merge.json",
       "schemaId": "https://example.invalid/nfc/schemas/composition-profile-v2.schema.json",
-      "contentHash": "fb526e2c4b5fa3ffae8b472230959ad4d1ee972d18b86bf1f13792b8b2f9e6cc"
+      "contentHash": "4980bf2d2a4fd0bf394a100d1adcfc7a7cc00774a45c96ebfa7c4b72bb6d1f79"
     }
   ]
 }

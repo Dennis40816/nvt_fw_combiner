@@ -1,8 +1,8 @@
 # NVT FW Combiner（NFC）實作規格
 
-> 文件狀態：`1.1.1 verification, test, CI, and release architecture candidate; product behavior unchanged`
-> 文件版本：`1.1.1`
-> 基準日期：`2026-09-02`
+> 文件狀態：`1.1.2 support-neutral release candidate; approved repository, verification, selector, evidence, and DPCMI scopes complete; final release gates pending`
+> 文件版本：`1.1.2`
+> 基準日期：`2026-09-04`
 > 產品名稱：`NVT FW Combiner`
 > 短名：`NFC`
 > Repository：`Dennis40816/nvt_fw_combiner`
@@ -434,8 +434,13 @@ Change risk class：
 - TPA copy：source `0x07000..0x40000` 到 target `0x07000..0x40000`。
 - TPB relocation patch：`0x7164`、`0x7168`、`0x716C` little-endian u32 加 `0x40000`。
 - TPB copy：source `0x07000..0x40000` 到 target `0x47000..0x80000`。
-- version parsing：DP A/B offset `0x67/0x68`；reference TP FW version parsing used the last `NVT` + `T address - 0xFFF`.
+- version parsing：retired reference parser used compact DP A/B offsets
+  `0x67/0x68`；reference TP FW version parsing used the last `NVT` + `T address - 0xFFF`.
 - output naming：`{PROJECT_NAME}_Flashcode_A_{dpA}{tpA}_B_{dpB}{tpB}_{yyyyMMdd}.bin`。
+
+The compact offsets are historical reference provenance, not current production
+authority. Current AB DPCMI resolution uses its per-bank CMD Page ranges
+`[0x401A,0x401D)` and `[0x4401A,0x4401D)`.
 
 ### 4.1 必須 profile 化的 facts
 
@@ -1391,10 +1396,13 @@ to each `0.10.x` version.
   catalog must never infer one of these facts from the IC identity alone.
 - The tracer has no NT51929-specific contract type, service, or executable
   branch. Current NT51929 Standard Merge Workbench callers delegate to the same
-  Application seam used by CLI. Every other route stays behind a named
-  route-scoped migration adapter with a deletion criterion; there is no
-  fallback or second executable NT51929 Standard Merge owner. NT51929 DP Replace
-  with DPCMI and the remaining headless routes are later migration slices.
+  Application seam used by CLI. Standard Merge for the NT51919/NT51929/NT51932
+  perfect family resolves DPCMI solely from CMD1 Page 0 `[0x401A,0x401D)`;
+  AB retains its existing per-bank CMD Page resolution and General has no DPCMI
+  reader. There is no fallback or second executable owner. Standard Merge
+  tracing is complete under CMD Page authority; integrating the already
+  profile-owned DP Replace inspection into this tracer, and remaining
+  headless-route tracer work, are separately scoped migrations.
 
 #### Application use-case boundary
 
@@ -1665,10 +1673,16 @@ to each `0.10.x` version.
 11. An artifact or part declares metadata structures once. The common
     inspection plan contains structure references and resolved state only; a
     common inspector and formatter read the accepted immutable snapshot.
-12. DPCMI is one Initial Code metadata structure at CMD1 Page 0 registers
-    `[0x16, 0x19)`. DP Version and Jira are derived fields, not alternate
-    locator authorities. The legacy DP-version reader is parity-only and is
-    deleted after all callers move.
+12. DPCMI is one Initial Code metadata structure. Standard Merge for the
+    NT51919/NT51929/NT51932 perfect family has the sole absolute locator
+    `[0x401A,0x401D)`, rooted at the declared CMD1 Page 0 anchor
+    `[0x4004,0x401D)` plus `0x16`. AB retains per-bank CMD Page locators
+    `[0x401A,0x401D)` and `[0x4401A,0x4401D)`; General has no DPCMI reader.
+    DP Version and Jira are derived fields, not alternate locator authorities.
+    Compact `[0x66,0x69)` bytes are historical-only and are never a runtime
+    fallback or release authority. The owner-certified NT51929
+    `certified-metadata-inputs` observations record existing DPCMI facts only;
+    they add no profile, route, expected output, parity, or support claim.
 13. FirmwareConfig is one all-IC structure. Its General Parameters use one
     declared prefix `[0x000, 0x029)`. IC Count is the unsigned byte
     `u8Chip_Num` at structure-relative offset `0x017`; it is not a TP Flash

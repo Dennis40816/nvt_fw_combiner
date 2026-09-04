@@ -26,6 +26,7 @@ internal sealed partial class WorkflowSessionPresentationViewModel
     internal void PublishAcceptedMergeSharedContext()
     {
         RecordAcceptedModeSelection(_merge.SelectedMergeMode, "merge");
+        PublishCanonicalCatalogIcChoices();
         NotifySharedContextTextChanged();
     }
 

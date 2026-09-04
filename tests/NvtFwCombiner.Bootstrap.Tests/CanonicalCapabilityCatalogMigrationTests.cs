@@ -69,7 +69,7 @@ public sealed partial class CanonicalCapabilityCatalogMigrationTests
         Assert.Equal("NT51929", definition.Identity.IcId);
         Assert.Equal("nt51929-standard-merge-256k", definition.Identity.MapVariant);
         Assert.Equal(
-            "7241e513c36122a60f2535836fd3b5625dc4cafe304d002e713a1525a949ac68",
+            "447de186adabb4aae6adbbf810c726a24fea7283602306682f5a14842a9e5679",
             definition.CapabilityFingerprint);
         Assert.NotEqual(
             definition.CapabilityFingerprint,
@@ -535,6 +535,85 @@ public sealed partial class CanonicalCapabilityCatalogMigrationTests
         Assert.Null(FirmwareInspectionTestSupport.TryReadCmiDpCodeMetadata(
             "NT51929",
             path));
+    }
+
+    /// <summary>
+    /// Standard Merge reads the NT51919/NT51929/NT51932 perfect-family DPCMI
+    /// from CMD1 Page 0 and never falls back to the retired compact-view bytes.
+    /// </summary>
+    [Theory]
+    [InlineData("NT51919")]
+    [InlineData("NT51929")]
+    [InlineData("NT51932")]
+    public void StandardMergeDpcmiUsesCmd1Page0InsteadOfRetiredCompactView(string icId)
+    {
+        var host = new IsolatedBootstrapTestHost();
+        CapabilityCatalogReloadResult reload = host.Catalog.Reload(TestContext.Current.CancellationToken);
+        Assert.True(
+            reload.Succeeded,
+            string.Join(Environment.NewLine, reload.Issues.Select(static issue =>
+                $"{issue.Code}: {issue.Message} [{issue.Subject}]")));
+
+        byte[] dp = new byte[0x6000];
+        dp[0x66] = 0xFF;
+        dp[0x67] = 0xFE;
+        dp[0x68] = 0xED;
+        dp[0x401A] = 0x2E;
+        dp[0x401B] = 0x03;
+        dp[0x401C] = 0xA4;
+        using var workspace = TempWorkspace.Create("nvt-fw-combiner-standard-cmd1-page0");
+        string dpPath = workspace.Write("standard-dp.bin", dp);
+
+        FirmwareInspectionSnapshot inspection = Assert.Single(
+            BuiltInFirmwareInspection.InspectFirmwareBatch(
+                host.Canonical,
+                icId,
+                [new FirmwareInspectionSnapshotInput(
+                    "standard-dp",
+                    dpPath,
+                    StandardMergeAddressSpaceId: CompositionAddressSpaceIds.DpInput)]))
+            .Inspection;
+
+        Assert.Equal("030A", Assert.IsType<DpVersionMetadata>(inspection.DpVersion).VersionToken);
+        CmiDpCodeMetadata cmi = Assert.IsType<CmiDpCodeMetadata>(inspection.CmiDpCode);
+        Assert.Equal((byte)0x03, cmi.MajorVersionByte);
+        Assert.Equal((byte)0x0A, cmi.MinorVersionNibble);
+        Assert.Equal((ushort)0x42E, cmi.JiraNumber);
+        Assert.Equal(0x401A, cmi.Register16Offset);
+    }
+
+    /// <summary>A one-byte-short CMD1 Page 0 DPCMI fails closed instead of reading retired compact-view bytes.</summary>
+    [Fact]
+    public void StandardMergeDpcmiTruncatedBeforeRegister18DoesNotFallBackToCompactView()
+    {
+        var host = new IsolatedBootstrapTestHost();
+        CapabilityCatalogReloadResult reload = host.Catalog.Reload(TestContext.Current.CancellationToken);
+        Assert.True(
+            reload.Succeeded,
+            string.Join(Environment.NewLine, reload.Issues.Select(static issue =>
+                $"{issue.Code}: {issue.Message} [{issue.Subject}]")));
+
+        byte[] dp = new byte[0x401C];
+        dp[0x66] = 0xFF;
+        dp[0x67] = 0xFE;
+        dp[0x68] = 0xED;
+        dp[0x401A] = 0x2E;
+        dp[0x401B] = 0x03;
+        using var workspace = TempWorkspace.Create("nvt-fw-combiner-standard-cmd1-page0-truncated");
+        string dpPath = workspace.Write("truncated-standard-dp.bin", dp);
+
+        FirmwareInspectionSnapshot inspection = Assert.Single(
+            BuiltInFirmwareInspection.InspectFirmwareBatch(
+                host.Canonical,
+                "NT51929",
+                [new FirmwareInspectionSnapshotInput(
+                    "standard-dp",
+                    dpPath,
+                    StandardMergeAddressSpaceId: CompositionAddressSpaceIds.DpInput)]))
+            .Inspection;
+
+        Assert.Null(inspection.DpVersion);
+        Assert.Null(inspection.CmiDpCode);
     }
 
     /// <summary>Every static Standard Merge route resolves and compiles through one canonical snapshot.</summary>

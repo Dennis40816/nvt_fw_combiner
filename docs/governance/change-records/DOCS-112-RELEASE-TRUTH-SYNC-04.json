@@ -1,0 +1,34 @@
+{
+  "schemaVersion": 2,
+  "taskId": "DOCS-112-RELEASE-TRUTH-SYNC-04",
+  "capability": "Synchronize the v1.1.2 release-candidate identity and existing completed evidence without asserting release completion",
+  "integrationBase": "1f259eccda75fe8f851e9c7e1573cd52260107d9",
+  "risk": "R2",
+  "kind": "governance",
+  "state": "final-complete",
+  "mutablePaths": [
+    "docs/governance/development-tags.md"
+  ],
+  "implementationOwner": "gpt-5.6-terra/high sole writer",
+  "searchEvidence": [
+    "The existing changelog renderer, SPEC, roadmap, handoff, manifest, verification report, and development-tags node are the canonical release-identity projections; no second release-note or documentation framework is needed.",
+    "The independent GPT-5.6 Luna/medium inventory identifies completed document convergence, bounded verifier, AB selector, certified input-only evidence, and perfect-family DPCMI scope while preserving their support-neutral disposition and release gates.",
+    "Existing D1-D7, C1, final record, attestation, frozen hash, deletion identity, and Golden evidence remain historical evidence; this record does not authorize another cleanup or a support promotion."
+  ],
+  "semanticOwner": "Existing release identity, roadmap, specification, verification-report, and changelog owners remain authoritative; this record extends only the development-tag projection.",
+  "terminalContract": "Change exactly CHANGELOG.md, SPEC.md, VERSION, docs/governance/development-tags.md, docs/references/verification-report.md, docs/architecture/nfc_roadmap.md, docs/architecture/v1.1.2-repository-document-convergence-handoff.md, docs/architecture/v1.1.2-repository-document-convergence-manifest.md, tests/NvtFwCombiner.Architecture.Tests/RepositoryBoundaryTests.Roadmap.cs, and this record. Set candidate identity to v1.1.2 dated 2026-09-04. State only the five completed support-neutral scopes: document convergence without a new framework, bounded verifier sharding/deadline work without skipped gates or a second verifier, AB selector correction without support promotion, public NT51929 certified input-only evidence without expected-output/Golden parity/support claims, and Standard perfect-family DPCMI CMD1 Page 0 authority with unchanged AB and no General reader. Bind the intended Standard naming correction D0200 to D2004 while NT51929 Golden output SHA and output bytes remain unchanged. Preserve historical D1-D7/C1/frozen hashes/deletion identities/evidence; defer Dummy DP past v1.1.2, begin bounded Launcher development in 1.2.0 with separately gated activation, and exclude FWConfig and unrelated metadata. Full verifier, protected CI, package, smoke, release approval, publication, and fresh-download verification remain mandatory no-waiver release gates before release is called complete.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "root-architecture-review",
+    "outcome": "approved",
+    "evidence": "Root approved this support-neutral candidate truth synchronization based on an independent GPT-5.6 Luna/medium inventory of the completed scopes, preserved history, exclusions, and remaining release gates."
+  },
+  "implementationHead": "02b9021a51c4f34a988efe2dcd1417a1331f2947",
+  "reviewedHead": "02b9021a51c4f34a988efe2dcd1417a1331f2947",
+  "pathStateDigest": "f3539c40c0d9afdfc05289b34e3c9608074fe87b86d0b37abf701a74b1cab2cf",
+  "finalReview": {
+    "reviewer": "/root/release_docs_scope_audit (GPT-5.6 Luna/medium)",
+    "outcome": "approved",
+    "evidence": "Reviewed exact head 02b9021a51c4f34a988efe2dcd1417a1331f2947, tree 2eae6c08592ee7d0a147cace7d0c92bb9aca2498, parent 1f259eccda75fe8f851e9c7e1573cd52260107d9. The approved implementation changes exactly ten paths, and the final correction from 81f9a4c2c0c342446b26d4ff18a6d68be57b1008 is restricted to CHANGELOG.md within that boundary. All P0-P3 findings are closed: publication/package wording is conditional on protected workflow publication; Standard versus DP Replace DPCMI scope, D0200 to D2004 with unchanged NT51929 Golden output bytes and SHA, historical evidence, Dummy DP deferral, bounded Launcher work in v1.2.0, and FWConfig exclusion remain accurate. Focused release-note rendering, seven renderer tests, the Roadmap architecture test, JSON parsing, diff checking, and exact-path audit passed; no incomplete CI, package, smoke, approval, publication, or fresh-download gate is claimed as passed."
+  }
+}
