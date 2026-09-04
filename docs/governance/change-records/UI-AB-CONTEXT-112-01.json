@@ -5,7 +5,7 @@
   "integrationBase": "5f252d51f41fc053275085207d37b3c18067baff",
   "risk": "R2",
   "kind": "ui",
-  "state": "design-active",
+  "state": "final-complete",
   "mutablePaths": [
     "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MergePresentationViewModel.State.cs",
     "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/WorkflowSessionPresentationViewModel.DeviceContextNotifications.cs"
@@ -24,12 +24,12 @@
     "outcome": "findings-incorporated",
     "evidence": "Independent architecture review found P0/P1/P2/P3=0/0/0/0. Runtime evidence disproved the WorkflowContext selection.IcId hypothesis and found stale live TwoWay mode writeback from an ephemeral projection; a synchronous writeback-suppression guard was insufficient after deferred binding dispatch. Approved the existing MergePresentationViewModel.State owner only: stable instance-local ObservableCollection projection reconciled in place by retain/move/insert then tail removal before SelectedMergeMode publication, without Clear, Reset, replacement, or property notification. Direct includeModeChoices=false user selection remains unchanged. No duplicate classifier, cache, or new semantic owner is admitted."
   },
-  "implementationHead": null,
-  "reviewedHead": null,
-  "pathStateDigest": null,
+  "implementationHead": "6c0e16740574ea42b8b0ac0715d0f9dee4572f9a",
+  "reviewedHead": "6c0e16740574ea42b8b0ac0715d0f9dee4572f9a",
+  "pathStateDigest": "cd3d6f2d0d2497588f53b5da6a0c6d359d7f57348200c8020090daf6e761e401",
   "finalReview": {
-    "reviewer": null,
-    "outcome": "pending",
-    "evidence": ""
+    "reviewer": "/root/review_ui_ab_h1_retry",
+    "outcome": "approved",
+    "evidence": "Independent exact-head R2 semantic, UI-binding, evidence, and scoped Polytail review approved implementation 6c0e16740574ea42b8b0ac0715d0f9dee4572f9a with P0/P1/P2/P3 = 0/0/0/0. The stable instance-local ObservableCollection MergeModeChoices projection is reconciled in canonical workflow order by retain/move/insert followed by tail removal before SelectedMergeMode publication, without Clear, Reset, collection replacement, or MergeModeChoices property notification; direct user selection retains the existing non-reconciliation path. Accepted Merge mode changes reuse the guarded canonical IcChoices publisher exactly once before shared context notifications. Real MainWindow and focused binding/catalog regressions cover direct selection, staged Home AB confirmation, collection identity, notification order, hidden-page isolation, catalog withdrawal, zero choices, and recovery without a duplicate classifier or semantic owner. Recorded focused evidence passed exact 10/10, catalog 10/10, matrix 8/8, validate_repository, and structure-only; an independent bounded critical-path rerun passed 7/7. The complete UiSmoke run was inconclusive and is not claimed. No firmware, profile, memory-range, mutation-order, CRC/checksum, support, compatibility, package, release-content, secret, private-payload, or generated-binary authority changed. Scoped Polytail PASS; the final repository verifier remains a separate lifecycle gate."
   }
 }
