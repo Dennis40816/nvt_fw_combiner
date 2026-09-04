@@ -1,0 +1,34 @@
+{
+  "schemaVersion": 2,
+  "taskId": "RELEASE-DERIVED-IDENTITY-PIN-112-02",
+  "capability": "Synchronize active release smoke, current verification, and CtrlRAM expected derived identities with their authoritative declared bytes",
+  "integrationBase": "4b7a6a6462d07af36ac199eb80dd12912a626a6a",
+  "risk": "R3",
+  "kind": "release",
+  "state": "design-active",
+  "mutablePaths": [
+    "scripts/smoke-release.ps1"
+  ],
+  "implementationOwner": "/root/release_policy_pin_sync (GPT-5.6 Terra/high sole writer)",
+  "searchEvidence": [
+    "profiles/built-in/package-trust-index.json is the sole package-trust index producer and its authoritative raw/LF SHA-256 is d680ef81830e3ad1870b8ef6bb79b5e6a251590301afcd0a400c9a9d3f4369b2; active smoke-release.ps1 and the current verification report retain the stale e365b73e53aff65faa107347400aac82546a3dc700160914b1412f6858fe276d projection.",
+    "docs/contracts/canonical-capability-policy-v1.json and testdata/golden/canonical/manifest.json declare active CtrlRAM capability fingerprints f94a618a45912da9a3165a9a0f78205076f318b1cdf910cc5b574c8b988244d5 for NT51929 single and edaad3b247017da83a8bc1b3baa09193ee7b35e0a13d3d284c03eb018979a560 for NT51932 cascade; CtrlRamDirectTpGoldenExecutionTests has exactly the two stale expected projections.",
+    "The 2026-08-22 audit, v0.9.16 certification, and historical test pins are evidence snapshots and are excluded; no policy, trust-index, profile, Golden, BIN, runtime, package producer, allowlist, asset, workflow, permission, or cleanup owner is changed."
+  ],
+  "semanticOwner": "The package-trust-index, canonical capability policy, and canonical Golden manifest remain their existing sole derived-identity producers; smoke-release and the CtrlRAM execution test remain existing projections/assertions only.",
+  "terminalContract": "Change exactly scripts/smoke-release.ps1, docs/references/verification-report.md, tests/NvtFwCombiner.Bootstrap.Tests/CtrlRamDirectTpGoldenExecutionTests.cs, and this record. Synchronize only three scalar categories: the active smoke and current-report package-trust-index SHA from e365b73e53aff65faa107347400aac82546a3dc700160914b1412f6858fe276d to raw/LF SHA d680ef81830e3ad1870b8ef6bb79b5e6a251590301afcd0a400c9a9d3f4369b2; NT51929 expected capability fingerprint from 842dc2b4065d94f0558910b2717450490dabd42b205277376e2418987b0dca52 to f94a618a45912da9a3165a9a0f78205076f318b1cdf910cc5b574c8b988244d5; and NT51932 cascade expected capability fingerprint from 79e337b555022db0c24d98104f255052eb12b227144c3b613a74ff335357b6a2 to edaad3b247017da83a8bc1b3baa09193ee7b35e0a13d3d284c03eb018979a560. Preserve historical audit, certification, and test pins. Do not change product or firmware behavior, profiles, policy, trust index, Golden/BIN data, release assets, package producer/allowlist, workflow or permissions, or cleanup semantics. Independent R3 review, release-owner attestation, and the one frozen-candidate full verifier remain mandatory and pending.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "root-architecture-review",
+    "outcome": "approved",
+    "evidence": "Root approved the bounded R3 derived-identity synchronization after GPT-5.6 Luna failure diagnosis and GPT-5.6 Terra complete derived-identity audit isolated the active stale scalar projections and excluded historical evidence."
+  },
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": {
+    "reviewer": null,
+    "outcome": "pending",
+    "evidence": ""
+  }
+}

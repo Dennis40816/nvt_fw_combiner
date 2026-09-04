@@ -319,7 +319,7 @@ filename.
 The exact LF policy hash is
 `6207923baf537c4031f2095942d363660c7a1c5cbd35e704ec14b28c509aef0f`.
 The 26-bundle package trust index is `0.10.6.2` with SHA-256
-`e365b73e53aff65faa107347400aac82546a3dc700160914b1412f6858fe276d`.
+`d680ef81830e3ad1870b8ef6bb79b5e6a251590301afcd0a400c9a9d3f4369b2`.
 Focused local checks passed: policy loader 20/20, canonical host/route
 convergence 7/7, Support Matrix projection 8/8, package-trust architecture
 17/17, release-package policy 30/30, and the previously blocked CtrlRAM
