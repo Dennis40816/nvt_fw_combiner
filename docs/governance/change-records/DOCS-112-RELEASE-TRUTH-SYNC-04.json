@@ -5,7 +5,7 @@
   "integrationBase": "1f259eccda75fe8f851e9c7e1573cd52260107d9",
   "risk": "R2",
   "kind": "governance",
-  "state": "design-active",
+  "state": "final-complete",
   "mutablePaths": [
     "docs/governance/development-tags.md"
   ],
@@ -23,12 +23,12 @@
     "outcome": "approved",
     "evidence": "Root approved this support-neutral candidate truth synchronization based on an independent GPT-5.6 Luna/medium inventory of the completed scopes, preserved history, exclusions, and remaining release gates."
   },
-  "implementationHead": null,
-  "reviewedHead": null,
-  "pathStateDigest": null,
+  "implementationHead": "02b9021a51c4f34a988efe2dcd1417a1331f2947",
+  "reviewedHead": "02b9021a51c4f34a988efe2dcd1417a1331f2947",
+  "pathStateDigest": "f3539c40c0d9afdfc05289b34e3c9608074fe87b86d0b37abf701a74b1cab2cf",
   "finalReview": {
-    "reviewer": null,
-    "outcome": "pending",
-    "evidence": ""
+    "reviewer": "/root/release_docs_scope_audit (GPT-5.6 Luna/medium)",
+    "outcome": "approved",
+    "evidence": "Reviewed exact head 02b9021a51c4f34a988efe2dcd1417a1331f2947, tree 2eae6c08592ee7d0a147cace7d0c92bb9aca2498, parent 1f259eccda75fe8f851e9c7e1573cd52260107d9. The approved implementation changes exactly ten paths, and the final correction from 81f9a4c2c0c342446b26d4ff18a6d68be57b1008 is restricted to CHANGELOG.md within that boundary. All P0-P3 findings are closed: publication/package wording is conditional on protected workflow publication; Standard versus DP Replace DPCMI scope, D0200 to D2004 with unchanged NT51929 Golden output bytes and SHA, historical evidence, Dummy DP deferral, bounded Launcher work in v1.2.0, and FWConfig exclusion remain accurate. Focused release-note rendering, seven renderer tests, the Roadmap architecture test, JSON parsing, diff checking, and exact-path audit passed; no incomplete CI, package, smoke, approval, publication, or fresh-download gate is claimed as passed."
   }
 }
