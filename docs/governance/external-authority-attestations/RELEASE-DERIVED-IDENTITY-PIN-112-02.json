@@ -1,0 +1,9 @@
+{
+  "schemaVersion": 1,
+  "taskId": "RELEASE-DERIVED-IDENTITY-PIN-112-02",
+  "authorityType": "release-owner",
+  "reviewedHead": "4bb8a81fdca309a3e132f42d3b04e5aa94009c21",
+  "decision": "approved",
+  "reviewer": "Dennis Liu (release owner)",
+  "evidence": "The release owner explicitly directed the formal public v1.1.2 release with all protected verification and publication gates preserved. This attestation approves only the bounded derived-identity synchronization finalized at 4bb8a81fdca309a3e132f42d3b04e5aa94009c21: release smoke and the current verification report bind the existing package-trust-index bytes at SHA-256 d680ef81830e3ad1870b8ef6bb79b5e6a251590301afcd0a400c9a9d3f4369b2, while two active CtrlRAM test projections bind the already-declared NT51929 and NT51932 capability fingerprints. It does not approve changes to the trust index, canonical capability policy, profiles, runtime, Golden or BIN data, package producer, release allowlist, assets, workflow, permissions, cleanup behavior, firmware/product semantics, or support status. Historical audit, certification, and evidence pins remain unchanged. Canonical full verification, protected CI, release workflow approval, immutable tag and Release creation, exact asset verification, and fresh-download smoke remain mandatory."
+}
