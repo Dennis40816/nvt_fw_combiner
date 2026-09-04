@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 2,
+  "taskId": "UI-AB-CONTEXT-SIZE-112-02",
+  "capability": "Account for the accepted UI-AB-CONTEXT presentation artifact without changing its product behavior",
+  "integrationBase": "7b99ab0e7a2e3393f0839a77c1f782fb62c46c9f",
+  "risk": "R2",
+  "kind": "governance",
+  "state": "design-active",
+  "mutablePaths": [
+    "docs/adr/0021-code-size-ratchet-accepted-artifact-amendment.md",
+    "scripts/code_size_policy.py"
+  ],
+  "implementationOwner": "gpt-5.6-terra/high sole writer",
+  "searchEvidence": [
+    "The exact code-size policy owns the production and named-partial ratchets; its focused unittest already measures the current repository snapshot.",
+    "The accepted UI-AB-CONTEXT-112-01 artifact is the sole attributable source: MergePresentationViewModel.State.cs grows by 23 nonblank lines and WorkflowSessionPresentationViewModel.DeviceContextNotifications.cs by 1, with no file-count change.",
+    "The earlier immutable UI final record is not changed: current reproducible focused policy coverage fails only because its full-production ceiling remains the stale 136389 value."
+  ],
+  "semanticOwner": "scripts/code_size_policy.py remains the sole measurement and acceptance owner; the existing ADR 0021 amendment remains the accepted-artifact rationale owner.",
+  "terminalContract": "Raise only production_nonblank from 136389 to 136413, full_production_allowance from 33493 to 33517 above frozen full base 102896, and the named WorkflowSessionPresentationViewModel ceiling from 2626 to 2627. Account exactly for +23 MergePresentationViewModel.State.cs and +1 WorkflowSessionPresentationViewModel.DeviceContextNotifications.cs. Keep runtime 98559; Domain/Profiles 20632; Application 42205; Bootstrap/CLI/Desktop/Launcher 5039; Infrastructure/Contracts/worker/Platform 30683; all file counts; all runtime and slice baselines and allowances unchanged. The 33517 allowance and 2627 ceiling are non-transferable; no line packing or unrelated deletion is admitted. Do not change UI product behavior, firmware, profiles, ranges, output bytes, or support, and do not rewrite the immutable UI-AB-CONTEXT-112-01 record.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "root-architecture-review",
+    "outcome": "approved",
+    "evidence": "Root approved the smallest R2 accepted-artifact accounting after independent GPT-5.6 Luna/medium audit confirmed the exact +24 Presentation-only attribution, unchanged slices, and no product or firmware semantic change."
+  },
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": {
+    "reviewer": null,
+    "outcome": "pending",
+    "evidence": ""
+  }
+}
