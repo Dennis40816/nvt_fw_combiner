@@ -280,9 +280,9 @@ class V0916ParityContractTests(V0916ParityTestBase):
         self.assertEqual([], canonical_errors)
         raw_plan = json.loads(self.plan_path.read_text(encoding="utf-8"))
         authority = raw_plan["canonicalInputAuthority"]
-        historical_snapshot = tempfile.TemporaryDirectory()
-        self.addCleanup(historical_snapshot.cleanup)
-        snapshot_root = Path(historical_snapshot.name) / "snapshot"
+        snapshot_root = self.enterContext(
+            MODULE.controlled_temporary_directory("nfc-canonical-")
+        ) / "snapshot"
         MODULE.materialize_and_validate_canonical_input_authority(
             raw_plan,
             git_reader=RecordingPinnedCanonicalReader(ROOT),
@@ -371,19 +371,23 @@ class V0916ParityContractTests(V0916ParityTestBase):
             if "caseId" not in evidence:
                 continue
             case_index = cases[evidence["caseId"]]
-            case_path = canonical_root / case_index["manifestPath"]
+            case_path = Path(
+                MODULE._native_path(canonical_root / case_index["manifestPath"])
+            )
             case = json.loads(case_path.read_text(encoding="utf-8"))
             self.assertEqual(evidence["caseId"], case["caseId"])
             while "alias" in case:
                 source_id = case["alias"]["sourceCaseId"]
                 source_index = cases[source_id]
-                case_path = canonical_root / source_index["manifestPath"]
+                case_path = Path(
+                    MODULE._native_path(canonical_root / source_index["manifestPath"])
+                )
                 case = json.loads(case_path.read_text(encoding="utf-8"))
                 self.assertEqual(source_id, case["caseId"])
             inputs = [item for item in case["artifacts"] if item["role"] == "input"]
             self.assertGreater(len(inputs), 0)
             for item in inputs:
-                payload = canonical_root / item["path"]
+                payload = Path(MODULE._native_path(canonical_root / item["path"]))
                 self.assertEqual(item["size"], payload.stat().st_size)
                 self.assertEqual(
                     item["sha256"], hashlib.sha256(payload.read_bytes()).hexdigest()
@@ -989,11 +993,11 @@ class V0916ParityContractTests(V0916ParityTestBase):
             repository_root=ROOT,
             git_reader=reader,
         )
-        with tempfile.TemporaryDirectory() as temporary:
+        with MODULE.controlled_temporary_directory("nfc-historical-") as temporary:
             MODULE.materialize_and_validate_canonical_input_authority(
                 plan.raw,
                 git_reader=reader,
-                destination=Path(temporary) / "canonical",
+                destination=Path(MODULE._native_path(temporary / "canonical")),
             )
 
         self.assertEqual(64, len(plan.routes))

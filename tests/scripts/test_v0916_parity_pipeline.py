@@ -924,7 +924,7 @@ class V0916ParityPipelineTests(V0916ParityTestBase):
 
     def test_comparator_invokes_ab_and_ctrlram_with_typed_cli_arguments_and_profile_binding(self) -> None:
         with MODULE.controlled_temporary_directory(
-            "nfc-v0916-cli-arguments-"
+            "nfc-v0916-ca-"
         ) as root:
             source_root = root / "verified-source"
             cli = source_root / "src/NvtFwCombiner.Cli/bin/Release/net10.0/win-x64/NvtFwCombiner.Cli.exe"
@@ -1143,7 +1143,7 @@ class V0916ParityPipelineTests(V0916ParityTestBase):
                                 verified_executor=route_executor,
                                 operator_login="dennis40816",
                                 receipt_root=root
-                                / "receipts-precursor-post-capture-swap",
+                                / "receipts-swap",
                                 comparator_path=ROOT
                                 / "scripts/v0916_parity_certification.py",
                             )
@@ -1285,7 +1285,7 @@ class V0916ParityPipelineTests(V0916ParityTestBase):
             precursor_mismatch_capture = MODULE.execute_cli_capture(
                 precursor_verified,
                 verified_executor=executor,
-                output_root=root / "outputs-precursor-map-mismatch",
+                output_root=root / "o-pmm",
                 process_runner=precursor_mismatch_runner,
             )
             with self.assertRaises(MODULE.ParityError) as precursor_mismatch:
@@ -1294,7 +1294,7 @@ class V0916ParityPipelineTests(V0916ParityTestBase):
                     verified_inputs=precursor_verified,
                     verified_executor=executor,
                     operator_login="dennis40816",
-                    receipt_root=root / "receipts-precursor-map-mismatch",
+                    receipt_root=root / "r-pmm",
                     comparator_path=ROOT / "scripts/v0916_parity_certification.py",
                 )
             self.assertEqual(
