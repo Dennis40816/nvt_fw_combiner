@@ -86,6 +86,14 @@ public sealed class ModeSelectorBindingTests
         viewModel.ShowMergeCommand.Execute(null);
         viewModel.WorkflowSession.SelectedIc = "NT51950";
         ComboBox selector = BindMergeModeSelector(viewModel);
+        ComboBox deviceSelector = BindDeviceSelector(viewModel);
+        var modeChoiceChanges = new List<string>();
+        TrackCollection(
+            Assert.IsType<System.Collections.Specialized.INotifyCollectionChanged>(
+                viewModel.Merge.MergeModeChoices,
+                exactMatch: false),
+            modeChoiceChanges);
+        Assert.Contains("NT51926", viewModel.WorkflowSession.IcChoices);
         viewModel.MessageCenter.ToggleDebugActivityCommand.Execute(null);
         int modeActivityCount = viewModel.MessageCenter.ActivityItems.Count(static item =>
             item.Title == "Mode selected");
@@ -104,8 +112,12 @@ public sealed class ModeSelectorBindingTests
         Assert.Same(originalItemsSource, selector.ItemsSource);
         Assert.Equal(ExperienceIds.AbMerge, viewModel.Merge.SelectedMergeMode);
         Assert.Equal(ExperienceIds.AbMerge, selector.SelectedItem);
+        Assert.Equal("NT51950", deviceSelector.SelectedItem);
+        Assert.Contains("NT51950", viewModel.WorkflowSession.IcChoices);
+        Assert.DoesNotContain("NT51926", viewModel.WorkflowSession.IcChoices);
         Assert.Equal(modeActivityCount + 1, viewModel.MessageCenter.ActivityItems.Count(static item =>
             item.Title == "Mode selected"));
+        Assert.Empty(modeChoiceChanges);
         Assert.DoesNotContain(nameof(MergePresentationViewModel.MergeModeChoices), mergeChanges);
         AssertPublishedExactlyOnce(
             mergeChanges,
@@ -116,7 +128,9 @@ public sealed class ModeSelectorBindingTests
             nameof(MergePresentationViewModel.MergeMemorySummary),
             nameof(MergePresentationViewModel.StandardMergeSupportSummary));
         AssertHiddenReplaceContextWasNotPublished(replaceChanges);
-        Assert.DoesNotContain(nameof(WorkflowSessionPresentationViewModel.IcChoices), workflowChanges);
+        Assert.Equal(
+            1,
+            workflowChanges.Count(change => change == nameof(WorkflowSessionPresentationViewModel.IcChoices)));
     }
 
     /// <summary>The first Replace selection remains accepted without replacing its choices mid-event.</summary>
@@ -305,6 +319,22 @@ public sealed class ModeSelectorBindingTests
         return selector;
     }
 
+    private static ComboBox BindDeviceSelector(MainWindowViewModel viewModel)
+    {
+        var selector = new ComboBox { DataContext = viewModel };
+        _ = selector.Bind(
+            ItemsControl.ItemsSourceProperty,
+            new Binding("WorkflowSession.IcChoices"));
+        _ = selector.Bind(
+            ComboBox.SelectedItemProperty,
+            new Binding("WorkflowSession.SelectedIc")
+            {
+                Mode = BindingMode.TwoWay,
+            });
+        Dispatcher.UIThread.RunJobs();
+        return selector;
+    }
+
     private static ComboBox BindReplaceModeSelector(MainWindowViewModel viewModel)
     {
         var selector = new ComboBox { DataContext = viewModel.Replace };
@@ -356,6 +386,13 @@ public sealed class ModeSelectorBindingTests
                 changes.Add(propertyName);
             }
         };
+    }
+
+    private static void TrackCollection(
+        System.Collections.Specialized.INotifyCollectionChanged source,
+        List<string> changes)
+    {
+        source.CollectionChanged += (_, args) => changes.Add(args.Action.ToString());
     }
 
     private static void AssertPublishedExactlyOnce(

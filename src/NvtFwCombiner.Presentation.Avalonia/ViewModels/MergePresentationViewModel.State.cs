@@ -18,6 +18,7 @@ internal sealed partial class MergePresentationViewModel
     private readonly AuthoringSessionState _standardMergeSession = new(ExperienceIds.StandardMerge);
     private readonly AuthoringSessionState _abMergeSession = new(ExperienceIds.AbMerge);
     private readonly AuthoringSessionState _generalMergeSession = new(ExperienceIds.GeneralMerge);
+    private readonly ObservableCollection<string> _mergeModeChoices = [];
     private string? _abMergeTopologyChoicesIcId;
     private readonly MergeStateBindings _stateBindings;
     internal FirmwareSlotViewModel MergeDpSlot { get; } = new(
@@ -61,13 +62,7 @@ internal sealed partial class MergePresentationViewModel
     private bool _isApplyingGeneralMergeInitializer;
     private string? _catalogReconciliationPreviousMode;
 
-    public IReadOnlyList<string> MergeModeChoices => !HasSelectedIc
-        ? []
-        : Array.AsReadOnly(
-        [
-            .. WorkflowPageModeCatalog.ForPage(ShellPage.Merge).Where(mode =>
-                _stateBindings.IsWorkflowAuthorable(SelectedIc, mode)),
-        ]);
+    public IReadOnlyList<string> MergeModeChoices => _mergeModeChoices;
 
     public PlanningCardText MergePreview => Text.MergePreview;
 
@@ -354,6 +349,10 @@ internal sealed partial class MergePresentationViewModel
             }
             _catalogReconciliationPreviousMode = null;
         }
+        if (includeModeChoices)
+        {
+            ReconcileMergeModeChoices();
+        }
         OnPropertyChanged(nameof(SelectedMergeMode));
         OnPropertyChanged(nameof(Inspection));
         OnPropertyChanged(nameof(IsStandardMergeSupported));
@@ -361,10 +360,6 @@ internal sealed partial class MergePresentationViewModel
         OnPropertyChanged(nameof(IsNormalMergeModeSelected));
         OnPropertyChanged(nameof(IsGeneralMergeModeSelected));
         OnPropertyChanged(nameof(IsAbCodeMergeModeSelected));
-        if (includeModeChoices)
-        {
-            OnPropertyChanged(nameof(MergeModeChoices));
-        }
         OnPropertyChanged(nameof(StandardMergeSupportSummary));
         OnPropertyChanged(nameof(MergePreview));
         OnPropertyChanged(nameof(StandardMergeOutputFileName));
@@ -374,6 +369,37 @@ internal sealed partial class MergePresentationViewModel
         OnPropertyChanged(nameof(MergeReadinessStatus));
         PublishMergeMemoryContext();
         OnPropertyChanged(nameof(CanBuildMerge));
+    }
+
+    private void ReconcileMergeModeChoices()
+    {
+        string[] desired = HasSelectedIc
+            ? [.. WorkflowPageModeCatalog.ForPage(ShellPage.Merge).Where(mode =>
+                _stateBindings.IsWorkflowAuthorable(SelectedIc, mode))]
+            : [];
+        for (int index = 0; index < desired.Length; index++)
+        {
+            if (index < _mergeModeChoices.Count &&
+                string.Equals(_mergeModeChoices[index], desired[index], StringComparison.Ordinal))
+            {
+                continue;
+            }
+
+            int existingIndex = _mergeModeChoices.IndexOf(desired[index]);
+            if (existingIndex >= index)
+            {
+                _mergeModeChoices.Move(existingIndex, index);
+            }
+            else
+            {
+                _mergeModeChoices.Insert(index, desired[index]);
+            }
+        }
+
+        while (_mergeModeChoices.Count > desired.Length)
+        {
+            _mergeModeChoices.RemoveAt(_mergeModeChoices.Count - 1);
+        }
     }
 
     internal void RefreshCommandState()
