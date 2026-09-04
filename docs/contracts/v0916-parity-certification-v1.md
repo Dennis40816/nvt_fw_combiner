@@ -10,6 +10,18 @@ publication decision is `supported`, and whose workflow appears in
 `includedWorkflows`. The selected denominator and per-workflow counts must
 equal the plan. Duplicate route ids or capability fingerprints fail closed.
 
+Active Golden is rolling: the canonical manifest plus canonical policy at the
+exact candidate source commit are the one active reference. An annotated stable
+tag freezes that snapshot, and the next owner-approved Golden change makes the
+next candidate commit active. Historical tags, commits, and this v0.9.16 plan
+are immutable observations, not active policy. Historical plan loading reads
+both `policyBinding.path` and the canonical manifest from the declared
+`canonicalInputAuthority.repositoryCommit`; it never falls back to current
+worktree policy. The current canonical Golden validator at candidate HEAD is
+the sole active-Golden validator. Candidate-generated output and input-only
+evidence can never self-rebaseline expected output bytes or constitute terminal
+parity.
+
 Every selected route not listed in `transitiveRoutes` uses `exact-output`:
 baseline and candidate outputs must have equal lengths and identical complete
 bytes. `transitiveRoutes` is a closed exception list, not a pattern. Each row
@@ -24,6 +36,11 @@ enforces:
 4. candidate TP bytes equal `[0, tpLength)` of the v0.9.16 full output; and
 5. candidate full output `[tpLength, fullLength)` equals the candidate full
    base input over the same half-open range.
+
+The eleven shortened routes are three NT51917, two NT51923, three NT51927, and
+three NT51928 TP-only work images. Their declared 212 KiB or 240 KiB outputs
+are proved only by the complete counterpart plus the prefix and immutable-tail
+checks above; they are not shortened whole-file parity.
 
 The operator provides a local run manifest conforming to
 `v0916-parity-run-v1.schema.json`. It provides an explicit output root and

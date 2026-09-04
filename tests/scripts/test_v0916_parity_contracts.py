@@ -48,6 +48,7 @@ class RecordingPinnedCanonicalReader:
             raw_inventory = subprocess.check_output(
                 ["git", "ls-tree", "-r", "-z", "--name-only", commit],
                 cwd=self.repository_root,
+                stderr=subprocess.PIPE,
             )
             files = [
                 row.decode("utf-8") for row in raw_inventory.split(b"\0") if row
@@ -269,8 +270,24 @@ class V0916ParityContractTests(V0916ParityTestBase):
         self.assertEqual([], canonical_errors)
         raw_plan = json.loads(self.plan_path.read_text(encoding="utf-8"))
         authority = raw_plan["canonicalInputAuthority"]
-        manifest_path = ROOT / authority["manifestPath"]
-        manifest_bytes = manifest_path.read_bytes()
+        historical_snapshot = tempfile.TemporaryDirectory()
+        self.addCleanup(historical_snapshot.cleanup)
+        snapshot_root = Path(historical_snapshot.name) / "snapshot"
+        MODULE.materialize_and_validate_canonical_input_authority(
+            raw_plan,
+            git_reader=RecordingPinnedCanonicalReader(ROOT),
+            destination=snapshot_root,
+        )
+        canonical_root = snapshot_root / Path(authority["manifestPath"]).parent
+        manifest_bytes = subprocess.check_output(
+            [
+                "git",
+                "cat-file",
+                "blob",
+                f"{authority['repositoryCommit']}:{authority['manifestPath']}",
+            ],
+            cwd=ROOT,
+        )
         self.assertEqual(authority["manifestSize"], len(manifest_bytes))
         self.assertEqual(
             authority["manifestRawSha256"], hashlib.sha256(manifest_bytes).hexdigest()
@@ -290,7 +307,13 @@ class V0916ParityContractTests(V0916ParityTestBase):
         self.assertEqual(
             authority["manifestBlob"],
             subprocess.check_output(
-                ["git", "hash-object", str(manifest_path)], cwd=ROOT, text=True
+                [
+                    "git",
+                    "rev-parse",
+                    f"{authority['repositoryCommit']}:{authority['manifestPath']}",
+                ],
+                cwd=ROOT,
+                text=True,
             ).strip(),
         )
 
@@ -332,7 +355,6 @@ class V0916ParityContractTests(V0916ParityTestBase):
             )
         )
 
-        canonical_root = manifest_path.parent
         cases = {row["caseId"]: row for row in manifest["cases"]}
         for route in selected:
             evidence = route_evidence[route["routeId"]]
@@ -368,7 +390,15 @@ class V0916ParityContractTests(V0916ParityTestBase):
             drifted_worktree = root / "drifted-worktree"
             drifted_manifest = drifted_worktree / authority["manifestPath"]
             drifted_manifest.parent.mkdir(parents=True)
-            pinned_manifest = (ROOT / authority["manifestPath"]).read_bytes()
+            pinned_manifest = subprocess.check_output(
+                [
+                    "git",
+                    "cat-file",
+                    "blob",
+                    f"{authority['repositoryCommit']}:{authority['manifestPath']}",
+                ],
+                cwd=ROOT,
+            )
             drifted_manifest.write_bytes(pinned_manifest.replace(b'"schemaVersion": "1.1"', b'"schemaVersion": "drifted"'))
 
             reader = RecordingPinnedCanonicalReader(
@@ -923,14 +953,122 @@ class V0916ParityContractTests(V0916ParityTestBase):
             self.assertEqual("provisional", comparison["verdict"])
 
     def test_policy_byte_drift_fails_with_stable_code(self) -> None:
-        with tempfile.TemporaryDirectory() as temporary:
-            policy = Path(temporary) / "policy.json"
-            policy.write_bytes(self.policy_path.read_bytes() + b"\n")
-
-            with self.assertRaises(MODULE.ParityError) as captured:
-                MODULE.load_and_validate_plan(self.plan_path, policy)
+        with self.assertRaises(MODULE.ParityError) as captured:
+            MODULE.load_and_validate_plan(
+                self.plan_path,
+                ROOT / "docs/contracts/canonical-capability-policy-v1.json",
+            )
 
         self.assertEqual("PARITY_POLICY_DRIFT", captured.exception.code)
+
+    def test_historical_plan_uses_policy_and_manifest_from_its_declared_snapshot(
+        self,
+    ) -> None:
+        raw_plan = json.loads(self.plan_path.read_text(encoding="utf-8"))
+        authority = raw_plan["canonicalInputAuthority"]
+        declared_commit = authority["repositoryCommit"]
+        reader = RecordingPinnedCanonicalReader(ROOT)
+
+        plan = MODULE.load_and_validate_pinned_plan(
+            self.plan_path,
+            repository_root=ROOT,
+            git_reader=reader,
+        )
+        with tempfile.TemporaryDirectory() as temporary:
+            MODULE.materialize_and_validate_canonical_input_authority(
+                plan.raw,
+                git_reader=reader,
+                destination=Path(temporary) / "canonical",
+            )
+
+        self.assertEqual(64, len(plan.routes))
+        self.assertIn(
+            (declared_commit, raw_plan["policyBinding"]["path"]), reader.calls
+        )
+        self.assertIn((declared_commit, authority["manifestPath"]), reader.calls)
+        self.assertTrue(
+            all(commit == declared_commit for commit, _ in reader.calls)
+        )
+        self.assertNotEqual(
+            raw_plan["policyBinding"]["sha256"],
+            hashlib.sha256(
+                (
+                    ROOT / "docs/contracts/canonical-capability-policy-v1.json"
+                ).read_bytes()
+            ).hexdigest(),
+        )
+
+    def test_historical_pinned_policy_resolver_rejects_bad_pins_and_policy_bytes(
+        self,
+    ) -> None:
+        raw_plan = json.loads(self.plan_path.read_text(encoding="utf-8"))
+
+        for name, mutate, expected_code in (
+            (
+                "missing-commit",
+                lambda plan: plan["canonicalInputAuthority"].__setitem__(
+                    "repositoryCommit", "0" * 40
+                ),
+                "PARITY_AUTHORITY_MISMATCH",
+            ),
+            (
+                "missing-policy-path",
+                lambda plan: plan["policyBinding"].__setitem__(
+                    "path", "docs/contracts/missing-policy.json"
+                ),
+                "PARITY_AUTHORITY_MISMATCH",
+            ),
+            (
+                "wrong-policy-sha",
+                lambda plan: plan["policyBinding"].__setitem__("sha256", "0" * 64),
+                "PARITY_POLICY_DRIFT",
+            ),
+        ):
+            with self.subTest(name=name), tempfile.TemporaryDirectory() as temporary:
+                mutated = copy.deepcopy(raw_plan)
+                mutate(mutated)
+                plan_path = Path(temporary) / "plan.json"
+                plan_path.write_text(json.dumps(mutated), encoding="utf-8")
+
+                with self.assertRaises(MODULE.ParityError) as captured:
+                    MODULE.load_and_validate_pinned_plan(
+                        plan_path,
+                        repository_root=ROOT,
+                        git_reader=RecordingPinnedCanonicalReader(ROOT),
+                    )
+
+            self.assertEqual(expected_code, captured.exception.code)
+
+        class NonRegularPolicyReader(RecordingPinnedCanonicalReader):
+            def entry(self, path: str) -> tuple[str, str, str]:
+                del path
+                return ("120000", "blob", "0" * 40)
+
+        with self.assertRaises(MODULE.ParityError) as captured:
+            MODULE.load_and_validate_pinned_plan(
+                self.plan_path,
+                repository_root=ROOT,
+                git_reader=NonRegularPolicyReader(ROOT),
+            )
+        self.assertEqual("PARITY_AUTHORITY_MISMATCH", captured.exception.code)
+
+        policy_path = raw_plan["policyBinding"]["path"]
+        pinned_reader = MODULE.PinnedGitReader(ROOT)
+        pinned_reader.list_files(raw_plan["canonicalInputAuthority"]["repositoryCommit"])
+        for mutation in ("wrong-commit", "object-mismatch"):
+            with self.subTest(mutation=mutation):
+                if mutation == "object-mismatch":
+                    pinned_reader._payloads[policy_path] = b"object mismatch"
+                with self.assertRaises(MODULE.ParityError) as captured:
+                    pinned_reader.read_file(
+                        (
+                            "0" * 40
+                            if mutation == "wrong-commit"
+                            else raw_plan["canonicalInputAuthority"]["repositoryCommit"]
+                        ),
+                        policy_path,
+                    )
+                self.assertEqual("PARITY_AUTHORITY_MISMATCH", captured.exception.code)
 
     def test_policy_parse_uses_the_same_bytes_as_its_hash_binding(self) -> None:
         original_capture = MODULE.capture_local_artifact
@@ -1459,7 +1597,7 @@ class V0916ParityContractTests(V0916ParityTestBase):
             (ROOT / source_contract_path).read_text(encoding="utf-8")
         )
         source = source_contract["source"]
-        policy_bytes = (ROOT / plan["policyBinding"]["path"]).read_bytes()
+        policy_bytes = self.policy_path.read_bytes()
         implementation = source["implementationHead"]
         binding = "b" * 40
 
@@ -1580,7 +1718,7 @@ class V0916ParityContractTests(V0916ParityTestBase):
         )
         source = source_contract["source"]
         policy_path = plan["policyBinding"]["path"]
-        policy_bytes = (ROOT / policy_path).read_bytes()
+        policy_bytes = self.policy_path.read_bytes()
         implementation = source["implementationHead"]
         binding = "b" * 40
         final_record = "c" * 40

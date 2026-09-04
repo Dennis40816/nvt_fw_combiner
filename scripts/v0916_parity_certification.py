@@ -374,6 +374,7 @@ class PinnedGitReader:
         self.repository_root = repository_root
         self._entries: dict[str, tuple[str, str, str]] = {}
         self._payloads: dict[str, bytes] = {}
+        self._commit: str | None = None
 
     def list_files(self, commit: str) -> list[str]:
         try:
@@ -446,13 +447,22 @@ class PinnedGitReader:
             _fail("PARITY_AUTHORITY_MISMATCH", "invalid pinned Git batch")
         self._entries = entries
         self._payloads = payloads
+        self._commit = commit
         return paths
 
     def entry(self, path: str) -> tuple[str, str, str]:
-        return self._entries[path]
+        try:
+            return self._entries[path]
+        except KeyError:
+            _fail("PARITY_AUTHORITY_MISMATCH", f"missing snapshot entry: {path}")
 
     def read_file(self, commit: str, path: str) -> bytes:
-        mode, kind, oid = self._entries[path]
+        if commit != self._commit:
+            _fail("PARITY_AUTHORITY_MISMATCH", "pinned snapshot commit mismatch")
+        try:
+            mode, kind, oid = self._entries[path]
+        except KeyError:
+            _fail("PARITY_AUTHORITY_MISMATCH", f"missing snapshot entry: {path}")
         if mode != "100644" or kind != "blob":
             _fail("PARITY_AUTHORITY_MISMATCH", f"non-blob snapshot entry: {path}")
         payload = self._payloads.get(path)
@@ -722,9 +732,17 @@ def _validate_ctrlram_base_routes(
 
 
 def load_and_validate_plan(plan_path: Path, policy_path: Path) -> Plan:
+    """Low-level captured-byte seam for explicit policy-drift tests."""
+
     plan_capture = capture_local_artifact(plan_path, "parity-plan")
-    raw = _decode_json_object(plan_capture.payload, "PARITY_PLAN_INVALID")
     policy_capture = capture_local_artifact(policy_path, "capability-policy")
+    return _load_and_validate_plan_captures(plan_capture, policy_capture)
+
+
+def _load_and_validate_plan_captures(
+    plan_capture: CapturedLocalArtifact, policy_capture: CapturedLocalArtifact
+) -> Plan:
+    raw = _decode_json_object(plan_capture.payload, "PARITY_PLAN_INVALID")
     policy_bytes = policy_capture.payload
     if _sha256(policy_bytes) != raw.get("policyBinding", {}).get("sha256"):
         _fail("PARITY_POLICY_DRIFT")
@@ -818,10 +836,64 @@ def load_and_validate_plan(plan_path: Path, policy_path: Path) -> Plan:
         raw,
         tuple(routes),
         counts,
-        plan_path,
+        plan_capture.path,
         len(plan_capture.payload),
         _sha256(plan_capture.payload),
     )
+
+
+def _resolve_pinned_policy_capture(
+    raw_plan: Mapping[str, Any], *, repository_root: Path, git_reader: Any
+) -> CapturedLocalArtifact:
+    """Capture the historical plan's policy from its canonical Git revision."""
+
+    try:
+        authority = raw_plan["canonicalInputAuthority"]
+        binding = raw_plan["policyBinding"]
+        commit = authority["repositoryCommit"]
+        relative = binding["path"]
+        if (
+            not isinstance(authority, Mapping)
+            or not isinstance(binding, Mapping)
+            or not isinstance(commit, str)
+            or not SHA1_RE.fullmatch(commit)
+            or not isinstance(relative, str)
+            or not _safe_repo_path(relative)
+        ):
+            raise ValueError("invalid pinned policy binding")
+        inventory = git_reader.list_files(commit)
+        if not isinstance(inventory, list) or relative not in inventory:
+            raise ValueError("policy path absent from pinned snapshot")
+        entry_reader = getattr(git_reader, "entry", None)
+        if entry_reader is not None:
+            mode, kind, _ = entry_reader(relative)
+            if mode != "100644" or kind != "blob":
+                raise ValueError("policy is not a regular blob")
+        payload = git_reader.read_file(commit, relative)
+        if not isinstance(payload, bytes):
+            raise ValueError("policy payload is not bytes")
+    except ParityError:
+        raise
+    except (KeyError, OSError, subprocess.SubprocessError, TypeError, ValueError):
+        _fail("PARITY_AUTHORITY_MISMATCH", "cannot read pinned capability policy")
+    return CapturedLocalArtifact(repository_root / PurePosixPath(relative), payload)
+
+
+def load_and_validate_pinned_plan(
+    plan_path: Path,
+    *,
+    repository_root: Path,
+    git_reader: Any | None = None,
+) -> Plan:
+    """Load historical plan and policy solely from one declared Git snapshot."""
+
+    plan_capture = capture_local_artifact(plan_path, "parity-plan")
+    raw_plan = _decode_json_object(plan_capture.payload, "PARITY_PLAN_INVALID")
+    reader = git_reader or PinnedGitReader(repository_root)
+    policy_capture = _resolve_pinned_policy_capture(
+        raw_plan, repository_root=repository_root, git_reader=reader
+    )
+    return _load_and_validate_plan_captures(plan_capture, policy_capture)
 
 
 def compare_exact_files(baseline: Path, candidate: Path) -> dict[str, Any]:
@@ -4146,9 +4218,9 @@ def verify_protected_candidate_build(
 
 def _load_repository_comparison_plan() -> Plan:
     repository_root = Path(__file__).resolve().parents[1]
-    return load_and_validate_plan(
+    return load_and_validate_pinned_plan(
         repository_root / "docs/contracts/v0916-parity-certification-v1.json",
-        repository_root / "docs/contracts/canonical-capability-policy-v1.json",
+        repository_root=repository_root,
     )
 
 
@@ -5868,9 +5940,9 @@ def _extract_verified_github_artifact_payload(
 def _compare_command(args: argparse.Namespace) -> int:
     repository_root = Path(__file__).resolve().parents[1]
     plan_path = Path(args.plan).resolve(strict=True)
-    plan = load_and_validate_plan(
+    plan = load_and_validate_pinned_plan(
         plan_path,
-        repository_root / "docs/contracts/canonical-capability-policy-v1.json",
+        repository_root=repository_root,
     )
     output_root = Path(args.output_root).resolve(strict=False)
     if output_root.exists() and any(output_root.iterdir()):

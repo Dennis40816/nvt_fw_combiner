@@ -923,8 +923,9 @@ class V0916ParityPipelineTests(V0916ParityTestBase):
                 self.assertEqual("PARITY_PROVENANCE_INVALID", captured.exception.code)
 
     def test_comparator_invokes_ab_and_ctrlram_with_typed_cli_arguments_and_profile_binding(self) -> None:
-        with tempfile.TemporaryDirectory() as temporary:
-            root = Path(temporary)
+        with MODULE.controlled_temporary_directory(
+            "nfc-v0916-cli-arguments-"
+        ) as root:
             source_root = root / "verified-source"
             cli = source_root / "src/NvtFwCombiner.Cli/bin/Release/net10.0/win-x64/NvtFwCombiner.Cli.exe"
             cli.parent.mkdir(parents=True)
@@ -946,6 +947,12 @@ class V0916ParityPipelineTests(V0916ParityTestBase):
                 runtime_total_size=runtime_size,
             )
             plan = MODULE.load_and_validate_plan(self.plan_path, self.policy_path)
+            historical_snapshot = root / "historical-snapshot"
+            canonical_authority = MODULE.materialize_and_validate_canonical_input_authority(
+                plan.raw,
+                git_reader=MODULE.PinnedGitReader(ROOT),
+                destination=historical_snapshot,
+            )
             cases = [
                 (
                     "route-7-nt51950-8-ab-merge-4-1-ic-21-nt51950-ab-merge-512k",
@@ -1025,9 +1032,7 @@ class V0916ParityPipelineTests(V0916ParityTestBase):
             ) in enumerate(cases):
                 verified = MODULE.resolve_canonical_route_input(
                     plan,
-                    MODULE.capture_canonical_authority_from_manifest_for_test(
-                        ROOT / "testdata/golden/canonical/manifest.json"
-                    ),
+                    canonical_authority,
                     admitted_input_root=root / f"admitted-{index}",
                     route_id=route_id,
                     execution_role=execution_role,
