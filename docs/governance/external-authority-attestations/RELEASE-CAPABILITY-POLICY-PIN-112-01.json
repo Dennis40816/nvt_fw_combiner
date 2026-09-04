@@ -1,0 +1,9 @@
+{
+  "schemaVersion": 1,
+  "taskId": "RELEASE-CAPABILITY-POLICY-PIN-112-01",
+  "authorityType": "release-owner",
+  "reviewedHead": "4b7a6a6462d07af36ac199eb80dd12912a626a6a",
+  "decision": "approved",
+  "reviewer": "Dennis Liu (release owner)",
+  "evidence": "The release owner explicitly directed the formal public v1.1.2 release and approved preserving the current release evidence and protection gates. This attestation approves only the bounded release-trust projection finalized at 4b7a6a6462d07af36ac199eb80dd12912a626a6a: scripts/package.ps1 and scripts/smoke-release.ps1 pin the already-authoritative LF-byte canonical capability policy SHA-256 6207923baf537c4031f2095942d363660c7a1c5cbd35e704ec14b28c509aef0f. It does not approve a policy-byte change, runtime or profile change, firmware or Golden/BIN change, support promotion, release-allowlist or asset change, workflow or permission change, cleanup-behavior change, gate waiver, or publication by itself. The historical 2026-08-22 audit and v0.9.16 certification retain their prior bf818a4c9aa4d539882e4bc4a0a662ef70ece67a44e78ae83356430365828f50 binding. Canonical full verification, protected CI, release workflow approval, immutable tag and Release creation, exact asset verification, and fresh-download smoke remain mandatory."
+}
