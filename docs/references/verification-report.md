@@ -19,27 +19,39 @@ commands.
 
 Specification package version: `1.1.2`
 
-## 1.1.2 support-neutral release candidate
+## 1.1.2 published release closure
 
-Completed scoped repository evidence records document convergence and
-boilerplate cleanup, bounded verifier sharding/deadline work, the AB selector
-cold-start Mode/IC-menu correction, and public certified NT51929 input-only
-evidence. Those records remain support-neutral: they do not claim profile,
-route, expected-output, Golden parity, or support promotion.
+v1.1.2 was published from PR #419. The reviewed head was
+`2f016814ff4401a4928f7da2ecfcf4f88aa9c362`; the merged source was
+`706ecaa9c4bd877ad2a960fd755efa4425c6335a`, with tree
+`0b6760924007476545f87ad7dcb07669d0fd8c66`. CI run `33904444021` passed all
+required checks. Release run `33905351419` completed candidate and promote
+successfully; its annotated tag object `ce0d572ddefa042d795e42572ffc56db6d629865`
+peels to the merged source. The repository's public `v1.1.2` Release was
+published at `2026-09-04T18:51:27Z` with exactly 10 assets.
 
-The final and attested DPCMI checkpoint has exact 4/4 targeted coverage:
-Standard NT51919/NT51929/NT51932 resolves solely from CMD1 Page 0
-`[0x401A,0x401D)`, AB keeps `[0x401A,0x401D)` and `[0x4401A,0x4401D)`, and
-General has no DPCMI reader. The intended naming correction is `D0200` to
-`D2004`; the NT51929 Golden output SHA and output bytes remain unchanged. The
-accepted code-size artifact has focused 19/19 coverage and measures full
-production `136413` and runtime `98559`. Existing AB, document, and Golden
-records are final repository evidence only.
+Release closure evidence passed: release notes are exactly 6335 UTF-8 bytes,
+anonymous source zip/tar requests returned 200, downloaded sizes and GitHub
+digests match, outer and Launcher checksums match, candidate identity matches,
+and the fresh-download smoke command with `-SkipUiLaunch` passed. This does not
+claim a clean-machine or visible-UI smoke result, signing evidence, or private
+Golden publication.
 
-This candidate does not claim canonical full verification, protected CI,
-package, smoke, release-owner approval, publication, or fresh-download evidence.
-Each is a mandatory no-waiver gate before a v1.1.2 release may be called
-complete.
+The final DPCMI checkpoint retains exact 4/4 targeted coverage: Standard
+NT51919/NT51929/NT51932 resolves solely from CMD1 Page 0 `[0x401A,0x401D)`, AB
+keeps `[0x401A,0x401D)` and `[0x4401A,0x4401D)`, and General has no DPCMI reader.
+The intended naming correction is `D0200` to `D2004`; the NT51929 Golden output
+SHA and output bytes remain unchanged. The accepted code-size artifact has
+focused 19/19 coverage and measures full production `136413` and runtime
+`98559`.
+
+The workflow job `release / published-smoke` was skipped despite candidate and
+promote success: its implicit default `success()` inherited the intentionally
+skipped v1.x v0916 dependency through promote, while promote has an explicit
+condition and published-smoke does not. Follow up by adding an explicit direct-
+prerequisite condition requiring candidate and promote success and not
+cancelled, with regression coverage. v0916 jobs remain intentionally skipped
+for v1.x.
 
 ## 1.1.1 verification and release-architecture candidate
 
