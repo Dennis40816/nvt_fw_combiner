@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.1",
   "familyId": "nt51929-nt51932",
-  "familyVersion": "1.2.0",
+  "familyVersion": "1.2.1",
   "members": [
     {
       "memberId": "NT51919",
@@ -41,6 +41,42 @@
           "range": {
             "start": 0,
             "length": 24576
+          },
+          "writeConstraint": "whole-region",
+          "alignment": 1
+        },
+        {
+          "regionId": "initial-code-before-cmd1-page0-anchor",
+          "parentRegionId": "dp-code",
+          "owner": "dp",
+          "kind": "code",
+          "range": {
+            "start": 0,
+            "length": 16388
+          },
+          "writeConstraint": "whole-region",
+          "alignment": 1
+        },
+        {
+          "regionId": "initial-code-cmd1-page0-anchor",
+          "parentRegionId": "dp-code",
+          "owner": "dp",
+          "kind": "command",
+          "range": {
+            "start": 16388,
+            "length": 25
+          },
+          "writeConstraint": "whole-region",
+          "alignment": 1
+        },
+        {
+          "regionId": "initial-code-after-cmd1-page0-anchor",
+          "parentRegionId": "dp-code",
+          "owner": "dp",
+          "kind": "code",
+          "range": {
+            "start": 16413,
+            "length": 8163
           },
           "writeConstraint": "whole-region",
           "alignment": 1
@@ -632,16 +668,17 @@
           },
           "locator": {
             "kind": "region-relative",
-            "regionId": "dp-code",
-            "offset": 102,
-            "allowedResultRegionId": "dp-code"
+            "regionId": "initial-code-cmd1-page0-anchor",
+            "offset": 22,
+            "allowedResultRegionId": "initial-code-cmd1-page0-anchor"
           }
         }
       ],
       "evidenceRefs": [
         "gen-flash-bin-v2-51929-golden",
         "gen-flash-bin-v2-51932-golden",
-        "standard-merge-alias-51919-to-51929"
+        "standard-merge-alias-51919-to-51929",
+        "owner-handoff-nt51929-cmd1-page0-dpcmi-2026-09-03"
       ]
     }
   ],
@@ -759,6 +796,7 @@
     "gen-flash-bin-v2-51929-golden",
     "gen-flash-bin-v2-51932-golden",
     "standard-merge-alias-51919-to-51929",
+    "owner-handoff-nt51929-cmd1-page0-dpcmi-2026-09-03",
     "tddi-flash-header-workbook-932-owner-classification-2026-07-24"
   ]
 }

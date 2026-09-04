@@ -13,7 +13,7 @@ namespace NvtFwCombiner.Bootstrap.Tests;
 public sealed class CanonicalSourceProjectionByteShapeTests
 {
     private const string Nt51929BundleDirectory = "nt51929-standard-merge";
-    private const string Nt51929BundleHash = "f28c1010e178720db508d9de8e95b01c4ee8030d66327a55fc2eb5180353e0ca";
+    private const string Nt51929BundleHash = "d70ee9a8534d2c91a1f674e92b888678d13ea1660a6540365abd42346c480a72";
     private const string Nt51928StandardBundleDirectory = "nt51928-standard-merge";
     private const string Nt51928StandardBundleHash = "20ccd90376bee9a67832b3a808940017f3cab202ae5d9dfad7cb2dc4b9774c4e";
 

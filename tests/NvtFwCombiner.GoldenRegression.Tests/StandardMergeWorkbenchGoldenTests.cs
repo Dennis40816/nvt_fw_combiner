@@ -127,10 +127,10 @@ public sealed class StandardMergeWorkbenchGoldenTests
             .GetProperty("ResolvedAtUtc")
             .GetDateTimeOffset();
         Assert.Equal(
-            $"NT51929_FlashCode_D0200T0100_{resolvedAtUtc:yyyyMMdd}.bin",
+            $"NT51929_FlashCode_D2004T0100_{resolvedAtUtc:yyyyMMdd}.bin",
             result.OutputFileName);
         Assert.Equal(
-            "d116db37fb2de5bb53a794051074d037100a5e9ba3fb78daeffbe9e28f2d9c0f",
+            "fd964c74574d5711c1b8c8083018c58fac66c1749a21c47eca19855860ad8d63",
             root.GetProperty("CompilationFingerprint").GetString());
         Assert.Equal(
             ["dp-input", "tp-input"],

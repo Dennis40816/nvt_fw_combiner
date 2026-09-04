@@ -1,0 +1,52 @@
+{
+  "schemaVersion": 2,
+  "taskId": "DPCMI-CMDPAGE-112-01",
+  "capability": "Make the NT51919/NT51929/NT51932 perfect-family Standard Merge DPCMI sub-version inspection use the declared CMD1 Page 0 authority",
+  "integrationBase": "42e189c8b2a39d9a94d98ab5e4ee45d9fc17d570",
+  "risk": "R3",
+  "kind": "behavior",
+  "state": "design-active",
+  "mutablePaths": [
+    "docs/contracts/canonical-capability-policy-v1.json",
+    "profiles/built-in/nt51919-nt51929-nt51932-ab-merge/families/nt51919-nt51929-nt51932-ab-merge.json",
+    "profiles/built-in/nt51919-nt51929-nt51932-ab-merge/profile-bundle.json",
+    "profiles/built-in/nt51919-nt51929-nt51932-ab-merge/profiles/nt51919-ab-merge.json",
+    "profiles/built-in/nt51919-nt51929-nt51932-ab-merge/profiles/nt51929-ab-merge.json",
+    "profiles/built-in/nt51919-nt51929-nt51932-ab-merge/profiles/nt51932-ab-merge.json",
+    "profiles/built-in/nt51919-nt51929-nt51932-general-merge-logical-candidate/families/nt51929-nt51932.json",
+    "profiles/built-in/nt51919-nt51929-nt51932-general-merge-logical-candidate/profile-bundle.json",
+    "profiles/built-in/nt51919-nt51929-nt51932-general-merge-logical-candidate/profiles/nt51919-general-merge-logical-candidate.json",
+    "profiles/built-in/nt51919-nt51929-nt51932-general-merge-logical-candidate/profiles/nt51929-general-merge-logical-candidate.json",
+    "profiles/built-in/nt51919-nt51929-nt51932-general-merge-logical-candidate/profiles/nt51932-general-merge-logical-candidate.json",
+    "profiles/built-in/nt51929-standard-merge/families/nt51929-nt51932.json",
+    "profiles/built-in/nt51929-standard-merge/profile-bundle.json",
+    "profiles/built-in/nt51929-standard-merge/profiles/nt51919-standard-merge.json",
+    "profiles/built-in/nt51929-standard-merge/profiles/nt51929-standard-merge.json",
+    "profiles/built-in/nt51929-standard-merge/profiles/nt51932-standard-merge.json",
+    "profiles/built-in/package-trust-index.json",
+    "src/NvtFwCombiner.Infrastructure/Capabilities/BuiltInCanonicalCapabilityPolicy.cs",
+    "testdata/golden/canonical/manifest.json"
+  ],
+  "implementationOwner": "dpcmi_cmdpage_impl",
+  "searchEvidence": [
+    "DpcmiMetadataContract and BuiltInFirmwareInspection.TryReadCanonicalDpcmi are the canonical decoder and inspection path; the latter already refuses physical-offset fallback.",
+    "The only supported reachable legacy locator is nt51929-standard-merge/families/nt51929-nt51932.json dpcmi-metadata: dp-code + 102, resolving [0x66,0x69).",
+    "AB already declares the two CMD Page ranges [0x401A,0x401D) and [0x4401A,0x4401D); General Merge logical candidates have metadataBindings: [] and no DPCMI reader. Their existing family-reference hashes must be rebound when the shared fact changes, without adding DPCMI support."
+  ],
+  "semanticOwner": "DpcmiMetadataContract remains the sole DPCMI decoder, while the hash-pinned NT51929/NT51932 family profile is the sole physical locator owner; the canonical capability policy and golden manifest retain their existing identity projections.",
+  "terminalContract": "For supported Standard Merge NT51919, NT51929, and NT51932, DPCMI resolves only from CMD1 Page 0 [0x401A,0x401D), rooted at the declared [0x4004,0x401D) command anchor with relative offset 22. No reachable DP/DPCMI sub-version inspection may resolve below 0x100 or fall back to compact bytes [0x66,0x69). AB remains on its existing per-bank CMD Page ranges. General Merge remains without a DPCMI reader. The canonical-golden validator's 0x66-0x69 mention remains historical legacy-evidence-only, not a runtime or release authority.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "root-architecture-review",
+    "outcome": "approved",
+    "evidence": "ADR 0012 fixes NT51929/NT51932 DPCMI at 0x401A; ADR 0032 fixes perfect-family AB per-bank CMD Page ranges; ADR 0039 binds owner-backed perfect-family facts at 0x401A. The independent Luna audit found exactly one reachable Standard Merge dp-code+102 legacy locator, confirmed AB is already canonical and General has no reader, and the owner explicitly prohibited any reachable absolute DP/DPCMI read below 0x100."
+  },
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": {
+    "reviewer": null,
+    "outcome": "pending",
+    "evidence": ""
+  }
+}
