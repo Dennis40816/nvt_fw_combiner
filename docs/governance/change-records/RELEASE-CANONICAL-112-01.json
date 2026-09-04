@@ -5,7 +5,7 @@
   "integrationBase": "63e635489abc990695b01e1339539cc835d1bd2e",
   "risk": "R3",
   "kind": "release",
-  "state": "design-active",
+  "state": "final-complete",
   "mutablePaths": [
     "docs/contracts/release-manifest-v1.md",
     "docs/ci/release-package.md",
@@ -26,12 +26,12 @@
     "outcome": "findings-incorporated",
     "evidence": "The approved R3 design resolves all P1 constraints: the input-only case is not relabeled as Direct Golden and has no expected output; selection is one explicit exact allowlist admission rather than a tree sweep; package and smoke implement direct-Golden/direct-input-evidence/alias branches; and raw BINs are individually hash-pinned outer-ZIP files with no nested archive or bypass. The release snapshot is the reviewed redistribution authority; runtime semantics and support stay unchanged."
   },
-  "implementationHead": null,
-  "reviewedHead": null,
-  "pathStateDigest": null,
+  "implementationHead": "960901ea37f51584b3ebc2f4e966c30a2afed1d4",
+  "reviewedHead": "960901ea37f51584b3ebc2f4e966c30a2afed1d4",
+  "pathStateDigest": "af7b82581948676a2cba4e42593b7b853401a11812aca9b6c7a0fdca5c46b9f3",
   "finalReview": {
-    "reviewer": null,
-    "outcome": "pending",
-    "evidence": ""
+    "reviewer": "architect_release_golden_sync",
+    "outcome": "approved",
+    "evidence": "Independent exact-head R3 review approved implementation `960901ea37f51584b3ebc2f4e966c30a2afed1d4` against integration base `63e635489abc990695b01e1339539cc835d1bd2e` with P0/P1/P2/P3 = 0/0/0/0. The reviewed 18-path diff adds exactly one owner-certified NT51929 directEvidence input-only case with two independently hash-pinned 524288-byte inputs; preserves repository-level same-workflow aliases to Direct Golden or direct input evidence while restricting release aliases to selected same-workflow Direct Goldens; and projects exactly 35 cases, 161 declarations, 158 unique artifacts, 194 selected source paths, and 148 raw BINs through the sole schema-1.1 release allowlist SHA-256 `3fa22d263cee83a07ee30d2977dbf4afde2b5bcca685f9ded51f9d54c1f26ee7`. Package and smoke retain one closed projection, raw outer-ZIP entries, inert `goldenFixture` roles, and complete manifest/SBOM/provenance/checksum coverage. No runtime, profile, support, planner/executor, processor, CRC, naming, expected-output, or output-byte authority changed. Writer-reported evidence passed: canonical unittest 78/78 at the immediately preceding content-equivalent canonical head, then exact-head nine focused release-policy tests exit 0, ExternalToolPolicyDryRun exit 0, structure-only exit 0, and diff check clean. Full verification and actual frozen-package release gates remain pending."
   }
 }
