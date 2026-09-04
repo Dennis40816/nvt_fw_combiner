@@ -9,14 +9,37 @@ page-publication hardening milestone, the 1.0.4 managed Setup and Launcher
 source milestone, the 1.0.5 read-only recovery-diagnosis milestone, and the
 1.0.6 tag-only integration milestone, and the 1.0.7 formal Distribution
 Launcher release, through the 1.0.8 unpublished Windows release candidate and
-the published 1.1.0 manual-only Windows release, plus the v1.1.1 verification,
-test, CI, and release-architecture candidate.
+the published 1.1.0 manual-only Windows release, the v1.1.1 verification,
+test, CI, and release-architecture candidate, and the v1.1.2 support-neutral
+repository, selector, evidence, and DPCMI candidate.
 Current
 verification evidence is produced by the canonical
 `python scripts/verify.py --structure-only` and `python scripts/verify.py --all`
 commands.
 
-Specification package version: `1.1.1`
+Specification package version: `1.1.2`
+
+## 1.1.2 support-neutral release candidate
+
+Completed scoped repository evidence records document convergence and
+boilerplate cleanup, bounded verifier sharding/deadline work, the AB selector
+cold-start Mode/IC-menu correction, and public certified NT51929 input-only
+evidence. Those records remain support-neutral: they do not claim profile,
+route, expected-output, Golden parity, or support promotion.
+
+The final and attested DPCMI checkpoint has exact 4/4 targeted coverage:
+Standard NT51919/NT51929/NT51932 resolves solely from CMD1 Page 0
+`[0x401A,0x401D)`, AB keeps `[0x401A,0x401D)` and `[0x4401A,0x4401D)`, and
+General has no DPCMI reader. The intended naming correction is `D0200` to
+`D2004`; the NT51929 Golden output SHA and output bytes remain unchanged. The
+accepted code-size artifact has focused 19/19 coverage and measures full
+production `136413` and runtime `98559`. Existing AB, document, and Golden
+records are final repository evidence only.
+
+This candidate does not claim canonical full verification, protected CI,
+package, smoke, release-owner approval, publication, or fresh-download evidence.
+Each is a mandatory no-waiver gate before a v1.1.2 release may be called
+complete.
 
 ## 1.1.1 verification and release-architecture candidate
 

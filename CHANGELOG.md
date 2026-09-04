@@ -4,10 +4,133 @@ All notable changes to NVT FW Combiner are documented here. The project follows 
 
 ## [Unreleased]
 
-No product changes are recorded after v1.1.1. Published release closure lives
+No product changes are recorded after v1.1.2. Published release closure lives
 in the [verification report](docs/references/verification-report.md), and future
 milestone order lives in the [NFC roadmap](docs/architecture/nfc_roadmap.md).
 This entry is non-normative and does not duplicate either authority.
+
+## [1.1.2] - 2026-09-04
+
+### Summary
+
+This support-neutral release aligns completed repository, verification,
+selector, evidence, and DPCMI work with their canonical documentation. It does
+not promote support or change firmware output bytes.
+
+### Product changes
+
+#### Repository document convergence
+
+- Before → After: completed D1-D7, C1, and boilerplate cleanup evidence was
+  described alongside stale planning language; canonical entrypoints now record
+  the completed cleanup as historical evidence without creating a new inventory,
+  work-list, or archive framework.
+- Affected: repository documentation entrypoints, roadmap, handoff, manifest,
+  and release documentation only; product workflows are unchanged.
+- Support status: unchanged/support-neutral; no IC, mode, profile, firmware
+  range, output byte, output name, or support state is promoted or removed.
+- Compatibility: no saved-data, package, profile, or runtime migration is
+  introduced; frozen historical identities and deletion evidence are retained.
+- Verification: existing final D1-D7 and C1 evidence remains historical; the
+  protected release process must prove the canonical full verifier and release
+  gates without a waiver.
+- Limitations: this does not authorize further cleanup, archival, relocation,
+  regeneration, or a second documentation-control framework.
+
+#### Bounded verification workflow
+
+- Before → After: verification work had stale release wording; the
+  completed bounded script sharding and deadline work is recorded without
+  skipping a gate or adding another verifier.
+- Affected: developer verification and CI orchestration documentation only;
+  desktop authoring, firmware execution, and package behavior are unchanged.
+- Support status: unchanged/support-neutral; no route, IC, profile, processor,
+  integrity rule, or support state is promoted.
+- Compatibility: the canonical verifier remains the only verifier and existing
+  CI/package contracts remain in force.
+- Verification: focused evidence is complete; the protected release process
+  must prove full verification and CI without a waiver.
+- Limitations: this release does not skip any verifier, CI, package, smoke,
+  approval, publication, or fresh-download gate.
+
+#### AB selector context correction
+
+- Before → After: a cold start could show unrelated IC choices or an empty
+  Mode when opening AB Code; the selector now publishes the active AB context
+  and intended IC catalog without changing AB firmware behavior.
+- Affected: AB Code entry, Mode display, and IC menu for the existing selector
+  route.
+- Support status: unchanged/support-neutral; no AB IC, mode, profile, or
+  firmware route is promoted.
+- Compatibility: no saved-data or output migration is required; existing
+  Standard and AB selection behavior remains compatible.
+- Verification: focused cold-start and mode-transition regression evidence is
+  complete; the protected release process must prove release-wide verification.
+- Limitations: AB DP metadata-layout work remains separately allocated; this
+  correction does not add Dummy DP behavior.
+
+#### Public NT51929 certified input evidence
+
+- Before → After: the release snapshot did not contain the certified
+  input-only observation; it now records the public NT51929 evidence as a
+  release-snapshot input without changing executable expectations.
+- Affected: release-snapshot evidence documentation for NT51929 only.
+- Support status: unchanged/support-neutral; the observation does not promote
+  an IC, mode, profile, route, or support claim.
+- Compatibility: no profile, route, expected output, Golden parity, or output
+  byte contract is added.
+- Verification: the admitted evidence is limited to its certified input scope;
+  the protected release process must prove full verification and release-owner
+  approval.
+- Limitations: the observation is not expected-output evidence and cannot be
+  used as a Golden-parity or support-certification claim.
+
+#### Perfect-family DPCMI CMD Page authority
+
+- Before → After: Standard naming could use compact-header DPCMI bytes and
+  display `D0200`; Standard NT51919/NT51929/NT51932 now reads only CMD1 Page 0
+  `[0x401A,0x401D)`, producing the intended `D2004` naming while the existing
+  NT51929 Golden output SHA and output bytes remain unchanged.
+- Affected: Standard Merge DPCMI-derived DP version/Jira naming for
+  NT51919/NT51929/NT51932; AB retains A/B `[0x401A,0x401D)` and
+  `[0x4401A,0x4401D)` reads, and General has no DPCMI reader.
+- Support status: unchanged/support-neutral; no support promotion, route
+  expansion, or General DPCMI capability is introduced.
+- Compatibility: compact `[0x66,0x69)` observations remain historical only;
+  FWConfig and unrelated metadata remain unchanged.
+- Verification: final DPCMI evidence is recorded for the existing path, with
+  exact targeted coverage; the protected release process must prove the full
+  verifier, CI, package, and release approval.
+- Limitations: Dummy DP is post-1.1.2 and unallocated; this change does not
+  alter AB behavior, FWConfig, unrelated metadata, or Golden output bytes.
+
+### Security
+
+The protected workflow remains the sole remote release mutator. One canonical
+verifier, declared profile authority, and existing range ownership remain in
+force; no security or permission boundary changes in this release.
+
+### Known issues
+
+Dummy DP remains unallocated after v1.1.2. Launcher remains secondary; bounded
+Launcher development begins in 1.2.0 and activation remains separately gated.
+The protected release process requires full verification, protected CI, package
+and smoke checks, release approval, publication, and fresh-download integrity
+verification without a waiver.
+
+### Upgrade and rollback
+
+No migration is introduced by this support-neutral release. Once the protected
+workflow publishes the stable Release, install the verified v1.1.2 package
+beside the prior verified package; rollback remains reopening that retained
+package under the existing recovery contract.
+
+### Downloads and integrity
+
+The approved Windows x64 package and its accompanying SBOM, provenance,
+manifest, and checksums are available only after the protected workflow
+publishes the stable v1.1.2 Release. Once published, verify the exact asset
+SHA-256 digests and fresh-download package smoke evidence before installation.
 
 ## [1.1.1] - 2026-09-02
 

@@ -176,25 +176,29 @@ No product feature, firmware behavior, support promotion, selector/Settings
 change, Memory Layout review, generic Golden-evidence closure, Installer or
 Launcher refinement, or former product-expansion item belongs to `v1.1.1`.
 
-## `1.1.2`: repository document convergence planning
+## `1.1.2`: support-neutral repository and DPCMI convergence
 
-`v1.1.2` owns physical whole-repository document inventory, topology, retention,
-and cleanup planning only. The detailed classification/manifest gate is the
-[`v1.1.2 repository document convergence handoff`](v1.1.2-repository-document-convergence-handoff.md).
-Its Phase 1 [manifest](v1.1.2-repository-document-convergence-manifest.md)
-records the owner-approved D1-D7 deletion batch as final with frozen review and
-final verifier evidence. Lane C is final plus attested. Lane B is the
-owner-approved implementation candidate for exactly four standalone boilerplate
-README deletions; its profile-catalog digest projection, exact-path audit,
-focused validation, independent fixed-head review, and one R3 release-owner
-attestation remain required. Packaged payload inventory, profile-file projection,
-and package scripts remain unchanged, while RELEASE-MANIFEST
-`embeddedProfileCatalogSha256`, resulting archive digest, and provenance identity
-are expected to change. Repository-wide current paths are
-now classified by the exactly-one approved matcher as `RETAIN_BY_RULE`, except
-for the 13 exact reviewed paths with explicit dispositions. Unknown or future
-paths fail closed; this classification neither approves deletion nor grants
-permanent immutability, and does not claim `v1.1.2` complete.
+`v1.1.2` is the approved support-neutral release-candidate scope for completed
+whole-repository document convergence and boilerplate cleanup; bounded verifier
+script sharding/deadline work without a skipped gate or second verifier; the AB
+selector cold-start/Mode/IC-menu correction without support promotion; public
+certified NT51929 input-only evidence without expected-output, Golden-parity,
+or support claims; and Standard Merge DPCMI CMD1 Page 0 authority for the
+NT51919/NT51929/NT51932 perfect family. Standard reads only
+`[0x401A,0x401D)`; AB retains `[0x401A,0x401D)` and `[0x4401A,0x4401D)`;
+General has no DPCMI reader. The intended naming correction is `D0200` to
+`D2004` while NT51929 Golden output bytes and SHA remain unchanged.
+
+The [`v1.1.2 repository document convergence handoff`](v1.1.2-repository-document-convergence-handoff.md)
+and [manifest](v1.1.2-repository-document-convergence-manifest.md) preserve
+D1-D7 and C1 final historical evidence, frozen identities, and the completed
+boilerplate cleanup. They do not create an inventory, TODO, or archive
+framework and do not authorize further cleanup. FWConfig and unrelated metadata
+are non-goals. Dummy DP is deferred past `v1.1.2` and unallocated. Launcher
+remains secondary; bounded development begins in `v1.2.0`, with activation
+separately gated. This version cannot be called released until full verification,
+protected CI, package and smoke checks, release approval, publication, and
+fresh-download verification complete as mandatory no-waiver gates.
 
 ## `1.1.3`: infrastructure determinism and isolation
 
@@ -243,10 +247,11 @@ explicit rather than visually flattening independent sections. This is a typed
 Application-to-Presentation projection review; it cannot move firmware facts,
 range authority, or memory interpretation into UI code.
 
-## `1.1.8`: AB selector and DP metadata layout
+## `1.1.8`: AB DP metadata layout
 
-`v1.1.8` owns the [AB IC selector scope correction](../ui/v1.1.x-ab-ic-selector-scope-handoff.md)
-and [AB DP metadata layout](../ui/v1.1.x-ab-dp-metadata-layout-handoff.md).
+`v1.1.8` retains only the [AB DP metadata layout](../ui/v1.1.x-ab-dp-metadata-layout-handoff.md).
+The AB selector scope correction is completed in `v1.1.2` and has no further
+allocation here.
 
 ## `1.1.9`: Standard Merge verification feedback
 
@@ -277,7 +282,7 @@ the [`post-v1.1.0 Tool development process retrospective handoff`](../governance
 
 ## `1.1.14`: evidence-preserving semantic convergence and minimality
 
-After `v1.1.2` physical document-cleanup planning, `v1.1.14` owns
+After `v1.1.2` document-cleanup closure and completed cleanup, `v1.1.14` owns
 evidence-preserving semantic architecture/version-rule convergence and a
 dead-code/minimality review. It reconciles stale SPEC/release evidence and
 current-versus-historical headings, and normalizes every active handoff's open

@@ -129,11 +129,11 @@ public sealed partial class RepositoryBoundaryTests
             normalizedNfcRoadmap,
             StringComparison.Ordinal);
         Assert.Contains(
-            "## `1.1.2`: repository document convergence planning",
+            "## `1.1.2`: support-neutral repository and DPCMI convergence",
             nfcRoadmap,
             StringComparison.Ordinal);
         Assert.Contains(
-            "physical whole-repository document inventory, topology, retention",
+            "approved support-neutral release-candidate scope for completed whole-repository document convergence",
             normalizedNfcRoadmap,
             StringComparison.Ordinal);
         Assert.Contains(
@@ -174,13 +174,13 @@ public sealed partial class RepositoryBoundaryTests
             StringComparison.Ordinal);
         string[] expectedV11Allocations =
         [
-            "## `1.1.2`: repository document convergence planning",
+            "## `1.1.2`: support-neutral repository and DPCMI convergence",
             "## `1.1.3`: infrastructure determinism and isolation",
             "## `1.1.4`: session diagnostics and Version-page review",
             "## `1.1.5`: CtrlRAM selector visual contract",
             "## `1.1.6`: first-entry selection and CtrlRAM Replace diagnosis",
             "## `1.1.7`: Memory Layout review",
-            "## `1.1.8`: AB selector and DP metadata layout",
+            "## `1.1.8`: AB DP metadata layout",
             "## `1.1.9`: Standard Merge verification feedback",
             "## `1.1.10`: Report History usability",
             "## `1.1.11`: Report Changes compare",
@@ -213,9 +213,11 @@ public sealed partial class RepositoryBoundaryTests
             StringComparison.Ordinal);
         Assert.Contains("immutable historical evidence", normalizedNfcRoadmap, StringComparison.Ordinal);
         Assert.Contains("former `v1.1.2` allocation is superseded to `v1.1.3`", normalizedNfcRoadmap, StringComparison.Ordinal);
-        Assert.Contains("D1-D7 deletion batch as final with frozen review and final verifier evidence", normalizedNfcRoadmap, StringComparison.Ordinal);
-        Assert.Contains("Lane C is final plus attested", normalizedNfcRoadmap, StringComparison.Ordinal);
-        Assert.Contains("Lane B is the owner-approved implementation candidate", normalizedNfcRoadmap, StringComparison.Ordinal);
+        Assert.Contains("D1-D7 and C1 final historical evidence", normalizedNfcRoadmap, StringComparison.Ordinal);
+        Assert.Contains("completed boilerplate cleanup", normalizedNfcRoadmap, StringComparison.Ordinal);
+        Assert.Contains("do not authorize further cleanup", normalizedNfcRoadmap, StringComparison.Ordinal);
+        Assert.Contains("General has no DPCMI reader", normalizedNfcRoadmap, StringComparison.Ordinal);
+        Assert.Contains("Dummy DP is deferred past `v1.1.2` and unallocated", normalizedNfcRoadmap, StringComparison.Ordinal);
         Assert.DoesNotContain("awaiting independent review/final gate", normalizedNfcRoadmap, StringComparison.Ordinal);
         Assert.Contains("Repository document convergence", readme, StringComparison.Ordinal);
         Assert.Contains("no second inventory or TODO owner", readme, StringComparison.Ordinal);
@@ -325,11 +327,10 @@ public sealed partial class RepositoryBoundaryTests
 
         foreach ((string releaseHeading, string handoffPath) in new[]
         {
-            ("## `1.1.2`: repository document convergence planning", "v1.1.2-repository-document-convergence-handoff.md"),
+            ("## `1.1.2`: support-neutral repository and DPCMI convergence", "v1.1.2-repository-document-convergence-handoff.md"),
             ("## `1.1.5`: CtrlRAM selector visual contract", "../ui/v1.1.5-ctrlram-selector-visual-contract.md"),
             ("## `1.1.6`: first-entry selection and CtrlRAM Replace diagnosis", "../ui/post-v1.1.0-navigation-and-ctrlram-first-open-handoff.md"),
-            ("## `1.1.8`: AB selector and DP metadata layout", "../ui/v1.1.x-ab-ic-selector-scope-handoff.md"),
-            ("## `1.1.8`: AB selector and DP metadata layout", "../ui/v1.1.x-ab-dp-metadata-layout-handoff.md"),
+            ("## `1.1.8`: AB DP metadata layout", "../ui/v1.1.x-ab-dp-metadata-layout-handoff.md"),
             ("## `1.1.9`: Standard Merge verification feedback", "../ui/v1.1.x-standard-merge-input-verification-feedback-handoff.md"),
             ("## `1.1.10`: Report History usability", "../ui/v1.1.x-report-history-usability-handoff.md"),
             ("## `1.1.11`: Report Changes compare", "../ui/v1.1.x-report-changes-compare-handoff.md"),
@@ -538,15 +539,11 @@ public sealed partial class RepositoryBoundaryTests
             "docs",
             "ui",
             "v1.1.x-ab-dp-metadata-layout-handoff.md")));
-        Assert.Contains(
+        Assert.DoesNotContain(
             "../ui/v1.1.x-ab-ic-selector-scope-handoff.md",
             nfcRoadmap,
             StringComparison.Ordinal);
         Assert.Contains("Status: handoff-only scope, acceptance, diagnosis, and evidence.", abIcSelectorScopeHandoff, StringComparison.Ordinal);
-        Assert.Contains(
-            "[NFC roadmap `v1.1.8` milestone](../architecture/nfc_roadmap.md#118-ab-selector-and-dp-metadata-layout)",
-            abIcSelectorScopeHandoff,
-            StringComparison.Ordinal);
         Assert.Contains("CapabilitySelectorPublication.Create", abIcSelectorScopeHandoff, StringComparison.Ordinal);
         Assert.Contains("WorkflowSelectorProjection.WorkflowIcChoices", abIcSelectorScopeHandoff, StringComparison.Ordinal);
         Assert.Contains("PublishAcceptedMergeSharedContext", abIcSelectorScopeHandoff, StringComparison.Ordinal);
