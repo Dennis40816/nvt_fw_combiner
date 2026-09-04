@@ -1034,6 +1034,60 @@ class CanonicalGoldenValidationTests(unittest.TestCase):
 
         self.assertEqual([], errors)
 
+    def test_rejects_release_alias_sourced_from_selected_nt51929_direct_input_evidence(
+        self,
+    ) -> None:
+        self.validate_release_allowlist()
+        certified_case_id = "nt51929-certified-metadata-inputs-20260904"
+        self.case_manifest["caseId"] = certified_case_id
+        self.root_manifest["cases"][0]["caseId"] = certified_case_id
+        self.rewrite_case()
+        self.rewrite_root()
+        self.convert_direct_golden_to_input_evidence()
+
+        selected = self.release_allowlist["cases"][0]
+        selected["caseId"] = certified_case_id
+        selected["manifestSha256"] = hashlib.sha256(
+            (self.canonical / selected["manifestPath"]).read_bytes()
+        ).hexdigest()
+        selected["testDispositionKind"] = "input-only-evidence"
+        selected["directGolden"] = False
+        selected["directEvidence"] = True
+        selected["artifacts"] = [
+            {
+                key: artifact[key]
+                for key in ("artifactId", "role", "path", "size", "sha256")
+            }
+            for artifact in self.case_manifest["artifacts"]
+        ]
+        self.release_allowlist["selectionSummary"] = {
+            "caseCount": 1,
+            "directGoldenCount": 0,
+            "directInputEvidenceCount": 1,
+            "factScopedAliasCount": 0,
+            "artifactDeclarationCount": 1,
+            "uniqueArtifactPathCount": 1,
+        }
+        self.add_release_alias()
+        self.write_json(
+            self.root / "testdata/golden/release-canonical-v1.json",
+            self.release_allowlist,
+        )
+
+        errors: list[str] = []
+        VALIDATOR.validate_canonical_release_allowlist(
+            self.root,
+            errors,
+            expected_summary=self.release_allowlist["selectionSummary"],
+        )
+
+        self.assertTrue(
+            any(
+                "must select its exact same-workflow direct Golden source" in error
+                for error in errors
+            )
+        )
+
     def test_rejects_release_artifact_hash_drift(self) -> None:
         self.validate_release_allowlist()
         self.release_allowlist["cases"][0]["artifacts"][0]["sha256"] = "0" * 64

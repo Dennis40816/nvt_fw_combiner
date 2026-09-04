@@ -143,7 +143,7 @@ $WorkerBuild = Join-Path $WorkRoot 'worker-build'
 $WorkerDist = Join-Path $WorkRoot 'worker-dist'
 $IdleBuildWorkerStopper = Join-Path $PSScriptRoot 'stop-idle-build-workers.ps1'
 $CanonicalGoldenReleaseAllowlistPath = Join-Path $RepoRoot 'testdata/golden/release-canonical-v1.json'
-$ApprovedCanonicalGoldenReleaseAllowlistSha256 = '853f0409f74c62558064878ceb11f162e2c2f32e067aee70d38138b1155d1c08'
+$ApprovedCanonicalGoldenReleaseAllowlistSha256 = '3fa22d263cee83a07ee30d2977dbf4afde2b5bcca685f9ded51f9d54c1f26ee7'
 
 try {
 if (-not $PolicyDryRunSentinel) {
@@ -872,6 +872,18 @@ function Invoke-ExternalToolPolicyDryRun {
                 }
             },
             [pscustomobject]@{
+                Name = 'alias-source-direct-input-evidence'
+                ExpectedMessage = '*differs from the explicit release allowlist*'
+                Mutate = {
+                    param($Allowlist)
+                    $Alias = @($Allowlist.cases | Where-Object {
+                        $_.directGolden -eq $false -and $_.directEvidence -eq $false
+                    })[0]
+                    $InputEvidence = @($Allowlist.cases | Where-Object { $_.directEvidence -eq $true })[0]
+                    $Alias.alias.sourceCaseId = $InputEvidence.caseId
+                }
+            },
+            [pscustomobject]@{
                 Name = 'direct-input-evidence-role-drift'
                 ExpectedMessage = '*differs from the explicit release allowlist*'
                 Mutate = {
@@ -1480,7 +1492,7 @@ Contents:
 - RELEASE-MANIFEST.json: source and file integrity metadata
 - SHA256SUMS.txt: package file hashes
 
-This package includes 25 release-selected Direct Golden cases, one owner-certified input-only evidence case, and nine self-contained evidence aliases across Standard Merge, AB Merge, and CtrlRAM Replace under reference/testdata/golden/canonical. The certified case contains two neutral-named raw input BIN entries; it is not an expected output, Direct Golden, parity claim, runtime path, or support promotion. Eleven Direct Goldens use full-output comparison; fourteen retain their reviewed allowed-byte-difference scope. Two older input-only evidence cases and their three dependent aliases remain repository-only. Diagnostics, owner handoff records, CJK14/HackMD transfer material, archives, private or quarantine evidence, unmanifested BIN files, generated firmware outputs, refcode, production source tree, test projects, editable source profiles, Python runtime installation, and .NET installation requirements are excluded. The packaged BAT and CONFIG provenance are inert reference bytes only and are never tools, processors, or commands. Packaging reference evidence does not promote runtime support.
+This exact release selection includes 25 Direct Golden cases, one selected owner-certified input-only evidence case, and nine self-contained evidence aliases across Standard Merge, AB Merge, and CtrlRAM Replace under reference/testdata/golden/canonical. The selected input-only case contains two neutral-named raw input BIN entries; it is not an expected output, Direct Golden, parity claim, runtime path, or support promotion. Eleven Direct Goldens use full-output comparison; fourteen retain their reviewed allowed-byte-difference scope. Two older input-only evidence cases and their three dependent aliases remain repository-only. Diagnostics, owner handoff records, CJK14/HackMD transfer material, archives, private or quarantine evidence, unmanifested BIN files, generated firmware outputs, refcode, production source tree, test projects, editable source profiles, Python runtime installation, and .NET installation requirements are excluded. The packaged BAT and CONFIG provenance are inert reference bytes only and are never tools, processors, or commands. Packaging reference evidence does not promote runtime support.
 "@ | Set-Content -LiteralPath (Join-Path $PackageRoot 'README.txt') -Encoding utf8NoBOM
 }
 

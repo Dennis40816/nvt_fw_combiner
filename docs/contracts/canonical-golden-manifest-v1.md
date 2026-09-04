@@ -121,7 +121,7 @@ mislabeling a repository-derived output as an owner expected golden.
 An alias case declares `directGolden: false`, omits `directEvidence` or declares it as `false`, has no
 physical artifacts, and declares a direct `sourceCaseId`, non-empty `factScope`, and non-empty
 `evidenceRefs`. Alias chains and cross-workflow aliases are forbidden: the source must be a physical
-direct Golden case in the same workflow. The alias directory contains only
+Direct Golden or direct input-evidence case in the same workflow. The alias directory contains only
 its provenance manifest, so consumers cannot mistake alias evidence for a second expected BIN.
 
 ## Test disposition
@@ -167,7 +167,7 @@ an executable golden source.
 `testdata/golden/release-canonical-v1.json` schema `1.1` is the v1.1.2 human-gated redistribution authority. It
 pins the canonical README by exact-byte `canonicalReadmeSha256` and every selected `caseId`,
 case-manifest path and exact-byte `manifestSha256`, workflow, test-disposition kind, alias source, and
-logical artifact declaration including role, path, byte size, and SHA-256. Its 2026-09-01 owner
+logical artifact declaration including role, path, byte size, and SHA-256. Its 2026-09-04 owner
 authorization is limited to immutable reference-payload redistribution. It neither rewrites older
 case provenance nor promotes runtime support or widens a case's declared parity scope.
 
@@ -182,8 +182,9 @@ storage evidence only: it is not a Direct Golden relabel, expected output, runti
 authority, or full-byte parity assertion. Matching parsed case facts or a self-consistent replacement does not
 satisfy the case-manifest exact-byte identity. Eleven direct cases declare full-output comparison and fourteen
 declare reviewed allowed-byte differences. The two older direct input-evidence cases and the three aliases
-that depend on them remain repository-only evidence; they are not release Goldens. No alias may
-source input-only evidence. Diagnostics, owner-handoff, quarantine, retired-IC, CJK14/HackMD
+that depend on them remain repository-only evidence; they are not release Goldens. For this
+release-selected snapshot only, an alias may source only a selected same-workflow Direct Golden;
+it may not source input-only evidence. Diagnostics, owner-handoff, quarantine, retired-IC, CJK14/HackMD
 transfer parts, archives, generated, private, and unlisted material is likewise excluded. A canonical
 path, a `directEvidence` flag, or a raw BIN alone never admits content to the package.
 

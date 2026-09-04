@@ -13,7 +13,7 @@
     "runtimeSupportPromotion": false,
     "fullByteParityClaim": false
   },
-  "canonicalReadmeSha256": "57cce4b34f41012e6129d3da7e5250c7a4947dd99431cf5a634c50ead6299cb1",
+  "canonicalReadmeSha256": "7692f828b0aaa286437cd786ccb7620acc85db33487ebd68b793d5b771070728",
   "selectionSummary": {
     "caseCount": 35,
     "directGoldenCount": 25,

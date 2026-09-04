@@ -1,6 +1,6 @@
 # Canonical Golden Evidence
 
-This closed inventory stores owner-approved direct firmware goldens by IC, workflow, variant or version, topology, and case. `provenance/case.json` pins every physical artifact by size, SHA-256, source facts, approval, and legacy path.
+This closed inventory stores owner-approved direct firmware goldens by IC, workflow, variant or version, topology, and case. `provenance/case.json` normally pins every physical artifact by size, SHA-256, source facts, approval, original filename, and `legacyPaths` provenance. The sole narrow approved exception is the owner-certified neutral-name NT51929 input-only case: its original names and intake archive are prohibited from Git, so its case certification and exact artifact hashes replace those provenance fields.
 
 Fact-scoped aliases contain no copied firmware payload. One direct case may bind one immutable physical input to multiple logical command roles, while different direct cases retain separate case inventories. Diagnostic controls and owner handoff material are classified by `testdata/diagnostics/golden-evidence/manifest.json` and are excluded from canonical regression and release reference payloads. After physical migration was frozen, the record keeps hash-pinned references to the existing repository-only quarantine paths instead of copying payloads.
 
