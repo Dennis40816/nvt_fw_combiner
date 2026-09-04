@@ -5,7 +5,7 @@
   "integrationBase": "42e189c8b2a39d9a94d98ab5e4ee45d9fc17d570",
   "risk": "R3",
   "kind": "behavior",
-  "state": "design-active",
+  "state": "final-complete",
   "mutablePaths": [
     "docs/contracts/canonical-capability-policy-v1.json",
     "profiles/built-in/nt51919-nt51929-nt51932-ab-merge/families/nt51919-nt51929-nt51932-ab-merge.json",
@@ -41,12 +41,12 @@
     "outcome": "approved",
     "evidence": "ADR 0012 fixes NT51929/NT51932 DPCMI at 0x401A; ADR 0032 fixes perfect-family AB per-bank CMD Page ranges; ADR 0039 binds owner-backed perfect-family facts at 0x401A. The independent Luna audit found exactly one reachable Standard Merge dp-code+102 legacy locator, confirmed AB is already canonical and General has no reader, and the owner explicitly prohibited any reachable absolute DP/DPCMI read below 0x100."
   },
-  "implementationHead": null,
-  "reviewedHead": null,
-  "pathStateDigest": null,
+  "implementationHead": "5f3341cc7fa99e6e20e69745f857978eb9649659",
+  "reviewedHead": "5f3341cc7fa99e6e20e69745f857978eb9649659",
+  "pathStateDigest": "ca5c562623a0f2ee5a79b9e0c33180a57c9bde777f7309801cd7309bae1365d5",
   "finalReview": {
-    "reviewer": null,
-    "outcome": "pending",
-    "evidence": ""
+    "reviewer": "/root/dpcmi_independent_review (GPT-5.6 Luna/medium)",
+    "outcome": "approved",
+    "evidence": "Independent exact-head R3 review approved implementation 5f3341cc7fa99e6e20e69745f857978eb9649659 against direct parent 12e3b6b7ac9d0bcd301569fe7810d222cf4eb919 with P0/P1/P2/P3 = 0/0/0/0 and a clean 30-path diff comprising exactly 19 admitted governed paths, ten regression paths, and this record. Standard Merge NT51919, NT51929, and NT51932 now resolve the sole DPCMI read from CMD1 Page 0 anchor [0x4004,0x401D) plus 0x16, yielding [0x401A,0x401D); the production inspection path has no physical-offset fallback and all other built-in DPCMI locators also resolve at or above 0x100. AB retains its existing [0x401A,0x401D) and [0x4401A,0x4401D) per-bank CMD Page reads, while General Merge retains metadataBindings: [] and no DPCMI reader. Exact CMD Page and truncated-input no-fallback regressions passed 4/4 independently; the writer also recorded Standard/AB/General contracts 56/56, profile/compiler/golden coverage 66/66, workbench goldens 3/3, and capability-policy coverage 20/20. Canonical policy SHA-256 6207923baf537c4031f2095942d363660c7a1c5cbd35e704ec14b28c509aef0f and all bundle/trust projections agree. Golden output bytes remain unchanged, including NT51929 output SHA-256 fdba72984d662c4d652c56d909cf27756193f3766875b42d55207bccfca6867e; the intentional user-visible consequence is that Standard output naming now uses the authoritative CMD Page sub-version D2004 instead of the retired compact-view result D0200. No FWConfig, TP-header, Dummy-DP, support, processor, CRC, mutation-order, or output-byte semantics changed. Scoped review and diff checks passed; full repository verification and release publication remain separate lifecycle gates."
   }
 }
