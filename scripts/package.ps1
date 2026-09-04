@@ -1413,7 +1413,7 @@ This directory contains human-review reference evidence and owner-approved golde
 Included:
 - docs/references/: flash-map, postbuild, flash-header, and provenance references.
 - docs/architecture/: CtrlRAM postbuild investigation and IC workflow references.
-- testdata/golden/canonical/: release-selected direct Golden payloads and self-contained fact-scoped alias manifests.
+- testdata/golden/canonical/: 25 Direct Golden cases, one owner-certified input-only evidence case, and nine self-contained fact-scoped alias manifests.
 
 Non-allowlisted private firmware, diagnostics, owner-handoff records, unmanifested BIN files, generated firmware outputs, refcode, source trees, and test projects are not shipped here.
 "@ | Set-Content -LiteralPath (Join-Path $ReferenceDestination 'README.txt') -Encoding utf8NoBOM
