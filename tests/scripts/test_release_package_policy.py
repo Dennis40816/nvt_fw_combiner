@@ -1394,11 +1394,11 @@ finally {
             result.stdout,
         )
         self.assertIn(
-            "Canonical golden package policy dry-run passed: 25 direct Goldens, nine self-contained aliases, 159 declarations, and 156 unique artifact paths selected",
+            "Canonical golden package policy dry-run passed: 25 direct Goldens, one owner-certified input-only evidence case, nine self-contained aliases, 161 declarations, and 158 unique artifact paths selected",
             result.stdout,
         )
         self.assertIn(
-            "Canonical golden package policy identity, direct/alias drift, retired-IC, and strict-type rejection passed",
+            "Canonical golden package policy identity, direct/input/alias drift, retired-IC, and strict-type rejection passed",
             result.stdout,
         )
         self.assertIn(
@@ -3606,11 +3606,12 @@ finally {
 
         self.assertEqual(
             {
-                "caseCount": 34,
+                "caseCount": 35,
                 "directGoldenCount": 25,
+                "directInputEvidenceCount": 1,
                 "factScopedAliasCount": 9,
-                "artifactDeclarationCount": 159,
-                "uniqueArtifactPathCount": 156,
+                "artifactDeclarationCount": 161,
+                "uniqueArtifactPathCount": 158,
             },
             allowlist["selectionSummary"],
         )
@@ -3628,6 +3629,11 @@ finally {
             "nt51928-fw132-non-nb-cascade2-nt51927-alias",
         }
         self.assertTrue(excluded.isdisjoint(selected))
+        certified = selected["nt51929-certified-metadata-inputs-20260904"]
+        self.assertFalse(certified["directGolden"])
+        self.assertTrue(certified["directEvidence"])
+        self.assertEqual("input-only-evidence", certified["testDispositionKind"])
+        self.assertEqual(2, len(certified["artifacts"]))
         for case in selected.values():
             case_manifest_path = (
                 ROOT / "testdata/golden/canonical" / case["manifestPath"]
@@ -3637,6 +3643,14 @@ finally {
                 case["manifestSha256"],
             )
             if case["directGolden"]:
+                continue
+            if case["directEvidence"]:
+                self.assertEqual("input-only-evidence", case["testDispositionKind"])
+                self.assertNotIn("alias", case)
+                self.assertTrue(case["artifacts"])
+                self.assertTrue(
+                    all(artifact["role"] == "input" for artifact in case["artifacts"])
+                )
                 continue
             source = selected[case["alias"]["sourceCaseId"]]
             self.assertTrue(source["directGolden"])
@@ -4361,9 +4375,9 @@ finally {
                         (canonical_source / artifact["path"]).read_bytes(),
                     )
 
-            self.assertEqual(34, len(allowlist["cases"]))
+            self.assertEqual(35, len(allowlist["cases"]))
             self.assertEqual(
-                156,
+                158,
                 len(
                     {
                         artifact["path"]

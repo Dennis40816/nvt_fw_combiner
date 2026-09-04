@@ -1669,6 +1669,11 @@ to each `0.10.x` version.
     `[0x16, 0x19)`. DP Version and Jira are derived fields, not alternate
     locator authorities. The legacy DP-version reader is parity-only and is
     deleted after all callers move.
+    The owner-certified NT51929 `certified-metadata-inputs` observations record
+    those existing DPCMI facts at `cmd1-page0 [0x401A,0x401D)` only; they do
+    not add a locator, decoder, profile, support row, execution route, expected
+    output, or full-byte parity claim. Their compact bytes at `[0x66,0x69)` are
+    legacy evidence only.
 13. FirmwareConfig is one all-IC structure. Its General Parameters use one
     declared prefix `[0x000, 0x029)`. IC Count is the unsigned byte
     `u8Chip_Num` at structure-relative offset `0x017`; it is not a TP Flash

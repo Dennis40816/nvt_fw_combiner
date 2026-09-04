@@ -1065,6 +1065,10 @@
     {
       "caseId": "nt51928-fw132-non-nb-cascade2-nt51927-alias",
       "manifestPath": "NT51928/ctrlram-replace/fw1.3.2-non-nb/cascade-2/nt51928-fw132-non-nb-cascade2-nt51927-alias/provenance/case.json"
+    },
+    {
+      "caseId": "nt51929-certified-metadata-inputs-20260904",
+      "manifestPath": "NT51929/standard-merge/certified-metadata-inputs/topology-unscoped/nt51929-certified-metadata-inputs-20260904/provenance/case.json"
     }
   ]
 }

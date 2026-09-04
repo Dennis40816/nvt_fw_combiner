@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 2,
+  "taskId": "RELEASE-CANONICAL-112-01",
+  "capability": "Synchronize the v1.1.2 release-canonical snapshot with the exact owner-certified NT51929 input-only evidence case",
+  "integrationBase": "63e635489abc990695b01e1339539cc835d1bd2e",
+  "risk": "R3",
+  "kind": "release",
+  "state": "design-active",
+  "mutablePaths": [
+    "docs/contracts/release-manifest-v1.md",
+    "docs/ci/release-package.md",
+    "scripts/package.ps1",
+    "scripts/smoke-release.ps1"
+  ],
+  "implementationOwner": "implement_release_golden_sync",
+  "searchEvidence": [
+    "testdata/golden/release-canonical-v1.json is the existing hash-pinned release-selection owner; scripts/package.ps1 projects only its entries and scripts/smoke-release.ps1 enforces the packaged allowlist identity, tree, artifacts, SBOM, provenance, and manifest roles.",
+    "The existing release projection has two cases of behavior—direct Golden and alias—and rejects direct input evidence. The approved disposition extends that single path to an explicit three-way direct-Golden/direct-input-evidence/alias branch.",
+    "The only new admission is caseId nt51929-certified-metadata-inputs-20260904. Older input-only cases and dependent aliases remain excluded, and no canonical-tree/directEvidence scan is an admission mechanism."
+  ],
+  "semanticOwner": "The versioned release-canonical allowlist remains the sole redistribution-admission owner; package.ps1 and smoke-release.ps1 remain its sole package projection and protected verification owners.",
+  "terminalContract": "Bump the existing release-canonical policy to schema 1.1 and authorize version 1.1.2 with one exact allowlisted direct input evidence case, yielding 35 cases, 25 Direct Goldens, 1 direct input evidence, 9 aliases, 161 declarations, 158 unique artifact paths, 194 projected canonical paths, and 148 packaged canonical BINs. Package the manifest and exactly two neutral-named raw BIN entries in the outer ZIP; preserve goldenFixture as inert storage role only. Enforce exact allowlist SHA atomically in package and smoke, include the exact files in manifest/SBOM/provenance, retain dry-run confinement, require aliases to source only selected same-workflow Direct Goldens, and reject older input evidence/dependent aliases, CJK14/HackMD/archive/private/generated material, nested archives, raw bypass, Direct-Golden relabel, fabricated expected output, a parallel manifest, and automatic tree selection.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "architect_release_golden_sync",
+    "outcome": "findings-incorporated",
+    "evidence": "The approved R3 design resolves all P1 constraints: the input-only case is not relabeled as Direct Golden and has no expected output; selection is one explicit exact allowlist admission rather than a tree sweep; package and smoke implement direct-Golden/direct-input-evidence/alias branches; and raw BINs are individually hash-pinned outer-ZIP files with no nested archive or bypass. The release snapshot is the reviewed redistribution authority; runtime semantics and support stay unchanged."
+  },
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": {
+    "reviewer": null,
+    "outcome": "pending",
+    "evidence": ""
+  }
+}

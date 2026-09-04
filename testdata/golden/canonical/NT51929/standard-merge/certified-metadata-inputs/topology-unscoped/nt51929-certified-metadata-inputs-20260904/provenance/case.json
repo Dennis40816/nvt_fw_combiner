@@ -1,0 +1,65 @@
+{
+  "schemaVersion": "1.0",
+  "caseId": "nt51929-certified-metadata-inputs-20260904",
+  "ic": "NT51929",
+  "workflow": "standard-merge",
+  "variantOrVersion": "certified-metadata-inputs",
+  "topology": "topology-unscoped",
+  "directGolden": false,
+  "directEvidence": true,
+  "testDisposition": {
+    "kind": "input-only-evidence",
+    "evidenceRefs": [
+      "tests/scripts/test_canonical_golden_validation.py#test_nt51929_certified_dpcmi_observations_are_input_only_and_exact"
+    ]
+  },
+  "sourceClassification": "owner-certified-public-input-observation",
+  "ownerApproval": "Repository owner certified both exact NT51929 observations on 2026-09-04 for public Git and stable-release-package redistribution; this case remains input-only evidence.",
+  "artifacts": [
+    {
+      "artifactId": "initial-code-observation",
+      "role": "input",
+      "path": "NT51929/standard-merge/certified-metadata-inputs/topology-unscoped/nt51929-certified-metadata-inputs-20260904/inputs/nt51929-initial-code-observation.bin",
+      "size": 524288,
+      "sha256": "5ccf5802511635dbed73fc8043acb0021ed379568e8479028b640dda5ec2b02a"
+    },
+    {
+      "artifactId": "flashcode-observation",
+      "role": "input",
+      "path": "NT51929/standard-merge/certified-metadata-inputs/topology-unscoped/nt51929-certified-metadata-inputs-20260904/inputs/nt51929-flashcode-observation.bin",
+      "size": 524288,
+      "sha256": "69fa975a9883db2494d2c2cf5dce05507573c9a753efb6f62589fa3acded68d4"
+    }
+  ],
+  "certifiedDpcmiObservation": {
+    "contractReference": "src/NvtFwCombiner.Application/Metadata/DpcmiMetadataProjector.cs#DpcmiMetadataContract",
+    "addressSpaceId": "cmd1-page0",
+    "range": {
+      "start": "0x401A",
+      "endExclusive": "0x401D"
+    },
+    "bytesHex": "5F0912",
+    "dpMajor": 9,
+    "dpMinor": 1,
+    "jira": 607,
+    "legacyCompactEvidence": {
+      "range": {
+        "start": "0x66",
+        "endExclusive": "0x69"
+      },
+      "authority": "legacy-evidence-only"
+    }
+  },
+  "releaseRedistribution": {
+    "approved": true,
+    "admission": "release-canonical-v1 exact case allowlist only",
+    "exclusions": [
+      "not-a-standard-ab-input-output-pair",
+      "not-an-expected-output",
+      "not-a-direct-golden",
+      "not-a-full-byte-parity-claim",
+      "not-runtime-semantics",
+      "not-support-promotion"
+    ]
+  }
+}

@@ -106,6 +106,13 @@ may remain when they already identify the same case IC; otherwise the preferred 
 `<ic>-<artifact-id>.bin`. The original supplied filename remains evidence in `originalFileName`
 and/or `legacyPaths`; renaming a canonical path never authorizes payload or hash changes.
 
+The sole owner-certified public-input exception is
+`nt51929-certified-metadata-inputs-20260904`. Its artifact declarations omit
+`legacyPaths` because the original names and intake archive are prohibited from
+Git; the case's owner certification, two exact artifact SHA-256 values, and
+exact release allowlist admission are its provenance. No other canonical
+artifact may omit `legacyPaths`.
+
 A direct input-evidence case declares `directGolden: false` and `directEvidence: true`. It contains
 one or more immutable input artifacts but cannot declare an expected artifact. This represents
 owner-approved base, replacement, or processor inputs whose execution facts are useful without
@@ -114,7 +121,7 @@ mislabeling a repository-derived output as an owner expected golden.
 An alias case declares `directGolden: false`, omits `directEvidence` or declares it as `false`, has no
 physical artifacts, and declares a direct `sourceCaseId`, non-empty `factScope`, and non-empty
 `evidenceRefs`. Alias chains and cross-workflow aliases are forbidden: the source must be a physical
-direct golden or direct input-evidence case in the same workflow. The alias directory contains only
+direct Golden case in the same workflow. The alias directory contains only
 its provenance manifest, so consumers cannot mistake alias evidence for a second expected BIN.
 
 ## Test disposition
@@ -157,21 +164,28 @@ The retired active CtrlRAM fixture authority (`ctrlram-replace/manifest.json`, i
 provenance. The separately indexed `fixtures/20260717` tree remains diagnostic quarantine and is not
 an executable golden source.
 
-`testdata/golden/release-canonical-v1.json` is the v1.0.8 human-gated redistribution authority. It
+`testdata/golden/release-canonical-v1.json` schema `1.1` is the v1.1.2 human-gated redistribution authority. It
 pins the canonical README by exact-byte `canonicalReadmeSha256` and every selected `caseId`,
 case-manifest path and exact-byte `manifestSha256`, workflow, test-disposition kind, alias source, and
 logical artifact declaration including role, path, byte size, and SHA-256. Its 2026-09-01 owner
 authorization is limited to immutable reference-payload redistribution. It neither rewrites older
 case provenance nor promotes runtime support or widens a case's declared parity scope.
 
-The closed selection contains 25 direct Goldens and nine fact-scoped aliases whose exact
-same-workflow direct Golden source is also selected: 34 cases, 159 logical artifact declarations,
-and 156 unique physical paths. Matching parsed case facts or a self-consistent replacement does not
+The closed selection contains 25 Direct Goldens, one owner-certified direct input-evidence case,
+and nine fact-scoped aliases whose exact same-workflow Direct Golden source is also selected: 35
+cases, 161 logical artifact declarations, and 158 unique physical paths. The input-only admission
+is exactly `nt51929-certified-metadata-inputs-20260904`, with 524288-byte Initial Code SHA-256
+`5ccf5802511635dbed73fc8043acb0021ed379568e8479028b640dda5ec2b02a` and FlashCode SHA-256
+`69fa975a9883db2494d2c2cf5dce05507573c9a753efb6f62589fa3acded68d4`; both observe the existing
+DPCMI CMD1 Page 0 `cmd1-page0 [0x401A,0x401D)` bytes `5F 09 12` (DP `09.01`, Jira `607`). This is
+storage evidence only: it is not a Direct Golden relabel, expected output, runtime/profile/support
+authority, or full-byte parity assertion. Matching parsed case facts or a self-consistent replacement does not
 satisfy the case-manifest exact-byte identity. Eleven direct cases declare full-output comparison and fourteen
-declare reviewed allowed-byte differences. The two direct input-evidence cases and the three aliases
-that depend on them remain repository-only evidence; they are not release Goldens. Diagnostics,
-owner-handoff, quarantine, retired-IC, generated, private, and unlisted material is likewise
-excluded. A canonical path alone never admits content to the package.
+declare reviewed allowed-byte differences. The two older direct input-evidence cases and the three aliases
+that depend on them remain repository-only evidence; they are not release Goldens. No alias may
+source input-only evidence. Diagnostics, owner-handoff, quarantine, retired-IC, CJK14/HackMD
+transfer parts, archives, generated, private, and unlisted material is likewise excluded. A canonical
+path, a `directEvidence` flag, or a raw BIN alone never admits content to the package.
 
 The allowlist treats its BAT and CONFIG provenance artifacts as inert, hash-pinned reference bytes.
 They are not processors, tools, commands, or executable Golden runtime. The packager fails closed if
@@ -182,4 +196,6 @@ firmware-owner and release-owner review.
 `scripts/canonical_golden_validation.py` is the executable repository validator for this contract.
 It uses only the Python standard library and verifies path confinement, exact inventory, hash/size,
 direct-case completeness, typed dispositions, reviewed difference ranges, evidence references,
-retired active authority, exact release counts, and self-contained fact-scoped alias integrity.
+retired active authority, exact release counts, direct-Golden/direct-input-evidence/alias separation,
+and self-contained fact-scoped alias integrity. It binds the certified NT51929 bytes to the existing
+`DpcmiMetadataContract`; it does not add another offset decoder or selector.
