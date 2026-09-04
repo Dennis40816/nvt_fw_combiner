@@ -5,7 +5,7 @@
   "integrationBase": "541ee40a4e19a3e485b5452208e3e64a0e59906a",
   "risk": "R3",
   "kind": "release",
-  "state": "design-active",
+  "state": "final-complete",
   "mutablePaths": [
     "scripts/package.ps1",
     "scripts/smoke-release.ps1"
@@ -24,12 +24,12 @@
     "outcome": "approved",
     "evidence": "Root approved the minimal R3 release-trust pin synchronization after two independent read-only diagnostics established the canonical LF-byte policy hash, isolated all active stale pins, and distinguished the two historical evidence projections that must remain immutable."
   },
-  "implementationHead": null,
-  "reviewedHead": null,
-  "pathStateDigest": null,
+  "implementationHead": "c63c041fa7fbab994202ecf97cabe64bbd60e136",
+  "reviewedHead": "c63c041fa7fbab994202ecf97cabe64bbd60e136",
+  "pathStateDigest": "caf82ee7b2f9c6c53e3e7ada999d85eb94300cec7663b2830d958a727bff088e",
   "finalReview": {
-    "reviewer": null,
-    "outcome": "pending",
-    "evidence": ""
+    "reviewer": "/root/review_release_policy_pin_sync (GPT-5.6 Luna/high)",
+    "outcome": "approved",
+    "evidence": "Independent exact-head R3 review approved implementation c63c041fa7fbab994202ecf97cabe64bbd60e136, tree cde2f72ac6faa4f4b3df6b20feaa0c659628fb07, against parent 609910457e08376935ba1cba06bf3743aa2b861c with P0/P1/P2/P3 = 0/0/0/0. The diff is exactly this record plus four existing projections. The authoritative LF-only canonical policy bytes hash to 6207923baf537c4031f2095942d363660c7a1c5cbd35e704ec14b28c509aef0f, and package.ps1, smoke-release.ps1, the release-policy test fixture, and the current v1.1.2 verification report now pin that value. The 2026-08-22 audit and v0.9.16 certification retain their historical bf818a4c9aa4d539882e4bc4a0a662ef70ece67a44e78ae83356430365828f50 binding. Canonical policy bytes, runtime, profiles, Golden/BIN data, release allowlist contents and asset roles/counts, workflow permissions, package semantics, and cleanup behavior are unchanged. Writer evidence passed four committed-head release-policy tests including the snapshot-removal failure path; the reviewer independently passed five capability-policy tests. Diff checking and the scoped Polytail audit passed. Full verifier, protected CI, release workflow, publication, and post-publication verification remain separate mandatory gates."
   }
 }
