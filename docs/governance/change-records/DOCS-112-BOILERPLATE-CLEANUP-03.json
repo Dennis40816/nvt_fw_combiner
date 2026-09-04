@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 2,
+  "taskId": "DOCS-112-BOILERPLATE-CLEANUP-03",
+  "capability": "Remove four owner-approved standalone boilerplate READMEs while preserving the existing profile package-catalog authority and v1.1.2 evidence owners",
+  "integrationBase": "478d39b4cfda778f0a26e56f7f38387e7969b644",
+  "risk": "R3",
+  "kind": "governance",
+  "state": "design-active",
+  "mutablePaths": [
+    "profiles/samples/README.md",
+    "profiles/schema/README.md"
+  ],
+  "implementationOwner": "gpt-5.6-terra/high sole writer",
+  "searchEvidence": [
+    "Owner-approved scope is exactly profiles/samples/README.md, profiles/schema/README.md, testdata/public-synthetic/README.md, tests/NvtFwCombiner.Infrastructure.Tests/README.md, and the minimal named RepositoryBoundary status-assertion correction; no archive, replacement inventory, TODO, profile JSON/schema/family/trust-index fact, Golden payload/hash/manifest, code, other test behavior, package script/workflow, VERSION, CHANGELOG, launcher, UI, or performance mutation is admitted.",
+    "At integration base 478d39b4cfda778f0a26e56f7f38387e7969b644, binary-safe git grep -a -l -F for each of the four exact paths returns no tracked inbound reference. Their tracked sizes/SHA-256/Git blobs are respectively profiles/samples/README.md: 81/7e43c42d602818a4c0f2609c53067db58fe241f8d9a4cdc0af91b6334fc8b10d/49dd5c60eeeed382d715e40c1dd799ce33ae4373; profiles/schema/README.md: 153/31537835e215e1dd1eae7f20fc6175ccfc4976752f5c5d8088f6a673b14aa8eb/cd28d983acbecbd609133ed120a8ff23ca9b343c; testdata/public-synthetic/README.md: 114/df4b8d051800f0762251f7e6750af197f8c4b53645a2adaf544a65f754fc7c62/e7f13ec77e59a329ee3a66b1461978b1edd23793; tests/NvtFwCombiner.Infrastructure.Tests/README.md: 149/bbd402461ed6e5ffbfb563940cf8f0c595244e082a9dcd49cdf291101d805886/ea90f29ac09921ab5989ae6b5a5fee44f07f980a.",
+    "scripts/package.ps1 Get-TreeDigest hashes every recursive profiles file into RELEASE-MANIFEST embeddedProfileCatalogSha256. The pre-delete profile tree is 115 files with digest 0332c9fbc74672c9d77b50e7b422a4deb212097720acbf5bf7d8e760f3c39578; removing only the two governed README files is expected to yield 113 files and digest 3d95ab4b0c24e9ad4ad401c8f487c1872a32a4babd109ec695b36f8ce2df332b, to be reconfirmed after deletion. Neither README is shipped as a package file: packaged payload inventory, profile-file projection, and package scripts remain unchanged, while RELEASE-MANIFEST embeddedProfileCatalogSha256, resulting archive digest, and provenance identity are intentionally expected to change.",
+    "The four deletions reuse the exact standalone-boilerplate disposition. The v1.1.2 handoff and manifest remain the sole v1.1.2 evidence owners; NFC roadmap remains the sole scheduling owner. The one admitted architecture boundary test changes only its stale D1-D7/Lane C status assertions to require the truthful final/attested and Lane B candidate state; it neither weakens nor removes boundary coverage. The adjacent ungoverned evidence documents, the testdata/test README deletions, and this record are intentionally absent from mutablePaths because the canonical validator requires current design-active mutablePaths to be governed; no other governed path is admitted."
+  ],
+  "semanticOwner": "The existing profiles packaging/catalog mechanism owns the recursive profile-tree digest and its embeddedProfileCatalogSha256 projection; README.md remains the human entry, docs/architecture/nfc_roadmap.md remains the sole scheduling owner, and the existing v1.1.2 handoff and manifest remain the sole v1.1.2 evidence owners.",
+  "terminalContract": "After this staged admission validates against checkpoint 478d39b4cfda778f0a26e56f7f38387e7969b644, delete exactly the four approved standalone README paths; update only the existing v1.1.2 handoff, v1.1.2 manifest, and NFC roadmap to state D1-D7 final, Lane C final plus attested, and Lane B as an implementation candidate with review gates; and update only the named RepositoryBoundary roadmap assertions to require that truthful status. Reconfirm the exact path audit and profile-tree digest; preserve package scripts, packaged payload inventory, and profile-file projection while expecting RELEASE-MANIFEST embeddedProfileCatalogSha256, resulting archive digest, and provenance identity to change. Run targeted release-package policy coverage, the targeted RepositoryBoundary roadmap/doc test, diff check, and only the necessary structure validation. Independent exact-head Sol review plus one R3 release-owner attestation remain required; this design-active record must later be finalized by the primary owner.",
+  "disposition": "reuse",
+  "designReview": {
+    "reviewer": "owner-approved Lane B design boundary",
+    "outcome": "approved",
+    "evidence": "The owner fixed the exact four deletion paths, mutable surfaces, canonical owners, checkpoint, package-digest expectation, and R3 review/attestation gates. The admission reuses deletion of standalone boilerplate and the existing profile package-catalog/evidence owners without a second semantic or documentation authority."
+  },
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": {
+    "reviewer": null,
+    "outcome": "pending",
+    "evidence": ""
+  }
+}

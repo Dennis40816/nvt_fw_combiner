@@ -182,10 +182,17 @@ Launcher refinement, or former product-expansion item belongs to `v1.1.1`.
 and cleanup planning only. The detailed classification/manifest gate is the
 [`v1.1.2 repository document convergence handoff`](v1.1.2-repository-document-convergence-handoff.md).
 Its Phase 1 [manifest](v1.1.2-repository-document-convergence-manifest.md)
-records the owner-approved D1-D7 deletion batch as complete with final frozen
-review and final verifier evidence. Repository-wide current paths are now
-classified by the exactly-one approved matcher as `RETAIN_BY_RULE`, except for
-the 13 exact reviewed paths with explicit dispositions. Unknown or future
+records the owner-approved D1-D7 deletion batch as final with frozen review and
+final verifier evidence. Lane C is final plus attested. Lane B is the
+owner-approved implementation candidate for exactly four standalone boilerplate
+README deletions; its profile-catalog digest projection, exact-path audit,
+focused validation, independent fixed-head review, and one R3 release-owner
+attestation remain required. Packaged payload inventory, profile-file projection,
+and package scripts remain unchanged, while RELEASE-MANIFEST
+`embeddedProfileCatalogSha256`, resulting archive digest, and provenance identity
+are expected to change. Repository-wide current paths are
+now classified by the exactly-one approved matcher as `RETAIN_BY_RULE`, except
+for the 13 exact reviewed paths with explicit dispositions. Unknown or future
 paths fail closed; this classification neither approves deletion nor grants
 permanent immutability, and does not claim `v1.1.2` complete.
 

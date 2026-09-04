@@ -213,7 +213,9 @@ public sealed partial class RepositoryBoundaryTests
             StringComparison.Ordinal);
         Assert.Contains("immutable historical evidence", normalizedNfcRoadmap, StringComparison.Ordinal);
         Assert.Contains("former `v1.1.2` allocation is superseded to `v1.1.3`", normalizedNfcRoadmap, StringComparison.Ordinal);
-        Assert.Contains("D1-D7 deletion batch as complete with final frozen review and final verifier evidence", normalizedNfcRoadmap, StringComparison.Ordinal);
+        Assert.Contains("D1-D7 deletion batch as final with frozen review and final verifier evidence", normalizedNfcRoadmap, StringComparison.Ordinal);
+        Assert.Contains("Lane C is final plus attested", normalizedNfcRoadmap, StringComparison.Ordinal);
+        Assert.Contains("Lane B is the owner-approved implementation candidate", normalizedNfcRoadmap, StringComparison.Ordinal);
         Assert.DoesNotContain("awaiting independent review/final gate", normalizedNfcRoadmap, StringComparison.Ordinal);
         Assert.Contains("Repository document convergence", readme, StringComparison.Ordinal);
         Assert.Contains("no second inventory or TODO owner", readme, StringComparison.Ordinal);
@@ -222,7 +224,7 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("](v1.1.2-repository-document-convergence-manifest.md)", documentConvergenceHandoff, StringComparison.Ordinal);
         Assert.Contains("DELETE_APPROVED", documentConvergenceManifest, StringComparison.Ordinal);
         Assert.Contains("DOCS-112-OWNER-HANDOFF-CLEANUP-02", documentConvergenceHandoff, StringComparison.Ordinal);
-        Assert.Contains("design-active R3 checkpoint", documentConvergenceManifest, StringComparison.Ordinal);
+        Assert.Contains("is a final-complete, externally attested R3\ncheckpoint", documentConvergenceManifest, StringComparison.Ordinal);
         Assert.Contains("57 files", documentConvergenceManifest, StringComparison.Ordinal);
         Assert.Contains("5809af7997455afa8d918d949328810f79a0e2858f5e1676a9ac59acf48b2b38", documentConvergenceManifest, StringComparison.Ordinal);
         Assert.Contains("../canonical/manifest.json", ownerHandoffReadme, StringComparison.Ordinal);
