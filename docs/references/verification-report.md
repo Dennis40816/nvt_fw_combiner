@@ -317,7 +317,7 @@ Golden case belongs to Standard Merge. No evidence type is inferred from a
 filename.
 
 The exact LF policy hash is
-`bf818a4c9aa4d539882e4bc4a0a662ef70ece67a44e78ae83356430365828f50`.
+`6207923baf537c4031f2095942d363660c7a1c5cbd35e704ec14b28c509aef0f`.
 The 26-bundle package trust index is `0.10.6.2` with SHA-256
 `e365b73e53aff65faa107347400aac82546a3dc700160914b1412f6858fe276d`.
 Focused local checks passed: policy loader 20/20, canonical host/route
