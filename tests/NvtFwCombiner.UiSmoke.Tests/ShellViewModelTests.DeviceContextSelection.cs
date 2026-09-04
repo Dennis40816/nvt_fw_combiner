@@ -266,6 +266,106 @@ public sealed partial class ShellNavigationSystemTests
         }
     }
 
+    /// <summary>A cold Home-to-AB confirmation keeps the live selector bound through an AB/Standard round trip.</summary>
+    [AvaloniaFact]
+    public async Task ColdHomeAbConfirmationKeepsLiveModeSelectorSwitchable()
+    {
+        MainWindowViewModel viewModel = await Task.Run(
+            () => PresentationTestHost.CreateViewModel(),
+            TestContext.Current.CancellationToken);
+        PresentationHostServices services = PresentationTestHost.CreateServices("ui-smoke");
+        CapabilitySelectorPublication publication = services.Composition.Capabilities
+            .GetSelectorPublication();
+        Assert.True(publication.IsWorkflowAuthorable("NT51950", ExperienceIds.AbMerge));
+        Assert.True(publication.IsWorkflowAuthorable("NT51950", ExperienceIds.StandardMerge));
+        Assert.False(publication.IsWorkflowAuthorable("NT51926", ExperienceIds.AbMerge));
+        Assert.Equal(ShellPage.Home, viewModel.SelectedPage);
+        Assert.False(viewModel.IsMergeVisible);
+        Assert.False(viewModel.WorkflowSession.IsWorkflowContextModalOpen);
+
+        using var window = new MainWindow(
+            UiLaunchOptions.Empty,
+            StartupTraceSession.Disabled,
+            services,
+            ShellPreferenceSnapshot.Default)
+        {
+            DataContext = viewModel,
+        };
+        var modeWrites = new List<string?>();
+
+        try
+        {
+            window.Show();
+            DrainUi();
+
+            viewModel.BeginAbMergeFromHomeCommand.Execute(null);
+            Assert.True(viewModel.WorkflowSession.IsWorkflowContextModalOpen);
+            viewModel.WorkflowSession.WorkflowContextSetup.SelectedIc = "NT51950";
+            viewModel.WorkflowSession.ConfirmWorkflowContextCommand.Execute(null);
+            DrainUi();
+
+            ComboBox selector = GetVisibleMergeModeSelector(window, viewModel);
+            object? originalItemsSource = selector.ItemsSource;
+            Assert.NotNull(originalItemsSource);
+            Assert.Equal(ExperienceIds.AbMerge, selector.SelectedItem);
+            Assert.Equal(ExperienceIds.AbMerge, viewModel.Merge.SelectedMergeMode);
+            Assert.Equal("NT51950", viewModel.WorkflowSession.SelectedIc);
+            Assert.Contains("NT51950", viewModel.WorkflowSession.IcChoices);
+            Assert.DoesNotContain("NT51926", viewModel.WorkflowSession.IcChoices);
+
+            viewModel.Merge.PropertyChanged += OnMergePropertyChanged;
+            try
+            {
+                selector.SelectedItem = ExperienceIds.StandardMerge;
+                DrainUi();
+                Assert.Same(originalItemsSource, selector.ItemsSource);
+                Assert.Equal(ExperienceIds.StandardMerge, selector.SelectedItem);
+                Assert.Equal(ExperienceIds.StandardMerge, viewModel.Merge.SelectedMergeMode);
+                Assert.Equal("NT51950", viewModel.WorkflowSession.SelectedIc);
+
+                selector.SelectedItem = ExperienceIds.AbMerge;
+                DrainUi();
+                Assert.Same(originalItemsSource, selector.ItemsSource);
+                Assert.Equal(ExperienceIds.AbMerge, selector.SelectedItem);
+                Assert.Equal(ExperienceIds.AbMerge, viewModel.Merge.SelectedMergeMode);
+                Assert.Equal("NT51950", viewModel.WorkflowSession.SelectedIc);
+                Assert.Contains("NT51950", viewModel.WorkflowSession.IcChoices);
+                Assert.DoesNotContain("NT51926", viewModel.WorkflowSession.IcChoices);
+            }
+            finally
+            {
+                viewModel.Merge.PropertyChanged -= OnMergePropertyChanged;
+            }
+
+            Assert.NotEmpty(modeWrites);
+            Assert.All(modeWrites, static mode => Assert.False(string.IsNullOrWhiteSpace(mode)));
+            Assert.Contains(ExperienceIds.StandardMerge, modeWrites);
+            Assert.Equal(ExperienceIds.AbMerge, modeWrites[^1]);
+        }
+        finally
+        {
+            window.Close();
+        }
+
+        void OnMergePropertyChanged(
+            object? _,
+            System.ComponentModel.PropertyChangedEventArgs args)
+        {
+            if (args.PropertyName == nameof(MergePresentationViewModel.SelectedMergeMode))
+            {
+                modeWrites.Add(viewModel.Merge.SelectedMergeMode);
+            }
+        }
+
+        static void DrainUi()
+        {
+            Dispatcher.UIThread.RunJobs();
+            AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+            Dispatcher.UIThread.RunJobs();
+            AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+        }
+    }
+
     private static ComboBox GetVisibleMergeModeSelector(
         MainWindow window,
         MainWindowViewModel viewModel)
