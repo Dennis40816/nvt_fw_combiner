@@ -5,7 +5,7 @@
   "integrationBase": "478d39b4cfda778f0a26e56f7f38387e7969b644",
   "risk": "R3",
   "kind": "governance",
-  "state": "design-active",
+  "state": "final-complete",
   "mutablePaths": [
     "profiles/samples/README.md",
     "profiles/schema/README.md"
@@ -25,12 +25,12 @@
     "outcome": "approved",
     "evidence": "The owner fixed the exact four deletion paths, mutable surfaces, canonical owners, checkpoint, package-digest expectation, and R3 review/attestation gates. The admission reuses deletion of standalone boilerplate and the existing profile package-catalog/evidence owners without a second semantic or documentation authority."
   },
-  "implementationHead": null,
-  "reviewedHead": null,
-  "pathStateDigest": null,
+  "implementationHead": "e256ba5a299247e212a606d1c458f06e8fe9a776",
+  "reviewedHead": "e256ba5a299247e212a606d1c458f06e8fe9a776",
+  "pathStateDigest": "ef2160b3ebcdfeaa6b0903f086b343281476a8140a4eab32cd16c575f19b56b8",
   "finalReview": {
-    "reviewer": null,
-    "outcome": "pending",
-    "evidence": ""
+    "reviewer": "gpt-5.6-sol/high independent reviewer",
+    "outcome": "approved",
+    "evidence": "Independent Sol review approved the direct-child exact-head nine-path candidate e256ba5a299247e212a606d1c458f06e8fe9a776 with P0/P1/P2/P3=0/0/0/0. It confirmed the profile tree changed only from 115 files to 113 files with post-delete digest 3d95ab4b0c24e9ad4ad401c8f487c1872a32a4babd109ec695b36f8ce2df332b; the focused roadmap boundary test passed 1/1; and the release-package policy check passed. The expected design-active lifecycle residual is closed by this H2 finalization."
   }
 }
