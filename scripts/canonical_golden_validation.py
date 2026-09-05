@@ -1403,8 +1403,8 @@ def validate_canonical_release_allowlist(
         errors.append("canonical release allowlist schemaVersion must be 1.1")
     if allowlist.get("policyId") != "canonical-reference-v1":
         errors.append("canonical release allowlist policyId must be canonical-reference-v1")
-    if allowlist.get("authorizedForVersion") != "1.1.2":
-        errors.append("canonical release allowlist must be authorized for version 1.1.2")
+    if allowlist.get("authorizedForVersion") != "1.1.3":
+        errors.append("canonical release allowlist must be authorized for version 1.1.3")
     if allowlist.get("releaseStatus") != "human-gated-allowlist":
         errors.append("canonical release allowlist releaseStatus must be human-gated-allowlist")
     authorization = allowlist.get("redistributionAuthorization")
@@ -1416,8 +1416,8 @@ def validate_canonical_release_allowlist(
     }:
         errors.append("canonical release allowlist redistribution authorization is incomplete")
     else:
-        if authorization.get("authorizedOn") != "2026-09-04":
-            errors.append("canonical release redistribution authorization date must be 2026-09-04")
+        if authorization.get("authorizedOn") != "2026-09-05":
+            errors.append("canonical release redistribution authorization date must be 2026-09-05")
         if authorization.get("authorizedBy") != "repository owner":
             errors.append(
                 "canonical release redistribution must be authorized by the repository owner"

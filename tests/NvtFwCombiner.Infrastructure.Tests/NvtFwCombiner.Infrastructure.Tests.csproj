@@ -41,4 +41,12 @@
           DestinationFiles="@(LauncherBootstrapFiles->'$(OutDir)launcher-bootstrap\%(RecursiveDir)%(Filename)%(Extension)')"
           SkipUnchangedFiles="true" />
   </Target>
+  <Target Name="PublishSingleFileReadyProbe" AfterTargets="Build"
+          Condition="$([MSBuild]::IsOSPlatform('Windows'))">
+    <!-- Custody admits one executable only. Bundle the already-built fixture;
+         test runners provide .NET, so do not include another runtime payload. -->
+    <MSBuild Projects="..\NvtFwCombiner.ReadyProbe\NvtFwCombiner.ReadyProbe.csproj"
+             Targets="Publish"
+             Properties="Configuration=$(Configuration);TargetFramework=$(TargetFramework);RuntimeIdentifier=win-x64;AppendRuntimeIdentifierToOutputPath=false;SelfContained=false;PublishSingleFile=true;NoBuild=true;PublishDir=$(TargetDir)ready-probe-single-file\" />
+  </Target>
 </Project>

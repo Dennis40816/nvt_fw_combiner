@@ -11,5 +11,5 @@ These rules apply to `tools/crc-worker/`.
 - Reject unknown fields, unsupported versions/algorithms/processors, invalid base64, oversized payloads, unexpected files, length changes, and malformed ranges.
 - Keep stable error codes synchronized with schemas and C# contract tests.
 - Any processor must declare minimum read/write ranges, typed parameters, pre/postconditions, and reference vectors.
-- Run format, Ruff, Pyright strict, Pylint, pytest, and the repository `$polytail` review before release.
-- Current transform details are reserved; do not invent header fields or command semantics before owner evidence.
+- Worker implementation changes use relevant format, Ruff, Pyright strict, Pylint, pytest, and scoped `$polytail` checks; apply the root rules to documentation-only changes and final release verification.
+- Implement transforms only from accepted protocol/profile contracts and owner evidence. Existing specified transforms remain valid; new header fields or command semantics require their own authority.

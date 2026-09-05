@@ -80,6 +80,7 @@ bool isBootstrap = string.Equals(
     Environment.GetEnvironmentVariable(lifetimeKindKey),
     ManagedProcessLifetimeKind.Bootstrap.ToString(),
     StringComparison.Ordinal);
+bool quietBootstrap = isBootstrap && string.Equals(behavior, "ready", StringComparison.Ordinal);
 string? statePath = null;
 for (int index = 0; index < args.Length; index++)
 {
@@ -88,7 +89,7 @@ for (int index = 0; index < args.Length; index++)
         statePath = Path.GetFullPath(args[++index]);
     }
 }
-if (string.Equals(behavior, "bootstrap-identity-chain-root", StringComparison.Ordinal))
+if (quietBootstrap || string.Equals(behavior, "bootstrap-identity-chain-root", StringComparison.Ordinal))
 {
     string? startContext = Environment.GetEnvironmentVariable(
         "NVT_FW_COMBINER_BOOTSTRAP_START_CONTEXT");
@@ -101,21 +102,23 @@ if (string.Equals(behavior, "bootstrap-identity-chain-root", StringComparison.Or
     {
         return 26;
     }
-    await using (var startPipe = new AnonymousPipeClientStream(PipeDirection.In, startHandle))
+    await using var startPipe = new AnonymousPipeClientStream(PipeDirection.In, startHandle);
+    byte[] start = new byte[6];
+    await startPipe.ReadExactlyAsync(start);
+    if (!start.AsSpan().SequenceEqual("START\n"u8))
     {
-        byte[] start = new byte[6];
-        await startPipe.ReadExactlyAsync(start);
-        if (!start.AsSpan().SequenceEqual("START\n"u8))
-        {
-            return 26;
-        }
+        return 26;
     }
+}
+if (string.Equals(behavior, "bootstrap-identity-chain-root", StringComparison.Ordinal))
+{
     string marker = Environment.GetEnvironmentVariable(identityMarkerKey) ??
         throw new InvalidOperationException("Missing identity marker.");
     var childInfo = new ProcessStartInfo
     {
         FileName = Environment.ProcessPath ?? throw new InvalidOperationException("Missing process path."),
         UseShellExecute = false,
+        CreateNoWindow = true,
     };
     childInfo.ArgumentList.Add("--state-path");
     childInfo.ArgumentList.Add(statePath ?? throw new InvalidOperationException("Missing state path."));
@@ -162,6 +165,11 @@ if (string.Equals(behavior, "identity-context-child", StringComparison.Ordinal))
 if (lifetime.Outcome != InheritedManagedProcessLifetimeOutcome.Captured)
 {
     return 24;
+}
+if (quietBootstrap)
+{
+    // Custody tests need a real gated process, not an interactive shell sharing runner stdio.
+    return ImmutableBootstrapExitCodeCodec.EncodeFailure(ImmutableBootstrapExitIssue.StateUnavailable);
 }
 if (string.Equals(behavior, "bootstrap-exit-22", StringComparison.Ordinal))
 {
@@ -235,6 +243,7 @@ if (string.Equals(behavior, "ready-tree-root", StringComparison.Ordinal))
     {
         FileName = Environment.ProcessPath ?? throw new InvalidOperationException("Missing process path."),
         UseShellExecute = false,
+        CreateNoWindow = true,
     };
     childInfo.Environment[behaviorKey] = "ready-tree-grandchild";
     childInfo.Environment["NVT_READY_PROBE_TREE_MARKER"] = marker;
@@ -259,6 +268,7 @@ if (string.Equals(behavior, "tree-root-exit", StringComparison.Ordinal) ||
     {
         FileName = Environment.ProcessPath ?? throw new InvalidOperationException("Missing process path."),
         UseShellExecute = false,
+        CreateNoWindow = true,
     };
     childInfo.Environment[behaviorKey] = "tree-grandchild";
     childInfo.Environment["NVT_READY_PROBE_TREE_MARKER"] = marker;

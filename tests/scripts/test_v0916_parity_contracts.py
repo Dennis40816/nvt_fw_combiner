@@ -6,6 +6,7 @@ import hashlib
 import io
 import json
 import subprocess
+import sys
 import tempfile
 import unittest
 import zipfile
@@ -89,6 +90,111 @@ class RecordingPinnedCanonicalReader:
     def read_worktree_file(self, path: str) -> bytes:
         self.worktree_calls.append(path)
         return self.worktree_overrides[path]
+
+
+class HistoricalParityStructureTests(unittest.TestCase):
+    def setUp(self) -> None:
+        with mock.patch.object(sys, "path", [str(ROOT / "scripts"), *sys.path]):
+            import validate_repository
+
+        self.validator = validate_repository
+        directory = tempfile.TemporaryDirectory(prefix="parity-structure-")
+        self.addCleanup(directory.cleanup)
+        self.root = Path(directory.name)
+        self.plan_relative = "docs/contracts/v0916-parity-certification-v1.json"
+        self.plan_path = self.root / self.plan_relative
+        self.plan_path.parent.mkdir(parents=True)
+        plan = json.loads((ROOT / self.plan_relative).read_bytes())
+        plan["candidateAuthority"]["protectedBuild"]["workflowSemanticContract"][
+            "sha256"
+        ] = "a" * 64
+        self.plan_path.write_text(json.dumps(plan), encoding="utf-8")
+        record_relative = (
+            "docs/governance/change-records/"
+            "RELEASE-111-PARITY-AUTHORITY-TRANSFER-09.json"
+        )
+        self.record_path = self.root / record_relative
+        self.record_path.parent.mkdir(parents=True)
+        self.record_bytes = (ROOT / record_relative).read_bytes()
+        self.record_path.write_bytes(self.record_bytes)
+        self.binding_head = json.loads(self.record_bytes)["reviewedHead"]
+        self.git = self.validator.GitAuthorityReader(ROOT)
+
+    def test_structure_keeps_frozen_binding_after_live_workflow_projection(self) -> None:
+        latest_plan_change = self.git.resolve_commit("HEAD")
+        self.assertNotEqual(self.binding_head, latest_plan_change)
+        original_last_change = self.git.last_change
+
+        def last_change(head, path, *, required=True):
+            if head == "HEAD" and path == self.plan_relative:
+                return latest_plan_change
+            return original_last_change(head, path, required=required)
+
+        errors: list[str] = []
+        with (
+            mock.patch.object(self.validator, "ROOT", self.root),
+            mock.patch.object(self.validator, "GitAuthorityReader", return_value=self.git),
+            mock.patch.object(self.git, "last_change", side_effect=last_change),
+            mock.patch.object(
+                self.validator,
+                "validate_repository_parity_authority_transfer",
+                wraps=self.validator.validate_repository_parity_authority_transfer,
+            ) as transfer,
+        ):
+            self.validator.validate_historical_parity_authority(errors)
+
+        self.assertEqual([], errors)
+        transfer.assert_called_once_with(
+            self.root, head=self.binding_head, reader=self.git
+        )
+        self.assertEqual(self.record_bytes, self.record_path.read_bytes())
+        self.assertEqual(
+            "a" * 64,
+            json.loads(self.plan_path.read_bytes())["candidateAuthority"][
+                "protectedBuild"
+            ]["workflowSemanticContract"]["sha256"],
+        )
+
+    def test_structure_rejects_missing_or_invalid_binding_record(self) -> None:
+        for payload in (
+            None,
+            b"{",
+            b"[]",
+            b"{}",
+            b'{"reviewedHead": null}',
+            b'{"reviewedHead": "HEAD"}',
+            b'{"reviewedHead": "short-sha"}',
+        ):
+            with self.subTest(payload=payload):
+                if payload is None:
+                    self.record_path.unlink()
+                else:
+                    self.record_path.write_bytes(payload)
+                errors: list[str] = []
+                with (
+                    mock.patch.object(self.validator, "ROOT", self.root),
+                    mock.patch.object(
+                        self.validator, "validate_repository_parity_authority_transfer"
+                    ) as transfer,
+                ):
+                    self.validator.validate_historical_parity_authority(errors)
+                self.assertTrue(any("PARITY_AUTHORITY_MISMATCH" in e for e in errors))
+                transfer.assert_not_called()
+
+    def test_structure_rejects_unresolvable_historical_binding(self) -> None:
+        record = json.loads(self.record_bytes)
+        record["reviewedHead"] = "0" * 40
+        self.record_path.write_text(json.dumps(record), encoding="utf-8")
+        errors: list[str] = []
+        with (
+            mock.patch.object(self.validator, "ROOT", self.root),
+            mock.patch.object(self.validator, "GitAuthorityReader", return_value=self.git),
+        ):
+            self.validator.validate_historical_parity_authority(errors)
+        self.assertEqual(
+            ["v0.9.16 parity Git authority transfer failed: PARITY_AUTHORITY_MISMATCH"],
+            errors,
+        )
 
 
 class V0916ParityContractTests(V0916ParityTestBase):

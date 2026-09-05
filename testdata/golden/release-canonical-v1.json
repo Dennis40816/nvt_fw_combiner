@@ -1,10 +1,10 @@
 {
   "schemaVersion": "1.1",
   "policyId": "canonical-reference-v1",
-  "authorizedForVersion": "1.1.2",
+  "authorizedForVersion": "1.1.3",
   "releaseStatus": "human-gated-allowlist",
   "redistributionAuthorization": {
-    "authorizedOn": "2026-09-04",
+    "authorizedOn": "2026-09-05",
     "authorizedBy": "repository owner",
     "scope": "reference-payload-only",
     "supersedesHistoricalCaseRestrictions": true

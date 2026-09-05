@@ -5,7 +5,7 @@ Status: Mandatory for non-trivial R1-R3 implementation and review.
 The executable workflow is `.agents/skills/polytail/SKILL.md`. This policy owns
 only the required outcome:
 
-- R0: structure validation; full Polytail is optional.
+- R0 ordinary non-normative, non-classifier-governed prose: diff and affected-link review; structure/consumer checks only when layout or parsed inputs are affected. Full Polytail is optional. Classifier-governed documents retain their record/integration gates.
 - R1: scoped correctness/test review.
 - R2: R1 plus architecture/contract review.
 - R3: R2 plus authority-specific human and independent evidence gates.

@@ -34,12 +34,14 @@ from time import monotonic
 from unittest.loader import VALID_MODULE_NAME
 
 if __package__:
+    from .canonical_golden_validation import validate_canonical_golden
     from .coverage_policy import (
         load_baseline,
         repository_relative_coverage_source,
         verify_coverage,
     )
 else:
+    from canonical_golden_validation import validate_canonical_golden
     from coverage_policy import (
         load_baseline,
         repository_relative_coverage_source,
@@ -434,7 +436,8 @@ INFRASTRUCTURE_TEST_PROJECT = "NvtFwCombiner.Infrastructure.Tests"
 INFRASTRUCTURE_VSTEST_SETTINGS = (
     "xUnit.ParallelizeTestCollections=false",
     "xUnit.MaxParallelThreads=1",
-    "xUnit.Seed=1738590270",
+    "xUnit.DiagnosticMessages=true",
+    "xUnit.LongRunningTestSeconds=30",
 )
 
 
@@ -945,6 +948,7 @@ def run_with_log(
 
 
 def verify_structure(log_path: Path | None = None) -> None:
+    run([sys.executable, "scripts/sync_derived.py"], log_path=log_path)
     run([sys.executable, "scripts/validate_repository.py"], log_path=log_path)
     run([sys.executable, "scripts/polytail_check.py"], log_path=log_path)
     run(
@@ -2500,9 +2504,14 @@ def dotnet_batch_environment() -> dict[str, str]:
     return environment
 
 
-def dotnet_build_commands(dotnet: str) -> tuple[list[str], ...]:
-    """Return the canonical post-restore ownership, format, and Release build plan."""
+def dotnet_build_commands(
+    dotnet: str, *, include_prebuild_checks: bool = True
+) -> tuple[list[str], ...]:
+    """Return the canonical post-restore Release plan, with optional source prechecks."""
 
+    release_build = [dotnet, "build", str(SOLUTION), "-c", "Release", "--no-restore"]
+    if not include_prebuild_checks:
+        return (release_build,)
     return (
         [
             sys.executable,
@@ -2517,7 +2526,7 @@ def dotnet_build_commands(dotnet: str) -> tuple[list[str], ...]:
             "--verify-no-changes",
             "--no-restore",
         ],
-        [dotnet, "build", str(SOLUTION), "-c", "Release", "--no-restore"],
+        release_build,
     )
 
 
@@ -2830,24 +2839,29 @@ def resolve_coverlet_adapter_path(
 def local_dotnet_vstest_command(
     dotnet: str,
     test_assembly: Path,
-    adapter_path: Path,
+    adapter_path: Path | None,
     results_directory: Path,
 ) -> list[str]:
-    """Build one unfiltered exact-assembly command with paired coverage evidence."""
+    """Build one unfiltered exact-assembly command, optionally collecting coverage."""
 
-    command = [
-        dotnet,
-        "vstest",
-        str(test_assembly),
-        f"--TestAdapterPath:{adapter_path}",
-        "--Collect:XPlat Code Coverage",
+    command = [dotnet, "vstest", str(test_assembly)]
+    settings: list[str] = []
+    if adapter_path is not None:
+        command.extend([
+            f"--TestAdapterPath:{adapter_path}",
+            "--Collect:XPlat Code Coverage",
+        ])
+        settings.append(
+            "DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Format=json,cobertura"
+        )
+    command.extend([
         f"--ResultsDirectory:{results_directory}",
         "--Logger:trx;LogFileName=test-results.trx",
-        "--",
-        "DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Format=json,cobertura",
-    ]
+    ])
     if test_assembly.stem == INFRASTRUCTURE_TEST_PROJECT:
-        command.extend(INFRASTRUCTURE_VSTEST_SETTINGS)
+        settings.extend(INFRASTRUCTURE_VSTEST_SETTINGS)
+    if settings:
+        command.extend(["--", *settings])
     return command
 
 
@@ -2902,10 +2916,6 @@ WINDOWS_PROCESSOR_BOOTSTRAP_SKIPS = (
     "NvtFwCombiner.Bootstrap.Tests.AbMergeGoldenRegressionTests.Nt51950PublicHostBuildAcceptsOneCanonicalTpFileForBothLogicalSlotsAsync",
     "NvtFwCombiner.Bootstrap.Tests.AbMergeGoldenRegressionTests.Nt51951PublicHostBuildAcceptsOneTpFileForBothLogicalSlotsAsync",
 )
-UNIX_SPECIAL_FILE_INFRASTRUCTURE_SKIPS = (
-    "NvtFwCombiner.Infrastructure.Tests.Bundles.ProfileBundleFileSnapshotTests.ReadRejectsUnixFifoBeforeOpening",
-    "NvtFwCombiner.Infrastructure.Tests.Bundles.ProfileBundleInventoryVerifierTests.VerifyClosedInventoryRejectsUnixDomainSocket",
-)
 
 
 def approved_platform_skip_identities(
@@ -2915,11 +2925,7 @@ def approved_platform_skip_identities(
     """Return the exact owner-approved omissions for one producer and project."""
 
     if producer_platform == DOTNET_PRODUCER_WINDOWS:
-        identities = (
-            UNIX_SPECIAL_FILE_INFRASTRUCTURE_SKIPS
-            if project.name == "NvtFwCombiner.Infrastructure.Tests"
-            else ()
-        )
+        identities = ()
     elif producer_platform == DOTNET_PRODUCER_NON_WINDOWS:
         identities = (
             WINDOWS_PROCESSOR_BOOTSTRAP_SKIPS
@@ -2931,8 +2937,10 @@ def approved_platform_skip_identities(
     return Counter(canonical_vstest_identity(identity) for identity in identities)
 
 
-def parse_trx_test_outcomes(path: Path) -> dict[str, Counter[str]]:
-    """Read exact TRX test identities grouped by their terminal outcome."""
+def parse_trx_test_outcomes(
+    path: Path, *, preserve_case_identity: bool = False,
+) -> dict[str, Counter[str]]:
+    """Read terminal outcomes, optionally preserving resolved theory display identities."""
 
     try:
         document = ET.parse(path)
@@ -2961,7 +2969,8 @@ def parse_trx_test_outcomes(path: Path) -> dict[str, Counter[str]]:
                     f"TRX placeholder identity has no unique test definition: {path}"
                 )
             identity = candidates[0]
-        outcomes[outcome][canonical_vstest_identity(identity)] += 1
+        method = canonical_vstest_identity(identity)
+        outcomes[outcome][identity if preserve_case_identity else method] += 1
     return outcomes
 
 
@@ -3187,15 +3196,25 @@ def require_local_dotnet_project_evidence(
     project: CiDotnetProject,
     results_directory: Path,
     discovery_report: Path,
+    *,
+    require_coverage: bool = True,
 ) -> None:
-    """Validate one exact TRX and one paired local coverage attachment."""
+    """Validate one exact TRX, its discovery counters, and optional coverage evidence."""
 
     regular_files = enumerate_ci_regular_files(results_directory)
-    trx_report, _, _ = canonicalize_dotnet_project_reports_from_files(
-        project.name,
-        results_directory,
-        regular_files,
-    )
+    if require_coverage:
+        trx_report, _, _ = canonicalize_dotnet_project_reports_from_files(
+            project.name,
+            results_directory,
+            regular_files,
+        )
+    else:
+        trx_reports = tuple(
+            path for path in regular_files if path.suffix.casefold() == ".trx"
+        )
+        if len(trx_reports) != 1 or trx_reports[0].name != "test-results.trx":
+            raise RuntimeError(f"{project.name} must emit exactly one TRX")
+        trx_report = trx_reports[0]
     counters = parse_trx_counters(trx_report)
     require_discovered_test_results(
         project,
@@ -3209,11 +3228,11 @@ def require_local_dotnet_project_evidence(
 def run_local_dotnet_coverage_project(
     stage: LocalDotnetCoverageStage,
     dotnet: str,
-    adapter_path: Path,
+    adapter_path: Path | None,
     environment: dict[str, str],
     log_path: Path | None,
 ) -> None:
-    """Collect and validate one isolated test-project producer."""
+    """Run and validate one isolated test-project producer."""
 
     run(
         dotnet_vstest_discovery_command(dotnet, stage.test_assembly),
@@ -3234,6 +3253,7 @@ def run_local_dotnet_coverage_project(
         stage.project,
         stage.results_directory,
         stage.discovery_report,
+        require_coverage=adapter_path is not None,
     )
 
 
@@ -3315,10 +3335,15 @@ def collect_local_dotnet_coverage(
     *,
     repository_root: Path = ROOT,
     work_owner_root: Path | None = None,
+    projects: tuple[CiDotnetProject, ...] | None = None,
+    collect_coverage: bool = True,
 ) -> None:
-    """Run every exact project against a private snapshot, then apply one policy."""
+    """Run private project snapshots; apply aggregate policy only for the full inventory."""
 
-    projects = flatten_ci_dotnet_projects()
+    full_coverage = projects is None
+    if full_coverage and not collect_coverage:
+        raise ValueError("full .NET verification requires coverage collection")
+    projects = flatten_ci_dotnet_projects() if projects is None else projects
     owner_root = repository_root if work_owner_root is None else work_owner_root
     work = validated_disposable_directory(
         work_root,
@@ -3330,7 +3355,9 @@ def collect_local_dotnet_coverage(
     stages: list[LocalDotnetCoverageStage] = []
     failure: BaseException | None = None
     try:
-        adapter_path = resolve_coverlet_adapter_path(repository_root)
+        adapter_path = (
+            resolve_coverlet_adapter_path(repository_root) if collect_coverage else None
+        )
         for project in projects:
             stages.append(
                 prepare_local_dotnet_coverage_stage(
@@ -3410,7 +3437,8 @@ def collect_local_dotnet_coverage(
             failure = combine_failures(failure, error, secondary_label="shadow cleanup")
     if failure is not None:
         raise failure
-    verify_coverage("dotnet", coverage_directory)
+    if full_coverage:
+        verify_coverage("dotnet", coverage_directory)
 
 
 def run_dotnet_commands(
@@ -3444,8 +3472,9 @@ def run_dotnet_build_plan(
     *,
     environment: dict[str, str],
     log_path: Path | None,
+    include_prebuild_checks: bool = True,
 ) -> None:
-    """Run the one explicit SDK, solution-restore, and Release-build owner."""
+    """Run the SDK, solution-restore, and Release-build owner."""
 
     run([dotnet, "--version"], environment=environment, log_path=log_path)
     run_solution_restore_preserving_lock_projections(
@@ -3456,7 +3485,7 @@ def run_dotnet_build_plan(
         solution=SOLUTION,
     )
     run_dotnet_commands(
-        dotnet_build_commands(dotnet),
+        dotnet_build_commands(dotnet, include_prebuild_checks=include_prebuild_checks),
         environment=environment,
         log_path=log_path,
     )
@@ -3487,13 +3516,89 @@ def cleanup_dotnet_batch(
         CLEANUP_DEADLINE.reset(cleanup_deadline_token)
 
 
-def verify_dotnet(log_path: Path | None = None) -> None:
+def release_golden_plan() -> tuple[
+    tuple[CiDotnetProject, ...], dict[str, tuple[tuple[str, str], ...]],
+]:
+    """Reuse canonical evidence ownership, then close the whole-project selection."""
+    if current_dotnet_producer_platform() != DOTNET_PRODUCER_WINDOWS:
+        raise RuntimeError("release Golden execution requires Windows")
+    errors: list[str] = []
+    validate_canonical_golden(ROOT, errors)
+    if errors:
+        raise RuntimeError("release Golden canonical evidence invalid: " + "; ".join(errors))
+    required = {"NvtFwCombiner.Bootstrap.Tests", "NvtFwCombiner.GoldenRegression.Tests"}
+    projects = tuple(project for project in flatten_ci_dotnet_projects() if project.name in required)
+    if len(projects) != len(required) or {project.name for project in projects} != required:
+        raise RuntimeError("release Golden project inventory is incomplete or duplicated")
+    canonical = ROOT / "testdata/golden/canonical"
+    manifest = json.loads((canonical / "manifest.json").read_text(encoding="utf-8"))
+    cases: dict[str, tuple[tuple[str, str], ...]] = {}
+    for entry in manifest["cases"]:
+        case = json.loads((canonical / entry["manifestPath"]).read_text(encoding="utf-8"))
+        if not case["directGolden"]:
+            continue  # Input-only and alias evidence cannot invent expected output.
+        refs = []
+        for reference in case["testDisposition"]["evidenceRefs"]:
+            path, _, symbol = reference.partition("#")
+            project = PurePosixPath(path).parts[1]
+            if project not in required:
+                raise RuntimeError(f"release Golden case outside selected projects: {case['caseId']}")
+            refs.append((project, symbol))
+        cases[case["caseId"]] = tuple(refs)
+    if not cases:
+        raise RuntimeError("release Golden plan contains no direct output cases")
+    return projects, cases
+
+
+def require_release_golden_results(
+    coverage_directory: Path, cases: dict[str, tuple[tuple[str, str], ...]],
+) -> None:
+    """Require one fresh passed execution per case, including shared theory methods."""
+    outcomes = {}
+    for project in {project for refs in cases.values() for project, _symbol in refs}:
+        reports = tuple((coverage_directory / project).rglob("*.trx"))
+        if len(reports) != 1:
+            raise RuntimeError(f"release Golden needs one fresh TRX: {project}")
+        outcomes[project] = parse_trx_test_outcomes(reports[0], preserve_case_identity=True)
+    references: dict[tuple[str, str], list[str]] = {}
+    for case_id, refs in cases.items():
+        for reference in refs:
+            references.setdefault(reference, []).append(case_id)
+    for (project, symbol), case_ids in references.items():
+        rows = [(identity, outcome, count)
+                for outcome, identities in outcomes[project].items()
+                for identity, count in identities.items()
+                if canonical_vstest_identity(identity).endswith("." + symbol)]
+        if len({canonical_vstest_identity(identity) for identity, _, _ in rows}) != 1:
+            raise RuntimeError(f"release Golden case lacks unique method: {case_ids[0]}")
+        terminals: dict[str, Counter[str]] = {case_id: Counter() for case_id in case_ids}
+        for identity, outcome, count in rows:
+            case_id = case_ids[0]
+            if len(case_ids) > 1:
+                match = re.match(r'^[^(]+\(caseId: "([^"]+)"(?:, |\))', identity)
+                if match is None or match[1] not in terminals:
+                    raise RuntimeError(f"release Golden has an undeclared case identity: {symbol}")
+                case_id = match[1]
+            terminals[case_id][outcome] += count
+        for case_id, counts in terminals.items():
+            if counts != Counter({"Passed": 1}):
+                raise RuntimeError(f"release Golden case lacks unique passed execution: {case_id}")
+    for case_id in cases:
+        print(f"Release Golden executed: {case_id}")
+    print(f"Release Golden: {len(cases)} direct output cases; not a full-suite coverage gate.")
+
+
+def verify_dotnet(log_path: Path | None = None, *, release_golden: bool = False) -> None:
+    golden_plan = release_golden_plan() if release_golden else None
     dotnet = resolve_dotnet()
     coverage_directory = reset_coverage_directory("dotnet")
     environment = dotnet_batch_environment()
     failure: BaseException | None = None
     try:
-        run_dotnet_build_plan(dotnet, environment=environment, log_path=log_path)
+        run_dotnet_build_plan(
+            dotnet, environment=environment, log_path=log_path,
+            **({"include_prebuild_checks": False} if golden_plan is not None else {}),
+        )
         collect_local_dotnet_coverage(
             dotnet,
             coverage_directory,
@@ -3505,7 +3610,11 @@ def verify_dotnet(log_path: Path | None = None) -> None:
                 if os.environ.get(TEST_SESSION_ENVIRONMENT_VARIABLE)
                 else ROOT
             ),
+            **({"projects": golden_plan[0], "collect_coverage": False}
+               if golden_plan is not None else {}),
         )
+        if golden_plan is not None:
+            require_release_golden_results(coverage_directory, golden_plan[1])
     except BaseException as error:
         failure = error
     finally:
@@ -4551,13 +4660,18 @@ def finalize_ci_dotnet_evidence(download_root: Path) -> None:
         shutil.copyfile(cobertura_report, destination / "coverage.cobertura.xml")
     verify_coverage("dotnet", coverage_root)
     projects = flatten_ci_dotnet_projects()
+    golden_counters = next(
+        counters
+        for project, counters in zip(projects, project_counters, strict=True)
+        if project.name == "NvtFwCombiner.GoldenRegression.Tests"
+    )
     print(
         ".NET CI evidence: "
         f"{len(projects)} projects, "
         f"{sum(counters['passed'] for counters in project_counters)} active tests, "
         f"{sum(counters['skipped'] for counters in project_counters)} excluded skips, "
         f"{sum(counters['total'] for counters in project_counters)} discovered, "
-        "Golden 18/18."
+        f"GoldenRegression {golden_counters['passed']}/{golden_counters['total']}."
     )
 
 
@@ -4618,6 +4732,10 @@ def parse_args(arguments: Sequence[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--skip-dotnet", action="store_true")
     parser.add_argument("--skip-structure", action="store_true")
     parser.add_argument(
+        "--release-golden", action="store_true",
+        help="Fresh complete Golden-owner projects on Windows; not a full verifier pass.",
+    )
+    parser.add_argument(
         "--internal-lane",
         choices=(
             "structure",
@@ -4626,6 +4744,11 @@ def parse_args(arguments: Sequence[str] | None = None) -> argparse.Namespace:
             "dotnet",
             "dotnet-windows",
         ),
+        help=argparse.SUPPRESS,
+    )
+    parser.add_argument(
+        "--ci-python-shard",
+        choices=(*(name for name, _pattern in REPOSITORY_SCRIPT_TEST_SHARDS), "python"),
         help=argparse.SUPPRESS,
     )
     parser.add_argument(
@@ -4712,6 +4835,19 @@ def repository_script_test_action(pattern: str) -> LaneAction:
         verify_repository_scripts(log_path, pattern)
 
     return run_lane
+
+
+def ci_python_lane(name: str) -> VerificationLane:
+    """Select one existing Python owner after validating the complete partition."""
+
+    shards = dict(repository_script_test_shards())
+    if name == "python":
+        action = verify_python
+    elif name in shards:
+        action = repository_script_test_action(shards[name])
+    else:
+        raise ValueError(f"unknown CI Python shard: {name}")
+    return VerificationLane(name, action, isolate_action=True)
 
 
 def selected_lanes(args: argparse.Namespace) -> tuple[VerificationLane, ...]:
@@ -4921,11 +5057,13 @@ def validate_internal_lane_arguments(args: argparse.Namespace) -> None:
 
     if (
         args.all
+        or args.release_golden
         or args.structure_only
         or args.skip_structure
         or args.skip_python
         or args.skip_dotnet
         or args.ci_dotnet_build
+        or args.ci_python_shard is not None
         or args.ci_dotnet_test_shard is not None
         or args.ci_dotnet_finalize is not None
         or args.jobs_was_supplied
@@ -4947,13 +5085,15 @@ def execute_verification(args: argparse.Namespace) -> int:
         selected
         for selected in (
             args.ci_dotnet_build,
+            args.release_golden,
+            args.ci_python_shard is not None,
             args.ci_dotnet_test_shard is not None,
             args.ci_dotnet_finalize is not None,
         )
         if selected
     )
     if len(ci_modes) > 1:
-        raise SystemExit("CI .NET modes cannot be combined")
+        raise SystemExit("CI modes cannot be combined")
     if ci_modes:
         if (
             args.all
@@ -4966,10 +5106,18 @@ def execute_verification(args: argparse.Namespace) -> int:
             or args.lane_timeout_was_supplied
         ):
             raise SystemExit(
-                "CI .NET modes cannot be combined with public verification flags"
+                "CI modes cannot be combined with public verification flags"
             )
         try:
-            if args.ci_dotnet_build:
+            if args.ci_python_shard is not None:
+                run_selected_lanes(
+                    (ci_python_lane(args.ci_python_shard),),
+                    jobs=1,
+                    lane_timeout_seconds=DEFAULT_LANE_TIMEOUT_SECONDS,
+                )
+            elif args.release_golden:
+                verify_dotnet(release_golden=True)
+            elif args.ci_dotnet_build:
                 verify_ci_dotnet_build()
             elif args.ci_dotnet_test_shard is not None:
                 verify_ci_dotnet_test_shard(args.ci_dotnet_test_shard)
@@ -4984,7 +5132,8 @@ def execute_verification(args: argparse.Namespace) -> int:
         ) as exc:
             print(f"\nVERIFICATION FAILED: {exc}", file=sys.stderr)
             return 1
-        print("\nVerification passed.")
+        print("\nRelease Golden verification passed (not full verification)."
+              if args.release_golden else "\nVerification passed.")
         return 0
 
     if args.internal_lane:

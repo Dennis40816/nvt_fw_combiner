@@ -284,6 +284,11 @@ are not admissible update payloads. Bootstrap is rejected from both forms.
 workflow definition. From v1.1.1 onward it also queries the live remote-main
 SHA and boolean protected flag, the complete applied-rule inventory, and the
 active stable-tag rulesets rather than treating a local checkout name as proof.
+Before formal local verification, synchronize the approved source projections
+with the [derived-file preflight](../../CONTRIBUTING.md#derived-file-preflight).
+Its default check runs first in the existing structure gate. The explicit local
+write command is not a CI repair step or permission to refresh unrelated trust
+pins; Golden, historical and release-owner evidence remain independent.
 One bounded read-only collector in `scripts/release_promotion_policy.py` owns
 those GitHub reads and their validation; `release.yml` is still the sole owner
 of tag and Release mutations. The collector accepts only GET/GraphQL reads,
@@ -298,7 +303,32 @@ job proves that the workflow authority, selected branch head, checkout,
 requested SHA, final PR merge commit/base, reviewed PR-head tree, current-head
 approval, complete check-run pagination, and the exact PR-head `github-actions` check runs
 `policy / polytail`, `python-worker / verify`, and `dotnet / build-test` all
-describe that one candidate. The same snapshot fully paginates review threads;
+describe that one candidate.
+Starting with v1.1.3, PR-head checks alone are insufficient: the collector also
+requires the actual source SHA's latest push-to-main run of
+`.github/workflows/ci.yml` in this repository. Run and job inventories must be
+complete; an ambiguous latest creation time, wrong repository/SHA/workflow,
+pending or failed run, or run/attempt change during collection blocks admission.
+Each of the three required jobs must occur exactly once and succeed in that
+same attempt. An older green run or an equal PR tree cannot replace this proof.
+The persisted source-CI snapshot contains only those run/repository/attempt and
+job identity, status and pagination fields consumed by admission. Raw API actor,
+commit-author, runner, step and unrelated URL metadata are not published in the
+candidate manifest; collection and before/after identity checks still use the
+complete observations before projecting this closed evidence shape.
+The stable `python-worker / verify` check includes all three repository-script
+shards: CI runs them on independent Windows matrix runners, then rejects any
+non-success matrix result before running the worker-only lane. Each invocation
+uses the existing verifier's exhaustive/disjoint partition, session custody and
+deadline. Local `verify.py --all` keeps serial lanes to avoid shared lock-file
+and temporary-directory mutation; this is CI runner isolation, not a new local
+scheduler or a reduction in tests.
+This is refreshed at the existing candidate, pre-tag and Release-mutation
+boundaries. Earlier version policies remain unchanged, and this prerequisite
+does not itself waive required source CI or fresh Golden execution. Candidate
+and promotion jobs declare `actions: read` explicitly because job-level
+permissions replace workflow defaults; no new write permission is needed.
+The same snapshot fully paginates review threads;
 every unresolved thread needs one recognized P0-P3 marker, unresolved P0/P1
 blocks, and independent P2/P3 work may continue in parallel. The applied main
 rules must require exactly those three checks, while one active `refs/tags/v*`
@@ -307,7 +337,27 @@ be exactly `[]`; null, malformed, or non-empty values fail admission. GitHub
 omits `bypass_actors` from the
 detail response for a token without ruleset write access, so the protected
 environment's release owner separately inspects and attests that the matching
-ruleset has no bypass actors. It then runs the canonical full verifier, packages
+ruleset has no bypass actors. From v1.1.3, after exact-source CI admission, the
+candidate runs `python scripts/verify.py --release-golden`: a fresh full-solution
+restore/build and the complete Bootstrap and GoldenRegression test projects,
+with canonical fixture/disposition validation and every direct case's referenced
+passed test identity. Cases sharing a test method must expose their exact canonical
+`caseId` as the first theory argument; their fresh TRX rows must match the entire
+declared case inventory one-to-one, with each case passed exactly once. A method
+name alone cannot certify multiple cases. Duplicate, undeclared, failed or skipped
+case rows block release. Ordinary discovery/skip identities remain unchanged.
+Existing discovery/execution reconciliation, approved skip policy,
+full output comparisons, case-local allowed differences, immutable test shadows,
+and cleanup remain enforced. Missing, failed or skipped required Golden cases
+block packaging. Input-only evidence remains input-only. Only this release mode
+omits repeated pre-build ownership/format checks already proved by admitted
+exact-source CI and omits the unused Coverlet coverage collection/attachments.
+It still requires a unique fresh TRX, exact discovery/execution identities,
+canonical production-output hashes and full solution build. Building only the
+two test projects is insufficient for that production-output contract.
+This mode does not claim full-suite coverage; that evidence belongs to the
+admitted exact-source CI. `verify.py --all` remains unchanged for full local
+verification and earlier release versions. The candidate then packages
 once, smokes the package, and renders a complete matching stable CHANGELOG
 section. A closed candidate manifest binds source SHA/tree, workflow SHA/ref,
 run id, final-review snapshot, release-note digest, and the exact
@@ -349,8 +399,13 @@ selected product source. A separate `contents: read` job downloads the
 published ZIP plus its adjacent SPDX and provenance sidecars, then runs
 protected-main smoke tooling in a second step where neither `GH_TOKEN` nor
 `GITHUB_TOKEN` is exposed. The write-token job rereads the selected branch head
-immediately before creating a new tag object and fails if it advanced. A
-pre-approval failure creates no tag. If promotion fails after tag creation,
+immediately before creating a new tag object and fails if it advanced.
+The published-smoke job explicitly requires a non-cancelled run and successful
+candidate and promotion jobs. An inapplicable, skipped transitive parity job
+does not suppress smoke after successful publication; failed or skipped direct
+dependencies still block it. This condition does not grant write authority or
+replace any Golden execution or clean-machine evidence.
+A pre-approval failure creates no tag. If promotion fails after tag creation,
 rerun only the failed promotion job in the same workflow run so the original
 run id and artifact digest remain authoritative. Eligible historical releases
 may retain their bounded matching recovery behavior; an immutable
@@ -361,7 +416,7 @@ closed. A new workflow run cannot reuse the old stable version.
 
 GitHub may return an annotated-tag message with CRLF transport line endings while the candidate artifact uses LF. Release validation canonicalizes only `CRLF` to `LF` on both messages before comparison; every logical line, field, ordering, and non-newline byte remains exact.
 
-Both package paths run `smoke-release.ps1 -SkipUiLaunch` before upload or publication. Starting with v1.0.8, the package closed allowlist includes the hash-pinned canonical capability policy with role `capabilityPolicy` and the exact canonical Golden redistribution allowlist with role `reference`; protected smoke retains its historical package behavior through v1.0.7. For v1.1.2, smoke requires the exact schema-1.1 allowlist identity and the reviewed 35-case/161-declaration/158-unique-artifact/194-projected-path closure, includes 148 canonical BINs, and verifies all two selected input-only BINs as raw outer-ZIP entries. It rejects automatic canonical-tree selection, Direct-Golden relabeling, fabricated expected output, parallel manifests, nested archives, raw bypass, older input-only evidence/dependent aliases, and non-neutral source/transfer material. Aliases remain self-contained and source only same-workflow Direct Goldens; BAT/CONFIG provenance remains inert `reference` material. It then checks materialized built-in profiles, exact external-tool paths, sidecars, hashes, and the worker self-test. It does not satisfy the visible startup or clean-machine gate.
+Both package paths run `smoke-release.ps1 -SkipUiLaunch` before upload or publication. Starting with v1.0.8, the package closed allowlist includes the hash-pinned canonical capability policy with role `capabilityPolicy` and the exact canonical Golden redistribution allowlist with role `reference`; protected smoke retains its historical package behavior through v1.0.7. For the current v1.1.3 candidate, the owner's 2026-09-05 renewal retains the unchanged v1.1.2 reference payload. Smoke requires the renewed exact schema-1.1 allowlist identity and the reviewed 35-case/161-declaration/158-unique-artifact/194-projected-path closure, includes 148 canonical BINs, and verifies all two selected input-only BINs as raw outer-ZIP entries. Only the authorized version/date and their two derived raw-SHA pins change; historical release evidence and all canonical payload bytes remain unchanged. It rejects automatic canonical-tree selection, Direct-Golden relabeling, fabricated expected output, parallel manifests, nested archives, raw bypass, older input-only evidence/dependent aliases, and non-neutral source/transfer material. Aliases remain self-contained and source only same-workflow Direct Goldens; BAT/CONFIG provenance remains inert `reference` material. It then checks materialized built-in profiles, exact external-tool paths, sidecars, hashes, and the worker self-test. It does not satisfy the visible startup or clean-machine gate.
 
 ## Local package smoke
 

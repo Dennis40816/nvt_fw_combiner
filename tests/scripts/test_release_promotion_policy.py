@@ -1071,6 +1071,186 @@ class ReleasePromotionPolicyTests(unittest.TestCase):
                         source_sha=REVIEW_HEAD_SHA,
                     )
 
+    @staticmethod
+    def source_ci_evidence() -> dict:
+        run = {
+            "id": 80, "run_attempt": 2, "workflow_id": 12,
+            "head_sha": SHA, "head_branch": "main", "event": "push",
+            "path": ".github/workflows/ci.yml",
+            "repository": {"full_name": "owner/repo"},
+            "head_repository": {"full_name": "owner/repo"},
+            "created_at": "2026-09-05T02:00:00Z",
+            "status": "completed", "conclusion": "success",
+        }
+        return {
+            "repository": "owner/repo", "run": run,
+            "runsPaginationComplete": True, "jobsPaginationComplete": True,
+            "jobs": [
+                {"id": index + 100, "run_id": 80, "head_sha": SHA, "name": name,
+                 "status": "completed", "conclusion": "success"}
+                for index, name in enumerate(REQUIRED_RELEASE_CHECKS)
+            ],
+        }
+
+    def test_v113_rejects_review_head_ci_without_actual_source_ci(self) -> None:
+        # A green PR tree is not a successful CI run on its final merge commit.
+        with self.assertRaisesRegex(ValueError, "source CI"):
+            MODULE.validate_candidate_context(
+                valid_snapshot(),
+                **{**self.candidate_arguments(), "source_version": "1.1.3"},
+            )
+
+    def test_v113_accepts_only_exact_source_workflow_and_attempt(self) -> None:
+        source = self.source_ci_evidence()
+        snapshot = valid_snapshot()
+        snapshot["repositoryAdmission"]["sourceCi"] = source
+        MODULE.validate_candidate_context(
+            snapshot, **{**self.candidate_arguments(), "source_version": "1.1.3"},
+        )
+        for field, value in (
+            ("head_sha", REVIEW_HEAD_SHA), ("head_branch", "feature"),
+            ("path", ".github/workflows/other.yml"), ("event", "pull_request"),
+            ("status", "in_progress"), ("conclusion", "failure"),
+            ("run_attempt", 0), ("id", True), ("workflow_id", "12"),
+            ("repository", {"full_name": "other/repo"}),
+            ("head_repository", {"full_name": "fork/repo"}),
+            ("created_at", "2026-99-05T02:00:00Z"),
+        ):
+            with self.subTest(field=field), self.assertRaisesRegex(ValueError, "source CI"):
+                MODULE.validate_source_ci(
+                    {**source, "run": {**source["run"], field: value}}, source_sha=SHA,
+                )
+        for field in ("runsPaginationComplete", "jobsPaginationComplete"):
+            with self.subTest(field=field), self.assertRaisesRegex(ValueError, "source CI"):
+                MODULE.validate_source_ci({**source, field: False}, source_sha=SHA)
+        for jobs in (
+            [], source["jobs"][:-1], source["jobs"] + [source["jobs"][0]],
+            source["jobs"] + [{**source["jobs"][0], "id": 500}],
+            [{**job, "head_sha": REVIEW_HEAD_SHA} for job in source["jobs"]],
+            [{**job, "run_id": 81} for job in source["jobs"]],
+            [{**job, "conclusion": "skipped"} for job in source["jobs"]],
+        ):
+            with self.subTest(jobs=jobs), self.assertRaisesRegex(ValueError, "source CI"):
+                MODULE.validate_source_ci({**source, "jobs": jobs}, source_sha=SHA)
+
+    def test_legacy_admission_does_not_require_or_interpret_source_ci(self) -> None:
+        for source in (None, {"run": "malformed legacy-irrelevant evidence"}):
+            snapshot = valid_snapshot()
+            snapshot["repositoryAdmission"]["sourceCi"] = source
+            MODULE.validate_candidate_context(
+                snapshot, **{**self.candidate_arguments(), "source_version": "1.1.2"},
+            )
+
+    def test_admission_cli_forwards_actual_source_sha_to_the_collector(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            output = Path(temporary) / "admission.json"
+            with (
+                mock.patch.object(sys, "argv", [
+                    "release_promotion_policy.py", "collect-repository-admission",
+                    "--repository", "owner/repo", "--pull-request", "7",
+                    "--main-sha", SHA, "--review-head-sha", REVIEW_HEAD_SHA,
+                    "--source-sha", SHA, "--expected-tag", "v1.1.3", "--output", str(output),
+                ]),
+                mock.patch.object(MODULE, "collect_repository_admission", return_value={}) as collect,
+            ):
+                self.assertEqual(0, MODULE.main())
+            collect.assert_called_once_with(
+                repository="owner/repo", pull_request=7, main_sha=SHA,
+                review_head_sha=REVIEW_HEAD_SHA, source_sha=SHA, expected_tag="v1.1.3",
+            )
+
+    def test_source_ci_collector_reads_latest_attempt_and_confirms_identity(self) -> None:
+        source = self.source_ci_evidence()
+        run, jobs = source["run"], source["jobs"]
+        raw_run = {
+            **run,
+            "actor": {"login": "sentinel-run-actor"},
+            "head_commit": {"author": {"email": "sentinel@example.invalid"}},
+            "repository": {
+                **run["repository"],
+                "name": "sentinel-run-repository",
+            },
+            "head_repository": {
+                **run["head_repository"],
+                "name": "sentinel-head-repository",
+            },
+        }
+        raw_jobs = [
+            {
+                **job,
+                "runner_name": "sentinel-runner",
+                "steps": [{"name": "sentinel-step"}],
+                "html_url": "https://example.invalid/sentinel-job",
+            }
+            for job in jobs
+        ]
+        responses = [
+            {"total_count": 1, "workflow_runs": [raw_run]},
+            {"total_count": 1, "workflow_runs": []}, raw_run,
+            {"total_count": 3, "jobs": raw_jobs[:2]},
+            {"total_count": 3, "jobs": raw_jobs[2:]},
+            {"total_count": 3, "jobs": []}, raw_run,
+        ]
+        with mock.patch.object(MODULE, "_read_github_json", side_effect=responses) as read:
+            actual = MODULE._collect_source_ci("owner/repo", SHA)
+        self.assertEqual(source, actual)
+        serialized = json.dumps(actual)
+        for sentinel in (
+            "sentinel-run-actor",
+            "sentinel@example.invalid",
+            "sentinel-run-repository",
+            "sentinel-head-repository",
+            "sentinel-runner",
+            "sentinel-step",
+            "sentinel-job",
+        ):
+            self.assertNotIn(sentinel, serialized)
+        calls = [call.args[0] for call in read.call_args_list]
+        self.assertIn(f"head_sha={SHA}", calls[0])
+        self.assertIn("branch=main", calls[0])
+        self.assertIn("event=push", calls[0])
+        self.assertEqual(
+            "repos/owner/repo/actions/runs/80/attempts/2/jobs", calls[3][3],
+        )
+        self.assertEqual(calls[2], calls[-1])
+        self.assertTrue(all(call[0] == "api" for call in calls))
+
+    def test_source_ci_collector_rejects_newer_red_or_ambiguous_runs_and_drift(self) -> None:
+        source = self.source_ci_evidence()
+        run = source["run"]
+        older = {**run, "id": 70, "created_at": "2026-09-04T02:00:00Z"}
+        for runs, after in (
+            ([older, {**run, "conclusion": "failure"}], run),
+            ([older, {**run, "status": "queued", "conclusion": None}], run),
+            ([run, {**run, "id": 81}], run),
+            ([run, run], run),
+            ([run], {**run, "run_attempt": 3}),
+            ([run], {**run, "head_sha": REVIEW_HEAD_SHA}),
+        ):
+            responses = [
+                {"total_count": len(runs), "workflow_runs": runs},
+                {"total_count": len(runs), "workflow_runs": []}, runs[-1],
+                {"total_count": 3, "jobs": source["jobs"]},
+                {"total_count": 3, "jobs": []}, after,
+            ]
+            with self.subTest(runs=runs, after=after), \
+                mock.patch.object(MODULE, "_read_github_json", side_effect=responses), \
+                self.assertRaisesRegex(ValueError, "source CI"):
+                MODULE._collect_source_ci("owner/repo", SHA)
+
+    def test_source_ci_inventory_rejects_incomplete_and_changing_pages(self) -> None:
+        for responses in (
+            [{"total_count": 1, "workflow_runs": []}],
+            [{"total_count": True, "workflow_runs": []}],
+            [{"total_count": 1, "workflow_runs": [None]}],
+            [{"total_count": 1, "workflow_runs": [{"id": 1}]},
+             {"total_count": 2, "workflow_runs": []}],
+        ):
+            with self.subTest(responses=responses), \
+                mock.patch.object(MODULE, "_read_github_json", side_effect=responses), \
+                self.assertRaisesRegex(ValueError, "source CI"):
+                MODULE._collect_source_ci("owner/repo", SHA)
+
     def test_v111_repository_admission_accepts_only_exact_protected_policy(
         self,
     ) -> None:
@@ -1740,6 +1920,7 @@ class ReleasePromotionPolicyTests(unittest.TestCase):
                     )
 
         required_arguments = {**arguments, "source_version": "1.2.0"}
+        snapshot["repositoryAdmission"]["sourceCi"] = self.source_ci_evidence()
         MODULE.validate_candidate_context(snapshot, **required_arguments)
 
         for key, value, message in (
@@ -1811,6 +1992,7 @@ class ReleasePromotionPolicyTests(unittest.TestCase):
 
         for source_version in ("1.0.8", "1.0.9", "1.1.999"):
             with self.subTest(source_version=source_version, expected="accepted"):
+                snapshot["repositoryAdmission"]["sourceCi"] = self.source_ci_evidence()
                 MODULE.validate_candidate_context(
                     snapshot, **{**arguments, "source_version": source_version}
                 )
@@ -2414,6 +2596,85 @@ class ReleasePromotionPolicyTests(unittest.TestCase):
                     workflow_sha=SHA,
                     workflow_ref="refs/heads/main",
                 )
+
+    def test_candidate_manifest_closes_collected_source_ci_evidence(self) -> None:
+        source = self.source_ci_evidence()
+        run, jobs = source["run"], source["jobs"]
+        raw_run = {
+            **run,
+            "actor": {"login": "sentinel-run-actor"},
+            "head_commit": {"author": {"email": "sentinel@example.invalid"}},
+            "repository": {
+                **run["repository"],
+                "name": "sentinel-run-repository",
+            },
+            "head_repository": {
+                **run["head_repository"],
+                "name": "sentinel-head-repository",
+            },
+        }
+        raw_jobs = [
+            {
+                **job,
+                "runner_name": "sentinel-runner",
+                "steps": [{"name": "sentinel-step"}],
+                "html_url": "https://example.invalid/sentinel-job",
+            }
+            for job in jobs
+        ]
+        responses = [
+            {"total_count": 1, "workflow_runs": [raw_run]},
+            {"total_count": 1, "workflow_runs": []}, raw_run,
+            {"total_count": 3, "jobs": raw_jobs[:2]},
+            {"total_count": 3, "jobs": raw_jobs[2:]},
+            {"total_count": 3, "jobs": []}, raw_run,
+        ]
+        with tempfile.TemporaryDirectory(
+            prefix="release-candidate-source-ci-"
+        ) as temporary, mock.patch.object(
+            MODULE, "_read_github_json", side_effect=responses
+        ):
+            temporary_root = Path(temporary)
+            asset_dir = temporary_root / "assets"
+            asset_dir.mkdir()
+            version = "1.1.3"
+            for name in MODULE._candidate_asset_names(version):
+                (asset_dir / name).write_bytes(name.encode("utf-8"))
+            notes = asset_dir / "RELEASE-NOTES.md"
+            notes.write_text("release notes\n", encoding="utf-8")
+            review = valid_snapshot()
+            review["repositoryAdmission"]["sourceCi"] = MODULE._collect_source_ci(
+                "owner/repo", SHA
+            )
+            review_path = temporary_root / "review.json"
+            review_path.write_text(json.dumps(review), encoding="utf-8")
+
+            manifest_path = MODULE.create_candidate_manifest(
+                asset_dir,
+                version=version,
+                source_sha=SHA,
+                source_tree=TREE,
+                run_id="99",
+                workflow_sha=SHA,
+                workflow_ref="refs/heads/main",
+                notes_path=notes,
+                review_snapshot_path=review_path,
+            )
+
+            manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+            actual_source = manifest["reviewEvidence"]["repositoryAdmission"]["sourceCi"]
+            self.assertEqual(source, actual_source)
+            serialized = json.dumps(manifest)
+            for sentinel in (
+                "sentinel-run-actor",
+                "sentinel@example.invalid",
+                "sentinel-run-repository",
+                "sentinel-head-repository",
+                "sentinel-runner",
+                "sentinel-step",
+                "sentinel-job",
+            ):
+                self.assertNotIn(sentinel, serialized)
 
     def test_launcher_era_manifest_requires_all_eight_payload_assets(self) -> None:
         with tempfile.TemporaryDirectory(

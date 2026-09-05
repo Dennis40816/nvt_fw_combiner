@@ -143,7 +143,7 @@ $WorkerBuild = Join-Path $WorkRoot 'worker-build'
 $WorkerDist = Join-Path $WorkRoot 'worker-dist'
 $IdleBuildWorkerStopper = Join-Path $PSScriptRoot 'stop-idle-build-workers.ps1'
 $CanonicalGoldenReleaseAllowlistPath = Join-Path $RepoRoot 'testdata/golden/release-canonical-v1.json'
-$ApprovedCanonicalGoldenReleaseAllowlistSha256 = '3fa22d263cee83a07ee30d2977dbf4afde2b5bcca685f9ded51f9d54c1f26ee7'
+$ApprovedCanonicalGoldenReleaseAllowlistSha256 = '968e6bd3cdfb304a0bdf0272fd28d2b43c2a117d2f33a5913c16b84480c1b495'
 
 try {
 if (-not $PolicyDryRunSentinel) {
@@ -1101,9 +1101,9 @@ function Get-DeclaredCanonicalGoldenPaths {
     $ReleaseAllowlist = Get-Content -LiteralPath $ReleaseAllowlistPath -Raw | ConvertFrom-Json -Depth 100
     if ($ReleaseAllowlist.schemaVersion -ne '1.1' -or
         $ReleaseAllowlist.policyId -ne 'canonical-reference-v1' -or
-        $ReleaseAllowlist.authorizedForVersion -ne '1.1.2' -or
+        $ReleaseAllowlist.authorizedForVersion -ne '1.1.3' -or
         $ReleaseAllowlist.releaseStatus -ne 'human-gated-allowlist' -or
-        $ReleaseAllowlist.redistributionAuthorization.authorizedOn -ne '2026-09-04' -or
+        $ReleaseAllowlist.redistributionAuthorization.authorizedOn -ne '2026-09-05' -or
         $ReleaseAllowlist.redistributionAuthorization.authorizedBy -ne 'repository owner' -or
         $ReleaseAllowlist.redistributionAuthorization.scope -ne 'reference-payload-only' -or
         $ReleaseAllowlist.redistributionAuthorization.supersedesHistoricalCaseRestrictions -ne $true -or

@@ -6,4 +6,4 @@
 - Verification/release scripts do not download unpinned tools or execute arbitrary commands.
 - Packaging starts from an empty staging directory and enforces a closed allowlist.
 - Never print secrets, firmware bytes, signing material or private artifact URLs.
-- Release/security script changes require tests or a deterministic dry-run fixture plus human review.
+- Release/security script behavior changes require focused tests or a deterministic dry-run fixture plus human review before integration/use. Inspection and non-behavioral comments follow the root task-scope rules; preparing an authorized patch does not require repeating an already resolved approval question.

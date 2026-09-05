@@ -180,10 +180,10 @@ class CanonicalGoldenValidationTests(unittest.TestCase):
         self.release_allowlist = {
             "schemaVersion": "1.1",
             "policyId": "canonical-reference-v1",
-            "authorizedForVersion": "1.1.2",
+            "authorizedForVersion": "1.1.3",
             "releaseStatus": "human-gated-allowlist",
             "redistributionAuthorization": {
-                "authorizedOn": "2026-09-04",
+                "authorizedOn": "2026-09-05",
                 "authorizedBy": "repository owner",
                 "scope": "reference-payload-only",
                 "supersedesHistoricalCaseRestrictions": True,
@@ -896,6 +896,49 @@ class CanonicalGoldenValidationTests(unittest.TestCase):
 
     def test_accepts_explicit_canonical_release_artifact_facts(self) -> None:
         self.assertEqual([], self.validate_release_allowlist())
+
+    def test_rejects_release_versions_outside_the_owner_approved_renewal(self) -> None:
+        for version in ("1.1.2", "1.1.4", "1.1.3-beta", None):
+            with self.subTest(version=version):
+                self.assertEqual([], self.validate_release_allowlist())
+                self.release_allowlist["authorizedForVersion"] = version
+                self.write_json(
+                    self.root / "testdata/golden/release-canonical-v1.json",
+                    self.release_allowlist,
+                )
+                errors: list[str] = []
+                VALIDATOR.validate_canonical_release_allowlist(
+                    self.root,
+                    errors,
+                    expected_summary=self.release_allowlist["selectionSummary"],
+                )
+                self.assertTrue(
+                    any("authorized for version 1.1.3" in error for error in errors)
+                )
+
+    def test_rejects_release_authorization_dates_outside_the_owner_approved_renewal(
+        self,
+    ) -> None:
+        for date in ("2026-09-04", "2026-09-06", None):
+            with self.subTest(date=date):
+                self.assertEqual([], self.validate_release_allowlist())
+                self.release_allowlist["redistributionAuthorization"]["authorizedOn"] = date
+                self.write_json(
+                    self.root / "testdata/golden/release-canonical-v1.json",
+                    self.release_allowlist,
+                )
+                errors: list[str] = []
+                VALIDATOR.validate_canonical_release_allowlist(
+                    self.root,
+                    errors,
+                    expected_summary=self.release_allowlist["selectionSummary"],
+                )
+                self.assertTrue(
+                    any(
+                        "authorization date must be 2026-09-05" in error
+                        for error in errors
+                    )
+                )
 
     def test_rejects_release_authority_that_claims_support_promotion(self) -> None:
         self.validate_release_allowlist()

@@ -1649,10 +1649,39 @@ class AgentGovernanceTests(unittest.TestCase):
 
         self.assertTrue(any("changed in commit history" in error for error in self.validate()))
 
+    def test_path_state_digest_batches_mixed_paths_without_changing_v1_bytes(self) -> None:
+        self._write("src/Product/alpha.cs", "alpha\r\n")
+        self._write("src/Product/executable.cs", "run\n")
+        binary_path = "src/Product/\u4e2d\u6587 space.cs"
+        (self.root / binary_path).write_bytes(b"\x00\xffone\n")
+        self._git("add", "--", "src/Product")
+        self._git("update-index", "--chmod=+x", "src/Product/executable.cs")
+        self._git("commit", "-q", "-m", "mixed path-state fixture")
+        paths = [
+            binary_path,
+            "src/Product/executable.cs",
+            "src/Product/deleted.cs",
+            "src/Product/alpha.cs",
+            "src/Product/alpha.cs",
+        ]
+        with mock.patch.object(
+            repository_validator.subprocess, "Popen", wraps=subprocess.Popen
+        ) as popen:
+            digest, error = _capability_path_state_digest(self.root, "HEAD", paths)
+
+        self.assertIsNone(error)
+        # Frozen v1 framing: sorted UTF-8 paths, duplicate replay, exact raw bytes,
+        # executable mode and the absent-path marker; independent of Git OIDs.
+        self.assertEqual(
+            "257b531da387246315ceaad33ba00e82329958c109baba18113b09214c7423d0",
+            digest,
+        )
+        self.assertLessEqual(popen.call_count, 2)
+
     def test_path_state_digest_changes_with_blob_bytes(self) -> None:
-        first_head = self._commit_implementation()
+        self._commit_implementation()
         first, first_error = _capability_path_state_digest(
-            self.root, first_head, ["src/Product/Owner.cs"]
+            self.root, "HEAD", ["src/Product/Owner.cs"]
         )
         self._write("src/Product/Owner.cs", "internal sealed class Owner { public int Value => 2; }\n")
         self._git("add", "--", "src/Product/Owner.cs")
@@ -1664,6 +1693,109 @@ class AgentGovernanceTests(unittest.TestCase):
         self.assertIsNone(first_error)
         self.assertIsNone(second_error)
         self.assertNotEqual(first, second)
+
+    def test_path_state_digest_rejects_invalid_selected_tree_entries(self) -> None:
+        relative = b"src/Product/Owner.cs"
+        oid = b"b" * 40
+        valid = b"100644 blob " + oid + b"\t" + relative + b"\0"
+        cases = {
+            "duplicate selected path": valid + valid,
+            "directory": b"040000 tree " + oid + b"\t" + relative + b"\0",
+            "invalid mode": b"000000 blob " + oid + b"\t" + relative + b"\0",
+            "invalid object ID": b"100644 blob invalid\t" + relative + b"\0",
+            "extra metadata": b"100644 blob " + oid + b" extra\t" + relative + b"\0",
+            "truncated inventory": valid[:-1],
+            "unframed inventory": b"no path separator\0",
+        }
+        for name, tree in cases.items():
+            with self.subTest(name=name), mock.patch.object(
+                repository_validator, "_git_object", return_value=(tree, None)
+            ), mock.patch.object(repository_validator, "_read_git_blob_batch") as read_blobs:
+                digest, error = _capability_path_state_digest(
+                    self.root, "HEAD", [relative.decode()]
+                )
+                self.assertIsNone(digest)
+                self.assertIsNotNone(error)
+                read_blobs.assert_not_called()
+
+    def test_path_state_digest_ignores_unselected_metadata_and_rejects_unframeable_paths(self) -> None:
+        relative = "src/Product/Owner.cs"
+        expected, expected_error = _capability_path_state_digest(self.root, "HEAD", [relative])
+        self.assertIsNone(expected_error)
+        original_git = repository_validator._git_object
+
+        def tree_with_unselected_entry(root: Path, arguments: list[str]):
+            output, error = original_git(root, arguments)
+            if arguments[0] == "ls-tree":
+                output += b"irrelevant metadata\tscratch/\xff-unselected\0"
+            return output, error
+
+        with mock.patch.object(repository_validator, "_git_object", side_effect=tree_with_unselected_entry):
+            self.assertEqual(
+                (expected, None), _capability_path_state_digest(self.root, "HEAD", [relative])
+            )
+        for suffix in ("\0", "\r", "\n"):
+            with self.subTest(suffix=repr(suffix)), mock.patch.object(
+                repository_validator, "_git_object"
+            ) as git:
+                digest, error = _capability_path_state_digest(self.root, "HEAD", [relative + suffix])
+                self.assertIsNone(digest)
+                self.assertIn("Git-framed", str(error))
+                git.assert_not_called()
+
+    def test_git_blob_batch_rejects_corruption_missing_objects_and_process_failures(self) -> None:
+        oid = b"a" * 40
+        other_oid = b"b" * 40
+        valid = oid + b" blob 2\n{}\n"
+        cases = {
+            "wrong OID": (other_oid + b" blob 2\n{}\n", [oid]),
+            "non-blob": (oid + b" tree 0\n\n", [oid]),
+            "invalid size": (oid + b" blob -1\n", [oid]),
+            "truncated header": (oid + b" blob 2", [oid]),
+            "truncated bytes": (oid + b" blob 3\nab", [oid]),
+            "missing terminator": (oid + b" blob 2\n{}x", [oid]),
+            "missing object": (oid + b" missing\n", [oid]),
+            "trailing response": (valid + valid, [oid]),
+            "duplicate response": (valid + valid, [oid, other_oid]),
+            "missing response": (valid, [oid, other_oid]),
+        }
+        for name, (output, ids) in cases.items():
+            with self.subTest(name=name), mock.patch.object(
+                repository_validator.subprocess,
+                "run",
+                return_value=subprocess.CompletedProcess([], 0, stdout=output, stderr=b""),
+            ):
+                blobs, error = repository_validator._read_git_blob_batch(self.root, ids)
+                self.assertEqual({}, blobs)
+                self.assertIsNotNone(error)
+        with mock.patch.object(
+            repository_validator.subprocess,
+            "run",
+            return_value=subprocess.CompletedProcess([], 1, stdout=valid, stderr=b"object read failed"),
+        ):
+            self.assertEqual(
+                ({}, "object read failed"), repository_validator._read_git_blob_batch(self.root, [oid])
+            )
+        with mock.patch.object(repository_validator.subprocess, "run", side_effect=OSError("start failed")):
+            self.assertEqual(
+                ({}, "start failed"), repository_validator._read_git_blob_batch(self.root, [oid])
+            )
+
+    def test_git_blob_batch_preserves_empty_blobs_and_deduplicates_only_object_reads(self) -> None:
+        oid = b"a" * 40
+        with mock.patch.object(
+            repository_validator.subprocess,
+            "run",
+            return_value=subprocess.CompletedProcess([], 0, stdout=oid + b" blob 0\n\n", stderr=b""),
+        ) as run:
+            self.assertEqual(
+                ({oid: b""}, None), repository_validator._read_git_blob_batch(self.root, [oid, oid])
+            )
+            self.assertEqual(oid + b"\n", run.call_args.kwargs["input"])
+        with mock.patch.object(repository_validator.subprocess, "run") as run:
+            self.assertEqual(({}, None), repository_validator._read_git_blob_batch(self.root, []))
+            self.assertIsNotNone(repository_validator._read_git_blob_batch(self.root, [b"bad\nOID"])[1])
+            run.assert_not_called()
 
     def test_path_state_digest_changes_with_git_mode(self) -> None:
         first_head = self._commit_implementation()
@@ -1743,7 +1875,7 @@ class AgentGovernanceTests(unittest.TestCase):
                     if str(step.get("uses", "")).startswith("actions/checkout@")
                 ]
 
-                self.assertEqual(5, len(checkout_steps))
+                self.assertEqual(6, len(checkout_steps))
                 for step in checkout_steps:
                     checkout_with = step["with"]
                     self.assertEqual(expected_ref, checkout_with["ref"])
@@ -1794,6 +1926,7 @@ class AgentGovernanceTests(unittest.TestCase):
         expected_jobs = {
             "structure",
             "python-worker",
+            "repository-scripts",
             "dotnet-build",
             "dotnet-test",
             "dotnet",
@@ -1817,6 +1950,7 @@ class AgentGovernanceTests(unittest.TestCase):
         self.assertEqual([], errors)
 
         invalid_cases: tuple[tuple[str, dict[str, object]], ...] = (
+            ("script-runner", {"repository-scripts": {"runs-on": "ubuntu-latest", "steps": []}}),
             ("ubuntu", {"structure": {"runs-on": "ubuntu-latest", "steps": []}}),
             ("macos", {"structure": {"runs-on": "macos-latest", "steps": []}}),
             ("self-hosted", {"structure": {"runs-on": "self-hosted", "steps": []}}),

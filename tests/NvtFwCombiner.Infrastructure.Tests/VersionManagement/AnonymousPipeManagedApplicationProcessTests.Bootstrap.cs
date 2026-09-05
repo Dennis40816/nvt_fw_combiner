@@ -795,6 +795,7 @@ public sealed partial class AnonymousPipeManagedApplicationProcessTests
         {
             FileName = command,
             UseShellExecute = false,
+            CreateNoWindow = true,
         };
         startInfo.ArgumentList.Add("/d");
         startInfo.ArgumentList.Add("/c");
@@ -836,6 +837,7 @@ public sealed partial class AnonymousPipeManagedApplicationProcessTests
         {
             FileName = command,
             UseShellExecute = false,
+            CreateNoWindow = true,
         };
         startInfo.ArgumentList.Add("/d");
         startInfo.ArgumentList.Add("/c");

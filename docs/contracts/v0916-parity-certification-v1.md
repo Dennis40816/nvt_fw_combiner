@@ -481,8 +481,28 @@ alternate commands, extra parity jobs, or artifact drift fail
 `PARITY_WORKFLOW_MISMATCH`. Normalization retains the complete three-job parity
 subgraph plus top-level trigger and permissions: compare/attestation/finalize identity,
 order, and action map cannot be swapped, and checkout `ref` or any checkout
-option cannot drift. Unrelated pre-existing release jobs are outside this
-subgraph, but an extra parity job or edge into/out of the subgraph is rejected.
+option cannot drift. The other three release jobs are outside the detailed
+parity-field projection, but `jobInventorySha256` still binds all six complete
+job objects. Changes to candidate, promote or published-smoke require reviewed
+inventory-digest synchronization and propagation of the raw workflow-contract
+identity to the plan, schemas and fixtures. The separate promotion gate also
+binds the complete ordered step list; an extra job or undeclared edge is rejected.
+After approved workflow changes, the agent uses
+`python scripts/sync_derived.py --write --only v0916-workflow-contract`, reviews
+the diff, and runs the default read-only check before formal verification.
+This mechanically updates the four derived digests and their existing raw
+size/SHA projections together. The parity owner supplies the plan and validates
+its unchanged authority; the common runner is the sole writer. CI never writes
+these expectations, and synchronization does not approve workflow behavior,
+renew historical certification or alter candidate-source/H1-H4 authority.
+The repository structure gate selects frozen H2 from `reviewedHead` in the
+existing immutable `RELEASE-111-PARITY-AUTHORITY-TRANSFER-09` final record,
+after canonical capability governance checks that record. It does not use the
+current plan's last-change commit: a live workflow fingerprint update is not
+a new source certification. Missing/invalid record or Git authority fails
+closed, and the original exact H1/H2 transfer checks remain unchanged. The
+separate parity package-source validator still requires its exact H1-H4 chain;
+an ordinary later release commit cannot stand in for H4.
 A job response is not
 assumed to contain an environment, reviewer, or head SHA, and artifact metadata
 is not assumed to contain a workflow-job id. A deployment status `creator` is

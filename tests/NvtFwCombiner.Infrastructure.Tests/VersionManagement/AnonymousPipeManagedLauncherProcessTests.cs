@@ -63,15 +63,62 @@ public sealed partial class AnonymousPipeManagedLauncherProcessTests
                 TestContext.Current.CancellationToken).AsTask();
             using var reader = new StreamReader(admissionPipe);
 
-            string? admitted = await reader.ReadLineAsync(TestContext.Current.CancellationToken);
-            string? second = await reader.ReadLineAsync(TestContext.Current.CancellationToken);
             LauncherProcessStartResult result = await running;
+            Assert.Equal(LauncherProcessStartOutcome.Ready, result.Outcome);
+            using var receiptDeadline = CancellationTokenSource.CreateLinkedTokenSource(
+                TestContext.Current.CancellationToken);
+            receiptDeadline.CancelAfter(TimeSpan.FromSeconds(2));
+            string? admitted = await reader.ReadLineAsync(receiptDeadline.Token);
+            string? second = await reader.ReadLineAsync(receiptDeadline.Token);
 
             Assert.Equal("ADMITTED", admitted);
             Assert.Null(second);
-            Assert.Equal(LauncherProcessStartOutcome.Ready, result.Outcome);
             Assert.Null(Environment.GetEnvironmentVariable(
                 AnonymousPipeManagedLauncherProcess.BootstrapAdmissionPipeHandleEnvironment));
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable(
+                AnonymousPipeManagedLauncherProcess.BootstrapAdmissionPipeHandleEnvironment,
+                previous);
+        }
+    }
+
+    /// <summary>The one-shot test caller closes unused admission after an executable cannot start.</summary>
+    [Fact]
+    public async Task FailedOneShotLauncherAttemptClosesUnusedBootstrapAdmission()
+    {
+        using var workspace = TempWorkspace.Create();
+        ManagedLauncherIdentity identity = PrepareProbe(workspace.Root);
+        using TestExecutableLaunchLease executableLease = ExecutableLease(workspace.Root, identity);
+        File.Delete(executableLease.ExecutablePath);
+        using var admissionPipe = new AnonymousPipeServerStream(
+            PipeDirection.In,
+            HandleInheritability.Inheritable);
+        string inheritedDuplicate = DuplicateInheritableClientHandle(admissionPipe);
+        string? previous = Environment.GetEnvironmentVariable(
+            AnonymousPipeManagedLauncherProcess.BootstrapAdmissionPipeHandleEnvironment);
+        try
+        {
+            Environment.SetEnvironmentVariable(
+                AnonymousPipeManagedLauncherProcess.BootstrapAdmissionPipeHandleEnvironment,
+                inheritedDuplicate);
+            admissionPipe.DisposeLocalCopyOfClientHandle();
+            LauncherProcessStartResult result = await RunAsync(
+                workspace.Root,
+                Path.Combine(workspace.Root, "state.json"),
+                identity,
+                "ready",
+                argumentsPath: null,
+                TimeSpan.FromSeconds(1),
+                TestContext.Current.CancellationToken);
+
+            Assert.Equal(LauncherProcessStartOutcome.StartFailed, result.Outcome);
+            using var reader = new StreamReader(admissionPipe);
+            using var receiptDeadline = CancellationTokenSource.CreateLinkedTokenSource(
+                TestContext.Current.CancellationToken);
+            receiptDeadline.CancelAfter(TimeSpan.FromSeconds(2));
+            Assert.Null(await reader.ReadLineAsync(receiptDeadline.Token));
         }
         finally
         {
@@ -125,7 +172,8 @@ public sealed partial class AnonymousPipeManagedLauncherProcessTests
             Environment.SetEnvironmentVariable(
                 AnonymousPipeManagedLauncherProcess.BootstrapAdmissionPipeHandleEnvironment,
                 inheritedDuplicate);
-            var process = new AnonymousPipeManagedLauncherProcess();
+            using BootstrapAdmissionSignal admission = BootstrapAdmissionSignal.Capture();
+            var process = new AnonymousPipeManagedLauncherProcess(ManagedProcessTermination.Instance, admission);
             admissionPipe.DisposeLocalCopyOfClientHandle();
             using var candidateLease = new TestExecutableLaunchLease(
                 invalidExecutable,
@@ -151,12 +199,15 @@ public sealed partial class AnonymousPipeManagedLauncherProcessTests
                 lkgLease,
                 TimeSpan.FromSeconds(5),
                 TestContext.Current.CancellationToken);
-            using var reader = new StreamReader(admissionPipe);
-            string? admitted = await reader.ReadLineAsync(TestContext.Current.CancellationToken);
-            string? second = await reader.ReadLineAsync(TestContext.Current.CancellationToken);
-
             Assert.Equal(LauncherProcessStartOutcome.StartFailed, candidateResult.Outcome);
             Assert.Equal(LauncherProcessStartOutcome.Ready, lkgResult.Outcome);
+            using var reader = new StreamReader(admissionPipe);
+            using var receiptDeadline = CancellationTokenSource.CreateLinkedTokenSource(
+                TestContext.Current.CancellationToken);
+            receiptDeadline.CancelAfter(TimeSpan.FromSeconds(2));
+            string? admitted = await reader.ReadLineAsync(receiptDeadline.Token);
+            string? second = await reader.ReadLineAsync(receiptDeadline.Token);
+
             Assert.Equal("ADMITTED", admitted);
             Assert.Null(second);
             Assert.Null(Environment.GetEnvironmentVariable(
@@ -199,7 +250,8 @@ public sealed partial class AnonymousPipeManagedLauncherProcessTests
             Environment.SetEnvironmentVariable("NVT_READY_PROBE_APP_VERSION", identity.OwnerAppVersion.ToString());
             Environment.SetEnvironmentVariable("NVT_READY_PROBE_APP_ADMISSION", identity.OwnerAdmissionIdentity);
             Environment.SetEnvironmentVariable("NVT_READY_PROBE_APP_MANIFEST", identity.OwnerReleaseManifestSha256);
-            var process = new AnonymousPipeManagedLauncherProcess();
+            using BootstrapAdmissionSignal admission = BootstrapAdmissionSignal.Capture();
+            var process = new AnonymousPipeManagedLauncherProcess(ManagedProcessTermination.Instance, admission);
             admissionPipe.DisposeLocalCopyOfClientHandle();
 
             Environment.SetEnvironmentVariable("NVT_READY_PROBE_BEHAVIOR", "timeout");
@@ -221,12 +273,15 @@ public sealed partial class AnonymousPipeManagedLauncherProcessTests
                 lkgLease,
                 TimeSpan.FromSeconds(5),
                 TestContext.Current.CancellationToken);
-            using var reader = new StreamReader(admissionPipe);
-            string? admitted = await reader.ReadLineAsync(TestContext.Current.CancellationToken);
-            string? second = await reader.ReadLineAsync(TestContext.Current.CancellationToken);
-
             Assert.Equal(LauncherProcessStartOutcome.ReadyTimeout, candidate.Outcome);
             Assert.Equal(LauncherProcessStartOutcome.Ready, lkg.Outcome);
+            using var reader = new StreamReader(admissionPipe);
+            using var receiptDeadline = CancellationTokenSource.CreateLinkedTokenSource(
+                TestContext.Current.CancellationToken);
+            receiptDeadline.CancelAfter(TimeSpan.FromSeconds(2));
+            string? admitted = await reader.ReadLineAsync(receiptDeadline.Token);
+            string? second = await reader.ReadLineAsync(receiptDeadline.Token);
+
             Assert.Equal("ADMITTED", admitted);
             Assert.Null(second);
         }
@@ -267,7 +322,8 @@ public sealed partial class AnonymousPipeManagedLauncherProcessTests
             Environment.SetEnvironmentVariable("NVT_READY_PROBE_APP_VERSION", identity.OwnerAppVersion.ToString());
             Environment.SetEnvironmentVariable("NVT_READY_PROBE_APP_ADMISSION", identity.OwnerAdmissionIdentity);
             Environment.SetEnvironmentVariable("NVT_READY_PROBE_APP_MANIFEST", identity.OwnerReleaseManifestSha256);
-            var process = new AnonymousPipeManagedLauncherProcess();
+            using BootstrapAdmissionSignal admission = BootstrapAdmissionSignal.Capture();
+            var process = new AnonymousPipeManagedLauncherProcess(ManagedProcessTermination.Instance, admission);
             admissionPipe.DisposeLocalCopyOfClientHandle();
             using TestExecutableLaunchLease lease = ExecutableLease(workspace.Root, identity);
             Task<LauncherProcessStartResult> running = process.StartUntilReadyAsync(
@@ -279,10 +335,22 @@ public sealed partial class AnonymousPipeManagedLauncherProcessTests
                 TestContext.Current.CancellationToken).AsTask();
             using var reader = new StreamReader(admissionPipe);
 
-            string? admitted = await reader.ReadLineAsync(TestContext.Current.CancellationToken);
-            using var eofDeadline = new CancellationTokenSource(TimeSpan.FromMilliseconds(500));
-            string? eof = await reader.ReadLineAsync(eofDeadline.Token);
-            Assert.False(running.IsCompleted);
+            string? admitted;
+            string? eof;
+            try
+            {
+                using var receiptDeadline = CancellationTokenSource.CreateLinkedTokenSource(
+                    TestContext.Current.CancellationToken);
+                receiptDeadline.CancelAfter(TimeSpan.FromSeconds(2));
+                admitted = await reader.ReadLineAsync(receiptDeadline.Token);
+                using var eofDeadline = new CancellationTokenSource(TimeSpan.FromMilliseconds(500));
+                eof = await reader.ReadLineAsync(eofDeadline.Token);
+                Assert.False(running.IsCompleted);
+            }
+            finally
+            {
+                _ = await running;
+            }
             LauncherProcessStartResult result = await running;
 
             Assert.Equal("ADMITTED", admitted);

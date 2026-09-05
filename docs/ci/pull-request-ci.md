@@ -12,9 +12,11 @@ The executable workflow is [`.github/workflows/ci.yml`](../../.github/workflows/
 2. **`python-worker / verify`** runs Ruff format/check, Pyright strict, Pylint, pytest, branch coverage, protocol/process tests, plus the structure gate.
 3. **`dotnet / build-test`** is the stable final verdict over one complete
    Release-build producer and three closed test shards. The canonical
-    verifier validates the exact eight-project/TRX/coverage manifest, 3,450 test
-   cases with the two declared skips, GoldenRegression 18/18, coverage policy,
-   and CtrlRAM fixture evidence before the check passes.
+   verifier validates the exact eight-project/TRX/coverage manifest, reconciles
+   every execution with compiled test discovery and the declared platform skips,
+   and requires complete GoldenRegression execution, coverage policy, and
+   CtrlRAM fixture evidence before the check passes. Test totals and the
+   GoldenRegression summary come from the validated execution evidence.
 
 Private firmware golden regression remains an approved-runner gate once private vectors exist. It must publish reports/hashes only, never firmware payloads.
 

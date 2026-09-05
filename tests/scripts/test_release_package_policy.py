@@ -102,12 +102,17 @@ def normalize_console_output(output: str) -> str:
 
 
 def release_test_temp_root() -> Path:
-    """Return the repository-approved test temp root and fail closed otherwise."""
+    """Reuse the current test scratch inside the declared test area."""
 
     configured_root = os.environ.get("NFC_TEST_AREA_ROOT")
     if not configured_root:
         raise RuntimeError("NFC_TEST_AREA_ROOT is required for release-policy tests")
-    temp_root = Path(configured_root) / "temp"
+    test_area = Path(configured_root).resolve()
+    temp_root = Path(tempfile.gettempdir()).resolve()
+    if temp_root == test_area or not temp_root.is_relative_to(test_area):
+        raise RuntimeError(
+            f"NFC test temp directory is outside test-area scratch: {temp_root}"
+        )
     if not temp_root.is_dir():
         raise RuntimeError(f"NFC test temp directory is missing: {temp_root}")
     return temp_root
@@ -720,6 +725,53 @@ def literal_run_blocks(workflow: str) -> tuple[str, ...]:
 
 class ReleasePackagePolicyTests(unittest.TestCase):
     """Exercises the packager and smoke policy without building release binaries."""
+
+    def test_temp_root_uses_current_scratch_without_legacy_root_temp(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="release-temp-root-") as temporary:
+            root = Path(temporary)
+            scratch = root / "sessions" / "fixture" / "t"
+            scratch.mkdir(parents=True)
+            with (
+                mock.patch.dict(os.environ, {"NFC_TEST_AREA_ROOT": str(root)}),
+                mock.patch.object(tempfile, "tempdir", str(scratch)),
+            ):
+                self.assertEqual(scratch.resolve(), release_test_temp_root())
+                self.assertFalse((root / "temp").exists())
+
+    def test_temp_root_keeps_direct_test_scratch(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="release-temp-root-") as temporary:
+            root = Path(temporary)
+            scratch = root / "temp"
+            scratch.mkdir()
+            with (
+                mock.patch.dict(os.environ, {"NFC_TEST_AREA_ROOT": str(root)}),
+                mock.patch.object(tempfile, "tempdir", str(scratch)),
+            ):
+                self.assertEqual(scratch.resolve(), release_test_temp_root())
+
+    def test_temp_root_requires_declared_test_area(self) -> None:
+        with mock.patch.dict(os.environ):
+            os.environ.pop("NFC_TEST_AREA_ROOT", None)
+            with self.assertRaisesRegex(RuntimeError, "NFC_TEST_AREA_ROOT"):
+                release_test_temp_root()
+
+    def test_temp_root_rejects_invalid_scratch_without_legacy_fallback(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="release-temp-root-") as temporary:
+            fixture = Path(temporary)
+            root = fixture / "area"
+            (root / "temp").mkdir(parents=True)
+            outside = fixture / "area-other"
+            outside.mkdir()
+            file_path = root / "file"
+            file_path.touch()
+            for scratch in (outside, root, root / "missing", file_path):
+                with (
+                    self.subTest(scratch=scratch.name),
+                    mock.patch.dict(os.environ, {"NFC_TEST_AREA_ROOT": str(root)}),
+                    mock.patch.object(tempfile, "tempdir", str(scratch)),
+                    self.assertRaisesRegex(RuntimeError, "NFC test temp directory"),
+                ):
+                    release_test_temp_root()
 
     def test_packager_validates_the_generated_manifest_against_canonical_schema(
         self,
@@ -2621,6 +2673,7 @@ finally {
             "    runs-on: windows-latest\n"
             "    timeout-minutes: 60\n"
             "    permissions:\n"
+            "      actions: read\n"
             "      contents: read\n"
             "      pull-requests: read\n"
             "      issues: read\n"
@@ -2719,6 +2772,51 @@ finally {
             first_policy_call,
             "release-authoritative Python policy must use the pinned interpreter",
         )
+
+    def test_published_smoke_requires_successful_publication_not_skipped_ancestors(self) -> None:
+        workflow = yaml.safe_load(RELEASE_WORKFLOW.read_text(encoding="utf-8"))
+        smoke = workflow["jobs"]["published-smoke"]
+        self.assertEqual(["candidate", "promote"], smoke["needs"])
+        # A status function suppresses Actions' implicit success(), which also
+        # includes the intentionally skipped transitive v0.9.16 parity job.
+        self.assertEqual(
+            "${{ !cancelled() && needs.candidate.result == 'success' && "
+            "needs.promote.result == 'success' }}",
+            smoke.get("if"),
+        )
+        self.assertEqual({"contents": "read"}, smoke["permissions"])
+
+    def test_source_ci_is_readable_and_bound_at_every_release_admission_boundary(self) -> None:
+        workflow = yaml.safe_load(RELEASE_WORKFLOW.read_text(encoding="utf-8"))
+        collectors = []
+        for job_name in ("candidate", "promote"):
+            job = workflow["jobs"][job_name]
+            self.assertEqual("read", job["permissions"].get("actions"))
+            for step in job["steps"]:
+                for block in re.findall(
+                    r"collect-repository-admission\s+`(.*?)--output [^\n]+",
+                    step.get("run", ""), re.DOTALL,
+                ):
+                    collectors.append(block)
+                    self.assertIn("--source-sha $env:NFC_SOURCE_SHA", block)
+        self.assertEqual(3, len(collectors))
+
+    def test_release_golden_reuse_begins_after_source_admission_and_keeps_legacy_full_gate(self) -> None:
+        workflow = yaml.safe_load(RELEASE_WORKFLOW.read_text(encoding="utf-8"))
+        steps = workflow["jobs"]["candidate"]["steps"]
+        verification = next(step for step in steps if step["name"] == "Verify release source")
+        self.assertEqual("${{ steps.identity.outputs.version }}",
+                         verification["env"]["NFC_SOURCE_VERSION"])
+        self.assertIn("-ge [version]'1.1.3'", verification["run"])
+        self.assertIn("python ./scripts/verify.py --release-golden", verification["run"])
+        self.assertIn("else {\n  python ./scripts/verify.py --all", verification["run"])
+        self.assertIn("if ($LASTEXITCODE -ne 0)", verification["run"])
+        admission_index = next(index for index, step in enumerate(steps)
+                               if "collect-repository-admission" in step.get("run", ""))
+        package_index = next(index for index, step in enumerate(steps)
+                             if step["name"] == "Build closed-allowlist release package")
+        self.assertLess(admission_index, steps.index(verification))
+        self.assertLess(steps.index(verification), package_index)
 
     def test_stable_release_emits_separate_update_source_handoff(self) -> None:
         release = (ROOT / ".github/workflows/release.yml").read_text(encoding="utf-8")

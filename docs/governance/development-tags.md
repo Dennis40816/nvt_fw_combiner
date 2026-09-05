@@ -6,6 +6,11 @@ milestone scope, sequencing, and dates are maintained only in
 here are not active planning authority and are not pre-created against the wrong
 commit.
 
+The current version comes from [`VERSION`](../../VERSION), its release notes
+from [`CHANGELOG.md`](../../CHANGELOG.md), and planned scope from the roadmap.
+An ordinary version bump does not require a new entry in this historical index.
+Actual tag creation and release-identity checks still follow the rules below.
+
 ## Initial node
 
 - `v0.1.0-dev.0` — init/bootstrap and contract definition node. Includes specification, governance, .NET/Avalonia solution skeleton, installers, CI/release skeleton, two Python references, domain proof primitives, external combiner runner contracts, and no firmware-parity claim.

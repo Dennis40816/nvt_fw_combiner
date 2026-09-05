@@ -3,10 +3,15 @@
 from __future__ import annotations
 
 import json
+import os
+import shutil
+import subprocess
 import sys
 import tempfile
 import unittest
 from pathlib import Path
+
+import yaml
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -19,6 +24,7 @@ from coverage_configuration_policy import (  # noqa: E402
     validate_restored_test_coverage_collector_version,
 )
 from coverage_policy import load_baseline  # noqa: E402
+from verify import repository_script_test_shards  # noqa: E402
 
 CI_WORKFLOW = ROOT / ".github" / "workflows" / "ci.yml"
 CI_WORKFLOW_TEMPLATE = ROOT / "docs" / "ci" / "workflow-templates" / "ci.yml"
@@ -30,6 +36,83 @@ VERIFIER = ROOT / "scripts" / "verify.py"
 
 
 class CoverageCiContractTests(unittest.TestCase):
+    def test_repository_script_ci_shards_are_complete_and_runner_isolated(self) -> None:
+        expected_shards = [name for name, _ in repository_script_test_shards()]
+        for workflow_path in (CI_WORKFLOW, CI_WORKFLOW_TEMPLATE):
+            with self.subTest(workflow=workflow_path):
+                jobs = yaml.safe_load(workflow_path.read_text(encoding="utf-8"))["jobs"]
+                self.assertIn("repository-scripts", jobs)
+                shards = jobs["repository-scripts"]
+                self.assertEqual("windows-latest", shards["runs-on"])
+                self.assertNotIn("needs", shards)
+                self.assertEqual(expected_shards, shards["strategy"]["matrix"]["shard"])
+                self.assertIs(False, shards["strategy"]["fail-fast"])
+                self.assertNotIn("continue-on-error", shards)
+                self.assertEqual(
+                    "github.event_name == 'push' || github.event.pull_request.draft == false",
+                    shards["if"],
+                )
+                checkout = shards["steps"][0]["with"]
+                self.assertEqual(
+                    "${{ github.event.pull_request.head.sha || github.sha }}", checkout["ref"]
+                )
+                self.assertEqual(0, checkout["fetch-depth"])
+                self.assertIs(False, checkout["persist-credentials"])
+                commands = [step.get("run", "") for step in shards["steps"]]
+                self.assertIn(
+                    "python scripts/verify.py --ci-python-shard ${{ matrix.shard }}", commands
+                )
+                self.assertFalse(any(step.get("continue-on-error") for step in shards["steps"]))
+
+    def test_required_python_gate_checks_matrix_failure_before_running_worker(self) -> None:
+        shell = shutil.which("pwsh")
+        if shell is None:
+            self.skipTest("PowerShell is required to execute the Windows CI gate")
+        for workflow_path in (CI_WORKFLOW, CI_WORKFLOW_TEMPLATE):
+            with self.subTest(workflow=workflow_path):
+                jobs = yaml.safe_load(workflow_path.read_text(encoding="utf-8"))["jobs"]
+                worker = jobs["python-worker"]
+                self.assertEqual(["repository-scripts"], worker.get("needs"))
+                self.assertEqual("python-worker / verify", worker["name"])
+                self.assertEqual(
+                    "always() && (github.event_name == 'push' || "
+                    "github.event.pull_request.draft == false)",
+                    " ".join(worker["if"].split()),
+                )
+                gate = worker["steps"][0]
+                self.assertEqual("pwsh", gate["shell"])
+                self.assertEqual(
+                    {"NFC_REPOSITORY_SCRIPTS_RESULT": "${{ needs.repository-scripts.result }}"},
+                    gate["env"],
+                )
+                self.assertNotIn("if", gate)
+                self.assertNotIn("continue-on-error", gate)
+                self.assertNotIn("continue-on-error", worker)
+                for result in ("success", "failure", "cancelled", "skipped", ""):
+                    with self.subTest(result=result):
+                        environment = os.environ.copy()
+                        environment["NFC_REPOSITORY_SCRIPTS_RESULT"] = result
+                        completed = subprocess.run(
+                            [shell, "-NoProfile", "-NonInteractive", "-Command", gate["run"]],
+                            env=environment,
+                            capture_output=True,
+                            text=True,
+                            encoding="utf-8",
+                            timeout=30,
+                            check=False,
+                        )
+                        self.assertEqual(
+                            result == "success", completed.returncode == 0,
+                            completed.stdout + completed.stderr,
+                        )
+                worker_steps = [
+                    step for step in worker["steps"]
+                    if step.get("run") == "python scripts/verify.py --ci-python-shard python"
+                ]
+                self.assertEqual(1, len(worker_steps))
+                self.assertNotIn("if", worker_steps[0])
+                self.assertNotIn("continue-on-error", worker_steps[0])
+
     def test_dotnet_job_fetches_the_fixed_coverage_baseline_revision(self) -> None:
         workflow = CI_WORKFLOW.read_text(encoding="utf-8")
         dotnet_job = workflow[workflow.index("  dotnet:") :]
@@ -97,7 +180,7 @@ class CoverageCiContractTests(unittest.TestCase):
                 self.assertIn("runs-on: windows-latest", header)
                 self.assertNotIn("ubuntu", header)
                 self.assertIn(
-                    "python scripts/verify.py --skip-dotnet --skip-structure",
+                    "python scripts/verify.py --ci-python-shard python",
                     python_worker,
                 )
 

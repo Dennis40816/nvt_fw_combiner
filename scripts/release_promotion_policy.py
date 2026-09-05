@@ -13,6 +13,7 @@ import subprocess
 import tempfile
 import zipfile
 from pathlib import Path
+from datetime import datetime
 from typing import Any
 
 
@@ -32,6 +33,7 @@ REQUIRED_RELEASE_CHECKS = (
     "dotnet / build-test",
 )
 STRICT_RELEASE_POLICY_VERSION = (1, 1, 1)
+SOURCE_CI_POLICY_VERSION = (1, 1, 3)
 MAX_GITHUB_PAGES = 100
 MAX_GITHUB_ITEMS = 10_000
 MAINTENANCE_RELEASES = {
@@ -180,12 +182,95 @@ def validate_live_branch_authority(
     )
 
 
+def _source_ci_run_identity(run: object, repository: str, source_sha: str) -> tuple:
+    """Bind a GitHub-observed run to the one protected source workflow."""
+    _require(isinstance(run, dict), "source CI run is malformed")
+    for name in ("id", "run_attempt", "workflow_id"):
+        value = run.get(name)
+        _require(type(value) is int and value > 0, f"source CI {name} is malformed")
+    for name in ("repository", "head_repository"):
+        value = run.get(name)
+        _require(
+            isinstance(value, dict) and value.get("full_name") == repository,
+            f"source CI {name} differs from the release repository",
+        )
+    _require(
+        run.get("head_sha") == source_sha
+        and run.get("event") == "push"
+        and run.get("head_branch") == "main"
+        and run.get("path") == ".github/workflows/ci.yml",
+        "source CI must be the exact-source push-main ci.yml workflow",
+    )
+    created_at = run.get("created_at")
+    _require(
+        isinstance(created_at, str)
+        and re.fullmatch(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z", created_at) is not None,
+        "source CI creation time is malformed",
+    )
+    try:
+        datetime.fromisoformat(created_at)
+    except ValueError as error:
+        raise ValueError("source CI creation time is malformed") from error
+    return tuple(run.get(name) for name in (
+        "id", "run_attempt", "workflow_id", "created_at", "head_sha", "event",
+        "head_branch", "path", "status", "conclusion",
+    ))
+
+
+def validate_source_ci(snapshot: object, *, source_sha: str) -> None:
+    """Require one complete, successful attempt; never transfer PR-tree proof."""
+    _require(isinstance(snapshot, dict), "source CI evidence is missing")
+    repository = snapshot.get("repository")
+    _require(
+        isinstance(repository, str)
+        and len(repository.split("/")) == 2
+        and all(part not in {".", ".."} and re.fullmatch(r"[A-Za-z0-9_.-]+", part)
+                for part in repository.split("/")),
+        "source CI repository identity is malformed",
+    )
+    _require(
+        snapshot.get("runsPaginationComplete") is True
+        and snapshot.get("jobsPaginationComplete") is True,
+        "source CI pagination is incomplete",
+    )
+    run = snapshot.get("run")
+    _source_ci_run_identity(run, repository, source_sha)
+    _require(
+        run.get("status") == "completed" and run.get("conclusion") == "success",
+        "source CI latest run is not completed and successful",
+    )
+    jobs = snapshot.get("jobs")
+    _require(isinstance(jobs, list) and bool(jobs), "source CI jobs are missing")
+    identities: set[int] = set()
+    for job in jobs:
+        _require(isinstance(job, dict), "source CI job is malformed")
+        job_id = job.get("id")
+        _require(
+            type(job_id) is int and job_id > 0 and job_id not in identities,
+            "source CI job identity is invalid or duplicated",
+        )
+        identities.add(job_id)
+        _require(
+            job.get("run_id") == run["id"] and job.get("head_sha") == source_sha,
+            "source CI job source or run differs",
+        )
+    for name in REQUIRED_RELEASE_CHECKS:
+        matches = [job for job in jobs if job.get("name") == name]
+        _require(
+            len(matches) == 1
+            and matches[0].get("status") == "completed"
+            and matches[0].get("conclusion") == "success",
+            f"source CI requires one exact successful job: {name}",
+        )
+
+
 def validate_repository_admission(
     snapshot: dict[str, Any],
     *,
     main_sha: str,
     review_head_sha: str,
     expected_tag: str,
+    source_sha: str | None = None,
 ) -> None:
     """Validate fresh GitHub repository policy at a stable-release boundary."""
 
@@ -200,6 +285,9 @@ def validate_repository_admission(
     )
 
     _validate_remote_main(snapshot, main_sha)
+    if _stable_version_parts(expected_tag[1:], "release version") >= SOURCE_CI_POLICY_VERSION:
+        _require_sha(source_sha, "source CI SHA")
+        validate_source_ci(snapshot.get("sourceCi"), source_sha=source_sha)
 
     _require(
         snapshot.get("mainRulesPaginationComplete") is True,
@@ -550,6 +638,7 @@ def validate_candidate_context(
             main_sha=main_sha,
             review_head_sha=head_sha,
             expected_tag=f"v{source_version}",
+            source_sha=source_sha,
         )
 
 
@@ -1053,6 +1142,104 @@ def _collect_tag_rulesets(repository: str) -> list[dict[str, Any]]:
     return rulesets
 
 
+def _collect_actions_inventory(
+    endpoint: str, key: str, fields: tuple[tuple[str, str], ...] = (),
+) -> list[dict[str, Any]]:
+    """Read a complete bounded Actions object-list response, failing on drift."""
+    items: list[dict[str, Any]] = []
+    total: int | None = None
+    for page_number in range(1, MAX_GITHUB_PAGES + 1):
+        arguments = ["api", "--method", "GET", endpoint]
+        for name, value in (*fields, ("per_page", "100"), ("page", str(page_number))):
+            arguments.extend(("-f", f"{name}={value}"))
+        page = _read_github_json(arguments, "source CI inventory")
+        _require(isinstance(page, dict), "source CI page is malformed")
+        count = page.get("total_count")
+        _require(
+            type(count) is int and 0 <= count <= MAX_GITHUB_ITEMS,
+            "source CI pagination total is malformed",
+        )
+        if total is None:
+            total = count
+        _require(total == count, "source CI pagination totals changed")
+        values = page.get(key)
+        _require(
+            isinstance(values, list) and all(isinstance(item, dict) for item in values),
+            "source CI inventory is malformed",
+        )
+        if not values:
+            _require(len(items) == total, "source CI pagination is incomplete")
+            return items
+        items.extend(values)
+        _require(len(items) <= total, "source CI pagination exceeds total")
+    raise ValueError("source CI inventory exceeded the page limit")
+
+
+def _collect_source_ci(repository: str, source_sha: str) -> dict[str, Any]:
+    runs = _collect_actions_inventory(
+        f"repos/{repository}/actions/workflows/ci.yml/runs", "workflow_runs",
+        (("head_sha", source_sha), ("event", "push"), ("branch", "main")),
+    )
+    _require(bool(runs), "source CI has no exact-source runs")
+    for run in runs:
+        _source_ci_run_identity(run, repository, source_sha)
+    _require(len({run["id"] for run in runs}) == len(runs), "source CI repeats a run id")
+    latest_time = max(run["created_at"] for run in runs)
+    latest = [run for run in runs if run["created_at"] == latest_time]
+    _require(len(latest) == 1, "source CI latest run is ambiguous")
+    selected = latest[0]
+    endpoint = f"repos/{repository}/actions/runs/{selected['id']}"
+    before = _read_github_json(["api", endpoint], "source CI run")
+    identity = _source_ci_run_identity(before, repository, source_sha)
+    _require(identity == _source_ci_run_identity(selected, repository, source_sha),
+             "source CI run changed after selection")
+    jobs = _collect_actions_inventory(
+        f"{endpoint}/attempts/{before['run_attempt']}/jobs", "jobs",
+    )
+    after = _read_github_json(["api", endpoint], "source CI confirmation")
+    _require(identity == _source_ci_run_identity(after, repository, source_sha),
+             "source CI run or attempt changed during collection")
+    snapshot = {
+        "repository": repository, "run": before, "jobs": jobs,
+        "runsPaginationComplete": True, "jobsPaginationComplete": True,
+    }
+    validate_source_ci(snapshot, source_sha=source_sha)
+    closed_snapshot = {
+        "repository": repository,
+        "run": {
+            "id": before.get("id"),
+            "run_attempt": before.get("run_attempt"),
+            "workflow_id": before.get("workflow_id"),
+            "repository": {"full_name": before.get("repository", {}).get("full_name")},
+            "head_repository": {
+                "full_name": before.get("head_repository", {}).get("full_name")
+            },
+            "head_sha": before.get("head_sha"),
+            "event": before.get("event"),
+            "head_branch": before.get("head_branch"),
+            "path": before.get("path"),
+            "created_at": before.get("created_at"),
+            "status": before.get("status"),
+            "conclusion": before.get("conclusion"),
+        },
+        "jobs": [
+            {
+                "id": job.get("id"),
+                "run_id": job.get("run_id"),
+                "head_sha": job.get("head_sha"),
+                "name": job.get("name"),
+                "status": job.get("status"),
+                "conclusion": job.get("conclusion"),
+            }
+            for job in jobs
+        ],
+        "runsPaginationComplete": True,
+        "jobsPaginationComplete": True,
+    }
+    validate_source_ci(closed_snapshot, source_sha=source_sha)
+    return closed_snapshot
+
+
 def collect_repository_admission(
     *,
     repository: str,
@@ -1060,6 +1247,7 @@ def collect_repository_admission(
     main_sha: str,
     review_head_sha: str,
     expected_tag: str,
+    source_sha: str | None = None,
 ) -> dict[str, Any]:
     """Collect one fresh, bounded, read-only GitHub admission snapshot."""
 
@@ -1119,12 +1307,16 @@ def collect_repository_admission(
         "tagRulesetsPaginationComplete": True,
         "tagRulesets": _collect_tag_rulesets(repository),
     }
+    if _stable_version_parts(expected_tag[1:], "release version") >= SOURCE_CI_POLICY_VERSION:
+        _require_sha(source_sha, "source CI SHA")
+        snapshot["sourceCi"] = _collect_source_ci(repository, source_sha)
     if _requires_strict_release_policy(expected_tag[1:]):
         validate_repository_admission(
             snapshot,
             main_sha=main_sha,
             review_head_sha=review_head_sha,
             expected_tag=expected_tag,
+            source_sha=source_sha,
         )
     return snapshot
 
@@ -1923,12 +2115,14 @@ def parse_args() -> argparse.Namespace:
     repository_admission.add_argument("--main-sha", required=True)
     repository_admission.add_argument("--review-head-sha", required=True)
     repository_admission.add_argument("--expected-tag", required=True)
+    repository_admission.add_argument("--source-sha")
     collect_admission = subparsers.add_parser("collect-repository-admission")
     collect_admission.add_argument("--repository", required=True)
     collect_admission.add_argument("--pull-request", type=int, required=True)
     collect_admission.add_argument("--main-sha", required=True)
     collect_admission.add_argument("--review-head-sha", required=True)
     collect_admission.add_argument("--expected-tag", required=True)
+    collect_admission.add_argument("--source-sha")
     collect_admission.add_argument("--output", type=Path, required=True)
     live_authority = subparsers.add_parser("validate-live-branch-authority")
     live_authority.add_argument("--snapshot", type=Path, required=True)
@@ -2021,6 +2215,7 @@ def main() -> int:
             main_sha=args.main_sha,
             review_head_sha=args.review_head_sha,
             expected_tag=args.expected_tag,
+            source_sha=args.source_sha,
         )
     elif args.command == "collect-repository-admission":
         _require(
@@ -2033,6 +2228,7 @@ def main() -> int:
             main_sha=args.main_sha,
             review_head_sha=args.review_head_sha,
             expected_tag=args.expected_tag,
+            source_sha=args.source_sha,
         )
         with args.output.open("x", encoding="utf-8", newline="\n") as stream:
             stream.write(json.dumps(snapshot, indent=2, sort_keys=True) + "\n")

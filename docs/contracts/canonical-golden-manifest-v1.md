@@ -164,12 +164,20 @@ The retired active CtrlRAM fixture authority (`ctrlram-replace/manifest.json`, i
 provenance. The separately indexed `fixtures/20260717` tree remains diagnostic quarantine and is not
 an executable golden source.
 
-`testdata/golden/release-canonical-v1.json` schema `1.1` is the v1.1.2 human-gated redistribution authority. It
+`testdata/golden/release-canonical-v1.json` schema `1.1` is the current v1.1.3 human-gated redistribution authority. It
 pins the canonical README by exact-byte `canonicalReadmeSha256` and every selected `caseId`,
 case-manifest path and exact-byte `manifestSha256`, workflow, test-disposition kind, alias source, and
-logical artifact declaration including role, path, byte size, and SHA-256. Its 2026-09-04 owner
-authorization is limited to immutable reference-payload redistribution. It neither rewrites older
+logical artifact declaration including role, path, byte size, and SHA-256. On 2026-09-05 the owner
+renewed the v1.1.2 selection approved on 2026-09-04 for v1.1.3, changing only
+`authorizedForVersion` and `redistributionAuthorization.authorizedOn`. Every other allowlist value
+and all canonical README, case-manifest and artifact bytes remain unchanged. This authorization
+is limited to immutable reference-payload redistribution. It neither rewrites older
 case provenance nor promotes runtime support or widens a case's declared parity scope.
+
+After this explicit renewal, `reviewed-source-pins` may project the allowlist's raw SHA-256 into
+the two existing named package/smoke pins. Synchronization cannot change the allowlist, approve
+another version or date, or update Golden expectations. Historical release records and
+attestations remain immutable; the final release-owner gate still applies.
 
 The closed selection contains 25 Direct Goldens, one owner-certified direct input-evidence case,
 and nine fact-scoped aliases whose exact same-workflow Direct Golden source is also selected: 35

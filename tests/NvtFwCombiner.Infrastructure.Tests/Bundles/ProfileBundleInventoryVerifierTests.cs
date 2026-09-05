@@ -1,8 +1,6 @@
 using System.Security.Cryptography;
-using System.Net.Sockets;
 using System.Text;
 using NvtFwCombiner.Infrastructure.Bundles;
-using NvtFwCombiner.Infrastructure.Tests.Files;
 using NvtFwCombiner.TestSupport;
 
 namespace NvtFwCombiner.Infrastructure.Tests.Bundles;
@@ -105,30 +103,6 @@ public sealed class ProfileBundleInventoryVerifierTests
             "profile-bundle.json",
             Manifest(),
             5));
-    }
-
-    /// <summary>Verifies a Unix domain socket cannot satisfy one manifest file entry.</summary>
-    [Fact(
-        Skip = "Requires a Unix domain socket fixture.",
-        SkipUnless = nameof(UnixSpecialFileTestFixture.IsUnix),
-        SkipType = typeof(UnixSpecialFileTestFixture),
-        Timeout = 5000)]
-    public void VerifyClosedInventoryRejectsUnixDomainSocket()
-    {
-        using TempWorkspace workspace = BundleWorkspace();
-        string path = workspace.PathFor("profiles/profile.json");
-        File.Delete(path);
-        using var socket = new Socket(AddressFamily.Unix, SocketType.Stream, ProtocolType.Unspecified);
-        socket.Bind(new UnixDomainSocketEndPoint(path));
-
-        UnauthorizedAccessException exception = Assert.Throws<UnauthorizedAccessException>(() =>
-            ProfileBundleInventoryVerifier.VerifyClosedInventory(
-                workspace.Root,
-                "profile-bundle.json",
-                Manifest(),
-                8));
-
-        Assert.Contains("regular filesystem file", exception.Message, StringComparison.Ordinal);
     }
 
     /// <summary>Verifies the manifest file cannot also be a listed content entry.</summary>

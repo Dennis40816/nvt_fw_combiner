@@ -33,6 +33,333 @@ import validate_repository as REPOSITORY_VALIDATOR  # noqa: E402
 
 
 class VerifyOrchestrationTests(unittest.TestCase):
+    def test_release_golden_plan_covers_every_direct_canonical_case(self) -> None:
+        with patch.object(MODULE, "current_dotnet_producer_platform", return_value="windows"):
+            projects, cases = MODULE.release_golden_plan()
+        self.assertEqual(
+            {"NvtFwCombiner.Bootstrap.Tests", "NvtFwCombiner.GoldenRegression.Tests"},
+            {project.name for project in projects},
+        )
+        self.assertEqual(25, len(cases))  # Independent inventory at this revision.
+        self.assertTrue(all(refs for refs in cases.values()))
+        self.assertTrue(all(
+            project in {item.name for item in projects}
+            for refs in cases.values() for project, _symbol in refs
+        ))
+        shared = {}
+        for case_id, refs in cases.items():
+            for reference in refs:
+                shared.setdefault(reference, set()).add(case_id)
+        bootstrap = "NvtFwCombiner.Bootstrap.Tests"
+        self.assertEqual({
+            ("NvtFwCombiner.GoldenRegression.Tests",
+             "WorkbenchBuildStandardMergeMatchesGoldenBytes"): {
+                "nt51923-gen-flash", "nt51926-gen-flash", "nt51927-gen-flash",
+                "nt51928-gen-flash", "nt51929-gen-flash", "nt51932-gen-flash",
+                "51950-dp-256k", "51951-dp-512k",
+            },
+            (bootstrap, "Nt51950CandidateMatchesOwnerApprovedAbGoldenWithCombinerAsync"): {
+                "nt51950-ab-boe-d82t80", "nt51950-ab-hiway-d82t80",
+            },
+            (bootstrap, "V2MatchesLockedOutputWithOwnerApprovedHeaderCrcDiffAsync"): {
+                "nt51926-fw200-single-auto-prj-597-20260718",
+                "nt51926-fw200-cascade3-auto-prj-597-20260718",
+            },
+            (bootstrap, "ExactOwnerCasesRunThroughV2WithLockedProcessEvidenceAsync"): {
+                "nt51923-fw141-single-auto-prj-662-20260717",
+                "nt51923-fw141-cascade3-auto-prj-734-20260717",
+            },
+        }, {ref: case_ids for ref, case_ids in shared.items() if len(case_ids) > 1})
+
+    def test_release_golden_plan_fails_before_build_on_invalid_canonical_evidence(self) -> None:
+        with (
+            patch.object(MODULE, "current_dotnet_producer_platform", return_value="windows"),
+            patch.object(MODULE, "validate_canonical_golden",
+                         side_effect=lambda _root, errors: errors.append("empty evidenceRefs")),
+            patch.object(MODULE, "run_dotnet_build_plan") as build,
+            self.assertRaisesRegex(RuntimeError, "empty evidenceRefs"),
+        ):
+            MODULE.verify_dotnet(release_golden=True)
+        build.assert_not_called()
+
+    def test_release_golden_rejects_conflicting_modes(self) -> None:
+        for flag in ("--all", "--skip-python", "--skip-dotnet", "--skip-structure",
+                     "--structure-only", "--ci-dotnet-build", "--internal-lane=dotnet"):
+            with self.subTest(flag=flag), self.assertRaises(SystemExit):
+                MODULE.execute_verification(MODULE.parse_args(["--release-golden", flag]))
+
+    def test_release_golden_rejects_non_windows_and_missing_project(self) -> None:
+        with patch.object(MODULE, "current_dotnet_producer_platform", return_value="non-windows"), \
+            self.assertRaisesRegex(RuntimeError, "requires Windows"):
+            MODULE.release_golden_plan()
+        with (
+            patch.object(MODULE, "current_dotnet_producer_platform", return_value="windows"),
+            patch.object(MODULE, "validate_canonical_golden"),
+            patch.object(MODULE, "flatten_ci_dotnet_projects", return_value=()),
+            self.assertRaisesRegex(RuntimeError, "project inventory"),
+        ):
+            MODULE.release_golden_plan()
+
+    def test_release_golden_case_evidence_requires_executed_pass_not_a_project_label(self) -> None:
+        cases = {"certified-case": (("Golden.Tests", "CompareWholeOutput"),)}
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            project = root / "Golden.Tests"
+            project.mkdir()
+            self.write_ci_trx(project / "results.trx", total=1, skipped=0,
+                              identities=("Golden.Tests.Cases.UnrelatedTest",))
+            with self.assertRaisesRegex(RuntimeError, "certified-case"):
+                MODULE.require_release_golden_results(root, cases)
+            self.write_ci_trx(project / "results.trx", total=1, skipped=1,
+                              identities=("Golden.Tests.Cases.CompareWholeOutput",))
+            with self.assertRaisesRegex(RuntimeError, "certified-case"):
+                MODULE.require_release_golden_results(root, cases)
+            self.write_ci_trx(project / "results.trx", total=2, skipped=0,
+                              identities=("Golden.Tests.First.CompareWholeOutput",
+                                          "Golden.Tests.Second.CompareWholeOutput"))
+            with self.assertRaisesRegex(RuntimeError, "certified-case"):
+                MODULE.require_release_golden_results(root, cases)
+            self.write_ci_trx(project / "results.trx", total=1, skipped=0,
+                               identities=("Golden.Tests.Cases.CompareWholeOutput",))
+            MODULE.require_release_golden_results(root, cases)
+
+    def test_release_golden_shared_method_requires_each_exact_case_once(self) -> None:
+        method = "Golden.Tests.Cases.CompareWholeOutput"
+        first = method + '(caseId: "first-case")'
+        second = method + '(caseId: "second-case", topology: "cascade")'
+        cases = {case_id: (("Golden.Tests", "CompareWholeOutput"),)
+                 for case_id in ("first-case", "second-case")}
+        invalid_rows = (
+            ((first,), ("Passed",)),
+            ((method,), ("Passed",)),
+            ((first, first, second), ("Passed", "Passed", "Passed")),
+            ((first, second), ("Passed", "Failed")),
+            ((first, second), ("Passed", "NotExecuted")),
+            ((first, second, second), ("Passed", "Passed", "Failed")),
+            ((first, second, method + '(caseId: "unknown")'),
+             ("Passed", "Passed", "Passed")),
+            ((first, method + '(caseId: "second-case-suffix")'), ("Passed", "Passed")),
+            ((first, method + '(other: "second-case")'), ("Passed", "Passed")),
+            ((first, method + '(other: 1, caseId: "second-case")'), ("Passed", "Passed")),
+            ((first, method + '(caseId: "second-case"suffix)'), ("Passed", "Passed")),
+            ((first, second.replace(".Cases.", ".OtherClass.")), ("Passed", "Passed")),
+        )
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            report = root / "Golden.Tests/results.trx"
+            for identities, outcomes in invalid_rows:
+                with self.subTest(identities=identities, outcomes=outcomes):
+                    self.write_ci_trx(report, total=len(identities),
+                                      skipped=outcomes.count("NotExecuted"),
+                                      identities=identities, outcomes=outcomes)
+                    with self.assertRaisesRegex(RuntimeError, "release Golden"):
+                        MODULE.require_release_golden_results(root, cases)
+            self.write_ci_trx(report, total=2, skipped=0, identities=(first, second))
+            MODULE.require_release_golden_results(root, cases)
+            # The default parser still provides the same method multiset to discovery.
+            self.assertEqual({method: 2}, MODULE.parse_trx_test_outcomes(report)["Passed"])
+
+    def test_release_golden_single_case_rejects_duplicate_and_failed_companion(self) -> None:
+        method = "Golden.Tests.Cases.CompareWholeOutput"
+        cases = {"only-case": (("Golden.Tests", "CompareWholeOutput"),)}
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            for outcomes in (("Passed", "Passed"), ("Passed", "Failed"),
+                             ("Passed", "NotExecuted")):
+                with self.subTest(outcomes=outcomes):
+                    self.write_ci_trx(root / "Golden.Tests/results.trx", total=2,
+                                      skipped=outcomes.count("NotExecuted"),
+                                      identities=(method, method), outcomes=outcomes)
+                    with self.assertRaisesRegex(RuntimeError, "only-case"):
+                        MODULE.require_release_golden_results(root, cases)
+
+    def test_release_golden_keeps_full_solution_build_but_skips_exact_source_ci_prebuild_checks(self) -> None:
+        projects = (
+            MODULE.CiDotnetProject(
+                "tests/NvtFwCombiner.Bootstrap.Tests/NvtFwCombiner.Bootstrap.Tests.csproj"
+            ),
+            MODULE.CiDotnetProject(
+                "tests/NvtFwCombiner.GoldenRegression.Tests/"
+                "NvtFwCombiner.GoldenRegression.Tests.csproj"
+            ),
+        )
+        cases = {"certified-case": (("NvtFwCombiner.GoldenRegression.Tests", "Compare"),)}
+        with tempfile.TemporaryDirectory() as temporary:
+            coverage = Path(temporary)
+            with (
+                patch.object(MODULE, "release_golden_plan", return_value=(projects, cases)),
+                patch.object(MODULE, "resolve_dotnet", return_value="dotnet"),
+                patch.object(MODULE, "reset_coverage_directory", return_value=coverage),
+                patch.object(MODULE, "dotnet_batch_environment", return_value={}),
+                patch.object(MODULE, "run_dotnet_build_plan") as full_solution_build,
+                patch.object(MODULE, "collect_local_dotnet_coverage") as collect,
+                patch.object(MODULE, "require_release_golden_results") as require_results,
+                patch.object(MODULE, "cleanup_dotnet_batch"),
+            ):
+                MODULE.verify_dotnet(release_golden=True)
+
+        full_solution_build.assert_called_once_with(
+            "dotnet", environment={}, log_path=None, include_prebuild_checks=False
+        )
+        self.assertEqual(projects, collect.call_args.kwargs["projects"])
+        self.assertFalse(collect.call_args.kwargs["collect_coverage"])
+        require_results.assert_called_once_with(coverage, cases)
+
+    def test_release_golden_build_plan_keeps_sdk_restore_and_full_solution_release_build(self) -> None:
+        with (
+            patch.object(MODULE, "run") as run_command,
+            patch.object(MODULE, "run_solution_restore_preserving_lock_projections") as restore,
+            patch.object(MODULE, "run_dotnet_commands") as run_commands,
+        ):
+            MODULE.run_dotnet_build_plan(
+                "dotnet",
+                environment={"PATH": "test"},
+                log_path=None,
+                include_prebuild_checks=False,
+            )
+
+        run_command.assert_called_once_with(
+            ["dotnet", "--version"], environment={"PATH": "test"}, log_path=None
+        )
+        restore.assert_called_once()
+        run_commands.assert_called_once_with(
+            (["dotnet", "build", str(MODULE.SOLUTION), "-c", "Release", "--no-restore"],),
+            environment={"PATH": "test"},
+            log_path=None,
+        )
+
+    def test_release_golden_vstest_keeps_trx_but_omits_coverlet_transport(self) -> None:
+        command = MODULE.local_dotnet_vstest_command(
+            "dotnet",
+            ROOT / "tests/NvtFwCombiner.Bootstrap.Tests/bin/Release/net10.0/"
+            "NvtFwCombiner.Bootstrap.Tests.dll",
+            None,
+            ROOT / "artifacts/test-release-golden-results",
+        )
+
+        self.assertEqual(["dotnet", "vstest"], command[:2])
+        self.assertIn("--Logger:trx;LogFileName=test-results.trx", command)
+        self.assertFalse(any(item.startswith("--TestAdapterPath:") for item in command))
+        self.assertNotIn("--Collect:XPlat Code Coverage", command)
+        self.assertFalse(any(item.startswith("DataCollectionRunSettings.") for item in command))
+        self.assertFalse(any("TestCaseFilter" in item for item in command))
+
+    def test_ci_python_shard_uses_one_existing_isolated_lane(self) -> None:
+        for shard in (*(name for name, _ in MODULE.REPOSITORY_SCRIPT_TEST_SHARDS), "python"):
+            with self.subTest(shard=shard), patch.object(MODULE, "run_selected_lanes") as run_selected:
+                result = MODULE.execute_verification(
+                    MODULE.parse_args(["--ci-python-shard", shard])
+                )
+                self.assertEqual(0, result)
+                lanes = run_selected.call_args.args[0]
+                self.assertEqual(1, len(lanes))
+                self.assertEqual(shard, lanes[0].name)
+                self.assertTrue(lanes[0].isolate_action)
+                self.assertEqual(1, run_selected.call_args.kwargs["jobs"])
+                self.assertEqual(
+                    MODULE.DEFAULT_LANE_TIMEOUT_SECONDS,
+                    run_selected.call_args.kwargs["lane_timeout_seconds"],
+                )
+
+    def test_ci_python_shards_reject_incomplete_inventory_before_execution(self) -> None:
+        for shard in (*(name for name, _ in MODULE.REPOSITORY_SCRIPT_TEST_SHARDS), "python"):
+            with (
+                self.subTest(shard=shard),
+                patch.object(MODULE, "repository_script_test_shards",
+                             side_effect=RuntimeError("unassigned test_new.py")),
+                patch.object(MODULE, "run_selected_lanes") as run_selected,
+                contextlib.redirect_stderr(io.StringIO()),
+            ):
+                self.assertEqual(1, MODULE.execute_verification(
+                    MODULE.parse_args(["--ci-python-shard", shard])
+                ))
+                run_selected.assert_not_called()
+        with contextlib.redirect_stderr(io.StringIO()), self.assertRaises(SystemExit):
+            MODULE.parse_args(["--ci-python-shard", "unrecognized"])
+
+    def test_ci_python_shard_rejects_public_and_other_ci_modes(self) -> None:
+        for flag in (
+            "--all",
+            "--skip-python",
+            "--skip-dotnet",
+            "--skip-structure",
+            "--structure-only",
+            "--internal-lane=python",
+            "--ci-dotnet-build",
+            "--ci-dotnet-test-shard=core",
+            "--ci-dotnet-finalize=artifacts/evidence",
+            "--release-golden",
+            "--jobs=1",
+            "--lane-timeout-seconds=60",
+        ):
+            with self.subTest(flag=flag):
+                with self.assertRaisesRegex(SystemExit, "CI modes cannot be combined"):
+                    MODULE.execute_verification(
+                        MODULE.parse_args(["--ci-python-shard", "python", flag])
+                    )
+
+    def test_release_results_without_coverage_still_reconcile_trx_and_discovery(self) -> None:
+        project = MODULE.CiDotnetProject("tests/Probe/Probe.Tests.csproj")
+        with tempfile.TemporaryDirectory() as temporary:
+            results = Path(temporary)
+            discovery = results / "discovered-tests.txt"
+            self.write_vstest_discovery(discovery, 3)
+            trx = results / "test-results.trx"
+            self.write_ci_trx(trx, total=3, skipped=0)
+            MODULE.require_local_dotnet_project_evidence(
+                project, results, discovery, require_coverage=False
+            )
+            with self.assertRaisesRegex(RuntimeError, "paired coverage"):
+                MODULE.require_local_dotnet_project_evidence(project, results, discovery)
+            for total, skipped in ((2, 0), (3, 1)):
+                with self.subTest(total=total, skipped=skipped), self.assertRaises(RuntimeError):
+                    self.write_ci_trx(trx, total=total, skipped=skipped)
+                    MODULE.require_local_dotnet_project_evidence(
+                        project, results, discovery, require_coverage=False
+                    )
+            self.write_ci_trx(trx, total=3, skipped=0)
+            self.write_ci_trx(results / "extra.trx", total=3, skipped=0)
+            with self.assertRaisesRegex(RuntimeError, "exactly one TRX"):
+                MODULE.require_local_dotnet_project_evidence(
+                    project, results, discovery, require_coverage=False
+                )
+            trx.unlink()
+            (results / "extra.trx").unlink()
+            with self.assertRaisesRegex(RuntimeError, "exactly one TRX"):
+                MODULE.require_local_dotnet_project_evidence(
+                    project, results, discovery, require_coverage=False
+                )
+
+    def test_release_collection_omits_adapter_but_preserves_freshness_and_cleanup(self) -> None:
+        project = MODULE.CiDotnetProject("tests/Probe/Probe.Tests.csproj")
+        stage = MagicMock(spec=MODULE.LocalDotnetCoverageStage)
+        stage.project = project
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            work = root / "work"
+            results = root / "results"
+            with (
+                patch.object(MODULE, "prepare_local_dotnet_coverage_stage", return_value=stage),
+                patch.object(MODULE, "resolve_coverlet_adapter_path") as adapter,
+                patch.object(MODULE, "run_local_dotnet_coverage_project") as run_project,
+                patch.object(MODULE, "require_local_dotnet_sources_unchanged") as freshness,
+                patch.object(MODULE, "verify_coverage") as coverage,
+            ):
+                MODULE.collect_local_dotnet_coverage(
+                    "dotnet", results, work, {}, None,
+                    repository_root=root, projects=(project,), collect_coverage=False,
+                )
+                adapter.assert_not_called()
+                coverage.assert_not_called()
+                self.assertEqual((stage, "dotnet", None, {}), run_project.call_args.args[:4])
+                freshness.assert_called_once_with([stage], root, root)
+                self.assertFalse(work.exists())
+                with self.assertRaisesRegex(ValueError, "requires coverage"):
+                    MODULE.collect_local_dotnet_coverage(
+                        "dotnet", results, work, {}, None,
+                        repository_root=root, collect_coverage=False,
+                    )
+
     TEST_SESSION_ENVIRONMENT_VARIABLES = (
         "NFC_TEST_AREA_ROOT",
         "NFC_TEST_SESSION_ROOT",
@@ -217,6 +544,8 @@ class VerifyOrchestrationTests(unittest.TestCase):
         self,
         download_root: Path,
         source_sha: str,
+        *,
+        golden_total: int = 3,
     ) -> None:
         sdk_version = "10.0.301"
         build_root = download_root / "dotnet-build-evidence"
@@ -251,18 +580,15 @@ class VerifyOrchestrationTests(unittest.TestCase):
             }
             rows: list[dict[str, object]] = []
             for project in projects:
-                total = 3
-                if project.name == "NvtFwCombiner.Infrastructure.Tests":
-                    identities = (
-                        "Probe.Tests.Case0",
-                        *MODULE.UNIX_SPECIAL_FILE_INFRASTRUCTURE_SKIPS,
-                    )
-                    skipped = 2
-                else:
-                    identities = tuple(
-                        f"Probe.Tests.Case{index}" for index in range(total)
-                    )
-                    skipped = 0
+                total = (
+                    golden_total
+                    if project.name == "NvtFwCombiner.GoldenRegression.Tests"
+                    else 3
+                )
+                identities = tuple(
+                    f"Probe.Tests.Case{index}" for index in range(total)
+                )
+                skipped = 0
                 result_root = shard_root / "results" / project.name
                 discovery = result_root / "discovered-tests.txt"
                 trx = result_root / "test-results.trx"
@@ -1340,128 +1666,6 @@ class VerifyOrchestrationTests(unittest.TestCase):
             time.sleep(2.25)
             self.assertFalse(orphan_output.exists())
 
-    @unittest.skipIf(
-        sys.platform == "win32", "Unix process-group behavior requires Unix"
-    )
-    def test_unix_timeout_kills_child_forked_after_cleanup_snapshot(self) -> None:
-        with tempfile.TemporaryDirectory() as temporary:
-            root = Path(temporary)
-            trigger = root / "spawn-trigger"
-            child_ready = root / "late-child-ready"
-            orphan_output = root / "late-orphan-output"
-            child = "\n".join(
-                (
-                    "from pathlib import Path",
-                    "import time",
-                    f"Path({str(child_ready)!r}).write_text('ready')",
-                    "time.sleep(0.8)",
-                    f"Path({str(orphan_output)!r}).write_text('orphan')",
-                )
-            )
-            parent = "\n".join(
-                (
-                    "from pathlib import Path",
-                    "import subprocess, sys, time",
-                    f"trigger = Path({str(trigger)!r})",
-                    "deadline = time.monotonic() + 5",
-                    "while not trigger.exists():",
-                    "    assert time.monotonic() < deadline",
-                    "    time.sleep(0.01)",
-                    f"subprocess.Popen([sys.executable, '-c', {child!r}])",
-                    "time.sleep(5)",
-                )
-            )
-            supervisor = "\n".join(
-                (
-                    "import os, subprocess, time",
-                    "from pathlib import Path",
-                    "import scripts.verify as module",
-                    f"trigger = Path({str(trigger)!r})",
-                    f"child_ready = Path({str(child_ready)!r})",
-                    "if hasattr(module, 'unix_descendant_process_ids'):",
-                    "    original_discovery = module.unix_descendant_process_ids",
-                    "    def coordinated_discovery(process_id):",
-                    "        descendants = original_discovery(process_id)",
-                    "        trigger.write_text('spawn')",
-                    "        deadline = time.monotonic() + 5",
-                    "        while not child_ready.exists():",
-                    "            assert time.monotonic() < deadline",
-                    "            time.sleep(0.01)",
-                    "        return descendants",
-                    "    module.unix_descendant_process_ids = coordinated_discovery",
-                    "else:",
-                    "    original_killpg = module.os.killpg",
-                    "    def coordinated_killpg(process_group_id, signal_number):",
-                    "        if not trigger.exists():",
-                    "            trigger.write_text('spawn')",
-                    "            deadline = time.monotonic() + 5",
-                    "            while not child_ready.exists():",
-                    "                assert time.monotonic() < deadline",
-                    "                time.sleep(0.01)",
-                    "        original_killpg(process_group_id, signal_number)",
-                    "    module.os.killpg = coordinated_killpg",
-                    "os.environ[module.INTERNAL_LANE_ENVIRONMENT_VARIABLE] = '1'",
-                    "try:",
-                    f"    module.run({[sys.executable, '-c', parent]!r}, timeout_seconds=0.2)",
-                    "except subprocess.TimeoutExpired:",
-                    "    pass",
-                )
-            )
-
-            process = subprocess.Popen(
-                [sys.executable, "-c", supervisor],
-                cwd=ROOT,
-                start_new_session=True,
-            )
-            process.wait(timeout=10)
-            self.assertTrue(child_ready.exists())
-            time.sleep(0.9)
-            self.assertFalse(orphan_output.exists())
-
-    @unittest.skipIf(sys.platform == "win32", "Unix termination behavior requires Unix")
-    def test_sigterm_cleans_detached_owned_commands(self) -> None:
-        with tempfile.TemporaryDirectory() as temporary:
-            root = Path(temporary)
-            child_ready = root / "sigterm-child-ready"
-            orphan_output = root / "sigterm-orphan-output"
-            child = "\n".join(
-                (
-                    "from pathlib import Path",
-                    "import time",
-                    f"Path({str(child_ready)!r}).write_text('ready')",
-                    "time.sleep(0.8)",
-                    f"Path({str(orphan_output)!r}).write_text('orphan')",
-                )
-            )
-            supervisor = "\n".join(
-                (
-                    "import contextlib",
-                    "import scripts.verify as module",
-                    "handler = getattr(",
-                    "    module, 'handle_external_termination', contextlib.nullcontext",
-                    ")",
-                    "with handler():",
-                    f"    module.run({[sys.executable, '-c', child]!r})",
-                )
-            )
-            process = subprocess.Popen(
-                [sys.executable, "-c", supervisor],
-                cwd=ROOT,
-                start_new_session=True,
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL,
-            )
-            deadline = time.monotonic() + 5
-            while not child_ready.exists():
-                self.assertIsNone(process.poll())
-                self.assertLess(time.monotonic(), deadline)
-                time.sleep(0.01)
-
-            os.killpg(process.pid, signal.SIGTERM)
-            process.wait(timeout=10)
-            time.sleep(0.9)
-            self.assertFalse(orphan_output.exists())
-
     def test_internal_lane_timeout_terminates_descendants_in_a_new_group(
         self,
     ) -> None:
@@ -1577,102 +1781,6 @@ class VerifyOrchestrationTests(unittest.TestCase):
                 MODULE.unregister_active_process(fake_process)
 
         self.assertEqual(1234, boundary.unix_process_group_id)
-
-    @unittest.skipIf(
-        sys.platform == "win32", "Unix process-group behavior requires Unix"
-    )
-    def test_unix_owned_group_kills_descendants_after_root_exit(self) -> None:
-        with tempfile.TemporaryDirectory() as temporary:
-            root = Path(temporary)
-            child_ready = root / "group-child-ready"
-            orphan_output = root / "group-orphan-output"
-            child = (
-                "from pathlib import Path; import time; "
-                f"Path({str(child_ready)!r}).write_text('ready'); "
-                "time.sleep(0.8); "
-                f"Path({str(orphan_output)!r}).write_text('orphan')"
-            )
-            parent = (
-                "from pathlib import Path; import subprocess, sys, time; "
-                f"subprocess.Popen([sys.executable, '-c', {child!r}]); "
-                f"marker = Path({str(child_ready)!r}); "
-                "deadline = time.monotonic() + 5; "
-                'exec("while not marker.exists():\\n'
-                "    assert time.monotonic() < deadline\\n"
-                '    time.sleep(0.01)")'
-            )
-            process = subprocess.Popen(
-                [sys.executable, "-c", parent],
-                start_new_session=True,
-            )
-            MODULE.register_active_process(process)
-            try:
-                process.wait(timeout=5)
-                self.assertTrue(child_ready.exists())
-                MODULE.terminate_process_tree(process)
-            finally:
-                MODULE.unregister_active_process(process)
-
-            time.sleep(0.9)
-            self.assertFalse(orphan_output.exists())
-
-    @unittest.skipIf(
-        sys.platform == "win32", "Unix process-group behavior requires Unix"
-    )
-    def test_unix_group_kill_retry_cleans_descendants_after_root_fallback(
-        self,
-    ) -> None:
-        with tempfile.TemporaryDirectory() as temporary:
-            root = Path(temporary)
-            child_ready = root / "retry-child-ready"
-            orphan_output = root / "retry-orphan-output"
-            child = (
-                "from pathlib import Path; import time; "
-                f"Path({str(child_ready)!r}).write_text('ready'); "
-                "time.sleep(0.8); "
-                f"Path({str(orphan_output)!r}).write_text('orphan')"
-            )
-            parent = (
-                "from pathlib import Path; import subprocess, sys, time; "
-                f"subprocess.Popen([sys.executable, '-c', {child!r}]); "
-                f"marker = Path({str(child_ready)!r}); "
-                "deadline = time.monotonic() + 5; "
-                'exec("while not marker.exists():\\n'
-                "    assert time.monotonic() < deadline\\n"
-                '    time.sleep(0.01)"); '
-                "time.sleep(5)"
-            )
-            process = subprocess.Popen(
-                [sys.executable, "-c", parent],
-                start_new_session=True,
-            )
-            MODULE.register_active_process(process)
-            original_kill_group = os.killpg
-            kill_attempts = 0
-
-            def fail_first_group_kill(
-                process_group_id: int, signal_number: int
-            ) -> None:
-                nonlocal kill_attempts
-                kill_attempts += 1
-                if kill_attempts == 1:
-                    raise OSError("simulated transient group failure")
-                original_kill_group(process_group_id, signal_number)
-
-            try:
-                deadline = time.monotonic() + 5
-                while not child_ready.exists():
-                    self.assertIsNone(process.poll())
-                    self.assertLess(time.monotonic(), deadline)
-                    time.sleep(0.01)
-                with patch.object(MODULE.os, "killpg", fail_first_group_kill):
-                    MODULE.terminate_process_tree(process)
-            finally:
-                MODULE.unregister_active_process(process)
-
-            self.assertEqual(2, kill_attempts)
-            time.sleep(0.9)
-            self.assertFalse(orphan_output.exists())
 
     def test_cleanup_ceiling_is_shared_and_cannot_extend_the_current_lane_deadline(
         self,
@@ -2740,7 +2848,7 @@ class VerifyOrchestrationTests(unittest.TestCase):
                 ),
                 patch.object(
                     MODULE,
-                    "run_dotnet_commands",
+                    "run_dotnet_build_plan",
                     side_effect=RuntimeError("primary probe"),
                 ),
                 patch.object(
@@ -2878,7 +2986,8 @@ class VerifyOrchestrationTests(unittest.TestCase):
             "Configuration.Format=json,cobertura",
             "xUnit.ParallelizeTestCollections=false",
             "xUnit.MaxParallelThreads=1",
-            "xUnit.Seed=1738590270",
+            "xUnit.DiagnosticMessages=true",
+            "xUnit.LongRunningTestSeconds=30",
         ]
 
         local_command = MODULE.local_dotnet_vstest_command(
@@ -2891,10 +3000,12 @@ class VerifyOrchestrationTests(unittest.TestCase):
             "dotnet",
             assembly,
         )
-        self.assertEqual(expected_settings, local_command[-4:])
-        self.assertEqual(["--", *expected_settings[-3:]], discovery_command[-4:])
-        self.assertEqual(1, local_command.count("xUnit.Seed=1738590270"))
-        self.assertEqual(1, discovery_command.count("xUnit.Seed=1738590270"))
+        self.assertEqual(expected_settings, local_command[-len(expected_settings):])
+        self.assertEqual(["--", *expected_settings[1:]], discovery_command[-5:])
+        self.assertFalse(any(part.startswith("xUnit.Seed=") for part in local_command))
+        self.assertFalse(
+            any(part.startswith("xUnit.Seed=") for part in discovery_command)
+        )
 
         ordinary_assembly = Path(
             "shadow/NvtFwCombiner.Domain.Tests/bin/Release/net10.0/"
@@ -2914,6 +3025,8 @@ class VerifyOrchestrationTests(unittest.TestCase):
         self.assertFalse(
             any(part.startswith("xUnit.Seed=") for part in ordinary_discovery)
         )
+        self.assertFalse(any(part.startswith("xUnit.") for part in ordinary_local))
+        self.assertFalse(any(part.startswith("xUnit.") for part in ordinary_discovery))
 
     def test_coverlet_adapter_comes_only_from_baseline_and_repository_packages(
         self,
@@ -4157,6 +4270,10 @@ class VerifyOrchestrationTests(unittest.TestCase):
             )
 
             outcomes = MODULE.parse_trx_test_outcomes(trx)
+            self.assertEqual(
+                {identity: 1},
+                MODULE.parse_trx_test_outcomes(trx, preserve_case_identity=True)["Passed"],
+            )
             definition.set("id", "different-test-id")
             MODULE.ET.ElementTree(root).write(
                 trx,
@@ -4165,6 +4282,8 @@ class VerifyOrchestrationTests(unittest.TestCase):
             )
             with self.assertRaisesRegex(RuntimeError, "no unique test definition"):
                 MODULE.parse_trx_test_outcomes(trx)
+            with self.assertRaisesRegex(RuntimeError, "no unique test definition"):
+                MODULE.parse_trx_test_outcomes(trx, preserve_case_identity=True)
 
         self.assertEqual(
             MODULE.Counter(
@@ -4181,12 +4300,8 @@ class VerifyOrchestrationTests(unittest.TestCase):
         project = MODULE.CiDotnetProject(
             "tests/NvtFwCombiner.Infrastructure.Tests/NvtFwCombiner.Infrastructure.Tests.csproj"
         )
-        identities = (
-            "Probe.Tests.Pass",
-            *MODULE.UNIX_SPECIAL_FILE_INFRASTRUCTURE_SKIPS,
-        )
-        outcomes = ("Passed", "NotExecuted", "NotExecuted")
-        counters = {"total": 3, "passed": 1, "failed": 0, "skipped": 2}
+        identities = ("Probe.Tests.Pass", "Probe.Tests.Second", "Probe.Tests.Third")
+        counters = {"total": 3, "passed": 3, "failed": 0, "skipped": 0}
         with tempfile.TemporaryDirectory() as temporary:
             discovery = Path(temporary) / "discovered-tests.txt"
             trx = Path(temporary) / "test-results.trx"
@@ -4194,17 +4309,27 @@ class VerifyOrchestrationTests(unittest.TestCase):
             self.write_ci_trx(
                 trx,
                 total=3,
-                skipped=2,
+                skipped=0,
                 identities=identities,
-                outcomes=outcomes,
             )
 
             MODULE.require_discovered_test_results(
                 project, discovery, trx, counters, "windows"
             )
+            self.write_ci_trx(
+                trx,
+                total=3,
+                skipped=1,
+                identities=identities,
+                outcomes=("Passed", "Passed", "NotExecuted"),
+            )
             with self.assertRaisesRegex(RuntimeError, "unapproved skipped"):
                 MODULE.require_discovered_test_results(
-                    project, discovery, trx, counters, "non-windows"
+                    project,
+                    discovery,
+                    trx,
+                    {"total": 3, "passed": 2, "failed": 0, "skipped": 1},
+                    "windows",
                 )
 
             bootstrap = MODULE.CiDotnetProject(
@@ -4722,7 +4847,7 @@ class VerifyOrchestrationTests(unittest.TestCase):
             Path("artifacts/ci-dotnet-downloads"),
             finalize.ci_dotnet_finalize,
         )
-        with self.assertRaisesRegex(SystemExit, "CI .NET modes cannot be combined"):
+        with self.assertRaisesRegex(SystemExit, "CI modes cannot be combined"):
             MODULE.execute_verification(
                 MODULE.parse_args(["--ci-dotnet-build", "--ci-dotnet-test-shard", "ui"])
             )
@@ -4770,9 +4895,13 @@ class VerifyOrchestrationTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
             download_root = root / "ci-dotnet-downloads"
-            self.stage_complete_ci_dotnet_evidence(download_root, source_sha)
+            self.stage_complete_ci_dotnet_evidence(
+                download_root, source_sha, golden_total=5
+            )
             events: list[str] = []
+            output = io.StringIO()
             with (
+                contextlib.redirect_stdout(output),
                 patch.dict(
                     os.environ,
                     {
@@ -4800,6 +4929,11 @@ class VerifyOrchestrationTests(unittest.TestCase):
             )
             verify_coverage.assert_called_once_with("dotnet", coverage_root)
             self.assertEqual(["coverage"], events)
+            self.assertEqual(
+                ".NET CI evidence: 8 projects, 26 active tests, 0 excluded skips, "
+                "26 discovered, GoldenRegression 5/5.\n",
+                output.getvalue(),
+            )
 
     def test_ci_dotnet_finalizer_rejects_hash_extra_and_job_result_drift(self) -> None:
         source_sha = "2" * 40

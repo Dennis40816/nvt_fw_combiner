@@ -6476,6 +6476,85 @@ def _validate_package_source_command(args: argparse.Namespace) -> int:
     return 0
 
 
+def _sync_pin(payload: bytes, pattern: bytes, replacement: str, count: int = 1) -> bytes:
+    matches = list(re.finditer(pattern, payload))
+    if len(matches) != count or len({match[2] for match in matches}) != 1:
+        _fail("PARITY_WORKFLOW_MISMATCH", "missing, ambiguous or inconsistent derived pin")
+    return re.sub(pattern, lambda match: match[1] + replacement.encode("ascii") + match[3], payload)
+
+
+WORKFLOW_SYNC_INPUTS = (
+    ".github/workflows/release.yml",
+    "docs/contracts/v0916-parity-workflow-v1.json",
+    "docs/contracts/v0916-parity-certification-v1.json",
+    "docs/contracts/v0916-parity-certification-v1.schema.json",
+    "docs/contracts/v0916-parity-comparison-v1.schema.json",
+    "docs/contracts/v0916-parity-evidence-v1.schema.json",
+    "docs/contracts/v0916-parity-finalize-v1.schema.json",
+    "docs/contracts/v0916-parity-run-v1.schema.json",
+    "tests/scripts/test_v0916_parity_approval.py",
+)
+
+
+def plan_workflow_contract_sync(before: Mapping[str, bytes]) -> dict[str, bytes]:
+    workflow_path = ".github/workflows/release.yml"
+    contract_path = "docs/contracts/v0916-parity-workflow-v1.json"
+    plan_path = "docs/contracts/v0916-parity-certification-v1.json"
+    certification_schema = "docs/contracts/v0916-parity-certification-v1.schema.json"
+    projections = {
+        f"docs/contracts/v0916-parity-{name}-v1.schema.json": (2 if name == "evidence" else 1)
+        for name in ("comparison", "evidence", "finalize", "run")
+    }
+    fixture_path = "tests/scripts/test_v0916_parity_approval.py"
+    if set(before) != set(WORKFLOW_SYNC_INPUTS):
+        _fail("PARITY_WORKFLOW_MISMATCH", "workflow synchronization input inventory differs")
+    documents = {path: load_json_reject_duplicates(raw) for path, raw in before.items() if path.endswith(".json")}
+    ast.parse(before[fixture_path])
+    workflow = yaml.safe_load(before[workflow_path])
+    contract = copy.deepcopy(documents[contract_path])
+    updated = before[contract_path]
+    # These are authoring projections only. All other contract authority remains fixed.
+    for job_id in ("candidate", "promote", "published-smoke"):
+        digest = canonical_json_sha256(workflow["jobs"][job_id])
+        pattern = rb'("' + job_id.encode("ascii") + rb'"\s*:\s*")([0-9a-f]{64})(")'
+        updated = _sync_pin(updated, pattern, digest)
+        contract["jobInventorySha256"][job_id] = digest
+    steps_digest = canonical_json_sha256(workflow["jobs"]["promote"]["steps"])
+    updated = _sync_pin(updated, rb'("stepsSha256"\s*:\s*")([0-9a-f]{64})(")', steps_digest)
+    contract["promotionGate"]["stepsSha256"] = steps_digest
+    if load_json_reject_duplicates(updated) != contract:
+        _fail("PARITY_WORKFLOW_MISMATCH", "synchronization changed non-derived authority")
+    validate_protected_workflow_semantics(before[workflow_path], contract)
+    digest = _sha256(updated)
+    expected = dict(before)
+    expected[contract_path] = updated
+    reference = documents[plan_path]["candidateAuthority"]["protectedBuild"]["workflowSemanticContract"]
+    schema_reference = documents[certification_schema]["properties"]["candidateAuthority"]["properties"]["protectedBuild"]["properties"]["workflowSemanticContract"]["properties"]
+    if reference["path"] != contract_path or schema_reference["path"] != {"const": contract_path}:
+        _fail("PARITY_WORKFLOW_MISMATCH", "workflow contract target cannot change")
+    for path, old_digest, old_size, schema in (
+        (plan_path, reference["sha256"], reference["size"], False),
+        (certification_schema, schema_reference["sha256"]["const"], schema_reference["size"]["const"], True),
+    ):
+        if not isinstance(old_digest, str) or not SHA256_RE.fullmatch(old_digest) or type(old_size) is not int:
+            _fail("PARITY_WORKFLOW_MISMATCH", "invalid workflow contract reference")
+        expected[path] = _sync_pin(before[path], rb'(")(' + old_digest.encode("ascii") + rb')(")', digest)
+        prefix = rb'("size"\s*:\s*' + (rb'\{\s*"const"\s*:\s*' if schema else b"") + rb')'
+        expected[path] = _sync_pin(expected[path], prefix + rb'(' + str(old_size).encode("ascii") + rb')(\s*[,}])', str(len(updated)))
+    for path, count in {**projections, fixture_path: 2}.items():
+        prefix = rb'("workflowSemanticContractSha256"\s*:\s*'
+        if path.endswith(".json"):
+            prefix += rb'\{\s*"const"\s*:\s*'
+        expected[path] = _sync_pin(before[path], prefix + rb'")([0-9a-f]{64})(")', digest, count)
+    for path, raw in expected.items():
+        if path.endswith(".json"):
+            load_json_reject_duplicates(raw)
+    ast.parse(expected[fixture_path])
+    return {path: expected[path] for path in WORKFLOW_SYNC_INPUTS[1:]}
+
+
+
+
 def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser()
     subparsers = parser.add_subparsers(dest="command", required=True)

@@ -236,7 +236,7 @@ public sealed class SystemExternalProcessRunnerTests
         string content = $$"""
             $child = $null
             try {
-              $child = Start-Process -FilePath (Join-Path $env:SystemRoot 'System32\cmd.exe') -ArgumentList '/d /c ping -n 30 127.0.0.1 > NUL' -PassThru
+              $child = Start-Process -FilePath (Join-Path $env:SystemRoot 'System32\cmd.exe') -ArgumentList '/d /c ping -n 30 127.0.0.1 > NUL' -WindowStyle Hidden -PassThru
               $pipe = [System.IO.Pipes.NamedPipeClientStream]::new('.', '{{escapedPipeName}}', [System.IO.Pipes.PipeDirection]::Out)
               try {
                 $pipe.Connect()
