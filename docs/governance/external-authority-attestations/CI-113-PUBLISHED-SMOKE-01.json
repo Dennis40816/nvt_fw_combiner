@@ -1,0 +1,9 @@
+{
+  "schemaVersion": 1,
+  "taskId": "CI-113-PUBLISHED-SMOKE-01",
+  "authorityType": "release-owner",
+  "reviewedHead": "05ced97e638987ee050bf39e5897797394abf9c4",
+  "decision": "approved",
+  "reviewer": "Dennis Liu (release owner)",
+  "evidence": "On 2026-09-05 the release owner explicitly answered yes to approval of frozen candidate 05ced97e and the v1.1.3 release notes, after being told that full verification, complete Golden execution, protected CI, packaging and public-download verification still must pass. This approves exact final-evidence head 05ced97e638987ee050bf39e5897797394abf9c4, containing the independent fixed-head review of implementation a55d4d67d3b711ac8e421ad373b147bbdd889742 with no remaining P0-P3 findings. Scope is the support-neutral v1.1.3 CI/release-efficiency batch: isolated existing CI shards, exact-source admission, actual complete per-case Golden evidence, published smoke, mechanically derived synchronization, deterministic/headless test fixtures and proportionate governance/document checks. The separately approved unchanged Golden reference redistribution retains its original payload and expectations. This approval covers the reviewed changes and release-note claims, not a claim that the candidate is already published or has passed its pending full verifier, exact-source protected CI, package/visible clean-machine smoke, signing/provenance, immutable publication or fresh public-download gates. The owner's concurrent proposal about Windows-only test scope is subsequent work and is not retroactively included in this frozen approval. No automatic continuation or AI reviewer substitutes for this explicit owner approval."
+}
