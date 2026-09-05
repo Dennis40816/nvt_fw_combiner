@@ -5,7 +5,7 @@
   "integrationBase": "05ced97e638987ee050bf39e5897797394abf9c4",
   "risk": "R2",
   "kind": "behavior",
-  "state": "design-active",
+  "state": "final-complete",
   "mutablePaths": ["scripts/verify.py"],
   "implementationOwner": "primary-agent",
   "searchEvidence": [
@@ -21,8 +21,12 @@
     "outcome": "approved",
     "evidence": "Independent pre-implementation review at 40fe604c78b3c6e959e03b7c4af2d82a08e6dd82 approved R2 extend-owner with only scripts/verify.py governed, based on final-evidence checkpoint 05ced97e638987ee050bf39e5897797394abf9c4. It admitted exactly six runtime-exclusive deletions plus their dead fixture/imports, empty Windows skip inventory, all-Passed closed fixture, arbitrary Windows skip rejection and unchanged non-Windows Bootstrap protocol case. It requires static exact-path diff, retired-symbol/reference checks, unchanged reconciliation/Golden/coverage/processor implementation, Python parse-only checks and fixed-head independent review. No test commands are permitted for this deletion-specific check under the owner's instruction; original final release gates remain mandatory. Production Unix compatibility and Windows-executable shared/mock tests are excluded from deletion."
   },
-  "implementationHead": null,
-  "reviewedHead": null,
-  "pathStateDigest": null,
-  "finalReview": {"reviewer": null, "outcome": "pending", "evidence": ""}
+  "implementationHead": "d14222eaadd3a16cd5b0b0e7b2537cc83bf3f703",
+  "reviewedHead": "d14222eaadd3a16cd5b0b0e7b2537cc83bf3f703",
+  "pathStateDigest": "f84ef8d2a60c1ebcaeb12bbc6362ac27c0cc1c30c01d42789efe40196d56ba7c",
+  "finalReview": {
+    "reviewer": "review_ci_release_candidate / GPT-5.6 Sol high / independent read-only reviewer",
+    "outcome": "approved",
+    "evidence": "Independent fixed-head static review binds implementation/reviewed head d14222eaadd3a16cd5b0b0e7b2537cc83bf3f703 and tree a8c35bf4d2c5783e6c8bc0fb3c2383705aef4477 against parent 40fe604c78b3c6e959e03b7c4af2d82a08e6dd82; P0=P1=P2=P3=0. The eight-file diff exactly implements the admitted Windows-test-scope reduction: six runtime-exclusive Unix tests and their sole fixture/dead imports are removed, Windows approved skips become empty, identity/counter/discovery/TRX failure gates remain fail closed, and the existing non-Windows Bootstrap protocol exception remains exact. Static AST comparison found no other verifier top-level change and only the three admitted Python consumer updates. Retired symbols/references are absent, remaining imports and guards are intact, all workflow runners remain Windows, and compile-only/diff checks passed. The canonical path-state digest independently matches the primary calculation. Production Unix compatibility, Windows/shared tests, Golden, firmware/ranges/CRC, coverage, process execution, package contents, release authority and permissions are unchanged. Per owner instruction no deletion-specific tests or verifier were run; no claim of passing runtime tests after deletion is made. Mandatory final Windows verification/CI and complete release-Golden, package, protected publication and public-download gates remain pending. Scoped Polytail outcome is PASS-WITH-HUMAN-GATE. The subsequent Perfect-family UI question was read-only inspection and is not included in this implementation or approval. All immutable design fields are preserved in this direct-child final-evidence commit."
+  }
 }
