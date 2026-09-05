@@ -1,0 +1,44 @@
+{
+  "schemaVersion": 2,
+  "taskId": "AGENTS-113-SCOPE-RECONCILIATION-01",
+  "capability": "Reconcile owner-approved agent instruction scope without weakening executable firmware or release gates",
+  "integrationBase": "a83fe2fd5bb8e417f7626635f0f07c33a0fe7c0c",
+  "risk": "R2",
+  "kind": "governance",
+  "state": "design-active",
+  "mutablePaths": [
+    ".github/AGENTS.md",
+    "AGENTS.md",
+    "docs/AGENTS.md",
+    "scripts/AGENTS.md",
+    "src/AGENTS.md",
+    "src/NvtFwCombiner.Application/AGENTS.md",
+    "testdata/AGENTS.md",
+    "testdata/golden/AGENTS.md",
+    "tests/AGENTS.md",
+    "tools/crc-worker/AGENTS.md"
+  ],
+  "implementationOwner": "primary-agent",
+  "searchEvidence": [
+    "Retrospective remediation, not a claim of pre-implementation admission: on 2026-09-05 the repository owner explicitly authorized the primary agent to pass the existing ten AGENTS edits if review found no problem and to assess the necessity of the blocking mechanism. The primary agent personally reviewed the complete HEAD c859e524d4ba90a1f70f94ecd038566af9d73c7a-to-worktree diff of these exact ten files. It preserves firmware ownership/ranges, complete applicable Golden execution and independent expected bytes, source provenance, explicit external action authority, protected release gates, and immutable historical evidence. Clarifications concern local task scope, proportional verification, injected time/adapter ownership, input-only evidence, current versus historical references, document ownership, and difficulty/risk-based model routing with honest disclosure.",
+    "Scoped timing waiver under docs/policies/polytail.md: rule/tool = development-execution-workflow pre-implementation record timing; scope/issue = this task and these ten already edited instruction files only; reason = owner-approved instruction reconciliation was blocked by filename-based R2 classification; risk = R2 instruction governance; owner/approver = repository owner through the explicit 2026-09-05 request; created = 2026-09-05; expires = 2026-09-12 or this batch's final-evidence checkpoint, whichever comes first; removal condition = these exact changes receive ordinary frozen-head review and lifecycle finalization. The waiver repairs missing admission timing only, not CI results, mandatory Golden comparisons, external permissions, signing, release allowlists, or final evidence. It grants no authority to later edits.",
+    "validate_repository.py::_is_capability_reuse_governed_path and _capability_reuse_minimum_risk classify every AGENTS filename as governed R2 before applying directory rules. The existing schema accepts a single exact-ten path partition. No second verifier, new waiver parser, hard-coded bypass, classifier relaxation, historic-record mutation, or runtime firmware/release behavior change is needed to resolve this batch's missing-record failure. CI-113-PUBLISHED-SMOKE-01 retains its separate R3 workflow/release authority.",
+    "Separate prospective extension, not covered by the retrospective timing waiver: on 2026-09-05 the owner authorized ordinary-document workflow simplification. The primary agent will update only root/docs instructions here, while CI-113 owns the runbook and Polytail policy. Non-normative, non-classifier-governed R0 prose uses diff/affected-link review; parsed/layout consumers receive affected checks. AGENTS and other classifier-governed documents retain record/integration rules. Independent design admission occurred before these new edits; earlier ten-file changes remain preserved."
+  ],
+  "semanticOwner": "Root and nearest scoped AGENTS task instructions; existing executable policies remain independently authoritative",
+  "terminalContract": "Preserve the ten reviewed instruction changes and existing external, firmware and release safety boundaries. Admit their current scope through one truthful retrospective R2 record under the owner's bounded timing waiver. Local proportional tests and explicit task authority do not waive protected CI, exact-source release evidence, complete applicable certified Golden comparisons, package allowlists, or human release authority. Do not change classifier, finalization, historical immutability or attestation semantics as part of this record. Production and workflow changes remain in their own admitted records. The prospectively admitted root/docs instruction extension removes mandatory structure/full-suite/handoff ceremony only for ordinary non-normative, non-classifier-governed R0 prose. Explicitly preserve the mechanical classifier and governed record/integration obligations; normative, permission, release and parsed-input changes receive their affected gates. Synchronize with the existing runbook/Polytail/CONTRIBUTING owners without editing external Skills.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "audit_release_flow_health",
+    "outcome": "approved",
+    "evidence": "Independent read-only admission on 2026-09-05 confirmed one aggregate R2 governance record is valid for the exact ten AGENTS paths, including those under workflow/Golden/worker directories because the instruction-file classifier is R2. It confirmed exact path partition, current checkpoint binding, truthful retrospective owner-authorized remediation, and pending final evidence. It explicitly preserved the separate CI-113 R3 release, workflow, Golden, package, permission and release-owner gates. Primary-agent personal content review remains distinct from this independent contract admission. A separate prospective review by audit_release_flow_health on 2026-09-05 approved this narrow ordinary-document short path before implementation, conditional on synchronizing the five existing entry points and expressly retaining classifier-governed AGENTS/governance and all R1-R3/external/immutable boundaries. This extension does not use the earlier retrospective timing waiver."
+  },
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": {
+    "reviewer": null,
+    "outcome": "pending",
+    "evidence": ""
+  }
+}

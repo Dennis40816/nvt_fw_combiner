@@ -2,9 +2,18 @@
 
 Status: Active repository runbook.
 
+For ordinary non-normative, non-classifier-governed documentation, use the root
+R0 short path: preserve existing edits, update the existing owner, review the
+diff and affected links, then report the result briefly. Structure or consumer
+checks apply when document layout or parsed inputs change. This path needs no
+new issue, capability record, subagent, code-size census or handoff artifact.
+`AGENTS.md`, governance and other classifier-governed documents still follow
+their record/integration contract. Normative, permission and release changes
+are not R0 merely because their file is Markdown. Required CI is unchanged.
+
 ## Preflight
 
-Before a non-trivial edit, run `git status --short --branch`, preserve existing
+For R1-R3 work, run `git status --short --branch`, preserve existing
 user changes, and record risk, affected authority/layers, acceptance criteria,
 human/evidence gates, narrow test, final gate, integration base, and owned
 mutable surfaces. Read the relevant source, contract/profile, and test once.
@@ -80,7 +89,8 @@ descendant handoff, workload completion, and exact-session cleanup.
 
 | Changed surface | First test |
 | --- | --- |
-| Documentation, agent config, governance | `python scripts/verify.py --structure-only` |
+| Ordinary non-normative, non-classifier-governed prose (R0) | Diff and affected-link review; structure/consumer checks only for layout or parsed-input changes. |
+| Agent config, governance, normative or classifier-governed documents | `python scripts/verify.py --structure-only`, plus tests of any affected executable/contract behavior. |
 | Domain | `dotnet test tests/NvtFwCombiner.Domain.Tests/NvtFwCombiner.Domain.Tests.csproj` |
 | Application | `dotnet test tests/NvtFwCombiner.Application.Tests/NvtFwCombiner.Application.Tests.csproj` |
 | Profile/schema | `dotnet test tests/NvtFwCombiner.ProfileContract.Tests/NvtFwCombiner.ProfileContract.Tests.csproj` |
@@ -92,13 +102,14 @@ descendant handoff, workload completion, and exact-session cleanup.
 | CRC worker | `python -m pytest` from `tools/crc-worker` |
 
 Add broader tests only when the change crosses that boundary. Run
-`python scripts/verify.py --all` once on the frozen R1-R3 candidate. A true R0
-documentation-only change may finish locally with `--structure-only`.
+`python scripts/verify.py --all` once on the frozen R1-R3 integration/release
+candidate. Ordinary R0 prose may finish locally after the short path above;
+it does not disable any protected CI or release gate.
 
 ## Review checkpoints
 
-Use three checkpoints so review runs with development instead of becoming a
-serial tail after implementation:
+For R1-R3 implementation, use three checkpoints so review runs with development
+instead of becoming a serial tail after implementation:
 
 1. **Development loop.** After each coherent bounded correction, run its narrow
    test and analyzer. Independent reviewers may inspect security, semantics,
@@ -129,8 +140,10 @@ evidence checkpoint. An intermediate commit that still contains a
 `design-active` record intentionally fails the final repository gate; it is not
 mergeable and cannot authorize follow-on development.
 
-Before handoff: format changed files, run the narrow test, inspect the exact
-diff, apply scoped Polytail, run the final gate, and record residual evidence.
+Before R1-R3 handoff: format changed files, run the affected narrow test, inspect
+the exact diff, apply scoped Polytail, and record residual evidence. The full
+final gate belongs to the frozen integration/release checkpoint above, not each
+interim status update or document handoff.
 
 ## Recurring specification conformance audit
 
@@ -175,12 +188,9 @@ explicitly block integration.
 
 ## Handoff
 
-Start with one current table containing `open TODO`, `owner`, `blocker`, and
-`next action`; write `none` when it is empty. Historical detail may remain as
-evidence but cannot become a second queue. Report outcome, changed files, risk,
-exact commands/results, firmware/profile/protocol/release impact, required
-reviewers, unresolved evidence, and the repository's canonical code-size
-breakdown. Separate shipped production, tests, tooling, contracts/profiles,
-generated data, and deleted binary evidence, including the exact canonical
-code-size command and values. PR bodies record outcomes and gates; they do not
-reproduce a complete agent execution log.
+For R0 documentation, a brief outcome and verification note is sufficient.
+For R1-R3 handoff, report outcome, changed scope, actual checks and remaining
+gates. Include a TODO/owner/blocker/next-action table only when transferring
+unfinished work; use the existing canonical queue, not another report. Include
+the canonical code-size breakdown only when source-size policy is affected or
+the owner requests it. PR bodies record outcomes and gates, not execution logs.

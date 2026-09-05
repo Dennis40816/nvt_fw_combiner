@@ -235,6 +235,7 @@ public sealed partial class AnonymousPipeManagedApplicationProcessTests
         {
             FileName = probe,
             UseShellExecute = false,
+            CreateNoWindow = true,
         };
         startInfo.Environment[BehaviorEnvironment] = "tree-grandchild";
         startInfo.Environment["NVT_READY_PROBE_TREE_MARKER"] = Path.Combine(root, "silent-probe");

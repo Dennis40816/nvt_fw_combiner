@@ -21,6 +21,7 @@ public sealed class Nt51923CtrlRamFw141EvidenceTests
     /// <summary>Proves the exact owner control produces the locked V2 bytes, process authority, and argv.</summary>
     [Theory]
     [InlineData(
+        "nt51923-fw141-single-auto-prj-662-20260717",
         "single",
         "nt51923-ctrlram-replace-fw141-single",
         1,
@@ -28,6 +29,7 @@ public sealed class Nt51923CtrlRamFw141EvidenceTests
         "a65ae33c9c11091f69d8935422ffc57db32262eb922590364d4bdd9c3af9916f",
         "4759a8e87ad7ff8a8e41ae91af6f0d05a847659ffbf06f3864d1ca093453da38")]
     [InlineData(
+        "nt51923-fw141-cascade3-auto-prj-734-20260717",
         "cascade",
         "nt51923-ctrlram-replace-fw141-cascade3",
         3,
@@ -35,6 +37,7 @@ public sealed class Nt51923CtrlRamFw141EvidenceTests
         "06dda13a592c151a767d47fff60da993f33d7bda37666794dd9ea5cf92094d18",
         "017a157ba2419ff29cfb00c14a88da75a64cfeac9b4dabeecf54d523b1ad115c")]
     public async Task ExactOwnerCasesRunThroughV2WithLockedProcessEvidenceAsync(
+        string caseId,
         string topology,
         string v2ProfileId,
         byte chipCount,
@@ -47,7 +50,7 @@ public sealed class Nt51923CtrlRamFw141EvidenceTests
             return;
         }
 
-        OwnerCase ownerCase = ReadOwnerCase(topology);
+        OwnerCase ownerCase = ReadOwnerCase(caseId, topology);
         Assert.Equal(ownerExpectedSha256, Hash(ownerCase.Expected.Bytes));
         Assert.True(FirmwareConfigMetadataReader.TryReadBackup(
             ownerCase.Expected.Bytes,
@@ -94,9 +97,6 @@ public sealed class Nt51923CtrlRamFw141EvidenceTests
         byte[] v2Bytes = File.ReadAllBytes(v2OutputPath);
         Assert.Equal(outputSha256, Hash(v2Bytes));
         Assert.Equal(outputSha256, v2.OutputSha256);
-        string caseId = StringComparer.Ordinal.Equals(topology, "single")
-            ? "nt51923-fw141-single-auto-prj-662-20260717"
-            : "nt51923-fw141-cascade3-auto-prj-734-20260717";
         JsonElement goldenCase = CanonicalGoldenTestData.LoadDirectCase("ctrlram-replace", caseId);
         CanonicalGoldenDifferenceResult manifestDifferences =
             CanonicalGoldenTestData.AssertAllowedByteDifferences(
@@ -117,17 +117,18 @@ public sealed class Nt51923CtrlRamFw141EvidenceTests
 
     /// <summary>Structurally valid base and display-only metadata variations retain the requested V2 route.</summary>
     [Theory]
-    [InlineData("single", "single", "pid")]
-    [InlineData("single", "single", "version")]
-    [InlineData("cascade", "cascade", "pid")]
-    [InlineData("cascade", "cascade", "version")]
-    [InlineData("cascade", "cascade", "chip")]
+    [InlineData("nt51923-fw141-single-auto-prj-662-20260717", "single", "single", "pid")]
+    [InlineData("nt51923-fw141-single-auto-prj-662-20260717", "single", "single", "version")]
+    [InlineData("nt51923-fw141-cascade3-auto-prj-734-20260717", "cascade", "cascade", "pid")]
+    [InlineData("nt51923-fw141-cascade3-auto-prj-734-20260717", "cascade", "cascade", "version")]
+    [InlineData("nt51923-fw141-cascade3-auto-prj-734-20260717", "cascade", "cascade", "chip")]
     public async Task ProductionRouteAcceptsNonAuthoritativeMetadataVariationsAsync(
+        string caseId,
         string topology,
         string number,
         string mutation)
     {
-        OwnerCase ownerCase = ReadOwnerCase(topology);
+        OwnerCase ownerCase = ReadOwnerCase(caseId, topology);
         using var workspace = TempWorkspace.Create($"nfc-nt51923-fw141-{topology}-negative");
         string referencePath = workspace.PathFor("reference.bin");
         byte[] reference = [.. ownerCase.Expected.Bytes];
@@ -320,11 +321,8 @@ public sealed class Nt51923CtrlRamFw141EvidenceTests
         return slots;
     }
 
-    private static OwnerCase ReadOwnerCase(string topology)
+    private static OwnerCase ReadOwnerCase(string caseId, string topology)
     {
-        string caseId = StringComparer.Ordinal.Equals(topology, "single")
-            ? "nt51923-fw141-single-auto-prj-662-20260717"
-            : "nt51923-fw141-cascade3-auto-prj-734-20260717";
         JsonElement goldenCase = CanonicalGoldenTestData.LoadDirectCase("ctrlram-replace", caseId);
         OwnerArtifact[] artifacts = [
             .. goldenCase.GetProperty("artifacts").EnumerateArray()

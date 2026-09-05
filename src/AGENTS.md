@@ -7,7 +7,7 @@ These rules apply to `src/`.
 - Do not pass raw `int`/`long` for semantically different offsets when a dedicated type improves safety.
 - Enable nullable reference types and treat warnings as errors.
 - Prefer explicit result/issue models for user-data failures; reserve exceptions for violated invariants or unrecoverable infrastructure failures.
-- Do not use service location, static mutable state, ambient clocks, or direct filesystem/process access outside adapters.
+- Do not use service location or static mutable state outside adapters. Read time through an injected clock/TimeProvider; composition code may bind the system implementation. Direct filesystem/process access belongs in adapters, reached through inward-declared ports.
 - Use `System.Text.Json` source generation for runtime contracts.
 - Keep public API surfaces minimal and document invariants on public domain and port types.
 - Tests must compare complete values/reports where practical, not hand-pick only convenient fields.

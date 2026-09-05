@@ -116,6 +116,7 @@ if (string.Equals(behavior, "bootstrap-identity-chain-root", StringComparison.Or
     {
         FileName = Environment.ProcessPath ?? throw new InvalidOperationException("Missing process path."),
         UseShellExecute = false,
+        CreateNoWindow = true,
     };
     childInfo.ArgumentList.Add("--state-path");
     childInfo.ArgumentList.Add(statePath ?? throw new InvalidOperationException("Missing state path."));
@@ -235,6 +236,7 @@ if (string.Equals(behavior, "ready-tree-root", StringComparison.Ordinal))
     {
         FileName = Environment.ProcessPath ?? throw new InvalidOperationException("Missing process path."),
         UseShellExecute = false,
+        CreateNoWindow = true,
     };
     childInfo.Environment[behaviorKey] = "ready-tree-grandchild";
     childInfo.Environment["NVT_READY_PROBE_TREE_MARKER"] = marker;
@@ -259,6 +261,7 @@ if (string.Equals(behavior, "tree-root-exit", StringComparison.Ordinal) ||
     {
         FileName = Environment.ProcessPath ?? throw new InvalidOperationException("Missing process path."),
         UseShellExecute = false,
+        CreateNoWindow = true,
     };
     childInfo.Environment[behaviorKey] = "tree-grandchild";
     childInfo.Environment["NVT_READY_PROBE_TREE_MARKER"] = marker;

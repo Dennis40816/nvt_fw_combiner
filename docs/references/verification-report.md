@@ -17,7 +17,21 @@ verification evidence is produced by the canonical
 `python scripts/verify.py --structure-only` and `python scripts/verify.py --all`
 commands.
 
-Specification package version: `1.1.2`
+Specification package version: `1.1.3`
+
+Current allocation amendment (2026-09-05): all remaining `1.1.x` CI/release
+optimization and follow-ups below are consolidated into `v1.1.3` in the
+[canonical roadmap](../architecture/nfc_roadmap.md). The latest same-day owner
+decision consolidates all existing UI corrections in `v1.1.4`, assigns measured
+startup/first-open performance to `v1.1.5`, and allocates the remaining backlog
+there. The later owner amendment adds the complete Dummy DP checkbox feature
+to `v1.1.4`, combines agent/document/minimality work in `v1.1.6`, and defers
+General Merge, General Replace and saved/custom rules to `v1.2.4`-`v1.2.6`.
+The final same-day owner amendment defers the maintainer-facing IC family/rule-
+authoring UI to `v1.3.0`; it does not move the separate General/user-rule scope.
+`v1.1.3` work continues. Dated candidate/release sections remain historical
+observations, not competing current assignments or evidence that `v1.1.3`
+has passed its integration or publication gates.
 
 ## 1.1.2 published release closure
 

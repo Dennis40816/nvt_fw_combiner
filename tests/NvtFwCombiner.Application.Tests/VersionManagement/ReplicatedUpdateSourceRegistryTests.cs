@@ -97,13 +97,34 @@ public sealed class ReplicatedUpdateSourceRegistryTests
         using var releasePrimary = new ManualResetEventSlim();
         var blocked = new SynchronouslyBlockingRegistry(releasePrimary);
         UpdateSourceRegistrySnapshot backup = Snapshot(4, 'c');
+        var available = new ControlledRegistry(Success(backup));
+        var time = new ManualTimeProvider();
         var registry = new ReplicatedUpdateSourceRegistry(
-            [blocked, new StubRegistry(Success(backup))],
-            TimeSpan.FromMilliseconds(100));
+            [blocked, available],
+            TimeSpan.FromMilliseconds(100),
+            time);
 
         try
         {
-            for (int attempt = 0; attempt < 3; attempt++)
+            Task twoActiveTimers = time.WaitForActiveTimerCountAsync(2);
+            Task<UpdateSourceRegistryLoadResult> first = registry.LoadAsync(
+                TestContext.Current.CancellationToken).AsTask();
+            await blocked.FirstLoadStarted.Task.WaitAsync(TestContext.Current.CancellationToken);
+            await available.FirstLoadStarted.Task.WaitAsync(TestContext.Current.CancellationToken);
+            await twoActiveTimers.WaitAsync(TestContext.Current.CancellationToken);
+
+            Task oneActiveTimer = time.WaitForActiveTimerCountAsync(1);
+            available.ReleaseFirstLoad();
+            await oneActiveTimer.WaitAsync(TestContext.Current.CancellationToken);
+            time.Advance(TimeSpan.FromMilliseconds(100));
+
+            UpdateSourceRegistryLoadResult firstResult = await first;
+            Assert.Same(backup, firstResult.Snapshot);
+            Assert.Equal(
+                UpdateSourceRegistryLoadIssue.RegistryTimedOut,
+                firstResult.Replicas![0].Issue);
+
+            for (int attempt = 1; attempt < 3; attempt++)
             {
                 UpdateSourceRegistryLoadResult result = await registry.LoadAsync(
                     TestContext.Current.CancellationToken);
@@ -112,10 +133,13 @@ public sealed class ReplicatedUpdateSourceRegistryTests
             }
 
             Assert.Equal(1, blocked.LoadCount);
+            Assert.Equal(3, available.LoadCount);
         }
         finally
         {
+            available.ReleaseFirstLoad();
             releasePrimary.Set();
+            await blocked.FirstLoadCompleted.Task.WaitAsync(TestContext.Current.CancellationToken);
         }
     }
 
@@ -357,6 +381,33 @@ public sealed class ReplicatedUpdateSourceRegistryTests
             _ = Interlocked.Increment(ref _loadCount);
             _ = FirstLoadStarted.TrySetResult();
             return ValueTask.FromResult(result);
+        }
+    }
+
+    private sealed class ControlledRegistry(UpdateSourceRegistryLoadResult result) : IUpdateSourceRegistry
+    {
+        private int _loadCount;
+        private readonly TaskCompletionSource _release =
+            new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        internal int LoadCount => Volatile.Read(ref _loadCount);
+
+        internal TaskCompletionSource FirstLoadStarted { get; } =
+            new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        internal void ReleaseFirstLoad()
+        {
+            _ = _release.TrySetResult();
+        }
+
+        public async ValueTask<UpdateSourceRegistryLoadResult> LoadAsync(
+            CancellationToken cancellationToken)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            _ = Interlocked.Increment(ref _loadCount);
+            _ = FirstLoadStarted.TrySetResult();
+            await _release.Task.ConfigureAwait(false);
+            return result;
         }
     }
 

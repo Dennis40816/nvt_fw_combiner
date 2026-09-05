@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import ast
 import hashlib
+import io
 import json
 import re
 import subprocess
@@ -860,7 +861,6 @@ def validate_version_license_and_sdk(errors: list[str]) -> None:
         encoding="utf-8"
     )
     changelog = (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
-    tags = (ROOT / "docs/governance/development-tags.md").read_text(encoding="utf-8")
     build_props = (ROOT / "Directory.Build.props").read_text(encoding="utf-8")
     if f"文件版本：`{version}`" not in spec:
         errors.append("VERSION and SPEC.md document version disagree")
@@ -868,8 +868,6 @@ def validate_version_license_and_sdk(errors: list[str]) -> None:
         errors.append("VERSION and verification-report version disagree")
     if f"## [{version}]" not in changelog:
         errors.append("VERSION has no changelog section")
-    if f"v{version}" not in tags:
-        errors.append("VERSION has no development-tag node")
     has_repository_version_file = (
         "<RepositoryVersionFile>$(MSBuildThisFileDirectory)VERSION</RepositoryVersionFile>"
         in build_props
@@ -1287,6 +1285,7 @@ def _validate_windows_only_ci_topology(path: Path, errors: list[str]) -> None:
     expected_jobs = {
         "structure",
         "python-worker",
+        "repository-scripts",
         "dotnet-build",
         "dotnet-test",
         "dotnet",
@@ -1932,6 +1931,15 @@ def _read_git_batch_blob(
         stdin.flush()
     except (BrokenPipeError, OSError) as exc:
         return None, str(exc)
+    return _read_git_batch_frame(stdout, object_spec)
+
+
+def _read_git_batch_frame(
+    stdout: Any,
+    object_spec: bytes,
+    *,
+    expected_oid: bytes | None = None,
+) -> tuple[bytes | None, str | None]:
     header = stdout.readline(_CAPABILITY_HISTORY_MAX_HEADER_BYTES + 1)
     if not header.endswith(b"\n") or len(header) > _CAPABILITY_HISTORY_MAX_HEADER_BYTES:
         return None, "malformed or oversized Git batch header"
@@ -1944,6 +1952,7 @@ def _read_git_batch_blob(
         or re.fullmatch(rb"[0-9a-f]{40}", fields[0]) is None
         or fields[1] != b"blob"
         or re.fullmatch(rb"(?:0|[1-9][0-9]*)", fields[2]) is None
+        or (expected_oid is not None and fields[0] != expected_oid)
     ):
         return None, "invalid Git batch object header"
     size = int(fields[2])
@@ -1951,6 +1960,39 @@ def _read_git_batch_blob(
     if content is None or stdout.read(1) != b"\n":
         return None, "truncated Git batch object payload"
     return content, None
+
+
+def _read_git_blob_batch(
+    root: Path, object_ids: Iterable[bytes]
+) -> tuple[dict[bytes, bytes], str | None]:
+    ordered_ids = sorted(set(object_ids))
+    if not ordered_ids:
+        return {}, None
+    if any(re.fullmatch(rb"[0-9a-f]{40}", oid) is None for oid in ordered_ids):
+        return {}, "invalid Git batch object ID"
+    try:
+        result = subprocess.run(
+            ["git", "cat-file", "--batch"],
+            cwd=root,
+            input=b"\n".join(ordered_ids) + b"\n",
+            check=False,
+            capture_output=True,
+        )
+    except OSError as exc:
+        return {}, str(exc)
+    if result.returncode != 0:
+        detail = result.stderr.decode("utf-8", errors="replace").strip()
+        return {}, detail or f"git exited {result.returncode}"
+    blobs: dict[bytes, bytes] = {}
+    with io.BytesIO(result.stdout) as stream:
+        for oid in ordered_ids:
+            content, error = _read_git_batch_frame(stream, oid, expected_oid=oid)
+            if error is not None or content is None:
+                return {}, error or "requested Git batch blob is missing"
+            blobs[oid] = content
+        if stream.read(1):
+            return {}, "trailing Git batch payload"
+    return blobs, None
 
 
 def _capability_path_state_digest(
@@ -1961,32 +2003,56 @@ def _capability_path_state_digest(
     """Hash committed Git path states without depending on checkout EOL conversion."""
     digest = hashlib.sha256()
     digest.update(b"nfc-capability-path-state-v1\0")
-    for relative in sorted(paths):
-        encoded_path = relative.encode("utf-8")
-        digest.update(len(encoded_path).to_bytes(4, "big"))
-        digest.update(encoded_path)
-        tree_entry, tree_error = _git_object(
-            root,
-            ["ls-tree", "-z", revision, "--", relative],
-        )
-        if tree_error is not None:
-            return None, tree_error
-        if not tree_entry:
-            digest.update(b"\0deleted\0")
+    ordered_paths = sorted(paths)
+    if any(any(char in relative for char in "\0\r\n") for relative in ordered_paths):
+        return None, "capability mutable path cannot be Git-framed"
+    if not ordered_paths:
+        return digest.hexdigest(), None
+    requested = {relative.encode("utf-8"): relative for relative in ordered_paths}
+    # Fixed argv avoids imposing a Windows command-line limit on record size.
+    tree, tree_error = _git_object(
+        root, ["ls-tree", "-r", "-t", "-z", "--full-tree", revision]
+    )
+    if tree_error is not None:
+        return None, tree_error
+    if tree and not tree.endswith(b"\0"):
+        return None, "truncated Git tree inventory"
+    selected: dict[bytes, tuple[bytes, bytes]] = {}
+    for entry in tree.split(b"\0"):
+        if not entry:
             continue
-        entries = [entry for entry in tree_entry.split(b"\0") if entry]
-        if len(entries) != 1 or b"\t" not in entries[0]:
-            return None, f"expected one exact Git tree entry for {relative}"
-        metadata, actual_path = entries[0].split(b"\t", 1)
+        metadata, separator, actual_path = entry.partition(b"\t")
+        if not separator:
+            return None, "malformed Git tree inventory"
+        if actual_path not in requested:
+            continue
+        relative = requested[actual_path]
         values = metadata.split(b" ")
-        if len(values) != 3 or actual_path.decode("utf-8", errors="strict") != relative:
-            return None, f"invalid Git tree entry for {relative}"
+        if len(values) != 3 or actual_path in selected:
+            return None, f"invalid or duplicate Git tree entry for {relative}"
         mode, object_type, object_id = values
         if object_type != b"blob":
             return None, f"capability mutable path is not a Git blob: {relative}"
-        blob, blob_error = _git_object(root, ["cat-file", "blob", object_id.decode("ascii")])
-        if blob_error is not None:
-            return None, blob_error
+        if (
+            mode not in {b"100644", b"100755", b"120000"}
+            or re.fullmatch(rb"[0-9a-f]{40}", object_id) is None
+        ):
+            return None, f"invalid Git tree entry for {relative}"
+        selected[actual_path] = (mode, object_id)
+    blobs, blob_error = _read_git_blob_batch(
+        root, (object_id for _, object_id in selected.values())
+    )
+    if blob_error is not None:
+        return None, blob_error
+    for relative in ordered_paths:
+        encoded_path = relative.encode("utf-8")
+        digest.update(len(encoded_path).to_bytes(4, "big"))
+        digest.update(encoded_path)
+        if encoded_path not in selected:
+            digest.update(b"\0deleted\0")
+            continue
+        mode, object_id = selected[encoded_path]
+        blob = blobs[object_id]
         digest.update(b"\0present\0")
         digest.update(mode)
         digest.update(b"\0")
@@ -3437,6 +3503,38 @@ def validate_agent_files(errors: list[str]) -> None:
                 errors.append(f".codex/agents/{read_only} must be read-only")
 
 
+def validate_historical_parity_authority(errors: list[str]) -> None:
+    if (ROOT / "docs/contracts/v0916-parity-certification-v1.json").is_file():
+        try:
+            # Canonical governance validates this immutable record before this adapter.
+            # Current workflow projections may change the plan after its frozen H2.
+            binding_record = load_json(
+                ROOT / "docs/governance/change-records/"
+                "RELEASE-111-PARITY-AUTHORITY-TRANSFER-09.json",
+                errors,
+            )
+            binding_head = (
+                binding_record.get("reviewedHead")
+                if isinstance(binding_record, dict)
+                else None
+            )
+            if (
+                not isinstance(binding_head, str)
+                or re.fullmatch(r"[0-9a-f]{40}", binding_head) is None
+            ):
+                raise ParityError("PARITY_AUTHORITY_MISMATCH")
+            git = GitAuthorityReader(ROOT)
+            validate_repository_parity_authority_transfer(
+                ROOT,
+                head=binding_head,
+                reader=git,
+            )
+        except ParityError as exc:
+            errors.append(
+                "v0.9.16 parity Git authority transfer failed: " f"{exc.code}"
+            )
+
+
 def validate() -> list[str]:
     errors: list[str] = []
     errors.extend(validate_code_size_policy(ROOT))
@@ -3469,23 +3567,7 @@ def validate() -> list[str]:
     validate_workflows(errors)
     validate_packaging_policy(files, errors)
     validate_agent_files(errors)
-    if (ROOT / "docs/contracts/v0916-parity-certification-v1.json").is_file():
-        try:
-            git = GitAuthorityReader(ROOT)
-            binding_head = git.last_change(
-                "HEAD", "docs/contracts/v0916-parity-certification-v1.json"
-            )
-            if binding_head is None:
-                raise ParityError("PARITY_AUTHORITY_MISMATCH")
-            validate_repository_parity_authority_transfer(
-                ROOT,
-                head=binding_head,
-                reader=git,
-            )
-        except ParityError as exc:
-            errors.append(
-                "v0.9.16 parity Git authority transfer failed: " f"{exc.code}"
-            )
+    validate_historical_parity_authority(errors)
     return sorted(set(errors))
 
 

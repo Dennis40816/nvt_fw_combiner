@@ -23,10 +23,14 @@ public sealed class Nt51927CtrlRamFw141SingleEvidenceTests
     ];
 
     /// <summary>Proves the exact owner control produces the locked V2 bytes, process authority, and argv.</summary>
-    [Theory]
-    [InlineData("NT51927", "nt51927-ctrlram-replace-fw141-single", "nfc.nt51927.ctrlram-postbuild-v1")]
-    [InlineData("NT51917", "nt51917-ctrlram-replace-fw141-single", "nfc.nt51917.ctrlram-postbuild-v1")]
-    public async Task ExactOwnerCaseProducesLockedV2EvidenceAsync(
+    [Fact]
+    public Task ExactOwnerCaseProducesLockedV2EvidenceAsync()
+    {
+        return VerifyLockedV2EvidenceAsync(
+            "NT51927", "nt51927-ctrlram-replace-fw141-single", "nfc.nt51927.ctrlram-postbuild-v1");
+    }
+
+    private static async Task VerifyLockedV2EvidenceAsync(
         string icId,
         string expectedProfileId,
         string expectedProcessorId)
@@ -105,6 +109,14 @@ public sealed class Nt51927CtrlRamFw141SingleEvidenceTests
         Assert.All(
             ownerCase.Artifacts,
             artifact => Assert.Equal(immutableHashes[artifact.Path], Hash(File.ReadAllBytes(artifact.Path))));
+    }
+
+    /// <summary>Retains NT51917 fact-scoped alias comparison separately from direct NT51927 evidence.</summary>
+    [Fact]
+    public Task Nt51917AliasProducesLockedV2EvidenceAsync()
+    {
+        return VerifyLockedV2EvidenceAsync(
+            "NT51917", "nt51917-ctrlram-replace-fw141-single", "nfc.nt51917.ctrlram-postbuild-v1");
     }
 
     /// <summary>NT51917/NT51927 aliases retain the requested single route across non-authoritative metadata.</summary>

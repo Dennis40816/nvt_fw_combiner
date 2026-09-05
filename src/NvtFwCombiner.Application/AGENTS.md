@@ -1,7 +1,7 @@
 # Application instructions
 
-- Own use-case policy through ports; do not start processes, access files, or
-  render UI.
+- Own use-case policy through ports; request file/process work through those
+  ports, without directly performing adapter I/O or rendering UI.
 - Consume canonical Domain/profile resolution rather than copy firmware facts.
 - Expose typed requests, results, stable issue codes, readiness, and immutable
   snapshots for UI and CLI.

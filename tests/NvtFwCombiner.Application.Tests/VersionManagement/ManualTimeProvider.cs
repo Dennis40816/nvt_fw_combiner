@@ -4,6 +4,7 @@ internal sealed class ManualTimeProvider : TimeProvider
 {
     private readonly Lock _sync = new();
     private readonly List<ManualTimer> _timers = [];
+    private readonly List<(int ExpectedCount, TaskCompletionSource Completion)> _timerCountWaiters = [];
     private DateTimeOffset _utcNow = DateTimeOffset.UnixEpoch;
     private long _timestamp;
 
@@ -37,6 +38,22 @@ internal sealed class ManualTimeProvider : TimeProvider
         return timer;
     }
 
+    internal Task WaitForActiveTimerCountAsync(int expectedCount)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegative(expectedCount);
+        lock (_sync)
+        {
+            if (_timers.Count == expectedCount)
+            {
+                return Task.CompletedTask;
+            }
+            var completion = new TaskCompletionSource(
+                TaskCreationOptions.RunContinuationsAsynchronously);
+            _timerCountWaiters.Add((expectedCount, completion));
+            return completion.Task;
+        }
+    }
+
     internal void Advance(TimeSpan delta)
     {
         ArgumentOutOfRangeException.ThrowIfLessThan(delta, TimeSpan.Zero);
@@ -53,6 +70,20 @@ internal sealed class ManualTimeProvider : TimeProvider
         foreach ((TimerCallback callback, object? state) in due)
         {
             callback(state);
+        }
+    }
+
+    private void CompleteTimerCountWaitersUnderLock()
+    {
+        for (int index = _timerCountWaiters.Count - 1; index >= 0; index--)
+        {
+            (int expectedCount, TaskCompletionSource completion) = _timerCountWaiters[index];
+            if (expectedCount != _timers.Count)
+            {
+                continue;
+            }
+            _timerCountWaiters.RemoveAt(index);
+            _ = completion.TrySetResult();
         }
     }
 
@@ -73,14 +104,20 @@ internal sealed class ManualTimeProvider : TimeProvider
                 {
                     return false;
                 }
+                bool added = false;
                 if (!owner._timers.Contains(this))
                 {
                     owner._timers.Add(this);
+                    added = true;
                 }
                 _dueTimestamp = dueTime == Timeout.InfiniteTimeSpan
                     ? null
                     : checked(owner._timestamp + Math.Max(0, dueTime.Ticks));
                 _periodTicks = period == Timeout.InfiniteTimeSpan ? null : period.Ticks;
+                if (added)
+                {
+                    owner.CompleteTimerCountWaitersUnderLock();
+                }
                 return true;
             }
         }
@@ -109,6 +146,7 @@ internal sealed class ManualTimeProvider : TimeProvider
                 }
                 _disposed = true;
                 _ = owner._timers.Remove(this);
+                owner.CompleteTimerCountWaitersUnderLock();
             }
         }
 

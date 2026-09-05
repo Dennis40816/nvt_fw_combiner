@@ -6,28 +6,37 @@ namespace NvtFwCombiner.GoldenRegression.Tests;
 /// <summary>Golden tests that exercise the workbench command path for Standard Merge.</summary>
 public sealed class StandardMergeWorkbenchGoldenTests
 {
-    /// <summary>Verifies the workbench facade can build every Standard Merge golden case byte-for-byte.</summary>
-    [Fact]
-    public async Task WorkbenchBuildStandardMergeMatchesGoldenBytes()
+    /// <summary>Verifies each Standard Merge golden case through its own byte-for-byte execution.</summary>
+    [Theory]
+    [MemberData(nameof(StandardMergeCases))]
+    public async Task WorkbenchBuildStandardMergeMatchesGoldenBytes(string caseId)
     {
         string goldenRoot = CanonicalGoldenTestData.Root;
         using JsonDocument manifestDocument = CanonicalGoldenTestData.LoadDirectWorkflowManifest("standard-merge");
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-golden");
 
-        JsonElement[] goldenCases =
-        [
-            .. manifestDocument.RootElement.GetProperty("cases")
-                .EnumerateArray(),
-        ];
+        JsonElement goldenCase = manifestDocument.RootElement.GetProperty("cases")
+            .EnumerateArray()
+            .Single(item => StringComparer.Ordinal.Equals(item.GetProperty("caseId").GetString(), caseId))
+            .Clone();
         var admittedIcIds = GoldenTestHost.Services.CompositionCapabilityExperience.GetIcIds()
             .ToHashSet(StringComparer.Ordinal);
-        Assert.All(goldenCases, goldenCase =>
-            Assert.Contains($"NT{goldenCase.GetProperty("ic").GetString()}", admittedIcIds));
+        Assert.Contains($"NT{goldenCase.GetProperty("ic").GetString()}", admittedIcIds);
 
-        foreach (JsonElement goldenCase in goldenCases)
+        await VerifyGoldenCaseAsync(goldenRoot, workspace.Root, goldenCase);
+    }
+
+    /// <summary>Exposes each canonical case identity to discovery and execution evidence.</summary>
+    public static TheoryData<string> StandardMergeCases()
+    {
+        using JsonDocument manifest = CanonicalGoldenTestData.LoadDirectWorkflowManifest("standard-merge");
+        TheoryData<string> cases = [];
+        foreach (JsonElement goldenCase in manifest.RootElement.GetProperty("cases").EnumerateArray())
         {
-            await VerifyGoldenCaseAsync(goldenRoot, workspace.Root, goldenCase);
+            cases.Add(goldenCase.GetProperty("caseId").GetString()!);
         }
+
+        return cases;
     }
 
     /// <summary>Verifies the workbench command path can build owner-confirmed Standard Merge aliases.</summary>

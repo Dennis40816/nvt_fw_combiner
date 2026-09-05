@@ -240,10 +240,13 @@ public sealed class Nt51926CtrlRamReplaceCandidateProfileTests
     }
 
     /// <summary>Proves the routed V2 profile matches the compiled candidate on approved owner inputs.</summary>
-    [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public async Task RoutedV2MatchesCompiledCandidateForOwnerApprovedSelfReplacementAsync(bool fullFlashBase)
+    [Fact]
+    public Task RoutedV2MatchesCompiledCandidateForOwnerApprovedSelfReplacementAsync()
+    {
+        return VerifyRoutedSelfReplacementAsync(fullFlashBase: true);
+    }
+
+    private static async Task VerifyRoutedSelfReplacementAsync(bool fullFlashBase)
     {
         if (!OperatingSystem.IsWindows())
         {
@@ -357,6 +360,13 @@ public sealed class Nt51926CtrlRamReplaceCandidateProfileTests
         Assert.All(
             originalInputs,
             pair => Assert.Equal(pair.Value, replacementInputs[pair.Key]));
+    }
+
+    /// <summary>Retains TP-only compiled/routed parity separately from the full-Flash Golden case.</summary>
+    [Fact]
+    public Task RoutedTpBaseMatchesCompiledCandidateForOwnerApprovedSelfReplacementAsync()
+    {
+        return VerifyRoutedSelfReplacementAsync(fullFlashBase: false);
     }
 
     /// <summary>Locks the V2 candidate to the archived Legacy Combiner 1.13 TP-base output for one selected VN replacement.</summary>

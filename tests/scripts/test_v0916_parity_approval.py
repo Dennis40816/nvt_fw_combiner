@@ -7,13 +7,16 @@ import base64
 import hashlib
 import io
 import json
+import os
 import tempfile
 import unittest
 import zipfile
 from pathlib import Path
 from unittest.mock import patch
+from contextlib import redirect_stdout
 
 import yaml
+from scripts import sync_derived as SYNC
 
 from tests.scripts.v0916_parity_test_support import (
     MODULE,
@@ -23,6 +26,113 @@ from tests.scripts.v0916_parity_test_support import (
     V0916ParityTestBase,
     parity_workflow_fixture_from_contract,
 )
+
+
+class WorkflowContractSyncTests(unittest.TestCase):
+    def setUp(self) -> None:
+        temporary = tempfile.TemporaryDirectory()
+        self.addCleanup(temporary.cleanup)
+        self.root = Path(temporary.name)
+        self.paths = [
+            ".github/workflows/release.yml",
+            "docs/contracts/v0916-parity-workflow-v1.json",
+            "docs/contracts/v0916-parity-certification-v1.json",
+            *[f"docs/contracts/v0916-parity-{name}-v1.schema.json" for name in (
+                "certification", "comparison", "evidence", "finalize", "run"
+            )],
+            "tests/scripts/test_v0916_parity_approval.py",
+        ]
+        for relative in self.paths:
+            target = self.root / relative
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_bytes((ROOT / relative).read_bytes())
+        self.workflow = self.root / self.paths[0]
+        self.contract = self.root / self.paths[1]
+
+    def snapshot(self) -> dict[str, bytes]:
+        return {relative: (self.root / relative).read_bytes() for relative in self.paths}
+
+    def invoke(self, *arguments: str) -> tuple[int, str]:
+        output = io.StringIO()
+        with redirect_stdout(output):
+            result = SYNC.main([
+                "--only", "v0916-workflow-contract", "--repository", str(self.root), *arguments
+            ])
+        return result, output.getvalue()
+
+    def mutate_workflow(self, mutate) -> None:
+        value = yaml.safe_load(self.workflow.read_bytes())
+        mutate(value)
+        self.workflow.write_text(yaml.safe_dump(value, sort_keys=False), encoding="utf-8")
+
+    def test_clean_check_and_write_are_no_ops(self) -> None:
+        before = self.snapshot()
+        with patch.dict(os.environ, {"CI": "", "GITHUB_ACTIONS": ""}):
+            self.assertEqual(0, self.invoke()[0])
+            self.assertEqual(0, self.invoke("--write")[0])
+        self.assertEqual(before, self.snapshot())
+
+    def test_stale_check_then_write_syncs_only_derived_pins_and_is_idempotent(self) -> None:
+        self.mutate_workflow(lambda value: value["jobs"]["candidate"].update({"timeout-minutes": 59}))
+        fixture = self.root / self.paths[-1]
+        fixture.write_bytes(fixture.read_bytes() + b"\n# unrelated local note\n")
+        before = self.snapshot()
+        old_contract = json.loads(before[self.paths[1]])
+        result, output = self.invoke()
+        self.assertEqual(1, result)
+        self.assertIn("---", output)
+        self.assertEqual(before, self.snapshot())
+        with patch.dict(os.environ, {"CI": "", "GITHUB_ACTIONS": ""}):
+            self.assertEqual(0, self.invoke("--write")[0])
+            after = self.snapshot()
+            self.assertEqual(0, self.invoke()[0])
+            self.assertEqual(0, self.invoke("--write")[0])
+        self.assertEqual(after, self.snapshot())
+        current_contract = json.loads(after[self.paths[1]])
+        old_contract["jobInventorySha256"]["candidate"] = current_contract["jobInventorySha256"]["candidate"]
+        self.assertEqual(old_contract, current_contract)
+        old_hash = hashlib.sha256(before[self.paths[1]]).hexdigest().encode()
+        new_hash = hashlib.sha256(after[self.paths[1]]).hexdigest().encode()
+        for relative in self.paths[2:]:
+            self.assertEqual(before[relative].replace(old_hash, new_hash), after[relative])
+        self.assertEqual(before[self.paths[0]], after[self.paths[0]])
+        MODULE.validate_protected_workflow_semantics(self.workflow.read_bytes(), current_contract)
+
+    def test_protected_authority_drift_is_rejected_before_any_write(self) -> None:
+        original = self.workflow.read_bytes()
+        for mutate in (
+            lambda value: value["permissions"].update({"contents": "write"}),
+            lambda value: value["jobs"]["v0916-parity-compare"].update({"timeout-minutes": 59}),
+            lambda value: value["jobs"]["promote"].update({"if": "${{ always() }}"}),
+            lambda value: value["jobs"]["promote"]["steps"].reverse(),
+            lambda value: value["jobs"].update({"extra-job": {}}),
+        ):
+            with self.subTest(mutation=mutate), patch.dict(os.environ, {"CI": "", "GITHUB_ACTIONS": ""}):
+                self.workflow.write_bytes(original)
+                self.mutate_workflow(mutate)
+                before = self.snapshot()
+                with self.assertRaises(RuntimeError):
+                    self.invoke("--write")
+                self.assertEqual(before, self.snapshot())
+
+    def test_ci_write_is_rejected(self) -> None:
+        before = self.snapshot()
+        for name in ("CI", "GITHUB_ACTIONS"):
+            with self.subTest(environment=name), patch.dict(os.environ, {name: "true"}):
+                with self.assertRaises(SYNC.SyncError):
+                    self.invoke("--write")
+        self.assertEqual(before, self.snapshot())
+
+    def test_missing_projection_is_rejected_before_any_write(self) -> None:
+        self.mutate_workflow(lambda value: value["jobs"]["candidate"].update({"timeout-minutes": 59}))
+        fixture = self.root / self.paths[-1]
+        old_hash = hashlib.sha256(self.contract.read_bytes()).hexdigest().encode()
+        fixture.write_bytes(fixture.read_bytes().replace(old_hash, b"0" * 64, 1))
+        before = self.snapshot()
+        with patch.dict(os.environ, {"CI": "", "GITHUB_ACTIONS": ""}):
+            with self.assertRaisesRegex(RuntimeError, "missing, ambiguous or inconsistent"):
+                self.invoke("--write")
+        self.assertEqual(before, self.snapshot())
 
 
 class UnavailableFirmwareOwnerVerifier:
@@ -643,7 +753,7 @@ class V0916ParityApprovalTests(V0916ParityTestBase):
             "workflowRef": "refs/heads/main", "workflowCommitSha": workflow_head,
             "workflowBlobSha": workflow_blob_sha,
             "workflowRawSha256": hashlib.sha256(workflow_bytes).hexdigest(),
-            "workflowSemanticContractSha256": "55e2cc5998049aadb2455886496c680c98b53206bec5fbe6d6155875e8b23338",
+            "workflowSemanticContractSha256": "0df7e35c35bedefd5b0595c2ee97b7e0ead35bdf4df855f4823185d75aaa03a8",
             "workflowRun": {
                 "id": 123, "runAttempt": 1, "headSha": workflow_head,
                 "headBranch": "main", "event": "workflow_dispatch", "status": "completed",
@@ -1015,7 +1125,7 @@ class V0916ParityApprovalTests(V0916ParityTestBase):
                 "workflowCommitSha": "1d1d1cfcad7f0963dd3ed1e3e920d9a3425d6220",
                 "workflowBlobSha": "e" * 40,
                 "workflowRawSha256": "f" * 64,
-                "workflowSemanticContractSha256": "55e2cc5998049aadb2455886496c680c98b53206bec5fbe6d6155875e8b23338",
+                "workflowSemanticContractSha256": "0df7e35c35bedefd5b0595c2ee97b7e0ead35bdf4df855f4823185d75aaa03a8",
                 "runId": 123,
                 "artifactId": 456,
                 "artifactName": "stable-candidate-123-1d1d1cfcad7f0963dd3ed1e3e920d9a3425d6220",

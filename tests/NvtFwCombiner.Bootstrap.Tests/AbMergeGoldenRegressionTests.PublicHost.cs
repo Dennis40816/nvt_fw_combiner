@@ -260,6 +260,7 @@ public sealed partial class AbMergeGoldenRegressionTests
             FileName = "python",
             WorkingDirectory = workspace.Root,
             UseShellExecute = false,
+            CreateNoWindow = true,
             RedirectStandardOutput = true,
             RedirectStandardError = true,
         };

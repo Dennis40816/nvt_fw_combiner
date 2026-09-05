@@ -1,13 +1,15 @@
 # Post-v1.1.0 navigation and CtrlRAM first-open handoff
 
 Status: handoff-only scope, acceptance, diagnosis, and evidence. Version
-allocation and completion status are owned by the [NFC roadmap `v1.1.6` milestone](../architecture/nfc_roadmap.md#116-first-entry-selection-and-ctrlram-replace-diagnosis).
+allocation is owned by the NFC roadmap: [first-entry UI in `v1.1.4`](../architecture/nfc_roadmap.md#114-ui-corrections-and-ab-dummy-dp),
+and [cold/warm performance in `v1.1.5`](../architecture/nfc_roadmap.md#115-measured-startup-and-first-open-performance).
 
 This handoff records two owner-observed usability/performance problems. It is
 not part of `v1.1.1`, and grants no implementation or firmware authority. It
 does not authorize a UI, Application, preload, profile, or support change;
-implementation and any performance claim still require a measured target and
-separate owner approval.
+the first-entry design decisions below still require owner approval, while
+performance implementation/claims require a measured target and separate
+owner approval. The latest allocation does not settle those decisions.
 
 ## 1. Shared first-entry IC selection
 

@@ -73,10 +73,14 @@ public sealed partial class Nt51929CtrlRamFw200SingleEvidenceTests
     }
 
     /// <summary>Proves the exact V2 route produces the locked full output and process evidence.</summary>
-    [Theory]
-    [InlineData("NT51929", "nt51929-ctrlram-replace-fw200-single", "nfc.nt51929.ctrlram-postbuild-v1")]
-    [InlineData("NT51919", "nt51919-ctrlram-replace-fw200-single", "nfc.nt51919.ctrlram-postbuild-v1")]
-    public async Task V2ProducesLockedExactOutputWithCrcOnlyGoldenDeviationAsync(
+    [Fact]
+    public Task V2ProducesLockedExactOutputWithCrcOnlyGoldenDeviationAsync()
+    {
+        return VerifyLockedOutputWithCrcOnlyGoldenDeviationAsync(
+            "NT51929", "nt51929-ctrlram-replace-fw200-single", "nfc.nt51929.ctrlram-postbuild-v1");
+    }
+
+    private static async Task VerifyLockedOutputWithCrcOnlyGoldenDeviationAsync(
         string icId,
         string expectedProfileId,
         string expectedProcessorId)
@@ -127,6 +131,14 @@ public sealed partial class Nt51929CtrlRamFw200SingleEvidenceTests
         Assert.All(
             evidence.Artifacts,
             artifact => Assert.Equal(immutableHashes[artifact.RelativePath], Hash(File.ReadAllBytes(artifact.Path))));
+    }
+
+    /// <summary>Retains NT51919 fact-scoped alias comparison separately from direct NT51929 evidence.</summary>
+    [Fact]
+    public Task Nt51919AliasProducesLockedOutputWithCrcOnlyGoldenDeviationAsync()
+    {
+        return VerifyLockedOutputWithCrcOnlyGoldenDeviationAsync(
+            "NT51919", "nt51919-ctrlram-replace-fw200-single", "nfc.nt51919.ctrlram-postbuild-v1");
     }
 
     /// <summary>A declared source route still fails closed when the injected processor does not propagate to Backup.</summary>

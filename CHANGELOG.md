@@ -2,12 +2,171 @@
 
 All notable changes to NVT FW Combiner are documented here. The project follows Semantic Versioning and the Keep a Changelog section model.
 
+Released entries describe the state at publication. For current future-version
+assignments, use the [canonical roadmap](docs/architecture/nfc_roadmap.md).
+
 ## [Unreleased]
 
-No product changes are recorded after v1.1.2. Published release closure lives
-in the [verification report](docs/references/verification-report.md), and future
-milestone order lives in the [NFC roadmap](docs/architecture/nfc_roadmap.md).
-This entry is non-normative and does not duplicate either authority.
+No additional changes beyond v1.1.3 below.
+
+## [1.1.3] - 2026-09-05
+
+### Summary
+
+v1.1.3 consolidates CI and release-efficiency improvements previously
+allocated across v1.1.x. Firmware output bytes, supported IC/mode behavior,
+desktop UI and the approved package layout are unchanged. The protected release
+workflow retains source verification, package and public-download gates.
+
+### Product changes
+
+#### Isolated CI and exact-source release verification
+
+- Before → After: repository-script shards ran serially on one runner and
+  release repeated source verification while admission bound CI to the PR head;
+  the three existing shards now run on isolated Windows runners. Release
+  admission additionally requires the actual source's
+  latest successful push-to-main CI attempt, then freshly executes every
+  applicable certified Golden output case. Shared test methods now expose
+  each canonical case identity; direct Golden, TP-only and alias checks remain
+  separately identifiable, so a passing sibling cannot stand in for a missing case.
+- Affected: CI and release verification only; no IC/mode/persona behavior changes.
+- Support status: unchanged/support-neutral.
+- Compatibility: the existing verifier, required check names, complete project
+  inventory, coverage and discovery/TRX checks remain. Local full verification
+  retains its serial execution to avoid shared-directory and lock-file mutation.
+- Verification: targeted workflow/admission/orchestration regressions passed.
+  The complete orchestration module passed 197 tests with four existing platform
+  skips; missing, duplicate, failed and skipped Golden-case negatives are covered.
+  A fresh per-case run passed all 25 canonical output cases, the complete 1,172
+  Bootstrap and 25 GoldenRegression tests, with zero skips. All 71 promotion-policy
+  tests passed, including public-evidence metadata exclusion.
+  Every publication requires fresh Golden execution and exact-source CI.
+- Limitations: no complete GitHub elapsed-time reduction is claimed. Golden,
+  package, approval and public-download gates cannot be replaced by cached
+  results or matching hashes alone.
+
+#### Reliable public-download smoke
+
+- Before → After: an inapplicable historical parity dependency could suppress
+  post-publication smoke; smoke now runs after successful candidate and
+  promotion jobs when the workflow has not been cancelled.
+- Affected: post-publication package verification, not application behavior.
+- Support status: unchanged/support-neutral.
+- Compatibility: the protected workflow remains the publication owner; no new
+  write permission, package format or asset replacement behavior is introduced.
+- Verification: regression coverage exercises failed, skipped and cancelled
+  dependencies. The public download must independently pass exact asset and
+  package smoke checks after publication.
+- Limitations: local regression results are not evidence that the candidate
+  has been published or passed clean-machine visible startup.
+
+#### Mechanical preflight and repeatable test fixtures
+
+- Before → After: approved workflow fingerprints, their projections, the
+  CI documentation mirror and document-version headers needed manual
+  synchronization; one local tool now plans and checks four fixed providers.
+  Writes require explicit provider
+  selection, reject CI execution and converge without unrelated changes.
+  The timeout fixture uses an injected clock; the temporary Infrastructure
+  seed pin is removed after completing its four-seed evidence gate.
+  Non-UI test child processes suppress standalone console windows, and
+  Infrastructure logs name tests running longer than 30 seconds without
+  changing their deadlines or outcomes.
+- Affected: contributor automation and test orchestration; no firmware metadata,
+  expected-output, runtime clock or product behavior changes.
+- Support status: unchanged/support-neutral.
+- Compatibility: existing package/catalog generators remain their owners.
+  Golden expectations, historical evidence, approvals, SDK versions and coverage
+  baselines are excluded from automatic updates.
+- Verification: 58 automation/contract tests passed; repeated synchronization
+  changed zero files. The later version-header extension passed all 21 common-tool
+  tests and changed only the two numeric headers in the actual repository.
+  The Golden-allowlist pin extension passed all 23 common-tool tests and changed
+  only its two existing package/smoke pins; a second write changed zero files.
+  All four Infrastructure seeds reconciled 1,070 identities,
+  with 1,068 passed, the two approved platform skips and zero failures per run.
+- Limitations: mechanical synchronization does not approve a changed source
+  payload. Four seed runs do not prove every possible execution order;
+  final verification without the pin is still required.
+
+#### Proportionate documentation and agent workflows
+
+- Before → After: ordinary prose inherited issue, full-structure and handoff
+  ceremony; non-normative documents outside mechanically governed paths now
+  use content and affected-link review, adding checks only for affected
+  structure or parsed inputs. The oversized roadmap paragraph snapshot becomes
+  compact routing/version checks, with one current version allocation.
+  A version bump no longer requires a duplicate historical tag-index entry.
+  Governance fingerprint reads are batched without changing the digest or
+  historical mutation checks. Historical parity checks use the existing frozen
+  review record, so updating a current workflow fingerprint does not trigger
+  another historical source certification.
+- Affected: contributor instructions, roadmap and documentation checks only.
+- Support status: unchanged/support-neutral.
+- Compatibility: normative contracts, AGENTS/governance integration, external
+  permissions and historical evidence retain their existing boundaries.
+  Model delegation depends on task difficulty/risk and discloses known
+  configuration; no model has a permanently assigned role.
+- Verification: 13 authority-boundary regressions, affected links and scoped
+  review passed. Structure validation passed for the governance-rule change;
+  the full Architecture project passed after the initial roadmap-test reduction.
+  All 114 governance regressions passed after the Git-read optimization.
+  All 46 parity-contract tests passed after correcting the historical binding
+  selection; original source-transfer and package-source rejection tests remain.
+- Limitations: no new documentation-control framework is introduced. UI work
+  and all other existing UI corrections are consolidated in v1.1.4 under the
+  latest owner allocation. Performance work follows in v1.1.5; neither these
+  items nor v1.2.0 Launcher work are brought into this CI/release candidate.
+
+### Security
+
+Release admission now requires exact-source CI in addition to the existing
+PR-head evidence. Public source-CI evidence retains only fields used for admission,
+excluding unrelated actor, author-email, runner and step metadata from raw API
+responses. Protected branch/environment checks, immutable assets,
+package allowlists, independent Golden expectations, full-output comparisons,
+SBOM/provenance and external owner approval remain mandatory. The synchronization
+tool cannot write in CI or perform publication, staging, commits or approvals.
+No firmware execution or processor write-range boundary changes.
+
+### Known issues
+
+The protected workflow requires fresh candidate verification, exact-source CI,
+package smoke, release-owner/environment approval and public-download evidence;
+local test results are not substitutes for these publication gates.
+The owner approved v1.1.3 redistribution of the unchanged 35-case/158-file
+public Golden reference payload on 2026-09-05; its version/date guards and the
+two mechanically derived package/smoke pins are synchronized. Canonical payload
+bytes and historical evidence are unchanged; final release gates still apply.
+Complete source-CI and release timing will be
+reported from actual GitHub runs; no measured end-to-end percentage is available.
+Existing-screen UI corrections are consolidated in v1.1.4; measured startup
+and first-open performance follows in v1.1.5. The Dummy DP checkbox and its
+firmware behavior also belong to v1.1.4. Agent/document/minimality work is
+combined in v1.1.6; General and saved/custom rule authoring is deferred to
+v1.2.4-v1.2.6. IC family/rule-authoring UI is deferred to v1.3.0; its detailed
+screen and editing contracts remain to be defined.
+This release adds no Dummy DP or Launcher activation feature.
+
+### Upgrade and rollback
+
+No saved-data, profile or firmware-output migration is introduced. After
+publication and integrity verification, keep the verified prior package when
+installing v1.1.3; rollback uses that retained package and the existing recovery
+contract. This release does not alter the managed-installation protocol.
+
+### Downloads and integrity
+
+After protected publication, the Windows x64 portable download is
+`NvtFwCombiner-v1.1.3-win-x64.zip`, accompanied by
+`NvtFwCombiner-v1.1.3-win-x64.spdx.json` and
+`NvtFwCombiner-v1.1.3-win-x64.provenance.json`. Verify the published checksum
+inventory and candidate manifest, exact asset digests and source identity before
+installation. Existing separate distribution assets retain their approved
+layout. GitHub-generated source ZIP/tar.gz downloads are source archives, not
+the portable application. Published-asset smoke and required visible/clean-machine
+evidence remain distinct gates.
 
 ## [1.1.2] - 2026-09-04
 

@@ -37,7 +37,7 @@ $ApprovedCanonicalCapabilityPolicyPackageContract = [pscustomobject]@{
     sha256 = '6207923baf537c4031f2095942d363660c7a1c5cbd35e704ec14b28c509aef0f'
 }
 $ApprovedCanonicalGoldenAllowlistPath = Join-Path $PSScriptRoot '../testdata/golden/release-canonical-v1.json'
-$ApprovedCanonicalGoldenAllowlistSha256 = '3fa22d263cee83a07ee30d2977dbf4afde2b5bcca685f9ded51f9d54c1f26ee7'
+$ApprovedCanonicalGoldenAllowlistSha256 = '968e6bd3cdfb304a0bdf0272fd28d2b43c2a117d2f33a5913c16b84480c1b495'
 $CanonicalGoldenPackagePrefix = 'reference/testdata/golden/canonical'
 $CanonicalGoldenAllowlistPackagePath = 'reference/testdata/golden/release-canonical-v1.json'
 $RetiredSupportPublicationPolicyPackagePaths = @(
@@ -135,7 +135,7 @@ function Assert-CanonicalGoldenReference {
     $Allowlist = Get-Content -LiteralPath $PackagedAllowlistPath -Raw | ConvertFrom-Json -Depth 100
     if ($Allowlist.schemaVersion -ne '1.1' -or
         $Allowlist.policyId -ne 'canonical-reference-v1' -or
-        $Allowlist.authorizedForVersion -ne '1.1.2' -or
+        $Allowlist.authorizedForVersion -ne '1.1.3' -or
         $Allowlist.releaseStatus -ne 'human-gated-allowlist' -or
         $Allowlist.authorityLimits.runtimeSupportPromotion -ne $false -or
         $Allowlist.authorityLimits.fullByteParityClaim -ne $false -or

@@ -2621,6 +2621,7 @@ finally {
             "    runs-on: windows-latest\n"
             "    timeout-minutes: 60\n"
             "    permissions:\n"
+            "      actions: read\n"
             "      contents: read\n"
             "      pull-requests: read\n"
             "      issues: read\n"
@@ -2719,6 +2720,51 @@ finally {
             first_policy_call,
             "release-authoritative Python policy must use the pinned interpreter",
         )
+
+    def test_published_smoke_requires_successful_publication_not_skipped_ancestors(self) -> None:
+        workflow = yaml.safe_load(RELEASE_WORKFLOW.read_text(encoding="utf-8"))
+        smoke = workflow["jobs"]["published-smoke"]
+        self.assertEqual(["candidate", "promote"], smoke["needs"])
+        # A status function suppresses Actions' implicit success(), which also
+        # includes the intentionally skipped transitive v0.9.16 parity job.
+        self.assertEqual(
+            "${{ !cancelled() && needs.candidate.result == 'success' && "
+            "needs.promote.result == 'success' }}",
+            smoke.get("if"),
+        )
+        self.assertEqual({"contents": "read"}, smoke["permissions"])
+
+    def test_source_ci_is_readable_and_bound_at_every_release_admission_boundary(self) -> None:
+        workflow = yaml.safe_load(RELEASE_WORKFLOW.read_text(encoding="utf-8"))
+        collectors = []
+        for job_name in ("candidate", "promote"):
+            job = workflow["jobs"][job_name]
+            self.assertEqual("read", job["permissions"].get("actions"))
+            for step in job["steps"]:
+                for block in re.findall(
+                    r"collect-repository-admission\s+`(.*?)--output [^\n]+",
+                    step.get("run", ""), re.DOTALL,
+                ):
+                    collectors.append(block)
+                    self.assertIn("--source-sha $env:NFC_SOURCE_SHA", block)
+        self.assertEqual(3, len(collectors))
+
+    def test_release_golden_reuse_begins_after_source_admission_and_keeps_legacy_full_gate(self) -> None:
+        workflow = yaml.safe_load(RELEASE_WORKFLOW.read_text(encoding="utf-8"))
+        steps = workflow["jobs"]["candidate"]["steps"]
+        verification = next(step for step in steps if step["name"] == "Verify release source")
+        self.assertEqual("${{ steps.identity.outputs.version }}",
+                         verification["env"]["NFC_SOURCE_VERSION"])
+        self.assertIn("-ge [version]'1.1.3'", verification["run"])
+        self.assertIn("python ./scripts/verify.py --release-golden", verification["run"])
+        self.assertIn("else {\n  python ./scripts/verify.py --all", verification["run"])
+        self.assertIn("if ($LASTEXITCODE -ne 0)", verification["run"])
+        admission_index = next(index for index, step in enumerate(steps)
+                               if "collect-repository-admission" in step.get("run", ""))
+        package_index = next(index for index, step in enumerate(steps)
+                             if step["name"] == "Build closed-allowlist release package")
+        self.assertLess(admission_index, steps.index(verification))
+        self.assertLess(steps.index(verification), package_index)
 
     def test_stable_release_emits_separate_update_source_handoff(self) -> None:
         release = (ROOT / ".github/workflows/release.yml").read_text(encoding="utf-8")

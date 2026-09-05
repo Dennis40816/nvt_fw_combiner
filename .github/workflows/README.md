@@ -43,3 +43,9 @@ a release.
 `main-package.yml` is a manual preview only. Ordinary `main` pushes no longer spend Windows minutes packaging or create fallback prereleases. Draft pull requests run the policy check; the Python and .NET matrices start when the PR becomes review-ready, while all `main` pushes retain the complete CI matrix.
 
 All external actions are pinned to full immutable commit SHAs. Workflow permissions are least-privilege per workflow, checkout credentials are not persisted, and pull-request jobs receive no release environment secrets. Reviewed policy templates are retained under `docs/ci/workflow-templates/` for change review; the complete executable source of truth remains `.github/workflows/`.
+
+The CI template is an exact-byte generated mirror, maintained with
+`python scripts/sync_derived.py --write --only ci-template-mirror` after approved
+CI edits. Do not edit it separately. The default read-only sync check detects
+drift before expensive verification. The release template remains a reviewed
+security-policy summary, not a generated copy of the executable release workflow.
