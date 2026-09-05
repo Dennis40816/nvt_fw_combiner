@@ -179,7 +179,7 @@ public sealed class ReplicatedUpdateSourceRegistryTests
         using var releasePrimary = new ManualResetEventSlim();
         var blocked = new SynchronouslyBlockingRegistry(releasePrimary);
         UpdateSourceRegistrySnapshot backup = Snapshot(4, 'c');
-        var available = new SignalingRegistry(Success(backup));
+        var available = new ControlledRegistry(Success(backup));
         var time = new ManualTimeProvider();
         var registry = new ReplicatedUpdateSourceRegistry(
             [blocked, available],
@@ -188,6 +188,8 @@ public sealed class ReplicatedUpdateSourceRegistryTests
 
         try
         {
+            // Keep both reads pending until all eight callers share them.
+            Task allReplicaTimers = time.WaitForActiveTimerCountAsync(16);
             Task<UpdateSourceRegistryLoadResult>[] pending =
             [..
                 Enumerable.Range(0, 8).Select(
@@ -195,6 +197,12 @@ public sealed class ReplicatedUpdateSourceRegistryTests
             ];
             await blocked.FirstLoadStarted.Task.WaitAsync(TestContext.Current.CancellationToken);
             await available.FirstLoadStarted.Task.WaitAsync(TestContext.Current.CancellationToken);
+            await allReplicaTimers.WaitAsync(TestContext.Current.CancellationToken);
+
+            // A started delegate is not a completed read: drain every backup deadline first.
+            Task primaryTimersOnly = time.WaitForActiveTimerCountAsync(8);
+            available.ReleaseFirstLoad();
+            await primaryTimersOnly.WaitAsync(TestContext.Current.CancellationToken);
             time.Advance(TimeSpan.FromMilliseconds(100));
 
             UpdateSourceRegistryLoadResult[] results = await Task.WhenAll(pending);
@@ -212,7 +220,9 @@ public sealed class ReplicatedUpdateSourceRegistryTests
         }
         finally
         {
+            available.ReleaseFirstLoad();
             releasePrimary.Set();
+            await blocked.FirstLoadCompleted.Task.WaitAsync(TestContext.Current.CancellationToken);
         }
     }
 
@@ -362,24 +372,6 @@ public sealed class ReplicatedUpdateSourceRegistryTests
         public ValueTask<UpdateSourceRegistryLoadResult> LoadAsync(CancellationToken cancellationToken)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            return ValueTask.FromResult(result);
-        }
-    }
-
-    private sealed class SignalingRegistry(UpdateSourceRegistryLoadResult result) : IUpdateSourceRegistry
-    {
-        private int _loadCount;
-
-        internal int LoadCount => Volatile.Read(ref _loadCount);
-
-        internal TaskCompletionSource FirstLoadStarted { get; } =
-            new(TaskCreationOptions.RunContinuationsAsynchronously);
-
-        public ValueTask<UpdateSourceRegistryLoadResult> LoadAsync(CancellationToken cancellationToken)
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-            _ = Interlocked.Increment(ref _loadCount);
-            _ = FirstLoadStarted.TrySetResult();
             return ValueTask.FromResult(result);
         }
     }

@@ -97,7 +97,10 @@ workflow retains source verification, package and public-download gates.
   by a small, non-interactive single-file test fixture with exact START/lifetime
   and failure-code checks. Admission-pipe tests now own their writer lifetime and
   bound their reads; package-policy tests use the active owned scratch directory
-  instead of requiring an unrelated legacy temp folder on clean CI.
+  instead of requiring an unrelated legacy temp folder on clean CI. The concurrent
+  registry test now waits for all callers to share the reads and for the backup
+  read to complete before advancing the primary deadline, removing a race between
+  test scheduling and the simulated clock without changing product timeouts.
 - Affected: CI and local test infrastructure only.
 - Support status: unchanged/support-neutral.
 - Compatibility: no product process protocol, firmware bytes, package contents or
@@ -107,6 +110,9 @@ workflow retains source verification, package and public-download gates.
   prompt-environment regressions each record exactly one passing test; the complete
   Infrastructure producer reconciled 1,069 passing identities with zero skips and
   matching immutable-source/coverage evidence. All 82 package-policy tests passed.
+  A controlled backup-completion interleaving reproduced the registry failure;
+  the corrected test, all 13 registry cases and all 1,392 Application tests passed
+  with zero skips, retaining the backup-selection and single-physical-read checks.
 - Limitations: these local checks do not replace frozen-source verification,
   protected CI, fresh certified Golden execution or release-owner approval.
 
