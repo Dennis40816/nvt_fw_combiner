@@ -10,7 +10,8 @@ retains three stable required checks:
 The stable .NET verdict is an always-run finalizer over one full Release-build
 producer and the three `bootstrap`, `ui`, and `core` Windows test shards. The
 closed project map, expected counters, commands, manifest validation, coverage
-aggregation, Golden 17/17 gate, and fixture gate remain owned only by
+aggregation, complete discovery-reconciled GoldenRegression execution, and the
+fixture gate remain owned only by
 `scripts/verify.py`; the workflow contains no project list or test filter.
 Missing or failed producers and missing, extra, duplicate, wrong-SHA,
 wrong-SDK, or hash-mismatched evidence fail the finalizer.

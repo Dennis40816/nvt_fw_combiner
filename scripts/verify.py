@@ -4668,13 +4668,18 @@ def finalize_ci_dotnet_evidence(download_root: Path) -> None:
         shutil.copyfile(cobertura_report, destination / "coverage.cobertura.xml")
     verify_coverage("dotnet", coverage_root)
     projects = flatten_ci_dotnet_projects()
+    golden_counters = next(
+        counters
+        for project, counters in zip(projects, project_counters, strict=True)
+        if project.name == "NvtFwCombiner.GoldenRegression.Tests"
+    )
     print(
         ".NET CI evidence: "
         f"{len(projects)} projects, "
         f"{sum(counters['passed'] for counters in project_counters)} active tests, "
         f"{sum(counters['skipped'] for counters in project_counters)} excluded skips, "
         f"{sum(counters['total'] for counters in project_counters)} discovered, "
-        "Golden 18/18."
+        f"GoldenRegression {golden_counters['passed']}/{golden_counters['total']}."
     )
 
 

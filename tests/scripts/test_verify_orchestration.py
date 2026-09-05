@@ -544,6 +544,8 @@ class VerifyOrchestrationTests(unittest.TestCase):
         self,
         download_root: Path,
         source_sha: str,
+        *,
+        golden_total: int = 3,
     ) -> None:
         sdk_version = "10.0.301"
         build_root = download_root / "dotnet-build-evidence"
@@ -578,7 +580,11 @@ class VerifyOrchestrationTests(unittest.TestCase):
             }
             rows: list[dict[str, object]] = []
             for project in projects:
-                total = 3
+                total = (
+                    golden_total
+                    if project.name == "NvtFwCombiner.GoldenRegression.Tests"
+                    else 3
+                )
                 if project.name == "NvtFwCombiner.Infrastructure.Tests":
                     identities = (
                         "Probe.Tests.Case0",
@@ -5108,9 +5114,13 @@ class VerifyOrchestrationTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
             download_root = root / "ci-dotnet-downloads"
-            self.stage_complete_ci_dotnet_evidence(download_root, source_sha)
+            self.stage_complete_ci_dotnet_evidence(
+                download_root, source_sha, golden_total=5
+            )
             events: list[str] = []
+            output = io.StringIO()
             with (
+                contextlib.redirect_stdout(output),
                 patch.dict(
                     os.environ,
                     {
@@ -5138,6 +5148,11 @@ class VerifyOrchestrationTests(unittest.TestCase):
             )
             verify_coverage.assert_called_once_with("dotnet", coverage_root)
             self.assertEqual(["coverage"], events)
+            self.assertEqual(
+                ".NET CI evidence: 8 projects, 24 active tests, 2 excluded skips, "
+                "26 discovered, GoldenRegression 5/5.\n",
+                output.getvalue(),
+            )
 
     def test_ci_dotnet_finalizer_rejects_hash_extra_and_job_result_drift(self) -> None:
         source_sha = "2" * 40
