@@ -90,6 +90,26 @@ workflow retains source verification, package and public-download gates.
   payload. Four seed runs do not prove every possible execution order;
   final verification without the pin is still required.
 
+#### Reliable CI test fixtures
+
+- Before → After: a shell used as a test Bootstrap could mix interactive prompts
+  into test-result messages, losing results or blocking completion. It is replaced
+  by a small, non-interactive single-file test fixture with exact START/lifetime
+  and failure-code checks. Admission-pipe tests now own their writer lifetime and
+  bound their reads; package-policy tests use the active owned scratch directory
+  instead of requiring an unrelated legacy temp folder on clean CI.
+- Affected: CI and local test infrastructure only.
+- Support status: unchanged/support-neutral.
+- Compatibility: no product process protocol, firmware bytes, package contents or
+  Launcher capability changes. The generated fixture uses the test runner's
+  existing .NET runtime and is not distributed in the release package.
+- Verification: failing regressions were reproduced before correction. The two
+  prompt-environment regressions each record exactly one passing test; the complete
+  Infrastructure producer reconciled 1,069 passing identities with zero skips and
+  matching immutable-source/coverage evidence. All 82 package-policy tests passed.
+- Limitations: these local checks do not replace frozen-source verification,
+  protected CI, fresh certified Golden execution or release-owner approval.
+
 #### Windows-focused test scope
 
 - Before → After: six Unix-runtime-only integration tests were maintained but

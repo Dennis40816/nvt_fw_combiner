@@ -393,8 +393,10 @@ public sealed partial class ManagedDistributionLauncherRuntimeTests
         }
 
         await using TemporaryRoot temporary = new();
-        string bootstrapSource = Environment.GetEnvironmentVariable("ComSpec") ??
-            Path.Combine(Environment.SystemDirectory, "cmd.exe");
+        string bootstrapSource = Path.Combine(
+            AppContext.BaseDirectory,
+            "ready-probe-single-file",
+            "NvtFwCombiner.ReadyProbe.exe");
         ManagedDistributionPayloadIdentity payloadIdentity =
             await PayloadIdentityAsync(bootstrapSource);
         FreshInstallationCandidate candidate = Candidate(temporary.Path);
@@ -464,6 +466,10 @@ public sealed partial class ManagedDistributionLauncherRuntimeTests
             Assert.Equal(
                 ImmutableBootstrapAdmissionOutcome.HealthUnavailable,
                 observed.Outcome);
+            Assert.Equal(ImmutableBootstrapExitIssue.StateUnavailable, observed.ExitIssue);
+            Assert.Equal(
+                ImmutableBootstrapExitCodeCodec.EncodeFailure(ImmutableBootstrapExitIssue.StateUnavailable),
+                observed.ExitCode);
 
             _ = Assert.Throws<IOException>(() => Directory.Move(
                 installation.ManagedRoot,

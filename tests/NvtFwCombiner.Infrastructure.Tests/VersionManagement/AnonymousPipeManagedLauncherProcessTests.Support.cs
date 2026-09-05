@@ -32,7 +32,11 @@ public sealed partial class AnonymousPipeManagedLauncherProcessTests
             Environment.SetEnvironmentVariable("NVT_READY_PROBE_APP_ADMISSION", identity.OwnerAdmissionIdentity);
             Environment.SetEnvironmentVariable("NVT_READY_PROBE_APP_MANIFEST", identity.OwnerReleaseManifestSha256);
             using TestExecutableLaunchLease executableLease = ExecutableLease(managedRoot, identity);
-            return await new AnonymousPipeManagedLauncherProcess().StartUntilReadyAsync(
+            using BootstrapAdmissionSignal admission = BootstrapAdmissionSignal.Capture();
+            var process = new AnonymousPipeManagedLauncherProcess(
+                ManagedProcessTermination.Instance,
+                admission);
+            return await process.StartUntilReadyAsync(
                 managedRoot,
                 statePath,
                 identity,

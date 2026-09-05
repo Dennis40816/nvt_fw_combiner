@@ -102,12 +102,17 @@ def normalize_console_output(output: str) -> str:
 
 
 def release_test_temp_root() -> Path:
-    """Return the repository-approved test temp root and fail closed otherwise."""
+    """Reuse the current test scratch inside the declared test area."""
 
     configured_root = os.environ.get("NFC_TEST_AREA_ROOT")
     if not configured_root:
         raise RuntimeError("NFC_TEST_AREA_ROOT is required for release-policy tests")
-    temp_root = Path(configured_root) / "temp"
+    test_area = Path(configured_root).resolve()
+    temp_root = Path(tempfile.gettempdir()).resolve()
+    if temp_root == test_area or not temp_root.is_relative_to(test_area):
+        raise RuntimeError(
+            f"NFC test temp directory is outside test-area scratch: {temp_root}"
+        )
     if not temp_root.is_dir():
         raise RuntimeError(f"NFC test temp directory is missing: {temp_root}")
     return temp_root
@@ -720,6 +725,53 @@ def literal_run_blocks(workflow: str) -> tuple[str, ...]:
 
 class ReleasePackagePolicyTests(unittest.TestCase):
     """Exercises the packager and smoke policy without building release binaries."""
+
+    def test_temp_root_uses_current_scratch_without_legacy_root_temp(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="release-temp-root-") as temporary:
+            root = Path(temporary)
+            scratch = root / "sessions" / "fixture" / "t"
+            scratch.mkdir(parents=True)
+            with (
+                mock.patch.dict(os.environ, {"NFC_TEST_AREA_ROOT": str(root)}),
+                mock.patch.object(tempfile, "tempdir", str(scratch)),
+            ):
+                self.assertEqual(scratch.resolve(), release_test_temp_root())
+                self.assertFalse((root / "temp").exists())
+
+    def test_temp_root_keeps_direct_test_scratch(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="release-temp-root-") as temporary:
+            root = Path(temporary)
+            scratch = root / "temp"
+            scratch.mkdir()
+            with (
+                mock.patch.dict(os.environ, {"NFC_TEST_AREA_ROOT": str(root)}),
+                mock.patch.object(tempfile, "tempdir", str(scratch)),
+            ):
+                self.assertEqual(scratch.resolve(), release_test_temp_root())
+
+    def test_temp_root_requires_declared_test_area(self) -> None:
+        with mock.patch.dict(os.environ):
+            os.environ.pop("NFC_TEST_AREA_ROOT", None)
+            with self.assertRaisesRegex(RuntimeError, "NFC_TEST_AREA_ROOT"):
+                release_test_temp_root()
+
+    def test_temp_root_rejects_invalid_scratch_without_legacy_fallback(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="release-temp-root-") as temporary:
+            fixture = Path(temporary)
+            root = fixture / "area"
+            (root / "temp").mkdir(parents=True)
+            outside = fixture / "area-other"
+            outside.mkdir()
+            file_path = root / "file"
+            file_path.touch()
+            for scratch in (outside, root, root / "missing", file_path):
+                with (
+                    self.subTest(scratch=scratch.name),
+                    mock.patch.dict(os.environ, {"NFC_TEST_AREA_ROOT": str(root)}),
+                    mock.patch.object(tempfile, "tempdir", str(scratch)),
+                    self.assertRaisesRegex(RuntimeError, "NFC test temp directory"),
+                ):
+                    release_test_temp_root()
 
     def test_packager_validates_the_generated_manifest_against_canonical_schema(
         self,
