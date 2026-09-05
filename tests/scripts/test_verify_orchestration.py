@@ -585,17 +585,10 @@ class VerifyOrchestrationTests(unittest.TestCase):
                     if project.name == "NvtFwCombiner.GoldenRegression.Tests"
                     else 3
                 )
-                if project.name == "NvtFwCombiner.Infrastructure.Tests":
-                    identities = (
-                        "Probe.Tests.Case0",
-                        *MODULE.UNIX_SPECIAL_FILE_INFRASTRUCTURE_SKIPS,
-                    )
-                    skipped = 2
-                else:
-                    identities = tuple(
-                        f"Probe.Tests.Case{index}" for index in range(total)
-                    )
-                    skipped = 0
+                identities = tuple(
+                    f"Probe.Tests.Case{index}" for index in range(total)
+                )
+                skipped = 0
                 result_root = shard_root / "results" / project.name
                 discovery = result_root / "discovered-tests.txt"
                 trx = result_root / "test-results.trx"
@@ -1673,128 +1666,6 @@ class VerifyOrchestrationTests(unittest.TestCase):
             time.sleep(2.25)
             self.assertFalse(orphan_output.exists())
 
-    @unittest.skipIf(
-        sys.platform == "win32", "Unix process-group behavior requires Unix"
-    )
-    def test_unix_timeout_kills_child_forked_after_cleanup_snapshot(self) -> None:
-        with tempfile.TemporaryDirectory() as temporary:
-            root = Path(temporary)
-            trigger = root / "spawn-trigger"
-            child_ready = root / "late-child-ready"
-            orphan_output = root / "late-orphan-output"
-            child = "\n".join(
-                (
-                    "from pathlib import Path",
-                    "import time",
-                    f"Path({str(child_ready)!r}).write_text('ready')",
-                    "time.sleep(0.8)",
-                    f"Path({str(orphan_output)!r}).write_text('orphan')",
-                )
-            )
-            parent = "\n".join(
-                (
-                    "from pathlib import Path",
-                    "import subprocess, sys, time",
-                    f"trigger = Path({str(trigger)!r})",
-                    "deadline = time.monotonic() + 5",
-                    "while not trigger.exists():",
-                    "    assert time.monotonic() < deadline",
-                    "    time.sleep(0.01)",
-                    f"subprocess.Popen([sys.executable, '-c', {child!r}])",
-                    "time.sleep(5)",
-                )
-            )
-            supervisor = "\n".join(
-                (
-                    "import os, subprocess, time",
-                    "from pathlib import Path",
-                    "import scripts.verify as module",
-                    f"trigger = Path({str(trigger)!r})",
-                    f"child_ready = Path({str(child_ready)!r})",
-                    "if hasattr(module, 'unix_descendant_process_ids'):",
-                    "    original_discovery = module.unix_descendant_process_ids",
-                    "    def coordinated_discovery(process_id):",
-                    "        descendants = original_discovery(process_id)",
-                    "        trigger.write_text('spawn')",
-                    "        deadline = time.monotonic() + 5",
-                    "        while not child_ready.exists():",
-                    "            assert time.monotonic() < deadline",
-                    "            time.sleep(0.01)",
-                    "        return descendants",
-                    "    module.unix_descendant_process_ids = coordinated_discovery",
-                    "else:",
-                    "    original_killpg = module.os.killpg",
-                    "    def coordinated_killpg(process_group_id, signal_number):",
-                    "        if not trigger.exists():",
-                    "            trigger.write_text('spawn')",
-                    "            deadline = time.monotonic() + 5",
-                    "            while not child_ready.exists():",
-                    "                assert time.monotonic() < deadline",
-                    "                time.sleep(0.01)",
-                    "        original_killpg(process_group_id, signal_number)",
-                    "    module.os.killpg = coordinated_killpg",
-                    "os.environ[module.INTERNAL_LANE_ENVIRONMENT_VARIABLE] = '1'",
-                    "try:",
-                    f"    module.run({[sys.executable, '-c', parent]!r}, timeout_seconds=0.2)",
-                    "except subprocess.TimeoutExpired:",
-                    "    pass",
-                )
-            )
-
-            process = subprocess.Popen(
-                [sys.executable, "-c", supervisor],
-                cwd=ROOT,
-                start_new_session=True,
-            )
-            process.wait(timeout=10)
-            self.assertTrue(child_ready.exists())
-            time.sleep(0.9)
-            self.assertFalse(orphan_output.exists())
-
-    @unittest.skipIf(sys.platform == "win32", "Unix termination behavior requires Unix")
-    def test_sigterm_cleans_detached_owned_commands(self) -> None:
-        with tempfile.TemporaryDirectory() as temporary:
-            root = Path(temporary)
-            child_ready = root / "sigterm-child-ready"
-            orphan_output = root / "sigterm-orphan-output"
-            child = "\n".join(
-                (
-                    "from pathlib import Path",
-                    "import time",
-                    f"Path({str(child_ready)!r}).write_text('ready')",
-                    "time.sleep(0.8)",
-                    f"Path({str(orphan_output)!r}).write_text('orphan')",
-                )
-            )
-            supervisor = "\n".join(
-                (
-                    "import contextlib",
-                    "import scripts.verify as module",
-                    "handler = getattr(",
-                    "    module, 'handle_external_termination', contextlib.nullcontext",
-                    ")",
-                    "with handler():",
-                    f"    module.run({[sys.executable, '-c', child]!r})",
-                )
-            )
-            process = subprocess.Popen(
-                [sys.executable, "-c", supervisor],
-                cwd=ROOT,
-                start_new_session=True,
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL,
-            )
-            deadline = time.monotonic() + 5
-            while not child_ready.exists():
-                self.assertIsNone(process.poll())
-                self.assertLess(time.monotonic(), deadline)
-                time.sleep(0.01)
-
-            os.killpg(process.pid, signal.SIGTERM)
-            process.wait(timeout=10)
-            time.sleep(0.9)
-            self.assertFalse(orphan_output.exists())
-
     def test_internal_lane_timeout_terminates_descendants_in_a_new_group(
         self,
     ) -> None:
@@ -1910,102 +1781,6 @@ class VerifyOrchestrationTests(unittest.TestCase):
                 MODULE.unregister_active_process(fake_process)
 
         self.assertEqual(1234, boundary.unix_process_group_id)
-
-    @unittest.skipIf(
-        sys.platform == "win32", "Unix process-group behavior requires Unix"
-    )
-    def test_unix_owned_group_kills_descendants_after_root_exit(self) -> None:
-        with tempfile.TemporaryDirectory() as temporary:
-            root = Path(temporary)
-            child_ready = root / "group-child-ready"
-            orphan_output = root / "group-orphan-output"
-            child = (
-                "from pathlib import Path; import time; "
-                f"Path({str(child_ready)!r}).write_text('ready'); "
-                "time.sleep(0.8); "
-                f"Path({str(orphan_output)!r}).write_text('orphan')"
-            )
-            parent = (
-                "from pathlib import Path; import subprocess, sys, time; "
-                f"subprocess.Popen([sys.executable, '-c', {child!r}]); "
-                f"marker = Path({str(child_ready)!r}); "
-                "deadline = time.monotonic() + 5; "
-                'exec("while not marker.exists():\\n'
-                "    assert time.monotonic() < deadline\\n"
-                '    time.sleep(0.01)")'
-            )
-            process = subprocess.Popen(
-                [sys.executable, "-c", parent],
-                start_new_session=True,
-            )
-            MODULE.register_active_process(process)
-            try:
-                process.wait(timeout=5)
-                self.assertTrue(child_ready.exists())
-                MODULE.terminate_process_tree(process)
-            finally:
-                MODULE.unregister_active_process(process)
-
-            time.sleep(0.9)
-            self.assertFalse(orphan_output.exists())
-
-    @unittest.skipIf(
-        sys.platform == "win32", "Unix process-group behavior requires Unix"
-    )
-    def test_unix_group_kill_retry_cleans_descendants_after_root_fallback(
-        self,
-    ) -> None:
-        with tempfile.TemporaryDirectory() as temporary:
-            root = Path(temporary)
-            child_ready = root / "retry-child-ready"
-            orphan_output = root / "retry-orphan-output"
-            child = (
-                "from pathlib import Path; import time; "
-                f"Path({str(child_ready)!r}).write_text('ready'); "
-                "time.sleep(0.8); "
-                f"Path({str(orphan_output)!r}).write_text('orphan')"
-            )
-            parent = (
-                "from pathlib import Path; import subprocess, sys, time; "
-                f"subprocess.Popen([sys.executable, '-c', {child!r}]); "
-                f"marker = Path({str(child_ready)!r}); "
-                "deadline = time.monotonic() + 5; "
-                'exec("while not marker.exists():\\n'
-                "    assert time.monotonic() < deadline\\n"
-                '    time.sleep(0.01)"); '
-                "time.sleep(5)"
-            )
-            process = subprocess.Popen(
-                [sys.executable, "-c", parent],
-                start_new_session=True,
-            )
-            MODULE.register_active_process(process)
-            original_kill_group = os.killpg
-            kill_attempts = 0
-
-            def fail_first_group_kill(
-                process_group_id: int, signal_number: int
-            ) -> None:
-                nonlocal kill_attempts
-                kill_attempts += 1
-                if kill_attempts == 1:
-                    raise OSError("simulated transient group failure")
-                original_kill_group(process_group_id, signal_number)
-
-            try:
-                deadline = time.monotonic() + 5
-                while not child_ready.exists():
-                    self.assertIsNone(process.poll())
-                    self.assertLess(time.monotonic(), deadline)
-                    time.sleep(0.01)
-                with patch.object(MODULE.os, "killpg", fail_first_group_kill):
-                    MODULE.terminate_process_tree(process)
-            finally:
-                MODULE.unregister_active_process(process)
-
-            self.assertEqual(2, kill_attempts)
-            time.sleep(0.9)
-            self.assertFalse(orphan_output.exists())
 
     def test_cleanup_ceiling_is_shared_and_cannot_extend_the_current_lane_deadline(
         self,
@@ -4525,12 +4300,8 @@ class VerifyOrchestrationTests(unittest.TestCase):
         project = MODULE.CiDotnetProject(
             "tests/NvtFwCombiner.Infrastructure.Tests/NvtFwCombiner.Infrastructure.Tests.csproj"
         )
-        identities = (
-            "Probe.Tests.Pass",
-            *MODULE.UNIX_SPECIAL_FILE_INFRASTRUCTURE_SKIPS,
-        )
-        outcomes = ("Passed", "NotExecuted", "NotExecuted")
-        counters = {"total": 3, "passed": 1, "failed": 0, "skipped": 2}
+        identities = ("Probe.Tests.Pass", "Probe.Tests.Second", "Probe.Tests.Third")
+        counters = {"total": 3, "passed": 3, "failed": 0, "skipped": 0}
         with tempfile.TemporaryDirectory() as temporary:
             discovery = Path(temporary) / "discovered-tests.txt"
             trx = Path(temporary) / "test-results.trx"
@@ -4538,17 +4309,27 @@ class VerifyOrchestrationTests(unittest.TestCase):
             self.write_ci_trx(
                 trx,
                 total=3,
-                skipped=2,
+                skipped=0,
                 identities=identities,
-                outcomes=outcomes,
             )
 
             MODULE.require_discovered_test_results(
                 project, discovery, trx, counters, "windows"
             )
+            self.write_ci_trx(
+                trx,
+                total=3,
+                skipped=1,
+                identities=identities,
+                outcomes=("Passed", "Passed", "NotExecuted"),
+            )
             with self.assertRaisesRegex(RuntimeError, "unapproved skipped"):
                 MODULE.require_discovered_test_results(
-                    project, discovery, trx, counters, "non-windows"
+                    project,
+                    discovery,
+                    trx,
+                    {"total": 3, "passed": 2, "failed": 0, "skipped": 1},
+                    "windows",
                 )
 
             bootstrap = MODULE.CiDotnetProject(
@@ -5149,7 +4930,7 @@ class VerifyOrchestrationTests(unittest.TestCase):
             verify_coverage.assert_called_once_with("dotnet", coverage_root)
             self.assertEqual(["coverage"], events)
             self.assertEqual(
-                ".NET CI evidence: 8 projects, 24 active tests, 2 excluded skips, "
+                ".NET CI evidence: 8 projects, 26 active tests, 0 excluded skips, "
                 "26 discovered, GoldenRegression 5/5.\n",
                 output.getvalue(),
             )

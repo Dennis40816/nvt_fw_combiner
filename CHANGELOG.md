@@ -90,6 +90,27 @@ workflow retains source verification, package and public-download gates.
   payload. Four seed runs do not prove every possible execution order;
   final verification without the pin is still required.
 
+#### Windows-focused test scope
+
+- Before → After: six Unix-runtime-only integration tests were maintained but
+  skipped on Windows; those two FIFO/socket and four process-cleanup cases and
+  their unused fixture are removed. The Windows verifier now admits zero skipped
+  .NET cases, while retaining exact discovered/executed identity reconciliation.
+- Affected: repository verification only; all CI/release runners already use
+  Windows. Windows and shared tests, including mocked platform-boundary checks,
+  remain.
+- Support status: unchanged/support-neutral; no Linux or macOS release is added.
+- Compatibility: firmware bytes, production Unix compatibility, package contents
+  and release authority are unchanged. Removed integration coverage is recoverable
+  from Git history if future non-Windows support is approved.
+- Verification: per owner instruction, this deletion receives static diff,
+  reference and syntax inspection without a separate test rerun. Earlier run
+  counts in this entry remain historical evidence, not results after deletion.
+  Final Windows CI and complete certified Golden execution remain mandatory.
+- Limitations: removing cases already skipped on Windows is a maintenance
+  reduction, not a material Windows elapsed-time improvement. Unix FIFO/socket
+  and real process-group cleanup no longer have current integration coverage.
+
 #### Proportionate documentation and agent workflows
 
 - Before → After: ordinary prose inherited issue, full-structure and handoff

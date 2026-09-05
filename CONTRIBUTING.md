@@ -29,6 +29,19 @@ For R1-R3 implementation:
 6. Run `python scripts/verify.py --all` once on the frozen R1-R3 integration/release candidate; root risk rules control interim local checks.
 7. Merge feature work to its version branch, then open the final version-to-`main` PR under the existing authority and review rules. Use a Conventional Commit style title.
 
+## Current test-platform scope
+
+Current release validation targets Windows x64; CI and release jobs run on
+Windows. Six Unix-runtime-only integration tests were retired in v1.1.3 by
+owner decision: two FIFO/socket cases and four process-group cleanup cases.
+Their source remains recoverable in Git history. Windows execution now admits
+zero skipped .NET cases. Shared tests that run on Windows, including mocked
+platform-boundary checks, remain; production Unix compatibility code is unchanged.
+This deletion was checked statically without a separate test rerun, as requested.
+It does not waive final release verification or complete certified Golden output
+execution. A possible future Linux CLI requires a separate support decision and
+appropriate real-platform evidence; no version or date is committed here.
+
 ## Fixed test area
 
 Create one absolute test root outside the repository once and persist it as the

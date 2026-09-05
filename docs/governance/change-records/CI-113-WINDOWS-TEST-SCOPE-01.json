@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 2,
+  "taskId": "CI-113-WINDOWS-TEST-SCOPE-01",
+  "capability": "Retire Unix-only integration tests from the current Windows release scope",
+  "integrationBase": "05ced97e638987ee050bf39e5897797394abf9c4",
+  "risk": "R2",
+  "kind": "behavior",
+  "state": "design-active",
+  "mutablePaths": ["scripts/verify.py"],
+  "implementationOwner": "primary-agent",
+  "searchEvidence": [
+    "On 2026-09-05 the owner approved the frozen release candidate, requested current Windows-only test scope with possible future Linux CLI left uncommitted, and explicitly said deletion should be recorded without rerunning tests. All current CI, main-package and release jobs already use windows-latest. Targeted source/attribute inventory found two Unix-only Infrastructure cases and four actual Unix process integration cases that are skipped on Windows. Their removal has no material Windows runtime saving; it retires maintained Unix integration coverage. Tests that execute on Windows, including typed/mocked platform policy and process-unit checks, remain.",
+    "scripts/verify.py::approved_platform_skip_identities owns the exact platform omissions; require_discovered_test_results compares actual NotExecuted identities to that inventory. Delete the retired two-case UNIX_SPECIAL_FILE_INFRASTRUCTURE_SKIPS inventory and return an empty tuple for Windows, rather than relaxing reconciliation or tolerating omitted cases. The remaining non-Windows Bootstrap processor inventory, unsupported-platform error and canonical normalization stay unchanged.",
+    "Implementation scope outside governed mutablePaths: remove ReadRejectsUnixFifoBeforeOpening and VerifyClosedInventoryRejectsUnixDomainSocket from their two Infrastructure Bundle test files; remove their unused UnixSpecialFileTestFixture.cs and imports. Remove only the four Windows-skipped process integration methods from test_verify_orchestration.py. Synchronize its closed evidence fixture and Windows no-skips acceptance/rejection case, preserving independent per-project summary assertions and the non-Windows Bootstrap protocol case. Record scope and Git-history recovery in CONTRIBUTING.md and the current CHANGELOG entry. Historical test results and immutable records remain unchanged."
+  ],
+  "semanticOwner": "scripts/verify.py::approved_platform_skip_identities and require_discovered_test_results",
+  "terminalContract": "Every currently discovered Windows test must execute and pass with zero approved skips. The two retired Unix Infrastructure cases and four actual Unix process integration tests are absent; their production compatibility implementations and all Windows/shared tests remain. Missing, duplicate, failed, substituted or skipped discovered identities still fail closed. No Golden, firmware, range, CRC/header, coverage, timeout, process execution, package, release authority or permissions change. Per the owner's explicit instruction, this deletion receives static diff/reference/AST inspection and independent scoped review without a deletion-specific test or verifier run. The already-required final release verifier, actual complete Golden execution, protected Windows CI, packaging and public smoke remain separate pending release gates. No Linux CLI version or support promise is introduced.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "review_ci_release_candidate / GPT-5.6 Sol high / independent read-only reviewer",
+    "outcome": "approved",
+    "evidence": "Independent pre-implementation review at 40fe604c78b3c6e959e03b7c4af2d82a08e6dd82 approved R2 extend-owner with only scripts/verify.py governed, based on final-evidence checkpoint 05ced97e638987ee050bf39e5897797394abf9c4. It admitted exactly six runtime-exclusive deletions plus their dead fixture/imports, empty Windows skip inventory, all-Passed closed fixture, arbitrary Windows skip rejection and unchanged non-Windows Bootstrap protocol case. It requires static exact-path diff, retired-symbol/reference checks, unchanged reconciliation/Golden/coverage/processor implementation, Python parse-only checks and fixed-head independent review. No test commands are permitted for this deletion-specific check under the owner's instruction; original final release gates remain mandatory. Production Unix compatibility and Windows-executable shared/mock tests are excluded from deletion."
+  },
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": {"reviewer": null, "outcome": "pending", "evidence": ""}
+}

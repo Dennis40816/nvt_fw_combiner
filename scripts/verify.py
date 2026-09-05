@@ -2916,10 +2916,6 @@ WINDOWS_PROCESSOR_BOOTSTRAP_SKIPS = (
     "NvtFwCombiner.Bootstrap.Tests.AbMergeGoldenRegressionTests.Nt51950PublicHostBuildAcceptsOneCanonicalTpFileForBothLogicalSlotsAsync",
     "NvtFwCombiner.Bootstrap.Tests.AbMergeGoldenRegressionTests.Nt51951PublicHostBuildAcceptsOneTpFileForBothLogicalSlotsAsync",
 )
-UNIX_SPECIAL_FILE_INFRASTRUCTURE_SKIPS = (
-    "NvtFwCombiner.Infrastructure.Tests.Bundles.ProfileBundleFileSnapshotTests.ReadRejectsUnixFifoBeforeOpening",
-    "NvtFwCombiner.Infrastructure.Tests.Bundles.ProfileBundleInventoryVerifierTests.VerifyClosedInventoryRejectsUnixDomainSocket",
-)
 
 
 def approved_platform_skip_identities(
@@ -2929,11 +2925,7 @@ def approved_platform_skip_identities(
     """Return the exact owner-approved omissions for one producer and project."""
 
     if producer_platform == DOTNET_PRODUCER_WINDOWS:
-        identities = (
-            UNIX_SPECIAL_FILE_INFRASTRUCTURE_SKIPS
-            if project.name == "NvtFwCombiner.Infrastructure.Tests"
-            else ()
-        )
+        identities = ()
     elif producer_platform == DOTNET_PRODUCER_NON_WINDOWS:
         identities = (
             WINDOWS_PROCESSOR_BOOTSTRAP_SKIPS
