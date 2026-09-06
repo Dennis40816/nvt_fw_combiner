@@ -11,7 +11,8 @@ source milestone, the 1.0.5 read-only recovery-diagnosis milestone, and the
 Launcher release, through the 1.0.8 unpublished Windows release candidate and
 the published 1.1.0 manual-only Windows release, the v1.1.1 verification,
 test, CI, and release-architecture candidate, and the v1.1.2 support-neutral
-repository, selector, evidence, and DPCMI candidate.
+repository, selector, evidence, and DPCMI candidate, and the published v1.1.3
+CI/release optimization closure.
 Current
 verification evidence is produced by the canonical
 `python scripts/verify.py --structure-only` and `python scripts/verify.py --all`
@@ -29,9 +30,123 @@ to `v1.1.4`, combines agent/document/minimality work in `v1.1.6`, and defers
 General Merge, General Replace and saved/custom rules to `v1.2.4`-`v1.2.6`.
 The final same-day owner amendment defers the maintainer-facing IC family/rule-
 authoring UI to `v1.3.0`; it does not move the separate General/user-rule scope.
-`v1.1.3` work continues. Dated candidate/release sections remain historical
-observations, not competing current assignments or evidence that `v1.1.3`
-has passed its integration or publication gates.
+`v1.1.3` was subsequently published as recorded below. Dated candidate sections
+remain historical observations, not competing current assignments or substitutes
+for the final source-specific integration and publication evidence.
+
+Post-release allocation amendment (2026-09-06): the owner adds local full-
+verifier parallelization to `v1.1.5`, alongside startup/first-open performance.
+The [roadmap](../architecture/nfc_roadmap.md#local-full-verifier-parallelization)
+owns the scope and acceptance target: complete local `verify.py --all` around
+10 minutes, dominated by the longest independent lane with small shared overhead,
+without omitting tests or Golden execution. This is planned work, not a change
+to the published `v1.1.3` results or its current local serial execution policy.
+
+The later same-day owner amendment sequences `1.1.4` as a first phase starting
+with small independent corrections and also including CtrlRAM selector,
+Report-owned Load report, bundle primary-output rename and complete AB Dummy DP,
+then full-screen inventory/reprioritization of the remaining work. Implementation
+is one item at a time. The [roadmap execution order](../architecture/nfc_roadmap.md#114-ui-corrections-and-ab-dummy-dp)
+is the single queue; no production UI correction is claimed by this allocation.
+
+## 1.1.4 local input-feedback checkpoint (2026-09-06)
+
+The [canonical feedback handoff](../ui/v1.1.x-standard-merge-input-verification-feedback-handoff.md#compact-card-extension-verification-and-actual-screenshots-2026-09-06)
+records the approved shared Error/Warning/disabled-Build cards, additive typed
+Application diagnostics and Report consistency. Local `1.1.4` over
+`e5202e2707d272076d24216222188d478314a07d`: UI 912/912 passed, then 12/12 focused
+render/interaction cases after the final tooltip-padding correction; Application
+1,395/1,395 and six compiled-inspection cases passed. Independent scoped review
+returned local PASS. A freshly built NT51929 Standard Merge control output is
+byte-for-byte identical to its certified Golden; actual FF warning CLI Report
+and native Desktop screenshots are retained in the handoff. No full-repository
+or release Golden pass is claimed, and no commit/integration/publication occurred.
+The final structure run is blocked by the unsynchronized code-size ceilings
+(full production +616; runtime/Application +234); its record-only test-path
+classification errors were corrected separately. The handoff records exact
+measurements; this checkpoint is not integration-ready.
+
+## 1.1.3 published release closure
+
+The frozen reviewed PR #426 head is
+`8afe0d03b216138571ea910d0fe4795984803a96`; normal merge produced
+`e5202e2707d272076d24216222188d478314a07d`, with the same reviewed tree
+`8f8577878956fe24d264b97685cd3e95f937a817`. PR CI `33972121851` passed in
+419 s; actual-source main CI `33973838733` passed in 416 s. The final clean
+reviewed-head local `verify.py --all` passed in 1,879.6 s, including all eight
+.NET projects and 5,570 passed/zero failed/zero skipped .NET results. Local
+serial-lane time is not CI wall time.
+
+[Release run 33974287659](https://github.com/Dennis40816/nvt_fw_combiner/actions/runs/33974287659)
+attempt 1 stopped before Golden or packaging because a P1 review thread had
+not been marked resolved. The agent missed the additional pre-merge review-state
+refresh; the existing root-cause correction and completed verification were
+reconciled in [the evidence reply](https://github.com/Dennis40816/nvt_fw_combiner/pull/426#discussion_r3941065650).
+Both review threads were confirmed resolved before one same-run failed-job
+retry; no source, expected bytes or admission policy changed.
+
+Attempt 2 candidate passed from `2026-09-05T15:29:30Z` to `15:38:35Z` (545 s).
+Fresh `--release-golden` passed in 188 s: 1,172 Bootstrap tests and 25 Golden
+Regression tests, zero failures/skips, and exactly the 25 approved Direct Golden
+case IDs logged once each. Existing full-output/declared-difference contracts
+remain unchanged; input-only evidence is not an output Golden. Packaging took
+237 s and candidate smoke took 7 s with `-SkipUiLaunch`. Candidate artifact
+`9972157957` has digest
+`sha256:89d2d549925337083d055afa589ba6ca345de4fd2ef9cd8e1875827a87ee48e9`.
+
+The owner explicitly authorized conditional approval inside Codex. Canonical
+repository admission and candidate manifest checks passed again; immediate reads
+bound the run/attempt, exact source, successful jobs, artifact digest and pending
+environment. Owner-visible main/tag rulesets explicitly contained empty
+`bypass_actors` arrays; an omitted field was not accepted. Codex submitted one
+owner-delegated approval at `2026-09-05T16:32:11.9527987Z`, deployment `6282731181`.
+GitHub environment settings and CI permissions were unchanged. This records the
+actual owner-authorized operation, not a claim of independent manual review.
+
+[Stable v1.1.3](https://github.com/Dennis40816/nvt_fw_combiner/releases/tag/v1.1.3)
+was published at `2026-09-05T16:32:58Z` (Taiwan `2026-09-06 00:32:58`), Release
+`383303835`, neither draft nor prerelease, with `immutable: true` and exactly ten
+assets. Annotated tag `2a8dd3ed61eff4c272f2e6b1f3bc18e3c753a50c` peels to the
+merged source above and binds the candidate manifest/artifact digests. Portable
+ZIP: 115,657,892 bytes, SHA-256
+`35d0049fcbfa1b43a101dc0575a182389b863de05462679a076dd146ab53f81e`.
+The workflow verified published assets and source ZIP/tar downloads. Independent
+job `101338584623` freshly downloaded the public package and passed its token-free
+`-SkipUiLaunch` smoke, completing at `16:33:42Z`; it was not skipped. Separate
+local fresh-download checks reconciled all ten asset sizes/digests, the exact
+verified manifest, and Release body against the approved candidate notes.
+
+### Actual timing, including the delay
+
+| Stage | Measured duration |
+| --- | --- |
+| Separate actual-source main CI | 416 s (6 min 56 s) |
+| First release attempt: review-state failure | 52 s |
+| Review reconciliation and retry/start interval | 737 s (12 min 17 s) |
+| Successful candidate, including setup/upload | 545 s (9 min 5 s) |
+| Candidate-complete to promotion-start: approval/queue | 3,220 s (53 min 40 s) |
+| Promotion | 52 s |
+| Published-smoke runner queue | 5 s |
+| Published-smoke job, including checkout/download | 30 s (smoke step 8 s) |
+| Original dispatch to successful public-smoke job completion | 4,641 s (77 min 21 s) |
+
+The required full-stopwatch comparison is `(1875 - 4641) / 1875 * 100 = -147.52%`:
+this actual run took longer, not less. Candidate processing improved from 1,757 s
+to 545 s (68.98% less). The successful candidate/promotion/smoke path sums to
+632 s (10 min 32 s), including the five-second smoke queue but excluding the
+failed attempt, triage and approval wait; its 66.29% reduction against 1,875 s is
+an adjusted comparison, not this dispatch's elapsed time. Add the separately
+admitted 416-second source CI to that adjusted path for 17 min 28 s; work moved
+before release is not deleted work. The old run skipped published-smoke, so
+neither comparison has identical coverage.
+
+Candidate/public smoke does not prove visible startup, clean Windows without
+development runtimes, signing, or separate human/legal evidence; no omitted
+gate is reported passed. The five-minute progress automation was paused after
+publication and public smoke succeeded. The owner-deferred test diagram/README
+remains allocated to `1.1.4` in the roadmap, not a `1.1.3` blocker. This closure
+is a post-publication documentation update, not part of the immutable release
+source and not a reason to rebuild or replace its assets.
 
 ## 1.1.2 published release closure
 
