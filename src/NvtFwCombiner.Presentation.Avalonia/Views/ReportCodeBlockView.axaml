@@ -2,6 +2,7 @@
     x:Class="NvtFwCombiner.Presentation.Avalonia.Views.ReportCodeBlockView"
     xmlns="https://github.com/avaloniaui"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:behaviors="using:NvtFwCombiner.Presentation.Avalonia.Behaviors"
     x:Name="Root">
   <Border Classes="compactSubtleSurface" Padding="8,6">
     <Grid RowDefinitions="Auto,*" RowSpacing="{DynamicResource NfcSpace4}">
@@ -11,7 +12,7 @@
           HorizontalAlignment="Right"
           VerticalAlignment="Top"
           AutomationProperties.Name="{ReflectionBinding $parent[Window].DataContext.Text.CopyCommandTooltip}"
-          Click="CopyButton_OnClick"
+          behaviors:ReportCopyAction.Text="{Binding Text, ElementName=Root}"
           ToolTip.Tip="{ReflectionBinding $parent[Window].DataContext.Text.CopyCommandTooltip}">
         <Path
             Width="14"

@@ -165,6 +165,12 @@ internal sealed partial class ShellTextResources
 
     public string CopyCommandTooltip { get; private init; } = string.Empty;
 
+    public string CopyRawReportTooltip { get; private init; } = string.Empty;
+
+    public string ReportCopyFailedTitle { get; private init; } = string.Empty;
+
+    public string ReportCopyFailedDetail { get; private init; } = string.Empty;
+
     public string DeleteReportTooltip { get; private init; } = string.Empty;
 }
 
