@@ -63,6 +63,16 @@ public sealed partial class AuthoringInputSlotInspectionTests
             CapabilityReadinessNextAction.RefreshRuntimeDependencies,
             missingRuntime.NextAction);
         Assert.Null(noRuntimeRequired);
+
+        CapabilityActionAvailability missingRuntimeAvailability =
+            CapabilityActionReadinessResolver.ResolveBuildAvailabilityBeforeRuntimeRefresh(
+                CapabilityAdmissionSnapshot.FromResolvedCapability(withDependency, revision),
+                readyInputs,
+                RuntimeDependencyReadinessRequest.FromResolvedCapability(
+                    withDependency,
+                    revision));
+        Assert.Equal(missingRuntime, missingRuntimeAvailability.PrimaryBlocker);
+        _ = Assert.Single(missingRuntimeAvailability.Blockers);
     }
 
     /// <summary>A current canonical runtime observation is consumed instead of being recomputed.</summary>
@@ -109,6 +119,71 @@ public sealed partial class AuthoringInputSlotInspectionTests
             CapabilityActionReadinessIssueCodes.RuntimeDependencyBlocked,
             Assert.IsType<CapabilityActionBlocker>(blocker).Code);
         Assert.Equal("crc-worker:nvt-crc-worker", blocker.SubjectId);
+
+        CapabilityActionAvailability availability = ActiveSessionBuildBlockerResolver.ResolveBuildAvailability(
+            snapshot,
+            ExperienceIds.StandardMerge,
+            readiness);
+        Assert.Same(readiness.Build, availability);
+        Assert.Equal(blocker, availability.PrimaryBlocker);
+    }
+
+    /// <summary>A stale readiness snapshot is not reused for the current exact session.</summary>
+    [Fact]
+    public void StaleCanonicalReadinessFallsBackToCurrentPreRefreshAvailability()
+    {
+        ResolvedCapability capability = CreateCapability(
+            ExperienceIds.StandardMerge,
+            includeExternalProcessor: true);
+        var session = new AuthoringSessionState(ExperienceIds.StandardMerge);
+        Assert.True(session.Activate(
+            AuthoringCapabilityCatalogSnapshot.FromResolvedCapability(capability)).Succeeded);
+        ActiveSessionSnapshot snapshot = session.CurrentSnapshot!;
+        CapabilityAdmissionSnapshot staleAdmission =
+            CapabilityAdmissionSnapshot.FromResolvedCapability(
+                capability,
+                snapshot.AuthoringRevision.Next());
+        var staleRuntime = new RuntimeDependencyReadinessSnapshot(
+            staleAdmission.RouteId,
+            staleAdmission.CapabilityFingerprint,
+            staleAdmission.CompilationFingerprint,
+            staleAdmission.ResolutionToken,
+            staleAdmission.AuthoringRevision,
+            1,
+            DateTimeOffset.UnixEpoch,
+            [RuntimeDependencyEntry.Blocked(
+                "crc-worker",
+                "nvt-crc-worker",
+                "runtime.stale",
+                "The stale runtime observation must not be reused.")]);
+        CapabilityActionReadinessSnapshot staleReadiness =
+            CapabilityActionReadinessResolver.Resolve(
+                staleAdmission,
+                [],
+                staleRuntime,
+                currentRuntimeDependencyGeneration: 1);
+
+        CapabilityActionAvailability availability = ActiveSessionBuildBlockerResolver.ResolveBuildAvailability(
+            snapshot,
+            ExperienceIds.StandardMerge,
+            staleReadiness);
+
+        Assert.NotSame(staleReadiness.Build, availability);
+        Assert.Equal(
+            [
+                CapabilityActionReadinessIssueCodes.InputPending,
+                CapabilityActionReadinessIssueCodes.RuntimeSnapshotStale,
+            ],
+            availability.Blockers.Select(static blocker => blocker.Code));
+        CapabilityActionBlocker blocker = availability.PrimaryBlocker!;
+        Assert.Equal(CapabilityActionReadinessIssueCodes.InputPending, blocker.Code);
+        Assert.Equal(SourceSlot, blocker.SubjectId);
+        Assert.Equal(
+            ActiveSessionBuildBlockerResolver.Resolve(
+                snapshot,
+                ExperienceIds.StandardMerge,
+                staleReadiness),
+            availability.PrimaryBlocker);
     }
 
     /// <summary>Pre-compilation sessions fail closed using the most specific current input state.</summary>
@@ -203,6 +278,96 @@ public sealed partial class AuthoringInputSlotInspectionTests
             "Load the required input before continuing.");
     }
 
+    /// <summary>Pre-compilation availability retains all canonical groups without hiding same-slot lifecycle evidence incorrectly.</summary>
+    [Fact]
+    public void PreCompilationBuildAvailabilityRetainsCanonicalGroupsAndPrimaryParity()
+    {
+        const string workflowId = ExperienceIds.DpReplace;
+        ResolvedCapabilityRoute route = CreateRoute(workflowId);
+        var revision = new AuthoringRevision(6);
+        ActiveSessionSnapshot snapshot = Snapshot(
+            route.Identity,
+            route.ResolutionToken,
+            revision,
+            route.CapabilityFingerprint,
+            compilationFingerprint: null,
+            exactCapability: null,
+            [
+                Slot("blocked", AuthoringSlotLifecycle.Error),
+                Slot("pending", AuthoringSlotLifecycle.Selected),
+                Slot("ready-error", AuthoringSlotLifecycle.Error),
+                Slot("checking", AuthoringSlotLifecycle.Checking),
+            ],
+            [
+                PreCompilationStatus(route, revision, Readiness(
+                    "blocked", ResolvedChildReadiness.Blocked, "Correct blocked.")),
+                PreCompilationStatus(route, revision, Readiness(
+                    "pending", ResolvedChildReadiness.PendingInput, "Load pending.")),
+                PreCompilationStatus(route, revision, Readiness(
+                    "ready-error", ResolvedChildReadiness.Ready)),
+                PreCompilationStatus(route, revision, Readiness(
+                    "orphan", ResolvedChildReadiness.Blocked, "Correct orphan.")),
+            ]);
+
+        CapabilityActionAvailability availability = ActiveSessionBuildBlockerResolver.ResolveBuildAvailability(
+            snapshot,
+            workflowId);
+
+        Assert.Equal(
+            ["blocked", "orphan", "pending", "ready-error", "checking"],
+            availability.Blockers.Select(static blocker => blocker.SubjectId));
+        Assert.Equal(
+            [
+                CapabilityActionReadinessIssueCodes.InputBlocked,
+                CapabilityActionReadinessIssueCodes.InputBlocked,
+                CapabilityActionReadinessIssueCodes.InputPending,
+                CapabilityActionReadinessIssueCodes.InputBlocked,
+                CapabilityActionReadinessIssueCodes.InputPending,
+            ],
+            availability.Blockers.Select(static blocker => blocker.Code));
+        Assert.Equal(
+            ActiveSessionBuildBlockerResolver.Resolve(snapshot, workflowId),
+            availability.PrimaryBlocker);
+    }
+
+    /// <summary>Snapshot status identity is validated before availability suppresses lifecycle fallbacks.</summary>
+    [Fact]
+    public void PreCompilationSnapshotRejectsDuplicateStatusIdentityBeforeAvailability()
+    {
+        ResolvedCapabilityRoute route = CreateRoute(ExperienceIds.DpReplace);
+        var revision = new AuthoringRevision(7);
+        AuthoringInputSlotStatus duplicate = PreCompilationStatus(
+            route,
+            revision,
+            Readiness("duplicate", ResolvedChildReadiness.Blocked, "Correct duplicate."));
+
+        _ = Assert.Throws<ArgumentException>(() => Snapshot(
+            route.Identity,
+            route.ResolutionToken,
+            revision,
+            route.CapabilityFingerprint,
+            compilationFingerprint: null,
+            exactCapability: null,
+            [Slot("duplicate", AuthoringSlotLifecycle.Error)],
+            [duplicate, duplicate]));
+    }
+
+    /// <summary>An empty session keeps the existing workflow-pending primary as its sole availability entry.</summary>
+    [Fact]
+    public void NullSessionBuildAvailabilityKeepsExistingWorkflowPending()
+    {
+        CapabilityActionAvailability availability = ActiveSessionBuildBlockerResolver.ResolveBuildAvailability(
+            session: null,
+            ExperienceIds.StandardMerge);
+
+        CapabilityActionBlocker blocker = Assert.Single(availability.Blockers);
+        Assert.Equal(CapabilityActionReadinessIssueCodes.InputPending, blocker.Code);
+        Assert.Equal(ExperienceIds.StandardMerge, blocker.SubjectId);
+        Assert.Equal(
+            ActiveSessionBuildBlockerResolver.Resolve(null, ExperienceIds.StandardMerge),
+            availability.PrimaryBlocker);
+    }
+
     /// <summary>Compiled sessions project each canonical slot state into shared action readiness.</summary>
     [Theory]
     [InlineData(ResolvedChildReadiness.Blocked, AuthoringSlotLifecycle.Selected,
@@ -249,8 +414,16 @@ public sealed partial class AuthoringInputSlotInspectionTests
         ResolvedChildReadiness readiness,
         string? reason = null)
     {
+        return Readiness(SourceSlot, readiness, reason);
+    }
+
+    private static InputSelectionMemberReadiness Readiness(
+        string slotId,
+        ResolvedChildReadiness readiness,
+        string? reason = null)
+    {
         return new InputSelectionMemberReadiness(
-            SourceSlot,
+            slotId,
             IsSelected: readiness == ResolvedChildReadiness.Ready,
             readiness,
             CanSelect: true,
@@ -262,6 +435,11 @@ public sealed partial class AuthoringInputSlotInspectionTests
     }
 
     private static AuthoringSlotState Slot(AuthoringSlotLifecycle lifecycle)
+    {
+        return Slot(SourceSlot, lifecycle);
+    }
+
+    private static AuthoringSlotState Slot(string slotId, AuthoringSlotLifecycle lifecycle)
     {
         string? selectedPath = lifecycle == AuthoringSlotLifecycle.Empty
             ? null
@@ -277,7 +455,7 @@ public sealed partial class AuthoringInputSlotInspectionTests
                 "input.invalid")
             : null;
         return new AuthoringSlotState(
-            SourceSlot,
+            slotId,
             selectedPath,
             stamp,
             lifecycle,
@@ -315,7 +493,7 @@ public sealed partial class AuthoringInputSlotInspectionTests
             route.CapabilityFingerprint,
             compilationFingerprint: null,
             exactCapability: null,
-            slot,
+            [slot],
             statuses);
     }
 
@@ -332,7 +510,7 @@ public sealed partial class AuthoringInputSlotInspectionTests
             capability.CapabilityFingerprint,
             capability.CompiledComposition.CompilationFingerprint,
             capability,
-            slot,
+            [slot],
             statuses);
     }
 
@@ -343,7 +521,7 @@ public sealed partial class AuthoringInputSlotInspectionTests
         string capabilityFingerprint,
         string? compilationFingerprint,
         ResolvedCapability? exactCapability,
-        AuthoringSlotState slot,
+        IEnumerable<AuthoringSlotState> slots,
         IReadOnlyList<AuthoringInputSlotStatus>? statuses)
     {
         return new ActiveSessionSnapshot(
@@ -358,7 +536,7 @@ public sealed partial class AuthoringInputSlotInspectionTests
             identity.MapVariant,
             [identity.IcId],
             [identity.IcCountVariant],
-            [slot],
+            slots,
             draftState: null,
             draftCapabilityFingerprint: null,
             derivedPublications: [],
