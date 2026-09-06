@@ -112,7 +112,7 @@ internal sealed partial class ReportReviewViewModel
             outputSize,
             language,
             cancellationToken);
-        IReadOnlyList<ReportLineViewModel> issues = ParseIssues(root, cancellationToken);
+        IReadOnlyList<ReportLineViewModel> issues = ParseIssues(root, language, cancellationToken);
         string status = CreateStatus(issues, language);
         cancellationToken.ThrowIfCancellationRequested();
 

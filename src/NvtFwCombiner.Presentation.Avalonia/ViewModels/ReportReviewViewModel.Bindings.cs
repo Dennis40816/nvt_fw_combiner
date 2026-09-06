@@ -179,6 +179,9 @@ internal sealed partial class ReportReviewViewModel
 
     public string OutcomeDetail { get; }
 
+    /// <summary>Bounded plain-language issue list shown before detailed report evidence.</summary>
+    public string SummaryIssueDescriptions { get; }
+
     public string OutcomeMeta { get; }
 
     public string OutcomeIcon { get; }

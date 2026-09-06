@@ -22,13 +22,13 @@ public sealed partial class XamlControlStyleContractTests
         Assert.Equal(2, CountOccurrences(
             shellText,
             "behaviors:FocusToolTipBehavior.IsEnabled=\"True\""));
-        Assert.Equal(2, CountOccurrences(shellText, "Classes=\"warningSurface buildBlockerBadge\""));
+        Assert.Equal(2, CountOccurrences(shellText, "Classes=\"buildBlockerBadge\""));
         Assert.Contains(
             "AutomationProperties.Name=\"{Binding MessageCenter.MessageCenterAccessibleName}\"",
             shellText,
             StringComparison.Ordinal);
-        Assert.Contains("ToolTip.Tip=\"{Binding MergeBuildBlockerText}\"", shellText, StringComparison.Ordinal);
-        Assert.Contains("ToolTip.Tip=\"{Binding ReplaceBuildBlockerText}\"", shellText, StringComparison.Ordinal);
+        Assert.Contains("<views:IssueDetailsCard DataContext=\"{Binding MergeBuildBlockerCard}\"", shellText, StringComparison.Ordinal);
+        Assert.Contains("<views:IssueDetailsCard DataContext=\"{Binding ReplaceBuildBlockerCard}\"", shellText, StringComparison.Ordinal);
         Assert.Contains("AutomationProperties.Name=\"{Binding MergeBuildBlockerText}\"", shellText, StringComparison.Ordinal);
         Assert.DoesNotContain("IsChecked=\"{Binding MessageCenter", shellText, StringComparison.Ordinal);
 

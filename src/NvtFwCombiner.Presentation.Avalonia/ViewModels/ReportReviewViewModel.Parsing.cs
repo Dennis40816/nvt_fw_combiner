@@ -97,39 +97,50 @@ internal sealed partial class ReportReviewViewModel
 
     private static List<ReportLineViewModel> ParseIssues(
         JsonElement root,
+        ShellLanguage language,
         CancellationToken cancellationToken)
     {
-        return !root.TryGetProperty(nameof(Issues), out JsonElement issues) ||
-            issues.ValueKind != JsonValueKind.Array
-            ? []
-            : ProjectLines(
-                issues.EnumerateArray(),
-                issue =>
-                {
-                    string code = GetString(issue, "Code");
-                    string severity = GetStringOrNull(issue, "Severity") ??
-                        GetStringOrNull(issue, "severity") ??
-                        LegacySeverityForIssueCode(code);
-                    return CreateIssueLine(
-                        code,
-                        GetString(issue, "Message"),
-                        GetStringOrNull(issue, "OperationId") ?? "run",
-                        severity);
-                },
-                cancellationToken);
+        if (!root.TryGetProperty(nameof(Issues), out JsonElement issues) || issues.ValueKind != JsonValueKind.Array)
+        {
+            return [];
+        }
+        Dictionary<int, InputDiagnosticEvidence?> diagnostics = ParseInputDiagnostics(root, issues.GetArrayLength(), cancellationToken);
+        var result = new List<ReportLineViewModel>();
+        foreach (JsonElement issue in issues.EnumerateArray())
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            string code = GetString(issue, "Code");
+            string severity = GetStringOrNull(issue, "Severity") ??
+                GetStringOrNull(issue, "severity") ??
+                LegacySeverityForIssueCode(code);
+            result.Add(CreateIssueLine(
+                code,
+                GetString(issue, "Message"),
+                GetStringOrNull(issue, "OperationId") ?? "run",
+                severity,
+                language,
+                diagnostics.GetValueOrDefault(result.Count)));
+        }
+        return result;
     }
 
     internal static IReadOnlyList<ReportLineViewModel> ProjectIssues(
         IReadOnlyList<CompositionIssue> issues,
-        CancellationToken cancellationToken)
+        ShellLanguage language,
+        CancellationToken cancellationToken,
+        IReadOnlyList<InputDiagnosticSummary>? inputDiagnostics = null)
     {
+        Dictionary<int, InputDiagnosticEvidence?> diagnostics = IndexInputDiagnostics(inputDiagnostics, issues.Count);
+        int index = 0;
         return ProjectLines(
             issues,
-            static issue => CreateIssueLine(
+            issue => CreateIssueLine(
                     issue.Code,
                     issue.Message,
                     issue.OperationId ?? "run",
-                    issue.Severity),
+                    issue.Severity,
+                    language,
+                    diagnostics.GetValueOrDefault(index++)),
             cancellationToken);
     }
 
@@ -152,9 +163,28 @@ internal sealed partial class ReportReviewViewModel
         string code,
         string message,
         string operationId,
-        string severity)
+        string severity,
+        ShellLanguage language,
+        InputDiagnosticEvidence? evidence = null)
     {
-        return new ReportLineViewModel(code, message, operationId, severity: severity);
+        (string Title, string Detail)? help = ShellTextResources.For(language).GetInputIssueHelp(code, severity, evidence);
+        string badge = severity.ToLowerInvariant() switch
+        {
+            "error" => T(language, "Error", "錯誤"),
+            "warning" => T(language, "Warning", "警告"),
+            "info" => T(language, "Info", "資訊"),
+            _ => severity,
+        };
+        List<ReportLineFactViewModel> facts = [new(T(language, "Code", "診斷碼"), code, isTechnical: true)];
+        if (evidence is not null)
+        {
+            facts.Add(new(T(language, "Input", "輸入"), evidence.AddressSpaceId, isTechnical: true));
+        }
+        facts.Add(new(T(language, "Step", "步驟"), operationId, isTechnical: true));
+        return new ReportLineViewModel(code, help?.Detail ?? message, operationId,
+            codeBlock: help is not null ? message : string.Empty,
+            codeBlockLabel: T(language, "Original diagnostic", "原始診斷"), severity: severity,
+            issueSummary: help?.Title ?? string.Empty, badges: [new(badge)], facts: facts);
     }
 
     private static string LegacySeverityForIssueCode(string code)

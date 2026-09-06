@@ -72,13 +72,18 @@
 
 <DataTemplate x:Key="ReportSummaryPanelTemplate" DataType="vm:ReportPresentationViewModel">
   <Border Classes="subtlePanel" Margin="16,14,16,0" Padding="0">
+    <Border.Styles>
+      <Style Selector="TextBlock.cardTitle.error">
+        <Setter Property="Foreground" Value="{DynamicResource NfcDangerTextBrush}" />
+      </Style>
+    </Border.Styles>
     <Expander IsExpanded="{Binding LoadedReport.HasPrimaryIssue}">
       <Expander.Header>
         <Grid Margin="16,12" ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="{DynamicResource NfcSpace12}">
           <Grid Width="32" Height="32" AutomationProperties.Name="{Binding LoadedReport.OutcomeAccessibilityLabel}">
             <Border Background="{DynamicResource NfcSuccessAccentBrush}" CornerRadius="{DynamicResource NfcPillCornerRadius}" IsVisible="{Binding LoadedReport.IsClean}" />
             <Border Background="{DynamicResource NfcWarningAccentStrongBrush}" CornerRadius="{DynamicResource NfcPillCornerRadius}" IsVisible="{Binding LoadedReport.HasWarningsWithoutBlockingIssues}" />
-            <Border Background="{DynamicResource NfcWarningAccentCriticalBrush}" CornerRadius="{DynamicResource NfcPillCornerRadius}" IsVisible="{Binding LoadedReport.HasPrimaryIssue}" />
+            <Border Background="{DynamicResource NfcCriticalBorderBrush}" CornerRadius="{DynamicResource NfcPillCornerRadius}" IsVisible="{Binding LoadedReport.HasPrimaryIssue}" />
             <TextBlock
                 HorizontalAlignment="Center"
                 VerticalAlignment="Center"
@@ -89,12 +94,12 @@
           </Grid>
           <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="1">
             <TextBlock Classes="tableHeader" Text="{Binding Text.RunLabel}" />
-            <TextBlock Classes="cardTitle" Text="{Binding LoadedReport.OutcomeTitle}" TextWrapping="Wrap" />
+            <TextBlock Classes="cardTitle" Classes.error="{Binding LoadedReport.HasPrimaryIssue}" Text="{Binding LoadedReport.OutcomeTitle}" TextWrapping="Wrap" />
             <TextBlock
                 Classes="bodyText"
-                Text="{Binding LoadedReport.PrimaryIssue.Detail}"
+                Text="{Binding LoadedReport.SummaryIssueDescriptions}"
                 TextWrapping="Wrap"
-                IsVisible="{Binding LoadedReport.HasPrimaryIssue}" />
+                IsVisible="{Binding LoadedReport.HasIssues}" />
           </StackPanel>
           <Label Grid.Column="2" Classes="compactBadge neutralBadge reportBadge" Content="{Binding LoadedReport.OutcomeMeta}" />
           <Button
@@ -120,14 +125,14 @@
         <Border
             Classes="contentPanel"
             Padding="16"
-            Background="{DynamicResource NfcWarningSurfaceBrush}"
-            BorderBrush="{DynamicResource NfcWarningBorderBrush}"
-            BorderThickness="2"
+            Background="{DynamicResource NfcCriticalSurfaceBrush}"
+            BorderBrush="{DynamicResource NfcRequiredMissingBorderBrush}"
+            BorderThickness="1"
             IsVisible="{Binding LoadedReport.HasPrimaryIssue}">
           <Grid ColumnDefinitions="112,*" RowDefinitions="Auto,Auto,Auto,Auto" ColumnSpacing="14" RowSpacing="10">
             <TextBlock Classes="tableHeader" Text="{Binding Text.PrimaryReasonLabel}" />
             <StackPanel Grid.Column="1" Spacing="{DynamicResource NfcSpace2}">
-              <TextBlock Classes="bodyStrongText" Foreground="{DynamicResource NfcWarningTextBrush}" Text="{Binding LoadedReport.PrimaryIssue.Detail}" TextWrapping="Wrap" />
+              <TextBlock Classes="bodyStrongText" Text="{Binding LoadedReport.PrimaryIssue.IssueDescription}" TextWrapping="Wrap" />
               <TextBlock Classes="technicalDetail" Text="{Binding LoadedReport.PrimaryIssue.Title}" TextWrapping="Wrap" />
             </StackPanel>
 

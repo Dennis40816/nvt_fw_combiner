@@ -123,7 +123,7 @@ public sealed partial class XamlControlStyleContractTests
         Assert.Contains("Classes.verified=\"{Binding IsSemanticStateVerified}\"", slotCard, StringComparison.Ordinal);
         Assert.Contains("Classes.warning=\"{Binding IsSemanticStateWarning}\"", slotCard, StringComparison.Ordinal);
         Assert.Contains("Stretch=\"Uniform\"", slotCard, StringComparison.Ordinal);
-        Assert.Contains("ToolTip.Tip=\"{Binding SemanticStateAutomationText}\"", slotCard, StringComparison.Ordinal);
+        Assert.Contains("<views:IssueDetailsCard DataContext=\"{Binding IssueCard}\"", slotCard, StringComparison.Ordinal);
         Assert.Contains("Classes.optional=\"{Binding IsOptional}\"", slotCard, StringComparison.Ordinal);
         Assert.Contains("Classes=\"compactBadge slotBadge firmwareSlotRequirement availableInput\"", slotCard, StringComparison.Ordinal);
         Assert.Contains("Content=\"{Binding RequirementLabel}\"", slotCard, StringComparison.Ordinal);

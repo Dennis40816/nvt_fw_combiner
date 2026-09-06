@@ -35,7 +35,7 @@ public sealed partial class XamlControlStyleContractTests
         string panels = ReadPresentationFile("Resources/MainWindowReportPanels.axaml");
 
         Assert.Contains("IsExpanded=\"{Binding LoadedReport.HasPrimaryIssue}\"", panels, StringComparison.Ordinal);
-        Assert.Contains("Text=\"{Binding LoadedReport.PrimaryIssue.Detail}\"", panels, StringComparison.Ordinal);
+        Assert.Contains("Text=\"{Binding LoadedReport.PrimaryIssue.IssueDescription}\"", panels, StringComparison.Ordinal);
         Assert.Contains("Text=\"{Binding LoadedReport.PrimaryIssue.Title}\"", panels, StringComparison.Ordinal);
         Assert.Contains("Text=\"{Binding LoadedReport.PrimaryIssue.Meta}\"", panels, StringComparison.Ordinal);
         Assert.Contains("Text=\"{Binding LoadedReport.OutcomeDetail}\"", panels, StringComparison.Ordinal);

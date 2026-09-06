@@ -131,7 +131,8 @@ public sealed partial class CtrlRamWorkflowTests
         Assert.True(baseSlot.HasSemanticState);
         Assert.Equal(FirmwareSlotSemanticState.Error, baseSlot.SemanticState);
         Assert.Equal("Error", baseSlot.SemanticStateLabel);
-        Assert.Equal($"Error: {diagnostic}", baseSlot.SemanticStateAutomationText);
+        Assert.Contains(diagnostic, baseSlot.SemanticStateAutomationText, StringComparison.Ordinal);
+        Assert.Equal(baseSlot.IssueCard!.AutomationText, baseSlot.SemanticStateAutomationText);
     }
 
     /// <summary>A valid target-family base alone reports discovery without fabricating terminal verification.</summary>

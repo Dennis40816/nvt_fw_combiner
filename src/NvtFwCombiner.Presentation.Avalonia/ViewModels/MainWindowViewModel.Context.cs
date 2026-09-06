@@ -154,8 +154,10 @@ internal sealed partial class MainWindowViewModel
         OnPropertyChanged(nameof(Merge.MergeReadinessStatus));
         OnPropertyChanged(nameof(HasMergeBuildBlocker));
         OnPropertyChanged(nameof(MergeBuildBlockerText));
+        OnPropertyChanged(nameof(MergeBuildBlockerCard));
         OnPropertyChanged(nameof(HasReplaceBuildBlocker));
         OnPropertyChanged(nameof(ReplaceBuildBlockerText));
+        OnPropertyChanged(nameof(ReplaceBuildBlockerCard));
     }
 
 }

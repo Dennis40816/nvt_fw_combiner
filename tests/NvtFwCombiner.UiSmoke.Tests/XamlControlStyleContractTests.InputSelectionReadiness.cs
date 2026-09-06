@@ -17,7 +17,7 @@ public sealed partial class XamlControlStyleContractTests
             slotCard,
             StringComparison.Ordinal);
         Assert.Contains(
-            "ToolTip.Tip=\"{Binding SemanticStateAutomationText}\"",
+            "<views:IssueDetailsCard DataContext=\"{Binding IssueCard}\"",
             slotCard,
             StringComparison.Ordinal);
         Assert.Contains(

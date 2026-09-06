@@ -1,0 +1,90 @@
+<UserControl x:Class="NvtFwCombiner.Presentation.Avalonia.Views.IssueDetailsCard"
+             xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:NvtFwCombiner.Presentation.Avalonia.ViewModels"
+             x:DataType="vm:IssueCardViewModel" IsHitTestVisible="False">
+  <UserControl.Styles>
+    <Style Selector="Border.icDetailCard">
+      <Setter Property="Padding" Value="16" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="Width" Value="332" />
+      <Setter Property="BoxShadow" Value="{DynamicResource NfcWorkflowCardPressedShadow}" />
+    </Style>
+    <Style Selector="Border.icDetailCard.warning">
+      <Setter Property="Width" Value="300" />
+    </Style>
+    <Style Selector="Border.icDetailHeroIcon">
+      <Setter Property="Width" Value="40" />
+      <Setter Property="Height" Value="40" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="Background" Value="{DynamicResource NfcDangerSurfaceBrush}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource NfcRequiredMissingBorderBrush}" />
+    </Style>
+    <Style Selector="Border.icDetailHeroIcon.warning">
+      <Setter Property="Background" Value="{DynamicResource NfcWarningSurfaceBrush}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource NfcWarningBorderBrush}" />
+    </Style>
+    <Style Selector="Path.icDetailHeroGlyph">
+      <Setter Property="Width" Value="24" />
+      <Setter Property="Height" Value="24" />
+      <Setter Property="Stroke" Value="{DynamicResource NfcCriticalBorderBrush}" />
+      <Setter Property="StrokeThickness" Value="1.8" />
+    </Style>
+    <Style Selector="Path.icDetailHeroGlyph.warning">
+      <Setter Property="Stroke" Value="{DynamicResource NfcWarningAccentStrongBrush}" />
+    </Style>
+    <Style Selector="Path.icDetailRowIcon.error">
+      <Setter Property="Stroke" Value="{DynamicResource NfcCriticalBorderBrush}" />
+    </Style>
+    <Style Selector="StackPanel.issueCardSections, StackPanel.issueCardRows">
+      <Setter Property="Spacing" Value="{DynamicResource NfcSpace16}" />
+    </Style>
+    <Style Selector="StackPanel.issueCardSections.build, StackPanel.issueCardRows.build">
+      <Setter Property="Spacing" Value="{DynamicResource NfcSpace8}" />
+    </Style>
+  </UserControl.Styles>
+  <Grid RowDefinitions="Auto,Auto,Auto" Margin="4">
+  <Path Width="20" Height="10" Margin="24,0,24,0" HorizontalAlignment="Left" IsVisible="{Binding !IsBuildStatus}"
+        Data="M0 10L10 0L20 10" Stretch="Fill" Fill="{DynamicResource NfcSurfaceBrush}"
+        Stroke="{DynamicResource NfcAccentBorderLightBrush}" StrokeThickness="1" />
+  <Border Grid.Row="1" Classes="icDetailCard" Classes.error="{Binding IsError}" Classes.warning="{Binding !IsError}"
+          MaxWidth="360">
+    <StackPanel Classes="issueCardSections" Classes.build="{Binding IsBuildStatus}">
+      <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="{DynamicResource NfcSpace12}">
+        <Border Classes="icDetailHeroIcon" Classes.warning="{Binding !IsError}">
+          <Path Classes="icDetailHeroGlyph" Classes.warning="{Binding !IsError}" Data="{Binding IconPath}" Stretch="Uniform" />
+        </Border>
+        <StackPanel Grid.Column="1" Spacing="{DynamicResource NfcSpace2}" VerticalAlignment="Center">
+          <TextBlock Classes="captionText" Text="{Binding Caption}" TextWrapping="Wrap" />
+          <TextBlock FontWeight="SemiBold" FontSize="{DynamicResource NfcFontSize14}" Text="{Binding Subject}" TextWrapping="Wrap" />
+        </StackPanel>
+        <Label Grid.Column="2" Classes="compactBadge neutralBadge" Padding="8,0" BorderThickness="1" Content="{Binding AdditionalBlockerBadge}"
+               IsVisible="{Binding HasAdditionalBlockers}" VerticalAlignment="Center" />
+      </Grid>
+      <Border Height="1" Background="{DynamicResource NfcBorderMutedBrush}" />
+      <StackPanel Classes="issueCardRows" Classes.build="{Binding IsBuildStatus}">
+        <Grid ColumnDefinitions="18,*" ColumnSpacing="{DynamicResource NfcSpace12}" MinHeight="20" IsVisible="{Binding HasImpact}">
+          <Path Classes="icDetailRowIcon" Classes.error="{Binding IsError}" Data="{Binding ImpactIconPath}" Stretch="Uniform" />
+          <TextBlock Grid.Column="1" Text="{Binding Impact}" TextWrapping="Wrap" />
+        </Grid>
+        <Grid ColumnDefinitions="18,*" ColumnSpacing="{DynamicResource NfcSpace12}" MinHeight="20">
+          <Path Classes="icDetailRowIcon" Data="M5 2H13L19 8V22H5Z M13 2V8H19 M8 12H16 M8 16H16" Stretch="Uniform" />
+          <TextBlock Grid.Column="1" Text="{Binding Summary}" TextWrapping="Wrap" />
+        </Grid>
+        <Grid ColumnDefinitions="18,*" ColumnSpacing="{DynamicResource NfcSpace12}" MinHeight="20" IsVisible="{Binding HasAction}">
+          <Path Classes="icDetailRowIcon" Data="M14 3A6 6 0 0 0 7 10L2 15A3 3 0 0 0 6 19L11 14A6 6 0 0 0 18 7L14 11L10 7Z" Stretch="Uniform" />
+          <TextBlock Grid.Column="1" Text="{Binding Action}" TextWrapping="Wrap" />
+        </Grid>
+        <Grid ColumnDefinitions="18,*" ColumnSpacing="{DynamicResource NfcSpace12}" MinHeight="20" IsVisible="{Binding HasAdditionalBlockers}">
+          <Path Classes="icDetailRowIcon" Data="M3 5H4 M8 5H21 M3 12H4 M8 12H21 M3 19H4 M8 19H21" Stretch="Uniform" />
+          <TextBlock Grid.Column="1" Text="{Binding AdditionalBlockerText}" TextWrapping="Wrap" />
+        </Grid>
+      </StackPanel>
+      <TextBlock Margin="0,8,0,0" FontSize="{DynamicResource NfcFontSize11}" FontFamily="{DynamicResource NfcTechnicalFontFamily}"
+                 Text="{Binding DiagnosticCode}" IsVisible="{Binding HasDiagnosticCode}" TextWrapping="Wrap" />
+    </StackPanel>
+  </Border>
+  <Path Grid.Row="2" Width="20" Height="10" Margin="24,0,24,0" HorizontalAlignment="Right" IsVisible="{Binding IsBuildStatus}"
+        Data="M0 0L10 10L20 0" Stretch="Fill" Fill="{DynamicResource NfcSurfaceBrush}"
+        Stroke="{DynamicResource NfcAccentBorderLightBrush}" StrokeThickness="1" />
+  </Grid>
+</UserControl>

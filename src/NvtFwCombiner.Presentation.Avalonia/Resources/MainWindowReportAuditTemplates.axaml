@@ -300,12 +300,8 @@
                 </Grid>
               </Border>
 
-              <Border Classes="compactSurface contentPanel" IsVisible="{Binding LoadedReport.HasIssues}">
+              <Border Padding="0" IsVisible="{Binding LoadedReport.HasIssues}" AutomationProperties.Name="{Binding Text.IssuesAndWarningsTitle}">
                 <StackPanel Spacing="10">
-                  <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
-                    <TextBlock Classes="panelTitle" Text="{Binding Text.IssuesAndWarningsTitle}" />
-                    <Label Grid.Column="1" Classes="compactBadge neutralBadge reportBadge review" Content="{Binding LoadedReport.IssueCount}" />
-                  </Grid>
                   <ItemsControl ItemsSource="{Binding LoadedReport.IssuePage.Items}">
                     <ItemsControl.ItemTemplate>
                       <StaticResource ResourceKey="ReportIssueRowTemplate" />

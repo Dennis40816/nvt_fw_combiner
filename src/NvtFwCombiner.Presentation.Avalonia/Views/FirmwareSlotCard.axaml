@@ -44,8 +44,22 @@
                               Classes.pendingInput="{Binding IsSemanticStatePendingInput}"
                               Classes.verified="{Binding IsSemanticStateVerified}" Classes.warning="{Binding IsSemanticStateWarning}"
                               Focusable="True" IsChecked="{Binding IsSemanticStateDetailExpanded}"
-                              IsVisible="{Binding HasSemanticState}" ToolTip.Tip="{Binding SemanticStateAutomationText}"
+                              IsVisible="{Binding HasSemanticState}" ToolTip.ShowDelay="250"
+                              ToolTip.Placement="BottomEdgeAlignedLeft"
                               VerticalContentAlignment="Center">
+                  <ToolTip.Tip>
+                    <ToolTip IsHitTestVisible="False" Padding="0" MaxWidth="360" Background="Transparent" BorderThickness="0">
+                      <StackPanel>
+                        <Border IsVisible="{Binding HasIssueCard}">
+                          <views:IssueDetailsCard DataContext="{Binding IssueCard}" />
+                        </Border>
+                        <Border Padding="8" IsVisible="{Binding !HasIssueCard}" Background="{DynamicResource NfcSurfaceBrush}"
+                                BorderBrush="{DynamicResource NfcBorderBrush}" BorderThickness="1" CornerRadius="{DynamicResource NfcCompactCornerRadius}">
+                          <TextBlock Text="{Binding SemanticStateAutomationText}" MaxWidth="340" TextWrapping="Wrap" />
+                        </Border>
+                      </StackPanel>
+                    </ToolTip>
+                  </ToolTip.Tip>
                   <StackPanel Orientation="Horizontal" Spacing="6">
                     <Path Width="16" Height="16" Classes="slotStateIcon"
                           Data="{Binding SemanticStateIconPathData}" Stretch="Uniform" />

@@ -254,6 +254,8 @@ internal sealed partial class ShellTextResources
                 InputArtifactInspectionIssueCodes.AbVersionMetadataUnknown) => SelectLanguage(
                 "Warning: version metadata is Unknown; Build remains available.",
                 "警告：版本資訊為 Unknown；仍可執行 Build。"),
+            AuthoringSlotLifecycle.Warning when GetInputIssueHelp(status.InspectionIssueCode ?? string.Empty, "warning") is { } help =>
+                $"{help.Detail}\n{SelectLanguage("Diagnostic code", "診斷代碼")}: {status.InspectionIssueCode}",
             AuthoringSlotLifecycle.Warning => SelectLanguage(
                 $"Warning: profile content check {status.InspectionIssueCode}; review before Build.",
                 $"警告：profile 內容檢查 {status.InspectionIssueCode}；Build 前請確認。"),

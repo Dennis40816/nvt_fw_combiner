@@ -186,17 +186,19 @@ internal sealed partial class MergePresentationViewModel
 
     public bool CanBuildMerge => CanRunMerge();
 
-    public CapabilityActionBlocker? PrimaryBuildBlocker => SelectedMergeMode switch
+    public CapabilityActionBlocker? PrimaryBuildBlocker => BuildAvailability.PrimaryBlocker;
+
+    public CapabilityActionAvailability BuildAvailability => SelectedMergeMode switch
     {
-        GeneralMergeMode => ActiveSessionBuildBlockerResolver.Resolve(
+        GeneralMergeMode => ActiveSessionBuildBlockerResolver.ResolveBuildAvailability(
             _generalMergeSession.CurrentSnapshot,
             GeneralMergeMode,
             _generalMergeActionReadiness),
-        AbCodeMergeMode => ActiveSessionBuildBlockerResolver.Resolve(
+        AbCodeMergeMode => ActiveSessionBuildBlockerResolver.ResolveBuildAvailability(
             _abMergeSession.CurrentSnapshot,
             AbCodeMergeMode,
             _abMergeActionReadiness),
-        _ => ActiveSessionBuildBlockerResolver.Resolve(
+        _ => ActiveSessionBuildBlockerResolver.ResolveBuildAvailability(
             _standardMergeSession.CurrentSnapshot,
             NormalMergeMode),
     };
@@ -412,6 +414,7 @@ internal sealed partial class MergePresentationViewModel
     {
         OnPropertyChanged(nameof(CanBuildMerge));
         OnPropertyChanged(nameof(PrimaryBuildBlocker));
+        OnPropertyChanged(nameof(BuildAvailability));
         OnPropertyChanged(nameof(MergeReadinessStatus));
     }
 

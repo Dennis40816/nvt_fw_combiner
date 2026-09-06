@@ -5,6 +5,26 @@ namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
 internal sealed partial class ReportReviewViewModel
 {
+    private static string CreateIssueSummary(IReadOnlyList<ReportLineViewModel> issues, ShellLanguage language)
+    {
+        const int summaryLimit = 5;
+        ShellTextResources text = ShellTextResources.For(language);
+        IEnumerable<string> lines = issues.Take(summaryLimit).Select(issue =>
+        {
+            string severity = string.Equals(issue.Severity, "info", StringComparison.OrdinalIgnoreCase)
+                ? T(language, "Info", "資訊")
+                : IsWarning(issue) ? T(language, "Warning", "警告") : T(language, "Error", "錯誤");
+            string description = issue.IssueSummary.Length > 0 ? issue.IssueSummary
+                : text.GetInputIssueHelp(issue.Title, issue.Severity)?.Title ?? Shorten(issue.Detail, 160);
+            return $"{severity}: {description}";
+        });
+        return string.Join(Environment.NewLine, issues.Count > summaryLimit
+            ? lines.Append(T(language,
+                FormattableString.Invariant($"+{issues.Count - summaryLimit} more; see Issues for the complete list."),
+                FormattableString.Invariant($"另有 {issues.Count - summaryLimit} 項；完整清單請見問題頁。")))
+            : lines);
+    }
+
     internal static string CreateStatus(IReadOnlyList<ReportLineViewModel> issues, ShellLanguage language)
     {
         int blockingIssueCount = CountBlockingIssues(issues);
@@ -196,7 +216,8 @@ internal sealed partial class ReportReviewViewModel
                     language,
                     "Select at least one region-specific CtrlRAM BIN in an available replacement slot, then run Build again.",
                     "請至少在可用的 replacement slot 選擇一個區域專用 CtrlRAM BIN，再重新建立。"),
-            _ => T(language, "Fix the reported issue, then run Build again.", "修正回報問題後再重新建立。"),
+            _ => ShellTextResources.For(language).GetInputIssueHelp(issue.Title, issue.Severity)?.Detail
+                ?? T(language, "Fix the reported issue, then run Build again.", "修正回報問題後再重新建立。"),
         };
     }
 

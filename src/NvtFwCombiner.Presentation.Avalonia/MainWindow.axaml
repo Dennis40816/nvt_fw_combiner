@@ -369,23 +369,28 @@
             </Grid>
           </Button>
           <Border
-              Width="24"
-              Height="24"
-              Classes="warningSurface buildBlockerBadge"
+              x:Name="MergeBuildBlockerTarget"
+              Background="Transparent"
+              Classes="buildBlockerBadge"
               Focusable="True"
-              HorizontalAlignment="Right"
-              VerticalAlignment="Top"
               AutomationProperties.HelpText="{Binding MergeBuildBlockerText}"
               AutomationProperties.Name="{Binding MergeBuildBlockerText}"
               behaviors:FocusToolTipBehavior.IsEnabled="True"
               IsVisible="{Binding HasMergeBuildBlocker}"
-              ToolTip.Tip="{Binding MergeBuildBlockerText}">
-            <TextBlock
+              ToolTip.ShowDelay="250" ToolTip.Placement="TopEdgeAlignedRight">
+            <ToolTip.Tip>
+              <ToolTip IsHitTestVisible="False" Padding="0" MaxWidth="360" Background="Transparent" BorderThickness="0">
+                <views:IssueDetailsCard DataContext="{Binding MergeBuildBlockerCard}" />
+              </ToolTip>
+            </ToolTip.Tip>
+            <Border Width="24" Height="24" Classes="warningSurface" HorizontalAlignment="Right" VerticalAlignment="Top">
+              <TextBlock
                 HorizontalAlignment="Center"
                 VerticalAlignment="Center"
                 FontWeight="Bold"
                 Foreground="{DynamicResource NfcWarningTextBrush}"
                 Text="!" />
+            </Border>
           </Border>
         </Grid>
         <Grid IsVisible="{Binding IsReplaceVisible}">
@@ -409,23 +414,28 @@
             </Grid>
           </Button>
           <Border
-              Width="24"
-              Height="24"
-              Classes="warningSurface buildBlockerBadge"
+              x:Name="ReplaceBuildBlockerTarget"
+              Background="Transparent"
+              Classes="buildBlockerBadge"
               Focusable="True"
-              HorizontalAlignment="Right"
-              VerticalAlignment="Top"
               AutomationProperties.HelpText="{Binding ReplaceBuildBlockerText}"
               AutomationProperties.Name="{Binding ReplaceBuildBlockerText}"
               behaviors:FocusToolTipBehavior.IsEnabled="True"
               IsVisible="{Binding HasReplaceBuildBlocker}"
-              ToolTip.Tip="{Binding ReplaceBuildBlockerText}">
-            <TextBlock
+              ToolTip.ShowDelay="250" ToolTip.Placement="TopEdgeAlignedRight">
+            <ToolTip.Tip>
+              <ToolTip IsHitTestVisible="False" Padding="0" MaxWidth="360" Background="Transparent" BorderThickness="0">
+                <views:IssueDetailsCard DataContext="{Binding ReplaceBuildBlockerCard}" />
+              </ToolTip>
+            </ToolTip.Tip>
+            <Border Width="24" Height="24" Classes="warningSurface" HorizontalAlignment="Right" VerticalAlignment="Top">
+              <TextBlock
                 HorizontalAlignment="Center"
                 VerticalAlignment="Center"
                 FontWeight="Bold"
                 Foreground="{DynamicResource NfcWarningTextBrush}"
                 Text="!" />
+            </Border>
           </Border>
         </Grid>
     </StackPanel>

@@ -410,9 +410,13 @@ public sealed class ModeSelectorBindingTests
         [
             nameof(MergePresentationViewModel.CanBuildMerge),
             nameof(MergePresentationViewModel.PrimaryBuildBlocker),
+            nameof(MergePresentationViewModel.BuildAvailability),
             nameof(MergePresentationViewModel.MergeReadinessStatus),
         ];
 
+        // The complete blocker list and its primary projection share one readiness notification.
+        Assert.Equal(changes.Count(name => name == nameof(MergePresentationViewModel.PrimaryBuildBlocker)),
+            changes.Count(name => name == nameof(MergePresentationViewModel.BuildAvailability)));
         Assert.Empty(changes.Except(allowedCommandStateChanges, StringComparer.Ordinal));
         Assert.DoesNotContain(nameof(MergePresentationViewModel.MergeModeChoices), changes);
         Assert.DoesNotContain(nameof(MergePresentationViewModel.SelectedMergeMode), changes);
@@ -428,6 +432,7 @@ public sealed class ModeSelectorBindingTests
         [
             nameof(ReplacePresentationViewModel.CanBuildReplace),
             nameof(ReplacePresentationViewModel.PrimaryBuildBlocker),
+            nameof(ReplacePresentationViewModel.BuildAvailability),
             nameof(ReplacePresentationViewModel.ReplaceReadinessStatus),
             nameof(ReplacePresentationViewModel.ReplaceSelectionCountLabel),
             nameof(ReplacePresentationViewModel.ReplaceSelectionSubtitle),
@@ -438,6 +443,8 @@ public sealed class ModeSelectorBindingTests
             nameof(ReplacePresentationViewModel.HasReplaceSelectionMissingRows),
         ];
 
+        Assert.Equal(changes.Count(name => name == nameof(ReplacePresentationViewModel.PrimaryBuildBlocker)),
+            changes.Count(name => name == nameof(ReplacePresentationViewModel.BuildAvailability)));
         Assert.Empty(changes.Except(allowedCommandStateChanges, StringComparer.Ordinal));
         Assert.DoesNotContain(nameof(ReplacePresentationViewModel.ReplaceModeChoices), changes);
         Assert.DoesNotContain(nameof(ReplacePresentationViewModel.SelectedReplaceMode), changes);

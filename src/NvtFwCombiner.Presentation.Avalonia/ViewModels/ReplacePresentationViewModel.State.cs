@@ -181,17 +181,19 @@ internal sealed partial class ReplacePresentationViewModel
         (!IsCtrlRamReplaceModeSelected || HasCurrentCtrlRamActionReadiness(build: true)) &&
         (!IsGeneralReplaceModeSelected || _generalReplaceActionReadiness?.Build.IsAvailable == true);
 
-    public CapabilityActionBlocker? PrimaryBuildBlocker => SelectedReplaceMode switch
+    public CapabilityActionBlocker? PrimaryBuildBlocker => BuildAvailability.PrimaryBlocker;
+
+    public CapabilityActionAvailability BuildAvailability => SelectedReplaceMode switch
     {
-        CtrlRamReplaceMode => ActiveSessionBuildBlockerResolver.Resolve(
+        CtrlRamReplaceMode => ActiveSessionBuildBlockerResolver.ResolveBuildAvailability(
             _ctrlRamReplaceSession.CurrentSnapshot,
             CtrlRamReplaceMode,
             _ctrlRamActionReadiness),
-        GeneralReplaceMode => ActiveSessionBuildBlockerResolver.Resolve(
+        GeneralReplaceMode => ActiveSessionBuildBlockerResolver.ResolveBuildAvailability(
             _generalReplaceSession.CurrentSnapshot,
             GeneralReplaceMode,
             _generalReplaceActionReadiness),
-        _ => ActiveSessionBuildBlockerResolver.Resolve(
+        _ => ActiveSessionBuildBlockerResolver.ResolveBuildAvailability(
             _dpReplaceSession.CurrentSnapshot,
             DpReplaceMode),
     };
@@ -386,6 +388,7 @@ internal sealed partial class ReplacePresentationViewModel
         BuildReplaceCommand.NotifyCanExecuteChanged();
         OnPropertyChanged(nameof(CanBuildReplace));
         OnPropertyChanged(nameof(PrimaryBuildBlocker));
+        OnPropertyChanged(nameof(BuildAvailability));
         OnPropertyChanged(nameof(ReplaceReadinessStatus));
         RefreshSelectionState();
     }

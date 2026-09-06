@@ -124,7 +124,7 @@ internal static class FirmwareInspectionProjection
             : status.InspectionLifecycle == AuthoringSlotLifecycle.Warning
                 ? FirmwareInputInspectionSeverity.Warning
                 : FirmwareInputInspectionSeverity.Blocking;
-        slot.SetInputInspection(severity, text.GetInputSlotInspectionStatus(status));
+        slot.SetInputInspection(severity, text.GetInputSlotInspectionStatus(status), status);
     }
 
     internal static void ApplyAuthoringIssues(

@@ -78,11 +78,12 @@ internal sealed partial class ReportReviewViewModel
         OutputDifferences = outputDifferences.Rows;
         OutputDifferenceGroups = outputDifferences.Groups;
         Issues = issues;
+        SummaryIssueDescriptions = CreateIssueSummary(issues, language);
         PrimaryIssue = issues.FirstOrDefault(issue => !IsWarning(issue)) ?? ReportLineViewModel.Empty;
         InputGroups = CreateInputGroups(inputs, language);
         OperationFlow = CreateOperationFlow(inputs, operations, outputFileName, status, language);
         OutcomeTitle = CreateOutcomeTitle(status, issues, language);
-        OutcomeDetail = CreateOutcomeDetail(output, issues, compositionKind, outputDifferences, language);
+        OutcomeDetail = CreateOutcomeDetail(IsOutputNotGenerated ? string.Empty : output, issues, compositionKind, outputDifferences, language);
         OutcomeMeta = CreateOutcomeMeta(issues, language);
         OutcomeIcon = HasPrimaryIssue || HasWarnings ? "!" : "✓";
         OutcomeAccessibilityLabel = HasPrimaryIssue

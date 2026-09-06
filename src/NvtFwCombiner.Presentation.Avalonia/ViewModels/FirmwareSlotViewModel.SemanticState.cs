@@ -1,11 +1,23 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using NvtFwCombiner.Application.Metadata;
+using NvtFwCombiner.Application.Authoring;
 using System.Globalization;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
 internal sealed partial class FirmwareSlotViewModel
 {
+    private ShellTextResources _issueText = ShellTextResources.For(ShellLanguage.English);
+    private AuthoringInputSlotStatus? _inputIssueStatus;
+    internal string? InspectedSlotId => _inputIssueStatus?.SlotId;
+
+    public bool HasIssueCard => IsSemanticStateError || IsSemanticStateWarning;
+
+    public IssueCardViewModel? IssueCard => !HasIssueCard ? null
+        : !SelectionReadinessOwnsSemanticText && _inputIssueStatus is { } status
+            ? _issueText.CreateInputIssueCard(status, Title)
+            : _issueText.CreateIssueCard(Title, SemanticStateDetail, IsSemanticStateError);
+
     private string _checkingLabel = "Checking";
     private string _inspectedLabel = "Base inspected";
     private string _verifiedLabel = "Verified";
@@ -84,7 +96,7 @@ internal sealed partial class FirmwareSlotViewModel
             ? InputInspectionStatus
             : Description;
 
-    public string SemanticStateAutomationText => SelectionReadinessOwnsSemanticText
+    public string SemanticStateAutomationText => IssueCard is { } card ? card.AutomationText : SelectionReadinessOwnsSemanticText
         ? SelectionReadinessAutomationText
         : string.Join(": ", new[] { SemanticStateLabel, SemanticStateDetail }.Where(static value => value.Length > 0));
 
@@ -119,6 +131,7 @@ internal sealed partial class FirmwareSlotViewModel
     {
         ArgumentNullException.ThrowIfNull(text);
 
+        _issueText = text;
         _checkingLabel = text.FirmwareSlotCheckingLabel;
         _inspectedLabel = text.CtrlRamBaseInspectedLabel;
         _verifiedLabel = text.FirmwareSlotVerifiedLabel;
@@ -138,6 +151,7 @@ internal sealed partial class FirmwareSlotViewModel
 
     partial void OnFilePathChanged(string? value)
     {
+        _inputIssueStatus = null;
         ClearCurrentInspectionProjection();
         IsSemanticStateDetailExpanded = false;
         NotifySemanticStateChanged();
@@ -145,6 +159,8 @@ internal sealed partial class FirmwareSlotViewModel
 
     private void NotifySemanticStateChanged()
     {
+        OnPropertyChanged(nameof(HasIssueCard));
+        OnPropertyChanged(nameof(IssueCard));
         OnPropertyChanged(nameof(SemanticState));
         OnPropertyChanged(nameof(HasSemanticState));
         OnPropertyChanged(nameof(IsRequirementLabelVisible));
