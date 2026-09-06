@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 2,
+  "taskId": "UI-114-AB-DP-METADATA-01",
+  "capability": "Display independent AB DP bank Version and Jira Index facts in the existing responsive slot card",
+  "integrationBase": "fffc4bacd67d9b3f357e4919467de72256946311",
+  "risk": "R1",
+  "kind": "ui",
+  "state": "design-active",
+  "mutablePaths": [
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/FirmwareInspectionSession.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/Resources/MainWindowSharedTemplates.axaml"
+  ],
+  "implementationOwner": "primary-agent",
+  "searchEvidence": [
+    "2026-09-06 UI-114-CTRLRAM-SELECTOR-10 reuses this record's sole MainWindowSharedTemplates.axaml admission. Existing FirmwareSlotGroupTemplate remains the only group owner: give its existing Expander a scoped class, accessible group title/summary, and 5px header-line separation. Remove only the theme-created intermediate content outline through the scoped existing style owner, not a duplicated group control. Preserve all existing AB fact edits and every group/slot binding.",
+    "Owner approved the final screenshot-based four-field proposal and requested implementation and an actual screenshot. Scope and reference: docs/ui/v1.1.x-ab-dp-metadata-layout-handoff.md#approved-reference. Release base v1.1.3 and origin/main both identify e5202e2707d272076d24216222188d478314a07d, tree 8f8577878956fe24d264b97685cd3e95f937a817; branch 1.1.4 preserves existing documentation edits.",
+    "CodeGraph inspection of FirmwareInspectionProjection.ApplyAbInputFacts and FormatAbVersion identifies the sole AB slot-fact projection and its callers in WorkflowSessionPresentationViewModel firmware inspection and relocalization. CompiledInputVersionObservation already owns independent Kind, IsKnown, Major, Minor and optional TrackerId. No firmware or metadata parser changes are needed.",
+    "UiCompositionRunner.GetDpFirmwareSlotFacts already uses independent DP Version and optional Jira Index with zero Jira omitted. FirmwareSlotFactViewModel, StateAutomationText and FirmwareSlotInformationFactTemplate own shared facts, trimming, tooltips and assistive label/value text. FirmwareSlotCard already uses four desktop and two compact columns below 820 pixels. Reuse all of these owners, bind existing StateAutomationText on the fact container, and remove the now-unused combined formatter. No new model, layout, breakpoint or duplicate decoder.",
+    "Existing tests: ShellViewModelTests.Merge.AbMergeInputsInspectOnLoadAndPreviewThroughSharedRuntime protects load, readiness, TP facts, naming and Build. XamlControlStyleContractTests.FirmwareSlotCompact and InputLayout protect shared geometry. New scoped projection and rendered-control regressions cover four ordered facts, missing/zero trackers, unknown banks, localization, full values/tooltips, label/value accessibility and unchanged identity/actions in Light/Dark desktop and compact layouts. No changes to tests outside UI smoke or to certified Golden inputs/expectations."
+  ],
+  "semanticOwner": "Presentation.FirmwareInspectionProjection translates Application.CompiledInputVersionObservation; FirmwareSlotFactViewModel and the shared fact template own presentation",
+  "terminalContract": "Known DP banks display DP1 Version, optional DP1 Jira Index, DP2 Version, optional DP2 Jira Index; unknown Version help is localized and no Jira is invented. TP labels/values remain unchanged. Reuse existing identity/actions/card geometry, four/two columns, tooltip and selection state. CMD Page decoding, FWConfig, support/admission, byte ranges, output naming and output bytes are unchanged. The same existing FirmwareInspectionSession file also passes the approved feedback batch's typed slot diagnostic to its localized card projection; it does not compute firmware facts or change lifecycle. Other feedback surfaces are owned by UI-114-STANDARD-FEEDBACK-02, Application evidence by UI-114-INPUT-DIAGNOSTICS-03. Narrow UI tests and actual full-page capture close the local items; complete integration/release verification remains at the frozen version boundary.",
+  "disposition": "extend-owner",
+  "designReview": {"reviewer": null, "outcome": "not-required", "evidence": "R1 bounded Presentation correction under the owner-approved reference; no upstream contract or firmware change."},
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": {"reviewer": null, "outcome": "pending", "evidence": ""}
+}

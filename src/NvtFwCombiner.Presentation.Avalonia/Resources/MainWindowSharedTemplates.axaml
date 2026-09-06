@@ -557,6 +557,7 @@
 
 <DataTemplate x:Key="FirmwareSlotInformationFactTemplate" DataType="vm:FirmwareSlotFactViewModel">
   <Border
+      AutomationProperties.Name="{Binding StateAutomationText}"
       Classes="firmwareSlotFact"
       Classes.error="{Binding IsError}"
       Classes.pendingInput="{Binding IsPendingInput}"

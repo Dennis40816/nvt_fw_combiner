@@ -54,16 +54,34 @@ internal static class FirmwareInspectionProjection
     {
         AbMergeInputFacts abInput = inspection.AbMergeFacts ??
             throw new ArgumentException("AB firmware facts require AB input facts.", nameof(inspection));
-        slot.SetFirmwareFacts(
-        [
-            .. abInput.Versions.Select(version => new FirmwareSlotFactViewModel(
-                ShellTextResources.GetAbVersionLabel(version.Kind),
-                !version.IsKnown
-                    ? text.FirmwareSlotUnknownValueLabel
-                    : FormatAbVersion(version),
+        List<FirmwareSlotFactViewModel> facts = [];
+        foreach (CompiledInputVersionObservation version in abInput.Versions)
+        {
+            bool isDp = version.Kind is CompiledInputVersionKind.DpA or CompiledInputVersionKind.DpB;
+            string bankLabel = ShellTextResources.GetAbVersionLabel(version.Kind);
+            string value = !version.IsKnown
+                ? text.FirmwareSlotUnknownValueLabel
+                : isDp
+                    ? DpVersionMetadata.FormatDisplayValue(
+                        FormattableString.Invariant($"{version.Major:X2}{version.Minor:X2}"))
+                    : FormattableString.Invariant($"T{version.Major:X2}-{version.Minor:X2}");
+            facts.Add(new FirmwareSlotFactViewModel(
+                isDp ? $"{bankLabel} Version" : bankLabel,
+                value,
                 !version.IsKnown ? FirmwareSlotFactState.Unknown : FirmwareSlotFactState.Ordinary,
                 !version.IsKnown ? text.FirmwareSlotUnknownValueLabel : null,
-                !version.IsKnown ? text.FirmwareSlotUnknownFactDetail : null)),
+                !version.IsKnown ? text.FirmwareSlotUnknownFactDetail : null));
+            if (isDp && version.TrackerId is > 0)
+            {
+                facts.Add(new FirmwareSlotFactViewModel(
+                    $"{bankLabel} Jira Index",
+                    FormattableString.Invariant($"AUTO_PRJ-{version.TrackerId}")));
+            }
+        }
+
+        slot.SetFirmwareFacts(
+        [
+            .. facts,
             // AB owns the bank-specific TP A/TP B version labels. Reuse the standard
             // typed FWConfig projection for the remaining per-input TP identity facts.
             .. UiCompositionRunner.GetFirmwareSlotFacts(inspection).Where(static fact =>
@@ -151,17 +169,6 @@ internal static class FirmwareInspectionProjection
         }
 
         return applied;
-    }
-
-    private static string FormatAbVersion(CompiledInputVersionObservation version)
-    {
-        string value = version.Kind is CompiledInputVersionKind.DpA or CompiledInputVersionKind.DpB
-            ? DpVersionMetadata.FormatDisplayValue(
-                FormattableString.Invariant($"{version.Major:X2}{version.Minor:X2}"))
-            : FormattableString.Invariant($"T{version.Major:X2}-{version.Minor:X2}");
-        return version.TrackerId is { } trackerId
-            ? $"{value} · AUTO_PRJ-{trackerId}"
-            : value;
     }
 
 }
