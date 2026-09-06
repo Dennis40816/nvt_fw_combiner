@@ -435,14 +435,13 @@ corrections first, then a broad real-screen inventory and reprioritization,
 followed by one-at-a-time implementation. The numbered rows split the existing
 scope into smaller steps, not additional features. A subsequent owner amendment
 moves CtrlRAM selector, Report-owned Load report, bundle primary-output rename
-and complete AB Dummy DP into the first phase. Steps 1-9 are now that initial
-queue, still implemented one at a time from the small corrections onward;
-step 10 performs the broad inventory and reprioritization. Steps 11-17 remain
-provisional until that inventory establishes dependencies and risk. Priority
+and complete AB Dummy DP into the first phase. The table below retains stable
+scope identifiers for those allocations; the later small-impact-first queue
+below supersedes its original execution order. Priority
 does not reclassify the delivery/firmware changes as small UI-only fixes or
 waive their existing owner decisions, review and Golden evidence.
 
-| Order | Workstream | Retained scope and acceptance boundary |
+| Scope ID | Workstream | Retained scope and acceptance boundary |
 | --- | --- | --- |
 | 1 | AB DP metadata | [Metadata handoff](../ui/v1.1.x-ab-dp-metadata-layout-handoff.md): DP1/DP2 Version and optional Jira Index layout, long/missing values, unknown-bank feedback and unused width. Reuse the shared four-/two-column facts layout. The AB IC selector/Mode correction already completed in `1.1.2` is not reopened. |
 | 2 | Standard Merge feedback | Locally implemented and verified. [Verification-feedback handoff](../ui/v1.1.x-standard-merge-input-verification-feedback-handoff.md): shared compact Error/Warning/disabled-Build cards; concise minimum size and actual repeated byte; consistent Report Summary plus exact facts/original diagnostics in Issues. The approved additive typed Application evidence extension is included. No change to severity, `BlocksBuild`, validation ownership or bytes; no pre-Build fabricated report. Actual screenshots and scoped test/Golden evidence are retained. |
@@ -462,6 +461,39 @@ waive their existing owner decisions, review and Golden evidence.
 | 15 | Session diagnostics | Privacy-filtered current-session diagnostics/history, separate from immutable run reports. Preserve existing diagnostic ownership and lifecycle rather than adding another history system. |
 | 16 | First-entry IC selection | [Navigation handoff section 1](../ui/post-v1.1.0-navigation-and-ctrlram-first-open-handoff.md#1-shared-first-entry-ic-selection): reuse Home/navigation/accepted-session admission when compatible accepted IC context is absent. Decide lifetime, invalidation, cross-workflow compatibility and Cancel/Back first; no second catalog, selection owner or UI-only admission. |
 | 17 | Test diagram and README | Complete the already allocated test architecture diagram and `tests/README.md` using retained `1.1.3` counts/timings. Label original `1.1.3` evidence versus later changes, and distinguish parallel lanes, serial dependencies, retries and waits; no new verifier or unnecessary rerun. |
+
+### Current remaining queue: small-impact work first
+
+Owner-approved resequencing (2026-09-06): completed scopes 1-8, including 5a,
+are retained in separate local commits through `ff074cd9`; they are not released
+or final-integration approved. Implement one bounded item, verify it, then
+commit that item before beginning the next. Previously recorded uncommitted
+evidence below describes its original observation, not today's Git state.
+
+The immediate request is **Dummy DP plus the test diagram/README**. Documentation
+can proceed independently while Dummy DP's firmware decisions and independent
+Golden evidence are resolved; an unresolved byte contract does not block the
+documentation item and does not authorize a cosmetic-only Dummy DP feature.
+
+| Remaining order | Scope | Boundary |
+| --- | --- | --- |
+| 1 | Test diagram / `tests/README.md` (17) | Reuse retained 1.1.3 counts/timings; show locations and actual serial/parallel dependencies without rerunning tests merely to document them. |
+| 2 | Report Changes local presentation (12) | Start with gutter, spacing, Original colors and address text; assess physical-section grouping separately before changing shared projections. |
+| 3 | Settings Version local presentation (13) | Start with existing typed information; obtain a full-page reference before proportion changes. |
+| 4 | DPI/high-contrast and Report import assessment | Verify genuine 125% behavior and missing/noncanonical Report fields. Record findings first; assessment is not blanket repair or support promotion. |
+| 5 | Broad screen inventory and reprioritization (10) | Use actual baseline/candidate screens to remove duplicates and order the remaining changes. |
+| 6 | Shared visual/theme corrections (11) | Change shared owners only after inventory identifies affected consumers and states. |
+| 7 | Memory Layout (14) | Retain typed section/address-space authority and review projection impact. |
+| 8 | First-entry IC selection (16) | Resolve accepted-context lifetime, invalidation and Cancel/Back before cross-page behavior changes. |
+| 9 | Session diagnostics (15) | Retain privacy, lifecycle and separation from immutable run reports. |
+
+Dummy DP (9) remains an explicitly requested active `1.1.4` firmware item;
+insert implementation once its write-range, header/integrity/postbuild and
+Golden contract is admitted. Its approved horizontal checkbox and pre-clear
+confirmation behavior are recorded in the [Dummy DP handoff](../ui/v1.1.x-ab-dummy-dp-handoff.md).
+Code-size, fixed-head integration review, combined regression, packaged UI
+observations and all required release Golden execution remain separate closure
+gates, not hidden completed tasks or reasons to rerun a full release per edit.
 
 Step 3 local evidence over `e5202e2707d272076d24216222188d478314a07d`:
 `dotnet test --no-restore` UI filter `FullyQualifiedName~SlotLoading` passes
