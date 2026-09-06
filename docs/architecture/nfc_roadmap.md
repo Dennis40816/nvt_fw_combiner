@@ -197,6 +197,24 @@ fresh-download verification complete as mandatory no-waiver gates.
 
 ## `1.1.3`: consolidated CI and release optimization
 
+Published closure (2026-09-06 Taiwan time): PR #426 merged the reviewed tree to
+`e5202e2707d272076d24216222188d478314a07d`; actual-source CI passed in 416 s.
+Release run `33974287659` published immutable `v1.1.3` with all 25 certified
+Golden outputs executed and public-download smoke passed, not skipped. The
+owner-authorized Codex approval kept the protected environment unchanged.
+Candidate execution took 545 s; original dispatch through public smoke took
+4,641 s including review reconciliation and approval waits, so the actual
+end-to-end run did not achieve a reduction. The
+[verification report](../references/verification-report.md#actual-timing-including-the-delay)
+owns the exact phase table, adjusted comparison and evidence limitations.
+The allocation and pre-freeze checkpoints below describe this completed scope;
+their then-pending gates are historical, not current blockers. The next planned
+version remains `1.1.4`; publication does not automatically start its backlog.
+Post-release owner amendment on 2026-09-06 assigns the newly assessed local
+full-verifier parallelization to `1.1.5` below. This supersedes the earlier
+all-CI/release-in-`1.1.3` allocation only for that follow-up; the published
+`1.1.3` implementation and evidence remain unchanged.
+
 Owner decision on 2026-09-05: complete all remaining CI/release optimizations
 allocated anywhere in `1.1.x` in `v1.1.3`; move the UI work previously assigned
 to `v1.1.3` to `v1.1.4`. The subsequent same-day owner resequencing below
@@ -270,7 +288,7 @@ immutable final-review record, not the last edit to the mixed current/historical
 plan. The original H1/H2 and exact H1-H4 package-source checks remain unchanged;
 current workflow fingerprint synchronization does not renew old certification.
 
-Latest local evidence on 2026-09-05:
+Pre-freeze local evidence on 2026-09-05 (final closure is linked above):
 
 | Check | Result |
 | --- | --- |
@@ -364,34 +382,110 @@ to `v1.1.3` by the current owner decision.
 Latest owner decision on 2026-09-05: consolidate all existing UI corrections
 formerly split across `1.1.4`-`1.1.12`, plus the retained theme audit, into
 `1.1.4`. This supersedes the earlier same-day decision to move only the
-former `1.1.3` UI. The owner delegated the remaining task allocation below;
-`1.1.3` CI/release work continues and receives none of these UI changes.
+former `1.1.3` UI. The owner delegated the remaining task allocation below.
+The published `1.1.3` CI/release scope includes none of these UI changes.
 The later owner amendment adds the AB Dummy DP checkbox and its complete
 firmware behavior to this same release; it is not a visual-only change.
+
+Current design checkpoint (2026-09-06): the owner requested improvement mockups
+before implementation and will approve the reference to be implemented. The
+owner clarified that proposals must start from an actually opened published
+`v1.1.3` app and captured full-page screenshots, not invented layouts. Preserve
+the observed shell, proportions and controls except for each approved correction.
+Start with screenshot-based visual proposals, not production UI edits; reference approval remains
+separate from unresolved navigation lifetime or Dummy DP firmware decisions.
+The owner subsequently approved the final screenshot-based AB DP four-field
+proposal for step 1; its baseline, approval scope and retained geometry are
+recorded in the [metadata handoff](../ui/v1.1.x-ab-dp-metadata-layout-handoff.md#approved-reference).
+Step 1 is now locally implemented and verified: 15 narrow tests and all 869 UI
+Smoke cases passed, scoped review passed, and actual desktop/compact captures
+are recorded in that handoff. It is not committed, integrated or published.
+This completion does not approve references for the other UI items.
+Step 2 was subsequently authorized, including an owner amendment to review input
+errors and lead Report Summary with plain-language descriptions. It is locally
+implemented and reviewed, including the later approved shared Error/Warning/
+disabled-Build cards and typed size/range/repeated-byte diagnostics: 912 UI Smoke
+cases passed, followed by 12 focused cases after the final tooltip-padding fix;
+1,395 Application and six diagnostic inspection cases also passed. The initial
+893 UI/30 inspection results remain dated evidence in the handoff. No firmware
+bytes or Build-readiness policy changed; a fresh NT51929 control output matches
+its certified Golden byte-for-byte. The
+[feedback handoff](../ui/v1.1.x-standard-merge-input-verification-feedback-handoff.md)
+owns the actual capture, code inventory and review evidence. It remains
+uncommitted, not integrated or published. That review also recorded a separate
+Report import assessment for step 7: noncanonical/missing report fields must not
+mislead users with a success label; parser/legacy admission is not changed in
+the localized-feedback batch.
+
+The owner also deferred test-architecture documentation to `1.1.4`: draw the
+current test items, source locations, test counts and parallel/serial dependencies
+across local verification, CI and release, and create `tests/README.md` with the
+retained `v1.1.3` per-item measured results. Distinguish test counts, command/job
+wall times, overlapping lanes, retries and queue/approval waits; label unmeasured
+stages explicitly. This documentation does not block `v1.1.3` or authorize test
+architecture changes, extra test runs or a separate documentation framework.
 
 Implement the following as bounded changes within one release, using the
 existing controls and semantic owners. This allocation does not approve a
 new visual reference, a state-lifetime decision, or a firmware/delivery
 contract change. Close those existing gates before the affected implementation.
 
-| Workstream | Retained scope and acceptance boundary |
-| --- | --- |
-| Session diagnostics and Version page | Privacy-filtered current-session diagnostics/history; version list from typed admitted Catalog `releaseNotes`; complete Settings Version-page proportion audit. Obtain owner approval of a full-page reference at exact viewports before changing width, column ratio, modal/page scale or minimum-size behavior. |
-| Shared visual/theme coverage | [Issue #291](https://github.com/Dennis40816/nvt_fw_combiner/issues/291): reproduce the recorded dark-theme baseline and audit Merge, Replace, Settings, Message Center, Report, Inspector, dialogs, menus, tooltips, cards and overlays. Cover normal/hover/focus/selected/disabled/checking/verified/warning/error states, Light/Dark/high contrast, token ownership, contrast and keyboard visibility. Reuse this common regression matrix across the corrections; do not turn it into an unrelated redesign. |
-| CtrlRAM selector | [Visual contract](../ui/v1.1.x-ctrlram-selector-visual-contract.md): common horizontal anchors, stable section/input outlines unaffected by hover, constrained-viewport vertical spacing and complete wrapped-title/filename height with badge gaps. The proposed reference remains pending approval; retain exact viewport, language, scale and accessibility evidence. |
-| First-entry IC selection | [Navigation handoff section 1](../ui/post-v1.1.0-navigation-and-ctrlram-first-open-handoff.md#1-shared-first-entry-ic-selection): reuse Home/navigation/accepted-session admission when a workflow lacks compatible accepted IC context. Decide selection lifetime, invalidation, cross-workflow compatibility and Cancel/Back behavior first; no second catalog, remembered-selection owner or UI-only admission rule. |
-| Memory Layout | Make each canonical section and its address-space/range boundaries explicit instead of flattening independent sections. Use typed Application-to-Presentation projections; no firmware facts, range authority or memory interpretation move into UI. |
-| AB DP metadata | [Metadata handoff](../ui/v1.1.x-ab-dp-metadata-layout-handoff.md): DP1/DP2 Version and optional Jira Index layout, long/missing values, unknown-bank feedback and unused width. The AB IC selector/Mode correction already completed in `1.1.2` is not reopened. |
-| Standard Merge feedback | [Verification-feedback handoff](../ui/v1.1.x-standard-merge-input-verification-feedback-handoff.md): show uniform-content warnings and useful localized range/finding/cause/next-step/Build-impact copy, without changing warning severity, `BlocksBuild`, validation ownership or firmware bytes. |
-| Report History | [History handoff](../ui/v1.1.x-report-history-usability-handoff.md): single-click cards, entry-only accessible delete action, full Raw JSON copy and Report-owned Load report entry. Preserve persistence/schema/capacity and existing cancel/latest-request/bulk-clear behavior. |
-| Report Changes | [Compare handoff](../ui/v1.1.x-report-changes-compare-handoff.md): scrollbar gutter, physical-section grouping, Light Original colors and localized address layout. Preserve raw runs/order/hash/Why/Result/replay and virtualization; no nested scroll owner or report-semantic change. |
-| Bundle primary-output rename | [Rename handoff](../ui/v1.1.x-bundle-primary-output-rename-handoff.md): editable primary filename while bundle output is enabled, independent folder name and consistent accepted override across report/receipt/Explorer/recent output. Retain R2 host-delivery review, collision/cancellation tests and unchanged bytes/automatic naming/other outputs. |
+Execution-order amendment (2026-09-06): the owner requests small, bounded
+corrections first, then a broad real-screen inventory and reprioritization,
+followed by one-at-a-time implementation. The numbered rows split the existing
+scope into smaller steps, not additional features. A subsequent owner amendment
+moves CtrlRAM selector, Report-owned Load report, bundle primary-output rename
+and complete AB Dummy DP into the first phase. Steps 1-9 are now that initial
+queue, still implemented one at a time from the small corrections onward;
+step 10 performs the broad inventory and reprioritization. Steps 11-17 remain
+provisional until that inventory establishes dependencies and risk. Priority
+does not reclassify the delivery/firmware changes as small UI-only fixes or
+waive their existing owner decisions, review and Golden evidence.
 
-Use this order inside the release: agree full-page/reference and interaction
-decisions; correct shared theme/control foundations; implement the independent
-selector/metadata/feedback/report changes; complete navigation and delivery
-contract changes; run the combined UI regression and packaged observation.
-Do not require a complete release cycle for each small UI change.
+| Order | Workstream | Retained scope and acceptance boundary |
+| --- | --- | --- |
+| 1 | AB DP metadata | [Metadata handoff](../ui/v1.1.x-ab-dp-metadata-layout-handoff.md): DP1/DP2 Version and optional Jira Index layout, long/missing values, unknown-bank feedback and unused width. Reuse the shared four-/two-column facts layout. The AB IC selector/Mode correction already completed in `1.1.2` is not reopened. |
+| 2 | Standard Merge feedback | Locally implemented and verified. [Verification-feedback handoff](../ui/v1.1.x-standard-merge-input-verification-feedback-handoff.md): shared compact Error/Warning/disabled-Build cards; concise minimum size and actual repeated byte; consistent Report Summary plus exact facts/original diagnostics in Issues. The approved additive typed Application evidence extension is included. No change to severity, `BlocksBuild`, validation ownership or bytes; no pre-Build fabricated report. Actual screenshots and scoped test/Golden evidence are retained. |
+| 3 | Perfect-family filename hint | Locally implemented and verified (2026-09-06). Suppress the filename-read IC mismatch hint when the compared ICs belong to the same declared complete Perfect family; retain it for other relationships, including partial/shared-fact families. [ADR 0041 amendment](../adr/0041-perfect-family-and-typed-shared-fact-relationships.md#ui-114-advisory-hint-amendment-accepted-2026-09-06-local-owner-approved-not-integrated) records the additive typed hint provenance: header/unknown-source hints retain existing behavior. Reuse the canonical relationship query, not filename similarity or a UI family table. IC admission, support, selected input and output bytes remain unchanged. |
+| 4 | Raw JSON copy | Locally implemented and verified. [History handoff](../ui/v1.1.x-report-history-usability-handoff.md#raw-copy-approved-reference-and-implementation--2026-09-06): approved copy icon inside the Raw text box (not its header), exact full JSON, shared failure-safe clipboard event, preserved selection/scrolling, localized accessible tooltip and keyboard/Escape behavior. Actual screenshot, 36/36 Report regression and final 9/9 scoped tests retained; not integrated/published. |
+| 5 | Report History open/delete | Locally implemented and verified (2026-09-06). [History handoff](../ui/v1.1.x-report-history-usability-handoff.md#history-action-implementation-and-evidence--2026-09-06): repaired commands, one-click/keyboard opening, centered issue count/trash and single-entry confirmation with Cancel/red Delete. Actual native captures, isolated close-flush/relaunch and 223/223 Report/navigation regression cases retained. Schema/capacity, loaded report and bulk clear remain unchanged; not integrated/published. |
+| 5a | Exit/navigation confirmation consistency | Locally implemented and verified. [Navigation handoff section 3](../ui/post-v1.1.0-navigation-and-ctrlram-first-open-handoff.md#3-exit-and-navigation-confirmation-consistency--2026-09-06): selected composition files, clean/dirty/pending Hex and explicitly loaded/pending Report JSON prompt before App close. Cancel preserves work and queues; automatic history restore alone does not prompt. Hex page-leave confirmation retains its document; existing composition navigation still activates before clearing. Shared modal style, safe Cancel focus, red Exit and topmost overlay; 258/258 scoped regressions and native capture retained. Not integrated/published. |
+| 6 | CtrlRAM selector | [Visual contract](../ui/v1.1.x-ctrlram-selector-visual-contract.md): Base heading/subtitle, shared anchors, intermediate-outline removal, spacing and aligned `Max Size` / `Target Addr` guidance locally implemented; suggested filename omitted, actual selected filename and technical details retained. Owner accepted actual layout; logic re-review and 194/194 relevant tests pass (2026-09-06), including real selected-input full-window states and strengthened hover invariants. Not integrated/published. Remaining visual acceptance: genuine 125% evidence and resolution of unsupported High Contrast; do not claim the complete visual matrix passed. |
+| 7 | Run reports list and Load report entry | [Approved list and evidence](../ui/v1.1.x-report-history-usability-handoff.md#approved-run-reports-list--2026-09-06): locally implemented; primary compared complete actual render with final owner-approved reference. Centered capped columns, no vertical lines, red confirmed deletion, execution-date ordering, overflow-only tooltips, full-width sidebar and detail return. Load exists only at Run reports and remains reachable when empty; one bounded loader, retained cancellation/latest-publication. Final 84/84 scoped tests passed, including corrected multi-entry scroll/return focus and remaining-row/Load focus after deletion; desktop build passed. Separate noncanonical/missing-field report admission assessment above remains open; integration/native DPI/high-contrast gates remain separate. |
+| 8 | Bundle primary-output rename | [Implementation and evidence](../ui/v1.1.x-bundle-primary-output-rename-handoff.md#local-implementation-and-evidence--2026-09-06): locally implemented; independent primary/folder editing, same effective output/report/receipt identity, retained cancel/retry and invalid-name validation. Sources renamed and styled as ordinary disclosure. UI 48/48, Application 98/98, Infrastructure 263/263; actual-byte parity and source hashes retained. R2 scoped review completed; native/packaged integration and release Golden gates remain separate. Not integrated/published. |
+| 9 | AB Dummy DP | Complete the [checkbox and firmware scope below](#ab-dummy-dp-checkbox-and-firmware-behavior), not a cosmetic checkbox alone. Settle TP/non-TP, header/integrity/postbuild and toggle-state decisions; retain independent whole-output Golden and exact write-range evidence. |
+| 10 | Broad screen inventory and reprioritization | [Issue #291](https://github.com/Dennis40816/nvt_fw_combiner/issues/291): inspect the actually opened published `1.1.3` baseline and the accumulated candidate for Merge, Replace, Settings, Message Center, Report, Inspector, dialogs, menus, tooltips, cards and overlays. Reproduce the recorded Dark baseline; group remaining issues by shared control, dependency and risk, remove duplicates, and update this remaining order before broad implementation. Do not begin a blanket redesign. |
+| 11 | Shared visual/theme corrections | Use step 10 findings to correct shared tokens/controls first. Cover normal/hover/focus/selected/disabled/checking/verified/warning/error states, Light/Dark/high contrast, contrast and keyboard visibility. Reuse the same regression matrix for later steps without silently changing approved geometry. |
+| 12 | Report Changes | [Compare handoff](../ui/v1.1.x-report-changes-compare-handoff.md): scrollbar gutter, physical-section grouping, Light Original colors and localized address layout. Preserve raw runs/order/hash/Why/Result/replay and virtualization; no nested scroll owner or report-semantic change. |
+| 13 | Settings Version page | Version list from typed admitted Catalog `releaseNotes`; complete Version-page proportion audit. Obtain owner approval of the screenshot-based full-page reference at exact viewports before changing width, column ratio, modal/page scale or minimum-size behavior. |
+| 14 | Memory Layout | Make each canonical section and its address-space/range boundaries explicit instead of flattening independent sections. Use typed Application-to-Presentation projections; no firmware facts, range authority or interpretation move into UI. |
+| 15 | Session diagnostics | Privacy-filtered current-session diagnostics/history, separate from immutable run reports. Preserve existing diagnostic ownership and lifecycle rather than adding another history system. |
+| 16 | First-entry IC selection | [Navigation handoff section 1](../ui/post-v1.1.0-navigation-and-ctrlram-first-open-handoff.md#1-shared-first-entry-ic-selection): reuse Home/navigation/accepted-session admission when compatible accepted IC context is absent. Decide lifetime, invalidation, cross-workflow compatibility and Cancel/Back first; no second catalog, selection owner or UI-only admission. |
+| 17 | Test diagram and README | Complete the already allocated test architecture diagram and `tests/README.md` using retained `1.1.3` counts/timings. Label original `1.1.3` evidence versus later changes, and distinguish parallel lanes, serial dependencies, retries and waits; no new verifier or unnecessary rerun. |
+
+Step 3 local evidence over `e5202e2707d272076d24216222188d478314a07d`:
+`dotnet test --no-restore` UI filter `FullyQualifiedName~SlotLoading` passes
+13/13 (Perfect pairs in both directions, partial/unrelated, same/unsupported IC,
+header and unknown provenance; suppressed input remains selected). Bootstrap
+`InspectionKeepsFilenameFirstBoundedIcHintSemantics` passes 1/1 and
+`PerfectFamilyPairExcludesPartialAndUnrelatedIcs` passes 4/4;
+architecture `PresentationUsesFocusedApplicationContractsInsteadOfConcreteAdapters`
+passes 1/1. All run with the fixed local test-area environment; TRX files are
+under `D:\NvtFwCombiner-TestArea\evidence\v114-perfect-filename-hint`.
+The primary agent's scoped R2 review/Polytail and scoped capability-governance
+validation pass. This is uncommitted local work, not a fresh full-suite/Golden
+run or integration approval; the accumulated code-size gate remains open.
+
+For each step: inspect its real baseline and reproduce the specific issue,
+show the bounded screenshot-based visual change for owner approval where
+applicable, implement that one item, run affected tests and compare the actual
+result, then proceed to the next. Do not wait for the whole-app inventory before
+a genuinely independent small correction, or implement several items together.
+If a small item reveals a material shared contract or unresolved owner decision,
+record the exact dependency and requeue it rather than expanding its scope.
+At the frozen integration boundary, run the combined UI regression and packaged
+observation; retain all mandatory release Golden execution. Do not require a
+complete release cycle after each small correction.
 
 Measured startup/first-open performance is a separate `1.1.5` outcome, not
 an omitted UI correction. New General/saved-rule/IC-rule authoring capabilities
@@ -412,7 +506,7 @@ firmware-owner R3 evidence. Keep this feature's Golden gate with this version;
 the separate `1.1.7` evidence backlog does not defer or waive it. No support
 promotion or byte behavior is certified by scheduling alone.
 
-## `1.1.5`: measured startup and first-open performance
+## `1.1.5`: startup, first-open and local verification performance
 
 | Target | Measurement and implementation gate |
 | --- | --- |
@@ -424,6 +518,31 @@ projection owners. Preserve visible loading, validation, slot/readiness
 equivalence and bounded lifetime; no duplicate semantic path or unbounded
 cache. Claims require comparable packaged measurements, not a stopwatch from a
 different environment.
+
+### Local full-verifier parallelization
+
+Owner allocation on 2026-09-06 adds this work beside the existing startup and
+first-open targets; it does not replace them or move `1.1.4` UI work. Target the
+complete local `python scripts/verify.py --all` wall time at approximately
+10 minutes, governed by the longest independent lane plus small shared
+preflight/final-aggregation overhead, rather than the sum of lane durations.
+The current `v1.1.3` baseline is 1,879.6 s: structure 145.2 s, three serial
+script shards 440.0/353.1/288.9 s, CRC worker 12.2 s, and partially parallel
+.NET 638.6 s. This target is not an achieved measurement or a timeout change.
+
+| Work | Planned acceptance |
+| --- | --- |
+| Safe local overlap | Reuse the existing verifier/lane executor. Isolate mutable build/restore outputs, lock files, temporary data, evidence paths and cleanup ownership before overlapping independent script and .NET lanes. Preserve genuinely exclusive work until its shared-resource dependency is removed. |
+| Accurate concurrency controls | Make the documented `--jobs` behavior and displayed policy match actual scheduling; a value of three must not imply top-level overlap when only one lane is submitted at a time. |
+| Complete measured result | Measure the same controlled Windows machine, source, SDK, test inventory and declared cache state; record full-command wall time, each lane, shared setup and aggregation, with repeatability and contention checks. Do not move work outside the stopwatch to meet the target. |
+
+Retain the complete applicable tests, Golden output comparisons, coverage,
+identity/freshness checks and bounded cancellation/cleanup. Do not achieve the
+target by skipping cases, weakening expected bytes or substituting CI evidence
+for this full local run. Scheduling this work does not change the current serial
+execution contract; synchronize affected commands/docs when implementation is
+verified. Use the `1.1.4` test diagram/README when available rather than creating
+another scheduler, verifier or evidence-document framework.
 
 ## `1.1.6`: agent workflows, documentation and minimality
 
