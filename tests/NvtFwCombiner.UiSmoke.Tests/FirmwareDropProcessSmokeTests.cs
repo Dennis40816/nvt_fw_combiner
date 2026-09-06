@@ -81,7 +81,7 @@ public sealed class FirmwareDropProcessSmokeTests
         }
         finally
         {
-            window.Close();
+            await ReportControlTestHost.CloseAndFlushAsync(window);
         }
     }
 

@@ -119,6 +119,7 @@ public sealed partial class MainWindow
 
     private async Task ReportStableLauncherHandoffFailureAsync()
     {
+        _isExitConfirmed = false;
         IsEnabled = true;
         bool activationCleared = true;
         if (DataContext is MainWindowViewModel viewModel)

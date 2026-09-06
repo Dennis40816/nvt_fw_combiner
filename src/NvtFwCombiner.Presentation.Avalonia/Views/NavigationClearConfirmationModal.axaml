@@ -4,6 +4,7 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:vm="using:NvtFwCombiner.Presentation.Avalonia.ViewModels"
     x:DataType="vm:ShellNavigationViewModel"
+    IsVisible="{Binding IsNavigationClearConfirmationOpen}"
     Focusable="True"
     KeyboardNavigation.TabNavigation="Cycle"
     KeyDown="NavigationClearConfirmationModal_OnKeyDown"
@@ -17,8 +18,8 @@
       BorderBrush="{DynamicResource NfcWarningAccentBrush}">
     <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="{DynamicResource NfcSpace16}">
       <StackPanel Spacing="5">
-        <TextBlock Classes="modalTitle" Text="{Binding Text.NavigationClearTitle}" />
-        <TextBlock Classes="mutedText" Text="{Binding Text.NavigationClearDetail}" TextWrapping="Wrap" />
+        <TextBlock Classes="modalTitle" Text="{Binding ConfirmationTitle}" />
+        <TextBlock Classes="mutedText" Text="{Binding ConfirmationDetail}" TextWrapping="Wrap" />
       </StackPanel>
 
       <Border Grid.Row="1" Classes="insetSurface" Padding="10,8">
@@ -34,11 +35,13 @@
             x:Name="CancelButton"
             Classes="semanticAction secondary"
             Command="{Binding CancelNavigationClearCommand}"
-            Content="{Binding Text.NavigationClearCancelLabel}" />
+            Content="{Binding ConfirmationCancelLabel}" />
         <Button
-            Classes="semanticAction primary"
+            Classes="semanticAction"
+            Classes.primary="{Binding !IsExitConfirmationOpen}"
+            Classes.danger="{Binding IsExitConfirmationOpen}"
             Command="{Binding ConfirmNavigationAndClearCommand}"
-            Content="{Binding Text.NavigationClearConfirmLabel}" />
+            Content="{Binding ConfirmationAcceptLabel}" />
       </StackPanel>
     </Grid>
   </Border>

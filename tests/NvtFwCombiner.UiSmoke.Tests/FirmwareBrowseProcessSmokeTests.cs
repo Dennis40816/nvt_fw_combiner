@@ -173,7 +173,7 @@ public sealed class FirmwareBrowseProcessSmokeTests
         }
         finally
         {
-            window.Close();
+            await ReportControlTestHost.CloseAndFlushAsync(window);
         }
     }
 

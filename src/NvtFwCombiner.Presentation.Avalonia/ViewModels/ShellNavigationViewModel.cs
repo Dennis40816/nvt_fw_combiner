@@ -14,6 +14,7 @@ internal sealed partial class ShellNavigationViewModel : ObservableObject
     private readonly ShellNavigationBindings _bindings;
     private readonly List<ShellPage> _pageHistory = [ShellPage.Home];
     private PendingNavigation? _pendingNavigation;
+    private Action? _pendingExit;
 
     internal ShellNavigationViewModel(ShellNavigationBindings bindings)
     {
@@ -26,14 +27,49 @@ internal sealed partial class ShellNavigationViewModel : ObservableObject
 
     public ShellTextResources Text => _bindings.Text();
 
+    public bool IsExitConfirmationOpen => _pendingExit is not null;
+    private bool IsRetainedPageNavigation => !IsExitConfirmationOpen && _bindings.SelectedPage() == ShellPage.HexEditor;
+    public string ConfirmationTitle => IsExitConfirmationOpen ? Text.ExitTitle :
+        IsRetainedPageNavigation ? Text.LeaveEditorTitle : Text.NavigationClearTitle;
+    public string ConfirmationDetail => IsExitConfirmationOpen ? Text.ExitDetail :
+        IsRetainedPageNavigation ? Text.LeaveEditorDetail : Text.NavigationClearDetail;
+    public string ConfirmationCancelLabel => IsExitConfirmationOpen ? Text.OutputDeliveryCancelLabel : Text.NavigationClearCancelLabel;
+    public string ConfirmationAcceptLabel => IsExitConfirmationOpen ? Text.ExitConfirmLabel :
+        IsRetainedPageNavigation ? Text.LeaveEditorConfirmLabel : Text.NavigationClearConfirmLabel;
+
     public ObservableCollection<ShellNavigationEntryViewModel> NavigationTrail { get; } = [];
 
     public string NavigationPath => string.Join(" > ", NavigationTrail.Select(static entry => entry.Label));
 
-    public string NavigationClearRoute => _pendingNavigation is { } pending
+    public string NavigationClearRoute => IsExitConfirmationOpen ? "NVT FW Combiner" : _pendingNavigation is { } pending
         ? $"{_bindings.PageLabel(_bindings.SelectedPage())} → {_bindings.PageLabel(pending.Target)}" : NavigationPath;
 
     public bool CanGoBack => _pageHistory.Count > 1;
+
+    internal void RequestExitConfirmation(Action exit)
+    {
+        ArgumentNullException.ThrowIfNull(exit);
+        if (_pendingExit is not null)
+        {
+            return;
+        }
+        // Exit replaces a pending page change with a fresh safe-focus confirmation.
+        IsNavigationClearConfirmationOpen = false;
+        _pendingNavigation = null;
+        _pendingExit = exit;
+        RefreshConfirmation();
+        IsNavigationClearConfirmationOpen = true;
+    }
+
+    private void RefreshConfirmation()
+    {
+        OnPropertyChanged(nameof(IsExitConfirmationOpen));
+        OnPropertyChanged(nameof(ConfirmationTitle));
+        OnPropertyChanged(nameof(ConfirmationDetail));
+        OnPropertyChanged(nameof(ConfirmationCancelLabel));
+        OnPropertyChanged(nameof(ConfirmationAcceptLabel));
+        OnPropertyChanged(nameof(NavigationClearRoute));
+    }
 
     internal void NavigateToPage(ShellPage page)
     {
@@ -55,7 +91,7 @@ internal sealed partial class ShellNavigationViewModel : ObservableObject
         if (textChanged)
         {
             OnPropertyChanged(nameof(Text));
-            OnPropertyChanged(nameof(NavigationClearRoute));
+            RefreshConfirmation();
         }
 
         OnPropertyChanged(nameof(NavigationPath));
@@ -92,7 +128,7 @@ internal sealed partial class ShellNavigationViewModel : ObservableObject
 
         _bindings.InvalidateFirmwareNumberMismatch();
         _pendingNavigation = new PendingNavigation(target, isBack);
-        OnPropertyChanged(nameof(NavigationClearRoute));
+        RefreshConfirmation();
         IsNavigationClearConfirmationOpen = true;
         return true;
     }
@@ -100,6 +136,12 @@ internal sealed partial class ShellNavigationViewModel : ObservableObject
     [RelayCommand]
     private void ConfirmNavigationAndClear()
     {
+        if (_pendingExit is { } exit)
+        {
+            CancelNavigationClear();
+            exit();
+            return;
+        }
         if (_pendingNavigation is not { } pending)
         {
             IsNavigationClearConfirmationOpen = false;
@@ -119,6 +161,7 @@ internal sealed partial class ShellNavigationViewModel : ObservableObject
     private void CancelNavigationClear()
     {
         _pendingNavigation = null;
+        _pendingExit = null;
         IsNavigationClearConfirmationOpen = false;
     }
 

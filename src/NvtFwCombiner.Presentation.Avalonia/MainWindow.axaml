@@ -611,6 +611,7 @@
 
     <ContentControl
         x:Name="NavigationClearConfirmationModalHost"
+        ZIndex="100"
         Grid.RowSpan="5"
         IsVisible="{Binding Navigation.IsNavigationClearConfirmationOpen}">
       <ContentControl.ContentTemplate>

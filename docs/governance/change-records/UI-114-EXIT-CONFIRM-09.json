@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 2,
+  "taskId": "UI-114-EXIT-CONFIRM-09",
+  "capability": "Confirm exit for selected files before cancelling work or completing persistence",
+  "integrationBase": "fffc4bacd67d9b3f357e4919467de72256946311",
+  "risk": "R1",
+  "kind": "ui",
+  "state": "design-active",
+  "mutablePaths": [
+    "src/NvtFwCombiner.Presentation.Avalonia/MainWindow.axaml.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/MainWindow.VersionManagement.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MainWindowViewModel.Navigation.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MainWindowViewModel.Construction.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ShellNavigationViewModel.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ShellTextResources.Navigation.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/HexEditorWorkspaceViewModel.Persistence.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/Views/NavigationClearConfirmationModal.axaml",
+    "src/NvtFwCombiner.Presentation.Avalonia/Views/NavigationClearConfirmationModal.axaml.cs"
+  ],
+  "implementationOwner": "primary-agent",
+  "searchEvidence": [
+    "Owner includes every selected file, explicitly including Report JSON. Reuse WorkflowSessionPresentationViewModel.Slots.HasSelectedInputs across both composition pages, including hidden AB/General/reference and failed or pending inspections. LoadedHexEditorWorkspace avoids eager editor construction. Hex LoadAsync and Report LoadReportFileAsync need a selection projection before their first await; no duplicate byte or validity detection.",
+    "MainWindow.OnClosing owns cancellation, persistence completion and final Close recursion; gate before all side effects. Existing explicitly approved Settings activation must retain its stable-launcher handoff/retry path. Cancel exit retains enabled state and live queues; approval is single-use per closing lifecycle.",
+    "ShellNavigationViewModel already owns pending destination, cancellation and activation-before-clear transaction. Extend it with pending exit callback and localized action projections. Hex page navigation retains its document and uses non-clearing copy; Report is global and retained across page navigation, so merely restored history does not create spurious prompts.",
+    "NavigationClearConfirmationModal and FirmwareIcMismatchModal own the accepted warning-bordered modal visual language, Cancel default, cyclic Tab and Escape. Reuse the existing navigation surface above all other modals with focus restored on cancellation. No generic dialog framework.",
+    "Single-path admission: UI-114-STANDARD-FEEDBACK-02 retains MainWindow.axaml and admits topmost navigation overlay; UI-114-HISTORY-CONFIRM-08 retains ReportPresentationViewModel.cs and admits explicit report-file selection tracking. No duplicate mutablePaths in this record. Existing ShellNavigationSystemTests and real ReportControlTestHost lifecycle provide narrow regressions."
+  ],
+  "semanticOwner": "Existing shell navigation/close lifecycle and workflow, Hex and Report selection owners",
+  "terminalContract": "Empty app closes normally; selected composition, clean/dirty/pending Hex or explicitly loaded/pending/failed Report file requests confirmation. Automatic history restore alone does not. Cancel/Escape preserves inputs, current page, report, operations and persistence. Confirm closes once through existing flush without page clearing. Repeat Close never stacks. Preserve explicitly authorized updater restart. Navigation retains activation-before-clear and keeps Hex state on page changes. Localized existing modal style with safe focus; no firmware, release, commit or external-write authority.",
+  "disposition": "extend-owner",
+  "designReview": { "reviewer": null, "outcome": "not-required", "evidence": "R1 owner-approved presentation/lifecycle correction using existing owners; no architecture or firmware contract change." },
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": { "reviewer": null, "outcome": "pending", "evidence": "" }
+}

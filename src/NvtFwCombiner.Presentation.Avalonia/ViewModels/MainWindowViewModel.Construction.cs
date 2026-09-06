@@ -171,7 +171,7 @@ internal sealed partial class MainWindowViewModel
         RequestHexEditorUndoCommand = new RelayCommand(RequestHexEditorUndo, CanRequestHexEditorUndo);
         RequestHexEditorRedoCommand = new RelayCommand(RequestHexEditorRedo, CanRequestHexEditorRedo);
         Navigation = new ShellNavigationViewModel(new ShellNavigationBindings(
-            () => SelectedPage, () => Text, WorkflowSession.HasSelectedInputs,
+            () => SelectedPage, () => Text, HasPageSelectedFiles,
             WorkflowSession.InvalidateFirmwareNumberMismatch, WorkflowSession.ClearSelectedInputs,
             ApplySelectedPage, PageLabel, NotifyCompositionActionRailVisibilityChanged));
         ShowHomeCommand = new RelayCommand(() => Navigation.NavigateToPage(ShellPage.Home));

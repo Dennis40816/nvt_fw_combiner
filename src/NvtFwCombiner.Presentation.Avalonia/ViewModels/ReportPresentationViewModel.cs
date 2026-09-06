@@ -57,6 +57,8 @@ internal sealed partial class ReportPresentationViewModel : ObservableObject
 
     public bool HasLoadedReport => !LoadedReport.IsEmpty;
 
+    internal bool HasSelectedReportFile { get; private set; }
+
     public bool CanOpenReport => HasLoadedReport;
 
     public string ReportActionLabel => Text.GetReportActionLabel(HasLoadedReport);
@@ -90,6 +92,7 @@ internal sealed partial class ReportPresentationViewModel : ObservableObject
     /// <summary>Loads a CLI/application run report JSON into the readable report modal.</summary>
     public void LoadReportJson(string json, string sourceName)
     {
+        HasSelectedReportFile = true;
         long generation = BeginReportProjection();
         ReportReviewViewModel report;
         try
@@ -115,6 +118,7 @@ internal sealed partial class ReportPresentationViewModel : ObservableObject
     {
         ArgumentNullException.ThrowIfNull(readFile);
         ArgumentNullException.ThrowIfNull(sourceName);
+        HasSelectedReportFile = true;
         long generation = BeginReportProjection();
         string json;
         ReportReviewViewModel report;

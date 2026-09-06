@@ -30,6 +30,7 @@ public sealed partial class MainWindow : Window, IDisposable
     private bool _isStartupShellEnabled;
     private bool _isReportHistoryClosePending;
     private bool _isReportHistoryPersistenceComplete;
+    private bool _isExitConfirmed;
     private bool _isDisposed;
     private bool _isStartupLoadStarted;
     private bool _isStartupDurationReported;
@@ -118,8 +119,21 @@ public sealed partial class MainWindow : Window, IDisposable
     protected override async void OnClosing(WindowClosingEventArgs e)
     {
         ArgumentNullException.ThrowIfNull(e);
+        if (!_isDisposed && !_isExitConfirmed && !_restartThroughStableLauncher &&
+            DataContext is MainWindowViewModel closingViewModel && closingViewModel.HasSelectedFiles)
+        {
+            e.Cancel = true;
+            closingViewModel.Navigation.RequestExitConfirmation(() =>
+            {
+                _isExitConfirmed = true;
+                Close();
+            });
+            base.OnClosing(e);
+            return;
+        }
         if (!_isDisposed)
         {
+            _isExitConfirmed = true;
             _startupLoadCancellation.Cancel();
         }
 
@@ -526,7 +540,7 @@ public sealed partial class MainWindow : Window, IDisposable
         RetryOutputDeliveryReturnFocus();
 
         if (e.PropertyName is nameof(MainWindowViewModel.IsSettingsModalOpen) or
-            nameof(MainWindowViewModel.OutputDelivery))
+            nameof(MainWindowViewModel.OutputDelivery) or nameof(MainWindowViewModel.IsCompositionActionRailVisible))
         {
             ApplyShellInteractionState(viewModel);
         }
@@ -566,6 +580,7 @@ public sealed partial class MainWindow : Window, IDisposable
         ArgumentNullException.ThrowIfNull(viewModel);
         bool interactive = isStartupShellEnabled &&
             !viewModel.IsSettingsModalOpen &&
+            !viewModel.Navigation.IsNavigationClearConfirmationOpen &&
             !viewModel.OutputDelivery.IsOpen;
         shellInteractionHost.IsEnabled = interactive;
         shellInteractionHost.IsHitTestVisible = interactive;
