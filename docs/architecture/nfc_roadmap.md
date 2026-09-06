@@ -488,11 +488,12 @@ documentation item and does not authorize a cosmetic-only Dummy DP feature.
 | 9 | Session diagnostics (15) | Retain privacy, lifecycle and separation from immutable run reports. |
 
 Dummy DP (9) remains an explicitly requested active `1.1.4` firmware item;
-the owner includes NT51951 alongside NT51919/NT51929/NT51932 in the first
-implementation/verification batch; NT51950 stays deferred. NT51951's existing
+the owner includes NT51950 and NT51951 alongside NT51919/NT51929/NT51932 in the
+first implementation/verification batch (latest clarification, not NT51952).
+The previous NT51950 deferral is superseded. NT51951's existing
 direct AB Golden and firmware-review gaps remain gates, not silently promoted
 support.
-insert implementation once its write-range, header/integrity/postbuild and
+Insert implementation once its write-range, header/integrity/postbuild and
 Golden contract is admitted. Its approved horizontal checkbox and pre-clear
 confirmation behavior are recorded in the [Dummy DP handoff](../ui/v1.1.x-ab-dummy-dp-handoff.md).
 Code-size, fixed-head integration review, combined regression, packaged UI
