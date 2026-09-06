@@ -39,7 +39,8 @@ internal sealed class FileSystemCompositionOutputBundleDestinationValidator :
         try
         {
             string parent = FileSystemPathGuard.ResolveExistingRoot(intent.ParentDirectory);
-            ValidateName(intent.FolderName, issues);
+            ValidateName(intent.FolderName, "Bundle folder name", issues);
+            ValidateName(intent.OutputFileName, "Primary output filename", issues);
             if (issues.Count == 0)
             {
                 resolvedDirectory = ResolveAvailableDirectory(parent, intent.FolderName);
@@ -104,6 +105,7 @@ internal sealed class FileSystemCompositionOutputBundleDestinationValidator :
 
     private static void ValidateName(
         string value,
+        string label,
         List<CompositionOutputBundleValidationIssue> issues)
     {
         string? issueCode = AtomicBundlePathRules.GetWindowsNameIssueCode(value);
@@ -112,8 +114,8 @@ internal sealed class FileSystemCompositionOutputBundleDestinationValidator :
             issues.Add(new CompositionOutputBundleValidationIssue(
                 issueCode,
                 issueCode == CompositionOutputBundleValidationIssueCodes.NameReserved
-                    ? "Bundle folder name uses a reserved Windows device name."
-                    : "Bundle folder name is not a valid plain Windows name."));
+                    ? $"{label} uses a reserved Windows device name."
+                    : $"{label} is not a valid plain Windows name."));
         }
     }
 

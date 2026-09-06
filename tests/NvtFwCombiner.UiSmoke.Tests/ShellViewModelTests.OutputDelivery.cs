@@ -327,7 +327,7 @@ public sealed partial class FirmwareInspectionSlotTests
         });
     }
 
-    /// <summary>The output name starts locked, becomes an explicit draft on edit, and resets for canonical bundles.</summary>
+    /// <summary>The output name starts locked and retains its explicit identity when bundle mode changes.</summary>
     [Fact]
     public async Task OutputConfirmationEditsLooseNameWithoutMisreportingAutomaticIdentity()
     {
@@ -335,7 +335,6 @@ public sealed partial class FirmwareInspectionSlotTests
         JsonElement goldenCase = golden.CaseByIc("51926");
         MainWindowViewModel viewModel = await CreateReadyStandardMergeAsync(golden, goldenCase);
         await viewModel.Merge.RequestBuildOutputDeliveryAsync();
-        string canonicalName = viewModel.OutputDelivery.OutputFileName;
 
         Assert.False(viewModel.OutputDelivery.IsOutputFileNameEditing);
         Assert.True(viewModel.OutputDelivery.OutputFileNameUsesAutomaticName);
@@ -349,9 +348,9 @@ public sealed partial class FirmwareInspectionSlotTests
 
         viewModel.OutputDelivery.SetBundleEnabled(true);
 
-        Assert.False(viewModel.OutputDelivery.IsOutputFileNameEditing);
-        Assert.Equal(canonicalName, viewModel.OutputDelivery.OutputFileName);
-        Assert.True(viewModel.OutputDelivery.OutputFileNameUsesAutomaticName);
+        Assert.True(viewModel.OutputDelivery.IsOutputFileNameEditing);
+        Assert.Equal("operator-name.bin", viewModel.OutputDelivery.OutputFileName);
+        Assert.False(viewModel.OutputDelivery.OutputFileNameUsesAutomaticName);
     }
 
     /// <summary>The approved A3 review keeps disclosures and bundle values locked until explicit admission.</summary>

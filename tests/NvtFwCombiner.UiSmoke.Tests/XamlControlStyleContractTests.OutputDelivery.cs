@@ -26,7 +26,7 @@ public sealed partial class XamlControlStyleContractTests
         Assert.Contains("NfcModalScrimBrush", modal, StringComparison.Ordinal);
         Assert.Contains("ItemsSource=\"{Binding Sources}\"", modal, StringComparison.Ordinal);
         Assert.Contains("x:Name=\"SourcesDisclosureToggle\"", modal, StringComparison.Ordinal);
-        Assert.Contains("Classes=\"quietDisclosure buildSettingsDisclosure\"", modal, StringComparison.Ordinal);
+        Assert.Contains("Classes=\"inlineDisclosure buildSettingsDisclosure\"", modal, StringComparison.Ordinal);
         Assert.Contains("IsChecked=\"{Binding AreSourcesExpanded}\"", modal, StringComparison.Ordinal);
         Assert.Contains("x:Name=\"SourcesListPanel\"", modal, StringComparison.Ordinal);
         Assert.Contains("IsVisible=\"{Binding AreSourcesExpanded}\"", modal, StringComparison.Ordinal);

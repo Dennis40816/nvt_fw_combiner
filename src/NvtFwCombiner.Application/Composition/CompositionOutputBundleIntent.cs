@@ -7,12 +7,18 @@ public sealed class CompositionOutputBundleIntent
         CompositionOutputBundleAdmission admission,
         string parentDirectory,
         string folderName,
-        string? additionalDeliveryKind = null)
+        string? additionalDeliveryKind = null,
+        string? outputFileNameOverride = null)
     {
         ArgumentNullException.ThrowIfNull(admission);
         ArgumentException.ThrowIfNullOrWhiteSpace(parentDirectory);
         EnsurePlainFolderName(folderName);
         Admission = admission;
+        OutputFileNameIsOverride = outputFileNameOverride is not null;
+        PreparedOutputName = outputFileNameOverride is null
+            ? admission.PreparedOutputName
+            : admission.PreparedOutputName.WithExplicitOverride(
+                admission.AcceptedCapability.CompiledComposition, outputFileNameOverride);
         ParentDirectory = parentDirectory;
         FolderName = folderName;
         AdditionalDelivery = CompositionExecutionBundleDelivery.ResolveAdditionalDelivery(
@@ -22,14 +28,18 @@ public sealed class CompositionOutputBundleIntent
 
     internal CompositionOutputBundleAdmission Admission { get; }
 
+    internal OutputNameResolution PreparedOutputName { get; }
+
+    internal bool OutputFileNameIsOverride { get; }
+
     /// <summary>Host-selected existing parent directory.</summary>
     public string ParentDirectory { get; }
 
     /// <summary>Validated plain proposed folder name; Infrastructure applies platform validation.</summary>
     public string FolderName { get; }
 
-    /// <summary>Accepted canonical output filename used by destination preflight.</summary>
-    public string OutputFileName => Admission.OutputPreparation.OutputName.FileName;
+    /// <summary>Effective primary output filename used by destination preflight and execution.</summary>
+    public string OutputFileName => PreparedOutputName.FileName;
 
     /// <summary>Accepted immutable sources used by destination preflight.</summary>
     public IReadOnlyList<CompositionExecutionBundleSource> Sources => Admission.Sources;

@@ -269,9 +269,8 @@ public sealed class CompositionRunRequest
             nameof(compiledComposition));
     }
 
-    private static void ValidateV2RuntimeRequest(
+    internal static void ValidateRuntimeOutputName(
         CompiledComposition compiledComposition,
-        Dictionary<string, InputArtifactBinding> bindings,
         string outputFileName,
         bool outputFileNameIsOverride)
     {
@@ -319,6 +318,16 @@ public sealed class CompositionRunRequest
                 nameof(outputFileName));
         }
 
+    }
+
+    private static void ValidateV2RuntimeRequest(
+        CompiledComposition compiledComposition,
+        Dictionary<string, InputArtifactBinding> bindings,
+        string outputFileName,
+        bool outputFileNameIsOverride)
+    {
+        ValidateRuntimeOutputName(compiledComposition, outputFileName, outputFileNameIsOverride);
+        V2CompiledCompositionDetails details = compiledComposition.V2Details;
         IReadOnlyList<CompiledInputSpaceBinding> expectedBindings = details.InputContract.SpaceBindings;
         if (bindings.Count != expectedBindings.Count)
         {

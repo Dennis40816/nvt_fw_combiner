@@ -98,19 +98,28 @@
   <Style Selector="Expander.inlineDisclosure">
     <Setter Property="Background" Value="Transparent" />
   </Style>
-  <Style Selector="Expander.inlineDisclosure /template/ ToggleButton, Expander.inlineDisclosure /template/ ToggleButton:checked">
+  <Style Selector="ToggleButton.inlineDisclosure">
+    <Setter Property="Foreground" Value="{DynamicResource NfcTextStrongBrush}" />
+    <Setter Property="FontSize" Value="{DynamicResource NfcFontSize14}" />
+    <Setter Property="Padding" Value="8,6" />
+    <Setter Property="VerticalContentAlignment" Value="Center" />
+  </Style>
+  <Style Selector="ToggleButton.inlineDisclosure:checked /template/ ContentPresenter#PART_ContentPresenter, ToggleButton.inlineDisclosure:checked:pointerover /template/ ContentPresenter#PART_ContentPresenter, ToggleButton.inlineDisclosure:checked:pressed /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="Transparent" />
+  </Style>
+  <Style Selector="Expander.inlineDisclosure /template/ ToggleButton, Expander.inlineDisclosure /template/ ToggleButton:checked, ToggleButton.inlineDisclosure, ToggleButton.inlineDisclosure:checked">
     <Setter Property="Background" Value="Transparent" />
     <Setter Property="BorderBrush" Value="Transparent" />
   </Style>
-  <Style Selector="Expander.inlineDisclosure /template/ ToggleButton:pointerover, Expander.inlineDisclosure /template/ ToggleButton:checked:pointerover">
+  <Style Selector="Expander.inlineDisclosure /template/ ToggleButton:pointerover, Expander.inlineDisclosure /template/ ToggleButton:checked:pointerover, ToggleButton.inlineDisclosure:pointerover">
     <Setter Property="Background" Value="{DynamicResource NfcAccentSurfaceSubtleBrush}" />
     <Setter Property="BorderBrush" Value="{DynamicResource NfcAccentBorderBrush}" />
   </Style>
-  <Style Selector="Expander.inlineDisclosure /template/ ToggleButton:pressed">
+  <Style Selector="Expander.inlineDisclosure /template/ ToggleButton:pressed, ToggleButton.inlineDisclosure:pressed">
     <Setter Property="Background" Value="{DynamicResource NfcAccentSurfaceBrush}" />
     <Setter Property="BorderBrush" Value="{DynamicResource NfcAccentBorderStrongBrush}" />
   </Style>
-  <Style Selector="Expander.inlineDisclosure /template/ ToggleButton:focus-visible">
+  <Style Selector="Expander.inlineDisclosure /template/ ToggleButton:focus-visible, ToggleButton.inlineDisclosure:focus-visible">
     <Setter Property="BorderBrush" Value="{DynamicResource NfcAccentStrongBrush}" />
     <Setter Property="BorderThickness" Value="2" />
   </Style>

@@ -1,0 +1,33 @@
+{
+  "schemaVersion": 2,
+  "taskId": "UI-114-CTRLRAM-SELECTOR-10",
+  "capability": "Align shared CtrlRAM selectors and keep section outlines stable across hover",
+  "integrationBase": "fffc4bacd67d9b3f357e4919467de72256946311",
+  "risk": "R1",
+  "kind": "ui",
+  "state": "design-active",
+  "mutablePaths": [
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ShellTextResources.ReplaceGrouping.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/Resources/MainWindowWorkflowTemplates.axaml",
+    "src/NvtFwCombiner.Presentation.Avalonia/Styles/MainWindowStyles.axaml",
+    "src/NvtFwCombiner.Presentation.Avalonia/Styles/MainWindowControlStyles.axaml"
+  ],
+  "implementationOwner": "primary-agent",
+  "searchEvidence": [
+    "Owner follow-up after native Build settings inspection: no filled background on expanded source arrow. Override the Fluent checked ContentPresenter for the existing inlineDisclosure only, preserving focus border and collapsed hover; do not change navigation/segment ToggleButtons.",
+    "2026-09-06 owner asks Bundle source disclosure to match ordinary expansion controls. Extend existing inlineDisclosure selectors to its ToggleButton rather than duplicate hover/focus styling; neutral text and stateful chevron, no firmware or other control behavior change.",
+    "2026-09-06 owner supplied the cluttered DiffDLM/Normal description screenshot and clarified that the suggested filename is unimportant. CodeGraph and source inspection locate the existing GetCtrlRamInputDescription projection and typed CtrlRamInputDescriptionFacts producer. Extend only this compact text projection: omit suggested filename/repeated single-section title, label size limit and output offset on separate lines with invariant grouped bytes and nonbreaking unit; shared inputs keep their target count and DiffNFMerge prerequisite. FormatCtrlRamTechnicalDescription remains unchanged for selection/report detail; actual selected filename binding remains unchanged. Cover both languages, varying typed values, missing facts, shared count and prerequisite plus measured real-card text layout. No profile, range, selection or byte behavior changes.",
+    "Owner approved docs/ui/v1.1.x-ctrlram-selector-visual-contract.md and actual-baseline second preview, amended Base heading separately, then requested continuing anchors/borders/spacing. Branch 1.1.4 HEAD e5202e2707d272076d24216222188d478314a07d retains earlier uncommitted UI slices.",
+    "Terra read-only CodeGraph-first inventory and root source inspection identify MainWindowWorkflowTemplates.ReplaceModeContentTemplate as the one parent layout. Only Base has a compact SpaciousPanel wrapper with asymmetric 4,4,8,4 padding; group surfaces stretch directly. Remove that unnecessary Base wrapper and use the existing card bottom gap plus a scoped group-list spacing of 12, without altering other workflow panels.",
+    "MainWindowSharedTemplates.FirmwareSlotGroupTemplate owns group rendering and binds FirmwareSlotGroupViewModel expansion/slots. MainWindowControlStyles owns its outer SpaciousPanel outline. MainWindowStyles.inlineDisclosure and the Fluent Expander template currently expose a second content outline plus hover header outline. Scope template overrides to firmware slot groups, retain one persistent outer section border and each input card border, reserve keyboard focus thickness and preserve expansion input semantics.",
+    "Existing FirmwareSlotCard, ApplyResponsiveLayout and fileRevealAction retain one shared renderer, fact columns and commands. Record 02 admits card wrap/padding changes; record 01 admits the shared group template. Full-window tests reuse MainWindow and isolated ReportControlTestHost startup/close lifecycle, with rendered bounds, real pointer hover and keyboard expansion. No existing HighContrast theme or 125% test host was found; report unsupported evidence instead of inventing a theme or claiming certification. No Application, profile or firmware semantics are touched."
+  ],
+  "semanticOwner": "Presentation shared workflow template, FirmwareSlotGroupTemplate, FirmwareSlotCard and existing visual styles",
+  "terminalContract": "Match approved Base/Cascade/Common outer anchors within 0.5px; one persistent section outline plus one outline per input, no intermediate content outline; hover keeps bounds and outlines unchanged and keyboard focus remains visible. Preserve localized labels, selected inputs, mode state, controls and firmware behavior. Shared card spacing reserves complete text line boxes without facts/column reordering. Use red-capable measured tests, relevant shared UI regressions and actual full-window evidence. No commit, publication or new-theme authority.",
+  "disposition": "extend-owner",
+  "designReview": { "reviewer": null, "outcome": "not-required", "evidence": "R1 owner-approved geometry correction through existing Presentation owners; no architecture or firmware contract change." },
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": { "reviewer": null, "outcome": "pending", "evidence": "" }
+}

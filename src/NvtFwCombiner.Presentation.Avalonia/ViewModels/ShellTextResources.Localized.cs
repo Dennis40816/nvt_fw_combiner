@@ -91,7 +91,7 @@ internal sealed partial class ShellTextResources
                 "在 bundle 中包含 A FlashCode"),
             OutputDeliveryOutputLabel = Pick("Output", "輸出"),
             OutputDeliveryEditOutputNameLabel = Pick("Edit output filename", "編輯輸出檔名"),
-            OutputDeliverySourcesLabel = Pick("Sources", "來源"),
+            OutputDeliverySourcesLabel = Pick("View source files", "檢視來源檔案"),
             OutputDeliverySourcesSummaryFormat = Pick("{0} verified sources", "{0} 個已驗證來源"),
             OutputDeliveryFolderNameLabel = Pick("Bundle folder name", "Bundle 資料夾名稱"),
             OutputDeliveryParentLabel = Pick("Parent folder", "上層資料夾"),

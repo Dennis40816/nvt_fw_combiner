@@ -265,6 +265,17 @@ internal sealed record OutputNameResolution(
     OutputNamingSummary? Summary,
     IReadOnlyList<CompositionIssue> Issues)
 {
+    internal OutputNameResolution WithExplicitOverride(CompiledComposition composition, string fileName)
+    {
+        CompositionRunRequest.ValidateRuntimeOutputName(composition, fileName, outputFileNameIsOverride: true);
+        return new OutputNameResolution(
+            fileName,
+            Summary is null ? null : new OutputNamingSummary(
+                Summary.RendererKind, Summary.Template, Summary.AutomaticFileName, fileName,
+                true, Summary.DateSource, Summary.ResolvedAtUtc, Summary.Tokens, Summary.Admission),
+            Issues);
+    }
+
     internal static OutputNameResolution Static(string fileName)
     {
         return new OutputNameResolution(fileName, null, []);

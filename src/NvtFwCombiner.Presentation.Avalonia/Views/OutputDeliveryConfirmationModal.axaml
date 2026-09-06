@@ -26,42 +26,44 @@
                     HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
         <StackPanel Margin="22,0">
           <Border x:Name="OutputSettingSection" Padding="0,16" BorderBrush="{DynamicResource NfcBorderMutedBrush}" BorderThickness="0,0,0,1">
-            <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto" ColumnSpacing="{DynamicResource NfcSpace12}" RowSpacing="{DynamicResource NfcSpace8}">
-              <StackPanel MinWidth="0" Spacing="3">
+            <Grid ColumnDefinitions="*,34,34" RowDefinitions="Auto,Auto,Auto,Auto" ColumnSpacing="{DynamicResource NfcSpace12}" RowSpacing="3">
                 <TextBlock Classes="fieldLabel" FontWeight="SemiBold" Text="{Binding Text.OutputDeliveryOutputLabel}" />
-                <SelectableTextBlock x:Name="OutputFileNameDisplay"
+                <SelectableTextBlock x:Name="OutputFileNameDisplay" Grid.Row="1"
                                      AutomationProperties.Name="{Binding Text.OutputDeliveryOutputLabel}"
                                      IsVisible="{Binding !IsOutputFileNameEditing}" MinHeight="24"
                                      Text="{Binding OutputFileName}" TextTrimming="CharacterEllipsis"
                                      ToolTip.Tip="{Binding OutputFileName}" VerticalAlignment="Center" />
-                <TextBox x:Name="OutputFileNameInput" Classes="buildSettingInput outputNameInput editable"
+                <TextBox x:Name="OutputFileNameInput" Grid.Row="1" VerticalAlignment="Center" Classes="buildSettingInput outputNameInput editable"
                          AutomationProperties.Name="{Binding Text.OutputDeliveryOutputLabel}"
                          IsVisible="{Binding IsOutputFileNameEditing}" Text="{Binding OutputFileName, Mode=OneWay}"
                          TextChanged="OutputFileNameInput_OnTextChanged" />
-                <TextBlock Classes="detailText" Text="{Binding SourcesSummary}" />
-              </StackPanel>
-              <StackPanel Grid.Column="1" HorizontalAlignment="Right" VerticalAlignment="Center"
-                          Orientation="Horizontal" Spacing="{DynamicResource NfcSpace4}">
-                <ToggleButton x:Name="SourcesDisclosureToggle" Classes="quietDisclosure buildSettingsDisclosure"
-                              AutomationProperties.Name="{Binding Text.OutputDeliverySourcesLabel}"
-                              IsChecked="{Binding AreSourcesExpanded}"
-                              IsCheckedChanged="SourcesDisclosureToggle_OnIsCheckedChanged">
-                  <StackPanel Orientation="Horizontal" Spacing="{DynamicResource NfcSpace4}">
-                    <TextBlock Text="{Binding Text.OutputDeliverySourcesLabel}" />
-                    <Path Width="12" Height="12" Data="M2 4L6 8L10 4" Fill="Transparent"
-                          Stroke="{DynamicResource NfcAccentStrongBrush}" StrokeThickness="1.5" Stretch="Uniform" />
-                  </StackPanel>
-                </ToggleButton>
-                <Button x:Name="EditOutputFileNameButton" Classes="semanticAction inlineEdit outputNameEdit"
+                <TextBlock Grid.Row="2" Classes="detailText" Text="{Binding SourcesSummary}" />
+                <Button x:Name="EditOutputFileNameButton" Grid.Row="1" Grid.Column="1" VerticalAlignment="Center" Classes="semanticAction inlineEdit outputNameEdit"
                         AutomationProperties.Name="{Binding Text.OutputDeliveryEditOutputNameLabel}"
                         Click="EditOutputFileNameButton_OnClick" IsEnabled="{Binding CanEditOutputFileName}"
                         ToolTip.Tip="{Binding Text.OutputDeliveryEditOutputNameLabel}">
                   <Path Width="16" Height="16" Data="{StaticResource NfcEditIconGeometry}"
                         Fill="Transparent" StrokeThickness="1.5" Stretch="Uniform" />
                 </Button>
-              </StackPanel>
+                <ToggleButton x:Name="SourcesDisclosureToggle" Grid.Row="1" Grid.Column="2" Width="34" Height="34"
+                              VerticalAlignment="Center" HorizontalContentAlignment="Center" Classes="inlineDisclosure buildSettingsDisclosure"
+                              AutomationProperties.Name="{Binding Text.OutputDeliverySourcesLabel}"
+                              ToolTip.Tip="{Binding Text.OutputDeliverySourcesLabel}"
+                              IsChecked="{Binding AreSourcesExpanded}"
+                              IsCheckedChanged="SourcesDisclosureToggle_OnIsCheckedChanged">
+                  <StackPanel Orientation="Horizontal" Spacing="{DynamicResource NfcSpace12}">
+                    <Path x:Name="SourcesCollapsedChevron" Width="12" Height="12" Data="M2 4L6 8L10 4" Fill="Transparent"
+                          RenderTransform="translate(0px, 3px)"
+                          IsVisible="{Binding !AreSourcesExpanded}" VerticalAlignment="Center"
+                          Stroke="{DynamicResource NfcTextStrongBrush}" StrokeThickness="1.5" Stretch="Uniform" />
+                    <Path x:Name="SourcesExpandedChevron" Width="12" Height="12" Data="M2 8L6 4L10 8" Fill="Transparent"
+                          RenderTransform="translate(0px, 3px)"
+                          IsVisible="{Binding AreSourcesExpanded}" VerticalAlignment="Center"
+                          Stroke="{DynamicResource NfcTextStrongBrush}" StrokeThickness="1.5" Stretch="Uniform" />
+                  </StackPanel>
+                </ToggleButton>
 
-              <Border x:Name="SourcesListPanel" Grid.Row="1" Grid.ColumnSpan="2" Classes="compactSubtleSurface"
+              <Border x:Name="SourcesListPanel" Grid.Row="3" Grid.ColumnSpan="3" Margin="0,8,0,0" Classes="compactSubtleSurface"
                       Padding="10,5" IsVisible="{Binding AreSourcesExpanded}">
                 <ItemsControl ItemsSource="{Binding Sources}">
                   <ItemsControl.ItemTemplate>
@@ -161,19 +163,17 @@
 
               <Border Classes="compactSubtleSurface" Padding="14" IsVisible="{Binding BundleEnabled}">
                 <StackPanel Spacing="{DynamicResource NfcSpace8}">
-                  <Grid x:Name="BundleReviewPanel" ColumnDefinitions="*,34" RowDefinitions="Auto,Auto"
-                        ColumnSpacing="{DynamicResource NfcSpace12}" RowSpacing="{DynamicResource NfcSpace8}">
-                    <StackPanel MinWidth="0" Spacing="{DynamicResource NfcSpace2}">
+                  <Grid x:Name="BundleReviewPanel" ColumnDefinitions="*,34" RowDefinitions="Auto,Auto,Auto,Auto"
+                        ColumnSpacing="{DynamicResource NfcSpace12}" RowSpacing="{DynamicResource NfcSpace2}">
                       <TextBlock Classes="fieldLabel" Text="{Binding Text.OutputDeliveryFolderNameLabel}" />
-                      <SelectableTextBlock x:Name="BundleFolderNameDisplay" IsVisible="{Binding !IsBundleDestinationEditing}"
+                      <SelectableTextBlock x:Name="BundleFolderNameDisplay" Grid.Row="1" VerticalAlignment="Center" IsVisible="{Binding !IsBundleDestinationEditing}"
                                            Text="{Binding BundleFolderName}" TextTrimming="CharacterEllipsis"
                                            ToolTip.Tip="{Binding BundleFolderName}" />
-                      <TextBox x:Name="FolderNameInput" Classes="buildSettingInput editable"
+                      <TextBox x:Name="FolderNameInput" Grid.Row="1" VerticalAlignment="Center" Classes="buildSettingInput editable"
                                AutomationProperties.Name="{Binding Text.OutputDeliveryFolderNameLabel}"
                                IsVisible="{Binding IsBundleDestinationEditing}"
                                Text="{Binding BundleFolderName}" TextChanged="FolderNameInput_OnTextChanged" />
-                    </StackPanel>
-                    <Button x:Name="EditBundleDestinationButton" Grid.Column="1"
+                    <Button x:Name="EditBundleDestinationButton" Grid.Row="1" Grid.Column="1"
                             Classes="semanticAction inlineEdit outputNameEdit" VerticalAlignment="Center"
                             AutomationProperties.Name="{Binding Text.OutputDeliveryEditBundleDestinationLabel}"
                             Click="EditBundleDestinationButton_OnClick" IsEnabled="{Binding CanEditBundleDestination}"
@@ -182,7 +182,7 @@
                       <Path Width="16" Height="16" Data="{StaticResource NfcEditIconGeometry}"
                             Fill="Transparent" StrokeThickness="1.5" Stretch="Uniform" />
                     </Button>
-                    <Button x:Name="CompleteBundleDestinationEditButton" Grid.Column="1"
+                    <Button x:Name="CompleteBundleDestinationEditButton" Grid.Row="1" Grid.Column="1"
                             Classes="semanticAction inlineEdit outputNameEdit" VerticalAlignment="Center"
                             AutomationProperties.Name="{Binding Text.OutputDeliveryDoneEditingLabel}"
                             Click="CompleteBundleDestinationEditButton_OnClick"
@@ -191,12 +191,10 @@
                       <Path Width="16" Height="16" Data="M2 8L6 12L14 3" Fill="Transparent"
                             StrokeThickness="1.5" Stretch="Uniform" />
                     </Button>
-                    <StackPanel Grid.Row="1" MinWidth="0" Spacing="{DynamicResource NfcSpace2}">
-                      <TextBlock Classes="fieldLabel" Text="{Binding Text.OutputDeliveryParentLabel}" />
-                      <SelectableTextBlock x:Name="ParentDirectoryDisplay" Text="{Binding ParentDirectory}"
+                      <TextBlock Grid.Row="2" Margin="0,8,0,0" Classes="fieldLabel" Text="{Binding Text.OutputDeliveryParentLabel}" />
+                      <SelectableTextBlock x:Name="ParentDirectoryDisplay" Grid.Row="3" VerticalAlignment="Center" Text="{Binding ParentDirectory}"
                                            TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding ParentDirectory}" />
-                    </StackPanel>
-                    <Button x:Name="ChooseParentButton" Grid.Row="1" Grid.Column="1"
+                    <Button x:Name="ChooseParentButton" Grid.Row="3" Grid.Column="1"
                             Classes="semanticAction inlineEdit outputNameEdit folderPickerAction"
                             VerticalAlignment="Center" IsEnabled="{Binding CanEditBundleDestination}"
                             AutomationProperties.Name="{Binding Text.OutputDeliveryChooseParentLabel}"
