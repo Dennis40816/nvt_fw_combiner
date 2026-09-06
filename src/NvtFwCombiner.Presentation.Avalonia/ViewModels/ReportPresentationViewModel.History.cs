@@ -15,6 +15,8 @@ internal sealed partial class ReportPresentationViewModel
     /// <summary>Gets session-local reports that can be reopened without re-running firmware workflows.</summary>
     public ObservableCollection<ReportHistoryEntryViewModel> ReportHistoryEntries { get; } = [];
 
+    public IReadOnlyList<ReportHistoryEntryViewModel> RunReportEntries { get; private set; } = [];
+
     public bool HasReportHistory => ReportHistoryEntries.Count > 0;
 
     public bool IsReportHistoryEmpty => !HasReportHistory;
@@ -22,6 +24,7 @@ internal sealed partial class ReportPresentationViewModel
     public int ReportHistoryCount => ReportHistoryEntries.Count;
 
     public string ReportHistorySummary => Text.GetReportHistorySummary(ReportHistoryCount);
+    public string RunReportSummary => Text.GetRunReportCount(ReportHistoryCount);
 
     /// <summary>Total in-memory persisted history payload size.</summary>
     public long ReportHistoryTotalBytes => ReportHistoryEntries.Sum(static entry => entry.StoredByteCount);
@@ -370,6 +373,11 @@ internal sealed partial class ReportPresentationViewModel
 
     private void NotifyReportHistoryChanged()
     {
+        // Keep the same ItemsSource while opening/closing detail; rebuilding on every
+        // binding read recreates rows and resets the list's scroll/focus state.
+        RunReportEntries = [.. ReportHistoryEntries.OrderByDescending(entry => entry.StartedAt).ThenByDescending(entry => entry.Sequence)];
+        PresentationObserver.Invoke(() => OnPropertyChanged(nameof(RunReportSummary)));
+        PresentationObserver.Invoke(() => OnPropertyChanged(nameof(RunReportEntries)));
         PresentationObserver.Invoke(() => OnPropertyChanged(nameof(ReportHistoryEntries)));
         PresentationObserver.Invoke(() => OnPropertyChanged(nameof(HasReportHistory)));
         PresentationObserver.Invoke(() => OnPropertyChanged(nameof(IsReportHistoryEmpty)));
@@ -521,7 +529,10 @@ internal sealed partial class ReportPresentationViewModel
                 report.IcId,
                 report.ModeId,
                 report.ExperienceId,
-                report.CompositionKind));
+                report.CompositionKind,
+                report.IssueCount,
+                report.HasPrimaryIssue,
+                report.HasWarnings));
     }
 
     internal static ReportHistorySnapshot OmitDerivableReportHistoryMetadata(

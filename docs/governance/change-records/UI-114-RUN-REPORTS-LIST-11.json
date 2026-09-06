@@ -1,0 +1,33 @@
+{
+  "schemaVersion": 2,
+  "taskId": "UI-114-RUN-REPORTS-LIST-11",
+  "capability": "Approved centered Run reports list, bounded overflow text and single host import",
+  "integrationBase": "fffc4bacd67d9b3f357e4919467de72256946311",
+  "risk": "R1", "kind": "ui", "state": "design-active",
+  "mutablePaths": [
+    "src/NvtFwCombiner.Presentation.Avalonia/MainWindow.Report.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/Views/MessageCenterModal.axaml",
+    "src/NvtFwCombiner.Presentation.Avalonia/Views/MessageCenterModal.axaml.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/Views/RunReportsTable.axaml",
+    "src/NvtFwCombiner.Presentation.Avalonia/Views/RunReportsTable.axaml.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/Views/ReportTableText.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/Styles/MessageCenterStyles.axaml",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MessageCenterViewModel.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReportHistoryEntryViewModel.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReportHistorySnapshot.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReportPresentationViewModel.History.cs"
+  ],
+  "implementationOwner": "primary-agent",
+  "searchEvidence": [
+    "Owner approved final screenshot exec-af6a4d03-21e5-40d6-8bc8-3805923a63e1.png: direct list, centered bounded columns, no vertical gridlines, red trash, Load Report only at Run reports, full-width sidebar and detail back to list.",
+    "CodeGraph MessageCenterViewModel/OpenCurrentReport/OpenReportHistory; current MainWindow.Report.cs owns native picker/10 MiB read/latest-publication. Reuse via the view event; no second loader/store.",
+    "Terra/high read-only inventory: ReportHistoryMetadataSnapshot already owns StartedAtUtc/IcId/ExperienceId/CompositionKind/ModeId; ReportReviewViewModel owns ParseIssues/CreateStatus/counts. Add optional UI-local numeric counts to this existing summary, hydrate legacy missing counts with its existing issue parser during preparation, never infer severity/count from localized labels. Original run-report schema unchanged.",
+    "Existing records 02/06/07/08 retain sole admission of shared shell/report template/text/confirmation paths. Their evidence is amended for this approved slice. RunReportsTable reuses history entry commands and confirmation; ReportTableText only detects rendered ellipsis. No firmware, release or persistence-capacity change."
+  ],
+  "semanticOwner": "ReportPresentationViewModel and ReportReviewViewModel own reports/history and issue projection; MessageCenterViewModel owns list navigation; MainWindow.Report owns file loading",
+  "terminalContract": "Render one shared table from existing bounded history, newest runs first. Keep per-entry exact open and confirmed single deletion, persistence budget, lazy older materialization, cancellation/latest-publication, local language and keyboard access. Date/IC/type come from metadata; missing values stay unknown. Load is reachable when empty; cancel/failure preserve report/list and restore trigger focus. Detail returns to the existing Run reports surface. Match approved Light/English geometry, centered cells, no vertical lines, red trash, bounded columns and tooltip only on real overflow. Verify red/green real controls, pointer/keyboard, light/dark, English/Traditional Chinese, compact width, full render comparison. Local-only, no commit/push/release.",
+  "disposition": "extend-owner",
+  "designReview": { "reviewer": null, "outcome": "not-required", "evidence": "Owner-approved R1 presentation correction over existing typed report and host owners." },
+  "implementationHead": null, "reviewedHead": null, "pathStateDigest": null,
+  "finalReview": { "reviewer": null, "outcome": "pending", "evidence": "" }
+}

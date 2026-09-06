@@ -8,6 +8,9 @@
   <Border Padding="22,18" BorderBrush="{DynamicResource NfcBorderMutedBrush}" BorderThickness="0,0,0,1">
     <Grid ColumnDefinitions="*,Auto" ColumnSpacing="{DynamicResource NfcSpace16}">
       <StackPanel Spacing="5">
+        <Button Classes="semanticAction secondary" HorizontalAlignment="Left"
+            Command="{ReflectionBinding $parent[Window].DataContext.MessageCenter.OpenRunReportsCommand}"
+            Content="{Binding Text.BackToRunReportsLabel}" />
         <TextBlock Classes="modalTitle" Text="{Binding LoadedReport.Title}" TextWrapping="Wrap" />
         <TextBlock Classes="mutedText" Text="{Binding LoadedReport.Subtitle}" TextWrapping="Wrap" />
       </StackPanel>
@@ -107,7 +110,7 @@
               Classes="semanticAction iconButton"
               VerticalAlignment="Center"
               AutomationProperties.Name="{Binding Text.OpenReportHistoryAutomationName}"
-              Command="{Binding ShowReportHistoryCommand}"
+              Command="{ReflectionBinding $parent[Window].DataContext.MessageCenter.OpenRunReportsCommand}"
               IsVisible="{Binding HasReportHistory}"
               ToolTip.Tip="{Binding Text.OpenReportHistoryTooltip}">
             <Path

@@ -123,13 +123,14 @@ public sealed partial class XamlControlStyleContractTests
             ScrollViewer timeline = Assert.IsType<ScrollViewer>(modal.FindControl<Control>("SystemActivityTimelineViewport"));
             Button close = Assert.IsType<Button>(modal.FindControl<Control>("CloseButton"));
 
-            Assert.InRange(surface.Bounds.Width, 1419.5, 1420.5);
-            Assert.InRange(surface.Bounds.Height, 823.5, 824.5);
-            Assert.InRange(body.Bounds.Height, 739.5, 740.5);
-            Assert.InRange(navigation.Bounds.Width, 237.5, 238.5);
+            // Shared shell follows the owner-approved Run reports reference; compact layout retains its fit gate.
+            Assert.InRange(surface.Bounds.Width, 1471.5, 1472.5);
+            Assert.InRange(surface.Bounds.Height, 815.5, 816.5);
+            Assert.InRange(body.Bounds.Height, 721.5, 722.5);
+            Assert.InRange(navigation.Bounds.Width, 323.5, 324.5);
             Assert.Equal(40, close.Bounds.Width);
             Assert.Equal(close.Bounds.Width, close.Bounds.Height);
-            Assert.True(activity.Bounds.Width > 1080);
+            Assert.InRange(activity.Bounds.Width, 1049.5, 1050.5);
             Assert.True(timeline.Bounds.Height > 420);
             Assert.True(modal.GetVisualDescendants().OfType<Border>()
                 .Count(control => control.Classes.Contains("activityRow")) >= 4);

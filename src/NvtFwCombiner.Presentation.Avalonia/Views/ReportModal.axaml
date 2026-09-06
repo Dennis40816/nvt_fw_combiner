@@ -3,7 +3,10 @@
     xmlns="https://github.com/avaloniaui"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:vm="using:NvtFwCombiner.Presentation.Avalonia.ViewModels"
+    xmlns:views="using:NvtFwCombiner.Presentation.Avalonia.Views"
     x:DataType="vm:ReportPresentationViewModel"
+    Focusable="True"
+    KeyboardNavigation.TabNavigation="Cycle"
     Background="{DynamicResource NfcReportModalScrimBrush}">
   <UserControl.Resources>
     <ResourceDictionary>
@@ -18,7 +21,9 @@
       </ResourceDictionary.MergedDictionaries>
     </ResourceDictionary>
   </UserControl.Resources>
+  <Grid>
   <Border
+      IsEnabled="{Binding !IsHistoryDeleteConfirmationOpen}"
       Classes="surface"
       MaxWidth="1500"
       MaxHeight="940"
@@ -60,4 +65,6 @@
       </StackPanel>
     </Grid>
   </Border>
+  <views:ReportHistoryDeleteConfirmationModal IsVisible="{Binding IsHistoryDeleteConfirmationOpen}" />
+  </Grid>
 </UserControl>

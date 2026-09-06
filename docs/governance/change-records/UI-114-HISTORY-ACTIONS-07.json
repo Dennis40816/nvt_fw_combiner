@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 2,
+  "taskId": "UI-114-HISTORY-ACTIONS-07",
+  "capability": "Wire existing Report History open/delete commands and reuse the selector trash affordance",
+  "integrationBase": "fffc4bacd67d9b3f357e4919467de72256946311",
+  "risk": "R1",
+  "kind": "ui",
+  "state": "design-active",
+  "mutablePaths": [
+    "src/NvtFwCombiner.Presentation.Avalonia/Resources/MainWindowReportHistoryTemplates.axaml"
+  ],
+  "implementationOwner": "primary-agent",
+  "searchEvidence": [
+    "Owner approved replacement of the card layout by the centered bounded table row with red trash and no vertical separators. The same entry template is shared by Run reports and retained report-history command surface; exact command parameters, keyboard opening and confirmation remain.",
+    "2026-09-06 owner requested single-entry deletion confirmation. The template now binds the pending-confirmation RequestReportHistoryDeletionCommand instead of direct removal; additional confirmation surfaces are admitted by UI-114-HISTORY-CONFIRM-08. Existing terminal removal/persistence remains unchanged and is called only by confirmation.",
+    "2026-09-06 owner follow-up: center the existing right-hand IssueSummary on the whole record, aligned with the centered trash. Move only that unchanged bound TextBlock from the first-line Grid into an Auto column beside the complete text stack; preserve the card button, padding, fonts, bindings and commands. Measure both centers within 0.5px in the existing four rendered variants; the prior centered-trash screenshot is the baseline.",
+    "2026-09-06 owner alignment correction: the existing sibling trash is Top-aligned, producing a measured 22px offset from the record center in all four rendered test variants. Reuse the same Grid and change only its VerticalAlignment to Center; preserve 36px size, styles and commands. Require center-line error <=0.5px and retain the prior native screenshot as before evidence.",
+    "2026-09-06 owner requested the next roadmap item after accepting Raw copy: step 5 Report History one-click open and single-entry delete, scoped by docs/ui/v1.1.x-report-history-usability-handoff.md.",
+    "CodeGraph and current source identify ReportPresentationViewModel.History as the existing sole command, cancellation, collection and latest-generation owner. MainWindowReportHistoryTemplates binds both commands directly to Window.DataContext, but MainWindowViewModel exposes them only through Reports. Existing ReportReviewHistoryTests and ChangeReportHistoryReopenHonorsInFlightUserAction cover the command bodies, not real control bindings.",
+    "MainWindow.Reports_OnPropertyChanged queues ExportReportHistory on ReportHistoryCount changes; OnClosing completes the existing LatestSnapshotPersistenceCoordinator and ReportHistoryFileStore. No new persistence or navigation owner is needed. Real control tests use a redirecting test ILocalFileStore to retain actual queued atomic writes inside the declared test area, never user history.",
+    "FirmwareSlotCard.ClearButton already uses semanticAction iconButton danger slotClearAction with Segoe Fluent Icons E74D at 17px. MainWindowButtonStyles owns its 36x36 geometry, transparent neutral state, danger hover/pressed and visible keyboard focus. Reuse that unchanged style/glyph; use an Auto delete column to fit its declared width. Existing localized OpenLabel/DeleteReportTooltip and entry SequenceLabel/Title supply distinct accessible action names without a new ViewModel or resource owner."
+  ],
+  "semanticOwner": "ReportPresentationViewModel owns history actions/state; MainWindow and ReportHistoryFileStore own queued persistence; MainWindowButtonStyles owns the selector trash visual",
+  "terminalContract": "Fix the template's ancestor command paths to Window.DataContext.Reports. Preserve the full-card button and separate sibling trash action. One pointer/Enter/Space activation opens only that entry through the cancellable async command, without appending history. Trash removes only its CommandParameter via the existing command, never opens a report, removes an artifact, changes current report JSON, or clears others. Preserve last-entry return, bulk clear, cancellation/latest-generation and existing queued close-flush/reload. Reuse the exact selector trash style/glyph and localized accessible name/tooltip including sequence/title. Keep existing card content/hierarchy/layout except the delete column accommodating the existing 36px control. No schema, capacity, firmware, file cleanup, new service or package; no commit/integration/release authority. Verify actual rendered pointer/keyboard controls, Light/Dark and EN/ZH compact geometry, real isolated queued persistence and existing race/cancellation tests; capture the actual UI.",
+  "disposition": "extend-owner",
+  "designReview": { "reviewer": null, "outcome": "not-required", "evidence": "R1 wiring correction and owner-requested reuse of an existing trash affordance; command and persistence semantics remain unchanged." },
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": { "reviewer": null, "outcome": "pending", "evidence": "" }
+}

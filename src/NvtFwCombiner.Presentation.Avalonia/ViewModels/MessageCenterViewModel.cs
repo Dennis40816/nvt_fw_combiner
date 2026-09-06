@@ -32,6 +32,12 @@ internal sealed partial class MessageCenterViewModel : ObservableObject
         _diagnosticsChanged = diagnosticsChanged ?? throw new ArgumentNullException(nameof(diagnosticsChanged));
         OpenCommand = new RelayCommand(Open);
         CloseCommand = new RelayCommand(Close);
+        OpenRunReportsCommand = new RelayCommand(() =>
+        {
+            Reports.CloseReportCommand.Execute(null);
+            SelectSystemInformation(false);
+            Open();
+        });
         ShowRunReportsCommand = new RelayCommand(() => SelectSystemInformation(false));
         ShowSystemInformationCommand = new RelayCommand(() => SelectSystemInformation(true));
         ShowImportantActivityCommand = new RelayCommand(() => SelectedActivityFilter = SystemActivityFilter.Important);
@@ -45,6 +51,8 @@ internal sealed partial class MessageCenterViewModel : ObservableObject
     }
 
     public ShellTextResources Text => _textProvider();
+
+    public IRelayCommand OpenRunReportsCommand { get; }
 
     /// <summary>Latest immutable System Information observation.</summary>
     public SystemInformationSnapshot Current => _systemInformation.Current;
@@ -316,6 +324,7 @@ internal sealed partial class MessageCenterViewModel : ObservableObject
 
     private void Close()
     {
+        Reports.CloseReportCommand.Execute(null);
         IsOpen = false;
     }
 

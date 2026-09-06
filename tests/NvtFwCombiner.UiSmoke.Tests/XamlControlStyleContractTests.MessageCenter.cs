@@ -36,12 +36,12 @@ public sealed partial class XamlControlStyleContractTests
         Assert.Contains("KeyboardNavigation.TabNavigation=\"Cycle\"", modal, StringComparison.Ordinal);
         Assert.Contains("KeyDown=\"MessageCenterModal_OnKeyDown\"", modal, StringComparison.Ordinal);
         Assert.Contains("x:Name=\"MessageCenterSurface\"", modal, StringComparison.Ordinal);
-        Assert.Contains("Width=\"1420\"", modal, StringComparison.Ordinal);
-        Assert.Contains("Height=\"824\"", modal, StringComparison.Ordinal);
+        Assert.Contains("Width=\"1570\"", modal, StringComparison.Ordinal);
+        Assert.Contains("Height=\"910\"", modal, StringComparison.Ordinal);
         var modalDocument = XDocument.Parse(modal);
         XElement body = Assert.Single(modalDocument.Descendants(), element =>
             element.Attribute(x + "Name")?.Value == "MessageCenterBody");
-        Assert.Equal("238,*", body.Attribute("ColumnDefinitions")?.Value);
+        Assert.Equal("324,*", body.Attribute("ColumnDefinitions")?.Value);
         _ = Assert.Single(modalDocument.Descendants(), element =>
             element.Attribute(x + "Name")?.Value == "MessageCenterNavigationRail");
         _ = Assert.Single(modalDocument.Descendants(), element =>
@@ -54,9 +54,9 @@ public sealed partial class XamlControlStyleContractTests
             .. modalDocument.Descendants()
                 .Where(element => HasClass(element, "messageCenterReportCard")),
         ];
-        Assert.Equal(2, reportCards.Length);
-        Assert.All(reportCards, card =>
-            _ = Assert.Single(card.Descendants(), element => element.Name.LocalName == "Button"));
+        Assert.Empty(reportCards);
+        _ = Assert.Single(modalDocument.Descendants(), element => element.Name.LocalName == "RunReportsTable");
+        Assert.Contains("Click=\"LoadReportButton_OnClick\"", modal, StringComparison.Ordinal);
         Assert.Contains("IsVisible=\"{Binding IsRunReportsSelected}\"", modal, StringComparison.Ordinal);
         Assert.Contains("IsVisible=\"{Binding IsSystemInformationSelected}\"", modal, StringComparison.Ordinal);
         Assert.Contains("Click=\"ExportDiagnosticsButton_OnClick\"", modal, StringComparison.Ordinal);

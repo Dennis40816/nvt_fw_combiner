@@ -33,7 +33,10 @@ internal sealed record ReportHistoryMetadataSnapshot(
     string IcId,
     string ModeId,
     string ExperienceId,
-    string CompositionKind)
+    string CompositionKind,
+    int? IssueCount = null,
+    bool? HasBlockingIssues = null,
+    bool? HasWarnings = null)
 {
     public static ReportHistoryMetadataSnapshot Empty { get; } = new(
         string.Empty,

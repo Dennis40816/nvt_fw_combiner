@@ -402,6 +402,7 @@ internal sealed partial class ReportPresentationViewModel : ObservableObject
 
     private void CloseReport()
     {
+        CancelReportHistoryDeletion();
         CancelReportHistoryReopen();
         if (!IsReportModalOpen)
         {
@@ -469,6 +470,7 @@ internal sealed partial class ReportPresentationViewModel : ObservableObject
         OnPropertyChanged(nameof(ReportActionLabel));
         OnPropertyChanged(nameof(ReportActionStatus));
         OnPropertyChanged(nameof(ReportHistorySummary));
+        OnPropertyChanged(nameof(RunReportSummary));
         OnPropertyChanged(nameof(ReportHistoryStorageSummary));
         OnPropertyChanged(nameof(ReportHistoryStorageWarning));
         RequestReportRelocalization();

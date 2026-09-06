@@ -100,15 +100,6 @@
             </StackPanel>
           </Button>
           <Button
-              Classes="semanticAction secondary"
-              Click="LoadReportJsonButton_OnClick"
-              ToolTip.Tip="{Binding Text.LoadJsonTooltip}">
-            <StackPanel Orientation="Horizontal" Spacing="7">
-              <TextBlock VerticalAlignment="Center" FontSize="{DynamicResource NfcFontSize14}" Text="↥" />
-              <TextBlock VerticalAlignment="Center" FontSize="{DynamicResource NfcFontSize12}" FontWeight="SemiBold" Text="{Binding Text.LoadJsonLabel}" />
-            </StackPanel>
-          </Button>
-          <Button
               Classes="semanticAction iconButton"
               AutomationProperties.LiveSetting="Polite"
               AutomationProperties.Name="{Binding MessageCenter.MessageCenterAccessibleName}"
@@ -662,7 +653,7 @@
         IsVisible="{Binding MessageCenter.IsOpen}">
       <ContentControl.ContentTemplate>
         <DataTemplate DataType="vm:MessageCenterViewModel">
-          <views:MessageCenterModal />
+          <views:MessageCenterModal LoadReportRequested="LoadReportJsonButton_OnClick" />
         </DataTemplate>
       </ContentControl.ContentTemplate>
     </ContentControl>

@@ -5,6 +5,26 @@ namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
 internal sealed partial class ShellTextResources
 {
+    public string RunDateColumn => SelectLanguage("Run date ↓", "執行日期 ↓");
+    public string RunTypeColumn => SelectLanguage("Type", "執行類型");
+    public string RunResultColumn => SelectLanguage("Result", "結果");
+    public string RunIssuesColumn => SelectLanguage("Issues", "問題數");
+    public string RunReportsNewestFirst => SelectLanguage("Newest runs first", "最新執行的報告在最上方");
+    public string RunReportsSelectHint => SelectLanguage("Select a report to view details", "選取報告以檢視詳細內容");
+    public string LoadRunReportLabel => SelectLanguage("Load Report", "載入報告");
+    public string BackToRunReportsLabel => SelectLanguage("← Run reports", "← 執行報告");
+    public string GetRunReportCount(int count)
+    {
+        return SelectLanguage(
+            count == 1 ? "1 report" : FormattableString.Invariant($"{count} reports"),
+            FormattableString.Invariant($"{count} 筆報告"));
+    }
+    public string DeleteHistoryTitle => SelectLanguage("Delete this report?", "刪除這筆報告？");
+    public string DeleteHistoryDetail => SelectLanguage(
+        "This removes only this history entry. Report files and output files will not be deleted.",
+        "只移除這筆歷史紀錄，不會刪除報告檔或輸出檔案。");
+    public string DeleteHistoryConfirmLabel => SelectLanguage("Delete", "刪除");
+
     public string ReportToastTitle { get; private init; } = string.Empty;
 
     public string ReplaceSelectionTitle { get; private init; } = string.Empty;
