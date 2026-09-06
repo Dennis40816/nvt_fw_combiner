@@ -14,10 +14,10 @@
           DragDrop.Drop="SlotDrop_OnDrop" Tag="{Binding SlotId}">
     <Grid>
       <Border Classes="dropZoneOverlay" />
-      <Grid x:Name="SlotLayout" Margin="16,12" MinHeight="72" ColumnDefinitions="280,*,Auto"
+      <Grid x:Name="SlotLayout" Margin="16" MinHeight="72" ColumnDefinitions="280,*,Auto"
             ColumnSpacing="{DynamicResource NfcSpace24}" RowDefinitions="*">
         <StackPanel x:Name="SlotIdentity" Grid.Column="0" VerticalAlignment="Center"
-                    Spacing="{DynamicResource NfcSpace8}">
+                    Spacing="{DynamicResource NfcSpace12}">
           <Grid x:Name="SlotHeaderContent" ColumnDefinitions="Auto,*" ColumnSpacing="{DynamicResource NfcSpace12}">
             <Border VerticalAlignment="Center" Classes="slotTypeIcon"
                     Classes.base="{Binding SlotKind, Converter={x:Static converters:ObjectConverters.Equal}, ConverterParameter={x:Static vm:FirmwareSlotKind.Base}}"
@@ -28,9 +28,13 @@
                     ToolTip.Tip="{Binding SlotIconTooltip}">
               <Path Data="{Binding SlotIconPathData}" />
             </Border>
-            <WrapPanel Grid.Column="1" VerticalAlignment="Center">
-              <TextBlock x:Name="SlotTitle" Margin="0,0,10,0" VerticalAlignment="Center"
-                         Classes="firmwareSlotTitle" Text="{Binding Title}" TextWrapping="Wrap" />
+            <WrapPanel Grid.Column="1" VerticalAlignment="Center" LineSpacing="10">
+              <StackPanel Margin="0,0,10,0" VerticalAlignment="Center" Spacing="6">
+                <TextBlock x:Name="SlotTitle" Classes="firmwareSlotTitle"
+                           Text="{Binding Title}" TextWrapping="Wrap" />
+                <TextBlock x:Name="SlotSubtitle" Classes="mutedText" IsVisible="{Binding HasSubtitle}"
+                           Text="{Binding Subtitle}" TextWrapping="Wrap" />
+              </StackPanel>
               <WrapPanel VerticalAlignment="Center">
                 <Label Classes="compactBadge slotBadge firmwareSlotRequirement availableInput"
                        Classes.optional="{Binding IsOptional}" Content="{Binding RequirementLabel}"
@@ -69,7 +73,24 @@
               </WrapPanel>
             </WrapPanel>
           </Grid>
-          <TextBlock Classes="mutedText" IsVisible="{Binding IsGuidanceVisible}" Text="{Binding Description}" TextWrapping="Wrap" />
+          <StackPanel IsVisible="{Binding IsGuidanceVisible}">
+            <TextBlock Classes="mutedText" IsVisible="{Binding !HasInputGuidanceFacts}" Text="{Binding Description}" TextWrapping="Wrap" />
+            <StackPanel IsVisible="{Binding HasInputGuidanceFacts}" Spacing="6">
+              <ItemsControl ItemsSource="{Binding InputGuidanceFacts}">
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate x:DataType="vm:FirmwareSlotFactViewModel">
+                    <Grid ColumnDefinitions="92,*" ColumnSpacing="12" Margin="0,2"
+                          AutomationProperties.Name="{Binding StateAutomationText}">
+                      <TextBlock Classes="mutedText" Text="{Binding Label}" />
+                      <TextBlock Grid.Column="1" Classes="mutedText" Text="{Binding Value}" />
+                    </Grid>
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+              <TextBlock Classes="mutedText" IsVisible="{Binding HasInputGuidanceNote}"
+                         Text="{Binding InputGuidanceNote}" TextWrapping="Wrap" />
+            </StackPanel>
+          </StackPanel>
           <TextBlock IsVisible="{Binding IsGuidanceVisible}" Classes="firmwareSlotGuidance"
                      Text="{Binding DisplayName}" TextWrapping="Wrap" />
           <Button AutomationProperties.HelpText="{Binding DisplayDetail}" AutomationProperties.Name="{Binding DisplayNameWithSelectionContext}"
@@ -77,7 +98,7 @@
                   CommandParameter="{Binding FilePath}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left"
                   IsVisible="{Binding HasFile}" ToolTip.BetweenShowDelay="-1" ToolTip.Placement="BottomEdgeAlignedLeft"
                   ToolTip.ShowDelay="300" ToolTip.Tip="{Binding DisplayDetail}" ToolTip.VerticalOffset="8">
-            <TextBlock Text="{Binding DisplayNameWithSelectionContext}" TextTrimming="CharacterEllipsis" />
+            <TextBlock Text="{Binding DisplayNameWithSelectionContext}" TextWrapping="Wrap" />
           </Button>
           <TextBlock AutomationProperties.LiveSetting="Polite" Classes="slotStateDetail"
                      IsVisible="{Binding IsSemanticStateDetailExpanded}"

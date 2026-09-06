@@ -31,21 +31,19 @@
     <Border
         Classes="panelSurface roomyPanel"
         IsVisible="{Binding IsCtrlRamReplaceModeSelected}">
-      <StackPanel Spacing="14">
-        <StackPanel Spacing="3">
+      <StackPanel>
+        <StackPanel Spacing="3" Margin="0,0,0,16">
           <TextBlock Classes="sectionTitle" Text="{Binding Text.InputFilesTitle}" />
           <TextBlock Classes="mutedText" Text="{Binding Text.CtrlRamInputFilesDetail}" TextWrapping="Wrap" />
         </StackPanel>
 
-        <views:SpaciousPanel Classes="compact" HorizontalAlignment="Stretch">
-          <ContentControl
-              HorizontalAlignment="Stretch"
-              HorizontalContentAlignment="Stretch"
-              Content="{Binding ReplaceBaseSlot}"
-              ContentTemplate="{StaticResource FirmwareSlotCardTemplate}" />
-        </views:SpaciousPanel>
+        <ContentControl
+            HorizontalAlignment="Stretch"
+            HorizontalContentAlignment="Stretch"
+            Content="{Binding ReplaceBaseSlot}"
+            ContentTemplate="{StaticResource FirmwareSlotCardTemplate}" />
 
-        <ItemsControl Classes="spaciousList" HorizontalAlignment="Stretch" ItemContainerTheme="{StaticResource StretchContentPresenterTheme}" ItemsSource="{Binding ReplaceSlotGroups}">
+        <ItemsControl Classes="spaciousList firmwareSlotGroups" HorizontalAlignment="Stretch" ItemContainerTheme="{StaticResource StretchContentPresenterTheme}" ItemsSource="{Binding ReplaceSlotGroups}">
           <ItemsControl.ItemTemplate>
             <StaticResource ResourceKey="FirmwareSlotGroupTemplate" />
           </ItemsControl.ItemTemplate>

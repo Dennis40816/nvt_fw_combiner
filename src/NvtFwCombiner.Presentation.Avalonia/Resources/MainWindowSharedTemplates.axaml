@@ -116,10 +116,11 @@
 
 <DataTemplate x:Key="FirmwareSlotGroupTemplate" DataType="vm:FirmwareSlotGroupViewModel">
   <views:SpaciousPanel Classes="compact firmwareSlotGroupSurface">
-    <Expander Classes="inlineDisclosure" HorizontalAlignment="Stretch" IsExpanded="{Binding IsExpanded, Mode=TwoWay}">
+    <Expander Classes="inlineDisclosure firmwareSlotGroupDisclosure" HorizontalAlignment="Stretch" IsExpanded="{Binding IsExpanded, Mode=TwoWay}"
+              AutomationProperties.Name="{Binding Title}" AutomationProperties.HelpText="{Binding SelectionSummary}">
       <Expander.Header>
         <Grid HorizontalAlignment="Stretch" ColumnDefinitions="*,Auto" ColumnSpacing="{DynamicResource NfcSpace12}">
-          <StackPanel Spacing="{DynamicResource NfcSpace2}">
+          <StackPanel Spacing="5">
             <TextBlock Classes="cardTitle" Text="{Binding Title}" />
             <TextBlock Classes="mutedText" Text="{Binding SelectionSummary}" TextWrapping="Wrap" />
           </StackPanel>

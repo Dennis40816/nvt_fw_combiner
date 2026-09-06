@@ -71,7 +71,7 @@ public sealed partial class XamlControlStyleContractTests
             Assert.Equal(FirmwareSlotSemanticState.Inspected, slot.SemanticState);
             Assert.Equal("Base inspected", slot.SemanticStateLabel);
             Assert.Contains("inspected", state.Classes);
-            Assert.InRange(selector.Bounds.Height, 90, 104);
+            Assert.Equal(108, selector.Bounds.Height, precision: 3);
             Assert.Equal(36, browse.Bounds.Height, precision: 3);
             Assert.Contains("NfcAccentSurfaceBrush", inspected, StringComparison.Ordinal);
             Assert.Contains("NfcAccentStrongBrush", inspected, StringComparison.Ordinal);

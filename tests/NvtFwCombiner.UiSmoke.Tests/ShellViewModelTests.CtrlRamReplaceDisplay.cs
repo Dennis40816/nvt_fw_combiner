@@ -415,7 +415,7 @@ public sealed partial class CtrlRamWorkflowTests
 
         Assert.Contains(viewModel.Replace.ReplaceSlots, slot =>
             slot.SlotId == "replace-ctrlram-vn" &&
-            slot.Description.Contains("VN_Ctrlram.bin", StringComparison.Ordinal));
+            slot.CtrlRamDescriptionFacts!.SourceFileName == "VN_Ctrlram.bin");
 
         await viewModel.WorkflowSession.SetSlotFileAsync(
             "replace-base",
@@ -436,8 +436,8 @@ public sealed partial class CtrlRamWorkflowTests
             region.SizeHex == "len 0x1660");
         Assert.Contains(viewModel.Replace.ReplaceSlots, slot =>
             slot.SlotId == "replace-ctrlram-vn" &&
-            slot.Description.Contains("VN_Ctrlram.bin", StringComparison.Ordinal) &&
-            slot.Description.Contains("max 5728 B", StringComparison.Ordinal));
+            !slot.Description.Contains("VN_Ctrlram.bin", StringComparison.Ordinal) &&
+            slot.Description.Contains("Max Size: 5,728\u00a0B", StringComparison.Ordinal));
         Assert.Equal("Waiting for CtrlRAM replacement", viewModel.Replace.ReplaceMemoryRangeLabel);
         Assert.Empty(viewModel.Replace.ReplaceCoverageGroups);
         MemoryCoverageSegmentViewModel pendingCoverage = Assert.Single(
@@ -479,9 +479,10 @@ public sealed partial class CtrlRamWorkflowTests
         OpenReplace(viewModel, ExperienceIds.CtrlRamReplace);
         var traditionalChinese = ShellTextResources.For(ShellLanguage.ChineseTraditional);
 
-        Assert.Equal("Base firmware (FlashCode / TP FW)", viewModel.Replace.ReplaceBaseSlot.Title);
+        Assert.Equal("Base firmware", viewModel.Replace.ReplaceBaseSlot.Title);
+        Assert.Equal("FlashCode / TP FW", viewModel.Replace.ReplaceBaseSlot.Subtitle);
         Assert.Equal(
-            "基底韌體 (FlashCode / TP FW)",
+            "基底韌體",
             traditionalChinese.GetReplaceBaseTitle(ExperienceIds.CtrlRamReplace));
         Assert.Contains("complete FlashCode or TP FW", viewModel.Text.CtrlRamInputFilesDetail, StringComparison.Ordinal);
         Assert.Contains("short files stop at EOF", viewModel.Text.CtrlRamInputFilesDetail, StringComparison.Ordinal);
@@ -491,15 +492,26 @@ public sealed partial class CtrlRamWorkflowTests
         Assert.DoesNotContain("base flash", viewModel.Text.CtrlRamInputFilesDetail, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("base flash", traditionalChinese.CtrlRamInputFilesDetail, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("FlashCode", traditionalChinese.CtrlRamFirmwareVersionSourceDetail, StringComparison.Ordinal);
-        Assert.Contains(viewModel.Replace.ReplaceSelectionMissingRows, row => row.Title == "Base firmware (FlashCode / TP FW)");
+        Assert.Contains(viewModel.Replace.ReplaceSelectionMissingRows, row => row.Title == "Base firmware" && row.Meta == "Required reference firmware before any Replace build.");
+
+        viewModel.SelectedLanguage = "Traditional Chinese";
+        Assert.Equal("基底韌體", viewModel.Replace.ReplaceBaseSlot.Title);
+        Assert.Equal("FlashCode / TP FW", viewModel.Replace.ReplaceBaseSlot.Subtitle);
+        viewModel.SelectedLanguage = "English";
 
         OpenReplace(viewModel, ExperienceIds.DpReplace);
         Assert.Equal("Base firmware (FlashCode)", viewModel.Replace.ReplaceBaseSlot.Title);
+        Assert.False(viewModel.Replace.ReplaceBaseSlot.HasSubtitle);
         Assert.DoesNotContain("TP FW", viewModel.Replace.ReplaceBaseSlot.Title, StringComparison.Ordinal);
 
         OpenReplace(viewModel, ExperienceIds.GeneralReplace);
         Assert.Equal("Base firmware (FlashCode)", viewModel.Replace.ReplaceBaseSlot.Title);
+        Assert.False(viewModel.Replace.ReplaceBaseSlot.HasSubtitle);
         Assert.DoesNotContain("TP FW", viewModel.Replace.ReplaceBaseSlot.Title, StringComparison.Ordinal);
+
+        OpenReplace(viewModel, ExperienceIds.CtrlRamReplace);
+        Assert.Equal("Base firmware", viewModel.Replace.ReplaceBaseSlot.Title);
+        Assert.Equal("FlashCode / TP FW", viewModel.Replace.ReplaceBaseSlot.Subtitle);
     }
 
     /// <summary>CtrlRAM input titles consume typed group and DiffNF facts instead of English suffixes.</summary>
@@ -650,7 +662,7 @@ public sealed partial class CtrlRamWorkflowTests
         Assert.DoesNotContain(viewModel.Replace.ReplaceCoverageSegments, static segment => segment.IsChanged);
         Assert.Equal("Waiting for Base BIN", Assert.Single(viewModel.Replace.ReplaceCoverageSegments).SourceLabel);
         Assert.Contains("Build blocked", viewModel.Replace.ReplaceSelectionStatusLabel, StringComparison.Ordinal);
-        Assert.Contains(viewModel.Replace.ReplaceSelectionMissingRows, row => row.Title == "Base firmware (FlashCode / TP FW)");
+        Assert.Contains(viewModel.Replace.ReplaceSelectionMissingRows, row => row.Title == "Base firmware");
         Assert.Contains(viewModel.Replace.ReplaceSelectionMissingRows, row => row.Title == "CtrlRAM replacement");
         FirmwareSlotGroupViewModel slaveLGroup = viewModel.Replace.ReplaceSlotGroups.Single(group => group.Title == "Slave L");
         Assert.Equal("0/2", slaveLGroup.CountLabel);
@@ -659,7 +671,7 @@ public sealed partial class CtrlRamWorkflowTests
         Assert.Equal("0/2", sharedGroup.CountLabel);
 
         FirmwareSlotViewModel vn = viewModel.Replace.ReplaceSlots.Single(slot => slot.Title == "VN CtrlRAM (Shared)");
-        Assert.Equal("VN_Ctrlram.bin · 3 regions", vn.Description);
+        Assert.Equal("Shared across 3 regions", vn.Description);
         Assert.Equal(3, vn.CtrlRamDescriptionFacts!.TargetRegionCount);
         viewModel.SetSlotFile(vn.SlotId, workspace.Write("vn.bin", [0x00]));
 

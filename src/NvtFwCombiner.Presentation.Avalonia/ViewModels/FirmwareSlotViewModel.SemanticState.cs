@@ -132,6 +132,12 @@ internal sealed partial class FirmwareSlotViewModel
         ArgumentNullException.ThrowIfNull(text);
 
         _issueText = text;
+        InputGuidanceFacts = text.GetCtrlRamGuidanceFacts(CtrlRamDescriptionFacts);
+        InputGuidanceNote = text.GetCtrlRamGuidanceNote(CtrlRamDescriptionFacts);
+        OnPropertyChanged(nameof(InputGuidanceFacts));
+        OnPropertyChanged(nameof(HasInputGuidanceFacts));
+        OnPropertyChanged(nameof(InputGuidanceNote));
+        OnPropertyChanged(nameof(HasInputGuidanceNote));
         _checkingLabel = text.FirmwareSlotCheckingLabel;
         _inspectedLabel = text.CtrlRamBaseInspectedLabel;
         _verifiedLabel = text.FirmwareSlotVerifiedLabel;

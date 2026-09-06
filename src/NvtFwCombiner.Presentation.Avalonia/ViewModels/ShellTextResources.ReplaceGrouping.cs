@@ -52,15 +52,41 @@ internal sealed partial class ShellTextResources
         string declaredDescription,
         CtrlRamInputDescriptionFacts? facts)
     {
-        return facts is null
-            ? declaredDescription
-            : facts.IsShared
-                ? SelectLanguage(
-                    $"{facts.SourceFileName} · {facts.TargetRegionCount} regions",
-                    $"{facts.SourceFileName} · {facts.TargetRegionCount} 個區域")
-                : Language != ShellLanguage.ChineseTraditional
-                    ? declaredDescription
-                    : FormatCtrlRamTechnicalDescription(facts);
+        if (facts is null)
+        {
+            return declaredDescription;
+        }
+        string summary = facts.IsShared
+            ? SelectLanguage($"Shared across {facts.TargetRegionCount} regions", $"共用至 {facts.TargetRegionCount} 個區域")
+            : string.Join("\n", GetCtrlRamGuidanceFacts(facts).Select(row => $"{row.Label}: {row.Value}"));
+        // Unusual multi-section inputs retain full mapping detail rather than losing a target.
+        if (summary.Length == 0)
+        {
+            return FormatCtrlRamTechnicalDescription(facts);
+        }
+        string note = GetCtrlRamGuidanceNote(facts);
+        return note.Length == 0 ? summary : $"{summary}\n{note}";
+    }
+
+    public IReadOnlyList<FirmwareSlotFactViewModel> GetCtrlRamGuidanceFacts(CtrlRamInputDescriptionFacts? facts)
+    {
+        if (facts is not { IsShared: false, Sections.Count: 1 })
+        {
+            return [];
+        }
+        CtrlRamInputDescriptionSection section = facts.Sections[0];
+        return
+        [
+            new(SelectLanguage("Max Size", "大小上限"), FormattableString.Invariant($"{section.MaximumLength:N0}\u00a0B")),
+            new(SelectLanguage("Target Addr", "目標位址"), FormattableString.Invariant($"0x{section.TargetStart:X}")),
+        ];
+    }
+
+    public string GetCtrlRamGuidanceNote(CtrlRamInputDescriptionFacts? facts)
+    {
+        return facts?.RequiresDiffNfMerge == true
+            ? SelectLanguage("Requires DiffNFMerge output; generation is not integrated.", "需使用 DiffNFMerge 輸出；目前未整合產生流程。")
+            : string.Empty;
     }
 
     /// <summary>Formats the full typed CtrlRAM mapping retained for technical details and reports.</summary>

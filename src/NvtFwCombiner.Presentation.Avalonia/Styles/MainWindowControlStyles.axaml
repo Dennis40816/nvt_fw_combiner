@@ -258,6 +258,13 @@
       </ItemsPanelTemplate>
     </Setter>
   </Style>
+  <Style Selector="ItemsControl.firmwareSlotGroups">
+    <Setter Property="ItemsPanel">
+      <ItemsPanelTemplate>
+        <StackPanel Spacing="{DynamicResource NfcSpace12}" />
+      </ItemsPanelTemplate>
+    </Setter>
+  </Style>
   <Style Selector="Border.listRow">
     <Setter Property="BorderBrush" Value="{DynamicResource NfcDividerBrush}" />
     <Setter Property="BorderThickness" Value="0,1,0,0" />

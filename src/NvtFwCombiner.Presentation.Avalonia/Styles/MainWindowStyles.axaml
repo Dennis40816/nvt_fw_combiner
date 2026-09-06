@@ -123,6 +123,18 @@
     <Setter Property="BorderBrush" Value="{DynamicResource NfcAccentStrongBrush}" />
     <Setter Property="BorderThickness" Value="2" />
   </Style>
+  <Style Selector="Expander.firmwareSlotGroupDisclosure /template/ Border#ExpanderContent">
+    <Setter Property="BorderThickness" Value="0" />
+  </Style>
+  <Style Selector="Expander.firmwareSlotGroupDisclosure /template/ ToggleButton#ExpanderHeader">
+    <Setter Property="BorderThickness" Value="2" />
+  </Style>
+  <Style Selector="Expander.firmwareSlotGroupDisclosure /template/ ToggleButton#ExpanderHeader:pointerover, Expander.firmwareSlotGroupDisclosure /template/ ToggleButton#ExpanderHeader:checked:pointerover, Expander.firmwareSlotGroupDisclosure /template/ ToggleButton#ExpanderHeader:pressed">
+    <Setter Property="BorderBrush" Value="Transparent" />
+  </Style>
+  <Style Selector="Expander.firmwareSlotGroupDisclosure /template/ ToggleButton#ExpanderHeader:focus-visible">
+    <Setter Property="BorderBrush" Value="{DynamicResource NfcAccentStrongBrush}" />
+  </Style>
   <Style Selector="ToggleButton.nav">
     <Setter Property="MinHeight" Value="30" />
     <Setter Property="Padding" Value="13,6" />

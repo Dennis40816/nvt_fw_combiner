@@ -84,13 +84,18 @@ internal sealed partial class ShellTextResources
         return mode switch
         {
             ExperienceIds.CtrlRamReplace => SelectLanguage(
-                "Base firmware (FlashCode / TP FW)",
-                "基底韌體 (FlashCode / TP FW)"),
+                "Base firmware",
+                "基底韌體"),
             ExperienceIds.DpReplace or ExperienceIds.GeneralReplace => SelectLanguage(
                 "Base firmware (FlashCode)",
                 "基底韌體 (FlashCode)"),
             _ => SelectLanguage("Base firmware", "基底韌體"),
         };
+    }
+
+    public static string GetReplaceBaseSubtitle(string mode)
+    {
+        return mode == ExperienceIds.CtrlRamReplace ? "FlashCode / TP FW" : string.Empty;
     }
 
     public string GetReplaceBaseDescription(string mode, string? dpReferenceCapacityLabel)

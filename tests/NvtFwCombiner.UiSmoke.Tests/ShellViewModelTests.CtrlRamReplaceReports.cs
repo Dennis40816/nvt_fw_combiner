@@ -71,7 +71,7 @@ public sealed partial class CtrlRamExternalGoldenTests
         await CurrentInspection(viewModel).ActiveTask;
         FirmwareSlotViewModel normalRight = viewModel.Replace.ReplaceSlots.Single(slot => slot.Title == "Normal CtrlRAM (Slave R)");
         FirmwareSlotViewModel vn = viewModel.Replace.ReplaceSlots.Single(slot => slot.Title == "VN CtrlRAM (Shared)");
-        Assert.Equal("VN_Ctrlram.bin · 3 regions", vn.Description);
+        Assert.Equal("Shared across 3 regions", vn.Description);
         Assert.Equal(3, vn.CtrlRamDescriptionFacts!.TargetRegionCount);
         Assert.Equal(3, vn.CtrlRamDescriptionFacts.Sections.Count);
         viewModel.SetSlotFile(normalRight.SlotId, CanonicalCtrlRamTestData.ReplacementPathFor(fixtureCase, normalRight.SlotId));
@@ -115,7 +115,7 @@ public sealed partial class CtrlRamExternalGoldenTests
         viewModel.WorkflowSession.SelectedNumber = "3";
         await CurrentInspection(viewModel).ActiveTask;
         FirmwareSlotViewModel vn = viewModel.Replace.ReplaceSlots.Single(slot => slot.Title == "VN CtrlRAM (Shared)");
-        Assert.Equal("VN_Ctrlram.bin · 3 regions", vn.Description);
+        Assert.Equal("Shared across 3 regions", vn.Description);
         Assert.Equal(3, vn.CtrlRamDescriptionFacts!.TargetRegionCount);
         Assert.Equal(3, vn.CtrlRamDescriptionFacts.Sections.Count);
         Assert.Contains(vn.CtrlRamDescriptionFacts.Sections, section =>

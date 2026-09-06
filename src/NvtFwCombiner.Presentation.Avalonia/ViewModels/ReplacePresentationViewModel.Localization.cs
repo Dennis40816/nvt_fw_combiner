@@ -13,7 +13,8 @@ internal sealed partial class ReplacePresentationViewModel
                     : null),
             Text.RequiredLabel,
             Text.OptionalLabel,
-            Text.NoBinSelectedLabel);
+            Text.NoBinSelectedLabel,
+            ShellTextResources.GetReplaceBaseSubtitle(SelectedReplaceMode));
 
         foreach (FirmwareSlotViewModel slot in ReplaceSlots.Where(slot => !ReferenceEquals(slot, ReplaceBaseSlot)))
         {
