@@ -477,7 +477,7 @@ documentation item and does not authorize a cosmetic-only Dummy DP feature.
 
 | Remaining order | Scope | Boundary |
 | --- | --- | --- |
-| 1 | Test diagram / `tests/README.md` (17) | Reuse retained 1.1.3 counts/timings; show locations and actual serial/parallel dependencies without rerunning tests merely to document them. |
+| 1 | Test diagram / `tests/README.md` (17) | Documentation completed locally: [execution map and measurements](../../tests/README.md). Includes locations, current static declaration counts, retained 1.1.3 executed totals/times and actual serial/parallel dependencies. Historical per-project .NET times/Python executed counts were not found and are explicitly unavailable; no test rerun or guessed figures. |
 | 2 | Report Changes local presentation (12) | Start with gutter, spacing, Original colors and address text; assess physical-section grouping separately before changing shared projections. |
 | 3 | Settings Version local presentation (13) | Start with existing typed information; obtain a full-page reference before proportion changes. |
 | 4 | DPI/high-contrast and Report import assessment | Verify genuine 125% behavior and missing/noncanonical Report fields. Record findings first; assessment is not blanket repair or support promotion. |
