@@ -106,6 +106,19 @@ public enum CtrlRamBaseDiscoveryReadiness
     Inspected,
 }
 
+/// <summary>Immutable origin of the advisory IC marker attached to an inspection snapshot.</summary>
+public enum FirmwareIcHintSource
+{
+    /// <summary>No provenance was supplied, so advisory consumers retain their existing behavior.</summary>
+    Unknown,
+
+    /// <summary>The marker came from the selected file name.</summary>
+    FileName,
+
+    /// <summary>The marker came from the bounded printable-header fallback scan.</summary>
+    PrintableHeader,
+}
+
 /// <summary>One read-only client projection decoded from one immutable firmware image read.</summary>
 public sealed record FirmwareInspectionSnapshot(
     string? DetectedIcId,
@@ -116,6 +129,9 @@ public sealed record FirmwareInspectionSnapshot(
     CtrlRamInspectionDisplay? CtrlRamDisplay,
     BaseFirmwareArtifactKind BaseFirmwareArtifactKind = BaseFirmwareArtifactKind.Unknown)
 {
+    /// <summary>Typed advisory-marker provenance; defaults to Unknown for existing producers.</summary>
+    public FirmwareIcHintSource DetectedIcHintSource { get; init; }
+
     /// <summary>Content identity captured from the same immutable bytes used by this inspection.</summary>
     public FileStamp? FileStamp { get; init; }
 

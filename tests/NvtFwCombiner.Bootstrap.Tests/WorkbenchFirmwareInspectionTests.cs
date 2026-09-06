@@ -465,6 +465,7 @@ public sealed partial class FirmwareInspectionSnapshotTests
             ctrlRamRequest: null,
             _ => headerBytes);
         Assert.Equal("NT51927", fileNameHint.DetectedIcId);
+        Assert.Equal(FirmwareIcHintSource.FileName, fileNameHint.DetectedIcHintSource);
 
         FirmwareInspectionSnapshot unreadableFileNameHint = FirmwareInspectionTestSupport.InspectFirmware(
             "NT51926",
@@ -473,6 +474,7 @@ public sealed partial class FirmwareInspectionSnapshotTests
             ctrlRamRequest: null,
             _ => null);
         Assert.Equal("NT51927", unreadableFileNameHint.DetectedIcId);
+        Assert.Equal(FirmwareIcHintSource.FileName, unreadableFileNameHint.DetectedIcHintSource);
         Assert.Null(unreadableFileNameHint.FirmwareConfig);
 
         FirmwareInspectionSnapshot headerHint = FirmwareInspectionTestSupport.InspectFirmware(
@@ -482,6 +484,7 @@ public sealed partial class FirmwareInspectionSnapshotTests
             ctrlRamRequest: null,
             _ => headerBytes);
         Assert.Equal("NT51926", headerHint.DetectedIcId);
+        Assert.Equal(FirmwareIcHintSource.PrintableHeader, headerHint.DetectedIcHintSource);
 
         Array.Clear(headerBytes, 16, "NT51926".Length);
         FirmwareInspectionSnapshot outOfProbeHint = FirmwareInspectionTestSupport.InspectFirmware(
@@ -491,6 +494,7 @@ public sealed partial class FirmwareInspectionSnapshotTests
             ctrlRamRequest: null,
             _ => headerBytes);
         Assert.Null(outOfProbeHint.DetectedIcId);
+        Assert.Equal(FirmwareIcHintSource.Unknown, outOfProbeHint.DetectedIcHintSource);
 
         Assert.DoesNotContain(
             typeof(FirmwareInspectionSnapshot).GetProperties(),

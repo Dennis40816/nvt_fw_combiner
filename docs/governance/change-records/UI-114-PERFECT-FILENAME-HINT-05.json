@@ -1,0 +1,39 @@
+{
+  "schemaVersion": 2,
+  "taskId": "UI-114-PERFECT-FILENAME-HINT-05",
+  "capability": "Suppress only filename-derived IC mismatch hints between declared complete Perfect-family members",
+  "integrationBase": "fffc4bacd67d9b3f357e4919467de72256946311",
+  "risk": "R2",
+  "kind": "behavior",
+  "state": "design-active",
+  "mutablePaths": [
+    "docs/adr/0041-perfect-family-and-typed-shared-fact-relationships.md",
+    "src/NvtFwCombiner.Application/Composition/CompositionClientModels.cs",
+    "src/NvtFwCombiner.Infrastructure/Composition/BuiltInFirmwareInspection.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/WorkflowSessionPresentationViewModel.FirmwareIcMismatch.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/WorkflowSessionPresentationViewModel.FirmwareInspection.cs"
+  ],
+  "implementationOwner": "/root/review_ab_dp_metadata",
+  "searchEvidence": [
+    "Roadmap row 3 requires suppressing only filename-read mismatch hints for the same declared complete Perfect family and retaining partial/shared-fact and other mismatches. It forbids filename similarity and a UI family table.",
+    "CodeGraph and targeted reads identify BuiltInFirmwareInspection.InspectFirmware as the sole detector: it resolves a filename marker first at lines 237-240, then falls back to DetectFirmwareIcHintFromHeader at lines 308-309, but FirmwareInspectionSnapshot currently exposes only DetectedIcId. ReconcileFirmwareIcMismatch is the sole Presentation prompt owner and has one caller from the inspection application loop.",
+    "ICompositionCapabilityExperience.ArePerfectFamilyMembers is the existing canonical relationship query. CanonicalCapabilityExperience returns true only for a common nonempty FamilyId with both summaries classified PerfectAlias; CapabilityFamilyRelationship keeps PartialAlias distinct. Bootstrap CanonicalCapabilityProjectionPolicyTests already proves perfect, partial, and unrelated pairs.",
+    "With production unchanged, the environment-pinned UiSmoke filter SlotLoadingSuppressesFilenameIcMarkerForDeclaredPerfectFamily fails 4/4 for NT51917/NT51927 and NT51919/NT51932 in both directions because the existing modal opens. This is retained red characterization evidence."
+  ],
+  "semanticOwner": "BuiltInFirmwareInspection owns typed hint provenance; ICompositionCapabilityExperience owns declared Perfect-family classification; WorkflowSessionPresentationViewModel reconciles the advisory prompt without re-deriving either fact.",
+  "terminalContract": "Add one immutable, optional-init IC-hint provenance to FirmwareInspectionSnapshot with an Unknown default that preserves existing constructors and consumers. BuiltInFirmwareInspection records FileName whenever its filename marker wins, including an unreadable file, and PrintableHeader only for its readable header fallback. ReconcileFirmwareIcMismatch consumes that typed provenance and suppresses only a FileName hint when the existing ArePerfectFamilyMembers query says the selected and detected IDs share one complete declared Perfect family. Header and Unknown hints, partial/shared-fact families, unrelated members, unsupported markers, and same-ID handling retain their current behavior. Do not alter DetectedIcId, catalog admission, support, readiness, selection acceptance, Build behavior, reports, profiles, firmware bytes, output names, ranges, or UI-owned family data.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "/root",
+    "outcome": "approved",
+    "evidence": "2026-09-06 independent primary-agent R2 design review inspected ADR 0041, the existing ArePerfectFamilyMembers implementation and port, the filename-first/header-fallback inspector, snapshot constructors, sole prompt caller and red UI matrix. Approved additive non-positional Unknown-default provenance, FileName-only suppression via canonical complete-family query, and unchanged header/unknown/partial/unrelated behavior. Reuse existing owners; no new classifier, firmware facts, admission, serialization schema or execution path. Require provenance precedence/unreadable/absent tests, prompt matrix and narrow architecture checks before local handoff; final committed-head review and integration gates remain separate."
+  },
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": {
+    "reviewer": null,
+    "outcome": "pending",
+    "evidence": ""
+  }
+}

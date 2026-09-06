@@ -27,8 +27,9 @@ internal sealed partial class WorkflowSessionPresentationViewModel
     internal bool ReconcileFirmwareIcMismatch(
         WorkflowInspectionContext context,
         FirmwareSlotViewModel slot,
-        string? detectedIc)
+        FirmwareInspectionSnapshot inspection)
     {
+        ArgumentNullException.ThrowIfNull(inspection);
         if (IsFirmwareIcMismatchModalOpen ||
             !slot.HasFile ||
             string.IsNullOrWhiteSpace(slot.FilePath))
@@ -36,9 +37,16 @@ internal sealed partial class WorkflowSessionPresentationViewModel
             return false;
         }
 
+        string? detectedIc = inspection.DetectedIcId;
         if (string.IsNullOrWhiteSpace(detectedIc) ||
             !IcChoices.Contains(detectedIc, StringComparer.OrdinalIgnoreCase) ||
             string.Equals(detectedIc, SelectedIc, StringComparison.OrdinalIgnoreCase))
+        {
+            return false;
+        }
+
+        if (inspection.DetectedIcHintSource == FirmwareIcHintSource.FileName &&
+            _compositionServices.Capabilities.ArePerfectFamilyMembers(SelectedIc, detectedIc))
         {
             return false;
         }

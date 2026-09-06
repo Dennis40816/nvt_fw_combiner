@@ -429,7 +429,7 @@ internal sealed partial class WorkflowSessionPresentationViewModel
 
             if (item.PromptForMismatch)
             {
-                if (ReconcileFirmwareIcMismatch(request.Context, slot, inspection.DetectedIcId))
+                if (ReconcileFirmwareIcMismatch(request.Context, slot, inspection))
                 {
                     return standardMergeAccepted && abMergeAccepted && replaceAccepted;
                 }

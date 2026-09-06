@@ -69,6 +69,23 @@ Support, publication, evidence classification, workflow admission, and requested
 identity are never inherited by a partial relationship. They remain separately
 declared even when their current values happen to match.
 
+### UI-114 advisory-hint amendment (accepted 2026-09-06; local owner-approved, not integrated)
+
+The existing complete `PerfectFamilyRelationship` suppresses an
+advisory **filename-derived** IC-context mismatch prompt when both the selected
+and detected IDs resolve through the existing canonical typed Perfect-family
+query. This is a prompt-only convenience: it neither changes the detected ID
+nor admits an IC, support, workflow, selection, report, profile, range, output
+name, or firmware byte.
+
+The inspector must carry immutable typed hint provenance to the Presentation
+prompt owner. A filename match, including one for an unreadable input, is
+distinct from a printable-header fallback. Header-derived or unknown-source
+hints remain actionable even between Perfect-family members. Partial
+shared-fact relationships remain actionable. Presentation consumes the typed
+provenance and canonical relationship query; it does not inspect filenames,
+maintain a family table, or infer family membership.
+
 ## Examples
 
 - NT51923 and NT51926 are not a family. They may reuse an independently global
