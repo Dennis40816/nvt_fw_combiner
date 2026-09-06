@@ -139,6 +139,59 @@ public sealed class CompositionRunReportTests
             StringComparison.Ordinal);
     }
 
+    /// <summary>Input evidence uses final issue indexes, keeps equal-looking issues distinct, and is omitted when absent.</summary>
+    [Fact]
+    public void InputDiagnosticsAreDefensiveIndexedSnapshotsWithDurableJsonCompatibility()
+    {
+        var first = new CompositionIssue("INPUT", "same", "input", CompositionIssueSeverity.Warning);
+        var second = new CompositionIssue("INPUT", "same", "input", CompositionIssueSeverity.Warning);
+        var supplied = new List<InputDiagnosticSummary>
+        {
+            new(1, "tp", new InputDiagnosticEvidence("tp-input", null, null, new ByteRange(4, 2), 0xA5)),
+            new(0, "dp", new InputDiagnosticEvidence("dp-input", 3, 4, null, null)),
+        };
+        CompositionRunReport report = new(
+            "run", "profile", "1.0.0", "NT51929", "mode", "experience", CompositionKind.Merge,
+            DateTimeOffset.UnixEpoch, DateTimeOffset.UnixEpoch, [], [], [], [first, second],
+            new OutputArtifactSummary("output.bin", 1, "output-hash", committed: false),
+            inputDiagnostics: supplied);
+
+        supplied.Clear();
+
+        IReadOnlyList<InputDiagnosticSummary> diagnostics = Assert.IsType<IReadOnlyList<InputDiagnosticSummary>>(
+            report.InputDiagnostics,
+            exactMatch: false);
+        Assert.Equal([1, 0], diagnostics.Select(static diagnostic => diagnostic.IssueIndex));
+        Assert.Equal("tp", diagnostics[0].SlotId);
+        string json = JsonSerializer.Serialize(report);
+        Assert.Contains("\"InputDiagnostics\"", json, StringComparison.Ordinal);
+        using JsonDocument document = JsonDocument.Parse(json);
+        JsonElement hydratedDiagnostic = document.RootElement.GetProperty("InputDiagnostics")[0];
+        Assert.Equal(1, hydratedDiagnostic.GetProperty("IssueIndex").GetInt32());
+        JsonElement hydratedEvidence = hydratedDiagnostic.GetProperty("Evidence");
+        Assert.Equal(0xA5, hydratedEvidence.GetProperty("RepeatedByte").GetByte());
+        JsonElement hydratedRange = hydratedEvidence.GetProperty("SourceRange");
+        Assert.Equal(4, hydratedRange.GetProperty("Start").GetInt64());
+        Assert.Equal(2, hydratedRange.GetProperty("Length").GetInt64());
+        Assert.DoesNotContain("\"InputDiagnostics\"", JsonSerializer.Serialize(CreateReport(null)), StringComparison.Ordinal);
+        _ = Assert.Throws<ArgumentOutOfRangeException>(() => new InputDiagnosticEvidence(
+            "dp-input", null, null, default(ByteRange), null));
+        _ = Assert.Throws<ArgumentException>(() => new CompositionRunReport(
+            "run", "profile", "1.0.0", "NT51929", "mode", "experience", CompositionKind.Merge,
+            DateTimeOffset.UnixEpoch, DateTimeOffset.UnixEpoch, [], [], [], [first, second],
+            new OutputArtifactSummary("output.bin", 1, "output-hash", committed: false),
+            inputDiagnostics: [new InputDiagnosticSummary(2, "tp", new InputDiagnosticEvidence("tp-input", null, null, new ByteRange(0, 1), 0))]));
+        _ = Assert.Throws<ArgumentException>(() => new CompositionRunReport(
+            "run", "profile", "1.0.0", "NT51929", "mode", "experience", CompositionKind.Merge,
+            DateTimeOffset.UnixEpoch, DateTimeOffset.UnixEpoch, [], [], [], [first, second],
+            new OutputArtifactSummary("output.bin", 1, "output-hash", committed: false),
+            inputDiagnostics:
+            [
+                new InputDiagnosticSummary(0, "dp", new InputDiagnosticEvidence("dp-input", null, null, new ByteRange(0, 1), 0)),
+                new InputDiagnosticSummary(0, "tp", new InputDiagnosticEvidence("tp-input", null, null, new ByteRange(0, 1), 0)),
+            ]));
+    }
+
     private static CompositionRunReport CreateReport(
         CompositionOutputBundleDeliverySummary? bundleDelivery)
     {

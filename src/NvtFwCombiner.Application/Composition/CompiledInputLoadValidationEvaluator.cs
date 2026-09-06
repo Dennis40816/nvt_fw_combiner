@@ -4,17 +4,19 @@ namespace NvtFwCombiner.Application.Composition;
 
 internal static class CompiledInputLoadValidationEvaluator
 {
-    internal static CompositionIssue? Evaluate(
+    internal static InputLoadValidationEvaluationResult Evaluate(
         IReadOnlyDictionary<string, byte[]> inputBytes,
         CompiledUniformInputRangeValidation requirement)
     {
         return !inputBytes.TryGetValue(requirement.AddressSpaceId, out byte[]? bytes)
-            ? Issue(requirement,
-                $"Input validation cannot read required address space '{requirement.AddressSpaceId}'.")
+            ? new InputLoadValidationEvaluationResult(
+                Issue(requirement,
+                    $"Input validation cannot read required address space '{requirement.AddressSpaceId}'."),
+                DiagnosticEvidence: null)
             : Evaluate(bytes, requirement);
     }
 
-    internal static CompositionIssue? Evaluate(
+    internal static InputLoadValidationEvaluationResult Evaluate(
         ReadOnlySpan<byte> bytes,
         CompiledUniformInputRangeValidation requirement)
     {
@@ -22,19 +24,33 @@ internal static class CompiledInputLoadValidationEvaluator
         {
             if (range.EndExclusive > bytes.Length)
             {
-                return Issue(requirement,
-                    $"Input validation range {range} is outside address space '{requirement.AddressSpaceId}'.");
+                return new InputLoadValidationEvaluationResult(
+                    Issue(requirement,
+                        $"Input validation range {range} is outside address space '{requirement.AddressSpaceId}'."),
+                    new InputDiagnosticEvidence(
+                        requirement.AddressSpaceId,
+                        bytes.Length,
+                        range.EndExclusive,
+                        range,
+                        repeatedByte: null));
             }
 
             ReadOnlySpan<byte> candidate = bytes.Slice(checked((int)range.Start), checked((int)range.Length));
             if (candidate[1..].IndexOfAnyExcept(candidate[0]) < 0)
             {
-                return Issue(requirement,
-                    $"Input range {range} in '{requirement.AddressSpaceId}' is a repeated-byte placeholder and cannot be used.");
+                return new InputLoadValidationEvaluationResult(
+                    Issue(requirement,
+                        $"Input range {range} in '{requirement.AddressSpaceId}' is a repeated-byte placeholder and cannot be used."),
+                    new InputDiagnosticEvidence(
+                        requirement.AddressSpaceId,
+                        actualLength: null,
+                        requiredEndExclusive: null,
+                        range,
+                        candidate[0]));
             }
         }
 
-        return null;
+        return new InputLoadValidationEvaluationResult(Issue: null, DiagnosticEvidence: null);
     }
 
     private static CompositionIssue Issue(
@@ -48,3 +64,8 @@ internal static class CompiledInputLoadValidationEvaluator
             CompositionIssueSeverity.FromCompiled(requirement.Severity));
     }
 }
+
+/// <summary>One single-pass input-load evaluation and its optional path-free evidence.</summary>
+internal sealed record InputLoadValidationEvaluationResult(
+    CompositionIssue? Issue,
+    InputDiagnosticEvidence? DiagnosticEvidence);

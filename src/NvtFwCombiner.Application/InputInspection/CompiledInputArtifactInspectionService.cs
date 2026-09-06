@@ -74,6 +74,9 @@ public sealed record CompiledInputArtifactInspectionResult(
     bool BlocksBuild,
     CompiledInputArtifactInspectionNextAction NextAction)
 {
+    /// <summary>Optional path-free evidence from the same compiled validation evaluation.</summary>
+    public InputDiagnosticEvidence? DiagnosticEvidence { get; init; }
+
     /// <summary>Number of immutable source bytes excluded from the execution snapshot.</summary>
     public long IgnoredTrailingBytes => IgnoredTrailingRange?.Length ?? 0;
 }
@@ -245,7 +248,15 @@ public static class CompiledInputArtifactInspectionService
                 CompiledInputArtifactInspectionSeverity.Blocking,
                 shortInputIssueCode,
                 BlocksBuild: true,
-                CompiledInputArtifactInspectionNextAction.SelectCompatibleInput);
+                CompiledInputArtifactInspectionNextAction.SelectCompatibleInput)
+            {
+                DiagnosticEvidence = new InputDiagnosticEvidence(
+                    binding.AddressSpaceId,
+                    actualSnapshot.LongLength,
+                    requiredEndExclusive,
+                    sourceRange: null,
+                    repeatedByte: null),
+            };
         }
 
         int acceptedLength = checked((int)requiredEndExclusive);
@@ -291,16 +302,16 @@ public static class CompiledInputArtifactInspectionService
             return inspection;
         }
 
-        CompiledUniformInputRangeValidation? failed = composition.V2Details.Provenance.ValidationRequirements
+        InputLoadValidationEvaluationResult? failed = composition.V2Details.Provenance.ValidationRequirements
             .OfType<CompiledUniformInputRangeValidation>()
             .Where(requirement => StringComparer.Ordinal.Equals(
                 requirement.AddressSpaceId,
                 addressSpaceId))
             .Where(static requirement => requirement.Severity != CompiledValidationSeverity.Info)
             .OrderByDescending(static requirement => requirement.Severity)
-            .FirstOrDefault(requirement =>
-                CompiledInputLoadValidationEvaluator.Evaluate(sourceBytes.Span, requirement) is not null);
-        bool blocksBuild = failed?.Severity == CompiledValidationSeverity.Error;
+            .Select(requirement => CompiledInputLoadValidationEvaluator.Evaluate(sourceBytes.Span, requirement))
+            .FirstOrDefault(static evaluation => evaluation.Issue is not null);
+        bool blocksBuild = failed?.Issue?.Severity == CompositionIssueSeverity.Error;
         return failed is null || (!blocksBuild &&
                 inspection.Severity != CompiledInputArtifactInspectionSeverity.Valid)
             ? inspection
@@ -309,9 +320,10 @@ public static class CompiledInputArtifactInspectionService
                 Severity = blocksBuild
                     ? CompiledInputArtifactInspectionSeverity.Blocking
                     : CompiledInputArtifactInspectionSeverity.Warning,
-                IssueCode = failed.IssueCode,
+                IssueCode = failed.Issue!.Code,
                 BlocksBuild = blocksBuild,
                 NextAction = CompiledInputArtifactInspectionNextAction.None,
+                DiagnosticEvidence = failed.DiagnosticEvidence,
             };
     }
 
@@ -388,7 +400,17 @@ public static class CompiledInputArtifactInspectionService
                     ? CompositionIssueCodes.InputAddressSpaceLengthMismatch
                     : CompositionIssueCodes.InputSourceViewIncomplete,
                 BlocksBuild: true,
-                CompiledInputArtifactInspectionNextAction.SelectCompatibleInput);
+                CompiledInputArtifactInspectionNextAction.SelectCompatibleInput)
+            {
+                DiagnosticEvidence = tooLong
+                    ? null
+                    : new InputDiagnosticEvidence(
+                        binding.AddressSpaceId,
+                        sourceBytes.Length,
+                        requiredEndExclusive,
+                        sourceRange: null,
+                        repeatedByte: null),
+            };
         }
 
         var acceptedRange = new ByteRange(0, requiredEndExclusive);

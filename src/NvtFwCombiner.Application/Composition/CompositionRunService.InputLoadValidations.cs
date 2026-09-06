@@ -12,25 +12,28 @@ public sealed partial class CompositionRunService
         foreach (CompiledValidationRequirement requirement in compiledComposition.V2Details.Provenance.ValidationRequirements.Where(
                      static requirement => requirement.Stage == CompiledValidationStage.InputLoad))
         {
-            CompositionIssue? issue = requirement switch
+            InputLoadValidationEvaluationResult evaluation = requirement switch
             {
                 CompiledUniformInputRangeValidation uniform =>
                     CompiledInputLoadValidationEvaluator.Evaluate(inputBytes, uniform),
-                _ => new CompositionIssue(
-                    requirement.IssueCode,
-                    $"Input-load validation rule '{requirement.RuleId}' has no executable runtime evaluator.",
-                    requirement.RuleId),
+                _ => new InputLoadValidationEvaluationResult(
+                    new CompositionIssue(
+                        requirement.IssueCode,
+                        $"Input-load validation rule '{requirement.RuleId}' has no executable runtime evaluator.",
+                        requirement.RuleId),
+                    DiagnosticEvidence: null),
             };
             evaluations.Add(new InputLoadValidationEvaluation(
                 new ValidationRunSummary(
                     requirement.RuleId,
                     requirement.Stage,
-                    issue is null
+                    evaluation.Issue is null
                         ? ValidationRunStatus.Passed
                         : ValidationRunStatus.Failed,
                     requirement.Severity,
-                    issue?.Code ?? requirement.IssueCode),
-                issue));
+                    evaluation.Issue?.Code ?? requirement.IssueCode),
+                evaluation.Issue,
+                evaluation.DiagnosticEvidence));
         }
 
         return evaluations;
@@ -50,11 +53,13 @@ public sealed partial class CompositionRunService
                         ValidationRunStatus.Skipped,
                         requirement.Severity,
                         requirement.IssueCode),
-                    Issue: null)),
+                    Issue: null,
+                    DiagnosticEvidence: null)),
         ];
     }
 
     private sealed record InputLoadValidationEvaluation(
         ValidationRunSummary Summary,
-        CompositionIssue? Issue);
+        CompositionIssue? Issue,
+        InputDiagnosticEvidence? DiagnosticEvidence);
 }

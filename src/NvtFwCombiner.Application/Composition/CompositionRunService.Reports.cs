@@ -1,5 +1,7 @@
 using NvtFwCombiner.Domain.Composition;
 
+using System.Collections.ObjectModel;
+
 namespace NvtFwCombiner.Application.Composition;
 
 public sealed partial class CompositionRunService
@@ -20,7 +22,8 @@ public sealed partial class CompositionRunService
         IReadOnlyList<CompositionIssue>? additionalIssues = null,
         IReadOnlyList<ValidationRunSummary>? validations = null,
         Dictionary<string, IReadOnlyList<ExternalProcessInvocation>>? executedCommandsByOperationId = null,
-        CompositionOutputBundleDeliverySummary? bundleDelivery = null)
+        CompositionOutputBundleDeliverySummary? bundleDelivery = null,
+        IReadOnlyList<InputDiagnosticIssue>? inputDiagnosticIssues = null)
     {
         OperationRunSummary[] operations = [
             .. request.CompiledComposition.Plan.OrderedOperations.Select(operation =>
@@ -54,6 +57,9 @@ public sealed partial class CompositionRunService
             .. execution.Issues,
             .. additionalIssues ?? [],
         ];
+        ReadOnlyCollection<InputDiagnosticSummary>? inputDiagnostics = CreateInputDiagnostics(
+            issues,
+            inputDiagnosticIssues);
 
         return new CompositionRunReport(
             request.RunId,
@@ -83,10 +89,55 @@ public sealed partial class CompositionRunService
                         request.CompiledComposition.Plan.OutputInitialization)
                     : null,
             bundleDelivery: bundleDelivery,
+            inputDiagnostics: inputDiagnostics,
             resolvedMapId: request.CompiledComposition.V2Details.Provenance.Context
                 is MapBoundV2CompilationContext mapContext
                     ? mapContext.ResolvedMap.ImageMap.MapId
                     : null);
+    }
+
+    private static ReadOnlyCollection<InputDiagnosticSummary>? CreateInputDiagnostics(
+        CompositionIssue[] issues,
+        IReadOnlyList<InputDiagnosticIssue>? inputDiagnosticIssues)
+    {
+        if (inputDiagnosticIssues is not { Count: > 0 })
+        {
+            return null;
+        }
+
+        var indexes = new HashSet<int>();
+        var summaries = new List<InputDiagnosticSummary>(inputDiagnosticIssues.Count);
+        foreach (InputDiagnosticIssue diagnostic in inputDiagnosticIssues)
+        {
+            int issueIndex = -1;
+            for (int index = 0; index < issues.Length; index++)
+            {
+                if (!ReferenceEquals(issues[index], diagnostic.Issue))
+                {
+                    continue;
+                }
+
+                if (issueIndex >= 0)
+                {
+                    throw new ArgumentException(
+                        "An input diagnostic issue must occur exactly once in the final report issues.",
+                        nameof(inputDiagnosticIssues));
+                }
+
+                issueIndex = index;
+            }
+
+            if (issueIndex < 0 || !indexes.Add(issueIndex))
+            {
+                throw new ArgumentException(
+                    "Input diagnostic issue associations must be unique final report issue instances.",
+                    nameof(inputDiagnosticIssues));
+            }
+
+            summaries.Add(new InputDiagnosticSummary(issueIndex, diagnostic.SlotId, diagnostic.Evidence));
+        }
+
+        return Array.AsReadOnly(summaries.ToArray());
     }
 
     private static MutationRunSummary ToMutationSummary(MutationRecord mutation)
