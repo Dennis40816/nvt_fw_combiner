@@ -5,7 +5,7 @@
   "integrationBase": "ac01da6afad0c4f2130a840f39d7a3a2d41672de",
   "risk": "R3",
   "kind": "release",
-  "state": "design-active",
+  "state": "final-complete",
   "mutablePaths": ["scripts/package.ps1", "scripts/smoke-release.ps1"],
   "implementationOwner": "primary-agent",
   "searchEvidence": [
@@ -20,8 +20,12 @@
     "outcome": "approved",
     "evidence": "2026-09-07 reviewer admitted exactly two comparisons 1.1 to 1.2, confirmed ac01da6a as checkpoint and dbd269ff as preserved attestation child, and required existing positive/security behavior tests. No version set, removed guard, new parser, unrelated schema replacement or unexamined failure fix is admitted."
   },
-  "implementationHead": null,
-  "reviewedHead": null,
-  "pathStateDigest": null,
-  "finalReview": {"reviewer": null, "outcome": "pending", "evidence": ""}
+  "implementationHead": "1da0b11f99762cf14d235f864cfbb8a0912cb001",
+  "reviewedHead": "1da0b11f99762cf14d235f864cfbb8a0912cb001",
+  "pathStateDigest": "f6eb926eb78e76c47428b14cd39a01c94208e0bf82fc0862b5ca2db3af321d92",
+  "finalReview": {
+    "reviewer": "ui_runtime_review (independent read-only agent, inherited configuration)",
+    "outcome": "approved",
+    "evidence": "2026-09-07 fixed dbd269ff..1da0b11f review found exactly the two admitted comparisons and design record, no findings, scoped PASS-WITH-HUMAN-GATE. Hash, anchor, allowlists, other schemas and security rejection conditions unchanged. Working-patch release-package module passed 81/83; two HEAD-cloning cases still executed old source. Other release modules passed 78/78 in 39.767s. After committing the actual correction, all four snapshot-filter cases passed in 56.551s, including both previously failing HEAD-dependent cases. Thus the prior eight failures and one error have corresponding passing evidence without weakening tests; these scoped runs are not a fresh full-suite pass. Final verifier and exact final-evidence-head release-owner attestation remain separate gates."
+  }
 }
