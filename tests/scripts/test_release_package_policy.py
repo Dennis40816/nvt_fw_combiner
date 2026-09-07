@@ -79,6 +79,11 @@ GIT_LONG_PATH_ENVIRONMENT = {
 PERSONAL_OWNER_IDENTIFIER = "Dennis40816"
 DISTRIBUTION_OWNER = "MSP/FW3"
 SOURCE_IDENTITY = "urn:msp-fw3:nvt-fw-combiner:source"
+HISTORICAL_VERIFICATION_URLS = (
+    "https://github.com/Dennis40816/nvt_fw_combiner/actions/runs/33974287659",
+    "https://github.com/Dennis40816/nvt_fw_combiner/pull/426#discussion_r3941065650",
+    "https://github.com/Dennis40816/nvt_fw_combiner/releases/tag/v1.1.3",
+)
 LEGACY_PACKAGE_BYTES = 80_000_000
 MAXIMUM_PACKAGE_BYTES = 134_217_728
 MAXIMUM_APPLICATION_BYTES = 80_000_000
@@ -962,12 +967,17 @@ class ReleasePackagePolicyTests(unittest.TestCase):
             ROOT / "LICENSE",
             ROOT / "Directory.Build.props",
             PACKAGE_SCRIPT,
-            ROOT / "docs/references/verification-report.md",
         )
 
         for metadata_path in distribution_metadata_paths:
             metadata = metadata_path.read_text(encoding="utf-8")
             self.assertNotIn(PERSONAL_OWNER_IDENTIFIER, metadata, metadata_path)
+
+        # Historical GitHub evidence URLs are not distribution-owner metadata.
+        verification_report = (ROOT / "docs/references/verification-report.md").read_text(
+            encoding="utf-8"
+        )
+        self._assert_verification_report_identity(verification_report)
 
         self.assertIn(
             DISTRIBUTION_OWNER,
@@ -981,6 +991,40 @@ class ReleasePackagePolicyTests(unittest.TestCase):
         package_script = PACKAGE_SCRIPT.read_text(encoding="utf-8")
         self.assertIn(f"$DistributionOwner = '{DISTRIBUTION_OWNER}'", package_script)
         self.assertIn(f"$SourceIdentity = '{SOURCE_IDENTITY}'", package_script)
+
+    def _assert_verification_report_identity(self, report: str) -> None:
+        owner_lines = [
+            line for line in report.splitlines()
+            if line.startswith("- Distribution owner identity is ")
+        ]
+        self.assertEqual(len(owner_lines), 1)
+        self.assertIn(f"`{DISTRIBUTION_OWNER}`", owner_lines[0])
+        self.assertIn(f"`{SOURCE_IDENTITY}`", owner_lines[0])
+        for url in HISTORICAL_VERIFICATION_URLS:
+            report = report.replace(f"]({url})", "]()")
+        self.assertNotIn(PERSONAL_OWNER_IDENTIFIER, report)
+
+    def test_distribution_report_identity_preserves_prose_and_link_boundaries(self) -> None:
+        owner = (
+            f"- Distribution owner identity is `{DISTRIBUTION_OWNER}`; "
+            f"source `{SOURCE_IDENTITY}`."
+        )
+        for url in HISTORICAL_VERIFICATION_URLS:
+            with self.subTest(allowed_url=url):
+                self._assert_verification_report_identity(f"{owner}\n[Evidence]({url})")
+        rejected = (
+            "",
+            f"{owner}\n{owner}",
+            owner.replace(DISTRIBUTION_OWNER, PERSONAL_OWNER_IDENTIFIER),
+            f"{owner}\nDistribution author: {PERSONAL_OWNER_IDENTIFIER}",
+            f"{owner}\n[{PERSONAL_OWNER_IDENTIFIER}]({HISTORICAL_VERIFICATION_URLS[0]})",
+            f"{owner}\n[Unknown](https://github.com/{PERSONAL_OWNER_IDENTIFIER}/other)",
+            f"{owner}\n[Suffix]({HISTORICAL_VERIFICATION_URLS[0]}-other)",
+        )
+        for report in rejected:
+            with self.subTest(rejected_report=report):
+                with self.assertRaises(AssertionError):
+                    self._assert_verification_report_identity(report)
 
     def test_packager_compresses_the_composite_ready_to_run_single_file(
         self,
