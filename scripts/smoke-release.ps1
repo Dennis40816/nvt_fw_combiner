@@ -675,7 +675,7 @@ try {
     }
     $PackageTrustIndex = Get-Content -LiteralPath $PackageTrustIndexPath -Raw |
         ConvertFrom-Json -Depth 32
-    if ([string]$PackageTrustIndex.schemaVersion -ne '1.1' -or
+    if ([string]$PackageTrustIndex.schemaVersion -ne '1.2' -or
         [string]$PackageTrustIndex.trustAnchorBindingId -ne 'built-in-profile-bundle-v2') {
         throw 'Release package trust index has an unsupported schema or trust anchor.'
     }
