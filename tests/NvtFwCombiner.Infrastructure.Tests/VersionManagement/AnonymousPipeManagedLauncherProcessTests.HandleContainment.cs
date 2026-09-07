@@ -10,10 +10,11 @@ namespace NvtFwCombiner.Infrastructure.Tests.VersionManagement;
 
 public sealed partial class AnonymousPipeManagedLauncherProcessTests
 {
-    /// <summary>A real outer READY handle is closed when expected identity is missing or blank.</summary>
+    /// <summary>A real outer READY handle is closed when expected identity is missing or invalid.</summary>
     [Theory]
     [InlineData(null)]
     [InlineData("")]
+    [InlineData("malformed")]
     public async Task OuterReadyCaptureClosesHandleWhenExpectedIdentityIsInvalid(string? expected)
     {
         if (!OperatingSystem.IsWindows())

@@ -539,12 +539,9 @@ public sealed partial class AnonymousPipeManagedLauncherProcessTests
     /// <summary>Outer READY inheritance distinguishes unmanaged, partial, blank, and malformed contexts.</summary>
     [Theory]
     [InlineData(null, null, LauncherReadyInheritanceOutcome.NotInherited)]
-    [InlineData("123", null, LauncherReadyInheritanceOutcome.InvalidInheritedContext)]
     [InlineData(null, "expected", LauncherReadyInheritanceOutcome.InvalidInheritedContext)]
     [InlineData("", "expected", LauncherReadyInheritanceOutcome.InvalidInheritedContext)]
-    [InlineData("123", "", LauncherReadyInheritanceOutcome.InvalidInheritedContext)]
     [InlineData("not-a-handle", "expected", LauncherReadyInheritanceOutcome.InvalidInheritedContext)]
-    [InlineData("123", "malformed", LauncherReadyInheritanceOutcome.InvalidInheritedContext)]
     public void OuterReadyInheritanceRejectsPartialBlankAndMalformedValues(
         string? handle,
         string? expected,

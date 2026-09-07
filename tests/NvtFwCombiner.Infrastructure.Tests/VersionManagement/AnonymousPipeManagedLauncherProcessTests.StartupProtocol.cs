@@ -103,9 +103,7 @@ public sealed partial class AnonymousPipeManagedLauncherProcessTests
 
     /// <summary>Partial or malformed START inheritance is typed invalid and consumed.</summary>
     [Theory]
-    [InlineData(null, "123")]
     [InlineData("v1", null)]
-    [InlineData("v2", "123")]
     [InlineData("v1", "invalid")]
     public void BootstrapStartGatePartialContextFailsClosed(string? context, string? handle)
     {
@@ -122,7 +120,8 @@ public sealed partial class AnonymousPipeManagedLauncherProcessTests
     [Theory]
     [InlineData(null)]
     [InlineData("")]
-    public void BootstrapStartGateClosesHandleWhenContextIsMissingOrBlank(string? context)
+    [InlineData("v2")]
+    public void BootstrapStartGateClosesHandleWhenContextIsInvalid(string? context)
     {
         if (!OperatingSystem.IsWindows())
         {
