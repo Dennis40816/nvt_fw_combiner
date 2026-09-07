@@ -23,34 +23,8 @@ internal sealed partial class MainWindowViewModel
 
     private IssueCardViewModel CreateBuildBlockerCard(CapabilityActionAvailability availability, IEnumerable<FirmwareSlotViewModel> slots)
     {
-        CapabilityActionBlocker? blocker = availability.PrimaryBlocker;
-        // Application owns the order and count; Presentation enriches only the exact inspected slot.
-        IssueCardViewModel? input = MessageCenter.IsGlobalBuildBlocked ? null : FindInputCard(blocker, slots);
-        int additional = MessageCenter.IsGlobalBuildBlocked ? 0 : Math.Max(0, availability.Blockers.Count - 1);
-        string next = additional > 0
-            ? FindInputCard(availability.Blockers[1], slots)?.Summary ?? Text.FormatCapabilityActionBlocker(availability.Blockers[1])
-            : string.Empty;
-        return new IssueCardViewModel(Text.BuildIssueCaption, Text.BuildBlockedTitle,
-            input?.Summary ?? FormatBuildBlocker(blocker), string.Empty, input?.Action ?? string.Empty,
-            IsError: true, DiagnosticCode: input?.DiagnosticCode ?? (MessageCenter.IsGlobalBuildBlocked ? string.Empty : blocker?.Code ?? string.Empty),
-            IsBuildStatus: true, AdditionalBlockerCount: additional,
-            AdditionalBlockerText: additional > 0 ? Text.FormatAdditionalBuildBlockers(additional, next) : string.Empty);
-    }
-
-    private static IssueCardViewModel? FindInputCard(CapabilityActionBlocker? blocker, IEnumerable<FirmwareSlotViewModel> slots)
-    {
-        return blocker?.Code == CapabilityActionReadinessIssueCodes.InputBlocked
-            ? slots.FirstOrDefault(slot => slot.InspectedSlotId == blocker.SubjectId && slot.BlocksBuild)?.IssueCard
-            : null;
-    }
-
-    private string FormatBuildBlocker(CapabilityActionBlocker? local)
-    {
-        return MessageCenter.IsGlobalBuildBlocked
-            ? MessageCenter.GlobalBuildBlockerText
-            : local is null
-                ? string.Empty
-                : Text.FormatCapabilityActionBlocker(local);
+        return IssueCardViewModel.FromBuildAvailability(availability, slots, Text,
+            MessageCenter.IsGlobalBuildBlocked, MessageCenter.GlobalBuildBlockerText);
     }
 
     private bool IsGlobalBuildBlocked()

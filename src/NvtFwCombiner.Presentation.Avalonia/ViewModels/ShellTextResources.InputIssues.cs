@@ -79,7 +79,7 @@ internal sealed partial class ShellTextResources
                     SelectLanguage("A required input is missing", "缺少必要輸入檔"),
                     SelectLanguage("A required input is missing. Select the BIN required by the current IC/profile before retrying Build.",
                         "缺少必要輸入。請選擇目前 IC/profile 所需的 BIN，再重試 Build。")),
-                "input.address-space.length-mismatch" => (
+                CompositionIssueCodes.InputAddressSpaceLengthMismatch => (
                     SelectLanguage("Input size does not match", "輸入檔大小不符"),
                     SelectLanguage("The BIN size does not match the selected IC/profile. Select a file with the required capacity before retrying Build; do not pad or truncate it by guesswork.",
                         "BIN 大小不符合所選 IC/profile。請選擇正確容量的檔案，再重試 Build；不要自行猜測補齊或截斷。")),

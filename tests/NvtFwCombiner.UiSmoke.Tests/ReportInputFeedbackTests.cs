@@ -29,7 +29,7 @@ public sealed class ReportInputFeedbackTests
         ShellLanguage language = chinese ? ShellLanguage.ChineseTraditional : ShellLanguage.English;
         string[] codes = ["DP_UNIFORM_CONTENT_WARNING", "TP_UNIFORM_CONTENT_WARNING", "LDC_UNIFORM_CONTENT_WARNING",
             "input.inspection.extension-not-accepted", "input.inspection.source-unreadable", "input.artifact.read-failed",
-            "input.artifact.content-snapshot-mismatch", "input.binding.missing", "input.address-space.length-mismatch",
+            "input.artifact.content-snapshot-mismatch", "input.binding.missing", CompositionIssueCodes.InputAddressSpaceLengthMismatch,
             "input.source-view.incomplete"];
         CompositionIssue[] issues = [.. codes.Select((code, index) => new CompositionIssue(
             code, $"Original diagnostic {index}: 0x10-0x20.", $"inspect-{index}", index < 3 ? "warning" : "error"))];

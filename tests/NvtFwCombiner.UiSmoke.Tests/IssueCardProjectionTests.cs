@@ -30,7 +30,7 @@ public sealed class IssueCardProjectionTests
         Assert.DoesNotContain("256 KiB", slot.SemanticStateAutomationText, StringComparison.Ordinal);
 
         FirmwareSlotViewModel other = StandardMergeFeedbackTests.Slot(StandardMergeFeedbackTests.Status(
-            "input.address-space.length-mismatch", AuthoringSlotLifecycle.Error, 2, 262144), chinese);
+            CompositionIssueCodes.InputAddressSpaceLengthMismatch, AuthoringSlotLifecycle.Error, 2, 262144), chinese);
         Assert.DoesNotContain("≥", other.IssueCard!.Summary, StringComparison.Ordinal);
     }
 

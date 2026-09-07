@@ -1,3 +1,5 @@
+using NvtFwCombiner.Application.Capabilities;
+
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
 /// <summary>Read-only localized explanation; it never decides severity or Build availability.</summary>
@@ -13,6 +15,31 @@ internal sealed record IssueCardViewModel(
     int AdditionalBlockerCount = 0,
     string AdditionalBlockerText = "")
 {
+    public static IssueCardViewModel FromBuildAvailability(
+        CapabilityActionAvailability availability, IEnumerable<FirmwareSlotViewModel> slots,
+        ShellTextResources text, bool globalBlocked, string globalBlockerText)
+    {
+        CapabilityActionBlocker? blocker = availability.PrimaryBlocker;
+        // Application owns the order and count; Presentation enriches only the exact inspected slot.
+        IssueCardViewModel? input = globalBlocked ? null : FindInputCard(blocker, slots);
+        int additional = globalBlocked ? 0 : Math.Max(0, availability.Blockers.Count - 1);
+        string next = additional > 0
+            ? FindInputCard(availability.Blockers[1], slots)?.Summary ?? text.FormatCapabilityActionBlocker(availability.Blockers[1])
+            : string.Empty;
+        return new IssueCardViewModel(text.BuildIssueCaption, text.BuildBlockedTitle,
+            input?.Summary ?? (globalBlocked ? globalBlockerText : blocker is null ? string.Empty : text.FormatCapabilityActionBlocker(blocker)), string.Empty, input?.Action ?? string.Empty,
+            IsError: true, DiagnosticCode: input?.DiagnosticCode ?? (globalBlocked ? string.Empty : blocker?.Code ?? string.Empty),
+            IsBuildStatus: true, AdditionalBlockerCount: additional,
+            AdditionalBlockerText: additional > 0 ? text.FormatAdditionalBuildBlockers(additional, next) : string.Empty);
+    }
+
+    private static IssueCardViewModel? FindInputCard(CapabilityActionBlocker? blocker, IEnumerable<FirmwareSlotViewModel> slots)
+    {
+        return blocker?.Code == CapabilityActionReadinessIssueCodes.InputBlocked
+            ? slots.FirstOrDefault(slot => slot.InspectedSlotId == blocker.SubjectId && slot.BlocksBuild)?.IssueCard
+            : null;
+    }
+
     public bool HasImpact => !string.IsNullOrWhiteSpace(Impact);
     public bool HasAction => !string.IsNullOrWhiteSpace(Action);
     public bool HasDiagnosticCode => !string.IsNullOrWhiteSpace(DiagnosticCode);
