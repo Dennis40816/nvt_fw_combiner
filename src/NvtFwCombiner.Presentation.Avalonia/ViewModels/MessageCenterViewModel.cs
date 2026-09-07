@@ -46,8 +46,6 @@ internal sealed partial class MessageCenterViewModel : ObservableObject
         ToggleDebugActivityCommand = new RelayCommand(() => IsDebugActivityExpanded = !IsDebugActivityExpanded);
         RefreshCommand = new AsyncRelayCommand(
             RefreshExplicitAsync);
-        OpenCurrentReportCommand = new RelayCommand(OpenCurrentReport, () => Reports.CanOpenReport);
-        OpenReportHistoryCommand = new RelayCommand(OpenReportHistory, () => Reports.CanOpenReportHistory);
     }
 
     public ShellTextResources Text => _textProvider();
@@ -206,12 +204,6 @@ internal sealed partial class MessageCenterViewModel : ObservableObject
 
     public IAsyncRelayCommand RefreshCommand { get; }
 
-    /// <summary>Opens the existing current immutable run report.</summary>
-    public IRelayCommand OpenCurrentReportCommand { get; }
-
-    /// <summary>Opens the existing persisted report-history surface.</summary>
-    public IRelayCommand OpenReportHistoryCommand { get; }
-
     /// <summary>Refreshes after the background startup catalog warm-up.</summary>
     public Task RefreshAfterStartupAsync(CancellationToken cancellationToken)
     {
@@ -298,8 +290,6 @@ internal sealed partial class MessageCenterViewModel : ObservableObject
     internal void NotifyReportHistoryChanged()
     {
         OnPropertyChanged(nameof(Reports));
-        OpenCurrentReportCommand.NotifyCanExecuteChanged();
-        OpenReportHistoryCommand.NotifyCanExecuteChanged();
     }
 
     internal void NotifyActivityChanged()
@@ -458,27 +448,6 @@ internal sealed partial class MessageCenterViewModel : ObservableObject
         PresentationObserver.Invoke(NotifyActivityChanged);
     }
 
-    private void OpenReportHistory()
-    {
-        if (!Reports.ShowReportHistoryCommand.CanExecute(null))
-        {
-            return;
-        }
-
-        Close();
-        Reports.ShowReportHistoryCommand.Execute(null);
-    }
-
-    private void OpenCurrentReport()
-    {
-        if (!Reports.ShowReportCommand.CanExecute(null))
-        {
-            return;
-        }
-
-        Close();
-        Reports.ShowReportCommand.Execute(null);
-    }
 }
 
 internal enum SystemActivityFilter
