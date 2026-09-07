@@ -79,6 +79,20 @@ public sealed class ReportChangesLayoutTests
                 $"Range card {cardBounds} overlaps the scrollbar gutter {scrollbarBounds}.");
             Assert.Equal(shell.Text.HexDiffRangeNavigatorTitle, AutomationProperties.GetName(ranges));
 
+            string expectedStatus = chinese ? "待審查" : "Review required";
+            Label status = Assert.Single(
+                first.GetVisualDescendants().OfType<Label>(),
+                label => label.IsEffectivelyVisible && Equals(label.Content, expectedStatus));
+            Assert.DoesNotContain(
+                first.GetVisualDescendants().OfType<Label>(),
+                label => label.IsEffectivelyVisible && Equals(label.Content, chinese ? "目前檢視" : "Viewing"));
+            TextBlock range = Assert.Single(
+                first.GetVisualDescendants().OfType<TextBlock>(),
+                text => text.IsEffectivelyVisible && text.Text == shell.Reports.LoadedReport.HexDiff.SelectedRange!.DisplayRange);
+            Rect statusBounds = BoundsIn(status, first);
+            Rect rangeBounds = BoundsIn(range, first);
+            Assert.InRange(Math.Abs(statusBounds.Top - rangeBounds.Top), 0, 3);
+
             SaveFrame(
                 window,
                 $"report-changes-1440x900-{(dark ? "dark" : "light")}-{(chinese ? "zh" : "en")}.png");
@@ -137,8 +151,8 @@ public sealed class ReportChangesLayoutTests
                 Brushes.Black);
 
             Assert.True(
-                firstByte.Left >= 4 + label.Width + 8,
-                $"First byte starts at {firstByte.Left:0.##}, before the complete label ends at {4 + label.Width:0.##}.");
+                firstByte.Left >= 12 + label.Width + 8,
+                $"First byte starts at {firstByte.Left:0.##}, before the complete label ends at {12 + label.Width:0.##}.");
         }
         finally
         {

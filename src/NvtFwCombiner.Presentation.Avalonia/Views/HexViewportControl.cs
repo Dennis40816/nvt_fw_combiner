@@ -12,6 +12,7 @@ namespace NvtFwCombiner.Presentation.Avalonia.Views;
 public sealed partial class HexViewportControl : Control
 {
     private const double MinimumAddressWidth = 112;
+    private const double AddressTextStart = 12;
     private const double LabelToByteGap = 8;
     private const double AsciiWidth = 144;
     private const double ColumnGap = 4;
@@ -197,7 +198,7 @@ public sealed partial class HexViewportControl : Control
         double labelWidth = CreateText(longestLabel, NormalTextBrush, StrongTypeface).Width;
         _addressWidth = Math.Max(
             MinimumAddressWidth,
-            Math.Ceiling(4 + labelWidth + LabelToByteGap - ColumnGap));
+            Math.Ceiling(AddressTextStart + labelWidth + LabelToByteGap - ColumnGap));
     }
 
     /// <inheritdoc />
@@ -238,7 +239,7 @@ public sealed partial class HexViewportControl : Control
             DrawRoundedRectangle(context, SelectedBrush, null, new Rect(0, y, _addressWidth, RowHeight), 3);
         }
 
-        DrawText(context, FormatAddress(row.Address), isSelected ? SelectedTextBrush : NormalTextBrush, StrongTypeface, 4, y);
+        DrawText(context, FormatAddress(row.Address), isSelected ? SelectedTextBrush : NormalTextBrush, StrongTypeface, AddressTextStart, y);
         if (row.HasDataChanges || row.HasStructuralBoundary)
         {
             DrawRoundedRectangle(
@@ -260,8 +261,8 @@ public sealed partial class HexViewportControl : Control
     private void DrawReferenceRow(DrawingContext context, HexViewportRow row, double y)
     {
         DrawRoundedRectangle(context, ReferenceRowBrush, null, new Rect(0, y, Bounds.Width, RowHeight), 0);
-        DrawRoundedRectangle(context, ReferenceMarkerBrush, null, new Rect(0, y + 2, 4, RowHeight - 4), 2);
-        DrawText(context, FormatReferenceLabel(row.Address), ReferenceTextBrush, StrongTypeface, 4, y);
+        DrawRoundedRectangle(context, ReferenceMarkerBrush, null, new Rect(2, y + 2, 3, RowHeight - 4), 2);
+        DrawText(context, FormatReferenceLabel(row.Address), ReferenceTextBrush, StrongTypeface, AddressTextStart, y);
         for (int index = 0; index < row.Cells.Count; index++)
         {
             DrawByte(context, snapshot: null, row.Cells[index], index, y, isReference: true);

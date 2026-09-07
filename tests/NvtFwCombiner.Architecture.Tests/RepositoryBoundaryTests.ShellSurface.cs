@@ -249,15 +249,14 @@ public sealed partial class RepositoryBoundaryTests
         Assert.DoesNotContain("<Window.KeyBindings>", shell, StringComparison.Ordinal);
         Assert.Contains("Gesture=\"Ctrl+H\" Command=\"{Binding Reports.ShowReportHistoryCommand}\"", shell, StringComparison.Ordinal);
         Assert.Contains("Gesture=\"Ctrl+Shift+Delete\" Command=\"{Binding Reports.ClearReportHistoryCommand}\"", shell, StringComparison.Ordinal);
-        Assert.Contains("AutomationProperties.Name=\"{Binding Text.OpenReportHistoryAutomationName}\"", reportPanels, StringComparison.Ordinal);
+        Assert.DoesNotContain("OpenReportHistoryAutomationName", reportPanels, StringComparison.Ordinal);
+        Assert.Contains("Classes=\"breadcrumb reportBackLink\"", reportPanels, StringComparison.Ordinal);
         int reportHeaderIndex = reportPanels.IndexOf("Text=\"{Binding LoadedReport.Title}\"", StringComparison.Ordinal);
         bool hasAuditDetailsTemplate = reportAuditTemplates.Contains("ReportAuditDetailsPanelTemplate", StringComparison.Ordinal);
-        int historyActionIndex = reportPanels.IndexOf(
-            "AutomationProperties.Name=\"{Binding Text.OpenReportHistoryAutomationName}\"",
-            StringComparison.Ordinal);
+        int backActionIndex = reportPanels.IndexOf("Classes=\"breadcrumb reportBackLink\"", StringComparison.Ordinal);
         Assert.True(
-            reportHeaderIndex >= 0 && hasAuditDetailsTemplate && historyActionIndex > reportHeaderIndex,
-            "Report history should remain a secondary evidence action instead of returning to the report modal header.");
+            backActionIndex >= 0 && reportHeaderIndex > backActionIndex && hasAuditDetailsTemplate,
+            "Report detail should return through one breadcrumb before the report title.");
         Assert.DoesNotContain("ReportHistoryActionLabel", shell, StringComparison.Ordinal);
         Assert.Contains("ContentTemplate=\"{StaticResource ReportModalHeaderTemplate}\"", reportModal, StringComparison.Ordinal);
         Assert.Contains("ContentTemplate=\"{StaticResource ReportHistoryPanelTemplate}\"", reportModal, StringComparison.Ordinal);

@@ -8,9 +8,27 @@
   <Border Padding="22,18" BorderBrush="{DynamicResource NfcBorderMutedBrush}" BorderThickness="0,0,0,1">
     <Grid ColumnDefinitions="*,Auto" ColumnSpacing="{DynamicResource NfcSpace16}">
       <StackPanel Spacing="5">
-        <Button Classes="semanticAction secondary" HorizontalAlignment="Left"
+        <Button
+            Classes="breadcrumb reportBackLink"
+            HorizontalAlignment="Left"
+            HorizontalContentAlignment="Left"
+            AutomationProperties.Name="{Binding Text.BackToRunReportsLabel}"
             Command="{ReflectionBinding $parent[Window].DataContext.MessageCenter.OpenRunReportsCommand}"
-            Content="{Binding Text.BackToRunReportsLabel}" />
+            ToolTip.Tip="{Binding Text.BackToRunReportsLabel}">
+          <StackPanel Orientation="Horizontal" Spacing="6">
+            <Path
+                Width="12"
+                Height="12"
+                VerticalAlignment="Center"
+                Data="M10 3L5 8L10 13"
+                Stretch="Uniform"
+                Stroke="{DynamicResource NfcTextSecondaryBrush}"
+                StrokeLineCap="Round"
+                StrokeJoin="Round"
+                StrokeThickness="1.8" />
+            <TextBlock VerticalAlignment="Center" FontWeight="SemiBold" Text="{Binding Text.BackToRunReportsLabel}" />
+          </StackPanel>
+        </Button>
         <TextBlock Classes="modalTitle" Text="{Binding LoadedReport.Title}" TextWrapping="Wrap" />
         <TextBlock Classes="mutedText" Text="{Binding LoadedReport.Subtitle}" TextWrapping="Wrap" />
       </StackPanel>
@@ -82,7 +100,7 @@
     </Border.Styles>
     <Expander IsExpanded="{Binding LoadedReport.HasPrimaryIssue}">
       <Expander.Header>
-        <Grid Margin="16,12" ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="{DynamicResource NfcSpace12}">
+        <Grid Margin="16,12" ColumnDefinitions="Auto,*,Auto" ColumnSpacing="{DynamicResource NfcSpace12}">
           <Grid Width="32" Height="32" AutomationProperties.Name="{Binding LoadedReport.OutcomeAccessibilityLabel}">
             <Border Background="{DynamicResource NfcSuccessAccentBrush}" CornerRadius="{DynamicResource NfcPillCornerRadius}" IsVisible="{Binding LoadedReport.IsClean}" />
             <Border Background="{DynamicResource NfcWarningAccentStrongBrush}" CornerRadius="{DynamicResource NfcPillCornerRadius}" IsVisible="{Binding LoadedReport.HasWarningsWithoutBlockingIssues}" />
@@ -105,22 +123,6 @@
                 IsVisible="{Binding LoadedReport.HasIssues}" />
           </StackPanel>
           <Label Grid.Column="2" Classes="compactBadge neutralBadge reportBadge" Content="{Binding LoadedReport.OutcomeMeta}" />
-          <Button
-              Grid.Column="3"
-              Classes="semanticAction iconButton"
-              VerticalAlignment="Center"
-              AutomationProperties.Name="{Binding Text.OpenReportHistoryAutomationName}"
-              Command="{ReflectionBinding $parent[Window].DataContext.MessageCenter.OpenRunReportsCommand}"
-              IsVisible="{Binding HasReportHistory}"
-              ToolTip.Tip="{Binding Text.OpenReportHistoryTooltip}">
-            <Path
-                Width="16"
-                Height="16"
-                Data="M10,2 A8,8 0 1 1 2,10 M2,10 L2,4 M2,10 L8,10 M10,6 L10,10 L13,12"
-                Stretch="Uniform"
-                Stroke="{DynamicResource NfcTextSecondaryBrush}"
-                StrokeThickness="1.7" />
-          </Button>
         </Grid>
       </Expander.Header>
 

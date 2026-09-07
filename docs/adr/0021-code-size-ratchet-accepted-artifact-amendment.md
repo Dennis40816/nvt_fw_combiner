@@ -447,3 +447,21 @@ The measuring algorithm, exclusions, partial-type limits, duplicate checks,
 synthetic growth/reduction tests, firmware/report semantics and all verification
 or release gates remain unchanged. This ledger records only exact source-size
 accounting for `UI-114-REPORT-CHANGES-15`.
+
+## 2026-09-08 v1.1.4 Report clarity presentation accounting
+
+The owner-approved range-card and Report navigation clarification reduces full
+production from 138,576 to 138,574 nonblank lines. The exact full-production
+allowance therefore descends from 35,680 to 35,678 against the unchanged
+102,896 ratchet. Runtime remains 99,170 and every runtime slice and allowance
+remains unchanged.
+
+The change stays inside the existing Presentation owners: it increases the
+shared Current/Original address inset, derives complete visible range verdicts
+from the existing typed acceptance value, replaces redundant selected/status
+badges with one card hierarchy, and consolidates two Run reports actions into
+one keyboard-accessible breadcrumb. It does not alter report JSON, range order,
+acceptance, replay evidence, firmware semantics, output bytes, measurement
+algorithms, duplicate checks, partial-type limits, or any verification or
+release gate. This ledger records only exact source-size accounting for
+`UI-114-REPORT-CLARITY-16`.

@@ -12,7 +12,7 @@ internal sealed partial class ShellTextResources
     public string RunReportsNewestFirst => SelectLanguage("Newest runs first", "最新執行的報告在最上方");
     public string RunReportsSelectHint => SelectLanguage("Select a report to view details", "選取報告以檢視詳細內容");
     public string LoadRunReportLabel => SelectLanguage("Load Report", "載入報告");
-    public string BackToRunReportsLabel => SelectLanguage("← Run reports", "← 執行報告");
+    public string BackToRunReportsLabel => SelectLanguage("Run reports", "執行報告");
     public string GetRunReportCount(int count)
     {
         return SelectLanguage(
@@ -95,10 +95,6 @@ internal sealed partial class ShellTextResources
 
     public string TraceLabel { get; private init; } = string.Empty;
 
-    public string OpenReportHistoryTooltip { get; private init; } = string.Empty;
-
-    public string OpenReportHistoryAutomationName { get; private init; } = string.Empty;
-
     public string ReportTabInputs { get; private init; } = string.Empty;
 
     public string ReportTabChanges { get; private init; } = string.Empty;
@@ -148,8 +144,6 @@ internal sealed partial class ShellTextResources
     public string HexDiffRangeNavigatorDetail { get; private init; } = string.Empty;
 
     public string HexDiffResizeAutomationName { get; private init; } = string.Empty;
-
-    public string HexDiffSelectedRangeLabel { get; private init; } = string.Empty;
 
     public string HexDiffWhyLabel { get; private init; } = string.Empty;
 
