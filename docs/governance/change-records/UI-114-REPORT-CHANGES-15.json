@@ -5,7 +5,7 @@
   "integrationBase": "6a261aea4810039194d0f9df142d43997540f52f",
   "risk": "R2",
   "kind": "governance",
-  "state": "design-active",
+  "state": "final-complete",
   "mutablePaths": [
     "src/NvtFwCombiner.Presentation.Avalonia/Resources/MainWindowReportAuditTemplates.axaml",
     "src/NvtFwCombiner.Presentation.Avalonia/Resources/MainWindowReportChangeTemplates.axaml",
@@ -32,12 +32,12 @@
     "outcome": "approved",
     "evidence": "Independent read-only R2 design review of the staged candidate found no P0-P3 findings. It confirmed reuse of the existing internal ScrollViewer, ThemeTokens and shared renderer, no duplicate semantics or nested scrolling, and exact necessary full-production growth from 138542 to 138576 (+34) while runtime and all runtime slices remain unchanged."
   },
-  "implementationHead": null,
-  "reviewedHead": null,
-  "pathStateDigest": null,
+  "implementationHead": "3f835a12c602615c5d363ef76f09be2a8d077532",
+  "reviewedHead": "3f835a12c602615c5d363ef76f09be2a8d077532",
+  "pathStateDigest": "ec1a1f2157e1b39edf5eb831de29a8f1113a2f7d08afd0dd6746de4d71b91846",
   "finalReview": {
-    "reviewer": null,
-    "outcome": "pending",
-    "evidence": ""
+    "reviewer": "ui_presentation_review",
+    "outcome": "approved",
+    "evidence": "Independent read-only scoped review of 01c0e7d6..3f835a12c602615c5d363ef76f09be2a8d077532 covered all 12 committed files; no P0-P3 findings or unstaged dependencies. Existing scrolling, virtualization, report evidence and firmware semantics are preserved. Dedicated Original theme roles, measured localized gutter and exact 138576/35680 accounting are accepted. Render-time measurement retains the detached-measure contract; the primary reported the rejected MeasureOverride variant's missing-theme-resource regression. Primary-observed exact-head focused UI 6/6 includes that adapter regression and English Light/Chinese Dark rendered bounds; code-size 19/19 and validate_repository passed with existing aggregate warnings. Reviewer independently confirmed a clean fixed diff. No full-verifier, native-DPI or release claim."
   }
 }
