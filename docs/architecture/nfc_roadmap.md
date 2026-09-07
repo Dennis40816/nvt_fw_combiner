@@ -709,6 +709,29 @@ owner; arbitrary scripts and per-run executable paths remain forbidden.
 Rule/schema/migration details require their existing contract review before
 implementation.
 
+## `1.2.7`: CLI completion and deterministic UI automation
+
+Complete the command-line surface after inventorying the already-shipped CLI
+commands and Desktop launch options. Extend existing owners rather than adding
+a second parser or execution path: firmware Preview/Build commands continue to
+use the shared Application planner/executor, while Desktop-only navigation and
+capture options remain non-semantic Presentation startup controls.
+
+The minimum Desktop automation outcome extends the existing `--load-report`
+(`--report`) plus `--open-report` path so one bounded command can select a
+report tab such as `Changes`, choose an approved deterministic visual state,
+write a screenshot to an explicit destination, return a meaningful exit code,
+and close without file-picker or pointer automation. Add stable help and
+argument-error behavior, path/overwrite bounds, and focused launch-to-capture
+tests. Headless rendering may be used for test evidence, but it must render the
+same XAML and ViewModels as the packaged Desktop application.
+
+This milestone also reconciles missing workflow CLI coverage against the
+existing typed authoring contracts. It does not authorize CLI-owned firmware
+semantics, arbitrary scripts, bypassing profile/range/integrity policy, or
+turning visual test fixtures into product inputs. Keep interactive computer
+automation only for behavior that genuinely requires native interaction.
+
 ## `1.3.0`: IC rule authoring and Launcher extraction review
 
 ### IC family / rule-authoring UI
