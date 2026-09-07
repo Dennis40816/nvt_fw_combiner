@@ -217,19 +217,11 @@
       "testReference": "tests/NvtFwCombiner.GoldenRegression.Tests/StandardMergeWorkbenchGoldenTests.cs#WorkbenchBuildStandardMergeAliasMatchesReferenceGoldenBytes"
     },
     {
-      "evidenceId": "nt51919-ab-merge-selector-free-nt51919-ab-merge-512k-evidence-v3",
-      "kind": "approved-alias",
+      "evidenceId": "nt51919-ab-merge-selector-free-nt51919-ab-merge-512k-evidence-v114-dummy",
+      "kind": "contract-only",
       "routeId": "route-7-nt51919-8-ab-merge-13-selector-free-21-nt51919-ab-merge-512k",
-      "capabilityFingerprint": "9b246e94802d2eefd7a4f8604424bb437865d876f8a0a82b844604bf197c72d6",
-      "caseId": "nt51919-ab-t05-d06-alias",
-      "sourceRouteId": "route-7-nt51929-8-ab-merge-13-selector-free-21-nt51929-ab-merge-512k",
-      "sourceCapabilityFingerprint": "8d03d7f208d9ed89240f458755eac380ca09549aa23ba03e8c3066afcf380bd7",
-      "factScopeIds": [
-        "nt51919-ab-t05-d06-alias:fact-1",
-        "nt51919-ab-t05-d06-alias:fact-2",
-        "nt51919-ab-t05-d06-alias:fact-3"
-      ],
-      "testReference": "tests/NvtFwCombiner.Bootstrap.Tests/AbMergeGoldenRegressionTests.cs#EveryAbFactScopedAliasResolvesItsDeclaredDirectCase"
+      "capabilityFingerprint": "cfb82c983658674c98886aec3a36798ce9cbd50b40d6745c290753a67ea22a9c",
+      "contractReference": "profiles/built-in/nt51919-nt51929-nt51932-ab-merge/profiles/nt51919-ab-merge.json"
     },
     {
       "evidenceId": "nt51919-ctrlram-replace-1-ic-nt51929-ctrlram-fw200-single-full-flash-evidence-v3",
@@ -601,12 +593,11 @@
       "contractReference": "profiles/built-in/nt51928-standard-merge/profiles/nt51928-standard-merge.json"
     },
     {
-      "evidenceId": "nt51929-ab-merge-selector-free-nt51929-ab-merge-512k-evidence-v3",
-      "kind": "direct-golden",
+      "evidenceId": "nt51929-ab-merge-selector-free-nt51929-ab-merge-512k-evidence-v114-dummy",
+      "kind": "contract-only",
       "routeId": "route-7-nt51929-8-ab-merge-13-selector-free-21-nt51929-ab-merge-512k",
-      "capabilityFingerprint": "8d03d7f208d9ed89240f458755eac380ca09549aa23ba03e8c3066afcf380bd7",
-      "caseId": "nt51929-ab-t05-d06",
-      "testReference": "tests/NvtFwCombiner.Bootstrap.Tests/AbMergeGoldenRegressionTests.cs#Nt51929SupportedProfileMatchesOwnerApprovedAbGolden"
+      "capabilityFingerprint": "4c25a590499eabf918c40aa09f62f5424a222b3f248412599281dbbf1e8cb81d",
+      "contractReference": "profiles/built-in/nt51919-nt51929-nt51932-ab-merge/profiles/nt51929-ab-merge.json"
     },
     {
       "evidenceId": "nt51929-ctrlram-replace-1-ic-nt51929-ctrlram-fw200-single-full-flash-evidence-v3",
@@ -646,19 +637,11 @@
       "testReference": "tests/NvtFwCombiner.GoldenRegression.Tests/StandardMergeWorkbenchGoldenTests.cs#WorkbenchBuildStandardMergeMatchesGoldenBytes"
     },
     {
-      "evidenceId": "nt51932-ab-merge-selector-free-nt51932-ab-merge-512k-evidence-v3",
-      "kind": "approved-alias",
+      "evidenceId": "nt51932-ab-merge-selector-free-nt51932-ab-merge-512k-evidence-v114-dummy",
+      "kind": "contract-only",
       "routeId": "route-7-nt51932-8-ab-merge-13-selector-free-21-nt51932-ab-merge-512k",
-      "capabilityFingerprint": "9eae148be8ecebfe620808e33577761aaa5fb6fc7f91ce4f2f50202b2c7aadbe",
-      "caseId": "nt51932-ab-t05-d06-alias",
-      "sourceRouteId": "route-7-nt51929-8-ab-merge-13-selector-free-21-nt51929-ab-merge-512k",
-      "sourceCapabilityFingerprint": "8d03d7f208d9ed89240f458755eac380ca09549aa23ba03e8c3066afcf380bd7",
-      "factScopeIds": [
-        "nt51932-ab-t05-d06-alias:fact-1",
-        "nt51932-ab-t05-d06-alias:fact-2",
-        "nt51932-ab-t05-d06-alias:fact-3"
-      ],
-      "testReference": "tests/NvtFwCombiner.Bootstrap.Tests/AbMergeGoldenRegressionTests.cs#EveryAbFactScopedAliasResolvesItsDeclaredDirectCase"
+      "capabilityFingerprint": "18c2b802d623b1588bb04573985dde3562de1ab170fdf9aaea17413ce0cd2501",
+      "contractReference": "profiles/built-in/nt51919-nt51929-nt51932-ab-merge/profiles/nt51932-ab-merge.json"
     },
     {
       "evidenceId": "nt51932-ctrlram-replace-1-ic-nt51932-ctrlram-fw1x-single-full-flash-evidence-v3",
@@ -698,18 +681,17 @@
       "testReference": "tests/NvtFwCombiner.GoldenRegression.Tests/StandardMergeWorkbenchGoldenTests.cs#WorkbenchBuildStandardMergeMatchesGoldenBytes"
     },
     {
-      "evidenceId": "nt51950-ab-merge-1-ic-nt51950-ab-merge-512k-evidence-v3",
-      "kind": "direct-golden",
-      "routeId": "route-7-nt51950-8-ab-merge-4-1-ic-21-nt51950-ab-merge-512k",
-      "capabilityFingerprint": "88e29264940e4dbc6a3648f127ae52924fee5d731e3dffde48f5d631be544908",
-      "caseId": "nt51950-ab-boe-d82t80",
-      "testReference": "tests/NvtFwCombiner.Bootstrap.Tests/AbMergeGoldenRegressionTests.cs#Nt51950CandidateMatchesOwnerApprovedAbGoldenWithCombinerAsync"
+      "evidenceId": "nt51950-ab-merge-1-ic-nt51950-ab-merge-maps-evidence-v114-dummy",
+      "kind": "contract-only",
+      "routeId": "route-7-nt51950-8-ab-merge-4-1-ic-21-nt51950-ab-merge-maps",
+      "capabilityFingerprint": "42ae08787e8a628875a7fa312070eefba3581e4c1a91bd12b1ba237c34fbe90b",
+      "contractReference": "profiles/built-in/nt51950-ab-merge/profiles/nt51950-ab-merge.json"
     },
     {
-      "evidenceId": "nt51950-ab-merge-2-plus-ic-nt51950-ab-merge-1024k-evidence-v3",
+      "evidenceId": "nt51950-ab-merge-2-plus-ic-nt51950-ab-merge-maps-evidence-v114-dummy",
       "kind": "contract-only",
-      "routeId": "route-7-nt51950-8-ab-merge-9-2-plus-ic-22-nt51950-ab-merge-1024k",
-      "capabilityFingerprint": "8f9920a2411f7f601574b497df9b42d1b9de63a50b973948381194900e3e1ea3",
+      "routeId": "route-7-nt51950-8-ab-merge-9-2-plus-ic-21-nt51950-ab-merge-maps",
+      "capabilityFingerprint": "fe7d4222c073e12ce15c1a0cd9331f98be3ce1d6edb2769870ab22e723dcd657",
       "contractReference": "profiles/built-in/nt51950-ab-merge/profiles/nt51950-ab-merge.json"
     },
     {
@@ -816,13 +798,11 @@
       "testReference": "tests/NvtFwCombiner.Bootstrap.Tests/Nt51950Nt51951V2StandardMergeGoldenTests.cs#SyntheticInputsMatchIndependentlyConstructedDpPerspectiveOutputAcrossCapacities"
     },
     {
-      "evidenceId": "nt51951-ab-merge-selector-free-nt51951-ab-merge-1024k-evidence-v3",
-      "kind": "synthetic-oracle",
+      "evidenceId": "nt51951-ab-merge-selector-free-nt51951-ab-merge-1024k-evidence-v114-dummy",
+      "kind": "contract-only",
       "routeId": "route-7-nt51951-8-ab-merge-13-selector-free-22-nt51951-ab-merge-1024k",
-      "capabilityFingerprint": "f9c4878fe8cf86a5a1124c5b6bb63f4f6864f6f95af8d26f62d63835636b0e04",
-      "oracleReference": "tests/NvtFwCombiner.Bootstrap.Tests/AbMergeGoldenRegressionTests.PublicHost.cs",
-      "expectedSha256": "b84b63f30c964fad9818b612b77167bd9615cc31d6f72c1eab49f1b1579c8f32",
-      "testReference": "tests/NvtFwCombiner.Bootstrap.Tests/AbMergeGoldenRegressionTests.PublicHost.cs#Nt51951PublicHostBuildAcceptsOneTpFileForBothLogicalSlotsAsync"
+      "capabilityFingerprint": "dc7cd0b496bf6e548488663aefa912d26f77170d44b8100caada9b38a2ed8439",
+      "contractReference": "profiles/built-in/nt51950-ab-merge/profiles/nt51951-ab-merge.json"
     },
     {
       "evidenceId": "nt51951-ctrlram-replace-1-ic-nt51951-ctrlram-fw200-single-full-flash-evidence-v3",

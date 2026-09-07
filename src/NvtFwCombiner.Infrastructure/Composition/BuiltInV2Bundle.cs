@@ -233,7 +233,8 @@ internal sealed class BuiltInV2Bundle
         string icId,
         long? requestedMapCapacity,
         TopologySelection? requestedTopology,
-        string failureMessage)
+        string failureMessage,
+        IReadOnlyCollection<string>? selectedInputSlotIds = null)
     {
         V2CompositionPlanCompileResult compilation = Compile(
             profileId,
@@ -242,7 +243,8 @@ internal sealed class BuiltInV2Bundle
             ExperienceIds.AbMerge,
             requestedMapCapacity,
             requestedTopology,
-            []);
+            [],
+            selectedInputSlotIds ?? GetInputSelectionGroupMemberSlotIds(profileId, profileVersion));
         return compilation.CompiledComposition is { } composition &&
                (composition.Eligibility == CompiledCompositionEligibility.V2RuntimeExecutable ||
                 composition.IsV2AbFunctionOpenCandidate)
@@ -469,6 +471,9 @@ internal sealed class BuiltInV2Bundle
             profileEntry.Profile;
         FirmwareFamilyResolutionDefinition family =
             profileEntry.Family.Family;
+        var activeSlots = composition.V2Details.InputContract.Slots
+            .Select(static slot => slot.SlotId)
+            .ToHashSet(StringComparer.Ordinal);
         MetadataPlanEntry[] entries =
         [
             .. profile.MetadataBindings.Select(binding =>
@@ -476,7 +481,8 @@ internal sealed class BuiltInV2Bundle
                     family,
                     resolvedMap,
                     profile,
-                    binding)),
+                    binding))
+                .Where(entry => activeSlots.Contains(entry.SlotId)),
         ];
         return new MetadataPlanDefinition(
             entries,

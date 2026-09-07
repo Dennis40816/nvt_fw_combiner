@@ -141,7 +141,10 @@ internal sealed class CompositionExecutionExperience : ICompositionExecution
             request,
             capability,
             progress,
-            CompositionAddressSpaceIds.DpAbInput,
+            capability.CompiledComposition.V2Details.InputContract.SpaceBindings.Any(static binding =>
+                binding.AddressSpaceId == CompositionAddressSpaceIds.DpAbInput)
+                ? CompositionAddressSpaceIds.DpAbInput
+                : CompositionAddressSpaceIds.TpAInput,
             externalProcessor,
             icNumberSelection: null,
             abMergeTopologySelection:

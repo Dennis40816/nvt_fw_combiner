@@ -3,7 +3,7 @@
   "bundleId": "nt51919-nt51929-nt51932-ab-merge-family",
   "bundleVersion": "0.10.5-family-reference.1",
   "hashAlgorithm": "sha256-rfc8785-entry-array-v1",
-  "contentHash": "3b6dcc3d1c87ab31e43852d3638b9658a64e886eae95c725e67b2d07f1cb8a61",
+  "contentHash": "68527380d4e2de5994734b9357fc55963254e51382027d9f099699c9dc1a366f",
   "trustAnchorBindingId": "built-in-profile-bundle-v2",
   "entries": [
     {
@@ -25,7 +25,7 @@
       "kind": "composition-profile",
       "path": "profiles/nt51919-ab-merge.json",
       "schemaId": "https://example.invalid/nfc/schemas/composition-profile-v2.schema.json",
-      "contentHash": "8674a6aaf29283f8576acbfd950d7677d4a0ba2c2d5f984d7588dbd2ff45212d"
+      "contentHash": "609b272cfc3b04f7b8ce9502e4803715364d0dacb371ea7d91c2c6834c2ecac4"
     },
     {
       "entryId": "nt51919-nt51929-nt51932-ab-merge-family",
@@ -39,14 +39,14 @@
       "kind": "composition-profile",
       "path": "profiles/nt51929-ab-merge.json",
       "schemaId": "https://example.invalid/nfc/schemas/composition-profile-v2.schema.json",
-      "contentHash": "3d6084ac9adbd3bbb40f2f5ef189dfa73de00643f9dc4cf141b2f5a708c2f514"
+      "contentHash": "bd9066661675b34b8e17aa1832d16a3768d6cc59086f55b566a6691a04405a04"
     },
     {
       "entryId": "nt51932-ab-merge-profile",
       "kind": "composition-profile",
       "path": "profiles/nt51932-ab-merge.json",
       "schemaId": "https://example.invalid/nfc/schemas/composition-profile-v2.schema.json",
-      "contentHash": "4980bf2d2a4fd0bf394a100d1adcfc7a7cc00774a45c96ebfa7c4b72bb6d1f79"
+      "contentHash": "384daf4569ecfb7ef7670adf1651fd332ef869b7044d50be0c56cdc9443eaa71"
     }
   ]
 }

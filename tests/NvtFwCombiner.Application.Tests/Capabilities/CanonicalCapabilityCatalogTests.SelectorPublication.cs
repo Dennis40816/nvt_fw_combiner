@@ -407,7 +407,8 @@ public sealed partial class CanonicalCapabilityCatalogTests
             IReadOnlyCollection<string>? selectedInputSlotIds,
             out CompiledComposition? composition,
             out MetadataPlanDefinition? metadataPlan,
-            out IReadOnlyList<CompositionIssue> issues)
+            out IReadOnlyList<CompositionIssue> issues,
+            TopologySelection? requestedTopology = null)
         {
             composition = null;
             metadataPlan = null;

@@ -176,7 +176,8 @@ internal sealed partial class MergePresentationViewModel
                 MergeSlots.Count(static slot => slot.HasFile),
                 MergeSlots.Count,
                 MergeSlots.Count(static slot => slot.IsInputInspectionBlocking),
-                MergeSlots.Count(static slot => slot.IsInputInspectionWarning))
+                MergeSlots.Count(static slot => slot.IsInputInspectionWarning),
+                _abMergeBindingsByAddressSpace.ContainsKey(CompositionAddressSpaceIds.DpAbInput))
             : Text.GetMergeReadinessStatus(
                 SelectedMergeMode,
                 SelectedIc,
@@ -211,7 +212,9 @@ internal sealed partial class MergePresentationViewModel
 
     internal IReadOnlyDictionary<string, string> AbMergeAddressSpaceBySlotId => _abMergeAddressSpaceBySlotId;
 
-    internal IEnumerable<FirmwareSlotViewModel> AbMergeSlots => _abMergeSlotsByAddressSpace.Values;
+    internal IEnumerable<FirmwareSlotViewModel> AbMergeSlots => _abMergeSlotsByAddressSpace
+        .Where(pair => _abMergeBindingsByAddressSpace.ContainsKey(pair.Key))
+        .Select(static pair => pair.Value);
 
     internal IReadOnlyDictionary<string, FirmwareSlotViewModel> AbMergeSlotsByAddressSpace =>
         _abMergeSlotsByAddressSpace;
@@ -343,6 +346,12 @@ internal sealed partial class MergePresentationViewModel
 
     private void PublishContextCore(bool includeModeChoices)
     {
+        if (IsAbDummyDpPromptOpen &&
+            (!IsAbCodeMergeModeSelected || _dummyPromptIc != SelectedIc ||
+                _dummyPromptNumber != SelectedNumber))
+        {
+            CancelAbDummyDp();
+        }
         if (includeModeChoices && _catalogReconciliationPreviousMode is { } previousMode)
         {
             if (previousMode.Length > 0)
@@ -412,6 +421,7 @@ internal sealed partial class MergePresentationViewModel
 
     internal void NotifyCommandStateChanged()
     {
+        NotifyAbDummyDpCommandStateChanged();
         OnPropertyChanged(nameof(CanBuildMerge));
         OnPropertyChanged(nameof(PrimaryBuildBlocker));
         OnPropertyChanged(nameof(BuildAvailability));

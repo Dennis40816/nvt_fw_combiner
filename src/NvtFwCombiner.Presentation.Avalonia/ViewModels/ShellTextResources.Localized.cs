@@ -279,6 +279,13 @@ internal sealed partial class ShellTextResources
                 "Compose one compiled DP_AB container with independent TPA and TPB payloads. Input versions are informational and never choose the route.",
                 "以 compiled profile 合成一個 DP_AB container 與獨立 TPA、TPB payload；input 版本只供確認，絕不選擇執行路徑。"),
             AbSameTpOptionLabel = Pick("Use the same TP for A and B", "A 與 B 使用相同 TP"),
+            AbDummyDpOptionLabel = "Dummy DP (0xFF)",
+            AbDummyDpConfirmTitle = Pick("Enable Dummy DP?", "啟用 Dummy DP？"),
+            AbDummyDpConfirmDetail = Pick(
+                "All non-TP output regions will use Dummy Byte 0xFF. Your DP selection will be cleared and DP input disabled. Original files will not be deleted; TP selections are kept. Turning this off requires selecting DP again.",
+                "輸出中所有非 TP 區段將填入 Dummy Byte 0xFF。將清除目前的 DP 選取並停用 DP 輸入；不會刪除原始檔案，TP 選取也會保留。關閉此選項後，需重新選擇 DP。"),
+            AbDummyDpEnableLabel = Pick("Enable Dummy DP", "啟用 Dummy DP"),
+            AbDummyDpDisabledDetail = Pick("DP input disabled · Non-TP bytes: 0xFF", "DP 輸入已停用 · 非 TP 區段：0xFF"),
             AbSameTpLinkedLabel = Pick("Same as TPA", "與 TPA 相同"),
             AbSameTpConflictTitle = Pick("Choose the shared TP", "選擇共用 TP"),
             AbSameTpConflictDetail = Pick(

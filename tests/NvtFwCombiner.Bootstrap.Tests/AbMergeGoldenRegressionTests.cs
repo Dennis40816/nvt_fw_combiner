@@ -15,9 +15,9 @@ namespace NvtFwCombiner.Bootstrap.Tests;
 public sealed partial class AbMergeGoldenRegressionTests
 {
     private const string Nt51929BundleDirectory = "nt51919-nt51929-nt51932-ab-merge";
-    private const string Nt51929BundleContentHash = "3b6dcc3d1c87ab31e43852d3638b9658a64e886eae95c725e67b2d07f1cb8a61";
+    private const string Nt51929BundleContentHash = "68527380d4e2de5994734b9357fc55963254e51382027d9f099699c9dc1a366f";
     private const string Nt51950BundleDirectory = "nt51950-ab-merge";
-    private const string Nt51950BundleContentHash = "775c42fba1fbbf1c4c8869656c83c86ce34d612dda3ceed92a93cb4e82f7cd67";
+    private const string Nt51950BundleContentHash = "f60f5ef4f8c2a150c7dde47638d55aa35a84425146809263057939540ea0b6b9";
 
     /// <summary>Verifies the supported NT51929 profile reproduces the supplied AB output byte-for-byte.</summary>
     [Fact]
@@ -441,13 +441,13 @@ public sealed partial class AbMergeGoldenRegressionTests
                 ExperienceIds.AbMerge,
                 mapCapacity,
                 new TopologySelection(1, "1 IC", TopologySelectionSource.Requested, "test"),
-                [])
+                [], selectedInputSlotIds: ["dp-ab-input"])
             : catalog.Compile(
                 profileId,
                 profileVersion,
                 icId,
                 ExperienceIds.AbMerge,
-                mapCapacity);
+                mapCapacity, null, [], selectedInputSlotIds: ["dp-ab-input"]);
         Assert.True(compilation.IsCompiled, FormatIssues(compilation.Issues));
         return Assert.IsType<CompiledComposition>(compilation.CompiledComposition);
     }

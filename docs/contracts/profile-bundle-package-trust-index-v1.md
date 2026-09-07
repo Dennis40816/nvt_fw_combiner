@@ -36,7 +36,7 @@ no report classification must omit it. This is a cross-workflow counterpart
 reference, not a second map definition: the referenced map, metadata
 structure, report purpose, capacity, and selection rules remain owned by the
 registered Standard profile/family and the canonical profile compiler.
-Standard Merge or DP Replace registrations whose profile
+Standard Merge, AB Merge or DP Replace registrations whose profile
 declares a selection group additionally declare the reviewed
 `mapVariantSetId`; runtime projection rejects a missing or extraneous binding.
 Fields that do not belong to the selected workflow are forbidden.
@@ -110,3 +110,9 @@ registrations change. Schema `1.1` adds only the closed CtrlRAM
 metadata semantics into the index. Future schema-compatible data changes keep
 `schemaVersion` `1.1`; vocabulary or semantic changes require a reviewed
 schema revision and the normal R2/R3 gates.
+
+Schema `1.2` additionally admits `mapVariantSetId` for AB Merge selection
+groups. The map-set is partitioned by the existing canonical IC-count axis;
+each dynamic route binds only its matching map subset. Normal and Dummy are
+input selections within that route, not separate maps or support promotions.
+The current built-in index uses schema `1.2`.

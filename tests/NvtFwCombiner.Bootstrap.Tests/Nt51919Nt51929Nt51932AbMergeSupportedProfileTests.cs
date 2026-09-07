@@ -9,7 +9,7 @@ namespace NvtFwCombiner.Bootstrap.Tests;
 public sealed class Nt51919Nt51929Nt51932AbMergeSupportedProfileTests
 {
     private const string BundleDirectory = "nt51919-nt51929-nt51932-ab-merge";
-    private const string BundleContentHash = "3b6dcc3d1c87ab31e43852d3638b9658a64e886eae95c725e67b2d07f1cb8a61";
+    private const string BundleContentHash = "68527380d4e2de5994734b9357fc55963254e51382027d9f099699c9dc1a366f";
     private const int Capacity = 0x80000;
     private const int TpCodeStart = 0x7000;
     private const int TpCodeLength = 0x39000;
@@ -151,7 +151,7 @@ public sealed class Nt51919Nt51929Nt51932AbMergeSupportedProfileTests
             "0.4.0",
             icId,
             ExperienceIds.AbMerge,
-            Capacity);
+            Capacity, null, [], selectedInputSlotIds: ["dp-ab-input"]);
         Assert.True(compilation.IsCompiled, FormatIssues(compilation.Issues));
         return Assert.IsType<CompiledComposition>(compilation.CompiledComposition);
     }

@@ -631,6 +631,15 @@
       </ContentControl.ContentTemplate>
     </ContentControl>
 
+    <ContentControl x:Name="AbDummyDpConfirmationModalHost" Grid.RowSpan="5"
+        IsVisible="{Binding Merge.IsAbDummyDpPromptOpen}">
+      <ContentControl.ContentTemplate>
+        <DataTemplate DataType="vm:MergePresentationViewModel">
+          <views:AbDummyDpConfirmationModal IsOpen="{Binding IsAbDummyDpPromptOpen}" />
+        </DataTemplate>
+      </ContentControl.ContentTemplate>
+    </ContentControl>
+
     <ContentControl Grid.RowSpan="5" Content="{Binding LoadedHexEditorWorkspace}">
       <ContentControl.ContentTemplate>
         <DataTemplate DataType="vm:HexEditorWorkspaceViewModel">

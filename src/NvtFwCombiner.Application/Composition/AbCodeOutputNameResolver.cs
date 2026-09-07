@@ -69,6 +69,11 @@ internal static class AbCodeOutputNameResolver
             tokens);
         CompositionIssue[] issues =
         [
+            .. dpA.Summary.ParserId == "compiled-profile-dummy-dp;fill=0xFF"
+                ? new[] { new CompositionIssue("output-naming.dummy-dp",
+                    "Dummy DP: non-TP output regions are filled with 0xFF.",
+                    severity: CompositionIssueSeverity.Info) }
+                : [],
             .. tokens.Where(static token => !token.IsKnown).Select(token => new CompositionIssue(
                 "output-naming.metadata-unknown",
                 $"AB Code filename token '{token.TokenId}' could not be read from its accepted immutable input snapshot; '{token.Value}' was used.",
@@ -86,6 +91,15 @@ internal static class AbCodeOutputNameResolver
         string cmiRegionId,
         string tokenId)
     {
+        if (!request.CompiledComposition.V2Details.InputContract.SpaceBindings.Any(static binding =>
+                binding.AddressSpaceId == CompositionAddressSpaceIds.DpAbInput))
+        {
+            ImageInitialization initialization = request.CompiledComposition.Plan.OutputInitialization;
+            return initialization.Kind != ImageInitializationKind.Blank || initialization.FillByte != 0xFF
+                ? throw new InvalidOperationException("AB Dummy naming requires compiled blank 0xFF output initialization.")
+                : new TokenResolution(new OutputNamingTokenSummary(tokenId, "Dummy", true,
+                    null, null, "compiled-profile-dummy-dp;fill=0xFF"));
+        }
         if (!TryGetAcceptedSnapshot(
                 request,
                 inputBytes,

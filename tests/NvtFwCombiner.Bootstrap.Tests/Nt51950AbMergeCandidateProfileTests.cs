@@ -12,7 +12,7 @@ namespace NvtFwCombiner.Bootstrap.Tests;
 public sealed class Nt51950AbMergeCandidateProfileTests
 {
     private const string BundleDirectory = "nt51950-ab-merge";
-    private const string BundleContentHash = "775c42fba1fbbf1c4c8869656c83c86ce34d612dda3ceed92a93cb4e82f7cd67";
+    private const string BundleContentHash = "f60f5ef4f8c2a150c7dde47638d55aa35a84425146809263057939540ea0b6b9";
     private const int Capacity = 0x80000;
     private const int BankLength = 0x40000;
     private const int TpInputLength = 0x37000;
@@ -28,9 +28,9 @@ public sealed class Nt51950AbMergeCandidateProfileTests
 
         Assert.Equal(CompiledCompositionEligibility.V2PlanCompiled, composition.Eligibility);
         Assert.True(composition.IsV2AbFunctionOpenCandidate);
-        Assert.Equal(
-            "ea98508d187b178fb2e47403f2f0ec385a7556e4c97df320dbff6d5c051ddb8f",
-            composition.CompilationFingerprint);
+        Assert.True(StringComparer.Ordinal.Equals(
+            "1cc3e0faca583af4c22aeecf869922100637aeffe7d301b4d2f0a71df9c528ce",
+            composition.CompilationFingerprint), composition.CompilationFingerprint);
         V2CompiledCompositionDetails details = Assert.IsType<V2CompiledCompositionDetails>(composition.V2Details);
         Assert.Equal("nt51950-ab-merge-512k", details.Provenance.ResolvedMap.ImageMap.MapId);
         AssertRegionRange(details, "a-cmi-dp-version", 0x3B016, 3);
@@ -275,7 +275,7 @@ public sealed class Nt51950AbMergeCandidateProfileTests
             ExperienceIds.AbMerge,
             requestedMapCapacity: 0x100000,
             requestedTopology: CascadeTopology(),
-            resolutionArtifacts: []);
+            resolutionArtifacts: [], selectedInputSlotIds: ["dp-ab-input"]);
 
         Assert.True(compilation.IsCompiled, FormatIssues(compilation.Issues));
         CompiledComposition composition = Assert.IsType<CompiledComposition>(compilation.CompiledComposition);
@@ -320,7 +320,7 @@ public sealed class Nt51950AbMergeCandidateProfileTests
             ExperienceIds.AbMerge,
             requestedMapCapacity: 0x100000,
             requestedTopology: CascadeTopology(),
-            resolutionArtifacts: []);
+            resolutionArtifacts: [], selectedInputSlotIds: ["dp-ab-input"]);
         Assert.True(compilation.IsCompiled, FormatIssues(compilation.Issues));
         CompiledComposition composition = Assert.IsType<CompiledComposition>(compilation.CompiledComposition);
         byte[] dp = CreatePattern(0x100000, 0x21);
@@ -428,7 +428,7 @@ public sealed class Nt51950AbMergeCandidateProfileTests
             ExperienceIds.AbMerge,
             Capacity,
             SingleTopology(),
-            []);
+            [], selectedInputSlotIds: ["dp-ab-input"]);
         Assert.True(compilation.IsCompiled, FormatIssues(compilation.Issues));
         return Assert.IsType<CompiledComposition>(compilation.CompiledComposition);
     }

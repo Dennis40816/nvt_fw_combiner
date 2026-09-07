@@ -121,7 +121,7 @@ internal sealed partial class ReportReviewViewModel
 
     private static string CreateOutcomeMeta(IReadOnlyList<ReportLineViewModel> issues, ShellLanguage language)
     {
-        ReportLineViewModel? firstBlockingIssue = issues.FirstOrDefault(issue => !IsWarning(issue));
+        ReportLineViewModel? firstBlockingIssue = issues.FirstOrDefault(IsBlocking);
         return firstBlockingIssue?.Meta ?? FormatWarningMeta(CountWarnings(issues), language);
     }
 

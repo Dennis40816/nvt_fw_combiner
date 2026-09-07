@@ -1,6 +1,7 @@
 using NvtFwCombiner.Application.Capabilities;
 using NvtFwCombiner.Application.Metadata;
 using NvtFwCombiner.Domain.Composition;
+using NvtFwCombiner.Domain.Firmware;
 
 namespace NvtFwCombiner.Infrastructure.Composition;
 
@@ -23,12 +24,13 @@ internal sealed class BuiltInV2DynamicCompilationAdapter :
         IReadOnlyCollection<string>? selectedInputSlotIds,
         out CompiledComposition? composition,
         out MetadataPlanDefinition? metadataPlan,
-        out IReadOnlyList<CompositionIssue> issues)
+        out IReadOnlyList<CompositionIssue> issues,
+        TopologySelection? requestedTopology = null)
     {
         BuiltInV2Registration registration = ResolveRegistration(icId, workflowId);
         registration.TryCompile(
             requestedMapCapacity,
-            requestedTopology: null,
+            requestedTopology,
             selectedInputSlotIds,
             out composition,
             out issues);
@@ -47,6 +49,8 @@ internal sealed class BuiltInV2DynamicCompilationAdapter :
                 BuiltInV2RegistrationRegistry.StandardMergeByIc[icId],
             ExperienceIds.DpReplace =>
                 BuiltInV2RegistrationRegistry.DpReplaceByIc.Value[icId],
+            ExperienceIds.AbMerge =>
+                BuiltInV2RegistrationRegistry.AbMergeByIc[icId],
             _ => throw new InvalidOperationException(
                 "Only registered map-bound dynamic routes use this compiler adapter."),
         };

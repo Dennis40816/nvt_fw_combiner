@@ -22,9 +22,12 @@
     "requiredCapabilityIds": []
   },
   "inputSlots": [
-    { "slotId": "dp-ab-input", "role": "dp-ab", "artifactClass": "dp-firmware", "required": true, "cardinality": "exactly-one", "acceptedExtensions": [ ".bin" ], "acceptance": { "lengthRule": { "kind": "exact-resolved-map-capacity" }, "normalization": { "kind": "none" } } },
+    { "slotId": "dp-ab-input", "role": "dp-ab", "artifactClass": "dp-firmware", "required": false, "cardinality": "zero-or-one", "acceptedExtensions": [ ".bin" ], "acceptance": { "lengthRule": { "kind": "exact-resolved-map-capacity" }, "normalization": { "kind": "none" } } },
     { "slotId": "tp-a-input", "role": "tp-a", "artifactClass": "tp-firmware", "required": true, "cardinality": "exactly-one", "acceptedExtensions": [ ".bin" ], "acceptance": { "lengthRule": { "kind": "source-view-coverage" }, "normalization": { "kind": "none" } } },
     { "slotId": "tp-b-input", "role": "tp-b", "artifactClass": "tp-firmware", "required": true, "cardinality": "exactly-one", "acceptedExtensions": [ ".bin" ], "acceptance": { "lengthRule": { "kind": "source-view-coverage" }, "normalization": { "kind": "none" } } }
+  ],
+  "inputSelectionGroups": [
+    { "groupId": "dp-selection", "memberSlotIds": ["dp-ab-input"], "minimumSelected": 0, "maximumSelected": 1 }
   ],
   "spaces": [
     { "spaceId": "dp-ab-input", "kind": "input-artifact", "slotId": "dp-ab-input", "instancePolicy": "singleton" },
@@ -32,7 +35,7 @@
     { "spaceId": "tp-b-input", "kind": "input-artifact", "slotId": "tp-b-input", "instancePolicy": "singleton" },
     { "spaceId": "ab-combiner-work", "kind": "work-buffer", "capacity": { "kind": "fixed", "bytes": 1048576 }, "initializer": { "kind": "blank", "fillByte": 0 } },
     { "spaceId": "tp-b-work", "kind": "work-buffer", "capacity": { "kind": "fixed", "bytes": 225280 }, "initializer": { "kind": "clone", "sourceSlotId": "tp-b-input" } },
-    { "spaceId": "output-image", "kind": "output-image", "capacity": { "kind": "resolved-map" }, "initializer": { "kind": "blank", "fillByte": 0 } }
+    { "spaceId": "output-image", "kind": "output-image", "capacity": { "kind": "resolved-map" }, "initializer": { "kind": "blank", "fillByte": 255 } }
   ],
   "views": [
     { "viewId": "dp-ab-source", "spaceId": "dp-ab-input", "selector": { "kind": "map-region", "regionId": "ab-image" } },

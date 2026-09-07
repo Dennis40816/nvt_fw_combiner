@@ -11,7 +11,7 @@ namespace NvtFwCombiner.Bootstrap.Tests;
 public sealed class Nt51951AbMergeCandidateProfileTests
 {
     private const string BundleDirectory = "nt51950-ab-merge";
-    private const string BundleContentHash = "775c42fba1fbbf1c4c8869656c83c86ce34d612dda3ceed92a93cb4e82f7cd67";
+    private const string BundleContentHash = "f60f5ef4f8c2a150c7dde47638d55aa35a84425146809263057939540ea0b6b9";
     private const int Capacity = 0x100000;
     private const int BankLength = 0x80000;
     private const int TpInputLength = 0x37000;
@@ -26,9 +26,9 @@ public sealed class Nt51951AbMergeCandidateProfileTests
 
         V2CompiledCompositionDetails details = Assert.IsType<V2CompiledCompositionDetails>(composition.V2Details);
         Assert.True(composition.IsV2AbFunctionOpenCandidate);
-        Assert.Equal(
-            "f29aff9ccf4159cd00cf37bfa80b1ab3cb357fe3d783ec0e42d5c6e560e13247",
-            composition.CompilationFingerprint);
+        Assert.True(StringComparer.Ordinal.Equals(
+            "68fd88c2ef1794d8b52943a40b6a574f641e9ca855b8ef98f09e2ebe94654d20",
+            composition.CompilationFingerprint), composition.CompilationFingerprint);
         Assert.Equal("nt51951-ab-merge-1024k", details.Provenance.ResolvedMap.ImageMap.MapId);
         Assert.Equal(CompiledProfilePromotionStage.ExecutableCandidate, details.Provenance.Promotion.Stage);
         Assert.Equal(
@@ -172,7 +172,7 @@ public sealed class Nt51951AbMergeCandidateProfileTests
             "0.3.0",
             "NT51951",
             ExperienceIds.AbMerge,
-            Capacity);
+            Capacity, null, [], selectedInputSlotIds: ["dp-ab-input"]);
         Assert.True(compilation.IsCompiled, FormatIssues(compilation.Issues));
         return Assert.IsType<CompiledComposition>(compilation.CompiledComposition);
     }

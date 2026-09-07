@@ -50,6 +50,23 @@ or complete route-evidence cross-link. Those release gates remain independent.
 
 ## Pinned decisions
 
+Catalog `1.11.0` transitions the six AB IC/topology routes to profile-owned
+optional DP selection for v1.1.4. NT51950 retains distinct single/cascade axes
+within `nt51950-ab-merge-maps`; each axis admits only its original physical map.
+The four selector-free routes retain their original singleton map-set IDs.
+Fingerprints come from the existing dynamic inventory, not per-run output.
+
+Authoring and publication values remain unchanged. The expanded definitions
+are provisionally `ContractOnly`: previous DirectGolden/ApprovedAlias/
+SyntheticOracle decisions cover Normal inputs, not all new Dummy selections.
+All historical Normal cases, alias facts, expected bytes and release execution
+obligations remain intact in the canonical Golden cases. Updating the six
+current `routeEvidence` bindings does not revoke that case-level evidence or
+certify Dummy. Independent map-based complete-output verification and ordinary
+Golden regression are still required before final acceptance. Evidence labels
+must be reviewed against their actual scope, never raised automatically from
+a passing compilation test.
+
 Each route contains three independent decisions:
 
 - `authoring`: whether the exact capability may be selected for authoring.

@@ -40,6 +40,7 @@ internal sealed partial class MainWindowViewModel
 
         if (pageChanged)
         {
+            Merge.CancelAbDummyDpCommand.Execute(null);
             OnPropertyChanged(nameof(SelectedPage));
             OnPropertyChanged(nameof(IsHomeVisible));
             OnPropertyChanged(nameof(IsMergeVisible));

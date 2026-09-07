@@ -406,3 +406,28 @@ slice remains unchanged. Equal-value shared-token substitutions and the
 single-row vertical-content alignment correction do not add physical lines.
 The former 137,984 checkpoint remains historical accounting, not reusable
 budget. Resource reachability and real-control tests remain required.
+
+## 2026-09-07 owner-approved AB Dummy DP accounting
+
+The owner approves the exact necessary increment for the v1.1.4 Dummy DP batch,
+including its reviewed naming, public execution and informational Report fixes.
+The canonical measurement of the complete local candidate, against `d937747a`, is:
+
+| Metric | Previous ceiling | Exact candidate ceiling | Delta |
+| --- | ---: | ---: | ---: |
+| Full production | 137,982 | 138,542 | 560 |
+| Runtime | 98,890 | 99,170 | 280 |
+| Domain + Profiles | 20,632 | 20,757 | 125 |
+| Application | 42,522 | 42,647 | 125 |
+| Bootstrap / CLI / Desktop / Launcher | 5,039 | 5,039 | 0 |
+| Infrastructure / Contracts / worker / Platform | 30,697 | 30,727 | 30 |
+
+The remaining 280 lines are Presentation. Existing base ratchets remain fixed;
+allowances are exactly 35,646 full, 29,114 runtime, 130 Domain/Profiles,
+11,957 Application, 1,661 Bootstrap/CLI and 15,371 Infrastructure/Contracts/worker.
+There is no transferable headroom. The existing measurement algorithm, exclusions,
+slice sum, duplicate checks, aggregate warnings and synthetic growth/reduction
+tests are unchanged. This approval concerns accounting only; it does not grant
+firmware support promotion, alter Golden expectations, waive final verification
+or complete the capability-record lifecycle. Independent accounting verification
+and fixed-head integration evidence remain required.

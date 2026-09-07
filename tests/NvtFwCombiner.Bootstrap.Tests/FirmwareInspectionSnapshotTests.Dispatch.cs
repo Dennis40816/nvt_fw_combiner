@@ -326,7 +326,8 @@ public sealed partial class FirmwareInspectionSnapshotTests
     {
         var catalog = new CanonicalCapabilityCatalog(
             CompositionHostServices.CreateCanonicalCapabilityCatalogSource());
-        Assert.True(catalog.Reload(TestContext.Current.CancellationToken).Succeeded);
+        CapabilityCatalogReloadResult load = catalog.Reload(TestContext.Current.CancellationToken);
+        Assert.True(load.Succeeded, string.Join(" | ", load.Issues.Select(static issue => issue.Message)));
         var resolver = new FirmwareArtifactClassificationResolver(
             catalog,
             new CanonicalCapabilityCompilerAdapter(
@@ -428,7 +429,8 @@ public sealed partial class FirmwareInspectionSnapshotTests
             IReadOnlyCollection<string>? selectedInputSlotIds,
             out CompiledComposition? composition,
             out MetadataPlanDefinition? metadataPlan,
-            out IReadOnlyList<CompositionIssue> issues)
+            out IReadOnlyList<CompositionIssue> issues,
+            TopologySelection? requestedTopology = null)
         {
             throw new InvalidDataException("Synthetic malformed dynamic compilation.");
         }
@@ -452,7 +454,8 @@ public sealed partial class FirmwareInspectionSnapshotTests
             IReadOnlyCollection<string>? selectedInputSlotIds,
             out CompiledComposition? composition,
             out MetadataPlanDefinition? metadataPlan,
-            out IReadOnlyList<CompositionIssue> issues)
+            out IReadOnlyList<CompositionIssue> issues,
+            TopologySelection? requestedTopology = null)
         {
             inner.Compile(
                 icId,
@@ -461,7 +464,8 @@ public sealed partial class FirmwareInspectionSnapshotTests
                 selectedInputSlotIds: [],
                 out composition,
                 out metadataPlan,
-                out issues);
+                out issues,
+                requestedTopology);
         }
     }
 
@@ -488,7 +492,8 @@ public sealed partial class FirmwareInspectionSnapshotTests
             IReadOnlyCollection<string>? selectedInputSlotIds,
             out CompiledComposition? composition,
             out MetadataPlanDefinition? metadataPlan,
-            out IReadOnlyList<CompositionIssue> issues)
+            out IReadOnlyList<CompositionIssue> issues,
+            TopologySelection? requestedTopology = null)
         {
             inner.Compile(
                 icId,
@@ -497,7 +502,8 @@ public sealed partial class FirmwareInspectionSnapshotTests
                 selectedInputSlotIds,
                 out composition,
                 out metadataPlan,
-                out issues);
+                out issues,
+                requestedTopology);
             if (Interlocked.Increment(ref _rolloverCalls) == 1)
             {
                 rollover();

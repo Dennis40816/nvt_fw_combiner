@@ -43,8 +43,8 @@
       "slotId": "dp-ab-input",
       "role": "dp-ab",
       "artifactClass": "dp-firmware",
-      "required": true,
-      "cardinality": "exactly-one",
+      "required": false,
+      "cardinality": "zero-or-one",
       "acceptedExtensions": [
         ".bin"
       ],
@@ -94,6 +94,14 @@
       }
     }
   ],
+  "inputSelectionGroups": [
+    {
+      "groupId": "dp-selection",
+      "memberSlotIds": ["dp-ab-input"],
+      "minimumSelected": 0,
+      "maximumSelected": 1
+    }
+  ],
   "spaces": [
     {
       "spaceId": "dp-ab-input",
@@ -133,7 +141,7 @@
       },
       "initializer": {
         "kind": "blank",
-        "fillByte": 0
+        "fillByte": 255
       }
     }
   ],

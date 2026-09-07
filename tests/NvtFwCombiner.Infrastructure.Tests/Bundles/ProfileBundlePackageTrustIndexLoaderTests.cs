@@ -39,9 +39,9 @@ public sealed class ProfileBundlePackageTrustIndexLoaderTests
         ProfileBundlePackageTrustIndex index =
             ProfileBundlePackageTrustIndexLoader.Load(path);
 
-        Assert.Equal("1.1", index.SchemaVersion);
+        Assert.Equal("1.2", index.SchemaVersion);
         Assert.Equal("built-in-profile-bundles", index.TrustIndexId);
-        Assert.Equal("0.10.6.2", index.TrustIndexVersion);
+        Assert.Equal("1.1.4.1", index.TrustIndexVersion);
         Assert.Equal("built-in-profile-bundle-v2", index.TrustAnchorBindingId);
         Assert.Equal(26, index.Bundles.Count);
         Assert.Equal(
@@ -56,7 +56,9 @@ public sealed class ProfileBundlePackageTrustIndexLoaderTests
             generalReplace.ProfileId);
         Assert.Equal("0.1.0", generalReplace.ProfileVersion);
         Assert.Equal(
-            ["nt51928-dual-capacity-256k-512k", "nt51928-dual-capacity-256k-512k"],
+            ["nt51919-ab-merge-512k", "nt51929-ab-merge-512k", "nt51932-ab-merge-512k",
+                "nt51928-dual-capacity-256k-512k", "nt51928-dual-capacity-256k-512k",
+                "nt51950-ab-merge-maps", "nt51951-ab-merge-1024k"],
             index.Bundles.SelectMany(static bundle => bundle.RuntimeRegistrations)
                 .Where(static registration => registration.MapVariantSetId is not null)
                 .Select(static registration => registration.MapVariantSetId));
@@ -128,13 +130,16 @@ public sealed class ProfileBundlePackageTrustIndexLoaderTests
     }
 
     /// <summary>Existing workflow and selection-group vocabulary accepts a new IC/version as data.</summary>
-    [Fact]
-    public void LoadProjectsSyntheticExistingVocabularyRegistration()
+    [Theory]
+    [InlineData("standard-merge")]
+    [InlineData("ab-merge")]
+    [InlineData("dp-replace")]
+    public void LoadProjectsSyntheticExistingVocabularyRegistration(string workflowId)
     {
         string bundle = Bundle().Replace(
             "\"runtimeRegistrations\": []",
             "\"runtimeRegistrations\":[{" +
-            "\"workflowId\":\"standard-merge\"," +
+            $"\"workflowId\":\"{workflowId}\"," +
             "\"icId\":\"NT12345\"," +
             "\"profileId\":\"synthetic-standard-merge\"," +
             "\"profileVersion\":\"9.8.7\"," +
@@ -151,6 +156,19 @@ public sealed class ProfileBundlePackageTrustIndexLoaderTests
         Assert.Equal("NT12345", registration.IcId);
         Assert.Equal("9.8.7", registration.ProfileVersion);
         Assert.Equal("synthetic-selection-map-set", registration.MapVariantSetId);
+    }
+
+    /// <summary>A map-set cannot extend a workflow outside the closed map-bound selection vocabulary.</summary>
+    [Fact]
+    public void LoadRejectsMapSetOnGeneralReplace()
+    {
+        string bundle = Bundle().Replace("\"runtimeRegistrations\": []",
+            "\"runtimeRegistrations\":[{\"workflowId\":\"general-replace\",\"icId\":\"NT12345\"," +
+            "\"profileId\":\"synthetic\",\"profileVersion\":\"1.0.0\",\"mapVariantSetId\":\"forbidden\"}]",
+            StringComparison.Ordinal);
+        using TempWorkspace workspace = WriteIndex(bundle);
+        _ = Assert.Throws<InvalidDataException>(() => ProfileBundlePackageTrustIndexLoader.Load(
+            Path.Combine(workspace.Root, "package-trust-index.json")));
     }
 
     /// <summary>A CtrlRAM registration retains its exact token-only report metadata counterpart.</summary>
@@ -217,7 +235,7 @@ public sealed class ProfileBundlePackageTrustIndexLoaderTests
         var workspace = TempWorkspace.Create("package-trust-index");
         string json = $$"""
             {
-              "schemaVersion": "1.1",
+              "schemaVersion": "1.2",
               "trustIndexId": "test-profile-bundles",
               "trustIndexVersion": "1.0.0",
               "trustAnchorBindingId": "test-profile-bundle-v2",

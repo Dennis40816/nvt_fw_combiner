@@ -1,0 +1,25 @@
+<UserControl x:Class="NvtFwCombiner.Presentation.Avalonia.Views.AbDummyDpConfirmationModal"
+    xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:vm="using:NvtFwCombiner.Presentation.Avalonia.ViewModels"
+    x:DataType="vm:MergePresentationViewModel"
+    AutomationProperties.Name="{Binding Text.AbDummyDpConfirmTitle}"
+    Focusable="True" KeyboardNavigation.TabNavigation="Cycle"
+    KeyDown="OnModalKeyDown" Background="{DynamicResource NfcModalScrimBrush}">
+  <Border Classes="modalSurface" Width="540" Padding="22"
+      HorizontalAlignment="Center" VerticalAlignment="Center">
+    <Grid RowDefinitions="Auto,Auto" RowSpacing="{DynamicResource NfcSpace16}">
+      <StackPanel Spacing="5">
+        <TextBlock Classes="modalTitle" Text="{Binding Text.AbDummyDpConfirmTitle}" />
+        <TextBlock Classes="mutedText" Text="{Binding Text.AbDummyDpConfirmDetail}" TextWrapping="Wrap" />
+      </StackPanel>
+      <StackPanel Grid.Row="1" HorizontalAlignment="Right" Orientation="Horizontal" Spacing="{DynamicResource NfcSpace8}">
+        <Button x:Name="CancelButton" Classes="semanticAction secondary"
+            AutomationProperties.Name="{Binding Text.OutputDeliveryCancelLabel}"
+            Command="{Binding CancelAbDummyDpCommand}" Content="{Binding Text.OutputDeliveryCancelLabel}" />
+        <Button x:Name="EnableButton" Classes="semanticAction primary"
+            AutomationProperties.Name="{Binding Text.AbDummyDpEnableLabel}"
+            Command="{Binding ConfirmAbDummyDpCommand}" Content="{Binding Text.AbDummyDpEnableLabel}" />
+      </StackPanel>
+    </Grid>
+  </Border>
+</UserControl>

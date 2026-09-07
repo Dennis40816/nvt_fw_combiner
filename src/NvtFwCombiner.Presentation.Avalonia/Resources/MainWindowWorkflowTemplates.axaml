@@ -241,11 +241,21 @@
           <TextBlock Classes="sectionTitle" Text="{Binding Text.AbCodeMergeTitle}" />
           <TextBlock Classes="mutedText" Text="{Binding Text.AbCodeMergeDetail}" TextWrapping="Wrap" />
         </StackPanel>
-        <CheckBox
+        <WrapPanel Orientation="Horizontal" ItemSpacing="24" LineSpacing="8">
+          <CheckBox
             AutomationProperties.Name="{Binding Text.AbSameTpOptionLabel}"
             Command="{Binding ToggleAbSameTpCommand}"
             Content="{Binding Text.AbSameTpOptionLabel}"
             IsChecked="{Binding UseSameTpForAbMerge, Mode=OneWay}" />
+          <CheckBox x:Name="AbDummyDpCheckBox"
+            AutomationProperties.Name="{Binding Text.AbDummyDpOptionLabel}"
+            Command="{Binding ToggleAbDummyDpCommand}"
+            Content="{Binding Text.AbDummyDpOptionLabel}"
+            IsChecked="{Binding UseDummyDpForAbMerge, Mode=OneWay}" />
+        </WrapPanel>
+        <ContentControl x:Name="AbDummyDpDisplay"
+            Content="{Binding DummyDpDisplaySlot}" ContentTemplate="{StaticResource FirmwareSlotCardTemplate}"
+            IsEnabled="False" IsVisible="{Binding UseDummyDpForAbMerge}" />
         <ItemsControl ItemContainerTheme="{StaticResource StretchContentPresenterTheme}" ItemsSource="{Binding MergeSlots}">
           <ItemsControl.ItemTemplate>
             <StaticResource ResourceKey="FirmwareSlotCardTemplate" />

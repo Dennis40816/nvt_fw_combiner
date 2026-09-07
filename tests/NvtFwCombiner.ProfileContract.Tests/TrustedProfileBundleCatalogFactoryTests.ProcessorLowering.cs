@@ -7,6 +7,39 @@ namespace NvtFwCombiner.ProfileContract.Tests;
 
 public sealed partial class TrustedProfileBundleCatalogFactoryTests
 {
+    /// <summary>An active processor cannot retain a read from an omitted optional input.</summary>
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void ActiveProcessorRejectsOmittedOptionalSource(bool stagedArtifact)
+    {
+        V2CompositionPlanCompileResult result = Compile(PrepareSupportedBlankCopy(familyHash =>
+        {
+            JsonObject profile = Assert.IsType<JsonObject>(JsonNode.Parse(ProfileWithInactiveOptionalBranch(
+                ProfileWithLegacyCombinerStage(SupportedProfileJson(familyHash)))));
+            JsonArray operations = Assert.IsType<JsonArray>(profile["operations"]);
+            _ = operations.Remove(operations.Single(operation => operation!["operationId"]!.GetValue<string>() == "copy-optional"));
+            JsonNode stage = Assert.Single(Assert.IsType<JsonArray>(profile["processorStages"]))!;
+            if (stagedArtifact)
+            {
+                stage["stagedArtifactBindings"]![0]!["sourceViewId"] = "optional-view";
+            }
+            else
+            {
+                stage["stagedSourceBindings"] = new JsonArray(new JsonObject
+                {
+                    ["sourceViewId"] = "optional-view",
+                    ["targetViewId"] = "output-code",
+                });
+            }
+            return profile.ToJsonString(new JsonSerializerOptions { WriteIndented = true });
+        }), selectedInputSlotIds: []);
+
+        Assert.Null(result.CompiledComposition);
+        Assert.Contains(result.Issues, static issue =>
+            issue.Message == "Active processor view 'optional-view' depends on an inactive input space.");
+    }
+
     /// <summary>Verifies a synthetic future schema model lowers a declared Combiner stage without C# CRC work.</summary>
     [Fact]
     public void SyntheticArtifactBindingModelLowersLegacyCombinerStage()

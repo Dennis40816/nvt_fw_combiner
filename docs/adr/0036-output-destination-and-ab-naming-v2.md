@@ -40,6 +40,15 @@ The date is the one injected run-start UTC system date in invariant
 `yyyyMMdd` form.  Unknown DP or TP metadata remains non-blocking and renders
 `Dxxxx` or `Txxxx` with typed report diagnostics.
 
+For owner-approved `v1.1.4` AB Dummy DP, both DP tokens are the literal `Dummy`,
+not a firmware version. This follows the compiled omission of the DP input and
+blank `0xFF` initializer, never an absent file in AB Normal mode. TP tokens,
+UTC date and overrides are unchanged. Report token provenance has no DP source
+address or input hash and records `compiled-profile-dummy-dp;fill=0xFF`; one
+informational message states that non-TP regions use `0xFF`. Intentional Dummy
+tokens do not produce missing-DP-metadata warnings. Normal missing metadata
+retains the existing placeholder and warning behavior.
+
 ### Effective output identity
 
 The effective output name/path is the explicit caller override when supplied;

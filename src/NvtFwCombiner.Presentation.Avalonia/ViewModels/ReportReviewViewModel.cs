@@ -53,7 +53,7 @@ internal sealed partial class ReportReviewViewModel
         this.outputCommitted = outputCommitted;
         IsOutputNotGenerated = outputCommitted == false &&
             outputSize <= 0 &&
-            issues.Any(issue => !IsWarning(issue));
+            issues.Any(IsBlocking);
         OutputSizeLabel = CreateOutputSizeLabel(outputSize, IsOutputNotGenerated, language);
         OutputCommitmentLabel = CreateOutputCommitmentLabel(outputCommitted, IsOutputNotGenerated, language);
         OutputSha256 = outputSha256;
@@ -79,7 +79,7 @@ internal sealed partial class ReportReviewViewModel
         OutputDifferenceGroups = outputDifferences.Groups;
         Issues = issues;
         SummaryIssueDescriptions = CreateIssueSummary(issues, language);
-        PrimaryIssue = issues.FirstOrDefault(issue => !IsWarning(issue)) ?? ReportLineViewModel.Empty;
+        PrimaryIssue = issues.FirstOrDefault(IsBlocking) ?? ReportLineViewModel.Empty;
         InputGroups = CreateInputGroups(inputs, language);
         OperationFlow = CreateOperationFlow(inputs, operations, outputFileName, status, language);
         OutcomeTitle = CreateOutcomeTitle(status, issues, language);

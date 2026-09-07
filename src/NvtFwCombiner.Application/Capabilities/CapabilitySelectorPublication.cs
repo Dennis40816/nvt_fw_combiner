@@ -236,7 +236,8 @@ public sealed class CapabilitySelectorPublication
                 static icId => icId,
                 icId => AbMergeTopologyChoiceProjection.Project(
                     capabilities,
-                    icId),
+                    icId,
+                    dynamicRoutes),
                 StringComparer.Ordinal);
 
         return new CapabilitySelectorPublication(

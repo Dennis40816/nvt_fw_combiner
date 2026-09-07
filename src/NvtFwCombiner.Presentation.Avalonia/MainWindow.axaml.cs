@@ -579,6 +579,7 @@ public sealed partial class MainWindow : Window, IDisposable
         ArgumentNullException.ThrowIfNull(shellInteractionHost);
         ArgumentNullException.ThrowIfNull(viewModel);
         bool interactive = isStartupShellEnabled &&
+            !viewModel.Merge.IsAbDummyDpPromptOpen &&
             !viewModel.IsSettingsModalOpen &&
             !viewModel.Navigation.IsNavigationClearConfirmationOpen &&
             !viewModel.OutputDelivery.IsOpen;
@@ -672,6 +673,7 @@ public sealed partial class MainWindow : Window, IDisposable
         LoadContent(FirmwareNumberMismatchModalHost, viewModel.WorkflowSession.IsFirmwareNumberMismatchModalOpen, viewModel.WorkflowSession);
         LoadContent(NavigationClearConfirmationModalHost, viewModel.Navigation.IsNavigationClearConfirmationOpen, viewModel.Navigation);
         LoadContent(AbSameTpConflictModalHost, viewModel.Merge.IsAbSameTpConflictPromptOpen, viewModel.Merge);
+        LoadContent(AbDummyDpConfirmationModalHost, viewModel.Merge.IsAbDummyDpPromptOpen, viewModel.Merge);
         LoadContent(MessageCenterModalHost, viewModel.MessageCenter.IsOpen, viewModel.MessageCenter);
         LoadContent(ReportModalHost, viewModel.Reports.IsReportModalOpen, viewModel.Reports);
         LoadContent(BuildCompletedModalHost, viewModel.BuildResult.IsOpen, viewModel);

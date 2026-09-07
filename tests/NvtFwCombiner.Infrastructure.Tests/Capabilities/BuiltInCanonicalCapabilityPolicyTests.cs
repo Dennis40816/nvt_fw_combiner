@@ -29,7 +29,7 @@ public sealed class BuiltInCanonicalCapabilityPolicyTests
                     "nt51929-standard-merge-256k"));
 
         Assert.Equal("canonical-capability-policy", policy.CatalogId);
-        Assert.Equal("1.10.0", policy.CatalogVersion);
+        Assert.Equal("1.11.0", policy.CatalogVersion);
         Assert.Equal(
             BuiltInCanonicalCapabilityPolicy.ExpectedSha256,
             policy.SourceSha256);
@@ -147,19 +147,19 @@ public sealed class BuiltInCanonicalCapabilityPolicyTests
             static route =>
                 route.Publication.Value == CapabilityPublicationStatus.Candidate);
         Assert.Equal(
-            28,
+            26,
             policy.Routes.Count(static route =>
                 route.Evidence.Value == CapabilityEvidenceStatus.DirectGolden));
         Assert.Equal(
-            9,
+            7,
             policy.Routes.Count(static route =>
                 route.Evidence.Value == CapabilityEvidenceStatus.ApprovedAlias));
         Assert.Equal(
-            5,
+            4,
             policy.Routes.Count(static route =>
                 route.Evidence.Value == CapabilityEvidenceStatus.SyntheticOracle));
         Assert.Equal(
-            47,
+            52,
             policy.Routes.Count(static route =>
                 route.Evidence.Value == CapabilityEvidenceStatus.ContractOnly));
         string[] tpRoutesAwaitingIndependentExpectedOutput =

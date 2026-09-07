@@ -123,6 +123,10 @@ public sealed class ReportInputFeedbackTests
         Assert.Equal(chinese ? "資訊: Informational raw finding" : "Info: Informational raw finding", loaded.SummaryIssueDescriptions);
         Assert.Equal(loaded.SummaryIssueDescriptions, live.SummaryIssueDescriptions);
         Assert.Equal(0, loaded.BlockingIssueCount);
+        Assert.Equal(0, loaded.WarningCount);
+        Assert.Equal(0, live.WarningCount);
+        Assert.False(loaded.HasPrimaryIssue);
+        Assert.Equal("✓", loaded.OutcomeIcon);
         Assert.False(Assert.Single(loaded.Issues).HasCodeBlock);
     }
 

@@ -116,6 +116,20 @@ public sealed class CanonicalMemoryLayoutProjectionTests
 
     private static PilotFixture CreatePilot(string workflowId)
     {
+        if (workflowId == ExperienceIds.AbMerge)
+        {
+            CompiledAuthoringSelectionSnapshot abSelection = BootstrapTestHost.Services.AbMergeAuthoring
+                .GetAuthoringSnapshot("NT51929", null, [], new Dictionary<string, FileStamp>(),
+                    new AuthoringRevision(1), dpMode: AbMergeDpMode.Normal);
+            ResolvedCapability abCapability = Assert.Single(abSelection.Catalog.Routes).ExactCapability!;
+            Assert.NotNull(abCapability);
+            var abSession = new AuthoringSessionState(workflowId);
+            Assert.True(abSession.Activate(abSelection.Catalog).Succeeded);
+            ActiveSessionSnapshot active = abSession.Select("NT51929", abCapability.Identity.IcCountVariant).Snapshot!;
+            Assert.NotNull(active);
+            return new PilotFixture(abCapability, active,
+                abCapability.CompiledComposition.V2Details.Provenance.ResolvedMap.ImageMap);
+        }
         var catalog = new CanonicalCapabilityCatalog(
             CompositionHostServices.CreateCanonicalCapabilityCatalogSource(
                 NvtFwCombiner.TestSupport.RetainedDpReplaceRegressionPolicy.Load));

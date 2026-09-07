@@ -280,7 +280,8 @@ internal sealed partial class ShellTextResources
         int selectedCount,
         int requiredCount,
         int blockingCount,
-        int warningCount)
+        int warningCount,
+        bool requiresDp = true)
     {
         return !supported
             ? SelectLanguage(
@@ -292,8 +293,8 @@ internal sealed partial class ShellTextResources
                 $"Build blocked：{blockingCount} 個 input 錯誤 · 已選 {selectedCount}/{requiredCount}。")
             : selectedCount < requiredCount
             ? SelectLanguage(
-                $"Select DP_AB, TPA, and TPB · {selectedCount}/{requiredCount} selected.",
-                $"請選擇 DP_AB、TPA 與 TPB · 已選 {selectedCount}/{requiredCount}。")
+                $"Select {(requiresDp ? "DP_AB, TPA, and TPB" : "TPA and TPB")} · {selectedCount}/{requiredCount} selected.",
+                $"請選擇 {(requiresDp ? "DP_AB、TPA 與 TPB" : "TPA 與 TPB")} · 已選 {selectedCount}/{requiredCount}。")
             : warningCount > 0
             ? SelectLanguage(
                 $"Ready with {warningCount} warning(s): review highlighted inputs before Build.",

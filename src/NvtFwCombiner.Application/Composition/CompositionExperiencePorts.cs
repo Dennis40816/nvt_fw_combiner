@@ -99,6 +99,16 @@ public interface IStandardMergeAuthoring
         IReadOnlyCollection<CompiledAuthoringSelectedInput> inputs);
 }
 
+/// <summary>Explicit AB DP input policy; missing files never select Dummy mode.</summary>
+public enum AbMergeDpMode
+{
+    /// <summary>Require the declared DP input and preserve its bytes outside TP writes.</summary>
+    Normal,
+
+    /// <summary>Omit DP input and retain the profile's blank initialization outside TP writes.</summary>
+    Dummy,
+}
+
 /// <summary>Focused AB Merge authoring operations over one canonical workflow owner.</summary>
 public interface IAbMergeAuthoring
 {
@@ -115,14 +125,16 @@ public interface IAbMergeAuthoring
         IReadOnlyCollection<string> selectedSlotIds,
         IReadOnlyDictionary<string, FileStamp> acceptedFileStamps,
         AuthoringRevision authoringRevision,
-        ActiveSessionSnapshot? retainedSession = null);
+        ActiveSessionSnapshot? retainedSession = null,
+        AbMergeDpMode dpMode = AbMergeDpMode.Normal);
 
     /// <summary>Prepares one exact accepted session from immutable inputs.</summary>
     CompiledAuthoringSessionPreparation PrepareSession(
         AuthoringSessionState session,
         string icId,
         string? topologyToken,
-        IReadOnlyCollection<CompiledAuthoringSelectedInput> inputs);
+        IReadOnlyCollection<CompiledAuthoringSelectedInput> inputs,
+        AbMergeDpMode dpMode = AbMergeDpMode.Normal);
 
     /// <summary>Refreshes action readiness for one exact accepted AB Merge session.</summary>
     ValueTask<CapabilityActionReadinessSnapshot?> GetActionReadinessAsync(

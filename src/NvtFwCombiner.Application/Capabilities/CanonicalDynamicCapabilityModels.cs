@@ -314,7 +314,8 @@ public sealed record CanonicalDynamicCapabilityDefinition
         PinnedCapabilityDecision<CapabilityAuthoringAvailability> authoring,
         PinnedCapabilityDecision<CapabilityPublicationStatus> publication,
         PinnedCapabilityDecision<CapabilityEvidenceStatus> evidence,
-        CapabilityNumberChoice? numberChoice = null)
+        CapabilityNumberChoice? numberChoice = null,
+        CapabilityTopologyChoice? abMergeTopologyChoice = null)
     {
         ArgumentNullException.ThrowIfNull(identity);
         ArgumentNullException.ThrowIfNull(compilationContract);
@@ -356,6 +357,8 @@ public sealed record CanonicalDynamicCapabilityDefinition
                 "A dynamic route IC-number choice requires a token and display label.",
                 nameof(numberChoice));
         }
+        AbMergeTopologyChoiceProjection.ValidateDefinition(identity, abMergeTopologyChoice);
+        AbMergeTopologyChoice = abMergeTopologyChoice;
         Identity = identity;
         CapabilityFingerprint = capabilityFingerprint;
         CompilationContract = compilationContract;
@@ -385,6 +388,9 @@ public sealed record CanonicalDynamicCapabilityDefinition
 
     /// <summary>Typed workflow-scoped count choice, when the route requires one.</summary>
     public CapabilityNumberChoice? NumberChoice { get; }
+
+    /// <summary>Profile-derived AB topology choice; null for selector-free or non-AB routes.</summary>
+    public CapabilityTopologyChoice? AbMergeTopologyChoice { get; }
 
     private static void ValidateFingerprint(string fingerprint)
     {
@@ -430,6 +436,7 @@ public sealed record ResolvedCapabilityRoute
         Publication = definition.Publication;
         Evidence = definition.Evidence;
         NumberChoice = definition.NumberChoice;
+        AbMergeTopologyChoice = definition.AbMergeTopologyChoice;
         ResolutionToken = resolutionToken;
     }
 
@@ -454,6 +461,9 @@ public sealed record ResolvedCapabilityRoute
     /// <summary>Typed workflow-scoped count choice, when the route requires one.</summary>
     public CapabilityNumberChoice? NumberChoice { get; }
 
+    /// <summary>Profile-derived AB topology disclosure from this exact publication.</summary>
+    public CapabilityTopologyChoice? AbMergeTopologyChoice { get; }
+
     /// <summary>Publication identity shared by the resulting capability.</summary>
     public ResolutionToken ResolutionToken { get; }
 
@@ -469,6 +479,7 @@ public sealed record ResolvedCapabilityRoute
         CompiledComposition bound = composition.BindCapabilityFingerprint(
             CapabilityFingerprint);
         WorkflowIcNumberChoiceProjection.ValidateCompilation(NumberChoice, bound);
+        AbMergeTopologyChoiceProjection.ValidateCompilation(Identity, bound);
         RuntimeReferenceCompilationProof? boundRuntimeReferenceProof =
             runtimeReferenceProof?.BindCapabilityCompilation(
                 composition,
