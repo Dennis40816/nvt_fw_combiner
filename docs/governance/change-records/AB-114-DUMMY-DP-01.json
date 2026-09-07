@@ -5,7 +5,7 @@
   "integrationBase": "d937747ac143b2be3ecbe8fc705eeb1fe91f8b74",
   "risk": "R3",
   "kind": "behavior",
-  "state": "design-active",
+  "state": "final-complete",
   "mutablePaths": [
     "scripts/code_size_policy.py",
     "docs/adr/0021-code-size-ratchet-accepted-artifact-amendment.md",
@@ -104,12 +104,12 @@
     "outcome": "approved",
     "evidence": "2026-09-07 independent R3 design admission approved these profile/compiler surfaces subject to sole AB null-default, validated active-slot metadata filtering, unchanged generic compiler, ordinary Golden, six-case whole-output/exact-range checks and registration/publication follow-through before integration. No implementation acceptance or external firmware-owner gate waiver."
   },
-  "implementationHead": null,
-  "reviewedHead": null,
-  "pathStateDigest": null,
+  "implementationHead": "30c91905d4f66fd55c74918300343fac7857e5f0",
+  "reviewedHead": "30c91905d4f66fd55c74918300343fac7857e5f0",
+  "pathStateDigest": "ae0077267c001a172b5ade8e921927e5450099973ba9a1c26e6d66de1dc540a4",
   "finalReview": {
-    "reviewer": null,
-    "outcome": "pending",
-    "evidence": ""
+    "reviewer": "ui_runtime_review and ui_presentation_review (independent read-only agents, inherited configurations)",
+    "outcome": "approved",
+    "evidence": "2026-09-07 both reviewers examined d937747ac143b2be3ecbe8fc705eeb1fe91f8b74..30c91905d4f66fd55c74918300343fac7857e5f0 and returned scoped PASS-WITH-HUMAN-GATE, no new P0-P2 findings. Runtime review covers final non-Presentation code/contracts/profiles/trust/accounting and independent six-map full-output oracle, unchanged Normal Golden bytes, exact TP/import ranges and fail-closed selection/overlap/processor checks. UI review covers all 21 changed Presentation production files and 3 UiSmoke files, confirmation/context/async/focus behavior and Info severity. Reviewers read retained TRX: six-map 6/6, AB consumers 165/165, profiles 398/398, processor 5/5, Application 88/88, Infrastructure 245/245, naming Preview/Build 3/3, FF plus Off 18/18, UI focus 13/13, Report 48/48; zero failed or omitted in those scoped runs, not a fresh full-suite result. Primary structure-only passed in 155.8s before freezing; accounting tests 19/19. Existing P3 Reserved-region wording remains explicit in handoff, not an output defect or claimed fix. Final full verifier, exact final-evidence-head firmware-owner attestation and native accessibility evidence remain pending. No support promotion or certified Dummy Golden claim. This technical review does not supply external owner authority."
   }
 }
