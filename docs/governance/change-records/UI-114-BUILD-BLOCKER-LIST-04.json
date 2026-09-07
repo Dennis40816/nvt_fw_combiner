@@ -5,7 +5,7 @@
   "integrationBase": "fffc4bacd67d9b3f357e4919467de72256946311",
   "risk": "R2",
   "kind": "behavior",
-  "state": "design-active",
+  "state": "final-complete",
   "mutablePaths": [
     "src/NvtFwCombiner.Application/Capabilities/ActiveSessionBuildBlockerResolver.cs",
     "src/NvtFwCombiner.Application/Capabilities/CapabilityActionReadiness.cs",
@@ -25,8 +25,12 @@
     "outcome": "approved",
     "evidence": "GPT-5.6 Terra/high independently admitted this same-priority typed exposure under SPEC 11.4; the required Ready-status/lifecycle-error and orphan/duplicate invariants are included in the terminal contract and required tests."
   },
-  "implementationHead": null,
-  "reviewedHead": null,
-  "pathStateDigest": null,
-  "finalReview": { "reviewer": null, "outcome": "pending", "evidence": "" }
+  "implementationHead": "2934c26922554e2b42a4770095d8a34c790e27ae",
+  "reviewedHead": "2934c26922554e2b42a4770095d8a34c790e27ae",
+  "pathStateDigest": "727cd0db6c60c41519aee64c46e60b91ef1bb9e30ace25aa4bcae5f4e9d4c109",
+  "finalReview": {
+    "reviewer": "ui_presentation_review and ui_runtime_review (inherited models, read-only scoped lanes)",
+    "outcome": "approved",
+    "evidence": "Fixed-head scoped semantic/Polytail reviews: combined Presentation/runtime/governance review at cc9244da; release-policy test correction reviewed at a602a1f9; all seven architecture/card corrections reviewed at 2a376c29 with no P0-P3 findings. ui_runtime_review verified 1718e6a45b76bc78aa8e19d553d9e846ed79dda4 adds only two truthful handoffs and confirmed review binding for all 14 records; unchanged lanes retain original scoped reviewers, not a new whole-repository review. Architecture 256/256 and focused UI 30/30 are primary-observed console results on correction source; previous full run at a602a1f9 failed Architecture, and that failure evidence remains. Canonical size check is 137982 full / 98890 runtime, no violations; MainWindow 976 <= 985. Applicable fixed-candidate integration verification remains separate and is not claimed passed by this review record. No native DPI, release or Dummy DP certification is asserted. Subsequent full verification at 1718e6a4 passed the other lanes but failed Infrastructure (53/1069); retain verify-1718e6a4.log as failure evidence. Scoped test-fixture ownership correction at 2934c269 was independently reviewed by ui_runtime_review: no findings, 56/56 targeted and 1066/1066 full Infrastructure passed with zero skips (infra-diagnosis/owned-handles-final.trx and infra-owned-handles-final.trx). Reviewer confirmed exact-head 2934c269 binding and unchanged governed paths; prior lane reviews remain scoped. Required final integration verification is still separate."
+  }
 }
