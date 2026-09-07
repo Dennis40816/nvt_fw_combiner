@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 2,
+  "taskId": "UI-114-UNUSED-THEME-TOKEN-14",
+  "capability": "Retire the unreferenced legacy critical-warning brush after the approved issue-card migration",
+  "integrationBase": "fffc4bacd67d9b3f357e4919467de72256946311",
+  "risk": "R1",
+  "kind": "ui",
+  "state": "design-active",
+  "mutablePaths": ["src/NvtFwCombiner.Presentation.Avalonia/Styles/ThemeTokens.axaml"],
+  "implementationOwner": "primary-agent",
+  "searchEvidence": [
+    "Full UI baseline ui-closure.trx fails SharedThemeTokensHaveUniqueDefinitionsAndOwnMigratedViews because NfcWarningAccentCriticalBrush is defined but no longer referenced, not because a resource is missing.",
+    "Scoped source search finds only two definitions, Light and Dark, in ThemeTokens.axaml. The approved issue card uses existing NfcCriticalBorderBrush; do not invent a consumer to satisfy the test.",
+    "Independent Presentation review identifies removal as a bounded same-batch closure correction. Other UI token replacements stay in their existing admitted paths."
+  ],
+  "semanticOwner": "Existing shared ThemeTokens resource dictionary",
+  "terminalContract": "Delete only the two unused NfcWarningAccentCriticalBrush definitions. Preserve all referenced brush values, themes, geometry and firmware behavior. Lower exact full-production accounting by the removed physical lines through its existing record 13 owner. Verify resource reachability and affected real controls; no blanket token-test waiver.",
+  "disposition": "extend-owner",
+  "designReview": {"reviewer": null, "outcome": "not-required", "evidence": "R1 deletion of an unreferenced resource, no consumer or visual change."},
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": {"reviewer": null, "outcome": "pending", "evidence": ""}
+}

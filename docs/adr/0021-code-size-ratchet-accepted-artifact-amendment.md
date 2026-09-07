@@ -398,3 +398,11 @@ The subsequent structure lane completes in 157.6 s with no code-size error;
 it still fails on the 12 committed-active UI records. Existing aggregate
 warnings remain visible. Independent scoped accounting review found no
 finding; neither that review nor these results finalize the UI batch.
+
+The subsequent same-batch token cleanup removes the two unreferenced
+`NfcWarningAccentCriticalBrush` definitions. Full production and its exact
+allowance descend by two to 137,982 and 35,086 respectively; every runtime
+slice remains unchanged. Equal-value shared-token substitutions and the
+single-row vertical-content alignment correction do not add physical lines.
+The former 137,984 checkpoint remains historical accounting, not reusable
+budget. Resource reachability and real-control tests remain required.

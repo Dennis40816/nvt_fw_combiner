@@ -79,7 +79,7 @@
               <ItemsControl ItemsSource="{Binding InputGuidanceFacts}">
                 <ItemsControl.ItemTemplate>
                   <DataTemplate x:DataType="vm:FirmwareSlotFactViewModel">
-                    <Grid ColumnDefinitions="92,*" ColumnSpacing="12" Margin="0,2"
+                    <Grid ColumnDefinitions="92,*" ColumnSpacing="{DynamicResource NfcSpace12}" Margin="0,2"
                           AutomationProperties.Name="{Binding StateAutomationText}">
                       <TextBlock Classes="mutedText" Text="{Binding Label}" />
                       <TextBlock Grid.Column="1" Classes="mutedText" Text="{Binding Value}" />

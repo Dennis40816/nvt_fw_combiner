@@ -154,7 +154,27 @@ public sealed partial class XamlControlStyleContractTests
             AssertControlGeometry(currentOrigin, currentSection.Bounds.Size, 363, 145, 1121, 74);
             AssertControlGeometry(bannerOrigin, updateBanner.Bounds.Size, 363, 247, 1121, 84);
             AssertControlGeometry(sourceOrigin, sourceSection.Bounds.Size, 363, 359, 1121, 132);
-            AssertControlGeometry(tableOrigin, versionTable.Bounds.Size, 363, 555, 1121, 207);
+            StackPanel tableSection = versionTable.GetVisualAncestors().OfType<StackPanel>().First();
+            Grid tableHeading = tableSection.Children.OfType<Grid>().First();
+            TextBlock availableHeading = Assert.Single(tableHeading.GetVisualDescendants().OfType<TextBlock>(),
+                text => text.Classes.Contains("sectionTitle"));
+            Assert.Equal(28, Assert.IsType<StackPanel>(versionPage).Spacing);
+            Assert.Equal(12, tableSection.Spacing);
+            Assert.Equal(18, availableHeading.FontSize);
+            Assert.Equal(FontWeight.SemiBold, availableHeading.FontWeight);
+            Assert.Equal("Inter SemiBold", new Typeface(availableHeading.FontFamily, availableHeading.FontStyle,
+                availableHeading.FontWeight).GlyphTypeface.FamilyName);
+            double headingHeight = tableHeading.GetVisualDescendants().OfType<TextBlock>()
+                .Max(static text => text.DesiredSize.Height);
+            Assert.InRange(Math.Abs(tableHeading.Bounds.Height - headingHeight), 0, 0.5);
+            Assert.All(tableHeading.GetVisualDescendants().OfType<TextBlock>(),
+                static text => Assert.InRange(text.TextLayout.Height, 0, text.Bounds.Height));
+            Point headingOrigin = Assert.IsType<Point>(tableHeading.TranslatePoint(default, body));
+            AssertControlGeometry(headingOrigin, tableHeading.Bounds.Size, 363, 519, 1121, headingHeight);
+            // The heading is content-sized in the approved template. Keep the fixed
+            // source slot, 28px section gap and 12px table gap with the real Inter face.
+            double tableY = 359 + 132 + 28 + headingHeight + 12;
+            AssertControlGeometry(tableOrigin, versionTable.Bounds.Size, 363, tableY, 1121, 207);
             Assert.Equal(24, pageTitle.FontSize);
             Assert.Equal(FontWeight.SemiBold, pageTitle.FontWeight);
             Assert.Equal(13, pageSubtitle.FontSize);

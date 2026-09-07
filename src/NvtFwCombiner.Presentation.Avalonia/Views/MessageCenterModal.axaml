@@ -11,7 +11,7 @@
     Background="{DynamicResource NfcModalScrimBrush}">
   <UserControl.Styles>
     <Style Selector="Button.reportLoad /template/ ContentPresenter#PART_ContentPresenter">
-      <Setter Property="CornerRadius" Value="8" />
+      <Setter Property="CornerRadius" Value="{DynamicResource NfcSurfaceCornerRadius}" />
     </Style>
   </UserControl.Styles>
   <Grid>
@@ -55,7 +55,7 @@
               <Grid ColumnDefinitions="26,*" ColumnSpacing="{DynamicResource NfcSpace12}">
                 <Path Width="18" Height="18" Data="M3 4H15 M3 9H15 M3 14H15 M1 4H1.2 M1 9H1.2 M1 14H1.2"
                     Stretch="Uniform" Stroke="{DynamicResource NfcTextSecondaryBrush}" StrokeThickness="1.8" StrokeLineCap="Round" />
-                <TextBlock Grid.Column="1" VerticalAlignment="Center" Classes="bodyStrongText" FontSize="14" FontWeight="ExtraBold" Text="{Binding Text.RunReportsLabel}" />
+                <TextBlock Grid.Column="1" VerticalAlignment="Center" Classes="bodyStrongText" FontSize="{DynamicResource NfcFontSize14}" FontWeight="ExtraBold" Text="{Binding Text.RunReportsLabel}" />
               </Grid>
             </ToggleButton>
             <ToggleButton
@@ -65,7 +65,7 @@
               <Grid ColumnDefinitions="26,*" ColumnSpacing="{DynamicResource NfcSpace12}">
                 <Path Width="18" Height="18" Data="M9 1A8 8 0 1 0 9 17A8 8 0 1 0 9 1 M9 5A4 4 0 1 0 9 13A4 4 0 1 0 9 5"
                     Stretch="Uniform" Stroke="{DynamicResource NfcTextSecondaryBrush}" StrokeThickness="1.6" />
-                <TextBlock Grid.Column="1" VerticalAlignment="Center" Classes="bodyStrongText" FontSize="14" FontWeight="ExtraBold" Text="{Binding Text.SystemActivityTitle}" />
+                <TextBlock Grid.Column="1" VerticalAlignment="Center" Classes="bodyStrongText" FontSize="{DynamicResource NfcFontSize14}" FontWeight="ExtraBold" Text="{Binding Text.SystemActivityTitle}" />
               </Grid>
             </ToggleButton>
           </StackPanel>
@@ -73,10 +73,10 @@
 
         <Grid x:Name="MessageCenterContent" Grid.Column="1" Margin="44,30,50,24">
           <Grid IsVisible="{Binding IsRunReportsSelected}" RowDefinitions="Auto,Auto,Auto,*" RowSpacing="20">
-            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
-              <StackPanel Spacing="4">
+            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="{DynamicResource NfcSpace12}">
+              <StackPanel Spacing="{DynamicResource NfcSpace4}">
                 <TextBlock Classes="pageTitle" FontSize="28" FontWeight="SemiBold" Text="{Binding Text.RunReportsLabel}" />
-                <TextBlock Classes="pageSubtitle" FontSize="14" Text="{Binding Text.RunReportsNewestFirst}" />
+                <TextBlock Classes="pageSubtitle" FontSize="{DynamicResource NfcFontSize14}" Text="{Binding Text.RunReportsNewestFirst}" />
               </StackPanel>
               <Button x:Name="LoadRunReportButton" Grid.Column="1" Classes="semanticAction secondary reportLoad" Width="172" Height="52"
                   VerticalAlignment="Center" Click="LoadReportButton_OnClick"
@@ -84,18 +84,18 @@
                 <StackPanel Orientation="Horizontal" Spacing="10">
                   <Path Width="18" Height="18" Data="M9 12V1 M4 6L9 1L14 6 M1 12V17H17V12"
                       Stroke="{DynamicResource NfcTextStrongBrush}" StrokeThickness="1.5" />
-                  <TextBlock VerticalAlignment="Center" FontSize="14" Text="{Binding Text.LoadRunReportLabel}" />
+                  <TextBlock VerticalAlignment="Center" FontSize="{DynamicResource NfcFontSize14}" Text="{Binding Text.LoadRunReportLabel}" />
                 </StackPanel>
               </Button>
             </Grid>
             <views:RunReportsTable x:Name="RunReportsList" Grid.Row="1" DataContext="{Binding Reports}" />
-            <Grid Grid.Row="2" ColumnDefinitions="*,*" ColumnSpacing="12">
-              <TextBlock Classes="captionText" FontSize="14" TextWrapping="Wrap">
+            <Grid Grid.Row="2" ColumnDefinitions="*,*" ColumnSpacing="{DynamicResource NfcSpace12}">
+              <TextBlock Classes="captionText" FontSize="{DynamicResource NfcFontSize14}" TextWrapping="Wrap">
                 <TextBlock.Text><MultiBinding StringFormat="{}{0} · {1}">
                   <Binding Path="Reports.RunReportSummary" /><Binding Path="Reports.ReportHistoryStorageSummary" />
                 </MultiBinding></TextBlock.Text>
               </TextBlock>
-              <TextBlock Grid.Column="1" HorizontalAlignment="Right" Classes="captionText" FontSize="14" Text="{Binding Text.RunReportsSelectHint}" TextWrapping="Wrap" />
+              <TextBlock Grid.Column="1" HorizontalAlignment="Right" Classes="captionText" FontSize="{DynamicResource NfcFontSize14}" Text="{Binding Text.RunReportsSelectHint}" TextWrapping="Wrap" />
             </Grid>
           </Grid>
 

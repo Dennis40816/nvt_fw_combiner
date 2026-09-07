@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Xml.Linq;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
@@ -425,10 +426,12 @@ public sealed partial class XamlControlStyleContractTests
             "MaxHeight=\"320\"",
             ExtractDataTemplate(sharedTemplates, "MergeOutputLayoutPanelTemplate"),
             StringComparison.Ordinal);
-        Assert.Contains(
-            "<Expander Classes=\"inlineDisclosure\"",
-            ExtractDataTemplate(sharedTemplates, "FirmwareSlotGroupTemplate"),
-            StringComparison.Ordinal);
+        XElement slotGroupTemplate = Assert.Single(XDocument.Parse(sharedTemplates).Descendants(),
+            element => element.Name.LocalName == "DataTemplate" &&
+                element.Attributes().Any(attribute => attribute.Name.LocalName == "Key" && attribute.Value == "FirmwareSlotGroupTemplate"));
+        _ = Assert.Single(slotGroupTemplate.Descendants(),
+            element => element.Name.LocalName == "Expander" &&
+                ((string?)element.Attribute("Classes"))?.Split(' ').Contains("inlineDisclosure", StringComparer.Ordinal) == true);
         string replacePanelTemplate =
             ExtractDataTemplate(workflowTemplates, "ReplaceOutputLayoutPanelTemplate");
         Assert.Contains("Classes=\"inlineDisclosure\"", replacePanelTemplate, StringComparison.Ordinal);

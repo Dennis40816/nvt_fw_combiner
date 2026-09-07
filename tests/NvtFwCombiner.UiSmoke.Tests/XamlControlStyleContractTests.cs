@@ -4,6 +4,7 @@ using Avalonia;
 using Avalonia.Automation.Provider;
 using Avalonia.Controls;
 using Avalonia.Controls.Automation.Peers;
+using Avalonia.Headless.XUnit;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.LogicalTree;
@@ -94,7 +95,6 @@ public sealed partial class XamlControlStyleContractTests
         string styles = ReadPresentationFile("Styles/MainWindowControlStyles.axaml");
         string mappingRow = ReadPresentationFile("Views/GeneralMappingRow.axaml");
         string sharedTemplates = ReadPresentationFile("Resources/MainWindowSharedTemplates.axaml");
-        string reportHistoryTemplates = ReadPresentationFile("Resources/MainWindowReportHistoryTemplates.axaml");
 
         _ = ExtractStyle(styles, "Border.fileDropZone");
         Assert.Contains("Classes=\"subtleSurface\"", mappingRow, StringComparison.Ordinal);
@@ -110,7 +110,6 @@ public sealed partial class XamlControlStyleContractTests
         Assert.Contains("AutomationProperties.Name=\"{Binding RemoveMappingTooltip, ElementName=Root}\"", mappingRow, StringComparison.Ordinal);
         Assert.DoesNotContain("Background=\"#F8FAFC\"", mappingRow, StringComparison.Ordinal);
         Assert.Contains("Classes=\"surface\"", sharedTemplates, StringComparison.Ordinal);
-        Assert.Contains("Classes=\"compactSurface\"", reportHistoryTemplates, StringComparison.Ordinal);
     }
 
     /// <summary>Ensures application resources expose the shared control style library to all views.</summary>
@@ -133,13 +132,19 @@ public sealed partial class XamlControlStyleContractTests
         Assert.Contains("Classes=\"fileRevealAction\"", slotCard, StringComparison.Ordinal);
         Assert.Contains("Command=\"{ReflectionBinding $parent[Window].DataContext.RevealFileCommand}\"", slotCard, StringComparison.Ordinal);
         Assert.Contains("Text=\"{Binding DisplayNameWithSelectionContext}\"", slotCard, StringComparison.Ordinal);
-        Assert.Contains("TextTrimming=\"CharacterEllipsis\"", slotCard, StringComparison.Ordinal);
+        XElement filename = Assert.Single(XDocument.Parse(slotCard).Descendants(),
+            element => element.Name.LocalName == "TextBlock" &&
+                (string?)element.Attribute("Text") == "{Binding DisplayNameWithSelectionContext}");
+        Assert.Equal("Wrap", (string?)filename.Attribute("TextWrapping"));
+        Assert.Null(filename.Attribute("TextTrimming"));
+        Assert.Equal("{Binding DisplayDetail}", (string?)filename.Parent!.Attributes()
+            .Single(attribute => attribute.Name.LocalName == "ToolTip.Tip").Value);
         Assert.Contains("IsVisible=\"{Binding HasFile}\"", slotCard, StringComparison.Ordinal);
         Assert.Contains("CommandParameter=\"{Binding FilePath}\"", slotCard, StringComparison.Ordinal);
     }
 
     /// <summary>The full-path hover card stays offset from the filename and leaves its routed click intact.</summary>
-    [Fact]
+    [AvaloniaFact]
     public void FileRevealHoverCardShowsTheAbsolutePathWithoutCompetingForThePointer()
     {
         const string selectedPath = @"C:\firmware\selected source.bin";

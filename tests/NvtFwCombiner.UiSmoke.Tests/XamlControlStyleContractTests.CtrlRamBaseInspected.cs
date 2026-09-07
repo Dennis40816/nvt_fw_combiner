@@ -13,7 +13,7 @@ namespace NvtFwCombiner.UiSmoke.Tests;
 
 public sealed partial class XamlControlStyleContractTests
 {
-    /// <summary>The approved Base-inspected badge uses the blue non-terminal state without moving the card.</summary>
+    /// <summary>The inspected color style preserves geometry for identical content; labels may wrap normally.</summary>
     [AvaloniaTheory]
     [InlineData(false)]
     [InlineData(true)]
@@ -62,6 +62,23 @@ public sealed partial class XamlControlStyleContractTests
             ToggleButton state = Assert.Single(
                 card.GetVisualDescendants().OfType<ToggleButton>(),
                 candidate => candidate.Classes.Contains("slotStateAction"));
+            Assert.Contains("inspected", state.Classes);
+            // Keep the exact label/facts and isolate the inspected color-class effect.
+            // Comparing Checking with Base inspected would prohibit approved content wrapping.
+            Assert.True(state.Classes.Remove("inspected"));
+            Dispatcher.UIThread.RunJobs();
+            host.Measure(new Size(940, 150));
+            host.Arrange(new Rect(0, 0, 940, 150));
+            AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+            Rect selectorWithoutInspectedStyle = selector.Bounds;
+            Rect browseWithoutInspectedStyle = browse.Bounds;
+            Thickness paddingWithoutInspectedStyle = state.Padding;
+            Assert.True(selectorWithoutInspectedStyle.Height > 0);
+            state.Classes.Add("inspected");
+            Dispatcher.UIThread.RunJobs();
+            host.Measure(new Size(940, 150));
+            host.Arrange(new Rect(0, 0, 940, 150));
+            AvaloniaHeadlessPlatform.ForceRenderTimerTick();
             string styles = ReadPresentationFile("Styles/FirmwareSlotExperienceStyles.axaml");
             string inspected = ExtractStyle(styles, "ToggleButton.slotStateAction.inspected");
             string inspectedPresenter = ExtractStyle(
@@ -71,7 +88,9 @@ public sealed partial class XamlControlStyleContractTests
             Assert.Equal(FirmwareSlotSemanticState.Inspected, slot.SemanticState);
             Assert.Equal("Base inspected", slot.SemanticStateLabel);
             Assert.Contains("inspected", state.Classes);
-            Assert.Equal(108, selector.Bounds.Height, precision: 3);
+            Assert.Equal(selectorWithoutInspectedStyle, selector.Bounds);
+            Assert.Equal(browseWithoutInspectedStyle, browse.Bounds);
+            Assert.Equal(paddingWithoutInspectedStyle, state.Padding);
             Assert.Equal(36, browse.Bounds.Height, precision: 3);
             Assert.Contains("NfcAccentSurfaceBrush", inspected, StringComparison.Ordinal);
             Assert.Contains("NfcAccentStrongBrush", inspected, StringComparison.Ordinal);

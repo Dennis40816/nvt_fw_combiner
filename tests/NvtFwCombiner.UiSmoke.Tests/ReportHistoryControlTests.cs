@@ -92,7 +92,25 @@ public sealed class ReportHistoryControlTests
             Assert.InRange(Math.Abs(trashCenter.Y - (card.Bounds.Height / 2)), 0, 0.5);
             TextBlock issueSummary = Assert.Single(card.GetVisualDescendants().OfType<TextBlock>(), text => text.Text == removed.Issues);
             Point issueCenter = issueSummary.TranslatePoint(new Point(0, issueSummary.Bounds.Height / 2), card)!.Value;
-            Assert.InRange(Math.Abs(issueCenter.Y - trashCenter.Y), 0, 0.5);
+            string? outputDirectory = Environment.GetEnvironmentVariable("NFC_VISUAL_OUTPUT_DIR");
+            if (!string.IsNullOrWhiteSpace(outputDirectory))
+            {
+                _ = Directory.CreateDirectory(outputDirectory);
+                AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+                using Avalonia.Media.Imaging.Bitmap? frame = window.GetLastRenderedFrame();
+                Assert.NotNull(frame);
+                frame.Save(Path.Combine(outputDirectory, $"history-row-{width}-{dark}-{chinese}.png"));
+            }
+            Grid rowContent = Assert.IsType<Grid>(card.Content);
+            Assert.True(Math.Abs(issueCenter.Y - trashCenter.Y) <= 0.5,
+                $"History issue/trash center mismatch: chinese={chinese}, dark={dark}, width={width}; " +
+                $"issueCenter={issueCenter.Y}, trashCenter={trashCenter.Y}; " +
+                $"issueBounds={issueSummary.Bounds}, issueDesired={issueSummary.DesiredSize}, " +
+                $"textLayoutHeight={issueSummary.TextLayout.Height}, font={issueSummary.FontFamily}, " +
+                $"fontSize={issueSummary.FontSize}, weight={issueSummary.FontWeight}, " +
+                $"layoutRounding={issueSummary.UseLayoutRounding}, scale={window.RenderScaling}; " +
+                $"trashBounds={trash.Bounds}, rowBounds={card.Bounds}, contentBounds={rowContent.Bounds}, " +
+                $"contentOrigin={rowContent.TranslatePoint(default, card)}, verticalContent={card.VerticalContentAlignment}.");
             Assert.Equal("\uE74D", Assert.IsType<TextBlock>(trash.Content).Text);
             string name = Assert.IsType<string>(AutomationProperties.GetName(trash));
             Assert.Contains(chinese ? "刪除" : "Delete", name, StringComparison.Ordinal);

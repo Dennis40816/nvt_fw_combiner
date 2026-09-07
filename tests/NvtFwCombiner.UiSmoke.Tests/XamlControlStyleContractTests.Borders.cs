@@ -11,7 +11,7 @@ namespace NvtFwCombiner.UiSmoke.Tests;
 
 public sealed partial class XamlControlStyleContractTests
 {
-    /// <summary>Full-perimeter outlines use the owner-approved two-pixel treatment without thickening dividers.</summary>
+    /// <summary>Keep two-pixel defaults and only the approved compact Report/issue-card one-pixel outlines.</summary>
     [Fact]
     public void FullPerimeterThinOutlinesUseTwoPixels()
     {
@@ -27,7 +27,24 @@ public sealed partial class XamlControlStyleContractTests
                      (string?)element.Attribute("Value") == "1")),
         ];
 
-        Assert.Empty(onePixelOutlines);
+        // v1.1.4 Report/issue-card references approve thin compact outlines;
+        // do not exempt whole files or all future one-pixel borders.
+        XNamespace xaml = "http://schemas.microsoft.com/winfx/2006/xaml";
+        XElement[] approvedOutlines =
+        [
+            ApprovedOutline("Resources/MainWindowReportTemplates.axaml", "Setter", "Selector", "Label.reportBadge"),
+            ApprovedOutline("Resources/MainWindowReportPanels.axaml", "Border", "IsVisible", "{Binding LoadedReport.HasPrimaryIssue}"),
+            ApprovedOutline("Resources/MainWindowReportHistoryTemplates.axaml", "Border", "Classes", "reportResult"),
+            ApprovedOutline("Resources/MainWindowReportAuditTemplates.axaml", "Button", xaml + "Name", "RawReportCopyButton"),
+            ApprovedOutline("Views/FirmwareSlotCard.axaml", "Border", "IsVisible", "{Binding !HasIssueCard}"),
+            ApprovedOutline("Views/RunReportsTable.axaml", "Border", xaml + "Name", "RunReportsTableSurface"),
+            ApprovedOutline("Views/IssueDetailsCard.axaml", "Setter", "Selector", "Border.icDetailCard"),
+            ApprovedOutline("Views/IssueDetailsCard.axaml", "Setter", "Selector", "Border.icDetailHeroIcon"),
+            ApprovedOutline("Views/IssueDetailsCard.axaml", "Label", "Classes", "compactBadge neutralBadge"),
+        ];
+        Assert.Equal(
+            approvedOutlines.Select(static outline => outline.ToString()).Order(StringComparer.Ordinal),
+            onePixelOutlines.Select(static outline => outline.ToString()).Order(StringComparer.Ordinal));
 
         string buttonStyles = ReadPresentationFile("Styles/MainWindowButtonStyles.axaml");
         XElement semanticActionStyle = Assert.Single(
@@ -41,6 +58,18 @@ public sealed partial class XamlControlStyleContractTests
                 (string?)element.Attribute("Property") == "BorderThickness" &&
                 (string?)element.Attribute("Value") == "2");
         Assert.Contains("BorderThickness=\"0,1,0,0\"", string.Concat(ReadPresentationXamlFiles()), StringComparison.Ordinal);
+    }
+
+    private static XElement ApprovedOutline(string path, string kind, XName attribute, string value)
+    {
+        return Assert.Single(XDocument.Parse(ReadPresentationFile(path)).Descendants(), element =>
+            element.Name.LocalName == kind &&
+            (kind == "Setter"
+                ? (string?)element.Attribute("Property") == "BorderThickness" &&
+                  (string?)element.Attribute("Value") == "1" &&
+                  (string?)element.Parent?.Attribute(attribute) == value
+                : (string?)element.Attribute("BorderThickness") == "1" &&
+                  (string?)element.Attribute(attribute) == value));
     }
 
     /// <summary>Every shared dropdown keeps a stable two-pixel outline before and during keyboard focus.</summary>

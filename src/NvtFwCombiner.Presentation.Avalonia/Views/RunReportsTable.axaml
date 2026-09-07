@@ -8,7 +8,7 @@
     </ResourceDictionary.MergedDictionaries></ResourceDictionary>
   </UserControl.Resources>
   <UserControl.Styles>
-    <Style Selector="views|ReportTableText"><Setter Property="FontSize" Value="14" /></Style>
+    <Style Selector="views|ReportTableText"><Setter Property="FontSize" Value="{DynamicResource NfcFontSize14}" /></Style>
     <Style Selector="Grid#ReportColumnHeaders views|ReportTableText"><Setter Property="FontWeight" Value="ExtraBold" /></Style>
     <Style Selector="Button.reportListRow /template/ ContentPresenter#PART_ContentPresenter">
       <Setter Property="BorderThickness" Value="0" />
@@ -27,7 +27,7 @@
     <Style Selector="Border.reportResult.error views|ReportTableText"><Setter Property="Foreground" Value="{DynamicResource NfcDangerTextBrush}" /></Style>
   </UserControl.Styles>
   <Border x:Name="RunReportsTableSurface" MaxWidth="1152" HorizontalAlignment="Stretch" VerticalAlignment="Top"
-      BorderBrush="{DynamicResource NfcBorderMutedBrush}" BorderThickness="1" CornerRadius="6" ClipToBounds="True">
+      BorderBrush="{DynamicResource NfcBorderMutedBrush}" BorderThickness="1" CornerRadius="{DynamicResource NfcCompactCornerRadius}" ClipToBounds="True">
     <Grid RowDefinitions="52,Auto">
       <Border Background="{DynamicResource NfcSurfaceSubtleBrush}" BorderBrush="{DynamicResource NfcBorderMutedBrush}" BorderThickness="0,0,0,1">
         <Grid x:Name="ReportColumnHeaders" ColumnDefinitions="1.15*,1*,1.3*,1.3*,0.75*,190">

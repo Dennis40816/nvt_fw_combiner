@@ -513,7 +513,18 @@ public sealed partial class XamlControlStyleContractTests
         Assert.Equal("Load a report", english.LoadJsonTooltip);
         Assert.Equal("載入報告", traditionalChinese.LoadJsonLabel);
         Assert.Equal("載入報告", traditionalChinese.LoadJsonTooltip);
-        Assert.Contains("Text=\"{Binding Text.LoadJsonLabel}\"", shell, StringComparison.Ordinal);
-        Assert.Contains("ToolTip.Tip=\"{Binding Text.LoadJsonTooltip}\"", shell, StringComparison.Ordinal);
+        Assert.Equal("Load Report", english.LoadRunReportLabel);
+        Assert.Equal("載入報告", traditionalChinese.LoadRunReportLabel);
+        Assert.DoesNotContain(XDocument.Parse(shell).Descendants(), element =>
+            element.Name.LocalName == "Button" &&
+            (string?)element.Attribute("Click") == "LoadReportJsonButton_OnClick");
+        Assert.DoesNotContain("Text=\"{Binding Text.LoadJsonLabel}\"", shell, StringComparison.Ordinal);
+        XElement loader = Assert.Single(XDocument.Parse(ReadPresentationFile("Views/MessageCenterModal.axaml")).Descendants(),
+            element => element.Name.LocalName == "Button" &&
+                (string?)element.Attribute("Click") == "LoadReportButton_OnClick");
+        Assert.Equal("{Binding Text.LoadJsonTooltip}", (string?)loader.Attribute("ToolTip.Tip"));
+        Assert.Equal("{Binding Text.LoadRunReportLabel}", (string?)loader.Attribute("AutomationProperties.Name"));
+        _ = Assert.Single(loader.Descendants(), element => element.Name.LocalName == "TextBlock" &&
+            (string?)element.Attribute("Text") == "{Binding Text.LoadRunReportLabel}");
     }
 }
