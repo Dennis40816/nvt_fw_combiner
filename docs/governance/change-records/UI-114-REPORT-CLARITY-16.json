@@ -5,7 +5,7 @@
   "integrationBase": "dd299381b7cb516c29380eaa0ff681b2e33dc028",
   "risk": "R2",
   "kind": "governance",
-  "state": "design-active",
+  "state": "final-complete",
   "mutablePaths": [
     "src/NvtFwCombiner.Presentation.Avalonia/Resources/MainWindowReportChangeTemplates.axaml",
     "src/NvtFwCombiner.Presentation.Avalonia/Resources/MainWindowReportPanels.axaml",
@@ -31,12 +31,12 @@
     "outcome": "approved",
     "evidence": "Independent read-only review of base dd299381 approved the bounded design with no P0-P3 findings. It required shared address/gutter geometry, IsAccepted-derived complete range verdicts, one real keyboard-accessible return button, retained half-open ranges/virtualization/raw evidence, and no firmware or report-contract change."
   },
-  "implementationHead": null,
-  "reviewedHead": null,
-  "pathStateDigest": null,
+  "implementationHead": "54db97a1af38f6750c6e5b13f3c18abc3f79f986",
+  "reviewedHead": "54db97a1af38f6750c6e5b13f3c18abc3f79f986",
+  "pathStateDigest": "449028d027907a01572738dbbc6ae3116b3b74182aa29cbd8d034720221abd59",
   "finalReview": {
-    "reviewer": null,
-    "outcome": "pending",
-    "evidence": ""
+    "reviewer": "ui_presentation_review",
+    "outcome": "approved",
+    "evidence": "Independent read-only R2 review of fixed diff dd299381b7cb516c29380eaa0ff681b2e33dc028..54db97a1af38f6750c6e5b13f3c18abc3f79f986 covered all 15 changed files and found no P0-P3 findings or unstaged dependencies. It confirmed IsAccepted-only verdict projection; preserved half-open ranges, raw order, virtualization, selection, replay, report JSON and firmware/output bytes; shared x=12 address text, x=2 width=3 Original rail and measured 8px label-to-byte gap; and one localized real Button while history state, template and shortcut remain. The reviewer directly inspected the 1440x900 English Light and Chinese Dark complete renders. Primary-observed scoped evidence: layout 4/4, presentation 11/11, Report Hex Diff 9/9, architecture 1/1, code-size 19/19 and validate_repository passed with existing aggregate warnings. Exact accounting is 138574 production / 35678 allowance with runtime 99170 unchanged. No full-suite, release, native-DPI, High Contrast or screen-reader claim."
   }
 }
