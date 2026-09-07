@@ -345,3 +345,56 @@ The earlier immutable UI final record's structure-only success sentence is not
 relied on. The reproducible focused policy test failed 1/19 solely because its
 full-production threshold was stale at 136,389; this amendment closes that
 accounting mismatch without rewriting the immutable record.
+
+## 2026-09-07 existing v1.1.4 UI batch accounting
+
+The owner explicitly approves a one-time exact allowance for the necessary
+reviewed growth of the existing UI batch, after removing proven unused code.
+This does not authorize Dummy DP or waive functional tests, Golden execution,
+visual acceptance, firmware safety, or the final capability lifecycle.
+
+Independent runtime and Presentation reviews of `fffc4bac..9513b27d` covered
+all 20 changed Application/Infrastructure files and all 67 changed Presentation
+files. The old two-card Message Center commands have no production consumers
+after the approved direct Run reports list; removing their construction,
+properties, notifications and handlers saves 26 nonblank lines without changing
+the existing report/history owners or current navigation. The separate legacy
+report-label projections still exercised by tests are not deleted here.
+
+The canonical measurement after that deletion is:
+
+| Metric | Previous exact ceiling | New exact ceiling | Necessary net growth |
+| --- | ---: | ---: | ---: |
+| Full production | 136,413 | 137,984 | 1,571 |
+| Runtime | 98,559 | 98,890 | 331 |
+| Domain + Profiles | 20,632 | 20,632 | 0 |
+| Application | 42,205 | 42,522 | 317 |
+| Bootstrap / CLI / Desktop / Launcher | 5,039 | 5,039 | 0 |
+| Infrastructure / Contracts / worker / Platform | 30,683 | 30,697 | 14 |
+
+The remaining 1,240 full-production lines are Presentation. Runtime growth
+extends the existing typed diagnostic-evidence, ordered Build-blocker,
+effective output-name and inspection-provenance owners; Presentation provides
+the shared issue cards/history table, safe confirmations, clipboard handling
+and approved authoring/display corrections. No second byte executor is added.
+
+Keep all frozen base ratchets unchanged. Exact allowances become 35,088 full,
+28,834 runtime, 11,832 Application and 15,341 Infrastructure/Contracts/worker;
+Domain/Profiles stays 5 and Bootstrap/CLI/Desktop/Launcher stays 1,661. These
+allowances are non-transferable, not headroom for later work. Further genuine
+reductions lower the matching ceiling. Preserve the measuring algorithm,
+exclusions, four-slice sum, duplicate checks, default 2,500-line partial limit
+and existing named aggregate warnings; this amendment does not clear them.
+
+The fresh pre-cleanup UI run on `9513b27d` executed 1,008 cases: 990 passed,
+18 failed, zero skipped. Semantic review and this accounting decision do not
+override those failures or certify complete visual acceptance. The current
+batch remains non-mergeable until its applicable checks and final reviews are
+actually complete. Exact-baseline tests must follow the measured ledger while
+synthetic growth, reduction and slice-allocation regressions remain unchanged.
+
+Accounting verification: all 19 focused code-size tests pass (30.624 s).
+The subsequent structure lane completes in 157.6 s with no code-size error;
+it still fails on the 12 committed-active UI records. Existing aggregate
+warnings remain visible. Independent scoped accounting review found no
+finding; neither that review nor these results finalize the UI batch.
