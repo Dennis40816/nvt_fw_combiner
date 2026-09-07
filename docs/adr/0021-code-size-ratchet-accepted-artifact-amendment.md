@@ -431,3 +431,19 @@ tests are unchanged. This approval concerns accounting only; it does not grant
 firmware support promotion, alter Golden expectations, waive final verification
 or complete the capability-record lifecycle. Independent accounting verification
 and fixed-head integration evidence remain required.
+
+## 2026-09-07 v1.1.4 Report Changes presentation accounting
+
+The owner-approved Report Changes correction adds exactly 34 necessary
+full-production nonblank lines after independent R2 design review. The ceiling
+moves from 138,542 to 138,576 and its exact allowance from 35,646 to 35,680
+against the unchanged 102,896 ratchet. Runtime remains 99,170; every runtime
+slice and allowance remains unchanged. The growth is confined to the existing
+Presentation owners for the non-overlay range scrollbar, dedicated Light/Dark
+Original colors, accessible range naming, and measured localized address
+gutter. There is no transferable headroom.
+
+The measuring algorithm, exclusions, partial-type limits, duplicate checks,
+synthetic growth/reduction tests, firmware/report semantics and all verification
+or release gates remain unchanged. This ledger records only exact source-size
+accounting for `UI-114-REPORT-CHANGES-15`.

@@ -58,6 +58,7 @@ public sealed partial class XamlControlStyleContractTests
         string historyFeedback = ReadPresentationFile("Views/HexViewportControl.HistoryFeedback.cs");
         string renderingSupport = ReadPresentationFile("Views/HexViewportControl.RenderingSupport.cs");
         string sharedStyles = ReadPresentationFile("Styles/MainWindowStyles.axaml");
+        string themeTokens = ReadPresentationFile("Styles/ThemeTokens.axaml");
 
         Assert.Contains("Gesture=\"Ctrl+S\"", shell, StringComparison.Ordinal);
         Assert.Contains("RequestHexEditorSaveCommand", shell, StringComparison.Ordinal);
@@ -78,6 +79,16 @@ public sealed partial class XamlControlStyleContractTests
         Assert.Contains("DrawAsciiStructuralBlocks", viewport, StringComparison.Ordinal);
         Assert.DoesNotContain("IBrush StructuralBrush =", viewport, StringComparison.Ordinal);
         Assert.Contains("$\"0x{address:X6}  {ComparisonRowLabel}\"", renderingSupport, StringComparison.Ordinal);
+        Assert.Contains("NfcHexOriginalRowSurfaceBrush", viewportTheme, StringComparison.Ordinal);
+        Assert.Contains("NfcHexOriginalChangedSurfaceBrush", viewportTheme, StringComparison.Ordinal);
+        Assert.Contains("NfcHexOriginalChangedBorderBrush", viewportTheme, StringComparison.Ordinal);
+        Assert.Contains("NfcHexOriginalTextBrush", viewportTheme, StringComparison.Ordinal);
+        Assert.Contains("NfcHexOriginalMarkerBrush", viewportTheme, StringComparison.Ordinal);
+        Assert.Equal(2, themeTokens.Split("x:Key=\"NfcHexOriginalRowSurfaceBrush\"", StringSplitOptions.None).Length - 1);
+        Assert.Equal(2, themeTokens.Split("x:Key=\"NfcHexOriginalChangedSurfaceBrush\"", StringSplitOptions.None).Length - 1);
+        Assert.Equal(2, themeTokens.Split("x:Key=\"NfcHexOriginalChangedBorderBrush\"", StringSplitOptions.None).Length - 1);
+        Assert.Equal(2, themeTokens.Split("x:Key=\"NfcHexOriginalTextBrush\"", StringSplitOptions.None).Length - 1);
+        Assert.Equal(2, themeTokens.Split("x:Key=\"NfcHexOriginalMarkerBrush\"", StringSplitOptions.None).Length - 1);
         Assert.Contains("DecorationVersion", historyFeedback, StringComparison.Ordinal);
         Assert.Contains("DispatcherTimer", historyFeedback, StringComparison.Ordinal);
         Assert.Contains("DrawHistoryFeedback", historyFeedback, StringComparison.Ordinal);

@@ -1,0 +1,43 @@
+{
+  "schemaVersion": 2,
+  "taskId": "UI-114-REPORT-CHANGES-15",
+  "capability": "Restore the existing Report Changes navigator gutter and readable Original byte comparison presentation with exact source-size accounting",
+  "integrationBase": "6a261aea4810039194d0f9df142d43997540f52f",
+  "risk": "R2",
+  "kind": "governance",
+  "state": "design-active",
+  "mutablePaths": [
+    "src/NvtFwCombiner.Presentation.Avalonia/Resources/MainWindowReportAuditTemplates.axaml",
+    "src/NvtFwCombiner.Presentation.Avalonia/Resources/MainWindowReportChangeTemplates.axaml",
+    "src/NvtFwCombiner.Presentation.Avalonia/Styles/MainWindowStyles.axaml",
+    "src/NvtFwCombiner.Presentation.Avalonia/Styles/ThemeTokens.axaml",
+    "src/NvtFwCombiner.Presentation.Avalonia/Views/HexViewportControl.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/Views/HexViewportControl.Theme.cs",
+    "docs/adr/0021-code-size-ratchet-accepted-artifact-amendment.md",
+    "scripts/code_size_policy.py"
+  ],
+  "implementationOwner": "primary-agent",
+  "searchEvidence": [
+    "docs/ui/v1.1.x-report-changes-compare-handoff.md and docs/architecture/nfc_roadmap.md item 12 allocate the v1.1.4 scrollbar gutter, independent Original colors, and localized address-label correction while preserving raw range evidence and firmware semantics.",
+    "Rendered English Light reproduction at 1440x900 showed the internal ListBox ScrollViewer retained AllowAutoHide=true and overlaid the range cards. MainWindowStyles.axaml already owns the non-overlay contentScrollSurface scrollbar treatment; extend that same owner to reportHexDiffRanges without nesting another ScrollViewer or replacing VirtualizingStackPanel.",
+    "HexViewportControl uses one fixed 112px address gutter for current and comparison rows. Measured production technical-font tests showed the English 0x12345678 original label ended at x=156.34 while the first byte began at x=116. Extend the shared viewport renderer to measure the complete visible localized label and keep current/Original byte and ASCII columns aligned.",
+    "Commit 5c0ce710 replaced the prior dedicated pale-pink Original rendering with controller/reference-input purple resources. Restore dedicated Light values and contrast-safe Dark values in the existing ThemeTokens owner; do not repurpose input-role tokens or change data classification.",
+    "Canonical measurement of the complete staged UI candidate is 138576 full-production nonblank lines, exactly +34 from the owner-approved 138542 ceiling; runtime remains 99170 and all four runtime slices remain unchanged. Independent R2 review found the growth necessary for accessibility, five theme roles in both themes, measured rendering and regression coverage, with no safe equivalent deletion or line packing."
+  ],
+  "semanticOwner": "Existing Report Changes XAML templates, shared MainWindow scrollbar styles, ThemeTokens, and HexViewportControl renderer",
+  "terminalContract": "Use the owner-approved English Light Report Changes state as the fidelity baseline. The Changed ranges ListBox retains one VirtualizingStackPanel and its existing raw range order, selection, Why, Result, replay, keyboard and accessibility behavior; its existing internal ScrollViewer reserves a 14px non-auto-hiding vertical gutter and cards retain at least 4px clearance. Original comparison rows use dedicated Light pale-pink/red roles and distinct contrast-safe Dark roles. The address gutter measures the full visible address plus localized Original label with at least 8px before the first byte, including addresses wider than six hex digits; current and Original hex/ASCII columns remain aligned. Preserve report JSON, hashes, classifications, output bytes, profiles and firmware semantics. Physical-section grouping remains a separately assessed presentation item. Record only the exact full-production ceiling 138576 and allowance 35680 against frozen ratchet 102896; runtime ceilings, algorithms, exclusions, synthetic tests and all other gates remain unchanged with no transferable headroom.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "ui_presentation_review",
+    "outcome": "approved",
+    "evidence": "Independent read-only R2 design review of the staged candidate found no P0-P3 findings. It confirmed reuse of the existing internal ScrollViewer, ThemeTokens and shared renderer, no duplicate semantics or nested scrolling, and exact necessary full-production growth from 138542 to 138576 (+34) while runtime and all runtime slices remain unchanged."
+  },
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": {
+    "reviewer": null,
+    "outcome": "pending",
+    "evidence": ""
+  }
+}

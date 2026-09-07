@@ -177,6 +177,7 @@
                   <ListBox
                       Grid.Row="1"
                       Classes="reportHexDiffRanges"
+                      AutomationProperties.Name="{Binding Text.HexDiffRangeNavigatorTitle}"
                       ItemsSource="{Binding LoadedReport.HexDiff.Ranges}"
                       SelectedItem="{Binding LoadedReport.HexDiff.SelectedRange, Mode=TwoWay}"
                       SelectionMode="Single">
