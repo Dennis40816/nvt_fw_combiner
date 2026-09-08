@@ -195,6 +195,35 @@ theme name with Light/Dark fallback cannot close these gaps. Use an explicitly
 arranged native 125%/High Contrast test session for that acceptance; this
 assessment neither adds a theme nor waives the existing visual contract.
 
+## Current Home and Settings inventory — 2026-09-08
+
+`ShellScreenInventoryTests` renders the real MainWindow over isolated preference
+and history files with production capability policy (no retained DP Replace
+regression override). It checks Home/Settings navigation isolation, bounded
+modal placement, actual Light/Dark theme and 100% scale at 1440x900. The primary
+inspected all eight English full-shell captures. Existing compact Preferences
+tests supply two zh-TW template captures at 980x640; their isolated host does
+not certify full-shell theme-choice synchronization.
+
+After the standard external test-area environment initialization:
+
+```text
+dotnet test tests/NvtFwCombiner.UiSmoke.Tests --no-restore --filter "FullyQualifiedName~ShellScreenInventoryTests|FullyQualifiedName~SettingsPreferencesFitsMinimumTraditionalChineseWindow|FullyQualifiedName~ReportImportOutcomeControlTests"
+```
+
+Result: **7/7 passed, zero skipped, 13 seconds test time** on production
+`c3c81ba2` plus only the inventory/test-host changes. This includes two new
+shell cases, one existing compact Preferences case (both themes internally),
+and four existing Report controls to check the shared host's unchanged default.
+TRX and PNG evidence is under
+`D:/NvtFwCombiner-TestArea/evidence/v114-shell-inventory/product-policy/`;
+set `NFC_VISUAL_OUTPUT_DIR` to an external evidence directory to reproduce.
+Earlier parent/verified-directory captures used the historical DP test policy
+or a theme assignment not synchronized with shell preferences; they are not
+the final inventory. No full-suite/native DPI/High Contrast claim is made.
+Findings and next actions belong to the
+[roadmap inventory](../docs/architecture/nfc_roadmap.md#current-home-and-settings-inventory-follow-up).
+
 ## Running and maintaining this view
 
 Use [`CONTRIBUTING.md`](../CONTRIBUTING.md) to initialize the existing fixed

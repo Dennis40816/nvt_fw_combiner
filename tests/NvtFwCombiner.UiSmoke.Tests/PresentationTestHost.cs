@@ -162,7 +162,7 @@ internal static class PresentationTestHost
             stableLauncherHandoff);
     }
 
-    private static PresentationHostServices CreateServices(
+    internal static PresentationHostServices CreateServices(
         string applicationVersion,
         Func<IGeneralAuthoring, IGeneralAuthoring> generalAuthoringDecorator,
         bool useRetainedDpReplacePolicy = true)

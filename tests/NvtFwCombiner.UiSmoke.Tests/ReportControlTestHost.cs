@@ -50,10 +50,12 @@ internal static class ReportControlTestHost
         await closed.Task.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
     }
 
-    internal static async Task<PresentationHostServices> CreateServicesAsync(TempWorkspace workspace)
+    internal static async Task<PresentationHostServices> CreateServicesAsync(
+        TempWorkspace workspace, bool useRetainedDpReplacePolicy = true)
     {
         PresentationHostServices services = await Task.Run(
-            () => PresentationTestHost.CreateServices("ui-smoke"), TestContext.Current.CancellationToken);
+            () => PresentationTestHost.CreateServices("ui-smoke", static authoring => authoring,
+                useRetainedDpReplacePolicy), TestContext.Current.CancellationToken);
         return new(services.Composition, services.FileReveal, services.SupportMatrix,
             services.SystemInformation, services.SystemDiagnosticsExporter, services.RawBinaryEditorFileSessions,
             services.CanonicalCatalogLoader, services.ExternalEnvironmentLoader,

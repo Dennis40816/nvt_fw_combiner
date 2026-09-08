@@ -487,14 +487,13 @@ item rather than force a decision.
 
 | Remaining order | Scope | Boundary |
 | --- | --- | --- |
-| 1 | Report import correction (7) | Owner accepted read-only `Unknown` on 2026-09-08. [Bounded implementation](../ui/v1.1.x-report-history-usability-handoff.md#incomplete-import-correction--2026-09-08) extends the existing Application JSON owner and normalizes Summary/History from raw evidence, retaining readable partial data and exact Raw. Local verification and fixed-head review are recorded in that handoff; no release claim. |
-| 2 | Native DPI/high-contrast acceptance | [Capability assessment complete](../../tests/README.md#v114-display-evidence-boundary--2026-09-08): current native display is 100%, High Contrast off; 20 scoped cases passed with explicit 100% headless scale evidence. Actual Windows 125%, custom-control High Contrast and screen-reader acceptance remain open. No theme/support promotion or OS preference change was made. |
-| 3 | Broad screen inventory and reprioritization (10) | [Initial evidence inventory below](#visual-inventory-checkpoint--2026-09-08) separates inspected surfaces from uncaptured states. Remaining whole-app/native coverage is open; do not restart completed metadata/list/source/card changes or mistake a token search for visual acceptance. |
-| 4 | Shared visual/theme corrections (11) | Change shared owners only after inventory identifies affected consumers and states; obtain approval for new visual designs. |
-| 5 | Report physical-section grouping (remaining 12) | Reuse existing typed groups only after the grouping interaction and historical replay-coverage boundary are accepted; do not invent bytes between raw runs. |
-| 6 | Memory Layout (14) | Retain typed section/address-space authority and review projection impact, including the residual generic Reserved-source wording. |
-| 7 | First-entry IC selection (16) | Resolve accepted-context lifetime, invalidation and Cancel/Back before cross-page behavior changes. |
-| 8 | Session diagnostics (15) | Retain privacy, lifecycle and separation from immutable run reports. |
+| 1 | Native DPI/high-contrast acceptance | [Capability assessment complete](../../tests/README.md#v114-display-evidence-boundary--2026-09-08): current native display is 100%, High Contrast off; 20 scoped cases passed with explicit 100% headless scale evidence. Actual Windows 125%, custom-control High Contrast and screen-reader acceptance remain open. No theme/support promotion or OS preference change was made. |
+| 2 | Broad screen inventory and reprioritization (10) | [Initial evidence inventory below](#visual-inventory-checkpoint--2026-09-08) separates inspected surfaces from uncaptured states. Remaining whole-app/native coverage is open; do not restart completed metadata/list/source/card changes or mistake a token search for visual acceptance. |
+| 3 | Shared visual/theme corrections (11) | Change shared owners only after inventory identifies affected consumers and states; obtain approval for new visual designs. |
+| 4 | Report physical-section grouping (remaining 12) | Reuse existing typed groups only after the grouping interaction and historical replay-coverage boundary are accepted; do not invent bytes between raw runs. |
+| 5 | Memory Layout (14) | Retain typed section/address-space authority and review projection impact, including the residual generic Reserved-source wording. |
+| 6 | First-entry IC selection (16) | Resolve accepted-context lifetime, invalidation and Cancel/Back before cross-page behavior changes. |
+| 7 | Session diagnostics (15) | Retain privacy, lifecycle and separation from immutable run reports. |
 
 Dummy DP's owner-accepted map-based evidence and write-range audit are recorded
 in the [Dummy DP handoff](../ui/v1.1.x-ab-dummy-dp-handoff.md); the NT51950/NT51951
@@ -505,6 +504,10 @@ was corrected at `1da0b11f` and its committed-head regressions passed; this does
 not constitute a complete verifier pass. Combined regression, packaged native
 UI observations and all required release Golden execution remain separate
 closure gates, not reasons to rerun a full release per internal commit.
+
+Report import correction is locally complete: implementation `e9b19cef`,
+review/evidence `c3c81ba2`; Report205/205, Application24/24, accounting19/19
+and repository validation passed. Do not reopen this as an admission decision.
 
 #### Visual inventory checkpoint — 2026-09-08
 
@@ -523,7 +526,7 @@ test evidence, not that label, identify the candidate.
 | Settings Version | [Approved reference and current full-page/compact evidence](../ui/v1.1.x-settings-version-handoff.md), plus scale-verified Light/Dark frames | Bounded layout/source/notes work complete; native file picker and OS accessibility observations remain separate. |
 | Report Changes | [Approved cards and four-combination rendered matrix](../ui/v1.1.x-report-changes-compare-handoff.md#complete-languagetheme-cross-product--2026-09-08) | EN/zh-TW × Light/Dark card-layout gap closed at `e77f7f89`. Physical-section grouping remains a distinct pending design/typed-projection item, not unfinished card styling. |
 
-Priority remains: resolve the confirmed import ambiguity first, then independent
+The import ambiguity is now closed locally. Priority continues with independent
 small reproduced presentation defects, followed by shared theme fixes after
 their affected consumers are captured. Physical grouping, Memory Layout,
 first-entry context and session diagnostics retain their existing decision
@@ -539,12 +542,37 @@ has a historical `0.10.7` title; current allocation is this `1.1.4` roadmap, not
 that stale title. Its original `v0.9.18` Dark reproduction was not recreated in
 this pass, and no GitHub issue was modified.
 
-Remaining inventory coverage includes Home/Inspector and the other Settings
-pages, menu/tooltip/overlay state matrices, representative checking/disabled
+Remaining inventory coverage includes Inspector entry reachability and the
+menu/tooltip/overlay state matrices, representative checking/disabled
 states, native 125%/High Contrast/screen-reader observations, and current
 candidate comparisons where only retained historical images exist. These are
 explicit unverified areas, not new blanket redesign tasks or evidence that
 already-reviewed functionality is broken.
+
+##### Current Home and Settings inventory follow-up
+
+On production source `c3c81ba2`, the primary inspected eight current real
+`MainWindow` headless renders: Home, Preferences, Overview and Support Matrix,
+each English Light/Dark at 1440x900 with asserted scale1 and actual theme.
+Two additional existing isolated Preferences renders cover zh-TW Light/Dark
+at 980x640; these prove template fit, not shell preference/theme synchronization.
+The reproducible command and evidence boundary are in
+[`tests/README.md`](../../tests/README.md#current-home-and-settings-inventory--2026-09-08).
+
+| Surface | Observed disposition / next bounded action |
+| --- | --- |
+| Home | Existing cards and Open pills remain aligned in both themes. Production policy hides DP Replace, but the Replace subtitle still says `DP, CtrlRAM, and Customized policies.` Prioritize a small scope-neutral subtitle correction; do not restore DP availability or redesign cards. |
+| Preferences | Theme/language/reduced-motion controls fit their existing rows; actual full-shell theme agrees with selection. Keep current geometry. |
+| Overview | Current-version/catalog/capability rows remain readable and bounded. No layout change justified by this inventory. |
+| Support Matrix | Headers, statuses and row meanings remain visible in both themes. Horizontal scrollbar and lower-row boundary remain a candidate for a focused interaction check, not proof of clipping or permission to change support facts. |
+| BIN Inspector | Production source search finds only the panel class/XAML and ViewModel definitions, not a constructor caller or host reference. Unit adapter evidence is not a reachable user-flow capture. Keep host/reachability unresolved; no component deletion or new host is authorized here. |
+
+This unit adds only a repeatable test/capture seam and records observations.
+The isolated test host can explicitly choose production capability policy;
+existing Report tests retain their default historical DP regression policy.
+Early captures using that historical policy and window-only theme assignment
+are retained as superseded test-fixture evidence, not current product screens.
+No product layout, firmware behavior, dependency or support claim changed.
 
 Step 3 local evidence over `e5202e2707d272076d24216222188d478314a07d`:
 `dotnet test --no-restore` UI filter `FullyQualifiedName~SlotLoading` passes
