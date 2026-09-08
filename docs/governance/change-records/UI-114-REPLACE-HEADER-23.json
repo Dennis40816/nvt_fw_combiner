@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 2,
+  "taskId": "UI-114-REPLACE-HEADER-23",
+  "capability": "Keep Replace title readable by stacking header controls at narrow content widths",
+  "integrationBase": "cb39dd0ad39648474af73c19e3a42ae29ea455d6",
+  "risk": "R1",
+  "kind": "ui",
+  "state": "design-active",
+  "mutablePaths": ["src/NvtFwCombiner.Presentation.Avalonia/MainWindow.axaml"],
+  "implementationOwner": "primary-agent",
+  "searchEvidence": ["CodeGraph ReplacePageHeader query followed by MainWindow.axaml:165-230 exact source; fixed 430px output panel leaves about 460px at 980px window, while Auto header actions consume title width.", "Existing responsive search finds FirmwareSlotCard local layout but no shared responsive header owner. Avalonia 12.0.5 exposes Container.Name, Container.Sizing and ContainerQuery. Reuse the current header and framework styles, not new events, VM branches or duplicate controls."],
+  "semanticOwner": "MainWindow Replace template owns geometry; existing Replace ViewModel owns commands, choices, status and metadata",
+  "terminalContract": "Owner approved narrow title on first row and Mode/Targets below on 2026-09-08. Preserve wide geometry, existing controls/bindings/styles, mode switching, selection, output layout and firmware semantics. Below 700px content width use two header rows; above preserve original geometry. Baseline D:/NvtFwCombiner-TestArea/evidence/v114-slot-filename/green-final: 980x640 and 1440x900 EN/zh Light/Dark. Add measured title/subtitle non-clipping, action containment/non-overlap and resize restoration tests on the real CtrlRAM page. Compare full frames; narrow tests only, no release/native certification.",
+  "disposition": "reuse",
+  "designReview": {"reviewer": null, "outcome": "not-required", "evidence": "R1 owner-approved responsive visual correction without new semantic authority."},
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": {"reviewer": null, "outcome": "pending", "evidence": ""}
+}

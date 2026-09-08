@@ -84,6 +84,30 @@ public sealed class CtrlRamSelectorLayoutTests
                 group.IsExpanded = true;
             }
             Render();
+            Grid pageHeader = Assert.Single(window.GetVisualDescendants().OfType<Grid>(), grid => grid.Name == "ReplacePageHeader");
+            TextBlock pageTitle = Assert.Single(pageHeader.GetVisualDescendants().OfType<TextBlock>(), text => text.Classes.Contains("pageTitle"));
+            TextBlock pageSubtitle = Assert.Single(pageHeader.GetVisualDescendants().OfType<TextBlock>(), text => text.Classes.Contains("pageSubtitle"));
+            ComboBox mode = Assert.Single(pageHeader.GetVisualDescendants().OfType<ComboBox>());
+            Button targets = Assert.Single(pageHeader.GetVisualDescendants().OfType<Button>(), button => button.Classes.Contains("summaryChip"));
+            Rect headerBounds = BoundsInWindow(pageHeader, window);
+            Rect titleBounds = BoundsInWindow(pageTitle, window);
+            Assert.InRange(pageTitle.TextLayout.WidthIncludingTrailingWhitespace, 1, titleBounds.Width + 0.5);
+            _ = Assert.Single(pageSubtitle.TextLayout.TextLines);
+            Assert.InRange(pageSubtitle.TextLayout.Height, 1, pageSubtitle.Bounds.Height + 0.5);
+            foreach (Control action in new Control[] { mode, targets })
+            {
+                Rect actionBounds = BoundsInWindow(action, window);
+                Assert.InRange(actionBounds.Left, headerBounds.Left, headerBounds.Right);
+                Assert.True(actionBounds.Right <= headerBounds.Right + 0.5);
+                if (width == 980)
+                {
+                    Assert.True(actionBounds.Top >= BoundsInWindow(pageSubtitle, window).Bottom + 12);
+                }
+                else
+                {
+                    Assert.True(actionBounds.Left >= titleBounds.Right);
+                }
+            }
             Dictionary<string, string?> selectedPaths = shell.Replace.ReplaceSlots.ToDictionary(slot => slot.SlotId, slot => slot.FilePath);
             FirmwareSlotCard baseCard = Assert.Single(window.GetVisualDescendants().OfType<FirmwareSlotCard>(),
                 c => ReferenceEquals(c.DataContext, shell.Replace.ReplaceBaseSlot));
@@ -190,6 +214,20 @@ public sealed class CtrlRamSelectorLayoutTests
                 Assert.Equal(groupBefore, group.Bounds);
             }
             Assert.Equal(selectedPaths, shell.Replace.ReplaceSlots.ToDictionary(slot => slot.SlotId, slot => slot.FilePath));
+            object? selectedMode = mode.SelectedItem;
+            foreach (int resizedWidth in new[] { width == 980 ? 1440 : 980, width })
+            {
+                window.Width = resizedWidth;
+                Render();
+                Rect resizedTitle = BoundsInWindow(pageTitle, window);
+                Rect resizedMode = BoundsInWindow(mode, window);
+                Assert.InRange(pageTitle.TextLayout.WidthIncludingTrailingWhitespace, 1, resizedTitle.Width + 0.5);
+                Assert.True(resizedWidth == 980
+                    ? resizedMode.Top >= BoundsInWindow(pageSubtitle, window).Bottom + 12
+                    : resizedMode.Left >= resizedTitle.Right);
+                Assert.Equal(selectedMode, mode.SelectedItem);
+                Assert.Equal(selectedPaths, shell.Replace.ReplaceSlots.ToDictionary(slot => slot.SlotId, slot => slot.FilePath));
+            }
         }
         finally
         {

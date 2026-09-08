@@ -515,3 +515,13 @@ the frozen ratchets remain 102,896 / 70,056 / 30,690. Other slices, measurement
 algorithms, exclusions, duplicate/partial checks and release/Golden gates
 remain unchanged. This increment has no transferable headroom; independent
 admission and fixed-head review are recorded in the batch capability record.
+
+## 2026-09-08 narrow Replace header presentation accounting
+
+`UI-114-REPLACE-HEADER-23` adds 19 nonblank AXAML lines for native container
+queries on the existing header. Full production is exactly 138,723 and its
+allowance is 35,827 against the unchanged 102,896 ratchet. Independent R2
+admission confirms runtime 99,231 and slices 20,757 / 42,708 / 5,039 / 30,727
+remain unchanged. This records only the approved responsive fix, with no
+transferable headroom or changes to measurement, exclusions, duplicate/partial
+checks, firmware semantics or release/Golden gates.

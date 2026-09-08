@@ -621,6 +621,24 @@ by measured assertions, not claimed as visible in that initial screenshot.
 Track the narrow page header in the remaining responsive-layout inventory;
 this unit does not certify native DPI/High Contrast or release Golden output.
 
+Narrow Header follow-up (`UI-114-REPLACE-HEADER-23`, 2026-09-08): the owner
+approved correcting the previously observed clipped Replace title. Native
+container styles retain wide geometry and move Mode/badge/Targets below the
+full-width title/subtitle when the left content width is at most 700 px.
+No new control, ViewModel, event handler or firmware behavior is introduced.
+Red: eight narrow cases fail the measured text-width assertion, eight wide
+cases pass. Final scoped tests: 18/18 pass, zero skipped, 24 seconds, including
+both viewport directions of live resize, unchanged Mode and selected paths,
+and existing mode-choice/shortcut regressions. All eight 1440x900 PNG hashes
+exactly match the preceding filename-footer baseline. The primary inspected
+English Light/Dark narrow frames and final Traditional Chinese Light/Dark
+frames; title, subtitle and actions are now readable without overlap.
+Evidence: `D:/NvtFwCombiner-TestArea/evidence/v114-replace-header/`, `red.trx`
+and `final/final.trx`; exact +19 AXAML accounting is independently admitted
+under `UI-114-REPLACE-HEADER-ACCOUNTING-23`. Native DPI/High Contrast and release
+Golden remain separate. Next bounded item: Support Matrix scrolling and
+interaction inventory; do not infer support-policy changes from that audit.
+
 Step 3 local evidence over `e5202e2707d272076d24216222188d478314a07d`:
 `dotnet test --no-restore` UI filter `FullyQualifiedName~SlotLoading` passes
 13/13 (Perfect pairs in both directions, partial/unrelated, same/unsupported IC,

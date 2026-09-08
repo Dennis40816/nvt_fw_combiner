@@ -162,17 +162,36 @@
           <ContentControl.ContentTemplate>
             <DataTemplate DataType="vm:ReplacePresentationViewModel">
               <Grid ColumnDefinitions="1.15*,430" ColumnSpacing="18">
-          <StackPanel Spacing="{DynamicResource NfcSpace16}">
+          <StackPanel Spacing="{DynamicResource NfcSpace16}" Container.Name="ReplaceContent" Container.Sizing="Width">
+            <StackPanel.Styles>
+              <Style Selector="Grid.replaceHeaderActions">
+                <Setter Property="Grid.Column" Value="1" />
+              </Style>
+              <ContainerQuery Name="ReplaceContent" Query="max-width:700">
+                <Style Selector="Grid#ReplacePageHeader">
+                  <Setter Property="RowSpacing" Value="12" />
+                </Style>
+                <Style Selector="StackPanel.replaceHeaderTitle">
+                  <Setter Property="Grid.ColumnSpan" Value="2" />
+                </Style>
+                <Style Selector="Grid.replaceHeaderActions">
+                  <Setter Property="Grid.Column" Value="0" />
+                  <Setter Property="Grid.Row" Value="1" />
+                  <Setter Property="Grid.ColumnSpan" Value="2" />
+                  <Setter Property="HorizontalAlignment" Value="Left" />
+                </Style>
+              </ContainerQuery>
+            </StackPanel.Styles>
             <Grid
                 x:Name="ReplacePageHeader"
-                ColumnDefinitions="*,Auto"
+                ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto"
                 ColumnSpacing="{DynamicResource NfcSpace16}">
-              <StackPanel Spacing="{DynamicResource NfcSpace4}">
+              <StackPanel Classes="replaceHeaderTitle" Spacing="{DynamicResource NfcSpace4}">
                 <TextBlock Classes="pageTitle" Text="{Binding ReplacePreview.Title}" />
                 <TextBlock Classes="pageSubtitle" Text="{Binding ReplacePreview.Subtitle}" TextWrapping="Wrap" />
               </StackPanel>
               <Grid
-                  Grid.Column="1"
+                  Classes="replaceHeaderActions"
                   ColumnDefinitions="Auto,Auto"
                   ColumnSpacing="{DynamicResource NfcSpace12}"
                   VerticalAlignment="Center">
