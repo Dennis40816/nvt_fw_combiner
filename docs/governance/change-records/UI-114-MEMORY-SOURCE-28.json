@@ -5,7 +5,7 @@
   "integrationBase": "30212f668f8a196c6b8572011c9ce71876bdec01",
   "risk": "R2",
   "kind": "ui",
-  "state": "design-active",
+  "state": "final-complete",
   "mutablePaths": ["src/NvtFwCombiner.Presentation.Avalonia/UiCompositionRunner.Common.cs", "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MemoryCoverageSegmentViewModel.cs", "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ShellTextResources.MemoryLayout.cs", "src/NvtFwCombiner.Presentation.Avalonia/Resources/MainWindowSharedTemplates.axaml", "scripts/code_size_policy.py", "docs/adr/0021-code-size-ratchet-accepted-artifact-amendment.md"],
   "implementationOwner": "primary-agent",
   "searchEvidence": ["CodeGraph and direct current UiCompositionRunner.Common MemorySource/MemoryCompactDetail show CustomerInformation is classified Reserved before typed SourceSpaceId; existing DpPerspective tests assert this ambiguity. MemoryCoverageSegmentViewModel and shared list/plain/tooltip templates own display; Application MemoryLayoutSegment already owns ContentRole and SourceSpaceId."],
@@ -13,8 +13,8 @@
   "terminalContract": "Owner approved separate section/source presentation. Only CustomerInformation with typed source uses existing AddressSpaceSource; reference-kept priority and Reserved/no-source fallbacks unchanged. Localized Customer information heading and Source caption use shared VM properties across list/plain/tooltip; other roles retain display. No new firmware classifier, range/write/CRC/support/permission change, no new style/controller. Preserve protection detail, neutral color, address bounds, actions, grouping and keyboard/hover behavior. Narrow source matrix and synchronous fixture render EN/zh Light/Dark; do not retry stalled GoldenCtrlRam async capture. Exact independent measured size admission before accounting edits; no headroom. Full suite belongs to frozen integration/release, not this internal commit.",
   "disposition": "extend-owner",
   "designReview": {"reviewer": "ui_presentation_review", "outcome": "approved", "evidence": "Bounded R2 design PASS before production edit: retain reference-kept priority, Reserved/no-source fallback, only translate typed CustomerInformation source; shared display properties, protected detail and neutral fill unchanged. Cover DP/AB/replacement/reference/no-source/Reserved/control roles, localization and actual shared-template renders. Exact accounting requires later independent measurement."},
-  "implementationHead": null,
-  "reviewedHead": null,
-  "pathStateDigest": null,
-  "finalReview": {"reviewer": null, "outcome": "pending", "evidence": ""}
+  "implementationHead": "9e66c8e3b9e7c9c3234f4260f83708d178fe77c2",
+  "reviewedHead": "9e66c8e3b9e7c9c3234f4260f83708d178fe77c2",
+  "pathStateDigest": "d61559b1dabd641a6089fd341072351bedde0283f065477a0c3c418a236994fa",
+  "finalReview": {"reviewer": "ui_presentation_review", "outcome": "approved", "evidence": "Fixed-head scoped R2/Polytail PASS, no unresolved P0-P3. Source translation retains reference/Reserved/no-source priority and protection detail/neutral color. Tooltip range-before-source P3 corrected and measured in real shared templates. Reviewer directly read final/final.trx21/22 plus final/source-corrected.trx3/3 under D:/NvtFwCombiner-TestArea/evidence/v114-memory-source; combined22-case coverage, not fresh22run. AB test correction follows canonical command/code role instead of inventing CustomerInformation from CMI name. Primary inspected ENLight/zhDark templates; reviewer inspected ENLight. Accounting19/19 in27.180s primary evidence; independently measured/admitted full138763/allowance35867(+19), runtime/slices unchanged. Diff check passes. Grouped CtrlRAM/fill/CRC redesign and native DPI/accessibility/full-suite/Golden/release remain separate; stalled prior async capture not claimed fixed."}
 }
