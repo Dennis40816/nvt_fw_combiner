@@ -658,7 +658,8 @@ can look like a Reserved region even though its typed content role differs.
 `MemoryLayoutProjector.InitialDisposition` deliberately distinguishes these
 states; the wording must not collapse them into a firmware fact.
 
-Proposed next UI unit, pending owner review of the display convention:
+Display convention accepted by the owner on 2026-09-08; implementation remains
+pending. This acceptance does not approve a new grouping layout:
 
 | Typed situation | Proposed concise display | Guardrail |
 | --- | --- | --- |
@@ -673,6 +674,38 @@ not an input file. Do not alter canonical ranges, input requirements, planner
 operations, Dummy DP semantics or firmware bytes. Implementation needs focused
 source/blank/reference/operation coverage and a same-state production render;
 this assessment has not changed production or rerun product tests.
+
+##### Small-region grouping: accepted information model — 2026-09-08
+
+The owner accepted the following information/interaction requirements before
+further visual design. Earlier generated magnification images are exploratory,
+not approved references. Do not implement their geometry by implication.
+
+| Surface / interaction | Required information |
+| --- | --- |
+| Main map | Output address space and overall address bounds; proportional overview. A small-region aggregate has a group marker/count, not the identity of a single physical region. |
+| Hover aggregate | Local view containing the original slices in address order, group bounds, total length and slice count. Group endpoints correspond to the same two boundaries on the main map. |
+| Hover a constituent slice | Highlight that slice and show its name, complete address range and size on one concise line below the local view. Do not label every internal boundary at once. |
+| Existing detail card | Show the focused slice's actual source, planned/retained state, processing explanation and Technical details. Do not infer a common source, role or Kept state for a heterogeneous group. |
+
+Only address-contiguous small slices in one address space may aggregate;
+preserve the aggregate's summed width on the main map. Grouping is presentation
+only, not a change to canonical ranges or execution. Mark the secondary scale
+as `Local view`. Hovering only the group shows group facts, not an automatically
+chosen first slice. The visible local view remains reachable for individual
+slice inspection; implementation must also provide a keyboard/focus equivalent.
+
+The accepted UI convention retains the existing start-to-last-valid-address
+display; internal contracts and document ranges remain half-open. For example,
+the illustrative range `[0x41000, 0x42000)` has length `4 KiB`; its UI last
+address is `0x41FFF`, not `0x42000`. This example is not an IC map definition.
+Do not mix these two endpoint conventions in the preview or implementation.
+
+Next: preview this information model within the existing narrow rail before
+production changes. Percentage threshold, placement geometry and animation
+remain undecided; acceptance of the information model does not settle them.
+NT51928/Desay work remains pending independently. No firmware or test changes
+are part of recording this decision.
 
 ##### Customer-information source presentation — 2026-09-08
 
