@@ -124,6 +124,14 @@ public sealed class SupportMatrixInteractionTests
                         global::Avalonia.Controls.Primitives.ScrollBar horizontalBar = Assert.Single(horizontal.GetVisualDescendants().OfType<global::Avalonia.Controls.Primitives.ScrollBar>(), b => b.Orientation == global::Avalonia.Layout.Orientation.Horizontal);
                         global::Avalonia.Controls.Primitives.ScrollBar verticalBar = Assert.Single(vertical.GetVisualDescendants().OfType<global::Avalonia.Controls.Primitives.ScrollBar>(), b => b.Orientation == global::Avalonia.Layout.Orientation.Vertical && b.GetVisualAncestors().OfType<ScrollViewer>().First() == vertical);
                         Assert.True(horizontalBar.IsEffectivelyVisible && verticalBar.IsEffectivelyVisible);
+                        global::Avalonia.Controls.Primitives.Thumb horizontalThumb = Assert.Single(horizontalBar.GetVisualDescendants().OfType<global::Avalonia.Controls.Primitives.Thumb>());
+                        global::Avalonia.Controls.Primitives.Thumb verticalThumb = Assert.Single(verticalBar.GetVisualDescendants().OfType<global::Avalonia.Controls.Primitives.Thumb>());
+                        Assert.Equal(6, horizontalThumb.Bounds.Height);
+                        Assert.Equal(verticalThumb.Bounds.Width, horizontalThumb.Bounds.Height);
+                        Assert.Equal(verticalThumb.Background, horizontalThumb.Background);
+                        Assert.Equal(verticalThumb.CornerRadius, horizontalThumb.CornerRadius);
+                        Assert.All(horizontalBar.GetVisualDescendants().OfType<RepeatButton>(), button => Assert.Equal(0, button.Opacity));
+                        Assert.All(horizontalBar.GetVisualDescendants().OfType<global::Avalonia.Controls.Shapes.Rectangle>().Where(r => r.Name == "TrackRect"), track => Assert.Equal(0, track.Opacity));
                         Assert.True(Bounds(horizontalBar, window).Bottom <= viewport.Bottom + 0.5);
                         Assert.True(Bounds(horizontalBar, window).Top - cellBounds.Bottom >= 8, "Horizontal scrollbar must have its own lane, at least8px below the last row.");
                         Assert.True(Bounds(verticalBar, window).Left - cellBounds.Right >= 12, "Vertical scrollbar must have at least12px clearance from the table.");
@@ -146,6 +154,34 @@ public sealed class SupportMatrixInteractionTests
                 Capture(window, $"{width}-{height}-{(darkChinese ? "dark-zh" : "light-en")}-{(cell == last ? "last" : "first")}");
             }
             Assert.True(ToolTip.GetServiceEnabled(last));
+            if (width < 1000)
+            {
+                global::Avalonia.Controls.Primitives.Thumb thumb = Assert.Single(horizontal.GetVisualDescendants().OfType<global::Avalonia.Controls.Primitives.Thumb>());
+                thumb.BringIntoView();
+                Render();
+                Point start = Bounds(thumb, window).Center;
+                window.MouseMove(start);
+                Render();
+                Assert.Equal(6, thumb.Bounds.Height);
+                Assert.Equal(thumb.FindResource(thumb.ActualThemeVariant, "NfcTextMutedBrush"), thumb.Background);
+                double beforeDrag = horizontal.Offset.X;
+                window.MouseDown(start, MouseButton.Left);
+                window.MouseMove(start + new Vector(40, 0), RawInputModifiers.LeftMouseButton);
+                Render();
+                Assert.Equal(6, thumb.Bounds.Height);
+                window.MouseUp(start + new Vector(40, 0), MouseButton.Left);
+                Render();
+                Assert.True(horizontal.Offset.X > beforeDrag);
+                double beforePageClick = horizontal.Offset.X;
+                Point page = new(Bounds(thumb, window).Left - 8, Bounds(thumb, window).Center.Y);
+                window.MouseDown(page, MouseButton.Left);
+                window.MouseUp(page, MouseButton.Left);
+                Render();
+                Assert.True(horizontal.Offset.X < beforePageClick);
+                window.MouseMove(new Point(10, 10));
+                Render();
+                Assert.Equal(thumb.FindResource(thumb.ActualThemeVariant, "NfcTextDisabledBrush"), thumb.Background);
+            }
             details.BringIntoView();
             Render();
             global::Avalonia.Controls.Primitives.ToggleButton disclosure = Assert.Single(details.GetVisualDescendants().OfType<global::Avalonia.Controls.Primitives.ToggleButton>(), b => b.Name == "ExpanderHeader");

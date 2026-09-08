@@ -555,3 +555,13 @@ Independent measurement/admission sets full production 138,718 and allowance
 20,757 / 42,708 / 5,039 / 30,727 are unchanged. The exact baseline test is
 synchronized; counting, exclusions, ratchets and release/Golden gates are not
 modified, and no transferable headroom is added.
+
+## 2026-09-08 Support Matrix horizontal scrollbar styling accounting
+
+`UI-114-MATRIX-SCROLL-STYLE-27` adds exactly 26 production lines to the existing
+local horizontal scrollbar styles, matching the vertical owner without a new
+template or interaction controller. Independent R2 measurement/admission sets
+full production 138,744 and allowance 35,848 against unchanged ratchet 102,896.
+Runtime 99,231 and slices 20,757 / 42,708 / 5,039 / 30,727 remain unchanged.
+The exact baseline follows this measurement; no transferable headroom,
+counting/exclusion changes, or release/Golden gate changes are introduced.

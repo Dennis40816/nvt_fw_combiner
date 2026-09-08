@@ -116,6 +116,32 @@
   </Style>
   <Style Selector="ScrollViewer#SupportMatrixScroll /template/ ScrollBar:horizontal">
     <Setter Property="Margin" Value="0,8,0,0" />
+    <Setter Property="Height" Value="14" />
+    <Setter Property="MinHeight" Value="14" />
+    <Setter Property="MaxHeight" Value="14" />
+    <Setter Property="Background" Value="Transparent" />
+  </Style>
+  <Style Selector="ScrollViewer#SupportMatrixScroll /template/ ScrollBar:horizontal /template/ Thumb">
+    <Setter Property="Height" Value="6" />
+    <Setter Property="MinHeight" Value="6" />
+    <Setter Property="MaxHeight" Value="6" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+    <Setter Property="Background" Value="{DynamicResource NfcTextDisabledBrush}" />
+    <Setter Property="CornerRadius" Value="{DynamicResource NfcPillCornerRadius}" />
+    <Setter Property="RenderTransform" Value="none" />
+  </Style>
+  <Style Selector="ScrollViewer#SupportMatrixScroll /template/ ScrollBar:horizontal /template/ Rectangle#TrackRect, ScrollViewer#SupportMatrixScroll /template/ ScrollBar:horizontal /template/ RepeatButton">
+    <Setter Property="Opacity" Value="0" />
+  </Style>
+  <Style Selector="ScrollViewer#SupportMatrixScroll /template/ ScrollBar:horizontal:pointerover /template/ Thumb">
+    <Setter Property="Height" Value="6" />
+    <Setter Property="MinHeight" Value="6" />
+    <Setter Property="MaxHeight" Value="6" />
+    <Setter Property="Background" Value="{DynamicResource NfcTextMutedBrush}" />
+    <Setter Property="RenderTransform" Value="none" />
+  </Style>
+  <Style Selector="ScrollViewer#SupportMatrixScroll /template/ ScrollBar:horizontal /template/ Thumb:pointerover /template/ Border">
+    <Setter Property="Background" Value="{DynamicResource NfcTextMutedBrush}" />
   </Style>
   <Style Selector="Expander#SupportMatrixCatalogDetails /template/ ToggleButton#ExpanderHeader">
     <Setter Property="FocusAdorner" Value="{x:Null}" />
