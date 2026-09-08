@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 2,
+  "taskId": "UI-114-MEMORY-POSTPROCESS-30",
+  "capability": "Avoid claiming CRC from a generic declared processor write in memory plan labels",
+  "integrationBase": "379c72b4fd8fae26f286183042e4c94ff91d3b04",
+  "risk": "R1",
+  "kind": "ui",
+  "state": "design-active",
+  "mutablePaths": ["src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ShellTextResources.MemoryLayout.cs"],
+  "implementationOwner": "primary-agent",
+  "searchEvidence": ["UiCompositionRunner.Common.MemoryAction maps any MemoryProcessorEffect.DeclaredWrite on replacement to ReplaceAndCrc; Application projector derives DeclaredWrite from any ExternalProcessorInvocation. Existing localized formatter therefore overstates the known effect as CRC. MemoryMapRowViewModel and shared Plan templates consume this one formatter."],
+  "semanticOwner": "Existing typed Application processor effect and Presentation MemoryPlanAction label formatter",
+  "terminalContract": "Owner approved memory display clarification. Change only generic action wording Replace + CRC to Replace + postprocess / 替換 + 後處理, and English Postbuild to Postprocess for consistency. Keep typed internal action identities, selection branches, CRC/processor execution, operation details, source labels, ranges, permissions, profiles and support unchanged. Do not infer algorithm from IDs or assert no CRC occurs. Bilingual exact-label/control tests plus actual shared Plan-row template narrow-fit render. No new UI style, source-line growth, ledger or full-suite change; precise CRC/effect taxonomy remains separate.",
+  "disposition": "reuse",
+  "designReview": {"reviewer": null, "outcome": "not-required", "evidence": "R1 bounded resource wording correction through existing owner; no processor protocol, typed contract or firmware change. Independent fixed-head scoped review follows."},
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": {"reviewer": null, "outcome": "pending", "evidence": ""}
+}

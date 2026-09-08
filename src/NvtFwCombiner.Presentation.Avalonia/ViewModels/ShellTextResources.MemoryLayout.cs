@@ -211,10 +211,10 @@ internal sealed partial class ShellTextResources
             MemoryPlanActionKind.Restore => SelectLanguage("Restore", "還原"),
             MemoryPlanActionKind.TransformAndOverlay =>
                 SelectLanguage("Transform + Overlay", "轉換並覆寫"),
-            MemoryPlanActionKind.Postbuild => SelectLanguage("Postbuild", "後處理"),
+            MemoryPlanActionKind.Postbuild => SelectLanguage("Postprocess", "後處理"),
             MemoryPlanActionKind.Copy => SelectLanguage("Copy", "複製"),
             MemoryPlanActionKind.ReplaceAndCrc =>
-                SelectLanguage("Replace + CRC", "替換 + CRC"),
+                SelectLanguage("Replace + postprocess", "替換 + 後處理"),
             MemoryPlanActionKind.Replace => SelectLanguage("Replace", "替換"),
             MemoryPlanActionKind.Preserve => SelectLanguage("Preserve", "保留"),
             MemoryPlanActionKind.Initialize => SelectLanguage("Initialize", "初始化"),

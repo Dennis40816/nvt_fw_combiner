@@ -631,6 +631,24 @@ inspected complete EN Light/zh Dark fixture frames; these are not native
 whole-app or release evidence. Fixed-head review is bound in the
 [admission record](../governance/change-records/UI-114-MEMORY-INITIALIZATION-29.json).
 
+##### Memory Plan postprocessing wording — 2026-09-08
+
+Generic postprocessing wording (`UI-114-MEMORY-POSTPROCESS-30`, 2026-09-08):
+the existing generic declared-write action now displays `Replace + postprocess`
+/ `替換 + 後處理`; English `Postbuild` becomes `Postprocess`, retaining
+Chinese `後處理`. The current projection only establishes an external processor
+write, not a specific CRC effect. Internal action identities, processors/CRC,
+operation details, ranges and output bytes are unchanged. This does not claim
+CRC is absent or implement a precise effect taxonomy.
+Evidence: `D:/NvtFwCombiner-TestArea/evidence/v114-memory-postprocess/`.
+`red/red.trx`: 2/2 fail against the old CRC wording. `green/green.trx`:
+22/22 pass, zero skipped, 7 s, including both actual Plan-row templates at
+360 px in EN/zh and Light/Dark. Primary inspected EN Light/zh Dark fixture
+frames; native workflow/accessibility and release remain separate.
+Only two production lines are replaced, without code-size growth or ledger
+changes. Fixed-head review is bound in the
+[record](../governance/change-records/UI-114-MEMORY-POSTPROCESS-30.json).
+
 ##### Current Home and Settings inventory follow-up
 
 On production source `c3c81ba2`, the primary inspected eight current real
