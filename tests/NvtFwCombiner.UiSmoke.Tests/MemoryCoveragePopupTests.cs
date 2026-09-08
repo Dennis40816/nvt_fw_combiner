@@ -188,6 +188,127 @@ public sealed class MemoryCoveragePopupTests
         }
     }
 
+    /// <summary>Leaving the complete hover surface dismisses both tiers even after a pointer click.</summary>
+    [AvaloniaTheory]
+    [InlineData(0, true)]
+    [InlineData(1, false)]
+    [InlineData(1, true)]
+    [InlineData(2, false)]
+    [InlineData(2, true)]
+    [InlineData(3, true)]
+    public async Task PointerExitDismissesEveryOverlayAfterHoverOrClick(int depth, bool click)
+    {
+        Window window = CreateWindow(388, false, MemoryCoverageBarProjectionTests.Example(), out MemoryCoverageBar bar);
+        try
+        {
+            Control target = MainTarget(bar, depth == 0 ? 0 : 1);
+            window.MouseMove(BoundsInWindow(target, window).Center, RawInputModifiers.None);
+            Render();
+            if (depth >= 2)
+            {
+                Border local = Assert.IsType<Border>(FindNamed<Border>(window, "MemoryLocalView"));
+                target = FocusableControl(LocalStrip(local).Children[5]);
+                window.MouseMove(BoundsInWindow(target, window).Center, RawInputModifiers.None);
+                Render();
+            }
+            if (depth == 3)
+            {
+                Border card = Assert.IsType<Border>(FindNamed<Border>(window, "MemorySliceCard"));
+                target = Assert.Single(card.GetVisualDescendants().OfType<ToggleButton>(), control => control.Name == "ExpanderHeader");
+                window.MouseMove(BoundsInWindow(target, window).Center, RawInputModifiers.None);
+                Render();
+            }
+            if (click)
+            {
+                Point point = BoundsInWindow(target, window).Center;
+                window.MouseDown(point, MouseButton.Left, RawInputModifiers.None);
+                window.MouseUp(point, MouseButton.Left, RawInputModifiers.None);
+                Render();
+            }
+            Assert.NotNull(FindNamed<Border>(window, depth == 1 ? "MemoryLocalView" : "MemorySliceCard"));
+            window.MouseMove(new Point(4, 4), RawInputModifiers.None);
+            await Task.Delay(TimeSpan.FromMilliseconds(220), TestContext.Current.CancellationToken);
+            Render();
+            AssertNoOverlay(window);
+        }
+        finally { window.Close(); }
+    }
+
+    /// <summary>Keyboard focus stays readable until a real pointer traversal takes over dismissal.</summary>
+    [AvaloniaTheory]
+    [InlineData(0)]
+    [InlineData(1)]
+    [InlineData(2)]
+    [InlineData(3)]
+    public async Task KeyboardOverlayRemainsUntilPointerInteractionTakesOver(int depth)
+    {
+        Window window = CreateWindow(388, false, MemoryCoverageBarProjectionTests.Example(), out MemoryCoverageBar bar);
+        try
+        {
+            window.MouseMove(new Point(4, 4), RawInputModifiers.None);
+            Control target = MainTarget(bar, depth == 0 ? 0 : 1);
+            Assert.True(target.Focus(NavigationMethod.Tab));
+            Render();
+            if (depth >= 2)
+            {
+                Border local = Assert.IsType<Border>(FindNamed<Border>(window, "MemoryLocalView"));
+                target = FocusableControl(LocalStrip(local).Children[5]);
+                Assert.True(target.Focus(NavigationMethod.Directional));
+                Render();
+            }
+            if (depth == 3)
+            {
+                Border card = Assert.IsType<Border>(FindNamed<Border>(window, "MemorySliceCard"));
+                target = Assert.Single(card.GetVisualDescendants().OfType<ToggleButton>(), control => control.Name == "ExpanderHeader");
+                Assert.True(target.Focus(NavigationMethod.Tab));
+                Render();
+            }
+            window.MouseMove(new Point(6, 6), RawInputModifiers.None);
+            await Task.Delay(TimeSpan.FromMilliseconds(220), TestContext.Current.CancellationToken);
+            Render();
+            Assert.NotNull(FindNamed<Border>(window, depth == 1 ? "MemoryLocalView" : "MemorySliceCard"));
+            window.MouseMove(BoundsInWindow(target, window).Center, RawInputModifiers.None);
+            Render();
+            window.MouseMove(new Point(4, 4), RawInputModifiers.None);
+            await Task.Delay(TimeSpan.FromMilliseconds(220), TestContext.Current.CancellationToken);
+            Render();
+            AssertNoOverlay(window);
+        }
+        finally { window.Close(); }
+    }
+
+    /// <summary>Using the keyboard on an already pointer-focused disclosure restores keyboard keep-open.</summary>
+    [AvaloniaFact]
+    public async Task KeyboardUseAfterPointerClickKeepsFocusedDisclosureReadable()
+    {
+        Window window = CreateWindow(388, false, MemoryCoverageBarProjectionTests.Example(), out MemoryCoverageBar bar);
+        try
+        {
+            Control main = MainTarget(bar, 0);
+            window.MouseMove(BoundsInWindow(main, window).Center, RawInputModifiers.None);
+            Render();
+            Border card = Assert.IsType<Border>(FindNamed<Border>(window, "MemorySliceCard"));
+            ToggleButton toggle = Assert.Single(card.GetVisualDescendants().OfType<ToggleButton>(), control => control.Name == "ExpanderHeader");
+            Point point = BoundsInWindow(toggle, window).Center;
+            window.MouseMove(point, RawInputModifiers.None);
+            window.MouseDown(point, MouseButton.Left, RawInputModifiers.None);
+            window.MouseUp(point, MouseButton.Left, RawInputModifiers.None);
+            Render();
+            Assert.Same(toggle, window.FocusManager?.GetFocusedElement());
+            window.KeyPress(Key.Space, RawInputModifiers.None, PhysicalKey.Space, " ");
+            window.KeyRelease(Key.Space, RawInputModifiers.None, PhysicalKey.Space, " ");
+            Render();
+            window.MouseMove(new Point(4, 4), RawInputModifiers.None);
+            await Task.Delay(TimeSpan.FromMilliseconds(220), TestContext.Current.CancellationToken);
+            Render();
+            Assert.NotNull(FindNamed<Border>(window, "MemorySliceCard"));
+            PressEscape(window);
+            Render();
+            AssertNoOverlay(window);
+        }
+        finally { window.Close(); }
+    }
+
     /// <summary>Public scroll and detachment lifecycle events close both overlay tiers and discard their stale targets.</summary>
     [AvaloniaFact]
     public void AncestorScrollAndDetachClearOpenOverlays()

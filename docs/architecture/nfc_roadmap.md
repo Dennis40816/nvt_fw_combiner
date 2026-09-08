@@ -863,6 +863,29 @@ and in-column placement. These are rendered Avalonia test-window captures,
 not native-window, physical-DPI or screen-reader certification. No fresh
 Golden-output execution or release verification is claimed.
 
+Pointer-exit correction (`UI-114-MEMORY-POINTER-44`, 2026-09-08): owner reported
+that the local view/card stayed open after leaving it. Actual pointer clicks
+gave the rail or popup keyboard focus; the old dismissal check treated any
+focus as a reason to remain open. The shared rail now distinguishes input
+origin: pointer press/movement within its main/local/card surfaces takes over
+from keyboard focus, while keyboard navigation and interaction retain the
+focused card. The existing 160 ms cross-surface transit delay is unchanged;
+leaving the complete union closes both tiers, including after a card disclosure
+click. Closing resets the interaction mode. Geometry, colors, source grouping,
+firmware facts and the separate DiffDLM details-panel contract are unchanged.
+
+Evidence root: `D:/NvtFwCombiner-TestArea/evidence/v114-memory-pointer44/`.
+`red/red.trx` reproduces all three clicked direct/group/local exit failures
+while two hover-only cases pass. `mixed-red/mixed-red.trx` additionally exposes
+four keyboard-to-pointer handoff failures in the first correction. The final
+popup-focused `popup/popup.trx` passes **29/29**, zero skipped (**9 seconds**),
+including both directions of input handoff, pointer traversal, disclosure
+clicks, keyboard focus/Space/Escape and existing lifecycle/geometry cases.
+The broader shared-memory/source/processing/AB regression command above passes
+**96/96**, zero skipped (**35 seconds**), in `reviewed/reviewed.trx`.
+These rendered-control tests do not certify a native multi-screen or
+screen-reader session. No firmware output or release gate is claimed.
+
 ##### Customer-information source presentation — 2026-09-08
 
 Customer-information source follow-up (`UI-114-MEMORY-SOURCE-28`, 2026-09-08):

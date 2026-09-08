@@ -634,3 +634,13 @@ production/baseline to 139,284 and allowance to 36,388 against unchanged ratchet
 30,727. The baseline test follows these exact measurements. Counting,
 exclusions, equality, ratchets and firmware/Golden/release gates are unchanged;
 this accounting introduces no transferable headroom.
+
+## 2026-09-08 memory-overlay pointer-exit accounting
+
+`UI-114-MEMORY-POINTER-44` adds exactly 12 full-production nonblank lines in the
+existing Presentation overlay lifecycle owner. Independent R2 admission
+`UI-114-MEMORY-POINTER-SIZE-45` sets exact full production/baseline to 139,296
+and allowance to 36,400 against unchanged ratchet 102,896. Runtime remains
+99,233; slices remain 20,757 / 42,710 / 5,039 / 30,727. The baseline test follows
+this exact measurement. Ratchets, counting, exclusions, equality and all
+firmware/Golden/release gates remain unchanged; no headroom is introduced.

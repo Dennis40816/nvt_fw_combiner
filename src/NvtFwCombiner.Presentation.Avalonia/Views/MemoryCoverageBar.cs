@@ -10,6 +10,7 @@ using Avalonia.Controls.Shapes;
 using Avalonia.Controls.Templates;
 using Avalonia.Data;
 using Avalonia.Input;
+using Avalonia.Interactivity;
 using Avalonia.Layout;
 using Avalonia.Markup.Xaml.MarkupExtensions;
 using Avalonia.Media;
@@ -55,6 +56,7 @@ public sealed class MemoryCoverageBar : UserControl
     private bool _attached;
     private bool _restoringFocus;
     private bool _localAbove;
+    private bool _keyboardFocus;
     private int _revealVersion;
 
     /// <summary>Constructs the shared rail using existing bar, color, card and interaction owners.</summary>
@@ -75,11 +77,12 @@ public sealed class MemoryCoverageBar : UserControl
         _closeTimer.Tick += (_, _) =>
         {
             _closeTimer.Stop();
-            if (!IsPointerOver && !IsKeyboardFocusWithin &&
+            if (!IsInteracting(this) &&
                 !IsInteracting(_localPopup.Child) && !IsInteracting(_cardPopup.Child)) { CloseAll(); }
         };
         PointerExited += (_, _) => _closeTimer.Start();
         LostFocus += (_, _) => _closeTimer.Start();
+        TrackInputOrigin(this);
         _card.KeyDown += OnCardKeyDown;
     }
 
@@ -154,9 +157,17 @@ public sealed class MemoryCoverageBar : UserControl
         return border;
     }
 
-    private static bool IsInteracting(Control? control)
+    private bool IsInteracting(Control? control)
     {
-        return control is { IsPointerOver: true } or { IsKeyboardFocusWithin: true };
+        return control is { IsPointerOver: true } || (_keyboardFocus && control is { IsKeyboardFocusWithin: true });
+    }
+
+    private void TrackInputOrigin(Control control)
+    {
+        control.GotFocus += (_, e) => _keyboardFocus = e is not FocusChangedEventArgs { NavigationMethod: NavigationMethod.Pointer };
+        control.AddHandler(PointerPressedEvent, (_, _) => _keyboardFocus = false, RoutingStrategies.Tunnel);
+        control.AddHandler(PointerMovedEvent, (_, _) => _keyboardFocus = false, RoutingStrategies.Tunnel);
+        control.AddHandler(KeyDownEvent, (_, _) => _keyboardFocus = true, RoutingStrategies.Tunnel);
     }
 
     private void OnWindowDeactivated(object? sender, EventArgs e) { CloseAll(); }
@@ -422,6 +433,7 @@ public sealed class MemoryCoverageBar : UserControl
     private StackPanel PopupFrame(Control body, Control connector, bool above)
     {
         var frame = new StackPanel { Background = Brushes.Transparent };
+        TrackInputOrigin(frame);
         frame.Children.Add(above ? body : connector);
         frame.Children.Add(above ? connector : body);
         frame.PointerEntered += (_, _) => _closeTimer.Stop();
@@ -490,6 +502,7 @@ public sealed class MemoryCoverageBar : UserControl
     private void CloseAll()
     {
         _closeTimer.Stop();
+        _keyboardFocus = false;
         CloseCard();
         _localPopup.IsOpen = false;
         if (_localPopup.Child is Panel frame) { frame.Children.Clear(); }

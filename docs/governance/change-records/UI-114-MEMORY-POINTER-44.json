@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 2,
+  "taskId": "UI-114-MEMORY-POINTER-44",
+  "capability": "Dismiss pointer-opened memory overlays after leaving their complete interaction surface",
+  "integrationBase": "a4ea5fd64a13f5d71766cdf99eb9f516ef5583b9",
+  "risk": "R1",
+  "kind": "ui",
+  "state": "design-active",
+  "mutablePaths": ["src/NvtFwCombiner.Presentation.Avalonia/Views/MemoryCoverageBar.cs"],
+  "implementationOwner": "primary-agent",
+  "searchEvidence": ["Existing MemoryCoverageBar timer/IsInteracting owns overlay dismissal; its unconditional IsKeyboardFocusWithin retains focus acquired by pointer clicks. Red rendered tests reproduce direct/main-group/local-leaf clicks retaining overlays after exit (3 fail) while hover-only group/local exit works (2 pass). PopupFrame owns cross-surface transit. Shared MemoryCoverageInteractionBehavior only owns emphasis; FocusToolTipBehavior demonstrates distinguishing NavigationMethod.Pointer from keyboard focus."],
+  "semanticOwner": "Existing Presentation MemoryCoverageBar overlay lifecycle and PopupFrame input owners.",
+  "terminalContract": "Distinguish pointer-acquired focus from keyboard/programmatic focus in this rail and its popup frames. Pointer clicks must not pin overlays; leaving the main/local/card union dismisses both tiers through the existing160ms transit delay. Keep overlays during within-union transit and keyboard operation; keyboard focus loss, Escape, disable/rebuild/resize/scroll/detach cleanup remain valid. Test direct/group/local clicks, card disclosure clicks, pure hover, keyboard retention and mixed input. Preserve geometry, rendering reference, focusability, shared emphasis, DiffDLM-specific pin contract, typed memory facts and all firmware/profile/execution/Golden/release behavior.",
+  "disposition": "extend-owner",
+  "designReview": {"reviewer": null, "outcome": "not-required", "evidence": "Owner explicitly requests correcting pointer exit dismissal. R1 bounded existing-owner lifecycle correction; no architecture/firmware contract change. Primary inspected actual input path, relevant SPEC and accepted hover reference; independent Terra/high scoped correctness/Polytail review follows at freeze."},
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": {"reviewer": null, "outcome": "pending", "evidence": ""}
+}
