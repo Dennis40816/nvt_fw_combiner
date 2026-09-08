@@ -90,7 +90,7 @@ class CodeSizeSnapshot:
 
 
 DEFAULT_LIMITS = CodeSizeLimits(
-    production_nonblank=138_706,
+    production_nonblank=138_718,
     duplicate_json_nonblank=0,
     partial_type_default_max=2_500,
     partial_type_exact_ratchets={},
@@ -112,7 +112,7 @@ DEFAULT_LIMITS = CodeSizeLimits(
     application_allowance=12_018,
     bootstrap_cli_allowance=1_661,
     infrastructure_contracts_worker_allowance=15_371,
-    full_production_allowance=35_810,
+    full_production_allowance=35_822,
 )
 
 

@@ -244,8 +244,8 @@ public sealed partial class XamlControlStyleContractTests
                 contentGrid.Elements(),
                 element => element.Name.LocalName == "TextBlock");
             Assert.Equal("1", (string?)label.Attribute("Grid.Column"));
-            Assert.Equal("Center", (string?)label.Attribute("HorizontalAlignment"));
-            Assert.Equal("Center", (string?)label.Attribute("TextAlignment"));
+            Assert.Equal("Left", (string?)label.Attribute("HorizontalAlignment"));
+            Assert.Equal("Left", (string?)label.Attribute("TextAlignment"));
         });
         System.Xml.Linq.XElement generalIcon = Assert.Single(
             entries[0].Descendants(),

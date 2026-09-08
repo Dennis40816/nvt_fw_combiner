@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 2,
+  "taskId": "UI-114-MATRIX-SCROLL-FOCUS-26",
+  "capability": "Support Matrix scrollbar clearance, single keyboard focus outline and left-aligned Settings navigation",
+  "integrationBase": "aeab94ad526a504ed018e89c8ad4f22519395d8b",
+  "risk": "R2",
+  "kind": "ui",
+  "state": "design-active",
+  "mutablePaths": ["src/NvtFwCombiner.Presentation.Avalonia/Resources/MainWindowPageTemplates.axaml", "src/NvtFwCombiner.Presentation.Avalonia/Styles/MainWindowControlStyles.axaml", "scripts/code_size_policy.py", "docs/adr/0021-code-size-ratchet-accepted-artifact-amendment.md"],
+  "implementationOwner": "primary-agent",
+  "searchEvidence": ["codegraph explore FocusAdorner supportMatrixCell MainWindowControlStyles; raw XAML search identifies current Settings native ScrollViewer, four navigation labels, cell focus style and shared inlineDisclosure focus owner.", "Avalonia12.0.5 Control.cs OnGotFocus falls back to AdornerLayer.DefaultFocusAdorner when FocusAdornerProperty is not set, even though its getter is null. Matrix focus style precedes class-based cell surface; red actual render has thickness0,0,0,1 after Tab and black default overlay. Existing buttons already explicitly suppress duplicate adorners while retaining styled focus."],
+  "semanticOwner": "Existing Settings templates/native ScrollViewer and local focus styles; code_size_policy/ADR0021 exact accounting",
+  "terminalContract": "Owner requests clearance for both scrollbars, explains black focus and adds left-aligned Settings navigation labels. Retain approved matrix hierarchy, fixedIC,46px rows, equalcolumns, typed support facts, tooltip and two-stageEscape. Reserve native horizontal scrollbar lane plus8px separation and12px right section clearance; no shared ScrollViewer redesign. Explicitly disable only duplicate matrix-cell/catalog-header default adorner, retain actual accent2px keyboard outline with correct style order. Four Settings labels left-aligned, icons/fullwidth/commands unchanged. Test real desktop/narrow ENLight/zhDark bounds, focus visual, navigation anchors, resize, disclosure and Escape. Exact canonical source-size delta synchronized only after independent measurement admission; no headroom, runtime/slice/ratchet/algorithm/exclusion/gate changes. Narrow UI/accounting tests, independent fixed review and repository final-record validation; no full suite per internal commit.",
+  "disposition": "reuse",
+  "designReview": {"reviewer": "ui_presentation_review", "outcome": "approved", "evidence": "Independent bounded R2 design admission PASS before production changes: native reserved scrollbar lane and local spacing reuse existing owner, explicit-null adorner allowed only with verified existing accent2px keyboard focus, no global removal. Require real cell and Catalog-header focus, actual bar bounds, fixedIC/resize/details/Escape tests. Accounting projection is not measurement; exact values require canonical measurement before policy edits. Owner's later explicit nav-left alignment is a local change within the same template, no new semantic owner."},
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": {"reviewer": null, "outcome": "pending", "evidence": ""}
+}

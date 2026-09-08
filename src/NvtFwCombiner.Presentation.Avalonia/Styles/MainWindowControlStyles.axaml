@@ -1,5 +1,6 @@
 <Styles
     xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:views="using:NvtFwCombiner.Presentation.Avalonia.Views">
   <!-- Semantic visual roles shared by pages, report templates, and modal views. -->
   <Style Selector="Border.surface, Border.modalSurface, Border.fileDropZone">
@@ -62,7 +63,7 @@
     <Setter Property="BorderThickness" Value="2" />
     <Setter Property="CornerRadius" Value="{DynamicResource NfcSurfaceCornerRadius}" />
   </Style>
-  <Style Selector="Border.buildBlockerBadge:focus-visible, Border.supportMatrixCell:focus-visible">
+  <Style Selector="Border.buildBlockerBadge:focus-visible">
     <Setter Property="BorderBrush" Value="{DynamicResource NfcAccentBrush}" />
     <Setter Property="BorderThickness" Value="2" />
   </Style>
@@ -108,6 +109,16 @@
   <Style Selector="Border.supportMatrixHoverRoute">
     <Setter Property="BorderBrush" Value="{DynamicResource NfcBorderMutedBrush}" />
     <Setter Property="BorderThickness" Value="0,0,0,1" />
+  </Style>
+  <Style Selector="Border.supportMatrixCell:focus-visible">
+    <Setter Property="BorderBrush" Value="{DynamicResource NfcAccentBrush}" />
+    <Setter Property="BorderThickness" Value="2" />
+  </Style>
+  <Style Selector="ScrollViewer#SupportMatrixScroll /template/ ScrollBar:horizontal">
+    <Setter Property="Margin" Value="0,8,0,0" />
+  </Style>
+  <Style Selector="Expander#SupportMatrixCatalogDetails /template/ ToggleButton#ExpanderHeader">
+    <Setter Property="FocusAdorner" Value="{x:Null}" />
   </Style>
   <Style Selector="TextBlock.supportMatrixVariantCount">
     <Setter Property="Foreground" Value="{DynamicResource NfcTextMutedBrush}" />

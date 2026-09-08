@@ -45,6 +45,15 @@ public sealed class SupportMatrixInteractionTests
             shell.Settings.SelectSectionCommand.Execute(SettingsSection.SupportMatrix);
             Render();
             Border surface = Assert.Single(window.GetVisualDescendants().OfType<Border>(), b => b.Name == "SettingsSurface");
+            RadioButton[] navigationItems = [.. surface.GetVisualDescendants().OfType<RadioButton>().Where(b => b.Classes.Contains("settingsNavItem"))];
+            Assert.Equal(4, navigationItems.Length);
+            foreach (RadioButton item in navigationItems)
+            {
+                Grid content = Assert.IsType<Grid>(item.Content);
+                TextBlock label = Assert.Single(content.Children.OfType<TextBlock>());
+                Assert.Equal(global::Avalonia.Layout.HorizontalAlignment.Left, label.HorizontalAlignment);
+                Assert.InRange(Math.Abs(Bounds(label, window).Left - Bounds(content, window).Left - 40), 0, 0.5);
+            }
             Border[] cells = [.. surface.GetVisualDescendants().OfType<Border>().Where(b => b.Classes.Contains("supportMatrixCell"))];
             Assert.NotEmpty(cells);
             Assert.Equal(shell.Settings.SupportMatrix.IcRows.Sum(row => row.Cells.Count), cells.Length);
@@ -91,6 +100,10 @@ public sealed class SupportMatrixInteractionTests
                 Assert.True(cell.Focus(NavigationMethod.Tab));
                 Render();
                 Assert.True(ToolTip.GetIsOpen(cell));
+                Assert.Null(cell.FocusAdorner);
+                Assert.True(cell.IsSet(Control.FocusAdornerProperty));
+                Assert.True(cell.BorderThickness == new Thickness(2), $"Focus border={cell.BorderThickness}; classes={string.Join(',', cell.Classes)}");
+                Assert.Equal(cell.FindResource(cell.ActualThemeVariant, "NfcAccentBrush"), cell.BorderBrush);
                 SupportMatrixCellViewModel model = Assert.IsType<SupportMatrixCellViewModel>(cell.DataContext);
                 Assert.Equal(model.AccessibleLabel, AutomationProperties.GetName(cell));
                 Assert.Equal(model.AccessibleDetail, AutomationProperties.GetHelpText(cell));
@@ -106,6 +119,15 @@ public sealed class SupportMatrixInteractionTests
                     $"Cell escapes vertical viewport: {cellBounds}; viewport={viewport}");
                 if (cell == last)
                 {
+                    if (width < 1000)
+                    {
+                        global::Avalonia.Controls.Primitives.ScrollBar horizontalBar = Assert.Single(horizontal.GetVisualDescendants().OfType<global::Avalonia.Controls.Primitives.ScrollBar>(), b => b.Orientation == global::Avalonia.Layout.Orientation.Horizontal);
+                        global::Avalonia.Controls.Primitives.ScrollBar verticalBar = Assert.Single(vertical.GetVisualDescendants().OfType<global::Avalonia.Controls.Primitives.ScrollBar>(), b => b.Orientation == global::Avalonia.Layout.Orientation.Vertical && b.GetVisualAncestors().OfType<ScrollViewer>().First() == vertical);
+                        Assert.True(horizontalBar.IsEffectivelyVisible && verticalBar.IsEffectivelyVisible);
+                        Assert.True(Bounds(horizontalBar, window).Bottom <= viewport.Bottom + 0.5);
+                        Assert.True(Bounds(horizontalBar, window).Top - cellBounds.Bottom >= 8, "Horizontal scrollbar must have its own lane, at least8px below the last row.");
+                        Assert.True(Bounds(verticalBar, window).Left - cellBounds.Right >= 12, "Vertical scrollbar must have at least12px clearance from the table.");
+                    }
                     Assert.Equal(width < 1000, horizontal.Offset.X > 0.5);
                     Assert.InRange(Math.Abs(Bounds(icHeaders[^1], window).Left - fixedIcLeft), 0, 0.5);
                     Assert.InRange(Math.Abs(Bounds(icHeaders[^1], window).Top - cellBounds.Top), 0, 0.5);
@@ -128,6 +150,11 @@ public sealed class SupportMatrixInteractionTests
             Render();
             global::Avalonia.Controls.Primitives.ToggleButton disclosure = Assert.Single(details.GetVisualDescendants().OfType<global::Avalonia.Controls.Primitives.ToggleButton>(), b => b.Name == "ExpanderHeader");
             Assert.True(disclosure.Focus(NavigationMethod.Tab));
+            Render();
+            Assert.Null(disclosure.FocusAdorner);
+            Assert.True(disclosure.IsSet(Control.FocusAdornerProperty));
+            Assert.Equal(new Thickness(2), disclosure.BorderThickness);
+            Assert.Equal(disclosure.FindResource(disclosure.ActualThemeVariant, "NfcAccentStrongBrush"), disclosure.BorderBrush);
             window.KeyPress(Key.Space, RawInputModifiers.None, PhysicalKey.Space, null);
             window.KeyRelease(Key.Space, RawInputModifiers.None, PhysicalKey.Space, null);
             Render();

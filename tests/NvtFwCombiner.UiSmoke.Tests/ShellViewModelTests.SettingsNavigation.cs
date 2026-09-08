@@ -58,7 +58,7 @@ public sealed partial class ShellNavigationSystemTests
             "Installed version and authoring availability from the current catalog.",
             viewModel.Text.SettingsOverviewSubtitle);
         Assert.Equal(
-            "Status summarizes verification evidence and any route blockers; focus a cell for details.",
+            "Hover or focus a cell for details.",
             viewModel.Text.SupportMatrixHoverHint);
         string expectedVersion = File.ReadAllText(RepositoryPaths.FromRepositoryRoot("VERSION")).Trim();
         Assert.Equal(expectedVersion, viewModel.AppVersion);

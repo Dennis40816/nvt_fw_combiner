@@ -545,3 +545,13 @@ ratchet. Runtime remains 99,231; slices remain 20,757 / 42,708 / 5,039 / 30,727.
 The exact baseline test follows the new measurement; equality, counting,
 exclusions, duplicate/partial checks and firmware/release gates are unchanged.
 No headroom is retained or transferred from this reduction.
+
+## 2026-09-08 Support Matrix scrollbar/focus accounting
+
+`UI-114-MATRIX-SCROLL-FOCUS-26` adds exactly 12 production lines to the existing
+UI owners for local scrollbar separation and a single themed keyboard outline.
+Independent measurement/admission sets full production 138,718 and allowance
+35,822 against unchanged ratchet 102,896. Runtime 99,231 and slices
+20,757 / 42,708 / 5,039 / 30,727 are unchanged. The exact baseline test is
+synchronized; counting, exclusions, ratchets and release/Golden gates are not
+modified, and no transferable headroom is added.
