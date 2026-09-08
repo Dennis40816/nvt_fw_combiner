@@ -5,7 +5,7 @@
   "integrationBase": "9868b3602528c6a5d0048020af79cc5d7e70b690",
   "risk": "R1",
   "kind": "ui",
-  "state": "design-active",
+  "state": "final-complete",
   "mutablePaths": ["src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ShellTextResources.MemoryLayout.cs"],
   "implementationOwner": "primary-agent",
   "searchEvidence": ["Current MemoryLayoutModels484 publishes output initialization FillByte only for Blank and null for Reference. UiCompositionRunner.MemoryDetail forwards that value and contributing operations into ShellTextResources.FormatMemoryLayoutTechnicalDetail. Existing formatter calls the global value Blank fill without specifying pre-write timing; no separate final-fill fact is published."],
@@ -13,8 +13,8 @@
   "terminalContract": "Replace only the two localized Blank fill sentences with Output initialization:0xXX(before writes). Preserve null handling, actual typed byte value, operation list and ordering, region name, source/purpose, all layout and firmware execution. Never infer Reserved=0xFF or claim final segment fill from initialization. Tests cover FF/00, EN/zh, operations/no operations and null/reference. Reuse shared template fixture to check longer text fit; no async GoldenCtrlRam retry. No production-line growth, ledger/ADR or full-suite changes. This bounded wording correction does not implement new per-range final-fill metadata or redesign.",
   "disposition": "reuse",
   "designReview": {"reviewer": null, "outcome": "not-required", "evidence": "R1 preflight: owner accepted next fill-display clarification; existing typed initialization and formatter suffice for two-string timing clarification. No new semantic branch or final-fill computation; independent fixed-head scoped review follows."},
-  "implementationHead": null,
-  "reviewedHead": null,
-  "pathStateDigest": null,
-  "finalReview": {"reviewer": null, "outcome": "pending", "evidence": ""}
+  "implementationHead": "bbf996460aeca3253ba08e4986ca48ba408717c9",
+  "reviewedHead": "bbf996460aeca3253ba08e4986ca48ba408717c9",
+  "pathStateDigest": "1a2ba41b6b97463b100238af5961c35dd74874ad3c5b8fd80bd9ceba8e4f3fcc",
+  "finalReview": {"reviewer": "ui_presentation_review", "outcome": "approved", "evidence": "Independent scoped R1/Polytail PASS, no P0-P3. Reviewer confirmed new fixed head bbf99646 after correcting only R1 design-review metadata; production/tests unchanged, original green evidence reused. Reviewer directly read green/green.trx16/16 zero skips at D:/NvtFwCombiner-TestArea/evidence/v114-memory-initialization; FF/00/null with/without operations. Red4fail2pass retained. Primary inspected ENLight/zhDark template frames; reviewer inspected zhDark. Two localized sentences accurately label whole-output pre-write initialization; no final-fill inference or null/reference/operation changes. No production-line growth or gate changes; diff check passed. Not all fill features or native/full-suite/Golden/release acceptance."}
 }
