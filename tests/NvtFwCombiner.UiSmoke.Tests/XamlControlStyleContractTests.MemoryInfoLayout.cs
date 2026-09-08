@@ -452,11 +452,16 @@ public sealed partial class XamlControlStyleContractTests
     private static async Task<MainWindowViewModel> CreateNt51950GoldenCtrlRamViewModelAsync(
         CancellationToken cancellationToken)
     {
+        MainWindowViewModel viewModel = await PresentationTestHost.CreateViewModelAsync(cancellationToken);
+        await LoadNt51950GoldenCtrlRamInputsAsync(viewModel, cancellationToken);
+        return viewModel;
+    }
+
+    internal static async Task LoadNt51950GoldenCtrlRamInputsAsync(MainWindowViewModel viewModel, CancellationToken cancellationToken)
+    {
         JsonElement fixtureCase = CanonicalGoldenTestData.LoadDirectCase(
             "ctrlram-replace",
             "nt51950-fw200-single-auto-prj-676-20260717");
-        MainWindowViewModel viewModel = await PresentationTestHost.CreateViewModelAsync(
-            cancellationToken);
         viewModel.WorkflowSession.SelectedIc = "NT51950";
         viewModel.WorkflowSession.SelectedNumber = "single";
         OpenReplace(viewModel, ExperienceIds.CtrlRamReplace);
@@ -486,7 +491,6 @@ public sealed partial class XamlControlStyleContractTests
             }
         }
 
-        return viewModel;
     }
 
     private static void AssertControlFitsWidth(Control candidate, Control panel)

@@ -185,13 +185,13 @@ public sealed partial class XamlControlStyleContractTests
         }
     }
 
-    /// <summary>The production Merge and Replace bars render the active segment beyond both track edges.</summary>
+    /// <summary>The reference-aligned explorer outlines active segments without expanding their track geometry.</summary>
     [AvaloniaTheory]
     [InlineData(false, false)]
     [InlineData(false, true)]
     [InlineData(true, false)]
     [InlineData(true, true)]
-    public async Task ProductionMemoryCoverageSegmentLiftCrossesTrackBoundary(
+    public async Task ProductionMemoryCoverageSelectionKeepsExactTrackGeometry(
         bool useDarkTheme,
         bool useReplace)
     {
@@ -289,7 +289,11 @@ public sealed partial class XamlControlStyleContractTests
                     candidate.Classes.Contains("memoryCoverageBarSegment"));
             Assert.Contains("linked", activeSegment.Classes);
             Assert.NotNull(activeSegment.RenderTransform);
-            Assert.Equal(1.18, activeSegment.RenderTransform.Value.M22, precision: 2);
+            Assert.Equal(1, activeSegment.RenderTransform.Value.M22, precision: 2);
+            Assert.Equal(new Thickness(2), activeSegment.BorderThickness);
+            Assert.True(Avalonia.Application.Current!.TryGetResource("NfcAccentStrongBrush", theme, out object? accent));
+            Assert.Equal(Assert.IsType<ISolidColorBrush>(accent, exactMatch: false).Color,
+                Assert.IsType<ISolidColorBrush>(activeSegment.BorderBrush, exactMatch: false).Color);
             Assert.False(track.ClipToBounds);
             Assert.False(items.ClipToBounds);
             Assert.True(activeSegment.Focusable);
@@ -342,10 +346,8 @@ public sealed partial class XamlControlStyleContractTests
             Point bottom = Assert.IsType<Point>(activeSegment.TranslatePoint(
                 new Point(activeSegment.Bounds.Width / 2, activeSegment.Bounds.Height),
                 track));
-            Assert.True(top.Y < 0, $"Expected active segment top above track, got {top.Y:F2}.");
-            Assert.True(
-                bottom.Y > track.Bounds.Height,
-                $"Expected active segment bottom below {track.Bounds.Height:F2}, got {bottom.Y:F2}.");
+            Assert.Equal(0, top.Y, precision: 2);
+            Assert.Equal(track.Bounds.Height, bottom.Y, precision: 2);
             Assert.NotNull(host.GetLastRenderedFrame());
 
             active.Interaction.SetPointerActive(pointerOwner, false);

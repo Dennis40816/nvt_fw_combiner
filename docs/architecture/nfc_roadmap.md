@@ -786,6 +786,50 @@ Native OS deactivation and physical display-DPI/screen-reader certification
 were not simulated; close-on-deactivation uses the same reviewed cleanup.
 Commit-bound final evidence is recorded in the hover37/size38 change records.
 
+Reference-fidelity correction (`UI-114-MEMORY-FIDELITY-39`, 2026-09-08): the
+owner's subsequent visual feedback showed that hover37's functional acceptance
+did not establish full reference fidelity. The approved image is unchanged.
+Correct the concrete deviations: local title/count above the rail and endpoints
+below; remove the enclosing local-card border; use rounded rail framing, fine
+slice boundaries and a non-scaling accent selection outline. Direct and local
+cards share the reference notch/stem, title/status-first hierarchy and a
+popup-only separator above Technical details. Address space and the processing
+summary remain available inside the disclosure; persistent supporting cards
+keep their prior facts and layout. At the 388 px reference viewport the card
+occupies about 68% of the rail width; a 240 px readable minimum and 280 px
+maximum keep narrow and wide layouts bounded.
+
+Card clearance uses the measured local metadata extent on either side. A stem
+crossing a header/endpoint label is interrupted behind that label's measured
+bounds; its terminal still identifies the selected slice center. A flat opaque
+local projection background prevents underlying supporting text from showing
+through, without restoring an enclosing card frame. Main/local weights, ranges,
+small-slice threshold, disconnected-source interaction and firmware output are
+unchanged.
+
+Evidence root: `D:/NvtFwCombiner-TestArea/evidence/v114-memory-fidelity39/`.
+`red/red.trx` reproduces the unwanted local border in both themes;
+`width-red/width-red.trx` reproduces the oversized card (93% of rail width).
+After both corrections, `compact/compact.trx` passes **79/79**, zero skipped, in **28 seconds**
+using the same targeted command above. Coverage includes first/middle/last
+selections at 240/388 px, above/below placement, stem endpoint error at most one
+pixel, no card/text or stem/glyph overlap, and the prior grouping/lifecycle/
+source/AB regressions. The old four rendered height-expansion checks now assert
+the owner-approved non-scaling outline, exact bounds and existing accent color;
+standalone legacy template tests are retained.
+
+Actual full-window NT51950 CtrlRAM captures use the existing canonical input
+fixture loader through public slot-loading APIs, not fabricated IC metadata:
+`compact/memory-ctrlram-{False|True}-leaf.png` (1440x900, EN Light/zh Dark).
+The first visible aggregate here contains declared small processing ranges;
+its facts differ legitimately from the reference's illustrative CtrlRAM data.
+`compact/memory-popup-388-{light-en|dark-zh}-bottom.png` retains the original
+synthetic 512 KiB geometry for like-for-like grouping comparison, and
+`compact/memory-hover-False-False-direct.png` covers the actual NT51929 direct
+card. Primary visual comparison confirms the corrected hierarchy in these
+complete captures. This fixture reuse is UI evidence, not fresh Golden-output
+execution or release verification. Commit-bound review uses records39/40.
+
 ##### Customer-information source presentation — 2026-09-08
 
 Customer-information source follow-up (`UI-114-MEMORY-SOURCE-28`, 2026-09-08):

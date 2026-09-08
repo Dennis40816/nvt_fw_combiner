@@ -249,10 +249,13 @@
       <TextBlock Grid.Row="2" Grid.Column="1" Classes="bodyText" Text="{Binding SourceLabel}" TextWrapping="Wrap" />
     </Grid>
     <TextBlock Classes="captionText memoryInfoDescription" Text="{Binding PreservationSummary}" TextWrapping="Wrap" />
+      <Border Name="MemoryHoverTechnicalSeparator" Classes="memoryHoverOnly" Height="1" Background="{DynamicResource NfcMemoryDividerBrush}" />
       <Expander Classes="inlineDisclosure firmwareSlotGroupDisclosure" MinHeight="28" BorderThickness="0" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" Padding="0" IsExpanded="False"
           AutomationProperties.Name="{ReflectionBinding $parent[Window].DataContext.Text.MemoryProcessingDetailsLabel}">
         <Expander.Header><TextBlock Classes="captionText" Text="{ReflectionBinding $parent[Window].DataContext.Text.MemoryProcessingDetailsLabel}" /></Expander.Header>
         <StackPanel Spacing="6" Margin="0,6,0,0">
+          <TextBlock Classes="captionText memoryHoverOnly" Text="{Binding AddressSpaceId}" TextWrapping="Wrap" />
+          <TextBlock Classes="captionText memoryHoverOnly" Text="{Binding PreservationSummary}" TextWrapping="Wrap" />
           <Border Name="MemoryTechnicalSeparator" Height="1" Background="{DynamicResource NfcMemoryDividerBrush}" Margin="0,0,0,4" />
           <ItemsControl ItemsSource="{Binding ProcessingFacts}" IsVisible="{Binding HasProcessingFacts}">
             <ItemsControl.ItemTemplate>

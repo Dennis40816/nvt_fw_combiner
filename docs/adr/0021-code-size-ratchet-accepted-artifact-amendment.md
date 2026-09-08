@@ -612,3 +612,13 @@ to 139,185 and allowance to 36,289 against unchanged ratchet 102,896.
 Runtime 99,231 and slices 20,757 / 42,708 / 5,039 / 30,727 remain unchanged.
 Counting, exclusions, equality and firmware/Golden/release gates are unchanged;
 this exact accounting introduces no transferable headroom.
+
+## 2026-09-08 memory hover reference-fidelity accounting
+
+`UI-114-MEMORY-FIDELITY-39` adds exactly 79 production lines in the existing
+Presentation control, shared template and scoped style owners. Independent
+R2 admission `UI-114-MEMORY-FIDELITY-SIZE-40` sets exact full production/baseline
+to 139,264 and allowance to 36,368 against unchanged ratchet 102,896.
+Runtime 99,231 and slices 20,757 / 42,708 / 5,039 / 30,727 remain unchanged.
+Counting, exclusions, equality and firmware/Golden/release gates are unchanged;
+this exact accounting introduces no transferable headroom.

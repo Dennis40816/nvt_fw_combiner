@@ -8,6 +8,7 @@ using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
 using Avalonia.Controls.Shapes;
 using Avalonia.Controls.Templates;
+using Avalonia.Data;
 using Avalonia.Input;
 using Avalonia.Layout;
 using Avalonia.Markup.Xaml.MarkupExtensions;
@@ -41,7 +42,7 @@ public sealed class MemoryCoverageBar : UserControl
     private readonly Border _track = new() { Height = 34, ClipToBounds = false };
     private readonly Popup _localPopup = new() { ShouldUseOverlayLayer = true, IsLightDismissEnabled = false };
     private readonly Popup _cardPopup = new() { ShouldUseOverlayLayer = true, IsLightDismissEnabled = false };
-    private readonly Border _local = Surface("MemoryLocalView");
+    private readonly Border _local = new() { Name = "MemoryLocalView" };
     private readonly Border _card = Surface("MemorySliceCard");
     private readonly DispatcherTimer _closeTimer = new() { Interval = TimeSpan.FromMilliseconds(160) };
     private readonly List<Control> _sliceTargets = [];
@@ -63,6 +64,7 @@ public sealed class MemoryCoverageBar : UserControl
         _track.Child = _main;
         Content = new Panel { Children = { _track, _localPopup, _cardPopup } };
         _ = _track.Bind(Border.BackgroundProperty, new DynamicResourceExtension("NfcMemoryTrackBrush"));
+        _ = _local.Bind(Border.BackgroundProperty, new DynamicResourceExtension("NfcSurfaceBrush"));
         MemoryCoverageInteractionBehavior.SetIsEnabled(_card, true);
         _closeTimer.Tick += (_, _) =>
         {
@@ -185,7 +187,7 @@ public sealed class MemoryCoverageBar : UserControl
                 Focusable = true,
                 FocusAdorner = null,
                 Height = 34,
-                Classes = { "memoryCoverageFill", "memoryCoverageLinkedRow" },
+                Classes = { "memoryCoverageFill", "memoryCoverageLinkedRow", "memoryExplorerGroup" },
                 Child = new TextBlock { Text = "⋮", HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center },
             };
             AutomationProperties.SetName(target, GroupSummary(item));
@@ -213,6 +215,19 @@ public sealed class MemoryCoverageBar : UserControl
         Control control = template.Build(slice) ?? throw new InvalidOperationException("The memory bar template must produce a control.");
         control.DataContext = slice;
         control.FocusAdorner = null;
+        control.Classes.Add("memoryExplorerSlice");
+        if (control is Border border)
+        {
+            Control? pattern = border.Child;
+            border.Child = null;
+            var overlay = new Panel();
+            if (pattern is not null) { overlay.Children.Add(pattern); }
+            var outline = new Border { BorderThickness = new Thickness(1), CornerRadius = new CornerRadius(3), IsHitTestVisible = false };
+            _ = outline.Bind(Border.BorderBrushProperty, new DynamicResourceExtension("NfcSurfaceBrush"));
+            _ = outline.Bind(IsVisibleProperty, new Binding("Interaction.IsActive"));
+            overlay.Children.Add(outline);
+            border.Child = overlay;
+        }
         ToolTip.SetTip(control, null);
         return control;
     }
@@ -263,6 +278,7 @@ public sealed class MemoryCoverageBar : UserControl
         CloseAll();
         _activeGroup = item;
         _groupTarget = target;
+        target.Classes.Add("active");
         _local.Width = Bounds.Width;
         var strip = new ProportionalStackPanel { Name = "MemoryLocalStrip", Height = 34, ClipToBounds = false };
         foreach (MemoryCoverageSegmentViewModel slice in item.Slices)
@@ -274,27 +290,31 @@ public sealed class MemoryCoverageBar : UserControl
             _sliceTargets.Add(cell);
             strip.Children.Add(cell);
         }
-        var endpoints = new Grid { ColumnDefinitions = new ColumnDefinitions("*,Auto") };
-        endpoints.Children.Add(new TextBlock { Text = item.StartLabel, Classes = { "technicalValue" } });
+        var endpoints = new Grid { Name = "MemoryLocalEndpoints", ColumnDefinitions = new ColumnDefinitions("*,Auto") };
+        endpoints.Children.Add(new TextBlock { Text = item.StartLabel, Classes = { "technicalValue" }, HorizontalAlignment = HorizontalAlignment.Left });
         var end = new TextBlock { Text = item.EndLabel, Classes = { "technicalValue" } };
         Grid.SetColumn(end, 1);
         endpoints.Children.Add(end);
         var content = new StackPanel { Spacing = 6 };
         double above = _track.TranslatePoint(default, TopLevel.GetTopLevel(this)!)?.Y ?? 0;
-        // Keep the terminal strip at the outward edge so its card cannot cover local metadata.
         _localAbove = above >= 380;
-        if (_localAbove) { content.Children.Add(strip); content.Children.Add(endpoints); }
-        content.Children.Add(new TextBlock { Text = Text.MemoryLocalViewLabel, Classes = { "bodyEmphasisText" }, TextWrapping = TextWrapping.Wrap });
-        content.Children.Add(new TextBlock { Text = $"{item.AddressSpace} · {Text.FormatMemorySliceCount(item.Slices.Count)} · {item.SizeLabel}", Classes = { "captionText" }, TextWrapping = TextWrapping.Wrap });
-        if (!_localAbove) { content.Children.Add(endpoints); content.Children.Add(strip); }
+        var header = new StackPanel { Name = "MemoryLocalHeader", Spacing = 3 };
+        header.Children.Add(new TextBlock { Text = Text.MemoryLocalViewLabel, Classes = { "bodyEmphasisText" }, TextWrapping = TextWrapping.Wrap, HorizontalAlignment = HorizontalAlignment.Left });
+        header.Children.Add(new TextBlock { Text = $"{Text.FormatMemorySliceCount(item.Slices.Count)} · {item.SizeLabel} · {item.AddressSpace}", Classes = { "captionText" }, TextWrapping = TextWrapping.Wrap, HorizontalAlignment = HorizontalAlignment.Left });
+        content.Children.Add(header);
+        var rail = new Border { Name = "MemoryLocalRail", Child = strip, BorderThickness = new Thickness(1), Padding = new Thickness(2), CornerRadius = new CornerRadius(5) };
+        _ = rail.Bind(Border.BorderBrushProperty, new DynamicResourceExtension("NfcBorderMutedBrush"));
+        content.Children.Add(rail);
+        content.Children.Add(endpoints);
         _local.Child = content;
-        var connector = new Canvas { Height = 16 };
+        var connector = new Canvas { Height = 32 };
         double left = target.TranslatePoint(default, _track)?.X ?? 0;
-        foreach ((double localX, double mainX) in new[] { (12d, left), (Bounds.Width - 12, left + target.Bounds.Width) })
+        foreach ((double localX, double mainX) in new[] { (3d, left), (Bounds.Width - 3, left + target.Bounds.Width) })
         {
-            connector.Children.Add(Connector(new Point(localX, _localAbove ? 0 : 16), new Point(mainX, _localAbove ? 16 : 0)));
+            connector.Children.Add(Connector(new Point(localX, _localAbove ? 0 : 32), new Point(mainX, _localAbove ? 32 : 0)));
         }
         StackPanel frame = PopupFrame(_local, connector, _localAbove);
+        _ = frame.Bind(Panel.BackgroundProperty, new DynamicResourceExtension("NfcSurfaceBrush"));
         _localPopup.Child = frame;
         _localPopup.Width = Bounds.Width;
         _localPopup.PlacementTarget = _track;
@@ -311,25 +331,34 @@ public sealed class MemoryCoverageBar : UserControl
         _card.DataContext = slice;
         var details = new ContentControl { Content = slice, HorizontalContentAlignment = HorizontalAlignment.Stretch, ContentTemplate = (IDataTemplate)this.FindResource("MemoryCoverageRegionCardTemplate")! };
         var content = new StackPanel { Spacing = 8 };
-        if (!string.IsNullOrWhiteSpace(slice.AddressSpaceId))
-        {
-            content.Children.Add(new TextBlock { Text = slice.AddressSpaceId, Classes = { "captionText" } });
-        }
         content.Children.Add(details);
         _card.Child = new ScrollViewer { Content = content, HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled };
         TopLevel top = TopLevel.GetTopLevel(this)!;
         Point origin = target.TranslatePoint(default, top) ?? default;
         double below = top.Bounds.Height - origin.Y - target.Bounds.Height;
         bool above = preferredAbove ?? (origin.Y >= 250 || origin.Y > below);
-        double available = (above ? origin.Y : below) - 20;
+        // Keep the approved header above the strip, with the card above that header.
+        Point localOrigin = _local.TranslatePoint(default, top) ?? default;
+        double connectorHeight = preferredAbove.HasValue
+            ? Math.Max(20, (above ? origin.Y - localOrigin.Y : localOrigin.Y + _local.Bounds.Height - origin.Y - target.Bounds.Height) + 12)
+            : 20;
+        double available = (above ? origin.Y : below) - connectorHeight - 8;
         _card.MaxHeight = Math.Max(64, available);
-        double width = Math.Min(360, Math.Min(Bounds.Width, top.Bounds.Width - 16));
+        double width = Math.Min(Math.Clamp(Bounds.Width * 0.68, 240, 280), top.Bounds.Width - 16);
         _card.Width = width;
         double center = origin.X + (target.Bounds.Width / 2);
         double left = Math.Clamp(center - (width / 2), 8, Math.Max(8, top.Bounds.Width - width - 8));
         double anchor = center - left;
-        var connector = new Canvas { Height = 8 };
-        connector.Children.Add(Connector(new Point(anchor, 0), new Point(anchor, 8)));
+        double connectorTop = above ? origin.Y - connectorHeight : origin.Y + target.Bounds.Height;
+        Rect[] labels = preferredAbove.HasValue
+            ? [.. _local.GetVisualDescendants().OfType<TextBlock>().Where(static block => block.IsEffectivelyVisible)
+                .Select(block =>
+                {
+                    Point point = block.TranslatePoint(default, top) ?? default;
+                    return new Rect(point.X - left, point.Y - connectorTop, block.Bounds.Width, block.Bounds.Height);
+                })]
+            : [];
+        Canvas connector = CardConnector(anchor, connectorHeight, above, labels);
         _cardPopup.Child = PopupFrame(_card, connector, above);
         _cardPopup.Width = width;
         _cardPopup.PlacementTarget = target;
@@ -342,8 +371,41 @@ public sealed class MemoryCoverageBar : UserControl
     private static Line Connector(Point start, Point end)
     {
         var line = new Line { StartPoint = start, EndPoint = end, StrokeThickness = 1, IsHitTestVisible = false };
-        _ = line.Bind(Shape.StrokeProperty, new DynamicResourceExtension("NfcAccentStrongBrush"));
+        _ = line.Bind(Shape.StrokeProperty, new DynamicResourceExtension("NfcBorderMutedBrush"));
         return line;
+    }
+
+    private static Canvas CardConnector(double anchor, double height, bool above, IReadOnlyList<Rect> labels)
+    {
+        var canvas = new Canvas { Height = height, ClipToBounds = false };
+        double edge = above ? -1 : height + 1;
+        double tip = above ? 6 : height - 6;
+        double terminal = above ? height : 0;
+        var points = new List<Point> { new(anchor - 6, edge), new(anchor, tip), new(anchor + 6, edge) };
+        var fill = new Polygon { Name = "MemoryCardNotch", Points = points, IsHitTestVisible = false };
+        _ = fill.Bind(Shape.FillProperty, new DynamicResourceExtension("NfcSurfaceBrush"));
+        canvas.Children.Add(fill);
+        var outline = new Polyline { Points = points, StrokeThickness = 1, IsHitTestVisible = false };
+        _ = outline.Bind(Shape.StrokeProperty, new DynamicResourceExtension("NfcBorderMutedBrush"));
+        canvas.Children.Add(outline);
+        // A left-edge slice may align with local text. Interrupt only the decorative
+        // stem behind those glyph bounds; its endpoint still identifies the exact slice.
+        double cursor = Math.Min(tip, terminal);
+        double limit = Math.Max(tip, terminal);
+        foreach (Rect label in labels.Where(rect => anchor >= rect.Left - 2 && anchor <= rect.Right + 2).OrderBy(static rect => rect.Top))
+        {
+            double start = Math.Clamp(label.Top - 2, cursor, limit);
+            if (start > cursor) { canvas.Children.Add(Connector(new Point(anchor, cursor), new Point(anchor, start))); }
+            cursor = Math.Clamp(label.Bottom + 2, start, limit);
+        }
+        if (cursor < limit) { canvas.Children.Add(Connector(new Point(anchor, cursor), new Point(anchor, limit))); }
+        var dot = new Ellipse { Name = "MemoryCardAnchor", Width = 4, Height = 4, StrokeThickness = 1, IsHitTestVisible = false };
+        _ = dot.Bind(Shape.StrokeProperty, new DynamicResourceExtension("NfcAccentStrongBrush"));
+        _ = dot.Bind(Shape.FillProperty, new DynamicResourceExtension("NfcSurfaceBrush"));
+        Canvas.SetLeft(dot, anchor - 2);
+        Canvas.SetTop(dot, terminal - 2);
+        canvas.Children.Add(dot);
+        return canvas;
     }
 
     private StackPanel PopupFrame(Control body, Control connector, bool above)
@@ -424,6 +486,7 @@ public sealed class MemoryCoverageBar : UserControl
         _local.Child = null;
         _sliceTargets.Clear();
         _activeGroup = null;
+        _ = _groupTarget?.Classes.Remove("active");
         _groupTarget = null;
     }
 }

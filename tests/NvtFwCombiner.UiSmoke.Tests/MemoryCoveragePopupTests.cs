@@ -231,12 +231,20 @@ public sealed class MemoryCoveragePopupTests
             Border card = Assert.IsType<Border>(FindNamed<Border>(window, "MemorySliceCard"));
             Assert.Same(slices[6], card.DataContext);
             Assert.True(BoundsInWindow(local, window).Bottom < BoundsInWindow(bar, window).Top);
+            Assert.InRange(card.Bounds.Width / bar.Bounds.Width, 0.65, 0.72);
             for (int tick = 0; tick < 4; tick++)
             {
                 await Task.Delay(TimeSpan.FromMilliseconds(80), TestContext.Current.CancellationToken);
                 Render();
             }
             Capture(window, darkChinese ? "388-dark-zh-bottom" : "388-light-en-bottom");
+            Assert.Equal(new Thickness(0), local.BorderThickness);
+            TextBlock heading = Assert.Single(local.GetVisualDescendants().OfType<TextBlock>(),
+                block => block.Text == ((ShellTextResources)bar.Labels!).MemoryLocalViewLabel);
+            Assert.True(BoundsInWindow(heading, window).Bottom < BoundsInWindow(LocalStrip(local), window).Top);
+            Assert.True(BoundsInWindow(card, window).Bottom < BoundsInWindow(heading, window).Top);
+            Assert.Contains(window.GetVisualDescendants().OfType<Control>(), control => control.Name == "MemoryCardNotch");
+            Assert.Contains(card.GetVisualDescendants().OfType<Border>(), control => control.Name == "MemoryHoverTechnicalSeparator" && control.IsEffectivelyVisible);
             Assert.True(BoundsInWindow(card, window).Bottom < BoundsInWindow(LocalStrip(local), window).Top,
                 $"Card {BoundsInWindow(card, window)}, strip {BoundsInWindow(LocalStrip(local), window)}, local {BoundsInWindow(local, window)}");
         }
@@ -244,6 +252,52 @@ public sealed class MemoryCoveragePopupTests
         {
             window.Close();
         }
+    }
+
+    /// <summary>Edge selections retain exact anchors and never draw their stem through local text.</summary>
+    [AvaloniaTheory]
+    [InlineData(240, false)]
+    [InlineData(240, true)]
+    [InlineData(388, false)]
+    [InlineData(388, true)]
+    public void EdgeCardsKeepMetadataAndAnchorsClear(int width, bool above)
+    {
+        MemoryCoverageSegmentViewModel[] slices = MemoryCoverageBarProjectionTests.Example();
+        Window window = above ? CreateBottomWindow(false, slices, out MemoryCoverageBar bar) : CreateWindow(width, false, slices, out bar);
+        window.Width = width + 32;
+        Render();
+        bar.ReducedMotion = true;
+        try
+        {
+            foreach (int index in new[] { 0, 5, 7 })
+            {
+                OpenGroupedCard(window, bar, index);
+                Border local = Assert.IsType<Border>(FindNamed<Border>(window, "MemoryLocalView"));
+                Border card = Assert.IsType<Border>(FindNamed<Border>(window, "MemorySliceCard"));
+                ProportionalStackPanel strip = LocalStrip(local);
+                Rect leaf = BoundsInWindow(strip.Children[index], window);
+                Rect body = BoundsInWindow(card, window);
+                global::Avalonia.Controls.Shapes.Ellipse dot = Assert.Single(window.GetVisualDescendants().OfType<global::Avalonia.Controls.Shapes.Ellipse>(), item => item.Name == "MemoryCardAnchor");
+                Assert.InRange(Math.Abs(BoundsInWindow(dot, window).Center.X - leaf.Center.X), 0, 1);
+                Assert.InRange(Math.Abs(BoundsInWindow(dot, window).Center.Y - (above ? leaf.Top : leaf.Bottom)), 0, 1);
+                Assert.InRange(body.Left, 7, window.Bounds.Width);
+                Assert.True(body.Right <= window.Bounds.Width - 7);
+                Assert.True(body.Top >= 0 && body.Bottom <= window.Bounds.Height);
+                foreach (TextBlock label in local.GetVisualDescendants().OfType<TextBlock>())
+                {
+                    Rect text = BoundsInWindow(label, window);
+                    Assert.False(body.Intersects(text), $"Card {body} overlaps {label.Text} at {text}; above={above}");
+                    foreach (global::Avalonia.Controls.Shapes.Line line in dot.GetVisualParent()!.GetVisualDescendants().OfType<global::Avalonia.Controls.Shapes.Line>())
+                    {
+                        Point lineStart = line.TranslatePoint(line.StartPoint, window)!.Value;
+                        Point lineEnd = line.TranslatePoint(line.EndPoint, window)!.Value;
+                        Assert.False(text.Contains(lineStart) || text.Contains(lineEnd));
+                        Assert.False(lineStart.X >= text.Left && lineStart.X <= text.Right && lineStart.Y < text.Top && lineEnd.Y > text.Bottom);
+                    }
+                }
+            }
+        }
+        finally { window.Close(); }
     }
 
     private static void OpenGroupedCard(Window window, MemoryCoverageBar bar, int localSliceIndex = 0)

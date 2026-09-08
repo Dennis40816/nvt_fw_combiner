@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 2,
+  "taskId": "UI-114-MEMORY-FIDELITY-39",
+  "capability": "Restore the approved memory hover reference hierarchy and slice anchors",
+  "integrationBase": "372f347951415a228b587b1b3a768b6710a68eda",
+  "risk": "R1",
+  "kind": "ui",
+  "state": "design-active",
+  "mutablePaths": ["src/NvtFwCombiner.Presentation.Avalonia/Views/MemoryCoverageBar.cs", "src/NvtFwCombiner.Presentation.Avalonia/Styles/MemoryCoverageStyles.axaml", "src/NvtFwCombiner.Presentation.Avalonia/Resources/MainWindowSharedTemplates.axaml"],
+  "implementationOwner": "primary-agent",
+  "searchEvidence": ["CodeGraph locates existing MemoryCoverageBar local/card popup owners, raw typed projection and shared region-card template. Prior actual388px capture reverses header ordering, adds an outer local card and omits notch/selected outline; independent Terra visual inventory confirms these deviations from docs/ui/references/v1.1.4-memory-hover-cards-approved.png."],
+  "semanticOwner": "Existing Presentation MemoryCoverageBar owns overlay geometry; shared MemoryCoverageStyles and region-card template own styling/facts. Application/profile range/source semantics and physical grouping owners remain unchanged.",
+  "terminalContract": "Match approved reference at real app widths: local header/count above strip, endpoints below, no enclosing local-card border, rounded outlined strip with visible slice boundaries and non-distorting selected accent outline; direct/local cards share notch/stem precisely anchored to slice center. Card title/status first, technical separator only for hover cards, address-space/detail facts remain available without a top caption. Keep main/local anchors fixed, no metadata occlusion, same pointer/keyboard/cleanup/reduced-motion behavior; geometry red/green and EN Light/zh Dark captures, scoped review, unit commit. No firmware, grouping threshold/contiguity, release or unrelated UI scope.",
+  "disposition": "extend-owner",
+  "designReview": {"reviewer": null, "outcome": "not-required", "evidence": "Owner requests correction to the already approved reference; R1 localized geometry/styles. Terra/high read-only inventory confirms concrete mismatches and required geometric relationships, not a new design approval."},
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": {"reviewer": null, "outcome": "pending", "evidence": ""}
+}
