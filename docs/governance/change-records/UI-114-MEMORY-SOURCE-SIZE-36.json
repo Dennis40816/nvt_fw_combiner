@@ -5,7 +5,7 @@
   "integrationBase": "086ba7d2223f6b3b3a002887cc2106f3c38f6b49",
   "risk": "R2",
   "kind": "governance",
-  "state": "design-active",
+  "state": "final-complete",
   "mutablePaths": ["scripts/code_size_policy.py", "docs/adr/0021-code-size-ratchet-accepted-artifact-amendment.md"],
   "implementationOwner": "primary-agent",
   "searchEvidence": ["Independent measure_code_size confirms full138729 versus reviewed138717; source35 adds12 lines. Existing DEFAULT_LIMITS and tests/scripts/test_code_size_policy.py require exact current baseline; ADR0021 owns admitted accounting."],
@@ -13,8 +13,8 @@
   "terminalContract": "Set exact full/baseline138729 and allowance35833 only. Preserve ratchet102896, runtime99231, slices20757/42708/5039/30727, counting/equality/exclusions and all gates. No headroom or firmware/release changes. Run accounting cases and fixed-head review with source35 narrow evidence.",
   "disposition": "extend-owner",
   "designReview": {"reviewer": "memory_hover_inventory", "outcome": "approved", "evidence": "Independent GPT-5.6 Terra/high R2 design approval before policy edits: measured full138729(+12), allowance35833, runtime99231 and slices unchanged. Unconditional exact bookkeeping admission; no headroom or counting/gate changes."},
-  "implementationHead": null,
-  "reviewedHead": null,
-  "pathStateDigest": null,
-  "finalReview": {"reviewer": null, "outcome": "pending", "evidence": ""}
+  "implementationHead": "f1d223b94d4a24060ecb78b8fa0efb6b51c87e50",
+  "reviewedHead": "f1d223b94d4a24060ecb78b8fa0efb6b51c87e50",
+  "pathStateDigest": "2fce1d8c859ef59ce0b887a562ac7d4086b0efadedbdd06fd0c8271a37fc0635",
+  "finalReview": {"reviewer": "memory_hover_inventory", "outcome": "approved", "evidence": "Independent GPT-5.6 Terra/high fixed-head scoped Polytail PASS f1d223b9, no unresolved P0-P3. Source purpose/initializer/unknown/reference and accessibility remain truthful; no firmware or geometry change. Independently measured full138729/allowance35833 and unchanged runtime99231/slices. UI TRX48/48 zero skipped inspected; primary accounting19/19 in26.927s reused. EN Light and zh Dark actual screenshots inspected by primary. Records cover exact governed paths."}
 }
