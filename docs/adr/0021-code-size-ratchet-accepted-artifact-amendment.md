@@ -574,3 +574,13 @@ source. Independent R2 measurement/admission sets full production 138,763 and
 allowance 35,867 against unchanged ratchet 102,896. Runtime 99,231 and slices
 20,757 / 42,708 / 5,039 / 30,727 remain unchanged. The exact baseline follows;
 no headroom, measurement/exclusion or firmware/release/Golden gate changes.
+
+## 2026-09-08 narrow region-card consolidation accounting
+
+`UI-114-MEMORY-CARDS-31` consolidates the two physical region-row layouts into
+one shared card, reducing full production by 55 nonblank lines. Independent
+R2 admission `UI-114-MEMORY-CARDS-ACCOUNTING-32` sets the exact full ceiling
+and baseline to 138,708 and allowance to 35,812 against unchanged ratchet
+102,896. Runtime 99,231 and slices 20,757 / 42,708 / 5,039 / 30,727 remain
+unchanged. Equality, counting, exclusions and firmware/release/Golden gates
+are unchanged; the reduction grants no transferable headroom.
