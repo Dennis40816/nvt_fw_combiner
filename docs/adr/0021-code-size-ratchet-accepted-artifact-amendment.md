@@ -491,3 +491,15 @@ there is no transferable headroom. Runtime stays 99,170, with slices
 20,757 / 42,647 / 5,039 / 30,727 and all their allowances unchanged. Measurement
 algorithms, exclusions, duplicate checks, synthetic tests and release/Golden
 gates are unchanged. This is not a firmware or CRC-calculation change.
+
+## 2026-09-08 Settings Version presentation accounting
+
+For `UI-114-SETTINGS-VERSION-19`, canonical full production is exactly 138,594
+nonblank lines, 17 above 138,577. Independent R2 review admits that increment
+for the existing Presentation owners: accessible per-row Catalog-note
+disclosure, compact source/list arrangement and font-independent information
+indicators. The exact allowance is 35,698 against the unchanged 102,896
+ratchet, with no transferable headroom. Runtime stays 99,170 with slices
+20,757 / 42,647 / 5,039 / 30,727 and all their allowances unchanged.
+Measurement algorithms, exclusions, duplicate checks, synthetic tests,
+version-management/firmware behavior and release/Golden gates are unchanged.

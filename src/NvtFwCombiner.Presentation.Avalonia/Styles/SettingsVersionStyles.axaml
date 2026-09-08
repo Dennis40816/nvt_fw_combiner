@@ -27,8 +27,8 @@
     <Setter Property="FontSize" Value="{DynamicResource NfcFontSize14}" />
   </Style>
   <Style Selector="Border.versionUpdateBanner">
-    <Setter Property="MinHeight" Value="84" />
-    <Setter Property="Padding" Value="20,12" />
+    <Setter Property="MinHeight" Value="64" />
+    <Setter Property="Padding" Value="20,10" />
   </Style>
   <Style Selector="Border.versionSourceEditor">
     <Setter Property="Background" Value="{DynamicResource NfcSurfaceBrush}" />
@@ -39,15 +39,6 @@
   </Style>
   <Style Selector="Border.versionSourceEditor:focus-within">
     <Setter Property="BorderBrush" Value="{DynamicResource NfcAccentBrush}" />
-  </Style>
-  <Style Selector="Border.versionSourceStatusSegment">
-    <Setter Property="Background" Value="{DynamicResource NfcAccentSurfaceSubtleBrush}" />
-    <Setter Property="BorderBrush" Value="{DynamicResource NfcAccentBorderBrush}" />
-    <Setter Property="BorderThickness" Value="0,0,2,0" />
-  </Style>
-  <Style Selector="Border.versionSourceStatusSegment.connected">
-    <Setter Property="Background" Value="{DynamicResource NfcSuccessSurfaceBrush}" />
-    <Setter Property="BorderBrush" Value="{DynamicResource NfcSuccessBorderBrush}" />
   </Style>
   <Style Selector="Path.versionSourceStatusIcon">
     <Setter Property="Fill" Value="Transparent" />

@@ -183,44 +183,66 @@
 
 <DataTemplate x:Key="SettingsVersionRowTemplate" DataType="vm:SettingsVersionRowViewModel">
   <Border Classes="versionTableRow">
-    <Grid MinHeight="52" Margin="14,0" ColumnDefinitions="1.1*,1.4*,1*,Auto,38" ColumnSpacing="{DynamicResource NfcSpace12}">
-      <TextBlock VerticalAlignment="Center" Classes="bodyStrongText versionRowPrimary" Text="{Binding VersionLabel}" />
-      <StackPanel Grid.Column="1" VerticalAlignment="Center" Orientation="Horizontal" Spacing="{DynamicResource NfcSpace8}">
-        <Ellipse
-            Width="8"
-            Height="8"
+    <StackPanel>
+      <Grid MinHeight="58" Margin="14,0" ColumnDefinitions="1.1*,1.4*,1*,Auto,32,32" ColumnSpacing="{DynamicResource NfcSpace12}">
+        <TextBlock VerticalAlignment="Center" Classes="bodyStrongText versionRowPrimary" Text="{Binding VersionLabel}" />
+        <StackPanel Grid.Column="1" VerticalAlignment="Center" Orientation="Horizontal" Spacing="{DynamicResource NfcSpace8}">
+          <Ellipse
+              Width="8"
+              Height="8"
+              VerticalAlignment="Center"
+              Classes="versionStatusDot"
+              Classes.available="{Binding IsAvailable}"
+              Classes.damaged="{Binding IsDamaged}"
+              Classes.healthy="{Binding IsHealthyInstalled}" />
+          <TextBlock VerticalAlignment="Center" Classes="captionText versionRowStatus" Text="{Binding StatusLabel}" TextWrapping="Wrap" />
+        </StackPanel>
+        <TextBlock Grid.Column="2" VerticalAlignment="Center" Classes="technicalCaption versionRowPublished" Text="{Binding PublishedLabel}" />
+        <Button
+            Grid.Column="3"
+            MinWidth="88"
             VerticalAlignment="Center"
-            Classes="versionStatusDot"
-            Classes.available="{Binding IsAvailable}"
-            Classes.damaged="{Binding IsDamaged}"
-            Classes.healthy="{Binding IsHealthyInstalled}" />
-        <TextBlock VerticalAlignment="Center" Classes="captionText versionRowStatus" Text="{Binding StatusLabel}" TextWrapping="Wrap" />
-      </StackPanel>
-      <TextBlock Grid.Column="2" VerticalAlignment="Center" Classes="technicalCaption versionRowPublished" Text="{Binding PublishedLabel}" />
-      <Button
-          Grid.Column="3"
-          MinWidth="88"
-          VerticalAlignment="Center"
-          AutomationProperties.Name="{Binding PrimaryActionLabel}"
-          Classes="semanticAction versionTableAction"
-          Command="{ReflectionBinding $parent[Window].DataContext.Settings.RequestVersionPrimaryActionCommand}"
-          CommandParameter="{Binding}"
-          Content="{Binding PrimaryActionLabel}"
-          IsEnabled="{Binding HasPrimaryAction}" />
-      <Button
-          Grid.Column="4"
-          MinHeight="32"
-          MinWidth="32"
-          VerticalAlignment="Center"
-          AutomationProperties.Name="{Binding DeleteActionLabel}"
-          Classes="semanticAction iconButton danger"
-          Command="{ReflectionBinding $parent[Window].DataContext.Settings.RequestDeleteVersionCommand}"
-          CommandParameter="{Binding}"
-          IsVisible="{Binding CanDelete}"
-          ToolTip.Tip="{Binding DeleteActionLabel}">
-        <Path Width="14" Height="14" Data="M3 4H13 M6 4V2H10V4 M5 6V13 M8 6V13 M11 6V13 M4 4L5 15H11L12 4Z" Stretch="Uniform" />
-      </Button>
-    </Grid>
+            AutomationProperties.Name="{Binding PrimaryActionLabel}"
+            Classes="semanticAction versionTableAction"
+            Command="{ReflectionBinding $parent[Window].DataContext.Settings.RequestVersionPrimaryActionCommand}"
+            CommandParameter="{Binding}"
+            Content="{Binding PrimaryActionLabel}"
+            IsEnabled="{Binding HasPrimaryAction}" />
+        <Button
+            Grid.Column="4"
+            MinHeight="32"
+            MinWidth="32"
+            VerticalAlignment="Center"
+            AutomationProperties.Name="{Binding DeleteActionLabel}"
+            Classes="semanticAction iconButton danger"
+            Command="{ReflectionBinding $parent[Window].DataContext.Settings.RequestDeleteVersionCommand}"
+            CommandParameter="{Binding}"
+            IsVisible="{Binding CanDelete}"
+            ToolTip.Tip="{Binding DeleteActionLabel}">
+          <Path Width="14" Height="14" Data="M3 4H13 M6 4V2H10V4 M5 6V13 M8 6V13 M11 6V13 M4 4L5 15H11L12 4Z" Stretch="Uniform" />
+        </Button>
+        <ToggleButton x:Name="VersionNotesToggle" Grid.Column="5" Width="32" Height="32" Padding="0"
+                      VerticalAlignment="Center" HorizontalContentAlignment="Center" Classes="inlineDisclosure"
+                      IsVisible="{Binding HasReleaseNotes}" IsChecked="{Binding IsReleaseNotesExpanded, Mode=TwoWay}"
+                      ToolTip.Tip="{ReflectionBinding $parent[Window].DataContext.Settings.ViewReleaseNotesLabel}">
+          <AutomationProperties.Name>
+            <MultiBinding StringFormat="{}{0}: {1}">
+              <ReflectionBinding Path="DataContext.Settings.ViewReleaseNotesLabel" RelativeSource="{RelativeSource AncestorType={x:Type Window}}" />
+              <Binding Path="VersionLabel" />
+            </MultiBinding>
+          </AutomationProperties.Name>
+          <Grid Width="12" Height="12">
+            <Path Data="M2 4L6 8L10 4" Fill="Transparent" Stroke="{DynamicResource NfcTextStrongBrush}" StrokeThickness="1.5"
+                  RenderTransform="translate(0px, 2px)" IsVisible="{Binding !#VersionNotesToggle.IsChecked}" />
+            <Path Data="M2 8L6 4L10 8" Fill="Transparent" Stroke="{DynamicResource NfcTextStrongBrush}" StrokeThickness="1.5"
+                  RenderTransform="translate(0px, 2px)" IsVisible="{Binding #VersionNotesToggle.IsChecked}" />
+          </Grid>
+        </ToggleButton>
+      </Grid>
+      <Border Padding="14,12" Background="{DynamicResource NfcSurfaceSubtleBrush}" IsVisible="{Binding #VersionNotesToggle.IsChecked}">
+        <TextBlock Classes="supportingText versionReleaseNotes" Text="{Binding ReleaseNotes}" TextWrapping="Wrap" />
+      </Border>
+    </StackPanel>
   </Border>
 </DataTemplate>
 

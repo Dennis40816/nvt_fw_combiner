@@ -11,6 +11,35 @@ public sealed partial class VersionManagementSettingsTests
     private const string Hash =
         "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
 
+    /// <summary>Refreshing the list never submits an in-progress source edit.</summary>
+    [Fact]
+    public async Task CheckNowPreservesDraftAndSourceUntilExplicitConfirmation()
+    {
+        var experience = new RecordingVersionExperience(Snapshot(false, "saved-source"));
+        MainWindowViewModel vm = MainWindow.CreateStartupViewModel(
+            PresentationTestHost.CreateServices("0.10.5", experience), ShellPreferenceSnapshot.Default);
+        vm.Settings.ApplyVersionSnapshot(experience.Current);
+        vm.Settings.BeginEditUpdateSourceCommand.Execute(null);
+        vm.Settings.UpdateSourceDraft = "unsaved-source";
+
+        await vm.Settings.CheckNowCommand.ExecuteAsync(null);
+
+        Assert.Equal(1, experience.Checks);
+        Assert.Null(experience.LastCommittedUpdateSource);
+        Assert.Equal("saved-source", vm.Settings.UpdateSourcePath);
+        Assert.Equal("unsaved-source", vm.Settings.UpdateSourceDraft);
+        Assert.True(vm.Settings.IsUpdateSourceEditing);
+        Assert.False(vm.Settings.IsVersionBusy);
+        vm.Settings.CancelEditUpdateSourceCommand.Execute(null);
+        Assert.Equal("saved-source", vm.Settings.UpdateSourceDraft);
+        Assert.Null(experience.LastCommittedUpdateSource);
+        vm.Settings.BeginEditUpdateSourceCommand.Execute(null);
+        vm.Settings.UpdateSourceDraft = "confirmed-source";
+        await vm.Settings.ConfirmUpdateSourceCommand.ExecuteAsync(null);
+        Assert.Equal("confirmed-source", experience.LastCommittedUpdateSource);
+        Assert.False(vm.Settings.IsUpdateSourceEditing);
+    }
+
     /// <summary>Retention opens Version and Keep all clears only the reminder.</summary>
     [Fact]
     public async Task RetentionReminderOpensVersionAndKeepsEveryInstalledVersion()
@@ -489,6 +518,8 @@ public sealed partial class VersionManagementSettingsTests
 
         internal int SelfTests { get; private set; }
 
+        internal int Checks { get; private set; }
+
         public ValueTask<VersionManagementSnapshot> InitializeAsync(CancellationToken cancellationToken)
         {
             return ValueTask.FromResult(Current);
@@ -504,6 +535,7 @@ public sealed partial class VersionManagementSettingsTests
             bool isAutomatic,
             CancellationToken cancellationToken)
         {
+            Checks++;
             return ValueTask.FromResult(Current);
         }
 
