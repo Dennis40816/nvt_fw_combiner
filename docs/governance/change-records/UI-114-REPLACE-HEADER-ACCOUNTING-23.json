@@ -5,7 +5,7 @@
   "integrationBase": "cb39dd0ad39648474af73c19e3a42ae29ea455d6",
   "risk": "R2",
   "kind": "governance",
-  "state": "design-active",
+  "state": "final-complete",
   "mutablePaths": ["scripts/code_size_policy.py", "docs/adr/0021-code-size-ratchet-accepted-artifact-amendment.md"],
   "implementationOwner": "primary-agent",
   "searchEvidence": ["Canonical measure_code_size and current baseline test confirm full138723/runtime99231/slices20757,42708,5039,30727. Existing DEFAULT_LIMITS and ADR0021 exact ledger are the only changed accounting owners."],
@@ -13,8 +13,8 @@
   "terminalContract": "Record exactly +19 full-production lines for owner-approved UI-114-REPLACE-HEADER-23: full138723 and allowance35827 against unchanged102896 ratchet. Runtime and all slices, algorithms, exclusions, duplicate/partial checks, firmware/release gates unchanged. No transferable headroom. Update baseline test to canonical measured value, run accounting19 and fixed-head scoped independent review.",
   "disposition": "reuse",
   "designReview": {"reviewer": "ui_presentation_review", "outcome": "approved", "evidence": "Independent R2 exact accounting admission PASS before accounting edits: full138723,+19,allowance35827,runtime99231,slices20757/42708/5039/30727; only the necessary owner-approved header styles, no additional headroom or measurement changes."},
-  "implementationHead": null,
-  "reviewedHead": null,
-  "pathStateDigest": null,
-  "finalReview": {"reviewer": null, "outcome": "pending", "evidence": ""}
+  "implementationHead": "aa387fb77f87966f9abc9f36361f9449b41a34bd",
+  "reviewedHead": "aa387fb77f87966f9abc9f36361f9449b41a34bd",
+  "pathStateDigest": "454b37bae579f0155e88949e9d81fb7b24abff376deb11a29a38026c0a3b7f5c",
+  "finalReview": {"reviewer": "ui_presentation_review", "outcome": "approved", "evidence": "Independent fixed-head R2 scoped Polytail PASS at aa387fb7 with no P0-P3; exact ledger full138723/allowance35827. Prior independent measurement confirmed runtime99231/slices20757,42708,5039,30727 unchanged. Algorithms, ratchets, exclusions, duplicate and partial checks retained; no headroom or firmware/release gate changes. Primary ran python -m unittest discover -s tests/scripts -p test_code_size_policy.py:19/19 pass26.835s. Reviewer explicitly separates directly read UI18/18 TRX and primary-observed accounting test evidence."}
 }
