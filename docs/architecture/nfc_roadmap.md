@@ -580,6 +580,41 @@ The eight intended cases cover isolated 430/360 px CtrlRAM rails in EN/zh-TW
 and Light/Dark, not whole-window or native DPI acceptance. Capture-host progress
 must be diagnosed before reusing this seam; the cause is not established.
 
+##### Customer-information source presentation — 2026-09-08
+
+Customer-information source follow-up (`UI-114-MEMORY-SOURCE-28`, 2026-09-08):
+owner approved separating section purpose from byte source. The first bounded
+unit changes only customer-information presentation in the existing flat/plain
+rows and shared tooltip, plus the Plan source label. The heading now names
+`Customer information` / `客戶資訊`; a separate caption renders the existing
+typed source after the range. Existing protection detail, neutral hue,
+reference-kept priority, Reserved/no-source fallback and firmware operations
+remain unchanged. Grouped CtrlRAM layout, fill-byte explanation, CRC naming,
+physical grouping and General conflict geometry remain later scopes.
+
+Admission: [UI-114-MEMORY-SOURCE-28](../governance/change-records/UI-114-MEMORY-SOURCE-28.json).
+Evidence root: `D:/NvtFwCombiner-TestArea/evidence/v114-memory-source/`.
+`red/red.trx` fails three NT51950/NT51951 source/localization cases against the
+old Reserved label. `green/green.trx` passes 13 scoped cases. After adding range
+before source ordering, `final/final.trx` passes 21 of 22; its sole failure is
+an incorrect new AB test assumption. The canonical NT51929 AB family declares
+CMI as command/code regions, not CustomerInformation. The corrected test asserts
+that actual typed distinction and unchanged DP AB labels rather than inventing
+a customer-information role. `final/source-corrected.trx` passes that case plus
+two strengthened DP/no-source-before checks (3/3, 5 s). Combined final evidence
+covers all 22 selected cases; it is not a fresh full-suite pass. Accounting tests
+pass 19/19 in 27.180 s, with independently admitted full138763/allowance35867
+(+19), unchanged runtime/slices and no new headroom.
+
+Four `final/memory-source-<light|dark>-<en|zh>.png` captures exercise the actual
+shared templates with a synchronous typed fixture. The primary inspected EN
+Light and zh Dark including non-empty tooltip labels, range/source order and
+protected wording. These are isolated template comparison frames, not fresh
+full-window, native DPI or screen-reader acceptance. The previously stalled
+async GoldenCtrlRam capture is not rerun or claimed fixed by this new seam.
+Final source/review are bound in the admission record; this is local work,
+not release or support promotion.
+
 ##### Current Home and Settings inventory follow-up
 
 On production source `c3c81ba2`, the primary inspected eight current real

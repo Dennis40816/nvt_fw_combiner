@@ -215,6 +215,8 @@ internal static partial class UiCompositionRunner
                     ShellTextResources.GetCtrlRamRegionTechnicalLabel(segment.CtrlRamRegionRole))
                 : IsReferenceKept(segment)
                 ? new(MemoryPlanSourceKind.BaseFirmware)
+                : segment.ContentRole == MemoryContentRole.CustomerInformation && segment.SourceSpaceId is { } customerSource
+                ? AddressSpaceSource(customerSource)
                 : segment.ContentRole is
             MemoryContentRole.CustomerInformation or
             MemoryContentRole.Reserved

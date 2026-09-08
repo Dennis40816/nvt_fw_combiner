@@ -129,7 +129,7 @@ public sealed partial class DpReplaceWorkflowTests
                 "Output range will be overlaid from TP BIN."),
             segment => AssertCoverageSegment(
                 segment,
-                "Reserved",
+                "DP BIN",
                 "0x37000-0x37FFF (len 0x1000)",
                 MemoryCoverageFillRole.Neutral,
                 "Protected customer information is supplied by DP BIN; TP overlay does not write here."),
@@ -140,6 +140,9 @@ public sealed partial class DpReplaceWorkflowTests
                 MemoryCoverageFillRole.Dp,
                 "Output range will be copied from DP BIN."));
         Assert.DoesNotContain(viewModel.Merge.MergeCoverageSegments, segment => segment.IsChanged);
+        MemoryMapRowViewModel protectedPlan = Assert.Single(viewModel.Merge.MergeMemoryRows, row => row.RangeLabel.StartsWith("0x37000-0x37FFF", StringComparison.Ordinal));
+        Assert.Equal("Reserved", protectedPlan.BeforeSource);
+        Assert.Equal("DP BIN", protectedPlan.AfterSource);
         Assert.Contains(viewModel.Merge.MergeCoverageSegments, segment =>
             segment.ChangeLabel == "Will write");
     }
@@ -178,7 +181,7 @@ public sealed partial class DpReplaceWorkflowTests
                 "輸出範圍將由 TP BIN 覆寫。"),
             segment => AssertCoverageSegment(
                 segment,
-                "保留區",
+                "DP BIN",
                 "0x37000-0x37FFF (len 0x1000)",
                 MemoryCoverageFillRole.Neutral,
                 "受保護的客戶資訊由 DP BIN 提供；TP 覆寫不會寫入此範圍。"),
@@ -382,7 +385,7 @@ public sealed partial class DpReplaceWorkflowTests
             {
                 AssertCoverageSegment(
                     segment,
-                    "Reserved",
+                    "Replacement DP BIN",
                     "0x37000-0x37FFF (len 0x1000)",
                     MemoryCoverageFillRole.Neutral,
                     "Protected customer information is supplied by the DP replacement BIN; TP restore does not write here.");
@@ -400,7 +403,7 @@ public sealed partial class DpReplaceWorkflowTests
         MemoryCoverageSegmentViewModel protectedCustomerInformation = Assert.Single(
             viewModel.Replace.ReplaceCoverageSegments,
             segment => segment.AddressRangeLabel == "0x37000-0x37FFF");
-        Assert.Equal("保留區", protectedCustomerInformation.SourceLabel);
+        Assert.Equal("替換用 DP BIN", protectedCustomerInformation.SourceLabel);
         Assert.Equal(MemoryCoverageFillRole.Neutral, protectedCustomerInformation.FillRole);
         Assert.False(protectedCustomerInformation.UsesKeptPattern);
         Assert.Equal(
@@ -410,7 +413,7 @@ public sealed partial class DpReplaceWorkflowTests
             viewModel.Replace.ReplaceMemoryRows,
             row => row.RangeLabel.StartsWith("0x37000-0x37FFF", StringComparison.Ordinal));
         Assert.Equal("替換", protectedRow.ActionLabel);
-        Assert.Equal("保留區", protectedRow.AfterSource);
+        Assert.Equal("替換用 DP BIN", protectedRow.AfterSource);
         Assert.Contains(viewModel.Replace.ReplaceMemoryRows, row =>
             row.ActionLabel == "還原" && row.AfterSource == "基礎韌體");
 

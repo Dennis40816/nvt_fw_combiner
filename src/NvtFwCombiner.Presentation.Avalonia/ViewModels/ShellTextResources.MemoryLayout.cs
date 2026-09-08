@@ -16,6 +16,11 @@ internal enum MemoryPendingPrerequisite
 
 internal sealed partial class ShellTextResources
 {
+    public string MemoryCustomerInformationLabel => SelectLanguage("Customer information", "客戶資訊");
+    public string FormatMemorySourceCaption(string sourceLabel)
+    {
+        return SelectLanguage($"Source: {sourceLabel}", $"來源：{sourceLabel}");
+    }
     public (string Label, string Detail) GetPendingInputText(string? addressSpaceId, string fallbackLabel)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(fallbackLabel);

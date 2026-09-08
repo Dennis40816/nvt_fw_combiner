@@ -565,3 +565,12 @@ full production 138,744 and allowance 35,848 against unchanged ratchet 102,896.
 Runtime 99,231 and slices 20,757 / 42,708 / 5,039 / 30,727 remain unchanged.
 The exact baseline follows this measurement; no transferable headroom,
 counting/exclusion changes, or release/Golden gate changes are introduced.
+
+## 2026-09-08 protected Memory Layout source presentation accounting
+
+`UI-114-MEMORY-SOURCE-28` adds exactly 19 production lines in existing
+Presentation owners to distinguish customer-information purpose from typed
+source. Independent R2 measurement/admission sets full production 138,763 and
+allowance 35,867 against unchanged ratchet 102,896. Runtime 99,231 and slices
+20,757 / 42,708 / 5,039 / 30,727 remain unchanged. The exact baseline follows;
+no headroom, measurement/exclusion or firmware/release/Golden gate changes.

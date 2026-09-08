@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 2,
+  "taskId": "UI-114-MEMORY-SOURCE-28",
+  "capability": "Separate protected customer-information section purpose from typed memory source",
+  "integrationBase": "30212f668f8a196c6b8572011c9ce71876bdec01",
+  "risk": "R2",
+  "kind": "ui",
+  "state": "design-active",
+  "mutablePaths": ["src/NvtFwCombiner.Presentation.Avalonia/UiCompositionRunner.Common.cs", "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MemoryCoverageSegmentViewModel.cs", "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ShellTextResources.MemoryLayout.cs", "src/NvtFwCombiner.Presentation.Avalonia/Resources/MainWindowSharedTemplates.axaml", "scripts/code_size_policy.py", "docs/adr/0021-code-size-ratchet-accepted-artifact-amendment.md"],
+  "implementationOwner": "primary-agent",
+  "searchEvidence": ["CodeGraph and direct current UiCompositionRunner.Common MemorySource/MemoryCompactDetail show CustomerInformation is classified Reserved before typed SourceSpaceId; existing DpPerspective tests assert this ambiguity. MemoryCoverageSegmentViewModel and shared list/plain/tooltip templates own display; Application MemoryLayoutSegment already owns ContentRole and SourceSpaceId."],
+  "semanticOwner": "Existing Application typed memory projection; Presentation only translates source/purpose and reuses shared templates. Exact code-size accounting remains scripts/code_size_policy.py and ADR0021.",
+  "terminalContract": "Owner approved separate section/source presentation. Only CustomerInformation with typed source uses existing AddressSpaceSource; reference-kept priority and Reserved/no-source fallbacks unchanged. Localized Customer information heading and Source caption use shared VM properties across list/plain/tooltip; other roles retain display. No new firmware classifier, range/write/CRC/support/permission change, no new style/controller. Preserve protection detail, neutral color, address bounds, actions, grouping and keyboard/hover behavior. Narrow source matrix and synchronous fixture render EN/zh Light/Dark; do not retry stalled GoldenCtrlRam async capture. Exact independent measured size admission before accounting edits; no headroom. Full suite belongs to frozen integration/release, not this internal commit.",
+  "disposition": "extend-owner",
+  "designReview": {"reviewer": "ui_presentation_review", "outcome": "approved", "evidence": "Bounded R2 design PASS before production edit: retain reference-kept priority, Reserved/no-source fallback, only translate typed CustomerInformation source; shared display properties, protected detail and neutral fill unchanged. Cover DP/AB/replacement/reference/no-source/Reserved/control roles, localization and actual shared-template renders. Exact accounting requires later independent measurement."},
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": {"reviewer": null, "outcome": "pending", "evidence": ""}
+}

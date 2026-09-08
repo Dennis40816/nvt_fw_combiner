@@ -123,6 +123,8 @@ internal sealed class MemoryCoverageSegmentViewModel
         CtrlRamRegionRole = ctrlRamRegionRole;
         UsesKeptPattern = usesBaseFirmwarePattern;
         text ??= ShellTextResources.For(ShellLanguage.English);
+        DisplayTitle = contentRole == MemoryContentRole.CustomerInformation ? text.MemoryCustomerInformationLabel : sourceLabel;
+        SourceCaption = contentRole == MemoryContentRole.CustomerInformation ? text.FormatMemorySourceCaption(sourceLabel) : string.Empty;
         ChangeLabel = changeLabel ?? text.GetOutputLayoutStateLabel(disposition, observedChange);
         RegionGroup = regionGroup;
         RegionGroupLabel = text.GetReplaceRegionGroupTitle(regionGroup);
@@ -147,6 +149,10 @@ internal sealed class MemoryCoverageSegmentViewModel
         AccessibleDetail = string.IsNullOrEmpty(preservationAccessibility)
             ? $"{SourceLabel}. {RangeLabel}. {stateAccessibility}{PreservationSummary}. {Detail}"
             : $"{SourceLabel}. {RangeLabel}. {stateAccessibility}{PreservationSummary}. {preservationAccessibility}. {Detail}";
+        if (HasSourceCaption)
+        {
+            AccessibleDetail = $"{DisplayTitle}. {SourceCaption}. {AccessibleDetail}";
+        }
     }
 
     /// <summary>Shared display-only interaction state for a row and its proportional segments.</summary>
@@ -163,6 +169,10 @@ internal sealed class MemoryCoverageSegmentViewModel
 
     /// <summary>Final source occupying this range.</summary>
     public string SourceLabel { get; }
+
+    public string DisplayTitle { get; }
+    public string SourceCaption { get; }
+    public bool HasSourceCaption => SourceCaption.Length > 0;
 
     /// <summary>Topology-neutral source identity used by a cross-group logical item.</summary>
     public string LogicalSourceLabel { get; }

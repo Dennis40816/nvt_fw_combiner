@@ -137,7 +137,7 @@
 </DataTemplate>
 
 <DataTemplate x:Key="MemoryCoverageTooltipTemplate" DataType="vm:MemoryCoverageSegmentViewModel"><Border Classes="surface" MaxWidth="360" Padding="10">
-    <StackPanel Spacing="{DynamicResource NfcSpace8}"><Grid ColumnDefinitions="*,Auto" ColumnSpacing="{DynamicResource NfcSpace8}"><TextBlock Classes="bodyEmphasisText" Text="{Binding SourceLabel}" TextWrapping="Wrap" /><Label Grid.Column="1" Classes="compactBadge neutralBadge countBadge coverageChangeBadge" Classes.changed="{Binding IsChanged}" Padding="7,2" Content="{Binding ChangeLabel}" IsVisible="{Binding HasChangeState}" /></Grid><Grid ColumnDefinitions="54,*" RowDefinitions="Auto,Auto,Auto" ColumnSpacing="10" RowSpacing="5"><TextBlock Classes="tableHeader" Text="{ReflectionBinding $parent[Window].DataContext.Text.RangeLabel}" /><TextBlock Grid.Column="1" Classes="technicalValue" Text="{Binding RangeLabel}" TextWrapping="Wrap" /><TextBlock Grid.Row="1" Classes="tableHeader" Text="{ReflectionBinding $parent[Window].DataContext.Text.ResultLabel}" /><TextBlock Grid.Row="1" Grid.Column="1" Classes="captionText" Text="{Binding PreservationSummary}" TextWrapping="Wrap" /><TextBlock Grid.Row="2" Classes="tableHeader" Text="{ReflectionBinding $parent[Window].DataContext.Text.DetailLabel}" /><TextBlock Grid.Row="2" Grid.Column="1" Classes="captionText" Text="{Binding Detail}" TextWrapping="Wrap" /></Grid></StackPanel>
+    <StackPanel Spacing="{DynamicResource NfcSpace8}"><Grid ColumnDefinitions="*,Auto" ColumnSpacing="{DynamicResource NfcSpace8}"><TextBlock Classes="bodyEmphasisText" Text="{Binding DisplayTitle}" TextWrapping="Wrap" /><Label Grid.Column="1" Classes="compactBadge neutralBadge countBadge coverageChangeBadge" Classes.changed="{Binding IsChanged}" Padding="7,2" Content="{Binding ChangeLabel}" IsVisible="{Binding HasChangeState}" /></Grid><Grid ColumnDefinitions="54,*" RowDefinitions="Auto,Auto,Auto" ColumnSpacing="10" RowSpacing="5"><TextBlock Classes="tableHeader" Text="{ReflectionBinding $parent[Window].DataContext.Text.RangeLabel}" /><StackPanel Grid.Column="1"><TextBlock Classes="technicalValue" Text="{Binding RangeLabel}" TextWrapping="Wrap" /><TextBlock Classes="captionText" Text="{Binding SourceCaption}" IsVisible="{Binding HasSourceCaption}" TextWrapping="Wrap" /></StackPanel><TextBlock Grid.Row="1" Classes="tableHeader" Text="{ReflectionBinding $parent[Window].DataContext.Text.ResultLabel}" /><TextBlock Grid.Row="1" Grid.Column="1" Classes="captionText" Text="{Binding PreservationSummary}" TextWrapping="Wrap" /><TextBlock Grid.Row="2" Classes="tableHeader" Text="{ReflectionBinding $parent[Window].DataContext.Text.DetailLabel}" /><TextBlock Grid.Row="2" Grid.Column="1" Classes="captionText" Text="{Binding Detail}" TextWrapping="Wrap" /></Grid></StackPanel>
   </Border></DataTemplate>
 
 <DataTemplate x:Key="MemoryCoverageSegmentBarTemplate" DataType="vm:MemoryCoverageSegmentViewModel">
@@ -237,7 +237,7 @@
         <TextBlock
             VerticalAlignment="Center"
             Classes="bodyEmphasisText"
-            Text="{Binding SourceLabel}"
+            Text="{Binding DisplayTitle}"
             TextWrapping="Wrap" />
         <StackPanel
             Grid.Row="1"
@@ -250,12 +250,13 @@
           <TextBlock Classes="technicalValue" Text="·" />
           <TextBlock Classes="technicalValue" Text="{Binding LengthLabel}" TextAlignment="Right" />
         </StackPanel>
-        <TextBlock
-            Grid.Row="2"
-            Margin="0,2,0,0"
+        <StackPanel Grid.Row="2" Margin="0,2,0,0" Spacing="2">
+          <TextBlock Classes="captionText" Text="{Binding SourceCaption}" IsVisible="{Binding HasSourceCaption}" TextWrapping="Wrap" />
+          <TextBlock
             Classes="captionText memoryInfoDescription"
             Text="{Binding PreservationSummary}"
             TextWrapping="Wrap" />
+        </StackPanel>
         <Button
             Grid.Row="3"
             Margin="0,8,0,0"
@@ -334,7 +335,7 @@
         <TextBlock
             VerticalAlignment="Center"
             Classes="bodyEmphasisText"
-            Text="{Binding SourceLabel}"
+            Text="{Binding DisplayTitle}"
             TextWrapping="Wrap" />
         <StackPanel
             Grid.Row="1"
@@ -346,11 +347,13 @@
           <TextBlock Classes="technicalValue" Text="·" />
           <TextBlock Classes="technicalValue" Text="{Binding LengthLabel}" TextAlignment="Right" />
         </StackPanel>
-        <TextBlock
-            Grid.Row="2"
+        <StackPanel Grid.Row="2" Spacing="2">
+          <TextBlock Classes="captionText" Text="{Binding SourceCaption}" IsVisible="{Binding HasSourceCaption}" TextWrapping="Wrap" />
+          <TextBlock
             Classes="captionText memoryInfoDescription"
             Text="{Binding CompactDetail}"
             TextWrapping="Wrap" />
+        </StackPanel>
       </Grid>
     </Grid>
   </Border>
