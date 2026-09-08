@@ -5,7 +5,7 @@
   "integrationBase": "f12a31af7d3e9313f6fffcbf294bc380edf071a2",
   "risk": "R2",
   "kind": "governance",
-  "state": "design-active",
+  "state": "final-complete",
   "mutablePaths": ["scripts/code_size_policy.py", "docs/adr/0021-code-size-ratchet-accepted-artifact-amendment.md"],
   "implementationOwner": "primary-agent",
   "searchEvidence": ["Canonical measure_code_size after UI layout: full138706/runtime99231/slices20757/42708/5039/30727; full delta -18 from prior checkpoint138724.", "Independent fixed-head review of b3a4d705 found stale exact baseline; test_code_size_policy.py requires both literal measurement and equality with DEFAULT_LIMITS.production_nonblank. Existing code_size_policy/ADR0021 own exact nontransferable accounting."],
@@ -13,8 +13,8 @@
   "terminalContract": "Synchronize full production138724 to138706 and full allowance35828 to35810 against unchanged102896 ratchet; exact baseline test138706. No runtime/slice/ratchet, algorithm, exclusion, duplicate/partial, firmware, support or release gate changes. Lower exactly18; no added headroom. Append existing ADR, retain original UI admission and finalize both records together at corrected fixed head. Run19 accounting cases and independent bounded delta review; reuse unchanged production UI35/35 evidence.",
   "disposition": "reuse",
   "designReview": {"reviewer": "ui_presentation_review", "outcome": "approved", "evidence": "Independent bounded R2 admission PASS before policy/ADR edits: reviewer confirmed baseline-only correction insufficient because equality with ceiling remains; approved exact full138706/allowance35810 and unchanged other authority. New staged accounting record bound to batch checkpoint, immutable original UI admission, joint finalization at corrected head admitted. Require19 accounting cases and bounded delta review."},
-  "implementationHead": null,
-  "reviewedHead": null,
-  "pathStateDigest": null,
-  "finalReview": {"reviewer": null, "outcome": "pending", "evidence": ""}
+  "implementationHead": "929d440b463033059eeada2ea20173fb8ab336c0",
+  "reviewedHead": "929d440b463033059eeada2ea20173fb8ab336c0",
+  "pathStateDigest": "d4fd71b8b3c7e063dbed2dd3b59fb737e95b5894e936d19aa87986f776239d0b",
+  "finalReview": {"reviewer": "ui_presentation_review", "outcome": "approved", "evidence": "Independent fixed-head bounded R2/Polytail PASS at929d440b after reading five-file b3a4d705..929d440b delta; original exact-baseline P2 closed. Full literal measurement and ceiling138706, allowance35810; equality unchanged and no headroom. ADR and staged-before-policy-edit admission match exact -18; runtime/slices/ratchets/algorithms/exclusions/gates unchanged. Primary observed python -m unittest discover -s tests/scripts -p test_code_size_policy.py19/19 PASS26.930s with required environment. Reviewer directly verified prior UI35/35 TRX/fullframes and confirmed UI production unchanged by delta; reuse is explicit. BatchR1/R2 verdictPASS with no remaining finding; native/release outside scope."}
 }

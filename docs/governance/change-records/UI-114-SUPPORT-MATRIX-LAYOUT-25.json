@@ -5,7 +5,7 @@
   "integrationBase": "f12a31af7d3e9313f6fffcbf294bc380edf071a2",
   "risk": "R1",
   "kind": "ui",
-  "state": "design-active",
+  "state": "final-complete",
   "mutablePaths": [
     "src/NvtFwCombiner.Presentation.Avalonia/Resources/MainWindowPageTemplates.axaml",
     "src/NvtFwCombiner.Presentation.Avalonia/Styles/MainWindowControlStyles.axaml",
@@ -21,8 +21,8 @@
   "terminalContract": "Owner approved reference docs/ui/references/v1.1.4-support-matrix-approved.png (1586x992 generated edit of real1440x900 ENLight frame). Preserve modal/sidebar and typed facts; concise subtitle/catalog metadata, equal centered workflow columns, horizontal dividers only, neutral cells,46px rows, compact legend beneath table, collapsed shared Catalog details disclosure preserving hash/token. Fixed IC column with native horizontal scrolling of workflow columns in980x640. Test actual full frames desktop/narrow ENLight/zhDark, measured row/header/column alignment, no desktop overflow, fixedIC, keyboard disclosure and two-stageEscape. No firmware/support/profile, shared button redesign, native DPI or release changes. Narrow UI checks, scoped independent review and repository lifecycle validation; no full suite per internal commit.",
   "disposition": "reuse",
   "designReview": {"reviewer": null, "outcome": "not-required", "evidence": "R1 visual-only implementation of explicitly approved reference; primary is sole writer."},
-  "implementationHead": null,
-  "reviewedHead": null,
-  "pathStateDigest": null,
-  "finalReview": {"reviewer": null, "outcome": "pending", "evidence": ""}
+  "implementationHead": "929d440b463033059eeada2ea20173fb8ab336c0",
+  "reviewedHead": "929d440b463033059eeada2ea20173fb8ab336c0",
+  "pathStateDigest": "fbd975d3752abfa40bf787951cedb23e445da5a7c08453658b86f2713f3e3ab0",
+  "finalReview": {"reviewer": "ui_presentation_review", "outcome": "findings-incorporated", "evidence": "Independent complete UI/reference review at b3a4d705 and bounded accounting delta review at929d440b together PASS. P3 catalog visibility evidence fixed with BringIntoView, full viewport bounds/height/noCollapsed; P2 stale exact size baseline closed in separately pre-admitted R2 record. Reviewer directly read green TRX35/35 zero skipped12s and desktop ENLight/narrow zhDark catalog full frames; primary also compared complete approved reference and Light/Dark/narrow scroll frames. Real tests cover uniform46px rows, matching header/cell X and width, fixedIC across horizontal scroll, same-window resize, neutral cells, localized labels, typed tooltip/automation, focus restoration and two-stageEscape. Existing native UniformGrid/ScrollViewer/inlineDisclosure reused, no semantic or shared-button redesign. Actual catalog1.11.0/NT51926 x8 retained despite generated illustration typos. Final production equals tested source except XAML indentation; UI evidence reused for accounting-only commit. Primary observed19/19 accounting26.930s. Evidence D:/NvtFwCombiner-TestArea/evidence/v114-support-matrix-layout/green; initial red/refined failure evidence retained; handoff records approved/reference and sixteen actual full frames. No outstanding findings; native DPI/HighContrast/screenreader and release gates remain separate."}
 }
