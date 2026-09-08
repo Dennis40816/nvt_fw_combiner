@@ -489,7 +489,7 @@ item rather than force a decision.
 | --- | --- | --- |
 | 1 | Report import correction decision (7) | [Assessment complete](../ui/v1.1.x-report-history-usability-handoff.md#report-import-assessment--2026-09-08): empty/unrelated objects and malformed `Issues` incorrectly show success through direct and asynchronous import. No fix applied. Decide incomplete-legacy read-only/unknown versus rejection and minimum admitted fields before changing parser compatibility; continue independent work meanwhile. |
 | 2 | Native DPI/high-contrast acceptance | [Capability assessment complete](../../tests/README.md#v114-display-evidence-boundary--2026-09-08): current native display is 100%, High Contrast off; 20 scoped cases passed with explicit 100% headless scale evidence. Actual Windows 125%, custom-control High Contrast and screen-reader acceptance remain open. No theme/support promotion or OS preference change was made. |
-| 3 | Broad screen inventory and reprioritization (10) | Use actual baseline/candidate screens to remove duplicates and order the remaining changes. |
+| 3 | Broad screen inventory and reprioritization (10) | [Initial evidence inventory below](#visual-inventory-checkpoint--2026-09-08) separates inspected surfaces from uncaptured states. Remaining whole-app/native coverage is open; do not restart completed metadata/list/source/card changes or mistake a token search for visual acceptance. |
 | 4 | Shared visual/theme corrections (11) | Change shared owners only after inventory identifies affected consumers and states; obtain approval for new visual designs. |
 | 5 | Report physical-section grouping (remaining 12) | Reuse existing typed groups only after the grouping interaction and historical replay-coverage boundary are accepted; do not invent bytes between raw runs. |
 | 6 | Memory Layout (14) | Retain typed section/address-space authority and review projection impact, including the residual generic Reserved-source wording. |
@@ -505,6 +505,46 @@ was corrected at `1da0b11f` and its committed-head regressions passed; this does
 not constitute a complete verifier pass. Combined regression, packaged native
 UI observations and all required release Golden execution remain separate
 closure gates, not reasons to rerun a full release per internal commit.
+
+#### Visual inventory checkpoint — 2026-09-08
+
+This is a bounded evidence inventory, **not completion of the whole-app theme
+audit**. The primary inspected retained actual published `1.1.3` captures and
+the listed local implementation captures; no baseline was redrawn. Historical
+captures are not fresh current-source runs. Candidate screenshots may still
+display the retained `1.1.3 desktop` version label; their recorded source and
+test evidence, not that label, identify the candidate.
+
+| Surface | Evidence inspected | Disposition |
+| --- | --- | --- |
+| AB metadata | Actual [1.1.3 baseline](../ui/references/v1.1.3-ab-dp-metadata-baseline.jpg) and [implemented four-field layout](../ui/references/v1.1.4-ab-dp-metadata-actual.jpg) | Completed local correction; do not reopen it as a new metadata redesign. This historical capture predates Dummy DP and is not Dummy evidence. |
+| CtrlRAM inputs | Actual [1.1.3 baseline](../ui/references/v1.1.3-ctrlram-selector-baseline.jpg) and current 1440x900 Dark EN selected-input frame in `v114-display-assessment` | Shared anchors and Max Size/Target Addr corrections remain implemented. The selected Base filename wraps its final `n` alone in this fixture; retain as a small typography/layout candidate, not an approved new geometry. Native scaling remains separate. |
+| Run reports | Actual [1.1.3 hub baseline](../ui/references/v1.1.3-load-report-hub-baseline.jpg) and [implemented list](../ui/references/v1.1.4-run-reports-black-inter-actual.png) | List hierarchy, Load entry, centered columns, red deletion and 800-weight headings/sidebar are existing accepted work. The separate import false-success defect is behavioral, not a reason to redesign this list. |
+| Settings Version | [Approved reference and current full-page/compact evidence](../ui/v1.1.x-settings-version-handoff.md), plus scale-verified Light/Dark frames | Bounded layout/source/notes work complete; native file picker and OS accessibility observations remain separate. |
+| Report Changes | [Approved cards and four-combination rendered matrix](../ui/v1.1.x-report-changes-compare-handoff.md#complete-languagetheme-cross-product--2026-09-08) | EN/zh-TW × Light/Dark card-layout gap closed at `e77f7f89`. Physical-section grouping remains a distinct pending design/typed-projection item, not unfinished card styling. |
+
+Priority remains: resolve the confirmed import ambiguity first, then independent
+small reproduced presentation defects, followed by shared theme fixes after
+their affected consumers are captured. Physical grouping, Memory Layout,
+first-entry context and session diagnostics retain their existing decision
+boundaries; no new screen design was approved by this inventory.
+
+The source scan found no matches for hex color literals, `Brushes.White/Black`,
+`Colors.White/Black`, or `Color.Parse` in Presentation C#/XAML outside
+`ThemeTokens.axaml`. This only checks those spellings; it does not establish
+complete token ownership, contrast, focus or native theme correctness.
+Existing Light/Dark palette-ratio evidence is separate from visual inspection.
+The still-open [issue #291](https://github.com/Dennis40816/nvt_fw_combiner/issues/291)
+has a historical `0.10.7` title; current allocation is this `1.1.4` roadmap, not
+that stale title. Its original `v0.9.18` Dark reproduction was not recreated in
+this pass, and no GitHub issue was modified.
+
+Remaining inventory coverage includes Home/Inspector and the other Settings
+pages, menu/tooltip/overlay state matrices, representative checking/disabled
+states, native 125%/High Contrast/screen-reader observations, and current
+candidate comparisons where only retained historical images exist. These are
+explicit unverified areas, not new blanket redesign tasks or evidence that
+already-reviewed functionality is broken.
 
 Step 3 local evidence over `e5202e2707d272076d24216222188d478314a07d`:
 `dotnet test --no-restore` UI filter `FullyQualifiedName~SlotLoading` passes
