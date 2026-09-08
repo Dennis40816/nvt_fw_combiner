@@ -322,8 +322,8 @@ internal sealed partial class ShellTextResources
                 "保留步驟狀態，同時停用非必要的進度動畫。"),
             SupportMatrixTitle = Pick("Support Matrix", "支援矩陣"),
             SupportMatrixSubtitle = Pick(
-                "See which workflows are defined for each IC and how strongly each route is verified. Focus a cell for exact details.",
-                "查看每個 IC 已定義的工作流程與路徑驗證程度；聚焦任一格可查看完整明細。"),
+                "Workflow support and verification status by IC.",
+                "各 IC 的工作流程支援與驗證狀態。"),
             SupportMatrixIcLabel = "IC",
             SupportMatrixIcCountLabel = Pick("IC Count", "IC 數量"),
             SupportMatrixMapVariantLabel = Pick("Map variant", "映射變體"),
@@ -333,6 +333,8 @@ internal sealed partial class ShellTextResources
             SupportMatrixEvidenceLabel = Pick("Evidence", "證據"),
             SupportMatrixBlockerLabel = Pick("Blocker", "阻擋原因"),
             SupportMatrixCatalogVersionLabel = Pick("Catalog version:", "目錄版本："),
+            SupportMatrixCatalogLabel = Pick("Catalog", "目錄"),
+            SupportMatrixCatalogDetailsLabel = Pick("Catalog details", "目錄明細"),
             SupportMatrixSourceHashLabel = Pick("Source SHA-256:", "來源 SHA-256："),
             SupportMatrixResolutionTokenLabel = Pick("Publication token:", "發布識別碼："),
             SupportMatrixFingerprintLabel = Pick("Capability fingerprint", "能力指紋"),
@@ -344,8 +346,8 @@ internal sealed partial class ShellTextResources
             SupportMatrixBlockedLabel = Pick("Blocked", "已阻擋"),
             SupportMatrixNotDeclaredLabel = Pick("Not declared", "未宣告"),
             SupportMatrixHoverHint = Pick(
-                "Status summarizes verification evidence and any route blockers; focus a cell for details.",
-                "狀態彙整驗證證據與路徑阻擋原因；聚焦任一格可查看明細。"),
+                "Hover or focus a cell for details.",
+                "滑鼠停留或聚焦儲存格可查看明細。"),
             SupportMatrixLoadingTitle = Pick("Loading Support Matrix", "正在載入支援矩陣"),
             SupportMatrixLoadingDetail = Pick(
                 "The first complete canonical catalog publication is still being prepared.",

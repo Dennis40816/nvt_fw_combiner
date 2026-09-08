@@ -224,6 +224,31 @@ the final inventory. No full-suite/native DPI/High Contrast claim is made.
 Findings and next actions belong to the
 [roadmap inventory](../docs/architecture/nfc_roadmap.md#current-home-and-settings-inventory-follow-up).
 
+## Support Matrix layout — 2026-09-08
+
+`SupportMatrixInteractionTests` now checks the approved redesign at 1440×900
+and 980×640, English Light and Traditional Chinese Dark. The real MainWindow
+tests measure 46 px rows, workflow/header alignment, neutral cell backgrounds,
+fixed IC bounds during horizontal scrolling and same-window resizing. Keyboard
+disclosure tests bring catalog values into the viewport and check uncollapsed
+text; existing tooltip accessibility, focus restoration and two-stage Escape
+checks remain. Typed support facts are unchanged.
+
+After the standard external test-area environment initialization:
+
+```text
+dotnet test tests/NvtFwCombiner.UiSmoke.Tests --no-restore --filter "FullyQualifiedName~SupportMatrix|FullyQualifiedName~SettingsModalSupportsKeyboardModalLifecycle|FullyQualifiedName~FocusTool|FullyQualifiedName~IssueCard|FullyQualifiedName~IcDetail"
+```
+
+Result: **35/35 passed, zero skipped, 12 seconds test time**. Original red
+cases and the superseded localized-expectation failure remain separately
+retained. Final TRX and sixteen full-window PNGs:
+`D:/NvtFwCombiner-TestArea/evidence/v114-support-matrix-layout/green/`.
+Reference, actual-state differences and review evidence are recorded in the
+[Settings handoff](../docs/ui/v1.1.x-settings-version-handoff.md#support-matrix-layout--approved-2026-09-08).
+These headless results do not certify native DPI, High Contrast, screen readers
+or full release readiness.
+
 ## Running and maintaining this view
 
 Use [`CONTRIBUTING.md`](../CONTRIBUTING.md) to initialize the existing fixed

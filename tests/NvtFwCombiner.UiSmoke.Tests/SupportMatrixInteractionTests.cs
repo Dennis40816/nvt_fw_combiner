@@ -54,7 +54,36 @@ public sealed class SupportMatrixInteractionTests
             Assert.Equal(2, scrolls.Length);
             ScrollViewer horizontal = scrolls[0];
             ScrollViewer vertical = scrolls[1];
-            Assert.True(horizontal.Extent.Width > horizontal.Viewport.Width);
+            Assert.Equal(width < 1000, horizontal.Extent.Width > horizontal.Viewport.Width + 0.5);
+            Border[] icHeaders = [.. surface.GetVisualDescendants().OfType<Border>()
+                .Where(b => b.Classes.Contains("supportMatrixIcHeader") && b.DataContext is SupportMatrixIcRowViewModel)];
+            Assert.Equal(shell.Settings.SupportMatrix.IcRows.Count, icHeaders.Length);
+            double fixedIcLeft = Bounds(icHeaders[0], window).Left;
+            Assert.All(cells, cell =>
+            {
+                Assert.Equal(46, cell.Bounds.Height);
+                Assert.Equal(new Thickness(0, 0, 0, 1), cell.BorderThickness);
+                Assert.Equal(cells[0].Background, cell.Background);
+                Assert.InRange(Math.Abs(cell.Bounds.Width - cells[0].Bounds.Width), 0, 1);
+            });
+            Border[] workflowHeaders = [.. surface.GetVisualDescendants().OfType<Border>()
+                .Where(b => b.Classes.Contains("supportMatrixWorkflowHeader") && b.DataContext is SupportMatrixWorkflowColumnViewModel)];
+            Assert.Equal(shell.Settings.SupportMatrix.WorkflowColumns.Count, workflowHeaders.Length);
+            for (int column = 0; column < workflowHeaders.Length; column++)
+            {
+                Assert.InRange(Math.Abs(Bounds(workflowHeaders[column], window).Left - Bounds(cells[column], window).Left), 0, 0.5);
+                Assert.InRange(Math.Abs(workflowHeaders[column].Bounds.Width - cells[column].Bounds.Width), 0, 0.5);
+                Assert.Equal(46, workflowHeaders[column].Bounds.Height);
+            }
+            foreach ((Border header, int index) in icHeaders.Select((header, index) => (header, index)))
+            {
+                Assert.Equal(new Thickness(0, 0, 0, 1), header.BorderThickness);
+                Assert.Equal(46, header.Bounds.Height);
+                Assert.InRange(Math.Abs(Bounds(header, window).Top - Bounds(cells[index * shell.Settings.SupportMatrix.WorkflowColumns.Count], window).Top), 0, 0.5);
+            }
+            Expander details = Assert.Single(surface.GetVisualDescendants().OfType<Expander>(), e => e.Name == "SupportMatrixCatalogDetails");
+            Assert.False(details.IsExpanded);
+            Capture(window, $"{width}-{height}-{(darkChinese ? "dark-zh" : "light-en")}-layout");
             foreach (Border cell in new[] { last, first })
             {
                 cell.BringIntoView();
@@ -77,7 +106,9 @@ public sealed class SupportMatrixInteractionTests
                     $"Cell escapes vertical viewport: {cellBounds}; viewport={viewport}");
                 if (cell == last)
                 {
-                    Assert.True(horizontal.Offset.X > 0);
+                    Assert.Equal(width < 1000, horizontal.Offset.X > 0.5);
+                    Assert.InRange(Math.Abs(Bounds(icHeaders[^1], window).Left - fixedIcLeft), 0, 0.5);
+                    Assert.InRange(Math.Abs(Bounds(icHeaders[^1], window).Top - cellBounds.Top), 0, 0.5);
                     if (vertical.Extent.Height > vertical.Viewport.Height)
                     {
                         Assert.True(vertical.Offset.Y > 0);
@@ -93,6 +124,37 @@ public sealed class SupportMatrixInteractionTests
                 Capture(window, $"{width}-{height}-{(darkChinese ? "dark-zh" : "light-en")}-{(cell == last ? "last" : "first")}");
             }
             Assert.True(ToolTip.GetServiceEnabled(last));
+            details.BringIntoView();
+            Render();
+            global::Avalonia.Controls.Primitives.ToggleButton disclosure = Assert.Single(details.GetVisualDescendants().OfType<global::Avalonia.Controls.Primitives.ToggleButton>(), b => b.Name == "ExpanderHeader");
+            Assert.True(disclosure.Focus(NavigationMethod.Tab));
+            window.KeyPress(Key.Space, RawInputModifiers.None, PhysicalKey.Space, null);
+            window.KeyRelease(Key.Space, RawInputModifiers.None, PhysicalKey.Space, null);
+            Render();
+            Assert.True(details.IsExpanded);
+            foreach (string value in new[] { shell.Settings.SupportMatrix.SourceHash, shell.Settings.SupportMatrix.ResolutionToken })
+            {
+                TextBlock text = Assert.Single(details.GetVisualDescendants().OfType<TextBlock>(), t => t.Text == value);
+                text.BringIntoView();
+                Render();
+                Rect textBounds = Bounds(text, window);
+                Rect viewport = Bounds(vertical, window);
+                Assert.True(text.IsEffectivelyVisible);
+                Assert.Equal(global::Avalonia.Media.TextTrimming.None, text.TextTrimming);
+                Assert.True(textBounds.Left >= viewport.Left - 0.5 && textBounds.Right <= viewport.Right + 0.5);
+                Assert.True(textBounds.Top >= viewport.Top - 0.5 && textBounds.Bottom <= viewport.Bottom + 0.5);
+                Assert.True(text.TextLayout.Height <= text.Bounds.Height + 0.5);
+                Assert.All(text.TextLayout.TextLines, line => Assert.False(line.HasCollapsed));
+            }
+            Capture(window, $"{width}-{height}-{(darkChinese ? "dark-zh" : "light-en")}-catalog");
+            foreach (int resizedWidth in new[] { 980, 1440, width })
+            {
+                window.Width = resizedWidth;
+                Render();
+                Assert.Equal(resizedWidth < 1000, horizontal.Extent.Width > horizontal.Viewport.Width + 0.5);
+                Assert.InRange(Math.Abs(Bounds(icHeaders[0], window).Left - fixedIcLeft), 0, 0.5);
+                Assert.InRange(Math.Abs(Bounds(workflowHeaders[0], window).Left - Bounds(cells[0], window).Left), 0, 0.5);
+            }
             Assert.Equal(ic, shell.WorkflowSession.SelectedIc);
             Assert.Equal(navigation, shell.Navigation.NavigationPath);
             window.KeyPress(Key.Escape, RawInputModifiers.None, PhysicalKey.Escape, null);

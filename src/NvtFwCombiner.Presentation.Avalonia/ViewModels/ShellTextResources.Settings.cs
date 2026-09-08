@@ -64,6 +64,10 @@ internal sealed partial class ShellTextResources
 
     public string SupportMatrixCatalogVersionLabel { get; private init; } = string.Empty;
 
+    public string SupportMatrixCatalogLabel { get; private init; } = string.Empty;
+
+    public string SupportMatrixCatalogDetailsLabel { get; private init; } = string.Empty;
+
     public string SupportMatrixSourceHashLabel { get; private init; } = string.Empty;
 
     public string SupportMatrixResolutionTokenLabel { get; private init; } = string.Empty;

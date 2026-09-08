@@ -656,6 +656,18 @@ changed. The IC column still scrolls horizontally with the table; freezing it
 would be a separate visual decision, not a failure of last-cell reachability.
 Native screen-reader/DPI/High Contrast and complete release gates remain open.
 
+Subsequent owner-approved Support Matrix visual update
+(`UI-114-SUPPORT-MATRIX-LAYOUT-25`, 2026-09-08) removes vertical grid lines and
+full-cell color fills, centers equal workflow columns, uses 46 px rows,
+places the legend below the table and moves hash/token into `Catalog details`.
+Unlike the preceding interaction-only checkpoint, this approved scope fixes
+the IC column during horizontal scrolling. Actual desktop/narrow geometry,
+keyboard disclosure, resize and shared-tooltip regressions pass 35/35 in
+12 seconds, zero skipped. Reference, actual full frames, state differences
+and final checkpoint evidence are in the existing
+[Settings handoff](../ui/v1.1.x-settings-version-handoff.md#support-matrix-layout--approved-2026-09-08).
+No support facts or firmware behavior changed; native acceptance remains open.
+
 Step 3 local evidence over `e5202e2707d272076d24216222188d478314a07d`:
 `dotnet test --no-restore` UI filter `FullyQualifiedName~SlotLoading` passes
 13/13 (Perfect pairs in both directions, partial/unrelated, same/unsupported IC,

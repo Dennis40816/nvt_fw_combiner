@@ -247,12 +247,12 @@
 </DataTemplate>
 
 <ItemsPanelTemplate x:Key="HorizontalSupportMatrixPanel">
-  <StackPanel Orientation="Horizontal" />
+  <UniformGrid Rows="1" />
 </ItemsPanelTemplate>
 
 <DataTemplate x:Key="SupportMatrixWorkflowHeaderTemplate" DataType="vm:SupportMatrixWorkflowColumnViewModel">
-  <Border Classes="supportMatrixWorkflowHeader" Padding="6" Width="176">
-    <TextBlock HorizontalAlignment="Center" FontWeight="SemiBold" Text="{Binding Label}" TextAlignment="Center" TextWrapping="Wrap" />
+  <Border Classes="supportMatrixWorkflowHeader" Padding="6" MinWidth="160" Height="46">
+    <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" FontWeight="SemiBold" Text="{Binding Label}" TextAlignment="Center" TextWrapping="Wrap" />
   </Border>
 </DataTemplate>
 
@@ -285,10 +285,10 @@
       Classes.reviewed="{Binding IsReviewedEvidence}"
       behaviors:FocusToolTipBehavior.IsEnabled="True"
       Focusable="True"
-      Height="38"
+      Height="46"
       ToolTip.Placement="BottomEdgeAlignedLeft"
       ToolTip.ShowDelay="220"
-      Width="176">
+      MinWidth="160">
     <ToolTip.Tip>
       <ToolTip IsHitTestVisible="False" Width="560">
       <StackPanel Margin="6" Spacing="{DynamicResource NfcSpace8}">
@@ -313,25 +313,19 @@
         <Path Width="13" Height="13" Data="M4 2H13L18 7V20H4Z M13 2V7H18 M8 11H14 M8 15H14" IsVisible="{Binding IsContractOnly}" Stretch="Uniform" Stroke="{DynamicResource NfcInfoTextBrush}" StrokeThickness="1.5" />
         <Path Width="14" Height="14" Data="M11 2L21 20H1Z M11 8V13 M11 17V17.2" IsVisible="{Binding IsReviewRequired}" Stretch="Uniform" Stroke="{DynamicResource NfcWarningTextBrush}" StrokeThickness="1.8" />
         <Path Width="14" Height="14" Data="M11 2A9 9 0 1 0 11 20A9 9 0 1 0 11 2 M5 5L17 17" IsVisible="{Binding IsBlocked}" Stretch="Uniform" Stroke="{DynamicResource NfcDangerTextBrush}" StrokeThickness="1.8" />
-        <TextBlock Classes="captionText" FontWeight="SemiBold" Text="{Binding StatusLabel}" TextAlignment="Center" />
-        <TextBlock Classes="technicalCaption supportMatrixVariantCount" IsVisible="{Binding HasMultipleRoutes}" Text="{Binding VariantCountDisplay}" />
+        <TextBlock Classes="supportMatrixText" Text="{Binding StatusLabel}" TextAlignment="Center" />
+        <TextBlock Classes="supportMatrixVariantCount" VerticalAlignment="Center" IsVisible="{Binding HasMultipleRoutes}" Text="{Binding VariantCountDisplay}" />
       </StackPanel>
     </Grid>
   </Border>
 </DataTemplate>
 
 <DataTemplate x:Key="SupportMatrixIcRowTemplate" DataType="vm:SupportMatrixIcRowViewModel">
-  <Grid ColumnDefinitions="100,*">
-    <Border Classes="supportMatrixIcHeader" Padding="10,6">
-      <TextBlock VerticalAlignment="Center" FontFamily="{DynamicResource NfcTechnicalFontFamily}" FontWeight="SemiBold" Text="{Binding IcId}" />
-    </Border>
-    <ItemsControl
-        Grid.Column="1"
-        ItemContainerTheme="{StaticResource StretchContentPresenterTheme}"
-        ItemTemplate="{StaticResource SupportMatrixCellTemplate}"
-        ItemsPanel="{StaticResource HorizontalSupportMatrixPanel}"
-        ItemsSource="{Binding Cells}" />
-  </Grid>
+  <ItemsControl
+      ItemContainerTheme="{StaticResource StretchContentPresenterTheme}"
+      ItemTemplate="{StaticResource SupportMatrixCellTemplate}"
+      ItemsPanel="{StaticResource HorizontalSupportMatrixPanel}"
+      ItemsSource="{Binding Cells}" />
 </DataTemplate>
 
 <DataTemplate x:Key="SettingsModalContentTemplate" DataType="vm:MainWindowViewModel">
@@ -488,91 +482,47 @@
 
 
         <StackPanel IsVisible="{Binding Settings.IsSupportMatrixOpen}" Spacing="{DynamicResource NfcSpace12}">
-          <Grid ColumnDefinitions="*,Auto" ColumnSpacing="{DynamicResource NfcSpace12}">
-            <StackPanel Spacing="{DynamicResource NfcSpace4}">
-              <TextBlock Classes="pageTitle" Text="{Binding Text.SupportMatrixTitle}" />
-              <TextBlock Classes="pageSubtitle" Text="{Binding Text.SupportMatrixSubtitle}" TextWrapping="Wrap" />
+          <StackPanel Spacing="{DynamicResource NfcSpace4}">
+            <TextBlock Classes="pageTitle" Text="{Binding Text.SupportMatrixTitle}" />
+            <TextBlock Classes="pageSubtitle" Text="{Binding Text.SupportMatrixSubtitle}" TextWrapping="Wrap" />
+          </StackPanel>
+          <WrapPanel Margin="0,8,0,10">
+            <StackPanel Orientation="Horizontal" Spacing="{DynamicResource NfcSpace4}">
+              <TextBlock Classes="supportMatrixText" Text="{Binding Text.SupportMatrixCatalogLabel}" />
+              <TextBlock Classes="supportMatrixText" Text="{Binding Settings.SupportMatrix.CatalogVersion}" />
             </StackPanel>
-            <WrapPanel Grid.Column="1" HorizontalAlignment="Right">
-              <Label Classes="compactBadge neutralBadge reportBadge info" Content="{Binding Settings.SupportMatrix.RouteCountLabel}" />
-              <Label Classes="compactBadge neutralBadge reportBadge" Content="{Binding Settings.SupportMatrix.CatalogStateLabel}" />
-            </WrapPanel>
-          </Grid>
-          <Border Classes="compactSubtleSurface" Padding="12,7">
-            <WrapPanel Orientation="Horizontal">
-              <StackPanel Margin="0,0,18,0" Orientation="Horizontal" Spacing="{DynamicResource NfcSpace4}">
-                <TextBlock Classes="fieldLabel" Text="{Binding Text.SupportMatrixCatalogVersionLabel}" />
-                <TextBlock Classes="technicalCaption" Text="{Binding Settings.SupportMatrix.CatalogVersion}" />
-              </StackPanel>
-              <StackPanel Margin="0,0,18,0" Orientation="Horizontal" Spacing="{DynamicResource NfcSpace4}">
-                <TextBlock Classes="fieldLabel" Text="{Binding Text.SupportMatrixSourceHashLabel}" />
-                <TextBlock Classes="technicalCaption" Text="{Binding Settings.SupportMatrix.SourceHash}" />
-              </StackPanel>
-              <StackPanel Orientation="Horizontal" Spacing="{DynamicResource NfcSpace4}">
-                <TextBlock Classes="fieldLabel" Text="{Binding Text.SupportMatrixResolutionTokenLabel}" />
-                <TextBlock
-                    MaxWidth="420"
-                    Classes="technicalCaption"
-                    Text="{Binding Settings.SupportMatrix.ResolutionToken}"
-                    TextTrimming="CharacterEllipsis"
-                    ToolTip.Tip="{Binding Settings.SupportMatrix.ResolutionToken}" />
-              </StackPanel>
-            </WrapPanel>
-          </Border>
+            <TextBlock Classes="supportMatrixText" Margin="16,0" Text="·" />
+            <TextBlock Classes="supportMatrixText" Text="{Binding Settings.SupportMatrix.RouteCountLabel}" />
+            <TextBlock Classes="supportMatrixText" Margin="16,0" Text="·" />
+            <TextBlock Classes="supportMatrixText" Text="{Binding Settings.SupportMatrix.CatalogStateLabel}" />
+          </WrapPanel>
           <ContentControl
               Content="{Binding Settings.SupportMatrix.StatusNotice}"
               ContentTemplate="{StaticResource DisclosureStatusTemplate}"
               IsVisible="{Binding Settings.SupportMatrix.HasStatusNotice}" />
-          <Border Classes="panelSurface" IsVisible="{Binding Settings.SupportMatrix.HasRows}">
-            <StackPanel>
-              <Grid RowDefinitions="Auto,Auto" RowSpacing="{DynamicResource NfcSpace8}" Margin="12,10">
-                <Grid ColumnDefinitions="Auto,*" ColumnSpacing="{DynamicResource NfcSpace12}">
-                  <TextBlock Classes="fieldLabel" Text="{Binding Text.SupportMatrixLegendTitle}" VerticalAlignment="Center" />
-                  <TextBlock
-                      Grid.Column="1"
-                      HorizontalAlignment="Right"
-                      Classes="captionText"
-                      Text="{Binding Text.SupportMatrixHoverHint}"
-                      TextAlignment="Right"
-                      TextWrapping="Wrap"
-                      VerticalAlignment="Center" />
-                </Grid>
-                <WrapPanel Grid.Row="1" Orientation="Horizontal">
-                  <StackPanel Margin="0,0,16,0" Orientation="Horizontal" Spacing="{DynamicResource NfcSpace4}">
-                    <TextBlock Classes="supportMatrixLegend reviewed" Text="✓" />
-                    <TextBlock Classes="captionText" Text="{Binding Text.SupportMatrixReviewedEvidenceLabel}" />
-                  </StackPanel>
-                  <StackPanel Margin="0,0,16,0" Orientation="Horizontal" Spacing="{DynamicResource NfcSpace4}">
-                    <TextBlock Classes="supportMatrixLegend contract" Text="▣" />
-                    <TextBlock Classes="captionText" Text="{Binding Text.SupportMatrixContractOnlyLabel}" />
-                  </StackPanel>
-                  <StackPanel Margin="0,0,16,0" Orientation="Horizontal" Spacing="{DynamicResource NfcSpace4}">
-                    <TextBlock Classes="supportMatrixLegend review" Text="!" />
-                    <TextBlock Classes="captionText" Text="{Binding Text.SupportMatrixReviewRequiredLabel}" />
-                  </StackPanel>
-                  <StackPanel Margin="0,0,16,0" Orientation="Horizontal" Spacing="{DynamicResource NfcSpace4}">
-                    <TextBlock Classes="supportMatrixLegend blocked" Text="⊘" />
-                    <TextBlock Classes="captionText" Text="{Binding Text.SupportMatrixBlockedLabel}" />
-                  </StackPanel>
-                  <StackPanel Orientation="Horizontal" Spacing="{DynamicResource NfcSpace4}">
-                    <TextBlock Classes="supportMatrixLegend notDeclared" Text="—" />
-                    <TextBlock Classes="captionText" Text="{Binding Text.SupportMatrixNotDeclaredLabel}" />
-                  </StackPanel>
-                </WrapPanel>
-              </Grid>
-              <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
-                <StackPanel>
-                  <Grid ColumnDefinitions="100,*">
-                    <Border Classes="supportMatrixIcHeader supportMatrixWorkflowHeader" Padding="10,6">
-                      <TextBlock HorizontalAlignment="Center" Classes="fieldLabel" Text="{Binding Text.SupportMatrixIcLabel}" TextAlignment="Center" />
-                    </Border>
-                    <ItemsControl
-                        Grid.Column="1"
-                        ItemContainerTheme="{StaticResource StretchContentPresenterTheme}"
-                        ItemTemplate="{StaticResource SupportMatrixWorkflowHeaderTemplate}"
-                        ItemsPanel="{StaticResource HorizontalSupportMatrixPanel}"
-                        ItemsSource="{Binding Settings.SupportMatrix.WorkflowColumns}" />
-                  </Grid>
+          <Border Classes="panelSurface" BorderThickness="1" ClipToBounds="True" IsVisible="{Binding Settings.SupportMatrix.HasRows}">
+            <Grid ColumnDefinitions="100,*">
+              <StackPanel>
+                <Border Classes="supportMatrixWorkflowHeader" Height="46">
+                  <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" FontWeight="SemiBold" Text="{Binding Text.SupportMatrixIcLabel}" />
+                </Border>
+                <ItemsControl ItemsSource="{Binding Settings.SupportMatrix.IcRows}" ItemContainerTheme="{StaticResource StretchContentPresenterTheme}">
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate DataType="vm:SupportMatrixIcRowViewModel">
+                      <Border Classes="supportMatrixIcHeader" Height="46" Padding="6">
+                        <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" FontWeight="SemiBold" Text="{Binding IcId}" />
+                      </Border>
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
+              </StackPanel>
+              <ScrollViewer x:Name="SupportMatrixScroll" Grid.Column="1" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
+                <StackPanel MinWidth="{Binding #SupportMatrixScroll.Viewport.Width}">
+                  <ItemsControl
+                      ItemContainerTheme="{StaticResource StretchContentPresenterTheme}"
+                      ItemTemplate="{StaticResource SupportMatrixWorkflowHeaderTemplate}"
+                      ItemsPanel="{StaticResource HorizontalSupportMatrixPanel}"
+                      ItemsSource="{Binding Settings.SupportMatrix.WorkflowColumns}" />
                   <ItemsControl
                       AutomationProperties.Name="{Binding Text.SupportMatrixTitle}"
                       ItemContainerTheme="{StaticResource StretchContentPresenterTheme}"
@@ -580,7 +530,43 @@
                       ItemsSource="{Binding Settings.SupportMatrix.IcRows}" />
                 </StackPanel>
               </ScrollViewer>
-            </StackPanel>
+            </Grid>
+          </Border>
+          <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12" Margin="8,8,8,4" IsVisible="{Binding Settings.SupportMatrix.HasRows}">
+            <WrapPanel>
+              <StackPanel Margin="0,0,24,4" Orientation="Horizontal" Spacing="8">
+                <Path Width="14" Height="14" Data="M3 11L8 16L19 5" Stretch="Uniform" Stroke="{DynamicResource NfcSuccessTextBrush}" StrokeThickness="2.2" />
+                <TextBlock Classes="supportMatrixText" Text="{Binding Text.SupportMatrixReviewedEvidenceLabel}" />
+              </StackPanel>
+              <StackPanel Margin="0,0,24,4" Orientation="Horizontal" Spacing="8">
+                <Path Width="13" Height="13" Data="M4 2H13L18 7V20H4Z M13 2V7H18 M8 11H14 M8 15H14" Stretch="Uniform" Stroke="{DynamicResource NfcInfoTextBrush}" StrokeThickness="1.5" />
+                <TextBlock Classes="supportMatrixText" Text="{Binding Text.SupportMatrixContractOnlyLabel}" />
+              </StackPanel>
+              <StackPanel Margin="0,0,24,4" Orientation="Horizontal" Spacing="8">
+                <Path Width="14" Height="14" Data="M11 2L21 20H1Z M11 8V13 M11 17V17.2" Stretch="Uniform" Stroke="{DynamicResource NfcWarningTextBrush}" StrokeThickness="1.8" />
+                <TextBlock Classes="supportMatrixText" Text="{Binding Text.SupportMatrixReviewRequiredLabel}" />
+              </StackPanel>
+              <StackPanel Margin="0,0,24,4" Orientation="Horizontal" Spacing="8">
+                <Path Width="14" Height="14" Data="M11 2A9 9 0 1 0 11 20A9 9 0 1 0 11 2 M5 5L17 17" Stretch="Uniform" Stroke="{DynamicResource NfcDangerTextBrush}" StrokeThickness="1.8" />
+                <TextBlock Classes="supportMatrixText" Text="{Binding Text.SupportMatrixBlockedLabel}" />
+              </StackPanel>
+              <StackPanel Margin="0,0,0,4" Orientation="Horizontal" Spacing="8">
+                <TextBlock Classes="supportMatrixLegend notDeclared" Text="—" />
+                <TextBlock Classes="supportMatrixText" Text="{Binding Text.SupportMatrixNotDeclaredLabel}" />
+              </StackPanel>
+            </WrapPanel>
+            <TextBlock Grid.Column="1" Classes="mutedText" MaxWidth="200" Text="{Binding Text.SupportMatrixHoverHint}" TextWrapping="Wrap" />
+          </Grid>
+          <Border Classes="panelSurface" BorderThickness="1">
+            <Expander x:Name="SupportMatrixCatalogDetails" Classes="inlineDisclosure" IsExpanded="False"
+                      Header="{Binding Text.SupportMatrixCatalogDetailsLabel}" AutomationProperties.Name="{Binding Text.SupportMatrixCatalogDetailsLabel}">
+              <StackPanel Spacing="{DynamicResource NfcSpace8}">
+                <TextBlock Classes="fieldLabel" Text="{Binding Text.SupportMatrixSourceHashLabel}" />
+                <TextBlock Classes="technicalCaption" Text="{Binding Settings.SupportMatrix.SourceHash}" />
+                <TextBlock Classes="fieldLabel" Text="{Binding Text.SupportMatrixResolutionTokenLabel}" />
+                <TextBlock Classes="technicalCaption" Text="{Binding Settings.SupportMatrix.ResolutionToken}" TextWrapping="Wrap" />
+              </StackPanel>
+            </Expander>
           </Border>
         </StackPanel>
       </Grid>

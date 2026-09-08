@@ -275,8 +275,10 @@ public sealed partial class ShellNavigationSystemTests
         Assert.Equal("證據", ShellTextResources.For(ShellLanguage.ChineseTraditional).SupportMatrixEvidenceLabel);
         Assert.Equal("待審查", ShellTextResources.For(ShellLanguage.ChineseTraditional).SupportMatrixReviewRequiredLabel);
         Assert.Equal(
-            "狀態彙整驗證證據與路徑阻擋原因；聚焦任一格可查看明細。",
+            "滑鼠停留或聚焦儲存格可查看明細。",
             ShellTextResources.For(ShellLanguage.ChineseTraditional).SupportMatrixHoverHint);
+        Assert.Equal("目錄明細", ShellTextResources.For(ShellLanguage.ChineseTraditional).SupportMatrixCatalogDetailsLabel);
+        Assert.Equal("Catalog details", ShellTextResources.For(ShellLanguage.English).SupportMatrixCatalogDetailsLabel);
     }
 
     private static CanonicalSupportMatrixQueryResult CurrentMatrix(
