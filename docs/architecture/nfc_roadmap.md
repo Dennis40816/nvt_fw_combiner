@@ -486,7 +486,7 @@ to another independent item rather than force a decision.
 
 | Remaining order | Scope | Boundary |
 | --- | --- | --- |
-| 1 | Report import assessment (7) | Inspect missing/noncanonical fields and reproduce any misleading success labels. Record parser/legacy-admission findings first; assessment is not blanket repair. |
+| 1 | Report import correction decision (7) | [Assessment complete](../ui/v1.1.x-report-history-usability-handoff.md#report-import-assessment--2026-09-08): empty/unrelated objects and malformed `Issues` incorrectly show success through direct and asynchronous import. No fix applied. Decide incomplete-legacy read-only/unknown versus rejection and minimum admitted fields before changing parser compatibility; continue independent work meanwhile. |
 | 2 | DPI/high-contrast assessment | Assess genuine 125% behavior and existing High Contrast support. Distinguish native evidence from headless geometry; no support promotion or OS preference changes are implied. |
 | 3 | Broad screen inventory and reprioritization (10) | Use actual baseline/candidate screens to remove duplicates and order the remaining changes. |
 | 4 | Shared visual/theme corrections (11) | Change shared owners only after inventory identifies affected consumers and states; obtain approval for new visual designs. |
