@@ -89,9 +89,48 @@ public sealed class ReportChangesLayoutTests
             TextBlock range = Assert.Single(
                 first.GetVisualDescendants().OfType<TextBlock>(),
                 text => text.IsEffectivelyVisible && text.Text == shell.Reports.LoadedReport.HexDiff.SelectedRange!.DisplayRange);
+            TextBlock summary = Assert.Single(
+                first.GetVisualDescendants().OfType<TextBlock>(),
+                text => text.IsEffectivelyVisible && text.Text == shell.Reports.LoadedReport.HexDiff.SelectedRange!.ChangedSummary);
             Rect statusBounds = BoundsIn(status, first);
+            Rect summaryBounds = BoundsIn(summary, first);
             Rect rangeBounds = BoundsIn(range, first);
-            Assert.InRange(Math.Abs(statusBounds.Top - rangeBounds.Top), 0, 3);
+            Assert.InRange(Math.Min(summaryBounds.Top, statusBounds.Top), 8, 12);
+            Assert.InRange(summaryBounds.Left, 14, 18);
+            Assert.InRange(first.Bounds.Width - statusBounds.Right, 14, 18);
+            Assert.InRange(Math.Abs(statusBounds.Center.Y - summaryBounds.Center.Y), 0, 1);
+            Assert.Equal(FontWeight.SemiBold, summary.FontWeight);
+            Assert.True(rangeBounds.Top >= summaryBounds.Bottom + 6);
+            Assert.InRange(Math.Abs(rangeBounds.Left - summaryBounds.Left), 0, 1);
+            TextBlock why = Assert.Single(first.GetVisualDescendants().OfType<TextBlock>(),
+                text => text.IsEffectivelyVisible && text.Text == shell.Text.HexDiffWhyLabel);
+            TextBlock reason = Assert.Single(first.GetVisualDescendants().OfType<TextBlock>(),
+                text => text.IsEffectivelyVisible && text.Text == shell.Reports.LoadedReport.HexDiff.SelectedRange!.Reason);
+            Rect whyBounds = BoundsIn(why, first);
+            Rect reasonBounds = BoundsIn(reason, first);
+            Assert.Equal(FontWeight.Normal, reason.FontWeight);
+            Assert.True(reasonBounds.Top >= whyBounds.Bottom + 3);
+            Assert.InRange(Math.Abs(reasonBounds.Left - summaryBounds.Left), 0, 1);
+            TextBlock metadata = Assert.Single(first.GetVisualDescendants().OfType<TextBlock>(),
+                text => text.IsEffectivelyVisible && text.Text == "reported-output · diff-00000");
+            Assert.InRange(first.Bounds.Height - BoundsIn(metadata, first).Bottom, 8, 12);
+            Assert.Equal(metadata.Text, ToolTip.GetTip(metadata));
+            Assert.Equal(metadata.Text, AutomationProperties.GetName(metadata));
+            Assert.NotEqual(Assert.IsType<ISolidColorBrush>(summary.Foreground, exactMatch: false).Color,
+                Assert.IsType<ISolidColorBrush>(metadata.Foreground, exactMatch: false).Color);
+            Border rail = Assert.Single(first.GetVisualDescendants().OfType<Border>(),
+                border => border.Name == "PART_SelectedRail");
+            Assert.InRange(BoundsIn(rail, first).Left, 0, 2);
+            Assert.InRange(rail.Bounds.Width, 2.5, 3.5);
+            ListBoxItem second = ranges.GetVisualDescendants().OfType<ListBoxItem>()
+                .Where(item => item.IsEffectivelyVisible).Skip(1).First();
+            Assert.DoesNotContain(second.GetVisualDescendants().OfType<TextBlock>(),
+                text => text.IsEffectivelyVisible && text.Text == shell.Text.HexDiffWhyLabel);
+            Assert.InRange(second.Bounds.Height, 76, 88);
+            TextBlock tabHeader = Assert.Single(window.GetVisualDescendants().OfType<TextBlock>(),
+                text => text.IsEffectivelyVisible && text.Text == shell.Text.ReportTabChanges &&
+                    text.GetVisualAncestors().OfType<TabItem>().Any(item => item.IsSelected));
+            Assert.Equal(FontWeight.SemiBold, tabHeader.FontWeight);
 
             SaveFrame(
                 window,

@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 2,
+  "taskId": "UI-114-REPORT-CARD-REFERENCE-17",
+  "capability": "Match the owner-approved Changed ranges card reference with real content insets and vertical reading order",
+  "integrationBase": "a4c5188b3929aa0017ee4bf9c40b6bbf006e099d",
+  "risk": "R2",
+  "kind": "governance",
+  "state": "design-active",
+  "mutablePaths": [
+    "src/NvtFwCombiner.Presentation.Avalonia/Resources/MainWindowReportChangeTemplates.axaml",
+    "src/NvtFwCombiner.Presentation.Avalonia/Styles/MainWindowControlStyles.axaml",
+    "src/NvtFwCombiner.Presentation.Avalonia/Styles/MainWindowStyles.axaml",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ShellTextResources.Localized.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReportReviewViewModel.OutputDifferences.cs",
+    "docs/adr/0021-code-size-ratchet-accepted-artifact-amendment.md",
+    "scripts/code_size_policy.py"
+  ],
+  "implementationOwner": "primary-agent",
+  "searchEvidence": [
+    "The owner rejected the earlier right-hand card layout, approved the screenshot-edited reference exec-6f234406-2774-4eda-9bf7-3cdea4080f57.png, then explicitly requested implementation. The existing Report Changes handoff records the approved reference and replaces only the earlier right-card hierarchy.",
+    "MainWindowReportChangeTemplates.axaml owns ReportHexDiffRangeCardTheme and ReportHexDiffRangeRowTemplate. MainWindowControlStyles.axaml contains two obsolete ListBox.reportHexDiffRanges ListBoxItem styles that override card padding to zero and background to transparent. Removing these restores one existing card-style owner; the ListBox style and internal scrollbar remain.",
+    "ReportHexDiffRangeViewModel already exposes ChangedSummary, DisplayRange, Status, Reason, Result, OutputSpaceId and TraceId. Reorder existing bindings without new selection, grouping, classification or firmware behavior.",
+    "ReportReviewViewModel.OutputDifferences.cs uses one FormatDifferenceReason fallback for JSON and live projections; actual Semantic.Explanation remains preferred. Shorten only the generic unaccepted wording because the range Result already displays the review action.",
+    "Rendered red evidence shows metadata and summary both have the selected-tab strong color. MainWindowStyles.axaml applies report TabItem TextBlock and TabItem:selected TextBlock styles to the whole tab body, overriding existing shared text roles; TabItem itself also inherits SemiBold into body text. Scope these existing styles to the actual header presenter without per-card color overrides."
+  ],
+  "semanticOwner": "Existing Report range card theme/template and ReportReviewViewModel display-text projection",
+  "terminalContract": "Match the approved English Light reference in the current full Report surface: 14px horizontal and 8px vertical content inset, 1px card border, separate 3px edge selection rail, ChangedSummary and full Status centered on the first row, complete half-open DisplayRange on the second, selected-only vertically stacked Why/Reason and Result/Result, and quiet single-line OutputSpaceId plus TraceId at the bottom. Preserve full metadata through hover/accessibility if it overflows. Keep typed semantic explanations; shorten only the existing unaccepted fallback. Scope existing report-tab text styles to the actual header presenter so body roles no longer inherit header-only weight/color; retain header and segment styling. Retain raw order, virtualization, selection, verdicts, replay, report JSON, left viewport geometry, navigation and firmware bytes. Use existing rendered geometry tests and inspect full English Light/Chinese Dark frames. Record only the canonical measured production ceiling and allowance, with runtime slices, measurement algorithms and verification gates unchanged; no transferable headroom.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "ui_presentation_review",
+    "outcome": "approved",
+    "evidence": "Independent read-only design review at a4c5188b inspected the approved reference and relevant owners; PASS with no P0-P3 findings. It admitted removing the two obsolete item styles, separate content/rail geometry, typed semantic reason precedence, complete metadata access and scoped live/JSON plus rendered verification. Subsequent rendered review admitted the existing report-tab header-only selector correction and calibrated the earlier estimated 14px all-direction inset to 14px horizontal/8px vertical: the normalized reference has roughly 80px unselected and 178px selected cards, not the first candidate's 96px/189px. Final exact accounting remains bound to canonical measurement."
+  },
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": {
+    "reviewer": null,
+    "outcome": "pending",
+    "evidence": ""
+  }
+}

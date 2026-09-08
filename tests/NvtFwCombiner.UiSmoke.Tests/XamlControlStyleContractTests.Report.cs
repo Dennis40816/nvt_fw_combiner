@@ -178,10 +178,10 @@ public sealed partial class XamlControlStyleContractTests
             audit,
             StringComparison.Ordinal);
         Assert.DoesNotContain("HexDiffSelectedRangeLabel", changes, StringComparison.Ordinal);
-        Assert.Contains("Text=\"{Binding OutputSpaceId}\"", changes, StringComparison.Ordinal);
+        Assert.Contains("Path=\"OutputSpaceId\"", changes, StringComparison.Ordinal);
         Assert.Contains("Text=\"{Binding DisplayRange}\"", changes, StringComparison.Ordinal);
         Assert.Contains("Text=\"{Binding ChangedSummary}\"", changes, StringComparison.Ordinal);
-        Assert.Contains("Text=\"{Binding TraceId}\"", changes, StringComparison.Ordinal);
+        Assert.Contains("Path=\"TraceId\"", changes, StringComparison.Ordinal);
         Assert.Contains("Text.HexDiffWhyLabel", changes, StringComparison.Ordinal);
         Assert.Contains("Text.ResultLabel", changes, StringComparison.Ordinal);
         Assert.Contains("Text=\"{Binding Result}\"", changes, StringComparison.Ordinal);
@@ -220,8 +220,8 @@ public sealed partial class XamlControlStyleContractTests
         Assert.DoesNotContain("HexDiffSelectedRangeLabel", rangeRow, StringComparison.Ordinal);
         Assert.Contains("Content=\"{Binding Status}\"", rangeRow, StringComparison.Ordinal);
         Assert.Equal(1, Regex.Count(rangeRow, Regex.Escape("Content=\"{Binding Status}\"")));
-        Assert.Contains("Text=\"{Binding OutputSpaceId}\"", rangeRow, StringComparison.Ordinal);
-        Assert.Contains("Text=\"{Binding TraceId}\"", rangeRow, StringComparison.Ordinal);
+        Assert.Contains("Path=\"OutputSpaceId\"", rangeRow, StringComparison.Ordinal);
+        Assert.Contains("Path=\"TraceId\"", rangeRow, StringComparison.Ordinal);
         Assert.Contains("Text=\"{Binding DisplayRange}\"", rangeRow, StringComparison.Ordinal);
         Assert.DoesNotContain("Text=\"{Binding AccessibleRange}\"", rangeRow, StringComparison.Ordinal);
         Assert.Contains("Text.HexDiffWhyLabel", rangeRow, StringComparison.Ordinal);

@@ -34,17 +34,16 @@
   </Style>
   <Style Selector="TabControl.reportTabs TabItem">
     <Setter Property="FontSize" Value="{DynamicResource NfcFontSize12}" />
-    <Setter Property="FontWeight" Value="SemiBold" />
     <Setter Property="Padding" Value="8,6" />
     <Setter Property="MinHeight" Value="32" />
   </Style>
-  <Style Selector="TabControl.reportTabs TabItem TextBlock">
+  <Style Selector="TabControl.reportTabs TabItem /template/ ContentPresenter#PART_ContentPresenter">
     <Setter Property="FontSize" Value="{DynamicResource NfcFontSize12}" />
     <Setter Property="FontWeight" Value="SemiBold" />
     <Setter Property="Foreground" Value="{DynamicResource NfcTextSecondaryBrush}" />
   </Style>
-  <Style Selector="TabControl.reportTabs TabItem:selected TextBlock, ToggleButton.segment:checked TextBlock">
-    <Setter Property="Foreground" Value="{DynamicResource NfcTextStrongBrush}" />
+  <Style Selector="TabControl.reportTabs TabItem:selected /template/ ContentPresenter#PART_ContentPresenter, ToggleButton.segment:checked TextBlock">
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource NfcTextStrongBrush}" />
   </Style>
   <Style Selector="Expander">
     <Setter Property="HorizontalAlignment" Value="Stretch" />

@@ -491,7 +491,7 @@ internal sealed partial class ReportReviewViewModel
         ShellLanguage language)
     {
         return !accepted
-            ? T(language, "Not accepted by the selected profile; review before release.", "所選 profile 未接受此差異；release 前必須審查。")
+            ? T(language, "Not accepted by the selected profile.", "所選 profile 未接受此差異。")
             : classification switch
             {
                 OutputDifferenceClassifications.DeclaredReplacement => T(language, "Expected replacement bytes copied by this run.", "本次執行預期複製的 replacement bytes。"),

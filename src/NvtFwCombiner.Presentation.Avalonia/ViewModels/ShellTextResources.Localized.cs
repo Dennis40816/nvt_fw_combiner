@@ -431,7 +431,7 @@ internal sealed partial class ShellTextResources
             HexDiffOriginalRowLabel = Pick("original", "原始"),
             HexDiffRangeScrollAutomationName = Pick("Scroll the selected changed range", "捲動所選變更區段"),
             HexDiffRangeNavigatorTitle = Pick("Changed ranges", "變更區段"),
-            HexDiffRangeNavigatorDetail = Pick("Review-required ranges are listed first. Select one to inspect its bytes.", "待審查區段優先顯示；選取區段即可檢視對應位元組。"),
+            HexDiffRangeNavigatorDetail = Pick("Select a range to inspect its bytes.", "選取區段以檢視對應位元組。"),
             HexDiffResizeAutomationName = Pick("Resize Hex Diff and changed ranges panels", "調整 Hex Diff 與變更區段面板寬度"),
             HexDiffWhyLabel = Pick("Why", "原因"),
             BinInspectorTitle = Pick("BIN Inspector", "BIN 檢視器"),

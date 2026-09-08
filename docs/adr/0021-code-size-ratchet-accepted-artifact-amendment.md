@@ -465,3 +465,16 @@ acceptance, replay evidence, firmware semantics, output bytes, measurement
 algorithms, duplicate checks, partial-type limits, or any verification or
 release gate. This ledger records only exact source-size accounting for
 `UI-114-REPORT-CLARITY-16`.
+
+## 2026-09-08 approved Report range-card reference accounting
+
+The replacement right-card presentation for `UI-114-REPORT-CARD-REFERENCE-17`
+reduces full production from 138,574 to exactly 138,572 nonblank lines. Its
+allowance descends from 35,678 to 35,676 against the unchanged 102,896 ratchet.
+Runtime remains 99,170; all runtime slices and allowances are unchanged.
+The existing card theme replaces two obsolete overriding item styles, reorders
+existing display bindings and shortens the generic unaccepted reason. Existing
+report-tab styles now apply to headers without overriding body text roles. There is
+no new semantic owner or transferable budget. Measuring algorithms, exclusions,
+duplicate checks, partial-type limits, report/firmware behavior and verification
+or release gates remain unchanged.
