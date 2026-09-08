@@ -387,7 +387,8 @@ The published `1.1.3` CI/release scope includes none of these UI changes.
 The later owner amendment adds the AB Dummy DP checkbox and its complete
 firmware behavior to this same release; it is not a visual-only change.
 
-Current design checkpoint (2026-09-06): the owner requested improvement mockups
+Original design checkpoint (2026-09-06; Git status below is historical):
+the owner requested improvement mockups
 before implementation and will approve the reference to be implemented. The
 owner clarified that proposals must start from an actually opened published
 `v1.1.3` app and captured full-page screenshots, not invented layouts. Preserve
@@ -452,15 +453,15 @@ waive their existing owner decisions, review and Golden evidence.
 | 6 | CtrlRAM selector | [Visual contract](../ui/v1.1.x-ctrlram-selector-visual-contract.md): Base heading/subtitle, shared anchors, intermediate-outline removal, spacing and aligned `Max Size` / `Target Addr` guidance locally implemented; suggested filename omitted, actual selected filename and technical details retained. Owner accepted actual layout; logic re-review and 194/194 relevant tests pass (2026-09-06), including real selected-input full-window states and strengthened hover invariants. Not integrated/published. Remaining visual acceptance: genuine 125% evidence and resolution of unsupported High Contrast; do not claim the complete visual matrix passed. |
 | 7 | Run reports list and Load report entry | [Approved list and evidence](../ui/v1.1.x-report-history-usability-handoff.md#approved-run-reports-list--2026-09-06): locally implemented; primary compared complete actual render with final owner-approved reference. Centered capped columns, no vertical lines, red confirmed deletion, execution-date ordering, overflow-only tooltips, full-width sidebar and detail return. Load exists only at Run reports and remains reachable when empty; one bounded loader, retained cancellation/latest-publication. Final 84/84 scoped tests passed, including corrected multi-entry scroll/return focus and remaining-row/Load focus after deletion; desktop build passed. Separate noncanonical/missing-field report admission assessment above remains open; integration/native DPI/high-contrast gates remain separate. |
 | 8 | Bundle primary-output rename | [Implementation and evidence](../ui/v1.1.x-bundle-primary-output-rename-handoff.md#local-implementation-and-evidence--2026-09-06): locally implemented; independent primary/folder editing, same effective output/report/receipt identity, retained cancel/retry and invalid-name validation. Sources renamed and styled as ordinary disclosure. UI 48/48, Application 98/98, Infrastructure 263/263; actual-byte parity and source hashes retained. R2 scoped review completed; native/packaged integration and release Golden gates remain separate. Not integrated/published. |
-| 9 | AB Dummy DP | Complete the [checkbox and firmware scope below](#ab-dummy-dp-checkbox-and-firmware-behavior), not a cosmetic checkbox alone. Settle TP/non-TP, header/integrity/postbuild and toggle-state decisions; retain independent whole-output Golden and exact write-range evidence. |
+| 9 | AB Dummy DP | Locally implemented and committed at `30c91905`, with final-evidence owner approval recorded at `dbd269ff`. The [Dummy DP handoff](../ui/v1.1.x-ab-dummy-dp-handoff.md) records the confirmed horizontal checkbox, DP-input exclusion and non-TP `0xFF` output for NT51919/NT51929/NT51932/NT51950/NT51951. Six independent complete-output map cases passed under the owner-accepted contract; these are not certified Dummy Golden or support promotion. Final combined integration and release gates remain pending. |
 | 10 | Broad screen inventory and reprioritization | [Issue #291](https://github.com/Dennis40816/nvt_fw_combiner/issues/291): inspect the actually opened published `1.1.3` baseline and the accumulated candidate for Merge, Replace, Settings, Message Center, Report, Inspector, dialogs, menus, tooltips, cards and overlays. Reproduce the recorded Dark baseline; group remaining issues by shared control, dependency and risk, remove duplicates, and update this remaining order before broad implementation. Do not begin a blanket redesign. |
 | 11 | Shared visual/theme corrections | Use step 10 findings to correct shared tokens/controls first. Cover normal/hover/focus/selected/disabled/checking/verified/warning/error states, Light/Dark/high contrast, contrast and keyboard visibility. Reuse the same regression matrix for later steps without silently changing approved geometry. |
-| 12 | Report Changes | [Compare handoff](../ui/v1.1.x-report-changes-compare-handoff.md): scrollbar gutter, physical-section grouping, Light Original colors and localized address layout. Preserve raw runs/order/hash/Why/Result/replay and virtualization; no nested scroll owner or report-semantic change. |
+| 12 | Report Changes | [Compare handoff](../ui/v1.1.x-report-changes-compare-handoff.md): gutter, Light Original colors, address spacing, approved range cards, navigation and recorded CRC/other causes are locally implemented and committed through `997fac98` / evidence `a7104dcf`. Physical-section grouping remains open and requires its own bounded design; preserve raw runs/order/hash/Why/Result/replay and virtualization. |
 | 13 | Settings Version page | [Accepted source/list layout and evidence](../ui/v1.1.x-settings-version-handoff.md): owner approved the screenshot-based full-page reference on 2026-09-08. Compact update banner, full-width source editor, secondary Check now at list heading, and per-version typed Catalog `releaseNotes`; existing transactions/confirmation rules and modal/sidebar anchors remain unchanged. Locally implemented and committed at `ca6feb9f`, UI68/68 and accounting19/19 pass with independent fixed-head review; wider native DPI/High Contrast assessment stays separate. |
 | 14 | Memory Layout | Make each canonical section and its address-space/range boundaries explicit instead of flattening independent sections. Use typed Application-to-Presentation projections; no firmware facts, range authority or interpretation move into UI. |
 | 15 | Session diagnostics | Privacy-filtered current-session diagnostics/history, separate from immutable run reports. Preserve existing diagnostic ownership and lifecycle rather than adding another history system. |
 | 16 | First-entry IC selection | [Navigation handoff section 1](../ui/post-v1.1.0-navigation-and-ctrlram-first-open-handoff.md#1-shared-first-entry-ic-selection): reuse Home/navigation/accepted-session admission when compatible accepted IC context is absent. Decide lifetime, invalidation, cross-workflow compatibility and Cancel/Back first; no second catalog, selection owner or UI-only admission. |
-| 17 | Test diagram and README | Complete the already allocated test architecture diagram and `tests/README.md` using retained `1.1.3` counts/timings. Label original `1.1.3` evidence versus later changes, and distinguish parallel lanes, serial dependencies, retries and waits; no new verifier or unnecessary rerun. |
+| 17 | Test diagram and README | Completed and committed at `956a027f`: [execution map and measurements](../../tests/README.md), using retained `1.1.3` counts/timings. Original release evidence, later static counts, overlapping lanes, serial dependencies, retries and waits are distinguished; unavailable historical measurements remain explicitly unavailable, without rerunning tests. |
 
 ### Current remaining queue: small-impact work first
 
@@ -470,35 +471,39 @@ or final-integration approved. Implement one bounded item, verify it, then
 commit that item before beginning the next. Previously recorded uncommitted
 evidence below describes its original observation, not today's Git state.
 
-The immediate request is **Dummy DP plus the test diagram/README**. Documentation
-can proceed independently while Dummy DP's firmware decisions and independent
-Golden evidence are resolved; an unresolved byte contract does not block the
-documentation item and does not authorize a cosmetic-only Dummy DP feature.
+Current checkpoint (2026-09-08): scopes 1-8/5a have the combined local UI
+closure record at `d937747a`. Dummy DP (9), the test diagram/README (17), the
+approved local Report Changes corrections (part of 12), and Settings Version
+(13; implementation `ca6feb9f`, final evidence `947d10ec`) are also committed.
+They are no longer active implementation TODOs. These are local scoped
+completions, not a fresh combined integration pass or publication.
+
+The owner now requests already-authorized work without new design/product
+decisions first, one independently verified unit per commit, until 10:00
+Asia/Taipei on 2026-09-08. That timebox does not authorize unresolved designs,
+new support claims or release. Assessments may record a limitation and move
+to another independent item rather than force a decision.
 
 | Remaining order | Scope | Boundary |
 | --- | --- | --- |
-| 1 | Test diagram / `tests/README.md` (17) | Documentation completed locally: [execution map and measurements](../../tests/README.md). Includes locations, current static declaration counts, retained 1.1.3 executed totals/times and actual serial/parallel dependencies. Historical per-project .NET times/Python executed counts were not found and are explicitly unavailable; no test rerun or guessed figures. |
-| 2 | Report Changes local presentation (12) | Start with gutter, spacing, Original colors and address text; assess physical-section grouping separately before changing shared projections. |
-| 3 | Settings Version local presentation (13) | [Approved reference and bounded implementation](../ui/v1.1.x-settings-version-handoff.md) locally completed at `ca6feb9f`; UI68/68, accounting19/19 and independent fixed-head review passed. Native DPI/High Contrast stays in the separate assessment. |
-| 4 | DPI/high-contrast and Report import assessment | Verify genuine 125% behavior and missing/noncanonical Report fields. Record findings first; assessment is not blanket repair or support promotion. |
-| 5 | Broad screen inventory and reprioritization (10) | Use actual baseline/candidate screens to remove duplicates and order the remaining changes. |
-| 6 | Shared visual/theme corrections (11) | Change shared owners only after inventory identifies affected consumers and states. |
-| 7 | Memory Layout (14) | Retain typed section/address-space authority and review projection impact. |
-| 8 | First-entry IC selection (16) | Resolve accepted-context lifetime, invalidation and Cancel/Back before cross-page behavior changes. |
-| 9 | Session diagnostics (15) | Retain privacy, lifecycle and separation from immutable run reports. |
+| 1 | Report import assessment (7) | Inspect missing/noncanonical fields and reproduce any misleading success labels. Record parser/legacy-admission findings first; assessment is not blanket repair. |
+| 2 | DPI/high-contrast assessment | Assess genuine 125% behavior and existing High Contrast support. Distinguish native evidence from headless geometry; no support promotion or OS preference changes are implied. |
+| 3 | Broad screen inventory and reprioritization (10) | Use actual baseline/candidate screens to remove duplicates and order the remaining changes. |
+| 4 | Shared visual/theme corrections (11) | Change shared owners only after inventory identifies affected consumers and states; obtain approval for new visual designs. |
+| 5 | Report physical-section grouping (remaining 12) | Reuse existing typed groups only after the grouping interaction and historical replay-coverage boundary are accepted; do not invent bytes between raw runs. |
+| 6 | Memory Layout (14) | Retain typed section/address-space authority and review projection impact, including the residual generic Reserved-source wording. |
+| 7 | First-entry IC selection (16) | Resolve accepted-context lifetime, invalidation and Cancel/Back before cross-page behavior changes. |
+| 8 | Session diagnostics (15) | Retain privacy, lifecycle and separation from immutable run reports. |
 
-Dummy DP (9) remains an explicitly requested active `1.1.4` firmware item;
-the owner includes NT51950 and NT51951 alongside NT51919/NT51929/NT51932 in the
-first implementation/verification batch (latest clarification, not NT51952).
-The previous NT51950 deferral is superseded. NT51951's existing
-direct AB Golden and firmware-review gaps remain gates, not silently promoted
-support.
-Insert implementation once its write-range, header/integrity/postbuild and
-Golden contract is admitted. Its approved horizontal checkbox and pre-clear
-confirmation behavior are recorded in the [Dummy DP handoff](../ui/v1.1.x-ab-dummy-dp-handoff.md).
-Code-size, fixed-head integration review, combined regression, packaged UI
-observations and all required release Golden execution remain separate closure
-gates, not hidden completed tasks or reasons to rerun a full release per edit.
+Dummy DP's owner-accepted map-based evidence and write-range audit are recorded
+in the [Dummy DP handoff](../ui/v1.1.x-ab-dummy-dp-handoff.md); the NT51950/NT51951
+scope is no longer waiting for its initial implementation. Existing NT51951
+ordinary AB certified-Golden/support limitations remain distinct from Dummy
+feature approval. The package/smoke schema mismatch discovered at integration
+was corrected at `1da0b11f` and its committed-head regressions passed; this does
+not constitute a complete verifier pass. Combined regression, packaged native
+UI observations and all required release Golden execution remain separate
+closure gates, not reasons to rerun a full release per internal commit.
 
 Step 3 local evidence over `e5202e2707d272076d24216222188d478314a07d`:
 `dotnet test --no-restore` UI filter `FullyQualifiedName~SlotLoading` passes
@@ -510,8 +515,9 @@ architecture `PresentationUsesFocusedApplicationContractsInsteadOfConcreteAdapte
 passes 1/1. All run with the fixed local test-area environment; TRX files are
 under `D:\NvtFwCombiner-TestArea\evidence\v114-perfect-filename-hint`.
 The primary agent's scoped R2 review/Polytail and scoped capability-governance
-validation pass. This is uncommitted local work, not a fresh full-suite/Golden
-run or integration approval; the accumulated code-size gate remains open.
+validation pass. At that original checkpoint this was uncommitted local work,
+not a fresh full-suite/Golden run or integration approval; the accumulated
+code-size gate was still open.
 
 For each step: inspect its real baseline and reproduce the specific issue,
 show the bounded screenshot-based visual change for owner approval where
