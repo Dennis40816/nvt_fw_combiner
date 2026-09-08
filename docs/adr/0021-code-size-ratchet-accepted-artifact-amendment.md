@@ -584,3 +584,12 @@ and baseline to 138,708 and allowance to 35,812 against unchanged ratchet
 102,896. Runtime 99,231 and slices 20,757 / 42,708 / 5,039 / 30,727 remain
 unchanged. Equality, counting, exclusions and firmware/release/Golden gates
 are unchanged; the reduction grants no transferable headroom.
+
+## 2026-09-08 compact technical-details disclosure accounting
+
+`UI-114-MEMORY-DISCLOSURE-33` adds exactly nine production lines for local
+native-disclosure styling. Independent R2 admission `UI-114-MEMORY-DISCLOSURE-SIZE-34`
+sets full production/baseline to 138,717 and allowance to 35,821 against the
+unchanged 102,896 ratchet. Runtime 99,231 and slices 20,757 / 42,708 / 5,039 /
+30,727 remain unchanged. No transferable headroom, measurement/equality,
+exclusion, firmware, Golden or release-gate changes are introduced.

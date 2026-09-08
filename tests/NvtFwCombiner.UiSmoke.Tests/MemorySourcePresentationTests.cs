@@ -73,11 +73,21 @@ public sealed class MemorySourcePresentationTests
                     Assert.False(disclosure.IsExpanded);
                     // The native Expander header owns keyboard activation.
                     global::Avalonia.Controls.Primitives.ToggleButton toggle = Assert.Single(disclosure.GetVisualDescendants().OfType<global::Avalonia.Controls.Primitives.ToggleButton>());
-                    Assert.True(toggle.Focus());
+                    Assert.InRange(toggle.Bounds.Height, 28, 30);
+                    TextBlock disclosureLabel = Assert.Single(toggle.GetVisualDescendants().OfType<TextBlock>(), block => block.Text == (chinese ? "技術細節" : "Technical details"));
+                    TextBlock rangeLabel = Assert.Single(card.GetVisualDescendants().OfType<TextBlock>(), block => block.Text == text.RangeLabel);
+                    Assert.Equal(rangeLabel.FontSize, disclosureLabel.FontSize);
+                    Assert.InRange(Math.Abs(disclosureLabel.TranslatePoint(default, card)!.Value.X - rangeLabel.TranslatePoint(default, card)!.Value.X), 0, 0.5);
+                    Assert.DoesNotContain(disclosure.GetVisualDescendants().OfType<Border>(), border => border.Name == "MemoryTechnicalSeparator" && border.IsEffectivelyVisible);
+                    Assert.True(toggle.Focus(NavigationMethod.Tab));
+                    Assert.True(toggle.BorderThickness.Top > 0);
                     window.KeyPress(Key.Space, RawInputModifiers.None, PhysicalKey.Space, " ");
                     window.KeyRelease(Key.Space, RawInputModifiers.None, PhysicalKey.Space, " ");
                     Dispatcher.UIThread.RunJobs();
                     Assert.True(disclosure.IsExpanded);
+                    Border separator = Assert.Single(disclosure.GetVisualDescendants().OfType<Border>(), border => border.Name == "MemoryTechnicalSeparator");
+                    Assert.True(separator.IsEffectivelyVisible);
+                    Assert.True(separator.TranslatePoint(default, card)!.Value.Y >= toggle.TranslatePoint(default, card)!.Value.Y + toggle.Bounds.Height);
                     TextBlock size = Assert.Single(card.GetVisualDescendants().OfType<TextBlock>(), block => block.Text == "0x1000 (4 KiB)");
                     TextBlock address = Assert.Single(card.GetVisualDescendants().OfType<TextBlock>(), block => block.Text == segment.AddressRangeLabel);
                     Assert.InRange(Math.Abs(size.TranslatePoint(default, card)!.Value.X - address.TranslatePoint(default, card)!.Value.X), 0, 0.5);

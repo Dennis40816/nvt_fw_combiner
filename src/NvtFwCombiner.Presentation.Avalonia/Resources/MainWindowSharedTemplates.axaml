@@ -225,6 +225,16 @@
 
 <DataTemplate x:Key="MemoryCoverageRegionCardTemplate" DataType="vm:MemoryCoverageSegmentViewModel">
   <StackPanel Spacing="10">
+    <StackPanel.Styles>
+      <Style Selector="Expander.firmwareSlotGroupDisclosure /template/ ToggleButton#ExpanderHeader">
+        <Setter Property="Height" Value="28" />
+        <Setter Property="Padding" Value="0" />
+        <Setter Property="BorderThickness" Value="0" />
+      </Style>
+      <Style Selector="Expander.firmwareSlotGroupDisclosure /template/ ToggleButton#ExpanderHeader:focus-visible">
+        <Setter Property="BorderThickness" Value="2" />
+      </Style>
+    </StackPanel.Styles>
     <Grid ColumnDefinitions="10,*,Auto" ColumnSpacing="8">
       <ContentControl VerticalAlignment="Center" Content="{Binding}" ContentTemplate="{StaticResource MemoryCoverageCompactMarkerTemplate}" />
       <TextBlock Grid.Column="1" Classes="bodyEmphasisText" FontWeight="SemiBold" VerticalAlignment="Center" Text="{Binding DisplayTitle}" TextWrapping="Wrap" />
@@ -239,11 +249,11 @@
       <TextBlock Grid.Row="2" Grid.Column="1" Classes="bodyText" Text="{Binding SourceLabel}" TextWrapping="Wrap" />
     </Grid>
     <TextBlock Classes="captionText memoryInfoDescription" Text="{Binding PreservationSummary}" TextWrapping="Wrap" />
-    <Border BorderThickness="0,1,0,0" BorderBrush="{DynamicResource NfcMemoryDividerBrush}" Padding="0,6,0,0">
-      <Expander Classes="inlineDisclosure firmwareSlotGroupDisclosure" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" Padding="0" IsExpanded="False"
-          Header="{ReflectionBinding $parent[Window].DataContext.Text.MemoryProcessingDetailsLabel}"
+      <Expander Classes="inlineDisclosure firmwareSlotGroupDisclosure" MinHeight="28" BorderThickness="0" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" Padding="0" IsExpanded="False"
           AutomationProperties.Name="{ReflectionBinding $parent[Window].DataContext.Text.MemoryProcessingDetailsLabel}">
+        <Expander.Header><TextBlock Classes="captionText" Text="{ReflectionBinding $parent[Window].DataContext.Text.MemoryProcessingDetailsLabel}" /></Expander.Header>
         <StackPanel Spacing="6" Margin="0,6,0,0">
+          <Border Name="MemoryTechnicalSeparator" Height="1" Background="{DynamicResource NfcMemoryDividerBrush}" Margin="0,0,0,4" />
           <ItemsControl ItemsSource="{Binding ProcessingFacts}" IsVisible="{Binding HasProcessingFacts}">
             <ItemsControl.ItemTemplate>
               <DataTemplate DataType="vm:MemoryRegionFact">
@@ -257,7 +267,6 @@
           <TextBlock Classes="captionText" Text="{Binding Detail}" TextWrapping="Wrap" IsVisible="{Binding !HasProcessingFacts}" />
         </StackPanel>
       </Expander>
-    </Border>
   </StackPanel>
 </DataTemplate>
 

@@ -680,6 +680,26 @@ template renders do not establish native whole-app/DPI/high-contrast or release
 acceptance. Fixed-head review is recorded in the
 [admission record](../governance/change-records/UI-114-MEMORY-CARDS-31.json).
 
+##### Quiet technical-details disclosure — 2026-09-08
+
+Owner-approved `UI-114-MEMORY-DISCLOSURE-33` refines only the card footer:
+`Technical details` / `技術細節` uses the existing caption style, aligned with
+Range, in a 28 px native Expander header. The divider appears below that header
+only when expanded. Native keyboard focus remains visible; card width, marker,
+metadata, technical facts and other disclosures are unchanged.
+[Approved preview](../ui/references/v1.1.4-memory-technical-details-approved.png)
+and actual [EN Light](../ui/references/v1.1.4-memory-technical-details-actual.png)
+/ [zh Dark](../ui/references/v1.1.4-memory-technical-details-dark-actual.png)
+retain the 380 px host / 348 px card geometry.
+
+Evidence: `D:/NvtFwCombiner-TestArea/evidence/v114-memory-disclosure/`.
+Red: four cases fail on the old 48 px header. `verified/verified.trx`: 14/14
+passed, zero skipped, 4 s, including measured header height, caption alignment,
+collapsed/expanded separator visibility, keyboard focus/Space activation,
+shared card variants and palette/preservation contracts. Scope remains isolated
+production-template acceptance, not native full-app/DPI/high-contrast/release.
+Review is bound in [record33](../governance/change-records/UI-114-MEMORY-DISCLOSURE-33.json).
+
 ##### Current Home and Settings inventory follow-up
 
 On production source `c3c81ba2`, the primary inspected eight current real

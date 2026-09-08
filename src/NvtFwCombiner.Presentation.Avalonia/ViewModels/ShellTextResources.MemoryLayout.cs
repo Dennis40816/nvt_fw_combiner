@@ -17,7 +17,7 @@ internal enum MemoryPendingPrerequisite
 internal sealed partial class ShellTextResources
 {
     public string MemoryCustomerInformationLabel => SelectLanguage("Customer information", "客戶資訊");
-    public string MemoryProcessingDetailsLabel => SelectLanguage("Processing details", "處理細節");
+    public string MemoryProcessingDetailsLabel => SelectLanguage("Technical details", "技術細節");
     public string MemorySourceLabel => SelectLanguage("Source", "來源");
     public string FormatMemorySourceCaption(string sourceLabel)
     {

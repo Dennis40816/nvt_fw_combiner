@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 2,
+  "taskId": "UI-114-MEMORY-DISCLOSURE-33",
+  "capability": "Quiet compact technical-details disclosure in existing region cards",
+  "integrationBase": "548cfeee783661ac3dce370404f0a49652203a60",
+  "risk": "R1",
+  "kind": "ui",
+  "state": "design-active",
+  "mutablePaths": ["src/NvtFwCombiner.Presentation.Avalonia/Resources/MainWindowSharedTemplates.axaml", "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ShellTextResources.MemoryLayout.cs"],
+  "implementationOwner": "primary-agent",
+  "searchEvidence": ["Existing MemoryCoverageRegionCardTemplate owns the shared Expander; inlineDisclosure/firmwareSlotGroupDisclosure styles own native state/focus/background. ShellTextResources.MemoryProcessingDetailsLabel owns localized title. Existing MemorySourcePresentationTests renders both card variants EN/zh Light/Dark, keyboard expansion, metadata and tooltip."],
+  "semanticOwner": "Existing Presentation shared region-card template and localized label only.",
+  "terminalContract": "Owner approved exec-d087d809-9a7a-49be-8c73-a90bd2fecb2e.png preview from actual card. Keep380px host/348px card, existing marker, title, state, metadata and technical facts. Rename visible title Technical details/技術細節, caption-size muted regular text aligned with Range, compact28px header, no divider above header; divider below header only when expanded. Reuse native Expander, backgroundless arrow and focus/keyboard behavior; local styling cannot change other disclosures. No firmware/data/processing/range semantics. Same fixture EN/zh Light/Dark screenshot and measured red/green tests; full suite remains integration/release only.",
+  "disposition": "extend-owner",
+  "designReview": {"reviewer": null, "outcome": "not-required", "evidence": "R1 local visual correction to owner-approved reference, no upstream authority change."},
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": {"reviewer": null, "outcome": "pending", "evidence": ""}
+}
