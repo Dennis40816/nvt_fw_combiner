@@ -89,60 +89,79 @@ internal sealed partial class ReportReviewViewModel
         byte[] utf8 = StrictUtf8.GetBytes(json);
         using var document = JsonDocument.Parse(utf8.AsMemory());
         JsonElement root = document.RootElement;
+        bool unknown = CompositionRunReportJson.AssessReadCompleteness(root, cancellationToken) == CompositionRunReportJson.ReadCompleteness.Unknown &&
+            root.ValueKind == JsonValueKind.Object;
+        try
+        {
+            string profileId = GetString(root, nameof(ProfileId));
+            string icId = GetString(root, nameof(IcId));
+            string modeId = GetString(root, nameof(ModeId));
+            string experienceId = GetString(root, nameof(ExperienceId));
+            string compositionKind = GetString(root, nameof(CompositionKind));
+            string runId = GetString(root, nameof(RunId));
+            string startedAt = GetString(root, nameof(StartedAtUtc));
+            string outputFileName = GetOutputString(root, "FileName");
+            long outputSize = GetOutputLong(root, "Size");
+            bool? outputCommitted = GetOutputCommitted(root);
+            string outputSha256 = GetOutputString(root, "Sha256");
+            IReadOnlyList<ReportLineViewModel> inputs = ParseInputs(root, cancellationToken);
+            IReadOnlyList<ReportLineViewModel> operations = ParseOperations(root, language, cancellationToken);
+            IReadOnlyList<ReportLineViewModel> mutations = ParseMutations(root, cancellationToken);
+            OutputDifferenceProjection outputDifferences = ParseOutputDifferences(
+                root,
+                json,
+                utf8,
+                inspectionSnapshot?.OutputSpaceId ?? "reported-output",
+                outputSize,
+                language,
+                cancellationToken);
+            IReadOnlyList<ReportLineViewModel> issues = ParseIssues(root, language, cancellationToken);
+            string status = unknown ? T(language, "Unknown", "未知") : CreateStatus(issues, language);
+            cancellationToken.ThrowIfCancellationRequested();
 
-        string profileId = GetString(root, nameof(ProfileId));
-        string icId = GetString(root, nameof(IcId));
-        string modeId = GetString(root, nameof(ModeId));
-        string experienceId = GetString(root, nameof(ExperienceId));
-        string compositionKind = GetString(root, nameof(CompositionKind));
-        string runId = GetString(root, nameof(RunId));
-        string startedAt = GetString(root, nameof(StartedAtUtc));
-        string outputFileName = GetOutputString(root, "FileName");
-        long outputSize = GetOutputLong(root, "Size");
-        bool? outputCommitted = GetOutputCommitted(root);
-        string outputSha256 = GetOutputString(root, "Sha256");
-        IReadOnlyList<ReportLineViewModel> inputs = ParseInputs(root, cancellationToken);
-        IReadOnlyList<ReportLineViewModel> operations = ParseOperations(root, language, cancellationToken);
-        IReadOnlyList<ReportLineViewModel> mutations = ParseMutations(root, cancellationToken);
-        OutputDifferenceProjection outputDifferences = ParseOutputDifferences(
-            root,
-            json,
-            utf8,
-            inspectionSnapshot?.OutputSpaceId ?? "reported-output",
-            outputSize,
-            language,
-            cancellationToken);
-        IReadOnlyList<ReportLineViewModel> issues = ParseIssues(root, language, cancellationToken);
-        string status = CreateStatus(issues, language);
-        cancellationToken.ThrowIfCancellationRequested();
+            return new ReportReviewViewModel(
+                false,
+                sourceName,
+                utf8.LongLength,
+                profileId,
+                icId,
+                modeId,
+                experienceId,
+                compositionKind,
+                runId,
+                startedAt,
+                unknown ? T(language, "Incomplete report", "不完整的 Report") : $"{profileId} ({icId})",
+                unknown ? sourceName : $"{compositionKind} / {experienceId} / {Shorten(runId, 18)} / {startedAt}",
+                status,
+                ParseOutput(root),
+                outputFileName,
+                outputSize,
+                outputCommitted,
+                outputSha256,
+                outputArtifactPath ?? string.Empty,
+                inspectionSnapshot,
+                inputs,
+                operations,
+                mutations,
+                outputDifferences,
+                issues,
+                language,
+                isOutcomeUnknown: unknown);
+        }
+        catch (Exception exception) when (unknown && exception is JsonException or InvalidOperationException or FormatException or OverflowException)
+        {
+            // Incomplete evidence may also contain unreadable nested rows; keep Raw without inventing facts.
+            return Unknown(sourceName, utf8.LongLength, language);
+        }
+    }
 
-        return new ReportReviewViewModel(
-            false,
-            sourceName,
-            utf8.LongLength,
-            profileId,
-            icId,
-            modeId,
-            experienceId,
-            compositionKind,
-            runId,
-            startedAt,
-            $"{profileId} ({icId})",
-            $"{compositionKind} / {experienceId} / {Shorten(runId, 18)} / {startedAt}",
-            status,
-            ParseOutput(root),
-            outputFileName,
-            outputSize,
-            outputCommitted,
-            outputSha256,
-            outputArtifactPath ?? string.Empty,
-            inspectionSnapshot,
-            inputs,
-            operations,
-            mutations,
-            outputDifferences,
-            issues,
-            language);
+    private static ReportReviewViewModel Unknown(string sourceName, long bytes, ShellLanguage language)
+    {
+        return new ReportReviewViewModel(false, sourceName, bytes,
+            string.Empty, string.Empty, string.Empty, string.Empty, string.Empty, string.Empty, string.Empty,
+            T(language, "Incomplete report", "不完整的 Report"), sourceName, T(language, "Unknown", "未知"),
+            string.Empty, string.Empty, 0, null, string.Empty, string.Empty, null,
+            [], [], [], OutputDifferenceProjection.Empty, [], language, isOutcomeUnknown: true);
     }
 
     /// <summary>Creates an error report when JSON parsing or loading fails.</summary>

@@ -32,9 +32,11 @@ internal sealed partial class ReportReviewViewModel
         IReadOnlyList<ReportLineViewModel> mutations,
         OutputDifferenceProjection outputDifferences,
         IReadOnlyList<ReportLineViewModel> issues,
-        ShellLanguage language = ShellLanguage.English)
+        ShellLanguage language = ShellLanguage.English,
+        bool isOutcomeUnknown = false)
     {
         IsEmpty = isEmpty;
+        IsOutcomeUnknown = isOutcomeUnknown;
         SourceName = sourceName;
         ReportJsonUtf8ByteCount = reportJsonUtf8ByteCount;
         ProfileId = profileId;
@@ -50,17 +52,17 @@ internal sealed partial class ReportReviewViewModel
         Output = output;
         OutputFileName = outputFileName;
         OutputSize = outputSize;
-        this.outputCommitted = outputCommitted;
-        IsOutputNotGenerated = outputCommitted == false &&
+        this.outputCommitted = isOutcomeUnknown ? null : outputCommitted;
+        IsOutputNotGenerated = !isOutcomeUnknown && outputCommitted == false &&
             outputSize <= 0 &&
             issues.Any(IsBlocking);
         OutputSizeLabel = CreateOutputSizeLabel(outputSize, IsOutputNotGenerated, language);
-        OutputCommitmentLabel = CreateOutputCommitmentLabel(outputCommitted, IsOutputNotGenerated, language);
+        OutputCommitmentLabel = CreateOutputCommitmentLabel(this.outputCommitted, IsOutputNotGenerated, language);
         OutputSha256 = outputSha256;
         OutputHashLabel = IsOutputNotGenerated || string.IsNullOrWhiteSpace(outputSha256)
             ? T(language, "No output hash", "無輸出雜湊")
             : Shorten(outputSha256, 16);
-        OutputArtifactPath = string.IsNullOrWhiteSpace(outputArtifactPath) ? string.Empty : outputArtifactPath;
+        OutputArtifactPath = isOutcomeUnknown || string.IsNullOrWhiteSpace(outputArtifactPath) ? string.Empty : outputArtifactPath;
         InspectionSnapshot = inspectionSnapshot;
         Inputs = inputs;
         Operations = operations;
@@ -112,6 +114,21 @@ internal sealed partial class ReportReviewViewModel
         StepOperationPage = ReportPagedListViewModel.Create(StepOperations, 24, language);
         PostbuildInvocationPage = ReportPagedListViewModel.Create(PostbuildInvocations, 24, language);
         IssuePage = ReportPagedListViewModel.Create(Issues, 40, language);
+        if (isOutcomeUnknown)
+        {
+            OutcomeTitle = T(language, "Unknown", "未知");
+            OutcomeDetail = T(language, "Report data is incomplete or unrecognized. A run outcome cannot be determined.",
+                "Report 資料不完整或格式無法辨識，無法判定執行結果。");
+            OutcomeMeta = T(language, "Incomplete data", "資料不完整");
+            OutcomeIcon = "?";
+            OutcomeAccessibilityLabel = T(language, "Report outcome unknown", "Report 執行結果未知");
+            NextStepTitle = T(language, "Inspect raw report", "查看原始 Report");
+            NextStepDetail = T(language, "The original JSON is preserved in Raw. Obtain a complete report before relying on its outcome.",
+                "原始 JSON 保留在原始資料頁。請取得完整 Report 後再確認執行結果。");
+            ByteDifferenceTitle = OutcomeTitle;
+            ByteDifferenceDetail = OutcomeDetail;
+            ByteDifferenceMeta = OutcomeMeta;
+        }
     }
 
     public static ReportReviewViewModel Empty { get; } = new(

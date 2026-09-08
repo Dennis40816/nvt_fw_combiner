@@ -103,8 +103,9 @@
         <Grid Margin="16,12" ColumnDefinitions="Auto,*,Auto" ColumnSpacing="{DynamicResource NfcSpace12}">
           <Grid Width="32" Height="32" AutomationProperties.Name="{Binding LoadedReport.OutcomeAccessibilityLabel}">
             <Border Background="{DynamicResource NfcSuccessAccentBrush}" CornerRadius="{DynamicResource NfcPillCornerRadius}" IsVisible="{Binding LoadedReport.IsClean}" />
-            <Border Background="{DynamicResource NfcWarningAccentStrongBrush}" CornerRadius="{DynamicResource NfcPillCornerRadius}" IsVisible="{Binding LoadedReport.HasWarningsWithoutBlockingIssues}" />
-            <Border Background="{DynamicResource NfcCriticalBorderBrush}" CornerRadius="{DynamicResource NfcPillCornerRadius}" IsVisible="{Binding LoadedReport.HasPrimaryIssue}" />
+            <Border Background="{DynamicResource NfcTextSecondaryBrush}" CornerRadius="{DynamicResource NfcPillCornerRadius}" IsVisible="{Binding LoadedReport.IsOutcomeUnknown}" />
+            <Border Background="{DynamicResource NfcWarningAccentStrongBrush}" CornerRadius="{DynamicResource NfcPillCornerRadius}" IsVisible="{Binding LoadedReport.HasKnownWarningOutcome}" />
+            <Border Background="{DynamicResource NfcCriticalBorderBrush}" CornerRadius="{DynamicResource NfcPillCornerRadius}" IsVisible="{Binding LoadedReport.HasKnownBlockingOutcome}" />
             <TextBlock
                 HorizontalAlignment="Center"
                 VerticalAlignment="Center"
@@ -115,7 +116,7 @@
           </Grid>
           <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="1">
             <TextBlock Classes="tableHeader" Text="{Binding Text.RunLabel}" />
-            <TextBlock Classes="cardTitle" Classes.error="{Binding LoadedReport.HasPrimaryIssue}" Text="{Binding LoadedReport.OutcomeTitle}" TextWrapping="Wrap" />
+            <TextBlock Classes="cardTitle" Classes.error="{Binding LoadedReport.HasKnownBlockingOutcome}" Text="{Binding LoadedReport.OutcomeTitle}" TextWrapping="Wrap" />
             <TextBlock
                 Classes="bodyText"
                 Text="{Binding LoadedReport.SummaryIssueDescriptions}"

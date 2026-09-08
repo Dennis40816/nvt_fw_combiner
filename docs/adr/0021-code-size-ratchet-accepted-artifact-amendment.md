@@ -503,3 +503,15 @@ ratchet, with no transferable headroom. Runtime stays 99,170 with slices
 20,757 / 42,647 / 5,039 / 30,727 and all their allowances unchanged.
 Measurement algorithms, exclusions, duplicate checks, synthetic tests,
 version-management/firmware behavior and release/Golden gates are unchanged.
+
+## 2026-09-08 incomplete imported Report accounting
+
+`UI-114-REPORT-IMPORT-20` measures 138,704 full-production nonblank lines,
+110 above 138,594. Application grows by 61 to 42,708 for the existing JSON
+owner's minimal readable-evidence assessment; Presentation grows by 49 for
+Unknown projection and stale-history normalization. Runtime is 99,231.
+Exact allowances are full 35,808, runtime 29,175 and Application 12,018;
+the frozen ratchets remain 102,896 / 70,056 / 30,690. Other slices, measurement
+algorithms, exclusions, duplicate/partial checks and release/Golden gates
+remain unchanged. This increment has no transferable headroom; independent
+admission and fixed-head review are recorded in the batch capability record.

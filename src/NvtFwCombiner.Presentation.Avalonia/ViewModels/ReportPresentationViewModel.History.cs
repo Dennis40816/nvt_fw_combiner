@@ -182,7 +182,12 @@ internal sealed partial class ReportPresentationViewModel
             }
             else if (!materializeAsCurrent)
             {
-                using var _ = JsonDocument.Parse(snapshot.ReportJson);
+                using var document = JsonDocument.Parse(snapshot.ReportJson);
+                if (CompositionRunReportJson.AssessReadCompleteness(document.RootElement, cancellationToken) == CompositionRunReportJson.ReadCompleteness.Unknown)
+                {
+                    materializedReport = ReportReviewViewModel.FromJsonCancellable(snapshot.ReportJson,
+                        snapshot.SourceName, outputArtifactPath: null, language, cancellationToken);
+                }
                 cancellationToken.ThrowIfCancellationRequested();
             }
             else
@@ -208,7 +213,7 @@ internal sealed partial class ReportPresentationViewModel
                 }
             }
 
-            normalizedSnapshot = snapshot.Metadata == ReportHistoryMetadataSnapshot.Empty
+            normalizedSnapshot = snapshot.Metadata == ReportHistoryMetadataSnapshot.Empty || materializedReport?.IsOutcomeUnknown == true
                 ? CreateReportHistorySnapshot(materializedReport!, snapshot.ReportJson)
                 : snapshot;
             return true;
@@ -530,9 +535,9 @@ internal sealed partial class ReportPresentationViewModel
                 report.ModeId,
                 report.ExperienceId,
                 report.CompositionKind,
-                report.IssueCount,
-                report.HasPrimaryIssue,
-                report.HasWarnings));
+                report.IsOutcomeUnknown ? null : report.IssueCount,
+                report.IsOutcomeUnknown ? null : report.HasPrimaryIssue,
+                report.IsOutcomeUnknown ? null : report.HasWarnings));
     }
 
     internal static ReportHistorySnapshot OmitDerivableReportHistoryMetadata(

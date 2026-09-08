@@ -27,6 +27,28 @@ Canonical schema: [`composition-report-v1.schema.json`](composition-report-v1.sc
 
 ## Application Run Report Semantic Extension
 
+### Imported outcome completeness (owner accepted 2026-09-08)
+
+The existing Application JSON owner assesses persisted projection completeness
+before a reader displays a run outcome. A recognized legacy projection has
+nonempty string `ProfileId`, `IcId`, `ModeId`, `ExperienceId`, `CompositionKind`,
+`RunId` and `StartedAtUtc`, plus an explicit `Issues` array of object rows with
+string `Code` and `Message`. Missing/null severity retains the existing legacy
+code fallback; nonempty unknown severity is not treated as success. Ambiguous
+duplicate properties, conflicting `Severity`/`severity` aliases or incorrectly
+typed issue evidence remain unknown; equal alias values retain compatibility.
+This is not firmware validation, support admission or output certification.
+
+Incomplete/unrecognized objects remain available for read-only Raw inspection
+with an explicit neutral `Unknown` outcome, not a fabricated firmware error or
+successful run. Original JSON is retained unchanged for export/history. Readers
+reassess stored raw data instead of trusting stale cached success metadata.
+Malformed JSON retains the existing parse-error behavior. Do not require
+`Output`, `ProfileVersion`, `CompletedAtUtc`, `Validations`, `Semantic`, `Replay`
+or other later optional fields merely to recognize older projections.
+The canonical camelCase schema below is not a validator for this distinct
+Application projection; this change does not introduce a canonical renderer.
+
 `CompositionRunReport` is an Application projection and is not the canonical
 `composition-report-v1` wire model. The 2026-08-09 complete-retirement decision
 removes the CLR Workbench envelope and in-process JSON round trip; UI and CLI

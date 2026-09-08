@@ -5,9 +5,13 @@ namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
 internal sealed partial class ReportReviewViewModel
 {
-    internal static (int Count, bool Blocking, bool Warnings) ReadHistoryIssueFacts(
+    internal static (int? Count, bool? Blocking, bool? Warnings) ReadHistoryIssueFacts(
         System.Text.Json.JsonElement root, ShellLanguage language, CancellationToken cancellationToken)
     {
+        if (CompositionRunReportJson.AssessReadCompleteness(root, cancellationToken) == CompositionRunReportJson.ReadCompleteness.Unknown)
+        {
+            return (null, null, null);
+        }
         List<ReportLineViewModel> issues = ParseIssues(root, language, cancellationToken);
         return (issues.Count, CountBlockingIssues(issues) > 0, CountWarnings(issues) > 0);
     }
