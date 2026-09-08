@@ -501,13 +501,19 @@ This intake records requested work and unresolved dependencies, not a new
 firmware contract or a completed implementation. The IC/layout work has not
 yet received a release-version allocation; its arrival during `1.1.4` does not
 silently add a firmware release gate to that UI milestone. The existing queue
-above remains in place. Option-density assessment extends its inventory/shared
-visual items rather than creating a second redesign backlog.
+above retains its contents. Owner sequencing amendment on 2026-09-08:
+record and prepare the preview-first custom-options work, complete the agreed
+IC/Desay intake and verification, then return to the next bounded Memory Layout
+item (residual generic Reserved-source wording assessment). Do not reopen the
+completed Technical details disclosure. Option-density assessment extends the
+inventory/shared visual items rather than creating a blanket redesign backlog.
+The [custom-options handoff](../ui/v1.1.x-custom-options-layout-handoff.md)
+owns the preview and visual-acceptance detail.
 
 | Item | Confirmed request / scope | Next action and completion boundary |
 | --- | --- | --- |
 | NT51928BT family and staged capabilities | Owner states NT51928BT belongs to the NT51950 family and requests most applicable functions to be implemented but not opened for use. This is distinct from existing NT51928; membership alone does not prove identical geometry or perfect-family parity. | Retrieve the owner-named `51928BT` HackMD note through the requested API, inventory supported semantics per workflow, and agree the exact capability subset from that evidence. Implement only confirmed definitions through existing owners; verify ordinary UI and execution admission remain closed, not merely hidden by a selector. No support/certification promotion. |
-| Desay NT51950/NT51951 unified layout | Owner reports a major Desay-specific layout unification and all TP backup starts becoming `0x4A000`; the Excel specification is still pending. | Compare old/new regions, address spaces, capacities, topology, preservation and processor requirements. Resolve whether this is a customer-specific variant or replacement contract before changing existing routes; do not apply it to other customers implicitly. |
+| Desay NT51950/NT51951 unified layout | Owner reports a major Desay-specific layout unification and all TP backup starts becoming `0x4A000`; the Excel was recovered on 2026-09-08 and awaits cell-level inspection. | Compare old/new regions, address spaces, capacities, topology, preservation and processor requirements, then update the existing IC FlashMap and provenance dates. Resolve whether this is a customer-specific variant or replacement contract before changing existing routes; do not apply it to other customers implicitly. |
 | NT51951 AB and Dummy DP impact | Current [map-based inventory](../ui/v1.1.x-ab-dummy-dp-handoff.md#read-only-implementation-inventory-2026-09-06) places TP B at `[0x8A000,0xB7000)`, while NT51950 starts it at `0x4A000`. Whether the new term TP backup means this AB TP B placement is not yet verified. | If confirmed, audit TP B placement/length, relocation, Combiner staging, header/CRC imports and allowed writes, output capacity, and Dummy TP/non-TP ranges together. Add affected regression and independent complete-output evidence; retain Normal Golden and firmware-owner gates. Do not assume the new end from the old length. |
 | Per-page custom-option density | Owner requests layout advice because individual pages have accumulated custom controls. Assessment is authorized; a new visual design is not yet approved. | Inventory the actual current Standard/AB/CtrlRAM pages and group controls by task and consequence. Preview one representative AB page before implementation; retain existing button styles, widths, keyboard access and confirmation behavior. |
 
@@ -516,13 +522,23 @@ API access was verified on 2026-09-08 through the global
 the earlier environment-variable-only check was insufficient. Exactly one
 `51928BT` note was retrieved (15,749 characters; source SHA-256
 `4aaa803e92d39a024ae90c90880ec0290c283634045bf45772b959c0a436890a`).
-Its body is an encrypted transfer payload, not a readable memory-map table;
-decryption and recovered-file inspection are still pending. No Excel contents
-or firmware facts have yet been verified from it. No profile, production range
+Its encrypted payload was recovered using the existing decrypt tool on
+2026-09-08: original filename
+`NT51928BT_NT51950TT_NT51951TT flash mapping table for desay_0908.xlsx`,
+31,353 bytes, recovered SHA-256
+`f49368ee605301ae4e310cc990b674ef8cd82021ffa40d9c00f42d7b2108030b`.
+The recovered source is archived outside Git under the transfer tool's
+timestamped `record/51928BT-20260908-172414` directory. Workbook inspection
+and map comparison are pending; the earlier statement that the Excel had
+not been received is superseded. The owner requests incorporation into the
+existing IC FlashMap with updated provenance dates after comparison. Preserve
+the workbook's actual revision/date separately from the 2026-09-08 retrieval
+date; the `0908` filename alone does not establish a full revision date.
+No firmware facts have yet been verified from its cells. No profile, production range
 or availability was changed by this intake. Private note URLs, credentials
 and firmware payloads stay out of this roadmap.
 
-Proposed UI direction, pending owner acceptance: retain IC/mode/topology context
+UI preview-first workflow accepted; final visual design pending: retain IC/mode/topology context
 and required inputs as the main surface; place related routine options in a
 compact row near their input; use one shared-style collapsible section for
 infrequent options with a visible active-setting summary. Output-changing
