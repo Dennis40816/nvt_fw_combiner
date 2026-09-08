@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 2,
+  "taskId": "UI-114-CTRLRAM-LAUNCH-45",
+  "capability": "Open the existing CtrlRAM Replace UI with explicitly named command-line inputs without executing a run",
+  "integrationBase": "145bdc40f50bfe0bb78f489c84eee0a65ac2fc38",
+  "risk": "R1",
+  "kind": "ui",
+  "state": "design-active",
+  "mutablePaths": [
+    "src/NvtFwCombiner.Presentation.Avalonia/UiLaunchOptions.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/UiLaunchOptions.CtrlRam.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/MainWindow.CtrlRamLaunch.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/MainWindow.axaml.cs"
+  ],
+  "implementationOwner": "primary-agent",
+  "searchEvidence": [
+    "CodeGraph and targeted source inspection: DesktopApplication.Run uses UiLaunchOptions.Parse; only page/report launch options exist. MainWindow.RunStartupPreloadAsync owns post-catalog startup. WorkflowContextSetup projects canonical IC/Number choices and ConfirmWorkflowContextCommand owns navigation. FirmwareSlotCard and WorkflowSession.SetSlotFileAsync share file inspection, mismatch prompts, canonical slots and readiness. Independent CLI accepts CtrlRAM inputs but has no GUI state handoff. Reuse these existing Presentation owners, not the CLI execution handler."
+  ],
+  "semanticOwner": "UiLaunchOptions and MainWindow startup orchestration; existing WorkflowContextSetup/WorkflowSession and typed Application authoring/inspection remain selection and firmware authorities.",
+  "terminalContract": "Explicit --workflow ctrlram-replace, --ic, --ic-num, --base and repeatable --ctrlram slot-id=path preload the existing GUI. Validate argument syntax/duplicates/conflicts without I/O, then consume published IC/Number choices and post-Base canonical slot IDs. Run only the existing SetSlotFileAsync inspection path after catalog readiness, once per startup, with shutdown cancellation and shell interaction exclusion during loading. Invalid input remains visible; mismatch confirmation is never accepted automatically; stop further loading when existing slot or mismatch state requires attention. No Preview, Build, output write, source mutation, profile changes, support promotion, new firmware inference, visual redesign or CLI execution change. Preserve existing page/report launch behavior when no input preload is requested. Test parser failures, real window startup and manual-loading parity, missing/invalid inputs, unknown slots/context, cancellation and no-run behavior. Document the actual command and retain all release gates.",
+  "disposition": "extend-owner",
+  "designReview": {"reviewer": null, "outcome": "not-required", "evidence": "Owner approved the bounded GUI-load-only extension on 2026-09-09. R1 Presentation orchestration reuses the existing context and input owners; no public serialized/core/firmware contract changes. Narrow startup/UI tests plus independent fixed-head scoped Polytail review; no per-unit full-release suite."},
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": {"reviewer": null, "outcome": "pending", "evidence": ""}
+}

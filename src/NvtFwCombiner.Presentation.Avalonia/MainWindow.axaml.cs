@@ -56,6 +56,7 @@ public sealed partial class MainWindow : Window, IDisposable
         ArgumentNullException.ThrowIfNull(hostServices);
         ArgumentNullException.ThrowIfNull(startupPreferences);
         _launchOptions = launchOptions;
+        _isStartupInputLoading = launchOptions.CtrlRam is not null;
         _startupTrace = startupTrace;
         _hostServices = hostServices;
         _reportHistoryPersistence = new(
@@ -265,6 +266,8 @@ public sealed partial class MainWindow : Window, IDisposable
             return;
         }
 
+        await LoadStartupInputsAsync(viewModel, startupCancellation);
+        if (startupCancellation.IsCancellationRequested) { return; }
         ReportStartupDuration(viewModel);
         await ReportManagedApplicationReadyAsync(startupCancellation);
         _ = RunVersionDiscoveryAfterReadyAsync(startupCancellation);
@@ -567,7 +570,7 @@ public sealed partial class MainWindow : Window, IDisposable
     {
         ApplyShellInteractionState(
             ShellInteractionHost,
-            _isStartupShellEnabled,
+            _isStartupShellEnabled && !_isStartupInputLoading,
             viewModel);
     }
 
