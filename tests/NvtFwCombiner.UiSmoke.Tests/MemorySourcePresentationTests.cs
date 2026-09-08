@@ -9,6 +9,7 @@ using Avalonia.Styling;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 using NvtFwCombiner.Application.MemoryLayout;
+using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
 namespace NvtFwCombiner.UiSmoke.Tests;
@@ -27,7 +28,8 @@ public sealed class MemorySourcePresentationTests
         ShellTextResources text = ShellTextResources.For(chinese ? ShellLanguage.ChineseTraditional : ShellLanguage.English);
         var segment = new MemoryCoverageSegmentViewModel(
             "0x37000-0x37FFF (len 0x1000)", "DP BIN",
-            "customer-info. Compiled operations: copy-dp (Sequence 0).",
+            text.FormatMemoryLayoutTechnicalDetail("customer-info", 0xFF,
+                [CompositionOperation.CopyRange("copy-dp", 0, "dp", new ByteRange(0, 0x1000), "output", new ByteRange(0x37000, 0x1000), OverlapPolicy.Reject, "test copy")]),
             MemoryCoverageFillRole.Neutral, 10,
             disposition: MemoryWorkflowDisposition.WillWrite,
             text: text, addressRangeLabel: "0x37000-0x37FFF", lengthLabel: "len 0x1000",
@@ -76,6 +78,11 @@ public sealed class MemorySourcePresentationTests
             ContentControl tooltip = (ContentControl)stack.Children[2];
             Assert.Contains(tooltip.GetVisualDescendants().OfType<TextBlock>(), block => block.Text == text.RangeLabel && block.IsEffectivelyVisible);
             Assert.Contains(tooltip.GetVisualDescendants().OfType<TextBlock>(), block => block.Text == text.ResultLabel && block.IsEffectivelyVisible);
+            TextBlock technical = Assert.Single(tooltip.GetVisualDescendants().OfType<TextBlock>(), block => block.Text == segment.Detail);
+            Point technicalAt = technical.TranslatePoint(default, window)!.Value;
+            Assert.True(technicalAt.Y + technical.Bounds.Height <= window.Bounds.Height);
+            Assert.True(technicalAt.X + technical.Bounds.Width <= window.Bounds.Width);
+            Assert.Contains(chinese ? "（寫入前）" : "(before writes)", technical.Text, StringComparison.Ordinal);
             Border row = stack.Children[0].GetVisualDescendants().OfType<Border>().First(border => border.Classes.Contains("memoryCoverageLinkedRow"));
             Assert.Contains(title, AutomationProperties.GetName(row), StringComparison.Ordinal);
             Assert.True(row.Focus());

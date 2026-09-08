@@ -302,8 +302,8 @@ internal sealed partial class ShellTextResources
         ArgumentNullException.ThrowIfNull(contributingOperations);
         string initialization = blankFillByte is { } fillByte
             ? SelectLanguage(
-                $"Blank fill 0x{fillByte:X2}. ",
-                $"空白填充值 0x{fillByte:X2}。")
+                $"Output initialization: 0x{fillByte:X2} (before writes). ",
+                $"輸出初始化：0x{fillByte:X2}（寫入前）。")
             : string.Empty;
         string? operationList = contributingOperations.Count == 0
             ? null

@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 2,
+  "taskId": "UI-114-MEMORY-INITIALIZATION-29",
+  "capability": "Label memory initialization as pre-write rather than final range bytes",
+  "integrationBase": "9868b3602528c6a5d0048020af79cc5d7e70b690",
+  "risk": "R1",
+  "kind": "ui",
+  "state": "design-active",
+  "mutablePaths": ["src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ShellTextResources.MemoryLayout.cs"],
+  "implementationOwner": "primary-agent",
+  "searchEvidence": ["Current MemoryLayoutModels484 publishes output initialization FillByte only for Blank and null for Reference. UiCompositionRunner.MemoryDetail forwards that value and contributing operations into ShellTextResources.FormatMemoryLayoutTechnicalDetail. Existing formatter calls the global value Blank fill without specifying pre-write timing; no separate final-fill fact is published."],
+  "semanticOwner": "Application MemoryLayoutSnapshot.BlankFillByte retains initialization authority; existing ShellTextResources formatter owns bilingual display only",
+  "terminalContract": "Replace only the two localized Blank fill sentences with Output initialization:0xXX(before writes). Preserve null handling, actual typed byte value, operation list and ordering, region name, source/purpose, all layout and firmware execution. Never infer Reserved=0xFF or claim final segment fill from initialization. Tests cover FF/00, EN/zh, operations/no operations and null/reference. Reuse shared template fixture to check longer text fit; no async GoldenCtrlRam retry. No production-line growth, ledger/ADR or full-suite changes. This bounded wording correction does not implement new per-range final-fill metadata or redesign.",
+  "disposition": "reuse",
+  "designReview": {"reviewer": null, "outcome": "not-required", "evidence": "R1 preflight: owner accepted next fill-display clarification; existing typed initialization and formatter suffice for two-string timing clarification. No new semantic branch or final-fill computation; independent fixed-head scoped review follows."},
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": {"reviewer": null, "outcome": "pending", "evidence": ""}
+}

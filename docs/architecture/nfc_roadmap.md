@@ -615,6 +615,22 @@ async GoldenCtrlRam capture is not rerun or claimed fixed by this new seam.
 Final source/review are bound in the admission record; this is local work,
 not release or support promotion.
 
+##### Memory initialization wording — 2026-09-08
+
+Initialization wording follow-up (`UI-114-MEMORY-INITIALIZATION-29`, 2026-09-08):
+the existing technical detail now says `Output initialization: 0xXX (before
+writes).` / `輸出初始化：0xXX（寫入前）。`. This is the typed whole-output
+initialization value, not a final per-range fill claim. Null/reference behavior,
+operation details, Reserved and source labels, layout and firmware execution
+remain unchanged. No new final-fill classification or production-line growth.
+Evidence: `D:/NvtFwCombiner-TestArea/evidence/v114-memory-initialization/`.
+`red/red.trx`: four old-wording failures and two null-value passes.
+`green/green.trx`: 16/16 passed, zero skipped, 7 s, covering FF/00/null,
+with/without writes, EN/zh and real shared-template Light/Dark fit. Primary
+inspected complete EN Light/zh Dark fixture frames; these are not native
+whole-app or release evidence. Fixed-head review is bound in the
+[admission record](../governance/change-records/UI-114-MEMORY-INITIALIZATION-29.json).
+
 ##### Current Home and Settings inventory follow-up
 
 On production source `c3c81ba2`, the primary inspected eight current real
