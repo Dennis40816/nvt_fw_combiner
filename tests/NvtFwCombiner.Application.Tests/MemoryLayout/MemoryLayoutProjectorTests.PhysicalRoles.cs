@@ -10,6 +10,49 @@ namespace NvtFwCombiner.Application.Tests.MemoryLayout;
 
 public sealed partial class MemoryLayoutProjectorTests
 {
+    /// <summary>Typed trace eligibility never changes the raw byte partition or planned operations.</summary>
+    [Theory]
+    [InlineData(CompositionKind.Merge, FirmwareRegionKind.Header, false)]
+    [InlineData(CompositionKind.Replace, FirmwareRegionKind.Header, false)]
+    [InlineData(CompositionKind.Merge, FirmwareRegionKind.Checksum, false)]
+    [InlineData(CompositionKind.Replace, FirmwareRegionKind.Checksum, false)]
+    [InlineData(CompositionKind.Merge, FirmwareRegionKind.Data, true)]
+    [InlineData(CompositionKind.Replace, FirmwareRegionKind.Data, true)]
+    public void PrimaryContentUsesCanonicalKindWithoutChangingRawFacts(CompositionKind kind, FirmwareRegionKind regionKind, bool primary)
+    {
+        ProjectionFixture baseline = CreateFixture(kind);
+        FirmwareRegion[] regions = [
+            new("flash-image", null, FirmwareRegionOwner.System, FirmwareRegionKind.Image, new ByteRange(0, Capacity), FirmwareWriteConstraint.Forbidden),
+            new("dp-code", "flash-image", FirmwareRegionOwner.System, regionKind, new ByteRange(0, 8), FirmwareWriteConstraint.ExplicitRange),
+            new("reserved-gap", "flash-image", FirmwareRegionOwner.Reserved, FirmwareRegionKind.Reserved, new ByteRange(8, 4), FirmwareWriteConstraint.Forbidden),
+            new("tp-code", "flash-image", FirmwareRegionOwner.Tp, FirmwareRegionKind.Code, new ByteRange(12, 4), FirmwareWriteConstraint.WholeRegion),
+        ];
+        ProjectionFixture fixture = CreateFixture(kind, customRegions: regions);
+        MemoryLayoutSnapshot expected = Project(baseline);
+        MemoryLayoutSnapshot actual = Project(fixture);
+        Assert.Equal(expected.BeforeSegments.Select(Facts), actual.BeforeSegments.Select(Facts));
+        Assert.Equal(expected.AfterSegments.Select(Facts), actual.AfterSegments.Select(Facts));
+        Assert.Equal(Capacity, actual.AfterSegments.Sum(static segment => segment.Range.Length));
+        Assert.All(actual.BeforeSegments.Concat(actual.AfterSegments), segment =>
+        {
+            Assert.Equal(segment.RegionId != "dp-code" || primary, segment.IsPrimaryContent);
+            if (segment.RegionId == "dp-code") { Assert.Same(fixture.DpRegion, segment.CanonicalRegion); }
+        });
+
+        MemoryLayoutSnapshot Project(ProjectionFixture source)
+        {
+            ActiveSessionSnapshot session = kind == CompositionKind.Merge
+                ? CreateSession(source, Slot("dp-input", AuthoringSlotLifecycle.Verified, Capacity), Slot("tp-input", AuthoringSlotLifecycle.Verified, Capacity))
+                : CreateSession(source, Slot("reference-base", AuthoringSlotLifecycle.Verified, Capacity), Slot("dp-replacement", AuthoringSlotLifecycle.Verified, Capacity));
+            return MemoryLayoutProjector.Project(source.Capability, session, source.Composition);
+        }
+        static object Facts(MemoryLayoutSegment segment)
+        {
+            return (segment.Range, segment.Disposition, segment.ProcessorEffect, segment.DiagnosticSeverity,
+                string.Join(",", segment.ContributingOperations.Select(static operation => operation.OperationId)));
+        }
+    }
+
     /// <summary>Canonical Vector CtrlRAM remains a distinct detailed display role.</summary>
     [Fact]
     public void CtrlRamDiscoveryPreservesVectorFamilyRole()

@@ -6,6 +6,7 @@ internal sealed class MemoryCoverageBarItem(IReadOnlyList<MemoryCoverageSegmentV
     public IReadOnlyList<MemoryCoverageSegmentViewModel> Slices { get; } = slices;
     public double BarWidth { get; } = slices.Sum(static slice => slice.BarWidth);
     public bool IsGroup => Slices.Count > 1;
+    public bool IsPrimaryContent => Slices[0].IsPrimaryContent;
     public string AddressSpace => Slices[0].AddressSpaceId ?? string.Empty;
     public string StartLabel => FormattableString.Invariant($"0x{Slices[0].RangeStart:X5}");
     public string EndLabel => FormattableString.Invariant($"0x{Slices[^1].RangeEndExclusive - 1:X5}");
@@ -37,7 +38,7 @@ internal static class MemoryCoverageBarProjection
 
     private static bool IsSmall(MemoryCoverageSegmentViewModel slice, double total)
     {
-        return double.IsFinite(total) && total > 0 && slice.BarWidth > 0 &&
+        return slice.IsPrimaryContent && double.IsFinite(total) && total > 0 && slice.BarWidth > 0 &&
             slice.BarWidth / total < SmallSliceFraction &&
             !string.IsNullOrWhiteSpace(slice.AddressSpaceId) && slice.RangeStart is >= 0 &&
             slice.RangeEndExclusive > slice.RangeStart && !slice.HasAttentionDiagnostic;

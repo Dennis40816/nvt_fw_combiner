@@ -62,7 +62,8 @@ internal sealed class MemoryCoverageSegmentViewModel
         IReadOnlyList<MemoryRegionFact>? processingFacts = null,
         string? sourceFieldLabel = null,
         string? displayTitle = null,
-        string? addressSpaceId = null)
+        string? addressSpaceId = null,
+        bool isPrimaryContent = true)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(rangeLabel);
         ArgumentException.ThrowIfNullOrWhiteSpace(sourceLabel);
@@ -109,6 +110,7 @@ internal sealed class MemoryCoverageSegmentViewModel
         }
 
         RangeLabel = rangeLabel;
+        IsPrimaryContent = isPrimaryContent;
         AddressRangeLabel = addressRangeLabel ?? rangeLabel;
         LengthLabel = lengthLabel ?? string.Empty;
         SizeValue = rangeStart is { } sizeStart && rangeEndExclusive is { } sizeEnd
@@ -174,6 +176,8 @@ internal sealed class MemoryCoverageSegmentViewModel
 
     /// <summary>Address range in half-open hex notation.</summary>
     public string RangeLabel { get; }
+    /// <summary>Application-owned display eligibility; false retains only the exact rail geometry.</summary>
+    public bool IsPrimaryContent { get; }
 
     /// <summary>Inclusive display range without the length suffix.</summary>
     public string AddressRangeLabel { get; }

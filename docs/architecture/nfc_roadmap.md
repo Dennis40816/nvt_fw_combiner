@@ -830,6 +830,39 @@ card. Primary visual comparison confirms the corrected hierarchy in these
 complete captures. This fixture reuse is UI evidence, not fresh Golden-output
 execution or release verification. Commit-bound review uses records39/40.
 
+CtrlRAM primary-content correction (`UI-114-MEMORY-PLACEMENT-42`, 2026-09-08):
+the preceding 79-case pass did not catch a semantic selection error: the first
+aggregate captured above was a 100-byte Header/CRC trace, not a CtrlRAM payload.
+The existing SPEC exclusion of Header/CRC primary content is now applied by
+Application `MemoryLayoutSegment.IsPrimaryContent`, using canonical Header or
+Checksum kind only. Runner transports that fact; primary rows, logical groups
+and the shared flat template consume it without UI firmware heuristics.
+Technical trace remains in the exact raw partition and coverage weights as an
+inert spacer, not a hoverable content group. Ranges, operations, processor and
+diagnostic facts, profiles and output bytes are unchanged. Moving onto trace
+clears stale overlays; noncontiguous content is not joined across it.
+
+Cards now stay within their memory-rail column, and the local view chooses the
+side with more available vertical space instead of a fixed 380-pixel threshold.
+Evidence root: `D:/NvtFwCombiner-TestArea/evidence/v114-ctrlram-primary41/`.
+`geometry-red/geometry-red.trx` reproduces five placement failures and
+`semantic-red/semantic-red.trx` reproduces two primary-row failures.
+`application/application.trx` passes **31/31**, zero skipped (433 ms), covering
+canonical Header/Checksum versus System Data, logical output, and unchanged
+raw facts/partition. The final `reviewed/reviewed.trx` passes **85/85**, zero
+skipped (**31 seconds**); `architecture/architecture.trx` passes the scoped
+Memory Layout boundary check (**1/1**, 103 ms). The earlier `ui-green` run's two
+new pointer-cleanup failures are resolved, not waived.
+
+Actual NT51950 captures now select written NF, Normal and VN CtrlRAM by typed
+role and selected-write state, rather than taking the first aggregate:
+`reviewed/memory-ctrlram-{False|True}-{Nf|Normal|Vn}-leaf.png` (1440x900,
+EN Light/zh Dark). NF exercises a two-level local view; Normal and VN exercise
+direct cards. Primary visual inspection confirms the actual role/range/source
+and in-column placement. These are rendered Avalonia test-window captures,
+not native-window, physical-DPI or screen-reader certification. No fresh
+Golden-output execution or release verification is claimed.
+
 ##### Customer-information source presentation — 2026-09-08
 
 Customer-information source follow-up (`UI-114-MEMORY-SOURCE-28`, 2026-09-08):

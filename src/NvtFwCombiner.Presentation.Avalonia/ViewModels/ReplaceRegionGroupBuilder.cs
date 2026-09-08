@@ -52,6 +52,7 @@ internal static class ReplaceRegionGroupBuilder
         return Array.AsReadOnly(
         [
             .. segments
+                .Where(static segment => segment.IsPrimaryContent)
                 .OrderBy(static segment => segment.RangeStart ?? long.MaxValue)
                 .Select(segment => (
                     Key: segment.LogicalCoverageGroupId ??

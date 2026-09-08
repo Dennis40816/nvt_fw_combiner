@@ -36,7 +36,7 @@ internal static partial class UiCompositionRunner
         return (
             FormatMemoryRange(new ByteRange(0, layout.Capacity)),
             [
-                .. layout.AfterSegments.Select(segment => ToMemoryMapRow(layout, segment, text)),
+                .. layout.AfterSegments.Where(static segment => segment.IsPrimaryContent).Select(segment => ToMemoryMapRow(layout, segment, text)),
                 .. conflicts.Select(conflict => ToMemoryMapRow(conflict, text)),
             ],
             [
@@ -157,6 +157,7 @@ internal static partial class UiCompositionRunner
             rangeStart: segment.Range.Start,
             rangeEndExclusive: segment.Range.EndExclusive,
             addressSpaceId: segment.AddressSpaceId,
+            isPrimaryContent: segment.IsPrimaryContent,
             addressRangeLabel: FormatMemoryAddressRange(segment.Range),
             lengthLabel: FormatMemoryLength(segment.Range),
             compactDetail: MemoryCompactDetail(layout, segment, sourceLabel, text),

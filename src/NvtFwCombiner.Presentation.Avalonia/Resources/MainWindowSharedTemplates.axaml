@@ -274,7 +274,7 @@
 </DataTemplate>
 
 <DataTemplate x:Key="MemoryCoverageSegmentListTemplate" DataType="vm:MemoryCoverageSegmentViewModel">
-  <Border Classes="surface memoryInfoRow memoryCoverageLinkedRow" Classes.linked="{Binding Interaction.IsActive}" Classes.reducedMotion="{ReflectionBinding $parent[Window].DataContext.IsReducedMotionEnabled}"
+  <Border IsVisible="{Binding IsPrimaryContent}" Classes="surface memoryInfoRow memoryCoverageLinkedRow" Classes.linked="{Binding Interaction.IsActive}" Classes.reducedMotion="{ReflectionBinding $parent[Window].DataContext.IsReducedMotionEnabled}"
       Padding="12" Margin="0,0,0,8" BorderThickness="1" CornerRadius="8"
       AutomationProperties.HelpText="{Binding AccessibleDetail}" AutomationProperties.Name="{Binding AccessibleDetail}"
       behaviors:FocusToolTipBehavior.IsEnabled="True" behaviors:MemoryCoverageInteractionBehavior.IsEnabled="True" Focusable="True">

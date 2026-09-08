@@ -69,7 +69,22 @@ public sealed class MemoryCoverageBarProjectionTests
         Assert.Equal([first, second], items[0].Slices);
     }
 
-    internal static MemoryCoverageSegmentViewModel[] Example()
+    /// <summary>Trace keeps exact width and breaks aggregation and supporting rows without hiding adjacent payload.</summary>
+    [Fact]
+    public void TechnicalTraceRetainsGeometryButNeverJoinsPrimaryGroups()
+    {
+        MemoryCoverageSegmentViewModel[] slices = Example(withTrace: true);
+        IReadOnlyList<MemoryCoverageBarItem> items = MemoryCoverageBarProjection.Create(slices);
+        Assert.Equal(slices.Sum(static slice => slice.BarWidth), items.Sum(static item => item.BarWidth));
+        MemoryCoverageBarItem trace = Assert.Single(items, static item => !item.IsPrimaryContent);
+        Assert.False(trace.IsGroup);
+        Assert.Same(slices[2], Assert.Single(trace.Slices));
+        Assert.All(items.Where(static item => item.IsGroup), item => Assert.All(item.Slices, static slice => Assert.True(slice.IsPrimaryContent)));
+        Assert.DoesNotContain(ReplaceRegionGroupBuilder.CreateLogicalItems(slices, ShellTextResources.For(ShellLanguage.English))
+            .SelectMany(static item => item.Segments), static slice => !slice.IsPrimaryContent);
+    }
+
+    internal static MemoryCoverageSegmentViewModel[] Example(bool withTrace = false)
     {
         var result = new List<MemoryCoverageSegmentViewModel> { Slice(0, 0x3F000) };
         MemoryCoverageFillRole[] roles = [MemoryCoverageFillRole.CtrlRamNf, MemoryCoverageFillRole.Tp,
@@ -79,20 +94,22 @@ public sealed class MemoryCoverageBarProjectionTests
         long address = 0x3F000;
         foreach (int kib in new[] { 1, 2, 1, 2, 2, 4, 2, 2 })
         {
-            result.Add(Slice(address, kib * 1024, fillRole: roles[index++]));
+            result.Add(Slice(address, kib * 1024, fillRole: roles[index], isPrimaryContent: !withTrace || index != 1));
+            index++;
             address += kib * 1024;
         }
         result.Add(Slice(0x43000, 0x3D000, fillRole: MemoryCoverageFillRole.Tp));
         return [.. result];
     }
 
-    private static MemoryCoverageSegmentViewModel Slice(long start, double size, string? space = "output", MemoryDiagnosticSeverity severity = MemoryDiagnosticSeverity.None, MemoryCoverageFillRole fillRole = MemoryCoverageFillRole.Dp)
+    private static MemoryCoverageSegmentViewModel Slice(long start, double size, string? space = "output", MemoryDiagnosticSeverity severity = MemoryDiagnosticSeverity.None, MemoryCoverageFillRole fillRole = MemoryCoverageFillRole.Dp, bool isPrimaryContent = true)
     {
         long end = checked(start + (long)size);
         string range = $"0x{start:X5}–0x{end - 1:X5}";
         return new MemoryCoverageSegmentViewModel(range, "DP BIN", "Typed display fixture, no firmware execution.",
             fillRole, size,
             rangeStart: start, rangeEndExclusive: end, addressSpaceId: space, addressRangeLabel: range,
-            diagnosticSeverity: severity, displayTitle: $"Region 0x{start:X5}");
+            diagnosticSeverity: severity, displayTitle: $"Region 0x{start:X5}",
+            isPrimaryContent: isPrimaryContent, logicalCoverageGroupId: $"fixture:{start}");
     }
 }

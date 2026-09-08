@@ -65,6 +65,12 @@ public sealed class MemoryCoverageBar : UserControl
         Content = new Panel { Children = { _track, _localPopup, _cardPopup } };
         _ = _track.Bind(Border.BackgroundProperty, new DynamicResourceExtension("NfcMemoryTrackBrush"));
         _ = _local.Bind(Border.BackgroundProperty, new DynamicResourceExtension("NfcSurfaceBrush"));
+        _track.PointerMoved += (_, e) =>
+        {
+            if (_main.GetVisualDescendants().OfType<ProportionalStackPanel>().FirstOrDefault() is { } panel &&
+                panel.Children.Any(child => child.DataContext is MemoryCoverageBarItem { IsPrimaryContent: false } &&
+                    child.Bounds.Contains(e.GetPosition(panel)))) { CloseAll(); }
+        };
         MemoryCoverageInteractionBehavior.SetIsEnabled(_card, true);
         _closeTimer.Tick += (_, _) =>
         {
@@ -175,6 +181,7 @@ public sealed class MemoryCoverageBar : UserControl
         _main.ItemTemplate = new FuncDataTemplate<MemoryCoverageBarItem>((item, _) =>
         {
             if (item is null) { return null; }
+            if (!item.IsPrimaryContent) { return new Border { Name = "MemoryTraceSpacer", Height = 34, IsHitTestVisible = false }; }
             if (!item.IsGroup)
             {
                 Control slice = SegmentContent(item.Slices[0]);
@@ -296,8 +303,9 @@ public sealed class MemoryCoverageBar : UserControl
         Grid.SetColumn(end, 1);
         endpoints.Children.Add(end);
         var content = new StackPanel { Spacing = 6 };
-        double above = _track.TranslatePoint(default, TopLevel.GetTopLevel(this)!)?.Y ?? 0;
-        _localAbove = above >= 380;
+        TopLevel top = TopLevel.GetTopLevel(this)!;
+        double above = _track.TranslatePoint(default, top)?.Y ?? 0;
+        _localAbove = above > top.Bounds.Height - above - _track.Bounds.Height;
         var header = new StackPanel { Name = "MemoryLocalHeader", Spacing = 3 };
         header.Children.Add(new TextBlock { Text = Text.MemoryLocalViewLabel, Classes = { "bodyEmphasisText" }, TextWrapping = TextWrapping.Wrap, HorizontalAlignment = HorizontalAlignment.Left });
         header.Children.Add(new TextBlock { Text = $"{Text.FormatMemorySliceCount(item.Slices.Count)} · {item.SizeLabel} · {item.AddressSpace}", Classes = { "captionText" }, TextWrapping = TextWrapping.Wrap, HorizontalAlignment = HorizontalAlignment.Left });
@@ -344,10 +352,13 @@ public sealed class MemoryCoverageBar : UserControl
             : 20;
         double available = (above ? origin.Y : below) - connectorHeight - 8;
         _card.MaxHeight = Math.Max(64, available);
-        double width = Math.Min(Math.Clamp(Bounds.Width * 0.68, 240, 280), top.Bounds.Width - 16);
+        double trackLeft = _track.TranslatePoint(default, top)?.X ?? 0;
+        double columnLeft = Math.Max(8, trackLeft);
+        double columnRight = Math.Min(top.Bounds.Width - 8, trackLeft + Bounds.Width);
+        double width = Math.Min(Math.Clamp(Bounds.Width * 0.68, 240, 280), Math.Max(1, columnRight - columnLeft));
         _card.Width = width;
         double center = origin.X + (target.Bounds.Width / 2);
-        double left = Math.Clamp(center - (width / 2), 8, Math.Max(8, top.Bounds.Width - width - 8));
+        double left = Math.Clamp(center - (width / 2), columnLeft, Math.Max(columnLeft, columnRight - width));
         double anchor = center - left;
         double connectorTop = above ? origin.Y - connectorHeight : origin.Y + target.Bounds.Height;
         Rect[] labels = preferredAbove.HasValue

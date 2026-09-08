@@ -189,6 +189,8 @@ public sealed class MemoryLayoutSegment
     public string LogicalCoverageGroupId { get; }
     /// <summary>Exact canonical physical-region reference, or null for logical output.</summary>
     public FirmwareRegion? CanonicalRegion { get; }
+    /// <summary>Header/checksum trace keeps its exact geometry and effects but is not primary content.</summary>
+    public bool IsPrimaryContent => CanonicalRegion?.Kind is not (FirmwareRegionKind.Header or FirmwareRegionKind.Checksum);
     /// <summary>Primary content role.</summary>
     public MemoryContentRole ContentRole { get; }
     /// <summary>Planned workflow disposition.</summary>

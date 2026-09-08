@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 2,
+  "taskId": "UI-114-MEMORY-PLACEMENT-42",
+  "capability": "Distinguish primary memory content from technical trace and keep hover placement inside its column",
+  "integrationBase": "32f156ffbd2996f7f736992ed618813cc1cc3823",
+  "risk": "R2",
+  "kind": "ui",
+  "state": "design-active",
+  "mutablePaths": ["src/NvtFwCombiner.Application/MemoryLayout/MemoryLayoutModels.cs", "src/NvtFwCombiner.Presentation.Avalonia/UiCompositionRunner.Common.cs", "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MemoryCoverageSegmentViewModel.cs", "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MemoryCoverageBarProjection.cs", "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReplaceRegionGroupBuilder.cs", "src/NvtFwCombiner.Presentation.Avalonia/Resources/MainWindowSharedTemplates.axaml", "src/NvtFwCombiner.Presentation.Avalonia/Views/MemoryCoverageBar.cs"],
+  "implementationOwner": "primary-agent",
+  "searchEvidence": ["Existing Application MemoryLayoutSegment canonical reference and projector own exact ranges/operations. Header/System currently becomes General and Runner transports every AfterSegment to primary rows. SPEC2008 excludes Header/CRC primary content. Existing CreateLogicalItems supplies Merge and Replace supporting rows; shared flat template consumes the same VMs. MemoryCoverageBar owns grouping/overlays; fixed380px direction and window-only horizontal clamp reproduce the reported geometry faults."],
+  "semanticOwner": "Application MemoryLayoutSegment.IsPrimaryContent owns canonical Header/Checksum trace classification; Runner only transports it. Existing Presentation bar, logical-row builder and shared template consume the bool without reclassifying firmware metadata.",
+  "terminalContract": "Use CanonicalRegion.Kind Header/Checksum only to mark IsPrimaryContent=false; logical/null canonical and all other kinds remain primary. Preserve Before/After raw partition, exact ranges/references/operations/dispositions/processor/diagnostic facts. Runner rows and shared logical/flat consumers omit trace content; coverage retains equal-width inert spacers with no role/card/focus/tooltip/automation label, no aggregation across trace, and stale overlay cleanup when pointer enters trace. No name/address/owner/source heuristic. Clamp card inside visible rail column and choose vertical side from available space. Preserve approved hierarchy, exact anchors, keyboard/pointer/cleanup/reduced-motion. Verify App contract, Merge/Replace consumers, real NF/Normal/VN capture, geometry and scoped independent review. No profile/planner/executor/bytes/Golden/release changes.",
+  "disposition": "extend-owner",
+  "designReview": {"reviewer": "memory_hover_inventory", "outcome": "approved", "evidence": "Independent GPT-5.6 Terra/high R2 admission before semantic production edits approves canonical-kind Application bool, unchanged raw partition/facts, Runner-only transport, shared CreateLogicalItems/flat-template consumers, proportional inert spacer with typed pointer cleanup and exact union paths. Earlier admitted R1 placement work is incorporated into this uncommitted combined R2 record; no other record owns these paths. Header Copy must be canonically Header; missing canonical authority blocks rather than permitting a UI fallback."},
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": {"reviewer": null, "outcome": "pending", "evidence": ""}
+}

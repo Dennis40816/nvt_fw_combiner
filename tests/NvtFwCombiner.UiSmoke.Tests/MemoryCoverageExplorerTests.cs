@@ -1,3 +1,4 @@
+using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
@@ -88,20 +89,41 @@ public sealed class MemoryCoverageExplorerTests
         try
         {
             await XamlControlStyleContractTests.LoadNt51950GoldenCtrlRamInputsAsync(shell, TestContext.Current.CancellationToken);
+            Assert.DoesNotContain(shell.Replace.ReplaceMemoryRows,
+                row => row.RangeLabel.StartsWith("0x0A11C", StringComparison.Ordinal));
             if (darkChinese) { shell.SelectedLanguage = "Traditional Chinese"; }
             Render();
             MemoryCoverageBar bar = Assert.Single(window.GetVisualDescendants().OfType<MemoryCoverageBar>(), control => control.IsEffectivelyVisible);
             bar.ReducedMotion = true;
-            Border group = bar.GetVisualDescendants().OfType<Border>().First(control => control.DataContext is MemoryCoverageBarItem { IsGroup: true } && control.Focusable);
-            Assert.True(group.Focus(NavigationMethod.Tab));
-            Render();
-            Capture(window, $"memory-ctrlram-{darkChinese}-group");
-            Control leaf = window.GetVisualDescendants().OfType<Control>().First(control => control.Classes.Contains("memoryLocalSlice"));
-            Assert.True(leaf.Focus(NavigationMethod.Tab));
-            Render();
-            Border card = Assert.Single(window.GetVisualDescendants().OfType<Border>(), control => control.Name == "MemorySliceCard");
-            Assert.Same(leaf.DataContext, card.DataContext);
-            Capture(window, $"memory-ctrlram-{darkChinese}-leaf");
+            Assert.DoesNotContain(shell.Replace.ReplaceCoverageGroups.SelectMany(static group => group.Items)
+                .SelectMany(static item => item.Segments), static segment => !segment.IsPrimaryContent);
+            Assert.Contains(shell.Replace.ReplaceCoverageSegments, static segment => !segment.IsPrimaryContent && segment.HasProcessingFacts);
+            foreach (CtrlRamRegionRole role in new[] { CtrlRamRegionRole.Nf, CtrlRamRegionRole.Normal, CtrlRamRegionRole.Vn })
+            {
+                Control? target = bar.GetVisualDescendants().OfType<Control>().FirstOrDefault(control =>
+                    control.Focusable && control.DataContext is MemoryCoverageSegmentViewModel segment && segment.IsPrimaryContent && segment.IsSelectedForWrite && segment.CtrlRamRegionRole == role);
+                if (target is null)
+                {
+                    Control group = bar.GetVisualDescendants().OfType<Control>().First(control => control.Focusable &&
+                        control.DataContext is MemoryCoverageBarItem { IsGroup: true } item && item.Slices.Any(segment => segment.IsSelectedForWrite && segment.CtrlRamRegionRole == role));
+                    Assert.True(group.Focus(NavigationMethod.Tab));
+                    Render();
+                    Capture(window, $"memory-ctrlram-{darkChinese}-{role}-group");
+                    target = window.GetVisualDescendants().OfType<Control>().First(control => control.Classes.Contains("memoryLocalSlice") &&
+                        control.DataContext is MemoryCoverageSegmentViewModel segment && segment.IsSelectedForWrite && segment.CtrlRamRegionRole == role);
+                }
+                Assert.True(target.Focus(NavigationMethod.Tab));
+                Render();
+                Border card = Assert.Single(window.GetVisualDescendants().OfType<Border>(), control => control.Name == "MemorySliceCard");
+                MemoryCoverageSegmentViewModel shown = Assert.IsType<MemoryCoverageSegmentViewModel>(card.DataContext);
+                Assert.Equal(role, shown.CtrlRamRegionRole);
+                Assert.True(shown.IsPrimaryContent);
+                Assert.Same(target.DataContext, card.DataContext);
+                double left = card.TranslatePoint(default, window)!.Value.X;
+                double railLeft = bar.TranslatePoint(default, window)!.Value.X;
+                Assert.True(left >= railLeft - 1 && left + card.Bounds.Width <= railLeft + bar.Bounds.Width + 1);
+                Capture(window, $"memory-ctrlram-{darkChinese}-{role}-leaf");
+            }
         }
         finally { await CloseAndFlushAsync(window); }
     }

@@ -277,6 +277,9 @@ public sealed class MemoryCoveragePopupTests
                 ProportionalStackPanel strip = LocalStrip(local);
                 Rect leaf = BoundsInWindow(strip.Children[index], window);
                 Rect body = BoundsInWindow(card, window);
+                Rect rail = BoundsInWindow(bar, window);
+                Assert.True(body.Left >= rail.Left - 1 && body.Right <= rail.Right + 1,
+                    $"Card {body} leaves the memory rail column {rail}");
                 global::Avalonia.Controls.Shapes.Ellipse dot = Assert.Single(window.GetVisualDescendants().OfType<global::Avalonia.Controls.Shapes.Ellipse>(), item => item.Name == "MemoryCardAnchor");
                 Assert.InRange(Math.Abs(BoundsInWindow(dot, window).Center.X - leaf.Center.X), 0, 1);
                 Assert.InRange(Math.Abs(BoundsInWindow(dot, window).Center.Y - (above ? leaf.Top : leaf.Bottom)), 0, 1);
@@ -300,6 +303,26 @@ public sealed class MemoryCoveragePopupTests
         finally { window.Close(); }
     }
 
+    /// <summary>The local strip uses the larger available side instead of a fixed absolute Y threshold.</summary>
+    [AvaloniaFact]
+    public void LocalStripChoosesAvailableSpaceInAShorterViewport()
+    {
+        Window window = CreateBottomWindow(false, MemoryCoverageBarProjectionTests.Example(), out MemoryCoverageBar bar);
+        window.Height = 620;
+        Border spacer = Assert.IsType<Border>(Assert.IsType<StackPanel>(window.Content).Children[0]);
+        spacer.Height = 330;
+        Render();
+        try
+        {
+            OpenGroupedCard(window, bar, 5);
+            Border local = Assert.IsType<Border>(FindNamed<Border>(window, "MemoryLocalView"));
+            Border card = Assert.IsType<Border>(FindNamed<Border>(window, "MemorySliceCard"));
+            Assert.True(BoundsInWindow(local, window).Bottom < BoundsInWindow(bar, window).Top);
+            Assert.True(BoundsInWindow(card, window).Top >= 0);
+        }
+        finally { window.Close(); }
+    }
+
     private static void OpenGroupedCard(Window window, MemoryCoverageBar bar, int localSliceIndex = 0)
     {
         Control group = MainTarget(bar, 1);
@@ -310,6 +333,71 @@ public sealed class MemoryCoveragePopupTests
         Assert.True(leaf.Focus());
         Render();
         Assert.NotNull(FindNamed<Border>(window, "MemorySliceCard"));
+    }
+
+    /// <summary>The shared flat row consumes the same primary flag as logical Merge/Replace rows.</summary>
+    [AvaloniaTheory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void FlatSupportingRowHidesOnlyTechnicalTrace(bool dark)
+    {
+        MemoryCoverageSegmentViewModel[] slices = MemoryCoverageBarProjectionTests.Example(withTrace: true);
+        Window window = CreateWindow(388, dark, slices, out MemoryCoverageBar bar);
+        try
+        {
+            var template = (global::Avalonia.Controls.Templates.IDataTemplate)bar.FindResource("MemoryCoverageSegmentListTemplate")!;
+            Control row = template.Build(slices[2])!;
+            row.DataContext = slices[2];
+            window.Content = row;
+            Render();
+            Assert.False(row.IsVisible);
+            row.DataContext = slices[0];
+            Render();
+            Assert.True(row.IsVisible);
+            Assert.True(row.Bounds.Height > 0);
+        }
+        finally { window.Close(); }
+    }
+
+    /// <summary>Trace geometry is inert and crossing it dismisses stale direct or local cards.</summary>
+    [AvaloniaTheory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void TechnicalTraceIsInertAndClearsOnlyItsHoveredOverlay(bool plain)
+    {
+        Window window = CreateWindow(388, false, MemoryCoverageBarProjectionTests.Example(withTrace: true), out MemoryCoverageBar bar);
+        bar.IsPlain = plain;
+        bar.ReducedMotion = true;
+        Render();
+        try
+        {
+            ProportionalStackPanel panel = MainPanel(bar);
+            Control trace = Assert.Single(panel.GetVisualDescendants().OfType<Control>(), static control => control.Name == "MemoryTraceSpacer");
+            Assert.False(trace.Focusable);
+            Assert.False(trace.IsHitTestVisible);
+            Assert.Null(ToolTip.GetTip(trace));
+            Assert.True(string.IsNullOrEmpty(global::Avalonia.Automation.AutomationProperties.GetName(trace)));
+            Assert.Equal(0x80000, panel.Children.Sum(ProportionalStackPanel.GetWeight));
+            Control primary = MainTarget(bar, 0);
+            window.MouseMove(BoundsInWindow(primary, window).Center, RawInputModifiers.None);
+            Render();
+            Assert.NotNull(FindNamed<Border>(window, "MemorySliceCard"));
+            window.MouseMove(BoundsInWindow(trace, window).Center, RawInputModifiers.None);
+            Render();
+            AssertNoOverlay(window);
+            window.MouseMove(BoundsInWindow(primary, window).Center, RawInputModifiers.None);
+            Render();
+            Assert.True(MainTarget(bar, 3).Focus());
+            Render();
+            Border local = Assert.IsType<Border>(FindNamed<Border>(window, "MemoryLocalView"));
+            Assert.True(FocusableControl(LocalStrip(local).Children[0]).Focus());
+            Render();
+            Assert.NotNull(FindNamed<Border>(window, "MemorySliceCard"));
+            window.MouseMove(BoundsInWindow(trace, window).Center, RawInputModifiers.None);
+            Render();
+            AssertNoOverlay(window);
+        }
+        finally { window.Close(); }
     }
 
     private static Window CreateWindow(

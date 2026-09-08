@@ -622,3 +622,15 @@ to 139,264 and allowance to 36,368 against unchanged ratchet 102,896.
 Runtime 99,231 and slices 20,757 / 42,708 / 5,039 / 30,727 remain unchanged.
 Counting, exclusions, equality and firmware/Golden/release gates are unchanged;
 this exact accounting introduces no transferable headroom.
+
+## 2026-09-08 primary-memory content and hover-placement accounting
+
+`UI-114-MEMORY-PLACEMENT-42` adds exactly 20 full-production nonblank lines,
+including two Application/runtime lines for the canonical primary-content fact.
+Independent R2 admission `UI-114-MEMORY-PLACEMENT-SIZE-43` sets exact full
+production/baseline to 139,284 and allowance to 36,388 against unchanged ratchet
+102,896; runtime to 99,233 with allowance 29,177 against 70,056; Application to
+42,710 with allowance 12,020 against 30,690. Other slices remain 20,757 / 5,039 /
+30,727. The baseline test follows these exact measurements. Counting,
+exclusions, equality, ratchets and firmware/Golden/release gates are unchanged;
+this accounting introduces no transferable headroom.
