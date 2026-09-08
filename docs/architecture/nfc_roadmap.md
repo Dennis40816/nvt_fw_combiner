@@ -590,6 +590,15 @@ Evidence: `D:/NvtFwCombiner-TestArea/evidence/v114-home-subtitle/`,
 checkpoint are bound in the capability record. This is not publication,
 native display certification or a firmware/sub-version change.
 
+The same localized subtitle is also consumed by the Replace page
+(`MainWindow.axaml:172`); the neutral wording fits both consumers and leaves
+the Mode selector unchanged. Independent scoped review passed at `859ea9f8`.
+Existing CtrlRAM selector consumer checks passed 16/16, zero skipped, in
+24 seconds at that head (`ctrlram/home-shared-subtitle.trx` under the evidence
+directory above). The primary inspected the complete 1440x900 selected English
+Light/Dark Replace captures. The existing long-filename last-character wrap
+is still visible and remains a separate follow-up, not a fix claimed here.
+
 Step 3 local evidence over `e5202e2707d272076d24216222188d478314a07d`:
 `dotnet test --no-restore` UI filter `FullyQualifiedName~SlotLoading` passes
 13/13 (Perfect pairs in both directions, partial/unrelated, same/unsupported IC,
