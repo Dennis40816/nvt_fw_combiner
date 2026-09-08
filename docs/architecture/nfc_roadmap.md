@@ -549,6 +549,37 @@ candidate comparisons where only retained historical images exist. These are
 explicit unverified areas, not new blanket redesign tasks or evidence that
 already-reviewed functionality is broken.
 
+##### Memory Layout source-label assessment — 2026-09-08
+
+Read-only product assessment on `30212f66` after the accepted Support Matrix
+scrollbar follow-up. No Memory Layout redesign or firmware change is included.
+`UiCompositionRunner.Common.cs:211` (`MemorySource`) classifies CustomerInformation
+and Reserved as the generic Reserved source before considering SourceSpaceId.
+`MemoryCompactDetail` separately names the actual DP input/replacement source
+for customer information. The existing DP-perspective test explicitly expects
+both `Reserved` and a DP-replacement explanation for the same protected range
+(`ShellViewModelDpPerspectiveTests.cs:378`). This is a source-label ambiguity,
+not evidence that firmware bytes are incorrect.
+
+Proposed next bounded design: distinguish canonical section purpose from the
+existing typed byte source; retain protected-region status and do not equate
+Reserved with `0xFF`. Initialization may name a fill byte only when the typed
+layout actually supplies it. Physical grouping/layout interaction still needs
+owner acceptance; this assessment does not approve a new design or change the
+current source-label tests.
+
+Attempted current-source capture command:
+`dotnet test tests/NvtFwCombiner.UiSmoke.Tests/NvtFwCombiner.UiSmoke.Tests.csproj --no-restore --filter FullyQualifiedName~RealNt51950GoldenCtrlRamPanelFitsProductionRail --logger 'trx;LogFileName=memory-inventory.trx' --results-directory $env:NFC_VISUAL_OUTPUT_DIR`.
+Test-area environment was set to
+the existing external root; `NFC_VISUAL_OUTPUT_DIR` and results directory were
+`D:/NvtFwCombiner-TestArea/evidence/v114-memory-inventory-20260908`.
+Build completed, but no case result or PNG appeared for approximately 2.5 minutes
+after testhost started; the primary cancelled this invocation without rerunning.
+There is no pass/failure assertion or current screenshot from this attempt.
+The eight intended cases cover isolated 430/360 px CtrlRAM rails in EN/zh-TW
+and Light/Dark, not whole-window or native DPI acceptance. Capture-host progress
+must be diagnosed before reusing this seam; the cause is not established.
+
 ##### Current Home and Settings inventory follow-up
 
 On production source `c3c81ba2`, the primary inspected eight current real
