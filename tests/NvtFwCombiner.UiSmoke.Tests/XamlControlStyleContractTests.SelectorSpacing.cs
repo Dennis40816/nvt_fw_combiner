@@ -20,7 +20,7 @@ public sealed partial class XamlControlStyleContractTests
     {
         var slot = new FirmwareSlotViewModel("base", "Firmware input with a long title", "Select firmware", FirmwareSlotKind.Base)
         {
-            FilePath = @"C:\firmware\a-long-selected-firmware-file-name-for-ctrlram.bin",
+            FilePath = @"C:\firmware\" + new string('x', 180) + ".bin",
         };
         slot.ApplyExperienceText(ShellTextResources.For(ShellLanguage.English));
         slot.SetInputInspection(FirmwareInputInspectionSeverity.Valid, "Verified");
@@ -44,8 +44,11 @@ public sealed partial class XamlControlStyleContractTests
             Point badgePoint = Assert.IsType<Point>(badge.TranslatePoint(default, card));
             Point filePoint = Assert.IsType<Point>(file.TranslatePoint(default, card));
             Assert.InRange(badgePoint.Y - titlePoint.Y - title.Bounds.Height, 8, 12);
-            Assert.InRange(filePoint.Y - badgePoint.Y - badge.Bounds.Height, 12, 16);
-            Assert.Equal(2, filename.TextLayout.TextLines.Count);
+            Point layoutPoint = Assert.IsType<Point>(layout.TranslatePoint(default, card));
+            Assert.InRange(filePoint.Y - layoutPoint.Y - layout.Bounds.Height, 12, 16.5);
+            Assert.True(filename.TextLayout.TextLines.Count > 1);
+            Assert.Equal(slot.DisplayNameWithSelectionContext, filename.Text);
+            Assert.InRange(filename.TextLayout.Height, 1, filename.Bounds.Height + 0.5);
             Assert.All(filename.TextLayout.TextLines, static line => Assert.False(line.HasCollapsed));
             Assert.InRange(layout.Margin.Top, 16, 20);
             Assert.InRange(layout.Margin.Bottom, 16, 20);

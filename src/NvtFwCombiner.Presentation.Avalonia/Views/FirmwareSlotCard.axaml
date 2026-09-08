@@ -12,8 +12,8 @@
           DragDrop.AllowDrop="{Binding CanSelectFile}" DragDrop.DragEnter="SlotDragOver_OnDragOver"
           DragDrop.DragOver="SlotDragOver_OnDragOver" DragDrop.DragLeave="DropZone_OnDragLeave"
           DragDrop.Drop="SlotDrop_OnDrop" Tag="{Binding SlotId}">
-    <Grid>
-      <Border Classes="dropZoneOverlay" />
+    <Grid RowDefinitions="Auto,Auto">
+      <Border Grid.RowSpan="2" Classes="dropZoneOverlay" />
       <Grid x:Name="SlotLayout" Margin="16" MinHeight="72" ColumnDefinitions="280,*,Auto"
             ColumnSpacing="{DynamicResource NfcSpace24}" RowDefinitions="*">
         <StackPanel x:Name="SlotIdentity" Grid.Column="0" VerticalAlignment="Center"
@@ -93,13 +93,6 @@
           </StackPanel>
           <TextBlock IsVisible="{Binding IsGuidanceVisible}" Classes="firmwareSlotGuidance"
                      Text="{Binding DisplayName}" TextWrapping="Wrap" />
-          <Button AutomationProperties.HelpText="{Binding DisplayDetail}" AutomationProperties.Name="{Binding DisplayNameWithSelectionContext}"
-                  Classes="fileRevealAction" Command="{ReflectionBinding $parent[Window].DataContext.RevealFileCommand}"
-                  CommandParameter="{Binding FilePath}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left"
-                  IsVisible="{Binding HasFile}" ToolTip.BetweenShowDelay="-1" ToolTip.Placement="BottomEdgeAlignedLeft"
-                  ToolTip.ShowDelay="300" ToolTip.Tip="{Binding DisplayDetail}" ToolTip.VerticalOffset="8">
-            <TextBlock Text="{Binding DisplayNameWithSelectionContext}" TextWrapping="Wrap" />
-          </Button>
           <TextBlock AutomationProperties.LiveSetting="Polite" Classes="slotStateDetail"
                      IsVisible="{Binding IsSemanticStateDetailExpanded}"
                      Text="{Binding SemanticStateAutomationText}" TextWrapping="Wrap" />
@@ -171,6 +164,13 @@
           </Button>
         </StackPanel>
       </Grid>
+      <Button Grid.Row="1" Margin="16,0,16,16" AutomationProperties.HelpText="{Binding DisplayDetail}" AutomationProperties.Name="{Binding DisplayNameWithSelectionContext}"
+              Classes="fileRevealAction" Command="{ReflectionBinding $parent[Window].DataContext.RevealFileCommand}"
+              CommandParameter="{Binding FilePath}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left"
+              IsVisible="{Binding HasFile}" ToolTip.BetweenShowDelay="-1" ToolTip.Placement="BottomEdgeAlignedLeft"
+              ToolTip.ShowDelay="300" ToolTip.Tip="{Binding DisplayDetail}" ToolTip.VerticalOffset="8">
+        <TextBlock Text="{Binding DisplayNameWithSelectionContext}" TextWrapping="Wrap" />
+      </Button>
     </Grid>
   </Border>
 </UserControl>

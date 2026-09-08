@@ -241,7 +241,8 @@ public sealed partial class XamlControlStyleContractTests
         Assert.Equal(36, clear.Bounds.Width, precision: 3);
         Assert.Equal(36, clear.Bounds.Height, precision: 3);
         Assert.True(clear.IsVisible);
-        Assert.Equal(108, selector.Bounds.Height, precision: 3);
+        // The approved dedicated filename row adds 22 px plus 16 px bottom padding.
+        Assert.Equal(146, selector.Bounds.Height, precision: 3);
         Assert.Null(browse.FocusAdorner);
         Assert.NotNull(browse.Theme);
         browse.ApplyTemplate();
@@ -341,7 +342,9 @@ public sealed partial class XamlControlStyleContractTests
             double factsCenter = factsOrigin.Y + (facts.Bounds.Height / 2);
             double browseCenter = browseSurfaceOrigin.Y + (browseSurface.Bounds.Height / 2);
             double clearCenter = clearOrigin.Y + (clear.Bounds.Height / 2);
-            double selectorCenter = selector.Bounds.Height / 2;
+            // Center actions on the identity/facts row, excluding the independent filename footer.
+            Point layoutOrigin = Assert.IsType<Point>(layout.TranslatePoint(default, selector));
+            double selectorCenter = layoutOrigin.Y + (layout.Bounds.Height / 2);
 
             Assert.InRange(Math.Abs(clearCenter - browseCenter), 0, 0.5);
             Assert.Equal(36, clear.Bounds.Width);

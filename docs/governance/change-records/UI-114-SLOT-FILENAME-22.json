@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 2,
+  "taskId": "UI-114-SLOT-FILENAME-22",
+  "capability": "Give the shared selected firmware filename its own full-width bottom row",
+  "integrationBase": "2f5c1fb8685a7d485e352e488c78abf9c7ae31db",
+  "risk": "R1",
+  "kind": "ui",
+  "state": "design-active",
+  "mutablePaths": ["src/NvtFwCombiner.Presentation.Avalonia/Views/FirmwareSlotCard.axaml"],
+  "implementationOwner": "primary-agent",
+  "searchEvidence": ["CodeGraph FirmwareSlotCard lookup followed by exact XAML/code-behind and CtrlRamSelectorLayoutTests inspection.", "FirmwareSlotCard owns the shared reveal button inside a 280-pixel identity column. Its existing responsive code owns only identity/facts/actions. Reuse that layout unchanged and place the same reveal button in an outer bottom row; no new VM or workflow branch."],
+  "semanticOwner": "FirmwareSlotCard owns presentation geometry; existing VM and Application retain selection and metadata authority",
+  "terminalContract": "Owner approved a dedicated bottom filename row on 2026-09-08. Preserve full text and wrapping, reveal command/path/tooltip/automation, browse/clear styling and behavior, empty-state layout and inner responsive facts layout. Shared consumers use the same card. Supersedes only the earlier filename placement; no firmware bytes or policy changes. Baseline: D:/NvtFwCombiner-TestArea/evidence/v114-home-subtitle/ctrlram selected 1440x900 English Light/Dark plus 980x640 matrix. Assert full-width bottom bounds, exact filename and non-clipping; run CtrlRAM 16-case actual page and affected shared-card tests; compare complete frames. Full release and native DPI certification remain outside this unit.",
+  "disposition": "reuse",
+  "designReview": {"reviewer": null, "outcome": "not-required", "evidence": "R1 approved shared card geometry correction only."},
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": {"reviewer": null, "outcome": "pending", "evidence": ""}
+}

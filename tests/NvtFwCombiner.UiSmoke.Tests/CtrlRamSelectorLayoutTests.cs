@@ -91,6 +91,27 @@ public sealed class CtrlRamSelectorLayoutTests
             SpaciousPanel[] groups = [.. window.GetVisualDescendants().OfType<SpaciousPanel>().Where(p => p.Classes.Contains("firmwareSlotGroupSurface"))];
             Assert.Equal(2, groups.Length);
             Rect baseBounds = BoundsInWindow(baseBorder, window);
+            if (selected)
+            {
+                Button filename = Assert.Single(baseCard.GetVisualDescendants().OfType<Button>(),
+                    button => button.Classes.Contains("fileRevealAction"));
+                Grid content = baseCard.FindControl<Grid>("SlotLayout")!;
+                Rect filenameBounds = BoundsInWindow(filename, window);
+                Rect contentBounds = BoundsInWindow(content, window);
+                Assert.InRange(filenameBounds.Top - contentBounds.Bottom, 12, 16.5);
+                Assert.InRange(Math.Abs(filenameBounds.Left - contentBounds.Left), 0, 0.5);
+                Assert.InRange(Math.Abs(filenameBounds.Right - contentBounds.Right), 0, 0.5);
+                TextBlock text = Assert.IsType<TextBlock>(filename.Content);
+                Assert.Equal(shell.Replace.ReplaceBaseSlot.DisplayNameWithSelectionContext, text.Text);
+                Assert.Equal(shell.Replace.ReplaceBaseSlot.FilePath, filename.CommandParameter);
+                Assert.Equal(shell.Replace.ReplaceBaseSlot.DisplayDetail, ToolTip.GetTip(filename));
+                Assert.Equal(text.Text, AutomationProperties.GetName(filename));
+                Assert.InRange(text.TextLayout.Height, 1, text.Bounds.Height + 0.5);
+                if (width == 1440)
+                {
+                    _ = Assert.Single(text.TextLayout.TextLines);
+                }
+            }
             Assert.InRange(BoundsInWindow(groups[0], window).Top - baseBounds.Bottom, 12, 12.5);
             Assert.InRange(BoundsInWindow(groups[1], window).Top - BoundsInWindow(groups[0], window).Bottom, 12, 12.5);
             // This reference matrix is 100% headless rendering, not native Windows 125% evidence.

@@ -521,7 +521,7 @@ test evidence, not that label, identify the candidate.
 | Surface | Evidence inspected | Disposition |
 | --- | --- | --- |
 | AB metadata | Actual [1.1.3 baseline](../ui/references/v1.1.3-ab-dp-metadata-baseline.jpg) and [implemented four-field layout](../ui/references/v1.1.4-ab-dp-metadata-actual.jpg) | Completed local correction; do not reopen it as a new metadata redesign. This historical capture predates Dummy DP and is not Dummy evidence. |
-| CtrlRAM inputs | Actual [1.1.3 baseline](../ui/references/v1.1.3-ctrlram-selector-baseline.jpg) and current 1440x900 Dark EN selected-input frame in `v114-display-assessment` | Shared anchors and Max Size/Target Addr corrections remain implemented. The selected Base filename wraps its final `n` alone in this fixture; retain as a small typography/layout candidate, not an approved new geometry. Native scaling remains separate. |
+| CtrlRAM inputs | Actual [1.1.3 baseline](../ui/references/v1.1.3-ctrlram-selector-baseline.jpg) and current 1440x900 Dark EN selected-input frame in `v114-display-assessment` | Shared anchors and Max Size/Target Addr corrections remain implemented. Owner approved the dedicated full-width filename footer on 2026-09-08; locally implemented by `UI-114-SLOT-FILENAME-22` below. Native scaling remains separate. |
 | Run reports | Actual [1.1.3 hub baseline](../ui/references/v1.1.3-load-report-hub-baseline.jpg) and [implemented list](../ui/references/v1.1.4-run-reports-black-inter-actual.png) | List hierarchy, Load entry, centered columns, red deletion and 800-weight headings/sidebar are existing accepted work. The separate import false-success defect is behavioral, not a reason to redesign this list. |
 | Settings Version | [Approved reference and current full-page/compact evidence](../ui/v1.1.x-settings-version-handoff.md), plus scale-verified Light/Dark frames | Bounded layout/source/notes work complete; native file picker and OS accessibility observations remain separate. |
 | Report Changes | [Approved cards and four-combination rendered matrix](../ui/v1.1.x-report-changes-compare-handoff.md#complete-languagetheme-cross-product--2026-09-08) | EN/zh-TW × Light/Dark card-layout gap closed at `e77f7f89`. Physical-section grouping remains a distinct pending design/typed-projection item, not unfinished card styling. |
@@ -598,6 +598,28 @@ Existing CtrlRAM selector consumer checks passed 16/16, zero skipped, in
 directory above). The primary inspected the complete 1440x900 selected English
 Light/Dark Replace captures. The existing long-filename last-character wrap
 is still visible and remains a separate follow-up, not a fix claimed here.
+
+Selected-filename follow-up (`UI-114-SLOT-FILENAME-22`, 2026-09-08): owner
+approved moving the selected filename to a dedicated full-width bottom row.
+The shared card reuses the same reveal button, binding, tooltip, automation
+name, wrap behavior and style; its upper responsive grid and browse/clear
+controls are unchanged. The visual contract records the placement amendment.
+Red: eight selected-input layout cases fail against the prior layout; eight
+empty cases pass. Final scoped UI checks: 73/73 passed, zero skipped, 27 seconds,
+including real CtrlRAM pages, shared DP/TP card geometry, long wrapped text,
+hover/click, browse and drop behavior. Six first-green failures were old
+whole-card-center/fixed-height assertions superseded by the approved footer;
+their replacement retains upper-row alignment and explicit height checks.
+Evidence: `D:/NvtFwCombiner-TestArea/evidence/v114-slot-filename/`, `red.trx`,
+`green/green.trx` (superseded), and `green-final/green-final.trx`.
+The primary inspected full 1440x900 English Light/Dark selected captures and
+980x640 English Light/Traditional Chinese Dark captures. All eight empty-page
+PNG hashes exactly match the preceding Home-subtitle capture matrix. At the
+narrow viewport the pre-existing Replace header/Mode layout remains cramped;
+the English filename falls below the initial fold and its geometry is covered
+by measured assertions, not claimed as visible in that initial screenshot.
+Track the narrow page header in the remaining responsive-layout inventory;
+this unit does not certify native DPI/High Contrast or release Golden output.
 
 Step 3 local evidence over `e5202e2707d272076d24216222188d478314a07d`:
 `dotnet test --no-restore` UI filter `FullyQualifiedName~SlotLoading` passes
