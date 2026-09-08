@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 2,
+  "taskId": "UI-114-MEMORY-SOURCE-35",
+  "capability": "Separate unassigned source and explicit initialization from canonical region purpose",
+  "integrationBase": "086ba7d2223f6b3b3a002887cc2106f3c38f6b49",
+  "risk": "R1",
+  "kind": "ui",
+  "state": "design-active",
+  "mutablePaths": ["src/NvtFwCombiner.Presentation.Avalonia/UiCompositionRunner.Common.cs", "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MemoryCoverageSegmentViewModel.cs", "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MemoryCoverageGroupViewModel.cs", "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ShellTextResources.MemoryLayout.cs", "src/NvtFwCombiner.Presentation.Avalonia/Resources/MainWindowSharedTemplates.axaml"],
+  "implementationOwner": "primary-agent",
+  "searchEvidence": ["MemorySource maps Blank and Reserved roles to Reserved even without a source; MemoryCompactDetail can interpolate that as a byte source. Existing MemoryLayoutProjector publishes SourceSpaceId, ContentRole, BlankFillByte and ContributingOperations. ToMemoryMapRow and ToMemoryCoverageSegment share this Presentation owner; shared region card owns the source row. Existing MemorySourcePresentationTests and AB dummy controls are narrow render/test seams."],
+  "semanticOwner": "MemoryLayoutProjector remains typed firmware-fact producer; UiCompositionRunner.Common and shared Presentation resources render those facts.",
+  "terminalContract": "Owner-approved roadmap display convention. Explicit blank initialization without input or compiled writes may show actual initialization byte, never verified final output. Unassigned source never becomes Reserved. Source-backed or retained bytes preserve their actual source; genuine Reserved is a purpose, not input identity. Keep existing card geometry, palette, keyboard disclosure, typed operations, firmware bytes and Build authority. Cover input/blank/unknown/reference cases and localized shared card render. Full release suite is not part of this local unit.",
+  "disposition": "extend-owner",
+  "designReview": {"reviewer": null, "outcome": "not-required", "evidence": "R1 presentation correction of existing typed facts, no owner or contract migration."},
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": {"reviewer": null, "outcome": "pending", "evidence": ""}
+}

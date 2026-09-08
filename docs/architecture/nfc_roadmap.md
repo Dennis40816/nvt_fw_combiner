@@ -675,6 +675,21 @@ operations, Dummy DP semantics or firmware bytes. Implementation needs focused
 source/blank/reference/operation coverage and a same-state production render;
 this assessment has not changed production or rerun product tests.
 
+Implementation update (`UI-114-MEMORY-SOURCE-35`, 2026-09-08): the local
+candidate now separates typed purpose, actual source and unwritten explicit
+initialization. AB Dummy's source-less logical regions retain their typed
+General/Data purpose (not an invented DP or Reserved role). Kept CtrlRAM shows
+its subtype as title and Base flash as source, including assistive text.
+Coalesced supporting rows carry the same title/source-field metadata.
+Focused UI tests pass 48/48, zero skipped, 17 seconds of execution at
+`D:/NvtFwCombiner-TestArea/evidence/v114-memory-source35/reviewed/reviewed.trx`.
+The initial AB actual-window regression failed on the old Reserved wording;
+additional tests cover non-FF initialization, unknown initialization,
+source-less declared writes, reference preservation and real DP/CtrlRAM input
+projections. This is local UI evidence, not a new Golden certification or full
+integration/release pass. Small-slice aggregation/local-view implementation is
+the next unit; source wording verification alone does not complete that work.
+
 ##### Small-region grouping: accepted information model — 2026-09-08
 
 The owner accepted the following information/interaction requirements before

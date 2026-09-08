@@ -59,7 +59,9 @@ internal sealed class MemoryCoverageSegmentViewModel
         string? logicalCoverageGroupId = null,
         MemoryContentRole contentRole = MemoryContentRole.General,
         CtrlRamRegionRole ctrlRamRegionRole = CtrlRamRegionRole.Other,
-        IReadOnlyList<MemoryRegionFact>? processingFacts = null)
+        IReadOnlyList<MemoryRegionFact>? processingFacts = null,
+        string? sourceFieldLabel = null,
+        string? displayTitle = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(rangeLabel);
         ArgumentException.ThrowIfNullOrWhiteSpace(sourceLabel);
@@ -128,7 +130,8 @@ internal sealed class MemoryCoverageSegmentViewModel
         CtrlRamRegionRole = ctrlRamRegionRole;
         UsesKeptPattern = usesBaseFirmwarePattern;
         text ??= ShellTextResources.For(ShellLanguage.English);
-        DisplayTitle = contentRole == MemoryContentRole.CustomerInformation ? text.MemoryCustomerInformationLabel : sourceLabel;
+        SourceFieldLabel = sourceFieldLabel ?? text.MemorySourceLabel;
+        DisplayTitle = displayTitle ?? (contentRole == MemoryContentRole.CustomerInformation ? text.MemoryCustomerInformationLabel : sourceLabel);
         SourceCaption = contentRole == MemoryContentRole.CustomerInformation ? text.FormatMemorySourceCaption(sourceLabel) : string.Empty;
         ChangeLabel = changeLabel ?? text.GetOutputLayoutStateLabel(disposition, observedChange);
         RegionGroup = regionGroup;
@@ -158,6 +161,10 @@ internal sealed class MemoryCoverageSegmentViewModel
         {
             AccessibleDetail = $"{DisplayTitle}. {SourceCaption}. {AccessibleDetail}";
         }
+        else if (!StringComparer.Ordinal.Equals(DisplayTitle, SourceLabel))
+        {
+            AccessibleDetail = $"{DisplayTitle}. {SourceFieldLabel}: {SourceLabel}. {AccessibleDetail}";
+        }
     }
 
     /// <summary>Shared display-only interaction state for a row and its proportional segments.</summary>
@@ -178,6 +185,7 @@ internal sealed class MemoryCoverageSegmentViewModel
 
     /// <summary>Final source occupying this range.</summary>
     public string SourceLabel { get; }
+    public string SourceFieldLabel { get; }
 
     public string DisplayTitle { get; }
     public string SourceCaption { get; }

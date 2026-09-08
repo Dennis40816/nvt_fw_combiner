@@ -334,7 +334,9 @@ public sealed partial class CtrlRamWorkflowTests
         Assert.True(keptNf.UsesKeptPattern);
         Assert.False(keptNf.IsChanged);
         Assert.Equal("Kept", keptNf.ChangeLabel);
-        Assert.Equal("NF CtrlRAM", keptNf.SourceLabel);
+        Assert.Equal("Base flash", keptNf.SourceLabel);
+        Assert.Equal("Source", keptNf.SourceFieldLabel);
+        Assert.Equal("NF CtrlRAM", keptNf.DisplayTitle);
         Assert.Equal(
             "Output range keeps bytes from the base firmware.",
             keptNf.CompactDetail);

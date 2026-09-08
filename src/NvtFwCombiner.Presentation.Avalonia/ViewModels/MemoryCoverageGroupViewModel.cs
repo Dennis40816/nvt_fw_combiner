@@ -228,6 +228,8 @@ internal sealed class MemoryCoverageLogicalItemViewModel
             changeLabel: isPartial ? text.GetMemoryCoveragePartialReplaceLabel() : null,
             logicalCoverageGroupId: primary.LogicalCoverageGroupId,
             contentRole: primary.ContentRole,
-            ctrlRamRegionRole: primary.CtrlRamRegionRole);
+            ctrlRamRegionRole: primary.CtrlRamRegionRole,
+            sourceFieldLabel: primary.SourceFieldLabel,
+            displayTitle: primary.DisplayTitle);
     }
 }

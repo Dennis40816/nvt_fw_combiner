@@ -593,3 +593,12 @@ sets full production/baseline to 138,717 and allowance to 35,821 against the
 unchanged 102,896 ratchet. Runtime 99,231 and slices 20,757 / 42,708 / 5,039 /
 30,727 remain unchanged. No transferable headroom, measurement/equality,
 exclusion, firmware, Golden or release-gate changes are introduced.
+
+## 2026-09-08 initialization and unassigned-source presentation accounting
+
+`UI-114-MEMORY-SOURCE-35` adds exactly 12 production lines in existing
+Presentation owners. Independent R2 admission `UI-114-MEMORY-SOURCE-SIZE-36`
+sets exact full production/baseline to 138,729 and allowance to 35,833 against
+unchanged ratchet 102,896. Runtime 99,231 and slices 20,757 / 42,708 / 5,039 /
+30,727 remain unchanged. Counting, exclusions, equality and all gates remain
+unchanged; this exact accounting introduces no transferable headroom.

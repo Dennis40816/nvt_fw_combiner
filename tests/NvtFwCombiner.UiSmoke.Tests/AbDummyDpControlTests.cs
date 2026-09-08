@@ -84,6 +84,17 @@ public sealed class AbDummyDpControlTests
             Assert.True(disabledDp.IsVisible);
             Assert.False(disabledDp.IsEffectivelyEnabled);
             Assert.DoesNotContain(shell.Merge.AbMergeSlots, slot => slot.SlotId == CompositionAddressSpaceIds.DpAbInput);
+            MemoryCoverageSegmentViewModel blank = Assert.Single(shell.Merge.MergeCoverageSegments,
+                segment => segment.RangeStart == 0 && segment.RangeEndExclusive == 0x7000);
+            Assert.Equal(NvtFwCombiner.Application.MemoryLayout.MemoryContentRole.General, blank.ContentRole);
+            Assert.Equal(chinese ? "資料" : "Data", blank.DisplayTitle);
+            Assert.Equal("0xFF", blank.SourceLabel);
+            Assert.Equal(chinese ? "初始化" : "Initialization", blank.SourceFieldLabel);
+            Assert.False(blank.UsesKeptPattern);
+            Assert.Contains(window.GetVisualDescendants().OfType<TextBlock>(),
+                block => block.IsEffectivelyVisible && block.Text == (chinese ? "初始化" : "Initialization"));
+            Assert.DoesNotContain(window.GetVisualDescendants().OfType<TextBlock>(),
+                block => block.Text == "Output range uses bytes from Reserved.");
             Save("enabled");
             await shell.Merge.ToggleAbDummyDpCommand.ExecuteAsync(null);
             Render();

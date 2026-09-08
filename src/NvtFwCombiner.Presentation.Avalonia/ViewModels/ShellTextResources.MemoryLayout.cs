@@ -19,6 +19,34 @@ internal sealed partial class ShellTextResources
     public string MemoryCustomerInformationLabel => SelectLanguage("Customer information", "客戶資訊");
     public string MemoryProcessingDetailsLabel => SelectLanguage("Technical details", "技術細節");
     public string MemorySourceLabel => SelectLanguage("Source", "來源");
+    public string MemoryInitializationLabel => SelectLanguage("Initialization", "初始化");
+    public string MemorySourceNotAssignedLabel => SelectLanguage("Not assigned", "未指定");
+    public string MemoryNoPlannedWritesDetail => SelectLanguage("No writes planned for this range.", "目前計畫沒有寫入此範圍。");
+    public string MemorySourceNotAssignedDetail => SelectLanguage("No input source is assigned to this range.", "此範圍未指定輸入來源。");
+    public (bool IsInitialization, string Value, string Detail) GetMemoryUnassignedSource(
+        byte? blankFillByte, IReadOnlyList<CompositionOperation> contributingOperations)
+    {
+        ArgumentNullException.ThrowIfNull(contributingOperations);
+        return blankFillByte is { } fill && contributingOperations.Count == 0
+            ? (true, $"0x{fill:X2}", MemoryNoPlannedWritesDetail)
+            : (false, MemorySourceNotAssignedLabel, MemorySourceNotAssignedDetail);
+    }
+    public string GetMemoryContentTitle(MemoryContentRole role, CtrlRamRegionRole ctrlRamRole)
+    {
+        return role switch
+        {
+            MemoryContentRole.Dp => "DP",
+            MemoryContentRole.Tp => "TP",
+            MemoryContentRole.TpBackup => SelectLanguage("TP backup", "TP 備份"),
+            MemoryContentRole.Ldc => "LDC",
+            MemoryContentRole.CustomerInformation => MemoryCustomerInformationLabel,
+            MemoryContentRole.Reserved => SelectLanguage("Reserved", "保留區"),
+            MemoryContentRole.Unmapped => SelectLanguage("Unmapped", "未對應"),
+            MemoryContentRole.CtrlRam => GetCtrlRamRegionTechnicalLabel(ctrlRamRole),
+            MemoryContentRole.General => SelectLanguage("Data", "資料"),
+            _ => throw new ArgumentOutOfRangeException(nameof(role)),
+        };
+    }
     public string FormatMemorySourceCaption(string sourceLabel)
     {
         return SelectLanguage($"Source: {sourceLabel}", $"來源：{sourceLabel}");

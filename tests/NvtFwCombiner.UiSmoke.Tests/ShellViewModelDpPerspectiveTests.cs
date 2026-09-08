@@ -141,7 +141,7 @@ public sealed partial class DpReplaceWorkflowTests
                 "Output range will be copied from DP BIN."));
         Assert.DoesNotContain(viewModel.Merge.MergeCoverageSegments, segment => segment.IsChanged);
         MemoryMapRowViewModel protectedPlan = Assert.Single(viewModel.Merge.MergeMemoryRows, row => row.RangeLabel.StartsWith("0x37000-0x37FFF", StringComparison.Ordinal));
-        Assert.Equal("Reserved", protectedPlan.BeforeSource);
+        Assert.Equal("Initialization: 0x00", protectedPlan.BeforeSource);
         Assert.Equal("DP BIN", protectedPlan.AfterSource);
         Assert.Contains(viewModel.Merge.MergeCoverageSegments, segment =>
             segment.ChangeLabel == "Will write");

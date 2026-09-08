@@ -245,7 +245,7 @@
       <TextBlock Grid.Column="1" Classes="technicalValue" Text="{Binding AddressRangeLabel}" TextWrapping="Wrap" />
       <TextBlock Grid.Row="1" Classes="captionText" Text="{ReflectionBinding $parent[Window].DataContext.Text.SizeLabel}" IsVisible="{Binding SizeValue, Converter={x:Static converters:StringConverters.IsNotNullOrEmpty}}" />
       <TextBlock Grid.Row="1" Grid.Column="1" Classes="technicalValue" Text="{Binding SizeValue}" TextWrapping="Wrap" />
-      <TextBlock Grid.Row="2" Classes="captionText" Text="{ReflectionBinding $parent[Window].DataContext.Text.MemorySourceLabel}" />
+      <TextBlock Grid.Row="2" Classes="captionText" Text="{Binding SourceFieldLabel}" TextWrapping="Wrap" />
       <TextBlock Grid.Row="2" Grid.Column="1" Classes="bodyText" Text="{Binding SourceLabel}" TextWrapping="Wrap" />
     </Grid>
     <TextBlock Classes="captionText memoryInfoDescription" Text="{Binding PreservationSummary}" TextWrapping="Wrap" />

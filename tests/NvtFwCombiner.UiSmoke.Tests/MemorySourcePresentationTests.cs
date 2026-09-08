@@ -18,6 +18,25 @@ namespace NvtFwCombiner.UiSmoke.Tests;
 /// <summary>Protected section purpose and source stay separate in the shared presentation.</summary>
 public sealed class MemorySourcePresentationTests
 {
+    /// <summary>Only an explicit untouched initializer may be described as initialization.</summary>
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void UnassignedSourceDoesNotClaimFillWhenWritesExistOrInitializationIsUnknown(bool chinese)
+    {
+        ShellTextResources text = ShellTextResources.For(chinese ? ShellLanguage.ChineseTraditional : ShellLanguage.English);
+        CompositionOperation[] operations = [CompositionOperation.FillRange("fill", 0, "output", new ByteRange(0, 4), 0x00, OverlapPolicy.Reject, "declared operation")];
+        Assert.Null(operations[0].SourceSpaceId);
+        foreach ((bool isInitialization, string value, string detail) in new[] { text.GetMemoryUnassignedSource(0xFF, operations), text.GetMemoryUnassignedSource(null, []) })
+        {
+            Assert.False(isInitialization);
+            Assert.Equal(chinese ? "未指定" : "Not assigned", value);
+            Assert.Equal(chinese ? "此範圍未指定輸入來源。" : "No input source is assigned to this range.", detail);
+        }
+        Assert.Equal((true, "0xA5", chinese ? "目前計畫沒有寫入此範圍。" : "No writes planned for this range."), text.GetMemoryUnassignedSource(0xA5, []));
+        Assert.Equal(chinese ? "保留區" : "Reserved", text.GetMemoryContentTitle(MemoryContentRole.Reserved, CtrlRamRegionRole.Other));
+    }
+
     /// <summary>Both row variants and the tooltip render localized purpose and source without overlap.</summary>
     [AvaloniaTheory]
     [InlineData(false, false)]
