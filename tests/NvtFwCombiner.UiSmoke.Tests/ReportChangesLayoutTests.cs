@@ -26,6 +26,8 @@ public sealed class ReportChangesLayoutTests
     /// <summary>The range navigator reserves its scrollbar beside cards instead of covering them.</summary>
     [AvaloniaTheory]
     [InlineData(false, false)]
+    [InlineData(false, true)]
+    [InlineData(true, false)]
     [InlineData(true, true)]
     public async Task ChangedRangeCardsReserveAStableScrollbarGutter(bool dark, bool chinese)
     {
