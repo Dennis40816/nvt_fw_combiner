@@ -534,7 +534,13 @@ not been received is superseded. The owner requests incorporation into the
 existing IC FlashMap with updated provenance dates after comparison. Preserve
 the workbook's actual revision/date separately from the 2026-09-08 retrieval
 date; the `0908` filename alone does not establish a full revision date.
-No firmware facts have yet been verified from its cells. No profile, production range
+Cell-level inspection is recorded in the
+[FlashMap intake](../references/ic-flashmap/README.md#desay-workbook-intake--2026-09-08):
+BT/JT identity, the left-side `0x4D000` backup, expanded TP envelope,
+overlapping row 39 and capacity/label discrepancies need owner resolution.
+The original also has three external-link relationships and is not copied to
+distributable references. The inspected values are not admitted firmware facts.
+No profile, production range
 or availability was changed by this intake. Private note URLs, credentials
 and firmware payloads stay out of this roadmap.
 
