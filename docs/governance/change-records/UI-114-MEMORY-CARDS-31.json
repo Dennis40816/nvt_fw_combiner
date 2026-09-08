@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 2,
+  "taskId": "UI-114-MEMORY-CARDS-31",
+  "capability": "Narrow shared memory region cards with role marker and processing disclosure",
+  "integrationBase": "025ea09d7c04f04d778073ee78c64cf4789ceca4",
+  "risk": "R1",
+  "kind": "ui",
+  "state": "design-active",
+  "mutablePaths": ["src/NvtFwCombiner.Presentation.Avalonia/Resources/MainWindowSharedTemplates.axaml", "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MemoryCoverageSegmentViewModel.cs", "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ShellTextResources.MemoryLayout.cs", "src/NvtFwCombiner.Presentation.Avalonia/UiCompositionRunner.Common.cs"],
+  "implementationOwner": "primary-agent",
+  "searchEvidence": ["CodeGraph search was non-specific; direct shared templates show two duplicated physical segment rows and existing MemoryCoverageCompactMarkerTemplate, inlineDisclosure style and preservation flyout. UiCompositionRunner.Common projects typed segment ranges and operations; ShellTextResources.MemoryLayout owns technical wording. MemoryCoverageSegmentViewModel owns display-only text and existing interaction state."],
+  "semanticOwner": "Existing Application MemoryLayoutSnapshot/segment facts; Presentation shared region card and text formatter only.",
+  "terminalContract": "Owner approved narrow reference exec-9425b6f3-6eba-4589-8cb3-bb1399c1af07.png under C:/Users/liusx/.codex/generated_images/01a0623f-98b8-78d0-bd8a-117b7b8ea8a1, amended with existing role-color marker before title. Actual component host380px, card348px, EN Light; render EN/zh Light/Dark. Same width, header/state, aligned Range/Size/Source, wrapped purpose, collapsed processing details with backgroundless right arrow; reuse existing styles. Preserve linked focus/hover, source/range authority, accessibility, tooltip details, DiffDLM flyout and logical grouped rows. Structured display facts derive only from existing typed operations/blank fill; no parsing localized text. No profile, writes, CRC, support, grouping or release changes. Narrow tests and measured visual bounds; full suite deferred to frozen integration/release.",
+  "disposition": "extend-owner",
+  "designReview": {"reviewer": null, "outcome": "not-required", "evidence": "R1 presentation-only owner-approved reference, existing semantic owners retained."},
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": {"reviewer": null, "outcome": "pending", "evidence": ""}
+}

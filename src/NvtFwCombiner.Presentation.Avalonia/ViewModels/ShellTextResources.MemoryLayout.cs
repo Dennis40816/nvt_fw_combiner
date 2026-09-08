@@ -17,6 +17,8 @@ internal enum MemoryPendingPrerequisite
 internal sealed partial class ShellTextResources
 {
     public string MemoryCustomerInformationLabel => SelectLanguage("Customer information", "客戶資訊");
+    public string MemoryProcessingDetailsLabel => SelectLanguage("Processing details", "處理細節");
+    public string MemorySourceLabel => SelectLanguage("Source", "來源");
     public string FormatMemorySourceCaption(string sourceLabel)
     {
         return SelectLanguage($"Source: {sourceLabel}", $"來源：{sourceLabel}");
@@ -229,8 +231,8 @@ internal sealed partial class ShellTextResources
         return detail switch
         {
             MemoryPlanDetailKind.ProtectedCustomerInformationFromDp => SelectLanguage(
-                "Protected customer information is supplied by DP BIN; TP overlay does not write here.",
-                "受保護的客戶資訊由 DP BIN 提供；TP 覆寫不會寫入此範圍。"),
+                "Supplied by DP BIN. TP overlay does not write here.",
+                "由 DP BIN 提供。TP 覆寫不會寫入此範圍。"),
             MemoryPlanDetailKind.ProtectedCustomerInformationFromDpReplacement => SelectLanguage(
                 "Protected customer information is supplied by the DP replacement BIN; TP restore does not write here.",
                 "受保護的客戶資訊由替換用 DP BIN 提供；TP 還原不會寫入此範圍。"),
@@ -298,29 +300,28 @@ internal sealed partial class ShellTextResources
         byte? blankFillByte,
         IReadOnlyList<CompositionOperation> contributingOperations)
     {
+        return string.Join("\n", FormatMemoryLayoutTechnicalFacts(regionId, blankFillByte, contributingOperations)
+            .Select(fact => $"{fact.Label}: {fact.Value}"));
+    }
+
+    public IReadOnlyList<MemoryRegionFact> FormatMemoryLayoutTechnicalFacts(
+        string regionId,
+        byte? blankFillByte,
+        IReadOnlyList<CompositionOperation> contributingOperations)
+    {
         ArgumentException.ThrowIfNullOrWhiteSpace(regionId);
         ArgumentNullException.ThrowIfNull(contributingOperations);
-        string initialization = blankFillByte is { } fillByte
-            ? SelectLanguage(
-                $"Output initialization: 0x{fillByte:X2} (before writes). ",
-                $"輸出初始化：0x{fillByte:X2}（寫入前）。")
-            : string.Empty;
-        string? operationList = contributingOperations.Count == 0
-            ? null
-            : string.Join(", ", contributingOperations.Select(operation =>
-                SelectLanguage(
-                    $"{operation.OperationId} (Sequence {operation.Sequence})",
-                    $"{operation.OperationId}（順序 {operation.Sequence}）")));
-        string operations = operationList is null
-            ? SelectLanguage(
-                "No compiled operation writes this range.",
-                "沒有編譯操作寫入此範圍。")
-            : SelectLanguage(
-                $"Compiled operations: {operationList}.",
-                $"編譯操作：{operationList}。");
-        return SelectLanguage(
-            $"{regionId}. {initialization}{operations}",
-            $"{regionId}。{initialization}{operations}");
+        List<MemoryRegionFact> facts = [new(SelectLanguage("Region ID", "區域 ID"), regionId)];
+        if (blankFillByte is { } fillByte)
+        {
+            facts.Add(new(SelectLanguage("Initialization", "輸出初始化"),
+                SelectLanguage($"0x{fillByte:X2} (before writes)", $"0x{fillByte:X2}（寫入前）")));
+        }
+        facts.Add(new(SelectLanguage("Operation", "編譯操作"), contributingOperations.Count == 0
+            ? SelectLanguage("No compiled operation writes this range.", "沒有編譯操作寫入此範圍。")
+            : string.Join("\n", contributingOperations.Select(operation => SelectLanguage(
+                $"{operation.OperationId} (Sequence {operation.Sequence})", $"{operation.OperationId}（順序 {operation.Sequence}）")))));
+        return facts;
     }
 }
 

@@ -157,7 +157,8 @@ internal static partial class UiCompositionRunner
             compactDetail: MemoryCompactDetail(segment, sourceLabel, text),
             logicalCoverageGroupId: segment.LogicalCoverageGroupId,
             contentRole: segment.ContentRole,
-            ctrlRamRegionRole: segment.CtrlRamRegionRole);
+            ctrlRamRegionRole: segment.CtrlRamRegionRole,
+            processingFacts: text.FormatMemoryLayoutTechnicalFacts(segment.RegionId, layout.BlankFillByte, segment.ContributingOperations));
     }
 
     private static MemoryCoverageSegmentViewModel ToMemoryCoverageSegment(

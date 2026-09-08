@@ -241,7 +241,7 @@ public sealed partial class XamlControlStyleContractTests
 
         TextBlock source = Assert.Single(
             row.GetVisualDescendants().OfType<TextBlock>(),
-            candidate => candidate.Text == segment.SourceLabel);
+            candidate => candidate.Text == segment.DisplayTitle && candidate.Classes.Contains("bodyEmphasisText"));
         TextBlock address = Assert.Single(
             row.GetVisualDescendants().OfType<TextBlock>(),
             candidate => candidate.Text == segment.AddressRangeLabel);
@@ -261,9 +261,9 @@ public sealed partial class XamlControlStyleContractTests
         Point detailsOrigin = Assert.IsType<Point>(details.TranslatePoint(default, row));
 
         Assert.True(addressOrigin.Y >= sourceOrigin.Y + source.Bounds.Height);
-        Assert.Equal(sourceOrigin.X, addressOrigin.X, precision: 3);
-        Assert.Equal(addressOrigin.Y, lengthOrigin.Y, precision: 3);
-        Assert.True(lengthOrigin.X > addressOrigin.X);
+        Assert.True(addressOrigin.X > sourceOrigin.X);
+        Assert.True(lengthOrigin.Y >= addressOrigin.Y + address.Bounds.Height);
+        Assert.Equal(addressOrigin.X, lengthOrigin.X, precision: 3);
         Assert.True(descriptionOrigin.Y >= addressOrigin.Y + address.Bounds.Height);
         Assert.True(detailsOrigin.Y >= descriptionOrigin.Y + description.Bounds.Height);
         Assert.True(detailsOrigin.X + details.Bounds.Width <= row.Bounds.Width);

@@ -649,6 +649,37 @@ Only two production lines are replaced, without code-size growth or ledger
 changes. Fixed-head review is bound in the
 [record](../governance/change-records/UI-114-MEMORY-POSTPROCESS-30.json).
 
+##### Narrow region information cards — 2026-09-08
+
+Owner-approved `UI-114-MEMORY-CARDS-31` replaces the duplicated physical
+region list rows with one shared narrow card. Range, Size and Source are
+vertically aligned; the existing role-color marker precedes the title and
+the existing state badge remains separate. Processing details are collapsed
+by default and use the shared keyboard-operable disclosure. Initialization
+and operation rows format existing typed projection facts, not parsed prose.
+Tooltip/accessibility still retain technical information; DiffDLM preservation
+actions, logical grouped rows, bar geometry, firmware ranges and bytes remain
+unchanged.
+
+Reference: [approved narrow preview](../ui/references/v1.1.4-memory-region-card-approved.png),
+amended by owner to retain the region-color marker. This is a generated design
+reference, not a runtime screenshot. Actual [EN Light component render](../ui/references/v1.1.4-memory-region-card-actual.png)
+uses a 380 px host with 348 px cards; collapsed/expanded states are shown for
+the same Customer information fixture. [zh Dark render](../ui/references/v1.1.4-memory-region-card-dark-actual.png)
+uses the same geometry. Customer information retains its existing neutral hue;
+the UI does not recolor it as DP merely because DP is its source.
+
+Evidence: `D:/NvtFwCombiner-TestArea/evidence/v114-memory-cards/`.
+`red/red.trx`: 4 failures because the old templates have no disclosure.
+`verified/verified.trx`: 56/56 passed, zero skipped, 10 s; includes memory,
+source, initialization, DP Perspective coverage, interaction and DiffDLM cases.
+EN/zh Light/Dark render checks exercise keyboard expansion, text bounds and
+metadata alignment. Stale old-layout assertions were updated to the approved
+layout, retaining palette and preservation assertions. These isolated production
+template renders do not establish native whole-app/DPI/high-contrast or release
+acceptance. Fixed-head review is recorded in the
+[admission record](../governance/change-records/UI-114-MEMORY-CARDS-31.json).
+
 ##### Current Home and Settings inventory follow-up
 
 On production source `c3c81ba2`, the primary inspected eight current real

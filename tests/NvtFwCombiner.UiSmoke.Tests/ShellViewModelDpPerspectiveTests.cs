@@ -132,7 +132,7 @@ public sealed partial class DpReplaceWorkflowTests
                 "DP BIN",
                 "0x37000-0x37FFF (len 0x1000)",
                 MemoryCoverageFillRole.Neutral,
-                "Protected customer information is supplied by DP BIN; TP overlay does not write here."),
+                "Supplied by DP BIN. TP overlay does not write here."),
             segment => AssertCoverageSegment(
                 segment,
                 "DP BIN",
@@ -184,7 +184,7 @@ public sealed partial class DpReplaceWorkflowTests
                 "DP BIN",
                 "0x37000-0x37FFF (len 0x1000)",
                 MemoryCoverageFillRole.Neutral,
-                "受保護的客戶資訊由 DP BIN 提供；TP 覆寫不會寫入此範圍。"),
+                "由 DP BIN 提供。TP 覆寫不會寫入此範圍。"),
             segment => AssertCoverageSegment(
                 segment,
                 "DP BIN",

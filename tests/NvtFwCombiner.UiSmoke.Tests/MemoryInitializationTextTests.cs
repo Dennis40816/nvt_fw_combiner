@@ -20,9 +20,10 @@ public sealed class MemoryInitializationTextTests
             : [];
         string detail = text.FormatMemoryLayoutTechnicalDetail("region", (byte)value, operations);
         string expected = chinese
-            ? $"region。輸出初始化：0x{value:X2}（寫入前）。" + (writes ? "編譯操作：copy-source（順序 0）。" : "沒有編譯操作寫入此範圍。")
-            : $"region. Output initialization: 0x{value:X2} (before writes). " + (writes ? "Compiled operations: copy-source (Sequence 0)." : "No compiled operation writes this range.");
+            ? $"區域 ID: region\n輸出初始化: 0x{value:X2}（寫入前）\n編譯操作: " + (writes ? "copy-source（順序 0）" : "沒有編譯操作寫入此範圍。")
+            : $"Region ID: region\nInitialization: 0x{value:X2} (before writes)\nOperation: " + (writes ? "copy-source (Sequence 0)" : "No compiled operation writes this range.");
         Assert.Equal(expected, detail);
+        Assert.Equal(3, text.FormatMemoryLayoutTechnicalFacts("region", (byte)value, operations).Count);
     }
 
     /// <summary>Reference initialization must not invent a fill value when none is published.</summary>
@@ -32,6 +33,7 @@ public sealed class MemoryInitializationTextTests
     public void MissingFillValueDoesNotInventBlankBytes(bool chinese)
     {
         ShellTextResources text = ShellTextResources.For(chinese ? ShellLanguage.ChineseTraditional : ShellLanguage.English);
-        Assert.Equal(chinese ? "region。沒有編譯操作寫入此範圍。" : "region. No compiled operation writes this range.", text.FormatMemoryLayoutTechnicalDetail("region", null, []));
+        Assert.Equal(chinese ? "區域 ID: region\n編譯操作: 沒有編譯操作寫入此範圍。" : "Region ID: region\nOperation: No compiled operation writes this range.", text.FormatMemoryLayoutTechnicalDetail("region", null, []));
+        Assert.Equal(2, text.FormatMemoryLayoutTechnicalFacts("region", null, []).Count);
     }
 }

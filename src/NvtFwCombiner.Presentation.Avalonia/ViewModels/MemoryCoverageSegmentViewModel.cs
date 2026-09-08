@@ -58,7 +58,8 @@ internal sealed class MemoryCoverageSegmentViewModel
         string? changeLabel = null,
         string? logicalCoverageGroupId = null,
         MemoryContentRole contentRole = MemoryContentRole.General,
-        CtrlRamRegionRole ctrlRamRegionRole = CtrlRamRegionRole.Other)
+        CtrlRamRegionRole ctrlRamRegionRole = CtrlRamRegionRole.Other,
+        IReadOnlyList<MemoryRegionFact>? processingFacts = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(rangeLabel);
         ArgumentException.ThrowIfNullOrWhiteSpace(sourceLabel);
@@ -107,6 +108,10 @@ internal sealed class MemoryCoverageSegmentViewModel
         RangeLabel = rangeLabel;
         AddressRangeLabel = addressRangeLabel ?? rangeLabel;
         LengthLabel = lengthLabel ?? string.Empty;
+        SizeValue = rangeStart is { } sizeStart && rangeEndExclusive is { } sizeEnd
+            ? FormattableString.Invariant($"0x{sizeEnd - sizeStart:X} ({(sizeEnd - sizeStart) / 1024d:0.###} KiB)")
+            : LengthLabel;
+        ProcessingFacts = processingFacts?.ToArray() ?? [];
         SourceLabel = sourceLabel;
         LogicalSourceLabel = logicalSourceLabel ?? sourceLabel;
         Detail = detail;
@@ -166,6 +171,10 @@ internal sealed class MemoryCoverageSegmentViewModel
 
     /// <summary>Display length kept in a separately aligned column.</summary>
     public string LengthLabel { get; }
+
+    public string SizeValue { get; }
+    public IReadOnlyList<MemoryRegionFact> ProcessingFacts { get; }
+    public bool HasProcessingFacts => ProcessingFacts.Count > 0;
 
     /// <summary>Final source occupying this range.</summary>
     public string SourceLabel { get; }
@@ -247,6 +256,9 @@ internal sealed class MemoryCoverageSegmentViewModel
     public string AccessibleDetail { get; }
 
 }
+
+/// <summary>One localized display fact, formatted from an existing typed memory projection.</summary>
+internal sealed record MemoryRegionFact(string Label, string Value);
 
 /// <summary>Localized display-only projection of one canonical kept Diff NF range.</summary>
 internal sealed class DiffDlmPreservationDetailViewModel

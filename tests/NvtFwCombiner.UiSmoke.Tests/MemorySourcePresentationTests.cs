@@ -4,6 +4,7 @@ using Avalonia.Controls;
 using Avalonia.Controls.Templates;
 using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
+using Avalonia.Input;
 using Avalonia.Markup.Xaml.Styling;
 using Avalonia.Styling;
 using Avalonia.Threading;
@@ -26,6 +27,7 @@ public sealed class MemorySourcePresentationTests
     public void CustomerInformationShowsSectionAndSourceInSharedTemplates(bool dark, bool chinese)
     {
         ShellTextResources text = ShellTextResources.For(chinese ? ShellLanguage.ChineseTraditional : ShellLanguage.English);
+        CompositionOperation[] operations = [CompositionOperation.CopyRange("copy-dp", 0, "dp", new ByteRange(0, 0x1000), "output", new ByteRange(0x37000, 0x1000), OverlapPolicy.Reject, "test copy")];
         var segment = new MemoryCoverageSegmentViewModel(
             "0x37000-0x37FFF (len 0x1000)", "DP BIN",
             text.FormatMemoryLayoutTechnicalDetail("customer-info", 0xFF,
@@ -34,7 +36,8 @@ public sealed class MemorySourcePresentationTests
             disposition: MemoryWorkflowDisposition.WillWrite,
             text: text, addressRangeLabel: "0x37000-0x37FFF", lengthLabel: "len 0x1000",
             compactDetail: text.GetMemoryPlanDetail(MemoryPlanDetailKind.ProtectedCustomerInformationFromDp),
-            contentRole: MemoryContentRole.CustomerInformation);
+            contentRole: MemoryContentRole.CustomerInformation, rangeStart: 0x37000, rangeEndExclusive: 0x38000,
+            processingFacts: text.FormatMemoryLayoutTechnicalFacts("customer-info", 0xFF, operations));
         string title = chinese ? "客戶資訊" : "Customer information";
         string source = chinese ? "來源：DP BIN" : "Source: DP BIN";
         Assert.Equal(title, segment.DisplayTitle);
@@ -53,7 +56,7 @@ public sealed class MemorySourcePresentationTests
             Assert.True(resources.TryGetResource(key, theme, out object? resource));
             stack.Children.Add(new ContentControl { Content = segment, ContentTemplate = Assert.IsType<IDataTemplate>(resource, exactMatch: false) });
         }
-        var window = new Window { Width = 380, Height = 560, RequestedThemeVariant = theme, DataContext = new { Text = text, IsReducedMotionEnabled = false }, Content = new Border { Padding = new Thickness(16), Child = stack } };
+        var window = new Window { Width = 380, Height = 1100, RequestedThemeVariant = theme, DataContext = new { Text = text, IsReducedMotionEnabled = true }, Content = new Border { Padding = new Thickness(16), Child = stack } };
         window.Resources.MergedDictionaries.Add(resources);
         var styleUri = new Uri("avares://NvtFwCombiner.Presentation.Avalonia/Styles/MainWindowStyles.axaml");
         window.Styles.Add(new StyleInclude(styleUri) { Source = styleUri });
@@ -64,8 +67,32 @@ public sealed class MemorySourcePresentationTests
             AvaloniaHeadlessPlatform.ForceRenderTimerTick();
             foreach (ContentControl card in stack.Children.OfType<ContentControl>())
             {
+                if (card != stack.Children[2])
+                {
+                    Expander disclosure = Assert.Single(card.GetVisualDescendants().OfType<Expander>());
+                    Assert.False(disclosure.IsExpanded);
+                    // The native Expander header owns keyboard activation.
+                    global::Avalonia.Controls.Primitives.ToggleButton toggle = Assert.Single(disclosure.GetVisualDescendants().OfType<global::Avalonia.Controls.Primitives.ToggleButton>());
+                    Assert.True(toggle.Focus());
+                    window.KeyPress(Key.Space, RawInputModifiers.None, PhysicalKey.Space, " ");
+                    window.KeyRelease(Key.Space, RawInputModifiers.None, PhysicalKey.Space, " ");
+                    Dispatcher.UIThread.RunJobs();
+                    Assert.True(disclosure.IsExpanded);
+                    TextBlock size = Assert.Single(card.GetVisualDescendants().OfType<TextBlock>(), block => block.Text == "0x1000 (4 KiB)");
+                    TextBlock address = Assert.Single(card.GetVisualDescendants().OfType<TextBlock>(), block => block.Text == segment.AddressRangeLabel);
+                    Assert.InRange(Math.Abs(size.TranslatePoint(default, card)!.Value.X - address.TranslatePoint(default, card)!.Value.X), 0, 0.5);
+                    Border marker = Assert.Single(card.GetVisualDescendants().OfType<Border>(), border => border.Classes.Contains("memoryCoverageMarker"));
+                    Assert.Equal(10, marker.Bounds.Width);
+                    Assert.Equal(10, marker.Bounds.Height);
+                    Assert.NotNull(marker.Background);
+                    foreach (TextBlock block in card.GetVisualDescendants().OfType<TextBlock>().Where(block => block.IsEffectivelyVisible))
+                    {
+                        Point point = block.TranslatePoint(default, card)!.Value;
+                        Assert.True(point.X >= 0 && point.X + block.Bounds.Width <= card.Bounds.Width + 0.5, block.Text);
+                    }
+                }
                 TextBlock heading = Assert.Single(card.GetVisualDescendants().OfType<TextBlock>(), block => block.Text == title);
-                TextBlock caption = Assert.Single(card.GetVisualDescendants().OfType<TextBlock>(), block => block.Text == source);
+                TextBlock caption = Assert.Single(card.GetVisualDescendants().OfType<TextBlock>(), block => block.Text == (card == stack.Children[2] ? source : "DP BIN"));
                 TextBlock range = Assert.Single(card.GetVisualDescendants().OfType<TextBlock>(), block => block.Text == segment.RangeLabel || block.Text == segment.AddressRangeLabel);
                 Point headingAt = heading.TranslatePoint(default, card)!.Value;
                 Point captionAt = caption.TranslatePoint(default, card)!.Value;
@@ -75,6 +102,10 @@ public sealed class MemorySourcePresentationTests
                 Assert.True(captionAt.X >= 0 && captionAt.X + caption.Bounds.Width <= card.Bounds.Width + 0.5);
                 Assert.Contains(card.GetVisualDescendants().OfType<TextBlock>(), block => block.Text == segment.CompactDetail && block.IsEffectivelyVisible);
             }
+            // Present the approved collapsed/expanded comparison at the actual 348px card width.
+            Assert.Single(stack.Children[0].GetVisualDescendants().OfType<Expander>()).IsExpanded = false;
+            Dispatcher.UIThread.RunJobs();
+            AvaloniaHeadlessPlatform.ForceRenderTimerTick();
             ContentControl tooltip = (ContentControl)stack.Children[2];
             Assert.Contains(tooltip.GetVisualDescendants().OfType<TextBlock>(), block => block.Text == text.RangeLabel && block.IsEffectivelyVisible);
             Assert.Contains(tooltip.GetVisualDescendants().OfType<TextBlock>(), block => block.Text == text.ResultLabel && block.IsEffectivelyVisible);
@@ -88,6 +119,18 @@ public sealed class MemorySourcePresentationTests
             Assert.True(row.Focus());
             Dispatcher.UIThread.RunJobs();
             Assert.True(segment.Interaction.IsActive);
+            window.Focusable = true;
+            Assert.True(window.Focus());
+            Assert.False(segment.Interaction.IsActive);
+            Assert.True(stack.Children.Remove(tooltip));
+            window.Height = 650;
+            // Flush layout/compositor work and let the existing Fluent chevron reach its end state.
+            for (int tick = 0; tick < 4; tick++)
+            {
+                Dispatcher.UIThread.RunJobs();
+                AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+                Thread.Sleep(100);
+            }
             using global::Avalonia.Media.Imaging.Bitmap? frame = window.GetLastRenderedFrame();
             Assert.NotNull(frame);
             string? destination = Environment.GetEnvironmentVariable("NFC_VISUAL_OUTPUT_DIR");
