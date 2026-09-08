@@ -479,10 +479,11 @@ They are no longer active implementation TODOs. These are local scoped
 completions, not a fresh combined integration pass or publication.
 
 The owner now requests already-authorized work without new design/product
-decisions first, one independently verified unit per commit, until 10:00
-Asia/Taipei on 2026-09-08. That timebox does not authorize unresolved designs,
-new support claims or release. Assessments may record a limitation and move
-to another independent item rather than force a decision.
+decisions first, one independently verified unit per commit. The owner removed
+the earlier 10:00 stop limit on 2026-09-08; it is no longer an execution boundary.
+Continued work does not authorize unresolved designs, new support claims or
+release. Assessments may record a limitation and move to another independent
+item rather than force a decision.
 
 | Remaining order | Scope | Boundary |
 | --- | --- | --- |
