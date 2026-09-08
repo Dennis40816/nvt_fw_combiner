@@ -17,9 +17,11 @@ public sealed class ShellScreenInventoryTests
 {
     /// <summary>Settings sections keep their real shell host and leave Home workflow state untouched.</summary>
     [AvaloniaTheory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public async Task HomeAndSettingsSectionsRemainReachableWithoutWorkflowMutation(bool dark)
+    [InlineData(false, false)]
+    [InlineData(true, false)]
+    [InlineData(false, true)]
+    [InlineData(true, true)]
+    public async Task HomeAndSettingsSectionsRemainReachableWithoutWorkflowMutation(bool dark, bool chinese)
     {
         using var workspace = TempWorkspace.Create("shell-screen-inventory");
         PresentationHostServices services = await CreateServicesAsync(workspace, useRetainedDpReplacePolicy: false);
@@ -35,11 +37,17 @@ public sealed class ShellScreenInventoryTests
         {
             await AwaitHistoryReadyAsync(window);
             var shell = (MainWindowViewModel)window.DataContext!;
-            shell.SelectedLanguage = "English";
+            shell.SelectedLanguage = chinese ? "Traditional Chinese" : "English";
             shell.SelectedTheme = dark ? "Dark" : "Light";
             shell.ShowHomeCommand.Execute(null);
             Assert.True(shell.IsHomeVisible);
-            Capture(window, "home", dark);
+            Dispatcher.UIThread.RunJobs();
+            string subtitle = chinese ? "選擇取代流程。" : "Choose a replacement workflow.";
+            Assert.Equal(subtitle, shell.Replace.ReplacePreview.Subtitle);
+            TextBlock description = Assert.Single(window.GetVisualDescendants().OfType<TextBlock>(),
+                item => item.IsEffectivelyVisible && item.Text == subtitle);
+            Assert.True(description.Bounds.Width > 0);
+            Capture(window, "home", dark, chinese);
             string navigation = shell.Navigation.NavigationPath;
             string ic = shell.WorkflowSession.SelectedIc;
             shell.OpenSettingsCommand.Execute(null);
@@ -61,7 +69,7 @@ public sealed class ShellScreenInventoryTests
                 Point origin = surface.TranslatePoint(default, window)!.Value;
                 Assert.InRange(origin.X, 0, 1440 - surface.Bounds.Width);
                 Assert.InRange(origin.Y, 0, 900 - surface.Bounds.Height);
-                Capture(window, section.ToString(), dark);
+                Capture(window, section.ToString(), dark, chinese);
             }
             shell.CloseSettingsCommand.Execute(null);
             Assert.False(shell.IsSettingsModalOpen);
@@ -74,7 +82,7 @@ public sealed class ShellScreenInventoryTests
         }
     }
 
-    private static void Capture(Window window, string surface, bool dark)
+    private static void Capture(Window window, string surface, bool dark, bool chinese)
     {
         Dispatcher.UIThread.RunJobs();
         AvaloniaHeadlessPlatform.ForceRenderTimerTick();
@@ -86,12 +94,12 @@ public sealed class ShellScreenInventoryTests
         Assert.Equal(dark ? ThemeVariant.Dark : ThemeVariant.Light, window.ActualThemeVariant);
         Assert.Equal(new PixelSize(1440, 900), frame.PixelSize);
         TestContext.Current.TestOutputHelper!.WriteLine(
-            $"{surface}: theme={window.ActualThemeVariant}; language=English; scale={window.RenderScaling}; pixels={frame.PixelSize}");
+            $"{surface}: theme={window.ActualThemeVariant}; language={(chinese ? "zh-TW" : "en")}; scale={window.RenderScaling}; pixels={frame.PixelSize}");
         string? directory = Environment.GetEnvironmentVariable("NFC_VISUAL_OUTPUT_DIR");
         if (!string.IsNullOrWhiteSpace(directory))
         {
             _ = Directory.CreateDirectory(directory);
-            frame.Save(Path.Combine(directory, $"inventory-{surface}-{(dark ? "dark" : "light")}.png"));
+            frame.Save(Path.Combine(directory, $"inventory-{surface}-{(dark ? "dark" : "light")}-{(chinese ? "zh-TW" : "en")}.png"));
         }
     }
 }

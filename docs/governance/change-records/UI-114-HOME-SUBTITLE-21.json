@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 2,
+  "taskId": "UI-114-HOME-SUBTITLE-21",
+  "capability": "Remove obsolete DP availability wording from Home Replace subtitle",
+  "integrationBase": "c3c81ba256cb833d6e8d34fe2b81c4ac81281797",
+  "risk": "R1",
+  "kind": "ui",
+  "state": "design-active",
+  "mutablePaths": ["src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ShellTextResources.Localized.cs"],
+  "implementationOwner": "primary-agent",
+  "searchEvidence": [
+    "Home inventory at c78f6c2b used production policy and showed DP Replace hidden while subtitle still enumerated DP.",
+    "MainWindowPageTemplates.axaml:20 binds Replace.ReplacePreview.Subtitle; ShellTextResources.Localized.cs owns the English and Traditional Chinese strings. Reuse this owner without policy-derived UI logic."
+  ],
+  "semanticOwner": "ShellTextResources owns localized explanatory wording; canonical Application policy retains workflow availability",
+  "terminalContract": "Owner approved small-impact-first correction. Replace only the two subtitle strings with Choose a replacement workflow. / 選擇取代流程。 Preserve card geometry, commands, availability, firmware bytes, metadata, all other preview text and styles. Existing current 1440x900 Home captures are the visual baseline. Red/green resource and real-control checks cover both languages/themes; no new source lines, no full release run per local commit.",
+  "disposition": "reuse",
+  "designReview": {"reviewer": null, "outcome": "not-required", "evidence": "R1 localized copy correction, no authority or architecture change."},
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": {"reviewer": null, "outcome": "pending", "evidence": ""}
+}

@@ -561,7 +561,7 @@ The reproducible command and evidence boundary are in
 
 | Surface | Observed disposition / next bounded action |
 | --- | --- |
-| Home | Existing cards and Open pills remain aligned in both themes. Production policy hides DP Replace, but the Replace subtitle still says `DP, CtrlRAM, and Customized policies.` Prioritize a small scope-neutral subtitle correction; do not restore DP availability or redesign cards. |
+| Home | Existing cards and Open pills remain aligned in both themes. The stale DP-enumerating subtitle is corrected locally by `UI-114-HOME-SUBTITLE-21` below; availability and card layout are unchanged. |
 | Preferences | Theme/language/reduced-motion controls fit their existing rows; actual full-shell theme agrees with selection. Keep current geometry. |
 | Overview | Current-version/catalog/capability rows remain readable and bounded. No layout change justified by this inventory. |
 | Support Matrix | Headers, statuses and row meanings remain visible in both themes. Horizontal scrollbar and lower-row boundary remain a candidate for a focused interaction check, not proof of clipping or permission to change support facts. |
@@ -573,6 +573,22 @@ existing Report tests retain their default historical DP regression policy.
 Early captures using that historical policy and window-only theme assignment
 are retained as superseded test-fixture evidence, not current product screens.
 No product layout, firmware behavior, dependency or support claim changed.
+
+Home subtitle follow-up (`UI-114-HOME-SUBTITLE-21`): the owner approved the
+small correction on 2026-09-08. Existing localized strings now say
+`Choose a replacement workflow.` / `選擇取代流程。`, avoiding an obsolete DP
+availability claim without introducing another availability calculation.
+The production diff replaces only these two strings, with no source-line
+growth. Red evidence: four locale/theme cases rejected the old text. Green:
+six scoped cases passed, zero skipped, 11 seconds (four real-shell locale/theme
+cases, existing Home order and card-center regression). The primary inspected
+all four complete 1440x900 Home frames against the preceding actual inventory;
+geometry, controls and hidden DP entry remain unchanged.
+Evidence: `D:/NvtFwCombiner-TestArea/evidence/v114-home-subtitle/`,
+`home-subtitle-red.trx`, `home-subtitle-green.trx`, and
+`inventory-home-<light|dark>-<en|zh-TW>.png`. Fixed-head review and final
+checkpoint are bound in the capability record. This is not publication,
+native display certification or a firmware/sub-version change.
 
 Step 3 local evidence over `e5202e2707d272076d24216222188d478314a07d`:
 `dotnet test --no-restore` UI filter `FullyQualifiedName~SlotLoading` passes

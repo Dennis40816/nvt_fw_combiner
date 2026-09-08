@@ -152,7 +152,7 @@ internal sealed partial class ShellTextResources
             ReplacePreview = Pick(
                 new PlanningCardText(
                     "Replace",
-                    "DP, CtrlRAM, and Customized policies.",
+                    "Choose a replacement workflow.",
                     [
                         "Device context: shared IC and Number",
                         "DP Replace includes separate DP and LDC payloads",
@@ -162,7 +162,7 @@ internal sealed partial class ShellTextResources
                     "Build wired; CtrlRAM postbuild enabled"),
                 new PlanningCardText(
                     "取代",
-                    "DP、CtrlRAM 與 Customized policy。",
+                    "選擇取代流程。",
                     [
                         "裝置條件：共用 IC 與數量",
                         "DP Replace 包含分開的 DP 與 LDC payload",
