@@ -511,13 +511,16 @@ visual items rather than creating a second redesign backlog.
 | NT51951 AB and Dummy DP impact | Current [map-based inventory](../ui/v1.1.x-ab-dummy-dp-handoff.md#read-only-implementation-inventory-2026-09-06) places TP B at `[0x8A000,0xB7000)`, while NT51950 starts it at `0x4A000`. Whether the new term TP backup means this AB TP B placement is not yet verified. | If confirmed, audit TP B placement/length, relocation, Combiner staging, header/CRC imports and allowed writes, output capacity, and Dummy TP/non-TP ranges together. Add affected regression and independent complete-output evidence; retain Normal Golden and firmware-owner gates. Do not assume the new end from the old length. |
 | Per-page custom-option density | Owner requests layout advice because individual pages have accumulated custom controls. Assessment is authorized; a new visual design is not yet approved. | Inventory the actual current Standard/AB/CtrlRAM pages and group controls by task and consequence. Preview one representative AB page before implementation; retain existing button styles, widths, keyboard access and confirmation behavior. |
 
-API retrieval is currently blocked: no callable HackMD connector or token in
-the checked `HACKMD_API_TOKEN`, `HACKMD_TOKEN`, or `HACKMD_ACCESS_TOKEN`
-environment variables was found. Request the configured credential location,
-not its value in chat. The note has not been read; the Excel has not been
-received. No profile, production range or availability was changed by this
-intake. Private note URLs, credentials and firmware payloads stay out of this
-roadmap.
+API access was verified on 2026-09-08 through the global
+`hackmd-cjk14-transfer` skill's existing DPAPI-protected credential store;
+the earlier environment-variable-only check was insufficient. Exactly one
+`51928BT` note was retrieved (15,749 characters; source SHA-256
+`4aaa803e92d39a024ae90c90880ec0290c283634045bf45772b959c0a436890a`).
+Its body is an encrypted transfer payload, not a readable memory-map table;
+decryption and recovered-file inspection are still pending. No Excel contents
+or firmware facts have yet been verified from it. No profile, production range
+or availability was changed by this intake. Private note URLs, credentials
+and firmware payloads stay out of this roadmap.
 
 Proposed UI direction, pending owner acceptance: retain IC/mode/topology context
 and required inputs as the main surface; place related routine options in a
