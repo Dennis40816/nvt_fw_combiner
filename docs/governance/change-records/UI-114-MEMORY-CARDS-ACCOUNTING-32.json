@@ -5,7 +5,7 @@
   "integrationBase": "025ea09d7c04f04d778073ee78c64cf4789ceca4",
   "risk": "R2",
   "kind": "governance",
-  "state": "design-active",
+  "state": "final-complete",
   "mutablePaths": ["scripts/code_size_policy.py", "docs/adr/0021-code-size-ratchet-accepted-artifact-amendment.md"],
   "implementationOwner": "primary-agent",
   "searchEvidence": ["Independent reviewer measured UI31 head9666015c full138708 versus DEFAULT_LIMITS and tests/scripts/test_code_size_policy.py exact baseline138763. Existing ADR0021 owns accounting amendments; consolidation removes55 nonblank production lines."],
@@ -13,8 +13,8 @@
   "terminalContract": "Bounded review correction within UI31 batch: full138708, allowance35812, baseline138708 and ADR delta minus55. Runtime99231, slices20757/42708/5039/30727, full ratchet102896 and all algorithms/equality/exclusions/gates unchanged. No transferable headroom. Run19 accounting cases, reuse unchanged UI56-case evidence and obtain fixed-head delta review. No firmware, golden or release policy change.",
   "disposition": "extend-owner",
   "designReview": {"reviewer": "ui_presentation_review", "outcome": "approved", "evidence": "Independent bounded R2 design PASS before accounting edits; verified full138708 and admitted exact downward synchronization138708/35812/baseline138708. Preserve original UI31 admission and same025ea09d batch base; retain no headroom."},
-  "implementationHead": null,
-  "reviewedHead": null,
-  "pathStateDigest": null,
-  "finalReview": {"reviewer": null, "outcome": "pending", "evidence": ""}
+  "implementationHead": "dade89c9e197dda8fef3b9072fa6aaec19dfeea8",
+  "reviewedHead": "dade89c9e197dda8fef3b9072fa6aaec19dfeea8",
+  "pathStateDigest": "5839241199703ab14ab2b36010d03356ec485a39d8e0d97f4ca5b48335ad1fd2",
+  "finalReview": {"reviewer": "ui_presentation_review", "outcome": "approved", "evidence": "Independent R2 delta9666015c..dade89c9 PASS; full/baseline138708 allowance35812 matches prior independent measurement/design; no runtime/slice/ratchet/equality/algorithm/gate change. python -m unittest tests.scripts.test_code_size_policy19/19 in26.777s primary tool evidence. UIproduction unchanged, reviewed56-case result reused. OriginalP2 closed, no remaining findings."}
 }
