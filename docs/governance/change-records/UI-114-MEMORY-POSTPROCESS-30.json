@@ -5,7 +5,7 @@
   "integrationBase": "379c72b4fd8fae26f286183042e4c94ff91d3b04",
   "risk": "R1",
   "kind": "ui",
-  "state": "design-active",
+  "state": "final-complete",
   "mutablePaths": ["src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ShellTextResources.MemoryLayout.cs"],
   "implementationOwner": "primary-agent",
   "searchEvidence": ["UiCompositionRunner.Common.MemoryAction maps any MemoryProcessorEffect.DeclaredWrite on replacement to ReplaceAndCrc; Application projector derives DeclaredWrite from any ExternalProcessorInvocation. Existing localized formatter therefore overstates the known effect as CRC. MemoryMapRowViewModel and shared Plan templates consume this one formatter."],
@@ -13,8 +13,8 @@
   "terminalContract": "Owner approved memory display clarification. Change only generic action wording Replace + CRC to Replace + postprocess / 替換 + 後處理, and English Postbuild to Postprocess for consistency. Keep typed internal action identities, selection branches, CRC/processor execution, operation details, source labels, ranges, permissions, profiles and support unchanged. Do not infer algorithm from IDs or assert no CRC occurs. Bilingual exact-label/control tests plus actual shared Plan-row template narrow-fit render. No new UI style, source-line growth, ledger or full-suite change; precise CRC/effect taxonomy remains separate.",
   "disposition": "reuse",
   "designReview": {"reviewer": null, "outcome": "not-required", "evidence": "R1 bounded resource wording correction through existing owner; no processor protocol, typed contract or firmware change. Independent fixed-head scoped review follows."},
-  "implementationHead": null,
-  "reviewedHead": null,
-  "pathStateDigest": null,
-  "finalReview": {"reviewer": null, "outcome": "pending", "evidence": ""}
+  "implementationHead": "f1a7c5ad2c87390324dc69623bb79679124d22c6",
+  "reviewedHead": "f1a7c5ad2c87390324dc69623bb79679124d22c6",
+  "pathStateDigest": "9becb2362eca773bb07ac99aff8bfdea57018bc279fe68d612cca2dabb802e5c",
+  "finalReview": {"reviewer": "ui_presentation_review", "outcome": "approved", "evidence": "Independent fixed-head R1/Polytail PASS no P0-P3 across five files. Generic DeclaredWrite cannot prove CRC; new labels preserve processing meaning without changing action identities, processor/bytes. Reviewer directly read green/green.trx22/22 zero skip under D:/NvtFwCombiner-TestArea/evidence/v114-memory-postprocess and inspected360px ENLight Plan fixtures; primary also inspected zhDark. Red2/2 failure retained. Existing action/source/range/flow and template fit verified; no line growth/accounting changes. Diff check passed. Precise effect taxonomy, native workflow/accessibility/full-suite/Golden/release remain separate."}
 }
