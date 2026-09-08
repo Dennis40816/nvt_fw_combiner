@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 2,
+  "taskId": "UI-114-TOOLTIP-ESCAPE-24",
+  "capability": "Consume Escape only when dismissing an open shared focus tooltip",
+  "integrationBase": "3423df6b78d58a2ed2735c66f38a365cc325cc9d",
+  "risk": "R2",
+  "kind": "ui",
+  "state": "design-active",
+  "mutablePaths": ["src/NvtFwCombiner.Presentation.Avalonia/Behaviors/FocusToolTipBehavior.cs", "scripts/code_size_policy.py", "docs/adr/0021-code-size-ratchet-accepted-artifact-amendment.md"],
+  "implementationOwner": "primary-agent",
+  "searchEvidence": ["SupportMatrixInteractionTests: four real Settings cases reach final cell, correctly disclose typed details, then Escape also closes Settings (interaction.trx).", "FocusToolTipBehavior.Control_OnKeyDown closes tooltip without marking handled; SettingsModal_OnKeyDown receives Escape and closes modal. Existing shared behavior already owns focus/hover restoration and ComboBox dismissal. Reuse it; no Settings-specific duplicate path."],
+  "semanticOwner": "FocusToolTipBehavior owns tooltip key consumption; SettingsModal retains modal close; code_size_policy/ADR0021 own exact accounting",
+  "terminalContract": "Owner requested next SupportMatrix interaction item after Header fix. First Escape dismisses open tooltip and retains Settings/focus; second Escape when no tooltip remains bubbles to Settings. Preserve focus-loss service restoration, ComboBox behavior, pointer tooltip styles, all commands/support facts/firmware bytes. Add exactly1 production line plus condition change; full138724/allowance35828, unchanged runtime/slices/ratchets/algorithms/exclusions/gates. Test actual Settings scroll extremes at1440/980 ENLight/zhDark, tooltip details/naming, two-stage Escape, and shared IssueCard/ComboBox behavior; accounting19 plus fixed independent review. Native DPI/screenreader/release remain outside this unit.",
+  "disposition": "reuse",
+  "designReview": {"reviewer": "ui_presentation_review", "outcome": "approved", "evidence": "Independent bounded design/R2 accounting admission PASS before edit: guard Escape with ToolTip.GetIsOpen and setHandled after dismissal; no open tooltip must preserve bubbling. Admit projected exact+1 full138724/allowance35828, then measure. Require focus retention, secondEscape close, service restoration and shared consumer checks."},
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": {"reviewer": null, "outcome": "pending", "evidence": ""}
+}

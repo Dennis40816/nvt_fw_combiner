@@ -525,3 +525,12 @@ admission confirms runtime 99,231 and slices 20,757 / 42,708 / 5,039 / 30,727
 remain unchanged. This records only the approved responsive fix, with no
 transferable headroom or changes to measurement, exclusions, duplicate/partial
 checks, firmware semantics or release/Golden gates.
+
+## 2026-09-08 shared tooltip Escape accounting
+
+`UI-114-TOOLTIP-ESCAPE-24` adds exactly one production line to consume an
+Escape event after dismissing an open tooltip. Full production is 138,724;
+the exact allowance is 35,828 against the unchanged 102,896 ratchet. Runtime
+99,231 and all slices remain unchanged. Independent R2 admission covers only
+this necessary increment, not transferable headroom or changes to counting,
+exclusions, checks, support/firmware semantics or release gates.

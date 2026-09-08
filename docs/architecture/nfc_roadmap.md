@@ -564,7 +564,7 @@ The reproducible command and evidence boundary are in
 | Home | Existing cards and Open pills remain aligned in both themes. The stale DP-enumerating subtitle is corrected locally by `UI-114-HOME-SUBTITLE-21` below; availability and card layout are unchanged. |
 | Preferences | Theme/language/reduced-motion controls fit their existing rows; actual full-shell theme agrees with selection. Keep current geometry. |
 | Overview | Current-version/catalog/capability rows remain readable and bounded. No layout change justified by this inventory. |
-| Support Matrix | Headers, statuses and row meanings remain visible in both themes. Horizontal scrollbar and lower-row boundary remain a candidate for a focused interaction check, not proof of clipping or permission to change support facts. |
+| Support Matrix | Scroll-extreme/keyboard interaction checks completed locally in `UI-114-TOOLTIP-ESCAPE-24` below. Last cell is reachable in both viewports. First Escape now dismisses the tooltip without closing Settings; support facts and table styles are unchanged. Native display acceptance remains separate. |
 | BIN Inspector | Production source search finds only the panel class/XAML and ViewModel definitions, not a constructor caller or host reference. Unit adapter evidence is not a reachable user-flow capture. Keep host/reachability unresolved; no component deletion or new host is authorized here. |
 
 This unit adds only a repeatable test/capture seam and records observations.
@@ -638,6 +638,23 @@ and `final/final.trx`; exact +19 AXAML accounting is independently admitted
 under `UI-114-REPLACE-HEADER-ACCOUNTING-23`. Native DPI/High Contrast and release
 Golden remain separate. Next bounded item: Support Matrix scrolling and
 interaction inventory; do not infer support-policy changes from that audit.
+
+Support Matrix interaction follow-up (`UI-114-TOOLTIP-ESCAPE-24`, 2026-09-08):
+real Settings checks cover 1440x900/980x640 English Light and Traditional
+Chinese Dark, complete first/last-cell visibility after scrolling, typed
+tooltip names/details, keyboard focus, focus-loss restoration and two-stage
+Escape. Four red cases reproduced one Escape closing both tooltip and
+Settings. The existing shared tooltip owner now consumes Escape only while
+an open tooltip is dismissed; a subsequent Escape still closes Settings.
+Final affected UI tests pass 35/35, zero skipped, 12 seconds; accounting
+tests pass 19/19, 27.237 seconds. Evidence:
+`D:/NvtFwCombiner-TestArea/evidence/v114-support-matrix/interaction.trx` (red)
+and `green/green.trx`, with eight first/last-cell full-window captures. The
+primary inspected desktop Light-last/Dark-first and narrow Light-last/Dark-first
+captures. No table styles, support states, workflow selection or firmware bytes
+changed. The IC column still scrolls horizontally with the table; freezing it
+would be a separate visual decision, not a failure of last-cell reachability.
+Native screen-reader/DPI/High Contrast and complete release gates remain open.
 
 Step 3 local evidence over `e5202e2707d272076d24216222188d478314a07d`:
 `dotnet test --no-restore` UI filter `FullyQualifiedName~SlotLoading` passes
