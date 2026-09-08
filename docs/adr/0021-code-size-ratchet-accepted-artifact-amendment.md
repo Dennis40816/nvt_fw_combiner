@@ -534,3 +534,14 @@ the exact allowance is 35,828 against the unchanged 102,896 ratchet. Runtime
 99,231 and all slices remain unchanged. Independent R2 admission covers only
 this necessary increment, not transferable headroom or changes to counting,
 exclusions, checks, support/firmware semantics or release gates.
+
+## 2026-09-08 Support Matrix layout accounting
+
+`UI-114-SUPPORT-MATRIX-LAYOUT-25` removes 18 full-production nonblank lines
+through its approved existing-template/style redesign. Independent R2 admission
+`UI-114-SUPPORT-MATRIX-SIZE-25` lowers the exact full ceiling from 138,724 to
+138,706 and allowance from 35,828 to 35,810 against the unchanged 102,896
+ratchet. Runtime remains 99,231; slices remain 20,757 / 42,708 / 5,039 / 30,727.
+The exact baseline test follows the new measurement; equality, counting,
+exclusions, duplicate/partial checks and firmware/release gates are unchanged.
+No headroom is retained or transferred from this reduction.
