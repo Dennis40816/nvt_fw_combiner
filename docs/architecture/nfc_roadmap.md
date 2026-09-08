@@ -502,9 +502,11 @@ firmware contract or a completed implementation. The IC/layout work has not
 yet received a release-version allocation; its arrival during `1.1.4` does not
 silently add a firmware release gate to that UI milestone. The existing queue
 above retains its contents. Owner sequencing amendment on 2026-09-08:
-record and prepare the preview-first custom-options work, complete the agreed
-IC/Desay intake and verification, then return to the next bounded Memory Layout
-item (residual generic Reserved-source wording assessment). Do not reopen the
+record and prepare the preview-first custom-options work. The owner's later
+2026-09-08 amendment defers NT51928 confirmation and resumes the next bounded
+Memory Layout item (residual generic Reserved-source wording assessment)
+without waiting for the unresolved IC/Desay firmware decisions. Keep those
+decisions pending; this does not approve new firmware definitions. Do not reopen the
 completed Technical details disclosure. Option-density assessment extends the
 inventory/shared visual items rather than creating a blanket redesign backlog.
 The [custom-options handoff](../ui/v1.1.x-custom-options-layout-handoff.md)
@@ -638,6 +640,39 @@ There is no pass/failure assertion or current screenshot from this attempt.
 The eight intended cases cover isolated 430/360 px CtrlRAM rails in EN/zh-TW
 and Light/Dark, not whole-window or native DPI acceptance. Capture-host progress
 must be diagnosed before reusing this seam; the cause is not established.
+
+##### Resumed Reserved-source assessment — 2026-09-08
+
+Read-only follow-up on `c1f792d9`, after the owner deferred NT51928 confirmation.
+The [current AB Dummy baseline](../ui/references/v1.1.4-custom-options-baseline.png)
+shows `Source: Reserved` and `Output range uses bytes from Reserved.` This is
+not sufficient evidence that the canonical region is Reserved or that final
+bytes are `0xFF`.
+
+`UiCompositionRunner.Common.cs` (`MemorySource`) also maps a source-less
+`MemoryWorkflowDisposition.Blank` to the Reserved label. `MemoryCompactDetail`
+then sends non-Reserved roles without a recognized source to the generic
+source sentence. `MemoryCoverageSegmentViewModel` uses that source label as
+the title for non-customer-information roles. Therefore a source-less region
+can look like a Reserved region even though its typed content role differs.
+`MemoryLayoutProjector.InitialDisposition` deliberately distinguishes these
+states; the wording must not collapse them into a firmware fact.
+
+Proposed next UI unit, pending owner review of the display convention:
+
+| Typed situation | Proposed concise display | Guardrail |
+| --- | --- | --- |
+| Source-backed writes | `Source: DP BIN` / `TP BIN` / the existing typed source | Retain actual source and current write-state label; region purpose must not mask the source. |
+| Reference bytes retained | `Source: Base flash` | Keep the reference-kept precedence; do not call retained bytes initialization fill. |
+| Explicit blank initialization and no planned writes to this range | `Initialization: 0xFF` (use the actual typed byte) | Explain `No writes planned for this range.` This describes the current plan, not a verified output or Build readiness. |
+| Source not assigned, or initialization not established | `Source: Not assigned` | Do not invent a fill byte or classify the region as Reserved from the absence of an input. |
+
+Keep the accepted card width, leading color marker, range/size rows and compact
+Technical details disclosure. A genuine Reserved purpose remains a purpose,
+not an input file. Do not alter canonical ranges, input requirements, planner
+operations, Dummy DP semantics or firmware bytes. Implementation needs focused
+source/blank/reference/operation coverage and a same-state production render;
+this assessment has not changed production or rerun product tests.
 
 ##### Customer-information source presentation — 2026-09-08
 
