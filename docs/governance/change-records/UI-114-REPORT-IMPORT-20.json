@@ -5,7 +5,7 @@
   "integrationBase": "947d10ecc7ab2da40ceb44a1df05776705e18135",
   "risk": "R2",
   "kind": "ui",
-  "state": "design-active",
+  "state": "final-complete",
   "mutablePaths": [
     "src/NvtFwCombiner.Application/Composition/CompositionRunReportJson.cs",
     "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReportReviewViewModel.Factory.cs",
@@ -32,8 +32,12 @@
     "outcome": "approved",
     "evidence": "Independent R2 design review found no existing upstream reader and admitted the bounded extension on CompositionRunReportJson. Verified seven identity/time fields and Issues in existing legacy fixtures, with ProfileVersion/CompletedAtUtc and optional extensions absent. Requires actual serialized control, valid legacy outcomes, malformed/incomplete objects, direct/async, old cached-success history, export/reopen/relocalization and existing replay/cancellation tests. Unknown is not firmware failure or native accessibility certification; no Infrastructure I/O or full serializer/schema framework needed."
   },
-  "implementationHead": null,
-  "reviewedHead": null,
-  "pathStateDigest": null,
-  "finalReview": { "reviewer": null, "outcome": "pending", "evidence": "" }
+  "implementationHead": "e9b19cefaf4c9451f6bde67a8f9f193ec6ba94c8",
+  "reviewedHead": "e9b19cefaf4c9451f6bde67a8f9f193ec6ba94c8",
+  "pathStateDigest": "8adf17e61c5aabd4a553b950e93b5ffa9858d0c0ff2ee383edea820324270eb3",
+  "finalReview": {
+    "reviewer": "ui_presentation_review",
+    "outcome": "findings-incorporated",
+    "evidence": "Independent fixed-head scoped R2/Polytail PASS at e9b19cefaf4c9451f6bde67a8f9f193ec6ba94c8:18-file unit, no unresolved P0-P3. Two pre-freeze P2 findings corrected: Unknown outcome display excludes diagnostic warning/error styling without erasing recorded issues; conflicting severity aliases fail closed in the existing Application owner. Reviewer read final Report205/205 and Application24/24 TRX with zero skips/failures, plus complete ZH Light warning and EN Dark error renders. Primary verified accounting19/19 and all four1440x900 renders; reviewer independently measured/admitted exact full138704/runtime99231/Application42708, allowances35808/29175/12018, other slices unchanged20757/5039/30727. Raw read-only/exactness, partial evidence, stale cached success normalization, legacy/optional fields, cancellation and replay retained. No new semantic owner, dependency change, transferable source headroom or firmware mutation. Source tests and original failure evidence are retained under v114-report-import-outcome. Residual gates: final repository validator, full integration/release verifier and native DPI/High Contrast/screen-reader acceptance; no publication or Golden claim."
+  }
 }
