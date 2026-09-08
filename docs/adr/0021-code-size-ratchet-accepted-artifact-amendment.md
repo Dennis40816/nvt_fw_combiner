@@ -478,3 +478,16 @@ report-tab styles now apply to headers without overriding body text roles. There
 no new semantic owner or transferable budget. Measuring algorithms, exclusions,
 duplicate checks, partial-type limits, report/firmware behavior and verification
 or release gates remain unchanged.
+
+## 2026-09-08 Report recorded-cause presentation accounting
+
+For `UI-114-REPORT-CAUSE-18`, the canonical candidate measures exactly 138,577
+full-production nonblank lines, five above the previous 138,572 ceiling.
+Independent R2 review admits this necessary increment for the existing
+Report cause projector: string-only legacy explanation input and neutral
+classification fallbacks, retaining typed field-level explanation precedence.
+The full allowance is exactly 35,681 against the unchanged 102,896 ratchet;
+there is no transferable headroom. Runtime stays 99,170, with slices
+20,757 / 42,647 / 5,039 / 30,727 and all their allowances unchanged. Measurement
+algorithms, exclusions, duplicate checks, synthetic tests and release/Golden
+gates are unchanged. This is not a firmware or CRC-calculation change.

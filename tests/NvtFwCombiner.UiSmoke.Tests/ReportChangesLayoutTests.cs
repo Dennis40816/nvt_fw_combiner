@@ -135,6 +135,20 @@ public sealed class ReportChangesLayoutTests
             SaveFrame(
                 window,
                 $"report-changes-1440x900-{(dark ? "dark" : "light")}-{(chinese ? "zh" : "en")}.png");
+            if (!dark && !chinese)
+            {
+                shell.Reports.LoadReportJson(CreateReplayableCrcReport(), "report-crc-cause.json");
+                OpenChanges(window, shell);
+                Render();
+                shell.Reports.LoadedReport.HexDiff.ShowOriginalRows = true;
+                Render();
+                Assert.True(shell.Reports.LoadedReport.HexDiff.IsAvailable,
+                    shell.Reports.LoadedReport.HexDiff.AvailabilityDetail);
+                Assert.True(shell.Reports.LoadedReport.HexDiff.ViewportSnapshot.ShowComparisonRows);
+                Assert.Contains(window.GetVisualDescendants().OfType<TextBlock>(),
+                    text => text.IsEffectivelyVisible && text.Text == "Expected: postbuild recalculated DLM CRC 0.");
+                SaveFrame(window, "report-crc-cause-1440x900-light-en.png");
+            }
         }
         finally
         {
@@ -219,6 +233,7 @@ public sealed class ReportChangesLayoutTests
             sectionCount: 1,
             reviewEvery: 7))!;
         JsonNode difference = root["OutputDifferences"]!.AsArray()[0]!;
+        difference["Explanation"] = null;
         byte[] before = new byte[48];
         byte[] after = new byte[48];
         after[0] = 0x11;
@@ -235,6 +250,28 @@ public sealed class ReportChangesLayoutTests
                 ["EndExclusive"] = before.Length,
                 ["Length"] = before.Length,
             },
+            ["BeforeBytes"] = Convert.ToBase64String(before),
+            ["AfterBytes"] = Convert.ToBase64String(after),
+            ["BeforeSha256"] = Hash(before),
+            ["AfterSha256"] = Hash(after),
+        };
+        return root.ToJsonString();
+    }
+
+    private static string CreateReplayableCrcReport()
+    {
+        JsonNode root = JsonNode.Parse(ReportJsonSamples.ReplaceWithAcceptedOutputDifferences())!;
+        root["Output"]!["Size"] = 256;
+        JsonNode difference = root["OutputDifferences"]![0]!;
+        byte[] before = new byte[64];
+        byte[] after = new byte[64];
+        new byte[] { 0xAA, 0xBB, 0xCC, 0xDD }.CopyTo(before, 28);
+        new byte[] { 0x11, 0x22, 0x33, 0x44 }.CopyTo(after, 28);
+        difference["BeforeSha256"] = Hash(before.AsSpan(28, 4));
+        difference["AfterSha256"] = Hash(after.AsSpan(28, 4));
+        difference["Replay"] = new JsonObject
+        {
+            ["Range"] = new JsonObject { ["Start"] = 0, ["EndExclusive"] = 64, ["Length"] = 64 },
             ["BeforeBytes"] = Convert.ToBase64String(before),
             ["AfterBytes"] = Convert.ToBase64String(after),
             ["BeforeSha256"] = Hash(before),
