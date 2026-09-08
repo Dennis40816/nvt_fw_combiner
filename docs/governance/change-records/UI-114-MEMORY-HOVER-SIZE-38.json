@@ -5,7 +5,7 @@
   "integrationBase": "2a44733c0d3e7368db46daa0e42aad3e0d89e8ae",
   "risk": "R2",
   "kind": "governance",
-  "state": "design-active",
+  "state": "final-complete",
   "mutablePaths": ["scripts/code_size_policy.py", "docs/adr/0021-code-size-ratchet-accepted-artifact-amendment.md"],
   "implementationOwner": "primary-agent",
   "searchEvidence": ["Existing measure_code_size/DEFAULT_LIMITS and ADR0021 own exact production accounting. Independent Terra measured hover37 production139185 (+456), runtime99231 and slices20757/42708/5039/30727 unchanged."],
@@ -13,8 +13,8 @@
   "terminalContract": "Set exact full/baseline139185 and allowance36289 only. Preserve ratchet102896, runtime99231, slices20757/42708/5039/30727, counting/equality/exclusions and all gates. No headroom, firmware or release changes. Re-measure and obtain updated admission if production changes before freeze; run accounting tests and fixed-head review.",
   "disposition": "extend-owner",
   "designReview": {"reviewer": "memory_hover_inventory", "outcome": "approved", "evidence": "Independent GPT-5.6 Terra/high R2 admission before policy edits: production139185 (+456), exact allowance36289 against unchanged102896; runtime99231 and all four slices unchanged. Only exact bookkeeping approved, no headroom or gate/counting changes."},
-  "implementationHead": null,
-  "reviewedHead": null,
-  "pathStateDigest": null,
-  "finalReview": {"reviewer": null, "outcome": "pending", "evidence": ""}
+  "implementationHead": "47009e8acdb937697105c40e4bfb52809ea2c86a",
+  "reviewedHead": "47009e8acdb937697105c40e4bfb52809ea2c86a",
+  "pathStateDigest": "cda83c8795501b85beed0327ae918663526662e054a521badf40c3bce5905ca1",
+  "finalReview": {"reviewer": "memory_hover_inventory", "outcome": "approved", "evidence": "Independent GPT-5.6 Terra/high fixed-head scoped Polytail PASS 47009e8a; no P0-P3. Typed adjacency and disconnected-source interactions preserve Application authority and exact weights. Records cover every governed path. Reviewed TRX73/73 pass zero skipped (23s); primary accounting19/19 PASS (28.131s) reused. Primary inspected actual Merge/Replace EN Light and zh Dark full-window captures; independent reviewer also inspected both two-tier production-control captures against approved concept. Fresh independent full139185/runtime99231/slices20757/42708/5039/30727, exact allowance36289 verified. No firmware/Golden/release/full-suite claim. Native OS deactivation, physical DPI/multi-screen and full screen-reader certification remain documented nonblocking limitations."}
 }
