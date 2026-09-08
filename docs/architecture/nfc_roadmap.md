@@ -495,6 +495,40 @@ item rather than force a decision.
 | 6 | First-entry IC selection (16) | Resolve accepted-context lifetime, invalidation and Cancel/Back before cross-page behavior changes. |
 | 7 | Session diagnostics (15) | Retain privacy, lifecycle and separation from immutable run reports. |
 
+#### New owner intake: IC/layout updates and option density — 2026-09-08
+
+This intake records requested work and unresolved dependencies, not a new
+firmware contract or a completed implementation. The IC/layout work has not
+yet received a release-version allocation; its arrival during `1.1.4` does not
+silently add a firmware release gate to that UI milestone. The existing queue
+above remains in place. Option-density assessment extends its inventory/shared
+visual items rather than creating a second redesign backlog.
+
+| Item | Confirmed request / scope | Next action and completion boundary |
+| --- | --- | --- |
+| NT51928BT family and staged capabilities | Owner states NT51928BT belongs to the NT51950 family and requests most applicable functions to be implemented but not opened for use. This is distinct from existing NT51928; membership alone does not prove identical geometry or perfect-family parity. | Retrieve the owner-named `51928BT` HackMD note through the requested API, inventory supported semantics per workflow, and agree the exact capability subset from that evidence. Implement only confirmed definitions through existing owners; verify ordinary UI and execution admission remain closed, not merely hidden by a selector. No support/certification promotion. |
+| Desay NT51950/NT51951 unified layout | Owner reports a major Desay-specific layout unification and all TP backup starts becoming `0x4A000`; the Excel specification is still pending. | Compare old/new regions, address spaces, capacities, topology, preservation and processor requirements. Resolve whether this is a customer-specific variant or replacement contract before changing existing routes; do not apply it to other customers implicitly. |
+| NT51951 AB and Dummy DP impact | Current [map-based inventory](../ui/v1.1.x-ab-dummy-dp-handoff.md#read-only-implementation-inventory-2026-09-06) places TP B at `[0x8A000,0xB7000)`, while NT51950 starts it at `0x4A000`. Whether the new term TP backup means this AB TP B placement is not yet verified. | If confirmed, audit TP B placement/length, relocation, Combiner staging, header/CRC imports and allowed writes, output capacity, and Dummy TP/non-TP ranges together. Add affected regression and independent complete-output evidence; retain Normal Golden and firmware-owner gates. Do not assume the new end from the old length. |
+| Per-page custom-option density | Owner requests layout advice because individual pages have accumulated custom controls. Assessment is authorized; a new visual design is not yet approved. | Inventory the actual current Standard/AB/CtrlRAM pages and group controls by task and consequence. Preview one representative AB page before implementation; retain existing button styles, widths, keyboard access and confirmation behavior. |
+
+API retrieval is currently blocked: no callable HackMD connector or token in
+the checked `HACKMD_API_TOKEN`, `HACKMD_TOKEN`, or `HACKMD_ACCESS_TOKEN`
+environment variables was found. Request the configured credential location,
+not its value in chat. The note has not been read; the Excel has not been
+received. No profile, production range or availability was changed by this
+intake. Private note URLs, credentials and firmware payloads stay out of this
+roadmap.
+
+Proposed UI direction, pending owner acceptance: retain IC/mode/topology context
+and required inputs as the main surface; place related routine options in a
+compact row near their input; use one shared-style collapsible section for
+infrequent options with a visible active-setting summary. Output-changing
+choices such as Dummy DP must remain conspicuous when active, retain their
+confirmation, and never disappear with a collapsed section. Keep naming and
+delivery in the existing Build settings surface. Show only applicable controls
+from typed capability facts; do not introduce per-customer pages, inferred
+customer detection, new persistence or a generic dynamic-form framework.
+
 Dummy DP's owner-accepted map-based evidence and write-range audit are recorded
 in the [Dummy DP handoff](../ui/v1.1.x-ab-dummy-dp-handoff.md); the NT51950/NT51951
 scope is no longer waiting for its initial implementation. Existing NT51951
