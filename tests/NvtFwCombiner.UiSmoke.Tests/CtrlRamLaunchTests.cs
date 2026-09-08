@@ -107,6 +107,8 @@ public sealed class CtrlRamLaunchTests
             Assert.Equal("single", shell.WorkflowSession.SelectedNumber);
             Assert.Equal(ExperienceIds.CtrlRamReplace, shell.Replace.SelectedReplaceMode);
             Assert.Equal(BasePath, shell.Replace.ReplaceBaseSlot.FilePath);
+            Assert.Equal("D86-00", Assert.Single(shell.Replace.ReplaceBaseSlot.FirmwareFacts,
+                fact => fact.Label == "DP Version").Value);
             FirmwareSlotViewModel nf = Assert.Single(shell.Replace.ReplaceSlots, s => s.SlotId == "replace-ctrlram-nf");
             Assert.Equal(NfPath, nf.FilePath);
             Assert.True(nf.IsSemanticStateVerified);

@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 2,
+  "taskId": "APP-114-CTRLRAM-DP-METADATA-46",
+  "capability": "Keep read-only Base DPCMI metadata independent of CtrlRAM replacement compilation",
+  "integrationBase": "8b5afa748527078bbbed926b49fad4b0ad50b41a",
+  "risk": "R2",
+  "kind": "behavior",
+  "state": "design-active",
+  "mutablePaths": ["src/NvtFwCombiner.Application/Composition/FirmwareMetadataPlanAuthority.cs"],
+  "implementationOwner": "primary-agent",
+  "searchEvidence": ["CodeGraph GetDpFirmwareSlotFacts plus targeted BuiltInFirmwareInspection batch/metadata, FirmwareMetadataPlanAuthorityResolver, CtrlRamAuthoringExperience.Inspection and existing metadata-authority tests. Manual public SetSlotFileAsync on NT51950 certified Base gives D86-00, then adding NF yields Unknown with identical 262144-byte FileStamp/SHA256. The compiled exact metadata plan is non-null but has zero entries and report projections. Existing !hasReportProjection branch treats absent DPCMI definition as a final DPCMI result; Base-only discovery already uses the correct capacity-bound metadata-only catalog owner. Reproduction and red evidence retained in v114-ctrlram-dp-diagnosis and v114-ctrlram-dp46."],
+  "semanticOwner": "Application.FirmwareMetadataPlanAuthorityResolver; canonical profile/Domain DPCMI definitions and Infrastructure decoder remain unchanged.",
+  "terminalContract": "Only CtrlRAM ReferenceBase changes: an exact plan declaring DPCMI remains terminal, including its decoded failure or prerequisites; absent DPCMI definitions (null, empty or report-only plans) use the existing exact IC/capacity-bound ResolveUniqueMetadataPlan query for read-only Base display. Metadata-only absence/ambiguity stays Terminal(null, issue), with no alternate physical interpretation. CtrlRAM replacement inputs remain NotApplicable; Standard Merge/DP Replace exact plans and AB paths are unchanged. No filename-derived values, cached stale facts, physical locator/field/map/Profile changes, report classification mutation, output naming, execution/CRC/write range, support, Golden bytes or release changes. Real Base facts and hash stay stable through NF/Normal/VN selections; targeted authority guards protect exact-DPCMI and failure behavior. Local unit boundary uses narrow Application and UI tests, scoped architecture/Polytail review; full integration/release gates remain separate.",
+  "disposition": "extend-owner",
+  "designReview": {"reviewer": "memory_hover_inventory", "outcome": "approved", "evidence": "2026-09-09 independent GPT-5.6 Terra/high R2 design approval: extend existing Application owner only; remove empty/report-only-plan suppression, retain explicit DPCMI terminal result and existing capacity-bound metadata-only port. ADR0012/0040 and resolver's existing read-only CtrlRAM contract support this correction; no new ADR or firmware locator authority is required. Replace the stale empty-plan test assumption, add exact-DPCMI zero-query and typed-failure guards, preserve actual NT51950 Base-only/NF regression. Owner explicitly authorized this correction before further Memory Layout analysis."},
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": {"reviewer": null, "outcome": "pending", "evidence": ""}
+}

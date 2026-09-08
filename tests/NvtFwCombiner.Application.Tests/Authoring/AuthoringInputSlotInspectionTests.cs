@@ -287,7 +287,8 @@ public sealed partial class AuthoringInputSlotInspectionTests
         CompiledValidationRequirement? validationRequirement = null,
         bool observeAbVersion = false,
         bool includeExternalProcessor = false,
-        bool tpMaximum = false)
+        bool tpMaximum = false,
+        MetadataPlanDefinition? metadataPlan = null)
     {
         bool replace = workflowId is ExperienceIds.DpReplace or ExperienceIds.CtrlRamReplace;
         InputOversizePolicy sourcePolicy = workflowId switch
@@ -397,7 +398,7 @@ public sealed partial class AuthoringInputSlotInspectionTests
             Decision(identity, CapabilityAuthoringAvailability.Available),
             Decision(identity, CapabilityPublicationStatus.TestOnly),
             Decision(identity, CapabilityEvidenceStatus.SyntheticOracle),
-            MetadataPlanDefinition.Empty.Resolve(token),
+            (metadataPlan ?? MetadataPlanDefinition.Empty).Resolve(token),
             token);
     }
 
