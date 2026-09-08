@@ -5,7 +5,7 @@
   "integrationBase": "acb42b3dd4bee9bfa384a43d7d57f1d3356a7bbf",
   "risk": "R2",
   "kind": "governance",
-  "state": "design-active",
+  "state": "final-complete",
   "mutablePaths": [
     "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReportReviewViewModel.OutputDifferences.cs",
     "scripts/code_size_policy.py",
@@ -25,12 +25,12 @@
     "outcome": "approved",
     "evidence": "Independent read-only R2 design review at acb42b3d approved the bounded existing-helper correction and the amended Semantic.Explanation > top-level Explanation > classification fallback order. No P0-P3 findings. Actual cause strings remain verbatim, top-level JSON is string-only, no UI byte/offset inference. After canonical measurement and inspection of the exact production diff, the reviewer admitted the necessary +5 nonblank lines: full production138577 and allowance35681, unchanged runtime99170 and all slices/algorithms, no transferable headroom."
   },
-  "implementationHead": null,
-  "reviewedHead": null,
-  "pathStateDigest": null,
+  "implementationHead": "997fac98abd84b98c9ac39facc01b1a46f6761f1",
+  "reviewedHead": "997fac98abd84b98c9ac39facc01b1a46f6761f1",
+  "pathStateDigest": "8f88de1f4e6e48d7b1fba1c7eaa0b98fd570d4f732b3741fd0f580de6a1117df",
   "finalReview": {
-    "reviewer": null,
-    "outcome": "pending",
-    "evidence": ""
+    "reviewer": "ui_presentation_review",
+    "outcome": "approved",
+    "evidence": "Independent fixed-head R2 correctness/Polytail review of acb42b3d..997fac98 passed across all eight changed files with no P0-P3 findings. Reviewer directly read the final TRX (26/26, zero skipped) and full CRC render, confirmed field-level cause and Original rows, original card geometry, verbatim semantic/legacy precedence, string-only legacy JSON, no byte/address inference and unchanged acceptance/Result/raw/replay/firmware contracts. The 256B synthetic report fixture retains only64B hash-checked context at the existing1C..20 field; no replay guard was weakened. Primary observed19/19 code-size cases in28.762s and canonical production138577/allowance35681, runtime99170 with unchanged slices/algorithms. Scoped primary review and git diff --check pass. This local item does not claim full-suite, native DPI/High Contrast, release/Golden certification or completion of the separate Settings Version item."
   }
 }
