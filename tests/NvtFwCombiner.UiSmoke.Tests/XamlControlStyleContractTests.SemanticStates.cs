@@ -351,14 +351,10 @@ public sealed partial class XamlControlStyleContractTests
         Assert.Contains("AutomationProperties.Name=\"{Binding AccessibleDetail}\"", replaceList, StringComparison.Ordinal);
         Assert.Contains("AutomationProperties.HelpText=\"{Binding AccessibleDetail}\"", replaceList, StringComparison.Ordinal);
         Assert.DoesNotContain("<StackPanel Grid.Column=\"1\"", mergeList, StringComparison.Ordinal);
-        Assert.Contains("Background=\"{DynamicResource NfcMemoryTrackBrush}\"", replacePanel, StringComparison.Ordinal);
+        Assert.Contains("<views:MemoryCoverageBar ItemsSource=\"{Binding ReplaceCoverageSegments}\"", replacePanel, StringComparison.Ordinal);
         Assert.DoesNotContain("<Viewbox", replacePanel, StringComparison.Ordinal);
-        Assert.Contains("<views:ProportionalStackPanel />", replacePanel, StringComparison.Ordinal);
-        Assert.Contains("ProportionalContentPresenterTheme", replacePanel, StringComparison.Ordinal);
-        Assert.Contains("Background=\"{DynamicResource NfcMemoryTrackBrush}\"", mergePanel, StringComparison.Ordinal);
+        Assert.Contains("<views:MemoryCoverageBar ItemsSource=\"{Binding MergeCoverageSegments}\"", mergePanel, StringComparison.Ordinal);
         Assert.DoesNotContain("<Viewbox", mergePanel, StringComparison.Ordinal);
-        Assert.Contains("<views:ProportionalStackPanel />", mergePanel, StringComparison.Ordinal);
-        Assert.Contains("ProportionalContentPresenterTheme", mergePanel, StringComparison.Ordinal);
         Assert.Contains("Classes=\"panelSurface memoryInfoPanel\"", replacePanel, StringComparison.Ordinal);
         Assert.Contains("Classes=\"panelSurface memoryInfoPanel\"", mergePanel, StringComparison.Ordinal);
         Assert.Contains("Classes=\"mutedText memoryInfoDescription\"", replacePanel, StringComparison.Ordinal);

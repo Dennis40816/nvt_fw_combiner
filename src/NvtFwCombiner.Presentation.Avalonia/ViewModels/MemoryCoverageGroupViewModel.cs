@@ -97,17 +97,25 @@ internal sealed class MemoryCoverageLogicalItemViewModel
 
         MemoryCoverageSegmentViewModel primary =
             projectedSegments.FirstOrDefault(static range => range.IsSelectedForWrite) ?? projectedSegments[0];
-        Interaction = new MemoryCoverageInteractionState();
-        foreach (MemoryCoverageSegmentViewModel segment in projectedSegments)
+        MemoryCoverageSegmentViewModel[] ordered = [.. projectedSegments.OrderBy(static segment => segment.RangeStart ?? long.MaxValue)];
+        MemoryCoverageSegmentViewModel? previous = null;
+        int physicalRuns = 0;
+        foreach (MemoryCoverageSegmentViewModel segment in ordered)
         {
-            segment.Interaction = Interaction;
+            if (previous is not null && segment.ImmediatelyFollows(previous))
+            {
+                segment.Interaction = previous.Interaction;
+            }
+            else
+            {
+                segment.Interaction = new MemoryCoverageInteractionState();
+                physicalRuns++;
+            }
+            previous = segment;
         }
+        Interaction = physicalRuns == 1 ? ordered[0].Interaction : new MemoryCoverageInteractionState();
         DisplayId = displayId;
-        Ranges = ProjectRanges(projectedSegments, text);
-        foreach (MemoryCoverageSegmentViewModel range in Ranges)
-        {
-            range.Interaction = Interaction;
-        }
+        Ranges = ProjectRanges(ordered, text);
         Segments = Array.AsReadOnly(projectedSegments);
         SourceLabel = primary.LogicalSourceLabel;
         long? totalLength = Ranges.All(static range => range.RangeStart.HasValue)
@@ -125,7 +133,7 @@ internal sealed class MemoryCoverageLogicalItemViewModel
 
     public string SourceLabel { get; }
 
-    /// <summary>Correlated pointer/focus state shared with every rendered segment.</summary>
+    /// <summary>One continuous run shares this state; a multi-run heading never activates its disconnected segments.</summary>
     public MemoryCoverageInteractionState Interaction { get; }
 
     public IReadOnlyList<MemoryCoverageSegmentViewModel> Ranges { get; }
@@ -149,20 +157,15 @@ internal sealed class MemoryCoverageLogicalItemViewModel
     public string AccessibleDetail { get; }
 
     private static IReadOnlyList<MemoryCoverageSegmentViewModel> ProjectRanges(
-        IEnumerable<MemoryCoverageSegmentViewModel> segments,
+        IReadOnlyList<MemoryCoverageSegmentViewModel> ordered,
         ShellTextResources text)
     {
-        MemoryCoverageSegmentViewModel[] ordered =
-        [
-            .. segments.OrderBy(static segment => segment.RangeStart ?? long.MaxValue),
-        ];
         var bundles = new List<List<MemoryCoverageSegmentViewModel>>();
         foreach (MemoryCoverageSegmentViewModel segment in ordered)
         {
             List<MemoryCoverageSegmentViewModel>? current = bundles.LastOrDefault();
             if (current is null ||
-                current[^1].RangeEndExclusive is not { } currentEnd ||
-                segment.RangeStart != currentEnd ||
+                !segment.ImmediatelyFollows(current[^1]) ||
                 current[^1].RegionGroup != segment.RegionGroup ||
                 current[^1].ContentRole != segment.ContentRole ||
                 current[^1].CtrlRamRegionRole != segment.CtrlRamRegionRole ||
@@ -230,6 +233,10 @@ internal sealed class MemoryCoverageLogicalItemViewModel
             contentRole: primary.ContentRole,
             ctrlRamRegionRole: primary.CtrlRamRegionRole,
             sourceFieldLabel: primary.SourceFieldLabel,
-            displayTitle: primary.DisplayTitle);
+            displayTitle: primary.DisplayTitle,
+            addressSpaceId: primary.AddressSpaceId)
+        {
+            Interaction = primary.Interaction,
+        };
     }
 }

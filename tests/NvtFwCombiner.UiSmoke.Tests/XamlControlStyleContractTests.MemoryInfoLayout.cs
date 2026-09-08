@@ -290,7 +290,8 @@ public sealed partial class XamlControlStyleContractTests
             rangeStart: 0x23700,
             rangeEndExclusive: 0x25610,
             addressRangeLabel: "0x23700-0x2560F",
-            lengthLabel: "len 0x1F10");
+            lengthLabel: "len 0x1F10",
+            addressSpaceId: "output");
         var writtenHead = new MemoryCoverageSegmentViewModel(
             "0x22C00-0x236FF",
             "NF CtrlRAM",
@@ -303,7 +304,8 @@ public sealed partial class XamlControlStyleContractTests
             rangeStart: 0x22C00,
             rangeEndExclusive: 0x23700,
             addressRangeLabel: "0x22C00-0x236FF",
-            lengthLabel: "len 0xB00");
+            lengthLabel: "len 0xB00",
+            addressSpaceId: "output");
         var logicalItem = new MemoryCoverageLogicalItemViewModel(
             "slot:replace-ctrlram-nf",
             [writtenHead, keptTail],

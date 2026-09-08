@@ -61,7 +61,8 @@ internal sealed class MemoryCoverageSegmentViewModel
         CtrlRamRegionRole ctrlRamRegionRole = CtrlRamRegionRole.Other,
         IReadOnlyList<MemoryRegionFact>? processingFacts = null,
         string? sourceFieldLabel = null,
-        string? displayTitle = null)
+        string? displayTitle = null,
+        string? addressSpaceId = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(rangeLabel);
         ArgumentException.ThrowIfNullOrWhiteSpace(sourceLabel);
@@ -138,6 +139,7 @@ internal sealed class MemoryCoverageSegmentViewModel
         RegionGroupLabel = text.GetReplaceRegionGroupTitle(regionGroup);
         RangeStart = rangeStart;
         RangeEndExclusive = rangeEndExclusive;
+        AddressSpaceId = addressSpaceId;
         PreservationDetails =
         [
             .. (preservationDetails ?? []).Select(detail =>
@@ -250,6 +252,19 @@ internal sealed class MemoryCoverageSegmentViewModel
     public string RegionGroupLabel { get; }
 
     public long? RangeStart { get; }
+
+    /// <summary>Canonical target address space, never inferred from a display label.</summary>
+    public string? AddressSpaceId { get; }
+
+    /// <summary>Physical display continuity requires known ranges in the same declared address space.</summary>
+    internal bool ImmediatelyFollows(MemoryCoverageSegmentViewModel previous)
+    {
+        return !string.IsNullOrWhiteSpace(AddressSpaceId) &&
+            StringComparer.Ordinal.Equals(AddressSpaceId, previous.AddressSpaceId) &&
+            RangeStart is >= 0 && previous.RangeStart is >= 0 &&
+            RangeEndExclusive > RangeStart && previous.RangeEndExclusive > previous.RangeStart &&
+            previous.RangeEndExclusive == RangeStart;
+    }
 
     public long? RangeEndExclusive { get; }
 

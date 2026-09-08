@@ -1,0 +1,429 @@
+using System.Collections.ObjectModel;
+using Avalonia;
+using Avalonia.Animation;
+using Avalonia.Controls;
+using Avalonia.Controls.Primitives;
+using Avalonia.Headless;
+using Avalonia.Headless.XUnit;
+using Avalonia.Input;
+using Avalonia.Markup.Xaml.Styling;
+using Avalonia.Styling;
+using Avalonia.Threading;
+using Avalonia.VisualTree;
+using NvtFwCombiner.Presentation.Avalonia.ViewModels;
+using NvtFwCombiner.Presentation.Avalonia.Views;
+
+namespace NvtFwCombiner.UiSmoke.Tests;
+
+/// <summary>Exercises the actual grouped-memory overlay hierarchy and its terminal-slice cards.</summary>
+public sealed class MemoryCoveragePopupTests
+{
+    /// <summary>Grouped focus exposes all local slices without a preselected card, and leaf Escape unwinds one overlay at a time.</summary>
+    [AvaloniaTheory]
+    [InlineData(240, false)]
+    [InlineData(388, true)]
+    public void GroupedFocusKeepsLocalStripStableAndEscapeUnwindsToTheMainGroup(int width, bool dark)
+    {
+        MemoryCoverageSegmentViewModel[] slices = MemoryCoverageBarProjectionTests.Example();
+        Window window = CreateWindow(width, dark, slices, out MemoryCoverageBar bar);
+        try
+        {
+            Control group = MainTarget(bar, 1);
+
+            Assert.True(group.Focus());
+            Render();
+
+            Border local = Assert.IsType<Border>(FindNamed<Border>(window, "MemoryLocalView"));
+            Assert.Null(FindNamed<Border>(window, "MemorySliceCard"));
+            ProportionalStackPanel strip = LocalStrip(local);
+            Assert.Equal(8, strip.Children.Count);
+            Rect stripBounds = strip.Bounds;
+
+            MemoryCoverageSegmentViewModel selected = slices[6];
+            Control localLeaf = FocusableControl(strip.Children[5]);
+            Assert.Same(selected, localLeaf.DataContext);
+            Assert.True(localLeaf.Focus());
+            Render();
+
+            Border card = Assert.IsType<Border>(FindNamed<Border>(window, "MemorySliceCard"));
+            Assert.Same(selected, card.DataContext);
+            Assert.Equal(stripBounds, strip.Bounds);
+
+            Expander technicalDetails = Assert.Single(card.GetVisualDescendants().OfType<Expander>());
+            ToggleButton technicalToggle = Assert.Single(
+                technicalDetails.GetVisualDescendants().OfType<ToggleButton>(),
+                button => button.Name == "ExpanderHeader");
+            Assert.True(technicalToggle.Focus());
+            window.KeyPress(Key.Space, RawInputModifiers.None, PhysicalKey.Space, " ");
+            window.KeyRelease(Key.Space, RawInputModifiers.None, PhysicalKey.Space, " ");
+            Render();
+            Assert.True(technicalDetails.IsExpanded);
+            Assert.Equal(stripBounds, strip.Bounds);
+
+            PressEscape(window);
+            Render();
+            Assert.Null(FindNamed<Border>(window, "MemorySliceCard"));
+            Assert.NotNull(FindNamed<Border>(window, "MemoryLocalView"));
+            Assert.Same(localLeaf, window.FocusManager?.GetFocusedElement());
+
+            PressEscape(window);
+            Render();
+            Assert.Null(FindNamed<Border>(window, "MemorySliceCard"));
+            Assert.Null(FindNamed<Border>(window, "MemoryLocalView"));
+            Assert.Same(group, window.FocusManager?.GetFocusedElement());
+
+            Assert.True(MainTarget(bar, 0).Focus());
+            Render();
+            Border directCard = Assert.IsType<Border>(FindNamed<Border>(window, "MemorySliceCard"));
+            Assert.Same(slices[0], directCard.DataContext);
+            Assert.Null(FindNamed<Border>(window, "MemoryLocalView"));
+        }
+        finally
+        {
+            window.Close();
+        }
+    }
+
+    /// <summary>Collection rebuild, disable and window resize immediately dismiss both tiers instead of leaving stale overlay state.</summary>
+    [AvaloniaFact]
+    public void CollectionResetDisableAndResizeClearOpenOverlays()
+    {
+        var slices = new ObservableCollection<MemoryCoverageSegmentViewModel>(MemoryCoverageBarProjectionTests.Example());
+        Window window = CreateWindow(388, dark: false, slices, out MemoryCoverageBar bar);
+        try
+        {
+            OpenGroupedCard(window, bar);
+            slices.Clear();
+            Render();
+            AssertNoOverlay(window);
+
+            foreach (MemoryCoverageSegmentViewModel slice in MemoryCoverageBarProjectionTests.Example())
+            {
+                slices.Add(slice);
+            }
+            Render();
+            OpenGroupedCard(window, bar);
+            bar.IsEnabled = false;
+            Render();
+            AssertNoOverlay(window);
+
+            bar.IsEnabled = true;
+            Render();
+            OpenGroupedCard(window, bar);
+            window.Width += 8;
+            Render();
+            AssertNoOverlay(window);
+        }
+        finally
+        {
+            window.Close();
+        }
+    }
+
+    /// <summary>Normal cards use the approved reveal transition while reduced motion is immediately opaque and transition-free.</summary>
+    [AvaloniaTheory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void CardRevealHonorsReducedMotion(bool reducedMotion)
+    {
+        MemoryCoverageSegmentViewModel[] slices = MemoryCoverageBarProjectionTests.Example();
+        Window window = CreateWindow(388, dark: reducedMotion, slices, out MemoryCoverageBar bar);
+        try
+        {
+            bar.ReducedMotion = reducedMotion;
+            Assert.True(MainTarget(bar, 0).Focus());
+            Render();
+
+            Border card = Assert.IsType<Border>(FindNamed<Border>(window, "MemorySliceCard"));
+            if (reducedMotion)
+            {
+                Assert.Null(card.Transitions);
+                Assert.Equal(1, card.Opacity);
+            }
+            else
+            {
+                Transitions transitions = Assert.IsType<Transitions>(card.Transitions);
+                Assert.Equal(2, transitions.Count);
+                Assert.Equal(
+                    TimeSpan.FromMilliseconds(140),
+                    Assert.Single(transitions.OfType<DoubleTransition>()).Duration);
+                Assert.Equal(
+                    TimeSpan.FromMilliseconds(140),
+                    Assert.Single(transitions.OfType<TransformOperationsTransition>()).Duration);
+            }
+        }
+        finally
+        {
+            window.Close();
+        }
+    }
+
+    /// <summary>Moving from a main slice into its card keeps it open, while leaving both surfaces dismisses it after the bounded delay.</summary>
+    [AvaloniaFact]
+    public async Task PointerTraversalBetweenMainSliceAndCardKeepsThenDismissesTheCard()
+    {
+        MemoryCoverageSegmentViewModel[] slices = MemoryCoverageBarProjectionTests.Example();
+        Window window = CreateWindow(388, dark: false, slices, out MemoryCoverageBar bar);
+        try
+        {
+            Control mainLeaf = MainTarget(bar, 0);
+            window.MouseMove(BoundsInWindow(mainLeaf, window).Center, RawInputModifiers.None);
+            Render();
+            Border card = Assert.IsType<Border>(FindNamed<Border>(window, "MemorySliceCard"));
+
+            window.MouseMove(BoundsInWindow(card, window).Center, RawInputModifiers.None);
+            Render();
+            await Task.Delay(TimeSpan.FromMilliseconds(220), TestContext.Current.CancellationToken);
+            Render();
+            Assert.NotNull(FindNamed<Border>(window, "MemorySliceCard"));
+
+            window.MouseMove(new Point(4, 4), RawInputModifiers.None);
+            await Task.Delay(TimeSpan.FromMilliseconds(220), TestContext.Current.CancellationToken);
+            Render();
+            Assert.Null(FindNamed<Border>(window, "MemorySliceCard"));
+        }
+        finally
+        {
+            window.Close();
+        }
+    }
+
+    /// <summary>Public scroll and detachment lifecycle events close both overlay tiers and discard their stale targets.</summary>
+    [AvaloniaFact]
+    public void AncestorScrollAndDetachClearOpenOverlays()
+    {
+        MemoryCoverageSegmentViewModel[] slices = MemoryCoverageBarProjectionTests.Example();
+        Window window = CreateScrolledWindow(slices, out MemoryCoverageBar bar, out ScrollViewer scroll);
+        try
+        {
+            OpenGroupedCard(window, bar);
+            scroll.Offset = new Vector(0, 1);
+            Render();
+            AssertNoOverlay(window);
+
+            scroll.Offset = default;
+            Render();
+            window.Focusable = true;
+            Assert.True(window.Focus());
+            OpenGroupedCard(window, bar);
+            scroll.Content = null;
+            Render();
+            AssertNoOverlay(window);
+        }
+        finally
+        {
+            window.Close();
+        }
+    }
+
+    /// <summary>The 388px reference state can emit a full two-tier upward-overlay capture in both supported language/theme combinations.</summary>
+    [AvaloniaTheory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task BottomAnchoredGroupedOverlayCanBeCaptured(bool darkChinese)
+    {
+        MemoryCoverageSegmentViewModel[] slices = MemoryCoverageBarProjectionTests.Example();
+        Window window = CreateBottomWindow(darkChinese, slices, out MemoryCoverageBar bar);
+        try
+        {
+            OpenGroupedCard(window, bar, localSliceIndex: 5);
+            Border local = Assert.IsType<Border>(FindNamed<Border>(window, "MemoryLocalView"));
+            Border card = Assert.IsType<Border>(FindNamed<Border>(window, "MemorySliceCard"));
+            Assert.Same(slices[6], card.DataContext);
+            Assert.True(BoundsInWindow(local, window).Bottom < BoundsInWindow(bar, window).Top);
+            for (int tick = 0; tick < 4; tick++)
+            {
+                await Task.Delay(TimeSpan.FromMilliseconds(80), TestContext.Current.CancellationToken);
+                Render();
+            }
+            Capture(window, darkChinese ? "388-dark-zh-bottom" : "388-light-en-bottom");
+            Assert.True(BoundsInWindow(card, window).Bottom < BoundsInWindow(LocalStrip(local), window).Top,
+                $"Card {BoundsInWindow(card, window)}, strip {BoundsInWindow(LocalStrip(local), window)}, local {BoundsInWindow(local, window)}");
+        }
+        finally
+        {
+            window.Close();
+        }
+    }
+
+    private static void OpenGroupedCard(Window window, MemoryCoverageBar bar, int localSliceIndex = 0)
+    {
+        Control group = MainTarget(bar, 1);
+        Assert.True(group.Focus());
+        Render();
+        Border local = Assert.IsType<Border>(FindNamed<Border>(window, "MemoryLocalView"));
+        Control leaf = FocusableControl(LocalStrip(local).Children[localSliceIndex]);
+        Assert.True(leaf.Focus());
+        Render();
+        Assert.NotNull(FindNamed<Border>(window, "MemorySliceCard"));
+    }
+
+    private static Window CreateWindow(
+        int width,
+        bool dark,
+        IEnumerable<MemoryCoverageSegmentViewModel> slices,
+        out MemoryCoverageBar bar)
+    {
+        bar = new MemoryCoverageBar
+        {
+            ItemsSource = slices,
+            Labels = ShellTextResources.For(ShellLanguage.English),
+        };
+        var window = new Window
+        {
+            Width = width + 32,
+            Height = 620,
+            RequestedThemeVariant = dark ? ThemeVariant.Dark : ThemeVariant.Light,
+            DataContext = new ShellFixture(ShellTextResources.For(ShellLanguage.English)),
+            Content = new Border { Padding = new Thickness(16), Child = bar },
+        };
+        AddSharedTemplates(window);
+        window.Show();
+        Render();
+        return window;
+    }
+
+    private static Window CreateScrolledWindow(
+        IEnumerable<MemoryCoverageSegmentViewModel> slices,
+        out MemoryCoverageBar bar,
+        out ScrollViewer scroll)
+    {
+        bar = new MemoryCoverageBar
+        {
+            ItemsSource = slices,
+            Labels = ShellTextResources.For(ShellLanguage.English),
+        };
+        scroll = new ScrollViewer
+        {
+            VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
+            Content = new StackPanel
+            {
+                Children =
+                {
+                    new Border { Padding = new Thickness(16), Child = bar },
+                    new Border { Height = 640 },
+                },
+            },
+        };
+        var window = new Window
+        {
+            Width = 420,
+            Height = 300,
+            DataContext = new ShellFixture(ShellTextResources.For(ShellLanguage.English)),
+            Content = scroll,
+        };
+        AddSharedTemplates(window);
+        window.Show();
+        Render();
+        return window;
+    }
+
+    private static Window CreateBottomWindow(
+        bool darkChinese,
+        IEnumerable<MemoryCoverageSegmentViewModel> slices,
+        out MemoryCoverageBar bar)
+    {
+        ShellTextResources text = ShellTextResources.For(
+            darkChinese ? ShellLanguage.ChineseTraditional : ShellLanguage.English);
+        bar = new MemoryCoverageBar { ItemsSource = slices, Labels = text };
+        var window = new Window
+        {
+            Width = 420,
+            Height = 900,
+            RequestedThemeVariant = darkChinese ? ThemeVariant.Dark : ThemeVariant.Light,
+            DataContext = new ShellFixture(text),
+            Content = new StackPanel
+            {
+                Children =
+                {
+                    new Border { Height = 650 },
+                    new Border { Padding = new Thickness(16), Child = bar },
+                },
+            },
+        };
+        AddSharedTemplates(window);
+        window.Show();
+        Render();
+        return window;
+    }
+
+    private static void AddSharedTemplates(Window window)
+    {
+        var uri = new Uri("avares://NvtFwCombiner.Presentation.Avalonia/Resources/MainWindowSharedTemplates.axaml");
+        window.Resources.MergedDictionaries.Add(new ResourceInclude(uri) { Source = uri });
+        foreach (Uri styleUri in new[]
+        {
+            new Uri("avares://NvtFwCombiner.Presentation.Avalonia/Styles/MainWindowStyles.axaml"),
+            new Uri("avares://NvtFwCombiner.Presentation.Avalonia/Styles/MainWindowButtonStyles.axaml"),
+            new Uri("avares://NvtFwCombiner.Presentation.Avalonia/Styles/MainWindowVisualStyles.axaml"),
+        })
+        {
+            window.Styles.Add(new StyleInclude(styleUri) { Source = styleUri });
+        }
+    }
+
+    private static ProportionalStackPanel MainPanel(MemoryCoverageBar bar)
+    {
+        return Assert.Single(bar.GetVisualDescendants().OfType<ProportionalStackPanel>());
+    }
+
+    private static Control MainTarget(MemoryCoverageBar bar, int index)
+    {
+        return FocusableControl(MainPanel(bar).Children[index]);
+    }
+
+    private static Control FocusableControl(Control root)
+    {
+        return Assert.Single(
+            root.GetVisualDescendants().Append(root).OfType<Control>(),
+            static control => control.Focusable);
+    }
+
+    private static ProportionalStackPanel LocalStrip(Border local)
+    {
+        return Assert.Single(local.GetVisualDescendants().OfType<ProportionalStackPanel>());
+    }
+
+    private static Rect BoundsInWindow(Control control, Window window)
+    {
+        return new Rect(Assert.IsType<Point>(control.TranslatePoint(default, window)), control.Bounds.Size);
+    }
+
+    private static T? FindNamed<T>(Window window, string name)
+        where T : Control
+    {
+        return window.GetVisualDescendants().Append(window).OfType<T>()
+            .SingleOrDefault(control => control.Name == name);
+    }
+
+    private static void PressEscape(Window window)
+    {
+        window.KeyPress(Key.Escape, RawInputModifiers.None, PhysicalKey.Escape, null);
+        window.KeyRelease(Key.Escape, RawInputModifiers.None, PhysicalKey.Escape, null);
+    }
+
+    private static void AssertNoOverlay(Window window)
+    {
+        Assert.Null(FindNamed<Border>(window, "MemoryLocalView"));
+        Assert.Null(FindNamed<Border>(window, "MemorySliceCard"));
+    }
+
+    private static void Capture(Window window, string state)
+    {
+        string? directory = Environment.GetEnvironmentVariable("NFC_VISUAL_OUTPUT_DIR");
+        if (string.IsNullOrWhiteSpace(directory)) { return; }
+        _ = Directory.CreateDirectory(directory);
+        using Avalonia.Media.Imaging.Bitmap? frame = window.GetLastRenderedFrame();
+        Assert.NotNull(frame);
+        frame.Save(Path.Combine(directory, $"memory-popup-{state}.png"));
+    }
+
+    private static void Render()
+    {
+        Dispatcher.UIThread.RunJobs();
+        AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+        Dispatcher.UIThread.RunJobs();
+    }
+
+    private sealed record ShellFixture(ShellTextResources Text);
+}

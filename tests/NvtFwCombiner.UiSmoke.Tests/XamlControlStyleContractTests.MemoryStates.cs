@@ -40,7 +40,8 @@ public sealed partial class XamlControlStyleContractTests
             disposition: Application.MemoryLayout.MemoryWorkflowDisposition.WillReplace,
             sourceSlotId: "replace-dp",
             rangeStart: 0x100,
-            rangeEndExclusive: 0x110);
+            rangeEndExclusive: 0x110,
+            addressSpaceId: "output");
         var changedRange = new MemoryCoverageSegmentViewModel(
             "0x110-0x11F",
             "DP BIN",
@@ -51,7 +52,8 @@ public sealed partial class XamlControlStyleContractTests
             observedChange: Application.MemoryLayout.MemoryObservedChange.Changed,
             sourceSlotId: "replace-dp",
             rangeStart: 0x110,
-            rangeEndExclusive: 0x120);
+            rangeEndExclusive: 0x120,
+            addressSpaceId: "output");
         var logicalItem = new MemoryCoverageLogicalItemViewModel(
             "slot:replace-dp",
             [plannedRange, changedRange],

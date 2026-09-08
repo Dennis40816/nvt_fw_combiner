@@ -40,8 +40,8 @@ public sealed partial class XamlControlStyleContractTests
         Assert.Equal(
             2,
             templates.Split("RenderTransformOrigin=\"50%,50%\"", StringSplitOptions.None).Length - 1);
-        AssertTrackAllowsSegmentLift(templates, "{Binding MergeCoverageSegments}");
-        AssertTrackAllowsSegmentLift(workflowTemplates, "{Binding ReplaceCoverageSegments}");
+        AssertUsesSharedCoverageBar(templates, "{Binding MergeCoverageSegments}", plain: true);
+        AssertUsesSharedCoverageBar(workflowTemplates, "{Binding ReplaceCoverageSegments}", plain: false);
         Assert.DoesNotContain("NfcMemoryAddressTextBrush", linkedSegment, StringComparison.Ordinal);
         Assert.Contains("MemoryCoverageTooltipTemplate", templates, StringComparison.Ordinal);
         Assert.DoesNotContain(
@@ -267,6 +267,9 @@ public sealed partial class XamlControlStyleContractTests
                     candidate.GetVisualDescendants().OfType<Border>()
                         .Any(segment => segment.Classes.Contains("memoryCoverageBarSegment")));
             Border track = Assert.IsType<Border>(items.Parent, exactMatch: false);
+            Assert.True(Avalonia.Application.Current!.TryGetResource("NfcMemoryTrackBrush", theme, out object? expectedTrackSurface));
+            Assert.Equal(Assert.IsType<SolidColorBrush>(expectedTrackSurface).Color,
+                Assert.IsType<ISolidColorBrush>(track.Background, exactMatch: false).Color);
             MemoryCoverageSegmentViewModel active = useReplace
                 ? viewModel.Replace.ReplaceCoverageSegments[0]
                 : viewModel.Merge.MergeCoverageSegments[0];
@@ -289,15 +292,15 @@ public sealed partial class XamlControlStyleContractTests
             Assert.Equal(1.18, activeSegment.RenderTransform.Value.M22, precision: 2);
             Assert.False(track.ClipToBounds);
             Assert.False(items.ClipToBounds);
-            Assert.False(activeSegment.Focusable);
+            Assert.True(activeSegment.Focusable);
             Assert.False(FocusToolTipBehavior.GetIsEnabled(activeSegment));
-            ContentControl segmentCard = Assert.IsType<ContentControl>(ToolTip.GetTip(activeSegment));
-            ToolTip.SetIsOpen(activeSegment, true);
+            Assert.Null(ToolTip.GetTip(activeSegment));
+            Assert.True(activeSegment.Focus(NavigationMethod.Tab));
             Dispatcher.UIThread.RunJobs();
-            Assert.True(ToolTip.GetIsOpen(activeSegment));
-            Assert.Same(active, segmentCard.Content);
-            Assert.NotNull(segmentCard.ContentTemplate);
-            ToolTip.SetIsOpen(activeSegment, false);
+            Border segmentCard = Assert.Single(host.GetVisualDescendants().OfType<Border>(),
+                candidate => candidate.Name == "MemorySliceCard");
+            Assert.Same(active, segmentCard.DataContext);
+            activeSegment.RaiseEvent(new KeyEventArgs { RoutedEvent = InputElement.KeyDownEvent, Key = Key.Escape });
 
             Border activeRow = Assert.Single(
                 panel.GetVisualDescendants().OfType<Border>(),
@@ -353,7 +356,7 @@ public sealed partial class XamlControlStyleContractTests
         }
     }
 
-    /// <summary>The map is hover-only while information rows remain the sole persistent focus target.</summary>
+    /// <summary>Base templates do not pin selection; the interactive rail supplies keyboard card navigation.</summary>
     [Fact]
     public void MemoryCoverageMapCannotPinSelectionButInformationRowsCan()
     {
@@ -408,7 +411,8 @@ public sealed partial class XamlControlStyleContractTests
             sourceSlotId: "replace-ctrlram-nf",
             rangeStart: 0,
             rangeEndExclusive: 0x10,
-            logicalCoverageGroupId: "slot:replace-ctrlram-nf");
+            logicalCoverageGroupId: "slot:replace-ctrlram-nf",
+            addressSpaceId: "output");
         MemoryCoverageSegmentViewModel second = new(
             "0x00010-0x0001F",
             "NF CtrlRAM",
@@ -420,7 +424,8 @@ public sealed partial class XamlControlStyleContractTests
             sourceSlotId: "reference-base",
             rangeStart: 0x10,
             rangeEndExclusive: 0x20,
-            logicalCoverageGroupId: "slot:replace-ctrlram-nf");
+            logicalCoverageGroupId: "slot:replace-ctrlram-nf",
+            addressSpaceId: "output");
         MemoryCoverageLogicalItemViewModel item = new(
             "slot:replace-ctrlram-nf",
             [first, second],
@@ -555,18 +560,13 @@ public sealed partial class XamlControlStyleContractTests
             ShellTextResources.For(ShellLanguage.English));
     }
 
-    private static void AssertTrackAllowsSegmentLift(string xaml, string itemsSource)
+    private static void AssertUsesSharedCoverageBar(string xaml, string itemsSource, bool plain)
     {
         var document = XDocument.Parse(xaml);
-        XElement items = Assert.Single(document.Descendants(), element =>
-            element.Name.LocalName == "ItemsControl" &&
-            (string?)element.Attribute("ItemsSource") == itemsSource &&
-            ((string?)element.Attribute("ItemTemplate"))?.Contains(
-                "BarTemplate",
-                StringComparison.Ordinal) == true);
-        XElement track = Assert.IsType<XElement>(items.Parent);
-        Assert.Equal("Border", track.Name.LocalName);
-        Assert.Equal("False", (string?)track.Attribute("ClipToBounds"));
-        Assert.Equal("False", (string?)items.Attribute("ClipToBounds"));
+        XElement bar = Assert.Single(document.Descendants(), element =>
+            element.Name.LocalName == "MemoryCoverageBar" &&
+            (string?)element.Attribute("ItemsSource") == itemsSource);
+        Assert.Equal("{Binding Text}", (string?)bar.Attribute("Labels"));
+        Assert.Equal(plain, (string?)bar.Attribute("IsPlain") == "True");
     }
 }

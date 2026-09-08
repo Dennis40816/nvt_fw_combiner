@@ -602,3 +602,13 @@ sets exact full production/baseline to 138,729 and allowance to 35,833 against
 unchanged ratchet 102,896. Runtime 99,231 and slices 20,757 / 42,708 / 5,039 /
 30,727 remain unchanged. Counting, exclusions, equality and all gates remain
 unchanged; this exact accounting introduces no transferable headroom.
+
+## 2026-09-08 local memory-slice explorer accounting
+
+`UI-114-MEMORY-HOVER-37` adds exactly 456 production lines through the shared
+Presentation rail, typed display grouping and interaction owners. Independent
+R2 admission `UI-114-MEMORY-HOVER-SIZE-38` sets exact full production/baseline
+to 139,185 and allowance to 36,289 against unchanged ratchet 102,896.
+Runtime 99,231 and slices 20,757 / 42,708 / 5,039 / 30,727 remain unchanged.
+Counting, exclusions, equality and firmware/Golden/release gates are unchanged;
+this exact accounting introduces no transferable headroom.

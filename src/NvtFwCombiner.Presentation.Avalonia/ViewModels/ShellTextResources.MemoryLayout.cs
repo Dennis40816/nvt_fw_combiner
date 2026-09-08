@@ -16,6 +16,13 @@ internal enum MemoryPendingPrerequisite
 
 internal sealed partial class ShellTextResources
 {
+    public string MemoryLocalViewLabel => SelectLanguage("Local view · separate scale", "局部檢視 · 獨立比例");
+    public string MemoryLocalViewHint => SelectLanguage("Hover a slice or use arrow keys to inspect its range.", "移到切片或以方向鍵選擇，查看確切範圍。");
+    public string FormatMemorySliceCount(int count)
+    {
+        return SelectLanguage($"{count} slices", $"{count} 個切片");
+    }
+
     public string MemoryCustomerInformationLabel => SelectLanguage("Customer information", "客戶資訊");
     public string MemoryProcessingDetailsLabel => SelectLanguage("Technical details", "技術細節");
     public string MemorySourceLabel => SelectLanguage("Source", "來源");

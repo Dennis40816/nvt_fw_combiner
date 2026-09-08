@@ -156,6 +156,7 @@ internal static partial class UiCompositionRunner
             regionGroup: segment.RegionGroup,
             rangeStart: segment.Range.Start,
             rangeEndExclusive: segment.Range.EndExclusive,
+            addressSpaceId: segment.AddressSpaceId,
             addressRangeLabel: FormatMemoryAddressRange(segment.Range),
             lengthLabel: FormatMemoryLength(segment.Range),
             compactDetail: MemoryCompactDetail(layout, segment, sourceLabel, text),

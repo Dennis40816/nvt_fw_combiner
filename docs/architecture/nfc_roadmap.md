@@ -700,7 +700,7 @@ not approved references. Do not implement their geometry by implication.
 | --- | --- |
 | Main map | Output address space and overall address bounds; proportional overview. A small-region aggregate has a group marker/count, not the identity of a single physical region. |
 | Hover aggregate | Local view containing the original slices in address order, group bounds, total length and slice count. Group endpoints correspond to the same two boundaries on the main map. |
-| Hover a constituent slice | Highlight that slice and show its name, complete address range and size on one concise line below the local view. Do not label every internal boundary at once. |
+| Hover a constituent slice | Highlight its contiguous physical run and show the shared nearby card with its name, complete address range and size. Do not label every internal boundary at once. |
 | Existing detail card | Show the focused slice's actual source, planned/retained state, processing explanation and Technical details. Do not infer a common source, role or Kept state for a heterogeneous group. |
 
 Only address-contiguous small slices in one address space may aggregate;
@@ -716,11 +716,75 @@ the illustrative range `[0x41000, 0x42000)` has length `4 KiB`; its UI last
 address is `0x41FFF`, not `0x42000`. This example is not an IC map definition.
 Do not mix these two endpoint conventions in the preview or implementation.
 
-Next: preview this information model within the existing narrow rail before
-production changes. Percentage threshold, placement geometry and animation
-remain undecided; acceptance of the information model does not settle them.
-NT51928/Desay work remains pending independently. No firmware or test changes
-are part of recording this decision.
+The subsequent information-complete preview was accepted for implementation
+on 2026-09-08 and a bounded Memory Map goal was created. The initial local
+candidate uses a two-percent per-slice threshold, retaining exact summed
+weights and typed address-space/contiguity boundaries. Initial projection and
+production-host checks pass 10/10, zero skipped, in 8 seconds
+(`D:/NvtFwCombiner-TestArea/evidence/v114-memory-hover37/initial/initial.trx`).
+These do not certify the hover/focus popup, final geometry or animation; the
+hover unit remains uncommitted and incomplete. Source wording is separately
+committed at `f1d223b9`, with review record checkpoint `2a44733c`.
+
+Follow-up verification: removed a newly introduced clipping wrapper and
+reused the original bar template directly. The existing shared/source/projection
+checks now pass 49 cases; six actual-control geometry cases separately pass at
+240/388/620 px in both bar styles (`shared-regression-fixed/` and `geometry/`
+under the same evidence root). Geometry retains exact weights and bounds within
+the existing one-pixel raster rounding, not an inflated minimum slice width.
+This is reused narrow evidence, not a new full-suite or completed hover review.
+
+Owner clarification during implementation: a terminal, ungrouped DP/TP region
+should expose its information card directly on hover; a grouped CtrlRAM area
+may first expose the local slices, then the same information card when a
+constituent is hovered. Depth follows actual display grouping, not a hardcoded
+DP/TP/CtrlRAM classification. The proposed card rises from the slice baseline
+so the user need not scroll to the supporting cards. Keep the slice and address
+anchors fixed; retain the exact range, size, source/state and existing Technical
+details. The owner approved the updated
+[one-level/two-level reference](../ui/references/v1.1.4-memory-hover-cards-approved.png)
+on 2026-09-08, including the brief baseline reveal and reduced-motion fallback.
+The generated pixels do not certify proportions; the prior in-flow detail-card
+prototype is not accepted final geometry. A subsequent accepted constraint:
+even when slices have the same source file, disconnected physical ranges must
+not lift/highlight together. Interaction may span only valid, adjacent ranges
+in the same declared address space. Keep logical source grouping for the rows;
+a multi-run heading does not activate all disconnected bars. Unknown ranges,
+unknown address spaces, gaps and overlaps do not establish physical continuity.
+NT51928/Desay decisions remain pending independently.
+
+Local implementation evidence (`UI-114-MEMORY-HOVER-37`, 2026-09-08): the
+shared Merge/Replace rail now opens a nearby card directly for a terminal
+slice, or a separate-scale local strip before the terminal card for a group.
+The card uses a 140 ms fade/8 px reveal, disabled with reduced motion; main and
+local strip geometry stays fixed. The existing card, colors and source/state
+owners are reused. Logical source rows remain grouped, but physical interaction
+is split at gaps, overlap, unknown ranges/spaces or address-space boundaries.
+
+Targeted command (after the required test-area environment setup):
+`dotnet test tests/NvtFwCombiner.UiSmoke.Tests/NvtFwCombiner.UiSmoke.Tests.csproj --no-restore --filter 'FullyQualifiedName~MemoryCoverage|FullyQualifiedName~MemorySourcePresentationTests|FullyQualifiedName~MemoryProcessingPresentationTests|FullyQualifiedName~AbDummyDpControlTests'`.
+Result: **73/73 passed, zero skipped, 23 seconds**;
+`D:/NvtFwCombiner-TestArea/evidence/v114-memory-hover37/reviewed/reviewed.trx`.
+Coverage includes typed grouping/proportions, disconnected-source interaction,
+real keyboard/Technical details/Escape, pointer transit and delayed dismissal,
+collection/disable/resize/scroll/detach cleanup, reduced motion, fixed 240/388/620
+px rail geometry and source/AB regressions. Exact size-accounting tests pass
+19/19 (28.131 seconds). No firmware/profile/runtime-slice change or new Golden
+certification; this is not an integration/release full-suite run.
+
+Actual full-window captures at 1440x900 EN Light / zh Dark are
+`reviewed/memory-hover-{False|True}-{False|True}-direct.png` under that evidence
+root (Merge/Replace). The reference's synthetic 512 KiB/8-slice geometry is
+separately rendered with production controls at 388 px in
+`reviewed/memory-popup-388-{light-en|dark-zh}-bottom.png`; it is not an IC flashmap
+or Golden. Reference/actual comparison preserves one-/two-level hierarchy,
+nearby range/size/source/status card and fixed anchors; existing app styling
+and typed colors take precedence over illustrative bitmap pixels. Local-view
+metadata stays on the inward side of its strip to avoid card occlusion.
+Scoped independent Terra/high review clears the popup acceptance findings.
+Native OS deactivation and physical display-DPI/screen-reader certification
+were not simulated; close-on-deactivation uses the same reviewed cleanup.
+Commit-bound final evidence is recorded in the hover37/size38 change records.
 
 ##### Customer-information source presentation — 2026-09-08
 
