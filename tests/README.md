@@ -151,6 +151,50 @@ Golden. `-SkipUiLaunch` smoke does not establish visible startup, a clean Window
 machine, signing or separate owner/legal evidence. See the
 [release contract](../docs/ci/release-package.md) for those boundaries.
 
+## v1.1.4 display-evidence boundary — 2026-09-08
+
+This assessment is separate from the historical `v1.1.3` measurements above.
+The UI test host uses `UseHeadless` with Skia drawing
+(`AvaloniaHeadlessTestApplication.cs:14-19`), not the native Windows window
+backend. Reference screenshots are now accompanied by actual `RenderScaling`,
+logical client size, pixel size, theme and language in test output. The
+CtrlRAM/Settings reference tests assert their declared 100% scale and image
+dimensions instead of implying that a compact viewport is a DPI test.
+
+| Current scoped run | Actual result | What it establishes |
+| --- | --- | --- |
+| CtrlRAM reference matrix | 16/16 passed; actual scale `1`, pixels match `980x640` / `1440x900` | Existing Light/Dark, EN/zh-TW, empty/selected layout and interaction checks at 100% headless scale |
+| Settings Version reference | 2/2 passed; actual scale `1`, pixels `1584x997` | Approved Light/Dark full-page reference geometry at 100% headless scale |
+| Shared palette / non-color template cues | 2/2 passed | Existing Light/Dark color-ratio checks and textual/shape template cues, not native accessibility certification |
+
+Evidence is under `D:/NvtFwCombiner-TestArea/evidence/v114-display-assessment/`:
+`display-reference-scale.trx` contains the 16 CtrlRAM plus two palette/template
+cases (18 total, about 25 seconds), and `settings-reference-scale.trx` contains
+the two Settings cases (about seven seconds). The production source is
+`463cc339` plus only the test-output/assertion and test-name changes in this
+unit; no product theme, geometry or firmware code changed.
+
+The misleadingly broad test name `ReportHexDiffHighContrastCuesDoNotDependOnColor`
+is now `ReportHexDiffTemplatesRetainNonColorCues`; all its assertions remain.
+It reads templates and does not render Windows High Contrast.
+
+A read-only Windows query at 09:25 Asia/Taipei found one display at **100%**
+and High Contrast **off** (`native-display-state.json` and retained
+`read-display-state.ps1` in the same evidence directory). No OS preference was
+changed and no visible helper window was opened. The application exposes
+System/Light/Dark (`SettingsViewModel.cs:49-54`), maps those to
+Default/Light/Dark (`MainWindow.axaml.cs:690-698`), and its custom palette has
+only Light/Dark dictionaries (`Styles/ThemeTokens.axaml:5,102`). No custom
+High Contrast palette/contrast-preference handler was found in Presentation.
+System theme following must not be reported as full High Contrast support.
+
+**Still open:** actual Windows 125% rendering/input/focus and monitor-scale
+transitions, OS High Contrast behavior across custom controls, and native
+screen-reader acceptance. A resized image, a 120-DPI bitmap export, or a new
+theme name with Light/Dark fallback cannot close these gaps. Use an explicitly
+arranged native 125%/High Contrast test session for that acceptance; this
+assessment neither adds a theme nor waives the existing visual contract.
+
 ## Running and maintaining this view
 
 Use [`CONTRIBUTING.md`](../CONTRIBUTING.md) to initialize the existing fixed

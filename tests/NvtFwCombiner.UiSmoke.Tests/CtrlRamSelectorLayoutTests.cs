@@ -93,12 +93,18 @@ public sealed class CtrlRamSelectorLayoutTests
             Rect baseBounds = BoundsInWindow(baseBorder, window);
             Assert.InRange(BoundsInWindow(groups[0], window).Top - baseBounds.Bottom, 12, 12.5);
             Assert.InRange(BoundsInWindow(groups[1], window).Top - BoundsInWindow(groups[0], window).Bottom, 12, 12.5);
+            // This reference matrix is 100% headless rendering, not native Windows 125% evidence.
+            Assert.Equal(1.0, window.RenderScaling);
+            using Avalonia.Media.Imaging.Bitmap? frame = window.GetLastRenderedFrame();
+            Assert.NotNull(frame);
+            Assert.Equal(new PixelSize(width, height), frame.PixelSize);
+            TestContext.Current.TestOutputHelper!.WriteLine(
+                $"Headless reference: logical={window.ClientSize}, scale={window.RenderScaling}, " +
+                $"pixels={frame.PixelSize}, theme={window.ActualThemeVariant}, language={(chinese ? "zh-TW" : "en")}");
             string? imageDirectory = Environment.GetEnvironmentVariable("NFC_VISUAL_OUTPUT_DIR");
             if (!string.IsNullOrWhiteSpace(imageDirectory))
             {
                 _ = Directory.CreateDirectory(imageDirectory);
-                using Avalonia.Media.Imaging.Bitmap? frame = window.GetLastRenderedFrame();
-                Assert.NotNull(frame);
                 frame.Save(Path.Combine(imageDirectory, $"ctrlram-selector-{width}-{height}-{(dark ? "dark" : "light")}-{(chinese ? "zh" : "en")}-{(selected ? "selected" : "empty")}.png"));
             }
             foreach (SpaciousPanel group in groups)

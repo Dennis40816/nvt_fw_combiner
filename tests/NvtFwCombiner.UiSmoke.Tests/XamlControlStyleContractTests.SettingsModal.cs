@@ -192,6 +192,12 @@ public sealed partial class XamlControlStyleContractTests
 
             using Avalonia.Media.Imaging.Bitmap? frame = window.GetLastRenderedFrame();
             Assert.NotNull(frame);
+            // An image matching these pixels does not certify native Windows DPI behavior.
+            Assert.Equal(1.0, window.RenderScaling);
+            Assert.Equal(new PixelSize(1584, 997), frame.PixelSize);
+            TestContext.Current.TestOutputHelper!.WriteLine(
+                $"Headless reference: logical={window.ClientSize}, scale={window.RenderScaling}, " +
+                $"pixels={frame.PixelSize}, theme={window.ActualThemeVariant}, language=en");
             string? outputDirectory = Environment.GetEnvironmentVariable("NFC_VISUAL_OUTPUT_DIR");
             if (!string.IsNullOrWhiteSpace(outputDirectory))
             {

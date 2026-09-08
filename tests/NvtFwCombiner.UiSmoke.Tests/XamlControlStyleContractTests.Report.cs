@@ -209,9 +209,9 @@ public sealed partial class XamlControlStyleContractTests
         Assert.DoesNotContain("Background=\"#", hexDiffSurface, StringComparison.Ordinal);
     }
 
-    /// <summary>Changed and selected Hex Diff states remain distinguishable without color perception.</summary>
+    /// <summary>Templates retain textual/shape cues; this is not a native High Contrast rendering test.</summary>
     [Fact]
-    public void ReportHexDiffHighContrastCuesDoNotDependOnColor()
+    public void ReportHexDiffTemplatesRetainNonColorCues()
     {
         string styles = ReadPresentationFile("Styles/MainWindowControlStyles.axaml");
         string changes = ReadPresentationFile("Resources/MainWindowReportChangeTemplates.axaml");
