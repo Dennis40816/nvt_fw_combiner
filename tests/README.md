@@ -636,6 +636,32 @@ NT51927/NT51950 and AB window checks are in the preceding green run.
 Primary scoped Polytail found no correctness or firmware-authority change in
 this local unit. No full-suite, native accessibility or release Golden pass is claimed.
 
+## Session activity inventory — 2026-09-10
+
+Base `8e914a48`; this unit adds characterization, not another diagnostics owner.
+`D:/NvtFwCombiner-TestArea/evidence/v114-session-inventory75/` retains:
+UI **6/6, 13 s** (`SystemActivityFiltersKeepReportsAndWorkflowUntouched`,
+`ActivityHistoryUsesTwoDisclosureLevels`, `MessageCenterKeepsSystemLifecycleSeparateFromRunReports`),
+Application **11/11, 158 ms** (`SystemInformationServiceTests`), export
+**1/1, 166 ms** (`JsonSystemDiagnosticsExporterTests`), and architecture
+**2/2, 253 ms** (`PresentationUsesFocusedApplicationContractsInsteadOfConcreteAdapters`,
+`DesktopHostOwnsBootstrapWiringOutsidePresentation`), all zero skipped.
+Commands use `dotnet test <project> --no-restore --filter` with each name
+prefixed `FullyQualifiedName~`; TRX names are `ui`, `application`, `export`,
+and `architecture`. Initial new-test compilation errors were corrected before
+execution; they are not product failures.
+
+The real 1440x900 MainWindow captures cover EN/zh-TW x Light/Dark, Important,
+empty Errors and Debug states, keyboard entry/filter activation and return to
+empty Run reports without changing workflow context. They do not demonstrate
+nonempty warning/error rows, persisted history replay, native scaling or a
+complete privacy audit. Existing service checks cover bounded activity,
+path-token rejection, diagnostic lifecycle and report-free export.
+Primary visual inspection found two follow-ups: reactivating a selected
+navigation toggle removes its checked appearance without navigating, and
+keyboard-focused activity filters retain a default rectangular black adorner.
+These remain separate corrections, not a whole-screen acceptance claim.
+
 ## Running and maintaining this view
 
 Use [`CONTRIBUTING.md`](../CONTRIBUTING.md) to initialize the existing fixed

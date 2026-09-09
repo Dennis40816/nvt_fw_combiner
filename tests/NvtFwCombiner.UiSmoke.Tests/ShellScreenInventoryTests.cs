@@ -2,6 +2,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
+using Avalonia.Input;
 using Avalonia.Styling;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
@@ -15,6 +16,71 @@ namespace NvtFwCombiner.UiSmoke.Tests;
 /// <summary>Repeatable current-shell inventory, not native DPI or whole-app visual certification.</summary>
 public sealed class ShellScreenInventoryTests
 {
+    /// <summary>Real activity controls filter the current session without changing report or workflow state.</summary>
+    [AvaloniaTheory]
+    [InlineData(false, false)]
+    [InlineData(true, false)]
+    [InlineData(false, true)]
+    [InlineData(true, true)]
+    public async Task SystemActivityFiltersKeepReportsAndWorkflowUntouched(bool dark, bool chinese)
+    {
+        using var workspace = TempWorkspace.Create("session-activity-inventory");
+        PresentationHostServices services = await CreateServicesAsync(workspace, useRetainedDpReplacePolicy: false);
+        using var window = new MainWindow(UiLaunchOptions.Empty, StartupTraceSession.Disabled,
+            services, ShellPreferenceSnapshot.Default)
+        { Width = 1440, Height = 900 };
+        window.Show();
+        try
+        {
+            await AwaitHistoryReadyAsync(window);
+            var shell = (MainWindowViewModel)window.DataContext!;
+            shell.SelectedLanguage = chinese ? "Traditional Chinese" : "English";
+            shell.SelectedTheme = dark ? "Dark" : "Light";
+            string navigation = shell.Navigation.NavigationPath;
+            string ic = shell.WorkflowSession.SelectedIc;
+            ReportHistoryEntryViewModel[] history = [.. shell.Reports.ReportHistoryEntries];
+            MessageCenterViewModel center = shell.MessageCenter;
+            center.OpenCommand.Execute(null);
+            Activate(center.ShowSystemInformationCommand);
+            Assert.True(center.IsSystemInformationSelected);
+            Assert.False(center.IsDebugActivityExpanded);
+            Assert.True(center.IsImportantActivitySelected);
+            Capture(window, "activity-important", dark, chinese);
+            Activate(center.ShowWarningActivityCommand);
+            Assert.True(center.IsWarningActivitySelected);
+            Assert.All(center.ActivityItems, item => Assert.True(item.IsWarning));
+            Activate(center.ShowErrorActivityCommand);
+            Assert.True(center.IsErrorActivitySelected);
+            Assert.All(center.ActivityItems, item => Assert.True(item.IsError));
+            Capture(window, "activity-errors", dark, chinese);
+            Activate(center.ShowImportantActivityCommand);
+            Activate(center.ToggleDebugActivityCommand);
+            Assert.True(center.IsDebugActivityExpanded);
+            Assert.NotEmpty(center.ActivityItems);
+            Capture(window, "activity-debug", dark, chinese);
+            Activate(center.ShowRunReportsCommand);
+            Assert.False(center.IsSystemInformationSelected);
+            Assert.Equal(history, shell.Reports.ReportHistoryEntries);
+            center.CloseCommand.Execute(null);
+            Assert.False(center.IsOpen);
+            Assert.Equal(navigation, shell.Navigation.NavigationPath);
+            Assert.Equal(ic, shell.WorkflowSession.SelectedIc);
+
+            void Activate(System.Windows.Input.ICommand command)
+            {
+                Dispatcher.UIThread.RunJobs();
+                Button button = Assert.Single(window.GetVisualDescendants().OfType<Button>(),
+                    item => item.IsEffectivelyVisible && ReferenceEquals(item.Command, command));
+                Assert.True(button.IsEffectivelyEnabled);
+                Assert.True(button.Focus(NavigationMethod.Tab));
+                window.KeyPress(Key.Space, RawInputModifiers.None, PhysicalKey.Space, null);
+                window.KeyRelease(Key.Space, RawInputModifiers.None, PhysicalKey.Space, null);
+                Dispatcher.UIThread.RunJobs();
+            }
+        }
+        finally { await CloseAndFlushAsync(window); }
+    }
+
     /// <summary>Settings sections keep their real shell host and leave Home workflow state untouched.</summary>
     [AvaloniaTheory]
     [InlineData(false, false)]
