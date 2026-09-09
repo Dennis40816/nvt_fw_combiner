@@ -107,12 +107,23 @@ trust index or bundle bytes; observing a new package requires a new process.
 `trustIndexVersion` changes whenever admitted bundle materialization or runtime
 registrations change. Schema `1.1` adds only the closed CtrlRAM
 `reportMetadataMapId` counterpart described above; it does not move map or
-metadata semantics into the index. Future schema-compatible data changes keep
-`schemaVersion` `1.1`; vocabulary or semantic changes require a reviewed
+metadata semantics into the index. Schema-compatible data changes keep the
+current `schemaVersion`; vocabulary or semantic changes require a reviewed
 schema revision and the normal R2/R3 gates.
 
 Schema `1.2` additionally admits `mapVariantSetId` for AB Merge selection
 groups. The map-set is partitioned by the existing canonical IC-count axis;
 each dynamic route binds only its matching map subset. Normal and Dummy are
 input selections within that route, not separate maps or support promotions.
-The current built-in index uses schema `1.2`.
+Schema `1.3` additionally admits optional `memoryLayoutContextMapId` only for
+CtrlRAM. It names one exact map materialized by the existing same-IC Standard
+registration, independently of Report metadata. Unknown, cross-IC, unmaterialized
+or different-address-space counterparts fail admission; when both counterpart
+fields are present they must name the same map. Neither capacity nor input
+content selects this map. Its IC, profile/version, bundle hash, map and address
+space are retained as immutable Application context and fingerprint bindings.
+Omitting the display field preserves the existing report-map overview fallback;
+it never changes the mandatory Report presence/absence rules above. The display
+context cannot authorize operations, support, Report classification or writes.
+The current built-in candidate uses schema `1.3`; Unit58 external owner
+attestation remains required before integration.

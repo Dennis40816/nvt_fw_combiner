@@ -76,6 +76,27 @@ Header, CRC and Unmapped children, do not become overview cuts. Only outer gaps
 outside those Code trees are displayed separately; ancestry, not names, proves
 containment. Unrelated overlapping classifications fail closed to Context.
 
+#### Reportless context extension (Unit58 candidate; final owner attestation pending)
+
+Schema `1.3` permits an independent optional `memoryLayoutContextMapId`
+reference. Admission reuses the exact same-IC Standard registration's
+`GetMapVariants` materialization; it never creates a Report metadata plan or a
+second map. The immutable context and exact source identity are carried through
+the dynamic route, definition, publication and compiled capability, checked
+against its fingerprint bindings. Existing reportful routes retain the overview
+fallback above. Explicit display and Report counterparts, if both present, must
+agree. Unknown/cross-IC/unmaterialized maps or address-space disagreement reject
+the candidate before publication.
+
+DP Image containers are distinct from DP Code. A declared descendant TP Code
+region takes its own interval; the remaining container intervals retain the
+label `DP image`, not an invented DP Code complement. Fine-grained descendants
+do not add overview cuts. A container not wholly present in the actual output
+is excluded; this does not select another map. Thus a TP-work image cannot gain
+a complete DP image claim. Unrelated overlaps remain neutral. This extension
+changes location context and its explicit package binding, not firmware facts,
+execution, Report authority, evidence rank or publication decisions.
+
 - CtrlRAM report metadata has one explicit, reviewable counterpart and no
   capacity-, filename-, PID-, hash-, or input-length inference.
 - The package trust index does not become a firmware map catalog.

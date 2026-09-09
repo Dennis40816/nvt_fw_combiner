@@ -29,7 +29,7 @@ public sealed class BuiltInCanonicalCapabilityPolicyTests
                     "nt51929-standard-merge-256k"));
 
         Assert.Equal("canonical-capability-policy", policy.CatalogId);
-        Assert.Equal("1.11.0", policy.CatalogVersion);
+        Assert.Equal("1.12.0", policy.CatalogVersion);
         Assert.Equal(
             BuiltInCanonicalCapabilityPolicy.ExpectedSha256,
             policy.SourceSha256);
@@ -178,7 +178,7 @@ public sealed class BuiltInCanonicalCapabilityPolicyTests
             Assert.Equal(CapabilityAuthoringAvailability.Available, route.Authoring.Value);
             Assert.Equal(CapabilityPublicationStatus.Supported, route.Publication.Value);
             Assert.Equal(CapabilityEvidenceStatus.ContractOnly, route.Evidence.Value);
-            Assert.EndsWith("-evidence-v4", route.Evidence.DecisionId, StringComparison.Ordinal);
+            Assert.EndsWith("-evidence-v5", route.Evidence.DecisionId, StringComparison.Ordinal);
             Assert.Equal(
                 "evidence-gap:2026-08-25:independent-tp-only-expected-output-missing",
                 route.Evidence.SourceReference);

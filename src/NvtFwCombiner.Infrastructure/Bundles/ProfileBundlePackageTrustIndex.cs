@@ -28,7 +28,8 @@ internal sealed record ProfileBundleRuntimeRegistration(
     string? FamilyId,
     string? PostbuildProcessorId,
     string? PostbuildBranch,
-    string? ReportMetadataMapId);
+    string? ReportMetadataMapId,
+    string? MemoryLayoutContextMapId = null);
 
 /// <summary>One exact bundle root admitted by the reviewed package trust index.</summary>
 internal sealed record ProfileBundlePackageTrustEntry(
@@ -222,7 +223,8 @@ internal static class ProfileBundlePackageTrustIndexLoader
             GetOptionalString(element, "familyId"),
             GetOptionalString(element, "postbuildProcessorId"),
             GetOptionalString(element, "postbuildBranch"),
-            GetOptionalString(element, "reportMetadataMapId"));
+            GetOptionalString(element, "reportMetadataMapId"),
+            GetOptionalString(element, "memoryLayoutContextMapId"));
     }
 
     private static string? GetOptionalString(JsonElement element, string propertyName)

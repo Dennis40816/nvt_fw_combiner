@@ -1,6 +1,7 @@
 using NvtFwCombiner.Application.Capabilities;
 using NvtFwCombiner.Application.ExternalTools;
 using NvtFwCombiner.Application.Metadata;
+using NvtFwCombiner.Application.MemoryLayout;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Domain.Firmware;
 using NvtFwCombiner.Infrastructure.ExternalTools;
@@ -257,6 +258,14 @@ internal static class CanonicalDynamicRouteInventory
                 static projection => $"report-metadata-slot:{projection.SpaceId}<-{projection.SlotId}"));
             semanticBindings.Add($"report-metadata-map:{reportMetadataMapId}");
         }
+        if (match.Route.MemoryLayoutContext is { } context)
+        {
+            if (context.Map.AddressSpaceId != match.Map.AddressSpaceId)
+            {
+                throw new InvalidDataException("CtrlRAM memory context has a different physical address space.");
+            }
+            semanticBindings.AddRange(context.SemanticBindingIds);
+        }
 
         return Create(
             identity,
@@ -265,7 +274,8 @@ internal static class CanonicalDynamicRouteInventory
             bundle.ContentHash,
             [match.Map.MapId],
             CapabilityDefinitionFingerprint.RuntimeReferenceReplaceCompilerSemanticId,
-            semanticBindings);
+            semanticBindings,
+            memoryLayoutContext: match.Route.MemoryLayoutContext);
     }
 
     private static IEnumerable<CanonicalCtrlRamDefinition>
@@ -348,7 +358,8 @@ internal static class CanonicalDynamicRouteInventory
         string compilerSemanticId,
         IReadOnlyList<string> semanticBindingIds,
         CapabilityNumberChoice? numberChoice = null,
-        CapabilityTopologyChoice? abMergeTopologyChoice = null)
+        CapabilityTopologyChoice? abMergeTopologyChoice = null,
+        MemoryLayoutContextMap? memoryLayoutContext = null)
     {
         string fingerprint = CapabilityDefinitionFingerprint.Compute(
             identity,
@@ -371,7 +382,8 @@ internal static class CanonicalDynamicRouteInventory
                     compilerSemanticId,
                     CapabilityDefinitionFingerprint.LogicalOutputCompilerSemanticId)),
             numberChoice,
-            abMergeTopologyChoice);
+            abMergeTopologyChoice,
+            memoryLayoutContext);
     }
 
     internal static CapabilityNumberChoice ProjectGeneralReplaceNumberChoice(

@@ -39,9 +39,9 @@ public sealed class ProfileBundlePackageTrustIndexLoaderTests
         ProfileBundlePackageTrustIndex index =
             ProfileBundlePackageTrustIndexLoader.Load(path);
 
-        Assert.Equal("1.2", index.SchemaVersion);
+        Assert.Equal("1.3", index.SchemaVersion);
         Assert.Equal("built-in-profile-bundles", index.TrustIndexId);
-        Assert.Equal("1.1.4.1", index.TrustIndexVersion);
+        Assert.Equal("1.1.4.2", index.TrustIndexVersion);
         Assert.Equal("built-in-profile-bundle-v2", index.TrustAnchorBindingId);
         Assert.Equal(26, index.Bundles.Count);
         Assert.Equal(
@@ -172,8 +172,10 @@ public sealed class ProfileBundlePackageTrustIndexLoaderTests
     }
 
     /// <summary>A CtrlRAM registration retains its exact token-only report metadata counterpart.</summary>
-    [Fact]
-    public void LoadProjectsSyntheticCtrlRamReportMetadataCounterpart()
+    [Theory]
+    [InlineData("reportMetadataMapId")]
+    [InlineData("memoryLayoutContextMapId")]
+    public void LoadProjectsSyntheticCtrlRamReportMetadataCounterpart(string field)
     {
         string bundle = Bundle().Replace(
             "\"runtimeRegistrations\": []",
@@ -184,7 +186,7 @@ public sealed class ProfileBundlePackageTrustIndexLoaderTests
             "\"profileVersion\":\"9.8.7\"," +
             "\"postbuildProcessorId\":\"nfc.synthetic.ctrlram\"," +
             "\"postbuildBranch\":\"single-chip\"," +
-            "\"reportMetadataMapId\":\"synthetic-standard-map\"}]",
+            $"\"{field}\":\"synthetic-standard-map\"}}]",
             StringComparison.Ordinal);
         using TempWorkspace workspace = WriteIndex(bundle);
 
@@ -194,7 +196,9 @@ public sealed class ProfileBundlePackageTrustIndexLoaderTests
                 .Bundles)
             .RuntimeRegistrations);
 
-        Assert.Equal("synthetic-standard-map", registration.ReportMetadataMapId);
+        Assert.Equal("synthetic-standard-map", field == "reportMetadataMapId" ?
+            registration.ReportMetadataMapId : registration.MemoryLayoutContextMapId);
+        Assert.Null(field == "reportMetadataMapId" ? registration.MemoryLayoutContextMapId : registration.ReportMetadataMapId);
     }
 
     /// <summary>The report counterpart is forbidden outside CtrlRAM and rejects non-token JSON values.</summary>
@@ -213,21 +217,22 @@ public sealed class ProfileBundlePackageTrustIndexLoaderTests
             ? "\"postbuildProcessorId\":\"nfc.synthetic.ctrlram\"," +
               "\"postbuildBranch\":\"single-chip\","
             : string.Empty;
-        string bundle = Bundle().Replace(
-            "\"runtimeRegistrations\": []",
-            "\"runtimeRegistrations\":[{" +
-            $"\"workflowId\":\"{workflowId}\"," +
-            "\"icId\":\"NT12345\"," +
-            "\"profileId\":\"synthetic-profile\"," +
-            "\"profileVersion\":\"9.8.7\"," +
-            ctrlRamFields +
-            $"\"reportMetadataMapId\":{reportMapValue}}}]",
-            StringComparison.Ordinal);
-        using TempWorkspace workspace = WriteIndex(bundle);
-
-        _ = Assert.Throws<InvalidDataException>(() =>
-            ProfileBundlePackageTrustIndexLoader.Load(
-                Path.Combine(workspace.Root, "package-trust-index.json")));
+        foreach (string field in new[] { "reportMetadataMapId", "memoryLayoutContextMapId" })
+        {
+            string bundle = Bundle().Replace(
+                "\"runtimeRegistrations\": []",
+                "\"runtimeRegistrations\":[{" +
+                $"\"workflowId\":\"{workflowId}\"," +
+                "\"icId\":\"NT12345\"," +
+                "\"profileId\":\"synthetic-profile\"," +
+                "\"profileVersion\":\"9.8.7\"," +
+                ctrlRamFields +
+                $"\"{field}\":{reportMapValue}}}]",
+                StringComparison.Ordinal);
+            using TempWorkspace workspace = WriteIndex(bundle);
+            _ = Assert.Throws<InvalidDataException>(() =>
+                ProfileBundlePackageTrustIndexLoader.Load(Path.Combine(workspace.Root, "package-trust-index.json")));
+        }
     }
 
     private static TempWorkspace WriteIndex(params string[] bundles)
@@ -235,7 +240,7 @@ public sealed class ProfileBundlePackageTrustIndexLoaderTests
         var workspace = TempWorkspace.Create("package-trust-index");
         string json = $$"""
             {
-              "schemaVersion": "1.2",
+              "schemaVersion": "1.3",
               "trustIndexId": "test-profile-bundles",
               "trustIndexVersion": "1.0.0",
               "trustAnchorBindingId": "test-profile-bundle-v2",

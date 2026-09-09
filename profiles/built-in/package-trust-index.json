@@ -1,7 +1,7 @@
 {
-  "schemaVersion": "1.2",
+  "schemaVersion": "1.3",
   "trustIndexId": "built-in-profile-bundles",
-  "trustIndexVersion": "1.1.4.1",
+  "trustIndexVersion": "1.1.4.2",
   "trustAnchorBindingId": "built-in-profile-bundle-v2",
   "bundles": [
     {
@@ -370,6 +370,7 @@
           "icId": "NT51919",
           "profileId": "nt51919-ctrlram-replace-fw200-single",
           "profileVersion": "0.3.0",
+          "memoryLayoutContextMapId": "nt51919-standard-merge-256k",
           "postbuildProcessorId": "nfc.nt51919.ctrlram-postbuild-v1",
           "postbuildBranch": "single-chip"
         },
@@ -378,6 +379,7 @@
           "icId": "NT51919",
           "profileId": "nt51919-ctrlram-replace-fw1x-cascade",
           "profileVersion": "0.5.0",
+          "memoryLayoutContextMapId": "nt51919-standard-merge-256k",
           "postbuildProcessorId": "nfc.nt51919.ctrlram-postbuild-v1",
           "postbuildBranch": "cascade"
         },
@@ -446,6 +448,7 @@
           "icId": "NT51950",
           "profileId": "nt51950-ctrlram-replace-fw200-single",
           "profileVersion": "0.5.0",
+          "memoryLayoutContextMapId": "nt51950-standard-merge-256k",
           "postbuildProcessorId": "nfc.nt51950.ctrlram-postbuild-v1",
           "postbuildBranch": "single-chip"
         },
@@ -454,6 +457,7 @@
           "icId": "NT51950",
           "profileId": "nt51950-ctrlram-replace-fw1x-cascade",
           "profileVersion": "0.7.0",
+          "memoryLayoutContextMapId": "nt51950-standard-merge-512k",
           "postbuildProcessorId": "nfc.nt51950.ctrlram-postbuild-v1",
           "postbuildBranch": "cascade"
         }
@@ -474,6 +478,7 @@
           "icId": "NT51951",
           "profileId": "nt51951-ctrlram-replace-fw200-single",
           "profileVersion": "0.5.0",
+          "memoryLayoutContextMapId": "nt51951-standard-merge-512k",
           "postbuildProcessorId": "nfc.nt51951.ctrlram-postbuild-v1",
           "postbuildBranch": "single-chip"
         },
@@ -482,6 +487,7 @@
           "icId": "NT51951",
           "profileId": "nt51951-ctrlram-replace-fw1x-cascade",
           "profileVersion": "0.7.0",
+          "memoryLayoutContextMapId": "nt51951-standard-merge-512k",
           "postbuildProcessorId": "nfc.nt51951.ctrlram-postbuild-v1",
           "postbuildBranch": "cascade"
         }

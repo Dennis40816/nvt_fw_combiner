@@ -297,6 +297,42 @@ Intermediate `green.trx` and `green-final.trx` preserve harness failures (reused
 startup in a loaded window; requested unavailable General mode), not passing
 evidence. No UI Build output, native acceptance, full suite or all-Golden claim.
 
+## CtrlRAM reportless overview completion — 2026-09-09
+
+`UI-114-CTRLRAM-CONTEXT-58` adds exact display-only Standard counterparts for
+NT51919/50/51, keeping their Report plans empty. NT51919 uses existing family
+facts. NT51950/51 show DP image / TP FW overlay by declared ancestry, not a new
+DP Code map. Short TP-work images have no complete DP-container claim.
+
+| Scoped run | Result | Measured test duration |
+| --- | --- | --- |
+| Application MemoryLayout + canonical catalog tests | 85/85; neutral fallback and capability guards | 0.33 s |
+| Bootstrap context/admission/Report/envelope + selected 19/29/50/51 byte cases | 81/81; six exact bindings, ten fingerprint pins, full/TP-only partitions and locked Golden contracts | 7 s |
+| Infrastructure trust-index loader + capability-policy tests | 40/40 | 0.38 s |
+| Architecture package materializer/admission + dependency tests | 28/28 | 3 s |
+| Actual headless MainWindow Single19/50/51 + Cascade50/51 + preview-error isolation | 7/7; Light EN and Dark zh, valid Build and no invented Report | 23 s |
+| Python reviewed-source pins + mutated trust-index rejection + release-manifest fixture | 5 + 1 + 1 passed | 1.31 + 3.15 + 5.11 s |
+
+All listed tests have zero skips. Evidence is under
+`D:/NvtFwCombiner-TestArea/evidence/v114-ctrlram-context58/`:
+`application.trx`, `bootstrap-bytes.trx`, `infrastructure-green.trx`,
+`architecture-green.trx`, `ui-final.trx`, `derived-pins.xml`, `python-pins.xml`,
+`release-manifest-fixture.xml`.
+`red-complete.trx` reproduces the three neutral overviews before implementation;
+earlier intermediate failures are retained, not counted as passes. The new
+context initially exposed a missing runtime-binding transport, now exercised
+through exact publication/rebinding checks. An existing Architecture assertion
+still expected trust-index schema1.1 (the starting source was1.2); it now pins1.3.
+No expected Golden bytes, profile/family map geometry, operation or processor
+definition changed. Existing CRC-only difference contracts stay bounded and
+are executed, not broadened. The six package registrations affect ten dynamic
+fingerprints; source hashes were mechanically synchronized with `sync_derived`.
+
+Primary inspected actual captures in `green/`, including EN19/50 and Dark-zh51.
+These are Avalonia headless renders, not native Windows/DPI acceptance or an
+all-IC/full-release Golden pass. The implementation remains a local R3 candidate
+pending exact-head external owner attestation; it is not integrated/published.
+
 ## Current Home and Settings inventory — 2026-09-08
 
 `ShellScreenInventoryTests` renders the real MainWindow over isolated preference

@@ -18,8 +18,8 @@ public sealed partial class RepositoryBoundaryTests
             "package-trust-index.json");
         using JsonDocument document = JsonDocument.Parse(File.ReadAllText(trustIndexPath));
         JsonElement root = document.RootElement;
-        Assert.Equal("1.2", root.GetProperty("schemaVersion").GetString());
-        Assert.Equal("1.1.4.1", root.GetProperty("trustIndexVersion").GetString());
+        Assert.Equal("1.3", root.GetProperty("schemaVersion").GetString());
+        Assert.Equal("1.1.4.2", root.GetProperty("trustIndexVersion").GetString());
 
         JsonElement[] ctrlRamRegistrations =
         [
@@ -201,7 +201,7 @@ public sealed partial class RepositoryBoundaryTests
 
         using var document = JsonDocument.Parse(File.ReadAllText(trustIndexPath));
         JsonElement root = document.RootElement;
-        Assert.Equal("1.2", root.GetProperty("schemaVersion").GetString());
+        Assert.Equal("1.3", root.GetProperty("schemaVersion").GetString());
         Assert.Equal("built-in-profile-bundles", root.GetProperty("trustIndexId").GetString());
         Assert.False(string.IsNullOrWhiteSpace(root.GetProperty("trustIndexVersion").GetString()));
         Assert.Equal("built-in-profile-bundle-v2", root.GetProperty("trustAnchorBindingId").GetString());

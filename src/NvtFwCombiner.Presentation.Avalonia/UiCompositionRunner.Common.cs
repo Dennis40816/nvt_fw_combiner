@@ -46,9 +46,11 @@ internal static partial class UiCompositionRunner
             ctrlRamRegions);
         overview = [.. layout.SectionLocators.Select(section =>
         {
-            string title = text.GetMemorySectionTitle(section.ContentRole);
+            string title = section.IsImageContainer ? text.MemoryDpImageLabel : text.GetMemorySectionTitle(section.ContentRole);
             return new MemoryCoverageSegmentViewModel(
-                FormatMemoryRange(section.Range), title, text.MemorySectionContextDetail,
+                FormatMemoryRange(section.Range), title,
+                section.IsImageContainer ? text.MemoryDpImageContextDetail :
+                    section.IsImageOverlay ? text.MemoryTpOverlayContextDetail : text.MemorySectionContextDetail,
                 section.ContentRole == MemoryContentRole.Tp ? MemoryCoverageFillRole.Tp :
                 section.ContentRole == MemoryContentRole.Dp ? MemoryCoverageFillRole.Dp :
                 MemoryCoverageFillRole.Neutral, section.Range.Length,

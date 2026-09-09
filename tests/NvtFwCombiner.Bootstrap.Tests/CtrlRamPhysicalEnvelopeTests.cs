@@ -30,6 +30,7 @@ public sealed class CtrlRamPhysicalEnvelopeTests
     [Theory]
     [InlineData("NT51950", "tp-firmware-input")]
     [InlineData("NT51951", "expected-output")]
+    [InlineData("NT51951", "tp-firmware-input")]
     public void CascadeDiscoveryMatchesExactCanonicalMapWithoutExpandingWrites(string ic, string baseArtifact)
     {
         JsonElement fixture = CanonicalGoldenTestData.LoadDirectCase("ctrlram-replace", "nt51951-fw200-cascade2-auto-prj-599-20260731");
@@ -59,6 +60,12 @@ public sealed class CtrlRamPhysicalEnvelopeTests
         Assert.Equal(canonical.Range.Start, diff.Start);
         Assert.Equal(canonical.Range.Length, diff.Length);
         MemoryLayoutSnapshot layout = MemoryLayoutProjector.Project(session.ExactCapability, session, composition, display.Regions);
+        MemoryLayoutSectionLocator tp = Assert.Single(layout.SectionLocators, section => section.ContentRole == MemoryContentRole.Tp);
+        Assert.Equal(new ByteRange(0xA000, 0x2D000), tp.Range);
+        Assert.True(tp.IsImageOverlay);
+        Assert.Equal(baseArtifact == "expected-output", layout.SectionLocators.Any(section => section.ContentRole == MemoryContentRole.Dp));
+        Assert.Equal(baseArtifact == "expected-output" ? 3 : 2, layout.SectionLocators.Count);
+        Assert.Equal(layout.Capacity, layout.SectionLocators.Sum(section => section.Range.Length));
         Assert.Equal(0x1400, layout.AfterSegments.Where(segment => ReferenceEquals(segment.CanonicalRegion, canonical)).Sum(segment => segment.Range.Length));
         Assert.Equal(0x5C00, Assert.Single(display.Regions, region => region.Role == CtrlRamRegionRole.Normal).Length);
         Assert.Equal(0x20FC, Assert.Single(display.Regions, region => region.Role == CtrlRamRegionRole.Vn).Length);

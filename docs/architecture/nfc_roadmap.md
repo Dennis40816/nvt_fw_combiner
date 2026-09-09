@@ -532,8 +532,8 @@ promotion or a change to output bytes.
 | Current ICs | Existing canonical context | Remaining work |
 | --- | --- | --- |
 | NT51917/23/26/27/28/29/32 | Exact same-IC Standard `ReportClassification` companion is already bound to CtrlRAM routes. | Retain existing coverage and verify every declared route/variant; no new IC/filename/capacity lookup table. |
-| NT51919 | Canonical Standard outer DP/TP Code regions exist through a declared family alias; the CtrlRAM route currently has an empty companion plan. | Extend the upstream exact binding through the canonical owner without inventing Report semantics merely to show a label. |
-| NT51950/51 | Standard defines a whole `dp-container` image plus its child `tp-overlay`, not a standalone DP Code region. CtrlRAM currently has no companion. | Preserve the container/overlay distinction, agree its presentation, and add an exact canonical context binding. Do not infer a Standard or AB counterpart from capacity or a filename. |
+| NT51919 | Unit58 binds the existing same-IC Standard map, whose regions reuse the declared 51929 family. Report metadata remains empty. | Locally implemented and verified; exact-head R3 owner attestation remains before integration. |
+| NT51950/51 | Unit58 binds existing Standard `dp-container` / child `tp-overlay` as separate display-only context; UI labels DP image and TP FW, preserving disconnected ranges. | Locally implemented and verified, including TP-work without a DP claim; exact-head R3 owner attestation remains before integration. No capacity/filename map selection. |
 
 Read-only confirmation: both NT51950/51 Standard profiles declare
 `copy-dp-container` at sequence 100 followed by `overlay-tp` at sequence 200.
@@ -541,8 +541,11 @@ The latter replaces `[0x0A000,0x37000)` from the same offsets in TP input;
 bytes outside that range retain DP-container content. `processorStages` is
 empty. AB is a distinct layout contract. Proposed display wording is DP image
 as the base with an explicit TP FW overlay, not an inferred DP Code complement.
-The owner has been asked about that presentation; no classification-profile
-change is yet claimed complete.
+The owner approved implementing this presentation. Unit58 changes six explicit
+package bindings and ten capability fingerprints, not canonical map geometry or
+output writes. Exact-head external owner attestation remains pending; local
+evidence and limitations are recorded in `tests/README.md`. NT51928BT/Desay and
+unverified IC × mode × topology combinations remain outside this completion.
 
 The supporting-list correction is a separate Presentation-only unit:
 reuse already-projected primary rows and existing card/button styles; initially

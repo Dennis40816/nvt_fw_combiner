@@ -10,6 +10,23 @@ namespace NvtFwCombiner.Application.Tests.MemoryLayout;
 
 public sealed partial class MemoryLayoutProjectorTests
 {
+    /// <summary>No explicit or Report companion means neutral context, even if the primary has familiar labels.</summary>
+    [Fact]
+    public void NoAdmittedCompanionRemainsNeutral()
+    {
+        ProjectionFixture fixture = CreateFixture(CompositionKind.Replace,
+            customWorkflowId: ExperienceIds.CtrlRamReplace, ctrlRamMap: true);
+        ActiveSessionSnapshot session = CreateSession(fixture,
+            Slot("reference-base", AuthoringSlotLifecycle.Verified, Capacity),
+            Slot("dp-replacement", AuthoringSlotLifecycle.Verified, Capacity));
+        MemoryLayoutSnapshot layout = MemoryLayoutProjector.Project(fixture.Capability, session, fixture.Composition);
+        MemoryLayoutSectionLocator section = Assert.Single(layout.SectionLocators);
+        Assert.Equal(new ByteRange(0, Capacity), section.Range);
+        Assert.Equal(MemoryContentRole.General, section.ContentRole);
+        Assert.Null(section.MapId);
+        Assert.Null(section.CanonicalRegion);
+    }
+
     /// <summary>Typed trace eligibility never changes the raw byte partition or planned operations.</summary>
     [Theory]
     [InlineData(CompositionKind.Merge, FirmwareRegionKind.Header, false)]

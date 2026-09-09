@@ -15,6 +15,9 @@ public sealed record MemoryLayoutSectionLocator
         Range = range;
         MapId = map?.MapId;
         CanonicalRegion = region;
+        IsImageContainer = region?.Kind == FirmwareRegionKind.Image;
+        IsImageOverlay = region is not null && map is not null && region.Kind == FirmwareRegionKind.Code &&
+            HasImageAncestor(region, map);
         ContentRole = region?.Kind == FirmwareRegionKind.Unmapped
             ? MemoryContentRole.Unmapped
             : region?.Owner == FirmwareRegionOwner.Tp ? MemoryContentRole.Tp
@@ -32,6 +35,22 @@ public sealed record MemoryLayoutSectionLocator
     public FirmwareRegion? CanonicalRegion { get; }
     /// <summary>TP, DP, explicit Unmapped, or neutral General context.</summary>
     public MemoryContentRole ContentRole { get; }
+    /// <summary>The canonical section is an image container, not standalone firmware code.</summary>
+    public bool IsImageContainer { get; }
+    /// <summary>The section is code declared inside an image owned by another firmware component.</summary>
+    public bool IsImageOverlay { get; }
+
+    private static bool HasImageAncestor(FirmwareRegion region, FirmwareImageMap map)
+    {
+        string? parentId = region.ParentRegionId;
+        while (parentId is not null && map.Regions.FirstOrDefault(item => item.RegionId == parentId) is { } parent)
+        {
+            if (parent.Kind == FirmwareRegionKind.Image && parent.Owner == FirmwareRegionOwner.Dp &&
+                region.Owner == FirmwareRegionOwner.Tp) { return true; }
+            parentId = parent.ParentRegionId;
+        }
+        return false;
+    }
 }
 
 public static partial class MemoryLayoutProjector
@@ -45,7 +64,7 @@ public static partial class MemoryLayoutProjector
         }
 
         var output = new ByteRange(0, capacity);
-        FirmwareImageMap[] maps =
+        FirmwareImageMap[] maps = capability.MemoryLayoutContext is { } explicitContext ? [explicitContext.Map] :
         [
             .. capability.MetadataPlan.Definition.Entries
                 .Where(static entry => entry.Purposes.Contains(MetadataReferencePurpose.ReportClassification))
@@ -60,14 +79,15 @@ public static partial class MemoryLayoutProjector
         FirmwareImageMap map = maps[0];
         FirmwareRegion[] codes =
         [
-            .. map.Regions.Where(region => region.Kind == FirmwareRegionKind.Code &&
+            .. map.Regions.Where(region => (region.Kind == FirmwareRegionKind.Code ||
+                (region.Kind == FirmwareRegionKind.Image && region.Owner == FirmwareRegionOwner.Dp)) &&
                 region.Owner is FirmwareRegionOwner.Tp or FirmwareRegionOwner.Dp &&
                 output.Contains(region.Range)),
         ];
         Dictionary<string, FirmwareRegion> byId = map.Regions.ToDictionary(static region => region.RegionId);
         codes = [.. codes.Where(region => !HasAncestor(region, codes, byId, sameOwner: true))];
-        if (codes.Any(left => codes.Any(right => !ReferenceEquals(left, right) &&
-            left.Range.Start < right.Range.EndExclusive && right.Range.Start < left.Range.EndExclusive)))
+        if (codes.Any(left => codes.Any(right => !ReferenceEquals(left, right) && left.Range.Overlaps(right.Range) &&
+            !HasAncestor(left, [right], byId) && !HasAncestor(right, [left], byId))))
         {
             return context;
         }
@@ -89,7 +109,8 @@ public static partial class MemoryLayoutProjector
         {
             var range = new ByteRange(boundaries[i - 1], boundaries[i] - boundaries[i - 1]);
             FirmwareRegion? region = gaps.FirstOrDefault(candidate => candidate.Range.Contains(range)) ??
-                codes.FirstOrDefault(candidate => candidate.Range.Contains(range));
+                codes.FirstOrDefault(candidate => candidate.Range.Contains(range) &&
+                    !codes.Any(child => child.Range.Contains(range) && HasAncestor(child, [candidate], byId)));
             if (result.Count > 0 && ReferenceEquals(result[^1].CanonicalRegion, region))
             {
                 range = new ByteRange(result[^1].Range.Start, range.EndExclusive - result[^1].Range.Start);
