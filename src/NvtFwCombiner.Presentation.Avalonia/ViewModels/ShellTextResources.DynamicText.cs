@@ -412,7 +412,7 @@ internal sealed partial class ShellTextResources
     {
         return bytes > 0 && bytes % 1024 == 0
             ? FormattableString.Invariant($"{bytes / 1024} KiB")
-            : FormattableString.Invariant($"{bytes} bytes");
+            : FormattableString.Invariant($"{bytes} {(bytes == 1 ? "byte" : "bytes")}");
     }
 
     public string GetReplaceMemorySummary(string mode)

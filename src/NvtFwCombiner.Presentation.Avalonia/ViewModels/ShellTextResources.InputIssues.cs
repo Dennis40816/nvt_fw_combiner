@@ -1,4 +1,5 @@
 using NvtFwCombiner.Application.Authoring;
+using NvtFwCombiner.Application.InputInspection;
 using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
@@ -17,7 +18,8 @@ internal sealed partial class ShellTextResources
     {
         bool error = status.InspectionLifecycle == AuthoringSlotLifecycle.Error;
         string code = status.InspectionIssueCode ?? string.Empty;
-        string summary = GetInputIssueHelp(code, error ? "error" : "warning", status.Inspection?.DiagnosticEvidence)?.Title
+        string summary = GetIgnoredTrailingInputDescription(status)
+            ?? GetInputIssueHelp(code, error ? "error" : "warning", status.Inspection?.DiagnosticEvidence)?.Title
             ?? GetInputSlotInspectionStatus(status);
         if (error && code == "input.source-view.incomplete" && status.Inspection is { } inspection &&
             inspection.ActualLength < inspection.RequiredEndExclusive)
@@ -34,6 +36,21 @@ internal sealed partial class ShellTextResources
                 : error ? SelectLanguage("Check the input file and load it again.", "請檢查輸入檔並重新載入。")
                     : SelectLanguage($"Confirm this is the intended {subject}.", $"請確認這是預期的 {subject}。"),
         };
+    }
+
+    private string? GetIgnoredTrailingInputDescription(AuthoringInputSlotStatus status)
+    {
+        return status.InspectionLifecycle == AuthoringSlotLifecycle.Warning &&
+            status.InspectionNextAction == CompiledInputArtifactInspectionNextAction.ReviewIgnoredTrailingBytes &&
+            status.Inspection is
+            {
+                Severity: CompiledInputArtifactInspectionSeverity.Warning,
+                NextAction: CompiledInputArtifactInspectionNextAction.ReviewIgnoredTrailingBytes,
+                AcceptedSnapshotRange: { Length: > 0 } accepted,
+                IgnoredTrailingRange: { Length: > 0 } ignored,
+            } inspection ? SelectLanguage(
+            $"Input: {FormatInputLength(inspection.ActualLength)} · Used: {FormatInputLength(accepted.Length)}\nTrailing {FormatInputLength(ignored.Length)} will be ignored.",
+            $"輸入：{FormatInputLength(inspection.ActualLength)} · 使用：{FormatInputLength(accepted.Length)}\n尾端 {FormatInputLength(ignored.Length)} 將被忽略。") : null;
     }
 
     internal IssueCardViewModel CreateIssueCard(string subject, string summary, bool error)
