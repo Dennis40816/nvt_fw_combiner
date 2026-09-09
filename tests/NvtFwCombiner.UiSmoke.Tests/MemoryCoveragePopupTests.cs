@@ -546,13 +546,13 @@ public sealed class MemoryCoveragePopupTests
         }
     }
 
-    /// <summary>Only a short contrasting stem identifies the leaf; both popup directions respect the active theme.</summary>
+    /// <summary>The contrasting stem connects the selected leaf directly to the notch in both directions and themes.</summary>
     [AvaloniaTheory]
     [InlineData(false, false)]
     [InlineData(false, true)]
     [InlineData(true, false)]
     [InlineData(true, true)]
-    public void CardAnchorUsesAShortContrastingStem(bool above, bool dark)
+    public void CardAnchorConnectsTheLeafDirectlyToTheNotch(bool above, bool dark)
     {
         MemoryCoverageSegmentViewModel[] slices = MemoryCoverageBarProjectionTests.Example();
         Window window = above ? CreateBottomWindow(dark, slices, out MemoryCoverageBar bar) : CreateWindow(388, dark, slices, out bar);
@@ -562,25 +562,19 @@ public sealed class MemoryCoveragePopupTests
             Assert.True(bar.TryFindResource("NfcTextStrongBrush", bar.ActualThemeVariant, out object? expectedStroke));
             global::Avalonia.Controls.Shapes.Ellipse dot = Assert.Single(window.GetVisualDescendants().OfType<global::Avalonia.Controls.Shapes.Ellipse>(),
                 item => item.Name == "MemoryCardAnchor");
-            global::Avalonia.Controls.Shapes.Line[] stems = [.. dot.GetVisualParent()!.GetVisualDescendants().OfType<global::Avalonia.Controls.Shapes.Line>()];
-            Assert.NotEmpty(stems);
-            double totalLength = 0;
-            foreach (global::Avalonia.Controls.Shapes.Line stem in stems)
-            {
-                Assert.Equal(expectedStroke, stem.Stroke);
-                Assert.Equal(stem.StartPoint.X, stem.EndPoint.X);
-                double length = Math.Abs(stem.EndPoint.Y - stem.StartPoint.Y);
-                Assert.InRange(length, 0.1, 18);
-                totalLength += length;
-                foreach (Point end in new[] { stem.StartPoint, stem.EndPoint })
-                {
-                    Point rendered = stem.TranslatePoint(end, window)!.Value;
-                    Point anchor = BoundsInWindow(dot, window).Center;
-                    Assert.InRange(Math.Abs(rendered.X - anchor.X), 0, 1);
-                    Assert.InRange(Math.Abs(rendered.Y - anchor.Y), 0, 18);
-                }
-            }
-            Assert.InRange(totalLength, 17.5, 18.5);
+            global::Avalonia.Controls.Shapes.Polygon notch = Assert.Single(window.GetVisualDescendants()
+                .OfType<global::Avalonia.Controls.Shapes.Polygon>(), item => item.Name == "MemoryCardNotch");
+            global::Avalonia.Controls.Shapes.Line stem = Assert.Single(dot.GetVisualParent()!
+                .GetVisualDescendants().OfType<global::Avalonia.Controls.Shapes.Line>());
+            Point anchor = BoundsInWindow(dot, window).Center;
+            Point tip = notch.TranslatePoint(notch.Points[1], window)!.Value;
+            Point start = stem.TranslatePoint(stem.StartPoint, window)!.Value;
+            Point end = stem.TranslatePoint(stem.EndPoint, window)!.Value;
+            Assert.Equal(expectedStroke, stem.Stroke);
+            Assert.InRange(Math.Abs(start.X - anchor.X), 0, 0.5);
+            Assert.InRange(Math.Abs(end.X - tip.X), 0, 0.5);
+            Assert.InRange(Math.Abs(start.Y - Math.Min(anchor.Y, tip.Y)), 0, 0.5);
+            Assert.InRange(Math.Abs(end.Y - Math.Max(anchor.Y, tip.Y)), 0, 0.5);
         }
         finally { window.Close(); }
     }

@@ -582,6 +582,16 @@ memory tests). The primary inspected the same full-window Normal capture;
 GPT-5.6 Terra/high scoped Polytail found no P0–P3 issues against blobs
 `c74f0bdf` / `d091c174`. Geometry and firmware boundaries above still apply.
 
+The owner then requested a direct leaf-to-notch connection. The 18 px cap is
+removed; the existing text-clearance gaps remain. On base `7fff038b`, four
+rendered endpoint checks fail before the fix (16–35 px still disconnected).
+`D:/NvtFwCombiner-TestArea/evidence/v114-memory-connector72/green.trx` passes
+**18/18, zero skipped, 34 s** with the same edge/gap/NT51927/AB coverage above
+and the renamed `CardAnchorConnectsTheLeafDirectlyToTheNotch`. The full Normal
+capture shows the continuous line, unchanged card position and readable text.
+Primary scoped Polytail passes with no P0–P3 findings; this is local UI
+evidence, not an integration or release pass.
+
 ## Running and maintaining this view
 
 Use [`CONTRIBUTING.md`](../CONTRIBUTING.md) to initialize the existing fixed

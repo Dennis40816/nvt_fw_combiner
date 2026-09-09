@@ -565,10 +565,10 @@ public sealed class MemoryCoverageBar : UserControl
         canvas.Children.Add(outline);
         // A left-edge slice may align with local text. Interrupt only the decorative
         // stem behind those glyph bounds; its endpoint still identifies the exact slice.
-        // Keep only a short high-contrast marker next to the selected leaf.
+        // Connect the selected leaf directly to the card notch.
         // The wider local-view projection continues to use the quiet connector brush.
-        double cursor = Math.Max(Math.Min(tip, terminal), terminal - 18);
-        double limit = Math.Min(Math.Max(tip, terminal), terminal + 18);
+        double cursor = Math.Min(tip, terminal);
+        double limit = Math.Max(tip, terminal);
         foreach (Rect label in labels.Where(rect => anchor >= rect.Left - 2 && anchor <= rect.Right + 2).OrderBy(static rect => rect.Top))
         {
             double start = Math.Clamp(label.Top - 2, cursor, limit);
