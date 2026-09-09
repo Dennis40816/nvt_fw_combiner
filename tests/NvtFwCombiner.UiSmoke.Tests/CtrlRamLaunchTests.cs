@@ -1,5 +1,11 @@
+using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Controls.Primitives;
+using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
+using Avalonia.Input;
+using Avalonia.Threading;
+using Avalonia.VisualTree;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Presentation.Avalonia;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
@@ -20,6 +26,8 @@ public sealed class CtrlRamLaunchTests
 
     private static string BasePath => FixturePath("expected/NT51950_Flashcode_BOE1540_Faurecia_Chery_D86T80_20260709.bin");
     private static string NfPath => FixturePath("inputs/postbuild/nt51950-postbuild-nf-ctrlram.bin");
+    private static string NormalPath => FixturePath("inputs/postbuild/nt51950-postbuild-normal-ctrlram.bin");
+    private static string VnPath => FixturePath("inputs/postbuild/nt51950-postbuild-vn-ctrlram.bin");
     private static string[] Arguments => ["--workflow", "ctrlram-replace", "--ic", "NT51950",
         "--ic-num", "single", "--base", BasePath, "--ctrlram", "replace-ctrlram-nf=" + NfPath];
 
@@ -86,6 +94,9 @@ public sealed class CtrlRamLaunchTests
     [AvaloniaFact]
     public async Task RealStartupLoadsCtrlRamAndStopsBeforeAnyRun()
     {
+        string[] startupArguments = [.. Arguments,
+            "--ctrlram", "replace-ctrlram-normal=" + NormalPath,
+            "--ctrlram", "replace-ctrlram-vn=" + VnPath];
         using var workspace = TempWorkspace.Create("ctrlram-launch");
         PresentationHostServices services = await CreateServicesAsync(workspace, useRetainedDpReplacePolicy: false);
         var execution = new NoRunExecution();
@@ -95,7 +106,7 @@ public sealed class CtrlRamLaunchTests
             original.FirmwareInspection, original.OutputNaming, execution), services.FileReveal, services.SupportMatrix,
             services.SystemInformation, services.SystemDiagnosticsExporter, services.RawBinaryEditorFileSessions,
             services.CanonicalCatalogLoader, services.ExternalEnvironmentLoader, services.LocalFiles);
-        using var window = new MainWindow(UiLaunchOptions.Parse(Arguments), StartupTraceSession.Disabled,
+        using var window = new MainWindow(UiLaunchOptions.Parse(startupArguments), StartupTraceSession.Disabled,
             services, ShellPreferenceSnapshot.Default);
         MainWindowViewModel shell = Assert.IsType<MainWindowViewModel>(window.DataContext);
         window.Show();
@@ -112,11 +123,68 @@ public sealed class CtrlRamLaunchTests
             FirmwareSlotViewModel nf = Assert.Single(shell.Replace.ReplaceSlots, s => s.SlotId == "replace-ctrlram-nf");
             Assert.Equal(NfPath, nf.FilePath);
             Assert.True(nf.IsSemanticStateVerified);
+            FirmwareSlotViewModel normal = Assert.Single(shell.Replace.ReplaceSlots, s => s.SlotId == "replace-ctrlram-normal");
+            Assert.Equal(NormalPath, normal.FilePath);
+            Assert.True(normal.IsSemanticStateWarning);
+            Assert.NotNull(normal.IssueCard);
+            FirmwareSlotViewModel vn = Assert.Single(shell.Replace.ReplaceSlots, s => s.SlotId == "replace-ctrlram-vn");
+            Assert.Equal(VnPath, vn.FilePath);
             Assert.NotEmpty(shell.Replace.ReplaceCoverageSegments);
             Assert.Empty(shell.Reports.ReportHistoryEntries);
             Assert.False(shell.Reports.HasLoadedReport);
-            Assert.True(window.FindControl<Grid>("ShellInteractionHost")!.IsEnabled);
+            Grid shellInteractionHost = window.FindControl<Grid>("ShellInteractionHost")!;
+            Assert.True(shellInteractionHost.IsEnabled);
+            Assert.True(shellInteractionHost.IsHitTestVisible);
+            Assert.False(window.FindControl<ContentControl>("CatalogLoadingSurfaceHost")!.IsVisible);
             Assert.Equal(0, execution.Calls);
+
+            ToggleButton warningBadge = Assert.Single(window.GetVisualDescendants().OfType<ToggleButton>(),
+                control => control.Classes.Contains("slotStateAction") && ReferenceEquals(control.DataContext, normal));
+            Assert.True(warningBadge.IsEffectivelyEnabled);
+            Assert.True(warningBadge.IsEffectivelyVisible);
+            ToolTip warningTip = Assert.IsType<ToolTip>(ToolTip.GetTip(warningBadge));
+            warningBadge.BringIntoView();
+            Dispatcher.UIThread.RunJobs();
+            AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+            window.MouseMove(new Point(4, 4), RawInputModifiers.None);
+            Point badgeCenter = warningBadge.TranslatePoint(
+                new Point(warningBadge.Bounds.Width / 2, warningBadge.Bounds.Height / 2), window)!.Value;
+            Assert.InRange(badgeCenter.X, 0, window.ClientSize.Width);
+            Assert.InRange(badgeCenter.Y, 0, window.ClientSize.Height);
+            window.MouseMove(badgeCenter, RawInputModifiers.None);
+            await Task.Delay(TimeSpan.FromMilliseconds(350), TestContext.Current.CancellationToken);
+            Dispatcher.UIThread.RunJobs();
+            AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+            Assert.True(warningBadge.IsPointerOver);
+            Assert.True(ToolTip.GetIsOpen(warningBadge));
+            Assert.Same(normal, warningTip.DataContext);
+            string[] tipText = [.. warningTip.GetVisualDescendants().OfType<TextBlock>()
+                .Where(block => block.IsEffectivelyVisible && block.Bounds.Height > 0)
+                .Select(block => block.Text ?? string.Empty)];
+            Assert.Contains(normal.Title, tipText);
+            Assert.Contains(normal.IssueCard!.Summary, tipText);
+            await Task.Delay(TimeSpan.FromMilliseconds(200), TestContext.Current.CancellationToken);
+            Dispatcher.UIThread.RunJobs();
+            AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+            string evidenceDirectory = Path.Combine(
+                Assert.IsType<string>(Environment.GetEnvironmentVariable("NFC_TEST_AREA_ROOT")),
+                "evidence", "v114-ctrlram-slot47");
+            _ = Directory.CreateDirectory(evidenceDirectory);
+            using (Avalonia.Media.Imaging.Bitmap? frame = window.GetLastRenderedFrame())
+            {
+                Assert.NotNull(frame);
+                frame.Save(Path.Combine(evidenceDirectory, "main-window-normal-warning.png"));
+            }
+
+            window.MouseMove(new Point(4, 4), RawInputModifiers.None);
+            await Task.Delay(TimeSpan.FromMilliseconds(350), TestContext.Current.CancellationToken);
+            Dispatcher.UIThread.RunJobs();
+            AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+            Assert.False(warningBadge.IsPointerOver);
+            Assert.False(ToolTip.GetIsOpen(warningBadge));
+            Assert.True(warningBadge.Focus(NavigationMethod.Tab));
+            Dispatcher.UIThread.RunJobs();
+            Assert.True(ToolTip.GetIsOpen(warningBadge));
 
             MainWindowViewModel manual = PresentationTestHost.CreateProductViewModel();
             manual.BeginCtrlRamReplaceFromHomeCommand.Execute(null);
@@ -125,6 +193,8 @@ public sealed class CtrlRamLaunchTests
             manual.WorkflowSession.ConfirmWorkflowContextCommand.Execute(null);
             await manual.WorkflowSession.SetSlotFileAsync("replace-base", BasePath, TestContext.Current.CancellationToken);
             await manual.WorkflowSession.SetSlotFileAsync("replace-ctrlram-nf", NfPath, TestContext.Current.CancellationToken);
+            await manual.WorkflowSession.SetSlotFileAsync("replace-ctrlram-normal", NormalPath, TestContext.Current.CancellationToken);
+            await manual.WorkflowSession.SetSlotFileAsync("replace-ctrlram-vn", VnPath, TestContext.Current.CancellationToken);
             Assert.Equal(manual.Replace.ReplaceCoverageSegments.Select(s => (s.RangeLabel, s.LengthLabel, s.SourceLabel)),
                 shell.Replace.ReplaceCoverageSegments.Select(s => (s.RangeLabel, s.LengthLabel, s.SourceLabel)));
         }
