@@ -520,13 +520,39 @@ acceptance and the existing integration/release gates remain open.
 | 4 | Report physical-section grouping (remaining 12) | Reuse existing typed groups only after the grouping interaction and historical replay-coverage boundary are accepted; do not invent bytes between raw runs. |
 | 5 | Memory Layout (14), active bounded work | All-IC DP/TP classification inventory is complete; context-binding implementation and its remaining integration gate are recorded below. The three-row supporting-list correction is locally implemented and committed (`eb314ebe`, language correction `9c1b1757`), not another implementation TODO. The [three-scenario responsive checkpoint](../../tests/README.md#memory-layout-responsive-checkpoint--2026-09-09) passes 18 viewport/theme/language states; other workflows and native acceptance remain open. Retain typed section/address-space authority, exact rails and independent CtrlRAM endpoints. Master/Slave hover-to-open was approved on 2026-09-09; the local interaction checkpoint below supersedes the earlier design-only status. |
 | 6 | First-entry IC selection (16) | Resolve accepted-context lifetime, invalidation and Cancel/Back before cross-page behavior changes. |
-| 7 | Session diagnostics (15) | Retain privacy, lifecycle and separation from immutable run reports. |
+| 7 | Session diagnostics (15) | Existing bounded current-session service, Important/Debug disclosure, privacy-filtered export and separation from immutable reports are inventoried and locally tested; see [current-session evidence](../../tests/README.md#session-activity-inventory--2026-09-10). The [selection/focus correction](../../tests/README.md#activity-selection-and-focus-correction--2026-09-10) retains the existing screen. Nonempty warning/error rendering and native acceptance remain open; do not implement a second history owner. |
 
 The per-page custom-options preview also remains awaiting visual acceptance
 within the inventory/shared-visual scope, not a completed layout. Final
 `1.1.4` closure requires combined affected regression, packaged Windows UI
 observations and all applicable certified Golden outputs on the release
 candidate. Those are release-boundary gates, not per-commit test requests.
+
+#### Current local progress and health review — 2026-09-10
+
+The owner requested decision-free `1.1.4` work first, with one commit per
+coherent unit. Direct memory-card connectors (`981e6f73`), aligned standalone
+input cards (`f982a294`) and duplicate context-detail removal (`8e914a48`) are
+locally complete. Their [scoped evidence](../../tests/README.md#memory-context-disclosure--2026-09-10)
+does not replace combined integration or release verification.
+
+Primary plus GPT-5.6 Terra/high reviewed the `1.1.3..f982a294` architecture and
+test-maintainability slice, then the bounded follow-up UI diffs. No confirmed
+P0/P1 or duplicated firmware execution owner was found within that scope.
+The two Presentation/Desktop boundary tests were freshly executed and passed;
+this is not an exhaustive codebase, security or firmware certification.
+
+| Health area | Evidence and disposition |
+| --- | --- |
+| Layer boundaries | [Presentation boundary](../../tests/NvtFwCombiner.Architecture.Tests/RepositoryBoundaryTests.PresentationStructure.cs) and [Desktop wiring](../../tests/NvtFwCombiner.Architecture.Tests/RepositoryBoundaryTests.DesktopHostConvergence.cs) already enforce the distinction. No new dependency framework is justified. |
+| UI maintenance | [MemoryCoverageBar](../../src/NvtFwCombiner.Presentation.Avalonia/Views/MemoryCoverageBar.cs) concentrates lifecycle, pointer/keyboard, animation and popup geometry. Preserve its single owner and behavioral coverage; consider extraction only with a concrete independent responsibility, not a cosmetic file split. |
+| Test maintenance | Source-text counts in [the soft-lift contracts](../../tests/NvtFwCombiner.UiSmoke.Tests/XamlControlStyleContractTests.MemoryCoverageInteraction.cs) coexist with real control/geometry tests. The counts are a maintenance risk, not proof of missing behavior coverage. Evaluate redundant assertions in the existing `1.1.6` minimality work, preserving unique contracts. |
+| Document drift | `SPEC.md` still labels `1.1.3` release gates pending and DP Replace retirement owner-unallocated, while this roadmap records release/retirement decisions. Reconcile through the existing `1.1.6` document work; do not treat those stale status statements as new authority or change firmware contracts here. |
+
+New designs for Report physical grouping, first-entry context and custom-option
+placement remain owner-decision items. Native 125%/High Contrast/screen-reader
+observations still need the actual environment; headless captures do not close
+them. No release, push, merge or OS preference change is included in this work.
 
 ##### All-IC DP/TP context intake and compact supporting list — 2026-09-09
 
