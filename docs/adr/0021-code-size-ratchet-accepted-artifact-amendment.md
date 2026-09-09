@@ -635,6 +635,20 @@ production/baseline to 139,284 and allowance to 36,388 against unchanged ratchet
 exclusions, equality, ratchets and firmware/Golden/release gates are unchanged;
 this accounting introduces no transferable headroom.
 
+## 2026-09-09 CtrlRAM endpoint focus and section-context accounting
+
+`UI-114-CTRLRAM-MEMORY-LAYOUT-49` extends the existing Application projection
+with read-only exact-companion section context and the shared Presentation bar
+with endpoint focus lanes. Independent R2 admission
+`UI-114-CTRLRAM-MEMORY-LAYOUT-SIZE-50` sets full production/baseline to 139,992
+and allowance to 37,096 against unchanged 102,896; runtime to 99,362 with
+allowance 29,306 against unchanged 70,056; Application to 42,839 with allowance
+12,149 against unchanged 30,690. Other slices remain 20,757 / 5,039 / 30,727.
+Runtime baseline 45,214, counting, exclusions, equality, partial checks and all
+ratchets remain unchanged. The baseline test follows exact measurements; no
+transferable headroom or firmware, profile, support, Golden or release-policy
+change is authorized. Any further production edit requires remeasurement.
+
 ## 2026-09-08 memory-overlay pointer-exit accounting
 
 `UI-114-MEMORY-POINTER-44` adds exactly 12 full-production nonblank lines in the

@@ -19,6 +19,20 @@ internal static partial class UiCompositionRunner
         GeneralAuthoringAdmissionResult? admission = null,
         IReadOnlyList<CtrlRamRegion>? ctrlRamRegions = null)
     {
+        return GetMemoryDisplay(services, acceptedSession, text, out _, admission, ctrlRamRegions);
+    }
+
+    internal static (
+        string RangeLabel,
+        IReadOnlyList<MemoryMapRowViewModel> Rows,
+        IReadOnlyList<MemoryCoverageSegmentViewModel> CoverageSegments) GetMemoryDisplay(
+        PresentationCompositionServices services,
+        ActiveSessionSnapshot acceptedSession,
+        ShellTextResources text,
+        out IReadOnlyList<MemoryCoverageSegmentViewModel> overview,
+        GeneralAuthoringAdmissionResult? admission = null,
+        IReadOnlyList<CtrlRamRegion>? ctrlRamRegions = null)
+    {
         ArgumentNullException.ThrowIfNull(services);
         ArgumentNullException.ThrowIfNull(acceptedSession);
         ArgumentNullException.ThrowIfNull(text);
@@ -30,6 +44,18 @@ internal static partial class UiCompositionRunner
             acceptedSession,
             capability.CompiledComposition,
             ctrlRamRegions);
+        overview = [.. layout.SectionLocators.Select(section =>
+        {
+            string title = text.GetMemorySectionTitle(section.ContentRole);
+            return new MemoryCoverageSegmentViewModel(
+                FormatMemoryRange(section.Range), title, text.MemorySectionContextDetail,
+                section.ContentRole == MemoryContentRole.Tp ? MemoryCoverageFillRole.Tp :
+                section.ContentRole == MemoryContentRole.Dp ? MemoryCoverageFillRole.Dp :
+                MemoryCoverageFillRole.Neutral, section.Range.Length,
+                text: text, rangeStart: section.Range.Start, rangeEndExclusive: section.Range.EndExclusive,
+                addressRangeLabel: FormatMemoryAddressRange(section.Range),
+                contentRole: section.ContentRole, displayTitle: title, addressSpaceId: section.AddressSpaceId);
+        })];
         IReadOnlyList<MemoryLayoutConflict> conflicts = admission is null
             ? []
             : MemoryLayoutProjector.ProjectAdmissionConflicts(admission, layout.Capacity);
@@ -166,7 +192,9 @@ internal static partial class UiCompositionRunner
             ctrlRamRegionRole: segment.CtrlRamRegionRole,
             processingFacts: text.FormatMemoryLayoutTechnicalFacts(segment.RegionId, layout.BlankFillByte, segment.ContributingOperations),
             sourceFieldLabel: initialized ? text.MemoryInitializationLabel : text.MemorySourceLabel,
-            displayTitle: segment.SourceSpaceId is null || segment.ContentRole is MemoryContentRole.Reserved or MemoryContentRole.CtrlRam
+            displayTitle: segment.ContentRole == MemoryContentRole.CtrlRam
+                ? text.FormatMemoryCtrlRamTitle(segment.CtrlRamRegionRole, segment.RegionGroup)
+                : segment.SourceSpaceId is null || segment.ContentRole == MemoryContentRole.Reserved
                 ? text.GetMemoryContentTitle(segment.ContentRole, segment.CtrlRamRegionRole)
                 : null);
     }

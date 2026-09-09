@@ -174,6 +174,9 @@ internal sealed class MemoryCoverageSegmentViewModel
     /// <summary>Shared display-only interaction state for a row and its proportional segments.</summary>
     public MemoryCoverageInteractionState Interaction { get; internal set; } = new();
 
+    /// <summary>Original physical parts used only to retain partial-fill geometry in a focus cell.</summary>
+    public IReadOnlyList<MemoryCoverageSegmentViewModel> DisplayParts { get; internal init; } = [];
+
     /// <summary>Address range in half-open hex notation.</summary>
     public string RangeLabel { get; }
     /// <summary>Application-owned display eligibility; false retains only the exact rail geometry.</summary>

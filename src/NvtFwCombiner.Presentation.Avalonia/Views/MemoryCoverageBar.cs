@@ -35,6 +35,9 @@ public sealed class MemoryCoverageBar : UserControl
     /// <summary>Uses the existing Merge bar template.</summary>
     public static readonly StyledProperty<bool> IsPlainProperty =
         AvaloniaProperty.Register<MemoryCoverageBar, bool>(nameof(IsPlain));
+    /// <summary>Shows compact labels in the existing rail, used by explicit focus views.</summary>
+    public static readonly StyledProperty<bool> ShowLabelsProperty =
+        AvaloniaProperty.Register<MemoryCoverageBar, bool>(nameof(ShowLabels));
     /// <summary>Suppresses the informational-card reveal animation.</summary>
     public static readonly StyledProperty<bool> ReducedMotionProperty =
         AvaloniaProperty.Register<MemoryCoverageBar, bool>(nameof(ReducedMotion));
@@ -92,6 +95,8 @@ public sealed class MemoryCoverageBar : UserControl
     public object? Labels { get => GetValue(LabelsProperty); set => SetValue(LabelsProperty, value); }
     /// <inheritdoc cref="IsPlainProperty" />
     public bool IsPlain { get => GetValue(IsPlainProperty); set => SetValue(IsPlainProperty, value); }
+    /// <inheritdoc cref="ShowLabelsProperty" />
+    public bool ShowLabels { get => GetValue(ShowLabelsProperty); set => SetValue(ShowLabelsProperty, value); }
     /// <inheritdoc cref="ReducedMotionProperty" />
     public bool ReducedMotion { get => GetValue(ReducedMotionProperty); set => SetValue(ReducedMotionProperty, value); }
     private ShellTextResources Text => Labels as ShellTextResources ?? ShellTextResources.For(ShellLanguage.English);
@@ -137,7 +142,7 @@ public sealed class MemoryCoverageBar : UserControl
         ArgumentNullException.ThrowIfNull(change);
         base.OnPropertyChanged(change);
         if (!_attached) { return; }
-        if (change.Property == ItemsSourceProperty || change.Property == LabelsProperty || change.Property == IsPlainProperty)
+        if (change.Property == ItemsSourceProperty || change.Property == LabelsProperty || change.Property == IsPlainProperty || change.Property == ShowLabelsProperty)
         {
             Subscribe();
             Rebuild();
@@ -240,6 +245,45 @@ public sealed class MemoryCoverageBar : UserControl
             border.Child = null;
             var overlay = new Panel();
             if (pattern is not null) { overlay.Children.Add(pattern); }
+            if (ShowLabels)
+            {
+                control.Classes.Add("memoryFocusSlice");
+                if (slice.DisplayParts.Count > 0)
+                {
+                    var parts = new ProportionalStackPanel { IsHitTestVisible = false };
+                    foreach (MemoryCoverageSegmentViewModel part in slice.DisplayParts)
+                    {
+                        Control fill = template.Build(part)!;
+                        fill.DataContext = part;
+                        fill.IsHitTestVisible = false;
+                        _ = fill.Classes.Remove("memoryCoverageBarSegment");
+                        _ = fill.Classes.Remove("memoryCoverageLinkedRow");
+                        MemoryCoverageInteractionBehavior.SetIsEnabled(fill, false);
+                        ProportionalStackPanel.SetWeight(fill, part.BarWidth);
+                        parts.Children.Add(fill);
+                    }
+                    overlay.Children.Add(parts);
+                }
+                var label = new TextBlock
+                {
+                    Text = slice.ContentRole == Application.MemoryLayout.MemoryContentRole.CtrlRam
+                        ? ShellTextResources.GetMemoryFocusLabel(slice.CtrlRamRegionRole) : slice.DisplayTitle,
+                    FontSize = 12,
+                    FontWeight = FontWeight.SemiBold,
+                    HorizontalAlignment = HorizontalAlignment.Stretch,
+                    VerticalAlignment = VerticalAlignment.Center,
+                    TextAlignment = TextAlignment.Center,
+                    TextTrimming = TextTrimming.CharacterEllipsis,
+                    Margin = new Thickness(2, 0),
+                    IsHitTestVisible = false,
+                };
+                _ = label.Bind(TextBlock.ForegroundProperty, new DynamicResourceExtension(
+                    slice.FillRole is MemoryCoverageFillRole.Neutral or MemoryCoverageFillRole.Kept
+                        ? "NfcTextStrongBrush" : "NfcSurfaceBrush"));
+                // Context stays neutral and unlabeled on the rail; its exact range remains in the legend/card.
+                label.IsVisible = slice.FillRole != MemoryCoverageFillRole.Neutral;
+                overlay.Children.Add(label);
+            }
             var outline = new Border { BorderThickness = new Thickness(1), CornerRadius = new CornerRadius(3), IsHitTestVisible = false };
             _ = outline.Bind(Border.BorderBrushProperty, new DynamicResourceExtension("NfcSurfaceBrush"));
             _ = outline.Bind(IsVisibleProperty, new Binding("Interaction.IsActive"));
@@ -360,7 +404,7 @@ public sealed class MemoryCoverageBar : UserControl
         Point localOrigin = _local.TranslatePoint(default, top) ?? default;
         double connectorHeight = preferredAbove.HasValue
             ? Math.Max(20, (above ? origin.Y - localOrigin.Y : localOrigin.Y + _local.Bounds.Height - origin.Y - target.Bounds.Height) + 12)
-            : 20;
+            : ShowLabels ? 8 : 20;
         double available = (above ? origin.Y : below) - connectorHeight - 8;
         _card.MaxHeight = Math.Max(64, available);
         double trackLeft = _track.TranslatePoint(default, top)?.X ?? 0;

@@ -104,6 +104,7 @@ internal sealed partial class ReplacePresentationViewModel
     private void RefreshReplaceCoverageGroups()
     {
         ReplaceCoverageGroups.Clear();
+        CtrlRamFocusLanes.Clear();
         if (!IsCtrlRamReplaceModeSelected ||
             ReplaceCoverageSegments.Any(static segment => segment.RegionId is null))
         {
@@ -116,6 +117,8 @@ internal sealed partial class ReplacePresentationViewModel
         {
             ReplaceCoverageGroups.Add(group);
         }
+        ReplaceRows(CtrlRamFocusLanes, MemoryFocusLaneViewModel.Create(
+            ReplaceCoverageGroups.SelectMany(static group => group.Items), Text));
     }
 
     internal void ClearCtrlRamInspectionDisplay()
@@ -131,6 +134,8 @@ internal sealed partial class ReplacePresentationViewModel
         ReplaceMemoryRows.Clear();
         ReplaceCoverageSegments.Clear();
         ReplaceCoverageGroups.Clear();
+        CtrlRamFocusLanes.Clear();
+        CtrlRamOverview.Clear();
     }
 
     /// <summary>Returns dynamic CtrlRAM inputs to discovery state after their Base identity is cleared.</summary>
@@ -162,6 +167,7 @@ internal sealed partial class ReplacePresentationViewModel
     {
         ActiveSessionSnapshot? acceptedSession =
             _ctrlRamReplaceSession.CurrentSnapshot;
+        IReadOnlyList<MemoryCoverageSegmentViewModel> overview = [];
         (
             string rangeLabel,
             IReadOnlyList<MemoryMapRowViewModel> rows,
@@ -175,8 +181,9 @@ internal sealed partial class ReplacePresentationViewModel
                     _compositionServices,
                     acceptedSession,
                     Text,
+                    out overview,
                     ctrlRamRegions: display.Regions);
-        ApplyReplaceMemoryDisplay(rangeLabel, rows, coverageSegments);
+        ApplyReplaceMemoryDisplay(rangeLabel, rows, coverageSegments, overview);
     }
 
     private void RelocalizeReplaceMemoryMapState()
@@ -237,11 +244,13 @@ internal sealed partial class ReplacePresentationViewModel
     private void ApplyReplaceMemoryDisplay(
         string rangeLabel,
         IReadOnlyList<MemoryMapRowViewModel> rows,
-        IReadOnlyList<MemoryCoverageSegmentViewModel> coverageSegments)
+        IReadOnlyList<MemoryCoverageSegmentViewModel> coverageSegments,
+        IReadOnlyList<MemoryCoverageSegmentViewModel>? overview = null)
     {
         ReplaceMemoryRangeLabel = rangeLabel;
         ReplaceRows(ReplaceMemoryRows, rows);
         ReplaceRows(ReplaceCoverageSegments, coverageSegments);
+        ReplaceRows(CtrlRamOverview, overview ?? []);
         RefreshReplaceCoverageGroups();
     }
 
@@ -256,6 +265,12 @@ internal sealed partial class ReplacePresentationViewModel
 
     private void NotifyCoverageGroupingChanged()
     {
+        OnPropertyChanged(nameof(HasCtrlRamFocusLayout));
+        OnPropertyChanged(nameof(CtrlRamCapacityLabel));
+        OnPropertyChanged(nameof(CtrlRamPositions));
+        OnPropertyChanged(nameof(CtrlRamEndAddress));
+        OnPropertyChanged(nameof(CtrlRamOverviewLegend));
+        OnPropertyChanged(nameof(CtrlRamSharedInputHint));
         OnPropertyChanged(nameof(IsReplaceCoverageGrouped));
         OnPropertyChanged(nameof(IsReplaceCoverageFlat));
         OnPropertyChanged(nameof(ReplaceSelectedCoverageItems));

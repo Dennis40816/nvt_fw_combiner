@@ -40,6 +40,8 @@ public sealed class MemoryCoverageLogicalGroupingTests
         Assert.Same(item.Interaction, written.Interaction);
         Assert.Same(item.Interaction, kept.Interaction);
         Assert.Same(item.Interaction, row.Interaction);
+        Assert.Equal(item.Segments, row.DisplayParts);
+        Assert.Equal([false, true], row.DisplayParts.Select(static part => part.UsesKeptPattern));
     }
 
     /// <summary>Nonadjacent or semantically different fragments remain separate visible ranges.</summary>
@@ -76,6 +78,10 @@ public sealed class MemoryCoverageLogicalGroupingTests
         MemoryCoverageSegmentViewModel separated = Segment(12, 16);
         MemoryCoverageLogicalItemViewModel item = CreateItem(first, adjacent, separated);
         Assert.Equal(2, item.Ranges.Count);
+        IReadOnlyList<MemoryFocusLaneViewModel> lanes = MemoryFocusLaneViewModel.Create([item], ShellTextResources.For(ShellLanguage.English));
+        Assert.Equal(2, lanes.Count);
+        Assert.Same(item.Ranges[0], Assert.Single(lanes[0].Ranges));
+        Assert.Same(item.Ranges[1], Assert.Single(lanes[1].Ranges));
         Assert.Same(first.Interaction, adjacent.Interaction);
         Assert.Same(first.Interaction, item.Ranges[0].Interaction);
         Assert.Same(separated.Interaction, item.Ranges[1].Interaction);

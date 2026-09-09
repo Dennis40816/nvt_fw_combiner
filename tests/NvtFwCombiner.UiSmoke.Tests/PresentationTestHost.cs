@@ -39,8 +39,9 @@ internal static class PresentationTestHost
         CancellationToken cancellationToken,
         ShellLanguage language = ShellLanguage.English)
     {
-        PresentationHostServices services = CreateServices(
-            ApplicationVersionProvider.InformationalVersion);
+        // The legacy lazy external-tool loader waits synchronously; never initialize it on the UI dispatcher.
+        PresentationHostServices services = await Task.Run(
+            () => CreateServices(ApplicationVersionProvider.InformationalVersion), cancellationToken);
         MainWindowViewModel viewModel = ShellViewModelFactory.Create(services, language);
         return await PublishCanonicalCatalogAsync(
                 services,

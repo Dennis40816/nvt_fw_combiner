@@ -110,54 +110,35 @@ public sealed partial class XamlControlStyleContractTests
                 viewModel.Replace.ReplaceCoverageGroups,
                 group => group.RegionGroup == ReplaceRegionGroup.Common);
             Assert.Equal(3, common.Items.Count);
-            Assert.Equal(
-                1,
-                panel.GetVisualDescendants().OfType<TextBlock>()
-                    .Count(candidate => candidate.Text == "NF CtrlRAM" && candidate.Bounds.Width > 0));
-            string expectedSelectedSummary = useTraditionalChinese
-                ? "已選取的 CtrlRAM 區域 · 3"
-                : "Selected CtrlRAM regions · 3";
-            string expectedBaseSummary = useTraditionalChinese
-                ? "基底韌體（FlashCode / TP FW）· 保留"
-                : "Base firmware (FlashCode / TP FW) · retained";
+            Assert.True(viewModel.Replace.HasCtrlRamFocusLayout);
             Assert.Contains(
                 panel.GetVisualDescendants().OfType<TextBlock>(),
-                candidate => candidate.Text == expectedSelectedSummary && candidate.Bounds.Width > 0);
+                candidate => candidate.Text == "NF" && candidate.IsEffectivelyVisible);
             Assert.Contains(
                 panel.GetVisualDescendants().OfType<TextBlock>(),
-                candidate => candidate.Text == expectedBaseSummary && candidate.Bounds.Width > 0);
+                candidate => candidate.Text == viewModel.Replace.Text.MemoryCtrlRamDetailLabel && candidate.IsEffectivelyVisible);
             Assert.DoesNotContain(
                 panel.GetVisualDescendants().OfType<TextBlock>(),
-                candidate => candidate.Text == "Common" && candidate.Bounds.Width > 0);
-            Assert.DoesNotContain(
-                panel.GetVisualDescendants().OfType<Label>(),
-                candidate => Equals(candidate.Content, "3/3") && candidate.Bounds.Width > 0);
+                candidate => candidate.Text == viewModel.Replace.ReplaceSelectedCoverageSummary && candidate.IsEffectivelyVisible);
             Assert.All(
                 panel.GetVisualDescendants().OfType<Control>()
-                    .Where(candidate => candidate.Bounds is { Width: > 0, Height: > 0 }),
+                    .Where(candidate => candidate.IsEffectivelyVisible && candidate.Bounds is { Width: > 0, Height: > 0 }),
                 candidate => AssertControlFitsWidth(candidate, panel));
             AssertVisibleTextDoesNotOverlap(panel);
 
-            ProportionalStackPanel proportionalBar = Assert.Single(
-                panel.GetVisualDescendants().OfType<ProportionalStackPanel>());
-            Control[] arrangedSegments =
-                [.. proportionalBar.Children.Where(child => child.Bounds.Width > 0)];
-            Assert.NotEmpty(arrangedSegments);
-            Assert.Equal(0d, arrangedSegments[0].Bounds.X, 1);
-            Assert.Equal(
-                proportionalBar.Bounds.Width,
-                arrangedSegments[^1].Bounds.Right,
-                1);
-            Assert.True(proportionalBar.Bounds.Width > 300d);
-            Assert.Equal(
-                3,
-                panel.GetVisualDescendants().OfType<Border>()
-                    .Count(candidate => candidate.Classes.Contains("memoryCoverageLinkedRow") &&
-                        candidate.Bounds.Width > 0));
-            Expander baseDisclosure = Assert.Single(
-                panel.GetVisualDescendants().OfType<Expander>(),
-                candidate => candidate.Classes.Contains("inlineDisclosure"));
-            Assert.False(baseDisclosure.IsExpanded);
+            MemoryCoverageBar[] bars = [.. panel.GetVisualDescendants().OfType<MemoryCoverageBar>().Where(bar => bar.IsEffectivelyVisible)];
+            Assert.Equal(1 + viewModel.Replace.CtrlRamFocusLanes.Count, bars.Length);
+            foreach (MemoryCoverageBar bar in bars)
+            {
+                ProportionalStackPanel proportionalBar = bar.GetVisualDescendants().OfType<ProportionalStackPanel>().First();
+                Control[] arrangedSegments = [.. proportionalBar.Children.Where(child => child.Bounds.Width > 0)];
+                Assert.NotEmpty(arrangedSegments);
+                Assert.Equal(0d, arrangedSegments[0].Bounds.X, 1);
+                Assert.Equal(proportionalBar.Bounds.Width, arrangedSegments[^1].Bounds.Right, 1);
+                Assert.True(proportionalBar.Bounds.Width > 300d);
+            }
+            Assert.DoesNotContain(panel.GetVisualDescendants().OfType<Expander>(),
+                candidate => candidate.Classes.Contains("inlineDisclosure") && candidate.IsEffectivelyVisible);
 
             using Avalonia.Media.Imaging.Bitmap? frame = host.GetLastRenderedFrame();
             Assert.NotNull(frame);

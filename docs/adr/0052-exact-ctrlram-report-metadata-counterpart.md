@@ -60,6 +60,22 @@ only the 23 affected route fingerprints and their three pinned decisions.
 
 ## Consequences
 
+### Read-only memory overview extension (v1.1.4)
+
+The owner-approved CtrlRAM overview may reuse the exact companion retained by
+the immutable metadata plan, including its trusted source identity, to locate
+declared TP/DP sections. Application publishes this separate read-only context
+in the same memory-layout projection. It does not authorize selection, writes,
+mapping/access, or capacity decisions, and does not replace the primary CtrlRAM
+map, coverage, metadata values, or Report authority. Actual output capacity only
+limits visibility of already-selected whole sections; it never selects a map.
+Missing or ambiguous companion context displays neutrally, without invented
+TP/DP labels. Existing package-admission failures remain failures.
+Outermost TP/DP Code regions remain whole: their declared descendants, including
+Header, CRC and Unmapped children, do not become overview cuts. Only outer gaps
+outside those Code trees are displayed separately; ancestry, not names, proves
+containment. Unrelated overlapping classifications fail closed to Context.
+
 - CtrlRAM report metadata has one explicit, reviewable counterpart and no
   capacity-, filename-, PID-, hash-, or input-length inference.
 - The package trust index does not become a firmware map catalog.

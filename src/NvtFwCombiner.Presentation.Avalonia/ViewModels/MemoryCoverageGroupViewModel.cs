@@ -237,6 +237,7 @@ internal sealed class MemoryCoverageLogicalItemViewModel
             addressSpaceId: primary.AddressSpaceId)
         {
             Interaction = primary.Interaction,
+            DisplayParts = [.. projected],
         };
     }
 }

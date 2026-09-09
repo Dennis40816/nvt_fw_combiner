@@ -458,7 +458,7 @@ waive their existing owner decisions, review and Golden evidence.
 | 11 | Shared visual/theme corrections | Use step 10 findings to correct shared tokens/controls first. Cover normal/hover/focus/selected/disabled/checking/verified/warning/error states, Light/Dark/high contrast, contrast and keyboard visibility. Reuse the same regression matrix for later steps without silently changing approved geometry. |
 | 12 | Report Changes | [Compare handoff](../ui/v1.1.x-report-changes-compare-handoff.md): gutter, Light Original colors, address spacing, approved range cards, navigation and recorded CRC/other causes are locally implemented and committed through `997fac98` / evidence `a7104dcf`. Physical-section grouping remains open and requires its own bounded design; preserve raw runs/order/hash/Why/Result/replay and virtualization. |
 | 13 | Settings Version page | [Accepted source/list layout and evidence](../ui/v1.1.x-settings-version-handoff.md): owner approved the screenshot-based full-page reference on 2026-09-08. Compact update banner, full-width source editor, secondary Check now at list heading, and per-version typed Catalog `releaseNotes`; existing transactions/confirmation rules and modal/sidebar anchors remain unchanged. Locally implemented and committed at `ca6feb9f`, UI68/68 and accounting19/19 pass with independent fixed-head review; wider native DPI/High Contrast assessment stays separate. |
-| 14 | Memory Layout | Make each canonical section and its address-space/range boundaries explicit instead of flattening independent sections. Use typed Application-to-Presentation projections; no firmware facts, range authority or interpretation move into UI. |
+| 14 | Memory Layout | [CtrlRAM endpoint layout](#ctrlram-endpoint-layout--2026-09-09) locally implemented against the approved NT51927 / 3 IC reference: declared TP FW/DP overview and separate continuous target lanes, with shared leaf cards. Wider screen inventory remains separate; no firmware facts, range authority or interpretation move into UI. |
 | 15 | Session diagnostics | Privacy-filtered current-session diagnostics/history, separate from immutable run reports. Preserve existing diagnostic ownership and lifecycle rather than adding another history system. |
 | 16 | First-entry IC selection | [Navigation handoff section 1](../ui/post-v1.1.0-navigation-and-ctrlram-first-open-handoff.md#1-shared-first-entry-ic-selection): reuse Home/navigation/accepted-session admission when compatible accepted IC context is absent. Decide lifetime, invalidation, cross-workflow compatibility and Cancel/Back first; no second catalog, selection owner or UI-only admission. |
 | 17 | Test diagram and README | Completed and committed at `956a027f`: [execution map and measurements](../../tests/README.md), using retained `1.1.3` counts/timings. Original release evidence, later static counts, overlapping lanes, serial dependencies, retries and waits are distinguished; unavailable historical measurements remain explicitly unavailable, without rerunning tests. |
@@ -885,6 +885,38 @@ The broader shared-memory/source/processing/AB regression command above passes
 **96/96**, zero skipped (**35 seconds**), in `reviewed/reviewed.trx`.
 These rendered-control tests do not certify a native multi-screen or
 screen-reader session. No firmware output or release gate is claimed.
+
+##### CtrlRAM endpoint layout — 2026-09-09
+
+The [approved reference](../ui/references/v1.1.4-ctrlram-memory-layout-proposed.png)
+is implemented in the existing-width Output layout panel. The real NT51927 /
+3 IC fixture loads eight inputs and displays twelve targets in Master, Slave R
+and Slave L lanes. Flash overview shows declared TP FW/DP and explicit gaps;
+the detail lanes emphasize CtrlRAM rather than CRC/header cuts. Each continuous
+target retains its exact range and independent shared hover card. Partial
+replacement preserves the selected/retained pattern. Firmware bytes, primary
+coverage, profiles and Report semantics are unchanged.
+
+Application reuses the exact already-bound report metadata counterpart for
+read-only context ([ADR 0052](../adr/0052-exact-ctrlram-report-metadata-counterpart.md)).
+Missing context stays neutral: the current NT51950 fixture does not invent a
+TP/DP classification, and its disconnected ranges remain two separate lanes.
+
+Local evidence: `D:/NvtFwCombiner-TestArea/evidence/v114-ctrlram-layout49/`.
+`section-context-fixed.trx` passes 7/7; `focus-layout-regression-fixed.trx`
+passes 60/60; `existing-layout-fixed.trx` passes 22/22, all zero skipped.
+Coverage includes full/TP-only/context fallback, exact proportional geometry,
+independent targets, partial replacement, shared popup lifecycle, 360/430 px,
+Light/Dark and EN/zh-TW. Accounting tests pass 19/19; isolated Desktop build
+succeeds. Actual production-control captures are `nt51927-threechip-actual.png`,
+`nt51927-threechip-hover.png` and `nt51927-threechip-dark-zh.png` in that root.
+These are headless full-window renders, not native DPI or screen-reader
+certification. Native UIA confirms the preview loaded all eight inputs, but
+OS capture is unavailable because its window crop is outside the captured
+monitor. No full-suite, output Golden certification or release is claimed.
+Commit-bound review is recorded in
+[layout49](../governance/change-records/UI-114-CTRLRAM-MEMORY-LAYOUT-49.json) and
+[size50](../governance/change-records/UI-114-CTRLRAM-MEMORY-LAYOUT-SIZE-50.json).
 
 ##### Customer-information source presentation — 2026-09-08
 

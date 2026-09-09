@@ -16,6 +16,48 @@ internal enum MemoryPendingPrerequisite
 
 internal sealed partial class ShellTextResources
 {
+    public string MemoryFlashOverviewLabel => SelectLanguage("Flash overview", "Flash 全圖");
+    public string MemoryCtrlRamDetailLabel => SelectLanguage("CtrlRAM detail", "CtrlRAM 局部位置");
+    public string MemoryZoomedLabel => SelectLanguage("Zoomed", "獨立比例");
+    public string MemorySectionContextDetail => SelectLanguage("Location context only; replacement targets are shown below.", "僅標示位置；取代範圍見下方局部圖。");
+    public string MemoryFocusHint => SelectLanguage("Hover a region to inspect its address and input.", "移到區塊上，查看確切地址與輸入來源。");
+    public string FormatMemorySharedInputHint(string names)
+    {
+        return string.IsNullOrEmpty(names) ? MemoryFocusHint : SelectLanguage(
+            $"{names}: shared inputs, separate target ranges.", $"{names}：共用輸入，各自保留獨立目標範圍。");
+    }
+    public string FormatMemoryCtrlRamTitle(CtrlRamRegionRole role, ReplaceRegionGroup group)
+    {
+        string title = GetCtrlRamRegionTechnicalLabel(role);
+        return group is ReplaceRegionGroup.Master or ReplaceRegionGroup.SlaveRight or ReplaceRegionGroup.SlaveLeft
+            ? $"{title} · {GetReplaceRegionGroupTitle(group)}" : title;
+    }
+    public string GetMemorySectionTitle(MemoryContentRole role)
+    {
+        return role switch
+        {
+            MemoryContentRole.Tp => "TP FW",
+            MemoryContentRole.Dp => "DP",
+            MemoryContentRole.Unmapped => SelectLanguage("Unmapped", "未對應"),
+            MemoryContentRole.General or MemoryContentRole.TpBackup or MemoryContentRole.Ldc or
+                MemoryContentRole.CustomerInformation or MemoryContentRole.Reserved or MemoryContentRole.CtrlRam => SelectLanguage("Context", "其他區域"),
+            _ => throw new ArgumentOutOfRangeException(nameof(role)),
+        };
+    }
+    public static string GetMemoryFocusLabel(CtrlRamRegionRole role)
+    {
+        return role switch
+        {
+            CtrlRamRegionRole.Nf => "NF",
+            CtrlRamRegionRole.Normal => "Normal",
+            CtrlRamRegionRole.Mp => "MP",
+            CtrlRamRegionRole.Vn => "VN",
+            CtrlRamRegionRole.Vector => "Vector",
+            CtrlRamRegionRole.DiffDlm => "DiffDLM",
+            CtrlRamRegionRole.Other => "CtrlRAM",
+            _ => throw new ArgumentOutOfRangeException(nameof(role)),
+        };
+    }
     public string MemoryLocalViewLabel => SelectLanguage("Local view · separate scale", "局部檢視 · 獨立比例");
     public string MemoryLocalViewHint => SelectLanguage("Hover a slice or use arrow keys to inspect its range.", "移到切片或以方向鍵選擇，查看確切範圍。");
     public string FormatMemorySliceCount(int count)

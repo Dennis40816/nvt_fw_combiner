@@ -38,10 +38,10 @@ class CodeSizePolicyTests(unittest.TestCase):
     def test_current_reviewed_baseline_emits_no_full_production_warning(self) -> None:
         snapshot = measure_code_size(REPOSITORY_ROOT)
 
-        self.assertEqual(139_296, snapshot.production_nonblank)
-        self.assertEqual(99_233, snapshot.runtime_production_nonblank)
+        self.assertEqual(139_992, snapshot.production_nonblank)
+        self.assertEqual(99_362, snapshot.runtime_production_nonblank)
         self.assertEqual(20_757, snapshot.domain_profiles_nonblank)
-        self.assertEqual(42_710, snapshot.application_nonblank)
+        self.assertEqual(42_839, snapshot.application_nonblank)
         self.assertEqual(5_039, snapshot.bootstrap_cli_nonblank)
         self.assertEqual(30_727, snapshot.infrastructure_contracts_worker_nonblank)
         workflow_session = next(

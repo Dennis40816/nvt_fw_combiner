@@ -163,7 +163,8 @@ public static partial class MemoryLayoutProjector
                 capacity,
                 before,
                 after,
-                pendingItems);
+                pendingItems,
+                ProjectSections(capability, map.AddressSpaceId, capacity));
     }
 
     private static void ValidateIdentity(

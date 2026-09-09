@@ -86,6 +86,8 @@
     <Setter Property="BoxShadow" Value="none" />
   </Style>
   <Style Selector=":is(Control).memoryHoverOnly"><Setter Property="IsVisible" Value="False" /></Style>
+  <Style Selector="Border.memoryFocusSlice.linked"><Setter Property="RenderTransform" Value="translateY(-3px)" /></Style>
+  <Style Selector="Border.memoryFocusSlice.linked.reducedMotion"><Setter Property="RenderTransform" Value="none" /></Style>
   <Style Selector="Border#MemorySliceCard :is(Control).memoryHoverOnly"><Setter Property="IsVisible" Value="True" /></Style>
   <Style Selector="Border#MemorySliceCard TextBlock.memoryInfoDescription, Border#MemorySliceCard Border#MemoryTechnicalSeparator"><Setter Property="IsVisible" Value="False" /></Style>
   <Style Selector="Border.memoryCoverageFill.dp">

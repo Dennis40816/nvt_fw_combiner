@@ -93,13 +93,25 @@ public sealed class MemoryCoverageExplorerTests
                 row => row.RangeLabel.StartsWith("0x0A11C", StringComparison.Ordinal));
             if (darkChinese) { shell.SelectedLanguage = "Traditional Chinese"; }
             Render();
-            MemoryCoverageBar bar = Assert.Single(window.GetVisualDescendants().OfType<MemoryCoverageBar>(), control => control.IsEffectivelyVisible);
-            bar.ReducedMotion = true;
+            MemoryCoverageBar[] focusBars = [.. window.GetVisualDescendants().OfType<MemoryCoverageBar>().Where(control =>
+                control.IsEffectivelyVisible && control.GetVisualAncestors().OfType<Control>().Any(ancestor => ancestor.Name == "CtrlRamFocusLane"))];
+            Assert.NotEmpty(focusBars);
+            Capture(window, $"memory-ctrlram-{darkChinese}-overview");
             Assert.DoesNotContain(shell.Replace.ReplaceCoverageGroups.SelectMany(static group => group.Items)
                 .SelectMany(static item => item.Segments), static segment => !segment.IsPrimaryContent);
             Assert.Contains(shell.Replace.ReplaceCoverageSegments, static segment => !segment.IsPrimaryContent && segment.HasProcessingFacts);
             foreach (CtrlRamRegionRole role in new[] { CtrlRamRegionRole.Nf, CtrlRamRegionRole.Normal, CtrlRamRegionRole.Vn })
             {
+                MemoryCoverageBar bar = Assert.Single(focusBars, candidate => candidate.ItemsSource!
+                    .Cast<MemoryCoverageSegmentViewModel>().Any(segment => segment.CtrlRamRegionRole == role && segment.IsSelectedForWrite));
+                bar.ReducedMotion = true;
+                if (role == CtrlRamRegionRole.Nf)
+                {
+                    MemoryCoverageSegmentViewModel nf = Assert.Single(bar.ItemsSource!.Cast<MemoryCoverageSegmentViewModel>(),
+                        segment => segment.CtrlRamRegionRole == role);
+                    Assert.Equal(2816, nf.DisplayParts.Where(part => part.IsSelectedForWrite).Sum(part => part.RangeEndExclusive!.Value - part.RangeStart!.Value));
+                    Assert.Equal(7952, nf.DisplayParts.Where(part => part.UsesKeptPattern).Sum(part => part.RangeEndExclusive!.Value - part.RangeStart!.Value));
+                }
                 Control? target = bar.GetVisualDescendants().OfType<Control>().FirstOrDefault(control =>
                     control.Focusable && control.DataContext is MemoryCoverageSegmentViewModel segment && segment.IsPrimaryContent && segment.IsSelectedForWrite && segment.CtrlRamRegionRole == role);
                 if (target is null)
