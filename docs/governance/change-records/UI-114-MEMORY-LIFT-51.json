@@ -5,7 +5,7 @@
   "integrationBase": "1789f2b4132645455d49a01a9e9e6d55647de246",
   "risk": "R1",
   "kind": "ui",
-  "state": "design-active",
+  "state": "final-complete",
   "mutablePaths": ["src/NvtFwCombiner.Presentation.Avalonia/Views/MemoryCoverageBar.cs"],
   "implementationOwner": "primary-agent",
   "searchEvidence": ["CodeGraph and actual full-window geometry locate the existing shared MemoryCoverageBar as the sole popup/rail owner. Its ItemsControl and track already disable clipping, but the UserControl root retains clipping. The actual NT51927 3-IC red test reports: Lift 0,-3,51,34 clipped by MemoryCoverageBar 388,34. Evidence: D:/NvtFwCombiner-TestArea/evidence/v114-memory-lift51/lift-red.trx (1 failed, 12s)."],
@@ -13,8 +13,8 @@
   "terminalContract": "Disable only the shared rail root clipping so its existing 3px target lift can render. Preserve explicit 34px track geometry, proportional widths, theme colors, pointer/focus/popups, reduced motion, scroll viewport clipping and firmware facts. Measure transformed visible target bounds through the real ancestor chain and exercise edge targets/shared consumers. Capture actual NT51950 CtrlRAM and NT51928 Standard inputs without changing their support/map or inventing missing data. Master/Slave hover subview is assessment only, not implementation scope. No full-suite/release/Golden claim.",
   "disposition": "extend-owner",
   "designReview": {"reviewer": null, "outcome": "not-required", "evidence": "R1 local rendering correction from the owner's reproduced clipping report; existing shared owner and explicit affected tests identified."},
-  "implementationHead": null,
-  "reviewedHead": null,
-  "pathStateDigest": null,
-  "finalReview": {"reviewer": null, "outcome": "pending", "evidence": ""}
+  "implementationHead": "24ad377816048bc020c091675c24e5e4ab104f8a",
+  "reviewedHead": "24ad377816048bc020c091675c24e5e4ab104f8a",
+  "pathStateDigest": "75b81e1cd18adab071ab48a9dbbe3aa03bdb76f36e06ee49d27e96fe78533182",
+  "finalReview": {"reviewer": "ctrlram_readability (GPT-5.6 Terra, high; read-only)", "outcome": "approved", "evidence": "Independent fixed-head review at24ad377816048bc020c091675c24e5e4ab104f8a vs1789f2b4132645455d49a01a9e9e6d55647de246: P0/P1/P2/P3 zero. Only shared rail root clipping changed; track geometry, typed facts, popup/scroll owners and production reduced-motion bindings unchanged. D:/NvtFwCombiner-TestArea/evidence/v114-memory-lift51/lift-red.trx reproduces root Y=-3 clipping; lift-green.trx passes the same full-window path. shared-final.trx passes39/39, zero skipped31s: six edge targets in Light/Dark, measured transformed bounds through all clipping ancestors, pointer dismissal, keyboard/Escape, global reduced motion, actual NT51950 partial-input and NT51928 Standard DP/TP/LDC loading. The horizontal1px tolerance follows the existing independent-snapping contract; vertical0.5px still detects the original3px failure. Earlier new-test failures (local vs global reduced-motion seam and horizontal0.5px assumption) are retained in shared-regression/shared-fixed TRX; no product suppression or extra clipping disablement. Actual complete production-control renders inspected, not native DPI/screen-reader certification. Preview Desktop build passed0warning/0error5.28s using already-built corrected references. Polytail fast checks pass with retained historical size warnings. No full suite, output Golden, support promotion, firmware change or release claim. Finalization changes only lifecycle/final-evidence fields and digest derives from committed Git state."}
 }
