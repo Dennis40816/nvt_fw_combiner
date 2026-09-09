@@ -505,6 +505,13 @@ removes only the decorative one-pixel seams, retaining local-strip divisions,
 focus outlines, exact addresses and true Unmapped. It is locally verified;
 the unresolved Memory Layout items below remain open.
 
+2026-09-10 local follow-up: [selected-input lifecycle regressions](../../tests/README.md#selected-input-facts-regression--2026-09-10)
+now cover Shared CtrlRAM, Standard and AB cards (`68697976`, `3bc1e03f`). The
+[loaded NT51929 AB memory-card checkpoint](../../tests/README.md#loaded-ab-memory-cards--2026-09-10)
+adds narrow/wide, language/theme and dismissal evidence through the shared
+control. This closes that bounded inventory gap only; other workflows, native
+acceptance and the existing integration/release gates remain open.
+
 | Remaining order | Scope | Boundary |
 | --- | --- | --- |
 | 1 | Native DPI/high-contrast acceptance | [Capability assessment complete](../../tests/README.md#v114-display-evidence-boundary--2026-09-08): current native display is 100%, High Contrast off; 20 scoped cases passed with explicit 100% headless scale evidence. Actual Windows 125%, custom-control High Contrast and screen-reader acceptance remain open. No theme/support promotion or OS preference change was made. |

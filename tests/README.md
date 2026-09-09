@@ -218,6 +218,40 @@ including `responsive.trx` and the scenario-size-language/theme PNGs. These are
 acceptance, fresh Golden output execution, or whole-release verification.
 No production layout or firmware behavior changed in this checkpoint.
 
+## Selected input facts regression — 2026-09-10
+
+The shared CtrlRAM lifecycle regression (`68697976`) checks NF/VN Max Size and
+every Master/Slave Target Addr after load, clear and reselection in EN/zh-TW
+and Light/Dark. The complete NF input limit is 12,112 B, not a single target's
+4,048 B. The Standard/AB regression (`3bc1e03f`) checks actual selected-file
+metadata and removes stale filename/version text on clear; it does not add
+CtrlRAM-only fields to those workflows. The two scoped runs passed **14/14**
+(24 s) and **10/10** (27 s), zero skipped. Evidence is under
+`D:/NvtFwCombiner-TestArea/evidence/v114-shared-guidance-lifecycle65/reviewed.trx`
+and `v114-merge-slot-persistence66/reviewed.trx` in the same evidence root.
+These are separate local runs, not one full-suite execution.
+
+## Loaded AB memory cards — 2026-09-10
+
+`AbMemoryLayoutControlTests` loads canonical NT51929 DP_AB/TPA/TPB artifacts
+through the real product-policy MainWindow. Its four cases cover 1440x900
+Light EN / Dark zh-TW and 980x640 Light zh-TW / Dark EN. They verify each
+direct card's range, size and source, rail/window containment, no CtrlRAM
+endpoint tier, Escape dismissal and pointer-exit dismissal, with unchanged
+typed ranges and selected inputs. TPB is located by its canonical output
+range `[0x47000, 0x80000)`: its source is the relocated work buffer, not the
+original input slot. The initial four failures exposed that test assumption,
+not a product defect; `initial.trx` is retained.
+
+On `3bc1e03f` plus this test-only extension, the filter
+`FullyQualifiedName~AbMemoryLayoutControlTests|FullyQualifiedName~AbDummyDpControlTests`
+passed **8/8**, zero skipped, in **31 s** (test execution, excluding build).
+Evidence: `D:/NvtFwCombiner-TestArea/evidence/v114-ab-memory67/reviewed.trx`;
+`reviewed/ab-memory-*.png` contains twelve full-window, settled renders.
+Existing UI CI includes these tests; no new test lane is introduced. These
+100% headless observations do not certify native DPI/High Contrast, other ICs,
+Golden output bytes, integration or release. No production code changed.
+
 ## Shared slot action alignment — 2026-09-09
 
 The follow-up whole-card Browse/clear correction reuses `FirmwareSlotCard`.
