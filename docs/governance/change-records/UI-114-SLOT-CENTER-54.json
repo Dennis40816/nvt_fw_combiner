@@ -5,7 +5,7 @@
   "integrationBase": "f07fe4f8c943d1c24679514e9e4ad3994f547db3",
   "risk": "R1",
   "kind": "ui",
-  "state": "design-active",
+  "state": "final-complete",
   "mutablePaths": [
     "src/NvtFwCombiner.Presentation.Avalonia/Views/FirmwareSlotCard.axaml",
     "src/NvtFwCombiner.Presentation.Avalonia/Views/FirmwareSlotCard.axaml.cs"
@@ -23,8 +23,12 @@
     "outcome": "not-required",
     "evidence": "R1 shared Presentation-only alignment correction requested by owner; primary disclosed whole-card center interpretation. Extend existing layout rather than add offsets or per-page controls."
   },
-  "implementationHead": null,
-  "reviewedHead": null,
-  "pathStateDigest": null,
-  "finalReview": {"reviewer": null, "outcome": "pending", "evidence": ""}
+  "implementationHead": "8dca00164df2c009eeefd631563fd58b4c7ac2d8",
+  "reviewedHead": "8dca00164df2c009eeefd631563fd58b4c7ac2d8",
+  "pathStateDigest": "9985ca49813488e2ab3e2239f9b45a48d5d5d9d5f9d907dc7e88d5d5dee71872",
+  "finalReview": {
+    "reviewer": "ctrlram_readability (GPT-5.6 Terra, high; read-only)",
+    "outcome": "approved",
+    "evidence": "Independent fixed-head Polytail at8dca00164df2c009eeefd631563fd58b4c7ac2d8: PASS, P0/P1/P2/P3 zero. One shared outer action column spans both rows; commands, styles, input/drop/clear behavior, 820 breakpoint and 2/4 fact columns retained. Tests measure common card coordinates, whole-card action center within0.5px and containment across real927/950/928 window loaders; no re-derived firmware facts. Reviewer inspected actual9281180Light,9271440Light,950980Darkzh captures and agreed documentation limits. Evidence D:/NvtFwCombiner-TestArea/evidence/v114-slot-center54: red.trx8 intended failures19/40/55px; green.trx17/17zero skipped30s incl18actual viewport states; shared-final.trx117/117zero skipped35s. Overlapping sets not additive. shared.trx115/117 retained: two old parent-grid containment assertions corrected to common card coordinates without weakening title/nonoverlap bounds; final production cleanup was indentation only. No native DPI/High Contrast/screen-reader, complete candidate, packaged release or Golden output execution claim. 928 separator discussion was read-only and is outside this diff. Canonical helper computed digest from committed paths. Finalization preserves admitted design fields."
+  }
 }
