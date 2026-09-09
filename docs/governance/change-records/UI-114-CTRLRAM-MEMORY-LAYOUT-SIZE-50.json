@@ -5,7 +5,7 @@
   "integrationBase": "1e8b8bec7027ed0050896fd576e38eb27beb2d30",
   "risk": "R2",
   "kind": "governance",
-  "state": "design-active",
+  "state": "final-complete",
   "mutablePaths": ["scripts/code_size_policy.py", "docs/adr/0021-code-size-ratchet-accepted-artifact-amendment.md"],
   "implementationOwner": "primary-agent",
   "searchEvidence": ["Existing measure_code_size/DEFAULT_LIMITS and ADR0021 own exact accounting. Structure reports full139992/runtime99362/Application42839, with other slices20757/5039/30727 unchanged. Independent Terra reviewed the single Application section projector, existing logical ranges, shared bar and scoped templates: no duplicate semantic owner or unnecessary new interaction mechanism."],
@@ -13,8 +13,12 @@
   "terminalContract": "Set exact full/baseline139992 and full allowance37096 against unchanged102896; runtime allowance29306 against70056 yields99362; Application allowance12149 against30690 yields42839. Retain runtime baseline45214 and other slices20757/5039/30727. Preserve all ratchets, counting, equality, exclusions, partial checks and firmware/Golden/release gates. No transferable headroom. Further production edits require remeasurement and independent readmission before accounting changes. Synchronize exact baseline test and run existing accounting tests.",
   "disposition": "extend-owner",
   "designReview": {"reviewer": "ctrlram_readability (GPT-5.6 Terra, high; read-only)", "outcome": "approved", "evidence": "Independent R2 exact-accounting admission before edits: full139992, runtime99362, Application42839 and unchanged other slices are the necessary current implementation, not speculative headroom. Only the existing policy and ADR appendix may change; no gate or measuring-rule changes."},
-  "implementationHead": null,
-  "reviewedHead": null,
-  "pathStateDigest": null,
-  "finalReview": {"reviewer": null, "outcome": "pending", "evidence": ""}
+  "implementationHead": "1ff2ec15716275a089830544a5357a43dbffe16a",
+  "reviewedHead": "1ff2ec15716275a089830544a5357a43dbffe16a",
+  "pathStateDigest": "7d8ff3674dc297a6d0e692a8f45b010def109563c6562a9fa68c0bc13d8def52",
+  "finalReview": {
+    "reviewer": "ctrlram_readability (GPT-5.6 Terra, high; read-only)",
+    "outcome": "approved",
+    "evidence": "Independent exact-head review at 1ff2ec15716275a089830544a5357a43dbffe16a: P0/P1/P2/P3 all zero. Reconfirmed exact full139992/runtime99362/Application42839 and unchanged other slices20757/5039/30727. Only admitted existing policy values and ADR accounting changed; no measurement, ratchet, equality, exclusion, partial check or firmware/Golden/release gate change and no transferable headroom. python -m unittest discover -s tests/scripts -p test_code_size_policy.py passed 19/19 (28.592s); canonical structure-only passed177.5s. Test-area TEMP/TMP/TMPDIR were explicitly set. Path digest uses committed Git state; finalization preserves all immutable admission fields."
+  }
 }
