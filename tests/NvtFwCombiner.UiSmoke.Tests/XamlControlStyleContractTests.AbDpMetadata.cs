@@ -14,7 +14,7 @@ namespace NvtFwCombiner.UiSmoke.Tests;
 
 public sealed partial class XamlControlStyleContractTests
 {
-    /// <summary>Real AB facts fill the existing four/two cells without moving identity or actions.</summary>
+    /// <summary>Real AB facts fill the existing four/two cells while identity stays stable and actions remain card-centered.</summary>
     [AvaloniaTheory]
     [InlineData(1362, false, false)]
     [InlineData(1362, true, true)]
@@ -91,7 +91,18 @@ public sealed partial class XamlControlStyleContractTests
             {
                 Arrange(oldHost, oldCard);
                 Assert.Equal(identityBounds, oldCard.FindControl<StackPanel>("SlotIdentity")!.Bounds);
-                Assert.Equal(actionBounds, oldCard.FindControl<StackPanel>("SlotActions")!.Bounds);
+                Rect oldActionBounds = oldCard.FindControl<StackPanel>("SlotActions")!.Bounds;
+                Assert.Equal(actionBounds.X, oldActionBounds.X);
+                Assert.Equal(actionBounds.Size, oldActionBounds.Size);
+                // Adding a metadata row increases card height; both action groups must stay on its centerline.
+                Assert.Equal((height - oldCard.Bounds.Height) / 2, actionBounds.Y - oldActionBounds.Y, precision: 3);
+                Border surface = Assert.Single(card.GetVisualDescendants().OfType<Border>(), border => border.Classes.Contains("firmwareSlot"));
+                Border oldSurface = Assert.Single(oldCard.GetVisualDescendants().OfType<Border>(), border => border.Classes.Contains("firmwareSlot"));
+                Assert.Equal(surface.Bounds.Height / 2,
+                    actions.TranslatePoint(default, surface)!.Value.Y + (actions.Bounds.Height / 2), precision: 3);
+                StackPanel oldActions = oldCard.FindControl<StackPanel>("SlotActions")!;
+                Assert.Equal(oldSurface.Bounds.Height / 2,
+                    oldActions.TranslatePoint(default, oldSurface)!.Value.Y + (oldActions.Bounds.Height / 2), precision: 3);
                 Assert.Equal(width < 820 ? cells[0].Bounds.Height : 0, height - oldCard.Bounds.Height);
             }
             finally
