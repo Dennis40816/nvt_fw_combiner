@@ -524,10 +524,10 @@ public sealed class MemoryCoverageBar : UserControl
         Reveal(_card, _cardPopup, above);
     }
 
-    private static Line Connector(Point start, Point end)
+    private static Line Connector(Point start, Point end, string strokeResource = "NfcBorderMutedBrush")
     {
         var line = new Line { StartPoint = start, EndPoint = end, StrokeThickness = 1, IsHitTestVisible = false };
-        _ = line.Bind(Shape.StrokeProperty, new DynamicResourceExtension("NfcBorderMutedBrush"));
+        _ = line.Bind(Shape.StrokeProperty, new DynamicResourceExtension(strokeResource));
         return line;
     }
 
@@ -546,15 +546,17 @@ public sealed class MemoryCoverageBar : UserControl
         canvas.Children.Add(outline);
         // A left-edge slice may align with local text. Interrupt only the decorative
         // stem behind those glyph bounds; its endpoint still identifies the exact slice.
-        double cursor = Math.Min(tip, terminal);
-        double limit = Math.Max(tip, terminal);
+        // Keep only a short high-contrast marker next to the selected leaf.
+        // The wider local-view projection continues to use the quiet connector brush.
+        double cursor = Math.Max(Math.Min(tip, terminal), terminal - 10);
+        double limit = Math.Min(Math.Max(tip, terminal), terminal + 10);
         foreach (Rect label in labels.Where(rect => anchor >= rect.Left - 2 && anchor <= rect.Right + 2).OrderBy(static rect => rect.Top))
         {
             double start = Math.Clamp(label.Top - 2, cursor, limit);
-            if (start > cursor) { canvas.Children.Add(Connector(new Point(anchor, cursor), new Point(anchor, start))); }
+            if (start > cursor) { canvas.Children.Add(Connector(new Point(anchor, cursor), new Point(anchor, start), "NfcTextStrongBrush")); }
             cursor = Math.Clamp(label.Bottom + 2, start, limit);
         }
-        if (cursor < limit) { canvas.Children.Add(Connector(new Point(anchor, cursor), new Point(anchor, limit))); }
+        if (cursor < limit) { canvas.Children.Add(Connector(new Point(anchor, cursor), new Point(anchor, limit), "NfcTextStrongBrush")); }
         var dot = new Ellipse { Name = "MemoryCardAnchor", Width = 4, Height = 4, StrokeThickness = 1, IsHitTestVisible = false };
         _ = dot.Bind(Shape.StrokeProperty, new DynamicResourceExtension("NfcAccentStrongBrush"));
         _ = dot.Bind(Shape.FillProperty, new DynamicResourceExtension("NfcSurfaceBrush"));

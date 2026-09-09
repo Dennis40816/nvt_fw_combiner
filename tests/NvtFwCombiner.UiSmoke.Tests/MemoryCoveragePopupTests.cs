@@ -414,6 +414,45 @@ public sealed class MemoryCoveragePopupTests
         }
     }
 
+    /// <summary>Only a short contrasting stem identifies the leaf; both popup directions respect the active theme.</summary>
+    [AvaloniaTheory]
+    [InlineData(false, false)]
+    [InlineData(false, true)]
+    [InlineData(true, false)]
+    [InlineData(true, true)]
+    public void CardAnchorUsesAShortContrastingStem(bool above, bool dark)
+    {
+        MemoryCoverageSegmentViewModel[] slices = MemoryCoverageBarProjectionTests.Example();
+        Window window = above ? CreateBottomWindow(dark, slices, out MemoryCoverageBar bar) : CreateWindow(388, dark, slices, out bar);
+        try
+        {
+            OpenGroupedCard(window, bar, 5);
+            Assert.True(bar.TryFindResource("NfcTextStrongBrush", bar.ActualThemeVariant, out object? expectedStroke));
+            global::Avalonia.Controls.Shapes.Ellipse dot = Assert.Single(window.GetVisualDescendants().OfType<global::Avalonia.Controls.Shapes.Ellipse>(),
+                item => item.Name == "MemoryCardAnchor");
+            global::Avalonia.Controls.Shapes.Line[] stems = [.. dot.GetVisualParent()!.GetVisualDescendants().OfType<global::Avalonia.Controls.Shapes.Line>()];
+            Assert.NotEmpty(stems);
+            double totalLength = 0;
+            foreach (global::Avalonia.Controls.Shapes.Line stem in stems)
+            {
+                Assert.Equal(expectedStroke, stem.Stroke);
+                Assert.Equal(stem.StartPoint.X, stem.EndPoint.X);
+                double length = Math.Abs(stem.EndPoint.Y - stem.StartPoint.Y);
+                Assert.InRange(length, 0.1, 10);
+                totalLength += length;
+                foreach (Point end in new[] { stem.StartPoint, stem.EndPoint })
+                {
+                    Point rendered = stem.TranslatePoint(end, window)!.Value;
+                    Point anchor = BoundsInWindow(dot, window).Center;
+                    Assert.InRange(Math.Abs(rendered.X - anchor.X), 0, 1);
+                    Assert.InRange(Math.Abs(rendered.Y - anchor.Y), 0, 10);
+                }
+            }
+            Assert.InRange(totalLength, 0.1, 10);
+        }
+        finally { window.Close(); }
+    }
+
     /// <summary>Edge selections retain exact anchors and never draw their stem through local text.</summary>
     [AvaloniaTheory]
     [InlineData(240, false)]
