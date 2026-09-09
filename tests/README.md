@@ -236,6 +236,22 @@ coordinates. No production correction followed that test-only change; the
 final XAML cleanup only adjusts indentation. Actual 927/950/928 captures are
 in `v114-slot-center54/`; native and release boundaries remain unchanged.
 
+## Primary memory rail separator — 2026-09-09
+
+`UI-114-MEMORY-SEAM-55` limits the shared one-pixel separator to the expanded
+local strip. Primary plain/rich rails and CtrlRAM endpoint lanes retain exact
+weights without decorative seams; linked/keyboard accent outlines remain.
+Evidence: `D:/NvtFwCombiner-TestArea/evidence/v114-memory-seam55/`.
+`red.trx`: six intended main-border failures, two existing local/focus cases
+passed. `green.trx`: **39/39 passed**, zero skipped, **37 seconds**, using
+`MemoryCoverageBarGeometryTests`, `MemoryCoveragePopupTests`,
+`CtrlRamMemoryLayoutTests` and `ProductionCtrlRamWindowShowsReferenceAlignedLocalCard`.
+The actual-window loaders retain the 18 viewport states; primary inspection
+compared NT51928 at 1180x760 Light/EN and Dark/zh-TW against the prior slot-center
+captures, plus NT51927 three-IC Light and NT51950 Dark at 1440x900.
+No range, classification, grouping, profile or firmware-output behavior changed.
+This is scoped headless evidence, not native or release certification.
+
 ## Current Home and Settings inventory — 2026-09-08
 
 `ShellScreenInventoryTests` renders the real MainWindow over isolated preference

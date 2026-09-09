@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 2,
+  "taskId": "UI-114-MEMORY-SEAM-55",
+  "capability": "Remove decorative one-pixel separators from shared primary memory rails",
+  "integrationBase": "eca4e404572829c6e9f88a4e1d3653f523ebb0bc",
+  "risk": "R1",
+  "kind": "ui",
+  "state": "design-active",
+  "mutablePaths": ["src/NvtFwCombiner.Presentation.Avalonia/Styles/MemoryCoverageStyles.axaml"],
+  "implementationOwner": "primary-agent",
+  "searchEvidence": [
+    "Prior NT51928 actual-window captures show the white seam at the adjacent TP/Unmapped boundary. MemoryCoverageStyles.axaml memoryExplorerSlice adds a right1px NfcSurfaceBrush border. Both shared plain/rich templates already default to zero borders. MemoryCoverageBar.SegmentContent adds memoryExplorerSlice to every leaf; OpenLocal alone adds the existing memoryLocalSlice class.",
+    "Existing MemoryCoverageBarGeometryTests measure proportional bounds/weights at240/388/620 for plain/rich rails. MemoryCoveragePopupTests cover secondary-strip and keyboard/mouse focus. Existing CtrlRamMemoryLayoutTests and MemoryCoverageExplorerTests load actual927/950/928 inputs in the shared MainWindow. Profile tp-code and Unmapped ranges are already authoritative and are not part of this correction."
+  ],
+  "semanticOwner": "Shared MemoryCoverageStyles owns decoration; Application/Profile range, role and grouping owners remain unchanged.",
+  "terminalContract": "Owner approved removal of the unnecessary1px white line in the main memory rail. Restrict the existing separator style to memoryLocalSlice, leaving main overview and CtrlRAM endpoint rails undecorated. Preserve the useful local expanded-strip divisions, linked/keyboard accent outline, exact range weights, colors, true Unmapped, hit targets and independent hover cards. Use existing selectors, not IC-specific branches, overlapping rectangles or expanded TP bounds. Reference: D:/NvtFwCombiner-TestArea/evidence/v114-slot-center54/nt51928-standard-1180x760-light-en.png with only main seam removed. Narrow rendered geometry/popup and actual-window tests; no full-suite/Golden/native/release claim.",
+  "disposition": "extend-owner",
+  "designReview": {"reviewer": null, "outcome": "not-required", "evidence": "Owner explicitly accepted the preceding main-rail separator-only proposal. Bounded R1 visual correction through existing shared style and local-slice class."},
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": {"reviewer": null, "outcome": "pending", "evidence": ""}
+}

@@ -41,6 +41,10 @@ public sealed class MemoryCoverageBarGeometryTests
             Assert.Equal(3, panel.Children.Count);
             Assert.Equal(width, panel.Bounds.Width);
             Assert.Equal(34, bar.Bounds.Height);
+            Border[] mainSlices = [.. panel.GetVisualDescendants().OfType<Border>()
+                .Where(border => border.Classes.Contains("memoryExplorerSlice"))];
+            Assert.Equal(2, mainSlices.Length);
+            Assert.All(mainSlices, slice => Assert.Equal(default, slice.BorderThickness));
             Assert.InRange(Math.Abs(panel.Children[1].Bounds.X - (width * 0.4921875)), 0, 1);
             Assert.InRange(Math.Abs(panel.Children[1].Bounds.Width - (width / 32d)), 0, 1);
             Assert.InRange(Math.Abs(panel.Children[^1].Bounds.Right - width), 0, 1);

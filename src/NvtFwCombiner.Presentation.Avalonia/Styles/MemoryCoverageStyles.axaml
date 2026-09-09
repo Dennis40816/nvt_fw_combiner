@@ -74,7 +74,7 @@
   </Style>
   <Style Selector="Border.memoryCoverageLinkedRow:focus-visible"><Setter Property="BorderBrush" Value="{DynamicResource NfcAccentStrongBrush}" /><Setter Property="BorderThickness" Value="2" /></Style>
   <Style Selector="Border.memoryCoverageLinkedRow.linked.reducedMotion, Border.memoryCoverageBarSegment.linked.reducedMotion"><Setter Property="RenderTransform" Value="none" /></Style>
-  <Style Selector="Border.memoryExplorerSlice">
+  <Style Selector="Border.memoryExplorerSlice.memoryLocalSlice">
     <Setter Property="BorderThickness" Value="0,0,1,0" />
     <Setter Property="BorderBrush" Value="{DynamicResource NfcSurfaceBrush}" />
   </Style>

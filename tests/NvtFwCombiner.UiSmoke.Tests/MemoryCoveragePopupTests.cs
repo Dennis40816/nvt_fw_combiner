@@ -37,6 +37,11 @@ public sealed class MemoryCoveragePopupTests
             Assert.Null(FindNamed<Border>(window, "MemorySliceCard"));
             ProportionalStackPanel strip = LocalStrip(local);
             Assert.Equal(8, strip.Children.Count);
+            Border[] localSlices = [.. strip.GetVisualDescendants().OfType<Border>()
+                .Where(border => border.Classes.Contains("memoryLocalSlice"))];
+            Assert.Equal(8, localSlices.Length);
+            Assert.All(localSlices,
+                slice => Assert.Equal(new Thickness(0, 0, 1, 0), slice.BorderThickness));
             Rect stripBounds = strip.Bounds;
 
             MemoryCoverageSegmentViewModel selected = slices[6];
@@ -74,6 +79,9 @@ public sealed class MemoryCoveragePopupTests
 
             Assert.True(MainTarget(bar, 0).Focus());
             Render();
+
+            Border mainSlice = Assert.IsType<Border>(MainTarget(bar, 0));
+            Assert.Equal(new Thickness(2), mainSlice.BorderThickness);
             Border directCard = Assert.IsType<Border>(FindNamed<Border>(window, "MemorySliceCard"));
             Assert.Same(slices[0], directCard.DataContext);
             Assert.Null(FindNamed<Border>(window, "MemoryLocalView"));

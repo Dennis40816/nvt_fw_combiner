@@ -160,6 +160,10 @@ public sealed class CtrlRamMemoryLayoutTests
             Assert.False(rail.ClipToBounds);
             Assert.Equal(34, rail.Bounds.Height);
             Assert.InRange(rail.Bounds.Width, 300, 430);
+            Border[] slices = [.. rail.GetVisualDescendants().OfType<Border>()
+                .Where(border => border.Classes.Contains("memoryExplorerSlice"))];
+            Assert.NotEmpty(slices);
+            Assert.All(slices, slice => Assert.Equal(default, slice.BorderThickness));
             Capture(window, "nt51928-standard-actual.png");
             await AssertSupportedMemoryViewportsAsync(window, "nt51928-standard");
         }

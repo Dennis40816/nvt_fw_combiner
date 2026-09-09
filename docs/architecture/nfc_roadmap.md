@@ -500,6 +500,11 @@ input card, including the filename, under the
 The [scoped evidence](../../tests/README.md#shared-slot-action-alignment--2026-09-09)
 is local verification, not publication or whole-candidate acceptance.
 
+The subsequent [primary-rail separator correction](../../tests/README.md#primary-memory-rail-separator--2026-09-09)
+removes only the decorative one-pixel seams, retaining local-strip divisions,
+focus outlines, exact addresses and true Unmapped. It is locally verified;
+the unresolved Memory Layout items below remain open.
+
 | Remaining order | Scope | Boundary |
 | --- | --- | --- |
 | 1 | Native DPI/high-contrast acceptance | [Capability assessment complete](../../tests/README.md#v114-display-evidence-boundary--2026-09-08): current native display is 100%, High Contrast off; 20 scoped cases passed with explicit 100% headless scale evidence. Actual Windows 125%, custom-control High Contrast and screen-reader acceptance remain open. No theme/support promotion or OS preference change was made. |
