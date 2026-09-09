@@ -5,7 +5,7 @@
   "integrationBase": "d90e2a8b13bdaefbff5ca6e9b346cb3eb497dbb9",
   "risk": "R2",
   "kind": "ui",
-  "state": "design-active",
+  "state": "final-complete",
   "mutablePaths": [
     "src/NvtFwCombiner.Application/MemoryLayout/MemoryLayoutDisplayProjectionException.cs",
     "src/NvtFwCombiner.Application/MemoryLayout/MemoryLayoutProjector.cs",
@@ -26,8 +26,12 @@
     "outcome": "approved",
     "evidence": "Independent Unit57 R2 design admission PASS for the five declared production paths. Keep dedicated throw at exact display-binding guard and narrowly scoped catch; clear only derived preview. Explicitly preserve CtrlRamRegions and all authoring/input state; clear warning on success/Baseclear/modeexit. Preserve all non-display exception types and propagation. Use existing warningSurface plus EN/zh text and actual UI failure/recovery assertions. No shared runner or execution expansion required."
   },
-  "implementationHead": null,
-  "reviewedHead": null,
-  "pathStateDigest": null,
-  "finalReview": {"reviewer": null, "outcome": "pending", "evidence": ""}
+  "implementationHead": "db0e58f48431bd215dc75fcac3a617374f7b3c98",
+  "reviewedHead": "db0e58f48431bd215dc75fcac3a617374f7b3c98",
+  "pathStateDigest": "9d0d0c9c931116ef8ee7eb00ce886eb5d1a7e4f64eec02f90f1b2b8a69ee2a58",
+  "finalReview": {
+    "reviewer": "ctrlram_readability (GPT-5.6 Terra, high; read-only)",
+    "outcome": "approved",
+    "evidence": "Independent fixed-head Polytail PASS atdb0e58f48431bd215dc75fcac3a617374f7b3c98 relative tod90e2a8b; P0-P3 zero. Only admitted five production paths; typed exception solely at exact display binding, catch solely around CtrlRAM GetMemoryDisplay, all derived collections cleared while canonical inputs/session/readiness remain unchanged. Success/Baseclear/modeexit reset warning; other ArgumentException paths remain fail-closed. D:/NvtFwCombiner-TestArea/evidence/v114-ctrlram-preview57/: application.trx31/31; architecture.trx10/10; ui-green-complete.trx4/4zero skipped18s. UI covers actual951 display-only injected failure, validBuild, invalidBase blocked, recovery,stale clearing,Baseclear,modeexit and EN/zh Light/Dark. Alternate-mode assertion uses documented test-only retained DP policy, not shipped authoring admission. Primary inspected LightEN and Darkzh warning surfaces plus clean950Cascade. Normal951 PNG SHA256de017837d1de7daf81e9f25047b818b67945e21bb53b921a7b2dd048ac45eb3c exactly matches Unit56. Canonical digest from committed production paths; no firmware/profile/Golden expectation or output write changes, no native/full-suite/release claim."
+  }
 }
