@@ -238,6 +238,7 @@ public sealed class MemoryCoverageBar : UserControl
                 Classes = { "memoryCoverageFill", "memoryCoverageLinkedRow", "memoryExplorerGroup" },
                 Child = new TextBlock { Text = "⋮", HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center },
             };
+            KeepLabelUnscaled(target, (TextBlock)target.Child);
             target.Classes.Set("reducedMotion", ReducedMotion);
             WatchTargetExit(target);
             AutomationProperties.SetName(target, GroupSummary(item));
@@ -364,6 +365,7 @@ public sealed class MemoryCoverageBar : UserControl
                         ? "NfcTextStrongBrush" : "NfcSurfaceBrush"));
                 // Context stays neutral and unlabeled on the rail; its exact range remains in the legend/card.
                 label.IsVisible = slice.FillRole != MemoryCoverageFillRole.Neutral;
+                KeepLabelUnscaled(control, label);
                 overlay.Children.Add(label);
             }
             var outline = new Border { BorderThickness = new Thickness(1), CornerRadius = new CornerRadius(3), IsHitTestVisible = false };
@@ -374,6 +376,23 @@ public sealed class MemoryCoverageBar : UserControl
         }
         ToolTip.SetTip(control, null);
         return control;
+    }
+
+    private static void KeepLabelUnscaled(Control target, TextBlock label)
+    {
+        var compensation = new ScaleTransform();
+        label.RenderTransformOrigin = RelativePoint.Center;
+        label.RenderTransform = compensation;
+        UpdateScale();
+        target.PropertyChanged += (_, change) =>
+        {
+            if (change.Property == RenderTransformProperty) { UpdateScale(); }
+        };
+        void UpdateScale()
+        {
+            // Follow the same animated transform, including Reduced Motion and return to rest.
+            compensation.ScaleY = 1 / (target.RenderTransform?.Value.M22 ?? 1);
+        }
     }
 
     private void WireSlice(Control target, MemoryCoverageSegmentViewModel slice, bool local)

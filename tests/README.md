@@ -504,6 +504,25 @@ No full-suite, release Golden or native DPI/accessibility pass is claimed.
 The owner renewed the local continuation/commit exception for this unit only;
 Unit58/59/60 lifecycle and integration/release gates remain separate.
 
+## Memory lift typography — 2026-09-10
+
+The shared `MemoryCoverageBar` retains its 118% decorative lift while its
+main/local labels and aggregated marker cancel the current animated vertical
+scale. Font size, layout bounds, focus targets and Reduced Motion stay intact.
+
+Evidence: `D:/NvtFwCombiner-TestArea/evidence/v114-memory-label68/`.
+`red.trx` has four expected glyph-transform failures before the fix;
+`green.trx` passes **16/16, zero skipped**, including six Light/Dark typography
+cases, actual NT51927 three-IC and NT51950 local-card windows, and the existing
+soft-lift contracts. The narrow filter combines
+`LiftKeepsLabelScaleUnchangedDuringAndAfterAnimation`,
+`ThreeChipWindowShowsFirmwareOverviewAndSeparatePhysicalLanes`,
+`ProductionCtrlRamWindowShowsReferenceAlignedLocalCard`, and
+`MemoryCoverageSoftLift` (each prefixed with `FullyQualifiedName~`).
+Scoped Polytail by GPT-5.6 Terra/high reports no P0–P3 findings against
+production/test blobs `76f85495` / `60e1ebb8`; it reused this exact-source run.
+These are UI regressions, not firmware Golden execution or a release pass.
+
 ## Running and maintaining this view
 
 Use [`CONTRIBUTING.md`](../CONTRIBUTING.md) to initialize the existing fixed

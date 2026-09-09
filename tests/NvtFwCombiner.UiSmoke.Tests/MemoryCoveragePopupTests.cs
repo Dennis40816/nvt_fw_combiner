@@ -18,6 +18,63 @@ namespace NvtFwCombiner.UiSmoke.Tests;
 /// <summary>Exercises the actual grouped-memory overlay hierarchy and its terminal-slice cards.</summary>
 public sealed class MemoryCoveragePopupTests
 {
+    /// <summary>Rail and local-slice labels retain their glyph proportions throughout the decorative lift.</summary>
+    [AvaloniaTheory]
+    [InlineData(false, 0)]
+    [InlineData(true, 0)]
+    [InlineData(false, 1)]
+    [InlineData(true, 1)]
+    [InlineData(false, 2)]
+    [InlineData(true, 2)]
+    public async Task LiftKeepsLabelScaleUnchangedDuringAndAfterAnimation(bool dark, int level)
+    {
+        Window window = CreateWindow(388, dark, MemoryCoverageBarProjectionTests.Example(), out MemoryCoverageBar bar);
+        bar.ShowLabels = true;
+        Render();
+        try
+        {
+            Control target;
+            if (level == 1)
+            {
+                Assert.True(MainTarget(bar, 1).Focus(NavigationMethod.Tab));
+                Render();
+                Border view = Assert.IsType<Border>(FindNamed<Border>(window, "MemoryLocalView"));
+                target = FocusableControl(LocalStrip(view).Children[5]);
+            }
+            else { target = MainTarget(bar, level == 2 ? 1 : 0); }
+            TextBlock label = Assert.Single(target.GetVisualDescendants().OfType<TextBlock>(), block => block.IsEffectivelyVisible);
+            Rect originalBounds = target.Bounds;
+            double fontSize = label.FontSize;
+            string? text = label.Text;
+            Assert.True(label.Bounds.Width > 0 && label.Bounds.Height > 0);
+            Assert.True(target.Focus(NavigationMethod.Tab));
+            Render();
+            for (int tick = 0; tick < 8; tick++)
+            {
+                await Task.Delay(30, TestContext.Current.CancellationToken);
+                Render();
+                AssertUnscaledLabel();
+            }
+            Assert.InRange(target.RenderTransform!.Value.M22, 1.179, 1.181);
+            Assert.Equal(originalBounds, target.Bounds);
+            Capture(window, $"label-lift-{dark}-{level}");
+            bar.ReducedMotion = true;
+            Render();
+            Assert.Equal(Matrix.Identity, target.RenderTransform?.Value ?? Matrix.Identity);
+            AssertUnscaledLabel();
+
+            void AssertUnscaledLabel()
+            {
+                Matrix transform = Assert.IsType<Matrix>(label.TransformToVisual(window));
+                Assert.InRange(transform.M11, 0.999, 1.001);
+                Assert.InRange(transform.M22, 0.999, 1.001);
+                Assert.Equal(fontSize, label.FontSize);
+                Assert.Equal(text, label.Text);
+            }
+        }
+        finally { window.Close(); }
+    }
+
     /// <summary>Expanded surfaces have their own boundary; the connector does not paint over the underlying panel.</summary>
     [AvaloniaTheory]
     [InlineData(false)]
