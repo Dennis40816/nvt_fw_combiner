@@ -202,6 +202,20 @@ public sealed class CtrlRamMemoryLayoutTests
                         Assert.InRange(origin.X, -1, window.ClientSize.Width - rail.Bounds.Width + 1);
                         Assert.InRange(rail.Bounds.Height, 33.5, 34.5);
                     }
+                    foreach (FirmwareSlotCard card in window.GetVisualDescendants().OfType<FirmwareSlotCard>()
+                        .Where(card => card.IsEffectivelyVisible))
+                    {
+                        Border surface = Assert.Single(card.GetVisualDescendants().OfType<Border>(),
+                            border => border.Classes.Contains("firmwareSlot"));
+                        foreach (string name in new[] { "BrowseButton", "ClearButton" })
+                        {
+                            Button action = card.FindControl<Button>(name)!;
+                            Point origin = action.TranslatePoint(default, surface)!.Value;
+                            Assert.InRange(Math.Abs(origin.Y + (action.Bounds.Height / 2) -
+                                (surface.Bounds.Height / 2)), 0, 0.5);
+                            Assert.InRange(origin.X, 0, surface.Bounds.Width - action.Bounds.Width);
+                        }
+                    }
                     Assert.Equal(ic, shell.WorkflowSession.SelectedIc);
                     Assert.Equal(number, shell.WorkflowSession.SelectedNumber);
                     Assert.Equal(ranges, Ranges());

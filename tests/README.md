@@ -218,6 +218,24 @@ including `responsive.trx` and the scenario-size-language/theme PNGs. These are
 acceptance, fresh Golden output execution, or whole-release verification.
 No production layout or firmware behavior changed in this checkpoint.
 
+## Shared slot action alignment — 2026-09-09
+
+The follow-up whole-card Browse/clear correction reuses `FirmwareSlotCard`.
+`v114-slot-center54/red.trx` records eight intended failures: the old actions
+were 19 px above the complete wide-card center, or 40–55 px in compact cases.
+`green.trx` passes 17/17 cases (30 seconds), including the three actual-window
+loaders above and action-center checks within 0.5 px for every visible card.
+`shared-final.trx` passes 117/117 (35 seconds), covering shared card geometry,
+long filenames/titles, CtrlRAM selection, AB metadata, issue cards, Browse/drop
+and clear behavior. These sets overlap; their counts are not additive.
+
+All paths are under `D:/NvtFwCombiner-TestArea/evidence/`. Retain the earlier
+`shared.trx` 115/117 result: two old tests measured actions against their former
+parent grid; they now assert non-overlap and containment in common card
+coordinates. No production correction followed that test-only change; the
+final XAML cleanup only adjusts indentation. Actual 927/950/928 captures are
+in `v114-slot-center54/`; native and release boundaries remain unchanged.
+
 ## Current Home and Settings inventory — 2026-09-08
 
 `ShellScreenInventoryTests` renders the real MainWindow over isolated preference

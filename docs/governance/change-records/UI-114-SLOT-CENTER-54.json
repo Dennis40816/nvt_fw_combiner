@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 2,
+  "taskId": "UI-114-SLOT-CENTER-54",
+  "capability": "Center shared firmware slot Browse and Clear actions on the complete card",
+  "integrationBase": "f07fe4f8c943d1c24679514e9e4ad3994f547db3",
+  "risk": "R1",
+  "kind": "ui",
+  "state": "design-active",
+  "mutablePaths": [
+    "src/NvtFwCombiner.Presentation.Avalonia/Views/FirmwareSlotCard.axaml",
+    "src/NvtFwCombiner.Presentation.Avalonia/Views/FirmwareSlotCard.axaml.cs"
+  ],
+  "implementationOwner": "primary-agent",
+  "searchEvidence": [
+    "CodeGraph exploration then rg FirmwareSlotCard/SlotActions identifies one shared XAML card and ApplyResponsiveLayout owner; Standard, AB and CtrlRAM templates reuse it. Actions currently share only the identity/facts grid, while the selected filename is a separate footer row.",
+    "XamlControlStyleContractTests.InputLayout has real rendered Browse/Clear bounds, enabled/disabled colors and keyboard checks at 480/900 in Light/Dark. FirmwareSlotCompact, CtrlRamHeading and CtrlRamMemoryLayoutTests exercise responsive shared consumers. No new action style, command, metadata owner or firmware classifier is needed."
+  ],
+  "semanticOwner": "FirmwareSlotCard owns shared responsive card geometry. Existing ViewModels and Application retain selection/clear/readiness/metadata semantics.",
+  "terminalContract": "Owner requests Browse and trash centered. Use a shared right-side action column spanning the complete card height, including selected filename, and center both existing buttons on that axis. Reserve text space without overlaps at compact and wide widths. Preserve 820 breakpoint, two/four fact columns, original button styles/colors/spacing, disabled/keyboard/tooltips and clear confirmation routing. Do not change the 928 Memory Layout separator, addresses, profiles, bytes or other screen design. Narrow rendered shared-card and actual-window regressions; full suite and native/release acceptance remain at their existing boundary.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": null,
+    "outcome": "not-required",
+    "evidence": "R1 shared Presentation-only alignment correction requested by owner; primary disclosed whole-card center interpretation. Extend existing layout rather than add offsets or per-page controls."
+  },
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": {"reviewer": null, "outcome": "pending", "evidence": ""}
+}

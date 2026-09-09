@@ -494,6 +494,12 @@ Continued work does not authorize unresolved designs, new support claims or
 release. Assessments may record a limitation and move to another independent
 item rather than force a decision.
 
+2026-09-09 follow-up: shared Browse/clear actions now center on the complete
+input card, including the filename, under the
+[selector amendment](../ui/v1.1.x-ctrlram-selector-visual-contract.md#approved-selector-direction).
+The [scoped evidence](../../tests/README.md#shared-slot-action-alignment--2026-09-09)
+is local verification, not publication or whole-candidate acceptance.
+
 | Remaining order | Scope | Boundary |
 | --- | --- | --- |
 | 1 | Native DPI/high-contrast acceptance | [Capability assessment complete](../../tests/README.md#v114-display-evidence-boundary--2026-09-08): current native display is 100%, High Contrast off; 20 scoped cases passed with explicit 100% headless scale evidence. Actual Windows 125%, custom-control High Contrast and screen-reader acceptance remain open. No theme/support promotion or OS preference change was made. |

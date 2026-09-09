@@ -12,9 +12,9 @@
           DragDrop.AllowDrop="{Binding CanSelectFile}" DragDrop.DragEnter="SlotDragOver_OnDragOver"
           DragDrop.DragOver="SlotDragOver_OnDragOver" DragDrop.DragLeave="DropZone_OnDragLeave"
           DragDrop.Drop="SlotDrop_OnDrop" Tag="{Binding SlotId}">
-    <Grid RowDefinitions="Auto,Auto">
-      <Border Grid.RowSpan="2" Classes="dropZoneOverlay" />
-      <Grid x:Name="SlotLayout" Margin="16" MinHeight="72" ColumnDefinitions="280,*,Auto"
+    <Grid RowDefinitions="Auto,Auto" ColumnDefinitions="*,Auto">
+      <Border Grid.RowSpan="2" Grid.ColumnSpan="2" Classes="dropZoneOverlay" />
+      <Grid x:Name="SlotLayout" Margin="16" MinHeight="72" ColumnDefinitions="280,*"
             ColumnSpacing="{DynamicResource NfcSpace24}" RowDefinitions="*">
         <StackPanel x:Name="SlotIdentity" Grid.Column="0" VerticalAlignment="Center"
                     Spacing="{DynamicResource NfcSpace12}">
@@ -132,44 +132,44 @@
             </ItemsControl.ItemTemplate>
           </ItemsControl>
         </StackPanel>
-        <StackPanel x:Name="SlotActions" Grid.Column="2" HorizontalAlignment="Right"
-                    Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
-          <Button x:Name="BrowseButton" Classes="semanticAction action browseAction"
-                  Click="BrowseButton_OnClick" Content="{Binding BrowseLabel, ElementName=Root}"
-                  IsEnabled="{Binding CanSelectFile}" Tag="{Binding SlotId}" VerticalAlignment="Center">
-            <AutomationProperties.Name>
-              <MultiBinding StringFormat="{x:Static views:FirmwareSlotCard.BrowseActionFormat}">
-                <Binding ElementName="Root" Path="BrowseLabel" />
-                <Binding Path="Title" />
-              </MultiBinding>
-            </AutomationProperties.Name>
-            <ToolTip.Tip>
-              <MultiBinding StringFormat="{x:Static views:FirmwareSlotCard.BrowseActionFormat}">
-                <Binding ElementName="Root" Path="BrowseLabel" />
-                <Binding Path="Title" />
-              </MultiBinding>
-            </ToolTip.Tip>
-          </Button>
-          <Button x:Name="ClearButton" Classes="semanticAction iconButton danger slotClearAction"
-                  Command="{Binding ClearSelectionCommand, ElementName=Root}"
-                  CommandParameter="{Binding SlotId}" IsEnabled="{Binding HasFile}" Tag="{Binding SlotId}">
-            <AutomationProperties.Name>
-              <MultiBinding StringFormat="{x:Static views:FirmwareSlotCard.ClearActionFormat}">
-                <Binding ElementName="Root" Path="ClearSelectionLabel" />
-                <Binding Path="Title" />
-              </MultiBinding>
-            </AutomationProperties.Name>
-            <ToolTip.Tip>
-              <MultiBinding StringFormat="{x:Static views:FirmwareSlotCard.ClearActionFormat}">
-                <Binding ElementName="Root" Path="ClearSelectionLabel" />
-                <Binding Path="Title" />
-              </MultiBinding>
-            </ToolTip.Tip>
-            <TextBlock FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets"
-                       FontSize="17" Text="&#xE74D;" />
-          </Button>
-        </StackPanel>
       </Grid>
+      <StackPanel x:Name="SlotActions" Grid.Column="1" Grid.RowSpan="2" HorizontalAlignment="Right"
+                  Margin="8,16,16,16" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+        <Button x:Name="BrowseButton" Classes="semanticAction action browseAction"
+                Click="BrowseButton_OnClick" Content="{Binding BrowseLabel, ElementName=Root}"
+                IsEnabled="{Binding CanSelectFile}" Tag="{Binding SlotId}" VerticalAlignment="Center">
+          <AutomationProperties.Name>
+            <MultiBinding StringFormat="{x:Static views:FirmwareSlotCard.BrowseActionFormat}">
+              <Binding ElementName="Root" Path="BrowseLabel" />
+              <Binding Path="Title" />
+            </MultiBinding>
+          </AutomationProperties.Name>
+          <ToolTip.Tip>
+            <MultiBinding StringFormat="{x:Static views:FirmwareSlotCard.BrowseActionFormat}">
+              <Binding ElementName="Root" Path="BrowseLabel" />
+              <Binding Path="Title" />
+            </MultiBinding>
+          </ToolTip.Tip>
+        </Button>
+        <Button x:Name="ClearButton" Classes="semanticAction iconButton danger slotClearAction"
+                Command="{Binding ClearSelectionCommand, ElementName=Root}"
+                CommandParameter="{Binding SlotId}" IsEnabled="{Binding HasFile}" Tag="{Binding SlotId}">
+          <AutomationProperties.Name>
+            <MultiBinding StringFormat="{x:Static views:FirmwareSlotCard.ClearActionFormat}">
+              <Binding ElementName="Root" Path="ClearSelectionLabel" />
+              <Binding Path="Title" />
+            </MultiBinding>
+          </AutomationProperties.Name>
+          <ToolTip.Tip>
+            <MultiBinding StringFormat="{x:Static views:FirmwareSlotCard.ClearActionFormat}">
+              <Binding ElementName="Root" Path="ClearSelectionLabel" />
+              <Binding Path="Title" />
+            </MultiBinding>
+          </ToolTip.Tip>
+          <TextBlock FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets"
+                     FontSize="17" Text="&#xE74D;" />
+        </Button>
+      </StackPanel>
       <Button Grid.Row="1" Margin="16,0,16,16" AutomationProperties.HelpText="{Binding DisplayDetail}" AutomationProperties.Name="{Binding DisplayNameWithSelectionContext}"
               Classes="fileRevealAction" Command="{ReflectionBinding $parent[Window].DataContext.RevealFileCommand}"
               CommandParameter="{Binding FilePath}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left"

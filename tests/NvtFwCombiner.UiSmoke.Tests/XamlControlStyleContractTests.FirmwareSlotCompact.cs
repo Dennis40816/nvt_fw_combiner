@@ -66,7 +66,7 @@ public sealed partial class XamlControlStyleContractTests
         }
     }
 
-    /// <summary>Compact cards move facts below identity/actions and retain readable two-column facts.</summary>
+    /// <summary>Compact cards stack facts below identity beside the full-height action column.</summary>
     [AvaloniaTheory]
     [InlineData(480)]
     [InlineData(684)]
@@ -116,16 +116,14 @@ public sealed partial class XamlControlStyleContractTests
         Assert.Equal(0, Grid.GetRow(identity));
         Assert.Equal(0, Grid.GetRow(actions));
         Assert.Equal(1, Grid.GetRow(facts));
-        Assert.Equal(2, Grid.GetColumnSpan(facts));
+        Assert.Equal(1, Grid.GetColumnSpan(facts));
         Assert.Equal(2, factGrid.Columns);
         Control[] factCells = [.. factGrid.Children.OfType<Control>()];
         Assert.Equal(4, factCells.Length);
         Assert.Equal(factCells[0].Bounds.Y, factCells[1].Bounds.Y);
         Assert.True(factCells[2].Bounds.Y > factCells[0].Bounds.Y);
         Assert.Equal(factCells[2].Bounds.Y, factCells[3].Bounds.Y);
-        Assert.True(
-            facts.Bounds.Width > identity.Bounds.Width,
-            $"facts={facts.Bounds}; identity={identity.Bounds}; layout={layout.Bounds}");
+        Assert.Equal(identity.Bounds.Width, facts.Bounds.Width);
     }
 
     /// <summary>Collapsed CtrlRAM slot groups retain the shared two-pixel surface in both themes.</summary>
