@@ -5,7 +5,7 @@
   "integrationBase": "0ceb98d1a524d09a424e8d634989db1a082db025",
   "risk": "R1",
   "kind": "ui",
-  "state": "design-active",
+  "state": "final-complete",
   "mutablePaths": [
     "src/NvtFwCombiner.Presentation.Avalonia/Views/FirmwareSlotCard.axaml",
     "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ShellTextResources.InputIssues.cs",
@@ -17,8 +17,8 @@
   "terminalContract": "Owner approved fixing these localized CtrlRAM input-card issues before Memory Layout redesign. Keep Max Size/Target Addr (and existing typed multi-region guidance) after selection; empty-slot prompts and the single full-width selected filename footer retain existing behavior. Render ignored-trailing warning numbers only from an existing warning inspection whose NextAction declares ReviewIgnoredTrailingBytes and accepted/ignored ranges exist; retain original diagnostic code and terminal severity, including generic fallback where no typed range exists. Same concise explanation feeds the current hover/focus card and expanded status text in English and Traditional Chinese. Preserve button/card styles, address mapping, source files, readiness, metadata, profile, processor and output semantics. Validate current pointer and keyboard behavior through the real shared control and actual MainWindow before claiming native hover corrected; do not make a speculative tooltip replacement. No Memory Layout, report schema, release or Golden-byte changes. One admitted local batch, coherent per-unit implementation commits, then independent fixed-head review and one evidence checkpoint; full release gates remain separate.",
   "disposition": "extend-owner",
   "designReview": {"reviewer": null, "outcome": "not-required", "evidence": "R1 bounded UI projection and localized text over existing typed facts, explicitly requested by owner. No new semantic owner, contract or firmware fact; narrow UI tests plus independent scoped Polytail review."},
-  "implementationHead": null,
-  "reviewedHead": null,
-  "pathStateDigest": null,
-  "finalReview": {"reviewer": null, "outcome": "pending", "evidence": ""}
+  "implementationHead": "dd2d661235b658e0ee08d1e6e870b986a1f23c1c",
+  "reviewedHead": "dd2d661235b658e0ee08d1e6e870b986a1f23c1c",
+  "pathStateDigest": "86c8d89c02f5eac414e80615dc1ba9976957b2984072d003a93f4e0be455761c",
+  "finalReview": {"reviewer": "ctrlram_readability", "outcome": "approved", "evidence": "2026-09-09 independent GPT-5.6 Terra/high fixed-head scoped Polytail PASS for 0ceb98d1..dd2d6612; no blocking findings. Coherent commits: 2fafa475 selected guidance, 84712598 typed numeric warning, dd2d6612 MainWindow hover regression. NFC_TEST_AREA_ROOT/evidence/v114-ctrlram-slot47: guidance-red.trx reproduced 4 selected-card failures with 4 empty cases passing; guidance-green.trx 13/13 PASS. warning-red.trx reproduced 4 numeric-description failures with 3 fallback cases passing; feedback-final.trx 45/45 PASS after removing stale numeric cached status text. ctrlram-launch-final.trx 25/25 PASS on the final test source, including actual MainWindow startup with certified NT51950 Base plus NF/Normal/VN, D86-00, pointer enter/open and leave/close, keyboard focus, typed tooltip context/text and no build execution. All completed final targeted runs have zero skipped; overlapping suites are not added as independent coverage. main-window-normal-warning.png is the settled Headless MainWindow render; the earlier normal-warning-tooltip.png is explicitly excluded, not independent popup evidence. An earlier pre-open tooltip DataContext assertion failed due lazy attachment and was corrected in the test, not treated as a product defect. Native desktop input reported no monitor found for window and did not provide reliable reproduction: the owner's native hover failure cause remains unconfirmed, no native hover fix or native visual acceptance is claimed, and production tooltip behavior is unchanged. Existing inspected sizes render Input 640 KiB, Used 23 KiB, trailing 617 KiB ignored; language/file changes and generic fallback retain the existing terminal authority. No Memory Layout, firmware, Golden-output, release or publication change. Canonical capability-record validation precedes the direct-child evidence checkpoint."}
 }
