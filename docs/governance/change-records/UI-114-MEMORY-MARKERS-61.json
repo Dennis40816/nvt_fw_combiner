@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 2,
+  "taskId": "UI-114-MEMORY-MARKERS-61",
+  "capability": "Quiet endpoint markers and visible boundaries for shared memory overlays",
+  "integrationBase": "a0fc6a9f816ee677c87283d8e3c708d293be1482",
+  "risk": "R1",
+  "kind": "ui",
+  "state": "design-active",
+  "mutablePaths": [
+    "src/NvtFwCombiner.Presentation.Avalonia/Views/MemoryCoverageBar.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/Styles/MemoryCoverageStyles.axaml"
+  ],
+  "implementationOwner": "primary-agent",
+  "searchEvidence": [
+    "CodeGraph MemoryCoverageBar/BuildPositions and exact source: endpoint markers reuse memoryExplorerGroup.active, inheriting the leaf's 2px outline, 118% scale and shadow. Give only the position marker a visual class override; preserve leaf/group lift and all handlers.",
+    "OpenLocal's opaque NfcSurfaceBrush PopupFrame covers underlying panel lines; _local has no border. Existing Surface helper already owns leaf-card geometry. Reuse it for both overlays and existing MemoryInteraction/AccentBorder tokens; leave the connector frame transparent and synchronize the card notch."
+  ],
+  "semanticOwner": "MemoryCoverageBar and MemoryCoverageStyles own shared presentation; existing typed lanes, ranges, labels and all hover/focus lifecycle handlers are unchanged.",
+  "terminalContract": "Owner requests a less button-like R marker and subsequently clearer expanded boundaries/nonwhite cards. Render aligned M/R/L with quiet fill, semibold labels and exact-width fine underline, no marker scale/shadow/thick box. Keep actual memory-leaf lift. Shared local/card surfaces use existing light/dark tinted surface and border tokens; transparent connectors must not paint over the parent frame. Preserve width/range authority, keyboard entry/Escape, pointer transit/exit, Reduced Motion, supported viewport containment and firmware bytes. Owner explicitly renewed the local continuation/commit exception on 2026-09-09 ('可以，沿用本次修正'); their subsequent card feedback amends this same UI unit. The exception ends at this unit handoff. Existing active records and overlapping paths remain visible; this record does not claim a valid final checkpoint, external R3 approval, integration or release pass.",
+  "disposition": "extend-owner",
+  "designReview": { "reviewer": null, "outcome": "not-required", "evidence": "R1 visual-only owner feedback on f598492314e5511d243a1ad30b970becee72e74f. Reference: owner screenshot codex-clipboard-0dce2277-6cc6-4c8f-b5c0-3d1c701df001.png and Unit60 full-window captures. Existing marker/card actual-control tests gain red-capable boundary and alignment assertions." },
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": { "reviewer": null, "outcome": "pending", "evidence": "" }
+}

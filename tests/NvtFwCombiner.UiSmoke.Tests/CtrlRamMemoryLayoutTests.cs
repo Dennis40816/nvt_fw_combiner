@@ -128,6 +128,14 @@ public sealed class CtrlRamMemoryLayoutTests
                     Assert.InRange(Math.Abs(cell.Bounds.Width - expectedWidth), 0, 1);
                 }
                 await SettleAsync();
+                Border activePosition = Assert.IsType<Border>(Positions(window)[index]);
+                Assert.Equal(default, activePosition.BorderThickness);
+                Assert.Equal(default, activePosition.BoxShadow);
+                Assert.Equal(Matrix.Identity, activePosition.RenderTransform?.Value ?? Matrix.Identity);
+                Assert.NotEqual(global::Avalonia.Media.Brushes.Transparent, activePosition.Background);
+                Point[] labelCenters = [.. Positions(window).Select(position =>
+                    Center(Assert.Single(position.GetVisualDescendants().OfType<TextBlock>()), window))];
+                Assert.All(labelCenters, center => Assert.InRange(Math.Abs(center.Y - labelCenters[0].Y), 0, 0.5));
                 Capture(window, $"nt51927-hover60-endpoint-{index}.png");
             }
             Capture(window, "nt51927-threechip-actual.png");

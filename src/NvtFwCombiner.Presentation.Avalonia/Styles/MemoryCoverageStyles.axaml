@@ -93,6 +93,27 @@
     <Setter Property="Transitions" Value="{x:Null}" />
     <Setter Property="RenderTransform" Value="none" />
   </Style>
+  <!-- Position markers are quiet navigation anchors, not floating memory slices. -->
+  <Style Selector="Border.memoryFocusPosition">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="CornerRadius" Value="3" />
+    <Setter Property="Transitions" Value="{x:Null}" />
+  </Style>
+  <Style Selector="Border.memoryFocusPosition.active">
+    <Setter Property="Background" Value="{DynamicResource NfcMemoryInteractionSurfaceBrush}" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="CornerRadius" Value="3" />
+    <Setter Property="BoxShadow" Value="none" />
+    <Setter Property="RenderTransform" Value="none" />
+  </Style>
+  <Style Selector="Border.memoryFocusPosition TextBlock.memoryPositionLabel">
+    <Setter Property="Foreground" Value="{DynamicResource NfcMemoryTextSecondaryBrush}" />
+  </Style>
+  <Style Selector="Border.memoryFocusPosition.active TextBlock.memoryPositionLabel">
+    <Setter Property="Foreground" Value="{DynamicResource NfcAccentStrongBrush}" />
+  </Style>
+  <Style Selector="Border.memoryFocusPosition Border.memoryPositionUnderline"><Setter Property="Opacity" Value="0.4" /></Style>
+  <Style Selector="Border.memoryFocusPosition.active Border.memoryPositionUnderline"><Setter Property="Opacity" Value="1" /></Style>
   <Style Selector=":is(Control).memoryHoverOnly"><Setter Property="IsVisible" Value="False" /></Style>
   <Style Selector="Border.memoryFocusSlice.linked.reducedMotion"><Setter Property="RenderTransform" Value="none" /></Style>
   <Style Selector="Border#MemorySliceCard :is(Control).memoryHoverOnly"><Setter Property="IsVisible" Value="True" /></Style>

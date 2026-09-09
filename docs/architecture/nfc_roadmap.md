@@ -610,6 +610,15 @@ at this task's handoff; no immutable record is rewritten, no final lifecycle
 pass is asserted, and firmware/Golden/external-owner/integration/release gates
 remain unchanged. Local verification is recorded in `tests/README.md`.
 
+The subsequent owner feedback is tracked as `UI-114-MEMORY-MARKERS-61`:
+M/R/L are quiet aligned position markers with a fine underline, not floating
+buttons. The shared secondary view/card use the existing themed blue tint,
+fine border and shadow; transparent connector gaps preserve the underlying
+panel lines. Actual memory leaves retain their lift. The owner renewed the
+local continuation/commit exception for this visual unit only, including the
+subsequent expanded-border/card feedback; prior lifecycle records remain open.
+The scoped UI run passes 42/42 with whole-window captures in `tests/README.md`.
+
 The supporting-list correction is a separate Presentation-only unit:
 reuse already-projected primary rows and existing card/button styles; initially
 show at most three, with Unmapped behind mapped rows, then show every row in

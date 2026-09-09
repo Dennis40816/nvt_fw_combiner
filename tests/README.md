@@ -440,6 +440,36 @@ no full-suite or release Golden run was claimed. The owner permitted this local
 continuation/commit only; Unit58/59 lifecycle and external-authority integration
 gates remain unresolved and are not turned into passes by these UI results.
 
+## Memory endpoint markers and expanded surfaces — 2026-09-09
+
+`UI-114-MEMORY-MARKERS-61` follows the owner's R-marker screenshot and
+expanded-border/card feedback. Position markers use aligned semibold labels,
+quiet tint and a thin underline, without the memory leaf's scale or shadow.
+The shared local view and card reuse the existing Light/Dark interaction
+surface, accent border and row shadow; the connector frame stays transparent.
+The leaf's 118% lift and the existing interaction lifecycle are unchanged.
+
+Evidence root: `D:/NvtFwCombiner-TestArea/evidence/v114-memory-markers61/`.
+`red.trx` contains three intended failures (boxed marker and borderless local
+view in both themes). The first green run was 38/42: two new assertions needed
+theme-aware resource lookup, and two old borderless assertions were updated
+for the owner-requested border. `final.trx` passes **42/42, zero skipped, 55 s**.
+The exact `dotnet test ... --no-restore --filter` selection is
+`CtrlRamMemoryLayoutTests|MemoryCoveragePopupTests|ProductionCtrlRamWindowShowsReferenceAlignedLocalCard|MemoryCoverageBarGeometryTests`
+(each alternative prefixed with `FullyQualifiedName~`).
+
+Full production-window captures under `final/` include
+`nt51927-hover60-endpoint-1.png`, `nt51927-hover60-master-mp.png`
+(1180x1040, Light/English) and `memory-ctrlram-True-Normal-leaf.png`
+(1440x900, Dark/Traditional Chinese). Whole-window comparison confirms aligned
+markers, visible overlay boundaries and unchanged overview geometry. Tests
+also retain keyboard/Escape, exit, motion, pointer transit and viewport checks.
+Scoped Polytail by GPT-5.6 Terra/high passes with no P0–P3 findings against
+production/test tree `f6b9739198820017c0d6c1ad2abef845b0359940`.
+No full-suite, release Golden or native DPI/accessibility pass is claimed.
+The owner renewed the local continuation/commit exception for this unit only;
+Unit58/59/60 lifecycle and integration/release gates remain separate.
+
 ## Running and maintaining this view
 
 Use [`CONTRIBUTING.md`](../CONTRIBUTING.md) to initialize the existing fixed

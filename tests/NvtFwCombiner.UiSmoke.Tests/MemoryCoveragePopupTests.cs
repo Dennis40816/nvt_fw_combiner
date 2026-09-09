@@ -18,6 +18,37 @@ namespace NvtFwCombiner.UiSmoke.Tests;
 /// <summary>Exercises the actual grouped-memory overlay hierarchy and its terminal-slice cards.</summary>
 public sealed class MemoryCoveragePopupTests
 {
+    /// <summary>Expanded surfaces have their own boundary; the connector does not paint over the underlying panel.</summary>
+    [AvaloniaTheory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void ExpandedSurfacesStayDistinctFromTheMainPanel(bool dark)
+    {
+        Window window = CreateWindow(388, dark, MemoryCoverageBarProjectionTests.Example(), out MemoryCoverageBar bar);
+        try
+        {
+            OpenGroupedCard(window, bar);
+            Assert.True(bar.TryFindResource("NfcMemoryInteractionSurfaceBrush", bar.ActualThemeVariant, out object? surfaceBrush));
+            Assert.True(bar.TryFindResource("NfcAccentBorderBrush", bar.ActualThemeVariant, out object? borderBrush));
+            Assert.True(bar.TryFindResource("NfcMemoryPanelSurfaceBrush", bar.ActualThemeVariant, out object? panelBrush));
+            Assert.NotEqual(panelBrush, surfaceBrush);
+            foreach (string name in new[] { "MemoryLocalView", "MemorySliceCard" })
+            {
+                Border surface = Assert.IsType<Border>(FindNamed<Border>(window, name));
+                Assert.Equal(new Thickness(1), surface.BorderThickness);
+                Assert.Equal(surfaceBrush, surface.Background);
+                Assert.Equal(borderBrush, surface.BorderBrush);
+                Assert.NotEqual(default, surface.BoxShadow);
+                StackPanel frame = Assert.IsType<StackPanel>(surface.GetVisualParent());
+                Assert.Equal(global::Avalonia.Media.Brushes.Transparent, frame.Background);
+            }
+            global::Avalonia.Controls.Shapes.Polygon notch = Assert.Single(window.GetVisualDescendants()
+                .OfType<global::Avalonia.Controls.Shapes.Polygon>(), item => item.Name == "MemoryCardNotch");
+            Assert.Equal(surfaceBrush, notch.Fill);
+        }
+        finally { window.Close(); }
+    }
+
     /// <summary>Grouped focus exposes all local slices without a preselected card, and leaf Escape unwinds one overlay at a time.</summary>
     [AvaloniaTheory]
     [InlineData(240, false)]
@@ -367,7 +398,7 @@ public sealed class MemoryCoveragePopupTests
                 Render();
             }
             Capture(window, darkChinese ? "388-dark-zh-bottom" : "388-light-en-bottom");
-            Assert.Equal(new Thickness(0), local.BorderThickness);
+            Assert.Equal(new Thickness(1), local.BorderThickness);
             TextBlock heading = Assert.Single(local.GetVisualDescendants().OfType<TextBlock>(),
                 block => block.Text == ((ShellTextResources)bar.Labels!).MemoryLocalViewLabel);
             Assert.True(BoundsInWindow(heading, window).Bottom < BoundsInWindow(LocalStrip(local), window).Top);

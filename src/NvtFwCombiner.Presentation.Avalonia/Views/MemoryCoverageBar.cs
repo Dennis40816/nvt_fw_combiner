@@ -50,7 +50,7 @@ public sealed class MemoryCoverageBar : UserControl
     private readonly ItemsControl _positions = new() { Height = 22, Margin = new Thickness(0, 6, 0, 0), ClipToBounds = false };
     private readonly Popup _localPopup = new() { ShouldUseOverlayLayer = true, IsLightDismissEnabled = false };
     private readonly Popup _cardPopup = new() { ShouldUseOverlayLayer = true, IsLightDismissEnabled = false };
-    private readonly Border _local = new() { Name = "MemoryLocalView" };
+    private readonly Border _local = Surface("MemoryLocalView");
     private readonly Border _card = Surface("MemorySliceCard");
     private readonly DispatcherTimer _closeTimer = new() { Interval = TimeSpan.FromMilliseconds(160) };
     private readonly List<Control> _sliceTargets = [];
@@ -74,7 +74,6 @@ public sealed class MemoryCoverageBar : UserControl
         _track.Child = _main;
         Content = new Panel { Children = { new StackPanel { Children = { _track, _positions } }, _localPopup, _cardPopup } };
         _ = _track.Bind(Border.BackgroundProperty, new DynamicResourceExtension("NfcMemoryTrackBrush"));
-        _ = _local.Bind(Border.BackgroundProperty, new DynamicResourceExtension("NfcSurfaceBrush"));
         _track.PointerMoved += (_, e) =>
         {
             if (_main.GetVisualDescendants().OfType<ProportionalStackPanel>().FirstOrDefault() is { } panel &&
@@ -178,8 +177,9 @@ public sealed class MemoryCoverageBar : UserControl
     private static Border Surface(string name)
     {
         var border = new Border { Name = name, Classes = { "surface" }, Padding = new Thickness(12), CornerRadius = new CornerRadius(8), BorderThickness = new Thickness(1) };
-        _ = border.Bind(Border.BackgroundProperty, new DynamicResourceExtension("NfcSurfaceBrush"));
-        _ = border.Bind(Border.BorderBrushProperty, new DynamicResourceExtension("NfcBorderMutedBrush"));
+        _ = border.Bind(Border.BackgroundProperty, new DynamicResourceExtension("NfcMemoryInteractionSurfaceBrush"));
+        _ = border.Bind(Border.BorderBrushProperty, new DynamicResourceExtension("NfcAccentBorderBrush"));
+        _ = border.Bind(Border.BoxShadowProperty, new DynamicResourceExtension("NfcMemoryRowHoverShadow"));
         return border;
     }
 
@@ -269,24 +269,25 @@ public sealed class MemoryCoverageBar : UserControl
         _positions.ItemTemplate = new FuncDataTemplate<MemoryFocusPositionViewModel>((position, scope) =>
         {
             if (position?.Lane is not { } lane) { return new Border { IsHitTestVisible = false }; }
-            var marker = new Border { Height = 2 };
+            var marker = new Border { Height = 2, CornerRadius = new CornerRadius(1), Classes = { "memoryPositionUnderline" } };
             _ = marker.Bind(Border.BackgroundProperty, new DynamicResourceExtension("NfcAccentBrush"));
+            Grid.SetRow(marker, 1);
             var target = new Border
             {
                 Name = "MemoryFocusPosition",
                 DataContext = position,
                 Focusable = true,
                 FocusAdorner = null,
-                Background = Brushes.Transparent,
                 RenderTransformOrigin = RelativePoint.Center,
-                Classes = { "memoryExplorerGroup" },
-                Child = new StackPanel
+                Classes = { "memoryExplorerGroup", "memoryFocusPosition" },
+                Child = new Grid
                 {
-                    Spacing = 3,
+                    RowDefinitions = new RowDefinitions("*,2"),
                     Children =
                 {
                     marker,
-                    new TextBlock { Text = position.Label, Classes = { "captionText" }, HorizontalAlignment = HorizontalAlignment.Center },
+                    new TextBlock { Text = position.Label, Classes = { "memoryPositionLabel" }, FontSize = 11, FontWeight = FontWeight.SemiBold,
+                        HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center },
                 }
                 },
             };
@@ -466,7 +467,6 @@ public sealed class MemoryCoverageBar : UserControl
             connector.Children.Add(Connector(new Point(localX, _localAbove ? 0 : 32), new Point(mainX, _localAbove ? 32 : 0)));
         }
         StackPanel frame = PopupFrame(_local, connector, _localAbove);
-        _ = frame.Bind(Panel.BackgroundProperty, new DynamicResourceExtension("NfcSurfaceBrush"));
         _localPopup.Child = frame;
         _localPopup.Width = Bounds.Width;
         _localPopup.PlacementTarget = anchor;
@@ -539,10 +539,10 @@ public sealed class MemoryCoverageBar : UserControl
         double terminal = above ? height : 0;
         var points = new List<Point> { new(anchor - 6, edge), new(anchor, tip), new(anchor + 6, edge) };
         var fill = new Polygon { Name = "MemoryCardNotch", Points = points, IsHitTestVisible = false };
-        _ = fill.Bind(Shape.FillProperty, new DynamicResourceExtension("NfcSurfaceBrush"));
+        _ = fill.Bind(Shape.FillProperty, new DynamicResourceExtension("NfcMemoryInteractionSurfaceBrush"));
         canvas.Children.Add(fill);
         var outline = new Polyline { Points = points, StrokeThickness = 1, IsHitTestVisible = false };
-        _ = outline.Bind(Shape.StrokeProperty, new DynamicResourceExtension("NfcBorderMutedBrush"));
+        _ = outline.Bind(Shape.StrokeProperty, new DynamicResourceExtension("NfcAccentBorderBrush"));
         canvas.Children.Add(outline);
         // A left-edge slice may align with local text. Interrupt only the decorative
         // stem behind those glyph bounds; its endpoint still identifies the exact slice.
