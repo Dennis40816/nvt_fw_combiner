@@ -617,6 +617,25 @@ final blobs `90198e1c`, `22ac025b`, `eda58854`, `9094931a`; the primary verified
 the final TRX. These are local UI checks, not firmware Golden execution,
 native DPI/accessibility certification, integration or release evidence.
 
+## Memory context disclosure — 2026-09-10
+
+On base `f982a294`, the shared card, legacy tooltip and accessible description
+now omit Detail only when it exactly repeats the preservation summary. Distinct
+details, processing facts and address-space identity remain; no firmware or
+interaction authority changes. Evidence: `D:/NvtFwCombiner-TestArea/evidence/v114-memory-context74/`.
+After fixing test setup (unused assertion results and a layout flush after
+language change), `red-settled.trx` reproduces four duplicate-text failures.
+`green.trx` passes **84/84, zero skipped, 83 s**: `MemoryCoveragePopupTests`,
+`MemorySourcePresentationTests`, `MemoryInitializationTextTests`,
+`CtrlRamMemoryLayoutTests`, `AbMemoryLayoutControlTests` (each
+`FullyQualifiedName~`). Only the new capture test then adds an animation-settle
+wait; `final.trx` passes its **4/4, zero skipped, 3 s**. The other 80 checks are
+reused, not a fresh final all-84 run. Final isolated Light/English and
+Dark/Chinese renders show one summary and retain different details; actual
+NT51927/NT51950 and AB window checks are in the preceding green run.
+Primary scoped Polytail found no correctness or firmware-authority change in
+this local unit. No full-suite, native accessibility or release Golden pass is claimed.
+
 ## Running and maintaining this view
 
 Use [`CONTRIBUTING.md`](../CONTRIBUTING.md) to initialize the existing fixed

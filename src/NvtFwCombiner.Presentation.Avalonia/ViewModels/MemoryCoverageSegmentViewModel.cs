@@ -158,9 +158,10 @@ internal sealed class MemoryCoverageSegmentViewModel
             PreservationDetails.Select(item =>
                 $"{item.IcLabel}, {item.BlockLabel}, {item.ArtifactRangeLabel}, {item.FlashRangeLabel}, {item.DispositionLabel}"));
         string stateAccessibility = HasChangeState ? $"{ChangeLabel}. " : string.Empty;
+        string additionalDetail = HasDistinctDetail ? $" {Detail}" : string.Empty;
         AccessibleDetail = string.IsNullOrEmpty(preservationAccessibility)
-            ? $"{SourceLabel}. {RangeLabel}. {stateAccessibility}{PreservationSummary}. {Detail}"
-            : $"{SourceLabel}. {RangeLabel}. {stateAccessibility}{PreservationSummary}. {preservationAccessibility}. {Detail}";
+            ? $"{SourceLabel}. {RangeLabel}. {stateAccessibility}{PreservationSummary}.{additionalDetail}"
+            : $"{SourceLabel}. {RangeLabel}. {stateAccessibility}{PreservationSummary}. {preservationAccessibility}.{additionalDetail}";
         if (HasSourceCaption)
         {
             AccessibleDetail = $"{DisplayTitle}. {SourceCaption}. {AccessibleDetail}";
@@ -204,6 +205,9 @@ internal sealed class MemoryCoverageSegmentViewModel
     public string LogicalSourceLabel { get; }
 
     public string Detail { get; }
+
+    public bool HasDistinctDetail => !StringComparer.Ordinal.Equals(Detail, PreservationSummary);
+    public bool HasAdditionalDetail => !HasProcessingFacts && HasDistinctDetail;
 
     public string CompactDetail { get; }
 

@@ -18,6 +18,57 @@ namespace NvtFwCombiner.UiSmoke.Tests;
 /// <summary>Exercises the actual grouped-memory overlay hierarchy and its terminal-slice cards.</summary>
 public sealed class MemoryCoveragePopupTests
 {
+    /// <summary>Context-only details appear once; distinct explanations remain available.</summary>
+    [AvaloniaTheory]
+    [InlineData(false, false)]
+    [InlineData(false, true)]
+    [InlineData(true, false)]
+    [InlineData(true, true)]
+    public async Task ExpandedContextCardDoesNotRepeatItsSummary(bool dark, bool chinese)
+    {
+        ShellTextResources text = ShellTextResources.For(chinese ? ShellLanguage.ChineseTraditional : ShellLanguage.English);
+        foreach (bool distinct in new[] { false, true })
+        {
+            string summary = text.MemorySectionContextDetail;
+            string detail = distinct ? text.MemoryDpImageContextDetail : summary;
+            var segment = new MemoryCoverageSegmentViewModel("0x0–0xFFFF", "TP FW", detail,
+                MemoryCoverageFillRole.Tp, 0x10000, text: text, rangeStart: 0, rangeEndExclusive: 0x10000,
+                compactDetail: summary, addressSpaceId: "flash");
+            Window window = CreateWindow(388, dark, [segment], out MemoryCoverageBar bar);
+            window.DataContext = new ShellFixture(text);
+            bar.Labels = text;
+            bar.ReducedMotion = true;
+            try
+            {
+                Render();
+                Assert.True(MainTarget(bar, 0).Focus(NavigationMethod.Tab));
+                Render();
+                Border card = Assert.IsType<Border>(FindNamed<Border>(window, "MemorySliceCard"));
+                Expander disclosure = Assert.Single(card.GetVisualDescendants().OfType<Expander>());
+                Assert.False(disclosure.IsExpanded);
+                disclosure.IsExpanded = true;
+                Render();
+                await Task.Delay(250, TestContext.Current.CancellationToken);
+                Render();
+                TextBlock[] visible = [.. card.GetVisualDescendants().OfType<TextBlock>().Where(block => block.IsEffectivelyVisible)];
+                _ = Assert.Single(visible, block => block.Text == summary);
+                _ = Assert.Single(visible, block => block.Text == "flash");
+                if (distinct) { _ = Assert.Single(visible, block => block.Text == detail); }
+                Assert.Equal(1, segment.AccessibleDetail.Split(summary, StringSplitOptions.None).Length - 1);
+                Assert.Contains(detail, segment.AccessibleDetail, StringComparison.Ordinal);
+                Capture(window, $"context-detail-{dark}-{chinese}-{distinct}");
+                var template = (global::Avalonia.Controls.Templates.IDataTemplate)bar.FindResource("MemoryCoverageTooltipTemplate")!;
+                window.Content = new ContentControl { Content = segment, ContentTemplate = template };
+                Render();
+                visible = [.. window.GetVisualDescendants().OfType<TextBlock>().Where(block => block.IsEffectivelyVisible)];
+                _ = Assert.Single(visible, block => block.Text == summary);
+                Assert.Equal(distinct, visible.Any(block => block.Text == text.DetailLabel));
+                if (distinct) { _ = Assert.Single(visible, block => block.Text == detail); }
+            }
+            finally { window.Close(); }
+        }
+    }
+
     /// <summary>Rail and local-slice labels retain their glyph proportions throughout the decorative lift.</summary>
     [AvaloniaTheory]
     [InlineData(false, 0)]
