@@ -40,6 +40,9 @@ public sealed class CtrlRamCascadeMemoryLayoutTests
             Assert.Equal("0x33200-0x345FF", diff.StartAddress);
             Assert.Equal("len 0x1400", diff.SizeHex);
             Assert.True(shell.Replace.HasCtrlRamFocusLayout);
+            Assert.Contains(shell.Replace.CtrlRamFocusLanes, lane => lane.Title == "Common");
+            Assert.Contains(shell.Replace.CtrlRamFocusLanes, lane => lane.Title == "Cascade");
+            Assert.DoesNotContain(shell.Replace.CtrlRamFocusLanes, lane => lane.Title == "Master");
             Assert.NotEmpty(shell.Replace.ReplaceCoverageSegments);
             Assert.Empty(shell.Reports.ReportHistoryEntries);
             Capture(window, ic + "-cascade");

@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 2,
+  "taskId": "UI-114-CTRLRAM-TITLES-59",
+  "capability": "Render the single-IC CtrlRAM detail lane heading as Master without changing region groups",
+  "integrationBase": "a0fc6a9f816ee677c87283d8e3c708d293be1482",
+  "risk": "R1",
+  "kind": "ui",
+  "state": "design-active",
+  "mutablePaths": [
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MemoryFocusLaneViewModel.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReplacePresentationViewModel.Memory.cs"
+  ],
+  "implementationOwner": "primary-agent",
+  "searchEvidence": [
+    "MemoryFocusLaneViewModel currently gets Title directly from the first range RegionGroup. Changing Application.ResolveCtrlRamRegionGroup would also change input slots, so that owner remains untouched.",
+    "ReplacePresentationViewModel owns lane refresh and already retains the exact accepted CtrlRAM session. Its resolved map TopologySelection.ChipCount is supplied by BuiltInCtrlRamAuthoringAdapter.V2, not inferred from IC name or firmware bytes.",
+    "Actual-window red regressions: three single cases fail the requested DP/Master labels and two Cascade controls pass; D:/NvtFwCombiner-TestArea/evidence/v114-ctrlram-labels-review/ui-red.trx. DP label correction remains in Unit58's already-admitted Presentation paths; no duplicate path coverage is added here."
+  ],
+  "semanticOwner": "The accepted resolved map owns topology; existing region groups retain their meaning. MemoryFocusLaneViewModel owns the localized display-only lane heading.",
+  "terminalContract": "For accepted ChipCount 1 only, render a Common lane heading using existing localized Master text. Preserve underlying region groups, input slots, lane boundaries, position markers, source sharing, Base/Cascade headings, multi-IC behavior and Build. No Domain, Application, profile, map, byte or release changes. Owner confirmed this bounded R1 display scope on 2026-09-09 after risk clarification; Unit58 external approval remains pending and is not satisfied by this record. Local narrow tests and scoped review only; no integration or release claim.",
+  "disposition": "extend-owner",
+  "designReview": { "reviewer": null, "outcome": "not-required", "evidence": "R1 display-only correction using existing accepted topology and localized titles." },
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": { "reviewer": null, "outcome": "pending", "evidence": "" }
+}

@@ -125,7 +125,9 @@ internal sealed partial class ReplacePresentationViewModel
             ReplaceCoverageGroups.Add(group);
         }
         ReplaceRows(CtrlRamFocusLanes, MemoryFocusLaneViewModel.Create(
-            ReplaceCoverageGroups.SelectMany(static group => group.Items), Text));
+            ReplaceCoverageGroups.SelectMany(static group => group.Items), Text,
+            isSingleIc: _ctrlRamReplaceSession.CurrentSnapshot?.ExactCapability?.CompiledComposition
+                .V2Details.Provenance.ResolvedMap.TopologySelection?.ChipCount == 1));
     }
 
     internal void ClearCtrlRamInspectionDisplay()

@@ -547,6 +547,40 @@ output writes. Exact-head external owner attestation remains pending; local
 evidence and limitations are recorded in `tests/README.md`. NT51928BT/Desay and
 unverified IC × mode × topology combinations remain outside this completion.
 
+Owner review feedback after candidate `6f625de5` (2026-09-09), confirmed as
+bounded R1 display corrections after risk clarification:
+
+- Shorten the Memory Layout label from `DP image` to `DP`; retain the canonical
+  DP-container/TP-overlay distinction, exact ranges and disconnected sections.
+- In the single-IC CtrlRAM detail view, show `Master` instead of `Common`.
+  Use existing typed IC-count/topology context; do not globally rename `Common`
+  or change multi-IC grouping, source sharing, replacement ranges or bytes.
+
+The owner's confirmation permits this local display correction to proceed;
+it is not owner attestation for the previous frozen R3 candidate. This
+task-specific sequencing decision applies only to the two labels above and
+expires when this correction is handed off. It does not change the validator,
+immutable Unit58 record, firmware safety, Golden, integration or release gates.
+Unit58 retains its admitted Presentation paths for the DP label correction;
+`UI-114-CTRLRAM-TITLES-59` admits only the two additional lane-presentation
+paths, with no overlapping coverage. The pending R3 owner gate remains explicit.
+Implemented in Presentation only: DP uses the existing shared role title;
+the detail heading uses accepted `TopologySelection.ChipCount == 1` without
+mutating the underlying region group or input group. The red run reproduced
+three single-IC failures and passed both Cascade controls. The final scoped
+run passed 15/15 tests, zero skipped: single NT51919/950/951, Cascade 950/951,
+three-IC NT51927, Standard NT51928, and logical-range grouping. It checks
+actual English/Traditional-Chinese headings, unchanged Common input groups,
+position markers, ranges, geometry and Build readiness. Evidence is in local
+`v114-ctrlram-labels-review/ui-final.trx`; actual 1440x1040 Light/English and
+Dark/Traditional-Chinese renders are under its `final/` directory and were
+compared with Unit58's `v114-ctrlram-context58/green/` reference renders.
+No full suite, Golden output execution or release run was repeated for labels.
+Scoped independent review (GPT-5.6 Terra/high) found no P0-P3 issues in this
+R1 correction; that result is not a pass for the earlier R3 batch.
+This is a local implementation checkpoint; batch finalization/integration
+remains pending the original R3 external-authority gate.
+
 The supporting-list correction is a separate Presentation-only unit:
 reuse already-projected primary rows and existing card/button styles; initially
 show at most three, with Unmapped behind mapped rows, then show every row in

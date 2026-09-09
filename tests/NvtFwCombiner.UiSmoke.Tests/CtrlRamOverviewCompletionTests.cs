@@ -1,6 +1,8 @@
 using System.Text.Json;
+using Avalonia.Controls;
 using Avalonia.Headless.XUnit;
 using Avalonia.Styling;
+using Avalonia.VisualTree;
 using NvtFwCombiner.Application.MemoryLayout;
 using NvtFwCombiner.Presentation.Avalonia;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
@@ -53,19 +55,25 @@ public sealed class CtrlRamOverviewCompletionTests
             Assert.Contains(shell.Replace.CtrlRamOverview, section => section.ContentRole == MemoryContentRole.Dp);
             Assert.Equal(3, shell.Replace.CtrlRamOverview.Count);
             Assert.Equal(ic == "NT51919" ? 1 : 2, shell.Replace.CtrlRamOverview.Count(section => section.ContentRole == MemoryContentRole.Dp));
-            if (ic != "NT51919")
-            {
-                Assert.All(shell.Replace.CtrlRamOverview.Where(section => section.ContentRole == MemoryContentRole.Dp),
-                    section => Assert.Equal("DP image", section.DisplayTitle));
-            }
+            Assert.All(shell.Replace.CtrlRamOverview.Where(section => section.ContentRole == MemoryContentRole.Dp),
+                section => Assert.Equal("DP", section.DisplayTitle));
+            Assert.Contains(shell.Replace.CtrlRamFocusLanes, lane => lane.Title == "Master");
+            Assert.DoesNotContain(shell.Replace.CtrlRamFocusLanes, lane => lane.Title == "Common");
+            MemoryFocusLaneViewModel master = Assert.Single(shell.Replace.CtrlRamFocusLanes, lane => lane.Title == "Master");
+            Assert.All(master.Ranges, range => Assert.Equal(ReplaceRegionGroup.Common, range.RegionGroup));
+            Assert.Equal("•", master.PositionLabel);
+            Assert.Contains(shell.Replace.ReplaceSlotGroups, group => group.Title == "Common");
+            Assert.Contains(window.GetVisualDescendants().OfType<TextBlock>(), block =>
+                block.IsEffectivelyVisible && block.Text == "Master");
             shell.SelectedLanguage = "Traditional Chinese";
             window.RequestedThemeVariant = ThemeVariant.Dark;
             CtrlRamCascadeMemoryLayoutTests.Capture(window, ic + "-single-overview-dark-zh");
-            if (ic != "NT51919")
-            {
-                Assert.All(shell.Replace.CtrlRamOverview.Where(section => section.ContentRole == MemoryContentRole.Dp),
-                    section => Assert.Equal("DP 映像", section.DisplayTitle));
-            }
+            Assert.All(shell.Replace.CtrlRamOverview.Where(section => section.ContentRole == MemoryContentRole.Dp),
+                section => Assert.Equal("DP", section.DisplayTitle));
+            Assert.Contains(shell.Replace.CtrlRamFocusLanes, lane => lane.Title == "主 IC");
+            Assert.DoesNotContain(shell.Replace.CtrlRamFocusLanes, lane => lane.Title == "共用");
+            Assert.Contains(window.GetVisualDescendants().OfType<TextBlock>(), block =>
+                block.IsEffectivelyVisible && block.Text == "主 IC");
             Assert.True(shell.Replace.CanBuildReplace);
             Assert.Empty(shell.Reports.ReportHistoryEntries);
         }

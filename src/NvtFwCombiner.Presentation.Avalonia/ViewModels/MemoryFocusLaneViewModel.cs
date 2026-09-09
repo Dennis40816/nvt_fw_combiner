@@ -5,11 +5,13 @@ namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 /// <summary>A visual container for one endpoint's continuous run, retaining existing per-item facts.</summary>
 internal sealed class MemoryFocusLaneViewModel
 {
-    private MemoryFocusLaneViewModel(List<MemoryCoverageSegmentViewModel> ranges, ShellTextResources text)
+    private MemoryFocusLaneViewModel(List<MemoryCoverageSegmentViewModel> ranges, ShellTextResources text, bool isSingleIc)
     {
         Ranges = [.. ranges];
         Text = text;
-        Title = text.GetReplaceRegionGroupTitle(ranges[0].RegionGroup);
+        // This is a heading only: shared input groups and physical range identities stay intact.
+        Title = text.GetReplaceRegionGroupTitle(isSingleIc && ranges[0].RegionGroup == ReplaceRegionGroup.Common
+            ? ReplaceRegionGroup.Master : ranges[0].RegionGroup);
         Start = ranges[0].RangeStart!.Value;
         EndExclusive = ranges[^1].RangeEndExclusive!.Value;
         RangeLabel = FormattableString.Invariant($"0x{Start:X5}-0x{EndExclusive - 1:X5}");
@@ -47,7 +49,7 @@ internal sealed class MemoryFocusLaneViewModel
     }
 
     public static IReadOnlyList<MemoryFocusLaneViewModel> Create(
-        IEnumerable<MemoryCoverageLogicalItemViewModel> items, ShellTextResources text)
+        IEnumerable<MemoryCoverageLogicalItemViewModel> items, ShellTextResources text, bool isSingleIc = false)
     {
         var runs = new List<List<MemoryCoverageSegmentViewModel>>();
         foreach (MemoryCoverageSegmentViewModel range in items.SelectMany(static item => item.Ranges)
@@ -62,7 +64,7 @@ internal sealed class MemoryFocusLaneViewModel
             }
             run.Add(range);
         }
-        return [.. runs.Select(run => new MemoryFocusLaneViewModel(run, text))];
+        return [.. runs.Select(run => new MemoryFocusLaneViewModel(run, text, isSingleIc))];
     }
 }
 

@@ -31,7 +31,6 @@ internal sealed partial class ShellTextResources
     public string MemoryCtrlRamDetailLabel => SelectLanguage("CtrlRAM detail", "CtrlRAM 局部位置");
     public string MemoryZoomedLabel => SelectLanguage("Zoomed", "獨立比例");
     public string MemorySectionContextDetail => SelectLanguage("Location context only; replacement targets are shown below.", "僅標示位置；取代範圍見下方局部圖。");
-    public string MemoryDpImageLabel => SelectLanguage("DP image", "DP 映像");
     public string MemoryDpImageContextDetail => SelectLanguage(
         "DP image container outside the TP FW overlay. Replacement targets are shown below.",
         "DP 映像中未被 TP FW 覆蓋的區域；取代範圍見下方局部圖。");
