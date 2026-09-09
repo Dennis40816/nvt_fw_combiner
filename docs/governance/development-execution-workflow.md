@@ -23,8 +23,43 @@ Branch/version/release rules live in
 
 ## Capability-reuse gate (fail closed)
 
+### Bounded local R1 continuation
+
+Under [ADR 0070](../adr/0070-bounded-local-r1-continuation.md), an explicitly
+authorized local R1 correction may proceed while prior integration records are
+unfinished. Before editing, the owner's authorization, existing semantic owner,
+source base, exact paths, acceptance criteria, narrow tests and residual gates
+must be recorded in the owner task discussion or existing handoff. A later
+commit may restate or link that evidence, not establish it retroactively.
+Resolve unknown or conflicting ownership before changing behavior.
+
+This path applies only to an existing capability's bounded implementation or
+presentation correction. It excludes changes to architecture/public contracts,
+governance, ADRs/schemas, profiles, firmware bytes/ranges/order/integrity,
+support/evidence admission, permissions, CI and release policy. R2/R3 keep the
+recorded design admission and their authority-specific reviews below. A failing
+affected test or correctness finding must still be resolved for the local unit.
+
+Complete the narrow tests and scoped Polytail, then commit each coherent unit
+when the owner has authorized commits. A local R1 unit does not need a new
+overlapping JSON record or closure of all prior integration records merely to
+continue. Preserve existing record blobs; they are neither reusable permission
+nor something to rewrite to fit the new scope. Ask only for genuinely missing
+authority or a material unresolved decision, not a repeated sequencing waiver.
+
+Local continuation is not an integration batch or a validator pass. Before
+integration, the complete candidate still needs valid, uniquely covering
+records and the checkpoint/review/evidence contract below. Missing or
+overlapping immutable admissions remain explicit integration blockers; this
+path supplies no repair, activation, history rewrite or automatic finalization.
+Do not run a candidate gate merely to reopen a known record-only local blocker.
+When required at its actual stage, run it unchanged and report every failure.
+
+### Recorded design admission and integration evidence
+
 Before adding, changing, moving, wrapping, splitting, replacing, or refactoring
-production behavior, a semantic branch, or an owner contract, the active
+behavior outside the bounded local R1 path, or admitting any change for
+integration, the active
 specification, ticket, or owner-approved handoff must contain a staged,
 `design-active` [capability-reuse record](capability-reuse-record.md).
 The record is parsed from its real staged Git blob; intent-to-add and any
@@ -138,7 +173,8 @@ For governed work, create implementation commits first, perform the fixed-head
 review, then populate and commit the `final-complete` records as a separate
 evidence checkpoint. An intermediate commit that still contains a
 `design-active` record intentionally fails the final repository gate; it is not
-mergeable and cannot authorize follow-on development.
+mergeable and cannot authorize another integration batch. It does not prohibit
+an independently authorized correction under the bounded local R1 path above.
 
 Before R1-R3 handoff: format changed files, run the affected narrow test, inspect
 the exact diff, apply scoped Polytail, and record residual evidence. The full

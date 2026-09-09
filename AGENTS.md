@@ -124,6 +124,9 @@ ordinary Git or document inspection.
   splitting, replacing, or refactoring production behavior, a semantic branch,
   or an owner contract, complete the
   [fail-closed capability-reuse gate](docs/governance/development-execution-workflow.md#capability-reuse-gate-fail-closed).
+  Apply its bounded local R1 path when eligible: unfinished integration records
+  alone do not block authorized local corrections or require repeated waivers.
+  R2/R3 admission and formal integration/release checks remain required.
   Extend the existing owner when its contract is insufficient. A second
   semantic path requires an approved migration seam and executable deletion
   milestone.

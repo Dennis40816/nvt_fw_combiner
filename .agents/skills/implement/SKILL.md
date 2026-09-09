@@ -10,10 +10,10 @@ the nearest `AGENTS.md`. Implement only owner-approved scope.
 
 1. Pin the integration base, risk, affected authority, acceptance criteria,
    non-goals, mutable surfaces, evidence gates, narrow test, and final gate.
-2. Complete the fail-closed
+2. Complete the applicable local R1 preflight or recorded design admission in the
    [capability-reuse gate](../../../docs/governance/development-execution-workflow.md#capability-reuse-gate-fail-closed)
-   before adding, changing, moving, wrapping, splitting, replacing, or
-   refactoring production behavior, a semantic branch, or an owner contract.
+   before changing behavior. Use its bounded local R1 path when eligible;
+   unfinished integration records alone do not require a fresh local waiver.
    Inventory existing semantic producers, callers,
    ports/adapters, tests, and duplicate-risk helpers; record the owner or exact
    `none-found` evidence and the approved disposition. A projection may
@@ -30,8 +30,10 @@ the nearest `AGENTS.md`. Implement only owner-approved scope.
 5. Create a commit at a stable review checkpoint: coherent, tested, and
    recoverable. Do not require a separate commit for every documentation,
    test, or review correction.
-6. Apply `$polytail`, obtain the risk-appropriate independent review, and run
-   `python scripts/verify.py --all` once on the frozen R1-R3 candidate.
+6. Apply `$polytail` and the risk-appropriate review. Finish local units with
+   their affected tests and explicit residual integration gates. Run
+   `python scripts/verify.py --all` at the frozen integration/release boundary,
+   or when the root risk rules require broader verification, not per microcommit.
 
 Do not broaden the ticket, duplicate firmware semantics, stage unrelated
 changes, or claim completion while required evidence or human gates remain.

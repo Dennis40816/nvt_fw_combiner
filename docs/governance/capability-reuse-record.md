@@ -2,16 +2,19 @@
 
 Status: Active fail-closed production-change contract (schema v2).
 
-Create one Git-tracked JSON record under `docs/governance/change-records/`
-before adding, changing, moving, wrapping, splitting, replacing, or refactoring
-a production behavior, semantic branch, or owner contract. A new record starts
+Use the [workflow's bounded local R1 path](development-execution-workflow.md#bounded-local-r1-continuation)
+for eligible local corrections; it changes no record or validator semantics.
+R2/R3 design admission and every formal integration candidate require a
+Git-tracked JSON record under `docs/governance/change-records/` before their
+admission. A new record starts
 as `design-active` and is staged with a real Git index blob, but not committed,
 with the admitted change. Intent-to-add is rejected. The validator parses the
 index blob and requires the worktree bytes to match it exactly, so an unstaged
 record edit cannot change the authority being validated.
 Records kept only in ignored handoff or artifact directories do not open the
-gate. A `design-active` record already present in `HEAD` is rejected so an
-unfinished admission cannot authorize another implementation batch.
+gate. A `design-active` record already present in `HEAD` is rejected as an
+integration candidate; it cannot authorize another integration batch. This
+rejection is not a prohibition on separately authorized bounded local R1 work.
 
 The validator computes tracked renames, copies, additions, modifications, type
 changes, deletions, and non-ignored untracked files from the latest valid final
