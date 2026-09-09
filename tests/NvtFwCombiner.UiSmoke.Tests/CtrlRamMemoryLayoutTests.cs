@@ -7,6 +7,8 @@ using Avalonia.Input;
 using Avalonia.Styling;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
+using NvtFwCombiner.Application.MemoryLayout;
+using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Presentation.Avalonia;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
 using NvtFwCombiner.Presentation.Avalonia.Views;
@@ -91,15 +93,18 @@ public sealed class CtrlRamMemoryLayoutTests
             await Task.Delay(250, TestContext.Current.CancellationToken);
             Render();
             Capture(window, "nt51927-threechip-hover.png");
+            AssertLiftIsNotClipped(nfRight);
             window.KeyPress(Key.Escape, RawInputModifiers.None, PhysicalKey.Escape, null);
             window.KeyRelease(Key.Escape, RawInputModifiers.None, PhysicalKey.Escape, null);
             Render();
             Assert.DoesNotContain(window.GetVisualDescendants().OfType<Border>(), control => control.Name == "MemorySliceCard");
+            await AssertLaneEdgesAsync(window);
             window.RequestedThemeVariant = ThemeVariant.Dark;
             shell.SelectedLanguage = "Traditional Chinese";
             Render();
             Assert.Equal(["主 IC", "右從 IC", "左從 IC"], shell.Replace.CtrlRamFocusLanes.Select(lane => lane.Title));
             Capture(window, "nt51927-threechip-dark-zh.png");
+            await AssertLaneEdgesAsync(window);
             await shell.WorkflowSession.ClearSlotFileAsync(shell.Replace.ReplaceBaseSlot.SlotId, TestContext.Current.CancellationToken);
             Render();
             Assert.Empty(shell.Replace.CtrlRamOverview);
@@ -107,6 +112,82 @@ public sealed class CtrlRamMemoryLayoutTests
             Assert.False(shell.Replace.HasCtrlRamFocusLayout);
         }
         finally { await CloseAndFlushAsync(window); }
+    }
+
+    /// <summary>The real NT51928 Standard inputs retain DP/TP/LDC geometry through the shared renderer.</summary>
+    [AvaloniaFact]
+    public async Task Nt51928StandardWindowKeepsDpTpAndLdcCoverage()
+    {
+        using var workspace = TempWorkspace.Create("memory-standard-928");
+        using var golden = StandardMergeGoldenManifest.Load();
+        JsonElement inputs = golden.CaseByIc("51928").GetProperty("inputs");
+        PresentationHostServices services = await CreateServicesAsync(workspace, useRetainedDpReplacePolicy: false);
+        using var window = new MainWindow(UiLaunchOptions.Empty, StartupTraceSession.Disabled,
+            services, ShellPreferenceSnapshot.Default)
+        { Width = 1180, Height = 1040 };
+        window.Show();
+        try
+        {
+            await AwaitHistoryReadyAsync(window);
+            MainWindowViewModel shell = Assert.IsType<MainWindowViewModel>(window.DataContext);
+            shell.ShowMergeCommand.Execute(null);
+            shell.WorkflowSession.SelectedIc = "NT51928";
+            shell.Merge.SelectedMergeMode = ExperienceIds.StandardMerge;
+            foreach ((string slot, string artifact) in new[]
+            {
+                (CompositionSlotIds.MergeDp, "dp-input"), (CompositionSlotIds.MergeTp, "tp-input"),
+                (CompositionSlotIds.MergeLdc, "ldc-input"),
+            })
+            {
+                await shell.WorkflowSession.SetSlotFileAsync(slot, golden.ManifestPath(inputs.GetProperty(artifact)),
+                    TestContext.Current.CancellationToken);
+            }
+            Render();
+            Assert.Equal("NT51928", shell.WorkflowSession.SelectedIc);
+            Assert.True(shell.Merge.IsNormalMergeModeSelected);
+            Assert.Equal(3, shell.Merge.MergeSlots.Count(slot => slot.HasFile));
+            Assert.Empty(shell.Reports.ReportHistoryEntries);
+            Assert.Contains(shell.Merge.MergeCoverageSegments, segment => segment.ContentRole == MemoryContentRole.Dp);
+            Assert.Contains(shell.Merge.MergeCoverageSegments, segment => segment.ContentRole == MemoryContentRole.Tp);
+            Assert.Contains(shell.Merge.MergeCoverageSegments, segment => segment.ContentRole == MemoryContentRole.Ldc);
+            MemoryCoverageBar rail = Assert.Single(window.GetVisualDescendants().OfType<MemoryCoverageBar>(),
+                control => control.IsEffectivelyVisible);
+            Assert.False(rail.ClipToBounds);
+            Assert.Equal(34, rail.Bounds.Height);
+            Assert.InRange(rail.Bounds.Width, 300, 430);
+            Capture(window, "nt51928-standard-actual.png");
+        }
+        finally { await CloseAndFlushAsync(window); }
+    }
+
+    private static async Task AssertLaneEdgesAsync(Window window)
+    {
+        MainWindowViewModel shell = Assert.IsType<MainWindowViewModel>(window.DataContext);
+        MemoryCoverageBar[] rails = [.. window.GetVisualDescendants().OfType<MemoryCoverageBar>().Where(rail =>
+            rail.IsEffectivelyVisible && rail.GetVisualAncestors().OfType<Control>().Any(parent => parent.Name == "CtrlRamFocusLane"))];
+        foreach (MemoryCoverageBar rail in rails)
+        {
+            Control[] cells = [.. rail.GetVisualDescendants().OfType<Control>().Where(control =>
+                control.Focusable && control.Classes.Contains("memoryFocusSlice"))];
+            foreach (Control target in new[] { cells[0], cells[^1] })
+            {
+                Rect resting = target.Bounds;
+                Point center = target.TranslatePoint(new Point(resting.Width / 2, resting.Height / 2), window)!.Value;
+                window.MouseMove(center, RawInputModifiers.None);
+                Render();
+                AssertLiftIsNotClipped(target);
+                Assert.Equal(resting, target.Bounds);
+                Assert.Contains(rail.GetVisualAncestors(), ancestor => ancestor.ClipToBounds);
+                shell.IsReducedMotionEnabled = true;
+                Render();
+                Assert.Equal(0, target.RenderTransform?.Value.M32 ?? 0);
+                shell.IsReducedMotionEnabled = false;
+                window.MouseMove(new Point(20, 20), RawInputModifiers.None);
+                await Task.Delay(220, TestContext.Current.CancellationToken);
+                Render();
+                Assert.DoesNotContain(window.GetVisualDescendants().OfType<Border>(), border => border.Name == "MemorySliceCard");
+            }
+        }
     }
 
     private static UiLaunchOptions ThreeChipArguments()
@@ -136,10 +217,25 @@ public sealed class CtrlRamMemoryLayoutTests
         AvaloniaHeadlessPlatform.ForceRenderTimerTick();
     }
 
+    private static void AssertLiftIsNotClipped(Control target)
+    {
+        Assert.NotNull(target.RenderTransform);
+        Assert.InRange(target.RenderTransform.Value.M32, -3.01, -2.99);
+        foreach (Visual ancestor in target.GetVisualAncestors().Where(ancestor => ancestor.ClipToBounds))
+        {
+            Matrix transform = target.TransformToVisual(ancestor)!.Value;
+            Rect visible = new Rect(target.Bounds.Size).TransformToAABB(transform);
+            // Proportional child widths snap independently; the existing rail contract allows one horizontal pixel.
+            Assert.True(visible.Top >= -0.5 && visible.Bottom <= ancestor.Bounds.Height + 0.5 &&
+                visible.Left >= -1 && visible.Right <= ancestor.Bounds.Width + 1,
+                $"Lift {visible} clipped by {ancestor.GetType().Name} {(ancestor as Control)?.Name}: {ancestor.Bounds.Size}");
+        }
+    }
+
     private static void Capture(Window window, string name)
     {
         string directory = Path.Combine(Assert.IsType<string>(Environment.GetEnvironmentVariable("NFC_TEST_AREA_ROOT")),
-            "evidence", "v114-ctrlram-layout49");
+            "evidence", "v114-memory-lift51");
         _ = Directory.CreateDirectory(directory);
         using Avalonia.Media.Imaging.Bitmap? frame = window.GetLastRenderedFrame();
         Assert.NotNull(frame);

@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 2,
+  "taskId": "UI-114-MEMORY-LIFT-SIZE-52",
+  "capability": "Exact accounting for the one-line shared rail clipping correction",
+  "integrationBase": "1789f2b4132645455d49a01a9e9e6d55647de246",
+  "risk": "R2",
+  "kind": "governance",
+  "state": "design-active",
+  "mutablePaths": ["scripts/code_size_policy.py", "docs/adr/0021-code-size-ratchet-accepted-artifact-amendment.md"],
+  "implementationOwner": "primary-agent",
+  "searchEvidence": ["Existing code_size_policy.py and ADR0021 own exact accepted-artifact accounting. Current measure_code_size reports full139993/runtime99362/Domain20757/Application42839/Bootstrap5039/Infrastructure30727. The only production change is MemoryCoverageBar constructor ClipToBounds=false, one Presentation line."],
+  "semanticOwner": "Existing code-size measurement and ADR0021 exact accounting; no new measuring rule.",
+  "terminalContract": "Set exact full production/baseline139992 to139993 and full allowance37096 to37097 against unchanged102896. Synchronize the existing full baseline test assertion. Keep runtime99362 and slices20757/42839/5039/30727; preserve ratchets, equality, exclusions, duplicate/partial checks, measuring algorithm and all firmware/Golden/release gates. No transferable headroom; any further production edit requires remeasurement and independent admission. Run existing19 accounting tests and fixed-head review.",
+  "disposition": "extend-owner",
+  "designReview": {"reviewer": "ctrlram_readability (GPT-5.6 Terra, high; read-only)", "outcome": "approved", "evidence": "Independent pre-edit R2 admission verified the one necessary shared-control rendering line and exact full+1; approved only existing policy values, corresponding baseline assertion and dated ADR accounting. No runtime/slice change or measurement/gate waiver."},
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": {"reviewer": null, "outcome": "pending", "evidence": ""}
+}

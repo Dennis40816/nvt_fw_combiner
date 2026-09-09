@@ -66,6 +66,7 @@ public sealed class MemoryCoverageBar : UserControl
     public MemoryCoverageBar()
     {
         Height = 34;
+        ClipToBounds = false;
         _track.Child = _main;
         Content = new Panel { Children = { _track, _localPopup, _cardPopup } };
         _ = _track.Bind(Border.BackgroundProperty, new DynamicResourceExtension("NfcMemoryTrackBrush"));

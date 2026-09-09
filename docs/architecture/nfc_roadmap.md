@@ -918,6 +918,23 @@ Commit-bound review is recorded in
 [layout49](../governance/change-records/UI-114-CTRLRAM-MEMORY-LAYOUT-49.json) and
 [size50](../governance/change-records/UI-114-CTRLRAM-MEMORY-LAYOUT-SIZE-50.json).
 
+Hover-lift correction (`UI-114-MEMORY-LIFT-51`, 2026-09-09): the shared rail
+root still clipped its 3 px raised target despite its inner track allowing
+overflow. Disable only that root clip; retain 34 px geometry and outer scroll
+viewport clipping. The actual 927 regression fails before the fix and passes
+afterwards. `v114-memory-lift51/shared-final.trx` under the same test-area
+evidence parent passes 39/39 (31 s), including six edge targets in both themes,
+pointer dismissal, global reduced motion, shared keyboard/popups/geometry,
+950 partial replacement and actual 928 Standard DP/TP/LDC inputs. Accounting
+tests pass 19/19. These are scoped headless UI checks, not output certification.
+Fresh renders: `nt51927-threechip-hover.png`,
+`memory-ctrlram-False-overview.png` and `nt51928-standard-actual.png` in that
+evidence directory. 950 retains neutral overview context; 928 Standard retains
+its existing longer supporting-card list. Master/Slave hover-to-expand is
+assessment only: if later approved, replace rather than duplicate the always
+visible detail lanes, retain exact leaves and gaps, and support click/keyboard
+alongside pointer transit, dismissal and address visibility.
+
 ##### Customer-information source presentation — 2026-09-08
 
 Customer-information source follow-up (`UI-114-MEMORY-SOURCE-28`, 2026-09-08):

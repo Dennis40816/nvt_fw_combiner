@@ -658,3 +658,15 @@ and allowance to 36,400 against unchanged ratchet 102,896. Runtime remains
 99,233; slices remain 20,757 / 42,710 / 5,039 / 30,727. The baseline test follows
 this exact measurement. Ratchets, counting, exclusions, equality and all
 firmware/Golden/release gates remain unchanged; no headroom is introduced.
+
+## 2026-09-09 memory focus-lift clipping accounting
+
+`UI-114-MEMORY-LIFT-51` adds one necessary Presentation line to disable the
+shared rail root's clipping, preserving its existing 34 px geometry.
+Independent admission `UI-114-MEMORY-LIFT-SIZE-52` sets exact full production
+and baseline to 139,993, allowance to 37,097 against unchanged ratchet 102,896.
+Runtime remains 99,362; slices remain 20,757 / 42,839 / 5,039 / 30,727.
+The existing full baseline assertion follows this measurement. Counting,
+exclusions, equality, duplicate/partial checks, all ratchets and firmware,
+profile, support, Golden and release gates remain unchanged. There is no
+transferable headroom; further production edits require remeasurement.
