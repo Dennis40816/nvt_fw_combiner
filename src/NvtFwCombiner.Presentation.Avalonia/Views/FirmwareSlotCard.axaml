@@ -49,7 +49,7 @@
                               Classes.verified="{Binding IsSemanticStateVerified}" Classes.warning="{Binding IsSemanticStateWarning}"
                               Focusable="True" IsChecked="{Binding IsSemanticStateDetailExpanded}"
                               IsVisible="{Binding HasSemanticState}" ToolTip.ShowDelay="250"
-                              ToolTip.Placement="BottomEdgeAlignedLeft"
+                              ToolTip.Placement="BottomEdgeAlignedLeft" ToolTip.VerticalOffset="0"
                               VerticalContentAlignment="Center">
                   <ToolTip.Tip>
                     <ToolTip IsHitTestVisible="False" Padding="0" MaxWidth="360" Background="Transparent" BorderThickness="0">

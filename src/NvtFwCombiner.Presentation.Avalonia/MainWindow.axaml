@@ -387,7 +387,7 @@
               AutomationProperties.Name="{Binding MergeBuildBlockerText}"
               behaviors:FocusToolTipBehavior.IsEnabled="True"
               IsVisible="{Binding HasMergeBuildBlocker}"
-              ToolTip.ShowDelay="250" ToolTip.Placement="TopEdgeAlignedRight">
+              ToolTip.ShowDelay="250" ToolTip.Placement="TopEdgeAlignedRight" ToolTip.VerticalOffset="0">
             <ToolTip.Tip>
               <ToolTip IsHitTestVisible="False" Padding="0" MaxWidth="360" Background="Transparent" BorderThickness="0">
                 <views:IssueDetailsCard DataContext="{Binding MergeBuildBlockerCard}" />
@@ -432,7 +432,7 @@
               AutomationProperties.Name="{Binding ReplaceBuildBlockerText}"
               behaviors:FocusToolTipBehavior.IsEnabled="True"
               IsVisible="{Binding HasReplaceBuildBlocker}"
-              ToolTip.ShowDelay="250" ToolTip.Placement="TopEdgeAlignedRight">
+              ToolTip.ShowDelay="250" ToolTip.Placement="TopEdgeAlignedRight" ToolTip.VerticalOffset="0">
             <ToolTip.Tip>
               <ToolTip IsHitTestVisible="False" Padding="0" MaxWidth="360" Background="Transparent" BorderThickness="0">
                 <views:IssueDetailsCard DataContext="{Binding ReplaceBuildBlockerCard}" />

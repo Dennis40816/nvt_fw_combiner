@@ -70,6 +70,8 @@ public sealed partial class XamlControlStyleContractTests
             Dispatcher.UIThread.RunJobs();
             Assert.True(ToolTip.GetIsOpen(target));
             Assert.True(target.Focus(NavigationMethod.Tab));
+            Dispatcher.UIThread.RunJobs();
+            AssertIssueTooltipGeometry(window, target, above: true);
             ToolTip tooltip = Assert.IsType<ToolTip>(ToolTip.GetTip(target));
             _ = Assert.Single(tooltip.GetVisualDescendants().OfType<IssueDetailsCard>());
             Assert.False(tooltip.IsHitTestVisible);

@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 2,
+  "taskId": "UI-114-ISSUE-TOOLTIP-PLACEMENT-48",
+  "capability": "Keep shared issue cards close to their anchors with viewport-safe placement and matching arrow direction",
+  "integrationBase": "c04dcca8cf44be7dd74c364310295f37758aa6ed",
+  "risk": "R1",
+  "kind": "ui",
+  "state": "design-active",
+  "mutablePaths": [
+    "src/NvtFwCombiner.Presentation.Avalonia/Views/FirmwareSlotCard.axaml",
+    "src/NvtFwCombiner.Presentation.Avalonia/MainWindow.axaml",
+    "src/NvtFwCombiner.Presentation.Avalonia/Views/IssueDetailsCard.axaml",
+    "src/NvtFwCombiner.Presentation.Avalonia/Views/IssueDetailsCard.axaml.cs"
+  ],
+  "implementationOwner": "primary-agent",
+  "searchEvidence": ["CodeGraph FocusToolTipBehavior/FirmwareSlotCard and targeted production IssueDetailsCard inventory: one shared slot consumer across workflows, plus Merge and Replace Build blocker consumers in MainWindow. Existing framework ToolTip owns popup placement, native/overlay hosts and edge adjustment; FocusToolTipBehavior owns keyboard/Escape lifecycle. Owner reproduced missing native tooltip near bottom and supplied excessive-gap screenshot. New rendered IssueTooltipFitsViewportNearBothEdges test gives four intended failures: below gap 20px; automatically flipped above popup overlaps badge by 20px. Previous IsOpen-only tests did not detect these geometry failures."],
+  "semanticOwner": "Presentation shared IssueDetailsCard and existing ToolTip anchor configuration; Avalonia remains the popup-positioning authority, existing FocusToolTipBehavior remains the keyboard owner.",
+  "terminalContract": "Owner approved dynamic above/below issue-card placement, shorter gap and one shared fix across pages, with scoped Polytail each correction round. Retain Avalonia placement/constraint adjustment; remove the positive default vertical offset that overlaps the target after flipping. The shared card renders its arrow against resolved anchor/card geometry instead of using firmware role to assume top/bottom. When an already-open anchor moves in screen coordinates (including scrolling), close the stale tooltip without disabling its service: Avalonia does not reposition it for ancestor scrolling, and the next hover/focus uses its ordinary placement afresh. Preserve approved card content, hierarchy, colors, dimensions, noninteractivity, pointer close, keyboard/Escape and accessible descriptions; include all current IssueDetailsCard consumers, warning/error, languages/themes and near-edge geometry. Do not introduce a second popup-positioning engine or workflow-specific copies. No Memory Layout, firmware bytes, input semantics, readiness, profile, Golden output or release changes. Headless geometry plus native reproduction/verification evidence are distinguished, not treated as equivalent.",
+  "disposition": "extend-owner",
+  "designReview": {"reviewer": null, "outcome": "not-required", "evidence": "R1 bounded visual positioning and shared-card presentation correction explicitly requested by owner; reuse existing toolkit and card owners."},
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": {"reviewer": null, "outcome": "pending", "evidence": ""}
+}

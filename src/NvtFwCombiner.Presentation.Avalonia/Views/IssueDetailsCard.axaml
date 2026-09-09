@@ -42,8 +42,8 @@
       <Setter Property="Spacing" Value="{DynamicResource NfcSpace8}" />
     </Style>
   </UserControl.Styles>
-  <Grid RowDefinitions="Auto,Auto,Auto" Margin="4">
-  <Path Width="20" Height="10" Margin="24,0,24,0" HorizontalAlignment="Left" IsVisible="{Binding !IsBuildStatus}"
+  <Grid x:Name="CardLayout" RowDefinitions="Auto,Auto,Auto" Margin="4">
+  <Path x:Name="TopPointer" Width="20" Height="10" Margin="24,0,24,0" HorizontalAlignment="Left" IsVisible="{Binding !IsBuildStatus}"
         Data="M0 10L10 0L20 10" Stretch="Fill" Fill="{DynamicResource NfcSurfaceBrush}"
         Stroke="{DynamicResource NfcAccentBorderLightBrush}" StrokeThickness="1" />
   <Border Grid.Row="1" Classes="icDetailCard" Classes.error="{Binding IsError}" Classes.warning="{Binding !IsError}"
@@ -83,7 +83,7 @@
                  Text="{Binding DiagnosticCode}" IsVisible="{Binding HasDiagnosticCode}" TextWrapping="Wrap" />
     </StackPanel>
   </Border>
-  <Path Grid.Row="2" Width="20" Height="10" Margin="24,0,24,0" HorizontalAlignment="Right" IsVisible="{Binding IsBuildStatus}"
+  <Path x:Name="BottomPointer" Grid.Row="2" Width="20" Height="10" Margin="24,0,24,0" HorizontalAlignment="Right" IsVisible="{Binding IsBuildStatus}"
         Data="M0 0L10 10L20 0" Stretch="Fill" Fill="{DynamicResource NfcSurfaceBrush}"
         Stroke="{DynamicResource NfcAccentBorderLightBrush}" StrokeThickness="1" />
   </Grid>
