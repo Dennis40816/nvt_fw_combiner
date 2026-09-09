@@ -662,6 +662,31 @@ navigation toggle removes its checked appearance without navigating, and
 keyboard-focused activity filters retain a default rectangular black adorner.
 These remain separate corrections, not a whole-screen acceptance claim.
 
+## Activity selection and focus correction — 2026-09-10
+
+Base `12c4f922`; `MessageCenterModal` now uses two RadioButton groups instead
+of deselectable toggles. Existing semantic-button theme, palette, dimensions
+and command owners are retained. This fixes repeat activation losing the
+selected appearance and replaces the default black focus adorner with the
+existing visible accent border, without hiding keyboard focus.
+
+Evidence: `D:/NvtFwCombiner-TestArea/evidence/v114-activity-selection76/`.
+`red.trx`: four real-window selected-state failures. `green.trx`: 20/24 pass;
+four new assertions resolved a theme resource without an explicit theme.
+After fixing that test lookup only, `final.trx` passes **6/6, zero skipped,
+10 s**: `SystemActivitySelectionsPreserveNavigationAndHistory`,
+`EveryButtonDeclaresAnOwnedVisualRole`, `SemanticButtonFocusUsesFocusVisibleWithoutAPlainFocusSelector`
+(each `FullyQualifiedName~`). The 20 unchanged passes cover Home/Settings,
+Run reports, Support Matrix and existing activity lifecycle checks; no fresh
+all-26 run is claimed. Tests now explicitly check empty Warning/Error results,
+Debug adding records, and repeated activation retaining checked state.
+Full 1440x900 Light/English and Dark/Chinese captures were compared with unit75:
+layout remains intact, the selected sidebar item stays highlighted and the
+filter focus has no default rectangular adorner. GPT-5.6 Terra/high scoped
+Polytail passes against blobs `3f195e6e`, `f066dfec`, `a22183f9`, `bc427e06`;
+primary verified the TRX and full-frame comparisons. Native accessibility/scaling,
+nonempty warning/error rendering and release gates remain separate.
+
 ## Running and maintaining this view
 
 Use [`CONTRIBUTING.md`](../CONTRIBUTING.md) to initialize the existing fixed

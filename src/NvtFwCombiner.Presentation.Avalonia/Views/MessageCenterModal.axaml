@@ -48,8 +48,8 @@
         <Border x:Name="MessageCenterNavigationRail" Classes="messageCenterNavigationSurface">
           <StackPanel Spacing="{DynamicResource NfcSpace12}">
             <TextBlock Margin="12,0,0,8" Classes="sectionLabel" Text="{Binding Text.MessageCenterTitle}" />
-            <ToggleButton
-                Classes="messageCenterNavigationItem"
+            <RadioButton
+                Classes="messageCenterNavigationItem" GroupName="MessageCenterNavigation"
                 Command="{Binding ShowRunReportsCommand}"
                 IsChecked="{Binding IsRunReportsSelected, Mode=OneWay}">
               <Grid ColumnDefinitions="26,*" ColumnSpacing="{DynamicResource NfcSpace12}">
@@ -57,9 +57,9 @@
                     Stretch="Uniform" Stroke="{DynamicResource NfcTextSecondaryBrush}" StrokeThickness="1.8" StrokeLineCap="Round" />
                 <TextBlock Grid.Column="1" VerticalAlignment="Center" Classes="bodyStrongText" FontSize="{DynamicResource NfcFontSize14}" FontWeight="ExtraBold" Text="{Binding Text.RunReportsLabel}" />
               </Grid>
-            </ToggleButton>
-            <ToggleButton
-                Classes="messageCenterNavigationItem"
+            </RadioButton>
+            <RadioButton
+                Classes="messageCenterNavigationItem" GroupName="MessageCenterNavigation"
                 Command="{Binding ShowSystemInformationCommand}"
                 IsChecked="{Binding IsSystemInformationSelected, Mode=OneWay}">
               <Grid ColumnDefinitions="26,*" ColumnSpacing="{DynamicResource NfcSpace12}">
@@ -67,7 +67,7 @@
                     Stretch="Uniform" Stroke="{DynamicResource NfcTextSecondaryBrush}" StrokeThickness="1.6" />
                 <TextBlock Grid.Column="1" VerticalAlignment="Center" Classes="bodyStrongText" FontSize="{DynamicResource NfcFontSize14}" FontWeight="ExtraBold" Text="{Binding Text.SystemActivityTitle}" />
               </Grid>
-            </ToggleButton>
+            </RadioButton>
           </StackPanel>
         </Border>
 
@@ -116,11 +116,11 @@
 
             <Grid Grid.Row="1" ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="{DynamicResource NfcSpace12}">
               <StackPanel Orientation="Horizontal" Spacing="{DynamicResource NfcSpace8}">
-                <ToggleButton Classes="activityFilter" Command="{Binding ShowImportantActivityCommand}"
+                <RadioButton Classes="activityFilter" GroupName="SystemActivityFilter" Command="{Binding ShowImportantActivityCommand}"
                     Content="{Binding Text.ImportantActivityLabel}" IsChecked="{Binding IsImportantActivitySelected, Mode=OneWay}" />
-                <ToggleButton Classes="activityFilter" Command="{Binding ShowWarningActivityCommand}"
+                <RadioButton Classes="activityFilter" GroupName="SystemActivityFilter" Command="{Binding ShowWarningActivityCommand}"
                     Content="{Binding Text.WarningActivityLabel}" IsChecked="{Binding IsWarningActivitySelected, Mode=OneWay}" />
-                <ToggleButton Classes="activityFilter" Command="{Binding ShowErrorActivityCommand}"
+                <RadioButton Classes="activityFilter" GroupName="SystemActivityFilter" Command="{Binding ShowErrorActivityCommand}"
                     Content="{Binding Text.ErrorActivityLabel}" IsChecked="{Binding IsErrorActivitySelected, Mode=OneWay}" />
               </StackPanel>
               <Button Grid.Column="2" Classes="semanticAction secondary" Command="{Binding ToggleDebugActivityCommand}"

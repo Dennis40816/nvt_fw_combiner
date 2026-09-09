@@ -1,5 +1,7 @@
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Controls.Presenters;
+using Avalonia.Controls.Primitives;
 using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
 using Avalonia.Input;
@@ -16,13 +18,13 @@ namespace NvtFwCombiner.UiSmoke.Tests;
 /// <summary>Repeatable current-shell inventory, not native DPI or whole-app visual certification.</summary>
 public sealed class ShellScreenInventoryTests
 {
-    /// <summary>Real activity controls filter the current session without changing report or workflow state.</summary>
+    /// <summary>Activity selections stay visible and leave report history, navigation and selected IC unchanged.</summary>
     [AvaloniaTheory]
     [InlineData(false, false)]
     [InlineData(true, false)]
     [InlineData(false, true)]
     [InlineData(true, true)]
-    public async Task SystemActivityFiltersKeepReportsAndWorkflowUntouched(bool dark, bool chinese)
+    public async Task SystemActivitySelectionsPreserveNavigationAndHistory(bool dark, bool chinese)
     {
         using var workspace = TempWorkspace.Create("session-activity-inventory");
         PresentationHostServices services = await CreateServicesAsync(workspace, useRetainedDpReplacePolicy: false);
@@ -42,21 +44,27 @@ public sealed class ShellScreenInventoryTests
             MessageCenterViewModel center = shell.MessageCenter;
             center.OpenCommand.Execute(null);
             Activate(center.ShowSystemInformationCommand);
+            Activate(center.ShowSystemInformationCommand);
             Assert.True(center.IsSystemInformationSelected);
             Assert.False(center.IsDebugActivityExpanded);
             Assert.True(center.IsImportantActivitySelected);
+            int importantCount = center.ActivityItems.Count;
+            Assert.True(importantCount > 0);
             Capture(window, "activity-important", dark, chinese);
             Activate(center.ShowWarningActivityCommand);
+            Activate(center.ShowWarningActivityCommand);
             Assert.True(center.IsWarningActivitySelected);
-            Assert.All(center.ActivityItems, item => Assert.True(item.IsWarning));
+            Assert.Empty(center.ActivityItems);
+            Assert.True(center.HasNoActivityItems);
             Activate(center.ShowErrorActivityCommand);
             Assert.True(center.IsErrorActivitySelected);
-            Assert.All(center.ActivityItems, item => Assert.True(item.IsError));
+            Assert.Empty(center.ActivityItems);
+            Assert.True(center.HasNoActivityItems);
             Capture(window, "activity-errors", dark, chinese);
             Activate(center.ShowImportantActivityCommand);
             Activate(center.ToggleDebugActivityCommand);
             Assert.True(center.IsDebugActivityExpanded);
-            Assert.NotEmpty(center.ActivityItems);
+            Assert.True(center.ActivityItems.Count > importantCount);
             Capture(window, "activity-debug", dark, chinese);
             Activate(center.ShowRunReportsCommand);
             Assert.False(center.IsSystemInformationSelected);
@@ -76,6 +84,16 @@ public sealed class ShellScreenInventoryTests
                 window.KeyPress(Key.Space, RawInputModifiers.None, PhysicalKey.Space, null);
                 window.KeyRelease(Key.Space, RawInputModifiers.None, PhysicalKey.Space, null);
                 Dispatcher.UIThread.RunJobs();
+                if (button is ToggleButton selector)
+                {
+                    Assert.True(selector.IsChecked);
+                    Assert.Null(selector.FocusAdorner);
+                    ContentPresenter presenter = Assert.Single(selector.GetVisualDescendants().OfType<ContentPresenter>(),
+                        item => item.Name == "PART_ContentPresenter");
+                    Assert.True(window.TryFindResource("NfcAccentBorderStrongBrush", window.ActualThemeVariant, out object? focusBrush));
+                    Assert.Equal(focusBrush, presenter.BorderBrush);
+                    Assert.True(presenter.Bounds.Width > 0 && presenter.Bounds.Height > 0);
+                }
             }
         }
         finally { await CloseAndFlushAsync(window); }

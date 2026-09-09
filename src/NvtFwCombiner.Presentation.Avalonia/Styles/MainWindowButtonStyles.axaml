@@ -26,7 +26,7 @@
     <Setter Property="Theme" Value="{StaticResource NfcSemanticButtonTheme}" />
     <Setter Property="FocusAdorner" Value="{x:Null}" />
   </Style>
-  <Style Selector="RadioButton.settingsNavItem">
+  <Style Selector="RadioButton.settingsNavItem, RadioButton.messageCenterNavigationItem, RadioButton.activityFilter">
     <Setter Property="Theme" Value="{StaticResource NfcSemanticButtonTheme}" />
     <Setter Property="FocusAdorner" Value="{x:Null}" />
   </Style>
@@ -588,7 +588,7 @@
     <Setter Property="BorderBrush" Value="{DynamicResource NfcBorderBrush}" />
     <Setter Property="CornerRadius" Value="{DynamicResource NfcPillCornerRadius}" />
   </Style>
-  <Style Selector="Button:focus-visible /template/ ContentPresenter#PART_ContentPresenter">
+  <Style Selector="Button:focus-visible /template/ ContentPresenter#PART_ContentPresenter, RadioButton.messageCenterNavigationItem:focus-visible /template/ ContentPresenter#PART_ContentPresenter, RadioButton.activityFilter:focus-visible /template/ ContentPresenter#PART_ContentPresenter">
     <Setter Property="BorderBrush" Value="{DynamicResource NfcAccentBorderStrongBrush}" />
     <Setter Property="BorderThickness" Value="2" />
   </Style>
