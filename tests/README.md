@@ -252,6 +252,22 @@ captures, plus NT51927 three-IC Light and NT51950 Dark at 1440x900.
 No range, classification, grouping, profile or firmware-output behavior changed.
 This is scoped headless evidence, not native or release certification.
 
+## CtrlRAM physical Diff envelope — 2026-09-09
+
+`UI-114-CTRLRAM-ENVELOPE-56` restores the full policy-owned active DiffDLM
+record in discovery display; writable prefixes and preserved Diff NF tails
+remain independent execution facts. Bootstrap coverage checks950/951 and
+51919/51929/51932, exact canonical-map identity, unchanged input footprint,
+and the existing certified950-family Cascade complete-output difference case.
+`D:/NvtFwCombiner-TestArea/evidence/v114-ctrlram-envelope56/` records five
+intended red geometry failures; Application **31/31** (0.42s), Bootstrap
+**15/15** (6s), and real MainWindow **5/5** (28s), all with zero skipped.
+Both950-family Cascade views now finish inspection and retain Build readiness;
+the screenshots retain neutral TP/DP context pending its separate binding work.
+NT51950 Cascade uses the declared NT51951 TP-work geometry alias, not a950
+full-Flash Golden claim. Single950 and three-chip927 UI are regression controls.
+These are scoped headless/byte-case results, not a release-wide Golden pass.
+
 ## Current Home and Settings inventory — 2026-09-08
 
 `ShellScreenInventoryTests` renders the real MainWindow over isolated preference
