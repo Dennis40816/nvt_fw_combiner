@@ -478,6 +478,15 @@ approved local Report Changes corrections (part of 12), and Settings Version
 They are no longer active implementation TODOs. These are local scoped
 completions, not a fresh combined integration pass or publication.
 
+Current reconciliation (2026-09-09): the later completed local units also
+include Report-import outcome correction, narrow Replace headers, selected
+filename layout, Support Matrix layout/scrolling, shared issue-card placement,
+Memory Layout source/initialization wording, technical disclosures, small-slice
+hover cards and CtrlRAM endpoint lanes. The rail clipping fix is committed at
+`24ad3778`, with evidence checkpoint `02da6a3a`. Earlier dated statements that
+these changes were uncommitted remain historical observations. Do not reopen
+them as new TODOs; whole-candidate/native/release acceptance remains pending.
+
 The owner now requests already-authorized work without new design/product
 decisions first, one independently verified unit per commit. The owner removed
 the earlier 10:00 stop limit on 2026-09-08; it is no longer an execution boundary.
@@ -491,9 +500,93 @@ item rather than force a decision.
 | 2 | Broad screen inventory and reprioritization (10) | [Initial evidence inventory below](#visual-inventory-checkpoint--2026-09-08) separates inspected surfaces from uncaptured states. Remaining whole-app/native coverage is open; do not restart completed metadata/list/source/card changes or mistake a token search for visual acceptance. |
 | 3 | Shared visual/theme corrections (11) | Change shared owners only after inventory identifies affected consumers and states; obtain approval for new visual designs. |
 | 4 | Report physical-section grouping (remaining 12) | Reuse existing typed groups only after the grouping interaction and historical replay-coverage boundary are accepted; do not invent bytes between raw runs. |
-| 5 | Memory Layout (14) | Retain typed section/address-space authority and review projection impact, including the residual generic Reserved-source wording. |
+| 5 | Memory Layout (14), active bounded work | All-IC DP/TP classification inventory is complete; the missing bindings/container presentation below remain pending. The three-row supporting-list correction is locally implemented and committed (`eb314ebe`, language correction `9c1b1757`), not another implementation TODO. Retain typed section/address-space authority, exact rails and independent CtrlRAM endpoints. Master/Slave hover-to-open remains a design discussion, not an approved implementation; wider cross-workflow/responsive acceptance remains open. |
 | 6 | First-entry IC selection (16) | Resolve accepted-context lifetime, invalidation and Cancel/Back before cross-page behavior changes. |
 | 7 | Session diagnostics (15) | Retain privacy, lifecycle and separation from immutable run reports. |
+
+The per-page custom-options preview also remains awaiting visual acceptance
+within the inventory/shared-visual scope, not a completed layout. Final
+`1.1.4` closure requires combined affected regression, packaged Windows UI
+observations and all applicable certified Golden outputs on the release
+candidate. Those are release-boundary gates, not per-commit test requests.
+
+##### All-IC DP/TP context intake and compact supporting list — 2026-09-09
+
+The owner requests classification coverage for every currently registered IC.
+The package's current ten IC identities are NT51917/19/23/26/27/28/29/32/50/51;
+this request does not open the distinct pending NT51928BT identity or adopt
+the unresolved Desay workbook. Classification is display context, not support
+promotion or a change to output bytes.
+
+| Current ICs | Existing canonical context | Remaining work |
+| --- | --- | --- |
+| NT51917/23/26/27/28/29/32 | Exact same-IC Standard `ReportClassification` companion is already bound to CtrlRAM routes. | Retain existing coverage and verify every declared route/variant; no new IC/filename/capacity lookup table. |
+| NT51919 | Canonical Standard outer DP/TP Code regions exist through a declared family alias; the CtrlRAM route currently has an empty companion plan. | Extend the upstream exact binding through the canonical owner without inventing Report semantics merely to show a label. |
+| NT51950/51 | Standard defines a whole `dp-container` image plus its child `tp-overlay`, not a standalone DP Code region. CtrlRAM currently has no companion. | Preserve the container/overlay distinction, agree its presentation, and add an exact canonical context binding. Do not infer a Standard or AB counterpart from capacity or a filename. |
+
+Read-only confirmation: both NT51950/51 Standard profiles declare
+`copy-dp-container` at sequence 100 followed by `overlay-tp` at sequence 200.
+The latter replaces `[0x0A000,0x37000)` from the same offsets in TP input;
+bytes outside that range retain DP-container content. `processorStages` is
+empty. AB is a distinct layout contract. Proposed display wording is DP image
+as the base with an explicit TP FW overlay, not an inferred DP Code complement.
+The owner has been asked about that presentation; no classification-profile
+change is yet claimed complete.
+
+The supporting-list correction is a separate Presentation-only unit:
+reuse already-projected primary rows and existing card/button styles; initially
+show at most three, with Unmapped behind mapped rows, then show every row in
+address order on expansion. Keep exact rail data and CtrlRAM endpoint lanes
+unchanged. Actual new input publication resets the list; relocalization
+preserves its disclosure state. Implemented at `eb314ebe`; the CtrlRAM hidden
+auxiliary-list relocalization correction is `9c1b1757`, not a change to visible
+endpoint lanes. The independent final review passes with no findings.
+`v114-memory-list53` under the existing test-area evidence root contains the
+real two-case red (five cards instead of three), 23/23 scoped regression
+(29 s), and final 11/11 list/language/CtrlRAM cases (25 s). Shell wiring passes
+1/1 and accounting passes 19/19 (31.396 s); unchanged accounting evidence is
+reused after the equal-line correction, with a fresh source measurement.
+Actual complete control renders cover NT51928 Merge/DP Replace in EN Light and
+zh Dark, along with the retained NT51927 three-IC lanes. These are not native
+DPI/High Contrast/screen-reader or firmware-output certification.
+Scoped final evidence is bound in
+[UI-114-MEMORY-LIST-53](../governance/change-records/UI-114-MEMORY-LIST-53.json);
+the canonical structure check passes in 184.2 s with zero derived-file changes.
+Existing advisory size warnings remain visible; no full-release pass is implied.
+
+##### Family reuse inventory — 2026-09-09
+
+The owner reiterates that NT51919 belongs to NT51929's Perfect family and
+shared family facts must not be redefined for each member. No new map is
+needed merely to label NT51919. The read-only audit below distinguishes the
+owner's sharing intent from how current versioned packages expose it; a missing
+declaration in one package does not overturn that owner direction.
+
+| Members | Current explicit mechanism | Finding / next action |
+| --- | --- | --- |
+| NT51917/27 | Standard family declares `perfect-like-family`; NT51917 CtrlRAM materializes the canonical NT51927 family. | Retain shared facts and per-member support/evidence distinctions. |
+| NT51917/27/28 | Separately declared partial relationships for Initial Code, TP and TP header facts. | Reuse exactly those shared facts; do not promote the whole NT51928 map to Perfect. |
+| NT51919/29/32 | DP Replace family version explicitly declares Perfect and uses one map for all three. Standard uses another version: NT51919 has an explicit NT51929 region-set alias and retains its own target-map identity. CtrlRAM shares 19/29 geometry, while 32 has a distinct workflow family. | The sharing declarations and references are not uniform across workflows/versions. Trace existing canonical facts and the missing NT51919 display binding before extending it; do not add another range table or silently bypass exact-map admission. |
+| NT51923/26 | Same Standard family container, but no explicit Perfect/shared-fact relationship in that definition; distinct CtrlRAM families. | A common container or similar addresses alone does not prove complete equivalence. Identify the actually shared facts before consolidation. |
+| NT51950/51 | Standard declares the TP overlay as a shared fact; DP-container/map variants and other workflows retain distinct identities. | Reuse the common TP fact, not an inferred whole-map Perfect relationship. Keep the pending Desay variant distinct. |
+
+Decisive evidence: the [19/29/32 DP Replace family](../../profiles/built-in/nt51929-dp-replace/families/nt51929-nt51932.json)
+has the Perfect declaration; the [Standard family](../../profiles/built-in/nt51929-standard-merge/families/nt51929-nt51932.json)
+has the 19-to-29 region-set alias. The Standard NT51919 metadata binding lacks
+the ReportClassification purpose used by the existing CtrlRAM companion path.
+Domain's [relationship validation](../../src/NvtFwCombiner.Domain/Firmware/FirmwareFamilyResolutionDefinition.cs)
+rejects member-specific maps/aliases/capability facts within a declared Perfect
+family, but this does not itself reconcile different family versions across
+workflow packages. The [trust index](../../profiles/built-in/package-trust-index.json)
+explicitly materializes canonical source definitions; such references are
+reuse, not independently maintained copies.
+
+No direct violation was proved merely by finding repeated family IDs or
+versioned bundles. The actionable gap is cross-workflow/version consistency
+and display-context coupling to Report metadata. Do not solve the latter by
+inventing Report metadata or new maps. Family convergence belongs to the
+`1.1.6` semantic-consistency work; this intake is not a firmware migration or
+a claim that all missing classification bindings are already implemented.
 
 #### New owner intake: IC/layout updates and option density — 2026-09-08
 
@@ -1274,6 +1367,31 @@ conductor/architect playbook. The resulting workflow still requires separate
 owner approval. Do not migrate every repository, create a new tool repository
 or impose enterprise ceremony through this allocation.
 
+### Public baseline and vendor-specific UI/workflow discussion
+
+Owner intake, 2026-09-09: add this discussion to `1.1.x`; allocate it to
+`1.1.6` alongside semantic-consistency and minimality work. The owner observes
+that specialized features appear to have accumulated independently. This is
+an assessment/design TODO, not authorization to ship a generic form engine,
+create vendor-specific executors or alter existing customer firmware routes.
+The [custom-options handoff](../ui/v1.1.x-custom-options-layout-handoff.md#public-baseline-and-vendor-variation-discussion--2026-09-09)
+owns the questions and inventory boundary.
+
+Recommended direction for discussion: one public baseline and explicitly
+selected, versioned vendor variants that reuse existing profile/compiler,
+capability, session, validation, confirmation and report owners. Separate
+firmware facts from feature applicability, authoring sequence and visual
+grouping. Do not infer a vendor from BIN filenames or scatter new vendor
+conditionals through pages. Compare whether existing profile and capability
+contracts suffice before proposing any new abstraction.
+
+Completion of this TODO means an evidence-backed current-feature inventory,
+owner-approved boundary/selection/lifecycle decisions, a representative public
+versus Desay preview, a migration order with deletion criteria, and a test and
+report-traceability matrix. Implementation is separately scoped and allocated
+after those decisions; the unresolved Desay map remains a distinct prerequisite
+for firmware changes, not a reason to block the architectural discussion.
+
 ### Documentation, semantic consistency and minimality
 
 Retain the complete documentation scope: evidence-preserving semantic
@@ -1282,6 +1400,19 @@ current-versus-historical headings, and each active handoff's open TODO,
 owner, blocker and next action. CI/release instruction and evidence convergence
 remains in `1.1.3`; completed `1.1.2` cleanup is history, not reopened work.
 Preserve historical evidence and do not add a parallel documentation framework.
+
+Family reuse/convergence follow-up (owner request, 2026-09-09): use the
+[current inventory](#family-reuse-inventory--2026-09-09) to trace Perfect and
+partial shared facts across Standard, AB, DP/CtrlRAM Replace and General
+consumers. Preserve one canonical definition per genuinely shared fact;
+per-member registration, capability/evidence and publication identity are not
+duplicate firmware facts. Identify version/purpose/reference divergence,
+propose explicit migrations and deletion milestones for proven duplication,
+and verify family members together. Do not create a member-specific map to
+compensate for a missing binding, erase legitimate customer/topology/version
+differences, or treat a filename/common container as family proof. The current
+audit is read-only; any production migration retains its affected authority
+and byte-evidence gates.
 
 Combine the related dead-code/minimality review with the deferred analyzer
 cleanup. Re-measure the recorded baseline before editing: 169 style diagnostics
