@@ -142,10 +142,10 @@ public sealed class CtrlRamMemoryLayoutTests
             AssertLiftIsNotClipped(leaf);
             Capture(window, "nt51927-hover60-master-mp.png");
             window.MouseMove(Center(card, window), RawInputModifiers.None);
-            await SettleAsync();
+            await SettleAsync(400);
             Assert.Same(card, Assert.Single(window.GetVisualDescendants().OfType<Border>(), control => control.Name == "MemorySliceCard"));
             window.MouseMove(new Point(20, 20), RawInputModifiers.None);
-            await SettleAsync();
+            await SettleAsync(400);
             Assert.DoesNotContain(window.GetVisualDescendants().OfType<Border>(), control => control.Name is "MemoryLocalView" or "MemorySliceCard");
 
             // Clicking an endpoint is not a pin: mouse-origin focus must not defeat exit dismissal.
@@ -154,7 +154,7 @@ public sealed class CtrlRamMemoryLayoutTests
             window.MouseUp(Center(position, window), MouseButton.Left);
             await SettleAsync();
             window.MouseMove(new Point(20, 20), RawInputModifiers.None);
-            await SettleAsync();
+            await SettleAsync(400);
             Assert.DoesNotContain(window.GetVisualDescendants().OfType<Border>(), control => control.Name is "MemoryLocalView" or "MemorySliceCard");
         }
         finally { await CloseAndFlushAsync(window); }
@@ -413,7 +413,7 @@ public sealed class CtrlRamMemoryLayoutTests
                 Assert.Equal(Matrix.Identity, target.RenderTransform?.Value ?? Matrix.Identity);
                 shell.IsReducedMotionEnabled = false;
                 window.MouseMove(new Point(20, 20), RawInputModifiers.None);
-                await Task.Delay(220, TestContext.Current.CancellationToken);
+                await Task.Delay(400, TestContext.Current.CancellationToken);
                 Render();
                 Assert.DoesNotContain(window.GetVisualDescendants().OfType<Border>(), border => border.Name == "MemorySliceCard");
             }
@@ -496,9 +496,9 @@ public sealed class CtrlRamMemoryLayoutTests
         return control.TranslatePoint(new Point(control.Bounds.Width / 2, control.Bounds.Height / 2), window)!.Value;
     }
 
-    private static async Task SettleAsync()
+    private static async Task SettleAsync(int delayMilliseconds = 220)
     {
-        await Task.Delay(220, TestContext.Current.CancellationToken);
+        await Task.Delay(delayMilliseconds, TestContext.Current.CancellationToken);
         Render();
     }
 

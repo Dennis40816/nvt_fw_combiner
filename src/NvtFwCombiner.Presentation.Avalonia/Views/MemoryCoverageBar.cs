@@ -52,7 +52,7 @@ public sealed class MemoryCoverageBar : UserControl
     private readonly Popup _cardPopup = new() { ShouldUseOverlayLayer = true, IsLightDismissEnabled = false };
     private readonly Border _local = Surface("MemoryLocalView");
     private readonly Border _card = Surface("MemorySliceCard");
-    private readonly DispatcherTimer _closeTimer = new() { Interval = TimeSpan.FromMilliseconds(160) };
+    private readonly DispatcherTimer _closeTimer = new() { Interval = TimeSpan.FromMilliseconds(320) };
     private readonly List<Control> _sliceTargets = [];
     private INotifyCollectionChanged? _collection;
     private INotifyCollectionChanged? _positionCollection;

@@ -523,6 +523,35 @@ Scoped Polytail by GPT-5.6 Terra/high reports no P0–P3 findings against
 production/test blobs `76f85495` / `60e1ebb8`; it reused this exact-source run.
 These are UI regressions, not firmware Golden execution or a release pass.
 
+## Memory hover transit grace — 2026-09-10
+
+The same shared overlay owner now allows 320 ms, previously 160 ms, for pointer
+transit. Entering the destination keeps the current overlay; leaving every
+surface still dismisses it. Keyboard/Escape, scroll/detach and Reduced Motion
+retain their existing behavior. No new popup owner or workflow-specific path
+is introduced.
+
+Evidence: `D:/NvtFwCombiner-TestArea/evidence/v114-memory-hover-grace69/`.
+`red.trx` has six expected failures: after a 220 ms excursion the previous
+overlay has already closed. `green.trx` passes **57/58, zero skipped, 94 s**
+using `MemoryCoveragePopupTests`, `CtrlRamMemoryLayoutTests`,
+`AbMemoryLayoutControlTests`, and
+`ProductionCtrlRamWindowShowsReferenceAlignedLocalCard`
+(each prefixed with `FullyQualifiedName~`). All six new transit cases pass.
+The one failed real-window test still used its 220 ms animation-settle helper
+for hover exit. Its keep-open and two exit checks now explicitly wait 400 ms;
+ordinary animation checks keep their 220 ms default. The affected test alone,
+`LoadedCtrlRamWindowStartsWithOnlyTheOverview`, then passes **1/1, 12 s** in
+`final.trx`. Production did not change between those runs; the earlier 57
+passes are reused, not presented as a fresh all-58 run.
+Scoped Polytail by GPT-5.6 Terra/high found no P0–P3 issues, including the
+final test-only wait correction; the primary verified the final TRX result.
+
+Actual NT51927 three-IC captures in `final/` retain the collapsed overview,
+Master local strip and MP leaf card. The earlier `green/` captures also cover
+NT51950 local cards and loaded AB windows. These scoped checks do not certify
+native DPI/accessibility, firmware Golden outputs, integration or release.
+
 ## Running and maintaining this view
 
 Use [`CONTRIBUTING.md`](../CONTRIBUTING.md) to initialize the existing fixed

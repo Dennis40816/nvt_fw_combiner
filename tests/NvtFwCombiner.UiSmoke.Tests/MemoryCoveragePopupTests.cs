@@ -254,6 +254,56 @@ public sealed class MemoryCoveragePopupTests
         }
     }
 
+    /// <summary>A brief pointer excursion between tiers keeps the existing overlay alive without pinning it after exit.</summary>
+    [AvaloniaTheory]
+    [InlineData(0, false)]
+    [InlineData(1, false)]
+    [InlineData(2, false)]
+    [InlineData(0, true)]
+    [InlineData(1, true)]
+    [InlineData(2, true)]
+    public async Task PointerTransitGraceKeepsExistingOverlayUntilArrival(int depth, bool reducedMotion)
+    {
+        Window window = CreateWindow(388, false, MemoryCoverageBarProjectionTests.Example(), out MemoryCoverageBar bar);
+        bar.ReducedMotion = reducedMotion;
+        try
+        {
+            Control target = MainTarget(bar, depth == 0 ? 0 : 1);
+            window.MouseMove(BoundsInWindow(target, window).Center, RawInputModifiers.None);
+            Render();
+            if (depth == 2)
+            {
+                Border local = Assert.IsType<Border>(FindNamed<Border>(window, "MemoryLocalView"));
+                target = FocusableControl(LocalStrip(local).Children[5]);
+                window.MouseMove(BoundsInWindow(target, window).Center, RawInputModifiers.None);
+                Render();
+            }
+            string name = depth == 1 ? "MemoryLocalView" : "MemorySliceCard";
+            Border destination = Assert.IsType<Border>(FindNamed<Border>(window, name));
+            Point arrival = depth == 1
+                ? BoundsInWindow(destination, window).TopLeft + new Vector(10, 10)
+                : BoundsInWindow(destination, window).Center;
+            // No click or keyboard focus may keep the overlay alive during this excursion.
+            window.MouseMove(new Point(4, 4), RawInputModifiers.None);
+            await Task.Delay(220, TestContext.Current.CancellationToken);
+            Render();
+            Assert.False(target.IsPointerOver);
+            Assert.False(target.IsKeyboardFocusWithin);
+            Assert.Same(destination, FindNamed<Border>(window, name));
+
+            window.MouseMove(arrival, RawInputModifiers.None);
+            await Task.Delay(400, TestContext.Current.CancellationToken);
+            Render();
+            Assert.Same(destination, FindNamed<Border>(window, name));
+
+            window.MouseMove(new Point(4, 4), RawInputModifiers.None);
+            await Task.Delay(400, TestContext.Current.CancellationToken);
+            Render();
+            AssertNoOverlay(window);
+        }
+        finally { window.Close(); }
+    }
+
     /// <summary>Moving from a main slice into its card keeps it open, while leaving both surfaces dismisses it after the bounded delay.</summary>
     [AvaloniaFact]
     public async Task PointerTraversalBetweenMainSliceAndCardKeepsThenDismissesTheCard()
@@ -269,12 +319,12 @@ public sealed class MemoryCoveragePopupTests
 
             window.MouseMove(BoundsInWindow(card, window).Center, RawInputModifiers.None);
             Render();
-            await Task.Delay(TimeSpan.FromMilliseconds(220), TestContext.Current.CancellationToken);
+            await Task.Delay(TimeSpan.FromMilliseconds(400), TestContext.Current.CancellationToken);
             Render();
             Assert.NotNull(FindNamed<Border>(window, "MemorySliceCard"));
 
             window.MouseMove(new Point(4, 4), RawInputModifiers.None);
-            await Task.Delay(TimeSpan.FromMilliseconds(220), TestContext.Current.CancellationToken);
+            await Task.Delay(TimeSpan.FromMilliseconds(400), TestContext.Current.CancellationToken);
             Render();
             Assert.Null(FindNamed<Border>(window, "MemorySliceCard"));
         }
@@ -323,7 +373,7 @@ public sealed class MemoryCoveragePopupTests
             }
             Assert.NotNull(FindNamed<Border>(window, depth == 1 ? "MemoryLocalView" : "MemorySliceCard"));
             window.MouseMove(new Point(4, 4), RawInputModifiers.None);
-            await Task.Delay(TimeSpan.FromMilliseconds(220), TestContext.Current.CancellationToken);
+            await Task.Delay(TimeSpan.FromMilliseconds(400), TestContext.Current.CancellationToken);
             Render();
             AssertNoOverlay(window);
         }
@@ -360,13 +410,13 @@ public sealed class MemoryCoveragePopupTests
                 Render();
             }
             window.MouseMove(new Point(6, 6), RawInputModifiers.None);
-            await Task.Delay(TimeSpan.FromMilliseconds(220), TestContext.Current.CancellationToken);
+            await Task.Delay(TimeSpan.FromMilliseconds(400), TestContext.Current.CancellationToken);
             Render();
             Assert.NotNull(FindNamed<Border>(window, depth == 1 ? "MemoryLocalView" : "MemorySliceCard"));
             window.MouseMove(BoundsInWindow(target, window).Center, RawInputModifiers.None);
             Render();
             window.MouseMove(new Point(4, 4), RawInputModifiers.None);
-            await Task.Delay(TimeSpan.FromMilliseconds(220), TestContext.Current.CancellationToken);
+            await Task.Delay(TimeSpan.FromMilliseconds(400), TestContext.Current.CancellationToken);
             Render();
             AssertNoOverlay(window);
         }
@@ -395,7 +445,7 @@ public sealed class MemoryCoveragePopupTests
             window.KeyRelease(Key.Space, RawInputModifiers.None, PhysicalKey.Space, " ");
             Render();
             window.MouseMove(new Point(4, 4), RawInputModifiers.None);
-            await Task.Delay(TimeSpan.FromMilliseconds(220), TestContext.Current.CancellationToken);
+            await Task.Delay(TimeSpan.FromMilliseconds(400), TestContext.Current.CancellationToken);
             Render();
             Assert.NotNull(FindNamed<Border>(window, "MemorySliceCard"));
             PressEscape(window);

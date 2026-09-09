@@ -91,7 +91,7 @@ public sealed class AbMemoryLayoutControlTests
                 Assert.False(Bounds(rail).Contains(outside));
                 Assert.False(Bounds(openCard).Contains(outside));
                 window.MouseMove(outside, RawInputModifiers.None);
-                await Task.Delay(220, TestContext.Current.CancellationToken);
+                await Task.Delay(400, TestContext.Current.CancellationToken);
                 Render();
                 AssertNoOverlay();
 
