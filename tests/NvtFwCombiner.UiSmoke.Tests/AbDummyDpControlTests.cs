@@ -9,6 +9,7 @@ using Avalonia.VisualTree;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Presentation.Avalonia;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
+using NvtFwCombiner.Presentation.Avalonia.Views;
 using NvtFwCombiner.TestSupport;
 using static NvtFwCombiner.UiSmoke.Tests.ReportControlTestHost;
 
@@ -83,6 +84,19 @@ public sealed class AbDummyDpControlTests
             Control disabledDp = Assert.Single(window.GetVisualDescendants().OfType<Control>(), c => c.Name == "AbDummyDpDisplay");
             Assert.True(disabledDp.IsVisible);
             Assert.False(disabledDp.IsEffectivelyEnabled);
+            Border dummyOutline = Assert.Single(disabledDp.GetVisualDescendants().OfType<Border>(),
+                border => border.Classes.Contains("firmwareSlot"));
+            Rect dummyCardBounds = Bounds(dummyOutline);
+            FirmwareSlotCard[] inputCards = [.. window.GetVisualDescendants().OfType<FirmwareSlotCard>()
+                .Where(card => card.IsEffectivelyVisible && card.IsEffectivelyEnabled)];
+            Assert.NotEmpty(inputCards);
+            foreach (FirmwareSlotCard card in inputCards)
+            {
+                Rect cardBounds = Bounds(Assert.Single(card.GetVisualDescendants().OfType<Border>(),
+                    border => border.Classes.Contains("firmwareSlot")));
+                Assert.InRange(Math.Abs(cardBounds.Left - dummyCardBounds.Left), 0, 0.5);
+                Assert.InRange(Math.Abs(cardBounds.Right - dummyCardBounds.Right), 0, 0.5);
+            }
             Assert.DoesNotContain(shell.Merge.AbMergeSlots, slot => slot.SlotId == CompositionAddressSpaceIds.DpAbInput);
             MemoryCoverageSegmentViewModel blank = Assert.Single(shell.Merge.MergeCoverageSegments,
                 segment => segment.RangeStart == 0 && segment.RangeEndExclusive == 0x7000);

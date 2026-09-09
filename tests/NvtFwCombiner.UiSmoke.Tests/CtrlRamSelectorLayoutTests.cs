@@ -21,7 +21,7 @@ namespace NvtFwCombiner.UiSmoke.Tests;
 /// <summary>Measures the complete production CtrlRAM page rather than a substitute layout.</summary>
 public sealed class CtrlRamSelectorLayoutTests
 {
-    /// <summary>Base/groups share anchors; hover/focus never mutate section geometry or add a content outline.</summary>
+    /// <summary>Base and grouped input cards share edges; hover/focus never mutate section geometry or add an outline.</summary>
     [AvaloniaTheory]
     [InlineData(980, 640, false, false, false)]
     [InlineData(980, 640, false, true, false)]
@@ -155,14 +155,18 @@ public sealed class CtrlRamSelectorLayoutTests
             foreach (SpaciousPanel group in groups)
             {
                 Rect bounds = BoundsInWindow(group, window);
-                Assert.InRange(Math.Abs(bounds.Left - baseBounds.Left), 0, 0.5);
-                Assert.InRange(Math.Abs(bounds.Right - baseBounds.Right), 0, 0.5);
+                Assert.InRange(baseBounds.Left - bounds.Left, 31.5, 32.5);
+                Assert.InRange(bounds.Right - baseBounds.Right, 31.5, 32.5);
                 Expander expander = Assert.Single(group.GetVisualDescendants().OfType<Expander>());
                 FirmwareSlotCard[] cards = [.. group.GetVisualDescendants().OfType<FirmwareSlotCard>()];
                 FirmwareSlotCard first = cards.First();
                 foreach (FirmwareSlotCard card in cards)
                 {
                     Border outline = Assert.Single(card.GetVisualDescendants().OfType<Border>(), b => b.Classes.Contains("firmwareSlot"));
+                    Rect inputBounds = BoundsInWindow(outline, window);
+                    TestContext.Current.TestOutputHelper!.WriteLine($"Input column: base={baseBounds}; group={bounds}; child={inputBounds}");
+                    Assert.InRange(Math.Abs(inputBounds.Left - baseBounds.Left), 0, 0.5);
+                    Assert.InRange(Math.Abs(inputBounds.Right - baseBounds.Right), 0, 0.5);
                     Assert.True(outline.BorderThickness.Left > 0 && outline.BorderThickness.Top > 0 &&
                         outline.BorderThickness.Right > 0 && outline.BorderThickness.Bottom > 0);
                     Border[] intermediate = [.. card.GetVisualAncestors().TakeWhile(v => v != group).OfType<Border>()];
@@ -227,6 +231,14 @@ public sealed class CtrlRamSelectorLayoutTests
                     : resizedMode.Left >= resizedTitle.Right);
                 Assert.Equal(selectedMode, mode.SelectedItem);
                 Assert.Equal(selectedPaths, shell.Replace.ReplaceSlots.ToDictionary(slot => slot.SlotId, slot => slot.FilePath));
+                Rect resizedBase = BoundsInWindow(baseBorder, window);
+                foreach (FirmwareSlotCard input in groups.SelectMany(group => group.GetVisualDescendants().OfType<FirmwareSlotCard>()))
+                {
+                    Rect inputBounds = BoundsInWindow(Assert.Single(input.GetVisualDescendants().OfType<Border>(),
+                        border => border.Classes.Contains("firmwareSlot")), window);
+                    Assert.InRange(Math.Abs(inputBounds.Left - resizedBase.Left), 0, 0.5);
+                    Assert.InRange(Math.Abs(inputBounds.Right - resizedBase.Right), 0, 0.5);
+                }
             }
         }
         finally

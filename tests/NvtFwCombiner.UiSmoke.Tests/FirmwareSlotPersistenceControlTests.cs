@@ -76,6 +76,13 @@ public sealed class FirmwareSlotPersistenceControlTests
                         Render();
                         FirmwareSlotViewModel slot = Assert.Single(shell.Merge.MergeSlots, candidate => candidate.SlotId == id);
                         AssertCard(window, slot, Path.GetFileName(path), selected: step != 1);
+                        if (step == 0 && id == inputs[0].SlotId && Environment.GetEnvironmentVariable("NFC_VISUAL_OUTPUT_DIR") is { Length: > 0 } directory)
+                        {
+                            _ = Directory.CreateDirectory(directory);
+                            using Avalonia.Media.Imaging.Bitmap? frame = window.GetLastRenderedFrame();
+                            Assert.NotNull(frame);
+                            frame.Save(Path.Combine(directory, $"input-column-{(ab ? "ab" : "standard")}-{dark}-{chinese}.png"));
+                        }
                         foreach ((string peer, string peerPath) in inputs.Where(input => input.SlotId != id))
                         {
                             Assert.Equal(peerPath, Assert.Single(shell.Merge.MergeSlots, candidate => candidate.SlotId == peer).FilePath);
@@ -87,12 +94,42 @@ public sealed class FirmwareSlotPersistenceControlTests
         finally { await CloseAndFlushAsync(window); }
     }
 
+    /// <summary>The retained structured Replace view shares the input inset without changing its catalog admission.</summary>
+    [AvaloniaTheory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task StructuredReplaceCardsUseTheSameInputColumn(bool dark)
+    {
+        using var workspace = TempWorkspace.Create("replace-slot-column");
+        PresentationHostServices services = await CreateServicesAsync(workspace, useRetainedDpReplacePolicy: true);
+        using var window = new MainWindow(UiLaunchOptions.Empty, StartupTraceSession.Disabled, services, ShellPreferenceSnapshot.Default)
+        { Width = dark ? 980 : 1440, Height = 900, RequestedThemeVariant = dark ? ThemeVariant.Dark : ThemeVariant.Light };
+        window.Show();
+        try
+        {
+            await AwaitHistoryReadyAsync(window);
+            MainWindowViewModel shell = Assert.IsType<MainWindowViewModel>(window.DataContext);
+            shell.ShowReplaceCommand.Execute(null);
+            shell.WorkflowSession.SelectedIc = "NT51928";
+            shell.Replace.SelectedReplaceMode = ExperienceIds.DpReplace;
+            Render();
+            Assert.True(shell.Replace.IsNonCtrlRamStructuredReplaceModeSelected);
+            FirmwareSlotCard[] cards = [.. window.GetVisualDescendants().OfType<FirmwareSlotCard>()
+                .Where(card => card.IsEffectivelyVisible)];
+            Assert.Equal(shell.Replace.ReplaceSlots.Count, cards.Length);
+            Assert.NotEmpty(cards);
+            Assert.All(cards, card => AssertInputColumn(card, window));
+        }
+        finally { await CloseAndFlushAsync(window); }
+    }
+
     private static void AssertCard(Window window, FirmwareSlotViewModel slot, string fileName, bool selected)
     {
         FirmwareSlotCard card = Assert.Single(window.GetVisualDescendants().OfType<FirmwareSlotCard>(),
             candidate => ReferenceEquals(candidate.DataContext, slot));
         card.BringIntoView();
         Render();
+        AssertInputColumn(card, window);
         Assert.Equal(selected, slot.HasFile);
         Button clear = Assert.IsType<Button>(card.FindControl<Control>("ClearButton"));
         Assert.Equal(selected, clear.IsEnabled);
@@ -129,6 +166,19 @@ public sealed class FirmwareSlotPersistenceControlTests
         });
         Assert.Contains(card.GetVisualDescendants().OfType<TextBlock>(),
             block => block.IsEffectivelyVisible && block.Text?.Contains(fileName, StringComparison.Ordinal) == true);
+    }
+
+    private static void AssertInputColumn(FirmwareSlotCard card, Window window)
+    {
+        Border panel = card.GetVisualAncestors().OfType<Border>().First(border => border.Classes.Contains("roomyPanel"));
+        Border outline = Assert.Single(card.GetVisualDescendants().OfType<Border>(), border => border.Classes.Contains("firmwareSlot"));
+        double panelLeft = panel.TranslatePoint(default, window)!.Value.X;
+        double left = outline.TranslatePoint(default, window)!.Value.X;
+        // Match the approved CtrlRAM child-column inset, not the outer group surface.
+        double expectedLeft = panelLeft + panel.BorderThickness.Left + panel.Padding.Left + 32;
+        double expectedRight = panelLeft + panel.Bounds.Width - panel.BorderThickness.Right - panel.Padding.Right - 32;
+        Assert.InRange(Math.Abs(left - expectedLeft), 0, 0.5);
+        Assert.InRange(Math.Abs(left + outline.Bounds.Width - expectedRight), 0, 0.5);
     }
 
     private static void Render()

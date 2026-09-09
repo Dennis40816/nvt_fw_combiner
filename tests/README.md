@@ -592,6 +592,31 @@ capture shows the continuous line, unchanged card position and readable text.
 Primary scoped Polytail passes with no P0–P3 findings; this is local UI
 evidence, not an integration or release pass.
 
+## Shared input-card column — 2026-09-10
+
+Owner reference: `C:/Users/liusx/AppData/Local/Temp/codex-clipboard-9d397696-a694-44ac-9b4a-4f448bed6590.png`
+(cropped Light/English loaded CtrlRAM). Five standalone hosts now use a 32 px
+horizontal inset: CtrlRAM Base, structured Replace, Standard Merge, AB Merge,
+and Dummy DP. Their card edges match grouped CtrlRAM children; the shared card
+itself and General's existing two-column/mapping-table layout remain unchanged.
+
+Evidence: `D:/NvtFwCombiner-TestArea/evidence/v114-input-columns73/`.
+`red.trx` records 20 expected alignment failures. The first 30 px correction
+in `green.trx` passes 12/28; all 16 CtrlRAM cases expose a remaining 2 px offset.
+After calibrating the inset to 32 px, `final.trx` passes **28/28, zero skipped,
+49 s**, retaining the 0.5 px edge tolerance. The filter combines
+`CtrlRamSelectorLayoutTests`, `FirmwareSlotPersistenceControlTests`,
+`AbDummyDpControlTests`, and `LoadedCtrlRamWindowStartsWithOnlyTheOverview`
+(each prefixed with `FullyQualifiedName~`). It covers selection/clear/reselect,
+resize, both themes/languages, Dummy DP and real NT51927 MP/Normal windows.
+The retained DP Replace fixture is test-only, not new product admission.
+
+The primary inspected full-window NT51927, Standard Merge and narrow AB renders
+in `final/`. GPT-5.6 Terra/high scoped Polytail found no P0–P3 issues against
+final blobs `90198e1c`, `22ac025b`, `eda58854`, `9094931a`; the primary verified
+the final TRX. These are local UI checks, not firmware Golden execution,
+native DPI/accessibility certification, integration or release evidence.
+
 ## Running and maintaining this view
 
 Use [`CONTRIBUTING.md`](../CONTRIBUTING.md) to initialize the existing fixed
