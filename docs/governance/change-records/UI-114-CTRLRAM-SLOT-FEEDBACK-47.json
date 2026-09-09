@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 2,
+  "taskId": "UI-114-CTRLRAM-SLOT-FEEDBACK-47",
+  "capability": "Keep selected CtrlRAM specification facts visible and explain typed ignored-trailing-byte warnings",
+  "integrationBase": "0ceb98d1a524d09a424e8d634989db1a082db025",
+  "risk": "R1",
+  "kind": "ui",
+  "state": "design-active",
+  "mutablePaths": [
+    "src/NvtFwCombiner.Presentation.Avalonia/Views/FirmwareSlotCard.axaml",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ShellTextResources.InputIssues.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ShellTextResources.DynamicText.cs"
+  ],
+  "implementationOwner": "primary-agent",
+  "searchEvidence": ["CodeGraph FirmwareSlotCard, FocusToolTipBehavior and CompiledInputArtifactInspectionResult; existing CtrlRamGuidance, IssueCards, StandardFeedback and real CtrlRamLaunch tests. Prior v114-ctrlram-slot-diagnosis reproduced selected guidance hidden because IsGuidanceVisible=!HasFile encloses existing InputGuidanceFacts; isolated real control pointer and keyboard warning tooltip passed. Inspection already owns ActualLength, AcceptedSnapshotRange, IgnoredTrailingRange/IgnoredTrailingBytes and ReviewIgnoredTrailingBytes. Reuse these facts and the shared IssueDetailsCard; do not infer a max from filename, IC or warning code."],
+  "semanticOwner": "Presentation shared FirmwareSlotCard visibility and ShellTextResources input-issue translation. Existing typed Application inspection remains sole authority for normalization, accepted/ignored ranges and severity.",
+  "terminalContract": "Owner approved fixing these localized CtrlRAM input-card issues before Memory Layout redesign. Keep Max Size/Target Addr (and existing typed multi-region guidance) after selection; empty-slot prompts and the single full-width selected filename footer retain existing behavior. Render ignored-trailing warning numbers only from an existing warning inspection whose NextAction declares ReviewIgnoredTrailingBytes and accepted/ignored ranges exist; retain original diagnostic code and terminal severity, including generic fallback where no typed range exists. Same concise explanation feeds the current hover/focus card and expanded status text in English and Traditional Chinese. Preserve button/card styles, address mapping, source files, readiness, metadata, profile, processor and output semantics. Validate current pointer and keyboard behavior through the real shared control and actual MainWindow before claiming native hover corrected; do not make a speculative tooltip replacement. No Memory Layout, report schema, release or Golden-byte changes. One admitted local batch, coherent per-unit implementation commits, then independent fixed-head review and one evidence checkpoint; full release gates remain separate.",
+  "disposition": "extend-owner",
+  "designReview": {"reviewer": null, "outcome": "not-required", "evidence": "R1 bounded UI projection and localized text over existing typed facts, explicitly requested by owner. No new semantic owner, contract or firmware fact; narrow UI tests plus independent scoped Polytail review."},
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": {"reviewer": null, "outcome": "pending", "evidence": ""}
+}

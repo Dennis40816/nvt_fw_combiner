@@ -13,11 +13,16 @@ public sealed partial class XamlControlStyleContractTests
 {
     /// <summary>Input guidance uses two readable lines without a suggested filename or a detached byte unit.</summary>
     [AvaloniaTheory]
-    [InlineData(false, 2960, 0x2D100, 480)]
-    [InlineData(true, 2960, 0x2D100, 480)]
-    [InlineData(false, 18944, 0x21B90, 900)]
-    [InlineData(true, 18944, 0x21B90, 900)]
-    public void CtrlRamGuidanceKeepsSizeAndOutputOffsetOnSeparateCompleteLines(bool chinese, long length, long offset, int width)
+    [InlineData(false, 2960, 0x2D100, 480, false, false)]
+    [InlineData(true, 2960, 0x2D100, 480, false, true)]
+    [InlineData(false, 18944, 0x21B90, 900, false, false)]
+    [InlineData(true, 18944, 0x21B90, 900, false, true)]
+    [InlineData(false, 2960, 0x2D100, 480, true, false)]
+    [InlineData(true, 2960, 0x2D100, 480, true, true)]
+    [InlineData(false, 18944, 0x21B90, 900, true, true)]
+    [InlineData(true, 18944, 0x21B90, 900, true, false)]
+    public void CtrlRamGuidanceKeepsSizeAndOutputOffsetOnSeparateCompleteLines(
+        bool chinese, long length, long offset, int width, bool selected, bool dark)
     {
         var text = ShellTextResources.For(chinese ? ShellLanguage.ChineseTraditional : ShellLanguage.English);
         var facts = new CtrlRamInputDescriptionFacts("unused-name.bin",
@@ -32,10 +37,12 @@ public sealed partial class XamlControlStyleContractTests
         var slot = new FirmwareSlotViewModel("ctrlram", title, description, FirmwareSlotKind.CtrlRam, isOptional: true,
             ctrlRamDescriptionFacts: facts);
         slot.ApplyExperienceText(text);
+        if (selected) { slot.FilePath = @"C:\firmware\selected-ctrlram.bin"; }
         var card = new FirmwareSlotCard { DataContext = slot, BrowseLabel = "Browse", Width = width };
         (Window host, _, _) = HostWithProductionFirmwareSlotStyles(card);
         host.Width = width;
         host.Height = 500;
+        host.RequestedThemeVariant = dark ? Avalonia.Styling.ThemeVariant.Dark : Avalonia.Styling.ThemeVariant.Light;
         try
         {
             host.Show();
@@ -50,6 +57,13 @@ public sealed partial class XamlControlStyleContractTests
             Assert.Equal(sizeValue.TranslatePoint(default, card)!.Value.X, addressValue.TranslatePoint(default, card)!.Value.X);
             Assert.All(sizeValue.TextLayout.TextLines, line => Assert.False(line.HasCollapsed));
             Assert.All(addressValue.TextLayout.TextLines, line => Assert.False(line.HasCollapsed));
+            Assert.Equal(selected ? 1 : 0, card.GetVisualDescendants().OfType<TextBlock>().Count(
+                block => block.IsEffectivelyVisible && block.Text == "selected-ctrlram.bin"));
+            Assert.Equal(!selected, slot.IsGuidanceVisible);
+            slot.FilePath = null;
+            Dispatcher.UIThread.RunJobs();
+            Assert.True(sizeValue.IsEffectivelyVisible);
+            Assert.True(addressValue.IsEffectivelyVisible);
         }
         finally
         {

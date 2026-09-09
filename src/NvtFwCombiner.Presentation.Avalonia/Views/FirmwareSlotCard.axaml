@@ -73,7 +73,13 @@
               </WrapPanel>
             </WrapPanel>
           </Grid>
-          <StackPanel IsVisible="{Binding IsGuidanceVisible}">
+          <StackPanel>
+            <StackPanel.IsVisible>
+              <MultiBinding Converter="{x:Static converters:BoolConverters.Or}">
+                <Binding Path="IsGuidanceVisible" />
+                <Binding Path="HasInputGuidanceFacts" />
+              </MultiBinding>
+            </StackPanel.IsVisible>
             <TextBlock Classes="mutedText" IsVisible="{Binding !HasInputGuidanceFacts}" Text="{Binding Description}" TextWrapping="Wrap" />
             <StackPanel IsVisible="{Binding HasInputGuidanceFacts}" Spacing="6">
               <ItemsControl ItemsSource="{Binding InputGuidanceFacts}">
