@@ -387,6 +387,59 @@ Reference, actual-state differences and review evidence are recorded in the
 These headless results do not certify native DPI, High Contrast, screen readers
 or full release readiness.
 
+## Hover-only CtrlRAM hierarchy and restored lift — 2026-09-09
+
+`UI-114-MEMORY-HOVER-60` replaces the always-visible CtrlRAM detail lanes with
+the shared `MemoryCoverageBar` local-view/card hierarchy. The owner's accepted
+reference is the six-step interaction in the
+[roadmap](../docs/architecture/nfc_roadmap.md#hover-only-ctrlram-endpoint-hierarchy--2026-09-09),
+with `v1.1.3`'s 118% vertical scale and existing shadow as the lift baseline.
+The earlier MP/Master screenshot depicts the problem state, not an instruction
+to keep all lanes permanently visible.
+
+Evidence root: `D:/NvtFwCombiner-TestArea/evidence/v114-memory-hover60/`.
+
+- `red.trx`: the actual NT51927 three-IC window fails the initial-collapsed
+  regression because three detail lanes appear without hovering a position.
+- `green-fourth.trx`: 66/67 pass. The remaining regression exposes a final
+  animated return to rest when Reduced Motion is toggled; the subsequent
+  diagnostic confirms the class and null transition while motion persists.
+  The fix disables transitions before changing the style class. The following
+  run passes that assertion, then exposes a test-helper focus setup issue:
+  focusing the already-focused marker is not a new keyboard entry. The helper
+  now explicitly transfers focus before re-entering, without clicking a button.
+- `ui-final.trx`: **67/67 pass, zero skipped, 72 seconds test execution**.
+  This runs `CtrlRamMemoryLayoutTests`, `CtrlRamOverviewCompletionTests`,
+  `CtrlRamCascadeMemoryLayoutTests`, `MemoryCoveragePopupTests`,
+  `MemoryCoverageExplorerTests`, `MemoryCoverageBarGeometryTests`,
+  `MemoryCoverageBarProjectionTests`, and `MemoryCoverageLogicalGroupingTests`.
+  Compiler/analyzer corrections before executable runs are not behavioral passes.
+
+Coverage includes initial collapse, exactly one original contiguous lane,
+local-to-leaf-to-card pointer transit, exit after hover/click, no mouse pin,
+keyboard/Escape, disconnected-range independence, edge lift containment,
+immediate Reduced Motion, relocalization and the existing 18 viewport states.
+Real NT51919/950/951 overview DP and TP leaves directly open cards without a
+CtrlRAM secondary tier; input groups, exact ranges and Build readiness remain
+unchanged. NT51927 three-IC and 950/951 Cascade use the existing fixture loaders;
+NT51928 Standard and the shared grouped explorer remain regression controls.
+
+Actual production MainWindow headless captures are in `final/`, including
+`nt51927-hover60-collapsed.png`, `nt51927-hover60-master.png`,
+`nt51927-hover60-master-mp.png`, `memory-ctrlram-False-Normal-leaf.png`, and
+`NT51950-single-master-hover-dark-zh.png`. The 927 sequence uses 1180x1040
+Light/English; single-IC context uses 1440x1040 in Light/English and
+Dark/Traditional Chinese. Whole-window renders were inspected, retaining main
+DP/TP/gap geometry while replacing the permanent lane stack with anchored
+overlays. Native Windows DPI/High Contrast/screen-reader acceptance remains open.
+
+`dotnet build src/NvtFwCombiner.Desktop/NvtFwCombiner.Desktop.csproj --no-restore`
+succeeds with zero warnings/errors (6.65 seconds reported build time).
+No firmware outputs, Golden expectations, profiles or release payloads changed;
+no full-suite or release Golden run was claimed. The owner permitted this local
+continuation/commit only; Unit58/59 lifecycle and external-authority integration
+gates remain unresolved and are not turned into passes by these UI results.
+
 ## Running and maintaining this view
 
 Use [`CONTRIBUTING.md`](../CONTRIBUTING.md) to initialize the existing fixed

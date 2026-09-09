@@ -38,12 +38,16 @@ public sealed class MemoryCoverageBar : UserControl
     /// <summary>Shows compact labels in the existing rail, used by explicit focus views.</summary>
     public static readonly StyledProperty<bool> ShowLabelsProperty =
         AvaloniaProperty.Register<MemoryCoverageBar, bool>(nameof(ShowLabels));
+    /// <summary>Optional exact positions whose contiguous lanes open through the shared local-view overlay.</summary>
+    public static readonly StyledProperty<IEnumerable?> FocusPositionsProperty =
+        AvaloniaProperty.Register<MemoryCoverageBar, IEnumerable?>(nameof(FocusPositions));
     /// <summary>Suppresses the informational-card reveal animation.</summary>
     public static readonly StyledProperty<bool> ReducedMotionProperty =
         AvaloniaProperty.Register<MemoryCoverageBar, bool>(nameof(ReducedMotion));
 
     private readonly ItemsControl _main = new() { Height = 34, ClipToBounds = false };
     private readonly Border _track = new() { Height = 34, ClipToBounds = false };
+    private readonly ItemsControl _positions = new() { Height = 22, Margin = new Thickness(0, 6, 0, 0), ClipToBounds = false };
     private readonly Popup _localPopup = new() { ShouldUseOverlayLayer = true, IsLightDismissEnabled = false };
     private readonly Popup _cardPopup = new() { ShouldUseOverlayLayer = true, IsLightDismissEnabled = false };
     private readonly Border _local = new() { Name = "MemoryLocalView" };
@@ -51,6 +55,7 @@ public sealed class MemoryCoverageBar : UserControl
     private readonly DispatcherTimer _closeTimer = new() { Interval = TimeSpan.FromMilliseconds(160) };
     private readonly List<Control> _sliceTargets = [];
     private INotifyCollectionChanged? _collection;
+    private INotifyCollectionChanged? _positionCollection;
     private MemoryCoverageBarItem? _activeGroup;
     private Control? _groupTarget;
     private Control? _cardTarget;
@@ -60,7 +65,6 @@ public sealed class MemoryCoverageBar : UserControl
     private bool _restoringFocus;
     private bool _localAbove;
     private bool _keyboardFocus;
-    private int _revealVersion;
 
     /// <summary>Constructs the shared rail using existing bar, color, card and interaction owners.</summary>
     public MemoryCoverageBar()
@@ -68,7 +72,7 @@ public sealed class MemoryCoverageBar : UserControl
         Height = 34;
         ClipToBounds = false;
         _track.Child = _main;
-        Content = new Panel { Children = { _track, _localPopup, _cardPopup } };
+        Content = new Panel { Children = { new StackPanel { Children = { _track, _positions } }, _localPopup, _cardPopup } };
         _ = _track.Bind(Border.BackgroundProperty, new DynamicResourceExtension("NfcMemoryTrackBrush"));
         _ = _local.Bind(Border.BackgroundProperty, new DynamicResourceExtension("NfcSurfaceBrush"));
         _track.PointerMoved += (_, e) =>
@@ -81,7 +85,7 @@ public sealed class MemoryCoverageBar : UserControl
         _closeTimer.Tick += (_, _) =>
         {
             _closeTimer.Stop();
-            if (!IsInteracting(this) &&
+            if (!IsInteracting(_groupTarget ?? _cardTarget) &&
                 !IsInteracting(_localPopup.Child) && !IsInteracting(_cardPopup.Child)) { CloseAll(); }
         };
         PointerExited += (_, _) => _closeTimer.Start();
@@ -98,6 +102,8 @@ public sealed class MemoryCoverageBar : UserControl
     public bool IsPlain { get => GetValue(IsPlainProperty); set => SetValue(IsPlainProperty, value); }
     /// <inheritdoc cref="ShowLabelsProperty" />
     public bool ShowLabels { get => GetValue(ShowLabelsProperty); set => SetValue(ShowLabelsProperty, value); }
+    /// <inheritdoc cref="FocusPositionsProperty" />
+    public IEnumerable? FocusPositions { get => GetValue(FocusPositionsProperty); set => SetValue(FocusPositionsProperty, value); }
     /// <inheritdoc cref="ReducedMotionProperty" />
     public bool ReducedMotion { get => GetValue(ReducedMotionProperty); set => SetValue(ReducedMotionProperty, value); }
     private ShellTextResources Text => Labels as ShellTextResources ?? ShellTextResources.For(ShellLanguage.English);
@@ -125,6 +131,8 @@ public sealed class MemoryCoverageBar : UserControl
         _attached = false;
         _collection?.CollectionChanged -= OnCollectionChanged;
         _collection = null;
+        _positionCollection?.CollectionChanged -= OnCollectionChanged;
+        _positionCollection = null;
         if (_window is not null)
         {
             _window.Deactivated -= OnWindowDeactivated;
@@ -143,7 +151,7 @@ public sealed class MemoryCoverageBar : UserControl
         ArgumentNullException.ThrowIfNull(change);
         base.OnPropertyChanged(change);
         if (!_attached) { return; }
-        if (change.Property == ItemsSourceProperty || change.Property == LabelsProperty || change.Property == IsPlainProperty || change.Property == ShowLabelsProperty)
+        if (change.Property == ItemsSourceProperty || change.Property == LabelsProperty || change.Property == IsPlainProperty || change.Property == ShowLabelsProperty || change.Property == FocusPositionsProperty)
         {
             Subscribe();
             Rebuild();
@@ -152,7 +160,19 @@ public sealed class MemoryCoverageBar : UserControl
         {
             CloseAll();
         }
-        else if (change.Property == ReducedMotionProperty && ReducedMotion) { FinishReveal(); }
+        else if (change.Property == ReducedMotionProperty)
+        {
+            if (ReducedMotion) { FinishReveal(_card); FinishReveal(_local); }
+            foreach (Control target in this.GetVisualDescendants().Concat(_local.GetVisualDescendants()).OfType<Control>().Where(control =>
+                control.Classes.Contains("memoryExplorerSlice") || control.Classes.Contains("memoryExplorerGroup")))
+            {
+                // Disable transitions before the class changes RenderTransform; otherwise
+                // the style update can start a final animated return to rest.
+                if (ReducedMotion) { target.Transitions = null; }
+                target.Classes.Set("reducedMotion", ReducedMotion);
+                if (!ReducedMotion) { target.ClearValue(TransitionsProperty); }
+            }
+        }
     }
 
     private static Border Surface(string name)
@@ -187,12 +207,16 @@ public sealed class MemoryCoverageBar : UserControl
         _collection?.CollectionChanged -= OnCollectionChanged;
         _collection = ItemsSource as INotifyCollectionChanged;
         _collection?.CollectionChanged += OnCollectionChanged;
+        _positionCollection?.CollectionChanged -= OnCollectionChanged;
+        _positionCollection = FocusPositions as INotifyCollectionChanged;
+        _positionCollection?.CollectionChanged += OnCollectionChanged;
     }
     private void OnCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e) { Rebuild(); }
 
     private void Rebuild()
     {
         CloseAll();
+        BuildPositions();
         _main.ItemContainerTheme = (ControlTheme)this.FindResource("ProportionalContentPresenterTheme")!;
         _main.ItemsPanel = new FuncTemplate<Panel?>(() => new ProportionalStackPanel());
         _main.ItemTemplate = new FuncDataTemplate<MemoryCoverageBarItem>((item, _) =>
@@ -214,6 +238,8 @@ public sealed class MemoryCoverageBar : UserControl
                 Classes = { "memoryCoverageFill", "memoryCoverageLinkedRow", "memoryExplorerGroup" },
                 Child = new TextBlock { Text = "⋮", HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center },
             };
+            target.Classes.Set("reducedMotion", ReducedMotion);
+            WatchTargetExit(target);
             AutomationProperties.SetName(target, GroupSummary(item));
             AutomationProperties.SetHelpText(target, Text.MemoryLocalViewHint);
             target.PointerEntered += (_, _) => OpenLocal(item, target);
@@ -233,6 +259,59 @@ public sealed class MemoryCoverageBar : UserControl
         _main.ItemsSource = MemoryCoverageBarProjection.Create(ItemsSource?.Cast<MemoryCoverageSegmentViewModel>().ToArray() ?? []);
     }
 
+    private void BuildPositions()
+    {
+        MemoryFocusPositionViewModel[] positions = FocusPositions?.Cast<MemoryFocusPositionViewModel>().ToArray() ?? [];
+        _positions.IsVisible = positions.Length > 0;
+        Height = positions.Length > 0 ? 62 : 34;
+        _positions.ItemContainerTheme = (ControlTheme)this.FindResource("ProportionalContentPresenterTheme")!;
+        _positions.ItemsPanel = new FuncTemplate<Panel?>(() => new ProportionalStackPanel());
+        _positions.ItemTemplate = new FuncDataTemplate<MemoryFocusPositionViewModel>((position, scope) =>
+        {
+            if (position?.Lane is not { } lane) { return new Border { IsHitTestVisible = false }; }
+            var marker = new Border { Height = 2 };
+            _ = marker.Bind(Border.BackgroundProperty, new DynamicResourceExtension("NfcAccentBrush"));
+            var target = new Border
+            {
+                Name = "MemoryFocusPosition",
+                DataContext = position,
+                Focusable = true,
+                FocusAdorner = null,
+                Background = Brushes.Transparent,
+                RenderTransformOrigin = RelativePoint.Center,
+                Classes = { "memoryExplorerGroup" },
+                Child = new StackPanel
+                {
+                    Spacing = 3,
+                    Children =
+                {
+                    marker,
+                    new TextBlock { Text = position.Label, Classes = { "captionText" }, HorizontalAlignment = HorizontalAlignment.Center },
+                }
+                },
+            };
+            target.Classes.Set("reducedMotion", ReducedMotion);
+            WatchTargetExit(target);
+            AutomationProperties.SetName(target, $"{lane.Title} · {lane.RangeLabel}");
+            AutomationProperties.SetHelpText(target, Text.MemoryLocalViewHint);
+            var item = new MemoryCoverageBarItem(lane.Ranges);
+            target.PointerEntered += (_, _) => OpenLocal(item, target, lane);
+            target.GotFocus += (_, _) => { if (!_restoringFocus) { OpenLocal(item, target, lane); } };
+            target.KeyDown += (_, e) =>
+            {
+                if (e.Key is Key.Enter or Key.Space or Key.Down or Key.Up)
+                {
+                    OpenLocal(item, target, lane);
+                    _ = _sliceTargets.FirstOrDefault()?.Focus(NavigationMethod.Directional);
+                    e.Handled = true;
+                }
+                else if (e.Key == Key.Escape) { CloseAll(); e.Handled = true; }
+            };
+            return target;
+        });
+        _positions.ItemsSource = positions;
+    }
+
     private Control SegmentContent(MemoryCoverageSegmentViewModel slice)
     {
         var template = (IDataTemplate)this.FindResource(IsPlain ? "MemoryCoveragePlainSegmentBarTemplate" : "MemoryCoverageSegmentBarTemplate")!;
@@ -240,6 +319,7 @@ public sealed class MemoryCoverageBar : UserControl
         control.DataContext = slice;
         control.FocusAdorner = null;
         control.Classes.Add("memoryExplorerSlice");
+        control.Classes.Set("reducedMotion", ReducedMotion);
         if (control is Border border)
         {
             Control? pattern = border.Child;
@@ -298,6 +378,7 @@ public sealed class MemoryCoverageBar : UserControl
     private void WireSlice(Control target, MemoryCoverageSegmentViewModel slice, bool local)
     {
         target.Focusable = true;
+        WatchTargetExit(target);
         target.PointerEntered += (_, _) => OpenSlice();
         target.GotFocus += (_, _) => { if (!_restoringFocus) { OpenSlice(); } };
         target.KeyDown += (_, e) =>
@@ -329,12 +410,18 @@ public sealed class MemoryCoverageBar : UserControl
         }
     }
 
+    private void WatchTargetExit(Control target)
+    {
+        target.PointerExited += (_, _) => _closeTimer.Start();
+        target.LostFocus += (_, _) => _closeTimer.Start();
+    }
+
     private string GroupSummary(MemoryCoverageBarItem item)
     {
         return $"{item.AddressSpace} · {item.StartLabel}–{item.EndLabel} · {Text.FormatMemorySliceCount(item.Slices.Count)} · {item.SizeLabel}";
     }
 
-    private void OpenLocal(MemoryCoverageBarItem item, Control target)
+    private void OpenLocal(MemoryCoverageBarItem item, Control target, MemoryFocusLaneViewModel? lane = null)
     {
         _closeTimer.Stop();
         if (_localPopup.IsOpen && ReferenceEquals(item, _activeGroup)) { return; }
@@ -358,13 +445,14 @@ public sealed class MemoryCoverageBar : UserControl
         var end = new TextBlock { Text = item.EndLabel, Classes = { "technicalValue" } };
         Grid.SetColumn(end, 1);
         endpoints.Children.Add(end);
-        var content = new StackPanel { Spacing = 6 };
+        var content = new StackPanel { Spacing = 6, Name = lane is null ? null : "CtrlRamFocusLane", DataContext = lane };
         TopLevel top = TopLevel.GetTopLevel(this)!;
-        double above = _track.TranslatePoint(default, top)?.Y ?? 0;
-        _localAbove = above > top.Bounds.Height - above - _track.Bounds.Height;
+        Control anchor = lane is null ? _track : _positions;
+        double above = anchor.TranslatePoint(default, top)?.Y ?? 0;
+        _localAbove = above > top.Bounds.Height - above - anchor.Bounds.Height;
         var header = new StackPanel { Name = "MemoryLocalHeader", Spacing = 3 };
-        header.Children.Add(new TextBlock { Text = Text.MemoryLocalViewLabel, Classes = { "bodyEmphasisText" }, TextWrapping = TextWrapping.Wrap, HorizontalAlignment = HorizontalAlignment.Left });
-        header.Children.Add(new TextBlock { Text = $"{Text.FormatMemorySliceCount(item.Slices.Count)} · {item.SizeLabel} · {item.AddressSpace}", Classes = { "captionText" }, TextWrapping = TextWrapping.Wrap, HorizontalAlignment = HorizontalAlignment.Left });
+        header.Children.Add(new TextBlock { Text = lane?.Title ?? Text.MemoryLocalViewLabel, Classes = { "bodyEmphasisText" }, TextWrapping = TextWrapping.Wrap, HorizontalAlignment = HorizontalAlignment.Left });
+        header.Children.Add(new TextBlock { Text = $"{(lane is null ? Text.FormatMemorySliceCount(item.Slices.Count) : Text.MemoryCtrlRamDetailLabel)} · {item.SizeLabel} · {item.AddressSpace}", Classes = { "captionText" }, TextWrapping = TextWrapping.Wrap, HorizontalAlignment = HorizontalAlignment.Left });
         content.Children.Add(header);
         var rail = new Border { Name = "MemoryLocalRail", Child = strip, BorderThickness = new Thickness(1), Padding = new Thickness(2), CornerRadius = new CornerRadius(5) };
         _ = rail.Bind(Border.BorderBrushProperty, new DynamicResourceExtension("NfcBorderMutedBrush"));
@@ -372,7 +460,7 @@ public sealed class MemoryCoverageBar : UserControl
         content.Children.Add(endpoints);
         _local.Child = content;
         var connector = new Canvas { Height = 32 };
-        double left = target.TranslatePoint(default, _track)?.X ?? 0;
+        double left = target.TranslatePoint(default, anchor)?.X ?? 0;
         foreach ((double localX, double mainX) in new[] { (3d, left), (Bounds.Width - 3, left + target.Bounds.Width) })
         {
             connector.Children.Add(Connector(new Point(localX, _localAbove ? 0 : 32), new Point(mainX, _localAbove ? 32 : 0)));
@@ -381,9 +469,10 @@ public sealed class MemoryCoverageBar : UserControl
         _ = frame.Bind(Panel.BackgroundProperty, new DynamicResourceExtension("NfcSurfaceBrush"));
         _localPopup.Child = frame;
         _localPopup.Width = Bounds.Width;
-        _localPopup.PlacementTarget = _track;
+        _localPopup.PlacementTarget = anchor;
         _localPopup.Placement = _localAbove ? PlacementMode.TopEdgeAlignedLeft : PlacementMode.BottomEdgeAlignedLeft;
         _localPopup.IsOpen = true;
+        Reveal(_local, _localPopup, _localAbove);
     }
 
     private void OpenCard(Control target, MemoryCoverageSegmentViewModel slice, bool? preferredAbove)
@@ -432,7 +521,7 @@ public sealed class MemoryCoverageBar : UserControl
         _cardPopup.HorizontalOffset = left - origin.X;
         _cardPopup.Placement = above ? PlacementMode.TopEdgeAlignedLeft : PlacementMode.BottomEdgeAlignedLeft;
         _cardPopup.IsOpen = true;
-        RevealCard(above);
+        Reveal(_card, _cardPopup, above);
     }
 
     private static Line Connector(Point start, Point end)
@@ -487,34 +576,33 @@ public sealed class MemoryCoverageBar : UserControl
         return frame;
     }
 
-    private void RevealCard(bool above)
+    private void Reveal(Border surface, Popup popup, bool above)
     {
-        FinishReveal();
+        FinishReveal(surface);
         if (ReducedMotion) { return; }
-        int version = _revealVersion;
-        _card.Opacity = 0;
-        _card.RenderTransform = TransformOperations.Parse(above ? "translateY(8px)" : "translateY(-8px)");
-        _card.Transitions =
+        surface.Opacity = 0;
+        surface.RenderTransform = TransformOperations.Parse(above ? "translateY(8px)" : "translateY(-8px)");
+        Transitions transitions =
         [
             new DoubleTransition { Property = OpacityProperty, Duration = TimeSpan.FromMilliseconds(140), Easing = new CubicEaseOut() },
             new TransformOperationsTransition { Property = RenderTransformProperty, Duration = TimeSpan.FromMilliseconds(140), Easing = new CubicEaseOut() },
         ];
+        surface.Transitions = transitions;
         Dispatcher.UIThread.Post(() =>
         {
-            if (version == _revealVersion && _cardPopup.IsOpen)
+            if (ReferenceEquals(surface.Transitions, transitions) && popup.IsOpen)
             {
-                _card.Opacity = 1;
-                _card.RenderTransform = TransformOperations.Identity;
+                surface.Opacity = 1;
+                surface.RenderTransform = TransformOperations.Identity;
             }
         }, DispatcherPriority.Render);
     }
 
-    private void FinishReveal()
+    private static void FinishReveal(Border surface)
     {
-        _revealVersion++;
-        _card.Transitions = null;
-        _card.Opacity = 1;
-        _card.RenderTransform = TransformOperations.Identity;
+        surface.Transitions = null;
+        surface.Opacity = 1;
+        surface.RenderTransform = TransformOperations.Identity;
     }
 
     private void OnCardKeyDown(object? sender, KeyEventArgs e)
@@ -535,7 +623,7 @@ public sealed class MemoryCoverageBar : UserControl
 
     private void CloseCard()
     {
-        FinishReveal();
+        FinishReveal(_card);
         _cardPopup.IsOpen = false;
         if (_cardPopup.Child is Panel frame) { frame.Children.Clear(); }
         _cardPopup.Child = null;
@@ -549,6 +637,7 @@ public sealed class MemoryCoverageBar : UserControl
         _closeTimer.Stop();
         _keyboardFocus = false;
         CloseCard();
+        FinishReveal(_local);
         _localPopup.IsOpen = false;
         if (_localPopup.Child is Panel frame) { frame.Children.Clear(); }
         _localPopup.Child = null;

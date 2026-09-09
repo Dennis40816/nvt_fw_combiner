@@ -10,21 +10,23 @@ internal sealed class MemoryFocusLaneViewModel
         Ranges = [.. ranges];
         Text = text;
         // This is a heading only: shared input groups and physical range identities stay intact.
-        Title = text.GetReplaceRegionGroupTitle(isSingleIc && ranges[0].RegionGroup == ReplaceRegionGroup.Common
-            ? ReplaceRegionGroup.Master : ranges[0].RegionGroup);
+        DisplayGroup = isSingleIc && ranges[0].RegionGroup == ReplaceRegionGroup.Common
+            ? ReplaceRegionGroup.Master : ranges[0].RegionGroup;
+        Title = text.GetReplaceRegionGroupTitle(DisplayGroup);
         Start = ranges[0].RangeStart!.Value;
         EndExclusive = ranges[^1].RangeEndExclusive!.Value;
         RangeLabel = FormattableString.Invariant($"0x{Start:X5}-0x{EndExclusive - 1:X5}");
     }
 
     public ShellTextResources Text { get; }
+    private ReplaceRegionGroup DisplayGroup { get; }
     public string Title { get; }
     public string RangeLabel { get; }
     public long Start { get; }
     public long EndExclusive { get; }
     public IReadOnlyList<MemoryCoverageSegmentViewModel> Ranges { get; }
 
-    public string PositionLabel => Ranges[0].RegionGroup switch
+    public string PositionLabel => DisplayGroup switch
     {
         ReplaceRegionGroup.Master => "M",
         ReplaceRegionGroup.SlaveRight => "R",
@@ -41,7 +43,7 @@ internal sealed class MemoryFocusLaneViewModel
         foreach (MemoryFocusLaneViewModel lane in lanes.OrderBy(static lane => lane.Start))
         {
             if (lane.Start > cursor) { parts.Add(new(lane.Start - cursor, string.Empty)); }
-            parts.Add(new(lane.EndExclusive - lane.Start, lane.PositionLabel));
+            parts.Add(new(lane.EndExclusive - lane.Start, lane.PositionLabel, lane));
             cursor = lane.EndExclusive;
         }
         if (capacity > cursor) { parts.Add(new(capacity - cursor, string.Empty)); }
@@ -68,7 +70,7 @@ internal sealed class MemoryFocusLaneViewModel
     }
 }
 
-internal sealed record MemoryFocusPositionViewModel(double BarWidth, string Label)
+internal sealed record MemoryFocusPositionViewModel(double BarWidth, string Label, MemoryFocusLaneViewModel? Lane = null)
 {
     public bool IsTarget => Label.Length > 0;
 }

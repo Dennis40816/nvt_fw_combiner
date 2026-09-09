@@ -511,7 +511,7 @@ the unresolved Memory Layout items below remain open.
 | 2 | Broad screen inventory and reprioritization (10) | [Initial evidence inventory below](#visual-inventory-checkpoint--2026-09-08) separates inspected surfaces from uncaptured states. Remaining whole-app/native coverage is open; do not restart completed metadata/list/source/card changes or mistake a token search for visual acceptance. |
 | 3 | Shared visual/theme corrections (11) | Change shared owners only after inventory identifies affected consumers and states; obtain approval for new visual designs. |
 | 4 | Report physical-section grouping (remaining 12) | Reuse existing typed groups only after the grouping interaction and historical replay-coverage boundary are accepted; do not invent bytes between raw runs. |
-| 5 | Memory Layout (14), active bounded work | All-IC DP/TP classification inventory is complete; the missing bindings/container presentation below remain pending. The three-row supporting-list correction is locally implemented and committed (`eb314ebe`, language correction `9c1b1757`), not another implementation TODO. The [three-scenario responsive checkpoint](../../tests/README.md#memory-layout-responsive-checkpoint--2026-09-09) passes 18 viewport/theme/language states; other workflows and native acceptance remain open. Retain typed section/address-space authority, exact rails and independent CtrlRAM endpoints. Master/Slave hover-to-open remains a design discussion, not an approved implementation. |
+| 5 | Memory Layout (14), active bounded work | All-IC DP/TP classification inventory is complete; context-binding implementation and its remaining integration gate are recorded below. The three-row supporting-list correction is locally implemented and committed (`eb314ebe`, language correction `9c1b1757`), not another implementation TODO. The [three-scenario responsive checkpoint](../../tests/README.md#memory-layout-responsive-checkpoint--2026-09-09) passes 18 viewport/theme/language states; other workflows and native acceptance remain open. Retain typed section/address-space authority, exact rails and independent CtrlRAM endpoints. Master/Slave hover-to-open was approved on 2026-09-09; the local interaction checkpoint below supersedes the earlier design-only status. |
 | 6 | First-entry IC selection (16) | Resolve accepted-context lifetime, invalidation and Cancel/Back before cross-page behavior changes. |
 | 7 | Session diagnostics (15) | Retain privacy, lifecycle and separation from immutable run reports. |
 
@@ -580,6 +580,35 @@ Scoped independent review (GPT-5.6 Terra/high) found no P0-P3 issues in this
 R1 correction; that result is not a pass for the earlier R3 batch.
 This is a local implementation checkpoint; batch finalization/integration
 remains pending the original R3 external-authority gate.
+
+##### Hover-only CtrlRAM endpoint hierarchy — 2026-09-09
+
+The owner approved this bounded R1 interaction revision after reviewing the
+actual always-visible lanes and the prior floating style:
+
+1. Show the firmware overview and exact CtrlRAM position markers initially.
+2. Hover or keyboard-focus one position to reveal only that contiguous lane.
+3. Hover/focus a terminal slice to raise it and show the shared information card.
+   Ordinary DP/TP leaves open their card directly, without an endpoint tier.
+4. Keep pointer transit to the local view/card possible; leaving the interaction
+   closes the overlays after the existing short grace. A mouse click is not a pin.
+5. Keep disconnected ranges independent even when their source/group matches.
+6. Restore the legacy 118% vertical lift and shadow without changing width,
+   address proportion or firmware semantics. Reduced Motion suppresses movement.
+
+The shared `MemoryCoverageBar` replaces, rather than duplicates, the permanent
+detail lanes. Its existing local view renders the selected lane's exact original
+slices directly; it does not recursively aggregate them into a third zoom tier.
+The endpoint heading and compact marker use the same display-only role, so a
+single-IC Common input remains Common while its overview marker is `M` and its
+expanded heading is localized Master. No map/profile/output rules change.
+
+`UI-114-MEMORY-HOVER-60` records the local scope. The owner explicitly permitted
+this task's continuation and commit while Unit58/59 remain unfinished, answering
+“是可以先提交” to the narrowly scoped sequencing exception. This permission ends
+at this task's handoff; no immutable record is rewritten, no final lifecycle
+pass is asserted, and firmware/Golden/external-owner/integration/release gates
+remain unchanged. Local verification is recorded in `tests/README.md`.
 
 The supporting-list correction is a separate Presentation-only unit:
 reuse already-projected primary rows and existing card/button styles; initially

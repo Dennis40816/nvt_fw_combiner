@@ -93,37 +93,28 @@ public sealed class MemoryCoverageExplorerTests
                 row => row.RangeLabel.StartsWith("0x0A11C", StringComparison.Ordinal));
             if (darkChinese) { shell.SelectedLanguage = "Traditional Chinese"; }
             Render();
-            MemoryCoverageBar[] focusBars = [.. window.GetVisualDescendants().OfType<MemoryCoverageBar>().Where(control =>
-                control.IsEffectivelyVisible && control.GetVisualAncestors().OfType<Control>().Any(ancestor => ancestor.Name == "CtrlRamFocusLane"))];
-            Assert.NotEmpty(focusBars);
+            MemoryCoverageBar bar = Assert.Single(window.GetVisualDescendants().OfType<MemoryCoverageBar>(), control =>
+                control.IsEffectivelyVisible && control.FocusPositions is not null);
             Capture(window, $"memory-ctrlram-{darkChinese}-overview");
             Assert.DoesNotContain(shell.Replace.ReplaceCoverageGroups.SelectMany(static group => group.Items)
                 .SelectMany(static item => item.Segments), static segment => !segment.IsPrimaryContent);
             Assert.Contains(shell.Replace.ReplaceCoverageSegments, static segment => !segment.IsPrimaryContent && segment.HasProcessingFacts);
             foreach (CtrlRamRegionRole role in new[] { CtrlRamRegionRole.Nf, CtrlRamRegionRole.Normal, CtrlRamRegionRole.Vn })
             {
-                MemoryCoverageBar bar = Assert.Single(focusBars, candidate => candidate.ItemsSource!
-                    .Cast<MemoryCoverageSegmentViewModel>().Any(segment => segment.CtrlRamRegionRole == role && segment.IsSelectedForWrite));
+                MemoryFocusLaneViewModel lane = Assert.Single(shell.Replace.CtrlRamFocusLanes, candidate => candidate.Ranges
+                    .Any(segment => segment.CtrlRamRegionRole == role && segment.IsSelectedForWrite));
                 bar.ReducedMotion = true;
+                _ = CtrlRamMemoryLayoutTests.OpenLane(window, lane);
                 if (role == CtrlRamRegionRole.Nf)
                 {
-                    MemoryCoverageSegmentViewModel nf = Assert.Single(bar.ItemsSource!.Cast<MemoryCoverageSegmentViewModel>(),
+                    MemoryCoverageSegmentViewModel nf = Assert.Single(lane.Ranges,
                         segment => segment.CtrlRamRegionRole == role);
                     Assert.Equal(2816, nf.DisplayParts.Where(part => part.IsSelectedForWrite).Sum(part => part.RangeEndExclusive!.Value - part.RangeStart!.Value));
                     Assert.Equal(7952, nf.DisplayParts.Where(part => part.UsesKeptPattern).Sum(part => part.RangeEndExclusive!.Value - part.RangeStart!.Value));
                 }
-                Control? target = bar.GetVisualDescendants().OfType<Control>().FirstOrDefault(control =>
+                Control target = window.GetVisualDescendants().OfType<Control>().First(control =>
+                    control.Classes.Contains("memoryLocalSlice") &&
                     control.Focusable && control.DataContext is MemoryCoverageSegmentViewModel segment && segment.IsPrimaryContent && segment.IsSelectedForWrite && segment.CtrlRamRegionRole == role);
-                if (target is null)
-                {
-                    Control group = bar.GetVisualDescendants().OfType<Control>().First(control => control.Focusable &&
-                        control.DataContext is MemoryCoverageBarItem { IsGroup: true } item && item.Slices.Any(segment => segment.IsSelectedForWrite && segment.CtrlRamRegionRole == role));
-                    Assert.True(group.Focus(NavigationMethod.Tab));
-                    Render();
-                    Capture(window, $"memory-ctrlram-{darkChinese}-{role}-group");
-                    target = window.GetVisualDescendants().OfType<Control>().First(control => control.Classes.Contains("memoryLocalSlice") &&
-                        control.DataContext is MemoryCoverageSegmentViewModel segment && segment.IsSelectedForWrite && segment.CtrlRamRegionRole == role);
-                }
                 Assert.True(target.Focus(NavigationMethod.Tab));
                 Render();
                 Border card = Assert.Single(window.GetVisualDescendants().OfType<Border>(), control => control.Name == "MemorySliceCard");

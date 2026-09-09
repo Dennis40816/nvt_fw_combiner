@@ -339,18 +339,7 @@
             <TextBlock Classes="bodyEmphasisText" FontSize="14" FontWeight="SemiBold" Text="{Binding Text.MemoryFlashOverviewLabel}" />
             <TextBlock Grid.Column="1" Classes="captionText" Text="{Binding CtrlRamCapacityLabel}" />
           </Grid>
-          <views:MemoryCoverageBar ItemsSource="{Binding CtrlRamOverview}" Labels="{Binding Text}" ShowLabels="True" ReducedMotion="{ReflectionBinding $parent[Window].DataContext.IsReducedMotionEnabled}" />
-          <ItemsControl ItemsSource="{Binding CtrlRamPositions}" ItemContainerTheme="{StaticResource ProportionalContentPresenterTheme}">
-            <ItemsControl.ItemsPanel><ItemsPanelTemplate><views:ProportionalStackPanel /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
-            <ItemsControl.ItemTemplate>
-              <DataTemplate DataType="vm:MemoryFocusPositionViewModel">
-                <StackPanel Spacing="3" IsVisible="{Binding IsTarget}" Margin="2,0">
-                  <Border Height="2" Background="{DynamicResource NfcAccentBrush}" />
-                  <TextBlock Classes="captionText" Text="{Binding Label}" HorizontalAlignment="Center" />
-                </StackPanel>
-              </DataTemplate>
-            </ItemsControl.ItemTemplate>
-          </ItemsControl>
+          <views:MemoryCoverageBar ItemsSource="{Binding CtrlRamOverview}" FocusPositions="{Binding CtrlRamPositions}" Labels="{Binding Text}" ShowLabels="True" ReducedMotion="{ReflectionBinding $parent[Window].DataContext.IsReducedMotionEnabled}" />
           <Grid ColumnDefinitions="*,Auto">
             <TextBlock Classes="monoText captionText" Text="0x00000" />
             <TextBlock Grid.Column="1" Classes="monoText captionText" Text="{Binding CtrlRamEndAddress}" />
@@ -370,32 +359,7 @@
             </ItemsControl.ItemTemplate>
           </ItemsControl>
         </StackPanel>
-        <StackPanel Spacing="16">
-          <Border Height="1" Background="{DynamicResource NfcBorderMutedBrush}" />
-          <Grid ColumnDefinitions="*,Auto">
-            <TextBlock Classes="bodyEmphasisText" FontSize="14" FontWeight="SemiBold" Text="{Binding Text.MemoryCtrlRamDetailLabel}" />
-            <Border Grid.Column="1" Classes="compactSubtleSurface" Padding="7,2">
-              <TextBlock Classes="captionText" Text="{Binding Text.MemoryZoomedLabel}" />
-            </Border>
-          </Grid>
-          <ItemsControl ItemsSource="{Binding CtrlRamFocusLanes}" ItemContainerTheme="{StaticResource StretchContentPresenterTheme}">
-            <ItemsControl.ItemTemplate>
-              <DataTemplate DataType="vm:MemoryFocusLaneViewModel">
-                <Border x:Name="CtrlRamFocusLane" BorderThickness="0,0,0,1" BorderBrush="{DynamicResource NfcBorderMutedBrush}" Padding="0,0,0,18" Margin="0,0,0,18">
-                  <StackPanel Spacing="10">
-                    <Grid ColumnDefinitions="Auto,*">
-                      <Border Width="8" Height="8" CornerRadius="2" Background="{DynamicResource NfcAccentBrush}" Margin="0,0,8,0" VerticalAlignment="Center" />
-                      <TextBlock Grid.Column="1" Classes="bodyEmphasisText" FontSize="14" FontWeight="SemiBold" Text="{Binding Title}" />
-                    </Grid>
-                    <TextBlock Classes="monoText captionText" FontSize="11" Text="{Binding RangeLabel}" />
-                    <views:MemoryCoverageBar ItemsSource="{Binding Ranges}" Labels="{Binding Text}" ShowLabels="True" ReducedMotion="{ReflectionBinding $parent[Window].DataContext.IsReducedMotionEnabled}" />
-                  </StackPanel>
-                </Border>
-              </DataTemplate>
-            </ItemsControl.ItemTemplate>
-          </ItemsControl>
-          <TextBlock Classes="captionText" FontSize="11" Text="{Binding CtrlRamSharedInputHint}" TextWrapping="Wrap" />
-        </StackPanel>
+        <TextBlock Classes="captionText" FontSize="11" Text="{Binding CtrlRamSharedInputHint}" TextWrapping="Wrap" />
       </StackPanel>
 
       <views:MemoryCoverageBar IsVisible="{Binding !HasCtrlRamFocusLayout}" ItemsSource="{Binding ReplaceCoverageSegments}" Labels="{Binding Text}" ReducedMotion="{ReflectionBinding $parent[Window].DataContext.IsReducedMotionEnabled}" />

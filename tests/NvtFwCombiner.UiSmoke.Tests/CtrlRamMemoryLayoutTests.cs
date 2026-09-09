@@ -20,6 +20,63 @@ namespace NvtFwCombiner.UiSmoke.Tests;
 /// <summary>The real input-loaded window keeps parent firmware and physical CtrlRAM positions readable.</summary>
 public sealed class CtrlRamMemoryLayoutTests
 {
+    /// <summary>CtrlRAM endpoint details stay hidden until their own position is explored.</summary>
+    [AvaloniaFact]
+    public async Task LoadedCtrlRamWindowStartsWithOnlyTheOverview()
+    {
+        using var workspace = TempWorkspace.Create("ctrlram-layout-collapsed");
+        PresentationHostServices services = await CreateServicesAsync(workspace, useRetainedDpReplacePolicy: false);
+        using var window = new MainWindow(UiLaunchOptions.Empty, StartupTraceSession.Disabled,
+            services, ShellPreferenceSnapshot.Default)
+        { Width = 1180, Height = 1040 };
+        window.Show();
+        try
+        {
+            await AwaitHistoryReadyAsync(window);
+            MainWindowViewModel shell = Assert.IsType<MainWindowViewModel>(window.DataContext);
+            await MainWindow.ApplyCtrlRamLaunchAsync(shell, ThreeChipArguments().CtrlRam!, TestContext.Current.CancellationToken);
+            Render();
+            Assert.Equal(3, shell.Replace.CtrlRamFocusLanes.Count);
+            _ = Assert.Single(window.GetVisualDescendants().OfType<Control>(),
+                control => control.Name == "CtrlRamFlashOverview" && control.IsEffectivelyVisible);
+            Assert.DoesNotContain(window.GetVisualDescendants().OfType<Control>(),
+                control => control.Name == "CtrlRamFocusLane" && control.IsEffectivelyVisible);
+            Assert.DoesNotContain(window.GetVisualDescendants().OfType<Border>(),
+                control => control.Name is "MemoryLocalView" or "MemorySliceCard");
+            Capture(window, "nt51927-hover60-collapsed.png");
+            Control position = Positions(window)[0];
+            window.MouseMove(Center(position, window), RawInputModifiers.None);
+            await SettleAsync();
+            _ = Assert.Single(window.GetVisualDescendants().OfType<Border>(), control => control.Name == "MemoryLocalView");
+            Assert.DoesNotContain(window.GetVisualDescendants().OfType<Border>(), control => control.Name == "MemorySliceCard");
+            Capture(window, "nt51927-hover60-master.png");
+            Control leaf = LocalCells(window).Single(control => control.DataContext is MemoryCoverageSegmentViewModel
+            { CtrlRamRegionRole: CtrlRamRegionRole.Mp });
+            window.MouseMove(Center(leaf, window), RawInputModifiers.None);
+            await SettleAsync();
+            Border card = Assert.Single(window.GetVisualDescendants().OfType<Border>(), control => control.Name == "MemorySliceCard");
+            Assert.Same(leaf.DataContext, card.DataContext);
+            AssertLiftIsNotClipped(leaf);
+            Capture(window, "nt51927-hover60-master-mp.png");
+            window.MouseMove(Center(card, window), RawInputModifiers.None);
+            await SettleAsync();
+            Assert.Same(card, Assert.Single(window.GetVisualDescendants().OfType<Border>(), control => control.Name == "MemorySliceCard"));
+            window.MouseMove(new Point(20, 20), RawInputModifiers.None);
+            await SettleAsync();
+            Assert.DoesNotContain(window.GetVisualDescendants().OfType<Border>(), control => control.Name is "MemoryLocalView" or "MemorySliceCard");
+
+            // Clicking an endpoint is not a pin: mouse-origin focus must not defeat exit dismissal.
+            window.MouseMove(Center(position, window), RawInputModifiers.None);
+            window.MouseDown(Center(position, window), MouseButton.Left);
+            window.MouseUp(Center(position, window), MouseButton.Left);
+            await SettleAsync();
+            window.MouseMove(new Point(20, 20), RawInputModifiers.None);
+            await SettleAsync();
+            Assert.DoesNotContain(window.GetVisualDescendants().OfType<Border>(), control => control.Name is "MemoryLocalView" or "MemorySliceCard");
+        }
+        finally { await CloseAndFlushAsync(window); }
+    }
+
     /// <summary>Eight physical inputs project twelve targets into three distinct continuous endpoint lanes.</summary>
     [AvaloniaFact]
     public async Task ThreeChipWindowShowsFirmwareOverviewAndSeparatePhysicalLanes()
@@ -49,37 +106,33 @@ public sealed class CtrlRamMemoryLayoutTests
             Assert.Contains("DP", overviewText);
             Assert.Contains("0x00000-0x34FFF", overviewText);
             Assert.Contains("0x3C000-0x3FFFF", overviewText);
-            Control[] lanes = [.. window.GetVisualDescendants().OfType<Control>()
-                .Where(control => control.Name == "CtrlRamFocusLane" && control.IsEffectivelyVisible)];
-            Assert.Equal(3, lanes.Length);
-            string[][] expected = [["Master", "0x16800-0x1E22F"],
-                ["Slave R", "0x1F800-0x2722F"], ["Slave L", "0x28800-0x3022F"]];
+            Assert.Equal(3, Positions(window).Length);
+            string[][] expected = [["Master", "0x16800", "0x1E22F"],
+                ["Slave R", "0x1F800", "0x2722F"], ["Slave L", "0x28800", "0x3022F"]];
             string[] expectedRoles = ["NF", "Normal", "MP", "VN"];
-            for (int index = 0; index < lanes.Length; index++)
+            for (int index = 0; index < expected.Length; index++)
             {
-                string[] labels = VisibleText(lanes[index]);
+                ProportionalStackPanel strip = OpenLane(window, shell.Replace.CtrlRamFocusLanes[index]);
+                Border local = Assert.Single(window.GetVisualDescendants().OfType<Border>(), control => control.Name == "MemoryLocalView");
+                Assert.DoesNotContain(window.GetVisualDescendants().OfType<Border>(), control => control.Name == "MemorySliceCard");
+                string[] labels = VisibleText(local);
                 Assert.All(expected[index], label => Assert.Contains(label, labels));
                 Assert.All(expectedRoles, label => Assert.Contains(label, labels));
-                Assert.InRange(lanes[index].Bounds.Width, 300, 430);
-                MemoryCoverageBar rail = Assert.Single(lanes[index].GetVisualDescendants().OfType<MemoryCoverageBar>());
-                Control[] cells = [.. rail.GetVisualDescendants().OfType<Control>().Where(control => control.Focusable && control.Classes.Contains("memoryFocusSlice"))];
+                Assert.InRange(local.Bounds.Width, 300, 430);
+                Control[] cells = LocalCells(window);
                 Assert.Equal(4, cells.Length);
                 foreach (Control cell in cells)
                 {
                     MemoryCoverageSegmentViewModel segment = Assert.IsType<MemoryCoverageSegmentViewModel>(cell.DataContext);
-                    double expectedWidth = rail.Bounds.Width * (segment.RangeEndExclusive!.Value - segment.RangeStart!.Value) / 31280d;
+                    double expectedWidth = strip.Bounds.Width * (segment.RangeEndExclusive!.Value - segment.RangeStart!.Value) / 31280d;
                     Assert.InRange(Math.Abs(cell.Bounds.Width - expectedWidth), 0, 1);
                 }
-                if (index > 0)
-                {
-                    Point previous = lanes[index - 1].TranslatePoint(new Point(), window)!.Value;
-                    Point current = lanes[index].TranslatePoint(new Point(), window)!.Value;
-                    Assert.InRange(Math.Abs(previous.X - current.X), 0, 1);
-                    Assert.True(current.Y >= previous.Y + lanes[index - 1].Bounds.Height);
-                }
+                await SettleAsync();
+                Capture(window, $"nt51927-hover60-endpoint-{index}.png");
             }
             Capture(window, "nt51927-threechip-actual.png");
-            Control nfRight = lanes[1].GetVisualDescendants().OfType<Control>().Single(control =>
+            _ = OpenLane(window, shell.Replace.CtrlRamFocusLanes[1]);
+            Control nfRight = LocalCells(window).Single(control =>
                 control.Focusable && control.DataContext is MemoryCoverageSegmentViewModel { CtrlRamRegionRole: CtrlRamRegionRole.Nf });
             Assert.True(nfRight.Focus(NavigationMethod.Tab));
             Render();
@@ -204,7 +257,8 @@ public sealed class CtrlRamMemoryLayoutTests
                         Point origin = rail.TranslatePoint(default, window)!.Value;
                         Assert.True(rail.Bounds.Width > 0);
                         Assert.InRange(origin.X, -1, window.ClientSize.Width - rail.Bounds.Width + 1);
-                        Assert.InRange(rail.Bounds.Height, 33.5, 34.5);
+                        double railHeight = rail.FocusPositions is null ? 34 : 62;
+                        Assert.InRange(rail.Bounds.Height, railHeight - 0.5, railHeight + 0.5);
                     }
                     foreach (FirmwareSlotCard card in window.GetVisualDescendants().OfType<FirmwareSlotCard>()
                         .Where(card => card.IsEffectivelyVisible))
@@ -246,24 +300,26 @@ public sealed class CtrlRamMemoryLayoutTests
     private static async Task AssertLaneEdgesAsync(Window window)
     {
         MainWindowViewModel shell = Assert.IsType<MainWindowViewModel>(window.DataContext);
-        MemoryCoverageBar[] rails = [.. window.GetVisualDescendants().OfType<MemoryCoverageBar>().Where(rail =>
-            rail.IsEffectivelyVisible && rail.GetVisualAncestors().OfType<Control>().Any(parent => parent.Name == "CtrlRamFocusLane"))];
-        foreach (MemoryCoverageBar rail in rails)
+        Assert.NotEmpty(shell.Replace.CtrlRamFocusLanes);
+        foreach (MemoryFocusLaneViewModel lane in shell.Replace.CtrlRamFocusLanes)
         {
-            Control[] cells = [.. rail.GetVisualDescendants().OfType<Control>().Where(control =>
-                control.Focusable && control.Classes.Contains("memoryFocusSlice"))];
-            foreach (Control target in new[] { cells[0], cells[^1] })
+            foreach (bool last in new[] { false, true })
             {
+                _ = OpenLane(window, lane);
+                await SettleAsync();
+                Control[] cells = LocalCells(window);
+                Control target = last ? cells[^1] : cells[0];
                 Rect resting = target.Bounds;
                 Point center = target.TranslatePoint(new Point(resting.Width / 2, resting.Height / 2), window)!.Value;
                 window.MouseMove(center, RawInputModifiers.None);
-                Render();
+                await SettleAsync();
                 AssertLiftIsNotClipped(target);
                 Assert.Equal(resting, target.Bounds);
-                Assert.Contains(rail.GetVisualAncestors(), ancestor => ancestor.ClipToBounds);
                 shell.IsReducedMotionEnabled = true;
                 Render();
-                Assert.Equal(0, target.RenderTransform?.Value.M32 ?? 0);
+                Assert.True(target.Classes.Contains("reducedMotion"), string.Join(",", target.Classes));
+                Assert.Null(target.Transitions);
+                Assert.Equal(Matrix.Identity, target.RenderTransform?.Value ?? Matrix.Identity);
                 shell.IsReducedMotionEnabled = false;
                 window.MouseMove(new Point(20, 20), RawInputModifiers.None);
                 await Task.Delay(220, TestContext.Current.CancellationToken);
@@ -303,7 +359,8 @@ public sealed class CtrlRamMemoryLayoutTests
     private static void AssertLiftIsNotClipped(Control target)
     {
         Assert.NotNull(target.RenderTransform);
-        Assert.InRange(target.RenderTransform.Value.M32, -3.01, -2.99);
+        Assert.InRange(target.RenderTransform.Value.M22, 1.179, 1.181);
+        Assert.NotEqual(default, Assert.IsType<Border>(target).BoxShadow);
         foreach (Visual ancestor in target.GetVisualAncestors().Where(ancestor => ancestor.ClipToBounds))
         {
             Matrix transform = target.TransformToVisual(ancestor)!.Value;
@@ -313,6 +370,45 @@ public sealed class CtrlRamMemoryLayoutTests
                 visible.Left >= -1 && visible.Right <= ancestor.Bounds.Width + 1,
                 $"Lift {visible} clipped by {ancestor.GetType().Name} {(ancestor as Control)?.Name}: {ancestor.Bounds.Size}");
         }
+    }
+
+    internal static ProportionalStackPanel OpenLane(Window window, MemoryFocusLaneViewModel lane)
+    {
+        Control position = Positions(window).Single(control => control.DataContext is MemoryFocusPositionViewModel model && ReferenceEquals(model.Lane, lane));
+        // A previous mouse exit intentionally leaves focus without pinning its popup.
+        // This helper models a fresh keyboard focus entry, not focusing the same element twice.
+        if (ReferenceEquals(window.FocusManager?.GetFocusedElement(), position))
+        {
+            Button otherTarget = window.GetVisualDescendants().OfType<Button>().First(button =>
+                button.IsEffectivelyVisible && button.IsEffectivelyEnabled && button.Focusable);
+            Assert.True(otherTarget.Focus(NavigationMethod.Tab));
+        }
+        Assert.True(position.Focus(NavigationMethod.Tab));
+        Render();
+        return Assert.Single(window.GetVisualDescendants().OfType<ProportionalStackPanel>(), panel => panel.Name == "MemoryLocalStrip");
+    }
+
+    private static Control[] Positions(Window window)
+    {
+        return [.. window.GetVisualDescendants().OfType<Control>()
+            .Where(control => control.Name == "MemoryFocusPosition" && control.IsEffectivelyVisible)];
+    }
+
+    private static Control[] LocalCells(Window window)
+    {
+        return [.. window.GetVisualDescendants().OfType<Control>()
+            .Where(control => control.Classes.Contains("memoryLocalSlice") && control.Focusable)];
+    }
+
+    private static Point Center(Control control, Window window)
+    {
+        return control.TranslatePoint(new Point(control.Bounds.Width / 2, control.Bounds.Height / 2), window)!.Value;
+    }
+
+    private static async Task SettleAsync()
+    {
+        await Task.Delay(220, TestContext.Current.CancellationToken);
+        Render();
     }
 
     private static void Capture(Window window, string name)

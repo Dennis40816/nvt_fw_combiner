@@ -1,7 +1,10 @@
 using System.Text.Json;
 using Avalonia.Controls;
+using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
+using Avalonia.Input;
 using Avalonia.Styling;
+using Avalonia.Threading;
 using Avalonia.VisualTree;
 using NvtFwCombiner.Application.MemoryLayout;
 using NvtFwCombiner.Presentation.Avalonia;
@@ -61,10 +64,25 @@ public sealed class CtrlRamOverviewCompletionTests
             Assert.DoesNotContain(shell.Replace.CtrlRamFocusLanes, lane => lane.Title == "Common");
             MemoryFocusLaneViewModel master = Assert.Single(shell.Replace.CtrlRamFocusLanes, lane => lane.Title == "Master");
             Assert.All(master.Ranges, range => Assert.Equal(ReplaceRegionGroup.Common, range.RegionGroup));
-            Assert.Equal("•", master.PositionLabel);
+            Assert.Equal("M", master.PositionLabel);
             Assert.Contains(shell.Replace.ReplaceSlotGroups, group => group.Title == "Common");
+            _ = CtrlRamMemoryLayoutTests.OpenLane(window, master);
+            CtrlRamCascadeMemoryLayoutTests.Capture(window, ic + "-single-master-hover");
             Assert.Contains(window.GetVisualDescendants().OfType<TextBlock>(), block =>
                 block.IsEffectivelyVisible && block.Text == "Master");
+            foreach (MemoryContentRole role in new[] { MemoryContentRole.Dp, MemoryContentRole.Tp })
+            {
+                Control target = window.GetVisualDescendants().OfType<Control>().First(control =>
+                    control.Focusable && control.Classes.Contains("memoryExplorerSlice") &&
+                    !control.Classes.Contains("memoryLocalSlice") && control.DataContext is MemoryCoverageSegmentViewModel segment && segment.ContentRole == role);
+                Assert.True(target.Focus(NavigationMethod.Tab));
+                Dispatcher.UIThread.RunJobs();
+                AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+                CtrlRamCascadeMemoryLayoutTests.Capture(window, ic + "-direct-" + role);
+                Border card = Assert.Single(window.GetVisualDescendants().OfType<Border>(), control => control.Name == "MemorySliceCard");
+                Assert.Same(target.DataContext, card.DataContext);
+                Assert.DoesNotContain(window.GetVisualDescendants().OfType<Border>(), control => control.Name == "MemoryLocalView");
+            }
             shell.SelectedLanguage = "Traditional Chinese";
             window.RequestedThemeVariant = ThemeVariant.Dark;
             CtrlRamCascadeMemoryLayoutTests.Capture(window, ic + "-single-overview-dark-zh");
@@ -72,6 +90,8 @@ public sealed class CtrlRamOverviewCompletionTests
                 section => Assert.Equal("DP", section.DisplayTitle));
             Assert.Contains(shell.Replace.CtrlRamFocusLanes, lane => lane.Title == "主 IC");
             Assert.DoesNotContain(shell.Replace.CtrlRamFocusLanes, lane => lane.Title == "共用");
+            _ = CtrlRamMemoryLayoutTests.OpenLane(window, Assert.Single(shell.Replace.CtrlRamFocusLanes, lane => lane.Title == "主 IC"));
+            CtrlRamCascadeMemoryLayoutTests.Capture(window, ic + "-single-master-hover-dark-zh");
             Assert.Contains(window.GetVisualDescendants().OfType<TextBlock>(), block =>
                 block.IsEffectivelyVisible && block.Text == "主 IC");
             Assert.True(shell.Replace.CanBuildReplace);

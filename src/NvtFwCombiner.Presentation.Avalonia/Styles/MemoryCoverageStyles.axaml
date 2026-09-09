@@ -1,4 +1,4 @@
-<Styles xmlns="https://github.com/avaloniaui">
+<Styles xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
   <Style Selector="Border.memoryInfoPanel">
     <Setter Property="Background" Value="{DynamicResource NfcMemoryPanelSurfaceBrush}" />
     <Setter Property="BorderBrush" Value="{DynamicResource NfcMemoryPanelBorderBrush}" />
@@ -82,11 +82,18 @@
     <Setter Property="BorderThickness" Value="2" />
     <Setter Property="BorderBrush" Value="{DynamicResource NfcAccentStrongBrush}" />
     <Setter Property="CornerRadius" Value="4" />
+    <Setter Property="RenderTransform" Value="scaleY(1.18)" />
+    <Setter Property="BoxShadow" Value="{DynamicResource NfcMemorySegmentHoverShadow}" />
+    <Setter Property="Panel.ZIndex" Value="3" />
+  </Style>
+  <Style Selector="Border.memoryExplorerSlice, Border.memoryExplorerGroup">
+    <Setter Property="Transitions"><Transitions><TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.14" /></Transitions></Setter>
+  </Style>
+  <Style Selector="Border.memoryExplorerSlice.reducedMotion, Border.memoryExplorerGroup.reducedMotion">
+    <Setter Property="Transitions" Value="{x:Null}" />
     <Setter Property="RenderTransform" Value="none" />
-    <Setter Property="BoxShadow" Value="none" />
   </Style>
   <Style Selector=":is(Control).memoryHoverOnly"><Setter Property="IsVisible" Value="False" /></Style>
-  <Style Selector="Border.memoryFocusSlice.linked"><Setter Property="RenderTransform" Value="translateY(-3px)" /></Style>
   <Style Selector="Border.memoryFocusSlice.linked.reducedMotion"><Setter Property="RenderTransform" Value="none" /></Style>
   <Style Selector="Border#MemorySliceCard :is(Control).memoryHoverOnly"><Setter Property="IsVisible" Value="True" /></Style>
   <Style Selector="Border#MemorySliceCard TextBlock.memoryInfoDescription, Border#MemorySliceCard Border#MemoryTechnicalSeparator"><Setter Property="IsVisible" Value="False" /></Style>
