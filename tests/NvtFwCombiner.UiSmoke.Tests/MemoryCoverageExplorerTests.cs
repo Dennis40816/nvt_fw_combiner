@@ -136,6 +136,11 @@ public sealed class MemoryCoverageExplorerTests
                 Assert.True(left >= railLeft - 1 && left + card.Bounds.Width <= railLeft + bar.Bounds.Width + 1);
                 Capture(window, $"memory-ctrlram-{darkChinese}-{role}-leaf");
             }
+            // The first case covers both themes at every supported viewport after the existing hover checks.
+            if (!darkChinese)
+            {
+                await CtrlRamMemoryLayoutTests.AssertSupportedMemoryViewportsAsync(window, "nt51950-ctrlram");
+            }
         }
         finally { await CloseAndFlushAsync(window); }
     }

@@ -109,6 +109,7 @@ public sealed class CtrlRamMemoryLayoutTests
             Assert.Equal(["主 IC", "右從 IC", "左從 IC"], shell.Replace.CtrlRamFocusLanes.Select(lane => lane.Title));
             Capture(window, "nt51927-threechip-dark-zh.png");
             await AssertLaneEdgesAsync(window);
+            await AssertSupportedMemoryViewportsAsync(window, "nt51927-threechip");
             await shell.WorkflowSession.ClearSlotFileAsync(shell.Replace.ReplaceBaseSlot.SlotId, TestContext.Current.CancellationToken);
             Render();
             Assert.Empty(shell.Replace.CtrlRamOverview);
@@ -160,8 +161,68 @@ public sealed class CtrlRamMemoryLayoutTests
             Assert.Equal(34, rail.Bounds.Height);
             Assert.InRange(rail.Bounds.Width, 300, 430);
             Capture(window, "nt51928-standard-actual.png");
+            await AssertSupportedMemoryViewportsAsync(window, "nt51928-standard");
         }
         finally { await CloseAndFlushAsync(window); }
+    }
+
+    /// <summary>Characterizes supported full-window sizes without treating vertical scrolling as clipping.</summary>
+    internal static async Task AssertSupportedMemoryViewportsAsync(Window window, string scenario)
+    {
+        MainWindowViewModel shell = Assert.IsType<MainWindowViewModel>(window.DataContext);
+        double originalWidth = window.Width;
+        double originalHeight = window.Height;
+        ThemeVariant? originalTheme = window.RequestedThemeVariant;
+        string originalLanguage = shell.SelectedLanguage;
+        string ic = shell.WorkflowSession.SelectedIc;
+        string number = shell.WorkflowSession.SelectedNumber;
+        (long?, long?, MemoryContentRole, bool)[] ranges = Ranges();
+        try
+        {
+            foreach ((int width, int height) in new[] { (980, 640), (1180, 760), (1440, 900) })
+            {
+                foreach (bool darkChinese in new[] { false, true })
+                {
+                    window.Width = width;
+                    window.Height = height;
+                    window.RequestedThemeVariant = darkChinese ? ThemeVariant.Dark : ThemeVariant.Light;
+                    shell.SelectedLanguage = darkChinese ? "Traditional Chinese" : "English";
+                    Render();
+                    await Task.Delay(180, TestContext.Current.CancellationToken);
+                    Render();
+                    Assert.Equal(width, window.ClientSize.Width);
+                    Assert.Equal(height, window.ClientSize.Height);
+                    MemoryCoverageBar[] rails = [.. window.GetVisualDescendants().OfType<MemoryCoverageBar>()
+                        .Where(rail => rail.IsEffectivelyVisible)];
+                    Assert.NotEmpty(rails);
+                    foreach (MemoryCoverageBar rail in rails)
+                    {
+                        Point origin = rail.TranslatePoint(default, window)!.Value;
+                        Assert.True(rail.Bounds.Width > 0);
+                        Assert.InRange(origin.X, -1, window.ClientSize.Width - rail.Bounds.Width + 1);
+                        Assert.InRange(rail.Bounds.Height, 33.5, 34.5);
+                    }
+                    Assert.Equal(ic, shell.WorkflowSession.SelectedIc);
+                    Assert.Equal(number, shell.WorkflowSession.SelectedNumber);
+                    Assert.Equal(ranges, Ranges());
+                    Capture(window, $"{scenario}-{width}x{height}-{(darkChinese ? "dark-zh" : "light-en")}.png");
+                }
+            }
+        }
+        finally
+        {
+            window.Width = originalWidth;
+            window.Height = originalHeight;
+            window.RequestedThemeVariant = originalTheme;
+            shell.SelectedLanguage = originalLanguage;
+            Render();
+        }
+
+        (long?, long?, MemoryContentRole, bool)[] Ranges()
+        {
+            return [.. shell.Merge.MergeCoverageSegments.Concat(shell.Replace.ReplaceCoverageSegments)
+                .Select(segment => (segment.RangeStart, segment.RangeEndExclusive, segment.ContentRole, segment.IsSelectedForWrite))];
+        }
     }
 
     private static async Task AssertLaneEdgesAsync(Window window)

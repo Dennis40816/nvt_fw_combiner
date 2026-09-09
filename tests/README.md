@@ -195,6 +195,29 @@ theme name with Light/Dark fallback cannot close these gaps. Use an explicitly
 arranged native 125%/High Contrast test session for that acceptance; this
 assessment neither adds a theme nor waives the existing visual contract.
 
+## Memory Layout responsive checkpoint — 2026-09-09
+
+The real MainWindow fixture loaders now exercise NT51927 / 3 IC CtrlRAM,
+NT51950 CtrlRAM and NT51928 Standard Merge at 980x640, 1180x760 and 1440x900,
+each in English Light and Traditional Chinese Dark: **18 captured states**.
+The scoped filter `FullyQualifiedName~CtrlRamMemoryLayoutTests|FullyQualifiedName~ProductionCtrlRamWindowShowsReferenceAlignedLocalCard`
+passed **4/4 test cases**, zero skipped, in about **30 seconds** (test execution,
+not build time), against `ace0ad98` plus this test-only extension.
+
+Assertions cover actual client dimensions, positive rail widths, horizontal
+containment, the existing 34-pixel rail height, unchanged IC/count and typed
+range/role/write-selection data through every size and language change.
+Existing endpoint, partial-input, DP/TP/LDC and hover checks remain. The primary
+inspected all 18 full-window captures; vertical scrolling at smaller heights
+is expected, not rail clipping. NT51950's neutral overview remains the declared
+missing-context limitation, not a newly certified DP/TP binding.
+
+Evidence: `D:/NvtFwCombiner-TestArea/evidence/v114-memory-responsive-20260909/`,
+including `responsive.trx` and the scenario-size-language/theme PNGs. These are
+100% headless renders from actual fixture inputs, not native DPI/accessibility
+acceptance, fresh Golden output execution, or whole-release verification.
+No production layout or firmware behavior changed in this checkpoint.
+
 ## Current Home and Settings inventory — 2026-09-08
 
 `ShellScreenInventoryTests` renders the real MainWindow over isolated preference
