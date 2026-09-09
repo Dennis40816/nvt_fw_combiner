@@ -1425,6 +1425,49 @@ Reconcile the historical tracker records below against actual implementations
 and retained acceptance criteria. This is provenance/status reconciliation,
 not permission to auto-close issues or reopen immutable final records.
 
+### DP Replace retirement — owner decision, 2026-09-09
+
+The owner has decided to remove DP Replace. Allocate implementation to
+`1.1.6`, after the affected family/shared-fact dependencies are disentangled;
+this replaces the former undecided retirement-or-reopening item in `1.2.5`.
+The current task records the decision and impact assessment only: no runtime,
+profile, policy, test or Golden removal has been performed. Earlier
+"owner-unallocated" wording describes the preceding decision state, not a
+remaining choice to reopen the feature. The retained runtime contract remains
+in force until its explicit retirement migration is implemented and verified.
+
+Target: retire the DP Replace experience without changing the behavior or
+output bytes of Standard Merge, AB Merge (including Dummy DP), CtrlRAM Replace
+or the retained General workflows. This is an acceptance target, not an
+already-verified zero-impact claim. Removing DP Replace does not remove DP
+inputs, DP metadata/CMI, DP/TP map facts, or the common Replace operation model.
+
+Current impact and required migration boundary:
+
+| Surface | Assessment / retirement TODO |
+| --- | --- |
+| Ordinary UI and CLI authoring | All 14 DP Replace routes in the [shipped capability policy](../contracts/canonical-capability-policy-v1.json) are authoring-unavailable. The [CLI handler](../../src/NvtFwCombiner.Cli/ReplaceCliCommandHandler.cs) still recognizes the command and checks readiness before execution. Remove obsolete selectors, command/help and service wiring coherently; explicitly reject a retired command without falling through to another workflow. |
+| Shared DPCMI definition — direct dependency | The [trust index](../../profiles/built-in/package-trust-index.json) registers `nt51929-dp-replace` as the sole metadata provider for `nt51929-nt51932@1.3.0`. Standard families for 17/27, 23/26, 28, 19/29/32 and 50/51 reference its exact `dpcmi` identity/hash. The [metadata resolver](../../src/NvtFwCombiner.Infrastructure/Composition/BuiltInCanonicalMetadataDefinitionResolver.cs) requires that provider; deleting it would break those consumers and the Standard metadata plans used by CtrlRAM. Relocate the immutable definition through the existing provider mechanism before removing the bundle; preserve family id/version/content hash/structure id and never copy it into each consumer. |
+| Perfect family disclosure — direct dependency | The [NT51919/29/32 Perfect relationship](../../profiles/built-in/nt51929-dp-replace/families/nt51929-nt51932.json) currently comes from a DP Replace runtime family. [Global disclosure](../../src/NvtFwCombiner.Infrastructure/Composition/CanonicalCapabilityDisclosureInventory.cs) collects relationships from compiled runtime maps, not metadata-provider files. Preserve the owner's Perfect-family behavior, including badges and filename-only mismatch suppression, via a versioned canonical family/reference migration used by surviving routes. Moving the metadata file alone is insufficient. Do not create per-IC maps or silently drop the relationship. |
+| Shared execution and inspection | Preserve the [shared operation model and profile-owned access rules](../adr/0005-replace-personas-and-general-mapping.md). Remove only proven DP Replace-specific branches; keep reference initialization, range/CRC safety, metadata inspection and session behavior needed by the other workflows. |
+| Historical Report / History | Existing report [history labels](../../src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReportHistoryEntryViewModel.cs) read stored experience/mode identity. Retain read-only interpretation of old DP Replace records and their input/mutation details; do not erase user history or keep an executable workflow solely to display it. |
+| Tests, evidence and package catalogs | Separate obsolete DP Replace execution cases from shared-engine/family safety tests that currently use DP Replace fixtures. Preserve the latter coverage through a surviving workflow. Migrate trust indexes, publication/evidence policy and package manifests together, using existing synchronization tools for derived fingerprints. Preserve historical certification/provenance; no blanket test or Golden-directory deletion. |
+
+Implementation order: preserve shared facts and references first, remove the
+experience-specific runtime/authoring surfaces second, then reconcile active
+SPEC/ADR, support/help, policy and release-evidence applicability. In particular,
+replace the stale runtime wording that awaits a `1.1.0` retirement decision.
+
+Completion requires scoped catalog-load/family, selector/CLI, metadata/CMI,
+session and old-report regression checks, plus byte-equivalence evidence for
+affected surviving workflows. At release, execute **all applicable remaining
+owner-certified Golden output cases** against the actual candidate. Retiring a
+case requires the explicit feature-retirement/evidence decision; hiding the UI
+or editing this TODO never makes a required case optional. Verify package
+startup without removed registrations and disclose the intentional loss of the
+DP Replace command/capability separately from the no-regression target for
+surviving functionality.
+
 ## `1.1.7`: independent Golden evidence completion
 
 Supply independent expected output for the two retained input-only canonical
@@ -1495,16 +1538,17 @@ coding; do not rebuild already-complete execution infrastructure.
 Preserve profile-owned access, overlap, range, validation and integrity rules.
 Saved/custom rule persistence is a separate `1.2.6` outcome.
 
-## `1.2.5`: General Replace authoring and DP Replace decision
+## `1.2.5`: General Replace authoring
 
 Complete retained General Replace authoring through the same typed operation
 model, immutable required reference and canonical access/postbuild policies.
 UI/CLI cannot bypass TP, range, integrity or processor authority.
 
-Close the separately retained ordinary DP Replace retirement-or-reopening
-decision in this version. Neither choice is preselected: retirement requires
-its migration decision; reopening requires applicable capability and firmware
-evidence. Do not infer either action from the published `1.1.0` or this schedule.
+DP Replace is no longer an undecided item in this version: the owner decided
+to retire it on 2026-09-09 and allocated the
+[retirement and compatibility checks to `1.1.6`](#dp-replace-retirement--owner-decision-2026-09-09).
+General Replace continues to use the shared Replace engine; this does not
+implicitly reopen the retired DP Replace experience.
 
 ## `1.2.6`: saved and customized rule authoring
 

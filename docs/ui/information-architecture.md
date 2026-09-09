@@ -31,8 +31,15 @@ This document defines the owner-approved UI direction for the first usable NVT F
 | Home | Clean launcher | workflow groups for Replace, Merge, and Util Tools | Memory coverage, reports, mixed workflow controls, IC/Number context |
 | Settings | Configure folders, profile packs, strictness, theme, diagnostics access | compact settings groups, profile catalog status, log/report access | direct GitHub secret editing, firmware mutation logic |
 | Merge | Standard / AB Code merge entry point | mode selector exposing Standard and canonical authorable AB profiles, shared IC/profile context, slot cards, visual-first memory coverage preview, preview/build actions | Replace controls, hard-coded copy/offset rules |
-| Replace | CtrlRAM / General replace entry point; DP Replace retained but hidden by canonical policy through the initial `1.0.0` | shared IC/IC Count context, persona selector, base/reference slot cards, overlay slot cards, visual-first memory coverage preview, preview/build actions | Merge controls, region authorization logic in UI; reopening DP Replace without a separately allocated owner decision; published `v1.1.0` made no retirement-or-reopening decision and the outcome remains owner-unallocated |
+| Replace | CtrlRAM / General replace entry point; DP Replace retained but hidden by canonical policy through the initial `1.0.0` | shared IC/IC Count context, persona selector, base/reference slot cards, overlay slot cards, visual-first memory coverage preview, preview/build actions | Merge controls, region authorization logic in UI; reopening DP Replace contrary to the owner's retirement decision (implementation allocation below) |
 | Hex Editor | Raw BIN utility | source BIN, compact bounded 16-byte viewport with full-document scrollbar, in-memory edits, original rows, undo/redo, confirmed Save As | IC/Number context, Flash Map, profile restrictions, CRC/postbuild, General Replace, firmware report |
+
+2026-09-09 planning update: the owner decided to retire DP Replace;
+implementation is allocated to
+[`1.1.6`](../architecture/nfc_roadmap.md#dp-replace-retirement--owner-decision-2026-09-09).
+This supersedes the earlier unallocated decision, not the current retained
+implementation. Shared metadata/family migration and compatibility checks must
+precede runtime removal; the linked roadmap owns that TODO.
 
 ## Production shell constraints
 
