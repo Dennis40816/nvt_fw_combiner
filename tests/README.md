@@ -573,6 +573,15 @@ The primary inspected the full 1180x1040 Light/English Normal capture
 Terra/high found no P0–P3 issues against production/test blobs `5b5e1bee`,
 `9ac286af`, `86c85c2a`. No firmware, release or native DPI pass is claimed.
 
+The next owner-requested adjustment extends the contrasting stem from at most
+10 to 18 px, retaining label avoidance and the 4 px card gap. Evidence under
+`D:/NvtFwCombiner-TestArea/evidence/v114-memory-stem71/` records four expected
+10 px failures in `red.trx`, then **18/18 passed, zero skipped, 33 s** in
+`green.trx` (stem, edge-clearance, compact-gap, real NT51927 MP/Normal and AB
+memory tests). The primary inspected the same full-window Normal capture;
+GPT-5.6 Terra/high scoped Polytail found no P0–P3 issues against blobs
+`c74f0bdf` / `d091c174`. Geometry and firmware boundaries above still apply.
+
 ## Running and maintaining this view
 
 Use [`CONTRIBUTING.md`](../CONTRIBUTING.md) to initialize the existing fixed

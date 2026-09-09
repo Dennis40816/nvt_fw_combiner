@@ -567,8 +567,8 @@ public sealed class MemoryCoverageBar : UserControl
         // stem behind those glyph bounds; its endpoint still identifies the exact slice.
         // Keep only a short high-contrast marker next to the selected leaf.
         // The wider local-view projection continues to use the quiet connector brush.
-        double cursor = Math.Max(Math.Min(tip, terminal), terminal - 10);
-        double limit = Math.Min(Math.Max(tip, terminal), terminal + 10);
+        double cursor = Math.Max(Math.Min(tip, terminal), terminal - 18);
+        double limit = Math.Min(Math.Max(tip, terminal), terminal + 18);
         foreach (Rect label in labels.Where(rect => anchor >= rect.Left - 2 && anchor <= rect.Right + 2).OrderBy(static rect => rect.Top))
         {
             double start = Math.Clamp(label.Top - 2, cursor, limit);

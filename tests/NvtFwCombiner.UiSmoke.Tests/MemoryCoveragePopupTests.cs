@@ -570,17 +570,17 @@ public sealed class MemoryCoveragePopupTests
                 Assert.Equal(expectedStroke, stem.Stroke);
                 Assert.Equal(stem.StartPoint.X, stem.EndPoint.X);
                 double length = Math.Abs(stem.EndPoint.Y - stem.StartPoint.Y);
-                Assert.InRange(length, 0.1, 10);
+                Assert.InRange(length, 0.1, 18);
                 totalLength += length;
                 foreach (Point end in new[] { stem.StartPoint, stem.EndPoint })
                 {
                     Point rendered = stem.TranslatePoint(end, window)!.Value;
                     Point anchor = BoundsInWindow(dot, window).Center;
                     Assert.InRange(Math.Abs(rendered.X - anchor.X), 0, 1);
-                    Assert.InRange(Math.Abs(rendered.Y - anchor.Y), 0, 10);
+                    Assert.InRange(Math.Abs(rendered.Y - anchor.Y), 0, 18);
                 }
             }
-            Assert.InRange(totalLength, 0.1, 10);
+            Assert.InRange(totalLength, 17.5, 18.5);
         }
         finally { window.Close(); }
     }
