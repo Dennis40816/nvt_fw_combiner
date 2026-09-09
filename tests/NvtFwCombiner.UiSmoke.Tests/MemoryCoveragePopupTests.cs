@@ -304,6 +304,31 @@ public sealed class MemoryCoveragePopupTests
         finally { window.Close(); }
     }
 
+    /// <summary>Local cards stay close to their view without covering its address labels or header.</summary>
+    [AvaloniaTheory]
+    [InlineData(false, false)]
+    [InlineData(false, true)]
+    [InlineData(true, false)]
+    [InlineData(true, true)]
+    public void LocalCardKeepsACompactGapOutsideTheLocalView(bool above, bool dark)
+    {
+        MemoryCoverageSegmentViewModel[] slices = MemoryCoverageBarProjectionTests.Example();
+        Window window = above ? CreateBottomWindow(dark, slices, out MemoryCoverageBar bar) : CreateWindow(388, dark, slices, out bar);
+        bar.ReducedMotion = true;
+        try
+        {
+            OpenGroupedCard(window, bar);
+            Rect local = BoundsInWindow(Assert.IsType<Border>(FindNamed<Border>(window, "MemoryLocalView")), window);
+            Rect card = BoundsInWindow(Assert.IsType<Border>(FindNamed<Border>(window, "MemorySliceCard")), window);
+            double gap = above ? local.Top - card.Bottom : card.Top - local.Bottom;
+            Assert.InRange(gap, 3.5, 5.5);
+            Assert.False(card.Intersects(local));
+            Assert.InRange(card.Top, 0, window.Bounds.Height - card.Height);
+            Capture(window, $"compact-gap-{above}-{dark}");
+        }
+        finally { window.Close(); }
+    }
+
     /// <summary>Moving from a main slice into its card keeps it open, while leaving both surfaces dismisses it after the bounded delay.</summary>
     [AvaloniaFact]
     public async Task PointerTraversalBetweenMainSliceAndCardKeepsThenDismissesTheCard()

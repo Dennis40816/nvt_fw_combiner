@@ -104,8 +104,10 @@ public sealed class CtrlRamMemoryLayoutTests
     }
 
     /// <summary>CtrlRAM endpoint details stay hidden until their own position is explored.</summary>
-    [AvaloniaFact]
-    public async Task LoadedCtrlRamWindowStartsWithOnlyTheOverview()
+    [AvaloniaTheory]
+    [InlineData(CtrlRamRegionRole.Mp)]
+    [InlineData(CtrlRamRegionRole.Normal)]
+    public async Task LoadedCtrlRamWindowStartsWithOnlyTheOverview(CtrlRamRegionRole role)
     {
         using var workspace = TempWorkspace.Create("ctrlram-layout-collapsed");
         PresentationHostServices services = await CreateServicesAsync(workspace, useRetainedDpReplacePolicy: false);
@@ -134,13 +136,13 @@ public sealed class CtrlRamMemoryLayoutTests
             Assert.DoesNotContain(window.GetVisualDescendants().OfType<Border>(), control => control.Name == "MemorySliceCard");
             Capture(window, "nt51927-hover60-master.png");
             Control leaf = LocalCells(window).Single(control => control.DataContext is MemoryCoverageSegmentViewModel
-            { CtrlRamRegionRole: CtrlRamRegionRole.Mp });
+            segment && segment.CtrlRamRegionRole == role);
             window.MouseMove(Center(leaf, window), RawInputModifiers.None);
             await SettleAsync();
             Border card = Assert.Single(window.GetVisualDescendants().OfType<Border>(), control => control.Name == "MemorySliceCard");
             Assert.Same(leaf.DataContext, card.DataContext);
             AssertLiftIsNotClipped(leaf);
-            Capture(window, "nt51927-hover60-master-mp.png");
+            Capture(window, role == CtrlRamRegionRole.Mp ? "nt51927-hover60-master-mp.png" : "nt51927-master-normal-compact-gap.png");
             window.MouseMove(Center(card, window), RawInputModifiers.None);
             await SettleAsync(400);
             Assert.Same(card, Assert.Single(window.GetVisualDescendants().OfType<Border>(), control => control.Name == "MemorySliceCard"));

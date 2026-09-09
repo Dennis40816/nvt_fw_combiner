@@ -552,6 +552,27 @@ Master local strip and MP leaf card. The earlier `green/` captures also cover
 NT51950 local cards and loaded AB windows. These scoped checks do not certify
 native DPI/accessibility, firmware Golden outputs, integration or release.
 
+## Compact local-card spacing — 2026-09-10
+
+Owner reference: `C:/Users/liusx/AppData/Local/Temp/codex-clipboard-5f61e320-f77d-4e40-b612-67043d699cfd.png`
+(cropped Light/English NT51927 Master/Normal state). The shared local card's
+extra outer gap is 4 px instead of 12 px; the header, address row, direct main
+cards, lift and 320 ms transit grace stay unchanged.
+
+Evidence: `D:/NvtFwCombiner-TestArea/evidence/v114-memory-card-gap70/`.
+`red.trx` records four expected measured-gap failures (12 px);
+`green.trx` passes **53/53, zero skipped, 41 s**, filtered to
+`MemoryCoveragePopupTests|LoadedCtrlRamWindowStartsWithOnlyTheOverview`
+(each prefixed with `FullyQualifiedName~`). It covers upward/downward spacing
+in both themes, containment, label/anchor clearance and existing hover/focus
+behavior; the real NT51927 case now exercises both MP and Normal.
+The primary inspected the full 1180x1040 Light/English Normal capture
+`green/nt51927-master-normal-compact-gap.png` against the reference's same
+388 px local view, plus the upward Dark/Chinese render. The Normal card is
+8 px closer without covering the address row. Scoped Polytail by GPT-5.6
+Terra/high found no P0–P3 issues against production/test blobs `5b5e1bee`,
+`9ac286af`, `86c85c2a`. No firmware, release or native DPI pass is claimed.
+
 ## Running and maintaining this view
 
 Use [`CONTRIBUTING.md`](../CONTRIBUTING.md) to initialize the existing fixed

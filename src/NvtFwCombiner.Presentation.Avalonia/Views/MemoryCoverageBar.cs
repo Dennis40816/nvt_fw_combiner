@@ -512,7 +512,7 @@ public sealed class MemoryCoverageBar : UserControl
         // Keep the approved header above the strip, with the card above that header.
         Point localOrigin = _local.TranslatePoint(default, top) ?? default;
         double connectorHeight = preferredAbove.HasValue
-            ? Math.Max(20, (above ? origin.Y - localOrigin.Y : localOrigin.Y + _local.Bounds.Height - origin.Y - target.Bounds.Height) + 12)
+            ? Math.Max(20, (above ? origin.Y - localOrigin.Y : localOrigin.Y + _local.Bounds.Height - origin.Y - target.Bounds.Height) + 4)
             : ShowLabels ? 8 : 20;
         double available = (above ? origin.Y : below) - connectorHeight - 8;
         _card.MaxHeight = Math.Max(64, available);
