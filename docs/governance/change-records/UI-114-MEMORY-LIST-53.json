@@ -5,7 +5,7 @@
   "integrationBase": "02da6a3ae26a124efe6014dcea8800532f922ed9",
   "risk": "R1",
   "kind": "ui",
-  "state": "design-active",
+  "state": "final-complete",
   "mutablePaths": [
     "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MemoryCoverageListViewModel.cs",
     "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MergePresentationViewModel.cs",
@@ -24,8 +24,8 @@
   "terminalContract": "Default supporting lists show at most three primary rows, mapped content before typed Unmapped with address order inside each category. Expansion shows every primary row by address, unknown addresses last. Preserve existing card templates/styles, projected row identity and noncontiguous grouping, exact bar geometry/data, CtrlRAM endpoint lanes, diagnostics, all compiler/profile/output behavior. Native secondary command is keyboard accessible with localized labels and retains focus across toggles. New source publication resets disclosure; do not persist it or change session lifetime. This independent UI unit does not add missing IC classification metadata or settle DP-container geometry. Narrow real-window, pure-list and existing shared memory regressions only; full integration/release remains separate.",
   "disposition": "extend-owner",
   "designReview": {"reviewer": null, "outcome": "not-required", "evidence": "Owner explicitly requested three-row collapsed limits, Unmapped last when collapsed, and address order when expanded. R1 Presentation-only correction; existing shared row and card owners retained."},
-  "implementationHead": null,
-  "reviewedHead": null,
-  "pathStateDigest": null,
-  "finalReview": {"reviewer": null, "outcome": "pending", "evidence": ""}
+  "implementationHead": "9c1b175757f1352bb08fd5939ea9960aacd5d8b7",
+  "reviewedHead": "9c1b175757f1352bb08fd5939ea9960aacd5d8b7",
+  "pathStateDigest": "d5a2f3352776a0d6d72634b3493fee59d623284f4d92cab4f03cf937ea4acb51",
+  "finalReview": {"reviewer": "ctrlram_readability (GPT-5.6 Terra, high; read-only)", "outcome": "findings-incorporated", "evidence": "Independent fixed-head review at9c1b175757f1352bb08fd5939ea9960aacd5d8b7 closes the sole prior finding; P0/P1/P2/P3 zero. Existing row references, mapped-before-Unmapped collapsed limit, expanded address ordering, primary filtering, separate plain/rich mounts, native Button focus and unchanged rail/endpoint owners verified. Source publication resets disclosure; all relocalization paths preserve it. The correction concerns CtrlRAM's hidden auxiliary list, not visible endpoint-lane collapse. Evidence D:/NvtFwCombiner-TestArea/evidence/v114-memory-list53: list-red.trx2 intended failures(actual5 vs3), list-green.trx2 passed, list-regression.trx23/23zero skipped29s; shell-wiring.trx1/1; capture-path.trx2/2 after redirecting shared captures to this batch. ctrlram-language-red.trx1 failure reproduces auxiliary-state reset; language-final.trx11/11zero skipped25s on final production covers actual Standard/DP Replace NT51928 EN/zh Light/Dark, keyboard focus/toggle, language/source lifecycle and NT51927 3IC CtrlRAM. Prior unrelated scoped results are retained evidence, not rerun claims. Initial test API/analyzer corrections preceded meaningful red evidence. Primary inspected complete actual control renders; no native DPI/High Contrast/screen-reader, firmware output Golden, full suite, support or release claim. Path digest uses the canonical helper on committed Git state; finalization preserves admitted design fields."}
 }
