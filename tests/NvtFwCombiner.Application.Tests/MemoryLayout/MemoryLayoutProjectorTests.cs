@@ -260,7 +260,7 @@ public sealed partial class MemoryLayoutProjectorTests
         Assert.Equal(ReplaceRegionGroup.SlaveRight, segment.RegionGroup);
         Assert.Equal(CtrlRamRegionRole.Vn, segment.CtrlRamRegionRole);
 
-        _ = Assert.Throws<ArgumentException>(() =>
+        _ = Assert.Throws<MemoryLayoutDisplayProjectionException>(() =>
         {
             _ = MemoryLayoutProjector.Project(
                 fixture.Capability,
@@ -268,7 +268,7 @@ public sealed partial class MemoryLayoutProjectorTests
                 fixture.Composition,
                 [display, display with { RegionId = "duplicate-display-id" }]);
         });
-        _ = Assert.Throws<ArgumentException>(() =>
+        _ = Assert.Throws<MemoryLayoutDisplayProjectionException>(() =>
         {
             _ = MemoryLayoutProjector.Project(
                 fixture.Capability,

@@ -243,7 +243,7 @@ public static partial class MemoryLayoutProjector
             if (matches.Length != 1 ||
                 !ctrlRamByRegionId.TryAdd(matches[0].RegionId, projected))
             {
-                throw new ArgumentException(
+                throw new MemoryLayoutDisplayProjectionException(
                     "CtrlRAM display regions must resolve one-to-one to exact canonical map ranges.",
                     nameof(ctrlRamRegions));
             }

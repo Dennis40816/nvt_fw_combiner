@@ -1,0 +1,33 @@
+{
+  "schemaVersion": 2,
+  "taskId": "UI-114-CTRLRAM-PREVIEW-57",
+  "capability": "Isolate typed CtrlRAM display-binding errors from canonical input health and Build admission",
+  "integrationBase": "d90e2a8b13bdaefbff5ca6e9b346cb3eb497dbb9",
+  "risk": "R2",
+  "kind": "ui",
+  "state": "design-active",
+  "mutablePaths": [
+    "src/NvtFwCombiner.Application/MemoryLayout/MemoryLayoutDisplayProjectionException.cs",
+    "src/NvtFwCombiner.Application/MemoryLayout/MemoryLayoutProjector.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReplacePresentationViewModel.Memory.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ShellTextResources.MemoryLayout.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/Resources/MainWindowWorkflowTemplates.axaml"
+  ],
+  "implementationOwner": "primary-agent",
+  "searchEvidence": [
+    "MemoryLayoutProjector.SelectPrimaryRegions exact CtrlRAM display-binding guard currently throws plain ArgumentException. Other ValidateIdentity/capacity/map/session guards have distinct safety roles and remain fail-closed. UiCompositionRunner.GetMemoryDisplay is shared by Merge/Replace/General and must not gain a broad fallback.",
+    "ReplacePresentationViewModel.ApplyCtrlRamMemoryDisplay is the narrow existing CtrlRAM preview boundary. PrepareCtrlRamInspectionDisplay prepares slots before it; WorkflowSession.RunFirmwareInspectionAsync publishes canonical input health/readiness after it. Escaping display exceptions currently make that lifecycle Failed and mark Base Blocking. Fault injection changing only typed display Regions reproduces this in D:/NvtFwCombiner-TestArea/evidence/v114-ctrlram-preview57/red.trx. BuildAvailability and CanBuildReplace already consume the accepted Application session/action readiness, not preview geometry. Existing ApplyReplaceMemoryDisplay owns derived rows/coverage/details/groups/lanes/overview; warningSurface and ShellTextResources own accessible localized display feedback."
+  ],
+  "semanticOwner": "Application.MemoryLayoutProjector owns typed display-binding failure classification; ReplacePresentationViewModel owns only the derived preview state. Existing authoring/inspection/compiler owners retain all input and Build admission authority.",
+  "terminalContract": "Owner explicitly approved that display errors must not block Build. Introduce a dedicated ArgumentException subtype only for exact CtrlRAM display binding, preserving guard message/parameter and all other exception types. Catch only that type around GetMemoryDisplay in ApplyCtrlRamMemoryDisplay. Clear derived preview only; preserve CtrlRamRegions, slots, stamps, accepted session and readiness. Show existing localized warning surface; no input Error badge from this display failure. Success/Base clear/non-CtrlRAM mode clear the warning. Real input/identity/capacity/authoring failures remain fail-closed. No catch around inspection, ResolveCtrlRamDisplay, session acceptance or action readiness; no global runner fallback. Tests cover actual951 with display-only fault, unchanged valid Build, invalid Base remains blocked, recovery/stale clearing, mode reset, English/zh and Light/Dark actual MainWindow. Existing normal layout reference retained. No firmware bytes/profiles/Golden expectations, TP/DP label changes, publication or full-release claim.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "ctrlram_readability (GPT-5.6 Terra, high; read-only)",
+    "outcome": "approved",
+    "evidence": "Independent Unit57 R2 design admission PASS for the five declared production paths. Keep dedicated throw at exact display-binding guard and narrowly scoped catch; clear only derived preview. Explicitly preserve CtrlRamRegions and all authoring/input state; clear warning on success/Baseclear/modeexit. Preserve all non-display exception types and propagation. Use existing warningSurface plus EN/zh text and actual UI failure/recovery assertions. No shared runner or execution expansion required."
+  },
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": {"reviewer": null, "outcome": "pending", "evidence": ""}
+}

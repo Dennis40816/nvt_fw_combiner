@@ -78,6 +78,11 @@ public sealed class CtrlRamCascadeMemoryLayoutTests
             {
                 await shell.WorkflowSession.SetSlotFileAsync(slot, path, TestContext.Current.CancellationToken);
             }
+            if (shell.WorkflowSession.IsFirmwareIcMismatchModalOpen)
+            {
+                Assert.Equal("NT51950", ic);
+                shell.WorkflowSession.DismissFirmwareIcMismatchCommand.Execute(null);
+            }
         }
     }
 

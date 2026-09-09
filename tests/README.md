@@ -268,6 +268,35 @@ NT51950 Cascade uses the declared NT51951 TP-work geometry alias, not a950
 full-Flash Golden claim. Single950 and three-chip927 UI are regression controls.
 These are scoped headless/byte-case results, not a release-wide Golden pass.
 
+## CtrlRAM preview failure isolation — 2026-09-09
+
+`UI-114-CTRLRAM-PREVIEW-57` makes only the typed exact CtrlRAM display-binding
+failure non-blocking. Input validation, identity, capacity, compilation and
+execution checks retain their existing authority.
+
+| Scoped run | Result | Measured test duration |
+| --- | --- | --- |
+| Application `MemoryLayoutProjector*` | 31/31, zero skipped; typed display failure and unchanged identity guards | 0.38 s |
+| Architecture `ProjectDependencyTests` | 10/10, zero skipped | 1 s |
+| UI `CtrlRamMemoryDisplayFailureTests` + `CtrlRamCascadeMemoryLayoutTests` | 4/4, zero skipped | 18 s |
+
+Evidence: `D:/NvtFwCombiner-TestArea/evidence/v114-ctrlram-preview57/`.
+`red.trx` reproduces inspection failure from display-only fault injection.
+`ui-green-complete.trx` covers valid Build with missing preview, localized
+visible warning, stale clearing, reinspection recovery, Base clearing, and
+invalid Base still blocking Build. Fault injection changes only typed display
+Regions, not inspection health, stamps, accepted catalogs, or firmware bytes.
+Light uses shipped policy; Dark uses the existing test-only retained DP policy
+for mode-exit cleanup because shipped951 has no alternate Replace mode.
+
+Actual headless MainWindow captures cover Light/Dark and EN/zh. Normal951
+Cascade PNG is byte-identical to Unit56 (SHA-256
+`de017837d1de7daf81e9f25047b818b67945e21bb53b921a7b2dd048ac45eb3c`).
+The950 capture now dismisses each expected fixture-alias hint via Keep-current-IC.
+Intermediate `green.trx` and `green-final.trx` preserve harness failures (reused
+startup in a loaded window; requested unavailable General mode), not passing
+evidence. No UI Build output, native acceptance, full suite or all-Golden claim.
+
 ## Current Home and Settings inventory — 2026-09-08
 
 `ShellScreenInventoryTests` renders the real MainWindow over isolated preference

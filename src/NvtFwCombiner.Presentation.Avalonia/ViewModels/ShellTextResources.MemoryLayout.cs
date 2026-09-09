@@ -16,6 +16,11 @@ internal enum MemoryPendingPrerequisite
 
 internal sealed partial class ShellTextResources
 {
+    public string MemoryLayoutUnavailableTitle => SelectLanguage("Memory layout unavailable", "無法顯示 Memory Layout");
+    public string MemoryLayoutUnavailableDetail => SelectLanguage(
+        "Preview display error. This does not block Build; input validation still applies.",
+        "預覽顯示發生錯誤。此錯誤不會阻擋 Build；輸入檔案仍須通過驗證。");
+
     public string MemoryShowFewerRegionsLabel => SelectLanguage("Show fewer regions", "收合區域列表");
     public string FormatMemoryShowAllRegions(int count)
     {

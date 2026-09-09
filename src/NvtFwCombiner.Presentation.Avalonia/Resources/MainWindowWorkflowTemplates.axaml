@@ -276,7 +276,20 @@
 <DataTemplate x:Key="ReplaceOutputLayoutPanelTemplate" DataType="vm:ReplacePresentationViewModel">
   <Border Classes="panelSurface memoryInfoPanel">
     <views:SpaciousPanel>
-      <StackPanel Spacing="{DynamicResource NfcSpace16}">
+      <Grid>
+      <StackPanel IsVisible="{Binding HasMemoryLayoutDisplayError}" Spacing="{DynamicResource NfcSpace16}">
+        <TextBlock Classes="sectionTitle" Text="{Binding Text.OutputLayoutTitle}" />
+        <Border x:Name="ReplaceMemoryDisplayWarning" Classes="warningSurface" Padding="12"
+            AutomationProperties.LiveSetting="Polite" AutomationProperties.Name="{Binding Text.MemoryLayoutUnavailableTitle}">
+          <StackPanel Spacing="6">
+            <TextBlock Classes="bodyEmphasisText" Foreground="{DynamicResource NfcWarningTextBrush}"
+                Text="{Binding Text.MemoryLayoutUnavailableTitle}" TextWrapping="Wrap" />
+            <TextBlock Classes="supportingText" Foreground="{DynamicResource NfcWarningTextBrush}"
+                Text="{Binding Text.MemoryLayoutUnavailableDetail}" TextWrapping="Wrap" />
+          </StackPanel>
+        </Border>
+      </StackPanel>
+      <StackPanel IsVisible="{Binding !HasMemoryLayoutDisplayError}" Spacing="{DynamicResource NfcSpace16}">
       <StackPanel Spacing="{DynamicResource NfcSpace8}">
         <StackPanel Spacing="3">
           <TextBlock Classes="sectionTitle" Text="{Binding Text.OutputLayoutTitle}" />
@@ -429,6 +442,7 @@
         <ItemsControl ItemTemplate="{StaticResource ReplaceMemoryMapRowTemplate}" ItemsSource="{Binding ReplaceMemoryRows}" />
       </StackPanel>
       </StackPanel>
+      </Grid>
     </views:SpaciousPanel>
   </Border>
 </DataTemplate>
