@@ -1414,6 +1414,17 @@ differences, or treat a filename/common container as family proof. The current
 audit is read-only; any production migration retains its affected authority
 and byte-evidence gates.
 
+The owner's follow-up records DP CMI as DP-artifact metadata owned by canonical
+IC/family profile data, not DP Replace. The
+[IC/profile and state ownership inventory](../ui/v1.1.x-custom-options-layout-handoff.md#ic-profile-and-state-ownership-inventory--2026-09-09)
+distinguishes immutable definitions, map/artifact bindings, decoded input
+snapshots, accepted workflow/run state and presentation-only drafts. Perfect
+and Partial relationships stay with the canonical family; support/evidence
+remain independently declared. Use that inventory to prioritize the proven
+DP-provider/family dependencies and assess Standard-rooted IC discovery and
+Report-bound memory context. Do not rewrite correctly owned UI drafts, add a
+global state framework, or treat this inventory as a reproduced runtime bug.
+
 Combine the related dead-code/minimality review with the deferred analyzer
 cleanup. Re-measure the recorded baseline before editing: 169 style diagnostics
 (`IDE0007` 142, `IDE0002` 10, `IDE0001` 7, `JSON002` 5, `IDE0008` 4,
@@ -1441,6 +1452,12 @@ output bytes of Standard Merge, AB Merge (including Dummy DP), CtrlRAM Replace
 or the retained General workflows. This is an acceptance target, not an
 already-verified zero-impact claim. Removing DP Replace does not remove DP
 inputs, DP metadata/CMI, DP/TP map facts, or the common Replace operation model.
+
+The follow-up ownership decision above is a retirement prerequisite: shared
+metadata/family facts must survive independently of the DP Replace experience.
+Moving them under another workflow without preserving that ownership is not
+completion. Existing exact-reference and package-admission checks remain in
+force until the migration is implemented.
 
 Current impact and required migration boundary:
 
