@@ -100,7 +100,11 @@ public sealed class CtrlRamMemoryLayoutTests
             Assert.DoesNotContain(window.GetVisualDescendants().OfType<Border>(), control => control.Name == "MemorySliceCard");
             await AssertLaneEdgesAsync(window);
             window.RequestedThemeVariant = ThemeVariant.Dark;
+            // CtrlRAM uses focus lanes, but its retained auxiliary list follows the same relocalization contract.
+            Assert.True(shell.Replace.CoverageDetails.HasMoreRows);
+            shell.Replace.CoverageDetails.IsExpanded = true;
             shell.SelectedLanguage = "Traditional Chinese";
+            Assert.True(shell.Replace.CoverageDetails.IsExpanded);
             Render();
             Assert.Equal(["主 IC", "右從 IC", "左從 IC"], shell.Replace.CtrlRamFocusLanes.Select(lane => lane.Title));
             Capture(window, "nt51927-threechip-dark-zh.png");

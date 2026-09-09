@@ -166,7 +166,7 @@ internal sealed partial class ReplacePresentationViewModel
         ApplyCtrlRamMemoryDisplay(display);
     }
 
-    private void ApplyCtrlRamMemoryDisplay(CtrlRamInspectionDisplay display)
+    private void ApplyCtrlRamMemoryDisplay(CtrlRamInspectionDisplay display, bool resetCoverageExpansion = true)
     {
         ActiveSessionSnapshot? acceptedSession =
             _ctrlRamReplaceSession.CurrentSnapshot;
@@ -186,7 +186,7 @@ internal sealed partial class ReplacePresentationViewModel
                     Text,
                     out overview,
                     ctrlRamRegions: display.Regions);
-        ApplyReplaceMemoryDisplay(rangeLabel, rows, coverageSegments, overview);
+        ApplyReplaceMemoryDisplay(rangeLabel, rows, coverageSegments, overview, resetCoverageExpansion);
     }
 
     private void RelocalizeReplaceMemoryMapState()
@@ -198,7 +198,7 @@ internal sealed partial class ReplacePresentationViewModel
                 _firmwareInspection,
                 inspection,
                 SelectedIc,
-                SelectedNumber));
+                SelectedNumber), resetCoverageExpansion: false);
             return;
         }
 
