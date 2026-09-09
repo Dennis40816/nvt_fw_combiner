@@ -20,7 +20,7 @@ namespace NvtFwCombiner.UiSmoke.Tests;
 /// <summary>The real input-loaded window keeps parent firmware and physical CtrlRAM positions readable.</summary>
 public sealed class CtrlRamMemoryLayoutTests
 {
-    /// <summary>Shared CtrlRAM inputs retain their size and all destination addresses after a BIN is selected.</summary>
+    /// <summary>Real Shared NF/VN cards retain complete guidance after selection, clearing, reselection and language changes.</summary>
     [AvaloniaTheory]
     [InlineData(false)]
     [InlineData(true)]
@@ -37,45 +37,70 @@ public sealed class CtrlRamMemoryLayoutTests
             await AwaitHistoryReadyAsync(window);
             MainWindowViewModel shell = Assert.IsType<MainWindowViewModel>(window.DataContext);
             await MainWindow.ApplyCtrlRamLaunchAsync(shell, ThreeChipArguments().CtrlRam!, TestContext.Current.CancellationToken);
-            if (darkChinese)
-            {
-                window.RequestedThemeVariant = ThemeVariant.Dark;
-                shell.SelectedLanguage = "Traditional Chinese";
-            }
+            window.RequestedThemeVariant = darkChinese ? ThemeVariant.Dark : ThemeVariant.Light;
             Render();
-            Capture(window, $"nt51927-shared-guidance-{darkChinese}.png");
-            FirmwareSlotViewModel[] shared = [.. shell.Replace.ReplaceSlots.Where(slot =>
-                slot.HasFile && slot.CtrlRamDescriptionFacts is { IsShared: true })];
+            string[] shared = [.. shell.Replace.ReplaceSlots.Where(slot =>
+                slot.HasFile && slot.CtrlRamDescriptionFacts is { IsShared: true }).Select(static slot => slot.SlotId)];
             Assert.Equal(2, shared.Length);
-            foreach (FirmwareSlotViewModel slot in shared)
+            foreach (string slotId in shared)
             {
-                FirmwareSlotCard card = Assert.Single(window.GetVisualDescendants().OfType<FirmwareSlotCard>(),
-                    control => ReferenceEquals(control.DataContext, slot));
-                card.BringIntoView();
-                Render();
-                Capture(window, $"nt51927-shared-{slot.SlotId}-{darkChinese}.png");
-                string[] text = VisibleText(card);
-                Assert.Contains(darkChinese ? "大小上限" : "Max Size", text);
-                Assert.Contains(darkChinese ? "目標位址" : "Target Addr", text);
-                if (slot.CtrlRamDescriptionFacts!.TitleStem == "NF CtrlRAM")
+                FirmwareSlotViewModel currentSlot = Assert.Single(shell.Replace.ReplaceSlots, candidate => candidate.SlotId == slotId);
+                string path = Assert.IsType<string>(currentSlot.FilePath);
+                for (int step = 0; step < 3; step++)
                 {
-                    // Independently recorded packed NF input size in this Golden's provenance/case.json.
-                    Assert.Contains("12,112\u00a0B", text);
-                    Assert.Contains(text, value => value == (darkChinese
-                        ? "主 IC: 0x16800\n右從 IC: 0x1F800\n左從 IC: 0x28800"
-                        : "Master: 0x16800\nSlave R: 0x1F800\nSlave L: 0x28800"));
-                    Assert.DoesNotContain(text, value => value.Contains("16\u00a0B", StringComparison.Ordinal));
-                    Assert.Equal(5, slot.CtrlRamDescriptionFacts.Sections.Count);
+                    if (step == 1)
+                    {
+                        await shell.WorkflowSession.ClearSlotFileAsync(slotId, TestContext.Current.CancellationToken);
+                    }
+                    else if (step == 2)
+                    {
+                        await shell.WorkflowSession.SetSlotFileAsync(slotId, path, TestContext.Current.CancellationToken);
+                    }
+                    // Refresh can replace ViewModels and controls: assert against the current rendered card.
+                    foreach (bool chinese in new[] { false, true })
+                    {
+                        shell.SelectedLanguage = chinese ? "Traditional Chinese" : "English";
+                        Render();
+                        FirmwareSlotViewModel slot = Assert.Single(shell.Replace.ReplaceSlots, candidate => candidate.SlotId == slotId);
+                        Assert.Equal(step != 1, slot.HasFile);
+                        Assert.Equal(step == 1, slot.IsGuidanceVisible);
+                        FirmwareSlotCard card = Assert.Single(window.GetVisualDescendants().OfType<FirmwareSlotCard>(),
+                            control => ReferenceEquals(control.DataContext, slot));
+                        card.BringIntoView();
+                        Render();
+                        AssertSharedCtrlRamGuidance(card, slot, chinese);
+                    }
                 }
-                else { Assert.Contains("5,728\u00a0B", text); }
-                Assert.Equal(3, slot.CtrlRamDescriptionFacts.InputGuidanceTargets.Count);
-                foreach (CtrlRamInputGuidanceTarget target in slot.CtrlRamDescriptionFacts.InputGuidanceTargets)
-                {
-                    Assert.Contains(text, value => value.Contains(FormattableString.Invariant($"0x{target.TargetStart:X}"), StringComparison.Ordinal));
-                }
+                Capture(window, $"nt51927-shared-{slotId}-{darkChinese}.png");
             }
         }
         finally { await CloseAndFlushAsync(window); }
+    }
+
+    private static void AssertSharedCtrlRamGuidance(FirmwareSlotCard card, FirmwareSlotViewModel slot, bool chinese)
+    {
+        // Independent expectations from this Golden's provenance and approved three-chip target map.
+        bool nf = slot.SlotId == "replace-ctrlram-nf";
+        Assert.True(nf || slot.SlotId == "replace-ctrlram-vn");
+        string targets = nf
+            ? chinese ? "主 IC: 0x16800\n右從 IC: 0x1F800\n左從 IC: 0x28800" : "Master: 0x16800\nSlave R: 0x1F800\nSlave L: 0x28800"
+            : chinese ? "主 IC: 0x1CBD0\n右從 IC: 0x25BD0\n左從 IC: 0x2EBD0" : "Master: 0x1CBD0\nSlave R: 0x25BD0\nSlave L: 0x2EBD0";
+        string[] expected = [chinese ? "大小上限" : "Max Size", nf ? "12,112\u00a0B" : "5,728\u00a0B",
+            chinese ? "目標位址" : "Target Addr", targets];
+        foreach (string text in expected)
+        {
+            TextBlock block = Assert.Single(card.GetVisualDescendants().OfType<TextBlock>(), candidate => candidate.Text == text);
+            Assert.True(block.IsEffectivelyVisible, $"{slot.SlotId}: '{text}' disappeared (HasFile={slot.HasFile}).");
+            Assert.Equal(text.Split('\n').Length, block.TextLayout.TextLines.Count);
+            Assert.All(block.TextLayout.TextLines, line => Assert.False(line.HasCollapsed));
+            Assert.True(block.TextLayout.Height <= block.Bounds.Height + 1, $"{slot.SlotId}: '{text}' is clipped vertically.");
+            Point position = block.TranslatePoint(default, card)!.Value;
+            Assert.InRange(position.X, 0, card.Bounds.Width - block.Bounds.Width + 1);
+            Assert.InRange(position.Y, 0, card.Bounds.Height - block.Bounds.Height + 1);
+        }
+        Assert.DoesNotContain(VisibleText(card), text => text.Contains("16\u00a0B", StringComparison.Ordinal));
+        Assert.Equal(3, slot.CtrlRamDescriptionFacts!.InputGuidanceTargets.Count);
+        Assert.Equal(nf ? 5 : 3, slot.CtrlRamDescriptionFacts.Sections.Count);
     }
 
     /// <summary>CtrlRAM endpoint details stay hidden until their own position is explored.</summary>
