@@ -212,9 +212,9 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("ReplaceBaseSlot", workflowTemplates, StringComparison.Ordinal);
         Assert.Contains("ItemsSource=\"{Binding GeneralReplaceMappings}\"", workflowTemplates, StringComparison.Ordinal);
         Assert.Contains("ItemsSource=\"{Binding MergeCoverageSegments}\"", sharedTemplates, StringComparison.Ordinal);
-        Assert.Contains("ItemsSource=\"{Binding MergeCoverageRows}\"", sharedTemplates, StringComparison.Ordinal);
+        Assert.Contains("DataContext=\"{Binding CoverageDetails}\"", sharedTemplates, StringComparison.Ordinal);
         Assert.Contains(
-            "ItemTemplate=\"{StaticResource MemoryCoveragePlainSegmentListTemplate}\" ItemsSource=\"{Binding MergeCoverageRows}\"",
+            "ItemTemplate=\"{StaticResource MemoryCoveragePlainSegmentListTemplate}\" ItemsSource=\"{Binding VisibleRows}\"",
             sharedTemplates,
             StringComparison.Ordinal);
         Assert.Contains("ItemsSource=\"{Binding ReplaceSlots}\"", workflowTemplates, StringComparison.Ordinal);

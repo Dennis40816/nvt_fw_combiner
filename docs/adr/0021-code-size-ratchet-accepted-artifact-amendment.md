@@ -670,3 +670,15 @@ The existing full baseline assertion follows this measurement. Counting,
 exclusions, equality, duplicate/partial checks, all ratchets and firmware,
 profile, support, Golden and release gates remain unchanged. There is no
 transferable headroom; further production edits require remeasurement.
+
+## 2026-09-09 compact memory supporting-list accounting
+
+`UI-114-MEMORY-LIST-53` adds one shared Presentation-only disclosure model
+and mounts it in the existing Merge and flat Replace supporting lists.
+Independent exact R2 admission `UI-114-MEMORY-LIST-SIZE-54` accounts for 63
+nonblank Presentation lines: full production/baseline becomes 140,056 and
+allowance 37,160 against unchanged ratchet 102,896. Runtime stays 99,362 and
+slices stay 20,757 / 42,839 / 5,039 / 30,727. The existing baseline assertion
+follows the measurement. Counting, exclusions, equality, duplicate/partial
+rules, all ratchets and firmware/Golden/release gates are unchanged. This
+is not transferable headroom or an exemption for later production growth.

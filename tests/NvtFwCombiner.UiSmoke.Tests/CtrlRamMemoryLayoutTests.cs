@@ -234,8 +234,9 @@ public sealed class CtrlRamMemoryLayoutTests
 
     private static void Capture(Window window, string name)
     {
-        string directory = Path.Combine(Assert.IsType<string>(Environment.GetEnvironmentVariable("NFC_TEST_AREA_ROOT")),
-            "evidence", "v114-memory-lift51");
+        string directory = Environment.GetEnvironmentVariable("NFC_VISUAL_OUTPUT_DIR") ??
+            Path.Combine(Assert.IsType<string>(Environment.GetEnvironmentVariable("NFC_TEST_AREA_ROOT")),
+                "evidence", "v114-memory-lift51");
         _ = Directory.CreateDirectory(directory);
         using Avalonia.Media.Imaging.Bitmap? frame = window.GetLastRenderedFrame();
         Assert.NotNull(frame);

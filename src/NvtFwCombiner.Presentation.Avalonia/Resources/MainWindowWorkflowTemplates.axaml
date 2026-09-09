@@ -388,8 +388,14 @@
       <views:MemoryCoverageBar IsVisible="{Binding !HasCtrlRamFocusLayout}" ItemsSource="{Binding ReplaceCoverageSegments}" Labels="{Binding Text}" ReducedMotion="{ReflectionBinding $parent[Window].DataContext.IsReducedMotionEnabled}" />
 
       <Grid IsVisible="{Binding !HasCtrlRamFocusLayout}">
-          <ItemsControl ItemTemplate="{StaticResource MemoryCoverageSegmentListTemplate}" ItemsSource="{Binding ReplaceCoverageSegments}"
-              IsVisible="{Binding IsReplaceCoverageFlat}" />
+          <StackPanel IsVisible="{Binding IsReplaceCoverageFlat}">
+            <StackPanel DataContext="{Binding CoverageDetails}" x:DataType="vm:MemoryCoverageListViewModel">
+              <ItemsControl ItemTemplate="{StaticResource MemoryCoverageSegmentListTemplate}" ItemsSource="{Binding VisibleRows}" />
+              <Button x:Name="MemoryCoverageListToggle" Classes="semanticAction secondary" HorizontalAlignment="Right"
+                  IsVisible="{Binding HasMoreRows}" Content="{Binding ToggleLabel}" Command="{Binding ToggleCommand}"
+                  AutomationProperties.Name="{Binding ToggleLabel}" />
+            </StackPanel>
+          </StackPanel>
 
           <StackPanel IsVisible="{Binding IsReplaceCoverageGrouped}">
             <TextBlock Classes="sectionLabel" Text="{Binding ReplaceSelectedCoverageSummary}" />

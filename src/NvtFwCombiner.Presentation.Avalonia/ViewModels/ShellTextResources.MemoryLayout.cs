@@ -16,6 +16,12 @@ internal enum MemoryPendingPrerequisite
 
 internal sealed partial class ShellTextResources
 {
+    public string MemoryShowFewerRegionsLabel => SelectLanguage("Show fewer regions", "收合區域列表");
+    public string FormatMemoryShowAllRegions(int count)
+    {
+        return SelectLanguage($"Show all {count} regions", $"展開全部 {count} 個區域");
+    }
+
     public string MemoryFlashOverviewLabel => SelectLanguage("Flash overview", "Flash 全圖");
     public string MemoryCtrlRamDetailLabel => SelectLanguage("CtrlRAM detail", "CtrlRAM 局部位置");
     public string MemoryZoomedLabel => SelectLanguage("Zoomed", "獨立比例");

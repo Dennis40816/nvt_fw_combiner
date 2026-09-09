@@ -49,7 +49,7 @@ internal sealed partial class MergePresentationViewModel : ObservableObject
         ApplyFirmwareSlotText();
         ApplyAbSameTpPresentation();
         InspectionLifecycles.ForEach(lifecycle => lifecycle.ApplyText(Text));
-        PrepareMergeMemoryMapState(refreshAuthoring: false);
+        PrepareMergeMemoryMapState(refreshAuthoring: false, resetCoverageExpansion: false);
         OnPropertyChanged(nameof(Text));
         PublishFullContext();
     }

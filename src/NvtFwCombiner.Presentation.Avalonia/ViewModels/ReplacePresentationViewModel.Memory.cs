@@ -4,6 +4,8 @@ namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
 internal sealed partial class ReplacePresentationViewModel
 {
+    public MemoryCoverageListViewModel CoverageDetails { get; } = new();
+
     private string? _preparedDpReplaceIc;
     private CompiledAuthoringSelectionSnapshot? _preparedDpReplaceSnapshot;
     private string? _preparedCtrlRamIc;
@@ -133,6 +135,7 @@ internal sealed partial class ReplacePresentationViewModel
         ReplaceMemoryRangeLabel = string.Empty;
         ReplaceMemoryRows.Clear();
         ReplaceCoverageSegments.Clear();
+        CoverageDetails.Update([], Text);
         ReplaceCoverageGroups.Clear();
         CtrlRamFocusLanes.Clear();
         CtrlRamOverview.Clear();
@@ -199,7 +202,7 @@ internal sealed partial class ReplacePresentationViewModel
             return;
         }
 
-        PrepareReplaceMemoryMapState(refreshAuthoring: false);
+        PrepareReplaceMemoryMapState(refreshAuthoring: false, resetCoverageExpansion: false);
     }
 
     internal void RefreshReplaceMemoryMapState(bool refreshAuthoring = true)
@@ -208,7 +211,7 @@ internal sealed partial class ReplacePresentationViewModel
         PublishReplaceMemoryContext();
     }
 
-    private void PrepareReplaceMemoryMapState(bool refreshAuthoring = true)
+    private void PrepareReplaceMemoryMapState(bool refreshAuthoring = true, bool resetCoverageExpansion = true)
     {
         if (IsCtrlRamReplaceModeSelected && ReplaceBaseSlot.HasFile)
         {
@@ -238,18 +241,21 @@ internal sealed partial class ReplacePresentationViewModel
             IReadOnlyList<MemoryMapRowViewModel> replaceRows,
             IReadOnlyList<MemoryCoverageSegmentViewModel> replaceCoverageSegments) =
             GetSelectedReplaceMemoryDisplay();
-        ApplyReplaceMemoryDisplay(replaceRangeLabel, replaceRows, replaceCoverageSegments);
+        ApplyReplaceMemoryDisplay(replaceRangeLabel, replaceRows, replaceCoverageSegments,
+            resetCoverageExpansion: resetCoverageExpansion);
     }
 
     private void ApplyReplaceMemoryDisplay(
         string rangeLabel,
         IReadOnlyList<MemoryMapRowViewModel> rows,
         IReadOnlyList<MemoryCoverageSegmentViewModel> coverageSegments,
-        IReadOnlyList<MemoryCoverageSegmentViewModel>? overview = null)
+        IReadOnlyList<MemoryCoverageSegmentViewModel>? overview = null,
+        bool resetCoverageExpansion = true)
     {
         ReplaceMemoryRangeLabel = rangeLabel;
         ReplaceRows(ReplaceMemoryRows, rows);
         ReplaceRows(ReplaceCoverageSegments, coverageSegments);
+        CoverageDetails.Update(ReplaceCoverageSegments, Text, resetCoverageExpansion);
         ReplaceRows(CtrlRamOverview, overview ?? []);
         RefreshReplaceCoverageGroups();
     }

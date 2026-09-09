@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 2,
+  "taskId": "UI-114-MEMORY-LIST-53",
+  "capability": "Compact shared Memory Layout supporting lists with three-row defaults and explicit address-order expansion",
+  "integrationBase": "02da6a3ae26a124efe6014dcea8800532f922ed9",
+  "risk": "R1",
+  "kind": "ui",
+  "state": "design-active",
+  "mutablePaths": [
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MemoryCoverageListViewModel.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MergePresentationViewModel.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MergePresentationViewModel.Memory.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReplacePresentationViewModel.Memory.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ShellTextResources.MemoryLayout.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/Resources/MainWindowSharedTemplates.axaml",
+    "src/NvtFwCombiner.Presentation.Avalonia/Resources/MainWindowWorkflowTemplates.axaml"
+  ],
+  "implementationOwner": "primary-agent",
+  "searchEvidence": [
+    "CodeGraph MemoryLayout exploration then targeted rg of CoverageRows/ItemsSource identifies MergeMemory.cs logical supporting rows and ReplaceMemory.cs flat primary segments. Shared card templates already own display/hover; typed MemoryContentRole and RangeStart already exist. No supporting-list limit/toggle owner found.",
+    "MainWindowSharedTemplates MergeOutputLayoutPanelTemplate and MainWindowWorkflowTemplates ReplaceOutputLayoutPanelTemplate mount the two flat supporting lists; CtrlRAM focus lanes and overview are separate existing geometry owners. Current lists render every supporting row. tests/MemoryCoverageListTests.cs exercises actual NT51928 Standard DP/TP/LDC inputs at the mounted control seam."
+  ],
+  "semanticOwner": "Application MemoryLayoutProjector retains all firmware classification/range facts. New bounded Presentation MemoryCoverageListViewModel owns only shared supporting-list disclosure and ordering of existing typed row references.",
+  "terminalContract": "Default supporting lists show at most three primary rows, mapped content before typed Unmapped with address order inside each category. Expansion shows every primary row by address, unknown addresses last. Preserve existing card templates/styles, projected row identity and noncontiguous grouping, exact bar geometry/data, CtrlRAM endpoint lanes, diagnostics, all compiler/profile/output behavior. Native secondary command is keyboard accessible with localized labels and retains focus across toggles. New source publication resets disclosure; do not persist it or change session lifetime. This independent UI unit does not add missing IC classification metadata or settle DP-container geometry. Narrow real-window, pure-list and existing shared memory regressions only; full integration/release remains separate.",
+  "disposition": "extend-owner",
+  "designReview": {"reviewer": null, "outcome": "not-required", "evidence": "Owner explicitly requested three-row collapsed limits, Unmapped last when collapsed, and address order when expanded. R1 Presentation-only correction; existing shared row and card owners retained."},
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": {"reviewer": null, "outcome": "pending", "evidence": ""}
+}

@@ -490,7 +490,12 @@
 
       <views:MemoryCoverageBar ItemsSource="{Binding MergeCoverageSegments}" Labels="{Binding Text}" IsPlain="True" ReducedMotion="{ReflectionBinding $parent[Window].DataContext.IsReducedMotionEnabled}" />
 
-      <ItemsControl ItemTemplate="{StaticResource MemoryCoveragePlainSegmentListTemplate}" ItemsSource="{Binding MergeCoverageRows}" />
+      <StackPanel DataContext="{Binding CoverageDetails}" x:DataType="vm:MemoryCoverageListViewModel">
+        <ItemsControl ItemTemplate="{StaticResource MemoryCoveragePlainSegmentListTemplate}" ItemsSource="{Binding VisibleRows}" />
+        <Button x:Name="MemoryCoverageListToggle" Classes="semanticAction secondary" HorizontalAlignment="Right"
+            IsVisible="{Binding HasMoreRows}" Content="{Binding ToggleLabel}" Command="{Binding ToggleCommand}"
+            AutomationProperties.Name="{Binding ToggleLabel}" />
+      </StackPanel>
 
       <TextBlock Classes="sectionLabel" Text="{Binding Text.PlanTitle}" />
       <ItemsControl ItemTemplate="{StaticResource MergeMemoryMapRowTemplate}" ItemsSource="{Binding MergeMemoryRows}" />
