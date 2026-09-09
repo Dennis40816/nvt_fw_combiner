@@ -5,7 +5,7 @@
   "integrationBase": "c04dcca8cf44be7dd74c364310295f37758aa6ed",
   "risk": "R1",
   "kind": "ui",
-  "state": "design-active",
+  "state": "final-complete",
   "mutablePaths": [
     "src/NvtFwCombiner.Presentation.Avalonia/Views/FirmwareSlotCard.axaml",
     "src/NvtFwCombiner.Presentation.Avalonia/MainWindow.axaml",
@@ -18,8 +18,8 @@
   "terminalContract": "Owner approved dynamic above/below issue-card placement, shorter gap and one shared fix across pages, with scoped Polytail each correction round. Retain Avalonia placement/constraint adjustment; remove the positive default vertical offset that overlaps the target after flipping. The shared card renders its arrow against resolved anchor/card geometry instead of using firmware role to assume top/bottom. When an already-open anchor moves in screen coordinates (including scrolling), close the stale tooltip without disabling its service: Avalonia does not reposition it for ancestor scrolling, and the next hover/focus uses its ordinary placement afresh. Preserve approved card content, hierarchy, colors, dimensions, noninteractivity, pointer close, keyboard/Escape and accessible descriptions; include all current IssueDetailsCard consumers, warning/error, languages/themes and near-edge geometry. Do not introduce a second popup-positioning engine or workflow-specific copies. No Memory Layout, firmware bytes, input semantics, readiness, profile, Golden output or release changes. Headless geometry plus native reproduction/verification evidence are distinguished, not treated as equivalent.",
   "disposition": "extend-owner",
   "designReview": {"reviewer": null, "outcome": "not-required", "evidence": "R1 bounded visual positioning and shared-card presentation correction explicitly requested by owner; reuse existing toolkit and card owners."},
-  "implementationHead": null,
-  "reviewedHead": null,
-  "pathStateDigest": null,
-  "finalReview": {"reviewer": null, "outcome": "pending", "evidence": ""}
+  "implementationHead": "54b849ab82aa424b3341e944909d4c230c5eb74a",
+  "reviewedHead": "54b849ab82aa424b3341e944909d4c230c5eb74a",
+  "pathStateDigest": "51cb83b1059856f60f3c1832a434b88a70a6c31fb893b9e961b76640bb5eea9b",
+  "finalReview": {"reviewer": "ctrlram_readability (GPT-5.6 Terra, high; read-only)", "outcome": "approved", "evidence": "Scoped Polytail pre-freeze and fixed-head review PASS: P0-P3 findings 0; exact implementation snapshot verified with no added production changes. D:/NvtFwCombiner-TestArea/evidence/v114-issue-tooltip48/shared-placement-scroll-close.trx: 14 passed, 0 failed/skipped, covering shared consumers, near-edge placement, pointer direction, scroll-close/reopen, keyboard/Escape, themes/languages and actual Build blocker geometry. Earlier placement-red.trx proves default 20px below gap and flipped-above 20px anchor overlap; placement-arrow-red.trx proves static-arrow mismatch; placement-scroll.trx records framework ancestor-scroll reposition limitation addressed by closing stale tips without disabling their service. Desktop standard-output build: 0 warnings/errors; Presentation DLL matches tested output SHA-256 55B51810E18D64F454E4F1A6980C93EDE656CDC1AD77A3CF5638882782D35CE5. On 2026-09-09 owner accepted the native visual result (effects acceptable). This owner acceptance is distinct from headless geometry evidence, not an agent-completed independent native hover lifecycle check: the agent native UI flow was interrupted by owner Escape before final capture. No Memory Layout, firmware bytes or release changes; no fresh full-suite claim."}
 }
