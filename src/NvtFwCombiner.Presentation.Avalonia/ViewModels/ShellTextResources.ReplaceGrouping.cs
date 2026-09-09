@@ -70,15 +70,23 @@ internal sealed partial class ShellTextResources
 
     public IReadOnlyList<FirmwareSlotFactViewModel> GetCtrlRamGuidanceFacts(CtrlRamInputDescriptionFacts? facts)
     {
-        if (facts is not { IsShared: false, Sections.Count: 1 })
+        if (facts is null)
         {
             return [];
         }
-        CtrlRamInputDescriptionSection section = facts.Sections[0];
+        IReadOnlyList<CtrlRamInputGuidanceTarget> inputs = facts.InputGuidanceTargets;
+        CtrlRamInputGuidanceTarget first = inputs[0];
+        string sizes = inputs.All(target => target.RequiredInputLength == first.RequiredInputLength)
+            ? FormattableString.Invariant($"{first.RequiredInputLength:N0}\u00a0B")
+            : string.Join("\n", inputs.Select(target => FormattableString.Invariant(
+                $"{GetReplaceRegionGroupTitle(target.RegionGroup)}: {target.RequiredInputLength:N0}\u00a0B")));
+        string targets = string.Join("\n", inputs.Select(target => inputs.Count == 1
+            ? FormattableString.Invariant($"0x{target.TargetStart:X}")
+            : FormattableString.Invariant($"{GetReplaceRegionGroupTitle(target.RegionGroup)}: 0x{target.TargetStart:X}")));
         return
         [
-            new(SelectLanguage("Max Size", "大小上限"), FormattableString.Invariant($"{section.MaximumLength:N0}\u00a0B")),
-            new(SelectLanguage("Target Addr", "目標位址"), FormattableString.Invariant($"0x{section.TargetStart:X}")),
+            new(SelectLanguage("Max Size", "大小上限"), sizes),
+            new(SelectLanguage("Target Addr", "目標位址"), targets),
         ];
     }
 

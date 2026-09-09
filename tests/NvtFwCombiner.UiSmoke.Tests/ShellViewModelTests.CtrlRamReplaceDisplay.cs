@@ -531,7 +531,8 @@ public sealed partial class CtrlRamWorkflowTests
             RequiresDiffNfMerge: true,
             TitleStem: "NF CtrlRAM",
             IsShared: false,
-            TargetRegionCount: 1);
+            TargetRegionCount: 1,
+            InputGuidanceTargets: [new("nf-master", ReplaceRegionGroup.Master, 0x200, 0x100)]);
 
         (string englishTitle, _) = ShellTextResources.For(ShellLanguage.English).GetReplaceInputText(
             addressSpaceId: "replace-ctrlram-nf",

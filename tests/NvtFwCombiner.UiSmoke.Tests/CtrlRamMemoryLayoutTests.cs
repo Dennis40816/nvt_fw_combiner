@@ -20,6 +20,64 @@ namespace NvtFwCombiner.UiSmoke.Tests;
 /// <summary>The real input-loaded window keeps parent firmware and physical CtrlRAM positions readable.</summary>
 public sealed class CtrlRamMemoryLayoutTests
 {
+    /// <summary>Shared CtrlRAM inputs retain their size and all destination addresses after a BIN is selected.</summary>
+    [AvaloniaTheory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task SharedCtrlRamCardsKeepSizeAndEveryTargetAfterLoading(bool darkChinese)
+    {
+        using var workspace = TempWorkspace.Create("ctrlram-shared-guidance");
+        PresentationHostServices services = await CreateServicesAsync(workspace, useRetainedDpReplacePolicy: false);
+        using var window = new MainWindow(UiLaunchOptions.Empty, StartupTraceSession.Disabled,
+            services, ShellPreferenceSnapshot.Default)
+        { Width = 1180, Height = 1040 };
+        window.Show();
+        try
+        {
+            await AwaitHistoryReadyAsync(window);
+            MainWindowViewModel shell = Assert.IsType<MainWindowViewModel>(window.DataContext);
+            await MainWindow.ApplyCtrlRamLaunchAsync(shell, ThreeChipArguments().CtrlRam!, TestContext.Current.CancellationToken);
+            if (darkChinese)
+            {
+                window.RequestedThemeVariant = ThemeVariant.Dark;
+                shell.SelectedLanguage = "Traditional Chinese";
+            }
+            Render();
+            Capture(window, $"nt51927-shared-guidance-{darkChinese}.png");
+            FirmwareSlotViewModel[] shared = [.. shell.Replace.ReplaceSlots.Where(slot =>
+                slot.HasFile && slot.CtrlRamDescriptionFacts is { IsShared: true })];
+            Assert.Equal(2, shared.Length);
+            foreach (FirmwareSlotViewModel slot in shared)
+            {
+                FirmwareSlotCard card = Assert.Single(window.GetVisualDescendants().OfType<FirmwareSlotCard>(),
+                    control => ReferenceEquals(control.DataContext, slot));
+                card.BringIntoView();
+                Render();
+                Capture(window, $"nt51927-shared-{slot.SlotId}-{darkChinese}.png");
+                string[] text = VisibleText(card);
+                Assert.Contains(darkChinese ? "大小上限" : "Max Size", text);
+                Assert.Contains(darkChinese ? "目標位址" : "Target Addr", text);
+                if (slot.CtrlRamDescriptionFacts!.TitleStem == "NF CtrlRAM")
+                {
+                    // Independently recorded packed NF input size in this Golden's provenance/case.json.
+                    Assert.Contains("12,112\u00a0B", text);
+                    Assert.Contains(text, value => value == (darkChinese
+                        ? "主 IC: 0x16800\n右從 IC: 0x1F800\n左從 IC: 0x28800"
+                        : "Master: 0x16800\nSlave R: 0x1F800\nSlave L: 0x28800"));
+                    Assert.DoesNotContain(text, value => value.Contains("16\u00a0B", StringComparison.Ordinal));
+                    Assert.Equal(5, slot.CtrlRamDescriptionFacts.Sections.Count);
+                }
+                else { Assert.Contains("5,728\u00a0B", text); }
+                Assert.Equal(3, slot.CtrlRamDescriptionFacts.InputGuidanceTargets.Count);
+                foreach (CtrlRamInputGuidanceTarget target in slot.CtrlRamDescriptionFacts.InputGuidanceTargets)
+                {
+                    Assert.Contains(text, value => value.Contains(FormattableString.Invariant($"0x{target.TargetStart:X}"), StringComparison.Ordinal));
+                }
+            }
+        }
+        finally { await CloseAndFlushAsync(window); }
+    }
+
     /// <summary>CtrlRAM endpoint details stay hidden until their own position is explored.</summary>
     [AvaloniaFact]
     public async Task LoadedCtrlRamWindowStartsWithOnlyTheOverview()

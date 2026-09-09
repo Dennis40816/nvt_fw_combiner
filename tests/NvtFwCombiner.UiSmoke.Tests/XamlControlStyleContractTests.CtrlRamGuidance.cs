@@ -27,7 +27,7 @@ public sealed partial class XamlControlStyleContractTests
         var text = ShellTextResources.For(chinese ? ShellLanguage.ChineseTraditional : ShellLanguage.English);
         var facts = new CtrlRamInputDescriptionFacts("unused-name.bin",
             [new("Repeated title", ReplaceRegionGroup.Common, length, offset, "CtrlRAM")],
-            false, "CtrlRAM", false, 1);
+            false, "CtrlRAM", false, 1, [new("ctrlram", ReplaceRegionGroup.Common, offset, length)]);
         (string title, string description) = text.GetReplaceInputText(null, ReplaceInputRole.CtrlRam, ReplaceRegionGroup.Common,
             "CtrlRAM", "Legacy description", facts);
         string size = length == 2960 ? "2,960\u00a0B" : "18,944\u00a0B";
@@ -72,26 +72,67 @@ public sealed partial class XamlControlStyleContractTests
     }
 
     /// <summary>Compact shared guidance keeps topology and prerequisite facts; technical detail retains every mapping.</summary>
-    [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public void CtrlRamGuidancePreservesSharedPrerequisitesAndTechnicalDetails(bool chinese)
+    [AvaloniaTheory]
+    [InlineData(false, false)]
+    [InlineData(true, false)]
+    [InlineData(false, true)]
+    [InlineData(true, true)]
+    public void CtrlRamGuidancePreservesSharedPrerequisitesAndTechnicalDetails(bool chinese, bool equalLengths)
     {
         var text = ShellTextResources.For(chinese ? ShellLanguage.ChineseTraditional : ShellLanguage.English);
         var facts = new CtrlRamInputDescriptionFacts("NF_Ctrlram.bin",
             [new("NF master", ReplaceRegionGroup.Master, 512, 0x1000, "NF"),
-             new("NF slave", ReplaceRegionGroup.SlaveRight, 256, 0x2000, "NF")],
-            true, "NF", true, 2);
+             new("NF slave", ReplaceRegionGroup.SlaveRight, equalLengths ? 512 : 256, 0x2000, "NF")],
+            true, "NF", true, 2,
+            [new("nf-master", ReplaceRegionGroup.Master, 0x1000, 512),
+             new("nf-slave", ReplaceRegionGroup.SlaveRight, 0x2000, equalLengths ? 512 : 256)]);
         (string _, string description) = text.GetReplaceInputText(null, ReplaceInputRole.CtrlRam, ReplaceRegionGroup.Common,
             "NF", "Legacy description", facts);
         Assert.StartsWith(chinese ? "共用至 2 個區域" : "Shared across 2 regions", description, StringComparison.Ordinal);
         Assert.Contains("DiffNFMerge", description, StringComparison.Ordinal);
         Assert.DoesNotContain("NF_Ctrlram.bin", description, StringComparison.Ordinal);
+        IReadOnlyList<FirmwareSlotFactViewModel> guidance = text.GetCtrlRamGuidanceFacts(facts);
+        Assert.Collection(guidance,
+            row => Assert.Equal(equalLengths ? "512\u00a0B"
+                : chinese ? "主 IC: 512\u00a0B\n右從 IC: 256\u00a0B"
+                : "Master: 512\u00a0B\nSlave R: 256\u00a0B", row.Value),
+            row => Assert.Equal(chinese ? "主 IC: 0x1000\n右從 IC: 0x2000"
+                : "Master: 0x1000\nSlave R: 0x2000", row.Value));
         string detail = text.FormatCtrlRamTechnicalDescription(facts);
         Assert.Contains("NF_Ctrlram.bin", detail, StringComparison.Ordinal);
         Assert.Contains("0x1000", detail, StringComparison.Ordinal);
         Assert.Contains("0x2000", detail, StringComparison.Ordinal);
         Assert.Equal("Legacy description", text.GetReplaceInputText(null, ReplaceInputRole.CtrlRam,
             ReplaceRegionGroup.Common, "NF", "Legacy description", null).Description);
+
+        var slot = new FirmwareSlotViewModel("shared", "NF CtrlRAM (Shared)", description,
+            FirmwareSlotKind.CtrlRam, isOptional: true, ctrlRamDescriptionFacts: facts);
+        slot.ApplyExperienceText(text);
+        var card = new FirmwareSlotCard { DataContext = slot, Width = 480, BrowseLabel = "Browse" };
+        (Window host, _, _) = HostWithProductionFirmwareSlotStyles(card);
+        host.Width = 480;
+        host.Height = 560;
+        host.RequestedThemeVariant = chinese ? Avalonia.Styling.ThemeVariant.Dark : Avalonia.Styling.ThemeVariant.Light;
+        try
+        {
+            host.Show();
+            foreach (string? path in new[] { null, @"C:\firmware\shared.bin", null })
+            {
+                slot.FilePath = path;
+                Dispatcher.UIThread.RunJobs();
+                AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+                foreach (FirmwareSlotFactViewModel fact in guidance)
+                {
+                    TextBlock value = Assert.Single(card.GetVisualDescendants().OfType<TextBlock>(), block => block.Text == fact.Value);
+                    Assert.True(value.IsEffectivelyVisible);
+                    Assert.All(value.TextLayout.TextLines, line => Assert.False(line.HasCollapsed));
+                    Assert.Equal(fact.Value.Split('\n').Length, value.TextLayout.TextLines.Count);
+                    Point origin = value.TranslatePoint(default, card)!.Value;
+                    Assert.InRange(origin.X + value.Bounds.Width, 0, card.Bounds.Width);
+                    Assert.InRange(origin.Y + value.Bounds.Height, 0, card.Bounds.Height);
+                }
+            }
+        }
+        finally { host.Close(); }
     }
 }

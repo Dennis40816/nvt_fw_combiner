@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 2,
+  "taskId": "UI-114-CTRLRAM-GUIDANCE-63",
+  "capability": "Keep canonical CtrlRAM input size and physical targets visible after selection",
+  "integrationBase": "a0fc6a9f816ee677c87283d8e3c708d293be1482",
+  "risk": "R2",
+  "kind": "ui",
+  "state": "design-active",
+  "mutablePaths": [
+    "src/NvtFwCombiner.Application/Composition/CompositionClientModels.cs",
+    "src/NvtFwCombiner.Application/MemoryLayout/MemoryLayoutProjector.CtrlRam.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ShellTextResources.ReplaceGrouping.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/Views/FirmwareSlotCard.axaml",
+    "tests/NvtFwCombiner.Application.Tests/MemoryLayout/MemoryLayoutProjectorTests.PhysicalRoles.cs",
+    "tests/NvtFwCombiner.UiSmoke.Tests/CtrlRamMemoryLayoutTests.cs",
+    "tests/NvtFwCombiner.UiSmoke.Tests/XamlControlStyleContractTests.CtrlRamGuidance.cs",
+    "tests/NvtFwCombiner.UiSmoke.Tests/ShellViewModelTests.CtrlRamReplaceDisplay.cs"
+  ],
+  "implementationOwner": "primary-agent",
+  "searchEvidence": [
+    "GetCtrlRamGuidanceFacts excludes Shared inputs. Its Sections are compiled blocks, not full source requirements: real NT51927 NF has 16/4032-byte processing slices. The 3IC packed NF source requires 12112 bytes (independently recorded in its Golden provenance/case.json); 4048 is one physical NF target, not this complete input. EN/Light and ZH/Dark regressions cover missing guidance and distinguish processing blocks from complete input size.",
+    "BuiltInTpFlashMapCatalog.Postbuild resolves RequiredLength from maximum consumed source extent, including the policy-owned full active DiffDLM prefix. MemoryLayoutProjector already owns all topology-resolved source Regions and publishes the typed input description. No Presentation size or address inference is needed."
+  ],
+  "semanticOwner": "MemoryLayoutProjector projects existing source.RequiredLength and physical source.Regions; CompositionClientModels carries typed guidance distinct from unchanged technical Sections; shared FirmwareSlotCard renders it.",
+  "terminalContract": "Owner requests repair then one commit per unit, and fixing the local restriction before continuing. Source base 458caa99. Add mandatory typed guidance targets (region id, group, target start, required input length) with count/identity/positive-length validation. Project directly from admitted source facts, preserve block-level Sections for technical reports, render full input size once when equal and all target addresses before/after selecting or clearing files, EN/ZH and narrow widths. Preserve DiffNFMerge prerequisite and existing input policy, firmware bytes, processors, profile maps, modes and hover. R2 independent admission is retained; this is not an ADR0070 R1 exemption or a claim that old immutable integration blockers are closed.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "ctrlram_readability (GPT-5.6 Terra/high)",
+    "outcome": "approved",
+    "evidence": "Independent contract admission approved new typed input-guidance targets, not repurposed DescriptionSection.MaximumLength. RequiredLength authority verified at BuiltInTpFlashMapCatalog.Postbuild:92/100 and authoring Context:219; canonical region starts retained for DiffDLM. No UI fallback to processing Sections. Required tests: split versus full input, distinct shared targets, DiffDLM active prefix, malformed guidance rejection, actual loaded 927/950 and localized narrow card rendering."
+  },
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": { "reviewer": null, "outcome": "pending", "evidence": "" }
+}

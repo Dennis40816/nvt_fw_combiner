@@ -137,7 +137,14 @@ public static partial class MemoryLayoutProjector
                 requiresDiffNfMerge,
                 titleStem,
                 isShared,
-                targetRegionCount));
+                targetRegionCount,
+                [.. source.Regions.OrderBy(static region => region.Range.Start)
+                    .ThenBy(static region => region.RegionId, StringComparer.Ordinal)
+                    .Select(region => new CtrlRamInputGuidanceTarget(
+                        region.RegionId,
+                        ResolveCtrlRamRegionGroup(region, commandPlan?.Branch, selection),
+                        region.Range.Start,
+                        source.RequiredLength))]));
     }
 
     private static ReplaceRegionGroup ResolveCtrlRamSourceGroup(

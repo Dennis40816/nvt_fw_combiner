@@ -116,6 +116,8 @@ public sealed partial class MemoryLayoutProjectorTests
         Assert.Equal(2, facts.TargetRegionCount);
         Assert.True(facts.IsShared);
         Assert.Equal(3, facts.Sections.Count);
+        Assert.Equal([0x100L, 0x200L], facts.InputGuidanceTargets.Select(static target => target.TargetStart));
+        Assert.All(facts.InputGuidanceTargets, target => Assert.Equal(source.RequiredLength, target.RequiredInputLength));
         Assert.Equal("NF CtrlRAM (Shared)", slot.Title);
         Assert.Equal(ReplaceRegionGroup.Common, slot.RegionGroup);
     }
@@ -124,15 +126,16 @@ public sealed partial class MemoryLayoutProjectorTests
     [Fact]
     public void CtrlRamDiscoveryDoesNotCountBlocksAsPhysicalTargets()
     {
-        TpFlashMapRegion master = Region("nf-master", "NF CtrlRAM (Master)", 0x100);
+        var master = new TpFlashMapRegion("nf-master", "NF CtrlRAM (Master)",
+            TpFlashMapRegionKind.CtrlRam, new ByteRange(0x100, 4048));
         var source = new TpCtrlRamPostbuildSource(
             "nf",
             "NF_Ctrlram.bin",
             "nf",
-            0x20,
+            4048,
             [
                 Block("master-head", 0, new ByteRange(0x100, 0x10)),
-                Block("master-tail", 0x10, new ByteRange(0x110, 0x10)),
+                Block("master-tail", 0x10, new ByteRange(0x110, 4032)),
             ],
             [master],
             TpCtrlRamPostbuildArtifactRole.CtrlRam);
@@ -144,6 +147,9 @@ public sealed partial class MemoryLayoutProjectorTests
         Assert.Equal(1, facts.TargetRegionCount);
         Assert.False(facts.IsShared);
         Assert.Equal(2, facts.Sections.Count);
+        Assert.Equal([16L, 4032L], facts.Sections.Select(static section => section.MaximumLength));
+        CtrlRamInputGuidanceTarget guidance = Assert.Single(facts.InputGuidanceTargets);
+        Assert.Equal(new CtrlRamInputGuidanceTarget("nf-master", ReplaceRegionGroup.Master, 0x100, 4048), guidance);
         Assert.Equal("NF CtrlRAM (Master)", slot.Title);
         Assert.Equal(ReplaceRegionGroup.Master, slot.RegionGroup);
     }
@@ -158,7 +164,7 @@ public sealed partial class MemoryLayoutProjectorTests
             "diff-dlm",
             "DiffDLM.bin",
             "diff-dlm",
-            0x20,
+            0x2400,
             [
                 new LegacyCombinerBlockArgument(
                     "diff-master", LegacyCombinerBlockSourceKind.StagedArtifact, "DiffDLM.bin", 0,
@@ -178,6 +184,31 @@ public sealed partial class MemoryLayoutProjectorTests
         Assert.True(facts.IsShared);
         Assert.Equal("DiffDLM", slot.Title);
         Assert.Equal(ReplaceRegionGroup.Cascade, slot.RegionGroup);
+        Assert.Equal([0x300L, 0x400L], facts.InputGuidanceTargets.Select(static target => target.TargetStart));
+        // The admitted complete active-record prefix is not the sum of writable blocks.
+        Assert.All(facts.InputGuidanceTargets, target => Assert.Equal(0x2400, target.RequiredInputLength));
+        Assert.All(facts.Sections, section => Assert.Equal(0x10, section.MaximumLength));
+    }
+
+    /// <summary>Clients cannot silently omit or duplicate a physical target or invent an unusable input size.</summary>
+    [Theory]
+    [InlineData("missing")]
+    [InlineData("duplicate")]
+    [InlineData("zero-length")]
+    [InlineData("negative-start")]
+    public void CtrlRamGuidanceRejectsIncompleteOrInvalidTargets(string defect)
+    {
+        CtrlRamInputGuidanceTarget[] targets = defect switch
+        {
+            "missing" => [],
+            "duplicate" => [new("nf", ReplaceRegionGroup.Master, 0x100, 32), new("nf", ReplaceRegionGroup.SlaveRight, 0x200, 32)],
+            "zero-length" => [new("nf", ReplaceRegionGroup.Master, 0x100, 0)],
+            "negative-start" => [new("nf", ReplaceRegionGroup.Master, -1, 32)],
+            _ => throw new ArgumentOutOfRangeException(nameof(defect)),
+        };
+        _ = Assert.ThrowsAny<ArgumentException>(() => new CtrlRamInputDescriptionFacts("NF.bin",
+            [new("NF", ReplaceRegionGroup.Master, 32, 0x100, "NF")], false, "NF",
+            defect == "duplicate", defect == "duplicate" ? 2 : 1, targets));
     }
 
     /// <summary>Empty and duplicate target-region authority fails closed before projection publication.</summary>
