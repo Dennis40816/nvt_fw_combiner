@@ -41,9 +41,10 @@ public sealed partial class XamlControlStyleContractTests
     private static readonly Regex RawCommonFontSizePattern = RawCommonFontSizeRegex();
 
     /// <summary>Keeps every technical hexadecimal field on one canonical display format.</summary>
-    [Fact]
+    [AvaloniaFact]
     public void HexInputBehaviorNormalizesAddressesBytesAndExcelPaste()
     {
+        Assert.True(global::Avalonia.Threading.Dispatcher.UIThread.CheckAccess());
         Assert.Equal("0xAB12", NormalizeHexText("0Xab12g", HexTextInputMode.Address));
         Assert.Equal("0x123A", NormalizeHexText("123a", HexTextInputMode.Address));
         Assert.Equal("C5", NormalizeHexText("c5z", HexTextInputMode.Byte));
@@ -56,6 +57,9 @@ public sealed partial class XamlControlStyleContractTests
     {
         var textBox = new TextBox { Text = text, CaretIndex = text.Length };
         HexTextInputBehavior.SetMode(textBox, mode);
+        string normalized = textBox.Text;
+        global::Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+        Assert.Equal(normalized, textBox.Text);
         return textBox.Text;
     }
 
