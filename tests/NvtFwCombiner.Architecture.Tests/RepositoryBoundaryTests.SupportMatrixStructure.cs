@@ -32,8 +32,7 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("behaviors:FocusToolTipBehavior.IsEnabled=\"True\"", pageTemplates, StringComparison.Ordinal);
         Assert.Contains("Text=\"{Binding ProvenanceDetail}\"", pageTemplates, StringComparison.Ordinal);
         Assert.Contains("ToolTip.ShowDelay=\"220\"", pageTemplates, StringComparison.Ordinal);
-        Assert.Contains("Width=\"176\"", pageTemplates, StringComparison.Ordinal);
-        Assert.Contains("Height=\"38\"", pageTemplates, StringComparison.Ordinal);
+        // Cell geometry is measured by SupportMatrixInteractionTests; this test owns boundaries.
         Assert.Contains("Text=\"{Binding StatusLabel}\"", pageTemplates, StringComparison.Ordinal);
         Assert.DoesNotContain("Width=\"288\"", pageTemplates, StringComparison.Ordinal);
     }
