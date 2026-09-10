@@ -5,7 +5,7 @@
   "integrationBase": "abd26b2b723fc5e579d7954f66a44b8970ec68c7",
   "risk": "R2",
   "kind": "behavior",
-  "state": "design-active",
+  "state": "final-complete",
   "mutablePaths": [
     "scripts/verify.py",
     "tests/scripts/test_verify_orchestration.py",
@@ -25,12 +25,12 @@
     "outcome": "approved",
     "evidence": "Independent design review accepts invocation-local deadline_group dictionary and lock in run_lanes. Set shared deadline before action and check remaining_timeout before process start. Preserve unique logs/results, fail expired modules explicitly, independent group budgets, ungrouped CI/dotnet/python behavior and managed descendant termination. Require inventory exact-once, jobs1/3, shared deadlines, expired queued work, failure isolation and cancellation regressions. No new scheduler or arbitrary path dispatch."
   },
-  "implementationHead": null,
-  "reviewedHead": null,
-  "pathStateDigest": null,
+  "implementationHead": "890aec794d44749da012434854ac87ecb8a5ad54",
+  "reviewedHead": "890aec794d44749da012434854ac87ecb8a5ad54",
+  "pathStateDigest": "07ced30fdb0ab4d133fb469c1d549029e7b5789dfda7baac563d3a0d5ec0dace",
   "finalReview": {
-    "reviewer": null,
-    "outcome": "pending",
-    "evidence": ""
+    "reviewer": "parallel_resource_audit",
+    "outcome": "approved",
+    "evidence": "Fixed-head scoped code-review/Polytail PASS at 890aec794d44749da012434854ac87ecb8a5ad54 against abd26b2b723fc5e579d7954f66a44b8970ec68c7, no P0-P3. Invocation-local thread-safe group deadlines, pre-action expiry, validated exact-once inventory and managed process cleanup retained. CI/Golden unchanged and documentation agrees. Orchestration module 201 PASS in 15.772s; direct managed module timeout/cancellation exercises real descendant termination. Diff check clean. Final candidate and full wall-clock measurements remain outstanding."
   }
 }
