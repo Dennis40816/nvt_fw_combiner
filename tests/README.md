@@ -687,6 +687,32 @@ Polytail passes against blobs `3f195e6e`, `f066dfec`, `a22183f9`, `bc427e06`;
 primary verified the TRX and full-frame comparisons. Native accessibility/scaling,
 nonempty warning/error rendering and release gates remain separate.
 
+## Nonempty activity and compact navigation — 2026-09-10
+
+Base `8139d976`; the existing real System Information service is seeded with
+Important and Debug Warning/Error entries (including long, path-free identifiers).
+Real MainWindow keyboard interactions check nonempty filters, newest-first
+order, Debug disclosure, retained session entries after returning from Run reports,
+and measured text/control bounds at 980x640 and 1440x900 across EN/zh-TW and
+Light/Dark (four combinations, not the full Cartesian matrix).
+
+The first captures exposed clipped English sidebar labels at 980x640. The
+existing compact layout now reduces only navigation-rail horizontal padding;
+wide layout, font weights, commands and diagnostics semantics are unchanged.
+`D:/NvtFwCombiner-TestArea/evidence/v114-activity-content77/red/content-red.trx`
+retains the failing text-width assertion (1 failed, 3 passed). After correction,
+`green/content-green.trx` passes **22/22, zero skipped, 23 s**, using:
+
+```text
+dotnet test tests/NvtFwCombiner.UiSmoke.Tests --no-restore --filter "FullyQualifiedName~ShellScreenInventoryTests|FullyQualifiedName~RunReportsList" --verbosity quiet
+```
+
+Primary compared the compact Light/English warning and Dark/Chinese Debug-error
+frames: navigation labels are complete, long details wrap, and timestamps/status
+remain separate. Scoped local R1 Polytail: **PASS**; one existing layout owner,
+no additional state or semantic path. This is not native DPI/accessibility,
+persisted report replay, full-suite, integration or release Golden certification.
+
 ## Running and maintaining this view
 
 Use [`CONTRIBUTING.md`](../CONTRIBUTING.md) to initialize the existing fixed
