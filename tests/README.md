@@ -109,6 +109,40 @@ The orchestration module passed 206/206 cases in 28.222 s, including five new
 collection/isolation regressions and the existing real-process timeout and
 cancellation checks. The new regressions first failed against the old runner.
 
+### Collector preparation diagnosis — 2026-09-11
+
+At `8c940ea2`, isolated profiling reused the retained `39e017dc` .NET reports
+and existing Release outputs; no VSTest, build, or complete verifier was run.
+Rechecking retained coverage passed its policy in 22.59 s under cProfile;
+source-path resolution accounted for 10.44 s cumulatively. This is report
+reprocessing, not new test execution or exact-current-source coverage evidence.
+
+Eight existing stage preparations took 59.90 s under cProfile, final freshness
+checks 11.32 s, and the full diagnostic session including cleanup 73.77 s.
+The 45 complete tree-hash traversals took 68.29 s cumulatively; 9,885 file-hash
+calls took 58.50 s, including 40.65 s opening files. Nested costs overlap.
+Repeated solution inventory construction was not the dominant cost.
+Profiles are retained under
+`NFC_TEST_AREA_ROOT/evidence/v115-module-pool-first/` as
+`coverage-union-8c940ea2.pstats` and `staging-8c940ea2.pstats`.
+
+A subsequent uninstrumented diagnostic used the existing prepare and freshness
+owners, private test sessions, identical eight projects and all checks. It
+changed only the number of concurrent preparations via a temporary in-process
+thread pool; production scheduling was unchanged.
+
+| Preparation workers | Prepare | Freshness | Total including session cleanup |
+| --- | ---: | ---: | ---: |
+| 1 | 57.88 s | 10.22 s | 70.66 s |
+| 3 | 24.47 s | 10.06 s | 37.11 s |
+
+This single sequential pair suggests a 33.55 s (47.5%) preparation-session
+reduction, not a full-verifier improvement. Cache/order and concurrent workload
+effects need validation after implementation. No hash pass, test or coverage
+check was removed. The implementation candidate must retain bounded workers,
+ordered stage results, fail-before-VSTest behavior and join active writers before
+cleanup; UI-exclusive execution remains the current contract.
+
 ## Historical execution map
 
 Arrows mean prerequisites; sibling branches may overlap. Local verification,
