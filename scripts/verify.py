@@ -3588,6 +3588,23 @@ def require_release_golden_results(
     print(f"Release Golden: {len(cases)} direct output cases; not a full-suite coverage gate.")
 
 
+def verify_local_dotnet_coverage(log_path: Path | None = None) -> None:
+    """Collect the already-built local inventory; the parent owns SDK cleanup."""
+
+    collect_local_dotnet_coverage(
+        resolve_dotnet(),
+        reset_coverage_directory("dotnet"),
+        DOTNET_COVERAGE_WORK_ROOT,
+        dotnet_batch_environment(),
+        log_path,
+        work_owner_root=(
+            Path(os.environ[TEST_SESSION_ENVIRONMENT_VARIABLE])
+            if os.environ.get(TEST_SESSION_ENVIRONMENT_VARIABLE)
+            else ROOT
+        ),
+    )
+
+
 def verify_dotnet(log_path: Path | None = None, *, release_golden: bool = False) -> None:
     golden_plan = release_golden_plan() if release_golden else None
     dotnet = resolve_dotnet()
@@ -4742,6 +4759,7 @@ def parse_args(arguments: Sequence[str] | None = None) -> argparse.Namespace:
             *(name for name, _pattern in REPOSITORY_SCRIPT_TEST_SHARDS),
             "python",
             "dotnet",
+            "dotnet-coverage",
             "dotnet-windows",
         ),
         help=argparse.SUPPRESS,
@@ -4893,6 +4911,7 @@ def run_internal_lane(name: str) -> None:
         "structure": verify_structure,
         "python": verify_python,
         "dotnet": verify_dotnet,
+        "dotnet-coverage": verify_local_dotnet_coverage,
         "dotnet-windows": verify_windows_process_orchestration_and_dotnet,
     }
     actions.update(
@@ -5156,9 +5175,50 @@ def execute_verification(args: argparse.Namespace) -> int:
         lanes = selected_lanes(args)
         if not lanes:
             raise RuntimeError("verification plan selected no lanes")
-        for lane in lanes:
+        structure = tuple(lane for lane in lanes if lane.name == "structure")
+        workloads = tuple(lane for lane in lanes if lane.name != "structure")
+        if structure:
             run_selected_lanes(
-                (lane,),
+                structure,
+                jobs=args.jobs,
+                lane_timeout_seconds=args.lane_timeout_seconds,
+            )
+        if not args.structure_only and not args.skip_dotnet and not args.skip_python:
+            dotnet = resolve_dotnet()
+            environment = dotnet_batch_environment()
+            failure: BaseException | None = None
+            try:
+                run_selected_lanes(
+                    (VerificationLane(
+                        "dotnet-build",
+                        lambda log_path: run_dotnet_build_plan(
+                            dotnet, environment=environment, log_path=log_path,
+                        ),
+                    ),),
+                    jobs=args.jobs,
+                    lane_timeout_seconds=args.lane_timeout_seconds,
+                )
+                # Start the longest owner first; scripts only read checkout build inputs.
+                run_selected_lanes(
+                    (VerificationLane(
+                        "dotnet", verify_local_dotnet_coverage,
+                        isolate_action=True, internal_name="dotnet-coverage",
+                    ), *(lane for lane in workloads if lane.name != "dotnet")),
+                    jobs=args.jobs,
+                    lane_timeout_seconds=args.lane_timeout_seconds,
+                )
+            except BaseException as error:
+                failure = error
+            finally:
+                try:
+                    cleanup_dotnet_batch(dotnet, environment, None)
+                except BaseException as error:
+                    failure = combine_failures(failure, error)
+            if failure is not None:
+                raise failure
+        elif workloads:
+            run_selected_lanes(
+                workloads,
                 jobs=args.jobs,
                 lane_timeout_seconds=args.lane_timeout_seconds,
             )

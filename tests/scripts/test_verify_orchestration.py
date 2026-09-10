@@ -738,13 +738,15 @@ class VerifyOrchestrationTests(unittest.TestCase):
             ):
                 MODULE.repository_script_test_shards()
 
-    def test_public_full_plan_sequences_lock_reader_before_restore_writer(
+    def test_public_full_plan_builds_before_overlapping_lock_readers_and_coverage(
         self,
     ) -> None:
         calls: list[tuple[list[str], int, int]] = []
 
         def record_phase(lanes, *, jobs, lane_timeout_seconds):
             calls.append(([lane.name for lane in lanes], jobs, lane_timeout_seconds))
+            if lanes[0].name == "dotnet-build":
+                lanes[0].action(None)
 
         with (
             patch.dict(
@@ -753,6 +755,9 @@ class VerifyOrchestrationTests(unittest.TestCase):
                 clear=False,
             ),
             patch.object(MODULE, "run_selected_lanes", side_effect=record_phase),
+            patch.object(MODULE, "resolve_dotnet", return_value="selected-dotnet"),
+            patch.object(MODULE, "run_dotnet_build_plan") as build,
+            patch.object(MODULE, "cleanup_dotnet_batch") as cleanup,
             contextlib.redirect_stdout(io.StringIO()),
         ):
             result = MODULE.execute_verification(MODULE.parse_args(["--all"]))
@@ -766,33 +771,23 @@ class VerifyOrchestrationTests(unittest.TestCase):
                     MODULE.DEFAULT_LANE_TIMEOUT_SECONDS,
                 ),
                 (
-                    ["repository-scripts-a-q"],
+                    ["dotnet-build"],
                     MODULE.DEFAULT_VERIFY_JOBS,
                     MODULE.DEFAULT_LANE_TIMEOUT_SECONDS,
                 ),
                 (
-                    ["repository-scripts-r"],
-                    MODULE.DEFAULT_VERIFY_JOBS,
-                    MODULE.DEFAULT_LANE_TIMEOUT_SECONDS,
-                ),
-                (
-                    ["repository-scripts-s-z"],
-                    MODULE.DEFAULT_VERIFY_JOBS,
-                    MODULE.DEFAULT_LANE_TIMEOUT_SECONDS,
-                ),
-                (
-                    ["python"],
-                    MODULE.DEFAULT_VERIFY_JOBS,
-                    MODULE.DEFAULT_LANE_TIMEOUT_SECONDS,
-                ),
-                (
-                    ["dotnet"],
+                    ["dotnet", "repository-scripts-a-q", "repository-scripts-r",
+                     "repository-scripts-s-z", "python"],
                     MODULE.DEFAULT_VERIFY_JOBS,
                     MODULE.DEFAULT_LANE_TIMEOUT_SECONDS,
                 ),
             ],
             calls,
         )
+        build.assert_called_once()
+        self.assertEqual("selected-dotnet", build.call_args.args[0])
+        cleanup.assert_called_once()
+        self.assertEqual("selected-dotnet", cleanup.call_args.args[0])
 
     def test_public_full_plan_stops_before_restore_when_structure_fails(self) -> None:
         calls: list[list[str]] = []
@@ -816,6 +811,121 @@ class VerifyOrchestrationTests(unittest.TestCase):
 
         self.assertEqual(1, result)
         self.assertEqual([["structure"]], calls)
+
+    def test_public_pool_overlaps_coverage_and_waits_for_siblings_before_cleanup(self) -> None:
+        coverage_started = threading.Event()
+        script_started = threading.Event()
+        coverage_failed = threading.Event()
+        completed: list[str] = []
+        cleanup_snapshots: list[tuple[str, ...]] = []
+        build_finished = False
+
+        def build(*_args, **_kwargs):
+            nonlocal build_finished
+            build_finished = True
+
+        def isolated(name, _log):
+            self.assertTrue(build_finished)
+            if name == "dotnet-coverage":
+                coverage_started.set()
+                self.assertTrue(script_started.wait(5), "scripts did not overlap coverage")
+                coverage_failed.set()
+                raise RuntimeError("coverage probe")
+            self.assertTrue(coverage_started.wait(5))
+            script_started.set()
+            self.assertTrue(coverage_failed.wait(5))
+            completed.append(name)
+
+        def cleanup(*_args):
+            cleanup_snapshots.append(tuple(completed))
+
+        with (
+            patch.dict(os.environ, {MODULE.INTERNAL_LANE_ENVIRONMENT_VARIABLE: ""}),
+            patch.object(MODULE, "resolve_dotnet", return_value="selected-dotnet"),
+            patch.object(MODULE, "run_dotnet_build_plan", side_effect=build) as build_call,
+            patch.object(MODULE, "run_isolated_lane", side_effect=isolated),
+            patch.object(MODULE, "cleanup_dotnet_batch", side_effect=cleanup) as cleanup_call,
+            contextlib.redirect_stdout(io.StringIO()),
+            contextlib.redirect_stderr(io.StringIO()),
+        ):
+            self.assertEqual(1, MODULE.execute_verification(
+                MODULE.parse_args(["--skip-structure"])
+            ))
+        build_call.assert_called_once()
+        cleanup_call.assert_called_once()
+        self.assertTrue(coverage_failed.is_set(), "coverage never observed a live sibling")
+        self.assertEqual(1, len(cleanup_snapshots))
+        self.assertCountEqual(
+            [name for name, _ in MODULE.REPOSITORY_SCRIPT_TEST_SHARDS] + ["python"],
+            cleanup_snapshots[0],
+        )
+
+    def test_public_build_or_pool_setup_failure_and_cancellation_still_cleanup(self) -> None:
+        for phase in ("dotnet-build", "dotnet"):
+            for error in (RuntimeError("probe"), OSError("launch probe"), KeyboardInterrupt()):
+                with self.subTest(phase=phase, error=type(error).__name__):
+                    phases = []
+
+                    def fail_phase(lanes, **_kwargs):
+                        phases.append(lanes[0].name)
+                        if lanes[0].name == phase:
+                            raise error
+
+                    with (
+                        patch.dict(os.environ, {MODULE.INTERNAL_LANE_ENVIRONMENT_VARIABLE: ""}),
+                        patch.object(MODULE, "resolve_dotnet", return_value="selected-dotnet"),
+                        patch.object(MODULE, "run_selected_lanes", side_effect=fail_phase),
+                        patch.object(MODULE, "cleanup_dotnet_batch") as cleanup,
+                        contextlib.redirect_stderr(io.StringIO()),
+                    ):
+                        args = MODULE.parse_args(["--skip-structure"])
+                        if isinstance(error, (KeyboardInterrupt, OSError)):
+                            with self.assertRaises(type(error)):
+                                MODULE.execute_verification(args)
+                        else:
+                            self.assertEqual(1, MODULE.execute_verification(args))
+                    self.assertEqual(["dotnet-build"] if phase == "dotnet-build"
+                                     else ["dotnet-build", "dotnet"], phases)
+                    cleanup.assert_called_once()
+
+    def test_public_jobs_one_serializes_all_workloads_and_python_only_uses_pool(self) -> None:
+        for flags in (["--skip-structure", "--jobs=1"],
+                      ["--skip-structure", "--skip-dotnet", "--jobs=1"]):
+            with self.subTest(flags=flags):
+                calls = []
+                with (
+                    patch.dict(os.environ, {MODULE.INTERNAL_LANE_ENVIRONMENT_VARIABLE: ""}),
+                    patch.object(MODULE, "resolve_dotnet", return_value="selected-dotnet"),
+                    patch.object(MODULE, "run_dotnet_build_plan"),
+                    patch.object(MODULE, "run_isolated_lane",
+                                 side_effect=lambda name, _log: calls.append(name)),
+                    patch.object(MODULE, "cleanup_dotnet_batch") as cleanup,
+                    contextlib.redirect_stdout(io.StringIO()),
+                ):
+                    self.assertEqual(0, MODULE.execute_verification(MODULE.parse_args(flags)))
+                expected = [name for name, _ in MODULE.REPOSITORY_SCRIPT_TEST_SHARDS] + ["python"]
+                if "--skip-dotnet" not in flags:
+                    expected.insert(0, "dotnet-coverage")
+                    cleanup.assert_called_once()
+                else:
+                    cleanup.assert_not_called()
+                self.assertEqual(expected, calls)
+
+    def test_coverage_only_internal_owner_never_builds_or_shuts_down_sdk(self) -> None:
+        with (
+            patch.object(MODULE, "resolve_dotnet", return_value="selected-dotnet"),
+            patch.object(MODULE, "reset_coverage_directory", return_value=Path("coverage")),
+            patch.object(MODULE, "collect_local_dotnet_coverage") as collect,
+            patch.object(MODULE, "run_dotnet_build_plan") as build,
+            patch.object(MODULE, "cleanup_dotnet_batch") as cleanup,
+        ):
+            MODULE.run_internal_lane("dotnet-coverage")
+        collect.assert_called_once()
+        self.assertEqual("selected-dotnet", collect.call_args.args[0])
+        self.assertIsNone(collect.call_args.kwargs.get("projects"))
+        self.assertTrue(collect.call_args.kwargs.get("collect_coverage", True))
+        build.assert_not_called()
+        cleanup.assert_not_called()
 
     def test_public_single_phase_plans_keep_one_execution_phase(self) -> None:
         calls: list[list[str]] = []

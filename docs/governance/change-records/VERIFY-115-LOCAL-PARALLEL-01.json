@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 2,
+  "taskId": "VERIFY-115-LOCAL-PARALLEL-01",
+  "capability": "Overlap local verification after shared build without concurrent checkout restore or premature SDK cleanup",
+  "integrationBase": "204be0fb2220fedb16cb4037c25595e1a615b0ea",
+  "risk": "R2",
+  "kind": "behavior",
+  "state": "design-active",
+  "mutablePaths": [
+    "scripts/verify.py",
+    "tests/scripts/test_verify_orchestration.py"
+  ],
+  "implementationOwner": "parallel-verifier-implementer",
+  "searchEvidence": [
+    "scripts/verify.py: execute_verification, run_lanes, verification_test_session, run_dotnet_build_plan, collect_local_dotnet_coverage, cleanup_dotnet_batch",
+    "tests/scripts/test_verify_orchestration.py: full plan restore ordering, cancellation and isolated lane tests",
+    "Independent parallel_resource_audit: test_release_package_policy.py 2276-2389 uses detached RID restore but reads checkout locks; other examined build-server tests are stubs"
+  ],
+  "semanticOwner": "scripts/verify.py existing lane executor, build owner and shadow coverage collector",
+  "terminalContract": "Structure and checkout build finish before script/coverage overlap; every selected test and coverage gate remains; cleanup follows terminated lanes including failures; CI and release Golden paths unchanged",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "parallel_resource_audit",
+    "outcome": "approved",
+    "evidence": "Independent read-only review confirms build-first eliminates ROOT lock read/restore race; RID restore has no SDK shutdown; coverage executes immutable shadows. Preserve collector-local UI exclusive batches, do not claim global script/UI exclusivity. Cleanup finally covers setup, launch, workload failure and cancellation after lane termination. Full controlled timing and contention validation remain required."
+  },
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": {
+    "reviewer": null,
+    "outcome": "pending",
+    "evidence": ""
+  }
+}

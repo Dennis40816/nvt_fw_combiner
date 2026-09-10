@@ -5,7 +5,24 @@ The scheduling snapshot below was inspected on 2026-09-06 at
 `6c8552af6b5b497065a5b24867cc0e349de03e83` (`1.1.4`). Historical timings are
 explicitly **v1.1.3**, not fresh measurements of the current UI changes.
 
-## Execution map
+## v1.1.5 local scheduling change
+
+The local implementation now finishes structure checks and the existing
+checkout restore/build before submitting the test workloads together to the
+existing `--jobs` pool. The coverage-only workload is submitted first, followed
+by the three script shards and CRC worker. `--jobs=1` remains serial. SDK
+cleanup runs after the workload pool terminates, including failure paths.
+CI and release-Golden entry points retain their existing execution paths.
+
+UI exclusivity remains within the .NET collector: UI finishes before the other
+.NET projects start. It is not global exclusivity against Python subprocesses.
+The complete local run still needs measured contention, coverage and wall-clock
+validation; no ten-minute result is claimed by the scheduling change alone.
+
+The diagram and timings below preserve the pre-change v1.1.3/v1.1.4 baseline.
+Replace no historical timings with projected parallel durations.
+
+## Historical execution map
 
 Arrows mean prerequisites; sibling branches may overlap. Local verification,
 CI and release are separate invocations, not one pool of parallel processes.
@@ -48,7 +65,7 @@ flowchart TD
 
 Source owners: [`selected_lanes` / `execute_verification` / `collect_local_dotnet_coverage`](../scripts/verify.py),
 [`ci.yml`](../.github/workflows/ci.yml), [`release.yml`](../.github/workflows/release.yml).
-The local top-level loop submits **one lane at a time** even when the displayed
+At the historical baseline, the local top-level loop submits **one lane at a time** even when the displayed
 `--jobs` value is three. UI coverage is exclusive; the remaining project pool
 is partially parallel. Infrastructure additionally disables test-collection
 parallelism inside its own process. CI test shards do not wait for the separate
