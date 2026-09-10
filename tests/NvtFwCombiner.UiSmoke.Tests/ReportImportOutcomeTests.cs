@@ -99,32 +99,37 @@ public sealed class ReportImportOutcomeTests
     [InlineData(true)]
     public async Task StoredSuccessMetadataIsReassessedForUnknownRaw(bool chinese)
     {
-        MainWindowViewModel shell = PresentationTestHost.CreateViewModel();
-        shell.Reports.LoadReportJson(ReportJsonSamples.Succeeded(), "control.json");
-        ReportHistoryMetadataSnapshot stale = Assert.Single(shell.Reports.ExportReportHistory()).Metadata;
-        shell.SelectedLanguage = chinese ? "Traditional Chinese" : "English";
-        IReadOnlyList<ReportHistorySnapshot> snapshots =
-        [new("first.json", "{}", string.Empty, stale), new("second.json", "{\"other\":1}", string.Empty, stale)];
-        _ = await shell.Reports.LoadReportHistoryAsync(
-            _ => Task.FromResult(snapshots), TestContext.Current.CancellationToken);
-        string expected = chinese ? "未知" : "Unknown";
-        Assert.Equal(2, shell.Reports.ReportHistoryCount);
-        Assert.All(shell.Reports.ReportHistoryEntries, entry =>
+        using var uiThread = new UiThreadTestContext();
+        await uiThread.InvokeAsync(async () =>
         {
-            Assert.Equal(expected, entry.Status);
-            Assert.False(entry.IsSuccess);
-            Assert.False(entry.IsWarning);
-            Assert.False(entry.IsError);
+            MainWindowViewModel shell = await PresentationTestHost.CreateViewModelAsync(
+                TestContext.Current.CancellationToken);
+            shell.Reports.LoadReportJson(ReportJsonSamples.Succeeded(), "control.json");
+            ReportHistoryMetadataSnapshot stale = Assert.Single(shell.Reports.ExportReportHistory()).Metadata;
+            shell.SelectedLanguage = chinese ? "Traditional Chinese" : "English";
+            IReadOnlyList<ReportHistorySnapshot> snapshots =
+            [new("first.json", "{}", string.Empty, stale), new("second.json", "{\"other\":1}", string.Empty, stale)];
+            _ = await shell.Reports.LoadReportHistoryAsync(
+                _ => Task.FromResult(snapshots), TestContext.Current.CancellationToken);
+            string expected = chinese ? "未知" : "Unknown";
+            Assert.Equal(2, shell.Reports.ReportHistoryCount);
+            Assert.All(shell.Reports.ReportHistoryEntries, entry =>
+            {
+                Assert.Equal(expected, entry.Status);
+                Assert.False(entry.IsSuccess);
+                Assert.False(entry.IsWarning);
+                Assert.False(entry.IsError);
+            });
+            await shell.Reports.OpenReportHistoryEntryAsyncCommand.ExecuteAsync(shell.Reports.ReportHistoryEntries[1]);
+            Assert.Equal(expected, shell.Reports.LoadedReport.OutcomeTitle);
+            Assert.Equal("{\"other\":1}", shell.Reports.LoadedReportJson);
+            Assert.Equal(snapshots.Select(item => item.ReportJson), shell.Reports.ExportReportHistory().Select(item => item.ReportJson));
+            shell.SelectedLanguage = chinese ? "English" : "Traditional Chinese";
+            if (shell.Reports.RelocalizationTask is { } relocalization)
+            {
+                await relocalization;
+            }
+            Assert.Equal(chinese ? "Unknown" : "未知", shell.Reports.LoadedReport.OutcomeTitle);
         });
-        await shell.Reports.OpenReportHistoryEntryAsyncCommand.ExecuteAsync(shell.Reports.ReportHistoryEntries[1]);
-        Assert.Equal(expected, shell.Reports.LoadedReport.OutcomeTitle);
-        Assert.Equal("{\"other\":1}", shell.Reports.LoadedReportJson);
-        Assert.Equal(snapshots.Select(item => item.ReportJson), shell.Reports.ExportReportHistory().Select(item => item.ReportJson));
-        shell.SelectedLanguage = chinese ? "English" : "Traditional Chinese";
-        if (shell.Reports.RelocalizationTask is { } relocalization)
-        {
-            await relocalization;
-        }
-        Assert.Equal(chinese ? "Unknown" : "未知", shell.Reports.LoadedReport.OutcomeTitle);
     }
 }
