@@ -157,6 +157,35 @@ and cancellation/failure join-before-cleanup. The cancellation regression first
 failed before the post-join cancellation check was added. These are local unit
 and preparation measurements, not a complete verifier result.
 
+### First complete passing parallel candidate — 2026-09-11
+
+Exact source: `3b646c9d2f546ce9ea6f44a1b88527a58d7fc3a8`, Windows,
+SDK 10.0.301, `python scripts/verify.py --all`, default three outer worker slots.
+The complete command passed, exit 0, in **989.86 s (16 min 30 s)**, including
+setup, SDK shutdown and session cleanup. Source remained frozen throughout.
+
+| Phase / lane | Seconds | Result |
+| --- | ---: | --- |
+| Structure | 192.6 | PASS; derived sync changed zero files |
+| Shared restore/build | 80.5 | PASS; build zero warnings/errors |
+| .NET coverage | 709.6 | PASS; 6,140 tests, zero skipped |
+| Script modules | overlapping | PASS; 1,049 cases, including the previously omitted 61 |
+| CRC worker | 9.6 | PASS; 30 cases, 100% line/branch coverage |
+
+The UI command passed 1,265 cases in 411.0 s; Bootstrap passed 1,251 and
+Infrastructure 1,074. .NET coverage measured 91.30% lines (79,673/87,265)
+and 79.94% branches (26,786/33,509), satisfying the existing coverage policy.
+Project test counts are not by themselves a certified Golden case inventory.
+Raw output and the complete stopwatch footer are retained in
+`NFC_TEST_AREA_ROOT/evidence/v115-snapshot-pool-first/verify-all.log`.
+
+**The ten-minute target is not met.** The earlier 988.40 s run failed and omitted
+pytest cases; its elapsed time is not a successful like-for-like baseline. The
+isolated snapshot speedup did not produce a material whole-command reduction
+in this run. Structure/build remain serial prerequisites totaling 273.1 s,
+and full-load .NET collection plus script scheduling must be assessed together.
+No test, coverage threshold, timeout or expected Golden bytes were relaxed.
+
 ## Historical execution map
 
 Arrows mean prerequisites; sibling branches may overlap. Local verification,
