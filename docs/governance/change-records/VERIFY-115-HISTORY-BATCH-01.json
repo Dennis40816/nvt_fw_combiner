@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 2,
+  "taskId": "VERIFY-115-HISTORY-BATCH-01",
+  "capability": "Batch immutable post-final commit path reads without reducing governance audits",
+  "integrationBase": "a20051d6805f548a6935b86867db1b791d7af19f",
+  "risk": "R2",
+  "kind": "behavior",
+  "state": "design-active",
+  "mutablePaths": [
+    "scripts/validate_repository.py",
+    "tests/scripts/test_agent_governance.py"
+  ],
+  "implementationOwner": "primary-agent",
+  "searchEvidence": [
+    "scripts/validate_repository.py: _ImmutableHistoryAuditCache, _record_changed_in_commits_after, _parse_git_name_status, _is_tree_transparent_containment_merge",
+    "tests/scripts/test_agent_governance.py: overlapping_final_record_audits_diff_each_unique_commit_once and containment/immutable-history tests",
+    "c835d441 cProfile: 482 first-read diff-tree subprocesses within the existing immutable history cache; full validator 248.41s, governance 215.53s"
+  ],
+  "semanticOwner": "scripts/validate_repository.py existing immutable history audit and merge classification",
+  "terminalContract": "Preserve complete history, candidate order, rename endpoints, all merge-parent changes, empty commits, first failing audit and existing containment decisions; batch only previously uncached immutable commit diffs; malformed, missing or failed Git results fail closed; no mutable index snapshot or cross-invocation cache",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "parallel_resource_audit",
+    "outcome": "approved",
+    "evidence": "Independent read-only design review selects diff-tree --stdin to populate existing changed_paths cache. Preserve name-status -z -r -m --find-renames semantics, explicit commit framing including repeated merge headers and empty diffs, original candidate consumption and containment helper. Require real-Git differential, rename/merge/no-change/tamper tests, malformed/missing/nonzero failures and exact-once cache coverage. Savings remain unproven until measurement."
+  },
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": {
+    "reviewer": null,
+    "outcome": "pending",
+    "evidence": ""
+  }
+}

@@ -50,6 +50,16 @@ Local raw evidence is under `NFC_TEST_AREA_ROOT/evidence/v115-parallel-first`
 (`verify-all.log`, `timing.json`) and `evidence/v115-report-import-repro` (TRX).
 No successful complete-run reduction percentage is claimed from this result.
 
+Follow-up diagnostic profiling of `scripts/validate_repository.py` at
+`c835d441` completed successfully in 248.41 s under `cProfile`. Governance
+validation accounted for 215.53 s; 2,905 `subprocess.run` calls accounted for
+214.75 s cumulatively. Selected nested costs were 63.54 s for post-final
+record-change checks, 50.03 s for 258 index-blob reads, and 27.42 s for 190
+path-state digests. These nested durations overlap and must not be added.
+The profile (`validator-profile.pstats` beside the first-run log) identifies
+optimization candidates, not a fresh wall-clock baseline: instrumentation and
+overlapping narrow UI diagnostics differ from the original full-run conditions.
+
 ## Historical execution map
 
 Arrows mean prerequisites; sibling branches may overlap. Local verification,

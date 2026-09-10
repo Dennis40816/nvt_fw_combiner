@@ -1028,8 +1028,84 @@ class AgentGovernanceTests(unittest.TestCase):
         ]
         self.assertEqual([], errors)
         self.assertEqual(1, len(ancestry_commands))
-        self.assertEqual(2, len(diff_tree_commands))
-        self.assertEqual(2, len({tuple(command) for command in diff_tree_commands}))
+        self.assertEqual(1, len(diff_tree_commands))
+        self.assertIn("--stdin", diff_tree_commands[0])
+
+    def test_commit_path_batch_matches_individual_diffs_including_empty_and_rename(self) -> None:
+        self._git("commit", "--allow-empty", "-q", "-m", "empty")
+        empty = self._git("rev-parse", "HEAD").stdout.strip()
+        self._git("mv", "scratch/Source.cs", "scratch/Renamed.cs")
+        self._git("commit", "-q", "-m", "rename")
+        renamed = self._git("rev-parse", "HEAD").stdout.strip()
+        actual, error = repository_validator._read_commit_path_batch(self.root, [empty, renamed])
+        self.assertIsNone(error)
+        self.assertEqual(frozenset(), actual[empty])
+        self.assertEqual(frozenset({"scratch/Source.cs", "scratch/Renamed.cs"}), actual[renamed])
+        for revision in (empty, renamed):
+            output = subprocess.check_output(
+                ["git", "diff-tree", "--no-commit-id", "--name-status", "-z", "-r", "-m", "--find-renames", revision, "--"],
+                cwd=self.root,
+            )
+            self.assertEqual(_parse_git_name_status(output), actual[revision])
+
+    def test_commit_path_batch_rejects_incomplete_or_foreign_frames(self) -> None:
+        revision = self.integration_base.encode("ascii")
+        outputs = [b"", revision, revision + b"\0M\0", b"f" * 40 + b"\0", b"M\0file\0"]
+        for output in outputs:
+            with self.subTest(output=output), mock.patch.object(
+                repository_validator.subprocess, "run",
+                return_value=subprocess.CompletedProcess([], 0, output, b""),
+            ):
+                actual, error = repository_validator._read_commit_path_batch(self.root, [self.integration_base])
+                self.assertEqual({}, actual)
+                self.assertIsNotNone(error)
+
+    def test_commit_path_batch_rejects_failed_git(self) -> None:
+        with mock.patch.object(repository_validator.subprocess, "run",
+                               return_value=subprocess.CompletedProcess([], 1, b"", b"read failed")):
+            actual, error = repository_validator._read_commit_path_batch(self.root, [self.integration_base])
+        self.assertEqual({}, actual)
+        self.assertEqual("read failed", error)
+
+    def test_commit_path_batch_unions_real_merge_parent_differences(self) -> None:
+        self._git("checkout", "-q", "-b", "side")
+        self._write("scratch/side.txt", "side\n")
+        self._git("add", ".")
+        self._git("commit", "-q", "-m", "side")
+        self._git("checkout", "-q", "-b", "trunk", self.integration_base)
+        self._write("scratch/trunk.txt", "trunk\n")
+        self._git("add", ".")
+        self._git("commit", "-q", "-m", "trunk")
+        self._git("merge", "-q", "--no-ff", "side", "-m", "join")
+        revision = self._git("rev-parse", "HEAD").stdout.strip()
+        actual, error = repository_validator._read_commit_path_batch(self.root, [revision])
+        self.assertIsNone(error)
+        output = subprocess.check_output(
+            ["git", "diff-tree", "--no-commit-id", "--name-status", "-z", "-r", "-m", "--find-renames", revision, "--"],
+            cwd=self.root,
+        )
+        self.assertEqual(_parse_git_name_status(output), actual[revision])
+        self.assertEqual({"scratch/side.txt", "scratch/trunk.txt"}, actual[revision])
+
+    def test_commit_path_batch_requires_every_requested_frame_and_complete_rename(self) -> None:
+        first, second = "1" * 40, "2" * 40
+        for output in (first.encode() + b"\0", (first + "\0" + second).encode() + b"\0R100\0old\0"):
+            with self.subTest(output=output), mock.patch.object(
+                repository_validator.subprocess, "run",
+                return_value=subprocess.CompletedProcess([], 0, output, b""),
+            ):
+                actual, error = repository_validator._read_commit_path_batch(self.root, [first, second])
+                self.assertEqual({}, actual)
+                self.assertIsNotNone(error)
+
+    def test_commit_path_batch_preserves_sha_shaped_filename(self) -> None:
+        revision, filename = "1" * 40, "2" * 40
+        output = (revision + "\0M\0" + filename + "\0").encode()
+        with mock.patch.object(repository_validator.subprocess, "run",
+                               return_value=subprocess.CompletedProcess([], 0, output, b"")):
+            actual, error = repository_validator._read_commit_path_batch(self.root, [revision])
+        self.assertIsNone(error)
+        self.assertEqual({revision: frozenset({filename})}, actual)
 
     def test_committed_final_record_cannot_be_tampered(self) -> None:
         self._commit_candidate_with_active_record()
