@@ -10,7 +10,11 @@ explicitly **v1.1.3**, not fresh measurements of the current UI changes.
 The local implementation now finishes structure checks and the existing
 checkout restore/build before submitting the test workloads together to the
 existing `--jobs` pool. The coverage-only workload is submitted first, followed
-by the three script shards and CRC worker. `--jobs=1` remains serial. SDK
+by complete script test modules and the CRC worker. Each module retains its
+original shard's shared deadline, beginning at that shard's first module start;
+queued modules consume the remaining budget and fail without launching if it
+expires. The validated CI shard inventory remains the source of membership.
+`--jobs=1` remains serial. SDK
 cleanup runs after the workload pool terminates, including failure paths.
 CI and release-Golden entry points retain their existing execution paths.
 
@@ -59,6 +63,13 @@ path-state digests. These nested durations overlap and must not be added.
 The profile (`validator-profile.pstats` beside the first-run log) identifies
 optimization candidates, not a fresh wall-clock baseline: instrumentation and
 overlapping narrow UI diagnostics differ from the original full-run conditions.
+The follow-up profile at `a4cbc558` (`validator-profile-batched.pstats`) took
+194.68 s with 2,429 subprocess calls and 161.23 s in governance validation.
+Compared with the earlier diagnostic profile, this is 53.73 s less total time
+(21.6%), not a controlled full-verifier speedup. This profiled invocation reported
+the expected unfinished `design-active` record error and is not a validation
+PASS; final evidence was subsequently validated separately and committed in
+`abd26b2b`.
 
 ## Historical execution map
 

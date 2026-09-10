@@ -776,8 +776,7 @@ class VerifyOrchestrationTests(unittest.TestCase):
                     MODULE.DEFAULT_LANE_TIMEOUT_SECONDS,
                 ),
                 (
-                    ["dotnet", "repository-scripts-a-q", "repository-scripts-r",
-                     "repository-scripts-s-z", "python"],
+                    ["dotnet", *(lane.name for lane in MODULE.local_repository_script_lanes()), "python"],
                     MODULE.DEFAULT_VERIFY_JOBS,
                     MODULE.DEFAULT_LANE_TIMEOUT_SECONDS,
                 ),
@@ -844,6 +843,8 @@ class VerifyOrchestrationTests(unittest.TestCase):
             patch.object(MODULE, "resolve_dotnet", return_value="selected-dotnet"),
             patch.object(MODULE, "run_dotnet_build_plan", side_effect=build) as build_call,
             patch.object(MODULE, "run_isolated_lane", side_effect=isolated),
+            patch.object(MODULE, "verify_repository_scripts",
+                         side_effect=lambda log, pattern: isolated(Path(pattern).stem, log)),
             patch.object(MODULE, "cleanup_dotnet_batch", side_effect=cleanup) as cleanup_call,
             contextlib.redirect_stdout(io.StringIO()),
             contextlib.redirect_stderr(io.StringIO()),
@@ -856,7 +857,7 @@ class VerifyOrchestrationTests(unittest.TestCase):
         self.assertTrue(coverage_failed.is_set(), "coverage never observed a live sibling")
         self.assertEqual(1, len(cleanup_snapshots))
         self.assertCountEqual(
-            [name for name, _ in MODULE.REPOSITORY_SCRIPT_TEST_SHARDS] + ["python"],
+            [lane.name for lane in MODULE.local_repository_script_lanes()] + ["python"],
             cleanup_snapshots[0],
         )
 
@@ -899,13 +900,15 @@ class VerifyOrchestrationTests(unittest.TestCase):
                     patch.object(MODULE, "run_dotnet_build_plan"),
                     patch.object(MODULE, "run_isolated_lane",
                                  side_effect=lambda name, _log: calls.append(name)),
+                    patch.object(MODULE, "verify_repository_scripts",
+                                 side_effect=lambda _log, pattern: calls.append(Path(pattern).stem)),
                     patch.object(MODULE, "cleanup_dotnet_batch") as cleanup,
                     contextlib.redirect_stdout(io.StringIO()),
                 ):
                     self.assertEqual(0, MODULE.execute_verification(MODULE.parse_args(flags)))
                 expected = [name for name, _ in MODULE.REPOSITORY_SCRIPT_TEST_SHARDS] + ["python"]
                 if "--skip-dotnet" not in flags:
-                    expected.insert(0, "dotnet-coverage")
+                    expected = ["dotnet-coverage", *(lane.name for lane in MODULE.local_repository_script_lanes()), "python"]
                     cleanup.assert_called_once()
                 else:
                     cleanup.assert_not_called()
@@ -1057,6 +1060,130 @@ class VerifyOrchestrationTests(unittest.TestCase):
             [("structure", True), ("python", True), ("dotnet", True)],
             [(result.name, result.succeeded) for result in results],
         )
+
+    def test_local_module_inventory_executes_each_complete_module_once(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            names = ("test_alpha.py", "test_release.py", "test_zeta.py")
+            for name in names:
+                (root / name).touch()
+            with patch.object(MODULE, "REPOSITORY_SCRIPT_TESTS", root):
+                lanes = MODULE.local_repository_script_lanes()
+                self.assertEqual([Path(name).stem for name in names], [lane.name for lane in lanes])
+                self.assertEqual([name for name, _ in MODULE.REPOSITORY_SCRIPT_TEST_SHARDS],
+                                 [lane.deadline_group for lane in lanes])
+                with patch.object(MODULE, "verify_repository_scripts") as verify:
+                    for lane in lanes:
+                        self.assertFalse(lane.isolate_action)
+                        lane.action(None)
+                self.assertEqual(list(names), [call.args[1] for call in verify.call_args_list])
+                (root / "test_future.py").touch()
+                expanded = MODULE.local_repository_script_lanes()
+                self.assertCountEqual([*names, "test_future.py"],
+                                      [lane.name + ".py" for lane in expanded])
+                (root / "test_0_unassigned.py").touch()
+                with self.assertRaisesRegex(RuntimeError, "exactly once"):
+                    MODULE.local_repository_script_lanes()
+
+    def test_group_budget_includes_queued_time_but_other_groups_get_fresh_budget(self) -> None:
+        clock = [100.0]
+        calls = []
+
+        def consume_budget(_log):
+            calls.append(("first", MODULE.LANE_DEADLINE.get()))
+            clock[0] = 111.0
+
+        def record(name):
+            return lambda _log: calls.append((name, MODULE.LANE_DEADLINE.get()))
+
+        lanes = (
+            MODULE.VerificationLane("first", consume_budget, deadline_group="original-shard"),
+            MODULE.VerificationLane("expired", record("expired"), deadline_group="original-shard"),
+            MODULE.VerificationLane("other", record("other"), deadline_group="other-shard"),
+            MODULE.VerificationLane("ungrouped", record("ungrouped")),
+        )
+        with tempfile.TemporaryDirectory() as temporary, patch.object(
+            MODULE, "monotonic", side_effect=lambda: clock[0]
+        ):
+            results = MODULE.run_lanes(lanes, jobs=1, log_directory=Path(temporary),
+                                       lane_timeout_seconds=10)
+            again = MODULE.run_lanes(lanes[1:2], jobs=1, log_directory=Path(temporary),
+                                     lane_timeout_seconds=10)
+        self.assertEqual([False, False, True, True], [result.succeeded for result in results])
+        self.assertIn("TimeoutExpired", results[1].error)
+        self.assertEqual([("first", 110), ("other", 121), ("ungrouped", 121),
+                          ("expired", 121)], calls)
+        self.assertTrue(again[0].succeeded, "a later invocation must not inherit group state")
+
+    def test_parallel_group_members_share_one_deadline_and_keep_failure_isolated(self) -> None:
+        barrier = threading.Barrier(3)
+        deadlines = []
+
+        def member(log):
+            deadlines.append(MODULE.LANE_DEADLINE.get())
+            barrier.wait(timeout=5)
+            log.write_text(log.stem, encoding="utf-8")
+            if log.stem == "first":
+                raise RuntimeError("member failed")
+
+        lanes = tuple(MODULE.VerificationLane(name, member, deadline_group="shard")
+                      for name in ("first", "second", "third"))
+        with tempfile.TemporaryDirectory() as temporary:
+            results = MODULE.run_lanes(lanes, jobs=3, log_directory=Path(temporary))
+            self.assertEqual(["first", "second", "third"],
+                             [result.log_path.read_text(encoding="utf-8") for result in results])
+        self.assertEqual([False, True, True], [result.succeeded for result in results])
+        self.assertEqual(3, len(deadlines))
+        self.assertEqual(1, len(set(deadlines)))
+
+    def test_grouped_module_timeout_and_cancellation_terminate_managed_descendants(self) -> None:
+        for mode in ("timeout", "cancel"):
+            with self.subTest(mode=mode), tempfile.TemporaryDirectory() as temporary:
+                root = Path(temporary)
+                ready = root / "child-ready"
+                orphan = root / "orphan"
+                child = (
+                    "from pathlib import Path; import time; "
+                    f"Path({str(ready)!r}).touch(); time.sleep(0.8); "
+                    f"Path({str(orphan)!r}).touch()"
+                )
+                (root / "test_a_probe.py").write_text(
+                    "import subprocess, sys, time, unittest\n"
+                    "class Probe(unittest.TestCase):\n"
+                    "    def test_wait(self):\n"
+                    f"        subprocess.Popen([sys.executable, '-c', {child!r}])\n"
+                    "        time.sleep(10)\n",
+                    encoding="utf-8",
+                )
+                owner = MODULE.repository_script_test_action("test_a_probe.py")
+
+                def action(log):
+                    if mode == "timeout":
+                        with patch.object(MODULE, "remaining_timeout",
+                                          side_effect=self.timeout_after_file_exists(ready, 0.1)):
+                            owner(log)
+                    else:
+                        owner(log)
+
+                def interrupt_after_ready(_futures):
+                    self.timeout_after_file_exists(ready)()
+                    raise KeyboardInterrupt
+
+                lanes = (MODULE.VerificationLane("test_a_probe", action, deadline_group="shard"),
+                         MODULE.VerificationLane("peer", lambda _log: None))
+                with patch.object(MODULE, "REPOSITORY_SCRIPT_TESTS", root):
+                    if mode == "cancel":
+                        with patch.object(MODULE, "as_completed", side_effect=interrupt_after_ready):
+                            with self.assertRaises(KeyboardInterrupt):
+                                MODULE.run_lanes(lanes, jobs=3, log_directory=root / "logs")
+                    else:
+                        results = MODULE.run_lanes(lanes[:1], jobs=1, log_directory=root / "logs")
+                        self.assertFalse(results[0].succeeded)
+                        self.assertIn("TimeoutExpired", results[0].error)
+                self.assertTrue(ready.exists())
+                self.assertFalse(MODULE.ACTIVE_PROCESSES)
+                time.sleep(0.9)
+                self.assertFalse(orphan.exists(), "a managed module descendant survived")
 
     def test_parallel_lanes_collect_all_results_and_keep_logs_isolated(self) -> None:
         calls: list[str] = []

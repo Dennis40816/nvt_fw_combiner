@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 2,
+  "taskId": "VERIFY-115-MODULE-POOL-01",
+  "capability": "Schedule complete local script test modules with shared original shard deadlines",
+  "integrationBase": "abd26b2b723fc5e579d7954f66a44b8970ec68c7",
+  "risk": "R2",
+  "kind": "behavior",
+  "state": "design-active",
+  "mutablePaths": [
+    "scripts/verify.py",
+    "tests/scripts/test_verify_orchestration.py",
+    "docs/ci/release-package.md"
+  ],
+  "implementationOwner": "parallel_verifier_implementer (verifier/tests); primary-agent (documentation)",
+  "searchEvidence": [
+    "scripts/verify.py: repository_script_test_shards, repository_script_test_action, selected_lanes, execute_verification, run_lanes, run/start_owned_process",
+    "tests/scripts/test_verify_orchestration.py: inventory, jobs, pool ordering, deadlines, cancellation and cleanup regressions",
+    "Independent parallel_resource_audit: 37 complete script modules; default three-slot coarse pool has avoidable tail; direct managed unittest action retains existing process owner"
+  ],
+  "semanticOwner": "scripts/verify.py existing validated inventory, lane executor and owned-process cancellation",
+  "terminalContract": "Local full verification executes every validated script module exactly once through existing managed unittest owner; original shard shares one deadline from first module start including queue time; expired work fails without starting; jobs cap, all other lanes, CI shard inventory, coverage and Golden unchanged; cleanup joins all work",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "parallel_resource_audit",
+    "outcome": "approved",
+    "evidence": "Independent design review accepts invocation-local deadline_group dictionary and lock in run_lanes. Set shared deadline before action and check remaining_timeout before process start. Preserve unique logs/results, fail expired modules explicitly, independent group budgets, ungrouped CI/dotnet/python behavior and managed descendant termination. Require inventory exact-once, jobs1/3, shared deadlines, expired queued work, failure isolation and cancellation regressions. No new scheduler or arbitrary path dispatch."
+  },
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": {
+    "reviewer": null,
+    "outcome": "pending",
+    "evidence": ""
+  }
+}

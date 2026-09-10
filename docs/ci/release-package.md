@@ -320,9 +320,16 @@ The stable `python-worker / verify` check includes all three repository-script
 shards: CI runs them on independent Windows matrix runners, then rejects any
 non-success matrix result before running the worker-only lane. Each invocation
 uses the existing verifier's exhaustive/disjoint partition, session custody and
-deadline. Local `verify.py --all` keeps serial lanes to avoid shared lock-file
-and temporary-directory mutation; this is CI runner isolation, not a new local
-scheduler or a reduction in tests.
+deadline. The v1.1.5 local `verify.py --all` path completes structure checks
+and shared checkout restore/build before overlapping test workloads through the
+existing bounded lane pool. Local script work is scheduled as complete test
+modules from the same exhaustive/disjoint inventory, with one shared deadline
+per original shard, starting at that shard's first module. Queue time after that
+start consumes the same budget; expired modules fail without starting. This does
+not increase the shard timeout or remove tests. SDK cleanup follows termination
+of all workloads, including failures. CI keeps its independent Windows matrix
+runners and original shard entry points; local scheduling does not replace
+source-CI or release-Golden evidence.
 This is refreshed at the existing candidate, pre-tag and Release-mutation
 boundaries. Earlier version policies remain unchanged, and this prerequisite
 does not itself waive required source CI or fresh Golden execution. Candidate

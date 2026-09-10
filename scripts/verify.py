@@ -323,6 +323,7 @@ class VerificationLane:
     action: LaneAction
     isolate_action: bool = False
     internal_name: str | None = None
+    deadline_group: str | None = None
 
 
 @dataclass(frozen=True)
@@ -4855,6 +4856,20 @@ def repository_script_test_action(pattern: str) -> LaneAction:
     return run_lane
 
 
+def local_repository_script_lanes() -> tuple[VerificationLane, ...]:
+    """Split validated local shards into complete modules without extending their budget."""
+
+    return tuple(
+        VerificationLane(
+            path.stem,
+            repository_script_test_action(path.name),
+            deadline_group=name,
+        )
+        for name, pattern in repository_script_test_shards()
+        for path in sorted(REPOSITORY_SCRIPT_TESTS.glob(pattern))
+    )
+
+
 def ci_python_lane(name: str) -> VerificationLane:
     """Select one existing Python owner after validating the complete partition."""
 
@@ -4956,12 +4971,19 @@ def run_lanes(
     if len(names) != len(set(names)):
         raise ValueError("verification lane names must be unique")
     log_directory.mkdir(parents=True, exist_ok=True)
+    group_deadlines: dict[str, float] = {}
+    group_deadlines_lock = threading.Lock()
 
     def run_lane(lane: VerificationLane) -> LaneResult:
         log_path = log_directory / f"{lane.name}.log"
         started = monotonic()
-        deadline_token = LANE_DEADLINE.set(started + lane_timeout_seconds)
+        deadline = started + lane_timeout_seconds
+        if lane.deadline_group is not None:
+            with group_deadlines_lock:
+                deadline = group_deadlines.setdefault(lane.deadline_group, deadline)
+        deadline_token = LANE_DEADLINE.set(deadline)
         try:
+            remaining_timeout()
             if lane.isolate_action:
                 run_isolated_lane(lane.internal_name or lane.name, log_path)
             else:
@@ -5203,7 +5225,8 @@ def execute_verification(args: argparse.Namespace) -> int:
                     (VerificationLane(
                         "dotnet", verify_local_dotnet_coverage,
                         isolate_action=True, internal_name="dotnet-coverage",
-                    ), *(lane for lane in workloads if lane.name != "dotnet")),
+                    ), *local_repository_script_lanes(),
+                     *(lane for lane in workloads if lane.name == "python")),
                     jobs=args.jobs,
                     lane_timeout_seconds=args.lane_timeout_seconds,
                 )
