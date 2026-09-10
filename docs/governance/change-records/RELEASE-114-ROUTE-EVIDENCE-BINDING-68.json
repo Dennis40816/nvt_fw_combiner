@@ -1,0 +1,33 @@
+{
+  "schemaVersion": 2,
+  "taskId": "RELEASE-114-ROUTE-EVIDENCE-BINDING-68",
+  "capability": "Synchronize existing canonical route evidence with reviewed CtrlRAM display-context fingerprints",
+  "integrationBase": "a0fc6a9f816ee677c87283d8e3c708d293be1482",
+  "risk": "R3",
+  "kind": "release",
+  "state": "design-active",
+  "mutablePaths": [
+    "testdata/golden/canonical/manifest.json"
+  ],
+  "implementationOwner": "primary-agent",
+  "searchEvidence": [
+    "Formal candidate cb2d61c2 failed canonical validation with10unknown old evidenceIds and one missingIDs aggregate. Narrow validator reproduced11errors; no Golden output execution or byte failure claimed.",
+    "memory_coverage_inventory compared unit58 policy changes against unchanged canonical root manifest:10route identities bumped but binding omitted; evidence.value unchanged, route/kind/case/test/contracts unchanged. TwoNT51950cascade aliases explicitly reference changed NT51951source fingerprint. Existing sync_derived providers do not own this projection."
+  ],
+  "semanticOwner": "canonical capability policy owns current route/evidence identity; canonical manifest owns evidence linkage; canonical_golden_validation.py enforces exact route/fingerprint/alias closure",
+  "terminalContract": "Update only10same-route evidenceId/capabilityFingerprint pairs and twoexplicit alias sourceCapabilityFingerprint values from current reviewed policy. Preserve allcase manifests, artifact bytes/hashes, expectedoutputcontracts, routeId/kind/caseId/scope/testreferences, source route IDs, releaseallowlist, support and certificationrank. No new Golden certification. Require field-level diff audit, canonical validator and alias regressions; retain freshreleaseGolden and exact-head R3owner obligations.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "report_commit_inventory",
+    "outcome": "approved",
+    "evidence": "Independent R3 metadata-only design admission APPROVED at cb2d61c2: exact10pairs+2explicit-sourcefingerprints, preserve all evidence semantics/payloads/support, field-leveldiff and actualcanonical/alias tests; new sourcefreeze and independentfinalreview, no automaticframework or record58rewrite."
+  },
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": {
+    "reviewer": null,
+    "outcome": "pending",
+    "evidence": ""
+  }
+}
