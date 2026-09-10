@@ -5,7 +5,7 @@
   "integrationBase": "e442fff926eca930bcee062360a99b49c14a805f",
   "risk": "R1",
   "kind": "ui",
-  "state": "design-active",
+  "state": "final-complete",
   "mutablePaths": [
     "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/WorkflowSessionPresentationViewModel.Slots.cs"
   ],
@@ -22,8 +22,12 @@
     "outcome": "not-required",
     "evidence": "Bounded local R1 under ADR0070; independent scoped correctness review and existing navigation tests required before finalization."
   },
-  "implementationHead": null,
-  "reviewedHead": null,
-  "pathStateDigest": null,
-  "finalReview": { "reviewer": null, "outcome": "pending", "evidence": "" }
+  "implementationHead": "e7f69878ecc8ac176350f76fb6f991b54f61b357",
+  "reviewedHead": "e7f69878ecc8ac176350f76fb6f991b54f61b357",
+  "pathStateDigest": "198248bd7544521519661817a2c3ed12d28c13accf9fa9de14214c482ad54575",
+  "finalReview": {
+    "reviewer": "memory_coverage_inventory",
+    "outcome": "approved",
+    "evidence": "Frozen-head scoped PASS at e7f69878: exactly two navigation consumers enumerate the existing retained AB cache; Distinct, inspection invalidation and ClearFirmwareSlot remain unchanged, with no new semantic owner or filesystem deletion. Primary reviewed implementation and verified existing navigation regression 9/9 passed, zero skipped, at D:/NvtFwCombiner-TestArea/evidence/v114-navigation-cache/navigation-cache-green.trx. Independent reviewer reused this test evidence rather than rerunning it. Full candidate verification, Golden, CI and publication remain required."
+  }
 }

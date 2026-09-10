@@ -5,7 +5,7 @@
   "integrationBase": "e442fff926eca930bcee062360a99b49c14a805f",
   "risk": "R1",
   "kind": "ui",
-  "state": "design-active",
+  "state": "final-complete",
   "mutablePaths": [
     "src/NvtFwCombiner.Presentation.Avalonia/Resources/MainWindowPageTemplates.axaml",
     "src/NvtFwCombiner.Presentation.Avalonia/Resources/MainWindowSharedTemplates.axaml",
@@ -26,8 +26,12 @@
     "outcome": "not-required",
     "evidence": "Bounded local R1 under ADR0070; scoped independent review and affected tests precede integration finalization."
   },
-  "implementationHead": null,
-  "reviewedHead": null,
-  "pathStateDigest": null,
-  "finalReview": { "reviewer": null, "outcome": "pending", "evidence": "" }
+  "implementationHead": "e7f69878ecc8ac176350f76fb6f991b54f61b357",
+  "reviewedHead": "e7f69878ecc8ac176350f76fb6f991b54f61b357",
+  "pathStateDigest": "58d4f48f75d30cff99501adca7df5d35da5d16d4e735ae4b66d07eaad24f7f71",
+  "finalReview": {
+    "reviewer": "memory_coverage_inventory",
+    "outcome": "approved",
+    "evidence": "Frozen-head scoped PASS at e7f69878: all four blobs match independent source review; existing equal-valued Light/Dark shared spacing, font and corner resources only. No geometry, interaction or firmware change. Primary verified 255/255 XAML, animation and selector tests, including exact rerun of all 20 original XAML failures, in D:/NvtFwCombiner-TestArea/evidence/v114-pr427-xaml/xaml-contracts-green.trx. Independent reviewer reused this test evidence rather than rerunning it. Full candidate verification, certified Golden execution, CI and publication remain separate required gates."
+  }
 }
