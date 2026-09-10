@@ -33,6 +33,14 @@ remains the supported delivery format.
 - Perfect-family filename hints are suppressed only for the declared complete
   family; partial-family and unrelated-IC hints remain. These presentation
   changes do not weaken validation or authorize different output bytes.
+- Affected: Standard Merge, AB and CtrlRAM input cards and validation feedback.
+- Support status: unchanged; no new IC or workflow is enabled by these UI changes.
+- Compatibility: existing inputs and validation rules remain; size and target
+  guidance stay visible after selection without changing file contents.
+- Verification: existing focused shared-card and diagnostic-popup tests cover
+  selected-file guidance, typed target data and adaptive placement; final
+  candidate verification remains required.
+- Limitations: native DPI, high-contrast and screen-reader acceptance is incomplete.
 
 #### Memory Layout
 
@@ -47,9 +55,16 @@ remains the supported delivery format.
   are removed without changing addresses or true Unmapped regions.
 - Shared connector drawing is separated from interaction lifecycle. Firmware
   classification/range ownership remains upstream; no UI-derived byte rules.
-- Verification: the latest bounded maintenance run passed 105 scoped UI cases
-  across Standard, AB/Dummy, CtrlRAM and shared controls, not a full release or
-  all-IC certification. Native accessibility/DPI coverage remains incomplete.
+- Affected: Standard, AB/Dummy and CtrlRAM Memory Layout and shared controls.
+- Support status: unchanged; context references do not promote IC support or
+  independent Golden certification.
+- Compatibility: display context reuses declared maps; existing firmware byte
+  operations, Report metadata authority and output layout remain unchanged.
+- Verification: bounded maintenance evidence includes a 72-case popup/control
+  run and a separate 33-case shared-consumer run, not one full release or all-IC
+  certification. The actual final candidate still requires its complete gates.
+- Limitations: native accessibility/DPI coverage remains incomplete; small
+  physical ranges use interaction tiers rather than independent overview cuts.
 
 #### AB Dummy DP
 
@@ -63,9 +78,17 @@ remains the supported delivery format.
   accepted Dummy contract. These are not newly certified Dummy Golden cases
   or promotion of an IC's support status; normal certified Golden execution
   remains required on the final release candidate.
+- Affected: AB workflows for NT51919/NT51929/NT51932/NT51950/NT51951.
+- Support status: unchanged; Dummy DP is opt-in and is not a new certified Golden claim.
+- Compatibility: default-off retains normal AB behavior; enabling deliberately
+  replaces non-TP output areas with dummy bytes and requires confirmation.
+- Limitations: input-only references do not supply independent Dummy expected
+  outputs; only the accepted map-based contract is claimed for those tests.
 
 #### Reports, delivery and navigation
 
+- Before → After: separate current/history report entry points and crowded
+  settings become one report list and clearer filename/folder controls.
 - Run reports now opens one newest-first history table with run date, IC,
   type, result and issue count. Load Report remains available at this level
   even when history is empty. Detail views have a consistent return path;
@@ -82,6 +105,16 @@ remains the supported delivery format.
   Version view are refined without enabling a new Launcher/update authority.
 - System activity uses stable selected/focus states, nonempty Warning/Error
   filtering and optional Debug disclosure, separate from immutable reports.
+- Affected: Run reports, Report detail, Build settings, System activity,
+  Support Matrix and existing Settings Version view.
+- Support status: unchanged; no Launcher/update authority is enabled.
+- Compatibility: existing report evidence is retained; no irreversible saved-data
+  migration is introduced, and destructive actions still require confirmation.
+- Verification: existing focused control tests exercise selection, keyboard
+  focus, nonempty activity filters and compact text bounds; they do not establish
+  complete native or persistent-history replay coverage.
+- Limitations: Report physical-section grouping and remaining native
+  accessibility acceptance are deferred.
 
 #### Release test references
 
@@ -95,8 +128,33 @@ remains the supported delivery format.
   tree or nested archive is introduced.
 - All 11 strict-output and 14 approved-bounded-difference Golden contracts,
   source closure, hashes and inert provenance-file restrictions remain intact.
+- Affected: Windows portable package reference inputs and their source provenance.
+- Support status: unchanged; three input-only cases remain reference-only.
+- Compatibility: package references expand without changing original inputs,
+  expected outputs or declared difference bounds.
+- Verification: 103 focused canonical/synchronization cases and seven package
+  policy cases passed. Those policy dry runs are not a completed application
+  package smoke or fresh execution of every certified output case.
+- Limitations: final candidate Golden execution and real package validation
+  remain required before publication.
 
-### Upgrade, rollback and verification status
+### Security
+
+No additional credential, signing or update permission is introduced. Reference
+files remain closed by the approved allowlist, hashes and provenance. Governance
+finalization preserves original change records and their review obligations;
+it does not waive certified output comparisons or protected release checks.
+
+### Known issues
+
+First-entry IC-context behavior, Report physical-section grouping, custom-option
+redesign and remaining native DPI/high-contrast/screen-reader acceptance move
+to 1.1.7. Startup/local-verifier performance stays in 1.1.5; family/state cleanup
+and DP Replace retirement stay in 1.1.6. Desay/NT51928BT intake does not become
+new runtime support in this release. No end-to-end release-time reduction or
+complete native accessibility pass is claimed.
+
+### Upgrade and rollback
 
 - Use a separate extracted `NvtFwCombiner-v1.1.4-win-x64.zip` directory and
   retain the previous portable directory for rollback. No irreversible user
@@ -108,14 +166,13 @@ remains the supported delivery format.
   every applicable certified Golden output, package smoke, visible startup or
   required owner evidence. These final release gates are still pending.
 
-### Deferred and known limitations
+### Downloads and integrity
 
-First-entry IC-context behavior, Report physical-section grouping, custom-option
-redesign and remaining native DPI/high-contrast/screen-reader acceptance move
-to 1.1.7. Startup/local-verifier performance stays in 1.1.5; family/state cleanup
-and DP Replace retirement stay in 1.1.6. Desay/NT51928BT intake does not become
-new runtime support in this release. No end-to-end release-time reduction or
-complete native accessibility pass is claimed.
+The intended Windows x64 download is `NvtFwCombiner-v1.1.4-win-x64.zip`.
+At publication, verify the versioned checksum inventory, SPDX SBOM and provenance
+against the downloaded asset and exact release source. GitHub source archives
+are separate from the Windows portable package. This candidate entry does not
+claim that any final assets or download links have already been published.
 
 ## [1.1.3] - 2026-09-05
 
