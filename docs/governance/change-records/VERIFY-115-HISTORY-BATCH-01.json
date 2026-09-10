@@ -5,7 +5,7 @@
   "integrationBase": "a20051d6805f548a6935b86867db1b791d7af19f",
   "risk": "R2",
   "kind": "behavior",
-  "state": "design-active",
+  "state": "final-complete",
   "mutablePaths": [
     "scripts/validate_repository.py",
     "tests/scripts/test_agent_governance.py"
@@ -24,12 +24,12 @@
     "outcome": "approved",
     "evidence": "Independent read-only design review selects diff-tree --stdin to populate existing changed_paths cache. Preserve name-status -z -r -m --find-renames semantics, explicit commit framing including repeated merge headers and empty diffs, original candidate consumption and containment helper. Require real-Git differential, rename/merge/no-change/tamper tests, malformed/missing/nonzero failures and exact-once cache coverage. Savings remain unproven until measurement."
   },
-  "implementationHead": null,
-  "reviewedHead": null,
-  "pathStateDigest": null,
+  "implementationHead": "a4cbc558cff52e80b1007108c07b004a2b2a4962",
+  "reviewedHead": "a4cbc558cff52e80b1007108c07b004a2b2a4962",
+  "pathStateDigest": "025672e5478f371a99ded85eec9430cf9395915693a72645fbbd8aba2151875f",
   "finalReview": {
-    "reviewer": null,
-    "outcome": "pending",
-    "evidence": ""
+    "reviewer": "parallel_resource_audit",
+    "outcome": "approved",
+    "evidence": "Fixed-head scoped code-review/Polytail PASS at a4cbc558cff52e80b1007108c07b004a2b2a4962 against d6ad5fa8, no P0-P3. Existing changed-path cache and containment owner retained; repeated merge frames union paths; missing/truncated/foreign frames and Git failures reject; SHA-shaped filenames remain paths. Full governance module 133 PASS in 277.899s, final three protocol/real-merge tests PASS in 2.441s with unchanged production source. Diff check clean. Full candidate verification and comparable wall-clock target remain outstanding."
   }
 }
