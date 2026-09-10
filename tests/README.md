@@ -27,6 +27,11 @@ pytest's cache provider. Nonzero exits, including zero collected tests, fail.
 
 UI exclusivity remains within the .NET collector: UI finishes before the other
 .NET projects start. It is not global exclusivity against Python subprocesses.
+Before those project batches, independent snapshots are prepared with at most
+three workers. This preparation pool retains all existing hash/freshness checks
+and original project order; failures prevent VSTest and active writers are joined
+before cleanup. This is an internal collector cap, not a claim that the outer
+`--jobs` value limits every descendant process or thread globally.
 The complete local run still needs measured contention, coverage and wall-clock
 validation; no ten-minute result is claimed by the scheduling change alone.
 
@@ -142,6 +147,15 @@ effects need validation after implementation. No hash pass, test or coverage
 check was removed. The implementation candidate must retain bounded workers,
 ordered stage results, fail-before-VSTest behavior and join active writers before
 cleanup; UI-exclusive execution remains the current contract.
+
+The subsequent production preparation owner was measured independently on the
+same eight Release outputs: prepare 23.91 s, freshness 10.20 s, total including
+session cleanup 36.79 s. All checks passed; no VSTest was executed for this
+measurement. Orchestration passed 211/211 tests in 28.679 s, including forced
+out-of-order completion, worker bounds, collision rejection, inherited deadlines,
+and cancellation/failure join-before-cleanup. The cancellation regression first
+failed before the post-join cancellation check was added. These are local unit
+and preparation measurements, not a complete verifier result.
 
 ## Historical execution map
 

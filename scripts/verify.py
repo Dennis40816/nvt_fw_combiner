@@ -25,7 +25,7 @@ from collections import Counter
 from collections.abc import Callable, Sequence
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from contextlib import ExitStack, contextmanager
-from contextvars import ContextVar
+from contextvars import ContextVar, copy_context
 from ctypes import wintypes
 from dataclasses import dataclass
 from importlib import metadata as importlib_metadata
@@ -3144,6 +3144,12 @@ def require_production_release_matches(
     return tuple(sorted(canonical_hashes.items(), key=lambda item: str(item[0])))
 
 
+def local_dotnet_project_token(project: CiDotnetProject) -> str:
+    """Own the project-relative snapshot directory identity."""
+
+    return hashlib.sha256(project.relative_path.encode("utf-8")).hexdigest()[:8]
+
+
 def prepare_local_dotnet_coverage_stage(
     project: CiDotnetProject,
     work_root: Path,
@@ -3165,9 +3171,7 @@ def prepare_local_dotnet_coverage_stage(
         source_output,
         canonical_outputs,
     )
-    project_token = hashlib.sha256(project.relative_path.encode("utf-8")).hexdigest()[
-        :8
-    ]
+    project_token = local_dotnet_project_token(project)
     shadow_output = work_root / project_token / release_suffix
     source_hashes = snapshot_regular_tree(
         source_output,
@@ -3344,6 +3348,49 @@ def require_local_dotnet_sources_unchanged(
                 raise RuntimeError(f"canonical production output hash changed: {path}")
 
 
+def prepare_local_dotnet_coverage_stages(
+    projects: Sequence[CiDotnetProject],
+    work_root: Path,
+    coverage_directory: Path,
+    repository_root: Path,
+) -> tuple[LocalDotnetCoverageStage, ...]:
+    """Prepare disjoint snapshots, joining every writer before the caller can clean up."""
+
+    names = [project.name.casefold() for project in projects]
+    tokens = [local_dotnet_project_token(project) for project in projects]
+    if len(set(names)) != len(names) or len(set(tokens)) != len(tokens):
+        raise RuntimeError("duplicate local .NET project name or shadow token collision")
+    if not projects:
+        return ()
+
+    def prepare(project: CiDotnetProject) -> LocalDotnetCoverageStage:
+        remaining_timeout()
+        if PROCESS_CANCELLATION_REQUESTED.is_set():
+            raise RuntimeError("local .NET snapshot preparation was cancelled")
+        stage = prepare_local_dotnet_coverage_stage(
+            project, work_root, coverage_directory, repository_root,
+        )
+        remaining_timeout()
+        return stage
+
+    results: dict[int, LocalDotnetCoverageStage] = {}
+    with ThreadPoolExecutor(max_workers=min(MAXIMUM_VERIFY_JOBS, len(projects))) as executor:
+        futures = {}
+        try:
+            for index, project in enumerate(projects):
+                futures[executor.submit(copy_context().run, prepare, project)] = index
+            for future in as_completed(futures):
+                results[futures[future]] = future.result()
+        except BaseException:
+            for future in futures:
+                future.cancel()
+            raise
+    remaining_timeout()
+    if PROCESS_CANCELLATION_REQUESTED.is_set():
+        raise RuntimeError("local .NET snapshot preparation was cancelled")
+    return tuple(results[index] for index in range(len(projects)))
+
+
 def collect_local_dotnet_coverage(
     dotnet: str,
     coverage_directory: Path,
@@ -3376,15 +3423,9 @@ def collect_local_dotnet_coverage(
         adapter_path = (
             resolve_coverlet_adapter_path(repository_root) if collect_coverage else None
         )
-        for project in projects:
-            stages.append(
-                prepare_local_dotnet_coverage_stage(
-                    project,
-                    work,
-                    coverage_directory,
-                    repository_root,
-                )
-            )
+        stages = list(prepare_local_dotnet_coverage_stages(
+            projects, work, coverage_directory, repository_root,
+        ))
 
         batches = (
             *(

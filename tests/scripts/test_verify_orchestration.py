@@ -4308,6 +4308,206 @@ class VerifyOrchestrationTests(unittest.TestCase):
             verify_coverage.assert_not_called()
             self.assertFalse(work.exists())
 
+    def test_stage_preparation_overlaps_three_workers_and_returns_inventory_order(self) -> None:
+        projects = tuple(MODULE.CiDotnetProject(f"tests/P{i}/P{i}.Tests.csproj") for i in range(8))
+        barrier = threading.Barrier(3)
+        reverse_finished = [threading.Event() for _ in range(3)]
+        completed = []
+        active = 0
+        maximum = 0
+        lock = threading.Lock()
+
+        def prepare(project, work, *_args):
+            nonlocal active, maximum
+            with lock:
+                active += 1
+                maximum = max(maximum, active)
+            try:
+                if project in projects[:3]:
+                    barrier.wait(timeout=3)
+                    index = projects.index(project)
+                    if index < 2:
+                        self.assertTrue(reverse_finished[index + 1].wait(3))
+                return MODULE.LocalDotnetCoverageStage(project, work, work, work, work, work, {}, ())
+            finally:
+                with lock:
+                    completed.append(project.name)
+                    active -= 1
+                    if project in projects[:3]:
+                        reverse_finished[projects.index(project)].set()
+
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            with patch.object(MODULE, "prepare_local_dotnet_coverage_stage", side_effect=prepare):
+                stages = MODULE.prepare_local_dotnet_coverage_stages(projects, root, root, root)
+        self.assertEqual(3, maximum)
+        self.assertEqual([project.name for project in projects], [stage.project.name for stage in stages])
+        self.assertCountEqual([project.name for project in projects], completed)
+        self.assertEqual([project.name for project in reversed(projects[:3])],
+                         [name for name in completed if name in {project.name for project in projects[:3]}])
+
+    def test_stage_cancellation_after_successful_prepare_never_starts_tests(self) -> None:
+        project = MODULE.CiDotnetProject("tests/P/P.Tests.csproj")
+        was_cancelled = MODULE.PROCESS_CANCELLATION_REQUESTED.is_set()
+        try:
+            MODULE.PROCESS_CANCELLATION_REQUESTED.clear()
+            with tempfile.TemporaryDirectory() as temporary:
+                root = Path(temporary)
+                work = root / "work"
+
+                def prepare(*_args):
+                    MODULE.PROCESS_CANCELLATION_REQUESTED.set()
+                    return MODULE.LocalDotnetCoverageStage(project, work, work, work, work, work, {}, ())
+
+                with (
+                    patch.object(MODULE, "flatten_ci_dotnet_projects", return_value=(project,)),
+                    patch.object(MODULE, "resolve_coverlet_adapter_path", return_value=root),
+                    patch.object(MODULE, "prepare_local_dotnet_coverage_stage", side_effect=prepare),
+                    patch.object(MODULE, "run_local_dotnet_coverage_project") as run,
+                    patch.object(MODULE, "require_local_dotnet_sources_unchanged"),
+                    patch.object(MODULE, "verify_coverage"),
+                    contextlib.redirect_stdout(io.StringIO()),
+                ):
+                    with self.assertRaisesRegex(RuntimeError, "cancelled"):
+                        MODULE.collect_local_dotnet_coverage(
+                            "dotnet", root / "coverage", work, {}, None, repository_root=root,
+                        )
+                run.assert_not_called()
+                self.assertFalse(work.exists())
+        finally:
+            if was_cancelled:
+                MODULE.PROCESS_CANCELLATION_REQUESTED.set()
+            else:
+                MODULE.PROCESS_CANCELLATION_REQUESTED.clear()
+
+    def test_stage_preparation_propagates_parent_deadline_and_rejects_late_return(self) -> None:
+        project = MODULE.CiDotnetProject("tests/P/P.Tests.csproj")
+        clock = [100.0]
+        observed = []
+
+        def prepare(*_args):
+            observed.append(MODULE.LANE_DEADLINE.get())
+            clock[0] = 111.0
+            return None
+
+        token = MODULE.LANE_DEADLINE.set(110.0)
+        try:
+            with (
+                tempfile.TemporaryDirectory() as temporary,
+                patch.object(MODULE, "monotonic", side_effect=lambda: clock[0]),
+                patch.object(MODULE, "prepare_local_dotnet_coverage_stage", side_effect=prepare),
+                self.assertRaises(subprocess.TimeoutExpired),
+            ):
+                root = Path(temporary)
+                MODULE.prepare_local_dotnet_coverage_stages((project,), root, root, root)
+            self.assertEqual([110.0], observed)
+            with (
+                tempfile.TemporaryDirectory() as temporary,
+                patch.object(MODULE, "monotonic", return_value=111.0),
+                patch.object(MODULE, "prepare_local_dotnet_coverage_stage") as prepare_call,
+                self.assertRaises(subprocess.TimeoutExpired),
+            ):
+                root = Path(temporary)
+                MODULE.prepare_local_dotnet_coverage_stages((project,), root, root, root)
+            prepare_call.assert_not_called()
+        finally:
+            MODULE.LANE_DEADLINE.reset(token)
+
+    def test_stage_preparation_rejects_duplicate_names_and_shadow_tokens_before_copy(self) -> None:
+        for collision in ("name", "token"):
+            projects = (MODULE.CiDotnetProject("tests/A/Same.Tests.csproj"),
+                        MODULE.CiDotnetProject("tests/B/" + ("Same" if collision == "name" else "Other") + ".Tests.csproj"))
+            with (
+                self.subTest(collision=collision),
+                tempfile.TemporaryDirectory() as temporary,
+                patch.object(MODULE, "prepare_local_dotnet_coverage_stage") as prepare,
+                contextlib.ExitStack() as stack,
+            ):
+                if collision == "token":
+                    stack.enter_context(patch.object(MODULE.hashlib, "sha256",
+                        return_value=MagicMock(hexdigest=lambda: "a" * 64)))
+                root = Path(temporary)
+                with self.assertRaisesRegex(RuntimeError, "duplicate|collision"):
+                    MODULE.prepare_local_dotnet_coverage_stages(projects, root, root, root)
+                prepare.assert_not_called()
+
+    def test_stage_failure_and_cancellation_join_writers_before_cleanup_and_never_test(self) -> None:
+        projects = tuple(MODULE.CiDotnetProject(f"tests/P{i}/P{i}.Tests.csproj") for i in range(16))
+        for cancellation in (False, True):
+            with self.subTest(cancellation=cancellation), tempfile.TemporaryDirectory() as temporary:
+                root = Path(temporary)
+                work = root / "work"
+                started = threading.Event()
+                release = threading.Event()
+                lock = threading.Lock()
+                active = 0
+                maximum = 0
+                futures = []
+                cancelled_counts = []
+                cleanup_active = []
+                real_executor = MODULE.ThreadPoolExecutor
+                real_rmtree = MODULE.shutil.rmtree
+
+                class ObservedExecutor(real_executor):
+                    def submit(self, *args, **kwargs):
+                        future = super().submit(*args, **kwargs)
+                        futures.append(future)
+                        return future
+
+                    def shutdown(self, *args, **kwargs):
+                        cancelled_counts.append(sum(future.cancelled() for future in futures))
+                        release.set()
+                        return super().shutdown(*args, **kwargs)
+
+                def prepare(project, *_args):
+                    nonlocal active, maximum
+                    with lock:
+                        active += 1
+                        maximum = max(maximum, active)
+                        if active == 3:
+                            started.set()
+                    try:
+                        if project == projects[0] and not cancellation:
+                            self.assertTrue(started.wait(3))
+                            raise RuntimeError("snapshot probe")
+                        self.assertTrue(release.wait(3))
+                        (work / project.name).touch()
+                        return MODULE.LocalDotnetCoverageStage(project, work, work, work, work, work, {}, ())
+                    finally:
+                        with lock:
+                            active -= 1
+
+                def interrupt(_futures):
+                    self.assertTrue(started.wait(3))
+                    raise KeyboardInterrupt
+
+                def cleanup(path, *args, **kwargs):
+                    if Path(path) == work:
+                        cleanup_active.append(active)
+                    return real_rmtree(path, *args, **kwargs)
+
+                with (
+                    patch.object(MODULE, "flatten_ci_dotnet_projects", return_value=projects),
+                    patch.object(MODULE, "resolve_coverlet_adapter_path", return_value=root),
+                    patch.object(MODULE, "prepare_local_dotnet_coverage_stage", side_effect=prepare),
+                    patch.object(MODULE, "ThreadPoolExecutor", ObservedExecutor),
+                    patch.object(MODULE.shutil, "rmtree", side_effect=cleanup),
+                    patch.object(MODULE, "run_local_dotnet_coverage_project") as run,
+                    contextlib.ExitStack() as stack,
+                ):
+                    if cancellation:
+                        stack.enter_context(patch.object(MODULE, "as_completed", side_effect=interrupt))
+                    with self.assertRaises(KeyboardInterrupt if cancellation else RuntimeError):
+                        MODULE.collect_local_dotnet_coverage(
+                            "dotnet", root / "coverage", work, {}, None, repository_root=root,
+                        )
+                self.assertEqual(3, maximum)
+                self.assertTrue(any(count > 0 for count in cancelled_counts))
+                self.assertEqual([0], cleanup_active)
+                self.assertTrue(all(future.done() for future in futures))
+                run.assert_not_called()
+                self.assertFalse(work.exists())
+
     def test_local_coverage_orchestration_aggregates_failures_before_policy(
         self,
     ) -> None:
