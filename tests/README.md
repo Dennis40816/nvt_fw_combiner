@@ -733,6 +733,23 @@ Independent scoped review found no findings; primary combined that fixed-diff
 review with passing tests for local R1 Polytail **PASS**. No firmware contract,
 Golden expectation, release admission or native acceptance changed.
 
+## Loaded Standard memory cards — 2026-09-10
+
+`StandardMemoryLayoutControlTests` uses the existing NT51928 Standard Golden
+inputs and real MainWindow, with public capability policy, at 1440x900 and
+980x640 across four theme/language combinations. DP, TP and LDC are required
+nonempty targets. Keyboard/hover cards show the selected range, size and source
+inside the viewport/rail; Escape and pointer exit close them without creating
+a CtrlRAM tier or changing IC, mode, input paths or ranges. This is presentation
+verification, not output Golden certification.
+
+All four cases pass within the preceding **72/72** run. Twelve full-window
+captures are retained under `D:/NvtFwCombiner-TestArea/evidence/v114-standard-memory79/`.
+Primary inspected `standard-memory-980-640-False-True-Ldc.png`; the local card is
+connected, bounded and readable. Independent scoped review found no findings.
+Existing AB and CtrlRAM tests retain their separate evidence; retained-only
+DP Replace/General tests do not authorize new public workflow support.
+
 ## Running and maintaining this view
 
 Use [`CONTRIBUTING.md`](../CONTRIBUTING.md) to initialize the existing fixed

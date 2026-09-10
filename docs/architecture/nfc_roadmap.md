@@ -530,6 +530,24 @@ exclude transfer wrappers, credentials and unrelated private material. Assess
 any conflict with the current closed package allowlist before changing policy.
 This remains an open `1.1.4` release-package task, not permission to publish now.
 
+Current inventory: all 25 Direct output cases are already selected (11 full
+output, 14 allowed-byte-difference). Canonical has 40 cases; release has 35.
+Missing are input-only `nt51927-2chip-self-20260705` and
+`nt51927-3chip-self-20260705`, plus their aliases
+`nt51917-fw132-cascade2-nt51927-alias`,
+`nt51917-fw140-cascade3-nt51927-alias` and
+`nt51928-fw132-non-nb-cascade2-nt51927-alias`. Current validator/package/smoke
+explicitly exclude these inputs/dependent aliases; preserve their dispositions
+when extending reference-only redistribution. This inventory is not a
+completed policy migration or candidate Golden execution result.
+
+Local Memory Layout maintenance checkpoint, 2026-09-10:
+[connector responsibility/test coupling](../../tests/README.md#memory-connector-responsibility-and-test-coupling--2026-09-10)
+is committed at `5157bfb3`; [loaded Standard DP/TP/LDC card coverage](../../tests/README.md#loaded-standard-memory-cards--2026-09-10)
+adds the missing real-window lifecycle checks. Neither changes the approved
+CtrlRAM design, firmware semantics or public support. Broader consumer
+regression and release-package reconciliation remain pending.
+
 The following table retains the individual boundaries; only Memory Layout is
 active implementation in `1.1.4`. All other rows and the custom-options preview
 are allocated to `1.1.7` below.
