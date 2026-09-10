@@ -322,7 +322,7 @@ public sealed partial class XamlControlStyleContractTests
         XElement entry = Assert.Single(document.Descendants(), element =>
             element.Name.LocalName == "Button" &&
             (string?)element.Attribute("Command") ==
-            "{ReflectionBinding $parent[Window].DataContext.OpenReportHistoryEntryAsyncCommand}");
+            "{ReflectionBinding $parent[Window].DataContext.Reports.OpenReportHistoryEntryAsyncCommand}");
         string[] classes = ((string?)entry.Attribute("Classes") ?? string.Empty)
             .Split(' ', StringSplitOptions.RemoveEmptyEntries);
 

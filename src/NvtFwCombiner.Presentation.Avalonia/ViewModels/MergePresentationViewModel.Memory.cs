@@ -7,13 +7,15 @@ internal sealed partial class MergePresentationViewModel
 {
     private readonly Lock _memoryProjectionGate = new();
 
+    public MemoryCoverageListViewModel CoverageDetails { get; } = new();
+
     internal void RefreshMergeMemoryMapState(bool refreshAuthoring = true)
     {
         PrepareMergeMemoryMapState(refreshAuthoring);
         PublishMergeMemoryContext();
     }
 
-    private void PrepareMergeMemoryMapState(bool refreshAuthoring = true)
+    private void PrepareMergeMemoryMapState(bool refreshAuthoring = true, bool resetCoverageExpansion = true)
     {
         lock (_memoryProjectionGate)
         {
@@ -51,6 +53,7 @@ internal sealed partial class MergePresentationViewModel
                 MergeCoverageRows,
                 ReplaceRegionGroupBuilder.CreateLogicalItems(coverageSegments, Text)
                     .SelectMany(static item => item.Ranges));
+            CoverageDetails.Update(MergeCoverageRows, Text, resetCoverageExpansion);
         }
     }
 

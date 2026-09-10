@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 2,
+  "taskId": "UI-114-MEMORY-PLACEMENT-SIZE-43",
+  "capability": "Exact accounting for the primary-memory content and hover-placement correction",
+  "integrationBase": "32f156ffbd2996f7f736992ed618813cc1cc3823",
+  "risk": "R2",
+  "kind": "governance",
+  "state": "final-complete",
+  "mutablePaths": ["scripts/code_size_policy.py", "docs/adr/0021-code-size-ratchet-accepted-artifact-amendment.md"],
+  "implementationOwner": "primary-agent",
+  "searchEvidence": ["Existing measure_code_size/DEFAULT_LIMITS and ADR0021 own exact accounting. Independent Terra remeasurement after the final pointer-cleanup correction finds production139284 (+20), runtime99233 (+2), Application42710 (+2); other slices20757/5039/30727 unchanged."],
+  "semanticOwner": "Existing scripts/code_size_policy.py measurement/limits and ADR0021 accounting authority.",
+  "terminalContract": "Set exact full/baseline139284 and allowance36388 against unchanged102896; runtime allowance29177 against unchanged70056 for99233; Application allowance12020 against unchanged30690 for42710. Preserve all other ratchets/slices, counting/equality/exclusions and gates. No headroom, firmware or release changes. Re-measure and obtain updated admission if production changes before freeze; run accounting tests and fixed-head review.",
+  "disposition": "extend-owner",
+  "designReview": {"reviewer": "memory_hover_inventory", "outcome": "approved", "evidence": "Independent GPT-5.6 Terra/high R2 admission before policy edits: remeasured final production139284, runtime99233, Application42710; permits only exact full36388/runtime29177/Application12020 allowances. Other slices20757/5039/30727, all ratchets/counting/exclusions/gates stay unchanged. No transferable headroom."},
+  "implementationHead": "2e359046cbeb936f04dd559c5d251aa537b1ac6d",
+  "reviewedHead": "2e359046cbeb936f04dd559c5d251aa537b1ac6d",
+  "pathStateDigest": "1da1c874fac7ce47aaeac415210b1d926b7b3453db6c51430f5dcd34036f9761",
+  "finalReview": {"reviewer": "memory_hover_inventory", "outcome": "approved", "evidence": "Independent GPT-5.6 Terra/high fixed-head scoped R2/Polytail PASS 2e359046, no P0-P3. Raw diff confirms only declared policy and ADR0021 governed accounting surfaces. Exact production139284/runtime99233/slices20757/42710/5039/30727 match independent measurement and baseline test; allowances36388/29177/12020 match unchanged ratchets. Other limits/counting/exclusions/equality/firmware/Golden/release gates unchanged. Primary accounting19/19 PASS29.749s; precommit capability validator[]exit0 completed before freeze. Prior UI85/Application31/Architecture1 passes reused, not rerun; no transferable headroom or product behavior introduced by accounting."}
+}

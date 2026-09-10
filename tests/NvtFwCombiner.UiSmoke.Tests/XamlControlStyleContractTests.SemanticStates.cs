@@ -1,3 +1,4 @@
+using System.Xml.Linq;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
 namespace NvtFwCombiner.UiSmoke.Tests;
@@ -123,7 +124,7 @@ public sealed partial class XamlControlStyleContractTests
         Assert.Contains("Classes.verified=\"{Binding IsSemanticStateVerified}\"", slotCard, StringComparison.Ordinal);
         Assert.Contains("Classes.warning=\"{Binding IsSemanticStateWarning}\"", slotCard, StringComparison.Ordinal);
         Assert.Contains("Stretch=\"Uniform\"", slotCard, StringComparison.Ordinal);
-        Assert.Contains("ToolTip.Tip=\"{Binding SemanticStateAutomationText}\"", slotCard, StringComparison.Ordinal);
+        Assert.Contains("<views:IssueDetailsCard DataContext=\"{Binding IssueCard}\"", slotCard, StringComparison.Ordinal);
         Assert.Contains("Classes.optional=\"{Binding IsOptional}\"", slotCard, StringComparison.Ordinal);
         Assert.Contains("Classes=\"compactBadge slotBadge firmwareSlotRequirement availableInput\"", slotCard, StringComparison.Ordinal);
         Assert.Contains("Content=\"{Binding RequirementLabel}\"", slotCard, StringComparison.Ordinal);
@@ -252,16 +253,17 @@ public sealed partial class XamlControlStyleContractTests
             ReadPresentationFile("Styles/MemoryCoverageStyles.axaml");
         string tokens = ReadPresentationFile("Styles/ThemeTokens.axaml");
         var shell = System.Xml.Linq.XDocument.Parse(ReadPresentationFile("MainWindow.axaml"));
-        string templates = ReadPresentationFile("Resources/MainWindowSharedTemplates.axaml") +
-            ReadPresentationFile("Resources/MainWindowWorkflowTemplates.axaml");
-        string replaceBar = ExtractDataTemplate(templates, "MemoryCoverageSegmentBarTemplate");
-        string replaceList = ExtractDataTemplate(templates, "MemoryCoverageSegmentListTemplate");
-        string mergeBar = ExtractDataTemplate(templates, "MemoryCoveragePlainSegmentBarTemplate");
-        string mergeList = ExtractDataTemplate(templates, "MemoryCoveragePlainSegmentListTemplate");
-        string logicalItem = ExtractDataTemplate(templates, "MemoryCoverageLogicalItemTemplate");
-        string logicalRange = ExtractDataTemplate(templates, "MemoryCoverageLogicalRangeTemplate");
-        string replacePanel = ExtractDataTemplate(templates, "ReplaceOutputLayoutPanelTemplate");
-        string mergePanel = ExtractDataTemplate(templates, "MergeOutputLayoutPanelTemplate");
+        string sharedTemplates = ReadPresentationFile("Resources/MainWindowSharedTemplates.axaml");
+        string workflowTemplates = ReadPresentationFile("Resources/MainWindowWorkflowTemplates.axaml");
+        string templates = sharedTemplates + workflowTemplates;
+        string replaceBar = ExtractDataTemplate(sharedTemplates, "MemoryCoverageSegmentBarTemplate");
+        string replaceList = ExtractDataTemplate(sharedTemplates, "MemoryCoverageSegmentListTemplate");
+        string mergeBar = ExtractDataTemplate(sharedTemplates, "MemoryCoveragePlainSegmentBarTemplate");
+        string mergeList = ExtractDataTemplate(sharedTemplates, "MemoryCoveragePlainSegmentListTemplate");
+        string logicalItem = ExtractDataTemplate(sharedTemplates, "MemoryCoverageLogicalItemTemplate");
+        string logicalRange = ExtractDataTemplate(sharedTemplates, "MemoryCoverageLogicalRangeTemplate");
+        string replacePanel = ExtractDataTemplate(workflowTemplates, "ReplaceOutputLayoutPanelTemplate");
+        string mergePanel = ExtractDataTemplate(sharedTemplates, "MergeOutputLayoutPanelTemplate");
         string viewModel = ReadPresentationFile("ViewModels/MemoryCoverageSegmentViewModel.cs");
         string keptBadge = ExtractStyle(styles, "Label.countBadge.coverageChangeBadge");
         string changedBadge = ExtractStyle(styles, "Label.countBadge.coverageChangeBadge.changed");
@@ -293,7 +295,10 @@ public sealed partial class XamlControlStyleContractTests
         Assert.Contains("Value=\"0\"", changedMarker, StringComparison.Ordinal);
 
         AssertCoverageClasses(replaceBar);
-        AssertCoverageClasses(replaceList);
+        string regionCard = ExtractDataTemplate(sharedTemplates, "MemoryCoverageRegionCardTemplate");
+        string regionMarker = ExtractDataTemplate(sharedTemplates, "MemoryCoverageCompactMarkerTemplate");
+        Assert.Contains("Classes=\"memoryCoverageFill memoryCoverageMarker\"", regionMarker, StringComparison.Ordinal);
+        Assert.Contains("Classes.changed=\"{Binding IsChanged}\"", regionCard, StringComparison.Ordinal);
         Assert.Contains("Text=\"{Binding ChangeLabel}\"", logicalRange, StringComparison.Ordinal);
         Assert.Contains("IsVisible=\"{Binding HasChangeState}\"", logicalRange, StringComparison.Ordinal);
         Assert.DoesNotContain("memoryCoverageMarker", mergeBar, StringComparison.Ordinal);
@@ -330,43 +335,30 @@ public sealed partial class XamlControlStyleContractTests
         Assert.Contains("AutomationProperties.HelpText=\"{Binding AccessibleDetail}\"", mergeBar, StringComparison.Ordinal);
         Assert.Contains("MemoryCoverageInteractionBehavior.IsEnabled=\"True\"", logicalItem, StringComparison.Ordinal);
         Assert.Contains("Classes.linked=\"{Binding Interaction.IsActive}\"", logicalItem, StringComparison.Ordinal);
-        Assert.Contains("ColumnDefinitions=\"12,*\"", mergeList, StringComparison.Ordinal);
-        Assert.Contains("ColumnDefinitions=\"12,*\"", replaceList, StringComparison.Ordinal);
-        Assert.Contains("Padding=\"0,10\"", mergeList, StringComparison.Ordinal);
-        Assert.Contains("Padding=\"0,10\"", replaceList, StringComparison.Ordinal);
-        Assert.Contains("Margin=\"0,4,0,0\"", mergeList, StringComparison.Ordinal);
-        Assert.Contains("Margin=\"0,4,0,0\"", replaceList, StringComparison.Ordinal);
-        Assert.DoesNotContain("ColumnDefinitions=\"*,Auto\"", mergeList, StringComparison.Ordinal);
-        Assert.Equal(1, CountOccurrences(replaceList, "ColumnDefinitions=\"*,Auto\""));
-        Assert.Contains("RowDefinitions=\"Auto,Auto,Auto\"", mergeList, StringComparison.Ordinal);
-        Assert.Contains("RowDefinitions=\"Auto,Auto,Auto,Auto\"", replaceList, StringComparison.Ordinal);
-        Assert.Contains("Text=\"{Binding AddressRangeLabel}\"", mergeList, StringComparison.Ordinal);
-        Assert.Contains("Text=\"{Binding LengthLabel}\"", mergeList, StringComparison.Ordinal);
-        Assert.Contains("Text=\"{Binding AddressRangeLabel}\"", replaceList, StringComparison.Ordinal);
-        Assert.Contains("Text=\"{Binding LengthLabel}\"", replaceList, StringComparison.Ordinal);
-        Assert.Equal(4, CountOccurrences(templates, "Classes=\"technicalValue\" Text=\"·\""));
-        Assert.Contains("Grid.Row=\"1\"", mergeList, StringComparison.Ordinal);
-        Assert.Contains("Grid.Row=\"1\"", replaceList, StringComparison.Ordinal);
-        Assert.Contains("HorizontalAlignment=\"Left\"", mergeList, StringComparison.Ordinal);
-        Assert.Contains("HorizontalAlignment=\"Left\"", replaceList, StringComparison.Ordinal);
-        Assert.Contains("Grid.Row=\"2\"", mergeList, StringComparison.Ordinal);
-        Assert.Contains("Grid.Row=\"2\"", replaceList, StringComparison.Ordinal);
-        Assert.Contains("Grid.Row=\"3\"", replaceList, StringComparison.Ordinal);
-        Assert.Contains("Classes=\"captionText memoryInfoDescription\"", mergeList, StringComparison.Ordinal);
-        Assert.Contains("Classes=\"captionText memoryInfoDescription\"", replaceList, StringComparison.Ordinal);
+        foreach (string row in new[] { mergeList, replaceList })
+        {
+            Assert.Contains("MemoryCoverageRegionCardTemplate", row, StringComparison.Ordinal);
+            Assert.Contains("Padding=\"12\"", row, StringComparison.Ordinal);
+        }
+        Assert.Contains("ColumnDefinitions=\"68,*\"", regionCard, StringComparison.Ordinal);
+        Assert.Contains("Text=\"{Binding AddressRangeLabel}\"", regionCard, StringComparison.Ordinal);
+        Assert.Contains("Text=\"{Binding SizeValue}\"", regionCard, StringComparison.Ordinal);
+        Assert.Contains("Text=\"{Binding SourceLabel}\"", regionCard, StringComparison.Ordinal);
+        Assert.Contains("MemoryCoverageCompactMarkerTemplate", regionCard, StringComparison.Ordinal);
+        Assert.Contains("ItemsSource=\"{Binding ProcessingFacts}\"", regionCard, StringComparison.Ordinal);
+        Assert.Contains("IsExpanded=\"False\"", regionCard, StringComparison.Ordinal);
+        Assert.Equal(2, CountOccurrences(templates, "Classes=\"technicalValue\" Text=\"·\""));
         Assert.Contains("AutomationProperties.Name=\"{Binding AccessibleDetail}\"", mergeList, StringComparison.Ordinal);
         Assert.Contains("AutomationProperties.HelpText=\"{Binding AccessibleDetail}\"", mergeList, StringComparison.Ordinal);
         Assert.Contains("AutomationProperties.Name=\"{Binding AccessibleDetail}\"", replaceList, StringComparison.Ordinal);
         Assert.Contains("AutomationProperties.HelpText=\"{Binding AccessibleDetail}\"", replaceList, StringComparison.Ordinal);
         Assert.DoesNotContain("<StackPanel Grid.Column=\"1\"", mergeList, StringComparison.Ordinal);
-        Assert.Contains("Background=\"{DynamicResource NfcMemoryTrackBrush}\"", replacePanel, StringComparison.Ordinal);
+        Assert.Contains(XElement.Parse(replacePanel).Descendants(), element =>
+            element.Name.LocalName == "MemoryCoverageBar" &&
+            (string?)element.Attribute("ItemsSource") == "{Binding ReplaceCoverageSegments}");
         Assert.DoesNotContain("<Viewbox", replacePanel, StringComparison.Ordinal);
-        Assert.Contains("<views:ProportionalStackPanel />", replacePanel, StringComparison.Ordinal);
-        Assert.Contains("ProportionalContentPresenterTheme", replacePanel, StringComparison.Ordinal);
-        Assert.Contains("Background=\"{DynamicResource NfcMemoryTrackBrush}\"", mergePanel, StringComparison.Ordinal);
+        Assert.Contains("<views:MemoryCoverageBar ItemsSource=\"{Binding MergeCoverageSegments}\"", mergePanel, StringComparison.Ordinal);
         Assert.DoesNotContain("<Viewbox", mergePanel, StringComparison.Ordinal);
-        Assert.Contains("<views:ProportionalStackPanel />", mergePanel, StringComparison.Ordinal);
-        Assert.Contains("ProportionalContentPresenterTheme", mergePanel, StringComparison.Ordinal);
         Assert.Contains("Classes=\"panelSurface memoryInfoPanel\"", replacePanel, StringComparison.Ordinal);
         Assert.Contains("Classes=\"panelSurface memoryInfoPanel\"", mergePanel, StringComparison.Ordinal);
         Assert.Contains("Classes=\"mutedText memoryInfoDescription\"", replacePanel, StringComparison.Ordinal);
@@ -375,8 +367,8 @@ public sealed partial class XamlControlStyleContractTests
         Assert.Contains("Classes=\"compactSubtleSurface memoryInfoAddress\"", mergePanel, StringComparison.Ordinal);
         Assert.Contains("Classes=\"monoText detailText memoryInfoAddressText\"", replacePanel, StringComparison.Ordinal);
         Assert.Contains("Classes=\"monoText detailText memoryInfoAddressText\"", mergePanel, StringComparison.Ordinal);
-        Assert.Contains("Classes=\"listRow memoryInfoRow memoryCoverageLinkedRow\"", replaceList, StringComparison.Ordinal);
-        Assert.Contains("Classes=\"listRow memoryInfoRow memoryCoverageLinkedRow\"", mergeList, StringComparison.Ordinal);
+        Assert.Contains("Classes=\"surface memoryInfoRow memoryCoverageLinkedRow\"", replaceList, StringComparison.Ordinal);
+        Assert.Contains("Classes=\"surface memoryInfoRow memoryCoverageLinkedRow\"", mergeList, StringComparison.Ordinal);
         Assert.DoesNotContain(
             "Classes=\"spaciousList\" ItemTemplate=\"{StaticResource MemoryCoverageSegmentListTemplate}\"",
             replacePanel,
@@ -407,7 +399,7 @@ public sealed partial class XamlControlStyleContractTests
         Assert.Contains("Brush=\"{DynamicResource NfcKeptStripeBrush}\"", templates, StringComparison.Ordinal);
         Assert.Contains("TileMode=\"Tile\"", templates, StringComparison.Ordinal);
         Assert.Contains("IsVisible=\"{Binding UsesKeptPattern}\"", replaceBar, StringComparison.Ordinal);
-        Assert.Contains("IsVisible=\"{Binding UsesKeptPattern}\"", replaceList, StringComparison.Ordinal);
+        Assert.Contains("IsVisible=\"{ReflectionBinding UsesKeptPattern}\"", regionMarker, StringComparison.Ordinal);
         Assert.Contains("Content=\"{Binding DetailsLabel}\"", replaceList, StringComparison.Ordinal);
         Assert.Contains("IsVisible=\"{Binding HasPreservationDetails}\"", replaceList, StringComparison.Ordinal);
         Assert.Contains("<Flyout Placement=\"RightEdgeAlignedTop\">", replaceList, StringComparison.Ordinal);
@@ -441,7 +433,8 @@ public sealed partial class XamlControlStyleContractTests
             ("ctrlRamVector", "NfcMemoryCtrlRamVectorFillBrush", "#0F766E", "#2DD4BF"),
         })
         {
-            Assert.Equal(4, CountOccurrences(templates, $"Classes.{role}=\"{{Binding FillRole"));
+            Assert.Equal(2, CountOccurrences(templates, $"Classes.{role}=\"{{Binding FillRole"));
+            Assert.Contains($"Classes.{role}=\"{{ReflectionBinding FillRole", regionMarker, StringComparison.Ordinal);
             string roleStyle = ExtractStyle(styles, $"Border.memoryCoverageFill.{role}");
             Assert.Contains(token, roleStyle, StringComparison.Ordinal);
             Assert.Contains($"x:Key=\"{token}\" Color=\"{light}\"", tokens, StringComparison.Ordinal);
@@ -584,7 +577,35 @@ public sealed partial class XamlControlStyleContractTests
 
     private static string ExtractDataTemplate(string xaml, string key)
     {
-        return ExtractXamlBlock(xaml, $"<DataTemplate x:Key=\"{key}\"", "</DataTemplate>");
+        var document = XDocument.Parse(xaml, LoadOptions.PreserveWhitespace);
+        XNamespace xamlNamespace = "http://schemas.microsoft.com/winfx/2006/xaml";
+        XElement template = new(Assert.Single(document.Descendants(), element =>
+            element.Name.LocalName == "DataTemplate" && (string?)element.Attribute(xamlNamespace + "Key") == key));
+        foreach (XAttribute declaration in document.Root!.Attributes().Where(attribute => attribute.IsNamespaceDeclaration))
+        {
+            if (template.Attribute(declaration.Name) is null)
+            {
+                template.Add(new XAttribute(declaration));
+            }
+        }
+        return template.ToString(SaveOptions.DisableFormatting);
+    }
+
+    /// <summary>Nested item templates must not truncate their outer template or capture its sibling.</summary>
+    [Fact]
+    public void DataTemplateExtractionPreservesNestedContentAndOuterTailOnly()
+    {
+        const string source = """
+            <ResourceDictionary xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:views="using:Example">
+              <DataTemplate x:Key="Outer"><StackPanel><ItemsControl><ItemsControl.ItemTemplate><DataTemplate><TextBlock Text="Nested" /></DataTemplate></ItemsControl.ItemTemplate></ItemsControl><views:MemoryCoverageBar ItemsSource="Tail" /></StackPanel></DataTemplate>
+              <DataTemplate x:Key="Sibling"><TextBlock Text="Excluded" /></DataTemplate>
+            </ResourceDictionary>
+            """;
+        string template = ExtractDataTemplate(source, "Outer");
+        Assert.Contains("Text=\"Nested\"", template, StringComparison.Ordinal);
+        Assert.Contains("<views:MemoryCoverageBar ItemsSource=\"Tail\"", template, StringComparison.Ordinal);
+        Assert.DoesNotContain("Excluded", template, StringComparison.Ordinal);
+        Assert.Equal(2, XElement.Parse(template).DescendantsAndSelf().Count(element => element.Name.LocalName == "DataTemplate"));
     }
 
     private static string ExtractStyle(string xaml, string selector)
@@ -606,15 +627,6 @@ public sealed partial class XamlControlStyleContractTests
         }
 
         throw new Xunit.Sdk.XunitException($"Missing XAML style selector: {selector}");
-    }
-
-    private static string ExtractXamlBlock(string xaml, string opening, string closing)
-    {
-        int start = xaml.IndexOf(opening, StringComparison.Ordinal);
-        Assert.True(start >= 0, $"Missing XAML block: {opening}");
-        int end = xaml.IndexOf(closing, start, StringComparison.Ordinal);
-        Assert.True(end >= 0, $"Unclosed XAML block: {opening}");
-        return xaml[start..(end + closing.Length)];
     }
 
     private static void AssertIconStyle(

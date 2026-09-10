@@ -1,0 +1,49 @@
+{
+  "schemaVersion": 2,
+  "taskId": "UI-114-BUNDLE-RENAME-12",
+  "capability": "Independent effective primary filename in atomic bundle delivery",
+  "integrationBase": "fffc4bacd67d9b3f357e4919467de72256946311",
+  "risk": "R2",
+  "kind": "ui",
+  "state": "final-complete",
+  "mutablePaths": [
+    "src/NvtFwCombiner.Presentation.Avalonia/Views/OutputDeliveryConfirmationModal.axaml",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/OutputDeliveryConfirmationViewModel.cs",
+    "src/NvtFwCombiner.Application/Composition/CompositionOutputBundleProposal.cs",
+    "src/NvtFwCombiner.Application/Composition/CompositionOutputBundleIntent.cs",
+    "src/NvtFwCombiner.Application/Composition/CompositionExecutionBundleDelivery.cs",
+    "src/NvtFwCombiner.Application/Composition/CompositionExecutionExperience.cs",
+    "src/NvtFwCombiner.Application/Composition/AcceptedSessionCompositionExecution.cs",
+    "src/NvtFwCombiner.Application/Composition/AbCodeOutputNameResolver.cs",
+    "src/NvtFwCombiner.Application/Composition/CompositionRunRequest.cs",
+    "src/NvtFwCombiner.Infrastructure/Files/CompositionOutputBundlePlatform.cs",
+    "docs/adr/0050-atomic-output-bundle-delivery.md"
+  ],
+  "implementationOwner": "primary-agent",
+  "searchEvidence": [
+    "Owner requests source chevron optical offset down slightly after native inspection: initially 1 DIP, then approves another 2 DIP (3 DIP total) based on codex-clipboard-e82d5735-834b-4f3a-b52e-a5a3fa7595b5.png. Change glyph translation only, not row anchors or hit-target bounds. Expanded arrow fill is addressed by shared style record 10. R1 visual-only follow-up.",
+    "Owner accepted preview exec-d7f25c5f-707a-43c8-996c-d472659209a7.png: output pencil adjacent to input, icon-only disclosure far right with accessible tooltip, delivery icons centered on value rows, first parent directory defaults to the OS DesktopDirectory without creation; preserve subsequent choices. R1 presentation follow-up, same VM/view owners, no firmware/path validation policy changes. Real control geometry regression added before correction; retain existing blocked integration code-size gate.",
+    "Owner follow-up: View source files / 檢視來源檔案 and match normal disclosure style. Reuse inlineDisclosure hover/focus tokens for this existing toggle, neutral text and stateful chevron; keep existing source list/keyboard behavior. Shared style/localized paths retain admission in records 10/06.",
+    "Owner: retain 800 and enter next approved v1.1.4 item; bundle-primary-output-rename handoff defines independent primary/folder editing.",
+    "CodeGraph bundle naming query and scoped source inspection: VM disables and resets name; execution reverts to canonical Admission preparation.",
+    "Existing CompositionRunRequest owns compiled filename policy. Extract its naming-only check for reuse, not a second policy. Preserve canonical admission; derive one effective OutputNameResolution after admission.",
+    "Existing AtomicBundleCompositionOutputWriter owns collision suffixes, protected paths, complete staging/promotion, cancellation and receipts. No writer/profile/firmware modification.",
+    "UI real-control red BundlePrimaryNameRemainsEditableAndIndependent failed before production edits (bundle-rename-red.trx); add execution/report/byte parity regression."
+  ],
+  "semanticOwner": "Application OutputNameResolution/CompositionRunRequest own effective name and policy; accepted bundle admission owns canonical preparation and sources; existing atomic writer owns delivery",
+  "terminalContract": "Existing filename editor works under Bundle. Preserve independent folder and primary drafts across toggles/preparation refresh. Typed effective name and override provenance flow through Intent, Delivery, destination, execution and prepared report resolution. Keep automatic tokens/time, source identities/names, A-only names and all firmware bytes unchanged. Validate Windows names before mutation; preserve stale/cancel and atomicity. Add narrow UI, execution byte/report and path-policy tests. Owner subsequently authorizes a separate local commit per completed item; no push, integration or release authorization.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "ctrlram_layout_inventory (GPT-5.6 Terra/high, read-only)",
+    "outcome": "approved",
+    "evidence": "2026-09-06 scoped R2 admission PASS with required effective-name propagation and red execution test. Keep canonical admission and reuse request naming validation, existing atomic writer and ADR0036; amend ADR0050 only."
+  },
+  "implementationHead": "2934c26922554e2b42a4770095d8a34c790e27ae",
+  "reviewedHead": "2934c26922554e2b42a4770095d8a34c790e27ae",
+  "pathStateDigest": "dcf36f43392ce8ae4ef99b11f8d546619efb251e84da68a06af49c7afad0e3a1",
+  "finalReview": {
+    "reviewer": "ui_presentation_review and ui_runtime_review (inherited models, read-only scoped lanes)",
+    "outcome": "approved",
+    "evidence": "Fixed-head scoped semantic/Polytail reviews: combined Presentation/runtime/governance review at cc9244da; release-policy test correction reviewed at a602a1f9; all seven architecture/card corrections reviewed at 2a376c29 with no P0-P3 findings. ui_runtime_review verified 1718e6a45b76bc78aa8e19d553d9e846ed79dda4 adds only two truthful handoffs and confirmed review binding for all 14 records; unchanged lanes retain original scoped reviewers, not a new whole-repository review. Architecture 256/256 and focused UI 30/30 are primary-observed console results on correction source; previous full run at a602a1f9 failed Architecture, and that failure evidence remains. Canonical size check is 137982 full / 98890 runtime, no violations; MainWindow 976 <= 985. Applicable fixed-candidate integration verification remains separate and is not claimed passed by this review record. No native DPI, release or Dummy DP certification is asserted. Subsequent full verification at 1718e6a4 passed the other lanes but failed Infrastructure (53/1069); retain verify-1718e6a4.log as failure evidence. Scoped test-fixture ownership correction at 2934c269 was independently reviewed by ui_runtime_review: no findings, 56/56 targeted and 1066/1066 full Infrastructure passed with zero skips (infra-diagnosis/owned-handles-final.trx and infra-owned-handles-final.trx). Reviewer confirmed exact-head 2934c269 binding and unchanged governed paths; prior lane reviews remain scoped. Required final integration verification is still separate."
+  }
+}

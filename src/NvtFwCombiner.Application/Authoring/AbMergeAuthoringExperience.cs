@@ -44,13 +44,15 @@ internal sealed partial class AbMergeAuthoringExperience :
         IReadOnlyCollection<string> selectedSlotIds,
         IReadOnlyDictionary<string, FileStamp> acceptedFileStamps,
         AuthoringRevision authoringRevision,
-        ActiveSessionSnapshot? retainedSession = null)
+        ActiveSessionSnapshot? retainedSession = null,
+        AbMergeDpMode dpMode = AbMergeDpMode.Normal)
     {
         return CreateAbMergeAuthoringService(
                 _compiler.ResolveAbMergeTopologySelection(
                     icId,
                     topologyToken),
-                _catalog)
+                _compiler,
+                dpMode)
             .ProjectSelection(
                 icId,
                 authoringRevision,
@@ -64,25 +66,31 @@ internal sealed partial class AbMergeAuthoringExperience :
         AuthoringSessionState session,
         string icId,
         string? topologyToken,
-        IReadOnlyCollection<CompiledAuthoringSelectedInput> inputs)
+        IReadOnlyCollection<CompiledAuthoringSelectedInput> inputs,
+        AbMergeDpMode dpMode = AbMergeDpMode.Normal)
     {
         return CreateAbMergeAuthoringService(
                 _compiler.ResolveAbMergeTopologySelection(icId, topologyToken),
-                _catalog)
+                _compiler,
+                dpMode)
             .PrepareExactSession(icId, session, inputs);
     }
 
     private static CompiledAuthoringWorkflowService CreateAbMergeAuthoringService(
         TopologySelection? topology,
-        ICanonicalCapabilityQuery catalog)
+        CanonicalCapabilityCompilerAdapter compiler,
+        AbMergeDpMode dpMode)
     {
-        return new CompiledAuthoringWorkflowService(
-            new AbMergeAuthoringResolver(topology, catalog));
+        return Enum.IsDefined(dpMode)
+            ? new CompiledAuthoringWorkflowService(new AbMergeAuthoringResolver(topology, compiler, dpMode))
+            : throw new ArgumentOutOfRangeException(nameof(dpMode));
     }
 
     private sealed class AbMergeAuthoringResolver(
         TopologySelection? topology,
-        ICanonicalCapabilityQuery catalog)
+        CanonicalCapabilityCompilerAdapter compiler,
+        AbMergeDpMode dpMode,
+        ResolvedCapability? inspectionCapability = null)
         : ICompiledAuthoringWorkflowResolver
     {
         private string? _icId;
@@ -92,13 +100,19 @@ internal sealed partial class AbMergeAuthoringExperience :
 
         public CompiledAuthoringWorkflowDiscovery Discover(string icId)
         {
-            CapabilityResolutionResult resolution = catalog.ResolveUniqueTopologyRoute(
-                    IcIdentifier.Normalize(icId),
-                    ExperienceIds.AbMerge,
-                    topology);
-            _capability = resolution.Capability ??
+            ResolvedCapability? capability = inspectionCapability;
+            IReadOnlyList<CompositionIssue> issues = [];
+            if (capability is null)
+            {
+                _ = compiler.TryCompileAbMergeCapability(icId, topology,
+                    selectedInputSlotIds: dpMode == AbMergeDpMode.Dummy ? [] : null,
+                    out _, out capability, out issues);
+            }
+            _capability = capability ??
                 throw new InvalidOperationException(
-                    resolution.Issue?.Message ?? $"No reviewed AB Merge authoring route exists for '{icId}'.");
+                    issues.Count == 0
+                        ? $"No reviewed AB Merge authoring route exists for '{icId}'."
+                        : string.Join(" | ", issues.Select(static issue => issue.Message)));
             _icId = _capability.Identity.IcId;
             return new CompiledAuthoringWorkflowDiscovery(
                 _capability,

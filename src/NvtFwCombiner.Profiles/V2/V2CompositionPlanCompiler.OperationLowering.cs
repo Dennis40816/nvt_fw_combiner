@@ -14,7 +14,9 @@ internal static partial class V2CompositionPlanCompiler
         LoweredRegionAccess regionAccess,
         List<CompositionIssue> issues,
         bool useProcessorWriteAuthority = false,
-        IReadOnlySet<string>? activeOperationIds = null)
+        IReadOnlySet<string>? activeOperationIds = null,
+        FirmwareFamilyResolutionDefinition? family = null,
+        IReadOnlySet<string>? activeSlotIds = null)
     {
         var operations = new List<CompositionOperation>();
         string? replaceReferenceSourceSpaceId = profile.CompositionKind == CompositionKind.Replace
@@ -81,7 +83,87 @@ internal static partial class V2CompositionPlanCompiler
             }
         }
 
+        if (profile.CompositionKind == CompositionKind.Merge &&
+            family is not null && activeSlotIds is not null && activeOperationIds is not null)
+        {
+            for (int index = 0; index < operations.Count; index++)
+            {
+                CompositionOperation operation = operations[index];
+                if (operation.Kind != CompositionOperationKind.CopyRange ||
+                    operation.OverlapPolicy != OverlapPolicy.ReplaceExisting ||
+                    operations.Any(prior => prior.Sequence < operation.Sequence &&
+                        StringComparer.Ordinal.Equals(prior.TargetSpaceId, operation.TargetSpaceId) &&
+                        prior.DeclaredWriteRanges.Any(range => range.Overlaps(operation.TargetRange))) ||
+                    !HasOmittedCoveringSeed(profile, family, resolvedMap, views, regionAccess,
+                        activeSlotIds, activeOperationIds, operation))
+                {
+                    continue;
+                }
+
+                operations[index] = CompositionOperation.CopyRange(
+                    operation.OperationId, operation.Sequence,
+                    operation.SourceSpaceId!, operation.SourceRange!.Value,
+                    operation.TargetSpaceId, operation.TargetRange,
+                    OverlapPolicy.Reject, operation.Reason, operation.Provenance);
+            }
+        }
+
         return [.. operations];
+    }
+
+    private static bool HasOmittedCoveringSeed(
+        CompositionProfileDefinition profile,
+        FirmwareFamilyResolutionDefinition family,
+        FirmwareFamilyResolutionDefinition.ResolvedFirmwareImageMap resolvedMap,
+        IReadOnlyDictionary<string, ResolvedView> views,
+        LoweredRegionAccess regionAccess,
+        IReadOnlySet<string> activeSlotIds,
+        IReadOnlySet<string> activeOperationIds,
+        CompositionOperation operation)
+    {
+        foreach (CompositionOperationDefinition seed in profile.Operations.Where(candidate =>
+                     candidate.Kind == CompositionOperationKind.CopyRange &&
+                     candidate.OverlapPolicy == OverlapPolicy.Reject &&
+                     candidate.Sequence < operation.Sequence &&
+                     !activeOperationIds.Contains(candidate.OperationId)))
+        {
+            CompositionProfileView source = profile.Views.Single(view => view.ViewId == seed.SourceViewId);
+            CompositionProfileView target = profile.Views.Single(view => view.ViewId == seed.TargetViewId);
+            if (source.Selector is not MapRegionViewSelector sourceRegion ||
+                target.Selector is not MapRegionViewSelector targetRegion ||
+                !StringComparer.Ordinal.Equals(sourceRegion.RegionId, targetRegion.RegionId) ||
+                !views.TryGetValue(target.ViewId, out ResolvedView? resolvedTarget) ||
+                !StringComparer.Ordinal.Equals(resolvedTarget.SpaceId, operation.TargetSpaceId) ||
+                !resolvedTarget.Range.Contains(operation.TargetRange))
+            {
+                continue;
+            }
+
+            InputArtifactProfileSpace? input = profile.Spaces.OfType<InputArtifactProfileSpace>()
+                .SingleOrDefault(space => space.SpaceId == source.SpaceId);
+            if (input is null || activeSlotIds.Contains(input.SlotId)) { continue; }
+            CompositionInputSlotDefinition slot = profile.InputSlots.Single(candidate => candidate.SlotId == input.SlotId);
+            if (slot.Required || slot.Cardinality != CompiledInputSlotCardinality.ZeroOrOne ||
+                !profile.InputSelectionGroups.Any(group => group.MemberSlotIds.Contains(input.SlotId, StringComparer.Ordinal)))
+            {
+                continue;
+            }
+
+            var proofIssues = new List<CompositionIssue>();
+            if (TryResolveInputSpaceLength(profile, family, input, slot, resolvedMap, proofIssues, out long length) &&
+                TryResolveViewRange(source, resolvedMap,
+                    CreateInputAddressSpace(input.SpaceId, length, slot, resolvedMap.CapacityBytes,
+                        profile.CompositionKind, isCloneSource: false),
+                    out ByteRange sourceRange, out _) &&
+                sourceRange == resolvedTarget.Range &&
+                TryAuthorizeTargetWrite(seed.OperationId, target.ViewId, resolvedTarget, regionAccess, proofIssues) &&
+                proofIssues.Count == 0)
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private static bool IsAdmittedOperation(

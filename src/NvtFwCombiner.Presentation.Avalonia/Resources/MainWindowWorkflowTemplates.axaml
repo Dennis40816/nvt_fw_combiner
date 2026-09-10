@@ -20,7 +20,8 @@
           <TextBlock Classes="sectionTitle" Text="{Binding Text.InputFilesTitle}" />
           <TextBlock Classes="mutedText" Text="{Binding SelectedReplaceModeDescription}" TextWrapping="Wrap" />
         </StackPanel>
-        <ItemsControl ItemContainerTheme="{StaticResource StretchContentPresenterTheme}" ItemsSource="{Binding ReplaceSlots}">
+        <!-- Match the grouped CtrlRAM input column, including surface and disclosure insets. -->
+        <ItemsControl Margin="32,0" ItemContainerTheme="{StaticResource StretchContentPresenterTheme}" ItemsSource="{Binding ReplaceSlots}">
           <ItemsControl.ItemTemplate>
             <StaticResource ResourceKey="FirmwareSlotCardTemplate" />
           </ItemsControl.ItemTemplate>
@@ -31,21 +32,20 @@
     <Border
         Classes="panelSurface roomyPanel"
         IsVisible="{Binding IsCtrlRamReplaceModeSelected}">
-      <StackPanel Spacing="14">
-        <StackPanel Spacing="3">
+      <StackPanel>
+        <StackPanel Spacing="3" Margin="0,0,0,16">
           <TextBlock Classes="sectionTitle" Text="{Binding Text.InputFilesTitle}" />
           <TextBlock Classes="mutedText" Text="{Binding Text.CtrlRamInputFilesDetail}" TextWrapping="Wrap" />
         </StackPanel>
 
-        <views:SpaciousPanel Classes="compact" HorizontalAlignment="Stretch">
-          <ContentControl
-              HorizontalAlignment="Stretch"
-              HorizontalContentAlignment="Stretch"
-              Content="{Binding ReplaceBaseSlot}"
-              ContentTemplate="{StaticResource FirmwareSlotCardTemplate}" />
-        </views:SpaciousPanel>
+        <ContentControl
+            Margin="32,0"
+            HorizontalAlignment="Stretch"
+            HorizontalContentAlignment="Stretch"
+            Content="{Binding ReplaceBaseSlot}"
+            ContentTemplate="{StaticResource FirmwareSlotCardTemplate}" />
 
-        <ItemsControl Classes="spaciousList" HorizontalAlignment="Stretch" ItemContainerTheme="{StaticResource StretchContentPresenterTheme}" ItemsSource="{Binding ReplaceSlotGroups}">
+        <ItemsControl Classes="spaciousList firmwareSlotGroups" HorizontalAlignment="Stretch" ItemContainerTheme="{StaticResource StretchContentPresenterTheme}" ItemsSource="{Binding ReplaceSlotGroups}">
           <ItemsControl.ItemTemplate>
             <StaticResource ResourceKey="FirmwareSlotGroupTemplate" />
           </ItemsControl.ItemTemplate>
@@ -158,7 +158,7 @@
           <TextBlock Classes="sectionTitle" Text="{Binding Text.InputFilesTitle}" />
           <TextBlock Classes="mutedText" Text="{Binding StandardMergeSupportSummary}" TextWrapping="Wrap" />
         </StackPanel>
-        <ItemsControl ItemContainerTheme="{StaticResource StretchContentPresenterTheme}" ItemsSource="{Binding MergeSlots}">
+        <ItemsControl Margin="32,0" ItemContainerTheme="{StaticResource StretchContentPresenterTheme}" ItemsSource="{Binding MergeSlots}">
           <ItemsControl.ItemTemplate>
             <StaticResource ResourceKey="FirmwareSlotCardTemplate" />
           </ItemsControl.ItemTemplate>
@@ -243,12 +243,23 @@
           <TextBlock Classes="sectionTitle" Text="{Binding Text.AbCodeMergeTitle}" />
           <TextBlock Classes="mutedText" Text="{Binding Text.AbCodeMergeDetail}" TextWrapping="Wrap" />
         </StackPanel>
-        <CheckBox
+        <WrapPanel Orientation="Horizontal" ItemSpacing="24" LineSpacing="8">
+          <CheckBox
             AutomationProperties.Name="{Binding Text.AbSameTpOptionLabel}"
             Command="{Binding ToggleAbSameTpCommand}"
             Content="{Binding Text.AbSameTpOptionLabel}"
             IsChecked="{Binding UseSameTpForAbMerge, Mode=OneWay}" />
-        <ItemsControl ItemContainerTheme="{StaticResource StretchContentPresenterTheme}" ItemsSource="{Binding MergeSlots}">
+          <CheckBox x:Name="AbDummyDpCheckBox"
+            AutomationProperties.Name="{Binding Text.AbDummyDpOptionLabel}"
+            Command="{Binding ToggleAbDummyDpCommand}"
+            Content="{Binding Text.AbDummyDpOptionLabel}"
+            IsChecked="{Binding UseDummyDpForAbMerge, Mode=OneWay}" />
+        </WrapPanel>
+        <ContentControl x:Name="AbDummyDpDisplay"
+            Margin="32,0"
+            Content="{Binding DummyDpDisplaySlot}" ContentTemplate="{StaticResource FirmwareSlotCardTemplate}"
+            IsEnabled="False" IsVisible="{Binding UseDummyDpForAbMerge}" />
+        <ItemsControl Margin="32,0" ItemContainerTheme="{StaticResource StretchContentPresenterTheme}" ItemsSource="{Binding MergeSlots}">
           <ItemsControl.ItemTemplate>
             <StaticResource ResourceKey="FirmwareSlotCardTemplate" />
           </ItemsControl.ItemTemplate>
@@ -268,13 +279,26 @@
 <DataTemplate x:Key="ReplaceOutputLayoutPanelTemplate" DataType="vm:ReplacePresentationViewModel">
   <Border Classes="panelSurface memoryInfoPanel">
     <views:SpaciousPanel>
-      <StackPanel Spacing="{DynamicResource NfcSpace16}">
+      <Grid>
+      <StackPanel IsVisible="{Binding HasMemoryLayoutDisplayError}" Spacing="{DynamicResource NfcSpace16}">
+        <TextBlock Classes="sectionTitle" Text="{Binding Text.OutputLayoutTitle}" />
+        <Border x:Name="ReplaceMemoryDisplayWarning" Classes="warningSurface" Padding="12"
+            AutomationProperties.LiveSetting="Polite" AutomationProperties.Name="{Binding Text.MemoryLayoutUnavailableTitle}">
+          <StackPanel Spacing="6">
+            <TextBlock Classes="bodyEmphasisText" Foreground="{DynamicResource NfcWarningTextBrush}"
+                Text="{Binding Text.MemoryLayoutUnavailableTitle}" TextWrapping="Wrap" />
+            <TextBlock Classes="supportingText" Foreground="{DynamicResource NfcWarningTextBrush}"
+                Text="{Binding Text.MemoryLayoutUnavailableDetail}" TextWrapping="Wrap" />
+          </StackPanel>
+        </Border>
+      </StackPanel>
+      <StackPanel IsVisible="{Binding !HasMemoryLayoutDisplayError}" Spacing="{DynamicResource NfcSpace16}">
       <StackPanel Spacing="{DynamicResource NfcSpace8}">
         <StackPanel Spacing="3">
           <TextBlock Classes="sectionTitle" Text="{Binding Text.OutputLayoutTitle}" />
-          <TextBlock Classes="mutedText memoryInfoDescription" Text="{Binding ReplaceMemorySummary}" TextWrapping="Wrap" />
+          <TextBlock Classes="mutedText memoryInfoDescription" IsVisible="{Binding !HasCtrlRamFocusLayout}" Text="{Binding ReplaceMemorySummary}" TextWrapping="Wrap" />
         </StackPanel>
-        <Border Classes="compactSubtleSurface memoryInfoAddress" Padding="8,4">
+        <Border Classes="compactSubtleSurface memoryInfoAddress" IsVisible="{Binding !HasCtrlRamFocusLayout}" Padding="8,4">
           <TextBlock Classes="monoText detailText memoryInfoAddressText" Text="{Binding ReplaceMemoryRangeLabel}" TextWrapping="Wrap" />
         </Border>
       </StackPanel>
@@ -312,19 +336,46 @@
         </StackPanel>
       </StackPanel>
 
-      <Border Height="34" Background="{DynamicResource NfcMemoryTrackBrush}" ClipToBounds="False" CornerRadius="{DynamicResource NfcCompactCornerRadius}">
-        <ItemsControl Height="34" HorizontalAlignment="Stretch" ClipToBounds="False" ItemContainerTheme="{StaticResource ProportionalContentPresenterTheme}" ItemTemplate="{StaticResource MemoryCoverageSegmentBarTemplate}" ItemsSource="{Binding ReplaceCoverageSegments}">
-          <ItemsControl.ItemsPanel>
-            <ItemsPanelTemplate>
-              <views:ProportionalStackPanel />
-            </ItemsPanelTemplate>
-          </ItemsControl.ItemsPanel>
-        </ItemsControl>
-      </Border>
+      <StackPanel IsVisible="{Binding HasCtrlRamFocusLayout}" Spacing="24">
+        <StackPanel x:Name="CtrlRamFlashOverview" Spacing="{DynamicResource NfcSpace12}">
+          <Grid ColumnDefinitions="*,Auto">
+            <TextBlock Classes="bodyEmphasisText" FontSize="{DynamicResource NfcFontSize14}" FontWeight="SemiBold" Text="{Binding Text.MemoryFlashOverviewLabel}" />
+            <TextBlock Grid.Column="1" Classes="captionText" Text="{Binding CtrlRamCapacityLabel}" />
+          </Grid>
+          <views:MemoryCoverageBar ItemsSource="{Binding CtrlRamOverview}" FocusPositions="{Binding CtrlRamPositions}" Labels="{Binding Text}" ShowLabels="True" ReducedMotion="{ReflectionBinding $parent[Window].DataContext.IsReducedMotionEnabled}" />
+          <Grid ColumnDefinitions="*,Auto">
+            <TextBlock Classes="monoText captionText" Text="0x00000" />
+            <TextBlock Grid.Column="1" Classes="monoText captionText" Text="{Binding CtrlRamEndAddress}" />
+          </Grid>
+          <ItemsControl ItemsSource="{Binding CtrlRamOverviewLegend}" ItemContainerTheme="{StaticResource StretchContentPresenterTheme}">
+            <ItemsControl.ItemsPanel><ItemsPanelTemplate><UniformGrid Columns="2" /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+            <ItemsControl.ItemTemplate>
+              <DataTemplate DataType="vm:MemoryCoverageSegmentViewModel">
+                <Grid ColumnDefinitions="Auto,*" Margin="0,3,6,3">
+                  <ContentControl Content="{Binding}" ContentTemplate="{StaticResource MemoryCoverageCompactMarkerTemplate}" Margin="0,0,8,0" VerticalAlignment="Center" />
+                  <StackPanel Grid.Column="1" Spacing="3">
+                    <TextBlock Classes="bodyEmphasisText" Text="{Binding DisplayTitle}" />
+                    <TextBlock Classes="monoText captionText" FontSize="{DynamicResource NfcFontSize11}" Text="{Binding AddressRangeLabel}" />
+                  </StackPanel>
+                </Grid>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+        </StackPanel>
+        <TextBlock Classes="captionText" FontSize="{DynamicResource NfcFontSize11}" Text="{Binding CtrlRamSharedInputHint}" TextWrapping="Wrap" />
+      </StackPanel>
 
-      <Grid>
-          <ItemsControl ItemTemplate="{StaticResource MemoryCoverageSegmentListTemplate}" ItemsSource="{Binding ReplaceCoverageSegments}"
-              IsVisible="{Binding IsReplaceCoverageFlat}" />
+      <views:MemoryCoverageBar IsVisible="{Binding !HasCtrlRamFocusLayout}" ItemsSource="{Binding ReplaceCoverageSegments}" Labels="{Binding Text}" ReducedMotion="{ReflectionBinding $parent[Window].DataContext.IsReducedMotionEnabled}" />
+
+      <Grid IsVisible="{Binding !HasCtrlRamFocusLayout}">
+          <StackPanel IsVisible="{Binding IsReplaceCoverageFlat}">
+            <StackPanel DataContext="{Binding CoverageDetails}" x:DataType="vm:MemoryCoverageListViewModel">
+              <ItemsControl ItemTemplate="{StaticResource MemoryCoverageSegmentListTemplate}" ItemsSource="{Binding VisibleRows}" />
+              <Button x:Name="MemoryCoverageListToggle" Classes="semanticAction secondary" HorizontalAlignment="Right"
+                  IsVisible="{Binding HasMoreRows}" Content="{Binding ToggleLabel}" Command="{Binding ToggleCommand}"
+                  AutomationProperties.Name="{Binding ToggleLabel}" />
+            </StackPanel>
+          </StackPanel>
 
           <StackPanel IsVisible="{Binding IsReplaceCoverageGrouped}">
             <TextBlock Classes="sectionLabel" Text="{Binding ReplaceSelectedCoverageSummary}" />
@@ -358,6 +409,7 @@
         <ItemsControl ItemTemplate="{StaticResource ReplaceMemoryMapRowTemplate}" ItemsSource="{Binding ReplaceMemoryRows}" />
       </StackPanel>
       </StackPanel>
+      </Grid>
     </views:SpaciousPanel>
   </Border>
 </DataTemplate>

@@ -1,0 +1,71 @@
+{
+  "schemaVersion": 2,
+  "taskId": "UI-114-CTRLRAM-CONTEXT-58",
+  "capability": "Complete NT51919/NT51950/NT51951 CtrlRAM overview from exact existing Standard maps without adding Report authority",
+  "integrationBase": "a0fc6a9f816ee677c87283d8e3c708d293be1482",
+  "risk": "R3",
+  "kind": "ui",
+  "state": "final-complete",
+  "mutablePaths": [
+    "src/NvtFwCombiner.Application/MemoryLayout/MemoryLayoutContextMap.cs",
+    "src/NvtFwCombiner.Application/MemoryLayout/MemoryLayoutProjector.Sections.cs",
+    "src/NvtFwCombiner.Application/Capabilities/CanonicalCapabilityCatalogSource.cs",
+    "src/NvtFwCombiner.Application/Capabilities/CanonicalDynamicCapabilityModels.cs",
+    "src/NvtFwCombiner.Application/Capabilities/CanonicalCapabilityModels.cs",
+    "src/NvtFwCombiner.Application/Capabilities/CapabilityPublicationCoherence.cs",
+    "src/NvtFwCombiner.Infrastructure/Composition/CtrlRamV2RouteRegistry.cs",
+    "src/NvtFwCombiner.Infrastructure/Composition/CanonicalDynamicRouteInventory.cs",
+    "src/NvtFwCombiner.Infrastructure/Bundles/ProfileBundlePackageTrustIndex.cs",
+    "src/NvtFwCombiner.Infrastructure/Capabilities/BuiltInCanonicalCapabilityPolicy.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/UiCompositionRunner.Common.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ShellTextResources.MemoryLayout.cs",
+    "profiles/built-in/package-trust-index.json",
+    "docs/contracts/profile-bundle-package-trust-index-v1.schema.json",
+    "docs/contracts/profile-bundle-package-trust-index-v1.md",
+    "docs/contracts/canonical-capability-policy-v1.json",
+    "docs/adr/0052-exact-ctrlram-report-metadata-counterpart.md",
+    "eng/profile-bundle-materializer/NvtFwCombiner.ProfileBundleMaterializer.targets",
+    "scripts/package.ps1",
+    "scripts/smoke-release.ps1"
+  ],
+  "implementationOwner": "primary-agent",
+  "searchEvidence": [
+    "MemoryLayoutProjector.Sections currently obtains only reportClassification maps. Actual MainWindow tests reproduce neutral Context for 19/50/51 while inspection and Build remain valid: D:/NvtFwCombiner-TestArea/evidence/v114-ctrlram-context58/red-complete.trx, 3 intended failures.",
+    "CtrlRamV2RouteRegistry.ValidateReportMetadataCounterpart and CtrlRamReportMetadataPlanTests require these six reportless registrations to retain MetadataPlanDefinition.Empty. StandardMergeByIc/GetMapVariants already materialize exact same-IC maps; NT51919 resolves the existing 51929 family. 950/951 canonical Standard family declares DP Image parent and TP Code child. No new map or filename/capacity lookup is needed."
+  ],
+  "semanticOwner": "Package trust index owns exact counterpart admission; canonical Standard profiles/families own map facts. Application capability retains immutable fingerprint-bound display context and MemoryLayoutProjector owns read-only ancestry projection. Presentation renders typed context only.",
+  "terminalContract": "Add closed CtrlRAM-only memoryLayoutContextMapId in schema 1.3 and six explicit existing map references. Preserve Report absence/presence contract and existing reportful overview fallback. Reject unknown/cross-IC/unmaterialized maps, address-space drift and inconsistent dual bindings before publication. Bind exact IC/profile/version/bundle/map context to dynamic fingerprint and resolved capability. No map selection by capacity, input bytes, metadata classification, filename or PID. Capacity limits whole-section visibility only. DP Image parent with descendant TP Code is partitioned by declared ancestry, with DP image label and overlay explanation; unrelated overlaps remain neutral. Primary CtrlRAM map, coverage, accepted inputs, Build, operation order, writes, Golden expected bytes and publication/evidence decisions are unchanged. Schema materializer and source pins are mechanically synchronized, not permission to release. Targeted schema/admission/fingerprint/overview/report/Golden and actual-window tests; no full release claim. R3 exact-head external owner approval remains required before finalization/integration.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "ctrlram_readability (GPT-5.6 Terra, high; read-only)",
+    "outcome": "approved",
+    "evidence": "Independent Unit58 design recommends distinct optional memoryLayoutContextMapId, same-IC Standard GetMapVariants materialization and immutable typed capability context with fingerprint identity. Preserve reportless Empty plans; reject bad admission rather than infer. Approved six exact bindings: 19 single/cascade existing19-256k, 50 single256k/cascade512k, 51 single/cascade512k. Project declared DP Image/TP Code ancestry; incomplete DP containers excluded for TP-work images. No unresolved UI choice; R3 frozen external owner gate is not replaced by design review."
+  },
+  "implementationHead": "d32d4790ae124972487cfd8de137d442e72f12a0",
+  "reviewedHead": "d32d4790ae124972487cfd8de137d442e72f12a0",
+  "pathStateDigest": "1a2f72fa67feff4fecd10e2da50afcce3f0afe3d25ba3331ad8165b7da54b212",
+  "finalReview": {
+    "reviewer": "memory_coverage_inventory",
+    "outcome": "approved",
+    "evidence": "Scoped source PASS-WITH-HUMAN-GATE at frozen head carried forward from69eb36de5f8abbae518a3faed9502417de60d856 by exact Git blob comparison of every original mutablePath: zero path-content changes. Review covers CtrlRAM context admission/fingerprint/Report separation, display-only lane/hover/markers, bounded-local-R1 governance and typed input guidance; ADR0052 DP-label discrepancy resolved. Existing tests reused, no fresh execution. All original mutablePaths remain reviewed and digest-bound; integrationPaths assigns unique final ownership only. Owner authorized evidence-first sequencing for this batch on2026-09-10, expiring when its exact-head R3 attestations are committed; reason: validator requires existing final-evidence commit before attestation. No R3/Golden/CI/package/publication gate waived; final-complete denotes source-review lifecycle, not release readiness."
+  },
+  "integrationPaths": [
+    "src/NvtFwCombiner.Application/MemoryLayout/MemoryLayoutContextMap.cs",
+    "src/NvtFwCombiner.Application/MemoryLayout/MemoryLayoutProjector.Sections.cs",
+    "src/NvtFwCombiner.Application/Capabilities/CanonicalCapabilityCatalogSource.cs",
+    "src/NvtFwCombiner.Application/Capabilities/CanonicalDynamicCapabilityModels.cs",
+    "src/NvtFwCombiner.Application/Capabilities/CanonicalCapabilityModels.cs",
+    "src/NvtFwCombiner.Application/Capabilities/CapabilityPublicationCoherence.cs",
+    "src/NvtFwCombiner.Infrastructure/Composition/CtrlRamV2RouteRegistry.cs",
+    "src/NvtFwCombiner.Infrastructure/Composition/CanonicalDynamicRouteInventory.cs",
+    "src/NvtFwCombiner.Infrastructure/Bundles/ProfileBundlePackageTrustIndex.cs",
+    "src/NvtFwCombiner.Infrastructure/Capabilities/BuiltInCanonicalCapabilityPolicy.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/UiCompositionRunner.Common.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ShellTextResources.MemoryLayout.cs",
+    "profiles/built-in/package-trust-index.json",
+    "docs/contracts/profile-bundle-package-trust-index-v1.schema.json",
+    "docs/contracts/profile-bundle-package-trust-index-v1.md",
+    "docs/contracts/canonical-capability-policy-v1.json",
+    "eng/profile-bundle-materializer/NvtFwCombiner.ProfileBundleMaterializer.targets"
+  ]
+}

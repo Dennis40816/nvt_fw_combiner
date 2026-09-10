@@ -342,6 +342,8 @@ public sealed class CompositionExecutionBundleDelivery
         ParentDirectory = intent.ParentDirectory;
         FolderName = intent.FolderName;
         Admission = intent.Admission;
+        PreparedOutputName = intent.PreparedOutputName;
+        OutputFileNameIsOverride = intent.OutputFileNameIsOverride;
         Sources = intent.Admission.Sources;
         AdditionalDelivery = intent.AdditionalDelivery;
     }
@@ -351,6 +353,10 @@ public sealed class CompositionExecutionBundleDelivery
     public string FolderName { get; }
 
     internal CompositionOutputBundleAdmission Admission { get; }
+
+    internal OutputNameResolution PreparedOutputName { get; }
+
+    internal bool OutputFileNameIsOverride { get; }
 
     public IReadOnlyList<CompositionExecutionBundleSource> Sources { get; }
 

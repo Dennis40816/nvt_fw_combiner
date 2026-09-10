@@ -66,6 +66,32 @@ Every later verifier or direct narrow-test shell repeats the four environment
 exports above. GitHub Actions does not use the local declaration; the canonical
 verifier derives `RUNNER_TEMP/NvtFwCombiner-TestArea` itself.
 
+## Open CtrlRAM inputs in the desktop UI
+
+The `1.1.4` development UI can open CtrlRAM Replace and inspect explicitly
+selected files from a command prompt. This loads the existing screen only:
+it does **not** execute Preview, Build, CRC processing, or write an output BIN.
+The IC and IC Number must be available in the current catalog. For example:
+
+```cmd
+NvtFwCombiner.Desktop.exe --workflow ctrlram-replace --ic NT51950 --ic-num single --base "C:\Firmware\Base.bin" --ctrlram "replace-ctrlram-nf=C:\Firmware\nf.bin"
+```
+
+Use the actual executable/file paths on your machine. Repeat `--ctrlram` for
+additional distinct slot IDs, such as `replace-ctrlram-normal` or
+`replace-ctrlram-vn` when the inspected Base offers those slots. Quote each
+complete `slot-id=path` argument when paths contain spaces. Relative file paths
+resolve from the process working directory; `--option=value` is also accepted.
+
+All five options shown above are required; `--page replace` is optional.
+Malformed/duplicate arguments, unknown options, another page or report-loading
+options reject input startup. Unsupported IC/Number/slot IDs report the available
+choices instead of falling back. File errors use the normal slot diagnostics;
+IC/Number mismatch prompts still require the user's decision and stop further
+automatic selections. Already loaded inputs remain visible for review or manual
+correction. No files are read until the canonical catalog is ready, and ordinary
+interactive startup is unchanged when these input options are absent.
+
 ## Deploy a published version to an update source
 
 Use one Windows command after the exact stable GitHub Release exists. The

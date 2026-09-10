@@ -26,6 +26,7 @@ internal sealed partial class OutputDeliveryConfirmationViewModel : ObservableOb
     private readonly ICompositionOutputNaming _outputNaming;
     private readonly Func<ShellTextResources> _text;
     private OutputDeliveryRequest? _request;
+    private bool _preserveCancelledDeliveryState;
 
     internal OutputDeliveryConfirmationViewModel(
         ICompositionOutputNaming outputNaming,
@@ -63,7 +64,7 @@ internal sealed partial class OutputDeliveryConfirmationViewModel : ObservableOb
 
     public bool IsOutputFileNameEditing { get; private set; }
 
-    public bool CanEditOutputFileName => !BundleEnabled;
+    public bool CanEditOutputFileName => IsOpen;
 
     public bool OutputFileNameUsesAutomaticName => StringComparer.Ordinal.Equals(
         OutputFileName,
@@ -84,7 +85,8 @@ internal sealed partial class OutputDeliveryConfirmationViewModel : ObservableOb
 
     public string BundleFolderName { get; private set; } = string.Empty;
 
-    public string ParentDirectory { get; private set; } = string.Empty;
+    public string ParentDirectory { get; private set; } =
+        Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory);
 
     public bool IsBundleDestinationEditing { get; private set; }
 
@@ -101,14 +103,16 @@ internal sealed partial class OutputDeliveryConfirmationViewModel : ObservableOb
     internal void Open(OutputDeliveryRequest request, bool preserveDeliveryState = false)
     {
         ArgumentNullException.ThrowIfNull(request);
+        preserveDeliveryState |= _preserveCancelledDeliveryState &&
+            _request is { } previous && previous.IsReplaceOutput == request.IsReplaceOutput && previous.IsCurrent();
+        _preserveCancelledDeliveryState = false;
         bool preserveCustomOutputName =
             preserveDeliveryState &&
-            !OutputFileNameUsesAutomaticName &&
-            !string.IsNullOrWhiteSpace(OutputFileName);
+            !OutputFileNameUsesAutomaticName;
         _request = request;
         AreSourcesExpanded = false;
         IsBundleDestinationEditing = false;
-        if (!preserveCustomOutputName || BundleEnabled)
+        if (!preserveCustomOutputName)
         {
             ResetOutputFileName();
         }
@@ -122,23 +126,19 @@ internal sealed partial class OutputDeliveryConfirmationViewModel : ObservableOb
         AdditionalDeliveryEnabled = preserveDeliveryState &&
             AdditionalDeliveryEnabled &&
             request.AdditionalDelivery is not null;
-        RefreshValidation();
+        _ = RefreshValidation();
         NotifyAll();
     }
 
     internal void SetBundleEnabled(bool enabled)
     {
         BundleEnabled = enabled;
-        if (enabled)
-        {
-            ResetOutputFileName();
-        }
-        else
+        if (!enabled)
         {
             IsBundleDestinationEditing = false;
         }
 
-        RefreshValidation();
+        _ = RefreshValidation();
         OnPropertyChanged(nameof(BundleEnabled));
         OnPropertyChanged(nameof(CanEditOutputFileName));
         OnPropertyChanged(nameof(CanEditBundleDestination));
@@ -189,6 +189,7 @@ internal sealed partial class OutputDeliveryConfirmationViewModel : ObservableOb
         }
 
         OutputFileName = value ?? string.Empty;
+        _ = RefreshValidation();
         OnPropertyChanged(nameof(OutputFileName));
         OnPropertyChanged(nameof(OutputFileNameUsesAutomaticName));
     }
@@ -203,14 +204,14 @@ internal sealed partial class OutputDeliveryConfirmationViewModel : ObservableOb
     internal void SetBundleFolderName(string value)
     {
         BundleFolderName = value ?? string.Empty;
-        RefreshValidation();
+        _ = RefreshValidation();
         OnPropertyChanged(nameof(BundleFolderName));
     }
 
     internal void SetParentDirectory(string value)
     {
         ParentDirectory = value ?? string.Empty;
-        RefreshValidation();
+        _ = RefreshValidation();
         OnPropertyChanged(nameof(ParentDirectory));
     }
 
@@ -255,16 +256,8 @@ internal sealed partial class OutputDeliveryConfirmationViewModel : ObservableOb
             return;
         }
 
-        CompositionOutputBundleIntent intent = request.Proposal.CreateIntent(
-            ParentDirectory,
-            BundleFolderName,
-            AdditionalDeliveryEnabled
-                ? request.AdditionalDelivery?.DeliveryKind
-                : null);
-        CompositionOutputBundleDestinationValidation validation =
-            _outputNaming.ValidateBundleDestination(intent);
-        ApplyValidation(validation);
-        if (!validation.IsValid)
+        CompositionOutputBundleIntent? intent = RefreshValidation();
+        if (intent is null || !IsBundleDestinationValid)
         {
             return;
         }
@@ -283,11 +276,12 @@ internal sealed partial class OutputDeliveryConfirmationViewModel : ObservableOb
     {
         OnPropertyChanged(nameof(Text));
         OnPropertyChanged(nameof(SourcesSummary));
-        RefreshValidation();
+        _ = RefreshValidation();
     }
 
     private void Cancel()
     {
+        _preserveCancelledDeliveryState |= IsOpen;
         _request?.Cancel?.Invoke();
         IsOpen = false;
         OnPropertyChanged(nameof(IsOpen));
@@ -320,7 +314,7 @@ internal sealed partial class OutputDeliveryConfirmationViewModel : ObservableOb
         return false;
     }
 
-    private void RefreshValidation()
+    private CompositionOutputBundleIntent? RefreshValidation()
     {
         if (!BundleEnabled || _request is null ||
             string.IsNullOrWhiteSpace(ParentDirectory) ||
@@ -331,7 +325,7 @@ internal sealed partial class OutputDeliveryConfirmationViewModel : ObservableOb
                 ? Text.OutputDeliveryDestinationRequired
                 : string.Empty;
             NotifyValidation();
-            return;
+            return null;
         }
 
         try
@@ -341,14 +335,17 @@ internal sealed partial class OutputDeliveryConfirmationViewModel : ObservableOb
                 BundleFolderName,
                 AdditionalDeliveryEnabled
                     ? _request.AdditionalDelivery?.DeliveryKind
-                    : null);
+                    : null,
+                outputFileNameOverride: OutputFileNameUsesAutomaticName ? null : OutputFileName);
             ApplyValidation(_outputNaming.ValidateBundleDestination(intent));
+            return intent;
         }
         catch (ArgumentException exception)
         {
             IsBundleDestinationValid = false;
             ValidationMessage = exception.Message;
             NotifyValidation();
+            return null;
         }
     }
 

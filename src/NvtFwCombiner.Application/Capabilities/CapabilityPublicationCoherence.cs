@@ -72,7 +72,8 @@ internal static class CapabilityPublicationCoherence
             capability.Evidence,
             capability.MetadataPlan,
             capability.ResolutionToken,
-            capability.RuntimeReferenceProof);
+            capability.RuntimeReferenceProof,
+            capability.MemoryLayoutContext);
     }
 
     internal static void ValidateResolved(
@@ -85,7 +86,8 @@ internal static class CapabilityPublicationCoherence
         PinnedCapabilityDecision<CapabilityEvidenceStatus> evidence,
         ResolvedMetadataPlan metadataPlan,
         ResolutionToken resolutionToken,
-        RuntimeReferenceCompilationProof? runtimeReferenceProof = null)
+        RuntimeReferenceCompilationProof? runtimeReferenceProof = null,
+        MemoryLayout.MemoryLayoutContextMap? memoryLayoutContext = null)
     {
         ArgumentNullException.ThrowIfNull(metadataPlan);
         resolutionToken.EnsureValid(nameof(resolutionToken));
@@ -106,7 +108,8 @@ internal static class CapabilityPublicationCoherence
             publication,
             evidence,
             metadataPlan.Definition,
-            runtimeReferenceProof);
+            runtimeReferenceProof,
+            memoryLayoutContext);
     }
 
     private static void ValidateCore(
@@ -118,7 +121,8 @@ internal static class CapabilityPublicationCoherence
         PinnedCapabilityDecision<CapabilityPublicationStatus> publication,
         PinnedCapabilityDecision<CapabilityEvidenceStatus> evidence,
         MetadataPlanDefinition metadataPlan,
-        RuntimeReferenceCompilationProof? runtimeReferenceProof)
+        RuntimeReferenceCompilationProof? runtimeReferenceProof,
+        MemoryLayout.MemoryLayoutContextMap? memoryLayoutContext = null)
     {
         ArgumentNullException.ThrowIfNull(identity);
         ArgumentNullException.ThrowIfNull(compiledComposition);
@@ -131,7 +135,8 @@ internal static class CapabilityPublicationCoherence
             identity,
             compiledComposition,
             metadataPlan,
-            runtimeReferenceProof);
+            runtimeReferenceProof,
+            memoryLayoutContext);
         if (!StringComparer.Ordinal.Equals(
                 capabilityFingerprint,
                 compiledComposition.CapabilityFingerprint))

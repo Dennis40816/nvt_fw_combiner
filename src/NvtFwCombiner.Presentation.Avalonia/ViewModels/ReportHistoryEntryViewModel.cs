@@ -1,4 +1,6 @@
 using System.Text;
+using System.Globalization;
+using System.Text.Json;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
@@ -6,6 +8,9 @@ namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 internal sealed class ReportHistoryEntryViewModel
 {
     private readonly ReportHistorySnapshot snapshot;
+    private readonly int? _issueCount;
+    private readonly bool? _blocking;
+    private readonly bool? _warnings;
 
     public ReportHistoryEntryViewModel(int sequence, ReportHistorySnapshot snapshot)
         : this(sequence, snapshot, reportJsonUtf8ByteCount: null)
@@ -26,6 +31,19 @@ internal sealed class ReportHistoryEntryViewModel
         }
 
         this.snapshot = snapshot;
+        (_issueCount, _blocking, _warnings) = (snapshot.Metadata.IssueCount, snapshot.Metadata.HasBlockingIssues, snapshot.Metadata.HasWarnings);
+        if (_issueCount is null)
+        {
+            try
+            {
+                using var document = JsonDocument.Parse(snapshot.ReportJson);
+                (_issueCount, _blocking, _warnings) = ReportReviewViewModel.ReadHistoryIssueFacts(document.RootElement, ShellLanguage.English, CancellationToken.None);
+            }
+            catch (Exception exception) when (exception is JsonException or InvalidOperationException or ArgumentException or FormatException or OverflowException)
+            {
+                // Legacy metadata remains usable even when the raw report shape cannot supply new columns.
+            }
+        }
         Sequence = sequence;
         SequenceLabel = $"#{sequence}";
         Title = snapshot.Metadata.Title;
@@ -47,6 +65,24 @@ internal sealed class ReportHistoryEntryViewModel
     public string Title { get; }
 
     public string Status { get; }
+
+    public DateTimeOffset? StartedAt => DateTimeOffset.TryParse(snapshot.Metadata.StartedAtUtc, CultureInfo.InvariantCulture,
+        DateTimeStyles.None, out DateTimeOffset date) ? date : null;
+
+    public string RunDate => StartedAt?.ToLocalTime().ToString("yyyy/MM/dd HH:mm", CultureInfo.InvariantCulture) ?? "—";
+
+    public string Ic => string.IsNullOrWhiteSpace(snapshot.Metadata.IcId) ? "—" : snapshot.Metadata.IcId;
+
+    public string RunType => ShellTextResources.SupportMatrixWorkflowValue(
+        !string.IsNullOrWhiteSpace(snapshot.Metadata.ExperienceId) ? snapshot.Metadata.ExperienceId :
+        !string.IsNullOrWhiteSpace(snapshot.Metadata.ModeId) ? snapshot.Metadata.ModeId :
+        !string.IsNullOrWhiteSpace(snapshot.Metadata.CompositionKind) ? snapshot.Metadata.CompositionKind : "—");
+
+    public string Issues => _issueCount?.ToString(CultureInfo.InvariantCulture) ?? "—";
+
+    public bool IsSuccess => _blocking == false && _warnings == false;
+    public bool IsWarning => _blocking == false && _warnings == true;
+    public bool IsError => _blocking == true;
 
     public string Context { get; }
 

@@ -88,9 +88,9 @@ public sealed partial class FirmwareInspectionSnapshotTests
         Assert.Null(baseInspection.DpMetadataPrerequisite);
     }
 
-    /// <summary>An exact reportless CtrlRAM route cannot fall back to DP metadata.</summary>
+    /// <summary>An exact reportless CtrlRAM plan does not suppress independent read-only Base DP facts.</summary>
     [Fact]
-    public async Task Nt51950ReportlessCtrlRamInspectionKeepsMetadataAbsent()
+    public async Task Nt51950ReportlessCtrlRamReferenceUsesOneBoundedDpcmiQuery()
     {
         JsonElement fixtureCase = CanonicalGoldenTestData.LoadDirectCase(
             "ctrlram-replace",
@@ -100,11 +100,16 @@ public sealed partial class FirmwareInspectionSnapshotTests
             artifact.GetProperty("artifactId").GetString() == "expected-output"));
         string nfPath = CanonicalGoldenTestData.ArtifactPath(artifacts.Single(artifact =>
             artifact.GetProperty("artifactId").GetString() == "postbuild-nf-ctrlram"));
+        var calls = new List<(string IcId, string WorkflowId, string IcCountVariant, long? Capacity)>();
+        ICanonicalCapabilityQuery queryCatalog = BootstrapTestHost.Canonical.Catalog;
         BuiltInFirmwareInspection firmwareInspection = CreateInspection(
             new InterceptingMetadataPlanQuery(
-                BootstrapTestHost.Canonical.Catalog,
-                static (_, _, _, _) => throw new InvalidOperationException(
-                    "An exact reportless CtrlRAM route must remain terminal.")),
+                queryCatalog,
+                (icId, workflowId, icCountVariant, outputCapacity) =>
+                {
+                    calls.Add((icId, workflowId, icCountVariant, outputCapacity));
+                    return queryCatalog.ResolveUniqueMetadataPlan(icId, workflowId, icCountVariant, outputCapacity);
+                }),
             new DelegatingContentInspector(static (path, _, _) =>
             {
                 byte[] bytes = File.ReadAllBytes(path);
@@ -137,10 +142,15 @@ public sealed partial class FirmwareInspectionSnapshotTests
         ResolvedCapability exact = Assert.IsType<ResolvedCapability>(
             Assert.Single(catalog.Routes).ExactCapability);
         Assert.Empty(exact.MetadataPlan.Entries);
+        Assert.Empty(exact.MetadataPlan.Definition.ReportProjections);
+        Assert.Equal([("NT51950", ExperienceIds.DpReplace, "1-ic", 0x40000L)], calls);
         Assert.NotNull(inspection.InputSlotStatus);
-        Assert.Null(inspection.DpVersion);
-        Assert.Null(inspection.CmiDpCode);
+        Assert.Equal("D86-00", Assert.IsType<DpVersionMetadata>(inspection.DpVersion).DisplayValue);
+        Assert.Equal("8600", Assert.IsType<CmiDpCodeMetadata>(inspection.CmiDpCode).VersionToken);
         Assert.Null(inspection.DpMetadataPrerequisite);
+        Assert.Equal(FileStamp.FromBytes(File.ReadAllBytes(basePath)), inspection.FileStamp);
+        Assert.Null(batch.InspectionsById["nf"].DpVersion);
+        Assert.Null(batch.InspectionsById["nf"].CmiDpCode);
     }
 
     /// <summary>NT51923 adopts each bounded inspection once and retains one exact route instance.</summary>

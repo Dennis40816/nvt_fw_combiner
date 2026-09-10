@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 2,
+  "taskId": "UI-114-MEMORY-FIDELITY-39",
+  "capability": "Restore the approved memory hover reference hierarchy and slice anchors",
+  "integrationBase": "372f347951415a228b587b1b3a768b6710a68eda",
+  "risk": "R1",
+  "kind": "ui",
+  "state": "final-complete",
+  "mutablePaths": ["src/NvtFwCombiner.Presentation.Avalonia/Views/MemoryCoverageBar.cs", "src/NvtFwCombiner.Presentation.Avalonia/Styles/MemoryCoverageStyles.axaml", "src/NvtFwCombiner.Presentation.Avalonia/Resources/MainWindowSharedTemplates.axaml"],
+  "implementationOwner": "primary-agent",
+  "searchEvidence": ["CodeGraph locates existing MemoryCoverageBar local/card popup owners, raw typed projection and shared region-card template. Prior actual388px capture reverses header ordering, adds an outer local card and omits notch/selected outline; independent Terra visual inventory confirms these deviations from docs/ui/references/v1.1.4-memory-hover-cards-approved.png."],
+  "semanticOwner": "Existing Presentation MemoryCoverageBar owns overlay geometry; shared MemoryCoverageStyles and region-card template own styling/facts. Application/profile range/source semantics and physical grouping owners remain unchanged.",
+  "terminalContract": "Match approved reference at real app widths: local header/count above strip, endpoints below, no enclosing local-card border, rounded outlined strip with visible slice boundaries and non-distorting selected accent outline; direct/local cards share notch/stem precisely anchored to slice center. Card title/status first, technical separator only for hover cards, address-space/detail facts remain available without a top caption. Keep main/local anchors fixed, no metadata occlusion, same pointer/keyboard/cleanup/reduced-motion behavior; geometry red/green and EN Light/zh Dark captures, scoped review, unit commit. No firmware, grouping threshold/contiguity, release or unrelated UI scope.",
+  "disposition": "extend-owner",
+  "designReview": {"reviewer": null, "outcome": "not-required", "evidence": "Owner requests correction to the already approved reference; R1 localized geometry/styles. Terra/high read-only inventory confirms concrete mismatches and required geometric relationships, not a new design approval."},
+  "implementationHead": "6d6a54628d05bb03266b3dac889ef915898558a5",
+  "reviewedHead": "6d6a54628d05bb03266b3dac889ef915898558a5",
+  "pathStateDigest": "fa4e56ad5b0ebef4726397a3673536e45a97d4af964ca4371fb6ada852e2da65",
+  "finalReview": {"reviewer": "memory_hover_inventory", "outcome": "approved", "evidence": "Independent GPT-5.6 Terra/high fixed-head scoped Polytail PASS 6d6a5462, no P0-P3. Production and records retain admitted owners; reference hierarchy, non-scaling outline, compact68% card, exact notch/stem anchors and glyph clearance reviewed in EN Light/zh Dark control and actual NT51929/NT51950 full-window captures. compact.trx79/79 PASS zero skipped28s; accounting19/19 PASS27.186s and precommit capability validator[]exit0 reused. Fresh independent full139264/runtime99231/slices20757/42708/5039/30727 and exact36368 allowance confirmed. Initial ADR-path finding withdrawn after raw fixed-head diff proved0021 matches record40. No firmware/Golden/release/full-suite claim; native OS deactivation, physical DPI/multi-screen and full screen-reader certification remain documented nonblocking limitations."}
+}

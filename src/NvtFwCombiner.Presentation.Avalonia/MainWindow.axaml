@@ -100,15 +100,6 @@
             </StackPanel>
           </Button>
           <Button
-              Classes="semanticAction secondary"
-              Click="LoadReportJsonButton_OnClick"
-              ToolTip.Tip="{Binding Text.LoadJsonTooltip}">
-            <StackPanel Orientation="Horizontal" Spacing="7">
-              <TextBlock VerticalAlignment="Center" FontSize="{DynamicResource NfcFontSize14}" Text="↥" />
-              <TextBlock VerticalAlignment="Center" FontSize="{DynamicResource NfcFontSize12}" FontWeight="SemiBold" Text="{Binding Text.LoadJsonLabel}" />
-            </StackPanel>
-          </Button>
-          <Button
               Classes="semanticAction iconButton"
               AutomationProperties.LiveSetting="Polite"
               AutomationProperties.Name="{Binding MessageCenter.MessageCenterAccessibleName}"
@@ -171,17 +162,36 @@
           <ContentControl.ContentTemplate>
             <DataTemplate DataType="vm:ReplacePresentationViewModel">
               <Grid ColumnDefinitions="1.15*,430" ColumnSpacing="18">
-          <StackPanel Spacing="{DynamicResource NfcSpace16}">
+          <StackPanel Spacing="{DynamicResource NfcSpace16}" Container.Name="ReplaceContent" Container.Sizing="Width">
+            <StackPanel.Styles>
+              <Style Selector="Grid.replaceHeaderActions">
+                <Setter Property="Grid.Column" Value="1" />
+              </Style>
+              <ContainerQuery Name="ReplaceContent" Query="max-width:700">
+                <Style Selector="Grid#ReplacePageHeader">
+                  <Setter Property="RowSpacing" Value="12" />
+                </Style>
+                <Style Selector="StackPanel.replaceHeaderTitle">
+                  <Setter Property="Grid.ColumnSpan" Value="2" />
+                </Style>
+                <Style Selector="Grid.replaceHeaderActions">
+                  <Setter Property="Grid.Column" Value="0" />
+                  <Setter Property="Grid.Row" Value="1" />
+                  <Setter Property="Grid.ColumnSpan" Value="2" />
+                  <Setter Property="HorizontalAlignment" Value="Left" />
+                </Style>
+              </ContainerQuery>
+            </StackPanel.Styles>
             <Grid
                 x:Name="ReplacePageHeader"
-                ColumnDefinitions="*,Auto"
+                ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto"
                 ColumnSpacing="{DynamicResource NfcSpace16}">
-              <StackPanel Spacing="{DynamicResource NfcSpace4}">
+              <StackPanel Classes="replaceHeaderTitle" Spacing="{DynamicResource NfcSpace4}">
                 <TextBlock Classes="pageTitle" Text="{Binding ReplacePreview.Title}" />
                 <TextBlock Classes="pageSubtitle" Text="{Binding ReplacePreview.Subtitle}" TextWrapping="Wrap" />
               </StackPanel>
               <Grid
-                  Grid.Column="1"
+                  Classes="replaceHeaderActions"
                   ColumnDefinitions="Auto,Auto"
                   ColumnSpacing="{DynamicResource NfcSpace12}"
                   VerticalAlignment="Center">
@@ -369,23 +379,28 @@
             </Grid>
           </Button>
           <Border
-              Width="24"
-              Height="24"
-              Classes="warningSurface buildBlockerBadge"
+              x:Name="MergeBuildBlockerTarget"
+              Background="Transparent"
+              Classes="buildBlockerBadge"
               Focusable="True"
-              HorizontalAlignment="Right"
-              VerticalAlignment="Top"
               AutomationProperties.HelpText="{Binding MergeBuildBlockerText}"
               AutomationProperties.Name="{Binding MergeBuildBlockerText}"
               behaviors:FocusToolTipBehavior.IsEnabled="True"
               IsVisible="{Binding HasMergeBuildBlocker}"
-              ToolTip.Tip="{Binding MergeBuildBlockerText}">
-            <TextBlock
+              ToolTip.ShowDelay="250" ToolTip.Placement="TopEdgeAlignedRight" ToolTip.VerticalOffset="0">
+            <ToolTip.Tip>
+              <ToolTip IsHitTestVisible="False" Padding="0" MaxWidth="360" Background="Transparent" BorderThickness="0">
+                <views:IssueDetailsCard DataContext="{Binding MergeBuildBlockerCard}" />
+              </ToolTip>
+            </ToolTip.Tip>
+            <Border Width="24" Height="24" Classes="warningSurface" HorizontalAlignment="Right" VerticalAlignment="Top">
+              <TextBlock
                 HorizontalAlignment="Center"
                 VerticalAlignment="Center"
                 FontWeight="Bold"
                 Foreground="{DynamicResource NfcWarningTextBrush}"
                 Text="!" />
+            </Border>
           </Border>
         </Grid>
         <Grid IsVisible="{Binding IsReplaceVisible}">
@@ -409,23 +424,28 @@
             </Grid>
           </Button>
           <Border
-              Width="24"
-              Height="24"
-              Classes="warningSurface buildBlockerBadge"
+              x:Name="ReplaceBuildBlockerTarget"
+              Background="Transparent"
+              Classes="buildBlockerBadge"
               Focusable="True"
-              HorizontalAlignment="Right"
-              VerticalAlignment="Top"
               AutomationProperties.HelpText="{Binding ReplaceBuildBlockerText}"
               AutomationProperties.Name="{Binding ReplaceBuildBlockerText}"
               behaviors:FocusToolTipBehavior.IsEnabled="True"
               IsVisible="{Binding HasReplaceBuildBlocker}"
-              ToolTip.Tip="{Binding ReplaceBuildBlockerText}">
-            <TextBlock
+              ToolTip.ShowDelay="250" ToolTip.Placement="TopEdgeAlignedRight" ToolTip.VerticalOffset="0">
+            <ToolTip.Tip>
+              <ToolTip IsHitTestVisible="False" Padding="0" MaxWidth="360" Background="Transparent" BorderThickness="0">
+                <views:IssueDetailsCard DataContext="{Binding ReplaceBuildBlockerCard}" />
+              </ToolTip>
+            </ToolTip.Tip>
+            <Border Width="24" Height="24" Classes="warningSurface" HorizontalAlignment="Right" VerticalAlignment="Top">
+              <TextBlock
                 HorizontalAlignment="Center"
                 VerticalAlignment="Center"
                 FontWeight="Bold"
                 Foreground="{DynamicResource NfcWarningTextBrush}"
                 Text="!" />
+            </Border>
           </Border>
         </Grid>
     </StackPanel>
@@ -611,6 +631,7 @@
 
     <ContentControl
         x:Name="NavigationClearConfirmationModalHost"
+        ZIndex="100"
         Grid.RowSpan="5"
         IsVisible="{Binding Navigation.IsNavigationClearConfirmationOpen}">
       <ContentControl.ContentTemplate>
@@ -625,6 +646,15 @@
       <ContentControl.ContentTemplate>
         <DataTemplate DataType="vm:MergePresentationViewModel">
           <views:AbSameTpConflictModal />
+        </DataTemplate>
+      </ContentControl.ContentTemplate>
+    </ContentControl>
+
+    <ContentControl x:Name="AbDummyDpConfirmationModalHost" Grid.RowSpan="5"
+        IsVisible="{Binding Merge.IsAbDummyDpPromptOpen}">
+      <ContentControl.ContentTemplate>
+        <DataTemplate DataType="vm:MergePresentationViewModel">
+          <views:AbDummyDpConfirmationModal IsOpen="{Binding IsAbDummyDpPromptOpen}" />
         </DataTemplate>
       </ContentControl.ContentTemplate>
     </ContentControl>
@@ -651,7 +681,7 @@
         IsVisible="{Binding MessageCenter.IsOpen}">
       <ContentControl.ContentTemplate>
         <DataTemplate DataType="vm:MessageCenterViewModel">
-          <views:MessageCenterModal />
+          <views:MessageCenterModal LoadReportRequested="LoadReportJsonButton_OnClick" />
         </DataTemplate>
       </ContentControl.ContentTemplate>
     </ContentControl>

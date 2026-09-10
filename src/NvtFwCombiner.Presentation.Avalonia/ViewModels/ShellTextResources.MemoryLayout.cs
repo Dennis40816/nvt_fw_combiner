@@ -16,6 +16,107 @@ internal enum MemoryPendingPrerequisite
 
 internal sealed partial class ShellTextResources
 {
+    public string MemoryLayoutUnavailableTitle => SelectLanguage("Memory layout unavailable", "無法顯示 Memory Layout");
+    public string MemoryLayoutUnavailableDetail => SelectLanguage(
+        "Preview display error. This does not block Build; input validation still applies.",
+        "預覽顯示發生錯誤。此錯誤不會阻擋 Build；輸入檔案仍須通過驗證。");
+
+    public string MemoryShowFewerRegionsLabel => SelectLanguage("Show fewer regions", "收合區域列表");
+    public string FormatMemoryShowAllRegions(int count)
+    {
+        return SelectLanguage($"Show all {count} regions", $"展開全部 {count} 個區域");
+    }
+
+    public string MemoryFlashOverviewLabel => SelectLanguage("Flash overview", "Flash 全圖");
+    public string MemoryCtrlRamDetailLabel => SelectLanguage("CtrlRAM detail", "CtrlRAM 局部位置");
+    public string MemoryZoomedLabel => SelectLanguage("Zoomed", "獨立比例");
+    public string MemorySectionContextDetail => SelectLanguage("Location context only; replacement targets are shown below.", "僅標示位置；取代範圍見下方局部圖。");
+    public string MemoryDpImageContextDetail => SelectLanguage(
+        "DP image container outside the TP FW overlay. Replacement targets are shown below.",
+        "DP 映像中未被 TP FW 覆蓋的區域；取代範圍見下方局部圖。");
+    public string MemoryTpOverlayContextDetail => SelectLanguage(
+        "TP FW overlays this range of the DP image. Replacement targets are shown below.",
+        "TP FW 覆蓋 DP 映像的此範圍；取代範圍見下方局部圖。");
+    public string MemoryFocusHint => SelectLanguage("Hover a region to inspect its address and input.", "移到區塊上，查看確切地址與輸入來源。");
+    public string FormatMemorySharedInputHint(string names)
+    {
+        return string.IsNullOrEmpty(names) ? MemoryFocusHint : SelectLanguage(
+            $"{names}: shared inputs, separate target ranges.", $"{names}：共用輸入，各自保留獨立目標範圍。");
+    }
+    public string FormatMemoryCtrlRamTitle(CtrlRamRegionRole role, ReplaceRegionGroup group)
+    {
+        string title = GetCtrlRamRegionTechnicalLabel(role);
+        return group is ReplaceRegionGroup.Master or ReplaceRegionGroup.SlaveRight or ReplaceRegionGroup.SlaveLeft
+            ? $"{title} · {GetReplaceRegionGroupTitle(group)}" : title;
+    }
+    public string GetMemorySectionTitle(MemoryContentRole role)
+    {
+        return role switch
+        {
+            MemoryContentRole.Tp => "TP FW",
+            MemoryContentRole.Dp => "DP",
+            MemoryContentRole.Unmapped => SelectLanguage("Unmapped", "未對應"),
+            MemoryContentRole.General or MemoryContentRole.TpBackup or MemoryContentRole.Ldc or
+                MemoryContentRole.CustomerInformation or MemoryContentRole.Reserved or MemoryContentRole.CtrlRam => SelectLanguage("Context", "其他區域"),
+            _ => throw new ArgumentOutOfRangeException(nameof(role)),
+        };
+    }
+    public static string GetMemoryFocusLabel(CtrlRamRegionRole role)
+    {
+        return role switch
+        {
+            CtrlRamRegionRole.Nf => "NF",
+            CtrlRamRegionRole.Normal => "Normal",
+            CtrlRamRegionRole.Mp => "MP",
+            CtrlRamRegionRole.Vn => "VN",
+            CtrlRamRegionRole.Vector => "Vector",
+            CtrlRamRegionRole.DiffDlm => "DiffDLM",
+            CtrlRamRegionRole.Other => "CtrlRAM",
+            _ => throw new ArgumentOutOfRangeException(nameof(role)),
+        };
+    }
+    public string MemoryLocalViewLabel => SelectLanguage("Local view · separate scale", "局部檢視 · 獨立比例");
+    public string MemoryLocalViewHint => SelectLanguage("Hover a slice or use arrow keys to inspect its range.", "移到切片或以方向鍵選擇，查看確切範圍。");
+    public string FormatMemorySliceCount(int count)
+    {
+        return SelectLanguage($"{count} slices", $"{count} 個切片");
+    }
+
+    public string MemoryCustomerInformationLabel => SelectLanguage("Customer information", "客戶資訊");
+    public string MemoryProcessingDetailsLabel => SelectLanguage("Technical details", "技術細節");
+    public string MemorySourceLabel => SelectLanguage("Source", "來源");
+    public string MemoryInitializationLabel => SelectLanguage("Initialization", "初始化");
+    public string MemorySourceNotAssignedLabel => SelectLanguage("Not assigned", "未指定");
+    public string MemoryNoPlannedWritesDetail => SelectLanguage("No writes planned for this range.", "目前計畫沒有寫入此範圍。");
+    public string MemorySourceNotAssignedDetail => SelectLanguage("No input source is assigned to this range.", "此範圍未指定輸入來源。");
+    public (bool IsInitialization, string Value, string Detail) GetMemoryUnassignedSource(
+        byte? blankFillByte, IReadOnlyList<CompositionOperation> contributingOperations)
+    {
+        ArgumentNullException.ThrowIfNull(contributingOperations);
+        return blankFillByte is { } fill && contributingOperations.Count == 0
+            ? (true, $"0x{fill:X2}", MemoryNoPlannedWritesDetail)
+            : (false, MemorySourceNotAssignedLabel, MemorySourceNotAssignedDetail);
+    }
+    public string GetMemoryContentTitle(MemoryContentRole role, CtrlRamRegionRole ctrlRamRole)
+    {
+        return role switch
+        {
+            MemoryContentRole.Dp => "DP",
+            MemoryContentRole.Tp => "TP",
+            MemoryContentRole.TpBackup => SelectLanguage("TP backup", "TP 備份"),
+            MemoryContentRole.Ldc => "LDC",
+            MemoryContentRole.CustomerInformation => MemoryCustomerInformationLabel,
+            MemoryContentRole.Reserved => SelectLanguage("Reserved", "保留區"),
+            MemoryContentRole.Unmapped => SelectLanguage("Unmapped", "未對應"),
+            MemoryContentRole.CtrlRam => GetCtrlRamRegionTechnicalLabel(ctrlRamRole),
+            MemoryContentRole.General => SelectLanguage("Data", "資料"),
+            _ => throw new ArgumentOutOfRangeException(nameof(role)),
+        };
+    }
+    public string FormatMemorySourceCaption(string sourceLabel)
+    {
+        return SelectLanguage($"Source: {sourceLabel}", $"來源：{sourceLabel}");
+    }
     public (string Label, string Detail) GetPendingInputText(string? addressSpaceId, string fallbackLabel)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(fallbackLabel);
@@ -206,10 +307,10 @@ internal sealed partial class ShellTextResources
             MemoryPlanActionKind.Restore => SelectLanguage("Restore", "還原"),
             MemoryPlanActionKind.TransformAndOverlay =>
                 SelectLanguage("Transform + Overlay", "轉換並覆寫"),
-            MemoryPlanActionKind.Postbuild => SelectLanguage("Postbuild", "後處理"),
+            MemoryPlanActionKind.Postbuild => SelectLanguage("Postprocess", "後處理"),
             MemoryPlanActionKind.Copy => SelectLanguage("Copy", "複製"),
             MemoryPlanActionKind.ReplaceAndCrc =>
-                SelectLanguage("Replace + CRC", "替換 + CRC"),
+                SelectLanguage("Replace + postprocess", "替換 + 後處理"),
             MemoryPlanActionKind.Replace => SelectLanguage("Replace", "替換"),
             MemoryPlanActionKind.Preserve => SelectLanguage("Preserve", "保留"),
             MemoryPlanActionKind.Initialize => SelectLanguage("Initialize", "初始化"),
@@ -224,8 +325,8 @@ internal sealed partial class ShellTextResources
         return detail switch
         {
             MemoryPlanDetailKind.ProtectedCustomerInformationFromDp => SelectLanguage(
-                "Protected customer information is supplied by DP BIN; TP overlay does not write here.",
-                "受保護的客戶資訊由 DP BIN 提供；TP 覆寫不會寫入此範圍。"),
+                "Supplied by DP BIN. TP overlay does not write here.",
+                "由 DP BIN 提供。TP 覆寫不會寫入此範圍。"),
             MemoryPlanDetailKind.ProtectedCustomerInformationFromDpReplacement => SelectLanguage(
                 "Protected customer information is supplied by the DP replacement BIN; TP restore does not write here.",
                 "受保護的客戶資訊由替換用 DP BIN 提供；TP 還原不會寫入此範圍。"),
@@ -293,29 +394,28 @@ internal sealed partial class ShellTextResources
         byte? blankFillByte,
         IReadOnlyList<CompositionOperation> contributingOperations)
     {
+        return string.Join("\n", FormatMemoryLayoutTechnicalFacts(regionId, blankFillByte, contributingOperations)
+            .Select(fact => $"{fact.Label}: {fact.Value}"));
+    }
+
+    public IReadOnlyList<MemoryRegionFact> FormatMemoryLayoutTechnicalFacts(
+        string regionId,
+        byte? blankFillByte,
+        IReadOnlyList<CompositionOperation> contributingOperations)
+    {
         ArgumentException.ThrowIfNullOrWhiteSpace(regionId);
         ArgumentNullException.ThrowIfNull(contributingOperations);
-        string initialization = blankFillByte is { } fillByte
-            ? SelectLanguage(
-                $"Blank fill 0x{fillByte:X2}. ",
-                $"空白填充值 0x{fillByte:X2}。")
-            : string.Empty;
-        string? operationList = contributingOperations.Count == 0
-            ? null
-            : string.Join(", ", contributingOperations.Select(operation =>
-                SelectLanguage(
-                    $"{operation.OperationId} (Sequence {operation.Sequence})",
-                    $"{operation.OperationId}（順序 {operation.Sequence}）")));
-        string operations = operationList is null
-            ? SelectLanguage(
-                "No compiled operation writes this range.",
-                "沒有編譯操作寫入此範圍。")
-            : SelectLanguage(
-                $"Compiled operations: {operationList}.",
-                $"編譯操作：{operationList}。");
-        return SelectLanguage(
-            $"{regionId}. {initialization}{operations}",
-            $"{regionId}。{initialization}{operations}");
+        List<MemoryRegionFact> facts = [new(SelectLanguage("Region ID", "區域 ID"), regionId)];
+        if (blankFillByte is { } fillByte)
+        {
+            facts.Add(new(SelectLanguage("Initialization", "輸出初始化"),
+                SelectLanguage($"0x{fillByte:X2} (before writes)", $"0x{fillByte:X2}（寫入前）")));
+        }
+        facts.Add(new(SelectLanguage("Operation", "編譯操作"), contributingOperations.Count == 0
+            ? SelectLanguage("No compiled operation writes this range.", "沒有編譯操作寫入此範圍。")
+            : string.Join("\n", contributingOperations.Select(operation => SelectLanguage(
+                $"{operation.OperationId} (Sequence {operation.Sequence})", $"{operation.OperationId}（順序 {operation.Sequence}）")))));
+        return facts;
     }
 }
 

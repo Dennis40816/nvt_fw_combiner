@@ -94,29 +94,15 @@ public sealed class FirmwareMetadataPlanAuthorityResolver(
             }
 
             ResolvedMetadataPlan? exactPlan = ctrlRamInputBatch.ExactMetadataPlan;
-            if (exactPlan is not null)
+            if (exactPlan is not null && DeclaresDpcmi(exactPlan))
             {
-                bool hasReportProjection =
-                    exactPlan.Definition.ReportProjections.Count != 0;
-                if (!hasReportProjection || DeclaresDpcmi(exactPlan))
-                {
-                    return FirmwareMetadataPlanAuthority.Terminal(exactPlan);
-                }
-
-                // CtrlRAM report classification and read-only full-base DPCMI
-                // are separate authorities. Keep the exact report plan intact,
-                // but resolve the display plan once through the Application
-                // metadata-only port; this grants no DP authoring authority.
-                return ResolveGeneric(
-                    icId,
-                    ExperienceIds.DpReplace,
-                    "1-ic",
-                    inputLength);
+                return FirmwareMetadataPlanAuthority.Terminal(exactPlan);
             }
 
-            // Read-only base metadata is independent from whether the current
-            // CtrlRAM selector has already compiled. This covers the first
-            // inspection before an FWConfig IC-count suggestion is accepted.
+            // A CtrlRAM plan without DPCMI (including an empty compiled plan)
+            // owns report classification, not the Base's read-only DP facts.
+            // Resolve those through the same metadata-only port used before
+            // any replacement is selected; this grants no DP write authority.
             return ResolveGeneric(
                 icId,
                 ExperienceIds.DpReplace,

@@ -11,6 +11,19 @@ internal sealed partial class MainWindowViewModel
 
     public ShellNavigationViewModel Navigation { get; }
 
+    internal bool HasSelectedFiles =>
+        WorkflowSession.HasSelectedInputs(ShellPage.Merge) ||
+        WorkflowSession.HasSelectedInputs(ShellPage.Replace) ||
+        LoadedHexEditorWorkspace?.HasSelectedFile == true ||
+        Reports.HasSelectedReportFile;
+
+    private bool HasPageSelectedFiles(ShellPage page)
+    {
+        return page == ShellPage.HexEditor
+            ? LoadedHexEditorWorkspace?.HasSelectedFile == true
+            : WorkflowSession.HasSelectedInputs(page);
+    }
+
     public bool IsDeviceContextVisible => RunSession.IsRunInProgress ||
         SelectedPage is ShellPage.Merge or ShellPage.Replace;
 
@@ -37,6 +50,7 @@ internal sealed partial class MainWindowViewModel
         MessageCenter.IsOpen ||
         Reports.IsReportModalOpen ||
         Merge.IsAbSameTpConflictPromptOpen ||
+        Merge.IsAbDummyDpPromptOpen ||
         BuildResult.IsOpen ||
         LoadedHexEditorWorkspace?.IsInsertBytesPromptOpen == true ||
         LoadedHexEditorWorkspace?.IsSaveConfirmationOpen == true;
@@ -51,7 +65,7 @@ internal sealed partial class MainWindowViewModel
 
     private void NotifyCompositionActionRailVisibilityChanged()
     {
-        if (IsSettingsModalOpen && IsOtherBlockingSurfaceOpen)
+        if (IsSettingsModalOpen && IsOtherBlockingSurfaceOpen && !Navigation.IsExitConfirmationOpen)
         {
             IsSettingsModalOpen = false;
         }

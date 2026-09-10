@@ -1,9 +1,16 @@
+using CommunityToolkit.Mvvm.ComponentModel;
 using NvtFwCombiner.Application.Authoring;
+using NvtFwCombiner.Application.MemoryLayout;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
 internal sealed partial class ReplacePresentationViewModel
 {
+    public MemoryCoverageListViewModel CoverageDetails { get; } = new();
+
+    [ObservableProperty]
+    public partial bool HasMemoryLayoutDisplayError { get; private set; }
+
     private string? _preparedDpReplaceIc;
     private CompiledAuthoringSelectionSnapshot? _preparedDpReplaceSnapshot;
     private string? _preparedCtrlRamIc;
@@ -104,6 +111,7 @@ internal sealed partial class ReplacePresentationViewModel
     private void RefreshReplaceCoverageGroups()
     {
         ReplaceCoverageGroups.Clear();
+        CtrlRamFocusLanes.Clear();
         if (!IsCtrlRamReplaceModeSelected ||
             ReplaceCoverageSegments.Any(static segment => segment.RegionId is null))
         {
@@ -116,6 +124,10 @@ internal sealed partial class ReplacePresentationViewModel
         {
             ReplaceCoverageGroups.Add(group);
         }
+        ReplaceRows(CtrlRamFocusLanes, MemoryFocusLaneViewModel.Create(
+            ReplaceCoverageGroups.SelectMany(static group => group.Items), Text,
+            isSingleIc: _ctrlRamReplaceSession.CurrentSnapshot?.ExactCapability?.CompiledComposition
+                .V2Details.Provenance.ResolvedMap.TopologySelection?.ChipCount == 1));
     }
 
     internal void ClearCtrlRamInspectionDisplay()
@@ -126,11 +138,15 @@ internal sealed partial class ReplacePresentationViewModel
 
     private void PrepareClearCtrlRamInspectionDisplay()
     {
+        HasMemoryLayoutDisplayError = false;
         CtrlRamRegions.Clear();
         ReplaceMemoryRangeLabel = string.Empty;
         ReplaceMemoryRows.Clear();
         ReplaceCoverageSegments.Clear();
+        CoverageDetails.Update([], Text);
         ReplaceCoverageGroups.Clear();
+        CtrlRamFocusLanes.Clear();
+        CtrlRamOverview.Clear();
     }
 
     /// <summary>Returns dynamic CtrlRAM inputs to discovery state after their Base identity is cleared.</summary>
@@ -158,25 +174,39 @@ internal sealed partial class ReplacePresentationViewModel
         ApplyCtrlRamMemoryDisplay(display);
     }
 
-    private void ApplyCtrlRamMemoryDisplay(CtrlRamInspectionDisplay display)
+    private void ApplyCtrlRamMemoryDisplay(CtrlRamInspectionDisplay display, bool resetCoverageExpansion = true)
     {
         ActiveSessionSnapshot? acceptedSession =
             _ctrlRamReplaceSession.CurrentSnapshot;
-        (
-            string rangeLabel,
-            IReadOnlyList<MemoryMapRowViewModel> rows,
-            IReadOnlyList<MemoryCoverageSegmentViewModel> coverageSegments) =
-            acceptedSession?.ExactCapability is null
-                ? UiCompositionRunner.GetPendingMemoryDisplay(
-                    Text,
-                    ReplaceSlots,
-                    GetPendingReplaceMemoryPrerequisite())
-                : UiCompositionRunner.GetMemoryDisplay(
+        IReadOnlyList<MemoryCoverageSegmentViewModel> overview = [];
+        (string rangeLabel, IReadOnlyList<MemoryMapRowViewModel> rows,
+            IReadOnlyList<MemoryCoverageSegmentViewModel> coverageSegments) result;
+        if (acceptedSession?.ExactCapability is null)
+        {
+            result = UiCompositionRunner.GetPendingMemoryDisplay(
+                Text, ReplaceSlots, GetPendingReplaceMemoryPrerequisite());
+        }
+        else
+        {
+            try
+            {
+                result = UiCompositionRunner.GetMemoryDisplay(
                     _compositionServices,
                     acceptedSession,
                     Text,
+                    out overview,
                     ctrlRamRegions: display.Regions);
-        ApplyReplaceMemoryDisplay(rangeLabel, rows, coverageSegments);
+            }
+            catch (MemoryLayoutDisplayProjectionException)
+            {
+                // Drop only derived preview state. Input health and Build admission
+                // still publish from their accepted Application results.
+                ApplyReplaceMemoryDisplay(string.Empty, [], []);
+                HasMemoryLayoutDisplayError = true;
+                return;
+            }
+        }
+        ApplyReplaceMemoryDisplay(result.rangeLabel, result.rows, result.coverageSegments, overview, resetCoverageExpansion);
     }
 
     private void RelocalizeReplaceMemoryMapState()
@@ -188,11 +218,11 @@ internal sealed partial class ReplacePresentationViewModel
                 _firmwareInspection,
                 inspection,
                 SelectedIc,
-                SelectedNumber));
+                SelectedNumber), resetCoverageExpansion: false);
             return;
         }
 
-        PrepareReplaceMemoryMapState(refreshAuthoring: false);
+        PrepareReplaceMemoryMapState(refreshAuthoring: false, resetCoverageExpansion: false);
     }
 
     internal void RefreshReplaceMemoryMapState(bool refreshAuthoring = true)
@@ -201,7 +231,7 @@ internal sealed partial class ReplacePresentationViewModel
         PublishReplaceMemoryContext();
     }
 
-    private void PrepareReplaceMemoryMapState(bool refreshAuthoring = true)
+    private void PrepareReplaceMemoryMapState(bool refreshAuthoring = true, bool resetCoverageExpansion = true)
     {
         if (IsCtrlRamReplaceModeSelected && ReplaceBaseSlot.HasFile)
         {
@@ -231,17 +261,23 @@ internal sealed partial class ReplacePresentationViewModel
             IReadOnlyList<MemoryMapRowViewModel> replaceRows,
             IReadOnlyList<MemoryCoverageSegmentViewModel> replaceCoverageSegments) =
             GetSelectedReplaceMemoryDisplay();
-        ApplyReplaceMemoryDisplay(replaceRangeLabel, replaceRows, replaceCoverageSegments);
+        ApplyReplaceMemoryDisplay(replaceRangeLabel, replaceRows, replaceCoverageSegments,
+            resetCoverageExpansion: resetCoverageExpansion);
     }
 
     private void ApplyReplaceMemoryDisplay(
         string rangeLabel,
         IReadOnlyList<MemoryMapRowViewModel> rows,
-        IReadOnlyList<MemoryCoverageSegmentViewModel> coverageSegments)
+        IReadOnlyList<MemoryCoverageSegmentViewModel> coverageSegments,
+        IReadOnlyList<MemoryCoverageSegmentViewModel>? overview = null,
+        bool resetCoverageExpansion = true)
     {
+        HasMemoryLayoutDisplayError = false;
         ReplaceMemoryRangeLabel = rangeLabel;
         ReplaceRows(ReplaceMemoryRows, rows);
         ReplaceRows(ReplaceCoverageSegments, coverageSegments);
+        CoverageDetails.Update(ReplaceCoverageSegments, Text, resetCoverageExpansion);
+        ReplaceRows(CtrlRamOverview, overview ?? []);
         RefreshReplaceCoverageGroups();
     }
 
@@ -256,6 +292,12 @@ internal sealed partial class ReplacePresentationViewModel
 
     private void NotifyCoverageGroupingChanged()
     {
+        OnPropertyChanged(nameof(HasCtrlRamFocusLayout));
+        OnPropertyChanged(nameof(CtrlRamCapacityLabel));
+        OnPropertyChanged(nameof(CtrlRamPositions));
+        OnPropertyChanged(nameof(CtrlRamEndAddress));
+        OnPropertyChanged(nameof(CtrlRamOverviewLegend));
+        OnPropertyChanged(nameof(CtrlRamSharedInputHint));
         OnPropertyChanged(nameof(IsReplaceCoverageGrouped));
         OnPropertyChanged(nameof(IsReplaceCoverageFlat));
         OnPropertyChanged(nameof(ReplaceSelectedCoverageItems));
@@ -310,6 +352,7 @@ internal sealed partial class ReplacePresentationViewModel
         }
         else if (!IsCtrlRamReplaceModeSelected)
         {
+            HasMemoryLayoutDisplayError = false;
             CtrlRamRegions.Clear();
         }
 

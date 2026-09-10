@@ -12,6 +12,7 @@ internal static class AvaloniaHeadlessTestApplication
     public static AppBuilder BuildAvaloniaApp()
     {
         return AppBuilder.Configure<App>()
+            .WithInterFont()
             .UseSkia()
             .UseHeadless(new AvaloniaHeadlessPlatformOptions
             {

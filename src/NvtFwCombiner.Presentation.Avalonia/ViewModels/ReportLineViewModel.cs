@@ -28,8 +28,16 @@ internal sealed class ReportLineViewModel(
     string inputSizeLabel = "",
     string inputAddressSpace = "",
     string codeBlockLabel = "",
-    IEnumerable<ReportRuntimeCommandViewModel>? runtimeCommands = null)
+    IEnumerable<ReportRuntimeCommandViewModel>? runtimeCommands = null,
+    string issueSummary = "")
 {
+    public string IssueSummary { get; } = issueSummary;
+    public string IssueDescription => IssueSummary.Length > 0 ? IssueSummary : Detail;
+
+    public bool IsWarning => Severity.Equals("warning", StringComparison.OrdinalIgnoreCase);
+    public bool IsInfo => Severity.Equals("info", StringComparison.OrdinalIgnoreCase);
+    public bool IsError => !IsWarning && !IsInfo;
+
     public static ReportLineViewModel Empty { get; } = new(string.Empty, string.Empty, string.Empty);
 
     public string Title { get; } = title;

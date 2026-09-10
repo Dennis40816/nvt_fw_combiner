@@ -37,11 +37,8 @@ public sealed partial class XamlControlStyleContractTests
         Assert.Contains("Property=\"BorderThickness\" Value=\"0\"", barSegment, StringComparison.Ordinal);
         Assert.DoesNotContain("BorderBrush", barSegment, StringComparison.Ordinal);
         Assert.DoesNotContain("BorderThickness", linkedSegment, StringComparison.Ordinal);
-        Assert.Equal(
-            2,
-            templates.Split("RenderTransformOrigin=\"50%,50%\"", StringSplitOptions.None).Length - 1);
-        AssertTrackAllowsSegmentLift(templates, "{Binding MergeCoverageSegments}");
-        AssertTrackAllowsSegmentLift(workflowTemplates, "{Binding ReplaceCoverageSegments}");
+        AssertUsesSharedCoverageBar(templates, "{Binding MergeCoverageSegments}", plain: true);
+        AssertUsesSharedCoverageBar(workflowTemplates, "{Binding ReplaceCoverageSegments}", plain: false);
         Assert.DoesNotContain("NfcMemoryAddressTextBrush", linkedSegment, StringComparison.Ordinal);
         Assert.Contains("MemoryCoverageTooltipTemplate", templates, StringComparison.Ordinal);
         Assert.DoesNotContain(
@@ -85,8 +82,10 @@ public sealed partial class XamlControlStyleContractTests
         Assert.Contains("x:Key=\"NfcMemoryTrackBrush\" Color=\"#E7EDF5\"", themeTokens, StringComparison.Ordinal);
         Assert.Contains("x:Key=\"NfcMemoryTrackBrush\" Color=\"#263449\"", themeTokens, StringComparison.Ordinal);
         Assert.DoesNotContain("NfcMemorySegmentDividerBrush", themeTokens, StringComparison.Ordinal);
-        Assert.Equal(2, themeTokens.Split("x:Key=\"NfcMemoryRowHoverShadow\"", StringSplitOptions.None).Length - 1);
-        Assert.Equal(2, themeTokens.Split("x:Key=\"NfcMemorySegmentHoverShadow\"", StringSplitOptions.None).Length - 1);
+        // Effective light/dark shadows and lift geometry are exercised by
+        // MemoryCoverageSoftLiftAppliesWithoutEdgeInProductionStyles and
+        // LiftKeepsLabelScaleUnchangedDuringAndAfterAnimation. Do not bind
+        // those behaviors to resource/template occurrence counts in a file.
     }
 
     /// <summary>First, middle, and last segments lift without retaining the divider as a visible edge.</summary>
@@ -185,13 +184,13 @@ public sealed partial class XamlControlStyleContractTests
         }
     }
 
-    /// <summary>The production Merge and Replace bars render the active segment beyond both track edges.</summary>
+    /// <summary>The reference-aligned explorer outlines active segments without expanding their track geometry.</summary>
     [AvaloniaTheory]
     [InlineData(false, false)]
     [InlineData(false, true)]
     [InlineData(true, false)]
     [InlineData(true, true)]
-    public async Task ProductionMemoryCoverageSegmentLiftCrossesTrackBoundary(
+    public async Task ProductionMemoryCoverageSelectionKeepsExactTrackGeometry(
         bool useDarkTheme,
         bool useReplace)
     {
@@ -199,6 +198,9 @@ public sealed partial class XamlControlStyleContractTests
         MainWindowViewModel viewModel = await Task.Run(
             () => PresentationTestHost.CreateViewModel(),
             TestContext.Current.CancellationToken);
+        // This checks exact resting geometry; animated lift is covered separately by
+        // LiftKeepsLabelScaleUnchangedDuringAndAfterAnimation through real production styles.
+        viewModel.IsReducedMotionEnabled = true;
         if (useReplace)
         {
             viewModel.ShowReplaceCommand.Execute(null);
@@ -232,6 +234,7 @@ public sealed partial class XamlControlStyleContractTests
         {
             Width = 470,
             Height = 720,
+            DataContext = viewModel,
             RequestedThemeVariant = theme,
             Content = panel,
         };
@@ -267,6 +270,9 @@ public sealed partial class XamlControlStyleContractTests
                     candidate.GetVisualDescendants().OfType<Border>()
                         .Any(segment => segment.Classes.Contains("memoryCoverageBarSegment")));
             Border track = Assert.IsType<Border>(items.Parent, exactMatch: false);
+            Assert.True(Avalonia.Application.Current!.TryGetResource("NfcMemoryTrackBrush", theme, out object? expectedTrackSurface));
+            Assert.Equal(Assert.IsType<SolidColorBrush>(expectedTrackSurface).Color,
+                Assert.IsType<ISolidColorBrush>(track.Background, exactMatch: false).Color);
             MemoryCoverageSegmentViewModel active = useReplace
                 ? viewModel.Replace.ReplaceCoverageSegments[0]
                 : viewModel.Merge.MergeCoverageSegments[0];
@@ -286,18 +292,22 @@ public sealed partial class XamlControlStyleContractTests
                     candidate.Classes.Contains("memoryCoverageBarSegment"));
             Assert.Contains("linked", activeSegment.Classes);
             Assert.NotNull(activeSegment.RenderTransform);
-            Assert.Equal(1.18, activeSegment.RenderTransform.Value.M22, precision: 2);
+            Assert.Equal(1, activeSegment.RenderTransform.Value.M22, precision: 2);
+            Assert.Equal(new Thickness(2), activeSegment.BorderThickness);
+            Assert.True(Avalonia.Application.Current!.TryGetResource("NfcAccentStrongBrush", theme, out object? accent));
+            Assert.Equal(Assert.IsType<ISolidColorBrush>(accent, exactMatch: false).Color,
+                Assert.IsType<ISolidColorBrush>(activeSegment.BorderBrush, exactMatch: false).Color);
             Assert.False(track.ClipToBounds);
             Assert.False(items.ClipToBounds);
-            Assert.False(activeSegment.Focusable);
+            Assert.True(activeSegment.Focusable);
             Assert.False(FocusToolTipBehavior.GetIsEnabled(activeSegment));
-            ContentControl segmentCard = Assert.IsType<ContentControl>(ToolTip.GetTip(activeSegment));
-            ToolTip.SetIsOpen(activeSegment, true);
+            Assert.Null(ToolTip.GetTip(activeSegment));
+            Assert.True(activeSegment.Focus(NavigationMethod.Tab));
             Dispatcher.UIThread.RunJobs();
-            Assert.True(ToolTip.GetIsOpen(activeSegment));
-            Assert.Same(active, segmentCard.Content);
-            Assert.NotNull(segmentCard.ContentTemplate);
-            ToolTip.SetIsOpen(activeSegment, false);
+            Border segmentCard = Assert.Single(host.GetVisualDescendants().OfType<Border>(),
+                candidate => candidate.Name == "MemorySliceCard");
+            Assert.Same(active, segmentCard.DataContext);
+            activeSegment.RaiseEvent(new KeyEventArgs { RoutedEvent = InputElement.KeyDownEvent, Key = Key.Escape });
 
             Border activeRow = Assert.Single(
                 panel.GetVisualDescendants().OfType<Border>(),
@@ -339,10 +349,8 @@ public sealed partial class XamlControlStyleContractTests
             Point bottom = Assert.IsType<Point>(activeSegment.TranslatePoint(
                 new Point(activeSegment.Bounds.Width / 2, activeSegment.Bounds.Height),
                 track));
-            Assert.True(top.Y < 0, $"Expected active segment top above track, got {top.Y:F2}.");
-            Assert.True(
-                bottom.Y > track.Bounds.Height,
-                $"Expected active segment bottom below {track.Bounds.Height:F2}, got {bottom.Y:F2}.");
+            Assert.Equal(0, top.Y, precision: 2);
+            Assert.Equal(track.Bounds.Height, bottom.Y, precision: 2);
             Assert.NotNull(host.GetLastRenderedFrame());
 
             active.Interaction.SetPointerActive(pointerOwner, false);
@@ -353,7 +361,7 @@ public sealed partial class XamlControlStyleContractTests
         }
     }
 
-    /// <summary>The map is hover-only while information rows remain the sole persistent focus target.</summary>
+    /// <summary>Base templates do not pin selection; the interactive rail supplies keyboard card navigation.</summary>
     [Fact]
     public void MemoryCoverageMapCannotPinSelectionButInformationRowsCan()
     {
@@ -408,7 +416,8 @@ public sealed partial class XamlControlStyleContractTests
             sourceSlotId: "replace-ctrlram-nf",
             rangeStart: 0,
             rangeEndExclusive: 0x10,
-            logicalCoverageGroupId: "slot:replace-ctrlram-nf");
+            logicalCoverageGroupId: "slot:replace-ctrlram-nf",
+            addressSpaceId: "output");
         MemoryCoverageSegmentViewModel second = new(
             "0x00010-0x0001F",
             "NF CtrlRAM",
@@ -420,7 +429,8 @@ public sealed partial class XamlControlStyleContractTests
             sourceSlotId: "reference-base",
             rangeStart: 0x10,
             rangeEndExclusive: 0x20,
-            logicalCoverageGroupId: "slot:replace-ctrlram-nf");
+            logicalCoverageGroupId: "slot:replace-ctrlram-nf",
+            addressSpaceId: "output");
         MemoryCoverageLogicalItemViewModel item = new(
             "slot:replace-ctrlram-nf",
             [first, second],
@@ -555,18 +565,13 @@ public sealed partial class XamlControlStyleContractTests
             ShellTextResources.For(ShellLanguage.English));
     }
 
-    private static void AssertTrackAllowsSegmentLift(string xaml, string itemsSource)
+    private static void AssertUsesSharedCoverageBar(string xaml, string itemsSource, bool plain)
     {
         var document = XDocument.Parse(xaml);
-        XElement items = Assert.Single(document.Descendants(), element =>
-            element.Name.LocalName == "ItemsControl" &&
-            (string?)element.Attribute("ItemsSource") == itemsSource &&
-            ((string?)element.Attribute("ItemTemplate"))?.Contains(
-                "BarTemplate",
-                StringComparison.Ordinal) == true);
-        XElement track = Assert.IsType<XElement>(items.Parent);
-        Assert.Equal("Border", track.Name.LocalName);
-        Assert.Equal("False", (string?)track.Attribute("ClipToBounds"));
-        Assert.Equal("False", (string?)items.Attribute("ClipToBounds"));
+        XElement bar = Assert.Single(document.Descendants(), element =>
+            element.Name.LocalName == "MemoryCoverageBar" &&
+            (string?)element.Attribute("ItemsSource") == itemsSource);
+        Assert.Equal("{Binding Text}", (string?)bar.Attribute("Labels"));
+        Assert.Equal(plain, (string?)bar.Attribute("IsPlain") == "True");
     }
 }

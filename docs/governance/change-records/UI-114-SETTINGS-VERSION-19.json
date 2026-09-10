@@ -1,0 +1,40 @@
+{
+  "schemaVersion": 2,
+  "taskId": "UI-114-SETTINGS-VERSION-19",
+  "capability": "Apply the approved compact Settings Version source and version-list presentation",
+  "integrationBase": "a7104dcf902aa45cb1b92a81a2af28b5a4839e50",
+  "risk": "R2",
+  "kind": "ui",
+  "state": "final-complete",
+  "mutablePaths": [
+    "src/NvtFwCombiner.Presentation.Avalonia/Resources/SettingsVersionPageTemplate.axaml",
+    "src/NvtFwCombiner.Presentation.Avalonia/Resources/MainWindowPageTemplates.axaml",
+    "src/NvtFwCombiner.Presentation.Avalonia/Styles/SettingsVersionStyles.axaml",
+    "src/NvtFwCombiner.Presentation.Avalonia/Styles/MainWindowButtonStyles.axaml",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/SettingsVersionRowViewModel.cs",
+    "scripts/code_size_policy.py",
+    "docs/adr/0021-code-size-ratchet-accepted-artifact-amendment.md"
+  ],
+  "implementationOwner": "primary-agent",
+  "searchEvidence": [
+    "SettingsVersionPageTemplate owns source status/editor and version table placement; SettingsVersionStyles and version-specific button styles own its current geometry. MainWindowStyles.inlineDisclosure is the shared backgroundless checked disclosure owner.",
+    "SettingsViewModel BeginEditUpdateSource, CancelEditUpdateSource, ConfirmUpdateSourceAsync and CheckNowAsync own the existing draft/commit/check transaction. They remain unchanged.",
+    "ProjectVersionRows supplies admitted Catalog releaseNotes verbatim to SettingsVersionRowViewModel.ReleaseNotes; MainWindowPageTemplates.SettingsVersionRowTemplate currently omits them. Missing catalog notes have no secondary source."
+  ],
+  "semanticOwner": "Existing typed VersionManagement snapshot and SettingsViewModel projection; templates own local presentation only",
+  "terminalContract": "Implement the owner-approved full-window reference at docs/ui/references/v1.1.4-settings-version-approved.png. Preserve modal/sidebar/current-version anchors and all version-management, consent, verification, source commit, launcher and firmware semantics. Compact banner, leading source status/progress without tinted segment, full-width source with right pencil and long-path tooltip; Browse only while editing with original Confirm/Cancel. Place secondary Check now at list heading without committing drafts. Render verbatim plain-text per-version Catalog notes behind independent initially collapsed keyboard-accessible disclosure; blank notes have no arrow, refreshed/rebound rows cannot inherit another version's expansion. Keep action/delete/disclosure columns stable. Verify actual Light/Dark bounds, transaction/action isolation, keyboard/focus, long/missing notes and source, checking/busy and compact ZH behavior. Use existing shared styles, not new global variants. Align exact code-size accounting only after canonical measurement and independent admission, with no transferable headroom or algorithm changes.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "ui_presentation_review",
+    "outcome": "approved",
+    "evidence": "Read-only R2 design admission at a7104dcf passed without P0-P3 blockers after inspecting the approved image, source transaction, row projection and shared styles. Admission requires typed-state fidelity, draft/commit isolation, blank/long notes, row reset, independent keyboard disclosure and fixed action columns; existing policy and shared consumers remain unchanged. Subsequent complete production-diff and full-frame review admitted the transient projected-row disclosure state and two local font-independent information indicators reusing the existing navigation geometry. Independent review admitted the canonical necessary +17 nonblank lines: full production138594, allowance35698 against frozen102896, runtime99170 and all slices/algorithms unchanged, no transferable headroom."
+  },
+  "implementationHead": "ca6feb9f6f61fb65f61a1dd0c22d95e3f6692458",
+  "reviewedHead": "ca6feb9f6f61fb65f61a1dd0c22d95e3f6692458",
+  "pathStateDigest": "314f56c6d6fd07a4606f5f3515ffdecf391281011cc75d955511418ea51f163f",
+  "finalReview": {
+    "reviewer": "ui_presentation_review",
+    "outcome": "approved",
+    "evidence": "Independent fixed-head R2/Polytail review of all15 files in a7104dcf..ca6feb9f passed without P0-P3 findings. Reviewer directly read final68/68 UI TRX (zero skipped),19/19 code-size evidence27.398s, complete Light/Dark and compact ZH editing/disclosure renders. Approved-reference hierarchy, original modal/sidebar/current-version anchors, real localized row-command/notes binding, draft/check/commit isolation, notes keyboard/action isolation, empty/long content, reprojection reset, stable action columns and bounded compact layout pass. Exact production138594/allowance35698 (+17), runtime99170 and all slices/algorithms unchanged; no new semantic owner or headroom. Previous failed evidence retained; missing Window.DataContext in the synthetic host was corrected rather than weakening assertions. Scope excludes full verifier, native picker/DPI/High Contrast, release and Golden certification."
+  }
+}

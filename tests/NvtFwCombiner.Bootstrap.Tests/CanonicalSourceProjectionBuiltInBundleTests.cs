@@ -15,8 +15,8 @@ public sealed class CanonicalSourceProjectionBuiltInBundleTests
     [InlineData("nt51928-standard-merge", "20ccd90376bee9a67832b3a808940017f3cab202ae5d9dfad7cb2dc4b9774c4e")]
     [InlineData("nt51929-dp-replace", "31c545eb367ff902eb2e95bc0b90643c337ab26b4e5831169bfc1a31f060f3cd")]
     [InlineData("nt51929-standard-merge", "d70ee9a8534d2c91a1f674e92b888678d13ea1660a6540365abd42346c480a72")]
-    [InlineData("nt51919-nt51929-nt51932-ab-merge", "3b6dcc3d1c87ab31e43852d3638b9658a64e886eae95c725e67b2d07f1cb8a61")]
-    [InlineData("nt51950-ab-merge", "775c42fba1fbbf1c4c8869656c83c86ce34d612dda3ceed92a93cb4e82f7cd67")]
+    [InlineData("nt51919-nt51929-nt51932-ab-merge", "68527380d4e2de5994734b9357fc55963254e51382027d9f099699c9dc1a366f")]
+    [InlineData("nt51950-ab-merge", "f60f5ef4f8c2a150c7dde47638d55aa35a84425146809263057939540ea0b6b9")]
     [InlineData("nt51950-nt51951-dp-replace", "efc155288c2c470c0cac15e51142ebd357eff6151259b9b8164560f2a105ec6d")]
     [InlineData("nt51950-nt51951-standard-merge", "d62b6b3f83a2350724de476d582d3a8de3483366134c39d94f144b77ae1402d7")]
     public void MigratedBundleLoadsFromItsManifestPinnedSources(

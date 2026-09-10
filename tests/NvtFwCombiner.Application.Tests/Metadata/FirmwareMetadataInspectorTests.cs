@@ -418,7 +418,7 @@ public sealed class FirmwareMetadataInspectorTests
             [artifact]));
     }
 
-    private static ResolvedMetadataPlan CreateDpcmiPlan(byte? expectedFirstByte = null)
+    internal static ResolvedMetadataPlan CreateDpcmiPlan(byte? expectedFirstByte = null)
     {
         DpcmiFixture fixture = CreateDpcmiFixture(expectedFirstByte);
         var definition = new MetadataPlanDefinition(

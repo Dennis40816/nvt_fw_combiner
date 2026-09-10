@@ -172,6 +172,12 @@ public sealed partial class XamlControlStyleContractTests
                 .Select(static reference => reference.Groups["key"].Value))
             .ToHashSet(StringComparer.Ordinal);
 
+        // These custom-drawn controls resolve explicit palettes in C#, not XAML.
+        foreach (string consumer in new[] { "Views/HexViewportControl.Theme.cs", "Views/MemoryCoverageBar.cs" })
+        {
+            referencedKeys.UnionWith(ViewportThemeBrushRegex().Matches(ReadPresentationFile(consumer))
+                .Select(static reference => reference.Groups["key"].Value));
+        }
         Assert.Empty(referencedKeys.Except(definedKeys, StringComparer.Ordinal));
         Assert.Empty(definedKeys.Except(referencedKeys, StringComparer.Ordinal));
     }
@@ -264,10 +270,9 @@ public sealed partial class XamlControlStyleContractTests
             "{Binding MergeBuildBlockerText}",
             mergeBlocker.Attributes().Single(attribute =>
                 attribute.Name.LocalName == "AutomationProperties.HelpText").Value);
-        Assert.Equal(
-            "{Binding MergeBuildBlockerText}",
-            mergeBlocker.Attributes().Single(attribute =>
-                attribute.Name.LocalName == "ToolTip.Tip").Value);
+        Assert.Equal("{Binding MergeBuildBlockerCard}",
+            Assert.Single(mergeBlocker.Descendants(), element => element.Name.LocalName == "IssueDetailsCard")
+                .Attribute("DataContext")?.Value);
         Assert.Equal(
             "True",
             mergeBlocker.Attributes().Single(attribute =>
@@ -303,15 +308,17 @@ public sealed partial class XamlControlStyleContractTests
             "{Binding ReplaceBuildBlockerText}",
             replaceBlocker.Attributes().Single(attribute =>
                 attribute.Name.LocalName == "AutomationProperties.Name").Value);
-        Assert.Equal(
-            "{Binding ReplaceBuildBlockerText}",
-            replaceBlocker.Attributes().Single(attribute =>
-                attribute.Name.LocalName == "ToolTip.Tip").Value);
+        Assert.Equal("{Binding ReplaceBuildBlockerCard}",
+            Assert.Single(replaceBlocker.Descendants(), element => element.Name.LocalName == "IssueDetailsCard")
+                .Attribute("DataContext")?.Value);
         Assert.Equal(
             "True",
             replaceBlocker.Attributes().Single(attribute =>
                 attribute.Name.LocalName == "FocusToolTipBehavior.IsEnabled").Value);
     }
+
+    [GeneratedRegex("\"(?<key>Nfc[A-Za-z0-9]+Brush)\"", RegexOptions.CultureInvariant)]
+    private static partial Regex ViewportThemeBrushRegex();
 
     private static bool IsMergeReadinessProjection(XElement element)
     {

@@ -1,5 +1,6 @@
 <Styles
     xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:views="using:NvtFwCombiner.Presentation.Avalonia.Views">
   <!-- Semantic visual roles shared by pages, report templates, and modal views. -->
   <Style Selector="Border.surface, Border.modalSurface, Border.fileDropZone">
@@ -62,7 +63,7 @@
     <Setter Property="BorderThickness" Value="2" />
     <Setter Property="CornerRadius" Value="{DynamicResource NfcSurfaceCornerRadius}" />
   </Style>
-  <Style Selector="Border.buildBlockerBadge:focus-visible, Border.supportMatrixCell:focus-visible">
+  <Style Selector="Border.buildBlockerBadge:focus-visible">
     <Setter Property="BorderBrush" Value="{DynamicResource NfcAccentBrush}" />
     <Setter Property="BorderThickness" Value="2" />
   </Style>
@@ -90,27 +91,15 @@
     <Setter Property="BorderThickness" Value="0,0,0,1" />
   </Style>
   <Style Selector="Border.supportMatrixIcHeader">
-    <Setter Property="Background" Value="{DynamicResource NfcSurfaceSubtleBrush}" />
+    <Setter Property="Background" Value="{DynamicResource NfcSurfaceBrush}" />
     <Setter Property="BorderBrush" Value="{DynamicResource NfcBorderMutedBrush}" />
-    <Setter Property="BorderThickness" Value="0,0,1,1" />
+    <Setter Property="BorderThickness" Value="0,0,0,1" />
     <Setter Property="VerticalAlignment" Value="Stretch" />
   </Style>
   <Style Selector="Border.supportMatrixCell, Border.shellBar">
     <Setter Property="Background" Value="{DynamicResource NfcSurfaceBrush}" />
     <Setter Property="BorderBrush" Value="{DynamicResource NfcBorderMutedBrush}" />
     <Setter Property="BorderThickness" Value="0,0,0,1" />
-  </Style>
-  <Style Selector="Border.supportMatrixCell.reviewed, Border.supportMatrixCell.contract">
-    <Setter Property="Background" Value="{DynamicResource NfcSurfaceBrush}" />
-  </Style>
-  <Style Selector="Border.supportMatrixCell.review">
-    <Setter Property="Background" Value="{DynamicResource NfcWarningSurfaceBrush}" />
-  </Style>
-  <Style Selector="Border.supportMatrixCell.blocked">
-    <Setter Property="Background" Value="{DynamicResource NfcCriticalSurfaceBrush}" />
-  </Style>
-  <Style Selector="Border.supportMatrixCell.notDeclared">
-    <Setter Property="Background" Value="{DynamicResource NfcSurfaceSubtleBrush}" />
   </Style>
   <Style Selector="Border.supportMatrixCell:pointerover">
     <Setter Property="Background" Value="{DynamicResource NfcSelectionSurfaceBrush}" />
@@ -121,9 +110,49 @@
     <Setter Property="BorderBrush" Value="{DynamicResource NfcBorderMutedBrush}" />
     <Setter Property="BorderThickness" Value="0,0,0,1" />
   </Style>
+  <Style Selector="Border.supportMatrixCell:focus-visible">
+    <Setter Property="BorderBrush" Value="{DynamicResource NfcAccentBrush}" />
+    <Setter Property="BorderThickness" Value="2" />
+  </Style>
+  <Style Selector="ScrollViewer#SupportMatrixScroll /template/ ScrollBar:horizontal">
+    <Setter Property="Margin" Value="0,8,0,0" />
+    <Setter Property="Height" Value="14" />
+    <Setter Property="MinHeight" Value="14" />
+    <Setter Property="MaxHeight" Value="14" />
+    <Setter Property="Background" Value="Transparent" />
+  </Style>
+  <Style Selector="ScrollViewer#SupportMatrixScroll /template/ ScrollBar:horizontal /template/ Thumb">
+    <Setter Property="Height" Value="6" />
+    <Setter Property="MinHeight" Value="6" />
+    <Setter Property="MaxHeight" Value="6" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+    <Setter Property="Background" Value="{DynamicResource NfcTextDisabledBrush}" />
+    <Setter Property="CornerRadius" Value="{DynamicResource NfcPillCornerRadius}" />
+    <Setter Property="RenderTransform" Value="none" />
+  </Style>
+  <Style Selector="ScrollViewer#SupportMatrixScroll /template/ ScrollBar:horizontal /template/ Rectangle#TrackRect, ScrollViewer#SupportMatrixScroll /template/ ScrollBar:horizontal /template/ RepeatButton">
+    <Setter Property="Opacity" Value="0" />
+  </Style>
+  <Style Selector="ScrollViewer#SupportMatrixScroll /template/ ScrollBar:horizontal:pointerover /template/ Thumb">
+    <Setter Property="Height" Value="6" />
+    <Setter Property="MinHeight" Value="6" />
+    <Setter Property="MaxHeight" Value="6" />
+    <Setter Property="Background" Value="{DynamicResource NfcTextMutedBrush}" />
+    <Setter Property="RenderTransform" Value="none" />
+  </Style>
+  <Style Selector="ScrollViewer#SupportMatrixScroll /template/ ScrollBar:horizontal /template/ Thumb:pointerover /template/ Border">
+    <Setter Property="Background" Value="{DynamicResource NfcTextMutedBrush}" />
+  </Style>
+  <Style Selector="Expander#SupportMatrixCatalogDetails /template/ ToggleButton#ExpanderHeader">
+    <Setter Property="FocusAdorner" Value="{x:Null}" />
+  </Style>
   <Style Selector="TextBlock.supportMatrixVariantCount">
     <Setter Property="Foreground" Value="{DynamicResource NfcTextMutedBrush}" />
-    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="FontSize" Value="{DynamicResource NfcFontSize13}" />
+  </Style>
+  <Style Selector="TextBlock.supportMatrixText">
+    <Setter Property="FontSize" Value="{DynamicResource NfcFontSize13}" />
+    <Setter Property="Foreground" Value="{DynamicResource NfcTextSecondaryBrush}" />
   </Style>
   <Style Selector="TextBlock.supportMatrixNotDeclared">
     <Setter Property="Foreground" Value="{DynamicResource NfcTextMutedBrush}" />
@@ -255,6 +284,13 @@
     <Setter Property="ItemsPanel">
       <ItemsPanelTemplate>
         <StackPanel Spacing="{DynamicResource NfcSpace8}" />
+      </ItemsPanelTemplate>
+    </Setter>
+  </Style>
+  <Style Selector="ItemsControl.firmwareSlotGroups">
+    <Setter Property="ItemsPanel">
+      <ItemsPanelTemplate>
+        <StackPanel Spacing="{DynamicResource NfcSpace12}" />
       </ItemsPanelTemplate>
     </Setter>
   </Style>
@@ -560,14 +596,6 @@
     <Setter Property="Padding" Value="0" />
     <Setter Property="Background" Value="Transparent" />
     <Setter Property="BorderThickness" Value="0" />
-  </Style>
-  <Style Selector="ListBox.reportHexDiffRanges ListBoxItem">
-    <Setter Property="Padding" Value="0" />
-    <Setter Property="HorizontalContentAlignment" Value="Stretch" />
-    <Setter Property="Background" Value="Transparent" />
-  </Style>
-  <Style Selector="ListBox.reportHexDiffRanges ListBoxItem:selected">
-    <Setter Property="Background" Value="Transparent" />
   </Style>
   <Style Selector="ToggleSwitch.reportHexDiffOriginalToggle, ToggleSwitch.hexWriteModeToggle">
     <Setter Property="VerticalAlignment" Value="Center" />

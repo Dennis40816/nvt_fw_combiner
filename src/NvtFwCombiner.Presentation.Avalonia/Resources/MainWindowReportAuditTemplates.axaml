@@ -2,6 +2,7 @@
     xmlns="https://github.com/avaloniaui"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:vm="using:NvtFwCombiner.Presentation.Avalonia.ViewModels"
+    xmlns:behaviors="using:NvtFwCombiner.Presentation.Avalonia.Behaviors"
     xmlns:views="using:NvtFwCombiner.Presentation.Avalonia.Views">
 
 <DataTemplate x:Key="ReportAuditDetailsPanelTemplate" DataType="vm:ReportPresentationViewModel">
@@ -176,6 +177,7 @@
                   <ListBox
                       Grid.Row="1"
                       Classes="reportHexDiffRanges"
+                      AutomationProperties.Name="{Binding Text.HexDiffRangeNavigatorTitle}"
                       ItemsSource="{Binding LoadedReport.HexDiff.Ranges}"
                       SelectedItem="{Binding LoadedReport.HexDiff.SelectedRange, Mode=TwoWay}"
                       SelectionMode="Single">
@@ -300,12 +302,8 @@
                 </Grid>
               </Border>
 
-              <Border Classes="compactSurface contentPanel" IsVisible="{Binding LoadedReport.HasIssues}">
+              <Border Padding="0" IsVisible="{Binding LoadedReport.HasIssues}" AutomationProperties.Name="{Binding Text.IssuesAndWarningsTitle}">
                 <StackPanel Spacing="10">
-                  <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
-                    <TextBlock Classes="panelTitle" Text="{Binding Text.IssuesAndWarningsTitle}" />
-                    <Label Grid.Column="1" Classes="compactBadge neutralBadge reportBadge review" Content="{Binding LoadedReport.IssueCount}" />
-                  </Grid>
                   <ItemsControl ItemsSource="{Binding LoadedReport.IssuePage.Items}">
                     <ItemsControl.ItemTemplate>
                       <StaticResource ResourceKey="ReportIssueRowTemplate" />
@@ -328,11 +326,29 @@
                 <TextBlock Classes="mutedText" Text="{Binding Text.RawReportDetail}" TextWrapping="Wrap" />
               </StackPanel>
             </Border>
-            <TextBox
-                Grid.Row="1"
-                Classes="readOnlyRaw"
-                VerticalAlignment="Stretch"
-                Text="{Binding LoadedReportJson, Mode=OneWay}" />
+            <Grid Grid.Row="1" MinHeight="0">
+              <TextBox
+                  Classes="readOnlyRaw"
+                  VerticalAlignment="Stretch"
+                  Text="{Binding LoadedReportJson, Mode=OneWay}" />
+              <Button
+                  x:Name="RawReportCopyButton"
+                  Classes="semanticAction iconButton codeBlockCopy"
+                  Width="32" Height="32" BorderThickness="1"
+                  HorizontalAlignment="Right" VerticalAlignment="Top"
+                  Margin="0,12,32,0"
+                  AutomationProperties.Name="{Binding Text.CopyRawReportTooltip}"
+                  behaviors:FocusToolTipBehavior.IsEnabled="True"
+                  behaviors:ReportCopyAction.Text="{Binding LoadedReportJson, Mode=OneWay}"
+                  ToolTip.Tip="{Binding Text.CopyRawReportTooltip}"
+                  ToolTip.Placement="BottomEdgeAlignedRight">
+                <Path
+                    Width="14" Height="14"
+                    Data="M5,3 L13,3 L13,11 L5,11 Z M3,5 L3,13 L11,13 L11,11"
+                    Stroke="{DynamicResource NfcTextBrush}"
+                    StrokeJoin="Round" StrokeThickness="1.5" />
+              </Button>
+            </Grid>
           </Grid>
         </TabItem>
       </TabControl>

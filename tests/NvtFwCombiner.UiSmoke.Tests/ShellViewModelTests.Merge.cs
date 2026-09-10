@@ -237,8 +237,10 @@ public sealed partial class MergeWorkflowTests
         });
         FirmwareSlotViewModel dpSlot = viewModel.Merge.MergeSlots.Single(
             static slot => slot.SlotId == CompositionAddressSpaceIds.DpAbInput);
-        Assert.Contains(dpSlot.FirmwareFacts, static fact => fact.Label == "DP1" && fact.Value.StartsWith("D06-05", StringComparison.Ordinal));
-        Assert.Contains(dpSlot.FirmwareFacts, static fact => fact.Label == "DP2" && fact.Value.StartsWith("D07-08", StringComparison.Ordinal));
+        Assert.Equal(["DP1 Version", "DP1 Jira Index", "DP2 Version", "DP2 Jira Index"],
+            dpSlot.FirmwareFacts.Select(static fact => fact.Label));
+        Assert.Equal(["D06-05", "AUTO_PRJ-291", "D07-08", "AUTO_PRJ-1110"],
+            dpSlot.FirmwareFacts.Select(static fact => fact.Value));
         FirmwareSlotViewModel tpASlot = viewModel.Merge.MergeSlots.Single(
             static slot => slot.SlotId == CompositionAddressSpaceIds.TpAInput);
         Assert.Contains(
@@ -437,7 +439,7 @@ public sealed partial class MergeWorkflowTests
         MemoryMapRowViewModel copyRow = Assert.Single(
             viewModel.Merge.MergeMemoryRows,
             row => row.RangeLabel == "0x00000-0x3BFFF (len 0x3C000)" && row.ActionLabel == "Copy");
-        Assert.Equal("Reserved -> TP BIN", copyRow.FlowLabel);
+        Assert.Equal("Initialization: 0x00 -> TP BIN", copyRow.FlowLabel);
         Assert.Contains("Sequence 100", copyRow.Detail, StringComparison.Ordinal);
         Assert.DoesNotContain("Reason:", copyRow.Detail, StringComparison.Ordinal);
     }

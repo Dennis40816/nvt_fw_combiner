@@ -1,5 +1,6 @@
 using Avalonia;
 using Avalonia.Controls;
+using System.Xml.Linq;
 using NvtFwCombiner.Presentation.Avalonia.Views;
 using NvtFwCombiner.TestSupport;
 
@@ -30,7 +31,10 @@ public sealed class SpaciousPanelTests
         Assert.Contains("Selector=\"ItemsControl.spaciousList\"", styles, StringComparison.Ordinal);
         Assert.Contains("Spacing=\"{DynamicResource NfcSpace8}\"", styles, StringComparison.Ordinal);
         Assert.Equal(2, outputTemplates.Split("<views:SpaciousPanel>", StringSplitOptions.None).Length - 1);
-        Assert.Equal(1, workflowTemplates.Split("Classes=\"spaciousList\"", StringSplitOptions.None).Length - 1);
+        XElement slotGroups = Assert.Single(XDocument.Parse(workflowTemplates).Descendants(),
+            element => element.Name.LocalName == "ItemsControl" &&
+                ((string?)element.Attribute("Classes"))?.Split(' ').Contains("spaciousList", StringComparer.Ordinal) == true);
+        Assert.Equal("{Binding ReplaceSlotGroups}", (string?)slotGroups.Attribute("ItemsSource"));
         Assert.DoesNotContain(
             "<ItemsControl Classes=\"spaciousList\" ItemTemplate=\"{StaticResource MemoryCoverageSegmentListTemplate}\"",
             outputTemplates,
@@ -44,10 +48,8 @@ public sealed class SpaciousPanelTests
             sharedTemplates,
             StringComparison.Ordinal);
         Assert.DoesNotContain("MemoryCoverageGroupTemplate", sharedTemplates, StringComparison.Ordinal);
-        Assert.Contains(
-            "<ItemsControl Classes=\"spaciousList\" HorizontalAlignment=\"Stretch\" ItemContainerTheme=\"{StaticResource StretchContentPresenterTheme}\" ItemsSource=\"{Binding ReplaceSlotGroups}\">",
-            workflowTemplates,
-            StringComparison.Ordinal);
+        Assert.Equal("Stretch", (string?)slotGroups.Attribute("HorizontalAlignment"));
+        Assert.Equal("{StaticResource StretchContentPresenterTheme}", (string?)slotGroups.Attribute("ItemContainerTheme"));
         Assert.DoesNotContain("Padding=\"18,16\"", sharedTemplates, StringComparison.Ordinal);
     }
 

@@ -212,9 +212,9 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("ReplaceBaseSlot", workflowTemplates, StringComparison.Ordinal);
         Assert.Contains("ItemsSource=\"{Binding GeneralReplaceMappings}\"", workflowTemplates, StringComparison.Ordinal);
         Assert.Contains("ItemsSource=\"{Binding MergeCoverageSegments}\"", sharedTemplates, StringComparison.Ordinal);
-        Assert.Contains("ItemsSource=\"{Binding MergeCoverageRows}\"", sharedTemplates, StringComparison.Ordinal);
+        Assert.Contains("DataContext=\"{Binding CoverageDetails}\"", sharedTemplates, StringComparison.Ordinal);
         Assert.Contains(
-            "ItemTemplate=\"{StaticResource MemoryCoveragePlainSegmentListTemplate}\" ItemsSource=\"{Binding MergeCoverageRows}\"",
+            "ItemTemplate=\"{StaticResource MemoryCoveragePlainSegmentListTemplate}\" ItemsSource=\"{Binding VisibleRows}\"",
             sharedTemplates,
             StringComparison.Ordinal);
         Assert.Contains("ItemsSource=\"{Binding ReplaceSlots}\"", workflowTemplates, StringComparison.Ordinal);
@@ -239,22 +239,24 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("DataType=\"{x:Type vm:GeneralReplaceMappingViewModel}\"", generalMappingRow, StringComparison.Ordinal);
         Assert.DoesNotContain("Button.reportAction", buttonStyles, StringComparison.Ordinal);
         Assert.Contains("Border.workflowCard", visualStyles, StringComparison.Ordinal);
-        Assert.Contains("IsEnabled=\"{Binding Reports.CanOpenReport}\"", messageCenterModal, StringComparison.Ordinal);
-        Assert.Contains("ReportActionLabel", messageCenterModal, StringComparison.Ordinal);
-        Assert.Contains("ReportActionStatus", messageCenterModal, StringComparison.Ordinal);
+        Assert.Contains("<views:RunReportsTable x:Name=\"RunReportsList\" Grid.Row=\"1\" DataContext=\"{Binding Reports}\"", messageCenterModal, StringComparison.Ordinal);
+        string runReportsTable = ReadText("src/NvtFwCombiner.Presentation.Avalonia/Views/RunReportsTable.axaml");
+        Assert.Contains("ItemsSource=\"{Binding RunReportEntries}\"", runReportsTable, StringComparison.Ordinal);
+        Assert.Contains("IsVisible=\"{Binding IsReportHistoryEmpty}\"", runReportsTable, StringComparison.Ordinal);
+        Assert.DoesNotContain("ReportActionLabel", messageCenterModal, StringComparison.Ordinal);
+        Assert.DoesNotContain("ReportActionStatus", messageCenterModal, StringComparison.Ordinal);
         Assert.Contains("<Grid.KeyBindings>", shell, StringComparison.Ordinal);
         Assert.DoesNotContain("<Window.KeyBindings>", shell, StringComparison.Ordinal);
         Assert.Contains("Gesture=\"Ctrl+H\" Command=\"{Binding Reports.ShowReportHistoryCommand}\"", shell, StringComparison.Ordinal);
         Assert.Contains("Gesture=\"Ctrl+Shift+Delete\" Command=\"{Binding Reports.ClearReportHistoryCommand}\"", shell, StringComparison.Ordinal);
-        Assert.Contains("AutomationProperties.Name=\"{Binding Text.OpenReportHistoryAutomationName}\"", reportPanels, StringComparison.Ordinal);
+        Assert.DoesNotContain("OpenReportHistoryAutomationName", reportPanels, StringComparison.Ordinal);
+        Assert.Contains("Classes=\"breadcrumb reportBackLink\"", reportPanels, StringComparison.Ordinal);
         int reportHeaderIndex = reportPanels.IndexOf("Text=\"{Binding LoadedReport.Title}\"", StringComparison.Ordinal);
         bool hasAuditDetailsTemplate = reportAuditTemplates.Contains("ReportAuditDetailsPanelTemplate", StringComparison.Ordinal);
-        int historyActionIndex = reportPanels.IndexOf(
-            "AutomationProperties.Name=\"{Binding Text.OpenReportHistoryAutomationName}\"",
-            StringComparison.Ordinal);
+        int backActionIndex = reportPanels.IndexOf("Classes=\"breadcrumb reportBackLink\"", StringComparison.Ordinal);
         Assert.True(
-            reportHeaderIndex >= 0 && hasAuditDetailsTemplate && historyActionIndex > reportHeaderIndex,
-            "Report history should remain a secondary evidence action instead of returning to the report modal header.");
+            backActionIndex >= 0 && reportHeaderIndex > backActionIndex && hasAuditDetailsTemplate,
+            "Report detail should return through one breadcrumb before the report title.");
         Assert.DoesNotContain("ReportHistoryActionLabel", shell, StringComparison.Ordinal);
         Assert.Contains("ContentTemplate=\"{StaticResource ReportModalHeaderTemplate}\"", reportModal, StringComparison.Ordinal);
         Assert.Contains("ContentTemplate=\"{StaticResource ReportHistoryPanelTemplate}\"", reportModal, StringComparison.Ordinal);
@@ -288,8 +290,10 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("Text=\"{ReflectionBinding $parent[Window].DataContext.Text.RangeTableTitle}\"", reportOperationTemplates, StringComparison.Ordinal);
         Assert.Contains("ItemsSource=\"{Binding RangeRows}\"", reportOperationTemplates, StringComparison.Ordinal);
         Assert.Contains("ReportCodeBlockView", reportOperationTemplates, StringComparison.Ordinal);
-        Assert.Contains("CopyButton_OnClick", reportCodeBlockView, StringComparison.Ordinal);
-        Assert.Contains("SetTextAsync", reportCodeBlockViewCode, StringComparison.Ordinal);
+        Assert.Contains("behaviors:ReportCopyAction.Text=\"{Binding Text, ElementName=Root}\"", reportCodeBlockView, StringComparison.Ordinal);
+        Assert.DoesNotContain("SetTextAsync", reportCodeBlockViewCode, StringComparison.Ordinal);
+        Assert.Contains("SetTextAsync", ReadText("src/NvtFwCombiner.Presentation.Avalonia/Behaviors/ReportCopyAction.cs"), StringComparison.Ordinal);
+        Assert.Contains("behaviors:ReportCopyAction.Text=\"{Binding LoadedReportJson, Mode=OneWay}\"", reportAuditTemplates, StringComparison.Ordinal);
         Assert.Contains("TextBox.readOnlyRaw", controlStyles, StringComparison.Ordinal);
         Assert.Contains("Classes=\"readOnlyRaw\"", reportAuditTemplates, StringComparison.Ordinal);
         Assert.DoesNotContain("MaxHeight=\"320\"", reportAuditTemplates, StringComparison.Ordinal);

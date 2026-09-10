@@ -174,6 +174,30 @@ but issue #277 does not redefine their authoring semantics.
 - CLI and Presentation consume the same Application result. UI owns localized
   text, icons, colors, focus, accessibility, and file-picker interaction only.
 
+### Ordered Build blocker availability amendment (2026-09-06)
+
+The existing primary Build blocker remains the canonical admission result, but
+Application also exposes its immutable ordered `CapabilityActionAvailability`
+for the same check-time decision. `Resolve` delegates to that availability's
+`PrimaryBlocker`; UI/CLI must not sort or infer an alternative readiness order.
+
+For a matching current readiness snapshot, Application returns the existing
+`Build` availability unchanged. Before runtime refresh, the existing authoring,
+execution, input, and stale-runtime candidates remain ordered by their current
+priorities. Pre-compilation sessions expose all already-known candidates in the
+previous group order: status-blocked, status-pending, lifecycle-error, then
+lifecycle-incomplete, each ordinal by subject. A same-slot blocking or pending
+status suppresses only that slot's lifecycle fallback; a Ready status does not
+suppress an error lifecycle. The session's unique status-identity invariant is
+relied on before this coalescing, and orphan status candidates remain visible.
+No candidate retains the existing workflow-pending blocker.
+
+This is an additive check-time projection only. It does not add a runtime
+check, change primary blocker selection, Build admission, input acceptance,
+firmware/profile facts, execution, output bytes, or report creation. The
+approved UI count is `Blockers.Count - 1`; Presentation consumes the supplied
+list without recomputation.
+
 Issue #182 consumes this result for the DP Replace shared-card pilot. Issue
 #208 owns bounded per-route desktop adoption. Neither ticket may reopen the
 headless state or fingerprint definitions. #208 also owns deletion of the

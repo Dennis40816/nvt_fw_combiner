@@ -8,29 +8,29 @@
   <Setter Property="HorizontalAlignment" Value="Stretch" />
   <Setter Property="HorizontalContentAlignment" Value="Stretch" />
   <Setter Property="VerticalContentAlignment" Value="Stretch" />
-  <Setter Property="Padding" Value="12,10" />
+  <Setter Property="Padding" Value="14,8" />
   <Setter Property="Background" Value="{DynamicResource NfcSurfaceBrush}" />
   <Setter Property="BorderBrush" Value="{DynamicResource NfcBorderBrush}" />
-  <Setter Property="BorderThickness" Value="2" />
+  <Setter Property="BorderThickness" Value="1" />
   <Setter Property="CornerRadius" Value="{DynamicResource NfcSurfaceCornerRadius}" />
-  <Setter Property="Margin" Value="0,0,0,8" />
+  <Setter Property="Margin" Value="0,0,6,8" />
   <Setter Property="Template">
     <ControlTemplate>
       <Border
           Name="PART_RangeCard"
-          Padding="{TemplateBinding Padding}"
           Background="{TemplateBinding Background}"
           BorderBrush="{TemplateBinding BorderBrush}"
           BorderThickness="{TemplateBinding BorderThickness}"
           CornerRadius="{TemplateBinding CornerRadius}">
-        <Grid ColumnDefinitions="3,*" ColumnSpacing="10">
+        <Grid>
           <Border
               Name="PART_SelectedRail"
               Width="3"
+              HorizontalAlignment="Left"
               Background="Transparent"
               CornerRadius="{DynamicResource NfcPillCornerRadius}" />
           <ContentPresenter
-              Grid.Column="1"
+              Margin="{TemplateBinding Padding}"
               HorizontalAlignment="Stretch"
               HorizontalContentAlignment="{TemplateBinding HorizontalContentAlignment}"
               VerticalAlignment="Stretch"
@@ -99,40 +99,39 @@
       Spacing="{DynamicResource NfcSpace8}"
       ToolTip.Tip="{Binding Reason}">
     <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
-      <StackPanel Spacing="3">
-        <TextBlock Classes="bodyStrongText" Text="{Binding Title}" TextWrapping="Wrap" />
-        <TextBlock Classes="technicalCaption" Text="{Binding OutputSpaceId}" TextWrapping="Wrap" />
-        <TextBlock Classes="technicalCaption" Text="{Binding DisplayRange}" TextWrapping="Wrap" />
-        <TextBlock Classes="captionText" Text="{Binding ChangedSummary}" />
-      </StackPanel>
+      <TextBlock Classes="bodyStrongText" FontSize="{DynamicResource NfcFontSize13}" VerticalAlignment="Center" Text="{Binding ChangedSummary}" />
       <Label
           Grid.Column="1"
-          Classes="compactBadge neutralBadge reportBadge info"
-          Content="{ReflectionBinding $parent[Window].DataContext.Text.HexDiffSelectedRangeLabel}"
-          VerticalAlignment="Top"
-          IsVisible="{Binding IsSelected}" />
+          Classes="compactBadge neutralBadge reportBadge"
+          Classes.review="{Binding IsReviewRequired}"
+          Classes.success="{Binding IsAccepted}"
+          Content="{Binding Status}"
+          VerticalAlignment="Center" />
     </Grid>
+    <TextBlock Classes="technicalDetail" Text="{Binding DisplayRange}" TextWrapping="Wrap" />
     <Border
         Padding="0,8,0,0"
-        BorderBrush="{DynamicResource NfcDividerBrush}"
+        BorderBrush="{DynamicResource NfcBorderBrush}"
         BorderThickness="0,1,0,0"
         IsVisible="{Binding IsSelected}">
-      <StackPanel Spacing="{DynamicResource NfcSpace4}">
-        <TextBlock Classes="tableHeader" Text="{ReflectionBinding $parent[Window].DataContext.Text.HexDiffWhyLabel}" />
-        <TextBlock Classes="bodyText" Text="{Binding Reason}" TextWrapping="Wrap" />
-        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="{DynamicResource NfcSpace8}">
-          <TextBlock
-              VerticalAlignment="Center"
-            Classes="tableHeader"
-            Text="{ReflectionBinding $parent[Window].DataContext.Text.ResultLabel}" />
-        <Label
-            Grid.Column="1"
-            Classes="compactBadge neutralBadge reportBadge success"
-              Classes.review="{Binding IsReviewRequired}"
-              Content="{Binding Status}" />
-        </Grid>
+      <StackPanel Spacing="{DynamicResource NfcSpace8}">
+        <StackPanel Spacing="{DynamicResource NfcSpace4}">
+          <TextBlock Classes="bodyStrongText" Text="{ReflectionBinding $parent[Window].DataContext.Text.HexDiffWhyLabel}" />
+          <TextBlock Classes="bodyText" Text="{Binding Reason}" TextWrapping="Wrap" />
+        </StackPanel>
+        <StackPanel Spacing="{DynamicResource NfcSpace4}">
+          <TextBlock Classes="bodyStrongText" Text="{ReflectionBinding $parent[Window].DataContext.Text.ResultLabel}" />
+          <TextBlock Classes="bodyText" Text="{Binding Result}" TextWrapping="Wrap" />
+        </StackPanel>
       </StackPanel>
     </Border>
+    <TextBlock Classes="technicalCaption" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding $self.Text}" AutomationProperties.Name="{Binding $self.Text}">
+      <TextBlock.Text>
+        <MultiBinding StringFormat="{}{0} · {1}">
+          <Binding Path="OutputSpaceId" /><Binding Path="TraceId" />
+        </MultiBinding>
+      </TextBlock.Text>
+    </TextBlock>
   </StackPanel>
 </DataTemplate>
 

@@ -47,6 +47,24 @@ internal sealed partial class ReplacePresentationViewModel
 
     public ObservableCollection<MemoryCoverageGroupViewModel> ReplaceCoverageGroups { get; } = [];
 
+    public ObservableCollection<MemoryCoverageSegmentViewModel> CtrlRamOverview { get; } = [];
+    public ObservableCollection<MemoryFocusLaneViewModel> CtrlRamFocusLanes { get; } = [];
+    public bool HasCtrlRamFocusLayout => IsCtrlRamReplaceModeSelected && CtrlRamFocusLanes.Count > 0;
+    public string CtrlRamCapacityLabel => CtrlRamOverview.Count == 0 ? string.Empty :
+        FormattableString.Invariant($"{CtrlRamOverview.Sum(static section => section.BarWidth) / 1024:0.###} KiB");
+    public IReadOnlyList<MemoryFocusPositionViewModel> CtrlRamPositions => MemoryFocusLaneViewModel.CreatePositions(
+        CtrlRamFocusLanes, (long)CtrlRamOverview.Sum(static section => section.BarWidth));
+    public string CtrlRamEndAddress => CtrlRamOverview.Count == 0 ? string.Empty :
+        FormattableString.Invariant($"0x{CtrlRamOverview[^1].RangeEndExclusive - 1:X5}");
+    public IReadOnlyList<MemoryCoverageSegmentViewModel> CtrlRamOverviewLegend =>
+        [.. CtrlRamOverview.OrderBy(static section => section.FillRole == MemoryCoverageFillRole.Neutral)];
+    public string CtrlRamSharedInputHint => Text.FormatMemorySharedInputHint(string.Join(" / ",
+        CtrlRamFocusLanes.SelectMany(static lane => lane.Ranges)
+            .Where(static range => range.IsSelectedForWrite && range.SourceSlotId is not null)
+            .GroupBy(static range => range.SourceSlotId)
+            .Where(static group => group.Select(static range => range.RegionGroup).Distinct().Count() > 1)
+            .Select(static group => ShellTextResources.GetMemoryFocusLabel(group.First().CtrlRamRegionRole)).Distinct()));
+
     public IReadOnlyList<MemoryCoverageLogicalItemViewModel> ReplaceSelectedCoverageItems =>
     [
         .. ReplaceCoverageGroups
@@ -181,17 +199,19 @@ internal sealed partial class ReplacePresentationViewModel
         (!IsCtrlRamReplaceModeSelected || HasCurrentCtrlRamActionReadiness(build: true)) &&
         (!IsGeneralReplaceModeSelected || _generalReplaceActionReadiness?.Build.IsAvailable == true);
 
-    public CapabilityActionBlocker? PrimaryBuildBlocker => SelectedReplaceMode switch
+    public CapabilityActionBlocker? PrimaryBuildBlocker => BuildAvailability.PrimaryBlocker;
+
+    public CapabilityActionAvailability BuildAvailability => SelectedReplaceMode switch
     {
-        CtrlRamReplaceMode => ActiveSessionBuildBlockerResolver.Resolve(
+        CtrlRamReplaceMode => ActiveSessionBuildBlockerResolver.ResolveBuildAvailability(
             _ctrlRamReplaceSession.CurrentSnapshot,
             CtrlRamReplaceMode,
             _ctrlRamActionReadiness),
-        GeneralReplaceMode => ActiveSessionBuildBlockerResolver.Resolve(
+        GeneralReplaceMode => ActiveSessionBuildBlockerResolver.ResolveBuildAvailability(
             _generalReplaceSession.CurrentSnapshot,
             GeneralReplaceMode,
             _generalReplaceActionReadiness),
-        _ => ActiveSessionBuildBlockerResolver.Resolve(
+        _ => ActiveSessionBuildBlockerResolver.ResolveBuildAvailability(
             _dpReplaceSession.CurrentSnapshot,
             DpReplaceMode),
     };
@@ -386,6 +406,7 @@ internal sealed partial class ReplacePresentationViewModel
         BuildReplaceCommand.NotifyCanExecuteChanged();
         OnPropertyChanged(nameof(CanBuildReplace));
         OnPropertyChanged(nameof(PrimaryBuildBlocker));
+        OnPropertyChanged(nameof(BuildAvailability));
         OnPropertyChanged(nameof(ReplaceReadinessStatus));
         RefreshSelectionState();
     }

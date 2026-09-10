@@ -613,7 +613,9 @@ public sealed partial class RepositoryBoundaryTests
 
         Assert.Contains("private readonly ReportHistorySnapshot snapshot;", entry, StringComparison.Ordinal);
         Assert.Contains("public long StoredByteCount", entry, StringComparison.Ordinal);
-        Assert.DoesNotContain("ReportReviewViewModel", entry, StringComparison.Ordinal);
+        const string compactIssueReader = "ReportReviewViewModel.ReadHistoryIssueFacts(";
+        Assert.Equal(1, CountOccurrences(entry, compactIssueReader));
+        Assert.DoesNotContain("ReportReviewViewModel", entry.Replace(compactIssueReader, string.Empty, StringComparison.Ordinal), StringComparison.Ordinal);
         Assert.Contains("bool materializeAsCurrent = entries.Count == 0;", history, StringComparison.Ordinal);
         Assert.Contains("LoadedReport = prepared.LoadedReport;", history, StringComparison.Ordinal);
         Assert.DoesNotContain("LoadReportHistoryEntry(", history, StringComparison.Ordinal);

@@ -1,4 +1,4 @@
-<Styles xmlns="https://github.com/avaloniaui">
+<Styles xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
   <Style Selector="Border.memoryInfoPanel">
     <Setter Property="Background" Value="{DynamicResource NfcMemoryPanelSurfaceBrush}" />
     <Setter Property="BorderBrush" Value="{DynamicResource NfcMemoryPanelBorderBrush}" />
@@ -74,6 +74,50 @@
   </Style>
   <Style Selector="Border.memoryCoverageLinkedRow:focus-visible"><Setter Property="BorderBrush" Value="{DynamicResource NfcAccentStrongBrush}" /><Setter Property="BorderThickness" Value="2" /></Style>
   <Style Selector="Border.memoryCoverageLinkedRow.linked.reducedMotion, Border.memoryCoverageBarSegment.linked.reducedMotion"><Setter Property="RenderTransform" Value="none" /></Style>
+  <Style Selector="Border.memoryExplorerSlice.memoryLocalSlice">
+    <Setter Property="BorderThickness" Value="0,0,1,0" />
+    <Setter Property="BorderBrush" Value="{DynamicResource NfcSurfaceBrush}" />
+  </Style>
+  <Style Selector="Border.memoryExplorerSlice.linked, Border.memoryExplorerGroup.active">
+    <Setter Property="BorderThickness" Value="2" />
+    <Setter Property="BorderBrush" Value="{DynamicResource NfcAccentStrongBrush}" />
+    <Setter Property="CornerRadius" Value="4" />
+    <Setter Property="RenderTransform" Value="scaleY(1.18)" />
+    <Setter Property="BoxShadow" Value="{DynamicResource NfcMemorySegmentHoverShadow}" />
+    <Setter Property="Panel.ZIndex" Value="3" />
+  </Style>
+  <Style Selector="Border.memoryExplorerSlice, Border.memoryExplorerGroup">
+    <Setter Property="Transitions"><Transitions><TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.14" /></Transitions></Setter>
+  </Style>
+  <Style Selector="Border.memoryExplorerSlice.reducedMotion, Border.memoryExplorerGroup.reducedMotion">
+    <Setter Property="Transitions" Value="{x:Null}" />
+    <Setter Property="RenderTransform" Value="none" />
+  </Style>
+  <!-- Position markers are quiet navigation anchors, not floating memory slices. -->
+  <Style Selector="Border.memoryFocusPosition">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="CornerRadius" Value="3" />
+    <Setter Property="Transitions" Value="{x:Null}" />
+  </Style>
+  <Style Selector="Border.memoryFocusPosition.active">
+    <Setter Property="Background" Value="{DynamicResource NfcMemoryInteractionSurfaceBrush}" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="CornerRadius" Value="3" />
+    <Setter Property="BoxShadow" Value="none" />
+    <Setter Property="RenderTransform" Value="none" />
+  </Style>
+  <Style Selector="Border.memoryFocusPosition TextBlock.memoryPositionLabel">
+    <Setter Property="Foreground" Value="{DynamicResource NfcMemoryTextSecondaryBrush}" />
+  </Style>
+  <Style Selector="Border.memoryFocusPosition.active TextBlock.memoryPositionLabel">
+    <Setter Property="Foreground" Value="{DynamicResource NfcAccentStrongBrush}" />
+  </Style>
+  <Style Selector="Border.memoryFocusPosition Border.memoryPositionUnderline"><Setter Property="Opacity" Value="0.4" /></Style>
+  <Style Selector="Border.memoryFocusPosition.active Border.memoryPositionUnderline"><Setter Property="Opacity" Value="1" /></Style>
+  <Style Selector=":is(Control).memoryHoverOnly"><Setter Property="IsVisible" Value="False" /></Style>
+  <Style Selector="Border.memoryFocusSlice.linked.reducedMotion"><Setter Property="RenderTransform" Value="none" /></Style>
+  <Style Selector="Border#MemorySliceCard :is(Control).memoryHoverOnly"><Setter Property="IsVisible" Value="True" /></Style>
+  <Style Selector="Border#MemorySliceCard TextBlock.memoryInfoDescription, Border#MemorySliceCard Border#MemoryTechnicalSeparator"><Setter Property="IsVisible" Value="False" /></Style>
   <Style Selector="Border.memoryCoverageFill.dp">
     <Setter Property="Background" Value="{DynamicResource NfcMemoryDpFillBrush}" />
   </Style>

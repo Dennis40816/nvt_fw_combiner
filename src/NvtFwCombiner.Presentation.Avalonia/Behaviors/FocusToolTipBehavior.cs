@@ -89,9 +89,10 @@ public sealed class FocusToolTipBehavior : AvaloniaObject
 
     private static void Control_OnKeyDown(object? sender, KeyEventArgs e)
     {
-        if (sender is Control control && e.Key == Key.Escape)
+        if (sender is Control control && e.Key == Key.Escape && ToolTip.GetIsOpen(control))
         {
             CloseAndSuppressTooltip(control);
+            e.Handled = true;
         }
     }
 

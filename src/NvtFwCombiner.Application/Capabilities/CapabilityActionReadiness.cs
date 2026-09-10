@@ -396,6 +396,18 @@ public static class CapabilityActionReadinessResolver
         IEnumerable<CapabilityChildReadiness> inputChildren,
         RuntimeDependencyReadinessRequest runtimeDependencyRequest)
     {
+        return ResolveBuildAvailabilityBeforeRuntimeRefresh(
+            admission,
+            inputChildren,
+            runtimeDependencyRequest).PrimaryBlocker;
+    }
+
+    /// <summary>Resolves all canonical Build blockers before a runtime refresh exists.</summary>
+    public static CapabilityActionAvailability ResolveBuildAvailabilityBeforeRuntimeRefresh(
+        CapabilityAdmissionSnapshot admission,
+        IEnumerable<CapabilityChildReadiness> inputChildren,
+        RuntimeDependencyReadinessRequest runtimeDependencyRequest)
+    {
         ArgumentNullException.ThrowIfNull(admission);
         ArgumentNullException.ThrowIfNull(inputChildren);
         ArgumentNullException.ThrowIfNull(runtimeDependencyRequest);
@@ -428,7 +440,7 @@ public static class CapabilityActionReadinessResolver
                     CapabilityReadinessNextAction.RefreshRuntimeDependencies)));
         }
 
-        return new CapabilityActionAvailability(build).PrimaryBlocker;
+        return new CapabilityActionAvailability(build);
     }
 
     private static CapabilityChildReadiness[] NormalizeInputs(

@@ -119,13 +119,15 @@ public sealed partial class CanonicalCapabilityCatalogMigrationTests
                 .Order(StringComparer.Ordinal));
         Assert.All(policyRoutes, route =>
         {
-            Assert.EndsWith("-authoring-v3", route.Authoring.DecisionId, StringComparison.Ordinal);
-            Assert.EndsWith("-publication-v5", route.Publication.DecisionId, StringComparison.Ordinal);
+            // Catalog 1.12.0 adds display-only context to these ten routes.
+            bool hasAddedContext = route.Identity.IcId is "NT51919" or "NT51950" or "NT51951";
+            Assert.EndsWith(hasAddedContext ? "-authoring-v4" : "-authoring-v3", route.Authoring.DecisionId, StringComparison.Ordinal);
+            Assert.EndsWith(hasAddedContext ? "-publication-v6" : "-publication-v5", route.Publication.DecisionId, StringComparison.Ordinal);
             string expectedEvidenceRevision = tpRoutesAwaitingIndependentExpectedOutput.Contains(
                 route.Identity.RouteId,
                 StringComparer.Ordinal)
-                ? "-evidence-v4"
-                : "-evidence-v3";
+                ? "-evidence-v5"
+                : hasAddedContext ? "-evidence-v4" : "-evidence-v3";
             Assert.EndsWith(
                 expectedEvidenceRevision,
                 route.Evidence.DecisionId,

@@ -36,7 +36,9 @@ internal static class ReportReviewTypedProjector
                 cancellationToken);
         IReadOnlyList<ReportLineViewModel> issues = ReportReviewViewModel.ProjectIssues(
             report.Issues,
-            cancellationToken);
+            language,
+            cancellationToken,
+            report.InputDiagnostics);
         string compositionKind = report.CompositionKind.ToString();
         string startedAt = report.StartedAtUtc.ToString(
             "yyyy-MM-dd'T'HH:mm:ss.FFFFFFFzzz",

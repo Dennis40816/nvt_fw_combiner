@@ -1,4 +1,5 @@
 using Avalonia.Interactivity;
+using Avalonia.Controls;
 using Avalonia.Platform.Storage;
 using Avalonia.Threading;
 using NvtFwCombiner.Application.Ports;
@@ -13,33 +14,64 @@ public sealed partial class MainWindow
 
     private async void LoadReportJsonButton_OnClick(object? sender, RoutedEventArgs e)
     {
-        IReadOnlyList<IStorageFile> files = await StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
+        await LoadReportJsonAsync(sender as Control, StorageProvider);
+    }
+
+    internal async Task LoadReportJsonAsync(Control? trigger, IStorageProvider storageProvider)
+    {
+        if (DataContext is not MainWindowViewModel viewModel)
         {
-            Title = "Load run report JSON",
-            AllowMultiple = false,
-            FileTypeFilter =
-            [
-                new FilePickerFileType("Run report JSON")
+            return;
+        }
+        try
+        {
+            IReadOnlyList<IStorageFile> files = await storageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
+            {
+                Title = "Load run report JSON",
+                AllowMultiple = false,
+                FileTypeFilter =
+                [
+                    new FilePickerFileType("Run report JSON")
                 {
                     Patterns = ["*.json"],
                     MimeTypes = ["application/json"],
                 },
             ],
-        });
+            });
 
-        if (files.Count == 0 || DataContext is not MainWindowViewModel viewModel)
-        {
-            return;
+            if (files.Count == 0)
+            {
+                return;
+            }
+
+            IStorageFile file = files[0];
+            ReportPublicationResult result = await viewModel.Reports.LoadReportFileAsync(
+                token => _hostServices.LocalFiles.ReadTextAsync(
+                    _ => new ValueTask<Stream>(file.OpenReadAsync()),
+                    MaximumStandaloneReportBytes,
+                    token),
+                file.Name,
+                _startupLoadCancellation.Token);
+            if (result.Outcome == ReportPublicationOutcome.Published && viewModel.MessageCenter.IsOpen)
+            {
+                viewModel.Reports.ShowReportCommand.Execute(null);
+            }
         }
-
-        IStorageFile file = files[0];
-        _ = await viewModel.Reports.LoadReportFileAsync(
-            token => _hostServices.LocalFiles.ReadTextAsync(
-                _ => new ValueTask<Stream>(file.OpenReadAsync()),
-                MaximumStandaloneReportBytes,
-                token),
-            file.Name,
-            _startupLoadCancellation.Token);
+        catch (OperationCanceledException) when (_startupLoadCancellation.IsCancellationRequested)
+        {
+            // Window shutdown owns cancellation.
+        }
+        catch (Exception exception)
+        {
+            viewModel.Reports.SetShellToast(viewModel.Text.LoadRunReportLabel, exception.Message);
+        }
+        finally
+        {
+            if (trigger is { IsEffectivelyVisible: true } && !viewModel.Reports.IsReportModalOpen)
+            {
+                _ = trigger.Focus();
+            }
+        }
     }
 
     private static bool HasStartupReportStage(UiLaunchOptions launchOptions)

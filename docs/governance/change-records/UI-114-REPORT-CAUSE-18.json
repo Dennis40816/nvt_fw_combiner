@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 2,
+  "taskId": "UI-114-REPORT-CAUSE-18",
+  "capability": "Show the recorded cause of a report difference independently from its acceptance verdict",
+  "integrationBase": "acb42b3dd4bee9bfa384a43d7d57f1d3356a7bbf",
+  "risk": "R2",
+  "kind": "governance",
+  "state": "final-complete",
+  "mutablePaths": [
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReportReviewViewModel.OutputDifferences.cs",
+    "scripts/code_size_policy.py",
+    "docs/adr/0021-code-size-ratchet-accepted-artifact-amendment.md"
+  ],
+  "implementationOwner": "primary-agent",
+  "searchEvidence": [
+    "OutputDifferenceSummary.Explanation is the existing readable report cause; older reports can omit Semantic. ParseOutputDifference and ProjectOutputDifference currently preserve Semantic.Explanation but ignore the top-level explanation.",
+    "FormatDifferenceReason currently checks acceptance before classification and therefore hides recorded CRC/header or replacement classifications on review-required legacy rows.",
+    "CompositionRunService.OutputDifferenceSemantics already emits field-specific causes such as postbuild recalculated DLM CRC 0. ReportHexDiffRangeViewModel.Reason delegates to the existing ReportLineViewModel detail; no second projector, firmware classifier or UI field lookup is necessary."
+  ],
+  "semanticOwner": "Existing Application output-difference explanation and classification, rendered by ReportReviewViewModel.FormatDifferenceReason",
+  "terminalContract": "Preserve nonblank Semantic.Explanation first, then nonblank top-level Explanation verbatim. JSON top-level explanation must be a string; missing/null/other types/whitespace fall back to the existing recorded classification and section label. CRC/header fallback does not invent a field or algorithm; replacement and preserved-reference fallback state only the recorded operation or preservation violation. Unknown/unexpected missing causes state that no specific cause was recorded. Acceptance and Result stay separate and unchanged, as do firmware bytes, report schema, ranges, replay, raw order and approved card layout. Verify live/JSON precedence, malformed/missing legacy fields, acceptance invariance and actual CRC-cause rendering. Source-size accounting follows the final canonical measurement with no transferable headroom and no change to runtime slices, measurement algorithms or gates.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "ui_presentation_review",
+    "outcome": "approved",
+    "evidence": "Independent read-only R2 design review at acb42b3d approved the bounded existing-helper correction and the amended Semantic.Explanation > top-level Explanation > classification fallback order. No P0-P3 findings. Actual cause strings remain verbatim, top-level JSON is string-only, no UI byte/offset inference. After canonical measurement and inspection of the exact production diff, the reviewer admitted the necessary +5 nonblank lines: full production138577 and allowance35681, unchanged runtime99170 and all slices/algorithms, no transferable headroom."
+  },
+  "implementationHead": "997fac98abd84b98c9ac39facc01b1a46f6761f1",
+  "reviewedHead": "997fac98abd84b98c9ac39facc01b1a46f6761f1",
+  "pathStateDigest": "8f88de1f4e6e48d7b1fba1c7eaa0b98fd570d4f732b3741fd0f580de6a1117df",
+  "finalReview": {
+    "reviewer": "ui_presentation_review",
+    "outcome": "approved",
+    "evidence": "Independent fixed-head R2 correctness/Polytail review of acb42b3d..997fac98 passed across all eight changed files with no P0-P3 findings. Reviewer directly read the final TRX (26/26, zero skipped) and full CRC render, confirmed field-level cause and Original rows, original card geometry, verbatim semantic/legacy precedence, string-only legacy JSON, no byte/address inference and unchanged acceptance/Result/raw/replay/firmware contracts. The 256B synthetic report fixture retains only64B hash-checked context at the existing1C..20 field; no replay guard was weakened. Primary observed19/19 code-size cases in28.762s and canonical production138577/allowance35681, runtime99170 with unchanged slices/algorithms. Scoped primary review and git diff --check pass. This local item does not claim full-suite, native DPI/High Contrast, release/Golden certification or completion of the separate Settings Version item."
+  }
+}

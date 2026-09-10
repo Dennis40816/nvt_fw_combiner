@@ -51,8 +51,8 @@
       "slotId": "dp-ab-input",
       "role": "dp-ab",
       "artifactClass": "dp-firmware",
-      "required": true,
-      "cardinality": "exactly-one",
+      "required": false,
+      "cardinality": "zero-or-one",
       "acceptedExtensions": [ ".bin" ],
       "acceptance": {
         "lengthRule": { "kind": "exact-resolved-map-capacity" },
@@ -84,6 +84,14 @@
       }
     }
   ],
+  "inputSelectionGroups": [
+    {
+      "groupId": "dp-selection",
+      "memberSlotIds": ["dp-ab-input"],
+      "minimumSelected": 0,
+      "maximumSelected": 1
+    }
+  ],
   "spaces": [
     { "spaceId": "dp-ab-input", "kind": "input-artifact", "slotId": "dp-ab-input", "instancePolicy": "singleton" },
     { "spaceId": "tp-a-input", "kind": "input-artifact", "slotId": "tp-a-input", "instancePolicy": "singleton" },
@@ -104,7 +112,7 @@
       "spaceId": "output-image",
       "kind": "output-image",
       "capacity": { "kind": "resolved-map" },
-      "initializer": { "kind": "blank", "fillByte": 0 }
+      "initializer": { "kind": "blank", "fillByte": 255 }
     }
   ],
   "views": [

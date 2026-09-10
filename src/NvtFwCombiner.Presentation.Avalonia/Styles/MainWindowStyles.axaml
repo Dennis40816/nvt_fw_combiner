@@ -34,17 +34,16 @@
   </Style>
   <Style Selector="TabControl.reportTabs TabItem">
     <Setter Property="FontSize" Value="{DynamicResource NfcFontSize12}" />
-    <Setter Property="FontWeight" Value="SemiBold" />
     <Setter Property="Padding" Value="8,6" />
     <Setter Property="MinHeight" Value="32" />
   </Style>
-  <Style Selector="TabControl.reportTabs TabItem TextBlock">
+  <Style Selector="TabControl.reportTabs TabItem /template/ ContentPresenter#PART_ContentPresenter">
     <Setter Property="FontSize" Value="{DynamicResource NfcFontSize12}" />
     <Setter Property="FontWeight" Value="SemiBold" />
     <Setter Property="Foreground" Value="{DynamicResource NfcTextSecondaryBrush}" />
   </Style>
-  <Style Selector="TabControl.reportTabs TabItem:selected TextBlock, ToggleButton.segment:checked TextBlock">
-    <Setter Property="Foreground" Value="{DynamicResource NfcTextStrongBrush}" />
+  <Style Selector="TabControl.reportTabs TabItem:selected /template/ ContentPresenter#PART_ContentPresenter, ToggleButton.segment:checked TextBlock">
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource NfcTextStrongBrush}" />
   </Style>
   <Style Selector="Expander">
     <Setter Property="HorizontalAlignment" Value="Stretch" />
@@ -61,16 +60,16 @@
     <Setter Property="HorizontalAlignment" Value="Stretch" />
     <Setter Property="HorizontalContentAlignment" Value="Stretch" />
   </Style>
-  <Style Selector="ScrollViewer.contentScrollSurface">
+  <Style Selector="ScrollViewer.contentScrollSurface, ListBox.reportHexDiffRanges /template/ ScrollViewer">
     <Setter Property="AllowAutoHide" Value="False" />
   </Style>
-  <Style Selector="ScrollViewer.contentScrollSurface /template/ ScrollBar:vertical">
+  <Style Selector="ScrollViewer.contentScrollSurface /template/ ScrollBar:vertical, ListBox.reportHexDiffRanges /template/ ScrollViewer /template/ ScrollBar:vertical">
     <Setter Property="Width" Value="14" />
     <Setter Property="MinWidth" Value="14" />
     <Setter Property="MaxWidth" Value="14" />
     <Setter Property="Background" Value="Transparent" />
   </Style>
-  <Style Selector="ScrollViewer.contentScrollSurface /template/ ScrollBar:vertical /template/ Thumb">
+  <Style Selector="ScrollViewer.contentScrollSurface /template/ ScrollBar:vertical /template/ Thumb, ListBox.reportHexDiffRanges /template/ ScrollViewer /template/ ScrollBar:vertical /template/ Thumb">
     <Setter Property="Width" Value="6" />
     <Setter Property="MinWidth" Value="6" />
     <Setter Property="MaxWidth" Value="6" />
@@ -79,40 +78,61 @@
     <Setter Property="CornerRadius" Value="{DynamicResource NfcPillCornerRadius}" />
     <Setter Property="RenderTransform" Value="none" />
   </Style>
-  <Style Selector="ScrollViewer.contentScrollSurface /template/ ScrollBar:vertical /template/ Rectangle#TrackRect">
+  <Style Selector="ScrollViewer.contentScrollSurface /template/ ScrollBar:vertical /template/ Rectangle#TrackRect, ListBox.reportHexDiffRanges /template/ ScrollViewer /template/ ScrollBar:vertical /template/ Rectangle#TrackRect">
     <Setter Property="Opacity" Value="0" />
   </Style>
-  <Style Selector="ScrollViewer.contentScrollSurface /template/ ScrollBar:vertical /template/ RepeatButton">
+  <Style Selector="ScrollViewer.contentScrollSurface /template/ ScrollBar:vertical /template/ RepeatButton, ListBox.reportHexDiffRanges /template/ ScrollViewer /template/ ScrollBar:vertical /template/ RepeatButton">
     <Setter Property="Opacity" Value="0" />
   </Style>
-  <Style Selector="ScrollViewer.contentScrollSurface /template/ ScrollBar:vertical:pointerover /template/ Thumb">
+  <Style Selector="ScrollViewer.contentScrollSurface /template/ ScrollBar:vertical:pointerover /template/ Thumb, ListBox.reportHexDiffRanges /template/ ScrollViewer /template/ ScrollBar:vertical:pointerover /template/ Thumb">
     <Setter Property="Width" Value="6" />
     <Setter Property="MinWidth" Value="6" />
     <Setter Property="MaxWidth" Value="6" />
     <Setter Property="Background" Value="{DynamicResource NfcTextMutedBrush}" />
     <Setter Property="RenderTransform" Value="none" />
   </Style>
-  <Style Selector="ScrollViewer.contentScrollSurface /template/ ScrollBar:vertical /template/ Thumb:pointerover /template/ Border">
+  <Style Selector="ScrollViewer.contentScrollSurface /template/ ScrollBar:vertical /template/ Thumb:pointerover /template/ Border, ListBox.reportHexDiffRanges /template/ ScrollViewer /template/ ScrollBar:vertical /template/ Thumb:pointerover /template/ Border">
     <Setter Property="Background" Value="{DynamicResource NfcTextMutedBrush}" />
   </Style>
   <Style Selector="Expander.inlineDisclosure">
     <Setter Property="Background" Value="Transparent" />
   </Style>
-  <Style Selector="Expander.inlineDisclosure /template/ ToggleButton, Expander.inlineDisclosure /template/ ToggleButton:checked">
+  <Style Selector="ToggleButton.inlineDisclosure">
+    <Setter Property="Foreground" Value="{DynamicResource NfcTextStrongBrush}" />
+    <Setter Property="FontSize" Value="{DynamicResource NfcFontSize14}" />
+    <Setter Property="Padding" Value="8,6" />
+    <Setter Property="VerticalContentAlignment" Value="Center" />
+  </Style>
+  <Style Selector="ToggleButton.inlineDisclosure:checked /template/ ContentPresenter#PART_ContentPresenter, ToggleButton.inlineDisclosure:checked:pointerover /template/ ContentPresenter#PART_ContentPresenter, ToggleButton.inlineDisclosure:checked:pressed /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="Transparent" />
+  </Style>
+  <Style Selector="Expander.inlineDisclosure /template/ ToggleButton, Expander.inlineDisclosure /template/ ToggleButton:checked, ToggleButton.inlineDisclosure, ToggleButton.inlineDisclosure:checked">
     <Setter Property="Background" Value="Transparent" />
     <Setter Property="BorderBrush" Value="Transparent" />
   </Style>
-  <Style Selector="Expander.inlineDisclosure /template/ ToggleButton:pointerover, Expander.inlineDisclosure /template/ ToggleButton:checked:pointerover">
+  <Style Selector="Expander.inlineDisclosure /template/ ToggleButton:pointerover, Expander.inlineDisclosure /template/ ToggleButton:checked:pointerover, ToggleButton.inlineDisclosure:pointerover">
     <Setter Property="Background" Value="{DynamicResource NfcAccentSurfaceSubtleBrush}" />
     <Setter Property="BorderBrush" Value="{DynamicResource NfcAccentBorderBrush}" />
   </Style>
-  <Style Selector="Expander.inlineDisclosure /template/ ToggleButton:pressed">
+  <Style Selector="Expander.inlineDisclosure /template/ ToggleButton:pressed, ToggleButton.inlineDisclosure:pressed">
     <Setter Property="Background" Value="{DynamicResource NfcAccentSurfaceBrush}" />
     <Setter Property="BorderBrush" Value="{DynamicResource NfcAccentBorderStrongBrush}" />
   </Style>
-  <Style Selector="Expander.inlineDisclosure /template/ ToggleButton:focus-visible">
+  <Style Selector="Expander.inlineDisclosure /template/ ToggleButton:focus-visible, ToggleButton.inlineDisclosure:focus-visible">
     <Setter Property="BorderBrush" Value="{DynamicResource NfcAccentStrongBrush}" />
     <Setter Property="BorderThickness" Value="2" />
+  </Style>
+  <Style Selector="Expander.firmwareSlotGroupDisclosure /template/ Border#ExpanderContent">
+    <Setter Property="BorderThickness" Value="0" />
+  </Style>
+  <Style Selector="Expander.firmwareSlotGroupDisclosure /template/ ToggleButton#ExpanderHeader">
+    <Setter Property="BorderThickness" Value="2" />
+  </Style>
+  <Style Selector="Expander.firmwareSlotGroupDisclosure /template/ ToggleButton#ExpanderHeader:pointerover, Expander.firmwareSlotGroupDisclosure /template/ ToggleButton#ExpanderHeader:checked:pointerover, Expander.firmwareSlotGroupDisclosure /template/ ToggleButton#ExpanderHeader:pressed">
+    <Setter Property="BorderBrush" Value="Transparent" />
+  </Style>
+  <Style Selector="Expander.firmwareSlotGroupDisclosure /template/ ToggleButton#ExpanderHeader:focus-visible">
+    <Setter Property="BorderBrush" Value="{DynamicResource NfcAccentStrongBrush}" />
   </Style>
   <Style Selector="ToggleButton.nav">
     <Setter Property="MinHeight" Value="30" />

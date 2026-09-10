@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 2,
+  "taskId": "UI-114-MEMORY-SOURCE-35",
+  "capability": "Separate unassigned source and explicit initialization from canonical region purpose",
+  "integrationBase": "086ba7d2223f6b3b3a002887cc2106f3c38f6b49",
+  "risk": "R1",
+  "kind": "ui",
+  "state": "final-complete",
+  "mutablePaths": ["src/NvtFwCombiner.Presentation.Avalonia/UiCompositionRunner.Common.cs", "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MemoryCoverageSegmentViewModel.cs", "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MemoryCoverageGroupViewModel.cs", "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ShellTextResources.MemoryLayout.cs", "src/NvtFwCombiner.Presentation.Avalonia/Resources/MainWindowSharedTemplates.axaml"],
+  "implementationOwner": "primary-agent",
+  "searchEvidence": ["MemorySource maps Blank and Reserved roles to Reserved even without a source; MemoryCompactDetail can interpolate that as a byte source. Existing MemoryLayoutProjector publishes SourceSpaceId, ContentRole, BlankFillByte and ContributingOperations. ToMemoryMapRow and ToMemoryCoverageSegment share this Presentation owner; shared region card owns the source row. Existing MemorySourcePresentationTests and AB dummy controls are narrow render/test seams."],
+  "semanticOwner": "MemoryLayoutProjector remains typed firmware-fact producer; UiCompositionRunner.Common and shared Presentation resources render those facts.",
+  "terminalContract": "Owner-approved roadmap display convention. Explicit blank initialization without input or compiled writes may show actual initialization byte, never verified final output. Unassigned source never becomes Reserved. Source-backed or retained bytes preserve their actual source; genuine Reserved is a purpose, not input identity. Keep existing card geometry, palette, keyboard disclosure, typed operations, firmware bytes and Build authority. Cover input/blank/unknown/reference cases and localized shared card render. Full release suite is not part of this local unit.",
+  "disposition": "extend-owner",
+  "designReview": {"reviewer": null, "outcome": "not-required", "evidence": "R1 presentation correction of existing typed facts, no owner or contract migration."},
+  "implementationHead": "f1d223b94d4a24060ecb78b8fa0efb6b51c87e50",
+  "reviewedHead": "f1d223b94d4a24060ecb78b8fa0efb6b51c87e50",
+  "pathStateDigest": "d4d2dd4cebbae092b3c5cc35d6b70c13259e37dd6bf9be8042dec85a2e8bc31f",
+  "finalReview": {"reviewer": "memory_hover_inventory", "outcome": "approved", "evidence": "Independent GPT-5.6 Terra/high fixed-head scoped Polytail PASS f1d223b9, no unresolved P0-P3. Source purpose/initializer/unknown/reference and accessibility remain truthful; no firmware or geometry change. Independently measured full138729/allowance35833 and unchanged runtime99231/slices. UI TRX48/48 zero skipped inspected; primary accounting19/19 in26.927s reused. EN Light and zh Dark actual screenshots inspected by primary. Records cover exact governed paths."}
+}

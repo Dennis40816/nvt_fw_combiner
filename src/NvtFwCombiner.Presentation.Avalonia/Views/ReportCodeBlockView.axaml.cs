@@ -1,7 +1,5 @@
 using Avalonia;
 using Avalonia.Controls;
-using Avalonia.Input.Platform;
-using Avalonia.Interactivity;
 
 namespace NvtFwCombiner.Presentation.Avalonia.Views;
 
@@ -23,16 +21,5 @@ public sealed partial class ReportCodeBlockView : UserControl
     {
         get => GetValue(TextProperty);
         set => SetValue(TextProperty, value);
-    }
-
-    private async void CopyButton_OnClick(object? sender, RoutedEventArgs e)
-    {
-        if (string.IsNullOrWhiteSpace(Text) ||
-            TopLevel.GetTopLevel(this)?.Clipboard is not { } clipboard)
-        {
-            return;
-        }
-
-        await clipboard.SetTextAsync(Text);
     }
 }

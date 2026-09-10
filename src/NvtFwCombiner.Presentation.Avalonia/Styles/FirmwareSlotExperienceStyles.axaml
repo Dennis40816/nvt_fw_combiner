@@ -1,4 +1,4 @@
-<Styles xmlns="https://github.com/avaloniaui">
+<Styles xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
   <Style Selector="Border.fileDropZone.firmwareSlot.compactExperience">
     <Setter Property="Background" Value="{DynamicResource NfcSurfaceBrush}" />
     <Setter Property="BorderBrush" Value="{DynamicResource NfcBorderBrush}" />
@@ -18,6 +18,7 @@
     <Setter Property="Foreground" Value="{DynamicResource NfcTextSecondaryBrush}" />
   </Style>
   <Style Selector="ToggleButton.slotStateAction">
+    <Setter Property="FocusAdorner" Value="{x:Null}" />
     <Setter Property="MinHeight" Value="24" />
     <Setter Property="Padding" Value="7,2" />
     <Setter Property="Background" Value="{DynamicResource NfcSurfaceSubtleBrush}" />

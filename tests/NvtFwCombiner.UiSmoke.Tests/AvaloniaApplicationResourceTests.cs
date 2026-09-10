@@ -1,4 +1,5 @@
 using Avalonia;
+using Avalonia.Headless.XUnit;
 using Avalonia.Media;
 using Avalonia.Styling;
 using NvtFwCombiner.Presentation.Avalonia;
@@ -10,9 +11,10 @@ namespace NvtFwCombiner.UiSmoke.Tests;
 public sealed class AvaloniaApplicationResourceTests
 {
     /// <summary>Loads the application resource tree and resolves every shared visual token.</summary>
-    [Fact]
+    [AvaloniaFact]
     public void ThemeTokensResolveFromTheApplicationResourceTree()
     {
+        Assert.True(global::Avalonia.Threading.Dispatcher.UIThread.CheckAccess());
         var app = new App();
         app.Initialize();
 

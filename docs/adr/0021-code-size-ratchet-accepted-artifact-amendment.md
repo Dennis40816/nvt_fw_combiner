@@ -345,3 +345,378 @@ The earlier immutable UI final record's structure-only success sentence is not
 relied on. The reproducible focused policy test failed 1/19 solely because its
 full-production threshold was stale at 136,389; this amendment closes that
 accounting mismatch without rewriting the immutable record.
+
+## 2026-09-07 existing v1.1.4 UI batch accounting
+
+The owner explicitly approves a one-time exact allowance for the necessary
+reviewed growth of the existing UI batch, after removing proven unused code.
+This does not authorize Dummy DP or waive functional tests, Golden execution,
+visual acceptance, firmware safety, or the final capability lifecycle.
+
+Independent runtime and Presentation reviews of `fffc4bac..9513b27d` covered
+all 20 changed Application/Infrastructure files and all 67 changed Presentation
+files. The old two-card Message Center commands have no production consumers
+after the approved direct Run reports list; removing their construction,
+properties, notifications and handlers saves 26 nonblank lines without changing
+the existing report/history owners or current navigation. The separate legacy
+report-label projections still exercised by tests are not deleted here.
+
+The canonical measurement after that deletion is:
+
+| Metric | Previous exact ceiling | New exact ceiling | Necessary net growth |
+| --- | ---: | ---: | ---: |
+| Full production | 136,413 | 137,984 | 1,571 |
+| Runtime | 98,559 | 98,890 | 331 |
+| Domain + Profiles | 20,632 | 20,632 | 0 |
+| Application | 42,205 | 42,522 | 317 |
+| Bootstrap / CLI / Desktop / Launcher | 5,039 | 5,039 | 0 |
+| Infrastructure / Contracts / worker / Platform | 30,683 | 30,697 | 14 |
+
+The remaining 1,240 full-production lines are Presentation. Runtime growth
+extends the existing typed diagnostic-evidence, ordered Build-blocker,
+effective output-name and inspection-provenance owners; Presentation provides
+the shared issue cards/history table, safe confirmations, clipboard handling
+and approved authoring/display corrections. No second byte executor is added.
+
+Keep all frozen base ratchets unchanged. Exact allowances become 35,088 full,
+28,834 runtime, 11,832 Application and 15,341 Infrastructure/Contracts/worker;
+Domain/Profiles stays 5 and Bootstrap/CLI/Desktop/Launcher stays 1,661. These
+allowances are non-transferable, not headroom for later work. Further genuine
+reductions lower the matching ceiling. Preserve the measuring algorithm,
+exclusions, four-slice sum, duplicate checks, default 2,500-line partial limit
+and existing named aggregate warnings; this amendment does not clear them.
+
+The fresh pre-cleanup UI run on `9513b27d` executed 1,008 cases: 990 passed,
+18 failed, zero skipped. Semantic review and this accounting decision do not
+override those failures or certify complete visual acceptance. The current
+batch remains non-mergeable until its applicable checks and final reviews are
+actually complete. Exact-baseline tests must follow the measured ledger while
+synthetic growth, reduction and slice-allocation regressions remain unchanged.
+
+Accounting verification: all 19 focused code-size tests pass (30.624 s).
+The subsequent structure lane completes in 157.6 s with no code-size error;
+it still fails on the 12 committed-active UI records. Existing aggregate
+warnings remain visible. Independent scoped accounting review found no
+finding; neither that review nor these results finalize the UI batch.
+
+The subsequent same-batch token cleanup removes the two unreferenced
+`NfcWarningAccentCriticalBrush` definitions. Full production and its exact
+allowance descend by two to 137,982 and 35,086 respectively; every runtime
+slice remains unchanged. Equal-value shared-token substitutions and the
+single-row vertical-content alignment correction do not add physical lines.
+The former 137,984 checkpoint remains historical accounting, not reusable
+budget. Resource reachability and real-control tests remain required.
+
+## 2026-09-07 owner-approved AB Dummy DP accounting
+
+The owner approves the exact necessary increment for the v1.1.4 Dummy DP batch,
+including its reviewed naming, public execution and informational Report fixes.
+The canonical measurement of the complete local candidate, against `d937747a`, is:
+
+| Metric | Previous ceiling | Exact candidate ceiling | Delta |
+| --- | ---: | ---: | ---: |
+| Full production | 137,982 | 138,542 | 560 |
+| Runtime | 98,890 | 99,170 | 280 |
+| Domain + Profiles | 20,632 | 20,757 | 125 |
+| Application | 42,522 | 42,647 | 125 |
+| Bootstrap / CLI / Desktop / Launcher | 5,039 | 5,039 | 0 |
+| Infrastructure / Contracts / worker / Platform | 30,697 | 30,727 | 30 |
+
+The remaining 280 lines are Presentation. Existing base ratchets remain fixed;
+allowances are exactly 35,646 full, 29,114 runtime, 130 Domain/Profiles,
+11,957 Application, 1,661 Bootstrap/CLI and 15,371 Infrastructure/Contracts/worker.
+There is no transferable headroom. The existing measurement algorithm, exclusions,
+slice sum, duplicate checks, aggregate warnings and synthetic growth/reduction
+tests are unchanged. This approval concerns accounting only; it does not grant
+firmware support promotion, alter Golden expectations, waive final verification
+or complete the capability-record lifecycle. Independent accounting verification
+and fixed-head integration evidence remain required.
+
+## 2026-09-07 v1.1.4 Report Changes presentation accounting
+
+The owner-approved Report Changes correction adds exactly 34 necessary
+full-production nonblank lines after independent R2 design review. The ceiling
+moves from 138,542 to 138,576 and its exact allowance from 35,646 to 35,680
+against the unchanged 102,896 ratchet. Runtime remains 99,170; every runtime
+slice and allowance remains unchanged. The growth is confined to the existing
+Presentation owners for the non-overlay range scrollbar, dedicated Light/Dark
+Original colors, accessible range naming, and measured localized address
+gutter. There is no transferable headroom.
+
+The measuring algorithm, exclusions, partial-type limits, duplicate checks,
+synthetic growth/reduction tests, firmware/report semantics and all verification
+or release gates remain unchanged. This ledger records only exact source-size
+accounting for `UI-114-REPORT-CHANGES-15`.
+
+## 2026-09-08 v1.1.4 Report clarity presentation accounting
+
+The owner-approved range-card and Report navigation clarification reduces full
+production from 138,576 to 138,574 nonblank lines. The exact full-production
+allowance therefore descends from 35,680 to 35,678 against the unchanged
+102,896 ratchet. Runtime remains 99,170 and every runtime slice and allowance
+remains unchanged.
+
+The change stays inside the existing Presentation owners: it increases the
+shared Current/Original address inset, derives complete visible range verdicts
+from the existing typed acceptance value, replaces redundant selected/status
+badges with one card hierarchy, and consolidates two Run reports actions into
+one keyboard-accessible breadcrumb. It does not alter report JSON, range order,
+acceptance, replay evidence, firmware semantics, output bytes, measurement
+algorithms, duplicate checks, partial-type limits, or any verification or
+release gate. This ledger records only exact source-size accounting for
+`UI-114-REPORT-CLARITY-16`.
+
+## 2026-09-08 approved Report range-card reference accounting
+
+The replacement right-card presentation for `UI-114-REPORT-CARD-REFERENCE-17`
+reduces full production from 138,574 to exactly 138,572 nonblank lines. Its
+allowance descends from 35,678 to 35,676 against the unchanged 102,896 ratchet.
+Runtime remains 99,170; all runtime slices and allowances are unchanged.
+The existing card theme replaces two obsolete overriding item styles, reorders
+existing display bindings and shortens the generic unaccepted reason. Existing
+report-tab styles now apply to headers without overriding body text roles. There is
+no new semantic owner or transferable budget. Measuring algorithms, exclusions,
+duplicate checks, partial-type limits, report/firmware behavior and verification
+or release gates remain unchanged.
+
+## 2026-09-08 Report recorded-cause presentation accounting
+
+For `UI-114-REPORT-CAUSE-18`, the canonical candidate measures exactly 138,577
+full-production nonblank lines, five above the previous 138,572 ceiling.
+Independent R2 review admits this necessary increment for the existing
+Report cause projector: string-only legacy explanation input and neutral
+classification fallbacks, retaining typed field-level explanation precedence.
+The full allowance is exactly 35,681 against the unchanged 102,896 ratchet;
+there is no transferable headroom. Runtime stays 99,170, with slices
+20,757 / 42,647 / 5,039 / 30,727 and all their allowances unchanged. Measurement
+algorithms, exclusions, duplicate checks, synthetic tests and release/Golden
+gates are unchanged. This is not a firmware or CRC-calculation change.
+
+## 2026-09-08 Settings Version presentation accounting
+
+For `UI-114-SETTINGS-VERSION-19`, canonical full production is exactly 138,594
+nonblank lines, 17 above 138,577. Independent R2 review admits that increment
+for the existing Presentation owners: accessible per-row Catalog-note
+disclosure, compact source/list arrangement and font-independent information
+indicators. The exact allowance is 35,698 against the unchanged 102,896
+ratchet, with no transferable headroom. Runtime stays 99,170 with slices
+20,757 / 42,647 / 5,039 / 30,727 and all their allowances unchanged.
+Measurement algorithms, exclusions, duplicate checks, synthetic tests,
+version-management/firmware behavior and release/Golden gates are unchanged.
+
+## 2026-09-08 incomplete imported Report accounting
+
+`UI-114-REPORT-IMPORT-20` measures 138,704 full-production nonblank lines,
+110 above 138,594. Application grows by 61 to 42,708 for the existing JSON
+owner's minimal readable-evidence assessment; Presentation grows by 49 for
+Unknown projection and stale-history normalization. Runtime is 99,231.
+Exact allowances are full 35,808, runtime 29,175 and Application 12,018;
+the frozen ratchets remain 102,896 / 70,056 / 30,690. Other slices, measurement
+algorithms, exclusions, duplicate/partial checks and release/Golden gates
+remain unchanged. This increment has no transferable headroom; independent
+admission and fixed-head review are recorded in the batch capability record.
+
+## 2026-09-08 narrow Replace header presentation accounting
+
+`UI-114-REPLACE-HEADER-23` adds 19 nonblank AXAML lines for native container
+queries on the existing header. Full production is exactly 138,723 and its
+allowance is 35,827 against the unchanged 102,896 ratchet. Independent R2
+admission confirms runtime 99,231 and slices 20,757 / 42,708 / 5,039 / 30,727
+remain unchanged. This records only the approved responsive fix, with no
+transferable headroom or changes to measurement, exclusions, duplicate/partial
+checks, firmware semantics or release/Golden gates.
+
+## 2026-09-08 shared tooltip Escape accounting
+
+`UI-114-TOOLTIP-ESCAPE-24` adds exactly one production line to consume an
+Escape event after dismissing an open tooltip. Full production is 138,724;
+the exact allowance is 35,828 against the unchanged 102,896 ratchet. Runtime
+99,231 and all slices remain unchanged. Independent R2 admission covers only
+this necessary increment, not transferable headroom or changes to counting,
+exclusions, checks, support/firmware semantics or release gates.
+
+## 2026-09-08 Support Matrix layout accounting
+
+`UI-114-SUPPORT-MATRIX-LAYOUT-25` removes 18 full-production nonblank lines
+through its approved existing-template/style redesign. Independent R2 admission
+`UI-114-SUPPORT-MATRIX-SIZE-25` lowers the exact full ceiling from 138,724 to
+138,706 and allowance from 35,828 to 35,810 against the unchanged 102,896
+ratchet. Runtime remains 99,231; slices remain 20,757 / 42,708 / 5,039 / 30,727.
+The exact baseline test follows the new measurement; equality, counting,
+exclusions, duplicate/partial checks and firmware/release gates are unchanged.
+No headroom is retained or transferred from this reduction.
+
+## 2026-09-08 Support Matrix scrollbar/focus accounting
+
+`UI-114-MATRIX-SCROLL-FOCUS-26` adds exactly 12 production lines to the existing
+UI owners for local scrollbar separation and a single themed keyboard outline.
+Independent measurement/admission sets full production 138,718 and allowance
+35,822 against unchanged ratchet 102,896. Runtime 99,231 and slices
+20,757 / 42,708 / 5,039 / 30,727 are unchanged. The exact baseline test is
+synchronized; counting, exclusions, ratchets and release/Golden gates are not
+modified, and no transferable headroom is added.
+
+## 2026-09-08 Support Matrix horizontal scrollbar styling accounting
+
+`UI-114-MATRIX-SCROLL-STYLE-27` adds exactly 26 production lines to the existing
+local horizontal scrollbar styles, matching the vertical owner without a new
+template or interaction controller. Independent R2 measurement/admission sets
+full production 138,744 and allowance 35,848 against unchanged ratchet 102,896.
+Runtime 99,231 and slices 20,757 / 42,708 / 5,039 / 30,727 remain unchanged.
+The exact baseline follows this measurement; no transferable headroom,
+counting/exclusion changes, or release/Golden gate changes are introduced.
+
+## 2026-09-08 protected Memory Layout source presentation accounting
+
+`UI-114-MEMORY-SOURCE-28` adds exactly 19 production lines in existing
+Presentation owners to distinguish customer-information purpose from typed
+source. Independent R2 measurement/admission sets full production 138,763 and
+allowance 35,867 against unchanged ratchet 102,896. Runtime 99,231 and slices
+20,757 / 42,708 / 5,039 / 30,727 remain unchanged. The exact baseline follows;
+no headroom, measurement/exclusion or firmware/release/Golden gate changes.
+
+## 2026-09-08 narrow region-card consolidation accounting
+
+`UI-114-MEMORY-CARDS-31` consolidates the two physical region-row layouts into
+one shared card, reducing full production by 55 nonblank lines. Independent
+R2 admission `UI-114-MEMORY-CARDS-ACCOUNTING-32` sets the exact full ceiling
+and baseline to 138,708 and allowance to 35,812 against unchanged ratchet
+102,896. Runtime 99,231 and slices 20,757 / 42,708 / 5,039 / 30,727 remain
+unchanged. Equality, counting, exclusions and firmware/release/Golden gates
+are unchanged; the reduction grants no transferable headroom.
+
+## 2026-09-08 compact technical-details disclosure accounting
+
+`UI-114-MEMORY-DISCLOSURE-33` adds exactly nine production lines for local
+native-disclosure styling. Independent R2 admission `UI-114-MEMORY-DISCLOSURE-SIZE-34`
+sets full production/baseline to 138,717 and allowance to 35,821 against the
+unchanged 102,896 ratchet. Runtime 99,231 and slices 20,757 / 42,708 / 5,039 /
+30,727 remain unchanged. No transferable headroom, measurement/equality,
+exclusion, firmware, Golden or release-gate changes are introduced.
+
+## 2026-09-08 initialization and unassigned-source presentation accounting
+
+`UI-114-MEMORY-SOURCE-35` adds exactly 12 production lines in existing
+Presentation owners. Independent R2 admission `UI-114-MEMORY-SOURCE-SIZE-36`
+sets exact full production/baseline to 138,729 and allowance to 35,833 against
+unchanged ratchet 102,896. Runtime 99,231 and slices 20,757 / 42,708 / 5,039 /
+30,727 remain unchanged. Counting, exclusions, equality and all gates remain
+unchanged; this exact accounting introduces no transferable headroom.
+
+## 2026-09-08 local memory-slice explorer accounting
+
+`UI-114-MEMORY-HOVER-37` adds exactly 456 production lines through the shared
+Presentation rail, typed display grouping and interaction owners. Independent
+R2 admission `UI-114-MEMORY-HOVER-SIZE-38` sets exact full production/baseline
+to 139,185 and allowance to 36,289 against unchanged ratchet 102,896.
+Runtime 99,231 and slices 20,757 / 42,708 / 5,039 / 30,727 remain unchanged.
+Counting, exclusions, equality and firmware/Golden/release gates are unchanged;
+this exact accounting introduces no transferable headroom.
+
+## 2026-09-08 memory hover reference-fidelity accounting
+
+`UI-114-MEMORY-FIDELITY-39` adds exactly 79 production lines in the existing
+Presentation control, shared template and scoped style owners. Independent
+R2 admission `UI-114-MEMORY-FIDELITY-SIZE-40` sets exact full production/baseline
+to 139,264 and allowance to 36,368 against unchanged ratchet 102,896.
+Runtime 99,231 and slices 20,757 / 42,708 / 5,039 / 30,727 remain unchanged.
+Counting, exclusions, equality and firmware/Golden/release gates are unchanged;
+this exact accounting introduces no transferable headroom.
+
+## 2026-09-08 primary-memory content and hover-placement accounting
+
+`UI-114-MEMORY-PLACEMENT-42` adds exactly 20 full-production nonblank lines,
+including two Application/runtime lines for the canonical primary-content fact.
+Independent R2 admission `UI-114-MEMORY-PLACEMENT-SIZE-43` sets exact full
+production/baseline to 139,284 and allowance to 36,388 against unchanged ratchet
+102,896; runtime to 99,233 with allowance 29,177 against 70,056; Application to
+42,710 with allowance 12,020 against 30,690. Other slices remain 20,757 / 5,039 /
+30,727. The baseline test follows these exact measurements. Counting,
+exclusions, equality, ratchets and firmware/Golden/release gates are unchanged;
+this accounting introduces no transferable headroom.
+
+## 2026-09-09 CtrlRAM endpoint focus and section-context accounting
+
+`UI-114-CTRLRAM-MEMORY-LAYOUT-49` extends the existing Application projection
+with read-only exact-companion section context and the shared Presentation bar
+with endpoint focus lanes. Independent R2 admission
+`UI-114-CTRLRAM-MEMORY-LAYOUT-SIZE-50` sets full production/baseline to 139,992
+and allowance to 37,096 against unchanged 102,896; runtime to 99,362 with
+allowance 29,306 against unchanged 70,056; Application to 42,839 with allowance
+12,149 against unchanged 30,690. Other slices remain 20,757 / 5,039 / 30,727.
+Runtime baseline 45,214, counting, exclusions, equality, partial checks and all
+ratchets remain unchanged. The baseline test follows exact measurements; no
+transferable headroom or firmware, profile, support, Golden or release-policy
+change is authorized. Any further production edit requires remeasurement.
+
+## 2026-09-08 memory-overlay pointer-exit accounting
+
+`UI-114-MEMORY-POINTER-44` adds exactly 12 full-production nonblank lines in the
+existing Presentation overlay lifecycle owner. Independent R2 admission
+`UI-114-MEMORY-POINTER-SIZE-45` sets exact full production/baseline to 139,296
+and allowance to 36,400 against unchanged ratchet 102,896. Runtime remains
+99,233; slices remain 20,757 / 42,710 / 5,039 / 30,727. The baseline test follows
+this exact measurement. Ratchets, counting, exclusions, equality and all
+firmware/Golden/release gates remain unchanged; no headroom is introduced.
+
+## 2026-09-09 memory focus-lift clipping accounting
+
+`UI-114-MEMORY-LIFT-51` adds one necessary Presentation line to disable the
+shared rail root's clipping, preserving its existing 34 px geometry.
+Independent admission `UI-114-MEMORY-LIFT-SIZE-52` sets exact full production
+and baseline to 139,993, allowance to 37,097 against unchanged ratchet 102,896.
+Runtime remains 99,362; slices remain 20,757 / 42,839 / 5,039 / 30,727.
+The existing full baseline assertion follows this measurement. Counting,
+exclusions, equality, duplicate/partial checks, all ratchets and firmware,
+profile, support, Golden and release gates remain unchanged. There is no
+transferable headroom; further production edits require remeasurement.
+
+## 2026-09-09 compact memory supporting-list accounting
+
+`UI-114-MEMORY-LIST-53` adds one shared Presentation-only disclosure model
+and mounts it in the existing Merge and flat Replace supporting lists.
+Independent exact R2 admission `UI-114-MEMORY-LIST-SIZE-54` accounts for 63
+nonblank Presentation lines: full production/baseline becomes 140,056 and
+allowance 37,160 against unchanged ratchet 102,896. Runtime stays 99,362 and
+slices stay 20,757 / 42,839 / 5,039 / 30,727. The existing baseline assertion
+follows the measurement. Counting, exclusions, equality, duplicate/partial
+rules, all ratchets and firmware/Golden/release gates are unchanged. This
+is not transferable headroom or an exemption for later production growth.
+
+## 2026-09-10 reviewed 1.1.4 integration increment
+
+The owner explicitly approved the measured increment of 372 full-production
+nonblank lines, including 201 runtime lines (162 Application and 39
+Infrastructure/Contracts/worker), with no reserved capacity. The remaining
+171 lines belong to the full-only measurement. This accounts for the already
+reviewed CtrlRAM context/guidance and UI maintenance changes, not new behavior.
+
+Independent R2 admission `GOV-114-EXACT-SIZE-ALLOWANCE-69` binds the existing
+production tree at `a492cb10`. Exact full production and its baseline become
+140,428 with allowance 37,532 against unchanged ratchet 102,896. Runtime becomes
+99,563 with allowance 29,507 against unchanged 70,056; Application becomes
+43,001 with allowance 12,311 against unchanged 30,690; Infrastructure/Contracts/
+worker becomes 30,766 with allowance 15,410 against unchanged 15,356.
+Domain/Profiles remains 20,757 and Bootstrap/CLI/Desktop host remains 5,039.
+
+The existing baseline assertions follow these exact measured values. All
+counting rules, exclusions, ratchet bases, other allowances, duplicate/partial
+rules, and firmware/Golden/release requirements remain unchanged. Neither
+growth beyond these exact values nor unrecorded reductions may silently pass;
+there is no transferable headroom or automatic future allowance.
+
+## 2026-09-10 popup transit timer seam accounting
+
+The owner approved exactly 23 additional Presentation-only nonblank lines for
+`UI-114-TRANSIT-TIMER-SEAM-72` at source
+`e572bcbac26e2743d12823691247bd7e3e8e2cb1`. The controllable scheduling boundary
+preserves the 320 ms grace and permits deterministic deadline/cancellation
+tests. Independent R2 admission `GOV-114-EXACT-SIZE-ALLOWANCE-73` sets full
+production and its exact baseline to 140,451, with allowance 37,555 against
+unchanged ratchet 102,896. Runtime remains 99,563 and all other slices and
+allowances remain unchanged.
+
+Only the two full-production defaults and existing exact baseline assertion
+change. Counting, exclusions, all ratchets, excess/reduction guards and
+firmware/Golden/release gates remain unchanged. No reserved or transferable
+capacity is introduced; subsequent production edits require remeasurement.

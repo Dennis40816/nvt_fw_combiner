@@ -1,6 +1,8 @@
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Application.Authoring;
 
+using System.Collections.ObjectModel;
+
 using System.Text.Json.Serialization;
 
 namespace NvtFwCombiner.Application.Composition;
@@ -30,7 +32,8 @@ public sealed class CompositionRunReport(
     ImageInitializationSummary? imageInitialization = null,
     GeneralReplaceDiagnosticPreviewSummary? diagnosticPreview = null,
     CompositionOutputBundleDeliverySummary? bundleDelivery = null,
-    string? resolvedMapId = null)
+    string? resolvedMapId = null,
+    IReadOnlyList<InputDiagnosticSummary>? inputDiagnostics = null)
 {
     /// <summary>Stable run id.</summary>
     public string RunId { get; } = CompositionSummaryValue.NotBlank(runId, nameof(runId));
@@ -129,6 +132,12 @@ public sealed class CompositionRunReport(
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public CompositionOutputBundleDeliverySummary? BundleDelivery { get; } = bundleDelivery;
 
+    /// <summary>Optional immutable input evidence bound to zero-based indexes in <see cref="Issues"/>.</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public IReadOnlyList<InputDiagnosticSummary>? InputDiagnostics { get; } = SnapshotInputDiagnostics(
+        inputDiagnostics,
+        issues);
+
     private static string? RequireCompilationFingerprint(string? compilationFingerprint)
     {
         return compilationFingerprint is null ||
@@ -138,5 +147,32 @@ public sealed class CompositionRunReport(
                 : throw new ArgumentException(
                     "Compilation fingerprint must be a lowercase SHA-256 value.",
                     nameof(compilationFingerprint));
+    }
+
+    private static ReadOnlyCollection<InputDiagnosticSummary>? SnapshotInputDiagnostics(
+        IReadOnlyList<InputDiagnosticSummary>? inputDiagnostics,
+        IReadOnlyList<CompositionIssue> issues)
+    {
+        if (inputDiagnostics is not { Count: > 0 })
+        {
+            return null;
+        }
+
+        InputDiagnosticSummary[] snapshot = [.. inputDiagnostics];
+        foreach (InputDiagnosticSummary diagnostic in snapshot)
+        {
+            if (diagnostic is null || diagnostic.IssueIndex >= issues.Count)
+            {
+                throw new ArgumentException(
+                    "Input diagnostics must contain unique in-bounds issue indexes.",
+                    nameof(inputDiagnostics));
+            }
+        }
+
+        return snapshot.Select(static diagnostic => diagnostic.IssueIndex).Distinct().Count() == snapshot.Length
+            ? Array.AsReadOnly(snapshot)
+            : throw new ArgumentException(
+                "Input diagnostics must contain unique in-bounds issue indexes.",
+                nameof(inputDiagnostics));
     }
 }

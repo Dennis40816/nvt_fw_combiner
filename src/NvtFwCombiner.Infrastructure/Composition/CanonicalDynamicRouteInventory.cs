@@ -1,6 +1,7 @@
 using NvtFwCombiner.Application.Capabilities;
 using NvtFwCombiner.Application.ExternalTools;
 using NvtFwCombiner.Application.Metadata;
+using NvtFwCombiner.Application.MemoryLayout;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Domain.Firmware;
 using NvtFwCombiner.Infrastructure.ExternalTools;
@@ -84,12 +85,14 @@ internal static class CanonicalDynamicRouteInventory
         IReadOnlyList<FirmwareImageMap> maps = registration.GetMapVariants(
             out IcNumberInputMode? inputMode,
             out IReadOnlyList<CompositionIssue> issues);
-        string[] allowedMapIds = issues.Count == 0
-            ? [.. maps.Select(static map => map.MapId)]
-            : throw InvalidDefinition(identity, issues);
+        if (issues.Count != 0) { throw InvalidDefinition(identity, issues); }
+        FirmwareImageMap[] selectedMaps = [.. maps.Where(map => StringComparer.Ordinal.Equals(
+            HeadlessRouteSelection.TryFormatIcCountVariant(map.Applicability.TopologyRequirement, inputMode),
+            identity.IcCountVariant))];
+        string[] allowedMapIds = [.. selectedMaps.Select(static map => map.MapId)];
         string[] countVariants =
         [
-            .. maps.Select(map => HeadlessRouteSelection.TryFormatIcCountVariant(
+            .. selectedMaps.Select(map => HeadlessRouteSelection.TryFormatIcCountVariant(
                     map.Applicability.TopologyRequirement,
                     inputMode) ??
                 throw new InvalidDataException(
@@ -107,6 +110,20 @@ internal static class CanonicalDynamicRouteInventory
             : throw new InvalidDataException(
                 $"Selection-group route '{identity.RouteId}' does not match its reviewed map-set axes.");
 
+        CapabilityTopologyChoice? topologyChoice = null;
+        if (identity.WorkflowId == ExperienceIds.AbMerge)
+        {
+            TopologyRequirement[] requirements = [.. selectedMaps
+                .Select(static map => map.Applicability.TopologyRequirement).Distinct()];
+            if (requirements.Length != 1)
+            {
+                throw new InvalidDataException("AB map subset has inconsistent topology requirements.");
+            }
+            TopologySelection? selection = HeadlessRouteSelection.CreateTopologySelection(
+                requirements[0], selectedMaps[0].MapId);
+            topologyChoice = selection is null ? null : new CapabilityTopologyChoice(requirements[0].CanonicalId, selection);
+        }
+
         return Create(
             identity,
             registration.ProfileId,
@@ -114,7 +131,8 @@ internal static class CanonicalDynamicRouteInventory
             registration.BundleContentHash,
             allowedMapIds,
             CapabilityDefinitionFingerprint.MapBoundCompilerSemanticId,
-            registration.InputSelectionGroupMemberSlotIds);
+            registration.InputSelectionGroupMemberSlotIds,
+            abMergeTopologyChoice: topologyChoice);
     }
 
     private static bool TryGetMapBoundRegistration(
@@ -127,6 +145,7 @@ internal static class CanonicalDynamicRouteInventory
             {
                 ExperienceIds.StandardMerge => BuiltInV2RegistrationRegistry.StandardMergeByIc,
                 ExperienceIds.DpReplace => BuiltInV2RegistrationRegistry.DpReplaceByIc.Value,
+                ExperienceIds.AbMerge => BuiltInV2RegistrationRegistry.AbMergeByIc,
                 _ => null,
             };
         registration = registrations?.GetValueOrDefault(identity.IcId);
@@ -239,6 +258,14 @@ internal static class CanonicalDynamicRouteInventory
                 static projection => $"report-metadata-slot:{projection.SpaceId}<-{projection.SlotId}"));
             semanticBindings.Add($"report-metadata-map:{reportMetadataMapId}");
         }
+        if (match.Route.MemoryLayoutContext is { } context)
+        {
+            if (context.Map.AddressSpaceId != match.Map.AddressSpaceId)
+            {
+                throw new InvalidDataException("CtrlRAM memory context has a different physical address space.");
+            }
+            semanticBindings.AddRange(context.SemanticBindingIds);
+        }
 
         return Create(
             identity,
@@ -247,7 +274,8 @@ internal static class CanonicalDynamicRouteInventory
             bundle.ContentHash,
             [match.Map.MapId],
             CapabilityDefinitionFingerprint.RuntimeReferenceReplaceCompilerSemanticId,
-            semanticBindings);
+            semanticBindings,
+            memoryLayoutContext: match.Route.MemoryLayoutContext);
     }
 
     private static IEnumerable<CanonicalCtrlRamDefinition>
@@ -329,7 +357,9 @@ internal static class CanonicalDynamicRouteInventory
         IReadOnlyList<string> allowedMapIds,
         string compilerSemanticId,
         IReadOnlyList<string> semanticBindingIds,
-        CapabilityNumberChoice? numberChoice = null)
+        CapabilityNumberChoice? numberChoice = null,
+        CapabilityTopologyChoice? abMergeTopologyChoice = null,
+        MemoryLayoutContextMap? memoryLayoutContext = null)
     {
         string fingerprint = CapabilityDefinitionFingerprint.Compute(
             identity,
@@ -351,7 +381,9 @@ internal static class CanonicalDynamicRouteInventory
                 allowsLogicalOutput: StringComparer.Ordinal.Equals(
                     compilerSemanticId,
                     CapabilityDefinitionFingerprint.LogicalOutputCompilerSemanticId)),
-            numberChoice);
+            numberChoice,
+            abMergeTopologyChoice,
+            memoryLayoutContext);
     }
 
     internal static CapabilityNumberChoice ProjectGeneralReplaceNumberChoice(

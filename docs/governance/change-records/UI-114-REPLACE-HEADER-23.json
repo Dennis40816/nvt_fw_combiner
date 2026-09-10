@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 2,
+  "taskId": "UI-114-REPLACE-HEADER-23",
+  "capability": "Keep Replace title readable by stacking header controls at narrow content widths",
+  "integrationBase": "cb39dd0ad39648474af73c19e3a42ae29ea455d6",
+  "risk": "R1",
+  "kind": "ui",
+  "state": "final-complete",
+  "mutablePaths": ["src/NvtFwCombiner.Presentation.Avalonia/MainWindow.axaml"],
+  "implementationOwner": "primary-agent",
+  "searchEvidence": ["CodeGraph ReplacePageHeader query followed by MainWindow.axaml:165-230 exact source; fixed 430px output panel leaves about 460px at 980px window, while Auto header actions consume title width.", "Existing responsive search finds FirmwareSlotCard local layout but no shared responsive header owner. Avalonia 12.0.5 exposes Container.Name, Container.Sizing and ContainerQuery. Reuse the current header and framework styles, not new events, VM branches or duplicate controls."],
+  "semanticOwner": "MainWindow Replace template owns geometry; existing Replace ViewModel owns commands, choices, status and metadata",
+  "terminalContract": "Owner approved narrow title on first row and Mode/Targets below on 2026-09-08. Preserve wide geometry, existing controls/bindings/styles, mode switching, selection, output layout and firmware semantics. Below 700px content width use two header rows; above preserve original geometry. Baseline D:/NvtFwCombiner-TestArea/evidence/v114-slot-filename/green-final: 980x640 and 1440x900 EN/zh Light/Dark. Add measured title/subtitle non-clipping, action containment/non-overlap and resize restoration tests on the real CtrlRAM page. Compare full frames; narrow tests only, no release/native certification.",
+  "disposition": "reuse",
+  "designReview": {"reviewer": null, "outcome": "not-required", "evidence": "R1 owner-approved responsive visual correction without new semantic authority."},
+  "implementationHead": "aa387fb77f87966f9abc9f36361f9449b41a34bd",
+  "reviewedHead": "aa387fb77f87966f9abc9f36361f9449b41a34bd",
+  "pathStateDigest": "66bc2182653511e82578d822de7c7c3b02c98e2f1a6c1a29e85c049fc4adfe56",
+  "finalReview": {"reviewer": "ui_presentation_review", "outcome": "approved", "evidence": "Independent fixed-head scoped R1 UI / R2 accounting Polytail PASS at aa387fb7; no P0-P3. Reviewer read nine-file diff, final UI TRX18/18 zero skipped, full980 ENLight render, independently compared all eight1440 PNG hashes identical to prior source. Same controls/bindings/commands remain; measured full text, action bounds and both resize directions preserve Mode and paths. Red8narrow failures/wide8pass; final18 tests24s under D:/NvtFwCombiner-TestArea/evidence/v114-replace-header/final/final.trx. Primary inspected narrow EN/zh Light/Dark captures. No native DPI, High Contrast, full verifier, release or firmware claim."}
+}

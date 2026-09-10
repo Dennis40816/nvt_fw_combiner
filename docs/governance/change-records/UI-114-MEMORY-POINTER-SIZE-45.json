@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 2,
+  "taskId": "UI-114-MEMORY-POINTER-SIZE-45",
+  "capability": "Exact accounting for memory-overlay pointer-exit dismissal",
+  "integrationBase": "a4ea5fd64a13f5d71766cdf99eb9f516ef5583b9",
+  "risk": "R2",
+  "kind": "governance",
+  "state": "final-complete",
+  "mutablePaths": ["scripts/code_size_policy.py", "docs/adr/0021-code-size-ratchet-accepted-artifact-amendment.md"],
+  "implementationOwner": "primary-agent",
+  "searchEvidence": ["Existing measure_code_size/DEFAULT_LIMITS and ADR0021 own exact accounting. Independent Terra measured final pointer-origin tracking production139296 (+12), runtime99233 and slices20757/42710/5039/30727 unchanged."],
+  "semanticOwner": "Existing scripts/code_size_policy.py measurement/limits and ADR0021 accounting authority.",
+  "terminalContract": "Set exact full/baseline139296 and allowance36400 against unchanged102896 only. Preserve runtime99233 and slices20757/42710/5039/30727, all ratchets/counting/equality/exclusions/gates. No headroom, firmware or release changes. Re-measure and obtain new admission if production changes; run accounting tests and fixed-head review.",
+  "disposition": "extend-owner",
+  "designReview": {"reviewer": "memory_hover_inventory", "outcome": "approved", "evidence": "Independent GPT-5.6 Terra/high R2 admission before policy edits: production139296 requires exact full allowance36400; runtime and all slices unchanged. No transferable headroom or gate/measurement changes permitted."},
+  "implementationHead": "5673e9f23507bc105b9a5f8622657ba7aef5b0cb",
+  "reviewedHead": "5673e9f23507bc105b9a5f8622657ba7aef5b0cb",
+  "pathStateDigest": "57dfd45e657ee838862f359d2e7064858ac95c5463a9d2a98712c1242494993c",
+  "finalReview": {"reviewer": "memory_hover_inventory", "outcome": "approved", "evidence": "Independent GPT-5.6 Terra/high fixed-head scoped R2/Polytail PASS5673e9f2, no P0-P3; rebuilt unpublished batch has exactly the same tree as previously reviewed049ce391, with correct R1 record44 metadata at first admission. Policy/ADR0021 remain the only governed accounting paths; exact baseline139296/fullallowance36400 match admitted independent measurement and baseline test. Runtime99233, slices20757/42710/5039/30727 and all ratchets/counting/exclusions/equality/firmware/Golden/release gates unchanged. Primary accounting19/19PASS28.049s; Popup29/sharedUI96 passes reused for identical source, not rerun. No transferable headroom. Canonical validation follows fixed-head review before direct-child evidence commit."}
+}

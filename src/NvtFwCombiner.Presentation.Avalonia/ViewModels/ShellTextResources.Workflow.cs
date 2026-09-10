@@ -169,6 +169,12 @@ internal sealed partial class ShellTextResources
 
     public string AbSameTpOptionLabel { get; private init; } = string.Empty;
 
+    public string AbDummyDpOptionLabel { get; private init; } = string.Empty;
+    public string AbDummyDpConfirmTitle { get; private init; } = string.Empty;
+    public string AbDummyDpConfirmDetail { get; private init; } = string.Empty;
+    public string AbDummyDpEnableLabel { get; private init; } = string.Empty;
+    public string AbDummyDpDisabledDetail { get; private init; } = string.Empty;
+
     public string AbSameTpLinkedLabel { get; private init; } = string.Empty;
 
     public string AbSameTpConflictTitle { get; private init; } = string.Empty;

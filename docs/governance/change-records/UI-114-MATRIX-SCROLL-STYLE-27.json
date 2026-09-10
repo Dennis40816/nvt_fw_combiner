@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 2,
+  "taskId": "UI-114-MATRIX-SCROLL-STYLE-27",
+  "capability": "Match matrix horizontal scrollbar to existing vertical scrollbar presentation",
+  "integrationBase": "e94e242e0cbf4d2a84f9d1a45b441df5d1f8b46a",
+  "risk": "R2",
+  "kind": "ui",
+  "state": "final-complete",
+  "mutablePaths": ["src/NvtFwCombiner.Presentation.Avalonia/Styles/MainWindowControlStyles.axaml", "scripts/code_size_policy.py", "docs/adr/0021-code-size-ratchet-accepted-artifact-amendment.md"],
+  "implementationOwner": "primary-agent",
+  "searchEvidence": ["CodeGraph query ScrollBar horizontal Thumb MainWindowStyles.axaml cannot index AXAML; direct current styles show local horizontal8px margin in MainWindowControlStyles and canonical vertical14px track/6px centered thumb, palette, pill radius and hidden track/arrows in MainWindowStyles66-96."],
+  "semanticOwner": "Existing local scrollbar styles render the native ScrollViewer/Track/Thumb; exact source accounting remains code_size_policy/ADR0021",
+  "terminalContract": "Owner requests horizontal scrollbar match right-side existing style, not default gray track/arrows. Transpose14px track width to height and6px centered thumb width to height; reuse same palette/pill radius/idle-hover behavior. Hide only visuals with opacity as current vertical owner does; retain native drag/page interaction and8px separation, fixedIC, non-auto-hide lane, focus/Escape and no desktop overflow. No new template/controller, global scrollbar or firmware/support change. Real desktop/narrow ENLight/zhDark tests compare h/v bounds/brush/radius, hover/drag/pageclick, existing focus/resize/disclosure. Exact source accounting follows independently measured delta before policy edits, no headroom or algorithm/ratchet/gate changes. Narrow UI/accounting tests and fixed independent review/lifecycle; no full suite per internal commit.",
+  "disposition": "reuse",
+  "designReview": {"reviewer": "ui_presentation_review", "outcome": "approved", "evidence": "Independent bounded R2 design PASS before edit: mirror existing MainWindowStyles66-96 through local SupportMatrixScroll selectors, no ControlTheme/custom dragging; test idle/hover/drag6px and theme colors, native drag/pageclick,8px lane/fixedIC/Escape and desktop hidden scrollbar. Estimated line count is not exact admission; canonical measurement required before accounting changes."},
+  "implementationHead": "5b63560daf088dce24066e06e7644ef05c83c95f",
+  "reviewedHead": "5b63560daf088dce24066e06e7644ef05c83c95f",
+  "pathStateDigest": "8762d4fabb395bd0ba951a49f294e21ede1babb9cdd560dd3907006ccd9aa57f",
+  "finalReview": {"reviewer": "ui_presentation_review", "outcome": "approved", "evidence": "Independent fixed-head scoped R2/Polytail PASS, no P0-P3 findings across seven files from e94e242e to 5b63560d. Reviewer directly read green/green.trx:4/4 zero skips and inspected compact Light real frame; primary inspected Light/Dark full frames. Evidence root D:/NvtFwCombiner-TestArea/evidence/v114-matrix-scroll-style. Native hover/drag/pageclick and6px themed thumb pass with existing focus/resize/Escape. Primary accounting unittest19/19 in26.978s; independent exact measurement/admission full138744/allowance35848, runtime/slices unchanged. Local styles reuse vertical owner, no controller or gate changes. Diff check passes. Not a full-suite, native DPI/accessibility or release acceptance claim."}
+}

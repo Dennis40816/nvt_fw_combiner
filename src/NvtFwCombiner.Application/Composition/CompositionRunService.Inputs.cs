@@ -13,6 +13,7 @@ public sealed partial class CompositionRunService
         Dictionary<string, byte[]> inputBytes = new(StringComparer.Ordinal);
         Dictionary<string, ArtifactReadSnapshot> artifactSnapshots = new(StringComparer.Ordinal);
         List<InputArtifactSummary> inputSummaries = [];
+        List<InputDiagnosticIssue> inputDiagnosticIssues = [];
         List<CompositionIssue> issues = ValidateArtifactBindings(request);
         if (issues.Count > 0)
         {
@@ -21,7 +22,8 @@ public sealed partial class CompositionRunService
                 inputSummaries,
                 issues,
                 [],
-                CreateSkippedInputLoadValidations(request.CompiledComposition));
+                CreateSkippedInputLoadValidations(request.CompiledComposition),
+                inputDiagnosticIssues);
         }
 
         foreach (string addressSpaceId in request.CompiledComposition.Plan.RequiredInputAddressSpaceIds)
@@ -38,7 +40,7 @@ public sealed partial class CompositionRunService
                 .ConfigureAwait(false);
         }
 
-        ValidateV2InputLengthRequirements(request, inputBytes, issues);
+        ValidateV2InputLengthRequirements(request, inputBytes, issues, inputDiagnosticIssues);
         List<InputLoadValidationEvaluation> inputLoadValidations =
             issues.Count == 0
                 ? EvaluateInputLoad(request.CompiledComposition, inputBytes)
@@ -53,7 +55,13 @@ public sealed partial class CompositionRunService
         issues.AddRange(inputLoadValidations
             .Where(static evaluation =>
                 evaluation.Issue is { Severity: CompositionIssueSeverity.Error })
-            .Select(static evaluation => evaluation.Issue!));
+                .Select(static evaluation => evaluation.Issue!));
+        inputDiagnosticIssues.AddRange(inputLoadValidations
+            .Where(static evaluation => evaluation is { Issue: not null, DiagnosticEvidence: not null })
+            .Select(evaluation => new InputDiagnosticIssue(
+                ResolveSlotId(request.CompiledComposition, evaluation.DiagnosticEvidence!.AddressSpaceId),
+                evaluation.Issue!,
+                evaluation.DiagnosticEvidence!)));
         if (issues.Count == 0)
         {
             ValidateAbMergeTopologyMetadata(request, inputBytes, issues);
@@ -64,13 +72,15 @@ public sealed partial class CompositionRunService
             inputSummaries,
             issues,
             advisoryIssues,
-            inputLoadValidations);
+            inputLoadValidations,
+            inputDiagnosticIssues);
     }
 
     private static void ValidateV2InputLengthRequirements(
         CompositionRunRequest request,
         Dictionary<string, byte[]> inputBytes,
-        List<CompositionIssue> issues)
+        List<CompositionIssue> issues,
+        List<InputDiagnosticIssue> inputDiagnosticIssues)
     {
         V2CompiledCompositionDetails details = request.CompiledComposition.V2Details;
 
@@ -87,10 +97,11 @@ public sealed partial class CompositionRunService
                     continue;
                 }
 
-                issues.Add(new CompositionIssue(
+                CompositionIssue issue = new(
                     CompositionIssueCodes.InputAddressSpaceLengthMismatch,
                     $"Input bytes for logical binding '{binding.AddressSpaceId}' must exactly match its compiled length (actual {bytes.LongLength} bytes, expected {addressSpaces[binding.AddressSpaceId].Length} bytes).",
-                    binding.AddressSpaceId));
+                    binding.AddressSpaceId);
+                issues.Add(issue);
             }
 
             return;
@@ -137,21 +148,41 @@ public sealed partial class CompositionRunService
                     break;
                 case CompiledSourceViewCoverageInputLengthRequirement
                 { RequiredEndExclusive: { } declaredEnd } declaredPrefix when bytes.LongLength < declaredEnd:
-                    issues.Add(new CompositionIssue(
+                    CompositionIssue declaredPrefixIssue = new(
                         declaredPrefix.ShortInputIssueCode!,
                         $"Input bytes for address space '{binding.AddressSpaceId}' end at 0x{bytes.LongLength:X}, before required end 0x{declaredEnd:X}; no padding is authorized.",
-                        binding.AddressSpaceId));
+                        binding.AddressSpaceId);
+                    issues.Add(declaredPrefixIssue);
+                    inputDiagnosticIssues.Add(new InputDiagnosticIssue(
+                        binding.SlotId,
+                        declaredPrefixIssue,
+                        new InputDiagnosticEvidence(
+                            binding.AddressSpaceId,
+                            bytes.LongLength,
+                            declaredEnd,
+                            sourceRange: null,
+                            repeatedByte: null)));
                     break;
                 case CompiledSourceViewCoverageInputLengthRequirement
                     when bytes.LongLength < compiledAddressSpaces[binding.AddressSpaceId].Length:
                     long requiredEndExclusive = compiledAddressSpaces[binding.AddressSpaceId].Length;
-                    issues.Add(new CompositionIssue(
+                    CompositionIssue sourceViewIssue = new(
                         CompositionIssueCodes.InputSourceViewIncomplete,
                         $"Input bytes for address space '{binding.AddressSpaceId}' end at " +
                         $"0x{bytes.LongLength:X}, before the final compiled source read at " +
                         $"0x{requiredEndExclusive:X}; select a section or compatible FlashCode " +
                         "that covers the complete source view.",
-                        binding.AddressSpaceId));
+                        binding.AddressSpaceId);
+                    issues.Add(sourceViewIssue);
+                    inputDiagnosticIssues.Add(new InputDiagnosticIssue(
+                        binding.SlotId,
+                        sourceViewIssue,
+                        new InputDiagnosticEvidence(
+                            binding.AddressSpaceId,
+                            bytes.LongLength,
+                            requiredEndExclusive,
+                            sourceRange: null,
+                            repeatedByte: null)));
                     break;
                 default:
                     break;
@@ -327,7 +358,19 @@ public sealed partial class CompositionRunService
         IReadOnlyList<InputArtifactSummary> InputSummaries,
         IReadOnlyList<CompositionIssue> Issues,
         IReadOnlyList<CompositionIssue> AdvisoryIssues,
-        IReadOnlyList<InputLoadValidationEvaluation> InputLoadValidations);
+        IReadOnlyList<InputLoadValidationEvaluation> InputLoadValidations,
+        IReadOnlyList<InputDiagnosticIssue> InputDiagnosticIssues);
+
+    private static string ResolveSlotId(CompiledComposition composition, string addressSpaceId)
+    {
+        return composition.V2Details.InputContract.SpaceBindings.Single(binding =>
+            StringComparer.Ordinal.Equals(binding.AddressSpaceId, addressSpaceId)).SlotId;
+    }
+
+    private sealed record InputDiagnosticIssue(
+        string SlotId,
+        CompositionIssue Issue,
+        InputDiagnosticEvidence Evidence);
 
     private sealed record ArtifactReadSnapshot(byte[] Bytes, string Sha256);
 }

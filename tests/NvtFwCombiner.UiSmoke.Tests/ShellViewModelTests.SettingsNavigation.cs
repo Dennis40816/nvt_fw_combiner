@@ -58,7 +58,7 @@ public sealed partial class ShellNavigationSystemTests
             "Installed version and authoring availability from the current catalog.",
             viewModel.Text.SettingsOverviewSubtitle);
         Assert.Equal(
-            "Status summarizes verification evidence and any route blockers; focus a cell for details.",
+            "Hover or focus a cell for details.",
             viewModel.Text.SupportMatrixHoverHint);
         string expectedVersion = File.ReadAllText(RepositoryPaths.FromRepositoryRoot("VERSION")).Trim();
         Assert.Equal(expectedVersion, viewModel.AppVersion);
@@ -361,6 +361,64 @@ public sealed partial class ShellNavigationSystemTests
         Assert.Equal("single", viewModel.WorkflowSession.SelectedNumber);
     }
 
+    /// <summary>
+    /// Filename-derived IC hints do not require a context-switch prompt between
+    /// declared complete Perfect-family members.
+    /// </summary>
+    [Theory]
+    [InlineData("NT51917", "NT51927")]
+    [InlineData("NT51927", "NT51917")]
+    [InlineData("NT51919", "NT51932")]
+    [InlineData("NT51932", "NT51919")]
+    [InlineData("NT51929", "NT51932")]
+    [InlineData("NT51932", "NT51929")]
+    public void SlotLoadingSuppressesFilenameIcMarkerForDeclaredPerfectFamily(
+        string selectedIc,
+        string detectedIc)
+    {
+        MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
+        viewModel.WorkflowSession.SelectedIc = selectedIc;
+        using var workspace = TempWorkspace.Create(
+            $"nvt-fw-combiner-ui-perfect-family-filename-{selectedIc}-{detectedIc}");
+        string markedPath = workspace.Write($"{detectedIc}TT_payload.bin", [0x00]);
+
+        viewModel.SetSlotFile("replace-base", markedPath);
+
+        Assert.False(viewModel.WorkflowSession.IsFirmwareIcMismatchModalOpen);
+        Assert.Equal(selectedIc, viewModel.WorkflowSession.SelectedIc);
+        Assert.Equal(markedPath, viewModel.Replace.ReplaceBaseSlot.FilePath);
+    }
+
+    /// <summary>Partial shared facts do not suppress a filename mismatch prompt.</summary>
+    [Fact]
+    public void SlotLoadingPromptsForFilenameIcMarkerAcrossPartialFamily()
+    {
+        MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
+        viewModel.WorkflowSession.SelectedIc = "NT51928";
+        using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-partial-family-filename");
+        string markedPath = workspace.Write("NT51927TT_payload.bin", [0x00]);
+
+        viewModel.SetSlotFile("replace-base", markedPath);
+
+        Assert.True(viewModel.WorkflowSession.IsFirmwareIcMismatchModalOpen);
+        Assert.Equal("NT51927", viewModel.WorkflowSession.FirmwareIcMismatchDetectedIc);
+    }
+
+    /// <summary>Identical filename hints remain non-actionable.</summary>
+    [Fact]
+    public void SlotLoadingIgnoresFilenameIcMarkerMatchingCurrentIc()
+    {
+        MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
+        viewModel.WorkflowSession.SelectedIc = "NT51917";
+        using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-same-ic-filename");
+        string markedPath = workspace.Write("NT51917TT_payload.bin", [0x00]);
+
+        viewModel.SetSlotFile("replace-base", markedPath);
+
+        Assert.False(viewModel.WorkflowSession.IsFirmwareIcMismatchModalOpen);
+        Assert.Equal("NT51917", viewModel.WorkflowSession.SelectedIc);
+    }
+
     /// <summary>Verifies a printable header marker is advisory in the same way as a filename marker.</summary>
     [Fact]
     public void SlotLoadingPromptsForPrintableHeaderIcMarker()
@@ -380,6 +438,38 @@ public sealed partial class ShellNavigationSystemTests
         Assert.Equal("NT51926", viewModel.WorkflowSession.SelectedIc);
     }
 
+    /// <summary>Perfect-family suppression is limited to filename hints, not printable header hints.</summary>
+    [Fact]
+    public void SlotLoadingPromptsForPrintableHeaderIcMarkerAcrossPerfectFamily()
+    {
+        MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
+        viewModel.WorkflowSession.SelectedIc = "NT51917";
+        using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-perfect-family-header");
+        byte[] bytes = new byte[0x40000];
+        Encoding.ASCII.GetBytes("firmware marker: NT51927TT").CopyTo(bytes, 0x120);
+        string path = workspace.Write("base.bin", bytes);
+
+        viewModel.SetSlotFile("replace-base", path);
+
+        Assert.True(viewModel.WorkflowSession.IsFirmwareIcMismatchModalOpen);
+        Assert.Equal("NT51927", viewModel.WorkflowSession.FirmwareIcMismatchDetectedIc);
+    }
+
+    /// <summary>Snapshots without typed provenance retain the existing advisory mismatch prompt.</summary>
+    [Fact]
+    public void SlotLoadingPromptsForUnknownSourceIcMarkerAcrossPerfectFamily()
+    {
+        MainWindowViewModel viewModel = CreateUnknownHintViewModel();
+        viewModel.WorkflowSession.SelectedIc = "NT51917";
+        using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-perfect-family-unknown-hint");
+        string path = workspace.Write("base.bin", [0x00]);
+
+        viewModel.SetSlotFile("replace-base", path);
+
+        Assert.True(viewModel.WorkflowSession.IsFirmwareIcMismatchModalOpen);
+        Assert.Equal("NT51927", viewModel.WorkflowSession.FirmwareIcMismatchDetectedIc);
+    }
+
     /// <summary>Verifies filename markers outside the supported catalog cannot change the workbench context.</summary>
     [Fact]
     public void SlotLoadingIgnoresUnsupportedIcMarker()
@@ -393,6 +483,25 @@ public sealed partial class ShellNavigationSystemTests
 
         Assert.False(viewModel.WorkflowSession.IsFirmwareIcMismatchModalOpen);
         Assert.Equal("NT51926", viewModel.WorkflowSession.SelectedIc);
+    }
+
+    private static MainWindowViewModel CreateUnknownHintViewModel()
+    {
+        PresentationHostServices services = PresentationTestHost.CreateServices("ui-smoke-unknown-hint");
+        var viewModel = new MainWindowViewModel(
+            "ui-smoke-unknown-hint",
+            "ui-smoke-unknown-hint",
+            ShellLanguage.English,
+            services,
+            new DelegatingFirmwareInspection(
+                services.Composition.FirmwareInspection,
+                batchReader: (_, inputs) =>
+                [
+                    .. inputs.Select(input => new FirmwareInspectionSnapshotResult(
+                        input.InspectionId,
+                        new FirmwareInspectionSnapshot("NT51927", null, null, null, null, null))),
+                ]));
+        return PresentationTestHost.PublishCanonicalCatalog(services, viewModel);
     }
 
     /// <summary>Verifies command-line launch arguments select a reviewable UI state.</summary>

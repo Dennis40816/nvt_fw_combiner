@@ -1,40 +1,54 @@
 <ResourceDictionary
     xmlns="https://github.com/avaloniaui"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-    xmlns:vm="using:NvtFwCombiner.Presentation.Avalonia.ViewModels">
-
-<DataTemplate x:Key="ReportHistoryEntryTemplate" DataType="vm:ReportHistoryEntryViewModel">
-  <Grid Margin="0,0,0,6" ColumnDefinitions="*,34" ColumnSpacing="{DynamicResource NfcSpace8}">
-    <Button
-        Classes="semanticAction command"
-        HorizontalAlignment="Stretch"
-        Padding="0"
-        Background="Transparent"
-        BorderBrush="Transparent"
-        Command="{ReflectionBinding $parent[Window].DataContext.OpenReportHistoryEntryAsyncCommand}"
-        CommandParameter="{Binding}">
-      <Border Classes="compactSurface" Padding="10">
-        <StackPanel Spacing="3">
-          <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="{DynamicResource NfcSpace8}">
-            <TextBlock FontSize="{DynamicResource NfcFontSize11}" FontWeight="SemiBold" Foreground="{DynamicResource NfcTextMutedBrush}" Text="{Binding SequenceLabel}" />
-            <TextBlock Grid.Column="1" FontSize="{DynamicResource NfcFontSize12}" FontWeight="SemiBold" Foreground="{DynamicResource NfcTextStrongBrush}" Text="{Binding Status}" TextWrapping="Wrap" />
-            <TextBlock Grid.Column="2" FontSize="{DynamicResource NfcFontSize11}" FontWeight="SemiBold" Foreground="{DynamicResource NfcAccentBrush}" Text="{Binding IssueSummary}" TextWrapping="Wrap" />
-          </Grid>
-          <TextBlock Classes="bodyStrongText" Text="{Binding Title}" TextWrapping="Wrap" />
-          <TextBlock Classes="captionText" Text="{Binding Context}" TextWrapping="Wrap" />
-        </StackPanel>
-      </Border>
-    </Button>
-    <Button
-        Grid.Column="1"
-        Classes="semanticAction iconButton danger"
-        HorizontalAlignment="Center"
-        VerticalAlignment="Top"
-        Command="{ReflectionBinding $parent[Window].DataContext.RemoveReportHistoryEntryCommand}"
-        CommandParameter="{Binding}"
-        ToolTip.Tip="{ReflectionBinding $parent[Window].DataContext.Text.DeleteReportTooltip}">
-      <TextBlock FontSize="{DynamicResource NfcFontSize13}" Text="×" />
-    </Button>
-  </Grid>
-</DataTemplate>
+    xmlns:vm="using:NvtFwCombiner.Presentation.Avalonia.ViewModels"
+    xmlns:views="using:NvtFwCombiner.Presentation.Avalonia.Views">
+  <DataTemplate x:Key="ReportHistoryEntryTemplate" DataType="vm:ReportHistoryEntryViewModel">
+    <Grid Height="74" ColumnDefinitions="1.15*,1*,1.3*,1.3*,0.75*,190">
+      <Button Grid.ColumnSpan="6" Classes="semanticAction command reportListRow"
+          HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch"
+          Padding="0" Background="Transparent" BorderBrush="Transparent" BorderThickness="0"
+          Command="{ReflectionBinding $parent[Window].DataContext.Reports.OpenReportHistoryEntryAsyncCommand}"
+          CommandParameter="{Binding}">
+        <AutomationProperties.Name>
+          <MultiBinding StringFormat="{}{0} {1} — {2}; {3}; {4}; {5}; {6}">
+            <ReflectionBinding Path="DataContext.Text.OpenLabel" RelativeSource="{RelativeSource AncestorType=Window}" />
+            <Binding Path="SequenceLabel" /><Binding Path="Title" />
+            <Binding Path="RunDate" /><Binding Path="RunType" /><Binding Path="Status" /><Binding Path="Issues" />
+          </MultiBinding>
+        </AutomationProperties.Name>
+        <Grid ColumnDefinitions="1.15*,1*,1.3*,1.3*,0.75*,190">
+          <views:ReportTableText Classes="bodyText" Margin="12,0" Text="{Binding RunDate}" />
+          <views:ReportTableText Grid.Column="1" Classes="bodyText" Margin="12,0" Text="{Binding Ic}" />
+          <views:ReportTableText Grid.Column="2" Classes="bodyText" Margin="12,0" Text="{Binding RunType}" />
+          <Border Grid.Column="3" Classes="reportResult" Classes.success="{Binding IsSuccess}" Classes.warning="{Binding IsWarning}" Classes.error="{Binding IsError}"
+              HorizontalAlignment="Center" VerticalAlignment="Center" Margin="12,0" Padding="8,4" CornerRadius="4"
+              BorderBrush="{DynamicResource NfcBorderMutedBrush}" BorderThickness="1">
+            <views:ReportTableText Classes="bodyText" Text="{Binding Status}" />
+          </Border>
+          <views:ReportTableText Grid.Column="4" Classes="bodyText" Margin="12,0" Text="{Binding Issues}" />
+          <Path Grid.Column="5" HorizontalAlignment="Right" Margin="0,0,54,0" Width="8" Height="14"
+              Data="M1 1L7 7L1 13" Stretch="Uniform" Stroke="{DynamicResource NfcTextStrongBrush}" StrokeThickness="1.5" />
+        </Grid>
+      </Button>
+      <Button Grid.Column="5" Classes="semanticAction iconButton danger slotClearAction"
+          HorizontalAlignment="Left" VerticalAlignment="Center" Margin="28,0,0,0"
+          Command="{ReflectionBinding $parent[Window].DataContext.Reports.RequestReportHistoryDeletionCommand}" CommandParameter="{Binding}">
+        <AutomationProperties.Name>
+          <MultiBinding StringFormat="{}{0} {1} — {2}">
+            <ReflectionBinding Path="DataContext.Text.DeleteReportTooltip" RelativeSource="{RelativeSource AncestorType=Window}" />
+            <Binding Path="SequenceLabel" /><Binding Path="Title" />
+          </MultiBinding>
+        </AutomationProperties.Name>
+        <ToolTip.Tip>
+          <MultiBinding StringFormat="{}{0} {1} — {2}">
+            <ReflectionBinding Path="DataContext.Text.DeleteReportTooltip" RelativeSource="{RelativeSource AncestorType=Window}" />
+            <Binding Path="SequenceLabel" /><Binding Path="Title" />
+          </MultiBinding>
+        </ToolTip.Tip>
+        <TextBlock FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="20" Text="&#xE74D;" />
+      </Button>
+      <Border Grid.ColumnSpan="6" IsHitTestVisible="False" VerticalAlignment="Bottom" Height="1" Background="{DynamicResource NfcBorderMutedBrush}" />
+    </Grid>
+  </DataTemplate>
 </ResourceDictionary>

@@ -66,11 +66,43 @@
 </DataTemplate>
 
 <DataTemplate x:Key="ReportIssueRowTemplate" DataType="vm:ReportLineViewModel">
-  <Border Padding="10,8" Background="{DynamicResource NfcWarningSurfaceBrush}" BorderBrush="{DynamicResource NfcWarningBorderBrush}" BorderThickness="2" CornerRadius="{DynamicResource NfcCompactCornerRadius}" Margin="0,8,0,0">
-    <StackPanel Spacing="{DynamicResource NfcSpace2}">
-      <TextBlock FontSize="{DynamicResource NfcFontSize12}" FontWeight="SemiBold" Foreground="{DynamicResource NfcWarningTextBrush}" Text="{Binding Title}" TextWrapping="Wrap" />
-      <TextBlock FontSize="{DynamicResource NfcFontSize12}" Foreground="{DynamicResource NfcWarningTextSubtleBrush}" Text="{Binding Detail}" TextWrapping="Wrap" />
-      <TextBlock FontSize="{DynamicResource NfcFontSize11}" Foreground="{DynamicResource NfcWarningTextMutedBrush}" Text="{Binding Meta}" TextWrapping="Wrap" />
+  <Border Padding="16,12" Classes="statusNotice" Classes.error="{Binding IsError}" Classes.warning="{Binding IsWarning}" Classes.info="{Binding IsInfo}" BorderThickness="3,0,0,0" CornerRadius="{DynamicResource NfcCompactCornerRadius}" Margin="0,8,0,0">
+    <Border.Styles>
+      <Style Selector="Label.reportBadge">
+        <Setter Property="Margin" Value="0" />
+        <Setter Property="BorderThickness" Value="1" />
+      </Style>
+      <Style Selector="Border.error Label.reportBadge">
+        <Setter Property="Background" Value="{DynamicResource NfcRequiredMissingBadgeSurfaceBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource NfcRequiredMissingBorderBrush}" />
+        <Setter Property="Foreground" Value="{DynamicResource NfcDangerTextBrush}" />
+      </Style>
+      <Style Selector="Border.warning Label.reportBadge">
+        <Setter Property="Background" Value="{DynamicResource NfcWarningSurfaceBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource NfcWarningBorderBrush}" />
+        <Setter Property="Foreground" Value="{DynamicResource NfcWarningTextBrush}" />
+      </Style>
+    </Border.Styles>
+    <StackPanel Spacing="{DynamicResource NfcSpace8}">
+      <Grid ColumnDefinitions="Auto,*" ColumnSpacing="{DynamicResource NfcSpace8}">
+        <ItemsControl ItemsSource="{Binding Badges}" ItemTemplate="{StaticResource ReportLineBadgeTemplate}" />
+        <TextBlock Grid.Column="1" FontSize="{DynamicResource NfcFontSize13}" FontWeight="SemiBold" Text="{Binding IssueDescription}" TextWrapping="Wrap" VerticalAlignment="Center" />
+      </Grid>
+      <TextBlock FontSize="{DynamicResource NfcFontSize12}" Text="{Binding Detail}" TextWrapping="Wrap" />
+      <ItemsControl ItemsSource="{Binding Facts}">
+        <ItemsControl.ItemsPanel>
+          <ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate>
+        </ItemsControl.ItemsPanel>
+        <ItemsControl.ItemTemplate>
+          <DataTemplate>
+            <ContentControl Margin="0,0,24,0" Content="{Binding}" ContentTemplate="{StaticResource ReportLineFactTemplate}" />
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
+      <StackPanel Margin="0,4,0,0" Spacing="{DynamicResource NfcSpace4}" IsVisible="{Binding HasCodeBlock}">
+        <TextBlock Classes="fieldLabel" Text="{Binding CodeBlockLabel}" />
+        <TextBlock Classes="technicalDetail" Text="{Binding CodeBlock}" TextWrapping="Wrap" />
+      </StackPanel>
     </StackPanel>
   </Border>
 </DataTemplate>

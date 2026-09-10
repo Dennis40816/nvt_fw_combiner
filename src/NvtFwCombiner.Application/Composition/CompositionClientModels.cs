@@ -106,6 +106,19 @@ public enum CtrlRamBaseDiscoveryReadiness
     Inspected,
 }
 
+/// <summary>Immutable origin of the advisory IC marker attached to an inspection snapshot.</summary>
+public enum FirmwareIcHintSource
+{
+    /// <summary>No provenance was supplied, so advisory consumers retain their existing behavior.</summary>
+    Unknown,
+
+    /// <summary>The marker came from the selected file name.</summary>
+    FileName,
+
+    /// <summary>The marker came from the bounded printable-header fallback scan.</summary>
+    PrintableHeader,
+}
+
 /// <summary>One read-only client projection decoded from one immutable firmware image read.</summary>
 public sealed record FirmwareInspectionSnapshot(
     string? DetectedIcId,
@@ -116,6 +129,9 @@ public sealed record FirmwareInspectionSnapshot(
     CtrlRamInspectionDisplay? CtrlRamDisplay,
     BaseFirmwareArtifactKind BaseFirmwareArtifactKind = BaseFirmwareArtifactKind.Unknown)
 {
+    /// <summary>Typed advisory-marker provenance; defaults to Unknown for existing producers.</summary>
+    public FirmwareIcHintSource DetectedIcHintSource { get; init; }
+
     /// <summary>Content identity captured from the same immutable bytes used by this inspection.</summary>
     public FileStamp? FileStamp { get; init; }
 
@@ -283,6 +299,13 @@ public sealed record CtrlRamInputDescriptionSection(
     long TargetStart,
     string TitleStem);
 
+/// <summary>One physical destination and the full source prefix consumed by its resolved input.</summary>
+public sealed record CtrlRamInputGuidanceTarget(
+    string RegionId,
+    ReplaceRegionGroup RegionGroup,
+    long TargetStart,
+    long RequiredInputLength);
+
 /// <summary>Structured CtrlRAM input facts retained independently from display text.</summary>
 public sealed record CtrlRamInputDescriptionFacts
 {
@@ -292,12 +315,25 @@ public sealed record CtrlRamInputDescriptionFacts
         bool RequiresDiffNfMerge,
         string TitleStem,
         bool IsShared,
-        int TargetRegionCount)
+        int TargetRegionCount,
+        IReadOnlyList<CtrlRamInputGuidanceTarget> InputGuidanceTargets)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(SourceFileName);
         ArgumentNullException.ThrowIfNull(Sections);
         ArgumentException.ThrowIfNullOrWhiteSpace(TitleStem);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(TargetRegionCount);
+        ArgumentNullException.ThrowIfNull(InputGuidanceTargets);
+        if (InputGuidanceTargets.Count != TargetRegionCount ||
+            InputGuidanceTargets.Select(static target => target.RegionId).Distinct(StringComparer.Ordinal).Count() != TargetRegionCount)
+        {
+            throw new ArgumentException("CtrlRAM guidance must identify each physical target exactly once.", nameof(InputGuidanceTargets));
+        }
+        foreach (CtrlRamInputGuidanceTarget target in InputGuidanceTargets)
+        {
+            ArgumentException.ThrowIfNullOrWhiteSpace(target.RegionId);
+            ArgumentOutOfRangeException.ThrowIfNegative(target.TargetStart);
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(target.RequiredInputLength);
+        }
         if (IsShared != (TargetRegionCount > 1))
         {
             throw new ArgumentException(
@@ -311,11 +347,15 @@ public sealed record CtrlRamInputDescriptionFacts
         this.TitleStem = TitleStem;
         this.IsShared = IsShared;
         this.TargetRegionCount = TargetRegionCount;
+        this.InputGuidanceTargets = Array.AsReadOnly(InputGuidanceTargets.ToArray());
     }
 
     public string SourceFileName { get; }
 
     public IReadOnlyList<CtrlRamInputDescriptionSection> Sections { get; }
+
+    /// <summary>Full input requirements and distinct physical destinations, never processing-block slices.</summary>
+    public IReadOnlyList<CtrlRamInputGuidanceTarget> InputGuidanceTargets { get; }
 
     public bool RequiresDiffNfMerge { get; }
 

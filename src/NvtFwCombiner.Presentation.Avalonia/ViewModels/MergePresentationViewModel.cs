@@ -26,6 +26,11 @@ internal sealed partial class MergePresentationViewModel : ObservableObject
         KeepTpBForAbSameTpCommand = new AsyncRelayCommand(() => KeepTpForAbSameTpAsync(
             CompositionAddressSpaceIds.TpBInput));
         CancelAbSameTpConflictCommand = new RelayCommand(CancelAbSameTpConflict);
+        ToggleAbDummyDpCommand = new AsyncRelayCommand(ToggleAbDummyDpAsync,
+            () => CanChangeAbDummyDp && !IsAbDummyDpPromptOpen);
+        ConfirmAbDummyDpCommand = new AsyncRelayCommand(ConfirmAbDummyDpAsync,
+            () => CanChangeAbDummyDp && IsAbDummyDpPromptOpen);
+        CancelAbDummyDpCommand = new RelayCommand(CancelAbDummyDp);
         AddGeneralMergeMappingCommand = new RelayCommand(AddGeneralMergeMapping);
         PreviewMergeCommand = new AsyncRelayCommand(
             () => RunMergeAsync(build: false, outputPath: null),
@@ -40,10 +45,11 @@ internal sealed partial class MergePresentationViewModel : ObservableObject
 
     internal void ApplyLanguageChanged()
     {
+        ApplyDummyDpDisplayText();
         ApplyFirmwareSlotText();
         ApplyAbSameTpPresentation();
         InspectionLifecycles.ForEach(lifecycle => lifecycle.ApplyText(Text));
-        PrepareMergeMemoryMapState(refreshAuthoring: false);
+        PrepareMergeMemoryMapState(refreshAuthoring: false, resetCoverageExpansion: false);
         OnPropertyChanged(nameof(Text));
         PublishFullContext();
     }

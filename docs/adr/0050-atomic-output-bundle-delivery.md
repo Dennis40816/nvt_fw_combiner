@@ -33,7 +33,15 @@ folder name does not add a redundant `_bundle` suffix; destination collisions
 still receive the next numeric suffix. Presentation never parses firmware facts
 from paths, filenames, or labels.
 
-Bundle mode commits the canonical output only inside the bundle directory. The
+Bundle mode commits the effective primary output only inside the bundle directory.
+The operator may independently edit the primary filename under the same compiled
+override policy as loose output (ADR 0036). The accepted automatic preparation,
+tokens and clock remain unchanged; one effective name and override provenance
+flow through destination validation, execution, primary/bundle receipts and report.
+Editing the folder or toggling Bundle must not reset the primary-name draft, and
+editing the primary must not change the folder, source names or additional-artifact
+names. This is delivery naming only, not a firmware-byte change.
+The
 Application destination request carries the exact accepted source identities,
 stamps, and immutable bytes already used by execution. Repeated canonical
 identity plus stamp is delivered once. Different sources with the same basename
@@ -41,7 +49,7 @@ are ordered by canonical binding/slot order and receive ` (2)`, ` (3)`, and so
 on without changing the originals.
 
 When bundle intent is enabled, optional additional artifacts, including the ADR
-0037 A-only FlashCode, are members of that same transaction. Canonical output,
+0037 A-only FlashCode, are members of that same transaction. Effective primary output,
 additional artifacts, and accepted sources are staged together and promoted
 once; bundle mode never requests an independent secondary destination. This
 does not remove ADR 0037's loose A-only desktop delivery. The CLI separately
@@ -60,8 +68,8 @@ moved, modified, or overwritten.
 The GUI uses one in-app pre-delivery confirmation surface and a native picker
 for the parent directory. CLI opt-in options create the same typed intent with
 no prompt. Omitting bundle intent preserves existing loose-output behavior.
-Reports add resolved bundle/artifact provenance and hashes without changing the
-canonical firmware result identity.
+Reports add resolved bundle/artifact provenance and hashes; the effective primary
+name follows ADR 0036 while canonical automatic naming provenance remains retained.
 
 ## Consequences
 

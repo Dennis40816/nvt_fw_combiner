@@ -40,6 +40,7 @@ internal sealed partial class MainWindowViewModel
 
         if (pageChanged)
         {
+            Merge.CancelAbDummyDpCommand.Execute(null);
             OnPropertyChanged(nameof(SelectedPage));
             OnPropertyChanged(nameof(IsHomeVisible));
             OnPropertyChanged(nameof(IsMergeVisible));
@@ -154,8 +155,10 @@ internal sealed partial class MainWindowViewModel
         OnPropertyChanged(nameof(Merge.MergeReadinessStatus));
         OnPropertyChanged(nameof(HasMergeBuildBlocker));
         OnPropertyChanged(nameof(MergeBuildBlockerText));
+        OnPropertyChanged(nameof(MergeBuildBlockerCard));
         OnPropertyChanged(nameof(HasReplaceBuildBlocker));
         OnPropertyChanged(nameof(ReplaceBuildBlockerText));
+        OnPropertyChanged(nameof(ReplaceBuildBlockerCard));
     }
 
 }

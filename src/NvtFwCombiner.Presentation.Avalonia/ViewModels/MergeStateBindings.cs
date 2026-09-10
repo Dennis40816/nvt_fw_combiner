@@ -8,6 +8,8 @@ internal sealed record MergeStateBindings(
     Func<string, string, bool> IsWorkflowAuthorable,
     Func<string, IReadOnlyList<CapabilityTopologyChoice>> GetAbMergeTopologyChoices,
     Func<bool> IsRunInProgress,
+    Func<bool> IsMergePageActive,
+    Func<bool> IsAbDummyDpTransitionInProgress,
     Func<bool> IsGlobalBuildBlocked,
     Func<bool> IsWorkflowLoaded,
     Func<bool> IsWorkflowLoading,
@@ -19,6 +21,7 @@ internal sealed record MergeStateBindings(
     Action PublishAcceptedModeContext,
     Func<Task> RefreshSelectedFirmwareInspections,
     Func<string, CancellationToken, Task> SetAbSameTpFileAsync,
+    Func<bool, CancellationToken, Task> SetAbDummyDpModeAsync,
     Action ResetRunResult,
     Action RefreshShellCommandState,
     OutputDeliveryConfirmationViewModel OutputDelivery);

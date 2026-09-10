@@ -265,11 +265,13 @@ internal sealed partial class ReportReviewViewModel
         string after = hasHex ? afterPreview.Value : GetString(difference, "AfterSha256");
         string semanticSubjectLabel = GetSemanticString(difference, "SubjectLabel");
         string semanticExplanation = GetSemanticString(difference, "Explanation");
+        string? recordedExplanation = difference.TryGetProperty("Explanation", out JsonElement explanation) &&
+            explanation.ValueKind == JsonValueKind.String ? explanation.GetString() : null;
         string semanticSubjectId = GetSemanticString(difference, "SubjectId");
         string sectionLabel = GetOutputDifferenceSectionLabel(difference, classification, language);
         string reason = !string.IsNullOrWhiteSpace(semanticExplanation)
             ? semanticExplanation
-            : FormatDifferenceReason(classification, accepted, sectionLabel, language);
+            : FormatDifferenceReason(classification, recordedExplanation, sectionLabel, language);
         string title = !string.IsNullOrWhiteSpace(semanticSubjectLabel)
             ? semanticSubjectLabel
             : GetString(difference, "DifferenceId");
@@ -326,7 +328,7 @@ internal sealed partial class ReportReviewViewModel
         string sectionLabel = GetOutputDifferenceSectionLabel(difference, language);
         string reason = !string.IsNullOrWhiteSpace(difference.Semantic?.Explanation)
             ? difference.Semantic.Explanation
-            : FormatDifferenceReason(difference.Classification, accepted, sectionLabel, language);
+            : FormatDifferenceReason(difference.Classification, difference.Explanation, sectionLabel, language);
         string title = !string.IsNullOrWhiteSpace(difference.Semantic?.SubjectLabel)
             ? difference.Semantic.SubjectLabel
             : difference.DifferenceId;
@@ -486,20 +488,23 @@ internal sealed partial class ReportReviewViewModel
 
     private static string FormatDifferenceReason(
         string classification,
-        bool accepted,
+        string? recordedExplanation,
         string sectionLabel,
         ShellLanguage language)
     {
-        return !accepted
-            ? T(language, "Not accepted by the selected profile; review before release.", "所選 profile 未接受此差異；release 前必須審查。")
+        return !string.IsNullOrWhiteSpace(recordedExplanation)
+            ? recordedExplanation
             : classification switch
             {
-                OutputDifferenceClassifications.DeclaredReplacement => T(language, "Expected replacement bytes copied by this run.", "本次執行預期複製的 replacement bytes。"),
-                OutputDifferenceClassifications.PostbuildCrcHeader => T(
-                    language,
-                    $"Expected {NormalizePostbuildSectionForReason(sectionLabel)} update written by postbuild.",
-                    $"Postbuild 預期更新 {NormalizePostbuildSectionForReason(sectionLabel)}。"),
-                _ => T(language, "Accepted by report policy.", "Report policy 判定可接受。"),
+                OutputDifferenceClassifications.DeclaredReplacement => T(language,
+                    $"Source bytes copied into {(string.IsNullOrWhiteSpace(sectionLabel) ? "the declared replacement range" : sectionLabel)}.",
+                    $"來源 bytes 已複製至{(string.IsNullOrWhiteSpace(sectionLabel) ? "宣告的替換區段" : sectionLabel)}。"),
+                OutputDifferenceClassifications.PostbuildCrcHeader => T(language,
+                    $"Postbuild updated {NormalizePostbuildSectionForReason(sectionLabel)}.",
+                    $"Postbuild 已更新 {NormalizePostbuildSectionForReason(sectionLabel)}。"),
+                OutputDifferenceClassifications.PreservedReference => T(language,
+                    "Bytes changed in a range declared to remain unchanged.", "宣告應保持不變的區段中出現 byte 變更。"),
+                _ => T(language, "No specific cause was recorded for this change.", "此變更未記錄具體原因。"),
             };
     }
 

@@ -4,6 +4,8 @@
     xmlns:vm="using:NvtFwCombiner.Presentation.Avalonia.ViewModels"
     xmlns:views="using:NvtFwCombiner.Presentation.Avalonia.Views">
 
+<StreamGeometry x:Key="SettingsInformationIconGeometry">M12 3A9 9 0 1 0 12 21A9 9 0 1 0 12 3Z M12 10V17 M12 7V7.2</StreamGeometry>
+
 <DataTemplate x:Key="SettingsVersionPageTemplate" DataType="vm:MainWindowViewModel">
   <StackPanel x:Name="VersionPageRoot" Spacing="28">
     <StackPanel MinHeight="97" Spacing="{DynamicResource NfcSpace4}">
@@ -71,7 +73,8 @@
 
     <Border x:Name="VerifiedUpdateBanner" Classes="statusNotice info versionUpdateBanner" IsVisible="{Binding Settings.HasVerifiedUpdate}">
       <Grid RowDefinitions="Auto,Auto" ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="{DynamicResource NfcSpace16}">
-        <TextBlock VerticalAlignment="Center" Foreground="{DynamicResource NfcAccentBrush}" FontSize="28" Text="ⓘ" />
+        <Path Width="24" Height="24" VerticalAlignment="Center" Data="{StaticResource SettingsInformationIconGeometry}"
+              Fill="Transparent" Stroke="{DynamicResource NfcAccentBrush}" StrokeThickness="1.5" StrokeLineCap="Round" Stretch="Uniform" />
         <TextBlock Grid.Column="1" VerticalAlignment="Center" Classes="bodyStrongText versionUpdateMessage" Text="{Binding Settings.VerifiedUpdateMessage}" TextWrapping="Wrap" />
         <Button
             Grid.Column="2"
@@ -112,100 +115,110 @@
       </Grid>
     </Border>
 
-    <StackPanel x:Name="UpdateSourceSection" MinHeight="132" Spacing="{DynamicResource NfcSpace8}">
+    <StackPanel x:Name="UpdateSourceSection" MinHeight="110" Spacing="{DynamicResource NfcSpace8}">
       <TextBlock Classes="sectionTitle versionSectionTitle" Text="{Binding Settings.UpdateSourceHeading}" />
-      <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="32">
-        <Border Classes="versionSourceEditor">
-          <Grid ColumnDefinitions="86,*,Auto,Auto" ColumnSpacing="0">
-            <Border
-                AutomationProperties.AccessibilityView="Content"
-                AutomationProperties.Name="{Binding Settings.SourceStatusText}"
-                Classes="versionSourceStatusSegment"
-                Classes.connected="{Binding Settings.IsSourceConnectedIndicator}"
-                ToolTip.Tip="{Binding Settings.SourceStatusText}">
-              <Grid>
-                <views:VersionCheckingIndicator
+      <Border Classes="versionSourceEditor">
+        <Grid ColumnDefinitions="40,*,Auto,Auto" ColumnSpacing="0">
+          <Border
+              AutomationProperties.AccessibilityView="Content"
+              AutomationProperties.Name="{Binding Settings.SourceStatusText}"
+              Classes="versionSourceStatusSegment"
+              ToolTip.Tip="{Binding Settings.SourceStatusText}">
+            <Grid>
+              <views:VersionCheckingIndicator
+                  Width="18"
+                  Height="18"
+                  HorizontalAlignment="Center"
+                  VerticalAlignment="Center"
+                  IndicatorBrush="{DynamicResource NfcAccentBrush}"
+                  IsReducedMotionEnabled="{ReflectionBinding $parent[Window].DataContext.IsReducedMotionEnabled}"
+                  IsVisible="{Binding Settings.IsSourceChecking}"
+                  TrackBrush="{DynamicResource NfcAccentBorderBrush}" />
+              <Grid IsVisible="{Binding Settings.IsSourceStatusIconVisible}">
+                <Path
                     Width="18"
                     Height="18"
                     HorizontalAlignment="Center"
                     VerticalAlignment="Center"
-                    IndicatorBrush="{DynamicResource NfcAccentBrush}"
-                    IsReducedMotionEnabled="{ReflectionBinding $parent[Window].DataContext.IsReducedMotionEnabled}"
-                    IsVisible="{Binding Settings.IsSourceChecking}"
-                    TrackBrush="{DynamicResource NfcAccentBorderBrush}" />
-                <Grid IsVisible="{Binding Settings.IsSourceStatusIconVisible}">
-                  <Path
-                      Width="24"
-                      Height="24"
-                      HorizontalAlignment="Center"
-                      VerticalAlignment="Center"
-                      Classes="versionSourceStatusIcon connected"
-                      Data="M8 1.5A6.5 6.5 0 1 0 8 14.5A6.5 6.5 0 1 0 8 1.5Z M4.75 8L7 10.25L11.5 5.75"
-                      IsVisible="{Binding Settings.IsSourceConnected}"
-                      Stretch="Uniform" />
-                  <Path
-                      Width="24"
-                      Height="24"
-                      HorizontalAlignment="Center"
-                      VerticalAlignment="Center"
-                      Classes="versionSourceStatusIcon disconnected"
-                      Data="M8 1.5A6.5 6.5 0 1 0 8 14.5A6.5 6.5 0 1 0 8 1.5Z M5.5 5.5L10.5 10.5 M10.5 5.5L5.5 10.5"
-                      IsVisible="{Binding Settings.IsSourceDisconnected}"
-                      Stretch="Uniform" />
-                </Grid>
+                    Classes="versionSourceStatusIcon connected"
+                    Data="M8 1.5A6.5 6.5 0 1 0 8 14.5A6.5 6.5 0 1 0 8 1.5Z M4.75 8L7 10.25L11.5 5.75"
+                    IsVisible="{Binding Settings.IsSourceConnected}"
+                    Stretch="Uniform" />
+                <Path
+                    Width="18"
+                    Height="18"
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Center"
+                    Classes="versionSourceStatusIcon disconnected"
+                    Data="M8 1.5A6.5 6.5 0 1 0 8 14.5A6.5 6.5 0 1 0 8 1.5Z M5.5 5.5L10.5 10.5 M10.5 5.5L5.5 10.5"
+                    IsVisible="{Binding Settings.IsSourceDisconnected}"
+                    Stretch="Uniform" />
               </Grid>
-            </Border>
-            <TextBox
-                Grid.Column="1"
-                MinHeight="50"
-                Padding="12,8"
-                FontSize="{DynamicResource NfcFontSize14}"
-                VerticalContentAlignment="Center"
-                AutomationProperties.Name="{Binding Settings.UpdateSourceHeading}"
-                Background="Transparent"
-                BorderThickness="0"
-                IsReadOnly="{Binding !Settings.IsUpdateSourceEditing}"
-                Text="{Binding Settings.UpdateSourceDraft, Mode=TwoWay}"
-                PlaceholderText="\\server\share\NvtFwCombiner" />
-            <Button
-                Grid.Column="2"
-                MinHeight="40"
-                MinWidth="40"
-                AutomationProperties.Name="{Binding Settings.EditSourceLabel}"
-                Classes="semanticAction command sourceEditButton"
-                Command="{Binding Settings.BeginEditUpdateSourceCommand}"
-                IsVisible="{Binding !Settings.IsUpdateSourceEditing}"
-                ToolTip.Tip="{Binding Settings.EditSourceLabel}">
-              <Path Width="16" Height="16" Data="M3 12L4 8L11 1L15 5L8 12L3 12Z M10 2L14 6" Stretch="Uniform" />
-            </Button>
-            <StackPanel Grid.Column="3" Margin="4" Orientation="Horizontal" Spacing="{DynamicResource NfcSpace4}" IsVisible="{Binding Settings.IsUpdateSourceEditing}">
-              <Button Classes="semanticAction primary" Command="{Binding Settings.ConfirmUpdateSourceCommand}" Content="{Binding Settings.ConfirmLabel}" />
-              <Button Classes="semanticAction secondary" Command="{Binding Settings.CancelEditUpdateSourceCommand}" Content="{Binding Settings.CancelLabel}" />
+            </Grid>
+          </Border>
+          <TextBox
+              Grid.Column="1"
+              MinHeight="50"
+              Padding="12,8"
+              FontSize="{DynamicResource NfcFontSize14}"
+              VerticalContentAlignment="Center"
+              AutomationProperties.Name="{Binding Settings.UpdateSourceHeading}"
+              Background="Transparent"
+              BorderThickness="0"
+              IsReadOnly="{Binding !Settings.IsUpdateSourceEditing}"
+              Text="{Binding Settings.UpdateSourceDraft, Mode=TwoWay}"
+              ToolTip.Tip="{Binding Settings.UpdateSourceDraft}"
+              PlaceholderText="\\server\share\NvtFwCombiner" />
+          <Button
+              Grid.Column="2"
+              MinHeight="40"
+              MinWidth="40"
+              AutomationProperties.Name="{Binding Settings.EditSourceLabel}"
+              Classes="semanticAction command sourceEditButton"
+              Command="{Binding Settings.BeginEditUpdateSourceCommand}"
+              IsVisible="{Binding !Settings.IsUpdateSourceEditing}"
+              ToolTip.Tip="{Binding Settings.EditSourceLabel}">
+            <Path Width="16" Height="16" Data="M3 12L4 8L11 1L15 5L8 12L3 12Z M10 2L14 6" Stretch="Uniform" />
+          </Button>
+          <Button
+              Grid.Column="3"
+              Margin="4"
+              VerticalAlignment="Center"
+              Classes="semanticAction secondary"
+              Command="{Binding Settings.BrowseUpdateSourceCommand}"
+              AutomationProperties.Name="{Binding Settings.BrowseSourceLabel}"
+              IsVisible="{Binding Settings.IsUpdateSourceEditing}">
+            <StackPanel Orientation="Horizontal" Spacing="{DynamicResource NfcSpace8}">
+              <Path
+                  Width="18"
+                  Height="18"
+                  Data="M2 5H7L9 7H16V9H7.5L5.5 16H2Z M7.8 10H16L14.2 16H6Z"
+                  Fill="Transparent"
+                  Stroke="{Binding $parent[Button].Foreground}"
+                  StrokeLineCap="Round" StrokeJoin="Round" StrokeThickness="1.8"
+                  Stretch="Uniform" />
+              <TextBlock Text="{Binding Settings.BrowseSourceLabel}" />
             </StackPanel>
-          </Grid>
-        </Border>
+          </Button>
+        </Grid>
+      </Border>
+      <Grid ColumnDefinitions="*,Auto" ColumnSpacing="{DynamicResource NfcSpace12}">
+        <TextBlock VerticalAlignment="Center" Classes="captionText" Text="{Binding Settings.SourceStatusText}" TextWrapping="Wrap" AutomationProperties.LiveSetting="Polite" />
+        <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="{DynamicResource NfcSpace8}" IsVisible="{Binding Settings.IsUpdateSourceEditing}">
+          <Button Classes="semanticAction secondary" Command="{Binding Settings.CancelEditUpdateSourceCommand}" Content="{Binding Settings.CancelLabel}" />
+          <Button Classes="semanticAction primary" Command="{Binding Settings.ConfirmUpdateSourceCommand}" Content="{Binding Settings.ConfirmLabel}" />
+        </StackPanel>
+      </Grid>
+    </StackPanel>
+
+    <StackPanel Spacing="{DynamicResource NfcSpace12}">
+      <Grid MinHeight="40" ColumnDefinitions="*,Auto" ColumnSpacing="{DynamicResource NfcSpace12}">
+        <TextBlock VerticalAlignment="Center" Classes="sectionTitle" Text="{Binding Settings.AvailableVersionsHeading}" />
         <Button
             Grid.Column="1"
-            MinWidth="128"
-            Classes="semanticAction secondary versionSourceAction"
-            Command="{Binding Settings.BrowseUpdateSourceCommand}"
-            IsEnabled="{Binding Settings.IsUpdateSourceEditing}">
-          <StackPanel Orientation="Horizontal" Spacing="{DynamicResource NfcSpace8}">
-            <Path
-                Width="18"
-                Height="18"
-                Data="M2 5H7L9 7H16V9H7.5L5.5 16H2Z M7.8 10H16L14.2 16H6Z"
-                Fill="Transparent"
-                Stroke="{Binding $parent[Button].Foreground}"
-                StrokeLineCap="Round" StrokeJoin="Round" StrokeThickness="1.8"
-                Stretch="Uniform" />
-            <TextBlock Text="{Binding Settings.BrowseSourceLabel}" />
-          </StackPanel>
-        </Button>
-        <Button
-            Grid.Column="2"
-            MinWidth="144"
-            Classes="semanticAction versionInstallAction versionSourceAction"
+            VerticalAlignment="Center"
+            AutomationProperties.Name="{Binding Settings.CheckNowLabel}"
+            Classes="semanticAction secondary"
             Command="{Binding Settings.CheckNowCommand}"
             IsEnabled="{Binding !Settings.IsVersionBusy}">
           <StackPanel Orientation="Horizontal" Spacing="{DynamicResource NfcSpace8}">
@@ -221,18 +234,9 @@
           </StackPanel>
         </Button>
       </Grid>
-      <TextBlock Classes="captionText" Text="{Binding Settings.SourceStatusText}" />
-      <Border Margin="0,8,0,0" Classes="versionSectionDivider" />
-    </StackPanel>
-
-    <StackPanel Spacing="{DynamicResource NfcSpace12}">
-      <Grid ColumnDefinitions="*,Auto" ColumnSpacing="{DynamicResource NfcSpace12}">
-        <TextBlock Classes="sectionTitle" Text="{Binding Settings.AvailableVersionsHeading}" />
-        <TextBlock Grid.Column="1" Classes="captionText versionCaption" Text="{Binding Settings.InventorySummary}" />
-      </Grid>
       <Border x:Name="VersionTableSurface" Classes="panelSurface versionTableSurface">
         <StackPanel>
-          <Grid Classes="versionTableHeader" ColumnDefinitions="1.1*,1.4*,1*,Auto,38" ColumnSpacing="{DynamicResource NfcSpace12}">
+          <Grid Classes="versionTableHeader" ColumnDefinitions="1.1*,1.4*,1*,Auto,32,32" ColumnSpacing="{DynamicResource NfcSpace12}">
             <TextBlock Classes="fieldLabel versionTableHeaderText" Text="{Binding Settings.VersionColumnLabel}" />
             <TextBlock Grid.Column="1" Classes="fieldLabel versionTableHeaderText" Text="{Binding Settings.StatusColumnLabel}" />
             <TextBlock Grid.Column="2" Classes="fieldLabel versionTableHeaderText" Text="{Binding Settings.PublishedColumnLabel}" />
@@ -241,8 +245,10 @@
           <ItemsControl ItemTemplate="{StaticResource SettingsVersionRowTemplate}" ItemsSource="{Binding Settings.VersionRows}" />
         </StackPanel>
       </Border>
+      <TextBlock HorizontalAlignment="Right" Classes="captionText versionCaption" Text="{Binding Settings.InventorySummary}" />
       <StackPanel Orientation="Horizontal" Spacing="{DynamicResource NfcSpace8}">
-        <TextBlock VerticalAlignment="Center" Classes="infoText" Text="ⓘ" />
+        <Path Width="12" Height="12" VerticalAlignment="Center" Data="{StaticResource SettingsInformationIconGeometry}"
+              Fill="Transparent" Stroke="{DynamicResource NfcAccentBrush}" StrokeThickness="1.5" StrokeLineCap="Round" Stretch="Uniform" />
         <TextBlock VerticalAlignment="Center" Classes="captionText versionOfflineHint" Text="{Binding Settings.OfflineVersionHint}" TextWrapping="Wrap" />
       </StackPanel>
     </StackPanel>

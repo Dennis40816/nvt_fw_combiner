@@ -1,7 +1,9 @@
 using System.Collections.ObjectModel;
 using NvtFwCombiner.Application.ExternalTools;
 using NvtFwCombiner.Application.Metadata;
+using NvtFwCombiner.Application.MemoryLayout;
 using NvtFwCombiner.Domain.Composition;
+using NvtFwCombiner.Domain.Firmware;
 using NvtFwCombiner.Infrastructure.Bundles;
 
 namespace NvtFwCombiner.Infrastructure.Composition;
@@ -66,7 +68,30 @@ internal static class CtrlRamV2RouteRegistry
             registration.ProfileId,
             registration.ProfileVersion,
             registration.ReportMetadataMapId,
-            reportMetadataPlan);
+            reportMetadataPlan,
+            ValidateMemoryLayoutContext(registration, standardRegistration));
+    }
+
+    /// <summary>Admits display-only context from an exact same-IC Standard map, independently of Report purposes.</summary>
+    internal static MemoryLayoutContextMap? ValidateMemoryLayoutContext(
+        ProfileBundleRuntimeRegistration registration, BuiltInV2Registration? standardRegistration)
+    {
+        ArgumentNullException.ThrowIfNull(registration);
+        if (registration.MemoryLayoutContextMapId is not { } mapId) { return null; }
+        if (registration.WorkflowId != ExperienceIds.CtrlRamReplace || standardRegistration is null ||
+            standardRegistration.WorkflowId != ExperienceIds.StandardMerge ||
+            registration.IcId != standardRegistration.IcId ||
+            (registration.ReportMetadataMapId is { } reportMapId && reportMapId != mapId))
+        {
+            throw new InvalidDataException("CtrlRAM memory context requires a coherent exact same-IC Standard counterpart.");
+        }
+        IReadOnlyList<FirmwareImageMap> maps = standardRegistration.GetMapVariants(out _, out IReadOnlyList<CompositionIssue> issues);
+        FirmwareImageMap map = issues.Count == 0
+            ? maps.SingleOrDefault(candidate => candidate.MapId == mapId) ??
+                throw new InvalidDataException($"Unknown exact Standard memory context map '{mapId}'.")
+            : throw new InvalidDataException("Standard memory context map could not be materialized.");
+        return new MemoryLayoutContextMap(registration.IcId, standardRegistration.ProfileId,
+            standardRegistration.ProfileVersion, standardRegistration.BundleContentHash, map);
     }
 
     /// <summary>Fails closed before any CtrlRAM registration becomes a published route.</summary>
@@ -155,4 +180,5 @@ internal sealed record CtrlRamV2Route(
     string ProfileId,
     string ProfileVersion,
     string? ReportMetadataMapId,
-    MetadataPlanDefinition ReportMetadataPlan);
+    MetadataPlanDefinition ReportMetadataPlan,
+    MemoryLayoutContextMap? MemoryLayoutContext = null);

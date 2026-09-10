@@ -58,7 +58,12 @@ internal sealed class MemoryCoverageSegmentViewModel
         string? changeLabel = null,
         string? logicalCoverageGroupId = null,
         MemoryContentRole contentRole = MemoryContentRole.General,
-        CtrlRamRegionRole ctrlRamRegionRole = CtrlRamRegionRole.Other)
+        CtrlRamRegionRole ctrlRamRegionRole = CtrlRamRegionRole.Other,
+        IReadOnlyList<MemoryRegionFact>? processingFacts = null,
+        string? sourceFieldLabel = null,
+        string? displayTitle = null,
+        string? addressSpaceId = null,
+        bool isPrimaryContent = true)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(rangeLabel);
         ArgumentException.ThrowIfNullOrWhiteSpace(sourceLabel);
@@ -105,8 +110,13 @@ internal sealed class MemoryCoverageSegmentViewModel
         }
 
         RangeLabel = rangeLabel;
+        IsPrimaryContent = isPrimaryContent;
         AddressRangeLabel = addressRangeLabel ?? rangeLabel;
         LengthLabel = lengthLabel ?? string.Empty;
+        SizeValue = rangeStart is { } sizeStart && rangeEndExclusive is { } sizeEnd
+            ? FormattableString.Invariant($"0x{sizeEnd - sizeStart:X} ({(sizeEnd - sizeStart) / 1024d:0.###} KiB)")
+            : LengthLabel;
+        ProcessingFacts = processingFacts?.ToArray() ?? [];
         SourceLabel = sourceLabel;
         LogicalSourceLabel = logicalSourceLabel ?? sourceLabel;
         Detail = detail;
@@ -123,11 +133,15 @@ internal sealed class MemoryCoverageSegmentViewModel
         CtrlRamRegionRole = ctrlRamRegionRole;
         UsesKeptPattern = usesBaseFirmwarePattern;
         text ??= ShellTextResources.For(ShellLanguage.English);
+        SourceFieldLabel = sourceFieldLabel ?? text.MemorySourceLabel;
+        DisplayTitle = displayTitle ?? (contentRole == MemoryContentRole.CustomerInformation ? text.MemoryCustomerInformationLabel : sourceLabel);
+        SourceCaption = contentRole == MemoryContentRole.CustomerInformation ? text.FormatMemorySourceCaption(sourceLabel) : string.Empty;
         ChangeLabel = changeLabel ?? text.GetOutputLayoutStateLabel(disposition, observedChange);
         RegionGroup = regionGroup;
         RegionGroupLabel = text.GetReplaceRegionGroupTitle(regionGroup);
         RangeStart = rangeStart;
         RangeEndExclusive = rangeEndExclusive;
+        AddressSpaceId = addressSpaceId;
         PreservationDetails =
         [
             .. (preservationDetails ?? []).Select(detail =>
@@ -144,16 +158,30 @@ internal sealed class MemoryCoverageSegmentViewModel
             PreservationDetails.Select(item =>
                 $"{item.IcLabel}, {item.BlockLabel}, {item.ArtifactRangeLabel}, {item.FlashRangeLabel}, {item.DispositionLabel}"));
         string stateAccessibility = HasChangeState ? $"{ChangeLabel}. " : string.Empty;
+        string additionalDetail = HasDistinctDetail ? $" {Detail}" : string.Empty;
         AccessibleDetail = string.IsNullOrEmpty(preservationAccessibility)
-            ? $"{SourceLabel}. {RangeLabel}. {stateAccessibility}{PreservationSummary}. {Detail}"
-            : $"{SourceLabel}. {RangeLabel}. {stateAccessibility}{PreservationSummary}. {preservationAccessibility}. {Detail}";
+            ? $"{SourceLabel}. {RangeLabel}. {stateAccessibility}{PreservationSummary}.{additionalDetail}"
+            : $"{SourceLabel}. {RangeLabel}. {stateAccessibility}{PreservationSummary}. {preservationAccessibility}.{additionalDetail}";
+        if (HasSourceCaption)
+        {
+            AccessibleDetail = $"{DisplayTitle}. {SourceCaption}. {AccessibleDetail}";
+        }
+        else if (!StringComparer.Ordinal.Equals(DisplayTitle, SourceLabel))
+        {
+            AccessibleDetail = $"{DisplayTitle}. {SourceFieldLabel}: {SourceLabel}. {AccessibleDetail}";
+        }
     }
 
     /// <summary>Shared display-only interaction state for a row and its proportional segments.</summary>
     public MemoryCoverageInteractionState Interaction { get; internal set; } = new();
 
+    /// <summary>Original physical parts used only to retain partial-fill geometry in a focus cell.</summary>
+    public IReadOnlyList<MemoryCoverageSegmentViewModel> DisplayParts { get; internal init; } = [];
+
     /// <summary>Address range in half-open hex notation.</summary>
     public string RangeLabel { get; }
+    /// <summary>Application-owned display eligibility; false retains only the exact rail geometry.</summary>
+    public bool IsPrimaryContent { get; }
 
     /// <summary>Inclusive display range without the length suffix.</summary>
     public string AddressRangeLabel { get; }
@@ -161,13 +189,25 @@ internal sealed class MemoryCoverageSegmentViewModel
     /// <summary>Display length kept in a separately aligned column.</summary>
     public string LengthLabel { get; }
 
+    public string SizeValue { get; }
+    public IReadOnlyList<MemoryRegionFact> ProcessingFacts { get; }
+    public bool HasProcessingFacts => ProcessingFacts.Count > 0;
+
     /// <summary>Final source occupying this range.</summary>
     public string SourceLabel { get; }
+    public string SourceFieldLabel { get; }
+
+    public string DisplayTitle { get; }
+    public string SourceCaption { get; }
+    public bool HasSourceCaption => SourceCaption.Length > 0;
 
     /// <summary>Topology-neutral source identity used by a cross-group logical item.</summary>
     public string LogicalSourceLabel { get; }
 
     public string Detail { get; }
+
+    public bool HasDistinctDetail => !StringComparer.Ordinal.Equals(Detail, PreservationSummary);
+    public bool HasAdditionalDetail => !HasProcessingFacts && HasDistinctDetail;
 
     public string CompactDetail { get; }
 
@@ -224,6 +264,19 @@ internal sealed class MemoryCoverageSegmentViewModel
 
     public long? RangeStart { get; }
 
+    /// <summary>Canonical target address space, never inferred from a display label.</summary>
+    public string? AddressSpaceId { get; }
+
+    /// <summary>Physical display continuity requires known ranges in the same declared address space.</summary>
+    internal bool ImmediatelyFollows(MemoryCoverageSegmentViewModel previous)
+    {
+        return !string.IsNullOrWhiteSpace(AddressSpaceId) &&
+            StringComparer.Ordinal.Equals(AddressSpaceId, previous.AddressSpaceId) &&
+            RangeStart is >= 0 && previous.RangeStart is >= 0 &&
+            RangeEndExclusive > RangeStart && previous.RangeEndExclusive > previous.RangeStart &&
+            previous.RangeEndExclusive == RangeStart;
+    }
+
     public long? RangeEndExclusive { get; }
 
     public IReadOnlyList<DiffDlmPreservationDetailViewModel> PreservationDetails { get; }
@@ -237,6 +290,9 @@ internal sealed class MemoryCoverageSegmentViewModel
     public string AccessibleDetail { get; }
 
 }
+
+/// <summary>One localized display fact, formatted from an existing typed memory projection.</summary>
+internal sealed record MemoryRegionFact(string Label, string Value);
 
 /// <summary>Localized display-only projection of one canonical kept Diff NF range.</summary>
 internal sealed class DiffDlmPreservationDetailViewModel

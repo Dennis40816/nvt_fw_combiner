@@ -55,17 +55,18 @@ public sealed partial class XamlControlStyleContractTests
         XElement additionalFacts = Assert.Single(document.Descendants(), element =>
             HasXamlName(element, "AdditionalFirmwareFactsHost"));
 
-        Assert.Equal("280,*,Auto", (string?)layout.Attribute("ColumnDefinitions"));
+        Assert.Equal("280,*", (string?)layout.Attribute("ColumnDefinitions"));
         Assert.Equal("*", (string?)layout.Attribute("RowDefinitions"));
-        Assert.Equal("16,12", (string?)layout.Attribute("Margin"));
+        Assert.Equal("16", (string?)layout.Attribute("Margin"));
         Assert.Equal("72", (string?)layout.Attribute("MinHeight"));
-        Assert.Equal("{DynamicResource NfcSpace8}", (string?)identity.Attribute("Spacing"));
+        Assert.Equal("{DynamicResource NfcSpace12}", (string?)identity.Attribute("Spacing"));
         Assert.Equal("Grid", header.Name.LocalName);
         Assert.Equal("Auto,*", (string?)header.Attribute("ColumnDefinitions"));
         Assert.Equal("0", (string?)identity.Attribute("Grid.Column"));
         Assert.Equal("1", (string?)factsRegion.Attribute("Grid.Column"));
         Assert.Equal("Center", (string?)factsRegion.Attribute("VerticalAlignment"));
-        Assert.Equal("2", (string?)actions.Attribute("Grid.Column"));
+        Assert.Equal("1", (string?)actions.Attribute("Grid.Column"));
+        Assert.Equal("2", (string?)actions.Attribute("Grid.RowSpan"));
         Assert.Equal("10", (string?)actions.Attribute("Spacing"));
         Assert.Equal("Center", (string?)actions.Attribute("VerticalAlignment"));
         Assert.Null(browse.Attribute("Grid.Column"));
@@ -203,7 +204,6 @@ public sealed partial class XamlControlStyleContractTests
         ItemsControl primaryFacts = Assert.IsType<ItemsControl>(
             card.FindControl<Control>("PrimaryFirmwareFactsHost"));
         Point browseOrigin = Assert.IsType<Point>(browse.TranslatePoint(default, selector));
-        Point factsOrigin = Assert.IsType<Point>(factsRegion.TranslatePoint(default, selector));
         ToggleButton state = Assert.Single(
             card.GetVisualDescendants().OfType<ToggleButton>(),
             candidate => candidate.Classes.Contains("slotStateAction"));
@@ -211,12 +211,11 @@ public sealed partial class XamlControlStyleContractTests
         Point stateOrigin = Assert.IsType<Point>(state.TranslatePoint(default, header));
 
         Assert.True(layout.Bounds.Width <= width);
-        Assert.True(browse.Bounds.Right <= layout.Bounds.Width);
+        Assert.True(browseOrigin.X + browse.Bounds.Width <= selector.Bounds.Width);
         Assert.Equal(280, identity.Bounds.Width, precision: 3);
         Assert.Equal(factsRegion.Bounds.Width, primaryFacts.Bounds.Width, precision: 3);
         double browseCenter = browseOrigin.Y + (browse.Bounds.Height / 2);
-        double factsCenter = factsOrigin.Y + (factsRegion.Bounds.Height / 2);
-        Assert.InRange(Math.Abs(factsCenter - browseCenter), 0, 0.5);
+        Assert.InRange(Math.Abs((selector.Bounds.Height / 2) - browseCenter), 0, 0.5);
         double titleCenter = titleOrigin.Y + (title.Bounds.Height / 2);
         double stateCenter = stateOrigin.Y + (state.Bounds.Height / 2);
         Assert.InRange(Math.Abs(titleCenter - stateCenter), 0, 0.5);
@@ -241,7 +240,8 @@ public sealed partial class XamlControlStyleContractTests
         Assert.Equal(36, clear.Bounds.Width, precision: 3);
         Assert.Equal(36, clear.Bounds.Height, precision: 3);
         Assert.True(clear.IsVisible);
-        Assert.InRange(selector.Bounds.Height, 90, 104);
+        // The approved dedicated filename row adds 22 px plus 16 px bottom padding.
+        Assert.Equal(146, selector.Bounds.Height, precision: 3);
         Assert.Null(browse.FocusAdorner);
         Assert.NotNull(browse.Theme);
         browse.ApplyTemplate();
@@ -341,15 +341,18 @@ public sealed partial class XamlControlStyleContractTests
             double factsCenter = factsOrigin.Y + (facts.Bounds.Height / 2);
             double browseCenter = browseSurfaceOrigin.Y + (browseSurface.Bounds.Height / 2);
             double clearCenter = clearOrigin.Y + (clear.Bounds.Height / 2);
+            // The owner now wants actions centered on the complete card, including its filename.
             double selectorCenter = selector.Bounds.Height / 2;
 
             Assert.InRange(Math.Abs(clearCenter - browseCenter), 0, 0.5);
             Assert.Equal(36, clear.Bounds.Width);
             Assert.Equal(36, clear.Bounds.Height);
             Assert.InRange(clearOrigin.X, 0, selector.Bounds.Width - clear.Bounds.Width);
+            Assert.InRange(Math.Abs(browseCenter - selectorCenter), 0, 0.5);
             if (width >= 820)
             {
-                Assert.InRange(Math.Abs(factsCenter - browseCenter), 0, 0.5);
+                double identityCenter = identityOrigin.Y + (identity.Bounds.Height / 2);
+                Assert.InRange(Math.Abs(factsCenter - identityCenter), 0, 0.5);
                 double selectorOffset = browseCenter - selectorCenter;
                 Assert.True(
                     Math.Abs(selectorOffset) <= 0.5,
@@ -358,8 +361,6 @@ public sealed partial class XamlControlStyleContractTests
             }
             else
             {
-                double identityCenter = identityOrigin.Y + (identity.Bounds.Height / 2);
-                Assert.InRange(Math.Abs(identityCenter - browseCenter), 0, 0.5);
                 Assert.True(factsOrigin.Y >= identityOrigin.Y + identity.Bounds.Height);
             }
 
@@ -381,6 +382,8 @@ public sealed partial class XamlControlStyleContractTests
             Assert.Equal(disabledColor, Assert.IsType<SolidColorBrush>(clearIcon.Foreground).Color);
             Assert.Equal(selectedBrowseX, emptyBrowseSurfaceOrigin.X, precision: 3);
             Assert.Equal(selectedActionsWidth, actions.Bounds.Width, precision: 3);
+            Assert.InRange(Math.Abs(emptyBrowseSurfaceOrigin.Y + (browseSurface.Bounds.Height / 2) -
+                (selector.Bounds.Height / 2)), 0, 0.5);
 
             slot.FilePath = useTpSlot ? @"C:\firmware\tp.bin" : @"C:\firmware\dp.bin";
             Dispatcher.UIThread.RunJobs();
@@ -435,17 +438,16 @@ public sealed partial class XamlControlStyleContractTests
         card.Measure(new Size(width, 1_000));
         card.Arrange(new Rect(0, 0, width, card.DesiredSize.Height));
 
-        Grid layout = Assert.IsType<Grid>(card.FindControl<Control>("SlotLayout"));
         TextBlock title = Assert.IsType<TextBlock>(card.FindControl<Control>("SlotTitle"));
         Button browse = Assert.IsType<Button>(card.FindControl<Control>("BrowseButton"));
-        Point titleOrigin = Assert.IsType<Point>(title.TranslatePoint(default, layout));
-        Point browseOrigin = Assert.IsType<Point>(browse.TranslatePoint(default, layout));
+        Point titleOrigin = Assert.IsType<Point>(title.TranslatePoint(default, card));
+        Point browseOrigin = Assert.IsType<Point>(browse.TranslatePoint(default, card));
         var titleRect = new Rect(titleOrigin, title.Bounds.Size);
         var browseRect = new Rect(browseOrigin, browse.Bounds.Size);
 
         Assert.False(titleRect.Intersects(browseRect));
         Assert.True(titleRect.Right <= browseRect.Left);
-        Assert.True(browseRect.Right <= layout.Bounds.Width);
+        Assert.True(browseRect.Right <= card.Bounds.Width);
         Assert.Equal(slotTitle, title.Text);
         string expectedBrowseAction = FirmwareSlotCard.FormatBrowseActionLabel(
             browseLabel,
@@ -557,18 +559,18 @@ public sealed partial class XamlControlStyleContractTests
         FirmwareSlotViewModel slaveLeft = topologySlots[2];
         FirmwareSlotViewModel shared = topologySlots[3];
         Assert.Equal("Normal CtrlRAM（主控）", master.Title);
-        AssertCtrlRamDescriptionIsFullyLocalized(master, "Normal CtrlRAM（主控）：上限 ");
+        AssertCtrlRamDescriptionIsFullyLocalized(master);
         Assert.Equal("Normal CtrlRAM（右側從屬）", slaveRight.Title);
-        AssertCtrlRamDescriptionIsFullyLocalized(slaveRight, "Normal CtrlRAM（右側從屬）：上限 ");
+        AssertCtrlRamDescriptionIsFullyLocalized(slaveRight);
         Assert.Equal("Normal CtrlRAM（左側從屬）", slaveLeft.Title);
-        AssertCtrlRamDescriptionIsFullyLocalized(slaveLeft, "Normal CtrlRAM（左側從屬）：上限 ");
+        AssertCtrlRamDescriptionIsFullyLocalized(slaveLeft);
         Assert.Equal("NF CtrlRAM（共用）", shared.Title);
         int sharedTargetCount = shared.CtrlRamDescriptionFacts!.TargetRegionCount;
         Assert.True(sharedTargetCount > 0);
-        Assert.Equal($"NF_Ctrlram.bin · {sharedTargetCount} 個區域", shared.Description);
+        Assert.Equal($"共用至 {sharedTargetCount} 個區域", shared.Description);
         Assert.True(shared.CtrlRamDescriptionFacts.Sections.Count >= sharedTargetCount);
         Assert.Equal("DiffDLM", cascadeSlot.Title);
-        AssertCtrlRamDescriptionIsFullyLocalized(cascadeSlot, "DiffDLM.bin");
+        AssertCtrlRamDescriptionIsFullyLocalized(cascadeSlot);
         foreach (FirmwareSlotViewModel slot in topologySlots)
         {
             AssertBrowseAction(slot, topologyViewModel.Text);
@@ -650,17 +652,17 @@ public sealed partial class XamlControlStyleContractTests
     }
 
     private static void AssertCtrlRamDescriptionIsFullyLocalized(
-        FirmwareSlotViewModel slot,
-        params string[] expectedFragments)
+        FirmwareSlotViewModel slot)
     {
-        Assert.Contains("：上限 ", slot.Description, StringComparison.Ordinal);
+        Assert.Contains("大小上限: ", slot.Description, StringComparison.Ordinal);
+        Assert.Contains("目標位址: ", slot.Description, StringComparison.Ordinal);
+        Assert.Equal(["大小上限", "目標位址"], slot.InputGuidanceFacts.Select(fact => fact.Label));
+        Assert.DoesNotContain(slot.CtrlRamDescriptionFacts!.SourceFileName, slot.Description, StringComparison.Ordinal);
         Assert.DoesNotContain(": max ", slot.Description, StringComparison.Ordinal);
         Assert.DoesNotContain("(Master)", slot.Description, StringComparison.Ordinal);
         Assert.DoesNotContain("(Slave R)", slot.Description, StringComparison.Ordinal);
         Assert.DoesNotContain("(Slave L)", slot.Description, StringComparison.Ordinal);
         Assert.DoesNotContain("(Shared)", slot.Description, StringComparison.Ordinal);
-        Assert.All(expectedFragments, expected =>
-            Assert.Contains(expected, slot.Description, StringComparison.Ordinal));
     }
 
     private static (Window Host, StyleInclude ButtonStyles, StyleInclude VisualStyles)

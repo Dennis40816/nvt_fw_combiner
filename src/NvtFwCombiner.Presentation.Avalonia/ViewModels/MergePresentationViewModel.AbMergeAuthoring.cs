@@ -127,7 +127,8 @@ internal sealed partial class MergePresentationViewModel
             selectedSlotIds,
             accepted,
             AbMergeAuthoringRevision,
-            _abMergeSession.CurrentSnapshot);
+            _abMergeSession.CurrentSnapshot,
+            AbDpMode);
     }
 
     private void ApplyAbMergeReadiness(CompiledAuthoringSelectionSnapshot projection)

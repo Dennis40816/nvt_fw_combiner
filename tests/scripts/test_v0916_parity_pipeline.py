@@ -414,14 +414,20 @@ class V0916ParityPipelineTests(V0916ParityTestBase):
 
     def test_run_admission_requires_all_64_governed_case_bindings_before_117_executions(self) -> None:
         plan = MODULE.load_and_validate_plan(self.plan_path, self.policy_path)
+        snapshot_root = self.enterContext(
+            MODULE.controlled_temporary_directory("nfc-canonical-")
+        ) / "snapshot"
+        authority = MODULE.materialize_and_validate_canonical_input_authority(
+            plan.raw,
+            git_reader=MODULE.PinnedGitReader(ROOT),
+            destination=snapshot_root,
+        )
         with self.assertRaises(MODULE.ParityError) as missing:
             MODULE.build_required_execution_matrix(
                 plan,
                 canonical_inputs=MODULE.resolve_all_canonical_route_inputs(
                     plan,
-                    MODULE.capture_canonical_authority_from_manifest_for_test(
-                        ROOT / "testdata/golden/canonical/manifest.json"
-                    ),
+                    authority,
                 ),
             )
         self.assertEqual("PARITY_FIXTURE_MISSING", missing.exception.code)
@@ -1303,9 +1309,7 @@ class V0916ParityPipelineTests(V0916ParityTestBase):
 
             verified = MODULE.resolve_canonical_route_input(
                 plan,
-                MODULE.capture_canonical_authority_from_manifest_for_test(
-                    ROOT / "testdata/golden/canonical/manifest.json"
-                ),
+                canonical_authority,
                 admitted_input_root=root / "admitted-profile-mismatch",
                 route_id=cases[0][0],
                 execution_role="candidate-exact",

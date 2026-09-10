@@ -39,7 +39,7 @@ public sealed partial class XamlControlStyleContractTests
         Assert.Contains("IsChecked=\"{Binding IsSemanticStateDetailExpanded}\"", slotCard, StringComparison.Ordinal);
         Assert.Contains("Focusable=\"True\"", slotCard, StringComparison.Ordinal);
         Assert.Contains("behaviors:FocusToolTipBehavior.IsEnabled=\"True\"", slotCard, StringComparison.Ordinal);
-        Assert.Contains("ToolTip.Tip=\"{Binding SemanticStateAutomationText}\"", slotCard, StringComparison.Ordinal);
+        Assert.Contains("<views:IssueDetailsCard DataContext=\"{Binding IssueCard}\"", slotCard, StringComparison.Ordinal);
         Assert.Contains(
             "AutomationProperties.Name=\"{Binding SemanticStateAutomationText}\"",
             slotCard,
@@ -321,7 +321,8 @@ public sealed partial class XamlControlStyleContractTests
         Assert.Equal(FirmwareSlotSemanticState.Error, slot.SemanticState);
         Assert.Equal("Blocked", slot.SemanticStateLabel);
         Assert.Equal("Reference length rejects this child.", slot.SemanticStateDetail);
-        Assert.Equal("Blocked. Reference length rejects this child.", slot.SemanticStateAutomationText);
+        Assert.Contains("Reference length rejects this child.", slot.SemanticStateAutomationText, StringComparison.Ordinal);
+        Assert.Equal(slot.IssueCard!.AutomationText, slot.SemanticStateAutomationText);
     }
 
     /// <summary>Not-applicable empty slots replace misleading requirement chrome with the compiled state.</summary>
@@ -418,9 +419,8 @@ public sealed partial class XamlControlStyleContractTests
         Assert.Equal(FirmwareSlotSemanticState.Error, slot.SemanticState);
         Assert.Equal("Error", slot.SemanticStateLabel);
         Assert.Equal("The selected BIN failed structural admission.", slot.SemanticStateDetail);
-        Assert.Equal(
-            "Error: The selected BIN failed structural admission.",
-            slot.SemanticStateAutomationText);
+        Assert.Contains("The selected BIN failed structural admission.", slot.SemanticStateAutomationText, StringComparison.Ordinal);
+        Assert.Equal(slot.IssueCard!.AutomationText, slot.SemanticStateAutomationText);
     }
 
     /// <summary>A structural admission error also outranks an independently blocking readiness result.</summary>

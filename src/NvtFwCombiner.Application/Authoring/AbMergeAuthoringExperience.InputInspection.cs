@@ -1,5 +1,6 @@
 using NvtFwCombiner.Application.Capabilities;
 using NvtFwCombiner.Application.Composition;
+using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Domain.Firmware;
 
 namespace NvtFwCombiner.Application.Authoring;
@@ -30,13 +31,22 @@ internal sealed partial class AbMergeAuthoringExperience
             _compiler.ResolveAbMergeTopologySelection(
                 icId,
                 topologyToken);
-        var resolver = new AbMergeAuthoringResolver(topology, _catalog);
-        var service = new CompiledAuthoringWorkflowService(resolver);
         ResolvedCapability? exactCapability = selected[0].ExactCapability;
         if (selected.Any(input => !ReferenceEquals(input.ExactCapability, exactCapability)))
         {
             throw new InvalidOperationException("AB Merge inspection leases disagree on the exact compilation.");
         }
+        if (exactCapability is not null &&
+            (exactCapability.Identity.IcId != IcIdentifier.Normalize(icId) ||
+             exactCapability.Identity.WorkflowId != ExperienceIds.AbMerge ||
+             !exactCapability.CompiledComposition.V2Details.Provenance.ResolvedMap.ImageMap
+                 .Applicability.TopologyRequirement.Matches(topology) ||
+             _catalog.ResolveCurrentCompilation(exactCapability.CompiledComposition, exactCapability) is null))
+        {
+            throw new InvalidOperationException("AB Merge inspection requires a current accepted compilation for the selected IC.");
+        }
+        var resolver = new AbMergeAuthoringResolver(topology, _compiler, AbMergeDpMode.Normal, exactCapability);
+        var service = new CompiledAuthoringWorkflowService(resolver);
         CompiledAuthoringInspectionBatch batch = service.InspectBatch(
                 icId,
                 authoringRevision,

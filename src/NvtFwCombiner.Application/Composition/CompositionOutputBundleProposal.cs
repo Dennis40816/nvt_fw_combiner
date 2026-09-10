@@ -44,13 +44,15 @@ public sealed class CompositionOutputBundleProposal
     public CompositionOutputBundleIntent CreateIntent(
         string parentDirectory,
         string folderName,
-        string? additionalDeliveryKind = null)
+        string? additionalDeliveryKind = null,
+        string? outputFileNameOverride = null)
     {
         return new CompositionOutputBundleIntent(
             Admission,
             parentDirectory,
             folderName,
-            additionalDeliveryKind);
+            additionalDeliveryKind,
+            outputFileNameOverride);
     }
 }
 

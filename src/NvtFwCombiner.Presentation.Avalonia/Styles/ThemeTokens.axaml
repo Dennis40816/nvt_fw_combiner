@@ -39,11 +39,15 @@
       <SolidColorBrush x:Key="NfcControllerInputSurfaceBrush" Color="#F5F3FF" />
       <SolidColorBrush x:Key="NfcControllerInputBorderBrush" Color="#DDD6FE" />
       <SolidColorBrush x:Key="NfcControllerInputTextBrush" Color="#6D28D9" />
+      <SolidColorBrush x:Key="NfcHexOriginalRowSurfaceBrush" Color="#FDF2F8" />
+      <SolidColorBrush x:Key="NfcHexOriginalChangedSurfaceBrush" Color="#FBCFE8" />
+      <SolidColorBrush x:Key="NfcHexOriginalChangedBorderBrush" Color="#F472B6" />
+      <SolidColorBrush x:Key="NfcHexOriginalTextBrush" Color="#9D174D" />
+      <SolidColorBrush x:Key="NfcHexOriginalMarkerBrush" Color="#DB2777" />
       <SolidColorBrush x:Key="NfcWarningSurfaceBrush" Color="#FFF7ED" />
       <SolidColorBrush x:Key="NfcWarningBorderBrush" Color="#FED7AA" />
       <SolidColorBrush x:Key="NfcWarningAccentBrush" Color="#F59E0B" />
       <SolidColorBrush x:Key="NfcWarningAccentStrongBrush" Color="#D97706" />
-      <SolidColorBrush x:Key="NfcWarningAccentCriticalBrush" Color="#EA580C" />
       <SolidColorBrush x:Key="NfcWarningTextSubtleBrush" Color="#7C2D12" />
       <SolidColorBrush x:Key="NfcWarningTextMutedBrush" Color="#B45309" />
       <SolidColorBrush x:Key="NfcWarningTextBrush" Color="#9A3412" />
@@ -132,11 +136,15 @@
       <SolidColorBrush x:Key="NfcControllerInputSurfaceBrush" Color="#2E1065" />
       <SolidColorBrush x:Key="NfcControllerInputBorderBrush" Color="#6D28D9" />
       <SolidColorBrush x:Key="NfcControllerInputTextBrush" Color="#DDD6FE" />
+      <SolidColorBrush x:Key="NfcHexOriginalRowSurfaceBrush" Color="#500724" />
+      <SolidColorBrush x:Key="NfcHexOriginalChangedSurfaceBrush" Color="#831843" />
+      <SolidColorBrush x:Key="NfcHexOriginalChangedBorderBrush" Color="#F472B6" />
+      <SolidColorBrush x:Key="NfcHexOriginalTextBrush" Color="#FBCFE8" />
+      <SolidColorBrush x:Key="NfcHexOriginalMarkerBrush" Color="#F472B6" />
       <SolidColorBrush x:Key="NfcWarningSurfaceBrush" Color="#422006" />
       <SolidColorBrush x:Key="NfcWarningBorderBrush" Color="#92400E" />
       <SolidColorBrush x:Key="NfcWarningAccentBrush" Color="#FBBF24" />
       <SolidColorBrush x:Key="NfcWarningAccentStrongBrush" Color="#F59E0B" />
-      <SolidColorBrush x:Key="NfcWarningAccentCriticalBrush" Color="#FB923C" />
       <SolidColorBrush x:Key="NfcWarningTextSubtleBrush" Color="#FED7AA" />
       <SolidColorBrush x:Key="NfcWarningTextMutedBrush" Color="#FDBA74" />
       <SolidColorBrush x:Key="NfcWarningTextBrush" Color="#FFEDD5" />

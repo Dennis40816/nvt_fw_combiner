@@ -40,6 +40,7 @@ public sealed partial class XamlControlStyleContractTests
             Width = 1584,
             Height = 997,
             RequestedThemeVariant = useDarkTheme ? ThemeVariant.Dark : ThemeVariant.Light,
+            DataContext = viewModel,
             Content = modal,
         };
         Uri versionTemplateUri = new(
@@ -152,9 +153,29 @@ public sealed partial class XamlControlStyleContractTests
             Point sourceOrigin = Assert.IsType<Point>(sourceSection.TranslatePoint(default, body));
             Point tableOrigin = Assert.IsType<Point>(versionTable.TranslatePoint(default, body));
             AssertControlGeometry(currentOrigin, currentSection.Bounds.Size, 363, 145, 1121, 74);
-            AssertControlGeometry(bannerOrigin, updateBanner.Bounds.Size, 363, 247, 1121, 84);
-            AssertControlGeometry(sourceOrigin, sourceSection.Bounds.Size, 363, 359, 1121, 132);
-            AssertControlGeometry(tableOrigin, versionTable.Bounds.Size, 363, 555, 1121, 207);
+            AssertControlGeometry(bannerOrigin, updateBanner.Bounds.Size, 363, 247, 1121, 64);
+            AssertControlGeometry(sourceOrigin, sourceSection.Bounds.Size, 363, 339, 1121, 110);
+            Assert.InRange(Math.Abs(sourceEditor.Bounds.Width - versionTable.Bounds.Width), 0, 0.5);
+            StackPanel tableSection = versionTable.GetVisualAncestors().OfType<StackPanel>().First();
+            Grid tableHeading = tableSection.Children.OfType<Grid>().First();
+            TextBlock availableHeading = Assert.Single(tableHeading.GetVisualDescendants().OfType<TextBlock>(),
+                text => text.Classes.Contains("sectionTitle"));
+            Assert.Equal(28, Assert.IsType<StackPanel>(versionPage).Spacing);
+            Assert.Equal(12, tableSection.Spacing);
+            Assert.Equal(18, availableHeading.FontSize);
+            Assert.Equal(FontWeight.SemiBold, availableHeading.FontWeight);
+            Assert.Equal("Inter SemiBold", new Typeface(availableHeading.FontFamily, availableHeading.FontStyle,
+                availableHeading.FontWeight).GlyphTypeface.FamilyName);
+            const double headingHeight = 40;
+            Assert.InRange(Math.Abs(tableHeading.Bounds.Height - headingHeight), 0, 0.5);
+            Assert.All(tableHeading.GetVisualDescendants().OfType<TextBlock>(),
+                static text => Assert.InRange(text.TextLayout.Height, 0, text.Bounds.Height));
+            Point headingOrigin = Assert.IsType<Point>(tableHeading.TranslatePoint(default, body));
+            AssertControlGeometry(headingOrigin, tableHeading.Bounds.Size, 363, 477, 1121, headingHeight);
+            // The approved 1.1.4 reference keeps the modal/rail/current-version
+            // anchors and gives the list heading its own secondary check action.
+            double tableY = 339 + 110 + 28 + headingHeight + 12;
+            AssertControlGeometry(tableOrigin, versionTable.Bounds.Size, 363, tableY, 1121, 225);
             Assert.Equal(24, pageTitle.FontSize);
             Assert.Equal(FontWeight.SemiBold, pageTitle.FontWeight);
             Assert.Equal(13, pageSubtitle.FontSize);
@@ -166,11 +187,17 @@ public sealed partial class XamlControlStyleContractTests
             Assert.Equal(new Thickness(2), Assert.IsType<Border>(versionTable).BorderThickness);
             Assert.Equal(64, selectedNavigation.Bounds.Height);
             Assert.Equal(14, selectedNavigation.FontSize);
-            Assert.Equal(180, installUpdate.Bounds.Width);
-            Assert.Equal(52, installUpdate.Bounds.Height);
+            Assert.Equal(150, installUpdate.Bounds.Width);
+            Assert.Equal(40, installUpdate.Bounds.Height);
 
             using Avalonia.Media.Imaging.Bitmap? frame = window.GetLastRenderedFrame();
             Assert.NotNull(frame);
+            // An image matching these pixels does not certify native Windows DPI behavior.
+            Assert.Equal(1.0, window.RenderScaling);
+            Assert.Equal(new PixelSize(1584, 997), frame.PixelSize);
+            TestContext.Current.TestOutputHelper!.WriteLine(
+                $"Headless reference: logical={window.ClientSize}, scale={window.RenderScaling}, " +
+                $"pixels={frame.PixelSize}, theme={window.ActualThemeVariant}, language=en");
             string? outputDirectory = Environment.GetEnvironmentVariable("NFC_VISUAL_OUTPUT_DIR");
             if (!string.IsNullOrWhiteSpace(outputDirectory))
             {
@@ -217,8 +244,8 @@ public sealed partial class XamlControlStyleContractTests
                 contentGrid.Elements(),
                 element => element.Name.LocalName == "TextBlock");
             Assert.Equal("1", (string?)label.Attribute("Grid.Column"));
-            Assert.Equal("Center", (string?)label.Attribute("HorizontalAlignment"));
-            Assert.Equal("Center", (string?)label.Attribute("TextAlignment"));
+            Assert.Equal("Left", (string?)label.Attribute("HorizontalAlignment"));
+            Assert.Equal("Left", (string?)label.Attribute("TextAlignment"));
         });
         System.Xml.Linq.XElement generalIcon = Assert.Single(
             entries[0].Descendants(),
@@ -239,23 +266,22 @@ public sealed partial class XamlControlStyleContractTests
 
         Assert.Contains("x:Name=\"VersionPageRoot\" Spacing=\"28\"", versionPage, StringComparison.Ordinal);
         Assert.Contains("ColumnDefinitions=\"Auto,*,Auto,Auto\"", versionPage, StringComparison.Ordinal);
-        Assert.Contains("ColumnDefinitions=\"*,Auto,Auto\" ColumnSpacing=\"32\"", versionPage, StringComparison.Ordinal);
-        Assert.Contains("ColumnDefinitions=\"86,*,Auto,Auto\"", versionPage, StringComparison.Ordinal);
-        Assert.Equal(2, CountOccurrences(pageTemplates + versionPage, "ColumnDefinitions=\"1.1*,1.4*,1*,Auto,38\""));
+        Assert.Contains("ColumnDefinitions=\"40,*,Auto,Auto\"", versionPage, StringComparison.Ordinal);
+        Assert.Equal(2, CountOccurrences(pageTemplates + versionPage, "ColumnDefinitions=\"1.1*,1.4*,1*,Auto,32,32\""));
         Assert.Contains("FontSize\" Value=\"24", ExtractStyle(versionStyles, "TextBlock.versionPageTitle"), StringComparison.Ordinal);
         Assert.Contains("NfcFontSize13", ExtractStyle(versionStyles, "TextBlock.versionPageSubtitle"), StringComparison.Ordinal);
         Assert.Contains("FontSize\" Value=\"18", ExtractStyle(versionStyles, "TextBlock.versionSectionTitle"), StringComparison.Ordinal);
         Assert.Contains("BorderThickness\" Value=\"2", ExtractStyle(versionStyles, "Border.versionSourceEditor"), StringComparison.Ordinal);
         Assert.Contains("NfcCompactCornerRadius", ExtractStyle(versionStyles, "Border.versionSourceEditor"), StringComparison.Ordinal);
-        Assert.Contains("MinHeight\" Value=\"84", ExtractStyle(versionStyles, "Border.versionUpdateBanner"), StringComparison.Ordinal);
+        Assert.Contains("MinHeight\" Value=\"64", ExtractStyle(versionStyles, "Border.versionUpdateBanner"), StringComparison.Ordinal);
         Assert.Contains("Height\" Value=\"64", ExtractStyle(buttonStyles, "Button.settingsNavItem"), StringComparison.Ordinal);
         Assert.Contains("NfcFontSize14", ExtractStyle(buttonStyles, "Button.settingsNavItem"), StringComparison.Ordinal);
         Assert.Contains("NfcCompactCornerRadius", ExtractStyle(buttonStyles, "Button.settingsNavItem /template/ ContentPresenter#PART_ContentPresenter"), StringComparison.Ordinal);
-        Assert.Contains("MinWidth\" Value=\"180", ExtractStyle(buttonStyles, "Button.versionInstallAction"), StringComparison.Ordinal);
-        Assert.Contains("MinHeight\" Value=\"52", ExtractStyle(buttonStyles, "Button.versionInstallAction"), StringComparison.Ordinal);
+        Assert.Contains("MinWidth\" Value=\"150", ExtractStyle(buttonStyles, "Button.versionInstallAction"), StringComparison.Ordinal);
+        Assert.Contains("MinHeight\" Value=\"40", ExtractStyle(buttonStyles, "Button.versionInstallAction"), StringComparison.Ordinal);
     }
 
-    /// <summary>The owner-approved Version Option A keeps two separate rounded actions with icons and one primary check action.</summary>
+    /// <summary>The 1.1.4 reference separates source editing from the secondary list refresh action.</summary>
     [Fact]
     public void SettingsVersionSourceActionsMatchApprovedOptionA()
     {
@@ -271,10 +297,9 @@ public sealed partial class XamlControlStyleContractTests
             element => element.Name.LocalName == "Button" &&
                 (string?)element.Attribute("Command") == "{Binding Settings.CheckNowCommand}");
 
-        Assert.Equal("semanticAction secondary versionSourceAction", (string?)browse.Attribute("Classes"));
-        Assert.Equal(
-            "semanticAction versionInstallAction versionSourceAction",
-            (string?)check.Attribute("Classes"));
+        Assert.Equal("semanticAction secondary", (string?)browse.Attribute("Classes"));
+        Assert.Equal("{Binding Settings.IsUpdateSourceEditing}", (string?)browse.Attribute("IsVisible"));
+        Assert.Equal("semanticAction secondary", (string?)check.Attribute("Classes"));
         Assert.NotNull(Assert.Single(browse.Descendants(), element => element.Name.LocalName == "Path"));
         Assert.NotNull(Assert.Single(check.Descendants(), element => element.Name.LocalName == "Path"));
         Assert.Equal(

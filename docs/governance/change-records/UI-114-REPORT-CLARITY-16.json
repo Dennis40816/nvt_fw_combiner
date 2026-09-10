@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 2,
+  "taskId": "UI-114-REPORT-CLARITY-16",
+  "capability": "Clarify Report Changes range navigation and consolidate Report detail return navigation",
+  "integrationBase": "dd299381b7cb516c29380eaa0ff681b2e33dc028",
+  "risk": "R2",
+  "kind": "governance",
+  "state": "final-complete",
+  "mutablePaths": [
+    "src/NvtFwCombiner.Presentation.Avalonia/Resources/MainWindowReportChangeTemplates.axaml",
+    "src/NvtFwCombiner.Presentation.Avalonia/Resources/MainWindowReportPanels.axaml",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReportHexDiffRangeViewModels.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ShellTextResources.Localized.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ShellTextResources.Report.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/Views/HexViewportControl.cs",
+    "docs/adr/0021-code-size-ratchet-accepted-artifact-amendment.md",
+    "scripts/code_size_policy.py"
+  ],
+  "implementationOwner": "primary-agent",
+  "searchEvidence": [
+    "The owner-provided English Light captures show the Original rail touching the address label, redundant Viewing and review badges at competing corners, and unclear range-card hierarchy.",
+    "MainWindowReportChangeTemplates.axaml already owns the raw range-card hierarchy and selected state; extend it without changing ReportHexDiffSource ordering, ListBox virtualization or replay selection.",
+    "HexViewportControl draws both Current and Original address labels from x=4 while the Original rail ends at x=4. Move the shared text inset and the matching measured gutter together, retaining Render-time theme resolution and byte hit-test geometry.",
+    "MainWindowReportPanels.axaml has two controls that invoke MessageCenter.OpenRunReportsCommand: the modal-header return button and a custom Summary history icon. Consolidate them into one localized keyboard button in the header."
+  ],
+  "semanticOwner": "Existing Report range Presentation view model/templates, shared HexViewportControl renderer, and Report modal header",
+  "terminalContract": "Use English Light as the visual baseline. Current and Original address text share x=12; the Original rail is x=2 width=3 and the complete localized label retains at least 8px before the first byte. Each raw range card leads with its unchanged half-open DisplayRange and complete IsAccepted-derived Expected or Review required verdict, shows changed count, address-space id and trace id as supporting evidence, and retains Why/Result for the selected card. Selected border/surface/rail replace Viewing. Remove only the duplicate Summary history action; retain one focusable localized breadcrumb chevron plus Run reports command and all history state. Preserve raw order, virtualization, selection, replay, report JSON, hashes, acceptance, firmware semantics and output bytes. Physical-section grouping remains separate. Record the exact resulting full-production measurement without changing runtime metrics, measurement algorithms or other gates.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "ui_presentation_review",
+    "outcome": "approved",
+    "evidence": "Independent read-only review of base dd299381 approved the bounded design with no P0-P3 findings. It required shared address/gutter geometry, IsAccepted-derived complete range verdicts, one real keyboard-accessible return button, retained half-open ranges/virtualization/raw evidence, and no firmware or report-contract change."
+  },
+  "implementationHead": "54db97a1af38f6750c6e5b13f3c18abc3f79f986",
+  "reviewedHead": "54db97a1af38f6750c6e5b13f3c18abc3f79f986",
+  "pathStateDigest": "449028d027907a01572738dbbc6ae3116b3b74182aa29cbd8d034720221abd59",
+  "finalReview": {
+    "reviewer": "ui_presentation_review",
+    "outcome": "approved",
+    "evidence": "Independent read-only R2 review of fixed diff dd299381b7cb516c29380eaa0ff681b2e33dc028..54db97a1af38f6750c6e5b13f3c18abc3f79f986 covered all 15 changed files and found no P0-P3 findings or unstaged dependencies. It confirmed IsAccepted-only verdict projection; preserved half-open ranges, raw order, virtualization, selection, replay, report JSON and firmware/output bytes; shared x=12 address text, x=2 width=3 Original rail and measured 8px label-to-byte gap; and one localized real Button while history state, template and shortcut remain. The reviewer directly inspected the 1440x900 English Light and Chinese Dark complete renders. Primary-observed scoped evidence: layout 4/4, presentation 11/11, Report Hex Diff 9/9, architecture 1/1, code-size 19/19 and validate_repository passed with existing aggregate warnings. Exact accounting is 138574 production / 35678 allowance with runtime 99170 unchanged. No full-suite, release, native-DPI, High Contrast or screen-reader claim."
+  }
+}

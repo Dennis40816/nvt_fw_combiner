@@ -1486,6 +1486,161 @@ class AgentGovernanceTests(unittest.TestCase):
         history_audit.assert_not_called()
         self.assertTrue(any("index/worktree content differs" in error for error in errors))
 
+    def _commit_overlapping_admissions(self, *, stale: bool = False, risk: str = "R2") -> None:
+        self._change()
+        paths = ["src/Product/Owner.cs"]
+        if stale:
+            paths.append("src/Product/Other.cs")
+        self._write_record(self._record("TEST-01", paths=paths, risk=risk))
+        self._write_record(self._record("TEST-02"))
+        self._git("add", ".")
+        self._git("commit", "-q", "-m", "implement overlapping admitted corrections")
+
+    def _stage_partitioned_finals(self, *, stale: bool = False, risk: str = "R2") -> None:
+        paths = ["src/Product/Owner.cs"]
+        if stale:
+            paths.append("src/Product/Other.cs")
+        self._write_record(self._final_record("TEST-01", paths=paths, risk=risk, integrationPaths=[]))
+        self._write_record(self._final_record("TEST-02", integrationPaths=["src/Product/Owner.cs"]))
+
+    def test_integration_partition_preserves_overlap_and_finalizes_history(self) -> None:
+        self._commit_overlapping_admissions()
+        self._stage_partitioned_finals()
+        self.assertEqual([], self.validate())
+        self._git("commit", "-q", "-m", "finalize unique ownership")
+        self.assertEqual([], self.validate())
+
+    def test_integration_partition_rejects_uncovered_and_duplicate_ownership(self) -> None:
+        self._commit_overlapping_admissions()
+        for owned in ([], ["src/Product/Owner.cs"]):
+            with self.subTest(owned=owned):
+                for task in ("TEST-01", "TEST-02"):
+                    self._write_record(self._final_record(task, integrationPaths=owned))
+                errors = self.validate()
+                self.assertTrue(any("lacks a design-active/current-final" in e or "duplicate capability-reuse coverage" in e for e in errors))
+
+    def test_integration_partition_cannot_hide_stale_admitted_path(self) -> None:
+        self._commit_overlapping_admissions(stale=True)
+        self._stage_partitioned_finals(stale=True)
+        self.assertTrue(any("not in the current governed diff" in e for e in self.validate()))
+        self._git("commit", "-q", "-m", "attempt stale admission finalization")
+        self.assertTrue(any("admitted paths differ" in e for e in self.validate()))
+
+    def test_integration_partition_field_is_final_only(self) -> None:
+        self._change()
+        self._write_record(self._record(integrationPaths=[]))
+        self.assertTrue(any("integrationPaths requires final-complete" in e for e in self.validate()))
+
+    def test_integration_partition_requires_exact_unique_governed_subset(self) -> None:
+        self._commit_candidate_with_active_record()
+        for owned in (None, "src/Product/Owner.cs", [1], ["src/Product/Other.cs"],
+                      ["tests/test_owner.py"], ["src/Product/Owner.cs"] * 2,
+                      ["src/*"], ["src/Product"], ["src/Product/../Product/Owner.cs"]):
+            with self.subTest(owned=owned):
+                self._write_record(self._final_record(integrationPaths=owned))
+                self.assertTrue(any("integrationPaths" in e for e in self.validate()))
+
+    def test_integration_partition_is_immutable_after_final_commit(self) -> None:
+        self._commit_overlapping_admissions()
+        self._stage_partitioned_finals()
+        self._git("commit", "-q", "-m", "finalize partition")
+        path = self.root / "docs/governance/change-records/TEST-01.json"
+        record = json.loads(path.read_text(encoding="utf-8"))
+        record.pop("integrationPaths")
+        self._write_record(record)
+        self.assertTrue(any("immutable" in e for e in self.validate()))
+
+    def test_integration_partition_does_not_remove_r3_obligation(self) -> None:
+        self._commit_overlapping_admissions(risk="R3")
+        self._stage_partitioned_finals(risk="R3")
+        self._git("commit", "-q", "-m", "finalize with unowned R3 record")
+        self.assertTrue(any("external" in e and "TEST-01" in e for e in self.validate()))
+
+    def test_changed_auxiliary_test_does_not_grant_production_authority(self) -> None:
+        self._change()
+        self._change("tests/test_owner.py")
+        self._write_record(self._record(paths=["src/Product/Owner.cs", "tests/test_owner.py"]))
+        self.assertEqual([], self.validate())
+        self._change("src/Product/Other.cs")
+        self.assertTrue(any("lacks a design-active/current-final" in error for error in self.validate()))
+
+    def test_auxiliary_test_requires_governed_owner(self) -> None:
+        self._change("tests/test_owner.py")
+        self._write_record(self._record(paths=["tests/test_owner.py"]))
+        self.assertTrue(any("auxiliary tests require a governed path" in error for error in self.validate()))
+
+    def test_auxiliary_test_must_occur_in_current_diff(self) -> None:
+        self._change()
+        self._write_record(self._record(paths=["src/Product/Owner.cs", "tests/missing.py"]))
+        self.assertTrue(any("auxiliary test path is not in" in error for error in self.validate()))
+
+    def test_auxiliary_test_prefix_does_not_admit_other_paths_or_directories(self) -> None:
+        self._change()
+        self._change("tests/test_owner.py")
+        for path in ("tests-other/test_owner.py", "tests", "tests/subdir", "tests/*.py"):
+            with self.subTest(path=path):
+                self._write_record(self._record(paths=["src/Product/Owner.cs", path]))
+                self.assertNotEqual([], self.validate())
+
+    def test_test_instructions_remain_governed_not_auxiliary(self) -> None:
+        self._change("tests/AGENTS.md")
+        self._write_record(self._record(paths=["tests/AGENTS.md"]))
+        self.assertEqual([], self.validate())
+        self._write_record(self._record(paths=["tests/AGENTS.md"], risk="R1",
+            designReview={"reviewer": None, "outcome": "not-required", "evidence": ""}))
+        self.assertTrue(any("risk is below path minimum R2" in error for error in self.validate()))
+
+    def test_auxiliary_test_cannot_be_removed_from_admission(self) -> None:
+        paths = ["src/Product/Owner.cs", "tests/test_owner.py"]
+        self._change()
+        self._change(paths[1])
+        self._write_record(self._record(paths=paths))
+        self._git("add", ".")
+        self._git("commit", "-q", "-m", "admit auxiliary evidence")
+        self._write_record(self._record())
+        self.assertTrue(any("immutable admitted fields" in error for error in self.validate()))
+
+    def test_final_digest_cannot_omit_auxiliary_test(self) -> None:
+        paths = ["src/Product/Owner.cs", "tests/test_owner.py"]
+        self._change()
+        self._change(paths[1])
+        self._write_record(self._record(paths=paths))
+        self._git("add", ".")
+        self._git("commit", "-q", "-m", "implement with auxiliary evidence")
+        record = self._final_record(paths=paths)
+        digest, error = _capability_path_state_digest(self.root, "HEAD", paths[:1])
+        self.assertIsNone(error)
+        record["pathStateDigest"] = digest
+        self._write_record(record)
+        self.assertTrue(any("pathStateDigest differs" in error for error in self.validate()))
+
+    def test_changed_auxiliary_test_survives_finalization(self) -> None:
+        paths = ["src/Product/Owner.cs", "tests/test_owner.py"]
+        self._change()
+        self._change(paths[1])
+        self._write_record(self._record(paths=paths))
+        self._git("add", ".")
+        self._git("commit", "-q", "-m", "implement with auxiliary evidence")
+        self._write_record(self._final_record(paths=paths))
+        self.assertEqual([], self.validate())
+        self._git("commit", "-q", "-m", "finalize auxiliary evidence")
+        self.assertEqual([], self.validate())
+
+    def test_final_auxiliary_test_must_occur_in_reviewed_diff(self) -> None:
+        self._change("tests/unchanged.py")
+        self._git("add", ".")
+        self._git("commit", "-q", "-m", "baseline test")
+        self.integration_base = self._git("rev-parse", "HEAD").stdout.strip()
+        self.trusted_initial_base = self.integration_base
+        paths = ["src/Product/Owner.cs", "tests/unchanged.py"]
+        self._change()
+        self._write_record(self._record(paths=paths))
+        self._git("add", ".")
+        self._git("commit", "-q", "-m", "implement without test change")
+        self._write_record(self._final_record(paths=paths))
+        self._git("commit", "-q", "-m", "finalize stale test evidence")
+        self.assertTrue(any("auxiliary test path is not in" in error for error in self.validate()))
+
     def test_non_governed_active_path_fails_before_history_audit(self) -> None:
         self._change()
         self._write_record(self._record(paths=["NvtFwCombiner.slnx"]))

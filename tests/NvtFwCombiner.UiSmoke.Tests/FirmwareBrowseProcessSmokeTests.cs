@@ -173,7 +173,7 @@ public sealed class FirmwareBrowseProcessSmokeTests
         }
         finally
         {
-            window.Close();
+            await ReportControlTestHost.CloseAndFlushAsync(window);
         }
     }
 
@@ -229,7 +229,8 @@ public sealed class FirmwareBrowseProcessSmokeTests
             Assert.Equal(ExpectedDiagnostic, baseSlot.InputInspectionStatus);
             Assert.True(baseSlot.BlocksBuild);
             Assert.Equal(FirmwareSlotSemanticState.Error, baseSlot.SemanticState);
-            Assert.Equal($"Error: {ExpectedDiagnostic}", baseSlot.SemanticStateAutomationText);
+            Assert.Contains(ExpectedDiagnostic, baseSlot.SemanticStateAutomationText, StringComparison.Ordinal);
+            Assert.Equal(baseSlot.IssueCard!.AutomationText, baseSlot.SemanticStateAutomationText);
 
             var dispatcherSentinel = new TaskCompletionSource(
                 TaskCreationOptions.RunContinuationsAsynchronously);

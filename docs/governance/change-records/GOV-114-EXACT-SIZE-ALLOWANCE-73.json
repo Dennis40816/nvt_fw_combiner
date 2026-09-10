@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 2,
+  "taskId": "GOV-114-EXACT-SIZE-ALLOWANCE-73",
+  "capability": "Account for the exact owner-approved popup scheduling seam increment without spare capacity",
+  "integrationBase": "2d31d17977d4eb04b586decb44929121fa8c8e1b",
+  "risk": "R2",
+  "kind": "governance",
+  "state": "final-complete",
+  "mutablePaths": [
+    "scripts/code_size_policy.py",
+    "tests/scripts/test_code_size_policy.py",
+    "docs/adr/0021-code-size-ratchet-accepted-artifact-amendment.md"
+  ],
+  "implementationOwner": "primary-agent",
+  "searchEvidence": [
+    "Owner explicitly approved the measured 23 full-only production lines required by UI-114-TRANSIT-TIMER-SEAM-72, with no spare headroom, on 2026-09-10.",
+    "At e572bcbac26e2743d12823691247bd7e3e8e2cb1 the existing baseline test fails 140428 != 140451. MemoryCoverageBar grows from600 to623 nonblank lines relative to473304f3. Existing scripts/code_size_policy.py owns measurement and DEFAULT_LIMITS; no alternative policy owner is introduced."
+  ],
+  "semanticOwner": "scripts/code_size_policy.py existing DEFAULT_LIMITS and measurement; ADR0021 owns accepted exact capacity amendments",
+  "terminalContract": "Set production_nonblank140451 and full_production_allowance37555 against unchanged ratchet102896. Update the exact full-production baseline assertion and append the decision to ADR0021 preserving historical69. Runtime99563, every other allowance/ratchet, counting/exclusions, excess/reduction guards and firmware/Golden/release gates remain unchanged. No spare capacity; subsequent production edits require remeasurement.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "memory_coverage_inventory",
+    "outcome": "approved",
+    "evidence": "Independent R2 design APPROVED at e572bcbac26e2743d12823691247bd7e3e8e2cb1: Presentation-only600to623, exact+23;140428+23=140451=102896+37555. Only two defaults, exact baseline assertion and historical-preserving ADR append. Focused policy tests and final census required; no gate logic changes."
+  },
+  "implementationHead": "1035391bb27aa4163dbd380635ce61fa49a491d3",
+  "reviewedHead": "1035391bb27aa4163dbd380635ce61fa49a491d3",
+  "pathStateDigest": "88d006ab86e632f8c79e654269566ce8b8e9274531f236122e24a8e71ff85f1b",
+  "finalReview": {
+    "reviewer": "memory_coverage_inventory",
+    "outcome": "approved",
+    "evidence": "Independent final scoped Polytail PASS at exact reviewed head, no findings. Rebuilt unpublished commits retain identical policy/test/ADR blobs. Two full-production defaults, one exact baseline value and historical-preserving ADR append only.140451=102896+37555 with no headroom; runtime99563 and other caps/ratchets/counting/exclusions/gates unchanged. Existing baseline RED140428!=140451, then independently inspected D:/NvtFwCombiner-TestArea/evidence/v114-size73/tests.xml:19/19PASS,0errors/failures/skips. Full CI, Golden and release gates remain separate."
+  }
+}

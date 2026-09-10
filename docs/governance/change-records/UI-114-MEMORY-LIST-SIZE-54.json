@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 2,
+  "taskId": "UI-114-MEMORY-LIST-SIZE-54",
+  "capability": "Exact accounting for shared three-row memory supporting-list disclosure",
+  "integrationBase": "02da6a3ae26a124efe6014dcea8800532f922ed9",
+  "risk": "R2",
+  "kind": "governance",
+  "state": "final-complete",
+  "mutablePaths": ["scripts/code_size_policy.py", "docs/adr/0021-code-size-ratchet-accepted-artifact-amendment.md"],
+  "implementationOwner": "primary-agent",
+  "searchEvidence": ["Canonical measure_code_size at the UI53 working tree returns full140056/runtime99362/Domain20757/Application42839/Bootstrap5039/Infrastructure30727. Full growth is63 lines solely in the seven declared Presentation paths. The following diagnostic call passed a snapshot instead of a root to review_code_size_policy and raised TypeError; that combined command is not a policy-pass claim. Existing accounting tests remain required."],
+  "semanticOwner": "Existing scripts/code_size_policy.py and ADR0021 accepted-artifact exact accounting.",
+  "terminalContract": "Set full production/baseline139993 to140056 and full allowance37097 to37160 against unchanged102896; synchronize existing baseline test and dated ADR ledger. Keep runtime99362 and slices20757/42839/5039/30727, every runtime/slice allowance and ratchet, measurement/counting/exclusion/equality/partial rules and firmware/Golden/release gates unchanged. No transferable headroom; further production changes require remeasurement and independent admission. Run existing accounting tests and fixed-head review.",
+  "disposition": "extend-owner",
+  "designReview": {"reviewer": "ctrlram_readability (GPT-5.6 Terra, high; read-only)", "outcome": "approved", "evidence": "Independent pre-edit R2 exact admission approves only measured full+63=140056 and allowance37160, unchanged runtime/slices and measuring policy. Shared display-only list wrapper reuses projected row references and native card/button owners; source refresh resets disclosure while relocalization preserves it. The preliminary review-API TypeError is explicitly not a passing check."},
+  "implementationHead": "9c1b175757f1352bb08fd5939ea9960aacd5d8b7",
+  "reviewedHead": "9c1b175757f1352bb08fd5939ea9960aacd5d8b7",
+  "pathStateDigest": "5f0fccf665d4cbe62897dc1612e3ca6abb121b48d0e9524f7ca4f510ec145c3c",
+  "finalReview": {"reviewer": "ctrlram_readability (GPT-5.6 Terra, high; read-only)", "outcome": "approved", "evidence": "Independent fixed-head review at9c1b175757f1352bb08fd5939ea9960aacd5d8b7: P0/P1/P2/P3 zero. The original policy/ADR/baseline diff remains unchanged after the three ordinary parameter-forwarding substitutions; no minification, exclusions, algorithm, ratchet, equality, partial/duplicate rule or runtime/slice change. python -m unittest discover -s tests/scripts -p test_code_size_policy.py passed19/19 in31.396s before that correction. Fresh canonical measure_code_size after the correction exits0 and confirms full140056/runtime99362/Domain20757/Application42839/Bootstrap5039/Infrastructure30727, exact full+63/allowance37160; earlier full accounting tests are reused, not a fresh rerun. No headroom or firmware/Golden/release gate waiver. Required test-area root and TEMP/TMP/TMPDIR were explicit. Final fields bind committed Git path state and preserve immutable admission."}
+}

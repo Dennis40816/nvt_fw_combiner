@@ -25,17 +25,25 @@ public static partial class MemoryLayoutProjector
         LegacyCombinerPostbuildBranch? branch = commandPlan?.Branch;
         CtrlRamRegion[] projectedRegions =
         [
-            .. regions.Select(region => new CtrlRamRegion(
-                region.RegionId,
-                region.DisplayName,
-                region.Range.Start,
-                region.Range.Length,
-                region.Tags.Any(static tag =>
-                    StringComparer.OrdinalIgnoreCase.Equals(tag, "diff") ||
-                    StringComparer.OrdinalIgnoreCase.Equals(tag, "dlm") ||
-                    StringComparer.OrdinalIgnoreCase.Equals(tag, "slave")),
-                ResolveCtrlRamRegionGroup(region, branch, selection),
-                ResolveCtrlRamRegionRole(region))),
+            .. regions.Select(region =>
+            {
+                CtrlRamRegionRole role = ResolveCtrlRamRegionRole(region);
+                ByteRange physicalRange = role == CtrlRamRegionRole.DiffDlm &&
+                    commandPlan is { Branch: LegacyCombinerPostbuildBranch.Cascade, Profile.DiffDlmPolicy: { } policy }
+                        ? policy.GetActiveTargetRange(commandPlan.TopologyCount)
+                        : region.Range;
+                return new CtrlRamRegion(
+                    region.RegionId,
+                    region.DisplayName,
+                    physicalRange.Start,
+                    physicalRange.Length,
+                    region.Tags.Any(static tag =>
+                        StringComparer.OrdinalIgnoreCase.Equals(tag, "diff") ||
+                        StringComparer.OrdinalIgnoreCase.Equals(tag, "dlm") ||
+                        StringComparer.OrdinalIgnoreCase.Equals(tag, "slave")),
+                    ResolveCtrlRamRegionGroup(region, branch, selection),
+                    role);
+            }),
         ];
         ReplaceInputSlot[] inputSlots = commandPlan is null && hasReadableBase
             ? []
@@ -129,7 +137,14 @@ public static partial class MemoryLayoutProjector
                 requiresDiffNfMerge,
                 titleStem,
                 isShared,
-                targetRegionCount));
+                targetRegionCount,
+                [.. source.Regions.OrderBy(static region => region.Range.Start)
+                    .ThenBy(static region => region.RegionId, StringComparer.Ordinal)
+                    .Select(region => new CtrlRamInputGuidanceTarget(
+                        region.RegionId,
+                        ResolveCtrlRamRegionGroup(region, commandPlan?.Branch, selection),
+                        region.Range.Start,
+                        source.RequiredLength))]));
     }
 
     private static ReplaceRegionGroup ResolveCtrlRamSourceGroup(

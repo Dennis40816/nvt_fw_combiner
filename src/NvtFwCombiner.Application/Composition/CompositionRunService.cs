@@ -520,7 +520,8 @@ public sealed partial class CompositionRunService
                 .. finalOutputValidations.Select(static evaluation => evaluation.Summary),
             ],
             executedCommandsByOperationId: executedCommandsByOperationId,
-            bundleDelivery: bundleDeliverySummary);
+            bundleDelivery: bundleDeliverySummary,
+            inputDiagnosticIssues: boundInputs.InputDiagnosticIssues);
 
         (string? inspectionOutputSpaceId, string? inspectionReferenceSpaceId, byte[]? inspectionReferenceBytes) = GetInspectionReference(
             request,

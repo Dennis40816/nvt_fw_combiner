@@ -7,16 +7,19 @@ internal sealed class DelegatingFirmwareInspection : IFirmwareInspection
         IReadOnlyList<FirmwareInspectionSnapshotInput>,
         IReadOnlyList<FirmwareInspectionSnapshotResult>>? _batchReader;
     private readonly IFirmwareInspection _inner;
+    private readonly Func<CtrlRamInspectionDisplay, CtrlRamInspectionDisplay>? _displayProjector;
 
     internal DelegatingFirmwareInspection(
         IFirmwareInspection inner,
         Func<
             string,
             IReadOnlyList<FirmwareInspectionSnapshotInput>,
-            IReadOnlyList<FirmwareInspectionSnapshotResult>>? batchReader = null)
+            IReadOnlyList<FirmwareInspectionSnapshotResult>>? batchReader = null,
+        Func<CtrlRamInspectionDisplay, CtrlRamInspectionDisplay>? displayProjector = null)
     {
         _inner = inner ?? throw new ArgumentNullException(nameof(inner));
         _batchReader = batchReader;
+        _displayProjector = displayProjector;
     }
 
     public async ValueTask<FirmwareInspectionBatchResult> InspectFirmwareBatchAsync(
@@ -29,7 +32,12 @@ internal sealed class DelegatingFirmwareInspection : IFirmwareInspection
             .InspectFirmwareBatchAsync(icId, inputs, cancellationToken, progress);
         if (_batchReader is null)
         {
-            return before;
+            return _displayProjector is null ? before : new FirmwareInspectionBatchResult(
+                before.InspectionsById.ToDictionary(static pair => pair.Key,
+                    pair => pair.Value.CtrlRamDisplay is { } display
+                        ? pair.Value with { CtrlRamDisplay = _displayProjector(display) }
+                        : pair.Value, StringComparer.Ordinal),
+                before.FileStamps, before.UnstableFilePaths);
         }
 
         IReadOnlyList<FirmwareInspectionSnapshotResult> inspections = _batchReader(icId, inputs);
@@ -54,7 +62,8 @@ internal sealed class DelegatingFirmwareInspection : IFirmwareInspection
         string numberToken,
         FirmwareConfigMetadataSnapshot? baseFirmware)
     {
-        return _inner.ProjectCtrlRamInspectionDisplay(icId, numberToken, baseFirmware);
+        CtrlRamInspectionDisplay display = _inner.ProjectCtrlRamInspectionDisplay(icId, numberToken, baseFirmware);
+        return _displayProjector?.Invoke(display) ?? display;
     }
 
 }

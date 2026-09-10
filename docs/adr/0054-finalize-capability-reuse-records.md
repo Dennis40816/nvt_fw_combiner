@@ -5,6 +5,10 @@
 - Owners: Architecture owner, repository governance owner
 - Risk: R2 repository admission and review evidence
 - Supersedes: capability-reuse record schema v1 lifecycle
+- Amended by: [ADR 0070](0070-bounded-local-r1-continuation.md) for bounded local
+  R1 continuation only; all integration checkpoint mechanics below remain.
+- Amended by: [ADR 0071](0071-final-integration-path-ownership.md) for final
+  path ownership only; original admissions and all other evidence gates remain.
 
 ## Context
 

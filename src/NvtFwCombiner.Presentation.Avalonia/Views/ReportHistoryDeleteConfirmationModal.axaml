@@ -1,0 +1,35 @@
+<UserControl
+    x:Class="NvtFwCombiner.Presentation.Avalonia.Views.ReportHistoryDeleteConfirmationModal"
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:vm="using:NvtFwCombiner.Presentation.Avalonia.ViewModels"
+    x:DataType="vm:ReportPresentationViewModel"
+    Focusable="True"
+    KeyboardNavigation.TabNavigation="Cycle"
+    KeyDown="Confirmation_OnKeyDown"
+    Background="{DynamicResource NfcModalScrimBrush}">
+  <Border Classes="modalSurface" MaxWidth="540" Margin="16" Padding="22"
+          HorizontalAlignment="Stretch" VerticalAlignment="Center"
+          BorderBrush="{DynamicResource NfcWarningAccentBrush}">
+    <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="{DynamicResource NfcSpace16}">
+      <StackPanel Spacing="5">
+        <TextBlock Classes="modalTitle" Text="{Binding Text.DeleteHistoryTitle}" />
+        <TextBlock Classes="mutedText" Text="{Binding Text.DeleteHistoryDetail}" TextWrapping="Wrap" />
+      </StackPanel>
+      <Border Grid.Row="1" Classes="insetSurface" Padding="10,8">
+        <StackPanel Spacing="3">
+          <TextBlock Classes="captionText" Text="{Binding PendingHistoryDeletion.SequenceLabel}" />
+          <TextBlock Classes="detailText" Text="{Binding PendingHistoryDeletion.Title}" TextWrapping="Wrap" />
+        </StackPanel>
+      </Border>
+      <StackPanel Grid.Row="2" HorizontalAlignment="Right" Orientation="Horizontal" Spacing="{DynamicResource NfcSpace8}">
+        <Button x:Name="CancelButton" Classes="semanticAction secondary"
+                Command="{Binding CancelReportHistoryDeletionCommand}"
+                Content="{Binding Text.OutputDeliveryCancelLabel}" />
+        <Button x:Name="DeleteButton" Classes="semanticAction danger"
+                Command="{Binding ConfirmReportHistoryDeletionCommand}"
+                Content="{Binding Text.DeleteHistoryConfirmLabel}" />
+      </StackPanel>
+    </Grid>
+  </Border>
+</UserControl>

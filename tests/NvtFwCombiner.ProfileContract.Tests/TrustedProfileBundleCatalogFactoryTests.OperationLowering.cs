@@ -8,6 +8,101 @@ namespace NvtFwCombiner.ProfileContract.Tests;
 
 public sealed partial class TrustedProfileBundleCatalogFactoryTests
 {
+    /// <summary>Omitting a valid whole-region seed changes the first write policy, not output geometry.</summary>
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void OptionalSeedPreservesSelectedOverlayAndLowersOmittedFirstWrite(bool selected)
+    {
+        V2CompositionPlanCompileResult result = Compile(PrepareSupportedBlankCopy(
+            familyHash => ProfileWithOptionalSeed(SupportedProfileJson(familyHash), "valid")),
+            selectedInputSlotIds: selected ? ["optional-input"] : []);
+
+        Assert.True(result.IsCompiled, string.Join(" | ", result.Issues.Select(static issue => issue.Message)));
+        CompositionOperation overlay = Assert.Single(result.CompiledComposition!.Plan.OrderedOperations,
+            static operation => operation.OperationId != "copy-optional");
+        Assert.Equal(selected ? OverlapPolicy.ReplaceExisting : OverlapPolicy.Reject, overlay.OverlapPolicy);
+        Assert.Equal(new ByteRange(0, 16), overlay.TargetRange);
+    }
+
+    /// <summary>Missing or invalid omitted-seed proof must not relax the existing overlap contract.</summary>
+    [Theory]
+    [InlineData("no-seed")]
+    [InlineData("late-seed")]
+    [InlineData("source-slice")]
+    [InlineData("target-slice")]
+    [InlineData("short-source")]
+    public void OptionalSeedRejectsUnprovenFirstWrite(string scenario)
+    {
+        V2CompositionPlanCompileResult result = Compile(PrepareSupportedBlankCopy(
+            familyHash => ProfileWithOptionalSeed(SupportedProfileJson(familyHash), scenario)),
+            selectedInputSlotIds: []);
+
+        Assert.Null(result.CompiledComposition);
+        Assert.Contains(result.Issues, static issue => issue.Code == "profile.v2.plan.operation-overlap");
+    }
+
+    /// <summary>Sequence uniqueness and immutable-target rules reject invalid seeds before lowering.</summary>
+    [Theory]
+    [InlineData("same-sequence", "Operation sequences must be unique")]
+    [InlineData("wrong-space", "Operations cannot target immutable input spaces")]
+    public void OptionalSeedRejectsInvalidDeclarationAtAdmission(string scenario, string message)
+    {
+        TrustedProfileBundleCatalogException error = Assert.Throws<TrustedProfileBundleCatalogException>(() =>
+            Compile(PrepareSupportedBlankCopy(familyHash =>
+                ProfileWithOptionalSeed(SupportedProfileJson(familyHash), scenario)), selectedInputSlotIds: []));
+        Assert.Contains(message, error.Message, StringComparison.Ordinal);
+    }
+
+    private static string ProfileWithOptionalSeed(string profileJson, string scenario)
+    {
+        JsonObject profile = Assert.IsType<JsonObject>(JsonNode.Parse(ProfileWithInactiveOptionalBranch(profileJson)));
+        JsonObject target = Assert.IsType<JsonObject>(Assert.IsType<JsonArray>(profile["views"])
+            .Single(view => view!["viewId"]!.GetValue<string>() == "output-code"));
+        target["selector"] = new JsonObject { ["kind"] = "map-region", ["regionId"] = "root" };
+        if (scenario == "target-slice")
+        {
+            target["selector"] = new JsonObject
+            {
+                ["kind"] = "space-range",
+                ["range"] = new JsonObject { ["start"] = 0, ["length"] = 16 },
+            };
+        }
+        JsonArray operations = Assert.IsType<JsonArray>(profile["operations"]);
+        JsonObject overlay = Assert.IsType<JsonObject>(operations[0]);
+        overlay["sequence"] = 100;
+        overlay["overlapPolicy"] = "replace-existing";
+        JsonObject seed = Assert.IsType<JsonObject>(operations[1]);
+        if (scenario == "wrong-space") { seed["targetViewId"] = "tp-code"; }
+        if (scenario == "no-seed") { operations.RemoveAt(1); }
+        if (scenario == "late-seed") { seed["sequence"] = 200; }
+        if (scenario == "same-sequence") { seed["sequence"] = 100; }
+        if (scenario == "source-slice")
+        {
+            JsonObject source = Assert.IsType<JsonObject>(Assert.IsType<JsonArray>(profile["views"])
+                .Single(view => view!["viewId"]!.GetValue<string>() == "optional-view"));
+            source["selector"] = new JsonObject
+            {
+                ["kind"] = "space-range",
+                ["range"] = new JsonObject { ["start"] = 0, ["length"] = 16 },
+            };
+        }
+        if (scenario == "short-source")
+        {
+            JsonNode slot = Assert.IsType<JsonArray>(profile["inputSlots"])
+                .Single(slot => slot!["slotId"]!.GetValue<string>() == "optional-input")!;
+            slot["acceptance"]!["lengthRule"] = new JsonObject
+            {
+                ["kind"] = "declared-prefix-with-warning",
+                ["requiredEndExclusive"] = 8,
+                ["expectedOuterLengths"] = new JsonArray(8),
+                ["shortInputIssueCode"] = "INPUT_SHORT",
+                ["unexpectedOuterLengthIssueCode"] = "INPUT_OUTER_LENGTH",
+            };
+        }
+        return profile.ToJsonString(new JsonSerializerOptions { WriteIndented = true });
+    }
+
     /// <summary>Verifies profile-owned fill and patch declarations lower through the same V2 plan and target access gate.</summary>
     [Fact]
     public void BlankOutputLoweringBuildsFillAndPatchOperations()

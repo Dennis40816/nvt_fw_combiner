@@ -1,0 +1,46 @@
+{
+  "schemaVersion": 2,
+  "taskId": "GOV-114-LOCAL-CONTINUATION-62",
+  "capability": "Separate bounded local R1 continuation from integration evidence admission",
+  "integrationBase": "a0fc6a9f816ee677c87283d8e3c708d293be1482",
+  "risk": "R2",
+  "kind": "governance",
+  "state": "final-complete",
+  "mutablePaths": [
+    "AGENTS.md",
+    ".agents/skills/implement/SKILL.md",
+    ".agents/skills/polytail/SKILL.md",
+    "docs/governance/development-execution-workflow.md",
+    "docs/governance/capability-reuse-record.md",
+    "docs/policies/polytail.md",
+    "docs/adr/0054-finalize-capability-reuse-records.md",
+    "docs/adr/0070-bounded-local-r1-continuation.md"
+  ],
+  "implementationOwner": "primary-agent",
+  "searchEvidence": [
+    "Root task autonomy conflicts with development-execution-workflow review checkpoints forbidding follow-on development while any committed design-active record remains. Repeated owner-approved R1 visual corrections are stopped only by that sequencing rule.",
+    "validate_repository.py validate_capability_reuse_governance remains the only staged/history/checkpoint validator. validate_agent_files calls it; verify.py verify_structure and CI call the repository validator. No script, schema, check selection or acceptance result changes."
+  ],
+  "semanticOwner": "development-execution-workflow owns the bounded local R1 path; ADR0070 narrows ADR0054's local-start applicability without changing checkpoint mechanics.",
+  "terminalContract": "Owner explicitly requests fixing the restriction before further development on 2026-09-09. Permit only authorized bounded local R1 corrections after owner-reuse preflight, scope/base/path/acceptance evidence, narrow tests and scoped Polytail. Pending integration records alone do not require a fresh waiver. R2/R3 staged admission and all firmware/external/CI/integration/release requirements remain. Preserve old immutable records, record failures truthfully and never claim a valid checkpoint or integration pass from local commits. Current governance correction is separately owner-authorized R2, not mislabeled R1.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "ctrlram_readability (GPT-5.6 Terra/high)",
+    "outcome": "approved",
+    "evidence": "Independent R2 admission approved bounded local R1 continuation only: explicit scope/base/paths/acceptance/tests/Polytail, no changed firmware or contract authority, no immutable-record editing, no validator bypass; R2/R3 and formal checkpoint requirements retained. Reviewed against source base 46782b16."
+  },
+  "implementationHead": "d32d4790ae124972487cfd8de137d442e72f12a0",
+  "reviewedHead": "d32d4790ae124972487cfd8de137d442e72f12a0",
+  "pathStateDigest": "dd47528da18b73a7edd179c4490945e2f6a2bd51f4a05671143b003e31e9a0e9",
+  "finalReview": {
+    "reviewer": "memory_coverage_inventory",
+    "outcome": "approved",
+    "evidence": "Scoped source PASS-WITH-HUMAN-GATE at frozen head carried forward from69eb36de5f8abbae518a3faed9502417de60d856 by exact Git blob comparison of every original mutablePath: zero path-content changes. Review covers CtrlRAM context admission/fingerprint/Report separation, display-only lane/hover/markers, bounded-local-R1 governance and typed input guidance; ADR0052 DP-label discrepancy resolved. Existing tests reused, no fresh execution. All original mutablePaths remain reviewed and digest-bound; integrationPaths assigns unique final ownership only. Owner authorized evidence-first sequencing for this batch on2026-09-10, expiring when its exact-head R3 attestations are committed; reason: validator requires existing final-evidence commit before attestation. No R3/Golden/CI/package/publication gate waived; final-complete denotes source-review lifecycle, not release readiness."
+  },
+  "integrationPaths": [
+    "AGENTS.md",
+    ".agents/skills/implement/SKILL.md",
+    ".agents/skills/polytail/SKILL.md",
+    "docs/policies/polytail.md"
+  ]
+}

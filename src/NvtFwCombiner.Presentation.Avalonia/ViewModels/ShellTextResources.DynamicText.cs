@@ -84,13 +84,18 @@ internal sealed partial class ShellTextResources
         return mode switch
         {
             ExperienceIds.CtrlRamReplace => SelectLanguage(
-                "Base firmware (FlashCode / TP FW)",
-                "基底韌體 (FlashCode / TP FW)"),
+                "Base firmware",
+                "基底韌體"),
             ExperienceIds.DpReplace or ExperienceIds.GeneralReplace => SelectLanguage(
                 "Base firmware (FlashCode)",
                 "基底韌體 (FlashCode)"),
             _ => SelectLanguage("Base firmware", "基底韌體"),
         };
+    }
+
+    public static string GetReplaceBaseSubtitle(string mode)
+    {
+        return mode == ExperienceIds.CtrlRamReplace ? "FlashCode / TP FW" : string.Empty;
     }
 
     public string GetReplaceBaseDescription(string mode, string? dpReferenceCapacityLabel)
@@ -254,6 +259,8 @@ internal sealed partial class ShellTextResources
                 InputArtifactInspectionIssueCodes.AbVersionMetadataUnknown) => SelectLanguage(
                 "Warning: version metadata is Unknown; Build remains available.",
                 "警告：版本資訊為 Unknown；仍可執行 Build。"),
+            AuthoringSlotLifecycle.Warning when GetInputIssueHelp(status.InspectionIssueCode ?? string.Empty, "warning") is { } help =>
+                $"{help.Detail}\n{SelectLanguage("Diagnostic code", "診斷代碼")}: {status.InspectionIssueCode}",
             AuthoringSlotLifecycle.Warning => SelectLanguage(
                 $"Warning: profile content check {status.InspectionIssueCode}; review before Build.",
                 $"警告：profile 內容檢查 {status.InspectionIssueCode}；Build 前請確認。"),
@@ -273,7 +280,8 @@ internal sealed partial class ShellTextResources
         int selectedCount,
         int requiredCount,
         int blockingCount,
-        int warningCount)
+        int warningCount,
+        bool requiresDp = true)
     {
         return !supported
             ? SelectLanguage(
@@ -285,8 +293,8 @@ internal sealed partial class ShellTextResources
                 $"Build blocked：{blockingCount} 個 input 錯誤 · 已選 {selectedCount}/{requiredCount}。")
             : selectedCount < requiredCount
             ? SelectLanguage(
-                $"Select DP_AB, TPA, and TPB · {selectedCount}/{requiredCount} selected.",
-                $"請選擇 DP_AB、TPA 與 TPB · 已選 {selectedCount}/{requiredCount}。")
+                $"Select {(requiresDp ? "DP_AB, TPA, and TPB" : "TPA and TPB")} · {selectedCount}/{requiredCount} selected.",
+                $"請選擇 {(requiresDp ? "DP_AB、TPA 與 TPB" : "TPA 與 TPB")} · 已選 {selectedCount}/{requiredCount}。")
             : warningCount > 0
             ? SelectLanguage(
                 $"Ready with {warningCount} warning(s): review highlighted inputs before Build.",
@@ -404,7 +412,7 @@ internal sealed partial class ShellTextResources
     {
         return bytes > 0 && bytes % 1024 == 0
             ? FormattableString.Invariant($"{bytes / 1024} KiB")
-            : FormattableString.Invariant($"{bytes} bytes");
+            : FormattableString.Invariant($"{bytes} {(bytes == 1 ? "byte" : "bytes")}");
     }
 
     public string GetReplaceMemorySummary(string mode)

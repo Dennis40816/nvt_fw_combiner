@@ -172,12 +172,21 @@ internal sealed partial class ReportReviewViewModel
 
     public bool HasNoPrimaryIssue => !HasPrimaryIssue;
 
-    public bool IsClean => !HasPrimaryIssue && !HasWarnings;
+    public bool IsClean => !IsOutcomeUnknown && !HasPrimaryIssue && !HasWarnings;
+
+    public bool IsOutcomeUnknown { get; }
+
+    public bool HasKnownBlockingOutcome => !IsOutcomeUnknown && HasPrimaryIssue;
+
+    public bool HasKnownWarningOutcome => !IsOutcomeUnknown && HasWarningsWithoutBlockingIssues;
 
     /// <summary>Primary report outcome shown before detailed evidence.</summary>
     public string OutcomeTitle { get; }
 
     public string OutcomeDetail { get; }
+
+    /// <summary>Bounded plain-language issue list shown before detailed report evidence.</summary>
+    public string SummaryIssueDescriptions { get; }
 
     public string OutcomeMeta { get; }
 

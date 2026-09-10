@@ -143,7 +143,7 @@ $WorkerBuild = Join-Path $WorkRoot 'worker-build'
 $WorkerDist = Join-Path $WorkRoot 'worker-dist'
 $IdleBuildWorkerStopper = Join-Path $PSScriptRoot 'stop-idle-build-workers.ps1'
 $CanonicalGoldenReleaseAllowlistPath = Join-Path $RepoRoot 'testdata/golden/release-canonical-v1.json'
-$ApprovedCanonicalGoldenReleaseAllowlistSha256 = '968e6bd3cdfb304a0bdf0272fd28d2b43c2a117d2f33a5913c16b84480c1b495'
+$ApprovedCanonicalGoldenReleaseAllowlistSha256 = '18628e43e7b4789c9ec94f911e55b5dd2b50bd272aa13e0ba55350e8fa911e00'
 
 try {
 if (-not $PolicyDryRunSentinel) {
@@ -277,7 +277,7 @@ $PackageTrustIndexPackagePath = 'profiles/built-in/package-trust-index.json'
 $ApprovedCanonicalCapabilityPolicyPackageContract = [pscustomobject]@{
     path = 'docs/contracts/canonical-capability-policy-v1.json'
     role = 'capabilityPolicy'
-    sha256 = '6207923baf537c4031f2095942d363660c7a1c5cbd35e704ec14b28c509aef0f'
+    sha256 = 'bdaf79abc47aa2a7ffbef936ac4ad9758c331604bfc722487dfb5a90df1683bd'
 }
 
 $ApprovedCanonicalCapabilityPolicyPackagePath =
@@ -427,7 +427,7 @@ function Get-BuiltInProfilePackagePaths {
     }
     $PublishedTrustIndex = Get-Content -LiteralPath $PublishedTrustIndexPath -Raw |
         ConvertFrom-Json -Depth 32
-    if ([string]$PublishedTrustIndex.schemaVersion -ne '1.1' -or
+    if ([string]$PublishedTrustIndex.schemaVersion -ne '1.3' -or
         [string]$PublishedTrustIndex.trustAnchorBindingId -ne 'built-in-profile-bundle-v2') {
         throw 'Published package trust index has an unsupported schema or trust anchor.'
     }
@@ -797,8 +797,8 @@ function Invoke-ExternalToolPolicyDryRun {
 
         $GoldenPaths = @(Get-DeclaredCanonicalGoldenPaths)
         $GoldenBinPaths = @($GoldenPaths | Where-Object { $_.EndsWith('.bin', [StringComparison]::OrdinalIgnoreCase) })
-        if ($GoldenBinPaths.Count -ne 148 -or $script:CanonicalGoldenPackageManifest.cases.Count -ne 35) {
-            throw 'Canonical package selection did not retain 148 unique BIN paths and 35 direct/input/alias cases.'
+        if ($GoldenBinPaths.Count -ne 164 -or $script:CanonicalGoldenPackageManifest.cases.Count -ne 40) {
+            throw 'Canonical package selection did not retain 164 unique BIN paths and 40 direct/input/alias cases.'
         }
         if (@($GoldenPaths | Where-Object {
             $_ -like 'testdata/diagnostics/*' -or
@@ -861,7 +861,7 @@ function Invoke-ExternalToolPolicyDryRun {
             },
             [pscustomobject]@{
                 Name = 'dependent-alias-without-source'
-                ExpectedMessage = '*does not select its exact same-workflow direct Golden source*'
+                ExpectedMessage = '*does not select its exact same-workflow direct evidence source*'
                 Mutate = {
                     param($Allowlist)
                     $Alias = @($Allowlist.cases | Where-Object {
@@ -869,6 +869,50 @@ function Invoke-ExternalToolPolicyDryRun {
                     })[0]
                     $SourceCaseId = [string]$Alias.alias.sourceCaseId
                     $Allowlist.cases = @($Allowlist.cases | Where-Object { $_.caseId -cne $SourceCaseId })
+                }
+            },
+            [pscustomobject]@{
+                Name = 'input-evidence-alias-without-source'
+                ExpectedMessage = '*does not select its exact same-workflow direct evidence source*'
+                Mutate = {
+                    param($Allowlist)
+                    $Allowlist.cases = @($Allowlist.cases | Where-Object {
+                        $_.caseId -cne 'nt51927-2chip-self-20260705'
+                    })
+                }
+            },
+            [pscustomobject]@{
+                Name = 'alias-to-alias-source'
+                ExpectedMessage = '*differs from the explicit release allowlist*'
+                Mutate = {
+                    param($Allowlist)
+                    $Aliases = @($Allowlist.cases | Where-Object {
+                        $_.directGolden -eq $false -and $_.directEvidence -eq $false
+                    })
+                    $Aliases[0].alias.sourceCaseId = $Aliases[1].caseId
+                }
+            },
+            [pscustomobject]@{
+                Name = 'cross-workflow-alias-source'
+                ExpectedMessage = '*differs from the explicit release allowlist*'
+                Mutate = {
+                    param($Allowlist)
+                    $Alias = @($Allowlist.cases | Where-Object {
+                        $_.directGolden -eq $false -and $_.directEvidence -eq $false
+                    })[0]
+                    $Source = @($Allowlist.cases | Where-Object {
+                        $_.directGolden -eq $true -and $_.workflow -cne $Alias.workflow
+                    })[0]
+                    $Alias.alias.sourceCaseId = $Source.caseId
+                }
+            },
+            [pscustomobject]@{
+                Name = 'input-evidence-both-direct-kinds'
+                ExpectedMessage = '*directGolden differs from the explicit release allowlist*'
+                Mutate = {
+                    param($Allowlist)
+                    $InputEvidence = @($Allowlist.cases | Where-Object { $_.directEvidence -eq $true })[0]
+                    $InputEvidence.directGolden = $true
                 }
             },
             [pscustomobject]@{
@@ -1007,7 +1051,7 @@ function Invoke-ExternalToolPolicyDryRun {
         Write-Host 'Built-in profile package policy dry-run passed: manifest-pinned materialized files included, entry hashes closed, and unexpected file rejected.'
         Write-Host 'Runtime catalog package policy dry-run passed: approved files included and unexpected file rejected.'
         Write-Host 'Retired support publication policy package dry-run passed: no parallel publicationPolicy payload entered staging or manifest.'
-        Write-Host 'Canonical golden package policy dry-run passed: 25 direct Goldens, one owner-certified input-only evidence case, nine self-contained aliases, 161 declarations, and 158 unique artifact paths selected.'
+        Write-Host 'Canonical golden package policy dry-run passed: 25 direct Goldens, three owner-certified input-only evidence cases, twelve self-contained aliases, 177 declarations, and 174 unique artifact paths selected.'
         Write-Host 'Canonical golden package policy identity, direct/input/alias drift, retired-IC, and strict-type rejection passed.'
         Write-Host 'Release hash-list policy dry-run passed: Unicode paths round-trip through UTF-8.'
     }
@@ -1101,9 +1145,9 @@ function Get-DeclaredCanonicalGoldenPaths {
     $ReleaseAllowlist = Get-Content -LiteralPath $ReleaseAllowlistPath -Raw | ConvertFrom-Json -Depth 100
     if ($ReleaseAllowlist.schemaVersion -ne '1.1' -or
         $ReleaseAllowlist.policyId -ne 'canonical-reference-v1' -or
-        $ReleaseAllowlist.authorizedForVersion -ne '1.1.3' -or
+        $ReleaseAllowlist.authorizedForVersion -ne '1.1.4' -or
         $ReleaseAllowlist.releaseStatus -ne 'human-gated-allowlist' -or
-        $ReleaseAllowlist.redistributionAuthorization.authorizedOn -ne '2026-09-05' -or
+        $ReleaseAllowlist.redistributionAuthorization.authorizedOn -ne '2026-09-10' -or
         $ReleaseAllowlist.redistributionAuthorization.authorizedBy -ne 'repository owner' -or
         $ReleaseAllowlist.redistributionAuthorization.scope -ne 'reference-payload-only' -or
         $ReleaseAllowlist.redistributionAuthorization.supersedesHistoricalCaseRestrictions -ne $true -or
@@ -1111,12 +1155,12 @@ function Get-DeclaredCanonicalGoldenPaths {
         $ReleaseAllowlist.authorityLimits.fullByteParityClaim -ne $false) {
         throw 'Canonical golden release allowlist has invalid identity, authorization, or authority limits.'
     }
-    if ([int]$ReleaseAllowlist.selectionSummary.caseCount -ne 35 -or
+    if ([int]$ReleaseAllowlist.selectionSummary.caseCount -ne 40 -or
         [int]$ReleaseAllowlist.selectionSummary.directGoldenCount -ne 25 -or
-        [int]$ReleaseAllowlist.selectionSummary.directInputEvidenceCount -ne 1 -or
-        [int]$ReleaseAllowlist.selectionSummary.factScopedAliasCount -ne 9 -or
-        [int]$ReleaseAllowlist.selectionSummary.artifactDeclarationCount -ne 161 -or
-        [int]$ReleaseAllowlist.selectionSummary.uniqueArtifactPathCount -ne 158) {
+        [int]$ReleaseAllowlist.selectionSummary.directInputEvidenceCount -ne 3 -or
+        [int]$ReleaseAllowlist.selectionSummary.factScopedAliasCount -ne 12 -or
+        [int]$ReleaseAllowlist.selectionSummary.artifactDeclarationCount -ne 177 -or
+        [int]$ReleaseAllowlist.selectionSummary.uniqueArtifactPathCount -ne 174) {
         throw 'Canonical golden release allowlist selection summary differs from the exact approved scope.'
     }
     $CanonicalReadmePath = Join-Path $GoldenRoot 'README.md'
@@ -1253,14 +1297,17 @@ function Get-DeclaredCanonicalGoldenPaths {
             continue
         }
         $SourceCaseId = [string]$ApprovedCase.alias.sourceCaseId
-        if (-not $SelectedCaseFacts.ContainsKey($SourceCaseId) -or
-            $SelectedCaseFacts[$SourceCaseId].directGolden -ne $true -or
-            [string]$SelectedCaseFacts[$SourceCaseId].workflow -cne [string]$ApprovedCase.workflow) {
-            throw "Canonical alias '$($ApprovedCase.caseId)' does not select its exact same-workflow direct Golden source '$SourceCaseId'."
+        $Source = $ApprovedCases[$SourceCaseId]
+        if (-not $SelectedCaseFacts.ContainsKey($SourceCaseId) -or $null -eq $Source -or
+            -not (($Source.directGolden -eq $true -and $Source.directEvidence -eq $false) -or
+                ($Source.directGolden -eq $false -and $Source.directEvidence -eq $true -and
+                 $Source.testDispositionKind -ceq 'input-only-evidence')) -or
+            [string]$Source.workflow -cne [string]$ApprovedCase.workflow) {
+            throw "Canonical alias '$($ApprovedCase.caseId)' does not select its exact same-workflow direct evidence source '$SourceCaseId'."
         }
     }
-    if ($SelectedCases.Count -ne 35 -or $DirectInputEvidenceCount -ne 1 -or $ArtifactDeclarationCount -ne 161 -or $Paths.Count -ne 194) {
-        throw 'Canonical golden package projection differs from 35 cases, one input-evidence case, 161 declarations, or 158 unique artifacts.'
+    if ($SelectedCases.Count -ne 40 -or $DirectInputEvidenceCount -ne 3 -or $ArtifactDeclarationCount -ne 177 -or $Paths.Count -ne 215) {
+        throw 'Canonical golden package projection differs from 40 cases, three input-evidence cases, 177 declarations, or 174 unique artifacts.'
     }
 
     $script:CanonicalGoldenPackageManifest = [ordered]@{
@@ -1413,7 +1460,7 @@ This directory contains human-review reference evidence and owner-approved golde
 Included:
 - docs/references/: flash-map, postbuild, flash-header, and provenance references.
 - docs/architecture/: CtrlRAM postbuild investigation and IC workflow references.
-- testdata/golden/canonical/: 25 Direct Golden cases, one owner-certified input-only evidence case, and nine self-contained fact-scoped alias manifests.
+- testdata/golden/canonical/: 25 Direct Golden cases, three owner-certified input-only evidence cases, and twelve self-contained fact-scoped alias manifests.
 
 Non-allowlisted private firmware, diagnostics, owner-handoff records, unmanifested BIN files, generated firmware outputs, refcode, source trees, and test projects are not shipped here.
 "@ | Set-Content -LiteralPath (Join-Path $ReferenceDestination 'README.txt') -Encoding utf8NoBOM
@@ -1492,7 +1539,7 @@ Contents:
 - RELEASE-MANIFEST.json: source and file integrity metadata
 - SHA256SUMS.txt: package file hashes
 
-This exact release selection includes 25 Direct Golden cases, one selected owner-certified input-only evidence case, and nine self-contained evidence aliases across Standard Merge, AB Merge, and CtrlRAM Replace under reference/testdata/golden/canonical. The selected input-only case contains two neutral-named raw input BIN entries; it is not an expected output, Direct Golden, parity claim, runtime path, or support promotion. Eleven Direct Goldens use full-output comparison; fourteen retain their reviewed allowed-byte-difference scope. Two older input-only evidence cases and their three dependent aliases remain repository-only. Diagnostics, owner handoff records, CJK14/HackMD transfer material, archives, private or quarantine evidence, unmanifested BIN files, generated firmware outputs, refcode, production source tree, test projects, editable source profiles, Python runtime installation, and .NET installation requirements are excluded. The packaged BAT and CONFIG provenance are inert reference bytes only and are never tools, processors, or commands. Packaging reference evidence does not promote runtime support.
+This exact release selection includes 25 Direct Golden cases, three selected owner-certified input-only evidence cases, and twelve self-contained evidence aliases across Standard Merge, AB Merge, and CtrlRAM Replace under reference/testdata/golden/canonical. Input-only cases retain all declared input BINs for manual package testing; neither these cases nor their aliases claim an expected output, Direct Golden status, parity, a runtime path, or support promotion. Eleven Direct Goldens use full-output comparison; fourteen retain their reviewed allowed-byte-difference scope. Diagnostics, owner handoff records, CJK14/HackMD transfer material, archives, private or quarantine evidence, unmanifested BIN files, generated firmware outputs, refcode, production source tree, test projects, editable source profiles, Python runtime installation, and .NET installation requirements are excluded. The packaged BAT and CONFIG provenance are inert reference bytes only and are never tools, processors, or commands. Packaging reference evidence does not promote runtime support.
 "@ | Set-Content -LiteralPath (Join-Path $PackageRoot 'README.txt') -Encoding utf8NoBOM
 }
 

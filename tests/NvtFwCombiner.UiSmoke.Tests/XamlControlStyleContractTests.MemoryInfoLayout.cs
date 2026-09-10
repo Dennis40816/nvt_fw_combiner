@@ -1,10 +1,12 @@
 using System.Text.Json;
+using System.Xml.Linq;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
 using Avalonia.Controls.Templates;
 using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
+using Avalonia.Input;
 using Avalonia.Markup.Xaml.Styling;
 using Avalonia.Media;
 using Avalonia.Styling;
@@ -44,6 +46,7 @@ public sealed partial class XamlControlStyleContractTests
     {
         MainWindowViewModel viewModel = await CreateNt51950GoldenCtrlRamViewModelAsync(
             TestContext.Current.CancellationToken);
+        viewModel.IsReducedMotionEnabled = true;
         if (useTraditionalChinese)
         {
             viewModel.SelectedLanguage = "Traditional Chinese";
@@ -77,6 +80,7 @@ public sealed partial class XamlControlStyleContractTests
             Width = railWidth,
             Height = 760,
             RequestedThemeVariant = theme,
+            DataContext = viewModel,
             Content = viewport,
         };
         host.Resources.MergedDictionaries.Add(new ResourceInclude(ProductionSharedTemplatesUri)
@@ -109,54 +113,62 @@ public sealed partial class XamlControlStyleContractTests
                 viewModel.Replace.ReplaceCoverageGroups,
                 group => group.RegionGroup == ReplaceRegionGroup.Common);
             Assert.Equal(3, common.Items.Count);
-            Assert.Equal(
-                1,
-                panel.GetVisualDescendants().OfType<TextBlock>()
-                    .Count(candidate => candidate.Text == "NF CtrlRAM" && candidate.Bounds.Width > 0));
-            string expectedSelectedSummary = useTraditionalChinese
-                ? "已選取的 CtrlRAM 區域 · 3"
-                : "Selected CtrlRAM regions · 3";
-            string expectedBaseSummary = useTraditionalChinese
-                ? "基底韌體（FlashCode / TP FW）· 保留"
-                : "Base firmware (FlashCode / TP FW) · retained";
-            Assert.Contains(
-                panel.GetVisualDescendants().OfType<TextBlock>(),
-                candidate => candidate.Text == expectedSelectedSummary && candidate.Bounds.Width > 0);
-            Assert.Contains(
-                panel.GetVisualDescendants().OfType<TextBlock>(),
-                candidate => candidate.Text == expectedBaseSummary && candidate.Bounds.Width > 0);
+            Assert.True(viewModel.Replace.HasCtrlRamFocusLayout);
             Assert.DoesNotContain(
                 panel.GetVisualDescendants().OfType<TextBlock>(),
-                candidate => candidate.Text == "Common" && candidate.Bounds.Width > 0);
-            Assert.DoesNotContain(
-                panel.GetVisualDescendants().OfType<Label>(),
-                candidate => Equals(candidate.Content, "3/3") && candidate.Bounds.Width > 0);
+                candidate => candidate.Text == viewModel.Replace.ReplaceSelectedCoverageSummary && candidate.IsEffectivelyVisible);
             Assert.All(
                 panel.GetVisualDescendants().OfType<Control>()
-                    .Where(candidate => candidate.Bounds is { Width: > 0, Height: > 0 }),
+                    .Where(candidate => candidate.IsEffectivelyVisible && candidate.Bounds is { Width: > 0, Height: > 0 }),
                 candidate => AssertControlFitsWidth(candidate, panel));
             AssertVisibleTextDoesNotOverlap(panel);
 
-            ProportionalStackPanel proportionalBar = Assert.Single(
-                panel.GetVisualDescendants().OfType<ProportionalStackPanel>());
-            Control[] arrangedSegments =
-                [.. proportionalBar.Children.Where(child => child.Bounds.Width > 0)];
-            Assert.NotEmpty(arrangedSegments);
-            Assert.Equal(0d, arrangedSegments[0].Bounds.X, 1);
-            Assert.Equal(
-                proportionalBar.Bounds.Width,
-                arrangedSegments[^1].Bounds.Right,
-                1);
-            Assert.True(proportionalBar.Bounds.Width > 300d);
-            Assert.Equal(
-                3,
-                panel.GetVisualDescendants().OfType<Border>()
-                    .Count(candidate => candidate.Classes.Contains("memoryCoverageLinkedRow") &&
-                        candidate.Bounds.Width > 0));
-            Expander baseDisclosure = Assert.Single(
-                panel.GetVisualDescendants().OfType<Expander>(),
-                candidate => candidate.Classes.Contains("inlineDisclosure"));
-            Assert.False(baseDisclosure.IsExpanded);
+            MemoryCoverageBar[] bars = [.. panel.GetVisualDescendants().OfType<MemoryCoverageBar>().Where(bar => bar.IsEffectivelyVisible)];
+            MemoryCoverageBar overview = Assert.Single(bars);
+            foreach (MemoryCoverageBar bar in bars)
+            {
+                ProportionalStackPanel proportionalBar = bar.GetVisualDescendants().OfType<ProportionalStackPanel>().First();
+                Control[] arrangedSegments = [.. proportionalBar.Children.Where(child => child.Bounds.Width > 0)];
+                Assert.NotEmpty(arrangedSegments);
+                Assert.Equal(0d, arrangedSegments[0].Bounds.X, 1);
+                Assert.Equal(proportionalBar.Bounds.Width, arrangedSegments[^1].Bounds.Right, 1);
+                Assert.True(proportionalBar.Bounds.Width > 300d);
+            }
+            Assert.DoesNotContain(panel.GetVisualDescendants().OfType<Expander>(),
+                candidate => candidate.Classes.Contains("inlineDisclosure") && candidate.IsEffectivelyVisible);
+
+            Assert.NotEmpty(viewModel.Replace.CtrlRamFocusLanes);
+            bool sawVisibleNf = false;
+            foreach (MemoryFocusLaneViewModel lane in viewModel.Replace.CtrlRamFocusLanes)
+            {
+                ProportionalStackPanel localStrip = CtrlRamMemoryLayoutTests.OpenLane(host, lane);
+                Border local = Assert.Single(host.GetVisualDescendants().OfType<Border>(), candidate => candidate.Name == "MemoryLocalView");
+                Assert.Contains(local.GetVisualDescendants().OfType<TextBlock>(), candidate =>
+                    candidate.Text == lane.Title && candidate.IsEffectivelyVisible);
+                Assert.Contains(local.GetVisualDescendants().OfType<TextBlock>(), candidate =>
+                    candidate.Text?.StartsWith(viewModel.Replace.Text.MemoryCtrlRamDetailLabel + " · ", StringComparison.Ordinal) == true && candidate.IsEffectivelyVisible);
+                sawVisibleNf |= local.GetVisualDescendants().OfType<TextBlock>().Any(candidate =>
+                    candidate.Text == "NF" && candidate.IsEffectivelyVisible);
+                AssertControlFitsWidth(local, panel);
+                AssertVisibleTextDoesNotOverlap(local);
+                Control[] cells = [.. localStrip.Children.Where(child => child.Bounds.Width > 0)];
+                Assert.NotEmpty(cells);
+                Assert.Equal(0d, cells[0].Bounds.X, 1);
+                // Same independently snapped child-width contract as
+                // CtrlRamMemoryLayoutTests.AssertLiftIsNotClipped; overview precision above is unchanged.
+                Assert.InRange(cells[^1].Bounds.Right - localStrip.Bounds.Width, -1, 1);
+                Assert.InRange(localStrip.Bounds.Width, 1, overview.Bounds.Width);
+                foreach (Control cell in cells)
+                {
+                    Assert.True(cell.Focus(NavigationMethod.Tab));
+                    Dispatcher.UIThread.RunJobs();
+                    AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+                    Border card = Assert.Single(host.GetVisualDescendants().OfType<Border>(), candidate => candidate.Name == "MemorySliceCard");
+                    Assert.Same(cell.DataContext, card.DataContext);
+                    AssertControlFitsWidth(card, panel);
+                }
+            }
+            Assert.True(sawVisibleNf, "The real NF segment must be visible after opening its lane; shared DiffDLM has a separate lane.");
 
             using Avalonia.Media.Imaging.Bitmap? frame = host.GetLastRenderedFrame();
             Assert.NotNull(frame);
@@ -240,7 +252,7 @@ public sealed partial class XamlControlStyleContractTests
 
         TextBlock source = Assert.Single(
             row.GetVisualDescendants().OfType<TextBlock>(),
-            candidate => candidate.Text == segment.SourceLabel);
+            candidate => candidate.Text == segment.DisplayTitle && candidate.Classes.Contains("bodyEmphasisText"));
         TextBlock address = Assert.Single(
             row.GetVisualDescendants().OfType<TextBlock>(),
             candidate => candidate.Text == segment.AddressRangeLabel);
@@ -260,9 +272,9 @@ public sealed partial class XamlControlStyleContractTests
         Point detailsOrigin = Assert.IsType<Point>(details.TranslatePoint(default, row));
 
         Assert.True(addressOrigin.Y >= sourceOrigin.Y + source.Bounds.Height);
-        Assert.Equal(sourceOrigin.X, addressOrigin.X, precision: 3);
-        Assert.Equal(addressOrigin.Y, lengthOrigin.Y, precision: 3);
-        Assert.True(lengthOrigin.X > addressOrigin.X);
+        Assert.True(addressOrigin.X > sourceOrigin.X);
+        Assert.True(lengthOrigin.Y >= addressOrigin.Y + address.Bounds.Height);
+        Assert.Equal(addressOrigin.X, lengthOrigin.X, precision: 3);
         Assert.True(descriptionOrigin.Y >= addressOrigin.Y + address.Bounds.Height);
         Assert.True(detailsOrigin.Y >= descriptionOrigin.Y + description.Bounds.Height);
         Assert.True(detailsOrigin.X + details.Bounds.Width <= row.Bounds.Width);
@@ -289,7 +301,8 @@ public sealed partial class XamlControlStyleContractTests
             rangeStart: 0x23700,
             rangeEndExclusive: 0x25610,
             addressRangeLabel: "0x23700-0x2560F",
-            lengthLabel: "len 0x1F10");
+            lengthLabel: "len 0x1F10",
+            addressSpaceId: "output");
         var writtenHead = new MemoryCoverageSegmentViewModel(
             "0x22C00-0x236FF",
             "NF CtrlRAM",
@@ -302,7 +315,8 @@ public sealed partial class XamlControlStyleContractTests
             rangeStart: 0x22C00,
             rangeEndExclusive: 0x23700,
             addressRangeLabel: "0x22C00-0x236FF",
-            lengthLabel: "len 0xB00");
+            lengthLabel: "len 0xB00",
+            addressSpaceId: "output");
         var logicalItem = new MemoryCoverageLogicalItemViewModel(
             "slot:replace-ctrlram-nf",
             [writtenHead, keptTail],
@@ -425,10 +439,12 @@ public sealed partial class XamlControlStyleContractTests
             "MaxHeight=\"320\"",
             ExtractDataTemplate(sharedTemplates, "MergeOutputLayoutPanelTemplate"),
             StringComparison.Ordinal);
-        Assert.Contains(
-            "<Expander Classes=\"inlineDisclosure\"",
-            ExtractDataTemplate(sharedTemplates, "FirmwareSlotGroupTemplate"),
-            StringComparison.Ordinal);
+        XElement slotGroupTemplate = Assert.Single(XDocument.Parse(sharedTemplates).Descendants(),
+            element => element.Name.LocalName == "DataTemplate" &&
+                element.Attributes().Any(attribute => attribute.Name.LocalName == "Key" && attribute.Value == "FirmwareSlotGroupTemplate"));
+        _ = Assert.Single(slotGroupTemplate.Descendants(),
+            element => element.Name.LocalName == "Expander" &&
+                ((string?)element.Attribute("Classes"))?.Split(' ').Contains("inlineDisclosure", StringComparer.Ordinal) == true);
         string replacePanelTemplate =
             ExtractDataTemplate(workflowTemplates, "ReplaceOutputLayoutPanelTemplate");
         Assert.Contains("Classes=\"inlineDisclosure\"", replacePanelTemplate, StringComparison.Ordinal);
@@ -447,11 +463,16 @@ public sealed partial class XamlControlStyleContractTests
     private static async Task<MainWindowViewModel> CreateNt51950GoldenCtrlRamViewModelAsync(
         CancellationToken cancellationToken)
     {
+        MainWindowViewModel viewModel = await PresentationTestHost.CreateViewModelAsync(cancellationToken);
+        await LoadNt51950GoldenCtrlRamInputsAsync(viewModel, cancellationToken);
+        return viewModel;
+    }
+
+    internal static async Task LoadNt51950GoldenCtrlRamInputsAsync(MainWindowViewModel viewModel, CancellationToken cancellationToken)
+    {
         JsonElement fixtureCase = CanonicalGoldenTestData.LoadDirectCase(
             "ctrlram-replace",
             "nt51950-fw200-single-auto-prj-676-20260717");
-        MainWindowViewModel viewModel = await PresentationTestHost.CreateViewModelAsync(
-            cancellationToken);
         viewModel.WorkflowSession.SelectedIc = "NT51950";
         viewModel.WorkflowSession.SelectedNumber = "single";
         OpenReplace(viewModel, ExperienceIds.CtrlRamReplace);
@@ -481,17 +502,11 @@ public sealed partial class XamlControlStyleContractTests
             }
         }
 
-        return viewModel;
     }
 
     private static void AssertControlFitsWidth(Control candidate, Control panel)
     {
-        Point? origin = candidate.TranslatePoint(default, panel);
-        if (origin is not { } point)
-        {
-            return;
-        }
-
+        Point point = Assert.IsType<Point>(candidate.TranslatePoint(default, panel));
         Assert.True(
             point.X >= -0.5 && point.X + candidate.Bounds.Width <= panel.Bounds.Width + 0.5,
             $"{candidate.GetType().Name} exceeded the 430 px Memory Layout rail: " +
@@ -502,7 +517,7 @@ public sealed partial class XamlControlStyleContractTests
     {
         TextBlock[] textBlocks =
             [.. panel.GetVisualDescendants().OfType<TextBlock>()
-                .Where(candidate => candidate.Bounds is { Width: > 0, Height: > 0 })];
+                .Where(candidate => candidate.IsEffectivelyVisible && candidate.Bounds is { Width: > 0, Height: > 0 })];
         for (int leftIndex = 0; leftIndex < textBlocks.Length; leftIndex++)
         {
             Point? leftOrigin = textBlocks[leftIndex].TranslatePoint(default, panel);

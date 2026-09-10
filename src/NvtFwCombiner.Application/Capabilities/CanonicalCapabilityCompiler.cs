@@ -1,6 +1,7 @@
 using NvtFwCombiner.Application.Composition;
 using NvtFwCombiner.Application.Metadata;
 using NvtFwCombiner.Domain.Composition;
+using NvtFwCombiner.Domain.Firmware;
 
 namespace NvtFwCombiner.Application.Capabilities;
 
@@ -159,7 +160,8 @@ internal sealed partial class CanonicalCapabilityCompilerAdapter :
         IReadOnlyCollection<string>? selectedInputSlotIds,
         out CompiledComposition? composition,
         out ResolvedCapability? resolvedCapability,
-        out IReadOnlyList<CompositionIssue> issues)
+        out IReadOnlyList<CompositionIssue> issues,
+        TopologySelection? requestedTopology = null)
     {
         resolvedCapability = null;
         string normalizedIcId = IcIdentifier.Normalize(icId);
@@ -202,7 +204,8 @@ internal sealed partial class CanonicalCapabilityCompilerAdapter :
             selectedInputSlotIds,
             out composition,
             out resolvedCapability,
-            out issues);
+            out issues,
+            requestedTopology);
         return true;
     }
 
@@ -331,7 +334,8 @@ internal sealed partial class CanonicalCapabilityCompilerAdapter :
         IReadOnlyCollection<string>? selectedInputSlotIds,
         out CompiledComposition? composition,
         out ResolvedCapability? resolvedCapability,
-        out IReadOnlyList<CompositionIssue> issues)
+        out IReadOnlyList<CompositionIssue> issues,
+        TopologySelection? requestedTopology = null)
     {
         _dynamicCompiler.Compile(
             route.Identity.IcId,
@@ -340,7 +344,8 @@ internal sealed partial class CanonicalCapabilityCompilerAdapter :
             selectedInputSlotIds,
             out CompiledComposition? compiled,
             out MetadataPlanDefinition? metadataPlan,
-            out issues);
+            out issues,
+            requestedTopology);
         if (compiled is null || issues.Count != 0)
         {
             composition = null;

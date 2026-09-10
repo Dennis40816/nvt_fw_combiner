@@ -60,7 +60,7 @@ internal static class AcceptedSessionCompositionExecution
             outputNamingAdmission: outputNaming?.Admission,
             resolvedCapability: inputs.Capability)
         {
-            PreparedOutputName = bundleDelivery?.Admission.PreparedOutputName,
+            PreparedOutputName = bundleDelivery?.PreparedOutputName,
             BundleDelivery = bundleDelivery,
             AcceptedGeneralMappingDraft = acceptedGeneralMappingDraft,
         };

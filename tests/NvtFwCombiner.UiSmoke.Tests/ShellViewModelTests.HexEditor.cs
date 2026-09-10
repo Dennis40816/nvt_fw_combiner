@@ -526,6 +526,8 @@ public sealed partial class RunAndHexEditorTests
 
         shell.ShowHomeCommand.Execute(null);
 
+        Assert.True(shell.Navigation.IsNavigationClearConfirmationOpen);
+        shell.Navigation.ConfirmNavigationAndClearCommand.Execute(null);
         Assert.False(shell.RequestHexEditorSaveCommand.CanExecute(null));
         Assert.False(shell.RequestHexEditorUndoCommand.CanExecute(null));
         Assert.False(shell.RequestHexEditorRedoCommand.CanExecute(null));

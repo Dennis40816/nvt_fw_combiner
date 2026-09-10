@@ -10,6 +10,66 @@ namespace NvtFwCombiner.Application.Tests.MemoryLayout;
 
 public sealed partial class MemoryLayoutProjectorTests
 {
+    /// <summary>No explicit or Report companion means neutral context, even if the primary has familiar labels.</summary>
+    [Fact]
+    public void NoAdmittedCompanionRemainsNeutral()
+    {
+        ProjectionFixture fixture = CreateFixture(CompositionKind.Replace,
+            customWorkflowId: ExperienceIds.CtrlRamReplace, ctrlRamMap: true);
+        ActiveSessionSnapshot session = CreateSession(fixture,
+            Slot("reference-base", AuthoringSlotLifecycle.Verified, Capacity),
+            Slot("dp-replacement", AuthoringSlotLifecycle.Verified, Capacity));
+        MemoryLayoutSnapshot layout = MemoryLayoutProjector.Project(fixture.Capability, session, fixture.Composition);
+        MemoryLayoutSectionLocator section = Assert.Single(layout.SectionLocators);
+        Assert.Equal(new ByteRange(0, Capacity), section.Range);
+        Assert.Equal(MemoryContentRole.General, section.ContentRole);
+        Assert.Null(section.MapId);
+        Assert.Null(section.CanonicalRegion);
+    }
+
+    /// <summary>Typed trace eligibility never changes the raw byte partition or planned operations.</summary>
+    [Theory]
+    [InlineData(CompositionKind.Merge, FirmwareRegionKind.Header, false)]
+    [InlineData(CompositionKind.Replace, FirmwareRegionKind.Header, false)]
+    [InlineData(CompositionKind.Merge, FirmwareRegionKind.Checksum, false)]
+    [InlineData(CompositionKind.Replace, FirmwareRegionKind.Checksum, false)]
+    [InlineData(CompositionKind.Merge, FirmwareRegionKind.Data, true)]
+    [InlineData(CompositionKind.Replace, FirmwareRegionKind.Data, true)]
+    public void PrimaryContentUsesCanonicalKindWithoutChangingRawFacts(CompositionKind kind, FirmwareRegionKind regionKind, bool primary)
+    {
+        ProjectionFixture baseline = CreateFixture(kind);
+        FirmwareRegion[] regions = [
+            new("flash-image", null, FirmwareRegionOwner.System, FirmwareRegionKind.Image, new ByteRange(0, Capacity), FirmwareWriteConstraint.Forbidden),
+            new("dp-code", "flash-image", FirmwareRegionOwner.System, regionKind, new ByteRange(0, 8), FirmwareWriteConstraint.ExplicitRange),
+            new("reserved-gap", "flash-image", FirmwareRegionOwner.Reserved, FirmwareRegionKind.Reserved, new ByteRange(8, 4), FirmwareWriteConstraint.Forbidden),
+            new("tp-code", "flash-image", FirmwareRegionOwner.Tp, FirmwareRegionKind.Code, new ByteRange(12, 4), FirmwareWriteConstraint.WholeRegion),
+        ];
+        ProjectionFixture fixture = CreateFixture(kind, customRegions: regions);
+        MemoryLayoutSnapshot expected = Project(baseline);
+        MemoryLayoutSnapshot actual = Project(fixture);
+        Assert.Equal(expected.BeforeSegments.Select(Facts), actual.BeforeSegments.Select(Facts));
+        Assert.Equal(expected.AfterSegments.Select(Facts), actual.AfterSegments.Select(Facts));
+        Assert.Equal(Capacity, actual.AfterSegments.Sum(static segment => segment.Range.Length));
+        Assert.All(actual.BeforeSegments.Concat(actual.AfterSegments), segment =>
+        {
+            Assert.Equal(segment.RegionId != "dp-code" || primary, segment.IsPrimaryContent);
+            if (segment.RegionId == "dp-code") { Assert.Same(fixture.DpRegion, segment.CanonicalRegion); }
+        });
+
+        MemoryLayoutSnapshot Project(ProjectionFixture source)
+        {
+            ActiveSessionSnapshot session = kind == CompositionKind.Merge
+                ? CreateSession(source, Slot("dp-input", AuthoringSlotLifecycle.Verified, Capacity), Slot("tp-input", AuthoringSlotLifecycle.Verified, Capacity))
+                : CreateSession(source, Slot("reference-base", AuthoringSlotLifecycle.Verified, Capacity), Slot("dp-replacement", AuthoringSlotLifecycle.Verified, Capacity));
+            return MemoryLayoutProjector.Project(source.Capability, session, source.Composition);
+        }
+        static object Facts(MemoryLayoutSegment segment)
+        {
+            return (segment.Range, segment.Disposition, segment.ProcessorEffect, segment.DiagnosticSeverity,
+                string.Join(",", segment.ContributingOperations.Select(static operation => operation.OperationId)));
+        }
+    }
+
     /// <summary>Canonical Vector CtrlRAM remains a distinct detailed display role.</summary>
     [Fact]
     public void CtrlRamDiscoveryPreservesVectorFamilyRole()
@@ -56,6 +116,8 @@ public sealed partial class MemoryLayoutProjectorTests
         Assert.Equal(2, facts.TargetRegionCount);
         Assert.True(facts.IsShared);
         Assert.Equal(3, facts.Sections.Count);
+        Assert.Equal([0x100L, 0x200L], facts.InputGuidanceTargets.Select(static target => target.TargetStart));
+        Assert.All(facts.InputGuidanceTargets, target => Assert.Equal(source.RequiredLength, target.RequiredInputLength));
         Assert.Equal("NF CtrlRAM (Shared)", slot.Title);
         Assert.Equal(ReplaceRegionGroup.Common, slot.RegionGroup);
     }
@@ -64,15 +126,16 @@ public sealed partial class MemoryLayoutProjectorTests
     [Fact]
     public void CtrlRamDiscoveryDoesNotCountBlocksAsPhysicalTargets()
     {
-        TpFlashMapRegion master = Region("nf-master", "NF CtrlRAM (Master)", 0x100);
+        var master = new TpFlashMapRegion("nf-master", "NF CtrlRAM (Master)",
+            TpFlashMapRegionKind.CtrlRam, new ByteRange(0x100, 4048));
         var source = new TpCtrlRamPostbuildSource(
             "nf",
             "NF_Ctrlram.bin",
             "nf",
-            0x20,
+            4048,
             [
                 Block("master-head", 0, new ByteRange(0x100, 0x10)),
-                Block("master-tail", 0x10, new ByteRange(0x110, 0x10)),
+                Block("master-tail", 0x10, new ByteRange(0x110, 4032)),
             ],
             [master],
             TpCtrlRamPostbuildArtifactRole.CtrlRam);
@@ -84,6 +147,9 @@ public sealed partial class MemoryLayoutProjectorTests
         Assert.Equal(1, facts.TargetRegionCount);
         Assert.False(facts.IsShared);
         Assert.Equal(2, facts.Sections.Count);
+        Assert.Equal([16L, 4032L], facts.Sections.Select(static section => section.MaximumLength));
+        CtrlRamInputGuidanceTarget guidance = Assert.Single(facts.InputGuidanceTargets);
+        Assert.Equal(new CtrlRamInputGuidanceTarget("nf-master", ReplaceRegionGroup.Master, 0x100, 4048), guidance);
         Assert.Equal("NF CtrlRAM (Master)", slot.Title);
         Assert.Equal(ReplaceRegionGroup.Master, slot.RegionGroup);
     }
@@ -98,7 +164,7 @@ public sealed partial class MemoryLayoutProjectorTests
             "diff-dlm",
             "DiffDLM.bin",
             "diff-dlm",
-            0x20,
+            0x2400,
             [
                 new LegacyCombinerBlockArgument(
                     "diff-master", LegacyCombinerBlockSourceKind.StagedArtifact, "DiffDLM.bin", 0,
@@ -118,6 +184,31 @@ public sealed partial class MemoryLayoutProjectorTests
         Assert.True(facts.IsShared);
         Assert.Equal("DiffDLM", slot.Title);
         Assert.Equal(ReplaceRegionGroup.Cascade, slot.RegionGroup);
+        Assert.Equal([0x300L, 0x400L], facts.InputGuidanceTargets.Select(static target => target.TargetStart));
+        // The admitted complete active-record prefix is not the sum of writable blocks.
+        Assert.All(facts.InputGuidanceTargets, target => Assert.Equal(0x2400, target.RequiredInputLength));
+        Assert.All(facts.Sections, section => Assert.Equal(0x10, section.MaximumLength));
+    }
+
+    /// <summary>Clients cannot silently omit or duplicate a physical target or invent an unusable input size.</summary>
+    [Theory]
+    [InlineData("missing")]
+    [InlineData("duplicate")]
+    [InlineData("zero-length")]
+    [InlineData("negative-start")]
+    public void CtrlRamGuidanceRejectsIncompleteOrInvalidTargets(string defect)
+    {
+        CtrlRamInputGuidanceTarget[] targets = defect switch
+        {
+            "missing" => [],
+            "duplicate" => [new("nf", ReplaceRegionGroup.Master, 0x100, 32), new("nf", ReplaceRegionGroup.SlaveRight, 0x200, 32)],
+            "zero-length" => [new("nf", ReplaceRegionGroup.Master, 0x100, 0)],
+            "negative-start" => [new("nf", ReplaceRegionGroup.Master, -1, 32)],
+            _ => throw new ArgumentOutOfRangeException(nameof(defect)),
+        };
+        _ = Assert.ThrowsAny<ArgumentException>(() => new CtrlRamInputDescriptionFacts("NF.bin",
+            [new("NF", ReplaceRegionGroup.Master, 32, 0x100, "NF")], false, "NF",
+            defect == "duplicate", defect == "duplicate" ? 2 : 1, targets));
     }
 
     /// <summary>Empty and duplicate target-region authority fails closed before projection publication.</summary>

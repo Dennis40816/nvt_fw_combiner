@@ -6,7 +6,7 @@ internal sealed partial class ReportReviewViewModel
 {
     private static int CountBlockingIssues(IReadOnlyList<ReportLineViewModel> issues)
     {
-        return issues.Count(issue => !IsWarning(issue));
+        return issues.Count(IsBlocking);
     }
 
     private static int CountWarnings(IReadOnlyList<ReportLineViewModel> issues)
@@ -22,9 +22,13 @@ internal sealed partial class ReportReviewViewModel
     private static bool IsWarning(ReportLineViewModel issue)
     {
         return string.Equals(issue.Severity, "warning", StringComparison.OrdinalIgnoreCase) ||
-            string.Equals(issue.Severity, "info", StringComparison.OrdinalIgnoreCase) ||
             (string.IsNullOrWhiteSpace(issue.Severity) &&
                 string.Equals(issue.Title, CompositionIssueCodes.InputAddressSpaceTruncated, StringComparison.Ordinal));
+    }
+
+    private static bool IsBlocking(ReportLineViewModel issue)
+    {
+        return !IsWarning(issue) && !string.Equals(issue.Severity, "info", StringComparison.OrdinalIgnoreCase);
     }
 
     internal static string Shorten(string text, int keep)

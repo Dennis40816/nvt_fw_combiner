@@ -26,7 +26,7 @@
     <Setter Property="Theme" Value="{StaticResource NfcSemanticButtonTheme}" />
     <Setter Property="FocusAdorner" Value="{x:Null}" />
   </Style>
-  <Style Selector="RadioButton.settingsNavItem">
+  <Style Selector="RadioButton.settingsNavItem, RadioButton.messageCenterNavigationItem, RadioButton.activityFilter">
     <Setter Property="Theme" Value="{StaticResource NfcSemanticButtonTheme}" />
     <Setter Property="FocusAdorner" Value="{x:Null}" />
   </Style>
@@ -243,7 +243,7 @@
     <Setter Property="Padding" Value="12,8" />
     <Setter Property="HorizontalAlignment" Value="Center" />
     <Setter Property="HorizontalContentAlignment" Value="Center" />
-    <Setter Property="FontSize" Value="16" />
+    <Setter Property="FontSize" Value="{DynamicResource NfcFontSize14}" />
     <Setter Property="Foreground" Value="{DynamicResource NfcAccentStrongBrush}" />
   </Style>
   <Style Selector="Button.versionReleaseNotesAction:pointerover /template/ ContentPresenter#PART_ContentPresenter">
@@ -251,9 +251,9 @@
     <Setter Property="BorderBrush" Value="{DynamicResource NfcAccentBorderLightBrush}" />
   </Style>
   <Style Selector="Button.versionInstallAction">
-    <Setter Property="MinWidth" Value="180" />
-    <Setter Property="MinHeight" Value="52" />
-    <Setter Property="FontSize" Value="16" />
+    <Setter Property="MinWidth" Value="150" />
+    <Setter Property="MinHeight" Value="40" />
+    <Setter Property="FontSize" Value="{DynamicResource NfcFontSize14}" />
     <Setter Property="Background" Value="{DynamicResource NfcAccentBrush}" />
     <Setter Property="BorderBrush" Value="{DynamicResource NfcAccentBrush}" />
     <Setter Property="Foreground" Value="{DynamicResource NfcSurfaceBrush}" />
@@ -267,10 +267,6 @@
     <Setter Property="Background" Value="{DynamicResource NfcAccentStrongBrush}" />
     <Setter Property="BorderBrush" Value="{DynamicResource NfcAccentStrongBrush}" />
     <Setter Property="TextElement.Foreground" Value="{DynamicResource NfcSurfaceBrush}" />
-  </Style>
-  <Style Selector="Button.versionSourceAction">
-    <Setter Property="MinHeight" Value="52" />
-    <Setter Property="FontSize" Value="16" />
   </Style>
   <Style Selector="Button.versionTableAction">
     <Setter Property="BorderBrush" Value="{DynamicResource NfcAccentBorderBrush}" />
@@ -592,7 +588,7 @@
     <Setter Property="BorderBrush" Value="{DynamicResource NfcBorderBrush}" />
     <Setter Property="CornerRadius" Value="{DynamicResource NfcPillCornerRadius}" />
   </Style>
-  <Style Selector="Button:focus-visible /template/ ContentPresenter#PART_ContentPresenter">
+  <Style Selector="Button:focus-visible /template/ ContentPresenter#PART_ContentPresenter, RadioButton.messageCenterNavigationItem:focus-visible /template/ ContentPresenter#PART_ContentPresenter, RadioButton.activityFilter:focus-visible /template/ ContentPresenter#PART_ContentPresenter">
     <Setter Property="BorderBrush" Value="{DynamicResource NfcAccentBorderStrongBrush}" />
     <Setter Property="BorderThickness" Value="2" />
   </Style>

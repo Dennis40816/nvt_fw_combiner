@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 2,
+  "taskId": "UI-114-SIZE-ACCOUNTING-13",
+  "capability": "Exact one-time accounting for reviewed existing v1.1.4 UI growth",
+  "integrationBase": "fffc4bacd67d9b3f357e4919467de72256946311",
+  "risk": "R2",
+  "kind": "governance",
+  "state": "final-complete",
+  "mutablePaths": [
+    "scripts/code_size_policy.py",
+    "docs/adr/0021-code-size-ratchet-accepted-artifact-amendment.md"
+  ],
+  "implementationOwner": "primary-agent",
+  "searchEvidence": [
+    "Owner 2026-09-07 explicitly approves an exact one-time allowance for necessary reviewed growth of the preceding UI batch, not Dummy DP or any test/Golden/safety waiver.",
+    "Existing scripts/code_size_policy.py measure_code_size and validate_code_size_policy own physical source counts, slice allocation and descending ceilings. tests/scripts/test_code_size_policy.py owns exact-current-baseline and synthetic anti-gaming regressions.",
+    "ADR 0021 and its accepted-artifact appendix own dated non-transferable allowances; no new measuring algorithm or verifier is needed.",
+    "Existing 12 UI admissions retain all immutable design fields and exact paths. This separately admitted accounting correction closes the same UI outcome under the execution-workflow correction checkpoint; it does not authorize follow-on feature development."
+  ],
+  "semanticOwner": "Existing code_size_policy measurement and ADR 0021 named allowance policy",
+  "terminalContract": "After review, record exact necessary measured UI-batch growth and synchronize only matching allowances and exact-baseline tests. Retain frozen base ratchets, measurement algorithm, exclusions, slice-sum checks, duplicate checks, default partial threshold, independent tests, Golden and safety gates. No line packing, cross-slice relocation, unrelated deletion or transferable budget. Finalize with the existing UI records only after actual applicable reviews and verification; interim active records remain non-mergeable.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "ui_runtime_review (inherited task model, read-only)",
+    "outcome": "approved",
+    "evidence": "2026-09-07 independent R2 design admission: same-outcome closure correction is sound with exact checkpoint/new policy paths, immutable prior 12 records, justified exact growth, genuine-duplication-only removal, unchanged algorithm/base/non-transferability/anti-gaming, and one later exact-head finalization for all 13. This approval is not a final gate pass."
+  },
+  "implementationHead": "2934c26922554e2b42a4770095d8a34c790e27ae",
+  "reviewedHead": "2934c26922554e2b42a4770095d8a34c790e27ae",
+  "pathStateDigest": "949d0552c814fbc5a8deafa2b46c05b326bf6878348f81842c11a1555bb15780",
+  "finalReview": {
+    "reviewer": "ui_runtime_review (inherited model, read-only)",
+    "outcome": "approved",
+    "evidence": "Fixed-head scoped semantic/Polytail reviews: combined Presentation/runtime/governance review at cc9244da; release-policy test correction reviewed at a602a1f9; all seven architecture/card corrections reviewed at 2a376c29 with no P0-P3 findings. ui_runtime_review verified 1718e6a45b76bc78aa8e19d553d9e846ed79dda4 adds only two truthful handoffs and confirmed review binding for all 14 records; unchanged lanes retain original scoped reviewers, not a new whole-repository review. Architecture 256/256 and focused UI 30/30 are primary-observed console results on correction source; previous full run at a602a1f9 failed Architecture, and that failure evidence remains. Canonical size check is 137982 full / 98890 runtime, no violations; MainWindow 976 <= 985. Applicable fixed-candidate integration verification remains separate and is not claimed passed by this review record. No native DPI, release or Dummy DP certification is asserted. Subsequent full verification at 1718e6a4 passed the other lanes but failed Infrastructure (53/1069); retain verify-1718e6a4.log as failure evidence. Scoped test-fixture ownership correction at 2934c269 was independently reviewed by ui_runtime_review: no findings, 56/56 targeted and 1066/1066 full Infrastructure passed with zero skips (infra-diagnosis/owned-handles-final.trx and infra-owned-handles-final.trx). Reviewer confirmed exact-head 2934c269 binding and unchanged governed paths; prior lane reviews remain scoped. Required final integration verification is still separate."
+  }
+}

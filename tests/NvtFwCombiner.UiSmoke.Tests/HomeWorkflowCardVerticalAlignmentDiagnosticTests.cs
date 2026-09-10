@@ -105,7 +105,38 @@ public sealed class HomeWorkflowCardVerticalAlignmentDiagnosticTests
                     $"title={title.Bounds}, desired={title.DesiredSize}, card={card.Bounds}.");
             }
 
-            Assert.All(cards, static card => Assert.InRange(card.Bounds.Height, 49.5, 50.5));
+            Assert.All(cards, static card =>
+            {
+                TextBlock title = card.GetVisualDescendants().OfType<TextBlock>()
+                    .Single(static text => text.Classes.Contains("strongText"));
+                Border pill = card.GetVisualDescendants().OfType<Border>()
+                    .Single(static border => border.Classes.Contains("workflowOpenPill"));
+                TextBlock pillText = pill.GetVisualDescendants().OfType<TextBlock>().Single();
+                Assert.Equal(new Thickness(12, 9), card.Padding);
+                Assert.Equal(new Thickness(2), card.BorderThickness);
+                Assert.Equal(new Thickness(10, 4), pill.Padding);
+                Assert.Equal(new Thickness(2), pill.BorderThickness);
+                Assert.Equal(13, title.FontSize);
+                Assert.Equal(12, pillText.FontSize);
+                Assert.Equal(FontWeight.SemiBold, title.FontWeight);
+                Assert.Equal("Inter SemiBold", new Typeface(title.FontFamily, title.FontStyle, title.FontWeight).GlyphTypeface.FamilyName);
+                // Height is content-sized: preserve the approved padding and borders,
+                // not the fallback font's previous 50px measurement.
+                double pillHeight = pillText.DesiredSize.Height + 8 + 4;
+                double cardHeight = Math.Max(title.DesiredSize.Height, pillHeight) + 18 + 4;
+                Assert.InRange(Math.Abs(pill.Bounds.Height - pillHeight), 0, 0.5);
+                Assert.InRange(Math.Abs(card.Bounds.Height - cardHeight), 0, 0.5);
+                Assert.InRange(title.TextLayout.Height, 0, title.Bounds.Height);
+                Assert.InRange(pillText.TextLayout.Height, 0, pillText.Bounds.Height);
+            });
+            string? outputDirectory = Environment.GetEnvironmentVariable("NFC_VISUAL_OUTPUT_DIR");
+            if (!string.IsNullOrWhiteSpace(outputDirectory))
+            {
+                _ = Directory.CreateDirectory(outputDirectory);
+                using Avalonia.Media.Imaging.Bitmap? frame = window.GetLastRenderedFrame();
+                Assert.NotNull(frame);
+                frame.Save(Path.Combine(outputDirectory, "home-workflow-inter-1180x760.png"));
+            }
         }
         finally
         {

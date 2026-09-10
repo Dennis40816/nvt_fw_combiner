@@ -95,12 +95,49 @@ public sealed partial class ReportReviewHistoryTests
         var english = ShellTextResources.For(ShellLanguage.English);
         var traditionalChinese = ShellTextResources.For(ShellLanguage.ChineseTraditional);
 
-        Assert.Equal("Viewing", english.HexDiffSelectedRangeLabel);
         Assert.Equal("Why", english.HexDiffWhyLabel);
         Assert.Equal("Mutation details", english.ChangedRangesTitle);
-        Assert.Equal("目前檢視", traditionalChinese.HexDiffSelectedRangeLabel);
         Assert.Equal("原因", traditionalChinese.HexDiffWhyLabel);
         Assert.Equal("異動明細", traditionalChinese.ChangedRangesTitle);
+    }
+
+    /// <summary>Range cards state the existing acceptance verdict and its consequence without badge-text inference.</summary>
+    [Fact]
+    public void ReportHexDiffRangeCardsExposeExplicitLocalizedVerdicts()
+    {
+        ReportLineViewModel detail = new(
+            "diff-00000",
+            "reported-output",
+            "evidence-00000",
+            changedSummary: "4 bytes changed",
+            reason: "Not accepted by the selected profile; review before release.");
+        ReportHexDiffRangeDescriptor reviewDescriptor = new(0, 0, 4, 4, 4, IsAccepted: false);
+        ReportHexDiffRangeDescriptor acceptedDescriptor = reviewDescriptor with { IsAccepted = true };
+
+        ReportHexDiffRangeViewModel englishReview = new(
+            reviewDescriptor,
+            detail,
+            "reported-output",
+            ShellLanguage.English);
+        ReportHexDiffRangeViewModel englishAccepted = new(
+            acceptedDescriptor,
+            detail,
+            "reported-output",
+            ShellLanguage.English);
+        ReportHexDiffRangeViewModel chineseReview = new(
+            reviewDescriptor,
+            detail,
+            "reported-output",
+            ShellLanguage.ChineseTraditional);
+
+        Assert.Equal("Review required", englishReview.Status);
+        Assert.Equal("Review this range before release.", englishReview.Result);
+        Assert.Equal("evidence-00000", englishReview.TraceId);
+        Assert.Equal("Expected", englishAccepted.Status);
+        Assert.Equal("Accepted by the selected profile.", englishAccepted.Result);
+        Assert.Equal("待審查", chineseReview.Status);
+        Assert.Equal("請在 release 前審查此區段。", chineseReview.Result);
+        Assert.Contains("Review required", englishReview.AccessibleLabel, StringComparison.Ordinal);
     }
 
     /// <summary>Unverified snapshots and invalid ranges never resurrect preview bytes as a trusted viewport.</summary>

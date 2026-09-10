@@ -1,0 +1,9 @@
+{
+  "schemaVersion": 1,
+  "taskId": "AB-114-DUMMY-DP-01",
+  "authorityType": "firmware-owner",
+  "reviewedHead": "ac01da6afad0c4f2130a840f39d7a3a2d41672de",
+  "decision": "approved",
+  "reviewer": "Dennis Liu (firmware owner)",
+  "evidence": "On 2026-09-07 the owner replied 'Ok' to the explicit request to approve Dummy DP firmware behavior at final-evidence head ac01da6afad0c4f2130a840f39d7a3a2d41672de according to the accepted memory maps and proceed with the final full verifier. The reviewed implementation is 30c91905d4f66fd55c74918300343fac7857e5f0. Scope is AB Code Dummy DP for NT51919, NT51929, NT51932, NT51950 single/cascade and NT51951, excluding NT51952: default Off, confirmation before clearing DP selection only, rejected DP input while On, preserved TP and existing TP processing, complete non-TP output filled with 0xFF through the shared compiler/executor. Six independent map-based whole-output cases and scoped Normal Golden regressions are recorded in the reviewed handoff. This acceptance does not assert certified Dummy Golden, change existing support-certification limitations, waive final verification, authorize push or release, or approve support promotion. Independent technical reviews and exact path-state digest remain bound in AB-114-DUMMY-DP-01."
+}

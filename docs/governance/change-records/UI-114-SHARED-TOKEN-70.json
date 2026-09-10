@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 2,
+  "taskId": "UI-114-SHARED-TOKEN-70",
+  "capability": "Reuse existing shared spacing, typography and corner tokens without changing UI geometry",
+  "integrationBase": "e442fff926eca930bcee062360a99b49c14a805f",
+  "risk": "R1",
+  "kind": "ui",
+  "state": "final-complete",
+  "mutablePaths": [
+    "src/NvtFwCombiner.Presentation.Avalonia/Resources/MainWindowPageTemplates.axaml",
+    "src/NvtFwCombiner.Presentation.Avalonia/Resources/MainWindowSharedTemplates.axaml",
+    "src/NvtFwCombiner.Presentation.Avalonia/Resources/MainWindowWorkflowTemplates.axaml",
+    "src/NvtFwCombiner.Presentation.Avalonia/Styles/MainWindowButtonStyles.axaml"
+  ],
+  "implementationOwner": "primary-agent",
+  "searchEvidence": [
+    "The owner-authorized v1.1.4 release task recorded bounded local R1 scope before editing these three paths at bfa261e044034172b86a969a7638c7eb548fd7dd; this record admits integration, not retroactive implementation permission.",
+    "Full local UI evidence at D:/NvtFwCombiner-TestArea/evidence/v114-full-bfa261e0/ui-red.trx identifies raw common spacing and surface radius violations. ThemeTokens.axaml lines 201, 208 and 209 already define radius 8 and spacing 8/12.",
+    "The first scoped XAML run exposed five raw font sizes after spacing assertions passed. Before editing, the local R1 discussion extended scope to MainWindowButtonStyles.axaml and existing WorkflowTemplates font values 11/14; ThemeTokens lines 213/216 own the identical shared values."
+  ],
+  "semanticOwner": "Presentation Styles/ThemeTokens.axaml owns shared spacing, typography and surface corner values; existing templates and button styles consume them",
+  "terminalContract": "Replace only literal Spacing/ColumnSpacing 8 or 12, FontSize 11 or 14 and surface CornerRadius 8 with their existing equal-valued shared resources. Preserve layout, typography values, interaction, firmware semantics, theme definitions and assertions. Existing common-token tests and actual popup/layout tests remain required.",
+  "disposition": "reuse",
+  "designReview": {
+    "reviewer": null,
+    "outcome": "not-required",
+    "evidence": "Bounded local R1 under ADR0070; scoped independent review and affected tests precede integration finalization."
+  },
+  "implementationHead": "e7f69878ecc8ac176350f76fb6f991b54f61b357",
+  "reviewedHead": "e7f69878ecc8ac176350f76fb6f991b54f61b357",
+  "pathStateDigest": "58d4f48f75d30cff99501adca7df5d35da5d16d4e735ae4b66d07eaad24f7f71",
+  "finalReview": {
+    "reviewer": "memory_coverage_inventory",
+    "outcome": "approved",
+    "evidence": "Frozen-head scoped PASS at e7f69878: all four blobs match independent source review; existing equal-valued Light/Dark shared spacing, font and corner resources only. No geometry, interaction or firmware change. Primary verified 255/255 XAML, animation and selector tests, including exact rerun of all 20 original XAML failures, in D:/NvtFwCombiner-TestArea/evidence/v114-pr427-xaml/xaml-contracts-green.trx. Independent reviewer reused this test evidence rather than rerunning it. Full candidate verification, certified Golden execution, CI and publication remain separate required gates."
+  }
+}

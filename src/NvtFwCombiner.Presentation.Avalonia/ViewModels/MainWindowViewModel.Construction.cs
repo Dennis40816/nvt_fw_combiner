@@ -74,6 +74,8 @@ internal sealed partial class MainWindowViewModel
                 (icId, workflowId) => WorkflowSession!.IsPublishedWorkflowAuthorable(icId, workflowId),
                 icId => WorkflowSession!.GetPublishedAbMergeTopologyChoices(icId),
                 IsCompositionRunInProgress,
+                () => SelectedPage == ShellPage.Merge,
+                () => WorkflowSession!.IsAbDummyDpTransitionInProgress,
                 IsGlobalBuildBlocked,
                 IsWorkflowLoaded,
                 IsWorkflowLoading,
@@ -85,6 +87,7 @@ internal sealed partial class MainWindowViewModel
                 () => WorkflowSession!.PublishAcceptedMergeSharedContext(),
                 () => WorkflowSession!.RefreshRetainedMergeFirmwareInspectionsIfStaleAsync(),
                 (path, cancellationToken) => WorkflowSession!.SetAbSameTpFileAsync(path, cancellationToken),
+                (enabled, cancellationToken) => WorkflowSession!.SetAbDummyDpModeAsync(enabled, cancellationToken),
                 ResetRunResultForContextChange,
                 () => RefreshCommandState(),
                 OutputDelivery));
@@ -171,7 +174,7 @@ internal sealed partial class MainWindowViewModel
         RequestHexEditorUndoCommand = new RelayCommand(RequestHexEditorUndo, CanRequestHexEditorUndo);
         RequestHexEditorRedoCommand = new RelayCommand(RequestHexEditorRedo, CanRequestHexEditorRedo);
         Navigation = new ShellNavigationViewModel(new ShellNavigationBindings(
-            () => SelectedPage, () => Text, WorkflowSession.HasSelectedInputs,
+            () => SelectedPage, () => Text, HasPageSelectedFiles,
             WorkflowSession.InvalidateFirmwareNumberMismatch, WorkflowSession.ClearSelectedInputs,
             ApplySelectedPage, PageLabel, NotifyCompositionActionRailVisibilityChanged));
         ShowHomeCommand = new RelayCommand(() => Navigation.NavigateToPage(ShellPage.Home));

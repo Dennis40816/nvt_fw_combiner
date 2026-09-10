@@ -1,0 +1,50 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:vm="using:NvtFwCombiner.Presentation.Avalonia.ViewModels"
+    xmlns:views="using:NvtFwCombiner.Presentation.Avalonia.Views"
+    x:Class="NvtFwCombiner.Presentation.Avalonia.Views.RunReportsTable" x:DataType="vm:ReportPresentationViewModel">
+  <UserControl.Resources>
+    <ResourceDictionary><ResourceDictionary.MergedDictionaries>
+      <ResourceInclude Source="avares://NvtFwCombiner.Presentation.Avalonia/Resources/MainWindowReportHistoryTemplates.axaml" />
+    </ResourceDictionary.MergedDictionaries></ResourceDictionary>
+  </UserControl.Resources>
+  <UserControl.Styles>
+    <Style Selector="views|ReportTableText"><Setter Property="FontSize" Value="{DynamicResource NfcFontSize14}" /></Style>
+    <Style Selector="Grid#ReportColumnHeaders views|ReportTableText"><Setter Property="FontWeight" Value="ExtraBold" /></Style>
+    <Style Selector="Button.reportListRow /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="BorderThickness" Value="0" />
+      <Setter Property="Padding" Value="0" />
+      <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+    </Style>
+    <Style Selector="Button.reportListRow:focus-visible /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="{DynamicResource NfcAccentSurfaceBrush}" />
+    </Style>
+    <Style Selector="Border.reportResult.success">
+      <Setter Property="Background" Value="{DynamicResource NfcSuccessSurfaceBrush}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource NfcSuccessAccentBrush}" />
+    </Style>
+    <Style Selector="Border.reportResult.success views|ReportTableText"><Setter Property="Foreground" Value="{DynamicResource NfcSuccessTextBrush}" /></Style>
+    <Style Selector="Border.reportResult.warning views|ReportTableText"><Setter Property="Foreground" Value="{DynamicResource NfcWarningTextStrongBrush}" /></Style>
+    <Style Selector="Border.reportResult.error views|ReportTableText"><Setter Property="Foreground" Value="{DynamicResource NfcDangerTextBrush}" /></Style>
+  </UserControl.Styles>
+  <Border x:Name="RunReportsTableSurface" MaxWidth="1152" HorizontalAlignment="Stretch" VerticalAlignment="Top"
+      BorderBrush="{DynamicResource NfcBorderMutedBrush}" BorderThickness="1" CornerRadius="{DynamicResource NfcCompactCornerRadius}" ClipToBounds="True">
+    <Grid RowDefinitions="52,Auto">
+      <Border Background="{DynamicResource NfcSurfaceSubtleBrush}" BorderBrush="{DynamicResource NfcBorderMutedBrush}" BorderThickness="0,0,0,1">
+        <Grid x:Name="ReportColumnHeaders" ColumnDefinitions="1.15*,1*,1.3*,1.3*,0.75*,190">
+          <views:ReportTableText Classes="sectionLabel" Margin="12,0" Text="{Binding Text.RunDateColumn}" />
+          <views:ReportTableText Grid.Column="1" Classes="sectionLabel" Margin="12,0" Text="IC" />
+          <views:ReportTableText Grid.Column="2" Classes="sectionLabel" Margin="12,0" Text="{Binding Text.RunTypeColumn}" />
+          <views:ReportTableText Grid.Column="3" Classes="sectionLabel" Margin="12,0" Text="{Binding Text.RunResultColumn}" />
+          <views:ReportTableText Grid.Column="4" Classes="sectionLabel" Margin="12,0" Text="{Binding Text.RunIssuesColumn}" />
+        </Grid>
+      </Border>
+      <ScrollViewer x:Name="ReportListScroll" Grid.Row="1" MaxHeight="480" HorizontalScrollBarVisibility="Disabled">
+        <ItemsControl ItemsSource="{Binding RunReportEntries}" IsVisible="{Binding HasReportHistory}">
+          <ItemsControl.ItemTemplate><StaticResource ResourceKey="ReportHistoryEntryTemplate" /></ItemsControl.ItemTemplate>
+        </ItemsControl>
+      </ScrollViewer>
+      <TextBlock Grid.Row="1" Margin="20,24" Classes="mutedText" HorizontalAlignment="Center"
+          IsVisible="{Binding IsReportHistoryEmpty}" Text="{Binding Text.NoReportHistoryLabel}" />
+    </Grid>
+  </Border>
+</UserControl>

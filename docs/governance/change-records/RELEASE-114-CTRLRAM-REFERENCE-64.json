@@ -1,0 +1,47 @@
+{
+  "schemaVersion": 2,
+  "taskId": "RELEASE-114-CTRLRAM-REFERENCE-64",
+  "capability": "Redistribute all approved canonical CtrlRAM input-only evidence with source-closed aliases in the v1.1.4 reference payload",
+  "integrationBase": "a0fc6a9f816ee677c87283d8e3c708d293be1482",
+  "risk": "R3",
+  "kind": "release",
+  "state": "final-complete",
+  "mutablePaths": [
+    "testdata/golden/release-canonical-v1.json",
+    "testdata/golden/canonical/README.md",
+    "scripts/canonical_golden_validation.py",
+    "scripts/package.ps1",
+    "scripts/smoke-release.ps1",
+    "docs/ci/release-package.md"
+  ],
+  "implementationOwner": "primary-agent",
+  "searchEvidence": [
+    "Owner explicitly approved both NT51927 input-only cases and three dependent aliases for release references and GitHub source on 2026-09-10; all21sourcefiles already match remote main e5202e27.",
+    "Existing canonical allowlist, validator, package projection, smoke and reviewed-source-pins remain the only admission/projection owners. Added16artifacts are all input roles, total663456bytes. Independent manifest inventory yields40cases25direct3input12aliases177declarations174unique164BIN215projectedpaths.",
+    "Current governance checker reports4pre-existing non-governed test paths in UI-114-CTRLRAM-GUIDANCE-63; preserve existing records and do not claim final candidate admission."
+  ],
+  "semanticOwner": "release-canonical-v1.json owns approved reference selection; canonical_golden_validation.py validates it; package.ps1 and smoke-release.ps1 enforce exact hashes/roles/source closure",
+  "terminalContract": "Owner-approved reference-only extension to exact40case selection for1.1.4 authorized2026-09-10. Preserve all artifact/case bytes, canonical dispositions, source provenance, runtime support and expected outputs. Alias source must be explicitly selected same-workflow directGolden=true directEvidence=false, or directGolden=false directEvidence=true input-only-evidence. Never alias-to-alias/missing/crossworkflow/ambiguoussource. Preserve input-only input-role-only checks and all path/hash/case/README closure. Update end-userREADME and docs; synchronize derived pins through existing tool. Focused positives/negative policy tests and deterministic package dryrun required. VERSION/changelog prepare1.1.4 withoutclaimpublished. No tag/push/mainmerge/publicrelease; fullactualcandidateGolden/CI/package/externalreleaseowner gates remain.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "memory_coverage_inventory",
+    "outcome": "approved",
+    "evidence": "Independent R3 design review on32e7a073 PASS-WITH-HUMAN-GATE: no blocking P0/P1. Confirmed16inputroles, exact40/25/3/12/177/174/164/215counts, paired boolean/disposition alias closure, unchanged schema/bytes/support, existingflatpackage withoutnestedarchive, packagegeneratedREADME/version/date/negative tests required."
+  },
+  "implementationHead": "d32d4790ae124972487cfd8de137d442e72f12a0",
+  "reviewedHead": "d32d4790ae124972487cfd8de137d442e72f12a0",
+  "pathStateDigest": "8591c0727f0f5c42fb1ef42cbc6c7fcae8e6b20ccdfe126ff1e3200f35d009e9",
+  "finalReview": {
+    "reviewer": "report_commit_inventory",
+    "outcome": "approved",
+    "evidence": "Scoped PASS-WITH-HUMAN-GATE at frozen head: unchanged reviewed blobs;40-case reference-only closure with source/role/hash restrictions. Reused103canonical/sync and7package-policy tests, not fresh output Golden or actual release package. All original mutablePaths remain reviewed and digest-bound; integrationPaths assigns unique final ownership only. Owner authorized evidence-first sequencing for this batch on2026-09-10, expiring when its exact-head R3 attestations are committed; reason: validator requires existing final-evidence commit before attestation. No R3/Golden/CI/package/publication gate waived; final-complete denotes source-review lifecycle, not release readiness."
+  },
+  "integrationPaths": [
+    "testdata/golden/release-canonical-v1.json",
+    "testdata/golden/canonical/README.md",
+    "scripts/canonical_golden_validation.py",
+    "scripts/package.ps1",
+    "scripts/smoke-release.ps1",
+    "docs/ci/release-package.md"
+  ]
+}

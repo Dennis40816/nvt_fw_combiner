@@ -7,15 +7,18 @@ namespace NvtFwCombiner.Application.Tests;
 public sealed partial class CompositionRunServiceTests
 {
     /// <summary>A blocking uniform-range rule evaluates the same immutable bytes used by execution.</summary>
-    [Fact]
-    public async Task UniformInputRangeErrorBlocksExecution()
+    [Theory]
+    [InlineData(0x00)]
+    [InlineData(0xFF)]
+    [InlineData(0xA5)]
+    public async Task UniformInputRangeErrorBlocksExecutionAndRetainsDeclaredRangeEvidence(int repeatedByte)
     {
         CompositionRunRequest request = CreateUniformInputValidationRequest(
             CompiledValidationSeverity.Error);
         var service = new CompositionRunService(
             new FakeArtifactReader(new Dictionary<string, byte[]>
             {
-                ["uniform-artifact"] = [0xAA, 0xAA, 0x10, 0x20],
+                ["uniform-artifact"] = [(byte)repeatedByte, (byte)repeatedByte, 0x10, 0x20],
             }),
             new FakeClock([FirstTimestamp, SecondTimestamp]));
 
@@ -28,6 +31,14 @@ public sealed partial class CompositionRunServiceTests
             result.Report.Issues,
             candidate => candidate.Code == "input.uniform-placeholder");
         Assert.Equal(CompositionIssueSeverity.Error, issue.Severity);
+        InputDiagnosticSummary diagnostic = Assert.Single(result.Report.InputDiagnostics!);
+        Assert.Equal(Array.FindIndex([.. result.Report.Issues], candidate => ReferenceEquals(candidate, issue)), diagnostic.IssueIndex);
+        Assert.Equal("input-slot", diagnostic.SlotId);
+        Assert.Equal("input", diagnostic.Evidence.AddressSpaceId);
+        Assert.Equal(new ByteRange(0, 2), diagnostic.Evidence.SourceRange);
+        Assert.Equal((byte)repeatedByte, diagnostic.Evidence.RepeatedByte);
+        Assert.Null(diagnostic.Evidence.ActualLength);
+        Assert.Null(diagnostic.Evidence.RequiredEndExclusive);
         ValidationRunSummary validation = Assert.Single(result.Report.Validations);
         Assert.Equal(CompiledValidationStage.InputLoad, validation.Stage);
         Assert.Equal(ValidationRunStatus.Failed, validation.Status);
@@ -55,6 +66,10 @@ public sealed partial class CompositionRunServiceTests
             result.Report.Issues,
             candidate => candidate.Code == "input.uniform-placeholder");
         Assert.Equal(CompositionIssueSeverity.Warning, issue.Severity);
+        InputDiagnosticSummary diagnostic = Assert.Single(result.Report.InputDiagnostics!);
+        Assert.Equal(Array.FindIndex([.. result.Report.Issues], candidate => ReferenceEquals(candidate, issue)), diagnostic.IssueIndex);
+        Assert.Equal(new ByteRange(0, 2), diagnostic.Evidence.SourceRange);
+        Assert.Equal((byte)0xFF, diagnostic.Evidence.RepeatedByte);
         ValidationRunSummary validation = Assert.Single(result.Report.Validations);
         Assert.Equal(CompiledValidationSeverity.Warning, validation.Severity);
         Assert.Equal(ValidationRunStatus.Failed, validation.Status);

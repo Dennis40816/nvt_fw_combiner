@@ -104,11 +104,18 @@ public sealed record CanonicalCapabilityCompilationContract
         CapabilityRouteIdentity identity,
         CompiledComposition composition,
         MetadataPlanDefinition metadataPlan,
-        RuntimeReferenceCompilationProof? runtimeReferenceProof)
+        RuntimeReferenceCompilationProof? runtimeReferenceProof,
+        MemoryLayout.MemoryLayoutContextMap? memoryLayoutContext = null)
     {
         ArgumentNullException.ThrowIfNull(identity);
         ArgumentNullException.ThrowIfNull(composition);
         ArgumentNullException.ThrowIfNull(metadataPlan);
+        MemoryLayout.MemoryLayoutContextMap.ValidateBinding(identity, this, memoryLayoutContext);
+        if (memoryLayoutContext is not null && memoryLayoutContext.Map.AddressSpaceId !=
+            composition.V2Details.Provenance.ResolvedMap.ImageMap.AddressSpaceId)
+        {
+            throw new ArgumentException("Memory context and compiled CtrlRAM map address spaces must agree.");
+        }
         if (!StringComparer.Ordinal.Equals(identity.IcId, composition.V2Details.Provenance.Context.MemberId) ||
             !StringComparer.Ordinal.Equals(identity.WorkflowId, composition.V2Details.ExperienceId) ||
             !StringComparer.Ordinal.Equals(ProfileId, composition.V2Details.ProfileId) ||
@@ -159,7 +166,7 @@ public sealed record CanonicalCapabilityCompilationContract
                     : GetRuntimeReferenceBindings(
                         composition,
                         metadataPlan,
-                        runtimeReferenceProof),
+                        runtimeReferenceProof).Concat(memoryLayoutContext?.SemanticBindingIds ?? []),
                 composition);
             return;
         }
@@ -314,7 +321,9 @@ public sealed record CanonicalDynamicCapabilityDefinition
         PinnedCapabilityDecision<CapabilityAuthoringAvailability> authoring,
         PinnedCapabilityDecision<CapabilityPublicationStatus> publication,
         PinnedCapabilityDecision<CapabilityEvidenceStatus> evidence,
-        CapabilityNumberChoice? numberChoice = null)
+        CapabilityNumberChoice? numberChoice = null,
+        CapabilityTopologyChoice? abMergeTopologyChoice = null,
+        MemoryLayout.MemoryLayoutContextMap? memoryLayoutContext = null)
     {
         ArgumentNullException.ThrowIfNull(identity);
         ArgumentNullException.ThrowIfNull(compilationContract);
@@ -356,6 +365,10 @@ public sealed record CanonicalDynamicCapabilityDefinition
                 "A dynamic route IC-number choice requires a token and display label.",
                 nameof(numberChoice));
         }
+        AbMergeTopologyChoiceProjection.ValidateDefinition(identity, abMergeTopologyChoice);
+        MemoryLayout.MemoryLayoutContextMap.ValidateBinding(identity, compilationContract, memoryLayoutContext);
+        MemoryLayoutContext = memoryLayoutContext;
+        AbMergeTopologyChoice = abMergeTopologyChoice;
         Identity = identity;
         CapabilityFingerprint = capabilityFingerprint;
         CompilationContract = compilationContract;
@@ -385,6 +398,12 @@ public sealed record CanonicalDynamicCapabilityDefinition
 
     /// <summary>Typed workflow-scoped count choice, when the route requires one.</summary>
     public CapabilityNumberChoice? NumberChoice { get; }
+
+    /// <summary>Profile-derived AB topology choice; null for selector-free or non-AB routes.</summary>
+    public CapabilityTopologyChoice? AbMergeTopologyChoice { get; }
+
+    /// <summary>Exact read-only Standard context, independently bound from Report metadata.</summary>
+    public MemoryLayout.MemoryLayoutContextMap? MemoryLayoutContext { get; }
 
     private static void ValidateFingerprint(string fingerprint)
     {
@@ -430,6 +449,8 @@ public sealed record ResolvedCapabilityRoute
         Publication = definition.Publication;
         Evidence = definition.Evidence;
         NumberChoice = definition.NumberChoice;
+        AbMergeTopologyChoice = definition.AbMergeTopologyChoice;
+        MemoryLayoutContext = definition.MemoryLayoutContext;
         ResolutionToken = resolutionToken;
     }
 
@@ -454,6 +475,12 @@ public sealed record ResolvedCapabilityRoute
     /// <summary>Typed workflow-scoped count choice, when the route requires one.</summary>
     public CapabilityNumberChoice? NumberChoice { get; }
 
+    /// <summary>Profile-derived AB topology disclosure from this exact publication.</summary>
+    public CapabilityTopologyChoice? AbMergeTopologyChoice { get; }
+
+    /// <summary>Exact context retained by this publication.</summary>
+    public MemoryLayout.MemoryLayoutContextMap? MemoryLayoutContext { get; }
+
     /// <summary>Publication identity shared by the resulting capability.</summary>
     public ResolutionToken ResolutionToken { get; }
 
@@ -469,6 +496,7 @@ public sealed record ResolvedCapabilityRoute
         CompiledComposition bound = composition.BindCapabilityFingerprint(
             CapabilityFingerprint);
         WorkflowIcNumberChoiceProjection.ValidateCompilation(NumberChoice, bound);
+        AbMergeTopologyChoiceProjection.ValidateCompilation(Identity, bound);
         RuntimeReferenceCompilationProof? boundRuntimeReferenceProof =
             runtimeReferenceProof?.BindCapabilityCompilation(
                 composition,
@@ -477,7 +505,8 @@ public sealed record ResolvedCapabilityRoute
             Identity,
             bound,
             resolvedMetadataPlan,
-            boundRuntimeReferenceProof);
+            boundRuntimeReferenceProof,
+            MemoryLayoutContext);
         return new ResolvedCapability(
             Identity,
             CapabilityFingerprint,
@@ -488,7 +517,8 @@ public sealed record ResolvedCapabilityRoute
             resolvedMetadataPlan.Resolve(ResolutionToken),
             ResolutionToken,
             CompilationContract,
-            boundRuntimeReferenceProof);
+            boundRuntimeReferenceProof,
+            MemoryLayoutContext);
     }
 }
 

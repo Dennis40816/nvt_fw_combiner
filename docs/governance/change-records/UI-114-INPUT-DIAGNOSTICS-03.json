@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 2,
+  "taskId": "UI-114-INPUT-DIAGNOSTICS-03",
+  "capability": "Carry compiler-owned input validation evidence into immutable Preview and Build report issue details",
+  "integrationBase": "fffc4bacd67d9b3f357e4919467de72256946311",
+  "risk": "R2",
+  "kind": "behavior",
+  "state": "final-complete",
+  "mutablePaths": [
+    "docs/adr/0069-input-diagnostic-evidence.md",
+    "src/NvtFwCombiner.Application/Composition/CompiledInputLoadValidationEvaluator.cs",
+    "src/NvtFwCombiner.Application/Composition/CompositionRunReport.cs",
+    "src/NvtFwCombiner.Application/Composition/CompositionRunService.InputLoadValidations.cs",
+    "src/NvtFwCombiner.Application/Composition/CompositionRunService.Inputs.cs",
+    "src/NvtFwCombiner.Application/Composition/CompositionRunService.Reports.cs",
+    "src/NvtFwCombiner.Application/Composition/CompositionRunService.cs",
+    "src/NvtFwCombiner.Application/Composition/InputDiagnosticEvidence.cs",
+    "src/NvtFwCombiner.Application/InputInspection/CompiledInputArtifactInspectionService.cs"
+  ],
+  "implementationOwner": "input-diagnostic-evidence-agent",
+  "searchEvidence": [
+    "CodeGraph at e5202e2707d272076d24216222188d478314a07d identifies Application.CompiledInputLoadValidationEvaluator as the single existing evaluator consumed by CompiledInputArtifactInspectionService.ApplyInputLoadValidation and CompositionRunService.EvaluateInputLoad. The prior callers independently retain only CompositionIssue and must be extended, not re-evaluated or matched by code/message/operation.",
+    "CompositionRunService.ReadInputsAsync retains input-load errors in BoundInputs.Issues and warnings in BoundInputs.AdvisoryIssues; RunAsync creates final CompositionRunReport.Issues from the actual instances. CompositionRunReport is the path-free Preview/Build projection and already omits optional report facts with JsonIgnore(WhenWritingNull).",
+    "Owner-approved API: Application.Composition.InputDiagnosticEvidence carries AddressSpaceId, optional ActualLength/RequiredEndExclusive, optional ByteRange SourceRange, and optional RepeatedByte. Report InputDiagnostics use zero-based indexes into final Issues and must be immutable, unique, bounds-valid, and omitted when absent. The preflight independent architecture admission /root/review_ab_dp_metadata (GPT-5.6 Terra, high) approved extending this evaluator with first-failing candidate evidence only."
+  ],
+  "semanticOwner": "Application.CompiledInputLoadValidationEvaluator owns the validation finding and typed evidence; CompositionRunService owns preservation of the exact CompositionIssue instance and report-index projection",
+  "terminalContract": "The evaluator returns one immutable issue/evidence result for the first failing compiler-declared uniform input range. Inspector and runtime consume that same evaluation, retaining no raw source path or content beyond a repeated byte and declared offsets. A report records only evidence whose exact issue instance occurs once in its final Issues list, through a zero-based index and bound slot id; absent evidence serializes as absent. Input acceptance, severity, BlocksBuild, profiles, output bytes, names, execution order, and report creation outside real Preview/Build remain unchanged.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "/root/review_ab_dp_metadata",
+    "outcome": "approved",
+    "evidence": "GPT-5.6 Terra/high preflight approved the Application-owned single-evaluation, immutable-evidence, additive-report design; it rejected UI re-derivation and changes to acceptance/severity/BlocksBuild."
+  },
+  "implementationHead": "2934c26922554e2b42a4770095d8a34c790e27ae",
+  "reviewedHead": "2934c26922554e2b42a4770095d8a34c790e27ae",
+  "pathStateDigest": "6664095e51e06c9d6319cf8e9a155432196fc8d5325fae70f3e16016ae23a1b6",
+  "finalReview": {
+    "reviewer": "ui_runtime_review (inherited model, read-only)",
+    "outcome": "approved",
+    "evidence": "Fixed-head scoped semantic/Polytail reviews: combined Presentation/runtime/governance review at cc9244da; release-policy test correction reviewed at a602a1f9; all seven architecture/card corrections reviewed at 2a376c29 with no P0-P3 findings. ui_runtime_review verified 1718e6a45b76bc78aa8e19d553d9e846ed79dda4 adds only two truthful handoffs and confirmed review binding for all 14 records; unchanged lanes retain original scoped reviewers, not a new whole-repository review. Architecture 256/256 and focused UI 30/30 are primary-observed console results on correction source; previous full run at a602a1f9 failed Architecture, and that failure evidence remains. Canonical size check is 137982 full / 98890 runtime, no violations; MainWindow 976 <= 985. Applicable fixed-candidate integration verification remains separate and is not claimed passed by this review record. No native DPI, release or Dummy DP certification is asserted. Subsequent full verification at 1718e6a4 passed the other lanes but failed Infrastructure (53/1069); retain verify-1718e6a4.log as failure evidence. Scoped test-fixture ownership correction at 2934c269 was independently reviewed by ui_runtime_review: no findings, 56/56 targeted and 1066/1066 full Infrastructure passed with zero skips (infra-diagnosis/owned-handles-final.trx and infra-owned-handles-final.trx). Reviewer confirmed exact-head 2934c269 binding and unchanged governed paths; prior lane reviews remain scoped. Required final integration verification is still separate."
+  }
+}

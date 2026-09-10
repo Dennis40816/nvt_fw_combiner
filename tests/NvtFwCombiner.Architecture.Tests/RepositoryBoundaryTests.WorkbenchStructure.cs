@@ -596,7 +596,7 @@ public sealed partial class RepositoryBoundaryTests
         _ = Assert.Single(entries, static entry => entry.GetProperty("bundleDirectory").GetString() ==
             "nt51950-ab-merge");
         Assert.Contains(
-            "775c42fba1fbbf1c4c8869656c83c86ce34d612dda3ceed92a93cb4e82f7cd67",
+            "f60f5ef4f8c2a150c7dde47638d55aa35a84425146809263057939540ea0b6b9",
             trustIndexText,
             StringComparison.Ordinal);
         Assert.Equal(

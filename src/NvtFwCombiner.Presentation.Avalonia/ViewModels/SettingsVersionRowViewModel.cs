@@ -24,6 +24,11 @@ internal sealed record SettingsVersionRowViewModel(
     bool CanDelete,
     bool IsLastKnownGood)
 {
+    public bool HasReleaseNotes => !string.IsNullOrWhiteSpace(ReleaseNotes);
+
+    // Only the row's disclosure writes this transient state. New projections start collapsed.
+    public bool IsReleaseNotesExpanded { get; set; }
+
     public bool HasPrimaryAction => PrimaryAction != SettingsVersionPrimaryAction.None;
 
     public bool IsAvailable => PrimaryAction == SettingsVersionPrimaryAction.Install;

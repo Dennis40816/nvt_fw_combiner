@@ -1,0 +1,43 @@
+{
+  "schemaVersion": 2,
+  "taskId": "UI-114-REPORT-IMPORT-20",
+  "capability": "Keep incomplete imported reports readable with an explicit Unknown outcome",
+  "integrationBase": "947d10ecc7ab2da40ceb44a1df05776705e18135",
+  "risk": "R2",
+  "kind": "ui",
+  "state": "final-complete",
+  "mutablePaths": [
+    "src/NvtFwCombiner.Application/Composition/CompositionRunReportJson.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReportReviewViewModel.Factory.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReportReviewViewModel.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReportReviewViewModel.Bindings.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReportReviewViewModel.Summary.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReportPresentationViewModel.History.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/Resources/MainWindowReportPanels.axaml",
+    "docs/contracts/composition-report-v1.md",
+    "scripts/code_size_policy.py",
+    "docs/adr/0021-code-size-ratchet-accepted-artifact-amendment.md"
+  ],
+  "implementationOwner": "primary-agent",
+  "searchEvidence": [
+    "CompositionRunReportJson owns Application durable JSON serialization; independent search found no existing authoritative import completeness classifier. Extend that owner with a pure typed JsonElement assessment, not a second parser/serializer framework or Presentation shape rules.",
+    "ReportReviewViewModel.Factory projects direct and asynchronous imports; missing or non-array Issues currently becomes an empty list and CreateStatus calls it Succeeded. Red real-loader tests retained under v114-report-import-outcome.",
+    "ReportPresentationViewModel.History.TryPrepareReportHistoryEntry already parses stored raw JSON; use the same assessment there to normalize stale cached success metadata. ReadHistoryIssueFacts and existing neutral row styling are the shared display consumers."
+  ],
+  "semanticOwner": "Application.CompositionRunReportJson owns persisted-projection completeness; existing Presentation owners render that typed result and preserve exact raw JSON",
+  "terminalContract": "Owner approved read-only Unknown rather than rejection for incomplete or unrecognized report objects. Require the existing seven nonempty string identity/time fields and explicit readable Issues array for recognized Application projection; retain legacy missing Severity fallback and unknown severity blocking. Do not require Output/ProfileVersion/CompletedAtUtc/new optional extensions, validate firmware support, reinterpret run outcome, or apply canonical camelCase schema. Unknown retains raw data, neutral Summary/icon/accessibility/history, no fabricated firmware issue or output. Direct/async/imported history and stale cached success normalize through the same upstream result; valid typed live reports, legacy reports, warning/error/info, cancellation/latest publication, raw export and replay remain unchanged. Preserve approved geometry and shared controls. Exact necessary source growth is measured and independently admitted without headroom; no release or Golden claim.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "ui_presentation_review",
+    "outcome": "approved",
+    "evidence": "Independent R2 design review found no existing upstream reader and admitted the bounded extension on CompositionRunReportJson. Verified seven identity/time fields and Issues in existing legacy fixtures, with ProfileVersion/CompletedAtUtc and optional extensions absent. Requires actual serialized control, valid legacy outcomes, malformed/incomplete objects, direct/async, old cached-success history, export/reopen/relocalization and existing replay/cancellation tests. Unknown is not firmware failure or native accessibility certification; no Infrastructure I/O or full serializer/schema framework needed."
+  },
+  "implementationHead": "e9b19cefaf4c9451f6bde67a8f9f193ec6ba94c8",
+  "reviewedHead": "e9b19cefaf4c9451f6bde67a8f9f193ec6ba94c8",
+  "pathStateDigest": "8adf17e61c5aabd4a553b950e93b5ffa9858d0c0ff2ee383edea820324270eb3",
+  "finalReview": {
+    "reviewer": "ui_presentation_review",
+    "outcome": "findings-incorporated",
+    "evidence": "Independent fixed-head scoped R2/Polytail PASS at e9b19cefaf4c9451f6bde67a8f9f193ec6ba94c8:18-file unit, no unresolved P0-P3. Two pre-freeze P2 findings corrected: Unknown outcome display excludes diagnostic warning/error styling without erasing recorded issues; conflicting severity aliases fail closed in the existing Application owner. Reviewer read final Report205/205 and Application24/24 TRX with zero skips/failures, plus complete ZH Light warning and EN Dark error renders. Primary verified accounting19/19 and all four1440x900 renders; reviewer independently measured/admitted exact full138704/runtime99231/Application42708, allowances35808/29175/12018, other slices unchanged20757/5039/30727. Raw read-only/exactness, partial evidence, stale cached success normalization, legacy/optional fields, cancellation and replay retained. No new semantic owner, dependency change, transferable source headroom or firmware mutation. Source tests and original failure evidence are retained under v114-report-import-outcome. Residual gates: final repository validator, full integration/release verifier and native DPI/High Contrast/screen-reader acceptance; no publication or Golden claim."
+  }
+}

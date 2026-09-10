@@ -11,7 +11,9 @@ namespace NvtFwCombiner.Presentation.Avalonia.Views;
 /// <summary>Draws one bounded, always-read-only hexadecimal snapshot without source authority.</summary>
 public sealed partial class HexViewportControl : Control
 {
-    private const double AddressWidth = 112;
+    private const double MinimumAddressWidth = 112;
+    private const double AddressTextStart = 12;
+    private const double LabelToByteGap = 8;
     private const double AsciiWidth = 144;
     private const double ColumnGap = 4;
     private const double RowHeight = 25;
@@ -19,6 +21,7 @@ public sealed partial class HexViewportControl : Control
 
     private Typeface? _normalTypeface;
     private Typeface? _strongTypeface;
+    private double _addressWidth = MinimumAddressWidth;
 
     internal static readonly StyledProperty<HexViewportSnapshot?> SnapshotProperty =
         AvaloniaProperty.Register<HexViewportControl, HexViewportSnapshot?>(nameof(Snapshot));
@@ -103,7 +106,13 @@ public sealed partial class HexViewportControl : Control
     {
         base.Render(context);
         EnsureThemePalette();
-        if (Snapshot is not { } snapshot || Bounds.Width <= AddressWidth + AsciiWidth)
+        if (Snapshot is not { } snapshot)
+        {
+            return;
+        }
+
+        RefreshAddressWidth(snapshot);
+        if (Bounds.Width <= _addressWidth + AsciiWidth)
         {
             return;
         }
@@ -174,6 +183,24 @@ public sealed partial class HexViewportControl : Control
         return new Size(width, Math.Max(RowHeight, displayRows * RowHeight));
     }
 
+    private void RefreshAddressWidth(HexViewportSnapshot snapshot)
+    {
+        _addressWidth = MinimumAddressWidth;
+        if (snapshot.Rows.Count == 0)
+        {
+            return;
+        }
+
+        long largestVisibleAddress = snapshot.Rows.Max(static row => row.Address);
+        string longestLabel = snapshot.ShowComparisonRows && snapshot.Rows.Any(static row => row.HasComparison)
+            ? FormatReferenceLabel(largestVisibleAddress)
+            : FormatAddress(largestVisibleAddress);
+        double labelWidth = CreateText(longestLabel, NormalTextBrush, StrongTypeface).Width;
+        _addressWidth = Math.Max(
+            MinimumAddressWidth,
+            Math.Ceiling(AddressTextStart + labelWidth + LabelToByteGap - ColumnGap));
+    }
+
     /// <inheritdoc />
     protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
     {
@@ -209,17 +236,17 @@ public sealed partial class HexViewportControl : Control
 
         if (isSelected)
         {
-            DrawRoundedRectangle(context, SelectedBrush, null, new Rect(0, y, AddressWidth, RowHeight), 3);
+            DrawRoundedRectangle(context, SelectedBrush, null, new Rect(0, y, _addressWidth, RowHeight), 3);
         }
 
-        DrawText(context, FormatAddress(row.Address), isSelected ? SelectedTextBrush : NormalTextBrush, StrongTypeface, 4, y);
+        DrawText(context, FormatAddress(row.Address), isSelected ? SelectedTextBrush : NormalTextBrush, StrongTypeface, AddressTextStart, y);
         if (row.HasDataChanges || row.HasStructuralBoundary)
         {
             DrawRoundedRectangle(
                 context,
                 ChangedMarkerBrush,
                 null,
-                new Rect(AddressWidth - 10, y + ((RowHeight - 5) / 2), 5, 5),
+                new Rect(_addressWidth - 10, y + ((RowHeight - 5) / 2), 5, 5),
                 3);
         }
 
@@ -234,8 +261,8 @@ public sealed partial class HexViewportControl : Control
     private void DrawReferenceRow(DrawingContext context, HexViewportRow row, double y)
     {
         DrawRoundedRectangle(context, ReferenceRowBrush, null, new Rect(0, y, Bounds.Width, RowHeight), 0);
-        DrawRoundedRectangle(context, ReferenceMarkerBrush, null, new Rect(0, y + 2, 4, RowHeight - 4), 2);
-        DrawText(context, FormatReferenceLabel(row.Address), ReferenceTextBrush, StrongTypeface, 4, y);
+        DrawRoundedRectangle(context, ReferenceMarkerBrush, null, new Rect(2, y + 2, 3, RowHeight - 4), 2);
+        DrawText(context, FormatReferenceLabel(row.Address), ReferenceTextBrush, StrongTypeface, AddressTextStart, y);
         for (int index = 0; index < row.Cells.Count; index++)
         {
             DrawByte(context, snapshot: null, row.Cells[index], index, y, isReference: true);
@@ -458,9 +485,9 @@ public sealed partial class HexViewportControl : Control
         return new Rect(GetAsciiStart() + 2 + (index * width), y, width, RowHeight);
     }
 
-    private static double GetByteStart()
+    private double GetByteStart()
     {
-        return AddressWidth + ColumnGap;
+        return _addressWidth + ColumnGap;
     }
 
     private double GetAsciiStart()

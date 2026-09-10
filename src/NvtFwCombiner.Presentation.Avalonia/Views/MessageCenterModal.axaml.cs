@@ -11,6 +11,25 @@ namespace NvtFwCombiner.Presentation.Avalonia.Views;
 /// <summary>Hosts separate run-report and refreshable System Information views.</summary>
 public sealed partial class MessageCenterModal : UserControl
 {
+    /// <summary>Routes the import request to the window's sole bounded file loader.</summary>
+    public event EventHandler<RoutedEventArgs>? LoadReportRequested;
+
+    private void LoadReportButton_OnClick(object? sender, RoutedEventArgs e)
+    {
+        LoadReportRequested?.Invoke(sender, e);
+    }
+
+    /// <inheritdoc />
+    protected override Size MeasureOverride(Size availableSize)
+    {
+        bool compact = availableSize.Width < 1200;
+        MessageCenterSurface.Margin = compact ? new Thickness(14, 10, 14, 12) : new Thickness(32, 24);
+        MessageCenterBody.ColumnDefinitions[0].Width = new GridLength(compact ? 200 : 324);
+        MessageCenterNavigationRail.Padding = compact ? new Thickness(8, 30, 8, 30) : new Thickness(18, 30, 36, 30);
+        MessageCenterContent.Margin = compact ? new Thickness(24, 24, 24, 20) : new Thickness(44, 30, 50, 24);
+        return base.MeasureOverride(availableSize);
+    }
+
     /// <summary>Initializes the generated view.</summary>
     public MessageCenterModal()
     {

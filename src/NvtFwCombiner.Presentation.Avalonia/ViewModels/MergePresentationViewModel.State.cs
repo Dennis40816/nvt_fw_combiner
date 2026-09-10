@@ -176,7 +176,8 @@ internal sealed partial class MergePresentationViewModel
                 MergeSlots.Count(static slot => slot.HasFile),
                 MergeSlots.Count,
                 MergeSlots.Count(static slot => slot.IsInputInspectionBlocking),
-                MergeSlots.Count(static slot => slot.IsInputInspectionWarning))
+                MergeSlots.Count(static slot => slot.IsInputInspectionWarning),
+                _abMergeBindingsByAddressSpace.ContainsKey(CompositionAddressSpaceIds.DpAbInput))
             : Text.GetMergeReadinessStatus(
                 SelectedMergeMode,
                 SelectedIc,
@@ -186,17 +187,19 @@ internal sealed partial class MergePresentationViewModel
 
     public bool CanBuildMerge => CanRunMerge();
 
-    public CapabilityActionBlocker? PrimaryBuildBlocker => SelectedMergeMode switch
+    public CapabilityActionBlocker? PrimaryBuildBlocker => BuildAvailability.PrimaryBlocker;
+
+    public CapabilityActionAvailability BuildAvailability => SelectedMergeMode switch
     {
-        GeneralMergeMode => ActiveSessionBuildBlockerResolver.Resolve(
+        GeneralMergeMode => ActiveSessionBuildBlockerResolver.ResolveBuildAvailability(
             _generalMergeSession.CurrentSnapshot,
             GeneralMergeMode,
             _generalMergeActionReadiness),
-        AbCodeMergeMode => ActiveSessionBuildBlockerResolver.Resolve(
+        AbCodeMergeMode => ActiveSessionBuildBlockerResolver.ResolveBuildAvailability(
             _abMergeSession.CurrentSnapshot,
             AbCodeMergeMode,
             _abMergeActionReadiness),
-        _ => ActiveSessionBuildBlockerResolver.Resolve(
+        _ => ActiveSessionBuildBlockerResolver.ResolveBuildAvailability(
             _standardMergeSession.CurrentSnapshot,
             NormalMergeMode),
     };
@@ -209,7 +212,9 @@ internal sealed partial class MergePresentationViewModel
 
     internal IReadOnlyDictionary<string, string> AbMergeAddressSpaceBySlotId => _abMergeAddressSpaceBySlotId;
 
-    internal IEnumerable<FirmwareSlotViewModel> AbMergeSlots => _abMergeSlotsByAddressSpace.Values;
+    internal IEnumerable<FirmwareSlotViewModel> AbMergeSlots => _abMergeSlotsByAddressSpace
+        .Where(pair => _abMergeBindingsByAddressSpace.ContainsKey(pair.Key))
+        .Select(static pair => pair.Value);
 
     internal IReadOnlyDictionary<string, FirmwareSlotViewModel> AbMergeSlotsByAddressSpace =>
         _abMergeSlotsByAddressSpace;
@@ -341,6 +346,12 @@ internal sealed partial class MergePresentationViewModel
 
     private void PublishContextCore(bool includeModeChoices)
     {
+        if (IsAbDummyDpPromptOpen &&
+            (!IsAbCodeMergeModeSelected || _dummyPromptIc != SelectedIc ||
+                _dummyPromptNumber != SelectedNumber))
+        {
+            CancelAbDummyDp();
+        }
         if (includeModeChoices && _catalogReconciliationPreviousMode is { } previousMode)
         {
             if (previousMode.Length > 0)
@@ -410,8 +421,10 @@ internal sealed partial class MergePresentationViewModel
 
     internal void NotifyCommandStateChanged()
     {
+        NotifyAbDummyDpCommandStateChanged();
         OnPropertyChanged(nameof(CanBuildMerge));
         OnPropertyChanged(nameof(PrimaryBuildBlocker));
+        OnPropertyChanged(nameof(BuildAvailability));
         OnPropertyChanged(nameof(MergeReadinessStatus));
     }
 

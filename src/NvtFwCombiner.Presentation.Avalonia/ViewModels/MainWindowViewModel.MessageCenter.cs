@@ -10,20 +10,21 @@ internal sealed partial class MainWindowViewModel
     public bool HasMergeBuildBlocker => !Merge.CanBuildMerge &&
         (MessageCenter.IsGlobalBuildBlocked || Merge.PrimaryBuildBlocker is not null);
 
-    public string MergeBuildBlockerText => FormatBuildBlocker(Merge.PrimaryBuildBlocker);
+    public string MergeBuildBlockerText => HasMergeBuildBlocker ? MergeBuildBlockerCard.AutomationText : string.Empty;
+
+    public IssueCardViewModel MergeBuildBlockerCard => CreateBuildBlockerCard(Merge.BuildAvailability, Merge.MergeSlots);
 
     public bool HasReplaceBuildBlocker => !Replace.CanBuildReplace &&
         (MessageCenter.IsGlobalBuildBlocked || Replace.PrimaryBuildBlocker is not null);
 
-    public string ReplaceBuildBlockerText => FormatBuildBlocker(Replace.PrimaryBuildBlocker);
+    public string ReplaceBuildBlockerText => HasReplaceBuildBlocker ? ReplaceBuildBlockerCard.AutomationText : string.Empty;
 
-    private string FormatBuildBlocker(CapabilityActionBlocker? local)
+    public IssueCardViewModel ReplaceBuildBlockerCard => CreateBuildBlockerCard(Replace.BuildAvailability, Replace.ReplaceSlots);
+
+    private IssueCardViewModel CreateBuildBlockerCard(CapabilityActionAvailability availability, IEnumerable<FirmwareSlotViewModel> slots)
     {
-        return MessageCenter.IsGlobalBuildBlocked
-            ? MessageCenter.GlobalBuildBlockerText
-            : local is null
-                ? string.Empty
-                : Text.FormatCapabilityActionBlocker(local);
+        return IssueCardViewModel.FromBuildAvailability(availability, slots, Text,
+            MessageCenter.IsGlobalBuildBlocked, MessageCenter.GlobalBuildBlockerText);
     }
 
     private bool IsGlobalBuildBlocked()
@@ -42,8 +43,10 @@ internal sealed partial class MainWindowViewModel
         PresentationObserver.Invoke(() => RefreshCommandState(refreshReplaceReadiness: false));
         PresentationObserver.Invoke(() => OnPropertyChanged(nameof(HasMergeBuildBlocker)));
         PresentationObserver.Invoke(() => OnPropertyChanged(nameof(MergeBuildBlockerText)));
+        PresentationObserver.Invoke(() => OnPropertyChanged(nameof(MergeBuildBlockerCard)));
         PresentationObserver.Invoke(() => OnPropertyChanged(nameof(HasReplaceBuildBlocker)));
         PresentationObserver.Invoke(() => OnPropertyChanged(nameof(ReplaceBuildBlockerText)));
+        PresentationObserver.Invoke(() => OnPropertyChanged(nameof(ReplaceBuildBlockerCard)));
     }
 
     private void MessageCenter_OnPropertyChanged(
@@ -61,6 +64,8 @@ internal sealed partial class MainWindowViewModel
         {
             OnPropertyChanged(nameof(MergeBuildBlockerText));
             OnPropertyChanged(nameof(ReplaceBuildBlockerText));
+            OnPropertyChanged(nameof(MergeBuildBlockerCard));
+            OnPropertyChanged(nameof(ReplaceBuildBlockerCard));
         }
     }
 }

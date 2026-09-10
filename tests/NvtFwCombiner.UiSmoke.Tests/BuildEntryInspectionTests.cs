@@ -316,7 +316,7 @@ public sealed class BuildEntryInspectionTests(ShellViewModelTestHostFixture fixt
         }
         finally
         {
-            window.Close();
+            await ReportControlTestHost.CloseAndFlushAsync(window);
         }
     }
 }

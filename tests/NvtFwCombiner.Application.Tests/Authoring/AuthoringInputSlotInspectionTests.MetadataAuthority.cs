@@ -9,7 +9,7 @@ namespace NvtFwCombiner.Application.Tests.Authoring;
 
 public sealed partial class AuthoringInputSlotInspectionTests
 {
-    /// <summary>Fixed plans stay terminal while an uncompiled CtrlRAM base uses one bounded read-only query.</summary>
+    /// <summary>Fixed plans stay terminal while a CtrlRAM base without DPCMI uses one bounded read-only query.</summary>
     [Fact]
     public void FirmwareMetadataAuthorityHasOneApplicationOwner()
     {
@@ -75,8 +75,11 @@ public sealed partial class AuthoringInputSlotInspectionTests
             FirmwareInspectionStatusBatch.Empty,
             FirmwareInspectionStatusBatch.Empty,
             ctrlRamBatch);
-        Assert.Same(ctrlRam.MetadataPlan, exactCtrlRamBase.Plan);
-        Assert.Empty(query.Calls);
+        Assert.Same(genericPlan, exactCtrlRamBase.Plan);
+        Assert.Equal(
+            [new MetadataQueryCall("NT-HEADLESS", ExperienceIds.DpReplace, "1-ic", 8)],
+            query.Calls);
+        query.Calls.Clear();
 
         FirmwareMetadataPlanAuthority ctrlRamReplacement = resolver.Resolve(
             "NT-HEADLESS",
@@ -154,6 +157,46 @@ public sealed partial class AuthoringInputSlotInspectionTests
                 new MetadataQueryCall("NT-HEADLESS", ExperienceIds.DpReplace, "1-ic", 9),
             ],
             query.Calls);
+    }
+
+    /// <summary>An unavailable metadata-only result stays terminal for a compiled CtrlRAM Base.</summary>
+    [Fact]
+    public void CtrlRamMetadataOnlyFailureIsNotReinterpreted()
+    {
+        var issue = new CapabilityCatalogIssue(CapabilityCatalogIssueCodes.RouteAmbiguous, "Ambiguous Base metadata.");
+        var query = new RecordingMetadataQuery(MetadataPlanDefinition.Empty.Resolve(new ResolutionToken("metadata")))
+        {
+            Result = new MetadataPlanResolutionResult(null, issue),
+        };
+        var resolver = new FirmwareMetadataPlanAuthorityResolver(query);
+        FirmwareMetadataPlanAuthority result = resolver.Resolve("NT-HEADLESS",
+            new FirmwareInspectionSnapshotInput("base", "base.bin",
+                CtrlRamReplaceAddressSpaceId: CompositionAddressSpaceIds.ReferenceBase), 262144,
+            FirmwareInspectionStatusBatch.Empty, FirmwareInspectionStatusBatch.Empty,
+            Batch(CreateCapability(ExperienceIds.CtrlRamReplace)));
+        Assert.True(result.IsApplicable);
+        Assert.Null(result.Plan);
+        Assert.Same(issue, result.Issue);
+        Assert.Equal(
+            [new MetadataQueryCall("NT-HEADLESS", ExperienceIds.DpReplace, "1-ic", 262144)],
+            query.Calls);
+    }
+
+    /// <summary>A declared DPCMI plan remains the sole interpretation even when its data would fail.</summary>
+    [Fact]
+    public void CtrlRamDeclaredDpcmiPlanDoesNotUseGenericMetadata()
+    {
+        ResolvedMetadataPlan source = Metadata.FirmwareMetadataInspectorTests.CreateDpcmiPlan(expectedFirstByte: 0xAA);
+        ResolvedCapability capability = CreateCapability(ExperienceIds.CtrlRamReplace, metadataPlan: source.Definition);
+        var query = new RecordingMetadataQuery(MetadataPlanDefinition.Empty.Resolve(new ResolutionToken("unused")));
+        var resolver = new FirmwareMetadataPlanAuthorityResolver(query);
+        FirmwareMetadataPlanAuthority result = resolver.Resolve("NT-HEADLESS",
+            new FirmwareInspectionSnapshotInput("base", "base.bin",
+                CtrlRamReplaceAddressSpaceId: CompositionAddressSpaceIds.ReferenceBase), 8,
+            FirmwareInspectionStatusBatch.Empty, FirmwareInspectionStatusBatch.Empty, Batch(capability));
+        Assert.True(result.IsApplicable);
+        Assert.Same(capability.MetadataPlan, result.Plan);
+        Assert.Empty(query.Calls);
     }
 
     private static FirmwareInspectionStatusBatch Batch(ResolvedCapability capability)

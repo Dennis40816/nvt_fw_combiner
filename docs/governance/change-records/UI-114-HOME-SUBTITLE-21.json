@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 2,
+  "taskId": "UI-114-HOME-SUBTITLE-21",
+  "capability": "Remove obsolete DP availability wording from Home Replace subtitle",
+  "integrationBase": "c3c81ba256cb833d6e8d34fe2b81c4ac81281797",
+  "risk": "R1",
+  "kind": "ui",
+  "state": "final-complete",
+  "mutablePaths": ["src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ShellTextResources.Localized.cs"],
+  "implementationOwner": "primary-agent",
+  "searchEvidence": [
+    "Home inventory at c78f6c2b used production policy and showed DP Replace hidden while subtitle still enumerated DP.",
+    "MainWindowPageTemplates.axaml:20 binds Replace.ReplacePreview.Subtitle; ShellTextResources.Localized.cs owns the English and Traditional Chinese strings. Reuse this owner without policy-derived UI logic."
+  ],
+  "semanticOwner": "ShellTextResources owns localized explanatory wording; canonical Application policy retains workflow availability",
+  "terminalContract": "Owner approved small-impact-first correction. Replace only the two subtitle strings with Choose a replacement workflow. / 選擇取代流程。 Preserve card geometry, commands, availability, firmware bytes, metadata, all other preview text and styles. Existing current 1440x900 Home captures are the visual baseline. Red/green resource and real-control checks cover both languages/themes; no new source lines, no full release run per local commit.",
+  "disposition": "reuse",
+  "designReview": {"reviewer": null, "outcome": "not-required", "evidence": "R1 localized copy correction, no authority or architecture change."},
+  "implementationHead": "859ea9f807299eb4407dca1b22a90d5d58d499c1",
+  "reviewedHead": "859ea9f807299eb4407dca1b22a90d5d58d499c1",
+  "pathStateDigest": "bc9384976d177de44f7d67cb1015fe1b6fa8573eef6af76108b66e52a64af13d",
+  "finalReview": {"reviewer": "ui_presentation_review", "outcome": "approved", "evidence": "Independent scoped R1 PASS at 859ea9f8, no P0-P3 findings. Two localized strings only; no availability, command, style, layout or source-size change. Reviewer confirmed MainWindow.axaml:172 shares this neutral subtitle with Home and retains the Mode selector; PASS unchanged. Red 4/4 intended failures; green 6/6 passed, zero skipped. Primary inspected four complete 1440x900 Home locale/theme frames. Additional existing CtrlRamSectionsKeepApprovedAnchorsAndOutlines consumer coverage passed 16/16, zero skipped, 24 seconds at the same head; primary inspected selected English Light/Dark full Replace frames. Evidence under D:/NvtFwCombiner-TestArea/evidence/v114-home-subtitle, including ctrlram/home-shared-subtitle.trx. Existing long-filename wrapping remains a separate follow-up. No firmware, full-release or native-display certification claimed."}
+}

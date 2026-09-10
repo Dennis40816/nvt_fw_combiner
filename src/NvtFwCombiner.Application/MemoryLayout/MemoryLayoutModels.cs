@@ -189,6 +189,8 @@ public sealed class MemoryLayoutSegment
     public string LogicalCoverageGroupId { get; }
     /// <summary>Exact canonical physical-region reference, or null for logical output.</summary>
     public FirmwareRegion? CanonicalRegion { get; }
+    /// <summary>Header/checksum trace keeps its exact geometry and effects but is not primary content.</summary>
+    public bool IsPrimaryContent => CanonicalRegion?.Kind is not (FirmwareRegionKind.Header or FirmwareRegionKind.Checksum);
     /// <summary>Primary content role.</summary>
     public MemoryContentRole ContentRole { get; }
     /// <summary>Planned workflow disposition.</summary>
@@ -386,7 +388,8 @@ public sealed class MemoryLayoutSnapshot
         long capacity,
         IReadOnlyList<MemoryLayoutSegment> beforeSegments,
         IReadOnlyList<MemoryLayoutSegment> afterSegments,
-        IEnumerable<MemoryLayoutPendingItem> pendingItems)
+        IEnumerable<MemoryLayoutPendingItem> pendingItems,
+        IReadOnlyList<MemoryLayoutSectionLocator> sectionLocators)
         : this(
             capability,
             authoring,
@@ -397,7 +400,8 @@ public sealed class MemoryLayoutSnapshot
             capacity,
             beforeSegments,
             afterSegments,
-            pendingItems)
+            pendingItems,
+            sectionLocators)
     {
     }
 
@@ -419,7 +423,8 @@ public sealed class MemoryLayoutSnapshot
             capacity,
             beforeSegments,
             afterSegments,
-            pendingItems)
+            pendingItems,
+            [])
     {
     }
 
@@ -433,7 +438,8 @@ public sealed class MemoryLayoutSnapshot
         long capacity,
         IReadOnlyList<MemoryLayoutSegment> beforeSegments,
         IReadOnlyList<MemoryLayoutSegment> afterSegments,
-        IEnumerable<MemoryLayoutPendingItem> pendingItems)
+        IEnumerable<MemoryLayoutPendingItem> pendingItems,
+        IReadOnlyList<MemoryLayoutSectionLocator> sectionLocators)
     {
         ArgumentNullException.ThrowIfNull(capability);
         ArgumentNullException.ThrowIfNull(authoring);
@@ -454,6 +460,31 @@ public sealed class MemoryLayoutSnapshot
             ? before
             : [.. afterSegments];
         MemoryLayoutPendingItem[] pending = [.. pendingItems];
+        ArgumentNullException.ThrowIfNull(sectionLocators);
+        MemoryLayoutSectionLocator[] sections = [.. sectionLocators];
+        bool hasSectionContext = geometryKind == MemoryLayoutGeometryKind.PhysicalMap &&
+            capability.CompiledComposition.V2Details.ExperienceId == ExperienceIds.CtrlRamReplace;
+        if (hasSectionContext)
+        {
+            long cursor = 0;
+            foreach (MemoryLayoutSectionLocator section in sections)
+            {
+                if (section.AddressSpaceId != addressSpaceId || section.Range.Start != cursor ||
+                    section.Range.EndExclusive > capacity)
+                {
+                    throw new ArgumentException("Section context must exactly partition the physical output.", nameof(sectionLocators));
+                }
+                cursor = section.Range.EndExclusive;
+            }
+            if (cursor != capacity)
+            {
+                throw new ArgumentException("Section context must cover the complete output.", nameof(sectionLocators));
+            }
+        }
+        else if (sections.Length != 0)
+        {
+            throw new ArgumentException("Only physical CtrlRAM layouts expose section context.", nameof(sectionLocators));
+        }
         ValidateCoverage(before, geometryKind, addressSpaceId, capacity, regions);
         ValidateCoverage(after, geometryKind, addressSpaceId, capacity, regions);
         if (pending.Select(static item => item.SlotId)
@@ -490,6 +521,7 @@ public sealed class MemoryLayoutSnapshot
             ? BeforeSegments
             : Array.AsReadOnly(after);
         PendingItems = Array.AsReadOnly(pending);
+        SectionLocators = Array.AsReadOnly(sections);
     }
 
     /// <summary>Exact canonical route identity.</summary>
@@ -520,6 +552,9 @@ public sealed class MemoryLayoutSnapshot
     public IReadOnlyList<MemoryLayoutSegment> AfterSegments { get; }
     /// <summary>Unresolved non-geometric items.</summary>
     public IReadOnlyList<MemoryLayoutPendingItem> PendingItems { get; }
+
+    /// <summary>Read-only CtrlRAM overview context; never write or capacity authority.</summary>
+    public IReadOnlyList<MemoryLayoutSectionLocator> SectionLocators { get; }
 
     private static void ValidateCoverage(
         MemoryLayoutSegment[] segments,

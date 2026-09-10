@@ -91,7 +91,7 @@ internal sealed partial class ShellTextResources
                 "在 bundle 中包含 A FlashCode"),
             OutputDeliveryOutputLabel = Pick("Output", "輸出"),
             OutputDeliveryEditOutputNameLabel = Pick("Edit output filename", "編輯輸出檔名"),
-            OutputDeliverySourcesLabel = Pick("Sources", "來源"),
+            OutputDeliverySourcesLabel = Pick("View source files", "檢視來源檔案"),
             OutputDeliverySourcesSummaryFormat = Pick("{0} verified sources", "{0} 個已驗證來源"),
             OutputDeliveryFolderNameLabel = Pick("Bundle folder name", "Bundle 資料夾名稱"),
             OutputDeliveryParentLabel = Pick("Parent folder", "上層資料夾"),
@@ -152,7 +152,7 @@ internal sealed partial class ShellTextResources
             ReplacePreview = Pick(
                 new PlanningCardText(
                     "Replace",
-                    "DP, CtrlRAM, and Customized policies.",
+                    "Choose a replacement workflow.",
                     [
                         "Device context: shared IC and Number",
                         "DP Replace includes separate DP and LDC payloads",
@@ -162,7 +162,7 @@ internal sealed partial class ShellTextResources
                     "Build wired; CtrlRAM postbuild enabled"),
                 new PlanningCardText(
                     "取代",
-                    "DP、CtrlRAM 與 Customized policy。",
+                    "選擇取代流程。",
                     [
                         "裝置條件：共用 IC 與數量",
                         "DP Replace 包含分開的 DP 與 LDC payload",
@@ -279,6 +279,13 @@ internal sealed partial class ShellTextResources
                 "Compose one compiled DP_AB container with independent TPA and TPB payloads. Input versions are informational and never choose the route.",
                 "以 compiled profile 合成一個 DP_AB container 與獨立 TPA、TPB payload；input 版本只供確認，絕不選擇執行路徑。"),
             AbSameTpOptionLabel = Pick("Use the same TP for A and B", "A 與 B 使用相同 TP"),
+            AbDummyDpOptionLabel = "Dummy DP (0xFF)",
+            AbDummyDpConfirmTitle = Pick("Enable Dummy DP?", "啟用 Dummy DP？"),
+            AbDummyDpConfirmDetail = Pick(
+                "All non-TP output regions will use Dummy Byte 0xFF. Your DP selection will be cleared and DP input disabled. Original files will not be deleted; TP selections are kept. Turning this off requires selecting DP again.",
+                "輸出中所有非 TP 區段將填入 Dummy Byte 0xFF。將清除目前的 DP 選取並停用 DP 輸入；不會刪除原始檔案，TP 選取也會保留。關閉此選項後，需重新選擇 DP。"),
+            AbDummyDpEnableLabel = Pick("Enable Dummy DP", "啟用 Dummy DP"),
+            AbDummyDpDisabledDetail = Pick("DP input disabled · Non-TP bytes: 0xFF", "DP 輸入已停用 · 非 TP 區段：0xFF"),
             AbSameTpLinkedLabel = Pick("Same as TPA", "與 TPA 相同"),
             AbSameTpConflictTitle = Pick("Choose the shared TP", "選擇共用 TP"),
             AbSameTpConflictDetail = Pick(
@@ -315,8 +322,8 @@ internal sealed partial class ShellTextResources
                 "保留步驟狀態，同時停用非必要的進度動畫。"),
             SupportMatrixTitle = Pick("Support Matrix", "支援矩陣"),
             SupportMatrixSubtitle = Pick(
-                "See which workflows are defined for each IC and how strongly each route is verified. Focus a cell for exact details.",
-                "查看每個 IC 已定義的工作流程與路徑驗證程度；聚焦任一格可查看完整明細。"),
+                "Workflow support and verification status by IC.",
+                "各 IC 的工作流程支援與驗證狀態。"),
             SupportMatrixIcLabel = "IC",
             SupportMatrixIcCountLabel = Pick("IC Count", "IC 數量"),
             SupportMatrixMapVariantLabel = Pick("Map variant", "映射變體"),
@@ -326,6 +333,8 @@ internal sealed partial class ShellTextResources
             SupportMatrixEvidenceLabel = Pick("Evidence", "證據"),
             SupportMatrixBlockerLabel = Pick("Blocker", "阻擋原因"),
             SupportMatrixCatalogVersionLabel = Pick("Catalog version:", "目錄版本："),
+            SupportMatrixCatalogLabel = Pick("Catalog", "目錄"),
+            SupportMatrixCatalogDetailsLabel = Pick("Catalog details", "目錄明細"),
             SupportMatrixSourceHashLabel = Pick("Source SHA-256:", "來源 SHA-256："),
             SupportMatrixResolutionTokenLabel = Pick("Publication token:", "發布識別碼："),
             SupportMatrixFingerprintLabel = Pick("Capability fingerprint", "能力指紋"),
@@ -337,8 +346,8 @@ internal sealed partial class ShellTextResources
             SupportMatrixBlockedLabel = Pick("Blocked", "已阻擋"),
             SupportMatrixNotDeclaredLabel = Pick("Not declared", "未宣告"),
             SupportMatrixHoverHint = Pick(
-                "Status summarizes verification evidence and any route blockers; focus a cell for details.",
-                "狀態彙整驗證證據與路徑阻擋原因；聚焦任一格可查看明細。"),
+                "Hover or focus a cell for details.",
+                "滑鼠停留或聚焦儲存格可查看明細。"),
             SupportMatrixLoadingTitle = Pick("Loading Support Matrix", "正在載入支援矩陣"),
             SupportMatrixLoadingDetail = Pick(
                 "The first complete canonical catalog publication is still being prepared.",
@@ -401,8 +410,6 @@ internal sealed partial class ShellTextResources
             ChangeReviewTitle = Pick("Change review", "差異審查"),
             EvidenceTitle = Pick("Audit details", "審查明細"),
             TraceLabel = "trace",
-            OpenReportHistoryTooltip = Pick("Open report history (Ctrl+H)", "開啟 report history (Ctrl+H)"),
-            OpenReportHistoryAutomationName = Pick("Open report history", "開啟 report history"),
             ReportTabInputs = Pick("Inputs", "輸入"),
             ReportTabChanges = Pick("Changes", "差異"),
             ReportTabOperations = Pick("Operations", "操作"),
@@ -426,9 +433,8 @@ internal sealed partial class ShellTextResources
             HexDiffOriginalRowLabel = Pick("original", "原始"),
             HexDiffRangeScrollAutomationName = Pick("Scroll the selected changed range", "捲動所選變更區段"),
             HexDiffRangeNavigatorTitle = Pick("Changed ranges", "變更區段"),
-            HexDiffRangeNavigatorDetail = Pick("Select a range to jump to its bytes. Review-required ranges appear first.", "選取區段即可跳到對應位元組；待審查區段優先顯示。"),
+            HexDiffRangeNavigatorDetail = Pick("Select a range to inspect its bytes.", "選取區段以檢視對應位元組。"),
             HexDiffResizeAutomationName = Pick("Resize Hex Diff and changed ranges panels", "調整 Hex Diff 與變更區段面板寬度"),
-            HexDiffSelectedRangeLabel = Pick("Viewing", "目前檢視"),
             HexDiffWhyLabel = Pick("Why", "原因"),
             BinInspectorTitle = Pick("BIN Inspector", "BIN 檢視器"),
             BinInspectorViewportTitle = Pick("Resolved structure bytes", "已解析結構位元組"),
@@ -457,6 +463,9 @@ internal sealed partial class ShellTextResources
             RangeTableTitle = "Range table",
             AddressSpaceLabel = "Address space",
             CopyCommandTooltip = Pick("Copy command evidence", "複製命令證據"),
+            CopyRawReportTooltip = Pick("Copy full JSON", "複製完整 JSON"),
+            ReportCopyFailedTitle = Pick("Copy failed", "複製失敗"),
+            ReportCopyFailedDetail = Pick("Clipboard unavailable. Try again or save the report.", "剪貼簿目前無法使用，請重試或儲存報告。"),
             DeleteReportTooltip = Pick("Delete this report", "刪除此 report"),
             MergeModeTooltip = Pick("Select Standard, reserved AB Code, or Customized Merge.", "選擇 Standard、保留的 AB Code 或 Customized Merge。"),
             WorkflowContextReplaceDetail = Pick("Choose the IC and IC count before opening Replace. You can change them later from the shared context row.", "進入 Replace 前先選擇 IC 與 IC 數量；之後仍可從共用條件列調整。"),

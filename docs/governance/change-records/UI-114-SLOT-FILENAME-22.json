@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 2,
+  "taskId": "UI-114-SLOT-FILENAME-22",
+  "capability": "Give the shared selected firmware filename its own full-width bottom row",
+  "integrationBase": "2f5c1fb8685a7d485e352e488c78abf9c7ae31db",
+  "risk": "R1",
+  "kind": "ui",
+  "state": "final-complete",
+  "mutablePaths": ["src/NvtFwCombiner.Presentation.Avalonia/Views/FirmwareSlotCard.axaml"],
+  "implementationOwner": "primary-agent",
+  "searchEvidence": ["CodeGraph FirmwareSlotCard lookup followed by exact XAML/code-behind and CtrlRamSelectorLayoutTests inspection.", "FirmwareSlotCard owns the shared reveal button inside a 280-pixel identity column. Its existing responsive code owns only identity/facts/actions. Reuse that layout unchanged and place the same reveal button in an outer bottom row; no new VM or workflow branch."],
+  "semanticOwner": "FirmwareSlotCard owns presentation geometry; existing VM and Application retain selection and metadata authority",
+  "terminalContract": "Owner approved a dedicated bottom filename row on 2026-09-08. Preserve full text and wrapping, reveal command/path/tooltip/automation, browse/clear styling and behavior, empty-state layout and inner responsive facts layout. Shared consumers use the same card. Supersedes only the earlier filename placement; no firmware bytes or policy changes. Baseline: D:/NvtFwCombiner-TestArea/evidence/v114-home-subtitle/ctrlram selected 1440x900 English Light/Dark plus 980x640 matrix. Assert full-width bottom bounds, exact filename and non-clipping; run CtrlRAM 16-case actual page and affected shared-card tests; compare complete frames. Full release and native DPI certification remain outside this unit.",
+  "disposition": "reuse",
+  "designReview": {"reviewer": null, "outcome": "not-required", "evidence": "R1 approved shared card geometry correction only."},
+  "implementationHead": "297f551c7d7cc717aa19ae28220011c8dc21d484",
+  "reviewedHead": "297f551c7d7cc717aa19ae28220011c8dc21d484",
+  "pathStateDigest": "edad994cb9baf3b4e9e8dc09b5fa34db89b70a0ac892fa0c785020e331805b2a",
+  "finalReview": {"reviewer": "ui_presentation_review", "outcome": "approved", "evidence": "Independent fixed-head R1 scoped/Polytail PASS at 297f551c, no P0-P3 findings. Reviewer inspected all seven changed files, final TRX 73/73 zero skipped, complete 1440x900 EN Light/Dark production captures, and independently confirmed all eight empty PNG hashes equal the preceding baseline. Same reveal button command/path/tooltip/automation/style/HasFile and upper responsive grid retained. Updated upper-row center and explicit 146px height checks reflect the owner-approved footer, not relaxed tolerances; full text and wrapping remain asserted. Red selected8 fail/empty8 pass; final narrow run 27 seconds, evidence D:/NvtFwCombiner-TestArea/evidence/v114-slot-filename/green-final/green-final.trx. Diff check passes; no net production-line growth. Recorded 980px pre-existing header crowding and EN filename below initial fold remain outside this local correction; no native DPI, High Contrast, full release or Golden execution claim."}
+}

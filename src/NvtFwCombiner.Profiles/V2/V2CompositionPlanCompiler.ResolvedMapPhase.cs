@@ -67,7 +67,9 @@ internal static partial class V2CompositionPlanCompiler
                 views,
                 regionAccess,
                 issues,
-                activeOperationIds: inputSelection.ActiveOperationIds);
+                activeOperationIds: inputSelection.ActiveOperationIds,
+                family: profileEntry.Family.Family,
+                activeSlotIds: inputSelection.ActiveSlotIds);
             ValidateOperationOverlaps(operations, issues);
             if (issues.Count != 0) { return V2CompositionPlanCompileResult.Failed(issues); }
 

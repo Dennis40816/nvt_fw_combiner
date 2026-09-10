@@ -93,21 +93,21 @@ public sealed partial class XamlControlStyleContractTests
     {
         string workflows = ReadPresentationFile("Resources/MainWindowWorkflowTemplates.axaml");
         string styles = ReadPresentationFile("Styles/MainWindowControlStyles.axaml");
-        string spaciousListStyle = ExtractStyle(styles, "ItemsControl.spaciousList");
+        string spaciousListStyle = ExtractStyle(styles, "ItemsControl.firmwareSlotGroups");
 
         Assert.Contains("ItemsSource=\"{Binding ReplaceSlotGroups}\"", workflows, StringComparison.Ordinal);
-        Assert.Contains("Classes=\"spaciousList\"", workflows, StringComparison.Ordinal);
+        Assert.Contains("Classes=\"spaciousList firmwareSlotGroups\"", workflows, StringComparison.Ordinal);
         Assert.DoesNotContain("ItemsSource=\"{Binding ReplaceCoverageGroups}\"", workflows, StringComparison.Ordinal);
         Assert.Contains("ItemsSource=\"{Binding ReplaceSelectedCoverageItems}\"", workflows, StringComparison.Ordinal);
         Assert.Contains("ItemsSource=\"{Binding ReplaceBaseCoverageItems}\"", workflows, StringComparison.Ordinal);
         Assert.Contains("Classes=\"memorySupportingRow\"", workflows, StringComparison.Ordinal);
         Assert.Contains(
-            "<StackPanel Spacing=\"{DynamicResource NfcSpace8}\" />",
+            "<StackPanel Spacing=\"{DynamicResource NfcSpace12}\" />",
             spaciousListStyle,
             StringComparison.Ordinal);
     }
 
-    /// <summary>The CtrlRAM Base firmware uses the same self-padding section inset as topology groups.</summary>
+    /// <summary>Base and groups share a parent without an asymmetric Base-only padding wrapper.</summary>
     [Fact]
     public void CtrlRamBaseAndTopologyGroupsShareSpaciousPanelWidthBoundary()
     {
@@ -118,11 +118,13 @@ public sealed partial class XamlControlStyleContractTests
             element =>
                 element.Name.LocalName == "ContentControl" &&
                 (string?)element.Attribute("Content") == "{Binding ReplaceBaseSlot}" &&
-                element.Parent?.Name.LocalName == "SpaciousPanel");
+                element.Parent?.Name.LocalName == "StackPanel");
         System.Xml.Linq.XElement section = Assert.IsType<System.Xml.Linq.XElement>(baseSlot.Parent);
 
-        Assert.Equal("compact", (string?)section.Attribute("Classes"));
-        Assert.Equal("Stretch", (string?)section.Attribute("HorizontalAlignment"));
+        Assert.Contains(section.Elements(), element =>
+            element.Name.LocalName == "ItemsControl" &&
+            (string?)element.Attribute("ItemsSource") == "{Binding ReplaceSlotGroups}");
+        Assert.Null(baseSlot.Attribute("Padding"));
         Assert.Equal("Stretch", (string?)baseSlot.Attribute("HorizontalAlignment"));
         Assert.Equal("Stretch", (string?)baseSlot.Attribute("HorizontalContentAlignment"));
     }

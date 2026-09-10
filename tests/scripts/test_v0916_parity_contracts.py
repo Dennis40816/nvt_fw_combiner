@@ -709,12 +709,18 @@ class V0916ParityContractTests(V0916ParityTestBase):
 
     def test_execution_fails_closed_until_every_route_has_canonical_input_authority(self) -> None:
         plan = MODULE.load_and_validate_plan(self.plan_path, self.policy_path)
+        snapshot_root = self.enterContext(
+            MODULE.controlled_temporary_directory("nfc-canonical-")
+        ) / "snapshot"
+        authority = MODULE.materialize_and_validate_canonical_input_authority(
+            plan.raw,
+            git_reader=MODULE.PinnedGitReader(ROOT),
+            destination=snapshot_root,
+        )
         with self.assertRaises(MODULE.ParityError) as captured:
             MODULE.resolve_all_canonical_route_inputs(
                 plan,
-                MODULE.capture_canonical_authority_from_manifest_for_test(
-                    ROOT / "testdata/golden/canonical/manifest.json"
-                ),
+                authority,
             )
         self.assertEqual("PARITY_FIXTURE_MISSING", captured.exception.code)
         self.assertEqual(

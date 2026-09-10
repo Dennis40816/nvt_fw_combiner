@@ -190,8 +190,10 @@ public sealed record ResolvedCapability
         ResolvedMetadataPlan metadataPlan,
         ResolutionToken resolutionToken,
         CanonicalCapabilityCompilationContract? compilationContract = null,
-        RuntimeReferenceCompilationProof? runtimeReferenceProof = null)
+        RuntimeReferenceCompilationProof? runtimeReferenceProof = null,
+        MemoryLayout.MemoryLayoutContextMap? memoryLayoutContext = null)
     {
+        ArgumentNullException.ThrowIfNull(identity);
         ArgumentNullException.ThrowIfNull(compiledComposition);
         CompiledComposition boundComposition = compiledComposition
             .BindCapabilityFingerprint(capabilityFingerprint);
@@ -210,7 +212,9 @@ public sealed record ResolvedCapability
             evidence,
             metadataPlan,
             resolutionToken,
-            runtimeReferenceProof);
+            runtimeReferenceProof,
+            memoryLayoutContext);
+        MemoryLayoutContext = memoryLayoutContext;
         Identity = identity;
         CapabilityFingerprint = capabilityFingerprint;
         CompiledComposition = boundComposition;
@@ -237,6 +241,9 @@ public sealed record ResolvedCapability
 
     /// <summary>Typed plan proof bound to this exact runtime-reference compilation.</summary>
     public RuntimeReferenceCompilationProof? RuntimeReferenceProof { get; }
+
+    /// <summary>Read-only exact Standard location context; never used to authorize execution.</summary>
+    public MemoryLayout.MemoryLayoutContextMap? MemoryLayoutContext { get; }
 
     /// <summary>
     /// Exact accepted General admission and input bindings, or null for non-General capabilities.

@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 2,
+  "taskId": "UI-114-TOOLTIP-ESCAPE-24",
+  "capability": "Consume Escape only when dismissing an open shared focus tooltip",
+  "integrationBase": "3423df6b78d58a2ed2735c66f38a365cc325cc9d",
+  "risk": "R2",
+  "kind": "ui",
+  "state": "final-complete",
+  "mutablePaths": ["src/NvtFwCombiner.Presentation.Avalonia/Behaviors/FocusToolTipBehavior.cs", "scripts/code_size_policy.py", "docs/adr/0021-code-size-ratchet-accepted-artifact-amendment.md"],
+  "implementationOwner": "primary-agent",
+  "searchEvidence": ["SupportMatrixInteractionTests: four real Settings cases reach final cell, correctly disclose typed details, then Escape also closes Settings (interaction.trx).", "FocusToolTipBehavior.Control_OnKeyDown closes tooltip without marking handled; SettingsModal_OnKeyDown receives Escape and closes modal. Existing shared behavior already owns focus/hover restoration and ComboBox dismissal. Reuse it; no Settings-specific duplicate path."],
+  "semanticOwner": "FocusToolTipBehavior owns tooltip key consumption; SettingsModal retains modal close; code_size_policy/ADR0021 own exact accounting",
+  "terminalContract": "Owner requested next SupportMatrix interaction item after Header fix. First Escape dismisses open tooltip and retains Settings/focus; second Escape when no tooltip remains bubbles to Settings. Preserve focus-loss service restoration, ComboBox behavior, pointer tooltip styles, all commands/support facts/firmware bytes. Add exactly1 production line plus condition change; full138724/allowance35828, unchanged runtime/slices/ratchets/algorithms/exclusions/gates. Test actual Settings scroll extremes at1440/980 ENLight/zhDark, tooltip details/naming, two-stage Escape, and shared IssueCard/ComboBox behavior; accounting19 plus fixed independent review. Native DPI/screenreader/release remain outside this unit.",
+  "disposition": "reuse",
+  "designReview": {"reviewer": "ui_presentation_review", "outcome": "approved", "evidence": "Independent bounded design/R2 accounting admission PASS before edit: guard Escape with ToolTip.GetIsOpen and setHandled after dismissal; no open tooltip must preserve bubbling. Admit projected exact+1 full138724/allowance35828, then measure. Require focus retention, secondEscape close, service restoration and shared consumer checks."},
+  "implementationHead": "a156595f0b333bd0ffaceb8e74308f7ba4295822",
+  "reviewedHead": "a156595f0b333bd0ffaceb8e74308f7ba4295822",
+  "pathStateDigest": "7d894292329543ffc8530304a8a88f1aa6db617f609dd6b8a0440842cc7b7625",
+  "finalReview": {"reviewer": "ui_presentation_review", "outcome": "approved", "evidence": "Independent fixed-head scoped R2/Polytail PASS at a156595f, no P0-P3. Reviewer read seven-file diff, final UI TRX35/35 zero skipped, and full980 zhDark matrix capture. FirstEscape only dismisses open tooltip, retainsSettings/focus; second closesSettings. Actual first/lastcell geometry, typed details, service suppression/focus-loss restoration and workflow-state preservation covered. Shared IssueCard/IcDetail/Settings regressions included. Primary observed accounting19/19 pass27.237s, canonical full138724/runtime99231/slices20757/42708/5039/30727, exact+1 production allowance35828; reviewer independently verified diff/ledger no algorithm/ratchet changes. UI35 took12s, evidence D:/NvtFwCombiner-TestArea/evidence/v114-support-matrix/green/green.trx; redinteraction.trx four failures retained. Primary viewed four fullframes; eight first/last captures retained. IC column scroll remains documented existing layout. No native DPI/HighContrast/screenreader or fullrelease claim."}
+}

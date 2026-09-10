@@ -29,6 +29,12 @@ internal sealed partial class ReportHexDiffRangeViewModel : ObservableObject
         Descriptor = descriptor;
         Detail = detail;
         OutputSpaceId = outputSpaceId;
+        Status = descriptor.IsAccepted
+            ? language == ShellLanguage.ChineseTraditional ? "預期" : "Expected"
+            : language == ShellLanguage.ChineseTraditional ? "待審查" : "Review required";
+        Result = descriptor.IsAccepted
+            ? language == ShellLanguage.ChineseTraditional ? "所選 profile 已接受此區段。" : "Accepted by the selected profile."
+            : language == ShellLanguage.ChineseTraditional ? "請在 release 前審查此區段。" : "Review this range before release.";
         AccessibleRange = language == ShellLanguage.ChineseTraditional
             ? string.Create(
                 CultureInfo.InvariantCulture,
@@ -54,9 +60,14 @@ internal sealed partial class ReportHexDiffRangeViewModel : ObservableObject
 
     public string Title => Detail.Title;
 
+    public string TraceId => Detail.Meta;
+
     public string Reason => Detail.Reason;
 
-    public string Status => Detail.Badges.Count > 0 ? Detail.Badges[0].Text : string.Empty;
+    public string Status { get; }
+
+    /// <summary>Plain-language consequence of the existing per-range acceptance verdict.</summary>
+    public string Result { get; }
 
     public string ChangedSummary => Detail.ChangedSummary;
 

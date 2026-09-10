@@ -35,7 +35,7 @@ public sealed partial class XamlControlStyleContractTests
         string panels = ReadPresentationFile("Resources/MainWindowReportPanels.axaml");
 
         Assert.Contains("IsExpanded=\"{Binding LoadedReport.HasPrimaryIssue}\"", panels, StringComparison.Ordinal);
-        Assert.Contains("Text=\"{Binding LoadedReport.PrimaryIssue.Detail}\"", panels, StringComparison.Ordinal);
+        Assert.Contains("Text=\"{Binding LoadedReport.PrimaryIssue.IssueDescription}\"", panels, StringComparison.Ordinal);
         Assert.Contains("Text=\"{Binding LoadedReport.PrimaryIssue.Title}\"", panels, StringComparison.Ordinal);
         Assert.Contains("Text=\"{Binding LoadedReport.PrimaryIssue.Meta}\"", panels, StringComparison.Ordinal);
         Assert.Contains("Text=\"{Binding LoadedReport.OutcomeDetail}\"", panels, StringComparison.Ordinal);
@@ -177,12 +177,15 @@ public sealed partial class XamlControlStyleContractTests
             "SelectedItem=\"{Binding LoadedReport.HexDiff.SelectedRange, Mode=TwoWay}\"",
             audit,
             StringComparison.Ordinal);
-        Assert.Contains("Content=\"{ReflectionBinding $parent[Window].DataContext.Text.HexDiffSelectedRangeLabel}\"", changes, StringComparison.Ordinal);
-        Assert.Contains("Text=\"{Binding OutputSpaceId}\"", changes, StringComparison.Ordinal);
+        Assert.DoesNotContain("HexDiffSelectedRangeLabel", changes, StringComparison.Ordinal);
+        Assert.Contains("Path=\"OutputSpaceId\"", changes, StringComparison.Ordinal);
         Assert.Contains("Text=\"{Binding DisplayRange}\"", changes, StringComparison.Ordinal);
+        Assert.Contains("Text=\"{Binding ChangedSummary}\"", changes, StringComparison.Ordinal);
+        Assert.Contains("Path=\"TraceId\"", changes, StringComparison.Ordinal);
         Assert.Contains("Text.HexDiffWhyLabel", changes, StringComparison.Ordinal);
         Assert.Contains("Text.ResultLabel", changes, StringComparison.Ordinal);
-        Assert.Equal(2, Regex.Count(changes, Regex.Escape("IsVisible=\"{Binding IsSelected}\"")));
+        Assert.Contains("Text=\"{Binding Result}\"", changes, StringComparison.Ordinal);
+        Assert.Equal(1, Regex.Count(changes, Regex.Escape("IsVisible=\"{Binding IsSelected}\"")));
         Assert.DoesNotContain("Text.PrimaryReasonLabel", ExtractDataTemplate(changes, "ReportHexDiffRangeRowTemplate"), StringComparison.Ordinal);
         Assert.Contains("AutomationProperties.HelpText=\"{Binding Reason}\"", changes, StringComparison.Ordinal);
         Assert.DoesNotContain("HexDiffBeforeSha256Label", audit, StringComparison.Ordinal);
@@ -206,26 +209,42 @@ public sealed partial class XamlControlStyleContractTests
         Assert.DoesNotContain("Background=\"#", hexDiffSurface, StringComparison.Ordinal);
     }
 
-    /// <summary>Changed and selected Hex Diff states remain distinguishable without color perception.</summary>
+    /// <summary>Templates retain textual/shape cues; this is not a native High Contrast rendering test.</summary>
     [Fact]
-    public void ReportHexDiffHighContrastCuesDoNotDependOnColor()
+    public void ReportHexDiffTemplatesRetainNonColorCues()
     {
         string styles = ReadPresentationFile("Styles/MainWindowControlStyles.axaml");
         string changes = ReadPresentationFile("Resources/MainWindowReportChangeTemplates.axaml");
         string rangeRow = ExtractDataTemplate(changes, "ReportHexDiffRangeRowTemplate");
 
-        Assert.Contains("Content=\"{ReflectionBinding $parent[Window].DataContext.Text.HexDiffSelectedRangeLabel}\"", rangeRow, StringComparison.Ordinal);
-        Assert.Contains("VerticalAlignment=\"Top\"", rangeRow, StringComparison.Ordinal);
-        Assert.Contains("IsVisible=\"{Binding IsSelected}\"", rangeRow, StringComparison.Ordinal);
+        Assert.DoesNotContain("HexDiffSelectedRangeLabel", rangeRow, StringComparison.Ordinal);
         Assert.Contains("Content=\"{Binding Status}\"", rangeRow, StringComparison.Ordinal);
         Assert.Equal(1, Regex.Count(rangeRow, Regex.Escape("Content=\"{Binding Status}\"")));
-        Assert.Contains("Text=\"{Binding OutputSpaceId}\"", rangeRow, StringComparison.Ordinal);
+        Assert.Contains("Path=\"OutputSpaceId\"", rangeRow, StringComparison.Ordinal);
+        Assert.Contains("Path=\"TraceId\"", rangeRow, StringComparison.Ordinal);
         Assert.Contains("Text=\"{Binding DisplayRange}\"", rangeRow, StringComparison.Ordinal);
         Assert.DoesNotContain("Text=\"{Binding AccessibleRange}\"", rangeRow, StringComparison.Ordinal);
         Assert.Contains("Text.HexDiffWhyLabel", rangeRow, StringComparison.Ordinal);
         Assert.Contains("Text.ResultLabel", rangeRow, StringComparison.Ordinal);
+        Assert.Contains("Text=\"{Binding Result}\"", rangeRow, StringComparison.Ordinal);
         Assert.Contains("^:selected /template/ Border#PART_SelectedRail", changes, StringComparison.Ordinal);
         Assert.Contains("NfcAccentStrongBrush", changes, StringComparison.Ordinal);
         Assert.DoesNotContain("Selector=\"RadioButton.reportHexDiffRange:checked\"", styles, StringComparison.Ordinal);
+    }
+
+    /// <summary>Report detail has one quiet return route instead of a duplicate history action.</summary>
+    [Fact]
+    public void ReportDetailUsesOneBreadcrumbBackRoute()
+    {
+        string panels = ReadPresentationFile("Resources/MainWindowReportPanels.axaml");
+        string header = ExtractDataTemplate(panels, "ReportModalHeaderTemplate");
+        string summary = ExtractDataTemplate(panels, "ReportSummaryPanelTemplate");
+
+        Assert.Contains("Classes=\"breadcrumb reportBackLink\"", header, StringComparison.Ordinal);
+        Assert.Contains("Text=\"{Binding Text.BackToRunReportsLabel}\"", header, StringComparison.Ordinal);
+        Assert.Contains("Data=\"M10 3L5 8L10 13\"", header, StringComparison.Ordinal);
+        Assert.DoesNotContain("Content=\"{Binding Text.BackToRunReportsLabel}\"", header, StringComparison.Ordinal);
+        Assert.DoesNotContain("OpenReportHistoryAutomationName", summary, StringComparison.Ordinal);
+        Assert.DoesNotContain("OpenReportHistoryTooltip", summary, StringComparison.Ordinal);
     }
 }

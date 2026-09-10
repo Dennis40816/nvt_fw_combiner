@@ -1,0 +1,9 @@
+{
+  "schemaVersion": 1,
+  "taskId": "AB-114-DUMMY-DP-PACKAGE-01",
+  "authorityType": "release-owner",
+  "reviewedHead": "6a261aea4810039194d0f9df142d43997540f52f",
+  "decision": "approved",
+  "reviewer": "Dennis Liu (release owner)",
+  "evidence": "On 2026-09-07 the owner instructed '請整合' after the diagnosis explicitly identified package.ps1:430 and smoke-release.ps1:678 requiring trust-index schema 1.1 while the accepted canonical schema is 1.2, and proposed correcting those two checks. This records approval of that disclosed bounded correction, not a claim that the owner saw a SHA generated later. Independent fixed-diff review confirms implementation 1da0b11f99762cf14d235f864cfbb8a0912cb001 changes exactly those comparisons to 1.2 and adds its admission record, retaining hashes, anchor, allowlists, other schemas and security checks. This attestation binds the resulting final-evidence head 6a261aea4810039194d0f9df142d43997540f52f. Scoped regression evidence is recorded there; the full verifier remains required. It does not authorize publication, push, signing changes, support promotion or weakening Golden/output evidence."
+}

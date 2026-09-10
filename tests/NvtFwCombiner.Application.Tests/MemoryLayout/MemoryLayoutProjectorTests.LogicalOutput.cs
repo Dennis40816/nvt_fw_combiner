@@ -77,6 +77,7 @@ public sealed partial class MemoryLayoutProjectorTests
             capability.CompiledComposition);
 
         Assert.Equal(MemoryLayoutGeometryKind.LogicalOutput, snapshot.GeometryKind);
+        Assert.All(snapshot.BeforeSegments.Concat(snapshot.AfterSegments), static segment => Assert.True(segment.IsPrimaryContent));
         Assert.Null(snapshot.MapId);
         Assert.Empty(snapshot.CanonicalRegions);
         Assert.Equal("output-image", snapshot.AddressSpaceId);

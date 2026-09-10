@@ -410,7 +410,7 @@ public sealed partial class FirmwareInspectionSlotTests
         await viewModel.WorkflowSession.SetSlotFileAsync("replace-base", basePath, TestContext.Current.CancellationToken);
         Assert.Contains(
             viewModel.Replace.ReplaceSlots,
-            slot => slot.Description.Contains("max 5728 B", StringComparison.Ordinal));
+            slot => slot.CtrlRamDescriptionFacts?.Sections.Any(section => section.MaximumLength == 5728) == true);
 
         await viewModel.WorkflowSession.SetSlotFileAsync("merge-tp", tpPath, TestContext.Current.CancellationToken);
 
@@ -418,10 +418,10 @@ public sealed partial class FirmwareInspectionSlotTests
         Assert.False(viewModel.WorkflowSession.IsFirmwareNumberMismatchModalOpen);
         Assert.Contains(
             viewModel.Replace.ReplaceSlots,
-            slot => slot.Description.Contains("max 5728 B", StringComparison.Ordinal));
+            slot => slot.CtrlRamDescriptionFacts?.Sections.Any(section => section.MaximumLength == 5728) == true);
         Assert.DoesNotContain(
             viewModel.Replace.ReplaceSlots,
-            slot => slot.Description.Contains("max 5278 B", StringComparison.Ordinal));
+            slot => slot.CtrlRamDescriptionFacts?.Sections.Any(section => section.MaximumLength == 5278) == true);
     }
 
     /// <summary>TP-first is rejected until DP resolves, then the admitted sequence publishes paired facts.</summary>

@@ -45,19 +45,26 @@ public sealed partial class ManagedProcessLifetimeLeaseTests
     [Theory]
     [InlineData(null, null, null, InheritedManagedProcessLifetimeOutcome.NotInherited)]
     [InlineData("v1", null, null, InheritedManagedProcessLifetimeOutcome.InvalidInheritedContext)]
-    [InlineData(null, "123", null, InheritedManagedProcessLifetimeOutcome.InvalidInheritedContext)]
+    [InlineData(null, "owned-client", null, InheritedManagedProcessLifetimeOutcome.InvalidInheritedContext)]
     [InlineData(null, null, "job", InheritedManagedProcessLifetimeOutcome.InvalidInheritedContext)]
     [InlineData("", null, null, InheritedManagedProcessLifetimeOutcome.InvalidInheritedContext)]
     [InlineData("v1", "", "job", InheritedManagedProcessLifetimeOutcome.InvalidInheritedContext)]
-    [InlineData("v1", "123", "", InheritedManagedProcessLifetimeOutcome.InvalidInheritedContext)]
-    [InlineData("bad", "123", "job", InheritedManagedProcessLifetimeOutcome.InvalidInheritedContext)]
-    [InlineData("v1", "123", "job", InheritedManagedProcessLifetimeOutcome.InvalidInheritedContext)]
-    public void InheritedLifetimeContextClassifiesAbsenceSeparatelyFromManagedLoss(
+    [InlineData("v1", "owned-client", "", InheritedManagedProcessLifetimeOutcome.InvalidInheritedContext)]
+    [InlineData("bad", "owned-client", "job", InheritedManagedProcessLifetimeOutcome.InvalidInheritedContext)]
+    [InlineData("v1", "owned-client", "job", InheritedManagedProcessLifetimeOutcome.InvalidInheritedContext)]
+    public async Task InheritedLifetimeContextClassifiesAbsenceSeparatelyFromManagedLoss(
         string? context,
         string? handle,
         string? job,
         InheritedManagedProcessLifetimeOutcome expected)
     {
+        using AnonymousPipeServerStream? pipe = handle == "owned-client"
+            ? new AnonymousPipeServerStream(PipeDirection.In, HandleInheritability.Inheritable)
+            : null;
+        if (pipe is not null)
+        {
+            handle = DuplicateLifetimeClientHandle(pipe);
+        }
         string? priorContext = Environment.GetEnvironmentVariable(ManagedProcessLifetimeLease.ContextEnvironment);
         string? priorHandle = Environment.GetEnvironmentVariable(ManagedProcessLifetimeLease.HandleEnvironment);
         string? priorJob = Environment.GetEnvironmentVariable(ManagedProcessLifetimeLease.JobEnvironment);
@@ -80,6 +87,13 @@ public sealed partial class ManagedProcessLifetimeLeaseTests
             Assert.Null(Environment.GetEnvironmentVariable(ManagedProcessLifetimeLease.JobEnvironment));
             Assert.Null(Environment.GetEnvironmentVariable(ManagedProcessLifetimeLease.StatePathEnvironment));
             Assert.Null(Environment.GetEnvironmentVariable(ManagedProcessLifetimeLease.KindEnvironment));
+            if (pipe is not null)
+            {
+                pipe.DisposeLocalCopyOfClientHandle();
+                using var reader = new StreamReader(pipe);
+                Assert.Null(await reader.ReadLineAsync(TestContext.Current.CancellationToken).AsTask()
+                    .WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken));
+            }
         }
         finally
         {

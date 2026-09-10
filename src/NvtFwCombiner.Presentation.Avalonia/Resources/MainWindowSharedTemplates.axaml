@@ -116,10 +116,11 @@
 
 <DataTemplate x:Key="FirmwareSlotGroupTemplate" DataType="vm:FirmwareSlotGroupViewModel">
   <views:SpaciousPanel Classes="compact firmwareSlotGroupSurface">
-    <Expander Classes="inlineDisclosure" HorizontalAlignment="Stretch" IsExpanded="{Binding IsExpanded, Mode=TwoWay}">
+    <Expander Classes="inlineDisclosure firmwareSlotGroupDisclosure" HorizontalAlignment="Stretch" IsExpanded="{Binding IsExpanded, Mode=TwoWay}"
+              AutomationProperties.Name="{Binding Title}" AutomationProperties.HelpText="{Binding SelectionSummary}">
       <Expander.Header>
         <Grid HorizontalAlignment="Stretch" ColumnDefinitions="*,Auto" ColumnSpacing="{DynamicResource NfcSpace12}">
-          <StackPanel Spacing="{DynamicResource NfcSpace2}">
+          <StackPanel Spacing="5">
             <TextBlock Classes="cardTitle" Text="{Binding Title}" />
             <TextBlock Classes="mutedText" Text="{Binding SelectionSummary}" TextWrapping="Wrap" />
           </StackPanel>
@@ -136,7 +137,7 @@
 </DataTemplate>
 
 <DataTemplate x:Key="MemoryCoverageTooltipTemplate" DataType="vm:MemoryCoverageSegmentViewModel"><Border Classes="surface" MaxWidth="360" Padding="10">
-    <StackPanel Spacing="{DynamicResource NfcSpace8}"><Grid ColumnDefinitions="*,Auto" ColumnSpacing="{DynamicResource NfcSpace8}"><TextBlock Classes="bodyEmphasisText" Text="{Binding SourceLabel}" TextWrapping="Wrap" /><Label Grid.Column="1" Classes="compactBadge neutralBadge countBadge coverageChangeBadge" Classes.changed="{Binding IsChanged}" Padding="7,2" Content="{Binding ChangeLabel}" IsVisible="{Binding HasChangeState}" /></Grid><Grid ColumnDefinitions="54,*" RowDefinitions="Auto,Auto,Auto" ColumnSpacing="10" RowSpacing="5"><TextBlock Classes="tableHeader" Text="{ReflectionBinding $parent[Window].DataContext.Text.RangeLabel}" /><TextBlock Grid.Column="1" Classes="technicalValue" Text="{Binding RangeLabel}" TextWrapping="Wrap" /><TextBlock Grid.Row="1" Classes="tableHeader" Text="{ReflectionBinding $parent[Window].DataContext.Text.ResultLabel}" /><TextBlock Grid.Row="1" Grid.Column="1" Classes="captionText" Text="{Binding PreservationSummary}" TextWrapping="Wrap" /><TextBlock Grid.Row="2" Classes="tableHeader" Text="{ReflectionBinding $parent[Window].DataContext.Text.DetailLabel}" /><TextBlock Grid.Row="2" Grid.Column="1" Classes="captionText" Text="{Binding Detail}" TextWrapping="Wrap" /></Grid></StackPanel>
+    <StackPanel Spacing="{DynamicResource NfcSpace8}"><Grid ColumnDefinitions="*,Auto" ColumnSpacing="{DynamicResource NfcSpace8}"><TextBlock Classes="bodyEmphasisText" Text="{Binding DisplayTitle}" TextWrapping="Wrap" /><Label Grid.Column="1" Classes="compactBadge neutralBadge countBadge coverageChangeBadge" Classes.changed="{Binding IsChanged}" Padding="7,2" Content="{Binding ChangeLabel}" IsVisible="{Binding HasChangeState}" /></Grid><Grid ColumnDefinitions="54,*" RowDefinitions="Auto,Auto,Auto" ColumnSpacing="10" RowSpacing="5"><TextBlock Classes="tableHeader" Text="{ReflectionBinding $parent[Window].DataContext.Text.RangeLabel}" /><StackPanel Grid.Column="1"><TextBlock Classes="technicalValue" Text="{Binding RangeLabel}" TextWrapping="Wrap" /><TextBlock Classes="captionText" Text="{Binding SourceCaption}" IsVisible="{Binding HasSourceCaption}" TextWrapping="Wrap" /></StackPanel><TextBlock Grid.Row="1" Classes="tableHeader" Text="{ReflectionBinding $parent[Window].DataContext.Text.ResultLabel}" /><TextBlock Grid.Row="1" Grid.Column="1" Classes="captionText" Text="{Binding PreservationSummary}" TextWrapping="Wrap" /><TextBlock Grid.Row="2" Classes="tableHeader" Text="{ReflectionBinding $parent[Window].DataContext.Text.DetailLabel}" IsVisible="{Binding HasDistinctDetail}" /><TextBlock Grid.Row="2" Grid.Column="1" Classes="captionText" Text="{Binding Detail}" TextWrapping="Wrap" IsVisible="{Binding HasDistinctDetail}" /></Grid></StackPanel>
   </Border></DataTemplate>
 
 <DataTemplate x:Key="MemoryCoverageSegmentBarTemplate" DataType="vm:MemoryCoverageSegmentViewModel">
@@ -195,68 +196,92 @@
     <ToolTip.Tip><ContentControl Content="{Binding}" ContentTemplate="{StaticResource MemoryCoverageTooltipTemplate}" /></ToolTip.Tip></Border>
 </DataTemplate>
 
-<DataTemplate x:Key="MemoryCoverageSegmentListTemplate" DataType="vm:MemoryCoverageSegmentViewModel">
+<DataTemplate x:Key="MemoryCoverageCompactMarkerTemplate">
   <Border
-      Classes="listRow memoryInfoRow memoryCoverageLinkedRow" Classes.linked="{Binding Interaction.IsActive}" Classes.reducedMotion="{ReflectionBinding $parent[Window].DataContext.IsReducedMotionEnabled}"
-      Padding="0,10"
-      AutomationProperties.HelpText="{Binding AccessibleDetail}"
-      AutomationProperties.Name="{Binding AccessibleDetail}" behaviors:FocusToolTipBehavior.IsEnabled="True" behaviors:MemoryCoverageInteractionBehavior.IsEnabled="True" Focusable="True">
-    <ToolTip.Tip><ContentControl Content="{Binding}" ContentTemplate="{StaticResource MemoryCoverageTooltipTemplate}" /></ToolTip.Tip>
-    <Grid ColumnDefinitions="12,*" ColumnSpacing="{DynamicResource NfcSpace8}">
-      <Border
-          Classes="memoryCoverageFill memoryCoverageMarker"
-          Classes.changed="{Binding IsChanged}"
-          Classes.conflict="{Binding FillRole, Converter={x:Static converters:ObjectConverters.Equal}, ConverterParameter={x:Static vm:MemoryCoverageFillRole.Conflict}}"
-          Classes.ctrlRam="{Binding FillRole, Converter={x:Static converters:ObjectConverters.Equal}, ConverterParameter={x:Static vm:MemoryCoverageFillRole.CtrlRam}}"
-          Classes.ctrlRamNf="{Binding FillRole, Converter={x:Static converters:ObjectConverters.Equal}, ConverterParameter={x:Static vm:MemoryCoverageFillRole.CtrlRamNf}}"
-          Classes.ctrlRamNormal="{Binding FillRole, Converter={x:Static converters:ObjectConverters.Equal}, ConverterParameter={x:Static vm:MemoryCoverageFillRole.CtrlRamNormal}}"
-          Classes.ctrlRamMp="{Binding FillRole, Converter={x:Static converters:ObjectConverters.Equal}, ConverterParameter={x:Static vm:MemoryCoverageFillRole.CtrlRamMp}}"
-          Classes.ctrlRamVn="{Binding FillRole, Converter={x:Static converters:ObjectConverters.Equal}, ConverterParameter={x:Static vm:MemoryCoverageFillRole.CtrlRamVn}}"
-          Classes.ctrlRamVector="{Binding FillRole, Converter={x:Static converters:ObjectConverters.Equal}, ConverterParameter={x:Static vm:MemoryCoverageFillRole.CtrlRamVector}}"
-          Classes.diffDlm="{Binding FillRole, Converter={x:Static converters:ObjectConverters.Equal}, ConverterParameter={x:Static vm:MemoryCoverageFillRole.DiffDlm}}"
-          Classes.dp="{Binding FillRole, Converter={x:Static converters:ObjectConverters.Equal}, ConverterParameter={x:Static vm:MemoryCoverageFillRole.Dp}}"
-          Classes.kept="{Binding FillRole, Converter={x:Static converters:ObjectConverters.Equal}, ConverterParameter={x:Static vm:MemoryCoverageFillRole.Kept}}"
-          Classes.ldc="{Binding FillRole, Converter={x:Static converters:ObjectConverters.Equal}, ConverterParameter={x:Static vm:MemoryCoverageFillRole.Ldc}}"
-          Classes.source="{Binding FillRole, Converter={x:Static converters:ObjectConverters.Equal}, ConverterParameter={x:Static vm:MemoryCoverageFillRole.Source}}"
-          Classes.tp="{Binding FillRole, Converter={x:Static converters:ObjectConverters.Equal}, ConverterParameter={x:Static vm:MemoryCoverageFillRole.Tp}}"
-          Classes.tpBackup="{Binding FillRole, Converter={x:Static converters:ObjectConverters.Equal}, ConverterParameter={x:Static vm:MemoryCoverageFillRole.TpBackup}}"
-          Width="10"
-          Height="10"
-          Margin="0,4,0,0"
-          VerticalAlignment="Top"
-          CornerRadius="2">
-        <Border
-            Background="{StaticResource KeptDiagonalStripeBrush}"
-            CornerRadius="2"
-            IsVisible="{Binding UsesKeptPattern}" />
-      </Border>
-      <Grid
-          Grid.Column="1"
-          RowDefinitions="Auto,Auto,Auto,Auto">
-        <TextBlock
-            VerticalAlignment="Center"
-            Classes="bodyEmphasisText"
-            Text="{Binding SourceLabel}"
-            TextWrapping="Wrap" />
-        <StackPanel
-            Grid.Row="1"
-            Margin="0,2,0,0"
-            HorizontalAlignment="Left"
-            VerticalAlignment="Center"
-            Orientation="Horizontal"
-            Spacing="{DynamicResource NfcSpace8}">
-          <TextBlock Classes="technicalValue" Text="{Binding AddressRangeLabel}" />
-          <TextBlock Classes="technicalValue" Text="·" />
-          <TextBlock Classes="technicalValue" Text="{Binding LengthLabel}" TextAlignment="Right" />
+      Classes="memoryCoverageFill memoryCoverageMarker"
+      Classes.conflict="{ReflectionBinding FillRole, Converter={x:Static converters:ObjectConverters.Equal}, ConverterParameter={x:Static vm:MemoryCoverageFillRole.Conflict}}"
+      Classes.ctrlRam="{ReflectionBinding FillRole, Converter={x:Static converters:ObjectConverters.Equal}, ConverterParameter={x:Static vm:MemoryCoverageFillRole.CtrlRam}}"
+      Classes.ctrlRamNf="{ReflectionBinding FillRole, Converter={x:Static converters:ObjectConverters.Equal}, ConverterParameter={x:Static vm:MemoryCoverageFillRole.CtrlRamNf}}"
+      Classes.ctrlRamNormal="{ReflectionBinding FillRole, Converter={x:Static converters:ObjectConverters.Equal}, ConverterParameter={x:Static vm:MemoryCoverageFillRole.CtrlRamNormal}}"
+      Classes.ctrlRamMp="{ReflectionBinding FillRole, Converter={x:Static converters:ObjectConverters.Equal}, ConverterParameter={x:Static vm:MemoryCoverageFillRole.CtrlRamMp}}"
+      Classes.ctrlRamVn="{ReflectionBinding FillRole, Converter={x:Static converters:ObjectConverters.Equal}, ConverterParameter={x:Static vm:MemoryCoverageFillRole.CtrlRamVn}}"
+      Classes.ctrlRamVector="{ReflectionBinding FillRole, Converter={x:Static converters:ObjectConverters.Equal}, ConverterParameter={x:Static vm:MemoryCoverageFillRole.CtrlRamVector}}"
+      Classes.diffDlm="{ReflectionBinding FillRole, Converter={x:Static converters:ObjectConverters.Equal}, ConverterParameter={x:Static vm:MemoryCoverageFillRole.DiffDlm}}"
+      Classes.dp="{ReflectionBinding FillRole, Converter={x:Static converters:ObjectConverters.Equal}, ConverterParameter={x:Static vm:MemoryCoverageFillRole.Dp}}"
+      Classes.kept="{ReflectionBinding FillRole, Converter={x:Static converters:ObjectConverters.Equal}, ConverterParameter={x:Static vm:MemoryCoverageFillRole.Kept}}"
+      Classes.ldc="{ReflectionBinding FillRole, Converter={x:Static converters:ObjectConverters.Equal}, ConverterParameter={x:Static vm:MemoryCoverageFillRole.Ldc}}"
+      Classes.source="{ReflectionBinding FillRole, Converter={x:Static converters:ObjectConverters.Equal}, ConverterParameter={x:Static vm:MemoryCoverageFillRole.Source}}"
+      Classes.tp="{ReflectionBinding FillRole, Converter={x:Static converters:ObjectConverters.Equal}, ConverterParameter={x:Static vm:MemoryCoverageFillRole.Tp}}"
+      Classes.tpBackup="{ReflectionBinding FillRole, Converter={x:Static converters:ObjectConverters.Equal}, ConverterParameter={x:Static vm:MemoryCoverageFillRole.TpBackup}}"
+      Width="10"
+      Height="10"
+      CornerRadius="2">
+    <Border
+        Background="{StaticResource KeptDiagonalStripeBrush}"
+        CornerRadius="2"
+        IsVisible="{ReflectionBinding UsesKeptPattern}" />
+  </Border>
+</DataTemplate>
+
+<DataTemplate x:Key="MemoryCoverageRegionCardTemplate" DataType="vm:MemoryCoverageSegmentViewModel">
+  <StackPanel Spacing="10">
+    <StackPanel.Styles>
+      <Style Selector="Expander.firmwareSlotGroupDisclosure /template/ ToggleButton#ExpanderHeader">
+        <Setter Property="Height" Value="28" />
+        <Setter Property="Padding" Value="0" />
+        <Setter Property="BorderThickness" Value="0" />
+      </Style>
+      <Style Selector="Expander.firmwareSlotGroupDisclosure /template/ ToggleButton#ExpanderHeader:focus-visible">
+        <Setter Property="BorderThickness" Value="2" />
+      </Style>
+    </StackPanel.Styles>
+    <Grid ColumnDefinitions="10,*,Auto" ColumnSpacing="{DynamicResource NfcSpace8}">
+      <ContentControl VerticalAlignment="Center" Content="{Binding}" ContentTemplate="{StaticResource MemoryCoverageCompactMarkerTemplate}" />
+      <TextBlock Grid.Column="1" Classes="bodyEmphasisText" FontWeight="SemiBold" VerticalAlignment="Center" Text="{Binding DisplayTitle}" TextWrapping="Wrap" />
+      <Label Grid.Column="2" Classes="compactBadge neutralBadge countBadge coverageChangeBadge" Classes.changed="{Binding IsChanged}" Padding="7,2" VerticalAlignment="Center" Content="{Binding ChangeLabel}" IsVisible="{Binding HasChangeState}" />
+    </Grid>
+    <Grid ColumnDefinitions="68,*" ColumnSpacing="{DynamicResource NfcSpace8}" RowDefinitions="Auto,Auto,Auto" RowSpacing="6">
+      <TextBlock Classes="captionText" Text="{ReflectionBinding $parent[Window].DataContext.Text.RangeLabel}" />
+      <TextBlock Grid.Column="1" Classes="technicalValue" Text="{Binding AddressRangeLabel}" TextWrapping="Wrap" />
+      <TextBlock Grid.Row="1" Classes="captionText" Text="{ReflectionBinding $parent[Window].DataContext.Text.SizeLabel}" IsVisible="{Binding SizeValue, Converter={x:Static converters:StringConverters.IsNotNullOrEmpty}}" />
+      <TextBlock Grid.Row="1" Grid.Column="1" Classes="technicalValue" Text="{Binding SizeValue}" TextWrapping="Wrap" />
+      <TextBlock Grid.Row="2" Classes="captionText" Text="{Binding SourceFieldLabel}" TextWrapping="Wrap" />
+      <TextBlock Grid.Row="2" Grid.Column="1" Classes="bodyText" Text="{Binding SourceLabel}" TextWrapping="Wrap" />
+    </Grid>
+    <TextBlock Classes="captionText memoryInfoDescription" Text="{Binding PreservationSummary}" TextWrapping="Wrap" />
+      <Border Name="MemoryHoverTechnicalSeparator" Classes="memoryHoverOnly" Height="1" Background="{DynamicResource NfcMemoryDividerBrush}" />
+      <Expander Classes="inlineDisclosure firmwareSlotGroupDisclosure" MinHeight="28" BorderThickness="0" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" Padding="0" IsExpanded="False"
+          AutomationProperties.Name="{ReflectionBinding $parent[Window].DataContext.Text.MemoryProcessingDetailsLabel}">
+        <Expander.Header><TextBlock Classes="captionText" Text="{ReflectionBinding $parent[Window].DataContext.Text.MemoryProcessingDetailsLabel}" /></Expander.Header>
+        <StackPanel Spacing="6" Margin="0,6,0,0">
+          <TextBlock Classes="captionText memoryHoverOnly" Text="{Binding AddressSpaceId}" TextWrapping="Wrap" />
+          <TextBlock Classes="captionText memoryHoverOnly" Text="{Binding PreservationSummary}" TextWrapping="Wrap" />
+          <Border Name="MemoryTechnicalSeparator" Height="1" Background="{DynamicResource NfcMemoryDividerBrush}" Margin="0,0,0,4" />
+          <ItemsControl ItemsSource="{Binding ProcessingFacts}" IsVisible="{Binding HasProcessingFacts}">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate DataType="vm:MemoryRegionFact">
+                <Grid ColumnDefinitions="94,*" ColumnSpacing="{DynamicResource NfcSpace8}" Margin="0,0,0,6">
+                  <TextBlock Classes="captionText" Text="{Binding Label}" TextWrapping="Wrap" />
+                  <TextBlock Grid.Column="1" Classes="technicalValue" Text="{Binding Value}" TextWrapping="Wrap" />
+                </Grid>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+          <TextBlock Classes="captionText" Text="{Binding Detail}" TextWrapping="Wrap" IsVisible="{Binding HasAdditionalDetail}" />
         </StackPanel>
-        <TextBlock
-            Grid.Row="2"
-            Margin="0,2,0,0"
-            Classes="captionText memoryInfoDescription"
-            Text="{Binding PreservationSummary}"
-            TextWrapping="Wrap" />
+      </Expander>
+  </StackPanel>
+</DataTemplate>
+
+<DataTemplate x:Key="MemoryCoverageSegmentListTemplate" DataType="vm:MemoryCoverageSegmentViewModel">
+  <Border IsVisible="{Binding IsPrimaryContent}" Classes="surface memoryInfoRow memoryCoverageLinkedRow" Classes.linked="{Binding Interaction.IsActive}" Classes.reducedMotion="{ReflectionBinding $parent[Window].DataContext.IsReducedMotionEnabled}"
+      Padding="12" Margin="0,0,0,8" BorderThickness="1" CornerRadius="{DynamicResource NfcSurfaceCornerRadius}"
+      AutomationProperties.HelpText="{Binding AccessibleDetail}" AutomationProperties.Name="{Binding AccessibleDetail}"
+      behaviors:FocusToolTipBehavior.IsEnabled="True" behaviors:MemoryCoverageInteractionBehavior.IsEnabled="True" Focusable="True">
+    <ToolTip.Tip><ContentControl Content="{Binding}" ContentTemplate="{StaticResource MemoryCoverageTooltipTemplate}" /></ToolTip.Tip>
+    <StackPanel>
+      <ContentControl Content="{Binding}" ContentTemplate="{StaticResource MemoryCoverageRegionCardTemplate}" />
         <Button
-            Grid.Row="3"
             Margin="0,8,0,0"
             HorizontalAlignment="Right"
             VerticalAlignment="Top"
@@ -292,93 +317,20 @@
             </Flyout>
           </Button.Flyout>
         </Button>
-      </Grid>
-    </Grid>
+    </StackPanel>
   </Border>
 </DataTemplate>
 
 <DataTemplate x:Key="MemoryCoveragePlainSegmentListTemplate" DataType="vm:MemoryCoverageSegmentViewModel">
-  <Border
-      Classes="listRow memoryInfoRow memoryCoverageLinkedRow" Classes.linked="{Binding Interaction.IsActive}" Classes.reducedMotion="{ReflectionBinding $parent[Window].DataContext.IsReducedMotionEnabled}"
-      Padding="0,10"
-      AutomationProperties.HelpText="{Binding AccessibleDetail}"
-      AutomationProperties.Name="{Binding AccessibleDetail}" behaviors:FocusToolTipBehavior.IsEnabled="True" behaviors:MemoryCoverageInteractionBehavior.IsEnabled="True" Focusable="True">
+  <Border Classes="surface memoryInfoRow memoryCoverageLinkedRow" Classes.linked="{Binding Interaction.IsActive}" Classes.reducedMotion="{ReflectionBinding $parent[Window].DataContext.IsReducedMotionEnabled}"
+      Padding="12" Margin="0,0,0,8" BorderThickness="1" CornerRadius="{DynamicResource NfcSurfaceCornerRadius}"
+      AutomationProperties.HelpText="{Binding AccessibleDetail}" AutomationProperties.Name="{Binding AccessibleDetail}"
+      behaviors:FocusToolTipBehavior.IsEnabled="True" behaviors:MemoryCoverageInteractionBehavior.IsEnabled="True" Focusable="True">
     <ToolTip.Tip><ContentControl Content="{Binding}" ContentTemplate="{StaticResource MemoryCoverageTooltipTemplate}" /></ToolTip.Tip>
-    <Grid ColumnDefinitions="12,*" ColumnSpacing="{DynamicResource NfcSpace8}">
-      <Border
-          Classes="memoryCoverageFill"
-          Classes.conflict="{Binding FillRole, Converter={x:Static converters:ObjectConverters.Equal}, ConverterParameter={x:Static vm:MemoryCoverageFillRole.Conflict}}"
-          Classes.ctrlRam="{Binding FillRole, Converter={x:Static converters:ObjectConverters.Equal}, ConverterParameter={x:Static vm:MemoryCoverageFillRole.CtrlRam}}"
-          Classes.ctrlRamNf="{Binding FillRole, Converter={x:Static converters:ObjectConverters.Equal}, ConverterParameter={x:Static vm:MemoryCoverageFillRole.CtrlRamNf}}"
-          Classes.ctrlRamNormal="{Binding FillRole, Converter={x:Static converters:ObjectConverters.Equal}, ConverterParameter={x:Static vm:MemoryCoverageFillRole.CtrlRamNormal}}"
-          Classes.ctrlRamMp="{Binding FillRole, Converter={x:Static converters:ObjectConverters.Equal}, ConverterParameter={x:Static vm:MemoryCoverageFillRole.CtrlRamMp}}"
-          Classes.ctrlRamVn="{Binding FillRole, Converter={x:Static converters:ObjectConverters.Equal}, ConverterParameter={x:Static vm:MemoryCoverageFillRole.CtrlRamVn}}"
-          Classes.ctrlRamVector="{Binding FillRole, Converter={x:Static converters:ObjectConverters.Equal}, ConverterParameter={x:Static vm:MemoryCoverageFillRole.CtrlRamVector}}"
-          Classes.diffDlm="{Binding FillRole, Converter={x:Static converters:ObjectConverters.Equal}, ConverterParameter={x:Static vm:MemoryCoverageFillRole.DiffDlm}}"
-          Classes.dp="{Binding FillRole, Converter={x:Static converters:ObjectConverters.Equal}, ConverterParameter={x:Static vm:MemoryCoverageFillRole.Dp}}"
-          Classes.kept="{Binding FillRole, Converter={x:Static converters:ObjectConverters.Equal}, ConverterParameter={x:Static vm:MemoryCoverageFillRole.Kept}}"
-          Classes.ldc="{Binding FillRole, Converter={x:Static converters:ObjectConverters.Equal}, ConverterParameter={x:Static vm:MemoryCoverageFillRole.Ldc}}"
-          Classes.source="{Binding FillRole, Converter={x:Static converters:ObjectConverters.Equal}, ConverterParameter={x:Static vm:MemoryCoverageFillRole.Source}}"
-          Classes.tp="{Binding FillRole, Converter={x:Static converters:ObjectConverters.Equal}, ConverterParameter={x:Static vm:MemoryCoverageFillRole.Tp}}"
-          Classes.tpBackup="{Binding FillRole, Converter={x:Static converters:ObjectConverters.Equal}, ConverterParameter={x:Static vm:MemoryCoverageFillRole.TpBackup}}"
-          Width="10"
-          Height="10"
-          Margin="0,4,0,0"
-          VerticalAlignment="Top"
-          CornerRadius="2" />
-      <Grid
-          Grid.Column="1"
-          RowDefinitions="Auto,Auto,Auto"
-          RowSpacing="{DynamicResource NfcSpace2}">
-        <TextBlock
-            VerticalAlignment="Center"
-            Classes="bodyEmphasisText"
-            Text="{Binding SourceLabel}"
-            TextWrapping="Wrap" />
-        <StackPanel
-            Grid.Row="1"
-            HorizontalAlignment="Left"
-            VerticalAlignment="Center"
-            Orientation="Horizontal"
-            Spacing="{DynamicResource NfcSpace8}">
-          <TextBlock Classes="technicalValue" Text="{Binding AddressRangeLabel}" />
-          <TextBlock Classes="technicalValue" Text="·" />
-          <TextBlock Classes="technicalValue" Text="{Binding LengthLabel}" TextAlignment="Right" />
-        </StackPanel>
-        <TextBlock
-            Grid.Row="2"
-            Classes="captionText memoryInfoDescription"
-            Text="{Binding CompactDetail}"
-            TextWrapping="Wrap" />
-      </Grid>
-    </Grid>
-  </Border>
-</DataTemplate>
+    <StackPanel>
+      <ContentControl Content="{Binding}" ContentTemplate="{StaticResource MemoryCoverageRegionCardTemplate}" />
 
-<DataTemplate x:Key="MemoryCoverageCompactMarkerTemplate">
-  <Border
-      Classes="memoryCoverageFill memoryCoverageMarker"
-      Classes.conflict="{ReflectionBinding FillRole, Converter={x:Static converters:ObjectConverters.Equal}, ConverterParameter={x:Static vm:MemoryCoverageFillRole.Conflict}}"
-      Classes.ctrlRam="{ReflectionBinding FillRole, Converter={x:Static converters:ObjectConverters.Equal}, ConverterParameter={x:Static vm:MemoryCoverageFillRole.CtrlRam}}"
-      Classes.ctrlRamNf="{ReflectionBinding FillRole, Converter={x:Static converters:ObjectConverters.Equal}, ConverterParameter={x:Static vm:MemoryCoverageFillRole.CtrlRamNf}}"
-      Classes.ctrlRamNormal="{ReflectionBinding FillRole, Converter={x:Static converters:ObjectConverters.Equal}, ConverterParameter={x:Static vm:MemoryCoverageFillRole.CtrlRamNormal}}"
-      Classes.ctrlRamMp="{ReflectionBinding FillRole, Converter={x:Static converters:ObjectConverters.Equal}, ConverterParameter={x:Static vm:MemoryCoverageFillRole.CtrlRamMp}}"
-      Classes.ctrlRamVn="{ReflectionBinding FillRole, Converter={x:Static converters:ObjectConverters.Equal}, ConverterParameter={x:Static vm:MemoryCoverageFillRole.CtrlRamVn}}"
-      Classes.ctrlRamVector="{ReflectionBinding FillRole, Converter={x:Static converters:ObjectConverters.Equal}, ConverterParameter={x:Static vm:MemoryCoverageFillRole.CtrlRamVector}}"
-      Classes.diffDlm="{ReflectionBinding FillRole, Converter={x:Static converters:ObjectConverters.Equal}, ConverterParameter={x:Static vm:MemoryCoverageFillRole.DiffDlm}}"
-      Classes.dp="{ReflectionBinding FillRole, Converter={x:Static converters:ObjectConverters.Equal}, ConverterParameter={x:Static vm:MemoryCoverageFillRole.Dp}}"
-      Classes.kept="{ReflectionBinding FillRole, Converter={x:Static converters:ObjectConverters.Equal}, ConverterParameter={x:Static vm:MemoryCoverageFillRole.Kept}}"
-      Classes.ldc="{ReflectionBinding FillRole, Converter={x:Static converters:ObjectConverters.Equal}, ConverterParameter={x:Static vm:MemoryCoverageFillRole.Ldc}}"
-      Classes.source="{ReflectionBinding FillRole, Converter={x:Static converters:ObjectConverters.Equal}, ConverterParameter={x:Static vm:MemoryCoverageFillRole.Source}}"
-      Classes.tp="{ReflectionBinding FillRole, Converter={x:Static converters:ObjectConverters.Equal}, ConverterParameter={x:Static vm:MemoryCoverageFillRole.Tp}}"
-      Classes.tpBackup="{ReflectionBinding FillRole, Converter={x:Static converters:ObjectConverters.Equal}, ConverterParameter={x:Static vm:MemoryCoverageFillRole.TpBackup}}"
-      Width="10"
-      Height="10"
-      CornerRadius="2">
-    <Border
-        Background="{StaticResource KeptDiagonalStripeBrush}"
-        CornerRadius="2"
-        IsVisible="{ReflectionBinding UsesKeptPattern}" />
+    </StackPanel>
   </Border>
 </DataTemplate>
 
@@ -536,17 +488,14 @@
         </Border>
       </StackPanel>
 
-      <Border Height="34" Background="{DynamicResource NfcMemoryTrackBrush}" ClipToBounds="False" CornerRadius="{DynamicResource NfcCompactCornerRadius}">
-        <ItemsControl Height="34" HorizontalAlignment="Stretch" ClipToBounds="False" ItemContainerTheme="{StaticResource ProportionalContentPresenterTheme}" ItemTemplate="{StaticResource MemoryCoveragePlainSegmentBarTemplate}" ItemsSource="{Binding MergeCoverageSegments}">
-          <ItemsControl.ItemsPanel>
-            <ItemsPanelTemplate>
-              <views:ProportionalStackPanel />
-            </ItemsPanelTemplate>
-          </ItemsControl.ItemsPanel>
-        </ItemsControl>
-      </Border>
+      <views:MemoryCoverageBar ItemsSource="{Binding MergeCoverageSegments}" Labels="{Binding Text}" IsPlain="True" ReducedMotion="{ReflectionBinding $parent[Window].DataContext.IsReducedMotionEnabled}" />
 
-      <ItemsControl ItemTemplate="{StaticResource MemoryCoveragePlainSegmentListTemplate}" ItemsSource="{Binding MergeCoverageRows}" />
+      <StackPanel DataContext="{Binding CoverageDetails}" x:DataType="vm:MemoryCoverageListViewModel">
+        <ItemsControl ItemTemplate="{StaticResource MemoryCoveragePlainSegmentListTemplate}" ItemsSource="{Binding VisibleRows}" />
+        <Button x:Name="MemoryCoverageListToggle" Classes="semanticAction secondary" HorizontalAlignment="Right"
+            IsVisible="{Binding HasMoreRows}" Content="{Binding ToggleLabel}" Command="{Binding ToggleCommand}"
+            AutomationProperties.Name="{Binding ToggleLabel}" />
+      </StackPanel>
 
       <TextBlock Classes="sectionLabel" Text="{Binding Text.PlanTitle}" />
       <ItemsControl ItemTemplate="{StaticResource MergeMemoryMapRowTemplate}" ItemsSource="{Binding MergeMemoryRows}" />
@@ -557,6 +506,7 @@
 
 <DataTemplate x:Key="FirmwareSlotInformationFactTemplate" DataType="vm:FirmwareSlotFactViewModel">
   <Border
+      AutomationProperties.Name="{Binding StateAutomationText}"
       Classes="firmwareSlotFact"
       Classes.error="{Binding IsError}"
       Classes.pendingInput="{Binding IsPendingInput}"

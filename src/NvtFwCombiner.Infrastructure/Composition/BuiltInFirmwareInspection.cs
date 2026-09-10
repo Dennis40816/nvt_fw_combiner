@@ -238,10 +238,16 @@ internal sealed partial class BuiltInFirmwareInspection : IFirmwareInspection
         string? detectedIcId = fileNameMatch.Success
             ? $"NT{fileNameMatch.Groups["ic"].Value}"
             : null;
+        FirmwareIcHintSource detectedIcHintSource = fileNameMatch.Success
+            ? FirmwareIcHintSource.FileName
+            : FirmwareIcHintSource.Unknown;
         byte[]? image = readFirmwareImage(path);
         if (image is null)
         {
-            return new FirmwareInspectionSnapshot(detectedIcId, null, null, null, null, null);
+            return new FirmwareInspectionSnapshot(detectedIcId, null, null, null, null, null)
+            {
+                DetectedIcHintSource = detectedIcHintSource,
+            };
         }
 
         metadataAuthority ??= inspection._metadataPlanAuthority.Resolve(
@@ -305,8 +311,14 @@ internal sealed partial class BuiltInFirmwareInspection : IFirmwareInspection
                     standardMergeAddressSpaceId,
                     metadataAuthority)
                 : (null, null, null);
+        if (detectedIcId is null && DetectFirmwareIcHintFromHeader(image) is { } headerHint)
+        {
+            detectedIcId = headerHint;
+            detectedIcHintSource = FirmwareIcHintSource.PrintableHeader;
+        }
+
         return new FirmwareInspectionSnapshot(
-            detectedIcId ?? DetectFirmwareIcHintFromHeader(image),
+            detectedIcId,
             ReadFirmwareConfigMetadata(firmwareConfig, postbuildProfile),
             dpMetadata.Version,
             dpMetadata.Cmi,
@@ -314,6 +326,7 @@ internal sealed partial class BuiltInFirmwareInspection : IFirmwareInspection
             ctrlRamDisplay,
             artifactKind)
         {
+            DetectedIcHintSource = detectedIcHintSource,
             ArtifactClassification = artifactClassification,
             FileStamp = FileStamp.FromBytes(image),
             DpMetadataPrerequisite = dpMetadata.Prerequisite,

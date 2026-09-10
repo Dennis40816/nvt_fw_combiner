@@ -1,4 +1,5 @@
 using NvtFwCombiner.Application.Metadata;
+using NvtFwCombiner.Application.MemoryLayout;
 using NvtFwCombiner.Domain.Composition;
 using System.Threading.Channels;
 
@@ -31,7 +32,9 @@ public sealed record CanonicalCompiledRoute(
 public sealed record CanonicalDynamicRoute(
     string CapabilityFingerprint,
     CanonicalCapabilityCompilationContract CompilationContract,
-    CapabilityNumberChoice? NumberChoice = null);
+    CapabilityNumberChoice? NumberChoice = null,
+    CapabilityTopologyChoice? AbMergeTopologyChoice = null,
+    MemoryLayoutContextMap? MemoryLayoutContext = null);
 
 /// <summary>Joins one trusted policy snapshot to exact compiler outputs before publication.</summary>
 internal sealed class CanonicalCapabilityCatalogSource(
@@ -124,7 +127,9 @@ internal sealed class CanonicalCapabilityCatalogSource(
                 policy.Authoring,
                 policy.Publication,
                 policy.Evidence,
-                route.NumberChoice);
+                route.NumberChoice,
+                route.AbMergeTopologyChoice,
+                route.MemoryLayoutContext);
     }
 
     private CanonicalCapabilityDefinition Materialize(

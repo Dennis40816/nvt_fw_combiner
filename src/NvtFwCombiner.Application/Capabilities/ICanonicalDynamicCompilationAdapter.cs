@@ -1,5 +1,6 @@
 using NvtFwCombiner.Application.Metadata;
 using NvtFwCombiner.Domain.Composition;
+using NvtFwCombiner.Domain.Firmware;
 
 #pragma warning disable CS1591 // Infrastructure adapter contracts are not end-user API.
 
@@ -23,5 +24,6 @@ public interface ICanonicalDynamicCompilationAdapter
         IReadOnlyCollection<string>? selectedInputSlotIds,
         out CompiledComposition? composition,
         out MetadataPlanDefinition? metadataPlan,
-        out IReadOnlyList<CompositionIssue> issues);
+        out IReadOnlyList<CompositionIssue> issues,
+        TopologySelection? requestedTopology = null);
 }

@@ -1594,6 +1594,7 @@ CAPABILITY_REUSE_FINALIZED_FIELDS = {
     "reviewedHead",
     "pathStateDigest",
     "finalReview",
+    "integrationPaths",
 }
 CAPABILITY_REUSE_R3_SCRIPTS = {
     "scripts/ab_merge_fixture_validation.py",
@@ -1651,6 +1652,18 @@ class _TrustedCapabilityCheckpoint:
     retired_records: dict[str, str]
     reserved_task_ids: frozenset[str]
     open_r3_authorities: dict[str, str]
+
+
+def _capability_integration_paths(record: dict[str, Any]) -> list[str]:
+    # An explicit empty partition differs from an omitted legacy partition.
+    return record.get("integrationPaths", [
+        path for path in record["mutablePaths"] if _is_capability_reuse_governed_path(path)
+    ])
+
+
+def _is_capability_reuse_auxiliary_test_path(relative: str) -> bool:
+    # Governed test instructions remain authority, never auxiliary evidence.
+    return relative.startswith("tests/") and not _is_capability_reuse_governed_path(relative)
 
 
 def _is_capability_reuse_governed_path(relative: str) -> bool:
@@ -2738,11 +2751,11 @@ def _validate_capability_reuse_record(
         errors.append(f"capability-reuse record requires schemaVersion 2: {relative}")
         return None
     fields = set(record)
-    if fields != CAPABILITY_REUSE_RECORD_FIELDS:
+    if fields - {"integrationPaths"} != CAPABILITY_REUSE_RECORD_FIELDS:
         errors.append(
             f"capability-reuse record fields differ from v2 in {relative}: "
             f"missing={sorted(CAPABILITY_REUSE_RECORD_FIELDS - fields)}, "
-            f"extra={sorted(fields - CAPABILITY_REUSE_RECORD_FIELDS)}"
+            f"extra={sorted(fields - CAPABILITY_REUSE_RECORD_FIELDS - {'integrationPaths'})}"
         )
         return None
     for field in (
@@ -2811,6 +2824,22 @@ def _validate_capability_reuse_record(
     governed_mutable_paths = [
         value for value in normalized_paths if _is_capability_reuse_governed_path(value)
     ]
+    if "integrationPaths" in record:
+        owned_paths = record["integrationPaths"]
+        if state != "final-complete":
+            errors.append(f"integrationPaths requires final-complete: {relative}")
+        if (
+            not isinstance(owned_paths, list)
+            or not all(isinstance(value, str) for value in owned_paths)
+            or any(value not in governed_mutable_paths for value in owned_paths)
+            or len(owned_paths) != len(set(owned_paths))
+        ):
+            errors.append(f"integrationPaths must be an exact unique governed subset of mutablePaths: {relative}")
+            return None
+    if not governed_mutable_paths and any(
+        _is_capability_reuse_auxiliary_test_path(value) for value in normalized_paths
+    ):
+        errors.append(f"capability-reuse auxiliary tests require a governed path: {relative}")
     if governed_mutable_paths and record["risk"] in CAPABILITY_REUSE_RISK_LEVELS:
         minimum_risk = max(
             (_capability_reuse_minimum_risk(value) for value in governed_mutable_paths),
@@ -3037,7 +3066,10 @@ def validate_capability_reuse_governance(
             continue
         task_id = str(record.get("taskId", "<invalid>"))
         for relative in record.get("mutablePaths", []):
-            if not _is_capability_reuse_governed_path(relative):
+            if not (
+                _is_capability_reuse_governed_path(relative)
+                or _is_capability_reuse_auxiliary_test_path(relative)
+            ):
                 errors.append(
                     f"current capability-reuse mutable path is not governed: "
                     f"{task_id}: {relative}"
@@ -3252,6 +3284,7 @@ def validate_capability_reuse_governance(
                 f"final evidence commit changes governed paths after reviewedHead: {evidence_commit}"
             )
         batch_coverage: dict[str, list[str]] = {}
+        admitted_batch_paths: set[str] = set()
         for relative, record in group:
             task_id = str(record.get("taskId", "<invalid>"))
             design_content, design_error = _git_object(
@@ -3288,7 +3321,9 @@ def validate_capability_reuse_governance(
                 errors.append(f"final record pathStateDigest differs from reviewed Git state: {task_id}")
             for mutable_path in record.get("mutablePaths", []):
                 if _is_capability_reuse_governed_path(mutable_path):
-                    batch_coverage.setdefault(mutable_path, []).append(task_id)
+                    admitted_batch_paths.add(mutable_path)
+            for owned_path in _capability_integration_paths(record):
+                batch_coverage.setdefault(owned_path, []).append(task_id)
         if checkpoint is not None:
             batch_changes, batch_diff_error = _git_revision_changed_paths(
                 root,
@@ -3298,9 +3333,18 @@ def validate_capability_reuse_governance(
             if batch_diff_error is not None:
                 errors.append(f"final batch governed diff could not be read: {batch_diff_error}")
             else:
+                for _, record in group:
+                    for path in record.get("mutablePaths", []):
+                        if _is_capability_reuse_auxiliary_test_path(path) and path not in batch_changes:
+                            errors.append(
+                                f"final capability-reuse auxiliary test path is not in the reviewed diff: "
+                                f"{record['taskId']}: {path}"
+                            )
                 governed_batch_changes = {
                     path for path in batch_changes if _is_capability_reuse_governed_path(path)
                 }
+                if admitted_batch_paths != governed_batch_changes:
+                    errors.append(f"final capability-reuse admitted paths differ from governed diff: {evidence_commit}")
                 if set(batch_coverage) != governed_batch_changes or any(
                     len(owners) != 1 for owners in batch_coverage.values()
                 ):
@@ -3422,14 +3466,22 @@ def validate_capability_reuse_governance(
         task_id = str(record.get("taskId", "<invalid>"))
         for relative in record.get("mutablePaths", []):
             if not _is_capability_reuse_governed_path(relative):
-                errors.append(f"current capability-reuse mutable path is not governed: {task_id}: {relative}")
+                if _is_capability_reuse_auxiliary_test_path(relative):
+                    if relative not in tracked | untracked:
+                        errors.append(
+                            f"current capability-reuse auxiliary test path is not in the current diff: "
+                            f"{task_id}: {relative}"
+                        )
+                else:
+                    errors.append(f"current capability-reuse mutable path is not governed: {task_id}: {relative}")
                 continue
-            coverage.setdefault(relative, []).append(task_id)
             if relative not in governed_changes:
                 errors.append(
                     f"current capability-reuse path is not in the current governed diff from checkpoint: "
                     f"{task_id}: {relative}"
                 )
+        for relative in _capability_integration_paths(record):
+            coverage.setdefault(relative, []).append(task_id)
     for relative in sorted(governed_changes):
         owners = coverage.get(relative, [])
         if not owners:

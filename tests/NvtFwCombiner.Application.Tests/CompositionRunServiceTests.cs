@@ -149,7 +149,22 @@ public sealed partial class CompositionRunServiceTests
         CompositionRunResult result = await service.PreviewAsync(request, CancellationToken.None);
 
         Assert.Equal(CompositionExecutionStatus.Failed, result.Status);
-        Assert.Contains(result.Report.Issues, issue => issue.Code == expectedIssueCode);
+        CompositionIssue issue = Assert.Single(result.Report.Issues, issue => issue.Code == expectedIssueCode);
+        if (expectedIssueCode == CompositionIssueCodes.InputSourceViewIncomplete)
+        {
+            InputDiagnosticSummary diagnostic = Assert.Single(result.Report.InputDiagnostics!);
+            Assert.Equal(Array.FindIndex([.. result.Report.Issues], candidate => ReferenceEquals(candidate, issue)), diagnostic.IssueIndex);
+            Assert.Equal("tp-input-slot", diagnostic.SlotId);
+            Assert.Equal("tp-input", diagnostic.Evidence.AddressSpaceId);
+            Assert.Equal(sourceLength, diagnostic.Evidence.ActualLength);
+            Assert.Equal(4, diagnostic.Evidence.RequiredEndExclusive);
+            Assert.Null(diagnostic.Evidence.SourceRange);
+            Assert.Null(diagnostic.Evidence.RepeatedByte);
+        }
+        else
+        {
+            Assert.Null(result.Report.InputDiagnostics);
+        }
         Assert.DoesNotContain(result.Report.Issues, issue => issue.Code == "input.artifact.read-failed");
     }
 

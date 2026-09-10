@@ -525,7 +525,7 @@ public sealed partial class ReportReviewHistoryTests
         Assert.Equal(string.Empty, viewModel.Reports.LoadedReportJson);
     }
 
-    /// <summary>A metadata-backed invalid older report degrades safely only when the user opens it.</summary>
+    /// <summary>Unreadable nested rows retain raw evidence with Unknown rather than a fabricated parse issue.</summary>
     [Fact]
     public async Task ReportHistoryInvalidDeferredShapeDegradesOnOpen()
     {
@@ -555,8 +555,9 @@ public sealed partial class ReportReviewHistoryTests
 
         await viewModel.Reports.OpenReportHistoryEntryAsyncCommand.ExecuteAsync(invalidEntry);
 
-        Assert.Equal("Invalid JSON", viewModel.Reports.LoadedReport.Status);
-        Assert.True(viewModel.Reports.LoadedReport.HasPrimaryIssue);
+        Assert.Equal("Unknown", viewModel.Reports.LoadedReport.Status);
+        Assert.True(viewModel.Reports.LoadedReport.IsOutcomeUnknown);
+        Assert.False(viewModel.Reports.LoadedReport.HasPrimaryIssue);
         Assert.Equal(invalid.ReportJson, viewModel.Reports.LoadedReportJson);
         Assert.Equal(2, viewModel.Reports.ReportHistoryCount);
     }

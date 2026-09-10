@@ -3,20 +3,22 @@ using NvtFwCombiner.Presentation.Avalonia.ViewModels;
 namespace NvtFwCombiner.Presentation.Avalonia;
 
 /// <summary>Command-line options that put the UI shell into a reviewable startup state.</summary>
-internal sealed class UiLaunchOptions
+internal sealed partial class UiLaunchOptions
 {
     private UiLaunchOptions(
         ShellPage? page,
         bool openSettings,
         string? reportPath,
         bool openReport,
-        IReadOnlyList<string> issues)
+        IReadOnlyList<string> issues,
+        CtrlRamLaunchRequest? ctrlRam = null)
     {
         Page = page;
         OpenSettings = openSettings;
         ReportPath = reportPath;
         OpenReport = openReport;
         Issues = issues;
+        CtrlRam = ctrlRam;
     }
 
     /// <summary>Gets empty launch options.</summary>
@@ -37,6 +39,9 @@ internal sealed class UiLaunchOptions
     /// <summary>Gets startup argument parse issues shown through the report surface.</summary>
     public IReadOnlyList<string> Issues { get; }
 
+    /// <summary>Explicit input selection only; never grants Preview or Build authority.</summary>
+    public CtrlRamLaunchRequest? CtrlRam { get; }
+
     /// <summary>Parses UI shell startup arguments.</summary>
     public static UiLaunchOptions Parse(IReadOnlyList<string> args)
     {
@@ -47,10 +52,17 @@ internal sealed class UiLaunchOptions
         string? reportPath = null;
         bool openReport = false;
         List<string> issues = [];
+        var inputOptions = new Dictionary<string, string>(StringComparer.Ordinal);
+        var inputs = new List<CtrlRamLaunchInput>();
+        var unknownArguments = new List<string>();
 
         for (int index = 0; index < args.Count; index++)
         {
             string argument = args[index];
+            if (TakeCtrlRamOption(args, ref index, inputOptions, inputs, issues))
+            {
+                continue;
+            }
             if (TrySplitValue(argument, "--page", out string? inlinePage))
             {
                 string? value = inlinePage ?? TakeValue(args, ref index, "--page", issues);
@@ -74,10 +86,15 @@ internal sealed class UiLaunchOptions
             if (string.Equals(argument, "--open-report", StringComparison.Ordinal))
             {
                 openReport = true;
+                continue;
             }
+            unknownArguments.Add(argument);
         }
 
-        return new UiLaunchOptions(page, openSettings, NormalizeBlank(reportPath), openReport, issues);
+        CtrlRamLaunchRequest? ctrlRam = ParseCtrlRamRequest(
+            inputOptions, inputs, page, openSettings, reportPath, openReport, unknownArguments, issues);
+        return new UiLaunchOptions(ctrlRam is null ? page : ShellPage.Replace,
+            openSettings, NormalizeBlank(reportPath), openReport, issues, ctrlRam);
     }
 
     private static bool TrySplitValue(string argument, string option, out string? value)

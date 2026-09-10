@@ -1,0 +1,46 @@
+{
+  "schemaVersion": 2,
+  "taskId": "UI-114-CTRLRAM-MEMORY-LAYOUT-49",
+  "capability": "Present CtrlRAM targets as endpoint focus lanes within a canonical TP and DP overview",
+  "integrationBase": "1e8b8bec7027ed0050896fd576e38eb27beb2d30",
+  "risk": "R2",
+  "kind": "ui",
+  "state": "final-complete",
+  "mutablePaths": [
+    "src/NvtFwCombiner.Application/MemoryLayout/MemoryLayoutModels.cs",
+    "src/NvtFwCombiner.Application/MemoryLayout/MemoryLayoutProjector.cs",
+    "src/NvtFwCombiner.Application/MemoryLayout/MemoryLayoutProjector.Sections.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/UiCompositionRunner.Common.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MemoryCoverageGroupViewModel.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MemoryCoverageSegmentViewModel.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MemoryFocusLaneViewModel.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReplacePresentationViewModel.Memory.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReplacePresentationViewModel.State.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ShellTextResources.MemoryLayout.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/Views/MemoryCoverageBar.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/Resources/MainWindowWorkflowTemplates.axaml",
+    "src/NvtFwCombiner.Presentation.Avalonia/Styles/MemoryCoverageStyles.axaml",
+    "docs/adr/0052-exact-ctrlram-report-metadata-counterpart.md"
+  ],
+  "implementationOwner": "primary-agent",
+  "searchEvidence": [
+    "CodeGraph and scoped source inspection: MemoryLayoutProjector owns canonical coverage; CtrlRAM primary map lacks TP/DP parents. ADR0052 and CtrlRamV2RouteRegistry retain the exact same-IC Standard counterpart through ReportClassification metadata entries. MetadataPlanDefinition disallows mixed resolved maps. ReplaceRegionGroupBuilder and MemoryCoverageLogicalItemViewModel own per-item ranges/interaction; shared MemoryCoverageBar owns proportional geometry, popup, pointer and keyboard lifecycle.",
+    "NT51927 3-IC canonical input-only fixture has eight inputs and twelve physical targets. Baseline three tests passed. New actual-window CtrlRamMemoryLayoutTests loads all inputs and fails at missing CtrlRamFlashOverview: D:/NvtFwCombiner-TestArea/evidence/v114-ctrlram-layout49/threechip-screen-red.trx. This fixture is input evidence, not independent output Golden."
+  ],
+  "semanticOwner": "Application MemoryLayoutProjector publishes immutable read-only section context from the already-bound metadata counterpart; existing Presentation logical items and shared MemoryCoverageBar render range geometry and interaction.",
+  "terminalContract": "Implement owner-approved docs/ui/references/v1.1.4-ctrlram-memory-layout-proposed.png in the existing right panel, preserving its logical width. CtrlRAM physical snapshots alone gain independent SectionLocators: exact counterpart map/address space, whole outermost declared TP/DP Code regions within actual capacity, explicit Unmapped and neutral Context. No companion, mismatched space or overlapping ambiguity yields one full Context with no map/region claim; validate sorted complete partition. Capacity never selects a map. Do not modify CanonicalRegions, before/after coverage, firmware semantics, profile/access, Report authority or bytes. One Application projection supplies both coverage and overview. Focus lanes use typed endpoint and continuous physical runs; retain per-item range/source/facts/interaction, never lift disconnected same-source targets together. Partial selected/retained ratio affects pattern only. Opt-in labels reuse shared cards, keyboard and positioning. CRC/header cuts remain technical facts, not standalone visual targets. Show real 927/3 IC and 950 partial-input rendering; narrow Application and UI tests cover full/TP-only/context fallback, continuity, geometry, themes/languages and lifecycle. No fresh full-suite/release claim.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "ctrlram_readability (GPT-5.6 Terra, high; read-only)",
+    "outcome": "approved",
+    "evidence": "Independent R2 design review approved the existing exact metadata counterpart and shared renderer extension, conditional on staging this admission before production. Required fail-closed Context partition, ancestry-based outermost regions, unchanged write/primary coverage authority, and continuous-run lanes are incorporated. Added SegmentViewModel path supports display-only partial fill ratio, not an aggregate semantic fact."
+  },
+  "implementationHead": "1ff2ec15716275a089830544a5357a43dbffe16a",
+  "reviewedHead": "1ff2ec15716275a089830544a5357a43dbffe16a",
+  "pathStateDigest": "397c751f0cf3028b321b1f84d8c8f26f8e273d33e478875779c97301424e2d9a",
+  "finalReview": {
+    "reviewer": "ctrlram_readability (GPT-5.6 Terra, high; read-only)",
+    "outcome": "approved",
+    "evidence": "Independent exact-head Polytail review at 1ff2ec15716275a089830544a5357a43dbffe16a against 1e8b8bec7027ed0050896fd576e38eb27beb2d30: P0/P1/P2/P3 all zero. Exact admitted metadata counterpart, ancestry-based section partition, neutral fail-closed context, primary coverage and Report authority preserved. Shared renderer retains isolated continuous-target interaction, partial selected/retained geometry, keyboard/pointer lifecycle, stale-state cleanup and reduced motion. Actual 927/3 IC and 950 partial-input full-window renders inspected against the approved reference in Light/Dark and EN/zh. Evidence root D:/NvtFwCombiner-TestArea/evidence/v114-ctrlram-layout49: section-context-fixed.trx 7/7 (6s), focus-layout-regression-fixed.trx 60/60 (32s), existing-layout-fixed.trx 22/22 (16s), zero skipped. Test-only cold-start deadlock reproduced with 60s diagnostic TRX/dump, then corrected without changing production loader or increasing timeout. Isolated Desktop build succeeded with zero warnings/errors. python scripts/verify.py --structure-only passed (177.5s), sync_derived changed zero files and Polytail fast checks passed with retained code-size warnings. Native UIA confirmed all eight 927 inputs loaded; native capture was unavailable due off-monitor crop, so screenshots are actual headless production-control renders, not native DPI or screen-reader certification. No full-suite, firmware output Golden, support promotion or release claim. Primary calculated path digest from committed Git blobs using the repository helper; finalization changes only lifecycle/final-evidence fields."
+  }
+}

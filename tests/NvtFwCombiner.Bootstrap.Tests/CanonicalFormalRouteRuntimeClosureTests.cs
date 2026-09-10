@@ -30,13 +30,15 @@ public sealed class CanonicalFormalRouteRuntimeClosureTests
             fixture.Policy.Identity.WorkflowId == ExperienceIds.AbMerge));
         Assert.Equal(44, fixtures.Count(static fixture =>
             fixture.Policy.Identity.WorkflowId == ExperienceIds.CtrlRamReplace));
-        Assert.Equal(28, fixtures.Count(static fixture =>
+        // The v1.1.4 optional-DP definitions retain Normal Golden cases, but their
+        // expanded route evidence is ContractOnly (policy catalog 1.11.0).
+        Assert.Equal(26, fixtures.Count(static fixture =>
             fixture.PolicyEvidenceClass == CanonicalFormalRuntimePolicyEvidenceClass.DirectGolden));
-        Assert.Equal(9, fixtures.Count(static fixture =>
+        Assert.Equal(7, fixtures.Count(static fixture =>
             fixture.PolicyEvidenceClass == CanonicalFormalRuntimePolicyEvidenceClass.ApprovedAlias));
-        Assert.Equal(5, fixtures.Count(static fixture =>
+        Assert.Equal(4, fixtures.Count(static fixture =>
             fixture.PolicyEvidenceClass == CanonicalFormalRuntimePolicyEvidenceClass.SyntheticOracle));
-        Assert.Equal(22, fixtures.Count(static fixture =>
+        Assert.Equal(27, fixtures.Count(static fixture =>
             fixture.PolicyEvidenceClass == CanonicalFormalRuntimePolicyEvidenceClass.ContractOnly));
     }
 

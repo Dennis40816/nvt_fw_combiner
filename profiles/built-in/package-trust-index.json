@@ -1,7 +1,7 @@
 {
-  "schemaVersion": "1.1",
+  "schemaVersion": "1.3",
   "trustIndexId": "built-in-profile-bundles",
-  "trustIndexVersion": "0.10.6.2",
+  "trustIndexVersion": "1.1.4.2",
   "trustAnchorBindingId": "built-in-profile-bundle-v2",
   "bundles": [
     {
@@ -370,6 +370,7 @@
           "icId": "NT51919",
           "profileId": "nt51919-ctrlram-replace-fw200-single",
           "profileVersion": "0.3.0",
+          "memoryLayoutContextMapId": "nt51919-standard-merge-256k",
           "postbuildProcessorId": "nfc.nt51919.ctrlram-postbuild-v1",
           "postbuildBranch": "single-chip"
         },
@@ -378,6 +379,7 @@
           "icId": "NT51919",
           "profileId": "nt51919-ctrlram-replace-fw1x-cascade",
           "profileVersion": "0.5.0",
+          "memoryLayoutContextMapId": "nt51919-standard-merge-256k",
           "postbuildProcessorId": "nfc.nt51919.ctrlram-postbuild-v1",
           "postbuildBranch": "cascade"
         },
@@ -446,6 +448,7 @@
           "icId": "NT51950",
           "profileId": "nt51950-ctrlram-replace-fw200-single",
           "profileVersion": "0.5.0",
+          "memoryLayoutContextMapId": "nt51950-standard-merge-256k",
           "postbuildProcessorId": "nfc.nt51950.ctrlram-postbuild-v1",
           "postbuildBranch": "single-chip"
         },
@@ -454,6 +457,7 @@
           "icId": "NT51950",
           "profileId": "nt51950-ctrlram-replace-fw1x-cascade",
           "profileVersion": "0.7.0",
+          "memoryLayoutContextMapId": "nt51950-standard-merge-512k",
           "postbuildProcessorId": "nfc.nt51950.ctrlram-postbuild-v1",
           "postbuildBranch": "cascade"
         }
@@ -474,6 +478,7 @@
           "icId": "NT51951",
           "profileId": "nt51951-ctrlram-replace-fw200-single",
           "profileVersion": "0.5.0",
+          "memoryLayoutContextMapId": "nt51951-standard-merge-512k",
           "postbuildProcessorId": "nfc.nt51951.ctrlram-postbuild-v1",
           "postbuildBranch": "single-chip"
         },
@@ -482,6 +487,7 @@
           "icId": "NT51951",
           "profileId": "nt51951-ctrlram-replace-fw1x-cascade",
           "profileVersion": "0.7.0",
+          "memoryLayoutContextMapId": "nt51951-standard-merge-512k",
           "postbuildProcessorId": "nfc.nt51951.ctrlram-postbuild-v1",
           "postbuildBranch": "cascade"
         }
@@ -713,7 +719,7 @@
       "bundleDirectory": "nt51919-nt51929-nt51932-ab-merge",
       "bundleSchemaVersion": "1.0",
       "bundleVersion": "0.10.5-family-reference.1",
-      "contentHash": "3b6dcc3d1c87ab31e43852d3638b9658a64e886eae95c725e67b2d07f1cb8a61",
+      "contentHash": "68527380d4e2de5994734b9357fc55963254e51382027d9f099699c9dc1a366f",
       "materialization": {
         "compositionProfileSchemaFile": "composition-profile-v2.14.schema.json",
         "firmwareFamilySchemaFile": "firmware-family-v1.2-bank-instances.schema.json"
@@ -723,19 +729,22 @@
           "workflowId": "ab-merge",
           "icId": "NT51919",
           "profileId": "nt51919-ab-merge-alias",
-          "profileVersion": "0.4.0"
+          "profileVersion": "0.4.0",
+          "mapVariantSetId": "nt51919-ab-merge-512k"
         },
         {
           "workflowId": "ab-merge",
           "icId": "NT51929",
           "profileId": "nt51929-ab-merge",
-          "profileVersion": "0.4.0"
+          "profileVersion": "0.4.0",
+          "mapVariantSetId": "nt51929-ab-merge-512k"
         },
         {
           "workflowId": "ab-merge",
           "icId": "NT51932",
           "profileId": "nt51932-ab-merge",
-          "profileVersion": "0.4.0"
+          "profileVersion": "0.4.0",
+          "mapVariantSetId": "nt51932-ab-merge-512k"
         }
       ]
     },
@@ -743,7 +752,7 @@
       "bundleDirectory": "nt51950-ab-merge",
       "bundleSchemaVersion": "1.0",
       "bundleVersion": "0.10.1-issue-190.1",
-      "contentHash": "775c42fba1fbbf1c4c8869656c83c86ce34d612dda3ceed92a93cb4e82f7cd67",
+      "contentHash": "f60f5ef4f8c2a150c7dde47638d55aa35a84425146809263057939540ea0b6b9",
       "materialization": {
         "compositionProfileSchemaFile": "composition-profile-v2.14.schema.json",
         "firmwareFamilySchemaFile": "firmware-family-v1.2-bank-instances.schema.json"
@@ -753,13 +762,15 @@
           "workflowId": "ab-merge",
           "icId": "NT51950",
           "profileId": "nt51950-ab-merge",
-          "profileVersion": "0.3.0"
+          "profileVersion": "0.3.0",
+          "mapVariantSetId": "nt51950-ab-merge-maps"
         },
         {
           "workflowId": "ab-merge",
           "icId": "NT51951",
           "profileId": "nt51951-ab-merge",
-          "profileVersion": "0.3.0"
+          "profileVersion": "0.3.0",
+          "mapVariantSetId": "nt51951-ab-merge-1024k"
         }
       ]
     },

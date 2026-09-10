@@ -1,9 +1,83 @@
+using System.Text.Json;
+using System.Text.Json.Nodes;
+using NvtFwCombiner.Contracts.Reports;
+using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
 namespace NvtFwCombiner.UiSmoke.Tests;
 
 public sealed partial class ReportReviewHistoryTests
 {
+    /// <summary>Current and reopened cards retain the best recorded cause, independently of acceptance.</summary>
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(false, true)]
+    [InlineData(true, false)]
+    [InlineData(true, true)]
+    public void ReportDifferenceCausesPreserveSemanticThenLegacyExplanation(bool accepted, bool semantic)
+    {
+        const string legacyCause = "Postbuild refreshed the TP header CRC fields.";
+        const string fieldCause = "Expected: postbuild recalculated DLM CRC 0.";
+        var difference = new OutputDifferenceSummary(
+            "diff-001", new ByteRange(28, 4), 4, OutputDifferenceClassifications.PostbuildCrcHeader,
+            accepted, "recorded processor evidence", legacyCause, "Header", "before-hash", "after-hash",
+            semantic: semantic ? new OutputDifferenceSemantic(
+                "tp-flash-header", "TP Flash Header", "header-0-dlm-crc", "DLM CRC 0", fieldCause) : null);
+        ReportReviewViewModel.OutputDifferenceProjection live = ReportReviewViewModel.ProjectOutputDifferences(
+            [difference], "reported-output", 32, ShellLanguage.English, TestContext.Current.CancellationToken);
+        JsonNode root = JsonNode.Parse(ReportJsonSamples.ReplaceWithAcceptedOutputDifferences())!;
+        root["OutputDifferences"] = new JsonArray(JsonSerializer.SerializeToNode(difference));
+        ReportReviewViewModel reopened = ReportReviewViewModel.FromJson(root.ToJsonString(), "legacy-cause.json");
+        string expected = semantic ? fieldCause : legacyCause;
+        foreach (ReportHexDiffRangeViewModel card in new[]
+            { Assert.Single(live.HexDiffSource.NavigatorRows), Assert.Single(reopened.HexDiff.Ranges) })
+        {
+            Assert.Equal(expected, card.Reason);
+            Assert.Equal(accepted, card.IsAccepted);
+            Assert.Equal(accepted ? "Expected" : "Review required", card.Status);
+        }
+    }
+
+    /// <summary>Legacy reports without a usable cause describe only their recorded classification.</summary>
+    [Theory]
+    [InlineData(OutputDifferenceClassifications.PostbuildCrcHeader, "Header / CRC fields", "Postbuild updated Header / CRC fields.", "Postbuild 已更新 Header / CRC fields。")]
+    [InlineData(OutputDifferenceClassifications.DeclaredReplacement, "Normal CtrlRAM", "Source bytes copied into Normal CtrlRAM.", "來源 bytes 已複製至Normal CtrlRAM。")]
+    [InlineData(OutputDifferenceClassifications.PreservedReference, "Reference base", "Bytes changed in a range declared to remain unchanged.", "宣告應保持不變的區段中出現 byte 變更。")]
+    [InlineData(OutputDifferenceClassifications.Unexpected, "DLM CRC 0", "No specific cause was recorded for this change.", "此變更未記錄具體原因。")]
+    [InlineData("future-classification", "DLM CRC 0", "No specific cause was recorded for this change.", "此變更未記錄具體原因。")]
+    [InlineData(OutputDifferenceClassifications.PostbuildCrcHeader, "", "Postbuild updated CRC/header.", "Postbuild 已更新 CRC/header。")]
+    [InlineData(OutputDifferenceClassifications.DeclaredReplacement, "", "Source bytes copied into the declared replacement range.", "來源 bytes 已複製至宣告的替換區段。")]
+    public void ReportDifferenceCauseFallbackDoesNotInferFromAcceptanceOrSection(
+        string classification, string section, string expected, string chineseExpected)
+    {
+        foreach (bool accepted in new[] { false, true })
+        {
+            foreach (JsonNode? unusableCause in new JsonNode?[] { null, JsonValue.Create(" "), JsonValue.Create(42), new JsonObject() })
+            {
+                JsonNode root = JsonNode.Parse(ReportJsonSamples.ReplaceWithAcceptedOutputDifferences())!;
+                JsonNode difference = root["OutputDifferences"]![0]!;
+                difference["Semantic"] = null;
+                difference["Explanation"] = unusableCause;
+                difference["Classification"] = classification;
+                difference["SectionLabel"] = section;
+                difference["IsAccepted"] = accepted;
+                var report = ReportReviewViewModel.FromJson(root.ToJsonString(), "legacy-no-cause.json");
+                ReportLineViewModel row = Assert.Single(report.OutputDifferences);
+                Assert.Equal(expected, row.Reason);
+                Assert.Equal(accepted && classification != OutputDifferenceClassifications.Unexpected, row.IsAccepted);
+                var chinese = ReportReviewViewModel.FromJson(root.ToJsonString(), "legacy-no-cause.json",
+                    language: ShellLanguage.ChineseTraditional);
+                Assert.Equal(chineseExpected, Assert.Single(chinese.OutputDifferences).Reason);
+                if (unusableCause is null)
+                {
+                    Assert.True(difference.AsObject().Remove("Explanation"));
+                    var missing = ReportReviewViewModel.FromJson(root.ToJsonString(), "missing-cause.json");
+                    Assert.Equal(expected, Assert.Single(missing.OutputDifferences).Reason);
+                }
+            }
+        }
+    }
+
     /// <summary>Verifies Replace reports surface accepted final-output CRC/header differences.</summary>
     [Fact]
     public async Task ReportReviewShowsAcceptedOutputDifferences()

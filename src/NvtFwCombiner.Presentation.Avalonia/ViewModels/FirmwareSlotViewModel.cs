@@ -63,7 +63,19 @@ internal sealed partial class FirmwareSlotViewModel : ObservableObject
 
     public string Title { get; private set; }
 
+    public string Subtitle { get; private set; } = string.Empty;
+
+    public bool HasSubtitle => Subtitle.Length > 0;
+
     public string Description { get; private set; }
+
+    public IReadOnlyList<FirmwareSlotFactViewModel> InputGuidanceFacts { get; private set; } = [];
+
+    public bool HasInputGuidanceFacts => InputGuidanceFacts.Count > 0;
+
+    public string InputGuidanceNote { get; private set; } = string.Empty;
+
+    public bool HasInputGuidanceNote => InputGuidanceNote.Length > 0;
 
     /// <summary>Display-only slot kind used by the slot card icon.</summary>
     public FirmwareSlotKind SlotKind { get; }
@@ -171,7 +183,8 @@ internal sealed partial class FirmwareSlotViewModel : ObservableObject
         string description,
         string requiredLabel,
         string optionalLabel,
-        string emptyDisplayName)
+        string emptyDisplayName,
+        string subtitle = "")
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(title);
         ArgumentException.ThrowIfNullOrWhiteSpace(description);
@@ -180,12 +193,15 @@ internal sealed partial class FirmwareSlotViewModel : ObservableObject
         ArgumentException.ThrowIfNullOrWhiteSpace(emptyDisplayName);
 
         Title = title;
+        Subtitle = subtitle;
         Description = description;
         RequiredText = requiredLabel;
         OptionalText = optionalLabel;
         EmptyDisplayName = emptyDisplayName;
 
         OnPropertyChanged(nameof(Title));
+        OnPropertyChanged(nameof(Subtitle));
+        OnPropertyChanged(nameof(HasSubtitle));
         OnPropertyChanged(nameof(Description));
         OnPropertyChanged(nameof(RequirementLabel));
         OnPropertyChanged(nameof(DisplayName));
@@ -265,6 +281,7 @@ internal sealed partial class FirmwareSlotViewModel : ObservableObject
     public void SetInputInspectionPending(string status)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(status);
+        _inputIssueStatus = null;
         IsInputInspectionPending = true;
         IsBaseDiscoveryInspected = false;
         InputInspectionSeverity = null;
@@ -274,7 +291,8 @@ internal sealed partial class FirmwareSlotViewModel : ObservableObject
 
     public void SetInputInspection(
         FirmwareInputInspectionSeverity severity,
-        string status)
+        string status,
+        NvtFwCombiner.Application.Authoring.AuthoringInputSlotStatus? inspectedStatus = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(status);
         if (!Enum.IsDefined(severity))
@@ -282,6 +300,7 @@ internal sealed partial class FirmwareSlotViewModel : ObservableObject
             throw new ArgumentOutOfRangeException(nameof(severity), severity, null);
         }
 
+        _inputIssueStatus = inspectedStatus;
         IsInputInspectionPending = false;
         IsBaseDiscoveryInspected = false;
         InputInspectionSeverity = severity;
@@ -293,6 +312,7 @@ internal sealed partial class FirmwareSlotViewModel : ObservableObject
     public void SetBaseDiscoveryInspected(string detail)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(detail);
+        _inputIssueStatus = null;
         IsInputInspectionPending = false;
         IsBaseDiscoveryInspected = true;
         InputInspectionSeverity = null;
@@ -303,6 +323,7 @@ internal sealed partial class FirmwareSlotViewModel : ObservableObject
     /// <summary>Clears stale input health when the selected path or compiled context changes.</summary>
     public void ClearInputInspection()
     {
+        _inputIssueStatus = null;
         IsInputInspectionPending = false;
         IsBaseDiscoveryInspected = false;
         InputInspectionSeverity = null;

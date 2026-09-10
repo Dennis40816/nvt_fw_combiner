@@ -1,10 +1,10 @@
 {
   "schemaVersion": "1.1",
   "policyId": "canonical-reference-v1",
-  "authorizedForVersion": "1.1.3",
+  "authorizedForVersion": "1.1.4",
   "releaseStatus": "human-gated-allowlist",
   "redistributionAuthorization": {
-    "authorizedOn": "2026-09-05",
+    "authorizedOn": "2026-09-10",
     "authorizedBy": "repository owner",
     "scope": "reference-payload-only",
     "supersedesHistoricalCaseRestrictions": true
@@ -13,14 +13,14 @@
     "runtimeSupportPromotion": false,
     "fullByteParityClaim": false
   },
-  "canonicalReadmeSha256": "7692f828b0aaa286437cd786ccb7620acc85db33487ebd68b793d5b771070728",
+  "canonicalReadmeSha256": "87d757daeef72f969e24729b9bfb10ce66a22152236d12ec52ac23c971ab6be6",
   "selectionSummary": {
-    "caseCount": 35,
+    "caseCount": 40,
     "directGoldenCount": 25,
-    "directInputEvidenceCount": 1,
-    "factScopedAliasCount": 9,
-    "artifactDeclarationCount": 161,
-    "uniqueArtifactPathCount": 158
+    "directInputEvidenceCount": 3,
+    "factScopedAliasCount": 12,
+    "artifactDeclarationCount": 177,
+    "uniqueArtifactPathCount": 174
   },
   "cases": [
     {
@@ -1644,6 +1644,209 @@
           "sha256": "69fa975a9883db2494d2c2cf5dce05507573c9a753efb6f62589fa3acded68d4"
         }
       ]
+    },
+    {
+      "caseId": "nt51927-2chip-self-20260705",
+      "manifestPath": "NT51927/ctrlram-replace/fw1.3.2/cascade-2/nt51927-2chip-self-20260705/provenance/case.json",
+      "manifestSha256": "ee52c7caa0b678a5f2e240ed8a55deee9cfade340c1cf52601f5985232733731",
+      "workflow": "ctrlram-replace",
+      "testDispositionKind": "input-only-evidence",
+      "directGolden": false,
+      "directEvidence": true,
+      "artifacts": [
+        {
+          "artifactId": "reference-base",
+          "role": "input",
+          "path": "NT51927/ctrlram-replace/fw1.3.2/cascade-2/nt51927-2chip-self-20260705/inputs/nt51927-2ic-csot1560-d09t0d-jira0251-20260617.bin",
+          "size": 262144,
+          "sha256": "11700ec5580f2e07195c7aec3788f929609eef5355d773287d3f88aa1f984dae"
+        },
+        {
+          "artifactId": "replace-ctrlram-nf",
+          "role": "input",
+          "path": "NT51927/ctrlram-replace/fw1.3.2/cascade-2/nt51927-2chip-self-20260705/inputs/replacements/nt51927-replace-ctrlram-nf.bin",
+          "size": 8080,
+          "sha256": "d9893ca964aeb0a92e3d9b1513a554cc01e0c2fb9698a774429f78837d5a3e1e"
+        },
+        {
+          "artifactId": "replace-ctrlram-normal-master",
+          "role": "input",
+          "path": "NT51927/ctrlram-replace/fw1.3.2/cascade-2/nt51927-2chip-self-20260705/inputs/replacements/nt51927-replace-ctrlram-normal-master.bin",
+          "size": 12288,
+          "sha256": "793cc0ccef57c9bc3060e002d6a48ea96c642b16f24359d4594ff97cabc660b0"
+        },
+        {
+          "artifactId": "replace-ctrlram-mp-master",
+          "role": "input",
+          "path": "NT51927/ctrlram-replace/fw1.3.2/cascade-2/nt51927-2chip-self-20260705/inputs/replacements/nt51927-replace-ctrlram-mp-master.bin",
+          "size": 9216,
+          "sha256": "e8b064e64a86b6d868ab677e0cec90ab2be66093a125962344597145cdaeec5b"
+        },
+        {
+          "artifactId": "replace-ctrlram-vn",
+          "role": "input",
+          "path": "NT51927/ctrlram-replace/fw1.3.2/cascade-2/nt51927-2chip-self-20260705/inputs/replacements/nt51927-replace-ctrlram-vn.bin",
+          "size": 5728,
+          "sha256": "93a6d24b9609b57110c7f1bf4decc6d03c631ebcdc79f39c4e53f6736fbd89b8"
+        },
+        {
+          "artifactId": "replace-ctrlram-normal-slave-r",
+          "role": "input",
+          "path": "NT51927/ctrlram-replace/fw1.3.2/cascade-2/nt51927-2chip-self-20260705/inputs/replacements/nt51927-replace-ctrlram-normal-slave-r.bin",
+          "size": 12288,
+          "sha256": "b597781d0577a3a230f94c60cfcf983b9142586f76096cc794b30ac8371753bb"
+        },
+        {
+          "artifactId": "replace-ctrlram-mp-slave-r",
+          "role": "input",
+          "path": "NT51927/ctrlram-replace/fw1.3.2/cascade-2/nt51927-2chip-self-20260705/inputs/replacements/nt51927-replace-ctrlram-mp-slave-r.bin",
+          "size": 9216,
+          "sha256": "d0bebf670c491e8d01cacc29bf5c7e77141c6bee873218a514b2bee2687a719c"
+        }
+      ]
+    },
+    {
+      "caseId": "nt51927-3chip-self-20260705",
+      "manifestPath": "NT51927/ctrlram-replace/fw1.4.0/cascade-3/nt51927-3chip-self-20260705/provenance/case.json",
+      "manifestSha256": "a7fbcedb311becf9e5bf50d9fe6ac880fdf8fd29a7c13bf90ad4c2648ec96bf5",
+      "workflow": "ctrlram-replace",
+      "testDispositionKind": "input-only-evidence",
+      "directGolden": false,
+      "directEvidence": true,
+      "artifacts": [
+        {
+          "artifactId": "reference-base",
+          "role": "input",
+          "path": "NT51927/ctrlram-replace/fw1.4.0/cascade-3/nt51927-3chip-self-20260705/inputs/nt51927-3ic-tm-tl177xfks03-gm-d08t9b-20260703.bin",
+          "size": 262144,
+          "sha256": "bc44561cc1cb338b9a49bbe701e5d7cbfe78ea40deda0926197fb22002b3061c"
+        },
+        {
+          "artifactId": "replace-ctrlram-nf",
+          "role": "input",
+          "path": "NT51927/ctrlram-replace/fw1.4.0/cascade-3/nt51927-3chip-self-20260705/inputs/replacements/nt51927-replace-ctrlram-nf.bin",
+          "size": 12112,
+          "sha256": "1da3b789fd593a9c9d226aa1deab11a6108b52cacb5eb8166487bf0cbfd01bd7"
+        },
+        {
+          "artifactId": "replace-ctrlram-normal-master",
+          "role": "input",
+          "path": "NT51927/ctrlram-replace/fw1.4.0/cascade-3/nt51927-3chip-self-20260705/inputs/replacements/nt51927-replace-ctrlram-normal-master.bin",
+          "size": 12288,
+          "sha256": "8df98e023232e33e303fbb8a3b8569d8bf0e135c46012488016077e28360c4b9"
+        },
+        {
+          "artifactId": "replace-ctrlram-mp-master",
+          "role": "input",
+          "path": "NT51927/ctrlram-replace/fw1.4.0/cascade-3/nt51927-3chip-self-20260705/inputs/replacements/nt51927-replace-ctrlram-mp-master.bin",
+          "size": 9216,
+          "sha256": "fd5319c5281812fbb7ac6dacb624c572bdd0d52eb71de8402b989da048d0815b"
+        },
+        {
+          "artifactId": "replace-ctrlram-vn",
+          "role": "input",
+          "path": "NT51927/ctrlram-replace/fw1.4.0/cascade-3/nt51927-3chip-self-20260705/inputs/replacements/nt51927-replace-ctrlram-vn.bin",
+          "size": 5728,
+          "sha256": "aacd153b8d41c0e85e148654ff0feeefb42b51945c41b4a17f30fc393a25e533"
+        },
+        {
+          "artifactId": "replace-ctrlram-normal-slave-r",
+          "role": "input",
+          "path": "NT51927/ctrlram-replace/fw1.4.0/cascade-3/nt51927-3chip-self-20260705/inputs/replacements/nt51927-replace-ctrlram-normal-slave-r.bin",
+          "size": 12288,
+          "sha256": "9a9a0b34edd1de2a9ee9d04b169abdfe8ebbe0a7da18dac0bccdc2d82a64a9f8"
+        },
+        {
+          "artifactId": "replace-ctrlram-mp-slave-r",
+          "role": "input",
+          "path": "NT51927/ctrlram-replace/fw1.4.0/cascade-3/nt51927-3chip-self-20260705/inputs/replacements/nt51927-replace-ctrlram-mp-slave-r.bin",
+          "size": 9216,
+          "sha256": "8bb57729e40b279b437a368d501e00edaebf8bc68823e5ae01ac0fbc3d90de48"
+        },
+        {
+          "artifactId": "replace-ctrlram-normal-slave-l",
+          "role": "input",
+          "path": "NT51927/ctrlram-replace/fw1.4.0/cascade-3/nt51927-3chip-self-20260705/inputs/replacements/nt51927-replace-ctrlram-normal-slave-l.bin",
+          "size": 12288,
+          "sha256": "42ee3488353a642c801d18516cc455333fc3edee4d41b50a5ec24d45898a7565"
+        },
+        {
+          "artifactId": "replace-ctrlram-mp-slave-l",
+          "role": "input",
+          "path": "NT51927/ctrlram-replace/fw1.4.0/cascade-3/nt51927-3chip-self-20260705/inputs/replacements/nt51927-replace-ctrlram-mp-slave-l.bin",
+          "size": 9216,
+          "sha256": "d4504418c5be595117e9093e8210ce254f553328b466f9f612e91d9ca8b5eca7"
+        }
+      ]
+    },
+    {
+      "caseId": "nt51917-fw132-cascade2-nt51927-alias",
+      "manifestPath": "NT51917/ctrlram-replace/fw1.3.2/cascade-2/nt51917-fw132-cascade2-nt51927-alias/provenance/case.json",
+      "manifestSha256": "f2d8843aaf3f5d9a91a47eb3e81ad0cecb1ea59a729acc5d01e90ab69ac4bcdd",
+      "workflow": "ctrlram-replace",
+      "testDispositionKind": "fact-scoped-alias",
+      "directGolden": false,
+      "directEvidence": false,
+      "artifacts": [],
+      "alias": {
+        "sourceCaseId": "nt51927-2chip-self-20260705",
+        "factScope": [
+          "exact FW 1.3.2 two-chip PID 0x1615 and reference-SHA admission facts",
+          "NT51927-family physical CtrlRAM roles and ten-command postbuild order",
+          "expected-derived V1/V2 output, report identity, and immutable-input evidence only; no independent expected golden is inferred"
+        ],
+        "evidenceRefs": [
+          "docs/governance/v0.9.9-final-owner-golden-gap-matrix-20260718.md",
+          "docs/governance/v0.9.9-legacy-retirement-evidence.md",
+          "docs/governance/v0.9.9.5-canonical-golden-tool-consolidation-plan.md"
+        ]
+      }
+    },
+    {
+      "caseId": "nt51917-fw140-cascade3-nt51927-alias",
+      "manifestPath": "NT51917/ctrlram-replace/fw1.4.0/cascade-3/nt51917-fw140-cascade3-nt51927-alias/provenance/case.json",
+      "manifestSha256": "9c03e6aea63ce343f15172ca6e2e1de2e8625b8a9b6d6f498ab8fb5931f9c1b9",
+      "workflow": "ctrlram-replace",
+      "testDispositionKind": "fact-scoped-alias",
+      "directGolden": false,
+      "directEvidence": false,
+      "artifacts": [],
+      "alias": {
+        "sourceCaseId": "nt51927-3chip-self-20260705",
+        "factScope": [
+          "exact FW 1.4.0 three-chip PID 0x570A and reference-SHA admission facts",
+          "NT51927-family physical CtrlRAM roles and thirteen-command postbuild order",
+          "expected-derived V1/V2 output and classified VN replacement/CRC evidence only; no independent expected golden is inferred"
+        ],
+        "evidenceRefs": [
+          "docs/governance/v0.9.9-final-owner-golden-gap-matrix-20260718.md",
+          "docs/governance/v0.9.9-legacy-retirement-evidence.md",
+          "docs/governance/v0.9.9.5-canonical-golden-tool-consolidation-plan.md"
+        ]
+      }
+    },
+    {
+      "caseId": "nt51928-fw132-non-nb-cascade2-nt51927-alias",
+      "manifestPath": "NT51928/ctrlram-replace/fw1.3.2-non-nb/cascade-2/nt51928-fw132-non-nb-cascade2-nt51927-alias/provenance/case.json",
+      "manifestSha256": "12b556463b75ad336f867563355318894c6e0a179ea659dd32744f2aa9ef0120",
+      "workflow": "ctrlram-replace",
+      "testDispositionKind": "fact-scoped-alias",
+      "directGolden": false,
+      "directEvidence": false,
+      "artifacts": [],
+      "alias": {
+        "sourceCaseId": "nt51927-2chip-self-20260705",
+        "factScope": [
+          "non-NB exact FW 1.3.2 two-chip physical CtrlRAM role and ten-command family facts",
+          "postbuild slot, order, and processor-authority applicability only",
+          "no reference or output bytes are aliased; NT51928 retains its own 512 KiB base, profile, PID 0xF206, tail-preservation evidence, and exact-route tests"
+        ],
+        "evidenceRefs": [
+          "docs/governance/v0.9.9-final-owner-golden-gap-matrix-20260718.md",
+          "docs/governance/v0.9.9-legacy-retirement-evidence.md",
+          "docs/governance/v0.9.9.5-canonical-golden-tool-consolidation-plan.md"
+        ]
+      }
     }
   ]
 }

@@ -26,7 +26,7 @@ public sealed partial class RepositoryBoundaryTests
         Assert.NotEmpty(runnerSources);
         Assert.All(runnerSources, source =>
             Assert.Contains("internal static partial class UiCompositionRunner", source, StringComparison.Ordinal));
-        Assert.Contains("internal sealed class UiLaunchOptions", launch, StringComparison.Ordinal);
+        Assert.Contains("internal sealed partial class UiLaunchOptions", launch, StringComparison.Ordinal);
         Assert.DoesNotContain("GetSupportedIcIds", catalog, StringComparison.Ordinal);
         Assert.DoesNotContain("GetDefaultIcId", catalog, StringComparison.Ordinal);
         Assert.DoesNotContain("GetSettingsSnapshot", catalog, StringComparison.Ordinal);

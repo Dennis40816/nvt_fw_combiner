@@ -31,6 +31,11 @@ For R1-R3 implementation:
 
 ## Current test-platform scope
 
+See [Test architecture and retained v1.1.3 measurements](tests/README.md) for
+project responsibilities, local/CI/release dependency diagrams, execution counts
+and timing evidence. The diagrams document the existing verifier; they do not
+introduce a second test entry point or change required gates.
+
 Current release validation targets Windows x64; CI and release jobs run on
 Windows. Six Unix-runtime-only integration tests were retired in v1.1.3 by
 owner decision: two FIFO/socket cases and four process-group cleanup cases.

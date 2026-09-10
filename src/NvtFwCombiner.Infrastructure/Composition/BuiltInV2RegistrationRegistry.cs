@@ -465,7 +465,8 @@ internal sealed class BuiltInV2Registration
                 IcId,
                 requestedMapCapacity,
                 requestedTopology,
-                $"The built-in V2 {ProfileLabel} for {IcId} did not produce an executable composition.")
+                $"The built-in V2 {ProfileLabel} for {IcId} did not produce an executable composition.",
+                selectedInputSlotIds)
             : _bundle.CompileExecutable(
                 ProfileId,
                 ProfileVersion,

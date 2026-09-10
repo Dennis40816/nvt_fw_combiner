@@ -141,7 +141,10 @@ internal sealed class CompositionExecutionExperience : ICompositionExecution
             request,
             capability,
             progress,
-            CompositionAddressSpaceIds.DpAbInput,
+            capability.CompiledComposition.V2Details.InputContract.SpaceBindings.Any(static binding =>
+                binding.AddressSpaceId == CompositionAddressSpaceIds.DpAbInput)
+                ? CompositionAddressSpaceIds.DpAbInput
+                : CompositionAddressSpaceIds.TpAInput,
             externalProcessor,
             icNumberSelection: null,
             abMergeTopologySelection:
@@ -379,7 +382,7 @@ internal sealed class CompositionExecutionExperience : ICompositionExecution
                 request.AutomaticOutputDirectory)
             : (
                 bundleDelivery.ParentDirectory,
-                bundleDelivery.Admission.OutputPreparation.OutputName.FileName);
+                bundleDelivery.PreparedOutputName.FileName);
         if (request.OutputPathUsesAutomaticName)
         {
             outputFileName =
@@ -412,7 +415,7 @@ internal sealed class CompositionExecutionExperience : ICompositionExecution
                 additionalProtectedPaths,
                 additionalDelivery,
                 bundleDelivery));
-        string executionOutputFileName = bundleDelivery is null
+        string executionOutputFileName = bundleDelivery is null || bundleDelivery.OutputFileNameIsOverride
             ? outputFileName
             : composition.V2Details.OutputNamingRequirement.FileNameTemplate;
         return await AcceptedSessionCompositionExecution.ExecuteAsync(
@@ -431,7 +434,8 @@ internal sealed class CompositionExecutionExperience : ICompositionExecution
                 icNumberSelection,
                 (request.OutputPath is not null &&
                  !request.OutputPathUsesAutomaticName) ||
-                    request.PreviewOutputFileName is not null,
+                    request.PreviewOutputFileName is not null ||
+                    bundleDelivery?.OutputFileNameIsOverride == true,
                 abMergeTopologySelection,
                 advisoryIssues,
                 generalExecution?.Admission.ToSummary(),

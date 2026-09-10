@@ -1,0 +1,9 @@
+{
+  "schemaVersion": 1,
+  "taskId": "RELEASE-114-CTRLRAM-REFERENCE-64",
+  "authorityType": "release-owner",
+  "reviewedHead": "e442fff926eca930bcee062360a99b49c14a805f",
+  "decision": "approved",
+  "reviewer": "Dennis Liu (release-owner)",
+  "evidence": "The owner explicitly replied '是 請進入發布流程' after being shown exact final-evidence commit e442fff926eca930bcee062360a99b49c14a805f and asked to approve all three R3 tasks58/64/68 together. Owner-approved CtrlRAM input-only references and source-closed aliases enter the release reference payload without support promotion or expected-byte changes. This records exact-head owner approval, not successful full verification, fresh release Golden execution, protected CI, package/smoke or publication. Those gates remain required. Source review binds d32d4790ae124972487cfd8de137d442e72f12a0; final evidence preserves all original paths and digests."
+}

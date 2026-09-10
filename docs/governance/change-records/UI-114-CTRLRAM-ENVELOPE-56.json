@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 2,
+  "taskId": "UI-114-CTRLRAM-ENVELOPE-56",
+  "capability": "Project complete policy-owned DiffDLM physical records while preserving write footprints",
+  "integrationBase": "d4ee8dd3c2ab8d62f7e82bf66b284ab77fad9349",
+  "risk": "R2",
+  "kind": "ui",
+  "state": "final-complete",
+  "mutablePaths": ["src/NvtFwCombiner.Application/MemoryLayout/MemoryLayoutProjector.CtrlRam.cs"],
+  "implementationOwner": "primary-agent",
+  "searchEvidence": [
+    "Actual NT51950/NT51951 cascade input-loaded MainWindow diagnosis: inspection DIFF range [0x33200,0x33B10) length0x910 but selected canonical diff-ctrlram [0x33200,0x34600) length0x1400; NF/Normal/VN match. D:/NvtFwCombiner-TestArea/evidence/v114-cascade-range-diagnosis/range-diagnostic-final.trx retains both terminal failures.",
+    "BuiltInTpFlashMapCatalog.Postbuild.ApplyPostbuildRangeOverrides projects write footprints; BuiltInCtrlRamAuthoringAdapter.CreateDisplay passes them to existing MemoryLayoutProjector.ProjectCtrlRamDiscovery. Policy.GetActiveTargetRange already owns full active-record extent and preserved-tail geometry. Input descriptions are independently projected from source.Blocks by CreateCtrlRamInputSlot. SelectPrimaryRegions retains exact one-to-one canonical-map validation. SPEC0.1 and UI requirement40 already require full DiffDLM records plus kept tails."
+  ],
+  "semanticOwner": "Application.MemoryLayoutProjector projects the existing typed LegacyCombinerDiffDlmPolicy physical extent; Profiles and compiled operations retain all firmware and write authority.",
+  "terminalContract": "Owner approved correcting the Cascade display mismatch. Only typed DiffDlm regions with a Cascade plan and attached policy use policy.GetActiveTargetRange(plan.TopologyCount); other ranges/group/role and input/source descriptions are unchanged. Keep exact canonical matching; never enlarge executable writes or alter the 0x910 writable prefix and 0xAF0 reference-owned tail. Tests cover actual950/951 and shared-policy families, canonical-range identity and preserved input footprints. Scope excludes TP/DP companion binding, preview-failure isolation (next unit), profiles, processors, Golden expectations and release. Existing branch1.1.4 and local per-unit narrow gates; no full release claim.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "ctrlram_readability (GPT-5.6 Terra, high; read-only)",
+    "outcome": "approved",
+    "evidence": "Independent R2 admission PASS: existing policy.GetActiveTargetRange is the sole active physical envelope owner; no writable-range arithmetic or UI-derived map. Preserve policy applicability failure and strict canonical guard. Require selected canonical range assertion,950/951 and other shared-policy coverage, unchanged source description/write footprint and kept tail. Unit57 failure isolation is separate."
+  },
+  "implementationHead": "212fbe32e0144dbc1ffcdf74f077c794b3ef4723",
+  "reviewedHead": "212fbe32e0144dbc1ffcdf74f077c794b3ef4723",
+  "pathStateDigest": "76560320195d92c93e602cea4a77ad0775e36fc5c10ae6087fbf9628be6d0678",
+  "finalReview": {
+    "reviewer": "ctrlram_readability (GPT-5.6 Terra, high; read-only)",
+    "outcome": "approved",
+    "evidence": "Independent fixed-head Polytail PASS at212fbe32e0144dbc1ffcdf74f077c794b3ef4723 relative tod4ee8dd3; P0-P3 zero. Sole production change reuses typed Cascade DiffDLM policy physical envelope; exact canonical binding and all executable footprints remain unchanged. Scoped evidence D:/NvtFwCombiner-TestArea/evidence/v114-ctrlram-envelope56: application.trx31/31, green.trx15/15 including existing canonical599 approved full-output comparison, ui-green-final.trx5/5 including actual950/951 Cascade and existing950single/9273IC controls. Primary inspected both Cascade captures;950's expected alias-marker dialog remains visible in its capture,951's unobstructed layout shows full0x1400 DiffDLM. No native desktop acceptance or full release/Golden-suite claim. Unit57 preview-failure isolation remains separate. Digest computed by canonical helper from committed production path."
+  }
+}

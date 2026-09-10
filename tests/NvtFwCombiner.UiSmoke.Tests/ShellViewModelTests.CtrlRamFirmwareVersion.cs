@@ -201,8 +201,10 @@ public sealed partial class CtrlRamWorkflowTests
 {
 
     /// <summary>CtrlRAM keeps the verified edit lease through proposal creation, then closes both authoring modals.</summary>
-    [Fact]
-    public async Task CtrlRamConfirmedEditOpensOutputDeliveryForExactAcceptedSession()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task CtrlRamConfirmedEditOpensOutputDeliveryForExactAcceptedSession(bool renamePrimary)
     {
         CancellationToken cancellationToken = TestContext.Current.CancellationToken;
         using var golden = StandardMergeGoldenManifest.Load();
@@ -219,6 +221,11 @@ public sealed partial class CtrlRamWorkflowTests
         viewModel.OutputDelivery.SetBundleEnabled(true);
         viewModel.OutputDelivery.SetParentDirectory(destination.Root);
         viewModel.OutputDelivery.SetBundleFolderName("operator-edited-bundle");
+        if (renamePrimary)
+        {
+            viewModel.OutputDelivery.BeginOutputFileNameEdit();
+            viewModel.OutputDelivery.SetOutputFileName("operator-ctrlram.bin");
+        }
         (bool succeeded, CtrlRamFirmwareVersionDraftState? edit) =
             await viewModel.Replace.TryCreateCtrlRamFirmwareVersionEditAsync(cancellationToken);
         Assert.True(succeeded);
@@ -228,7 +235,7 @@ public sealed partial class CtrlRamWorkflowTests
         Assert.True(viewModel.OutputDelivery.IsOpen);
         Assert.False(viewModel.Replace.IsCtrlRamFirmwareVersionModalOpen);
         Assert.True(viewModel.OutputDelivery.IsReplaceOutput);
-        Assert.Equal("nt51926-ctrlram-replace.bin", viewModel.OutputDelivery.OutputFileName);
+        Assert.Equal(renamePrimary ? "operator-ctrlram.bin" : "nt51926-ctrlram-replace.bin", viewModel.OutputDelivery.OutputFileName);
         Assert.True(viewModel.OutputDelivery.BundleEnabled);
         Assert.Equal(destination.Root, viewModel.OutputDelivery.ParentDirectory);
         Assert.Equal("operator-edited-bundle", viewModel.OutputDelivery.BundleFolderName);

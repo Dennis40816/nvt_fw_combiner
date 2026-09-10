@@ -124,7 +124,38 @@ internal static partial class V2CompositionPlanCompiler
         foreach (CompositionOperationDefinition operation in profile.Operations.Where(operation =>
                      activeOperationIds.Contains(operation.OperationId)))
         {
-            AddReferencedViews(operation, activeViewIds);
+            AddReferencedViews(profile, operation, activeViewIds);
+        }
+
+        foreach (string viewId in activeViewIds.Where(viewId => inactiveInputSpaces.Contains(views[viewId].SpaceId)))
+        {
+            issues.Add(new CompositionIssue(
+                InputSelectionInvalid,
+                $"Active processor view '{viewId}' depends on an inactive input space.",
+                viewId));
+        }
+
+        // Retain only the output side of an omitted whole-region seed for
+        // conditional overlap proof. Its absent input never enters the plan.
+        if (profile.CompositionKind == CompositionKind.Merge)
+        {
+            foreach (CompositionOperationDefinition seed in profile.Operations.Where(operation =>
+                         !activeOperationIds.Contains(operation.OperationId) &&
+                         operation.Kind == CompositionOperationKind.CopyRange &&
+                         operation.OverlapPolicy == OverlapPolicy.Reject))
+            {
+                CompositionProfileView source = views[seed.SourceViewId];
+                CompositionProfileView target = views[seed.TargetViewId];
+                if (inactiveInputSpaces.Contains(source.SpaceId) &&
+                    !inactiveInputSpaces.Contains(target.SpaceId) &&
+                    source.Selector is MapRegionViewSelector sourceRegion &&
+                    target.Selector is MapRegionViewSelector targetRegion &&
+                    regions.Contains(targetRegion.RegionId) &&
+                    StringComparer.Ordinal.Equals(sourceRegion.RegionId, targetRegion.RegionId))
+                {
+                    _ = activeViewIds.Add(target.ViewId);
+                }
+            }
         }
 
         foreach (SourceViewNonUniformValidationDefinition validation in profile.Validations
@@ -171,6 +202,7 @@ internal static partial class V2CompositionPlanCompiler
     }
 
     private static void AddReferencedViews(
+        CompositionProfileDefinition profile,
         CompositionOperationDefinition operation,
         HashSet<string> viewIds)
     {
@@ -187,6 +219,23 @@ internal static partial class V2CompositionPlanCompiler
                 _ = viewIds.Add(operation.TargetViewId);
                 break;
             case CompositionOperationKind.RunExternalProcessor:
+                CompositionProfileProcessorStage stage = profile.ProcessorStages.Single(candidate =>
+                    StringComparer.Ordinal.Equals(candidate.ProcessorStageId, operation.ProcessorStageId));
+                viewIds.UnionWith(stage.AllowedReadViewIds);
+                viewIds.UnionWith(stage.AllowedWriteViewIds);
+                if (stage is LegacyCombinerProfileProcessorStage legacy)
+                {
+                    if (legacy.TargetViewId is { } targetViewId)
+                    {
+                        _ = viewIds.Add(targetViewId);
+                    }
+                    foreach (CompositionProfileStagedSourceBinding binding in legacy.StagedSourceBindings)
+                    {
+                        _ = viewIds.Add(binding.SourceViewId);
+                        _ = viewIds.Add(binding.TargetViewId);
+                    }
+                    viewIds.UnionWith(legacy.StagedArtifactBindings.Select(static binding => binding.SourceViewId));
+                }
                 break;
             default:
                 throw new InvalidOperationException("Unknown canonical operation kind.");
