@@ -3,6 +3,16 @@
 Status: active owner roadmap; release-closure checkpoint 2026-09-01;
 subsequent owner allocation amendments are recorded below.
 
+2026-09-10 post-release reconciliation: immutable `v1.1.4` is published from
+`02fc70c8c25a5885be5e0e6db7eb108a37b4a131` through PR #427 and release run
+`34484902901`. Earlier dated local/pending checkpoints below remain history,
+not a request to redo shipped work. Clean-Windows visible acceptance remains
+an explicit residual, not a passed headless-smoke claim. The owner approved
+starting `1.1.5` after this planning reconciliation: local full-verifier
+parallelization first, Home startup second, CtrlRAM cold first-open third.
+Other version allocations remain unchanged; CLI automation has not been
+approved for acceleration from `1.2.7`.
+
 2026-08-09 planning amendment: the owner approved complete removal of the
 remaining legacy architecture, one production path per module, the
 consolidated specification, and the LAR-00 through LAR-12 dependency graph.
@@ -1702,10 +1712,15 @@ existing UI handoffs. This defers feature work, not any mandatory safety,
 Golden or packaging validation for an earlier actual release. The independent
 Golden evidence work below remains in this version alongside the deferred UI.
 
-Supply independent expected output for the two retained input-only canonical
-cases, then re-review the three fact-scoped aliases that depend on them.
-Until those outputs and firmware-owner evidence exist, all five entries remain
-repository-only: no packaging, Golden claim or runtime-support promotion.
+Supply independent expected output for the retained input-only canonical
+cases, then re-review the fact-scoped aliases that depend on them. Reconcile
+the exact intake against the current manifests rather than the historical
+two-case/three-alias count. The owner-approved `v1.1.4` reference allowlist
+contains 25 Direct Golden cases, three direct input-evidence cases and twelve
+fact-scoped aliases. Its redistribution authorization supersedes the earlier
+repository-only packaging restriction for that exact selection; it does not
+grant output-parity certification or runtime-support promotion. Subsequent
+release packaging continues to follow its own approved allowlist.
 One topology, IC, workflow or fact-scoped alias never certifies another beyond
 its approved evidence scope. Missing external evidence blocks this milestone;
 it does not authorize generating expectations from the implementation.
@@ -1862,8 +1877,8 @@ release.
 | Retained issue | Current allocation and reconciliation boundary |
 | --- | --- |
 | [#380 preload evidence/release](https://github.com/Dennis40816/nvt_fw_combiner/issues/380) | Current CI/release residuals belong to `1.1.3`; the Home startup residual belongs to `1.1.5`. Reconcile historical completion/provenance in `1.1.6`; do not restore its old five-minute CI target or re-release `0.10.5`. |
-| [#291 theme audit](https://github.com/Dennis40816/nvt_fw_combiner/issues/291) | Full existing-surface theme audit belongs to `1.1.4`, with its retained reproduction/accessibility evidence. |
-| [#2 early UI planning](https://github.com/Dennis40816/nvt_fw_combiner/issues/2) | Reconcile the early umbrella in `1.1.6`; route real existing-screen corrections to `1.1.4` and new authoring work to its explicit milestones, without redoing completed demo/shell work. |
+| [#291 theme audit](https://github.com/Dennis40816/nvt_fw_combiner/issues/291) | Remaining existing-surface theme and native-accessibility audit belongs to `1.1.7`; preserve shipped `1.1.4` corrections and their evidence. |
+| [#2 early UI planning](https://github.com/Dennis40816/nvt_fw_combiner/issues/2) | Reconcile the early umbrella in `1.1.6`; route remaining existing-screen corrections to `1.1.7` and new authoring work to its explicit milestones, without redoing completed demo/shell work. |
 | [#1 early core implementation](https://github.com/Dennis40816/nvt_fw_combiner/issues/1) | Reconcile the early umbrella in `1.1.6`; an old open item is not evidence that the current compiler/planner/executor is missing. Retain any genuine unmet acceptance criteria. |
 
 GitHub still owns live open/closed state. This table allocates work and does
