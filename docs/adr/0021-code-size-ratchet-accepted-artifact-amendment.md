@@ -704,3 +704,19 @@ counting rules, exclusions, ratchet bases, other allowances, duplicate/partial
 rules, and firmware/Golden/release requirements remain unchanged. Neither
 growth beyond these exact values nor unrecorded reductions may silently pass;
 there is no transferable headroom or automatic future allowance.
+
+## 2026-09-10 popup transit timer seam accounting
+
+The owner approved exactly 23 additional Presentation-only nonblank lines for
+`UI-114-TRANSIT-TIMER-SEAM-72` at source
+`e572bcbac26e2743d12823691247bd7e3e8e2cb1`. The controllable scheduling boundary
+preserves the 320 ms grace and permits deterministic deadline/cancellation
+tests. Independent R2 admission `GOV-114-EXACT-SIZE-ALLOWANCE-73` sets full
+production and its exact baseline to 140,451, with allowance 37,555 against
+unchanged ratchet 102,896. Runtime remains 99,563 and all other slices and
+allowances remain unchanged.
+
+Only the two full-production defaults and existing exact baseline assertion
+change. Counting, exclusions, all ratchets, excess/reduction guards and
+firmware/Golden/release gates remain unchanged. No reserved or transferable
+capacity is introduced; subsequent production edits require remeasurement.
