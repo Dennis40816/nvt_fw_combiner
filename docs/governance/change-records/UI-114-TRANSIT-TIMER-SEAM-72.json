@@ -5,7 +5,7 @@
   "integrationBase": "2d31d17977d4eb04b586decb44929121fa8c8e1b",
   "risk": "R1",
   "kind": "ui",
-  "state": "design-active",
+  "state": "final-complete",
   "mutablePaths": [
     "src/NvtFwCombiner.Presentation.Avalonia/Views/MemoryCoverageBar.cs"
   ],
@@ -22,8 +22,12 @@
     "outcome": "not-required",
     "evidence": "Independent bounded-R1 design review at473304f3: one existing control remains lifecycle owner, internal scheduling delegate only; preserve idempotent Start and cancellation/expiry ordering. No cross-layer service. Exact code-size growth must be measured and any required allowance decision remains external to this admission."
   },
-  "implementationHead": null,
-  "reviewedHead": null,
-  "pathStateDigest": null,
-  "finalReview": { "reviewer": null, "outcome": "pending", "evidence": "" }
+  "implementationHead": "1035391bb27aa4163dbd380635ce61fa49a491d3",
+  "reviewedHead": "1035391bb27aa4163dbd380635ce61fa49a491d3",
+  "pathStateDigest": "286554a5fc68a6b5c24ca4e97a213990fda9839e93483b021837e196c8c344bf",
+  "finalReview": {
+    "reviewer": "memory_coverage_inventory",
+    "outcome": "approved",
+    "evidence": "Independent final scoped Polytail PASS at exact reviewed head, no findings. Owner authorized rebuilding two unpublished commits to correct R1 design-review schema fields; production/test blobs unchanged. Production blob8b43e4e764f2fa1829de1c2318bf48a575bdaae0 preserves320ms/Background, idempotent Start, cancellation and stale callback isolation. Fake consumes actual requested delay; real timer smoke retained. Independently inspected D:/NvtFwCombiner-TestArea/evidence/v114-popup-clock/popup-fake-clock-final.trx:58/58PASS; popup-duration-mutation-red.trx:9/9expected failures after320to321 mutation. Restored source verified. Full CI, Golden and release gates remain separate."
+  }
 }

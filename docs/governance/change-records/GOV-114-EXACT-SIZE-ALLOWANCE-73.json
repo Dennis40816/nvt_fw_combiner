@@ -5,7 +5,7 @@
   "integrationBase": "2d31d17977d4eb04b586decb44929121fa8c8e1b",
   "risk": "R2",
   "kind": "governance",
-  "state": "design-active",
+  "state": "final-complete",
   "mutablePaths": [
     "scripts/code_size_policy.py",
     "tests/scripts/test_code_size_policy.py",
@@ -24,8 +24,12 @@
     "outcome": "approved",
     "evidence": "Independent R2 design APPROVED at e572bcbac26e2743d12823691247bd7e3e8e2cb1: Presentation-only600to623, exact+23;140428+23=140451=102896+37555. Only two defaults, exact baseline assertion and historical-preserving ADR append. Focused policy tests and final census required; no gate logic changes."
   },
-  "implementationHead": null,
-  "reviewedHead": null,
-  "pathStateDigest": null,
-  "finalReview": { "reviewer": null, "outcome": "pending", "evidence": "" }
+  "implementationHead": "1035391bb27aa4163dbd380635ce61fa49a491d3",
+  "reviewedHead": "1035391bb27aa4163dbd380635ce61fa49a491d3",
+  "pathStateDigest": "88d006ab86e632f8c79e654269566ce8b8e9274531f236122e24a8e71ff85f1b",
+  "finalReview": {
+    "reviewer": "memory_coverage_inventory",
+    "outcome": "approved",
+    "evidence": "Independent final scoped Polytail PASS at exact reviewed head, no findings. Rebuilt unpublished commits retain identical policy/test/ADR blobs. Two full-production defaults, one exact baseline value and historical-preserving ADR append only.140451=102896+37555 with no headroom; runtime99563 and other caps/ratchets/counting/exclusions/gates unchanged. Existing baseline RED140428!=140451, then independently inspected D:/NvtFwCombiner-TestArea/evidence/v114-size73/tests.xml:19/19PASS,0errors/failures/skips. Full CI, Golden and release gates remain separate."
+  }
 }
