@@ -22,6 +22,34 @@ validation; no ten-minute result is claimed by the scheduling change alone.
 The diagram and timings below preserve the pre-change v1.1.3/v1.1.4 baseline.
 Replace no historical timings with projected parallel durations.
 
+### First parallel measurement — 2026-09-10 (failed candidate)
+
+Source: `a20051d6805f548a6935b86867db1b791d7af19f`, Windows, SDK 10.0.301,
+20 logical processors, approximately 32 GiB RAM; `python scripts/verify.py --all`
+with the default three worker slots. Complete command wall clock, including
+setup and cleanup: **992.35 s (16 min 32 s), exit 1**.
+
+| Phase/lane | Seconds | Observed result |
+| --- | ---: | --- |
+| Structure | 219.7 | PASS |
+| Shared .NET restore/build | 81.0 | PASS |
+| .NET coverage lane | 505.2 | FAIL; UI 1,264 passed, 1 failed, 0 skipped |
+| Script shard a-q | 546.3 | PASS; 432 tests |
+| Script shard r | 415.0 | PASS; 162 tests |
+| Script shard s-z | 273.8 | PASS; 374 tests |
+| CRC Python worker | 11.2 | PASS; 30 tests, 100% line/branch coverage |
+
+Lane durations overlap and must not be summed as wall clock. The UI failure was
+`ReportImportOutcomeTests.StoredSuccessMetadataIsReassessedForUnknownRaw(chinese: True)`:
+the first imported history row retained `成功` instead of `未知`. Later .NET
+projects did not run after this exclusive UI batch failed; this measurement is
+neither complete coverage evidence nor proof of the ten-minute target. Isolated
+case (2 tests), class (14 tests), and class with coverage (14 tests) passed on the
+same binaries; retries do not establish a fix or invalidate the original failure.
+Local raw evidence is under `NFC_TEST_AREA_ROOT/evidence/v115-parallel-first`
+(`verify-all.log`, `timing.json`) and `evidence/v115-report-import-repro` (TRX).
+No successful complete-run reduction percentage is claimed from this result.
+
 ## Historical execution map
 
 Arrows mean prerequisites; sibling branches may overlap. Local verification,
