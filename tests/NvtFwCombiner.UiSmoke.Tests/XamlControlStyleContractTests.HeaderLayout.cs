@@ -4,7 +4,7 @@ namespace NvtFwCombiner.UiSmoke.Tests;
 
 public sealed partial class XamlControlStyleContractTests
 {
-    /// <summary>Workflow mode controls retain the owner-approved v0.9.15 header position.</summary>
+    /// <summary>Mode bindings retain the wide-header position and the approved compact Replace second row.</summary>
     [Fact]
     public void WorkflowModeSelectorsStayAtV0915HeaderRightPosition()
     {
@@ -16,7 +16,7 @@ public sealed partial class XamlControlStyleContractTests
 
         Assert.Equal("*,Auto", (string?)replaceHeader.Attribute("ColumnDefinitions"));
         Assert.Equal("*,Auto", (string?)mergeHeader.Attribute("ColumnDefinitions"));
-        Assert.Null(replaceHeader.Attribute("RowDefinitions"));
+        Assert.Equal("Auto,Auto", (string?)replaceHeader.Attribute("RowDefinitions"));
         Assert.Null(mergeHeader.Attribute("RowDefinitions"));
 
         XElement replaceMode = Assert.Single(replaceHeader.Descendants(), element =>
@@ -37,7 +37,25 @@ public sealed partial class XamlControlStyleContractTests
             "{Binding SelectedMergeMode, Mode=TwoWay}",
             (string?)mergeMode.Attribute("SelectedItem"));
 
-        AssertModeContainerOccupiesHeaderRightColumn(replaceMode, replaceHeader);
+        // CtrlRamSelectorLayoutTests also measures the real 980/1440 layouts and resize anchors.
+        XElement replaceActions = Assert.Single(replaceMode.Ancestors(), element => element.Parent == replaceHeader);
+        Assert.Equal("replaceHeaderActions", (string?)replaceActions.Attribute("Classes"));
+        Assert.Equal("Center", (string?)replaceActions.Attribute("VerticalAlignment"));
+        XElement wideStyle = Assert.Single(shell.Descendants(), element =>
+            element.Name.LocalName == "Style" && (string?)element.Attribute("Selector") == "Grid.replaceHeaderActions" &&
+            element.Parent?.Name.LocalName != "ContainerQuery");
+        Assert.Equal("1", (string?)Assert.Single(wideStyle.Elements(), element =>
+            (string?)element.Attribute("Property") == "Grid.Column").Attribute("Value"));
+        XElement compact = Assert.Single(shell.Descendants(), element => element.Name.LocalName == "ContainerQuery" &&
+            (string?)element.Attribute("Name") == "ReplaceContent");
+        Assert.Equal("max-width:700", (string?)compact.Attribute("Query"));
+        XElement compactActions = Assert.Single(compact.Elements(), element =>
+            (string?)element.Attribute("Selector") == "Grid.replaceHeaderActions");
+        foreach ((string property, string value) in new[] { ("Grid.Column", "0"), ("Grid.Row", "1"), ("Grid.ColumnSpan", "2"), ("HorizontalAlignment", "Left") })
+        {
+            Assert.Equal(value, (string?)Assert.Single(compactActions.Elements(), element =>
+                (string?)element.Attribute("Property") == property).Attribute("Value"));
+        }
         AssertModeContainerOccupiesHeaderRightColumn(mergeMode, mergeHeader);
     }
 

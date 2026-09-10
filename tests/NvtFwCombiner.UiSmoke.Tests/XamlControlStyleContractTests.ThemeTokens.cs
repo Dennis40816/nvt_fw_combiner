@@ -172,6 +172,12 @@ public sealed partial class XamlControlStyleContractTests
                 .Select(static reference => reference.Groups["key"].Value))
             .ToHashSet(StringComparer.Ordinal);
 
+        // These custom-drawn controls resolve explicit palettes in C#, not XAML.
+        foreach (string consumer in new[] { "Views/HexViewportControl.Theme.cs", "Views/MemoryCoverageBar.cs" })
+        {
+            referencedKeys.UnionWith(ViewportThemeBrushRegex().Matches(ReadPresentationFile(consumer))
+                .Select(static reference => reference.Groups["key"].Value));
+        }
         Assert.Empty(referencedKeys.Except(definedKeys, StringComparer.Ordinal));
         Assert.Empty(definedKeys.Except(referencedKeys, StringComparer.Ordinal));
     }
@@ -310,6 +316,9 @@ public sealed partial class XamlControlStyleContractTests
             replaceBlocker.Attributes().Single(attribute =>
                 attribute.Name.LocalName == "FocusToolTipBehavior.IsEnabled").Value);
     }
+
+    [GeneratedRegex("\"(?<key>Nfc[A-Za-z0-9]+Brush)\"", RegexOptions.CultureInvariant)]
+    private static partial Regex ViewportThemeBrushRegex();
 
     private static bool IsMergeReadinessProjection(XElement element)
     {

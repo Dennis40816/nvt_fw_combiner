@@ -1,3 +1,4 @@
+using System.Xml.Linq;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
 namespace NvtFwCombiner.UiSmoke.Tests;
@@ -252,16 +253,17 @@ public sealed partial class XamlControlStyleContractTests
             ReadPresentationFile("Styles/MemoryCoverageStyles.axaml");
         string tokens = ReadPresentationFile("Styles/ThemeTokens.axaml");
         var shell = System.Xml.Linq.XDocument.Parse(ReadPresentationFile("MainWindow.axaml"));
-        string templates = ReadPresentationFile("Resources/MainWindowSharedTemplates.axaml") +
-            ReadPresentationFile("Resources/MainWindowWorkflowTemplates.axaml");
-        string replaceBar = ExtractDataTemplate(templates, "MemoryCoverageSegmentBarTemplate");
-        string replaceList = ExtractDataTemplate(templates, "MemoryCoverageSegmentListTemplate");
-        string mergeBar = ExtractDataTemplate(templates, "MemoryCoveragePlainSegmentBarTemplate");
-        string mergeList = ExtractDataTemplate(templates, "MemoryCoveragePlainSegmentListTemplate");
-        string logicalItem = ExtractDataTemplate(templates, "MemoryCoverageLogicalItemTemplate");
-        string logicalRange = ExtractDataTemplate(templates, "MemoryCoverageLogicalRangeTemplate");
-        string replacePanel = ExtractDataTemplate(templates, "ReplaceOutputLayoutPanelTemplate");
-        string mergePanel = ExtractDataTemplate(templates, "MergeOutputLayoutPanelTemplate");
+        string sharedTemplates = ReadPresentationFile("Resources/MainWindowSharedTemplates.axaml");
+        string workflowTemplates = ReadPresentationFile("Resources/MainWindowWorkflowTemplates.axaml");
+        string templates = sharedTemplates + workflowTemplates;
+        string replaceBar = ExtractDataTemplate(sharedTemplates, "MemoryCoverageSegmentBarTemplate");
+        string replaceList = ExtractDataTemplate(sharedTemplates, "MemoryCoverageSegmentListTemplate");
+        string mergeBar = ExtractDataTemplate(sharedTemplates, "MemoryCoveragePlainSegmentBarTemplate");
+        string mergeList = ExtractDataTemplate(sharedTemplates, "MemoryCoveragePlainSegmentListTemplate");
+        string logicalItem = ExtractDataTemplate(sharedTemplates, "MemoryCoverageLogicalItemTemplate");
+        string logicalRange = ExtractDataTemplate(sharedTemplates, "MemoryCoverageLogicalRangeTemplate");
+        string replacePanel = ExtractDataTemplate(workflowTemplates, "ReplaceOutputLayoutPanelTemplate");
+        string mergePanel = ExtractDataTemplate(sharedTemplates, "MergeOutputLayoutPanelTemplate");
         string viewModel = ReadPresentationFile("ViewModels/MemoryCoverageSegmentViewModel.cs");
         string keptBadge = ExtractStyle(styles, "Label.countBadge.coverageChangeBadge");
         string changedBadge = ExtractStyle(styles, "Label.countBadge.coverageChangeBadge.changed");
@@ -293,8 +295,8 @@ public sealed partial class XamlControlStyleContractTests
         Assert.Contains("Value=\"0\"", changedMarker, StringComparison.Ordinal);
 
         AssertCoverageClasses(replaceBar);
-        string regionCard = ExtractDataTemplate(templates, "MemoryCoverageRegionCardTemplate");
-        string regionMarker = ExtractDataTemplate(templates, "MemoryCoverageCompactMarkerTemplate");
+        string regionCard = ExtractDataTemplate(sharedTemplates, "MemoryCoverageRegionCardTemplate");
+        string regionMarker = ExtractDataTemplate(sharedTemplates, "MemoryCoverageCompactMarkerTemplate");
         Assert.Contains("Classes=\"memoryCoverageFill memoryCoverageMarker\"", regionMarker, StringComparison.Ordinal);
         Assert.Contains("Classes.changed=\"{Binding IsChanged}\"", regionCard, StringComparison.Ordinal);
         Assert.Contains("Text=\"{Binding ChangeLabel}\"", logicalRange, StringComparison.Ordinal);
@@ -351,7 +353,9 @@ public sealed partial class XamlControlStyleContractTests
         Assert.Contains("AutomationProperties.Name=\"{Binding AccessibleDetail}\"", replaceList, StringComparison.Ordinal);
         Assert.Contains("AutomationProperties.HelpText=\"{Binding AccessibleDetail}\"", replaceList, StringComparison.Ordinal);
         Assert.DoesNotContain("<StackPanel Grid.Column=\"1\"", mergeList, StringComparison.Ordinal);
-        Assert.Contains("<views:MemoryCoverageBar ItemsSource=\"{Binding ReplaceCoverageSegments}\"", replacePanel, StringComparison.Ordinal);
+        Assert.Contains(XElement.Parse(replacePanel).Descendants(), element =>
+            element.Name.LocalName == "MemoryCoverageBar" &&
+            (string?)element.Attribute("ItemsSource") == "{Binding ReplaceCoverageSegments}");
         Assert.DoesNotContain("<Viewbox", replacePanel, StringComparison.Ordinal);
         Assert.Contains("<views:MemoryCoverageBar ItemsSource=\"{Binding MergeCoverageSegments}\"", mergePanel, StringComparison.Ordinal);
         Assert.DoesNotContain("<Viewbox", mergePanel, StringComparison.Ordinal);
@@ -573,7 +577,35 @@ public sealed partial class XamlControlStyleContractTests
 
     private static string ExtractDataTemplate(string xaml, string key)
     {
-        return ExtractXamlBlock(xaml, $"<DataTemplate x:Key=\"{key}\"", "</DataTemplate>");
+        var document = XDocument.Parse(xaml, LoadOptions.PreserveWhitespace);
+        XNamespace xamlNamespace = "http://schemas.microsoft.com/winfx/2006/xaml";
+        XElement template = new(Assert.Single(document.Descendants(), element =>
+            element.Name.LocalName == "DataTemplate" && (string?)element.Attribute(xamlNamespace + "Key") == key));
+        foreach (XAttribute declaration in document.Root!.Attributes().Where(attribute => attribute.IsNamespaceDeclaration))
+        {
+            if (template.Attribute(declaration.Name) is null)
+            {
+                template.Add(new XAttribute(declaration));
+            }
+        }
+        return template.ToString(SaveOptions.DisableFormatting);
+    }
+
+    /// <summary>Nested item templates must not truncate their outer template or capture its sibling.</summary>
+    [Fact]
+    public void DataTemplateExtractionPreservesNestedContentAndOuterTailOnly()
+    {
+        const string source = """
+            <ResourceDictionary xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:views="using:Example">
+              <DataTemplate x:Key="Outer"><StackPanel><ItemsControl><ItemsControl.ItemTemplate><DataTemplate><TextBlock Text="Nested" /></DataTemplate></ItemsControl.ItemTemplate></ItemsControl><views:MemoryCoverageBar ItemsSource="Tail" /></StackPanel></DataTemplate>
+              <DataTemplate x:Key="Sibling"><TextBlock Text="Excluded" /></DataTemplate>
+            </ResourceDictionary>
+            """;
+        string template = ExtractDataTemplate(source, "Outer");
+        Assert.Contains("Text=\"Nested\"", template, StringComparison.Ordinal);
+        Assert.Contains("<views:MemoryCoverageBar ItemsSource=\"Tail\"", template, StringComparison.Ordinal);
+        Assert.DoesNotContain("Excluded", template, StringComparison.Ordinal);
+        Assert.Equal(2, XElement.Parse(template).DescendantsAndSelf().Count(element => element.Name.LocalName == "DataTemplate"));
     }
 
     private static string ExtractStyle(string xaml, string selector)
@@ -595,15 +627,6 @@ public sealed partial class XamlControlStyleContractTests
         }
 
         throw new Xunit.Sdk.XunitException($"Missing XAML style selector: {selector}");
-    }
-
-    private static string ExtractXamlBlock(string xaml, string opening, string closing)
-    {
-        int start = xaml.IndexOf(opening, StringComparison.Ordinal);
-        Assert.True(start >= 0, $"Missing XAML block: {opening}");
-        int end = xaml.IndexOf(closing, start, StringComparison.Ordinal);
-        Assert.True(end >= 0, $"Unclosed XAML block: {opening}");
-        return xaml[start..(end + closing.Length)];
     }
 
     private static void AssertIconStyle(

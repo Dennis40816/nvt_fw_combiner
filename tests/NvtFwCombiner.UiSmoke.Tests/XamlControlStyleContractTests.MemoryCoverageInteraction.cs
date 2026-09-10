@@ -198,6 +198,9 @@ public sealed partial class XamlControlStyleContractTests
         MainWindowViewModel viewModel = await Task.Run(
             () => PresentationTestHost.CreateViewModel(),
             TestContext.Current.CancellationToken);
+        // This checks exact resting geometry; animated lift is covered separately by
+        // LiftKeepsLabelScaleUnchangedDuringAndAfterAnimation through real production styles.
+        viewModel.IsReducedMotionEnabled = true;
         if (useReplace)
         {
             viewModel.ShowReplaceCommand.Execute(null);
@@ -231,6 +234,7 @@ public sealed partial class XamlControlStyleContractTests
         {
             Width = 470,
             Height = 720,
+            DataContext = viewModel,
             RequestedThemeVariant = theme,
             Content = panel,
         };
