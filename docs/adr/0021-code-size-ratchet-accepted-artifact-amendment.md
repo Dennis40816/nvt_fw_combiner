@@ -682,3 +682,25 @@ slices stay 20,757 / 42,839 / 5,039 / 30,727. The existing baseline assertion
 follows the measurement. Counting, exclusions, equality, duplicate/partial
 rules, all ratchets and firmware/Golden/release gates are unchanged. This
 is not transferable headroom or an exemption for later production growth.
+
+## 2026-09-10 reviewed 1.1.4 integration increment
+
+The owner explicitly approved the measured increment of 372 full-production
+nonblank lines, including 201 runtime lines (162 Application and 39
+Infrastructure/Contracts/worker), with no reserved capacity. The remaining
+171 lines belong to the full-only measurement. This accounts for the already
+reviewed CtrlRAM context/guidance and UI maintenance changes, not new behavior.
+
+Independent R2 admission `GOV-114-EXACT-SIZE-ALLOWANCE-69` binds the existing
+production tree at `a492cb10`. Exact full production and its baseline become
+140,428 with allowance 37,532 against unchanged ratchet 102,896. Runtime becomes
+99,563 with allowance 29,507 against unchanged 70,056; Application becomes
+43,001 with allowance 12,311 against unchanged 30,690; Infrastructure/Contracts/
+worker becomes 30,766 with allowance 15,410 against unchanged 15,356.
+Domain/Profiles remains 20,757 and Bootstrap/CLI/Desktop host remains 5,039.
+
+The existing baseline assertions follow these exact measured values. All
+counting rules, exclusions, ratchet bases, other allowances, duplicate/partial
+rules, and firmware/Golden/release requirements remain unchanged. Neither
+growth beyond these exact values nor unrecorded reductions may silently pass;
+there is no transferable headroom or automatic future allowance.
