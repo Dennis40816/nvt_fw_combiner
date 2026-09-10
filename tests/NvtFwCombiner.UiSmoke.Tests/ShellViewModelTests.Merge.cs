@@ -439,7 +439,7 @@ public sealed partial class MergeWorkflowTests
         MemoryMapRowViewModel copyRow = Assert.Single(
             viewModel.Merge.MergeMemoryRows,
             row => row.RangeLabel == "0x00000-0x3BFFF (len 0x3C000)" && row.ActionLabel == "Copy");
-        Assert.Equal("Reserved -> TP BIN", copyRow.FlowLabel);
+        Assert.Equal("Initialization: 0x00 -> TP BIN", copyRow.FlowLabel);
         Assert.Contains("Sequence 100", copyRow.Detail, StringComparison.Ordinal);
         Assert.DoesNotContain("Reason:", copyRow.Detail, StringComparison.Ordinal);
     }

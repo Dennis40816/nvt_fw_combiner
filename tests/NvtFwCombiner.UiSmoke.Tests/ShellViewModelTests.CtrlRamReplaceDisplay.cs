@@ -244,7 +244,7 @@ public sealed partial class CtrlRamWorkflowTests
                         regionId: $"{role}-first",
                         sourceSlotId: sourceSlotId,
                         rangeStart: 0x300,
-                        rangeEndExclusive: 0x310, logicalCoverageGroupId: $"slot:{sourceSlotId}"),
+                        rangeEndExclusive: 0x310, logicalCoverageGroupId: $"slot:{sourceSlotId}", addressSpaceId: "flash"),
                     new MemoryCoverageSegmentViewModel(
                         "0x310-0x31F",
                         role.ToString(),
@@ -255,7 +255,7 @@ public sealed partial class CtrlRamWorkflowTests
                         regionId: $"{role}-second",
                         sourceSlotId: sourceSlotId,
                         rangeStart: 0x310,
-                        rangeEndExclusive: 0x320, logicalCoverageGroupId: $"slot:{sourceSlotId}"),
+                        rangeEndExclusive: 0x320, logicalCoverageGroupId: $"slot:{sourceSlotId}", addressSpaceId: "flash"),
                 ],
                 ShellTextResources.For(ShellLanguage.English)));
             Assert.Equal("0x00300-0x0031F", Assert.Single(Assert.Single(contiguous.Items).Ranges).AddressRangeLabel);

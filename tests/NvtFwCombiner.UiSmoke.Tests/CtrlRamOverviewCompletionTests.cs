@@ -66,6 +66,11 @@ public sealed class CtrlRamOverviewCompletionTests
             Assert.All(master.Ranges, range => Assert.Equal(ReplaceRegionGroup.Common, range.RegionGroup));
             Assert.Equal("M", master.PositionLabel);
             Assert.Contains(shell.Replace.ReplaceSlotGroups, group => group.Title == "Common");
+            // Capturing is optional in CI; realization must not depend on its
+            // NFC_VISUAL_OUTPUT_DIR-gated render loop.
+            Dispatcher.UIThread.RunJobs();
+            AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+            Dispatcher.UIThread.RunJobs();
             _ = CtrlRamMemoryLayoutTests.OpenLane(window, master);
             CtrlRamCascadeMemoryLayoutTests.Capture(window, ic + "-single-master-hover");
             Assert.Contains(window.GetVisualDescendants().OfType<TextBlock>(), block =>
@@ -90,6 +95,9 @@ public sealed class CtrlRamOverviewCompletionTests
                 section => Assert.Equal("DP", section.DisplayTitle));
             Assert.Contains(shell.Replace.CtrlRamFocusLanes, lane => lane.Title == "主 IC");
             Assert.DoesNotContain(shell.Replace.CtrlRamFocusLanes, lane => lane.Title == "共用");
+            Dispatcher.UIThread.RunJobs();
+            AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+            Dispatcher.UIThread.RunJobs();
             _ = CtrlRamMemoryLayoutTests.OpenLane(window, Assert.Single(shell.Replace.CtrlRamFocusLanes, lane => lane.Title == "主 IC"));
             CtrlRamCascadeMemoryLayoutTests.Capture(window, ic + "-single-master-hover-dark-zh");
             Assert.Contains(window.GetVisualDescendants().OfType<TextBlock>(), block =>
