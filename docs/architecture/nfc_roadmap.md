@@ -541,6 +541,23 @@ explicitly exclude these inputs/dependent aliases; preserve their dispositions
 when extending reference-only redistribution. This inventory is not a
 completed policy migration or candidate Golden execution result.
 
+Owner confirmation, 2026-09-10: include the two CtrlRAM input-only cases and
+their three dependent aliases in the release reference payload, and retain
+their firmware inputs plus provenance as GitHub source evidence. This is
+explicit redistribution authorization for those five canonical cases, not
+output certification, runtime support promotion or authorization to publish a
+release. Keep `input-only-evidence` and fact-scoped alias declarations intact;
+package instructions must state that no independent expected output exists.
+Use the existing canonical files, not a second evidence tree or transfer archive.
+
+Source-presence verification: live `origin/main` resolved to
+`e5202e2707d272076d24216222188d478314a07d`; all 21 tracked files for these five
+cases (16 input BINs and five case manifests) match that remote commit's Git
+objects exactly. They are already in GitHub source; no duplicate upload or
+push of unrelated `1.1.4` work is needed. Release allowlist, validator,
+packager/smoke and derived-pin migration remain open and must be verified
+before claiming the five cases are available in a release package.
+
 Local Memory Layout maintenance checkpoint, 2026-09-10:
 [connector responsibility/test coupling](../../tests/README.md#memory-connector-responsibility-and-test-coupling--2026-09-10)
 is committed at `5157bfb3`; [loaded Standard DP/TP/LDC card coverage](../../tests/README.md#loaded-standard-memory-cards--2026-09-10)
@@ -550,9 +567,9 @@ AB/Dummy, CtrlRAM single/cascade, display-failure, list and explorer regressions
 pass 33/33 on `e5057718`, alongside the 72-case Standard/popup/geometry/style
 run: 105 scoped cases, zero skipped. This closes this bounded local Memory
 Layout maintenance/coverage tranche, not every IC/native or release gate.
-Release-package reconciliation remains pending; confirmation of reference-only
-redistribution for the five input-only/dependent-alias cases was requested
-separately. All certified Direct output cases are already selected.
+Release-package reconciliation remains pending; the owner has now approved
+reference-only redistribution for the five input-only/dependent-alias cases
+as recorded above. All certified Direct output cases are already selected.
 
 The following table retains the individual boundaries; only Memory Layout is
 active implementation in `1.1.4`. All other rows and the custom-options preview
