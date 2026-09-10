@@ -5,7 +5,7 @@
   "integrationBase": "a0fc6a9f816ee677c87283d8e3c708d293be1482",
   "risk": "R2",
   "kind": "governance",
-  "state": "design-active",
+  "state": "final-complete",
   "mutablePaths": [
     "AGENTS.md",
     ".agents/skills/implement/SKILL.md",
@@ -29,8 +29,18 @@
     "outcome": "approved",
     "evidence": "Independent R2 admission approved bounded local R1 continuation only: explicit scope/base/paths/acceptance/tests/Polytail, no changed firmware or contract authority, no immutable-record editing, no validator bypass; R2/R3 and formal checkpoint requirements retained. Reviewed against source base 46782b16."
   },
-  "implementationHead": null,
-  "reviewedHead": null,
-  "pathStateDigest": null,
-  "finalReview": { "reviewer": null, "outcome": "pending", "evidence": "" }
+  "implementationHead": "d32d4790ae124972487cfd8de137d442e72f12a0",
+  "reviewedHead": "d32d4790ae124972487cfd8de137d442e72f12a0",
+  "pathStateDigest": "dd47528da18b73a7edd179c4490945e2f6a2bd51f4a05671143b003e31e9a0e9",
+  "finalReview": {
+    "reviewer": "memory_coverage_inventory",
+    "outcome": "approved",
+    "evidence": "Scoped source PASS-WITH-HUMAN-GATE at frozen head carried forward from69eb36de5f8abbae518a3faed9502417de60d856 by exact Git blob comparison of every original mutablePath: zero path-content changes. Review covers CtrlRAM context admission/fingerprint/Report separation, display-only lane/hover/markers, bounded-local-R1 governance and typed input guidance; ADR0052 DP-label discrepancy resolved. Existing tests reused, no fresh execution. All original mutablePaths remain reviewed and digest-bound; integrationPaths assigns unique final ownership only. Owner authorized evidence-first sequencing for this batch on2026-09-10, expiring when its exact-head R3 attestations are committed; reason: validator requires existing final-evidence commit before attestation. No R3/Golden/CI/package/publication gate waived; final-complete denotes source-review lifecycle, not release readiness."
+  },
+  "integrationPaths": [
+    "AGENTS.md",
+    ".agents/skills/implement/SKILL.md",
+    ".agents/skills/polytail/SKILL.md",
+    "docs/policies/polytail.md"
+  ]
 }

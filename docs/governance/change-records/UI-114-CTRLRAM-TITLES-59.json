@@ -5,7 +5,7 @@
   "integrationBase": "a0fc6a9f816ee677c87283d8e3c708d293be1482",
   "risk": "R1",
   "kind": "ui",
-  "state": "design-active",
+  "state": "final-complete",
   "mutablePaths": [
     "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MemoryFocusLaneViewModel.cs",
     "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReplacePresentationViewModel.Memory.cs"
@@ -19,9 +19,20 @@
   "semanticOwner": "The accepted resolved map owns topology; existing region groups retain their meaning. MemoryFocusLaneViewModel owns the localized display-only lane heading.",
   "terminalContract": "For accepted ChipCount 1 only, render a Common lane heading using existing localized Master text. Preserve underlying region groups, input slots, lane boundaries, position markers, source sharing, Base/Cascade headings, multi-IC behavior and Build. No Domain, Application, profile, map, byte or release changes. Owner confirmed this bounded R1 display scope on 2026-09-09 after risk clarification; Unit58 external approval remains pending and is not satisfied by this record. Local narrow tests and scoped review only; no integration or release claim.",
   "disposition": "extend-owner",
-  "designReview": { "reviewer": null, "outcome": "not-required", "evidence": "R1 display-only correction using existing accepted topology and localized titles." },
-  "implementationHead": null,
-  "reviewedHead": null,
-  "pathStateDigest": null,
-  "finalReview": { "reviewer": null, "outcome": "pending", "evidence": "" }
+  "designReview": {
+    "reviewer": null,
+    "outcome": "not-required",
+    "evidence": "R1 display-only correction using existing accepted topology and localized titles."
+  },
+  "implementationHead": "d32d4790ae124972487cfd8de137d442e72f12a0",
+  "reviewedHead": "d32d4790ae124972487cfd8de137d442e72f12a0",
+  "pathStateDigest": "b46015a6f6da27210b53154ee259775a3ab8394a8f5da191f4a564e01aba550b",
+  "finalReview": {
+    "reviewer": "memory_coverage_inventory",
+    "outcome": "approved",
+    "evidence": "Scoped source PASS-WITH-HUMAN-GATE at frozen head carried forward from69eb36de5f8abbae518a3faed9502417de60d856 by exact Git blob comparison of every original mutablePath: zero path-content changes. Review covers CtrlRAM context admission/fingerprint/Report separation, display-only lane/hover/markers, bounded-local-R1 governance and typed input guidance; ADR0052 DP-label discrepancy resolved. Existing tests reused, no fresh execution. All original mutablePaths remain reviewed and digest-bound; integrationPaths assigns unique final ownership only. Owner authorized evidence-first sequencing for this batch on2026-09-10, expiring when its exact-head R3 attestations are committed; reason: validator requires existing final-evidence commit before attestation. No R3/Golden/CI/package/publication gate waived; final-complete denotes source-review lifecycle, not release readiness."
+  },
+  "integrationPaths": [
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReplacePresentationViewModel.Memory.cs"
+  ]
 }

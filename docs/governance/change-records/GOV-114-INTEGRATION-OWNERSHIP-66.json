@@ -5,7 +5,7 @@
   "integrationBase": "a0fc6a9f816ee677c87283d8e3c708d293be1482",
   "risk": "R2",
   "kind": "governance",
-  "state": "design-active",
+  "state": "final-complete",
   "mutablePaths": [
     "scripts/validate_repository.py",
     "docs/governance/capability-reuse-record.md",
@@ -29,12 +29,21 @@
     "outcome": "approved",
     "evidence": "Independent R2 design admission APPROVED at d1a1ba15: strict optional final-only field, absent versus empty, no out-of-subset/test ownership, admitted union and exactly-one effective coverage, full digest and R3 risk retention, final-field immutability. Missing UI admission will separately record present integration review, never retroactive approval."
   },
-  "implementationHead": null,
-  "reviewedHead": null,
-  "pathStateDigest": null,
+  "implementationHead": "d32d4790ae124972487cfd8de137d442e72f12a0",
+  "reviewedHead": "d32d4790ae124972487cfd8de137d442e72f12a0",
+  "pathStateDigest": "3c2c9c6c14ff8e73a43c459e2ab1706cd2d7331209908f686aa53fad4d9e9de2",
   "finalReview": {
-    "reviewer": null,
-    "outcome": "pending",
-    "evidence": ""
-  }
+    "reviewer": "report_commit_inventory",
+    "outcome": "approved",
+    "evidence": "Scoped PASS at frozen head: unique final ownership partition preserves original mutablePaths and R3 obligations. Reused130governance test passes; ADR0052 display-label amendment independently reviewed. All original mutablePaths remain reviewed and digest-bound; integrationPaths assigns unique final ownership only. Owner authorized evidence-first sequencing for this batch on2026-09-10, expiring when its exact-head R3 attestations are committed; reason: validator requires existing final-evidence commit before attestation. No R3/Golden/CI/package/publication gate waived; final-complete denotes source-review lifecycle, not release readiness."
+  },
+  "integrationPaths": [
+    "scripts/validate_repository.py",
+    "docs/governance/capability-reuse-record.md",
+    "docs/governance/development-execution-workflow.md",
+    "docs/adr/0071-final-integration-path-ownership.md",
+    "docs/adr/0054-finalize-capability-reuse-records.md",
+    "docs/adr/0070-bounded-local-r1-continuation.md",
+    "docs/adr/0052-exact-ctrlram-report-metadata-counterpart.md"
+  ]
 }

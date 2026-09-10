@@ -5,7 +5,7 @@
   "integrationBase": "a0fc6a9f816ee677c87283d8e3c708d293be1482",
   "risk": "R3",
   "kind": "release",
-  "state": "design-active",
+  "state": "final-complete",
   "mutablePaths": [
     "testdata/golden/canonical/manifest.json"
   ],
@@ -22,12 +22,15 @@
     "outcome": "approved",
     "evidence": "Independent R3 metadata-only design admission APPROVED at cb2d61c2: exact10pairs+2explicit-sourcefingerprints, preserve all evidence semantics/payloads/support, field-leveldiff and actualcanonical/alias tests; new sourcefreeze and independentfinalreview, no automaticframework or record58rewrite."
   },
-  "implementationHead": null,
-  "reviewedHead": null,
-  "pathStateDigest": null,
+  "implementationHead": "d32d4790ae124972487cfd8de137d442e72f12a0",
+  "reviewedHead": "d32d4790ae124972487cfd8de137d442e72f12a0",
+  "pathStateDigest": "f85beaf432e376bb8f5db3c9476870dc5bf54b5a0214349fd102e68b47f7a072",
   "finalReview": {
-    "reviewer": null,
-    "outcome": "pending",
-    "evidence": ""
-  }
+    "reviewer": "report_commit_inventory",
+    "outcome": "approved",
+    "evidence": "Scoped PASS-WITH-HUMAN-GATE at frozen head: exactly22route-binding fields synchronized to explicit policy routes/sources, evidence semantics and all expected bytes unchanged. Reused canonical validator11to0 and93canonical/alias tests,0skipped,4.30s; actual XML reviewed at D:/NvtFwCombiner-TestArea/evidence/v114-route68/tests.xml. All original mutablePaths remain reviewed and digest-bound; integrationPaths assigns unique final ownership only. Owner authorized evidence-first sequencing for this batch on2026-09-10, expiring when its exact-head R3 attestations are committed; reason: validator requires existing final-evidence commit before attestation. No R3/Golden/CI/package/publication gate waived; final-complete denotes source-review lifecycle, not release readiness."
+  },
+  "integrationPaths": [
+    "testdata/golden/canonical/manifest.json"
+  ]
 }
