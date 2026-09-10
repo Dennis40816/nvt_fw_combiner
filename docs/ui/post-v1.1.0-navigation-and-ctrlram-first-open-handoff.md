@@ -1,7 +1,7 @@
 # Post-v1.1.0 navigation and CtrlRAM first-open handoff
 
 Status: handoff-only scope, acceptance, diagnosis, and evidence. Version
-allocation is owned by the NFC roadmap: [first-entry UI in `v1.1.4`](../architecture/nfc_roadmap.md#114-ui-corrections-and-ab-dummy-dp),
+allocation is owned by the NFC roadmap: [first-entry UI in `v1.1.7`](../architecture/nfc_roadmap.md#deferred-ui-completion-from-114--2026-09-10),
 and [cold/warm performance in `v1.1.5`](../architecture/nfc_roadmap.md#115-startup-first-open-and-local-verification-performance).
 
 This handoff records two owner-observed usability/performance problems. It is

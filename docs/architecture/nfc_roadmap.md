@@ -512,6 +512,28 @@ adds narrow/wide, language/theme and dismissal evidence through the shared
 control. This closes that bounded inventory gap only; other workflows, native
 acceptance and the existing integration/release gates remain open.
 
+Owner resequencing, 2026-09-10: finish Memory Layout workflow rendering and
+interaction coverage first in `1.1.4`, including bounded responsibility
+separation and tests against behavior rather than private methods/source text.
+Preserve the approved CtrlRAM visual contract and firmware semantics. Other
+unfinished `1.1.4` feature/inventory work in the table below moves to `1.1.7`;
+completed units remain historical `1.1.4` work. `1.1.5` and `1.1.6` are unchanged.
+Mandatory validation for an actual release is not deferred by this allocation.
+
+Owner addition, 2026-09-10: reconcile all existing Golden fixture inventory
+with the release chain so the release package can be used for manual testing.
+Use the existing manifest/redistribution/copy/smoke owners; identify and migrate
+omissions with exact source, role, size and hash evidence. Keep certified full
+output cases separate from input-only/evidence-only material; inclusion is not
+support promotion or fabricated certification. Preserve confidentiality and
+exclude transfer wrappers, credentials and unrelated private material. Assess
+any conflict with the current closed package allowlist before changing policy.
+This remains an open `1.1.4` release-package task, not permission to publish now.
+
+The following table retains the individual boundaries; only Memory Layout is
+active implementation in `1.1.4`. All other rows and the custom-options preview
+are allocated to `1.1.7` below.
+
 | Remaining order | Scope | Boundary |
 | --- | --- | --- |
 | 1 | Native DPI/high-contrast acceptance | [Capability assessment complete](../../tests/README.md#v114-display-evidence-boundary--2026-09-08): current native display is 100%, High Contrast off; 20 scoped cases passed with explicit 100% headless scale evidence. Actual Windows 125%, custom-control High Contrast and screen-reader acceptance remain open. No theme/support promotion or OS preference change was made. |
@@ -1605,6 +1627,23 @@ DP Replace command/capability separately from the no-regression target for
 surviving functionality.
 
 ## `1.1.7`: independent Golden evidence completion
+
+### Deferred UI completion from `1.1.4` — 2026-09-10
+
+Owner allocation moves the remaining non-Memory-Layout work here:
+
+- First-entry IC selection: context lifetime, invalidation and Cancel/Back.
+- Report physical-section grouping and historical replay compatibility.
+- Per-page custom-options preview, approval and bounded implementation.
+- Remaining broad screen inventory and evidence-driven shared visual/theme fixes.
+- Native DPI, high-contrast and screen-reader coverage, including remaining
+  System activity native acceptance. Already completed filtering/focus and
+  compact-layout corrections are not reopened.
+
+Keep the detailed boundaries in the linked `1.1.4` remaining-queue table and
+existing UI handoffs. This defers feature work, not any mandatory safety,
+Golden or packaging validation for an earlier actual release. The independent
+Golden evidence work below remains in this version alongside the deferred UI.
 
 Supply independent expected output for the two retained input-only canonical
 cases, then re-review the three fact-scoped aliases that depend on them.
