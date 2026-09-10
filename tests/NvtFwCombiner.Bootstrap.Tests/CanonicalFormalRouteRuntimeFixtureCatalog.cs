@@ -276,7 +276,11 @@ internal static class CanonicalFormalRouteRuntimeFixtureCatalog
         return new CanonicalFormalRouteRuntimeCase(
             selectedCount is null ? fixture.RouteId : $"{fixture.RouteId}:count-{selectedCount}",
             fixture,
-            identity.MapVariant,
+            // Policy identifies the dynamic map set; execution still selects the
+            // independently declared physical map for the admitted topology.
+            identity.IcId == "NT51950"
+                ? selectedCount == 1 ? "nt51950-ab-merge-512k" : "nt51950-ab-merge-1024k"
+                : identity.MapVariant,
             selectedCount?.ToString(System.Globalization.CultureInfo.InvariantCulture),
             paths,
             witnesses,

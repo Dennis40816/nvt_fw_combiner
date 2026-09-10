@@ -31,7 +31,7 @@ public sealed class ProductSelectorProfileModeConsistencyTests
             }
             if (workflows.Contains(ExperienceIds.AbMerge, StringComparer.Ordinal))
             {
-                AssertAbChoices(snapshot, selector, icId);
+                AssertAbChoices(host, snapshot, selector, icId);
             }
             if (workflows.Contains(ExperienceIds.CtrlRamReplace, StringComparer.Ordinal))
             {
@@ -57,27 +57,33 @@ public sealed class ProductSelectorProfileModeConsistencyTests
     }
 
     private static void AssertAbChoices(
+        CanonicalTestContext host,
         CanonicalCapabilityCatalogSnapshot snapshot,
         CapabilitySelectorPublication selector,
         string icId)
     {
-        ResolvedCapability[] capabilities = AuthorableCapabilities(
-            snapshot,
-            icId,
-            ExperienceIds.AbMerge);
-        foreach (CapabilityTopologyChoice choice in selector.GetAbMergeTopologyChoices(icId))
+        _ = AuthorableCapabilities(snapshot, icId, ExperienceIds.AbMerge);
+        IReadOnlyList<CapabilityTopologyChoice> choices = selector.GetAbMergeTopologyChoices(icId);
+        // The accepted AB contract has two NT51950 axes; other AB ICs are
+        // selector-free. Missing published choices must not pass vacuously.
+        string[] expectedTokens = icId == "NT51950" ? ["cascade", "single"] : [];
+        Assert.Equal(expectedTokens,
+            choices.Select(static choice => choice.Token).Order(StringComparer.Ordinal));
+        foreach (CapabilityTopologyChoice choice in choices)
         {
-            ResolvedCapability[] matches =
-            [
-                .. capabilities.Where(capability => capability.CompiledComposition.V2Details
-                    .Provenance.ResolvedMap.ImageMap.Applicability.TopologyRequirement
-                    .Matches(choice.Selection)),
-            ];
-            Assert.NotEmpty(matches);
-            Assert.All(
-                matches,
-                static capability => Assert.Null(
-                    capability.CompiledComposition.V2Details.IcNumberInputMode));
+            // Optional-DP AB routes are compiled on demand, not eagerly present
+            // in snapshot.Capabilities. Exercise the same published compiler.
+            Assert.Contains(snapshot.DynamicRoutes, route =>
+                route.Identity.IcId == icId && route.Identity.WorkflowId == ExperienceIds.AbMerge &&
+                route.Authoring.Value == CapabilityAuthoringAvailability.Available &&
+                route.AbMergeTopologyChoice == choice);
+            Assert.True(host.Compiler.TryCompileAbMerge(icId, choice.Selection,
+                out CompiledComposition? composition, out IReadOnlyList<CompositionIssue> issues),
+                string.Join(',', issues.Select(static issue => issue.Code)));
+            CompiledComposition compiled = Assert.IsType<CompiledComposition>(composition);
+            Assert.True(compiled.V2Details.Provenance.ResolvedMap.ImageMap.Applicability
+                .TopologyRequirement.Matches(choice.Selection));
+            Assert.Null(compiled.V2Details.IcNumberInputMode);
         }
     }
 

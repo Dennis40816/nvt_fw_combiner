@@ -17,7 +17,7 @@ public sealed class CtrlRamDirectTpGoldenExecutionTests
         {
             [("NT51919", "single", "nt51929-ctrlram-fw200-single-full-flash")] = new(
                 "route-7-nt51919-15-ctrlram-replace-4-1-ic-39-nt51929-ctrlram-fw200-single-full-flash",
-                "df281e85b4597ed2e71e03f088ff28c406ccea9d5a4f5ad62c6b12d0ebb8dafa",
+                "1cdd6efefbedf9938fbb5037067046c92c30553fd395a524c3970343ab01c9a1",
                 CapabilityEvidenceStatus.ApprovedAlias),
             [("NT51923", "single", "nt51923-ctrlram-fw141-single-tp-work-240k")] = new(
                 "route-7-nt51923-15-ctrlram-replace-4-1-ic-41-nt51923-ctrlram-fw141-single-tp-work-240k",
@@ -57,15 +57,15 @@ public sealed class CtrlRamDirectTpGoldenExecutionTests
                 CapabilityEvidenceStatus.DirectGolden),
             [("NT51950", "single", "nt51950-ctrlram-fw200-single-tp-work")] = new(
                 "route-7-nt51950-15-ctrlram-replace-4-1-ic-36-nt51950-ctrlram-fw200-single-tp-work",
-                "290123b9bdad932c1474a120def1386dfabaef3bb7ff03cecdec3e7025e37cbc",
+                "066e76109ca5c0b18451220c597dec5f288ff8caa966c68a5eba3d8a2fbc1404",
                 CapabilityEvidenceStatus.ContractOnly),
             [("NT51951", "single", "nt51951-ctrlram-fw200-single-tp-work")] = new(
                 "route-7-nt51951-15-ctrlram-replace-4-1-ic-36-nt51951-ctrlram-fw200-single-tp-work",
-                "824903e83aa402b8f47adec84313500802ed418053db9597508fd43a960d6b0f",
+                "2717282147ec73eef1924a6163a28cba5fd74b5e09463296ed0185024da21dcd",
                 CapabilityEvidenceStatus.ContractOnly),
             [("NT51951", "cascade", "nt51951-ctrlram-fw1x-cascade-tp-work")] = new(
                 "route-7-nt51951-15-ctrlram-replace-4-2-ic-36-nt51951-ctrlram-fw1x-cascade-tp-work",
-                "f1cf4f16561f4fa45f4d5ef204f8479e60bea491c215ae85b675eaf33ded0f44",
+                "5b1d26231b64767464a391e7e8b8e55e330045a832985da6039921f734334ec1",
                 CapabilityEvidenceStatus.ContractOnly),
         };
 
