@@ -1490,7 +1490,7 @@ finally {
             result.stdout,
         )
         self.assertIn(
-            "Canonical golden package policy dry-run passed: 25 direct Goldens, one owner-certified input-only evidence case, nine self-contained aliases, 161 declarations, and 158 unique artifact paths selected",
+            "Canonical golden package policy dry-run passed: 25 direct Goldens, three owner-certified input-only evidence cases, twelve self-contained aliases, 177 declarations, and 174 unique artifact paths selected",
             result.stdout,
         )
         self.assertIn(
@@ -3748,12 +3748,12 @@ finally {
 
         self.assertEqual(
             {
-                "caseCount": 35,
+                "caseCount": 40,
                 "directGoldenCount": 25,
-                "directInputEvidenceCount": 1,
-                "factScopedAliasCount": 9,
-                "artifactDeclarationCount": 161,
-                "uniqueArtifactPathCount": 158,
+                "directInputEvidenceCount": 3,
+                "factScopedAliasCount": 12,
+                "artifactDeclarationCount": 177,
+                "uniqueArtifactPathCount": 174,
             },
             allowlist["selectionSummary"],
         )
@@ -3763,14 +3763,15 @@ finally {
             hashlib.sha256(canonical_readme.read_bytes()).hexdigest(),
             allowlist["canonicalReadmeSha256"],
         )
-        excluded = {
+        reference_only = {
             "nt51927-2chip-self-20260705",
             "nt51927-3chip-self-20260705",
             "nt51917-fw132-cascade2-nt51927-alias",
             "nt51917-fw140-cascade3-nt51927-alias",
             "nt51928-fw132-non-nb-cascade2-nt51927-alias",
         }
-        self.assertTrue(excluded.isdisjoint(selected))
+        self.assertTrue(reference_only.issubset(selected))
+        self.assertTrue(all(not selected[case_id]["directGolden"] for case_id in reference_only))
         certified = selected["nt51929-certified-metadata-inputs-20260904"]
         self.assertFalse(certified["directGolden"])
         self.assertTrue(certified["directEvidence"])
@@ -3795,7 +3796,9 @@ finally {
                 )
                 continue
             source = selected[case["alias"]["sourceCaseId"]]
-            self.assertTrue(source["directGolden"])
+            self.assertNotEqual(source["directGolden"], source["directEvidence"])
+            if source["directEvidence"]:
+                self.assertEqual("input-only-evidence", source["testDispositionKind"])
             self.assertEqual(case["workflow"], source["workflow"])
 
         provenance = [
@@ -3819,6 +3822,8 @@ finally {
     def test_release_smoke_accepts_complete_canonical_fixture_until_sidecar_gate(
         self,
     ) -> None:
+        # The complete fixture includes three aliases of input-only CtrlRAM cases.
+        # Reaching the unrelated sidecar gate proves reference admission, not parity.
         result = self.run_smoke_with_canonical_golden_mutation(lambda _: None)
 
         self.assertNotEqual(0, result.returncode, result.stdout + result.stderr)
@@ -3826,6 +3831,29 @@ finally {
             "Release SBOM sidecar is missing:",
             result.stdout + result.stderr,
         )
+
+    @unittest.skipUnless(
+        POWERSHELL, "PowerShell is required for Windows release-policy tests"
+    )
+    def test_release_smoke_rejects_missing_input_only_alias_source_artifact(self) -> None:
+        def omit_source(golden_entries: dict[str, bytes]) -> None:
+            allowlist = json.loads(
+                golden_entries["reference/testdata/golden/release-canonical-v1.json"]
+            )
+            source = next(
+                case for case in allowlist["cases"]
+                if case["caseId"] == "nt51927-2chip-self-20260705"
+            )
+            self.assertTrue(source["directEvidence"])
+            self.assertFalse(source["directGolden"])
+            del golden_entries[
+                "reference/testdata/golden/canonical/" + source["artifacts"][0]["path"]
+            ]
+
+        result = self.run_smoke_with_canonical_golden_mutation(omit_source)
+        output = normalize_console_output(result.stdout + result.stderr)
+        self.assertNotEqual(0, result.returncode, output)
+        self.assertIn("canonical Golden tree contains omitted or unapproved files", output)
 
     @unittest.skipUnless(
         POWERSHELL, "PowerShell is required for Windows release-policy tests"
@@ -4517,9 +4545,9 @@ finally {
                         (canonical_source / artifact["path"]).read_bytes(),
                     )
 
-            self.assertEqual(35, len(allowlist["cases"]))
+            self.assertEqual(40, len(allowlist["cases"]))
             self.assertEqual(
-                158,
+                174,
                 len(
                     {
                         artifact["path"]

@@ -7,7 +7,115 @@ assignments, use the [canonical roadmap](docs/architecture/nfc_roadmap.md).
 
 ## [Unreleased]
 
-No additional changes beyond v1.1.3 below.
+The v1.1.4 candidate below is under release verification; it is not published.
+
+## [1.1.4] - 2026-09-10
+
+### Summary
+
+Release candidate, not yet published. This version improves input feedback,
+Report navigation and Memory Layout readability, and adds the opt-in AB Dummy
+DP workflow. Existing IC support status is unchanged; the new reference inputs
+are not additional output certifications. Windows x64 portable distribution
+remains the supported delivery format.
+
+### Product changes
+
+#### Input cards and validation feedback
+
+- Before → After: selected files could hide CtrlRAM size/target guidance and
+  long metadata could crowd neighboring fields; shared input cards now retain
+  Max Size/Target Addr and align file actions, metadata and optional disclosures.
+  Applies to Standard, AB and CtrlRAM inputs, including shared/cascade targets.
+- Error/Warning badges and blocked Build use the shared nearby information
+  card with adaptive placement, explicit sizes and repeated-byte values.
+  Report Summary gives a readable description while Issues retains exact facts.
+- Perfect-family filename hints are suppressed only for the declared complete
+  family; partial-family and unrelated-IC hints remain. These presentation
+  changes do not weaken validation or authorize different output bytes.
+
+#### Memory Layout
+
+- Before → After: dense CtrlRAM sections obscured the main layout; the overview
+  now emphasizes declared TP/DP context and opens separate contiguous
+  Master/Slave target lanes on interaction. Nonadjacent regions are not merged
+  merely because they share a source file.
+- Leaf cards display range, size and source nearby; they fit the viewport,
+  close on exit/Escape, retain readable unscaled text during lift and connect
+  to their selected segment. Supporting details initially show at most three
+  rows; expanded rows retain address ordering. Decorative primary-rail seams
+  are removed without changing addresses or true Unmapped regions.
+- Shared connector drawing is separated from interaction lifecycle. Firmware
+  classification/range ownership remains upstream; no UI-derived byte rules.
+- Verification: the latest bounded maintenance run passed 105 scoped UI cases
+  across Standard, AB/Dummy, CtrlRAM and shared controls, not a full release or
+  all-IC certification. Native accessibility/DPI coverage remains incomplete.
+
+#### AB Dummy DP
+
+- Before → After: AB required a DP input; the optional, default-off checkbox
+  permits the owner-approved TP-only construction for NT51919/NT51929/NT51932/
+  NT51950/NT51951. Enabling requires confirmation, excludes DP input and fills
+  non-TP output areas with `0xFF` under the existing profile map.
+- Existing AB mode remains unchanged when disabled. Inputs must be reselected
+  when needed after changing options; no saved file is deleted from disk.
+- Verification: six independent complete-output map cases passed under the
+  accepted Dummy contract. These are not newly certified Dummy Golden cases
+  or promotion of an IC's support status; normal certified Golden execution
+  remains required on the final release candidate.
+
+#### Reports, delivery and navigation
+
+- Run reports now opens one newest-first history table with run date, IC,
+  type, result and issue count. Load Report remains available at this level
+  even when history is empty. Detail views have a consistent return path;
+  deletion uses an explicit confirmation and retains keyboard focus.
+- Report Changes uses clearer range cards and recorded reasons such as CRC
+  processing; raw runs and original diagnostic evidence are retained. Raw
+  report copying stays in its own content area. Incomplete imported outcomes
+  no longer appear as a fabricated successful run.
+- Output filename and bundle-folder editing are separate in Build settings;
+  the effective output/report/receipt identity stays consistent. Source files
+  use the existing disclosure style. Cancel/retry and invalid-name checks remain.
+- Leaving or changing relevant pages with selected files uses consistent
+  confirmation. Support Matrix scrolling/layout and the existing Settings
+  Version view are refined without enabling a new Launcher/update authority.
+- System activity uses stable selected/focus states, nonempty Warning/Error
+  filtering and optional Debug disclosure, separate from immutable reports.
+
+#### Release test references
+
+- Before → After: reference selection expands from 35 to 40 canonical cases:
+  25 Direct output Goldens, three input-only cases and twelve fact-scoped
+  aliases, with 174 unique artifacts including 164 BIN files.
+- The two NT51927 CtrlRAM cascade input sets and their three dependent aliases
+  are included for manual testing of the packaged application. They have no
+  independent expected outputs and do not establish output parity. Their BINs
+  and case provenance already exist in GitHub source; no duplicate evidence
+  tree or nested archive is introduced.
+- All 11 strict-output and 14 approved-bounded-difference Golden contracts,
+  source closure, hashes and inert provenance-file restrictions remain intact.
+
+### Upgrade, rollback and verification status
+
+- Use a separate extracted `NvtFwCombiner-v1.1.4-win-x64.zip` directory and
+  retain the previous portable directory for rollback. No irreversible user
+  data migration or automatic Launcher activation is introduced.
+- Use the published SHA-256 inventory, SBOM and provenance to verify the actual
+  package/source identity when available. Candidate assets and successful
+  publication must not be inferred from this changelog.
+- Focused local evidence does not replace final source CI, fresh execution of
+  every applicable certified Golden output, package smoke, visible startup or
+  required owner evidence. These final release gates are still pending.
+
+### Deferred and known limitations
+
+First-entry IC-context behavior, Report physical-section grouping, custom-option
+redesign and remaining native DPI/high-contrast/screen-reader acceptance move
+to 1.1.7. Startup/local-verifier performance stays in 1.1.5; family/state cleanup
+and DP Replace retirement stay in 1.1.6. Desay/NT51928BT intake does not become
+new runtime support in this release. No end-to-end release-time reduction or
+complete native accessibility pass is claimed.
 
 ## [1.1.3] - 2026-09-05
 

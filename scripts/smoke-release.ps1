@@ -37,7 +37,7 @@ $ApprovedCanonicalCapabilityPolicyPackageContract = [pscustomobject]@{
     sha256 = 'bdaf79abc47aa2a7ffbef936ac4ad9758c331604bfc722487dfb5a90df1683bd'
 }
 $ApprovedCanonicalGoldenAllowlistPath = Join-Path $PSScriptRoot '../testdata/golden/release-canonical-v1.json'
-$ApprovedCanonicalGoldenAllowlistSha256 = '968e6bd3cdfb304a0bdf0272fd28d2b43c2a117d2f33a5913c16b84480c1b495'
+$ApprovedCanonicalGoldenAllowlistSha256 = '18628e43e7b4789c9ec94f911e55b5dd2b50bd272aa13e0ba55350e8fa911e00'
 $CanonicalGoldenPackagePrefix = 'reference/testdata/golden/canonical'
 $CanonicalGoldenAllowlistPackagePath = 'reference/testdata/golden/release-canonical-v1.json'
 $RetiredSupportPublicationPolicyPackagePaths = @(
@@ -135,17 +135,17 @@ function Assert-CanonicalGoldenReference {
     $Allowlist = Get-Content -LiteralPath $PackagedAllowlistPath -Raw | ConvertFrom-Json -Depth 100
     if ($Allowlist.schemaVersion -ne '1.1' -or
         $Allowlist.policyId -ne 'canonical-reference-v1' -or
-        $Allowlist.authorizedForVersion -ne '1.1.3' -or
+        $Allowlist.authorizedForVersion -ne '1.1.4' -or
         $Allowlist.releaseStatus -ne 'human-gated-allowlist' -or
         $Allowlist.authorityLimits.runtimeSupportPromotion -ne $false -or
         $Allowlist.authorityLimits.fullByteParityClaim -ne $false -or
-        [int]$Allowlist.selectionSummary.caseCount -ne 35 -or
+        [int]$Allowlist.selectionSummary.caseCount -ne 40 -or
         [int]$Allowlist.selectionSummary.directGoldenCount -ne 25 -or
-        [int]$Allowlist.selectionSummary.directInputEvidenceCount -ne 1 -or
-        [int]$Allowlist.selectionSummary.factScopedAliasCount -ne 9 -or
-        [int]$Allowlist.selectionSummary.artifactDeclarationCount -ne 161 -or
-        [int]$Allowlist.selectionSummary.uniqueArtifactPathCount -ne 158) {
-        throw 'Release package canonical Golden allowlist semantics differ from the approved 35-case scope.'
+        [int]$Allowlist.selectionSummary.directInputEvidenceCount -ne 3 -or
+        [int]$Allowlist.selectionSummary.factScopedAliasCount -ne 12 -or
+        [int]$Allowlist.selectionSummary.artifactDeclarationCount -ne 177 -or
+        [int]$Allowlist.selectionSummary.uniqueArtifactPathCount -ne 174) {
+        throw 'Release package canonical Golden allowlist semantics differ from the approved 40-case scope.'
     }
     $CanonicalReadmePackagePath = "$CanonicalGoldenPackagePrefix/README.md"
     $CanonicalReadmePath = Join-Path $PackageRoot $CanonicalReadmePackagePath
@@ -173,7 +173,7 @@ function Assert-CanonicalGoldenReference {
         $Projection.payloadClass -ne 'owner-approved-golden' -or
         $Projection.binaryPayloadsIncluded -ne $true -or
         $Projection.inventoryScope -ne 'release-canonical-v1' -or
-        @($Projection.cases).Count -ne 35) {
+        @($Projection.cases).Count -ne 40) {
         throw 'Release package canonical Golden projection manifest has invalid scope.'
     }
     $ProjectionCases = @{}
@@ -281,15 +281,17 @@ function Assert-CanonicalGoldenReference {
         $SourceCaseId = [string]$ApprovedCase.alias.sourceCaseId
         $Source = $SelectedCases[$SourceCaseId]
         if ($null -eq $Source -or
-            $Source.directGolden -ne $true -or
+            -not (($Source.directGolden -eq $true -and $Source.directEvidence -eq $false) -or
+                ($Source.directGolden -eq $false -and $Source.directEvidence -eq $true -and
+                 $Source.testDispositionKind -ceq 'input-only-evidence')) -or
             [string]$Source.workflow -cne [string]$ApprovedCase.workflow) {
-            throw "Release package canonical alias '$($ApprovedCase.caseId)' lacks its exact same-workflow direct Golden source."
+            throw "Release package canonical alias '$($ApprovedCase.caseId)' lacks its exact same-workflow direct evidence source."
         }
     }
-    if ($SelectedCases.Count -ne 35 -or
-        $DirectInputEvidenceCount -ne 1 -or
-        $ArtifactDeclarationCount -ne 161 -or
-        $ExpectedArtifacts.Count -ne 158) {
+    if ($SelectedCases.Count -ne 40 -or
+        $DirectInputEvidenceCount -ne 3 -or
+        $ArtifactDeclarationCount -ne 177 -or
+        $ExpectedArtifacts.Count -ne 174) {
         throw 'Release package canonical Golden counts differ from the approved scope.'
     }
 

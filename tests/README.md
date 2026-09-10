@@ -761,6 +761,30 @@ supporting-list and explorer consumers without reopening their accepted design.
 Native DPI/high-contrast/screen-reader acceptance is separately allocated to
 `1.1.7`; required release validation remains required for the actual candidate.
 
+## v1.1.4 CtrlRAM reference package preparation — 2026-09-10
+
+Source base `32e7a073`, R3 admission `RELEASE-114-CTRLRAM-REFERENCE-64`.
+Red: the new selected-input-only alias acceptance assertion fails under the
+old Direct-Golden-only source rule. Green: canonical and derived-sync tests
+**103/103, zero skipped, 3.86 s** in
+`D:/NvtFwCombiner-TestArea/evidence/v114-release-reference80/canonical-sync.xml`:
+`python -m pytest tests/scripts/test_canonical_golden_validation.py tests/scripts/test_sync_derived.py -q`.
+The real 40-case selection separately passes `validate_canonical_release_allowlist`.
+
+Package tests **7/7, zero skipped, 41.82 s** in
+`D:/NvtFwCombiner-TestArea/evidence/v114-release-reference64/package-policy.xml`:
+`python -m pytest tests/scripts/test_release_package_policy.py -q -k "canonical_release_allowlist or canonical_fixture or input_only_alias_source or omitted_allowlisted or self_consistent_canonical or self_consistent_private or packager_dry_run_enforces"`.
+They exercise the production policy dry-run, source-closed input-only alias
+acceptance, missing source/artifact, alias chain, cross-workflow source and
+ambiguous classification rejection. The complete fake reference package
+reaches the expected SBOM-sidecar gate; this is not a real application package
+or full package smoke pass. All bytes and original output contracts are retained.
+
+Independent scoped R3 review: PASS-WITH-HUMAN-GATE. Actual candidate Golden
+execution/CI/packaging/visible startup and release-owner evidence are pending.
+The existing record63 classifier conflict remains a separate integration
+blocker; neither test success nor the new admission waives it.
+
 ## Running and maintaining this view
 
 Use [`CONTRIBUTING.md`](../CONTRIBUTING.md) to initialize the existing fixed

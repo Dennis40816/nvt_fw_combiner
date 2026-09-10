@@ -536,8 +536,8 @@ Missing are input-only `nt51927-2chip-self-20260705` and
 `nt51927-3chip-self-20260705`, plus their aliases
 `nt51917-fw132-cascade2-nt51927-alias`,
 `nt51917-fw140-cascade3-nt51927-alias` and
-`nt51928-fw132-non-nb-cascade2-nt51927-alias`. Current validator/package/smoke
-explicitly exclude these inputs/dependent aliases; preserve their dispositions
+`nt51928-fw132-non-nb-cascade2-nt51927-alias`. Before the local migration below,
+validator/package/smoke explicitly excluded these inputs/dependent aliases; preserve their dispositions
 when extending reference-only redistribution. This inventory is not a
 completed policy migration or candidate Golden execution result.
 
@@ -554,9 +554,25 @@ Source-presence verification: live `origin/main` resolved to
 `e5202e2707d272076d24216222188d478314a07d`; all 21 tracked files for these five
 cases (16 input BINs and five case manifests) match that remote commit's Git
 objects exactly. They are already in GitHub source; no duplicate upload or
-push of unrelated `1.1.4` work is needed. Release allowlist, validator,
-packager/smoke and derived-pin migration remain open and must be verified
-before claiming the five cases are available in a release package.
+push of unrelated `1.1.4` work is needed. The local release allowlist, validator,
+packager/smoke and derived-pin migration is recorded below; actual candidate
+packaging is still required before claiming published-package availability.
+
+Local release preparation, 2026-09-10: explicit 40-case reference selection
+implemented (25 Direct, three input-only, twelve aliases; 177 declarations,
+174 unique artifacts, 164 BINs, 215 projected paths). All previous 35 case
+declarations and all fixture bytes are unchanged. VERSION is 1.1.4; changelog
+is explicitly a not-yet-published candidate. Canonical/sync tests pass 103/103;
+package policy and deterministic dry-run tests pass 7/7. Independent fixed-diff
+R3 review is PASS-WITH-HUMAN-GATE. See [test evidence](../../tests/README.md#v114-ctrlram-reference-package-preparation--2026-09-10).
+
+Integration is still blocked by the pre-existing immutable design record
+`UI-114-CTRLRAM-GUIDANCE-63`: four declared test paths are not governed under
+the current classifier. The existing checker returned these four errors;
+this does not certify that later gates will pass. No old record or validator
+was changed or bypassed. A separately approved governance repair is required
+before final candidate verification, exact-head release-owner evidence and
+publication. The new reference admission remains design-active, not finalized.
 
 Local Memory Layout maintenance checkpoint, 2026-09-10:
 [connector responsibility/test coupling](../../tests/README.md#memory-connector-responsibility-and-test-coupling--2026-09-10)
@@ -567,9 +583,9 @@ AB/Dummy, CtrlRAM single/cascade, display-failure, list and explorer regressions
 pass 33/33 on `e5057718`, alongside the 72-case Standard/popup/geometry/style
 run: 105 scoped cases, zero skipped. This closes this bounded local Memory
 Layout maintenance/coverage tranche, not every IC/native or release gate.
-Release-package reconciliation remains pending; the owner has now approved
-reference-only redistribution for the five input-only/dependent-alias cases
-as recorded above. All certified Direct output cases are already selected.
+Release-package policy reconciliation is locally implemented as recorded above;
+actual candidate validation/publication remains pending. All certified Direct
+output cases remain selected without altered expectations.
 
 The following table retains the individual boundaries; only Memory Layout is
 active implementation in `1.1.4`. All other rows and the custom-options preview

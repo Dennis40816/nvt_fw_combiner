@@ -22,12 +22,12 @@ CANONICAL_RELEASE_ALLOWLIST = PurePosixPath(
     "testdata/golden/release-canonical-v1.json"
 )
 CANONICAL_RELEASE_SELECTION_SUMMARY = {
-    "caseCount": 35,
+    "caseCount": 40,
     "directGoldenCount": 25,
-    "directInputEvidenceCount": 1,
-    "factScopedAliasCount": 9,
-    "artifactDeclarationCount": 161,
-    "uniqueArtifactPathCount": 158,
+    "directInputEvidenceCount": 3,
+    "factScopedAliasCount": 12,
+    "artifactDeclarationCount": 177,
+    "uniqueArtifactPathCount": 174,
 }
 CERTIFIED_NT51929_DPCMI_CASE_ID = "nt51929-certified-metadata-inputs-20260904"
 CERTIFIED_NT51929_DPCMI_RANGE = (0x401A, 0x401D)
@@ -1403,8 +1403,8 @@ def validate_canonical_release_allowlist(
         errors.append("canonical release allowlist schemaVersion must be 1.1")
     if allowlist.get("policyId") != "canonical-reference-v1":
         errors.append("canonical release allowlist policyId must be canonical-reference-v1")
-    if allowlist.get("authorizedForVersion") != "1.1.3":
-        errors.append("canonical release allowlist must be authorized for version 1.1.3")
+    if allowlist.get("authorizedForVersion") != "1.1.4":
+        errors.append("canonical release allowlist must be authorized for version 1.1.4")
     if allowlist.get("releaseStatus") != "human-gated-allowlist":
         errors.append("canonical release allowlist releaseStatus must be human-gated-allowlist")
     authorization = allowlist.get("redistributionAuthorization")
@@ -1416,8 +1416,8 @@ def validate_canonical_release_allowlist(
     }:
         errors.append("canonical release allowlist redistribution authorization is incomplete")
     else:
-        if authorization.get("authorizedOn") != "2026-09-05":
-            errors.append("canonical release redistribution authorization date must be 2026-09-05")
+        if authorization.get("authorizedOn") != "2026-09-10":
+            errors.append("canonical release redistribution authorization date must be 2026-09-10")
         if authorization.get("authorizedBy") != "repository owner":
             errors.append(
                 "canonical release redistribution must be authorized by the repository owner"
@@ -1643,13 +1643,19 @@ def validate_canonical_release_allowlist(
         source = selected_cases.get(source_case_id)
         if (
             not isinstance(source, dict)
-            or source.get("directGolden") is not True
-            or source.get("directEvidence") is not False
+            or not (
+                (source.get("directGolden") is True and source.get("directEvidence") is False)
+                or (
+                    source.get("directGolden") is False
+                    and source.get("directEvidence") is True
+                    and source.get("testDispositionKind") == "input-only-evidence"
+                )
+            )
             or source.get("workflow") != release_case.get("workflow")
         ):
             errors.append(
                 f"canonical release alias {release_case.get('caseId')} must select its "
-                f"exact same-workflow direct Golden source {source_case_id}"
+                f"exact same-workflow direct Golden or input-evidence source {source_case_id}"
             )
 
     summary = allowlist.get("selectionSummary")

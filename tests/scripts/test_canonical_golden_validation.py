@@ -180,10 +180,10 @@ class CanonicalGoldenValidationTests(unittest.TestCase):
         self.release_allowlist = {
             "schemaVersion": "1.1",
             "policyId": "canonical-reference-v1",
-            "authorizedForVersion": "1.1.3",
+            "authorizedForVersion": "1.1.4",
             "releaseStatus": "human-gated-allowlist",
             "redistributionAuthorization": {
-                "authorizedOn": "2026-09-05",
+                "authorizedOn": "2026-09-10",
                 "authorizedBy": "repository owner",
                 "scope": "reference-payload-only",
                 "supersedesHistoricalCaseRestrictions": True,
@@ -898,7 +898,7 @@ class CanonicalGoldenValidationTests(unittest.TestCase):
         self.assertEqual([], self.validate_release_allowlist())
 
     def test_rejects_release_versions_outside_the_owner_approved_renewal(self) -> None:
-        for version in ("1.1.2", "1.1.4", "1.1.3-beta", None):
+        for version in ("1.1.2", "1.1.3", "1.1.4-beta", None):
             with self.subTest(version=version):
                 self.assertEqual([], self.validate_release_allowlist())
                 self.release_allowlist["authorizedForVersion"] = version
@@ -913,7 +913,7 @@ class CanonicalGoldenValidationTests(unittest.TestCase):
                     expected_summary=self.release_allowlist["selectionSummary"],
                 )
                 self.assertTrue(
-                    any("authorized for version 1.1.3" in error for error in errors)
+                    any("authorized for version 1.1.4" in error for error in errors)
                 )
 
     def test_rejects_release_authorization_dates_outside_the_owner_approved_renewal(
@@ -935,7 +935,7 @@ class CanonicalGoldenValidationTests(unittest.TestCase):
                 )
                 self.assertTrue(
                     any(
-                        "authorization date must be 2026-09-05" in error
+                        "authorization date must be 2026-09-10" in error
                         for error in errors
                     )
                 )
@@ -1033,7 +1033,7 @@ class CanonicalGoldenValidationTests(unittest.TestCase):
 
         self.assertTrue(
             any(
-                "must select its exact same-workflow direct Golden source" in error
+                "must select its exact same-workflow direct Golden or input-evidence source" in error
                 for error in errors
             )
         )
@@ -1077,7 +1077,7 @@ class CanonicalGoldenValidationTests(unittest.TestCase):
 
         self.assertEqual([], errors)
 
-    def test_rejects_release_alias_sourced_from_selected_nt51929_direct_input_evidence(
+    def test_accepts_release_alias_sourced_from_selected_direct_input_evidence(
         self,
     ) -> None:
         self.validate_release_allowlist()
@@ -1124,12 +1124,41 @@ class CanonicalGoldenValidationTests(unittest.TestCase):
             expected_summary=self.release_allowlist["selectionSummary"],
         )
 
-        self.assertTrue(
-            any(
-                "must select its exact same-workflow direct Golden source" in error
-                for error in errors
-            )
+        self.assertEqual([], errors)
+
+        original = dict(selected)
+        for mutation in (
+            {"directGolden": True},
+            {"directEvidence": False},
+            {"testDispositionKind": "fact-scoped-alias"},
+            {"workflow": "ctrlram-replace"},
+        ):
+            with self.subTest(source_mutation=mutation):
+                selected.clear()
+                selected.update(original | mutation)
+                self.write_json(
+                    self.root / "testdata/golden/release-canonical-v1.json",
+                    self.release_allowlist,
+                )
+                errors = []
+                VALIDATOR.validate_canonical_release_allowlist(
+                    self.root, errors,
+                    expected_summary=self.release_allowlist["selectionSummary"],
+                )
+                self.assertTrue(any("must select its exact same-workflow" in error for error in errors))
+        selected.clear()
+        selected.update(original)
+        self.release_allowlist["cases"].remove(selected)
+        self.write_json(
+            self.root / "testdata/golden/release-canonical-v1.json",
+            self.release_allowlist,
         )
+        errors = []
+        VALIDATOR.validate_canonical_release_allowlist(
+            self.root, errors,
+            expected_summary=self.release_allowlist["selectionSummary"],
+        )
+        self.assertTrue(any("must select its exact same-workflow" in error for error in errors))
 
     def test_rejects_release_artifact_hash_drift(self) -> None:
         self.validate_release_allowlist()
