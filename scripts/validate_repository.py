@@ -1653,6 +1653,11 @@ class _TrustedCapabilityCheckpoint:
     open_r3_authorities: dict[str, str]
 
 
+def _is_capability_reuse_auxiliary_test_path(relative: str) -> bool:
+    # Governed test instructions remain authority, never auxiliary evidence.
+    return relative.startswith("tests/") and not _is_capability_reuse_governed_path(relative)
+
+
 def _is_capability_reuse_governed_path(relative: str) -> bool:
     path = PurePosixPath(relative)
     parts = path.parts
@@ -2811,6 +2816,10 @@ def _validate_capability_reuse_record(
     governed_mutable_paths = [
         value for value in normalized_paths if _is_capability_reuse_governed_path(value)
     ]
+    if not governed_mutable_paths and any(
+        _is_capability_reuse_auxiliary_test_path(value) for value in normalized_paths
+    ):
+        errors.append(f"capability-reuse auxiliary tests require a governed path: {relative}")
     if governed_mutable_paths and record["risk"] in CAPABILITY_REUSE_RISK_LEVELS:
         minimum_risk = max(
             (_capability_reuse_minimum_risk(value) for value in governed_mutable_paths),
@@ -3037,7 +3046,10 @@ def validate_capability_reuse_governance(
             continue
         task_id = str(record.get("taskId", "<invalid>"))
         for relative in record.get("mutablePaths", []):
-            if not _is_capability_reuse_governed_path(relative):
+            if not (
+                _is_capability_reuse_governed_path(relative)
+                or _is_capability_reuse_auxiliary_test_path(relative)
+            ):
                 errors.append(
                     f"current capability-reuse mutable path is not governed: "
                     f"{task_id}: {relative}"
@@ -3298,6 +3310,13 @@ def validate_capability_reuse_governance(
             if batch_diff_error is not None:
                 errors.append(f"final batch governed diff could not be read: {batch_diff_error}")
             else:
+                for _, record in group:
+                    for path in record.get("mutablePaths", []):
+                        if _is_capability_reuse_auxiliary_test_path(path) and path not in batch_changes:
+                            errors.append(
+                                f"final capability-reuse auxiliary test path is not in the reviewed diff: "
+                                f"{record['taskId']}: {path}"
+                            )
                 governed_batch_changes = {
                     path for path in batch_changes if _is_capability_reuse_governed_path(path)
                 }
@@ -3422,7 +3441,14 @@ def validate_capability_reuse_governance(
         task_id = str(record.get("taskId", "<invalid>"))
         for relative in record.get("mutablePaths", []):
             if not _is_capability_reuse_governed_path(relative):
-                errors.append(f"current capability-reuse mutable path is not governed: {task_id}: {relative}")
+                if _is_capability_reuse_auxiliary_test_path(relative):
+                    if relative not in tracked | untracked:
+                        errors.append(
+                            f"current capability-reuse auxiliary test path is not in the current diff: "
+                            f"{task_id}: {relative}"
+                        )
+                else:
+                    errors.append(f"current capability-reuse mutable path is not governed: {task_id}: {relative}")
                 continue
             coverage.setdefault(relative, []).append(task_id)
             if relative not in governed_changes:

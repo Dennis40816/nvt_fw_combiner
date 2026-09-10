@@ -27,6 +27,16 @@ are forbidden. A JSON record is valid only when its direct parent is exactly
 `docs/governance/change-records`; nested records are rejected before parsing or
 coverage and cannot later be moved into place for reuse.
 
+Exact non-governed files under `tests/` may accompany governed paths in
+`mutablePaths` as auxiliary evidence. They do not grant production authority
+or contribute to exactly-once governed coverage; a tests-only record cannot
+authorize a batch. Existing governed classification takes precedence (for
+example, `tests/AGENTS.md` remains governed). Auxiliary paths must occur in
+the current checkpoint diff and, at finalization, the checkpoint-to-reviewed
+diff. They remain included in the complete path-state digest and immutable
+admission fields. This exception does not admit other non-governed paths or
+relax index/worktree matching, review, Golden, or external release authority.
+
 ## Lifecycle
 
 1. `design-active`: owner search, disposition, exact base, exact paths, risk,

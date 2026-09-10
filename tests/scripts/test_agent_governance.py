@@ -1486,6 +1486,91 @@ class AgentGovernanceTests(unittest.TestCase):
         history_audit.assert_not_called()
         self.assertTrue(any("index/worktree content differs" in error for error in errors))
 
+    def test_changed_auxiliary_test_does_not_grant_production_authority(self) -> None:
+        self._change()
+        self._change("tests/test_owner.py")
+        self._write_record(self._record(paths=["src/Product/Owner.cs", "tests/test_owner.py"]))
+        self.assertEqual([], self.validate())
+        self._change("src/Product/Other.cs")
+        self.assertTrue(any("lacks a design-active/current-final" in error for error in self.validate()))
+
+    def test_auxiliary_test_requires_governed_owner(self) -> None:
+        self._change("tests/test_owner.py")
+        self._write_record(self._record(paths=["tests/test_owner.py"]))
+        self.assertTrue(any("auxiliary tests require a governed path" in error for error in self.validate()))
+
+    def test_auxiliary_test_must_occur_in_current_diff(self) -> None:
+        self._change()
+        self._write_record(self._record(paths=["src/Product/Owner.cs", "tests/missing.py"]))
+        self.assertTrue(any("auxiliary test path is not in" in error for error in self.validate()))
+
+    def test_auxiliary_test_prefix_does_not_admit_other_paths_or_directories(self) -> None:
+        self._change()
+        self._change("tests/test_owner.py")
+        for path in ("tests-other/test_owner.py", "tests", "tests/subdir", "tests/*.py"):
+            with self.subTest(path=path):
+                self._write_record(self._record(paths=["src/Product/Owner.cs", path]))
+                self.assertNotEqual([], self.validate())
+
+    def test_test_instructions_remain_governed_not_auxiliary(self) -> None:
+        self._change("tests/AGENTS.md")
+        self._write_record(self._record(paths=["tests/AGENTS.md"]))
+        self.assertEqual([], self.validate())
+        self._write_record(self._record(paths=["tests/AGENTS.md"], risk="R1",
+            designReview={"reviewer": None, "outcome": "not-required", "evidence": ""}))
+        self.assertTrue(any("risk is below path minimum R2" in error for error in self.validate()))
+
+    def test_auxiliary_test_cannot_be_removed_from_admission(self) -> None:
+        paths = ["src/Product/Owner.cs", "tests/test_owner.py"]
+        self._change()
+        self._change(paths[1])
+        self._write_record(self._record(paths=paths))
+        self._git("add", ".")
+        self._git("commit", "-q", "-m", "admit auxiliary evidence")
+        self._write_record(self._record())
+        self.assertTrue(any("immutable admitted fields" in error for error in self.validate()))
+
+    def test_final_digest_cannot_omit_auxiliary_test(self) -> None:
+        paths = ["src/Product/Owner.cs", "tests/test_owner.py"]
+        self._change()
+        self._change(paths[1])
+        self._write_record(self._record(paths=paths))
+        self._git("add", ".")
+        self._git("commit", "-q", "-m", "implement with auxiliary evidence")
+        record = self._final_record(paths=paths)
+        digest, error = _capability_path_state_digest(self.root, "HEAD", paths[:1])
+        self.assertIsNone(error)
+        record["pathStateDigest"] = digest
+        self._write_record(record)
+        self.assertTrue(any("pathStateDigest differs" in error for error in self.validate()))
+
+    def test_changed_auxiliary_test_survives_finalization(self) -> None:
+        paths = ["src/Product/Owner.cs", "tests/test_owner.py"]
+        self._change()
+        self._change(paths[1])
+        self._write_record(self._record(paths=paths))
+        self._git("add", ".")
+        self._git("commit", "-q", "-m", "implement with auxiliary evidence")
+        self._write_record(self._final_record(paths=paths))
+        self.assertEqual([], self.validate())
+        self._git("commit", "-q", "-m", "finalize auxiliary evidence")
+        self.assertEqual([], self.validate())
+
+    def test_final_auxiliary_test_must_occur_in_reviewed_diff(self) -> None:
+        self._change("tests/unchanged.py")
+        self._git("add", ".")
+        self._git("commit", "-q", "-m", "baseline test")
+        self.integration_base = self._git("rev-parse", "HEAD").stdout.strip()
+        self.trusted_initial_base = self.integration_base
+        paths = ["src/Product/Owner.cs", "tests/unchanged.py"]
+        self._change()
+        self._write_record(self._record(paths=paths))
+        self._git("add", ".")
+        self._git("commit", "-q", "-m", "implement without test change")
+        self._write_record(self._final_record(paths=paths))
+        self._git("commit", "-q", "-m", "finalize stale test evidence")
+        self.assertTrue(any("auxiliary test path is not in" in error for error in self.validate()))
+
     def test_non_governed_active_path_fails_before_history_audit(self) -> None:
         self._change()
         self._write_record(self._record(paths=["NvtFwCombiner.slnx"]))
