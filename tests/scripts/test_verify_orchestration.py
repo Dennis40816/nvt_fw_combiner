@@ -1085,6 +1085,105 @@ class VerifyOrchestrationTests(unittest.TestCase):
                 with self.assertRaisesRegex(RuntimeError, "exactly once"):
                     MODULE.local_repository_script_lanes()
 
+    def test_local_and_ci_script_owners_execute_mixed_framework_module_completely(self) -> None:
+        for route in ("local", "ci"):
+            with self.subTest(route=route), tempfile.TemporaryDirectory() as temporary:
+                root = Path(temporary)
+                evidence = root / "executed"
+                evidence.mkdir()
+                (root / "test_a_mixed.py").write_text(
+                    "from pathlib import Path\nimport unittest\nimport pytest\n"
+                    f"EVIDENCE = Path({str(evidence)!r})\n"
+                    "class ExistingTests(unittest.TestCase):\n"
+                    "    def test_existing(self):\n"
+                    "        (EVIDENCE / 'unittest').touch()\n"
+                    "@pytest.mark.parametrize('value', [0, 1])\n"
+                    "def test_free_function(tmp_path, value):\n"
+                    "    assert tmp_path.is_dir()\n"
+                    "    (tmp_path / 'fixture-used').touch()\n"
+                    "    (EVIDENCE / f'pytest-{value}').touch()\n",
+                    encoding="utf-8",
+                )
+                (root / "test_r_excluded.py").write_text(
+                    "raise AssertionError('another shard was selected')\n", encoding="utf-8"
+                )
+                with patch.object(MODULE, "REPOSITORY_SCRIPT_TESTS", root):
+                    lane = (MODULE.local_repository_script_lanes()[0] if route == "local"
+                            else MODULE.ci_python_lane("repository-scripts-a-q"))
+                    lane.action(root / "runner.log")
+                self.assertCountEqual(["unittest", "pytest-0", "pytest-1"],
+                                      [path.name for path in evidence.iterdir()])
+
+    def test_script_owner_rejects_free_test_failure_and_zero_collection(self) -> None:
+        sources = {
+            "failure": (
+                "import unittest\n"
+                "class ExistingTests(unittest.TestCase):\n"
+                "    def test_existing(self):\n"
+                "        pass\n"
+                "def test_free_failure():\n"
+                "    assert False, 'free-test failure must fail the owner'\n"
+            ),
+            "empty": "VALUE = 1\n",
+        }
+        for scenario, source in sources.items():
+            with self.subTest(scenario=scenario), tempfile.TemporaryDirectory() as temporary:
+                root = Path(temporary)
+                (root / "test_a_probe.py").write_text(source, encoding="utf-8")
+                with patch.object(MODULE, "REPOSITORY_SCRIPT_TESTS", root):
+                    with self.assertRaises(subprocess.CalledProcessError) as failure:
+                        MODULE.verify_repository_scripts(root / "runner.log", "test_a_probe.py")
+                self.assertNotEqual(0, failure.exception.returncode)
+
+    def test_script_owner_rejects_selection_overrides_before_starting_process(self) -> None:
+        with (
+            patch.dict(os.environ, {"PYTEST_ADDOPTS": "-k nothing"}),
+            patch.object(MODULE, "run") as run,
+            self.assertRaisesRegex(RuntimeError, "PYTEST_ADDOPTS"),
+        ):
+            MODULE.verify_repository_scripts()
+        run.assert_not_called()
+
+    def test_script_owner_rejects_empty_or_external_selection_before_starting_process(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            (root / "test_a_valid.py").touch()
+            for pattern in ("test_missing.py", "../test_*.py", str(root / "test_a_valid.py")):
+                with (
+                    self.subTest(pattern=pattern),
+                    patch.object(MODULE, "REPOSITORY_SCRIPT_TESTS", root),
+                    patch.object(MODULE, "run") as run,
+                    self.assertRaises(RuntimeError),
+                ):
+                    MODULE.verify_repository_scripts(pattern=pattern)
+                run.assert_not_called()
+
+    def test_concurrent_script_owners_keep_pytest_scratch_independent_and_cleanup(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            evidence = root / "evidence"
+            evidence.mkdir()
+            (root / "test_a_fixture.py").write_text(
+                "from pathlib import Path\nimport hashlib\n"
+                f"EVIDENCE = Path({str(evidence)!r})\n"
+                "def test_fixture(tmp_path):\n"
+                "    marker = EVIDENCE / hashlib.sha256(str(tmp_path).encode()).hexdigest()\n"
+                "    marker.write_text(str(tmp_path), encoding='utf-8')\n"
+                "    assert tmp_path.is_dir()\n",
+                encoding="utf-8",
+            )
+            lanes = tuple(MODULE.VerificationLane(
+                name, MODULE.repository_script_test_action("test_a_fixture.py")
+            ) for name in ("first", "second"))
+            with patch.object(MODULE, "REPOSITORY_SCRIPT_TESTS", root):
+                results = MODULE.run_lanes(lanes, jobs=2, log_directory=root / "logs")
+            self.assertTrue(all(result.succeeded for result in results), results)
+            scratch = [Path(path.read_text(encoding="utf-8")) for path in evidence.iterdir()]
+            self.assertEqual(2, len(set(scratch)))
+            for path in scratch:
+                self.assertTrue(path.is_relative_to(Path(tempfile.gettempdir())))
+                self.assertFalse(path.exists(), "pytest scratch was not cleaned")
+
     def test_group_budget_includes_queued_time_but_other_groups_get_fresh_budget(self) -> None:
         clock = [100.0]
         calls = []

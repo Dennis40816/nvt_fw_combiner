@@ -18,6 +18,12 @@ expires. The validated CI shard inventory remains the source of membership.
 cleanup runs after the workload pool terminates, including failure paths.
 CI and release-Golden entry points retain their existing execution paths.
 
+The shared script runner uses the existing pytest dependency for both unittest
+classes and pytest functions. Local modules and CI shards pass explicit files
+from the same validated inventory; empty selections and `PYTEST_ADDOPTS`
+overrides fail. Each invocation owns separate temporary storage and disables
+pytest's cache provider. Nonzero exits, including zero collected tests, fail.
+
 UI exclusivity remains within the .NET collector: UI finishes before the other
 .NET projects start. It is not global exclusivity against Python subprocesses.
 The complete local run still needs measured contention, coverage and wall-clock
@@ -70,6 +76,37 @@ Compared with the earlier diagnostic profile, this is 53.73 s less total time
 the expected unfinished `design-active` record error and is not a validation
 PASS; final evidence was subsequently validated separately and committed in
 `abd26b2b`.
+
+### Module-pool measurement — 2026-09-11 (failed candidate)
+
+Source: `39e017dce3fbc2186bef1764236e15ea584135f6`, same Windows host,
+SDK 10.0.301, default three worker slots, `python scripts/verify.py --all`.
+Complete command wall clock including cleanup: **988.40 s (16 min 28 s), exit 1**.
+Structure passed in 192.2 s; shared restore/build passed in 82.5 s; the .NET
+coverage lane passed in 711.1 s, including all 1,265 UI cases with no skips.
+CRC worker passed all 30 cases with 100% line/branch coverage in 11.3 s.
+These overlapping lane durations must not be summed.
+
+Three individual script modules failed with unittest's zero-test result:
+`test_managed_installation_lab.py`, `test_release_smoke_policy.py`, and
+`test_version_update_lab.py`. They contain pytest functions. Independent
+collection compared IDs: pytest retained all 978 unittest cases and collected
+61 additional cases (2, 5, and 54 respectively) across these three modules.
+The earlier coarse-shard runner also used unittest and silently omitted them;
+the module pool exposed that existing coverage gap. Collection is not execution
+evidence. The runner correction must execute these cases, not accept a no-tests
+exit code. Raw evidence is in
+`NFC_TEST_AREA_ROOT/evidence/v115-module-pool-first/verify-all.log` and
+`timing.json`. Neither this failed run nor the earlier incomplete .NET run proves
+a successful full-run speedup or the ten-minute target.
+
+The subsequent runner correction executed the previously omitted 61 cases
+through `verify_repository_scripts` and its managed lane/session owners:
+2/2, 5/5 and 54/54 passed (3.0 s, 1.0 s and 3.3 s lane durations). This is
+targeted working-tree evidence, not a fresh complete verifier pass.
+The orchestration module passed 206/206 cases in 28.222 s, including five new
+collection/isolation regressions and the existing real-process timeout and
+cancellation checks. The new regressions first failed against the old runner.
 
 ## Historical execution map
 

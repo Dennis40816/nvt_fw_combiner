@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 2,
+  "taskId": "VERIFY-115-SCRIPT-COLLECTION-01",
+  "capability": "Execute both unittest and pytest script cases through the shared verifier owner",
+  "integrationBase": "39e017dce3fbc2186bef1764236e15ea584135f6",
+  "risk": "R2",
+  "kind": "behavior",
+  "state": "design-active",
+  "mutablePaths": ["scripts/verify.py", "tests/scripts/test_verify_orchestration.py"],
+  "implementationOwner": "primary-agent (runner); parallel_verifier_implementer (tests)",
+  "searchEvidence": [
+    "verify_repository_scripts is shared by repository_script_test_action, local modules, CI shards and skip-dotnet",
+    "Independent inventory: 37 modules; pytest collects all 978 unittest cases plus 61 cases in three pure-pytest modules, with no missing unittest IDs",
+    "Existing pytest dependency: tools/crc-worker/pyproject.toml dev dependencies and CI dev installation; test session already owns tempfile scratch"
+  ],
+  "semanticOwner": "scripts/verify.py validated script inventory and managed run/process owner",
+  "terminalContract": "Run explicit validated matching files with existing pytest; reject empty selections and PYTEST_ADDOPTS overrides; isolate each invocation scratch and disable cache; propagate all nonzero exits including zero collection; preserve shard membership, deadlines, cancellation, coverage and Golden owners",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "parallel_resource_audit",
+    "outcome": "approved",
+    "evidence": "Independent design admission approved shared owner extension without new dependencies or scheduler. Require unique TemporaryDirectory parent with fresh pytest basetemp child under existing scratch custody, explicit validated paths, empty-set rejection and PYTEST_ADDOPTS rejection. Verify mixed framework execution, fixture/parameterization, pytest failure, no tests, pattern boundaries, concurrent scratch isolation, cleanup and existing descendant cancellation. New full measurement remains required."
+  },
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": {"reviewer": null, "outcome": "pending", "evidence": ""}
+}

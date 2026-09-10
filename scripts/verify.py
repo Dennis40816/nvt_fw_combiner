@@ -962,19 +962,29 @@ def verify_repository_scripts(
     log_path: Path | None = None,
     pattern: str = "test_*.py",
 ) -> None:
-    run(
-        [
-            sys.executable,
-            "-m",
-            "unittest",
-            "discover",
-            "-s",
-            str(REPOSITORY_SCRIPT_TESTS),
-            "-p",
-            pattern,
-        ],
-        log_path=log_path,
+    if os.environ.get("PYTEST_ADDOPTS", "").strip():
+        raise RuntimeError("PYTEST_ADDOPTS overrides are forbidden")
+    repository_script_test_shards()
+    paths = tuple(
+        path
+        for path in sorted(REPOSITORY_SCRIPT_TESTS.glob("test_*.py"))
+        if fnmatch(path.name, pattern)
     )
+    if not paths:
+        raise RuntimeError(f"no repository-script tests match: {pattern}")
+    with tempfile.TemporaryDirectory(prefix="nfc-script-pytest-") as temporary:
+        run(
+            [
+                sys.executable,
+                "-m",
+                "pytest",
+                "-p",
+                "no:cacheprovider",
+                f"--basetemp={Path(temporary) / 'base'}",
+                *(str(path) for path in paths),
+            ],
+            log_path=log_path,
+        )
 
 
 def is_reparse_point(path: Path) -> bool:
