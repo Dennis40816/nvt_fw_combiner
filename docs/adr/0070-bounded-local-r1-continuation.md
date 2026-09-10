@@ -5,6 +5,8 @@
 - Owner: Repository owner; requested fixing the restriction before further work
 - Risk: R2 governance applicability
 - Amends: [ADR 0054](0054-finalize-capability-reuse-records.md), local-start scope only
+- Amended by: [ADR 0071](0071-final-integration-path-ownership.md), final integration
+  ownership for successive corrections; bounded local eligibility remains unchanged.
 
 ## Decision
 

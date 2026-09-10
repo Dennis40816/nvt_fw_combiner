@@ -20,8 +20,8 @@ The validator computes tracked renames, copies, additions, modifications, type
 changes, deletions, and non-ignored untracked files from the latest valid final
 evidence checkpoint. `integrationBase` must equal that checkpoint; it is not a
 self-attested ancestor. Both sides of a rename or copy are audited. Every governed
-path in the candidate must occur in exactly one current record's
-`mutablePaths`, and every declared path must occur in that diff. Paths are
+path in the candidate must have exactly one effective integration owner,
+and every declared `mutablePaths` path must occur in that diff. Paths are
 exact, forward-slash, repository-relative names; globs and directory grants
 are forbidden. A JSON record is valid only when its direct parent is exactly
 `docs/governance/change-records`; nested records are rejected before parsing or
@@ -39,6 +39,26 @@ relax index/worktree matching, review, Golden, or external release authority.
 
 ## Lifecycle
 
+[ADR 0071](../adr/0071-final-integration-path-ownership.md) separates original
+change provenance from final integration ownership. Schema v2 optionally accepts
+`integrationPaths` **only** on `final-complete` records. It is a unique list of
+exact governed paths drawn from that record's unchanged `mutablePaths`.
+Omitting it retains legacy ownership of all governed `mutablePaths`; an explicit
+empty list owns no final paths. Active/blocked records cannot use this field.
+
+All admitted governed paths must still equal the checkpoint diff as a set.
+Effective integration ownership must cover every changed governed path exactly
+once across the entire batch. Thus overlapping historical modifications may be
+partitioned at final review without hiding a stale path or leaving a gap.
+Auxiliary tests cannot be integration owners. Final review evidence must cover
+the chosen partition and all original mutable paths. Risk, independent review,
+full path-state digest and R3 attestations remain attached to each original
+record even when its `integrationPaths` is empty. The partition is a finalization
+field, not a change to admitted fields; first-final whole-blob immutability
+also protects its presence and contents. No old record is deleted or rewritten
+to invent prior approval. A missing local R1 path receives an honest current
+integration admission and review, not a retroactive design approval.
+
 1. `design-active`: owner search, disposition, exact base, exact paths, risk,
    and design review are admitted. Implementation/review heads, path digest,
    and final review remain null/pending. The first committed `design-active`
@@ -49,7 +69,8 @@ relax index/worktree matching, review, Golden, or external release authority.
    that frozen commit. `pathStateDigest` binds the declared paths at that
    commit, and `finalReview` records the independent result and evidence.
    The same task must exist as `design-active` at that reviewed commit;
-   finalization may change only lifecycle and final-evidence fields, never the
+   finalization may change only lifecycle and final-evidence fields (including
+   optional `integrationPaths`), never the
    admitted capability, base, paths, owners, disposition, risk, or design review.
 3. `blocked`: authorizes no paths. Head, digest, and final-review fields remain
    null/pending.

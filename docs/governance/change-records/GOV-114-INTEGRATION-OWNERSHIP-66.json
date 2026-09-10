@@ -1,0 +1,40 @@
+{
+  "schemaVersion": 2,
+  "taskId": "GOV-114-INTEGRATION-OWNERSHIP-66",
+  "capability": "Separate immutable change provenance from unique final integration ownership",
+  "integrationBase": "a0fc6a9f816ee677c87283d8e3c708d293be1482",
+  "risk": "R2",
+  "kind": "governance",
+  "state": "design-active",
+  "mutablePaths": [
+    "scripts/validate_repository.py",
+    "docs/governance/capability-reuse-record.md",
+    "docs/governance/development-execution-workflow.md",
+    "docs/adr/0071-final-integration-path-ownership.md",
+    "docs/adr/0054-finalize-capability-reuse-records.md",
+    "docs/adr/0070-bounded-local-r1-continuation.md",
+    "docs/adr/0052-exact-ctrlram-report-metadata-counterpart.md"
+  ],
+  "implementationOwner": "primary-agent",
+  "searchEvidence": [
+    "Owner approved retaining historical change records with unique final integration ownership on 2026-09-10, then requested expedited release preparation.",
+    "Independent full-source review found ADR0052 still says DP image although owner later requested DP and code already uses DP. Reviewer report_commit_inventory approved this narrow pre-commit extension: synchronize display wording only, retain DP Image/DP Code distinction and all range/capacity semantics. Preserve immutable record58; this is the subsequent owner wording amendment, not a historical rewrite.",
+    "At d1a1ba15, checkpoint a0fc6a9 yields 49 governed paths, eight active records, six overlapping paths and seven missing UI paths. Existing validate_repository.py owns schema, current/final coverage, immutable history, digest and R3 authority checks."
+  ],
+  "semanticOwner": "validate_repository.py capability-reuse record validation and existing final evidence lifecycle",
+  "terminalContract": "Optional integrationPaths exists only on final-complete records and is an exact unique governed subset of immutable mutablePaths. Absent means all governed mutablePaths, empty means no final path ownership. All admitted governed paths must occur in checkpoint diff; effective ownership covers each changed path exactly once. Preserve full mutablePaths digest, original record risk and all R3 obligations, index/worktree and history immutability, direct-child evidence. No new trust root, history rewrite, record deletion, release bypass or product behavior changes.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "report_commit_inventory",
+    "outcome": "approved",
+    "evidence": "Independent R2 design admission APPROVED at d1a1ba15: strict optional final-only field, absent versus empty, no out-of-subset/test ownership, admitted union and exactly-one effective coverage, full digest and R3 risk retention, final-field immutability. Missing UI admission will separately record present integration review, never retroactive approval."
+  },
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": {
+    "reviewer": null,
+    "outcome": "pending",
+    "evidence": ""
+  }
+}

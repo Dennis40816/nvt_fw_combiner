@@ -1,0 +1,40 @@
+{
+  "schemaVersion": 2,
+  "taskId": "UI-114-INTEGRATION-EVIDENCE-67",
+  "capability": "Admit existing bounded UI corrections for current integration with explicit post-implementation evidence",
+  "integrationBase": "a0fc6a9f816ee677c87283d8e3c708d293be1482",
+  "risk": "R1",
+  "kind": "ui",
+  "state": "design-active",
+  "mutablePaths": [
+    "src/NvtFwCombiner.Presentation.Avalonia/Resources/MainWindowSharedTemplates.axaml",
+    "src/NvtFwCombiner.Presentation.Avalonia/Styles/MainWindowButtonStyles.axaml",
+    "src/NvtFwCombiner.Presentation.Avalonia/Styles/MessageCenterStyles.axaml",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MemoryCoverageSegmentViewModel.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/Views/MemoryCoverageConnectorVisuals.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/Views/MessageCenterModal.axaml",
+    "src/NvtFwCombiner.Presentation.Avalonia/Views/MessageCenterModal.axaml.cs"
+  ],
+  "implementationOwner": "primary-agent",
+  "searchEvidence": [
+    "Current integration recovery authorized by owner on 2026-09-10. This record is post-implementation admission for current integration, NOT evidence of prior design approval.",
+    "Scoped independent review by standard_memory_tests of a0fc6a9..d1a1ba15, commits 8e914a48,21dfceb9,0827cf05,5157bfb3: no P0-P3 findings. Read-only review, no fresh test execution.",
+    "Existing tests/README.md lines620,665,690,716 distinguish red/green/reused evidence: popup details, actual selection/focus and measured navigation bounds, connector lifecycle. Existing tests do not certify native DPI/high contrast/screenreader or full release."
+  ],
+  "semanticOwner": "Existing MemoryCoverageSegmentViewModel and popup templates own presentation; MessageCenterViewModel owns selection; MemoryCoverageBar owns interaction and stateless connector helper only renders geometry",
+  "terminalContract": "Current integration review preserves exact shared details omission, existing selection commands and separate radio groups, semantic focus, compact navigation measured labels, and body-equivalent stateless connector extraction. No new visual design, firmware facts, range logic, support or execution behavior. Verify affected real headless controls and final candidate; retain original commit provenance and explicit native accessibility limitations.",
+  "disposition": "reuse",
+  "designReview": {
+    "reviewer": null,
+    "outcome": "not-required",
+    "evidence": "R1 current integration admission after implementation; independent scoped code/test review is documented in searchEvidence, not retroactive design approval."
+  },
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": {
+    "reviewer": null,
+    "outcome": "pending",
+    "evidence": ""
+  }
+}

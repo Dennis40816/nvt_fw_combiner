@@ -1486,6 +1486,76 @@ class AgentGovernanceTests(unittest.TestCase):
         history_audit.assert_not_called()
         self.assertTrue(any("index/worktree content differs" in error for error in errors))
 
+    def _commit_overlapping_admissions(self, *, stale: bool = False, risk: str = "R2") -> None:
+        self._change()
+        paths = ["src/Product/Owner.cs"]
+        if stale:
+            paths.append("src/Product/Other.cs")
+        self._write_record(self._record("TEST-01", paths=paths, risk=risk))
+        self._write_record(self._record("TEST-02"))
+        self._git("add", ".")
+        self._git("commit", "-q", "-m", "implement overlapping admitted corrections")
+
+    def _stage_partitioned_finals(self, *, stale: bool = False, risk: str = "R2") -> None:
+        paths = ["src/Product/Owner.cs"]
+        if stale:
+            paths.append("src/Product/Other.cs")
+        self._write_record(self._final_record("TEST-01", paths=paths, risk=risk, integrationPaths=[]))
+        self._write_record(self._final_record("TEST-02", integrationPaths=["src/Product/Owner.cs"]))
+
+    def test_integration_partition_preserves_overlap_and_finalizes_history(self) -> None:
+        self._commit_overlapping_admissions()
+        self._stage_partitioned_finals()
+        self.assertEqual([], self.validate())
+        self._git("commit", "-q", "-m", "finalize unique ownership")
+        self.assertEqual([], self.validate())
+
+    def test_integration_partition_rejects_uncovered_and_duplicate_ownership(self) -> None:
+        self._commit_overlapping_admissions()
+        for owned in ([], ["src/Product/Owner.cs"]):
+            with self.subTest(owned=owned):
+                for task in ("TEST-01", "TEST-02"):
+                    self._write_record(self._final_record(task, integrationPaths=owned))
+                errors = self.validate()
+                self.assertTrue(any("lacks a design-active/current-final" in e or "duplicate capability-reuse coverage" in e for e in errors))
+
+    def test_integration_partition_cannot_hide_stale_admitted_path(self) -> None:
+        self._commit_overlapping_admissions(stale=True)
+        self._stage_partitioned_finals(stale=True)
+        self.assertTrue(any("not in the current governed diff" in e for e in self.validate()))
+        self._git("commit", "-q", "-m", "attempt stale admission finalization")
+        self.assertTrue(any("admitted paths differ" in e for e in self.validate()))
+
+    def test_integration_partition_field_is_final_only(self) -> None:
+        self._change()
+        self._write_record(self._record(integrationPaths=[]))
+        self.assertTrue(any("integrationPaths requires final-complete" in e for e in self.validate()))
+
+    def test_integration_partition_requires_exact_unique_governed_subset(self) -> None:
+        self._commit_candidate_with_active_record()
+        for owned in (None, "src/Product/Owner.cs", [1], ["src/Product/Other.cs"],
+                      ["tests/test_owner.py"], ["src/Product/Owner.cs"] * 2,
+                      ["src/*"], ["src/Product"], ["src/Product/../Product/Owner.cs"]):
+            with self.subTest(owned=owned):
+                self._write_record(self._final_record(integrationPaths=owned))
+                self.assertTrue(any("integrationPaths" in e for e in self.validate()))
+
+    def test_integration_partition_is_immutable_after_final_commit(self) -> None:
+        self._commit_overlapping_admissions()
+        self._stage_partitioned_finals()
+        self._git("commit", "-q", "-m", "finalize partition")
+        path = self.root / "docs/governance/change-records/TEST-01.json"
+        record = json.loads(path.read_text(encoding="utf-8"))
+        record.pop("integrationPaths")
+        self._write_record(record)
+        self.assertTrue(any("immutable" in e for e in self.validate()))
+
+    def test_integration_partition_does_not_remove_r3_obligation(self) -> None:
+        self._commit_overlapping_admissions(risk="R3")
+        self._stage_partitioned_finals(risk="R3")
+        self._git("commit", "-q", "-m", "finalize with unowned R3 record")
+        self.assertTrue(any("external" in e and "TEST-01" in e for e in self.validate()))
+
     def test_changed_auxiliary_test_does_not_grant_production_authority(self) -> None:
         self._change()
         self._change("tests/test_owner.py")

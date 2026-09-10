@@ -50,8 +50,10 @@ authority or a material unresolved decision, not a repeated sequencing waiver.
 Local continuation is not an integration batch or a validator pass. Before
 integration, the complete candidate still needs valid, uniquely covering
 records and the checkpoint/review/evidence contract below. Missing or
-overlapping immutable admissions remain explicit integration blockers; this
-path supplies no repair, activation, history rewrite or automatic finalization.
+unresolved final ownership remain explicit integration blockers. Overlapping
+historical modifications use the final-only ownership partition in
+[ADR 0071](../adr/0071-final-integration-path-ownership.md); this local path
+supplies no activation, history rewrite or automatic finalization.
 Do not run a candidate gate merely to reopen a known record-only local blocker.
 When required at its actual stage, run it unchanged and report every failure.
 
@@ -75,7 +77,9 @@ evidence commit, every admitted record becomes `final-complete`, binds the same
 digest and final-review evidence, and passes the repository validator. Each
 task must still exist as `design-active` at that reviewed head; finalization
 preserves all admitted design fields and changes only lifecycle/final-evidence
-fields. R3 continues to require its existing external firmware-owner or
+fields. Final review assigns each governed path exactly once through optional
+`integrationPaths`, retaining every original mutable path, digest and review
+obligation. R3 continues to require its existing external firmware-owner or
 release-owner gate and authority-specific evidence; schema v2 cannot satisfy
 that authority. Committed final records are immutable archives and never open
 a later batch. The final evidence commit is the direct child of the reviewed

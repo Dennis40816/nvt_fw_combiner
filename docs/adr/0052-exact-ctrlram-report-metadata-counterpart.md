@@ -90,7 +90,10 @@ the candidate before publication.
 
 DP Image containers are distinct from DP Code. A declared descendant TP Code
 region takes its own interval; the remaining container intervals retain the
-label `DP image`, not an invented DP Code complement. Fine-grained descendants
+display label `DP`, not an invented DP Code complement. Technical details retain
+the DP Image container distinction. This follows the owner's subsequent label
+clarification and supersedes only the original `DP image` display wording;
+the historical admission remains unchanged. Fine-grained descendants
 do not add overview cuts. A container not wholly present in the actual output
 is excluded; this does not select another map. Thus a TP-work image cannot gain
 a complete DP image claim. Unrelated overlaps remain neutral. This extension
