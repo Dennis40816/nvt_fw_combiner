@@ -1136,13 +1136,22 @@ class VerifyOrchestrationTests(unittest.TestCase):
                 self.assertNotEqual(0, failure.exception.returncode)
 
     def test_script_owner_rejects_selection_overrides_before_starting_process(self) -> None:
+        for name in ("PYTEST_ADDOPTS", "COVERAGE_RCFILE", "COVERAGE_PROCESS_START"):
+            with (
+                self.subTest(name=name),
+                patch.dict(os.environ, {name: "override"}),
+                patch.object(MODULE, "run") as run,
+                self.assertRaisesRegex(RuntimeError, name),
+            ):
+                MODULE.verify_repository_scripts()
+            run.assert_not_called()
         with (
-            patch.dict(os.environ, {"PYTEST_ADDOPTS": "-k nothing"}),
+            patch.dict(os.environ, {name: " " for name in (
+                "PYTEST_ADDOPTS", "COVERAGE_RCFILE", "COVERAGE_PROCESS_START")}),
             patch.object(MODULE, "run") as run,
-            self.assertRaisesRegex(RuntimeError, "PYTEST_ADDOPTS"),
         ):
             MODULE.verify_repository_scripts()
-        run.assert_not_called()
+        run.assert_called_once()
 
     def test_script_owner_rejects_empty_or_external_selection_before_starting_process(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:

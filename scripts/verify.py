@@ -962,8 +962,15 @@ def verify_repository_scripts(
     log_path: Path | None = None,
     pattern: str = "test_*.py",
 ) -> None:
-    if os.environ.get("PYTEST_ADDOPTS", "").strip():
-        raise RuntimeError("PYTEST_ADDOPTS overrides are forbidden")
+    overrides = [
+        name
+        for name in PYTHON_COVERAGE_OVERRIDE_ENVIRONMENT_VARIABLES
+        if os.environ.get(name, "").strip()
+    ]
+    if overrides:
+        raise RuntimeError(
+            "Python test environment overrides are forbidden: " + ", ".join(overrides)
+        )
     repository_script_test_shards()
     paths = tuple(
         path

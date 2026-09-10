@@ -20,8 +20,9 @@ CI and release-Golden entry points retain their existing execution paths.
 
 The shared script runner uses the existing pytest dependency for both unittest
 classes and pytest functions. Local modules and CI shards pass explicit files
-from the same validated inventory; empty selections and `PYTEST_ADDOPTS`
-overrides fail. Each invocation owns separate temporary storage and disables
+from the same validated inventory; empty selections and the existing Python
+environment overrides (`PYTEST_ADDOPTS`, `COVERAGE_RCFILE`,
+`COVERAGE_PROCESS_START`) fail. Each invocation owns separate temporary storage and disables
 pytest's cache provider. Nonzero exits, including zero collected tests, fail.
 
 UI exclusivity remains within the .NET collector: UI finishes before the other
