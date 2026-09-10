@@ -335,9 +335,10 @@ public sealed class MemoryCoveragePopupTests
                 ? BoundsInWindow(destination, window).TopLeft + new Vector(10, 10)
                 : BoundsInWindow(destination, window).Center;
             // No click or keyboard focus may keep the overlay alive during this excursion.
+            // Keep transit in one UI callback: Task.Delay is a minimum wall-clock wait,
+            // not a controllable clock, and a delayed continuation can exceed the grace.
+            // MemoryCoverageTransitGraceUsesAcceptedTimerInterval separately pins 320 ms.
             window.MouseMove(new Point(4, 4), RawInputModifiers.None);
-            await Task.Delay(220, TestContext.Current.CancellationToken);
-            Render();
             Assert.False(target.IsPointerOver);
             Assert.False(target.IsKeyboardFocusWithin);
             Assert.Same(destination, FindNamed<Border>(window, name));
