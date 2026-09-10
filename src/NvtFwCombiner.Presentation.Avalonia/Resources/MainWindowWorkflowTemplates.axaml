@@ -337,9 +337,9 @@
       </StackPanel>
 
       <StackPanel IsVisible="{Binding HasCtrlRamFocusLayout}" Spacing="24">
-        <StackPanel x:Name="CtrlRamFlashOverview" Spacing="12">
+        <StackPanel x:Name="CtrlRamFlashOverview" Spacing="{DynamicResource NfcSpace12}">
           <Grid ColumnDefinitions="*,Auto">
-            <TextBlock Classes="bodyEmphasisText" FontSize="14" FontWeight="SemiBold" Text="{Binding Text.MemoryFlashOverviewLabel}" />
+            <TextBlock Classes="bodyEmphasisText" FontSize="{DynamicResource NfcFontSize14}" FontWeight="SemiBold" Text="{Binding Text.MemoryFlashOverviewLabel}" />
             <TextBlock Grid.Column="1" Classes="captionText" Text="{Binding CtrlRamCapacityLabel}" />
           </Grid>
           <views:MemoryCoverageBar ItemsSource="{Binding CtrlRamOverview}" FocusPositions="{Binding CtrlRamPositions}" Labels="{Binding Text}" ShowLabels="True" ReducedMotion="{ReflectionBinding $parent[Window].DataContext.IsReducedMotionEnabled}" />
@@ -355,14 +355,14 @@
                   <ContentControl Content="{Binding}" ContentTemplate="{StaticResource MemoryCoverageCompactMarkerTemplate}" Margin="0,0,8,0" VerticalAlignment="Center" />
                   <StackPanel Grid.Column="1" Spacing="3">
                     <TextBlock Classes="bodyEmphasisText" Text="{Binding DisplayTitle}" />
-                    <TextBlock Classes="monoText captionText" FontSize="11" Text="{Binding AddressRangeLabel}" />
+                    <TextBlock Classes="monoText captionText" FontSize="{DynamicResource NfcFontSize11}" Text="{Binding AddressRangeLabel}" />
                   </StackPanel>
                 </Grid>
               </DataTemplate>
             </ItemsControl.ItemTemplate>
           </ItemsControl>
         </StackPanel>
-        <TextBlock Classes="captionText" FontSize="11" Text="{Binding CtrlRamSharedInputHint}" TextWrapping="Wrap" />
+        <TextBlock Classes="captionText" FontSize="{DynamicResource NfcFontSize11}" Text="{Binding CtrlRamSharedInputHint}" TextWrapping="Wrap" />
       </StackPanel>
 
       <views:MemoryCoverageBar IsVisible="{Binding !HasCtrlRamFocusLayout}" ItemsSource="{Binding ReplaceCoverageSegments}" Labels="{Binding Text}" ReducedMotion="{ReflectionBinding $parent[Window].DataContext.IsReducedMotionEnabled}" />

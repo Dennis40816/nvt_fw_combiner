@@ -533,25 +533,25 @@
               </ScrollViewer>
             </Grid>
           </Border>
-          <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12" Margin="8,8,8,4" IsVisible="{Binding Settings.SupportMatrix.HasRows}">
+          <Grid ColumnDefinitions="*,Auto" ColumnSpacing="{DynamicResource NfcSpace12}" Margin="8,8,8,4" IsVisible="{Binding Settings.SupportMatrix.HasRows}">
             <WrapPanel>
-              <StackPanel Margin="0,0,24,4" Orientation="Horizontal" Spacing="8">
+              <StackPanel Margin="0,0,24,4" Orientation="Horizontal" Spacing="{DynamicResource NfcSpace8}">
                 <Path Width="14" Height="14" Data="M3 11L8 16L19 5" Stretch="Uniform" Stroke="{DynamicResource NfcSuccessTextBrush}" StrokeThickness="2.2" />
                 <TextBlock Classes="supportMatrixText" Text="{Binding Text.SupportMatrixReviewedEvidenceLabel}" />
               </StackPanel>
-              <StackPanel Margin="0,0,24,4" Orientation="Horizontal" Spacing="8">
+              <StackPanel Margin="0,0,24,4" Orientation="Horizontal" Spacing="{DynamicResource NfcSpace8}">
                 <Path Width="13" Height="13" Data="M4 2H13L18 7V20H4Z M13 2V7H18 M8 11H14 M8 15H14" Stretch="Uniform" Stroke="{DynamicResource NfcInfoTextBrush}" StrokeThickness="1.5" />
                 <TextBlock Classes="supportMatrixText" Text="{Binding Text.SupportMatrixContractOnlyLabel}" />
               </StackPanel>
-              <StackPanel Margin="0,0,24,4" Orientation="Horizontal" Spacing="8">
+              <StackPanel Margin="0,0,24,4" Orientation="Horizontal" Spacing="{DynamicResource NfcSpace8}">
                 <Path Width="14" Height="14" Data="M11 2L21 20H1Z M11 8V13 M11 17V17.2" Stretch="Uniform" Stroke="{DynamicResource NfcWarningTextBrush}" StrokeThickness="1.8" />
                 <TextBlock Classes="supportMatrixText" Text="{Binding Text.SupportMatrixReviewRequiredLabel}" />
               </StackPanel>
-              <StackPanel Margin="0,0,24,4" Orientation="Horizontal" Spacing="8">
+              <StackPanel Margin="0,0,24,4" Orientation="Horizontal" Spacing="{DynamicResource NfcSpace8}">
                 <Path Width="14" Height="14" Data="M11 2A9 9 0 1 0 11 20A9 9 0 1 0 11 2 M5 5L17 17" Stretch="Uniform" Stroke="{DynamicResource NfcDangerTextBrush}" StrokeThickness="1.8" />
                 <TextBlock Classes="supportMatrixText" Text="{Binding Text.SupportMatrixBlockedLabel}" />
               </StackPanel>
-              <StackPanel Margin="0,0,0,4" Orientation="Horizontal" Spacing="8">
+              <StackPanel Margin="0,0,0,4" Orientation="Horizontal" Spacing="{DynamicResource NfcSpace8}">
                 <TextBlock Classes="supportMatrixLegend notDeclared" Text="—" />
                 <TextBlock Classes="supportMatrixText" Text="{Binding Text.SupportMatrixNotDeclaredLabel}" />
               </StackPanel>
