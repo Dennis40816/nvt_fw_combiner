@@ -750,6 +750,17 @@ connected, bounded and readable. Independent scoped review found no findings.
 Existing AB and CtrlRAM tests retain their separate evidence; retained-only
 DP Replace/General tests do not authorize new public workflow support.
 
+Shared-consumer follow-up on source `e5057718`: **33/33, zero skipped, 75 s**,
+`D:/NvtFwCombiner-TestArea/evidence/v114-memory-responsibility78/consumers.trx`.
+The `dotnet test ... --no-restore --filter` selection was
+`AbMemoryLayoutControlTests|CtrlRamMemoryLayoutTests|CtrlRamCascadeMemoryLayoutTests|MemoryCoverageExplorerTests|MemoryCoverageListTests|AbDummyDpControlTests|CtrlRamMemoryDisplayFailureTests`
+(each prefixed `FullyQualifiedName~`). Together with the preceding 72 cases,
+this is **105 scoped passing cases**, not one full-suite or all-IC run.
+It covers the existing AB/Dummy, CtrlRAM single/cascade, display-failure,
+supporting-list and explorer consumers without reopening their accepted design.
+Native DPI/high-contrast/screen-reader acceptance is separately allocated to
+`1.1.7`; required release validation remains required for the actual candidate.
+
 ## Running and maintaining this view
 
 Use [`CONTRIBUTING.md`](../CONTRIBUTING.md) to initialize the existing fixed

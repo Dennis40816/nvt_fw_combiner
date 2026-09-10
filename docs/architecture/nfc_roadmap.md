@@ -545,8 +545,14 @@ Local Memory Layout maintenance checkpoint, 2026-09-10:
 [connector responsibility/test coupling](../../tests/README.md#memory-connector-responsibility-and-test-coupling--2026-09-10)
 is committed at `5157bfb3`; [loaded Standard DP/TP/LDC card coverage](../../tests/README.md#loaded-standard-memory-cards--2026-09-10)
 adds the missing real-window lifecycle checks. Neither changes the approved
-CtrlRAM design, firmware semantics or public support. Broader consumer
-regression and release-package reconciliation remain pending.
+CtrlRAM design, firmware semantics or public support. The subsequent existing
+AB/Dummy, CtrlRAM single/cascade, display-failure, list and explorer regressions
+pass 33/33 on `e5057718`, alongside the 72-case Standard/popup/geometry/style
+run: 105 scoped cases, zero skipped. This closes this bounded local Memory
+Layout maintenance/coverage tranche, not every IC/native or release gate.
+Release-package reconciliation remains pending; confirmation of reference-only
+redistribution for the five input-only/dependent-alias cases was requested
+separately. All certified Direct output cases are already selected.
 
 The following table retains the individual boundaries; only Memory Layout is
 active implementation in `1.1.4`. All other rows and the custom-options preview
