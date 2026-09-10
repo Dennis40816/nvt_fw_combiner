@@ -17,16 +17,6 @@ namespace NvtFwCombiner.UiSmoke.Tests;
 
 public sealed partial class XamlControlStyleContractTests
 {
-    /// <summary>Keep the accepted transit duration explicit while popup tests exercise cancellation and expiry.</summary>
-    [Fact]
-    public void MemoryCoverageTransitGraceUsesAcceptedTimerInterval()
-    {
-        Assert.Contains(
-            "private readonly DispatcherTimer _closeTimer = new() { Interval = TimeSpan.FromMilliseconds(320) };",
-            ReadPresentationFile("Views/MemoryCoverageBar.cs"),
-            StringComparison.Ordinal);
-    }
-
     /// <summary>The selected soft-lift treatment stays theme-aware without restoring the old dark frame.</summary>
     [Fact]
     public void MemoryCoverageSoftLiftUsesSharedThemeMotionAndFocusContracts()

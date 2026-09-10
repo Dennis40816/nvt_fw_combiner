@@ -313,9 +313,10 @@ public sealed class MemoryCoveragePopupTests
     [InlineData(0, true)]
     [InlineData(1, true)]
     [InlineData(2, true)]
-    public async Task PointerTransitGraceKeepsExistingOverlayUntilArrival(int depth, bool reducedMotion)
+    public void PointerTransitGraceKeepsExistingOverlayUntilArrival(int depth, bool reducedMotion)
     {
-        Window window = CreateWindow(388, false, MemoryCoverageBarProjectionTests.Example(), out MemoryCoverageBar bar);
+        var clock = new MemoryCoverageCloseScheduler();
+        Window window = CreateWindow(388, false, MemoryCoverageBarProjectionTests.Example(), out MemoryCoverageBar bar, clock.Schedule);
         bar.ReducedMotion = reducedMotion;
         try
         {
@@ -335,21 +336,114 @@ public sealed class MemoryCoveragePopupTests
                 ? BoundsInWindow(destination, window).TopLeft + new Vector(10, 10)
                 : BoundsInWindow(destination, window).Center;
             // No click or keyboard focus may keep the overlay alive during this excursion.
-            // Keep transit in one UI callback: Task.Delay is a minimum wall-clock wait,
-            // not a controllable clock, and a delayed continuation can exceed the grace.
-            // MemoryCoverageTransitGraceUsesAcceptedTimerInterval separately pins 320 ms.
             window.MouseMove(new Point(4, 4), RawInputModifiers.None);
+            MemoryCoverageCloseScheduler.ScheduledClose pending = clock.Jobs.Last();
+            Assert.Equal(TimeSpan.FromMilliseconds(320), pending.RequestedDelay);
+            clock.AdvanceBy(TimeSpan.FromMilliseconds(319));
+            Render();
             Assert.False(target.IsPointerOver);
             Assert.False(target.IsKeyboardFocusWithin);
             Assert.Same(destination, FindNamed<Border>(window, name));
 
             window.MouseMove(arrival, RawInputModifiers.None);
-            await Task.Delay(400, TestContext.Current.CancellationToken);
+            Assert.True(pending.IsCancelled);
+            clock.AdvanceBy(TimeSpan.FromMilliseconds(1));
+            pending.ReplayStaleCallback();
             Render();
             Assert.Same(destination, FindNamed<Border>(window, name));
 
             window.MouseMove(new Point(4, 4), RawInputModifiers.None);
-            await Task.Delay(400, TestContext.Current.CancellationToken);
+            MemoryCoverageCloseScheduler.ScheduledClose next = clock.Jobs.Last();
+            Assert.NotSame(pending, next);
+            Assert.Equal(TimeSpan.FromMilliseconds(320), next.RequestedDelay);
+            pending.ReplayStaleCallback();
+            Render();
+            Assert.False(next.IsCancelled);
+            Assert.Same(destination, FindNamed<Border>(window, name));
+            clock.AdvanceBy(TimeSpan.FromMilliseconds(319));
+            Render();
+            Assert.Same(destination, FindNamed<Border>(window, name));
+            clock.AdvanceBy(TimeSpan.FromMilliseconds(1));
+            Render();
+            AssertNoOverlay(window);
+        }
+        finally { window.Close(); }
+    }
+
+    /// <summary>Repeated exit notifications keep the first deadline rather than extending the grace.</summary>
+    [AvaloniaFact]
+    public void RepeatedPointerExitDoesNotRestartCloseDeadline()
+    {
+        var clock = new MemoryCoverageCloseScheduler();
+        Window window = CreateWindow(388, false, MemoryCoverageBarProjectionTests.Example(), out MemoryCoverageBar bar, clock.Schedule);
+        bar.ReducedMotion = true;
+        try
+        {
+            Control target = MainTarget(bar, 0);
+            window.MouseMove(BoundsInWindow(target, window).Center, RawInputModifiers.None);
+            Render();
+            Border card = Assert.IsType<Border>(FindNamed<Border>(window, "MemorySliceCard"));
+            window.MouseMove(new Point(4, 4), RawInputModifiers.None);
+            MemoryCoverageCloseScheduler.ScheduledClose pending = clock.Jobs.Last();
+            int scheduledCount = clock.Jobs.Count;
+            Assert.Equal(TimeSpan.FromMilliseconds(320), pending.RequestedDelay);
+            clock.AdvanceBy(TimeSpan.FromMilliseconds(200));
+            target.RaiseEvent(new FocusChangedEventArgs(InputElement.LostFocusEvent));
+            Render();
+            Assert.Equal(scheduledCount, clock.Jobs.Count);
+            Assert.False(pending.IsCancelled);
+            clock.AdvanceBy(TimeSpan.FromMilliseconds(119));
+            Render();
+            Assert.Same(card, FindNamed<Border>(window, "MemorySliceCard"));
+            clock.AdvanceBy(TimeSpan.FromMilliseconds(1));
+            Render();
+            AssertNoOverlay(window);
+        }
+        finally { window.Close(); }
+    }
+
+    /// <summary>A cancelled pre-reset callback cannot dismiss or cancel a newer overlay's timer.</summary>
+    [AvaloniaTheory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void RebuildAndDetachInvalidatePendingCloseCallbacks(bool detach)
+    {
+        var clock = new MemoryCoverageCloseScheduler();
+        Window window = CreateWindow(388, false, MemoryCoverageBarProjectionTests.Example(), out MemoryCoverageBar bar, clock.Schedule);
+        bar.ReducedMotion = true;
+        try
+        {
+            window.MouseMove(BoundsInWindow(MainTarget(bar, 0), window).Center, RawInputModifiers.None);
+            Render();
+            Assert.NotNull(FindNamed<Border>(window, "MemorySliceCard"));
+            window.MouseMove(new Point(4, 4), RawInputModifiers.None);
+            MemoryCoverageCloseScheduler.ScheduledClose stale = clock.Jobs.Last();
+            if (detach)
+            {
+                object? content = window.Content;
+                window.Content = null;
+                Render();
+                Assert.True(stale.IsCancelled);
+                window.Content = content;
+            }
+            else { bar.ItemsSource = MemoryCoverageBarProjectionTests.Example(); }
+            Render();
+            Assert.True(stale.IsCancelled);
+            AssertNoOverlay(window);
+            window.MouseMove(BoundsInWindow(MainTarget(bar, 0), window).Center, RawInputModifiers.None);
+            Render();
+            Border current = Assert.IsType<Border>(FindNamed<Border>(window, "MemorySliceCard"));
+            window.MouseMove(new Point(4, 4), RawInputModifiers.None);
+            MemoryCoverageCloseScheduler.ScheduledClose pending = clock.Jobs.Last();
+            Assert.NotSame(stale, pending);
+            stale.ReplayStaleCallback();
+            Render();
+            Assert.False(pending.IsCancelled);
+            Assert.Same(current, FindNamed<Border>(window, "MemorySliceCard"));
+            clock.AdvanceBy(TimeSpan.FromMilliseconds(319));
+            Render();
+            Assert.Same(current, FindNamed<Border>(window, "MemorySliceCard"));
+            clock.AdvanceBy(TimeSpan.FromMilliseconds(1));
             Render();
             AssertNoOverlay(window);
         }
@@ -781,13 +875,12 @@ public sealed class MemoryCoveragePopupTests
         int width,
         bool dark,
         IEnumerable<MemoryCoverageSegmentViewModel> slices,
-        out MemoryCoverageBar bar)
+        out MemoryCoverageBar bar,
+        Func<Action, TimeSpan, IDisposable>? scheduleClose = null)
     {
-        bar = new MemoryCoverageBar
-        {
-            ItemsSource = slices,
-            Labels = ShellTextResources.For(ShellLanguage.English),
-        };
+        bar = scheduleClose is null ? new MemoryCoverageBar() : new MemoryCoverageBar(scheduleClose);
+        bar.ItemsSource = slices;
+        bar.Labels = ShellTextResources.For(ShellLanguage.English);
         var window = new Window
         {
             Width = width + 32,

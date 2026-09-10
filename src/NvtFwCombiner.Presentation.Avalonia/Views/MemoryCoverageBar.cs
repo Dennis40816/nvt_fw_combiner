@@ -51,7 +51,9 @@ public sealed class MemoryCoverageBar : UserControl
     private readonly Popup _cardPopup = new() { ShouldUseOverlayLayer = true, IsLightDismissEnabled = false };
     private readonly Border _local = Surface("MemoryLocalView");
     private readonly Border _card = Surface("MemorySliceCard");
-    private readonly DispatcherTimer _closeTimer = new() { Interval = TimeSpan.FromMilliseconds(320) };
+    private readonly Func<Action, TimeSpan, IDisposable> _scheduleClose;
+    private IDisposable? _pendingClose;
+    private long _closeGeneration;
     private readonly List<Control> _sliceTargets = [];
     private INotifyCollectionChanged? _collection;
     private INotifyCollectionChanged? _positionCollection;
@@ -67,7 +69,16 @@ public sealed class MemoryCoverageBar : UserControl
 
     /// <summary>Constructs the shared rail using existing bar, color, card and interaction owners.</summary>
     public MemoryCoverageBar()
+        : this(static (callback, delay) => DispatcherTimer.RunOnce(callback, delay, DispatcherPriority.Background))
     {
+    }
+
+    // The scheduler defers callbacks onto the owning UI thread; it never invokes them inline.
+    // Disposing a scheduled callback cancels it; generation also rejects already-queued stale work.
+    internal MemoryCoverageBar(Func<Action, TimeSpan, IDisposable> scheduleClose)
+    {
+        ArgumentNullException.ThrowIfNull(scheduleClose);
+        _scheduleClose = scheduleClose;
         Height = 34;
         ClipToBounds = false;
         _track.Child = _main;
@@ -80,14 +91,8 @@ public sealed class MemoryCoverageBar : UserControl
                     child.Bounds.Contains(e.GetPosition(panel)))) { CloseAll(); }
         };
         MemoryCoverageInteractionBehavior.SetIsEnabled(_card, true);
-        _closeTimer.Tick += (_, _) =>
-        {
-            _closeTimer.Stop();
-            if (!IsInteracting(_groupTarget ?? _cardTarget) &&
-                !IsInteracting(_localPopup.Child) && !IsInteracting(_cardPopup.Child)) { CloseAll(); }
-        };
-        PointerExited += (_, _) => _closeTimer.Start();
-        LostFocus += (_, _) => _closeTimer.Start();
+        PointerExited += (_, _) => StartCloseTimer();
+        LostFocus += (_, _) => StartCloseTimer();
         TrackInputOrigin(this);
         _card.KeyDown += OnCardKeyDown;
     }
@@ -431,8 +436,29 @@ public sealed class MemoryCoverageBar : UserControl
 
     private void WatchTargetExit(Control target)
     {
-        target.PointerExited += (_, _) => _closeTimer.Start();
-        target.LostFocus += (_, _) => _closeTimer.Start();
+        target.PointerExited += (_, _) => StartCloseTimer();
+        target.LostFocus += (_, _) => StartCloseTimer();
+    }
+
+    private void StartCloseTimer()
+    {
+        if (_pendingClose is not null) { return; }
+        long generation = _closeGeneration;
+        _pendingClose = _scheduleClose(() =>
+        {
+            if (generation != _closeGeneration) { return; }
+            StopCloseTimer();
+            if (!IsInteracting(_groupTarget ?? _cardTarget) &&
+                !IsInteracting(_localPopup.Child) && !IsInteracting(_cardPopup.Child)) { CloseAll(); }
+        }, TimeSpan.FromMilliseconds(320));
+    }
+
+    private void StopCloseTimer()
+    {
+        IDisposable? pending = _pendingClose;
+        _pendingClose = null;
+        _closeGeneration++;
+        pending?.Dispose();
     }
 
     private string GroupSummary(MemoryCoverageBarItem item)
@@ -442,7 +468,7 @@ public sealed class MemoryCoverageBar : UserControl
 
     private void OpenLocal(MemoryCoverageBarItem item, Control target, MemoryFocusLaneViewModel? lane = null)
     {
-        _closeTimer.Stop();
+        StopCloseTimer();
         if (_localPopup.IsOpen && ReferenceEquals(item, _activeGroup)) { return; }
         CloseAll();
         _activeGroup = item;
@@ -495,7 +521,7 @@ public sealed class MemoryCoverageBar : UserControl
 
     private void OpenCard(Control target, MemoryCoverageSegmentViewModel slice, bool? preferredAbove)
     {
-        _closeTimer.Stop();
+        StopCloseTimer();
         if (_cardPopup.IsOpen && ReferenceEquals(target, _cardTarget)) { return; }
         CloseCard();
         _cardTarget = target;
@@ -549,9 +575,9 @@ public sealed class MemoryCoverageBar : UserControl
         TrackInputOrigin(frame);
         frame.Children.Add(above ? body : connector);
         frame.Children.Add(above ? connector : body);
-        frame.PointerEntered += (_, _) => _closeTimer.Stop();
-        frame.PointerExited += (_, _) => _closeTimer.Start();
-        frame.LostFocus += (_, _) => _closeTimer.Start();
+        frame.PointerEntered += (_, _) => StopCloseTimer();
+        frame.PointerExited += (_, _) => StartCloseTimer();
+        frame.LostFocus += (_, _) => StartCloseTimer();
         return frame;
     }
 
@@ -613,7 +639,7 @@ public sealed class MemoryCoverageBar : UserControl
 
     private void CloseAll()
     {
-        _closeTimer.Stop();
+        StopCloseTimer();
         _keyboardFocus = false;
         CloseCard();
         FinishReveal(_local);

@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 2,
+  "taskId": "UI-114-TRANSIT-TIMER-SEAM-72",
+  "capability": "Verify the existing popup transit grace through a controllable scheduling boundary",
+  "integrationBase": "2d31d17977d4eb04b586decb44929121fa8c8e1b",
+  "risk": "R1",
+  "kind": "ui",
+  "state": "design-active",
+  "mutablePaths": [
+    "src/NvtFwCombiner.Presentation.Avalonia/Views/MemoryCoverageBar.cs"
+  ],
+  "implementationOwner": "report_commit_inventory",
+  "searchEvidence": [
+    "PR427 exact473304f33b11bf47725bcf68850ead51cefc061b review comment3978716693 identified that an implementation-string assertion did not verify runtime grace duration. The owner-authorized release goal includes correcting this P1 before merge.",
+    "CodeGraph and scoped inspection identify MemoryCoverageBar._closeTimer as the sole existing timer owner: 320ms DispatcherTimer, idempotent Start, cancellation at opening/arrival/CloseAll, original IsInteracting checks at expiry. Headless dispatcher has no existing public controllable clock for this test."
+  ],
+  "semanticOwner": "Presentation MemoryCoverageBar owns popup transit scheduling, interaction checks and cancellation lifecycle",
+  "terminalContract": "Keep the public default constructor and existing 320ms hover grace. Add only an internal per-control deferred UI-thread scheduling dependency, with production using DispatcherTimer.RunOnce. Repeated Start must not extend a pending deadline; cancellation, expiry, arrival, rebuild and detach preserve existing ownership. Deterministic tests advance the actual requested delay, verify survival at319ms, expiry at320ms, cancellation and stale callback isolation. Remove implementation-string timing evidence; retain real production timer smoke. No firmware, public API, global dispatcher, new scheduling framework, dependency or code-size allowance change is admitted.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": null,
+    "outcome": "not-required",
+    "evidence": "Independent bounded-R1 design review at473304f3: one existing control remains lifecycle owner, internal scheduling delegate only; preserve idempotent Start and cancellation/expiry ordering. No cross-layer service. Exact code-size growth must be measured and any required allowance decision remains external to this admission."
+  },
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": { "reviewer": null, "outcome": "pending", "evidence": "" }
+}
