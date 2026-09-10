@@ -139,27 +139,18 @@ public sealed class FileSystemVersionManagerWriteLeaseTests
         string lockPath = FileSystemVersionManagerWriteLease.GetLockPath(statePath);
         string readyPath = Path.Combine(workspace.Root, "lease-ready.txt");
         _ = Directory.CreateDirectory(Path.GetDirectoryName(lockPath)!);
-        using var process = new Process
-        {
-            StartInfo = new ProcessStartInfo
-            {
-                FileName = "powershell.exe",
-                UseShellExecute = false,
-                CreateNoWindow = true,
-            },
-        };
-        process.StartInfo.ArgumentList.Add("-NoProfile");
-        process.StartInfo.ArgumentList.Add("-NonInteractive");
-        process.StartInfo.ArgumentList.Add("-Command");
-        process.StartInfo.ArgumentList.Add(
+        using Process process = CreateLeaseHolderProcess(
+            "[Console]::Out.WriteLine('STARTED');" +
             "$stream=[IO.File]::Open($env:NVT_LEASE_PATH,[IO.FileMode]::OpenOrCreate,[IO.FileAccess]::ReadWrite,[IO.FileShare]::None);" +
-            "[IO.File]::WriteAllText($env:NVT_LEASE_READY,'ready');Start-Sleep -Seconds 30");
+            "[IO.File]::WriteAllText($env:NVT_LEASE_READY,'ready');[Console]::Out.WriteLine('LEASE_HELD');Start-Sleep -Seconds 30");
         process.StartInfo.Environment["NVT_LEASE_PATH"] = lockPath;
         process.StartInfo.Environment["NVT_LEASE_READY"] = readyPath;
         Assert.True(process.Start());
+        Task<string> stdout = process.StandardOutput.ReadToEndAsync(CancellationToken.None);
+        Task<string> stderr = process.StandardError.ReadToEndAsync(CancellationToken.None);
         try
         {
-            await WaitForFileAsync(readyPath, process, TestContext.Current.CancellationToken);
+            await WaitForFileAsync(readyPath, process, stdout, stderr, TestContext.Current.CancellationToken);
             var store = new JsonVersionManagerStateStore(statePath);
             using VersionManagerWriteLeaseResult held = await store.TryAcquireWriteLeaseAsync(
                 TimeSpan.Zero,
@@ -175,26 +166,127 @@ public sealed class FileSystemVersionManagerWriteLeaseTests
         }
         finally
         {
-            if (!process.HasExited)
-            {
-                process.Kill(entireProcessTree: true);
-                await process.WaitForExitAsync(CancellationToken.None);
-            }
+            await StopLeaseHolderAsync(process);
+            _ = await Task.WhenAll(stdout, stderr).WaitAsync(TimeSpan.FromSeconds(5), CancellationToken.None);
         }
     }
 
     private static async Task WaitForFileAsync(
         string path,
         Process process,
+        Task<string> stdout,
+        Task<string> stderr,
         CancellationToken cancellationToken)
     {
+        var elapsed = Stopwatch.StartNew();
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         timeout.CancelAfter(TimeSpan.FromSeconds(10));
-        while (!File.Exists(path))
+        string? failure = null;
+        try
         {
-            Assert.False(process.HasExited, "Lease-holder process exited before acquiring the file lease.");
-            await Task.Delay(TimeSpan.FromMilliseconds(25), timeout.Token);
+            while (!File.Exists(path))
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                if (process.HasExited)
+                {
+                    failure = "child exited before READY";
+                    break;
+                }
+                await Task.Delay(TimeSpan.FromMilliseconds(25), timeout.Token);
+            }
         }
+        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+        {
+            failure = "readiness timed out after 10s";
+        }
+        cancellationToken.ThrowIfCancellationRequested();
+        if (failure is null)
+        {
+            return;
+        }
+
+        string state = $"PID={process.Id}; ElapsedMs={elapsed.ElapsedMilliseconds}; " +
+            $"HasExited={process.HasExited}; ReadyExists={File.Exists(path)}; CallerCancelled={cancellationToken.IsCancellationRequested}";
+        // A sleeping child keeps both pipes open: reap it before awaiting complete diagnostic output.
+        try
+        {
+            await StopLeaseHolderAsync(process);
+            string[] output = await Task.WhenAll(stdout, stderr).WaitAsync(TimeSpan.FromSeconds(5), CancellationToken.None);
+            throw new Xunit.Sdk.XunitException(
+                $"Lease-holder {failure}. {state}; ExitCode={process.ExitCode}\nstdout/stages:\n{output[0]}\nstderr:\n{output[1]}");
+        }
+        catch (Exception cleanupError) when (cleanupError is TimeoutException or IOException or InvalidOperationException or System.ComponentModel.Win32Exception)
+        {
+            throw new Xunit.Sdk.XunitException($"Lease-holder {failure}. {state}; diagnostic cleanup failed: {cleanupError}");
+        }
+    }
+
+    /// <summary>Readiness failures explain the child phase and error, and always reap the helper.</summary>
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task WindowsReadinessFailureReportsChildDiagnostics(bool neverReady)
+    {
+        if (!OperatingSystem.IsWindows())
+        {
+            return;
+        }
+        using var workspace = TempWorkspace.Create("nfc-version-lease-diagnostics");
+        string readyPath = Path.Combine(workspace.Root, "lease-ready.txt");
+        using Process process = CreateLeaseHolderProcess(
+            "[Console]::Out.WriteLine('STARTED');" +
+            (neverReady ? "Start-Sleep -Seconds 30" : "throw 'lease-probe-error'"));
+        Assert.True(process.Start());
+        Task<string> stdout = process.StandardOutput.ReadToEndAsync(CancellationToken.None);
+        Task<string> stderr = process.StandardError.ReadToEndAsync(CancellationToken.None);
+        try
+        {
+            Xunit.Sdk.XunitException failure = await Assert.ThrowsAsync<Xunit.Sdk.XunitException>(() =>
+                WaitForFileAsync(readyPath, process, stdout, stderr, TestContext.Current.CancellationToken));
+            Assert.Contains("STARTED", failure.Message, StringComparison.Ordinal);
+            Assert.Contains("ReadyExists=False", failure.Message, StringComparison.Ordinal);
+            Assert.Contains("CallerCancelled=False", failure.Message, StringComparison.Ordinal);
+            Assert.Contains(neverReady ? "readiness timed out after 10s" : "child exited before READY", failure.Message, StringComparison.Ordinal);
+            if (!neverReady)
+            {
+                Assert.Contains("lease-probe-error", failure.Message, StringComparison.Ordinal);
+            }
+            Assert.True(process.HasExited);
+        }
+        finally
+        {
+            await StopLeaseHolderAsync(process);
+            _ = await Task.WhenAll(stdout, stderr).WaitAsync(TimeSpan.FromSeconds(5), CancellationToken.None);
+        }
+    }
+
+    private static Process CreateLeaseHolderProcess(string script)
+    {
+        var process = new Process
+        {
+            StartInfo = new ProcessStartInfo
+            {
+                FileName = "powershell.exe",
+                UseShellExecute = false,
+                CreateNoWindow = true,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+            },
+        };
+        process.StartInfo.ArgumentList.Add("-NoProfile");
+        process.StartInfo.ArgumentList.Add("-NonInteractive");
+        process.StartInfo.ArgumentList.Add("-Command");
+        process.StartInfo.ArgumentList.Add("$ErrorActionPreference='Stop';" + script);
+        return process;
+    }
+
+    private static async Task StopLeaseHolderAsync(Process process)
+    {
+        if (!process.HasExited)
+        {
+            process.Kill(entireProcessTree: true);
+        }
+        await process.WaitForExitAsync(CancellationToken.None).WaitAsync(TimeSpan.FromSeconds(5), CancellationToken.None);
     }
 
     private sealed class DisposableStub : IDisposable
