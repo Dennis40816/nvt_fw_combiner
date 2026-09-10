@@ -29,7 +29,7 @@ internal sealed partial class WorkflowSessionPresentationViewModel
                 _merge.MergeDpSlot.HasFile ||
                 _merge.MergeTpSlot.HasFile ||
                 _merge.MergeLdcSlot.HasFile ||
-                _merge.AbMergeSlots.Any(static slot => slot.HasFile) ||
+                _merge.AbMergeSlotsByAddressSpace.Values.Any(static slot => slot.HasFile) ||
                 _merge.MergeSlots.Any(static slot => slot.HasFile) ||
                 _merge.GeneralMergeMappings.Any(static mapping => mapping.HasFile),
             ShellPage.Replace =>
@@ -68,7 +68,7 @@ internal sealed partial class WorkflowSessionPresentationViewModel
         {
             _merge.ClearStandardMergeAuthoringSelections();
             foreach (FirmwareSlotViewModel slot in _merge.MergeSlots
-                         .Concat(_merge.AbMergeSlots)
+                         .Concat(_merge.AbMergeSlotsByAddressSpace.Values)
                          .Concat([_merge.MergeDpSlot, _merge.MergeTpSlot, _merge.MergeLdcSlot])
                          .Distinct())
             {

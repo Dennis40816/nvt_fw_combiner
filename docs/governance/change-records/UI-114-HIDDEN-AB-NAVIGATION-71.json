@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 2,
+  "taskId": "UI-114-HIDDEN-AB-NAVIGATION-71",
+  "capability": "Include cached AB selections in navigation confirmation and selection clearing",
+  "integrationBase": "e442fff926eca930bcee062360a99b49c14a805f",
+  "risk": "R1",
+  "kind": "ui",
+  "state": "design-active",
+  "mutablePaths": [
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/WorkflowSessionPresentationViewModel.Slots.cs"
+  ],
+  "implementationOwner": "standard_memory_tests",
+  "searchEvidence": [
+    "Owner-authorized release blocker correction; exact source path, R1 scope, existing cache owner and navigation regression acceptance were recorded in task discussion before editing at bfa261e044034172b86a969a7638c7eb548fd7dd.",
+    "MergePresentationViewModel.State.cs AbMergeSlots projects only current bindings; Requirements.cs clears those bindings on General navigation. WorkflowSessionPresentationViewModel.Slots.cs HasSelectedInputs and ClearSelectedInputs therefore omit cached selections. Existing HiddenAbMergeSlotsWarnAndClearAcrossModesAndProfilesAsync General case failed in preserved full-run ui-red.trx."
+  ],
+  "semanticOwner": "MergePresentationViewModel.AbMergeSlotsByAddressSpace owns cached selections; WorkflowSessionPresentationViewModel owns navigation guard and clear projection",
+  "terminalContract": "Only navigation HasSelectedInputs and ClearSelectedInputs enumerate existing AbMergeSlotsByAddressSpace.Values. Both Standard and General transitions warn and clear retained selections. Keep filtered AbMergeSlots for authoring/inspection; do not change firmware execution, mapping, support, file bytes or filesystem deletion. Preserve existing navigation regression assertions.",
+  "disposition": "reuse",
+  "designReview": {
+    "reviewer": null,
+    "outcome": "not-required",
+    "evidence": "Bounded local R1 under ADR0070; independent scoped correctness review and existing navigation tests required before finalization."
+  },
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": { "reviewer": null, "outcome": "pending", "evidence": "" }
+}
