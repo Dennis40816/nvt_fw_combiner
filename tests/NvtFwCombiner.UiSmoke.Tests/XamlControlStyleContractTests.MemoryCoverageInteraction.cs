@@ -37,9 +37,6 @@ public sealed partial class XamlControlStyleContractTests
         Assert.Contains("Property=\"BorderThickness\" Value=\"0\"", barSegment, StringComparison.Ordinal);
         Assert.DoesNotContain("BorderBrush", barSegment, StringComparison.Ordinal);
         Assert.DoesNotContain("BorderThickness", linkedSegment, StringComparison.Ordinal);
-        Assert.Equal(
-            2,
-            templates.Split("RenderTransformOrigin=\"50%,50%\"", StringSplitOptions.None).Length - 1);
         AssertUsesSharedCoverageBar(templates, "{Binding MergeCoverageSegments}", plain: true);
         AssertUsesSharedCoverageBar(workflowTemplates, "{Binding ReplaceCoverageSegments}", plain: false);
         Assert.DoesNotContain("NfcMemoryAddressTextBrush", linkedSegment, StringComparison.Ordinal);
@@ -85,8 +82,10 @@ public sealed partial class XamlControlStyleContractTests
         Assert.Contains("x:Key=\"NfcMemoryTrackBrush\" Color=\"#E7EDF5\"", themeTokens, StringComparison.Ordinal);
         Assert.Contains("x:Key=\"NfcMemoryTrackBrush\" Color=\"#263449\"", themeTokens, StringComparison.Ordinal);
         Assert.DoesNotContain("NfcMemorySegmentDividerBrush", themeTokens, StringComparison.Ordinal);
-        Assert.Equal(2, themeTokens.Split("x:Key=\"NfcMemoryRowHoverShadow\"", StringSplitOptions.None).Length - 1);
-        Assert.Equal(2, themeTokens.Split("x:Key=\"NfcMemorySegmentHoverShadow\"", StringSplitOptions.None).Length - 1);
+        // Effective light/dark shadows and lift geometry are exercised by
+        // MemoryCoverageSoftLiftAppliesWithoutEdgeInProductionStyles and
+        // LiftKeepsLabelScaleUnchangedDuringAndAfterAnimation. Do not bind
+        // those behaviors to resource/template occurrence counts in a file.
     }
 
     /// <summary>First, middle, and last segments lift without retaining the divider as a visible edge.</summary>

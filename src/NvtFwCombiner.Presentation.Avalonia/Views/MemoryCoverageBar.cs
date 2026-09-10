@@ -6,7 +6,6 @@ using Avalonia.Animation.Easings;
 using Avalonia.Automation;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
-using Avalonia.Controls.Shapes;
 using Avalonia.Controls.Templates;
 using Avalonia.Data;
 using Avalonia.Input;
@@ -483,7 +482,7 @@ public sealed class MemoryCoverageBar : UserControl
         double left = target.TranslatePoint(default, anchor)?.X ?? 0;
         foreach ((double localX, double mainX) in new[] { (3d, left), (Bounds.Width - 3, left + target.Bounds.Width) })
         {
-            connector.Children.Add(Connector(new Point(localX, _localAbove ? 0 : 32), new Point(mainX, _localAbove ? 32 : 0)));
+            connector.Children.Add(MemoryCoverageConnectorVisuals.Connector(new Point(localX, _localAbove ? 0 : 32), new Point(mainX, _localAbove ? 32 : 0)));
         }
         StackPanel frame = PopupFrame(_local, connector, _localAbove);
         _localPopup.Child = frame;
@@ -533,7 +532,7 @@ public sealed class MemoryCoverageBar : UserControl
                     return new Rect(point.X - left, point.Y - connectorTop, block.Bounds.Width, block.Bounds.Height);
                 })]
             : [];
-        Canvas connector = CardConnector(anchor, connectorHeight, above, labels);
+        Canvas connector = MemoryCoverageConnectorVisuals.CardConnector(anchor, connectorHeight, above, labels);
         _cardPopup.Child = PopupFrame(_card, connector, above);
         _cardPopup.Width = width;
         _cardPopup.PlacementTarget = target;
@@ -543,47 +542,6 @@ public sealed class MemoryCoverageBar : UserControl
         Reveal(_card, _cardPopup, above);
     }
 
-    private static Line Connector(Point start, Point end, string strokeResource = "NfcBorderMutedBrush")
-    {
-        var line = new Line { StartPoint = start, EndPoint = end, StrokeThickness = 1, IsHitTestVisible = false };
-        _ = line.Bind(Shape.StrokeProperty, new DynamicResourceExtension(strokeResource));
-        return line;
-    }
-
-    private static Canvas CardConnector(double anchor, double height, bool above, IReadOnlyList<Rect> labels)
-    {
-        var canvas = new Canvas { Height = height, ClipToBounds = false };
-        double edge = above ? -1 : height + 1;
-        double tip = above ? 6 : height - 6;
-        double terminal = above ? height : 0;
-        var points = new List<Point> { new(anchor - 6, edge), new(anchor, tip), new(anchor + 6, edge) };
-        var fill = new Polygon { Name = "MemoryCardNotch", Points = points, IsHitTestVisible = false };
-        _ = fill.Bind(Shape.FillProperty, new DynamicResourceExtension("NfcMemoryInteractionSurfaceBrush"));
-        canvas.Children.Add(fill);
-        var outline = new Polyline { Points = points, StrokeThickness = 1, IsHitTestVisible = false };
-        _ = outline.Bind(Shape.StrokeProperty, new DynamicResourceExtension("NfcAccentBorderBrush"));
-        canvas.Children.Add(outline);
-        // A left-edge slice may align with local text. Interrupt only the decorative
-        // stem behind those glyph bounds; its endpoint still identifies the exact slice.
-        // Connect the selected leaf directly to the card notch.
-        // The wider local-view projection continues to use the quiet connector brush.
-        double cursor = Math.Min(tip, terminal);
-        double limit = Math.Max(tip, terminal);
-        foreach (Rect label in labels.Where(rect => anchor >= rect.Left - 2 && anchor <= rect.Right + 2).OrderBy(static rect => rect.Top))
-        {
-            double start = Math.Clamp(label.Top - 2, cursor, limit);
-            if (start > cursor) { canvas.Children.Add(Connector(new Point(anchor, cursor), new Point(anchor, start), "NfcTextStrongBrush")); }
-            cursor = Math.Clamp(label.Bottom + 2, start, limit);
-        }
-        if (cursor < limit) { canvas.Children.Add(Connector(new Point(anchor, cursor), new Point(anchor, limit), "NfcTextStrongBrush")); }
-        var dot = new Ellipse { Name = "MemoryCardAnchor", Width = 4, Height = 4, StrokeThickness = 1, IsHitTestVisible = false };
-        _ = dot.Bind(Shape.StrokeProperty, new DynamicResourceExtension("NfcAccentStrongBrush"));
-        _ = dot.Bind(Shape.FillProperty, new DynamicResourceExtension("NfcSurfaceBrush"));
-        Canvas.SetLeft(dot, anchor - 2);
-        Canvas.SetTop(dot, terminal - 2);
-        canvas.Children.Add(dot);
-        return canvas;
-    }
 
     private StackPanel PopupFrame(Control body, Control connector, bool above)
     {

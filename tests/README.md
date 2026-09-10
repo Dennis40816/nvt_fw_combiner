@@ -713,6 +713,26 @@ remain separate. Scoped local R1 Polytail: **PASS**; one existing layout owner,
 no additional state or semantic path. This is not native DPI/accessibility,
 persisted report replay, full-suite, integration or release Golden certification.
 
+## Memory connector responsibility and test coupling — 2026-09-10
+
+Base `fa85c3b7`. `MemoryCoverageBar` retains input origin, subscriptions,
+focus, popup lifecycle and placement. Internal `MemoryCoverageConnectorVisuals`
+only creates decorative shapes from screen coordinates and label rectangles;
+the extracted method bodies are unchanged, without firmware state or a new
+public contract. Removed three whole-file occurrence counts (transform origin
+and two shadow keys), retaining actual theme/shadow/lift/label-scale tests and
+the other wiring assertions whose replacement has not been demonstrated.
+
+Baseline popup/geometry: **61/61, zero skipped, 25 s**, retained in
+`D:/NvtFwCombiner-TestArea/evidence/v114-memory-responsibility78/baseline.trx`.
+Post-change popup/geometry/soft-lift plus four Standard cases: **72/72, zero
+skipped, 47 s**, in `D:/NvtFwCombiner-TestArea/evidence/v114-standard-memory79/final.trx`.
+Command: `dotnet test tests/NvtFwCombiner.UiSmoke.Tests --no-restore --filter`
+with `FullyQualifiedName~MemoryCoveragePopupTests|FullyQualifiedName~MemoryCoverageBarGeometryTests|FullyQualifiedName~MemoryCoverageSoftLift|FullyQualifiedName~StandardMemoryLayoutControlTests`.
+Independent scoped review found no findings; primary combined that fixed-diff
+review with passing tests for local R1 Polytail **PASS**. No firmware contract,
+Golden expectation, release admission or native acceptance changed.
+
 ## Running and maintaining this view
 
 Use [`CONTRIBUTING.md`](../CONTRIBUTING.md) to initialize the existing fixed
