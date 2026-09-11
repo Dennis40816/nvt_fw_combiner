@@ -7,14 +7,18 @@ explicitly **v1.1.3**, not fresh measurements of the current UI changes.
 
 ## v1.1.5 local scheduling change
 
-The local implementation now finishes structure checks and the existing
-checkout restore/build before submitting the test workloads together to the
-existing `--jobs` pool. The coverage-only workload is submitted first, followed
-by complete script test modules and the CRC worker. Each module retains its
+The local implementation finishes derived-data checking and the existing
+SDK/restore with tracked lock projections restored before starting one `--jobs`
+pool. Its first lane runs post-restore checks/build followed by coverage under
+one deadline. Structure postchecks may overlap this lane; script modules and
+the CRC worker wait for successful build readiness without waiting for structure.
+All required gates still contribute to the final result. Builder terminal paths
+fail pending readiness, and all workers join before cleanup. Each module retains its
 original shard's shared deadline, beginning at that shard's first module start;
 queued modules consume the remaining budget and fail without launching if it
 expires. The validated CI shard inventory remains the source of membership.
-`--jobs=1` remains serial. SDK
+Build waiting consumes the same deadline; it does not create a new budget.
+`--jobs=1` remains serial, with the builder first to avoid dependency deadlock. SDK
 cleanup runs after the workload pool terminates, including failure paths.
 CI and release-Golden entry points retain their existing execution paths.
 

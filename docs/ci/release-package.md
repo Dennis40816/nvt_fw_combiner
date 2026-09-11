@@ -320,9 +320,16 @@ The stable `python-worker / verify` check includes all three repository-script
 shards: CI runs them on independent Windows matrix runners, then rejects any
 non-success matrix result before running the worker-only lane. Each invocation
 uses the existing verifier's exhaustive/disjoint partition, session custody and
-deadline. The v1.1.5 local `verify.py --all` path completes structure checks
-and shared checkout restore/build before overlapping test workloads through the
-existing bounded lane pool. Local script work is scheduled as complete test
+deadline. The v1.1.5 local `verify.py --all` path completes the derived-data
+check and shared SDK/restore, including restoration of tracked lock projections,
+before starting one bounded lane pool. Structure postchecks may overlap the
+post-restore build and subsequent tests. The build-to-coverage lane starts first
+and retains one slot and deadline; scripts and CRC wait for successful build
+readiness within their own existing budgets. A failed or cancelled builder
+terminates pending readiness rather than leaving waiters blocked. Coverage
+failure does not revoke successful build readiness, but still fails the complete
+verification. Every required gate must pass before the overall result is PASS.
+Local script work is scheduled as complete test
 modules from the same exhaustive/disjoint inventory, with one shared deadline
 per original shard, starting at that shard's first module. Queue time after that
 start consumes the same budget; expired modules fail without starting. This does

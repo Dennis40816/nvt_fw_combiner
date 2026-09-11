@@ -23,7 +23,7 @@ import threading
 import xml.etree.ElementTree as ET
 from collections import Counter
 from collections.abc import Callable, Sequence
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import Future, ThreadPoolExecutor, as_completed
 from contextlib import ExitStack, contextmanager
 from contextvars import ContextVar, copy_context
 from ctypes import wintypes
@@ -324,6 +324,7 @@ class VerificationLane:
     isolate_action: bool = False
     internal_name: str | None = None
     deadline_group: str | None = None
+    on_terminal: Callable[[BaseException | None], None] | None = None
 
 
 @dataclass(frozen=True)
@@ -949,7 +950,15 @@ def run_with_log(
 
 
 def verify_structure(log_path: Path | None = None) -> None:
+    verify_structure_sync(log_path)
+    verify_structure_postchecks(log_path)
+
+
+def verify_structure_sync(log_path: Path | None = None) -> None:
     run([sys.executable, "scripts/sync_derived.py"], log_path=log_path)
+
+
+def verify_structure_postchecks(log_path: Path | None = None) -> None:
     run([sys.executable, "scripts/validate_repository.py"], log_path=log_path)
     run([sys.executable, "scripts/polytail_check.py"], log_path=log_path)
     run(
@@ -3535,6 +3544,18 @@ def run_dotnet_build_plan(
 ) -> None:
     """Run the SDK, solution-restore, and Release-build owner."""
 
+    run_dotnet_restore_plan(dotnet, environment=environment, log_path=log_path)
+    run_dotnet_post_restore_build_plan(
+        dotnet, environment=environment, log_path=log_path,
+        include_prebuild_checks=include_prebuild_checks,
+    )
+
+
+def run_dotnet_restore_plan(
+    dotnet: str, *, environment: dict[str, str], log_path: Path | None,
+) -> None:
+    """Complete restore and its lock-projection restoration before checkout readers."""
+
     run([dotnet, "--version"], environment=environment, log_path=log_path)
     run_solution_restore_preserving_lock_projections(
         [dotnet, "restore", str(SOLUTION)],
@@ -3543,6 +3564,12 @@ def run_dotnet_build_plan(
         repository_root=ROOT,
         solution=SOLUTION,
     )
+def run_dotnet_post_restore_build_plan(
+    dotnet: str, *, environment: dict[str, str], log_path: Path | None,
+    include_prebuild_checks: bool = True,
+) -> None:
+    """Run the existing no-restore build checks against restored assets."""
+
     run_dotnet_commands(
         dotnet_build_commands(dotnet, include_prebuild_checks=include_prebuild_checks),
         environment=environment,
@@ -4815,6 +4842,7 @@ def parse_args(arguments: Sequence[str] | None = None) -> argparse.Namespace:
         "--internal-lane",
         choices=(
             "structure",
+            "structure-postchecks",
             *(name for name, _pattern in REPOSITORY_SCRIPT_TEST_SHARDS),
             "python",
             "dotnet",
@@ -4982,6 +5010,7 @@ def run_internal_lane(name: str) -> None:
 
     actions: dict[str, LaneAction] = {
         "structure": verify_structure,
+        "structure-postchecks": verify_structure_postchecks,
         "python": verify_python,
         "dotnet": verify_dotnet,
         "dotnet-coverage": verify_local_dotnet_coverage,
@@ -5031,6 +5060,25 @@ def run_lanes(
     log_directory.mkdir(parents=True, exist_ok=True)
     group_deadlines: dict[str, float] = {}
     group_deadlines_lock = threading.Lock()
+    notified: set[str] = set()
+    notification_lock = threading.Lock()
+
+    def notify_terminal(lane: VerificationLane, failure: BaseException | None) -> BaseException | None:
+        with notification_lock:
+            if lane.name in notified:
+                return failure
+            notified.add(lane.name)
+        if lane.on_terminal is not None:
+            try:
+                lane.on_terminal(failure)
+            except BaseException as error:
+                return combine_failures(failure, error, secondary_label="terminal notification")
+        return failure
+
+    def notify_aborted(failure: BaseException) -> BaseException:
+        for lane in lanes:
+            failure = notify_terminal(lane, failure) or failure
+        return failure
 
     def run_lane(lane: VerificationLane) -> LaneResult:
         log_path = log_directory / f"{lane.name}.log"
@@ -5040,6 +5088,7 @@ def run_lanes(
             with group_deadlines_lock:
                 deadline = group_deadlines.setdefault(lane.deadline_group, deadline)
         deadline_token = LANE_DEADLINE.set(deadline)
+        failure: BaseException | None = None
         try:
             remaining_timeout()
             if lane.isolate_action:
@@ -5047,57 +5096,62 @@ def run_lanes(
             else:
                 lane.action(log_path)
             remaining_timeout()
-        except Exception as error:
+        except BaseException as error:
+            failure = error
+        finally:
+            LANE_DEADLINE.reset(deadline_token)
+        failure = notify_terminal(lane, failure)
+        if isinstance(failure, Exception):
             return LaneResult(
                 lane.name,
                 False,
                 monotonic() - started,
                 log_path,
-                f"{type(error).__name__}: {error}",
+                f"{type(failure).__name__}: {failure}",
             )
-        finally:
-            LANE_DEADLINE.reset(deadline_token)
+        if failure is not None:
+            raise failure
         return LaneResult(lane.name, True, monotonic() - started, log_path)
 
     if jobs == 1 or len(lanes) < 2:
         PROCESS_CANCELLATION_REQUESTED.clear()
         try:
             return tuple(run_lane(lane) for lane in lanes)
-        except KeyboardInterrupt:
-            cancel_active_processes_after_handoffs()
-            raise
+        except BaseException as error:
+            failure = notify_aborted(error)
+            if isinstance(error, KeyboardInterrupt):
+                try:
+                    cancel_active_processes_after_handoffs()
+                except BaseException as cleanup_error:
+                    failure = combine_failures(failure, cleanup_error)
+            raise failure
         finally:
             if not preserve_cancellation_request:
                 PROCESS_CANCELLATION_REQUESTED.clear()
 
     PROCESS_CANCELLATION_REQUESTED.clear()
     results: dict[str, LaneResult] = {}
-    executor = ThreadPoolExecutor(max_workers=min(jobs, len(lanes)))
+    executor: ThreadPoolExecutor | None = None
     futures = {}
     try:
+        executor = ThreadPoolExecutor(max_workers=min(jobs, len(lanes)))
         for lane in lanes:
             futures[executor.submit(run_lane, lane)] = lane.name
         for future in as_completed(futures):
             result = future.result()
             results[result.name] = result
-    except KeyboardInterrupt:
-        cleanup_error: Exception | None = None
-        try:
-            cancel_active_processes_after_handoffs()
-        except Exception as error:
-            cleanup_error = error
-        finally:
-            for future in futures:
-                future.cancel()
-            executor.shutdown(wait=True, cancel_futures=True)
-        if cleanup_error is not None:
-            raise cleanup_error
-        raise
-    except BaseException:
+    except BaseException as error:
+        failure = notify_aborted(error)
+        if isinstance(error, KeyboardInterrupt):
+            try:
+                cancel_active_processes_after_handoffs()
+            except BaseException as cleanup_error:
+                failure = combine_failures(failure, cleanup_error)
         for future in futures:
             future.cancel()
-        executor.shutdown(wait=True, cancel_futures=True)
-        raise
+        if executor is not None:
+            executor.shutdown(wait=True, cancel_futures=True)
+        raise failure
     else:
         executor.shutdown(wait=True)
         return tuple(results[lane.name] for lane in lanes)
@@ -5175,6 +5229,82 @@ def validate_internal_lane_arguments(args: argparse.Namespace) -> None:
         )
     if os.environ.get(INTERNAL_LANE_ENVIRONMENT_VARIABLE) != "1":
         raise SystemExit("--internal-lane requires a parent-owned process marker")
+
+
+def run_local_full_verification(args: argparse.Namespace) -> None:
+    """Overlap post-restore gates in one pool, with build readiness owned by its lane."""
+
+    dotnet = resolve_dotnet()
+    environment = dotnet_batch_environment()
+    ready: Future[None] = Future()
+    readiness_lock = threading.Lock()
+
+    def fail_pending(error: BaseException | None) -> None:
+        with readiness_lock:
+            if not ready.done():
+                ready.set_exception(error or RuntimeError("build ended before readiness"))
+
+    def build_and_collect(log_path: Path | None) -> None:
+        run_dotnet_post_restore_build_plan(dotnet, environment=environment, log_path=log_path)
+        remaining_timeout()
+        with readiness_lock:
+            if ready.done():
+                ready.result()
+            else:
+                ready.set_result(None)
+        assert log_path is not None
+        run_isolated_lane("dotnet-coverage", log_path)
+
+    def after_build(lane: VerificationLane) -> VerificationLane:
+        def action(log_path: Path | None) -> None:
+            while True:
+                if PROCESS_CANCELLATION_REQUESTED.is_set():
+                    raise RuntimeError("verification build wait was cancelled")
+                timeout = remaining_timeout()
+                try:
+                    ready.result(timeout=min(0.1, timeout) if timeout is not None else 0.1)
+                    break
+                except TimeoutError:
+                    if ready.done():
+                        raise
+            remaining_timeout()
+            if lane.isolate_action:
+                assert log_path is not None
+                run_isolated_lane(lane.internal_name or lane.name, log_path)
+            else:
+                lane.action(log_path)
+        return VerificationLane(lane.name, action, deadline_group=lane.deadline_group)
+
+    failure: BaseException | None = None
+    try:
+        if not args.skip_structure:
+            run_selected_lanes(
+                (VerificationLane("structure-sync", verify_structure_sync),),
+                jobs=args.jobs, lane_timeout_seconds=args.lane_timeout_seconds,
+            )
+        run_selected_lanes(
+            (VerificationLane("dotnet-restore", lambda log: run_dotnet_restore_plan(
+                dotnet, environment=environment, log_path=log,
+            )),),
+            jobs=args.jobs, lane_timeout_seconds=args.lane_timeout_seconds,
+        )
+        lanes = [VerificationLane("dotnet", build_and_collect, on_terminal=fail_pending)]
+        if not args.skip_structure:
+            lanes.append(VerificationLane("structure", verify_structure_postchecks,
+                                          isolate_action=True, internal_name="structure-postchecks"))
+        lanes.extend(after_build(lane) for lane in local_repository_script_lanes())
+        lanes.append(after_build(VerificationLane("python", verify_python, isolate_action=True)))
+        run_selected_lanes(lanes, jobs=args.jobs, lane_timeout_seconds=args.lane_timeout_seconds)
+    except BaseException as error:
+        failure = error
+    finally:
+        fail_pending(failure)
+        try:
+            cleanup_dotnet_batch(dotnet, environment, None)
+        except BaseException as error:
+            failure = combine_failures(failure, error)
+    if failure is not None:
+        raise failure
 
 
 def execute_verification(args: argparse.Namespace) -> int:
@@ -5257,47 +5387,16 @@ def execute_verification(args: argparse.Namespace) -> int:
             raise RuntimeError("verification plan selected no lanes")
         structure = tuple(lane for lane in lanes if lane.name == "structure")
         workloads = tuple(lane for lane in lanes if lane.name != "structure")
-        if structure:
+        full_local = not args.structure_only and not args.skip_dotnet and not args.skip_python
+        if full_local:
+            run_local_full_verification(args)
+        elif structure:
             run_selected_lanes(
                 structure,
                 jobs=args.jobs,
                 lane_timeout_seconds=args.lane_timeout_seconds,
             )
-        if not args.structure_only and not args.skip_dotnet and not args.skip_python:
-            dotnet = resolve_dotnet()
-            environment = dotnet_batch_environment()
-            failure: BaseException | None = None
-            try:
-                run_selected_lanes(
-                    (VerificationLane(
-                        "dotnet-build",
-                        lambda log_path: run_dotnet_build_plan(
-                            dotnet, environment=environment, log_path=log_path,
-                        ),
-                    ),),
-                    jobs=args.jobs,
-                    lane_timeout_seconds=args.lane_timeout_seconds,
-                )
-                # Start the longest owner first; scripts only read checkout build inputs.
-                run_selected_lanes(
-                    (VerificationLane(
-                        "dotnet", verify_local_dotnet_coverage,
-                        isolate_action=True, internal_name="dotnet-coverage",
-                    ), *local_repository_script_lanes(),
-                     *(lane for lane in workloads if lane.name == "python")),
-                    jobs=args.jobs,
-                    lane_timeout_seconds=args.lane_timeout_seconds,
-                )
-            except BaseException as error:
-                failure = error
-            finally:
-                try:
-                    cleanup_dotnet_batch(dotnet, environment, None)
-                except BaseException as error:
-                    failure = combine_failures(failure, error)
-            if failure is not None:
-                raise failure
-        elif workloads:
+        if not full_local and workloads:
             run_selected_lanes(
                 workloads,
                 jobs=args.jobs,

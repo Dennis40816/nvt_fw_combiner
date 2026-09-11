@@ -738,6 +738,90 @@ class VerifyOrchestrationTests(unittest.TestCase):
             ):
                 MODULE.repository_script_test_shards()
 
+    def test_local_full_pool_restores_before_postchecks_and_runs_tests_without_waiting_for_structure(self) -> None:
+        for structure_fails in (False, True):
+            with self.subTest(structure_fails=structure_fails):
+                restored = threading.Event()
+                built = threading.Event()
+                python_finished = threading.Event()
+                structure_finished = threading.Event()
+                observations = []
+
+                def restore(*_args, **_kwargs):
+                    restored.set()
+
+                def build(*_args, **_kwargs):
+                    self.assertTrue(restored.is_set())
+                    built.set()
+
+                def postchecks(_log):
+                    self.assertTrue(restored.is_set(), "postchecks overlapped restore")
+                    self.assertTrue(python_finished.wait(3), "Python waited for structure")
+                    structure_finished.set()
+                    if structure_fails:
+                        raise RuntimeError("structure probe")
+
+                def isolated(name, log):
+                    if name in ("structure", "structure-postchecks"):
+                        postchecks(log)
+                    else:
+                        self.assertTrue(built.is_set(), f"{name} preceded build")
+                        if name == "python":
+                            observations.append(structure_finished.is_set())
+                            python_finished.set()
+
+                with (
+                    patch.dict(os.environ, {MODULE.INTERNAL_LANE_ENVIRONMENT_VARIABLE: ""}),
+                    patch.object(MODULE, "verify_structure_sync", create=True),
+                    patch.object(MODULE, "verify_structure_postchecks", side_effect=postchecks, create=True),
+                    patch.object(MODULE, "run_dotnet_restore_plan", side_effect=restore, create=True),
+                    patch.object(MODULE, "run_dotnet_post_restore_build_plan", side_effect=build, create=True),
+                    patch.object(MODULE, "run_dotnet_build_plan", side_effect=lambda *_args, **_kwargs: (restore(), build())),
+                    patch.object(MODULE, "resolve_dotnet", return_value="selected-dotnet"),
+                    patch.object(MODULE, "local_repository_script_lanes", return_value=()),
+                    patch.object(MODULE, "run_isolated_lane", side_effect=isolated),
+                    patch.object(MODULE, "cleanup_dotnet_batch") as cleanup,
+                    contextlib.redirect_stdout(io.StringIO()),
+                    contextlib.redirect_stderr(io.StringIO()),
+                ):
+                    result = MODULE.execute_verification(MODULE.parse_args(["--all"]))
+                self.assertEqual(int(structure_fails), result)
+                self.assertEqual([False], observations)
+                cleanup.assert_called_once()
+
+    def test_local_builder_and_coverage_keep_one_deadline(self) -> None:
+        clock = [100.0]
+        deadlines = []
+
+        def build(*_args, **_kwargs):
+            deadlines.append(MODULE.LANE_DEADLINE.get())
+            clock[0] += 57
+
+        def isolated(name, _log):
+            if name == "dotnet-coverage":
+                deadlines.append(MODULE.LANE_DEADLINE.get())
+                self.assertEqual(3, MODULE.remaining_timeout())
+                clock[0] += 4
+
+        with (
+            patch.dict(os.environ, {MODULE.INTERNAL_LANE_ENVIRONMENT_VARIABLE: ""}),
+            patch.object(MODULE, "monotonic", side_effect=lambda: clock[0]),
+            patch.object(MODULE, "resolve_dotnet", return_value="selected-dotnet"),
+            patch.object(MODULE, "run_dotnet_restore_plan"),
+            patch.object(MODULE, "run_dotnet_post_restore_build_plan", side_effect=build),
+            patch.object(MODULE, "local_repository_script_lanes", return_value=()),
+            patch.object(MODULE, "run_isolated_lane", side_effect=isolated),
+            patch.object(MODULE, "cleanup_dotnet_batch") as cleanup,
+            contextlib.redirect_stdout(io.StringIO()),
+            contextlib.redirect_stderr(io.StringIO()),
+        ):
+            result = MODULE.execute_verification(MODULE.parse_args(
+                ["--skip-structure", "--jobs=1", "--lane-timeout-seconds=60"]
+            ))
+        self.assertEqual(1, result)
+        self.assertEqual([160.0, 160.0], deadlines)
+        cleanup.assert_called_once()
+
     def test_public_full_plan_builds_before_overlapping_lock_readers_and_coverage(
         self,
     ) -> None:
@@ -745,7 +829,7 @@ class VerifyOrchestrationTests(unittest.TestCase):
 
         def record_phase(lanes, *, jobs, lane_timeout_seconds):
             calls.append(([lane.name for lane in lanes], jobs, lane_timeout_seconds))
-            if lanes[0].name == "dotnet-build":
+            if lanes[0].name == "dotnet-restore":
                 lanes[0].action(None)
 
         with (
@@ -756,7 +840,7 @@ class VerifyOrchestrationTests(unittest.TestCase):
             ),
             patch.object(MODULE, "run_selected_lanes", side_effect=record_phase),
             patch.object(MODULE, "resolve_dotnet", return_value="selected-dotnet"),
-            patch.object(MODULE, "run_dotnet_build_plan") as build,
+            patch.object(MODULE, "run_dotnet_restore_plan") as build,
             patch.object(MODULE, "cleanup_dotnet_batch") as cleanup,
             contextlib.redirect_stdout(io.StringIO()),
         ):
@@ -766,17 +850,17 @@ class VerifyOrchestrationTests(unittest.TestCase):
         self.assertEqual(
             [
                 (
-                    ["structure"],
+                    ["structure-sync"],
                     MODULE.DEFAULT_VERIFY_JOBS,
                     MODULE.DEFAULT_LANE_TIMEOUT_SECONDS,
                 ),
                 (
-                    ["dotnet-build"],
+                    ["dotnet-restore"],
                     MODULE.DEFAULT_VERIFY_JOBS,
                     MODULE.DEFAULT_LANE_TIMEOUT_SECONDS,
                 ),
                 (
-                    ["dotnet", *(lane.name for lane in MODULE.local_repository_script_lanes()), "python"],
+                    ["dotnet", "structure", *(lane.name for lane in MODULE.local_repository_script_lanes()), "python"],
                     MODULE.DEFAULT_VERIFY_JOBS,
                     MODULE.DEFAULT_LANE_TIMEOUT_SECONDS,
                 ),
@@ -803,13 +887,15 @@ class VerifyOrchestrationTests(unittest.TestCase):
                 clear=False,
             ),
             patch.object(MODULE, "run_selected_lanes", side_effect=fail_structure),
+            patch.object(MODULE, "resolve_dotnet", return_value="selected-dotnet"),
+            patch.object(MODULE, "cleanup_dotnet_batch"),
             contextlib.redirect_stdout(io.StringIO()),
             contextlib.redirect_stderr(io.StringIO()),
         ):
             result = MODULE.execute_verification(MODULE.parse_args(["--all"]))
 
         self.assertEqual(1, result)
-        self.assertEqual([["structure"]], calls)
+        self.assertEqual([["structure-sync"]], calls)
 
     def test_public_pool_overlaps_coverage_and_waits_for_siblings_before_cleanup(self) -> None:
         coverage_started = threading.Event()
@@ -841,7 +927,8 @@ class VerifyOrchestrationTests(unittest.TestCase):
         with (
             patch.dict(os.environ, {MODULE.INTERNAL_LANE_ENVIRONMENT_VARIABLE: ""}),
             patch.object(MODULE, "resolve_dotnet", return_value="selected-dotnet"),
-            patch.object(MODULE, "run_dotnet_build_plan", side_effect=build) as build_call,
+            patch.object(MODULE, "run_dotnet_restore_plan"),
+            patch.object(MODULE, "run_dotnet_post_restore_build_plan", side_effect=build) as build_call,
             patch.object(MODULE, "run_isolated_lane", side_effect=isolated),
             patch.object(MODULE, "verify_repository_scripts",
                          side_effect=lambda log, pattern: isolated(Path(pattern).stem, log)),
@@ -862,7 +949,7 @@ class VerifyOrchestrationTests(unittest.TestCase):
         )
 
     def test_public_build_or_pool_setup_failure_and_cancellation_still_cleanup(self) -> None:
-        for phase in ("dotnet-build", "dotnet"):
+        for phase in ("dotnet-restore", "dotnet"):
             for error in (RuntimeError("probe"), OSError("launch probe"), KeyboardInterrupt()):
                 with self.subTest(phase=phase, error=type(error).__name__):
                     phases = []
@@ -885,8 +972,8 @@ class VerifyOrchestrationTests(unittest.TestCase):
                                 MODULE.execute_verification(args)
                         else:
                             self.assertEqual(1, MODULE.execute_verification(args))
-                    self.assertEqual(["dotnet-build"] if phase == "dotnet-build"
-                                     else ["dotnet-build", "dotnet"], phases)
+                    self.assertEqual(["dotnet-restore"] if phase == "dotnet-restore"
+                                     else ["dotnet-restore", "dotnet"], phases)
                     cleanup.assert_called_once()
 
     def test_public_jobs_one_serializes_all_workloads_and_python_only_uses_pool(self) -> None:
@@ -897,7 +984,8 @@ class VerifyOrchestrationTests(unittest.TestCase):
                 with (
                     patch.dict(os.environ, {MODULE.INTERNAL_LANE_ENVIRONMENT_VARIABLE: ""}),
                     patch.object(MODULE, "resolve_dotnet", return_value="selected-dotnet"),
-                    patch.object(MODULE, "run_dotnet_build_plan"),
+                    patch.object(MODULE, "run_dotnet_restore_plan"),
+                    patch.object(MODULE, "run_dotnet_post_restore_build_plan"),
                     patch.object(MODULE, "run_isolated_lane",
                                  side_effect=lambda name, _log: calls.append(name)),
                     patch.object(MODULE, "verify_repository_scripts",
@@ -1222,6 +1310,90 @@ class VerifyOrchestrationTests(unittest.TestCase):
         self.assertEqual([("first", 110), ("other", 121), ("ungrouped", 121),
                           ("expired", 121)], calls)
         self.assertTrue(again[0].succeeded, "a later invocation must not inherit group state")
+
+    def test_terminal_notification_covers_preaction_expiry_and_preserves_primary_failure(self) -> None:
+        clock = [100.0]
+        notifications = []
+        actions = []
+
+        def first(_log):
+            clock[0] = 111.0
+
+        def terminal(error):
+            notifications.append(error)
+            raise RuntimeError("notification probe")
+
+        lanes = (
+            MODULE.VerificationLane("first", first, deadline_group="shared"),
+            MODULE.VerificationLane("expired", lambda _log: actions.append("expired"),
+                                    deadline_group="shared", on_terminal=terminal),
+            MODULE.VerificationLane("sibling", lambda _log: actions.append("sibling")),
+        )
+        with tempfile.TemporaryDirectory() as temporary, patch.object(
+            MODULE, "monotonic", side_effect=lambda: clock[0]
+        ):
+            results = MODULE.run_lanes(lanes, jobs=1, log_directory=Path(temporary),
+                                      lane_timeout_seconds=10)
+        self.assertEqual(["sibling"], actions)
+        self.assertEqual(1, len(notifications))
+        self.assertIsInstance(notifications[0], subprocess.TimeoutExpired)
+        self.assertIn("notification probe", results[1].error)
+        self.assertIn("verification lane' timed out", results[1].error)
+        self.assertTrue(results[2].succeeded)
+
+    def test_serial_cancellation_notifies_queued_builder_once(self) -> None:
+        notifications = []
+        actions = []
+
+        def interrupt(_log):
+            raise KeyboardInterrupt()
+
+        with tempfile.TemporaryDirectory() as temporary, patch.object(
+            MODULE, "cancel_active_processes_after_handoffs"
+        ):
+            with self.assertRaises(KeyboardInterrupt):
+                MODULE.run_lanes((
+                    MODULE.VerificationLane("first", interrupt),
+                    MODULE.VerificationLane("builder", lambda _log: actions.append("builder"),
+                                            on_terminal=notifications.append),
+                ), jobs=1, log_directory=Path(temporary))
+        self.assertEqual([], actions)
+        self.assertEqual(1, len(notifications))
+        self.assertIsInstance(notifications[0], KeyboardInterrupt)
+
+    def test_submission_failure_notifies_once_and_joins_active_waiter(self) -> None:
+        released = threading.Event()
+        finished = threading.Event()
+        notifications = []
+        executor_type = MODULE.ThreadPoolExecutor
+
+        class FailingExecutor(executor_type):
+            def submit(self, function, lane):
+                if lane.name == "builder":
+                    raise OSError("submission probe")
+                return super().submit(function, lane)
+
+        def waiter(_log):
+            if not released.wait(3):
+                raise RuntimeError("terminal notification did not release waiter")
+            finished.set()
+
+        def terminal(error):
+            notifications.append(error)
+            released.set()
+
+        with tempfile.TemporaryDirectory() as temporary, patch.object(
+            MODULE, "ThreadPoolExecutor", FailingExecutor
+        ):
+            with self.assertRaisesRegex(OSError, "submission probe"):
+                MODULE.run_lanes((
+                    MODULE.VerificationLane("waiter", waiter),
+                    MODULE.VerificationLane("builder", lambda _log: None, on_terminal=terminal),
+                ), jobs=2, log_directory=Path(temporary))
+            snapshot = finished.is_set()
+        self.assertTrue(snapshot, "pool returned before active waiter joined")
+        self.assertEqual(1, len(notifications))
+        self.assertIsInstance(notifications[0], OSError)
 
     def test_parallel_group_members_share_one_deadline_and_keep_failure_isolated(self) -> None:
         barrier = threading.Barrier(3)
