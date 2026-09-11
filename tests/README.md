@@ -354,6 +354,62 @@ after the runner had successfully written validated measurements; the candidate
 was then measured separately. No control samples were rerun or discarded.
 These remain diagnostic publish outputs, not release-qualified packages.
 
+### Catalog startup stage diagnosis — 2026-09-11
+
+At `3d134b9c`, the five existing packaged-candidate samples showed
+3,361–3,451 ms from window opening to required catalog publication, with
+approximately 1.07 GB cumulative allocation over that interval (not retained
+working set). This is separate from the 700 ms first-window target.
+
+A temporary Bootstrap test wrapped the same five delegates used by
+`CompositionHostServices.CreateCanonicalCapabilityCatalogSource`, then called
+the real `CanonicalCapabilityCatalog.Reload`. It changed no production code or
+admission decision. Each pass admitted all **26 static + 63 dynamic routes**.
+One cold-process pass and two same-process passes were measured in Debug and
+Release. Each targeted test passed; the Release test command was:
+
+```text
+dotnet test tests/NvtFwCombiner.Bootstrap.Tests/NvtFwCombiner.Bootstrap.Tests.csproj -c Release --no-restore --filter FullyQualifiedName~CatalogStartupDiagnosticTests --logger "console;verbosity=detailed"
+```
+
+| Release test stage | Cold process | Same-process reload 1 | Same-process reload 2 |
+| --- | ---: | ---: | ---: |
+| Policy load | 60.09 ms | 3.42 ms | 3.24 ms |
+| Classification, including triggered lazy initialization | 3,778.51 ms | 0.08 ms | 0.07 ms |
+| Static route resolution | 98.98 ms | 15.57 ms | 7.94 ms |
+| Dynamic route resolution | 2,202.32 ms | 297.63 ms | 287.04 ms |
+| Disclosure | 43.98 ms | 4.74 ms | 4.46 ms |
+| Whole reload, including publication and instrumentation | 6,362.69 ms | 327.87 ms | 308.27 ms |
+| Current-thread cumulative allocation | 1,072,461,952 B | 190,986,736 B | 190,986,984 B |
+
+The unbundled test process is not the ReadyToRun release EXE: do not compare
+its 6.36 s directly with packaged startup or label it a new regression.
+Debug reproduced the same allocation pattern: 1.07 GB cold / 191 MB reload.
+Timing attribution includes lazy/static initialization and JIT inside the
+measured delegate, not just its local conditional logic.
+
+Confirmed bounded duplicate: `CanonicalDynamicRouteInventory.ResolveCtrlRam`
+enumerates `CtrlRamV2RouteRegistry.All.SelectMany(CreateCtrlRamDefinitions)`
+for **each** requested CtrlRAM identity. That expansion recreates identities
+and calculates postbuild-plan fingerprints before filtering. The dynamic
+delegates still allocated 180,860,416 B per Release same-process reload.
+The larger cold initialization costs require further subdivision before
+claiming a precise schema/parsing root cause; policy JSON alone and static
+route compilation are not the dominant measured stages.
+
+Recommended next unit, not implemented here: expand the full CtrlRAM
+definition set once per catalog-load scope and reuse it for exact route
+resolution. Preserve duplicate/missing-route rejection, all trusted-map and
+fingerprint checks, atomic publication, cancellation and fresh reload scope.
+Do not hide invalid unrelated definitions by filtering before validation,
+retain a stale global cache, or claim this will solve first-window latency.
+
+The temporary diagnostic test was copied to the explicit evidence directory
+and removed from the repository so it adds no permanent CI work. Raw Debug /
+Release output and its source are retained under
+`NFC_TEST_AREA_ROOT/evidence/v115-catalog-stage-probe/`. Production remains
+unchanged by this diagnosis; no full verifier or Golden run was needed.
+
 ## Historical execution map
 
 Arrows mean prerequisites; sibling branches may overlap. Local verification,
