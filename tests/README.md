@@ -230,6 +230,29 @@ then proceed to packaged Home and CtrlRAM first-open measurement rather than
 claiming the target passed or continuing micro-optimization indefinitely.
 Actual release packaging is separate and has not been timed by this command.
 
+### v1.1.5 Home baseline — published v1.1.4 package, 2026-09-11
+
+The unchanged production predecessor is the initial control, not a newly built
+v1.1.5 package: published source `02fc70c8c25a5885be5e0e6db7eb108a37b4a131`,
+run `34484902901`, ZIP SHA-256
+`967af20ea0acef82b43c835d1552579b24c6e0041dae2b9a80b7f75e229fb2fc`,
+application SHA-256
+`3fbab084420ad7fffce2147c091a5f15f1128edf7ee7d01e8ac372396fc02ff1`.
+The ZIP was extracted into a new test-area evidence directory and launched
+through the existing `measure-startup.ps1`, Home, one warm-up, five scored runs,
+30-second timeout and `-RequirePreloadLifecycle`, after full verification ended.
+
+Process-to-window median: **802.196 ms**, above the 700 ms target.
+The unscored first launch was 960.670 ms (fresh process, not a flushed OS-cache
+cold boot); scored launches were 856.749, 826.204, 788.296, 802.196 and 779.857 ms.
+The Windows power plan was Ultimate Performance and was not changed.
+Managed-entry-to-opened median: 457.480 ms; first-frame synchronous UI work:
+140.166 ms. Managed-entry-to-background-warmup median: 3,983.407 ms, reported
+separately rather than substituted for first-window timing. This is a baseline,
+not evidence of improvement or a v1.1.5 package pass. Raw samples and traces are
+retained in `NFC_TEST_AREA_ROOT/evidence/v115-home-published-baseline/home-measurement.json`
+(SHA-256 `7c392cfdc7e84b8e7949683c96fff2add6fc41c34e954e98f933fed4838b2d58`).
+
 ## Historical execution map
 
 Arrows mean prerequisites; sibling branches may overlap. Local verification,
