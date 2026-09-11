@@ -253,6 +253,49 @@ not evidence of improvement or a v1.1.5 package pass. Raw samples and traces are
 retained in `NFC_TEST_AREA_ROOT/evidence/v115-home-published-baseline/home-measurement.json`
 (SHA-256 `7c392cfdc7e84b8e7949683c96fff2add6fc41c34e954e98f933fed4838b2d58`).
 
+### Home single-file compression diagnosis — 2026-09-11
+
+Disabling tiered compilation for the published control produced 807.131 ms
+versus its 802.196 ms default median; it did not improve the first-window gate
+and was not adopted. The diagnostic environment override was process-scoped
+and restored afterwards.
+
+At `481b6ae5127298c321dbf1bb35bc86ab64a59553`, two local publish outputs
+used the same source, SDK and release publish flags, changing only
+`EnableCompressionInSingleFile`. They are diagnostic publish directories,
+not closed, manifest-qualified release packages. Both used the same verified
+external-tool payload and existing startup runner (one unscored warm-up and
+five scored Home launches, preload lifecycle required). The first pair ran
+compressed then uncompressed; the repeat reversed that order.
+
+| Diagnostic shape | EXE bytes | First median | Reverse-pair median |
+| --- | ---: | ---: | ---: |
+| Compressed single file | 75,050,096 | 772.703 ms | 778.828 ms |
+| Uncompressed single file | 173,059,050 | 523.388 ms | 531.497 ms |
+
+First-pair managed trace entry to opened medians were 440.608 / 436.177 ms;
+UI work was 136.850 / 138.089 ms. This supports bundle loading as the dominant
+observed difference, not a UI-layout optimization. The trace named
+`managed-entry` begins at `DesktopApplication.Run`, after some Desktop host
+managed work; its preceding gap must not be labeled wholly native execution.
+Fresh-process unscored launches were approximately 894 / 876 ms in the first pair;
+the repeat was already OS-cache warm, not a cold-boot benchmark.
+
+EXE hashes (compressed / uncompressed):
+`029f82db1c90b758f2a77157b0d75a1d41e18b2e10cda7a1f99f90d76475608a` /
+`69872d3216c9ef34c7c161148ccb6e123e37398b0afb554a7d3d64ed1b0025b5`.
+Raw JSON samples and publish logs are retained under
+`NFC_TEST_AREA_ROOT/evidence/v115-home-compression-probe/`.
+
+The uncompressed EXE alone compresses to 72,393,425 bytes in an Optimal ZIP
+entry, versus the published EXE entry's 69,274,105 bytes. Substituting that
+entry into the old package size estimates 119,331,295 bytes, about 3.12 MB above
+the published 116,211,975-byte ZIP. This is an estimate, not an actual complete
+candidate ZIP or package validation. The 173 MB EXE violates the current
+80,000,000-byte ceiling. Adoption requires an explicit owner decision on a new
+EXE ceiling and the publish-shape contract; the complete ZIP ceiling remains
+134,217,728 bytes. No production flag, gate or ceiling has been changed.
+
 ## Historical execution map
 
 Arrows mean prerequisites; sibling branches may overlap. Local verification,
