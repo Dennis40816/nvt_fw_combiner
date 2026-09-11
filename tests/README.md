@@ -457,6 +457,76 @@ These are diagnostic outputs, not release-qualified packages. No full verifier
 or certified Golden execution was rerun for this bounded internal unit;
 actual candidate integration/release gates remain required.
 
+### First-window subdivision and Settings style experiment — 2026-09-11
+
+Base `26600a9b2d3bc107588d25f781d574e4d5563039`. Diagnostic-only App creation,
+RegisterServices, first Measure/Arrange and OnOpened/maximize markers reused
+StartupTraceSession. Both compressed composite ReadyToRun EXEs had identical
+markers; the candidate alone moved the unchanged SettingsVersionStyles include
+from App into SettingsModal. SDK 10.0.303 / included runtime 10.0.11 and publish
+flags were unchanged. No firmware, catalog admission or release gate changed.
+
+Each shape used `scripts/measure-startup.ps1 -Page home -WarmupRuns 1 -Runs 5
+-TimeoutSeconds 30 -RequirePreloadLifecycle` with the fixed external test area.
+Control ran first, candidate second; both lifecycle validations passed.
+
+| Median metric | Instrumented control | Deferred Settings styles |
+| --- | ---: | ---: |
+| Process to main-window handle | 721.770 ms | 726.286 ms |
+| Managed trace entry to Opened | 403.402 ms | 404.943 ms |
+| Builder-ready to App-constructor entry | 117.545 ms | 119.628 ms |
+| App constructor | 0.538 ms | 0.535 ms |
+| Application service registration | 6.133 ms | 5.318 ms |
+| App XAML | 29.145 ms | 28.735 ms |
+| MainWindow XAML | 54.403 ms | 54.654 ms |
+| First Measure | 67.728 ms | 67.937 ms |
+| First Arrange | 1.415 ms | 1.456 ms |
+| Maximize property assignment | 0.016 ms | 0.016 ms |
+| Cumulative allocation at first window | 13,237,992 B | 12,918,776 B |
+| EXE size | 75,914,759 B | 75,915,343 B |
+
+The first-window metric polls MainWindowHandle at 10 ms intervals; neither it
+nor Opened proves a fully painted frame. Per-stage medians are not additive.
+The earlier 793 ms sample set used a different binary and measurement session;
+the lower control time here is not evidence of a product optimization. This
+single pair does not establish a timing regression or repeatable benefit.
+Measure includes first-use templates, styles, text/layout and nested work;
+it is not proof that any particular font or control is slow. The tiny maximize
+setter duration excludes later asynchronous window/layout effects.
+
+Three updated ownership/reference tests were RED with global styles. After
+the move, **8/8 targeted tests passed in 9.5206 s**, including the two existing
+1584x997 Light/Dark Settings geometry renders, shared-style ownership, trace
+tests and existing deferred-page warm-up contract. Primary inspected the Light
+render. This was a trial, not complete reopen/language/native UI acceptance.
+
+**Decision: not adopted as a startup optimization.** First-window allocation
+fell about 0.32 MB but no latency improvement was demonstrated. All trial
+production/test edits and diagnostic markers were removed; `git diff --exit-code
+-- src tests/NvtFwCombiner.UiSmoke.Tests` confirmed restoration to the base.
+No failing experimental tests remain in the repository. No product rerun or
+full verifier was needed merely to remove an unadopted experiment.
+
+Further deferral assessment (not implementation authorization):
+
+| Candidate | Existing owner / constraint | Disposition |
+| --- | --- | --- |
+| Settings version styles | All consumers are version page/row templates under SettingsModal | Safe small scope, but measured gain insufficient; leave unchanged |
+| Settings/Support Matrix/Hex Editor template declarations | Mixed with Home in MainWindowPageTemplates; declaration is not eager visual construction | Possible later resource split only after per-resource allocation/timing evidence |
+| MemoryCoverageStyles | Shared templates and multiple workflow consumers | Do not move into one workflow; identify a common owner first |
+| FirmwareSlotExperienceStyles | FirmwareSlotCard, GeneralMappingRow and shared fact templates | Do not move into FirmwareSlotCard alone; missing consumers would lose styles |
+| Merge/Replace/Settings/Hex Editor visual trees | Existing background dispatcher warm-up after required catalog | Already deferred; moving further will not improve the current first-window metric |
+| Home, shared controls/theme/text and shell preferences | Meaningful first screen and accepted preference contract | Keep; do not substitute an empty early window to pass timing |
+| Builder-to-App and first Measure | Framework/platform initialization and first layout are the larger measured intervals | Next diagnosis should subdivide these, not assume more style relocation is the answer |
+
+Independent read-only consumer review by `parallel_resource_audit` confirmed
+Settings scope and the shared-consumer risks above. Raw JSON, complete trial
+diff, extra diagnostic source and renders are retained under
+`NFC_TEST_AREA_ROOT/evidence/v115-settings-style-probe/` (diagnostic payloads,
+not release-qualified packages). EXE SHA-256 control / candidate:
+`654de736ed1d7b83c781b69dd5fe3a4cc86810d69a9592a6978b3d9d63b3d6f2` /
+`3ca34dc3649e803463e81da027195daeada2a593df47983fd1a5c0ebc092da3e`.
+
 ## Historical execution map
 
 Arrows mean prerequisites; sibling branches may overlap. Local verification,
