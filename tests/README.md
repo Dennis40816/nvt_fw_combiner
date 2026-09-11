@@ -527,6 +527,50 @@ not release-qualified packages). EXE SHA-256 control / candidate:
 `654de736ed1d7b83c781b69dd5fe3a4cc86810d69a9592a6978b3d9d63b3d6f2` /
 `3ca34dc3649e803463e81da027195daeada2a593df47983fd1a5c0ebc092da3e`.
 
+### First-window sampled call paths — 2026-09-11
+
+Read-only follow-up at `752a48b1`, using the preceding instrumented **control**
+EXE (no Settings relocation). A test-area-local `dotnet-trace` 10.0.745401
+captured only the launched application for eight seconds with
+`collect --profile dotnet-sampled-thread-time --duration 00:00:00:08
+--format Speedscope --output <evidence>/startup.nettrace -- <control-exe>
+--page home`. Fixed test-area temp and a fresh lifecycle trace path were set.
+The tool completed successfully and its child process exited; no repository
+dependencies, product code or global .NET tool installation changed.
+
+Speedscope event stacks identify the startup thread by Program.Main and the
+first contiguous MainWindow.MeasureOverride interval (trace-relative
+624.564–694.367 ms). Summing intervals containing a named frame yields the
+following approximate **inclusive sampled thread times**, not benchmark
+durations or additive independent costs:
+
+| Interval / call path | Sampled time |
+| --- | ---: |
+| Before first Measure: Win32Platform.Initialize | 91.9 ms |
+| Its ANGLE graphics factory | 67.3 ms |
+| Nested D3D11 display creation | 63.3 ms |
+| Before first Measure: SkiaPlatform.Initialize | 10.0 ms |
+| First Measure: TextBlock.MeasureOverride | 28.2 ms |
+| Nested text formatting | 26.7 ms |
+| First Measure: StyledElement.ApplyStyling | 26.0 ms |
+| First Measure: TemplatedControl.ApplyTemplate | 13.6 ms |
+| First Measure: font fallback matching | 10.0 ms |
+
+This localizes the prior builder-to-App gap toward graphics initialization,
+and the first Measure toward text and style/template work. Native leaf work is
+not symbol-resolved here; D3D device/driver substeps and the exact controls or
+characters triggering fallback remain unknown. One instrumented process is
+not a release timing sample or proof that disabling GPU rendering is safe.
+
+Next bounded experiment: compare a diagnostic software-rendering variant to
+the unchanged accelerated control, then inspect scrolling, hover animation,
+Memory Layout and Hex Editor costs before considering adoption. No rendering
+backend, fallback, font or visual contract is changed by this diagnosis.
+Retain meaningful Home and required catalog gates; do not simply postpone
+visible text/layout or remove font fallback to obtain a smaller number.
+Raw lifecycle, NetTrace and Speedscope files remain under
+`NFC_TEST_AREA_ROOT/evidence/v115-first-layout-cpu/`, outside Git/release payloads.
+
 ## Historical execution map
 
 Arrows mean prerequisites; sibling branches may overlap. Local verification,
