@@ -571,6 +571,56 @@ visible text/layout or remove font fallback to obtain a smaller number.
 Raw lifecycle, NetTrace and Speedscope files remain under
 `NFC_TEST_AREA_ROOT/evidence/v115-first-layout-cpu/`, outside Git/release payloads.
 
+### Software rendering diagnostic (2026-09-11; not adopted)
+
+Compared the unchanged accelerated control from `4da38e868b4f4b6b5b1db788fd3d3d4ff0dc4ac3`
+with `29148e938bb6084f276627826a81b2f5d659696d` plus a temporary
+`Win32PlatformOptions.RenderingMode = [Win32RenderingMode.Software]` setting.
+`git diff` confirmed identical production sources and SDK/package/build props
+between those commits. Both use SDK 10.0.303, runtime 10.0.11 and compressed,
+self-contained, single-file composite ReadyToRun publishing without trimming.
+
+Each measurement used `scripts/measure-startup.ps1`, Home, one warmup and five
+scored runs, timeout 30 seconds and `-RequirePreloadLifecycle`; all four runs
+completed successfully. Fixed test-area TEMP/TMP/TMPDIR setup was applied.
+The second pair reversed execution order; no concurrent heavy build/test ran.
+
+| Median | GPU then Software: GPU | Software | Software then GPU: Software | GPU |
+| --- | ---: | ---: | ---: | ---: |
+| Process to window handle | 722.560 ms | 639.721 ms | 658.461 ms | 723.348 ms |
+| Managed entry to opened | 403.717 ms | 330.914 ms | 334.362 ms | 403.899 ms |
+| Managed entry to background complete | 3811.782 ms | 3661.842 ms | 3665.003 ms | 3763.060 ms |
+| First-window UI work | 127.952 ms | 133.418 ms | 134.393 ms | 128.709 ms |
+
+The observed handle-time saving is 65–83 ms (9.0–11.5%), not a cold-boot or
+fully-painted-frame guarantee. The first pair's builder-ready to App-XAML-start
+interval fell from 125.81 to 47.83 ms; first-window UI work did not improve.
+This supports graphics initialization as the gain, not cheaper layout.
+
+Control EXE: 75,914,690 B, SHA-256
+`68b9c5a1cba3968330395f741af294078892a49c3e212e4764ae9a72516c8289`.
+Software EXE: 75,915,648 B, SHA-256
+`8c74b9ede87ff8b68be1f0fc573b60b91d50d79219015bdf52039fe392449a5d`.
+Local evidence directory: `NFC_TEST_AREA_ROOT/evidence/v115-software-rendering-probe/`;
+JSON files: `home-gpu.json`, `home-software.json`, `reverse-software.json`,
+`reverse-gpu.json`. These diagnostic executables are not qualified release packages.
+
+Native Software smoke loaded the canonical NT51927 / 3 IC CtrlRAM fixture and
+all eight replacement inputs through CLI arguments. Main and Master views,
+Normal CtrlRAM lift/outline/shadow, information card and scroll redraw appeared
+correct in the observed light-theme window. No Build or firmware output test
+was performed. This is basic presentation evidence, not continuous-hover FPS,
+Hex Editor scrolling, dark-theme, high-DPI or low-end-machine equivalence.
+Independent read-only review identified custom Hex drawing and animated/shadowed
+Memory Layout as remaining native rendering risks; headless tests cannot establish
+Win32 backend equivalence, and no existing native frame-time harness was found.
+
+Decision: retain the existing automatic rendering selection. The temporary
+production edit was removed and `git diff --exit-code -- src` passed. Adoption
+requires bounded native interaction/frame-time evidence first; no supported
+startup-only Software-to-GPU hot-switch path was established. This evidence-only
+record does not require a fresh full suite or replace any release Golden gate.
+
 ## Historical execution map
 
 Arrows mean prerequisites; sibling branches may overlap. Local verification,
