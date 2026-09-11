@@ -1543,6 +1543,14 @@ The current `v1.1.3` baseline is 1,879.6 s: structure 145.2 s, three serial
 script shards 440.0/353.1/288.9 s, CRC worker 12.2 s, and partially parallel
 .NET 638.6 s. This target is not an achieved measurement or a timeout change.
 
+Owner clarification on 2026-09-11: approximately ten minutes is an optimization
+target, not a hard gate that indefinitely blocks subsequent startup/first-open
+work. The latest full local candidate passed in 886.42 s (14 min 46 s); retain
+the measured gap and remaining bottlenecks rather than calling ten minutes
+achieved. See [the measured verifier results](../../tests/README.md#post-restore-overlap-measurement--2026-09-11).
+Continue with packaged Home and CtrlRAM measurements; required tests, coverage,
+Golden comparisons and failure gates remain unchanged.
+
 | Work | Planned acceptance |
 | --- | --- |
 | Safe local overlap | Reuse the existing verifier/lane executor. Isolate mutable build/restore outputs, lock files, temporary data, evidence paths and cleanup ownership before overlapping independent script and .NET lanes. Preserve genuinely exclusive work until its shared-resource dependency is removed. |
@@ -1552,9 +1560,9 @@ script shards 440.0/353.1/288.9 s, CRC worker 12.2 s, and partially parallel
 Retain the complete applicable tests, Golden output comparisons, coverage,
 identity/freshness checks and bounded cancellation/cleanup. Do not achieve the
 target by skipping cases, weakening expected bytes or substituting CI evidence
-for this full local run. Scheduling this work does not change the current serial
-execution contract; synchronize affected commands/docs when implementation is
-verified. Use the `1.1.4` test diagram/README when available rather than creating
+for this full local run. The implemented local overlap is documented in the
+[release/verifier contract](../ci/release-package.md); CI and release-Golden
+entry points retain their own execution paths. Use the `1.1.4` test diagram/README rather than creating
 another scheduler, verifier or evidence-document framework.
 
 ## `1.1.6`: agent workflows, documentation and minimality

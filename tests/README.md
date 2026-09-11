@@ -190,6 +190,46 @@ in this run. Structure/build remain serial prerequisites totaling 273.1 s,
 and full-load .NET collection plus script scheduling must be assessed together.
 No test, coverage threshold, timeout or expected Golden bytes were relaxed.
 
+### Post-restore overlap measurement — 2026-09-11
+
+Exact source: `2df6b87a3f4c3fe107c1224e69b4c6ac6673f5a5`, same Windows host,
+SDK 10.0.301, `python scripts/verify.py --all`, default three outer worker slots.
+Complete command including shutdown and session cleanup: **886.42 s
+(14 min 46 s), exit 0**. Source was frozen and no separate heavy diagnostic
+was launched during the run.
+
+| Phase / lane | Seconds | Result |
+| --- | ---: | --- |
+| Derived-data check | 1.2 | PASS; zero files changed |
+| SDK / restore | 3.3 | PASS; lock restoration precedes the pool |
+| Post-restore build plus .NET coverage | 761.1 | PASS; 6,140 tests, zero skipped |
+| Structure postchecks | 262.9 | PASS; overlaps build and tests |
+| Script modules | overlapping | PASS; 1,054 cases, including five new orchestration cases |
+| CRC worker | 10.5 | PASS; 30 cases, 100% line/branch coverage |
+
+.NET coverage was 91.30% lines (79,675/87,265) and 79.95% branches
+(26,791/33,509), passing the unchanged policy. Post-restore checks, format and
+build consumed 20.6, 22.7 and 53.2 s within the .NET lane, not outside timing.
+Script lane elapsed includes build-readiness waiting where applicable: the
+first fixture module's 99.5 s is not its pytest execution time alone.
+
+Compared with the prior complete passing candidate (989.86 s), this observation
+is 103.44 s / **10.4% shorter**, with five additional script regression cases.
+It is one observation per source, not a repeatability guarantee. The ten-minute
+target remains unmet: the .NET lane alone is 12 min 41 s, and the complete
+command has roughly another two minutes of script-tail/aggregation overhead.
+Structure also slowed under contention (192.6 to 262.9 s); overlap duration is
+not automatically saved wall time. Raw output, all lane timings and the full
+stopwatch footer are in
+`NFC_TEST_AREA_ROOT/evidence/v115-preflight-overlap-first/verify-all.log`.
+
+The owner clarified on 2026-09-11 that approximately ten minutes is an
+optimization target, not a hard gate preventing subsequent performance work.
+Retain this result and the remaining .NET exclusivity/script ordering costs,
+then proceed to packaged Home and CtrlRAM first-open measurement rather than
+claiming the target passed or continuing micro-optimization indefinitely.
+Actual release packaging is separate and has not been timed by this command.
+
 ## Historical execution map
 
 Arrows mean prerequisites; sibling branches may overlap. Local verification,
