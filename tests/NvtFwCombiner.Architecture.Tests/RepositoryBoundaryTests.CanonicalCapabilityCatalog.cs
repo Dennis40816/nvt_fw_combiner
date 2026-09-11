@@ -265,7 +265,7 @@ public sealed partial class RepositoryBoundaryTests
         Assert.DoesNotContain("BuiltInV2RegistrationRegistry", source, StringComparison.Ordinal);
         Assert.DoesNotContain("registration.TryCompile", source, StringComparison.Ordinal);
         Assert.Contains("CanonicalCompiledRouteInventory.Resolve", wiring, StringComparison.Ordinal);
-        Assert.Contains("CanonicalDynamicRouteInventory.Resolve", wiring, StringComparison.Ordinal);
+        Assert.Contains("CanonicalDynamicRouteInventory.CreateResolver", wiring, StringComparison.Ordinal);
         Assert.Contains("TryCompilePublishedDynamicCapability", routing, StringComparison.Ordinal);
         Assert.Contains("TryCompilePublishedStandardMergeCapability", routing, StringComparison.Ordinal);
         Assert.DoesNotContain("TryCompileStandardMergeThroughMigrationAdapter", routing, StringComparison.Ordinal);

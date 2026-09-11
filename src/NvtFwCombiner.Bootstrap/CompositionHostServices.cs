@@ -97,7 +97,7 @@ public sealed class CompositionHostServices
             loadPolicy ?? BuiltInCanonicalCapabilityPolicy.Load,
             CanonicalDynamicRouteInventory.IsDynamic,
             CanonicalCompiledRouteInventory.Resolve,
-            CanonicalDynamicRouteInventory.Resolve,
+            CanonicalDynamicRouteInventory.CreateResolver,
             CanonicalCapabilityDisclosureInventory.Create);
     }
 

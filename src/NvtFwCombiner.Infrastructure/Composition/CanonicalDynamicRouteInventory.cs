@@ -25,6 +25,27 @@ internal static class CanonicalDynamicRouteInventory
     internal static CanonicalDynamicRoute Resolve(
         CapabilityRouteIdentity identity)
     {
+        return CreateResolver()(identity);
+    }
+
+    internal static Func<CapabilityRouteIdentity, CanonicalDynamicRoute> CreateResolver()
+    {
+        return CreateResolver(() => CtrlRamV2RouteRegistry.All.SelectMany(CreateCtrlRamDefinitions));
+    }
+
+    internal static Func<CapabilityRouteIdentity, CanonicalDynamicRoute> CreateResolver(
+        Func<IEnumerable<CanonicalCtrlRamDefinition>> loadCtrlRamDefinitions)
+    {
+        ArgumentNullException.ThrowIfNull(loadCtrlRamDefinitions);
+        // A resolver is created per catalog load; never retain failed or old definitions across reloads.
+        var definitions = new Lazy<CanonicalCtrlRamDefinition[]>(() => [.. loadCtrlRamDefinitions()]);
+        return identity => Resolve(identity, definitions);
+    }
+
+    private static CanonicalDynamicRoute Resolve(
+        CapabilityRouteIdentity identity,
+        Lazy<CanonicalCtrlRamDefinition[]> ctrlRamDefinitions)
+    {
         ArgumentNullException.ThrowIfNull(identity);
         return TryGetMapBoundRegistration(
                    identity,
@@ -35,7 +56,7 @@ internal static class CanonicalDynamicRouteInventory
             {
                 ExperienceIds.GeneralMerge => ResolveGeneralMerge(identity),
                 ExperienceIds.GeneralReplace => ResolveGeneralReplace(identity),
-                ExperienceIds.CtrlRamReplace => ResolveCtrlRam(identity),
+                ExperienceIds.CtrlRamReplace => ResolveCtrlRam(identity, ctrlRamDefinitions.Value),
                 _ => throw new InvalidDataException(
                     $"No dynamic capability definition matches route '{identity.RouteId}'."),
             };
@@ -223,11 +244,12 @@ internal static class CanonicalDynamicRouteInventory
     }
 
     private static CanonicalDynamicRoute ResolveCtrlRam(
-        CapabilityRouteIdentity identity)
+        CapabilityRouteIdentity identity,
+        IEnumerable<CanonicalCtrlRamDefinition> definitions)
     {
         CanonicalCtrlRamDefinition[] matches =
         [
-            .. CtrlRamV2RouteRegistry.All.SelectMany(CreateCtrlRamDefinitions)
+            .. definitions
                 .Where(candidate =>
                     StringComparer.Ordinal.Equals(
                         candidate.Identity.RouteId,
@@ -278,7 +300,7 @@ internal static class CanonicalDynamicRouteInventory
             memoryLayoutContext: match.Route.MemoryLayoutContext);
     }
 
-    private static IEnumerable<CanonicalCtrlRamDefinition>
+    internal static IEnumerable<CanonicalCtrlRamDefinition>
         CreateCtrlRamDefinitions(CtrlRamV2Route route)
     {
         LegacyCombinerPostbuildProfile postbuild =

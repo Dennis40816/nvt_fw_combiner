@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 2,
+  "taskId": "CATALOG-115-CTRLRAM-LOAD-SCOPE-01",
+  "capability": "Reuse one complete CtrlRAM definition expansion per canonical catalog load",
+  "integrationBase": "2df6b87a3f4c3fe107c1224e69b4c6ac6673f5a5",
+  "risk": "R2",
+  "kind": "refactor",
+  "state": "design-active",
+  "mutablePaths": [
+    "src/NvtFwCombiner.Application/Capabilities/CanonicalCapabilityCatalogSource.cs",
+    "src/NvtFwCombiner.Infrastructure/Composition/CanonicalDynamicRouteInventory.cs",
+    "src/NvtFwCombiner.Bootstrap/CompositionHostServices.cs",
+    "tests/NvtFwCombiner.Bootstrap.Tests/CanonicalCapabilityCatalogMigrationTests.Progress.cs",
+    "tests/NvtFwCombiner.Bootstrap.Tests/CatalogLoadScopedCtrlRamTests.cs",
+    "tests/NvtFwCombiner.Architecture.Tests/RepositoryBoundaryTests.CanonicalCapabilityCatalog.cs"
+  ],
+  "implementationOwner": "primary-agent",
+  "searchEvidence": [
+    "CodeGraph and source inspection: CanonicalCapabilityCatalogSource owns each Load and calls the injected dynamic resolver per route; CompositionHostServices owns wiring.",
+    "CanonicalDynamicRouteInventory.ResolveCtrlRam currently enumerates CtrlRamV2RouteRegistry.All.SelectMany(CreateCtrlRamDefinitions) before every exact identity match.",
+    "At b5724b05 the prior stage probe measured approximately 181 MB allocated in dynamic resolution per same-process reload; all 26 static and 63 dynamic routes were admitted.",
+    "Existing source progress tests cover route counts, cancellation, failed publication, fresh retry and concurrent progress; direct Resolve callers remain supported through the same resolver owner."
+  ],
+  "semanticOwner": "Application CanonicalCapabilityCatalogSource owns load lifetime; Infrastructure CanonicalDynamicRouteInventory owns existing trusted-definition expansion and exact route resolution",
+  "terminalContract": "Create a fresh dynamic resolver inside each Load cancellation/exception boundary. Lazily materialize the complete existing CtrlRAM definition sequence once per resolver, before exact matching. Preserve every fingerprint, zero/multiple match rejection, nonmatching definition failures, progress ordering, cancellation checks, last-known-good publication and fresh reload/retry isolation. Do not introduce global cache, new firmware semantics, filtering before full materialization or execution authority. First expansion remains synchronously noninterruptible as before.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "parallel_resource_audit",
+    "outcome": "approved",
+    "evidence": "Independent R2 admission approved before production edits: load-local Lazy array, factory invoked per Load rather than source construction, whole ToArray before matching, lazy only for CtrlRAM, internal test injection without global hooks. Require once-per-load, fresh and concurrent loads, no-CtrlRAM laziness, failure/retry, zero/multiple match, malformed nonmatching definition, cancellation/disclosure and complete route fingerprint coverage. No R3 semantic change."
+  },
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": { "reviewer": null, "outcome": "pending", "evidence": "" }
+}
