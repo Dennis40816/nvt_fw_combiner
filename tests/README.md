@@ -278,6 +278,18 @@ Raw output and stopwatch JSON are retained outside Git under
 `NFC_TEST_AREA_ROOT/evidence/v115-current-full-20260911-184405/`; the rejected
 parameter probe is under `evidence/v115-jobs4-20260911-184340/`.
 
+The owner subsequently approved exactly the 22-line accounting increment.
+Implementation `6b79eb4d` changes only existing size defaults, baseline assertions
+and ADR0021 accounting; no product source, test inventory or scheduling changes.
+Updated-baseline RED confirmed the old limit still failed (1 failed, 18 passed);
+after updating the limits the policy module passed 19/19 in 29.35 s. Independent
+fixed-head R2 review and fast Polytail passed. With its final review record staged,
+`python scripts/verify.py --structure-only` passed (structure lane 186.3 s),
+including the previously failing size checks. The full result above remains
+FAIL: these are scoped correction results, not a fresh complete verifier pass.
+Structure output is retained at
+`NFC_TEST_AREA_ROOT/evidence/v115-code-size-structure.log`.
+
 ### v1.1.5 Home baseline — published v1.1.4 package, 2026-09-11
 
 The unchanged production predecessor is the initial control, not a newly built
