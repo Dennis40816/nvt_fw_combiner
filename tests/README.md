@@ -230,6 +230,54 @@ then proceed to packaged Home and CtrlRAM first-open measurement rather than
 claiming the target passed or continuing micro-optimization indefinitely.
 Actual release packaging is separate and has not been timed by this command.
 
+### Current-source full measurement — 2026-09-11 (size-policy failure)
+
+Source `f1cd3419fcd9af8845af8b193cc77ed3b97e82a8`, same Windows host,
+repository SDK 10.0.301, `python scripts/verify.py --all`, default three workers.
+Complete wall time including setup, SDK shutdown and session cleanup was
+**766.64 s (12 min 46.6 s), exit 1**. HEAD and tracked sources stayed unchanged;
+derived sync changed zero files. No separate heavy diagnostic ran concurrently.
+
+| Phase / lane | Seconds | Observed result |
+| --- | ---: | --- |
+| Derived sync / SDK restore | 1.3 / 4.6 | PASS |
+| Build plus .NET coverage | 556.4 | PASS; 6,153 cases, zero failed/skipped |
+| Structure | 232.8 | FAIL; exact code-size allowance drift |
+| Agent-governance script tests | 287.3 | PASS; 136 cases |
+| Release-package script tests | 383.6 | PASS; 84 cases; not actual packaging |
+| Startup-measurement script tests | 158.3 | PASS; 7 cases; not app startup duration |
+| CRC worker | 10.0 | PASS; 30 cases, 100% line/branch coverage |
+
+Script modules executed 1,052 passed, one failed and one skipped case. The failure
+is the exact production-size baseline assertion. The optional external package-lab
+case (`NFC_PARITY_PACKAGE_LAB`) was skipped, not certified by this run; it remains
+separate from the zero-skipped .NET result. Structure
+reported the same accounting issue: Application 43,004 versus 43,001 (+3),
+Infrastructure/Contracts/worker 30,785 versus 30,766 (+19), full production
+140,473 versus 140,451 and runtime 99,585 versus 99,563 (+22 each). These deltas
+come from the already reviewed catalog load-scope change at `4da38e86`; no
+allowance was changed or deemed approved by this run. The source ratchet is
+independent of the executable byte-size ceiling.
+
+.NET coverage passed at 91.30% lines (79,681/87,272) and 79.95% branches
+(26,791/33,511). UI producer lane time was 248.9 s (VSTest command 246.0 s),
+versus the earlier 409.9 s lane; Bootstrap was 111.5 s and Infrastructure
+150.4 s. The .NET lane is now 9 min 16 s, but script completion leaves the
+whole command above ten minutes. Current catalog changes and thirteen additional
+.NET cases distinguish this source from the previous passing 886.42 s run;
+the 119.78 s elapsed difference is not a controlled scheduling-only speedup or
+a successful full-verification result. Packaging was not run or included.
+
+An initial `--all --jobs 4` probe was rejected by argument parsing in 0.315 s;
+the supported range is 1–3. It executed no tests and supplies no four-worker
+performance evidence. No scheduler, UI-exclusivity contract, timeout, coverage
+threshold or Golden expectation was changed. Next decisions are the exact
+22-line accounting approval and a bounded assessment of script-tail scheduling;
+do not bypass the three-worker cap or remove UI exclusivity without admission.
+Raw output and stopwatch JSON are retained outside Git under
+`NFC_TEST_AREA_ROOT/evidence/v115-current-full-20260911-184405/`; the rejected
+parameter probe is under `evidence/v115-jobs4-20260911-184340/`.
+
 ### v1.1.5 Home baseline — published v1.1.4 package, 2026-09-11
 
 The unchanged production predecessor is the initial control, not a newly built
