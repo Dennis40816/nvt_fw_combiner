@@ -162,7 +162,6 @@ public sealed partial class XamlControlStyleContractTests
             ProductionMainWindowStylesUri,
             ProductionButtonStylesUri,
             ProductionVisualStylesUri,
-            new Uri("avares://NvtFwCombiner.Presentation.Avalonia/Styles/MessageCenterStyles.axaml"),
         })
         {
             window.Styles.Add(new StyleInclude(source) { Source = source });

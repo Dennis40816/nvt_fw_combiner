@@ -10,6 +10,7 @@
     KeyDown="MessageCenterModal_OnKeyDown"
     Background="{DynamicResource NfcModalScrimBrush}">
   <UserControl.Styles>
+    <StyleInclude Source="avares://NvtFwCombiner.Presentation.Avalonia/Styles/MessageCenterStyles.axaml" />
     <Style Selector="Button.reportLoad /template/ ContentPresenter#PART_ContentPresenter">
       <Setter Property="CornerRadius" Value="{DynamicResource NfcSurfaceCornerRadius}" />
     </Style>
