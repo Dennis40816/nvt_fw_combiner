@@ -296,6 +296,64 @@ candidate ZIP or package validation. The 173 MB EXE violates the current
 EXE ceiling and the publish-shape contract; the complete ZIP ceiling remains
 134,217,728 bytes. No production flag, gate or ceiling has been changed.
 
+### Home size-constrained follow-up — 2026-09-11
+
+The owner rejected the 173 MB uncompressed EXE and requested alternatives
+within 100,000,000 bytes. This does not change the formal 80,000,000-byte
+ceiling. A compressed non-composite ReadyToRun diagnostic produced a
+57,285,730-byte EXE but exited during startup with `0xC0000602`; it was
+not adopted. Its files remain under
+`NFC_TEST_AREA_ROOT/evidence/v115-home-noncomposite-probe/`.
+
+The owner then accepted retaining compressed composite ReadyToRun and
+reducing startup work. Local R1 commit `71605699` moves the unchanged
+Message Center styles from Application scope into the existing deferred modal;
+it adds no loader, timer, cache or firmware behavior. Shared Memory Layout
+and firmware-slot styles remain unchanged.
+
+The final regression first failed four cases because the compiled Message
+Center selectors were still loaded globally. After relocation, the targeted
+UI selection passed **15/15**, zero skipped, in **22.500 seconds**:
+`ReportHistoryControlTests`, `MessageCenterActivity*`, and
+`SharedControlStyleLibraryIsIncludedByTheApplication`. The new real-window
+cases cover absent Home content, first/repeated modal opening, both themes
+and languages; existing tests cover reference geometry and history actions.
+The reference fixture no longer injects Message Center styles itself.
+Initial test-authoring mistakes (compiled `Styles` versus `StyleInclude`, and
+an unfixed responsive viewport) were corrected, not production workarounds.
+Fixed-head scoped Polytail passed without findings; formal integration records
+and the complete candidate gate remain outstanding.
+
+Because local SDK resolution had advanced to **10.0.303**, both timing outputs
+were rebuilt with that SDK and the same publish flags; both trace runtimes
+are **.NET 10.0.11**. Control production source is `2bc9e4c9`; candidate
+production source matches `71605699`. Each used one unscored warm-up followed
+by five scored launches with required preload lifecycle validation.
+
+| Same-environment diagnostic | Control | Deferred modal styles |
+| --- | ---: | ---: |
+| Main EXE bytes | 75,069,817 | 75,071,224 |
+| Unscored fresh-process launch | 908.145 ms | 893.711 ms |
+| Home-window median | 769.984 ms | 773.000 ms |
+| Trace entry to opened median | 449.957 ms | 445.268 ms |
+| First-window cumulative allocation median | 13,581,128 B | 13,335,856 B |
+
+Control samples: `833.754, 758.454, 769.984, 763.992, 814.688` ms.
+Candidate samples: `768.162, 817.978, 773.000, 792.992, 759.562` ms.
+There is **no demonstrated startup-time improvement** and neither reaches
+700 ms; retain the small ownership/local-allocation improvement without
+claiming a performance pass. Do not extrapolate a single pair to a speedup.
+
+EXE SHA-256 (control / candidate):
+`d8a6c56cadb4c5387317f39ea9c885858f675682aa43111b9bd4bf9bb33100c8` /
+`b01a174035037ba09619e72b5d587d8b80bea60e4ee9b19b7ba6d15b5aa7d933`.
+Raw JSON, the production patch, publish logs and rendered reference frames
+are under `NFC_TEST_AREA_ROOT/evidence/v115-home-modal-style-probe/`.
+The control wrapper incorrectly interpreted an inherited native exit code
+after the runner had successfully written validated measurements; the candidate
+was then measured separately. No control samples were rerun or discarded.
+These remain diagnostic publish outputs, not release-qualified packages.
+
 ## Historical execution map
 
 Arrows mean prerequisites; sibling branches may overlap. Local verification,
