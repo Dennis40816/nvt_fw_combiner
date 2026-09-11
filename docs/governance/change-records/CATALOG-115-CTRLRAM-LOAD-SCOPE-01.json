@@ -5,7 +5,7 @@
   "integrationBase": "2df6b87a3f4c3fe107c1224e69b4c6ac6673f5a5",
   "risk": "R2",
   "kind": "refactor",
-  "state": "design-active",
+  "state": "final-complete",
   "mutablePaths": [
     "src/NvtFwCombiner.Application/Capabilities/CanonicalCapabilityCatalogSource.cs",
     "src/NvtFwCombiner.Infrastructure/Composition/CanonicalDynamicRouteInventory.cs",
@@ -29,8 +29,8 @@
     "outcome": "approved",
     "evidence": "Independent R2 admission approved before production edits: load-local Lazy array, factory invoked per Load rather than source construction, whole ToArray before matching, lazy only for CtrlRAM, internal test injection without global hooks. Require once-per-load, fresh and concurrent loads, no-CtrlRAM laziness, failure/retry, zero/multiple match, malformed nonmatching definition, cancellation/disclosure and complete route fingerprint coverage. No R3 semantic change."
   },
-  "implementationHead": null,
-  "reviewedHead": null,
-  "pathStateDigest": null,
-  "finalReview": { "reviewer": null, "outcome": "pending", "evidence": "" }
+  "implementationHead": "4da38e868b4f4b6b5b1db788fd3d3d4ff0dc4ac3",
+  "reviewedHead": "4da38e868b4f4b6b5b1db788fd3d3d4ff0dc4ac3",
+  "pathStateDigest": "3ad59cf4ff9a2e00a6f42263714776eec5a9d8e5db9e43f3a12fbc27e2af163c",
+  "finalReview": { "reviewer": "parallel_resource_audit", "outcome": "approved", "evidence": "Fixed-head independent R2 code-review/Polytail PASS at 4da38e868b4f4b6b5b1db788fd3d3d4ff0dc4ac3, no P0-P3 findings. Complete materialization, pinned policy fingerprints, per-load lifetime, failed-load isolation and last-known publication retained. RED: 3 of 9 tests failed without reuse (44 expansions rather than 1, and mutable loader array leakage); GREEN: 111 Bootstrap tests in 13.7398s and 6 Architecture tests in 2.5542s, zero skipped. Admission validator, fast Polytail and diff check passed. Diagnostic EXE paired five-launch measurements and limitations recorded in tests/README.md; full candidate verification, all required Golden execution and release gates remain separate." }
 }

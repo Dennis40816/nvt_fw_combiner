@@ -410,6 +410,53 @@ Release output and its source are retained under
 `NFC_TEST_AREA_ROOT/evidence/v115-catalog-stage-probe/`. Production remains
 unchanged by this diagnosis; no full verifier or Golden run was needed.
 
+### Catalog load-scoped CtrlRAM reuse — 2026-09-11
+
+Implemented at `4da38e868b4f4b6b5b1db788fd3d3d4ff0dc4ac3` after the preceding
+diagnosis. Every load now creates a fresh resolver and lazily materializes the
+complete CtrlRAM definition sequence once, instead of 44 times. Exact matching,
+all 89 pinned route fingerprints, complete validation, cancellation and atomic
+publication remain unchanged; failures never populate a cross-load cache.
+
+The new regression was RED without reuse: **3/9 failed**, including 44 versus
+one expansion and mutation of the loader's array. GREEN: **111/111 Bootstrap
+tests, 13.7398 s**, including catalog migration/progress, CtrlRAM admission,
+AB Dummy DP and Standard Merge compilation; **6/6 Architecture tests, 2.5542 s**.
+All used `dotnet test --no-restore` and the fixed external test-area temp.
+Independent fixed-head R2 review/Polytail: **PASS**, no P0-P3 findings.
+
+The same temporary Release-stage probe (one cold-process plus two same-process
+loads) measured 5,659.02 / 31.21 / 29.09 ms versus the preceding
+6,362.69 / 327.87 / 308.27 ms. Same-process allocation fell from about
+191 MB to 14.9 MB. These unbundled timings do not represent EXE first-window
+latency, and one before/after probe is not a repeatability guarantee.
+
+Paired diagnostic EXEs used SDK 10.0.303, runtime 10.0.11, unchanged compressed
+self-contained composite ReadyToRun flags. Each ran one unscored warm-up and
+five scored Home launches, requiring complete preload lifecycle evidence.
+Control source: `71605699`; candidate source: `4da38e86`.
+
+| Median metric | Control | Candidate |
+| --- | ---: | ---: |
+| Process to first window | 778.210 ms | 793.276 ms |
+| Managed entry to full background warm-up | 4,058.729 ms | 3,758.912 ms |
+| Window to catalog-state application (trace stage delta) | 3,504.53 ms | 3,207.45 ms |
+| Cumulative allocation after background warm-up | 1,090,714,200 B | 914,086,312 B |
+| Peak working set | 327,221,248 B | 325,980,160 B |
+| EXE size | 75,071,224 B | 75,914,690 B |
+
+Background completion improved about **7.4%** and cumulative allocation about
+**16.2%**; this is not retained-memory reduction or an end-to-end release timing.
+First-window latency did **not** improve and still exceeds the 700 ms target.
+The candidate remains below the unchanged 80,000,000-byte EXE gate.
+Candidate SHA-256:
+`68b9c5a1cba3968330395f741af294078892a49c3e212e4764ae9a72516c8289`.
+Raw probe source/log and both startup JSON files are retained under
+`NFC_TEST_AREA_ROOT/evidence/v115-catalog-load-scope-after/`.
+These are diagnostic outputs, not release-qualified packages. No full verifier
+or certified Golden execution was rerun for this bounded internal unit;
+actual candidate integration/release gates remain required.
+
 ## Historical execution map
 
 Arrows mean prerequisites; sibling branches may overlap. Local verification,
