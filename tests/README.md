@@ -390,6 +390,53 @@ artifact identities are retained in
 `NFC_TEST_AREA_ROOT/evidence/v115-local-package-20260912-141810/`.
 Generated packages remain outside Git; no fresh startup-latency claim is made.
 
+### Local package refresh — 2026-09-13 (unpublished)
+
+Source `dba19a309acb9ce879147d4d5b7473815157229f`, tree
+`a27d8102d1f8929e39943939a3e29cb14f8a2828`, SDK 10.0.301. This includes the
+[bounded group/first-activation fixes](../docs/ui/post-v1.1.0-navigation-and-ctrlram-first-open-handoff.md#5-v115-first-workflow-activation--2026-09-13).
+VERSION remains 1.1.4: this is local development evidence on branch 1.1.5,
+not the published v1.1.4 package or an admitted v1.1.5 release.
+
+| Command / check | Result |
+| --- | --- |
+| `pwsh -NoProfile -File scripts/package.ps1 -Version 1.1.4 -Commit dba19a309acb9ce879147d4d5b7473815157229f` | PASS; 214.13 s, including both source snapshots, portable ZIP, distribution Launcher and cleanup |
+| `scripts/smoke-release.ps1 -PackagePath artifacts/release/NvtFwCombiner-v1.1.4-win-x64.zip -SkipUiLaunch -KeepExtracted` | PASS; 9.38 s; closed contents, fixture hashes, manifest/sidecars and CRC worker vector |
+| `scripts/measure-startup.ps1` on freshly extracted EXE, Home, `-WarmupRuns 1 -Runs 5 -TimeoutSeconds 30 -RequirePreloadLifecycle` | PASS lifecycle; window median 719.517 ms (range 717.508–747.541); **700 ms target not achieved** |
+| Same EXE/tool, `-Page merge` then `-Page replace`, each `-WarmupRuns 0 -Runs 1 -TimeoutSeconds 30` | Both completed; window observations 750.489 / 741.913 ms. Direct-process startup smoke, not in-process navigation latency or statistical performance evidence |
+
+Home's window-to-catalog-ready median was 3329.459 ms; process-to-complete-trace
+median was 4167.846 ms. The first window is not the same as fully ready workflow
+content. No heavy build/test ran during startup measurements. This is the same
+development Windows host with existing runtimes/caches, not a clean machine or
+OS-cold test. The initial Home command omitted the extraction's `extract/`
+directory and failed before launching; its log is retained alongside the
+successful corrected-path run.
+
+| Artifact | Bytes | SHA-256 |
+| --- | ---: | --- |
+| Main EXE | 75,051,280 | `d3463b388fab0606aa7ac896745169de8095de2bae5540e80c8a29a8eaa6e614` |
+| Portable ZIP | 116,780,552 | `686155218fea6e15898ec6cfb14b2c8ce509da8e66e1bfcadfb2312f5b88e8e2` |
+| Separate distribution Launcher EXE | 90,233,641 | `82325d4933f50b45762e2bf07633ef452e77a177b9e7c1850192a8c8691b9598` |
+
+Both executables are below 100 decimal MB; the main EXE passes the 80 MB gate.
+The ZIP exceeds 100 MB but passes the existing 128 MiB gate. Packaging plus
+non-UI smoke totals **223.51 s (3 min 43.5 s)**, excluding startup measurements;
+this is not complete release wall time. No full verifier or release-Golden
+output run was performed. Inclusion/hashes do not certify Golden execution.
+Existing cross-page behavior evidence remains the separate headless tests.
+
+Logs, measurements and `assessment.json` with all nine artifact identities are
+under `NFC_TEST_AREA_ROOT/evidence/v115-local-package-20260913-dba19a30/`.
+The previous local artifacts remain in
+`artifacts/release-saved-20260913-dba19a30` and
+`artifacts/package-work-saved-20260913-dba19a30`. No generated payload enters Git.
+The unmodified provenance builder label is `GitHub Actions / scripts/package.ps1`,
+but this execution was local: it supplies no Actions-run or tag-derived admission.
+No tag, GitHub Release, Catalog, source/version identity, or package policy was
+changed. Formal exact-source CI/Golden, release identity, clean-machine and
+publication gates remain outstanding.
+
 ### v1.1.5 Home baseline — published v1.1.4 package, 2026-09-11
 
 The unchanged production predecessor is the initial control, not a newly built

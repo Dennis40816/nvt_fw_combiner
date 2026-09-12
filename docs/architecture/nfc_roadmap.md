@@ -1539,10 +1539,15 @@ passed in 730.59 s (12 min 10.6 s); default remains three workers because the
 single trial also showed increased contention. The owner has deferred further
 Home startup tuning for now; the 700 ms target remains unachieved, not waived
 as a pass. CtrlRAM first-open acceptance still requires its separately defined
-baseline and target. The [local package measurement](../../tests/README.md#local-package-measurement--2026-09-12-unpublished)
-adds 231.79 s packaging plus 9.62 s non-UI smoke, with a 75,050,513-byte main
-EXE and 116,780,870-byte ZIP. It is an unpublished development build retaining
-VERSION 1.1.4, not final-source admission or a v1.1.5 release.
+baseline and target. The latest [local package refresh, 2026-09-13](../../tests/README.md#local-package-refresh--2026-09-13-unpublished)
+on `dba19a30` took 214.13 s packaging plus 9.38 s non-UI smoke, with a
+75,051,280-byte main EXE and 116,780,552-byte ZIP. Packaged Home window median
+was 719.517 ms; the 700 ms target is still not achieved. Merge/Replace direct
+startup smoke passed; this is not an in-process navigation latency result.
+The [group/first-activation local fixes](../ui/post-v1.1.0-navigation-and-ctrlram-first-open-handoff.md#5-v115-first-workflow-activation--2026-09-13)
+and their affected tests are complete. The package remains an unpublished
+development build retaining VERSION 1.1.4, not final-source admission or a
+v1.1.5 release. Prior dated measurements remain in the test README.
 
 Owner allocation on 2026-09-06 adds this work beside the existing startup and
 first-open targets; it does not replace them or move `1.1.4` UI work. Target the

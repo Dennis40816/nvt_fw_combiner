@@ -341,3 +341,9 @@ Local implementation is complete. Native packaged timing, frozen integration
 records, full required verification/Golden execution and release are separate
 remaining boundaries. Do not expand into the deferred chooser redesign or
 claim the Home/first-open performance targets are newly certified.
+
+Subsequent local package verification on the committed `dba19a30` source is
+recorded in [tests/README.md](../../tests/README.md#local-package-refresh--2026-09-13-unpublished).
+The package/worker checks and real Windows Home/Merge/Replace startup checks
+passed. Home remains above 700 ms, and direct-process startup does not certify
+in-process navigation latency. Formal release and clean-machine gates remain.
