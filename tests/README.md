@@ -7,6 +7,12 @@ explicitly **v1.1.3**, not fresh measurements of the current UI changes.
 
 ## v1.1.5 local scheduling change
 
+Public `--jobs` supports 1–4 workers; the default remains three. Four is an
+opt-in tuning option, not a global descendant-process limit or an established
+speedup. Nested .NET preparation and producer pools retain their separate
+three-worker cap and UI-exclusive-first ordering. Historical measurements and
+the earlier rejected-four-worker probe below retain their original meaning.
+
 The local implementation finishes derived-data checking and the existing
 SDK/restore with tracked lock projections restored before starting one `--jobs`
 pool. Its first lane runs post-restore checks/build followed by coverage under

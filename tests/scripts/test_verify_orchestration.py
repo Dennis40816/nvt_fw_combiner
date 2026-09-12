@@ -1465,6 +1465,40 @@ class VerifyOrchestrationTests(unittest.TestCase):
                 time.sleep(0.9)
                 self.assertFalse(orphan.exists(), "a managed module descendant survived")
 
+    def test_four_workers_run_every_lane_once_without_exceeding_requested_capacity(self) -> None:
+        barrier = threading.Barrier(4, timeout=5)
+        lock = threading.Lock()
+        active = maximum = 0
+        calls = []
+
+        def action(index, log_path):
+            nonlocal active, maximum
+            with lock:
+                calls.append(index)
+                active += 1
+                maximum = max(maximum, active)
+            try:
+                if index < 4:
+                    barrier.wait()
+                log_path.write_text(str(index), encoding="utf-8")
+            finally:
+                with lock:
+                    active -= 1
+
+        lanes = tuple(
+            MODULE.VerificationLane(str(index), lambda log, i=index: action(i, log))
+            for index in range(8)
+        )
+        with tempfile.TemporaryDirectory() as temporary:
+            results = MODULE.run_lanes(lanes, jobs=4, log_directory=Path(temporary))
+            self.assertTrue(all(result.succeeded for result in results))
+            self.assertEqual([str(i) for i in range(8)], [result.name for result in results])
+            self.assertEqual([str(i) for i in range(8)],
+                             [result.log_path.read_text(encoding="utf-8") for result in results])
+        self.assertCountEqual(range(8), calls)
+        self.assertEqual(4, maximum)
+        self.assertEqual(0, active)
+
     def test_parallel_lanes_collect_all_results_and_keep_logs_isolated(self) -> None:
         calls: list[str] = []
 
@@ -6076,6 +6110,7 @@ class VerifyOrchestrationTests(unittest.TestCase):
     ) -> None:
         parsed = MODULE.parse_args([])
         self.assertEqual(3, parsed.jobs)
+        self.assertEqual(4, MODULE.parse_args(["--jobs", "4"]).jobs)
         self.assertEqual(900, parsed.lane_timeout_seconds)
         self.assertEqual(
             600,
@@ -6083,7 +6118,9 @@ class VerifyOrchestrationTests(unittest.TestCase):
         )
         with contextlib.redirect_stderr(io.StringIO()):
             with self.assertRaises(SystemExit):
-                MODULE.parse_args(["--jobs", "4"])
+                MODULE.parse_args(["--jobs", "5"])
+            with self.assertRaises(SystemExit):
+                MODULE.parse_args(["--jobs", "0"])
             with self.assertRaises(SystemExit):
                 MODULE.parse_args(["--lane-timeout-seconds", "59"])
             with self.assertRaises(SystemExit):

@@ -322,7 +322,12 @@ non-success matrix result before running the worker-only lane. Each invocation
 uses the existing verifier's exhaustive/disjoint partition, session custody and
 deadline. The v1.1.5 local `verify.py --all` path completes the derived-data
 check and shared SDK/restore, including restoration of tracked lock projections,
-before starting one bounded lane pool. Structure postchecks may overlap the
+before starting one bounded lane pool. Local public `--jobs` accepts 1–4 and
+defaults to three;
+four is opt-in for measured workloads, not a new default. The nested .NET
+snapshot-preparation and non-UI producer pools remain capped at three, with
+the UI producer still exclusive-first. Outer jobs do not cap every descendant
+process or thread globally. Structure postchecks may overlap the
 post-restore build and subsequent tests. The build-to-coverage lane starts first
 and retains one slot and deadline; scripts and CRC wait for successful build
 readiness within their own existing budgets. A failed or cancelled builder

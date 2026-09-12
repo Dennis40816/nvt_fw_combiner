@@ -68,7 +68,8 @@ WINDOWS_PROCESS_ORCHESTRATION_TEST = (
     "VerifyOrchestrationTests.test_windows_owned_job_kills_descendants_after_root_exit"
 )
 DEFAULT_VERIFY_JOBS = 3
-MAXIMUM_VERIFY_JOBS = 3
+MAXIMUM_VERIFY_JOBS = 4
+MAXIMUM_LOCAL_DOTNET_JOBS = 3
 DEFAULT_LANE_TIMEOUT_SECONDS = 900
 LOCAL_DOTNET_COVERAGE_TIMEOUT_SECONDS = 480
 MINIMUM_LANE_TIMEOUT_SECONDS = 60
@@ -3383,7 +3384,7 @@ def prepare_local_dotnet_coverage_stages(
         return stage
 
     results: dict[int, LocalDotnetCoverageStage] = {}
-    with ThreadPoolExecutor(max_workers=min(MAXIMUM_VERIFY_JOBS, len(projects))) as executor:
+    with ThreadPoolExecutor(max_workers=min(MAXIMUM_LOCAL_DOTNET_JOBS, len(projects))) as executor:
         futures = {}
         try:
             for index, project in enumerate(projects):
@@ -3467,7 +3468,7 @@ def collect_local_dotnet_coverage(
             )
             batch_results = run_lanes(
                 lanes,
-                jobs=min(MAXIMUM_VERIFY_JOBS, len(lanes)),
+                jobs=min(MAXIMUM_LOCAL_DOTNET_JOBS, len(lanes)),
                 log_directory=coverage_directory / "logs",
                 lane_timeout_seconds=LOCAL_DOTNET_COVERAGE_TIMEOUT_SECONDS,
                 preserve_cancellation_request=True,
