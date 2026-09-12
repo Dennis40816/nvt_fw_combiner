@@ -272,3 +272,72 @@ preload remain unmodified.
 Local work does not certify frozen-candidate records, protected CI, packaging,
 all certified Golden outputs, or release. Those integration/release gates and
 native packaged performance confirmation remain separate.
+
+## 5. v1.1.5 first-workflow activation — 2026-09-13
+
+Owner-approved bounded local R1 continuation on `1.1.5`, base `d78f249d`.
+The pre-edit task discussion admitted the existing
+`WorkflowSessionPresentationViewModel` page-refresh owner, initially its
+`WorkflowContext.cs` partial, `FirstWorkflowActivationTests.cs`, and this
+handoff. A reproduced catalog-reload case then admitted the same owner's
+`SelectorPublication.cs` partial before editing that path. No new initializer,
+cache, background preload, public contract, firmware rule, or visual design
+was introduced.
+
+### Mechanism and acceptance
+
+- Catalog publication marks both existing page projections as needing refresh;
+  it no longer treats catalog readiness as completed page initialization.
+  First activation follows the existing owner-specific full-refresh path.
+  Unvisited page slots/groups stay deferred until that page is entered.
+- Home confirmation and catalog reconciliation preserve pending refresh work
+  even when IC/Mode/Number values are unchanged. Successful page refresh clears
+  its flag; existing transactional rollback restores the previous state.
+- Required inspection invalidation, complete slot publication, readiness,
+  mode selection and page isolation remain on their original paths. Shared
+  bootstrap and initial General mapping rows remain unchanged; this does not
+  claim that every off-page allocation is removed.
+
+### Evidence and scoped review
+
+Evidence remains in
+`D:/NvtFwCombiner-TestArea/evidence/v115-navigation-20260912-232305`:
+
+- `activation-red-2.trx`: all four initial cases reproduced unwanted off-page
+  slot initialization. `activation-green.trx`: those four passed.
+- `activation-catalog-red.trx`: four added pre-entry catalog-reload cases
+  reproduced cleared pending flags. One additional test assertion used `1`
+  rather than the existing AB `single` topology token; the test was corrected,
+  without changing the product token contract.
+- Final production/test source: `activation-regression.trx` passed 213 tests;
+  `activation-final.trx` passed 58 (overlapping selections, not 271 unique
+  cases). Zero failures/skips. Coverage includes all ten new cases, navigation
+  cancellation/rollback, catalog reconciliation, Mode controls, CtrlRAM,
+  General/Merge workflows and cross-page inspection isolation. Real compiled
+  controls bind confirmed NT51927 three-chip CtrlRAM and NT51950 AB context
+  and each complete current slot object.
+- Commands: Release `dotnet test` on the UI smoke project with the named
+  affected class/method filters, and scoped `dotnet format whitespace
+  --verify-no-changes` (exit 0; workspace-load warning). Each process loaded
+  the fixed test-area root and set TEMP/TMP/TMPDIR. Detailed logs accompany
+  each TRX. `git diff --check` passed.
+- Primary-agent scoped local R1 Polytail: **PASS**. Reviewed pending-flag
+  lifetime, cancellation/rollback, refresh ownership, whole projections and
+  actual-control evidence. No outstanding finding in this unit; this is not
+  full-candidate integration or release approval.
+
+The retained diagnostic harness ran once in each navigation order, with no
+template intervention (`activation-timing-merge-first` and
+`activation-timing-replace-first`, JSON/TRX/log). Merge-first command measured
+74.59 ms versus the preceding group-fix sample's 108.16 ms; complete transition
+373.86 ms versus 399.15 ms. First Replace after Merge now pays its own deferred
+work (40.80 ms command). Reverse order measured Replace 58.01 ms and subsequent
+Merge 63.45 ms. These are exploratory headless samples, not a statistical or
+packaged-Windows speed guarantee. Work is deferred, not eliminated: both-page
+total time is not proven lower, and layout remains dominant. The temporary
+probe was removed after measurements; its existing evidence copy remains.
+
+Local implementation is complete. Native packaged timing, frozen integration
+records, full required verification/Golden execution and release are separate
+remaining boundaries. Do not expand into the deferred chooser redesign or
+claim the Home/first-open performance targets are newly certified.
