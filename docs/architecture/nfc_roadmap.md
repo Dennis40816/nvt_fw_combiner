@@ -1534,6 +1534,16 @@ different environment.
 
 ### Local full-verifier parallelization
 
+Progress on 2026-09-12: the [opt-in four-worker full run](../../tests/README.md#opt-in-four-worker-complete-measurement--2026-09-12)
+passed in 730.59 s (12 min 10.6 s); default remains three workers because the
+single trial also showed increased contention. The owner has deferred further
+Home startup tuning for now; the 700 ms target remains unachieved, not waived
+as a pass. CtrlRAM first-open acceptance still requires its separately defined
+baseline and target. The [local package measurement](../../tests/README.md#local-package-measurement--2026-09-12-unpublished)
+adds 231.79 s packaging plus 9.62 s non-UI smoke, with a 75,050,513-byte main
+EXE and 116,780,870-byte ZIP. It is an unpublished development build retaining
+VERSION 1.1.4, not final-source admission or a v1.1.5 release.
+
 Owner allocation on 2026-09-06 adds this work beside the existing startup and
 first-open targets; it does not replace them or move `1.1.4` UI work. Target the
 complete local `python scripts/verify.py --all` wall time at approximately

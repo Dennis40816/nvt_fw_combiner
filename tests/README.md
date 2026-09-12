@@ -344,6 +344,52 @@ Actual release packaging and release-source admission were not performed.
 Raw log and stopwatch/identity JSON are retained outside Git in
 `NFC_TEST_AREA_ROOT/evidence/v115-four-workers-20260912-104859/`.
 
+### Local package measurement — 2026-09-12 (unpublished)
+
+Built clean source `12773f2849c41035c8e03c3d54ec2b68db8634fc` on the same
+Windows host with SDK 10.0.301 selected through PATH. Repository `VERSION`
+remained **1.1.4**: these are local development measurements, not the published
+v1.1.4 assets or an admitted v1.1.5 release. No tag, GitHub asset or live Catalog
+was changed. Existing local v0.10.4 package/work artifacts were preserved in
+timestamped `artifacts/*-saved-20260912-141810` directories before packaging.
+
+| Command / phase | Seconds | Observed result |
+| --- | ---: | --- |
+| `pwsh -NoProfile -File scripts/package.ps1 -Version 1.1.4 -Commit 12773f2849c41035c8e03c3d54ec2b68db8634fc` | 231.79 | PASS, exit 0; normal portable package plus separate distribution Launcher, including source snapshots and cleanup |
+| `pwsh -NoProfile -File scripts/smoke-release.ps1 -PackagePath artifacts/release/NvtFwCombiner-v1.1.4-win-x64.zip -SkipUiLaunch` | 9.62 | PASS, exit 0, for the non-UI package checks only |
+
+The smoke checked closed contents, Golden reference inclusion, file hashes,
+manifest/SBOM/provenance consistency and the bundled CRC worker `123456789`
+vector. Visible startup was omitted to keep this local run background-only;
+this does not satisfy visible startup, clean-machine or firmware-output
+certification. Packaged fixture hash/inclusion checks are not Golden execution.
+
+| Artifact | Bytes | SHA-256 |
+| --- | ---: | --- |
+| Main `NvtFwCombiner.exe` | 75,050,513 | `e905a693d419e63d8608285a78dbed55d29bed68bff0d1957baf06dac76ad73d` |
+| Portable ZIP | 116,780,870 | `5e7e85601467ee7cba359fe580c53a0c9235162f34eb4006a70e648ec3bc65d2` |
+| Separate distribution Launcher EXE | 90,233,647 | `206aa6392bb6f1490d56c0eaa89b1481e8461aca09c197a3af449010abbd5a23` |
+
+Both executable artifacts are below 100 decimal MB; the main EXE also passes
+the existing 80,000,000-byte gate. The ZIP exceeds 100 MB but remains below
+the existing 134,217,728-byte ceiling. No content was removed or size policy
+changed. The Launcher EXE is separate from, not an additional file inside,
+the portable ZIP.
+
+Packaging plus the non-UI smoke totals **241.42 s (4 min 1.4 s)**. Adding the
+earlier 730.59 s full-verifier observation gives **972.01 s (16 min 12 s)**.
+This is arithmetic across separate runs and source identities, not one measured
+end-to-end release: the verifier used the frozen staged state documented above,
+whereas packaging used its subsequent evidence-only commit. Required final-source
+CI admission, release-Golden execution, visible/clean-machine acceptance,
+publication and downloaded-asset verification remain outside this total.
+No full suite was repeated for this packaging measurement.
+
+Raw `package.log`, `timing.json`, `smoke.log`, `smoke-timing.json` and all nine
+artifact identities are retained in
+`NFC_TEST_AREA_ROOT/evidence/v115-local-package-20260912-141810/`.
+Generated packages remain outside Git; no fresh startup-latency claim is made.
+
 ### v1.1.5 Home baseline — published v1.1.4 package, 2026-09-11
 
 The unchanged production predecessor is the initial control, not a newly built
@@ -1524,7 +1570,8 @@ set `TEMP`, `TMP`, and `TMPDIR` to its existing `temp` child. Use
 select affected tests for ordinary bounded changes under [`AGENTS.md`](../AGENTS.md).
 This README neither changes scheduling nor adds a test gate.
 
-The approximately ten-minute **local** critical-path target belongs to v1.1.5;
-it is not achieved by the current serial top-level loop. When that scheduling
-changes, update this diagram and retain new source-specific lane and full-wall
-measurements alongside, not instead of, the v1.1.3 historical baseline.
+The approximately ten-minute **local** critical-path target belongs to v1.1.5.
+The historical diagram retains the serial top-level baseline; current scheduling
+and source-specific lane/full-wall measurements are recorded above. The latest
+complete observation is 730.59 s, not an achieved ten-minute result. Preserve
+the v1.1.3 historical baseline rather than replacing it with current timings.
