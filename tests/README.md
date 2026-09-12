@@ -296,6 +296,54 @@ FAIL: these are scoped correction results, not a fresh complete verifier pass.
 Structure output is retained at
 `NFC_TEST_AREA_ROOT/evidence/v115-code-size-structure.log`.
 
+### Opt-in four-worker complete measurement — 2026-09-12
+
+`python scripts/verify.py --all --jobs 4` passed, exit 0, in **730.59 s
+(12 min 10.6 s)** including setup, SDK shutdown and session cleanup. This used
+the same Windows host and repository SDK 10.0.301, without another heavy
+diagnostic running concurrently. No cache reset or repeated paired trial was
+performed; this is one observation, not a repeatability guarantee.
+
+The exact frozen state was implementation HEAD
+`06ae69718fe8f552f16d43ab04d90c99b0b4a79c` plus the staged `final-complete`
+`VERIFY-115-OPT-IN-FOUR-WORKERS-01` record, not the pure HEAD tree. The index tree
+was `39a5e1df5e09d4b0cd7c192ac63cc492a5c3e18d`, and the final record blob was
+`651e04ab4775367d77bfecfed55ff060db319f00`. All three identities were unchanged
+after execution; derived sync changed zero files. The subsequent evidence-only
+commit retains this source attribution and does not claim another full run.
+
+| Phase / lane | Seconds | Result |
+| --- | ---: | --- |
+| Derived sync / SDK restore | 1.4 / 3.3 | PASS |
+| Build plus .NET coverage | 627.5 | PASS; 6,153 cases, zero failed/skipped |
+| Structure | 278.5 | PASS, including corrected size accounting |
+| Agent-governance script lane | 438.7 | PASS; includes build-readiness waiting |
+| Release-package script lane | 443.4 | PASS; 84 tests, not actual packaging |
+| CRC worker | 12.3 | PASS; 30 cases, 100% line/branch coverage |
+
+Script modules passed 1,054 cases with no failures; the one optional external
+`NFC_PARITY_PACKAGE_LAB` case remained skipped, not certified. .NET coverage
+passed at 91.30% lines (79,681/87,272) and 79.96% branches (26,795/33,511).
+The narrow orchestration module first showed two intended failures on the
+old cap, then passed 217/217 in 32.84 s. Independent fixed-head R2 Polytail
+approved the complete diff with no findings; the full run includes structure
+and fast Polytail rather than a separate repeated structure invocation.
+
+Compared with the preceding three-worker observation (766.64 s, failed solely
+on size accounting), elapsed time is 36.05 s / 4.7% shorter. This is not a
+controlled scheduling-only attribution: accounting and one orchestration case
+changed, and the executions occurred on different days. The increased outer
+concurrency also increased .NET lane time from 556.4 to 627.5 s and structure
+from 232.8 to 278.5 s. Earlier script starts saved some tail time, but contention
+offset much of that gain. The approximately ten-minute whole-command target
+remains unmet; default stays at three and four remains opt-in. Do not raise
+concurrency again based only on this observation. UI-exclusive-first, nested
+three-worker pools, all deadlines, coverage and Golden requirements are unchanged.
+Actual release packaging and release-source admission were not performed.
+
+Raw log and stopwatch/identity JSON are retained outside Git in
+`NFC_TEST_AREA_ROOT/evidence/v115-four-workers-20260912-104859/`.
+
 ### v1.1.5 Home baseline — published v1.1.4 package, 2026-09-11
 
 The unchanged production predecessor is the initial control, not a newly built
