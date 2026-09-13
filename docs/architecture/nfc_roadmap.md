@@ -1598,6 +1598,32 @@ conductor/architect playbook. The resulting workflow still requires separate
 owner approval. Do not migrate every repository, create a new tool repository
 or impose enterprise ceremony through this allocation.
 
+### Release gate proportionality assessment
+
+Owner allocation, 2026-09-13: assess unreasonable release gates in `1.1.6`,
+including the rigid code-size accounting exposed during `1.1.5` preparation.
+This is an assessment and proposed simplification, not authorization to remove
+current checks or change the frozen `1.1.5` release procedure.
+
+Inventory each local, PR, main and release gate with its actual owner,
+protected risk, triggering condition, evidence/output, measured execution and
+approval-wait cost, overlap, and the consequence of removing it. Classify each
+as retain, narrow, automate, combine/reuse exact-source evidence, downgrade to
+review warning, or remove; justify the choice from observed coverage and risk.
+Prioritize hard total-source line counts and exact-count test assertions,
+repeated verification or human confirmation, derived-data synchronization,
+and governance-record requirements disproportionate to the affected behavior.
+Do not replace them with another speculative scoring or approval framework.
+
+All applicable owner-certified Golden output cases still execute under their
+approved complete-output contracts. Firmware/write-range safety, immutable
+input handling, source/asset identity, credentials, release permissions and
+protected publication remain explicit boundaries. A proposed alternative must
+identify preserved failure detection, responsible ownership and suitable
+regression evidence before any separately authorized policy change. Record
+recommendations in the existing workflow retrospective, with policy/CI changes
+reviewed at their actual risk rather than silently waived for this release.
+
 ### Public baseline and vendor-specific UI/workflow discussion
 
 Owner intake, 2026-09-09: add this discussion to `1.1.x`; allocate it to
