@@ -7,7 +7,6 @@ using Avalonia.Automation;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
 using Avalonia.Controls.Templates;
-using Avalonia.Data;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Layout;
@@ -248,7 +247,7 @@ public sealed class MemoryCoverageBar : UserControl
             AutomationProperties.SetName(target, GroupSummary(item));
             AutomationProperties.SetHelpText(target, Text.MemoryLocalViewHint);
             target.PointerEntered += (_, _) => OpenLocal(item, target);
-            target.GotFocus += (_, _) => { if (!_restoringFocus) { OpenLocal(item, target); } };
+            target.GotFocus += (_, e) => { if (CanExploreFromFocus(e)) { OpenLocal(item, target); } };
             target.KeyDown += (_, e) =>
             {
                 if (e.Key is Key.Enter or Key.Space or Key.Down or Key.Up)
@@ -302,7 +301,7 @@ public sealed class MemoryCoverageBar : UserControl
             AutomationProperties.SetHelpText(target, Text.MemoryLocalViewHint);
             var item = new MemoryCoverageBarItem(lane.Ranges);
             target.PointerEntered += (_, _) => OpenLocal(item, target, lane);
-            target.GotFocus += (_, _) => { if (!_restoringFocus) { OpenLocal(item, target, lane); } };
+            target.GotFocus += (_, e) => { if (CanExploreFromFocus(e)) { OpenLocal(item, target, lane); } };
             target.KeyDown += (_, e) =>
             {
                 if (e.Key is Key.Enter or Key.Space or Key.Down or Key.Up)
@@ -372,10 +371,6 @@ public sealed class MemoryCoverageBar : UserControl
                 KeepLabelUnscaled(control, label);
                 overlay.Children.Add(label);
             }
-            var outline = new Border { BorderThickness = new Thickness(1), CornerRadius = new CornerRadius(3), IsHitTestVisible = false };
-            _ = outline.Bind(Border.BorderBrushProperty, new DynamicResourceExtension("NfcSurfaceBrush"));
-            _ = outline.Bind(IsVisibleProperty, new Binding("Interaction.IsActive"));
-            overlay.Children.Add(outline);
             border.Child = overlay;
         }
         ToolTip.SetTip(control, null);
@@ -404,7 +399,7 @@ public sealed class MemoryCoverageBar : UserControl
         target.Focusable = true;
         WatchTargetExit(target);
         target.PointerEntered += (_, _) => OpenSlice();
-        target.GotFocus += (_, _) => { if (!_restoringFocus) { OpenSlice(); } };
+        target.GotFocus += (_, e) => { if (CanExploreFromFocus(e)) { OpenSlice(); } };
         target.KeyDown += (_, e) =>
         {
             if (e.Key == Key.Escape)
@@ -438,6 +433,11 @@ public sealed class MemoryCoverageBar : UserControl
     {
         target.PointerExited += (_, _) => StartCloseTimer();
         target.LostFocus += (_, _) => StartCloseTimer();
+    }
+
+    private bool CanExploreFromFocus(RoutedEventArgs e)
+    {
+        return !_restoringFocus && e is not FocusChangedEventArgs { NavigationMethod: NavigationMethod.Pointer };
     }
 
     private void StartCloseTimer()
