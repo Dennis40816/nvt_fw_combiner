@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 2,
+  "taskId": "GOV-115-UI-EXACT-SIZE-01",
+  "capability": "Account for the owner-approved exact 37-line Presentation increment without changing size-policy guards",
+  "integrationBase": "12773f2849c41035c8e03c3d54ec2b68db8634fc",
+  "risk": "R2",
+  "kind": "governance",
+  "state": "design-active",
+  "mutablePaths": [
+    "scripts/code_size_policy.py",
+    "tests/scripts/test_code_size_policy.py",
+    "docs/adr/0021-code-size-ratchet-accepted-artifact-amendment.md"
+  ],
+  "implementationOwner": "primary-agent",
+  "searchEvidence": [
+    "Owner explicitly approved the proposed 140473 to 140510 exact increment on 2026-09-13. Their additional question about replacing hard line-count limits requests assessment, not blanket removal of the existing guard.",
+    "The existing code_size_policy DEFAULT_LIMITS and measure_code_size remain the sole measurement owners. The structure gate failed only on full production140510 above140473; independent Git-blob comparison attributes33 lines to d78f249d group publication and4 to dba19a30 activation explanations, all Presentation-only.",
+    "Existing baseline test pins full production and the WorkflowSession observed aggregate. The aggregate changes2671 to2675; its13 files and2627 warning threshold do not change. Existing excess, reduction, slice and equality tests remain intact. ADR0021 forbids minification or deleting useful comments to game the metric."
+  ],
+  "semanticOwner": "scripts/code_size_policy.py DEFAULT_LIMITS and existing physical-source measurement; ADR0021 exact accounting",
+  "terminalContract": "Set only production_nonblank140510 and full_production_allowance37614 against unchanged base102896. Synchronize two existing baseline assertions to full140510 and observed WorkflowSession2675; retain its filecount13 and warninglimit2627. Append the exact owner decision. Runtime99585 and all slice totals, bases, other allowances, counting, exclusions, duplicate/partial rules, excess/reduction/equality guards and firmware/Golden/CI/release requirements remain unchanged. No spare or transferable capacity, policy removal or new measurement framework.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "/root/v115_release_admission",
+    "outcome": "approved",
+    "evidence": "Independent R2 design admission at b161a8d325e96c797a244e3a9383897c0db8820c, GPT-6 Astra/high/override, approves the two-default/two-baseline-assertion/dated-append scope after owner approval. Exact arithmetic102896+37614=140510; runtime and slices unchanged. Existing observed aggregate assertion is not a guard increase. No P0-P3 findings. Retained RED, focused policy tests, exact measurement, independent frozen-head review and full candidate verification remain required."
+  },
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": { "reviewer": null, "outcome": "pending", "evidence": "" }
+}

@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 2,
+  "taskId": "UI-115-FIRST-WORKFLOW-ACTIVATION-01",
+  "capability": "Integrate deferred first workflow projection without losing pending complete refresh",
+  "integrationBase": "12773f2849c41035c8e03c3d54ec2b68db8634fc",
+  "risk": "R1",
+  "kind": "ui",
+  "state": "design-active",
+  "mutablePaths": [
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/WorkflowSessionPresentationViewModel.SelectorPublication.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/WorkflowSessionPresentationViewModel.WorkflowContext.cs",
+    "tests/NvtFwCombiner.UiSmoke.Tests/FirstWorkflowActivationTests.cs"
+  ],
+  "implementationOwner": "primary-agent",
+  "searchEvidence": [
+    "Honest current integration admission for owner-authorized local R1 commit dba19a30; not a retroactive design approval. Existing handoff docs/ui/post-v1.1.0-navigation-and-ctrlram-first-open-handoff.md records scope, red/green evidence and limitations.",
+    "InitializeWorkflowPageContexts, SetWorkflowPageContext, SelectorPublication and ActivateWorkflowPageContext are the existing page-context and complete refresh owners. Preserve pending flags across unchanged selections and catalog reconciliation instead of introducing a second refresh or field-copy path.",
+    "Independent read-only admission at 99c06b0ff86017bbdff2f083ad9d5b15c967e7c0 checked transactional rollback and fresh publication, and retained overlapping TRX selections with 213 and 58 passed. Ten first-activation cases include compiled NT51927 triple CtrlRAM and NT51950 AB Code controls. Final frozen-head review follows."
+  ],
+  "semanticOwner": "WorkflowSessionPresentationViewModel existing workflow context activation and selector publication",
+  "terminalContract": "Initialize unvisited page projections through their existing full owner on first activation. Preserve pending refresh through unchanged selector values, empty/new catalog reconciliation and Home confirmation; clear only after complete refresh. Retain cancellation, rollback, selected-file state, current inspection and readiness authority. Deferral is not elimination of total two-page work or firmware change.",
+  "disposition": "extend-owner",
+  "designReview": { "reviewer": null, "outcome": "not-required", "evidence": "Bounded local R1 correction admitted for current integration; mandatory independent final review remains pending." },
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": { "reviewer": null, "outcome": "pending", "evidence": "" }
+}

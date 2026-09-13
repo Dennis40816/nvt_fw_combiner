@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 2,
+  "taskId": "UI-115-CTRLRAM-GROUP-REFRESH-01",
+  "capability": "Integrate retained CtrlRAM group containers with complete fresh slot publications",
+  "integrationBase": "12773f2849c41035c8e03c3d54ec2b68db8634fc",
+  "risk": "R1",
+  "kind": "ui",
+  "state": "design-active",
+  "mutablePaths": [
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/FirmwareSlotGroupViewModel.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReplacePresentationViewModel.Memory.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReplaceRegionGroupBuilder.cs",
+    "tests/NvtFwCombiner.UiSmoke.Tests/FirmwareSlotGroupRefreshTests.cs"
+  ],
+  "implementationOwner": "primary-agent",
+  "searchEvidence": [
+    "Honest current integration admission for owner-authorized local R1 commit d78f249d; not a retroactive design approval. Scope and retained execution evidence are recorded in docs/ui/post-v1.1.0-navigation-and-ctrlram-first-open-handoff.md and the owner task.",
+    "Existing ReplaceRegionGroupBuilder and ReplacePresentationViewModel group reconciliation remain the publication owners. FirmwareSlotGroupViewModel retains container identity and expansion, not cached or selectively copied slot fields.",
+    "Independent read-only admission at 99c06b0ff86017bbdff2f083ad9d5b15c967e7c0 confirmed canonical validator reports only the five current UI paths across this and the first-activation unit; no historical checkpoint errors. Reused groups-final2 TRX confirms 33 passed; final frozen-head review follows."
+  ],
+  "semanticOwner": "ReplacePresentationViewModel and ReplaceRegionGroupBuilder complete group publication; FirmwareSlotGroupViewModel presentation lifetime",
+  "terminalContract": "Reuse matching typed group containers and expansion state while publishing complete fresh slot objects. Unsubscribe removed or replaced slot subscriptions and preserve order, current card bindings and language notifications. No copied-field cache, firmware semantics, validation authority or selected-file deletion change.",
+  "disposition": "extend-owner",
+  "designReview": { "reviewer": null, "outcome": "not-required", "evidence": "Bounded local R1 correction admitted for current integration; mandatory independent final review remains pending." },
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": { "reviewer": null, "outcome": "pending", "evidence": "" }
+}
