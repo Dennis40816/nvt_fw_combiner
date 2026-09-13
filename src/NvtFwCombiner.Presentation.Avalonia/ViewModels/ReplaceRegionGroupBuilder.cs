@@ -1,22 +1,40 @@
+using System.Collections.ObjectModel;
+
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
 internal static class ReplaceRegionGroupBuilder
 {
-    public static IEnumerable<FirmwareSlotGroupViewModel> CreateSlotGroups(
+    internal static void UpdateSlotGroups(
+        ObservableCollection<FirmwareSlotGroupViewModel> target,
         IEnumerable<FirmwareSlotViewModel> slots,
         ShellTextResources text)
     {
-        return slots
-            .GroupBy(static slot => slot.RegionGroup)
-            .OrderBy(static group => group.Key)
-            .Select(group =>
+        int index = 0;
+        foreach (IGrouping<ReplaceRegionGroup, FirmwareSlotViewModel> grouping in slots
+            .GroupBy(static slot => slot.RegionGroup).OrderBy(static group => group.Key))
+        {
+            FirmwareSlotViewModel[] current = [.. grouping.OrderBy(slot => slot.Title, StringComparer.Ordinal)];
+            FirmwareSlotGroupViewModel? group = target.FirstOrDefault(candidate =>
+                candidate.Slots[0].RegionGroup == grouping.Key);
+            if (group is null)
             {
-                FirmwareSlotViewModel[] groupSlots = [.. group.OrderBy(slot => slot.Title, StringComparer.Ordinal)];
-                return new FirmwareSlotGroupViewModel(
-                    groupSlots,
-                    RegionGroupDefaultExpanded(group.Key),
-                    text);
-            });
+                group = new FirmwareSlotGroupViewModel(current, RegionGroupDefaultExpanded(grouping.Key), text);
+                target.Insert(index, group);
+            }
+            else
+            {
+                group.UpdateSlots(current);
+                group.ApplyText(text);
+                int previousIndex = target.IndexOf(group);
+                if (previousIndex != index) { target.Move(previousIndex, index); }
+            }
+            index++;
+        }
+        while (target.Count > index)
+        {
+            target[index].DisconnectSlots();
+            target.RemoveAt(index);
+        }
     }
 
     public static IEnumerable<MemoryCoverageGroupViewModel> CreateCoverageGroups(

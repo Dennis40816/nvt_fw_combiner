@@ -41,7 +41,7 @@ internal sealed class CanonicalCapabilityCatalogSource(
     Func<CanonicalCapabilityPolicySnapshot> loadPolicy,
     Func<CapabilityRouteIdentity, bool> isDynamicRoute,
     Func<CapabilityRouteIdentity, CanonicalCompiledRoute> resolveCompiledRoute,
-    Func<CapabilityRouteIdentity, CanonicalDynamicRoute> resolveDynamicRoute,
+    Func<Func<CapabilityRouteIdentity, CanonicalDynamicRoute>> createDynamicRouteResolver,
     Func<
         IReadOnlyList<CanonicalCapabilityDefinition>,
         IReadOnlyList<CanonicalDynamicCapabilityDefinition>,
@@ -83,10 +83,12 @@ internal sealed class CanonicalCapabilityCatalogSource(
                 cancellationToken.ThrowIfCancellationRequested();
                 _ = progress?.TryWrite(new((double)++completedRoutes / (totalRoutes + 1), Result: null));
             }
+            cancellationToken.ThrowIfCancellationRequested();
+            Func<CapabilityRouteIdentity, CanonicalDynamicRoute> resolveDynamicRoute = createDynamicRouteResolver();
             foreach (CanonicalCapabilityPolicyRoute route in classifiedRoutes[true])
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                dynamicDefinitions.Add(MaterializeDynamic(route));
+                dynamicDefinitions.Add(MaterializeDynamic(route, resolveDynamicRoute));
                 cancellationToken.ThrowIfCancellationRequested();
                 _ = progress?.TryWrite(new((double)++completedRoutes / (totalRoutes + 1), Result: null));
             }
@@ -110,8 +112,9 @@ internal sealed class CanonicalCapabilityCatalogSource(
         }
     }
 
-    private CanonicalDynamicCapabilityDefinition MaterializeDynamic(
-        CanonicalCapabilityPolicyRoute policy)
+    private static CanonicalDynamicCapabilityDefinition MaterializeDynamic(
+        CanonicalCapabilityPolicyRoute policy,
+        Func<CapabilityRouteIdentity, CanonicalDynamicRoute> resolveDynamicRoute)
     {
         CanonicalDynamicRoute route = resolveDynamicRoute(policy.Identity);
         return !StringComparer.Ordinal.Equals(

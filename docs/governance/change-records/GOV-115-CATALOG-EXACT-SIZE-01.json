@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 2,
+  "taskId": "GOV-115-CATALOG-EXACT-SIZE-01",
+  "capability": "Account for the exact owner-approved catalog load-scope increment",
+  "integrationBase": "26600a9b2d3bc107588d25f781d574e4d5563039",
+  "risk": "R2",
+  "kind": "governance",
+  "state": "final-complete",
+  "mutablePaths": [
+    "scripts/code_size_policy.py",
+    "tests/scripts/test_code_size_policy.py",
+    "docs/adr/0021-code-size-ratchet-accepted-artifact-amendment.md"
+  ],
+  "implementationOwner": "primary-agent",
+  "searchEvidence": [
+    "Owner approved the exact 22-line allowance on 2026-09-11 after the f1cd3419 full verifier reported Application +3 and Infrastructure/Contracts/worker +19; no spare capacity was requested or approved.",
+    "The increment is the independently reviewed CATALOG-115-CTRLRAM-LOAD-SCOPE-01 implementation at 4da38e868b4f4b6b5b1db788fd3d3d4ff0dc4ac3. Runtime/full both grow by 22; no Presentation-only growth.",
+    "Existing scripts/code_size_policy.py DEFAULT_LIMITS owns allowances and measurement; baseline tests assert exact full/runtime/slice counts and validate the existing growth/reduction guards. ADR0021 owns the historical-preserving accounting appendix."
+  ],
+  "semanticOwner": "scripts/code_size_policy.py existing measurement and DEFAULT_LIMITS; ADR0021 accepted exact accounting",
+  "terminalContract": "Set production_nonblank 140473 and allowances full 37577, runtime 29529, Application 12314 and Infrastructure/Contracts/worker 15429. Exact totals are 140473, 99585, 43004 and 30785. Preserve all ratchet bases, other allowances, counting/exclusions, partial/duplicate checks, growth/reduction/equality guards and firmware/Golden/release requirements. Update four baseline assertions and append the exact owner decision; no spare or transferable capacity.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "parallel_resource_audit",
+    "outcome": "approved",
+    "evidence": "Independent R2 design review approved the five-default/four-baseline/ADR-append scope conditional on owner approval, now supplied. Exact arithmetic: 102896+37577=140473; 70056+29529=99585; 30690+12314=43004; 15356+15429=30785. Existing runtime equality and excess/reduction/slice-mismatch tests remain mandatory. Do not compress useful implementation or introduce another accounting mechanism."
+  },
+  "implementationHead": "6b79eb4dcf47d6e136c40cb7c57cfee1d6ead893",
+  "reviewedHead": "6b79eb4dcf47d6e136c40cb7c57cfee1d6ead893",
+  "pathStateDigest": "354095680d220f695ca8df5504e6327ea782d7e624ebfd591c6d452aec9aef87",
+  "finalReview": {
+    "reviewer": "parallel_resource_audit",
+    "outcome": "approved",
+    "evidence": "Independent fixed-head scoped R2 Polytail PASS at 6b79eb4dcf47d6e136c40cb7c57cfee1d6ead893 against 05fac88e2be87d92db80bc53909afd86937064b9, no P0-P3 findings. Complete four-file diff preserves all policy logic and ratchet bases; five defaults/four baseline assertions account for exactly the owner-approved 22 lines with no headroom. RED 1 failed/18 passed confirms the old allowance mismatch; GREEN 19 passed in 29.35s exercises existing measurement, excess/reduction and equality protections. Fast Polytail and diff check passed. Reviewer reused reported execution evidence without rerunning tests. Structure validation and full integration/release gates remain separately reported; prior full failure is not relabeled PASS."
+  }
+}

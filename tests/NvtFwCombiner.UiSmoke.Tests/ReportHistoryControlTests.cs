@@ -10,6 +10,7 @@ using Avalonia.Threading;
 using Avalonia.VisualTree;
 using NvtFwCombiner.Presentation.Avalonia;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
+using NvtFwCombiner.Presentation.Avalonia.Views;
 using NvtFwCombiner.TestSupport;
 using static NvtFwCombiner.UiSmoke.Tests.ReportControlTestHost;
 
@@ -18,6 +19,59 @@ namespace NvtFwCombiner.UiSmoke.Tests;
 /// <summary>History actions run through actual rendered controls and the existing queued file writer.</summary>
 public sealed class ReportHistoryControlTests
 {
+    /// <summary>Message Center owns its deferred styles and retains them across real shell opens.</summary>
+    [AvaloniaTheory]
+    [InlineData(false, false)]
+    [InlineData(true, false)]
+    [InlineData(false, true)]
+    [InlineData(true, true)]
+    public async Task MessageCenterStylesLoadWithModalAndSurviveReopen(bool dark, bool chinese)
+    {
+        Assert.DoesNotContain(global::Avalonia.Application.Current!.Styles.OfType<Styles>()
+            .SelectMany(styles => styles.OfType<Style>()),
+            style => style.Selector?.ToString() == "Border.messageCenterHeader");
+        using var workspace = TempWorkspace.Create("v115-deferred-message-center");
+        PresentationHostServices services = await CreateServicesAsync(workspace);
+        using var window = new MainWindow(UiLaunchOptions.Empty, StartupTraceSession.Disabled, services, ShellPreferenceSnapshot.Default);
+        var shell = (MainWindowViewModel)window.DataContext!;
+        shell.SelectedLanguage = chinese ? "Traditional Chinese" : "English";
+        window.RequestedThemeVariant = dark ? ThemeVariant.Dark : ThemeVariant.Light;
+        ContentControl host = window.FindControl<ContentControl>("MessageCenterModalHost")!;
+        Assert.Null(host.Content);
+        window.Show();
+        window.WindowState = WindowState.Normal;
+        window.Width = 1536;
+        window.Height = 864;
+        try
+        {
+            await AwaitHistoryReadyAsync(window);
+            Assert.Null(host.Content);
+            for (int opening = 0; opening < 2; opening++)
+            {
+                shell.MessageCenter.OpenCommand.Execute(null);
+                Dispatcher.UIThread.RunJobs();
+                MessageCenterModal modal = Assert.Single(window.GetVisualDescendants().OfType<MessageCenterModal>());
+                _ = Assert.Single(modal.Styles.OfType<Styles>().SelectMany(styles => styles.OfType<Style>()),
+                    style => style.Selector?.ToString() == "Border.messageCenterHeader");
+                Border rail = modal.FindControl<Border>("MessageCenterNavigationRail")!;
+                Assert.Equal(new Thickness(18, 30, 36, 30), rail.Padding);
+                Assert.Equal(new Thickness(0, 0, 2, 0), rail.BorderThickness);
+                Border header = Assert.Single(modal.GetVisualDescendants().OfType<Border>(),
+                    border => border.Classes.Contains("messageCenterHeader"));
+                Assert.Equal(new Thickness(0, 0, 0, 2), header.BorderThickness);
+                Assert.Equal(rail.Background, header.Background);
+                Assert.NotNull(header.Background);
+                shell.MessageCenter.CloseCommand.Execute(null);
+                Dispatcher.UIThread.RunJobs();
+                Assert.False(shell.MessageCenter.IsOpen);
+            }
+        }
+        finally
+        {
+            await CloseAndFlushAsync(window);
+        }
+    }
+
     /// <summary>One pointer/keyboard activation opens the selected report without appending history.</summary>
     [AvaloniaTheory]
     [InlineData("mouse")]

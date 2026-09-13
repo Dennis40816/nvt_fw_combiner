@@ -30,7 +30,30 @@ internal sealed partial class FirmwareSlotGroupViewModel : ObservableObject
 
     public string Summary => _text.FormatReplaceSlotGroupSummary(Slots[0].RegionGroup, Slots.Count);
 
-    public ObservableCollection<FirmwareSlotViewModel> Slots { get; }
+    public ObservableCollection<FirmwareSlotViewModel> Slots { get; private set; }
+
+    /// <summary>Publishes whole current slot projections; never copies an evolving list of slot fields.</summary>
+    internal void UpdateSlots(IEnumerable<FirmwareSlotViewModel> slots)
+    {
+        ObservableCollection<FirmwareSlotViewModel> next = [.. slots];
+        if (Slots.SequenceEqual(next)) { return; }
+        DisconnectSlots();
+        Slots = next;
+        foreach (FirmwareSlotViewModel slot in Slots)
+        {
+            slot.PropertyChanged += SlotPropertyChanged;
+        }
+        // Every derived binding must observe the new publication, including future group properties.
+        OnPropertyChanged(string.Empty);
+    }
+
+    internal void DisconnectSlots()
+    {
+        foreach (FirmwareSlotViewModel slot in Slots)
+        {
+            slot.PropertyChanged -= SlotPropertyChanged;
+        }
+    }
 
     public int SelectedCount => Slots.Count(slot => slot.HasFile);
 
@@ -43,10 +66,10 @@ internal sealed partial class FirmwareSlotGroupViewModel : ObservableObject
 
     internal void ApplyText(ShellTextResources text)
     {
-        _text = text ?? throw new ArgumentNullException(nameof(text));
-        OnPropertyChanged(nameof(Title));
-        OnPropertyChanged(nameof(Summary));
-        OnPropertyChanged(nameof(SelectionSummary));
+        ArgumentNullException.ThrowIfNull(text);
+        if (ReferenceEquals(_text, text)) { return; }
+        _text = text;
+        OnPropertyChanged(string.Empty);
     }
 
     [ObservableProperty]

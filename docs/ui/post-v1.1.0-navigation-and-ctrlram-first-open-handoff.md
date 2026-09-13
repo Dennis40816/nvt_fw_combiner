@@ -214,3 +214,136 @@ Residual boundary: no full-suite, integration, package-release or fresh Golden
 claim. Firmware bytes/profiles are untouched; accumulated branch code-size and
 frozen integration/release gates remain open. Next queued item is the CtrlRAM
 selector visual contract, whose screenshot-based reference still needs approval.
+
+## 4. v1.1.5 CtrlRAM group refresh — 2026-09-13
+
+This dated update supplements the earlier diagnosis status; it does not approve
+the deferred first-entry chooser design. The owner approved bounded performance
+work and explicitly required that future information additions must not be lost
+by selective synchronization.
+
+Local R1 base: `1211d14697a78885cfa74a3455916a87c0199867`, branch `1.1.5`.
+Existing presentation owners: `ReplaceRegionGroupBuilder`,
+`FirmwareSlotGroupViewModel`, and `ReplacePresentationViewModel.Memory`.
+No Application/profile/firmware, startup, CI, or release authority is changed.
+
+### Implemented local mechanism
+
+- Reconcile the existing group collection by the Application-provided
+  `ReplaceRegionGroup`; retain matching group containers and expansion state,
+  move/insert/remove changed groups in the existing ordering.
+- Continue creating complete fresh slot projections through the existing
+  producer. Replace each retained group's slot collection with those exact
+  objects. There is no field-copy allowlist, declaration-equivalence shortcut,
+  slot-data cache, or skipped inspection/readiness refresh.
+- Disconnect old slot event subscriptions before attaching current slots;
+  removed groups also disconnect. Publish an all-properties notification when
+  replacing a group's complete slot publication or language resources, so
+  future derived group bindings are not omitted from a notification list.
+- New slot information must still be provided/bound through its original
+  producer and card. This optimization adds no second place where that new
+  information must be copied or compared. It does not automatically invent UI
+  for a newly introduced product field.
+
+### Local evidence and remaining boundary
+
+`FirmwareSlotGroupRefreshTests` covers retained group identity, exact fresh-slot
+object publication, old-event disconnection/current-event delivery, group
+addition/removal/order, whole-publication/language notifications, and actual
+compiled UI bindings retaining group controls while rebinding every card.
+The initial two tests failed on the old group's replacement behavior before
+production edits. A broader CtrlRAM/Mode/selector/guidance/navigation-clear
+selection passed 88 tests before the final language-notification addition;
+the final affected group/selector/guidance selection passed 33 tests, zero
+failures/skips (`groups-final-2.trx`). Primary-agent scoped local R1 Polytail:
+PASS; no open correctness/ownership/evidence finding in this unit. This is not
+a verdict on the full integration candidate.
+
+Evidence directory:
+`D:/NvtFwCombiner-TestArea/evidence/v115-navigation-20260912-232305`.
+The exploratory same-harness CtrlRAM return measured about 152 ms versus a
+prior 190 ms sample, with four group objects retained rather than zero and
+layout allocation about 10.53 MB rather than 13.44 MB in earlier observations.
+This is not a statistical speedup claim or packaged-Windows latency guarantee;
+the timing run preceded the final no-op language-resource guard. Slot objects
+are deliberately still fresh, and first-workflow initialization/template
+preload remain unmodified.
+
+Local work does not certify frozen-candidate records, protected CI, packaging,
+all certified Golden outputs, or release. Those integration/release gates and
+native packaged performance confirmation remain separate.
+
+## 5. v1.1.5 first-workflow activation — 2026-09-13
+
+Owner-approved bounded local R1 continuation on `1.1.5`, base `d78f249d`.
+The pre-edit task discussion admitted the existing
+`WorkflowSessionPresentationViewModel` page-refresh owner, initially its
+`WorkflowContext.cs` partial, `FirstWorkflowActivationTests.cs`, and this
+handoff. A reproduced catalog-reload case then admitted the same owner's
+`SelectorPublication.cs` partial before editing that path. No new initializer,
+cache, background preload, public contract, firmware rule, or visual design
+was introduced.
+
+### Mechanism and acceptance
+
+- Catalog publication marks both existing page projections as needing refresh;
+  it no longer treats catalog readiness as completed page initialization.
+  First activation follows the existing owner-specific full-refresh path.
+  Unvisited page slots/groups stay deferred until that page is entered.
+- Home confirmation and catalog reconciliation preserve pending refresh work
+  even when IC/Mode/Number values are unchanged. Successful page refresh clears
+  its flag; existing transactional rollback restores the previous state.
+- Required inspection invalidation, complete slot publication, readiness,
+  mode selection and page isolation remain on their original paths. Shared
+  bootstrap and initial General mapping rows remain unchanged; this does not
+  claim that every off-page allocation is removed.
+
+### Evidence and scoped review
+
+Evidence remains in
+`D:/NvtFwCombiner-TestArea/evidence/v115-navigation-20260912-232305`:
+
+- `activation-red-2.trx`: all four initial cases reproduced unwanted off-page
+  slot initialization. `activation-green.trx`: those four passed.
+- `activation-catalog-red.trx`: four added pre-entry catalog-reload cases
+  reproduced cleared pending flags. One additional test assertion used `1`
+  rather than the existing AB `single` topology token; the test was corrected,
+  without changing the product token contract.
+- Final production/test source: `activation-regression.trx` passed 213 tests;
+  `activation-final.trx` passed 58 (overlapping selections, not 271 unique
+  cases). Zero failures/skips. Coverage includes all ten new cases, navigation
+  cancellation/rollback, catalog reconciliation, Mode controls, CtrlRAM,
+  General/Merge workflows and cross-page inspection isolation. Real compiled
+  controls bind confirmed NT51927 three-chip CtrlRAM and NT51950 AB context
+  and each complete current slot object.
+- Commands: Release `dotnet test` on the UI smoke project with the named
+  affected class/method filters, and scoped `dotnet format whitespace
+  --verify-no-changes` (exit 0; workspace-load warning). Each process loaded
+  the fixed test-area root and set TEMP/TMP/TMPDIR. Detailed logs accompany
+  each TRX. `git diff --check` passed.
+- Primary-agent scoped local R1 Polytail: **PASS**. Reviewed pending-flag
+  lifetime, cancellation/rollback, refresh ownership, whole projections and
+  actual-control evidence. No outstanding finding in this unit; this is not
+  full-candidate integration or release approval.
+
+The retained diagnostic harness ran once in each navigation order, with no
+template intervention (`activation-timing-merge-first` and
+`activation-timing-replace-first`, JSON/TRX/log). Merge-first command measured
+74.59 ms versus the preceding group-fix sample's 108.16 ms; complete transition
+373.86 ms versus 399.15 ms. First Replace after Merge now pays its own deferred
+work (40.80 ms command). Reverse order measured Replace 58.01 ms and subsequent
+Merge 63.45 ms. These are exploratory headless samples, not a statistical or
+packaged-Windows speed guarantee. Work is deferred, not eliminated: both-page
+total time is not proven lower, and layout remains dominant. The temporary
+probe was removed after measurements; its existing evidence copy remains.
+
+Local implementation is complete. Native packaged timing, frozen integration
+records, full required verification/Golden execution and release are separate
+remaining boundaries. Do not expand into the deferred chooser redesign or
+claim the Home/first-open performance targets are newly certified.
+
+Subsequent local package verification on the committed `dba19a30` source is
+recorded in [tests/README.md](../../tests/README.md#local-package-refresh--2026-09-13-unpublished).
+The package/worker checks and real Windows Home/Merge/Replace startup checks
+passed. Home remains above 700 ms, and direct-process startup does not certify
+in-process navigation latency. Formal release and clean-machine gates remain.

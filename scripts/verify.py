@@ -23,9 +23,9 @@ import threading
 import xml.etree.ElementTree as ET
 from collections import Counter
 from collections.abc import Callable, Sequence
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import Future, ThreadPoolExecutor, as_completed
 from contextlib import ExitStack, contextmanager
-from contextvars import ContextVar
+from contextvars import ContextVar, copy_context
 from ctypes import wintypes
 from dataclasses import dataclass
 from importlib import metadata as importlib_metadata
@@ -68,7 +68,8 @@ WINDOWS_PROCESS_ORCHESTRATION_TEST = (
     "VerifyOrchestrationTests.test_windows_owned_job_kills_descendants_after_root_exit"
 )
 DEFAULT_VERIFY_JOBS = 3
-MAXIMUM_VERIFY_JOBS = 3
+MAXIMUM_VERIFY_JOBS = 4
+MAXIMUM_LOCAL_DOTNET_JOBS = 3
 DEFAULT_LANE_TIMEOUT_SECONDS = 900
 LOCAL_DOTNET_COVERAGE_TIMEOUT_SECONDS = 480
 MINIMUM_LANE_TIMEOUT_SECONDS = 60
@@ -323,6 +324,8 @@ class VerificationLane:
     action: LaneAction
     isolate_action: bool = False
     internal_name: str | None = None
+    deadline_group: str | None = None
+    on_terminal: Callable[[BaseException | None], None] | None = None
 
 
 @dataclass(frozen=True)
@@ -948,7 +951,15 @@ def run_with_log(
 
 
 def verify_structure(log_path: Path | None = None) -> None:
+    verify_structure_sync(log_path)
+    verify_structure_postchecks(log_path)
+
+
+def verify_structure_sync(log_path: Path | None = None) -> None:
     run([sys.executable, "scripts/sync_derived.py"], log_path=log_path)
+
+
+def verify_structure_postchecks(log_path: Path | None = None) -> None:
     run([sys.executable, "scripts/validate_repository.py"], log_path=log_path)
     run([sys.executable, "scripts/polytail_check.py"], log_path=log_path)
     run(
@@ -961,19 +972,36 @@ def verify_repository_scripts(
     log_path: Path | None = None,
     pattern: str = "test_*.py",
 ) -> None:
-    run(
-        [
-            sys.executable,
-            "-m",
-            "unittest",
-            "discover",
-            "-s",
-            str(REPOSITORY_SCRIPT_TESTS),
-            "-p",
-            pattern,
-        ],
-        log_path=log_path,
+    overrides = [
+        name
+        for name in PYTHON_COVERAGE_OVERRIDE_ENVIRONMENT_VARIABLES
+        if os.environ.get(name, "").strip()
+    ]
+    if overrides:
+        raise RuntimeError(
+            "Python test environment overrides are forbidden: " + ", ".join(overrides)
+        )
+    repository_script_test_shards()
+    paths = tuple(
+        path
+        for path in sorted(REPOSITORY_SCRIPT_TESTS.glob("test_*.py"))
+        if fnmatch(path.name, pattern)
     )
+    if not paths:
+        raise RuntimeError(f"no repository-script tests match: {pattern}")
+    with tempfile.TemporaryDirectory(prefix="nfc-script-pytest-") as temporary:
+        run(
+            [
+                sys.executable,
+                "-m",
+                "pytest",
+                "-p",
+                "no:cacheprovider",
+                f"--basetemp={Path(temporary) / 'base'}",
+                *(str(path) for path in paths),
+            ],
+            log_path=log_path,
+        )
 
 
 def is_reparse_point(path: Path) -> bool:
@@ -3126,6 +3154,12 @@ def require_production_release_matches(
     return tuple(sorted(canonical_hashes.items(), key=lambda item: str(item[0])))
 
 
+def local_dotnet_project_token(project: CiDotnetProject) -> str:
+    """Own the project-relative snapshot directory identity."""
+
+    return hashlib.sha256(project.relative_path.encode("utf-8")).hexdigest()[:8]
+
+
 def prepare_local_dotnet_coverage_stage(
     project: CiDotnetProject,
     work_root: Path,
@@ -3147,9 +3181,7 @@ def prepare_local_dotnet_coverage_stage(
         source_output,
         canonical_outputs,
     )
-    project_token = hashlib.sha256(project.relative_path.encode("utf-8")).hexdigest()[
-        :8
-    ]
+    project_token = local_dotnet_project_token(project)
     shadow_output = work_root / project_token / release_suffix
     source_hashes = snapshot_regular_tree(
         source_output,
@@ -3326,6 +3358,49 @@ def require_local_dotnet_sources_unchanged(
                 raise RuntimeError(f"canonical production output hash changed: {path}")
 
 
+def prepare_local_dotnet_coverage_stages(
+    projects: Sequence[CiDotnetProject],
+    work_root: Path,
+    coverage_directory: Path,
+    repository_root: Path,
+) -> tuple[LocalDotnetCoverageStage, ...]:
+    """Prepare disjoint snapshots, joining every writer before the caller can clean up."""
+
+    names = [project.name.casefold() for project in projects]
+    tokens = [local_dotnet_project_token(project) for project in projects]
+    if len(set(names)) != len(names) or len(set(tokens)) != len(tokens):
+        raise RuntimeError("duplicate local .NET project name or shadow token collision")
+    if not projects:
+        return ()
+
+    def prepare(project: CiDotnetProject) -> LocalDotnetCoverageStage:
+        remaining_timeout()
+        if PROCESS_CANCELLATION_REQUESTED.is_set():
+            raise RuntimeError("local .NET snapshot preparation was cancelled")
+        stage = prepare_local_dotnet_coverage_stage(
+            project, work_root, coverage_directory, repository_root,
+        )
+        remaining_timeout()
+        return stage
+
+    results: dict[int, LocalDotnetCoverageStage] = {}
+    with ThreadPoolExecutor(max_workers=min(MAXIMUM_LOCAL_DOTNET_JOBS, len(projects))) as executor:
+        futures = {}
+        try:
+            for index, project in enumerate(projects):
+                futures[executor.submit(copy_context().run, prepare, project)] = index
+            for future in as_completed(futures):
+                results[futures[future]] = future.result()
+        except BaseException:
+            for future in futures:
+                future.cancel()
+            raise
+    remaining_timeout()
+    if PROCESS_CANCELLATION_REQUESTED.is_set():
+        raise RuntimeError("local .NET snapshot preparation was cancelled")
+    return tuple(results[index] for index in range(len(projects)))
+
+
 def collect_local_dotnet_coverage(
     dotnet: str,
     coverage_directory: Path,
@@ -3358,15 +3433,9 @@ def collect_local_dotnet_coverage(
         adapter_path = (
             resolve_coverlet_adapter_path(repository_root) if collect_coverage else None
         )
-        for project in projects:
-            stages.append(
-                prepare_local_dotnet_coverage_stage(
-                    project,
-                    work,
-                    coverage_directory,
-                    repository_root,
-                )
-            )
+        stages = list(prepare_local_dotnet_coverage_stages(
+            projects, work, coverage_directory, repository_root,
+        ))
 
         batches = (
             *(
@@ -3399,7 +3468,7 @@ def collect_local_dotnet_coverage(
             )
             batch_results = run_lanes(
                 lanes,
-                jobs=min(MAXIMUM_VERIFY_JOBS, len(lanes)),
+                jobs=min(MAXIMUM_LOCAL_DOTNET_JOBS, len(lanes)),
                 log_directory=coverage_directory / "logs",
                 lane_timeout_seconds=LOCAL_DOTNET_COVERAGE_TIMEOUT_SECONDS,
                 preserve_cancellation_request=True,
@@ -3476,6 +3545,18 @@ def run_dotnet_build_plan(
 ) -> None:
     """Run the SDK, solution-restore, and Release-build owner."""
 
+    run_dotnet_restore_plan(dotnet, environment=environment, log_path=log_path)
+    run_dotnet_post_restore_build_plan(
+        dotnet, environment=environment, log_path=log_path,
+        include_prebuild_checks=include_prebuild_checks,
+    )
+
+
+def run_dotnet_restore_plan(
+    dotnet: str, *, environment: dict[str, str], log_path: Path | None,
+) -> None:
+    """Complete restore and its lock-projection restoration before checkout readers."""
+
     run([dotnet, "--version"], environment=environment, log_path=log_path)
     run_solution_restore_preserving_lock_projections(
         [dotnet, "restore", str(SOLUTION)],
@@ -3484,6 +3565,12 @@ def run_dotnet_build_plan(
         repository_root=ROOT,
         solution=SOLUTION,
     )
+def run_dotnet_post_restore_build_plan(
+    dotnet: str, *, environment: dict[str, str], log_path: Path | None,
+    include_prebuild_checks: bool = True,
+) -> None:
+    """Run the existing no-restore build checks against restored assets."""
+
     run_dotnet_commands(
         dotnet_build_commands(dotnet, include_prebuild_checks=include_prebuild_checks),
         environment=environment,
@@ -3586,6 +3673,23 @@ def require_release_golden_results(
     for case_id in cases:
         print(f"Release Golden executed: {case_id}")
     print(f"Release Golden: {len(cases)} direct output cases; not a full-suite coverage gate.")
+
+
+def verify_local_dotnet_coverage(log_path: Path | None = None) -> None:
+    """Collect the already-built local inventory; the parent owns SDK cleanup."""
+
+    collect_local_dotnet_coverage(
+        resolve_dotnet(),
+        reset_coverage_directory("dotnet"),
+        DOTNET_COVERAGE_WORK_ROOT,
+        dotnet_batch_environment(),
+        log_path,
+        work_owner_root=(
+            Path(os.environ[TEST_SESSION_ENVIRONMENT_VARIABLE])
+            if os.environ.get(TEST_SESSION_ENVIRONMENT_VARIABLE)
+            else ROOT
+        ),
+    )
 
 
 def verify_dotnet(log_path: Path | None = None, *, release_golden: bool = False) -> None:
@@ -4739,9 +4843,11 @@ def parse_args(arguments: Sequence[str] | None = None) -> argparse.Namespace:
         "--internal-lane",
         choices=(
             "structure",
+            "structure-postchecks",
             *(name for name, _pattern in REPOSITORY_SCRIPT_TEST_SHARDS),
             "python",
             "dotnet",
+            "dotnet-coverage",
             "dotnet-windows",
         ),
         help=argparse.SUPPRESS,
@@ -4837,6 +4943,20 @@ def repository_script_test_action(pattern: str) -> LaneAction:
     return run_lane
 
 
+def local_repository_script_lanes() -> tuple[VerificationLane, ...]:
+    """Split validated local shards into complete modules without extending their budget."""
+
+    return tuple(
+        VerificationLane(
+            path.stem,
+            repository_script_test_action(path.name),
+            deadline_group=name,
+        )
+        for name, pattern in repository_script_test_shards()
+        for path in sorted(REPOSITORY_SCRIPT_TESTS.glob(pattern))
+    )
+
+
 def ci_python_lane(name: str) -> VerificationLane:
     """Select one existing Python owner after validating the complete partition."""
 
@@ -4891,8 +5011,10 @@ def run_internal_lane(name: str) -> None:
 
     actions: dict[str, LaneAction] = {
         "structure": verify_structure,
+        "structure-postchecks": verify_structure_postchecks,
         "python": verify_python,
         "dotnet": verify_dotnet,
+        "dotnet-coverage": verify_local_dotnet_coverage,
         "dotnet-windows": verify_windows_process_orchestration_and_dotnet,
     }
     actions.update(
@@ -4937,68 +5059,100 @@ def run_lanes(
     if len(names) != len(set(names)):
         raise ValueError("verification lane names must be unique")
     log_directory.mkdir(parents=True, exist_ok=True)
+    group_deadlines: dict[str, float] = {}
+    group_deadlines_lock = threading.Lock()
+    notified: set[str] = set()
+    notification_lock = threading.Lock()
+
+    def notify_terminal(lane: VerificationLane, failure: BaseException | None) -> BaseException | None:
+        with notification_lock:
+            if lane.name in notified:
+                return failure
+            notified.add(lane.name)
+        if lane.on_terminal is not None:
+            try:
+                lane.on_terminal(failure)
+            except BaseException as error:
+                return combine_failures(failure, error, secondary_label="terminal notification")
+        return failure
+
+    def notify_aborted(failure: BaseException) -> BaseException:
+        for lane in lanes:
+            failure = notify_terminal(lane, failure) or failure
+        return failure
 
     def run_lane(lane: VerificationLane) -> LaneResult:
         log_path = log_directory / f"{lane.name}.log"
         started = monotonic()
-        deadline_token = LANE_DEADLINE.set(started + lane_timeout_seconds)
+        deadline = started + lane_timeout_seconds
+        if lane.deadline_group is not None:
+            with group_deadlines_lock:
+                deadline = group_deadlines.setdefault(lane.deadline_group, deadline)
+        deadline_token = LANE_DEADLINE.set(deadline)
+        failure: BaseException | None = None
         try:
+            remaining_timeout()
             if lane.isolate_action:
                 run_isolated_lane(lane.internal_name or lane.name, log_path)
             else:
                 lane.action(log_path)
             remaining_timeout()
-        except Exception as error:
+        except BaseException as error:
+            failure = error
+        finally:
+            LANE_DEADLINE.reset(deadline_token)
+        failure = notify_terminal(lane, failure)
+        if isinstance(failure, Exception):
             return LaneResult(
                 lane.name,
                 False,
                 monotonic() - started,
                 log_path,
-                f"{type(error).__name__}: {error}",
+                f"{type(failure).__name__}: {failure}",
             )
-        finally:
-            LANE_DEADLINE.reset(deadline_token)
+        if failure is not None:
+            raise failure
         return LaneResult(lane.name, True, monotonic() - started, log_path)
 
     if jobs == 1 or len(lanes) < 2:
         PROCESS_CANCELLATION_REQUESTED.clear()
         try:
             return tuple(run_lane(lane) for lane in lanes)
-        except KeyboardInterrupt:
-            cancel_active_processes_after_handoffs()
-            raise
+        except BaseException as error:
+            failure = notify_aborted(error)
+            if isinstance(error, KeyboardInterrupt):
+                try:
+                    cancel_active_processes_after_handoffs()
+                except BaseException as cleanup_error:
+                    failure = combine_failures(failure, cleanup_error)
+            raise failure
         finally:
             if not preserve_cancellation_request:
                 PROCESS_CANCELLATION_REQUESTED.clear()
 
     PROCESS_CANCELLATION_REQUESTED.clear()
     results: dict[str, LaneResult] = {}
-    executor = ThreadPoolExecutor(max_workers=min(jobs, len(lanes)))
+    executor: ThreadPoolExecutor | None = None
     futures = {}
     try:
+        executor = ThreadPoolExecutor(max_workers=min(jobs, len(lanes)))
         for lane in lanes:
             futures[executor.submit(run_lane, lane)] = lane.name
         for future in as_completed(futures):
             result = future.result()
             results[result.name] = result
-    except KeyboardInterrupt:
-        cleanup_error: Exception | None = None
-        try:
-            cancel_active_processes_after_handoffs()
-        except Exception as error:
-            cleanup_error = error
-        finally:
-            for future in futures:
-                future.cancel()
-            executor.shutdown(wait=True, cancel_futures=True)
-        if cleanup_error is not None:
-            raise cleanup_error
-        raise
-    except BaseException:
+    except BaseException as error:
+        failure = notify_aborted(error)
+        if isinstance(error, KeyboardInterrupt):
+            try:
+                cancel_active_processes_after_handoffs()
+            except BaseException as cleanup_error:
+                failure = combine_failures(failure, cleanup_error)
         for future in futures:
             future.cancel()
-        executor.shutdown(wait=True, cancel_futures=True)
-        raise
+        if executor is not None:
+            executor.shutdown(wait=True, cancel_futures=True)
+        raise failure
     else:
         executor.shutdown(wait=True)
         return tuple(results[lane.name] for lane in lanes)
@@ -5076,6 +5230,82 @@ def validate_internal_lane_arguments(args: argparse.Namespace) -> None:
         )
     if os.environ.get(INTERNAL_LANE_ENVIRONMENT_VARIABLE) != "1":
         raise SystemExit("--internal-lane requires a parent-owned process marker")
+
+
+def run_local_full_verification(args: argparse.Namespace) -> None:
+    """Overlap post-restore gates in one pool, with build readiness owned by its lane."""
+
+    dotnet = resolve_dotnet()
+    environment = dotnet_batch_environment()
+    ready: Future[None] = Future()
+    readiness_lock = threading.Lock()
+
+    def fail_pending(error: BaseException | None) -> None:
+        with readiness_lock:
+            if not ready.done():
+                ready.set_exception(error or RuntimeError("build ended before readiness"))
+
+    def build_and_collect(log_path: Path | None) -> None:
+        run_dotnet_post_restore_build_plan(dotnet, environment=environment, log_path=log_path)
+        remaining_timeout()
+        with readiness_lock:
+            if ready.done():
+                ready.result()
+            else:
+                ready.set_result(None)
+        assert log_path is not None
+        run_isolated_lane("dotnet-coverage", log_path)
+
+    def after_build(lane: VerificationLane) -> VerificationLane:
+        def action(log_path: Path | None) -> None:
+            while True:
+                if PROCESS_CANCELLATION_REQUESTED.is_set():
+                    raise RuntimeError("verification build wait was cancelled")
+                timeout = remaining_timeout()
+                try:
+                    ready.result(timeout=min(0.1, timeout) if timeout is not None else 0.1)
+                    break
+                except TimeoutError:
+                    if ready.done():
+                        raise
+            remaining_timeout()
+            if lane.isolate_action:
+                assert log_path is not None
+                run_isolated_lane(lane.internal_name or lane.name, log_path)
+            else:
+                lane.action(log_path)
+        return VerificationLane(lane.name, action, deadline_group=lane.deadline_group)
+
+    failure: BaseException | None = None
+    try:
+        if not args.skip_structure:
+            run_selected_lanes(
+                (VerificationLane("structure-sync", verify_structure_sync),),
+                jobs=args.jobs, lane_timeout_seconds=args.lane_timeout_seconds,
+            )
+        run_selected_lanes(
+            (VerificationLane("dotnet-restore", lambda log: run_dotnet_restore_plan(
+                dotnet, environment=environment, log_path=log,
+            )),),
+            jobs=args.jobs, lane_timeout_seconds=args.lane_timeout_seconds,
+        )
+        lanes = [VerificationLane("dotnet", build_and_collect, on_terminal=fail_pending)]
+        if not args.skip_structure:
+            lanes.append(VerificationLane("structure", verify_structure_postchecks,
+                                          isolate_action=True, internal_name="structure-postchecks"))
+        lanes.extend(after_build(lane) for lane in local_repository_script_lanes())
+        lanes.append(after_build(VerificationLane("python", verify_python, isolate_action=True)))
+        run_selected_lanes(lanes, jobs=args.jobs, lane_timeout_seconds=args.lane_timeout_seconds)
+    except BaseException as error:
+        failure = error
+    finally:
+        fail_pending(failure)
+        try:
+            cleanup_dotnet_batch(dotnet, environment, None)
+        except BaseException as error:
+            failure = combine_failures(failure, error)
+    if failure is not None:
+        raise failure
 
 
 def execute_verification(args: argparse.Namespace) -> int:
@@ -5156,9 +5386,20 @@ def execute_verification(args: argparse.Namespace) -> int:
         lanes = selected_lanes(args)
         if not lanes:
             raise RuntimeError("verification plan selected no lanes")
-        for lane in lanes:
+        structure = tuple(lane for lane in lanes if lane.name == "structure")
+        workloads = tuple(lane for lane in lanes if lane.name != "structure")
+        full_local = not args.structure_only and not args.skip_dotnet and not args.skip_python
+        if full_local:
+            run_local_full_verification(args)
+        elif structure:
             run_selected_lanes(
-                (lane,),
+                structure,
+                jobs=args.jobs,
+                lane_timeout_seconds=args.lane_timeout_seconds,
+            )
+        if not full_local and workloads:
+            run_selected_lanes(
+                workloads,
                 jobs=args.jobs,
                 lane_timeout_seconds=args.lane_timeout_seconds,
             )

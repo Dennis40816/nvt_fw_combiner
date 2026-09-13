@@ -2228,6 +2228,61 @@ def _git_index_blob(root: Path, relative: str) -> tuple[bytes | None, str | None
     return content, None
 
 
+def _read_commit_path_batch(
+    root: Path,
+    candidates: Iterable[str],
+) -> tuple[dict[str, frozenset[str]], str | None]:
+    """Read immutable commit diffs together, retaining every merge-parent path."""
+    requested = tuple(dict.fromkeys(candidates))
+    if not requested:
+        return {}, None
+    if any(re.fullmatch(r"[0-9a-f]{40}", revision) is None for revision in requested):
+        return {}, "invalid commit in Git diff batch"
+    try:
+        result = subprocess.run(
+            ["git", "diff-tree", "--stdin", "--always", "--name-status", "-z",
+             "-r", "-m", "--find-renames"],
+            cwd=root,
+            input=("\n".join(requested) + "\n").encode("ascii"),
+            check=False,
+            capture_output=True,
+        )
+    except OSError as exc:
+        return {}, str(exc)
+    if result.returncode != 0:
+        return {}, result.stderr.decode("utf-8", errors="replace").strip() or f"git exited {result.returncode}"
+    if not result.stdout.endswith(b"\0"):
+        return {}, "truncated Git diff batch"
+    fields = result.stdout[:-1].split(b"\0")
+    paths: dict[str, set[str]] = {}
+    current: str | None = None
+    index = 0
+    try:
+        while index < len(fields):
+            field = fields[index]
+            index += 1
+            if re.fullmatch(rb"[0-9a-f]{40}", field):
+                current = field.decode("ascii")
+                if current not in requested:
+                    return {}, "unexpected commit in Git diff batch"
+                paths.setdefault(current, set())
+                continue
+            if current is None or not field or field[:1] not in (b"A", b"C", b"D", b"M", b"R", b"T"):
+                return {}, "malformed Git diff batch status"
+            count = 2 if field[:1] in (b"R", b"C") else 1
+            if index + count > len(fields) or any(not value for value in fields[index:index + count]):
+                return {}, "truncated Git diff batch paths"
+            paths[current].update(_parse_git_name_status(
+                b"\0".join([field, *fields[index:index + count]]) + b"\0"
+            ))
+            index += count
+    except (UnicodeDecodeError, ValueError) as exc:
+        return {}, str(exc)
+    if set(paths) != set(requested):
+        return {}, "missing commit in Git diff batch"
+    return {revision: frozenset(changed) for revision, changed in paths.items()}, None
+
+
 def _record_changed_in_commits_after(
     root: Path,
     relative: str,
@@ -2251,30 +2306,13 @@ def _record_changed_in_commits_after(
     candidates, revisions_error = revision_result
     if revisions_error is not None:
         return False, revisions_error
+    missing = [candidate for candidate in candidates if candidate not in cache.changed_paths]
+    if missing:
+        batch, batch_error = _read_commit_path_batch(root, missing)
+        for candidate in missing:
+            cache.changed_paths[candidate] = batch.get(candidate, frozenset()), batch_error
     for candidate in candidates:
-        changed_result = cache.changed_paths.get(candidate)
-        if changed_result is None:
-            changed, changed_error = _git_object(
-                root,
-                [
-                    "diff-tree",
-                    "--no-commit-id",
-                    "--name-status",
-                    "-z",
-                    "-r",
-                    "-m",
-                    "--find-renames",
-                    candidate,
-                    "--",
-                ],
-            )
-            try:
-                paths = frozenset(_parse_git_name_status(changed))
-            except (UnicodeDecodeError, ValueError) as exc:
-                paths, changed_error = frozenset(), str(exc)
-            changed_result = paths, changed_error
-            cache.changed_paths[candidate] = changed_result
-        changed_paths, changed_error = changed_result
+        changed_paths, changed_error = cache.changed_paths[candidate]
         if changed_error is not None:
             return False, changed_error
         if relative in changed_paths:

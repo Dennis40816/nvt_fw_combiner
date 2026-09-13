@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 2,
+  "taskId": "VERIFY-115-SNAPSHOT-POOL-01",
+  "capability": "Prepare independent local coverage snapshots with bounded concurrency",
+  "integrationBase": "8c940ea2603b34857322cf7e04285e57e8045eda",
+  "risk": "R2",
+  "kind": "behavior",
+  "state": "final-complete",
+  "mutablePaths": ["scripts/verify.py", "tests/scripts/test_verify_orchestration.py"],
+  "implementationOwner": "parallel_verifier_implementer",
+  "searchEvidence": [
+    "collect_local_dotnet_coverage calls prepare_local_dotnet_coverage_stage sequentially for eight projects before existing UI-exclusive batches",
+    "prepare owns independent project-token shadows and project-name results; canonical outputs and external-tools sources are read-only",
+    "At 8c940ea2 isolated existing-owner diagnostic: one preparation worker total 70.66s, three workers 37.11s including unchanged final freshness and session cleanup; tests/README.md records limitations"
+  ],
+  "semanticOwner": "scripts/verify.py existing snapshot, hash, freshness and coverage collector owners",
+  "terminalContract": "Bound preparation to at most three workers; reject duplicate destinations before writes; preserve original stage order and per-submission context/deadline; cancel queued work on failure or cancellation and join active writers before cleanup; start VSTest only after all stages succeed; retain all hash passes, UI-exclusive batches, timeouts, coverage and Golden checks",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "parallel_resource_audit",
+    "outcome": "approved",
+    "evidence": "Independent R2 design approved local typed-stage executor rather than adapting lane-result scheduler with shared result storage. Require unique project names/shadow tokens, independent copy_context per submission, remaining deadline checks, ordered results, failure/cancellation join-before-cleanup and no VSTest before complete preparation. Preserve existing tamper and canonical baseline regressions. Diagnostic gains do not establish full-verifier target; fresh full measurement remains required."
+  },
+  "implementationHead": "ecf93492b0993b00bd19ac4c2bf179db0762a340",
+  "reviewedHead": "ecf93492b0993b00bd19ac4c2bf179db0762a340",
+  "pathStateDigest": "826c77140edfe5417d426bd4fc13931d6b2e000e44286057d73beab2c75b634e",
+  "finalReview": {
+    "reviewer": "parallel_resource_audit",
+    "outcome": "findings-incorporated",
+    "evidence": "Fixed-head scoped code-review/Polytail PASS at ecf93492b0993b00bd19ac4c2bf179db0762a340 against 8c940ea2603b34857322cf7e04285e57e8045eda, no remaining P0-P3. Two pre-freeze P2 findings fixed: post-join cancellation/deadline gate and deterministic reverse-completion regression. Orchestration 211 PASS in 28.679s including worker limit, ordered results, destination collisions, context deadlines, failure/cancel join-before-cleanup and existing hash/tamper/UI-exclusive cases. Cancellation regression RED before fix then GREEN. Fast Polytail and diff check passed. Actual production preparation owner on eight retained Release outputs: prepare 23.91s, freshness 10.20s, total session cleanup included 36.79s; no VSTest in this diagnostic. Full candidate verification and ten-minute performance target remain unproven."
+  }
+}

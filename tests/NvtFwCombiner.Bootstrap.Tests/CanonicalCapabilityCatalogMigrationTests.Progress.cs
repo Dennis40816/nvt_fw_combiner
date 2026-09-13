@@ -72,7 +72,7 @@ public sealed partial class CanonicalCapabilityCatalogMigrationTests
                     resolutions.GetValueOrDefault(identity.RouteId) + 1;
                 return CanonicalCompiledRouteInventory.Resolve(identity);
             },
-            identity =>
+            () => identity =>
             {
                 resolutions[identity.RouteId] =
                     resolutions.GetValueOrDefault(identity.RouteId) + 1;
@@ -182,7 +182,7 @@ public sealed partial class CanonicalCapabilityCatalogMigrationTests
 
                 return CanonicalCompiledRouteInventory.Resolve(identity);
             },
-            CanonicalDynamicRouteInventory.Resolve,
+            CanonicalDynamicRouteInventory.CreateResolver,
             CanonicalCapabilityDisclosureInventory.Create);
         var catalog = new CanonicalCapabilityCatalog(source);
 
@@ -231,7 +231,7 @@ public sealed partial class CanonicalCapabilityCatalogMigrationTests
             identity => currentAttempt == 2 && Interlocked.Increment(ref materializedRoutes) == 3
                 ? throw new InvalidDataException("Route materialization failed after progress.")
                 : CanonicalCompiledRouteInventory.Resolve(identity),
-            CanonicalDynamicRouteInventory.Resolve,
+            CanonicalDynamicRouteInventory.CreateResolver,
             CanonicalCapabilityDisclosureInventory.Create);
         var catalog = new CanonicalCapabilityCatalog(source);
 

@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 2,
+  "taskId": "UI-115-DEFERRED-MESSAGE-STYLES-01",
+  "capability": "Integrate the completed local deferred Message Center style ownership correction",
+  "integrationBase": "2df6b87a3f4c3fe107c1224e69b4c6ac6673f5a5",
+  "risk": "R1",
+  "kind": "ui",
+  "state": "final-complete",
+  "mutablePaths": [
+    "src/NvtFwCombiner.Presentation.Avalonia/App.axaml",
+    "src/NvtFwCombiner.Presentation.Avalonia/Views/MessageCenterModal.axaml",
+    "tests/NvtFwCombiner.UiSmoke.Tests/ReportHistoryControlTests.cs",
+    "tests/NvtFwCombiner.UiSmoke.Tests/XamlControlStyleContractTests.MessageCenterReference.cs",
+    "tests/NvtFwCombiner.UiSmoke.Tests/XamlControlStyleContractTests.cs"
+  ],
+  "implementationOwner": "primary-agent",
+  "searchEvidence": [
+    "Current integration admission for local R1 commit 71605699, not retroactive design approval; original owner/scope/base and tests were recorded in the task before edits.",
+    "All MessageCenterStyles selectors are consumed by MessageCenterModal; existing deferred host owns creation. The unchanged style include moved from App to modal Styles.",
+    "15 targeted UI tests passed; fixed-head parallel_resource_audit scoped review passed. Same-environment EXE measurement did not demonstrate a timing improvement; tests/README records this residual."
+  ],
+  "semanticOwner": "Presentation MessageCenterModal owns its unchanged dedicated styles; MainWindow retains existing deferred host",
+  "terminalContract": "No Message Center styles or modal content loaded for Home; first and repeated modal opening retain existing geometry, colors and actions. Shared controls, firmware, theme tokens and packaging are unchanged.",
+  "disposition": "reuse",
+  "designReview": { "reviewer": null, "outcome": "not-required", "evidence": "Current integration admission of an already authorized bounded local R1 correction." },
+  "implementationHead": "4da38e868b4f4b6b5b1db788fd3d3d4ff0dc4ac3",
+  "reviewedHead": "4da38e868b4f4b6b5b1db788fd3d3d4ff0dc4ac3",
+  "pathStateDigest": "5120bef479593d4d732959ee7622aa1119a969c9a4234a6cabfc34065f224634",
+  "finalReview": { "reviewer": "parallel_resource_audit", "outcome": "approved", "evidence": "Fixed-head review at 4da38e868b4f4b6b5b1db788fd3d3d4ff0dc4ac3 confirms production and test paths unchanged from reviewed 71605699; original scoped styles PASS and 15 targeted UI test results remain applicable, not freshly rerun. First/repeated opening, theme/language and reference geometry evidence retained in tests/README.md. No P0-P3 findings. No measured first-window gain claimed, and full integration/release gates remain separate." }
+}

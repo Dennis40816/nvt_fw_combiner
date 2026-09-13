@@ -1,0 +1,33 @@
+{
+  "schemaVersion": 2,
+  "taskId": "VERIFY-115-PREFLIGHT-OVERLAP-01",
+  "capability": "Overlap local post-restore structure checks with the build and verification pipeline",
+  "integrationBase": "3b646c9d2f546ce9ea6f44a1b88527a58d7fc3a8",
+  "risk": "R2",
+  "kind": "behavior",
+  "state": "final-complete",
+  "mutablePaths": ["scripts/verify.py", "tests/scripts/test_verify_orchestration.py", "docs/ci/release-package.md"],
+  "implementationOwner": "parallel_verifier_implementer (verifier/tests); primary-agent (documentation)",
+  "searchEvidence": [
+    "execute_verification currently serializes structure 192.6s and shared build 80.5s before the workload pool; complete source 3b646c9d passed in 989.86s",
+    "Ordinary validate_repository reads tracked packages.lock.json while restore temporarily updates lock projections; restore must finish and restore locks before structure overlap",
+    "Evaluated project.assets.json checks belong to the post-restore build owner; ordinary structure does not invoke them; build/format use no-restore and write ignored bin/obj",
+    "Existing verify_structure, run_dotnet_build_plan, run_solution_restore_preserving_lock_projections, run_lanes and managed process/session cleanup remain the owners"
+  ],
+  "semanticOwner": "scripts/verify.py existing restore, structure, lane scheduling and terminal cleanup owners",
+  "terminalContract": "Complete sync and SDK/restore with lock restoration before one bounded pool. Submit build-to-coverage lane first, using one slot and deadline; structure postchecks may overlap. Scripts and CRC await build readiness within existing deadlines including shared shard waits. Every builder terminal path settles pending readiness, without overwriting successful build readiness after coverage failure. All required gates determine final success; all work joins before cleanup. CI, release Golden and individual entry points retain their contracts.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "parallel_resource_audit",
+    "outcome": "approved",
+    "evidence": "Independent R2 admission approves full overlap with one existing pool, not a second executor or generic DAG. A fixed internal optional lane terminal notification must cover pre-action timeout, submission failure and queued cancellation as well as action completion; pending readiness fails closed, successful readiness is immutable. Notification errors cannot swallow original failures or prevent join/cleanup. Require jobs1/3, restore-lock barrier, build-readiness overlap, structure failure, coverage failure, all terminal/cancel paths and original deadline/shared-budget regressions. Local dependency prose is updated; no SDK/package pin, protected check, external authority, coverage threshold or Golden expectation change."
+  },
+  "implementationHead": "0cea59ecaa3a04b0a60074127ab40d294c2569bf",
+  "reviewedHead": "0cea59ecaa3a04b0a60074127ab40d294c2569bf",
+  "pathStateDigest": "dd3f3c864660acbbecd435083952d1758b95673adae7a871c615064ae75ac420",
+  "finalReview": {
+    "reviewer": "parallel_resource_audit",
+    "outcome": "approved",
+    "evidence": "Fixed-head scoped code-review/Polytail PASS at 0cea59ecaa3a04b0a60074127ab40d294c2569bf against 3b646c9d2f546ce9ea6f44a1b88527a58d7fc3a8, no P0-P3 findings. Orchestration 216 PASS in 30.45s; fast Polytail and diff check PASS. Regression evidence covers restore before postchecks, build readiness without structure completion, structure failure preserving overall failure, build/coverage shared deadline, pre-action expiry, submission failure, queued cancellation, callback failure preserving the original failure, and joining active work before cleanup. Production and dependency documentation agree with admission. Complete candidate verification and whole-command timing remain required; the ten-minute target is not established by narrow tests."
+  }
+}

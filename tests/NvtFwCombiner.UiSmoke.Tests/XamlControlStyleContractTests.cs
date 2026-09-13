@@ -124,7 +124,8 @@ public sealed partial class XamlControlStyleContractTests
         string slotCard = ReadPresentationFile("Views/FirmwareSlotCard.axaml");
 
         Assert.Contains("Styles/MainWindowControlStyles.axaml", application, StringComparison.Ordinal);
-        Assert.Contains("Styles/MessageCenterStyles.axaml", application, StringComparison.Ordinal);
+        Assert.DoesNotContain("Styles/MessageCenterStyles.axaml", application, StringComparison.Ordinal);
+        Assert.Contains("Styles/MessageCenterStyles.axaml", ReadPresentationFile("Views/MessageCenterModal.axaml"), StringComparison.Ordinal);
         Assert.Contains("Styles/SettingsVersionStyles.axaml", application, StringComparison.Ordinal);
         Assert.Contains("<Label", slotCard, StringComparison.Ordinal);
         Assert.Contains("Classes=\"compactBadge slotBadge firmwareSlotRequirement availableInput\"", slotCard, StringComparison.Ordinal);

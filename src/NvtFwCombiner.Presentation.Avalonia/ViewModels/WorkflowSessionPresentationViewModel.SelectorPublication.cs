@@ -45,8 +45,8 @@ internal sealed partial class WorkflowSessionPresentationViewModel
             _replaceWorkflowContextIc = string.Empty;
             _mergeWorkflowContextNumber = string.Empty;
             _replaceWorkflowContextNumber = string.Empty;
-            _mergeWorkflowContextNeedsRefresh = !string.IsNullOrEmpty(previousMergeIc);
-            _replaceWorkflowContextNeedsRefresh = !string.IsNullOrEmpty(previousReplaceIc);
+            _mergeWorkflowContextNeedsRefresh |= !string.IsNullOrEmpty(previousMergeIc);
+            _replaceWorkflowContextNeedsRefresh |= !string.IsNullOrEmpty(previousReplaceIc);
             InvalidateWorkflowContextDraft();
             PublishActiveSelectorState(string.Empty, string.Empty);
             PublishCurrentCatalogChoices();
@@ -94,8 +94,10 @@ internal sealed partial class WorkflowSessionPresentationViewModel
             _replaceWorkflowNumbersByMode[_replaceWorkflowContextMode] =
                 _replaceWorkflowContextNumber;
         }
-        _mergeWorkflowContextNeedsRefresh = mergeReconciliation.NeedsRefresh;
-        _replaceWorkflowContextNeedsRefresh = replaceReconciliation.NeedsRefresh;
+        // Reconciled selector values cannot acknowledge an unmaterialized or
+        // invalidated page. Its successful refresh owns clearing this flag.
+        _mergeWorkflowContextNeedsRefresh |= mergeReconciliation.NeedsRefresh;
+        _replaceWorkflowContextNeedsRefresh |= replaceReconciliation.NeedsRefresh;
 
         ReconcileOpenWorkflowContext(publication);
         (string activeIc, string activeNumber) = ActiveWorkflowOwner switch

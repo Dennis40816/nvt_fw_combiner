@@ -75,7 +75,7 @@ internal sealed partial class ReplacePresentationViewModel
     {
         ClearCtrlRamInspectionDisplay();
         ReplaceSlots.Clear();
-        ReplaceSlotGroups.Clear();
+        ReplaceRegionGroupBuilder.UpdateSlotGroups(ReplaceSlotGroups, [], Text);
         _generalReplaceAuthoringStates = [];
         _generalReplaceDraft = null;
         _generalReplaceAdmission = null;
@@ -94,18 +94,12 @@ internal sealed partial class ReplacePresentationViewModel
 
     private void RefreshReplaceSlotGroups()
     {
-        ReplaceSlotGroups.Clear();
-        if (!IsCtrlRamReplaceModeSelected)
-        {
-            return;
-        }
-
-        foreach (FirmwareSlotGroupViewModel group in ReplaceRegionGroupBuilder.CreateSlotGroups(
-            ReplaceSlots.Where(slot => !ReferenceEquals(slot, ReplaceBaseSlot)),
-            Text))
-        {
-            ReplaceSlotGroups.Add(group);
-        }
+        ReplaceRegionGroupBuilder.UpdateSlotGroups(
+            ReplaceSlotGroups,
+            IsCtrlRamReplaceModeSelected
+                ? ReplaceSlots.Where(slot => !ReferenceEquals(slot, ReplaceBaseSlot))
+                : [],
+            Text);
     }
 
     private void RefreshReplaceCoverageGroups()

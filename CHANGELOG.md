@@ -7,7 +7,118 @@ assignments, use the [canonical roadmap](docs/architecture/nfc_roadmap.md).
 
 ## [Unreleased]
 
-The v1.1.4 candidate below is under release verification; it is not published.
+No additional product changes are scheduled beyond the v1.1.5 scope below.
+
+## [1.1.5] - 2026-09-13
+
+### Summary
+
+v1.1.5 focuses on local verification
+efficiency and reducing unnecessary startup and workflow-refresh work.
+Firmware operations, IC support, certified output expectations and the
+Windows x64 portable distribution contract remain unchanged.
+
+### Product changes
+
+#### Bounded parallel local verification
+
+- Before → After: coarse sequential work and repeated preparation prolonged
+  local verification. The existing verifier now overlaps independent work after
+  shared restore, schedules script modules within their original shard budgets,
+  and prepares independent coverage snapshots with bounded concurrency.
+  Default outer concurrency remains three; `--jobs 4` is an opt-in trial,
+  not a global four-process cap. UI coverage remains exclusive-first.
+- Affected: developers running `python scripts/verify.py --all` on Windows;
+  CI retains its separate Windows matrix and stable required checks.
+- Support status: unchanged; no firmware route or evidence requirement is removed.
+- Compatibility: existing timeout, cancellation, custody, cleanup and coverage
+  gates remain enforced. Script collection now uses the shared pytest runner
+  so pytest-style cases formerly omitted by unittest are actually executed.
+- Verification: the recorded four-worker development run passed in 730.59 s
+  (12 min 10.6 s), with 6,153 .NET cases and 1,054 script cases passed;
+  one optional external package-lab case remained explicitly skipped. This is
+  an earlier recorded source state, not a fresh final-candidate result.
+- Limitations: approximately ten minutes is not achieved or guaranteed.
+  Extra concurrency caused contention in that trial; default stays at three.
+  This timing excludes release packaging and is not total release duration.
+
+#### Startup resource and catalog loading
+
+- Before → After: CtrlRAM definitions were repeatedly constructed within one
+  catalog load. The existing loader now reuses complete definitions for that
+  load only, and a new reload creates a fresh resolver. Message Center styles
+  load with their existing deferred modal instead of the first Home surface.
+- Affected: Home startup, catalog loading/reloading and Message Center.
+- Support status: unchanged; profile selection, capability disclosure and
+  supported IC/mode declarations retain their existing authority.
+- Compatibility: no persistent catalog cache, new dependency, rendering backend,
+  executable format or firmware interpretation is introduced. Failed or stale
+  loads cannot become retained definitions for a subsequent catalog load.
+- Verification: focused catalog-load and compiled-style regressions passed.
+  A local package including the navigation fixes measured Home window median
+  719.517 ms over five scored launches after one warm-up; catalog readiness
+  followed the first window by a median 3329.459 ms on that development host.
+- Limitations: the 700 ms window target remains unmet. Window appearance is
+  not fully ready content, an OS-cold result or a clean-machine guarantee.
+  These development-package observations are not final-asset measurements.
+
+#### Complete-data workflow refresh with less reconstruction
+
+- Before → After: CtrlRAM refresh replaced every group container, and first
+  workflow entry initialized the unused page too. Matching CtrlRAM groups now
+  retain their containers and expansion state while receiving complete fresh
+  slot objects; unvisited workflow projections initialize on first entry.
+- Affected: Merge/Replace navigation, CtrlRAM groups, Home workflow confirmation
+  and catalog reload, including NT51927 three-chip CtrlRAM and NT51950 AB Code.
+- Support status: unchanged; there is no new IC, layout variant or Golden claim.
+- Compatibility: no field-copy cache is added. Current slots, validation,
+  inspection invalidation and readiness remain with their existing owners.
+  Pending refresh survives unchanged selector values; cancellation, rollback
+  and page-specific context remain intact. No selected file is deleted from disk.
+- Verification: two overlapping focused selections passed 213 and 58 cases,
+  including ten first-activation cases and real compiled control bindings.
+  Group regressions cover current-slot publication, removed subscriptions,
+  expansion state, ordering and language notifications.
+- Limitations: deferral moves work to the page's first use; it does not prove
+  that opening both pages takes less total time. Remaining first-entry chooser
+  and broader visual changes are outside this release.
+
+### Security
+
+No new credential, signing, network, update or release permission is introduced.
+Verification optimizations preserve fail-closed history, source ownership,
+process lifetime and independent Golden requirements. Package allowlists,
+provenance and immutable publication checks remain unchanged.
+
+### Known issues
+
+Release admission requires final-source verification and all applicable
+certified Golden output comparisons. Native clean-machine,
+DPI/high-contrast and screen-reader acceptance is not established by headless
+or development-host results. The latest measured development portable ZIP was
+above 100 decimal MB, though below the existing 128 MiB ceiling; its main EXE
+was below 80 MB. Final download sizes belong to the published asset inventory.
+Neither approximately ten-minute verification nor 700 ms Home startup is claimed
+as achieved. Customized flashmap execution approaches will be discussed after
+release; this version does not implement vendor-specific maps or rule authoring.
+
+### Upgrade and rollback
+
+Extract the Windows portable ZIP into a separate directory and retain the
+previous v1.1.4 directory for rollback. No irreversible user-data migration,
+new saved-rule format or automatic Launcher activation is introduced. Existing
+managed-distribution admission remains unchanged; local candidate packages are
+not published update sources. Firmware expectations and reference classifications
+remain those of the preceding release.
+
+### Downloads and integrity
+
+The Windows x64 package is `NvtFwCombiner-v1.1.5-win-x64.zip`.
+At publication, verify the versioned checksum inventory, SPDX SBOM and provenance
+against the exact downloaded package and source. The separate distribution
+Launcher retains its existing five-asset evidence set; GitHub source archives
+are separate downloads. Development builds still labelled 1.1.4 are not
+v1.1.5 release assets and must not be substituted for the final candidate.
 
 ## [1.1.4] - 2026-09-10
 

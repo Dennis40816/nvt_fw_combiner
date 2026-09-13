@@ -720,3 +720,53 @@ Only the two full-production defaults and existing exact baseline assertion
 change. Counting, exclusions, all ratchets, excess/reduction guards and
 firmware/Golden/release gates remain unchanged. No reserved or transferable
 capacity is introduced; subsequent production edits require remeasurement.
+
+## 2026-09-11 catalog load-scope accounting
+
+The owner approved exactly 22 additional runtime/full-production nonblank lines
+for the reviewed `CATALOG-115-CTRLRAM-LOAD-SCOPE-01` implementation at
+`4da38e868b4f4b6b5b1db788fd3d3d4ff0dc4ac3`: Application +3 and
+Infrastructure/Contracts/worker +19, with no Presentation-only increment.
+The complete verifier at `f1cd3419` exposed the unsynchronized accounting;
+its failed result remains historical failure evidence, not a retroactive pass.
+
+Independent R2 admission `GOV-115-CATALOG-EXACT-SIZE-01` records these exact
+totals and existing allowances against unchanged ratchet bases:
+
+| Metric | Exact total | Base | Allowance |
+| --- | ---: | ---: | ---: |
+| Full production / production baseline | 140,473 | 102,896 | 37,577 |
+| Runtime | 99,585 | 70,056 | 29,529 |
+| Application | 43,004 | 30,690 | 12,314 |
+| Infrastructure/Contracts/worker | 30,785 | 15,356 | 15,429 |
+
+Domain/Profiles remains 20,757 and Bootstrap/CLI/Desktop host remains 5,039.
+Only five existing defaults and four exact baseline assertions change.
+Counting, exclusions, ratchet bases, other allowances, partial/duplicate checks,
+growth/reduction/equality guards and firmware/Golden/release requirements remain
+unchanged. No spare or transferable capacity is introduced; subsequent source
+changes still require measurement and the existing admission process.
+
+## 2026-09-13 workflow presentation accounting
+
+The owner approved exactly 37 additional Presentation-only nonblank lines for
+the reviewed local units `d78f249d` (complete CtrlRAM group publication, +33)
+and `dba19a30` (first workflow activation explanations, +4). Independent
+Git-blob comparison against checkpoint `12773f28` confirms the five affected
+ViewModel files account for the entire increment. Useful subscription lifetime
+handling and explanatory comments are retained, not compressed for the metric.
+
+Independent R2 admission `GOV-115-UI-EXACT-SIZE-01` sets full production and its
+baseline to 140,510, with allowance 37,614 against unchanged base 102,896.
+Runtime remains 99,585; Domain/Profiles 20,757, Application 43,004,
+Bootstrap/CLI/Desktop host 5,039 and Infrastructure/Contracts/worker 30,785
+remain unchanged. The observed WorkflowSession aggregate is 2,675 lines in
+13 files; its existing 2,627-line warning threshold is not increased.
+
+Only two defaults and two existing baseline assertions change. Counting,
+exclusions, ratchet bases, other allowances, partial/duplicate rules,
+growth/reduction/equality guards and firmware/Golden/CI/release requirements
+remain unchanged. No spare or transferable capacity is introduced. The earlier
+structure failure remains a failure, not retroactive passing evidence. The
+owner's additional question about replacing hard size limits is a separate
+policy assessment; this exact accounting does not authorize that replacement.

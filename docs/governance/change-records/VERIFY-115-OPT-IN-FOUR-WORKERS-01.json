@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 2,
+  "taskId": "VERIFY-115-OPT-IN-FOUR-WORKERS-01",
+  "capability": "Allow a bounded four-worker local verifier trial without raising nested dotnet concurrency",
+  "integrationBase": "eebe42f8b5b0b2c53ddcb32d35f9dad1b4fbbbc6",
+  "risk": "R2",
+  "kind": "behavior",
+  "state": "final-complete",
+  "mutablePaths": ["scripts/verify.py", "tests/scripts/test_verify_orchestration.py", "docs/ci/release-package.md"],
+  "implementationOwner": "primary-agent",
+  "searchEvidence": [
+    "Owner continued the approved 1.1.5 local-verifier performance work on 2026-09-12; startup rendering is deferred. Last full observation f1cd3419 took 766.64s, with dotnet 556.4s and late release-package script work 383.6s; its size-policy failure was separately corrected.",
+    "MAXIMUM_VERIFY_JOBS currently owns parser/run_lanes admission and both nested dotnet preparation and producer pools. Raising it alone would violate the retained three-worker coverage contract.",
+    "Existing parse_args, run_lanes, run_local_full_verification and collector functions remain owners. Independent review found no need for another scheduler; isolate the fixed dotnet cap while keeping default public jobs3."
+  ],
+  "semanticOwner": "scripts/verify.py existing public lane executor and local dotnet collector",
+  "terminalContract": "Accept public jobs1-4 with default3 and reject values outside this range. Preserve nested dotnet snapshot and producer concurrency at three through one fixed collector constant. Keep UI exclusive-first, exhaustive inventories, shared shard deadlines, build readiness, cancellation, cleanup, coverage thresholds, Golden execution and CI/release routing unchanged. No claim of a global four-process limit or measured speedup before the complete trial.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "parallel_resource_audit",
+    "outcome": "approved",
+    "evidence": "Independent R2 admission approves public maximum4 only with a separate fixed dotnet cap3 used at both preparation and producer sites; default3 remains. Require parser default/4/0/5, at least five real controlled lanes proving exactly four active and exact-once complete results, existing three-worker nested tests, deadline/cancellation/readiness/CI/Golden regressions. Update local contract and README; coverage contract is unchanged. Resource contention remains a measurement risk, not permission to relax gates."
+  },
+  "implementationHead": "06ae69718fe8f552f16d43ab04d90c99b0b4a79c",
+  "reviewedHead": "06ae69718fe8f552f16d43ab04d90c99b0b4a79c",
+  "pathStateDigest": "9ab4d5d9f27171f8e9d7ac6b3268e3e6af57e93d8a2a961020cadf30e3543d5f",
+  "finalReview": {
+    "reviewer": "parallel_resource_audit",
+    "outcome": "approved",
+    "evidence": "Independent fixed-head scoped R2 Polytail PASS at 06ae69718fe8f552f16d43ab04d90c99b0b4a79c against eebe42f8b5b0b2c53ddcb32d35f9dad1b4fbbbc6, no P0-P3 findings. Complete five-file diff retains default3, both nested dotnet caps3, all deadlines/inventories/cleanup/readiness/CI/Golden logic. Eight controlled lanes prove overlap4, exact-once ordered results and separate logs; parser covers default/4/0/5. RED two failures, GREEN orchestration217 passed32.84s; reviewer reused execution evidence. Documentation and admission agree. Full trial is performed only after this final record is staged and frozen; its actual HEAD plus staged-record state must be recorded separately, with no pure-HEAD or release claim."
+  }
+}

@@ -201,8 +201,10 @@ internal sealed partial class WorkflowSessionPresentationViewModel
             _replaceWorkflowNumbersByMode[_replaceWorkflowContextMode] =
                 _replaceWorkflowContextNumber;
         }
-        _mergeWorkflowContextNeedsRefresh = false;
-        _replaceWorkflowContextNeedsRefresh = false;
+        // Catalog readiness does not mean either page has been materialized.
+        // The existing activation path refreshes each whole page on first use.
+        _mergeWorkflowContextNeedsRefresh = true;
+        _replaceWorkflowContextNeedsRefresh = true;
     }
 
     internal void RememberCurrentWorkflowContext()
@@ -476,14 +478,14 @@ internal sealed partial class WorkflowSessionPresentationViewModel
         switch (page)
         {
             case ShellPage.Merge:
-                _mergeWorkflowContextNeedsRefresh =
+                _mergeWorkflowContextNeedsRefresh |=
                     !string.Equals(_mergeWorkflowContextIc, ic, StringComparison.Ordinal) ||
                     !string.Equals(_mergeWorkflowContextNumber, number, StringComparison.Ordinal);
                 _mergeWorkflowContextIc = ic;
                 _mergeWorkflowContextNumber = number;
                 break;
             case ShellPage.Replace:
-                _replaceWorkflowContextNeedsRefresh =
+                _replaceWorkflowContextNeedsRefresh |=
                     !string.Equals(_replaceWorkflowContextIc, ic, StringComparison.Ordinal) ||
                     !string.Equals(_replaceWorkflowContextNumber, number, StringComparison.Ordinal);
                 _replaceWorkflowContextIc = ic;

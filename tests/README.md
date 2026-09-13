@@ -5,7 +5,830 @@ The scheduling snapshot below was inspected on 2026-09-06 at
 `6c8552af6b5b497065a5b24867cc0e349de03e83` (`1.1.4`). Historical timings are
 explicitly **v1.1.3**, not fresh measurements of the current UI changes.
 
-## Execution map
+## v1.1.5 local scheduling change
+
+Public `--jobs` supports 1–4 workers; the default remains three. Four is an
+opt-in tuning option, not a global descendant-process limit or an established
+speedup. Nested .NET preparation and producer pools retain their separate
+three-worker cap and UI-exclusive-first ordering. Historical measurements and
+the earlier rejected-four-worker probe below retain their original meaning.
+
+The local implementation finishes derived-data checking and the existing
+SDK/restore with tracked lock projections restored before starting one `--jobs`
+pool. Its first lane runs post-restore checks/build followed by coverage under
+one deadline. Structure postchecks may overlap this lane; script modules and
+the CRC worker wait for successful build readiness without waiting for structure.
+All required gates still contribute to the final result. Builder terminal paths
+fail pending readiness, and all workers join before cleanup. Each module retains its
+original shard's shared deadline, beginning at that shard's first module start;
+queued modules consume the remaining budget and fail without launching if it
+expires. The validated CI shard inventory remains the source of membership.
+Build waiting consumes the same deadline; it does not create a new budget.
+`--jobs=1` remains serial, with the builder first to avoid dependency deadlock. SDK
+cleanup runs after the workload pool terminates, including failure paths.
+CI and release-Golden entry points retain their existing execution paths.
+
+The shared script runner uses the existing pytest dependency for both unittest
+classes and pytest functions. Local modules and CI shards pass explicit files
+from the same validated inventory; empty selections and the existing Python
+environment overrides (`PYTEST_ADDOPTS`, `COVERAGE_RCFILE`,
+`COVERAGE_PROCESS_START`) fail. Each invocation owns separate temporary storage and disables
+pytest's cache provider. Nonzero exits, including zero collected tests, fail.
+
+UI exclusivity remains within the .NET collector: UI finishes before the other
+.NET projects start. It is not global exclusivity against Python subprocesses.
+Before those project batches, independent snapshots are prepared with at most
+three workers. This preparation pool retains all existing hash/freshness checks
+and original project order; failures prevent VSTest and active writers are joined
+before cleanup. This is an internal collector cap, not a claim that the outer
+`--jobs` value limits every descendant process or thread globally.
+The complete local run still needs measured contention, coverage and wall-clock
+validation; no ten-minute result is claimed by the scheduling change alone.
+
+The diagram and timings below preserve the pre-change v1.1.3/v1.1.4 baseline.
+Replace no historical timings with projected parallel durations.
+
+### First parallel measurement — 2026-09-10 (failed candidate)
+
+Source: `a20051d6805f548a6935b86867db1b791d7af19f`, Windows, SDK 10.0.301,
+20 logical processors, approximately 32 GiB RAM; `python scripts/verify.py --all`
+with the default three worker slots. Complete command wall clock, including
+setup and cleanup: **992.35 s (16 min 32 s), exit 1**.
+
+| Phase/lane | Seconds | Observed result |
+| --- | ---: | --- |
+| Structure | 219.7 | PASS |
+| Shared .NET restore/build | 81.0 | PASS |
+| .NET coverage lane | 505.2 | FAIL; UI 1,264 passed, 1 failed, 0 skipped |
+| Script shard a-q | 546.3 | PASS; 432 tests |
+| Script shard r | 415.0 | PASS; 162 tests |
+| Script shard s-z | 273.8 | PASS; 374 tests |
+| CRC Python worker | 11.2 | PASS; 30 tests, 100% line/branch coverage |
+
+Lane durations overlap and must not be summed as wall clock. The UI failure was
+`ReportImportOutcomeTests.StoredSuccessMetadataIsReassessedForUnknownRaw(chinese: True)`:
+the first imported history row retained `成功` instead of `未知`. Later .NET
+projects did not run after this exclusive UI batch failed; this measurement is
+neither complete coverage evidence nor proof of the ten-minute target. Isolated
+case (2 tests), class (14 tests), and class with coverage (14 tests) passed on the
+same binaries; retries do not establish a fix or invalidate the original failure.
+Local raw evidence is under `NFC_TEST_AREA_ROOT/evidence/v115-parallel-first`
+(`verify-all.log`, `timing.json`) and `evidence/v115-report-import-repro` (TRX).
+No successful complete-run reduction percentage is claimed from this result.
+
+Follow-up diagnostic profiling of `scripts/validate_repository.py` at
+`c835d441` completed successfully in 248.41 s under `cProfile`. Governance
+validation accounted for 215.53 s; 2,905 `subprocess.run` calls accounted for
+214.75 s cumulatively. Selected nested costs were 63.54 s for post-final
+record-change checks, 50.03 s for 258 index-blob reads, and 27.42 s for 190
+path-state digests. These nested durations overlap and must not be added.
+The profile (`validator-profile.pstats` beside the first-run log) identifies
+optimization candidates, not a fresh wall-clock baseline: instrumentation and
+overlapping narrow UI diagnostics differ from the original full-run conditions.
+The follow-up profile at `a4cbc558` (`validator-profile-batched.pstats`) took
+194.68 s with 2,429 subprocess calls and 161.23 s in governance validation.
+Compared with the earlier diagnostic profile, this is 53.73 s less total time
+(21.6%), not a controlled full-verifier speedup. This profiled invocation reported
+the expected unfinished `design-active` record error and is not a validation
+PASS; final evidence was subsequently validated separately and committed in
+`abd26b2b`.
+
+### Module-pool measurement — 2026-09-11 (failed candidate)
+
+Source: `39e017dce3fbc2186bef1764236e15ea584135f6`, same Windows host,
+SDK 10.0.301, default three worker slots, `python scripts/verify.py --all`.
+Complete command wall clock including cleanup: **988.40 s (16 min 28 s), exit 1**.
+Structure passed in 192.2 s; shared restore/build passed in 82.5 s; the .NET
+coverage lane passed in 711.1 s, including all 1,265 UI cases with no skips.
+CRC worker passed all 30 cases with 100% line/branch coverage in 11.3 s.
+These overlapping lane durations must not be summed.
+
+Three individual script modules failed with unittest's zero-test result:
+`test_managed_installation_lab.py`, `test_release_smoke_policy.py`, and
+`test_version_update_lab.py`. They contain pytest functions. Independent
+collection compared IDs: pytest retained all 978 unittest cases and collected
+61 additional cases (2, 5, and 54 respectively) across these three modules.
+The earlier coarse-shard runner also used unittest and silently omitted them;
+the module pool exposed that existing coverage gap. Collection is not execution
+evidence. The runner correction must execute these cases, not accept a no-tests
+exit code. Raw evidence is in
+`NFC_TEST_AREA_ROOT/evidence/v115-module-pool-first/verify-all.log` and
+`timing.json`. Neither this failed run nor the earlier incomplete .NET run proves
+a successful full-run speedup or the ten-minute target.
+
+The subsequent runner correction executed the previously omitted 61 cases
+through `verify_repository_scripts` and its managed lane/session owners:
+2/2, 5/5 and 54/54 passed (3.0 s, 1.0 s and 3.3 s lane durations). This is
+targeted working-tree evidence, not a fresh complete verifier pass.
+The orchestration module passed 206/206 cases in 28.222 s, including five new
+collection/isolation regressions and the existing real-process timeout and
+cancellation checks. The new regressions first failed against the old runner.
+
+### Collector preparation diagnosis — 2026-09-11
+
+At `8c940ea2`, isolated profiling reused the retained `39e017dc` .NET reports
+and existing Release outputs; no VSTest, build, or complete verifier was run.
+Rechecking retained coverage passed its policy in 22.59 s under cProfile;
+source-path resolution accounted for 10.44 s cumulatively. This is report
+reprocessing, not new test execution or exact-current-source coverage evidence.
+
+Eight existing stage preparations took 59.90 s under cProfile, final freshness
+checks 11.32 s, and the full diagnostic session including cleanup 73.77 s.
+The 45 complete tree-hash traversals took 68.29 s cumulatively; 9,885 file-hash
+calls took 58.50 s, including 40.65 s opening files. Nested costs overlap.
+Repeated solution inventory construction was not the dominant cost.
+Profiles are retained under
+`NFC_TEST_AREA_ROOT/evidence/v115-module-pool-first/` as
+`coverage-union-8c940ea2.pstats` and `staging-8c940ea2.pstats`.
+
+A subsequent uninstrumented diagnostic used the existing prepare and freshness
+owners, private test sessions, identical eight projects and all checks. It
+changed only the number of concurrent preparations via a temporary in-process
+thread pool; production scheduling was unchanged.
+
+| Preparation workers | Prepare | Freshness | Total including session cleanup |
+| --- | ---: | ---: | ---: |
+| 1 | 57.88 s | 10.22 s | 70.66 s |
+| 3 | 24.47 s | 10.06 s | 37.11 s |
+
+This single sequential pair suggests a 33.55 s (47.5%) preparation-session
+reduction, not a full-verifier improvement. Cache/order and concurrent workload
+effects need validation after implementation. No hash pass, test or coverage
+check was removed. The implementation candidate must retain bounded workers,
+ordered stage results, fail-before-VSTest behavior and join active writers before
+cleanup; UI-exclusive execution remains the current contract.
+
+The subsequent production preparation owner was measured independently on the
+same eight Release outputs: prepare 23.91 s, freshness 10.20 s, total including
+session cleanup 36.79 s. All checks passed; no VSTest was executed for this
+measurement. Orchestration passed 211/211 tests in 28.679 s, including forced
+out-of-order completion, worker bounds, collision rejection, inherited deadlines,
+and cancellation/failure join-before-cleanup. The cancellation regression first
+failed before the post-join cancellation check was added. These are local unit
+and preparation measurements, not a complete verifier result.
+
+### First complete passing parallel candidate — 2026-09-11
+
+Exact source: `3b646c9d2f546ce9ea6f44a1b88527a58d7fc3a8`, Windows,
+SDK 10.0.301, `python scripts/verify.py --all`, default three outer worker slots.
+The complete command passed, exit 0, in **989.86 s (16 min 30 s)**, including
+setup, SDK shutdown and session cleanup. Source remained frozen throughout.
+
+| Phase / lane | Seconds | Result |
+| --- | ---: | --- |
+| Structure | 192.6 | PASS; derived sync changed zero files |
+| Shared restore/build | 80.5 | PASS; build zero warnings/errors |
+| .NET coverage | 709.6 | PASS; 6,140 tests, zero skipped |
+| Script modules | overlapping | PASS; 1,049 cases, including the previously omitted 61 |
+| CRC worker | 9.6 | PASS; 30 cases, 100% line/branch coverage |
+
+The UI command passed 1,265 cases in 411.0 s; Bootstrap passed 1,251 and
+Infrastructure 1,074. .NET coverage measured 91.30% lines (79,673/87,265)
+and 79.94% branches (26,786/33,509), satisfying the existing coverage policy.
+Project test counts are not by themselves a certified Golden case inventory.
+Raw output and the complete stopwatch footer are retained in
+`NFC_TEST_AREA_ROOT/evidence/v115-snapshot-pool-first/verify-all.log`.
+
+**The ten-minute target is not met.** The earlier 988.40 s run failed and omitted
+pytest cases; its elapsed time is not a successful like-for-like baseline. The
+isolated snapshot speedup did not produce a material whole-command reduction
+in this run. Structure/build remain serial prerequisites totaling 273.1 s,
+and full-load .NET collection plus script scheduling must be assessed together.
+No test, coverage threshold, timeout or expected Golden bytes were relaxed.
+
+### Post-restore overlap measurement — 2026-09-11
+
+Exact source: `2df6b87a3f4c3fe107c1224e69b4c6ac6673f5a5`, same Windows host,
+SDK 10.0.301, `python scripts/verify.py --all`, default three outer worker slots.
+Complete command including shutdown and session cleanup: **886.42 s
+(14 min 46 s), exit 0**. Source was frozen and no separate heavy diagnostic
+was launched during the run.
+
+| Phase / lane | Seconds | Result |
+| --- | ---: | --- |
+| Derived-data check | 1.2 | PASS; zero files changed |
+| SDK / restore | 3.3 | PASS; lock restoration precedes the pool |
+| Post-restore build plus .NET coverage | 761.1 | PASS; 6,140 tests, zero skipped |
+| Structure postchecks | 262.9 | PASS; overlaps build and tests |
+| Script modules | overlapping | PASS; 1,054 cases, including five new orchestration cases |
+| CRC worker | 10.5 | PASS; 30 cases, 100% line/branch coverage |
+
+.NET coverage was 91.30% lines (79,675/87,265) and 79.95% branches
+(26,791/33,509), passing the unchanged policy. Post-restore checks, format and
+build consumed 20.6, 22.7 and 53.2 s within the .NET lane, not outside timing.
+Script lane elapsed includes build-readiness waiting where applicable: the
+first fixture module's 99.5 s is not its pytest execution time alone.
+
+Compared with the prior complete passing candidate (989.86 s), this observation
+is 103.44 s / **10.4% shorter**, with five additional script regression cases.
+It is one observation per source, not a repeatability guarantee. The ten-minute
+target remains unmet: the .NET lane alone is 12 min 41 s, and the complete
+command has roughly another two minutes of script-tail/aggregation overhead.
+Structure also slowed under contention (192.6 to 262.9 s); overlap duration is
+not automatically saved wall time. Raw output, all lane timings and the full
+stopwatch footer are in
+`NFC_TEST_AREA_ROOT/evidence/v115-preflight-overlap-first/verify-all.log`.
+
+The owner clarified on 2026-09-11 that approximately ten minutes is an
+optimization target, not a hard gate preventing subsequent performance work.
+Retain this result and the remaining .NET exclusivity/script ordering costs,
+then proceed to packaged Home and CtrlRAM first-open measurement rather than
+claiming the target passed or continuing micro-optimization indefinitely.
+Actual release packaging is separate and has not been timed by this command.
+
+### Current-source full measurement — 2026-09-11 (size-policy failure)
+
+Source `f1cd3419fcd9af8845af8b193cc77ed3b97e82a8`, same Windows host,
+repository SDK 10.0.301, `python scripts/verify.py --all`, default three workers.
+Complete wall time including setup, SDK shutdown and session cleanup was
+**766.64 s (12 min 46.6 s), exit 1**. HEAD and tracked sources stayed unchanged;
+derived sync changed zero files. No separate heavy diagnostic ran concurrently.
+
+| Phase / lane | Seconds | Observed result |
+| --- | ---: | --- |
+| Derived sync / SDK restore | 1.3 / 4.6 | PASS |
+| Build plus .NET coverage | 556.4 | PASS; 6,153 cases, zero failed/skipped |
+| Structure | 232.8 | FAIL; exact code-size allowance drift |
+| Agent-governance script tests | 287.3 | PASS; 136 cases |
+| Release-package script tests | 383.6 | PASS; 84 cases; not actual packaging |
+| Startup-measurement script tests | 158.3 | PASS; 7 cases; not app startup duration |
+| CRC worker | 10.0 | PASS; 30 cases, 100% line/branch coverage |
+
+Script modules executed 1,052 passed, one failed and one skipped case. The failure
+is the exact production-size baseline assertion. The optional external package-lab
+case (`NFC_PARITY_PACKAGE_LAB`) was skipped, not certified by this run; it remains
+separate from the zero-skipped .NET result. Structure
+reported the same accounting issue: Application 43,004 versus 43,001 (+3),
+Infrastructure/Contracts/worker 30,785 versus 30,766 (+19), full production
+140,473 versus 140,451 and runtime 99,585 versus 99,563 (+22 each). These deltas
+come from the already reviewed catalog load-scope change at `4da38e86`; no
+allowance was changed or deemed approved by this run. The source ratchet is
+independent of the executable byte-size ceiling.
+
+.NET coverage passed at 91.30% lines (79,681/87,272) and 79.95% branches
+(26,791/33,511). UI producer lane time was 248.9 s (VSTest command 246.0 s),
+versus the earlier 409.9 s lane; Bootstrap was 111.5 s and Infrastructure
+150.4 s. The .NET lane is now 9 min 16 s, but script completion leaves the
+whole command above ten minutes. Current catalog changes and thirteen additional
+.NET cases distinguish this source from the previous passing 886.42 s run;
+the 119.78 s elapsed difference is not a controlled scheduling-only speedup or
+a successful full-verification result. Packaging was not run or included.
+
+An initial `--all --jobs 4` probe was rejected by argument parsing in 0.315 s;
+the supported range is 1–3. It executed no tests and supplies no four-worker
+performance evidence. No scheduler, UI-exclusivity contract, timeout, coverage
+threshold or Golden expectation was changed. Next decisions are the exact
+22-line accounting approval and a bounded assessment of script-tail scheduling;
+do not bypass the three-worker cap or remove UI exclusivity without admission.
+Raw output and stopwatch JSON are retained outside Git under
+`NFC_TEST_AREA_ROOT/evidence/v115-current-full-20260911-184405/`; the rejected
+parameter probe is under `evidence/v115-jobs4-20260911-184340/`.
+
+The owner subsequently approved exactly the 22-line accounting increment.
+Implementation `6b79eb4d` changes only existing size defaults, baseline assertions
+and ADR0021 accounting; no product source, test inventory or scheduling changes.
+Updated-baseline RED confirmed the old limit still failed (1 failed, 18 passed);
+after updating the limits the policy module passed 19/19 in 29.35 s. Independent
+fixed-head R2 review and fast Polytail passed. With its final review record staged,
+`python scripts/verify.py --structure-only` passed (structure lane 186.3 s),
+including the previously failing size checks. The full result above remains
+FAIL: these are scoped correction results, not a fresh complete verifier pass.
+Structure output is retained at
+`NFC_TEST_AREA_ROOT/evidence/v115-code-size-structure.log`.
+
+### Opt-in four-worker complete measurement — 2026-09-12
+
+`python scripts/verify.py --all --jobs 4` passed, exit 0, in **730.59 s
+(12 min 10.6 s)** including setup, SDK shutdown and session cleanup. This used
+the same Windows host and repository SDK 10.0.301, without another heavy
+diagnostic running concurrently. No cache reset or repeated paired trial was
+performed; this is one observation, not a repeatability guarantee.
+
+The exact frozen state was implementation HEAD
+`06ae69718fe8f552f16d43ab04d90c99b0b4a79c` plus the staged `final-complete`
+`VERIFY-115-OPT-IN-FOUR-WORKERS-01` record, not the pure HEAD tree. The index tree
+was `39a5e1df5e09d4b0cd7c192ac63cc492a5c3e18d`, and the final record blob was
+`651e04ab4775367d77bfecfed55ff060db319f00`. All three identities were unchanged
+after execution; derived sync changed zero files. The subsequent evidence-only
+commit retains this source attribution and does not claim another full run.
+
+| Phase / lane | Seconds | Result |
+| --- | ---: | --- |
+| Derived sync / SDK restore | 1.4 / 3.3 | PASS |
+| Build plus .NET coverage | 627.5 | PASS; 6,153 cases, zero failed/skipped |
+| Structure | 278.5 | PASS, including corrected size accounting |
+| Agent-governance script lane | 438.7 | PASS; includes build-readiness waiting |
+| Release-package script lane | 443.4 | PASS; 84 tests, not actual packaging |
+| CRC worker | 12.3 | PASS; 30 cases, 100% line/branch coverage |
+
+Script modules passed 1,054 cases with no failures; the one optional external
+`NFC_PARITY_PACKAGE_LAB` case remained skipped, not certified. .NET coverage
+passed at 91.30% lines (79,681/87,272) and 79.96% branches (26,795/33,511).
+The narrow orchestration module first showed two intended failures on the
+old cap, then passed 217/217 in 32.84 s. Independent fixed-head R2 Polytail
+approved the complete diff with no findings; the full run includes structure
+and fast Polytail rather than a separate repeated structure invocation.
+
+Compared with the preceding three-worker observation (766.64 s, failed solely
+on size accounting), elapsed time is 36.05 s / 4.7% shorter. This is not a
+controlled scheduling-only attribution: accounting and one orchestration case
+changed, and the executions occurred on different days. The increased outer
+concurrency also increased .NET lane time from 556.4 to 627.5 s and structure
+from 232.8 to 278.5 s. Earlier script starts saved some tail time, but contention
+offset much of that gain. The approximately ten-minute whole-command target
+remains unmet; default stays at three and four remains opt-in. Do not raise
+concurrency again based only on this observation. UI-exclusive-first, nested
+three-worker pools, all deadlines, coverage and Golden requirements are unchanged.
+Actual release packaging and release-source admission were not performed.
+
+Raw log and stopwatch/identity JSON are retained outside Git in
+`NFC_TEST_AREA_ROOT/evidence/v115-four-workers-20260912-104859/`.
+
+### Local package measurement — 2026-09-12 (unpublished)
+
+Built clean source `12773f2849c41035c8e03c3d54ec2b68db8634fc` on the same
+Windows host with SDK 10.0.301 selected through PATH. Repository `VERSION`
+remained **1.1.4**: these are local development measurements, not the published
+v1.1.4 assets or an admitted v1.1.5 release. No tag, GitHub asset or live Catalog
+was changed. Existing local v0.10.4 package/work artifacts were preserved in
+timestamped `artifacts/*-saved-20260912-141810` directories before packaging.
+
+| Command / phase | Seconds | Observed result |
+| --- | ---: | --- |
+| `pwsh -NoProfile -File scripts/package.ps1 -Version 1.1.4 -Commit 12773f2849c41035c8e03c3d54ec2b68db8634fc` | 231.79 | PASS, exit 0; normal portable package plus separate distribution Launcher, including source snapshots and cleanup |
+| `pwsh -NoProfile -File scripts/smoke-release.ps1 -PackagePath artifacts/release/NvtFwCombiner-v1.1.4-win-x64.zip -SkipUiLaunch` | 9.62 | PASS, exit 0, for the non-UI package checks only |
+
+The smoke checked closed contents, Golden reference inclusion, file hashes,
+manifest/SBOM/provenance consistency and the bundled CRC worker `123456789`
+vector. Visible startup was omitted to keep this local run background-only;
+this does not satisfy visible startup, clean-machine or firmware-output
+certification. Packaged fixture hash/inclusion checks are not Golden execution.
+
+| Artifact | Bytes | SHA-256 |
+| --- | ---: | --- |
+| Main `NvtFwCombiner.exe` | 75,050,513 | `e905a693d419e63d8608285a78dbed55d29bed68bff0d1957baf06dac76ad73d` |
+| Portable ZIP | 116,780,870 | `5e7e85601467ee7cba359fe580c53a0c9235162f34eb4006a70e648ec3bc65d2` |
+| Separate distribution Launcher EXE | 90,233,647 | `206aa6392bb6f1490d56c0eaa89b1481e8461aca09c197a3af449010abbd5a23` |
+
+Both executable artifacts are below 100 decimal MB; the main EXE also passes
+the existing 80,000,000-byte gate. The ZIP exceeds 100 MB but remains below
+the existing 134,217,728-byte ceiling. No content was removed or size policy
+changed. The Launcher EXE is separate from, not an additional file inside,
+the portable ZIP.
+
+Packaging plus the non-UI smoke totals **241.42 s (4 min 1.4 s)**. Adding the
+earlier 730.59 s full-verifier observation gives **972.01 s (16 min 12 s)**.
+This is arithmetic across separate runs and source identities, not one measured
+end-to-end release: the verifier used the frozen staged state documented above,
+whereas packaging used its subsequent evidence-only commit. Required final-source
+CI admission, release-Golden execution, visible/clean-machine acceptance,
+publication and downloaded-asset verification remain outside this total.
+No full suite was repeated for this packaging measurement.
+
+Raw `package.log`, `timing.json`, `smoke.log`, `smoke-timing.json` and all nine
+artifact identities are retained in
+`NFC_TEST_AREA_ROOT/evidence/v115-local-package-20260912-141810/`.
+Generated packages remain outside Git; no fresh startup-latency claim is made.
+
+### Local package refresh — 2026-09-13 (unpublished)
+
+Source `dba19a309acb9ce879147d4d5b7473815157229f`, tree
+`a27d8102d1f8929e39943939a3e29cb14f8a2828`, SDK 10.0.301. This includes the
+[bounded group/first-activation fixes](../docs/ui/post-v1.1.0-navigation-and-ctrlram-first-open-handoff.md#5-v115-first-workflow-activation--2026-09-13).
+VERSION remains 1.1.4: this is local development evidence on branch 1.1.5,
+not the published v1.1.4 package or an admitted v1.1.5 release.
+
+| Command / check | Result |
+| --- | --- |
+| `pwsh -NoProfile -File scripts/package.ps1 -Version 1.1.4 -Commit dba19a309acb9ce879147d4d5b7473815157229f` | PASS; 214.13 s, including both source snapshots, portable ZIP, distribution Launcher and cleanup |
+| `scripts/smoke-release.ps1 -PackagePath artifacts/release/NvtFwCombiner-v1.1.4-win-x64.zip -SkipUiLaunch -KeepExtracted` | PASS; 9.38 s; closed contents, fixture hashes, manifest/sidecars and CRC worker vector |
+| `scripts/measure-startup.ps1` on freshly extracted EXE, Home, `-WarmupRuns 1 -Runs 5 -TimeoutSeconds 30 -RequirePreloadLifecycle` | PASS lifecycle; window median 719.517 ms (range 717.508–747.541); **700 ms target not achieved** |
+| Same EXE/tool, `-Page merge` then `-Page replace`, each `-WarmupRuns 0 -Runs 1 -TimeoutSeconds 30` | Both completed; window observations 750.489 / 741.913 ms. Direct-process startup smoke, not in-process navigation latency or statistical performance evidence |
+
+Home's window-to-catalog-ready median was 3329.459 ms; process-to-complete-trace
+median was 4167.846 ms. The first window is not the same as fully ready workflow
+content. No heavy build/test ran during startup measurements. This is the same
+development Windows host with existing runtimes/caches, not a clean machine or
+OS-cold test. The initial Home command omitted the extraction's `extract/`
+directory and failed before launching; its log is retained alongside the
+successful corrected-path run.
+
+| Artifact | Bytes | SHA-256 |
+| --- | ---: | --- |
+| Main EXE | 75,051,280 | `d3463b388fab0606aa7ac896745169de8095de2bae5540e80c8a29a8eaa6e614` |
+| Portable ZIP | 116,780,552 | `686155218fea6e15898ec6cfb14b2c8ce509da8e66e1bfcadfb2312f5b88e8e2` |
+| Separate distribution Launcher EXE | 90,233,641 | `82325d4933f50b45762e2bf07633ef452e77a177b9e7c1850192a8c8691b9598` |
+
+Both executables are below 100 decimal MB; the main EXE passes the 80 MB gate.
+The ZIP exceeds 100 MB but passes the existing 128 MiB gate. Packaging plus
+non-UI smoke totals **223.51 s (3 min 43.5 s)**, excluding startup measurements;
+this is not complete release wall time. No full verifier or release-Golden
+output run was performed. Inclusion/hashes do not certify Golden execution.
+Existing cross-page behavior evidence remains the separate headless tests.
+
+Logs, measurements and `assessment.json` with all nine artifact identities are
+under `NFC_TEST_AREA_ROOT/evidence/v115-local-package-20260913-dba19a30/`.
+The previous local artifacts remain in
+`artifacts/release-saved-20260913-dba19a30` and
+`artifacts/package-work-saved-20260913-dba19a30`. No generated payload enters Git.
+The unmodified provenance builder label is `GitHub Actions / scripts/package.ps1`,
+but this execution was local: it supplies no Actions-run or tag-derived admission.
+No tag, GitHub Release, Catalog, source/version identity, or package policy was
+changed. Formal exact-source CI/Golden, release identity, clean-machine and
+publication gates remain outstanding.
+
+### v1.1.5 Home baseline — published v1.1.4 package, 2026-09-11
+
+The unchanged production predecessor is the initial control, not a newly built
+v1.1.5 package: published source `02fc70c8c25a5885be5e0e6db7eb108a37b4a131`,
+run `34484902901`, ZIP SHA-256
+`967af20ea0acef82b43c835d1552579b24c6e0041dae2b9a80b7f75e229fb2fc`,
+application SHA-256
+`3fbab084420ad7fffce2147c091a5f15f1128edf7ee7d01e8ac372396fc02ff1`.
+The ZIP was extracted into a new test-area evidence directory and launched
+through the existing `measure-startup.ps1`, Home, one warm-up, five scored runs,
+30-second timeout and `-RequirePreloadLifecycle`, after full verification ended.
+
+Process-to-window median: **802.196 ms**, above the 700 ms target.
+The unscored first launch was 960.670 ms (fresh process, not a flushed OS-cache
+cold boot); scored launches were 856.749, 826.204, 788.296, 802.196 and 779.857 ms.
+The Windows power plan was Ultimate Performance and was not changed.
+Managed-entry-to-opened median: 457.480 ms; first-frame synchronous UI work:
+140.166 ms. Managed-entry-to-background-warmup median: 3,983.407 ms, reported
+separately rather than substituted for first-window timing. This is a baseline,
+not evidence of improvement or a v1.1.5 package pass. Raw samples and traces are
+retained in `NFC_TEST_AREA_ROOT/evidence/v115-home-published-baseline/home-measurement.json`
+(SHA-256 `7c392cfdc7e84b8e7949683c96fff2add6fc41c34e954e98f933fed4838b2d58`).
+
+### Home single-file compression diagnosis — 2026-09-11
+
+Disabling tiered compilation for the published control produced 807.131 ms
+versus its 802.196 ms default median; it did not improve the first-window gate
+and was not adopted. The diagnostic environment override was process-scoped
+and restored afterwards.
+
+At `481b6ae5127298c321dbf1bb35bc86ab64a59553`, two local publish outputs
+used the same source, SDK and release publish flags, changing only
+`EnableCompressionInSingleFile`. They are diagnostic publish directories,
+not closed, manifest-qualified release packages. Both used the same verified
+external-tool payload and existing startup runner (one unscored warm-up and
+five scored Home launches, preload lifecycle required). The first pair ran
+compressed then uncompressed; the repeat reversed that order.
+
+| Diagnostic shape | EXE bytes | First median | Reverse-pair median |
+| --- | ---: | ---: | ---: |
+| Compressed single file | 75,050,096 | 772.703 ms | 778.828 ms |
+| Uncompressed single file | 173,059,050 | 523.388 ms | 531.497 ms |
+
+First-pair managed trace entry to opened medians were 440.608 / 436.177 ms;
+UI work was 136.850 / 138.089 ms. This supports bundle loading as the dominant
+observed difference, not a UI-layout optimization. The trace named
+`managed-entry` begins at `DesktopApplication.Run`, after some Desktop host
+managed work; its preceding gap must not be labeled wholly native execution.
+Fresh-process unscored launches were approximately 894 / 876 ms in the first pair;
+the repeat was already OS-cache warm, not a cold-boot benchmark.
+
+EXE hashes (compressed / uncompressed):
+`029f82db1c90b758f2a77157b0d75a1d41e18b2e10cda7a1f99f90d76475608a` /
+`69872d3216c9ef34c7c161148ccb6e123e37398b0afb554a7d3d64ed1b0025b5`.
+Raw JSON samples and publish logs are retained under
+`NFC_TEST_AREA_ROOT/evidence/v115-home-compression-probe/`.
+
+The uncompressed EXE alone compresses to 72,393,425 bytes in an Optimal ZIP
+entry, versus the published EXE entry's 69,274,105 bytes. Substituting that
+entry into the old package size estimates 119,331,295 bytes, about 3.12 MB above
+the published 116,211,975-byte ZIP. This is an estimate, not an actual complete
+candidate ZIP or package validation. The 173 MB EXE violates the current
+80,000,000-byte ceiling. Adoption requires an explicit owner decision on a new
+EXE ceiling and the publish-shape contract; the complete ZIP ceiling remains
+134,217,728 bytes. No production flag, gate or ceiling has been changed.
+
+### Home size-constrained follow-up — 2026-09-11
+
+The owner rejected the 173 MB uncompressed EXE and requested alternatives
+within 100,000,000 bytes. This does not change the formal 80,000,000-byte
+ceiling. A compressed non-composite ReadyToRun diagnostic produced a
+57,285,730-byte EXE but exited during startup with `0xC0000602`; it was
+not adopted. Its files remain under
+`NFC_TEST_AREA_ROOT/evidence/v115-home-noncomposite-probe/`.
+
+The owner then accepted retaining compressed composite ReadyToRun and
+reducing startup work. Local R1 commit `71605699` moves the unchanged
+Message Center styles from Application scope into the existing deferred modal;
+it adds no loader, timer, cache or firmware behavior. Shared Memory Layout
+and firmware-slot styles remain unchanged.
+
+The final regression first failed four cases because the compiled Message
+Center selectors were still loaded globally. After relocation, the targeted
+UI selection passed **15/15**, zero skipped, in **22.500 seconds**:
+`ReportHistoryControlTests`, `MessageCenterActivity*`, and
+`SharedControlStyleLibraryIsIncludedByTheApplication`. The new real-window
+cases cover absent Home content, first/repeated modal opening, both themes
+and languages; existing tests cover reference geometry and history actions.
+The reference fixture no longer injects Message Center styles itself.
+Initial test-authoring mistakes (compiled `Styles` versus `StyleInclude`, and
+an unfixed responsive viewport) were corrected, not production workarounds.
+Fixed-head scoped Polytail passed without findings; formal integration records
+and the complete candidate gate remain outstanding.
+
+Because local SDK resolution had advanced to **10.0.303**, both timing outputs
+were rebuilt with that SDK and the same publish flags; both trace runtimes
+are **.NET 10.0.11**. Control production source is `2bc9e4c9`; candidate
+production source matches `71605699`. Each used one unscored warm-up followed
+by five scored launches with required preload lifecycle validation.
+
+| Same-environment diagnostic | Control | Deferred modal styles |
+| --- | ---: | ---: |
+| Main EXE bytes | 75,069,817 | 75,071,224 |
+| Unscored fresh-process launch | 908.145 ms | 893.711 ms |
+| Home-window median | 769.984 ms | 773.000 ms |
+| Trace entry to opened median | 449.957 ms | 445.268 ms |
+| First-window cumulative allocation median | 13,581,128 B | 13,335,856 B |
+
+Control samples: `833.754, 758.454, 769.984, 763.992, 814.688` ms.
+Candidate samples: `768.162, 817.978, 773.000, 792.992, 759.562` ms.
+There is **no demonstrated startup-time improvement** and neither reaches
+700 ms; retain the small ownership/local-allocation improvement without
+claiming a performance pass. Do not extrapolate a single pair to a speedup.
+
+EXE SHA-256 (control / candidate):
+`d8a6c56cadb4c5387317f39ea9c885858f675682aa43111b9bd4bf9bb33100c8` /
+`b01a174035037ba09619e72b5d587d8b80bea60e4ee9b19b7ba6d15b5aa7d933`.
+Raw JSON, the production patch, publish logs and rendered reference frames
+are under `NFC_TEST_AREA_ROOT/evidence/v115-home-modal-style-probe/`.
+The control wrapper incorrectly interpreted an inherited native exit code
+after the runner had successfully written validated measurements; the candidate
+was then measured separately. No control samples were rerun or discarded.
+These remain diagnostic publish outputs, not release-qualified packages.
+
+### Catalog startup stage diagnosis — 2026-09-11
+
+At `3d134b9c`, the five existing packaged-candidate samples showed
+3,361–3,451 ms from window opening to required catalog publication, with
+approximately 1.07 GB cumulative allocation over that interval (not retained
+working set). This is separate from the 700 ms first-window target.
+
+A temporary Bootstrap test wrapped the same five delegates used by
+`CompositionHostServices.CreateCanonicalCapabilityCatalogSource`, then called
+the real `CanonicalCapabilityCatalog.Reload`. It changed no production code or
+admission decision. Each pass admitted all **26 static + 63 dynamic routes**.
+One cold-process pass and two same-process passes were measured in Debug and
+Release. Each targeted test passed; the Release test command was:
+
+```text
+dotnet test tests/NvtFwCombiner.Bootstrap.Tests/NvtFwCombiner.Bootstrap.Tests.csproj -c Release --no-restore --filter FullyQualifiedName~CatalogStartupDiagnosticTests --logger "console;verbosity=detailed"
+```
+
+| Release test stage | Cold process | Same-process reload 1 | Same-process reload 2 |
+| --- | ---: | ---: | ---: |
+| Policy load | 60.09 ms | 3.42 ms | 3.24 ms |
+| Classification, including triggered lazy initialization | 3,778.51 ms | 0.08 ms | 0.07 ms |
+| Static route resolution | 98.98 ms | 15.57 ms | 7.94 ms |
+| Dynamic route resolution | 2,202.32 ms | 297.63 ms | 287.04 ms |
+| Disclosure | 43.98 ms | 4.74 ms | 4.46 ms |
+| Whole reload, including publication and instrumentation | 6,362.69 ms | 327.87 ms | 308.27 ms |
+| Current-thread cumulative allocation | 1,072,461,952 B | 190,986,736 B | 190,986,984 B |
+
+The unbundled test process is not the ReadyToRun release EXE: do not compare
+its 6.36 s directly with packaged startup or label it a new regression.
+Debug reproduced the same allocation pattern: 1.07 GB cold / 191 MB reload.
+Timing attribution includes lazy/static initialization and JIT inside the
+measured delegate, not just its local conditional logic.
+
+Confirmed bounded duplicate: `CanonicalDynamicRouteInventory.ResolveCtrlRam`
+enumerates `CtrlRamV2RouteRegistry.All.SelectMany(CreateCtrlRamDefinitions)`
+for **each** requested CtrlRAM identity. That expansion recreates identities
+and calculates postbuild-plan fingerprints before filtering. The dynamic
+delegates still allocated 180,860,416 B per Release same-process reload.
+The larger cold initialization costs require further subdivision before
+claiming a precise schema/parsing root cause; policy JSON alone and static
+route compilation are not the dominant measured stages.
+
+Recommended next unit, not implemented here: expand the full CtrlRAM
+definition set once per catalog-load scope and reuse it for exact route
+resolution. Preserve duplicate/missing-route rejection, all trusted-map and
+fingerprint checks, atomic publication, cancellation and fresh reload scope.
+Do not hide invalid unrelated definitions by filtering before validation,
+retain a stale global cache, or claim this will solve first-window latency.
+
+The temporary diagnostic test was copied to the explicit evidence directory
+and removed from the repository so it adds no permanent CI work. Raw Debug /
+Release output and its source are retained under
+`NFC_TEST_AREA_ROOT/evidence/v115-catalog-stage-probe/`. Production remains
+unchanged by this diagnosis; no full verifier or Golden run was needed.
+
+### Catalog load-scoped CtrlRAM reuse — 2026-09-11
+
+Implemented at `4da38e868b4f4b6b5b1db788fd3d3d4ff0dc4ac3` after the preceding
+diagnosis. Every load now creates a fresh resolver and lazily materializes the
+complete CtrlRAM definition sequence once, instead of 44 times. Exact matching,
+all 89 pinned route fingerprints, complete validation, cancellation and atomic
+publication remain unchanged; failures never populate a cross-load cache.
+
+The new regression was RED without reuse: **3/9 failed**, including 44 versus
+one expansion and mutation of the loader's array. GREEN: **111/111 Bootstrap
+tests, 13.7398 s**, including catalog migration/progress, CtrlRAM admission,
+AB Dummy DP and Standard Merge compilation; **6/6 Architecture tests, 2.5542 s**.
+All used `dotnet test --no-restore` and the fixed external test-area temp.
+Independent fixed-head R2 review/Polytail: **PASS**, no P0-P3 findings.
+
+The same temporary Release-stage probe (one cold-process plus two same-process
+loads) measured 5,659.02 / 31.21 / 29.09 ms versus the preceding
+6,362.69 / 327.87 / 308.27 ms. Same-process allocation fell from about
+191 MB to 14.9 MB. These unbundled timings do not represent EXE first-window
+latency, and one before/after probe is not a repeatability guarantee.
+
+Paired diagnostic EXEs used SDK 10.0.303, runtime 10.0.11, unchanged compressed
+self-contained composite ReadyToRun flags. Each ran one unscored warm-up and
+five scored Home launches, requiring complete preload lifecycle evidence.
+Control source: `71605699`; candidate source: `4da38e86`.
+
+| Median metric | Control | Candidate |
+| --- | ---: | ---: |
+| Process to first window | 778.210 ms | 793.276 ms |
+| Managed entry to full background warm-up | 4,058.729 ms | 3,758.912 ms |
+| Window to catalog-state application (trace stage delta) | 3,504.53 ms | 3,207.45 ms |
+| Cumulative allocation after background warm-up | 1,090,714,200 B | 914,086,312 B |
+| Peak working set | 327,221,248 B | 325,980,160 B |
+| EXE size | 75,071,224 B | 75,914,690 B |
+
+Background completion improved about **7.4%** and cumulative allocation about
+**16.2%**; this is not retained-memory reduction or an end-to-end release timing.
+First-window latency did **not** improve and still exceeds the 700 ms target.
+The candidate remains below the unchanged 80,000,000-byte EXE gate.
+Candidate SHA-256:
+`68b9c5a1cba3968330395f741af294078892a49c3e212e4764ae9a72516c8289`.
+Raw probe source/log and both startup JSON files are retained under
+`NFC_TEST_AREA_ROOT/evidence/v115-catalog-load-scope-after/`.
+These are diagnostic outputs, not release-qualified packages. No full verifier
+or certified Golden execution was rerun for this bounded internal unit;
+actual candidate integration/release gates remain required.
+
+### First-window subdivision and Settings style experiment — 2026-09-11
+
+Base `26600a9b2d3bc107588d25f781d574e4d5563039`. Diagnostic-only App creation,
+RegisterServices, first Measure/Arrange and OnOpened/maximize markers reused
+StartupTraceSession. Both compressed composite ReadyToRun EXEs had identical
+markers; the candidate alone moved the unchanged SettingsVersionStyles include
+from App into SettingsModal. SDK 10.0.303 / included runtime 10.0.11 and publish
+flags were unchanged. No firmware, catalog admission or release gate changed.
+
+Each shape used `scripts/measure-startup.ps1 -Page home -WarmupRuns 1 -Runs 5
+-TimeoutSeconds 30 -RequirePreloadLifecycle` with the fixed external test area.
+Control ran first, candidate second; both lifecycle validations passed.
+
+| Median metric | Instrumented control | Deferred Settings styles |
+| --- | ---: | ---: |
+| Process to main-window handle | 721.770 ms | 726.286 ms |
+| Managed trace entry to Opened | 403.402 ms | 404.943 ms |
+| Builder-ready to App-constructor entry | 117.545 ms | 119.628 ms |
+| App constructor | 0.538 ms | 0.535 ms |
+| Application service registration | 6.133 ms | 5.318 ms |
+| App XAML | 29.145 ms | 28.735 ms |
+| MainWindow XAML | 54.403 ms | 54.654 ms |
+| First Measure | 67.728 ms | 67.937 ms |
+| First Arrange | 1.415 ms | 1.456 ms |
+| Maximize property assignment | 0.016 ms | 0.016 ms |
+| Cumulative allocation at first window | 13,237,992 B | 12,918,776 B |
+| EXE size | 75,914,759 B | 75,915,343 B |
+
+The first-window metric polls MainWindowHandle at 10 ms intervals; neither it
+nor Opened proves a fully painted frame. Per-stage medians are not additive.
+The earlier 793 ms sample set used a different binary and measurement session;
+the lower control time here is not evidence of a product optimization. This
+single pair does not establish a timing regression or repeatable benefit.
+Measure includes first-use templates, styles, text/layout and nested work;
+it is not proof that any particular font or control is slow. The tiny maximize
+setter duration excludes later asynchronous window/layout effects.
+
+Three updated ownership/reference tests were RED with global styles. After
+the move, **8/8 targeted tests passed in 9.5206 s**, including the two existing
+1584x997 Light/Dark Settings geometry renders, shared-style ownership, trace
+tests and existing deferred-page warm-up contract. Primary inspected the Light
+render. This was a trial, not complete reopen/language/native UI acceptance.
+
+**Decision: not adopted as a startup optimization.** First-window allocation
+fell about 0.32 MB but no latency improvement was demonstrated. All trial
+production/test edits and diagnostic markers were removed; `git diff --exit-code
+-- src tests/NvtFwCombiner.UiSmoke.Tests` confirmed restoration to the base.
+No failing experimental tests remain in the repository. No product rerun or
+full verifier was needed merely to remove an unadopted experiment.
+
+Further deferral assessment (not implementation authorization):
+
+| Candidate | Existing owner / constraint | Disposition |
+| --- | --- | --- |
+| Settings version styles | All consumers are version page/row templates under SettingsModal | Safe small scope, but measured gain insufficient; leave unchanged |
+| Settings/Support Matrix/Hex Editor template declarations | Mixed with Home in MainWindowPageTemplates; declaration is not eager visual construction | Possible later resource split only after per-resource allocation/timing evidence |
+| MemoryCoverageStyles | Shared templates and multiple workflow consumers | Do not move into one workflow; identify a common owner first |
+| FirmwareSlotExperienceStyles | FirmwareSlotCard, GeneralMappingRow and shared fact templates | Do not move into FirmwareSlotCard alone; missing consumers would lose styles |
+| Merge/Replace/Settings/Hex Editor visual trees | Existing background dispatcher warm-up after required catalog | Already deferred; moving further will not improve the current first-window metric |
+| Home, shared controls/theme/text and shell preferences | Meaningful first screen and accepted preference contract | Keep; do not substitute an empty early window to pass timing |
+| Builder-to-App and first Measure | Framework/platform initialization and first layout are the larger measured intervals | Next diagnosis should subdivide these, not assume more style relocation is the answer |
+
+Independent read-only consumer review by `parallel_resource_audit` confirmed
+Settings scope and the shared-consumer risks above. Raw JSON, complete trial
+diff, extra diagnostic source and renders are retained under
+`NFC_TEST_AREA_ROOT/evidence/v115-settings-style-probe/` (diagnostic payloads,
+not release-qualified packages). EXE SHA-256 control / candidate:
+`654de736ed1d7b83c781b69dd5fe3a4cc86810d69a9592a6978b3d9d63b3d6f2` /
+`3ca34dc3649e803463e81da027195daeada2a593df47983fd1a5c0ebc092da3e`.
+
+### First-window sampled call paths — 2026-09-11
+
+Read-only follow-up at `752a48b1`, using the preceding instrumented **control**
+EXE (no Settings relocation). A test-area-local `dotnet-trace` 10.0.745401
+captured only the launched application for eight seconds with
+`collect --profile dotnet-sampled-thread-time --duration 00:00:00:08
+--format Speedscope --output <evidence>/startup.nettrace -- <control-exe>
+--page home`. Fixed test-area temp and a fresh lifecycle trace path were set.
+The tool completed successfully and its child process exited; no repository
+dependencies, product code or global .NET tool installation changed.
+
+Speedscope event stacks identify the startup thread by Program.Main and the
+first contiguous MainWindow.MeasureOverride interval (trace-relative
+624.564–694.367 ms). Summing intervals containing a named frame yields the
+following approximate **inclusive sampled thread times**, not benchmark
+durations or additive independent costs:
+
+| Interval / call path | Sampled time |
+| --- | ---: |
+| Before first Measure: Win32Platform.Initialize | 91.9 ms |
+| Its ANGLE graphics factory | 67.3 ms |
+| Nested D3D11 display creation | 63.3 ms |
+| Before first Measure: SkiaPlatform.Initialize | 10.0 ms |
+| First Measure: TextBlock.MeasureOverride | 28.2 ms |
+| Nested text formatting | 26.7 ms |
+| First Measure: StyledElement.ApplyStyling | 26.0 ms |
+| First Measure: TemplatedControl.ApplyTemplate | 13.6 ms |
+| First Measure: font fallback matching | 10.0 ms |
+
+This localizes the prior builder-to-App gap toward graphics initialization,
+and the first Measure toward text and style/template work. Native leaf work is
+not symbol-resolved here; D3D device/driver substeps and the exact controls or
+characters triggering fallback remain unknown. One instrumented process is
+not a release timing sample or proof that disabling GPU rendering is safe.
+
+Next bounded experiment: compare a diagnostic software-rendering variant to
+the unchanged accelerated control, then inspect scrolling, hover animation,
+Memory Layout and Hex Editor costs before considering adoption. No rendering
+backend, fallback, font or visual contract is changed by this diagnosis.
+Retain meaningful Home and required catalog gates; do not simply postpone
+visible text/layout or remove font fallback to obtain a smaller number.
+Raw lifecycle, NetTrace and Speedscope files remain under
+`NFC_TEST_AREA_ROOT/evidence/v115-first-layout-cpu/`, outside Git/release payloads.
+
+### Software rendering diagnostic (2026-09-11; not adopted)
+
+Compared the unchanged accelerated control from `4da38e868b4f4b6b5b1db788fd3d3d4ff0dc4ac3`
+with `29148e938bb6084f276627826a81b2f5d659696d` plus a temporary
+`Win32PlatformOptions.RenderingMode = [Win32RenderingMode.Software]` setting.
+`git diff` confirmed identical production sources and SDK/package/build props
+between those commits. Both use SDK 10.0.303, runtime 10.0.11 and compressed,
+self-contained, single-file composite ReadyToRun publishing without trimming.
+
+Each measurement used `scripts/measure-startup.ps1`, Home, one warmup and five
+scored runs, timeout 30 seconds and `-RequirePreloadLifecycle`; all four runs
+completed successfully. Fixed test-area TEMP/TMP/TMPDIR setup was applied.
+The second pair reversed execution order; no concurrent heavy build/test ran.
+
+| Median | GPU then Software: GPU | Software | Software then GPU: Software | GPU |
+| --- | ---: | ---: | ---: | ---: |
+| Process to window handle | 722.560 ms | 639.721 ms | 658.461 ms | 723.348 ms |
+| Managed entry to opened | 403.717 ms | 330.914 ms | 334.362 ms | 403.899 ms |
+| Managed entry to background complete | 3811.782 ms | 3661.842 ms | 3665.003 ms | 3763.060 ms |
+| First-window UI work | 127.952 ms | 133.418 ms | 134.393 ms | 128.709 ms |
+
+The observed handle-time saving is 65–83 ms (9.0–11.5%), not a cold-boot or
+fully-painted-frame guarantee. The first pair's builder-ready to App-XAML-start
+interval fell from 125.81 to 47.83 ms; first-window UI work did not improve.
+This supports graphics initialization as the gain, not cheaper layout.
+
+Control EXE: 75,914,690 B, SHA-256
+`68b9c5a1cba3968330395f741af294078892a49c3e212e4764ae9a72516c8289`.
+Software EXE: 75,915,648 B, SHA-256
+`8c74b9ede87ff8b68be1f0fc573b60b91d50d79219015bdf52039fe392449a5d`.
+Local evidence directory: `NFC_TEST_AREA_ROOT/evidence/v115-software-rendering-probe/`;
+JSON files: `home-gpu.json`, `home-software.json`, `reverse-software.json`,
+`reverse-gpu.json`. These diagnostic executables are not qualified release packages.
+
+Native Software smoke loaded the canonical NT51927 / 3 IC CtrlRAM fixture and
+all eight replacement inputs through CLI arguments. Main and Master views,
+Normal CtrlRAM lift/outline/shadow, information card and scroll redraw appeared
+correct in the observed light-theme window. No Build or firmware output test
+was performed. This is basic presentation evidence, not continuous-hover FPS,
+Hex Editor scrolling, dark-theme, high-DPI or low-end-machine equivalence.
+Independent read-only review identified custom Hex drawing and animated/shadowed
+Memory Layout as remaining native rendering risks; headless tests cannot establish
+Win32 backend equivalence, and no existing native frame-time harness was found.
+
+Decision: retain the existing automatic rendering selection. The temporary
+production edit was removed and `git diff --exit-code -- src` passed. Adoption
+requires bounded native interaction/frame-time evidence first; no supported
+startup-only Software-to-GPU hot-switch path was established. This evidence-only
+record does not require a fresh full suite or replace any release Golden gate.
+
+## Historical execution map
 
 Arrows mean prerequisites; sibling branches may overlap. Local verification,
 CI and release are separate invocations, not one pool of parallel processes.
@@ -48,7 +871,7 @@ flowchart TD
 
 Source owners: [`selected_lanes` / `execute_verification` / `collect_local_dotnet_coverage`](../scripts/verify.py),
 [`ci.yml`](../.github/workflows/ci.yml), [`release.yml`](../.github/workflows/release.yml).
-The local top-level loop submits **one lane at a time** even when the displayed
+At the historical baseline, the local top-level loop submits **one lane at a time** even when the displayed
 `--jobs` value is three. UI coverage is exclusive; the remaining project pool
 is partially parallel. Infrastructure additionally disables test-collection
 parallelism inside its own process. CI test shards do not wait for the separate
@@ -794,7 +1617,8 @@ set `TEMP`, `TMP`, and `TMPDIR` to its existing `temp` child. Use
 select affected tests for ordinary bounded changes under [`AGENTS.md`](../AGENTS.md).
 This README neither changes scheduling nor adds a test gate.
 
-The approximately ten-minute **local** critical-path target belongs to v1.1.5;
-it is not achieved by the current serial top-level loop. When that scheduling
-changes, update this diagram and retain new source-specific lane and full-wall
-measurements alongside, not instead of, the v1.1.3 historical baseline.
+The approximately ten-minute **local** critical-path target belongs to v1.1.5.
+The historical diagram retains the serial top-level baseline; current scheduling
+and source-specific lane/full-wall measurements are recorded above. The latest
+complete observation is 730.59 s, not an achieved ten-minute result. Preserve
+the v1.1.3 historical baseline rather than replacing it with current timings.
