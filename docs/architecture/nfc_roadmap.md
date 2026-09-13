@@ -1641,6 +1641,12 @@ map authoring/import/versioning, validation/Golden evidence and report identity.
 This is a post-release discussion, not additional `1.1.5` implementation or an
 advance of the separately allocated rule-authoring UI.
 
+After the published `v1.1.5`, the
+[concrete flashmap proposal](../ui/v1.1.x-custom-options-layout-handoff.md#customized-flashmap-execution-proposal--after-v115-2026-09-13)
+records the recommended first slice, existing contract gaps, import/versioning,
+validation/Golden and report traceability. It is a discussion draft, not an
+implementation-ready specification or an approved Desay/NT51928BT map.
+
 Recommended direction for discussion: one public baseline and explicitly
 selected, versioned vendor variants that reuse existing profile/compiler,
 capability, session, validation, confirmation and report owners. Separate
