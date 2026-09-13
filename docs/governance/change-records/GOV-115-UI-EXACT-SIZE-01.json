@@ -5,7 +5,7 @@
   "integrationBase": "12773f2849c41035c8e03c3d54ec2b68db8634fc",
   "risk": "R2",
   "kind": "governance",
-  "state": "design-active",
+  "state": "final-complete",
   "mutablePaths": [
     "scripts/code_size_policy.py",
     "tests/scripts/test_code_size_policy.py",
@@ -25,8 +25,8 @@
     "outcome": "approved",
     "evidence": "Independent R2 design admission at b161a8d325e96c797a244e3a9383897c0db8820c, GPT-6 Astra/high/override, approves the two-default/two-baseline-assertion/dated-append scope after owner approval. Exact arithmetic102896+37614=140510; runtime and slices unchanged. Existing observed aggregate assertion is not a guard increase. No P0-P3 findings. Retained RED, focused policy tests, exact measurement, independent frozen-head review and full candidate verification remain required."
   },
-  "implementationHead": null,
-  "reviewedHead": null,
-  "pathStateDigest": null,
-  "finalReview": { "reviewer": null, "outcome": "pending", "evidence": "" }
+  "implementationHead": "4f7d55aec37548e2d7cb225949d4714460cba5fa",
+  "reviewedHead": "4f7d55aec37548e2d7cb225949d4714460cba5fa",
+  "pathStateDigest": "00fb699785f3f525b8e3f8eee15f65d20cfa4ed49c5c3062bb2e22688ca6549c",
+  "finalReview": { "reviewer": "/root/v115_release_admission", "outcome": "approved", "evidence": "Independent fixed-head scoped R2 Polytail PASS at 4f7d55aec37548e2d7cb225949d4714460cba5fa against 12773f2849c41035c8e03c3d54ec2b68db8634fc, P0-P3=0. Exact two-default/two-baseline/dated-append diff follows owner-approved37; base102896 plus allowance37614 equals140510. Runtime, slices, counting and all growth/reduction guards remain unchanged. Existing policy module RED19 cases/1failure then GREEN19 passed30.143s; reviewer reused primary execution evidence. Three admissions are disjoint and preserve history. Full frozen candidate verification runs after these final records are staged; actual HEAD plus staged-record identity must be retained, not called a pure-HEAD or release pass." }
 }

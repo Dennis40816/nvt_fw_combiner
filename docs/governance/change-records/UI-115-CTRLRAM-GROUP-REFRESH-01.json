@@ -5,7 +5,7 @@
   "integrationBase": "12773f2849c41035c8e03c3d54ec2b68db8634fc",
   "risk": "R1",
   "kind": "ui",
-  "state": "design-active",
+  "state": "final-complete",
   "mutablePaths": [
     "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/FirmwareSlotGroupViewModel.cs",
     "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReplacePresentationViewModel.Memory.cs",
@@ -22,8 +22,8 @@
   "terminalContract": "Reuse matching typed group containers and expansion state while publishing complete fresh slot objects. Unsubscribe removed or replaced slot subscriptions and preserve order, current card bindings and language notifications. No copied-field cache, firmware semantics, validation authority or selected-file deletion change.",
   "disposition": "extend-owner",
   "designReview": { "reviewer": null, "outcome": "not-required", "evidence": "Bounded local R1 correction admitted for current integration; mandatory independent final review remains pending." },
-  "implementationHead": null,
-  "reviewedHead": null,
-  "pathStateDigest": null,
-  "finalReview": { "reviewer": null, "outcome": "pending", "evidence": "" }
+  "implementationHead": "4f7d55aec37548e2d7cb225949d4714460cba5fa",
+  "reviewedHead": "4f7d55aec37548e2d7cb225949d4714460cba5fa",
+  "pathStateDigest": "4d7d35e85b16edd5e5a48a37c0403be7d1ce6eb5e5be4458dd99d595456c9890",
+  "finalReview": { "reviewer": "/root/v115_release_admission", "outcome": "approved", "evidence": "Independent fixed-head scoped R1 Polytail PASS at 4f7d55aec37548e2d7cb225949d4714460cba5fa against 12773f2849c41035c8e03c3d54ec2b68db8634fc, P0-P3=0. All three production blobs and the test blob equal the already reviewed 99c06b0f state. Complete fresh slots, retained group identity/expansion, ordering, language notifications and old/removed subscription cleanup remain covered; retained groups-final2 TRX confirms 33 passed. Prior execution evidence reused, not a fresh run. Full candidate validation, exact-source CI, applicable Golden execution and release approvals remain separate." }
 }

@@ -5,7 +5,7 @@
   "integrationBase": "12773f2849c41035c8e03c3d54ec2b68db8634fc",
   "risk": "R1",
   "kind": "ui",
-  "state": "design-active",
+  "state": "final-complete",
   "mutablePaths": [
     "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/WorkflowSessionPresentationViewModel.SelectorPublication.cs",
     "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/WorkflowSessionPresentationViewModel.WorkflowContext.cs",
@@ -21,8 +21,8 @@
   "terminalContract": "Initialize unvisited page projections through their existing full owner on first activation. Preserve pending refresh through unchanged selector values, empty/new catalog reconciliation and Home confirmation; clear only after complete refresh. Retain cancellation, rollback, selected-file state, current inspection and readiness authority. Deferral is not elimination of total two-page work or firmware change.",
   "disposition": "extend-owner",
   "designReview": { "reviewer": null, "outcome": "not-required", "evidence": "Bounded local R1 correction admitted for current integration; mandatory independent final review remains pending." },
-  "implementationHead": null,
-  "reviewedHead": null,
-  "pathStateDigest": null,
-  "finalReview": { "reviewer": null, "outcome": "pending", "evidence": "" }
+  "implementationHead": "4f7d55aec37548e2d7cb225949d4714460cba5fa",
+  "reviewedHead": "4f7d55aec37548e2d7cb225949d4714460cba5fa",
+  "pathStateDigest": "8c5ea0faa05c6942288e51268f710eab8a659f6872cbc4030a56b44d7e39df96",
+  "finalReview": { "reviewer": "/root/v115_release_admission", "outcome": "approved", "evidence": "Independent fixed-head scoped R1 Polytail PASS at 4f7d55aec37548e2d7cb225949d4714460cba5fa against 12773f2849c41035c8e03c3d54ec2b68db8634fc, P0-P3=0. Both production blobs and the test blob equal the already reviewed 99c06b0f state. Pending refresh survives unchanged selection/catalog reconciliation; existing full refresh, cancellation and rollback remain owners. Retained overlapping activation selections passed 213 and 58 cases, including compiled NT51927 triple CtrlRAM and NT51950 AB Code controls; not summed as unique tests. Evidence reused, not a fresh run. Full candidate validation, exact-source CI, applicable Golden execution and release approvals remain separate." }
 }
