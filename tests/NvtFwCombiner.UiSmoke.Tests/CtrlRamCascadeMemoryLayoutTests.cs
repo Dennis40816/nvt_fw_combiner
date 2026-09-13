@@ -1,9 +1,13 @@
 using System.Text.Json;
+using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
+using Avalonia.Input;
 using Avalonia.Styling;
 using Avalonia.Threading;
+using Avalonia.VisualTree;
+using NvtFwCombiner.Presentation.Avalonia.Views;
 using NvtFwCombiner.Presentation.Avalonia;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
 using NvtFwCombiner.TestSupport;
@@ -46,6 +50,30 @@ public sealed class CtrlRamCascadeMemoryLayoutTests
             Assert.NotEmpty(shell.Replace.ReplaceCoverageSegments);
             Assert.Empty(shell.Reports.ReportHistoryEntries);
             Capture(window, ic + "-cascade");
+            window.Width = 980;
+            Render();
+            MemoryCoverageBar rail = Assert.Single(window.GetVisualDescendants().OfType<MemoryCoverageBar>(), bar => bar.IsEffectivelyVisible);
+            TextBlock[] labels = [.. rail.GetVisualDescendants().OfType<TextBlock>().Where(label => label.Classes.Contains("memoryPositionLabel"))];
+            Assert.Contains(labels, label => label.Text == "Cascade");
+            foreach (TextBlock label in labels)
+            {
+                Assert.True(label.Bounds.Width >= label.TextLayout.Width - 1,
+                    $"{ic} {label.Text}: allocated {label.Bounds.Width}, glyphs {label.TextLayout.Width}");
+                double left = label.TranslatePoint(default, rail)!.Value.X;
+                Assert.InRange(left, -1, rail.Bounds.Width - label.Bounds.Width + 1);
+            }
+            Rect[] labelBounds = [.. labels.Select(label => new Rect(label.TranslatePoint(default, window)!.Value, label.Bounds.Size))];
+            for (int index = 1; index < labelBounds.Length; index++)
+            {
+                Assert.False(labelBounds[index - 1].Intersects(labelBounds[index]));
+            }
+            TextBlock cascadeLabel = Assert.Single(labels, label => label.Text == "Cascade");
+            window.MouseMove(new Rect(cascadeLabel.TranslatePoint(default, window)!.Value, cascadeLabel.Bounds.Size).Center, RawInputModifiers.None);
+            Render();
+            Border local = Assert.Single(window.GetVisualDescendants().OfType<Border>(), border => border.Name == "MemoryLocalView");
+            Assert.Contains(local.GetVisualDescendants().OfType<TextBlock>(), label => label.Text == "Cascade");
+            Assert.DoesNotContain(window.GetVisualDescendants().OfType<Border>(), border => border.Name == "MemorySliceCard");
+            Capture(window, ic + "-cascade-narrow-hover");
         }
         finally { await CloseAndFlushAsync(window); }
     }

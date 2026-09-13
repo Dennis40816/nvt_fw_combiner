@@ -189,8 +189,15 @@ public sealed class CtrlRamMemoryLayoutTests
             string[] overviewText = VisibleText(overview);
             Assert.Contains("TP FW", overviewText);
             Assert.Contains("DP", overviewText);
-            Assert.Contains("0x00000-0x34FFF", overviewText);
-            Assert.Contains("0x3C000-0x3FFFF", overviewText);
+            foreach (string range in new[] { "0x00000-0x34FFF", "0x3C000-0x3FFFF" })
+            {
+                Border legend = Assert.Single(overview.GetVisualDescendants().OfType<Border>(),
+                    control => control.Name == "MemoryLegendTarget" && control.DataContext is MemoryCoverageSegmentViewModel slice && slice.AddressRangeLabel == range);
+                Assert.True(legend.Focus(NavigationMethod.Tab));
+                Render();
+                Border overviewCard = Assert.Single(window.GetVisualDescendants().OfType<Border>(), control => control.Name == "MemorySliceCard");
+                Assert.Contains(range, VisibleText(overviewCard));
+            }
             Assert.Equal(3, Positions(window).Length);
             string[][] expected = [["Master", "0x16800", "0x1E22F"],
                 ["Slave R", "0x1F800", "0x2722F"], ["Slave L", "0x28800", "0x3022F"]];
@@ -217,7 +224,7 @@ public sealed class CtrlRamMemoryLayoutTests
                 Assert.Equal(default, activePosition.BorderThickness);
                 Assert.Equal(default, activePosition.BoxShadow);
                 Assert.Equal(Matrix.Identity, activePosition.RenderTransform?.Value ?? Matrix.Identity);
-                Assert.NotEqual(global::Avalonia.Media.Brushes.Transparent, activePosition.Background);
+                Assert.Equal(global::Avalonia.Media.Brushes.Transparent, activePosition.Background);
                 Point[] labelCenters = [.. Positions(window).Select(position =>
                     Center(Assert.Single(position.GetVisualDescendants().OfType<TextBlock>()), window))];
                 Assert.All(labelCenters, center => Assert.InRange(Math.Abs(center.Y - labelCenters[0].Y), 0, 0.5));
@@ -246,11 +253,7 @@ public sealed class CtrlRamMemoryLayoutTests
             Assert.DoesNotContain(window.GetVisualDescendants().OfType<Border>(), control => control.Name == "MemorySliceCard");
             await AssertLaneEdgesAsync(window);
             window.RequestedThemeVariant = ThemeVariant.Dark;
-            // CtrlRAM uses focus lanes, but its retained auxiliary list follows the same relocalization contract.
-            Assert.True(shell.Replace.CoverageDetails.HasMoreRows);
-            shell.Replace.CoverageDetails.IsExpanded = true;
             shell.SelectedLanguage = "Traditional Chinese";
-            Assert.True(shell.Replace.CoverageDetails.IsExpanded);
             Render();
             Assert.Equal(["主 IC", "右從 IC", "左從 IC"], shell.Replace.CtrlRamFocusLanes.Select(lane => lane.Title));
             Capture(window, "nt51927-threechip-dark-zh.png");
@@ -304,7 +307,7 @@ public sealed class CtrlRamMemoryLayoutTests
             MemoryCoverageBar rail = Assert.Single(window.GetVisualDescendants().OfType<MemoryCoverageBar>(),
                 control => control.IsEffectivelyVisible);
             Assert.False(rail.ClipToBounds);
-            Assert.Equal(34, rail.Bounds.Height);
+            Assert.Equal(34, Assert.Single(rail.GetVisualDescendants().OfType<ItemsControl>(), control => control.Name == "MemoryMainRail").Bounds.Height);
             Assert.InRange(rail.Bounds.Width, 300, 430);
             Border[] slices = [.. rail.GetVisualDescendants().OfType<Border>()
                 .Where(border => border.Classes.Contains("memoryExplorerSlice"))];
@@ -350,8 +353,14 @@ public sealed class CtrlRamMemoryLayoutTests
                         Point origin = rail.TranslatePoint(default, window)!.Value;
                         Assert.True(rail.Bounds.Width > 0);
                         Assert.InRange(origin.X, -1, window.ClientSize.Width - rail.Bounds.Width + 1);
-                        double railHeight = rail.FocusPositions is null ? 34 : 62;
-                        Assert.InRange(rail.Bounds.Height, railHeight - 0.5, railHeight + 0.5);
+                        ItemsControl main = Assert.Single(rail.GetVisualDescendants().OfType<ItemsControl>(),
+                            control => control.Name == "MemoryMainRail");
+                        Assert.InRange(main.Bounds.Height, 33.5, 34.5);
+                        WrapPanel legend = Assert.Single(rail.GetVisualDescendants().OfType<WrapPanel>(), panel => panel.Name == "MemoryLegend");
+                        Assert.True(legend.IsEffectivelyVisible);
+                        Point legendOrigin = legend.TranslatePoint(default, rail)!.Value;
+                        Assert.True(legendOrigin.Y >= 34);
+                        Assert.True(legendOrigin.Y + legend.Bounds.Height <= rail.Bounds.Height + 0.5);
                     }
                     foreach (FirmwareSlotCard card in window.GetVisualDescendants().OfType<FirmwareSlotCard>()
                         .Where(card => card.IsEffectivelyVisible))

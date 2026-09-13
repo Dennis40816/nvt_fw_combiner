@@ -60,7 +60,7 @@ public sealed class StandardMemoryLayoutControlTests
                 (segment.RangeStart, segment.RangeEndExclusive, segment.SourceSlotId, segment.IsSelectedForWrite))];
             MemoryCoverageBar rail = Assert.Single(window.GetVisualDescendants().OfType<MemoryCoverageBar>(),
                 control => control.IsEffectivelyVisible);
-            Assert.Equal(34, rail.Bounds.Height);
+            Assert.Equal(34, Assert.Single(rail.GetVisualDescendants().OfType<ItemsControl>(), control => control.Name == "MemoryMainRail").Bounds.Height);
             Assert.Null(rail.FocusPositions);
             AssertNoOverlay();
             rail.BringIntoView();
@@ -77,6 +77,17 @@ public sealed class StandardMemoryLayoutControlTests
                 Render();
                 AssertCard();
                 await SaveAsync(role);
+                if (role == MemoryContentRole.Tp)
+                {
+                    Border detailCard = Assert.Single(window.GetVisualDescendants().OfType<Border>(), control => control.Name == "MemorySliceCard");
+                    Expander disclosure = Assert.Single(detailCard.GetVisualDescendants().OfType<Expander>());
+                    Assert.False(disclosure.IsExpanded);
+                    disclosure.IsExpanded = true;
+                    Render();
+                    AssertCard();
+                    Assert.Contains(detailCard.GetVisualDescendants().OfType<TextBlock>(), block => block.Text == shell.Text.MemoryAddressSpaceLabel && block.IsEffectivelyVisible);
+                    await SaveAsync(role, "-technical-expanded");
+                }
                 window.KeyPress(Key.Escape, RawInputModifiers.None, PhysicalKey.Escape, null);
                 window.KeyRelease(Key.Escape, RawInputModifiers.None, PhysicalKey.Escape, null);
                 Render();
@@ -105,6 +116,8 @@ public sealed class StandardMemoryLayoutControlTests
                     Assert.InRange(bounds.Left, 0, window.ClientSize.Width - bounds.Width);
                     Assert.InRange(bounds.Left, railBounds.Left - 1, railBounds.Right - bounds.Width + 1);
                     Assert.InRange(bounds.Top, 0, window.ClientSize.Height - bounds.Height);
+                    WrapPanel legend = Assert.Single(rail.GetVisualDescendants().OfType<WrapPanel>(), panel => panel.Name == "MemoryLegend");
+                    Assert.False(bounds.Intersects(Bounds(legend)), "The card must not cover its sibling legend targets.");
                     string?[] visible = [.. card.GetVisualDescendants().OfType<TextBlock>()
                         .Where(block => block.IsEffectivelyVisible).Select(block => block.Text)];
                     Assert.Contains(selected.AddressRangeLabel, visible);
@@ -128,7 +141,7 @@ public sealed class StandardMemoryLayoutControlTests
         {
             Assert.DoesNotContain(window.GetVisualDescendants(), control => control.Name is "MemoryLocalView" or "MemorySliceCard");
         }
-        async Task SaveAsync(MemoryContentRole role)
+        async Task SaveAsync(MemoryContentRole role, string suffix = "")
         {
             string? directory = Environment.GetEnvironmentVariable("NFC_VISUAL_OUTPUT_DIR");
             if (string.IsNullOrWhiteSpace(directory)) { return; }
@@ -141,7 +154,7 @@ public sealed class StandardMemoryLayoutControlTests
             using Avalonia.Media.Imaging.Bitmap? frame = window.GetLastRenderedFrame();
             Assert.NotNull(frame);
             Assert.Equal(new PixelSize(width, height), frame.PixelSize);
-            frame.Save(Path.Combine(directory, $"standard-memory-{width}-{height}-{dark}-{chinese}-{role}.png"));
+            frame.Save(Path.Combine(directory, $"standard-memory-{width}-{height}-{dark}-{chinese}-{role}{suffix}.png"));
         }
     }
 

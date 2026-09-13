@@ -670,7 +670,7 @@ public sealed partial class MemoryCoveragePopupTests
             Border card = Assert.IsType<Border>(FindNamed<Border>(window, "MemorySliceCard"));
             Assert.Same(slices[6], card.DataContext);
             Assert.True(BoundsInWindow(local, window).Bottom < BoundsInWindow(bar, window).Top);
-            Assert.InRange(card.Bounds.Width / bar.Bounds.Width, 0.65, 0.72);
+            Assert.InRange(card.Bounds.Width / bar.Bounds.Width, 0.89, 0.91);
             for (int tick = 0; tick < 4; tick++)
             {
                 await Task.Delay(TimeSpan.FromMilliseconds(80), TestContext.Current.CancellationToken);

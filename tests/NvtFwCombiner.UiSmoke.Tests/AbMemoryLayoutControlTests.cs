@@ -56,7 +56,7 @@ public sealed class AbMemoryLayoutControlTests
                 (segment.RangeStart, segment.RangeEndExclusive, segment.SourceSlotId, segment.IsSelectedForWrite))];
             MemoryCoverageBar rail = Assert.Single(window.GetVisualDescendants().OfType<MemoryCoverageBar>(),
                 control => control.IsEffectivelyVisible);
-            Assert.Equal(34, rail.Bounds.Height);
+            Assert.Equal(34, Assert.Single(rail.GetVisualDescendants().OfType<ItemsControl>(), control => control.Name == "MemoryMainRail").Bounds.Height);
             Assert.Null(rail.FocusPositions);
             AssertNoOverlay();
             rail.BringIntoView();

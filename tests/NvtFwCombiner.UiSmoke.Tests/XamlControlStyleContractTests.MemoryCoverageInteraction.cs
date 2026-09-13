@@ -276,11 +276,6 @@ public sealed partial class XamlControlStyleContractTests
             MemoryCoverageSegmentViewModel active = useReplace
                 ? viewModel.Replace.ReplaceCoverageSegments[0]
                 : viewModel.Merge.MergeCoverageSegments[0];
-            MemoryCoverageSegmentViewModel activeRowContext = useReplace
-                ? active
-                : Assert.Single(
-                    viewModel.Merge.MergeCoverageRows,
-                    row => ReferenceEquals(row.Interaction, active.Interaction));
             var pointerOwner = new object();
             active.Interaction.SetPointerActive(pointerOwner, true);
             Dispatcher.UIThread.RunJobs();
@@ -311,28 +306,14 @@ public sealed partial class XamlControlStyleContractTests
 
             Border activeRow = Assert.Single(
                 panel.GetVisualDescendants().OfType<Border>(),
-                candidate => ReferenceEquals(candidate.DataContext, activeRowContext) &&
-                    candidate.Classes.Contains("memoryCoverageLinkedRow"));
-            Assert.Contains("linked", activeRow.Classes);
-            Assert.True(FocusToolTipBehavior.GetIsEnabled(activeRow));
-            Assert.True(Avalonia.Application.Current!.TryGetResource(
-                "NfcMemoryInteractionSurfaceBrush",
-                theme,
-                out object? expectedRowSurface));
-            Assert.Equal(
-                Assert.IsType<SolidColorBrush>(expectedRowSurface).Color,
-                Assert.IsType<ISolidColorBrush>(activeRow.Background, exactMatch: false).Color);
-            ContentControl rowCard = Assert.IsType<ContentControl>(ToolTip.GetTip(activeRow));
-            activeRow.RaiseEvent(new FocusChangedEventArgs(InputElement.GotFocusEvent)
-            {
-                NavigationMethod = NavigationMethod.Tab,
-            });
+                candidate => ReferenceEquals(candidate.DataContext, active) && candidate.Name == "MemoryLegendTarget");
+            Assert.True(MemoryCoverageInteractionBehavior.GetIsEnabled(activeRow));
+            Assert.False(FocusToolTipBehavior.GetIsEnabled(activeRow));
+            Assert.Null(ToolTip.GetTip(activeRow));
+            Assert.True(activeRow.Focus(NavigationMethod.Tab));
             Dispatcher.UIThread.RunJobs();
-            Assert.True(ToolTip.GetIsOpen(activeRow));
-            Assert.Same(activeRowContext, rowCard.Content);
-            Assert.NotNull(rowCard.ContentTemplate);
-            activeRow.RaiseEvent(new FocusChangedEventArgs(InputElement.LostFocusEvent));
-            Assert.False(ToolTip.GetIsOpen(activeRow));
+            Assert.Same(active, Assert.Single(host.GetVisualDescendants().OfType<Border>(), candidate => candidate.Name == "MemorySliceCard").DataContext);
+            activeRow.RaiseEvent(new KeyEventArgs { RoutedEvent = InputElement.KeyDownEvent, Key = Key.Escape });
 
             for (Visual? ancestor = activeSegment; ancestor is not null && ancestor != track;
                  ancestor = ancestor.GetVisualParent())

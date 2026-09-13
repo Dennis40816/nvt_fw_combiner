@@ -432,7 +432,7 @@ public sealed partial class XamlControlStyleContractTests
             ExtractDataTemplate(workflowTemplates, "ReplaceOutputLayoutPanelTemplate"),
             StringComparison.Ordinal);
         Assert.Contains(
-            "<StackPanel IsVisible=\"{Binding IsReplaceCoverageFlat}\"",
+            "ShowLegend=\"True\"",
             ExtractDataTemplate(workflowTemplates, "ReplaceOutputLayoutPanelTemplate"),
             StringComparison.Ordinal);
         Assert.DoesNotContain(
@@ -447,11 +447,7 @@ public sealed partial class XamlControlStyleContractTests
                 ((string?)element.Attribute("Classes"))?.Split(' ').Contains("inlineDisclosure", StringComparer.Ordinal) == true);
         string replacePanelTemplate =
             ExtractDataTemplate(workflowTemplates, "ReplaceOutputLayoutPanelTemplate");
-        Assert.Contains("Classes=\"inlineDisclosure\"", replacePanelTemplate, StringComparison.Ordinal);
-        Assert.Contains(
-            "IsExpanded=\"{Binding ReplaceBaseCoverageGroup.IsExpanded, Mode=TwoWay}\"",
-            replacePanelTemplate,
-            StringComparison.Ordinal);
+        Assert.DoesNotContain("ReplaceBaseCoverageGroup.IsExpanded", replacePanelTemplate, StringComparison.Ordinal);
         Assert.DoesNotContain("MemoryCoverageGroupTemplate", sharedTemplates, StringComparison.Ordinal);
         string mainWindowStyles = ReadPresentationFile("Styles/MainWindowStyles.axaml");
         Assert.Contains(

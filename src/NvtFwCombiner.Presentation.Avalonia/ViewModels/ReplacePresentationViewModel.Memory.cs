@@ -6,8 +6,6 @@ namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
 internal sealed partial class ReplacePresentationViewModel
 {
-    public MemoryCoverageListViewModel CoverageDetails { get; } = new();
-
     [ObservableProperty]
     public partial bool HasMemoryLayoutDisplayError { get; private set; }
 
@@ -137,7 +135,6 @@ internal sealed partial class ReplacePresentationViewModel
         ReplaceMemoryRangeLabel = string.Empty;
         ReplaceMemoryRows.Clear();
         ReplaceCoverageSegments.Clear();
-        CoverageDetails.Update([], Text);
         ReplaceCoverageGroups.Clear();
         CtrlRamFocusLanes.Clear();
         CtrlRamOverview.Clear();
@@ -168,7 +165,7 @@ internal sealed partial class ReplacePresentationViewModel
         ApplyCtrlRamMemoryDisplay(display);
     }
 
-    private void ApplyCtrlRamMemoryDisplay(CtrlRamInspectionDisplay display, bool resetCoverageExpansion = true)
+    private void ApplyCtrlRamMemoryDisplay(CtrlRamInspectionDisplay display)
     {
         ActiveSessionSnapshot? acceptedSession =
             _ctrlRamReplaceSession.CurrentSnapshot;
@@ -200,7 +197,7 @@ internal sealed partial class ReplacePresentationViewModel
                 return;
             }
         }
-        ApplyReplaceMemoryDisplay(result.rangeLabel, result.rows, result.coverageSegments, overview, resetCoverageExpansion);
+        ApplyReplaceMemoryDisplay(result.rangeLabel, result.rows, result.coverageSegments, overview);
     }
 
     private void RelocalizeReplaceMemoryMapState()
@@ -212,11 +209,11 @@ internal sealed partial class ReplacePresentationViewModel
                 _firmwareInspection,
                 inspection,
                 SelectedIc,
-                SelectedNumber), resetCoverageExpansion: false);
+                SelectedNumber));
             return;
         }
 
-        PrepareReplaceMemoryMapState(refreshAuthoring: false, resetCoverageExpansion: false);
+        PrepareReplaceMemoryMapState(refreshAuthoring: false);
     }
 
     internal void RefreshReplaceMemoryMapState(bool refreshAuthoring = true)
@@ -225,7 +222,7 @@ internal sealed partial class ReplacePresentationViewModel
         PublishReplaceMemoryContext();
     }
 
-    private void PrepareReplaceMemoryMapState(bool refreshAuthoring = true, bool resetCoverageExpansion = true)
+    private void PrepareReplaceMemoryMapState(bool refreshAuthoring = true)
     {
         if (IsCtrlRamReplaceModeSelected && ReplaceBaseSlot.HasFile)
         {
@@ -255,22 +252,19 @@ internal sealed partial class ReplacePresentationViewModel
             IReadOnlyList<MemoryMapRowViewModel> replaceRows,
             IReadOnlyList<MemoryCoverageSegmentViewModel> replaceCoverageSegments) =
             GetSelectedReplaceMemoryDisplay();
-        ApplyReplaceMemoryDisplay(replaceRangeLabel, replaceRows, replaceCoverageSegments,
-            resetCoverageExpansion: resetCoverageExpansion);
+        ApplyReplaceMemoryDisplay(replaceRangeLabel, replaceRows, replaceCoverageSegments);
     }
 
     private void ApplyReplaceMemoryDisplay(
         string rangeLabel,
         IReadOnlyList<MemoryMapRowViewModel> rows,
         IReadOnlyList<MemoryCoverageSegmentViewModel> coverageSegments,
-        IReadOnlyList<MemoryCoverageSegmentViewModel>? overview = null,
-        bool resetCoverageExpansion = true)
+        IReadOnlyList<MemoryCoverageSegmentViewModel>? overview = null)
     {
         HasMemoryLayoutDisplayError = false;
         ReplaceMemoryRangeLabel = rangeLabel;
         ReplaceRows(ReplaceMemoryRows, rows);
         ReplaceRows(ReplaceCoverageSegments, coverageSegments);
-        CoverageDetails.Update(ReplaceCoverageSegments, Text, resetCoverageExpansion);
         ReplaceRows(CtrlRamOverview, overview ?? []);
         RefreshReplaceCoverageGroups();
     }
@@ -290,7 +284,6 @@ internal sealed partial class ReplacePresentationViewModel
         OnPropertyChanged(nameof(CtrlRamCapacityLabel));
         OnPropertyChanged(nameof(CtrlRamPositions));
         OnPropertyChanged(nameof(CtrlRamEndAddress));
-        OnPropertyChanged(nameof(CtrlRamOverviewLegend));
         OnPropertyChanged(nameof(CtrlRamSharedInputHint));
         OnPropertyChanged(nameof(IsReplaceCoverageGrouped));
         OnPropertyChanged(nameof(IsReplaceCoverageFlat));

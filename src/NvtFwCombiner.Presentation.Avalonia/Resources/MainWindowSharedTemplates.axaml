@@ -237,11 +237,11 @@
     </StackPanel.Styles>
     <Grid ColumnDefinitions="10,*,Auto" ColumnSpacing="{DynamicResource NfcSpace8}">
       <ContentControl VerticalAlignment="Center" Content="{Binding}" ContentTemplate="{StaticResource MemoryCoverageCompactMarkerTemplate}" />
-      <TextBlock Grid.Column="1" Classes="bodyEmphasisText" FontWeight="SemiBold" VerticalAlignment="Center" Text="{Binding DisplayTitle}" TextWrapping="Wrap" />
+      <TextBlock Grid.Column="1" Classes="bodyEmphasisText" FontSize="14" FontWeight="SemiBold" VerticalAlignment="Center" Text="{Binding DisplayTitle}" TextWrapping="Wrap" />
       <Label Grid.Column="2" Classes="compactBadge neutralBadge countBadge coverageChangeBadge" Classes.changed="{Binding IsChanged}" Padding="7,2" VerticalAlignment="Center" Content="{Binding ChangeLabel}" IsVisible="{Binding HasChangeState}" />
     </Grid>
-    <Grid ColumnDefinitions="68,*" ColumnSpacing="{DynamicResource NfcSpace8}" RowDefinitions="Auto,Auto,Auto" RowSpacing="6">
-      <TextBlock Classes="captionText" Text="{ReflectionBinding $parent[Window].DataContext.Text.RangeLabel}" />
+    <Grid ColumnDefinitions="94,*" ColumnSpacing="{DynamicResource NfcSpace8}" RowDefinitions="Auto,Auto,Auto" RowSpacing="6">
+      <TextBlock Classes="captionText" Text="{ReflectionBinding $parent[Window].DataContext.Text.MemoryTargetAddressLabel}" />
       <TextBlock Grid.Column="1" Classes="technicalValue" Text="{Binding AddressRangeLabel}" TextWrapping="Wrap" />
       <TextBlock Grid.Row="1" Classes="captionText" Text="{ReflectionBinding $parent[Window].DataContext.Text.SizeLabel}" IsVisible="{Binding SizeValue, Converter={x:Static converters:StringConverters.IsNotNullOrEmpty}}" />
       <TextBlock Grid.Row="1" Grid.Column="1" Classes="technicalValue" Text="{Binding SizeValue}" TextWrapping="Wrap" />
@@ -252,10 +252,12 @@
       <Border Name="MemoryHoverTechnicalSeparator" Classes="memoryHoverOnly" Height="1" Background="{DynamicResource NfcMemoryDividerBrush}" />
       <Expander Classes="inlineDisclosure firmwareSlotGroupDisclosure" MinHeight="28" BorderThickness="0" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" Padding="0" IsExpanded="False"
           AutomationProperties.Name="{ReflectionBinding $parent[Window].DataContext.Text.MemoryProcessingDetailsLabel}">
-        <Expander.Header><TextBlock Classes="captionText" Text="{ReflectionBinding $parent[Window].DataContext.Text.MemoryProcessingDetailsLabel}" /></Expander.Header>
+        <Expander.Header><TextBlock Classes="bodyEmphasisText" FontSize="14" FontWeight="SemiBold" Text="{ReflectionBinding $parent[Window].DataContext.Text.MemoryProcessingDetailsLabel}" /></Expander.Header>
         <StackPanel Spacing="6" Margin="0,6,0,0">
-          <TextBlock Classes="captionText memoryHoverOnly" Text="{Binding AddressSpaceId}" TextWrapping="Wrap" />
-          <TextBlock Classes="captionText memoryHoverOnly" Text="{Binding PreservationSummary}" TextWrapping="Wrap" />
+          <Grid Classes="memoryHoverOnly" ColumnDefinitions="94,*" ColumnSpacing="{DynamicResource NfcSpace8}">
+            <TextBlock Classes="captionText" Text="{ReflectionBinding $parent[Window].DataContext.Text.MemoryAddressSpaceLabel}" />
+            <TextBlock Grid.Column="1" Classes="technicalValue" Text="{Binding AddressSpaceId}" TextWrapping="Wrap" />
+          </Grid>
           <Border Name="MemoryTechnicalSeparator" Height="1" Background="{DynamicResource NfcMemoryDividerBrush}" Margin="0,0,0,4" />
           <ItemsControl ItemsSource="{Binding ProcessingFacts}" IsVisible="{Binding HasProcessingFacts}">
             <ItemsControl.ItemTemplate>
@@ -267,7 +269,24 @@
               </DataTemplate>
             </ItemsControl.ItemTemplate>
           </ItemsControl>
+          <Border Height="1" Background="{DynamicResource NfcMemoryDividerBrush}" Margin="0,2" />
+          <TextBlock Classes="captionText memoryHoverOnly" Text="{Binding PreservationSummary}" TextWrapping="Wrap" />
           <TextBlock Classes="captionText" Text="{Binding Detail}" TextWrapping="Wrap" IsVisible="{Binding HasAdditionalDetail}" />
+          <ItemsControl ItemsSource="{Binding PreservationDetails}" IsVisible="{Binding HasPreservationDetails}">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate DataType="vm:DiffDlmPreservationDetailViewModel">
+                <StackPanel Spacing="3" Margin="0,6,0,0">
+                  <Grid ColumnDefinitions="*,Auto">
+                    <TextBlock Classes="bodyEmphasisText" Text="{Binding IcLabel}" />
+                    <TextBlock Grid.Column="1" Classes="technicalValue" Text="{Binding BlockLabel}" />
+                  </Grid>
+                  <TextBlock Classes="technicalValue" Text="{Binding ArtifactRangeLabel}" TextWrapping="Wrap" />
+                  <TextBlock Classes="technicalValue" Text="{Binding FlashRangeLabel}" TextWrapping="Wrap" />
+                  <TextBlock Classes="captionText" Text="{Binding DispositionLabel}" TextWrapping="Wrap" />
+                </StackPanel>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
         </StackPanel>
       </Expander>
   </StackPanel>
@@ -488,17 +507,7 @@
         </Border>
       </StackPanel>
 
-      <views:MemoryCoverageBar ItemsSource="{Binding MergeCoverageSegments}" Labels="{Binding Text}" IsPlain="True" ReducedMotion="{ReflectionBinding $parent[Window].DataContext.IsReducedMotionEnabled}" />
-
-      <StackPanel DataContext="{Binding CoverageDetails}" x:DataType="vm:MemoryCoverageListViewModel">
-        <ItemsControl ItemTemplate="{StaticResource MemoryCoveragePlainSegmentListTemplate}" ItemsSource="{Binding VisibleRows}" />
-        <Button x:Name="MemoryCoverageListToggle" Classes="semanticAction secondary" HorizontalAlignment="Right"
-            IsVisible="{Binding HasMoreRows}" Content="{Binding ToggleLabel}" Command="{Binding ToggleCommand}"
-            AutomationProperties.Name="{Binding ToggleLabel}" />
-      </StackPanel>
-
-      <TextBlock Classes="sectionLabel" Text="{Binding Text.PlanTitle}" />
-      <ItemsControl ItemTemplate="{StaticResource MergeMemoryMapRowTemplate}" ItemsSource="{Binding MergeMemoryRows}" />
+      <views:MemoryCoverageBar ItemsSource="{Binding MergeCoverageSegments}" Labels="{Binding Text}" IsPlain="True" ShowLabels="True" ShowLegend="True" ReducedMotion="{ReflectionBinding $parent[Window].DataContext.IsReducedMotionEnabled}" />
       </StackPanel>
     </views:SpaciousPanel>
   </Border>
