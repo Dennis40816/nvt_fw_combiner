@@ -12,7 +12,7 @@ Launcher release, through the 1.0.8 unpublished Windows release candidate and
 the published 1.1.0 manual-only Windows release, the v1.1.1 verification,
 test, CI, and release-architecture candidate, and the v1.1.2 support-neutral
 repository, selector, evidence, and DPCMI candidate, and the published v1.1.3
-CI/release optimization closure.
+CI/release optimization closure and the v1.1.5 published performance release.
 Current
 verification evidence is produced by the canonical
 `python scripts/verify.py --structure-only` and `python scripts/verify.py --all`
@@ -48,6 +48,72 @@ Report-owned Load report, bundle primary-output rename and complete AB Dummy DP,
 then full-screen inventory/reprioritization of the remaining work. Implementation
 is one item at a time. The [roadmap execution order](../architecture/nfc_roadmap.md#114-ui-corrections-and-ab-dummy-dp)
 is the single queue; no production UI correction is claimed by this allocation.
+
+## 1.1.5 published release closure (2026-09-13)
+
+[Stable v1.1.5](https://github.com/Dennis40816/nvt_fw_combiner/releases/tag/v1.1.5)
+was published at `2026-09-13T06:54:20Z` (Taiwan `2026-09-13 14:54:20`),
+Release `387818515`, neither draft nor prerelease, with `immutable=true` and
+exactly ten assets. [PR #429](https://github.com/Dennis40816/nvt_fw_combiner/pull/429)
+head `f9db4ef039be1c7a08e0b83f11133dbc1a0fe049` merged as
+`2022a4c3c2391f466763183791526ba41dee0820`; both have tree
+`5eacd9807b2da48f56d7bcc49015b9b4940e189c`. Annotated tag object
+`d08dd88f607c661fc927d8f3ee3aee94c2479373` peels to that exact merge source.
+No released source, tag or payload was replaced.
+
+Exact PR-head CI `34735770302` and exact-main CI `34736142479` passed.
+[Release run 34736501547](https://github.com/Dennis40816/nvt_fw_combiner/actions/runs/34736501547)
+completed successfully on attempt 1, including candidate, promotion and
+independent published-smoke jobs. The version-inapplicable v0.9.16 parity jobs
+were skipped by their declared version condition, not counted as Golden passes.
+There was no workflow retry. The candidate ran fresh `verify.py --release-golden`:
+1,260 Bootstrap and 25 GoldenRegression tests passed, zero failed/skipped, and
+each of the 25 Direct Golden case IDs was logged exactly once. Approved
+complete-output and case-local allowed-difference contracts were preserved;
+the three input-only cases and twelve source-closed aliases are not additional
+certified output cases. The package retains the approved 40-case reference set.
+
+The owner approved the frozen release notes, repository-owner self-approval
+exception and, after downloaded-candidate manifest/hash validation and smoke,
+final protected-environment promotion through Codex. Deployment `6417478229`
+records that delegated approval for this exact source/run/manifest. The owner
+explicitly accepted the missing clean-Windows visible-startup verification as
+a limitation of this release only; this is not a passed clean-machine test or
+a permanent waiver. Repository protection and publication policy were unchanged.
+
+Candidate artifact `10311391045` reports transport SHA-256
+`2030b5f8ec4b226d2277790db60625a02c0b879ea2229080dd96668ed83241bc`.
+Its downloaded closed manifest and payload hashes passed the existing
+`release_promotion_policy.py verify-manifest` command against exact source,
+tree, run and workflow identities. The annotated tag binds the manifest and
+artifact digests. Main application EXE size is 75,051,269 bytes; the ZIP is
+116,226,647 bytes. Both meet the current hard limits, but the ZIP is not under
+100 decimal MB. The standalone Launcher below is a separate executable.
+
+| Published asset | Bytes | SHA-256 |
+| --- | ---: | --- |
+| `NvtFwCombiner-v1.1.5-win-x64.zip` | 116226647 | `792e7702eb3d45d5e79de728b8e3485eaca392896634ac8bdc51b642c53be986` |
+| `NvtFwCombiner-v1.1.5-win-x64.spdx.json` | 298991 | `f736a4df05f1764e8e97844af21447f43e6d00ba5248e8cb2951ff2358ae1650` |
+| `NvtFwCombiner-v1.1.5-win-x64.provenance.json` | 102497 | `891ab3cc4673da1e10704d6e7236de9add3a91b837d2dbeb253c82b79252f959` |
+| `NvtFwCombiner-v1.1.5-candidate.json` | 11569 | `b85b7260040d6700b0dbb7124b7d3bddbac75ab87ce39cdfa837f7fadd13dfcf` |
+| `NvtFwCombiner-v1.1.5-assets.sha256` | 985 | `f787814d922e64d29a2c9eec86f671efca5930fa4e8ed0ee1cb1f71dd171bf49` |
+| `NvtFwCombiner-Launcher-v1.1.5-win-x64.exe` | 90233648 | `f7bfa8f16148ffcfdecb28a104d193d96b7381943a2680fded8e87acfb33831e` |
+| `NvtFwCombiner-Launcher-v1.1.5-win-x64.manifest.json` | 1229 | `8adf925748b9fcc5ed895cec0a9cd9fffaeb91148e52825f63b61b8c2b306477` |
+| `NvtFwCombiner-Launcher-v1.1.5-win-x64.spdx.json` | 1189 | `ecabadf5b285988207edec453af4397ec38eb6dfe19c7eb4bc62de197d977be0` |
+| `NvtFwCombiner-Launcher-v1.1.5-win-x64.intoto.jsonl` | 727 | `aa5f18172eebac995dbb16167f4c0ab19f181384d1b5bfdf3192de25ff230a37` |
+| `NvtFwCombiner-Launcher-v1.1.5-win-x64.sha256` | 461 | `6f46d9b7866441a5649436424f61aa58fff6356a4dc37189308af562f27b9812` |
+
+Promotion independently downloaded all published assets into a fresh directory,
+validated the exact asset set/bytes, immutable Release body and annotated tag,
+and checked the tag-derived source ZIP and tar.gz endpoints. Separate job
+`103688160256` downloaded the public ZIP and sidecars and passed token-free
+`smoke-release.ps1 -SkipUiLaunch` at `2026-09-13T06:55:08Z`.
+The locally downloaded candidate also passed that non-visual smoke. These
+checks cover manifests, approved payloads, profile/reference hashes and worker
+self-check; they do not establish native clean-machine, DPI, high-contrast or
+screen-reader acceptance. Existing firmware support status is unchanged.
+The previously measured 700 ms startup target remains unachieved, and no
+additional performance optimization was required to close this release.
 
 ## 1.1.4 local input-feedback checkpoint (2026-09-06)
 
