@@ -1608,6 +1608,13 @@ create vendor-specific executors or alter existing customer firmware routes.
 The [custom-options handoff](../ui/v1.1.x-custom-options-layout-handoff.md#public-baseline-and-vendor-variation-discussion--2026-09-09)
 owns the questions and inventory boundary.
 
+Owner follow-up, 2026-09-13: after the `1.1.5` Release completes, prioritize
+the concrete execution approach for customized flashmaps within this existing
+discussion. Compare public/family reuse, explicit customer/layout selection,
+map authoring/import/versioning, validation/Golden evidence and report identity.
+This is a post-release discussion, not additional `1.1.5` implementation or an
+advance of the separately allocated rule-authoring UI.
+
 Recommended direction for discussion: one public baseline and explicitly
 selected, versioned vendor variants that reuse existing profile/compiler,
 capability, session, validation, confirmation and report owners. Separate
