@@ -75,8 +75,12 @@ when a behavior-affecting rule changes. The owner has approved the
 [invalid-configuration behavior](../ui/v1.1.x-custom-options-layout-handoff.md#desay-settings-invalid-configuration-decision--2026-09-14):
 reject invalid Settings drafts, block affected AB Builds on invalid external
 detection configuration without silent fallback, allow explicit default
-recovery, and do not block solely for missing display names. Final apply/reload
-lifecycle decisions must still be consolidated before implementation.
+recovery, and do not block solely for missing display names. The owner also
+accepts explicit save/apply re-evaluation, external reload checks at startup,
+manual reload and pre-Build, and immutable rules for an in-progress Build.
+Keep ordinary Settings immediate-apply. The
+[dedicated rule-editor proposal](../ui/v1.1.x-custom-options-layout-handoff.md#desay-rule-apply-lifecycle-and-editor-proposal--2026-09-14)
+still needs visual approval; this record does not implement a modal.
 
 Request any source material needed for this urgent correction now; the separate
 pre-`1.2.0` refresh reminder is not permission to defer a missing `1.1.6` fact.
