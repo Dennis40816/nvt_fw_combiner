@@ -115,6 +115,12 @@ public sealed class CtrlRamSelectorLayoutTests
             SpaciousPanel[] groups = [.. window.GetVisualDescendants().OfType<SpaciousPanel>().Where(p => p.Classes.Contains("firmwareSlotGroupSurface"))];
             Assert.Equal(2, groups.Length);
             Rect baseBounds = BoundsInWindow(baseBorder, window);
+            Border inputPanel = baseCard.GetVisualAncestors().OfType<Border>().First(border => border.Classes.Contains("roomyPanel"));
+            TextBlock inputTitle = inputPanel.GetVisualDescendants().OfType<TextBlock>().Single(block => block.Text == shell.Text.InputFilesTitle);
+            Assert.InRange(Math.Abs(BoundsInWindow(inputTitle, window).Left - baseBounds.Left), 0, 0.5);
+            MemoryCoverageBar outputRail = Assert.Single(window.GetVisualDescendants().OfType<MemoryCoverageBar>(), rail => rail.IsEffectivelyVisible);
+            Border outputPanel = outputRail.GetVisualAncestors().OfType<Border>().First(border => border.Classes.Contains("panelSurface"));
+            Assert.InRange(Math.Abs(BoundsInWindow(inputPanel, window).Top - BoundsInWindow(outputPanel, window).Top), 0, 0.5);
             if (selected)
             {
                 Button filename = Assert.Single(baseCard.GetVisualDescendants().OfType<Button>(),
@@ -155,9 +161,12 @@ public sealed class CtrlRamSelectorLayoutTests
             foreach (SpaciousPanel group in groups)
             {
                 Rect bounds = BoundsInWindow(group, window);
-                Assert.InRange(baseBounds.Left - bounds.Left, 31.5, 32.5);
-                Assert.InRange(bounds.Right - baseBounds.Right, 31.5, 32.5);
+                Assert.InRange(Math.Abs(baseBounds.Left - bounds.Left), 0, 0.5);
+                Assert.InRange(Math.Abs(bounds.Right - baseBounds.Right), 0, 0.5);
+                Assert.Equal(new Thickness(0, 1, 0, 0), group.BorderThickness);
                 Expander expander = Assert.Single(group.GetVisualDescendants().OfType<Expander>());
+                TextBlock groupTitle = Assert.Single(expander.GetVisualDescendants().OfType<TextBlock>(), block => block.Classes.Contains("cardTitle"));
+                Assert.InRange(Math.Abs(BoundsInWindow(groupTitle, window).Left - baseBounds.Left), 0, 0.5);
                 FirmwareSlotCard[] cards = [.. group.GetVisualDescendants().OfType<FirmwareSlotCard>()];
                 FirmwareSlotCard first = cards.First();
                 foreach (FirmwareSlotCard card in cards)
@@ -232,6 +241,7 @@ public sealed class CtrlRamSelectorLayoutTests
                 Assert.Equal(selectedMode, mode.SelectedItem);
                 Assert.Equal(selectedPaths, shell.Replace.ReplaceSlots.ToDictionary(slot => slot.SlotId, slot => slot.FilePath));
                 Rect resizedBase = BoundsInWindow(baseBorder, window);
+                Assert.InRange(Math.Abs(BoundsInWindow(inputPanel, window).Top - BoundsInWindow(outputPanel, window).Top), 0, 0.5);
                 foreach (FirmwareSlotCard input in groups.SelectMany(group => group.GetVisualDescendants().OfType<FirmwareSlotCard>()))
                 {
                     Rect inputBounds = BoundsInWindow(Assert.Single(input.GetVisualDescendants().OfType<Border>(),
@@ -244,6 +254,23 @@ public sealed class CtrlRamSelectorLayoutTests
         finally
         {
             await CloseAndFlushAsync(window);
+        }
+    }
+
+    internal static void AssertMergePanelAlignment(Window window)
+    {
+        FirmwareSlotCard[] cards = [.. window.GetVisualDescendants().OfType<FirmwareSlotCard>().Where(card => card.IsEffectivelyVisible)];
+        Assert.NotEmpty(cards);
+        Border inputPanel = cards[0].GetVisualAncestors().OfType<Border>().First(border => border.Classes.Contains("roomyPanel"));
+        Border outputPanel = Assert.Single(window.GetVisualDescendants().OfType<Border>(), border => border.Classes.Contains("memoryInfoPanel") && border.IsEffectivelyVisible);
+        Assert.InRange(Math.Abs(BoundsInWindow(inputPanel, window).Top - BoundsInWindow(outputPanel, window).Top), 0, 0.5);
+        TextBlock title = inputPanel.GetVisualDescendants().OfType<TextBlock>().First(block => block.Classes.Contains("sectionTitle") && block.IsEffectivelyVisible);
+        Rect titleBounds = BoundsInWindow(title, window);
+        foreach (FirmwareSlotCard card in cards)
+        {
+            Rect bounds = BoundsInWindow(card, window);
+            Assert.InRange(Math.Abs(bounds.Left - titleBounds.Left), 0, 0.5);
+            Assert.InRange(Math.Abs(bounds.Right - BoundsInWindow(cards[0], window).Right), 0, 0.5);
         }
     }
 

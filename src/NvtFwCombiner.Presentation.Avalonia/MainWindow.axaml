@@ -161,7 +161,7 @@
             IsVisible="{Binding IsReplaceVisible}">
           <ContentControl.ContentTemplate>
             <DataTemplate DataType="vm:ReplacePresentationViewModel">
-              <Grid ColumnDefinitions="1.15*,430" ColumnSpacing="18">
+              <Grid ColumnDefinitions="1.15*,430" ColumnSpacing="18" RowDefinitions="Auto,Auto" RowSpacing="{DynamicResource NfcSpace16}">
           <StackPanel Spacing="{DynamicResource NfcSpace16}" Container.Name="ReplaceContent" Container.Sizing="Width">
             <StackPanel.Styles>
               <Style Selector="Grid.replaceHeaderActions">
@@ -243,12 +243,15 @@
               </Grid>
             </Grid>
 
-            <ContentControl
-                Content="{Binding}"
-                ContentTemplate="{StaticResource ReplaceModeContentTemplate}" />
           </StackPanel>
 
           <ContentControl
+              Grid.Row="1"
+              Content="{Binding}"
+              ContentTemplate="{StaticResource ReplaceModeContentTemplate}" />
+
+          <ContentControl
+              Grid.Row="1"
               Grid.Column="1"
               VerticalAlignment="Top"
               Content="{Binding}"
@@ -264,7 +267,7 @@
             IsVisible="{Binding IsMergeVisible}">
           <ContentControl.ContentTemplate>
             <DataTemplate DataType="vm:MergePresentationViewModel">
-              <Grid ColumnDefinitions="1.15*,430" ColumnSpacing="18">
+              <Grid ColumnDefinitions="1.15*,430" ColumnSpacing="18" RowDefinitions="Auto,Auto" RowSpacing="{DynamicResource NfcSpace16}">
           <StackPanel Spacing="{DynamicResource NfcSpace16}">
             <Grid
                 x:Name="MergePageHeader"
@@ -294,12 +297,15 @@
               </Grid>
             </Grid>
 
-            <ContentControl
-                Content="{Binding}"
-                ContentTemplate="{StaticResource MergeModeContentTemplate}" />
           </StackPanel>
 
           <ContentControl
+              Grid.Row="1"
+              Content="{Binding}"
+              ContentTemplate="{StaticResource MergeModeContentTemplate}" />
+
+          <ContentControl
+              Grid.Row="1"
               Grid.Column="1"
               VerticalAlignment="Top"
               Content="{Binding}"

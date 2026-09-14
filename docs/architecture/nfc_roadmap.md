@@ -1626,8 +1626,11 @@ reviewed at their actual risk rather than silently waived for this release.
 
 ### Public baseline and vendor-specific UI/workflow discussion
 
-Owner intake, 2026-09-14: first review the selection-slot alignment preview;
-then return to the vendor workflow discussion. The
+Owner intake, 2026-09-14: the selection-slot alignment preview is approved;
+the flattened groups, shared card edges and Input/Output top-edge alignment are
+locally implemented and verified in the
+[UI handoff](../ui/v1.1.x-custom-options-layout-handoff.md#local-completion--2026-09-14).
+Return next to the vendor workflow discussion. The
 [Desay NT51950/NT51951 intake](../ui/v1.1.x-custom-options-layout-handoff.md#desay-nt51950--nt51951-rule-intake--2026-09-14)
 records FWConfig-relative `0x0C` detection (estimated absolute `0x2200C`, values
 `0xA6`/`0x97`), an Info indication, user-editable detection values and a Settings

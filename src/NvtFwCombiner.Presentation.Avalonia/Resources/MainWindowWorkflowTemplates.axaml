@@ -20,8 +20,7 @@
           <TextBlock Classes="sectionTitle" Text="{Binding Text.InputFilesTitle}" />
           <TextBlock Classes="mutedText" Text="{Binding SelectedReplaceModeDescription}" TextWrapping="Wrap" />
         </StackPanel>
-        <!-- Match the grouped CtrlRAM input column, including surface and disclosure insets. -->
-        <ItemsControl Margin="32,0" ItemContainerTheme="{StaticResource StretchContentPresenterTheme}" ItemsSource="{Binding ReplaceSlots}">
+        <ItemsControl ItemContainerTheme="{StaticResource StretchContentPresenterTheme}" ItemsSource="{Binding ReplaceSlots}">
           <ItemsControl.ItemTemplate>
             <StaticResource ResourceKey="FirmwareSlotCardTemplate" />
           </ItemsControl.ItemTemplate>
@@ -39,7 +38,6 @@
         </StackPanel>
 
         <ContentControl
-            Margin="32,0"
             HorizontalAlignment="Stretch"
             HorizontalContentAlignment="Stretch"
             Content="{Binding ReplaceBaseSlot}"
@@ -158,7 +156,7 @@
           <TextBlock Classes="sectionTitle" Text="{Binding Text.InputFilesTitle}" />
           <TextBlock Classes="mutedText" Text="{Binding StandardMergeSupportSummary}" TextWrapping="Wrap" />
         </StackPanel>
-        <ItemsControl Margin="32,0" ItemContainerTheme="{StaticResource StretchContentPresenterTheme}" ItemsSource="{Binding MergeSlots}">
+        <ItemsControl ItemContainerTheme="{StaticResource StretchContentPresenterTheme}" ItemsSource="{Binding MergeSlots}">
           <ItemsControl.ItemTemplate>
             <StaticResource ResourceKey="FirmwareSlotCardTemplate" />
           </ItemsControl.ItemTemplate>
@@ -256,10 +254,9 @@
             IsChecked="{Binding UseDummyDpForAbMerge, Mode=OneWay}" />
         </WrapPanel>
         <ContentControl x:Name="AbDummyDpDisplay"
-            Margin="32,0"
             Content="{Binding DummyDpDisplaySlot}" ContentTemplate="{StaticResource FirmwareSlotCardTemplate}"
             IsEnabled="False" IsVisible="{Binding UseDummyDpForAbMerge}" />
-        <ItemsControl Margin="32,0" ItemContainerTheme="{StaticResource StretchContentPresenterTheme}" ItemsSource="{Binding MergeSlots}">
+        <ItemsControl ItemContainerTheme="{StaticResource StretchContentPresenterTheme}" ItemsSource="{Binding MergeSlots}">
           <ItemsControl.ItemTemplate>
             <StaticResource ResourceKey="FirmwareSlotCardTemplate" />
           </ItemsControl.ItemTemplate>

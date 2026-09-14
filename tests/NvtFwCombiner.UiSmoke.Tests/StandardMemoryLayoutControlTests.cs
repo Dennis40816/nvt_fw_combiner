@@ -55,6 +55,7 @@ public sealed class StandardMemoryLayoutControlTests
             }
             Render();
             Assert.Equal(3, shell.Merge.MergeSlots.Count(slot => slot.HasFile));
+            CtrlRamSelectorLayoutTests.AssertMergePanelAlignment(window);
             string?[] originalPaths = [.. shell.Merge.MergeSlots.Select(slot => slot.FilePath)];
             (long?, long?, string?, bool)[] originalRanges = [.. shell.Merge.MergeCoverageSegments.Select(segment =>
                 (segment.RangeStart, segment.RangeEndExclusive, segment.SourceSlotId, segment.IsSelectedForWrite))];

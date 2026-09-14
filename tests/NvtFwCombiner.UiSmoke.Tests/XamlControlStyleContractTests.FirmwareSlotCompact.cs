@@ -126,11 +126,11 @@ public sealed partial class XamlControlStyleContractTests
         Assert.Equal(identity.Bounds.Width, facts.Bounds.Width);
     }
 
-    /// <summary>Collapsed CtrlRAM slot groups retain the shared two-pixel surface in both themes.</summary>
+    /// <summary>CtrlRAM groups use a top separator without nesting another rounded frame around input cards.</summary>
     [AvaloniaTheory]
     [InlineData(false)]
     [InlineData(true)]
-    public void FirmwareSlotGroupSurfaceKeepsItsOutlineAcrossThemes(bool useDarkTheme)
+    public void FirmwareSlotGroupSurfaceUsesOnlyATopSeparatorAcrossThemes(bool useDarkTheme)
     {
         var panel = new SpaciousPanel
         {
@@ -155,10 +155,12 @@ public sealed partial class XamlControlStyleContractTests
             Dispatcher.UIThread.RunJobs();
             AvaloniaHeadlessPlatform.ForceRenderTimerTick();
 
-            Assert.Equal(new Thickness(2), panel.BorderThickness);
+            Assert.Equal(new Thickness(0, 1, 0, 0), panel.BorderThickness);
             Assert.NotNull(panel.BorderBrush);
             Assert.NotNull(panel.Background);
-            Assert.True(panel.CornerRadius.TopLeft > 0);
+            Assert.Equal(default, panel.CornerRadius);
+            Assert.Equal(0, panel.Padding.Left);
+            Assert.Equal(0, panel.Padding.Right);
             using Avalonia.Media.Imaging.Bitmap? frame = host.GetLastRenderedFrame();
             Assert.NotNull(frame);
         }

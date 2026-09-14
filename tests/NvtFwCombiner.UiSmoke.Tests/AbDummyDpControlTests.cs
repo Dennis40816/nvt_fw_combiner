@@ -105,11 +105,26 @@ public sealed class AbDummyDpControlTests
             Assert.Equal("0xFF", blank.SourceLabel);
             Assert.Equal(chinese ? "初始化" : "Initialization", blank.SourceFieldLabel);
             Assert.False(blank.UsesKeptPattern);
-            Assert.Contains(window.GetVisualDescendants().OfType<TextBlock>(),
+            CtrlRamSelectorLayoutTests.AssertMergePanelAlignment(window);
+            // Source facts belong to the hover card, not a permanently expanded detail list.
+            Assert.DoesNotContain(window.GetVisualDescendants().OfType<Border>(), border => border.Name == "MemorySliceCard");
+            MemoryCoverageBar rail = Assert.Single(window.GetVisualDescendants().OfType<MemoryCoverageBar>(), control => control.IsEffectivelyVisible);
+            rail.BringIntoView();
+            rail.ReducedMotion = true;
+            Render();
+            Border blankCell = Assert.Single(rail.GetVisualDescendants().OfType<Border>(), border =>
+                border.Classes.Contains("memoryCoverageBarSegment") && ReferenceEquals(border.DataContext, blank));
+            window.MouseMove(Bounds(blankCell).Center, RawInputModifiers.None);
+            Render();
+            Border hoverCard = Assert.Single(window.GetVisualDescendants().OfType<Border>(), border => border.Name == "MemorySliceCard");
+            Assert.Same(blank, hoverCard.DataContext);
+            Assert.Contains(hoverCard.GetVisualDescendants().OfType<TextBlock>(),
                 block => block.IsEffectivelyVisible && block.Text == (chinese ? "初始化" : "Initialization"));
+            Assert.Contains(hoverCard.GetVisualDescendants().OfType<TextBlock>(), block => block.IsEffectivelyVisible && block.Text == "0xFF");
             Assert.DoesNotContain(window.GetVisualDescendants().OfType<TextBlock>(),
                 block => block.Text == "Output range uses bytes from Reserved.");
             Save("enabled");
+            window.MouseMove(new Point(4, 4), RawInputModifiers.None);
             await shell.Merge.ToggleAbDummyDpCommand.ExecuteAsync(null);
             Render();
             Assert.False(dummy.IsChecked);
