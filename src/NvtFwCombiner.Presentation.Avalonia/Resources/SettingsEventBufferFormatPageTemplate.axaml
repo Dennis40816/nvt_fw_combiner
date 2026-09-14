@@ -15,14 +15,14 @@
           <Setter Property="Background" Value="{DynamicResource NfcSurfaceBrush}" />
           <Setter Property="BorderBrush" Value="{DynamicResource NfcBorderBrush}" />
           <Setter Property="CornerRadius" Value="{DynamicResource NfcCompactCornerRadius}" />
-          <Setter Property="FontSize" Value="16" />
+          <Setter Property="FontSize" Value="{DynamicResource NfcFontSize13}" />
         </Style>
         <Style Selector="ComboBox">
           <Setter Property="Height" Value="44" />
           <Setter Property="VerticalAlignment" Value="Center" />
           <Setter Property="HorizontalAlignment" Value="Stretch" />
           <Setter Property="Background" Value="{DynamicResource NfcSurfaceBrush}" />
-          <Setter Property="FontSize" Value="16" />
+          <Setter Property="FontSize" Value="{DynamicResource NfcFontSize13}" />
         </Style>
         <Style Selector="TextBlock.configHeader">
           <Setter Property="FontSize" Value="18" />
@@ -34,12 +34,12 @@
       </Grid.Styles>
       <StackPanel Grid.Row="0" Spacing="{DynamicResource NfcSpace8}">
         <StackPanel Orientation="Horizontal" Spacing="6">
-          <TextBlock Classes="supportingText" FontSize="16" Text="{Binding Text.EventBufferFormatNavigationLabel}" />
-          <TextBlock Classes="supportingText" FontSize="16" Text="/" />
-          <TextBlock Classes="supportingText" FontSize="16" Text="{Binding Text.EventBufferFormatTitle}" />
+          <TextBlock Classes="supportingText" Text="{Binding Text.EventBufferFormatNavigationLabel}" />
+          <TextBlock Classes="supportingText" Text="/" />
+          <TextBlock Classes="supportingText" Text="{Binding Text.EventBufferFormatTitle}" />
         </StackPanel>
-        <TextBlock Classes="pageTitle" FontSize="30" Text="{Binding Text.EventBufferFormatTitle}" TextWrapping="Wrap" />
-        <TextBlock Classes="pageSubtitle" FontSize="16" Text="{Binding Text.EventBufferFormatSubtitle}" TextWrapping="Wrap" />
+        <TextBlock Classes="pageTitle" Text="{Binding Text.EventBufferFormatTitle}" TextWrapping="Wrap" />
+        <TextBlock Classes="pageSubtitle" Text="{Binding Text.EventBufferFormatSubtitle}" TextWrapping="Wrap" />
         <Border Margin="0,20,0,0" BorderBrush="{DynamicResource NfcDividerBrush}" BorderThickness="0,0,0,1" />
       </StackPanel>
 
@@ -90,7 +90,7 @@
                         <DataTemplate>
                           <Border Margin="0,0,8,4" Padding="10,0,2,0" CornerRadius="12" Background="{DynamicResource NfcAccentSurfaceBrush}">
                             <StackPanel Orientation="Horizontal" Spacing="{DynamicResource NfcSpace4}">
-                              <TextBlock FontSize="16" VerticalAlignment="Center" Text="{Binding StringFormat=0x{0:X2}}" />
+                              <TextBlock FontSize="{DynamicResource NfcFontSize13}" VerticalAlignment="Center" Text="{Binding StringFormat=0x{0:X2}}" />
                               <Button Width="30" Height="40" Padding="0" MinWidth="0"
                               AutomationProperties.Name="{Binding $parent[ItemsControl].DataContext.RemoveRecognitionValueLabel}"
                               Classes="semanticAction command danger"
@@ -108,7 +108,7 @@
                         Classes="semanticAction secondary" Command="{Binding BeginAddRecognitionValueCommand}">
                       <StackPanel Orientation="Horizontal" Spacing="{DynamicResource NfcSpace8}">
                         <Path Width="14" Height="14" VerticalAlignment="Center" Data="M7 0V14M0 7H14" Stroke="{DynamicResource NfcAccentBrush}" StrokeThickness="1.6" />
-                        <TextBlock FontSize="16" Text="{Binding AddRecognitionValueLabel}" />
+                        <TextBlock FontSize="{DynamicResource NfcFontSize13}" Text="{Binding AddRecognitionValueLabel}" />
                       </StackPanel>
                     </Button>
                     </WrapPanel>
@@ -122,17 +122,17 @@
                     </WrapPanel>
                     <TextBlock Classes="captionText" IsVisible="{Binding RecognitionValueValidationMessage, Converter={x:Static converters:StringConverters.IsNotNullOrEmpty}}" Foreground="{DynamicResource NfcDangerTextBrush}" Text="{Binding RecognitionValueValidationMessage}" TextWrapping="Wrap" />
                   </StackPanel>
-                  <TextBlock Grid.Column="3" VerticalAlignment="Center" TextAlignment="Center" FontSize="16" Classes="supportingText" Text="{Binding OutputEffect}" TextWrapping="Wrap" />
+                  <TextBlock Grid.Column="3" VerticalAlignment="Center" TextAlignment="Center" Classes="supportingText" Text="{Binding OutputEffect}" TextWrapping="Wrap" />
                 </Grid>
               </Border>
-              <TextBlock Classes="supportingText" FontSize="16" Text="{Binding OutputApplicability}" TextWrapping="Wrap" />
+              <TextBlock Classes="supportingText" Text="{Binding OutputApplicability}" TextWrapping="Wrap" />
               </StackPanel>
             </DataTemplate>
           </ItemsControl.ItemTemplate>
         </ItemsControl>
         <Grid ColumnDefinitions="24,*" ColumnSpacing="{DynamicResource NfcSpace12}">
           <Path Width="24" Height="24" VerticalAlignment="Top" Data="{StaticResource SettingsInformationIconGeometry}" Stroke="{DynamicResource NfcTextSecondaryBrush}" StrokeThickness="1.6" Stretch="Uniform" />
-          <TextBlock Grid.Column="1" Classes="supportingText" FontSize="16" Text="{Binding Text.EventBufferFormatIdentityHint}" TextWrapping="Wrap" />
+          <TextBlock Grid.Column="1" Classes="supportingText" Text="{Binding Text.EventBufferFormatIdentityHint}" TextWrapping="Wrap" />
         </Grid>
         <TextBlock Classes="supportingText" FontSize="{StaticResource NfcFontSize14}" Text="{Binding Text.EventBufferFormatRecognitionValuesHint}" TextWrapping="Wrap" />
         <TextBlock AutomationProperties.LiveSetting="Polite" Classes="supportingText"

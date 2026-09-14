@@ -80,10 +80,20 @@ public sealed partial class XamlControlStyleContractTests
             Assert.InRange(rail.Bounds.Width, 317.5, 318.5);
             Rect editorBounds = EventBufferBounds(editor, window);
             Assert.InRange(editorBounds.Right, width - 80, width);
+            TextBlock pageTitle = Assert.Single(editor.GetVisualDescendants().OfType<TextBlock>(),
+                control => control.Classes.Contains("pageTitle"));
+            TextBlock pageSubtitle = Assert.Single(editor.GetVisualDescendants().OfType<TextBlock>(),
+                control => control.Classes.Contains("pageSubtitle"));
+            Assert.Equal(24, pageTitle.FontSize);
+            Assert.Equal(13, pageSubtitle.FontSize);
+            AssertEventBufferFits(EventBufferBounds(pageTitle, window), editorBounds);
+            AssertEventBufferFits(EventBufferBounds(pageSubtitle, window), editorBounds);
             ComboBox identity = Assert.Single(editor.GetVisualDescendants().OfType<ComboBox>(),
                 control => control.DataContext is EventBufferFormatDraftRowViewModel);
             TextBox alias = Assert.Single(editor.GetVisualDescendants().OfType<TextBox>(), control => control.Text == "Desay");
             Assert.Equal("Desay", Assert.IsType<EventBufferFormatIdentity>(identity.SelectedItem).DisplayName);
+            Assert.Equal(13, identity.FontSize);
+            Assert.Equal(13, alias.FontSize);
             Rect identityBounds = EventBufferBounds(identity, window);
             Rect aliasBounds = EventBufferBounds(alias, window);
             Assert.True(aliasBounds.Left > identityBounds.Right);
@@ -95,8 +105,8 @@ public sealed partial class XamlControlStyleContractTests
                 TextBlock chipText = Assert.Single(editor.GetVisualDescendants().OfType<TextBlock>(),
                     control => control.Text == byteLabel);
                 Border chip = chipText.GetVisualAncestors().OfType<Border>().First();
+                Assert.Equal(13, chipText.FontSize);
                 AssertEventBufferFits(EventBufferBounds(chipText, window), EventBufferBounds(chip, window));
-                Assert.InRange(chipText.Bounds.Width, 35, 75);
                 if (width >= 1600)
                 {
                     Assert.InRange(Math.Abs(EventBufferBounds(chipText, window).Center.Y - aliasBounds.Center.Y), 0, 4);
@@ -104,6 +114,11 @@ public sealed partial class XamlControlStyleContractTests
             }
             Assert.All(editor.GetVisualDescendants().OfType<TextBox>().Where(control => control.IsEffectivelyVisible),
                 control => AssertEventBufferFits(EventBufferBounds(control, window), editorBounds));
+            TextBlock outputEffect = Assert.Single(editor.GetVisualDescendants().OfType<TextBlock>(),
+                control => control.DataContext is EventBufferFormatDraftRowViewModel && control.Text == Assert.Single(viewModel.Settings.EventBufferFormatRows).OutputEffect);
+            Assert.Equal(13, outputEffect.FontSize);
+            Grid outputEffectRow = outputEffect.GetVisualAncestors().OfType<Grid>().First();
+            AssertEventBufferFits(EventBufferBounds(outputEffect, window), EventBufferBounds(outputEffectRow, window));
             Button save = Assert.Single(editor.GetVisualDescendants().OfType<Button>(),
                 control => ReferenceEquals(control.Command, viewModel.Settings.SaveEventBufferFormatCommand));
             Button discard = Assert.Single(editor.GetVisualDescendants().OfType<Button>(),
