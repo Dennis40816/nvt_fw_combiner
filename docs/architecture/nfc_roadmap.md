@@ -1635,9 +1635,11 @@ Return next to the vendor workflow discussion. The
 records FWConfig-relative `0x0C` detection (estimated absolute `0x2200C`, values
 `0xA6`/`0x97`), an Info indication, user-editable detection values and a Settings
 rule inventory, a DP AB Code input-size warning against exactly 1,048,576 bytes
-(1 MiB / `0x100000`, owner-confirmed 8 Mbit), Desay-only TP Backup start `0x4A000`,
-reusable public/vendor flow separation, and a separate pending public backup
-revision. Address/base and match width/operator remain explicit
+(1 MiB / `0x100000`, owner-confirmed 8 Mbit), Desay AB TP B output start `0x4A000`,
+reusable public/vendor flow separation, and public NT51950 partial-family
+AB Code / 2 IC TP B output start `0x8A000` with coupled offset/write-range
+updates. The owner requires complete Q&A and consolidation before development.
+Address/base and match width/operator remain explicit
 questions. This is recorded direction, not runtime changes or a new release
 allocation; existing saved-rule/IC-authoring allocations are unchanged.
 
