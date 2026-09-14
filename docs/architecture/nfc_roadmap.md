@@ -71,8 +71,12 @@ and reload/regression coverage as separate reviewable commits. Changing a
 display name must not select a different layout; adding a marker may bind only
 to an already admitted format in the approved IC/workflow scope. Keep effective
 rule identity with accepted run state and invalidate stale readiness/preview
-when a behavior-affecting rule changes. Final invalid-configuration and apply
-lifecycle decisions must be consolidated before implementation.
+when a behavior-affecting rule changes. The owner has approved the
+[invalid-configuration behavior](../ui/v1.1.x-custom-options-layout-handoff.md#desay-settings-invalid-configuration-decision--2026-09-14):
+reject invalid Settings drafts, block affected AB Builds on invalid external
+detection configuration without silent fallback, allow explicit default
+recovery, and do not block solely for missing display names. Final apply/reload
+lifecycle decisions must still be consolidated before implementation.
 
 Request any source material needed for this urgent correction now; the separate
 pre-`1.2.0` refresh reminder is not permission to defer a missing `1.1.6` fact.
