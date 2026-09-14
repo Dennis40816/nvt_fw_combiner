@@ -68,3 +68,10 @@ caller-mutation isolation. There is no filesystem, runtime selection or UI
 implementation in this unit. Later persistence, profile selection, UI and report
 units retain their own tests and independent review. This ADR does not certify
 Golden output, an integration candidate, or a release.
+
+Second unit: the [versioned JSON contract](../contracts/event-buffer-format-configuration-v1.md),
+bounded Infrastructure codec over existing local IO, and serialized Application
+session. Missing always means no effective configuration, including after restart;
+defaults and retained LastSaved are draft sources only. No first-install heuristic
+or silent fallback is introduced. This is persistence/publication, not firmware
+runtime integration or a claim that the approved Settings screen is implemented.
