@@ -94,7 +94,7 @@ public sealed class AbDummyDpCompilationTests
             ? "nt51950-ab-merge"
             : "nt51919-nt51929-nt51932-ab-merge";
         string hash = legacyProcessorFamily
-            ? "67f89501089212d938d7e55930f417b51946abd069d4066884e5df4b80d06a77"
+            ? "3d99349bc8a6a3ccddfd7f9e819c9f1f7daeeb8c8fa3fa73db0dac86a9fe08e7"
             : "68527380d4e2de5994734b9357fc55963254e51382027d9f099699c9dc1a366f";
         using var workspace = TempWorkspace.Create("nfc-ab-dummy-compilation");
         TrustedProfileBundleCatalog catalog = AbMergeCandidateTestSupport.LoadSourceCandidateCatalog(
@@ -104,7 +104,7 @@ public sealed class AbDummyDpCompilationTests
             : new TopologySelection(chipCount, "test", TopologySelectionSource.Requested, "test");
 
         V2CompositionPlanCompileResult result = catalog.Compile(
-            profileId, legacyProcessorFamily ? "0.5.0" : "0.4.0",
+            profileId, legacyProcessorFamily ? "0.6.0" : "0.4.0",
             icId, ExperienceIds.AbMerge, capacity, topology, [],
             selectedInputSlotIds: dummy ? [] : ["dp-ab-input"]);
 

@@ -147,3 +147,42 @@ header imports. The external host's existing `ByteDiff`/`ChangedRangePolicy`
 owns processor write-range rejection; the bare engine callback accepts an
 already host-validated result and is not a second security validator. These
 tests do not replace real Combiner/Golden certification or the final owner gate.
+
+## Family-owned format admission
+
+The sixth unit adds the optional `abFormatPolicy` through the frozen
+`firmware-family-v1.2-ab-format.schema.json`. Domain/Profiles own immutable
+format identities, default recognition bytes, exact primary structure/field/
+relation references and member/format/map variants. The opaque configuration
+scope is independent of the `ab-merge` workflow ID. Common is reserved and
+absent from configurable identities, but has explicit map variants. Policy
+references existing map topology requirements; it declares no second set of
+addresses, capacities, processor commands or IC counts.
+
+Application `AbMergeFormatAdmission` is the sole terminal selection owner.
+It reuses configuration admission against the current family catalog and
+requires exactly one primary observation per declared binding, from the same
+family identity/version/hash and selected member, with immutable artifact
+provenance. Atomic decode and the declared firmware-version complement
+relation must succeed. That relation validates the firmware-version pair,
+not the separate Event Buffer field. Invalid primary, stale/missing config
+or mismatched effective A/B formats produce blocking issues, never Common.
+Valid nonmatches select the declared Common identity; different raw IDs can
+select the same effective format. Aliases affect only the display label.
+
+For topology-bearing members, existing `AbMergeTopologyAdmission` must first
+succeed over this call's immutable `FirmwareBinInspectionArtifact` inputs and
+current selector. Their slot IDs, full SHA-256 and lengths must match the primary
+inspection. An unbound topology success from another file pair or selector is
+never accepted. An exact-count override is selected only when both actual TP counts
+match that map's declared exact requirement, after a compatible baseline is
+available. The Cascade selector's minimum is not an actual-count observation;
+2/3 remains on the generic cascade baseline. Selector-free NT51951 adds no
+Backup requirement. A decision captures raw IDs, config generation/source hash,
+family authority and the primary inspection snapshot for subsequent binding.
+
+This pure decision and its compiled-metadata tests do not publish a new runtime
+route or implement the Config UI. Existing runtime registrations retain their
+map allowlists and support/evidence decisions; source identities are repinned
+only. Runtime authoring, accepted-run proof, output warnings and UI integration
+remain subsequent units under the same owner goal.

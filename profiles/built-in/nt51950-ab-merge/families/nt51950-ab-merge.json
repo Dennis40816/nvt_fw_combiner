@@ -1,7 +1,30 @@
 {
   "schemaVersion": "1.2",
   "familyId": "nt51950-ab-merge",
-  "familyVersion": "0.5.0",
+  "familyVersion": "0.6.0",
+  "abFormatPolicy": {
+    "scopeId": "nt51950-partial-family-ab-event-buffer",
+    "commonFormatId": "common",
+    "commonDisplayName": "Common",
+    "formats": [
+      { "uniqueId": "desay", "displayName": "Desay", "defaultRecognitionValues": [151, 166] }
+    ],
+    "primaryBindings": {
+      "tpAStructureId": "tp-a-primary-firmware-config",
+      "tpBStructureId": "tp-b-primary-firmware-config",
+      "fieldId": "event-buffer-format-version",
+      "relationId": "firmware-version-complement"
+    },
+    "variants": [
+      { "memberId": "NT51950", "formatId": "common", "mapId": "nt51950-ab-merge-512k" },
+      { "memberId": "NT51950", "formatId": "common", "mapId": "nt51950-ab-merge-1024k" },
+      { "memberId": "NT51950", "formatId": "common", "mapId": "nt51950-ab-common-exact2-1024k" },
+      { "memberId": "NT51950", "formatId": "desay", "mapId": "nt51950-ab-desay-single-1024k" },
+      { "memberId": "NT51950", "formatId": "desay", "mapId": "nt51950-ab-desay-cascade-1024k" },
+      { "memberId": "NT51951", "formatId": "common", "mapId": "nt51951-ab-merge-1024k" },
+      { "memberId": "NT51951", "formatId": "desay", "mapId": "nt51951-ab-desay-1024k" }
+    ]
+  },
   "members": [
     {
       "memberId": "NT51950",

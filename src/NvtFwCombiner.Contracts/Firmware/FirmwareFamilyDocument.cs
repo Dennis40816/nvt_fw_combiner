@@ -15,6 +15,7 @@ namespace NvtFwCombiner.Contracts.Firmware;
 /// <param name="FactAliases">Explicit fact-scoped aliases.</param>
 /// <param name="EvidenceRefs">Family-level evidence manifest references.</param>
 /// <param name="FamilyRelationships">Optional owner-declared perfect-like or shared-part relationships.</param>
+/// <param name="AbFormatPolicy">Optional A/B format facts; this contract does not select a format.</param>
 public sealed record FirmwareFamilyDocument(
     string SchemaVersion,
     string FamilyId,
@@ -27,7 +28,9 @@ public sealed record FirmwareFamilyDocument(
     IReadOnlyList<FirmwareFactAliasDocument> FactAliases,
     IReadOnlyList<string> EvidenceRefs,
     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    IReadOnlyList<FirmwareFamilyRelationshipDocument>? FamilyRelationships = null);
+    IReadOnlyList<FirmwareFamilyRelationshipDocument>? FamilyRelationships = null,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    FirmwareAbFormatPolicyDocument? AbFormatPolicy = null);
 
 /// <summary>DTO for one family member and its display label.</summary>
 /// <param name="MemberId">Stable IC member identifier.</param>

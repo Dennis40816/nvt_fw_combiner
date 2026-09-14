@@ -75,6 +75,7 @@ internal static partial class FirmwareFamilyResolutionNormalizer
             document,
             normalizedMaps,
             structuresByMap);
+        FirmwareAbFormatPolicy? abFormatPolicy = NormalizeAbFormatPolicy(document.AbFormatPolicy);
 
         try
         {
@@ -85,7 +86,8 @@ internal static partial class FirmwareFamilyResolutionNormalizer
                 normalizedMaps,
                 metadataSetsById.Values,
                 capabilities,
-                familyRelationships);
+                familyRelationships,
+                abFormatPolicy);
         }
         catch (FirmwareFamilyRelationshipInvariantException exception)
         {
