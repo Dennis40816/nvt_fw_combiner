@@ -1648,6 +1648,8 @@ Further owner direction: public inputs also show the actual marker value,
 e.g. `Common Format 0x84`; consider a compact Information summary with secondary
 fields in Details. Required FWConfig unreadability/invalidity blocks the scoped
 format-dependent workflow, separately from the non-blocking DP-size warning.
+The owner also confirms that TPA/TPB Common-versus-Desay disagreement blocks
+Build; compare resolved formats, not merely equality of their raw marker bytes.
 The handoff records the existing topology-dependent AB gate and the need to
 verify shared 950/951 coverage; no new UI or runtime gate is implemented yet.
 This is recorded direction, not runtime changes or a new release
