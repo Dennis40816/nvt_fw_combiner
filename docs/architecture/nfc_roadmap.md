@@ -19,7 +19,10 @@ Memory Layout and selection-slot corrections, bold group headers and FW Info
 disclosure alignment are locally committed with recorded targeted evidence;
 they are not new TODOs or a published `1.1.6` claim. The latest Information
 preview, Desay detection/new AB geometry and Settings-rule editor are not
-implemented. This planning change does not start production work or a release.
+implemented. Owner subsequently approved the Config preview and requested
+starting `1.1.6` development; the TP overlay-length question is resolved by
+retaining existing bytes and recording an Excel erratum. Development preflight
+may proceed under the linked handoff; this is not a release/publication request.
 
 | Target | Bounded outcome and dependency |
 | --- | --- |

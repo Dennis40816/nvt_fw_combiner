@@ -53,7 +53,17 @@ Excel inclusive end addresses below are normalized to half-open ranges.
 | C39/N39 versus C40/N40 | Row 39 says `4B000-5BFFF`, overlapping the following rows beginning `4C000`. | Source interval inconsistency; do not silently rewrite it to `4BFFF` or compile overlapping regions. |
 | P10/P11 and P61/P93 | P column declares `4M bit`, `W/o BK & W/o LDC`, yet has backup labels and LDC content above `0x80000`. | Confirm whether rows are a shared allocation catalogue or executable content for every column; labels/colors alone cannot authorize beyond-capacity writes. |
 
-Next: resolve these source discrepancies with the owner, retain old/new
+Owner erratum decision — 2026-09-14: “保持之前 excel 需要刊誤”. For the
+scoped NT51950/NT51951 Desay AB change, retain existing TP overlay
+`[0xA000,0x37000)` (length `0x2D000`), not the workbook's larger executable
+extent. Do not overwrite Customer Information `[0x37000,0x38000)` with TP.
+The separately accepted Desay B start `0x4A000` therefore gives overlay
+`[0x4A000,0x77000)`, not `[0x4A000,0x7F000)`. Preserve the table above as
+the original source observation; the original workbook has not been edited.
+This resolves TP overlay extent for that AB scope only, not NT51928 identity,
+the row-39 typo, Standard/CtrlRAM geometry or all capacity-column meanings.
+
+Next: resolve remaining source discrepancies with the owner, retain old/new
 customer scope explicitly, update the existing FlashMap reference and manifest,
 then admit affected production profiles and byte tests through their normal
 firmware gates. NT51928BT stays unavailable. The
