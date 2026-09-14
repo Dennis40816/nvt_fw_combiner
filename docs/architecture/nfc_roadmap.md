@@ -1644,8 +1644,8 @@ artifact/address/base remain explicit questions. Settings is the requested
 common entry point for candidate user-editable rules, with editability and
 safety boundaries to be assessed before implementation. The accompanying
 Profile/Family/IC Count review is an assessment, not an approved rewrite.
-Further owner direction: public inputs also show the actual marker value,
-e.g. `Common · 0x84` under the latest plain-text **Event Buffer Version** label
+Further owner direction: public and vendor inputs show the actual marker value,
+e.g. `0x97 - Desay` under the latest plain-text **Event Buffer Version** label
 (superseding the earlier Format badge proposal). TP Version comes first; PID
 is primary and outranks IC Count. Add a Settings preference for input Details
 default expansion, initially Off. Responsive action alignment, primary-field
@@ -1836,6 +1836,14 @@ Earlier firmware-affecting milestones still require their own applicable
 evidence and cannot wait until this version to execute mandatory Golden cases.
 
 ## `1.2.0`: bounded Launcher hardening and development
+
+Owner reminder, 2026-09-14: **before this release**, request/confirm the latest
+public NT51950 DP Perspective, Desay DP Perspective and Event Buffer ID/name
+table. The [data-refresh checklist](../ui/v1.1.x-custom-options-layout-handoff.md#owner-data-refresh-before-120-release--2026-09-14)
+owns received/revision/applicability details. These updates are still awaiting
+owner material; do not treat an old workbook or display example as the latest
+approved source. This reminder does not itself allocate an unknown firmware
+implementation, reopen DP Replace or add a new automated release gate.
 
 Launcher remains secondary to the `1.1.x` UI/performance priorities, but this
 version begins real development: a comprehensive current defect, security and
