@@ -1,0 +1,34 @@
+{
+  "schemaVersion": 2,
+  "taskId": "CONFIG-116-ADMISSION-01",
+  "capability": "Pure scoped Event Buffer configuration admission and immutable recognition snapshot",
+  "integrationBase": "f9db4ef039be1c7a08e0b83f11133dbc1a0fe049",
+  "risk": "R2",
+  "kind": "behavior",
+  "state": "design-active",
+  "mutablePaths": [
+    "src/NvtFwCombiner.Application/Configuration/EventBufferFormatConfiguration.cs",
+    "src/NvtFwCombiner.Application/Configuration/EventBufferFormatConfigurationAdmission.cs",
+    "tests/NvtFwCombiner.Application.Tests/Configuration/EventBufferFormatConfigurationAdmissionTests.cs",
+    "docs/adr/0072-event-buffer-format-configuration.md"
+  ],
+  "implementationOwner": "primary-agent",
+  "searchEvidence": [
+    "Independent CodeGraph-first inspection at 881b4895 by /root/v116_config_architecture: ILocalFileStore and LocalFileStore own bounded stable IO/atomic writes; ShellPreferenceFileStore malformed-to-default and swallowed save failures cannot own firmware config.",
+    "Existing AuthoringSessionState, AbMergeAuthoringExperience, CanonicalCapabilityCompiler.AbMerge and FirmwareMetadataStructure retain runtime and profile authority. No existing Event Buffer configuration admission owner found in the scoped search.",
+    "Main inventory: src Application/Configuration and tests Application.Tests/Configuration have no existing implementation to reuse; first unit only introduces pure admission with supplied canonical catalog, not a builtin effect registry or runtime selector.",
+    "Latest committed final evidence checkpoint from git log -- docs/governance/change-records is f9db4ef039be1c7a08e0b83f11133dbc1a0fe049; source work begins at 881b4895. Existing unintegrated UI changes are not covered or waived by this record."
+  ],
+  "semanticOwner": "Application.EventBufferFormatConfigurationAdmission validates configuration for one supplied canonical scope; Profiles/Domain retain identity support and all firmware effects",
+  "terminalContract": "Typed invalid-draft issues or immutable normalized scoped identity/alias/recognition snapshot; no match is not a Common or Build-readiness decision. No IO, runtime wiring or firmware bytes change in this unit.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "/root/v116_config_architecture",
+    "outcome": "approved",
+    "evidence": "Independent first-unit admission on 2026-09-14 explicitly approved the two Application Configuration files, associated Application tests and ADR0072. Scope is one opaque canonical key with supplied identity/display-label catalog, no hardcoded Desay/effects or scope hierarchy. Success is config-valid only; persistence and AB runtime integration are subsequent units."
+  },
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": { "reviewer": null, "outcome": "pending", "evidence": "" }
+}
