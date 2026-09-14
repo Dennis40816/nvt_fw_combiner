@@ -166,6 +166,7 @@ public sealed class CtrlRamSelectorLayoutTests
                 Assert.Equal(new Thickness(0, 1, 0, 0), group.BorderThickness);
                 Expander expander = Assert.Single(group.GetVisualDescendants().OfType<Expander>());
                 TextBlock groupTitle = Assert.Single(expander.GetVisualDescendants().OfType<TextBlock>(), block => block.Classes.Contains("cardTitle"));
+                Assert.Equal(FontWeight.Bold, groupTitle.FontWeight);
                 Assert.InRange(Math.Abs(BoundsInWindow(groupTitle, window).Left - baseBounds.Left), 0, 0.5);
                 FirmwareSlotCard[] cards = [.. group.GetVisualDescendants().OfType<FirmwareSlotCard>()];
                 FirmwareSlotCard first = cards.First();

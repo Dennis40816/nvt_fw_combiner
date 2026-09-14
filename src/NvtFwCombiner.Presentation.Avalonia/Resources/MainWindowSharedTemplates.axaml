@@ -120,7 +120,7 @@
               AutomationProperties.Name="{Binding Title}" AutomationProperties.HelpText="{Binding SelectionSummary}">
       <Expander.Header>
         <Grid HorizontalAlignment="Stretch" ColumnDefinitions="*,Auto" ColumnSpacing="{DynamicResource NfcSpace12}">
-          <TextBlock Classes="cardTitle" VerticalAlignment="Center" Text="{Binding Title}" />
+          <TextBlock Classes="cardTitle" FontWeight="Bold" VerticalAlignment="Center" Text="{Binding Title}" />
           <Label Grid.Column="1" Classes="compactBadge neutralBadge countBadge" FontSize="{DynamicResource NfcFontSize11}" Content="{Binding CountLabel}" />
         </Grid>
       </Expander.Header>
