@@ -54,9 +54,11 @@ implemented. This planning change does not start production work or a release.
 Use the [Desay intake](../ui/v1.1.x-custom-options-layout-handoff.md#desay-nt51950--nt51951-rule-intake--2026-09-14)
 for the consolidated specification. Owner correction, 2026-09-14: `0x2200C`
 was a typo; the primary FWConfig starts at `0x22200` and its `+0x0C` field is
-`0x2220C`. The numerical discrepancy is closed. Still decide whether Desay
-detection uses that primary field or the dynamically located Backup used by
-current AB admission; correcting the number alone does not switch readers.
+`0x2220C`. Owner follow-up explicitly selects the **primary** for Desay
+detection because its location is documented. Both the typo and source-choice
+questions are closed. Read the profile-bound primary field for each scoped
+TP input; do not silently fall back to Backup or migrate other existing
+FWConfig readers. This decision is recorded, not yet implemented.
 Confirm coupled bank extents,
 source bounds and processor/write ranges; a TP B start alone does not define
 them. Close required owner/golden evidence before firmware implementation and
@@ -1720,9 +1722,9 @@ rule inventory, a DP AB Code input-size warning against exactly 1,048,576 bytes
 reusable public/vendor flow separation, and public NT51950 partial-family
 AB Code / 2 IC TP B output start `0x8A000` with coupled offset/write-range
 updates. The owner requires complete Q&A and consolidation before development.
-The owner confirms a single byte matching either `0x97` or `0xA6`; exact
-primary-versus-Backup runtime authority remains an explicit question; the
-primary-address typo is resolved. Settings is the requested
+The owner confirms a single byte matching either `0x97` or `0xA6` and selects
+the documented primary FWConfig field (`0x2220C`) for this detector. Existing
+Backup-based version/topology/inspection contracts stay unchanged. Settings is the requested
 common entry point for candidate user-editable rules, with editability and
 safety boundaries to be assessed before implementation. The accompanying
 Profile/Family/IC Count review is an assessment, not an approved rewrite.
