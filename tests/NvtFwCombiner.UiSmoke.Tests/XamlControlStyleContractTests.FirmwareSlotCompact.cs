@@ -112,7 +112,7 @@ public sealed partial class XamlControlStyleContractTests
         UniformGrid factGrid = Assert.Single(
             primaryFacts.GetVisualDescendants().OfType<UniformGrid>());
 
-        Assert.Equal(2, layout.RowDefinitions.Count);
+        Assert.Equal(3, layout.RowDefinitions.Count);
         Assert.Equal(0, Grid.GetRow(identity));
         Assert.Equal(0, Grid.GetRow(actions));
         Assert.Equal(1, Grid.GetRow(facts));

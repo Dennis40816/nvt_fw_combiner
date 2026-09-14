@@ -56,7 +56,7 @@ public sealed partial class XamlControlStyleContractTests
             HasXamlName(element, "AdditionalFirmwareFactsHost"));
 
         Assert.Equal("280,*", (string?)layout.Attribute("ColumnDefinitions"));
-        Assert.Equal("*", (string?)layout.Attribute("RowDefinitions"));
+        Assert.Equal("*,Auto", (string?)layout.Attribute("RowDefinitions"));
         Assert.Equal("16", (string?)layout.Attribute("Margin"));
         Assert.Equal("72", (string?)layout.Attribute("MinHeight"));
         Assert.Equal("{DynamicResource NfcSpace12}", (string?)identity.Attribute("Spacing"));

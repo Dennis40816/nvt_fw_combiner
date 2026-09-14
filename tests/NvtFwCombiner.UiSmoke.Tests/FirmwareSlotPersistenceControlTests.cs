@@ -174,9 +174,9 @@ public sealed class FirmwareSlotPersistenceControlTests
         Border outline = Assert.Single(card.GetVisualDescendants().OfType<Border>(), border => border.Classes.Contains("firmwareSlot"));
         double panelLeft = panel.TranslatePoint(default, window)!.Value.X;
         double left = outline.TranslatePoint(default, window)!.Value.X;
-        // Match the approved CtrlRAM child-column inset, not the outer group surface.
-        double expectedLeft = panelLeft + panel.BorderThickness.Left + panel.Padding.Left + 32;
-        double expectedRight = panelLeft + panel.Bounds.Width - panel.BorderThickness.Right - panel.Padding.Right - 32;
+        // Cards share the Input files content edges after the approved group flattening.
+        double expectedLeft = panelLeft + panel.BorderThickness.Left + panel.Padding.Left;
+        double expectedRight = panelLeft + panel.Bounds.Width - panel.BorderThickness.Right - panel.Padding.Right;
         Assert.InRange(Math.Abs(left - expectedLeft), 0, 0.5);
         Assert.InRange(Math.Abs(left + outline.Bounds.Width - expectedRight), 0, 0.5);
     }
