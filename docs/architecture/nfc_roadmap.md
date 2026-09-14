@@ -1645,7 +1645,7 @@ common entry point for candidate user-editable rules, with editability and
 safety boundaries to be assessed before implementation. The accompanying
 Profile/Family/IC Count review is an assessment, not an approved rewrite.
 Further owner direction: public inputs also show the actual marker value,
-e.g. `Common · 0x84` under the latest plain-text **Event Buffer Format** label
+e.g. `Common · 0x84` under the latest plain-text **Event Buffer Version** label
 (superseding the earlier Format badge proposal). TP Version comes first; PID
 is primary and outranks IC Count. Add a Settings preference for input Details
 default expansion, initially Off. Responsive action alignment, primary-field
