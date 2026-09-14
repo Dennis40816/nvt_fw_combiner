@@ -68,6 +68,8 @@ public sealed partial class MemoryCoverageBar : UserControl
     private bool _restoringFocus;
     private bool _localAbove;
     private bool _keyboardFocus;
+    private bool _closingOverlays;
+    private bool _closeAllPending;
 
     /// <summary>Constructs the shared rail using existing bar, color, card and interaction owners.</summary>
     public MemoryCoverageBar()
@@ -99,6 +101,9 @@ public sealed partial class MemoryCoverageBar : UserControl
         LostFocus += (_, _) => StartCloseTimer();
         TrackInputOrigin(this);
         _card.KeyDown += OnCardKeyDown;
+        // Inner scrolling gets first refusal; unconsumed wheel input must not move
+        // the page behind an overlay (including cards whose content already fits).
+        _card.PointerWheelChanged += (_, e) => e.Handled = true;
     }
 
     /// <inheritdoc cref="ItemsSourceProperty" />
@@ -476,9 +481,11 @@ public sealed partial class MemoryCoverageBar : UserControl
 
     private void OpenLocal(MemoryCoverageBarItem item, Control target, MemoryFocusLaneViewModel? lane = null)
     {
+        if (_closingOverlays || !_attached || !IsEffectivelyEnabled || !IsEffectivelyVisible) { return; }
         StopCloseTimer();
         if (_localPopup.IsOpen && ReferenceEquals(item, _activeGroup)) { return; }
         CloseAll();
+        if (!_attached || !IsEffectivelyEnabled || !IsEffectivelyVisible) { return; }
         _activeGroup = item;
         _groupTarget = target;
         target.Classes.Add("active");
@@ -524,15 +531,17 @@ public sealed partial class MemoryCoverageBar : UserControl
 
     private void OpenCard(Control target, MemoryCoverageSegmentViewModel slice, bool? preferredAbove)
     {
+        if (_closingOverlays || !_attached || !IsEffectivelyEnabled || !IsEffectivelyVisible) { return; }
         StopCloseTimer();
         if (_cardPopup.IsOpen && ReferenceEquals(target, _cardTarget)) { return; }
         CloseCard();
+        if (!_attached || !IsEffectivelyEnabled || !IsEffectivelyVisible) { return; }
         _cardTarget = target;
         _card.DataContext = slice;
         var details = new ContentControl { Content = slice, HorizontalContentAlignment = HorizontalAlignment.Stretch, ContentTemplate = (IDataTemplate)this.FindResource("MemoryCoverageRegionCardTemplate")! };
         var content = new StackPanel { Spacing = 8 };
         content.Children.Add(details);
-        _card.Child = new ScrollViewer { Content = content, HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled };
+        _card.Child = new ScrollViewer { Content = content, HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled, IsScrollChainingEnabled = false };
         TopLevel top = TopLevel.GetTopLevel(this)!;
         Point origin = target.TranslatePoint(default, top) ?? default;
         double below = top.Bounds.Height - origin.Y - target.Bounds.Height;
@@ -547,6 +556,15 @@ public sealed partial class MemoryCoverageBar : UserControl
         double connectorHeight = preferredAbove.HasValue
             ? Math.Max(20, (above ? origin.Y - localOrigin.Y : localOrigin.Y + _local.Bounds.Height - origin.Y - target.Bounds.Height) + 4)
             : ShowLabels ? 8 : 20;
+        // Keep the pointer corridor inside the overlay, including the header between
+        // the main rail and its upper card. Crossing a legend must not change the source.
+        bool crossesHeader = above && preferredAbove is null && ShowLegend && target.Name != "MemoryLegendTarget";
+        if (crossesHeader)
+        {
+            connectorHeight += origin.Y - placementOrigin.Y;
+            placementTarget = target;
+            placementOrigin = origin;
+        }
         double available = (above ? placementOrigin.Y : below) - connectorHeight - 8;
         _card.MaxHeight = Math.Max(64, available);
         double trackLeft = _track.TranslatePoint(default, top)?.X ?? 0;
@@ -558,8 +576,8 @@ public sealed partial class MemoryCoverageBar : UserControl
         double left = Math.Clamp(center - (width / 2), columnLeft, Math.Max(columnLeft, columnRight - width));
         double anchor = center - left;
         double connectorTop = above ? origin.Y - connectorHeight : origin.Y + target.Bounds.Height;
-        Rect[] labels = preferredAbove.HasValue
-            ? [.. _local.GetVisualDescendants().OfType<TextBlock>().Where(static block => block.IsEffectivelyVisible)
+        Rect[] labels = preferredAbove.HasValue || crossesHeader
+            ? [.. (preferredAbove.HasValue ? _local : (Control)this).GetVisualDescendants().OfType<TextBlock>().Where(static block => block.IsEffectivelyVisible)
                 .Select(block =>
                 {
                     Point point = block.TranslatePoint(default, top) ?? default;
@@ -636,6 +654,18 @@ public sealed partial class MemoryCoverageBar : UserControl
 
     private void CloseCard()
     {
+        if (_closingOverlays) { return; }
+        _closingOverlays = true;
+        try { CloseCardCore(); }
+        finally
+        {
+            _closingOverlays = false;
+            if (_closeAllPending) { CloseAll(); }
+        }
+    }
+
+    private void CloseCardCore()
+    {
         FinishReveal(_card);
         _cardPopup.IsOpen = false;
         if (_cardPopup.Child is Panel frame) { frame.Children.Clear(); }
@@ -647,17 +677,29 @@ public sealed partial class MemoryCoverageBar : UserControl
 
     private void CloseAll()
     {
-        StopCloseTimer();
-        _keyboardFocus = false;
-        CloseCard();
-        FinishReveal(_local);
-        _localPopup.IsOpen = false;
-        if (_localPopup.Child is Panel frame) { frame.Children.Clear(); }
-        _localPopup.Child = null;
-        _local.Child = null;
-        _sliceTargets.Clear();
-        _activeGroup = null;
-        _ = _groupTarget?.Classes.Remove("active");
-        _groupTarget = null;
+        // Popup detachment synchronously invokes input/lifecycle callbacks. Do not
+        // reopen or clear its children again while Avalonia is enumerating them.
+        if (_closingOverlays) { _closeAllPending = true; return; }
+        _closingOverlays = true;
+        try
+        {
+            StopCloseTimer();
+            _keyboardFocus = false;
+            CloseCardCore();
+            FinishReveal(_local);
+            _localPopup.IsOpen = false;
+            if (_localPopup.Child is Panel frame) { frame.Children.Clear(); }
+            _localPopup.Child = null;
+            _local.Child = null;
+            _sliceTargets.Clear();
+            _activeGroup = null;
+            _ = _groupTarget?.Classes.Remove("active");
+            _groupTarget = null;
+        }
+        finally
+        {
+            _closingOverlays = false;
+            _closeAllPending = false;
+        }
     }
 }
