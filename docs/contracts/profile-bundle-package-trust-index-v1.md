@@ -50,7 +50,9 @@ projection. A new
 workflow vocabulary or compiler semantic is a separate contract and
 architecture change.
 
-Registration keys are globally unique by workflow, IC, processor, and branch.
+Registration keys are globally unique by workflow, IC, map-variant set, processor,
+and branch. Multiple format profiles for one IC require distinct explicit
+map-variant sets; IC-only lookup is not sufficient to choose a format.
 Runtime loaders validate the index before projecting any route. CtrlRAM
 admission resolves the exact same-IC Standard registration, requires the
 presence or absence rule above, compiles the named map through the existing

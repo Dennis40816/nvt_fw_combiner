@@ -1,5 +1,6 @@
 using NvtFwCombiner.Application.Authoring;
 using NvtFwCombiner.Application.Capabilities;
+using NvtFwCombiner.Application.Composition;
 using NvtFwCombiner.Application.Metadata;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Domain.Firmware;
@@ -9,6 +10,36 @@ namespace NvtFwCombiner.Application.Tests.Capabilities;
 
 public sealed partial class CanonicalCapabilityCatalogTests
 {
+    /// <summary>A slot and its address-space alias cannot become two accepted inputs or reach compilation.</summary>
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task AbAliasCollisionIsRejectedBeforeCompilationAsync(bool inspection)
+    {
+        (CanonicalCapabilityCatalog catalog, _) = AbDeclarationCatalog();
+        var adapter = new DeclarationOnlyAdapter(AbDeclaration("none"));
+        var owner = new AbMergeAuthoringExperience(new CanonicalCapabilityCompilerAdapter(catalog, adapter), catalog, adapter);
+        if (inspection)
+        {
+            AbMergeInspectionBatch result = await owner.InspectInputSlotsAsync("NT51951",
+                [new("a", "a.bin", AbMergeAddressSpaceId: "input-a"), new("alias", "alias.bin", AbMergeAddressSpaceId: "space-a")],
+                _ => new byte[16], TestContext.Current.CancellationToken);
+            Assert.Equal("AB_FORMAT_INPUT_INVALID", Assert.Single(result.Issues).Code);
+            Assert.Empty(result.Statuses);
+            Assert.Empty(result.Facts);
+        }
+        else
+        {
+            var session = new AuthoringSessionState(ExperienceIds.AbMerge);
+            CompiledAuthoringSessionPreparation result = await owner.PrepareSessionAsync(session, "NT51951", null,
+                [new("input-a", "a.bin", new byte[16]), new("space-a", "alias.bin", new byte[16])],
+                AbMergeDpMode.Normal, TestContext.Current.CancellationToken);
+            Assert.False(result.Succeeded);
+            Assert.Contains(result.Issues, static issue => issue.Code == "AB_FORMAT_INPUT_INVALID");
+            Assert.Null(session.CurrentSnapshot?.ExactCapability);
+        }
+    }
+
     /// <summary>Every actual-source identity and member bound must match the same publication.</summary>
     [Theory]
     [InlineData("none", true)]
@@ -107,8 +138,13 @@ public sealed partial class CanonicalCapabilityCatalogTests
     }
 
     private sealed class DeclarationOnlyAdapter(CanonicalAbAuthoringDefinition definition, Action? afterQuery = null)
-        : ICanonicalDynamicCompilationAdapter
+        : ICanonicalDynamicCompilationAdapter, IRuntimeDependencyReadinessLeaseProvider
     {
+        public RuntimeDependencyReadinessLease AcquireCurrent()
+        {
+            throw new InvalidOperationException("Declaration query must not acquire runtime dependencies.");
+        }
+
         internal CanonicalAbAuthoringDefinition Definition { get; } = definition;
         internal int Calls { get; private set; }
         internal CapabilityRouteIdentity? Identity { get; private set; }

@@ -94,9 +94,13 @@ public sealed class MemorySourcePresentationTests
                     global::Avalonia.Controls.Primitives.ToggleButton toggle = Assert.Single(disclosure.GetVisualDescendants().OfType<global::Avalonia.Controls.Primitives.ToggleButton>());
                     Assert.InRange(toggle.Bounds.Height, 28, 30);
                     TextBlock disclosureLabel = Assert.Single(toggle.GetVisualDescendants().OfType<TextBlock>(), block => block.Text == (chinese ? "技術細節" : "Technical details"));
-                    TextBlock rangeLabel = Assert.Single(card.GetVisualDescendants().OfType<TextBlock>(), block => block.Text == text.RangeLabel);
-                    Assert.Equal(rangeLabel.FontSize, disclosureLabel.FontSize);
-                    Assert.InRange(Math.Abs(disclosureLabel.TranslatePoint(default, card)!.Value.X - rangeLabel.TranslatePoint(default, card)!.Value.X), 0, 0.5);
+                    TextBlock targetAddressLabel = Assert.Single(card.GetVisualDescendants().OfType<TextBlock>(), block => block.Text == text.MemoryTargetAddressLabel);
+                    Assert.Equal(14d, disclosureLabel.FindResource("NfcFontSize14"));
+                    Assert.Equal(14, Assert.Single(card.GetVisualDescendants().OfType<TextBlock>(),
+                        block => block.Text == title).FontSize);
+                    Assert.Equal(14, disclosureLabel.FontSize);
+                    Assert.Equal(11, targetAddressLabel.FontSize);
+                    Assert.InRange(Math.Abs(disclosureLabel.TranslatePoint(default, card)!.Value.X - targetAddressLabel.TranslatePoint(default, card)!.Value.X), 0, 0.5);
                     Assert.DoesNotContain(disclosure.GetVisualDescendants().OfType<Border>(), border => border.Name == "MemoryTechnicalSeparator" && border.IsEffectivelyVisible);
                     Assert.True(toggle.Focus(NavigationMethod.Tab));
                     Assert.True(toggle.BorderThickness.Top > 0);

@@ -471,6 +471,18 @@ internal sealed class BuiltInV2Registration
 
     private V2CompositionPlanCompileResult CompileSummary()
     {
+        if (IsAbMerge)
+        {
+            IReadOnlyList<FirmwareImageMap> maps = GetMapVariants(out _, out IReadOnlyList<CompositionIssue> mapIssues);
+            if (mapIssues.Count != 0) { return V2CompositionPlanCompileResult.Failed(mapIssues); }
+            FirmwareImageMap? representative = maps.OrderBy(static map => map.CapacityBytes)
+                .ThenBy(static map => map.MapId, StringComparer.Ordinal).FirstOrDefault();
+            return representative is null
+                ? V2CompositionPlanCompileResult.Failed([new CompositionIssue(BuiltInV2Bundle.CompilationFailed,
+                    $"The built-in V2 {ProfileLabel} for {IcId} has no declared maps.")])
+                : CompileExecutable(representative.CapacityBytes, HeadlessRouteSelection.CreateTopologySelection(
+                    representative.Applicability.TopologyRequirement, representative.MapId));
+        }
         IReadOnlyList<long> capacities = GetMapCapacities(out IReadOnlyList<CompositionIssue> issues);
         return (issues.Count, capacities.Count) switch
         {
@@ -480,8 +492,7 @@ internal sealed class BuiltInV2Registration
                     BuiltInV2Bundle.CompilationFailed,
                     $"The built-in V2 {ProfileLabel} for {IcId} has no declared {(IsDpReplace ? "base" : "map")} capacities.")]),
             _ => CompileExecutable(
-                IsDpReplace || ((IsStandardMerge || IsAbMerge) && capacities.Count > 1) ? capacities[0] : null,
-                IsAbMerge && capacities.Count > 1 ? CreateSummaryTopology() : null),
+                IsDpReplace || (IsStandardMerge && capacities.Count > 1) ? capacities[0] : null),
         };
     }
 

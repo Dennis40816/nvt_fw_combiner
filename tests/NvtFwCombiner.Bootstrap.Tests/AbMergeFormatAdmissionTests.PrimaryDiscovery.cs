@@ -18,7 +18,7 @@ public sealed partial class AbMergeFormatAdmissionTests
     public void PrimaryDiscoverySelectsFormatWithoutCompiledSnapshot(
         string ic, int count, byte countA, byte countB, byte rawA, byte rawB, string expectedMap)
     {
-        FirmwareFamilyResolutionDefinition family = BuiltInV2RegistrationRegistry.AbMergeByIc[ic].GetFirmwareFamily();
+        FirmwareFamilyResolutionDefinition family = BuiltInV2RegistrationRegistry.FindAbMergeRegistration(ic, ic == "NT51950" ? "nt51950-ab-merge-maps" : "nt51951-ab-merge-1024k")!.GetFirmwareFamily();
         byte[] a = Tp(rawA, countA);
         byte[] b = Tp(rawB, countB);
         if (count == 0)
@@ -58,7 +58,7 @@ public sealed partial class AbMergeFormatAdmissionTests
     [InlineData("mismatch", "AB_FORMAT_MISMATCH")]
     public void PrimaryDiscoveryFailsClosed(string mutation, string code)
     {
-        FirmwareFamilyResolutionDefinition family = BuiltInV2RegistrationRegistry.AbMergeByIc["NT51951"].GetFirmwareFamily();
+        FirmwareFamilyResolutionDefinition family = BuiltInV2RegistrationRegistry.FindAbMergeRegistration("NT51951", "nt51951-ab-merge-1024k")!.GetFirmwareFamily();
         byte[] a = Tp(0x97);
         if (mutation == "complement")
         {
@@ -94,7 +94,7 @@ public sealed partial class AbMergeFormatAdmissionTests
     [Fact]
     public void PrimaryDiscoveryUsesCurrentCapturedBytesWithoutRetainingPreviousDecision()
     {
-        FirmwareFamilyResolutionDefinition family = BuiltInV2RegistrationRegistry.AbMergeByIc["NT51951"].GetFirmwareFamily();
+        FirmwareFamilyResolutionDefinition family = BuiltInV2RegistrationRegistry.FindAbMergeRegistration("NT51951", "nt51951-ab-merge-1024k")!.GetFirmwareFamily();
         byte[] a = Tp(0x97);
         byte[] b = Tp(0xA6);
         FirmwareBinInspectionArtifact[] captured = Artifacts(a, b);

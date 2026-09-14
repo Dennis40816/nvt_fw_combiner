@@ -15,13 +15,14 @@ public sealed partial class AbMergeRuntimeAdmissionTests
             [CompositionAddressSpaceIds.DpAbInput] = workspace.Write("inputs/dp-ab.bin", new byte[0x100000]),
             [CompositionAddressSpaceIds.TpAInput] = workspace.Write(
                 "inputs/tp-a.bin",
-                CreateTpImage(0x81, 0x00, chipCount: 1, length: 0x37000)),
+                CreateFormatTpImage(0x81, 0x00, chipCount: 1)),
             [CompositionAddressSpaceIds.TpBInput] = workspace.Write(
                 "inputs/tp-b.bin",
-                CreateTpImage(0x82, 0x01, chipCount: 2, length: 0x37000)),
+                CreateFormatTpImage(0x82, 0x01, chipCount: 2)),
         };
 
-        CompositionRunResult result = await AbMergeTestSupport.RunAsync(BootstrapTestHost.Services,
+        CompositionHostServices host = await CreateFormatTestHostAsync(workspace);
+        CompositionRunResult result = await AbMergeTestSupport.RunAsync(host,
             "NT51951",
             paths,
             build: false,
@@ -39,11 +40,12 @@ public sealed partial class AbMergeRuntimeAdmissionTests
         var paths = new Dictionary<string, string>(StringComparer.Ordinal)
         {
             [CompositionAddressSpaceIds.DpAbInput] = workspace.Write("inputs/dp-ab.bin", new byte[0x100000]),
-            [CompositionAddressSpaceIds.TpAInput] = workspace.Write("inputs/tp-a.bin", new byte[0x37000]),
-            [CompositionAddressSpaceIds.TpBInput] = workspace.Write("inputs/tp-b.bin", new byte[0x37000]),
+            [CompositionAddressSpaceIds.TpAInput] = workspace.Write("inputs/tp-a.bin", CreateFormatTpImage(0x81, 0, withBackup: false)),
+            [CompositionAddressSpaceIds.TpBInput] = workspace.Write("inputs/tp-b.bin", CreateFormatTpImage(0x82, 1, withBackup: false)),
         };
 
-        CompositionRunResult result = await AbMergeTestSupport.RunAsync(BootstrapTestHost.Services,
+        CompositionHostServices host = await CreateFormatTestHostAsync(workspace);
+        CompositionRunResult result = await AbMergeTestSupport.RunAsync(host,
             "NT51951",
             paths,
             build: false,

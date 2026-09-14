@@ -1,9 +1,125 @@
 {
   "schemaVersion": "1.0",
   "catalogId": "canonical-capability-policy",
-  "catalogVersion": "1.15.0",
+  "catalogVersion": "1.16.0",
   "issuedOn": "2026-09-14",
   "routes": [
+    {
+      "icId": "NT51950",
+      "workflowId": "ab-merge",
+      "icCountVariant": "1-ic",
+      "mapVariant": "nt51950-ab-desay-maps",
+      "routeId": "route-7-nt51950-8-ab-merge-4-1-ic-21-nt51950-ab-desay-maps",
+      "capabilityFingerprint": "9a98d89500aa9eae688e8baae9a771accffa4c0ff981d3dd384d85dffff10cac",
+      "authoring": {
+        "decisionId": "nt51950-ab-merge-1-ic-nt51950-ab-desay-maps-authoring-v116-format",
+        "routeId": "route-7-nt51950-8-ab-merge-4-1-ic-21-nt51950-ab-desay-maps",
+        "capabilityFingerprint": "9a98d89500aa9eae688e8baae9a771accffa4c0ff981d3dd384d85dffff10cac",
+        "value": "available",
+        "sourceReference": "owner-decision:2026-09-14:v1.1.6-ab-format-runtime"
+      },
+      "publication": {
+        "decisionId": "nt51950-ab-merge-1-ic-nt51950-ab-desay-maps-publication-v116-format",
+        "routeId": "route-7-nt51950-8-ab-merge-4-1-ic-21-nt51950-ab-desay-maps",
+        "capabilityFingerprint": "9a98d89500aa9eae688e8baae9a771accffa4c0ff981d3dd384d85dffff10cac",
+        "value": "candidate",
+        "sourceReference": "owner-decision:2026-09-14:v1.1.6-ab-format-runtime"
+      },
+      "evidence": {
+        "decisionId": "nt51950-ab-merge-1-ic-nt51950-ab-desay-maps-evidence-v116-format",
+        "routeId": "route-7-nt51950-8-ab-merge-4-1-ic-21-nt51950-ab-desay-maps",
+        "capabilityFingerprint": "9a98d89500aa9eae688e8baae9a771accffa4c0ff981d3dd384d85dffff10cac",
+        "value": "contract-only",
+        "sourceReference": "contract:docs/adr/0072-event-buffer-format-configuration.md:primary-ab-observation"
+      }
+    },
+    {
+      "icId": "NT51950",
+      "workflowId": "ab-merge",
+      "icCountVariant": "2-plus-ic",
+      "mapVariant": "nt51950-ab-desay-maps",
+      "routeId": "route-7-nt51950-8-ab-merge-9-2-plus-ic-21-nt51950-ab-desay-maps",
+      "capabilityFingerprint": "4a27ecdfbaff3148b9fcf67bc8db8723dacb3a8d5e1249850931fbdaf42a6b49",
+      "authoring": {
+        "decisionId": "nt51950-ab-merge-2-plus-ic-nt51950-ab-desay-maps-authoring-v116-format",
+        "routeId": "route-7-nt51950-8-ab-merge-9-2-plus-ic-21-nt51950-ab-desay-maps",
+        "capabilityFingerprint": "4a27ecdfbaff3148b9fcf67bc8db8723dacb3a8d5e1249850931fbdaf42a6b49",
+        "value": "available",
+        "sourceReference": "owner-decision:2026-09-14:v1.1.6-ab-format-runtime"
+      },
+      "publication": {
+        "decisionId": "nt51950-ab-merge-2-plus-ic-nt51950-ab-desay-maps-publication-v116-format",
+        "routeId": "route-7-nt51950-8-ab-merge-9-2-plus-ic-21-nt51950-ab-desay-maps",
+        "capabilityFingerprint": "4a27ecdfbaff3148b9fcf67bc8db8723dacb3a8d5e1249850931fbdaf42a6b49",
+        "value": "candidate",
+        "sourceReference": "owner-decision:2026-09-14:v1.1.6-ab-format-runtime"
+      },
+      "evidence": {
+        "decisionId": "nt51950-ab-merge-2-plus-ic-nt51950-ab-desay-maps-evidence-v116-format",
+        "routeId": "route-7-nt51950-8-ab-merge-9-2-plus-ic-21-nt51950-ab-desay-maps",
+        "capabilityFingerprint": "4a27ecdfbaff3148b9fcf67bc8db8723dacb3a8d5e1249850931fbdaf42a6b49",
+        "value": "contract-only",
+        "sourceReference": "contract:docs/adr/0072-event-buffer-format-configuration.md:primary-ab-observation"
+      }
+    },
+    {
+      "icId": "NT51951",
+      "workflowId": "ab-merge",
+      "icCountVariant": "selector-free",
+      "mapVariant": "nt51951-ab-desay-maps",
+      "routeId": "route-7-nt51951-8-ab-merge-13-selector-free-21-nt51951-ab-desay-maps",
+      "capabilityFingerprint": "705b2dc3e1fe828c9f9c1077cff9e9ee3c2b13ee75b3d524f3bf23ee8e4f40e1",
+      "authoring": {
+        "decisionId": "nt51951-ab-merge-selector-free-nt51951-ab-desay-maps-authoring-v116-format",
+        "routeId": "route-7-nt51951-8-ab-merge-13-selector-free-21-nt51951-ab-desay-maps",
+        "capabilityFingerprint": "705b2dc3e1fe828c9f9c1077cff9e9ee3c2b13ee75b3d524f3bf23ee8e4f40e1",
+        "value": "available",
+        "sourceReference": "owner-decision:2026-09-14:v1.1.6-ab-format-runtime"
+      },
+      "publication": {
+        "decisionId": "nt51951-ab-merge-selector-free-nt51951-ab-desay-maps-publication-v116-format",
+        "routeId": "route-7-nt51951-8-ab-merge-13-selector-free-21-nt51951-ab-desay-maps",
+        "capabilityFingerprint": "705b2dc3e1fe828c9f9c1077cff9e9ee3c2b13ee75b3d524f3bf23ee8e4f40e1",
+        "value": "candidate",
+        "sourceReference": "owner-decision:2026-09-14:v1.1.6-ab-format-runtime"
+      },
+      "evidence": {
+        "decisionId": "nt51951-ab-merge-selector-free-nt51951-ab-desay-maps-evidence-v116-format",
+        "routeId": "route-7-nt51951-8-ab-merge-13-selector-free-21-nt51951-ab-desay-maps",
+        "capabilityFingerprint": "705b2dc3e1fe828c9f9c1077cff9e9ee3c2b13ee75b3d524f3bf23ee8e4f40e1",
+        "value": "contract-only",
+        "sourceReference": "contract:docs/adr/0072-event-buffer-format-configuration.md:primary-ab-observation"
+      }
+    },
+    {
+      "icId": "NT51950",
+      "workflowId": "ab-merge",
+      "icCountVariant": "2-ic",
+      "mapVariant": "nt51950-ab-common-2ic-maps",
+      "routeId": "route-7-nt51950-8-ab-merge-4-2-ic-26-nt51950-ab-common-2ic-maps",
+      "capabilityFingerprint": "bbc140b60f512f9226aa14184c2fbfc9a00de16ac79448245a60a9c803b62d28",
+      "authoring": {
+        "decisionId": "nt51950-ab-merge-2-ic-nt51950-ab-common-2ic-maps-authoring-v116-format",
+        "routeId": "route-7-nt51950-8-ab-merge-4-2-ic-26-nt51950-ab-common-2ic-maps",
+        "capabilityFingerprint": "bbc140b60f512f9226aa14184c2fbfc9a00de16ac79448245a60a9c803b62d28",
+        "value": "available",
+        "sourceReference": "owner-decision:2026-09-14:v1.1.6-ab-format-runtime"
+      },
+      "publication": {
+        "decisionId": "nt51950-ab-merge-2-ic-nt51950-ab-common-2ic-maps-publication-v116-format",
+        "routeId": "route-7-nt51950-8-ab-merge-4-2-ic-26-nt51950-ab-common-2ic-maps",
+        "capabilityFingerprint": "bbc140b60f512f9226aa14184c2fbfc9a00de16ac79448245a60a9c803b62d28",
+        "value": "candidate",
+        "sourceReference": "owner-decision:2026-09-14:v1.1.6-ab-format-runtime"
+      },
+      "evidence": {
+        "decisionId": "nt51950-ab-merge-2-ic-nt51950-ab-common-2ic-maps-evidence-v116-format",
+        "routeId": "route-7-nt51950-8-ab-merge-4-2-ic-26-nt51950-ab-common-2ic-maps",
+        "capabilityFingerprint": "bbc140b60f512f9226aa14184c2fbfc9a00de16ac79448245a60a9c803b62d28",
+        "value": "contract-only",
+        "sourceReference": "contract:docs/adr/0072-event-buffer-format-configuration.md:primary-ab-observation"
+      }
+    },
     {
       "icId": "NT51917",
       "workflowId": "ctrlram-replace",

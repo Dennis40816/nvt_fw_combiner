@@ -143,14 +143,13 @@ public sealed partial class FirmwareInspectionSlotTests
     {
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-ab-topology-refresh");
         var observedTopologies = new List<string?>();
-        MainWindowViewModel viewModel = CreateBatchInspectionViewModel((icId, inputs) =>
-        {
-            observedTopologies.AddRange(inputs.Select(static input => input.AbMergeTopologyToken));
-            return BuiltInFirmwareInspection.InspectFirmwareBatch(
-                (BuiltInFirmwareInspection)TestHost.FirmwareInspectionExperience,
-                icId,
-                inputs);
-        });
+        PresentationHostServices services = PresentationTestHost.CreateServices("ab-topology-reinspection-test");
+        var viewModel = new MainWindowViewModel(
+            "test", "ab-topology-reinspection-test", ShellLanguage.English, services,
+            new DelegatingFirmwareInspection(services.Composition.FirmwareInspection,
+                batchStarted: (_, inputs) => observedTopologies.AddRange(
+                    inputs.Select(static input => input.AbMergeTopologyToken))));
+        _ = PresentationTestHost.PublishCanonicalCatalog(services, viewModel);
         viewModel.ShowMergeCommand.Execute(null);
         viewModel.WorkflowSession.SelectedIc = "NT51950";
         viewModel.Merge.SelectedMergeMode = ExperienceIds.AbMerge;

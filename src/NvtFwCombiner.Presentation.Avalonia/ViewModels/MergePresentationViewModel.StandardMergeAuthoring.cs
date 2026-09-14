@@ -193,7 +193,9 @@ internal sealed partial class MergePresentationViewModel
         FirmwareInspectionItemRequest[] selected,
         IReadOnlyDictionary<string, FirmwareInspectionSnapshot> inspections,
         Func<FirmwareInspectionItemRequest, AuthoringSlotInspectionLease?> selectLease,
-        out ActiveSessionSnapshot? snapshot)
+        out ActiveSessionSnapshot? snapshot,
+        Func<AuthoringCapabilityCatalogSnapshot, IReadOnlyList<AuthoringSlotInspectionLease>,
+            IReadOnlyDictionary<string, AuthoringInputSlotStatus>, AuthoringSessionTransitionResult>? complete = null)
     {
         snapshot = session.CurrentSnapshot;
         if (selected.Length == 0)
@@ -210,7 +212,8 @@ internal sealed partial class MergePresentationViewModel
             return false;
         }
 
-        AuthoringSessionTransitionResult completed = session.TryCompleteSlotFileInspectionBatch(
+        complete ??= (target, sourceLeases, statuses) => session.TryCompleteSlotFileInspectionBatch(target, sourceLeases, statuses);
+        AuthoringSessionTransitionResult completed = complete(
             catalog,
             [.. leases.Select(static lease => lease!)],
             results.ToDictionary(static result => result.InputSlotStatus!.SlotId,

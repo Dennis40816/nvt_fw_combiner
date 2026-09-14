@@ -137,8 +137,17 @@ internal sealed partial class CanonicalCapabilityCompilerAdapter
 /// Sole Application projection from accepted compiled AB topology to selector
 /// choices. Both the selector publication and compiler disclosure consume it.
 /// </summary>
-internal static class AbMergeTopologyChoiceProjection
+public static class AbMergeTopologyChoiceProjection
 {
+    /// <summary>Projects a declared topology to its shared AB selector label without changing its count constraint.</summary>
+    public static CapabilityTopologyChoice FromSelection(TopologySelection selection)
+    {
+        ArgumentNullException.ThrowIfNull(selection);
+        return new(selection.ChipCount == 1
+            ? TopologyRequirement.RequireSingleChip().CanonicalId
+            : TopologyRequirement.RequireCascade().CanonicalId, selection);
+    }
+
     internal static void ValidateDefinition(CapabilityRouteIdentity identity, CapabilityTopologyChoice? choice)
     {
         bool valid = identity.WorkflowId != ExperienceIds.AbMerge || identity.IcCountVariant == "selector-free"
@@ -146,6 +155,7 @@ internal static class AbMergeTopologyChoiceProjection
             : identity.IcCountVariant switch
             {
                 "1-ic" => choice is { Token: "single", Selection.ChipCount: 1 },
+                "2-ic" => choice is { Token: "cascade", Selection.ChipCount: 2 },
                 "2-plus-ic" => choice is { Token: "cascade", Selection.ChipCount: 2 },
                 _ => false,
             };
@@ -165,6 +175,7 @@ internal static class AbMergeTopologyChoiceProjection
         {
             "selector-free" => topology is null,
             "1-ic" => topology?.ChipCount == 1,
+            "2-ic" => topology?.ChipCount == 2,
             "2-plus-ic" => topology?.ChipCount >= 2,
             _ => false,
         };

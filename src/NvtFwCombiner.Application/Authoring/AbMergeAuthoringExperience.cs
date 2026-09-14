@@ -1,5 +1,6 @@
 using NvtFwCombiner.Application.Capabilities;
 using NvtFwCombiner.Application.Composition;
+using NvtFwCombiner.Application.Configuration;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Domain.Firmware;
 
@@ -7,20 +8,51 @@ namespace NvtFwCombiner.Application.Authoring;
 
 internal sealed partial class AbMergeAuthoringExperience :
     IAbMergeAuthoring,
-    ICompiledInputSlotInspector<AbMergeInspectionBatch>
+    IAbMergeInputSlotInspector
 {
     private readonly CanonicalCapabilityCompilerAdapter _compiler;
     private readonly ICanonicalCapabilityQuery _catalog;
     private readonly IRuntimeDependencyReadinessLeaseProvider _runtimeLeases;
+    private readonly Func<CancellationToken, Task<IEventBufferFormatConfigurationSession>>? _getConfiguration;
 
     internal AbMergeAuthoringExperience(
         CanonicalCapabilityCompilerAdapter compiler,
         ICanonicalCapabilityQuery catalog,
-        IRuntimeDependencyReadinessLeaseProvider runtimeLeases)
+        IRuntimeDependencyReadinessLeaseProvider runtimeLeases,
+        Func<CancellationToken, Task<IEventBufferFormatConfigurationSession>>? getConfiguration = null)
     {
         _compiler = compiler ?? throw new ArgumentNullException(nameof(compiler));
         _catalog = catalog ?? throw new ArgumentNullException(nameof(catalog));
         _runtimeLeases = runtimeLeases ?? throw new ArgumentNullException(nameof(runtimeLeases));
+        _getConfiguration = getConfiguration;
+    }
+
+    /// <summary>Adopts one inspected format through the current canonical publication and original source leases.</summary>
+    public AuthoringSessionTransitionResult AdoptInspectedBatch(AuthoringSessionState session,
+        AuthoringCapabilityCatalogSnapshot catalog, IReadOnlyList<AuthoringSlotInspectionLease> leases,
+        IReadOnlyDictionary<string, AuthoringInputSlotStatus> statuses)
+    {
+        ArgumentNullException.ThrowIfNull(session);
+        ArgumentNullException.ThrowIfNull(catalog);
+        ArgumentNullException.ThrowIfNull(leases);
+        ArgumentNullException.ThrowIfNull(statuses);
+        ActiveSessionSnapshot? current = session.CurrentSnapshot;
+        AuthoringCapabilityRoute? target = catalog.Routes.Count == 1 ? catalog.Routes[0] : null;
+        ResolvedCapabilityRoute? sourceRoute = current is null ? null : _catalog.ResolveDynamicRoute(current.SelectedRouteId).Route;
+        ResolvedCapabilityRoute? targetRoute = target is null ? null : _catalog.ResolveDynamicRoute(target.Identity.RouteId).Route;
+        bool invalid = current is null || sourceRoute is null || targetRoute is null || target is null ||
+            sourceRoute.ResolutionToken != current.ResolutionToken || targetRoute.ResolutionToken != catalog.ResolutionToken ||
+            targetRoute.CapabilityFingerprint != target.CapabilityFingerprint || sourceRoute.Identity.WorkflowId != ExperienceIds.AbMerge ||
+            targetRoute.Identity.WorkflowId != ExperienceIds.AbMerge || targetRoute.Identity.IcId != current.SelectedIc ||
+            sourceRoute.AbMergeTopologyChoice?.Token != targetRoute.AbMergeTopologyChoice?.Token ||
+            (target.ExactCapability is { } exact && _catalog.ResolveCurrentCompilation(exact.CompiledComposition, exact) is null);
+        return invalid
+            ? new(current, new AuthoringSessionIssue(AuthoringSessionIssueCodes.StaleInspection,
+                "The inspected AB format no longer matches the current IC, topology or publication.", ExperienceIds.AbMerge))
+            : target!.ExactCapability is null ||
+                (current!.SelectedRouteId == target.Identity.RouteId && current.CompilationFingerprint == target.CompilationFingerprint)
+            ? session.TryCompleteSlotFileInspectionBatch(catalog, leases, statuses)
+            : session.TryAdoptExactSlotFileInspectionBatch(catalog, leases, [.. statuses.Values]);
     }
 
     /// <summary>Returns whether the selected IC owns an authorable AB Merge route.</summary>
@@ -47,12 +79,22 @@ internal sealed partial class AbMergeAuthoringExperience :
         ActiveSessionSnapshot? retainedSession = null,
         AbMergeDpMode dpMode = AbMergeDpMode.Normal)
     {
-        return CreateAbMergeAuthoringService(
-                _compiler.ResolveAbMergeTopologySelection(
-                    icId,
-                    topologyToken),
-                _compiler,
-                dpMode)
+        TopologySelection? topology = _compiler.ResolveAbMergeTopologySelection(icId, topologyToken);
+        (ResolvedCapabilityRoute route, CanonicalAbAuthoringDefinition definition) = GetAbDeclarations(icId, topology);
+        if (definition.Family.AbFormatPolicy is not null)
+        {
+            ResolvedCapability? retained = retainedSession?.ExactCapability;
+            return retained is not null && retained.Identity.IcId == route.Identity.IcId &&
+                retained.Identity.WorkflowId == ExperienceIds.AbMerge &&
+                _catalog.ResolveCurrentCompilation(retained.CompiledComposition, retained) is not null &&
+                retained.CompiledComposition.V2Details.Provenance.ResolvedMap.ImageMap.Applicability.TopologyRequirement.Matches(topology) &&
+                retained.CompiledComposition.V2Details.InputContract.Slots.Any(slot =>
+                    definition.SelectionGroupMemberSlotIds.Contains(slot.SlotId, StringComparer.Ordinal)) == (dpMode == AbMergeDpMode.Normal)
+                ? new CompiledAuthoringWorkflowService(new AbMergeAuthoringResolver(topology, _compiler, dpMode, retained))
+                    .ProjectSelection(icId, authoringRevision, selectedSlotIds, acceptedFileStamps, retainedSession)
+                : DeclarationSelection(route, definition, selectedSlotIds, dpMode);
+        }
+        return CreateAbMergeAuthoringService(topology, _compiler, dpMode)
             .ProjectSelection(
                 icId,
                 authoringRevision,
@@ -69,10 +111,18 @@ internal sealed partial class AbMergeAuthoringExperience :
         IReadOnlyCollection<CompiledAuthoringSelectedInput> inputs,
         AbMergeDpMode dpMode = AbMergeDpMode.Normal)
     {
-        return CreateAbMergeAuthoringService(
-                _compiler.ResolveAbMergeTopologySelection(icId, topologyToken),
-                _compiler,
-                dpMode)
+        ArgumentNullException.ThrowIfNull(session);
+        TopologySelection? topology = _compiler.ResolveAbMergeTopologySelection(icId, topologyToken);
+        (ResolvedCapabilityRoute route, CanonicalAbAuthoringDefinition definition) = GetAbDeclarations(icId, topology);
+        if (definition.Family.AbFormatPolicy is not null)
+        {
+            CompiledAuthoringSelectionSnapshot declaration = DeclarationSelection(route, definition,
+                [.. inputs.Select(static input => input.SlotId)], dpMode,
+                [new CompositionIssue("AB_FORMAT_CAPTURE_REQUIRED", "Use asynchronous AB preparation to capture the persisted format configuration.")]);
+            AuthoringSessionTransitionResult invalidated = session.Activate(declaration.Catalog);
+            return new(invalidated.Snapshot, declaration, null, invalidated.Issue);
+        }
+        return CreateAbMergeAuthoringService(topology, _compiler, dpMode)
             .PrepareExactSession(icId, session, inputs);
     }
 

@@ -35,14 +35,14 @@ public sealed partial class AbMergeGoldenRegressionTests
         byte[] originalDp = File.ReadAllBytes(dpPath);
         byte[] originalTp = File.ReadAllBytes(tpAPath);
         using var workspace = TempWorkspace.Create("nfc-nt51950-ab-public-same-tp");
+        CompositionHostServices host = await CreateFormatGoldenHostAsync(workspace);
         string selectedDpPath = workspace.Write("dp-ab.bin", originalDp);
         string selectedTpPath = workspace.Write("shared-tp.bin", originalTp);
         string outputPath = workspace.PathFor("nt51950-ab-output.bin");
         string reportPath = workspace.PathFor("nt51950-ab-report.json");
 
-        CliRunResult result = await CliTestHarness.RunAsync(
+        CliRunResult result = await CliTestHarness.RunAbAsync(host,
             [
-                "ab-merge",
                 "build",
                 "--profile",
                 "NT51950",
@@ -83,27 +83,35 @@ public sealed partial class AbMergeGoldenRegressionTests
     }
 
     /// <summary>
-    /// The production CLI/public host also preserves one physical TP source for both NT51951
-    /// logical bindings and matches the immutable Python reference. This synthetic topology
-    /// regression does not claim a direct NT51951 product Golden or expand support authority.
+    /// The public host rejects the retained invalid-primary synthetic pattern. A distinct
+    /// valid-primary pattern preserves one physical TP source and matches the pinned Python
+    /// reference completely; neither synthetic case claims a direct NT51951 product Golden.
     /// </summary>
-    [Fact(
+    [Theory(
         Skip = "Requires the packaged Windows legacy Combiner processor.",
         SkipUnless = nameof(IsWindows))]
-    public async Task Nt51951PublicHostBuildAcceptsOneTpFileForBothLogicalSlotsAsync()
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Nt51951SharedTpPublicHostEnforcesPrimaryValidityAsync(bool validPrimary)
     {
         const int outputLength = 0x100000;
         const int tpLength = 0x37000;
-        const string expectedSha256 = "b84b63f30c964fad9818b612b77167bd9615cc31d6f72c1eab49f1b1579c8f32";
         byte[] dp = CreatePattern(outputLength, 37, 11);
         byte[] sharedTp = CreatePattern(tpLength, 19, 23);
         WriteHeaderPointers(sharedTp);
         BinaryPrimitives.WriteUInt32LittleEndian(
             sharedTp.AsSpan(0xA130, sizeof(uint)),
             0x1F6CF3EC);
+        if (validPrimary)
+        {
+            // A new runtime-admissible fixture; the original pattern/pinned SHA remains
+            // independently exercised by Nt51951CandidatePlanWithCombinerMatchesPythonReferenceAsync.
+            sharedTp[0x22201] = (byte)~sharedTp[0x22200];
+        }
         byte[] originalDp = [.. dp];
         byte[] originalTp = [.. sharedTp];
         using var workspace = TempWorkspace.Create("nfc-nt51951-ab-public-same-tp");
+        CompositionHostServices host = await CreateFormatGoldenHostAsync(workspace);
         using var referenceWorkspace = TempWorkspace.Create("nfc-nt51951-ab-public-same-tp-reference");
         string dpPath = workspace.Write("dp-ab.bin", dp);
         string sharedTpPath = workspace.Write("shared-tp.bin", sharedTp);
@@ -116,11 +124,13 @@ public sealed partial class AbMergeGoldenRegressionTests
             sharedTp,
             sharedTp,
             TestContext.Current.CancellationToken);
-        Assert.Equal(expectedSha256, Hash(expected));
+        if (!validPrimary)
+        {
+            Assert.Equal("b84b63f30c964fad9818b612b77167bd9615cc31d6f72c1eab49f1b1579c8f32", Hash(expected));
+        }
 
-        CliRunResult result = await CliTestHarness.RunAsync(
+        CliRunResult result = await CliTestHarness.RunAbAsync(host,
             [
-                "ab-merge",
                 "build",
                 "--profile",
                 "NT51951",
@@ -137,11 +147,21 @@ public sealed partial class AbMergeGoldenRegressionTests
             ],
             TestContext.Current.CancellationToken);
 
+        if (!validPrimary)
+        {
+            Assert.Equal(1, result.ExitCode);
+            Assert.Contains("AB_FORMAT_PRIMARY_INVALID", result.Error + result.Output, StringComparison.Ordinal);
+            Assert.False(File.Exists(outputPath));
+            Assert.False(File.Exists(reportPath));
+            Assert.Equal(originalDp, File.ReadAllBytes(dpPath));
+            Assert.Equal(originalTp, File.ReadAllBytes(sharedTpPath));
+            return;
+        }
         Assert.True(result.ExitCode == 0, result.Error + Environment.NewLine + result.Output);
         Assert.Contains($"Committed: {outputPath}", result.Output, StringComparison.Ordinal);
         byte[] output = File.ReadAllBytes(outputPath);
         Assert.Equal(expected, output);
-        Assert.Equal(expectedSha256, Hash(output));
+        Assert.Equal(Hash(expected), Hash(output));
         AssertPostbuildMpeg2Crc(output, bTpCodeStart: 0x8A000);
         Assert.Equal(originalDp, File.ReadAllBytes(dpPath));
         Assert.Equal(originalTp, File.ReadAllBytes(sharedTpPath));

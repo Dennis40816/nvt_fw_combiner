@@ -79,8 +79,10 @@ internal sealed partial class BuiltInFirmwareInspection
             progress?.Report(new(++completedReads, totalReads));
         }
 
+        AbMergeInspectionBatch abBatch = await _abMergeAuthoring.InspectInputSlotsAsync(icId, inputs,
+            path => files[path].Image, cancellationToken).ConfigureAwait(false);
         IReadOnlyList<FirmwareInspectionSnapshotResult> inspections =
-            InspectFirmwareBatch(this, icId, inputs, path => files[path].Image);
+            InspectFirmwareBatch(this, icId, inputs, path => files[path].Image, capturedAbBatch: abBatch);
         return new FirmwareInspectionBatchResult(
             inspections.ToDictionary(
                 static result => result.InspectionId,
@@ -132,7 +134,7 @@ internal sealed partial class BuiltInFirmwareInspection
                      StringComparer.Ordinal.Equals(path, input.Path)))
         {
             string? addressSpaceId = ResolveCompiledAddressSpaceId(input);
-            if (input.ExactCapability is null || addressSpaceId is null)
+            if (input.ExactCapability is null || addressSpaceId is null || input.AbMergeAddressSpaceId is not null)
             {
                 continue;
             }

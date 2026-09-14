@@ -380,7 +380,7 @@
               <Path Grid.Column="2" Width="12" Height="7" Data="M0 0L6 6L12 0" Stretch="Uniform" IsVisible="{Binding Settings.IsEventBufferFormatSelected}" />
             </Grid>
           </RadioButton>
-          <Border Background="{DynamicResource NfcAccentSurfaceBrush}" CornerRadius="6" Padding="46,14,12,14" IsVisible="{Binding Settings.IsEventBufferFormatSelected}">
+          <Border Background="{DynamicResource NfcAccentSurfaceBrush}" CornerRadius="{DynamicResource NfcCompactCornerRadius}" Padding="46,14,12,14" IsVisible="{Binding Settings.IsEventBufferFormatSelected}">
             <TextBlock FontSize="16" Foreground="{DynamicResource NfcAccentStrongBrush}" TextWrapping="Wrap" Text="{Binding Text.EventBufferFormatTitle}" />
           </Border>
           <RadioButton

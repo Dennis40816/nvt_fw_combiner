@@ -89,6 +89,12 @@ public sealed partial class ShellNavigationSystemTests
             string selectedIc,
             IReadOnlyList<FirmwareInspectionSnapshotInput> inputs)
         {
+            ObserveBatch(inputs);
+            return BuiltInFirmwareInspection.InspectFirmwareBatch(firmwareInspection, selectedIc, inputs);
+        }
+
+        internal void ObserveBatch(IReadOnlyList<FirmwareInspectionSnapshotInput> inputs)
+        {
             _ = Interlocked.Increment(ref _batchCount);
             Volatile.Write(
                 ref _lastInspectionIds,
@@ -101,8 +107,6 @@ public sealed partial class ShellNavigationSystemTests
                 InspectionEntered.SetResult();
                 ReleaseInspection.Task.Wait(TestContext.Current.CancellationToken);
             }
-
-            return BuiltInFirmwareInspection.InspectFirmwareBatch(firmwareInspection, selectedIc, inputs);
         }
     }
 

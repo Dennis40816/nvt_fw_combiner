@@ -9,7 +9,7 @@ namespace NvtFwCombiner.Cli;
 /// </summary>
 internal static class CliFixedWorkflowInputReader
 {
-    internal static async ValueTask<IReadOnlyList<CompiledAuthoringSelectedInput>> ReadAsync(
+    internal static ValueTask<IReadOnlyList<CompiledAuthoringSelectedInput>> ReadAsync(
         ILocalFileStore localFiles,
         CompiledComposition composition,
         IReadOnlyDictionary<string, string> pathsByAddressSpace,
@@ -18,11 +18,32 @@ internal static class CliFixedWorkflowInputReader
         ArgumentNullException.ThrowIfNull(localFiles);
         ArgumentNullException.ThrowIfNull(composition);
         ArgumentNullException.ThrowIfNull(pathsByAddressSpace);
+        return ReadCoreAsync(localFiles, pathsByAddressSpace,
+            addressSpaceId => CompiledInputArtifactInspectionService.ResolveMaximumContentReadBytes(composition, addressSpaceId),
+            cancellationToken);
+    }
+
+    internal static ValueTask<IReadOnlyList<CompiledAuthoringSelectedInput>> ReadAsync(
+        ILocalFileStore localFiles, IReadOnlyList<CompiledAuthoringInputBinding> declarations,
+        IReadOnlyDictionary<string, string> pathsByAddressSpace, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(localFiles);
+        ArgumentNullException.ThrowIfNull(declarations);
+        ArgumentNullException.ThrowIfNull(pathsByAddressSpace);
+        return pathsByAddressSpace.Keys.Any(space => declarations.Count(binding => binding.AddressSpaceId == space) != 1)
+            ? throw new ArgumentException("Each selected path requires one trusted input declaration.", nameof(pathsByAddressSpace))
+            : ReadCoreAsync(localFiles, pathsByAddressSpace,
+                static _ => CompiledInputArtifactInspectionService.MaximumContentReadBytes, cancellationToken);
+    }
+
+    private static async ValueTask<IReadOnlyList<CompiledAuthoringSelectedInput>> ReadCoreAsync(
+        ILocalFileStore localFiles, IReadOnlyDictionary<string, string> pathsByAddressSpace,
+        Func<string, long> maximumForSpace, CancellationToken cancellationToken)
+    {
         List<CompiledAuthoringSelectedInput> inputs = [];
         foreach ((string addressSpaceId, string path) in pathsByAddressSpace)
         {
-            long maximumBytes = CompiledInputArtifactInspectionService
-                .ResolveMaximumContentReadBytes(composition, addressSpaceId);
+            long maximumBytes = maximumForSpace(addressSpaceId);
             byte[] bytes;
             try
             {

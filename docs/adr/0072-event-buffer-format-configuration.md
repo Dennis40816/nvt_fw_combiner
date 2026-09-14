@@ -302,3 +302,395 @@ The existing non-executable dynamic-route discovery snapshot can consume these
 declarations before any output map is selected. This is a prerequisite for the
 shared AB runtime, not its completion; configuration reapplication, exact format
 route selection and complete output evidence remain required.
+
+## Runtime integration checkpoint — 2026-09-15 (unit 11, incomplete)
+
+The working integration now registers the three closed profiles as four exact
+candidate routes, retaining contract-only evidence status. Trust-index version
+is `1.1.6.0`; policy version is `1.16.0`. Registration uniqueness includes the
+map-set in both the runtime loader and build materializer. The exact-2 route
+retains its count authority while the existing picker projection calls it Cascade.
+
+Async preparation, file inspection and CLI input loading now discover trusted
+input declarations before choosing an output map. The AB owner copies input
+bytes, captures the same host Config session's returned Reload state and uses
+the existing format admission/compiler. Policy-bearing synchronous preparation
+fails with `AB_FORMAT_CAPTURE_REQUIRED`; it cannot choose an assumed Common map.
+Legacy families with no policy keep their original path without Config IO.
+
+The declaration publication is retained across Config waits, target declaration
+selection and compilation. A changed publication returns
+`AB_FORMAT_PUBLICATION_STALE`, not a retry using old observations against new
+rules. Original inspection leases remain required when adopting a different
+exact format. For an equivalent exact result, retain the original capability
+instance so strict partial-selection completion remains valid. Unknown or
+colliding slot aliases produce typed batch issues without inventing a space.
+Cancelled requests do not publish an inspection or mutate the session.
+
+Readiness and direct execution now share a fresh accepted-format assessment.
+They reuse immutable accepted BIN bytes, not selected paths. Missing/invalid
+Config or a newly selected non-equivalent exact output blocks both Preview and
+Build before processor acquisition and destination preparation. Execution does
+not replace the accepted plan. Reload generation changes and display-only alias
+changes are not by themselves firmware changes. Pre-run refusal follows the
+existing exception boundary with the typed issue code and message; it does not
+fabricate a Build report for an operation that never started.
+
+Local evidence under `NFC_TEST_AREA_ROOT/evidence/v116-ab-format` includes
+`ab-format-capture-boundaries-red.trx` (5 failed, 2 passed), its green successor
+(26 passed), `ab-format-declaration-alias-green.trx` (12 passed),
+`ab-format-ui-legacy-input-order-green.trx` (6 passed), and
+`ab-format-trust-index-green.trx` (22 passed). The fresh-run regression first
+failed all six cases; `ab-format-run-freshness-compatibility.trx` then passed
+41 cases including equivalent Config/alias and legacy Dummy DP coverage.
+`ab-format-run-zero-side-effects.trx` passed six cases, with direct counters
+confirming zero processor acquisition and zero destination preparation for the
+three rejected execution configurations.
+These are scoped, overlapping evidence sets, not a full-suite total.
+
+Save now awaits the existing AB owner after successful persistence. It reuses
+accepted inputs from the retained AB session, including when Standard Merge is
+currently visible. Reinspection begins with an expected-snapshot comparison,
+retains source inspection/bytes, and drops derived action results. Completion
+uses the same session lock and expected-snapshot comparison before existing
+exact-batch adoption. Returned statuses, metadata and catalog belong to the
+adopted snapshot. Failed Config admission retains bytes for retry; it does not
+restore cached action readiness or overwrite newer selections.
+
+The UI checks snapshot ownership before projecting either success or failure.
+Persistence failure does not trigger reapplication. Reapplication failure does
+not undo the saved baseline and has a separate localized status. Typed slot
+issues survive language changes and clear after successful reapplication.
+Confirmed page navigation still clears selections; Save does not resurrect them.
+Declaration-only inputs show pending size requirements rather than throwing or
+inventing a capacity. Exact input bindings retain numeric descriptions.
+
+`ab-format-reapplication-rebound.trx` passed five retry/cancellation/concurrent
+selection/publication cases, with direct assertions on returned revision,
+capability, metadata and catalog ownership. The desktop Save regression first
+failed at declaration-only size rendering, then failed because Save retained
+the old Desay map. Its accepted-input success deletes the original temporary
+BIN paths before Save, proving this case does not reread them.
+`ab-format-ui-save-reapply-localization-red.trx` reproduced the stale Verified
+badge (3 passed, 1 failed). `ab-format-ui-save-boundaries-green.trx` passed all
+19 cases for Save, inactive Standard, explicit navigation clearing, failure and
+recovery, persistence, and bilingual text. The independent scoped Save UI
+Polytail review closed that badge finding with PASS.
+`ab-format-ui-save-shared-projection.trx` also passed eight existing AB input
+ordering/status/relocalization regressions after the shared projection change.
+
+The desktop execution ingress now constructs its complete accepted request
+before publishing progress or queueing the worker. Session, action readiness,
+input paths and delivery options are captured together. Error-report profile
+identity comes from that exact compilation, not an IC-only profile summary;
+IC/topology are also captured rather than read from mutable selectors later.
+The desktop regression first reproduced the multi-profile `Single` exception,
+then reproduced missing typed action readiness when reapplication began during
+progress publication. `ab-format-ui-run-capture-readiness-red-guarded.trx` is the
+valid latter red evidence; the preceding unguarded test callback reentered
+itself and crashed the test host, so that aborted run is not product evidence.
+`ab-format-ui-run-save-green.trx` passed 23 cases, including delayed success and
+failure after newer input selection, capture before progress publication, and
+Save while a real execution result waits for UI publication. The latter keeps
+the active-run state/result intact while slots adopt the newly selected map.
+
+`ab-format-running-capture.trx` passed one real-processor NT51950 2-IC Dummy DP
+case. It pauses destination preparation after execution's fresh format capture,
+then Saves/reapplies Common 2-IC rules. The original Desay run completes with
+the same complete output bytes as its baseline and retains the original exact
+capability; a later execution of that old request fails `AB_FORMAT_CHANGED`.
+This is immutable-run/metamorphic evidence, not independent Golden evidence.
+
+The capture/alias/cancellation corrections and pre-run freshness gate also have
+independent scoped Polytail PASS. These are local verdicts, not unit 11 completion.
+`ab-format-ui-first-config-save-red.trx` reproduced the first-install gap:
+Missing Config blocked two loaded TP files, and Save could not reevaluate them
+after their paths were removed. The existing per-slot owner now retains an
+internal `CapturedSource` using `SelectedFileContentInspection`. This means a
+stable read only, not firmware acceptance: its stamp must match the blocked
+declaration, while compilation, terminal inspection and executable accepted
+bytes remain absent. The transport's `AcceptedBytes` names stable-read content;
+it does not grant the outer slot's firmware `AcceptedBytes` authority.
+
+The existing session lease owns source lifetime. Reapplication checks the same
+snapshot, selected paths, stamps, revision, publication, route and fingerprint,
+and rejects Checking or replaced sources. It derives Normal/Dummy from declared
+slot membership, not whether a DP file happens to be selected. Sources then pass
+through the same format admission, compilation, inspection and exact adoption.
+Missing inputs remain blocked; neither a UI cache nor firmware-path reread is
+introduced. Successful adoption replaces retained sources with exact accepted
+inspection bytes. Cancellation and publication changes cannot publish old work.
+
+`ab-format-ui-source-capture-green.trx` passed 27 cases, including Missing and
+Invalid first Save and delayed pre-compilation success/failure after newer file
+selection. Independent scoped architecture/Polytail review passed this source
+retention boundary. A further real-file test found null byte arrays implicitly
+converted into empty `ReadOnlyMemory` sources for unreadable files. Explicit
+nullable conversion now preserves failure at both capture boundaries.
+`ab-format-source-retention-boundaries.trx` and its first attempted green run
+retain that red evidence (1 failed, 4 passed); `ab-format-source-null-preservation.trx`
+passed all five cases after the complete correction.
+`ab-format-runtime-source-retention.trx` passed all 50 runtime cases, including
+partial TP, missing Normal DP, unreadable source, caller-buffer mutation, and
+accepted/pre-compilation cancellation, publication and replacement races.
+`ab-format-source-constructor-contract.trx` passed five constructor boundaries:
+matching blocked source succeeds; mismatched stamp, compilation, firmware
+accepted bytes, or unblocked readiness are rejected. Its earlier setup failures
+were test fixture/assertion errors, not additional production defects.
+`ab-format-ui-source-null-preservation.trx` reran all 27 Config/UI cases after
+the null correction with zero failures/skips. The final independent scoped
+source-retention review passed, including the new failure and race boundaries.
+
+The broader existing-runtime selection was then executed:
+`ab-format-existing-runtime-compatibility.trx` has 62 passed and 28 failed of
+90 cases. Confirmed migration categories include old synchronous preparation
+and inspection calls, IC-only single-profile lookup, declaration-time numeric
+geometry assumptions and CLI configuration setup. These are required failures,
+not waived or presumed harmless. The declaration membership test now names
+exact map sets and includes all four new routes; the primary metadata test uses
+isolated persisted Config and asynchronous preparation with matching A/B format,
+while still comparing unchanged Backup-derived version observations. Other
+runtime/CLI failures remain open until individually corrected and rerun.
+`ab-format-declaration-primary-migration-green.trx` passed all 28 cases in
+these two classes, closing four failures from that broader run and adding four
+explicit route cases. The remaining 24 failures have not yet been rerun or
+closed; this is not a new 90-case pass.
+
+The next compatibility pass migrates single/batch file inspection tests to the
+actual asynchronous service, retaining health, source-prefix and version/naming
+assertions. NT51950's CMI test supplies both TP formats/counts and selects the
+Common 3-IC map whose existing CMI locations it asserts. Numeric input-geometry
+tests now require no numbers before format capture, then retain their exact
+Common-profile size assertions after complete asynchronous preparation.
+Exact-route delivery checks cover all five NT51950 and two NT51951 variants;
+the Dummy topology test explicitly compiles its current single-chip test
+capability and still asserts rejection before any source read.
+
+This exposed a real summary defect: distinct map capacity count was incorrectly
+used to decide whether AB summary compilation needed topology. Equal-capacity
+Desay maps and the one-map Common exact-2 profile were therefore disclosed as
+failed. `BuiltInV2Registration.CompileSummary` now chooses one representative
+canonical map by capacity/map ID and reuses `HeadlessRouteSelection` to project
+that map's topology before the existing compiler. It neither guesses from IC
+names nor tries alternatives until one succeeds. Map-query/compile failures
+remain failures; non-AB summary behavior is unchanged. Summary success is not
+full variant execution or Golden evidence.
+
+Scoped results: `ab-format-inspection-async-migration.trx` 10/10,
+`ab-format-input-geometry-migration.trx` 5/5,
+`ab-format-dummy-topology-migration.trx` 2/2, and
+`ab-format-summary-cli-green.trx` 6/6 including the complete CLI profile list.
+The original summary red and the CLI list's missing new-profile rows are
+retained in their earlier TRX files.
+`ab-format-existing-runtime-compatibility-second.trx` then executed the broader
+selection again: 87 passed, 7 failed, 0 skipped of 94 cases. Five remaining
+topology/951 runtime tests still enter the old synchronous preparation helper;
+the CLI naming case lacks isolated persisted format configuration, and the
+sparse-file test still expects the old exact-profile read limit. Their intended
+behavior must be preserved through migration; these failures are not waived.
+
+The final compatibility correction restores the existing compiled-input read
+limit whenever the CLI discovery snapshot already has one exact capability;
+only declaration-only discovery uses the declaration reader. This fixes the
+NT51929 pre-materialization resource-limit regression without adding CLI size
+rules or relaxing the original sparse-file assertion. The five topology/951
+tests use isolated persisted Config and asynchronous preparation, preserving
+their original issue codes and real execution checks. Common CLI naming now
+covers both actual 2-IC (`0x85016`) and 3-IC (`0x45016`) B CMI locations.
+`ab-format-existing-runtime-compatibility-green.trx` passed all 95 cases, zero
+skips. Independent scoped review passed the seven formerly failing cases;
+this closes that selection only, not the complete candidate.
+
+The next unchanged Golden/readiness baseline
+(`ab-format-golden-readiness-baseline.trx`) passed 13 and failed five of 18
+cases. Three failures enter obsolete synchronous preparation; two public-host
+cases have no isolated persisted Config. These failures occur before output
+comparison. Original Golden bytes, SHA values and range assertions remain
+unchanged while their runtime setup is migrated.
+
+After isolated Config and asynchronous preparation, the next run passed 17/18.
+The sole failure correctly rejects the historical NT51951 synthetic primary
+`17/2A` with `AB_FORMAT_PRIMARY_INVALID`; it is not a changed output. Its original
+shared-TP pattern and SHA `b84b63f30c964fad9818b612b77167bd9615cc31d6f72c1eab49f1b1579c8f32`
+remain in exact-profile/real-processor full-output evidence alongside the
+unchanged two-TP `e152...` case. Public-host rejection now verifies no output or
+report and unchanged inputs. A distinct valid-primary synthetic case changes
+only `0x22201` to the complement `0xE8` and compares complete production output
+and SHA against the same hash-pinned Python reference. This new synthetic case
+is not a replacement certified Golden or an update of either old SHA.
+
+The original NT51950 BOE public-host fixture remains unmodified: valid primary
+`80/7F`, format `0x84`, count 1 selects Common Single under defaults, preserving
+its original full expected output and processor/report write-range checks.
+`ab-format-golden-runtime-green.trx` passed all 20 cases, zero skipped. The prior
+19/20 run failed only because the new rejection test expected software-error
+exit 70 rather than the existing preparation-failure exit 1; production was not
+changed for that correction. These tests include real processors, immutable
+reference comparisons, missing/stale runtime rejection and legacy processor-free
+execution; they are not the complete certified Golden or integration gate.
+Independent scoped Golden/architecture/Polytail review passed these three test
+files, including preserved original pins and the new admission/evidence split.
+
+The broader Bootstrap AB/Config selection then passed 272/280; its eight
+failures were old synchronous inspection entry points and incomplete route
+identity lookup. Exact-route tests now bind IC, topology and map-set and cover
+the four additional format routes. Shared source-identity tests keep the same
+activation/inspection leases/adoption and all path-mutation, alias, conflicting
+snapshot and complete-output assertions while awaiting the real inspector.
+Their Standard Merge and retained DP Replace consumers migrate with that shared
+helper. The extension negative uses real temporary files and still requires the
+typed extension error, blocked Build and absent accepted bytes.
+`ab-format-ab-shared-inspection-migration.trx` passed all 298 selected cases,
+zero skipped, including those shared consumers. No firmware production code,
+Golden input or expected bytes changed in these test migrations.
+Independent scoped review passed these four shared-inspection/route test files.
+
+The first wider desktop selection, `ab-format-ui-memory-report-baseline.trx`,
+executed 592 cases: 572 passed, 20 failed, zero skipped (2m59s test duration).
+Failures remain explicitly open: two Build-entry observer cases, four Settings
+navigation-count cases, two pre-format geometry cases, four customer-info
+template cases, three catalog-removal/topology cases, four input-reinspection
+cases and one source-text spacious-panel assertion. These are failure groups,
+not a conclusion that every failure is a stale test rather than a product bug.
+
+The Build-entry observer was confirmed to perform an extra synchronous
+inspection while counting batches, using a different test host. It now counts
+the call to the same Presentation host's real async inspector without replacing
+its result or rereading files. Its existing source-deletion/overwrite and
+accepted-delivery evidence assertions remain unchanged; the focused rerun and
+scoped review are required before closing these two cases.
+
+`ab-format-build-entry-observation-green.trx` passed all seven Build-entry and
+CtrlRAM display-projection cases. `ab-format-settings-navigation-migration.trx`
+passed four viewport/theme/language cases after the navigation count included
+the approved fifth Config entry; all existing alignment, scrolling and keyboard
+assertions remain. These close six of the desktop baseline failures; the other
+14 remain pending and the full 592-case selection has not been rerun.
+Independent scoped correctness/architecture/Polytail review passed the three
+observer/Settings test files at these exact local results; final unit and
+integration review remain separate.
+
+The subsequent memory/context migration preserves the pending-capacity contract:
+before complete format inputs there is exactly one unavailable row; after
+isolated Config and a valid TP pair, the existing rejected-DP test still asserts
+the original compiled capacity and blocking result. Six new Common/Desay
+950/951 capacity cases include the required DP input. Their first run failed
+because that input was omitted from the new fixture; no production fallback was
+added. `ab-format-ui-memory-capacity-green.trx` passed 8/8, and
+`ab-format-ui-context-memory-migration.trx` passed 23/23, zero skips.
+
+Catalog tests now distinguish removing only 950 (951 still supports AB) from
+removing every AB route (Standard fallback). Removing generic `2-plus-ic` alone
+must retain Cascade when exact `2-ic` remains; removing both removes Cascade.
+The original selection, live ComboBox, inactive-context and rejection assertions
+are retained, with three positive cases for these surviving routes. These and
+the two readiness migrations close seven more baseline failures.
+
+The remaining observer corrections use the same host's asynchronous inspector
+and observe its actual batch inputs instead of invoking obsolete synchronous AB
+inspection to manufacture results. Catalog reinspection still exercises blocked
+in-flight work, cancellation, hidden-mode reactivation and publication-token
+checks; the AB-active test explicitly saves isolated Config defaults. Existing
+legacy fake-result consumers retain their separate callback seam unchanged.
+
+The customer-info card tests use the approved Target Addr label and explicit
+14/11 header/caption hierarchy, retaining keyboard, alignment, clipping and
+tooltip assertions. The spacious-panel test now verifies the two shared memory
+bars and their legends, rejecting the superseded persistent detail lists. Real
+popup geometry/interaction tests run alongside this source-structure check;
+the latter alone is not visual-fidelity evidence. No production UI or firmware
+bytes changed in this batch.
+
+`ab-format-ui-observer-card-migration.trx` passed 110/110, zero skips (32 seconds),
+closing six more baseline failures in the affected narrow selection. It includes
+methods named `CanonicalCatalogRefresh`, not every method in that partial
+class's files; the `FreshToken*`/`CancelledFresh*` readiness cases, including the
+last original failure, still require the broader run. The observer blocks before
+inner inspection starts; it does not prove late completion after an old inner
+result was already read. The run also includes Memory popup, Build-entry, card
+and spacious-panel checks. The earlier compile-only attempts exposed an
+unused observer parameter and a discard-shadowing typo; both were corrected
+before this successful full compilation. Independent scoped review and the
+broader baseline-class rerun were still pending at that narrow checkpoint;
+this is not a fresh full UI, Golden, integration or release pass.
+
+The broader run selects every method in the original baseline's 58 test
+classes, rather than its narrower method filter. It executed 1,242 cases in
+3m34s: 1,236 passed and six failed, zero skipped. The retained file is named
+`ab-format-ui-memory-report-migration-green.trx`, but its actual outcome is
+failed. Exact-name matching confirms all original 20 failing cases now pass,
+including the previously omitted AB-to-hidden-Standard reinspection. The six
+additional failures are outside that original failing set: old support-route
+and Settings-navigation counts, another Standard-fallback fixture, another
+persistent-coverage-list assertion, and two shared-style token checks. They
+remain open until corrected and verified; a larger passing count does not waive
+them or establish a full candidate pass.
+
+The six newly exposed failures were then corrected without changing firmware
+semantics. The matrix count includes the four declared format routes, the fifth
+Settings navigation entry is retained, and the remaining fallback fixture now
+explicitly removes all AB availability before expecting Standard. CtrlRAM's old
+persistent-list assertion now checks the approved overview/position bindings.
+Both shared-style checks remain unchanged: three existing XAML dictionaries
+reuse the existing radius, spacing and font-size tokens with the same values.
+
+The real Memory card checks caught a regression in that token substitution:
+local `DynamicResource NfcFontSize14` rendered as the shared emphasis style's 12,
+even though resource lookup returned 14 and another dispatcher drain did not
+help. The two original local 14 values now use `StaticResource` for that fixed,
+non-theme-dependent token; theme brushes remain dynamic. This records the
+observed binding behavior, not a proven Avalonia internal cause. Both card title
+and Technical details retain explicit 14 assertions and the caption remains 11.
+`ab-format-ui-shared-style-green.trx` passed 54/54, zero skipped (17 seconds),
+including the six new failures and Config/Memory rendered-control cases.
+Complete actual renders are retained under `style-token-actual` in the same
+local evidence directory. The subsequent title assertion, added Config
+footer/hint font assertions and broader fixed-source rerun still need their
+own results; the 54-case result does not implicitly cover later edits.
+
+The expanded selection subsequently passed **1,242/1,242**, zero skips, in
+3m55s (`ab-format-ui-memory-report-final-green.trx`), including the new Memory
+title assertion. The final Config font checks separately exposed the hint
+falling back to 13; it now uses the same fixed `StaticResource` 14 token.
+Restoring the original footer literal 14 still rendered all three buttons at
+13, confirming that the local setter was ineffective. Remove that setter and
+retain the existing `semanticAction` owner's 13, without restyling the buttons.
+The added real-control assertions now preserve those actual 13/14 values.
+`ab-format-config-font-final-green.trx` passed **37/37**, zero skips (10 seconds),
+after this final delta; complete renders are in `style-token-final`. The older
+`ab-format-config-font-size-green.trx` is a retained **failed** probe, not a pass.
+The 1,242-case pass predates that last Config-only delta; these are broad plus
+affected-delta evidence, not a second full run on the final tree.
+
+Independent scoped correctness/architecture/Polytail review passed the final
+delta and reconciled the dirty production/contract paths with prior reviewed
+lanes; no open P0/P1/P2 was identified in that checkpoint scope. Before its
+first commit, the active record drops eight planned paths that never changed
+from the integration base; this narrows admission and removes no source file.
+Future work outside the actual checkpoint scope needs its own admission.
+
+### Next bounded units (design recommendation, not implemented)
+
+Independent architecture inventory confirms that runtime format capture is not
+yet persisted in Report. Extend the existing Application run report with an
+optional immutable AB format summary, projected only from execution's captured
+selection (identity/display label, configuration generation/source SHA, family
+identity and A/B primary evidence). Reuse parent report profile/map/input facts;
+do not add a second session-proof or re-read current Config while serializing.
+The actual Application JSON and the frozen canonical report schema are distinct
+contracts; the Application semantic extension needs explicit admission and
+old-report absence must remain unknown, not inferred from today's catalog.
+
+The Desay DP-size advisory is also still pending. Its two profiles can reuse the
+existing source-view outer-length warning declaration and resolved map capacity,
+without a UI size rule or new family capacity owner. This is a separate profile/
+trust-pin change, outside unit 11's no-profile-change admission. Include the
+existing input inspector and run-report warning transport, plus exact-size,
+oversized and required-coverage-short cases, before claiming the requested
+non-blocking warning complete. Preserve existing independent coverage blockers.
+
+Final aggregate coverage accounting, complete applicable Golden/write-range
+verification and integration remain required alongside the separate Report and
+DP-advisory units above. Unit 11 is an implementation checkpoint, not a final
+integration verdict; its record remains `design-active`. No release or
+publication is authorized.

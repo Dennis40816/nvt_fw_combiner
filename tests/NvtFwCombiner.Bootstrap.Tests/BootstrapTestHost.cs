@@ -93,6 +93,7 @@ internal sealed class CanonicalTestContext
         ArgumentNullException.ThrowIfNull(services);
         Catalog = services.Catalog;
         Compiler = services.Compiler;
+        AbMergeAuthoring = (NvtFwCombiner.Application.Authoring.AbMergeAuthoringExperience)services.AbMergeAuthoring;
         Projection = (CanonicalCapabilityExperience)services.CompositionCapabilityExperience;
         GeneralAuthoring = services.GeneralAuthoring;
         CtrlRamAuthoring = services.CtrlRamAuthoring;
@@ -102,6 +103,8 @@ internal sealed class CanonicalTestContext
     internal ICanonicalCapabilityQuery Catalog { get; }
 
     internal CanonicalCapabilityCompilerAdapter Compiler { get; }
+
+    internal NvtFwCombiner.Application.Authoring.AbMergeAuthoringExperience AbMergeAuthoring { get; }
 
     internal CanonicalCapabilityExperience Projection { get; }
 

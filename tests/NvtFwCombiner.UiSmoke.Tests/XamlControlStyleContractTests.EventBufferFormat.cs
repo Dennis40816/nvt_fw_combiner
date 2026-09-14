@@ -110,12 +110,16 @@ public sealed partial class XamlControlStyleContractTests
                 control => ReferenceEquals(control.Command, viewModel.Settings.DiscardEventBufferFormatChangesCommand));
             Button restore = Assert.Single(editor.GetVisualDescendants().OfType<Button>(),
                 control => ReferenceEquals(control.Command, viewModel.Settings.RestoreEventBufferFormatDefaultsCommand));
+            Assert.Equal(14, Assert.Single(editor.GetVisualDescendants().OfType<TextBlock>(),
+                block => block.Text == viewModel.Text.EventBufferFormatRecognitionValuesHint).FontSize);
             Rect saveBounds = EventBufferBounds(save, window);
             Assert.InRange(saveBounds.Bottom, height - 125, height - 5);
             Assert.InRange(Math.Abs(EventBufferBounds(discard, window).Center.Y - saveBounds.Center.Y), 0, 2);
             Assert.InRange(Math.Abs(EventBufferBounds(restore, window).Center.Y - saveBounds.Center.Y), 0, 2);
             Assert.All<Button>([save, discard, restore], control =>
             {
+                // Preserve the shared semantic-action style, including its existing 13-point text.
+                Assert.Equal(13, control.FontSize);
                 AssertEventBufferFits(EventBufferBounds(control, window), editorBounds);
                 Assert.False(string.IsNullOrWhiteSpace(control.GetValue(AutomationProperties.NameProperty)));
             });

@@ -30,16 +30,20 @@ public sealed class AbMergeExactRouteTests
 
     /// <summary>Exact published identities reach the real compiler and retain strict profile/map binding.</summary>
     [Theory]
-    [InlineData("NT51950", "1-ic")]
-    [InlineData("NT51950", "2-plus-ic")]
-    [InlineData("NT51951", "selector-free")]
-    public void ExactPublishedRouteCompilesAndBindsItsOwnMapSubset(string icId, string countVariant)
+    [InlineData("NT51950", "1-ic", "nt51950-ab-merge-maps")]
+    [InlineData("NT51950", "2-plus-ic", "nt51950-ab-merge-maps")]
+    [InlineData("NT51951", "selector-free", "nt51951-ab-merge-1024k")]
+    [InlineData("NT51950", "1-ic", "nt51950-ab-desay-maps")]
+    [InlineData("NT51950", "2-plus-ic", "nt51950-ab-desay-maps")]
+    [InlineData("NT51951", "selector-free", "nt51951-ab-desay-maps")]
+    [InlineData("NT51950", "2-ic", "nt51950-ab-common-2ic-maps")]
+    public void ExactPublishedRouteCompilesAndBindsItsOwnMapSubset(string icId, string countVariant, string mapSet)
     {
         var catalog = new CanonicalCapabilityCatalog(CompositionHostServices.CreateCanonicalCapabilityCatalogSource());
         Assert.True(catalog.Reload(TestContext.Current.CancellationToken).Succeeded);
         ResolvedCapabilityRoute route = Assert.Single(catalog.GetCurrentSnapshot().DynamicRoutes, candidate =>
             candidate.Identity.IcId == icId && candidate.Identity.WorkflowId == ExperienceIds.AbMerge &&
-            candidate.Identity.IcCountVariant == countVariant);
+            candidate.Identity.IcCountVariant == countVariant && candidate.Identity.MapVariant == mapSet);
         var compiler = new CanonicalCapabilityCompilerAdapter(catalog, new BuiltInV2DynamicCompilationAdapter());
 
         Assert.True(compiler.TryCompilePublishedDynamicCapability(route.Identity, null, [],

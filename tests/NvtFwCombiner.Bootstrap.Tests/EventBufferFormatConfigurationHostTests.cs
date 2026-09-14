@@ -29,7 +29,7 @@ public sealed class EventBufferFormatConfigurationHostTests
         FirmwareFamilyResolutionDefinition Load()
         {
             _ = Interlocked.Increment(ref loads);
-            return BuiltInV2RegistrationRegistry.AbMergeByIc["NT51950"].GetFirmwareFamily();
+            return BuiltInV2RegistrationRegistry.FindAbMergeRegistration("NT51950", "nt51950-ab-merge-maps")!.GetFirmwareFamily();
         }
 
         CompositionHostServices host = CompositionHostServices.Create(new ExternalProcessorEnvironmentLoader(), null,
@@ -71,7 +71,7 @@ public sealed class EventBufferFormatConfigurationHostTests
         {
             return Interlocked.Increment(ref loads) == 1
                 ? throw new IOException("test unavailable catalog")
-                : BuiltInV2RegistrationRegistry.AbMergeByIc["NT51950"].GetFirmwareFamily();
+                : BuiltInV2RegistrationRegistry.FindAbMergeRegistration("NT51950", "nt51950-ab-merge-maps")!.GetFirmwareFamily();
         }
 
         CompositionHostServices host = CompositionHostServices.Create(new ExternalProcessorEnvironmentLoader(), null,
@@ -96,7 +96,7 @@ public sealed class EventBufferFormatConfigurationHostTests
             _ = Interlocked.Increment(ref loads);
             started.SetResult();
             release.Wait(TestContext.Current.CancellationToken);
-            return BuiltInV2RegistrationRegistry.AbMergeByIc["NT51950"].GetFirmwareFamily();
+            return BuiltInV2RegistrationRegistry.FindAbMergeRegistration("NT51950", "nt51950-ab-merge-maps")!.GetFirmwareFamily();
         }
 
         CompositionHostServices host = CompositionHostServices.Create(new ExternalProcessorEnvironmentLoader(), null,
@@ -122,7 +122,7 @@ public sealed class EventBufferFormatConfigurationHostTests
     [Fact]
     public void EffectProjectionFollowsCanonicalVariantAndPreservesAllApplicability()
     {
-        FirmwareFamilyResolutionDefinition original = BuiltInV2RegistrationRegistry.AbMergeByIc["NT51950"].GetFirmwareFamily();
+        FirmwareFamilyResolutionDefinition original = BuiltInV2RegistrationRegistry.FindAbMergeRegistration("NT51950", "nt51950-ab-merge-maps")!.GetFirmwareFamily();
         FirmwareAbFormatPolicy policy = original.AbFormatPolicy!;
         var changedPolicy = new FirmwareAbFormatPolicy(policy.ScopeId, policy.CommonFormatId, policy.CommonDisplayName,
             policy.Formats, policy.PrimaryBindings, policy.Variants.Select(variant =>

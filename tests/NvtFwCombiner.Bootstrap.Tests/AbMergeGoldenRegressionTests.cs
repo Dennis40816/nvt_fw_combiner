@@ -292,16 +292,18 @@ public sealed partial class AbMergeGoldenRegressionTests
     }
 
     /// <summary>
-    /// Verifies the compiled NT51951 candidate and Combiner match the immutable Python snapshot byte-for-byte.
+    /// Verifies legacy NT51951 patterns against the immutable Python snapshot, including shared TP.
+    /// These invalid-primary patterns are byte-plan evidence, not public-host input admission.
     /// </summary>
-    [Fact(
+    [Theory(
         Skip = "Requires the packaged Windows legacy Combiner processor.",
         SkipUnless = nameof(IsWindows))]
-    public async Task Nt51951CandidatePlanWithCombinerMatchesPythonReferenceAsync()
+    [InlineData(false, "e1524ba52b41d5a49eb58fcdb75326d5f0c78a6df7af2fcfdaa632a12e628c71")]
+    [InlineData(true, "b84b63f30c964fad9818b612b77167bd9615cc31d6f72c1eab49f1b1579c8f32")]
+    public async Task Nt51951CandidatePlanWithCombinerMatchesPythonReferenceAsync(bool sharedTp, string expectedSha256)
     {
         const int outputLength = 0x100000;
         const int tpLength = 0x37000;
-        const string expectedSha256 = "e1524ba52b41d5a49eb58fcdb75326d5f0c78a6df7af2fcfdaa632a12e628c71";
 
         using var workspace = TempWorkspace.Create("nfc-nt51951-ab-topology");
         CompiledComposition composition = CompileProfile(
@@ -319,6 +321,8 @@ public sealed partial class AbMergeGoldenRegressionTests
         WriteHeaderPointers(tpA);
         WriteHeaderPointers(tpB);
         BinaryPrimitives.WriteUInt32LittleEndian(tpA.AsSpan(0xA130, sizeof(uint)), 0x1F6CF3EC);
+        if (sharedTp) { tpB = tpA; }
+        byte[] originalTpA = [.. tpA];
         byte[] originalTpB = [.. tpB];
         using var referenceWorkspace = TempWorkspace.Create("nfc-nt51951-ab-python-reference");
         byte[] pythonReferenceOutput = await RunPythonReferenceAsync(
@@ -375,6 +379,7 @@ public sealed partial class AbMergeGoldenRegressionTests
             Assert.Empty(result.Issues);
             Assert.Equal(expectedSha256, Hash(result.OutputBytes.Span));
             Assert.Equal(pythonReferenceOutput, result.OutputBytes.ToArray());
+            Assert.Equal(originalTpA, tpA);
             Assert.Equal(originalTpB, tpB);
             AssertPostbuildMpeg2Crc(result.OutputBytes.Span, bTpCodeStart: 0x8A000);
             ExternalProcessorResult toolResult = Assert.IsType<ExternalProcessorResult>(externalResult);

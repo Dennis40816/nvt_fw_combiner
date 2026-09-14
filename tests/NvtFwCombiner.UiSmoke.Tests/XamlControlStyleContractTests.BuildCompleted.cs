@@ -98,9 +98,11 @@ public sealed partial class XamlControlStyleContractTests
         Assert.Contains("ItemsSource=\"{Binding ReplaceSlotGroups}\"", workflows, StringComparison.Ordinal);
         Assert.Contains("Classes=\"spaciousList firmwareSlotGroups\"", workflows, StringComparison.Ordinal);
         Assert.DoesNotContain("ItemsSource=\"{Binding ReplaceCoverageGroups}\"", workflows, StringComparison.Ordinal);
-        Assert.Contains("ItemsSource=\"{Binding ReplaceSelectedCoverageItems}\"", workflows, StringComparison.Ordinal);
-        Assert.Contains("ItemsSource=\"{Binding ReplaceBaseCoverageItems}\"", workflows, StringComparison.Ordinal);
-        Assert.Contains("Classes=\"memorySupportingRow\"", workflows, StringComparison.Ordinal);
+        Assert.DoesNotContain("ItemsSource=\"{Binding ReplaceSelectedCoverageItems}\"", workflows, StringComparison.Ordinal);
+        Assert.DoesNotContain("ItemsSource=\"{Binding ReplaceBaseCoverageItems}\"", workflows, StringComparison.Ordinal);
+        Assert.DoesNotContain("Classes=\"memorySupportingRow\"", workflows, StringComparison.Ordinal);
+        Assert.Contains("ItemsSource=\"{Binding CtrlRamOverview}\"", workflows, StringComparison.Ordinal);
+        Assert.Contains("FocusPositions=\"{Binding CtrlRamPositions}\"", workflows, StringComparison.Ordinal);
         Assert.Contains(
             "<StackPanel Spacing=\"{DynamicResource NfcSpace12}\" />",
             spaciousListStyle,

@@ -234,7 +234,7 @@
     </StackPanel.Styles>
     <Grid ColumnDefinitions="10,*,Auto" ColumnSpacing="{DynamicResource NfcSpace8}">
       <ContentControl VerticalAlignment="Center" Content="{Binding}" ContentTemplate="{StaticResource MemoryCoverageCompactMarkerTemplate}" />
-      <TextBlock Grid.Column="1" Classes="bodyEmphasisText" FontSize="14" FontWeight="SemiBold" VerticalAlignment="Center" Text="{Binding DisplayTitle}" TextWrapping="Wrap" />
+      <TextBlock Grid.Column="1" Classes="bodyEmphasisText" FontSize="{StaticResource NfcFontSize14}" FontWeight="SemiBold" VerticalAlignment="Center" Text="{Binding DisplayTitle}" TextWrapping="Wrap" />
       <Label Grid.Column="2" Classes="compactBadge neutralBadge countBadge coverageChangeBadge" Classes.changed="{Binding IsChanged}" Padding="7,2" VerticalAlignment="Center" Content="{Binding ChangeLabel}" IsVisible="{Binding HasChangeState}" />
     </Grid>
     <Grid ColumnDefinitions="94,*" ColumnSpacing="{DynamicResource NfcSpace8}" RowDefinitions="Auto,Auto,Auto" RowSpacing="6">
@@ -249,7 +249,7 @@
       <Border Name="MemoryHoverTechnicalSeparator" Classes="memoryHoverOnly" Height="1" Background="{DynamicResource NfcMemoryDividerBrush}" />
       <Expander Classes="inlineDisclosure firmwareSlotGroupDisclosure" MinHeight="28" BorderThickness="0" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" Padding="0" IsExpanded="False"
           AutomationProperties.Name="{ReflectionBinding $parent[Window].DataContext.Text.MemoryProcessingDetailsLabel}">
-        <Expander.Header><TextBlock Classes="bodyEmphasisText" FontSize="14" FontWeight="SemiBold" Text="{ReflectionBinding $parent[Window].DataContext.Text.MemoryProcessingDetailsLabel}" /></Expander.Header>
+        <Expander.Header><TextBlock Classes="bodyEmphasisText" FontSize="{StaticResource NfcFontSize14}" FontWeight="SemiBold" Text="{ReflectionBinding $parent[Window].DataContext.Text.MemoryProcessingDetailsLabel}" /></Expander.Header>
         <StackPanel Spacing="6" Margin="0,6,0,0">
           <Grid Classes="memoryHoverOnly" ColumnDefinitions="94,*" ColumnSpacing="{DynamicResource NfcSpace8}">
             <TextBlock Classes="captionText" Text="{ReflectionBinding $parent[Window].DataContext.Text.MemoryAddressSpaceLabel}" />

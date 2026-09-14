@@ -1,6 +1,7 @@
 using NvtFwCombiner.Application.Capabilities;
 using NvtFwCombiner.Application.InputInspection;
 using NvtFwCombiner.Application.Metadata;
+using NvtFwCombiner.Application.Ports;
 using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Application.Authoring;
@@ -28,7 +29,8 @@ public sealed class AuthoringInputSlotStatus
         CompiledInputArtifactObservationResult? observation = null,
         ReadOnlyMemory<byte>? acceptedBytes = null,
         (string IssueCode, CompiledInputArtifactInspectionNextAction NextAction)?
-            preContentIssue = null)
+            preContentIssue = null,
+        SelectedFileContentInspection? capturedSource = null)
     {
         ArgumentNullException.ThrowIfNull(identity);
         ArgumentNullException.ThrowIfNull(selectionReadiness);
@@ -52,6 +54,14 @@ public sealed class AuthoringInputSlotStatus
         FileStamp = fileStamp;
         Inspection = inspection;
         AcceptedByteArray = acceptedBytes?.ToArray();
+        if (capturedSource is not null &&
+            (capturedSource.AcceptedBytes is null || capturedSource.FileStamp != fileStamp ||
+             compilationFingerprint is not null || inspectionLifecycle is not null || acceptedBytes is not null ||
+             selectionReadiness.Readiness != ResolvedChildReadiness.Blocked || string.IsNullOrWhiteSpace(selectedPathHint)))
+        {
+            throw new ArgumentException("A source capture requires a matching stable-read stamp and blocked non-executable declaration.", nameof(capturedSource));
+        }
+        CapturedSource = capturedSource;
         Observation = observation ?? CompiledInputArtifactObservationResult.Empty;
         _inspectionAdvisories =
         [
@@ -135,6 +145,9 @@ public sealed class AuthoringInputSlotStatus
             AcceptedByteArray = this.AcceptedByteArray,
         };
     }
+
+    /// <summary>Stable-read source retained for reinspection, not firmware admission or executable accepted bytes.</summary>
+    internal SelectedFileContentInspection? CapturedSource { get; }
 
     /// <summary>Canonical workflow owning this slot.</summary>
     public string WorkflowId { get; }
@@ -449,6 +462,25 @@ public static class AuthoringInputSlotInspectionService
             selectedPathHint);
     }
 
+    /// <summary>Retains selected-source identity on a blocked, non-executable dynamic declaration.</summary>
+    public static AuthoringInputSlotStatus BlockBeforeCompilation(
+        ResolvedCapabilityRoute route, AuthoringRevision authoringRevision,
+        string slotId, string addressSpaceId, string issueCode, string reason,
+        FileStamp? fileStamp, string selectedPathHint, SelectedFileContentInspection? capturedSource = null)
+    {
+        ArgumentNullException.ThrowIfNull(route);
+        ArgumentException.ThrowIfNullOrWhiteSpace(slotId);
+        ArgumentException.ThrowIfNullOrWhiteSpace(addressSpaceId);
+        ArgumentException.ThrowIfNullOrWhiteSpace(issueCode);
+        ArgumentException.ThrowIfNullOrWhiteSpace(reason);
+        ArgumentException.ThrowIfNullOrWhiteSpace(selectedPathHint);
+        var readiness = new InputSelectionMemberReadiness(slotId, true, ResolvedChildReadiness.Blocked,
+            false, reason, new InputSelectionNextAction(InputSelectionNextActionKind.CorrectSelection, slotId), issueCode);
+        return Create(route.Identity, route.ResolutionToken, authoringRevision, route.CapabilityFingerprint,
+            compilationFingerprint: null, readiness, addressSpaceId, inspectionLifecycle: null, fileStamp,
+            inspection: null, selectedPathHint, capturedSource: capturedSource);
+    }
+
     private static AuthoringInputSlotStatus Create(
         ResolvedCapability capability,
         AuthoringRevision authoringRevision,
@@ -485,7 +517,8 @@ public static class AuthoringInputSlotInspectionService
         CompiledInputArtifactObservationResult? observation = null,
         ReadOnlyMemory<byte>? acceptedBytes = null,
         (string IssueCode, CompiledInputArtifactInspectionNextAction NextAction)?
-            preContentIssue = null)
+            preContentIssue = null,
+        SelectedFileContentInspection? capturedSource = null)
     {
         return new AuthoringInputSlotStatus(
             identity,
@@ -501,7 +534,8 @@ public static class AuthoringInputSlotInspectionService
             selectedPathHint,
             observation,
             acceptedBytes,
-            preContentIssue);
+            preContentIssue,
+            capturedSource);
     }
 
     private static void ValidateInspectable(

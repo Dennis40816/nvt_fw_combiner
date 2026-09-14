@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.3",
   "trustIndexId": "built-in-profile-bundles",
-  "trustIndexVersion": "1.1.4.2",
+  "trustIndexVersion": "1.1.6.0",
   "trustAnchorBindingId": "built-in-profile-bundle-v2",
   "bundles": [
     {
@@ -771,6 +771,27 @@
           "profileId": "nt51951-ab-merge",
           "profileVersion": "0.6.0",
           "mapVariantSetId": "nt51951-ab-merge-1024k"
+        },
+        {
+          "workflowId": "ab-merge",
+          "icId": "NT51950",
+          "profileId": "nt51950-ab-merge-desay",
+          "profileVersion": "0.2.0",
+          "mapVariantSetId": "nt51950-ab-desay-maps"
+        },
+        {
+          "workflowId": "ab-merge",
+          "icId": "NT51951",
+          "profileId": "nt51951-ab-merge-desay",
+          "profileVersion": "0.2.0",
+          "mapVariantSetId": "nt51951-ab-desay-maps"
+        },
+        {
+          "workflowId": "ab-merge",
+          "icId": "NT51950",
+          "profileId": "nt51950-ab-merge-common-2ic",
+          "profileVersion": "0.2.0",
+          "mapVariantSetId": "nt51950-ab-common-2ic-maps"
         }
       ]
     },

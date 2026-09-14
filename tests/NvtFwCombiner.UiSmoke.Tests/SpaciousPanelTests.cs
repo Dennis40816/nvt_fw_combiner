@@ -39,8 +39,14 @@ public sealed class SpaciousPanelTests
             "<ItemsControl Classes=\"spaciousList\" ItemTemplate=\"{StaticResource MemoryCoverageSegmentListTemplate}\"",
             outputTemplates,
             StringComparison.Ordinal);
-        Assert.Contains("ItemsSource=\"{Binding ReplaceSelectedCoverageItems}\"", workflowTemplates, StringComparison.Ordinal);
-        Assert.Contains("ItemsSource=\"{Binding ReplaceBaseCoverageItems}\"", workflowTemplates, StringComparison.Ordinal);
+        // The approved hover-only layout keeps legends, not persistent detail lists.
+        Assert.DoesNotContain("ItemsSource=\"{Binding ReplaceSelectedCoverageItems}\"", workflowTemplates, StringComparison.Ordinal);
+        Assert.DoesNotContain("ItemsSource=\"{Binding ReplaceBaseCoverageItems}\"", workflowTemplates, StringComparison.Ordinal);
+        XElement[] memoryBars = [.. XDocument.Parse(workflowTemplates).Descendants()
+            .Where(element => element.Name.LocalName == "MemoryCoverageBar")];
+        Assert.Equal(["{Binding CtrlRamOverview}", "{Binding ReplaceCoverageSegments}"],
+            memoryBars.Select(element => (string?)element.Attribute("ItemsSource")));
+        Assert.All(memoryBars, element => Assert.Equal("True", (string?)element.Attribute("ShowLegend")));
         Assert.Contains("Spacing=\"{DynamicResource NfcSpace16}\"", outputTemplates, StringComparison.Ordinal);
         Assert.Contains("<views:SpaciousPanel Classes=\"compact\"", reportPanels, StringComparison.Ordinal);
         Assert.Contains(

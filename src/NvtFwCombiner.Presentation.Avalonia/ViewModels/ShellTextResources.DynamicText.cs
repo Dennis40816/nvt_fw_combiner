@@ -207,8 +207,18 @@ internal sealed partial class ShellTextResources
     public string GetAbSlotDescription(CompiledAuthoringInputBinding input)
     {
         ArgumentNullException.ThrowIfNull(input);
-        string size = FormatInputLength(input.RequiredEndExclusive ?? throw new InvalidOperationException(
-            $"AB input '{input.SlotId}' has no compiled length contract."));
+        if (input.RequiredEndExclusive is null)
+        {
+            string role = input.Role switch
+            {
+                "dp-ab" => SelectLanguage("Complete two-bank DP container.", "完整雙 bank DP container。"),
+                "tp-a" => SelectLanguage("Touch payload for bank A.", "Bank A 的 Touch payload。"),
+                "tp-b" => SelectLanguage("Touch payload for bank B.", "Bank B 的 Touch payload。"),
+                _ => throw new InvalidOperationException($"Unknown AB input role '{input.Role}'."),
+            };
+            return role + SelectLanguage(" Size requirements are available after format detection.", " 偵測格式後顯示尺寸需求。");
+        }
+        string size = FormatInputLength(input.RequiredEndExclusive.Value);
         return input.Role switch
         {
             "dp-ab" => SelectLanguage(

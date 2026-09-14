@@ -37,7 +37,8 @@ public sealed class CompositionHostServices
         string? configurationPath)
     {
         _loadConfigurationFamily = loadConfigurationFamily ??
-            (() => BuiltInV2RegistrationRegistry.AbMergeByIc["NT51950"].GetFirmwareFamily());
+            (() => (BuiltInV2RegistrationRegistry.FindAbMergeRegistration("NT51950", "nt51950-ab-merge-maps") ??
+                throw new InvalidDataException("The declared Event Buffer configuration family is unavailable.")).GetFirmwareFamily());
         _configurationPath = configurationPath;
         Catalog = catalog ?? throw new ArgumentNullException(nameof(catalog));
         Compiler = compiler;
@@ -51,7 +52,8 @@ public sealed class CompositionHostServices
         var abMergeAuthoring = new AbMergeAuthoringExperience(
             compiler,
             catalog,
-            externalEnvironment);
+            externalEnvironment,
+            GetEventBufferFormatConfigurationAsync);
         AbMergeAuthoring = abMergeAuthoring;
         var dpReplaceAuthoring = new DpReplaceAuthoringExperience(compiler, catalog);
         DpReplaceAuthoring = dpReplaceAuthoring;
@@ -92,8 +94,9 @@ public sealed class CompositionHostServices
                 ExternalProcessorEnvironmentLease lease = externalEnvironment.AcquireCurrent();
                 return new(lease.Generation, lease.Processor);
             },
-            externalEnvironment.IsCurrent,
-            new SystemClock());
+              externalEnvironment.IsCurrent,
+              new SystemClock(),
+              abMergeAuthoring);
         RawBinaryEditorFileSessions = new RawBinaryEditorFileSessionFactory();
         LocalFiles = new LocalFileStore();
     }

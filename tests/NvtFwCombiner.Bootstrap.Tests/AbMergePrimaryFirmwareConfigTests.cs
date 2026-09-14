@@ -1,8 +1,11 @@
 using NvtFwCombiner.Application.Authoring;
 using NvtFwCombiner.Application.Capabilities;
+using NvtFwCombiner.Application.Configuration;
 using NvtFwCombiner.Application.Metadata;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Domain.Firmware;
+using NvtFwCombiner.Infrastructure.ExternalTools;
+using NvtFwCombiner.TestSupport;
 
 namespace NvtFwCombiner.Bootstrap.Tests;
 
@@ -101,10 +104,15 @@ public sealed class AbMergePrimaryFirmwareConfigTests
 
     /// <summary>The actual shared authoring path delivers metadata without replacing Backup versions.</summary>
     [Fact]
-    public void AuthoringBatchCarriesPrimaryObservationsWithoutChangingVersionFacts()
+    public async Task AuthoringBatchCarriesPrimaryObservationsWithoutChangingVersionFacts()
     {
-        CompiledAuthoringSessionPreparation first = Prepare(0x97);
-        CompiledAuthoringSessionPreparation second = Prepare(0x84, primaryVersion: 0x55);
+        using TempWorkspace workspace = TempWorkspace.Create("ab-primary-authoring");
+        CompositionHostServices host = CompositionHostServices.Create(new ExternalProcessorEnvironmentLoader(),
+            loadPolicy: null, configurationPath: workspace.PathFor("format.json"));
+        IEventBufferFormatConfigurationSession configuration = await host.GetEventBufferFormatConfigurationAsync(TestContext.Current.CancellationToken);
+        Assert.True((await configuration.SaveAsync(configuration.CreateDefaultsDraft(), TestContext.Current.CancellationToken)).Succeeded);
+        CompiledAuthoringSessionPreparation first = await PrepareAsync(host, 0x97);
+        CompiledAuthoringSessionPreparation second = await PrepareAsync(host, 0x84, primaryVersion: 0x55);
         Assert.True(first.Succeeded, string.Join(",", first.Issues.Select(issue => issue.Code)));
         Assert.True(second.Succeeded, string.Join(",", second.Issues.Select(issue => issue.Code)));
         MetadataInspectionSnapshot metadata = Assert.IsType<MetadataInspectionSnapshot>(first.Inspection!.MetadataInspection);
@@ -114,17 +122,17 @@ public sealed class AbMergePrimaryFirmwareConfigTests
             second.Inspection.Statuses["tp-a-input"].Observation.Versions);
     }
 
-    private static CompiledAuthoringSessionPreparation Prepare(byte format, byte primaryVersion = 0x31)
+    private static ValueTask<CompiledAuthoringSessionPreparation> PrepareAsync(CompositionHostServices host, byte format, byte primaryVersion = 0x31)
     {
-        return BootstrapTestHost.Services.AbMergeAuthoring.PrepareSession(
+        return host.AbMergeAuthoring.PrepareSessionAsync(
             new AuthoringSessionState(ExperienceIds.AbMerge), "NT51951", null,
-            [new("tp-a-input", "tp-a.bin", CreateTp(format, primaryVersion)), new("tp-b-input", "tp-b.bin", CreateTp(0xA6))],
-            AbMergeDpMode.Dummy);
+            [new("tp-a-input", "tp-a.bin", CreateTp(format, primaryVersion)), new("tp-b-input", "tp-b.bin", CreateTp(format))],
+            AbMergeDpMode.Dummy, TestContext.Current.CancellationToken);
     }
 
     private static MetadataPlanDefinition CreatePlan(string icId, int count)
     {
-        BuiltInV2Registration registration = BuiltInV2RegistrationRegistry.AbMergeByIc[icId];
+        BuiltInV2Registration registration = BuiltInV2RegistrationRegistry.FindAbMergeRegistration(icId, icId == "NT51950" ? "nt51950-ab-merge-maps" : "nt51951-ab-merge-1024k")!;
         registration.TryCompile(null, count == 0 ? null : new TopologySelection(count, "test", TopologySelectionSource.Requested, "test"),
             out CompiledComposition? compiled, out IReadOnlyList<CompositionIssue> issues);
         Assert.Empty(issues);

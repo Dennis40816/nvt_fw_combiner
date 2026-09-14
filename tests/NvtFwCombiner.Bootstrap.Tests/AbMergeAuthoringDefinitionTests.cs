@@ -30,17 +30,21 @@ public sealed class AbMergeAuthoringDefinitionTests
 
     /// <summary>Declaration membership matches real normal compilation without projecting output geometry.</summary>
     [Theory]
-    [InlineData("NT51950", "1-ic", true)]
-    [InlineData("NT51950", "2-plus-ic", true)]
-    [InlineData("NT51951", "selector-free", true)]
-    [InlineData("NT51929", "selector-free", false)]
-    public void TrustedDeclarationMatchesCompiledInputMembership(string ic, string count, bool hasPolicy)
+    [InlineData("NT51950", "1-ic", "nt51950-ab-merge-maps", true)]
+    [InlineData("NT51950", "2-plus-ic", "nt51950-ab-merge-maps", true)]
+    [InlineData("NT51950", "1-ic", "nt51950-ab-desay-maps", true)]
+    [InlineData("NT51950", "2-plus-ic", "nt51950-ab-desay-maps", true)]
+    [InlineData("NT51950", "2-ic", "nt51950-ab-common-2ic-maps", true)]
+    [InlineData("NT51951", "selector-free", "nt51951-ab-merge-1024k", true)]
+    [InlineData("NT51951", "selector-free", "nt51951-ab-desay-maps", true)]
+    [InlineData("NT51929", "selector-free", "nt51929-ab-merge-512k", false)]
+    public void TrustedDeclarationMatchesCompiledInputMembership(string ic, string count, string maps, bool hasPolicy)
     {
         var catalog = new CanonicalCapabilityCatalog(CompositionHostServices.CreateCanonicalCapabilityCatalogSource());
         Assert.True(catalog.Reload(TestContext.Current.CancellationToken).Succeeded);
         ResolvedCapabilityRoute route = Assert.Single(catalog.GetCurrentSnapshot().DynamicRoutes,
             candidate => candidate.Identity.IcId == ic && candidate.Identity.WorkflowId == ExperienceIds.AbMerge &&
-                candidate.Identity.IcCountVariant == count);
+                candidate.Identity.IcCountVariant == count && candidate.Identity.MapVariant == maps);
         var compiler = new CanonicalCapabilityCompilerAdapter(catalog, new BuiltInV2DynamicCompilationAdapter());
         Assert.True(compiler.TryGetAbAuthoringDefinition(route, out CanonicalAbAuthoringDefinition? declaration,
             out IReadOnlyList<CompositionIssue> issues));
@@ -78,7 +82,7 @@ public sealed class AbMergeAuthoringDefinitionTests
     public void CandidateDeclarationNeedsNoExecutableMap(string profileId)
     {
         var bundle = new BuiltInV2Bundle("nt51950-ab-merge", "1.1.6-ab-format.1",
-            BuiltInV2RegistrationRegistry.AbMergeByIc["NT51950"].BundleContentHash,
+            BuiltInV2RegistrationRegistry.FindAbMergeRegistration("NT51950", "nt51950-ab-merge-maps")!.BundleContentHash,
             "built-in-profile-bundle-v2");
         Assert.True(bundle.TryGetAbAuthoringDefinition(profileId, "0.2.0",
             out CanonicalAbAuthoringDefinition? definition, out IReadOnlyList<CompositionIssue> issues));
@@ -102,7 +106,7 @@ public sealed class AbMergeAuthoringDefinitionTests
         {
             MetadataBindings = [.. document.MetadataBindings.Where(binding => binding.StructureId != "tp-b-primary-firmware-config")],
         };
-        BuiltInV2Registration registration = BuiltInV2RegistrationRegistry.AbMergeByIc["NT51950"];
+        BuiltInV2Registration registration = BuiltInV2RegistrationRegistry.FindAbMergeRegistration("NT51950", "nt51950-ab-merge-maps")!;
         CompositionProfileDefinition profile = CompositionProfileNormalizer.Normalize(document);
         _ = Assert.Throws<InvalidOperationException>(() => BuiltInV2Bundle.ProjectAbAuthoringDefinition(
             profile, registration.GetFirmwareFamily(), registration.BundleContentHash));
@@ -120,7 +124,7 @@ public sealed class AbMergeAuthoringDefinitionTests
             InputSlots = [.. document.InputSlots.Select(slot => slot.SlotId == "tp-a-input" ? slot with { SlotId = "selected-a" } : slot)],
             Spaces = [.. document.Spaces.Select(space => space.SlotId == "tp-a-input" ? space with { SlotId = "selected-a" } : space)],
         };
-        BuiltInV2Registration registration = BuiltInV2RegistrationRegistry.AbMergeByIc["NT51950"];
+        BuiltInV2Registration registration = BuiltInV2RegistrationRegistry.FindAbMergeRegistration("NT51950", "nt51950-ab-merge-maps")!;
         CanonicalAbAuthoringDefinition definition = BuiltInV2Bundle.ProjectAbAuthoringDefinition(
             CompositionProfileNormalizer.Normalize(document), registration.GetFirmwareFamily(), registration.BundleContentHash);
         Assert.NotNull(definition.TpAInputBinding);

@@ -19,7 +19,7 @@ public sealed partial class AcceptedSessionFileIdentityTests
         ReloadCatalog();
         using var workspace = TempWorkspace.Create("nfc-standard-accepted-path");
         Dictionary<string, string> paths = CreateStandardInputs(workspace);
-        ActiveSessionSnapshot accepted = AcceptStandardSession(paths);
+        ActiveSessionSnapshot accepted = await AcceptStandardSessionAsync(paths);
         Dictionary<string, string> swapped = new(paths, StringComparer.Ordinal)
         {
             [CompositionAddressSpaceIds.DpInput] = workspace.Write(
@@ -42,7 +42,7 @@ public sealed partial class AcceptedSessionFileIdentityTests
         ReloadCatalog();
         using var workspace = TempWorkspace.Create("nfc-standard-accepted-content");
         Dictionary<string, string> paths = CreateStandardInputs(workspace);
-        ActiveSessionSnapshot accepted = AcceptStandardSession(paths);
+        ActiveSessionSnapshot accepted = await AcceptStandardSessionAsync(paths);
         CompositionRunResult beforeMutation = await ExecuteAsync(accepted, paths);
         MutateFirstConsumedByte(
             accepted,
@@ -50,7 +50,7 @@ public sealed partial class AcceptedSessionFileIdentityTests
             paths[CompositionAddressSpaceIds.TpInput]);
 
         CompositionRunResult afterMutation = await ExecuteAsync(accepted, paths);
-        CompositionRunResult refreshed = await ExecuteAsync(AcceptStandardSession(paths), paths);
+        CompositionRunResult refreshed = await ExecuteAsync(await AcceptStandardSessionAsync(paths), paths);
 
         Assert.True(beforeMutation.Succeeded, CompositionRunReportJson.Serialize(beforeMutation));
         Assert.True(afterMutation.Succeeded, CompositionRunReportJson.Serialize(afterMutation));
@@ -70,7 +70,7 @@ public sealed partial class AcceptedSessionFileIdentityTests
         using var workspace = TempWorkspace.Create("nfc-standard-accepted-shared-path");
         Dictionary<string, string> paths = CreateStandardInputs(workspace);
         paths[CompositionAddressSpaceIds.TpInput] = paths[CompositionAddressSpaceIds.DpInput];
-        ActiveSessionSnapshot accepted = AcceptStandardSession(paths);
+        ActiveSessionSnapshot accepted = await AcceptStandardSessionAsync(paths);
         string outputPath = workspace.PathFor("shared-output.bin");
 
         CompositionRunResult result = await ExecuteAsync(
@@ -108,8 +108,8 @@ public sealed partial class AcceptedSessionFileIdentityTests
             [CompositionAddressSpaceIds.TpInput] = workspace.Write("distinct-tp.bin", sharedBytes),
         };
 
-        ActiveSessionSnapshot sharedSession = AcceptStandardSession(sharedPaths);
-        ActiveSessionSnapshot distinctSession = AcceptStandardSession(distinctPaths);
+        ActiveSessionSnapshot sharedSession = await AcceptStandardSessionAsync(sharedPaths);
+        ActiveSessionSnapshot distinctSession = await AcceptStandardSessionAsync(distinctPaths);
         CompositionRunResult shared = await ExecuteAsync(sharedSession, sharedPaths);
         CompositionRunResult distinct = await ExecuteAsync(distinctSession, distinctPaths);
 
@@ -131,7 +131,7 @@ public sealed partial class AcceptedSessionFileIdentityTests
         ReloadCatalog();
         using var workspace = TempWorkspace.Create("nfc-ab-accepted-path");
         Dictionary<string, string> paths = CreateAbInputs(workspace);
-        ActiveSessionSnapshot accepted = AcceptAbSession(paths);
+        ActiveSessionSnapshot accepted = await AcceptAbSessionAsync(paths);
         Dictionary<string, string> swapped = new(paths, StringComparer.Ordinal)
         {
             [CompositionAddressSpaceIds.TpAInput] = workspace.Write(
@@ -154,7 +154,7 @@ public sealed partial class AcceptedSessionFileIdentityTests
         ReloadCatalog();
         using var workspace = TempWorkspace.Create("nfc-ab-accepted-content");
         Dictionary<string, string> paths = CreateAbInputs(workspace);
-        ActiveSessionSnapshot accepted = AcceptAbSession(paths);
+        ActiveSessionSnapshot accepted = await AcceptAbSessionAsync(paths);
         CompositionRunResult beforeMutation = await ExecuteAsync(accepted, paths);
         MutateFirstConsumedByte(
             accepted,
@@ -162,7 +162,7 @@ public sealed partial class AcceptedSessionFileIdentityTests
             paths[CompositionAddressSpaceIds.TpBInput]);
 
         CompositionRunResult afterMutation = await ExecuteAsync(accepted, paths);
-        CompositionRunResult refreshed = await ExecuteAsync(AcceptAbSession(paths), paths);
+        CompositionRunResult refreshed = await ExecuteAsync(await AcceptAbSessionAsync(paths), paths);
 
         Assert.True(beforeMutation.Succeeded, CompositionRunReportJson.Serialize(beforeMutation));
         Assert.True(afterMutation.Succeeded, CompositionRunReportJson.Serialize(afterMutation));
@@ -182,7 +182,7 @@ public sealed partial class AcceptedSessionFileIdentityTests
         using var workspace = TempWorkspace.Create("nfc-ab-accepted-shared-tp-path");
         Dictionary<string, string> paths = CreateAbInputs(workspace);
         paths[CompositionAddressSpaceIds.TpBInput] = paths[CompositionAddressSpaceIds.TpAInput];
-        ActiveSessionSnapshot accepted = AcceptAbSession(paths);
+        ActiveSessionSnapshot accepted = await AcceptAbSessionAsync(paths);
 
         CompositionRunResult result = await ExecuteAsync(accepted, paths);
 
@@ -207,13 +207,13 @@ public sealed partial class AcceptedSessionFileIdentityTests
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
-    public void AcceptedSessionRejectsConflictingSnapshotsForOnePath(bool conflictStamp)
+    public async Task AcceptedSessionRejectsConflictingSnapshotsForOnePath(bool conflictStamp)
     {
         ReloadCatalog();
         using var workspace = TempWorkspace.Create("nfc-ab-accepted-conflicting-snapshot");
         Dictionary<string, string> paths = CreateAbInputs(workspace);
         paths[CompositionAddressSpaceIds.TpBInput] = paths[CompositionAddressSpaceIds.TpAInput];
-        ActiveSessionSnapshot accepted = AcceptAbSession(paths);
+        ActiveSessionSnapshot accepted = await AcceptAbSessionAsync(paths);
         ActiveSessionSnapshot conflicting = CreateConflictingSnapshot(
             accepted,
             CompositionAddressSpaceIds.TpBInput,
@@ -236,7 +236,7 @@ public sealed partial class AcceptedSessionFileIdentityTests
         ReloadCatalog();
         using var workspace = TempWorkspace.Create("nfc-dp-replace-accepted-path");
         Dictionary<string, string> paths = CreateDpReplaceInputs(workspace);
-        ActiveSessionSnapshot accepted = AcceptDpReplaceSession(paths);
+        ActiveSessionSnapshot accepted = await AcceptDpReplaceSessionAsync(paths);
         Dictionary<string, string> swapped = new(paths, StringComparer.Ordinal)
         {
             [CompositionSlotIds.ReplaceDp] = workspace.Write(
@@ -263,7 +263,7 @@ public sealed partial class AcceptedSessionFileIdentityTests
         ReloadCatalog();
         using var workspace = TempWorkspace.Create("nfc-dp-replace-accepted-content");
         Dictionary<string, string> paths = CreateDpReplaceInputs(workspace);
-        ActiveSessionSnapshot accepted = AcceptDpReplaceSession(paths);
+        ActiveSessionSnapshot accepted = await AcceptDpReplaceSessionAsync(paths);
         MutateFirstByte(paths[CompositionSlotIds.ReplaceDp]);
 
         CompositionRunResult result = await ExecuteAsync(
@@ -284,7 +284,7 @@ public sealed partial class AcceptedSessionFileIdentityTests
             result.OutputBytes.Span[checked((int)operation.TargetRange.Start)]);
     }
 
-    private ActiveSessionSnapshot AcceptStandardSession(
+    private Task<ActiveSessionSnapshot> AcceptStandardSessionAsync(
         Dictionary<string, string> paths)
     {
         var stamps = paths.ToDictionary(
@@ -297,7 +297,7 @@ public sealed partial class AcceptedSessionFileIdentityTests
                 [.. paths.Keys],
                 stamps,
                 new AuthoringRevision(1));
-        return AcceptSession(
+        return AcceptSessionAsync(
             ExperienceIds.StandardMerge,
             "NT51926",
             projection.Catalog,
@@ -305,7 +305,7 @@ public sealed partial class AcceptedSessionFileIdentityTests
             FixedInspectionKind.StandardMerge);
     }
 
-    private ActiveSessionSnapshot AcceptAbSession(
+    private Task<ActiveSessionSnapshot> AcceptAbSessionAsync(
         Dictionary<string, string> paths)
     {
         CompiledAuthoringSelectionSnapshot projection =
@@ -318,7 +318,7 @@ public sealed partial class AcceptedSessionFileIdentityTests
                     static pair => FileStamp.FromBytes(File.ReadAllBytes(pair.Value)),
                     StringComparer.Ordinal),
                 new AuthoringRevision(1));
-        return AcceptSession(
+        return AcceptSessionAsync(
             ExperienceIds.AbMerge,
             "NT51929",
             projection.Catalog,
@@ -326,7 +326,7 @@ public sealed partial class AcceptedSessionFileIdentityTests
             FixedInspectionKind.AbMerge);
     }
 
-    private ActiveSessionSnapshot AcceptDpReplaceSession(
+    private Task<ActiveSessionSnapshot> AcceptDpReplaceSessionAsync(
         Dictionary<string, string> paths)
     {
         var inspectionPaths = new Dictionary<string, string>(StringComparer.Ordinal)
@@ -343,7 +343,7 @@ public sealed partial class AcceptedSessionFileIdentityTests
                     static pair => FileStamp.FromBytes(File.ReadAllBytes(pair.Value)),
                     StringComparer.Ordinal),
                 new AuthoringRevision(1));
-        return AcceptSession(
+        return AcceptSessionAsync(
             ExperienceIds.DpReplace,
             "NT51928",
             projection.Catalog,
@@ -351,7 +351,7 @@ public sealed partial class AcceptedSessionFileIdentityTests
             FixedInspectionKind.DpReplace);
     }
 
-    private ActiveSessionSnapshot AcceptSession(
+    private async Task<ActiveSessionSnapshot> AcceptSessionAsync(
         string workflowId,
         string icId,
         AuthoringCapabilityCatalogSnapshot catalog,
@@ -390,13 +390,13 @@ public sealed partial class AcceptedSessionFileIdentityTests
                 _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, null),
             }),
         ];
-        IReadOnlyList<FirmwareInspectionSnapshotResult> inspected =
-            BuiltInFirmwareInspection.InspectFirmwareBatch(_host.Canonical, icId, inputs);
+        FirmwareInspectionBatchResult inspected = await _host.Services.FirmwareInspectionExperience
+            .InspectFirmwareBatchAsync(icId, inputs, TestContext.Current.CancellationToken);
         AuthoringCapabilityCatalogSnapshot exactCatalog = Assert.IsType<AuthoringCapabilityCatalogSnapshot>(
-            inspected[0].Inspection.InputSlotCatalog);
-        var statuses = inspected.ToDictionary(
-            static result => result.Inspection.InputSlotStatus!.SlotId,
-            static result => result.Inspection.InputSlotStatus!,
+            inspected.InspectionsById[inputs[0].InspectionId].InputSlotCatalog);
+        var statuses = inspected.InspectionsById.Values.ToDictionary(
+            static result => result.InputSlotStatus!.SlotId,
+            static result => result.InputSlotStatus!,
             StringComparer.Ordinal);
         AuthoringSessionTransitionResult completed =
             session.TryCompleteSlotFileInspectionBatch(

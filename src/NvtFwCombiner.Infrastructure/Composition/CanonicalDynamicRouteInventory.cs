@@ -142,7 +142,7 @@ internal static class CanonicalDynamicRouteInventory
             }
             TopologySelection? selection = HeadlessRouteSelection.CreateTopologySelection(
                 requirements[0], selectedMaps[0].MapId);
-            topologyChoice = selection is null ? null : new CapabilityTopologyChoice(requirements[0].CanonicalId, selection);
+            topologyChoice = selection is null ? null : AbMergeTopologyChoiceProjection.FromSelection(selection);
         }
 
         return Create(

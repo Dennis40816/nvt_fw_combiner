@@ -117,6 +117,7 @@ internal sealed class ProfileBundlePackageTrustIndex
             '\n',
             registration.WorkflowId,
             registration.IcId,
+            registration.MapVariantSetId ?? string.Empty,
             registration.PostbuildProcessorId ?? string.Empty,
             registration.PostbuildBranch ?? string.Empty);
     }

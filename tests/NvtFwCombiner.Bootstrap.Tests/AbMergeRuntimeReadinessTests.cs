@@ -1,9 +1,11 @@
 using System.Text.Json;
 using NvtFwCombiner.Application.Authoring;
 using NvtFwCombiner.Application.Capabilities;
+using NvtFwCombiner.Application.Configuration;
 using NvtFwCombiner.Application.ExternalTools;
 using NvtFwCombiner.Application.Ports;
 using NvtFwCombiner.Domain.Firmware;
+using NvtFwCombiner.Infrastructure.ExternalTools;
 using NvtFwCombiner.TestSupport;
 
 namespace NvtFwCombiner.Bootstrap.Tests;
@@ -15,11 +17,13 @@ public sealed partial class AbMergeGoldenRegressionTests
     public async Task ProcessorBackedAbMergeMissingDependencyBlocksBeforeExecutionAsync()
     {
         using var workspace = TempWorkspace.Create("nfc-ab-runtime-missing");
+        CompositionHostServices host = await CreateFormatGoldenHostAsync(workspace);
+        var canonical = new CanonicalTestContext(host);
         IReadOnlyDictionary<string, string> paths = WriteGoldenInputs(
             workspace,
             ReadGoldenCase("nt51950-ab-boe-d82t80"));
-        ActiveSessionSnapshot accepted = PrepareAcceptedSession(
-            BootstrapTestHost.Services,
+        ActiveSessionSnapshot accepted = await PrepareAcceptedSessionAsync(
+            host,
             "NT51950",
             paths,
             new TopologySelection(1, "1 IC", TopologySelectionSource.Requested, "test"));
@@ -28,9 +32,10 @@ public sealed partial class AbMergeGoldenRegressionTests
             generation: 12,
             static generation => generation == 12);
         var authoring = new AbMergeAuthoringExperience(
-            BootstrapTestHost.Canonical.Compiler,
-            BootstrapTestHost.Canonical.Catalog,
-            runtime);
+            canonical.Compiler,
+            canonical.Catalog,
+            runtime,
+            host.GetEventBufferFormatConfigurationAsync);
 
         CapabilityActionReadinessSnapshot readiness = Assert.IsType<CapabilityActionReadinessSnapshot>(
             await authoring.GetActionReadinessAsync(
@@ -39,7 +44,7 @@ public sealed partial class AbMergeGoldenRegressionTests
         var processor = new CountingPassThroughProcessor();
         string outputPath = workspace.PathFor("must-not-exist.bin");
         ICompositionExecution execution = CompositionExecutionTestSupport.Create(
-            BootstrapTestHost.Canonical,
+            canonical,
             () => new CompositionExternalProcessorLease(12, processor),
             static generation => generation == 12);
 
@@ -69,21 +74,24 @@ public sealed partial class AbMergeGoldenRegressionTests
     public async Task ProcessorBackedAbMergeRejectsStaleRuntimeGenerationBeforeExecutionAsync()
     {
         using var workspace = TempWorkspace.Create("nfc-ab-runtime-stale");
+        CompositionHostServices host = await CreateFormatGoldenHostAsync(workspace);
+        var canonical = new CanonicalTestContext(host);
         IReadOnlyDictionary<string, string> paths = WriteGoldenInputs(
             workspace,
             ReadGoldenCase("nt51950-ab-boe-d82t80"));
-        ActiveSessionSnapshot accepted = PrepareAcceptedSession(
-            BootstrapTestHost.Services,
+        ActiveSessionSnapshot accepted = await PrepareAcceptedSessionAsync(
+            host,
             "NT51950",
             paths,
             new TopologySelection(1, "1 IC", TopologySelectionSource.Requested, "test"));
         var authoring = new AbMergeAuthoringExperience(
-            BootstrapTestHost.Canonical.Compiler,
-            BootstrapTestHost.Canonical.Catalog,
+            canonical.Compiler,
+            canonical.Catalog,
             new TestRuntimeLeaseProvider(
                 isReady: true,
                 generation: 30,
-                static generation => generation == 30));
+                static generation => generation == 30),
+            host.GetEventBufferFormatConfigurationAsync);
         CapabilityActionReadinessSnapshot readiness = Assert.IsType<CapabilityActionReadinessSnapshot>(
             await authoring.GetActionReadinessAsync(
                 accepted,
@@ -91,7 +99,7 @@ public sealed partial class AbMergeGoldenRegressionTests
         var processor = new CountingPassThroughProcessor();
         string outputPath = workspace.PathFor("stale-must-not-exist.bin");
         ICompositionExecution execution = CompositionExecutionTestSupport.Create(
-            BootstrapTestHost.Canonical,
+            canonical,
             () => new CompositionExternalProcessorLease(31, processor),
             static generation => generation == 31);
 
@@ -117,20 +125,21 @@ public sealed partial class AbMergeGoldenRegressionTests
     public async Task ProcessorBackedAbMergeCurrentRuntimeGenerationExecutesAsync()
     {
         using var workspace = TempWorkspace.Create("nfc-ab-runtime-current");
+        CompositionHostServices host = await CreateFormatGoldenHostAsync(workspace);
         IReadOnlyDictionary<string, string> paths = WriteGoldenInputs(
             workspace,
             ReadGoldenCase("nt51950-ab-boe-d82t80"));
-        ActiveSessionSnapshot accepted = PrepareAcceptedSession(
-            BootstrapTestHost.Services,
+        ActiveSessionSnapshot accepted = await PrepareAcceptedSessionAsync(
+            host,
             "NT51950",
             paths,
             new TopologySelection(1, "1 IC", TopologySelectionSource.Requested, "test"));
         CapabilityActionReadinessSnapshot readiness = Assert.IsType<CapabilityActionReadinessSnapshot>(
-            await BootstrapTestHost.Services.AbMergeAuthoring.GetActionReadinessAsync(
+            await host.AbMergeAuthoring.GetActionReadinessAsync(
                 accepted,
                 TestContext.Current.CancellationToken));
 
-        CompositionRunResult result = await BootstrapTestHost.Services.CompositionExecution.ExecuteAsync(
+        CompositionRunResult result = await host.CompositionExecution.ExecuteAsync(
             new AcceptedCompositionExecutionRequest(
                 accepted,
                 paths,
@@ -153,7 +162,7 @@ public sealed partial class AbMergeGoldenRegressionTests
         IReadOnlyDictionary<string, string> paths = WriteGoldenInputs(
             workspace,
             ReadGoldenCase("nt51929-ab-t05-d06"));
-        ActiveSessionSnapshot accepted = PrepareAcceptedSession(
+        ActiveSessionSnapshot accepted = await PrepareAcceptedSessionAsync(
             BootstrapTestHost.Services,
             "NT51929",
             paths);
@@ -201,16 +210,31 @@ public sealed partial class AbMergeGoldenRegressionTests
             StringComparer.Ordinal);
     }
 
-    private static ActiveSessionSnapshot PrepareAcceptedSession(
+    private static async Task<CompositionHostServices> CreateFormatGoldenHostAsync(TempWorkspace workspace)
+    {
+        CompositionHostServices host = CompositionHostServices.Create(
+            new ExternalProcessorEnvironmentLoader(RepositoryPaths.FromRepositoryRoot("external-tools")),
+            loadPolicy: null, configurationPath: workspace.PathFor("format.json"));
+        Assert.True((await host.ExternalEnvironmentLoader.LoadToCompletionAsync(
+            null, TestContext.Current.CancellationToken)).Succeeded);
+        IEventBufferFormatConfigurationSession configuration = await host.GetEventBufferFormatConfigurationAsync(
+            TestContext.Current.CancellationToken);
+        Assert.True((await configuration.SaveAsync(configuration.CreateDefaultsDraft(),
+            TestContext.Current.CancellationToken)).Succeeded);
+        return host;
+    }
+
+    private static async Task<ActiveSessionSnapshot> PrepareAcceptedSessionAsync(
         CompositionHostServices host,
         string icId,
         IReadOnlyDictionary<string, string> paths,
         TopologySelection? topology = null)
     {
-        CompiledAuthoringSessionPreparation prepared = AbMergeTestSupport.Prepare(
+        CompiledAuthoringSessionPreparation prepared = await AbMergeTestSupport.PrepareAsync(
             host,
             icId,
             paths,
+            TestContext.Current.CancellationToken,
             topology);
         Assert.True(
             prepared.Succeeded,

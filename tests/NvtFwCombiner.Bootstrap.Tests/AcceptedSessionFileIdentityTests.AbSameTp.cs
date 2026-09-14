@@ -22,8 +22,8 @@ public sealed partial class AcceptedSessionFileIdentityTests
                 File.ReadAllBytes(sharedPaths[CompositionAddressSpaceIds.TpAInput])),
         };
 
-        ActiveSessionSnapshot sharedSession = AcceptAbSession(sharedPaths);
-        ActiveSessionSnapshot distinctSession = AcceptAbSession(distinctPaths);
+        ActiveSessionSnapshot sharedSession = await AcceptAbSessionAsync(sharedPaths);
+        ActiveSessionSnapshot distinctSession = await AcceptAbSessionAsync(distinctPaths);
         CompositionRunResult shared = await ExecuteAsync(sharedSession, sharedPaths);
         CompositionRunResult distinct = await ExecuteAsync(distinctSession, distinctPaths);
 

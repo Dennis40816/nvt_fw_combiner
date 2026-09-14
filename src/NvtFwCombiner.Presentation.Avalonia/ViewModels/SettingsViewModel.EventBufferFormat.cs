@@ -172,6 +172,9 @@ internal sealed partial class SettingsViewModel
     private EventBufferFormatConfigurationFailure? _eventBufferFormatOperationFailure;
     private IReadOnlyList<EventBufferFormatConfigurationIssue> _eventBufferFormatOperationIssues = [];
     private bool _eventBufferFormatLoadStarted;
+    private bool _eventBufferFormatReapplyFailed;
+
+    internal Func<Task<bool>>? ReapplyEventBufferFormatAsync { get; set; }
 
     public ObservableCollection<EventBufferFormatDraftRowViewModel> EventBufferFormatRows { get; } = [];
 
@@ -312,7 +315,19 @@ internal sealed partial class SettingsViewModel
                 [.. EventBufferFormatRows.Select(static row => row.ToDraft())], CancellationToken.None);
             if (result.Succeeded)
             {
+                _eventBufferFormatReapplyFailed = false;
                 ApplyEventBufferFormatState(result, preferDefaultsForUnavailable: false);
+                try
+                {
+                    _eventBufferFormatReapplyFailed = ReapplyEventBufferFormatAsync is not null &&
+                        !await ReapplyEventBufferFormatAsync();
+                }
+                catch (Exception)
+                {
+                    // Persistence already succeeded. Keep its baseline and report the separate refresh failure.
+                    _eventBufferFormatReapplyFailed = true;
+                }
+                RefreshEventBufferFormatLabels();
             }
             else
             {
@@ -489,7 +504,9 @@ internal sealed partial class SettingsViewModel
             ? FormatEventBufferFormatOperationFailure()
             : _eventBufferFormatConfigurationSession.Current.Status switch
             {
-                EventBufferFormatConfigurationStatus.Ready => _textProvider().EventBufferFormatSavedLabel,
+                EventBufferFormatConfigurationStatus.Ready => _eventBufferFormatReapplyFailed
+                    ? _textProvider().EventBufferFormatReapplyFailedLabel
+                    : _textProvider().EventBufferFormatSavedLabel,
                 EventBufferFormatConfigurationStatus.Missing => _textProvider().EventBufferFormatMissingLabel,
                 EventBufferFormatConfigurationStatus.Invalid => _textProvider().EventBufferFormatInvalidLabel,
                 EventBufferFormatConfigurationStatus.NotLoaded => _textProvider().EventBufferFormatInvalidLabel,

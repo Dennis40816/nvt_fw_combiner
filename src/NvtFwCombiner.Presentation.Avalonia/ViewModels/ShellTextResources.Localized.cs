@@ -360,8 +360,11 @@ internal sealed partial class ShellTextResources
                 "The configuration file has an invalid or unsupported format. Correct the file, or review defaults and save a replacement.",
                 "設定檔格式無效或不受支援。請修正檔案，或確認預設草稿後儲存以取代原設定。"),
             EventBufferFormatSavedLabel = Pick(
-                "Configuration saved. Existing AB selections are not refreshed.",
-                "設定已儲存；既有 AB 選擇不會重新整理。"),
+                "Configuration saved.",
+                "設定已儲存。"),
+            EventBufferFormatReapplyFailedLabel = Pick(
+                "Configuration saved, but AB inputs could not be refreshed. Check the input issues before Build.",
+                "設定已儲存，但 AB 輸入未能更新。請先確認輸入問題，再執行 Build。"),
             EventBufferFormatDiscardConfirmationTitle = Pick("Discard unsaved changes?", "捨棄未儲存的變更？"),
             EventBufferFormatDiscardConfirmationDetail = Pick(
                 "Your Event Buffer Format draft will be restored before Settings closes.",

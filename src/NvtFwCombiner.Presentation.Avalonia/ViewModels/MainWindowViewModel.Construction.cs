@@ -138,6 +138,7 @@ internal sealed partial class MainWindowViewModel
                 () => RefreshCommandState(),
                 NotifyRunContextChanged));
         WorkflowSession.PropertyChanged += WorkflowSession_OnPropertyChanged;
+        Settings.ReapplyEventBufferFormatAsync = Merge.ReapplyAbMergeConfigurationAsync;
         BuildResult = new BuildResultViewModel(_fileRevealService, () => Text.BuildCompletedOpenFolderError);
         BuildResult.PropertyChanged += BuildResult_OnPropertyChanged;
         RunSession = new CompositionRunPresentationViewModel(

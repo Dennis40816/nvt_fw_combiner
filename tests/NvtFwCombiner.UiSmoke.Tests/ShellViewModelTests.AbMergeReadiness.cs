@@ -53,6 +53,7 @@ public sealed partial class FirmwareInspectionSlotTests
 
             FirmwareSlotViewModel selected = viewModel.Merge.MergeSlots.Single(slot =>
                 StringComparer.Ordinal.Equals(slot.SlotId, slotId));
+            TestContext.Current.TestOutputHelper!.WriteLine($"{slotId}: {selected.InputInspectionStatus}");
             Assert.Contains(
                 selected.SemanticState,
                 new[] { FirmwareSlotSemanticState.Verified, FirmwareSlotSemanticState.Warning });
@@ -101,7 +102,7 @@ public sealed partial class FirmwareInspectionSlotTests
             "ab-merge",
             "nt51950-ab-boe-d82t80");
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-ab-runtime-readiness");
-        MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
+        MainWindowViewModel viewModel = await PresentationTestHost.CreateConfiguredFormatViewModelAsync(workspace);
         viewModel.ShowMergeCommand.Execute(null);
         viewModel.WorkflowSession.SelectedIc = "NT51950";
         viewModel.WorkflowSession.SelectedNumber = IcNumberSelectionTokens.SingleChip;
@@ -218,10 +219,14 @@ public sealed partial class FirmwareInspectionSlotTests
         WriteUiAbCmi(dp, 0, major: 0x06, minor: 0x05, jira: 0x123);
         WriteUiAbCmi(dp, singleCapacity / 2, major: 0x07, minor: 0x08, jira: 0x456);
         string path = workspace.Write("single-dp-ab.bin", dp);
-        MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
+        MainWindowViewModel viewModel = await PresentationTestHost.CreateConfiguredFormatViewModelAsync(workspace);
         viewModel.ShowMergeCommand.Execute(null);
         viewModel.WorkflowSession.SelectedIc = "NT51950";
         viewModel.Merge.SelectedMergeMode = ExperienceIds.AbMerge;
+
+        byte[] tp = CreateUiAbFormatTpImage(0x84, 1);
+        await viewModel.WorkflowSession.SetSlotFileAsync("tp-a-input", workspace.Write("a.bin", tp), TestContext.Current.CancellationToken);
+        await viewModel.WorkflowSession.SetSlotFileAsync("tp-b-input", workspace.Write("b.bin", tp), TestContext.Current.CancellationToken);
 
         await viewModel.WorkflowSession.SetSlotFileAsync(
             CompositionAddressSpaceIds.DpAbInput,

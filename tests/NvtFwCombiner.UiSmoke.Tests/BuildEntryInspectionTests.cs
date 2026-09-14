@@ -236,7 +236,7 @@ public sealed class BuildEntryInspectionTests(ShellViewModelTestHostFixture fixt
         Assert.Equal(acceptedBatchCount, inspectionBatchCount);
     }
 
-    private MainWindowViewModel CreateViewModel(PresentationHostServices services, Action onBatch)
+    private static MainWindowViewModel CreateViewModel(PresentationHostServices services, Action onBatch)
     {
         return new MainWindowViewModel(
             "ui-smoke",
@@ -244,15 +244,8 @@ public sealed class BuildEntryInspectionTests(ShellViewModelTestHostFixture fixt
             ShellLanguage.English,
             services,
             new DelegatingFirmwareInspection(
-                TestHost.FirmwareInspectionExperience,
-                batchReader: (icId, inputs) =>
-                {
-                    onBatch();
-                    return BuiltInFirmwareInspection.InspectFirmwareBatch(
-                        (BuiltInFirmwareInspection)TestHost.FirmwareInspectionExperience,
-                        icId,
-                        inputs);
-                }));
+                services.Composition.FirmwareInspection,
+                batchStarted: (_, _) => onBatch()));
     }
 
     private static string CopyCanonicalAbInput(TempWorkspace workspace, string addressSpaceId)

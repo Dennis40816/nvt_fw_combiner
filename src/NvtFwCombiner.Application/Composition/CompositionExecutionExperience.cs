@@ -16,13 +16,15 @@ internal sealed class CompositionExecutionExperience : ICompositionExecution
     private readonly Func<CompositionExternalProcessorLease> _acquireExternalProcessor;
     private readonly Func<long, bool> _externalProcessorGenerationIsCurrent;
     private readonly ISystemClock _clock;
+    private readonly AbMergeAuthoringExperience _abMergeAuthoring;
 
     internal CompositionExecutionExperience(
         ICanonicalCapabilityQuery capabilities,
         ICompositionExecutionDestinationProvider destinations,
         Func<CompositionExternalProcessorLease> acquireExternalProcessor,
         Func<long, bool> externalProcessorGenerationIsCurrent,
-        ISystemClock clock)
+        ISystemClock clock,
+        AbMergeAuthoringExperience abMergeAuthoring)
     {
         _capabilities = capabilities ?? throw new ArgumentNullException(nameof(capabilities));
         _destinations = destinations ?? throw new ArgumentNullException(nameof(destinations));
@@ -31,6 +33,7 @@ internal sealed class CompositionExecutionExperience : ICompositionExecution
         _externalProcessorGenerationIsCurrent = externalProcessorGenerationIsCurrent ??
             throw new ArgumentNullException(nameof(externalProcessorGenerationIsCurrent));
         _clock = clock ?? throw new ArgumentNullException(nameof(clock));
+        _abMergeAuthoring = abMergeAuthoring ?? throw new ArgumentNullException(nameof(abMergeAuthoring));
     }
 
     /// <inheritdoc />
@@ -86,12 +89,18 @@ internal sealed class CompositionExecutionExperience : ICompositionExecution
             cancellationToken);
     }
 
-    internal ValueTask<CompositionRunResult> ExecuteAbMergeAsync(
+    internal async ValueTask<CompositionRunResult> ExecuteAbMergeAsync(
         AcceptedCompositionExecutionRequest request,
         CompositionRunProgressFeed progress,
         CancellationToken cancellationToken)
     {
         ResolvedCapability capability = AcceptedSessionExecutionInputs.RequireCapability(request.AcceptedSession, ExperienceIds.AbMerge, request.IcId, AuthoringDerivedResultKind.Inspection);
+        (AbMergeFormatSelection? _, IReadOnlyList<CompositionIssue> formatIssues) =
+            await _abMergeAuthoring.AssessAcceptedFormatAsync(request.AcceptedSession, cancellationToken).ConfigureAwait(false);
+        if (formatIssues.Count != 0)
+        {
+            throw new InvalidOperationException(string.Join(" | ", formatIssues.Select(static issue => $"{issue.Code}: {issue.Message}")));
+        }
         IExternalProcessor? externalProcessor = null;
         RuntimeDependencyReadinessRequest runtimeRequest =
             RuntimeDependencyReadinessRequest.FromResolvedCapability(
@@ -136,7 +145,7 @@ internal sealed class CompositionExecutionExperience : ICompositionExecution
                 ? Array.Empty<CompositionExecutionProtectedPath>()
                 : [new CompositionExecutionProtectedPath(request.ReportPath, "CLI report")],
         ];
-        return ExecuteAcceptedCompositionAsync(
+        return await ExecuteAcceptedCompositionAsync(
             "ui-merge-ab",
             request,
             capability,
@@ -151,7 +160,7 @@ internal sealed class CompositionExecutionExperience : ICompositionExecution
                 CapabilityPublicationCoherence.GetAcceptedAbMergeTopologySelection(capability),
             additionalProtectedPaths: protectedPaths,
             additionalDelivery,
-            cancellationToken);
+            cancellationToken).ConfigureAwait(false);
     }
 
     internal async ValueTask<CompositionRunResult> ExecuteGeneralMergeAsync(

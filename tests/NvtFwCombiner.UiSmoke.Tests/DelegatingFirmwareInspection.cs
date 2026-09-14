@@ -8,6 +8,7 @@ internal sealed class DelegatingFirmwareInspection : IFirmwareInspection
         IReadOnlyList<FirmwareInspectionSnapshotResult>>? _batchReader;
     private readonly IFirmwareInspection _inner;
     private readonly Func<CtrlRamInspectionDisplay, CtrlRamInspectionDisplay>? _displayProjector;
+    private readonly Action<string, IReadOnlyList<FirmwareInspectionSnapshotInput>>? _batchStarted;
 
     internal DelegatingFirmwareInspection(
         IFirmwareInspection inner,
@@ -15,11 +16,13 @@ internal sealed class DelegatingFirmwareInspection : IFirmwareInspection
             string,
             IReadOnlyList<FirmwareInspectionSnapshotInput>,
             IReadOnlyList<FirmwareInspectionSnapshotResult>>? batchReader = null,
-        Func<CtrlRamInspectionDisplay, CtrlRamInspectionDisplay>? displayProjector = null)
+        Func<CtrlRamInspectionDisplay, CtrlRamInspectionDisplay>? displayProjector = null,
+        Action<string, IReadOnlyList<FirmwareInspectionSnapshotInput>>? batchStarted = null)
     {
         _inner = inner ?? throw new ArgumentNullException(nameof(inner));
         _batchReader = batchReader;
         _displayProjector = displayProjector;
+        _batchStarted = batchStarted;
     }
 
     public async ValueTask<FirmwareInspectionBatchResult> InspectFirmwareBatchAsync(
@@ -28,6 +31,8 @@ internal sealed class DelegatingFirmwareInspection : IFirmwareInspection
         CancellationToken cancellationToken,
         IProgress<AuthoringInspectionProgress>? progress = null)
     {
+        cancellationToken.ThrowIfCancellationRequested();
+        _batchStarted?.Invoke(icId, inputs);
         FirmwareInspectionBatchResult before = await _inner
             .InspectFirmwareBatchAsync(icId, inputs, cancellationToken, progress);
         if (_batchReader is null)

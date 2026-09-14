@@ -101,7 +101,7 @@ public sealed class Nt51929Nt51932TpFlashHeaderMetadataTests
         BuiltInV2Registration standardRegistration =
             BuiltInV2RegistrationRegistry.StandardMergeByIc["NT51929"];
         BuiltInV2Registration abRegistration =
-            BuiltInV2RegistrationRegistry.AbMergeByIc["NT51929"];
+            BuiltInV2RegistrationRegistry.FindAbMergeRegistration("NT51929", "nt51929-ab-merge-512k")!;
         MetadataPlanDefinition standard = CreatePlan(standardRegistration);
         MetadataPlanDefinition ab = CreatePlan(
             abRegistration,
@@ -258,7 +258,7 @@ public sealed class Nt51929Nt51932TpFlashHeaderMetadataTests
         MetadataPlanDefinition standard = CreatePlan(
             BuiltInV2RegistrationRegistry.StandardMergeByIc[icId]);
         MetadataPlanDefinition ab = CreatePlan(
-            BuiltInV2RegistrationRegistry.AbMergeByIc[icId],
+            BuiltInV2RegistrationRegistry.FindUniqueAbMergeRegistration(icId)!,
             inputLength: 0x80000);
 
         FirmwareMetadataStructureDefinition provider =
@@ -285,7 +285,7 @@ public sealed class Nt51929Nt51932TpFlashHeaderMetadataTests
     public void Nt51919AbDoesNotAcquireTpHeaderFromFamilyPackaging()
     {
         MetadataPlanDefinition plan = CreatePlan(
-            BuiltInV2RegistrationRegistry.AbMergeByIc["NT51919"],
+            BuiltInV2RegistrationRegistry.FindAbMergeRegistration("NT51919", "nt51919-ab-merge-512k")!,
             inputLength: 0x80000);
 
         Assert.Empty(plan.Entries);

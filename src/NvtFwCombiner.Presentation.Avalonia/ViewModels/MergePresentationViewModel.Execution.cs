@@ -216,33 +216,34 @@ internal sealed partial class MergePresentationViewModel
         bool aFlashCodeOutputPathUsesAutomaticName,
         CompositionOutputBundleIntent? outputBundle)
     {
-        string icId = SelectedIc;
+        ActiveSessionSnapshot session = _abMergeSession.CurrentSnapshot ??
+            throw new InvalidOperationException("AB Merge requires one accepted authoring session.");
+        string icId = session.SelectedIc;
+        string number = SelectedNumber;
         IReadOnlyDictionary<string, string> slotPaths = CreateAbMergeSlotPaths();
-        string profileId = _compositionServices.Capabilities.GetAbMergeProfileSummaries()
-            .Single(profile => StringComparer.Ordinal.Equals(profile.IcId, icId))
-            .ProfileId;
+        string profileId = session.ExactCapability?.CompiledComposition.V2Details.ProfileId ??
+            throw new InvalidOperationException("AB Merge requires one accepted exact profile.");
+        var request = new AcceptedCompositionExecutionRequest(
+            session,
+            slotPaths,
+            build,
+            outputPath: outputPath,
+            additionalDeliveryOutputPath: aFlashCodeOutputPath,
+            outputPathUsesAutomaticName: outputPathUsesAutomaticName,
+            additionalDeliveryOutputPathUsesAutomaticName: aFlashCodeOutputPathUsesAutomaticName,
+            actionReadiness: _abMergeActionReadiness,
+            outputBundle: outputBundle);
         return RunCompositionAsync(
             build,
             (progress, cancellationToken) => _compositionServices.Execution.ExecuteAsync(
-                new AcceptedCompositionExecutionRequest(
-                    _abMergeSession.CurrentSnapshot ?? throw new InvalidOperationException(
-                        "AB Merge requires one accepted authoring session."),
-                    slotPaths,
-                    build,
-                    outputPath: outputPath,
-                    additionalDeliveryOutputPath: aFlashCodeOutputPath,
-                    outputPathUsesAutomaticName: outputPathUsesAutomaticName,
-                    additionalDeliveryOutputPathUsesAutomaticName:
-                        aFlashCodeOutputPathUsesAutomaticName,
-                    actionReadiness: _abMergeActionReadiness,
-                    outputBundle: outputBundle),
+                request,
                 progress,
                 cancellationToken),
             (action, errorMessage) => Reports.LoadRunErrorReport(
                 action,
                 profileId,
                 icId,
-                SelectedNumber,
+                number,
                 errorMessage,
                 slotPaths,
                 compositionKind: "Merge",
