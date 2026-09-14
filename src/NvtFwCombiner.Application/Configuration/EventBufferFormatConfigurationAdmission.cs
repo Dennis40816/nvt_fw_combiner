@@ -1,18 +1,28 @@
 namespace NvtFwCombiner.Application.Configuration;
 
-internal enum EventBufferFormatConfigurationIssueCode
+/// <summary>Stable draft-admission failure categories.</summary>
+public enum EventBufferFormatConfigurationIssueCode
 {
+    /// <summary>The entries collection is absent.</summary>
     MissingEntries,
+    /// <summary>An entry is null.</summary>
     MissingEntry,
+    /// <summary>The identity is not in the canonical catalog.</summary>
     UnknownIdentity,
+    /// <summary>An identity appears more than once.</summary>
     DuplicateIdentity,
+    /// <summary>The recognition collection is absent.</summary>
     MissingValues,
+    /// <summary>A recognition value is not a byte.</summary>
     ValueOutOfRange,
+    /// <summary>A byte appears twice in one entry.</summary>
     DuplicateValue,
+    /// <summary>A byte is assigned to different identities.</summary>
     ConflictingValue,
 }
 
-internal sealed record EventBufferFormatConfigurationIssue(
+/// <summary>One typed draft issue with entry and optional conflicting-value locations.</summary>
+public sealed record EventBufferFormatConfigurationIssue(
     EventBufferFormatConfigurationIssueCode Code,
     int EntryIndex,
     int? RecognitionValue = null,

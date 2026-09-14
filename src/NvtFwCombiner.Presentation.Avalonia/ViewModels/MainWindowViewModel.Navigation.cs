@@ -95,6 +95,14 @@ internal sealed partial class MainWindowViewModel
 
     private void CloseSettings()
     {
+        if (Settings.RequestSettingsClose())
+        {
+            IsSettingsModalOpen = false;
+        }
+    }
+
+    private void Settings_EventBufferFormatCloseAccepted(object? sender, EventArgs e)
+    {
         IsSettingsModalOpen = false;
     }
 

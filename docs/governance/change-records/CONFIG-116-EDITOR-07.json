@@ -1,0 +1,63 @@
+{
+  "schemaVersion": 2,
+  "taskId": "CONFIG-116-EDITOR-07",
+  "capability": "Trusted lazy Event Buffer configuration session and approved Settings editor",
+  "integrationBase": "f9db4ef039be1c7a08e0b83f11133dbc1a0fe049",
+  "risk": "R2",
+  "kind": "behavior",
+  "state": "design-active",
+  "mutablePaths": [
+    "src/NvtFwCombiner.Application/Configuration/IEventBufferFormatConfigurationSession.cs",
+    "src/NvtFwCombiner.Application/Configuration/EventBufferFormatConfigurationCatalog.cs",
+    "src/NvtFwCombiner.Application/Configuration/EventBufferFormatConfiguration.cs",
+    "src/NvtFwCombiner.Application/Configuration/EventBufferFormatConfigurationAdmission.cs",
+    "src/NvtFwCombiner.Application/Configuration/EventBufferFormatConfigurationSession.cs",
+    "src/NvtFwCombiner.Application/Configuration/EventBufferFormatConfigurationSession.State.cs",
+    "src/NvtFwCombiner.Infrastructure/Composition/BuiltInV2Bundle.cs",
+    "src/NvtFwCombiner.Infrastructure/Composition/BuiltInV2RegistrationRegistry.cs",
+    "src/NvtFwCombiner.Bootstrap/CompositionHostServices.cs",
+    "src/NvtFwCombiner.Desktop/Program.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/PresentationHostServices.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MainWindowViewModel.Construction.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MainWindowViewModel.Navigation.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/SettingsViewModel.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/SettingsViewModel.EventBufferFormat.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/Views/SettingsModal.axaml.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ShellTextResources.Settings.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ShellTextResources.Localized.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/Resources/MainWindowPageTemplates.axaml",
+    "src/NvtFwCombiner.Presentation.Avalonia/Resources/SettingsEventBufferFormatPageTemplate.axaml",
+    "tests/NvtFwCombiner.Application.Tests/Configuration/EventBufferFormatConfigurationSessionTests.cs",
+    "tests/NvtFwCombiner.Bootstrap.Tests/EventBufferFormatConfigurationHostTests.cs",
+    "tests/NvtFwCombiner.UiSmoke.Tests/ShellViewModelTests.EventBufferFormat.cs",
+    "tests/NvtFwCombiner.UiSmoke.Tests/XamlControlStyleContractTests.EventBufferFormat.cs",
+    "tests/NvtFwCombiner.UiSmoke.Tests/XamlControlStyleContractTests.cs",
+    "tests/NvtFwCombiner.UiSmoke.Tests/XamlControlStyleContractTests.SettingsModal.cs",
+    "docs/adr/0072-event-buffer-format-configuration.md"
+  ],
+  "implementationOwner": "primary-agent Application/Infrastructure/Bootstrap and ab_format_policy_impl Presentation/Desktop/UI tests, disjoint paths",
+  "searchEvidence": [
+    "At e4561d50 configuration admission/session/storage are implemented and cross-layer hash regression is fixed, but there is no production Settings caller.",
+    "Existing internal ConfigurationSession serializes Save/Reload, persists before immutable publication, retains LastSaved only as draft recovery and fails closed on missing/invalid configuration.",
+    "BuiltInV2Registration owns exact profile ID/version and its trusted BuiltInV2Bundle; expose exact trusted family without running a dummy compilation or a second JSON catalog.",
+    "Family.AbFormatPolicy references canonical member/map variants. Project declared b-tp-code regions for readonly disclosure, no offsets or address calculations in UI.",
+    "SettingsModalContentTemplate and SettingsViewModel own existing sections; MainWindowViewModel.Navigation.CloseSettings is shared by close and SettingsModal Escape. Extend it for dirty discard confirmation.",
+    "Existing headless Settings acceptance tests render production controls and measure rail/content bounds. Reuse their full-modal resources and reference geometry."
+  ],
+  "semanticOwner": "Application EventBufferFormatConfigurationSession remains sole effective configuration owner; Domain/Profiles own declared effects; Presentation owns unaccepted drafts and renders typed outcomes",
+  "terminalContract": "One host-scoped lazily acquired public session exposes immutable state/catalog and existing Save/Reload/draft operations. Trusted catalog load is deferred until Config use and failed initialization is retryable. The approved Config editor supports restricted identities, aliases, byte chips, defaults/discard/save, dirty-close confirmation and explicit failures. No runtime route publication or claim of AB re-evaluation until later actual consumer wiring.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "/root/v116_config_architecture",
+    "outcome": "approved",
+    "evidence": "2026-09-14 independent R2 admission after e4561d50: expose existing immutable types through inward interface, keep implementation/constructor internal; trusted exact registered-profile family accessor; readonly effect projection retains all member/map applicability; async lazy single session without first-frame catalog load or permanently cached failing Task. Missing/Invalid are not defaults/LastSaved authority. Preserve drafts across sections, shared dirty Close/Escape confirmation, persist-before-publish; no speculative Changed event before consumer wiring. The original 23 paths plus separately reviewed ShellTextResources.Localized.cs are admitted; the latter only initializes new Config English/Traditional Chinese values using existing Pick, preserving other labels. Scoped tests and full approved-reference render required. Firmware/runtime/Golden/integration gates remain separate."
+  },
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": {
+    "reviewer": null,
+    "outcome": "pending",
+    "evidence": ""
+  }
+}

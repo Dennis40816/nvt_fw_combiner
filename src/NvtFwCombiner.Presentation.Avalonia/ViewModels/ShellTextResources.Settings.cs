@@ -12,6 +12,87 @@ internal sealed partial class ShellTextResources
 
     public string SettingsPreferencesNavigationLabel { get; private init; } = string.Empty;
 
+    public string EventBufferFormatNavigationLabel { get; private init; } = string.Empty;
+
+    public string EventBufferFormatTitle { get; private init; } = string.Empty;
+
+    public string EventBufferFormatSubtitle { get; private init; } = string.Empty;
+
+    public string EventBufferFormatUniqueIdLabel { get; private init; } = string.Empty;
+
+    public string EventBufferFormatAliasLabel { get; private init; } = string.Empty;
+
+    public string EventBufferFormatRecognitionValuesLabel { get; private init; } = string.Empty;
+
+    public string EventBufferFormatOutputEffectLabel { get; private init; } = string.Empty;
+
+    public string EventBufferFormatAddValueLabel { get; private init; } = string.Empty;
+
+    public string EventBufferFormatRemoveValueLabel { get; private init; } = string.Empty;
+
+    public string EventBufferFormatRecognitionValueLabel { get; private init; } = string.Empty;
+
+    public string EventBufferFormatIdentityHint { get; private init; } = string.Empty;
+
+    public string EventBufferFormatAliasHint { get; private init; } = string.Empty;
+
+    public string EventBufferFormatRecognitionValuesHint { get; private init; } = string.Empty;
+
+    public string EventBufferFormatRestoreDefaultsLabel { get; private init; } = string.Empty;
+
+    public string EventBufferFormatDiscardChangesLabel { get; private init; } = string.Empty;
+
+    public string EventBufferFormatSaveApplyLabel { get; private init; } = string.Empty;
+
+    public string EventBufferFormatNoUnsavedChangesLabel { get; private init; } = string.Empty;
+
+    public string EventBufferFormatUnsavedChangesLabel { get; private init; } = string.Empty;
+
+    public string EventBufferFormatSavingLabel { get; private init; } = string.Empty;
+
+    public string EventBufferFormatInvalidHexLabel { get; private init; } = string.Empty;
+
+    public string EventBufferFormatValuesRequiredLabel { get; private init; } = string.Empty;
+
+    public string EventBufferFormatIdentityRequiredLabel { get; private init; } = string.Empty;
+
+    public string EventBufferFormatEntryRequiredLabel { get; private init; } = string.Empty;
+
+    public string EventBufferFormatEntryLabel { get; private init; } = string.Empty;
+
+    public string EventBufferFormatDuplicateIdentityLabel { get; private init; } = string.Empty;
+
+    public string EventBufferFormatValueOutOfRangeLabel { get; private init; } = string.Empty;
+
+    public string EventBufferFormatDuplicateValueLabel { get; private init; } = string.Empty;
+
+    public string EventBufferFormatConflictingValueLabel { get; private init; } = string.Empty;
+
+    public string EventBufferFormatOutputStartLabel { get; private init; } = string.Empty;
+
+    public string EventBufferFormatOutputAppliesToLabel { get; private init; } = string.Empty;
+
+    public string EventBufferFormatLoadingLabel { get; private init; } = string.Empty;
+
+    public string EventBufferFormatMissingLabel { get; private init; } = string.Empty;
+
+    public string EventBufferFormatInvalidLabel { get; private init; } = string.Empty;
+
+    public string EventBufferFormatLoadFailedLabel { get; private init; } = string.Empty;
+
+    public string EventBufferFormatSaveFailedLabel { get; private init; } = string.Empty;
+    public string EventBufferFormatReadFailedLabel { get; private init; } = string.Empty;
+    public string EventBufferFormatScopeMismatchLabel { get; private init; } = string.Empty;
+    public string EventBufferFormatInvalidDocumentLabel { get; private init; } = string.Empty;
+
+    public string EventBufferFormatSavedLabel { get; private init; } = string.Empty;
+
+    public string EventBufferFormatDiscardConfirmationTitle { get; private init; } = string.Empty;
+
+    public string EventBufferFormatDiscardConfirmationDetail { get; private init; } = string.Empty;
+
+    public string EventBufferFormatKeepEditingLabel { get; private init; } = string.Empty;
+
     public string SettingsOverviewTitle { get; private init; } = string.Empty;
 
     public string SettingsOverviewSubtitle { get; private init; } = string.Empty;

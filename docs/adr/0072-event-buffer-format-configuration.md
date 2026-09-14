@@ -186,3 +186,43 @@ route or implement the Config UI. Existing runtime registrations retain their
 map allowlists and support/evidence decisions; source identities are repinned
 only. Runtime authoring, accepted-run proof, output warnings and UI integration
 remain subsequent units under the same owner goal.
+
+## Settings configuration service and editor
+
+The seventh unit exposes the existing Application session through
+`IEventBufferFormatConfigurationSession`; its implementation and constructors
+remain internal. Existing immutable draft/configuration/state/issue models are
+shared with Presentation, not copied into a second transport or validation
+framework. The catalog is a read-only projection of the trusted registered
+profile's family policy. Each configurable format retains all member/map effects
+from that map's canonical `b-tp-code` region in its named address space; this
+disclosure is not a currently selected runtime map or Build authority.
+
+Bootstrap owns one lazy session per host graph. Constructing the host or visiting
+ordinary Settings does not load the configuration family. The first Config
+request loads the exact registered profile's trusted family without compiling
+a pretend output. Concurrent consumers share the initialization task; a caller's
+cancellation stops only its wait. Failed host acquisition tasks are not permanently
+cached. This does not override the existing trusted bundle/registry initialization
+policy: a cached catalog initialization exception may require repairing installed
+files and restarting. Config must report that limitation rather than promise
+same-process recovery or create a second catalog. The default file is
+`%LOCALAPPDATA%/NvtFwCombiner/event-buffer-format.v1.json`, using the existing
+bounded/atomic storage adapter. Tests supply an isolated path. Missing/Invalid
+stays explicit, with no automatic first-install write or effective defaults.
+
+The approved editor lives in the existing Settings modal. Identity selection
+and byte membership use the Application owner; aliases remain display-only.
+Defaults and last-saved entries are draft sources. Sections retain unsaved
+drafts; dirty Close and Escape share discard confirmation. Persistence failures
+preserve the draft and prior effective state. No successful-save wording may
+claim AB input re-evaluation until the runtime consumer is actually connected.
+This unit introduces no speculative global Changed event; subsequent accepted
+run/inspection invalidation must use this same session, not a per-page copy.
+
+Verification covers public-interface draft isolation, trusted effect projection,
+lazy/concurrent/cancel/retry lifetime, real Save/restart reads, editor commands,
+dirty-close behavior and full-reference geometry in both themes and languages.
+Runtime format compilation, selected-input re-evaluation, DP-size warnings and
+new-variant Golden/processor evidence remain subsequent integration work, not
+implied by the existence of this editor.

@@ -1,11 +1,12 @@
 using System.Globalization;
 using NvtFwCombiner.Application.Ports;
 using NvtFwCombiner.Contracts.Configuration;
+using NvtFwCombiner.Domain.Firmware;
 
 namespace NvtFwCombiner.Application.Configuration;
 
 /// <summary>Serializes persistence and immutable publication, without runtime or firmware-selection authority.</summary>
-internal sealed class EventBufferFormatConfigurationSession : IDisposable
+internal sealed class EventBufferFormatConfigurationSession : IEventBufferFormatConfigurationSession, IDisposable
 {
     private readonly string _scopeId;
     private readonly EventBufferFormatIdentity[] _catalog;
@@ -20,29 +21,47 @@ internal sealed class EventBufferFormatConfigurationSession : IDisposable
         IReadOnlyList<EventBufferFormatIdentity> catalog,
         IReadOnlyList<EventBufferFormatDraftEntry?> defaults,
         IEventBufferFormatConfigurationStorage storage)
+        : this(new EventBufferFormatConfigurationCatalog(scopeId, catalog, []), defaults, storage)
+    {
+    }
+
+    internal EventBufferFormatConfigurationSession(
+        FirmwareFamilyResolutionDefinition family, IEventBufferFormatConfigurationStorage storage)
+        : this(EventBufferFormatConfigurationCatalog.FromFamily(family),
+            [.. family.AbFormatPolicy!.Formats.Select(format => new EventBufferFormatDraftEntry(
+                format.UniqueId, null, [.. format.DefaultRecognitionValues.Select(value => (int)value)]))], storage)
+    {
+    }
+
+    private EventBufferFormatConfigurationSession(
+        EventBufferFormatConfigurationCatalog catalog, IReadOnlyList<EventBufferFormatDraftEntry?> defaults,
+        IEventBufferFormatConfigurationStorage storage)
     {
         ArgumentNullException.ThrowIfNull(catalog);
         ArgumentNullException.ThrowIfNull(storage);
-        _scopeId = scopeId;
-        _catalog = [.. catalog];
-        _defaults = EventBufferFormatConfigurationAdmission.Admit(scopeId, _catalog, defaults).Configuration
+        Catalog = catalog;
+        _scopeId = catalog.ScopeId;
+        _catalog = [.. catalog.Identities];
+        _defaults = EventBufferFormatConfigurationAdmission.Admit(_scopeId, _catalog, defaults).Configuration
             ?? throw new ArgumentException("Canonical default configuration must be valid.", nameof(defaults));
         _storage = storage;
     }
 
-    internal EventBufferFormatConfigurationState Current => Volatile.Read(ref _current);
+    public EventBufferFormatConfigurationCatalog Catalog { get; }
 
-    internal IReadOnlyList<EventBufferFormatDraftEntry?> CreateDefaultsDraft()
+    public EventBufferFormatConfigurationState Current => Volatile.Read(ref _current);
+
+    public IReadOnlyList<EventBufferFormatDraftEntry?> CreateDefaultsDraft()
     {
         return ToDraft(_defaults);
     }
 
-    internal IReadOnlyList<EventBufferFormatDraftEntry?>? CreateSavedDraft()
+    public IReadOnlyList<EventBufferFormatDraftEntry?>? CreateSavedDraft()
     {
         return Current.LastSaved is { } saved ? ToDraft(saved) : null;
     }
 
-    internal async ValueTask<EventBufferFormatConfigurationOperationResult> SaveAsync(
+    public async ValueTask<EventBufferFormatConfigurationOperationResult> SaveAsync(
         IReadOnlyList<EventBufferFormatDraftEntry?>? draft, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
@@ -76,7 +95,7 @@ internal sealed class EventBufferFormatConfigurationSession : IDisposable
         }
     }
 
-    internal async ValueTask<EventBufferFormatConfigurationOperationResult> ReloadAsync(CancellationToken cancellationToken)
+    public async ValueTask<EventBufferFormatConfigurationOperationResult> ReloadAsync(CancellationToken cancellationToken)
     {
         await _gate.WaitAsync(cancellationToken).ConfigureAwait(false);
         try

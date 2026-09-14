@@ -60,7 +60,9 @@ internal sealed partial class MainWindowViewModel
             appVersion,
             supportMatrixQuery ?? hostServices.SupportMatrix,
             () => Text,
-            hostServices.VersionManagement);
+            hostServices.VersionManagement,
+            hostServices.EventBufferFormatConfigurationSessionFactory);
+        Settings.EventBufferFormatCloseAccepted += Settings_EventBufferFormatCloseAccepted;
         OutputDelivery = new OutputDeliveryConfirmationViewModel(
             _compositionServices.OutputNaming,
             () => Text);

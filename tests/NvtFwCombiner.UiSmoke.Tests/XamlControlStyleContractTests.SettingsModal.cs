@@ -216,7 +216,7 @@ public sealed partial class XamlControlStyleContractTests
         }
     }
 
-    /// <summary>The reference rail is four uninterrupted entries and uses the approved General gear.</summary>
+    /// <summary>The approved Config section extends the rail while retaining the General gear and aligned labels.</summary>
     [Fact]
     public void SettingsReferenceRailMatchesApprovedStructure()
     {
@@ -230,10 +230,14 @@ public sealed partial class XamlControlStyleContractTests
         System.Xml.Linq.XElement items = Assert.Single(
             rail.Elements(),
             element => element.Name.LocalName == "StackPanel");
-        System.Xml.Linq.XElement[] entries = [.. items.Elements()];
+        System.Xml.Linq.XElement[] entries = [.. items.Elements().Where(element => element.Name.LocalName == "RadioButton")];
 
-        Assert.Equal(4, entries.Length);
-        Assert.All(entries, entry => Assert.Equal("RadioButton", entry.Name.LocalName));
+        Assert.Equal(5, entries.Length);
+        Assert.Equal(6, items.Elements().Count());
+        System.Xml.Linq.XElement subsection = Assert.Single(items.Elements(), element => element.Name.LocalName == "Border");
+        Assert.Equal("{Binding Settings.IsEventBufferFormatSelected}", (string?)subsection.Attribute("IsVisible"));
+        Assert.Equal("{Binding Text.EventBufferFormatTitle}", (string?)Assert.Single(subsection.Elements()).Attribute("Text"));
+        Assert.Equal("{x:Static vm:SettingsSection.EventBufferFormat}", (string?)entries[2].Attribute("CommandParameter"));
         Assert.All(entries, entry =>
         {
             System.Xml.Linq.XElement contentGrid = Assert.Single(

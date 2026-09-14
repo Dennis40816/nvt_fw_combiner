@@ -113,6 +113,15 @@ internal sealed class BuiltInV2Bundle
             profileId);
     }
 
+    /// <summary>Returns the family of one exact trusted registered profile without compiling an output.</summary>
+    internal FirmwareFamilyResolutionDefinition GetFirmwareFamily(string profileId, string profileVersion)
+    {
+        TrustedCompositionProfileCatalogEntry profile = GetProfile(profileId);
+        return StringComparer.Ordinal.Equals(profile.Profile.ProfileVersion, profileVersion)
+            ? profile.Family.Family
+            : throw new InvalidDataException("Registered profile version does not match the trusted family binding.");
+    }
+
     private TrustedCompositionProfileCatalogEntry GetProfile(string profileId)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(profileId);

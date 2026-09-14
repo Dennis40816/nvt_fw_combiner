@@ -1,6 +1,7 @@
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
+using Avalonia.Interactivity;
 using Avalonia.Threading;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
@@ -14,12 +15,14 @@ public sealed partial class SettingsModal : UserControl
         AvaloniaProperty.Register<SettingsModal, bool>(nameof(IsOpen));
 
     private IInputElement? _returnFocus;
+    private TopLevel? _owningTopLevel;
 
     /// <summary>Initializes the generated view.</summary>
     public SettingsModal()
     {
         InitializeComponent();
         AttachedToVisualTree += SettingsModal_OnAttachedToVisualTree;
+        DetachedFromVisualTree += SettingsModal_OnDetachedFromVisualTree;
         PropertyChanged += SettingsModal_OnPropertyChanged;
     }
 
@@ -32,10 +35,19 @@ public sealed partial class SettingsModal : UserControl
 
     private void SettingsModal_OnAttachedToVisualTree(object? sender, VisualTreeAttachmentEventArgs e)
     {
+        _owningTopLevel = TopLevel.GetTopLevel(this);
+        // A removed chip can leave no focused descendant to bubble Escape through this modal.
+        _owningTopLevel?.AddHandler(KeyDownEvent, SettingsModal_OnKeyDown, RoutingStrategies.Bubble);
         if (IsOpen)
         {
             EnterModal();
         }
+    }
+
+    private void SettingsModal_OnDetachedFromVisualTree(object? sender, VisualTreeAttachmentEventArgs e)
+    {
+        _owningTopLevel?.RemoveHandler(KeyDownEvent, SettingsModal_OnKeyDown);
+        _owningTopLevel = null;
     }
 
     private void SettingsModal_OnPropertyChanged(object? sender, AvaloniaPropertyChangedEventArgs e)
@@ -76,7 +88,7 @@ public sealed partial class SettingsModal : UserControl
 
     private void SettingsModal_OnKeyDown(object? sender, KeyEventArgs e)
     {
-        if (e.Key != Key.Escape || DataContext is not MainWindowViewModel viewModel)
+        if (!IsOpen || e.Key != Key.Escape || DataContext is not MainWindowViewModel viewModel)
         {
             return;
         }

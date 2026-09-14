@@ -455,7 +455,7 @@ public sealed partial class XamlControlStyleContractTests
                 element.Name.LocalName == "RadioButton" &&
                 ((string?)element.Attribute("Classes"))?.Split(' ').Contains("settingsNavItem") == true),
         ];
-        Assert.Equal(4, settingsNavigationItems.Length);
+        Assert.Equal(5, settingsNavigationItems.Length);
         Assert.All(
             settingsNavigationItems,
             static item => Assert.Equal("SettingsSections", (string?)item.Attribute("GroupName")));
@@ -463,6 +463,7 @@ public sealed partial class XamlControlStyleContractTests
             [
                 "{Binding Settings.IsOverviewSelected, Mode=OneWay}",
                 "{Binding Settings.IsPreferencesSelected, Mode=OneWay}",
+                "{Binding Settings.IsEventBufferFormatSelected, Mode=OneWay}",
                 "{Binding Settings.IsVersionSelected, Mode=OneWay}",
                 "{Binding Settings.IsSupportMatrixOpen, Mode=OneWay}",
             ],

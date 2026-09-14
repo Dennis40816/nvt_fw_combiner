@@ -1,5 +1,6 @@
 using NvtFwCombiner.Application.Authoring;
 using NvtFwCombiner.Application.Capabilities;
+using NvtFwCombiner.Application.Configuration;
 using NvtFwCombiner.Application.Diagnostics;
 using NvtFwCombiner.Application.ExternalTools;
 using NvtFwCombiner.Application.HexEditor;
@@ -8,6 +9,8 @@ using NvtFwCombiner.Application.Ports;
 using NvtFwCombiner.Application.VersionManagement;
 using NvtFwCombiner.Infrastructure.Capabilities;
 using NvtFwCombiner.Infrastructure.Composition;
+using NvtFwCombiner.Infrastructure.Configuration;
+using NvtFwCombiner.Domain.Firmware;
 using NvtFwCombiner.Infrastructure.Diagnostics;
 using NvtFwCombiner.Infrastructure.ExternalTools;
 using NvtFwCombiner.Infrastructure.Files;
@@ -20,12 +23,22 @@ namespace NvtFwCombiner.Bootstrap;
 /// <summary>One explicitly constructed Bootstrap dependency graph.</summary>
 public sealed class CompositionHostServices
 {
+    private readonly Lock _configurationGate = new();
+    private readonly Func<FirmwareFamilyResolutionDefinition> _loadConfigurationFamily;
+    private readonly string? _configurationPath;
+    private Task<IEventBufferFormatConfigurationSession>? _configuration;
+
     private CompositionHostServices(
         CanonicalCapabilityCatalog catalog,
         CanonicalCapabilityCompilerAdapter compiler,
         CanonicalCapabilityExperience projection,
-        ExternalProcessorEnvironmentLoader externalEnvironment)
+        ExternalProcessorEnvironmentLoader externalEnvironment,
+        Func<FirmwareFamilyResolutionDefinition>? loadConfigurationFamily,
+        string? configurationPath)
     {
+        _loadConfigurationFamily = loadConfigurationFamily ??
+            (() => BuiltInV2RegistrationRegistry.AbMergeByIc["NT51950"].GetFirmwareFamily());
+        _configurationPath = configurationPath;
         Catalog = catalog ?? throw new ArgumentNullException(nameof(catalog));
         Compiler = compiler;
         CompositionCapabilityExperience = projection;
@@ -121,7 +134,9 @@ public sealed class CompositionHostServices
 
     internal static CompositionHostServices Create(
         ExternalProcessorEnvironmentLoader externalEnvironment,
-        Func<CanonicalCapabilityPolicySnapshot>? loadPolicy)
+        Func<CanonicalCapabilityPolicySnapshot>? loadPolicy,
+        Func<FirmwareFamilyResolutionDefinition>? loadConfigurationFamily = null,
+        string? configurationPath = null)
     {
         var catalog = new CanonicalCapabilityCatalog(
             CreateCanonicalCapabilityCatalogSource(loadPolicy));
@@ -132,7 +147,50 @@ public sealed class CompositionHostServices
             catalog,
             compiler,
             new CanonicalCapabilityExperience(catalog, catalog),
-            externalEnvironment);
+            externalEnvironment,
+            loadConfigurationFamily,
+            configurationPath);
+    }
+
+    /// <summary>
+    /// Lazily gets this host's single configuration session. Missing/invalid persisted data remains
+    /// explicit; failed host tasks can be retried. Existing trusted-catalog initialization failures may
+    /// require repairing the installed files and restarting. Host construction performs no configuration IO.
+    /// </summary>
+    public Task<IEventBufferFormatConfigurationSession> GetEventBufferFormatConfigurationAsync(
+        CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        lock (_configurationGate)
+        {
+            if (_configuration is null || _configuration.IsFaulted || _configuration.IsCanceled)
+            {
+                _configuration = CreateEventBufferFormatConfigurationAsync();
+            }
+
+            // A caller may stop waiting without cancelling initialization used by other consumers.
+            return _configuration.WaitAsync(cancellationToken);
+        }
+    }
+
+    private async Task<IEventBufferFormatConfigurationSession> CreateEventBufferFormatConfigurationAsync()
+    {
+        FirmwareFamilyResolutionDefinition family = await Task.Run(_loadConfigurationFamily).ConfigureAwait(false);
+        string path = _configurationPath ?? Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+            "NvtFwCombiner", "event-buffer-format.v1.json");
+        var session = new EventBufferFormatConfigurationSession(family,
+            new EventBufferFormatConfigurationStorage(LocalFiles, path));
+        try
+        {
+            _ = await session.ReloadAsync(CancellationToken.None).ConfigureAwait(false);
+            return session;
+        }
+        catch
+        {
+            session.Dispose();
+            throw;
+        }
     }
 
     /// <summary>Gets the focused query over the host's single canonical catalog publication.</summary>

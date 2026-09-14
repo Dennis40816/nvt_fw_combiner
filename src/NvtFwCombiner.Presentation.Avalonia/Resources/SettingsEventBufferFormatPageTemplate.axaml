@@ -1,0 +1,190 @@
+<ResourceDictionary
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:converters="using:Avalonia.Data.Converters"
+    xmlns:config="using:NvtFwCombiner.Application.Configuration"
+    xmlns:vm="using:NvtFwCombiner.Presentation.Avalonia.ViewModels">
+
+  <DataTemplate x:Key="SettingsEventBufferFormatPageTemplate" DataType="vm:MainWindowViewModel">
+    <Grid x:Name="EventBufferFormatPageRoot" Margin="36,20,36,32" RowDefinitions="Auto,*,Auto" RowSpacing="28">
+      <Grid.Styles>
+        <Style Selector="TextBox">
+          <Setter Property="Height" Value="44" />
+          <Setter Property="VerticalAlignment" Value="Center" />
+          <Setter Property="VerticalContentAlignment" Value="Center" />
+          <Setter Property="Background" Value="{DynamicResource NfcSurfaceBrush}" />
+          <Setter Property="BorderBrush" Value="{DynamicResource NfcBorderBrush}" />
+          <Setter Property="CornerRadius" Value="6" />
+          <Setter Property="FontSize" Value="16" />
+        </Style>
+        <Style Selector="ComboBox">
+          <Setter Property="Height" Value="44" />
+          <Setter Property="VerticalAlignment" Value="Center" />
+          <Setter Property="HorizontalAlignment" Value="Stretch" />
+          <Setter Property="Background" Value="{DynamicResource NfcSurfaceBrush}" />
+          <Setter Property="FontSize" Value="16" />
+        </Style>
+        <Style Selector="TextBlock.configHeader">
+          <Setter Property="FontSize" Value="18" />
+          <Setter Property="FontWeight" Value="SemiBold" />
+          <Setter Property="TextAlignment" Value="Center" />
+          <Setter Property="TextWrapping" Value="Wrap" />
+          <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+      </Grid.Styles>
+      <StackPanel Grid.Row="0" Spacing="8">
+        <StackPanel Orientation="Horizontal" Spacing="6">
+          <TextBlock Classes="supportingText" FontSize="16" Text="{Binding Text.EventBufferFormatNavigationLabel}" />
+          <TextBlock Classes="supportingText" FontSize="16" Text="/" />
+          <TextBlock Classes="supportingText" FontSize="16" Text="{Binding Text.EventBufferFormatTitle}" />
+        </StackPanel>
+        <TextBlock Classes="pageTitle" FontSize="30" Text="{Binding Text.EventBufferFormatTitle}" TextWrapping="Wrap" />
+        <TextBlock Classes="pageSubtitle" FontSize="16" Text="{Binding Text.EventBufferFormatSubtitle}" TextWrapping="Wrap" />
+        <Border Margin="0,20,0,0" BorderBrush="{DynamicResource NfcDividerBrush}" BorderThickness="0,0,0,1" />
+      </StackPanel>
+
+      <ScrollViewer Grid.Row="1" Classes="contentScrollSurface" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+      <StackPanel Spacing="20">
+        <TextBlock
+            AutomationProperties.LiveSetting="Polite"
+            Classes="supportingText"
+            IsVisible="{Binding Settings.IsEventBufferFormatLoading}"
+            Text="{Binding Text.EventBufferFormatLoadingLabel}" />
+        <Border Background="{DynamicResource NfcSurfaceSubtleBrush}" BorderBrush="{DynamicResource NfcBorderMutedBrush}" BorderThickness="0,1" Padding="12,16" IsVisible="{Binding Settings.IsEventBufferFormatAvailable}">
+          <Grid ColumnDefinitions="1.05*,1.15*,1.7*,.85*" ColumnSpacing="20">
+            <TextBlock Classes="configHeader" Text="{Binding Text.EventBufferFormatUniqueIdLabel}" />
+            <TextBlock Grid.Column="1" Classes="configHeader" Text="{Binding Text.EventBufferFormatAliasLabel}" />
+            <TextBlock Grid.Column="2" Classes="configHeader" Text="{Binding Text.EventBufferFormatRecognitionValuesLabel}" />
+            <TextBlock Grid.Column="3" Classes="configHeader" Text="{Binding Text.EventBufferFormatOutputEffectLabel}" />
+          </Grid>
+        </Border>
+
+        <ItemsControl IsEnabled="{Binding !Settings.IsEventBufferFormatBusy}" ItemsSource="{Binding Settings.EventBufferFormatRows}">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate DataType="vm:EventBufferFormatDraftRowViewModel">
+              <StackPanel Spacing="20">
+              <Border Padding="12,6,12,24" BorderBrush="{DynamicResource NfcBorderBrush}" BorderThickness="0,0,0,1">
+                <Grid ColumnDefinitions="1.05*,1.15*,1.7*,.85*" ColumnSpacing="20">
+                  <ComboBox
+                      AutomationProperties.Name="{Binding UniqueId}"
+                      ItemsSource="{Binding IdentityChoices}"
+                      SelectedItem="{Binding SelectedIdentity, Mode=TwoWay}">
+                    <ComboBox.ItemTemplate>
+                      <DataTemplate DataType="config:EventBufferFormatIdentity">
+                        <TextBlock Text="{Binding DisplayName}" />
+                      </DataTemplate>
+                    </ComboBox.ItemTemplate>
+                  </ComboBox>
+                  <TextBox
+                      Grid.Column="1"
+                      TextAlignment="Center"
+                      AutomationProperties.Name="{ReflectionBinding $parent[ContentControl].DataContext.Text.EventBufferFormatAliasLabel}"
+                      Text="{Binding AliasName, Mode=TwoWay}" />
+                  <StackPanel Grid.Column="2" Spacing="8" VerticalAlignment="Center">
+                    <WrapPanel Orientation="Horizontal">
+                    <ItemsControl ItemsSource="{Binding RecognitionValues}">
+                      <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate>
+                      </ItemsControl.ItemsPanel>
+                      <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                          <Border Margin="0,0,8,4" Padding="10,0,2,0" CornerRadius="12" Background="{DynamicResource NfcAccentSurfaceBrush}">
+                            <StackPanel Orientation="Horizontal" Spacing="4">
+                              <TextBlock FontSize="16" VerticalAlignment="Center" Text="{Binding StringFormat=0x{0:X2}}" />
+                              <Button Width="30" Height="40" Padding="0" MinWidth="0"
+                              AutomationProperties.Name="{Binding $parent[ItemsControl].DataContext.RemoveRecognitionValueLabel}"
+                              Classes="semanticAction command danger"
+                              Command="{Binding $parent[ItemsControl].DataContext.RemoveRecognitionValueCommand}"
+                              CommandParameter="{Binding .}">
+                                <Path Width="10" Height="10" Data="M0 0L10 10M10 0L0 10" Stroke="{DynamicResource NfcDangerTextBrush}" StrokeThickness="1.8" />
+                              </Button>
+                            </StackPanel>
+                          </Border>
+                        </DataTemplate>
+                      </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                    <Button Margin="0,0,0,4" Height="40" IsVisible="{Binding !IsAddingRecognitionValue}"
+                        AutomationProperties.Name="{Binding AddRecognitionValueLabel}"
+                        Classes="semanticAction secondary" Command="{Binding BeginAddRecognitionValueCommand}">
+                      <StackPanel Orientation="Horizontal" Spacing="8">
+                        <Path Width="14" Height="14" VerticalAlignment="Center" Data="M7 0V14M0 7H14" Stroke="{DynamicResource NfcAccentBrush}" StrokeThickness="1.6" />
+                        <TextBlock FontSize="16" Text="{Binding AddRecognitionValueLabel}" />
+                      </StackPanel>
+                    </Button>
+                    </WrapPanel>
+                    <WrapPanel Orientation="Horizontal" IsVisible="{Binding IsAddingRecognitionValue}">
+                      <TextBox Margin="0,0,8,4" Width="68" AutomationProperties.Name="{Binding RecognitionValueLabel}" Text="{Binding RecognitionValueDraft, Mode=TwoWay}" />
+                      <Button
+                          AutomationProperties.Name="{ReflectionBinding $parent[ContentControl].DataContext.Text.EventBufferFormatAddValueLabel}"
+                          Classes="semanticAction secondary"
+                          Command="{Binding AddRecognitionValueCommand}"
+                          Content="{ReflectionBinding $parent[ContentControl].DataContext.Text.EventBufferFormatAddValueLabel}" />
+                    </WrapPanel>
+                    <TextBlock Classes="captionText" IsVisible="{Binding RecognitionValueValidationMessage, Converter={x:Static converters:StringConverters.IsNotNullOrEmpty}}" Foreground="{DynamicResource NfcDangerTextBrush}" Text="{Binding RecognitionValueValidationMessage}" TextWrapping="Wrap" />
+                  </StackPanel>
+                  <TextBlock Grid.Column="3" VerticalAlignment="Center" TextAlignment="Center" FontSize="16" Classes="supportingText" Text="{Binding OutputEffect}" TextWrapping="Wrap" />
+                </Grid>
+              </Border>
+              <TextBlock Classes="supportingText" FontSize="16" Text="{Binding OutputApplicability}" TextWrapping="Wrap" />
+              </StackPanel>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+        <Grid ColumnDefinitions="24,*" ColumnSpacing="12">
+          <Path Width="24" Height="24" VerticalAlignment="Top" Data="{StaticResource SettingsInformationIconGeometry}" Stroke="{DynamicResource NfcTextSecondaryBrush}" StrokeThickness="1.6" Stretch="Uniform" />
+          <TextBlock Grid.Column="1" Classes="supportingText" FontSize="16" Text="{Binding Text.EventBufferFormatIdentityHint}" TextWrapping="Wrap" />
+        </Grid>
+        <TextBlock Classes="supportingText" FontSize="14" Text="{Binding Text.EventBufferFormatRecognitionValuesHint}" TextWrapping="Wrap" />
+        <TextBlock AutomationProperties.LiveSetting="Polite" Classes="supportingText"
+            IsVisible="{Binding !Settings.IsEventBufferFormatLoading}"
+            Text="{Binding Settings.EventBufferFormatStatus}" TextWrapping="Wrap" />
+      </StackPanel>
+      </ScrollViewer>
+
+      <Border Grid.Row="1" VerticalAlignment="Bottom" Classes="statusNotice warning" IsVisible="{Binding Settings.IsEventBufferFormatCloseConfirmationOpen}">
+        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="{DynamicResource NfcSpace16}">
+          <StackPanel Spacing="4">
+            <TextBlock Classes="sectionTitle" Text="{Binding Text.EventBufferFormatDiscardConfirmationTitle}" />
+            <TextBlock Classes="supportingText" Text="{Binding Text.EventBufferFormatDiscardConfirmationDetail}" TextWrapping="Wrap" />
+          </StackPanel>
+          <StackPanel Grid.Column="1" VerticalAlignment="Center" Orientation="Horizontal" Spacing="{DynamicResource NfcSpace8}">
+            <Button Classes="semanticAction secondary" Command="{Binding Settings.CancelEventBufferFormatCloseCommand}" Content="{Binding Text.EventBufferFormatKeepEditingLabel}" />
+            <Button Classes="semanticAction primary" Command="{Binding Settings.ConfirmEventBufferFormatCloseCommand}" Content="{Binding Text.EventBufferFormatDiscardChangesLabel}" />
+          </StackPanel>
+        </Grid>
+      </Border>
+
+      <Border Grid.Row="2" Padding="0,28,0,0" BorderBrush="{DynamicResource NfcDividerBrush}" BorderThickness="0,1,0,0">
+        <Border.Styles>
+          <Style Selector="Button">
+            <Setter Property="Height" Value="48" />
+            <Setter Property="FontSize" Value="14" />
+          </Style>
+        </Border.Styles>
+        <Grid ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="12">
+          <Button
+              AutomationProperties.Name="{Binding Text.EventBufferFormatRestoreDefaultsLabel}"
+              Classes="semanticAction secondary"
+              Command="{Binding Settings.RestoreEventBufferFormatDefaultsCommand}"
+              IsEnabled="{Binding !Settings.IsEventBufferFormatBusy}"
+              Content="{Binding Text.EventBufferFormatRestoreDefaultsLabel}" />
+          <TextBlock Grid.Column="1" HorizontalAlignment="Right" VerticalAlignment="Center" Classes="captionText" Text="{Binding Settings.EventBufferFormatDraftStatus}" TextWrapping="Wrap" />
+          <Button
+              Grid.Column="2"
+              AutomationProperties.Name="{Binding Text.EventBufferFormatDiscardChangesLabel}"
+              Classes="semanticAction secondary"
+              Command="{Binding Settings.DiscardEventBufferFormatChangesCommand}"
+              IsEnabled="{Binding Settings.CanDiscardEventBufferFormat}"
+              Content="{Binding Text.EventBufferFormatDiscardChangesLabel}" />
+          <Button
+              Grid.Column="3"
+              AutomationProperties.Name="{Binding Text.EventBufferFormatSaveApplyLabel}"
+              Classes="semanticAction primary"
+              Command="{Binding Settings.SaveEventBufferFormatCommand}"
+              IsEnabled="{Binding Settings.CanSaveEventBufferFormat}"
+              Content="{Binding Text.EventBufferFormatSaveApplyLabel}" />
+        </Grid>
+      </Border>
+    </Grid>
+  </DataTemplate>
+</ResourceDictionary>

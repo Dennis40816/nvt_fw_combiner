@@ -9,6 +9,29 @@ public sealed class EventBufferFormatConfigurationSessionTests
 {
     private const string Scope = "test-ab-scope";
 
+    /// <summary>The public editor contract exposes the same owner and independent draft snapshots.</summary>
+    [Fact]
+    public async Task PublicSessionContractPreservesAdmittedStateAndDraftIsolationAsync()
+    {
+        using EventBufferFormatConfigurationSession session = Create(new Storage());
+        _ = Assert.IsType<IEventBufferFormatConfigurationSession>(session, exactMatch: false);
+        Assert.Equal(Scope, session.Catalog.ScopeId);
+        Assert.Equal(["format-a", "format-b"], session.Catalog.Identities.Select(identity => identity.UniqueId));
+        Assert.Empty(session.Catalog.OutputEffects);
+        _ = Assert.Throws<NotSupportedException>(() => ((IList<EventBufferFormatIdentity>)session.Catalog.Identities).Clear());
+        IReadOnlyList<EventBufferFormatDraftEntry?> draft = session.CreateDefaultsDraft();
+        int[] values = [0xA6];
+        EventBufferFormatDraftEntry edited = draft[0]! with { RecognitionValues = values };
+        Assert.Equal(0x97, session.CreateDefaultsDraft()[0]!.RecognitionValues![0]);
+        Assert.Null(session.Current.Configuration);
+        EventBufferFormatConfigurationOperationResult result = await session.SaveAsync([edited], TestContext.Current.CancellationToken);
+        Assert.True(result.Succeeded);
+        Assert.Same(result.State, session.Current);
+        Assert.Equal([0xA6], Assert.Single(session.Current.Configuration!.Entries).RecognitionValues);
+        values[0] = 0;
+        Assert.Equal(0xA6, session.CreateSavedDraft()![0]!.RecognitionValues![0]);
+    }
+
     /// <summary>Missing startup and deletion are identical, including a newly constructed session.</summary>
     [Fact]
     public async Task MissingNeverActivatesDefaultsOrLastSavedAsync()

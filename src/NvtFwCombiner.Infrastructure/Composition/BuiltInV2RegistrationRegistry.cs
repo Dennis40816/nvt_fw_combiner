@@ -138,6 +138,12 @@ internal sealed class BuiltInV2Registration
 
     internal string BundleContentHash => _bundle.ContentHash;
 
+    /// <summary>Projects the exact trusted family of this registration without synthesizing a compilation.</summary>
+    internal FirmwareFamilyResolutionDefinition GetFirmwareFamily()
+    {
+        return _bundle.GetFirmwareFamily(ProfileId, ProfileVersion);
+    }
+
     internal bool HasReportClassificationMetadata =>
         _bundle.ProfileDeclaresMetadataPurpose(
             ProfileId,
