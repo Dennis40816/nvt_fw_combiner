@@ -110,3 +110,40 @@ new metadata authority, not a support/evidence promotion. Final R3 byte/write-ra
 and owner evidence remain integration gates. Closed profile variants will use
 their own exact admitted routes and the existing strict profile/hash/map
 `BindCompilation`, not a post-compilation placement patch.
+
+## Closed AB execution variants
+
+The fifth unit adds closed profiles, not a generic profile inheritance or
+per-request address override. Existing family region sets remain the physical
+owner; each profile couples its map with the matching private bank transport,
+DIFF relocation and processor invocation. The shared TP template remains
+`[0xA000,0x37000)`, length `0x2D000`; the workbook's larger extent is an
+erratum, not additional write authority.
+
+| Profile | Applicability | Output / bank bytes | TP B overlay |
+| --- | --- | --- | --- |
+| `nt51950-ab-merge-desay` | NT51950 single or cascade | `0x100000 / 0x40000` | `[0x4A000,0x77000)` |
+| `nt51951-ab-merge-desay` | NT51951, selector-free | `0x100000 / 0x40000` | `[0x4A000,0x77000)` |
+| `nt51950-ab-merge-common-2ic` | NT51950, exact count 2 | `0x100000 / 0x80000` | `[0x8A000,0xB7000)` |
+
+Only the three four-byte B header fields at TP B offsets `0x100`, `0x110`
+and `0x130` can be imported after postbuild. Desay's upper half remains
+DP-seeded, or `0xFF` under Dummy DP, rather than entering the smaller private
+Combiner transport. Desay DP uses the existing source-view-coverage contract:
+extra bytes beyond the declared 1 MiB are not copied; a source shorter than the
+required view still fails. The separate expected-size warning remains pending
+runtime integration and must not weaken that coverage check.
+
+These new profiles are executable candidates for direct trusted compilation and
+byte testing, **not newly published runtime routes**. Existing route identities
+are repinned without widening their allowed maps or promoting evidence status.
+The later format owner must consume accepted primary observations and actual
+TP counts before selecting a unique admitted variant. An exact-2 map declaration
+alone does not prove that the current Cascade picker observed two ICs.
+
+Synthetic execution tests compare complete outputs against independently coded
+owner ranges, including immutable inputs, Dummy/seed preservation, DIFF and
+header imports. The external host's existing `ByteDiff`/`ChangedRangePolicy`
+owns processor write-range rejection; the bare engine callback accepts an
+already host-validated result and is not a second security validator. These
+tests do not replace real Combiner/Golden certification or the final owner gate.

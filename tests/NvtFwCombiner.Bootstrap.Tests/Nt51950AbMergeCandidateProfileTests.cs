@@ -12,7 +12,7 @@ namespace NvtFwCombiner.Bootstrap.Tests;
 public sealed class Nt51950AbMergeCandidateProfileTests
 {
     private const string BundleDirectory = "nt51950-ab-merge";
-    private const string BundleContentHash = "0331a75a62436f07ce0dc11e7c153e457634b6987f2d13148e6d80ecbff8ce70";
+    private const string BundleContentHash = "67f89501089212d938d7e55930f417b51946abd069d4066884e5df4b80d06a77";
     private const int Capacity = 0x80000;
     private const int BankLength = 0x40000;
     private const int TpInputLength = 0x37000;
@@ -29,7 +29,7 @@ public sealed class Nt51950AbMergeCandidateProfileTests
         Assert.Equal(CompiledCompositionEligibility.V2PlanCompiled, composition.Eligibility);
         Assert.True(composition.IsV2AbFunctionOpenCandidate);
         Assert.True(StringComparer.Ordinal.Equals(
-            "89fb2a4df847687edff829b779a39ef320ff27606afd4fdf21e17e716a927ca8",
+            "919e26f2efebc325c028dbe612e364d0c43a1cf2f7f00c528969b4985b426f08",
             composition.CompilationFingerprint), composition.CompilationFingerprint);
         V2CompiledCompositionDetails details = Assert.IsType<V2CompiledCompositionDetails>(composition.V2Details);
         Assert.Equal("nt51950-ab-merge-512k", details.Provenance.ResolvedMap.ImageMap.MapId);
@@ -252,7 +252,7 @@ public sealed class Nt51950AbMergeCandidateProfileTests
         using var workspace = TempWorkspace.Create("nfc-nt51950-ab-candidate");
         V2CompositionPlanCompileResult compilation = AbMergeCandidateTestSupport.LoadSourceCandidateCatalog(workspace, BundleDirectory, BundleContentHash).Compile(
             "nt51950-ab-merge",
-            "0.4.0",
+            "0.5.0",
             "NT51950",
             ExperienceIds.AbMerge,
             requestedMapCapacity: BankLength);
@@ -270,7 +270,7 @@ public sealed class Nt51950AbMergeCandidateProfileTests
         using var workspace = TempWorkspace.Create("nfc-nt51950-ab-candidate");
         V2CompositionPlanCompileResult compilation = AbMergeCandidateTestSupport.LoadSourceCandidateCatalog(workspace, BundleDirectory, BundleContentHash).Compile(
             "nt51950-ab-merge",
-            "0.4.0",
+            "0.5.0",
             "NT51950",
             ExperienceIds.AbMerge,
             requestedMapCapacity: 0x100000,
@@ -315,7 +315,7 @@ public sealed class Nt51950AbMergeCandidateProfileTests
         using var workspace = TempWorkspace.Create("nfc-nt51950-ab-cascade-preservation");
         V2CompositionPlanCompileResult compilation = AbMergeCandidateTestSupport.LoadSourceCandidateCatalog(workspace, BundleDirectory, BundleContentHash).Compile(
             "nt51950-ab-merge",
-            "0.4.0",
+            "0.5.0",
             "NT51950",
             ExperienceIds.AbMerge,
             requestedMapCapacity: 0x100000,
@@ -423,7 +423,7 @@ public sealed class Nt51950AbMergeCandidateProfileTests
     {
         V2CompositionPlanCompileResult compilation = AbMergeCandidateTestSupport.LoadSourceCandidateCatalog(workspace, BundleDirectory, BundleContentHash).Compile(
             "nt51950-ab-merge",
-            "0.4.0",
+            "0.5.0",
             "NT51950",
             ExperienceIds.AbMerge,
             Capacity,

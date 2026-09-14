@@ -1,7 +1,7 @@
 {
   "schemaVersion": "2.14",
   "profileId": "nt51950-ab-merge",
-  "profileVersion": "0.4.0",
+  "profileVersion": "0.5.0",
   "promotion": {
     "stage": "executable-candidate",
     "blockers": [
@@ -31,8 +31,8 @@
   },
   "mapBinding": {
     "familyId": "nt51950-ab-merge",
-    "familyVersion": "0.4.0",
-    "familyContentHash": "77d36ea009be728b0b96e702b535166f5732740a71ad5033b5d8ac731987bdee",
+    "familyVersion": "0.5.0",
+    "familyContentHash": "9da98991c23386046cb150a019351928f31fade2a66aa81f2c89b9fe9923dfb2",
     "mapIds": [ "nt51950-ab-merge-512k", "nt51950-ab-merge-1024k" ],
     "requiredRegionIds": [
       "ab-image",

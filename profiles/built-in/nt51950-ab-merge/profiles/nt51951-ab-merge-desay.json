@@ -1,0 +1,257 @@
+{
+  "schemaVersion": "2.14",
+  "profileId": "nt51951-ab-merge-desay",
+  "profileVersion": "0.1.0",
+  "promotion": {
+    "stage": "executable-candidate",
+    "blockers": [
+      {
+        "blockerId": "direct-golden-evidence",
+        "kind": "golden",
+        "reason": "Direct format-specific full-output certification remains required; synthetic byte tests are not certified firmware evidence.",
+        "evidenceRefs": ["owner-decision-20260914-ab-format-placement"]
+      },
+      {
+        "blockerId": "firmware-owner-review",
+        "kind": "human-review",
+        "reason": "Exact candidate firmware-owner review of format selection, coupled bank transport and TP-only imports remains required.",
+        "evidenceRefs": ["owner-decision-20260914-ab-format-placement"]
+      }
+    ]
+  },
+  "compositionKind": "merge",
+  "compilationContext": {"kind": "resolved-map"},
+  "experience": {
+    "experienceId": "ab-merge",
+    "audience": "system",
+    "layoutPolicy": "fixed",
+    "inputPolicy": "fixed",
+    "topologyAuthoring": "hidden",
+    "displayNameKey": "profile.nt51951.ab-merge"
+  },
+  "mapBinding": {
+    "familyId": "nt51950-ab-merge",
+    "familyVersion": "0.5.0",
+    "familyContentHash": "9da98991c23386046cb150a019351928f31fade2a66aa81f2c89b9fe9923dfb2",
+    "mapIds": ["nt51951-ab-desay-1024k"],
+    "requiredRegionIds": ["ab-image", "a-bank", "a-cmi-dp-version", "a-tp-code", "b-bank", "b-cmi-dp-version", "b-tp-code"],
+    "requiredMetadataStructureIds": ["tp-a-primary-firmware-config", "tp-b-primary-firmware-config"],
+    "requiredCapabilityIds": []
+  },
+  "inputSlots": [
+    {
+      "slotId": "dp-ab-input",
+      "role": "dp-ab",
+      "artifactClass": "dp-firmware",
+      "required": false,
+      "cardinality": "zero-or-one",
+      "acceptedExtensions": [".bin"],
+      "acceptance": {"lengthRule": {"kind": "source-view-coverage"}, "normalization": {"kind": "none"}}
+    },
+    {
+      "slotId": "tp-a-input",
+      "role": "tp-a",
+      "artifactClass": "tp-firmware",
+      "required": true,
+      "cardinality": "exactly-one",
+      "acceptedExtensions": [".bin"],
+      "acceptance": {"lengthRule": {"kind": "source-view-coverage"}, "normalization": {"kind": "none"}}
+    },
+    {
+      "slotId": "tp-b-input",
+      "role": "tp-b",
+      "artifactClass": "tp-firmware",
+      "required": true,
+      "cardinality": "exactly-one",
+      "acceptedExtensions": [".bin"],
+      "acceptance": {"lengthRule": {"kind": "source-view-coverage"}, "normalization": {"kind": "none"}}
+    }
+  ],
+  "inputSelectionGroups": [{"groupId": "dp-selection", "memberSlotIds": ["dp-ab-input"], "minimumSelected": 0, "maximumSelected": 1}],
+  "spaces": [
+    {"spaceId": "dp-ab-input", "kind": "input-artifact", "slotId": "dp-ab-input", "instancePolicy": "singleton"},
+    {"spaceId": "tp-a-input", "kind": "input-artifact", "slotId": "tp-a-input", "instancePolicy": "singleton"},
+    {"spaceId": "tp-b-input", "kind": "input-artifact", "slotId": "tp-b-input", "instancePolicy": "singleton"},
+    {"spaceId": "ab-combiner-work", "kind": "work-buffer", "capacity": {"kind": "fixed", "bytes": 524288}, "initializer": {"kind": "blank", "fillByte": 0}},
+    {"spaceId": "tp-b-work", "kind": "work-buffer", "capacity": {"kind": "fixed", "bytes": 225280}, "initializer": {"kind": "clone", "sourceSlotId": "tp-b-input"}},
+    {"spaceId": "output-image", "kind": "output-image", "capacity": {"kind": "resolved-map"}, "initializer": {"kind": "blank", "fillByte": 255}}
+  ],
+  "views": [
+    {"viewId": "dp-ab-source", "spaceId": "dp-ab-input", "selector": {"kind": "map-region", "regionId": "ab-image"}},
+    {"viewId": "dp-ab-output", "spaceId": "output-image", "selector": {"kind": "map-region", "regionId": "ab-image"}},
+    {
+      "viewId": "tp-a-code-source",
+      "spaceId": "tp-a-input",
+      "selector": {"kind": "region-template-range", "regionInstanceId": "a-tp-placement", "templateRegionId": "tp-code"}
+    },
+    {
+      "viewId": "tp-b-code-source",
+      "spaceId": "tp-b-work",
+      "selector": {"kind": "region-template-range", "regionInstanceId": "b-tp-placement", "templateRegionId": "tp-code"}
+    },
+    {"viewId": "tp-b-diff-work", "spaceId": "tp-b-work", "selector": {"kind": "space-range", "range": {"start": 41248, "length": 4}}},
+    {"viewId": "a-tp-code-output", "spaceId": "output-image", "selector": {"kind": "map-region", "regionId": "a-tp-code"}},
+    {"viewId": "b-tp-code-output", "spaceId": "output-image", "selector": {"kind": "map-region", "regionId": "b-tp-code"}},
+    {"viewId": "a-bank-output", "spaceId": "output-image", "selector": {"kind": "map-region", "regionId": "a-bank"}},
+    {"viewId": "b-bank-output", "spaceId": "output-image", "selector": {"kind": "map-region", "regionId": "b-bank"}},
+    {"viewId": "ab-combiner-work-image", "spaceId": "ab-combiner-work", "selector": {"kind": "space-range", "range": {"start": 0, "length": 524288}}},
+    {"viewId": "a-bank-combiner-image", "spaceId": "ab-combiner-work", "selector": {"kind": "space-range", "range": {"start": 0, "length": 262144}}},
+    {"viewId": "b-bank-combiner-image", "spaceId": "ab-combiner-work", "selector": {"kind": "space-range", "range": {"start": 262144, "length": 262144}}},
+    {"viewId": "b-header-ilm-combiner", "spaceId": "ab-combiner-work", "selector": {"kind": "space-range", "range": {"start": 303360, "length": 4}}},
+    {"viewId": "b-header-dlm-combiner", "spaceId": "ab-combiner-work", "selector": {"kind": "space-range", "range": {"start": 303376, "length": 4}}},
+    {"viewId": "b-header-crc-combiner", "spaceId": "ab-combiner-work", "selector": {"kind": "space-range", "range": {"start": 303408, "length": 4}}},
+    {"viewId": "b-header-ilm-output", "spaceId": "output-image", "selector": {"kind": "map-region-slice", "regionId": "b-tp-code", "offset": 256, "length": 4}},
+    {"viewId": "b-header-dlm-output", "spaceId": "output-image", "selector": {"kind": "map-region-slice", "regionId": "b-tp-code", "offset": 272, "length": 4}},
+    {"viewId": "b-header-crc-output", "spaceId": "output-image", "selector": {"kind": "map-region-slice", "regionId": "b-tp-code", "offset": 304, "length": 4}}
+  ],
+  "metadataBindings": [
+    {
+      "bindingId": "tp-a-primary-firmware-config-inspection",
+      "spaceId": "tp-a-input",
+      "structureId": "tp-a-primary-firmware-config",
+      "fieldIds": ["tp-firmware-version", "tp-firmware-version-complement", "event-buffer-format-version"],
+      "purposes": ["inspection"]
+    },
+    {
+      "bindingId": "tp-b-primary-firmware-config-inspection",
+      "spaceId": "tp-b-input",
+      "structureId": "tp-b-primary-firmware-config",
+      "fieldIds": ["tp-firmware-version", "tp-firmware-version-complement", "event-buffer-format-version"],
+      "purposes": ["inspection"]
+    }
+  ],
+  "regionAccessRules": [
+    {"regionId": "ab-image", "access": "explicit-range", "reason": "Seed the exact topology-resolved DP AB container before TP overlays."},
+    {"regionId": "a-bank", "access": "explicit-range", "reason": "Read the completed output A bank into the private Combiner transport image."},
+    {"regionId": "b-bank", "access": "explicit-range", "reason": "Read the completed output B bank into the private Combiner transport image."},
+    {"regionId": "a-tp-code", "access": "explicit-range", "reason": "Overlay the exact immutable TPA native section at the declared A placement."},
+    {
+      "regionId": "b-tp-code",
+      "access": "explicit-range",
+      "reason": "Overlay the exact relocated TPB native section and import only its three exact verified postbuild slices."
+    }
+  ],
+  "operations": [
+    {
+      "operationId": "copy-dp-ab-image",
+      "sequence": 100,
+      "overlapPolicy": "reject",
+      "reason": "Seed the complete exact-capacity DP AB image.",
+      "kind": "copy-range",
+      "sourceViewId": "dp-ab-source",
+      "targetViewId": "dp-ab-output"
+    },
+    {
+      "operationId": "overlay-tpa-into-output",
+      "sequence": 200,
+      "overlapPolicy": "replace-existing",
+      "reason": "Copy the address-aligned immutable TPA section directly into its named output placement.",
+      "kind": "copy-range",
+      "sourceViewId": "tp-a-code-source",
+      "targetViewId": "a-tp-code-output"
+    },
+    {
+      "operationId": "relocate-tpb-diff-for-b-bank",
+      "sequence": 300,
+      "overlapPolicy": "reject",
+      "reason": "Relocate only the cloned TPB DIFF address by the resolved A-to-B placement delta.",
+      "kind": "transform-scalar",
+      "sourceViewId": "tp-b-diff-work",
+      "targetViewId": "tp-b-diff-work",
+      "widthBytes": 4,
+      "byteOrder": "little",
+      "valueInterpretation": "unsigned",
+      "addend": {"kind": "region-instance-delta", "sourceRegionInstanceId": "a-tp-placement", "targetRegionInstanceId": "b-tp-placement"},
+      "overflowPolicy": "reject"
+    },
+    {
+      "operationId": "overlay-tpb-into-output",
+      "sequence": 400,
+      "overlapPolicy": "replace-existing",
+      "reason": "Copy the relocated TPB native section into its named B placement.",
+      "kind": "copy-range",
+      "sourceViewId": "tp-b-code-source",
+      "targetViewId": "b-tp-code-output"
+    },
+    {
+      "operationId": "copy-a-bank-to-combiner-work",
+      "sequence": 500,
+      "overlapPolicy": "reject",
+      "reason": "Materialize the completed A output bank in the private Combiner transport image.",
+      "kind": "copy-range",
+      "sourceViewId": "a-bank-output",
+      "targetViewId": "a-bank-combiner-image"
+    },
+    {
+      "operationId": "copy-b-bank-to-combiner-work",
+      "sequence": 600,
+      "overlapPolicy": "reject",
+      "reason": "Materialize the completed B output bank in the private Combiner transport image.",
+      "kind": "copy-range",
+      "sourceViewId": "b-bank-output",
+      "targetViewId": "b-bank-combiner-image"
+    },
+    {
+      "operationId": "run-nt51950-ab-combiner",
+      "sequence": 700,
+      "overlapPolicy": "replace-existing",
+      "reason": "Run the audited legacy TP-only postbuild against private staged A/B artifacts.",
+      "kind": "run-processor",
+      "processorStageId": "nt51950-ab-combiner"
+    },
+    {
+      "operationId": "import-postbuild-b-ilm",
+      "sequence": 800,
+      "overlapPolicy": "replace-existing",
+      "reason": "Import only the verified TPB ILM postbuild field.",
+      "kind": "copy-range",
+      "sourceViewId": "b-header-ilm-combiner",
+      "targetViewId": "b-header-ilm-output"
+    },
+    {
+      "operationId": "import-postbuild-b-dlm",
+      "sequence": 810,
+      "overlapPolicy": "replace-existing",
+      "reason": "Import only the verified TPB DLM postbuild field.",
+      "kind": "copy-range",
+      "sourceViewId": "b-header-dlm-combiner",
+      "targetViewId": "b-header-dlm-output"
+    },
+    {
+      "operationId": "import-postbuild-b-crc",
+      "sequence": 820,
+      "overlapPolicy": "replace-existing",
+      "reason": "Import only the verified TPB CRC postbuild field.",
+      "kind": "copy-range",
+      "sourceViewId": "b-header-crc-combiner",
+      "targetViewId": "b-header-crc-output"
+    }
+  ],
+  "validations": [],
+  "processorStages": [
+    {
+      "processorStageId": "nt51950-ab-combiner",
+      "kind": "legacy-combiner-v1",
+      "toolBindingId": "legacy-combiner-1.13.0",
+      "invocationProfileId": "nfc-nt51950-ab-merge-combiner-v1",
+      "targetSpaceId": "ab-combiner-work",
+      "targetViewId": "ab-combiner-work-image",
+      "authority": "transform",
+      "purpose": "header-and-integrity",
+      "integrityDisposition": "recalculate-and-write",
+      "allowedReadViewIds": ["ab-combiner-work-image"],
+      "allowedWriteViewIds": ["b-header-ilm-combiner", "b-header-dlm-combiner", "b-header-crc-combiner"],
+      "stagedSourceBindings": [],
+      "stagedArtifactBindings": [{"artifactId": "a-bank", "sourceViewId": "a-bank-output"}, {"artifactId": "b-bank", "sourceViewId": "b-bank-output"}],
+      "evidenceRef": "nt51950-ab-combiner-audit-2026-07-14",
+      "failurePolicy": "fail-closed"
+    }
+  ],
+  "output": {
+    "fileNameTemplate": "NT{ic}_FlashCode_A_{dp-a}{tp-a}_B_{dp-b}{tp-b}_{date}.bin",
+    "allowOverride": true,
+    "invalidCharacterPolicy": "reject",
+    "requiredTokenIds": ["date", "dp-a", "dp-b", "ic", "tp-a", "tp-b"]
+  },
+  "evidenceRefs": ["owner-decision-20260914-ab-format-placement", "nt51950-ab-combiner-audit-2026-07-14"]
+}

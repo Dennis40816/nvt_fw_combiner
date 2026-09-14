@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.2",
   "familyId": "nt51950-ab-merge",
-  "familyVersion": "0.4.0",
+  "familyVersion": "0.5.0",
   "members": [
     {
       "memberId": "NT51950",
@@ -439,6 +439,115 @@
     }
   ],
   "imageMaps": [
+    {
+      "mapId": "nt51950-ab-desay-single-1024k",
+      "addressSpaceId": "flash",
+      "applicability": {
+        "memberIds": [
+          "NT51950"
+        ],
+        "modeIds": [
+          "ab-merge"
+        ],
+        "topologyRequirement": {
+          "kind": "single"
+        },
+        "capacityBytes": 1048576
+      },
+      "coveragePolicy": "complete-with-explicit-gaps",
+      "regionSetIds": [
+        "nt51950-ab-merge-1024k-seed-anchors",
+        "nt51950-ab-merge-shared-bank-placement"
+      ],
+      "metadataSetIds": [
+        "ab-primary-firmware-config"
+      ],
+      "evidenceRefs": [
+        "owner-decision-20260914-ab-format-placement"
+      ]
+    },
+    {
+      "mapId": "nt51950-ab-desay-cascade-1024k",
+      "addressSpaceId": "flash",
+      "applicability": {
+        "memberIds": [
+          "NT51950"
+        ],
+        "modeIds": [
+          "ab-merge"
+        ],
+        "topologyRequirement": {
+          "kind": "cascade",
+          "minimumChipCount": 2
+        },
+        "capacityBytes": 1048576
+      },
+      "coveragePolicy": "complete-with-explicit-gaps",
+      "regionSetIds": [
+        "nt51950-ab-merge-1024k-seed-anchors",
+        "nt51950-ab-merge-shared-bank-placement"
+      ],
+      "metadataSetIds": [
+        "ab-primary-firmware-config"
+      ],
+      "evidenceRefs": [
+        "owner-decision-20260914-ab-format-placement"
+      ]
+    },
+    {
+      "mapId": "nt51951-ab-desay-1024k",
+      "addressSpaceId": "flash",
+      "applicability": {
+        "memberIds": [
+          "NT51951"
+        ],
+        "modeIds": [
+          "ab-merge"
+        ],
+        "topologyRequirement": {
+          "kind": "none"
+        },
+        "capacityBytes": 1048576
+      },
+      "coveragePolicy": "complete-with-explicit-gaps",
+      "regionSetIds": [
+        "nt51950-ab-merge-1024k-seed-anchors",
+        "nt51950-ab-merge-shared-bank-placement"
+      ],
+      "metadataSetIds": [
+        "ab-primary-firmware-config"
+      ],
+      "evidenceRefs": [
+        "owner-decision-20260914-ab-format-placement"
+      ]
+    },
+    {
+      "mapId": "nt51950-ab-common-exact2-1024k",
+      "addressSpaceId": "flash",
+      "applicability": {
+        "memberIds": [
+          "NT51950"
+        ],
+        "modeIds": [
+          "ab-merge"
+        ],
+        "topologyRequirement": {
+          "kind": "exact-count",
+          "chipCount": 2
+        },
+        "capacityBytes": 1048576
+      },
+      "coveragePolicy": "complete-with-explicit-gaps",
+      "regionSetIds": [
+        "nt51951-ab-merge-1024k-seed-and-placement"
+      ],
+      "metadataSetIds": [
+        "ab-primary-firmware-config"
+      ],
+      "evidenceRefs": [
+        "owner-decision-20260914-ab-format-placement"
+      ]
+    },
     {
       "mapId": "nt51950-ab-merge-512k",
       "addressSpaceId": "flash",
