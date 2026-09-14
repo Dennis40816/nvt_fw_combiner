@@ -1634,9 +1634,10 @@ Return next to the vendor workflow discussion. The
 [Desay NT51950/NT51951 intake](../ui/v1.1.x-custom-options-layout-handoff.md#desay-nt51950--nt51951-rule-intake--2026-09-14)
 records FWConfig-relative `0x0C` detection (estimated absolute `0x2200C`, values
 `0xA6`/`0x97`), an Info indication, user-editable detection values and a Settings
-rule inventory, an `8mib` capacity warning, Desay-only TP Backup start `0x4A000`,
+rule inventory, a DP AB Code input-size warning against exactly 1,048,576 bytes
+(1 MiB / `0x100000`, owner-confirmed 8 Mbit), Desay-only TP Backup start `0x4A000`,
 reusable public/vendor flow separation, and a separate pending public backup
-revision. Address/base, match width/operator and capacity unit remain explicit
+revision. Address/base and match width/operator remain explicit
 questions. This is recorded direction, not runtime changes or a new release
 allocation; existing saved-rule/IC-authoring allocations are unchanged.
 
