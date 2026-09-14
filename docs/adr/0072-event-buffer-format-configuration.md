@@ -669,17 +669,51 @@ first commit, the active record drops eight planned paths that never changed
 from the integration base; this narrows admission and removes no source file.
 Future work outside the actual checkpoint scope needs its own admission.
 
-### Next bounded units (design recommendation, not implemented)
+### Report capture unit 12 (implemented and locally verified 2026-09-15)
 
-Independent architecture inventory confirms that runtime format capture is not
-yet persisted in Report. Extend the existing Application run report with an
+Independent architecture review admitted the existing Application run report's
 optional immutable AB format summary, projected only from execution's captured
 selection (identity/display label, configuration generation/source SHA, family
 identity and A/B primary evidence). Reuse parent report profile/map/input facts;
 do not add a second session-proof or re-read current Config while serializing.
-The actual Application JSON and the frozen canonical report schema are distinct
-contracts; the Application semantic extension needs explicit admission and
-old-report absence must remain unknown, not inferred from today's catalog.
+The actual Application JSON and frozen canonical report schema are distinct
+contracts. The [Application semantic extension](../contracts/composition-report-v1.md#execution-captured-ab-format-v116)
+defines path-free A/B primary binding/structure/range/raw-byte evidence and
+configuration/family identity. Old-report absence remains unknown, never
+inferred from today's catalog. Record `AB-116-REPORT-FORMAT-12` admits the exact
+existing execution/report chain plus one immutable projection type. Its internal
+factory checks captured map/family and accepted input identities. No firmware
+semantics, profile, input bytes or Preview-token contract change is admitted.
+Source-generated metadata covers the new summary through the existing JSON
+resolver chain; the pre-existing report graph retains its reflection fallback.
+The initial real-host regression `ab-format-report-capture-red.trx` fails because
+a successful AB run has no format JSON. This failing evidence is retained.
+
+Review found and closed an A/B-role coherence gap: the factory now also checks
+the member-scoped compiled canonical structure reference and expected A/B
+execution space, not just input SHA/length. The `swapped-primary` and
+`copied-b-primary` cases are preserved red in
+`ab-format-report-primary-role-red.trx` (9 passed, 2 failed). Same-file A/B stays
+valid; no ID-only fallback or extra decoder was introduced.
+
+Final scoped evidence under `D:/NvtFwCombiner-TestArea/evidence/v116-ab-format`:
+`ab-format-report-runtime-matrix-final.trx` **61/61**, no skips (9 seconds), and
+`ab-format-report-application-final.trx` **152/152**, no skips (0.502 seconds).
+These cover fresh/held-Save capture, 950/951 format variants, primary identity
+negatives, actual report serialization, legacy omission, processor late failure,
+request-copy compatibility and unchanged complete output/Preview token when
+only Config audit data changes. The earlier 9/10 contract run used an invalid
+test output name; using the compiled naming template fixes that fixture without
+changing naming rules. The legal Normal-admission copy retains null; non-null
+AB capture uses the other overload. This is scoped regression evidence, not a
+fresh full Golden run or final integration approval. Record 12 remains
+`design-active` until the frozen integration boundary.
+Independent scoped correctness/architecture/Polytail review passed the same
+production and final test evidence; P2 role coherence and P3 copy coverage are
+closed with no remaining P0-P2 finding in unit 12. This permits its local
+implementation checkpoint, not publication or final integration.
+
+### Remaining bounded units
 
 The Desay DP-size advisory is also still pending. Its two profiles can reuse the
 existing source-view outer-length warning declaration and resolved map capacity,

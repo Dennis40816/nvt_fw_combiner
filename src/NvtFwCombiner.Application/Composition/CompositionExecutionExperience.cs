@@ -95,7 +95,7 @@ internal sealed class CompositionExecutionExperience : ICompositionExecution
         CancellationToken cancellationToken)
     {
         ResolvedCapability capability = AcceptedSessionExecutionInputs.RequireCapability(request.AcceptedSession, ExperienceIds.AbMerge, request.IcId, AuthoringDerivedResultKind.Inspection);
-        (AbMergeFormatSelection? _, IReadOnlyList<CompositionIssue> formatIssues) =
+        (AbMergeFormatSelection? format, IReadOnlyList<CompositionIssue> formatIssues) =
             await _abMergeAuthoring.AssessAcceptedFormatAsync(request.AcceptedSession, cancellationToken).ConfigureAwait(false);
         if (formatIssues.Count != 0)
         {
@@ -160,7 +160,8 @@ internal sealed class CompositionExecutionExperience : ICompositionExecution
                 CapabilityPublicationCoherence.GetAcceptedAbMergeTopologySelection(capability),
             additionalProtectedPaths: protectedPaths,
             additionalDelivery,
-            cancellationToken).ConfigureAwait(false);
+            cancellationToken,
+            format).ConfigureAwait(false);
     }
 
     internal async ValueTask<CompositionRunResult> ExecuteGeneralMergeAsync(
@@ -323,7 +324,8 @@ internal sealed class CompositionExecutionExperience : ICompositionExecution
         TopologySelection? abMergeTopologySelection,
         IReadOnlyList<CompositionExecutionProtectedPath> additionalProtectedPaths,
         CompositionExecutionDeliveryTarget? additionalDelivery,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        AbMergeFormatSelection? abMergeFormat = null)
     {
         CompiledComposition composition = capability.CompiledComposition;
         (InputArtifactBinding[] bindings, IReadOnlyDictionary<string, byte[]> artifacts) =
@@ -351,7 +353,8 @@ internal sealed class CompositionExecutionExperience : ICompositionExecution
             generalExecution: null,
             capability,
             cancellationToken,
-            abMergeTopologySelection);
+            abMergeTopologySelection,
+            abMergeFormat is null ? null : AbMergeFormatRunSummary.Create(abMergeFormat, composition, bindings));
     }
 
     private async ValueTask<CompositionRunResult> RunCompiledCompositionAsync(
@@ -370,7 +373,8 @@ internal sealed class CompositionExecutionExperience : ICompositionExecution
         (GeneralAuthoringAdmissionResult Admission, GeneralMappingDraftState Draft)? generalExecution,
         ResolvedCapability capability,
         CancellationToken cancellationToken,
-        TopologySelection? abMergeTopologySelection = null)
+        TopologySelection? abMergeTopologySelection = null,
+        AbMergeFormatRunSummary? abMergeFormat = null)
     {
         CompositionExecutionBundleDelivery? bundleDelivery = CreateBundleDelivery(request);
         if (request.OutputPathUsesAutomaticName &&
@@ -451,7 +455,8 @@ internal sealed class CompositionExecutionExperience : ICompositionExecution
                 generalExecution?.Draft,
                 bundleDelivery,
                 progress,
-                cancellationToken)
+                cancellationToken,
+                abMergeFormat)
             .ConfigureAwait(false);
     }
 

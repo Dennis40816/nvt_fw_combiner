@@ -33,7 +33,8 @@ public sealed class CompositionRunReport(
     GeneralReplaceDiagnosticPreviewSummary? diagnosticPreview = null,
     CompositionOutputBundleDeliverySummary? bundleDelivery = null,
     string? resolvedMapId = null,
-    IReadOnlyList<InputDiagnosticSummary>? inputDiagnostics = null)
+    IReadOnlyList<InputDiagnosticSummary>? inputDiagnostics = null,
+    AbMergeFormatRunSummary? abMergeFormat = null)
 {
     /// <summary>Stable run id.</summary>
     public string RunId { get; } = CompositionSummaryValue.NotBlank(runId, nameof(runId));
@@ -131,6 +132,10 @@ public sealed class CompositionRunReport(
     /// <summary>Actual atomic output bundle delivery, omitted for Preview and loose output.</summary>
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public CompositionOutputBundleDeliverySummary? BundleDelivery { get; } = bundleDelivery;
+
+    /// <summary>Captured AB format evidence; absence means not recorded, never an inferred Common format.</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public AbMergeFormatRunSummary? AbMergeFormat { get; } = abMergeFormat;
 
     /// <summary>Optional immutable input evidence bound to zero-based indexes in <see cref="Issues"/>.</summary>
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]

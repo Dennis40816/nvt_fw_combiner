@@ -1,0 +1,43 @@
+{
+  "schemaVersion": 2,
+  "taskId": "AB-116-REPORT-FORMAT-12",
+  "capability": "Preserve execution-captured AB format provenance in the existing Application run report",
+  "integrationBase": "f9db4ef039be1c7a08e0b83f11133dbc1a0fe049",
+  "risk": "R2",
+  "kind": "behavior",
+  "state": "design-active",
+  "mutablePaths": [
+    "src/NvtFwCombiner.Application/Composition/AbMergeFormatRunSummary.cs",
+    "src/NvtFwCombiner.Application/Composition/CompositionExecutionExperience.cs",
+    "src/NvtFwCombiner.Application/Composition/AcceptedSessionCompositionExecution.cs",
+    "src/NvtFwCombiner.Application/Composition/CompositionRunRequest.cs",
+    "src/NvtFwCombiner.Application/Composition/CompositionRunReport.cs",
+    "src/NvtFwCombiner.Application/Composition/CompositionRunService.Reports.cs",
+    "src/NvtFwCombiner.Application/Composition/CompositionRunReportJson.cs",
+    "tests/NvtFwCombiner.Application.Tests/Composition/CompositionRunReportTests.cs",
+    "tests/NvtFwCombiner.Application.Tests/Composition/CompositionRunReportReadTests.cs",
+    "tests/NvtFwCombiner.Application.Tests/CompositionOutputNameResolverTests.RunService.cs",
+    "tests/NvtFwCombiner.Bootstrap.Tests/AbMergeFormatRuntimeTests.cs",
+    "docs/adr/0072-event-buffer-format-configuration.md",
+    "docs/contracts/composition-report-v1.md"
+  ],
+  "implementationOwner": "primary-agent owns production, runtime tests and integration; catalog_ui_test_migration owns legacy report reader regression only",
+  "searchEvidence": [
+    "2026-09-15 independent review addendum: require fixed canonical AB A/B execution roles plus member-scoped compiled map metadata structure reference, accepted binding SHA/length; swapped and copied-B-to-A red cases must fail while same-file A/B remains valid. The second preview-token overload is Normal naming only; cover legal null preservation in its existing fixture, not an impossible AB-plus-Normal admission. No firmware definitions or new family lookup.",
+    "2026-09-15 source base 2635abf0: CodeGraph located the existing CompositionExecutionExperience to AcceptedSessionCompositionExecution to CompositionRunRequest to CompositionRunService.CreateReport chain. AssessAcceptedFormatAsync currently discards its fresh selection at execution ingress.",
+    "AbMergeFormatSelection already owns immutable primary resolution, raw format values and captured configuration/family provenance. Existing input bindings own report-safe ids and accepted SHA/length. Reuse those facts without reading files, reclassifying, serializing Domain graphs or adding a second proof owner.",
+    "CompositionRunReportJson uses reflection serialization and JsonElement legacy completeness assessment, not CLR deserialization. Add source-generated metadata for the new summary through the existing resolver chain; retain reflection fallback for the unchanged report graph. Do not make optional format fields required for older reports."
+  ],
+  "semanticOwner": "Existing AB Application admission owns format classification; existing composition execution and report owners capture and transport immutable audit facts; Profiles/Domain remain firmware authority",
+  "terminalContract": "Optional immutable AbMergeFormat summary is created internally from fresh execution selection, coherent exact compiled map/family and accepted input binding SHA/length. Preserve the same capture through both preview-token copies and existing success/late-failure reports. Retain format id/display alias, config generation/SHA, family identity and path-free A/B primary structure/range/raw value. Null is omitted for legacy policy-absent AB and non-AB; missing older evidence is unknown, never inferred Common. No firmware bytes, profile changes, config reads during serialization, new executor, Preview token changes or canonical wire-schema changes. Verify real report JSON, wrong identity rejection, held Save capture and legacy omission with scoped review. Full Golden and final integration remain separate; no publication.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "/root/v116_config_architecture",
+    "outcome": "approved",
+    "evidence": "2026-09-15 independent architect approved bounded Application report extension at 2635abf0: internal factory, exact map/family/input coherence, report-safe binding refs, optional null omission, same immutable execution capture for late reports, source-generated summary with existing reflection fallback, unchanged legacy reader and canonical schema. Necessary narrow cases include Save during run, actual JSON, map/family/input mismatches, same-file A/B, token copies and late failure."
+  },
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": { "reviewer": null, "outcome": "pending", "evidence": "" }
+}

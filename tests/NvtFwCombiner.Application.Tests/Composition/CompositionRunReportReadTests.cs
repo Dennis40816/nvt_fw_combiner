@@ -21,6 +21,21 @@ public sealed class CompositionRunReportReadTests
         Assert.Equal(CompositionRunReportJson.ReadCompleteness.Recognized, Assess(report));
     }
 
+    /// <summary>A legacy report without AB format evidence remains readable without inventing a Common format.</summary>
+    [Fact]
+    public void LegacyReportWithoutAbMergeFormatIsRecognizedWithoutFabricatingCommon()
+    {
+        JsonObject report = CreateSerializedReport();
+        _ = report.Remove("AbMergeFormat");
+        using var document = JsonDocument.Parse(report.ToJsonString());
+
+        Assert.False(document.RootElement.TryGetProperty("AbMergeFormat", out _));
+        Assert.Equal(
+            CompositionRunReportJson.ReadCompleteness.Recognized,
+            CompositionRunReportJson.AssessReadCompleteness(document.RootElement, TestContext.Current.CancellationToken));
+        Assert.False(document.RootElement.TryGetProperty("AbMergeFormat", out _));
+    }
+
     /// <summary>Each legacy identity field is required as data, not checked against a support catalog.</summary>
     [Theory]
     [InlineData("ProfileId")]

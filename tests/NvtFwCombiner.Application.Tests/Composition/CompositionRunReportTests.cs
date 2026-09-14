@@ -8,6 +8,20 @@ namespace NvtFwCombiner.Application.Tests.Composition;
 /// <summary>Locks the typed run report as an immutable client projection.</summary>
 public sealed class CompositionRunReportTests
 {
+    /// <summary>Non-AB and legacy reports omit format evidence rather than invent a Common decision.</summary>
+    [Fact]
+    public void AbsentFormatCaptureIsOmittedByActualReportSerializer()
+    {
+        CompositionRunReport report = CreateReport(null);
+        Assert.Null(report.AbMergeFormat);
+        var result = new CompositionRunResult(CompositionExecutionStatus.Succeeded, ReadOnlyMemory<byte>.Empty,
+            report, null, null, null, null, null, null);
+        using JsonDocument json = JsonDocument.Parse(CompositionRunReportJson.Serialize(result));
+        Assert.False(json.RootElement.TryGetProperty("AbMergeFormat", out _));
+        Assert.Equal(CompositionRunReportJson.ReadCompleteness.Recognized,
+            CompositionRunReportJson.AssessReadCompleteness(json.RootElement, TestContext.Current.CancellationToken));
+    }
+
     /// <summary>Caller-owned lists cannot race live projection with durable serialization.</summary>
     [Fact]
     public void ConstructorSnapshotsCollectionsForConcurrentProjectionAndSerialization()

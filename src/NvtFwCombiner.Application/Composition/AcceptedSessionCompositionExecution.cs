@@ -33,7 +33,8 @@ internal static class AcceptedSessionCompositionExecution
         GeneralMappingDraftState? acceptedGeneralMappingDraft,
         CompositionExecutionBundleDelivery? bundleDelivery,
         CompositionRunProgressFeed progress,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        AbMergeFormatRunSummary? abMergeFormat = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(runId);
         ArgumentNullException.ThrowIfNull(clock);
@@ -63,6 +64,7 @@ internal static class AcceptedSessionCompositionExecution
             PreparedOutputName = bundleDelivery?.PreparedOutputName,
             BundleDelivery = bundleDelivery,
             AcceptedGeneralMappingDraft = acceptedGeneralMappingDraft,
+            AbMergeFormat = abMergeFormat,
         };
         var service = new CompositionRunService(
             inputs.Reader,

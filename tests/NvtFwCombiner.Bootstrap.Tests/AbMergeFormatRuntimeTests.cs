@@ -1,7 +1,10 @@
 using NvtFwCombiner.Application.Authoring;
 using NvtFwCombiner.Application.Capabilities;
 using NvtFwCombiner.Application.Configuration;
+using NvtFwCombiner.Application.ExternalTools;
+using NvtFwCombiner.Application.Ports;
 using NvtFwCombiner.Domain.Composition;
+using System.Text.Json;
 using NvtFwCombiner.Infrastructure.ExternalTools;
 using NvtFwCombiner.Infrastructure.Files;
 using NvtFwCombiner.Infrastructure.Time;
@@ -114,9 +117,11 @@ public sealed class AbMergeFormatRuntimeTests
         CompositionHostServices host = CompositionHostServices.Create(environment,
             loadPolicy: null, configurationPath: workspace.PathFor("format.json"));
         IEventBufferFormatConfigurationSession configuration = await host.GetEventBufferFormatConfigurationAsync(TestContext.Current.CancellationToken);
-        Assert.True((await configuration.SaveAsync(configuration.CreateDefaultsDraft(), TestContext.Current.CancellationToken)).Succeeded);
+        Assert.True((await configuration.SaveAsync(
+            [.. configuration.CreateDefaultsDraft().Select(static entry => entry! with { AliasName = "Before Save" })],
+            TestContext.Current.CancellationToken)).Succeeded);
         string a = workspace.Write("a.bin", CreateTp(0x97, 2));
-        string b = workspace.Write("b.bin", CreateTp(0x97, 2));
+        string b = workspace.Write("b.bin", CreateTp(0xA6, 2));
         var session = new AuthoringSessionState(ExperienceIds.AbMerge);
         CompiledAuthoringSessionPreparation prepared = await host.AbMergeAuthoring.PrepareSessionAsync(session, "NT51950", "cascade",
             [new("tp-a-input", a, File.ReadAllBytes(a)), new("tp-b-input", b, File.ReadAllBytes(b))],
@@ -129,6 +134,16 @@ public sealed class AbMergeFormatRuntimeTests
         CompositionRunResult baseline = await host.CompositionExecution.ExecuteAsync(request,
             new CompositionRunProgressFeed(), TestContext.Current.CancellationToken);
         Assert.True(baseline.Succeeded, CompositionRunReportJson.Serialize(baseline));
+        using (JsonDocument json = JsonDocument.Parse(CompositionRunReportJson.Serialize(baseline)))
+        {
+            Assert.True(json.RootElement.TryGetProperty("AbMergeFormat", out _),
+                "A format-admitted run must retain its execution-time format evidence.");
+        }
+        AbMergeFormatRunSummary before = Assert.IsType<AbMergeFormatRunSummary>(baseline.Report.AbMergeFormat);
+        Assert.Equal("desay", before.FormatId);
+        Assert.Equal("Before Save", before.DisplayName);
+        Assert.Equal(0x97, before.TpA.FormatByte);
+        Assert.Equal(0xA6, before.TpB.FormatByte);
         using var destination = new HeldFormatDestination(TestContext.Current.CancellationToken);
         var executor = new CompositionExecutionExperience(host.Catalog, destination, () =>
         {
@@ -140,8 +155,9 @@ public sealed class AbMergeFormatRuntimeTests
         try
         {
             await destination.Entered.Task.WaitAsync(TestContext.Current.CancellationToken);
+            EventBufferFormatConfigurationState captured = configuration.Current;
             Assert.True((await configuration.SaveAsync(
-                [.. configuration.CreateDefaultsDraft().Select(static entry => entry! with { RecognitionValues = [] })],
+                [.. configuration.CreateDefaultsDraft().Select(static entry => entry! with { RecognitionValues = [], AliasName = "After Save" })],
                 TestContext.Current.CancellationToken)).Succeeded);
             CompiledAuthoringSessionPreparation updated = Assert.IsType<CompiledAuthoringSessionPreparation>(
                 await host.AbMergeAuthoring.ReapplyAcceptedInputsAsync(session, TestContext.Current.CancellationToken));
@@ -153,15 +169,159 @@ public sealed class AbMergeFormatRuntimeTests
             Assert.Equal(baseline.OutputBytes.ToArray(), completed.OutputBytes.ToArray());
             Assert.Same(prepared.Snapshot!.ExactCapability, completed.ResolvedCapability);
             Assert.NotSame(updated.Snapshot.ExactCapability, completed.ResolvedCapability);
+            AbMergeFormatRunSummary summary = Assert.IsType<AbMergeFormatRunSummary>(completed.Report.AbMergeFormat);
+            Assert.Equal(captured.Generation, summary.ConfigurationGeneration);
+            Assert.Equal(captured.SourceSha256, summary.ConfigurationSourceSha256);
+            Assert.Equal("Before Save", summary.DisplayName);
+            Assert.Equal("desay", summary.FormatId);
+            Assert.Equal(0x97, summary.TpA.FormatByte);
+            Assert.Equal(0xA6, summary.TpB.FormatByte);
+            Assert.NotEqual(configuration.Current.SourceSha256, summary.ConfigurationSourceSha256);
+            using JsonDocument completedJson = JsonDocument.Parse(CompositionRunReportJson.Serialize(completed));
+            JsonElement formatJson = completedJson.RootElement.GetProperty("AbMergeFormat");
+            Assert.Equal(JsonSerializer.Serialize(summary), JsonSerializer.Serialize(formatJson));
+            Assert.DoesNotContain(workspace.PathFor(""), formatJson.ToString(), StringComparison.OrdinalIgnoreCase);
+            Assert.DoesNotContain("ArtifactId", formatJson.ToString(), StringComparison.Ordinal);
+            Assert.DoesNotContain("Bytes", formatJson.ToString(), StringComparison.Ordinal);
             InvalidOperationException next = await Assert.ThrowsAsync<InvalidOperationException>(() =>
                 host.CompositionExecution.ExecuteAsync(request, new CompositionRunProgressFeed(), TestContext.Current.CancellationToken).AsTask());
             Assert.Contains("AB_FORMAT_CHANGED", next.Message, StringComparison.Ordinal);
+            CapabilityActionReadinessSnapshot? nextReadiness = await host.AbMergeAuthoring.GetActionReadinessAsync(
+                updated.Snapshot, TestContext.Current.CancellationToken);
+            var nextRequest = new AcceptedCompositionExecutionRequest(updated.Snapshot,
+                new Dictionary<string, string> { ["tp-a-input"] = a, ["tp-b-input"] = b }, build: false,
+                previewOutputFileName: "next.bin", actionReadiness: nextReadiness);
+            CompositionRunResult nextRun = await host.CompositionExecution.ExecuteAsync(nextRequest,
+                new CompositionRunProgressFeed(), TestContext.Current.CancellationToken);
+            Assert.True(nextRun.Succeeded, CompositionRunReportJson.Serialize(nextRun));
+            AbMergeFormatRunSummary nextSummary = Assert.IsType<AbMergeFormatRunSummary>(nextRun.Report.AbMergeFormat);
+            Assert.Equal("common", nextSummary.FormatId);
+            Assert.True(nextSummary.ConfigurationGeneration > summary.ConfigurationGeneration);
+            Assert.NotEqual(summary.ConfigurationSourceSha256, nextSummary.ConfigurationSourceSha256);
+            Assert.True((await configuration.SaveAsync(
+                [.. configuration.CreateDefaultsDraft().Select(static entry => entry! with { RecognitionValues = [], AliasName = "Later Alias" })],
+                TestContext.Current.CancellationToken)).Succeeded);
+            CompositionRunResult aliasRun = await host.CompositionExecution.ExecuteAsync(nextRequest,
+                new CompositionRunProgressFeed(), TestContext.Current.CancellationToken);
+            Assert.True(aliasRun.Succeeded, CompositionRunReportJson.Serialize(aliasRun));
+            Assert.Equal(nextRun.OutputBytes.ToArray(), aliasRun.OutputBytes.ToArray());
+            Assert.Equal(nextRun.PreviewToken, aliasRun.PreviewToken);
+            Assert.NotEqual(nextSummary.ConfigurationSourceSha256, aliasRun.Report.AbMergeFormat!.ConfigurationSourceSha256);
+
+            // Fail the external processor after the shared execution admission, not the preflight gate.
+            var failing = new CompositionExecutionExperience(host.Catalog, new ProtectedCompositionDestinationProvider(),
+                () => new CompositionExternalProcessorLease(environment.AcquireCurrent().Generation, new FailedFormatProcessor()),
+                environment.IsCurrent, new SystemClock(), (AbMergeAuthoringExperience)host.AbMergeAuthoring);
+            CompositionRunResult failed = await failing.ExecuteAsync(nextRequest,
+                new CompositionRunProgressFeed(), TestContext.Current.CancellationToken);
+            Assert.False(failed.Succeeded);
+            Assert.Contains(failed.Report.Issues, issue => issue.Code == "TEST_FORMAT_PROCESSOR_FAILED");
+            Assert.Equal("common", failed.Report.AbMergeFormat!.FormatId);
+            Assert.Equal(aliasRun.Report.AbMergeFormat.ConfigurationSourceSha256, failed.Report.AbMergeFormat.ConfigurationSourceSha256);
+            using JsonDocument failedJson = JsonDocument.Parse(CompositionRunReportJson.Serialize(failed));
+            Assert.Equal("common", failedJson.RootElement.GetProperty("AbMergeFormat").GetProperty("FormatId").GetString());
         }
         finally
         {
             destination.Release.Set();
             _ = await running;
         }
+    }
+
+    private sealed class FailedFormatProcessor : IExternalProcessor
+    {
+        public ValueTask<ExternalProcessorResult> TransformAsync(ExternalProcessorRequest request, CancellationToken cancellationToken)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            return ValueTask.FromResult(ExternalProcessorResult.Failed(
+                [new CompositionIssue("TEST_FORMAT_PROCESSOR_FAILED", "Intentional processor failure after format capture.")]));
+        }
+    }
+
+    /// <summary>Report projection cannot cross map/family/input authority and does not persist file locators.</summary>
+    [Theory]
+    [InlineData("valid")]
+    [InlineData("map")]
+    [InlineData("family")]
+    [InlineData("version")]
+    [InlineData("hash")]
+    [InlineData("input-sha")]
+    [InlineData("input-length")]
+    [InlineData("input-space")]
+    [InlineData("missing-input")]
+    [InlineData("swapped-primary")]
+    [InlineData("copied-b-primary")]
+    public async Task FormatReportRequiresExactCompiledAndInputIdentityAsync(string scenario)
+    {
+        using TempWorkspace workspace = TempWorkspace.Create("ab-format-report-identity");
+        CompositionHostServices host = CompositionHostServices.Create(new ExternalProcessorEnvironmentLoader(),
+            loadPolicy: null, configurationPath: workspace.PathFor("format.json"));
+        IEventBufferFormatConfigurationSession configuration = await host.GetEventBufferFormatConfigurationAsync(TestContext.Current.CancellationToken);
+        Assert.True((await configuration.SaveAsync(configuration.CreateDefaultsDraft(), TestContext.Current.CancellationToken)).Succeeded);
+        byte[] tp = CreateTp(0x97, 1);
+        string path = workspace.PathFor("same.bin");
+        CompiledAuthoringSessionPreparation prepared = await host.AbMergeAuthoring.PrepareSessionAsync(
+            new AuthoringSessionState(ExperienceIds.AbMerge), "NT51950", "single",
+            [new("tp-a-input", path, tp), new("tp-b-input", path, tp)], AbMergeDpMode.Dummy,
+            TestContext.Current.CancellationToken);
+        Assert.True(prepared.Succeeded);
+        (AbMergeFormatSelection? selection, IReadOnlyList<CompositionIssue> issues) =
+            await ((AbMergeAuthoringExperience)host.AbMergeAuthoring).AssessAcceptedFormatAsync(prepared.Snapshot!, TestContext.Current.CancellationToken);
+        Assert.Empty(issues);
+        AbMergeFormatSelection captured = Assert.IsType<AbMergeFormatSelection>(selection);
+        CompiledComposition composition = prepared.Snapshot!.ExactCapability!.CompiledComposition;
+        (InputArtifactBinding[] bindings, _) = AcceptedSessionExecutionInputs.CreateBindings(composition, prepared.Snapshot);
+        captured = scenario switch
+        {
+            "map" => captured with { MapId = "wrong-map" },
+            "family" => captured with { FamilyId = "wrong-family" },
+            "version" => captured with { FamilyVersion = "0.0.0" },
+            "hash" => captured with { FamilyContentHash = new string('0', 64) },
+            "swapped-primary" => captured with { TpAPrimary = captured.TpBPrimary, TpBPrimary = captured.TpAPrimary },
+            "copied-b-primary" => captured with { TpAPrimary = captured.TpBPrimary },
+            _ => captured,
+        };
+        if (scenario is "input-sha" or "input-length" or "input-space")
+        {
+            InputArtifactBinding original = bindings[0];
+            FileStamp stamp = original.AcceptedContentStamp!.Value;
+            bindings[0] = new(scenario == "input-space" ? "wrong-space" : original.AddressSpaceId,
+                original.BindingId, original.ArtifactId, original.OriginalFileName, original.ArtifactClass,
+                new FileStamp(stamp.AcceptedLength + (scenario == "input-length" ? 1 : 0),
+                    scenario == "input-sha" ? new string('0', 64) : stamp.Sha256));
+        }
+        if (scenario == "missing-input") { bindings = []; }
+        if (scenario != "valid")
+        {
+            _ = Assert.Throws<InvalidOperationException>(() => AbMergeFormatRunSummary.Create(captured, composition, bindings));
+            return;
+        }
+
+        AbMergeFormatRunSummary summary = AbMergeFormatRunSummary.Create(captured, composition, bindings);
+        Assert.Equal("tp-a-input", summary.TpA.InputBindingId);
+        Assert.Equal("tp-b-input", summary.TpB.InputBindingId);
+        Assert.Equal("tp-a-primary-firmware-config", summary.TpA.StructureId);
+        Assert.Equal("tp-b-primary-firmware-config", summary.TpB.StructureId);
+        Assert.Equal("flash", summary.TpA.AddressSpaceId);
+        Assert.Equal(0x22200, summary.TpA.Start);
+        Assert.Equal(0x22229, summary.TpA.EndExclusive);
+        Assert.Equal(summary.TpA.Start, summary.TpB.Start);
+        Assert.Equal(summary.TpA.EndExclusive, summary.TpB.EndExclusive);
+        Assert.Equal(captured.FamilyId, summary.FamilyId);
+        Assert.Equal(captured.FamilyVersion, summary.FamilyVersion);
+        Assert.Equal(captured.FamilyContentHash, summary.FamilyContentHash);
+        Assert.Equal(captured.ConfigurationGeneration, summary.ConfigurationGeneration);
+        Assert.Equal(captured.ConfigurationSourceSha256, summary.ConfigurationSourceSha256);
+        Assert.DoesNotContain(path, JsonSerializer.Serialize(summary), StringComparison.OrdinalIgnoreCase);
+        var runRequest = new CompositionRunRequest("capture-copy", composition, bindings,
+            composition.V2Details.OutputNamingRequirement.FileNameTemplate,
+            abMergeTopologySelection: CapabilityPublicationCoherence.GetAcceptedAbMergeTopologySelection(prepared.Snapshot.ExactCapability),
+            resolvedCapability: prepared.Snapshot.ExactCapability)
+        {
+            AbMergeFormat = summary,
+        };
+        Assert.Same(summary, runRequest.WithApprovedPreviewToken("unchanged-preview-token").AbMergeFormat);
+        Assert.Equal("unchanged-preview-token", runRequest.WithApprovedPreviewToken("unchanged-preview-token").ApprovedPreviewToken);
     }
 
     private sealed class HeldFormatDestination(CancellationToken cancellationToken) : ICompositionExecutionDestinationProvider, IDisposable
@@ -668,6 +828,16 @@ public sealed class AbMergeFormatRuntimeTests
         CompiledComposition composition = prepared.Snapshot.ExactCapability.CompiledComposition;
         Assert.Equal(expectedProfile, composition.V2Details.ProfileId);
         Assert.Equal(expectedMap, composition.V2Details.Provenance.ResolvedMap.ImageMap.MapId);
+        (AbMergeFormatSelection? selection, IReadOnlyList<CompositionIssue> issues) =
+            await ((AbMergeAuthoringExperience)host.AbMergeAuthoring).AssessAcceptedFormatAsync(prepared.Snapshot,
+                TestContext.Current.CancellationToken);
+        Assert.Empty(issues);
+        (InputArtifactBinding[] bindings, _) = AcceptedSessionExecutionInputs.CreateBindings(composition, prepared.Snapshot);
+        AbMergeFormatRunSummary summary = AbMergeFormatRunSummary.Create(
+            Assert.IsType<AbMergeFormatSelection>(selection), composition, bindings);
+        Assert.Equal(format == 0x84 ? "common" : "desay", summary.FormatId);
+        Assert.Equal(format, summary.TpA.FormatByte);
+        Assert.Equal(tpB[0x2220C], summary.TpB.FormatByte);
     }
 
     /// <summary>The host must not preserve a legacy executable session when current format admission fails.</summary>

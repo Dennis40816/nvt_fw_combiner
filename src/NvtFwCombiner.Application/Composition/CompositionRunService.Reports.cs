@@ -90,6 +90,7 @@ public sealed partial class CompositionRunService
                     : null,
             bundleDelivery: bundleDelivery,
             inputDiagnostics: inputDiagnostics,
+            abMergeFormat: request.AbMergeFormat,
             resolvedMapId: request.CompiledComposition.V2Details.Provenance.Context
                 is MapBoundV2CompilationContext mapContext
                     ? mapContext.ResolvedMap.ImageMap.MapId

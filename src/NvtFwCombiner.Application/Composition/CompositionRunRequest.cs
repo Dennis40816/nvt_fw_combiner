@@ -115,6 +115,9 @@ public sealed class CompositionRunRequest
     /// <summary>Exact accepted General draft captured before execution begins.</summary>
     internal GeneralMappingDraftState? AcceptedGeneralMappingDraft { get; init; }
 
+    /// <summary>Execution-admitted format capture; absent for routes without format policy.</summary>
+    internal AbMergeFormatRunSummary? AbMergeFormat { get; init; }
+
     /// <summary>Returns a copy of this request with a preview token approved for build.</summary>
     public CompositionRunRequest WithApprovedPreviewToken(string previewToken)
     {
@@ -134,7 +137,10 @@ public sealed class CompositionRunRequest
                 AdvisoryIssues,
                 GeneralAdmission,
                 OutputNamingInspection,
-                resolvedCapability: ResolvedCapability);
+                resolvedCapability: ResolvedCapability)
+            {
+                AbMergeFormat = AbMergeFormat,
+            };
     }
 
     /// <summary>
@@ -160,7 +166,10 @@ public sealed class CompositionRunRequest
             GeneralAdmission,
             OutputNamingInspection,
             currentAdmission,
-            ResolvedCapability);
+            ResolvedCapability)
+        {
+            AbMergeFormat = AbMergeFormat,
+        };
     }
 
     private static void ValidateResolvedCapability(
