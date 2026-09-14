@@ -713,18 +713,73 @@ production and final test evidence; P2 role coherence and P3 copy coverage are
 closed with no remaining P0-P2 finding in unit 12. This permits its local
 implementation checkpoint, not publication or final integration.
 
-### Remaining bounded units
+### Desay DP-size advisory unit 13 (implemented and locally verified 2026-09-15)
 
-The Desay DP-size advisory is also still pending. Its two profiles can reuse the
-existing source-view outer-length warning declaration and resolved map capacity,
-without a UI size rule or new family capacity owner. This is a separate profile/
-trust-pin change, outside unit 11's no-profile-change admission. Include the
-existing input inspector and run-report warning transport, plus exact-size,
-oversized and required-coverage-short cases, before claiming the requested
-non-blocking warning complete. Preserve existing independent coverage blockers.
+The two Desay profiles now declare `expectedOuterLengths: [1048576]` and
+`unexpectedOuterLengthIssueCode: DESAY_DP_SIZE_WARNING` on the existing
+`dp-ab-input` source-view-coverage rule. This is **1 MiB / 8 Mbit**, not 8 MiB.
+Exact-size input is valid; oversized input warns without blocking Preview or
+Build, and bytes after the declared source range are ignored. Required source
+coverage remains independently blocking: these routes require the complete
+`[0x0,0x100000)` DP view, so a shorter input is rejected, not padded.
+Common retains its existing exact-size rule; Dummy has no DP size warning.
 
+Profiles own this declaration. Existing compiler, inspector and engine owners
+evaluate it; the existing execution-issue transport emits exactly one warning
+in the run report. No Application/UI size branch, duplicate warning transport,
+schema, compiler or engine change was needed. All three Desay routes are tested
+to keep the advisory size equal to their compiled output capacity.
+
+The initial code-only design overlooked two frozen schema requirements:
+`expectedOuterLengths` and the warning code must be paired, and profile issue
+codes must be uppercase identifiers. The engine fallback code
+`input.address-space.length-unexpected` is not a legal profile declaration.
+Independent design review corrected both assumptions within the original two
+profile paths; intermediate schema failures remain diagnostic evidence, not
+existing product defects or passes. The schema itself remains unchanged.
+
+Desay profile versions advance from `0.2.0` to `0.2.1`, their bundle to
+`1.1.6-ab-format.2`, and the canonical policy to `1.16.1`. Existing hash owners
+recomputed bundle entries, all seven enclosing-bundle route fingerprints and
+the two candidate compilation pins. `sync_derived.py --only reviewed-source-pins
+--write` synchronized the loader/package/smoke/test hashes only. No route,
+publication/evidence decision, Golden expected output, Common profile, family,
+view, operation, processor or write range changed. Both profile JSON objects
+match the preceding source after removing only their version and two advisory
+properties.
+
+Final scoped evidence under `D:/NvtFwCombiner-TestArea/evidence/v116-ab-format`:
+
+- `ab-desay-dp-regression-final-pins.trx`: **200/200**, zero skips, 11 seconds.
+  Includes the 12 new real-host advisory cases, existing AB Golden cases,
+  independent complete-output/write-boundary cases, Dummy, format runtime and
+  catalog regression. New negative cases are two Desay required-short cases
+  and two Common oversized cases; they are not additional Common-short tests.
+  Exact/oversized Desay builds compare complete output bytes and SHA, preserve
+  original source files and record the ignored trailing range.
+- `ab-desay-dp-trust-final.trx`: **24/24**, zero skips, 0.851 seconds.
+- `python -m unittest tests.scripts.test_sync_derived.ReviewedSourcePinsTests
+  tests.scripts.test_release_package_policy.ReleasePackagePolicyTests.test_capability_policy_is_hash_pinned_in_package_and_smoke_allowlists`:
+  **6/6**, 1.211 seconds. No package was published or release policy relaxed.
+
+Failed intermediate evidence is retained separately: initial `ab-desay-dp-size-red`
+had three intended missing-advisory failures and two incorrect Common oversized
+fixture assumptions. The file named `ab-desay-dp-size-green.trx` was **9/12**, not
+a pass: three message assertions expected decimal while the existing report
+formats expected sizes in hexadecimal. `ab-desay-dp-regression-final.trx` was
+**198/200** before the two candidate provenance assertions were synchronized.
+Only the final-pins run above is the complete passing 200-case selection.
+
+Independent scoped correctness/architecture/Polytail review passed the final
+unit, including the two corrected compilation pins and actual TRX counters;
+no remaining P0-P2 finding was identified. This permits its local implementation
+checkpoint only, not final integration or publication.
+
+### Remaining integration work
+
+Report capture and DP advisory are locally verified implementation units.
 Final aggregate coverage accounting, complete applicable Golden/write-range
-verification and integration remain required alongside the separate Report and
-DP-advisory units above. Unit 11 is an implementation checkpoint, not a final
-integration verdict; its record remains `design-active`. No release or
-publication is authorized.
+verification, actual UI reference acceptance and integration remain required.
+Records 11–13 remain `design-active` until the frozen integration boundary;
+scoped tests do not satisfy the remaining firmware-owner evidence or certify
+the entire candidate. No release or publication is authorized.

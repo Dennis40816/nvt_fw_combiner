@@ -751,8 +751,8 @@
     {
       "bundleDirectory": "nt51950-ab-merge",
       "bundleSchemaVersion": "1.0",
-      "bundleVersion": "1.1.6-ab-format.1",
-      "contentHash": "3d99349bc8a6a3ccddfd7f9e819c9f1f7daeeb8c8fa3fa73db0dac86a9fe08e7",
+      "bundleVersion": "1.1.6-ab-format.2",
+      "contentHash": "0f3db5b27468211ee5f60112d239423e2b0d99b3591c8dcc63db07a2e2987496",
       "materialization": {
         "compositionProfileSchemaFile": "composition-profile-v2.14.schema.json",
         "firmwareFamilySchemaFile": "firmware-family-v1.2-ab-format.schema.json"
@@ -776,14 +776,14 @@
           "workflowId": "ab-merge",
           "icId": "NT51950",
           "profileId": "nt51950-ab-merge-desay",
-          "profileVersion": "0.2.0",
+          "profileVersion": "0.2.1",
           "mapVariantSetId": "nt51950-ab-desay-maps"
         },
         {
           "workflowId": "ab-merge",
           "icId": "NT51951",
           "profileId": "nt51951-ab-merge-desay",
-          "profileVersion": "0.2.0",
+          "profileVersion": "0.2.1",
           "mapVariantSetId": "nt51951-ab-desay-maps"
         },
         {

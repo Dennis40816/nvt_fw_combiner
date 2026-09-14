@@ -1,9 +1,9 @@
 {
   "schemaVersion": "1.0",
   "bundleId": "nt51950-ab-merge",
-  "bundleVersion": "1.1.6-ab-format.1",
+  "bundleVersion": "1.1.6-ab-format.2",
   "hashAlgorithm": "sha256-rfc8785-entry-array-v1",
-  "contentHash": "3d99349bc8a6a3ccddfd7f9e819c9f1f7daeeb8c8fa3fa73db0dac86a9fe08e7",
+  "contentHash": "0f3db5b27468211ee5f60112d239423e2b0d99b3591c8dcc63db07a2e2987496",
   "trustAnchorBindingId": "built-in-profile-bundle-v2",
   "entries": [
     {
@@ -46,14 +46,14 @@
       "kind": "composition-profile",
       "path": "profiles/nt51950-ab-merge-desay.json",
       "schemaId": "https://example.invalid/nfc/schemas/composition-profile-v2.schema.json",
-      "contentHash": "e9ed850b5055d3e60e7d0bc7a5027f660bb230195ba2167f33c8ecf0de25ea4d"
+      "contentHash": "6008abc69015ffa307c9d8a5066b7d5ef53b23698c9ef88e626c25b1bd41be6d"
     },
     {
       "entryId": "nt51951-ab-merge-desay-profile",
       "kind": "composition-profile",
       "path": "profiles/nt51951-ab-merge-desay.json",
       "schemaId": "https://example.invalid/nfc/schemas/composition-profile-v2.schema.json",
-      "contentHash": "2ffba27525338ff1eafb2381c90d0fa2674a210f1bc13242c868655ddaefed66"
+      "contentHash": "ea25452845f716770965c7d8de5b86a2929c3c956be0c568d5de104200f2d521"
     },
     {
       "entryId": "nt51950-ab-merge-common-2ic-profile",
