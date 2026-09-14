@@ -181,18 +181,33 @@ internal static class CanonicalFormalRouteRuntimeFixtureCatalog
     {
         CapabilityRouteIdentity identity = fixture.Policy.Identity;
         return identity.IcId == "NT51950" && identity.IcCountVariant == "2-plus-ic"
-            ?
-            [
-                MaterializeAbCase(fixture, workspace, requestedCount: 2),
-                MaterializeAbCase(fixture, workspace, requestedCount: 9),
-            ]
+            ? identity.MapVariant == "nt51950-ab-merge-maps"
+                ?
+                [
+                    MaterializeAbCase(fixture, workspace, requestedCount: 9),
+                    MaterializeAbCase(
+                        fixture,
+                        workspace,
+                        requestedCount: 3,
+                        tpAChipCount: 2,
+                        tpBChipCount: 3,
+                        caseSuffix: "mixed-2-3"),
+                ]
+                :
+                [
+                    MaterializeAbCase(fixture, workspace, requestedCount: 2),
+                    MaterializeAbCase(fixture, workspace, requestedCount: 9),
+                ]
             : [MaterializeAbCase(fixture, workspace, requestedCount: null)];
     }
 
     private static CanonicalFormalRouteRuntimeCase MaterializeAbCase(
         CanonicalFormalRouteRuntimeFixture fixture,
         TempWorkspace workspace,
-        int? requestedCount)
+        int? requestedCount,
+        int? tpAChipCount = null,
+        int? tpBChipCount = null,
+        string? caseSuffix = null)
     {
         CapabilityRouteIdentity identity = fixture.Policy.Identity;
         Dictionary<string, byte[]> bytes;
@@ -217,6 +232,14 @@ internal static class CanonicalFormalRouteRuntimeFixtureCatalog
             sourceIcId = "NT51950";
             bytes = ReadAbGoldenInputs(sourceCaseId);
             witnessKind = CanonicalFormalRuntimeWitnessKind.DirectCanonicalInput;
+            if (identity.MapVariant == "nt51950-ab-desay-maps")
+            {
+                bytes[CompositionAddressSpaceIds.DpAbInput] = ResizeCanonicalInput(
+                    bytes[CompositionAddressSpaceIds.DpAbInput],
+                    0x100000,
+                    0x5D);
+                witnessKind = CanonicalFormalRuntimeWitnessKind.CanonicalDerived;
+            }
             selectedCount = 1;
         }
         else if (identity.IcId == "NT51950")
@@ -232,10 +255,10 @@ internal static class CanonicalFormalRouteRuntimeFixtureCatalog
             selectedCount = requestedCount ?? 2;
             PatchFirmwareConfigChipCount(
                 bytes[CompositionAddressSpaceIds.TpAInput],
-                checked((byte)selectedCount.Value));
+                checked((byte)(tpAChipCount ?? selectedCount.Value)));
             PatchFirmwareConfigChipCount(
                 bytes[CompositionAddressSpaceIds.TpBInput],
-                checked((byte)selectedCount.Value));
+                checked((byte)(tpBChipCount ?? selectedCount.Value)));
         }
         else
         {
@@ -252,6 +275,8 @@ internal static class CanonicalFormalRouteRuntimeFixtureCatalog
                 : throw UnknownRoute(identity);
         }
 
+        ApplyFormatWitness(identity, bytes);
+
         var paths = new Dictionary<string, string>(StringComparer.Ordinal);
         foreach ((string slotId, byte[] input) in bytes)
         {
@@ -260,7 +285,7 @@ internal static class CanonicalFormalRouteRuntimeFixtureCatalog
             paths.Add(
                 slotId,
                 workspace.Write(
-                    $"inputs/{identity.IcId}-{identity.IcCountVariant}-{countToken}-{slotId}.bin",
+                    $"inputs/{identity.IcId}-{identity.IcCountVariant}-{countToken}{(caseSuffix is null ? string.Empty : $"-{caseSuffix}")}-{slotId}.bin",
                     input));
         }
         CanonicalFormalRuntimeWitnessProvenance[] witnesses =
@@ -274,18 +299,70 @@ internal static class CanonicalFormalRouteRuntimeFixtureCatalog
                 CanonicalFormalRuntimeParityClaim.RuntimeContractOnly)),
         ];
         return new CanonicalFormalRouteRuntimeCase(
-            selectedCount is null ? fixture.RouteId : $"{fixture.RouteId}:count-{selectedCount}",
+            selectedCount is null
+                ? fixture.RouteId
+                : $"{fixture.RouteId}:count-{selectedCount}{(caseSuffix is null ? string.Empty : $"-{caseSuffix}")}",
             fixture,
-            // Policy identifies the dynamic map set; execution still selects the
-            // independently declared physical map for the admitted topology.
-            identity.IcId == "NT51950"
-                ? selectedCount == 1 ? "nt51950-ab-merge-512k" : "nt51950-ab-merge-1024k"
-                : identity.MapVariant,
+            ExpectedAbMapId(identity, selectedCount),
             selectedCount?.ToString(System.Globalization.CultureInfo.InvariantCulture),
             paths,
             witnesses,
             selectedCount,
-            ExpectedResolvedIcCount: null);
+            ExpectedResolvedIcCount: null,
+            ExpectedFirmwareConfigChipCounts: tpAChipCount is not null || tpBChipCount is not null
+                ? new Dictionary<string, int>(StringComparer.Ordinal)
+                {
+                    [CompositionAddressSpaceIds.TpAInput] = tpAChipCount ?? selectedCount!.Value,
+                    [CompositionAddressSpaceIds.TpBInput] = tpBChipCount ?? selectedCount!.Value,
+                }
+                : null);
+    }
+
+    private static string ExpectedAbMapId(CapabilityRouteIdentity identity, int? selectedCount)
+    {
+        // Policy identifies dynamic map sets; captured primary format chooses the
+        // exact physical map inside the reviewed route.
+        return identity.MapVariant switch
+        {
+            "nt51950-ab-merge-maps" => selectedCount == 1
+                ? "nt51950-ab-merge-512k"
+                : "nt51950-ab-merge-1024k",
+            "nt51950-ab-desay-maps" => selectedCount == 1
+                ? "nt51950-ab-desay-single-1024k"
+                : "nt51950-ab-desay-cascade-1024k",
+            "nt51950-ab-common-2ic-maps" => "nt51950-ab-common-exact2-1024k",
+            "nt51951-ab-desay-maps" => "nt51951-ab-desay-1024k",
+            _ => identity.MapVariant,
+        };
+    }
+
+    private static void ApplyFormatWitness(
+        CapabilityRouteIdentity identity,
+        Dictionary<string, byte[]> bytes)
+    {
+        byte? format = identity.MapVariant switch
+        {
+            "nt51950-ab-desay-maps" or "nt51951-ab-desay-maps" => 0x97,
+            "nt51950-ab-common-2ic-maps" or "nt51951-ab-merge-1024k" => 0x84,
+            _ => null,
+        };
+        if (format is not { } selectedFormat)
+        {
+            return;
+        }
+
+        PatchPrimaryFormat(bytes[CompositionAddressSpaceIds.TpAInput], selectedFormat);
+        PatchPrimaryFormat(
+            bytes[CompositionAddressSpaceIds.TpBInput],
+            selectedFormat == 0x97 ? (byte)0xA6 : selectedFormat);
+    }
+
+    private static void PatchPrimaryFormat(byte[] bytes, byte format)
+    {
+        const int primaryStart = 0x22200;
+        bytes[primaryStart] = 0x31;
+        bytes[primaryStart + 1] = 0xCE;
+        bytes[primaryStart + 0x0C] = format;
     }
 
     private static IReadOnlyList<CanonicalFormalRouteRuntimeCase> MaterializeCtrlRam(

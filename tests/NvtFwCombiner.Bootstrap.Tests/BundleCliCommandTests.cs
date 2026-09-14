@@ -1,6 +1,8 @@
 using System.Security.Cryptography;
 using System.Text.Json;
+using NvtFwCombiner.Application.Configuration;
 using NvtFwCombiner.Domain.Composition;
+using NvtFwCombiner.Infrastructure.ExternalTools;
 using NvtFwCombiner.TestSupport;
 
 namespace NvtFwCombiner.Bootstrap.Tests;
@@ -482,13 +484,31 @@ public sealed partial class BundleCliCommandTests
     public async Task AbAdditionalDeliveryRequiresCompiledDeclaration()
     {
         using var workspace = TempWorkspace.Create("nfc-cli-bundle-ab-additional-undeclared");
+        CompositionHostServices host = CompositionHostServices.Create(
+            new ExternalProcessorEnvironmentLoader(RepositoryPaths.FromRepositoryRoot("external-tools")),
+            loadPolicy: null, configurationPath: workspace.PathFor("format.json"));
+        Assert.True((await host.ExternalEnvironmentLoader.LoadToCompletionAsync(
+            null, TestContext.Current.CancellationToken)).Succeeded);
+        IEventBufferFormatConfigurationSession configuration = await host.GetEventBufferFormatConfigurationAsync(
+            TestContext.Current.CancellationToken);
+        Assert.True((await configuration.SaveAsync(configuration.CreateDefaultsDraft(),
+            TestContext.Current.CancellationToken)).Succeeded);
+        byte[] tp = new byte[0x37000];
+        tp[0x22200] = 0x31;
+        tp[0x22201] = 0xCE;
+        tp[0x2220C] = 0x84;
+        tp[0x36000] = 0x42;
+        tp[0x36001] = 0xBD;
+        tp[0x36017] = 1;
+        tp[0x36FFD] = (byte)'N';
+        tp[0x36FFE] = (byte)'V';
+        tp[0x36FFF] = (byte)'T';
         string dpPath = workspace.Write("dp-ab.bin", new byte[0x80000]);
-        string tpAPath = workspace.Write("tp-a.bin", new byte[0x40000]);
-        string tpBPath = workspace.Write("tp-b.bin", new byte[0x40000]);
+        string tpAPath = workspace.Write("tp-a.bin", tp);
+        string tpBPath = workspace.Write("tp-b.bin", tp);
 
-        CliRunResult result = await CliTestHarness.RunAsync(
+        CliRunResult result = await CliTestHarness.RunAbAsync(host,
             [
-                "ab-merge",
                 "build",
                 "--profile",
                 "NT51950",
@@ -506,7 +526,7 @@ public sealed partial class BundleCliCommandTests
             ],
             TestContext.Current.CancellationToken);
 
-        Assert.Equal(64, result.ExitCode);
+        Assert.True(result.ExitCode == 64, $"Expected usage rejection, got {result.ExitCode}: {result.Error}");
         Assert.Contains(
             "bundle.additional-delivery-unavailable",
             result.Error,

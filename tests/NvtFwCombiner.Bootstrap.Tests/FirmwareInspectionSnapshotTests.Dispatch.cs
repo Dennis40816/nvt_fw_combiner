@@ -30,18 +30,25 @@ public sealed partial class FirmwareInspectionSnapshotTests
 
     /// <summary>Selective dispatch preserves every workflow projection and distinct-path read count.</summary>
     [Fact]
-    public void SelectiveDispatchMatchesAllStrategyBaselineForEveryWorkflow()
+    public async Task SelectiveDispatchMatchesAllStrategyBaselineForEveryWorkflow()
     {
         foreach ((string icId, FirmwareInspectionSnapshotInput[] inputs, Dictionary<string, byte[]> images)
                  in CreateWorkflowDispatchCases())
         {
+            // AB owns asynchronous format capture; compare assembly strategies over
+            // that same immutable result instead of reintroducing synchronous discovery.
+            AbMergeInspectionBatch abBatch = await
+                ((AbMergeAuthoringExperience)BootstrapTestHost.Services.AbMergeAuthoring)
+                .InspectInputSlotsAsync(icId, inputs, path => images[path],
+                    TestContext.Current.CancellationToken);
             var selectiveReads = new Dictionary<string, int>(StringComparer.Ordinal);
             IReadOnlyList<FirmwareInspectionSnapshotResult> selective =
                 BuiltInFirmwareInspection.InspectFirmwareBatch(
                     BootstrapTestHost.Canonical,
                     icId,
                     inputs,
-                    path => ReadOnce(path, images, selectiveReads));
+                    path => ReadOnce(path, images, selectiveReads),
+                    capturedAbBatch: abBatch);
 
             var baselineReads = new Dictionary<string, int>(StringComparer.Ordinal);
             IReadOnlyList<FirmwareInspectionSnapshotResult> baseline =
@@ -50,7 +57,8 @@ public sealed partial class FirmwareInspectionSnapshotTests
                     icId,
                     inputs,
                     path => ReadOnce(path, images, baselineReads),
-                    FirmwareInspectionDispatch.AllStrategiesBaseline);
+                    FirmwareInspectionDispatch.AllStrategiesBaseline,
+                    capturedAbBatch: abBatch);
 
             Assert.Equivalent(baseline, selective, strict: true);
             Assert.All(selectiveReads.Values, static count => Assert.Equal(1, count));

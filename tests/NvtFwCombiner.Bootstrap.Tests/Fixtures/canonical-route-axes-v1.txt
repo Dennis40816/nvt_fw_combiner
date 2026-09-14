@@ -65,6 +65,9 @@ NT51932|general-merge|not-applicable|generic
 NT51932|standard-merge|selector-free|nt51932-standard-merge-256k
 NT51950|ab-merge|1-ic|nt51950-ab-merge-maps
 NT51950|ab-merge|2-plus-ic|nt51950-ab-merge-maps
+NT51950|ab-merge|1-ic|nt51950-ab-desay-maps
+NT51950|ab-merge|2-ic|nt51950-ab-common-2ic-maps
+NT51950|ab-merge|2-plus-ic|nt51950-ab-desay-maps
 NT51950|ctrlram-replace|1-ic|nt51950-ctrlram-fw200-single-full-flash
 NT51950|ctrlram-replace|1-ic|nt51950-ctrlram-fw200-single-tp-work
 NT51950|ctrlram-replace|2-ic|nt51950-ctrlram-fw1x-cascade-full-flash
@@ -77,6 +80,7 @@ NT51950|standard-merge|selector-free|nt51950-standard-merge-1024k
 NT51950|standard-merge|selector-free|nt51950-standard-merge-256k
 NT51950|standard-merge|selector-free|nt51950-standard-merge-512k
 NT51951|ab-merge|selector-free|nt51951-ab-merge-1024k
+NT51951|ab-merge|selector-free|nt51951-ab-desay-maps
 NT51951|ctrlram-replace|1-ic|nt51951-ctrlram-fw200-single-full-flash
 NT51951|ctrlram-replace|1-ic|nt51951-ctrlram-fw200-single-tp-work
 NT51951|ctrlram-replace|2-ic|nt51951-ctrlram-fw1x-cascade-full-flash

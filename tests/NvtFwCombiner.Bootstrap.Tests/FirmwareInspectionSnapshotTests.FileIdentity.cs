@@ -190,10 +190,9 @@ public sealed partial class FirmwareInspectionSnapshotTests
             second.InspectionsById["base"].FileStamp);
     }
 
-    /// <summary>Every fixed-workflow typed binding reaches the shared compiled ceiling owner.</summary>
+    /// <summary>Bindings without format reapplication reuse the shared compiled ceiling owner.</summary>
     [Theory]
     [InlineData("standard")]
-    [InlineData("ab")]
     [InlineData("dp-replace")]
     [InlineData("ctrlram-replace")]
     public async Task FixedWorkflowBindingFieldsReuseTheCompiledReadCeiling(string workflow)
@@ -216,11 +215,6 @@ public sealed partial class FirmwareInspectionSnapshotTests
                 "input.bin",
                 StandardMergeAddressSpaceId: CompositionAddressSpaceIds.ReferenceBase,
                 ExactCapability: capability),
-            "ab" => new(
-                "input",
-                "input.bin",
-                AbMergeAddressSpaceId: CompositionAddressSpaceIds.ReferenceBase,
-                ExactCapability: capability),
             "dp-replace" => new(
                 "input",
                 "input.bin",
@@ -241,6 +235,46 @@ public sealed partial class FirmwareInspectionSnapshotTests
                 TestContext.Current.CancellationToken).AsTask());
 
         Assert.Equal(0x40000, observedMaximum);
+    }
+
+    /// <summary>AB retains full bounded sources even when its current map has a smaller slot ceiling.</summary>
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task AbSourceCaptureUsesHardCeilingBeforeAndAfterCompilation(bool hasExactCapability)
+    {
+        IsolatedBootstrapTestHost host = CreateLoadedHost();
+        ResolvedCapabilityRoute route = Assert.Single(host.Catalog.GetCurrentSnapshot().DynamicRoutes,
+            static route => route.Identity.IcId == "NT51950" &&
+                route.Identity.WorkflowId == ExperienceIds.AbMerge &&
+                route.Identity.MapVariant == "nt51950-ab-merge-maps" &&
+                route.Identity.IcCountVariant == "1-ic");
+        Assert.True(host.Canonical.Compiler.TryCompilePublishedDynamicCapability(route.Identity, null, null,
+            out _, out ResolvedCapability? capability, out IReadOnlyList<CompositionIssue> issues,
+            route.AbMergeTopologyChoice!.Selection));
+        Assert.Empty(issues);
+        Assert.NotNull(capability);
+        long observedMaximum = 0;
+        int reads = 0;
+        BuiltInFirmwareInspection inspection = CreateInspection(host,
+            new DelegatingContentInspector((_, maximumBytes, _) =>
+            {
+                reads++;
+                observedMaximum = maximumBytes;
+                return ValueTask.FromException<SelectedFileContentInspection>(
+                    new ResourceCeilingObservedException());
+            }));
+
+        _ = await Assert.ThrowsAsync<ResourceCeilingObservedException>(() =>
+            inspection.InspectFirmwareBatchAsync("NT51950",
+                [new("dp", "dp.bin", AbMergeAddressSpaceId: CompositionAddressSpaceIds.DpAbInput,
+                    AbMergeTopologyToken: "single", ExactCapability: hasExactCapability ? capability : null)],
+                TestContext.Current.CancellationToken).AsTask());
+
+        Assert.Equal(1, reads);
+        Assert.Equal(CompiledInputArtifactInspectionService.MaximumContentReadBytes, observedMaximum);
+        Assert.True(observedMaximum > CompiledInputArtifactInspectionService.ResolveMaximumContentReadBytes(
+            capability.CompiledComposition, CompositionAddressSpaceIds.DpAbInput));
     }
 
     /// <summary>CtrlRAM base discovery performs one hard-bounded read before an exact route exists.</summary>

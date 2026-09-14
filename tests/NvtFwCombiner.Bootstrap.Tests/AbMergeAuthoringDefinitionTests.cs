@@ -76,15 +76,15 @@ public sealed class AbMergeAuthoringDefinitionTests
 
     /// <summary>Candidate declarations are available without pretending a new executable route is published.</summary>
     [Theory]
-    [InlineData("nt51950-ab-merge-desay")]
-    [InlineData("nt51951-ab-merge-desay")]
-    [InlineData("nt51950-ab-merge-common-2ic")]
-    public void CandidateDeclarationNeedsNoExecutableMap(string profileId)
+    [InlineData("nt51950-ab-merge-desay", "0.2.1")]
+    [InlineData("nt51951-ab-merge-desay", "0.2.1")]
+    [InlineData("nt51950-ab-merge-common-2ic", "0.2.0")]
+    public void CandidateDeclarationNeedsNoExecutableMap(string profileId, string profileVersion)
     {
-        var bundle = new BuiltInV2Bundle("nt51950-ab-merge", "1.1.6-ab-format.1",
+        var bundle = new BuiltInV2Bundle("nt51950-ab-merge", "1.1.6-ab-format.2",
             BuiltInV2RegistrationRegistry.FindAbMergeRegistration("NT51950", "nt51950-ab-merge-maps")!.BundleContentHash,
             "built-in-profile-bundle-v2");
-        Assert.True(bundle.TryGetAbAuthoringDefinition(profileId, "0.2.0",
+        Assert.True(bundle.TryGetAbAuthoringDefinition(profileId, profileVersion,
             out CanonicalAbAuthoringDefinition? definition, out IReadOnlyList<CompositionIssue> issues));
         Assert.Empty(issues);
         Assert.NotNull(definition);
