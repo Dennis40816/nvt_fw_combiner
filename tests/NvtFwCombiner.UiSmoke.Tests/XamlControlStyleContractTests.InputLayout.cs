@@ -65,7 +65,7 @@ public sealed partial class XamlControlStyleContractTests
         Assert.Equal("0", (string?)identity.Attribute("Grid.Column"));
         Assert.Equal("1", (string?)factsRegion.Attribute("Grid.Column"));
         Assert.Equal("Center", (string?)factsRegion.Attribute("VerticalAlignment"));
-        Assert.Equal("2", (string?)additionalFacts.Attribute("Grid.Row"));
+        Assert.Equal("1", (string?)additionalFacts.Attribute("Grid.Row"));
         Assert.Equal("1", (string?)additionalFacts.Attribute("Grid.Column"));
         Assert.Equal("1", (string?)actions.Attribute("Grid.Column"));
         Assert.Equal("2", (string?)actions.Attribute("Grid.RowSpan"));
@@ -342,6 +342,10 @@ public sealed partial class XamlControlStyleContractTests
             Assert.True(additional.IsEffectivelyVisible);
             Assert.InRange(Math.Abs(primaryOrigin.X - additionalOrigin.X), 0, 0.5);
             Assert.True(additionalOrigin.X + additional.Bounds.Width <= selector.Bounds.Width + 0.5);
+            StackPanel disclosure = card.FindControl<StackPanel>("SlotAdditionalFactsRegion")!;
+            Point disclosureOrigin = Assert.IsType<Point>(disclosure.TranslatePoint(default, selector));
+            Assert.True(disclosureOrigin.Y >= additionalOrigin.Y + additional.Bounds.Height,
+                "Show details belongs below all facts, not between primary facts and PID.");
         }
         finally
         {

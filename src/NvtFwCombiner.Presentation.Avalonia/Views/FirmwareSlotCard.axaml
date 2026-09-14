@@ -117,24 +117,24 @@
             </ItemsControl.ItemTemplate>
           </ItemsControl>
         </StackPanel>
-        <StackPanel x:Name="SlotAdditionalFactsRegion" Grid.Row="1" Grid.ColumnSpan="2"
-                    Margin="0,8,0,0" IsVisible="{Binding HasAdditionalFirmwareFacts}">
-          <ToggleButton AutomationProperties.Name="{Binding AdditionalFirmwareFactsLabel}" Classes="quietDisclosure"
-                        Content="{Binding AdditionalFirmwareFactsLabel}" HorizontalAlignment="Left"
-                        IsChecked="{Binding IsAdditionalFirmwareFactsExpanded}" IsVisible="{Binding HasAdditionalFirmwareFacts}" />
-        </StackPanel>
-        <ItemsControl x:Name="AdditionalFirmwareFactsHost" Grid.Row="2" Grid.Column="1" Margin="0,8,0,0"
+        <ItemsControl x:Name="AdditionalFirmwareFactsHost" Grid.Row="1" Grid.Column="1" Margin="0,8,0,0"
                       HorizontalAlignment="Stretch" IsVisible="{Binding IsAdditionalFirmwareFactsExpanded}"
                       ItemsSource="{Binding AdditionalFirmwareFacts}">
           <ItemsControl.ItemsPanel>
             <ItemsPanelTemplate>
               <UniformGrid Columns="{Binding FactColumnCount, ElementName=Root}" />
             </ItemsPanelTemplate>
-            </ItemsControl.ItemsPanel>
+          </ItemsControl.ItemsPanel>
           <ItemsControl.ItemTemplate>
             <StaticResource ResourceKey="FirmwareSlotInformationFactTemplate" />
           </ItemsControl.ItemTemplate>
         </ItemsControl>
+        <StackPanel x:Name="SlotAdditionalFactsRegion" Grid.Row="2" Grid.ColumnSpan="2"
+                    Margin="0,8,0,0" IsVisible="{Binding HasAdditionalFirmwareFacts}">
+          <ToggleButton AutomationProperties.Name="{Binding AdditionalFirmwareFactsLabel}" Classes="quietDisclosure"
+                        Content="{Binding AdditionalFirmwareFactsLabel}" HorizontalAlignment="Left"
+                        IsChecked="{Binding IsAdditionalFirmwareFactsExpanded}" IsVisible="{Binding HasAdditionalFirmwareFacts}" />
+        </StackPanel>
       </Grid>
       <StackPanel x:Name="SlotActions" Grid.Column="1" Grid.RowSpan="2" HorizontalAlignment="Right"
                   Margin="8,16,16,16" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
