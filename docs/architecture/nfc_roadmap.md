@@ -21,9 +21,20 @@ they are not new TODOs or a published `1.1.6` claim. As of 2026-09-15, Desay
 detection/new AB geometry, the Settings Config editor, captured Report format
 provenance and the DP-size advisory are implemented with scoped test evidence
 in [ADR 0072](../adr/0072-event-buffer-format-configuration.md). The latest
-Information redesign remains separate. Config visual-reference acceptance,
-complete Golden execution and final integration/owner evidence remain open;
-new format routes retain candidate/contract-only status. The TP overlay-length
+Information redesign remains separate. On `1465f11f`, the fresh
+`python scripts/verify.py --release-golden` run passed: Bootstrap **1454/1454**,
+GoldenRegression **25/25**, zero skips, and all **25 owner-certified complete-output
+cases** confirmed by the unchanged per-case gate. The prior 12 Bootstrap failures
+were resolved by test/fixture migration, without production or Golden expected
+changes. The added real-file inspection case proves complete 1 MiB Normal DP
+capture past a previous Common map ceiling; the formal route fixtures retain
+generic count 9 and mixed A=2/B=3 coverage. Original and final TRX evidence is
+retained under `D:/NvtFwCombiner-TestArea/evidence/v116-ab-format`, with the fresh
+Golden run in `unit15-golden-1465f11f`.
+Config visual-reference acceptance, aggregate governance/owner evidence and
+`verify.py --all` remain open; this Golden pass is not full integration or
+publication approval. New format routes retain candidate/contract-only status.
+The TP overlay-length
 question is resolved by retaining existing bytes and recording an Excel erratum.
 This is authorized development, not a release/publication request.
 
@@ -64,7 +75,8 @@ was a typo; the primary FWConfig starts at `0x22200` and its `+0x0C` field is
 detection because its location is documented. Both the typo and source-choice
 questions are closed. Read the profile-bound primary field for each scoped
 TP input; do not silently fall back to Backup or migrate other existing
-FWConfig readers. This decision is recorded, not yet implemented.
+FWConfig readers. This decision is now locally implemented and narrowly verified;
+the remaining integration gates are listed in current progress above.
 Confirm coupled bank extents,
 source bounds and processor/write ranges; a TP B start alone does not define
 them. Close required owner/golden evidence before firmware implementation and
