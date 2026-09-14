@@ -1639,8 +1639,12 @@ rule inventory, a DP AB Code input-size warning against exactly 1,048,576 bytes
 reusable public/vendor flow separation, and public NT51950 partial-family
 AB Code / 2 IC TP B output start `0x8A000` with coupled offset/write-range
 updates. The owner requires complete Q&A and consolidation before development.
-Address/base and match width/operator remain explicit
-questions. This is recorded direction, not runtime changes or a new release
+The owner confirms a single byte matching either `0x97` or `0xA6`; exact
+artifact/address/base remain explicit questions. Settings is the requested
+common entry point for candidate user-editable rules, with editability and
+safety boundaries to be assessed before implementation. The accompanying
+Profile/Family/IC Count review is an assessment, not an approved rewrite.
+This is recorded direction, not runtime changes or a new release
 allocation; existing saved-rule/IC-authoring allocations are unchanged.
 
 Owner intake, 2026-09-09: add this discussion to `1.1.x`; allocate it to
