@@ -17,12 +17,15 @@ Current progress: `v1.1.5` is published (see the
 [release evidence](../references/verification-report.md)). Current `1.1.6`
 Memory Layout and selection-slot corrections, bold group headers and FW Info
 disclosure alignment are locally committed with recorded targeted evidence;
-they are not new TODOs or a published `1.1.6` claim. The latest Information
-preview, Desay detection/new AB geometry and Settings-rule editor are not
-implemented. Owner subsequently approved the Config preview and requested
-starting `1.1.6` development; the TP overlay-length question is resolved by
-retaining existing bytes and recording an Excel erratum. Development preflight
-may proceed under the linked handoff; this is not a release/publication request.
+they are not new TODOs or a published `1.1.6` claim. As of 2026-09-15, Desay
+detection/new AB geometry, the Settings Config editor, captured Report format
+provenance and the DP-size advisory are implemented with scoped test evidence
+in [ADR 0072](../adr/0072-event-buffer-format-configuration.md). The latest
+Information redesign remains separate. Config visual-reference acceptance,
+complete Golden execution and final integration/owner evidence remain open;
+new format routes retain candidate/contract-only status. The TP overlay-length
+question is resolved by retaining existing bytes and recording an Excel erratum.
+This is authorized development, not a release/publication request.
 
 | Target | Bounded outcome and dependency |
 | --- | --- |

@@ -130,6 +130,34 @@
   ],
   "routeEvidence": [
     {
+      "evidenceId": "nt51950-ab-merge-1-ic-nt51950-ab-desay-maps-evidence-v116-format",
+      "kind": "contract-only",
+      "routeId": "route-7-nt51950-8-ab-merge-4-1-ic-21-nt51950-ab-desay-maps",
+      "capabilityFingerprint": "e04881098bc1dce91949288addf76602986a8b12993bc535c19ed3adb88a9e47",
+      "contractReference": "profiles/built-in/nt51950-ab-merge/profiles/nt51950-ab-merge-desay.json"
+    },
+    {
+      "evidenceId": "nt51950-ab-merge-2-plus-ic-nt51950-ab-desay-maps-evidence-v116-format",
+      "kind": "contract-only",
+      "routeId": "route-7-nt51950-8-ab-merge-9-2-plus-ic-21-nt51950-ab-desay-maps",
+      "capabilityFingerprint": "1aa0102f5a60bb14fe5233890e23b392acff6b4b43116acc441717265f26d212",
+      "contractReference": "profiles/built-in/nt51950-ab-merge/profiles/nt51950-ab-merge-desay.json"
+    },
+    {
+      "evidenceId": "nt51951-ab-merge-selector-free-nt51951-ab-desay-maps-evidence-v116-format",
+      "kind": "contract-only",
+      "routeId": "route-7-nt51951-8-ab-merge-13-selector-free-21-nt51951-ab-desay-maps",
+      "capabilityFingerprint": "9c5ce2bff1139c38e6d3e4ac6b4acbd96f5ee28255de292da11802a5a0baea83",
+      "contractReference": "profiles/built-in/nt51950-ab-merge/profiles/nt51951-ab-merge-desay.json"
+    },
+    {
+      "evidenceId": "nt51950-ab-merge-2-ic-nt51950-ab-common-2ic-maps-evidence-v116-format",
+      "kind": "contract-only",
+      "routeId": "route-7-nt51950-8-ab-merge-4-2-ic-26-nt51950-ab-common-2ic-maps",
+      "capabilityFingerprint": "ee02d3b216652081dd5c41a3a553bac2308625487a2943baf37dd3f7399b10e3",
+      "contractReference": "profiles/built-in/nt51950-ab-merge/profiles/nt51950-ab-merge-common-2ic.json"
+    },
+    {
       "evidenceId": "nt51917-ctrlram-replace-1-ic-nt51927-ctrlram-fw141-single-full-flash-evidence-v3",
       "kind": "approved-alias",
       "routeId": "route-7-nt51917-15-ctrlram-replace-4-1-ic-39-nt51927-ctrlram-fw141-single-full-flash",
@@ -681,17 +709,17 @@
       "testReference": "tests/NvtFwCombiner.GoldenRegression.Tests/StandardMergeWorkbenchGoldenTests.cs#WorkbenchBuildStandardMergeMatchesGoldenBytes"
     },
     {
-      "evidenceId": "nt51950-ab-merge-1-ic-nt51950-ab-merge-maps-evidence-v114-dummy",
+      "evidenceId": "nt51950-ab-merge-1-ic-nt51950-ab-merge-maps-evidence-v116-primary",
       "kind": "contract-only",
       "routeId": "route-7-nt51950-8-ab-merge-4-1-ic-21-nt51950-ab-merge-maps",
-      "capabilityFingerprint": "42ae08787e8a628875a7fa312070eefba3581e4c1a91bd12b1ba237c34fbe90b",
+      "capabilityFingerprint": "39ccfc977cd50185ced408da748d8283eb74e14b2a9716dd46fae9c8c9501c4b",
       "contractReference": "profiles/built-in/nt51950-ab-merge/profiles/nt51950-ab-merge.json"
     },
     {
-      "evidenceId": "nt51950-ab-merge-2-plus-ic-nt51950-ab-merge-maps-evidence-v114-dummy",
+      "evidenceId": "nt51950-ab-merge-2-plus-ic-nt51950-ab-merge-maps-evidence-v116-primary",
       "kind": "contract-only",
       "routeId": "route-7-nt51950-8-ab-merge-9-2-plus-ic-21-nt51950-ab-merge-maps",
-      "capabilityFingerprint": "fe7d4222c073e12ce15c1a0cd9331f98be3ce1d6edb2769870ab22e723dcd657",
+      "capabilityFingerprint": "cc992c1538608f9e1b02948366df3d7100c48c4a2faabb7ea199cfbc6cf8108d",
       "contractReference": "profiles/built-in/nt51950-ab-merge/profiles/nt51950-ab-merge.json"
     },
     {
@@ -798,10 +826,10 @@
       "testReference": "tests/NvtFwCombiner.Bootstrap.Tests/Nt51950Nt51951V2StandardMergeGoldenTests.cs#SyntheticInputsMatchIndependentlyConstructedDpPerspectiveOutputAcrossCapacities"
     },
     {
-      "evidenceId": "nt51951-ab-merge-selector-free-nt51951-ab-merge-1024k-evidence-v114-dummy",
+      "evidenceId": "nt51951-ab-merge-selector-free-nt51951-ab-merge-1024k-evidence-v116-primary",
       "kind": "contract-only",
       "routeId": "route-7-nt51951-8-ab-merge-13-selector-free-22-nt51951-ab-merge-1024k",
-      "capabilityFingerprint": "dc7cd0b496bf6e548488663aefa912d26f77170d44b8100caada9b38a2ed8439",
+      "capabilityFingerprint": "39e7ab5a12993c356239fb5759b4bbe7f56284c85cf144af3b6582efbe369a6c",
       "contractReference": "profiles/built-in/nt51950-ab-merge/profiles/nt51951-ab-merge.json"
     },
     {

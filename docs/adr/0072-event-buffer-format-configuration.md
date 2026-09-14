@@ -775,6 +775,53 @@ unit, including the two corrected compilation pins and actual TRX counters;
 no remaining P0-P2 finding was identified. This permits its local implementation
 checkpoint only, not final integration or publication.
 
+### Evidence synchronization unit 14 (2026-09-15)
+
+On source `c3e68aff`, the unchanged `verify.py --release-golden` preflight
+rejected the canonical manifest before executing tests. Its route evidence
+still named three `v114-dummy` decisions and omitted the four new format
+decisions. Synchronize those seven identities/fingerprints from the current
+canonical policy, retaining `contract-only` and references to the admitted
+profiles. No case manifest, payload, expected SHA, allowed difference, release
+allowlist, runtime decision or validator is changed. The canonical validator's
+existing test suite passes **80/80** (2.651 seconds) after this projection update;
+the complete Golden execution is tracked separately below, not inferred from
+that validator test count.
+
+The canonical direct-output set contains **25** cases: Standard Merge 8, AB
+Merge 3 and CtrlRAM Replace 14. Input-only and fact-scoped alias records do not
+add output cases. The four new format routes retain independent synthetic
+byte/write-boundary evidence and remain candidate/contract-only. This does not
+grant direct-Golden certification; conversely, existing function-open candidate
+rules do not require inventing a direct Golden for every new route merely to
+perform owner-approved development integration. Exact-head firmware-owner
+approval and the existing integration contract still apply.
+
+The current-source Config selection separately passes **31/31**, zero skips
+(`ab-format-config-final-candidate.trx`, 11 seconds). Complete production-control
+renders at 1672x941 Light/Dark English and 980x640 Light Traditional Chinese
+are retained under
+`D:/NvtFwCombiner-TestArea/evidence/v116-ab-format/final-candidate-c3e68aff`.
+These prove tested control behavior and measured bounds, not exact reference
+fidelity. Visual comparison still shows different column spacing and smaller
+shared action typography/sizing; the owner has been asked whether to preserve
+the shared style or match the preview sizing. No new style choice is assumed.
+The roadmap now distinguishes implemented work from these residual gates;
+the experience rules explicitly retain the approved Desay size exception.
+
+The subsequent `python scripts/verify.py --release-golden` run exited **1**:
+Bootstrap passed **1440/1452**, with 12 failures and zero skips; GoldenRegression
+passed **25/25**, with zero skips. The unchanged
+`require_release_golden_results` case checker separately confirmed execution
+and success of all **25 owner-certified complete-output cases** across those
+results. This is case-level Golden evidence, not an overall gate pass. Original
+TRX files are retained in
+`D:/NvtFwCombiner-TestArea/evidence/v116-ab-format/unit14-golden-first`.
+The 12 Bootstrap failures require diagnosis and correction before integration;
+they are not waived or assumed to be obsolete fixtures. Independent scoped
+review found no remaining unit-14 finding and permits its local implementation
+checkpoint, with these aggregate failures explicitly outstanding.
+
 ### Remaining integration work
 
 Report capture and DP advisory are locally verified implementation units.
