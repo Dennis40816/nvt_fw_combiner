@@ -75,3 +75,12 @@ session. Missing always means no effective configuration, including after restar
 defaults and retained LastSaved are draft sources only. No first-install heuristic
 or silent fallback is introduced. This is persistence/publication, not firmware
 runtime integration or a claim that the approved Settings screen is implemented.
+
+Third unit extracts the existing AB Backup topology check into one Application
+`AbMergeTopologyAdmission` owner, reused by RunService. Results retain nullable
+actual TPA/TPB counts (unavailable differs from decoded zero). The existing
+single/cascade policy, diagnostic precedence and selector-free NT51951 guards
+are unchanged; 2 and 3 remain separately observed counts, not an equality claim.
+The future exact-2 Common selector must consume successful observed counts,
+not the Cascade picker's minimum. This extraction adds no primary Event Buffer
+locator, profile variant, geometry or Settings integration.

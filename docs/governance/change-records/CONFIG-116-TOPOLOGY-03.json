@@ -1,0 +1,34 @@
+{
+  "schemaVersion": 2,
+  "taskId": "CONFIG-116-TOPOLOGY-03",
+  "capability": "Reusable AB topology admission with exact observed TP counts",
+  "integrationBase": "f9db4ef039be1c7a08e0b83f11133dbc1a0fe049",
+  "risk": "R2",
+  "kind": "behavior",
+  "state": "design-active",
+  "mutablePaths": [
+    "src/NvtFwCombiner.Application/Composition/AbMergeTopologyAdmission.cs",
+    "src/NvtFwCombiner.Application/Composition/CompositionRunService.AbMergeTopology.cs",
+    "tests/NvtFwCombiner.Application.Tests/Composition/AbMergeTopologyAdmissionTests.cs",
+    "docs/adr/0072-event-buffer-format-configuration.md"
+  ],
+  "implementationOwner": "primary-agent",
+  "searchEvidence": [
+    "At bdef1f82 CodeGraph-first and exact-source inspection traced AbMergeAuthoringExperience, CompiledAuthoringWorkflow, CanonicalCapabilityCompiler, and CompositionRunService.AbMergeTopology; the terminal topology check is the current single use-case producer.",
+    "FirmwareConfigMetadataReader.TryReadBackup owns locator/decode and FirmwareConfigChipCountDiagnostics owns zero-count diagnostics. Reuse both unchanged.",
+    "Existing RunService classifies only single versus cascade, so observed TPA=2 and TPB=3 are not equal-count claims. Future public exact-2 profile applicability requires actual counts, not selector minimum.",
+    "Independent architect traced shared UI/CLI preparation, retention and execution seams. Extraction is a dependency of actual format selection, not a substitute for pending primary observation, profile variants or runtime wiring."
+  ],
+  "semanticOwner": "Application.AbMergeTopologyAdmission owns the existing AB topology policy; RunService retains accepted-source and route applicability guards",
+  "terminalContract": "Preserve current error codes/messages/subjects/order and single-versus-cascade policy; nullable exact counts distinguish invalid Backup from decoded zero; immutable results never keep caller bytes; selector-free NT51951 remains unaffected",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "/root/v116_config_architecture",
+    "outcome": "findings-incorporated",
+    "evidence": "2026-09-14 independent R2 admission for exact four mutable paths. Keep candidate/selectedTopology/accepted-view ingress guards, invalid-before-zero-before-topology ordering, A2/B3 same-cascade behavior and selector-free951 regressions. No primary locator, geometry, processor, UI or supported-evidence mutation."
+  },
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": { "reviewer": null, "outcome": "pending", "evidence": "" }
+}
