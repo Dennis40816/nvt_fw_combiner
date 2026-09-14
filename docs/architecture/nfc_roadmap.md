@@ -3,6 +3,83 @@
 Status: active owner roadmap; release-closure checkpoint 2026-09-01;
 subsequent owner allocation amendments are recorded below.
 
+## Current release sequence — 2026-09-14
+
+The owner requests redistribution of unfinished work across `1.1.6` through
+`1.5.x`, with Desay/public AB address corrections completed **before `1.2.0`**,
+and sets the **full Launcher release to `2.0.0`**. The sequence below is the
+recommended allocation for owner adjustment. It supersedes earlier version
+allocations in this document and linked dated handoffs, not their retained
+acceptance criteria, historical evidence or permissions. Detailed work packages
+below retain their boundaries; they are not a second schedule.
+
+Current progress: `v1.1.5` is published (see the
+[release evidence](../references/verification-report.md)). Current `1.1.6`
+Memory Layout and selection-slot corrections, bold group headers and FW Info
+disclosure alignment are locally committed with recorded targeted evidence;
+they are not new TODOs or a published `1.1.6` claim. The latest Information
+preview, Desay detection/new AB geometry and Settings-rule editor are not
+implemented. This planning change does not start production work or a release.
+
+| Target | Bounded outcome and dependency |
+| --- | --- |
+| `1.1.6` | **Urgent NT51950/NT51951 partial-family AB correction + editable Desay Settings**: auto-detect the approved Desay markers, Desay TP B at `0x4A000`, public NT51950 partial-family **2 IC** TP B at `0x8A000`; update all coupled offsets, processors and allowed writes. Add required FWConfig/TPA-TPB format admission, the non-blocking DP AB size warning (`0x100000` bytes), and minimal effective-format/output disclosure. Settings supports adding/removing/editing supported-format marker values and separate ID/name lookup through one validated file-backed owner, with safe persistence, invalid-edit feedback and apply/reload invalidation. Include impacted Dummy DP, Memory Layout, Report and family regressions, exact write-range audit and required independent Golden evidence. Carry already-committed UI fixes forward without redesign. |
+| `1.1.7` | **Information and output confirmation UI**: TP Version → PID → Common FW Version → Event Buffer Version (`0x97 - Desay`, plain text); responsive action alignment, bounded Details and its default-Off appearance preference; clear IC/Mode/effective-format output confirmation. Final PID-inclusive preview/acceptance precedes implementation. |
+| `1.1.8` | **Remaining Settings conveniences**: inventory other user-adjustable preferences and complete justified reset/import/export conveniences through the owner introduced in `1.1.6`. Do not postpone basic Desay editability, safe persistence, validation or stale-state invalidation to this version. Arbitrary maps, CRC/ranges, safety overrides and support promotion are outside ordinary Settings. |
+| `1.1.9` | **Release/agent workflow proportionality**: gate inventory and evidence-backed simplification, AI Skill/documentation/routing consistency and a bounded reversible pilot. Assess code-size/count gates, repeated confirmations/tests and derived-data automation; do not weaken Golden, signing or publication boundaries. |
+| `1.2.0` | **Launcher first development tranche**: current defect/security/evidence inventory plus actual bounded remediation, not only planning. Not the full Launcher release or production activation. Before release, refresh public NT51950 DP Perspective, Desay DP Perspective and Event Buffer ID/name material. |
+| `1.2.1` | **Family/Profile/state ownership convergence**: proven shared-fact duplication and DP CMI provider bindings first; distinguish IC identity, family, topology/IC Count, variant, input snapshots and page drafts. Preserve valid existing reuse; no wholesale profile rewrite. |
+| `1.2.2` | **DP Replace retirement** after `1.2.1` preserves shared definitions, Perfect-family disclosure and surviving consumers. Preserve historical Report interpretation and required evidence; verify surviving workflow bytes. |
+| `1.2.3` | **CLI and deterministic Desktop automation** through existing Application/startup owners: workflow coverage, load-report/tab/state/capture/exit, actionable argument errors. Prioritize this before remaining broad UI acceptance. |
+| `1.2.4` | **First-entry and page flow**: IC/context lifetime, invalidation, Cancel/Back and remaining per-page custom-option density, using approved previews. Do not reopen completed slot/Memory Layout styling. |
+| `1.2.5` | **Report completion**: physical-section grouping and historical replay compatibility; preserve completed Changes cards/navigation. |
+| `1.2.6` | **Shared visual/native acceptance**: evidence-driven theme fixes, DPI/high contrast/screen reader and remaining System activity native checks. |
+| `1.2.7` | **Documentation and proven-unused code cleanup**: current-versus-history/SPEC/issue reconciliation, remeasured analyzer baseline and reviewable cleanup; preserve evidence and canonical ownership. |
+| `1.2.8` | **Conditional performance follow-up**: remeasure residual Home startup/CtrlRAM cold first-open only if still valuable; implement only a demonstrated worthwhile change. Preserve the owner's deferral of further startup optimization; do not reopen completed `1.1.5` work or claim a new ten-minute result. |
+| `1.3.0` | **General Merge authoring** through existing typed mappings/compiler/executor. |
+| `1.3.1` | **General Replace authoring**, immutable reference and the same shared operation model. |
+| `1.3.2` | **Saved/custom rules**: edit, persistence, import and validation after the General contracts settle. Distinct from the narrow Settings marker editor. |
+| `1.3.3` | **Maintainer IC/family rule-authoring UI**: validate/export untrusted candidates; no live-catalog self-promotion. |
+| `1.4.0` | **Independent evidence completion** for retained input-only cases and fact-scoped aliases. This does not defer evidence required for an earlier changed route. |
+| `1.4.1` | **IC/capability evidence intake**: remaining NT51950/NT51951 AB, Perfect-family and `ldc-tp-only` gaps; NT51928BT awaits owner-confirmed facts and remains unavailable until separately admitted. Inventory existing support first, split into additional patch releases if the actual intake is large. |
+| `1.4.2` | **Launcher/publication extraction decision**: review a concrete need, contracts, trust boundaries and migration/deletion/rollback before any separately approved repository split. Extraction is optional, not a prerequisite for `2.0.0`. |
+| `1.5.0` | **Launcher publisher trust/signing/security closure** with independent evidence and actual key/service permissions. |
+| `1.5.1` | **Catalog/Registry controlled preproduction validation**: package identity, verification and update readiness; no implied production activation. |
+| `1.5.2` | **Installer/download/recovery refinements**: measured transfer savings, exact installed bytes, failure recovery and rollback. |
+| `1.5.3` | **Full Launcher candidate acceptance**: clean Windows install/update/failure/recovery/rollback and end-to-end evidence across the integrated candidate. |
+| `2.0.0` | **Full Launcher release**. Actual Catalog/Registry production activation requires explicit owner GO and closed security/evidence/publication gates; the scheduled version is not approval to deploy. |
+
+### Immediate prerequisites for 1.1.6
+
+Use the [Desay intake](../ui/v1.1.x-custom-options-layout-handoff.md#desay-nt51950--nt51951-rule-intake--2026-09-14)
+for the consolidated specification. Confirm the exact artifact and FWConfig
+base/primary-or-backup locator: the proposed absolute `0x2200C` conflicts with
+the inspected `0x22200 + 0x0C = 0x2220C` binding. Confirm coupled bank extents,
+source bounds and processor/write ranges; a TP B start alone does not define
+them. Close required owner/golden evidence before firmware implementation and
+release at the affected gates. Limit this version's owner reuse work to what
+the urgent change actually needs; it must not wait for the broader `1.2.1`
+refactor or the `1.3.x` editors. Owner follow-up explicitly brings the bounded
+Desay Settings editor into this urgent version. Implement the validated shared
+rule owner first, connect detection/admission and writes next, then Settings
+and reload/regression coverage as separate reviewable commits. Changing a
+display name must not select a different layout; adding a marker may bind only
+to an already admitted format in the approved IC/workflow scope. Keep effective
+rule identity with accepted run state and invalidate stale readiness/preview
+when a behavior-affecting rule changes. Final invalid-configuration and apply
+lifecycle decisions must be consolidated before implementation.
+
+Request any source material needed for this urgent correction now; the separate
+pre-`1.2.0` refresh reminder is not permission to defer a missing `1.1.6` fact.
+If evidence is unavailable, report the exact blocker instead of silently
+shipping guessed geometry or moving the correction past `1.2.0`. Every actual
+release still executes all applicable certified Golden output cases against
+its candidate; `1.4.0` is only the residual evidence-completion backlog.
+
+The sections below include dated previous allocations. Interpret their version
+references against this current table; completed releases retain their original
+versions, evidence and acceptance residuals.
+
 2026-09-10 post-release reconciliation: immutable `v1.1.4` is published from
 `02fc70c8c25a5885be5e0e6db7eb108a37b4a131` through PR #427 and release run
 `34484902901`. Earlier dated local/pending checkpoints below remain history,
@@ -1580,11 +1657,12 @@ for this full local run. The implemented local overlap is documented in the
 entry points retain their own execution paths. Use the `1.1.4` test diagram/README rather than creating
 another scheduler, verifier or evidence-document framework.
 
-## `1.1.6`: agent workflows, documentation and minimality
+## Work package: agent workflows, documentation and minimality
 
-The owner merged the previous `1.1.6` and `1.1.7` milestones on 2026-09-05.
-This version combines the AI-skill/workflow audit and bounded pilot with
-related documentation, semantic-consistency and minimality work.
+Historical allocation: the owner merged the previous `1.1.6` and `1.1.7`
+milestones on 2026-09-05. The current sequence separates the workflow/gate
+audit (`1.1.9`), shared ownership (`1.2.1`) and documentation/minimality cleanup
+(`1.2.7`), retaining the work-package boundaries below.
 Use capability, task difficulty, risk and coordination cost to select models
 and reasoning effort from all available models; disclose actual known model
 configuration, without permanent model-name roles. Audit skill inventory and
@@ -1600,7 +1678,7 @@ or impose enterprise ceremony through this allocation.
 
 ### Release gate proportionality assessment
 
-Owner allocation, 2026-09-13: assess unreasonable release gates in `1.1.6`,
+Owner allocation, 2026-09-13 (now `1.1.9`): assess unreasonable release gates,
 including the rigid code-size accounting exposed during `1.1.5` preparation.
 This is an assessment and proposed simplification, not authorization to remove
 current checks or change the frozen `1.1.5` release procedure.
@@ -1650,15 +1728,17 @@ e.g. `0x97 - Desay` under the latest plain-text **Event Buffer Version** label
 is primary and outranks IC Count. Add a Settings preference for input Details
 default expansion, initially Off. Responsive action alignment, primary-field
 layout and the PID-inclusive preview remain pending; these are recorded
-requirements, not completed UI work or a resequencing of the deferred backlog.
+requirements, not completed UI work. The current sequence puts the urgent
+firmware/admission change and bounded Desay Settings editor in `1.1.6`,
+Information UI in `1.1.7`, and broader Settings conveniences in `1.1.8`.
 Required FWConfig unreadability/invalidity blocks the scoped
 format-dependent workflow, separately from the non-blocking DP-size warning.
 The owner also confirms that TPA/TPB Common-versus-Desay disagreement blocks
 Build; compare resolved formats, not merely equality of their raw marker bytes.
 The handoff records the existing topology-dependent AB gate and the need to
 verify shared 950/951 coverage; no new UI or runtime gate is implemented yet.
-This is recorded direction, not runtime changes or a new release
-allocation; existing saved-rule/IC-authoring allocations are unchanged.
+This is recorded direction, not runtime changes. Saved-rule/IC-authoring work
+follows the current `1.3.x` allocations.
 
 Owner intake, 2026-09-09: add this discussion to `1.1.x`; allocate it to
 `1.1.6` alongside semantic-consistency and minimality work. The owner observes
@@ -1681,11 +1761,14 @@ records the recommended first slice, existing contract gaps, import/versioning,
 validation/Golden and report traceability. It is a discussion draft, not an
 implementation-ready specification or an approved Desay/NT51928BT map.
 
-Recommended direction for discussion: one public baseline and explicitly
-selected, versioned vendor variants that reuse existing profile/compiler,
+Recommended direction for discussion: one public baseline and versioned vendor
+variants that reuse existing profile/compiler,
 capability, session, validation, confirmation and report owners. Separate
 firmware facts from feature applicability, authoring sequence and visual
-grouping. Do not infer a vendor from BIN filenames or scatter new vendor
+grouping. The approved 950/951 Desay slice automatically selects its effective
+format from the validated marker; the earlier explicit-selection proposal
+does not override this decision. Other vendor selection remains scoped for
+discussion. Do not infer a vendor from BIN filenames or scatter new vendor
 conditionals through pages. Compare whether existing profile and capability
 contracts suffice before proposing any new abstraction.
 
@@ -1742,9 +1825,9 @@ not permission to auto-close issues or reopen immutable final records.
 
 ### DP Replace retirement — owner decision, 2026-09-09
 
-The owner has decided to remove DP Replace. Allocate implementation to
-`1.1.6`, after the affected family/shared-fact dependencies are disentangled;
-this replaces the former undecided retirement-or-reopening item in `1.2.5`.
+The owner has decided to remove DP Replace. The current sequence allocates
+implementation to `1.2.2`, after `1.2.1` disentangles the affected shared facts.
+This supersedes the preceding `1.1.6` allocation; retirement itself is settled.
 The current task records the decision and impact assessment only: no runtime,
 profile, policy, test or Golden removal has been performed. Earlier
 "owner-unallocated" wording describes the preceding decision state, not a
@@ -1789,11 +1872,13 @@ startup without removed registrations and disclose the intentional loss of the
 DP Replace command/capability separately from the no-regression target for
 surviving functionality.
 
-## `1.1.7`: independent Golden evidence completion
+## Work package: independent Golden evidence completion
 
 ### Deferred UI completion from `1.1.4` — 2026-09-10
 
-Owner allocation moves the remaining non-Memory-Layout work here:
+The 2026-09-10 allocation moved remaining non-Memory-Layout work to `1.1.7`.
+The current sequence distributes these retained boundaries across `1.2.4`
+(first-entry/options), `1.2.5` (Report) and `1.2.6` (visual/native acceptance):
 
 - First-entry IC selection: context lifetime, invalidation and Cancel/Back.
 - Report physical-section grouping and historical replay compatibility.
@@ -1806,7 +1891,7 @@ Owner allocation moves the remaining non-Memory-Layout work here:
 Keep the detailed boundaries in the linked `1.1.4` remaining-queue table and
 existing UI handoffs. This defers feature work, not any mandatory safety,
 Golden or packaging validation for an earlier actual release. The independent
-Golden evidence work below remains in this version alongside the deferred UI.
+Golden evidence work below is now allocated to `1.4.0`, separately from UI.
 
 Supply independent expected output for the retained input-only canonical
 cases, then re-review the fact-scoped aliases that depend on them. Reconcile
@@ -1821,9 +1906,9 @@ One topology, IC, workflow or fact-scoped alias never certifies another beyond
 its approved evidence scope. Missing external evidence blocks this milestone;
 it does not authorize generating expectations from the implementation.
 
-## `1.1.8`: IC and firmware-evidence intake
+## Work package: IC and firmware-evidence intake
 
-Allocate the retained new-IC/firmware-evidence/capability intake here, including
+Allocate the retained new-IC/firmware-evidence/capability intake to `1.4.1`, including
 NT51950 AB `1 IC`/`Cascade`, selector-free NT51951 AB, Perfect-family and
 `ldc-tp-only` evidence tracks. Inventory each track's existing implementation,
 actual evidence gap and profile-owned contract before choosing its bounded
@@ -1831,11 +1916,15 @@ change. These are evidence/intake tracks, not claims that existing functions
 are absent or that support is newly certified.
 
 Each affected route retains profile, independent Golden and firmware-owner
-gates; use `1.1.7` evidence only within its independently admitted scope.
+gates; use `1.4.0` evidence only within its independently admitted scope.
 Earlier firmware-affecting milestones still require their own applicable
 evidence and cannot wait until this version to execute mandatory Golden cases.
 
-## `1.2.0`: bounded Launcher hardening and development
+## Work package: bounded Launcher hardening and development
+
+Current allocation: first actual development in `1.2.0`; complete Launcher
+release in `2.0.0`, per the owner's 2026-09-14 decision. The data-refresh
+deadline below remains before `1.2.0`, not before `2.0.0`.
 
 Owner reminder, 2026-09-14: **before this release**, request/confirm the latest
 public NT51950 DP Perspective, Desay DP Perspective and Event Buffer ID/name
@@ -1850,12 +1939,15 @@ version begins real development: a comprehensive current defect, security and
 evidence inventory, followed by one owner-approved, reviewable remediation
 tranche. This is not merely an architecture or extraction review.
 
-Inventory remaining Launcher/Installer refinements for `1.2.1`-`1.2.3`.
+Inventory remaining Launcher/Installer refinements for `1.5.x` acceptance
+and the `2.0.0` full release.
 Preserve package identity, installed bytes, managed-version, verification,
 recovery and rollback authority. Production activation remains NO-GO until the
 separate security/evidence and activation gates below close.
 
-## `1.2.1`: publisher trust, signing and security closure
+## Work package: publisher trust, signing and security closure
+
+Current allocation: `1.5.0`.
 
 Address the publisher trust, signing and security/evidence gaps identified by
 the `1.2.0` inventory as bounded reviewed changes. Key custody, signing
@@ -1864,7 +1956,10 @@ owner approvals; no credential access, production deployment or trust-policy
 relaxation is implied. Produce the independent R3 evidence required before
 Catalog/Registry activation.
 
-## `1.2.2`: conditional Catalog and Registry activation
+## Work package: conditional Catalog and Registry activation
+
+Current allocation: `1.5.1` controlled preproduction validation, followed by
+the separately approved production activation at the `2.0.0` release boundary.
 
 Make the production GO/NO-GO decision only after the independent R3 security
 and evidence closure passes and the owner approves the actual activation.
@@ -1872,7 +1967,10 @@ The planned version is not itself a GO decision. Revalidate package identity,
 verification, recovery and rollback readiness; do not activate with missing
 evidence or replace protected publication with an agent-side path.
 
-## `1.2.3`: download minimization and Installer refinements
+## Work package: download minimization and Installer refinements
+
+Current allocation: `1.5.2`, followed by integrated candidate acceptance in
+`1.5.3`; neither is the full Launcher production release.
 
 Address delta-download minimization and the remaining bounded Launcher/
 Installer refinements from the `1.2.0` inventory. Preserve exact installed
@@ -1880,16 +1978,20 @@ bytes, package identity, verification, recovery and rollback semantics.
 Measure transfer savings and failure/recovery behavior before making an
 improvement claim; later-discovered unrelated work needs a new allocation.
 
-## `1.2.4`: General Merge authoring
+## Work package: General Merge authoring
+
+Current allocation: `1.3.0`.
 
 Complete the retained General Merge authoring scope through the existing
 typed mappings, profile compiler and shared planner/executor. Define the
 bounded authoring gaps and acceptance from the current implementation before
 coding; do not rebuild already-complete execution infrastructure.
 Preserve profile-owned access, overlap, range, validation and integrity rules.
-Saved/custom rule persistence is a separate `1.2.6` outcome.
+Saved/custom rule persistence is a separate `1.3.2` outcome.
 
-## `1.2.5`: General Replace authoring
+## Work package: General Replace authoring
+
+Current allocation: `1.3.1`.
 
 Complete retained General Replace authoring through the same typed operation
 model, immutable required reference and canonical access/postbuild policies.
@@ -1897,11 +1999,13 @@ UI/CLI cannot bypass TP, range, integrity or processor authority.
 
 DP Replace is no longer an undecided item in this version: the owner decided
 to retire it on 2026-09-09 and allocated the
-[retirement and compatibility checks to `1.1.6`](#dp-replace-retirement--owner-decision-2026-09-09).
+[retirement and compatibility checks now in `1.2.2`](#dp-replace-retirement--owner-decision-2026-09-09).
 General Replace continues to use the shared Replace engine; this does not
 implicitly reopen the retired DP Replace experience.
 
-## `1.2.6`: saved and customized rule authoring
+## Work package: saved and customized rule authoring
+
+Current allocation: `1.3.2`.
 
 After the General authoring contracts are settled, complete saved/customized
 rule authoring, persistence, import and validation through the existing typed
@@ -1910,7 +2014,9 @@ owner; arbitrary scripts and per-run executable paths remain forbidden.
 Rule/schema/migration details require their existing contract review before
 implementation.
 
-## `1.2.7`: CLI completion and deterministic UI automation
+## Work package: CLI completion and deterministic UI automation
+
+Current allocation: `1.2.3`, before the remaining broad UI acceptance.
 
 Complete the command-line surface after inventorying the already-shipped CLI
 commands and Desktop launch options. Extend existing owners rather than adding
@@ -1933,14 +2039,14 @@ semantics, arbitrary scripts, bypassing profile/range/integrity policy, or
 turning visual test fixtures into product inputs. Keep interactive computer
 automation only for behavior that genuinely requires native interaction.
 
-## `1.3.0`: IC rule authoring and Launcher extraction review
+## Work package: IC rule authoring and Launcher extraction review
 
 ### IC family / rule-authoring UI
 
-Owner decision on 2026-09-05: defer the IC family/rule-authoring UI from its
-tentative `1.1.9` slot to `1.3.0`. This schedules the maintenance feature, not
-an already-approved screen specification. General Merge/Replace and saved/custom
-user rules retain their separate `1.2.4`-`1.2.6` allocations.
+Historical owner decision on 2026-09-05 deferred this feature to `1.3.0`.
+The current sequence assigns the maintainer UI to `1.3.3`, after General
+Merge/Replace and saved/custom user rules in `1.3.0`-`1.3.2`. This schedules
+the maintenance feature, not an already-approved screen specification.
 
 The [SPEC](../../SPEC.md) describes a future maintainer-facing editor that
 could create, validate and export untrusted IC-definition bundle candidates:
@@ -1957,7 +2063,7 @@ The UI cannot mutate the live catalog, grant support or approve its own rules.
 
 ### Launcher and publication-system extraction review
 
-After `1.2.0` begins the first remediation tranche, review whether Launcher
+In `1.4.2`, after `1.2.0` begins the first remediation tranche, review whether Launcher
 and release/publication infrastructure can move to an independently versioned
 repository. This is not the first Launcher delivery, and extraction is not
 pre-approved.
@@ -1969,8 +2075,8 @@ Golden authority or product-specific support policy into the extracted owner.
 
 ## Explicit owner-unallocated queue
 
-All items inventoried for the 2026-09-05 owner resequencing now have the
-milestone allocations above. Execution prerequisites and external-evidence
+All retained items inventoried through the 2026-09-14 owner resequencing have
+allocations in the current sequence above. Execution prerequisites and external-evidence
 blockers stay with those milestones; a scheduled item is not automatically
 approved for implementation, support promotion, publication or activation.
 New findings require explicit allocation rather than silently expanding a
@@ -1980,10 +2086,10 @@ release.
 
 | Retained issue | Current allocation and reconciliation boundary |
 | --- | --- |
-| [#380 preload evidence/release](https://github.com/Dennis40816/nvt_fw_combiner/issues/380) | Current CI/release residuals belong to `1.1.3`; the Home startup residual belongs to `1.1.5`. Reconcile historical completion/provenance in `1.1.6`; do not restore its old five-minute CI target or re-release `0.10.5`. |
-| [#291 theme audit](https://github.com/Dennis40816/nvt_fw_combiner/issues/291) | Remaining existing-surface theme and native-accessibility audit belongs to `1.1.7`; preserve shipped `1.1.4` corrections and their evidence. |
-| [#2 early UI planning](https://github.com/Dennis40816/nvt_fw_combiner/issues/2) | Reconcile the early umbrella in `1.1.6`; route remaining existing-screen corrections to `1.1.7` and new authoring work to its explicit milestones, without redoing completed demo/shell work. |
-| [#1 early core implementation](https://github.com/Dennis40816/nvt_fw_combiner/issues/1) | Reconcile the early umbrella in `1.1.6`; an old open item is not evidence that the current compiler/planner/executor is missing. Retain any genuine unmet acceptance criteria. |
+| [#380 preload evidence/release](https://github.com/Dennis40816/nvt_fw_combiner/issues/380) | Preserve completed `1.1.3`/`1.1.5` CI/performance history; reconcile provenance in `1.2.7` and reassess worthwhile residual performance only in `1.2.8`. Do not restore its old five-minute CI target or re-release `0.10.5`. |
+| [#291 theme audit](https://github.com/Dennis40816/nvt_fw_combiner/issues/291) | Remaining existing-surface theme and native-accessibility audit belongs to `1.2.6`; preserve shipped `1.1.4` corrections and their evidence. |
+| [#2 early UI planning](https://github.com/Dennis40816/nvt_fw_combiner/issues/2) | Reconcile the early umbrella in `1.2.7`; remaining existing-screen work follows `1.1.7` and `1.2.4`-`1.2.6`, with new authoring in `1.3.x`. Do not redo completed demo/shell work. |
+| [#1 early core implementation](https://github.com/Dennis40816/nvt_fw_combiner/issues/1) | Reconcile the early umbrella in `1.2.7`; an old open item is not evidence that the current compiler/planner/executor is missing. Retain any genuine unmet acceptance criteria. |
 
 GitHub still owns live open/closed state. This table allocates work and does
 not close, relabel or rewrite the issues.
