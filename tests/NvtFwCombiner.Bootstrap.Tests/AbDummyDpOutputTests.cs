@@ -1,4 +1,5 @@
 using System.Buffers.Binary;
+using NvtFwCombiner.Application.Capabilities;
 using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Bootstrap.Tests;
@@ -13,8 +14,10 @@ public sealed class AbDummyDpOutputTests
     [InlineData("NT51932")]
     public void DummyOutputMatchesIndependentTwoBankMap(string icId)
     {
+        ArgumentNullException.ThrowIfNull(icId);
         var adapter = new BuiltInV2DynamicCompilationAdapter();
-        adapter.Compile(icId, ExperienceIds.AbMerge, null, [],
+        adapter.Compile(new CapabilityRouteIdentity(icId, ExperienceIds.AbMerge,
+            "selector-free", $"{icId.ToLowerInvariant()}-ab-merge-512k"), null, [],
             out CompiledComposition? composition, out _, out IReadOnlyList<CompositionIssue> issues);
         Assert.Empty(issues);
         Assert.NotNull(composition);

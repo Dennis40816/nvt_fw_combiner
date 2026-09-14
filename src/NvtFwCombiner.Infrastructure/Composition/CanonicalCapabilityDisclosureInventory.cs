@@ -31,7 +31,7 @@ internal static class CanonicalCapabilityDisclosureInventory
             [ExperienceIds.StandardMerge] = CreateProfileSummaries(
                 BuiltInV2RegistrationRegistry.StandardMergeByIc.Values),
             [ExperienceIds.AbMerge] = CreateProfileSummaries(
-                BuiltInV2RegistrationRegistry.AbMergeByIc.Values),
+                BuiltInV2RegistrationRegistry.AbMerge),
             [ExperienceIds.DpReplace] = CreateProfileSummaries(
                 BuiltInV2RegistrationRegistry.DpReplaceByIc.Value.Values),
         };

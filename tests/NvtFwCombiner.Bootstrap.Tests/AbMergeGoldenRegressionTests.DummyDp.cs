@@ -1,4 +1,5 @@
 using System.Buffers.Binary;
+using NvtFwCombiner.Application.Capabilities;
 using NvtFwCombiner.Application.ExternalTools;
 using NvtFwCombiner.Contracts.ExternalTools;
 using NvtFwCombiner.Domain.Composition;
@@ -18,7 +19,10 @@ public sealed partial class AbMergeGoldenRegressionTests
     public async Task DummyProcessorOutputMatchesCompleteIndependentMap(string icId, int count, int capacity, int bankOffset)
     {
         var adapter = new BuiltInV2DynamicCompilationAdapter();
-        adapter.Compile(icId, ExperienceIds.AbMerge, capacity, [],
+        var identity = new CapabilityRouteIdentity(icId, ExperienceIds.AbMerge,
+            count == 0 ? "selector-free" : count == 1 ? "1-ic" : "2-plus-ic",
+            icId == "NT51950" ? "nt51950-ab-merge-maps" : "nt51951-ab-merge-1024k");
+        adapter.Compile(identity, capacity, [],
             out CompiledComposition? composition, out _, out IReadOnlyList<CompositionIssue> issues,
             count == 0 ? null : new TopologySelection(count, "test", TopologySelectionSource.Requested, "test"));
         Assert.Empty(issues);

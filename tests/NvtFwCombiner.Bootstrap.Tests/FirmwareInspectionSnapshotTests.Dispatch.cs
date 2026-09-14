@@ -423,14 +423,20 @@ public sealed partial class FirmwareInspectionSnapshotTests
         }
 
         public void Compile(
-            string icId,
-            string workflowId,
+            CapabilityRouteIdentity identity,
             long? requestedMapCapacity,
             IReadOnlyCollection<string>? selectedInputSlotIds,
             out CompiledComposition? composition,
             out MetadataPlanDefinition? metadataPlan,
             out IReadOnlyList<CompositionIssue> issues,
             TopologySelection? requestedTopology = null)
+        {
+            throw new InvalidDataException("Synthetic malformed dynamic compilation.");
+        }
+
+        public void CompileDefinition(string icId, string workflowId, long? requestedMapCapacity,
+            IReadOnlyCollection<string>? selectedInputSlotIds, out CompiledComposition? composition,
+            out IReadOnlyList<CompositionIssue> issues)
         {
             throw new InvalidDataException("Synthetic malformed dynamic compilation.");
         }
@@ -448,8 +454,7 @@ public sealed partial class FirmwareInspectionSnapshotTests
         }
 
         public void Compile(
-            string icId,
-            string workflowId,
+            CapabilityRouteIdentity identity,
             long? requestedMapCapacity,
             IReadOnlyCollection<string>? selectedInputSlotIds,
             out CompiledComposition? composition,
@@ -458,14 +463,20 @@ public sealed partial class FirmwareInspectionSnapshotTests
             TopologySelection? requestedTopology = null)
         {
             inner.Compile(
-                icId,
-                workflowId,
+                identity,
                 requestedMapCapacity,
                 selectedInputSlotIds: [],
                 out composition,
                 out metadataPlan,
                 out issues,
                 requestedTopology);
+        }
+
+        public void CompileDefinition(string icId, string workflowId, long? requestedMapCapacity,
+            IReadOnlyCollection<string>? selectedInputSlotIds, out CompiledComposition? composition,
+            out IReadOnlyList<CompositionIssue> issues)
+        {
+            inner.CompileDefinition(icId, workflowId, requestedMapCapacity, [], out composition, out issues);
         }
     }
 
@@ -486,8 +497,7 @@ public sealed partial class FirmwareInspectionSnapshotTests
         }
 
         public void Compile(
-            string icId,
-            string workflowId,
+            CapabilityRouteIdentity identity,
             long? requestedMapCapacity,
             IReadOnlyCollection<string>? selectedInputSlotIds,
             out CompiledComposition? composition,
@@ -496,14 +506,25 @@ public sealed partial class FirmwareInspectionSnapshotTests
             TopologySelection? requestedTopology = null)
         {
             inner.Compile(
-                icId,
-                workflowId,
+                identity,
                 requestedMapCapacity,
                 selectedInputSlotIds,
                 out composition,
                 out metadataPlan,
                 out issues,
                 requestedTopology);
+            if (Interlocked.Increment(ref _rolloverCalls) == 1)
+            {
+                rollover();
+            }
+        }
+
+        public void CompileDefinition(string icId, string workflowId, long? requestedMapCapacity,
+            IReadOnlyCollection<string>? selectedInputSlotIds, out CompiledComposition? composition,
+            out IReadOnlyList<CompositionIssue> issues)
+        {
+            inner.CompileDefinition(icId, workflowId, requestedMapCapacity, selectedInputSlotIds,
+                out composition, out issues);
             if (Interlocked.Increment(ref _rolloverCalls) == 1)
             {
                 rollover();

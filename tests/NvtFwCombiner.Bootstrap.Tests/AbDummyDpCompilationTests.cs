@@ -61,7 +61,8 @@ public sealed class AbDummyDpCompilationTests
     public void RegisteredDynamicAdapterCompilesAbDummyWithoutDpMetadata()
     {
         var adapter = new BuiltInV2DynamicCompilationAdapter();
-        adapter.Compile("NT51929", ExperienceIds.AbMerge, null, [],
+        adapter.Compile(new CapabilityRouteIdentity("NT51929", ExperienceIds.AbMerge,
+            "selector-free", "nt51929-ab-merge-512k"), null, [],
             out CompiledComposition? composition, out MetadataPlanDefinition? metadata,
             out IReadOnlyList<CompositionIssue> issues);
         Assert.Empty(issues);
@@ -89,6 +90,7 @@ public sealed class AbDummyDpCompilationTests
     public void SelectionPreservesTpAndUsesSeedOnlyWhenSelected(
         string icId, string profileId, int capacity, int chipCount, bool dummy)
     {
+        ArgumentNullException.ThrowIfNull(icId);
         bool legacyProcessorFamily = icId is "NT51950" or "NT51951";
         string bundle = legacyProcessorFamily
             ? "nt51950-ab-merge"
@@ -135,7 +137,11 @@ public sealed class AbDummyDpCompilationTests
         }
 
         var adapter = new BuiltInV2DynamicCompilationAdapter();
-        adapter.Compile(icId, ExperienceIds.AbMerge, capacity,
+        string mapSet = icId == "NT51950" ? "nt51950-ab-merge-maps"
+            : icId == "NT51951" ? "nt51951-ab-merge-1024k" : $"{icId.ToLowerInvariant()}-ab-merge-512k";
+        var identity = new CapabilityRouteIdentity(icId, ExperienceIds.AbMerge,
+            chipCount == 0 ? "selector-free" : chipCount == 1 ? "1-ic" : "2-plus-ic", mapSet);
+        adapter.Compile(identity, capacity,
             dummy ? [] : ["dp-ab-input"],
             out CompiledComposition? routed, out MetadataPlanDefinition? metadata,
             out IReadOnlyList<CompositionIssue> issues, topology);
@@ -177,7 +183,10 @@ public sealed class AbDummyDpCompilationTests
     {
         var adapter = new BuiltInV2DynamicCompilationAdapter();
         var topology = new TopologySelection(chipCount, "test", TopologySelectionSource.Requested, "test");
-        adapter.Compile(icId, workflowId, capacity, [],
+        var identity = new CapabilityRouteIdentity(icId, workflowId,
+            workflowId == ExperienceIds.AbMerge ? chipCount == 1 ? "1-ic" : "2-plus-ic" : "selector-free",
+            workflowId == ExperienceIds.AbMerge ? "nt51950-ab-merge-maps" : "nt51929-standard-merge-256k");
+        adapter.Compile(identity, capacity, [],
             out CompiledComposition? composition, out MetadataPlanDefinition? metadata,
             out IReadOnlyList<CompositionIssue> issues, topology);
         Assert.Null(composition);
@@ -194,7 +203,8 @@ public sealed class AbDummyDpCompilationTests
     public void RegisteredDynamicAdapterNullSelectionKeepsDp()
     {
         var adapter = new BuiltInV2DynamicCompilationAdapter();
-        adapter.Compile("NT51929", ExperienceIds.AbMerge, null, null,
+        adapter.Compile(new CapabilityRouteIdentity("NT51929", ExperienceIds.AbMerge,
+            "selector-free", "nt51929-ab-merge-512k"), null, null,
             out CompiledComposition? composition, out MetadataPlanDefinition? metadata,
             out IReadOnlyList<CompositionIssue> issues);
         Assert.Empty(issues);

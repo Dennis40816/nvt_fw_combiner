@@ -161,12 +161,18 @@ internal static class CanonicalDynamicRouteInventory
         [System.Diagnostics.CodeAnalysis.NotNullWhen(true)]
         out BuiltInV2Registration? registration)
     {
+        if (identity.WorkflowId == ExperienceIds.AbMerge)
+        {
+            registration = BuiltInV2RegistrationRegistry.FindAbMergeRegistration(
+                identity.IcId, identity.MapVariant);
+            return registration is not null;
+        }
+
         IReadOnlyDictionary<string, BuiltInV2Registration>? registrations =
             identity.WorkflowId switch
             {
                 ExperienceIds.StandardMerge => BuiltInV2RegistrationRegistry.StandardMergeByIc,
                 ExperienceIds.DpReplace => BuiltInV2RegistrationRegistry.DpReplaceByIc.Value,
-                ExperienceIds.AbMerge => BuiltInV2RegistrationRegistry.AbMergeByIc,
                 _ => null,
             };
         registration = registrations?.GetValueOrDefault(identity.IcId);

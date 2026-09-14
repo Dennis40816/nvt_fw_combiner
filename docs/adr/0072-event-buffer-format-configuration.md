@@ -226,3 +226,27 @@ dirty-close behavior and full-reference geometry in both themes and languages.
 Runtime format compilation, selected-input re-evaluation, DP-size warnings and
 new-variant Golden/processor evidence remain subsequent integration work, not
 implied by the existence of this editor.
+
+## Exact dynamic route compilation
+
+The eighth unit retains the full published `CapabilityRouteIdentity` through
+the existing dynamic compilation adapter. Application resolves that identity
+against the current catalog; Infrastructure resolves the trusted AB registration
+by IC plus its declared map-set. An unknown map-set never falls back to another
+registration for the same IC. The IC/topology convenience path returns an
+explicit ambiguity issue when multiple formats match. Strict `BindCompilation`
+profile/version/hash/map validation is unchanged.
+
+The existing DP Replace prepublication contract probe remains a separately named
+adapter operation, restricted to that workflow and sharing the same private
+profile compilation core. It does not fabricate a published route or acquire AB
+execution authority. Static route inventory still treats its map axis as an
+individual map ID, not a map-set; its legacy unique-IC registration lookup fails
+closed on ambiguity. AB disclosure enumerates registrations, while legacy
+unique-IC compatibility readers are evaluated on demand so they cannot poison
+registry initialization when variants are later registered.
+
+This prerequisite changes no trust index, schema, registered route, profile
+operation or evidence status. Runtime format discovery, new route publication,
+configuration freshness and complete output evidence remain required; exact
+identity transport alone does not enable Desay execution.

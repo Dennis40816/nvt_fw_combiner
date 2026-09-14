@@ -165,9 +165,9 @@ internal sealed partial class CanonicalCapabilityCompilerAdapter :
     {
         resolvedCapability = null;
         string normalizedIcId = IcIdentifier.Normalize(icId);
-        ResolvedCapabilityRoute? publishedRoute = _catalog
-            .TryGetCurrentSnapshot()?.DynamicRoutes
-                .SingleOrDefault(route =>
+        ResolvedCapabilityRoute[] matches = [.. (_catalog
+            .TryGetCurrentSnapshot()?.DynamicRoutes ?? [])
+                .Where(route =>
                     StringComparer.Ordinal.Equals(
                         route.Identity.IcId,
                         normalizedIcId) &&
@@ -176,16 +176,35 @@ internal sealed partial class CanonicalCapabilityCompilerAdapter :
                         workflowId) &&
                     StringComparer.Ordinal.Equals(
                         route.Identity.IcCountVariant,
-                        icCountVariant));
-        if (publishedRoute is null)
+                        icCountVariant))];
+        if (matches.Length != 1)
         {
             composition = null;
-            issues = [];
+            issues = [new CompositionIssue(matches.Length == 0
+                ? CapabilityCatalogIssueCodes.RouteUnavailable
+                : CapabilityCatalogIssueCodes.RouteAmbiguous,
+                "Dynamic compilation requires one exact published route.")];
             return false;
         }
 
+        return TryCompilePublishedDynamicCapability(matches[0].Identity,
+            requestedMapCapacity, selectedInputSlotIds, out composition,
+            out resolvedCapability, out issues, requestedTopology);
+    }
+
+    internal bool TryCompilePublishedDynamicCapability(
+        CapabilityRouteIdentity identity,
+        long? requestedMapCapacity,
+        IReadOnlyCollection<string>? selectedInputSlotIds,
+        out CompiledComposition? composition,
+        out ResolvedCapability? resolvedCapability,
+        out IReadOnlyList<CompositionIssue> issues,
+        TopologySelection? requestedTopology = null)
+    {
+        ArgumentNullException.ThrowIfNull(identity);
+        resolvedCapability = null;
         CapabilityRouteResolutionResult resolution = _catalog.ResolveDynamicRoute(
-                publishedRoute.Identity.RouteId);
+                identity.RouteId);
         if (!resolution.Succeeded)
         {
             composition = null;
@@ -338,8 +357,7 @@ internal sealed partial class CanonicalCapabilityCompilerAdapter :
         TopologySelection? requestedTopology = null)
     {
         _dynamicCompiler.Compile(
-            route.Identity.IcId,
-            route.Identity.WorkflowId,
+            route.Identity,
             requestedMapCapacity,
             selectedInputSlotIds,
             out CompiledComposition? compiled,
@@ -368,13 +386,12 @@ internal sealed partial class CanonicalCapabilityCompilerAdapter :
         out CompiledComposition? composition,
         out IReadOnlyList<CompositionIssue> issues)
     {
-        _dynamicCompiler.Compile(
+        _dynamicCompiler.CompileDefinition(
             IcIdentifier.Normalize(icId),
             workflowId,
             requestedMapCapacity,
             selectedInputSlotIds,
             out composition,
-            out _,
             out issues);
     }
 

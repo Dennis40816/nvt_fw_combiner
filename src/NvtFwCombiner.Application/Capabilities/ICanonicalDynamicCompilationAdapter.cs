@@ -18,12 +18,20 @@ public interface ICanonicalDynamicCompilationAdapter
         out IReadOnlyList<CompositionIssue> issues);
 
     void Compile(
-        string icId,
-        string workflowId,
+        CapabilityRouteIdentity identity,
         long? requestedMapCapacity,
         IReadOnlyCollection<string>? selectedInputSlotIds,
         out CompiledComposition? composition,
         out MetadataPlanDefinition? metadataPlan,
         out IReadOnlyList<CompositionIssue> issues,
         TopologySelection? requestedTopology = null);
+
+    /// <summary>Probes the existing DP Replace definition before publication binding; never selects an AB route.</summary>
+    void CompileDefinition(
+        string icId,
+        string workflowId,
+        long? requestedMapCapacity,
+        IReadOnlyCollection<string>? selectedInputSlotIds,
+        out CompiledComposition? composition,
+        out IReadOnlyList<CompositionIssue> issues);
 }

@@ -29,22 +29,26 @@ internal sealed partial class CanonicalCapabilityCompilerAdapter
         capability = null;
         issues = [];
         string normalizedIcId = IcIdentifier.Normalize(icId);
-        ResolvedCapabilityRoute? route = _catalog.GetCurrentSnapshot().DynamicRoutes
-            .SingleOrDefault(candidate => candidate.Identity.IcId == normalizedIcId &&
+        ResolvedCapabilityRoute[] routes = [.. _catalog.GetCurrentSnapshot().DynamicRoutes
+            .Where(candidate => candidate.Identity.IcId == normalizedIcId &&
                 candidate.Identity.WorkflowId == ExperienceIds.AbMerge &&
                 (candidate.AbMergeTopologyChoice is { } choice
                     ? requestedTopology is not null &&
                         (choice.Selection.ChipCount == 1
                             ? requestedTopology.ChipCount == 1
                             : requestedTopology.ChipCount >= 2)
-                    : requestedTopology is null));
-        if (route is null)
+                    : requestedTopology is null))];
+        if (routes.Length != 1)
         {
+            issues = [new CompositionIssue(routes.Length == 0
+                ? CapabilityCatalogIssueCodes.RouteUnavailable
+                : CapabilityCatalogIssueCodes.RouteAmbiguous,
+                "AB compilation requires one exact published format route for the selected IC and topology.")];
             return false;
         }
 
-        _ = TryCompilePublishedDynamicCapability(normalizedIcId, ExperienceIds.AbMerge,
-            route.Identity.IcCountVariant, requestedMapCapacity: null, selectedInputSlotIds,
+        _ = TryCompilePublishedDynamicCapability(routes[0].Identity,
+            requestedMapCapacity: null, selectedInputSlotIds,
             out composition, out capability, out issues, requestedTopology);
         return composition is not null;
     }

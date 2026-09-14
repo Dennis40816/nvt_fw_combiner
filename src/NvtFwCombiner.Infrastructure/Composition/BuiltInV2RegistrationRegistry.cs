@@ -20,8 +20,22 @@ internal static class BuiltInV2RegistrationRegistry
     internal static ReadOnlyCollection<BuiltInV2Registration> AbMerge { get; } =
         CreateRegistrations(ExperienceIds.AbMerge);
 
-    internal static ReadOnlyDictionary<string, BuiltInV2Registration> AbMergeByIc { get; } =
+    // Legacy unique-IC readers fail closed on multiple map-sets, without poisoning registry initialization.
+    internal static ReadOnlyDictionary<string, BuiltInV2Registration> AbMergeByIc =>
         new(AbMerge.ToDictionary(static registration => registration.IcId, StringComparer.Ordinal));
+
+    internal static BuiltInV2Registration? FindAbMergeRegistration(string icId, string mapVariantSetId)
+    {
+        return AbMerge.SingleOrDefault(registration =>
+            StringComparer.Ordinal.Equals(registration.IcId, icId) &&
+            StringComparer.Ordinal.Equals(registration.SelectionGroupMapVariantSetId, mapVariantSetId));
+    }
+
+    internal static BuiltInV2Registration? FindUniqueAbMergeRegistration(string icId)
+    {
+        return AbMerge.SingleOrDefault(registration =>
+            StringComparer.Ordinal.Equals(registration.IcId, icId));
+    }
 
     internal static Lazy<ReadOnlyDictionary<string, BuiltInV2Registration>> DpReplaceByIc { get; } =
         new(() => new ReadOnlyDictionary<string, BuiltInV2Registration>(
