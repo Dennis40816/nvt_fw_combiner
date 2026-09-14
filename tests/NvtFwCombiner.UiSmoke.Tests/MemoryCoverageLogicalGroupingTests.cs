@@ -67,6 +67,9 @@ public sealed class MemoryCoverageLogicalGroupingTests
         Assert.Equal(2, CreateItem(baseline, differentContent).Ranges.Count);
         Assert.Equal(2, CreateItem(baseline, differentGroup).Ranges.Count);
         Assert.Equal(2, CreateItem(baseline, differentCtrlRamRole).Ranges.Count);
+        AssertIndependent(baseline, differentContent);
+        AssertIndependent(baseline, differentGroup);
+        AssertIndependent(baseline, differentCtrlRamRole);
     }
 
     /// <summary>One source file can cover disconnected ranges without linking their hover or keyboard lift.</summary>
