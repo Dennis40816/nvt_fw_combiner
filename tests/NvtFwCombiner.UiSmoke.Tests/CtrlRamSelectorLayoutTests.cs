@@ -217,6 +217,8 @@ public sealed class CtrlRamSelectorLayoutTests
                 Assert.Equal(cardBoundsBefore, cards.Select(card => BoundsInWindow(card, window)));
                 Assert.Equal(cardOutlinesBefore, cards.Select(card => card.GetVisualDescendants().OfType<Border>().Single(b => b.Classes.Contains("firmwareSlot")).BorderThickness));
                 Assert.Equal(Colors.Transparent, Assert.IsType<ISolidColorBrush>(header.BorderBrush, exactMatch: false).Color);
+                Assert.Equal(default, header.BorderThickness);
+                Assert.Equal(Colors.Transparent, Assert.IsType<ISolidColorBrush>(header.Background, exactMatch: false).Color);
                 Assert.True(header.Focus(NavigationMethod.Tab));
                 Render();
                 Assert.Equal(headerBefore, header.Bounds);
