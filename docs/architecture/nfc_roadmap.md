@@ -83,7 +83,10 @@ Keep ordinary Settings immediate-apply. The owner accepts a large
 within the existing modal, superseding a separate editor modal. Its fixed footer
 has Restore defaults, Discard changes and Save and apply; section switches keep
 the draft and dirty close/Escape asks before discarding. Detailed visual-reference
-geometry still needs review; this record does not implement the page.
+geometry still needs review; the
+[consolidated handoff and Config preview](../ui/v1.1.x-custom-options-layout-handoff.md#current-decision-checkpoint--config-preview-2026-09-14)
+record the accepted conclusions and generated illustration separately from
+production evidence. This record does not implement the page.
 
 Request any source material needed for this urgent correction now; the separate
 pre-`1.2.0` refresh reminder is not permission to defer a missing `1.1.6` fact.
