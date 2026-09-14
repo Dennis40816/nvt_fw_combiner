@@ -1626,6 +1626,17 @@ reviewed at their actual risk rather than silently waived for this release.
 
 ### Public baseline and vendor-specific UI/workflow discussion
 
+Owner intake, 2026-09-14: first review the selection-slot alignment preview;
+then return to the vendor workflow discussion. The
+[Desay NT51950/NT51951 intake](../ui/v1.1.x-custom-options-layout-handoff.md#desay-nt51950--nt51951-rule-intake--2026-09-14)
+records FWConfig-relative `0x0C` detection (estimated absolute `0x2200C`, values
+`0xA6`/`0x97`), an Info indication, user-editable detection values and a Settings
+rule inventory, an `8mib` capacity warning, Desay-only TP Backup start `0x4A000`,
+reusable public/vendor flow separation, and a separate pending public backup
+revision. Address/base, match width/operator and capacity unit remain explicit
+questions. This is recorded direction, not runtime changes or a new release
+allocation; existing saved-rule/IC-authoring allocations are unchanged.
+
 Owner intake, 2026-09-09: add this discussion to `1.1.x`; allocate it to
 `1.1.6` alongside semantic-consistency and minimality work. The owner observes
 that specialized features appear to have accumulated independently. This is
