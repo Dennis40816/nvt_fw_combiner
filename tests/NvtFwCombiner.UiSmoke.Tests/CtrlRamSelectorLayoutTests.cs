@@ -259,12 +259,13 @@ public sealed class CtrlRamSelectorLayoutTests
                 if (selected)
                 {
                     Grid content = baseCard.FindControl<Grid>("SlotLayout")!;
+                    StackPanel primaryFacts = baseCard.FindControl<StackPanel>("SlotFactsRegion")!;
                     ItemsControl additional = baseCard.FindControl<ItemsControl>("AdditionalFirmwareFactsHost")!;
                     Assert.True(additional.IsEffectivelyVisible);
                     Assert.Equal(shell.Replace.ReplaceBaseSlot.AdditionalFirmwareFacts.Count, additional.ItemCount);
                     Assert.InRange(Math.Abs(BoundsInWindow(disclosure, window).Left - BoundsInWindow(content, window).Left), 0, 0.5);
-                    Assert.InRange(Math.Abs(BoundsInWindow(additional, window).Left - BoundsInWindow(content, window).Left), 0, 0.5);
-                    Assert.InRange(Math.Abs(additional.Bounds.Width - content.Bounds.Width), 0, 0.5);
+                    Assert.InRange(Math.Abs(BoundsInWindow(additional, window).Left - BoundsInWindow(primaryFacts, window).Left), 0, 0.5);
+                    Assert.InRange(Math.Abs(additional.Bounds.Width - primaryFacts.Bounds.Width), 0, 0.5);
                     Assert.True(shell.Replace.ReplaceBaseSlot.IsAdditionalFirmwareFactsExpanded);
                 }
                 Rect resizedBase = BoundsInWindow(baseBorder, window);
