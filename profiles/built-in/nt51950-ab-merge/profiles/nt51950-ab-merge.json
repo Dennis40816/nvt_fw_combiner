@@ -1,7 +1,7 @@
 {
   "schemaVersion": "2.14",
   "profileId": "nt51950-ab-merge",
-  "profileVersion": "0.3.0",
+  "profileVersion": "0.4.0",
   "promotion": {
     "stage": "executable-candidate",
     "blockers": [
@@ -31,8 +31,8 @@
   },
   "mapBinding": {
     "familyId": "nt51950-ab-merge",
-    "familyVersion": "0.3.0",
-    "familyContentHash": "abf70ea6451134f74ca8a863436842f80c66f7980c49c8f9849e1257764889aa",
+    "familyVersion": "0.4.0",
+    "familyContentHash": "77d36ea009be728b0b96e702b535166f5732740a71ad5033b5d8ac731987bdee",
     "mapIds": [ "nt51950-ab-merge-512k", "nt51950-ab-merge-1024k" ],
     "requiredRegionIds": [
       "ab-image",
@@ -43,7 +43,7 @@
       "b-cmi-dp-version",
       "b-tp-code"
     ],
-    "requiredMetadataStructureIds": [],
+    "requiredMetadataStructureIds": ["tp-a-primary-firmware-config", "tp-b-primary-firmware-config"],
     "requiredCapabilityIds": []
   },
   "inputSlots": [
@@ -135,7 +135,22 @@
     { "viewId": "b-header-dlm-output", "spaceId": "output-image", "selector": { "kind": "map-region-slice", "regionId": "b-tp-code", "offset": 272, "length": 4 } },
     { "viewId": "b-header-crc-output", "spaceId": "output-image", "selector": { "kind": "map-region-slice", "regionId": "b-tp-code", "offset": 304, "length": 4 } }
   ],
-  "metadataBindings": [],
+  "metadataBindings": [
+    {
+      "bindingId": "tp-a-primary-firmware-config-inspection",
+      "spaceId": "tp-a-input",
+      "structureId": "tp-a-primary-firmware-config",
+      "fieldIds": ["tp-firmware-version", "tp-firmware-version-complement", "event-buffer-format-version"],
+      "purposes": ["inspection"]
+    },
+    {
+      "bindingId": "tp-b-primary-firmware-config-inspection",
+      "spaceId": "tp-b-input",
+      "structureId": "tp-b-primary-firmware-config",
+      "fieldIds": ["tp-firmware-version", "tp-firmware-version-complement", "event-buffer-format-version"],
+      "purposes": ["inspection"]
+    }
+  ],
   "regionAccessRules": [
     { "regionId": "ab-image", "access": "explicit-range", "reason": "Seed the exact topology-resolved DP AB container before TP overlays." },
     { "regionId": "a-bank", "access": "explicit-range", "reason": "Read the completed output A bank into the private Combiner transport image." },

@@ -11,7 +11,7 @@ namespace NvtFwCombiner.Bootstrap.Tests;
 public sealed class Nt51951AbMergeCandidateProfileTests
 {
     private const string BundleDirectory = "nt51950-ab-merge";
-    private const string BundleContentHash = "f60f5ef4f8c2a150c7dde47638d55aa35a84425146809263057939540ea0b6b9";
+    private const string BundleContentHash = "0331a75a62436f07ce0dc11e7c153e457634b6987f2d13148e6d80ecbff8ce70";
     private const int Capacity = 0x100000;
     private const int BankLength = 0x80000;
     private const int TpInputLength = 0x37000;
@@ -27,7 +27,7 @@ public sealed class Nt51951AbMergeCandidateProfileTests
         V2CompiledCompositionDetails details = Assert.IsType<V2CompiledCompositionDetails>(composition.V2Details);
         Assert.True(composition.IsV2AbFunctionOpenCandidate);
         Assert.True(StringComparer.Ordinal.Equals(
-            "68fd88c2ef1794d8b52943a40b6a574f641e9ca855b8ef98f09e2ebe94654d20",
+            "73c92a7e5552efc47bb88dab55e1360b76c9308f74882ec8ce5761683e10e072",
             composition.CompilationFingerprint), composition.CompilationFingerprint);
         Assert.Equal("nt51951-ab-merge-1024k", details.Provenance.ResolvedMap.ImageMap.MapId);
         Assert.Equal(CompiledProfilePromotionStage.ExecutableCandidate, details.Provenance.Promotion.Stage);
@@ -99,7 +99,7 @@ public sealed class Nt51951AbMergeCandidateProfileTests
         using var workspace = TempWorkspace.Create("nfc-nt51951-ab-candidate");
         V2CompositionPlanCompileResult compilation = AbMergeCandidateTestSupport.LoadSourceCandidateCatalog(workspace, BundleDirectory, BundleContentHash).Compile(
             "nt51951-ab-merge",
-            "0.3.0",
+            "0.4.0",
             "NT51951",
             ExperienceIds.AbMerge,
             Capacity,
@@ -169,7 +169,7 @@ public sealed class Nt51951AbMergeCandidateProfileTests
     {
         V2CompositionPlanCompileResult compilation = AbMergeCandidateTestSupport.LoadSourceCandidateCatalog(workspace, BundleDirectory, BundleContentHash).Compile(
             "nt51951-ab-merge",
-            "0.3.0",
+            "0.4.0",
             "NT51951",
             ExperienceIds.AbMerge,
             Capacity, null, [], selectedInputSlotIds: ["dp-ab-input"]);

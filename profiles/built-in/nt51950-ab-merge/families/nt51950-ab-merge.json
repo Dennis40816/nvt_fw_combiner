@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.2",
   "familyId": "nt51950-ab-merge",
-  "familyVersion": "0.3.0",
+  "familyVersion": "0.4.0",
   "members": [
     {
       "memberId": "NT51950",
@@ -400,7 +400,44 @@
       "evidenceRefs": [ "nt51951-ab-combiner-topology-regression-2026-07-15" ]
     }
   ],
-  "metadataSets": [],
+  "metadataSets": [
+    {
+      "metadataSetId": "ab-primary-firmware-config",
+      "structures": [
+        {
+          "structureId": "tp-a-primary-firmware-config",
+          "artifactBindingId": "tp-a-input",
+          "definitionReference": {
+            "familyId": "nt51917-nt51927-nt51928-canonical-container",
+            "familyVersion": "1.4.0",
+            "familyContentHash": "11a286731539bc79eb4bc956cd62d5d4e4bb8662874a8f65f7f0cde6f974c761",
+            "structureId": "firmware-config-general-parameters"
+          },
+          "locator": {
+            "kind": "absolute-range",
+            "range": { "addressSpaceId": "flash", "start": 139776, "length": 41 },
+            "allowedResultRegionId": "a-tp-code"
+          }
+        },
+        {
+          "structureId": "tp-b-primary-firmware-config",
+          "artifactBindingId": "tp-b-input",
+          "definitionReference": {
+            "familyId": "nt51917-nt51927-nt51928-canonical-container",
+            "familyVersion": "1.4.0",
+            "familyContentHash": "11a286731539bc79eb4bc956cd62d5d4e4bb8662874a8f65f7f0cde6f974c761",
+            "structureId": "firmware-config-general-parameters"
+          },
+          "locator": {
+            "kind": "absolute-range",
+            "range": { "addressSpaceId": "flash", "start": 139776, "length": 41 },
+            "allowedResultRegionId": "a-tp-code"
+          }
+        }
+      ],
+      "evidenceRefs": ["owner-decision-20260914-ab-primary-event-buffer"]
+    }
+  ],
   "imageMaps": [
     {
       "mapId": "nt51950-ab-merge-512k",
@@ -416,7 +453,7 @@
         "nt51950-ab-merge-512k-seed-anchors",
         "nt51950-ab-merge-shared-bank-placement"
       ],
-      "metadataSetIds": [],
+      "metadataSetIds": ["ab-primary-firmware-config"],
       "evidenceRefs": [ "nt51950-ab-combiner-audit-2026-07-14" ]
     },
     {
@@ -433,7 +470,7 @@
         "nt51950-ab-merge-1024k-seed-anchors",
         "nt51950-ab-merge-shared-bank-placement"
       ],
-      "metadataSetIds": [],
+      "metadataSetIds": ["ab-primary-firmware-config"],
       "evidenceRefs": [ "nt51950-ab-combiner-audit-2026-07-14" ]
     },
     {
@@ -447,7 +484,7 @@
       },
       "coveragePolicy": "complete-with-explicit-gaps",
       "regionSetIds": [ "nt51951-ab-merge-1024k-seed-and-placement" ],
-      "metadataSetIds": [],
+      "metadataSetIds": ["ab-primary-firmware-config"],
       "evidenceRefs": [ "nt51951-ab-combiner-topology-regression-2026-07-15" ]
     }
   ],

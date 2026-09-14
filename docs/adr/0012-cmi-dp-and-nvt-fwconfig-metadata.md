@@ -39,7 +39,7 @@ raw-adjacent-byte projection: examples such as `8001`, `8202`, and `0102`
 become `8000`, `8200`, and `0100` when the decoded minor nibble is zero. The
 underlying DP/TP/output firmware bytes are unchanged.
 
-FWConfig display, TP-driven CMI selection, postbuild category selection, and output naming read the NVT Backup exclusively. A flash-map primary FWConfig address is retained only for TP Overview and golden cross-check evidence. It is never a runtime source or prerequisite, and a primary/Backup mismatch cannot substitute or suppress the canonical Backup facts.
+FWConfig display, TP-driven CMI selection, postbuild category selection, and output naming read the NVT Backup exclusively. A flash-map primary FWConfig address is retained only for TP Overview and golden cross-check evidence. Except for the owner-approved NT51950/NT51951 AB Event Buffer observation and format-selection scope in [ADR 0072](0072-event-buffer-format-configuration.md#primary-ab-observation), it is never a runtime source or prerequisite. A primary/Backup mismatch cannot substitute or suppress the canonical Backup facts above.
 
 ## Consequences
 

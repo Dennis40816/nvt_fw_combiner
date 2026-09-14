@@ -1,0 +1,47 @@
+{
+  "schemaVersion": 2,
+  "taskId": "CONFIG-116-PRIMARY-04",
+  "capability": "Canonical primary FWConfig observations for NT51950/NT51951 AB inputs",
+  "integrationBase": "f9db4ef039be1c7a08e0b83f11133dbc1a0fe049",
+  "risk": "R3",
+  "kind": "behavior",
+  "state": "design-active",
+  "mutablePaths": [
+    "profiles/built-in/nt51950-ab-merge/families/nt51950-ab-merge.json",
+    "profiles/built-in/nt51950-ab-merge/profiles/nt51950-ab-merge.json",
+    "profiles/built-in/nt51950-ab-merge/profiles/nt51951-ab-merge.json",
+    "profiles/built-in/nt51950-ab-merge/profile-bundle.json",
+    "profiles/built-in/package-trust-index.json",
+    "docs/contracts/canonical-capability-policy-v1.json",
+    "src/NvtFwCombiner.Infrastructure/Capabilities/BuiltInCanonicalCapabilityPolicy.cs",
+    "tests/NvtFwCombiner.Infrastructure.Tests/Capabilities/BuiltInCanonicalCapabilityPolicyTests.cs",
+    "docs/adr/0012-cmi-dp-and-nvt-fwconfig-metadata.md",
+    "docs/adr/0072-event-buffer-format-configuration.md",
+    "tests/NvtFwCombiner.Bootstrap.Tests/AbMergePrimaryFirmwareConfigTests.cs",
+    "tests/NvtFwCombiner.Bootstrap.Tests/AbDummyDpCompilationTests.cs",
+    "tests/NvtFwCombiner.Bootstrap.Tests/AbMergeGoldenRegressionTests.cs",
+    "tests/NvtFwCombiner.Bootstrap.Tests/Nt51950AbMergeCandidateProfileTests.cs",
+    "tests/NvtFwCombiner.Bootstrap.Tests/Nt51951AbMergeCandidateProfileTests.cs",
+    "tests/NvtFwCombiner.Infrastructure.Tests/Bundles/AbBundleSourceHashTests.cs"
+  ],
+  "implementationOwner": "primary-agent",
+  "searchEvidence": [
+    "At eba84be1 CodeGraph-first and exact source inspection traced AbMergeAuthoringExperience.PrepareSession to CompiledAuthoringWorkflow.InspectExactBatch and FirmwareMetadataInspector; BuiltInV2Bundle.CreateMetadataPlan already projects canonical profile metadata bindings.",
+    "The NT51927 canonical provider owns firmware-config-general-parameters, its 41-byte definition, Event Buffer field at offset12 and firmware-version complement relation. Existing NT51950/NT51951 Standard bindings reuse that exact definition through BuiltInCanonicalMetadataDefinitionResolver.",
+    "Current AB family metadataSets and profile metadataBindings are empty. Add native TPA/B located wrappers only; a-tp-code bounds both native inputs, not relocated output B.",
+    "ADR0012 prohibits primary runtime metadata; owner-approved primary-only AB Event Buffer decision is a narrow ADR0072 supersession, not a rewrite of Backup version/count/naming behavior.",
+    "ProfileBundleEntryArrayHasher, trusted package index and canonical dynamic capability fingerprints already own source admission. Synchronize changed source identities without promoting publication/evidence status or changing expected Golden bytes."
+  ],
+  "semanticOwner": "Profiles own native primary locators and shared definition references; existing Domain decoder and Application FirmwareMetadataInspector retain observation and relation results",
+  "terminalContract": "Real compiled AB metadata plans expose separate TPA/B primary observations at flash [0x22200,0x22229); no Backup fallback; invalid complement retains decoded facts and false relation, never implies valid format. No format selection, Build gate, output geometry or processor change in this slice.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "/root/v116_config_architecture",
+    "outcome": "findings-incorporated",
+    "evidence": "2026-09-14 independent admission at eba84be1: reuse exact shared definition, inspection-only bindings on all AB maps, preserve Backup readers, distinguish Value from valid complement, keep strict profile/hash/map admission. Add narrow ADR0012 exception. Before editing policy loader, reviewer additionally admitted BuiltInCanonicalCapabilityPolicy.cs and its tests only for exact SHA/catalog-version pin sync, preserving every fail-closed check. Verify actual compiled metadata and unchanged byte contracts; runtime format selection and final R3 owner/Golden/write-range gates remain pending."
+  },
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": { "reviewer": null, "outcome": "pending", "evidence": "" }
+}

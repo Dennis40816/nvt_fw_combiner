@@ -84,3 +84,29 @@ are unchanged; 2 and 3 remain separately observed counts, not an equality claim.
 The future exact-2 Common selector must consume successful observed counts,
 not the Cascade picker's minimum. This extraction adds no primary Event Buffer
 locator, profile variant, geometry or Settings integration.
+
+## Primary AB observation
+
+The owner-approved NT51950/NT51951 partial-family AB Event Buffer decision is
+a narrow exception to ADR 0012's prohibition on primary runtime metadata.
+Both native TP inputs use primary FWConfig at `flash [0x22200,0x22229)` and
+the canonical Event Buffer field at relative `0x0C`. Each located binding
+references the same exact NT51927 provider definition; no decoder, field table
+or relation is copied. The `a-tp-code` allowed-result region bounds the native
+TP address range for both inputs, not the relocated output B range.
+
+The fourth unit adds only `inspection` bindings to the real AB compiled
+metadata plan. Primary and Backup may disagree: existing Backup-derived
+version/count/naming remain unchanged. A successful decode can retain a false
+firmware-version complement relation; `Value` is not sufficient valid-format
+evidence. Missing/truncated primary cannot borrow Backup or another slot.
+The format-selection owner must later consume those typed observations and
+relations before admitting a declared variant. Merely adding these metadata
+bindings does not make the current authoring slot status block Build.
+
+This unit preserves every operation, output range, processor permission and
+Golden expected byte. Updated profile/bundle/capability identities describe the
+new metadata authority, not a support/evidence promotion. Final R3 byte/write-range
+and owner evidence remain integration gates. Closed profile variants will use
+their own exact admitted routes and the existing strict profile/hash/map
+`BindCompilation`, not a post-compilation placement patch.

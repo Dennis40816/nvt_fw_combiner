@@ -1,9 +1,9 @@
 {
   "schemaVersion": "1.0",
   "bundleId": "nt51950-ab-merge",
-  "bundleVersion": "0.10.1-issue-190.1",
+  "bundleVersion": "1.1.6-primary-fwconfig.1",
   "hashAlgorithm": "sha256-rfc8785-entry-array-v1",
-  "contentHash": "f60f5ef4f8c2a150c7dde47638d55aa35a84425146809263057939540ea0b6b9",
+  "contentHash": "0331a75a62436f07ce0dc11e7c153e457634b6987f2d13148e6d80ecbff8ce70",
   "trustAnchorBindingId": "built-in-profile-bundle-v2",
   "entries": [
     {
@@ -25,21 +25,21 @@
       "kind": "firmware-family",
       "path": "families/nt51950-ab-merge.json",
       "schemaId": "https://example.invalid/nfc/schemas/firmware-family-v1.schema.json",
-      "contentHash": "abf70ea6451134f74ca8a863436842f80c66f7980c49c8f9849e1257764889aa"
+      "contentHash": "77d36ea009be728b0b96e702b535166f5732740a71ad5033b5d8ac731987bdee"
     },
     {
       "entryId": "nt51950-ab-merge-profile",
       "kind": "composition-profile",
       "path": "profiles/nt51950-ab-merge.json",
       "schemaId": "https://example.invalid/nfc/schemas/composition-profile-v2.schema.json",
-      "contentHash": "77965acbcb07a6e2ac49acbdf517823792f0b5c3f5eb96a931ead103026525b6"
+      "contentHash": "b37099ca4cddb2f81515d0249bab361d6db28915c5c1708fdedb0a6b82d09eab"
     },
     {
       "entryId": "nt51951-ab-merge-profile",
       "kind": "composition-profile",
       "path": "profiles/nt51951-ab-merge.json",
       "schemaId": "https://example.invalid/nfc/schemas/composition-profile-v2.schema.json",
-      "contentHash": "cb2c4ab2b8c225c78eb7bfea33820d2a4006c73b3a7f0493bd345fe19222a356"
+      "contentHash": "fb6994d3ea64766ddcd8e50a5a31eee47f0d2947d9dba0944cb518aee0236bf3"
     }
   ]
 }

@@ -19,7 +19,7 @@ public sealed class AbBundleSourceHashTests
         ProfileBundleDocument manifest = JsonSerializer.Deserialize<ProfileBundleDocument>(
             File.ReadAllText(Path.Combine(root, "profile-bundle.json")),
             JsonSerializerOptions.Web)!;
-        ProfileBundleEntryDocument[] actual = [.. manifest.Entries.Select(entry => entry.Kind != "composition-profile" ? entry : entry with
+        ProfileBundleEntryDocument[] actual = [.. manifest.Entries.Select(entry => entry.Kind is not ("composition-profile" or "firmware-family") ? entry : entry with
         {
             ContentHash = Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(Path.Combine(root, entry.Path)))).ToLowerInvariant(),
         })];

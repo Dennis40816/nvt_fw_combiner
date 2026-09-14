@@ -751,8 +751,8 @@
     {
       "bundleDirectory": "nt51950-ab-merge",
       "bundleSchemaVersion": "1.0",
-      "bundleVersion": "0.10.1-issue-190.1",
-      "contentHash": "f60f5ef4f8c2a150c7dde47638d55aa35a84425146809263057939540ea0b6b9",
+      "bundleVersion": "1.1.6-primary-fwconfig.1",
+      "contentHash": "0331a75a62436f07ce0dc11e7c153e457634b6987f2d13148e6d80ecbff8ce70",
       "materialization": {
         "compositionProfileSchemaFile": "composition-profile-v2.14.schema.json",
         "firmwareFamilySchemaFile": "firmware-family-v1.2-bank-instances.schema.json"
@@ -762,14 +762,14 @@
           "workflowId": "ab-merge",
           "icId": "NT51950",
           "profileId": "nt51950-ab-merge",
-          "profileVersion": "0.3.0",
+          "profileVersion": "0.4.0",
           "mapVariantSetId": "nt51950-ab-merge-maps"
         },
         {
           "workflowId": "ab-merge",
           "icId": "NT51951",
           "profileId": "nt51951-ab-merge",
-          "profileVersion": "0.3.0",
+          "profileVersion": "0.4.0",
           "mapVariantSetId": "nt51951-ab-merge-1024k"
         }
       ]

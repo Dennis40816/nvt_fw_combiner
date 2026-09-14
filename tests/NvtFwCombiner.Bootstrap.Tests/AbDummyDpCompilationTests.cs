@@ -94,7 +94,7 @@ public sealed class AbDummyDpCompilationTests
             ? "nt51950-ab-merge"
             : "nt51919-nt51929-nt51932-ab-merge";
         string hash = legacyProcessorFamily
-            ? "f60f5ef4f8c2a150c7dde47638d55aa35a84425146809263057939540ea0b6b9"
+            ? "0331a75a62436f07ce0dc11e7c153e457634b6987f2d13148e6d80ecbff8ce70"
             : "68527380d4e2de5994734b9357fc55963254e51382027d9f099699c9dc1a366f";
         using var workspace = TempWorkspace.Create("nfc-ab-dummy-compilation");
         TrustedProfileBundleCatalog catalog = AbMergeCandidateTestSupport.LoadSourceCandidateCatalog(
@@ -104,7 +104,7 @@ public sealed class AbDummyDpCompilationTests
             : new TopologySelection(chipCount, "test", TopologySelectionSource.Requested, "test");
 
         V2CompositionPlanCompileResult result = catalog.Compile(
-            profileId, legacyProcessorFamily ? "0.3.0" : "0.4.0",
+            profileId, "0.4.0",
             icId, ExperienceIds.AbMerge, capacity, topology, [],
             selectedInputSlotIds: dummy ? [] : ["dp-ab-input"]);
 
@@ -146,14 +146,20 @@ public sealed class AbDummyDpCompilationTests
         Assert.Equal(composition.V2Details.Provenance.ResolvedMap.ImageMap.MapId,
             routed.V2Details.Provenance.ResolvedMap.ImageMap.MapId);
         Assert.Equal(expectedSlots, routed.V2Details.InputContract.Slots.Select(static slot => slot.SlotId));
-        // Current AB declarations contain no DP metadata bindings. Only 929/932
-        // declare the five TP header read/copy/relocation bindings.
+        // AB metadata remains TP-owned in Normal and Dummy modes: 929/932
+        // have header bindings; 950/951 have independent primary observations.
         Assert.DoesNotContain(metadata.Entries, static entry => entry.SlotId == "dp-ab-input");
         if (icId is "NT51929" or "NT51932")
         {
             Assert.Equal(5, metadata.Entries.Count);
             Assert.Contains(metadata.Entries, static entry => entry.SlotId == "tp-a-input");
             Assert.Contains(metadata.Entries, static entry => entry.SlotId == "tp-b-input");
+        }
+        else if (icId is "NT51950" or "NT51951")
+        {
+            Assert.Equal(["tp-a-input", "tp-b-input"], metadata.Entries.Select(static entry => entry.SlotId));
+            Assert.All(metadata.Entries, static entry =>
+                Assert.Equal([MetadataReferencePurpose.Inspection], entry.Purposes));
         }
         else
         {
