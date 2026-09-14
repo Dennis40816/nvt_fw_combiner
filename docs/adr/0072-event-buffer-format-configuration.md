@@ -250,3 +250,33 @@ This prerequisite changes no trust index, schema, registered route, profile
 operation or evidence status. Runtime format discovery, new route publication,
 configuration freshness and complete output evidence remain required; exact
 identity transport alone does not enable Desay execution.
+
+## Primary discovery before executable map selection
+
+The ninth unit removes the circular requirement to compile an output map before
+observing the primary format needed to choose that map. The owning family
+resolves its declared A/B primary pair through the existing locator/decoder.
+It selects a deterministic observation context from the member's variants,
+not a caller-provided output map. Family construction requires the same
+canonical primary structures, locator-dependent regions, address space,
+prerequisite contexts and read envelope across those variants. Unrelated output
+geometry is not compared. The policy stores no mutable family/anchor cache.
+
+The returned context map IDs do not authorize output compilation. Missing or
+rejected structures retain their canonical outcomes; a decoded bad complement
+retains its false relation fact. The existing Application format admission
+blocks that condition. It obtains both primary resolutions from the captured
+input artifacts and evaluates topology against those same immutable bytes,
+then captures A/B resolutions together with format/configuration/family proof.
+NT51951 primary inspection does not require a Backup structure.
+
+For migration, the previous compiled-snapshot overload first enforces all of
+its family/member/structure/artifact provenance checks, then delegates to the
+same new admission entry. It does not retain a second classifier. Delete that
+overload and its snapshot-only selection property once runtime callers use
+the discovery entry and equivalent security tests have migrated. Existing
+snapshot-provenance negative cases remain effective until then.
+
+This unit does not publish the new executable routes or claim that the four
+real-host format integration cases pass. Runtime authoring, configuration
+reapplication/freshness and complete output evidence remain required.

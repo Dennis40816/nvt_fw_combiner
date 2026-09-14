@@ -1,0 +1,40 @@
+{
+  "schemaVersion": 2,
+  "taskId": "AB-116-PRIMARY-DISCOVERY-09",
+  "capability": "Resolve canonical AB primary metadata before selecting an executable format map",
+  "integrationBase": "f9db4ef039be1c7a08e0b83f11133dbc1a0fe049",
+  "risk": "R3",
+  "kind": "behavior",
+  "state": "design-active",
+  "mutablePaths": [
+    "src/NvtFwCombiner.Domain/Firmware/FirmwareAbFormatPolicy.cs",
+    "src/NvtFwCombiner.Domain/Firmware/FirmwareFamilyResolutionDefinition.AbPrimaryFirmwareConfig.cs",
+    "src/NvtFwCombiner.Domain/Firmware/FirmwareFamilyResolutionDefinition.MetadataReadEnvelope.cs",
+    "src/NvtFwCombiner.Application/Composition/AbMergeFormatAdmission.cs",
+    "tests/NvtFwCombiner.Bootstrap.Tests/AbMergeFormatAdmissionTests.cs",
+    "tests/NvtFwCombiner.Bootstrap.Tests/AbMergeFormatAdmissionTests.PrimaryDiscovery.cs",
+    "tests/NvtFwCombiner.ProfileContract.Tests/FirmwareFamilyResolutionNormalizerTests.AbFormatPolicy.cs",
+    "tests/NvtFwCombiner.ProfileContract.Tests/FirmwareFamilyResolutionNormalizerTests.PrimaryDiscovery.cs",
+    "docs/adr/0072-event-buffer-format-configuration.md"
+  ],
+  "implementationOwner": "primary-agent; independent reviewer read only",
+  "searchEvidence": [
+    "At 7d99eaf2 four real-host format tests prepare successfully but select legacy profiles instead of the configured Desay/Common exact-two variants; evidence ab-format-real-host-red.trx. They remain the full runtime integration gate.",
+    "FirmwareFamilyResolutionDefinition.ResolveMetadataStructureCore already resolves primary structures and immutable artifact provenance without compilation. FirmwareAbFormatPolicy currently validates each map but not cross-variant locator context equivalence.",
+    "AbMergeFormatAdmission currently requires a compiled MetadataInspectionSnapshot before selecting which map to compile. The existing decoder, topology admission and format classifier remain the sole owners.",
+    "Family-global structure IDs already have unique canonical declarations. Only locator-dependent regions, address space, prerequisite contexts and the existing read-envelope calculation need comparison; unrelated output geometry must not be compared.",
+    "Existing Bootstrap AbMergeFormatAdmissionTests cover compiled snapshot provenance, topology, configuration and classification. ProfileContract AbFormatPolicy fixtures provide real normalization and shared canonical metadata definitions."
+  ],
+  "semanticOwner": "Domain family owns canonical primary resolution and context invariants; existing Application AbMergeFormatAdmission owns configuration, format and terminal map choice",
+  "terminalContract": "Add family-owned primary pair discovery without caller-selected output map. Reuse the existing locator/decoder and retain relation=false as a decoded fact. New Application admission resolves the same immutable input pair used for topology and captures canonical A/B resolutions. Preserve the old snapshot overload only as a strict provenance-checked migration adapter to that single classifier, deleting it when runtime consumers and equivalent tests migrate. No new routes, schemas, firmware writes or evidence promotion. Runtime reapplication, exact compilation, accepted-run freshness and full bytes/Golden remain required by the active goal.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "/root/v116_config_architecture",
+    "outcome": "approved",
+    "evidence": "2026-09-14 independent exact-path unit09 admission at 7d99eaf2: same canonical primary structures and only dependent locator contexts must agree across a member's variants; existing read-envelope overload delegates to a single core; no mutable policy anchor or generic locator framework. Family chooses observation-only context, never caller map authority. Same captured artifacts feed primary and topology. Existing snapshot overload validates provenance then delegates, with explicit deletion milestone. Require new/no-compiled primary cases, invalid/complement/truncated/missing inputs, context drift versus unrelated geometry, reused policy isolation, new/old parity and existing read-envelope regressions. This is design admission only, not full runtime or firmware PASS."
+  },
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": { "reviewer": null, "outcome": "pending", "evidence": "" }
+}

@@ -11,7 +11,7 @@ using NvtFwCombiner.TestSupport;
 namespace NvtFwCombiner.Bootstrap.Tests;
 
 /// <summary>Real compiled primary metadata drives one Application format decision; not runtime publication.</summary>
-public sealed class AbMergeFormatAdmissionTests
+public sealed partial class AbMergeFormatAdmissionTests
 {
     private const string ConfigHash = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
 

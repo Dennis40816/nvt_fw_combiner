@@ -149,6 +149,17 @@ public sealed class FirmwareAbFormatPolicy
         {
             ValidateVariantTopologies(group, maps);
         }
+
+        foreach (IGrouping<string, FirmwareAbFormatVariant> member in _variants.GroupBy(
+                     static variant => variant.MemberId, StringComparer.Ordinal))
+        {
+            FirmwareImageMap anchor = maps[member.First().MapId];
+            foreach (FirmwareAbFormatVariant variant in member)
+            {
+                family.ValidateAbPrimaryContext(anchor, maps[variant.MapId], PrimaryBindings.TpAStructureId);
+                family.ValidateAbPrimaryContext(anchor, maps[variant.MapId], PrimaryBindings.TpBStructureId);
+            }
+        }
     }
 
     private static FirmwareAbFormatDefinition[] SnapshotFormats(
