@@ -1,8 +1,12 @@
+using System.Security.Cryptography;
 using NvtFwCombiner.Application.Capabilities;
 using NvtFwCombiner.Application.Configuration;
 using NvtFwCombiner.Application.Metadata;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Domain.Firmware;
+using NvtFwCombiner.Infrastructure.Configuration;
+using NvtFwCombiner.Infrastructure.Files;
+using NvtFwCombiner.TestSupport;
 
 namespace NvtFwCombiner.Bootstrap.Tests;
 
@@ -10,6 +14,46 @@ namespace NvtFwCombiner.Bootstrap.Tests;
 public sealed class AbMergeFormatAdmissionTests
 {
     private const string ConfigHash = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+
+    /// <summary>Real persisted configuration must be consumable immediately and after a fresh session reload.</summary>
+    [Theory]
+    [InlineData(false, 0x97, "desay", "nt51951-ab-desay-1024k")]
+    [InlineData(true, 0x97, "desay", "nt51951-ab-desay-1024k")]
+    [InlineData(false, 0x84, "common", "nt51951-ab-merge-1024k")]
+    [InlineData(true, 0x84, "common", "nt51951-ab-merge-1024k")]
+    public async Task PersistedConfigurationIsAcceptedByFormatAdmissionAsync(bool reload, byte raw, string format, string map)
+    {
+        MetadataPlanDefinition plan = Plan("NT51951", 0);
+        FirmwareFamilyResolutionDefinition family = plan.Entries[0].FamilyDefinition;
+        FirmwareAbFormatPolicy policy = Assert.IsType<FirmwareAbFormatPolicy>(family.AbFormatPolicy);
+        EventBufferFormatIdentity[] identities = [.. policy.Formats.Select(item =>
+            new EventBufferFormatIdentity(item.UniqueId, item.DisplayName))];
+        EventBufferFormatDraftEntry[] defaults = [.. policy.Formats.Select(item => new EventBufferFormatDraftEntry(
+            item.UniqueId, null, [.. item.DefaultRecognitionValues.Select(value => (int)value)]))];
+        using TempWorkspace workspace = TempWorkspace.Create();
+        string path = workspace.PathFor("config/event-buffer-format.v1.json");
+        using var savedSession = new EventBufferFormatConfigurationSession(policy.ScopeId, identities, defaults,
+            new EventBufferFormatConfigurationStorage(new LocalFileStore(), path));
+        EventBufferFormatConfigurationOperationResult saved = await savedSession.SaveAsync(
+            savedSession.CreateDefaultsDraft(), TestContext.Current.CancellationToken);
+        Assert.True(saved.Succeeded);
+        using var freshSession = new EventBufferFormatConfigurationSession(policy.ScopeId, identities, defaults,
+            new EventBufferFormatConfigurationStorage(new LocalFileStore(), path));
+        EventBufferFormatConfigurationOperationResult current = reload
+            ? await freshSession.ReloadAsync(TestContext.Current.CancellationToken)
+            : saved;
+        Assert.True(current.Succeeded);
+        byte[] tp = Tp(raw);
+        AbMergeFormatAdmissionResult result = AbMergeFormatAdmission.Assess(family, "NT51951", current.State,
+            Inspect(plan, tp, tp), null, Artifacts(tp, tp));
+
+        Assert.True(result.Succeeded, string.Join(" | ", result.Issues.Select(issue => issue.Code)));
+        AbMergeFormatSelection selected = Assert.IsType<AbMergeFormatSelection>(result.Selection);
+        Assert.Equal(format, selected.FormatId);
+        Assert.Equal(map, selected.MapId);
+        Assert.Equal(Convert.ToHexStringLower(SHA256.HashData(File.ReadAllBytes(path))), selected.ConfigurationSourceSha256);
+        Assert.Equal(saved.State.SourceSha256, current.State.SourceSha256);
+    }
 
     /// <summary>Raw Desay IDs may differ; Common exact-two requires both observed counts.</summary>
     [Theory]

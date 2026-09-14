@@ -39,7 +39,7 @@ internal sealed class EventBufferFormatConfigurationStorage(ILocalFileStore file
                 await stream.ReadExactlyAsync(snapshot, token).ConfigureAwait(false);
                 return snapshot;
             }, cancellationToken).ConfigureAwait(false);
-            return new(Decode(bytes), Convert.ToHexString(SHA256.HashData(bytes)));
+            return new(Decode(bytes), Convert.ToHexStringLower(SHA256.HashData(bytes)));
         }
         catch (LocalFileNotFoundException)
         {
@@ -64,7 +64,7 @@ internal sealed class EventBufferFormatConfigurationStorage(ILocalFileStore file
             throw new EventBufferFormatConfigurationFormatException(exception);
         }
 
-        string hash = Convert.ToHexString(SHA256.HashData(bytes));
+        string hash = Convert.ToHexStringLower(SHA256.HashData(bytes));
         await _files.WriteAsync(_path, bytes, cancellationToken).ConfigureAwait(false);
         // The adapter has committed. A newly cancelled token must not turn success into a failure.
         return hash;

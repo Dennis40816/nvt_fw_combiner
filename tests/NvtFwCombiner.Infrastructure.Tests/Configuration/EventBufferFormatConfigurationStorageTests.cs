@@ -26,10 +26,10 @@ public sealed class EventBufferFormatConfigurationStorageTests
         byte[] original = Encoding.UTF8.GetBytes(Valid + "\n  ");
         _ = workspace.Write("config/event-buffer-format.v1.json", original);
         EventBufferFormatStoredConfiguration loaded = (await storage.ReadAsync(TestContext.Current.CancellationToken))!;
-        Assert.Equal(Convert.ToHexString(SHA256.HashData(original)), loaded.SourceSha256);
+        Assert.Equal(Convert.ToHexStringLower(SHA256.HashData(original)), loaded.SourceSha256);
         Assert.Equal("0xa6", loaded.Document.Entries[0].RecognitionValues[0]);
         string savedHash = await storage.WriteAsync(loaded.Document, TestContext.Current.CancellationToken);
-        Assert.Equal(Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(path))), savedHash);
+        Assert.Equal(Convert.ToHexStringLower(SHA256.HashData(File.ReadAllBytes(path))), savedHash);
         Assert.NotEqual(loaded.SourceSha256, savedHash);
         Assert.Equal(savedHash, (await storage.ReadAsync(TestContext.Current.CancellationToken))!.SourceSha256);
         _ = Assert.Single(Directory.GetFiles(Path.GetDirectoryName(path)!));
