@@ -1644,6 +1644,12 @@ artifact/address/base remain explicit questions. Settings is the requested
 common entry point for candidate user-editable rules, with editability and
 safety boundaries to be assessed before implementation. The accompanying
 Profile/Family/IC Count review is an assessment, not an approved rewrite.
+Further owner direction: public inputs also show the actual marker value,
+e.g. `Common Format 0x84`; consider a compact Information summary with secondary
+fields in Details. Required FWConfig unreadability/invalidity blocks the scoped
+format-dependent workflow, separately from the non-blocking DP-size warning.
+The handoff records the existing topology-dependent AB gate and the need to
+verify shared 950/951 coverage; no new UI or runtime gate is implemented yet.
 This is recorded direction, not runtime changes or a new release
 allocation; existing saved-rule/IC-authoring allocations are unchanged.
 
