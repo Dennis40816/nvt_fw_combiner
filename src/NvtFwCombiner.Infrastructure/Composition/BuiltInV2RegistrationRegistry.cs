@@ -26,7 +26,13 @@ internal static class BuiltInV2RegistrationRegistry
 
     internal static BuiltInV2Registration? FindAbMergeRegistration(string icId, string mapVariantSetId)
     {
-        return AbMerge.SingleOrDefault(registration =>
+        return FindAbMergeRegistration(AbMerge, icId, mapVariantSetId);
+    }
+
+    internal static BuiltInV2Registration? FindAbMergeRegistration(
+        IEnumerable<BuiltInV2Registration> registrations, string icId, string mapVariantSetId)
+    {
+        return registrations.SingleOrDefault(registration =>
             StringComparer.Ordinal.Equals(registration.IcId, icId) &&
             StringComparer.Ordinal.Equals(registration.SelectionGroupMapVariantSetId, mapVariantSetId));
     }
@@ -156,6 +162,12 @@ internal sealed class BuiltInV2Registration
     internal FirmwareFamilyResolutionDefinition GetFirmwareFamily()
     {
         return _bundle.GetFirmwareFamily(ProfileId, ProfileVersion);
+    }
+
+    internal bool TryGetAbAuthoringDefinition(out CanonicalAbAuthoringDefinition? definition,
+        out IReadOnlyList<CompositionIssue> issues)
+    {
+        return _bundle.TryGetAbAuthoringDefinition(ProfileId, ProfileVersion, out definition, out issues);
     }
 
     internal bool HasReportClassificationMetadata =>

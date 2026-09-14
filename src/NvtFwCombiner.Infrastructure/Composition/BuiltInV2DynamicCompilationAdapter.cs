@@ -9,6 +9,40 @@ namespace NvtFwCombiner.Infrastructure.Composition;
 internal sealed class BuiltInV2DynamicCompilationAdapter :
     ICanonicalDynamicCompilationAdapter
 {
+    private readonly Func<string, string, BuiltInV2Registration?> _findAbDeclarationRegistration;
+
+    internal BuiltInV2DynamicCompilationAdapter(
+        Func<string, string, BuiltInV2Registration?>? findAbDeclarationRegistration = null)
+    {
+        _findAbDeclarationRegistration = findAbDeclarationRegistration ?? BuiltInV2RegistrationRegistry.FindAbMergeRegistration;
+    }
+
+    public bool TryGetAbAuthoringDefinition(CapabilityRouteIdentity identity,
+        out CanonicalAbAuthoringDefinition? definition, out IReadOnlyList<CompositionIssue> issues)
+    {
+        ArgumentNullException.ThrowIfNull(identity);
+        definition = null;
+        try
+        {
+            BuiltInV2Registration? registration = identity.WorkflowId == ExperienceIds.AbMerge
+                ? _findAbDeclarationRegistration(identity.IcId, identity.MapVariant)
+                : null;
+            if (registration is null)
+            {
+                issues = [new CompositionIssue(CapabilityCatalogIssueCodes.RouteUnavailable,
+                    "No exact trusted AB registration provides this authoring declaration.")];
+                return false;
+            }
+            return registration.TryGetAbAuthoringDefinition(out definition, out issues);
+        }
+        catch (Exception exception) when (exception is IOException or InvalidDataException or UnauthorizedAccessException)
+        {
+            issues = [new CompositionIssue("profile.v2.builtin-bundle-load-failed",
+                $"The trusted AB declaration could not be loaded for '{identity.RouteId}': {exception.Message}")];
+            return false;
+        }
+    }
+
     public IReadOnlyList<long> GetMapCapacities(
         string icId,
         string workflowId,

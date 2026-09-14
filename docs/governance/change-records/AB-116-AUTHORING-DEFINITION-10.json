@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 2,
+  "taskId": "AB-116-AUTHORING-DEFINITION-10",
+  "capability": "Expose exact trusted AB input declarations through the existing current-publication compiler boundary",
+  "integrationBase": "f9db4ef039be1c7a08e0b83f11133dbc1a0fe049",
+  "risk": "R2",
+  "kind": "behavior",
+  "state": "design-active",
+  "mutablePaths": [
+    "src/NvtFwCombiner.Application/Capabilities/CanonicalAbAuthoringDefinition.cs",
+    "src/NvtFwCombiner.Application/Capabilities/ICanonicalDynamicCompilationAdapter.cs",
+    "src/NvtFwCombiner.Application/Capabilities/CanonicalCapabilityCompiler.AbMerge.cs",
+    "src/NvtFwCombiner.Infrastructure/Composition/BuiltInV2Bundle.cs",
+    "src/NvtFwCombiner.Infrastructure/Composition/BuiltInV2RegistrationRegistry.cs",
+    "src/NvtFwCombiner.Infrastructure/Composition/BuiltInV2DynamicCompilationAdapter.cs",
+    "tests/NvtFwCombiner.Application.Tests/Capabilities/CanonicalCapabilityCatalogTests.SelectorPublication.cs",
+    "tests/NvtFwCombiner.Bootstrap.Tests/FirmwareInspectionSnapshotTests.Dispatch.cs",
+    "tests/NvtFwCombiner.Bootstrap.Tests/AbMergeAuthoringDefinitionTests.cs",
+    "tests/NvtFwCombiner.Application.Tests/Capabilities/CanonicalCapabilityCatalogTests.AbAuthoringDefinition.cs",
+    "docs/adr/0072-event-buffer-format-configuration.md"
+  ],
+  "implementationOwner": "primary-agent; independent review is read only",
+  "searchEvidence": [
+    "At 5880c69f family primary discovery and Application format admission no longer require compiled metadata, but AB authoring still compiles a route before it can project input slots. Four real-host format cases remain red in ab-format-real-host-red.trx.",
+    "BuiltInV2Bundle.GetProfile selects the trusted normalized profile. Its InputSlots and InputArtifactProfileSpace declarations own slot/space membership; MetadataBindings map primary StructureId to SpaceId, then the input space maps to SlotId. These identifiers are not interchangeable.",
+    "CompiledAuthoringInputBinding already represents declaration-time input membership with unresolved geometry. AuthoringCapabilityCatalogSnapshot.FromDynamicRoute already represents non-executable precompilation discovery.",
+    "CanonicalCapabilityCompilationContract pins profile/version/bundle and selection-group SemanticBindingIds. Existing compiler and exact map-set adapter own admission; no second compiler or UI-owned mapping is needed.",
+    "Explicit interface consumers are the built-in adapter plus UnusedDynamicCompiler and three dispatch test adapters. New tests will use normalized profile data through the same projection and forged adapters only for the compiler trust-boundary negatives."
+  ],
+  "semanticOwner": "Trusted Domain profile declarations own input membership; Infrastructure projects them; existing Application canonical compiler admits the complete declaration against the current route contract",
+  "terminalContract": "Add an AB-only adapter declaration query and a defensive immutable envelope carrying actual profile/version/bundle, canonical family, existing input bindings, primary binding references and group membership. No output geometry, fake metadata plan, compiled contract or execution flag. Missing policy explicitly means both primary refs absent; malformed present policy fails closed. Current catalog, exact identity and complete contract checks precede return. No publication, host, UI, topology or format-classifier changes in this prerequisite; real runtime orchestration and freshness remain required.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "/root/v116_config_architecture",
+    "outcome": "approved",
+    "evidence": "2026-09-14 independent exact-path R2 unit10 admission at 5880c69f: use current published AB identity then exact trusted registration; actual-source profile/version/bundle/member/group checks; defensive snapshots without silent duplicate repair; singleton and primary structure-space-slot joins must be unique, with refs from the same binding list. Nullable primary refs only for policy absence, never malformed-policy fallback. Test actual normalized-profile projection with differing slot/space IDs, wrong identity/hash/member/group, unknown map-set, legacy absence and malformed present policy. Four real-host red cases remain full runtime gates. This is design admission, not implementation or runtime PASS."
+  },
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": { "reviewer": null, "outcome": "pending", "evidence": "" }
+}

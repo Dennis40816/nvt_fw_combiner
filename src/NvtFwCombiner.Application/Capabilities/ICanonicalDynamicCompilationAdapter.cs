@@ -12,6 +12,12 @@ namespace NvtFwCombiner.Application.Capabilities;
 /// </summary>
 public interface ICanonicalDynamicCompilationAdapter
 {
+    /// <summary>Projects one exact AB registration without compiling a map; other workflows are unavailable.</summary>
+    bool TryGetAbAuthoringDefinition(
+        CapabilityRouteIdentity identity,
+        out CanonicalAbAuthoringDefinition? definition,
+        out IReadOnlyList<CompositionIssue> issues);
+
     IReadOnlyList<long> GetMapCapacities(
         string icId,
         string workflowId,

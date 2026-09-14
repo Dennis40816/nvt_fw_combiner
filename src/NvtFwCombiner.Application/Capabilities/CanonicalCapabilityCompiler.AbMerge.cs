@@ -6,6 +6,45 @@ namespace NvtFwCombiner.Application.Capabilities;
 
 internal sealed partial class CanonicalCapabilityCompilerAdapter
 {
+    internal bool TryGetAbAuthoringDefinition(
+        ResolvedCapabilityRoute requestedRoute,
+        [NotNullWhen(true)] out CanonicalAbAuthoringDefinition? definition,
+        out IReadOnlyList<CompositionIssue> issues)
+    {
+        ArgumentNullException.ThrowIfNull(requestedRoute);
+        definition = null;
+        CapabilityRouteResolutionResult current = _catalog.ResolveDynamicRoute(requestedRoute.Identity.RouteId);
+        if (!current.Succeeded || requestedRoute.Identity.WorkflowId != ExperienceIds.AbMerge ||
+            current.Route!.ResolutionToken != requestedRoute.ResolutionToken ||
+            current.Route.CapabilityFingerprint != requestedRoute.CapabilityFingerprint)
+        {
+            issues = [new CompositionIssue(current.Issue?.Code ?? CapabilityCatalogIssueCodes.RouteUnavailable,
+                current.Issue?.Message ?? "AB declarations require the current published route, not a stale or foreign route.")];
+            return false;
+        }
+
+        if (!_dynamicCompiler.TryGetAbAuthoringDefinition(current.Route.Identity,
+                out CanonicalAbAuthoringDefinition? candidate, out issues) || candidate is null || issues.Count != 0)
+        {
+            if (issues.Count == 0)
+            {
+                issues = [new CompositionIssue(CapabilityCatalogIssueCodes.RouteUnavailable, "The trusted AB declaration is unavailable.")];
+            }
+            return false;
+        }
+
+        if (!candidate.Matches(current.Route) ||
+            _catalog.TryGetCurrentSnapshot()?.ResolutionToken != current.Route.ResolutionToken)
+        {
+            issues = [new CompositionIssue(CapabilityCatalogIssueCodes.RouteUnavailable,
+                "The AB declaration does not match the current profile, family, input membership or publication.")];
+            return false;
+        }
+
+        definition = candidate;
+        return true;
+    }
+
     internal bool TryCompileAbMerge(
         string icId,
         TopologySelection? requestedTopology,

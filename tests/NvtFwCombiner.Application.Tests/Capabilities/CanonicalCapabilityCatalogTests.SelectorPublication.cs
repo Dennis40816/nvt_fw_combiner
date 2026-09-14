@@ -445,6 +445,14 @@ public sealed partial class CanonicalCapabilityCatalogTests
 
     private sealed class UnusedDynamicCompiler : ICanonicalDynamicCompilationAdapter
     {
+        public bool TryGetAbAuthoringDefinition(CapabilityRouteIdentity identity,
+            out CanonicalAbAuthoringDefinition? definition, out IReadOnlyList<CompositionIssue> issues)
+        {
+            definition = null;
+            issues = [];
+            return false;
+        }
+
         internal CapabilityRouteIdentity? CapturedIdentity { get; private set; }
 
         public IReadOnlyList<long> GetMapCapacities(

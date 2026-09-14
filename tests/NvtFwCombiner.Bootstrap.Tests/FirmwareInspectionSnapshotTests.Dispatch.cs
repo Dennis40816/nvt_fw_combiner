@@ -413,6 +413,12 @@ public sealed partial class FirmwareInspectionSnapshotTests
     private sealed class InvalidDataDynamicCompilationAdapter :
         ICanonicalDynamicCompilationAdapter
     {
+        public bool TryGetAbAuthoringDefinition(CapabilityRouteIdentity identity,
+            out CanonicalAbAuthoringDefinition? definition, out IReadOnlyList<CompositionIssue> issues)
+        {
+            throw new InvalidDataException("Synthetic malformed authoring declaration.");
+        }
+
         public IReadOnlyList<long> GetMapCapacities(
             string icId,
             string workflowId,
@@ -445,6 +451,12 @@ public sealed partial class FirmwareInspectionSnapshotTests
     private sealed class IncompleteDynamicCompilationAdapter(
         ICanonicalDynamicCompilationAdapter inner) : ICanonicalDynamicCompilationAdapter
     {
+        public bool TryGetAbAuthoringDefinition(CapabilityRouteIdentity identity,
+            out CanonicalAbAuthoringDefinition? definition, out IReadOnlyList<CompositionIssue> issues)
+        {
+            return inner.TryGetAbAuthoringDefinition(identity, out definition, out issues);
+        }
+
         public IReadOnlyList<long> GetMapCapacities(
             string icId,
             string workflowId,
@@ -484,6 +496,14 @@ public sealed partial class FirmwareInspectionSnapshotTests
         ICanonicalDynamicCompilationAdapter inner,
         Action rollover) : ICanonicalDynamicCompilationAdapter
     {
+        public bool TryGetAbAuthoringDefinition(CapabilityRouteIdentity identity,
+            out CanonicalAbAuthoringDefinition? definition, out IReadOnlyList<CompositionIssue> issues)
+        {
+            bool result = inner.TryGetAbAuthoringDefinition(identity, out definition, out issues);
+            rollover();
+            return result;
+        }
+
         private int _rolloverCalls;
 
         internal int RolloverCalls => _rolloverCalls;

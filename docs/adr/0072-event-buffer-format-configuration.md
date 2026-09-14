@@ -280,3 +280,25 @@ snapshot-provenance negative cases remain effective until then.
 This unit does not publish the new executable routes or claim that the four
 real-host format integration cases pass. Runtime authoring, configuration
 reapplication/freshness and complete output evidence remain required.
+
+## Input declarations before output compilation
+
+The tenth unit queries the existing trusted profile through the canonical
+compiler's current-publication boundary. Its immutable AB declaration carries
+actual profile/version/bundle identity, the canonical family, unresolved input
+bindings and declared selection-group membership. It carries no output geometry,
+compiled plan or execution admission. The compiler rejects stale publication,
+foreign identity, wrong source identity or incompatible member/group facts.
+
+Primary input references follow the profile's structure-to-space-to-slot join;
+slot IDs and address-space IDs need not be equal. Both references belong to the
+same immutable binding list. Only explicit absence of a family format policy
+permits absent primary references. Missing or ambiguous bindings under a present
+policy are invalid, not a reason to fall back to legacy behavior. Shape checks
+alone do not establish trust: the bundle verifies the actual profile's family
+binding, and the compiler verifies the declaration against the current route.
+
+The existing non-executable dynamic-route discovery snapshot can consume these
+declarations before any output map is selected. This is a prerequisite for the
+shared AB runtime, not its completion; configuration reapplication, exact format
+route selection and complete output evidence remain required.

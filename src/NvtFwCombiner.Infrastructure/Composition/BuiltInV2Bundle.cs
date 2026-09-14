@@ -1,4 +1,6 @@
 using System.Collections.Frozen;
+using NvtFwCombiner.Application.Authoring;
+using NvtFwCombiner.Application.Capabilities;
 using NvtFwCombiner.Application.Metadata;
 using NvtFwCombiner.Contracts.Firmware;
 using NvtFwCombiner.Domain.Composition;
@@ -56,6 +58,60 @@ internal sealed class BuiltInV2Bundle
     internal string RelativeRoot { get; }
 
     internal string ContentHash { get; }
+
+    internal bool TryGetAbAuthoringDefinition(string profileId, string profileVersion,
+        out CanonicalAbAuthoringDefinition? definition, out IReadOnlyList<CompositionIssue> issues)
+    {
+        definition = null;
+        try
+        {
+            TrustedCompositionProfileCatalogEntry entry = GetProfile(profileId);
+            if (entry.Profile.ProfileVersion != profileVersion)
+            {
+                throw new InvalidDataException("AB authoring declaration version differs from the registered profile.");
+            }
+            definition = ProjectAbAuthoringDefinition(entry.Profile, entry.Family.Family, ContentHash);
+            issues = [];
+            return true;
+        }
+        catch (Exception exception) when (IsBundleLoadFailure(exception) || exception is ArgumentException or InvalidOperationException)
+        {
+            issues = [CreateBundleLoadIssue(exception)];
+            return false;
+        }
+    }
+
+    internal static CanonicalAbAuthoringDefinition ProjectAbAuthoringDefinition(
+        V2CompositionProfileDefinition profile, FirmwareFamilyResolutionDefinition family, string bundleHash)
+    {
+        if (profile.Header.ExperienceId != ExperienceIds.AbMerge ||
+            profile.Header.FamilyId != family.FamilyId || profile.Header.FamilyVersion != family.FamilyVersion ||
+            profile.Header.FamilyContentHash != family.FamilyContentHash)
+        {
+            throw new InvalidDataException("AB authoring requires the profile's exact declared family identity.");
+        }
+        InputArtifactProfileSpace[] spaces = [.. profile.Spaces.OfType<InputArtifactProfileSpace>()];
+        if (spaces.Any(static space => space.InstancePolicy != CompiledInputInstancePolicy.Singleton) ||
+            spaces.Length != profile.InputSlots.Count)
+        {
+            throw new InvalidDataException("AB authoring requires one singleton input space per slot.");
+        }
+        CompiledAuthoringInputBinding[] bindings = [.. profile.InputSlots.Select(slot =>
+            new CompiledAuthoringInputBinding(slot.SlotId,
+                spaces.Single(space => space.SlotId == slot.SlotId).SpaceId, slot.Role))];
+        FirmwareAbPrimaryBindings? primary = family.AbFormatPolicy?.PrimaryBindings;
+        return new CanonicalAbAuthoringDefinition(profile.ProfileId, profile.ProfileVersion, bundleHash, family, bindings,
+            primary is null ? null : ResolvePrimary(primary.TpAStructureId),
+            primary is null ? null : ResolvePrimary(primary.TpBStructureId),
+            profile.InputSelectionGroups.SelectMany(static group => group.MemberSlotIds));
+
+        CompiledAuthoringInputBinding ResolvePrimary(string structureId)
+        {
+            CompositionProfileMetadataBinding metadata = profile.MetadataBindings.Single(binding => binding.StructureId == structureId);
+            InputArtifactProfileSpace space = spaces.Single(input => input.SpaceId == metadata.SpaceId);
+            return bindings.Single(binding => binding.SlotId == space.SlotId);
+        }
+    }
 
     /// <summary>Projects the exact trusted identity used by a General Merge Saved Rule v2 parent.</summary>
     internal SavedRuleV2ParentBinding GetGeneralMergeSavedRuleParentBinding(
