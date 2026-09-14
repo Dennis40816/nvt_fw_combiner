@@ -8,6 +8,13 @@ namespace NvtFwCombiner.Presentation.Avalonia.Views;
 /// <summary>Draws memory-overlay connectors from screen geometry; owns no interaction or firmware state.</summary>
 internal static class MemoryCoverageConnectorVisuals
 {
+    internal static Canvas LocalConnector(double anchor, double height)
+    {
+        var canvas = new Canvas { Name = "MemoryLocalConnector", Height = height, ClipToBounds = false };
+        canvas.Children.Add(Connector(new Point(anchor, 0), new Point(anchor, height), "NfcTextStrongBrush"));
+        return canvas;
+    }
+
     internal static Line Connector(Point start, Point end, string strokeResource = "NfcBorderMutedBrush")
     {
         var line = new Line { StartPoint = start, EndPoint = end, StrokeThickness = 1, IsHitTestVisible = false };

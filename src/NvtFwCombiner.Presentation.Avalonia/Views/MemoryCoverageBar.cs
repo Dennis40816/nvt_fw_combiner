@@ -36,7 +36,7 @@ public sealed partial class MemoryCoverageBar : UserControl
     /// <summary>Shows compact labels in the existing rail, used by explicit focus views.</summary>
     public static readonly StyledProperty<bool> ShowLabelsProperty =
         AvaloniaProperty.Register<MemoryCoverageBar, bool>(nameof(ShowLabels));
-    /// <summary>Shows compact hover targets below the rail instead of persistent detail cards.</summary>
+    /// <summary>Shows compact upper-right hover targets instead of persistent detail cards.</summary>
     public static readonly StyledProperty<bool> ShowLegendProperty =
         AvaloniaProperty.Register<MemoryCoverageBar, bool>(nameof(ShowLegend));
     /// <summary>Optional exact positions whose contiguous lanes open through the shared local-view overlay.</summary>
@@ -84,9 +84,9 @@ public sealed partial class MemoryCoverageBar : UserControl
         Height = 34;
         ClipToBounds = false;
         _track.Child = _main;
-        _footer.Children.Add(_positions);
-        _footer.Children.Add(_legend);
-        Content = new Panel { Children = { new StackPanel { Children = { _track, _footer } }, _localPopup, _cardPopup } };
+        InitializeOverview();
+        _footer.Child = _positions;
+        Content = new Panel { Children = { new StackPanel { Children = { _header, _addresses, _track, _footer } }, _localPopup, _cardPopup } };
         _ = _track.Bind(Border.BackgroundProperty, new DynamicResourceExtension("NfcMemoryTrackBrush"));
         _track.PointerMoved += (_, e) =>
         {
@@ -160,7 +160,7 @@ public sealed partial class MemoryCoverageBar : UserControl
         ArgumentNullException.ThrowIfNull(change);
         base.OnPropertyChanged(change);
         if (!_attached) { return; }
-        if (change.Property == ItemsSourceProperty || change.Property == LabelsProperty || change.Property == IsPlainProperty || change.Property == ShowLabelsProperty || change.Property == ShowLegendProperty || change.Property == FocusPositionsProperty)
+        if (change.Property == ItemsSourceProperty || change.Property == LabelsProperty || change.Property == IsPlainProperty || change.Property == ShowLabelsProperty || change.Property == ShowLegendProperty || change.Property == FocusPositionsProperty || change.Property == HeadingProperty || change.Property == CapacityLabelProperty || change.Property == StartAddressProperty || change.Property == EndAddressProperty)
         {
             Subscribe();
             Rebuild();
@@ -277,8 +277,6 @@ public sealed partial class MemoryCoverageBar : UserControl
         _positions.IsVisible = positions.Length > 0;
         Height = ShowLegend ? double.NaN : positions.Length > 0 ? 62 : 34;
         double total = positions.Sum(static position => position.BarWidth);
-        double occupied = positions.Reverse().SkipWhile(static position => position.Lane is null).Sum(static position => position.BarWidth);
-        _footer.OccupiedFraction = total > 0 ? occupied / total : 0;
         _positions.ItemContainerTheme = (ControlTheme)this.FindResource("ProportionalContentPresenterTheme")!;
         _positions.ItemsPanel = new FuncTemplate<Panel?>(() => new ProportionalStackPanel());
         _positions.ItemTemplate = new FuncDataTemplate<MemoryFocusPositionViewModel>((position, scope) =>
@@ -514,12 +512,11 @@ public sealed partial class MemoryCoverageBar : UserControl
         content.Children.Add(endpoints);
         _local.Child = content;
         double left = target.TranslatePoint(default, anchor)?.X ?? 0;
-        Canvas connector = MemoryCoverageConnectorVisuals.CardConnector(left + (target.Bounds.Width / 2), 18, _localAbove, [], "MemoryLocal");
+        Canvas connector = MemoryCoverageConnectorVisuals.LocalConnector(left + (target.Bounds.Width / 2), 10);
         StackPanel frame = PopupFrame(_local, connector, _localAbove);
         _localPopup.Child = frame;
         _localPopup.Width = Bounds.Width;
-        // A wrapped legend remains readable and hoverable, outside the popup transit surface.
-        _localPopup.PlacementTarget = ShowLegend && !_localAbove ? _footer : anchor;
+        _localPopup.PlacementTarget = anchor;
         _localPopup.Placement = _localAbove ? PlacementMode.TopEdgeAlignedLeft : PlacementMode.BottomEdgeAlignedLeft;
         _localPopup.IsOpen = true;
         Reveal(_local, _localPopup, _localAbove);
@@ -540,9 +537,9 @@ public sealed partial class MemoryCoverageBar : UserControl
         Point origin = target.TranslatePoint(default, top) ?? default;
         double below = top.Bounds.Height - origin.Y - target.Bounds.Height;
         // Prefer the clear upper side when it can hold an expanded summary card.
-        // Otherwise place direct cards below the whole footer, not over legend targets.
+        // Otherwise place direct cards below the endpoint row, not over the rail.
         bool above = preferredAbove ?? ((ShowLegend && origin.Y >= 300) || origin.Y > below);
-        Control placementTarget = preferredAbove is null && ShowLegend ? above ? _track : _footer : target;
+        Control placementTarget = preferredAbove is null && ShowLegend ? above ? this : _footer : target;
         Point placementOrigin = placementTarget.TranslatePoint(default, top) ?? default;
         below = top.Bounds.Height - placementOrigin.Y - placementTarget.Bounds.Height;
         // Keep the approved header above the strip, with the card above that header.

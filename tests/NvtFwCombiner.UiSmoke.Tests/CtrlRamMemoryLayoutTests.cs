@@ -128,6 +128,15 @@ public sealed class CtrlRamMemoryLayoutTests
                 control => control.Name == "CtrlRamFocusLane" && control.IsEffectivelyVisible);
             Assert.DoesNotContain(window.GetVisualDescendants().OfType<Border>(),
                 control => control.Name is "MemoryLocalView" or "MemorySliceCard");
+            Control overview = window.GetVisualDescendants().OfType<Control>().Single(control => control.Name == "CtrlRamFlashOverview");
+            Control mainRail = overview.GetVisualDescendants().OfType<Control>().Single(control => control.Name == "MemoryMainRail");
+            double railTop = mainRail.TranslatePoint(default, window)!.Value.Y;
+            foreach (string address in new[] { "0x00000", shell.Replace.CtrlRamEndAddress })
+            {
+                TextBlock label = overview.GetVisualDescendants().OfType<TextBlock>().Single(block => block.Text == address);
+                Assert.True(label.TranslatePoint(default, window)!.Value.Y + label.Bounds.Height <= railTop,
+                    "Overview addresses belong above the main rail.");
+            }
             Capture(window, "nt51927-hover60-collapsed.png");
             Control position = Positions(window)[0];
             window.MouseMove(Center(position, window), RawInputModifiers.None);
@@ -359,8 +368,10 @@ public sealed class CtrlRamMemoryLayoutTests
                         WrapPanel legend = Assert.Single(rail.GetVisualDescendants().OfType<WrapPanel>(), panel => panel.Name == "MemoryLegend");
                         Assert.True(legend.IsEffectivelyVisible);
                         Point legendOrigin = legend.TranslatePoint(default, rail)!.Value;
-                        Assert.True(legendOrigin.Y >= 34);
-                        Assert.True(legendOrigin.Y + legend.Bounds.Height <= rail.Bounds.Height + 0.5);
+                        Point mainOrigin = main.TranslatePoint(default, rail)!.Value;
+                        Assert.True(legendOrigin.Y >= 0);
+                        Assert.True(legendOrigin.Y + legend.Bounds.Height <= mainOrigin.Y + 0.5);
+                        Assert.InRange(Math.Abs(legendOrigin.X + legend.Bounds.Width - rail.Bounds.Width), 0, 0.5);
                     }
                     foreach (FirmwareSlotCard card in window.GetVisualDescendants().OfType<FirmwareSlotCard>()
                         .Where(card => card.IsEffectivelyVisible))

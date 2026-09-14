@@ -13,8 +13,42 @@ namespace NvtFwCombiner.Presentation.Avalonia.Views;
 
 public sealed partial class MemoryCoverageBar
 {
-    private readonly MemoryFooterPanel _footer = new();
-    private readonly WrapPanel _legend = new() { Name = "MemoryLegend", Margin = new Thickness(0, 6, 0, 0) };
+    /// <summary>Optional localized heading; supplied by the existing workflow presentation.</summary>
+    public static readonly StyledProperty<string?> HeadingProperty = AvaloniaProperty.Register<MemoryCoverageBar, string?>(nameof(Heading));
+    /// <summary>Already formatted capacity displayed beside the heading.</summary>
+    public static readonly StyledProperty<string?> CapacityLabelProperty = AvaloniaProperty.Register<MemoryCoverageBar, string?>(nameof(CapacityLabel));
+    /// <summary>Already formatted outer start address; this control does not derive ranges.</summary>
+    public static readonly StyledProperty<string?> StartAddressProperty = AvaloniaProperty.Register<MemoryCoverageBar, string?>(nameof(StartAddress));
+    /// <summary>Already formatted outer end address.</summary>
+    public static readonly StyledProperty<string?> EndAddressProperty = AvaloniaProperty.Register<MemoryCoverageBar, string?>(nameof(EndAddress));
+
+    /// <inheritdoc cref="HeadingProperty" />
+    public string? Heading { get => GetValue(HeadingProperty); set => SetValue(HeadingProperty, value); }
+    /// <inheritdoc cref="CapacityLabelProperty" />
+    public string? CapacityLabel { get => GetValue(CapacityLabelProperty); set => SetValue(CapacityLabelProperty, value); }
+    /// <inheritdoc cref="StartAddressProperty" />
+    public string? StartAddress { get => GetValue(StartAddressProperty); set => SetValue(StartAddressProperty, value); }
+    /// <inheritdoc cref="EndAddressProperty" />
+    public string? EndAddress { get => GetValue(EndAddressProperty); set => SetValue(EndAddressProperty, value); }
+
+    private readonly Border _footer = new();
+    private readonly MemoryHeaderPanel _header = new() { Name = "MemoryOverviewHeader", Margin = new Thickness(0, 0, 0, 8) };
+    private readonly WrapPanel _legend = new() { Name = "MemoryLegend" };
+    private readonly TextBlock _heading = new() { Name = "MemoryOverviewHeading", Classes = { "bodyEmphasisText" }, FontSize = 14, TextWrapping = TextWrapping.Wrap };
+    private readonly TextBlock _capacity = new() { Classes = { "captionText" }, VerticalAlignment = VerticalAlignment.Center };
+    private readonly Grid _addresses = new() { Name = "MemoryOverviewAddresses", ColumnDefinitions = new ColumnDefinitions("*,Auto"), Margin = new Thickness(0, 0, 0, 4) };
+    private readonly TextBlock _startAddress = new() { Classes = { "monoText", "captionText" } };
+    private readonly TextBlock _endAddress = new() { Classes = { "monoText", "captionText" } };
+
+    private void InitializeOverview()
+    {
+        _header.Children.Add(new WrapPanel { Name = "MemoryOverviewTitle", Children = { _heading, _capacity } });
+        _heading.Margin = new Thickness(0, 0, 8, 0);
+        _header.Children.Add(_legend);
+        _addresses.Children.Add(_startAddress);
+        Grid.SetColumn(_endAddress, 1);
+        _addresses.Children.Add(_endAddress);
+    }
 
     // Text is not a byte range: preserve its natural width and clamp it to the rail.
     // The stroke and hover endpoint retain their original proportional geometry.
@@ -77,6 +111,14 @@ public sealed partial class MemoryCoverageBar
     private void BuildLegend()
     {
         _legend.Children.Clear();
+        _heading.Text = Heading;
+        _heading.IsVisible = !string.IsNullOrEmpty(Heading);
+        _capacity.Text = CapacityLabel;
+        _capacity.IsVisible = !string.IsNullOrEmpty(CapacityLabel);
+        _header.IsVisible = ShowLegend;
+        _startAddress.Text = StartAddress;
+        _endAddress.Text = EndAddress;
+        _addresses.IsVisible = !string.IsNullOrEmpty(StartAddress) || !string.IsNullOrEmpty(EndAddress);
         _legend.IsVisible = ShowLegend;
         if (!ShowLegend) { return; }
         var markerTemplate = (IDataTemplate)this.FindResource("MemoryCoverageCompactMarkerTemplate")!;
@@ -94,7 +136,7 @@ public sealed partial class MemoryCoverageBar
                 FocusAdorner = null,
                 Background = Brushes.Transparent,
                 Padding = new Thickness(4, 3),
-                Margin = new Thickness(0, 0, 8, 2),
+                Margin = new Thickness(4, 0, 0, 2),
             };
             var row = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6 };
             row.Children.Add(new ContentControl { Content = slice, ContentTemplate = markerTemplate, VerticalAlignment = VerticalAlignment.Center });
@@ -105,38 +147,39 @@ public sealed partial class MemoryCoverageBar
             WireSlice(target, slice, local: false);
             _legend.Children.Add(target);
         }
-        _footer.InvalidateMeasure();
+        _header.InvalidateMeasure();
     }
 
-    // The endpoint row always measures at the full address scale. Only the legend wraps
-    // when the unused tail cannot fit it; endpoint positions are never compressed.
-    private sealed class MemoryFooterPanel : Panel
+    // Only the header wraps. The address rail and endpoint geometry keep the full width.
+    private sealed class MemoryHeaderPanel : Panel
     {
-        internal double OccupiedFraction { get; set; }
-
         protected override Size MeasureOverride(Size availableSize)
         {
             foreach (Control child in Children) { child.Measure(availableSize); }
-            Size positions = Children[0].DesiredSize;
+            Size title = Children[0].DesiredSize;
             Size legend = Children[1].DesiredSize;
-            bool shared = Fits(availableSize.Width, legend.Width);
-            return new Size(Math.Max(positions.Width, legend.Width), shared ? Math.Max(positions.Height, legend.Height) : positions.Height + legend.Height);
+            bool shared = Fits(availableSize.Width);
+            double gap = title.Width > 0 && legend.Width > 0 ? 16 : 0;
+            return new Size(shared ? title.Width + gap + legend.Width : Math.Max(title.Width, legend.Width),
+                shared ? Math.Max(title.Height, legend.Height) : title.Height + 6 + legend.Height);
         }
 
         protected override Size ArrangeOverride(Size finalSize)
         {
-            Size positions = Children[0].DesiredSize;
+            Size title = Children[0].DesiredSize;
             Size legend = Children[1].DesiredSize;
-            bool shared = Fits(finalSize.Width, legend.Width);
-            Children[0].Arrange(new Rect(0, 0, finalSize.Width, positions.Height));
+            bool shared = Fits(finalSize.Width);
+            Children[0].Arrange(new Rect(0, shared ? Math.Max(0, (legend.Height - title.Height) / 2) : 0, title.Width, title.Height));
             double left = Math.Max(0, finalSize.Width - legend.Width);
-            Children[1].Arrange(new Rect(left, shared ? 0 : positions.Height, Math.Min(finalSize.Width, legend.Width), legend.Height));
+            Children[1].Arrange(new Rect(left, shared ? Math.Max(0, (title.Height - legend.Height) / 2) : title.Height + 6, Math.Min(finalSize.Width, legend.Width), legend.Height));
             return finalSize;
         }
 
-        private bool Fits(double width, double legendWidth)
+        private bool Fits(double width)
         {
-            return legendWidth == 0 || OccupiedFraction == 0 || legendWidth + 16 <= width * (1 - OccupiedFraction);
+            double title = Children[0].DesiredSize.Width;
+            double legend = Children[1].DesiredSize.Width;
+            return title == 0 || legend == 0 || title + 16 + legend <= width;
         }
     }
 }

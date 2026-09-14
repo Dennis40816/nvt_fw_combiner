@@ -338,15 +338,10 @@
 
       <StackPanel IsVisible="{Binding HasCtrlRamFocusLayout}" Spacing="24">
         <StackPanel x:Name="CtrlRamFlashOverview" Spacing="{DynamicResource NfcSpace12}">
-          <Grid ColumnDefinitions="*,Auto">
-            <TextBlock Classes="bodyEmphasisText" FontSize="{DynamicResource NfcFontSize14}" FontWeight="SemiBold" Text="{Binding Text.MemoryFlashOverviewLabel}" />
-            <TextBlock Grid.Column="1" Classes="captionText" Text="{Binding CtrlRamCapacityLabel}" />
-          </Grid>
-          <views:MemoryCoverageBar ItemsSource="{Binding CtrlRamOverview}" FocusPositions="{Binding CtrlRamPositions}" Labels="{Binding Text}" ShowLabels="True" ShowLegend="True" ReducedMotion="{ReflectionBinding $parent[Window].DataContext.IsReducedMotionEnabled}" />
-          <Grid ColumnDefinitions="*,Auto">
-            <TextBlock Classes="monoText captionText" Text="0x00000" />
-            <TextBlock Grid.Column="1" Classes="monoText captionText" Text="{Binding CtrlRamEndAddress}" />
-          </Grid>
+          <views:MemoryCoverageBar ItemsSource="{Binding CtrlRamOverview}" FocusPositions="{Binding CtrlRamPositions}"
+              Heading="{Binding Text.MemoryFlashOverviewLabel}" CapacityLabel="{Binding CtrlRamCapacityLabel}"
+              StartAddress="0x00000" EndAddress="{Binding CtrlRamEndAddress}"
+              Labels="{Binding Text}" ShowLabels="True" ShowLegend="True" ReducedMotion="{ReflectionBinding $parent[Window].DataContext.IsReducedMotionEnabled}" />
         </StackPanel>
         <TextBlock Classes="captionText" FontSize="{DynamicResource NfcFontSize11}" Text="{Binding CtrlRamSharedInputHint}" TextWrapping="Wrap" />
       </StackPanel>
