@@ -29,7 +29,7 @@ public sealed class BuiltInCanonicalCapabilityPolicyTests
                     "nt51929-standard-merge-256k"));
 
         Assert.Equal("canonical-capability-policy", policy.CatalogId);
-        Assert.Equal("1.15.0", policy.CatalogVersion);
+        Assert.Equal("1.16.1", policy.CatalogVersion);
         Assert.Equal(
             BuiltInCanonicalCapabilityPolicy.ExpectedSha256,
             policy.SourceSha256);
@@ -104,14 +104,22 @@ public sealed class BuiltInCanonicalCapabilityPolicyTests
     {
         CanonicalCapabilityPolicySnapshot policy =
             BuiltInCanonicalCapabilityPolicy.Load();
+        string[] formatCandidateIds =
+        [
+            "route-7-nt51950-8-ab-merge-4-1-ic-21-nt51950-ab-desay-maps",
+            "route-7-nt51950-8-ab-merge-9-2-plus-ic-21-nt51950-ab-desay-maps",
+            "route-7-nt51951-8-ab-merge-13-selector-free-21-nt51951-ab-desay-maps",
+            "route-7-nt51950-8-ab-merge-4-2-ic-26-nt51950-ab-common-2ic-maps",
+        ];
         CanonicalCapabilityPolicyRoute[] formalRoutes =
         [
-            .. policy.Routes.Where(static route =>
+            .. policy.Routes.Where(route =>
                 route.Identity.WorkflowId is
-                    "standard-merge" or "ab-merge" or "ctrlram-replace"),
+                    "standard-merge" or "ab-merge" or "ctrlram-replace" &&
+                !formatCandidateIds.Contains(route.Identity.RouteId, StringComparer.Ordinal)),
         ];
 
-        Assert.Equal(89, policy.Routes.Count);
+        Assert.Equal(93, policy.Routes.Count);
         Assert.Equal(64, formalRoutes.Length);
         Assert.All(formalRoutes, static route =>
         {
@@ -123,7 +131,7 @@ public sealed class BuiltInCanonicalCapabilityPolicyTests
                 route.Publication.Value);
         });
         Assert.Equal(
-            75,
+            79,
             policy.Routes.Count(static route =>
                 route.Authoring.Value == CapabilityAuthoringAvailability.Available));
         Assert.Equal(
@@ -142,10 +150,20 @@ public sealed class BuiltInCanonicalCapabilityPolicyTests
             policy.Routes,
             static route =>
                 route.Publication.Value == CapabilityPublicationStatus.TestOnly);
-        Assert.DoesNotContain(
-            policy.Routes,
-            static route =>
-                route.Publication.Value == CapabilityPublicationStatus.Candidate);
+        CanonicalCapabilityPolicyRoute[] candidates =
+        [
+            .. policy.Routes.Where(static route =>
+                route.Publication.Value == CapabilityPublicationStatus.Candidate),
+        ];
+        Assert.Equal(
+            formatCandidateIds.Order(StringComparer.Ordinal),
+            candidates.Select(static route => route.Identity.RouteId).Order(StringComparer.Ordinal));
+        Assert.All(candidates, static route =>
+        {
+            Assert.Equal(CapabilityAuthoringAvailability.Available, route.Authoring.Value);
+            Assert.Equal(CapabilityEvidenceStatus.ContractOnly, route.Evidence.Value);
+            Assert.Equal("ab-merge", route.Identity.WorkflowId);
+        });
         Assert.Equal(
             26,
             policy.Routes.Count(static route =>
@@ -159,7 +177,7 @@ public sealed class BuiltInCanonicalCapabilityPolicyTests
             policy.Routes.Count(static route =>
                 route.Evidence.Value == CapabilityEvidenceStatus.SyntheticOracle));
         Assert.Equal(
-            52,
+            56,
             policy.Routes.Count(static route =>
                 route.Evidence.Value == CapabilityEvidenceStatus.ContractOnly));
         string[] tpRoutesAwaitingIndependentExpectedOutput =
