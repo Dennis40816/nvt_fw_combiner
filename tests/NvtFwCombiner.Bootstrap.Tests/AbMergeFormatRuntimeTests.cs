@@ -555,10 +555,11 @@ public sealed class AbMergeFormatRuntimeTests
                 acquisitions++;
                 throw new InvalidOperationException("Rejected format must not acquire a processor.");
             }, static _ => false, new FakeClock([]), (AbMergeAuthoringExperience)host.AbMergeAuthoring);
-            InvalidOperationException failure = await Assert.ThrowsAsync<InvalidOperationException>(() => executor.ExecuteAsync(
+            CompositionPreRunRefusalException failure = await Assert.ThrowsAsync<CompositionPreRunRefusalException>(() => executor.ExecuteAsync(
                 new AcceptedCompositionExecutionRequest(prepared.Snapshot!, new Dictionary<string, string> { ["tp-a-input"] = a, ["tp-b-input"] = b },
                     build: true, outputPath: output), new CompositionRunProgressFeed(), TestContext.Current.CancellationToken).AsTask());
             Assert.Contains(expectedCode, failure.Message, StringComparison.Ordinal);
+            Assert.Contains(failure.Issues, issue => issue.Code == expectedCode);
             Assert.Equal(0, acquisitions);
             Assert.Equal(0, destinations.Calls);
         }

@@ -99,7 +99,7 @@ internal sealed class CompositionExecutionExperience : ICompositionExecution
             await _abMergeAuthoring.AssessAcceptedFormatAsync(request.AcceptedSession, cancellationToken).ConfigureAwait(false);
         if (formatIssues.Count != 0)
         {
-            throw new InvalidOperationException(string.Join(" | ", formatIssues.Select(static issue => $"{issue.Code}: {issue.Message}")));
+            throw new CompositionPreRunRefusalException(formatIssues);
         }
         IExternalProcessor? externalProcessor = null;
         RuntimeDependencyReadinessRequest runtimeRequest =

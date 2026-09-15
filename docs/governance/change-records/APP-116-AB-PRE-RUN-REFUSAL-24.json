@@ -1,0 +1,39 @@
+{
+  "schemaVersion": 2,
+  "taskId": "APP-116-AB-PRE-RUN-REFUSAL-24",
+  "capability": "Preserve typed AB pre-run refusal without fabricating a Run Report",
+  "integrationBase": "4a5510bcbea58ed9308742d315858e44709fcf1c",
+  "risk": "R2",
+  "kind": "behavior",
+  "state": "design-active",
+  "mutablePaths": [
+    "src/NvtFwCombiner.Application/Composition/CompositionPreRunRefusalException.cs",
+    "src/NvtFwCombiner.Application/Composition/CompositionExecutionExperience.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/CompositionRunPresentationViewModel.cs",
+    "tests/NvtFwCombiner.Application.Tests/Composition/CompositionPreRunRefusalExceptionTests.cs",
+    "tests/NvtFwCombiner.Bootstrap.Tests/AbMergeFormatRuntimeTests.cs",
+    "tests/NvtFwCombiner.UiSmoke.Tests/ShellViewModelTests.BuildCompleted.cs"
+  ],
+  "implementationOwner": "/root",
+  "searchEvidence": [
+    "PR430 thread PRRT_kwDOTFOg1M6iZMF_: AB format preflight currently enters the generic UI failure path and fabricates a Run Report before execution begins",
+    "ADR 0072 requires pre-run refusal to remain distinct from an execution report; existing ExecuteAbMergeAsync performs format admission before processor acquisition and destination preparation",
+    "The existing CLI catches InvalidOperationException, so a typed subtype preserves CLI compatibility without a second semantic path"
+  ],
+  "semanticOwner": "Application Composition execution owns terminal pre-run refusal; Presentation renders the typed outcome without reclassifying issue text",
+  "terminalContract": "AB format issues throw one immutable typed Application refusal before processor acquisition, destination preparation, or shared execution. Presentation renders Preview blocked or Build blocked with the Application message and No output, without loading, opening, adding, replacing, or clearing any Run Report or history. Generic execution failures keep the existing report path; CLI remains subtype-compatible.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "/root/architect_ab_ui_fix",
+    "outcome": "approved",
+    "evidence": "Independent R2 architecture review approved the typed Application exception and exact Presentation catch at latest evidence checkpoint 4a5510bc; intervening test-only and Config corrections do not touch this record's owned paths or contract. Issues must be copied immutably, message formatting remains deterministic, throw occurs only in the existing AB format preflight branch, generic failures and CLI behavior remain unchanged, and no ADR or firmware semantic change is required."
+  },
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": {
+    "reviewer": null,
+    "outcome": "pending",
+    "evidence": ""
+  }
+}
