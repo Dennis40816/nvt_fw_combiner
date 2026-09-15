@@ -296,7 +296,7 @@ internal sealed partial class SettingsViewModel
             ApplyEventBufferFormatState(result, preferDefaultsForUnavailable: true);
             if (reapply)
             {
-                await ReapplyEventBufferFormatStateAsync();
+                await ReapplyEventBufferFormatStateAsync(preferDefaultsForUnavailable: true);
             }
         }
         catch (Exception)
@@ -326,8 +326,9 @@ internal sealed partial class SettingsViewModel
         }
     }
 
-    private async Task ReapplyEventBufferFormatStateAsync()
+    private async Task ReapplyEventBufferFormatStateAsync(bool preferDefaultsForUnavailable)
     {
+        long generation = _eventBufferFormatConfigurationSession?.Current.Generation ?? 0;
         try
         {
             _eventBufferFormatReapplyFailed = ReapplyEventBufferFormatAsync is not null &&
@@ -337,6 +338,10 @@ internal sealed partial class SettingsViewModel
         {
             // The configuration publication is already complete; report refresh failure separately.
             _eventBufferFormatReapplyFailed = true;
+        }
+        if (_eventBufferFormatConfigurationSession?.Current is { } current && current.Generation != generation)
+        {
+            ApplyEventBufferFormatState(new(current, null, []), preferDefaultsForUnavailable);
         }
         RefreshEventBufferFormatLabels();
     }
@@ -358,7 +363,7 @@ internal sealed partial class SettingsViewModel
             {
                 _eventBufferFormatReapplyFailed = false;
                 ApplyEventBufferFormatState(result, preferDefaultsForUnavailable: false);
-                await ReapplyEventBufferFormatStateAsync();
+                await ReapplyEventBufferFormatStateAsync(preferDefaultsForUnavailable: false);
             }
             else
             {

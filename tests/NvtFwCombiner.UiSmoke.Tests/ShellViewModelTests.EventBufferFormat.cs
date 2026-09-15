@@ -418,6 +418,37 @@ public sealed partial class ShellNavigationSystemTests
         Assert.Equal(viewModel.Text.EventBufferFormatSavedLabel, viewModel.Settings.EventBufferFormatStatus);
     }
 
+    /// <summary>The editor adopts the exact publication used by reapply instead of retaining an earlier read.</summary>
+    [Fact]
+    public async Task EventBufferFormatReloadAdoptsPublicationChangedDuringReapply()
+    {
+        var storage = new EventBufferFormatStorage
+        {
+            Stored = new(new(1, "event-buffer-format", [new("desay", "Publication A", ["0x97"])]), new string('a', 64)),
+        };
+        using var session = new EventBufferFormatConfigurationSession(
+            "event-buffer-format", [new("desay", "Desay")], [new("desay", null, [0x97])], storage);
+        MainWindowViewModel viewModel = CreateEventBufferFormatViewModel(session);
+        viewModel.OpenSettingsCommand.Execute(null);
+        viewModel.Settings.SelectSectionCommand.Execute(SettingsSection.EventBufferFormat);
+        await viewModel.Settings.EventBufferFormatLoadTask;
+        Assert.Equal("Publication A", Assert.Single(viewModel.Settings.EventBufferFormatRows).AliasName);
+        viewModel.Settings.ReapplyEventBufferFormatAsync = async () =>
+        {
+            storage.Stored = new(new(1, "event-buffer-format", [new("desay", "Publication B", ["0xA6"])]), new string('b', 64));
+            _ = await session.ReloadAsync(TestContext.Current.CancellationToken);
+            return true;
+        };
+
+        await viewModel.Settings.ReloadEventBufferFormatCommand.ExecuteAsync(null);
+
+        EventBufferFormatDraftRowViewModel row = Assert.Single(viewModel.Settings.EventBufferFormatRows);
+        Assert.Equal("Publication B", row.AliasName);
+        Assert.Equal([0xA6], row.RecognitionValues);
+        Assert.False(viewModel.Settings.HasEventBufferFormatUnsavedChanges);
+        Assert.Equal(viewModel.Text.EventBufferFormatSavedLabel, viewModel.Settings.EventBufferFormatStatus);
+    }
+
     /// <summary>Missing configuration opens independent defaults, then saves only through the typed session.</summary>
     [Fact]
     public async Task EventBufferFormatUsesDraftDefaultsAndPreservesUnsavedCloseConfirmation()
