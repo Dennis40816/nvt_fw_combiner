@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 2,
+  "taskId": "GOV-116-PR430-FINAL-EXACT-SIZE-25",
+  "capability": "Account for the exact owner-approved source increment of the final PR430 review corrections",
+  "integrationBase": "4a5510bcbea58ed9308742d315858e44709fcf1c",
+  "risk": "R2",
+  "kind": "governance",
+  "state": "design-active",
+  "mutablePaths": [
+    "scripts/code_size_policy.py",
+    "tests/scripts/test_code_size_policy.py",
+    "docs/adr/0021-code-size-ratchet-accepted-artifact-amendment.md"
+  ],
+  "implementationOwner": "/root",
+  "searchEvidence": [
+    "Existing scripts/code_size_policy.py DEFAULT_LIMITS and physical source measurement remain the sole exact source-accounting owner",
+    "At pre-policy candidate 3a55f621 the measured source is full144318/runtime102030/Application44567; the owner explicitly approved only full+149/runtime+27/Application+27 in the current conversation",
+    "Config publication/focus corrections add 112 Presentation-only lines; the typed AB pre-run refusal adds 27 runtime/Application and 10 Presentation lines. Both batches have focused tests and independent fixed-head review"
+  ],
+  "semanticOwner": "Existing scripts/code_size_policy.py exact allowances and physical source measurement",
+  "terminalContract": "Set production warning144318, full allowance41422, runtime allowance31974 and Application allowance13877 with corresponding exact measured test totals. Append the dated owner approval to existing ADR0021. Preserve every other threshold, ratchet base, counting/exclusion rule, partial/duplicate and slice guard, firmware/Golden/CI/release gate; introduce no reserved capacity.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "/root/release116_config_final",
+    "outcome": "approved",
+    "evidence": "Independent R2 design admission against latest evidence checkpoint 4a5510bc and the exact pre-policy candidate tree at 3a55f621 verified full 144169+149=144318, runtime 102003+27=102030, Application 44540+27=44567 and exact slice equality. Approved only three policy values plus the production warning baseline, three exact test assertions and a dated ADR0021 append; no spare or other gate change."
+  },
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": {
+    "reviewer": null,
+    "outcome": "pending",
+    "evidence": ""
+  }
+}

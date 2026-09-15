@@ -830,3 +830,28 @@ growth/reduction/slice-equality guards remain unchanged. No spare capacity,
 package-size, Golden, safety, CI or release exception is introduced. The
 pre-adjustment policy test result was 18 pass / 1 fail (144041 != 144169),
 not a pass; subsequent targeted and final candidate checks remain required.
+
+## 2026-09-15 final PR430 review-correction accounting
+
+The owner approves the exact final correction increment at `3a55f621`: full
+production +149 nonblank lines, including runtime/Application +27. Independent
+R2 admission `GOV-116-PR430-FINAL-EXACT-SIZE-25` preserves the existing
+measurement owner and verifies the complete slice equality.
+
+| Metric | Exact total | Preserved base | Allowance |
+| --- | ---: | ---: | ---: |
+| Full production / warning baseline | 144,318 | 102,896 | 41,422 |
+| Runtime | 102,030 | 70,056 | 31,974 |
+| Application | 44,567 | 30,690 | 13,877 |
+
+The Config publication/focus corrections add 112 Presentation-only lines. The
+typed AB pre-run refusal adds 27 runtime/Application lines and 10 Presentation
+lines. Both reuse their existing typed owners, have focused red/green evidence
+and passed independent fixed-head review. Domain/Profiles,
+Bootstrap/CLI/Desktop host and Infrastructure/Contracts/worker totals and
+allowances remain unchanged.
+
+Only four existing policy defaults and three exact baseline assertions change.
+All counting, exclusions, ratchet bases, partial/duplicate and
+growth/reduction/slice-equality guards remain unchanged. No spare capacity or
+firmware, Golden, safety, CI, package or release exception is introduced.
