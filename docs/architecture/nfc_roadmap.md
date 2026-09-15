@@ -31,12 +31,15 @@ capture past a previous Common map ceiling; the formal route fixtures retain
 generic count 9 and mixed A=2/B=3 coverage. Original and final TRX evidence is
 retained under `D:/NvtFwCombiner-TestArea/evidence/v116-ab-format`, with the fresh
 Golden run in `unit15-golden-1465f11f`.
-Config visual-reference acceptance, aggregate governance/owner evidence and
-`verify.py --all` remain open; this Golden pass is not full integration or
-publication approval. New format routes retain candidate/contract-only status.
+The owner's 2026-09-15 request to finish and publish authorizes release
+preparation after the reported UI corrections; no further Config redesign is
+scheduled for this candidate. Aggregate governance/owner evidence and
+`verify.py --all` remain open; the earlier Golden pass is not final-source
+integration evidence. New format routes retain candidate/contract-only status.
 The TP overlay-length
 question is resolved by retaining existing bytes and recording an Excel erratum.
-This is authorized development, not a release/publication request.
+Release preparation is now authorized. Exact-head firmware-owner evidence,
+protected review/CI and candidate publication gates remain required.
 
 | Target | Bounded outcome and dependency |
 | --- | --- |
