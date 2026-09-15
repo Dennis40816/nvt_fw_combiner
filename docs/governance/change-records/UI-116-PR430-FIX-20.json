@@ -5,7 +5,7 @@
   "integrationBase": "985ac926cb15e4b532a2dde50f0bcf8bf533657f",
   "risk": "R1",
   "kind": "ui",
-  "state": "design-active",
+  "state": "final-complete",
   "mutablePaths": [
     "src/NvtFwCombiner.Presentation.Avalonia/Resources/SettingsEventBufferFormatPageTemplate.axaml",
     "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/SettingsViewModel.EventBufferFormat.cs",
@@ -29,12 +29,12 @@
     "outcome": "not-required",
     "evidence": "Owner-authorized bounded local R1 preflight recorded before edits at c6d3ba5f. This is current integration admission for the approved correction batch; immutable prior records and firmware attestations remain unchanged."
   },
-  "implementationHead": null,
-  "reviewedHead": null,
-  "pathStateDigest": null,
+  "implementationHead": "ea5824a5055feb5336b3821ffecb5ea56e01354c",
+  "reviewedHead": "ea5824a5055feb5336b3821ffecb5ea56e01354c",
+  "pathStateDigest": "21d75aadd2e6785c931bd60ce67220b2db05f5276f80c747ceded3e4d29b76ae",
   "finalReview": {
-    "reviewer": null,
-    "outcome": "pending",
-    "evidence": ""
+    "reviewer": "/root/release116_config_final",
+    "outcome": "approved",
+    "evidence": "Independent fixed-head review approved all five production and two test paths at ea5824a5055feb5336b3821ffecb5ea56e01354c; exact blobs match reviewed2ef65d6c. Reload preserves dirty/busy state and reuses typed session/reapply; removal automation names include bytes; confirmation isolates background and handles safe focus, Tab/Shift+Tab, Escape and restoration. Reviewed actual TRX: reload red2 then34pass, accessibility red3 then3pass, focus red3 then35pass, final reverse-tab3pass; zero skips. Scoped Polytail PASS, no P0-P3. These are scoped headless results, not native accessibility or release certification."
   }
 }

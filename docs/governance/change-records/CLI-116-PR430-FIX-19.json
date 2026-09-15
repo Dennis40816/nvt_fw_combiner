@@ -5,7 +5,7 @@
   "integrationBase": "985ac926cb15e4b532a2dde50f0bcf8bf533657f",
   "risk": "R1",
   "kind": "behavior",
-  "state": "design-active",
+  "state": "final-complete",
   "mutablePaths": [
     "src/NvtFwCombiner.Cli/AbMergeCliCommandHandler.cs",
     "tests/NvtFwCombiner.Bootstrap.Tests/AbMergeCliCommandTests.cs",
@@ -26,12 +26,12 @@
     "outcome": "not-required",
     "evidence": "Owner-authorized bounded local R1 corrections at c6d3ba5f; no firmware, profile, public contract, release policy or admission promotion change. New record provides current integration admission, not retroactive design approval."
   },
-  "implementationHead": null,
-  "reviewedHead": null,
-  "pathStateDigest": null,
+  "implementationHead": "ea5824a5055feb5336b3821ffecb5ea56e01354c",
+  "reviewedHead": "ea5824a5055feb5336b3821ffecb5ea56e01354c",
+  "pathStateDigest": "53349a9ea73c0a1af66ee31de64b9bcda1a22c361253416362c7b1fbe72e213c",
   "finalReview": {
-    "reviewer": null,
-    "outcome": "pending",
-    "evidence": ""
+    "reviewer": "/root/release116_ab_final",
+    "outcome": "approved",
+    "evidence": "Independent fixed-head review approved all three mutable paths at ea5824a5055feb5336b3821ffecb5ea56e01354c, identical to previously reviewed CLI correction blobs. Explicit ID constraint reuses accepted capability; narrow execution catch preserves refusal with no output/report. Actual CLI red3/7 profile and red6/6 race failures retained; affected CLI class green26/26 zero skips. Scoped Polytail PASS, no P0-P3. Mechanical batch review confirms exact eight governed paths across CLI19/UI20/GOV21. Full final verifier, CI and release gates remain required."
   }
 }

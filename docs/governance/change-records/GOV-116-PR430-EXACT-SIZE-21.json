@@ -5,7 +5,7 @@
   "integrationBase": "985ac926cb15e4b532a2dde50f0bcf8bf533657f",
   "risk": "R2",
   "kind": "governance",
-  "state": "design-active",
+  "state": "final-complete",
   "mutablePaths": [
     "scripts/code_size_policy.py",
     "tests/scripts/test_code_size_policy.py",
@@ -25,12 +25,12 @@
     "outcome": "approved",
     "evidence": "Independent R2 design admission at df4a3435 approved exactly four policy values, three baseline assertions and existing ADR0021 dated append after owner approval. Preserve prior immutable records and all remaining guards. Targeted tests and fixed-head review remain required."
   },
-  "implementationHead": null,
-  "reviewedHead": null,
-  "pathStateDigest": null,
+  "implementationHead": "ea5824a5055feb5336b3821ffecb5ea56e01354c",
+  "reviewedHead": "ea5824a5055feb5336b3821ffecb5ea56e01354c",
+  "pathStateDigest": "d3dadebe9659b894be5cb51aad5e9fe14ad4c13a6a55ede996fc53b6ffc1477f",
   "finalReview": {
-    "reviewer": null,
-    "outcome": "pending",
-    "evidence": ""
+    "reviewer": "/root/release116_admission_audit",
+    "outcome": "approved",
+    "evidence": "Independent R2 fixed-head review approved exact four policy values, three baseline assertions and dated ADR0021 append at ea5824a5055feb5336b3821ffecb5ea56e01354c. Owner approved full128/runtime-host18 increment. Existing counting, bases, other thresholds and functions unchanged; code-size tests red18pass1fail then19/19 green. Scoped Polytail PASS. Mechanical final batch audit finds all mutable paths in checkpoint985ac926 diff and exactly eight governed paths with no overlap or gaps. Prior records/attestations unchanged; no firmware, Golden or release waiver."
   }
 }
