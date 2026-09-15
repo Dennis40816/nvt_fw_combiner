@@ -38,6 +38,15 @@ candidate status; this release does not grant new Golden certification.
   Config drafts require Save and apply; ordinary Settings retain immediate
   application. Invalid configuration blocks affected AB execution without
   silently selecting a fallback. Reports retain the effective run format.
+- Before → After: Config now exposes Reload for external file changes without
+  overwriting an unsaved draft. Removal controls identify their byte to screen
+  readers; discard confirmation contains keyboard focus and Escape returns to
+  editing. Reload re-evaluates retained inputs without rereading their BIN paths.
+- CLI compatibility: an explicit AB `--profile` ID now rejects a different
+  detected profile instead of silently executing it. Use an IC selector for
+  automatic selection. Configuration changes after readiness now return a
+  readable command failure (exit 1), without creating an output or a report for
+  an operation that did not start.
 - Verification: targeted configuration, primary-field admission, profile,
   runtime, report and write-boundary regressions are recorded. An earlier
   development-source release-Golden run passed all 25 certified output cases;
