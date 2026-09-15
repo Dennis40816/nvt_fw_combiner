@@ -64,7 +64,7 @@ public sealed class CtrlRamOverviewCompletionTests
             Assert.DoesNotContain(shell.Replace.CtrlRamFocusLanes, lane => lane.Title == "Common");
             MemoryFocusLaneViewModel master = Assert.Single(shell.Replace.CtrlRamFocusLanes, lane => lane.Title == "Master");
             Assert.All(master.Ranges, range => Assert.Equal(ReplaceRegionGroup.Common, range.RegionGroup));
-            Assert.Equal("M", master.PositionLabel);
+            Assert.Equal("Master", master.PositionLabel);
             Assert.Contains(shell.Replace.ReplaceSlotGroups, group => group.Title == "Common");
             // Capturing is optional in CI; realization must not depend on its
             // NFC_VISUAL_OUTPUT_DIR-gated render loop.
