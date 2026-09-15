@@ -1,3 +1,4 @@
+using NvtFwCombiner.Application.Authoring;
 using NvtFwCombiner.Application.Configuration;
 using NvtFwCombiner.Infrastructure.ExternalTools;
 using NvtFwCombiner.TestSupport;
@@ -6,6 +7,84 @@ namespace NvtFwCombiner.Bootstrap.Tests;
 
 public sealed partial class AbMergeCliCommandTests
 {
+    /// <summary>A Config change after readiness is a clean CLI refusal before any execution side effect.</summary>
+    [Theory]
+    [InlineData("invalid", false)]
+    [InlineData("missing", false)]
+    [InlineData("changed", false)]
+    [InlineData("invalid", true)]
+    [InlineData("missing", true)]
+    [InlineData("changed", true)]
+    public async Task ChangedConfigAfterCliReadinessReturnsFailureAsync(string change, bool build)
+    {
+        using TempWorkspace workspace = TempWorkspace.Create("ab-cli-pre-run-refusal");
+        CompositionHostServices host = await CreateFormatCliHostAsync(workspace);
+        string[] args = CreateFormatCliArguments(workspace, "NT51950", 0x97);
+        args[0] = build ? "build" : "preview";
+        int acquisitions = 0;
+        var destinations = new CliRefusalDestinations();
+        var execution = new CompositionExecutionExperience(host.Catalog, destinations, () =>
+        {
+            acquisitions++;
+            throw new InvalidOperationException("Rejected configuration must not acquire a processor.");
+        }, static _ => false, new FakeClock([]), (AbMergeAuthoringExperience)host.AbMergeAuthoring);
+        var changingExecution = new BeforeCliExecution(execution, async () =>
+        {
+            if (change == "invalid") { _ = workspace.Write("format.json", "invalid json"u8.ToArray()); }
+            if (change == "missing") { File.Delete(workspace.PathFor("format.json")); }
+            if (change == "changed")
+            {
+                IEventBufferFormatConfigurationSession config = await host.GetEventBufferFormatConfigurationAsync(
+                    TestContext.Current.CancellationToken);
+                Assert.True((await config.SaveAsync(
+                    [.. config.CreateDefaultsDraft().Select(static entry => entry! with { RecognitionValues = [] })],
+                    TestContext.Current.CancellationToken)).Succeeded);
+            }
+        });
+        var services = new CliCompositionServices(host.CompositionCapabilityExperience, host.SavedRuleAuthoring,
+            host.StandardMergeAuthoring, host.AbMergeAuthoring, host.DpReplaceAuthoring, host.CtrlRamAuthoring,
+            host.GeneralAuthoring, host.CompositionOutputNaming, changingExecution);
+        using var output = new StringWriter();
+        using var error = new StringWriter();
+        int exitCode = await AbMergeCliCommandHandler.RunAsync(services, host.LocalFiles, args,
+            output, error, TestContext.Current.CancellationToken);
+
+        Assert.Equal(1, exitCode);
+        Assert.Equal(1, changingExecution.Calls);
+        Assert.Contains(change == "changed" ? "AB_FORMAT_CHANGED" : "AB_FORMAT_CONFIGURATION_INVALID",
+            error.ToString(), StringComparison.Ordinal);
+        Assert.Equal(0, acquisitions);
+        Assert.Equal(0, destinations.Calls);
+        Assert.Empty(output.ToString());
+        Assert.False(File.Exists(workspace.PathFor("output.bin")));
+        Assert.False(File.Exists(workspace.PathFor("report.json")));
+    }
+
+    private sealed class BeforeCliExecution(ICompositionExecution inner, Func<Task> before) : ICompositionExecution
+    {
+        internal int Calls { get; private set; }
+
+        public async ValueTask<CompositionRunResult> ExecuteAsync(AcceptedCompositionExecutionRequest request,
+            CompositionRunProgressFeed progress, CancellationToken cancellationToken)
+        {
+            Assert.True(request.Build ? request.ActionReadiness!.Build.IsAvailable : request.ActionReadiness!.Preview.IsAvailable);
+            Calls++;
+            await before();
+            return await inner.ExecuteAsync(request, progress, cancellationToken);
+        }
+    }
+
+    private sealed class CliRefusalDestinations : ICompositionExecutionDestinationProvider
+    {
+        internal int Calls { get; private set; }
+
+        public CompositionExecutionDestination Prepare(CompositionExecutionDestinationRequest request)
+        {
+            Calls++;
+            throw new InvalidOperationException("Rejected configuration must not prepare a destination.");
+        }
+    }
+
     /// <summary>Explicit profile IDs constrain admission; IC selectors retain automatic format selection.</summary>
     [Theory]
     [InlineData("nt51950-ab-merge-desay", 0x84, false)]

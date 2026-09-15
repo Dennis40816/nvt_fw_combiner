@@ -262,8 +262,10 @@ internal static class AbMergeCliCommandHandler
             return UsageError;
         }
 
-        CompositionRunResult result = await services.Execution
-            .ExecuteAsync(
+        CompositionRunResult result;
+        try
+        {
+            result = await services.Execution.ExecuteAsync(
                 new AcceptedCompositionExecutionRequest(
                     acceptedSession,
                     slotPaths,
@@ -280,7 +282,13 @@ internal static class AbMergeCliCommandHandler
                     outputBundle: outputBundle),
                 new CompositionRunProgressFeed(),
                 cancellationToken)
-            .ConfigureAwait(false);
+                .ConfigureAwait(false);
+        }
+        catch (InvalidOperationException exception)
+        {
+            await error.WriteLineAsync($"error: {exception.Message}").ConfigureAwait(false);
+            return CompositionFailed;
+        }
         CliCompositionRunSupport.EnsureReportDoesNotAliasProtectedPaths(
             reportPath,
             bindings,
