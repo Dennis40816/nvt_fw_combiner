@@ -1,0 +1,33 @@
+{
+  "schemaVersion": 2,
+  "taskId": "GOV-116-EXACT-SIZE-18",
+  "capability": "Account for the exact owner-approved reviewed v1.1.6 format/configuration and presentation source increment",
+  "integrationBase": "f9db4ef039be1c7a08e0b83f11133dbc1a0fe049",
+  "risk": "R2",
+  "kind": "governance",
+  "state": "design-active",
+  "mutablePaths": [
+    "scripts/code_size_policy.py",
+    "tests/scripts/test_code_size_policy.py",
+    "docs/adr/0021-code-size-ratchet-accepted-artifact-amendment.md"
+  ],
+  "implementationOwner": "primary-agent",
+  "searchEvidence": [
+    "Owner explicitly approved on 2026-09-15 adjusting the necessary independently reviewed 1.1.6 source increment while preserving Golden, safety and release gates. Intake head dd250d4f9a340e2cb01daf29f3ffef75c697d988 has unchanged production from e91ae298.",
+    "Existing scripts/code_size_policy.py DEFAULT_LIMITS owns exact allowances and measurement; the repository validator consumes it. Prior GOV115 records append exact accounting in ADR0021 accepted-artifact amendment; no new policy owner is needed.",
+    "Structure preflight measures full144041, runtime101985, Domain21182, Application44540, host5112, Infrastructure31151. Increment over admitted ceilings is3531 full,2400 runtime,425 Domain,1536 Application,73 host,366 Infrastructure; runtime slices sum exactly. Existing test module RED:18 passed/1 failed at140510!=144041, retained as code-size-116-red.xml.",
+    "Independent ownership-level minimality review finds typed policy/family facts in Domain/Profiles, sole Application format/configuration admission and topology owner, lazy host wiring, bounded storage reusing ILocalFileStore, and Presentation projection/hover changes. Former duplicate topology logic and old MemoryCoverageListViewModel were removed. No obvious safe duplicate semantic owner or speculative infrastructure was identified for release-eve deletion; this is not full firmware correctness certification."
+  ],
+  "semanticOwner": "Existing scripts/code_size_policy.py measurement and DEFAULT_LIMITS; ADR0021 accepted exact accounting",
+  "terminalContract": "Set warning mirror production_nonblank144041 and exact allowances full41145/runtime31929/Domain555/Application13850/host1734/Infrastructure15795 against unchanged ratchet bases. Synchronize six baseline totals and observed WorkflowSession aggregate2680 in13files, preserving its2627 warning threshold. Append dated owner decision and measured ownership review. No counting/exclusion/partial/duplicate/growth/reduction/slice-equality changes, no reserved headroom, no firmware/Golden/package/CI/release gate waiver. Final independent exact-head review and complete candidate verification remain pending.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "/root/release116_admission_audit",
+    "outcome": "approved",
+    "evidence": "2026-09-15 independent R2 design admission at dd250d4f approves exact six allowances, production warning mirror, baseline assertions and current ADR0021 dated append. Follow-up explicitly approves using the existing accepted-artifact amendment instead of the historical v1.0.0 report and the observed2675-to2680 assertion without changing2627 threshold. Preserve19behavioral tests, measure equality and all unrelated guards. Ownership-level scoped review finds no immediate safe duplicate owner to remove; full firmware and exact-head release review are separate."
+  },
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": { "reviewer": null, "outcome": "pending", "evidence": "" }
+}
