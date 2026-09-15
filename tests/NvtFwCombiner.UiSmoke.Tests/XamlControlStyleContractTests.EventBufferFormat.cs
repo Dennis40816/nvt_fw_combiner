@@ -105,6 +105,9 @@ public sealed partial class XamlControlStyleContractTests
                 TextBlock chipText = Assert.Single(editor.GetVisualDescendants().OfType<TextBlock>(),
                     control => control.Text == byteLabel);
                 Border chip = chipText.GetVisualAncestors().OfType<Border>().First();
+                Button removeValue = Assert.Single(chip.GetVisualDescendants().OfType<Button>());
+                Assert.Equal($"{viewModel.Text.EventBufferFormatRemoveValueLabel} {byteLabel}",
+                    AutomationProperties.GetName(removeValue));
                 Assert.Equal(13, chipText.FontSize);
                 AssertEventBufferFits(EventBufferBounds(chipText, window), EventBufferBounds(chip, window));
                 if (width >= 1600)

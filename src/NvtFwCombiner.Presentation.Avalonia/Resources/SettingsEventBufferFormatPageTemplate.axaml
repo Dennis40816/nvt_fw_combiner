@@ -100,10 +100,15 @@
                             <StackPanel Orientation="Horizontal" Spacing="{DynamicResource NfcSpace4}">
                               <TextBlock FontSize="{DynamicResource NfcFontSize13}" VerticalAlignment="Center" Text="{Binding StringFormat=0x{0:X2}}" />
                               <Button Width="30" Height="40" Padding="0" MinWidth="0"
-                              AutomationProperties.Name="{Binding $parent[ItemsControl].DataContext.RemoveRecognitionValueLabel}"
                               Classes="semanticAction command danger"
                               Command="{Binding $parent[ItemsControl].DataContext.RemoveRecognitionValueCommand}"
                               CommandParameter="{Binding .}">
+                                <AutomationProperties.Name>
+                                  <MultiBinding StringFormat="{}{0} 0x{1:X2}">
+                                    <Binding Path="$parent[ItemsControl].DataContext.RemoveRecognitionValueLabel" />
+                                    <Binding Path="." />
+                                  </MultiBinding>
+                                </AutomationProperties.Name>
                                 <Path Width="10" Height="10" Data="M0 0L10 10M10 0L0 10" Stroke="{DynamicResource NfcDangerTextBrush}" StrokeThickness="1.8" />
                               </Button>
                             </StackPanel>
