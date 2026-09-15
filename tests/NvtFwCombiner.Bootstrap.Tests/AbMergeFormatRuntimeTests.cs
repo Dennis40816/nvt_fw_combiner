@@ -183,8 +183,9 @@ public sealed class AbMergeFormatRuntimeTests
             Assert.DoesNotContain(workspace.PathFor(""), formatJson.ToString(), StringComparison.OrdinalIgnoreCase);
             Assert.DoesNotContain("ArtifactId", formatJson.ToString(), StringComparison.Ordinal);
             Assert.DoesNotContain("Bytes", formatJson.ToString(), StringComparison.Ordinal);
-            InvalidOperationException next = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            CompositionPreRunRefusalException next = await Assert.ThrowsAsync<CompositionPreRunRefusalException>(() =>
                 host.CompositionExecution.ExecuteAsync(request, new CompositionRunProgressFeed(), TestContext.Current.CancellationToken).AsTask());
+            Assert.Contains(next.Issues, static issue => issue.Code == "AB_FORMAT_CHANGED");
             Assert.Contains("AB_FORMAT_CHANGED", next.Message, StringComparison.Ordinal);
             CapabilityActionReadinessSnapshot? nextReadiness = await host.AbMergeAuthoring.GetActionReadinessAsync(
                 updated.Snapshot, TestContext.Current.CancellationToken);
