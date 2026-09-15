@@ -271,12 +271,16 @@ public sealed class ReportHistoryControlTests
     {
         if (activation == "mouse")
         {
+            // Flush queued layout before rendering the scene used by pointer hit testing.
+            Dispatcher.UIThread.RunJobs();
             AvaloniaHeadlessPlatform.ForceRenderTimerTick();
             Dispatcher.UIThread.RunJobs();
+            AvaloniaHeadlessPlatform.ForceRenderTimerTick();
             Point center = button.TranslatePoint(new Point(button.Bounds.Width / 2, button.Bounds.Height / 2), window)!.Value;
             var hit = window.InputHitTest(center) as Visual;
             Assert.True(ReferenceEquals(hit, button) || hit?.GetVisualAncestors().Contains(button) == true,
-                $"Expected pointer hit on {button}, got {hit} at {center}; button bounds {button.Bounds}.");
+                $"Expected pointer hit on {button}, got {hit} at {center}; button bounds {button.Bounds}; " +
+                $"hit ancestors: {string.Join(" / ", (hit?.GetVisualAncestors() ?? []).OfType<Control>().Select(control => $"{control.GetType().Name}#{control.Name}[{string.Join(',', control.Classes)}]"))}.");
             window.MouseDown(center, MouseButton.Left);
             window.MouseUp(center, MouseButton.Left);
         }
