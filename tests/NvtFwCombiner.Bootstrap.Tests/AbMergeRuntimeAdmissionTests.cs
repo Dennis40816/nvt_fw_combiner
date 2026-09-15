@@ -456,12 +456,13 @@ public sealed partial class AbMergeRuntimeAdmissionTests
 
     private static void AssertNoAFlashCodeDelivery(string icId, int expectedRoutes)
     {
-        ResolvedCapabilityRoute[] routes = [.. BootstrapTestHost.Services.Catalog.GetCurrentSnapshot().DynamicRoutes
+        var host = new IsolatedBootstrapTestHost();
+        ResolvedCapabilityRoute[] routes = [.. host.Catalog.GetCurrentSnapshot().DynamicRoutes
             .Where(route => route.Identity.IcId == icId && route.Identity.WorkflowId == ExperienceIds.AbMerge)];
         Assert.Equal(expectedRoutes, routes.Length);
         Assert.All(routes, route =>
         {
-            Assert.True(BootstrapTestHost.Canonical.Compiler.TryCompilePublishedDynamicCapability(route.Identity, null, null,
+            Assert.True(host.Canonical.Compiler.TryCompilePublishedDynamicCapability(route.Identity, null, null,
                 out CompiledComposition? composition, out _, out IReadOnlyList<CompositionIssue> issues, route.AbMergeTopologyChoice?.Selection),
                 string.Join(',', issues.Select(static issue => issue.Code)));
             Assert.Empty(Assert.IsType<CompiledComposition>(composition).V2Details.AdditionalDeliveries);

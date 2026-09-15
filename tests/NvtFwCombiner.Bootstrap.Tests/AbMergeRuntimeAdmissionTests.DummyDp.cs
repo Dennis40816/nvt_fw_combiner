@@ -166,11 +166,12 @@ public sealed partial class AbMergeRuntimeAdmissionTests
     [InlineData(null)]
     public void DummyInspectionRejectsMismatchedCurrentTopology(string? requestedToken)
     {
-        var owner = (AbMergeAuthoringExperience)BootstrapTestHost.Services.AbMergeAuthoring;
-        ResolvedCapabilityRoute route = Assert.Single(BootstrapTestHost.Services.Catalog.GetCurrentSnapshot().DynamicRoutes,
+        var host = new IsolatedBootstrapTestHost();
+        var owner = (AbMergeAuthoringExperience)host.Services.AbMergeAuthoring;
+        ResolvedCapabilityRoute route = Assert.Single(host.Catalog.GetCurrentSnapshot().DynamicRoutes,
             static route => route.Identity.IcId == "NT51950" && route.Identity.WorkflowId == ExperienceIds.AbMerge &&
                 route.Identity.MapVariant == "nt51950-ab-merge-maps" && route.Identity.IcCountVariant == "1-ic");
-        Assert.True(BootstrapTestHost.Canonical.Compiler.TryCompilePublishedDynamicCapability(route.Identity, null, [],
+        Assert.True(host.Canonical.Compiler.TryCompilePublishedDynamicCapability(route.Identity, null, [],
             out _, out ResolvedCapability? capability, out _, route.AbMergeTopologyChoice!.Selection));
         Assert.NotNull(capability);
         int reads = 0;
