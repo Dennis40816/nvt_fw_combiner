@@ -1,0 +1,9 @@
+{
+  "schemaVersion": 1,
+  "taskId": "AB-116-DP-SIZE-13",
+  "authorityType": "firmware-owner",
+  "reviewedHead": "985ac926cb15e4b532a2dde50f0bcf8bf533657f",
+  "decision": "approved",
+  "reviewer": "Dennis Liu (firmware owner)",
+  "evidence": "On 2026-09-15 the owner replied '可以' to the explicit fixed-version firmware approval request naming technical-evidence commit985ac926cb15e4b532a2dde50f0bcf8bf533657f and all seven R3 attestations. Reviewed implementation203d656a4180cc5d630ebef68da3f19a3bde9e7a retains the independent Config and AB technical reviews and complete original path-state digests in its final records. Approved scope: profile-bound primary Event Buffer Format field0x2220C, admitted Common/Desay automatic selection, Desay TP B start0x4A000, Common NT51950 exact2-IC TP B start0x8A000 with coupled offsets and processor write bounds, expected1MiB Desay DP with excess-length advisory and blocking required-source shortage, and new format routes remaining candidate/contract-only without Golden promotion. This records the specific firmware approval and authorizes continuing complete verification and the previously requested release workflow; it does not waive full verification, independent Golden expectations, protected CI, package allowlists, release-environment or published-artifact gates. It does not authorize arbitrary maps, new vendors, new marker semantics outside admitted IDs, or live Catalog/Registry deployment."
+}
