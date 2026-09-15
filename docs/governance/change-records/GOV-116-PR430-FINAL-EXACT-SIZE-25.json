@@ -5,7 +5,7 @@
   "integrationBase": "4a5510bcbea58ed9308742d315858e44709fcf1c",
   "risk": "R2",
   "kind": "governance",
-  "state": "design-active",
+  "state": "final-complete",
   "mutablePaths": [
     "scripts/code_size_policy.py",
     "tests/scripts/test_code_size_policy.py",
@@ -25,12 +25,12 @@
     "outcome": "approved",
     "evidence": "Independent R2 design admission against latest evidence checkpoint 4a5510bc and the exact pre-policy candidate tree at 3a55f621 verified full 144169+149=144318, runtime 102003+27=102030, Application 44540+27=44567 and exact slice equality. Approved only three policy values plus the production warning baseline, three exact test assertions and a dated ADR0021 append; no spare or other gate change."
   },
-  "implementationHead": null,
-  "reviewedHead": null,
-  "pathStateDigest": null,
+  "implementationHead": "3d9ec00da7e073aa576033c9881ef585f74b458e",
+  "reviewedHead": "3d9ec00da7e073aa576033c9881ef585f74b458e",
+  "pathStateDigest": "84068581579f174f0adb70949eb3b6795b841964a5677bffaa1e356966f83f7d",
   "finalReview": {
-    "reviewer": null,
-    "outcome": "pending",
-    "evidence": ""
+    "reviewer": "/root/release116_config_final",
+    "outcome": "approved",
+    "evidence": "Fixed-head R2 correctness and scoped Polytail rebind approved at 3d9ec00d against 4a5510bc. Policy and test are byte-identical to the previously approved implementation; ADR only binds the rebuilt pre-policy SHA without changing numbers or rules. Exact increment 112+27+10=149, runtime and Application each +27, no spare. Pre-change baseline test failed; complete policy suite passed 19/19."
   }
 }

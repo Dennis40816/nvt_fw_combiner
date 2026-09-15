@@ -5,7 +5,7 @@
   "integrationBase": "4a5510bcbea58ed9308742d315858e44709fcf1c",
   "risk": "R2",
   "kind": "behavior",
-  "state": "design-active",
+  "state": "final-complete",
   "mutablePaths": [
     "src/NvtFwCombiner.Application/Composition/CompositionPreRunRefusalException.cs",
     "src/NvtFwCombiner.Application/Composition/CompositionExecutionExperience.cs",
@@ -28,12 +28,12 @@
     "outcome": "approved",
     "evidence": "Independent R2 architecture review approved the typed Application exception and exact Presentation catch at latest evidence checkpoint 4a5510bc; intervening test-only and Config corrections do not touch this record's owned paths or contract. Issues must be copied immutably, message formatting remains deterministic, throw occurs only in the existing AB format preflight branch, generic failures and CLI behavior remain unchanged, and no ADR or firmware semantic change is required."
   },
-  "implementationHead": null,
-  "reviewedHead": null,
-  "pathStateDigest": null,
+  "implementationHead": "3d9ec00da7e073aa576033c9881ef585f74b458e",
+  "reviewedHead": "3d9ec00da7e073aa576033c9881ef585f74b458e",
+  "pathStateDigest": "9e410ddbe6cbccee771e6aab7f143a683c10f369f3e1741d455a2ca3c79fa27d",
   "finalReview": {
-    "reviewer": null,
-    "outcome": "pending",
-    "evidence": ""
+    "reviewer": "/root/architect_ab_ui_fix",
+    "outcome": "approved",
+    "evidence": "Fixed-head R2 correctness, architecture and scoped Polytail rebind approved at 3d9ec00d against 4a5510bc; P0-P3 all zero. All six mutable paths are byte-identical to the previously approved implementation, and the record was admitted with base 4a5510bc and kind behavior. Reused evidence: contract 2/2, zero side effects 6/6, UI/history 3/3 and unchanged CLI compatibility 13/13, all without skips. No ADR or firmware-semantic change."
   }
 }

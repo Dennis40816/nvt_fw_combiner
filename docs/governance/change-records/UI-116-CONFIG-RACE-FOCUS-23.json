@@ -5,7 +5,7 @@
   "integrationBase": "4a5510bcbea58ed9308742d315858e44709fcf1c",
   "risk": "R1",
   "kind": "ui",
-  "state": "design-active",
+  "state": "final-complete",
   "mutablePaths": [
     "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/SettingsViewModel.EventBufferFormat.cs",
     "src/NvtFwCombiner.Presentation.Avalonia/Views/SettingsModal.axaml.cs",
@@ -26,12 +26,12 @@
     "outcome": "not-required",
     "evidence": "Owner-authorized bounded local R1 preflight at latest evidence checkpoint 4a5510bc. The intervening d6011fb2 and 64cdc0fd test-only synchronization commits leave every mutable path byte-identical. Existing typed publication, editor owner and Settings modal focus lifecycle are extended without public contract or firmware changes. Narrow UI red/green tests and exact-head independent review remain required."
   },
-  "implementationHead": null,
-  "reviewedHead": null,
-  "pathStateDigest": null,
+  "implementationHead": "3d9ec00da7e073aa576033c9881ef585f74b458e",
+  "reviewedHead": "3d9ec00da7e073aa576033c9881ef585f74b458e",
+  "pathStateDigest": "04d7bd1a4e02a7c62ab7d498ade08df2a1d9ec1277feb423fbd973e5fb3a23c9",
   "finalReview": {
-    "reviewer": null,
-    "outcome": "pending",
-    "evidence": ""
+    "reviewer": "/root/release116_config_final",
+    "outcome": "approved",
+    "evidence": "Fixed-head R1 correctness and scoped Polytail rebind approved at 3d9ec00d against 4a5510bc. All four mutable paths are byte-identical to the previously approved implementation. Reused focused evidence: publication 5/5, focus 3/3, lifecycle 5/5 and Reset 5/5, with the stale-row finding closed; no tests were relabeled as freshly executed."
   }
 }
