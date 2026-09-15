@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 2,
+  "taskId": "CLI-116-PR430-FIX-19",
+  "capability": "Preserve explicit AB CLI profile selection and report pre-run refusal without an unhandled exception",
+  "integrationBase": "985ac926cb15e4b532a2dde50f0bcf8bf533657f",
+  "risk": "R1",
+  "kind": "behavior",
+  "state": "design-active",
+  "mutablePaths": [
+    "src/NvtFwCombiner.Cli/AbMergeCliCommandHandler.cs",
+    "tests/NvtFwCombiner.Bootstrap.Tests/AbMergeCliCommandTests.cs",
+    "tests/NvtFwCombiner.Bootstrap.Tests/AbMergeCliCommandTests.FormatAdmission.cs"
+  ],
+  "implementationOwner": "/root",
+  "searchEvidence": [
+    "codegraph explore AbMerge CLI tests execution readiness profile selector",
+    "Read AbMergeCliCommandHandler, CliCompositionServices, ActiveSessionSnapshot, CompositionExecutionExperience and ADR 0072 runtime checkpoint",
+    "PR430 r4011487640/r4011487646 independently confirmed by release116_ab_final; owner approved the five fixes before implementation",
+    "cli-profile-red.trx reproduces three silent mismatching-profile successes with four positive controls"
+  ],
+  "semanticOwner": "Application AbMergeAuthoringExperience and CompositionExecutionExperience retain format admission and pre-run refusal; CLI preserves its selector and translates the existing exception boundary",
+  "terminalContract": "Exact profile ID constrains the accepted compiled profile; IC aliases retain automatic selection. Pre-run refusal returns composition-failed without output, invented report or weakened safety checks.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": null,
+    "outcome": "not-required",
+    "evidence": "Owner-authorized bounded local R1 corrections at c6d3ba5f; no firmware, profile, public contract, release policy or admission promotion change. New record provides current integration admission, not retroactive design approval."
+  },
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": {
+    "reviewer": null,
+    "outcome": "pending",
+    "evidence": ""
+  }
+}

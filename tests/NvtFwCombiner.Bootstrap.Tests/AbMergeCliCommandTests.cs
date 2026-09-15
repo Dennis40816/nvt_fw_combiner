@@ -10,7 +10,7 @@ using NvtFwCombiner.TestSupport;
 namespace NvtFwCombiner.Bootstrap.Tests;
 
 /// <summary>CLI admission tests for the owner-approved AB Merge pilot.</summary>
-public sealed class AbMergeCliCommandTests
+public sealed partial class AbMergeCliCommandTests
 {
     /// <summary>Global help advertises the optional topology token required by profiles such as NT51950.</summary>
     [Fact]

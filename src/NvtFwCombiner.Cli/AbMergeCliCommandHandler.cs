@@ -166,6 +166,16 @@ internal static class AbMergeCliCommandHandler
                 profile.IcId,
                 options.Values.GetValueOrDefault("--ab-topology"),
                 inputs, AbMergeDpMode.Normal, cancellationToken).ConfigureAwait(false);
+        if (prepared.Succeeded &&
+            StringComparer.OrdinalIgnoreCase.Equals(profileSelector.Trim(), profile.ProfileId) &&
+            !StringComparer.Ordinal.Equals(profile.ProfileId,
+                prepared.Snapshot!.ExactCapability!.CompiledComposition.V2Details.ProfileId))
+        {
+            await error.WriteLineAsync(
+                $"error: requested profile '{profile.ProfileId}' does not match detected profile '{prepared.Snapshot.ExactCapability.CompiledComposition.V2Details.ProfileId}'. Use an IC selector for automatic format selection.")
+                .ConfigureAwait(false);
+            return CompositionFailed;
+        }
         InputArtifactBinding[] bindings =
         [
             .. slotPaths.Select(pair => new InputArtifactBinding(pair.Key, pair.Key, pair.Value)),
