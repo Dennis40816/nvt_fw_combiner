@@ -807,3 +807,26 @@ growth/reduction/slice-equality protections and firmware/Golden/package/CI/
 release gates remain unchanged. There is no reserved or transferable capacity.
 The original 18-pass/1-fail code-size test result remains failure evidence;
 focused policy tests and final candidate verification must validate this change.
+
+## 2026-09-15 PR430 correction accounting
+
+The owner approves the exact five-correction increment at `df4a3435`: full
+production +128 nonblank lines, including runtime/host +18. Independent R2
+admission `GOV-116-PR430-EXACT-SIZE-21` preserves the existing measurement owner.
+
+| Metric | Exact total | Preserved base | Allowance |
+| --- | ---: | ---: | ---: |
+| Full production / warning baseline | 144,169 | 102,896 | 41,273 |
+| Runtime | 102,003 | 70,056 | 31,947 |
+| Bootstrap + CLI + Desktop host | 5,130 | 3,378 | 1,752 |
+
+CLI retains the accepted profile constraint and translates the existing pre-run
+refusal. Config Reload shares the session and reapplication owner; byte-specific
+automation names use MultiBinding; focus isolation remains in SettingsModal.
+Scoped minimality review found no obvious safe duplicate semantic path to cut.
+Domain/Profiles, Application and Infrastructure totals and allowances do not
+change. All counting, exclusions, ratchet bases, partial/duplicate and
+growth/reduction/slice-equality guards remain unchanged. No spare capacity,
+package-size, Golden, safety, CI or release exception is introduced. The
+pre-adjustment policy test result was 18 pass / 1 fail (144041 != 144169),
+not a pass; subsequent targeted and final candidate checks remain required.
