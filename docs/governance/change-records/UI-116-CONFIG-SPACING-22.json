@@ -5,7 +5,7 @@
   "integrationBase": "1670f3c66239e115a12eb0d9ebbd1f5dcfd384de",
   "risk": "R1",
   "kind": "ui",
-  "state": "design-active",
+  "state": "final-complete",
   "mutablePaths": [
     "src/NvtFwCombiner.Presentation.Avalonia/Resources/SettingsEventBufferFormatPageTemplate.axaml"
   ],
@@ -23,12 +23,12 @@
     "outcome": "not-required",
     "evidence": "Owner-authorized release correction; bounded local R1 preflight recorded in the task before editing. Exact one-line resource substitution, unchanged spacing value and source line count; reuse existing failing token contract plus shown Config UI tests. Full candidate and release gates remain required."
   },
-  "implementationHead": null,
-  "reviewedHead": null,
-  "pathStateDigest": null,
+  "implementationHead": "86fcc57e01cfffca6dba5852af5eef19f5117d5b",
+  "reviewedHead": "86fcc57e01cfffca6dba5852af5eef19f5117d5b",
+  "pathStateDigest": "9017eccad78175f319f3cc7d6056703af50e29e0c135b3dd3a8f252821fb39de",
   "finalReview": {
-    "reviewer": null,
-    "outcome": "pending",
-    "evidence": ""
+    "reviewer": "/root/release116_config_final",
+    "outcome": "approved",
+    "evidence": "Independent fixed-head review at 86fcc57e01cfffca6dba5852af5eef19f5117d5b approved the sole production change. Existing NfcSpace12 remains 12; no other policy or firmware mutation. Reviewer inspected actual narrow TRX35/35 and visual TRX3/3, zero skips. Root inspected narrow Traditional Chinese and wide Dark rendered controls with retained geometry. Scoped Polytail PASS, no findings. Full exact-candidate CI, Golden and release gates remain required."
   }
 }
