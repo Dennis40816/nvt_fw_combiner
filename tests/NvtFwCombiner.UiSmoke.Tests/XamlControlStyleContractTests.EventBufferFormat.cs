@@ -141,6 +141,12 @@ public sealed partial class XamlControlStyleContractTests
             Assert.False(save.IsEnabled);
             Assert.False(discard.IsEnabled);
             Assert.True(restore.IsEnabled);
+            Button reload = Assert.Single(editor.GetVisualDescendants().OfType<Button>(),
+                control => ReferenceEquals(control.Command, viewModel.Settings.ReloadEventBufferFormatCommand));
+            Assert.True(reload.IsEffectivelyEnabled);
+            Assert.Equal(viewModel.Text.EventBufferFormatReloadLabel, AutomationProperties.GetName(reload));
+            Assert.Equal(viewModel.Text.EventBufferFormatReloadHint, AutomationProperties.GetHelpText(reload));
+            AssertEventBufferFits(EventBufferBounds(reload, window), editorBounds);
 
             // Exercise production bindings and keyboard commands, not just the draft methods.
             EventBufferFormatDraftRowViewModel row = Assert.Single(viewModel.Settings.EventBufferFormatRows);
@@ -165,6 +171,7 @@ public sealed partial class XamlControlStyleContractTests
             RenderSettingsVersion(window);
             Assert.Equal([0xA6, 0x84], row.RecognitionValues);
             Assert.True(save.IsEnabled);
+            Assert.False(reload.IsEffectivelyEnabled);
             Assert.Equal(viewModel.Text.EventBufferFormatUnsavedChangesLabel, viewModel.Settings.EventBufferFormatDraftStatus);
             window.KeyPress(Key.Escape, RawInputModifiers.None, PhysicalKey.Escape, "");
             window.KeyRelease(Key.Escape, RawInputModifiers.None, PhysicalKey.Escape, "");

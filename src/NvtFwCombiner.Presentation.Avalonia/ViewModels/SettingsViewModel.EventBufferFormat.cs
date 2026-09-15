@@ -230,7 +230,13 @@ internal sealed partial class SettingsViewModel
 
     public bool CanConfirmEventBufferFormatClose => IsEventBufferFormatCloseConfirmationOpen && !IsEventBufferFormatBusy;
 
-    public string EventBufferFormatFooterStatus => IsEventBufferFormatBusy
+    public bool CanReloadEventBufferFormat => _eventBufferFormatConfigurationSessionFactory is not null &&
+        !IsEventBufferFormatLoading && !IsEventBufferFormatBusy && !HasEventBufferFormatUnsavedChanges &&
+        !IsEventBufferFormatCloseConfirmationOpen;
+
+    public string EventBufferFormatFooterStatus => IsEventBufferFormatLoading
+        ? _textProvider().EventBufferFormatLoadingLabel
+        : IsEventBufferFormatBusy
         ? _textProvider().EventBufferFormatSavingLabel
         : HasEventBufferFormatUnsavedChanges
             ? _textProvider().EventBufferFormatUnsavedChangesLabel
@@ -274,7 +280,7 @@ internal sealed partial class SettingsViewModel
         EventBufferFormatLoadTask = LoadEventBufferFormatAsync();
     }
 
-    private async Task LoadEventBufferFormatAsync()
+    private async Task LoadEventBufferFormatAsync(bool reapply = false)
     {
         if (_eventBufferFormatConfigurationSessionFactory is null)
         {
@@ -284,10 +290,14 @@ internal sealed partial class SettingsViewModel
         IsEventBufferFormatLoading = true;
         try
         {
-            _eventBufferFormatConfigurationSession = await _eventBufferFormatConfigurationSessionFactory(CancellationToken.None);
+            _eventBufferFormatConfigurationSession ??= await _eventBufferFormatConfigurationSessionFactory(CancellationToken.None);
             EventBufferFormatConfigurationOperationResult result = await _eventBufferFormatConfigurationSession
                 .ReloadAsync(CancellationToken.None);
             ApplyEventBufferFormatState(result, preferDefaultsForUnavailable: true);
+            if (reapply)
+            {
+                await ReapplyEventBufferFormatStateAsync();
+            }
         }
         catch (Exception)
         {
@@ -297,7 +307,38 @@ internal sealed partial class SettingsViewModel
         finally
         {
             IsEventBufferFormatLoading = false;
+            ReloadEventBufferFormatCommand.NotifyCanExecuteChanged();
         }
+    }
+
+    [RelayCommand(CanExecute = nameof(CanReloadEventBufferFormat))]
+    private async Task ReloadEventBufferFormatAsync()
+    {
+        if (!CanReloadEventBufferFormat) { return; }
+        IsEventBufferFormatBusy = true;
+        try
+        {
+            await LoadEventBufferFormatAsync(reapply: true);
+        }
+        finally
+        {
+            IsEventBufferFormatBusy = false;
+        }
+    }
+
+    private async Task ReapplyEventBufferFormatStateAsync()
+    {
+        try
+        {
+            _eventBufferFormatReapplyFailed = ReapplyEventBufferFormatAsync is not null &&
+                !await ReapplyEventBufferFormatAsync();
+        }
+        catch (Exception)
+        {
+            // The configuration publication is already complete; report refresh failure separately.
+            _eventBufferFormatReapplyFailed = true;
+        }
+        RefreshEventBufferFormatLabels();
     }
 
     [RelayCommand(CanExecute = nameof(CanSaveEventBufferFormat))]
@@ -317,17 +358,7 @@ internal sealed partial class SettingsViewModel
             {
                 _eventBufferFormatReapplyFailed = false;
                 ApplyEventBufferFormatState(result, preferDefaultsForUnavailable: false);
-                try
-                {
-                    _eventBufferFormatReapplyFailed = ReapplyEventBufferFormatAsync is not null &&
-                        !await ReapplyEventBufferFormatAsync();
-                }
-                catch (Exception)
-                {
-                    // Persistence already succeeded. Keep its baseline and report the separate refresh failure.
-                    _eventBufferFormatReapplyFailed = true;
-                }
-                RefreshEventBufferFormatLabels();
+                await ReapplyEventBufferFormatStateAsync();
             }
             else
             {
@@ -447,6 +478,7 @@ internal sealed partial class SettingsViewModel
         SaveEventBufferFormatCommand.NotifyCanExecuteChanged();
         DiscardEventBufferFormatChangesCommand.NotifyCanExecuteChanged();
         RestoreEventBufferFormatDefaultsCommand.NotifyCanExecuteChanged();
+        ReloadEventBufferFormatCommand.NotifyCanExecuteChanged();
     }
 
     private EventBufferFormatOutputPresentation FormatEventBufferFormatEffects(string? uniqueId)
@@ -485,6 +517,7 @@ internal sealed partial class SettingsViewModel
             SaveEventBufferFormatCommand.NotifyCanExecuteChanged();
             DiscardEventBufferFormatChangesCommand.NotifyCanExecuteChanged();
             RestoreEventBufferFormatDefaultsCommand.NotifyCanExecuteChanged();
+            ReloadEventBufferFormatCommand.NotifyCanExecuteChanged();
         }
     }
 
@@ -518,6 +551,7 @@ internal sealed partial class SettingsViewModel
 
     partial void OnIsEventBufferFormatBusyChanged(bool value)
     {
+        ReloadEventBufferFormatCommand.NotifyCanExecuteChanged();
         SetEventBufferFormatRowsEditingEnabled(!value);
         SaveEventBufferFormatCommand.NotifyCanExecuteChanged();
         RestoreEventBufferFormatDefaultsCommand.NotifyCanExecuteChanged();
@@ -527,6 +561,7 @@ internal sealed partial class SettingsViewModel
 
     partial void OnIsEventBufferFormatCloseConfirmationOpenChanged(bool value)
     {
+        ReloadEventBufferFormatCommand.NotifyCanExecuteChanged();
         ConfirmEventBufferFormatCloseCommand.NotifyCanExecuteChanged();
     }
 

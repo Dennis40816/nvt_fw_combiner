@@ -13,6 +13,62 @@ namespace NvtFwCombiner.UiSmoke.Tests;
 
 public sealed partial class ShellNavigationSystemTests
 {
+    /// <summary>Explicit reload accepts external changes and cannot replace an unsaved editor draft.</summary>
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task EventBufferFormatExplicitReloadRecoversExternalChangesWithoutDiscardingDraft(bool invalid)
+    {
+        var storage = new EventBufferFormatStorage();
+        using var session = new EventBufferFormatConfigurationSession(
+            "event-buffer-format", [new("desay", "Desay")], [new("desay", null, [0x97])], storage);
+        MainWindowViewModel viewModel = CreateEventBufferFormatViewModel(session);
+        viewModel.Settings.SelectSectionCommand.Execute(SettingsSection.EventBufferFormat);
+        await viewModel.Settings.EventBufferFormatLoadTask;
+        CommunityToolkit.Mvvm.Input.IAsyncRelayCommand reload = viewModel.Settings.ReloadEventBufferFormatCommand;
+        int reapplies = 0;
+        viewModel.Settings.ReapplyEventBufferFormatAsync = () => { reapplies++; return Task.FromResult(true); };
+        EventBufferFormatDraftRowViewModel row = Assert.Single(viewModel.Settings.EventBufferFormatRows);
+        row.AliasName = "Unsaved";
+        storage.Stored = new(new(1, invalid ? "wrong-scope" : "event-buffer-format",
+            [new("desay", "External", ["0xA6"])]), new string('b', 64));
+        Assert.False(reload.CanExecute(null));
+        await reload.ExecuteAsync(null);
+        Assert.Equal("Unsaved", row.AliasName);
+        Assert.Equal(0, reapplies);
+        viewModel.Settings.DiscardEventBufferFormatChangesCommand.Execute(null);
+        Assert.True(reload.CanExecute(null));
+        var readHold = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        storage.ReadHold = readHold;
+        Task loading = reload.ExecuteAsync(null);
+        try
+        {
+            Assert.True(viewModel.Settings.IsEventBufferFormatLoading);
+            Assert.False(reload.CanExecute(null));
+            Assert.False(viewModel.Settings.CanSaveEventBufferFormat);
+            Assert.False(viewModel.Settings.RequestSettingsClose());
+        }
+        finally
+        {
+            readHold.SetResult();
+        }
+        await loading;
+        Assert.Equal(1, reapplies);
+        Assert.False(viewModel.Settings.HasEventBufferFormatUnsavedChanges);
+        Assert.Equal(invalid ? EventBufferFormatConfigurationStatus.Invalid : EventBufferFormatConfigurationStatus.Ready,
+            session.Current.Status);
+        if (invalid)
+        {
+            Assert.Null(session.Current.Configuration);
+            Assert.Equal(viewModel.Text.EventBufferFormatScopeMismatchLabel, viewModel.Settings.EventBufferFormatStatus);
+        }
+        else
+        {
+            Assert.Equal("External", Assert.Single(viewModel.Settings.EventBufferFormatRows).AliasName);
+            Assert.Equal([0xA6], Assert.Single(viewModel.Settings.EventBufferFormatRows).RecognitionValues);
+        }
+    }
+
     /// <summary>Declaration-only slots have honest pending-size text; exact contracts retain numeric requirements.</summary>
     [Theory]
     [InlineData(false, "dp-ab")]
@@ -39,6 +95,7 @@ public sealed partial class ShellNavigationSystemTests
     [InlineData("standard")]
     [InlineData("replace")]
     [InlineData("failure")]
+    [InlineData("reload")]
     public async Task EventBufferFormatSaveReappliesLoadedAbInputsWithoutFileReload(string context)
     {
         using TempWorkspace workspace = TempWorkspace.Create("ui-ab-config-reapply");
@@ -63,9 +120,18 @@ public sealed partial class ShellNavigationSystemTests
         viewModel.OpenSettingsCommand.Execute(null);
         viewModel.Settings.SelectSectionCommand.Execute(SettingsSection.EventBufferFormat);
         await viewModel.Settings.EventBufferFormatLoadTask;
-        Assert.Single(viewModel.Settings.EventBufferFormatRows).RecognitionValues.Clear();
-        if (context == "failure") { Assert.Single(viewModel.Settings.EventBufferFormatRows).RecognitionValues.Add(0xA6); }
-        await viewModel.Settings.SaveEventBufferFormatCommand.ExecuteAsync(null);
+        if (context == "reload")
+        {
+            IEventBufferFormatConfigurationSession configuration = await host.GetEventBufferFormatConfigurationAsync(TestContext.Current.CancellationToken);
+            Assert.True((await configuration.SaveAsync([new("desay", null, [])], TestContext.Current.CancellationToken)).Succeeded);
+            await viewModel.Settings.ReloadEventBufferFormatCommand.ExecuteAsync(null);
+        }
+        else
+        {
+            Assert.Single(viewModel.Settings.EventBufferFormatRows).RecognitionValues.Clear();
+            if (context == "failure") { Assert.Single(viewModel.Settings.EventBufferFormatRows).RecognitionValues.Add(0xA6); }
+            await viewModel.Settings.SaveEventBufferFormatCommand.ExecuteAsync(null);
+        }
         if (context == "failure")
         {
             Assert.True(slot.BlocksBuild);
@@ -556,11 +622,16 @@ public sealed partial class ShellNavigationSystemTests
         internal Exception? WriteError { get; set; }
         internal Exception? ReadError { get; set; }
         internal TaskCompletionSource? WriteHold { get; set; }
+        internal TaskCompletionSource? ReadHold { get; set; }
 
-        public ValueTask<EventBufferFormatStoredConfiguration?> ReadAsync(CancellationToken cancellationToken)
+        public async ValueTask<EventBufferFormatStoredConfiguration?> ReadAsync(CancellationToken cancellationToken)
         {
+            if (ReadHold is { } hold)
+            {
+                await hold.Task.WaitAsync(cancellationToken);
+            }
             cancellationToken.ThrowIfCancellationRequested();
-            return ReadError is { } error ? throw error : ValueTask.FromResult(Stored);
+            return ReadError is { } error ? throw error : Stored;
         }
 
         public async ValueTask<string> WriteAsync(

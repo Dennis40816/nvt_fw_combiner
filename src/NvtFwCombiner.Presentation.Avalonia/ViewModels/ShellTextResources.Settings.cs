@@ -44,6 +44,10 @@ internal sealed partial class ShellTextResources
 
     public string EventBufferFormatSaveApplyLabel { get; private init; } = string.Empty;
 
+    public string EventBufferFormatReloadLabel { get; private init; } = string.Empty;
+
+    public string EventBufferFormatReloadHint { get; private init; } = string.Empty;
+
     public string EventBufferFormatNoUnsavedChangesLabel { get; private init; } = string.Empty;
 
     public string EventBufferFormatUnsavedChangesLabel { get; private init; } = string.Empty;

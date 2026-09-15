@@ -38,7 +38,15 @@
           <TextBlock Classes="supportingText" Text="/" />
           <TextBlock Classes="supportingText" Text="{Binding Text.EventBufferFormatTitle}" />
         </StackPanel>
-        <TextBlock Classes="pageTitle" Text="{Binding Text.EventBufferFormatTitle}" TextWrapping="Wrap" />
+        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+          <TextBlock Classes="pageTitle" Text="{Binding Text.EventBufferFormatTitle}" TextWrapping="Wrap" />
+          <Button Grid.Column="1" Classes="semanticAction secondary"
+              AutomationProperties.Name="{Binding Text.EventBufferFormatReloadLabel}"
+              AutomationProperties.HelpText="{Binding Text.EventBufferFormatReloadHint}"
+              ToolTip.Tip="{Binding Text.EventBufferFormatReloadHint}"
+              Command="{Binding Settings.ReloadEventBufferFormatCommand}"
+              Content="{Binding Text.EventBufferFormatReloadLabel}" />
+        </Grid>
         <TextBlock Classes="pageSubtitle" Text="{Binding Text.EventBufferFormatSubtitle}" TextWrapping="Wrap" />
         <Border Margin="0,20,0,0" BorderBrush="{DynamicResource NfcDividerBrush}" BorderThickness="0,0,0,1" />
       </StackPanel>
