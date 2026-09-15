@@ -1,5 +1,7 @@
+using System.Collections.Specialized;
 using System.ComponentModel;
 using Avalonia;
+using Avalonia.Automation;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
@@ -20,6 +22,7 @@ public sealed partial class SettingsModal : UserControl
     private TopLevel? _owningTopLevel;
     private SettingsViewModel? _settings;
     private IInputElement? _confirmationReturnFocus;
+    private readonly HashSet<EventBufferFormatDraftRowViewModel> _observedFormatRows = [];
 
     /// <summary>Initializes the generated view.</summary>
     public SettingsModal()
@@ -54,16 +57,98 @@ public sealed partial class SettingsModal : UserControl
     {
         _owningTopLevel?.RemoveHandler(KeyDownEvent, SettingsModal_OnKeyDown);
         _owningTopLevel = null;
-        _settings?.PropertyChanged -= Settings_OnPropertyChanged;
+        StopObservingSettings();
         _settings = null;
         _confirmationReturnFocus = null;
     }
 
     private void ObserveSettings()
     {
-        _settings?.PropertyChanged -= Settings_OnPropertyChanged;
+        StopObservingSettings();
         _settings = VisualRoot is not null ? (DataContext as MainWindowViewModel)?.Settings : null;
-        _settings?.PropertyChanged += Settings_OnPropertyChanged;
+        if (_settings is null)
+        {
+            return;
+        }
+
+        _settings.PropertyChanged += Settings_OnPropertyChanged;
+        _settings.EventBufferFormatRows.CollectionChanged += FormatRows_OnCollectionChanged;
+        foreach (EventBufferFormatDraftRowViewModel row in _settings.EventBufferFormatRows)
+        {
+            ObserveFormatRow(row);
+        }
+    }
+
+    private void StopObservingSettings()
+    {
+        if (_settings is not null)
+        {
+            _settings.PropertyChanged -= Settings_OnPropertyChanged;
+            _settings.EventBufferFormatRows.CollectionChanged -= FormatRows_OnCollectionChanged;
+        }
+        foreach (EventBufferFormatDraftRowViewModel row in _observedFormatRows)
+        {
+            row.PropertyChanged -= FormatRow_OnPropertyChanged;
+        }
+
+        _observedFormatRows.Clear();
+    }
+
+    private void FormatRows_OnCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
+    {
+        if (e.OldItems is not null)
+        {
+            foreach (EventBufferFormatDraftRowViewModel row in e.OldItems)
+            {
+                row.PropertyChanged -= FormatRow_OnPropertyChanged;
+                _ = _observedFormatRows.Remove(row);
+            }
+        }
+
+        if (e.NewItems is not null)
+        {
+            foreach (EventBufferFormatDraftRowViewModel row in e.NewItems)
+            {
+                ObserveFormatRow(row);
+            }
+        }
+    }
+
+    private void ObserveFormatRow(EventBufferFormatDraftRowViewModel row)
+    {
+        if (!_observedFormatRows.Add(row))
+        {
+            return;
+        }
+
+        row.PropertyChanged += FormatRow_OnPropertyChanged;
+    }
+
+    private void FormatRow_OnPropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName != nameof(EventBufferFormatDraftRowViewModel.IsAddingRecognitionValue) ||
+            sender is not EventBufferFormatDraftRowViewModel row)
+        {
+            return;
+        }
+
+        bool adding = row.IsAddingRecognitionValue;
+        Dispatcher.UIThread.Post(() =>
+        {
+            if (!IsOpen || row.IsAddingRecognitionValue != adding)
+            {
+                return;
+            }
+
+            Control? target = adding
+                ? this.GetVisualDescendants().OfType<TextBox>().FirstOrDefault(control =>
+                    ReferenceEquals(control.DataContext, row) &&
+                    control.IsEffectivelyVisible &&
+                    control.GetValue(AutomationProperties.NameProperty) == row.RecognitionValueLabel)
+                : this.GetVisualDescendants().OfType<Button>().FirstOrDefault(control =>
+                    ReferenceEquals(control.Command, row.BeginAddRecognitionValueCommand) && control.IsEffectivelyVisible);
+            _ = target?.Focus(NavigationMethod.Tab);
+        }, DispatcherPriority.Input);
     }
 
     private void Settings_OnPropertyChanged(object? sender, PropertyChangedEventArgs e)
@@ -146,7 +231,14 @@ public sealed partial class SettingsModal : UserControl
             return;
         }
 
-        if (viewModel.Settings.IsEventBufferFormatCloseConfirmationOpen)
+        if (_owningTopLevel?.FocusManager?.GetFocusedElement() is Control
+            {
+                DataContext: EventBufferFormatDraftRowViewModel row,
+            } && row.IsAddingRecognitionValue)
+        {
+            row.CancelAddRecognitionValueCommand.Execute(null);
+        }
+        else if (viewModel.Settings.IsEventBufferFormatCloseConfirmationOpen)
         {
             viewModel.Settings.CancelEventBufferFormatCloseCommand.Execute(null);
         }

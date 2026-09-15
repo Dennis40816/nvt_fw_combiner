@@ -162,12 +162,24 @@ public sealed partial class XamlControlStyleContractTests
             Assert.True(row.IsAddingRecognitionValue);
             TextBox byteInput = Assert.Single(editor.GetVisualDescendants().OfType<TextBox>(),
                 control => control.IsEffectivelyVisible && control.Text == "0x");
+            Assert.Same(byteInput, window.FocusManager?.GetFocusedElement());
             byteInput.Text = "0x84";
             RenderSettingsVersion(window);
             Assert.Equal("0x84", row.RecognitionValueDraft);
             PressSettingsControl(window, Action(row.AddRecognitionValueCommand));
             RenderSettingsVersion(window);
             Assert.Equal([0x97, 0xA6, 0x84], row.RecognitionValues);
+            Assert.Same(Action(row.BeginAddRecognitionValueCommand), window.FocusManager?.GetFocusedElement());
+
+            PressSettingsControl(window, Action(row.BeginAddRecognitionValueCommand));
+            RenderSettingsVersion(window);
+            Assert.Same(byteInput, window.FocusManager?.GetFocusedElement());
+            window.KeyPress(Key.Escape, RawInputModifiers.None, PhysicalKey.Escape, "");
+            window.KeyRelease(Key.Escape, RawInputModifiers.None, PhysicalKey.Escape, "");
+            RenderSettingsVersion(window);
+            Assert.True(viewModel.IsSettingsModalOpen);
+            Assert.False(row.IsAddingRecognitionValue);
+            Assert.Same(Action(row.BeginAddRecognitionValueCommand), window.FocusManager?.GetFocusedElement());
             Button remove = Assert.Single(editor.GetVisualDescendants().OfType<Button>(),
                 control => control.Command == row.RemoveRecognitionValueCommand && control.CommandParameter is 0x97);
             PressSettingsControl(window, remove);

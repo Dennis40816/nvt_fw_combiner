@@ -103,6 +103,14 @@ internal sealed partial class EventBufferFormatDraftRowViewModel : ObservableObj
     }
 
     [RelayCommand(CanExecute = nameof(CanEditRecognitionValues))]
+    private void CancelAddRecognitionValue()
+    {
+        RecognitionValueDraft = "0x";
+        RecognitionValueValidationMessage = string.Empty;
+        IsAddingRecognitionValue = false;
+    }
+
+    [RelayCommand(CanExecute = nameof(CanEditRecognitionValues))]
     private void RemoveRecognitionValue(int value)
     {
         _ = RecognitionValues.Remove(value);
@@ -149,6 +157,7 @@ internal sealed partial class EventBufferFormatDraftRowViewModel : ObservableObj
 
         BeginAddRecognitionValueCommand.NotifyCanExecuteChanged();
         AddRecognitionValueCommand.NotifyCanExecuteChanged();
+        CancelAddRecognitionValueCommand.NotifyCanExecuteChanged();
         RemoveRecognitionValueCommand.NotifyCanExecuteChanged();
     }
 
