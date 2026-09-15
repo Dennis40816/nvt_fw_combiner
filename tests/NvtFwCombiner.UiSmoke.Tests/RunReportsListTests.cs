@@ -59,7 +59,7 @@ public sealed partial class RunReportsListTests
                 .OfType<Avalonia.Controls.Primitives.ToggleButton>().Where(button => button.Classes.Contains("messageCenterNavigationItem")))
             {
                 TextBlock label = navigation.GetVisualDescendants().OfType<TextBlock>().Single();
-                Assert.Equal(FontWeight.ExtraBold, label.FontWeight);
+                Assert.Equal(FontWeight.SemiBold, label.FontWeight);
                 double textCenter = label.TranslatePoint(new Point(0, label.TextLayout.Height / 2), navigation)!.Value.Y;
                 global::Avalonia.Controls.Shapes.Path icon = navigation.GetVisualDescendants().OfType<global::Avalonia.Controls.Shapes.Path>().Single();
                 double iconCenter = icon.TranslatePoint(new Point(0, icon.Bounds.Height / 2), navigation)!.Value.Y;

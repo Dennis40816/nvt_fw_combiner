@@ -56,7 +56,7 @@
               <Grid ColumnDefinitions="26,*" ColumnSpacing="{DynamicResource NfcSpace12}">
                 <Path Width="18" Height="18" Data="M3 4H15 M3 9H15 M3 14H15 M1 4H1.2 M1 9H1.2 M1 14H1.2"
                     Stretch="Uniform" Stroke="{DynamicResource NfcTextSecondaryBrush}" StrokeThickness="1.8" StrokeLineCap="Round" />
-                <TextBlock Grid.Column="1" VerticalAlignment="Center" Classes="bodyStrongText" FontSize="{DynamicResource NfcFontSize14}" FontWeight="ExtraBold" Text="{Binding Text.RunReportsLabel}" />
+                <TextBlock Grid.Column="1" VerticalAlignment="Center" Classes="bodyStrongText" FontSize="{DynamicResource NfcFontSize14}" FontWeight="SemiBold" Text="{Binding Text.RunReportsLabel}" />
               </Grid>
             </RadioButton>
             <RadioButton
@@ -66,7 +66,7 @@
               <Grid ColumnDefinitions="26,*" ColumnSpacing="{DynamicResource NfcSpace12}">
                 <Path Width="18" Height="18" Data="M9 1A8 8 0 1 0 9 17A8 8 0 1 0 9 1 M9 5A4 4 0 1 0 9 13A4 4 0 1 0 9 5"
                     Stretch="Uniform" Stroke="{DynamicResource NfcTextSecondaryBrush}" StrokeThickness="1.6" />
-                <TextBlock Grid.Column="1" VerticalAlignment="Center" Classes="bodyStrongText" FontSize="{DynamicResource NfcFontSize14}" FontWeight="ExtraBold" Text="{Binding Text.SystemActivityTitle}" />
+                <TextBlock Grid.Column="1" VerticalAlignment="Center" Classes="bodyStrongText" FontSize="{DynamicResource NfcFontSize14}" FontWeight="SemiBold" Text="{Binding Text.SystemActivityTitle}" />
               </Grid>
             </RadioButton>
           </StackPanel>
