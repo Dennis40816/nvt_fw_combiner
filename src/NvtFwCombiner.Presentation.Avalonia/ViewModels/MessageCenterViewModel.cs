@@ -13,6 +13,7 @@ internal sealed partial class MessageCenterViewModel : ObservableObject
     private readonly IExternalProcessorEnvironmentLoader _externalEnvironment;
     private readonly ISystemDiagnosticsExporter _exporter;
     private readonly Action<bool> _diagnosticsChanged;
+    private readonly Func<CancellationToken, Task>? _externalEnvironmentChanged;
     private Task? _activeRefresh;
     private bool _activeRefreshReloadsCatalog;
 
@@ -22,7 +23,8 @@ internal sealed partial class MessageCenterViewModel : ObservableObject
         IExternalProcessorEnvironmentLoader externalEnvironment,
         ISystemDiagnosticsExporter exporter,
         ReportPresentationViewModel reports,
-        Action<bool> diagnosticsChanged)
+        Action<bool> diagnosticsChanged,
+        Func<CancellationToken, Task>? externalEnvironmentChanged = null)
     {
         _textProvider = textProvider ?? throw new ArgumentNullException(nameof(textProvider));
         _systemInformation = systemInformation ?? throw new ArgumentNullException(nameof(systemInformation));
@@ -30,6 +32,7 @@ internal sealed partial class MessageCenterViewModel : ObservableObject
         _exporter = exporter ?? throw new ArgumentNullException(nameof(exporter));
         Reports = reports ?? throw new ArgumentNullException(nameof(reports));
         _diagnosticsChanged = diagnosticsChanged ?? throw new ArgumentNullException(nameof(diagnosticsChanged));
+        _externalEnvironmentChanged = externalEnvironmentChanged;
         OpenCommand = new RelayCommand(Open);
         CloseCommand = new RelayCommand(Close);
         OpenRunReportsCommand = new RelayCommand(() =>
@@ -222,6 +225,10 @@ internal sealed partial class MessageCenterViewModel : ObservableObject
         {
             case ExternalProcessorEnvironmentLoadOutcome.Succeeded:
                 await RefreshAsync(reloadCatalog: false, cancellationToken);
+                if (_externalEnvironmentChanged is not null)
+                {
+                    await _externalEnvironmentChanged(cancellationToken);
+                }
                 return;
             case ExternalProcessorEnvironmentLoadOutcome.Superseded:
                 throw new ShellPreloadSupersededException();
@@ -360,6 +367,10 @@ internal sealed partial class MessageCenterViewModel : ObservableObject
             _ = await _externalEnvironment.LoadToCompletionAsync(progress: null, cancellationToken);
             PresentationObserver.Invoke(() => OnPropertyChanged(nameof(ExternalEnvironmentSummary)));
             await RefreshAsync(reloadCatalog: true, cancellationToken);
+            if (_externalEnvironmentChanged is not null)
+            {
+                await _externalEnvironmentChanged(cancellationToken);
+            }
         }
         finally
         {

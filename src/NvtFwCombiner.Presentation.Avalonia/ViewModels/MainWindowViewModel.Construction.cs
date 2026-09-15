@@ -162,7 +162,8 @@ internal sealed partial class MainWindowViewModel
             hostServices.ExternalEnvironmentLoader,
             systemDiagnosticsExporter ?? hostServices.SystemDiagnosticsExporter,
             Reports,
-            MessageCenterDiagnosticsChanged);
+            MessageCenterDiagnosticsChanged,
+            RefreshRuntimeReadinessAfterPublicationAsync);
         MessageCenter.PropertyChanged += MessageCenter_OnPropertyChanged;
         ApplyTextResources(language, notify: false);
         RelayCommand CreateCatalogCommand(Action execute, params string[] workflowIds)

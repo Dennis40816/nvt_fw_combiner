@@ -32,6 +32,12 @@ internal sealed partial class MainWindowViewModel
         return MessageCenter.IsGlobalBuildBlocked;
     }
 
+    private async Task RefreshRuntimeReadinessAfterPublicationAsync(CancellationToken cancellationToken)
+    {
+        await Replace.RefreshCtrlRamActionReadinessAsync(cancellationToken);
+        MessageCenterDiagnosticsChanged(catalogPublicationChanged: false);
+    }
+
     private void MessageCenterDiagnosticsChanged(bool catalogPublicationChanged)
     {
         if (catalogPublicationChanged)
