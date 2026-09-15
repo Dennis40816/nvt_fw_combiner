@@ -43,7 +43,7 @@ CAPABILITY_POLICY_RELATIVE_PATH = Path(
 )
 CAPABILITY_POLICY_ROLE = "capabilityPolicy"
 CAPABILITY_POLICY_SHA256 = (
-    "bdaf79abc47aa2a7ffbef936ac4ad9758c331604bfc722487dfb5a90df1683bd"
+    "f283eb6079ed59cb2441909de8b4c248683e988d2ecd0da19fcae19a5a0b07d3"
 )
 RUNTIME_CAPABILITY_POLICY = (
     ROOT
@@ -80,6 +80,9 @@ PERSONAL_OWNER_IDENTIFIER = "Dennis40816"
 DISTRIBUTION_OWNER = "MSP/FW3"
 SOURCE_IDENTITY = "urn:msp-fw3:nvt-fw-combiner:source"
 HISTORICAL_VERIFICATION_URLS = (
+    "https://github.com/Dennis40816/nvt_fw_combiner/releases/tag/v1.1.5",
+    "https://github.com/Dennis40816/nvt_fw_combiner/pull/429",
+    "https://github.com/Dennis40816/nvt_fw_combiner/actions/runs/34736501547",
     "https://github.com/Dennis40816/nvt_fw_combiner/actions/runs/33974287659",
     "https://github.com/Dennis40816/nvt_fw_combiner/pull/426#discussion_r3941065650",
     "https://github.com/Dennis40816/nvt_fw_combiner/releases/tag/v1.1.3",

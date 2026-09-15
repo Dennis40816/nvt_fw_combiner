@@ -20,7 +20,7 @@ internal sealed partial class BuiltInFirmwareInspection : IFirmwareInspection
     private readonly ICompositionCapabilityExperience _projection;
     private readonly ICompiledInputSlotInspector<FirmwareInspectionStatusBatch>
         _standardMergeAuthoring;
-    private readonly ICompiledInputSlotInspector<AbMergeInspectionBatch>
+    private readonly IAbMergeInputSlotInspector
         _abMergeAuthoring;
     private readonly ICompiledInputSlotInspector<FirmwareInspectionStatusBatch>
         _dpReplaceAuthoring;
@@ -33,7 +33,7 @@ internal sealed partial class BuiltInFirmwareInspection : IFirmwareInspection
         IFirmwareMetadataPlanAuthorityResolver metadataPlanAuthority,
         ICompositionCapabilityExperience projection,
         ICompiledInputSlotInspector<FirmwareInspectionStatusBatch> standardMergeAuthoring,
-        ICompiledInputSlotInspector<AbMergeInspectionBatch> abMergeAuthoring,
+        IAbMergeInputSlotInspector abMergeAuthoring,
         ICompiledInputSlotInspector<FirmwareInspectionStatusBatch> dpReplaceAuthoring,
         ICompiledInputSlotInspector<FirmwareInspectionStatusBatch> ctrlRamAuthoring,
         IFirmwareArtifactClassificationResolver artifactClassification,
@@ -85,7 +85,8 @@ internal sealed partial class BuiltInFirmwareInspection : IFirmwareInspection
         string icId,
         IReadOnlyList<FirmwareInspectionSnapshotInput> inputs,
         Func<string, byte[]?> readFirmwareImage,
-        FirmwareInspectionDispatch dispatch = FirmwareInspectionDispatch.TypedApplicable)
+        FirmwareInspectionDispatch dispatch = FirmwareInspectionDispatch.TypedApplicable,
+        AbMergeInspectionBatch? capturedAbBatch = null)
     {
         ValidateInspectionInputs(icId, inputs);
         ArgumentNullException.ThrowIfNull(readFirmwareImage);
@@ -115,10 +116,10 @@ internal sealed partial class BuiltInFirmwareInspection : IFirmwareInspection
             inputs.Any(static input => input.CtrlRamReplaceAddressSpaceId is not null)
                 ? inspection._ctrlRamAuthoring.InspectInputSlots(icId, inputs, ReadOnce)
                 : FirmwareInspectionStatusBatch.Empty;
-        AbMergeInspectionBatch abMergeInputBatch = inspectAll ||
-            inputs.Any(static input => input.AbMergeAddressSpaceId is not null)
-                ? inspection._abMergeAuthoring.InspectInputSlots(icId, inputs, ReadOnce)
-                : AbMergeInspectionBatch.Empty;
+        AbMergeInspectionBatch abMergeInputBatch = capturedAbBatch ??
+            (inputs.Any(static input => input.AbMergeAddressSpaceId is not null)
+                ? throw new InvalidOperationException("AB assembly requires the explicitly captured asynchronous inspection batch.")
+                : AbMergeInspectionBatch.Empty);
         List<FirmwareInspectionSnapshotResult> results = [];
         foreach (FirmwareInspectionSnapshotInput input in inputs)
         {

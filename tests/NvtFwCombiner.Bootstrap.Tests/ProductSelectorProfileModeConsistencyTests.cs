@@ -71,19 +71,28 @@ public sealed class ProductSelectorProfileModeConsistencyTests
             choices.Select(static choice => choice.Token).Order(StringComparer.Ordinal));
         foreach (CapabilityTopologyChoice choice in choices)
         {
-            // Optional-DP AB routes are compiled on demand, not eagerly present
-            // in snapshot.Capabilities. Exercise the same published compiler.
-            Assert.Contains(snapshot.DynamicRoutes, route =>
-                route.Identity.IcId == icId && route.Identity.WorkflowId == ExperienceIds.AbMerge &&
-                route.Authoring.Value == CapabilityAuthoringAvailability.Available &&
-                route.AbMergeTopologyChoice == choice);
-            Assert.True(host.Compiler.TryCompileAbMerge(icId, choice.Selection,
-                out CompiledComposition? composition, out IReadOnlyList<CompositionIssue> issues),
-                string.Join(',', issues.Select(static issue => issue.Code)));
-            CompiledComposition compiled = Assert.IsType<CompiledComposition>(composition);
-            Assert.True(compiled.V2Details.Provenance.ResolvedMap.ImageMap.Applicability
-                .TopologyRequirement.Matches(choice.Selection));
-            Assert.Null(compiled.V2Details.IcNumberInputMode);
+            // One selector choice can now disclose more than one format-specific AB route.
+            // Compile every exact publication rather than reviving the intentionally ambiguous
+            // IC-plus-topology convenience lookup.
+            ResolvedCapabilityRoute[] routes =
+            [
+                .. snapshot.DynamicRoutes.Where(route =>
+                    route.Identity.IcId == icId && route.Identity.WorkflowId == ExperienceIds.AbMerge &&
+                    route.Authoring.Value == CapabilityAuthoringAvailability.Available &&
+                    route.AbMergeTopologyChoice == choice),
+            ];
+            Assert.NotEmpty(routes);
+            foreach (ResolvedCapabilityRoute route in routes)
+            {
+                Assert.True(host.Compiler.TryCompilePublishedDynamicCapability(route.Identity, null, null,
+                    out CompiledComposition? composition, out _, out IReadOnlyList<CompositionIssue> issues,
+                    route.AbMergeTopologyChoice!.Selection),
+                    string.Join(',', issues.Select(static issue => issue.Code)));
+                CompiledComposition compiled = Assert.IsType<CompiledComposition>(composition);
+                Assert.True(compiled.V2Details.Provenance.ResolvedMap.ImageMap.Applicability
+                    .TopologyRequirement.Matches(choice.Selection));
+                Assert.Null(compiled.V2Details.IcNumberInputMode);
+            }
         }
     }
 

@@ -1,0 +1,54 @@
+{
+  "schemaVersion": 2,
+  "taskId": "CONFIG-116-PRIMARY-04",
+  "capability": "Canonical primary FWConfig observations for NT51950/NT51951 AB inputs",
+  "integrationBase": "f9db4ef039be1c7a08e0b83f11133dbc1a0fe049",
+  "risk": "R3",
+  "kind": "behavior",
+  "state": "final-complete",
+  "mutablePaths": [
+    "profiles/built-in/nt51950-ab-merge/families/nt51950-ab-merge.json",
+    "profiles/built-in/nt51950-ab-merge/profiles/nt51950-ab-merge.json",
+    "profiles/built-in/nt51950-ab-merge/profiles/nt51951-ab-merge.json",
+    "profiles/built-in/nt51950-ab-merge/profile-bundle.json",
+    "profiles/built-in/package-trust-index.json",
+    "docs/contracts/canonical-capability-policy-v1.json",
+    "src/NvtFwCombiner.Infrastructure/Capabilities/BuiltInCanonicalCapabilityPolicy.cs",
+    "tests/NvtFwCombiner.Infrastructure.Tests/Capabilities/BuiltInCanonicalCapabilityPolicyTests.cs",
+    "docs/adr/0012-cmi-dp-and-nvt-fwconfig-metadata.md",
+    "docs/adr/0072-event-buffer-format-configuration.md",
+    "tests/NvtFwCombiner.Bootstrap.Tests/AbMergePrimaryFirmwareConfigTests.cs",
+    "tests/NvtFwCombiner.Bootstrap.Tests/AbDummyDpCompilationTests.cs",
+    "tests/NvtFwCombiner.Bootstrap.Tests/AbMergeGoldenRegressionTests.cs",
+    "tests/NvtFwCombiner.Bootstrap.Tests/Nt51950AbMergeCandidateProfileTests.cs",
+    "tests/NvtFwCombiner.Bootstrap.Tests/Nt51951AbMergeCandidateProfileTests.cs",
+    "tests/NvtFwCombiner.Infrastructure.Tests/Bundles/AbBundleSourceHashTests.cs"
+  ],
+  "implementationOwner": "primary-agent",
+  "searchEvidence": [
+    "At eba84be1 CodeGraph-first and exact source inspection traced AbMergeAuthoringExperience.PrepareSession to CompiledAuthoringWorkflow.InspectExactBatch and FirmwareMetadataInspector; BuiltInV2Bundle.CreateMetadataPlan already projects canonical profile metadata bindings.",
+    "The NT51927 canonical provider owns firmware-config-general-parameters, its 41-byte definition, Event Buffer field at offset12 and firmware-version complement relation. Existing NT51950/NT51951 Standard bindings reuse that exact definition through BuiltInCanonicalMetadataDefinitionResolver.",
+    "Current AB family metadataSets and profile metadataBindings are empty. Add native TPA/B located wrappers only; a-tp-code bounds both native inputs, not relocated output B.",
+    "ADR0012 prohibits primary runtime metadata; owner-approved primary-only AB Event Buffer decision is a narrow ADR0072 supersession, not a rewrite of Backup version/count/naming behavior.",
+    "ProfileBundleEntryArrayHasher, trusted package index and canonical dynamic capability fingerprints already own source admission. Synchronize changed source identities without promoting publication/evidence status or changing expected Golden bytes."
+  ],
+  "semanticOwner": "Profiles own native primary locators and shared definition references; existing Domain decoder and Application FirmwareMetadataInspector retain observation and relation results",
+  "terminalContract": "Real compiled AB metadata plans expose separate TPA/B primary observations at flash [0x22200,0x22229); no Backup fallback; invalid complement retains decoded facts and false relation, never implies valid format. No format selection, Build gate, output geometry or processor change in this slice.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "/root/v116_config_architecture",
+    "outcome": "findings-incorporated",
+    "evidence": "2026-09-14 independent admission at eba84be1: reuse exact shared definition, inspection-only bindings on all AB maps, preserve Backup readers, distinguish Value from valid complement, keep strict profile/hash/map admission. Add narrow ADR0012 exception. Before editing policy loader, reviewer additionally admitted BuiltInCanonicalCapabilityPolicy.cs and its tests only for exact SHA/catalog-version pin sync, preserving every fail-closed check. Verify actual compiled metadata and unchanged byte contracts; runtime format selection and final R3 owner/Golden/write-range gates remain pending."
+  },
+  "implementationHead": "203d656a4180cc5d630ebef68da3f19a3bde9e7a",
+  "reviewedHead": "203d656a4180cc5d630ebef68da3f19a3bde9e7a",
+  "pathStateDigest": "8ed22826e50d3370f1b1db14cffadafe691a399a7c02eecdb6e315c369a72fb8",
+  "integrationPaths": [
+    "docs/adr/0012-cmi-dp-and-nvt-fwconfig-metadata.md"
+  ],
+  "finalReview": {
+    "reviewer": "/root/release116_config_final",
+    "outcome": "approved",
+    "evidence": "Final technical review approved at 203d656a4180cc5d630ebef68da3f19a3bde9e7a against checkpoint f9db4ef039be1c7a08e0b83f11133dbc1a0fe049. Independent review covered all106 original record-path entries/67 unique paths across CONFIG01-07. Two stale Infrastructure catalog assertions were corrected by a separately reviewed test-only delta at203d656a; exact four candidate identities and original supported/Golden assertions remain enforced. Reviewer inspected policy-version-green.trx20/20. No remaining P0-P3. This record retains review/digest of all 16 original mutablePaths. ADR0071 final administrative ownership assigns each shared governed path to its latest admitted numeric unit; empty ownership never removes original review or R3 obligations. Fresh release-Golden at3e7bf81c passed Bootstrap1454/1454 and Golden25/25, zero skips, with all25 direct cases confirmed; later delta changes only Infrastructure tests and handoff, not firmware or Golden tests. Infrastructure at203d656a passed1116/1116. Historical/scoped evidence is not a fresh full-verifier or protected candidate claim. PASS-WITH-HUMAN-GATE: exact-head firmware-owner attestations, full verification, protected CI and package/publication gates remain required."
+  }
+}

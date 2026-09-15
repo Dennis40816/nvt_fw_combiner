@@ -1,0 +1,53 @@
+{
+  "schemaVersion": 2,
+  "taskId": "CONFIG-116-PERSISTENCE-02",
+  "capability": "Bounded Event Buffer JSON persistence and serialized immutable configuration publication",
+  "integrationBase": "f9db4ef039be1c7a08e0b83f11133dbc1a0fe049",
+  "risk": "R2",
+  "kind": "behavior",
+  "state": "final-complete",
+  "mutablePaths": [
+    "src/NvtFwCombiner.Contracts/Configuration/EventBufferFormatConfigurationDocument.cs",
+    "src/NvtFwCombiner.Application/Ports/IEventBufferFormatConfigurationStorage.cs",
+    "src/NvtFwCombiner.Infrastructure/Configuration/EventBufferFormatConfigurationStorage.cs",
+    "src/NvtFwCombiner.Infrastructure/NvtFwCombiner.Infrastructure.csproj",
+    "src/NvtFwCombiner.Application/Configuration/EventBufferFormatConfigurationSession.cs",
+    "src/NvtFwCombiner.Application/Configuration/EventBufferFormatConfigurationSession.State.cs",
+    "tests/NvtFwCombiner.Application.Tests/Configuration/EventBufferFormatConfigurationSessionTests.cs",
+    "tests/NvtFwCombiner.Infrastructure.Tests/Configuration/EventBufferFormatConfigurationStorageTests.cs",
+    "docs/contracts/event-buffer-format-configuration-v1.schema.json",
+    "docs/contracts/event-buffer-format-configuration-v1.md",
+    "docs/adr/0072-event-buffer-format-configuration.md"
+  ],
+  "implementationOwner": "primary-agent",
+  "searchEvidence": [
+    "CodeGraph-first inspected LocalFileStore.ReadAsync/WriteAsync and ILocalFileStore: bounded stable file handle and atomic write already owned by existing file adapter; no new filesystem primitives.",
+    "Inspected StrictJsonDocumentReader and ProfileBundleSchemaValidator.LoadEmbeddedSchema/IsInstanceValid plus SavedCompositionRuleV2Schema: reuse strict duplicate-key/framing and embedded canonical schema validation, no parallel parser.",
+    "At source base 2cb42d8d EventBufferFormatConfigurationAdmission is the sole scoped configuration validation owner; reuse immutable results without changing its two files. No existing Event Buffer persistence/session owner found.",
+    "Independent /root/v116_config_architecture design review approved exact session/codec/DTO/port paths and explicit Infrastructure.csproj schema resource addition. Missing input is consistently no effective configuration, not process-history-dependent defaults."
+  ],
+  "semanticOwner": "Application.EventBufferFormatConfigurationSession publishes typed immutable configuration states through existing admission; Infrastructure projects canonical JSON and uses ILocalFileStore; Profiles retain effects",
+  "terminalContract": "Strict schema-v1 document and exact source-byte SHA; serialized save/reload, missing/invalid external state has no effective config, failed drafts/writes preserve prior state, defaults and retained saved state are draft-only; no runtime/GUI/CLI firmware wiring",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "/root/v116_config_architecture",
+    "outcome": "findings-incorporated",
+    "evidence": "2026-09-14 independent R2 admission accepted exact production paths and schema resource addition, rejected restart-dependent missing fallback; incorporated consistent Missing/no effective config and default draft only. Save snapshots before awaiting, atomically persists before publication, no post-commit cancellation failure; canonical scope/effects and runtime wiring remain later units."
+  },
+  "implementationHead": "203d656a4180cc5d630ebef68da3f19a3bde9e7a",
+  "reviewedHead": "203d656a4180cc5d630ebef68da3f19a3bde9e7a",
+  "pathStateDigest": "c4e9529711c944a9b0f4f74eedf783950000d7ba8843f2329cb63ad1f232575f",
+  "integrationPaths": [
+    "docs/contracts/event-buffer-format-configuration-v1.md",
+    "docs/contracts/event-buffer-format-configuration-v1.schema.json",
+    "src/NvtFwCombiner.Application/Ports/IEventBufferFormatConfigurationStorage.cs",
+    "src/NvtFwCombiner.Contracts/Configuration/EventBufferFormatConfigurationDocument.cs",
+    "src/NvtFwCombiner.Infrastructure/Configuration/EventBufferFormatConfigurationStorage.cs",
+    "src/NvtFwCombiner.Infrastructure/NvtFwCombiner.Infrastructure.csproj"
+  ],
+  "finalReview": {
+    "reviewer": "/root/release116_config_final",
+    "outcome": "approved",
+    "evidence": "Final technical review approved at 203d656a4180cc5d630ebef68da3f19a3bde9e7a against checkpoint f9db4ef039be1c7a08e0b83f11133dbc1a0fe049. Independent review covered all106 original record-path entries/67 unique paths across CONFIG01-07. Two stale Infrastructure catalog assertions were corrected by a separately reviewed test-only delta at203d656a; exact four candidate identities and original supported/Golden assertions remain enforced. Reviewer inspected policy-version-green.trx20/20. No remaining P0-P3. This record retains review/digest of all 11 original mutablePaths. ADR0071 final administrative ownership assigns each shared governed path to its latest admitted numeric unit; empty ownership never removes original review or R3 obligations. Fresh release-Golden at3e7bf81c passed Bootstrap1454/1454 and Golden25/25, zero skips, with all25 direct cases confirmed; later delta changes only Infrastructure tests and handoff, not firmware or Golden tests. Infrastructure at203d656a passed1116/1116. Historical/scoped evidence is not a fresh full-verifier or protected candidate claim. PASS-WITH-HUMAN-GATE: exact-head firmware-owner attestations, full verification, protected CI and package/publication gates remain required."
+  }
+}

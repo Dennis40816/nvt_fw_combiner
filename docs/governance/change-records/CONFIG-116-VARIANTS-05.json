@@ -1,0 +1,54 @@
+{
+  "schemaVersion": 2,
+  "taskId": "CONFIG-116-VARIANTS-05",
+  "capability": "Closed Desay and Common exact-two AB byte-execution variants",
+  "integrationBase": "f9db4ef039be1c7a08e0b83f11133dbc1a0fe049",
+  "risk": "R3",
+  "kind": "behavior",
+  "state": "final-complete",
+  "mutablePaths": [
+    "profiles/built-in/nt51950-ab-merge/families/nt51950-ab-merge.json",
+    "profiles/built-in/nt51950-ab-merge/profiles/nt51950-ab-merge.json",
+    "profiles/built-in/nt51950-ab-merge/profiles/nt51951-ab-merge.json",
+    "profiles/built-in/nt51950-ab-merge/profiles/nt51950-ab-merge-desay.json",
+    "profiles/built-in/nt51950-ab-merge/profiles/nt51951-ab-merge-desay.json",
+    "profiles/built-in/nt51950-ab-merge/profiles/nt51950-ab-merge-common-2ic.json",
+    "profiles/built-in/nt51950-ab-merge/profile-bundle.json",
+    "profiles/built-in/package-trust-index.json",
+    "docs/contracts/canonical-capability-policy-v1.json",
+    "src/NvtFwCombiner.Infrastructure/Capabilities/BuiltInCanonicalCapabilityPolicy.cs",
+    "tests/NvtFwCombiner.Infrastructure.Tests/Capabilities/BuiltInCanonicalCapabilityPolicyTests.cs",
+    "tests/NvtFwCombiner.Bootstrap.Tests/AbMergeFormatVariantProfileTests.cs",
+    "tests/NvtFwCombiner.Bootstrap.Tests/Nt51950AbMergeCandidateProfileTests.cs",
+    "tests/NvtFwCombiner.Bootstrap.Tests/Nt51951AbMergeCandidateProfileTests.cs",
+    "tests/NvtFwCombiner.Bootstrap.Tests/AbDummyDpCompilationTests.cs",
+    "tests/NvtFwCombiner.Bootstrap.Tests/AbMergeGoldenRegressionTests.cs",
+    "docs/adr/0072-event-buffer-format-configuration.md"
+  ],
+  "implementationOwner": "primary-agent",
+  "searchEvidence": [
+    "At e316e644 existing NT51950 and NT51951 AB family maps, named seed/placement regionSets, 2.14 profiles and candidate compiler/executor tests define the single byte execution path.",
+    "Owner preserves TP overlay [0xA000,0x37000), with Desay B at0x4A000 and Common NT51950 actual2 at0x8A000. No source workbook expansion is admitted.",
+    "Existing ExactCount topology requirement and profile-scoped map binding can enforce count2 without a generic compiler change. NT51951 remains selector-free.",
+    "Existing bank256 and bank512 processor invocation contracts own transport lengths and precise header write permissions; new profiles reuse them with matching maps.",
+    "Existing bundle entry hashing, package trust index and canonical capability fingerprints retain fail-closed source binding. Only existing route pins change; no new publication.",
+    "Existing source-view-coverage and optional DP selection own short-input rejection and Dummy initialization; no new padding or size-warning owner is introduced."
+  ],
+  "semanticOwner": "Canonical family maps and closed composition profiles through the existing trusted compiler and CompositionEngine",
+  "terminalContract": "Three new profiles execute four closed maps: Desay 950 single/cascade and951 selector-free use1MiB output and256KiB banks; Common950 exact2 uses1MiB output and512KiB banks. TP lengths, immutable sources, opaque seed/tail, DIFF relocation and three exact header imports remain bound together. New variants have no published runtime route in this unit.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "/root/v116_config_architecture",
+    "outcome": "findings-incorporated",
+    "evidence": "2026-09-14 independent exact18-path admission at e316e644 accepted three closed profiles, family-owned reuse, Common exact-count2 (reject1/3/missing), hidden951, source coverage rejection for shortDP and declared1MiB copy for excess, old profile versions0.5.0 repin/new0.1.0, source pins only/no support promotion. No runtime loader/compiler/Domain expansion. Independent full-byte synthetic oracle and exact write-range rejection required; final owner/Golden/integration and automatic format wiring remain pending."
+  },
+  "implementationHead": "203d656a4180cc5d630ebef68da3f19a3bde9e7a",
+  "reviewedHead": "203d656a4180cc5d630ebef68da3f19a3bde9e7a",
+  "pathStateDigest": "b4c119892d13479095b46a8194cdf90512c2c14a355657ee12bd0d665fa3af05",
+  "integrationPaths": [],
+  "finalReview": {
+    "reviewer": "/root/release116_config_final",
+    "outcome": "approved",
+    "evidence": "Final technical review approved at 203d656a4180cc5d630ebef68da3f19a3bde9e7a against checkpoint f9db4ef039be1c7a08e0b83f11133dbc1a0fe049. Independent review covered all106 original record-path entries/67 unique paths across CONFIG01-07. Two stale Infrastructure catalog assertions were corrected by a separately reviewed test-only delta at203d656a; exact four candidate identities and original supported/Golden assertions remain enforced. Reviewer inspected policy-version-green.trx20/20. No remaining P0-P3. This record retains review/digest of all 17 original mutablePaths. ADR0071 final administrative ownership assigns each shared governed path to its latest admitted numeric unit; empty ownership never removes original review or R3 obligations. Fresh release-Golden at3e7bf81c passed Bootstrap1454/1454 and Golden25/25, zero skips, with all25 direct cases confirmed; later delta changes only Infrastructure tests and handoff, not firmware or Golden tests. Infrastructure at203d656a passed1116/1116. Historical/scoped evidence is not a fresh full-verifier or protected candidate claim. PASS-WITH-HUMAN-GATE: exact-head firmware-owner attestations, full verification, protected CI and package/publication gates remain required."
+  }
+}

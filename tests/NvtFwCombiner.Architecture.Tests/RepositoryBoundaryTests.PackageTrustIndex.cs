@@ -19,7 +19,7 @@ public sealed partial class RepositoryBoundaryTests
         using JsonDocument document = JsonDocument.Parse(File.ReadAllText(trustIndexPath));
         JsonElement root = document.RootElement;
         Assert.Equal("1.3", root.GetProperty("schemaVersion").GetString());
-        Assert.Equal("1.1.4.2", root.GetProperty("trustIndexVersion").GetString());
+        Assert.Equal("1.1.6.0", root.GetProperty("trustIndexVersion").GetString());
 
         JsonElement[] ctrlRamRegistrations =
         [
@@ -228,9 +228,25 @@ public sealed partial class RepositoryBoundaryTests
         });
 
         Assert.Equal(
-            61,
+            64,
             bundles.Sum(static bundle =>
                 bundle.GetProperty("runtimeRegistrations").GetArrayLength()));
+        JsonElement abBundle = Assert.Single(bundles, static bundle =>
+            bundle.GetProperty("bundleDirectory").GetString() == "nt51950-ab-merge");
+        string[] expectedAbRegistrations =
+        [
+            "NT51950/nt51950-ab-merge/nt51950-ab-merge-maps",
+            "NT51951/nt51951-ab-merge/nt51951-ab-merge-1024k",
+            "NT51950/nt51950-ab-merge-desay/nt51950-ab-desay-maps",
+            "NT51951/nt51951-ab-merge-desay/nt51951-ab-desay-maps",
+            "NT51950/nt51950-ab-merge-common-2ic/nt51950-ab-common-2ic-maps",
+        ];
+        Assert.Equal(expectedAbRegistrations.Order(StringComparer.Ordinal), abBundle.GetProperty("runtimeRegistrations")
+            .EnumerateArray().Select(static registration =>
+                $"{registration.GetProperty("icId").GetString()}/{registration.GetProperty("profileId").GetString()}/{registration.GetProperty("mapVariantSetId").GetString()}")
+            .Order(StringComparer.Ordinal));
+        Assert.All(abBundle.GetProperty("runtimeRegistrations").EnumerateArray(), registration =>
+            Assert.Equal("ab-merge", registration.GetProperty("workflowId").GetString()));
         JsonElement generalReplace = bundles
             .SelectMany(static bundle =>
                 bundle.GetProperty("runtimeRegistrations").EnumerateArray())
@@ -239,7 +255,7 @@ public sealed partial class RepositoryBoundaryTests
                     "general-replace");
         Assert.Equal("NT51926", generalReplace.GetProperty("icId").GetString());
         Assert.Equal(
-            7,
+            10,
             bundles.SelectMany(static bundle =>
                     bundle.GetProperty("runtimeRegistrations").EnumerateArray())
                 .Count(static registration =>

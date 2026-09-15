@@ -34,11 +34,11 @@ internal static class AbMergeTestSupport
         CancellationToken cancellationToken,
         TopologySelection? topologySelection = null)
     {
-        CompiledAuthoringSessionPreparation prepared = Prepare(
+        CompiledAuthoringSessionPreparation prepared = await PrepareAsync(
             host,
             icId,
             slotPaths,
-            topologySelection);
+            cancellationToken, topologySelection);
         return prepared.Succeeded
             ? await host.CompositionOutputNaming.PrepareAutomaticOutputAsync(
                     prepared.Snapshot!,
@@ -64,11 +64,11 @@ internal static class AbMergeTestSupport
         string? automaticOutputDirectory = null,
         string? reportPath = null)
     {
-        CompiledAuthoringSessionPreparation prepared = Prepare(
+        CompiledAuthoringSessionPreparation prepared = await PrepareAsync(
             host,
             icId,
             slotPaths,
-            topologySelection);
+            cancellationToken, topologySelection);
         if (!prepared.Succeeded)
         {
             throw new InvalidOperationException(CompositionExecutionTestSupport.FormatIssues(
@@ -101,6 +101,19 @@ internal static class AbMergeTestSupport
                 progress ?? new CompositionRunProgressFeed(),
                 cancellationToken)
             .ConfigureAwait(false);
+    }
+
+    internal static async ValueTask<CompiledAuthoringSessionPreparation> PrepareAsync(
+        CompositionHostServices host, string icId, IReadOnlyDictionary<string, string> slotPaths,
+        CancellationToken cancellationToken, TopologySelection? topologySelection = null)
+    {
+        var inputs = new List<CompiledAuthoringSelectedInput>();
+        foreach ((string slot, string path) in slotPaths)
+        {
+            inputs.Add(new(slot, path, await File.ReadAllBytesAsync(path, cancellationToken)));
+        }
+        return await host.AbMergeAuthoring.PrepareSessionAsync(new AuthoringSessionState(ExperienceIds.AbMerge),
+            icId, ResolveTopologyToken(host, icId, topologySelection), inputs, AbMergeDpMode.Normal, cancellationToken);
     }
 
     private static string? ResolveTopologyToken(

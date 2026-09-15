@@ -53,7 +53,9 @@ internal sealed partial class MergePresentationViewModel
             selected,
             inspections,
             static item => item.InspectionLease,
-            out ActiveSessionSnapshot? snapshot);
+            out ActiveSessionSnapshot? snapshot,
+            (catalog, leases, statuses) => _compositionServices.AbMergeAuthoring.AdoptInspectedBatch(
+                _abMergeSession, catalog, leases, statuses));
         if (completed && selected.Length > 0)
         {
             SyncAbMergeMembership(snapshot);
@@ -181,6 +183,67 @@ internal sealed partial class MergePresentationViewModel
                 readiness.CompilationFingerprint,
                 current?.CompilationFingerprint) &&
             (build ? readiness.Build : readiness.Preview).IsAvailable;
+    }
+
+    internal async Task<bool> ReapplyAbMergeConfigurationAsync()
+    {
+        ClearAbMergeActionReadiness();
+        RefreshCommandState();
+        try
+        {
+            CompiledAuthoringSessionPreparation? result = await _compositionServices.AbMergeAuthoring
+                .ReapplyAcceptedInputsAsync(_abMergeSession, CancellationToken.None);
+            if (result is null)
+            {
+                await RefreshAbMergeActionReadinessAsync(CancellationToken.None);
+                return true;
+            }
+            if (!ReferenceEquals(result.Snapshot, _abMergeSession.CurrentSnapshot)) { return false; }
+            if (!result.Succeeded)
+            {
+                if (result.Issues.Count > 0)
+                {
+                    foreach (FirmwareSlotViewModel slot in AbMergeSlots.Where(static slot => slot.HasFile))
+                    {
+                        if (slot.CurrentInspectionProjection is { } previous)
+                        {
+                            slot.SetCurrentInspectionProjection(previous with { AuthoringCompilationIssues = result.Issues });
+                        }
+                        FirmwareInspectionProjection.ApplyAuthoringIssues(slot, result.Issues);
+                    }
+                }
+                return false;
+            }
+
+            foreach (FirmwareSlotViewModel slot in AbMergeSlots)
+            {
+                if (slot.CurrentInspectionProjection is not { } previous ||
+                    !result.Inspection!.Statuses.TryGetValue(slot.SlotId, out AuthoringInputSlotStatus? status) ||
+                    !StringComparer.Ordinal.Equals(slot.FilePath, status.SelectedPathHint)) { continue; }
+                FirmwareInspectionSnapshot updated = previous with
+                {
+                    InputSlotStatus = status,
+                    InputSlotCatalog = result.Inspection.Catalog,
+                    AbMergeFacts = new(status.AddressSpaceId, status.Observation.Versions),
+                    AuthoringCompilationIssues = [],
+                };
+                slot.SetCurrentInspectionProjection(updated);
+                FirmwareInspectionProjection.ApplyAbInputFacts(slot, updated, Text);
+                FirmwareInspectionProjection.ApplyInputSlotInspection(slot, status, Text);
+            }
+            SyncAbMergeMembership(result.Snapshot);
+            if (IsAbCodeMergeModeSelected)
+            {
+                RefreshMergeMemoryMapState(refreshAuthoring: false);
+                if (_stateBindings.IsMergePageActive() && !_stateBindings.IsRunInProgress()) { _stateBindings.ResetRunResult(); }
+            }
+            await RefreshAbMergeActionReadinessAsync(CancellationToken.None);
+            return true;
+        }
+        finally
+        {
+            RefreshCommandState();
+        }
     }
 
     private void ClearAbMergeActionReadiness()

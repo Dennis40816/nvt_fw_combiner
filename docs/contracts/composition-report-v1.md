@@ -27,6 +27,37 @@ Canonical schema: [`composition-report-v1.schema.json`](composition-report-v1.sc
 
 ## Application Run Report Semantic Extension
 
+### Execution-captured AB format (v1.1.6)
+
+`AbMergeFormat` is optional, immutable audit evidence on the Application run
+report. The shared AB execution ingress captures its freshly admitted selection
+once. An internal projection checks the exact compiled map/family and accepted
+input identities, then retains `FormatId`, captured `DisplayName`,
+`ConfigurationGeneration`, `ConfigurationSourceSha256`, `FamilyId`,
+`FamilyVersion`, and `FamilyContentHash`. `TpA` and `TpB` each contain
+`InputBindingId`, `StructureId`, `AddressSpaceId`, `Start`, `EndExclusive`, and
+the observed numeric `FormatByte`. The range is the canonical resolved primary
+structure range `[Start, EndExclusive)`, not the single format field or an output
+write range. The binding id references the parent report's input evidence.
+
+The parent report remains the owner of profile/map/compilation fingerprint and
+complete input size/SHA. This extension contains no source/config paths, source
+bytes or serialized Domain object graph. It is not another format classifier.
+Save/reapply and serialization never reinterpret a running or completed report
+using newer settings. Existing run-service success and failure reports carry
+the same captured evidence; pre-admission rejection still produces no run
+report. Existing Preview-token semantics are unchanged.
+
+For non-AB and policy-absent legacy AB runs, the property is omitted rather than
+written as null. Missing evidence in an older report means **not recorded**,
+never an inferred Common format; it does not change legacy read completeness.
+New summary metadata is source-generated through the existing JSON owner's
+resolver chain. The unchanged Application report graph retains its existing
+reflection fallback; this is not a whole-report serializer migration.
+
+This additive Application extension does not alter the frozen canonical
+`composition-report-v1.schema.json` or firmware output semantics.
+
 ### Imported outcome completeness (owner accepted 2026-09-08)
 
 The existing Application JSON owner assesses persisted projection completeness

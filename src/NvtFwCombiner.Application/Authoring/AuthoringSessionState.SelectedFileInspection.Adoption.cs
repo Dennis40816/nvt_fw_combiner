@@ -1,9 +1,89 @@
 using NvtFwCombiner.Application.Capabilities;
+using NvtFwCombiner.Application.Metadata;
 
 namespace NvtFwCombiner.Application.Authoring;
 
 public sealed partial class AuthoringSessionState
 {
+    /// <summary>Retains source inspection while revoking derived action results for one reinspection attempt.</summary>
+    internal AuthoringSessionTransitionResult TryBeginAcceptedInputReinspection(ActiveSessionSnapshot expected)
+    {
+        ArgumentNullException.ThrowIfNull(expected);
+        lock (_transitionLock)
+        {
+            if (!ReferenceEquals(_current, expected) ||
+                (!expected.HasCurrentInputInspection && !HasCoherentCapturedSources(expected)))
+            {
+                return Failure(AuthoringSessionIssueCodes.StaleInspection, "The accepted inputs changed before reinspection.", WorkflowId);
+            }
+            ActiveSessionSnapshot retained = CopySnapshot(expected, expected.AuthoringRevision, expected.Slots,
+                expected.DraftState, expected.DraftCapabilityFingerprint,
+                expected.DerivedPublications.Where(static publication => publication.Kind == AuthoringDerivedResultKind.Inspection),
+                expected.InputSlotStatuses, expected.InputSelectionReadiness, expected.MetadataInspection);
+            Volatile.Write(ref _current, retained);
+            return new(retained, null);
+        }
+    }
+
+    private static bool HasCoherentCapturedSources(ActiveSessionSnapshot snapshot)
+    {
+        AuthoringSlotState[] selected = [.. snapshot.Slots.Where(static slot => slot.SelectedPath is not null)];
+        return snapshot.CompilationFingerprint is null && selected.Length > 0 &&
+            selected.Length == snapshot.InputSlotStatuses.Count && selected.All(slot =>
+            {
+                AuthoringInputSlotStatus? status = snapshot.InputSlotStatuses.SingleOrDefault(candidate => candidate.SlotId == slot.DefinitionId);
+                return slot.Lifecycle != AuthoringSlotLifecycle.Checking && status?.CapturedSource is { AcceptedBytes: not null } source &&
+                    status.SelectedPathHint == slot.SelectedPath && status.FileStamp == slot.FileStamp && source.FileStamp == slot.FileStamp &&
+                    status.AuthoringRevision == snapshot.AuthoringRevision && status.ResolutionToken == snapshot.ResolutionToken &&
+                    status.RouteId == snapshot.SelectedRouteId && status.CapabilityFingerprint == snapshot.CapabilityFingerprint &&
+                    status.WorkflowId == snapshot.WorkflowId && status.CompilationFingerprint is null &&
+                    status.AcceptedBytes is null && status.Readiness == ResolvedChildReadiness.Blocked;
+            });
+    }
+
+    /// <summary>Completes reinspection only if its original source snapshot is still current.</summary>
+    internal AuthoringSessionTransitionResult TryAdoptExactSlotFileInspectionBatch(ActiveSessionSnapshot expected,
+        AuthoringCapabilityCatalogSnapshot catalog, IReadOnlyCollection<AuthoringInputSlotStatus> statuses)
+    {
+        ArgumentNullException.ThrowIfNull(expected);
+        ArgumentNullException.ThrowIfNull(catalog);
+        ArgumentNullException.ThrowIfNull(statuses);
+        lock (_transitionLock)
+        {
+            return ReferenceEquals(_current, expected) && expected.ResolutionToken == catalog.ResolutionToken
+                ? TryAdoptExactSlotFileInspectionBatch(catalog, statuses)
+                : Failure(AuthoringSessionIssueCodes.StaleInspection, "The accepted inputs changed during reinspection.", WorkflowId);
+        }
+    }
+
+    /// <summary>Adopts a format-selected exact batch only while every original source lease remains current.</summary>
+    internal AuthoringSessionTransitionResult TryAdoptExactSlotFileInspectionBatch(
+        AuthoringCapabilityCatalogSnapshot catalog, IReadOnlyList<AuthoringSlotInspectionLease> leases,
+        IReadOnlyCollection<AuthoringInputSlotStatus> statuses)
+    {
+        ArgumentNullException.ThrowIfNull(catalog);
+        ArgumentNullException.ThrowIfNull(leases);
+        ArgumentNullException.ThrowIfNull(statuses);
+        lock (_transitionLock)
+        {
+            AuthoringSlotInspectionLease[] capturedLeases = [.. leases];
+            AuthoringInputSlotStatus[] capturedStatuses = [.. statuses];
+            HashSet<string> ids = capturedLeases.Select(static lease => lease.DefinitionId).ToHashSet(StringComparer.Ordinal);
+            bool valid = _current is not null && _current.ResolutionToken == catalog.ResolutionToken &&
+                _current.WorkflowId == catalog.WorkflowId && capturedLeases.Length > 0 && ids.Count == capturedLeases.Length &&
+                capturedStatuses.Length == capturedLeases.Length &&
+                ids.SetEquals(_current.Slots.Where(static slot => slot.Lifecycle == AuthoringSlotLifecycle.Checking)
+                    .Select(static slot => slot.DefinitionId)) &&
+                capturedLeases.All(lease => InspectionLeaseMatches(lease, _current) &&
+                    capturedStatuses.Count(status => status.SlotId == lease.DefinitionId &&
+                        status.SelectedPathHint == lease.SelectedPath && status.AuthoringRevision == lease.AuthoringRevision) == 1);
+            return valid
+                ? TryAdoptExactSlotFileInspectionBatch(catalog, capturedStatuses)
+                : Failure(AuthoringSessionIssueCodes.StaleInspection,
+                    "The format inspection no longer owns the complete current selected-file batch.", WorkflowId);
+        }
+    }
+
     /// <summary>Atomically adopts one complete exact inspection without re-reading its content.</summary>
     internal AuthoringSessionTransitionResult TryAdoptExactSlotFileInspectionBatch(
         AuthoringCapabilityCatalogSnapshot catalog,

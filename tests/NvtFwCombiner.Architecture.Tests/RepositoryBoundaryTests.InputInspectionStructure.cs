@@ -109,9 +109,10 @@ public sealed partial class RepositoryBoundaryTests
             headless,
             StringComparison.Ordinal);
         Assert.Contains(
-            "CompiledAuthoringWorkflowService(resolver)",
+            "new CompiledAuthoringWorkflowService(new AbMergeAuthoringResolver(",
             abInspection,
             StringComparison.Ordinal);
+        Assert.Contains(".InspectBatch(icId, context.Revision, context.Captured, capability)", abInspection, StringComparison.Ordinal);
         Assert.DoesNotContain(
             "CompiledInputArtifactInspectionService.Inspect(",
             abProjection,

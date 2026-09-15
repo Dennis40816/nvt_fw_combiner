@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 2,
+  "taskId": "GOV-116-PR430-EXACT-SIZE-21",
+  "capability": "Account for the exact owner-approved source increment of five PR430 release corrections",
+  "integrationBase": "985ac926cb15e4b532a2dde50f0bcf8bf533657f",
+  "risk": "R2",
+  "kind": "governance",
+  "state": "final-complete",
+  "mutablePaths": [
+    "scripts/code_size_policy.py",
+    "tests/scripts/test_code_size_policy.py",
+    "docs/adr/0021-code-size-ratchet-accepted-artifact-amendment.md"
+  ],
+  "implementationOwner": "/root",
+  "searchEvidence": [
+    "Existing scripts/code_size_policy.py DEFAULT_LIMITS and measurement own exact source accounting; existing CodeSizePolicyTests asserts the measured totals and unchanged behavioral guards",
+    "At df4a3435 measurement confirms full144169/runtime102003/host5130, increments128/18/18. Owner explicitly approves precisely those increments in the current conversation.",
+    "Independent focused minimality review: CLI reuses accepted capability and execution boundary; Reload shares Load/Reapply; accessible names use MultiBinding; existing SettingsModal owns focus. No obvious safe duplicate semantic owner to delete."
+  ],
+  "semanticOwner": "Existing scripts/code_size_policy.py exact allowances and physical source measurement",
+  "terminalContract": "Set production warning144169, full allowance41273, runtime allowance31947 and host allowance1752 with corresponding three measured test totals. Append dated owner approval in existing ADR0021. No other limit, base, counting, exclusion, function, Golden, safety or release policy change; no reserved capacity.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "/root/release116_admission_audit",
+    "outcome": "approved",
+    "evidence": "Independent R2 design admission at df4a3435 approved exactly four policy values, three baseline assertions and existing ADR0021 dated append after owner approval. Preserve prior immutable records and all remaining guards. Targeted tests and fixed-head review remain required."
+  },
+  "implementationHead": "ea5824a5055feb5336b3821ffecb5ea56e01354c",
+  "reviewedHead": "ea5824a5055feb5336b3821ffecb5ea56e01354c",
+  "pathStateDigest": "d3dadebe9659b894be5cb51aad5e9fe14ad4c13a6a55ede996fc53b6ffc1477f",
+  "finalReview": {
+    "reviewer": "/root/release116_admission_audit",
+    "outcome": "approved",
+    "evidence": "Independent R2 fixed-head review approved exact four policy values, three baseline assertions and dated ADR0021 append at ea5824a5055feb5336b3821ffecb5ea56e01354c. Owner approved full128/runtime-host18 increment. Existing counting, bases, other thresholds and functions unchanged; code-size tests red18pass1fail then19/19 green. Scoped Polytail PASS. Mechanical final batch audit finds all mutable paths in checkpoint985ac926 diff and exactly eight governed paths with no overlap or gaps. Prior records/attestations unchanged; no firmware, Golden or release waiver."
+  }
+}

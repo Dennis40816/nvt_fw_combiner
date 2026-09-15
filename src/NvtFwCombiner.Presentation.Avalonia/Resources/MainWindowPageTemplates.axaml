@@ -5,6 +5,10 @@
     xmlns:vm="using:NvtFwCombiner.Presentation.Avalonia.ViewModels"
     xmlns:views="using:NvtFwCombiner.Presentation.Avalonia.Views">
 
+  <ResourceDictionary.MergedDictionaries>
+    <ResourceInclude Source="avares://NvtFwCombiner.Presentation.Avalonia/Resources/SettingsEventBufferFormatPageTemplate.axaml" />
+  </ResourceDictionary.MergedDictionaries>
+
 <DataTemplate x:Key="HomePageTemplate" DataType="vm:MainWindowViewModel">
   <Grid
       ColumnDefinitions="*,*,*"
@@ -363,6 +367,23 @@
             </Grid>
           </RadioButton>
           <RadioButton
+              AutomationProperties.Name="{Binding Text.EventBufferFormatNavigationLabel}"
+              Classes="semanticAction command settingsNavItem"
+              Classes.selected="{Binding Settings.IsEventBufferFormatSelected}"
+              Command="{Binding Settings.SelectSectionCommand}"
+              CommandParameter="{x:Static vm:SettingsSection.EventBufferFormat}"
+              GroupName="SettingsSections"
+              IsChecked="{Binding Settings.IsEventBufferFormatSelected, Mode=OneWay}">
+            <Grid ColumnDefinitions="32,*,32" ColumnSpacing="{DynamicResource NfcSpace8}">
+              <Path Width="24" Height="24" Data="M2 5H7M11 5H22M2 12H13M17 12H22M2 19H5M9 19H22M9 3A2 2 0 1 0 9 7A2 2 0 1 0 9 3M15 10A2 2 0 1 0 15 14A2 2 0 1 0 15 10M7 17A2 2 0 1 0 7 21A2 2 0 1 0 7 17" Stretch="Uniform" />
+              <TextBlock Grid.Column="1" HorizontalAlignment="Left" TextAlignment="Left" Text="{Binding Text.EventBufferFormatNavigationLabel}" />
+              <Path Grid.Column="2" Width="12" Height="7" Data="M0 0L6 6L12 0" Stretch="Uniform" IsVisible="{Binding Settings.IsEventBufferFormatSelected}" />
+            </Grid>
+          </RadioButton>
+          <Border Background="{DynamicResource NfcAccentSurfaceBrush}" CornerRadius="{DynamicResource NfcCompactCornerRadius}" Padding="46,14,12,14" IsVisible="{Binding Settings.IsEventBufferFormatSelected}">
+            <TextBlock FontSize="16" Foreground="{DynamicResource NfcAccentStrongBrush}" TextWrapping="Wrap" Text="{Binding Text.EventBufferFormatTitle}" />
+          </Border>
+          <RadioButton
               AutomationProperties.Name="{Binding Settings.VersionNavigationLabel}"
               Classes="semanticAction command settingsNavItem"
               Classes.selected="{Binding Settings.IsVersionSelected}"
@@ -395,6 +416,7 @@
           x:Name="SettingsContentViewport"
           Grid.Column="1"
           Classes="contentScrollSurface"
+          IsVisible="{Binding !Settings.IsEventBufferFormatSelected}"
           Margin="43,18,42,24"
           HorizontalScrollBarVisibility="Disabled"
           VerticalScrollBarVisibility="Auto">
@@ -572,6 +594,11 @@
         </StackPanel>
       </Grid>
       </ScrollViewer>
+      <ContentControl
+          Grid.Column="1"
+          Content="{Binding}"
+          ContentTemplate="{StaticResource SettingsEventBufferFormatPageTemplate}"
+          IsVisible="{Binding Settings.IsEventBufferFormatSelected}" />
   </Grid>
 </DataTemplate>
 

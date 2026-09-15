@@ -1,0 +1,52 @@
+{
+  "schemaVersion": 2,
+  "taskId": "AB-116-AUTHORING-DEFINITION-10",
+  "capability": "Expose exact trusted AB input declarations through the existing current-publication compiler boundary",
+  "integrationBase": "f9db4ef039be1c7a08e0b83f11133dbc1a0fe049",
+  "risk": "R2",
+  "kind": "behavior",
+  "state": "final-complete",
+  "mutablePaths": [
+    "src/NvtFwCombiner.Application/Capabilities/CanonicalAbAuthoringDefinition.cs",
+    "src/NvtFwCombiner.Application/Capabilities/ICanonicalDynamicCompilationAdapter.cs",
+    "src/NvtFwCombiner.Application/Capabilities/CanonicalCapabilityCompiler.AbMerge.cs",
+    "src/NvtFwCombiner.Infrastructure/Composition/BuiltInV2Bundle.cs",
+    "src/NvtFwCombiner.Infrastructure/Composition/BuiltInV2RegistrationRegistry.cs",
+    "src/NvtFwCombiner.Infrastructure/Composition/BuiltInV2DynamicCompilationAdapter.cs",
+    "tests/NvtFwCombiner.Application.Tests/Capabilities/CanonicalCapabilityCatalogTests.SelectorPublication.cs",
+    "tests/NvtFwCombiner.Bootstrap.Tests/FirmwareInspectionSnapshotTests.Dispatch.cs",
+    "tests/NvtFwCombiner.Bootstrap.Tests/AbMergeAuthoringDefinitionTests.cs",
+    "tests/NvtFwCombiner.Application.Tests/Capabilities/CanonicalCapabilityCatalogTests.AbAuthoringDefinition.cs",
+    "docs/adr/0072-event-buffer-format-configuration.md"
+  ],
+  "implementationOwner": "primary-agent; independent review is read only",
+  "searchEvidence": [
+    "At 5880c69f family primary discovery and Application format admission no longer require compiled metadata, but AB authoring still compiles a route before it can project input slots. Four real-host format cases remain red in ab-format-real-host-red.trx.",
+    "BuiltInV2Bundle.GetProfile selects the trusted normalized profile. Its InputSlots and InputArtifactProfileSpace declarations own slot/space membership; MetadataBindings map primary StructureId to SpaceId, then the input space maps to SlotId. These identifiers are not interchangeable.",
+    "CompiledAuthoringInputBinding already represents declaration-time input membership with unresolved geometry. AuthoringCapabilityCatalogSnapshot.FromDynamicRoute already represents non-executable precompilation discovery.",
+    "CanonicalCapabilityCompilationContract pins profile/version/bundle and selection-group SemanticBindingIds. Existing compiler and exact map-set adapter own admission; no second compiler or UI-owned mapping is needed.",
+    "Explicit interface consumers are the built-in adapter plus UnusedDynamicCompiler and three dispatch test adapters. New tests will use normalized profile data through the same projection and forged adapters only for the compiler trust-boundary negatives."
+  ],
+  "semanticOwner": "Trusted Domain profile declarations own input membership; Infrastructure projects them; existing Application canonical compiler admits the complete declaration against the current route contract",
+  "terminalContract": "Add an AB-only adapter declaration query and a defensive immutable envelope carrying actual profile/version/bundle, canonical family, existing input bindings, primary binding references and group membership. No output geometry, fake metadata plan, compiled contract or execution flag. Missing policy explicitly means both primary refs absent; malformed present policy fails closed. Current catalog, exact identity and complete contract checks precede return. No publication, host, UI, topology or format-classifier changes in this prerequisite; real runtime orchestration and freshness remain required.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "/root/v116_config_architecture",
+    "outcome": "approved",
+    "evidence": "2026-09-14 independent exact-path R2 unit10 admission at 5880c69f: use current published AB identity then exact trusted registration; actual-source profile/version/bundle/member/group checks; defensive snapshots without silent duplicate repair; singleton and primary structure-space-slot joins must be unique, with refs from the same binding list. Nullable primary refs only for policy absence, never malformed-policy fallback. Test actual normalized-profile projection with differing slot/space IDs, wrong identity/hash/member/group, unknown map-set, legacy absence and malformed present policy. Four real-host red cases remain full runtime gates. This is design admission, not implementation or runtime PASS."
+  },
+  "implementationHead": "203d656a4180cc5d630ebef68da3f19a3bde9e7a",
+  "reviewedHead": "203d656a4180cc5d630ebef68da3f19a3bde9e7a",
+  "pathStateDigest": "bdc52288b08e191c945ad1b5d3c2c01ed2755ff11e62fd143fe674d748a555ec",
+  "integrationPaths": [
+    "src/NvtFwCombiner.Application/Capabilities/CanonicalAbAuthoringDefinition.cs",
+    "src/NvtFwCombiner.Application/Capabilities/ICanonicalDynamicCompilationAdapter.cs",
+    "src/NvtFwCombiner.Infrastructure/Composition/BuiltInV2Bundle.cs",
+    "src/NvtFwCombiner.Infrastructure/Composition/BuiltInV2DynamicCompilationAdapter.cs"
+  ],
+  "finalReview": {
+    "reviewer": "/root/release116_ab_final",
+    "outcome": "approved",
+    "evidence": "Final technical review approved at 203d656a4180cc5d630ebef68da3f19a3bde9e7a against checkpoint f9db4ef039be1c7a08e0b83f11133dbc1a0fe049. Independent review covered every original AB08-14 path, including all125 unique paths and overlapping profiles/contracts/tests/UI/packaging. Primary observation, exact route, immutable capture/config freshness, processor boundary/order, report provenance and Desay size/coverage were traced. All original AB path blobs are unchanged from reviewed3e7bf81c at203d656a. No P0-P3. This record retains review/digest of all 11 original mutablePaths. ADR0071 final administrative ownership assigns each shared governed path to its latest admitted numeric unit; empty ownership never removes original review or R3 obligations. Fresh release-Golden at3e7bf81c passed Bootstrap1454/1454 and Golden25/25, zero skips, with all25 direct cases confirmed; later delta changes only Infrastructure tests and handoff, not firmware or Golden tests. Infrastructure at203d656a passed1116/1116. Historical/scoped evidence is not a fresh full-verifier or protected candidate claim. PASS-WITH-HUMAN-GATE: exact-head firmware-owner attestations, full verification, protected CI and package/publication gates remain required."
+  }
+}

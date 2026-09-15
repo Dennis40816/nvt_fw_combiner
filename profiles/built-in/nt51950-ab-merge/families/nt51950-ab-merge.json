@@ -1,7 +1,30 @@
 {
   "schemaVersion": "1.2",
   "familyId": "nt51950-ab-merge",
-  "familyVersion": "0.3.0",
+  "familyVersion": "0.6.0",
+  "abFormatPolicy": {
+    "scopeId": "nt51950-partial-family-ab-event-buffer",
+    "commonFormatId": "common",
+    "commonDisplayName": "Common",
+    "formats": [
+      { "uniqueId": "desay", "displayName": "Desay", "defaultRecognitionValues": [151, 166] }
+    ],
+    "primaryBindings": {
+      "tpAStructureId": "tp-a-primary-firmware-config",
+      "tpBStructureId": "tp-b-primary-firmware-config",
+      "fieldId": "event-buffer-format-version",
+      "relationId": "firmware-version-complement"
+    },
+    "variants": [
+      { "memberId": "NT51950", "formatId": "common", "mapId": "nt51950-ab-merge-512k" },
+      { "memberId": "NT51950", "formatId": "common", "mapId": "nt51950-ab-merge-1024k" },
+      { "memberId": "NT51950", "formatId": "common", "mapId": "nt51950-ab-common-exact2-1024k" },
+      { "memberId": "NT51950", "formatId": "desay", "mapId": "nt51950-ab-desay-single-1024k" },
+      { "memberId": "NT51950", "formatId": "desay", "mapId": "nt51950-ab-desay-cascade-1024k" },
+      { "memberId": "NT51951", "formatId": "common", "mapId": "nt51951-ab-merge-1024k" },
+      { "memberId": "NT51951", "formatId": "desay", "mapId": "nt51951-ab-desay-1024k" }
+    ]
+  },
   "members": [
     {
       "memberId": "NT51950",
@@ -400,8 +423,154 @@
       "evidenceRefs": [ "nt51951-ab-combiner-topology-regression-2026-07-15" ]
     }
   ],
-  "metadataSets": [],
+  "metadataSets": [
+    {
+      "metadataSetId": "ab-primary-firmware-config",
+      "structures": [
+        {
+          "structureId": "tp-a-primary-firmware-config",
+          "artifactBindingId": "tp-a-input",
+          "definitionReference": {
+            "familyId": "nt51917-nt51927-nt51928-canonical-container",
+            "familyVersion": "1.4.0",
+            "familyContentHash": "11a286731539bc79eb4bc956cd62d5d4e4bb8662874a8f65f7f0cde6f974c761",
+            "structureId": "firmware-config-general-parameters"
+          },
+          "locator": {
+            "kind": "absolute-range",
+            "range": { "addressSpaceId": "flash", "start": 139776, "length": 41 },
+            "allowedResultRegionId": "a-tp-code"
+          }
+        },
+        {
+          "structureId": "tp-b-primary-firmware-config",
+          "artifactBindingId": "tp-b-input",
+          "definitionReference": {
+            "familyId": "nt51917-nt51927-nt51928-canonical-container",
+            "familyVersion": "1.4.0",
+            "familyContentHash": "11a286731539bc79eb4bc956cd62d5d4e4bb8662874a8f65f7f0cde6f974c761",
+            "structureId": "firmware-config-general-parameters"
+          },
+          "locator": {
+            "kind": "absolute-range",
+            "range": { "addressSpaceId": "flash", "start": 139776, "length": 41 },
+            "allowedResultRegionId": "a-tp-code"
+          }
+        }
+      ],
+      "evidenceRefs": ["owner-decision-20260914-ab-primary-event-buffer"]
+    }
+  ],
   "imageMaps": [
+    {
+      "mapId": "nt51950-ab-desay-single-1024k",
+      "addressSpaceId": "flash",
+      "applicability": {
+        "memberIds": [
+          "NT51950"
+        ],
+        "modeIds": [
+          "ab-merge"
+        ],
+        "topologyRequirement": {
+          "kind": "single"
+        },
+        "capacityBytes": 1048576
+      },
+      "coveragePolicy": "complete-with-explicit-gaps",
+      "regionSetIds": [
+        "nt51950-ab-merge-1024k-seed-anchors",
+        "nt51950-ab-merge-shared-bank-placement"
+      ],
+      "metadataSetIds": [
+        "ab-primary-firmware-config"
+      ],
+      "evidenceRefs": [
+        "owner-decision-20260914-ab-format-placement"
+      ]
+    },
+    {
+      "mapId": "nt51950-ab-desay-cascade-1024k",
+      "addressSpaceId": "flash",
+      "applicability": {
+        "memberIds": [
+          "NT51950"
+        ],
+        "modeIds": [
+          "ab-merge"
+        ],
+        "topologyRequirement": {
+          "kind": "cascade",
+          "minimumChipCount": 2
+        },
+        "capacityBytes": 1048576
+      },
+      "coveragePolicy": "complete-with-explicit-gaps",
+      "regionSetIds": [
+        "nt51950-ab-merge-1024k-seed-anchors",
+        "nt51950-ab-merge-shared-bank-placement"
+      ],
+      "metadataSetIds": [
+        "ab-primary-firmware-config"
+      ],
+      "evidenceRefs": [
+        "owner-decision-20260914-ab-format-placement"
+      ]
+    },
+    {
+      "mapId": "nt51951-ab-desay-1024k",
+      "addressSpaceId": "flash",
+      "applicability": {
+        "memberIds": [
+          "NT51951"
+        ],
+        "modeIds": [
+          "ab-merge"
+        ],
+        "topologyRequirement": {
+          "kind": "none"
+        },
+        "capacityBytes": 1048576
+      },
+      "coveragePolicy": "complete-with-explicit-gaps",
+      "regionSetIds": [
+        "nt51950-ab-merge-1024k-seed-anchors",
+        "nt51950-ab-merge-shared-bank-placement"
+      ],
+      "metadataSetIds": [
+        "ab-primary-firmware-config"
+      ],
+      "evidenceRefs": [
+        "owner-decision-20260914-ab-format-placement"
+      ]
+    },
+    {
+      "mapId": "nt51950-ab-common-exact2-1024k",
+      "addressSpaceId": "flash",
+      "applicability": {
+        "memberIds": [
+          "NT51950"
+        ],
+        "modeIds": [
+          "ab-merge"
+        ],
+        "topologyRequirement": {
+          "kind": "exact-count",
+          "chipCount": 2
+        },
+        "capacityBytes": 1048576
+      },
+      "coveragePolicy": "complete-with-explicit-gaps",
+      "regionSetIds": [
+        "nt51951-ab-merge-1024k-seed-and-placement"
+      ],
+      "metadataSetIds": [
+        "ab-primary-firmware-config"
+      ],
+      "evidenceRefs": [
+        "owner-decision-20260914-ab-format-placement"
+      ]
+    },
     {
       "mapId": "nt51950-ab-merge-512k",
       "addressSpaceId": "flash",
@@ -416,7 +585,7 @@
         "nt51950-ab-merge-512k-seed-anchors",
         "nt51950-ab-merge-shared-bank-placement"
       ],
-      "metadataSetIds": [],
+      "metadataSetIds": ["ab-primary-firmware-config"],
       "evidenceRefs": [ "nt51950-ab-combiner-audit-2026-07-14" ]
     },
     {
@@ -433,7 +602,7 @@
         "nt51950-ab-merge-1024k-seed-anchors",
         "nt51950-ab-merge-shared-bank-placement"
       ],
-      "metadataSetIds": [],
+      "metadataSetIds": ["ab-primary-firmware-config"],
       "evidenceRefs": [ "nt51950-ab-combiner-audit-2026-07-14" ]
     },
     {
@@ -447,7 +616,7 @@
       },
       "coveragePolicy": "complete-with-explicit-gaps",
       "regionSetIds": [ "nt51951-ab-merge-1024k-seed-and-placement" ],
-      "metadataSetIds": [],
+      "metadataSetIds": ["ab-primary-firmware-config"],
       "evidenceRefs": [ "nt51951-ab-combiner-topology-regression-2026-07-15" ]
     }
   ],

@@ -105,7 +105,6 @@ public sealed class CtrlRamMemoryDisplayFailureTests
         Assert.Empty(viewModel.ReplaceMemoryRangeLabel);
         Assert.Empty(viewModel.ReplaceMemoryRows);
         Assert.Empty(viewModel.ReplaceCoverageSegments);
-        Assert.Empty(viewModel.CoverageDetails.VisibleRows);
         Assert.Empty(viewModel.ReplaceCoverageGroups);
         Assert.Empty(viewModel.CtrlRamFocusLanes);
         Assert.Empty(viewModel.CtrlRamOverview);

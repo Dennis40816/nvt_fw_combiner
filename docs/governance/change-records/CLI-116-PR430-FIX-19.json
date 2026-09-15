@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 2,
+  "taskId": "CLI-116-PR430-FIX-19",
+  "capability": "Preserve explicit AB CLI profile selection and report pre-run refusal without an unhandled exception",
+  "integrationBase": "985ac926cb15e4b532a2dde50f0bcf8bf533657f",
+  "risk": "R1",
+  "kind": "behavior",
+  "state": "final-complete",
+  "mutablePaths": [
+    "src/NvtFwCombiner.Cli/AbMergeCliCommandHandler.cs",
+    "tests/NvtFwCombiner.Bootstrap.Tests/AbMergeCliCommandTests.cs",
+    "tests/NvtFwCombiner.Bootstrap.Tests/AbMergeCliCommandTests.FormatAdmission.cs"
+  ],
+  "implementationOwner": "/root",
+  "searchEvidence": [
+    "codegraph explore AbMerge CLI tests execution readiness profile selector",
+    "Read AbMergeCliCommandHandler, CliCompositionServices, ActiveSessionSnapshot, CompositionExecutionExperience and ADR 0072 runtime checkpoint",
+    "PR430 r4011487640/r4011487646 independently confirmed by release116_ab_final; owner approved the five fixes before implementation",
+    "cli-profile-red.trx reproduces three silent mismatching-profile successes with four positive controls"
+  ],
+  "semanticOwner": "Application AbMergeAuthoringExperience and CompositionExecutionExperience retain format admission and pre-run refusal; CLI preserves its selector and translates the existing exception boundary",
+  "terminalContract": "Exact profile ID constrains the accepted compiled profile; IC aliases retain automatic selection. Pre-run refusal returns composition-failed without output, invented report or weakened safety checks.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": null,
+    "outcome": "not-required",
+    "evidence": "Owner-authorized bounded local R1 corrections at c6d3ba5f; no firmware, profile, public contract, release policy or admission promotion change. New record provides current integration admission, not retroactive design approval."
+  },
+  "implementationHead": "ea5824a5055feb5336b3821ffecb5ea56e01354c",
+  "reviewedHead": "ea5824a5055feb5336b3821ffecb5ea56e01354c",
+  "pathStateDigest": "53349a9ea73c0a1af66ee31de64b9bcda1a22c361253416362c7b1fbe72e213c",
+  "finalReview": {
+    "reviewer": "/root/release116_ab_final",
+    "outcome": "approved",
+    "evidence": "Independent fixed-head review approved all three mutable paths at ea5824a5055feb5336b3821ffecb5ea56e01354c, identical to previously reviewed CLI correction blobs. Explicit ID constraint reuses accepted capability; narrow execution catch preserves refusal with no output/report. Actual CLI red3/7 profile and red6/6 race failures retained; affected CLI class green26/26 zero skips. Scoped Polytail PASS, no P0-P3. Mechanical batch review confirms exact eight governed paths across CLI19/UI20/GOV21. Full final verifier, CI and release gates remain required."
+  }
+}

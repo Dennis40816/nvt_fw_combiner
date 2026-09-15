@@ -1,0 +1,56 @@
+{
+  "schemaVersion": 2,
+  "taskId": "AB-116-EXACT-ROUTE-08",
+  "capability": "Preserve exact published AB map-set identity through the existing dynamic compiler",
+  "integrationBase": "f9db4ef039be1c7a08e0b83f11133dbc1a0fe049",
+  "risk": "R2",
+  "kind": "behavior",
+  "state": "final-complete",
+  "mutablePaths": [
+    "src/NvtFwCombiner.Application/Capabilities/ICanonicalDynamicCompilationAdapter.cs",
+    "src/NvtFwCombiner.Application/Capabilities/CanonicalCapabilityCompiler.cs",
+    "src/NvtFwCombiner.Application/Capabilities/CanonicalCapabilityCompiler.AbMerge.cs",
+    "src/NvtFwCombiner.Infrastructure/Composition/BuiltInV2DynamicCompilationAdapter.cs",
+    "src/NvtFwCombiner.Infrastructure/Composition/BuiltInV2RegistrationRegistry.cs",
+    "src/NvtFwCombiner.Infrastructure/Composition/CanonicalDynamicRouteInventory.cs",
+    "src/NvtFwCombiner.Infrastructure/Composition/CanonicalCompiledRouteInventory.cs",
+    "src/NvtFwCombiner.Infrastructure/Composition/CanonicalCapabilityDisclosureInventory.cs",
+    "tests/NvtFwCombiner.Application.Tests/Capabilities/CanonicalCapabilityCatalogTests.SelectorPublication.cs",
+    "tests/NvtFwCombiner.Bootstrap.Tests/FirmwareInspectionSnapshotTests.Dispatch.cs",
+    "tests/NvtFwCombiner.Bootstrap.Tests/AbDummyDpCompilationTests.cs",
+    "tests/NvtFwCombiner.Bootstrap.Tests/AbMergeExactRouteTests.cs",
+    "tests/NvtFwCombiner.Bootstrap.Tests/AbDummyDpOutputTests.cs",
+    "tests/NvtFwCombiner.Bootstrap.Tests/AbMergeGoldenRegressionTests.DummyDp.cs",
+    "docs/adr/0072-event-buffer-format-configuration.md"
+  ],
+  "implementationOwner": "primary-agent; independent agents read only",
+  "searchEvidence": [
+    "At 9b3da94b CompileAndBindDynamicRoute holds the full published identity but sends only IC/workflow to ICanonicalDynamicCompilationAdapter. AB registry lookup also drops MapVariantSetId.",
+    "CodeGraph and bounded caller inspection identify DP Replace as the only CompileDynamicDefinition consumer; its prepublication probe must not fabricate a route or query the publication recursively.",
+    "GetDynamicMapCapacities is used only by existing Standard/DP discovery. AB exact compilation does not need another route-less discovery API.",
+    "CanonicalDynamicRouteInventory already validates selection-group map-set and topology axes; CanonicalCompiledRouteInventory uses an individual map ID. Preserve this distinction and the unchanged BindCompilation profile/hash/map checks.",
+    "Existing fake adapters are in SelectorPublication and FirmwareInspectionSnapshotTests.Dispatch; AbDummyDpCompilationTests has a direct adapter consumer.",
+    "Characterization at unchanged production HEAD: AbMergeExactRouteTests rejects unregistered map-set discovery for NT51950 single/cascade and NT51951; all three fail because IsDynamic currently matches IC alone. Evidence ab-exact-route-red-behavior.trx."
+  ],
+  "semanticOwner": "Application canonical catalog owns current published route selection; Infrastructure only resolves the exact trusted registration; existing profile compiler and BindCompilation retain firmware authority",
+  "terminalContract": "Pass full route identity through published dynamic compilation and resolve AB registrations by exact IC/map-set. Unknown or ambiguous selection fails closed. Preserve the existing DP-only definition probe through an explicitly named adapter method sharing the same private compilation core. Legacy unique-IC access is lazy and fail-closed; disclosures enumerate registrations. No new runtime routes, trust-index/schema changes, firmware operations, or support/Golden promotion in this prerequisite unit. Primary format discovery, config freshness, runtime publication and complete bytes evidence remain required by the active goal.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "/root/v116_config_architecture",
+    "outcome": "approved",
+    "evidence": "2026-09-14 independent R2 admission at 9b3da94b for these exact paths: full identity must resolve through current catalog then existing CompileAndBindDynamicRoute; no caller route object bypass. AB dynamic map-set lookup is exact; static route map IDs must not be used as map-set keys. Retain unique legacy static helper fail-closed and remove eager AB single-IC dictionary initialization. DP prepublication definition probe remains distinct from published route identity but shares private compiler core. Typed ambiguous/unavailable outcomes, fake compatibility and shared DP/Standard regressions required. Additional same-day admission covers AbDummyDpOutputTests and AbMergeGoldenRegressionTests.DummyDp as direct signature consumers only, preserving all independent expected bytes/CRC/ranges/hashes. Static registrations validate their individual canonical map and retain existing topology rejection. This is bounded design admission, not implementation or integration PASS."
+  },
+  "implementationHead": "203d656a4180cc5d630ebef68da3f19a3bde9e7a",
+  "reviewedHead": "203d656a4180cc5d630ebef68da3f19a3bde9e7a",
+  "pathStateDigest": "2da8f28f266039ede34b0fbd9d0f8c64c35bc748259c54aab85973181c24981c",
+  "integrationPaths": [
+    "src/NvtFwCombiner.Application/Capabilities/CanonicalCapabilityCompiler.cs",
+    "src/NvtFwCombiner.Infrastructure/Composition/CanonicalCapabilityDisclosureInventory.cs",
+    "src/NvtFwCombiner.Infrastructure/Composition/CanonicalCompiledRouteInventory.cs"
+  ],
+  "finalReview": {
+    "reviewer": "/root/release116_ab_final",
+    "outcome": "approved",
+    "evidence": "Final technical review approved at 203d656a4180cc5d630ebef68da3f19a3bde9e7a against checkpoint f9db4ef039be1c7a08e0b83f11133dbc1a0fe049. Independent review covered every original AB08-14 path, including all125 unique paths and overlapping profiles/contracts/tests/UI/packaging. Primary observation, exact route, immutable capture/config freshness, processor boundary/order, report provenance and Desay size/coverage were traced. All original AB path blobs are unchanged from reviewed3e7bf81c at203d656a. No P0-P3. This record retains review/digest of all 15 original mutablePaths. ADR0071 final administrative ownership assigns each shared governed path to its latest admitted numeric unit; empty ownership never removes original review or R3 obligations. Fresh release-Golden at3e7bf81c passed Bootstrap1454/1454 and Golden25/25, zero skips, with all25 direct cases confirmed; later delta changes only Infrastructure tests and handoff, not firmware or Golden tests. Infrastructure at203d656a passed1116/1116. Historical/scoped evidence is not a fresh full-verifier or protected candidate claim. PASS-WITH-HUMAN-GATE: exact-head firmware-owner attestations, full verification, protected CI and package/publication gates remain required."
+  }
+}

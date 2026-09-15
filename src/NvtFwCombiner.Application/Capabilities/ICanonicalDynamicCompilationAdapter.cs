@@ -12,18 +12,32 @@ namespace NvtFwCombiner.Application.Capabilities;
 /// </summary>
 public interface ICanonicalDynamicCompilationAdapter
 {
+    /// <summary>Projects one exact AB registration without compiling a map; other workflows are unavailable.</summary>
+    bool TryGetAbAuthoringDefinition(
+        CapabilityRouteIdentity identity,
+        out CanonicalAbAuthoringDefinition? definition,
+        out IReadOnlyList<CompositionIssue> issues);
+
     IReadOnlyList<long> GetMapCapacities(
         string icId,
         string workflowId,
         out IReadOnlyList<CompositionIssue> issues);
 
     void Compile(
-        string icId,
-        string workflowId,
+        CapabilityRouteIdentity identity,
         long? requestedMapCapacity,
         IReadOnlyCollection<string>? selectedInputSlotIds,
         out CompiledComposition? composition,
         out MetadataPlanDefinition? metadataPlan,
         out IReadOnlyList<CompositionIssue> issues,
         TopologySelection? requestedTopology = null);
+
+    /// <summary>Probes the existing DP Replace definition before publication binding; never selects an AB route.</summary>
+    void CompileDefinition(
+        string icId,
+        string workflowId,
+        long? requestedMapCapacity,
+        IReadOnlyCollection<string>? selectedInputSlotIds,
+        out CompiledComposition? composition,
+        out IReadOnlyList<CompositionIssue> issues);
 }

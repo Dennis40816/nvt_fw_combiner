@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 2,
+  "taskId": "UI-116-CONFIG-RACE-FOCUS-23",
+  "capability": "Keep the Config editor synchronized and preserve add-value keyboard focus",
+  "integrationBase": "4a5510bcbea58ed9308742d315858e44709fcf1c",
+  "risk": "R1",
+  "kind": "ui",
+  "state": "final-complete",
+  "mutablePaths": [
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/SettingsViewModel.EventBufferFormat.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/Views/SettingsModal.axaml.cs",
+    "tests/NvtFwCombiner.UiSmoke.Tests/ShellViewModelTests.EventBufferFormat.cs",
+    "tests/NvtFwCombiner.UiSmoke.Tests/XamlControlStyleContractTests.EventBufferFormat.cs"
+  ],
+  "implementationOwner": "/root",
+  "searchEvidence": [
+    "PR430 threads PRRT_kwDOTFOg1M6iZMGE and PRRT_kwDOTFOg1M6iZMGI; owner approved both corrections",
+    "Existing IEventBufferFormatConfigurationSession.Current is the immutable typed publication reused by AB reapply; SettingsViewModel owns editor baseline projection and SettingsModal owns existing focus lifecycle",
+    "config-publication-race-red.trx: Publication B expected but editor retained A; config-add-focus-red.trx: 3/3 visual states failed because revealed TextBox had no focus"
+  ],
+  "semanticOwner": "Application EventBufferFormatConfigurationSession owns the publication; existing SettingsViewModel and SettingsModal own its editor projection and focus only",
+  "terminalContract": "After reapply, the editor adopts the same current typed publication without a third disk reload. Add-value keyboard activation focuses the revealed byte input; successful add or Escape cancellation returns focus to the existing Add value action. No firmware rule, output byte, layout, or configuration identity is derived in Presentation.",
+  "disposition": "reuse",
+  "designReview": {
+    "reviewer": null,
+    "outcome": "not-required",
+    "evidence": "Owner-authorized bounded local R1 preflight at latest evidence checkpoint 4a5510bc. The intervening d6011fb2 and 64cdc0fd test-only synchronization commits leave every mutable path byte-identical. Existing typed publication, editor owner and Settings modal focus lifecycle are extended without public contract or firmware changes. Narrow UI red/green tests and exact-head independent review remain required."
+  },
+  "implementationHead": "3d9ec00da7e073aa576033c9881ef585f74b458e",
+  "reviewedHead": "3d9ec00da7e073aa576033c9881ef585f74b458e",
+  "pathStateDigest": "04d7bd1a4e02a7c62ab7d498ade08df2a1d9ec1277feb423fbd973e5fb3a23c9",
+  "finalReview": {
+    "reviewer": "/root/release116_config_final",
+    "outcome": "approved",
+    "evidence": "Fixed-head R1 correctness and scoped Polytail rebind approved at 3d9ec00d against 4a5510bc. All four mutable paths are byte-identical to the previously approved implementation. Reused focused evidence: publication 5/5, focus 3/3, lifecycle 5/5 and Reset 5/5, with the stale-row finding closed; no tests were relabeled as freshly executed."
+  }
+}

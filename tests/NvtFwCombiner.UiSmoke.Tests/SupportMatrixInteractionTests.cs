@@ -46,7 +46,8 @@ public sealed class SupportMatrixInteractionTests
             Render();
             Border surface = Assert.Single(window.GetVisualDescendants().OfType<Border>(), b => b.Name == "SettingsSurface");
             RadioButton[] navigationItems = [.. surface.GetVisualDescendants().OfType<RadioButton>().Where(b => b.Classes.Contains("settingsNavItem"))];
-            Assert.Equal(4, navigationItems.Length);
+            // Config is the fifth approved Settings navigation entry.
+            Assert.Equal(5, navigationItems.Length);
             foreach (RadioButton item in navigationItems)
             {
                 Grid content = Assert.IsType<Grid>(item.Content);

@@ -10,12 +10,13 @@ public sealed partial class RepositoryBoundaryTests
             "src/NvtFwCombiner.Infrastructure/Bundles/StrictJsonDocumentReader.cs");
         string bundleSnapshot = ReadText(
             "src/NvtFwCombiner.Infrastructure/Bundles/ProfileBundleFileSnapshot.cs");
-        string infrastructureSource = string.Concat(
-            Directory.EnumerateFiles(
+        string infrastructureRoot = Path.Combine(Root.FullName, "src", "NvtFwCombiner.Infrastructure");
+        string[] snapshotCallers = [.. Directory.EnumerateFiles(
                     Path.Combine(Root.FullName, "src", "NvtFwCombiner.Infrastructure"),
                     "*.cs",
                     SearchOption.AllDirectories)
-                .Select(File.ReadAllText));
+                .Where(path => File.ReadAllText(path).Contains(
+                    "StrictJsonDocumentReader.ParseOwnedSnapshot(", StringComparison.Ordinal))];
 
         Assert.Contains("byte[] snapshot = utf8Json.ToArray();", reader, StringComparison.Ordinal);
         Assert.Contains("The caller must keep the memory unchanged", reader, StringComparison.Ordinal);
@@ -23,9 +24,12 @@ public sealed partial class RepositoryBoundaryTests
             "StrictJsonDocumentReader.ParseOwnedSnapshot(",
             bundleSnapshot,
             StringComparison.Ordinal);
-        Assert.Equal(
-            2,
-            CountOccurrences(infrastructureSource, "StrictJsonDocumentReader.ParseOwnedSnapshot("));
+        string[] expectedCallers = ["Bundles/ProfileBundleFileSnapshot.cs", "Bundles/ProfileBundlePackageTrustIndex.cs",
+            "Configuration/EventBufferFormatConfigurationStorage.cs"];
+        Assert.Equal(expectedCallers.Order(StringComparer.Ordinal), snapshotCallers
+            .Select(path => Path.GetRelativePath(infrastructureRoot, path).Replace('\\', '/')).Order(StringComparer.Ordinal));
+        Assert.All(snapshotCallers, path => Assert.Equal(1,
+            CountOccurrences(File.ReadAllText(path), "StrictJsonDocumentReader.ParseOwnedSnapshot(")));
     }
 
     /// <summary>Verifies the external combiner adapter root stays focused on staged execution flow.</summary>

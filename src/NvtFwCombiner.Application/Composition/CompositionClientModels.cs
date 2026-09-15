@@ -178,7 +178,8 @@ public sealed record FirmwareInspectionSnapshotInput(
     long AuthoringRevision = 1,
     string? StandardMergeAddressSpaceId = null,
     string? CtrlRamReplaceAddressSpaceId = null,
-    ResolvedCapability? ExactCapability = null);
+    ResolvedCapability? ExactCapability = null,
+    AbMergeDpMode AbMergeDpMode = AbMergeDpMode.Normal);
 
 /// <summary>One coherent compiled input-inspection batch mapped to client inspection ids.</summary>
 public sealed record FirmwareInspectionStatusBatch(

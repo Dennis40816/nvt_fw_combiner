@@ -6,6 +6,45 @@ namespace NvtFwCombiner.Application.Capabilities;
 
 internal sealed partial class CanonicalCapabilityCompilerAdapter
 {
+    internal bool TryGetAbAuthoringDefinition(
+        ResolvedCapabilityRoute requestedRoute,
+        [NotNullWhen(true)] out CanonicalAbAuthoringDefinition? definition,
+        out IReadOnlyList<CompositionIssue> issues)
+    {
+        ArgumentNullException.ThrowIfNull(requestedRoute);
+        definition = null;
+        CapabilityRouteResolutionResult current = _catalog.ResolveDynamicRoute(requestedRoute.Identity.RouteId);
+        if (!current.Succeeded || requestedRoute.Identity.WorkflowId != ExperienceIds.AbMerge ||
+            current.Route!.ResolutionToken != requestedRoute.ResolutionToken ||
+            current.Route.CapabilityFingerprint != requestedRoute.CapabilityFingerprint)
+        {
+            issues = [new CompositionIssue(current.Issue?.Code ?? CapabilityCatalogIssueCodes.RouteUnavailable,
+                current.Issue?.Message ?? "AB declarations require the current published route, not a stale or foreign route.")];
+            return false;
+        }
+
+        if (!_dynamicCompiler.TryGetAbAuthoringDefinition(current.Route.Identity,
+                out CanonicalAbAuthoringDefinition? candidate, out issues) || candidate is null || issues.Count != 0)
+        {
+            if (issues.Count == 0)
+            {
+                issues = [new CompositionIssue(CapabilityCatalogIssueCodes.RouteUnavailable, "The trusted AB declaration is unavailable.")];
+            }
+            return false;
+        }
+
+        if (!candidate.Matches(current.Route) ||
+            _catalog.TryGetCurrentSnapshot()?.ResolutionToken != current.Route.ResolutionToken)
+        {
+            issues = [new CompositionIssue(CapabilityCatalogIssueCodes.RouteUnavailable,
+                "The AB declaration does not match the current profile, family, input membership or publication.")];
+            return false;
+        }
+
+        definition = candidate;
+        return true;
+    }
+
     internal bool TryCompileAbMerge(
         string icId,
         TopologySelection? requestedTopology,
@@ -29,22 +68,26 @@ internal sealed partial class CanonicalCapabilityCompilerAdapter
         capability = null;
         issues = [];
         string normalizedIcId = IcIdentifier.Normalize(icId);
-        ResolvedCapabilityRoute? route = _catalog.GetCurrentSnapshot().DynamicRoutes
-            .SingleOrDefault(candidate => candidate.Identity.IcId == normalizedIcId &&
+        ResolvedCapabilityRoute[] routes = [.. _catalog.GetCurrentSnapshot().DynamicRoutes
+            .Where(candidate => candidate.Identity.IcId == normalizedIcId &&
                 candidate.Identity.WorkflowId == ExperienceIds.AbMerge &&
                 (candidate.AbMergeTopologyChoice is { } choice
                     ? requestedTopology is not null &&
                         (choice.Selection.ChipCount == 1
                             ? requestedTopology.ChipCount == 1
                             : requestedTopology.ChipCount >= 2)
-                    : requestedTopology is null));
-        if (route is null)
+                    : requestedTopology is null))];
+        if (routes.Length != 1)
         {
+            issues = [new CompositionIssue(routes.Length == 0
+                ? CapabilityCatalogIssueCodes.RouteUnavailable
+                : CapabilityCatalogIssueCodes.RouteAmbiguous,
+                "AB compilation requires one exact published format route for the selected IC and topology.")];
             return false;
         }
 
-        _ = TryCompilePublishedDynamicCapability(normalizedIcId, ExperienceIds.AbMerge,
-            route.Identity.IcCountVariant, requestedMapCapacity: null, selectedInputSlotIds,
+        _ = TryCompilePublishedDynamicCapability(routes[0].Identity,
+            requestedMapCapacity: null, selectedInputSlotIds,
             out composition, out capability, out issues, requestedTopology);
         return composition is not null;
     }
@@ -94,8 +137,17 @@ internal sealed partial class CanonicalCapabilityCompilerAdapter
 /// Sole Application projection from accepted compiled AB topology to selector
 /// choices. Both the selector publication and compiler disclosure consume it.
 /// </summary>
-internal static class AbMergeTopologyChoiceProjection
+public static class AbMergeTopologyChoiceProjection
 {
+    /// <summary>Projects a declared topology to its shared AB selector label without changing its count constraint.</summary>
+    public static CapabilityTopologyChoice FromSelection(TopologySelection selection)
+    {
+        ArgumentNullException.ThrowIfNull(selection);
+        return new(selection.ChipCount == 1
+            ? TopologyRequirement.RequireSingleChip().CanonicalId
+            : TopologyRequirement.RequireCascade().CanonicalId, selection);
+    }
+
     internal static void ValidateDefinition(CapabilityRouteIdentity identity, CapabilityTopologyChoice? choice)
     {
         bool valid = identity.WorkflowId != ExperienceIds.AbMerge || identity.IcCountVariant == "selector-free"
@@ -103,6 +155,7 @@ internal static class AbMergeTopologyChoiceProjection
             : identity.IcCountVariant switch
             {
                 "1-ic" => choice is { Token: "single", Selection.ChipCount: 1 },
+                "2-ic" => choice is { Token: "cascade", Selection.ChipCount: 2 },
                 "2-plus-ic" => choice is { Token: "cascade", Selection.ChipCount: 2 },
                 _ => false,
             };
@@ -122,6 +175,7 @@ internal static class AbMergeTopologyChoiceProjection
         {
             "selector-free" => topology is null,
             "1-ic" => topology?.ChipCount == 1,
+            "2-ic" => topology?.ChipCount == 2,
             "2-plus-ic" => topology?.ChipCount >= 2,
             _ => false,
         };

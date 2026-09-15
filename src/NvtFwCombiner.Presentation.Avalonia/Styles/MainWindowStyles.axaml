@@ -134,6 +134,19 @@
   <Style Selector="Expander.firmwareSlotGroupDisclosure /template/ ToggleButton#ExpanderHeader:focus-visible">
     <Setter Property="BorderBrush" Value="{DynamicResource NfcAccentStrongBrush}" />
   </Style>
+  <!-- Input groups retain a stable keyboard focus underline, without horizontal
+       border/padding insets or changing the shared technical-detail disclosure. -->
+  <Style Selector="Expander.firmwareInputGroupDisclosure /template/ ToggleButton#ExpanderHeader">
+    <Setter Property="Padding" Value="0,6" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="MinHeight" Value="36" />
+  </Style>
+  <Style Selector="Expander.firmwareInputGroupDisclosure /template/ ToggleButton#ExpanderHeader:pointerover, Expander.firmwareInputGroupDisclosure /template/ ToggleButton#ExpanderHeader:checked:pointerover, Expander.firmwareInputGroupDisclosure /template/ ToggleButton#ExpanderHeader:pressed">
+    <Setter Property="Background" Value="Transparent" />
+  </Style>
+  <Style Selector="Expander.firmwareInputGroupDisclosure /template/ ToggleButton#ExpanderHeader:focus-visible">
+    <Setter Property="BorderThickness" Value="0,0,0,2" />
+  </Style>
   <Style Selector="ToggleButton.nav">
     <Setter Property="MinHeight" Value="30" />
     <Setter Property="Padding" Value="13,6" />

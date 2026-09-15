@@ -229,6 +229,7 @@ internal sealed partial class WorkflowSessionPresentationViewModel
                     : new AuthoringRevision(1);
         string icId = SelectedIc;
         string number = SelectedNumber;
+        AbMergeDpMode abDpMode = _merge.UseDummyDpForAbMerge ? AbMergeDpMode.Dummy : AbMergeDpMode.Normal;
         return lifecycle.StartAsync(
             Text,
             async (progress, isCurrent, cancellationToken) =>
@@ -265,7 +266,7 @@ internal sealed partial class WorkflowSessionPresentationViewModel
                             request.AuthoringRevision.Value,
                             item.StandardMergeAddressSpaceId,
                             item.CtrlRamReplaceAddressSpaceId,
-                            item.InspectionLease?.ExactCapability)),
+                            item.InspectionLease?.ExactCapability, abDpMode)),
                     ];
                     FirmwareInspectionBatchResult result = await _compositionServices.FirmwareInspection
                         .InspectFirmwareBatchAsync(

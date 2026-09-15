@@ -770,3 +770,88 @@ remain unchanged. No spare or transferable capacity is introduced. The earlier
 structure failure remains a failure, not retroactive passing evidence. The
 owner's additional question about replacing hard size limits is a separate
 policy assessment; this exact accounting does not authorize that replacement.
+
+## 2026-09-15 v1.1.6 format/configuration and UI accounting
+
+The owner approved this release's necessary reviewed source increment after the
+preflight reported full production 144,041 against the admitted 140,510. Source
+at `dd250d4f9a340e2cb01daf29f3ffef75c697d988` retains the production tree of
+`e91ae298138472adfe3ebf5958c01c170a03a31c`. Independent R2 admission
+`GOV-116-EXACT-SIZE-18` records the bounded ownership/minimality review.
+
+| Metric | Exact total | Preserved base | Allowance | Increment |
+| --- | ---: | ---: | ---: | ---: |
+| Full production / warning baseline | 144,041 | 102,896 | 41,145 | 3,531 |
+| Runtime | 101,985 | 70,056 | 31,929 | 2,400 |
+| Domain + Profiles | 21,182 | 20,627 | 555 | 425 |
+| Application | 44,540 | 30,690 | 13,850 | 1,536 |
+| Bootstrap + CLI + Desktop host | 5,112 | 3,378 | 1,734 | 73 |
+| Infrastructure + Contracts + CRC worker | 31,151 | 15,356 | 15,795 | 366 |
+
+Domain/Profiles owns closed AB format variants and primary FWConfig bindings.
+Application owns format admission, validated Config Save/Reload, accepted-input
+freshness and captured Report facts. Shared topology admission replaces the
+old RunService decision rather than duplicating it. The host adds lazy wiring;
+Infrastructure adds typed documents and bounded storage using existing
+ILocalFileStore and strict JSON/schema owners. The full-only increment of
+1,131 lines covers Config presentation/localization and Memory Layout/slot/
+notification changes, with the old MemoryCoverageListViewModel removed.
+The independent ownership-level review found no obvious safe duplicate owner
+or speculative infrastructure to remove immediately; it is not a claim of
+globally minimal source or complete firmware correctness.
+
+The existing exact baseline assertions follow these totals. WorkflowSession
+observes 2,680 nonblank lines in 13 files; its 2,627 warning threshold is retained.
+All ratchet bases, physical counting/exclusions, partial/duplicate checks,
+growth/reduction/slice-equality protections and firmware/Golden/package/CI/
+release gates remain unchanged. There is no reserved or transferable capacity.
+The original 18-pass/1-fail code-size test result remains failure evidence;
+focused policy tests and final candidate verification must validate this change.
+
+## 2026-09-15 PR430 correction accounting
+
+The owner approves the exact five-correction increment at `df4a3435`: full
+production +128 nonblank lines, including runtime/host +18. Independent R2
+admission `GOV-116-PR430-EXACT-SIZE-21` preserves the existing measurement owner.
+
+| Metric | Exact total | Preserved base | Allowance |
+| --- | ---: | ---: | ---: |
+| Full production / warning baseline | 144,169 | 102,896 | 41,273 |
+| Runtime | 102,003 | 70,056 | 31,947 |
+| Bootstrap + CLI + Desktop host | 5,130 | 3,378 | 1,752 |
+
+CLI retains the accepted profile constraint and translates the existing pre-run
+refusal. Config Reload shares the session and reapplication owner; byte-specific
+automation names use MultiBinding; focus isolation remains in SettingsModal.
+Scoped minimality review found no obvious safe duplicate semantic path to cut.
+Domain/Profiles, Application and Infrastructure totals and allowances do not
+change. All counting, exclusions, ratchet bases, partial/duplicate and
+growth/reduction/slice-equality guards remain unchanged. No spare capacity,
+package-size, Golden, safety, CI or release exception is introduced. The
+pre-adjustment policy test result was 18 pass / 1 fail (144041 != 144169),
+not a pass; subsequent targeted and final candidate checks remain required.
+
+## 2026-09-15 final PR430 review-correction accounting
+
+The owner approves the exact final correction increment at `3a55f621`: full
+production +149 nonblank lines, including runtime/Application +27. Independent
+R2 admission `GOV-116-PR430-FINAL-EXACT-SIZE-25` preserves the existing
+measurement owner and verifies the complete slice equality.
+
+| Metric | Exact total | Preserved base | Allowance |
+| --- | ---: | ---: | ---: |
+| Full production / warning baseline | 144,318 | 102,896 | 41,422 |
+| Runtime | 102,030 | 70,056 | 31,974 |
+| Application | 44,567 | 30,690 | 13,877 |
+
+The Config publication/focus corrections add 112 Presentation-only lines. The
+typed AB pre-run refusal adds 27 runtime/Application lines and 10 Presentation
+lines. Both reuse their existing typed owners, have focused red/green evidence
+and passed independent fixed-head review. Domain/Profiles,
+Bootstrap/CLI/Desktop host and Infrastructure/Contracts/worker totals and
+allowances remain unchanged.
+
+Only four existing policy defaults and three exact baseline assertions change.
+All counting, exclusions, ratchet bases, partial/duplicate and
+growth/reduction/slice-equality guards remain unchanged. No spare capacity or
+firmware, Golden, safety, CI, package or release exception is introduced.

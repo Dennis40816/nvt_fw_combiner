@@ -34,32 +34,35 @@ public sealed class FirmwareInspectionExtensionAdmissionTests
 
     /// <summary>AB Merge rejects one invalid logical input without workflow-specific validation.</summary>
     [Fact]
-    public void AbMergeRejectsUnacceptedExtensionThroughSharedInspector()
+    public async Task AbMergeRejectsUnacceptedExtensionThroughSharedInspector()
     {
-        IReadOnlyList<FirmwareInspectionSnapshotResult> results =
-            BuiltInFirmwareInspection.InspectFirmwareBatch(
-                BootstrapTestHost.Canonical,
+        using var workspace = TempWorkspace.Create("ab-extension-inspection");
+        string dpPath = workspace.Write("ab-dp.bin", new byte[0x80000]);
+        string tpAPath = workspace.Write("ab-tp-a.txt", new byte[0x40000]);
+        string tpBPath = workspace.Write("ab-tp-b.bin", new byte[0x40000]);
+        FirmwareInspectionBatchResult result =
+            await BootstrapTestHost.Services.FirmwareInspectionExperience.InspectFirmwareBatchAsync(
                 "NT51929",
                 [
                     new FirmwareInspectionSnapshotInput(
                         CompositionAddressSpaceIds.DpAbInput,
-                        "ab-dp.bin",
+                        dpPath,
                         AbMergeAddressSpaceId: CompositionAddressSpaceIds.DpAbInput),
                     new FirmwareInspectionSnapshotInput(
                         CompositionAddressSpaceIds.TpAInput,
-                        "ab-tp-a.txt",
+                        tpAPath,
                         AbMergeAddressSpaceId: CompositionAddressSpaceIds.TpAInput),
                     new FirmwareInspectionSnapshotInput(
                         CompositionAddressSpaceIds.TpBInput,
-                        "ab-tp-b.bin",
+                        tpBPath,
                         AbMergeAddressSpaceId: CompositionAddressSpaceIds.TpBInput),
                 ],
-                path => new byte[path == "ab-dp.bin" ? 0x80000 : 0x40000]);
+                TestContext.Current.CancellationToken);
 
         AssertExtensionError(
-            results,
+            [.. result.InspectionsById.Select(static pair => new FirmwareInspectionSnapshotResult(pair.Key, pair.Value))],
             CompositionAddressSpaceIds.TpAInput,
-            "ab-tp-a.txt");
+            tpAPath);
     }
 
     /// <summary>CtrlRAM Replace applies the same admission after exact base discovery.</summary>

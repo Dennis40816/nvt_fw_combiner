@@ -301,6 +301,78 @@ internal sealed partial class ShellTextResources
             IcDetailSupportLabel = Pick("Support", "支援說明"),
             SettingsOverviewNavigationLabel = Pick("General", "一般"),
             SettingsPreferencesNavigationLabel = Pick("Appearance", "外觀"),
+            EventBufferFormatNavigationLabel = Pick("Config", "設定"),
+            EventBufferFormatTitle = Pick("Event Buffer Format", "事件緩衝區格式"),
+            EventBufferFormatSubtitle = Pick(
+                "Choose a format, set its display alias, and manage recognition values.",
+                "選擇格式、設定顯示別名，並管理辨識值。"),
+            EventBufferFormatUniqueIdLabel = Pick("Unique ID", "唯一識別碼"),
+            EventBufferFormatAliasLabel = Pick("Alias name", "別名"),
+            EventBufferFormatRecognitionValuesLabel = Pick("Recognition values", "辨識值"),
+            EventBufferFormatOutputEffectLabel = Pick("Output effect", "輸出影響"),
+            EventBufferFormatAddValueLabel = Pick("Add value", "新增值"),
+            EventBufferFormatRemoveValueLabel = Pick("Remove recognition value", "移除辨識值"),
+            EventBufferFormatRecognitionValueLabel = Pick("Recognition value", "辨識值"),
+            EventBufferFormatIdentityHint = Pick(
+                "Unique ID determines output behavior. Alias name changes display text only.",
+                "唯一識別碼決定輸出行為；別名只會變更顯示文字。"),
+            EventBufferFormatAliasHint = Pick("Display-only alias", "僅供顯示的別名"),
+            EventBufferFormatRecognitionValuesHint = Pick(
+                "Add or remove byte values (0x00–0xFF). Changes apply after saving.",
+                "新增或移除 byte 值（0x00–0xFF），儲存後才會套用變更。"),
+            EventBufferFormatRestoreDefaultsLabel = Pick("Restore defaults", "還原預設值"),
+            EventBufferFormatDiscardChangesLabel = Pick("Discard changes", "捨棄變更"),
+            EventBufferFormatSaveApplyLabel = Pick("Save and apply", "儲存並套用"),
+            EventBufferFormatReloadLabel = Pick("Reload", "重新載入"),
+            EventBufferFormatReloadHint = Pick("Reload saved configuration. Save or discard unsaved changes first.",
+                "重新載入已儲存的設定。請先儲存或捨棄尚未儲存的變更。"),
+            EventBufferFormatNoUnsavedChangesLabel = Pick("No unsaved changes", "沒有未儲存的變更"),
+            EventBufferFormatUnsavedChangesLabel = Pick("Unsaved changes", "有未儲存的變更"),
+            EventBufferFormatSavingLabel = Pick("Saving configuration…", "正在儲存設定…"),
+            EventBufferFormatInvalidHexLabel = Pick("Enter a hexadecimal byte.", "請輸入十六進位 byte。"),
+            EventBufferFormatValuesRequiredLabel = Pick("recognition values are required.", "必須填寫辨識值。"),
+            EventBufferFormatIdentityRequiredLabel = Pick("select a listed identity.", "請選取清單中的識別碼。"),
+            EventBufferFormatEntryRequiredLabel = Pick("entry is required.", "必須有設定項目。"),
+            EventBufferFormatEntryLabel = Pick("Entry", "項目"),
+            EventBufferFormatDuplicateIdentityLabel = Pick("select a distinct identity.", "請選取不同的識別碼。"),
+            EventBufferFormatValueOutOfRangeLabel = Pick("is outside byte range 0–255.", "超出 byte 範圍 0–255。"),
+            EventBufferFormatDuplicateValueLabel = Pick("duplicate byte", "重複的 byte"),
+            EventBufferFormatConflictingValueLabel = Pick("is already assigned.", "已指派給其他識別碼。"),
+            EventBufferFormatOutputStartLabel = Pick("TP B start", "TP B 起始位址"),
+            EventBufferFormatOutputAppliesToLabel = Pick("Applies to", "適用於"),
+            EventBufferFormatLoadingLabel = Pick("Loading configuration…", "正在載入設定…"),
+            EventBufferFormatMissingLabel = Pick(
+                "No saved configuration. Defaults below are a draft until saved.",
+                "尚未儲存設定；以下預設值在儲存前只是草稿。"),
+            EventBufferFormatInvalidLabel = Pick(
+                "Saved configuration needs attention. The draft below is not active until saved.",
+                "已儲存設定需要處理；以下草稿在儲存前不會生效。"),
+            EventBufferFormatLoadFailedLabel = Pick(
+                "Cannot load configuration. Check installed files and restart if retry fails.",
+                "無法載入設定。請檢查已安裝檔案；若重試失敗，請重新啟動。"),
+            EventBufferFormatSaveFailedLabel = Pick(
+                "Cannot save configuration. Your draft is still available for correction.",
+                "無法儲存設定。草稿仍保留，可繼續修正。"),
+            EventBufferFormatReadFailedLabel = Pick(
+                "Cannot read the configuration file. Check its location and access permissions; no configuration is active.",
+                "無法讀取設定檔。請檢查檔案位置與存取權限；目前沒有生效的設定。"),
+            EventBufferFormatScopeMismatchLabel = Pick(
+                "The saved file belongs to a different configuration group. Review and save this group's draft to replace it.",
+                "已儲存的檔案屬於不同設定群組。請確認此群組的草稿，再儲存以取代原設定。"),
+            EventBufferFormatInvalidDocumentLabel = Pick(
+                "The configuration file has an invalid or unsupported format. Correct the file, or review defaults and save a replacement.",
+                "設定檔格式無效或不受支援。請修正檔案，或確認預設草稿後儲存以取代原設定。"),
+            EventBufferFormatSavedLabel = Pick(
+                "Configuration saved.",
+                "設定已儲存。"),
+            EventBufferFormatReapplyFailedLabel = Pick(
+                "Configuration saved, but AB inputs could not be refreshed. Check the input issues before Build.",
+                "設定已儲存，但 AB 輸入未能更新。請先確認輸入問題，再執行 Build。"),
+            EventBufferFormatDiscardConfirmationTitle = Pick("Discard unsaved changes?", "捨棄未儲存的變更？"),
+            EventBufferFormatDiscardConfirmationDetail = Pick(
+                "Your Event Buffer Format draft will be restored before Settings closes.",
+                "關閉 Settings 前會還原事件緩衝區格式草稿。"),
+            EventBufferFormatKeepEditingLabel = Pick("Keep editing", "繼續編輯"),
             SettingsOverviewTitle = Pick("Product information", "產品資訊"),
             SettingsOverviewSubtitle = Pick(
                 "Installed version and authoring availability from the current catalog.",

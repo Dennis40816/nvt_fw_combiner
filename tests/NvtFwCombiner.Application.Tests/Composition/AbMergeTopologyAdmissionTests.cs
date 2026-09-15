@@ -1,0 +1,129 @@
+using NvtFwCombiner.Application.Composition;
+using NvtFwCombiner.Domain.Composition;
+using NvtFwCombiner.Domain.Firmware;
+
+namespace NvtFwCombiner.Application.Tests.Composition;
+
+/// <summary>Checks exact observed counts and preserves the existing single/cascade admission policy.</summary>
+public sealed class AbMergeTopologyAdmissionTests
+{
+    /// <summary>Cascade is a classification, not a replacement for each artifact's actual count.</summary>
+    [Theory]
+    [InlineData(1, 1, 1)]
+    [InlineData(2, 3, 2)]
+    [InlineData(3, 2, 2)]
+    [InlineData(255, 255, 2)]
+    public void AcceptedCountsRetainTheirExactValues(int a, int b, int selected)
+    {
+        byte[] tpA = Tp(a);
+        byte[] tpB = Tp(b);
+        AbMergeTopologyAdmissionResult result = AbMergeTopologyAdmission.Assess(tpA, tpB, Selection(selected));
+        Assert.True(result.Succeeded);
+        Assert.Empty(result.Issues);
+        Assert.Equal((byte)a, result.TpAChipCount);
+        Assert.Equal((byte)b, result.TpBChipCount);
+        Array.Clear(tpA);
+        Array.Clear(tpB);
+        Assert.Equal((byte)a, result.TpAChipCount);
+        Assert.Equal((byte)b, result.TpBChipCount);
+    }
+
+    /// <summary>Invalid Backup has no count; errors retain A/B order and exact wording.</summary>
+    [Theory]
+    [InlineData("missing")]
+    [InlineData("duplicate")]
+    [InlineData("complement")]
+    [InlineData("short")]
+    public void InvalidBackupsDoNotInventZeroCounts(string defect)
+    {
+        byte[] bytes = Tp(2);
+        switch (defect)
+        {
+            case "missing": bytes[0x36FFF] = 0; break;
+            case "duplicate": "\0NVT"u8.CopyTo(bytes.AsSpan(0x34000)); break;
+            case "complement": bytes[0x36001] = bytes[0x36000]; break;
+            case "short": bytes = []; break;
+            default: throw new ArgumentOutOfRangeException(nameof(defect));
+        }
+
+        AbMergeTopologyAdmissionResult result = AbMergeTopologyAdmission.Assess(bytes, bytes, Selection(2));
+        Assert.False(result.Succeeded);
+        Assert.Null(result.TpAChipCount);
+        Assert.Null(result.TpBChipCount);
+        Assert.Collection(result.Issues,
+            issue => AssertIssue(issue, "AB_TP_FIRMWARE_CONFIG_BACKUP_INVALID", "TPA has no valid canonical NVT FWConfig Backup.", CompositionAddressSpaceIds.TpAInput),
+            issue => AssertIssue(issue, "AB_TP_FIRMWARE_CONFIG_BACKUP_INVALID", "TPB has no valid canonical NVT FWConfig Backup.", CompositionAddressSpaceIds.TpBInput));
+    }
+
+    /// <summary>A decoded zero differs from unavailable metadata and precedes topology mismatch.</summary>
+    [Theory]
+    [InlineData(0, 2)]
+    [InlineData(2, 0)]
+    [InlineData(0, 0)]
+    public void ZeroIsRetainedButBlocksBeforeClassification(int a, int b)
+    {
+        AbMergeTopologyAdmissionResult result = AbMergeTopologyAdmission.Assess(Tp(a), Tp(b), Selection(1));
+        Assert.False(result.Succeeded);
+        Assert.Equal((byte)a, result.TpAChipCount);
+        Assert.Equal((byte)b, result.TpBChipCount);
+        AssertIssue(Assert.Single(result.Issues), "firmware-config.chip-count-required",
+            "IC Count Required: FWConfig Chip_Num at offset 0x17 is 0. AB Code uses TPA and TPB IC Count to validate the selected topology. Set Chip_Num correctly before Build.", "ab-topology");
+    }
+
+    /// <summary>A bad Backup takes precedence over a valid zero on the other input.</summary>
+    [Fact]
+    public void InvalidPrecedesZeroOnOtherInput()
+    {
+        AbMergeTopologyAdmissionResult result = AbMergeTopologyAdmission.Assess([], Tp(0), Selection(1));
+        Assert.Null(result.TpAChipCount);
+        Assert.Equal((byte)0, result.TpBChipCount);
+        AssertIssue(Assert.Single(result.Issues), "AB_TP_FIRMWARE_CONFIG_BACKUP_INVALID",
+            "TPA has no valid canonical NVT FWConfig Backup.", CompositionAddressSpaceIds.TpAInput);
+    }
+
+    /// <summary>Both single/cascade mismatch directions preserve issue priority and subjects.</summary>
+    [Theory]
+    [InlineData(1, 2, "TPA declares 1 IC but TPB declares Cascade (2 IC); AB Merge requires matching TP topology.")]
+    [InlineData(3, 1, "TPA declares Cascade (3 IC) but TPB declares 1 IC; AB Merge requires matching TP topology.")]
+    public void InputTopologyMismatchPrecedesSelectedMismatch(int a, int b, string expected)
+    {
+        AbMergeTopologyAdmissionResult result = AbMergeTopologyAdmission.Assess(Tp(a), Tp(b), Selection(1));
+        Assert.False(result.Succeeded);
+        AssertIssue(Assert.Single(result.Issues), "AB_TP_TOPOLOGY_MISMATCH", expected, CompositionAddressSpaceIds.TpBInput);
+    }
+
+    /// <summary>Selection disagreement preserves the requested label and actual count in its diagnostic.</summary>
+    [Theory]
+    [InlineData(1, 2, "The selected topology 'test-selection' does not match TPA/TPB FWConfig Backup topology 1 IC.")]
+    [InlineData(3, 1, "The selected topology 'test-selection' does not match TPA/TPB FWConfig Backup topology Cascade (3 IC).")]
+    public void SelectedMismatchRetainsActualCounts(int observed, int selected, string expected)
+    {
+        AbMergeTopologyAdmissionResult result = AbMergeTopologyAdmission.Assess(Tp(observed), Tp(observed), Selection(selected));
+        Assert.False(result.Succeeded);
+        Assert.Equal((byte)observed, result.TpAChipCount);
+        AssertIssue(Assert.Single(result.Issues), "AB_TP_TOPOLOGY_SELECTION_MISMATCH", expected, "ab-topology");
+    }
+
+    private static void AssertIssue(CompositionIssue issue, string code, string message, string subject)
+    {
+        Assert.Equal(code, issue.Code);
+        Assert.Equal(message, issue.Message);
+        Assert.Equal(subject, issue.OperationId);
+        Assert.Equal(CompositionIssueSeverity.Error, issue.Severity);
+    }
+
+    private static TopologySelection Selection(int count)
+    {
+        return new(count, "test-selection", TopologySelectionSource.Requested, "ab-topology");
+    }
+
+    private static byte[] Tp(int count)
+    {
+        byte[] bytes = new byte[0x37000];
+        bytes[0x36000] = 0x81;
+        bytes[0x36001] = 0x7E;
+        bytes[0x36017] = checked((byte)count);
+        "\0NVT"u8.CopyTo(bytes.AsSpan(0x36FFC));
+        return bytes;
+    }
+}

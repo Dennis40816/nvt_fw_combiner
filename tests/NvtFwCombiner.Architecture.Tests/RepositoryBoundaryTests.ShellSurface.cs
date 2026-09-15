@@ -168,9 +168,13 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("MemoryCoverageLogicalItemTemplate", sharedTemplates, StringComparison.Ordinal);
         Assert.DoesNotContain("MemoryCoverageGroupTemplate", sharedTemplates, StringComparison.Ordinal);
         Assert.Contains(
-            "ItemsSource=\"{Binding ReplaceSelectedCoverageItems}\"",
+            "ItemsSource=\"{Binding ReplaceCoverageSegments}\"",
             workflowTemplates,
             StringComparison.Ordinal);
+        Assert.Contains("<views:MemoryCoverageBar", workflowTemplates, StringComparison.Ordinal);
+        Assert.Contains("ItemsSource=\"{Binding CtrlRamOverview}\"", workflowTemplates, StringComparison.Ordinal);
+        Assert.Contains("ShowLegend=\"True\"", workflowTemplates, StringComparison.Ordinal);
+        Assert.DoesNotContain("ItemsSource=\"{Binding ReplaceSelectedCoverageItems}\"", workflowTemplates, StringComparison.Ordinal);
         Assert.Contains("ReplaceMemoryMapRowTemplate", sharedTemplates, StringComparison.Ordinal);
         Assert.Contains("MergeMemoryMapRowTemplate", sharedTemplates, StringComparison.Ordinal);
         Assert.Contains("MemoryCoverageTooltipTemplate", sharedTemplates, StringComparison.Ordinal);
@@ -212,18 +216,20 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("ReplaceBaseSlot", workflowTemplates, StringComparison.Ordinal);
         Assert.Contains("ItemsSource=\"{Binding GeneralReplaceMappings}\"", workflowTemplates, StringComparison.Ordinal);
         Assert.Contains("ItemsSource=\"{Binding MergeCoverageSegments}\"", sharedTemplates, StringComparison.Ordinal);
-        Assert.Contains("DataContext=\"{Binding CoverageDetails}\"", sharedTemplates, StringComparison.Ordinal);
-        Assert.Contains(
+        Assert.DoesNotContain("DataContext=\"{Binding CoverageDetails}\"", sharedTemplates, StringComparison.Ordinal);
+        Assert.Contains("<views:MemoryCoverageBar", sharedTemplates, StringComparison.Ordinal);
+        Assert.Contains("ShowLegend=\"True\"", sharedTemplates, StringComparison.Ordinal);
+        Assert.DoesNotContain(
             "ItemTemplate=\"{StaticResource MemoryCoveragePlainSegmentListTemplate}\" ItemsSource=\"{Binding VisibleRows}\"",
             sharedTemplates,
             StringComparison.Ordinal);
         Assert.Contains("ItemsSource=\"{Binding ReplaceSlots}\"", workflowTemplates, StringComparison.Ordinal);
         Assert.Contains("ItemsSource=\"{Binding ReplaceSlotGroups}\"", workflowTemplates, StringComparison.Ordinal);
-        Assert.Contains("ItemsSource=\"{Binding ReplaceBaseCoverageItems}\"", workflowTemplates, StringComparison.Ordinal);
+        Assert.DoesNotContain("ItemsSource=\"{Binding ReplaceBaseCoverageItems}\"", workflowTemplates, StringComparison.Ordinal);
         Assert.DoesNotContain("ItemsSource=\"{Binding ReplaceCoverageGroups}\"", workflowTemplates, StringComparison.Ordinal);
         Assert.Contains("ItemsSource=\"{Binding MergeSlots}\"", workflowTemplates, StringComparison.Ordinal);
-        Assert.Contains("ItemsSource=\"{Binding ReplaceMemoryRows}\"", workflowTemplates, StringComparison.Ordinal);
-        Assert.Contains("ItemsSource=\"{Binding MergeMemoryRows}\"", sharedTemplates, StringComparison.Ordinal);
+        Assert.DoesNotContain("ItemsSource=\"{Binding ReplaceMemoryRows}\"", workflowTemplates, StringComparison.Ordinal);
+        Assert.DoesNotContain("ItemsSource=\"{Binding MergeMemoryRows}\"", sharedTemplates, StringComparison.Ordinal);
         Assert.DoesNotContain("Command=\"{Binding PreviewMergeCommand}\"", shell, StringComparison.Ordinal);
         Assert.DoesNotContain("Command=\"{Binding PreviewReplaceCommand}\"", shell, StringComparison.Ordinal);
         Assert.Contains("IsEnabled=\"{Binding Merge.CanBuildMerge}\"", shell, StringComparison.Ordinal);

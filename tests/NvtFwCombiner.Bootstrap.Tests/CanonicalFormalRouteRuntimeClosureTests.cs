@@ -1,12 +1,14 @@
 using System.Security.Cryptography;
 using NvtFwCombiner.Application.Authoring;
 using NvtFwCombiner.Application.Capabilities;
+using NvtFwCombiner.Application.Configuration;
 using NvtFwCombiner.Application.ExternalTools;
 using NvtFwCombiner.Application.FlashMaps;
 using NvtFwCombiner.Application.Metadata;
 using NvtFwCombiner.Application.MemoryLayout;
 using NvtFwCombiner.Application.Ports;
 using NvtFwCombiner.Domain.Composition;
+using NvtFwCombiner.Infrastructure.ExternalTools;
 using NvtFwCombiner.TestSupport;
 
 namespace NvtFwCombiner.Bootstrap.Tests;
@@ -21,12 +23,12 @@ public sealed class CanonicalFormalRouteRuntimeClosureTests
         IReadOnlyList<CanonicalFormalRouteRuntimeFixture> fixtures =
             CanonicalFormalRouteRuntimeFixtureCatalog.Create();
 
-        Assert.Equal(64, fixtures.Count);
-        Assert.Equal(64, fixtures.Select(static fixture => fixture.RouteId)
+        Assert.Equal(68, fixtures.Count);
+        Assert.Equal(68, fixtures.Select(static fixture => fixture.RouteId)
             .Distinct(StringComparer.Ordinal).Count());
         Assert.Equal(14, fixtures.Count(static fixture =>
             fixture.Policy.Identity.WorkflowId == ExperienceIds.StandardMerge));
-        Assert.Equal(6, fixtures.Count(static fixture =>
+        Assert.Equal(10, fixtures.Count(static fixture =>
             fixture.Policy.Identity.WorkflowId == ExperienceIds.AbMerge));
         Assert.Equal(44, fixtures.Count(static fixture =>
             fixture.Policy.Identity.WorkflowId == ExperienceIds.CtrlRamReplace));
@@ -38,7 +40,7 @@ public sealed class CanonicalFormalRouteRuntimeClosureTests
             fixture.PolicyEvidenceClass == CanonicalFormalRuntimePolicyEvidenceClass.ApprovedAlias));
         Assert.Equal(4, fixtures.Count(static fixture =>
             fixture.PolicyEvidenceClass == CanonicalFormalRuntimePolicyEvidenceClass.SyntheticOracle));
-        Assert.Equal(27, fixtures.Count(static fixture =>
+        Assert.Equal(31, fixtures.Count(static fixture =>
             fixture.PolicyEvidenceClass == CanonicalFormalRuntimePolicyEvidenceClass.ContractOnly));
     }
 
@@ -48,15 +50,16 @@ public sealed class CanonicalFormalRouteRuntimeClosureTests
     /// </summary>
     [Theory(Timeout = 180_000)]
     [InlineData(ExperienceIds.StandardMerge, 14, 15)]
-    [InlineData(ExperienceIds.AbMerge, 6, 7)]
+    [InlineData(ExperienceIds.AbMerge, 10, 12)]
     [InlineData(ExperienceIds.CtrlRamReplace, 44, 59)]
     public async Task FormalRoutesPreparePreviewAndBuildWithExactRuntimeIdentityAsync(
         string workflowId,
         int expectedRouteCount,
         int expectedCaseCount)
     {
-        CompositionHostServices host = BootstrapTestHost.ProductServices;
-        CanonicalTestContext canonical = BootstrapTestHost.ProductCanonical;
+        using var hostWorkspace = TempWorkspace.Create($"nfc-formal-route-host-{workflowId}");
+        (CompositionHostServices host, CanonicalTestContext canonical) =
+            await CreateFormatReadyProductHostAsync(hostWorkspace);
         CanonicalFormalRouteRuntimeFixture[] fixtures =
         [
             .. CanonicalFormalRouteRuntimeFixtureCatalog.Create().Where(fixture =>
@@ -104,7 +107,7 @@ public sealed class CanonicalFormalRouteRuntimeClosureTests
             .Distinct(StringComparer.Ordinal)
             .ToDictionary(static path => path, HashFile, StringComparer.Ordinal);
         AssertExpectedFirmwareConfigChipCount(runtimeCase);
-        ActiveSessionSnapshot accepted = Prepare(host, canonical, runtimeCase);
+        ActiveSessionSnapshot accepted = await PrepareAsync(host, canonical, runtimeCase);
         ResolvedCapability capability = Assert.IsType<ResolvedCapability>(
             accepted.GetAcceptedCapability(AuthoringDerivedResultKind.Inspection));
         AssertExactIdentity(runtimeCase, accepted, capability);
@@ -215,7 +218,8 @@ public sealed class CanonicalFormalRouteRuntimeClosureTests
     private static void AssertExpectedFirmwareConfigChipCount(
         CanonicalFormalRouteRuntimeCase runtimeCase)
     {
-        if (runtimeCase.ExpectedFirmwareConfigChipCount is not { } expectedChipCount)
+        int? expectedChipCount = runtimeCase.ExpectedFirmwareConfigChipCount;
+        if (expectedChipCount is null && runtimeCase.ExpectedFirmwareConfigChipCounts is null)
         {
             return;
         }
@@ -238,7 +242,13 @@ public sealed class CanonicalFormalRouteRuntimeClosureTests
             Assert.True(FirmwareConfigMetadataReader.TryReadBackup(
                 bytes,
                 out FirmwareConfigMetadata metadata));
-            Assert.Equal(expectedChipCount, metadata.ChipNumber);
+            if (runtimeCase.ExpectedFirmwareConfigChipCounts is { } expectedBySlot)
+            {
+                Assert.Equal(expectedBySlot[slotId], metadata.ChipNumber);
+                return;
+            }
+
+            Assert.Equal(expectedChipCount!.Value, metadata.ChipNumber);
         });
     }
 
@@ -275,7 +285,7 @@ public sealed class CanonicalFormalRouteRuntimeClosureTests
         });
     }
 
-    private static ActiveSessionSnapshot Prepare(
+    private static async Task<ActiveSessionSnapshot> PrepareAsync(
         CompositionHostServices host,
         CanonicalTestContext canonical,
         CanonicalFormalRouteRuntimeCase runtimeCase)
@@ -293,11 +303,13 @@ public sealed class CanonicalFormalRouteRuntimeClosureTests
         if (identity.WorkflowId == ExperienceIds.AbMerge)
         {
             string? topologyToken = ResolveAbTopologyToken(host, identity.IcId, runtimeCase.SelectionToken);
-            CompiledAuthoringSessionPreparation prepared = host.AbMergeAuthoring.PrepareSession(
+            CompiledAuthoringSessionPreparation prepared = await host.AbMergeAuthoring.PrepareSessionAsync(
                 new AuthoringSessionState(ExperienceIds.AbMerge),
                 identity.IcId,
                 topologyToken,
-                ReadSelectedInputs(runtimeCase.SlotPaths));
+                ReadSelectedInputs(runtimeCase.SlotPaths),
+                AbMergeDpMode.Normal,
+                TestContext.Current.CancellationToken);
             Assert.True(prepared.Succeeded, FormatPreparationFailure(runtimeCase, prepared.Issues));
             return Assert.IsType<ActiveSessionSnapshot>(prepared.Snapshot);
         }
@@ -314,6 +326,29 @@ public sealed class CanonicalFormalRouteRuntimeClosureTests
             bytes);
         Assert.True(ctrlRam.Succeeded, FormatPreparationFailure(runtimeCase, ctrlRam.Issues));
         return Assert.IsType<ActiveSessionSnapshot>(ctrlRam.AcceptedSession);
+    }
+
+    private static async Task<(CompositionHostServices Host, CanonicalTestContext Canonical)>
+        CreateFormatReadyProductHostAsync(TempWorkspace workspace)
+    {
+        var environment = new ExternalProcessorEnvironmentLoader(
+            RepositoryPaths.FromRepositoryRoot("external-tools"));
+        CompositionHostServices host = CompositionHostServices.Create(
+            environment,
+            loadPolicy: null,
+            configurationPath: workspace.PathFor("event-buffer-format.v1.json"));
+        Assert.True((await host.ExternalEnvironmentLoader.LoadToCompletionAsync(
+            null,
+            TestContext.Current.CancellationToken)).Succeeded);
+        CapabilityCatalogReloadResult reload = host.Catalog.Reload(
+            TestContext.Current.CancellationToken);
+        Assert.True(reload.Succeeded, string.Join("; ", reload.Issues.Select(static issue => issue.Message)));
+        IEventBufferFormatConfigurationSession configuration =
+            await host.GetEventBufferFormatConfigurationAsync(TestContext.Current.CancellationToken);
+        Assert.True((await configuration.SaveAsync(
+            configuration.CreateDefaultsDraft(),
+            TestContext.Current.CancellationToken)).Succeeded);
+        return (host, new CanonicalTestContext(host));
     }
 
     private static CompiledAuthoringSelectedInput[] ReadSelectedInputs(
@@ -506,7 +541,8 @@ internal sealed record CanonicalFormalRouteRuntimeCase(
     IReadOnlyDictionary<string, string> SlotPaths,
     IReadOnlyList<CanonicalFormalRuntimeWitnessProvenance> WitnessProvenance,
     int? ExpectedFirmwareConfigChipCount = null,
-    int? ExpectedResolvedIcCount = null);
+    int? ExpectedResolvedIcCount = null,
+    IReadOnlyDictionary<string, int>? ExpectedFirmwareConfigChipCounts = null);
 
 internal enum CanonicalFormalRuntimeWitnessKind
 {

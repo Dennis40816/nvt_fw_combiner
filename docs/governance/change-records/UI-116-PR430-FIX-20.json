@@ -1,0 +1,40 @@
+{
+  "schemaVersion": 2,
+  "taskId": "UI-116-PR430-FIX-20",
+  "capability": "Explicit external Config reload, byte-specific removal names and accessible discard confirmation",
+  "integrationBase": "985ac926cb15e4b532a2dde50f0bcf8bf533657f",
+  "risk": "R1",
+  "kind": "ui",
+  "state": "final-complete",
+  "mutablePaths": [
+    "src/NvtFwCombiner.Presentation.Avalonia/Resources/SettingsEventBufferFormatPageTemplate.axaml",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/SettingsViewModel.EventBufferFormat.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ShellTextResources.Localized.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ShellTextResources.Settings.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/Views/SettingsModal.axaml.cs",
+    "tests/NvtFwCombiner.UiSmoke.Tests/ShellViewModelTests.EventBufferFormat.cs",
+    "tests/NvtFwCombiner.UiSmoke.Tests/XamlControlStyleContractTests.EventBufferFormat.cs"
+  ],
+  "implementationOwner": "/root/config_review_fixes",
+  "searchEvidence": [
+    "PR430 r4011487631/r4011487633/r4011487637 independently confirmed by release116_config_final at c6d3ba5f; owner approved all five review fixes before implementation",
+    "SettingsViewModel.EventBufferFormat owns lazy loading, typed session projection and reapplication; SettingsModal owns existing modal keyboard/focus lifecycle",
+    "Config reload missing-command red2/2; real mounted label red3/3; existing shown-control Config regression owns geometry and keyboard evidence"
+  ],
+  "semanticOwner": "Application EventBufferFormatConfigurationSession retains configuration admission; existing SettingsViewModel and SettingsModal own projection, draft commands and focus only",
+  "terminalContract": "Explicit reload adopts external valid/invalid/missing state and reevaluates retained inputs without rereading BINs; dirty draft is preserved. Removal automation names identify the actual byte. Confirmation focuses Keep editing, confines keyboard interaction, cancels on Escape and restores focus. No firmware rules, new modal framework or disclosure redesign.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": null,
+    "outcome": "not-required",
+    "evidence": "Owner-authorized bounded local R1 preflight recorded before edits at c6d3ba5f. This is current integration admission for the approved correction batch; immutable prior records and firmware attestations remain unchanged."
+  },
+  "implementationHead": "ea5824a5055feb5336b3821ffecb5ea56e01354c",
+  "reviewedHead": "ea5824a5055feb5336b3821ffecb5ea56e01354c",
+  "pathStateDigest": "21d75aadd2e6785c931bd60ce67220b2db05f5276f80c747ceded3e4d29b76ae",
+  "finalReview": {
+    "reviewer": "/root/release116_config_final",
+    "outcome": "approved",
+    "evidence": "Independent fixed-head review approved all five production and two test paths at ea5824a5055feb5336b3821ffecb5ea56e01354c; exact blobs match reviewed2ef65d6c. Reload preserves dirty/busy state and reuses typed session/reapply; removal automation names include bytes; confirmation isolates background and handles safe focus, Tab/Shift+Tab, Escape and restoration. Reviewed actual TRX: reload red2 then34pass, accessibility red3 then3pass, focus red3 then35pass, final reverse-tab3pass; zero skips. Scoped Polytail PASS, no P0-P3. These are scoped headless results, not native accessibility or release certification."
+  }
+}

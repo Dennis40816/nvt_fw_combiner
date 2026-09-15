@@ -17,7 +17,7 @@ public sealed partial class AbMergeGoldenRegressionTests
     private const string Nt51929BundleDirectory = "nt51919-nt51929-nt51932-ab-merge";
     private const string Nt51929BundleContentHash = "68527380d4e2de5994734b9357fc55963254e51382027d9f099699c9dc1a366f";
     private const string Nt51950BundleDirectory = "nt51950-ab-merge";
-    private const string Nt51950BundleContentHash = "f60f5ef4f8c2a150c7dde47638d55aa35a84425146809263057939540ea0b6b9";
+    private const string Nt51950BundleContentHash = "0f3db5b27468211ee5f60112d239423e2b0d99b3591c8dcc63db07a2e2987496";
 
     /// <summary>Verifies the supported NT51929 profile reproduces the supplied AB output byte-for-byte.</summary>
     [Fact]
@@ -197,7 +197,7 @@ public sealed partial class AbMergeGoldenRegressionTests
                 Nt51950BundleDirectory,
                 Nt51950BundleContentHash),
             "nt51950-ab-merge",
-            "0.3.0",
+            "0.6.0",
             "NT51950",
             goldenCase.GetProperty("mapCapacity").GetInt64());
         Dictionary<string, byte[]> inputs = ReadInputs(goldenCase);
@@ -292,16 +292,18 @@ public sealed partial class AbMergeGoldenRegressionTests
     }
 
     /// <summary>
-    /// Verifies the compiled NT51951 candidate and Combiner match the immutable Python snapshot byte-for-byte.
+    /// Verifies legacy NT51951 patterns against the immutable Python snapshot, including shared TP.
+    /// These invalid-primary patterns are byte-plan evidence, not public-host input admission.
     /// </summary>
-    [Fact(
+    [Theory(
         Skip = "Requires the packaged Windows legacy Combiner processor.",
         SkipUnless = nameof(IsWindows))]
-    public async Task Nt51951CandidatePlanWithCombinerMatchesPythonReferenceAsync()
+    [InlineData(false, "e1524ba52b41d5a49eb58fcdb75326d5f0c78a6df7af2fcfdaa632a12e628c71")]
+    [InlineData(true, "b84b63f30c964fad9818b612b77167bd9615cc31d6f72c1eab49f1b1579c8f32")]
+    public async Task Nt51951CandidatePlanWithCombinerMatchesPythonReferenceAsync(bool sharedTp, string expectedSha256)
     {
         const int outputLength = 0x100000;
         const int tpLength = 0x37000;
-        const string expectedSha256 = "e1524ba52b41d5a49eb58fcdb75326d5f0c78a6df7af2fcfdaa632a12e628c71";
 
         using var workspace = TempWorkspace.Create("nfc-nt51951-ab-topology");
         CompiledComposition composition = CompileProfile(
@@ -310,7 +312,7 @@ public sealed partial class AbMergeGoldenRegressionTests
                 Nt51950BundleDirectory,
                 Nt51950BundleContentHash),
             "nt51951-ab-merge",
-            "0.3.0",
+            "0.6.0",
             "NT51951",
             outputLength);
         byte[] dp = CreatePattern(outputLength, 37, 11);
@@ -319,6 +321,8 @@ public sealed partial class AbMergeGoldenRegressionTests
         WriteHeaderPointers(tpA);
         WriteHeaderPointers(tpB);
         BinaryPrimitives.WriteUInt32LittleEndian(tpA.AsSpan(0xA130, sizeof(uint)), 0x1F6CF3EC);
+        if (sharedTp) { tpB = tpA; }
+        byte[] originalTpA = [.. tpA];
         byte[] originalTpB = [.. tpB];
         using var referenceWorkspace = TempWorkspace.Create("nfc-nt51951-ab-python-reference");
         byte[] pythonReferenceOutput = await RunPythonReferenceAsync(
@@ -375,6 +379,7 @@ public sealed partial class AbMergeGoldenRegressionTests
             Assert.Empty(result.Issues);
             Assert.Equal(expectedSha256, Hash(result.OutputBytes.Span));
             Assert.Equal(pythonReferenceOutput, result.OutputBytes.ToArray());
+            Assert.Equal(originalTpA, tpA);
             Assert.Equal(originalTpB, tpB);
             AssertPostbuildMpeg2Crc(result.OutputBytes.Span, bTpCodeStart: 0x8A000);
             ExternalProcessorResult toolResult = Assert.IsType<ExternalProcessorResult>(externalResult);

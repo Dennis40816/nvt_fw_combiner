@@ -11,6 +11,28 @@ namespace NvtFwCombiner.Bootstrap.Tests;
 /// <summary>Tests the first canonical route and the remaining one-way migration seam.</summary>
 public sealed partial class CanonicalCapabilityCatalogMigrationTests
 {
+    /// <summary>Format variants retain exact route pins without claiming independent Golden support.</summary>
+    [Theory]
+    [InlineData("NT51950", "1-ic", "nt51950-ab-desay-maps", "nt51950-ab-desay-single-1024k")]
+    [InlineData("NT51950", "2-plus-ic", "nt51950-ab-desay-maps", "nt51950-ab-desay-cascade-1024k")]
+    [InlineData("NT51951", "selector-free", "nt51951-ab-desay-maps", "nt51951-ab-desay-1024k")]
+    [InlineData("NT51950", "2-ic", "nt51950-ab-common-2ic-maps", "nt51950-ab-common-exact2-1024k")]
+    public void FormatVariantsRetainExactCandidatePublication(string icId, string count, string mapSet, string mapId)
+    {
+        var identity = new CapabilityRouteIdentity(icId, ExperienceIds.AbMerge, count, mapSet);
+        CanonicalDynamicRoute resolved = CanonicalDynamicRouteInventory.Resolve(identity);
+        TestContext.Current.TestOutputHelper!.WriteLine($"{identity.RouteId}: {resolved.CapabilityFingerprint}");
+        Assert.Equal([mapId], resolved.CompilationContract.AllowedMapVariantIds);
+        CanonicalCapabilityPolicyRoute policy = Assert.Single(BuiltInCanonicalCapabilityPolicy.Load().Routes,
+            candidate => candidate.Identity == identity);
+        Assert.Equal(resolved.CapabilityFingerprint, policy.CapabilityFingerprint);
+        Assert.Equal(CapabilityAuthoringAvailability.Available, policy.Authoring.Value);
+        Assert.Equal(CapabilityPublicationStatus.Candidate, policy.Publication.Value);
+        Assert.Equal(CapabilityEvidenceStatus.ContractOnly, policy.Evidence.Value);
+        Assert.Equal(count == "selector-free" ? null : count == "1-ic" ? "single" : "cascade",
+            resolved.AbMergeTopologyChoice?.Token);
+    }
+
     /// <summary>Trusted-source failures become typed catalog issues with or without static wrapping.</summary>
     [Theory]
     [InlineData(false, false, true, CapabilityCatalogIssueCodes.SourceInvalid)]

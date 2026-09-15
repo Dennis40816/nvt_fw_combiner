@@ -16,7 +16,7 @@ using NvtFwCombiner.Presentation.Avalonia.Views;
 namespace NvtFwCombiner.UiSmoke.Tests;
 
 /// <summary>Exercises the actual grouped-memory overlay hierarchy and its terminal-slice cards.</summary>
-public sealed class MemoryCoveragePopupTests
+public sealed partial class MemoryCoveragePopupTests
 {
     /// <summary>Context-only details appear once; distinct explanations remain available.</summary>
     [AvaloniaTheory]
@@ -180,7 +180,7 @@ public sealed class MemoryCoveragePopupTests
                 .Where(border => border.Classes.Contains("memoryLocalSlice"))];
             Assert.Equal(8, localSlices.Length);
             Assert.All(localSlices,
-                slice => Assert.Equal(new Thickness(0, 0, 1, 0), slice.BorderThickness));
+                slice => Assert.Equal(default, slice.BorderThickness));
             Rect stripBounds = strip.Bounds;
 
             MemoryCoverageSegmentViewModel selected = slices[6];
@@ -619,6 +619,7 @@ public sealed class MemoryCoveragePopupTests
             await Task.Delay(TimeSpan.FromMilliseconds(400), TestContext.Current.CancellationToken);
             Render();
             Assert.NotNull(FindNamed<Border>(window, "MemorySliceCard"));
+            Assert.True(Assert.IsType<MemoryCoverageSegmentViewModel>(main.DataContext).Interaction.IsActive);
             PressEscape(window);
             Render();
             AssertNoOverlay(window);
@@ -669,7 +670,7 @@ public sealed class MemoryCoveragePopupTests
             Border card = Assert.IsType<Border>(FindNamed<Border>(window, "MemorySliceCard"));
             Assert.Same(slices[6], card.DataContext);
             Assert.True(BoundsInWindow(local, window).Bottom < BoundsInWindow(bar, window).Top);
-            Assert.InRange(card.Bounds.Width / bar.Bounds.Width, 0.65, 0.72);
+            Assert.InRange(card.Bounds.Width / bar.Bounds.Width, 0.89, 0.91);
             for (int tick = 0; tick < 4; tick++)
             {
                 await Task.Delay(TimeSpan.FromMilliseconds(80), TestContext.Current.CancellationToken);

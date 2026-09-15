@@ -2,6 +2,7 @@ using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using NvtFwCombiner.Application.Capabilities;
+using NvtFwCombiner.Application.Configuration;
 using NvtFwCombiner.Application.VersionManagement;
 using NvtFwCombiner.Domain.Composition;
 
@@ -11,6 +12,7 @@ internal enum SettingsSection
 {
     Overview,
     Preferences,
+    EventBufferFormat,
     Version,
     SupportMatrix,
 }
@@ -28,17 +30,20 @@ internal sealed partial class SettingsViewModel : ObservableObject
     private readonly string _appVersion;
     private readonly Func<ShellTextResources> _textProvider;
     private readonly IVersionManagementExperience? _versionManagement;
+    private readonly Func<CancellationToken, Task<IEventBufferFormatConfigurationSession>>? _eventBufferFormatConfigurationSessionFactory;
 
     internal SettingsViewModel(
         string appVersion,
         ICanonicalSupportMatrixQuery supportMatrixQuery,
         Func<ShellTextResources> textProvider,
-        IVersionManagementExperience? versionManagement = null)
+        IVersionManagementExperience? versionManagement = null,
+        Func<CancellationToken, Task<IEventBufferFormatConfigurationSession>>? eventBufferFormatConfigurationSessionFactory = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(appVersion);
         _appVersion = appVersion;
         _textProvider = textProvider ?? throw new ArgumentNullException(nameof(textProvider));
         _versionManagement = versionManagement;
+        _eventBufferFormatConfigurationSessionFactory = eventBufferFormatConfigurationSessionFactory;
         SupportMatrix = new SupportMatrixPresentationViewModel(supportMatrixQuery);
     }
 
@@ -66,6 +71,7 @@ internal sealed partial class SettingsViewModel : ObservableObject
     [NotifyPropertyChangedFor(nameof(IsOverviewSelected))]
     [NotifyPropertyChangedFor(nameof(IsPreferencesSelected))]
     [NotifyPropertyChangedFor(nameof(IsVersionSelected))]
+    [NotifyPropertyChangedFor(nameof(IsEventBufferFormatSelected))]
     [NotifyPropertyChangedFor(nameof(IsSupportMatrixOpen))]
     public partial SettingsSection SelectedSection { get; private set; }
 
@@ -75,6 +81,8 @@ internal sealed partial class SettingsViewModel : ObservableObject
 
     public bool IsVersionSelected => SelectedSection == SettingsSection.Version;
 
+    public bool IsEventBufferFormatSelected => SelectedSection == SettingsSection.EventBufferFormat;
+
     public bool IsSupportMatrixOpen => SelectedSection == SettingsSection.SupportMatrix;
 
     internal void Refresh(ShellTextResources text)
@@ -82,6 +90,7 @@ internal sealed partial class SettingsViewModel : ObservableObject
         ArgumentNullException.ThrowIfNull(text);
         ApplyChoiceLabels(text);
         RefreshVersionLabels();
+        RefreshEventBufferFormatLabels();
         SupportMatrix.Refresh(text);
         bool chinese = text.Language == ShellLanguage.ChineseTraditional;
         SupportMatrixRowViewModel[] authoringAvailableRows =
@@ -192,6 +201,11 @@ internal sealed partial class SettingsViewModel : ObservableObject
         if (section == SettingsSection.Version)
         {
             _ = RefreshVersionAsync(isAutomatic: false);
+        }
+
+        if (section == SettingsSection.EventBufferFormat)
+        {
+            BeginEventBufferFormatLoad();
         }
 
         SelectedSection = section;

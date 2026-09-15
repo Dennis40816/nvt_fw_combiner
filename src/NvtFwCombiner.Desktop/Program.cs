@@ -83,7 +83,8 @@ internal static class Program
             CompositionHostServices.CreateStableLauncherHandoff(
                 managedRoot,
                 statePath,
-                bootstrapIdentity));
+                bootstrapIdentity),
+            host.GetEventBufferFormatConfigurationAsync);
     }
 
     private static (

@@ -10,9 +10,12 @@ public sealed partial class RepositoryBoundaryTests
         string readme = ReadText("README.md");
 
         Assert.Contains("](docs/architecture/nfc_roadmap.md)", readme, StringComparison.Ordinal);
+        string[] sequence = [.. roadmap.Split('\n')
+            .SkipWhile(line => !line.StartsWith("## Current release sequence", StringComparison.Ordinal))
+            .Skip(1).TakeWhile(line => !line.StartsWith("## ", StringComparison.Ordinal))];
         Version[] versions =
-        [.. roadmap.Split('\n')
-            .Where(line => line.StartsWith("## `", StringComparison.Ordinal))
+        [.. sequence
+            .Where(line => line.StartsWith("| `", StringComparison.Ordinal))
             .Select(line => Version.Parse(line.Split('`')[1]))];
 
         Assert.NotEmpty(versions);

@@ -60,7 +60,9 @@ internal sealed partial class MainWindowViewModel
             appVersion,
             supportMatrixQuery ?? hostServices.SupportMatrix,
             () => Text,
-            hostServices.VersionManagement);
+            hostServices.VersionManagement,
+            hostServices.EventBufferFormatConfigurationSessionFactory);
+        Settings.EventBufferFormatCloseAccepted += Settings_EventBufferFormatCloseAccepted;
         OutputDelivery = new OutputDeliveryConfirmationViewModel(
             _compositionServices.OutputNaming,
             () => Text);
@@ -136,6 +138,7 @@ internal sealed partial class MainWindowViewModel
                 () => RefreshCommandState(),
                 NotifyRunContextChanged));
         WorkflowSession.PropertyChanged += WorkflowSession_OnPropertyChanged;
+        Settings.ReapplyEventBufferFormatAsync = Merge.ReapplyAbMergeConfigurationAsync;
         BuildResult = new BuildResultViewModel(_fileRevealService, () => Text.BuildCompletedOpenFolderError);
         BuildResult.PropertyChanged += BuildResult_OnPropertyChanged;
         RunSession = new CompositionRunPresentationViewModel(
@@ -159,7 +162,8 @@ internal sealed partial class MainWindowViewModel
             hostServices.ExternalEnvironmentLoader,
             systemDiagnosticsExporter ?? hostServices.SystemDiagnosticsExporter,
             Reports,
-            MessageCenterDiagnosticsChanged);
+            MessageCenterDiagnosticsChanged,
+            RefreshRuntimeReadinessAfterPublicationAsync);
         MessageCenter.PropertyChanged += MessageCenter_OnPropertyChanged;
         ApplyTextResources(language, notify: false);
         RelayCommand CreateCatalogCommand(Action execute, params string[] workflowIds)

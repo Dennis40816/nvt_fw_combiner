@@ -86,10 +86,10 @@ public sealed partial class AbMergeRuntimeAdmissionTests
         Assert.True(reloaded.Succeeded);
         Assert.NotEqual(oldCapability.ResolutionToken, reloaded.Snapshot!.ResolutionToken);
         int reads = 0;
-        _ = Assert.Throws<InvalidOperationException>(() => owner.InspectInputSlots("NT51929",
+        _ = Assert.Throws<InvalidOperationException>(() => owner.InspectInputSlotsCaptured("NT51929",
             [new FirmwareInspectionSnapshotInput("tp", "tp.bin",
                 AbMergeAddressSpaceId: CompositionAddressSpaceIds.TpAInput, ExactCapability: oldCapability)],
-            _ => { reads++; return CreateTpImage(0x81, 0); }));
+            _ => { reads++; return CreateTpImage(0x81, 0); }, configuration: null));
         Assert.Equal(0, reads);
         CompiledAuthoringSelectionSnapshot current = owner.GetAuthoringSnapshot("NT51929", null, [],
             new Dictionary<string, FileStamp>(), new AuthoringRevision(1), dpMode: mode);
@@ -109,10 +109,10 @@ public sealed partial class AbMergeRuntimeAdmissionTests
         Assert.True(prepared.Succeeded);
         AuthoringSlotInspectionBatchStartResult started = session.BeginSlotFileInspections(paths);
         Assert.True(started.Succeeded);
-        AbMergeInspectionBatch oldInspection = owner.InspectInputSlots("NT51929",
+        AbMergeInspectionBatch oldInspection = owner.InspectInputSlotsCaptured("NT51929",
             [.. paths.Select(pair => new FirmwareInspectionSnapshotInput(pair.Key, pair.Value,
                 AbMergeAddressSpaceId: pair.Key, AuthoringRevision: started.Snapshot!.AuthoringRevision.Value,
-                ExactCapability: started.Snapshot.ExactCapability))], File.ReadAllBytes);
+                ExactCapability: started.Snapshot.ExactCapability))], File.ReadAllBytes, configuration: null);
         Dictionary<string, FileStamp> tpStamps = paths.Where(static pair => pair.Key != CompositionAddressSpaceIds.DpAbInput)
             .ToDictionary(static pair => pair.Key, static pair => FileStamp.FromBytes(File.ReadAllBytes(pair.Value)));
         CompiledAuthoringSelectionSnapshot dummy = owner.GetAuthoringSnapshot("NT51929", null,
@@ -166,17 +166,20 @@ public sealed partial class AbMergeRuntimeAdmissionTests
     [InlineData(null)]
     public void DummyInspectionRejectsMismatchedCurrentTopology(string? requestedToken)
     {
-        var owner = (AbMergeAuthoringExperience)BootstrapTestHost.Services.AbMergeAuthoring;
-        CompiledAuthoringSelectionSnapshot single = owner.GetAuthoringSnapshot("NT51950", "single", [],
-            new Dictionary<string, FileStamp>(), new AuthoringRevision(1), dpMode: AbMergeDpMode.Dummy);
-        ResolvedCapability? capability = Assert.Single(single.Catalog.Routes).ExactCapability;
+        var host = new IsolatedBootstrapTestHost();
+        var owner = (AbMergeAuthoringExperience)host.Services.AbMergeAuthoring;
+        ResolvedCapabilityRoute route = Assert.Single(host.Catalog.GetCurrentSnapshot().DynamicRoutes,
+            static route => route.Identity.IcId == "NT51950" && route.Identity.WorkflowId == ExperienceIds.AbMerge &&
+                route.Identity.MapVariant == "nt51950-ab-merge-maps" && route.Identity.IcCountVariant == "1-ic");
+        Assert.True(host.Canonical.Compiler.TryCompilePublishedDynamicCapability(route.Identity, null, [],
+            out _, out ResolvedCapability? capability, out _, route.AbMergeTopologyChoice!.Selection));
         Assert.NotNull(capability);
         int reads = 0;
-        _ = Assert.Throws<InvalidOperationException>(() => owner.InspectInputSlots("NT51950",
+        _ = Assert.Throws<InvalidOperationException>(() => owner.InspectInputSlotsCaptured("NT51950",
             [new FirmwareInspectionSnapshotInput("tp", "tp.bin",
                 AbMergeAddressSpaceId: CompositionAddressSpaceIds.TpAInput,
                 AbMergeTopologyToken: requestedToken, ExactCapability: capability)],
-            _ => { reads++; return CreateTpImage(0x81, 0, length: 0x37000); }));
+            _ => { reads++; return CreateTpImage(0x81, 0, length: 0x37000); }, configuration: null));
         Assert.Equal(0, reads);
     }
 
@@ -195,10 +198,10 @@ public sealed partial class AbMergeRuntimeAdmissionTests
         Assert.True(prepared.Succeeded);
         ActiveSessionSnapshot accepted = prepared.Snapshot!;
         var owner = (AbMergeAuthoringExperience)BootstrapTestHost.Services.AbMergeAuthoring;
-        AbMergeInspectionBatch result = owner.InspectInputSlots("NT51929",
+        AbMergeInspectionBatch result = owner.InspectInputSlotsCaptured("NT51929",
             [new FirmwareInspectionSnapshotInput("tp", paths[CompositionAddressSpaceIds.TpAInput],
                 AbMergeAddressSpaceId: CompositionAddressSpaceIds.TpAInput,
-                ExactCapability: accepted.ExactCapability)], File.ReadAllBytes);
+                ExactCapability: accepted.ExactCapability, AbMergeDpMode: AbMergeDpMode.Dummy)], File.ReadAllBytes, configuration: null);
         Assert.NotNull(result.Catalog);
         Assert.DoesNotContain(Assert.Single(result.Catalog.Routes).ExactCapability!.CompiledComposition
             .V2Details.InputContract.Slots, static slot => slot.SlotId == CompositionAddressSpaceIds.DpAbInput);

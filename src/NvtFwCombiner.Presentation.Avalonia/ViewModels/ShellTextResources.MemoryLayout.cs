@@ -84,6 +84,8 @@ internal sealed partial class ShellTextResources
 
     public string MemoryCustomerInformationLabel => SelectLanguage("Customer information", "客戶資訊");
     public string MemoryProcessingDetailsLabel => SelectLanguage("Technical details", "技術細節");
+    public string MemoryTargetAddressLabel => SelectLanguage("Target Addr", "目標位址");
+    public string MemoryAddressSpaceLabel => SelectLanguage("Address space", "位址空間");
     public string MemorySourceLabel => SelectLanguage("Source", "來源");
     public string MemoryInitializationLabel => SelectLanguage("Initialization", "初始化");
     public string MemorySourceNotAssignedLabel => SelectLanguage("Not assigned", "未指定");

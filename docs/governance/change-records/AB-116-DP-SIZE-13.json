@@ -1,0 +1,60 @@
+{
+  "schemaVersion": 2,
+  "taskId": "AB-116-DP-SIZE-13",
+  "capability": "Enable the owner-approved nonblocking Desay DP AB outer-length advisory through existing profile/compiler/engine owners",
+  "integrationBase": "f9db4ef039be1c7a08e0b83f11133dbc1a0fe049",
+  "risk": "R3",
+  "kind": "behavior",
+  "state": "final-complete",
+  "mutablePaths": [
+    "profiles/built-in/nt51950-ab-merge/profiles/nt51950-ab-merge-desay.json",
+    "profiles/built-in/nt51950-ab-merge/profiles/nt51951-ab-merge-desay.json",
+    "profiles/built-in/nt51950-ab-merge/profile-bundle.json",
+    "profiles/built-in/package-trust-index.json",
+    "docs/contracts/canonical-capability-policy-v1.json",
+    "src/NvtFwCombiner.Infrastructure/Capabilities/BuiltInCanonicalCapabilityPolicy.cs",
+    "scripts/package.ps1",
+    "scripts/smoke-release.ps1",
+    "tests/scripts/test_release_package_policy.py",
+    "tests/NvtFwCombiner.Bootstrap.Tests/AbMergeDpOuterLengthWarningTests.cs",
+    "tests/NvtFwCombiner.Bootstrap.Tests/AbMergeGoldenRegressionTests.cs",
+    "tests/NvtFwCombiner.Bootstrap.Tests/AbMergeFormatVariantProfileTests.cs",
+    "tests/NvtFwCombiner.Bootstrap.Tests/AbDummyDpCompilationTests.cs",
+    "tests/NvtFwCombiner.Bootstrap.Tests/Nt51950AbMergeCandidateProfileTests.cs",
+    "tests/NvtFwCombiner.Bootstrap.Tests/Nt51951AbMergeCandidateProfileTests.cs",
+    "docs/adr/0072-event-buffer-format-configuration.md"
+  ],
+  "implementationOwner": "primary-agent writes the bounded profile/pin/test unit; v116_config_architecture provides read-only independent design and scoped review",
+  "searchEvidence": [
+    "2026-09-15 source base 843fe987 is clean. Two Desay DP slots use source-view-coverage without a warning code. Their canonical ab-image source view requires 0x100000 bytes; retain that source coverage and all output operations unchanged.",
+    "V2CompositionPlanCompiler.InputGeometry has an internal map-capacity fallback, but composition-profile-v2.14.schema.json dependentRequired requires expectedOuterLengths and unexpectedOuterLengthIssueCode together. Declare approved [1048576] in the two Desay profiles and test equality to compiled capacity; preserve schema/compiler. CompiledInputArtifactInspectionService prioritizes source coverage and emits nonblocking outer-length warnings only for otherwise accepted inputs.",
+    "CompositionEngine.Inputs already emits the declared expected-size warning; CompositionRunService.Reports carries execution.Issues. The earlier suspected runtime transport gap is disproved: adding a second transport risks duplicate warnings and is not admitted.",
+    "Existing AbBundleSourceHashTests and CanonicalDynamicRouteInventory own bundle/route recomputation. Existing sync_derived reviewed-source-pins owns mechanical loader/package/smoke/test hash synchronization; preserve release logic and evidence decisions. Common profiles and Golden output expectations are not changed."
+  ],
+  "semanticOwner": "Profiles own the optional advisory declaration and canonical map capacity; existing compiler, inspector and engine own evaluation and report issue transport",
+  "terminalContract": "Only Desay NT51950/NT51951 DP AB source-view-coverage gains profile-owned DESAY_DP_SIZE_WARNING code with schema-required expectedOuterLengths [1048576]. Exact0x100000 is valid, oversized accepted source warns once in Report with unchanged complete output; required-short remains blocked without padding. Dummy has no DP warning; Common receives no new advisory. Bump only affected profile versions and enclosing bundle/policy provenance, recompute all linked pins through existing owners without promoting support or changing output expected bytes. Verify real inspection/readiness/engine/report and unchanged views/operations/processor/family documents. R3 is conservative for trusted-profile repinning; final owner/Golden/integration gates remain outstanding, no push/release/publication.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "/root/v116_config_architecture",
+    "outcome": "approved",
+    "evidence": "2026-09-15 independent design PASS for profile-only-first advisory using existing compiler/inspector/engine. Schema follow-up admission corrects the initial code-only assumption: frozen dependentRequired requires explicit expectedOuterLengths [1048576], tested against compiled capacity. A second schema check requires uppercase issueCode, admitting DESAY_DP_SIZE_WARNING rather than the engine fallback literal. No Application warning transport, schema, Domain, compiler or UI modification admitted. Pure provenance pin addendum admits the five existing Bootstrap version/hash assertions and three packaging source pins through sync_derived only; support/evidence classifications and Golden output expectations remain unchanged. Final scoped review and authority-specific integration evidence remain required."
+  },
+  "implementationHead": "203d656a4180cc5d630ebef68da3f19a3bde9e7a",
+  "reviewedHead": "203d656a4180cc5d630ebef68da3f19a3bde9e7a",
+  "pathStateDigest": "5d9b98476d81f14d7d7fbda7f2f586947c7d40d95ee0d05c0e9eacb1f1957aa2",
+  "integrationPaths": [
+    "docs/contracts/canonical-capability-policy-v1.json",
+    "profiles/built-in/nt51950-ab-merge/profile-bundle.json",
+    "profiles/built-in/nt51950-ab-merge/profiles/nt51950-ab-merge-desay.json",
+    "profiles/built-in/nt51950-ab-merge/profiles/nt51951-ab-merge-desay.json",
+    "profiles/built-in/package-trust-index.json",
+    "scripts/package.ps1",
+    "scripts/smoke-release.ps1",
+    "src/NvtFwCombiner.Infrastructure/Capabilities/BuiltInCanonicalCapabilityPolicy.cs"
+  ],
+  "finalReview": {
+    "reviewer": "/root/release116_ab_final",
+    "outcome": "approved",
+    "evidence": "Final technical review approved at 203d656a4180cc5d630ebef68da3f19a3bde9e7a against checkpoint f9db4ef039be1c7a08e0b83f11133dbc1a0fe049. Independent review covered every original AB08-14 path, including all125 unique paths and overlapping profiles/contracts/tests/UI/packaging. Primary observation, exact route, immutable capture/config freshness, processor boundary/order, report provenance and Desay size/coverage were traced. All original AB path blobs are unchanged from reviewed3e7bf81c at203d656a. No P0-P3. This record retains review/digest of all 16 original mutablePaths. ADR0071 final administrative ownership assigns each shared governed path to its latest admitted numeric unit; empty ownership never removes original review or R3 obligations. Fresh release-Golden at3e7bf81c passed Bootstrap1454/1454 and Golden25/25, zero skips, with all25 direct cases confirmed; later delta changes only Infrastructure tests and handoff, not firmware or Golden tests. Infrastructure at203d656a passed1116/1116. Historical/scoped evidence is not a fresh full-verifier or protected candidate claim. PASS-WITH-HUMAN-GATE: exact-head firmware-owner attestations, full verification, protected CI and package/publication gates remain required."
+  }
+}

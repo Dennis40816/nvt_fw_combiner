@@ -340,7 +340,7 @@ public sealed partial class XamlControlStyleContractTests
             Assert.Contains("MemoryCoverageRegionCardTemplate", row, StringComparison.Ordinal);
             Assert.Contains("Padding=\"12\"", row, StringComparison.Ordinal);
         }
-        Assert.Contains("ColumnDefinitions=\"68,*\"", regionCard, StringComparison.Ordinal);
+        Assert.Contains("ColumnDefinitions=\"94,*\"", regionCard, StringComparison.Ordinal);
         Assert.Contains("Text=\"{Binding AddressRangeLabel}\"", regionCard, StringComparison.Ordinal);
         Assert.Contains("Text=\"{Binding SizeValue}\"", regionCard, StringComparison.Ordinal);
         Assert.Contains("Text=\"{Binding SourceLabel}\"", regionCard, StringComparison.Ordinal);
@@ -373,10 +373,10 @@ public sealed partial class XamlControlStyleContractTests
             "Classes=\"spaciousList\" ItemTemplate=\"{StaticResource MemoryCoverageSegmentListTemplate}\"",
             replacePanel,
             StringComparison.Ordinal);
-        Assert.Contains("ItemsSource=\"{Binding ReplaceSelectedCoverageItems}\"", replacePanel, StringComparison.Ordinal);
-        Assert.Contains("ItemsSource=\"{Binding ReplaceBaseCoverageItems}\"", replacePanel, StringComparison.Ordinal);
-        Assert.Contains("Text=\"{Binding ReplaceSelectedCoverageSummary}\"", replacePanel, StringComparison.Ordinal);
-        Assert.Contains("Text=\"{Binding ReplaceBaseCoverageSummary}\"", replacePanel, StringComparison.Ordinal);
+        Assert.Contains("ShowLegend=\"True\"", replacePanel, StringComparison.Ordinal);
+        Assert.Contains("ShowLegend=\"True\"", mergePanel, StringComparison.Ordinal);
+        Assert.DoesNotContain("ReplaceSelectedCoverageItems", replacePanel, StringComparison.Ordinal);
+        Assert.DoesNotContain("ReplaceBaseCoverageItems", replacePanel, StringComparison.Ordinal);
         Assert.DoesNotContain("ItemsSource=\"{Binding ReplaceCoverageGroups}\"", replacePanel, StringComparison.Ordinal);
         Assert.DoesNotContain("MemoryCoverageGroupTemplate", replacePanel, StringComparison.Ordinal);
         Assert.Contains("Text=\"{Binding RangeSummaryLabel}\"", logicalItem, StringComparison.Ordinal);

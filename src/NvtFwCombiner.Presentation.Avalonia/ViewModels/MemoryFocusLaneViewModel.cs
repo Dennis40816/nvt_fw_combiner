@@ -26,14 +26,8 @@ internal sealed class MemoryFocusLaneViewModel
     public long EndExclusive { get; }
     public IReadOnlyList<MemoryCoverageSegmentViewModel> Ranges { get; }
 
-    public string PositionLabel => DisplayGroup switch
-    {
-        ReplaceRegionGroup.Master => "M",
-        ReplaceRegionGroup.SlaveRight => "R",
-        ReplaceRegionGroup.SlaveLeft => "L",
-        ReplaceRegionGroup.Common or ReplaceRegionGroup.Cascade or ReplaceRegionGroup.Base or ReplaceRegionGroup.Other => "•",
-        _ => throw new InvalidOperationException("Unknown endpoint group."),
-    };
+    // Preserved Base/Other context is not an IC endpoint; keep its existing neutral anchor.
+    public string PositionLabel => DisplayGroup is ReplaceRegionGroup.Base or ReplaceRegionGroup.Other ? "•" : Title;
 
     public static IReadOnlyList<MemoryFocusPositionViewModel> CreatePositions(
         IEnumerable<MemoryFocusLaneViewModel> lanes, long capacity)

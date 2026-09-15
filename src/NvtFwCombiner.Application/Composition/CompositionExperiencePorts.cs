@@ -5,6 +5,15 @@ using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Application.Composition;
 
+/// <summary>AB inspection captures persisted format configuration before selecting an output contract.</summary>
+public interface IAbMergeInputSlotInspector
+{
+    /// <summary>Inspects already-read firmware without reopening selected paths.</summary>
+    ValueTask<AbMergeInspectionBatch> InspectInputSlotsAsync(string icId,
+        IReadOnlyList<FirmwareInspectionSnapshotInput> inputs,
+        Func<string, byte[]?> readFirmwareImage, CancellationToken cancellationToken);
+}
+
 /// <summary>Focused host-facing projection of one workflow's compiled input-slot inspection.</summary>
 public interface ICompiledInputSlotInspector<out TBatch>
 {
@@ -112,6 +121,20 @@ public enum AbMergeDpMode
 /// <summary>Focused AB Merge authoring operations over one canonical workflow owner.</summary>
 public interface IAbMergeAuthoring
 {
+    /// <summary>Re-evaluates retained accepted inputs after Config changes without reopening files or replacing newer selections.</summary>
+    ValueTask<CompiledAuthoringSessionPreparation?> ReapplyAcceptedInputsAsync(AuthoringSessionState session, CancellationToken cancellationToken);
+
+    /// <summary>Accepts a completed AB batch only for its original source leases and current format authority.</summary>
+    AuthoringSessionTransitionResult AdoptInspectedBatch(AuthoringSessionState session,
+        AuthoringCapabilityCatalogSnapshot catalog, IReadOnlyList<AuthoringSlotInspectionLease> leases,
+        IReadOnlyDictionary<string, AuthoringInputSlotStatus> statuses);
+
+    /// <summary>Captures persisted format configuration before preparing the exact immutable input session.</summary>
+    ValueTask<CompiledAuthoringSessionPreparation> PrepareSessionAsync(
+        AuthoringSessionState session, string icId, string? topologyToken,
+        IReadOnlyCollection<CompiledAuthoringSelectedInput> inputs,
+        AbMergeDpMode dpMode, CancellationToken cancellationToken);
+
     /// <summary>Returns whether the IC has one authorable AB Merge route.</summary>
     bool IsAvailable(string icId);
 

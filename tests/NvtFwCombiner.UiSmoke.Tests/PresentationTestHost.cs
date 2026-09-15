@@ -1,5 +1,6 @@
 using NvtFwCombiner.Bootstrap;
 using NvtFwCombiner.Application.Capabilities;
+using NvtFwCombiner.Application.Configuration;
 using NvtFwCombiner.Application.ExternalTools;
 using NvtFwCombiner.Infrastructure.ExternalTools;
 using NvtFwCombiner.Presentation.Avalonia;
@@ -10,6 +11,26 @@ namespace NvtFwCombiner.UiSmoke.Tests;
 
 internal static class PresentationTestHost
 {
+    internal static async Task<MainWindowViewModel> CreateConfiguredFormatViewModelAsync(TempWorkspace workspace)
+    {
+        PresentationHostServices services = await CreateConfiguredFormatServicesAsync(
+            workspace, ApplicationVersionProvider.InformationalVersion);
+        return PublishCanonicalCatalog(services, ShellViewModelFactory.Create(services, ShellLanguage.English));
+    }
+
+    internal static async Task<PresentationHostServices> CreateConfiguredFormatServicesAsync(
+        TempWorkspace workspace, string version)
+    {
+        CompositionHostServices host = CompositionHostServices.Create(
+            new ExternalProcessorEnvironmentLoader(ExternalEnvironment.Value),
+            RetainedDpReplaceRegressionPolicy.Load, configurationPath: workspace.PathFor("format.json"));
+        IEventBufferFormatConfigurationSession configuration = await host.GetEventBufferFormatConfigurationAsync(
+            TestContext.Current.CancellationToken);
+        Assert.True((await configuration.SaveAsync(configuration.CreateDefaultsDraft(),
+            TestContext.Current.CancellationToken)).Succeeded);
+        return CreateServices(version, host, static authoring => authoring);
+    }
+
     private static readonly Lazy<ExternalProcessorRuntimeEnvironment> ExternalEnvironment =
         new(LoadExternalEnvironment);
 
@@ -177,22 +198,24 @@ internal static class PresentationTestHost
         return CreateServices(applicationVersion, host, generalAuthoringDecorator);
     }
 
-    private static PresentationHostServices CreateServices(
+    internal static PresentationHostServices CreateServices(
         string applicationVersion,
         CompositionHostServices host,
-        Func<IGeneralAuthoring, IGeneralAuthoring> generalAuthoringDecorator)
+        Func<IGeneralAuthoring, IGeneralAuthoring> generalAuthoringDecorator,
+        IAbMergeAuthoring? abMergeAuthoring = null,
+        ICompositionExecution? execution = null)
     {
         return new PresentationHostServices(
             new PresentationCompositionServices(
                 host.CompositionCapabilityExperience,
                 host.StandardMergeAuthoring,
-                host.AbMergeAuthoring,
+                abMergeAuthoring ?? host.AbMergeAuthoring,
                 host.DpReplaceAuthoring,
                 generalAuthoringDecorator(host.GeneralAuthoring),
                 host.CtrlRamAuthoring,
                 host.FirmwareInspectionExperience,
                 host.CompositionOutputNaming,
-                host.CompositionExecution),
+                execution ?? host.CompositionExecution),
             CompositionHostServices.CreateFileRevealService(),
             host.CanonicalSupportMatrixQuery,
             host.CreateSystemInformationService(applicationVersion),
@@ -200,7 +223,11 @@ internal static class PresentationTestHost
             host.RawBinaryEditorFileSessions,
             host.CanonicalCatalogLoader,
             host.ExternalEnvironmentLoader,
-            host.LocalFiles);
+            host.LocalFiles,
+            versionManagement: null,
+            managedApplicationStartup: null,
+            stableLauncherHandoff: null,
+            eventBufferFormatConfigurationSessionFactory: host.GetEventBufferFormatConfigurationAsync);
     }
 
     private static ExternalProcessorRuntimeEnvironment LoadExternalEnvironment()

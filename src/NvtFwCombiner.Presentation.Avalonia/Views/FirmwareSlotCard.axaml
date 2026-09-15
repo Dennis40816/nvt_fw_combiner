@@ -15,7 +15,7 @@
     <Grid RowDefinitions="Auto,Auto" ColumnDefinitions="*,Auto">
       <Border Grid.RowSpan="2" Grid.ColumnSpan="2" Classes="dropZoneOverlay" />
       <Grid x:Name="SlotLayout" Margin="16" MinHeight="72" ColumnDefinitions="280,*"
-            ColumnSpacing="{DynamicResource NfcSpace24}" RowDefinitions="*">
+            ColumnSpacing="{DynamicResource NfcSpace24}" RowDefinitions="*,Auto,Auto">
         <StackPanel x:Name="SlotIdentity" Grid.Column="0" VerticalAlignment="Center"
                     Spacing="{DynamicResource NfcSpace12}">
           <Grid x:Name="SlotHeaderContent" ColumnDefinitions="Auto,*" ColumnSpacing="{DynamicResource NfcSpace12}">
@@ -116,21 +116,24 @@
               <StaticResource ResourceKey="FirmwareSlotInformationFactTemplate" />
             </ItemsControl.ItemTemplate>
           </ItemsControl>
+        </StackPanel>
+        <ItemsControl x:Name="AdditionalFirmwareFactsHost" Grid.Row="1" Grid.Column="1" Margin="0,8,0,0"
+                      HorizontalAlignment="Stretch" IsVisible="{Binding IsAdditionalFirmwareFactsExpanded}"
+                      ItemsSource="{Binding AdditionalFirmwareFacts}">
+          <ItemsControl.ItemsPanel>
+            <ItemsPanelTemplate>
+              <UniformGrid Columns="{Binding FactColumnCount, ElementName=Root}" />
+            </ItemsPanelTemplate>
+          </ItemsControl.ItemsPanel>
+          <ItemsControl.ItemTemplate>
+            <StaticResource ResourceKey="FirmwareSlotInformationFactTemplate" />
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+        <StackPanel x:Name="SlotAdditionalFactsRegion" Grid.Row="2" Grid.ColumnSpan="2"
+                    Margin="0,8,0,0" IsVisible="{Binding HasAdditionalFirmwareFacts}">
           <ToggleButton AutomationProperties.Name="{Binding AdditionalFirmwareFactsLabel}" Classes="quietDisclosure"
                         Content="{Binding AdditionalFirmwareFactsLabel}" HorizontalAlignment="Left"
                         IsChecked="{Binding IsAdditionalFirmwareFactsExpanded}" IsVisible="{Binding HasAdditionalFirmwareFacts}" />
-          <ItemsControl x:Name="AdditionalFirmwareFactsHost" HorizontalAlignment="Stretch"
-                        IsVisible="{Binding IsAdditionalFirmwareFactsExpanded}"
-                        ItemsSource="{Binding AdditionalFirmwareFacts}">
-            <ItemsControl.ItemsPanel>
-              <ItemsPanelTemplate>
-                <UniformGrid Columns="{Binding FactColumnCount, ElementName=Root}" />
-              </ItemsPanelTemplate>
-            </ItemsControl.ItemsPanel>
-            <ItemsControl.ItemTemplate>
-              <StaticResource ResourceKey="FirmwareSlotInformationFactTemplate" />
-            </ItemsControl.ItemTemplate>
-          </ItemsControl>
         </StackPanel>
       </Grid>
       <StackPanel x:Name="SlotActions" Grid.Column="1" Grid.RowSpan="2" HorizontalAlignment="Right"

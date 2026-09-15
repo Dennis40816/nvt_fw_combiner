@@ -133,9 +133,7 @@ internal static class AbMergeCliCommandHandler
                     [.. slotPaths.Keys],
                     new Dictionary<string, FileStamp>(StringComparer.Ordinal),
                     new AuthoringRevision(1));
-            ResolvedCapability? exactCapability = exactSelection.Catalog.Routes
-                .SingleOrDefault()?.ExactCapability;
-            if (exactCapability is null)
+            if (exactSelection.Issues.Count != 0)
             {
                 await CliCompositionRunSupport.PrintIssuesAsync(
                         error,
@@ -144,12 +142,10 @@ internal static class AbMergeCliCommandHandler
                 return SoftwareError;
             }
 
-            inputs = await CliFixedWorkflowInputReader.ReadAsync(
-                    localFiles,
-                    exactCapability.CompiledComposition,
-                    slotPaths,
-                    cancellationToken)
-                .ConfigureAwait(false);
+            ResolvedCapability? exact = exactSelection.Catalog.Routes.Single().ExactCapability;
+            inputs = exact is not null
+                ? await CliFixedWorkflowInputReader.ReadAsync(localFiles, exact.CompiledComposition, slotPaths, cancellationToken).ConfigureAwait(false)
+                : await CliFixedWorkflowInputReader.ReadAsync(localFiles, exactSelection.InputBindings, slotPaths, cancellationToken).ConfigureAwait(false);
         }
         catch (CliFixedWorkflowInputReadException exception)
         {
@@ -165,11 +161,21 @@ internal static class AbMergeCliCommandHandler
 
         var session = new AuthoringSessionState(ExperienceIds.AbMerge);
         CompiledAuthoringSessionPreparation prepared =
-            services.AbMergeAuthoring.PrepareSession(
+            await services.AbMergeAuthoring.PrepareSessionAsync(
                 session,
                 profile.IcId,
                 options.Values.GetValueOrDefault("--ab-topology"),
-                inputs);
+                inputs, AbMergeDpMode.Normal, cancellationToken).ConfigureAwait(false);
+        if (prepared.Succeeded &&
+            StringComparer.OrdinalIgnoreCase.Equals(profileSelector.Trim(), profile.ProfileId) &&
+            !StringComparer.Ordinal.Equals(profile.ProfileId,
+                prepared.Snapshot!.ExactCapability!.CompiledComposition.V2Details.ProfileId))
+        {
+            await error.WriteLineAsync(
+                $"error: requested profile '{profile.ProfileId}' does not match detected profile '{prepared.Snapshot.ExactCapability.CompiledComposition.V2Details.ProfileId}'. Use an IC selector for automatic format selection.")
+                .ConfigureAwait(false);
+            return CompositionFailed;
+        }
         InputArtifactBinding[] bindings =
         [
             .. slotPaths.Select(pair => new InputArtifactBinding(pair.Key, pair.Key, pair.Value)),
@@ -256,8 +262,10 @@ internal static class AbMergeCliCommandHandler
             return UsageError;
         }
 
-        CompositionRunResult result = await services.Execution
-            .ExecuteAsync(
+        CompositionRunResult result;
+        try
+        {
+            result = await services.Execution.ExecuteAsync(
                 new AcceptedCompositionExecutionRequest(
                     acceptedSession,
                     slotPaths,
@@ -274,7 +282,13 @@ internal static class AbMergeCliCommandHandler
                     outputBundle: outputBundle),
                 new CompositionRunProgressFeed(),
                 cancellationToken)
-            .ConfigureAwait(false);
+                .ConfigureAwait(false);
+        }
+        catch (InvalidOperationException exception)
+        {
+            await error.WriteLineAsync($"error: {exception.Message}").ConfigureAwait(false);
+            return CompositionFailed;
+        }
         CliCompositionRunSupport.EnsureReportDoesNotAliasProtectedPaths(
             reportPath,
             bindings,

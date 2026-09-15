@@ -33,7 +33,8 @@ internal static class CompositionExecutionTestSupport
             new ProtectedCompositionDestinationProvider(),
             acquireExternalProcessor,
             generationIsCurrent,
-            new SystemClock());
+            new SystemClock(),
+            canonical.AbMergeAuthoring);
     }
 
     internal static string FormatIssues(IEnumerable<CompositionIssue> issues)

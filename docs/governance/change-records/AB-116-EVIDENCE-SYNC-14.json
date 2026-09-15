@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 2,
+  "taskId": "AB-116-EVIDENCE-SYNC-14",
+  "capability": "Synchronize canonical AB route evidence and current documentation with the admitted v1.1.6 format routes",
+  "integrationBase": "f9db4ef039be1c7a08e0b83f11133dbc1a0fe049",
+  "risk": "R3",
+  "kind": "behavior",
+  "state": "final-complete",
+  "mutablePaths": [
+    "testdata/golden/canonical/manifest.json",
+    "docs/specs/experience-and-operation-rules.md",
+    "docs/adr/0072-event-buffer-format-configuration.md"
+  ],
+  "implementationOwner": "primary-agent owns the bounded evidence/document synchronization; v116_config_architecture performs independent read-only design and scoped review",
+  "searchEvidence": [
+    "2026-09-15 HEAD c3e68aff6151a4be846fec3e918fe7c1962e47ee is clean. verify.py --release-golden fails before executing tests: canonical manifest has three stale v114-dummy evidence IDs and lacks seven current v116-primary/v116-format IDs.",
+    "canonical-capability-policy-v1.json owns exact route/evidence identities, fingerprints and contract-only decisions. canonical_golden_validation._validate_route_evidence requires corresponding manifest rows and permits contract-only references without promoting them to direct Golden.",
+    "The existing 25 direct Golden cases and their payloads, expected outputs, bounds and release allowlist remain unchanged. Four new format routes remain candidates/contract-only; missing direct Golden does not invent a new universal integration gate.",
+    "Roadmap current-progress prose still says implemented format/config work is absent; its concurrent R0 status-only synchronization is non-governed and is not a mutablePath grant. Experience rules require a bounded explicit Desay source-view exception to their generic whole-DP exact-capacity statement; Common and required source coverage remain unchanged. ADR0072 owns the accepted behavior and records scoped evidence."
+  ],
+  "semanticOwner": "Canonical capability policy owns route evidence identity; canonical Golden manifest projects evidence scope; existing profile and ADR own Desay size behavior",
+  "terminalContract": "Update only three old contract-only route rows and add four current contract-only rows referencing the already-admitted profiles. Do not change case manifests, expected bytes/SHA, release allowlist, evidence kind, runtime support, validators or execution. Synchronize current progress and the approved Desay DP advisory exception. Execute the unchanged canonical Golden validator and all 25 direct cases; retain independent synthetic/write-range evidence separately. No push, release or publication; final exact-head owner attestation and aggregate integration remain pending.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "/root/v116_config_architecture",
+    "outcome": "approved",
+    "evidence": "2026-09-15 independent design admission for these three governed paths plus this record. Pre-first-commit review corrected the initial four-path inventory: roadmap is non-governed R0 prose, so its permitted status synchronization remains outside mutablePaths. Preserve all case/expected/allowlist/kind/support facts; use existing policy as identity source. Document the accepted Desay advisory exception without relaxing Common. Contract-only candidate development integration still requires exact-head firmware-owner evidence but not an invented direct-Golden-per-new-route gate."
+  },
+  "implementationHead": "203d656a4180cc5d630ebef68da3f19a3bde9e7a",
+  "reviewedHead": "203d656a4180cc5d630ebef68da3f19a3bde9e7a",
+  "pathStateDigest": "75d9e5ea472ea4bd5550a40b101ce991f28ceb67c2b5b14f1b2461b9ad100a56",
+  "integrationPaths": [
+    "docs/adr/0072-event-buffer-format-configuration.md",
+    "docs/specs/experience-and-operation-rules.md",
+    "testdata/golden/canonical/manifest.json"
+  ],
+  "finalReview": {
+    "reviewer": "/root/release116_ab_final",
+    "outcome": "approved",
+    "evidence": "Final technical review approved at 203d656a4180cc5d630ebef68da3f19a3bde9e7a against checkpoint f9db4ef039be1c7a08e0b83f11133dbc1a0fe049. Independent review covered every original AB08-14 path, including all125 unique paths and overlapping profiles/contracts/tests/UI/packaging. Primary observation, exact route, immutable capture/config freshness, processor boundary/order, report provenance and Desay size/coverage were traced. All original AB path blobs are unchanged from reviewed3e7bf81c at203d656a. No P0-P3. This record retains review/digest of all 3 original mutablePaths. ADR0071 final administrative ownership assigns each shared governed path to its latest admitted numeric unit; empty ownership never removes original review or R3 obligations. Fresh release-Golden at3e7bf81c passed Bootstrap1454/1454 and Golden25/25, zero skips, with all25 direct cases confirmed; later delta changes only Infrastructure tests and handoff, not firmware or Golden tests. Infrastructure at203d656a passed1116/1116. Historical/scoped evidence is not a fresh full-verifier or protected candidate claim. PASS-WITH-HUMAN-GATE: exact-head firmware-owner attestations, full verification, protected CI and package/publication gates remain required."
+  }
+}

@@ -157,6 +157,16 @@ internal sealed class CompositionRunPresentationViewModel : ObservableObject
         {
             return;
         }
+        catch (CompositionPreRunRefusalException exception)
+        {
+            string action = build ? "Build" : "Preview";
+            LastRunResult = new UiRunResultViewModel(
+                $"{action} blocked",
+                exception.Message,
+                "No output",
+                succeeded: false);
+            OnPropertyChanged(nameof(LastRunResult));
+        }
         catch (Exception exception) when (exception is InvalidOperationException or IOException or UnauthorizedAccessException or ArgumentException)
         {
             string action = build ? "Build" : "Preview";

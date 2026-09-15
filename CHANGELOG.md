@@ -7,7 +7,128 @@ assignments, use the [canonical roadmap](docs/architecture/nfc_roadmap.md).
 
 ## [Unreleased]
 
-No additional product changes are scheduled beyond the v1.1.5 scope below.
+Remaining Information and output-confirmation redesign is allocated to v1.1.7.
+
+## [1.1.6] - 2026-09-15
+
+### Summary
+
+v1.1.6 adds configurable Event Buffer Format recognition for the scoped
+NT51950/NT51951 AB Code workflows and corrects their declared layout variants.
+It also improves Memory Layout hover interaction, firmware input cards and
+runtime-tool readiness refresh. New format routes retain their declared
+candidate status; this release does not grant new Golden certification.
+
+### Product changes
+
+#### Event Buffer Format configuration and AB layout selection
+
+- Before → After: scoped AB workflows now read the profile-bound primary
+  FWConfig Event Buffer Format field and select the declared Common or Desay
+  variant automatically. The approved primary field is at `0x2220C`.
+  Desay TP B starts at `0x4A000`; the scoped Common NT51950 partial-family
+  two-IC TP B start is `0x8A000`. Coupled profile offsets and processor
+  declarations travel with the selected variant.
+- Affected: NT51950/NT51951 partial-family AB Code, its existing Dummy DP
+  path, Settings > Config > Event Buffer Format and captured run reports.
+- Support status: unchanged/support-neutral; new format routes remain
+  candidate/contract-only rather than independently Golden-certified routes.
+- Compatibility: users can add/remove recognition bytes and edit display
+  aliases for supported format IDs. Aliases do not change firmware behavior.
+  Config drafts require Save and apply; ordinary Settings retain immediate
+  application. Invalid configuration blocks affected AB execution without
+  silently selecting a fallback. Reports retain the effective run format.
+- Before → After: Config now exposes Reload for external file changes without
+  overwriting an unsaved draft. Removal controls identify their byte to screen
+  readers; discard confirmation contains keyboard focus and Escape returns to
+  editing. Reload re-evaluates retained inputs without rereading their BIN paths.
+- CLI compatibility: an explicit AB `--profile` ID now rejects a different
+  detected profile instead of silently executing it. Use an IC selector for
+  automatic selection. Configuration changes after readiness now return a
+  readable command failure (exit 1), without creating an output or a report for
+  an operation that did not start.
+- Verification: targeted configuration, primary-field admission, profile,
+  runtime, report and write-boundary regressions are recorded. An earlier
+  development-source release-Golden run passed all 25 certified output cases;
+  final-source CI and fresh candidate Golden execution remain release gates.
+- Limitations: arbitrary vendor layouts, CRC edits and support promotion are
+  not exposed by Config. Desay expects a 1 MiB DP AB input; excess length
+  produces a non-blocking advisory, while missing required source bytes
+  remain blocking. Existing TP overlay length is retained, with the source
+  spreadsheet discrepancy documented rather than guessed.
+
+#### Memory Layout and firmware input-card interaction
+
+- Before → After: the flash overview uses a compact legend and raised address
+  labels, with Master/Slave hover lanes and transient region cards. Adjacent
+  unselected Normal and MP CtrlRAM areas remain independently inspectable.
+  Popup teardown guards, pointer transit and wheel handling address unexpected
+  hover switching, repeated scrolling and the reported popup-close crash.
+- Affected: shared Memory Layout controls, CtrlRAM Replace, Merge input cards,
+  Config typography and Message Center navigation.
+- Support status: unchanged/support-neutral; presentation does not alter
+  firmware ranges, source selection or execution.
+- Compatibility: input details stay collapsed until requested, with the
+  disclosure placed below firmware facts and expanded facts aligned in wide
+  and compact layouts. Existing filenames and selected inputs are preserved.
+  Shared group headers remain bold; Message Center navigation uses weight 600.
+- Verification: targeted rendered-control, hover hierarchy, popup lifecycle,
+  distinct-region, slot alignment and Config interaction tests passed during
+  development. These are scoped observations, not fresh full-candidate or
+  clean-machine accessibility evidence.
+- Limitations: the broader Information priority/order and output-confirmation
+  redesign remain assigned to v1.1.7. Native high-DPI and assistive-technology
+  acceptance are not established by headless control renders.
+
+#### CtrlRAM readiness after external-tool publication
+
+- Before → After: inputs loaded before external tools became available could
+  leave Replace reporting that the environment was not published. Startup and
+  explicit environment refresh now requery the existing CtrlRAM readiness
+  owner and publish the resulting Build state.
+- Affected: CtrlRAM Replace startup loading, Message Center refresh and Build
+  status, including the NT51927 three-IC workflow.
+- Support status: unchanged; required external-tool safety checks remain active.
+- Compatibility: a genuinely missing tool still blocks Build. No tool is
+  inferred from a filename and no safety check is bypassed. General mode
+  availability continues to follow the selected IC's declared capabilities.
+- Verification: four startup/manual-refresh positive/negative cases and two
+  notification/supersession regressions passed on the final local correction.
+  Positive cases executed the actual Build path and checked output length and
+  the complete output digest against the resulting report.
+- Limitations: this runtime regression is not a new independent Golden output
+  contract. The required tool must be present in the admitted package.
+
+### Security
+
+No new signing, network, update or release permission is introduced. Config
+allows only validated recognition data for supported format IDs, not executable
+paths or arbitrary firmware writes. Existing package allowlists, immutable
+input handling, processor write bounds and publication checks remain enforced.
+
+### Known issues
+
+Final-source verification, exact-head firmware/release review and candidate
+package acceptance are required before publication. Candidate format routes
+must not be described as certified from synthetic tests alone. Deferred native
+accessibility and Information redesign work remains explicit above.
+
+### Upgrade and rollback
+
+The supported predecessor is v1.1.5. Extract the portable package into a new
+directory instead of overlaying an old installation. Back up user configuration
+and run reports before rollback; v1.1.5 does not implement the new Event Buffer
+Format rules and must not be used as an equivalent Desay-layout executor.
+No live Catalog/Registry deployment is implied by this release.
+
+### Downloads and integrity
+
+Use `NvtFwCombiner-v1.1.6-win-x64.zip` on Windows x64. The package is
+self-contained and includes the approved runtime tools and reference evidence.
+Verify downloaded assets using the published checksums, SPDX SBOM and
+provenance. GitHub source ZIP and tar archives are source downloads, not the
+Windows application. Exact final sizes and hashes belong to the published
+asset inventory; earlier development measurements are not final-asset claims.
 
 ## [1.1.5] - 2026-09-13
 

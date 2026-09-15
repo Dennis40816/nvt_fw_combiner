@@ -56,7 +56,7 @@ public sealed partial class XamlControlStyleContractTests
             HasXamlName(element, "AdditionalFirmwareFactsHost"));
 
         Assert.Equal("280,*", (string?)layout.Attribute("ColumnDefinitions"));
-        Assert.Equal("*", (string?)layout.Attribute("RowDefinitions"));
+        Assert.Equal("*,Auto,Auto", (string?)layout.Attribute("RowDefinitions"));
         Assert.Equal("16", (string?)layout.Attribute("Margin"));
         Assert.Equal("72", (string?)layout.Attribute("MinHeight"));
         Assert.Equal("{DynamicResource NfcSpace12}", (string?)identity.Attribute("Spacing"));
@@ -65,6 +65,8 @@ public sealed partial class XamlControlStyleContractTests
         Assert.Equal("0", (string?)identity.Attribute("Grid.Column"));
         Assert.Equal("1", (string?)factsRegion.Attribute("Grid.Column"));
         Assert.Equal("Center", (string?)factsRegion.Attribute("VerticalAlignment"));
+        Assert.Equal("1", (string?)additionalFacts.Attribute("Grid.Row"));
+        Assert.Equal("1", (string?)additionalFacts.Attribute("Grid.Column"));
         Assert.Equal("1", (string?)actions.Attribute("Grid.Column"));
         Assert.Equal("2", (string?)actions.Attribute("Grid.RowSpan"));
         Assert.Equal("10", (string?)actions.Attribute("Spacing"));
@@ -273,6 +275,82 @@ public sealed partial class XamlControlStyleContractTests
             "Ready: This input can now be selected.");
         Assert.True(browse.IsEnabled);
         Assert.NotEqual("Checking", slot.SemanticStateLabel);
+    }
+
+    /// <summary>Expanded overflow facts retain the same facts-column origin at every supported card width.</summary>
+    [AvaloniaTheory]
+    [InlineData(760)]
+    [InlineData(980)]
+    [InlineData(1180)]
+    [InlineData(1920)]
+    public void FirmwareSlotAdditionalFactsShareThePrimaryFactsColumnOrigin(double width)
+    {
+        var slot = new FirmwareSlotViewModel(
+            "reference",
+            "Reference BIN",
+            "Select reference firmware",
+            FirmwareSlotKind.Base)
+        {
+            FilePath = @"C:\firmware\reference.bin",
+        };
+        slot.SetInputInspection(FirmwareInputInspectionSeverity.Valid, "The selected BIN is valid.");
+        slot.SetFirmwareFacts(
+        [
+            new("DP Version", "DCC-00"),
+            new("Jira Index", "AUTO_PRJ-576"),
+            new("Common FW Version", "2.0.0"),
+            new("TP Version", "T01-01"),
+            new("PID", "0x135E"),
+        ]);
+        slot.IsAdditionalFirmwareFactsExpanded = true;
+        var card = new FirmwareSlotCard
+        {
+            BrowseLabel = "Browse",
+            ClearSelectionLabel = "Clear selected file",
+            DataContext = slot,
+            VerticalAlignment = Avalonia.Layout.VerticalAlignment.Top,
+            Width = width,
+        };
+        (Window host, _, _) = HostWithProductionFirmwareSlotStyles(card);
+        host.Width = width;
+        host.Height = 480;
+        try
+        {
+            host.Show();
+            Dispatcher.UIThread.RunJobs();
+            AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+
+            string? imageDirectory = Environment.GetEnvironmentVariable("NFC_VISUAL_OUTPUT_DIR");
+            if (!string.IsNullOrWhiteSpace(imageDirectory))
+            {
+                _ = Directory.CreateDirectory(imageDirectory);
+                using Avalonia.Media.Imaging.Bitmap? frame = host.GetLastRenderedFrame();
+                frame?.Save(Path.Combine(imageDirectory, $"firmware-slot-additional-facts-{width}.png"));
+            }
+
+            ItemsControl primary = Assert.IsType<ItemsControl>(
+                card.FindControl<Control>("PrimaryFirmwareFactsHost"));
+            ItemsControl additional = Assert.IsType<ItemsControl>(
+                card.FindControl<Control>("AdditionalFirmwareFactsHost"));
+            Border selector = Assert.Single(
+                card.GetVisualDescendants().OfType<Border>(),
+                candidate => candidate.Classes.Contains("firmwareSlot"));
+            Point primaryOrigin = Assert.IsType<Point>(primary.TranslatePoint(default, selector));
+            Point additionalOrigin = Assert.IsType<Point>(additional.TranslatePoint(default, selector));
+
+            Assert.Equal("Show fewer details", slot.AdditionalFirmwareFactsLabel);
+            Assert.True(additional.IsEffectivelyVisible);
+            Assert.InRange(Math.Abs(primaryOrigin.X - additionalOrigin.X), 0, 0.5);
+            Assert.True(additionalOrigin.X + additional.Bounds.Width <= selector.Bounds.Width + 0.5);
+            StackPanel disclosure = card.FindControl<StackPanel>("SlotAdditionalFactsRegion")!;
+            Point disclosureOrigin = Assert.IsType<Point>(disclosure.TranslatePoint(default, selector));
+            Assert.True(disclosureOrigin.Y >= additionalOrigin.Y + additional.Bounds.Height,
+                "Show details belongs below all facts, not between primary facts and PID.");
+        }
+        finally
+        {
+            host.Close();
+        }
     }
 
     /// <summary>Rendered DP/TP selectors share one optical axis at desktop and compact widths.</summary>

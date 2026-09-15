@@ -162,7 +162,7 @@ public sealed partial class CompiledAuthoringWorkflowService
             StringComparer.Ordinal);
     }
 
-    private static CompiledAuthoringSelectedInput[] NormalizeSelectedInputs(
+    internal static CompiledAuthoringSelectedInput[] NormalizeSelectedInputs(
         IEnumerable<CompiledAuthoringSelectedInput> inputs,
         IReadOnlyCollection<CompiledAuthoringInputBinding> inputBindings)
     {

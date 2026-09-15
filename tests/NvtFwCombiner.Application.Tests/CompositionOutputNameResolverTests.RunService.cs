@@ -244,6 +244,10 @@ public sealed partial class CompositionOutputNameResolverTests
             request.WithApprovedPreviewToken("preview-a"));
         _ = Assert.Throws<ArgumentException>(() =>
             request.WithApprovedPreviewToken("preview-a", publicationB));
+        CompositionRunRequest approved = request.WithApprovedPreviewToken("preview-a", CreateAdmission(composition, fixture));
+        Assert.Null(request.AbMergeFormat);
+        Assert.Null(approved.AbMergeFormat);
+        Assert.Equal("preview-a", approved.ApprovedPreviewToken);
     }
 
     /// <summary>Report and preview token retain the exact output-naming publication identity.</summary>

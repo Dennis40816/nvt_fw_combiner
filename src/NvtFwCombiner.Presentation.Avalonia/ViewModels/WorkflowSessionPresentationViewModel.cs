@@ -139,7 +139,11 @@ internal sealed partial class WorkflowSessionPresentationViewModel : ObservableO
                 continue;
             }
 
-            if (projected.InputSlotStatus is { } status)
+            if (projected.AuthoringCompilationIssues.Count > 0)
+            {
+                FirmwareInspectionProjection.ApplyAuthoringIssues(slot, projected.AuthoringCompilationIssues);
+            }
+            else if (projected.InputSlotStatus is { } status)
             {
                 FirmwareInspectionProjection.ApplyInputSlotInspection(slot, status, Text);
             }

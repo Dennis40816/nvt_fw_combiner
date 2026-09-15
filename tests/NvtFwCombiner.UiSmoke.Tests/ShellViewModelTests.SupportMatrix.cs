@@ -17,8 +17,8 @@ public sealed partial class ShellNavigationSystemTests
 
         Assert.True(viewModel.Settings.IsSupportMatrixOpen);
         Assert.False(viewModel.Settings.IsOverviewSelected);
-        Assert.Equal(75, viewModel.Settings.SupportMatrix.Rows.Count);
-        Assert.Equal("75 routes", viewModel.Settings.SupportMatrix.RouteCountLabel);
+        Assert.Equal(79, viewModel.Settings.SupportMatrix.Rows.Count);
+        Assert.Equal("79 routes", viewModel.Settings.SupportMatrix.RouteCountLabel);
         Assert.Equal("Current", viewModel.Settings.SupportMatrix.CatalogStateLabel);
         Assert.False(viewModel.Settings.SupportMatrix.HasStatusNotice);
         Assert.Equal(5, viewModel.Settings.SupportMatrix.WorkflowColumns.Count);

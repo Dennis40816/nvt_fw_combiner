@@ -30,18 +30,25 @@ public sealed partial class FirmwareInspectionSnapshotTests
 
     /// <summary>Selective dispatch preserves every workflow projection and distinct-path read count.</summary>
     [Fact]
-    public void SelectiveDispatchMatchesAllStrategyBaselineForEveryWorkflow()
+    public async Task SelectiveDispatchMatchesAllStrategyBaselineForEveryWorkflow()
     {
         foreach ((string icId, FirmwareInspectionSnapshotInput[] inputs, Dictionary<string, byte[]> images)
                  in CreateWorkflowDispatchCases())
         {
+            // AB owns asynchronous format capture; compare assembly strategies over
+            // that same immutable result instead of reintroducing synchronous discovery.
+            AbMergeInspectionBatch abBatch = await
+                ((AbMergeAuthoringExperience)BootstrapTestHost.Services.AbMergeAuthoring)
+                .InspectInputSlotsAsync(icId, inputs, path => images[path],
+                    TestContext.Current.CancellationToken);
             var selectiveReads = new Dictionary<string, int>(StringComparer.Ordinal);
             IReadOnlyList<FirmwareInspectionSnapshotResult> selective =
                 BuiltInFirmwareInspection.InspectFirmwareBatch(
                     BootstrapTestHost.Canonical,
                     icId,
                     inputs,
-                    path => ReadOnce(path, images, selectiveReads));
+                    path => ReadOnce(path, images, selectiveReads),
+                    capturedAbBatch: abBatch);
 
             var baselineReads = new Dictionary<string, int>(StringComparer.Ordinal);
             IReadOnlyList<FirmwareInspectionSnapshotResult> baseline =
@@ -50,7 +57,8 @@ public sealed partial class FirmwareInspectionSnapshotTests
                     icId,
                     inputs,
                     path => ReadOnce(path, images, baselineReads),
-                    FirmwareInspectionDispatch.AllStrategiesBaseline);
+                    FirmwareInspectionDispatch.AllStrategiesBaseline,
+                    capturedAbBatch: abBatch);
 
             Assert.Equivalent(baseline, selective, strict: true);
             Assert.All(selectiveReads.Values, static count => Assert.Equal(1, count));
@@ -413,6 +421,12 @@ public sealed partial class FirmwareInspectionSnapshotTests
     private sealed class InvalidDataDynamicCompilationAdapter :
         ICanonicalDynamicCompilationAdapter
     {
+        public bool TryGetAbAuthoringDefinition(CapabilityRouteIdentity identity,
+            out CanonicalAbAuthoringDefinition? definition, out IReadOnlyList<CompositionIssue> issues)
+        {
+            throw new InvalidDataException("Synthetic malformed authoring declaration.");
+        }
+
         public IReadOnlyList<long> GetMapCapacities(
             string icId,
             string workflowId,
@@ -423,8 +437,7 @@ public sealed partial class FirmwareInspectionSnapshotTests
         }
 
         public void Compile(
-            string icId,
-            string workflowId,
+            CapabilityRouteIdentity identity,
             long? requestedMapCapacity,
             IReadOnlyCollection<string>? selectedInputSlotIds,
             out CompiledComposition? composition,
@@ -434,11 +447,24 @@ public sealed partial class FirmwareInspectionSnapshotTests
         {
             throw new InvalidDataException("Synthetic malformed dynamic compilation.");
         }
+
+        public void CompileDefinition(string icId, string workflowId, long? requestedMapCapacity,
+            IReadOnlyCollection<string>? selectedInputSlotIds, out CompiledComposition? composition,
+            out IReadOnlyList<CompositionIssue> issues)
+        {
+            throw new InvalidDataException("Synthetic malformed dynamic compilation.");
+        }
     }
 
     private sealed class IncompleteDynamicCompilationAdapter(
         ICanonicalDynamicCompilationAdapter inner) : ICanonicalDynamicCompilationAdapter
     {
+        public bool TryGetAbAuthoringDefinition(CapabilityRouteIdentity identity,
+            out CanonicalAbAuthoringDefinition? definition, out IReadOnlyList<CompositionIssue> issues)
+        {
+            return inner.TryGetAbAuthoringDefinition(identity, out definition, out issues);
+        }
+
         public IReadOnlyList<long> GetMapCapacities(
             string icId,
             string workflowId,
@@ -448,8 +474,7 @@ public sealed partial class FirmwareInspectionSnapshotTests
         }
 
         public void Compile(
-            string icId,
-            string workflowId,
+            CapabilityRouteIdentity identity,
             long? requestedMapCapacity,
             IReadOnlyCollection<string>? selectedInputSlotIds,
             out CompiledComposition? composition,
@@ -458,8 +483,7 @@ public sealed partial class FirmwareInspectionSnapshotTests
             TopologySelection? requestedTopology = null)
         {
             inner.Compile(
-                icId,
-                workflowId,
+                identity,
                 requestedMapCapacity,
                 selectedInputSlotIds: [],
                 out composition,
@@ -467,12 +491,27 @@ public sealed partial class FirmwareInspectionSnapshotTests
                 out issues,
                 requestedTopology);
         }
+
+        public void CompileDefinition(string icId, string workflowId, long? requestedMapCapacity,
+            IReadOnlyCollection<string>? selectedInputSlotIds, out CompiledComposition? composition,
+            out IReadOnlyList<CompositionIssue> issues)
+        {
+            inner.CompileDefinition(icId, workflowId, requestedMapCapacity, [], out composition, out issues);
+        }
     }
 
     private sealed class RolloverDynamicCompilationAdapter(
         ICanonicalDynamicCompilationAdapter inner,
         Action rollover) : ICanonicalDynamicCompilationAdapter
     {
+        public bool TryGetAbAuthoringDefinition(CapabilityRouteIdentity identity,
+            out CanonicalAbAuthoringDefinition? definition, out IReadOnlyList<CompositionIssue> issues)
+        {
+            bool result = inner.TryGetAbAuthoringDefinition(identity, out definition, out issues);
+            rollover();
+            return result;
+        }
+
         private int _rolloverCalls;
 
         internal int RolloverCalls => _rolloverCalls;
@@ -486,8 +525,7 @@ public sealed partial class FirmwareInspectionSnapshotTests
         }
 
         public void Compile(
-            string icId,
-            string workflowId,
+            CapabilityRouteIdentity identity,
             long? requestedMapCapacity,
             IReadOnlyCollection<string>? selectedInputSlotIds,
             out CompiledComposition? composition,
@@ -496,14 +534,25 @@ public sealed partial class FirmwareInspectionSnapshotTests
             TopologySelection? requestedTopology = null)
         {
             inner.Compile(
-                icId,
-                workflowId,
+                identity,
                 requestedMapCapacity,
                 selectedInputSlotIds,
                 out composition,
                 out metadataPlan,
                 out issues,
                 requestedTopology);
+            if (Interlocked.Increment(ref _rolloverCalls) == 1)
+            {
+                rollover();
+            }
+        }
+
+        public void CompileDefinition(string icId, string workflowId, long? requestedMapCapacity,
+            IReadOnlyCollection<string>? selectedInputSlotIds, out CompiledComposition? composition,
+            out IReadOnlyList<CompositionIssue> issues)
+        {
+            inner.CompileDefinition(icId, workflowId, requestedMapCapacity, selectedInputSlotIds,
+                out composition, out issues);
             if (Interlocked.Increment(ref _rolloverCalls) == 1)
             {
                 rollover();

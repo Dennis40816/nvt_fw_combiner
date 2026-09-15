@@ -1,4 +1,5 @@
 using NvtFwCombiner.Application.Capabilities;
+using NvtFwCombiner.Application.Configuration;
 using NvtFwCombiner.Application.Diagnostics;
 using NvtFwCombiner.Application.ExternalTools;
 using NvtFwCombiner.Application.HexEditor;
@@ -33,7 +34,8 @@ public sealed class PresentationHostServices
             localFiles,
             versionManagement: null,
             managedApplicationStartup: null,
-            stableLauncherHandoff: null)
+            stableLauncherHandoff: null,
+            eventBufferFormatConfigurationSessionFactory: null)
     {
     }
 
@@ -50,7 +52,8 @@ public sealed class PresentationHostServices
         ILocalFileStore localFiles,
         IVersionManagementExperience? versionManagement,
         IManagedApplicationStartupCoordinator? managedApplicationStartup,
-        IStableLauncherHandoff? stableLauncherHandoff)
+        IStableLauncherHandoff? stableLauncherHandoff,
+        Func<CancellationToken, Task<IEventBufferFormatConfigurationSession>>? eventBufferFormatConfigurationSessionFactory = null)
     {
         Composition = composition ?? throw new ArgumentNullException(nameof(composition));
         FileReveal = fileReveal ?? throw new ArgumentNullException(nameof(fileReveal));
@@ -68,6 +71,7 @@ public sealed class PresentationHostServices
         VersionManagement = versionManagement;
         ManagedApplicationStartup = managedApplicationStartup;
         StableLauncherHandoff = stableLauncherHandoff;
+        EventBufferFormatConfigurationSessionFactory = eventBufferFormatConfigurationSessionFactory;
     }
 
     internal PresentationCompositionServices Composition { get; }
@@ -93,4 +97,7 @@ public sealed class PresentationHostServices
     internal IManagedApplicationStartupCoordinator? ManagedApplicationStartup { get; }
 
     internal IStableLauncherHandoff? StableLauncherHandoff { get; }
+
+    /// <summary>Creates the host-scoped configuration session only when its Settings surface is opened.</summary>
+    internal Func<CancellationToken, Task<IEventBufferFormatConfigurationSession>>? EventBufferFormatConfigurationSessionFactory { get; }
 }

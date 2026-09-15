@@ -1,14 +1,16 @@
 using System.Buffers.Binary;
 using System.Text.Json;
 using NvtFwCombiner.Application.Capabilities;
+using NvtFwCombiner.Application.Configuration;
 using NvtFwCombiner.Application.FlashMaps;
 using NvtFwCombiner.Domain.Composition;
+using NvtFwCombiner.Infrastructure.ExternalTools;
 using NvtFwCombiner.TestSupport;
 
 namespace NvtFwCombiner.Bootstrap.Tests;
 
 /// <summary>CLI admission tests for the owner-approved AB Merge pilot.</summary>
-public sealed class AbMergeCliCommandTests
+public sealed partial class AbMergeCliCommandTests
 {
     /// <summary>Global help advertises the optional topology token required by profiles such as NT51950.</summary>
     [Fact]
@@ -132,23 +134,36 @@ public sealed class AbMergeCliCommandTests
     }
 
     /// <summary>NT51950 Cascade names read its profile-owned DP CMI locations, never TP metadata or a presentation bank offset.</summary>
-    [Fact]
-    public async Task Nt51950CascadePreviewUsesProfileOwnedCmiPositionsForAutomaticNameAsync()
+    [Theory]
+    [InlineData(2, 0x85016)]
+    [InlineData(3, 0x45016)]
+    public async Task Nt51950CascadePreviewUsesProfileOwnedCmiPositionsForAutomaticNameAsync(byte chipCount, int bCmiOffset)
     {
         using var workspace = TempWorkspace.Create("nfc-nt51950-ab-cli-output-name");
+        CompositionHostServices host = CompositionHostServices.Create(
+            new ExternalProcessorEnvironmentLoader(RepositoryPaths.FromRepositoryRoot("external-tools")),
+            loadPolicy: null, configurationPath: workspace.PathFor("format.json"));
+        Assert.True((await host.ExternalEnvironmentLoader.LoadToCompletionAsync(null, TestContext.Current.CancellationToken)).Succeeded);
+        IEventBufferFormatConfigurationSession configuration = await host.GetEventBufferFormatConfigurationAsync(TestContext.Current.CancellationToken);
+        Assert.True((await configuration.SaveAsync(configuration.CreateDefaultsDraft(), TestContext.Current.CancellationToken)).Succeeded);
         byte[] dp = new byte[0x100000];
         SetCmiDpVersionAt(dp, 0x5016, 0x82, 0x0);
-        SetCmiDpVersionAt(dp, 0x45016, 0x83, 0x1);
-        byte[] tpA = CreateTp(0x80, 0x04, chipCount: 2, length: 0x37000);
-        byte[] tpB = CreateTp(0x81, 0x02, chipCount: 2, length: 0x37000);
+        SetCmiDpVersionAt(dp, bCmiOffset, 0x83, 0x1);
+        byte[] tpA = CreateTp(0x80, 0x04, chipCount: chipCount, length: 0x37000);
+        byte[] tpB = CreateTp(0x81, 0x02, chipCount: chipCount, length: 0x37000);
+        foreach (byte[] tp in new[] { tpA, tpB })
+        {
+            tp[0x22200] = 0x31;
+            tp[0x22201] = 0xCE;
+            tp[0x2220C] = 0x84;
+        }
         BinaryPrimitives.WriteUInt32LittleEndian(tpB.AsSpan(0xA100, sizeof(uint)), 0x0000A100);
         BinaryPrimitives.WriteUInt32LittleEndian(tpB.AsSpan(0xA110, sizeof(uint)), 0x0000A110);
         BinaryPrimitives.WriteUInt32LittleEndian(tpB.AsSpan(0xA120, sizeof(uint)), 0x0000A120);
         string reportPath = workspace.PathFor("ab-report.json");
 
-        CliRunResult result = await CliTestHarness.RunAsync(
+        CliRunResult result = await CliTestHarness.RunAbAsync(host,
             [
-                "ab-merge",
                 "preview",
                 "--profile",
                 "NT51950",

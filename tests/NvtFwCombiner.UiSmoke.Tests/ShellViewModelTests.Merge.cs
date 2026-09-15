@@ -111,7 +111,7 @@ public sealed partial class MergeWorkflowTests
             viewModel.Merge.MergeSlots.Select(static slot => slot.SlotId));
     }
 
-    /// <summary>NT51950 selects its profile-owned physical layout through the shared IC Number context.</summary>
+    /// <summary>IC Number selects topology but cannot invent an output layout before format discovery.</summary>
     [Fact]
     public void Nt51950AbMergeSelectsSingleOrCascadeTopology()
     {
@@ -130,12 +130,12 @@ public sealed partial class MergeWorkflowTests
             ["single", "cascade"],
             viewModel.WorkflowSession.NumberSelectionChoices.Select(static choice => choice.Token));
         Assert.Equal("single", viewModel.WorkflowSession.SelectedNumber);
-        Assert.Equal("0x00000-0x7FFFF (len 0x80000)", viewModel.Merge.MergeMemoryRangeLabel);
+        Assert.Equal(viewModel.Text.NotAvailableLabel, Assert.Single(viewModel.Merge.MergeMemoryRows).RangeLabel);
 
         viewModel.WorkflowSession.SelectedNumber = "cascade";
 
         Assert.Equal("cascade", viewModel.WorkflowSession.SelectedNumber);
-        Assert.Equal("0x00000-0xFFFFF (len 0x100000)", viewModel.Merge.MergeMemoryRangeLabel);
+        Assert.Equal(viewModel.Text.NotAvailableLabel, Assert.Single(viewModel.Merge.MergeMemoryRows).RangeLabel);
 
         viewModel.WorkflowSession.SelectedIc = "NT51951";
         Assert.True(viewModel.Merge.IsAbMergeSupported);
@@ -164,10 +164,12 @@ public sealed partial class MergeWorkflowTests
     {
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-ab-memory");
         string dpPath = workspace.Write("dp-ab-90000.bin", new byte[0x90000]);
-        MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
+        MainWindowViewModel viewModel = await PresentationTestHost.CreateConfiguredFormatViewModelAsync(workspace);
         viewModel.ShowMergeCommand.Execute(null);
         viewModel.WorkflowSession.SelectedIc = "NT51950";
         viewModel.Merge.SelectedMergeMode = ExperienceIds.AbMerge;
+
+        await LoadFormatMemoryTpPairAsync(viewModel, workspace, 0x84, 1);
 
         await viewModel.WorkflowSession.SetSlotFileAsync(
             CompositionAddressSpaceIds.DpAbInput,
@@ -193,6 +195,42 @@ public sealed partial class MergeWorkflowTests
             row.RangeLabel.Contains("Staging", StringComparison.OrdinalIgnoreCase));
         Assert.True(viewModel.Merge.MergeSlots.Single(static slot =>
             slot.SlotId == CompositionAddressSpaceIds.DpAbInput).BlocksBuild);
+    }
+
+    /// <summary>After primary discovery, each published format/topology projects its actual compiled capacity.</summary>
+    [Theory]
+    [InlineData("NT51950", 0x84, 1, 0x80000, "0x00000-0x7FFFF (len 0x80000)")]
+    [InlineData("NT51950", 0x84, 2, 0x100000, "0x00000-0xFFFFF (len 0x100000)")]
+    [InlineData("NT51950", 0x97, 1, 0x100000, "0x00000-0xFFFFF (len 0x100000)")]
+    [InlineData("NT51950", 0xA6, 2, 0x100000, "0x00000-0xFFFFF (len 0x100000)")]
+    [InlineData("NT51951", 0x84, 1, 0x100000, "0x00000-0xFFFFF (len 0x100000)")]
+    [InlineData("NT51951", 0x97, 1, 0x100000, "0x00000-0xFFFFF (len 0x100000)")]
+    public async Task AbMemoryCapacityComesFromDetectedFormat(string icId, byte format, byte count, int dpLength, string range)
+    {
+        using var workspace = TempWorkspace.Create("ab-memory-format-capacity");
+        MainWindowViewModel viewModel = await PresentationTestHost.CreateConfiguredFormatViewModelAsync(workspace);
+        viewModel.ShowMergeCommand.Execute(null);
+        viewModel.WorkflowSession.SelectedIc = icId;
+        viewModel.Merge.SelectedMergeMode = ExperienceIds.AbMerge;
+        if (icId == "NT51950")
+        {
+            viewModel.WorkflowSession.SelectedNumber = count == 1 ? "single" : "cascade";
+        }
+        Assert.Equal(viewModel.Text.NotAvailableLabel, Assert.Single(viewModel.Merge.MergeMemoryRows).RangeLabel);
+        await viewModel.WorkflowSession.SetSlotFileAsync("dp-ab-input", workspace.Write("dp.bin", new byte[dpLength]), TestContext.Current.CancellationToken);
+        Assert.Equal(viewModel.Text.NotAvailableLabel, Assert.Single(viewModel.Merge.MergeMemoryRows).RangeLabel);
+        await LoadFormatMemoryTpPairAsync(viewModel, workspace, format, count);
+        Assert.Equal(range, viewModel.Merge.MergeMemoryRangeLabel);
+        Assert.Contains(viewModel.Merge.MergeMemoryRows, static row => row.AfterSource == "TPA");
+        Assert.Contains(viewModel.Merge.MergeMemoryRows, static row => row.AfterSource == "TPB");
+    }
+
+    private static async Task LoadFormatMemoryTpPairAsync(MainWindowViewModel viewModel, TempWorkspace workspace,
+        byte format, byte count)
+    {
+        byte[] tp = CreateUiAbFormatTpImage(format, count);
+        await viewModel.WorkflowSession.SetSlotFileAsync("tp-a-input", workspace.Write("a.bin", tp), TestContext.Current.CancellationToken);
+        await viewModel.WorkflowSession.SetSlotFileAsync("tp-b-input", workspace.Write("b.bin", tp), TestContext.Current.CancellationToken);
     }
 
     /// <summary>AB inputs publish independent versions and typed health before Preview becomes available.</summary>

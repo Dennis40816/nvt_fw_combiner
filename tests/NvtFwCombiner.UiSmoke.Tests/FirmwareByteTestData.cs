@@ -60,4 +60,18 @@ internal static class FirmwareByteTestData
         image[markerStart + 3] = (byte)'T';
         return image;
     }
+
+    // Valid primary/count metadata for format and layout tests, not a byte-output Golden.
+    internal static byte[] CreateUiAbFormatTpImage(byte format, byte count)
+    {
+        byte[] tp = new byte[0x37000];
+        tp[0x22200] = 0x31;
+        tp[0x22201] = 0xCE;
+        tp[0x2220C] = format;
+        tp[0x36000] = 0x42;
+        tp[0x36001] = 0xBD;
+        tp[0x36017] = count;
+        new byte[] { 0, 0x4E, 0x56, 0x54 }.CopyTo(tp, 0x36FFC);
+        return tp;
+    }
 }

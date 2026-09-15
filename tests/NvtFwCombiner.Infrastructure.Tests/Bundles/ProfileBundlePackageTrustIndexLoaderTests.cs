@@ -41,11 +41,11 @@ public sealed class ProfileBundlePackageTrustIndexLoaderTests
 
         Assert.Equal("1.3", index.SchemaVersion);
         Assert.Equal("built-in-profile-bundles", index.TrustIndexId);
-        Assert.Equal("1.1.4.2", index.TrustIndexVersion);
+        Assert.Equal("1.1.6.0", index.TrustIndexVersion);
         Assert.Equal("built-in-profile-bundle-v2", index.TrustAnchorBindingId);
         Assert.Equal(26, index.Bundles.Count);
         Assert.Equal(
-            61,
+            64,
             index.Bundles.Sum(static bundle => bundle.RuntimeRegistrations.Count));
         ProfileBundleRuntimeRegistration generalReplace = index.Bundles
             .SelectMany(static bundle => bundle.RuntimeRegistrations)
@@ -58,7 +58,8 @@ public sealed class ProfileBundlePackageTrustIndexLoaderTests
         Assert.Equal(
             ["nt51919-ab-merge-512k", "nt51929-ab-merge-512k", "nt51932-ab-merge-512k",
                 "nt51928-dual-capacity-256k-512k", "nt51928-dual-capacity-256k-512k",
-                "nt51950-ab-merge-maps", "nt51951-ab-merge-1024k"],
+                "nt51950-ab-merge-maps", "nt51951-ab-merge-1024k",
+                "nt51950-ab-desay-maps", "nt51951-ab-desay-maps", "nt51950-ab-common-2ic-maps"],
             index.Bundles.SelectMany(static bundle => bundle.RuntimeRegistrations)
                 .Where(static registration => registration.MapVariantSetId is not null)
                 .Select(static registration => registration.MapVariantSetId));
@@ -156,6 +157,30 @@ public sealed class ProfileBundlePackageTrustIndexLoaderTests
         Assert.Equal("NT12345", registration.IcId);
         Assert.Equal("9.8.7", registration.ProfileVersion);
         Assert.Equal("synthetic-selection-map-set", registration.MapVariantSetId);
+    }
+
+    /// <summary>Different explicit map sets may share an IC, but duplicate exact keys remain rejected.</summary>
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void LoadDistinguishesExactFormatRegistrationKeys(bool duplicate)
+    {
+        const string first = "{\"workflowId\":\"ab-merge\",\"icId\":\"NT51950\",\"profileId\":\"format-a\"," +
+            "\"profileVersion\":\"1.0.0\",\"mapVariantSetId\":\"format-a-maps\"}";
+        string second = duplicate ? first : first.Replace("format-a", "format-b", StringComparison.Ordinal);
+        string bundle = Bundle().Replace("\"runtimeRegistrations\": []",
+            $"\"runtimeRegistrations\": [{first},{second}]", StringComparison.Ordinal);
+        using TempWorkspace workspace = WriteIndex(bundle);
+        string path = Path.Combine(workspace.Root, "package-trust-index.json");
+        if (duplicate)
+        {
+            InvalidDataException failure = Assert.Throws<InvalidDataException>(() => ProfileBundlePackageTrustIndexLoader.Load(path));
+            Assert.Contains("unique", failure.Message, StringComparison.Ordinal);
+        }
+        else
+        {
+            Assert.Equal(2, Assert.Single(ProfileBundlePackageTrustIndexLoader.Load(path).Bundles).RuntimeRegistrations.Count);
+        }
     }
 
     /// <summary>A map-set cannot extend a workflow outside the closed map-bound selection vocabulary.</summary>

@@ -19,7 +19,7 @@ public sealed partial class FirmwareFamilyResolutionDefinition
         string familyContentHash,
         IEnumerable<FirmwareImageMap> imageMaps,
         IEnumerable<FirmwareMetadataSet> metadataSets)
-        : this(familyId, familyVersion, familyContentHash, imageMaps, metadataSets, [], [])
+        : this(familyId, familyVersion, familyContentHash, imageMaps, metadataSets, [], [], null)
     {
     }
 
@@ -31,7 +31,8 @@ public sealed partial class FirmwareFamilyResolutionDefinition
         IEnumerable<FirmwareImageMap> imageMaps,
         IEnumerable<FirmwareMetadataSet> metadataSets,
         IEnumerable<FirmwareMapFactBinding<FirmwareCapabilityFact>> capabilityBindings,
-        IEnumerable<FirmwareFamilyRelationship> familyRelationships)
+        IEnumerable<FirmwareFamilyRelationship> familyRelationships,
+        FirmwareAbFormatPolicy? abFormatPolicy = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(familyId);
         ArgumentException.ThrowIfNullOrWhiteSpace(familyVersion);
@@ -85,6 +86,8 @@ public sealed partial class FirmwareFamilyResolutionDefinition
         MetadataSets = Array.AsReadOnly(_metadataSets);
         CapabilityBindings = Array.AsReadOnly(_capabilityBindings);
         FamilyRelationships = Array.AsReadOnly(_familyRelationships);
+        AbFormatPolicy = abFormatPolicy;
+        abFormatPolicy?.ValidateFamily(this);
     }
 
     /// <summary>Stable source-family identifier.</summary>
@@ -105,6 +108,9 @@ public sealed partial class FirmwareFamilyResolutionDefinition
     internal IReadOnlyList<FirmwareMapFactBinding<FirmwareCapabilityFact>> CapabilityBindings { get; }
 
     internal IReadOnlyList<FirmwareFamilyRelationship> FamilyRelationships { get; }
+
+    /// <summary>Optional immutable A/B format facts; selecting a format remains an Application concern.</summary>
+    public FirmwareAbFormatPolicy? AbFormatPolicy { get; }
 
     /// <summary>Returns metadata structures selected by one exact candidate map.</summary>
     public IReadOnlyList<FirmwareMetadataStructure> GetStructuresForMap(string mapId)

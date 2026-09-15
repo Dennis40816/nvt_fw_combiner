@@ -371,6 +371,7 @@
                     "\n",
                     workflow,
                     icId,
+                    mapVariantSetId ?? string.Empty,
                     processor ?? string.Empty,
                     branch ?? string.Empty);
                 if (!(new[] { "standard-merge", "ab-merge", "dp-replace", "general-merge", "general-replace", "ctrlram-replace" }).Contains(workflow) ||

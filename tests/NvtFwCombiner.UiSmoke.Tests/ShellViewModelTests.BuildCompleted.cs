@@ -95,6 +95,38 @@ public sealed partial class BuildOutcomeTests
         Assert.Equal("No output", viewModel.RunSession.LastRunResult.Output);
     }
 
+    /// <summary>An AB pre-run refusal is a blocked action, not an execution report.</summary>
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task PreRunRefusalDoesNotCreateFailureReport(bool build)
+    {
+        MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
+        string previousJson = ReportJsonSamples.Succeeded(runId: "previous-run");
+        viewModel.Reports.LoadReportJson(previousJson, "previous.json");
+        ReportReviewViewModel previousReport = viewModel.Reports.LoadedReport;
+        ReportHistoryEntryViewModel[] previousHistory = [.. viewModel.Reports.ReportHistoryEntries];
+        bool previousToast = viewModel.Reports.HasReportToast;
+        int reportLoads = 0;
+
+        await viewModel.RunSession.RunCompositionAsync(
+            build,
+            (_, _) => throw new CompositionPreRunRefusalException(
+                [new CompositionIssue("AB_FORMAT_CHANGED", "The accepted format publication changed.")]),
+            (_, _) => reportLoads++);
+
+        Assert.Equal(0, reportLoads);
+        Assert.False(viewModel.Reports.IsReportModalOpen);
+        Assert.Equal(previousToast, viewModel.Reports.HasReportToast);
+        Assert.Same(previousReport, viewModel.Reports.LoadedReport);
+        Assert.Equal(previousJson, viewModel.Reports.LoadedReportJson);
+        Assert.Equal(previousHistory, viewModel.Reports.ReportHistoryEntries);
+        Assert.Equal(build ? "Build blocked" : "Preview blocked", viewModel.RunSession.LastRunResult.Title);
+        Assert.Equal("AB_FORMAT_CHANGED: The accepted format publication changed.", viewModel.RunSession.LastRunResult.Detail);
+        Assert.Equal("No output", viewModel.RunSession.LastRunResult.Output);
+        Assert.False(viewModel.RunSession.LastRunResult.Succeeded);
+    }
+
     /// <summary>A committed Build opens one confirmation while OK retains the latest-output shortcut.</summary>
     [Fact]
     public void CommittedBuildShowsOutputConfirmation()

@@ -85,8 +85,7 @@ internal static class CanonicalCompiledRouteInventory
                 BuiltInV2RegistrationRegistry.StandardMergeByIc
                     .GetValueOrDefault(identity.IcId),
             ExperienceIds.AbMerge =>
-                BuiltInV2RegistrationRegistry.AbMergeByIc
-                    .GetValueOrDefault(identity.IcId),
+                BuiltInV2RegistrationRegistry.FindUniqueAbMergeRegistration(identity.IcId),
             ExperienceIds.DpReplace =>
                 BuiltInV2RegistrationRegistry.DpReplaceByIc.Value
                     .GetValueOrDefault(identity.IcId),

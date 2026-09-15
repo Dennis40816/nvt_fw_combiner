@@ -192,7 +192,7 @@ internal sealed partial class ReplacePresentationViewModel
         ActiveSessionSnapshot? session = _ctrlRamReplaceSession.CurrentSnapshot;
         if (!IsCtrlRamReplaceModeSelected || session is null)
         {
-            RefreshCommandState();
+            PresentationObserver.Invoke(NotifyCommandAvailabilityChanged);
             return;
         }
 
@@ -215,7 +215,7 @@ internal sealed partial class ReplacePresentationViewModel
             _ctrlRamReadinessIc = icId;
             _ctrlRamReadinessNumber = number;
         }
-        RefreshCommandState();
+        PresentationObserver.Invoke(NotifyCommandAvailabilityChanged);
     }
 
     private void ClearCtrlRamActionReadiness()

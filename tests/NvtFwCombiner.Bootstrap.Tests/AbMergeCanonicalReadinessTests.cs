@@ -9,7 +9,7 @@ public sealed partial class AbMergeRuntimeAdmissionTests
 {
     /// <summary>AB inspection publishes one exact Application-owned terminal batch.</summary>
     [Fact]
-    public void AbInspectionBatchPublishesCanonicalTerminalStatuses()
+    public async Task AbInspectionBatchPublishesCanonicalTerminalStatuses()
     {
         using var workspace = TempWorkspace.Create("nfc-ab-canonical-readiness");
         Dictionary<string, string> paths = WriteInputs(workspace);
@@ -23,18 +23,19 @@ public sealed partial class AbMergeRuntimeAdmissionTests
                 AuthoringRevision: revision)),
         ];
 
-        IReadOnlyList<FirmwareInspectionSnapshotResult> results =
-            BuiltInFirmwareInspection.InspectFirmwareBatch(BootstrapTestHost.Canonical, "NT51929", inputs);
+        FirmwareInspectionBatchResult batch = await BootstrapTestHost.Services.FirmwareInspectionExperience
+            .InspectFirmwareBatchAsync("NT51929", inputs, TestContext.Current.CancellationToken);
+        FirmwareInspectionSnapshot[] results = [.. batch.InspectionsById.Values];
 
-        Assert.Equal(3, results.Count);
+        Assert.Equal(3, results.Length);
         AuthoringCapabilityCatalogSnapshot catalog = Assert.IsType<AuthoringCapabilityCatalogSnapshot>(
-            results[0].Inspection.InputSlotCatalog);
+            results[0].InputSlotCatalog);
         string compilationFingerprint = Assert.Single(catalog.Routes).CompilationFingerprint!;
         Assert.All(results, result =>
         {
-            Assert.Same(catalog, result.Inspection.InputSlotCatalog);
+            Assert.Same(catalog, result.InputSlotCatalog);
             AuthoringInputSlotStatus status = Assert.IsType<AuthoringInputSlotStatus>(
-                result.Inspection.InputSlotStatus);
+                result.InputSlotStatus);
             Assert.Equal(new AuthoringRevision(revision), status.AuthoringRevision);
             Assert.Equal(compilationFingerprint, status.CompilationFingerprint);
             Assert.Equal(AuthoringSlotLifecycle.Verified, status.InspectionLifecycle);
@@ -45,7 +46,7 @@ public sealed partial class AbMergeRuntimeAdmissionTests
 
     /// <summary>Canonical AB health preserves blocking short input and accepted-tail warning semantics.</summary>
     [Fact]
-    public void AbInspectionBatchPreservesShortAndTailHealth()
+    public async Task AbInspectionBatchPreservesShortAndTailHealth()
     {
         using var workspace = TempWorkspace.Create("nfc-ab-canonical-health");
         FirmwareInspectionSnapshotInput[] inputs =
@@ -60,9 +61,9 @@ public sealed partial class AbMergeRuntimeAdmissionTests
                 AbMergeAddressSpaceId: CompositionAddressSpaceIds.TpAInput),
         ];
 
-        var results =
-            BuiltInFirmwareInspection.InspectFirmwareBatch(BootstrapTestHost.Canonical, "NT51929", inputs)
-                .ToDictionary(static result => result.InspectionId, static result => result.Inspection);
+        FirmwareInspectionBatchResult batch = await BootstrapTestHost.Services.FirmwareInspectionExperience
+            .InspectFirmwareBatchAsync("NT51929", inputs, TestContext.Current.CancellationToken);
+        IReadOnlyDictionary<string, FirmwareInspectionSnapshot> results = batch.InspectionsById;
 
         Assert.Equal(
             AuthoringSlotLifecycle.Error,
@@ -91,10 +92,11 @@ public sealed partial class AbMergeRuntimeAdmissionTests
                 AbMergeAddressSpaceId: pair.Key)),
         ];
 
+        FirmwareInspectionBatchResult batch = await BootstrapTestHost.Services.FirmwareInspectionExperience
+            .InspectFirmwareBatchAsync("NT51929", inputs, TestContext.Current.CancellationToken);
         CompiledInputVersionObservation[] versions =
         [
-            .. BuiltInFirmwareInspection.InspectFirmwareBatch(BootstrapTestHost.Canonical, "NT51929", inputs)
-                .SelectMany(static result => result.Inspection.InputSlotStatus!.Observation.Versions),
+            .. batch.InspectionsById.Values.SelectMany(static result => result.InputSlotStatus!.Observation.Versions),
         ];
         CompositionRunResult run = await AbMergeTestSupport.RunAsync(BootstrapTestHost.Services,
             "NT51929",

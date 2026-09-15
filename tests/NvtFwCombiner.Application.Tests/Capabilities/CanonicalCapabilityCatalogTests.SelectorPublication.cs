@@ -252,6 +252,60 @@ public sealed partial class CanonicalCapabilityCatalogTests
             ExperienceIds.AbMerge));
     }
 
+    /// <summary>Two formats sharing an IC/count require explicit identity, never array-order selection.</summary>
+    [Fact]
+    public void AbFormatAmbiguityRequiresExactPublishedIdentity()
+    {
+        var first = new CapabilityRouteIdentity("NT51951", ExperienceIds.AbMerge, "selector-free", "common-maps");
+        var second = new CapabilityRouteIdentity("NT51951", ExperienceIds.AbMerge, "selector-free", "desay-maps");
+        var candidate = new CanonicalCapabilityCatalogCandidate("exact-ab-test", "1.0.0", new string('a', 64), [],
+            [CreateDynamicAbDefinition(first), CreateDynamicAbDefinition(second)]);
+        var catalog = new CanonicalCapabilityCatalog(new QueueCapabilitySource(CapabilityCatalogLoadResult.Success(candidate)));
+        Assert.True(catalog.Reload(TestContext.Current.CancellationToken).Succeeded);
+        var adapter = new UnusedDynamicCompiler();
+        var compiler = new CanonicalCapabilityCompilerAdapter(catalog, adapter);
+
+        Assert.False(compiler.TryCompileAbMergeCapability("NT51951", null, [], out _, out _, out IReadOnlyList<CompositionIssue> issues));
+        Assert.Equal(CapabilityCatalogIssueCodes.RouteAmbiguous, Assert.Single(issues).Code);
+        Assert.Null(adapter.CapturedIdentity);
+        Assert.False(compiler.TryCompilePublishedDynamicCapability("NT51951", ExperienceIds.AbMerge,
+            "selector-free", null, [], out _, out _, out issues));
+        Assert.Equal(CapabilityCatalogIssueCodes.RouteAmbiguous, Assert.Single(issues).Code);
+        Assert.Null(adapter.CapturedIdentity);
+
+        Assert.True(compiler.TryCompilePublishedDynamicCapability(second, null, [], out CompiledComposition? composition,
+            out ResolvedCapability? capability, out issues));
+        Assert.Same(second, adapter.CapturedIdentity);
+        Assert.Empty(issues);
+        Assert.Null(composition); // This fake only observes dispatch; actual binding is covered by Bootstrap tests.
+        Assert.Null(capability);
+    }
+
+    /// <summary>Every identity axis must resolve in the current publication before the adapter is called.</summary>
+    [Theory]
+    [InlineData("NT51950", "ab-merge", "selector-free", "desay-maps")]
+    [InlineData("NT51951", "standard-merge", "selector-free", "desay-maps")]
+    [InlineData("NT51951", "ab-merge", "1-ic", "desay-maps")]
+    [InlineData("NT51951", "ab-merge", "selector-free", "missing-maps")]
+    public void ExactDynamicDispatchRejectsUnpublishedIdentityAxes(string icId, string workflow, string count, string mapSet)
+    {
+        var identity = new CapabilityRouteIdentity("NT51951", ExperienceIds.AbMerge, "selector-free", "desay-maps");
+        var candidate = new CanonicalCapabilityCatalogCandidate("exact-ab-test", "1.0.0", new string('a', 64), [],
+            [CreateDynamicAbDefinition(identity)]);
+        var catalog = new CanonicalCapabilityCatalog(new QueueCapabilitySource(CapabilityCatalogLoadResult.Success(candidate)));
+        Assert.True(catalog.Reload(TestContext.Current.CancellationToken).Succeeded);
+        var adapter = new UnusedDynamicCompiler();
+        var compiler = new CanonicalCapabilityCompilerAdapter(catalog, adapter);
+
+        _ = compiler.TryCompilePublishedDynamicCapability(new CapabilityRouteIdentity(icId, workflow, count, mapSet),
+            null, [], out CompiledComposition? composition, out ResolvedCapability? capability, out IReadOnlyList<CompositionIssue> issues);
+
+        Assert.NotEmpty(issues);
+        Assert.Null(composition);
+        Assert.Null(capability);
+        Assert.Null(adapter.CapturedIdentity);
+    }
+
     private static CapabilityRouteIdentity CreateAbRoute(
         string icId,
         string countVariant,
@@ -391,6 +445,16 @@ public sealed partial class CanonicalCapabilityCatalogTests
 
     private sealed class UnusedDynamicCompiler : ICanonicalDynamicCompilationAdapter
     {
+        public bool TryGetAbAuthoringDefinition(CapabilityRouteIdentity identity,
+            out CanonicalAbAuthoringDefinition? definition, out IReadOnlyList<CompositionIssue> issues)
+        {
+            definition = null;
+            issues = [];
+            return false;
+        }
+
+        internal CapabilityRouteIdentity? CapturedIdentity { get; private set; }
+
         public IReadOnlyList<long> GetMapCapacities(
             string icId,
             string workflowId,
@@ -401,8 +465,7 @@ public sealed partial class CanonicalCapabilityCatalogTests
         }
 
         public void Compile(
-            string icId,
-            string workflowId,
+            CapabilityRouteIdentity identity,
             long? requestedMapCapacity,
             IReadOnlyCollection<string>? selectedInputSlotIds,
             out CompiledComposition? composition,
@@ -410,8 +473,21 @@ public sealed partial class CanonicalCapabilityCatalogTests
             out IReadOnlyList<CompositionIssue> issues,
             TopologySelection? requestedTopology = null)
         {
+            CapturedIdentity = identity;
             composition = null;
             metadataPlan = null;
+            issues = [];
+        }
+
+        public void CompileDefinition(
+            string icId,
+            string workflowId,
+            long? requestedMapCapacity,
+            IReadOnlyCollection<string>? selectedInputSlotIds,
+            out CompiledComposition? composition,
+            out IReadOnlyList<CompositionIssue> issues)
+        {
+            composition = null;
             issues = [];
         }
     }

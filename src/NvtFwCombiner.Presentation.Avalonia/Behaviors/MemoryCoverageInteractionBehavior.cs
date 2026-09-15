@@ -44,6 +44,9 @@ public sealed class MemoryCoverageInteractionBehavior : AvaloniaObject
     {
         control.PointerEntered -= Control_OnPointerEntered;
         control.PointerExited -= Control_OnPointerExited;
+        control.RemoveHandler(InputElement.PointerMovedEvent, Control_OnPointerInput);
+        control.RemoveHandler(InputElement.PointerPressedEvent, Control_OnPointerInput);
+        control.RemoveHandler(InputElement.KeyDownEvent, Control_OnKeyDown);
         control.GotFocus -= Control_OnGotFocus;
         control.LostFocus -= Control_OnLostFocus;
         control.DataContextChanged -= Control_OnDataContextChanged;
@@ -60,6 +63,9 @@ public sealed class MemoryCoverageInteractionBehavior : AvaloniaObject
             _ = control.SetValue(LeaseProperty, lease);
             control.PointerEntered += Control_OnPointerEntered;
             control.PointerExited += Control_OnPointerExited;
+            control.AddHandler(InputElement.PointerMovedEvent, Control_OnPointerInput, RoutingStrategies.Tunnel);
+            control.AddHandler(InputElement.PointerPressedEvent, Control_OnPointerInput, RoutingStrategies.Tunnel);
+            control.AddHandler(InputElement.KeyDownEvent, Control_OnKeyDown, RoutingStrategies.Tunnel);
             control.GotFocus += Control_OnGotFocus;
             control.LostFocus += Control_OnLostFocus;
             control.DataContextChanged += Control_OnDataContextChanged;
@@ -88,7 +94,7 @@ public sealed class MemoryCoverageInteractionBehavior : AvaloniaObject
     {
         if (sender is Control control && control.GetValue(LeaseProperty) is { } lease)
         {
-            lease.SetFocusActive(control, active: true);
+            lease.SetFocusActive(control, e is not FocusChangedEventArgs { NavigationMethod: NavigationMethod.Pointer });
         }
     }
 
@@ -97,6 +103,22 @@ public sealed class MemoryCoverageInteractionBehavior : AvaloniaObject
         if (sender is Control control && control.GetValue(LeaseProperty) is { } lease)
         {
             lease.SetFocusActive(control, active: false);
+        }
+    }
+
+    private static void Control_OnPointerInput(object? sender, PointerEventArgs e)
+    {
+        if (sender is Control control && control.GetValue(LeaseProperty) is { } lease)
+        {
+            lease.SetFocusActive(control, active: false);
+        }
+    }
+
+    private static void Control_OnKeyDown(object? sender, KeyEventArgs e)
+    {
+        if (sender is Control control && control.GetValue(LeaseProperty) is { } lease)
+        {
+            lease.SetFocusActive(control, control.IsKeyboardFocusWithin);
         }
     }
 

@@ -36,9 +36,16 @@ placement delta. Only current compact CtrlRAM replacement payloads normally
 map source byte `0` to a nonzero built-in firmware target.
 
 Replace Reference and complete DP AB seeds are whole-container inputs, not
-section projections. They must match one declared capacity variant. General
-Merge/Replace may explicitly author From File Start as a user mapping preset;
-that does not create another built-in firmware rule.
+section projections. They normally match one declared capacity variant. The
+explicit NT51950/NT51951 Desay AB profiles in [ADR 0072](../adr/0072-event-buffer-format-configuration.md)
+instead require complete DP source coverage `[0x0,0x100000)` and declare
+`0x100000` bytes (1 MiB / 8 Mbit) as their expected outer size. An oversized
+source warns without blocking, ignores only the trailing bytes and preserves
+the same output; an incomplete required view remains blocking without padding.
+This profile-declared exception does not relax Common AB or Replace Reference
+capacity checks. Dummy DP supplies no DP input and gets no size warning.
+General Merge/Replace may explicitly author From File Start as a user mapping
+preset; that does not create another built-in firmware rule.
 
 FlashCode classification requires a resolved complete-container variant with
 required DP/Initial Code and TP views. Application requires exact variant

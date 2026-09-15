@@ -61,7 +61,8 @@ public sealed class AbDummyDpCompilationTests
     public void RegisteredDynamicAdapterCompilesAbDummyWithoutDpMetadata()
     {
         var adapter = new BuiltInV2DynamicCompilationAdapter();
-        adapter.Compile("NT51929", ExperienceIds.AbMerge, null, [],
+        adapter.Compile(new CapabilityRouteIdentity("NT51929", ExperienceIds.AbMerge,
+            "selector-free", "nt51929-ab-merge-512k"), null, [],
             out CompiledComposition? composition, out MetadataPlanDefinition? metadata,
             out IReadOnlyList<CompositionIssue> issues);
         Assert.Empty(issues);
@@ -89,12 +90,13 @@ public sealed class AbDummyDpCompilationTests
     public void SelectionPreservesTpAndUsesSeedOnlyWhenSelected(
         string icId, string profileId, int capacity, int chipCount, bool dummy)
     {
+        ArgumentNullException.ThrowIfNull(icId);
         bool legacyProcessorFamily = icId is "NT51950" or "NT51951";
         string bundle = legacyProcessorFamily
             ? "nt51950-ab-merge"
             : "nt51919-nt51929-nt51932-ab-merge";
         string hash = legacyProcessorFamily
-            ? "f60f5ef4f8c2a150c7dde47638d55aa35a84425146809263057939540ea0b6b9"
+            ? "0f3db5b27468211ee5f60112d239423e2b0d99b3591c8dcc63db07a2e2987496"
             : "68527380d4e2de5994734b9357fc55963254e51382027d9f099699c9dc1a366f";
         using var workspace = TempWorkspace.Create("nfc-ab-dummy-compilation");
         TrustedProfileBundleCatalog catalog = AbMergeCandidateTestSupport.LoadSourceCandidateCatalog(
@@ -104,7 +106,7 @@ public sealed class AbDummyDpCompilationTests
             : new TopologySelection(chipCount, "test", TopologySelectionSource.Requested, "test");
 
         V2CompositionPlanCompileResult result = catalog.Compile(
-            profileId, legacyProcessorFamily ? "0.3.0" : "0.4.0",
+            profileId, legacyProcessorFamily ? "0.6.0" : "0.4.0",
             icId, ExperienceIds.AbMerge, capacity, topology, [],
             selectedInputSlotIds: dummy ? [] : ["dp-ab-input"]);
 
@@ -135,7 +137,11 @@ public sealed class AbDummyDpCompilationTests
         }
 
         var adapter = new BuiltInV2DynamicCompilationAdapter();
-        adapter.Compile(icId, ExperienceIds.AbMerge, capacity,
+        string mapSet = icId == "NT51950" ? "nt51950-ab-merge-maps"
+            : icId == "NT51951" ? "nt51951-ab-merge-1024k" : $"{icId.ToLowerInvariant()}-ab-merge-512k";
+        var identity = new CapabilityRouteIdentity(icId, ExperienceIds.AbMerge,
+            chipCount == 0 ? "selector-free" : chipCount == 1 ? "1-ic" : "2-plus-ic", mapSet);
+        adapter.Compile(identity, capacity,
             dummy ? [] : ["dp-ab-input"],
             out CompiledComposition? routed, out MetadataPlanDefinition? metadata,
             out IReadOnlyList<CompositionIssue> issues, topology);
@@ -146,14 +152,20 @@ public sealed class AbDummyDpCompilationTests
         Assert.Equal(composition.V2Details.Provenance.ResolvedMap.ImageMap.MapId,
             routed.V2Details.Provenance.ResolvedMap.ImageMap.MapId);
         Assert.Equal(expectedSlots, routed.V2Details.InputContract.Slots.Select(static slot => slot.SlotId));
-        // Current AB declarations contain no DP metadata bindings. Only 929/932
-        // declare the five TP header read/copy/relocation bindings.
+        // AB metadata remains TP-owned in Normal and Dummy modes: 929/932
+        // have header bindings; 950/951 have independent primary observations.
         Assert.DoesNotContain(metadata.Entries, static entry => entry.SlotId == "dp-ab-input");
         if (icId is "NT51929" or "NT51932")
         {
             Assert.Equal(5, metadata.Entries.Count);
             Assert.Contains(metadata.Entries, static entry => entry.SlotId == "tp-a-input");
             Assert.Contains(metadata.Entries, static entry => entry.SlotId == "tp-b-input");
+        }
+        else if (icId is "NT51950" or "NT51951")
+        {
+            Assert.Equal(["tp-a-input", "tp-b-input"], metadata.Entries.Select(static entry => entry.SlotId));
+            Assert.All(metadata.Entries, static entry =>
+                Assert.Equal([MetadataReferencePurpose.Inspection], entry.Purposes));
         }
         else
         {
@@ -171,7 +183,10 @@ public sealed class AbDummyDpCompilationTests
     {
         var adapter = new BuiltInV2DynamicCompilationAdapter();
         var topology = new TopologySelection(chipCount, "test", TopologySelectionSource.Requested, "test");
-        adapter.Compile(icId, workflowId, capacity, [],
+        var identity = new CapabilityRouteIdentity(icId, workflowId,
+            workflowId == ExperienceIds.AbMerge ? chipCount == 1 ? "1-ic" : "2-plus-ic" : "selector-free",
+            workflowId == ExperienceIds.AbMerge ? "nt51950-ab-merge-maps" : "nt51929-standard-merge-256k");
+        adapter.Compile(identity, capacity, [],
             out CompiledComposition? composition, out MetadataPlanDefinition? metadata,
             out IReadOnlyList<CompositionIssue> issues, topology);
         Assert.Null(composition);
@@ -188,7 +203,8 @@ public sealed class AbDummyDpCompilationTests
     public void RegisteredDynamicAdapterNullSelectionKeepsDp()
     {
         var adapter = new BuiltInV2DynamicCompilationAdapter();
-        adapter.Compile("NT51929", ExperienceIds.AbMerge, null, null,
+        adapter.Compile(new CapabilityRouteIdentity("NT51929", ExperienceIds.AbMerge,
+            "selector-free", "nt51929-ab-merge-512k"), null, null,
             out CompiledComposition? composition, out MetadataPlanDefinition? metadata,
             out IReadOnlyList<CompositionIssue> issues);
         Assert.Empty(issues);

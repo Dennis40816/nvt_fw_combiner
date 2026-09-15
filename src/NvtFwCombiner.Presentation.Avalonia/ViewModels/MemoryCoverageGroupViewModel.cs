@@ -102,7 +102,10 @@ internal sealed class MemoryCoverageLogicalItemViewModel
         int physicalRuns = 0;
         foreach (MemoryCoverageSegmentViewModel segment in ordered)
         {
-            if (previous is not null && segment.ImmediatelyFollows(previous))
+            if (previous is not null && segment.ImmediatelyFollows(previous) &&
+                segment.RegionGroup == previous.RegionGroup &&
+                segment.ContentRole == previous.ContentRole &&
+                segment.CtrlRamRegionRole == previous.CtrlRamRegionRole)
             {
                 segment.Interaction = previous.Interaction;
             }

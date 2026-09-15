@@ -20,8 +20,28 @@ internal static class BuiltInV2RegistrationRegistry
     internal static ReadOnlyCollection<BuiltInV2Registration> AbMerge { get; } =
         CreateRegistrations(ExperienceIds.AbMerge);
 
-    internal static ReadOnlyDictionary<string, BuiltInV2Registration> AbMergeByIc { get; } =
+    // Legacy unique-IC readers fail closed on multiple map-sets, without poisoning registry initialization.
+    internal static ReadOnlyDictionary<string, BuiltInV2Registration> AbMergeByIc =>
         new(AbMerge.ToDictionary(static registration => registration.IcId, StringComparer.Ordinal));
+
+    internal static BuiltInV2Registration? FindAbMergeRegistration(string icId, string mapVariantSetId)
+    {
+        return FindAbMergeRegistration(AbMerge, icId, mapVariantSetId);
+    }
+
+    internal static BuiltInV2Registration? FindAbMergeRegistration(
+        IEnumerable<BuiltInV2Registration> registrations, string icId, string mapVariantSetId)
+    {
+        return registrations.SingleOrDefault(registration =>
+            StringComparer.Ordinal.Equals(registration.IcId, icId) &&
+            StringComparer.Ordinal.Equals(registration.SelectionGroupMapVariantSetId, mapVariantSetId));
+    }
+
+    internal static BuiltInV2Registration? FindUniqueAbMergeRegistration(string icId)
+    {
+        return AbMerge.SingleOrDefault(registration =>
+            StringComparer.Ordinal.Equals(registration.IcId, icId));
+    }
 
     internal static Lazy<ReadOnlyDictionary<string, BuiltInV2Registration>> DpReplaceByIc { get; } =
         new(() => new ReadOnlyDictionary<string, BuiltInV2Registration>(
@@ -137,6 +157,18 @@ internal sealed class BuiltInV2Registration
     internal string? MapVariantSetId { get; }
 
     internal string BundleContentHash => _bundle.ContentHash;
+
+    /// <summary>Projects the exact trusted family of this registration without synthesizing a compilation.</summary>
+    internal FirmwareFamilyResolutionDefinition GetFirmwareFamily()
+    {
+        return _bundle.GetFirmwareFamily(ProfileId, ProfileVersion);
+    }
+
+    internal bool TryGetAbAuthoringDefinition(out CanonicalAbAuthoringDefinition? definition,
+        out IReadOnlyList<CompositionIssue> issues)
+    {
+        return _bundle.TryGetAbAuthoringDefinition(ProfileId, ProfileVersion, out definition, out issues);
+    }
 
     internal bool HasReportClassificationMetadata =>
         _bundle.ProfileDeclaresMetadataPurpose(
@@ -439,6 +471,18 @@ internal sealed class BuiltInV2Registration
 
     private V2CompositionPlanCompileResult CompileSummary()
     {
+        if (IsAbMerge)
+        {
+            IReadOnlyList<FirmwareImageMap> maps = GetMapVariants(out _, out IReadOnlyList<CompositionIssue> mapIssues);
+            if (mapIssues.Count != 0) { return V2CompositionPlanCompileResult.Failed(mapIssues); }
+            FirmwareImageMap? representative = maps.OrderBy(static map => map.CapacityBytes)
+                .ThenBy(static map => map.MapId, StringComparer.Ordinal).FirstOrDefault();
+            return representative is null
+                ? V2CompositionPlanCompileResult.Failed([new CompositionIssue(BuiltInV2Bundle.CompilationFailed,
+                    $"The built-in V2 {ProfileLabel} for {IcId} has no declared maps.")])
+                : CompileExecutable(representative.CapacityBytes, HeadlessRouteSelection.CreateTopologySelection(
+                    representative.Applicability.TopologyRequirement, representative.MapId));
+        }
         IReadOnlyList<long> capacities = GetMapCapacities(out IReadOnlyList<CompositionIssue> issues);
         return (issues.Count, capacities.Count) switch
         {
@@ -448,8 +492,7 @@ internal sealed class BuiltInV2Registration
                     BuiltInV2Bundle.CompilationFailed,
                     $"The built-in V2 {ProfileLabel} for {IcId} has no declared {(IsDpReplace ? "base" : "map")} capacities.")]),
             _ => CompileExecutable(
-                IsDpReplace || ((IsStandardMerge || IsAbMerge) && capacities.Count > 1) ? capacities[0] : null,
-                IsAbMerge && capacities.Count > 1 ? CreateSummaryTopology() : null),
+                IsDpReplace || (IsStandardMerge && capacities.Count > 1) ? capacities[0] : null),
         };
     }
 

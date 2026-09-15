@@ -36,6 +36,7 @@ public sealed partial class ShellNavigationSystemTests
         viewModel.WorkflowSession.PropertyChanged += (_, args) => changes.Add(args.PropertyName);
 
         policy.DisableAllRoutesFor("NT51950");
+        policy.DisableAbFor("NT51919", "NT51929", "NT51932", "NT51950", "NT51951");
         await viewModel.MessageCenter.RefreshCommand.ExecuteAsync(null);
         Dispatcher.UIThread.RunJobs();
 
@@ -55,6 +56,44 @@ public sealed partial class ShellNavigationSystemTests
         Assert.True(
             changes.IndexOf(nameof(WorkflowSessionPresentationViewModel.IcChoices)) <
             changes.IndexOf(nameof(WorkflowSessionPresentationViewModel.SelectedIc)));
+    }
+
+    /// <summary>Removing only NT51950 preserves AB mode when the newly published NT51951 route is legal.</summary>
+    [AvaloniaFact]
+    public async Task CanonicalCatalogRefreshPreservesActiveAbModeWhenOnly950RoutesAreRemoved()
+    {
+        var policy = new MutableAbCatalogPolicy();
+        (PresentationHostServices services, MainWindowViewModel viewModel) =
+            CreateCatalogRefreshViewModel(policy);
+        viewModel.ShowMergeCommand.Execute(null);
+        viewModel.WorkflowSession.SelectedIc = "NT51950";
+        viewModel.Merge.SelectedMergeMode = ExperienceIds.AbMerge;
+        var selector = new ComboBox { DataContext = viewModel };
+        _ = selector.Bind(
+            ItemsControl.ItemsSourceProperty,
+            new Binding("WorkflowSession.IcChoices"));
+        _ = selector.Bind(
+            ComboBox.SelectedItemProperty,
+            new Binding("WorkflowSession.SelectedIc") { Mode = BindingMode.TwoWay });
+        Dispatcher.UIThread.RunJobs();
+
+        policy.DisableAllRoutesFor("NT51950");
+        await viewModel.MessageCenter.RefreshCommand.ExecuteAsync(null);
+        Dispatcher.UIThread.RunJobs();
+
+        Assert.Equal("NT51951", services.Composition.Capabilities.DefaultIcId);
+        Assert.Equal("NT51951", viewModel.WorkflowSession.SelectedIc);
+        Assert.Equal(
+            "NT51951",
+            viewModel.WorkflowSession.GetWorkflowPageIc(WorkflowInspectionOwner.Merge));
+        Assert.True(viewModel.Merge.IsAbCodeMergeModeSelected);
+        Assert.Equal("NT51951", selector.SelectedItem);
+        Assert.Contains("NT51951", selector.Items.Cast<string>());
+        Assert.DoesNotContain("NT51950", selector.Items.Cast<string>());
+        Assert.Contains(
+            "NT51951",
+            services.Composition.Capabilities.GetAbMergeProfileSummaries()
+                .Select(static profile => profile.IcId));
     }
 
     /// <summary>A bound AB selector replaces its items from the fresh publication without clearing a valid selection.</summary>
@@ -214,6 +253,7 @@ public sealed partial class ShellNavigationSystemTests
         };
 
         policy.DisableAllRoutesFor(removedIc);
+        policy.DisableAbFor("NT51919", "NT51929", "NT51932", "NT51950", "NT51951");
         await viewModel.MessageCenter.RefreshCommand.ExecuteAsync(null).WaitAsync(
             TimeSpan.FromSeconds(10),
             TestContext.Current.CancellationToken);
@@ -272,6 +312,7 @@ public sealed partial class ShellNavigationSystemTests
         string replaceNumber = viewModel.WorkflowSession.SelectedNumber;
 
         policy.DisableAllRoutesFor("NT51950");
+        policy.DisableAbFor("NT51919", "NT51929", "NT51932", "NT51950", "NT51951");
         await viewModel.MessageCenter.RefreshCommand.ExecuteAsync(null);
 
         Assert.True(viewModel.IsReplaceVisible);
@@ -286,6 +327,39 @@ public sealed partial class ShellNavigationSystemTests
             services.Composition.Capabilities.DefaultIcId,
             viewModel.WorkflowSession.GetWorkflowPageIc(WorkflowInspectionOwner.Merge));
         Assert.Equal(ExperienceIds.StandardMerge, viewModel.Merge.SelectedMergeMode);
+    }
+
+    /// <summary>An inactive Merge AB context follows the legal NT51951 fallback without changing Replace.</summary>
+    [Fact]
+    public async Task CanonicalCatalogRefreshPreservesInactiveAbContextWhenOnly950RoutesAreRemoved()
+    {
+        var policy = new MutableAbCatalogPolicy();
+        (PresentationHostServices services, MainWindowViewModel viewModel) =
+            CreateCatalogRefreshViewModel(policy);
+        viewModel.ShowMergeCommand.Execute(null);
+        viewModel.WorkflowSession.SelectedIc = "NT51950";
+        viewModel.Merge.SelectedMergeMode = ExperienceIds.AbMerge;
+        viewModel.WorkflowSession.SelectedNumber = IcNumberSelectionTokens.Cascade;
+        viewModel.ShowReplaceCommand.Execute(null);
+        viewModel.WorkflowSession.SelectedIc = "NT51926";
+        string replaceNumber = viewModel.WorkflowSession.SelectedNumber;
+
+        policy.DisableAllRoutesFor("NT51950");
+        await viewModel.MessageCenter.RefreshCommand.ExecuteAsync(null);
+
+        Assert.True(viewModel.IsReplaceVisible);
+        Assert.Equal("NT51926", viewModel.WorkflowSession.SelectedIc);
+        Assert.Equal(
+            "NT51926",
+            viewModel.WorkflowSession.GetWorkflowPageIc(WorkflowInspectionOwner.Replace));
+        Assert.Equal(
+            replaceNumber,
+            viewModel.WorkflowSession.GetWorkflowPageNumber(WorkflowInspectionOwner.Replace));
+        Assert.Equal("NT51951", services.Composition.Capabilities.DefaultIcId);
+        Assert.Equal(
+            "NT51951",
+            viewModel.WorkflowSession.GetWorkflowPageIc(WorkflowInspectionOwner.Merge));
+        Assert.Equal(ExperienceIds.AbMerge, viewModel.Merge.SelectedMergeMode);
     }
 
     /// <summary>A publication with no AB-authorable route disables Home AB and never opens an empty draft.</summary>
@@ -402,6 +476,7 @@ public sealed partial class ShellNavigationSystemTests
             Assert.IsType<IcNumberChoiceViewModel>(selector.SelectedItem).Token);
 
         policy.DisableAbVariant("NT51950", "2-plus-ic");
+        policy.DisableAbVariant("NT51950", "2-ic");
         await viewModel.MessageCenter.RefreshCommand.ExecuteAsync(null);
         Dispatcher.UIThread.RunJobs();
 
@@ -413,6 +488,41 @@ public sealed partial class ShellNavigationSystemTests
         Assert.Equal(IcNumberSelectionTokens.SingleChip, viewModel.WorkflowSession.SelectedNumber);
         Assert.Equal(
             IcNumberSelectionTokens.SingleChip,
+            Assert.IsType<IcNumberChoiceViewModel>(selector.SelectedItem).Token);
+        Assert.False(viewModel.WorkflowSession.IsFirmwareNumberMismatchModalOpen);
+    }
+
+    /// <summary>Removing one two-plus route retains Cascade when the two-IC Common route remains legal.</summary>
+    [AvaloniaFact]
+    public async Task CanonicalCatalogRefreshRetainsCascadeWhenTwoIcCommonRouteRemains()
+    {
+        var policy = new MutableAbCatalogPolicy();
+        (_, MainWindowViewModel viewModel) = CreateCatalogRefreshViewModel(policy);
+        viewModel.ShowMergeCommand.Execute(null);
+        viewModel.WorkflowSession.SelectedIc = "NT51950";
+        viewModel.Merge.SelectedMergeMode = ExperienceIds.AbMerge;
+        viewModel.WorkflowSession.SelectedNumber = IcNumberSelectionTokens.Cascade;
+        var selector = new ComboBox { DataContext = viewModel };
+        _ = selector.Bind(
+            ItemsControl.ItemsSourceProperty,
+            new Binding("WorkflowSession.NumberSelectionChoices"));
+        _ = selector.Bind(
+            ComboBox.SelectedItemProperty,
+            new Binding("WorkflowSession.SelectedNumberChoice") { Mode = BindingMode.TwoWay });
+        Dispatcher.UIThread.RunJobs();
+
+        policy.DisableAbVariant("NT51950", "2-plus-ic");
+        await viewModel.MessageCenter.RefreshCommand.ExecuteAsync(null);
+        Dispatcher.UIThread.RunJobs();
+
+        Assert.True(viewModel.Merge.IsAbCodeMergeModeSelected);
+        Assert.Equal("NT51950", viewModel.WorkflowSession.SelectedIc);
+        Assert.Contains(
+            IcNumberSelectionTokens.Cascade,
+            viewModel.WorkflowSession.NumberSelectionChoices.Select(static choice => choice.Token));
+        Assert.Equal(IcNumberSelectionTokens.Cascade, viewModel.WorkflowSession.SelectedNumber);
+        Assert.Equal(
+            IcNumberSelectionTokens.Cascade,
             Assert.IsType<IcNumberChoiceViewModel>(selector.SelectedItem).Token);
         Assert.False(viewModel.WorkflowSession.IsFirmwareNumberMismatchModalOpen);
     }

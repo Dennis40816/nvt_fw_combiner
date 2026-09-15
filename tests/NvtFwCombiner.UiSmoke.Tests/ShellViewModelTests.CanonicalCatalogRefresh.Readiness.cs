@@ -223,8 +223,12 @@ public sealed partial class ShellNavigationSystemTests
     [Fact]
     public async Task FreshTokenWhileAbActiveReinspectsHiddenStandardWhenReactivated()
     {
+        using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-ab-standard-rebind");
+        const string version = "0.10.6-ab-active-standard-rebind-test";
+        PresentationHostServices configuredServices = await PresentationTestHost.CreateConfiguredFormatServicesAsync(
+            workspace, version);
         (PresentationHostServices services, MainWindowViewModel viewModel, BlockingInspectionReader reader) =
-            CreateCatalogInspectionViewModel("0.10.6-ab-active-standard-rebind-test");
+            CreateCatalogInspectionViewModel(version, configuredServices);
         await LoadVerifiedStandardMergeAsync(viewModel, "51950");
         FirmwareSlotViewModel[] standardSlots = [.. viewModel.Merge.StandardMergeSlots];
         await LoadVerifiedAbMergeAsync(viewModel);
@@ -576,9 +580,10 @@ public sealed partial class ShellNavigationSystemTests
     private static (
         PresentationHostServices Services,
         MainWindowViewModel ViewModel,
-        BlockingInspectionReader Reader) CreateCatalogInspectionViewModel(string version)
+        BlockingInspectionReader Reader) CreateCatalogInspectionViewModel(
+            string version, PresentationHostServices? configuredServices = null)
     {
-        PresentationHostServices services = PresentationTestHost.CreateServices(version);
+        PresentationHostServices services = configuredServices ?? PresentationTestHost.CreateServices(version);
         var reader = new BlockingInspectionReader(
             (BuiltInFirmwareInspection)services.Composition.FirmwareInspection);
         var viewModel = new MainWindowViewModel(
@@ -588,7 +593,7 @@ public sealed partial class ShellNavigationSystemTests
             services,
             new DelegatingFirmwareInspection(
                 services.Composition.FirmwareInspection,
-                batchReader: reader.Read));
+                batchStarted: (_, inputs) => reader.ObserveBatch(inputs)));
         _ = PresentationTestHost.PublishCanonicalCatalog(services, viewModel);
         return (services, viewModel, reader);
     }

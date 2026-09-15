@@ -1,6 +1,7 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
+using System.Text.Json.Serialization.Metadata;
 
 namespace NvtFwCombiner.Application.Composition;
 
@@ -75,6 +76,10 @@ public static class CompositionRunReportJson
     {
         WriteIndented = true,
         Converters = { new JsonStringEnumConverter() },
+        // New audit contracts use generated metadata; the existing report graph retains its legacy resolver.
+        TypeInfoResolver = JsonTypeInfoResolver.Combine(
+            AbMergeFormatReportJsonContext.Default,
+            new DefaultJsonTypeInfoResolver()),
     };
 
     /// <summary>Serializes one typed result using the existing composition-report-v1 projection.</summary>

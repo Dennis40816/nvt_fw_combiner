@@ -56,8 +56,6 @@ internal sealed partial class ReplacePresentationViewModel
         CtrlRamFocusLanes, (long)CtrlRamOverview.Sum(static section => section.BarWidth));
     public string CtrlRamEndAddress => CtrlRamOverview.Count == 0 ? string.Empty :
         FormattableString.Invariant($"0x{CtrlRamOverview[^1].RangeEndExclusive - 1:X5}");
-    public IReadOnlyList<MemoryCoverageSegmentViewModel> CtrlRamOverviewLegend =>
-        [.. CtrlRamOverview.OrderBy(static section => section.FillRole == MemoryCoverageFillRole.Neutral)];
     public string CtrlRamSharedInputHint => Text.FormatMemorySharedInputHint(string.Join(" / ",
         CtrlRamFocusLanes.SelectMany(static lane => lane.Ranges)
             .Where(static range => range.IsSelectedForWrite && range.SourceSlotId is not null)

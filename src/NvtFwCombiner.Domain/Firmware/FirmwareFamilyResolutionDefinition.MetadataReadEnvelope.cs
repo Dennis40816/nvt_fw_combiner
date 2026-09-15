@@ -8,12 +8,20 @@ public sealed partial class FirmwareFamilyResolutionDefinition
         FirmwareMetadataStructure structure)
     {
         ArgumentNullException.ThrowIfNull(resolvedMap);
+        return GetMaximumMetadataReadEnd(resolvedMap.ImageMap, structure);
+    }
+
+    internal long GetMaximumMetadataReadEnd(
+        FirmwareImageMap map,
+        FirmwareMetadataStructure structure)
+    {
+        ArgumentNullException.ThrowIfNull(map);
         ArgumentNullException.ThrowIfNull(structure);
         return structure.Locator switch
         {
             FirmwareAbsoluteRangeLocator absolute => absolute.Range.Range.EndExclusive,
             FirmwareRegionRelativeLocator relative => checked(
-                resolvedMap.ImageMap.Regions.Single(region => StringComparer.Ordinal.Equals(
+                map.Regions.Single(region => StringComparer.Ordinal.Equals(
                     region.RegionId,
                     relative.RegionId)).Range.Start + relative.Offset + structure.LengthBytes),
             FirmwareMarkerRelativeLocator marker => Math.Max(
@@ -22,8 +30,8 @@ public sealed partial class FirmwareFamilyResolutionDefinition
                     marker.ResultOffset + structure.LengthBytes)),
             FirmwareMetadataFieldSelectedLocator selected => Math.Max(
                 GetMaximumMetadataReadEnd(
-                    resolvedMap,
-                    ResolveStructure(resolvedMap.ImageMap.MapId, selected.PrerequisiteStructureId)),
+                    map,
+                    ResolveStructure(map.MapId, selected.PrerequisiteStructureId)),
                 selected.Branches.Max(branch => checked(
                     branch.AnchorRange.Range.Start + selected.ResultOffset + structure.LengthBytes))),
             _ => throw new InvalidOperationException(

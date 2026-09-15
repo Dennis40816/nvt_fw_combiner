@@ -313,6 +313,8 @@ public sealed partial class RepositoryBoundaryTests
         string inputProjection = ReadText(
             "src/NvtFwCombiner.Application/Authoring/CompiledAuthoringWorkflow.Selection.cs");
         string topologyValidation = ReadText("src/NvtFwCombiner.Application/Composition/CompositionRunService.AbMergeTopology.cs");
+        string topologyOwner = ReadText("src/NvtFwCombiner.Application/Composition/AbMergeTopologyAdmission.cs");
+        string formatAdmission = ReadText("src/NvtFwCombiner.Application/Composition/AbMergeFormatAdmission.cs");
         string executionAdapter = ReadText(
             "src/NvtFwCombiner.Application/Composition/CompositionExecutionExperience.cs");
 
@@ -322,14 +324,17 @@ public sealed partial class RepositoryBoundaryTests
         Assert.DoesNotContain("TryReadCmiDpCode", outputNaming, StringComparison.Ordinal);
         Assert.DoesNotContain("GenFlashVersionCatalog", inputProjection, StringComparison.Ordinal);
         Assert.DoesNotContain("TryReadCmiDpCode", inputProjection, StringComparison.Ordinal);
-        string observedMetadataConsumers = outputNaming + inputProjection + topologyValidation + versionDecoder;
+        string observedMetadataConsumers = outputNaming + inputProjection + topologyValidation + topologyOwner + versionDecoder;
         Assert.DoesNotContain("ProductId", observedMetadataConsumers, StringComparison.Ordinal);
         Assert.DoesNotContain(".Pid", observedMetadataConsumers, StringComparison.Ordinal);
         Assert.DoesNotContain("CommonFw", observedMetadataConsumers, StringComparison.Ordinal);
         Assert.DoesNotContain("CompiledComposition.IcId", topologyValidation, StringComparison.Ordinal);
         Assert.DoesNotContain("NT51950", executionAdapter, StringComparison.Ordinal);
         Assert.DoesNotContain("NT51951", executionAdapter, StringComparison.Ordinal);
-        Assert.Contains("ChipNumber", topologyValidation, StringComparison.Ordinal);
+        Assert.Contains("ChipNumber", topologyOwner, StringComparison.Ordinal);
+        Assert.DoesNotContain("CompiledComposition.IcId", topologyOwner, StringComparison.Ordinal);
+        Assert.Contains("AbMergeTopologyAdmission.Assess(", topologyValidation, StringComparison.Ordinal);
+        Assert.Contains("AbMergeTopologyAdmission.Assess(", formatAdmission, StringComparison.Ordinal);
 
         foreach (string profilePath in new[]
                  {
