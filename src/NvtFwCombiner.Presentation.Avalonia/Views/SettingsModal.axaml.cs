@@ -1,8 +1,10 @@
+using System.ComponentModel;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Threading;
+using Avalonia.VisualTree;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
 namespace NvtFwCombiner.Presentation.Avalonia.Views;
@@ -16,6 +18,8 @@ public sealed partial class SettingsModal : UserControl
 
     private IInputElement? _returnFocus;
     private TopLevel? _owningTopLevel;
+    private SettingsViewModel? _settings;
+    private IInputElement? _confirmationReturnFocus;
 
     /// <summary>Initializes the generated view.</summary>
     public SettingsModal()
@@ -24,6 +28,7 @@ public sealed partial class SettingsModal : UserControl
         AttachedToVisualTree += SettingsModal_OnAttachedToVisualTree;
         DetachedFromVisualTree += SettingsModal_OnDetachedFromVisualTree;
         PropertyChanged += SettingsModal_OnPropertyChanged;
+        DataContextChanged += (_, _) => ObserveSettings();
     }
 
     /// <summary>Gets or sets whether the retained modal content is currently active.</summary>
@@ -36,6 +41,7 @@ public sealed partial class SettingsModal : UserControl
     private void SettingsModal_OnAttachedToVisualTree(object? sender, VisualTreeAttachmentEventArgs e)
     {
         _owningTopLevel = TopLevel.GetTopLevel(this);
+        ObserveSettings();
         // A removed chip can leave no focused descendant to bubble Escape through this modal.
         _owningTopLevel?.AddHandler(KeyDownEvent, SettingsModal_OnKeyDown, RoutingStrategies.Bubble);
         if (IsOpen)
@@ -48,6 +54,53 @@ public sealed partial class SettingsModal : UserControl
     {
         _owningTopLevel?.RemoveHandler(KeyDownEvent, SettingsModal_OnKeyDown);
         _owningTopLevel = null;
+        _settings?.PropertyChanged -= Settings_OnPropertyChanged;
+        _settings = null;
+        _confirmationReturnFocus = null;
+    }
+
+    private void ObserveSettings()
+    {
+        _settings?.PropertyChanged -= Settings_OnPropertyChanged;
+        _settings = VisualRoot is not null ? (DataContext as MainWindowViewModel)?.Settings : null;
+        _settings?.PropertyChanged += Settings_OnPropertyChanged;
+    }
+
+    private void Settings_OnPropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName != nameof(SettingsViewModel.IsEventBufferFormatCloseConfirmationOpen) || !IsOpen)
+        {
+            return;
+        }
+        bool open = _settings!.IsEventBufferFormatCloseConfirmationOpen;
+        IInputElement? returnFocus = _confirmationReturnFocus;
+        _confirmationReturnFocus = open ? _owningTopLevel?.FocusManager?.GetFocusedElement() : null;
+        SettingsHeader.IsEnabled = !open;
+        Control[] descendants = [.. this.GetVisualDescendants().OfType<Control>()];
+        Control? rail = descendants.FirstOrDefault(control => control.Name == "SettingsNavigationRail");
+        _ = rail?.IsEnabled = !open;
+        Grid? editor = descendants.OfType<Grid>().FirstOrDefault(control => control.Name == "EventBufferFormatPageRoot");
+        if (editor is not null)
+        {
+            foreach (Control child in editor.Children)
+            {
+                child.IsEnabled = !open || child.Name == "EventBufferFormatCloseConfirmation";
+            }
+        }
+        Dispatcher.UIThread.Post(() =>
+        {
+            if (!IsOpen || _settings?.IsEventBufferFormatCloseConfirmationOpen != open) { return; }
+            if (open)
+            {
+                _ = this.GetVisualDescendants().OfType<Button>().FirstOrDefault(
+                    button => button.Command == _settings.CancelEventBufferFormatCloseCommand)?.Focus(NavigationMethod.Tab);
+            }
+            else if (returnFocus is not Control { IsEffectivelyVisible: true, IsEffectivelyEnabled: true } control ||
+                !control.Focus(NavigationMethod.Tab))
+            {
+                _ = CloseButton.Focus(NavigationMethod.Tab);
+            }
+        }, DispatcherPriority.Input);
     }
 
     private void SettingsModal_OnPropertyChanged(object? sender, AvaloniaPropertyChangedEventArgs e)
@@ -93,7 +146,14 @@ public sealed partial class SettingsModal : UserControl
             return;
         }
 
-        viewModel.CloseSettingsCommand.Execute(null);
+        if (viewModel.Settings.IsEventBufferFormatCloseConfirmationOpen)
+        {
+            viewModel.Settings.CancelEventBufferFormatCloseCommand.Execute(null);
+        }
+        else
+        {
+            viewModel.CloseSettingsCommand.Execute(null);
+        }
         e.Handled = true;
     }
 }

@@ -176,16 +176,62 @@ public sealed partial class XamlControlStyleContractTests
             Assert.True(save.IsEnabled);
             Assert.False(reload.IsEffectivelyEnabled);
             Assert.Equal(viewModel.Text.EventBufferFormatUnsavedChangesLabel, viewModel.Settings.EventBufferFormatDraftStatus);
+            _ = alias.Focus(NavigationMethod.Tab);
             window.KeyPress(Key.Escape, RawInputModifiers.None, PhysicalKey.Escape, "");
             window.KeyRelease(Key.Escape, RawInputModifiers.None, PhysicalKey.Escape, "");
             RenderSettingsVersion(window);
             Assert.True(viewModel.IsSettingsModalOpen);
             Assert.True(viewModel.Settings.IsEventBufferFormatCloseConfirmationOpen);
+            Button keepEditing = Action(viewModel.Settings.CancelEventBufferFormatCloseCommand);
+            Button discardClose = Action(viewModel.Settings.ConfirmEventBufferFormatCloseCommand);
+            Assert.Same(keepEditing, window.FocusManager?.GetFocusedElement());
+            Assert.False(alias.IsEffectivelyEnabled);
+            Assert.False(restore.IsEffectivelyEnabled);
+            Assert.False(rail.IsEffectivelyEnabled);
+            Assert.False(modal.FindControl<Button>("CloseButton")!.IsEffectivelyEnabled);
+            if (!string.IsNullOrWhiteSpace(visualOutput))
+            {
+                using Avalonia.Media.Imaging.Bitmap? confirmationFrame = window.GetLastRenderedFrame();
+                Assert.NotNull(confirmationFrame);
+                confirmationFrame.Save(Path.Combine(visualOutput,
+                    $"config-confirmation-{width}x{height}-{(useDarkTheme ? "dark" : "light")}-{(traditionalChinese ? "zh-Hant" : "en")}.png"));
+            }
+            foreach (Button expected in new[] { discardClose, keepEditing, discardClose, keepEditing })
+            {
+                window.KeyPress(Key.Tab, RawInputModifiers.None, PhysicalKey.Tab, "");
+                window.KeyRelease(Key.Tab, RawInputModifiers.None, PhysicalKey.Tab, "");
+                RenderSettingsVersion(window);
+                Assert.Same(expected, window.FocusManager?.GetFocusedElement());
+            }
+            window.KeyPress(Key.Tab, RawInputModifiers.Shift, PhysicalKey.Tab, "");
+            window.KeyRelease(Key.Tab, RawInputModifiers.Shift, PhysicalKey.Tab, "");
+            RenderSettingsVersion(window);
+            Assert.Same(discardClose, window.FocusManager?.GetFocusedElement());
+            window.KeyPress(Key.Tab, RawInputModifiers.None, PhysicalKey.Tab, "");
+            window.KeyRelease(Key.Tab, RawInputModifiers.None, PhysicalKey.Tab, "");
+            RenderSettingsVersion(window);
+            Assert.Same(keepEditing, window.FocusManager?.GetFocusedElement());
+            window.KeyPress(Key.Escape, RawInputModifiers.None, PhysicalKey.Escape, "");
+            window.KeyRelease(Key.Escape, RawInputModifiers.None, PhysicalKey.Escape, "");
+            RenderSettingsVersion(window);
+            Assert.True(viewModel.IsSettingsModalOpen);
+            Assert.False(viewModel.Settings.IsEventBufferFormatCloseConfirmationOpen);
+            Assert.True(alias.IsEffectivelyEnabled);
+            Assert.True(rail.IsEffectivelyEnabled);
+            Assert.Same(alias, window.FocusManager?.GetFocusedElement());
+            viewModel.CloseSettingsCommand.Execute(null);
+            RenderSettingsVersion(window);
             PressSettingsControl(window, Action(viewModel.Settings.CancelEventBufferFormatCloseCommand));
             Assert.False(viewModel.Settings.IsEventBufferFormatCloseConfirmationOpen);
             Assert.Equal([0xA6, 0x84], row.RecognitionValues);
-            viewModel.CloseSettingsCommand.Execute(null);
+            // Removed chips can leave no focused descendant; the TopLevel Escape route must still work.
+            PressSettingsControl(window, Assert.Single(editor.GetVisualDescendants().OfType<Button>(),
+                control => control.Command == row.RemoveRecognitionValueCommand && control.CommandParameter is 0xA6));
             RenderSettingsVersion(window);
+            window.KeyPress(Key.Escape, RawInputModifiers.None, PhysicalKey.Escape, "");
+            window.KeyRelease(Key.Escape, RawInputModifiers.None, PhysicalKey.Escape, "");
+            RenderSettingsVersion(window);
+            Assert.Same(keepEditing, window.FocusManager?.GetFocusedElement());
             PressSettingsControl(window, Action(viewModel.Settings.ConfirmEventBufferFormatCloseCommand));
             Assert.False(viewModel.IsSettingsModalOpen);
             Assert.Equal([0x97, 0xA6], Assert.Single(viewModel.Settings.EventBufferFormatRows).RecognitionValues);

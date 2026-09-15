@@ -154,7 +154,9 @@
       </StackPanel>
       </ScrollViewer>
 
-      <Border Grid.Row="1" VerticalAlignment="Bottom" Classes="statusNotice warning" IsVisible="{Binding Settings.IsEventBufferFormatCloseConfirmationOpen}">
+      <Border x:Name="EventBufferFormatCloseConfirmation" Grid.Row="1" VerticalAlignment="Bottom"
+          KeyboardNavigation.TabNavigation="Cycle" AutomationProperties.Name="{Binding Text.EventBufferFormatDiscardConfirmationTitle}"
+          Classes="statusNotice warning" IsVisible="{Binding Settings.IsEventBufferFormatCloseConfirmationOpen}">
         <Grid ColumnDefinitions="*,Auto" ColumnSpacing="{DynamicResource NfcSpace16}">
           <StackPanel Spacing="{DynamicResource NfcSpace4}">
             <TextBlock Classes="sectionTitle" Text="{Binding Text.EventBufferFormatDiscardConfirmationTitle}" />
