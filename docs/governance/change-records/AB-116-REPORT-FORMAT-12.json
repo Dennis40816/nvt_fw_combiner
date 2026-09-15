@@ -5,7 +5,7 @@
   "integrationBase": "f9db4ef039be1c7a08e0b83f11133dbc1a0fe049",
   "risk": "R2",
   "kind": "behavior",
-  "state": "design-active",
+  "state": "final-complete",
   "mutablePaths": [
     "src/NvtFwCombiner.Application/Composition/AbMergeFormatRunSummary.cs",
     "src/NvtFwCombiner.Application/Composition/CompositionExecutionExperience.cs",
@@ -36,8 +36,22 @@
     "outcome": "approved",
     "evidence": "2026-09-15 independent architect approved bounded Application report extension at 2635abf0: internal factory, exact map/family/input coherence, report-safe binding refs, optional null omission, same immutable execution capture for late reports, source-generated summary with existing reflection fallback, unchanged legacy reader and canonical schema. Necessary narrow cases include Save during run, actual JSON, map/family/input mismatches, same-file A/B, token copies and late failure."
   },
-  "implementationHead": null,
-  "reviewedHead": null,
-  "pathStateDigest": null,
-  "finalReview": { "reviewer": null, "outcome": "pending", "evidence": "" }
+  "implementationHead": "203d656a4180cc5d630ebef68da3f19a3bde9e7a",
+  "reviewedHead": "203d656a4180cc5d630ebef68da3f19a3bde9e7a",
+  "pathStateDigest": "039ca97c7347575c2f8c50d03689e1870a675d8c6dc9db063d087e7b2e42fe0a",
+  "integrationPaths": [
+    "docs/contracts/composition-report-v1.md",
+    "src/NvtFwCombiner.Application/Composition/AbMergeFormatRunSummary.cs",
+    "src/NvtFwCombiner.Application/Composition/AcceptedSessionCompositionExecution.cs",
+    "src/NvtFwCombiner.Application/Composition/CompositionExecutionExperience.cs",
+    "src/NvtFwCombiner.Application/Composition/CompositionRunReport.cs",
+    "src/NvtFwCombiner.Application/Composition/CompositionRunReportJson.cs",
+    "src/NvtFwCombiner.Application/Composition/CompositionRunRequest.cs",
+    "src/NvtFwCombiner.Application/Composition/CompositionRunService.Reports.cs"
+  ],
+  "finalReview": {
+    "reviewer": "/root/release116_ab_final",
+    "outcome": "approved",
+    "evidence": "Final technical review approved at 203d656a4180cc5d630ebef68da3f19a3bde9e7a against checkpoint f9db4ef039be1c7a08e0b83f11133dbc1a0fe049. Independent review covered every original AB08-14 path, including all125 unique paths and overlapping profiles/contracts/tests/UI/packaging. Primary observation, exact route, immutable capture/config freshness, processor boundary/order, report provenance and Desay size/coverage were traced. All original AB path blobs are unchanged from reviewed3e7bf81c at203d656a. No P0-P3. This record retains review/digest of all 13 original mutablePaths. ADR0071 final administrative ownership assigns each shared governed path to its latest admitted numeric unit; empty ownership never removes original review or R3 obligations. Fresh release-Golden at3e7bf81c passed Bootstrap1454/1454 and Golden25/25, zero skips, with all25 direct cases confirmed; later delta changes only Infrastructure tests and handoff, not firmware or Golden tests. Infrastructure at203d656a passed1116/1116. Historical/scoped evidence is not a fresh full-verifier or protected candidate claim. PASS-WITH-HUMAN-GATE: exact-head firmware-owner attestations, full verification, protected CI and package/publication gates remain required."
+  }
 }

@@ -5,7 +5,7 @@
   "integrationBase": "f9db4ef039be1c7a08e0b83f11133dbc1a0fe049",
   "risk": "R2",
   "kind": "behavior",
-  "state": "design-active",
+  "state": "final-complete",
   "mutablePaths": [
     "src/NvtFwCombiner.Application/Capabilities/CanonicalAbAuthoringDefinition.cs",
     "src/NvtFwCombiner.Application/Capabilities/ICanonicalDynamicCompilationAdapter.cs",
@@ -35,8 +35,18 @@
     "outcome": "approved",
     "evidence": "2026-09-14 independent exact-path R2 unit10 admission at 5880c69f: use current published AB identity then exact trusted registration; actual-source profile/version/bundle/member/group checks; defensive snapshots without silent duplicate repair; singleton and primary structure-space-slot joins must be unique, with refs from the same binding list. Nullable primary refs only for policy absence, never malformed-policy fallback. Test actual normalized-profile projection with differing slot/space IDs, wrong identity/hash/member/group, unknown map-set, legacy absence and malformed present policy. Four real-host red cases remain full runtime gates. This is design admission, not implementation or runtime PASS."
   },
-  "implementationHead": null,
-  "reviewedHead": null,
-  "pathStateDigest": null,
-  "finalReview": { "reviewer": null, "outcome": "pending", "evidence": "" }
+  "implementationHead": "203d656a4180cc5d630ebef68da3f19a3bde9e7a",
+  "reviewedHead": "203d656a4180cc5d630ebef68da3f19a3bde9e7a",
+  "pathStateDigest": "bdc52288b08e191c945ad1b5d3c2c01ed2755ff11e62fd143fe674d748a555ec",
+  "integrationPaths": [
+    "src/NvtFwCombiner.Application/Capabilities/CanonicalAbAuthoringDefinition.cs",
+    "src/NvtFwCombiner.Application/Capabilities/ICanonicalDynamicCompilationAdapter.cs",
+    "src/NvtFwCombiner.Infrastructure/Composition/BuiltInV2Bundle.cs",
+    "src/NvtFwCombiner.Infrastructure/Composition/BuiltInV2DynamicCompilationAdapter.cs"
+  ],
+  "finalReview": {
+    "reviewer": "/root/release116_ab_final",
+    "outcome": "approved",
+    "evidence": "Final technical review approved at 203d656a4180cc5d630ebef68da3f19a3bde9e7a against checkpoint f9db4ef039be1c7a08e0b83f11133dbc1a0fe049. Independent review covered every original AB08-14 path, including all125 unique paths and overlapping profiles/contracts/tests/UI/packaging. Primary observation, exact route, immutable capture/config freshness, processor boundary/order, report provenance and Desay size/coverage were traced. All original AB path blobs are unchanged from reviewed3e7bf81c at203d656a. No P0-P3. This record retains review/digest of all 11 original mutablePaths. ADR0071 final administrative ownership assigns each shared governed path to its latest admitted numeric unit; empty ownership never removes original review or R3 obligations. Fresh release-Golden at3e7bf81c passed Bootstrap1454/1454 and Golden25/25, zero skips, with all25 direct cases confirmed; later delta changes only Infrastructure tests and handoff, not firmware or Golden tests. Infrastructure at203d656a passed1116/1116. Historical/scoped evidence is not a fresh full-verifier or protected candidate claim. PASS-WITH-HUMAN-GATE: exact-head firmware-owner attestations, full verification, protected CI and package/publication gates remain required."
+  }
 }

@@ -5,7 +5,7 @@
   "integrationBase": "f9db4ef039be1c7a08e0b83f11133dbc1a0fe049",
   "risk": "R2",
   "kind": "behavior",
-  "state": "design-active",
+  "state": "final-complete",
   "mutablePaths": [
     "src/NvtFwCombiner.Application/Composition/AbMergeTopologyAdmission.cs",
     "src/NvtFwCombiner.Application/Composition/CompositionRunService.AbMergeTopology.cs",
@@ -27,8 +27,16 @@
     "outcome": "findings-incorporated",
     "evidence": "2026-09-14 independent R2 admission for exact four mutable paths. Keep candidate/selectedTopology/accepted-view ingress guards, invalid-before-zero-before-topology ordering, A2/B3 same-cascade behavior and selector-free951 regressions. No primary locator, geometry, processor, UI or supported-evidence mutation."
   },
-  "implementationHead": null,
-  "reviewedHead": null,
-  "pathStateDigest": null,
-  "finalReview": { "reviewer": null, "outcome": "pending", "evidence": "" }
+  "implementationHead": "203d656a4180cc5d630ebef68da3f19a3bde9e7a",
+  "reviewedHead": "203d656a4180cc5d630ebef68da3f19a3bde9e7a",
+  "pathStateDigest": "50a4ad6911fc96c2efd52966ba54dd447044525c6f420fc4fdbae259a6841b62",
+  "integrationPaths": [
+    "src/NvtFwCombiner.Application/Composition/AbMergeTopologyAdmission.cs",
+    "src/NvtFwCombiner.Application/Composition/CompositionRunService.AbMergeTopology.cs"
+  ],
+  "finalReview": {
+    "reviewer": "/root/release116_config_final",
+    "outcome": "approved",
+    "evidence": "Final technical review approved at 203d656a4180cc5d630ebef68da3f19a3bde9e7a against checkpoint f9db4ef039be1c7a08e0b83f11133dbc1a0fe049. Independent review covered all106 original record-path entries/67 unique paths across CONFIG01-07. Two stale Infrastructure catalog assertions were corrected by a separately reviewed test-only delta at203d656a; exact four candidate identities and original supported/Golden assertions remain enforced. Reviewer inspected policy-version-green.trx20/20. No remaining P0-P3. This record retains review/digest of all 4 original mutablePaths. ADR0071 final administrative ownership assigns each shared governed path to its latest admitted numeric unit; empty ownership never removes original review or R3 obligations. Fresh release-Golden at3e7bf81c passed Bootstrap1454/1454 and Golden25/25, zero skips, with all25 direct cases confirmed; later delta changes only Infrastructure tests and handoff, not firmware or Golden tests. Infrastructure at203d656a passed1116/1116. Historical/scoped evidence is not a fresh full-verifier or protected candidate claim. PASS-WITH-HUMAN-GATE: exact-head firmware-owner attestations, full verification, protected CI and package/publication gates remain required."
+  }
 }

@@ -5,7 +5,7 @@
   "integrationBase": "f9db4ef039be1c7a08e0b83f11133dbc1a0fe049",
   "risk": "R3",
   "kind": "behavior",
-  "state": "design-active",
+  "state": "final-complete",
   "mutablePaths": [
     "src/NvtFwCombiner.Domain/Firmware/FirmwareAbFormatPolicy.cs",
     "src/NvtFwCombiner.Domain/Firmware/FirmwareFamilyResolutionDefinition.AbPrimaryFirmwareConfig.cs",
@@ -33,8 +33,18 @@
     "outcome": "approved",
     "evidence": "2026-09-14 independent exact-path unit09 admission at 7d99eaf2: same canonical primary structures and only dependent locator contexts must agree across a member's variants; existing read-envelope overload delegates to a single core; no mutable policy anchor or generic locator framework. Family chooses observation-only context, never caller map authority. Same captured artifacts feed primary and topology. Existing snapshot overload validates provenance then delegates, with explicit deletion milestone. Require new/no-compiled primary cases, invalid/complement/truncated/missing inputs, context drift versus unrelated geometry, reused policy isolation, new/old parity and existing read-envelope regressions. This is design admission only, not full runtime or firmware PASS."
   },
-  "implementationHead": null,
-  "reviewedHead": null,
-  "pathStateDigest": null,
-  "finalReview": { "reviewer": null, "outcome": "pending", "evidence": "" }
+  "implementationHead": "203d656a4180cc5d630ebef68da3f19a3bde9e7a",
+  "reviewedHead": "203d656a4180cc5d630ebef68da3f19a3bde9e7a",
+  "pathStateDigest": "8e8544e4e17314e4aa52884bd65a2c80ff6ffead94b0348b4473349d3867e07e",
+  "integrationPaths": [
+    "src/NvtFwCombiner.Application/Composition/AbMergeFormatAdmission.cs",
+    "src/NvtFwCombiner.Domain/Firmware/FirmwareAbFormatPolicy.cs",
+    "src/NvtFwCombiner.Domain/Firmware/FirmwareFamilyResolutionDefinition.AbPrimaryFirmwareConfig.cs",
+    "src/NvtFwCombiner.Domain/Firmware/FirmwareFamilyResolutionDefinition.MetadataReadEnvelope.cs"
+  ],
+  "finalReview": {
+    "reviewer": "/root/release116_ab_final",
+    "outcome": "approved",
+    "evidence": "Final technical review approved at 203d656a4180cc5d630ebef68da3f19a3bde9e7a against checkpoint f9db4ef039be1c7a08e0b83f11133dbc1a0fe049. Independent review covered every original AB08-14 path, including all125 unique paths and overlapping profiles/contracts/tests/UI/packaging. Primary observation, exact route, immutable capture/config freshness, processor boundary/order, report provenance and Desay size/coverage were traced. All original AB path blobs are unchanged from reviewed3e7bf81c at203d656a. No P0-P3. This record retains review/digest of all 9 original mutablePaths. ADR0071 final administrative ownership assigns each shared governed path to its latest admitted numeric unit; empty ownership never removes original review or R3 obligations. Fresh release-Golden at3e7bf81c passed Bootstrap1454/1454 and Golden25/25, zero skips, with all25 direct cases confirmed; later delta changes only Infrastructure tests and handoff, not firmware or Golden tests. Infrastructure at203d656a passed1116/1116. Historical/scoped evidence is not a fresh full-verifier or protected candidate claim. PASS-WITH-HUMAN-GATE: exact-head firmware-owner attestations, full verification, protected CI and package/publication gates remain required."
+  }
 }

@@ -5,7 +5,7 @@
   "integrationBase": "f9db4ef039be1c7a08e0b83f11133dbc1a0fe049",
   "risk": "R1",
   "kind": "ui",
-  "state": "design-active",
+  "state": "final-complete",
   "mutablePaths": [
     "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MainWindowViewModel.MessageCenter.cs",
     "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MemoryCoverageGroupViewModel.cs",
@@ -29,8 +29,19 @@
     "outcome": "not-required",
     "evidence": "R1 current admission for existing bounded local corrections under ADR0070/0071. Final independent review is pending; the inventory audit is not a correctness approval."
   },
-  "implementationHead": null,
-  "reviewedHead": null,
-  "pathStateDigest": null,
-  "finalReview": { "reviewer": null, "outcome": "pending", "evidence": "" }
+  "implementationHead": "203d656a4180cc5d630ebef68da3f19a3bde9e7a",
+  "reviewedHead": "203d656a4180cc5d630ebef68da3f19a3bde9e7a",
+  "pathStateDigest": "8c4e860dee0b726e22bd1d05cbd27bcebe4891045382014d6e3e41022f60df2b",
+  "integrationPaths": [
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MainWindowViewModel.MessageCenter.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MemoryCoverageGroupViewModel.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MessageCenterViewModel.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReplacePresentationViewModel.Authoring.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/Views/MessageCenterModal.axaml"
+  ],
+  "finalReview": {
+    "reviewer": "/root/release116_admission_audit",
+    "outcome": "approved",
+    "evidence": "Final technical review approved at 203d656a4180cc5d630ebef68da3f19a3bde9e7a against checkpoint f9db4ef039be1c7a08e0b83f11133dbc1a0fe049. Independent review covered all original UI16(18),UI17(5),GOV18(3 including auxiliary test) paths. Hover lifecycle, typed region distinction, responsive disclosure, external readiness and exact code-size accounting retain existing owners. All these path blobs are unchanged from reviewed3e7bf81c at203d656a. Scoped source-bound UI evidence and code-size GREEN19/19 were inspected; no P0-P3. This record retains review/digest of all 5 original mutablePaths. ADR0071 final administrative ownership assigns each shared governed path to its latest admitted numeric unit; empty ownership never removes original review or R3 obligations. Fresh release-Golden at3e7bf81c passed Bootstrap1454/1454 and Golden25/25, zero skips, with all25 direct cases confirmed; later delta changes only Infrastructure tests and handoff, not firmware or Golden tests. Infrastructure at203d656a passed1116/1116. Historical/scoped evidence is not a fresh full-verifier or protected candidate claim. PASS-WITH-HUMAN-GATE: exact-head firmware-owner attestations, full verification, protected CI and package/publication gates remain required."
+  }
 }

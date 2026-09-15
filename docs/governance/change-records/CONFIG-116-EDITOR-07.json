@@ -5,7 +5,7 @@
   "integrationBase": "f9db4ef039be1c7a08e0b83f11133dbc1a0fe049",
   "risk": "R2",
   "kind": "behavior",
-  "state": "design-active",
+  "state": "final-complete",
   "mutablePaths": [
     "src/NvtFwCombiner.Application/Configuration/IEventBufferFormatConfigurationSession.cs",
     "src/NvtFwCombiner.Application/Configuration/EventBufferFormatConfigurationCatalog.cs",
@@ -52,12 +52,25 @@
     "outcome": "approved",
     "evidence": "2026-09-14 independent R2 admission after e4561d50: expose existing immutable types through inward interface, keep implementation/constructor internal; trusted exact registered-profile family accessor; readonly effect projection retains all member/map applicability; async lazy single session without first-frame catalog load or permanently cached failing Task. Missing/Invalid are not defaults/LastSaved authority. Preserve drafts across sections, shared dirty Close/Escape confirmation, persist-before-publish; no speculative Changed event before consumer wiring. The original 23 paths plus separately reviewed ShellTextResources.Localized.cs are admitted; the latter only initializes new Config English/Traditional Chinese values using existing Pick, preserving other labels. Scoped tests and full approved-reference render required. Firmware/runtime/Golden/integration gates remain separate."
   },
-  "implementationHead": null,
-  "reviewedHead": null,
-  "pathStateDigest": null,
+  "implementationHead": "203d656a4180cc5d630ebef68da3f19a3bde9e7a",
+  "reviewedHead": "203d656a4180cc5d630ebef68da3f19a3bde9e7a",
+  "pathStateDigest": "97111462b78626fd47c7a73021c70f435c4523943fe536146017bf8024aebcd4",
+  "integrationPaths": [
+    "src/NvtFwCombiner.Application/Configuration/EventBufferFormatConfiguration.cs",
+    "src/NvtFwCombiner.Application/Configuration/EventBufferFormatConfigurationAdmission.cs",
+    "src/NvtFwCombiner.Application/Configuration/EventBufferFormatConfigurationCatalog.cs",
+    "src/NvtFwCombiner.Application/Configuration/EventBufferFormatConfigurationSession.State.cs",
+    "src/NvtFwCombiner.Application/Configuration/EventBufferFormatConfigurationSession.cs",
+    "src/NvtFwCombiner.Application/Configuration/IEventBufferFormatConfigurationSession.cs",
+    "src/NvtFwCombiner.Desktop/Program.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/PresentationHostServices.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MainWindowViewModel.Navigation.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/SettingsViewModel.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/Views/SettingsModal.axaml.cs"
+  ],
   "finalReview": {
-    "reviewer": null,
-    "outcome": "pending",
-    "evidence": ""
+    "reviewer": "/root/release116_config_final",
+    "outcome": "approved",
+    "evidence": "Final technical review approved at 203d656a4180cc5d630ebef68da3f19a3bde9e7a against checkpoint f9db4ef039be1c7a08e0b83f11133dbc1a0fe049. Independent review covered all106 original record-path entries/67 unique paths across CONFIG01-07. Two stale Infrastructure catalog assertions were corrected by a separately reviewed test-only delta at203d656a; exact four candidate identities and original supported/Golden assertions remain enforced. Reviewer inspected policy-version-green.trx20/20. No remaining P0-P3. This record retains review/digest of all 27 original mutablePaths. ADR0071 final administrative ownership assigns each shared governed path to its latest admitted numeric unit; empty ownership never removes original review or R3 obligations. Fresh release-Golden at3e7bf81c passed Bootstrap1454/1454 and Golden25/25, zero skips, with all25 direct cases confirmed; later delta changes only Infrastructure tests and handoff, not firmware or Golden tests. Infrastructure at203d656a passed1116/1116. Historical/scoped evidence is not a fresh full-verifier or protected candidate claim. PASS-WITH-HUMAN-GATE: exact-head firmware-owner attestations, full verification, protected CI and package/publication gates remain required."
   }
 }

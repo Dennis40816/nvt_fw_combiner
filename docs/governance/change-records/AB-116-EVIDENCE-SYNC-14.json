@@ -5,7 +5,7 @@
   "integrationBase": "f9db4ef039be1c7a08e0b83f11133dbc1a0fe049",
   "risk": "R3",
   "kind": "behavior",
-  "state": "design-active",
+  "state": "final-complete",
   "mutablePaths": [
     "testdata/golden/canonical/manifest.json",
     "docs/specs/experience-and-operation-rules.md",
@@ -26,8 +26,17 @@
     "outcome": "approved",
     "evidence": "2026-09-15 independent design admission for these three governed paths plus this record. Pre-first-commit review corrected the initial four-path inventory: roadmap is non-governed R0 prose, so its permitted status synchronization remains outside mutablePaths. Preserve all case/expected/allowlist/kind/support facts; use existing policy as identity source. Document the accepted Desay advisory exception without relaxing Common. Contract-only candidate development integration still requires exact-head firmware-owner evidence but not an invented direct-Golden-per-new-route gate."
   },
-  "implementationHead": null,
-  "reviewedHead": null,
-  "pathStateDigest": null,
-  "finalReview": { "reviewer": null, "outcome": "pending", "evidence": "" }
+  "implementationHead": "203d656a4180cc5d630ebef68da3f19a3bde9e7a",
+  "reviewedHead": "203d656a4180cc5d630ebef68da3f19a3bde9e7a",
+  "pathStateDigest": "75d9e5ea472ea4bd5550a40b101ce991f28ceb67c2b5b14f1b2461b9ad100a56",
+  "integrationPaths": [
+    "docs/adr/0072-event-buffer-format-configuration.md",
+    "docs/specs/experience-and-operation-rules.md",
+    "testdata/golden/canonical/manifest.json"
+  ],
+  "finalReview": {
+    "reviewer": "/root/release116_ab_final",
+    "outcome": "approved",
+    "evidence": "Final technical review approved at 203d656a4180cc5d630ebef68da3f19a3bde9e7a against checkpoint f9db4ef039be1c7a08e0b83f11133dbc1a0fe049. Independent review covered every original AB08-14 path, including all125 unique paths and overlapping profiles/contracts/tests/UI/packaging. Primary observation, exact route, immutable capture/config freshness, processor boundary/order, report provenance and Desay size/coverage were traced. All original AB path blobs are unchanged from reviewed3e7bf81c at203d656a. No P0-P3. This record retains review/digest of all 3 original mutablePaths. ADR0071 final administrative ownership assigns each shared governed path to its latest admitted numeric unit; empty ownership never removes original review or R3 obligations. Fresh release-Golden at3e7bf81c passed Bootstrap1454/1454 and Golden25/25, zero skips, with all25 direct cases confirmed; later delta changes only Infrastructure tests and handoff, not firmware or Golden tests. Infrastructure at203d656a passed1116/1116. Historical/scoped evidence is not a fresh full-verifier or protected candidate claim. PASS-WITH-HUMAN-GATE: exact-head firmware-owner attestations, full verification, protected CI and package/publication gates remain required."
+  }
 }
