@@ -587,18 +587,18 @@ public sealed partial class RepositoryBoundaryTests
         Assert.All(entries, entry =>
             Assert.True(IsSha256Literal(entry.GetProperty("contentHash").GetString()!)));
         Assert.Equal(
-            36,
+            39,
             entries.Sum(static entry => entry.GetProperty("runtimeRegistrations")
                 .EnumerateArray()
                 .Count(static registration => registration.GetProperty("workflowId").GetString() != "ctrlram-replace")));
         _ = Assert.Single(entries, static entry => entry.GetProperty("bundleDirectory").GetString() ==
             "nt51919-nt51929-nt51932-ab-merge");
-        _ = Assert.Single(entries, static entry => entry.GetProperty("bundleDirectory").GetString() ==
+        JsonElement abBundle = Assert.Single(entries, static entry => entry.GetProperty("bundleDirectory").GetString() ==
             "nt51950-ab-merge");
-        Assert.Contains(
-            "f60f5ef4f8c2a150c7dde47638d55aa35a84425146809263057939540ea0b6b9",
-            trustIndexText,
-            StringComparison.Ordinal);
+        using JsonDocument abManifest = JsonDocument.Parse(ReadText("profiles/built-in/nt51950-ab-merge/profile-bundle.json"));
+        Assert.Equal("1.1.6-ab-format.2", abBundle.GetProperty("bundleVersion").GetString());
+        Assert.Equal(abManifest.RootElement.GetProperty("bundleVersion").GetString(), abBundle.GetProperty("bundleVersion").GetString());
+        Assert.Equal(abManifest.RootElement.GetProperty("contentHash").GetString(), abBundle.GetProperty("contentHash").GetString());
         Assert.Equal(
             1,
             CountOccurrences(
