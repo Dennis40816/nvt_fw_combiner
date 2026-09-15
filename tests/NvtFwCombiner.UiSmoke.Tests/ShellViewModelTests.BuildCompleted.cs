@@ -102,6 +102,11 @@ public sealed partial class BuildOutcomeTests
     public async Task PreRunRefusalDoesNotCreateFailureReport(bool build)
     {
         MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
+        string previousJson = ReportJsonSamples.Succeeded(runId: "previous-run");
+        viewModel.Reports.LoadReportJson(previousJson, "previous.json");
+        ReportReviewViewModel previousReport = viewModel.Reports.LoadedReport;
+        ReportHistoryEntryViewModel[] previousHistory = [.. viewModel.Reports.ReportHistoryEntries];
+        bool previousToast = viewModel.Reports.HasReportToast;
         int reportLoads = 0;
 
         await viewModel.RunSession.RunCompositionAsync(
@@ -112,7 +117,10 @@ public sealed partial class BuildOutcomeTests
 
         Assert.Equal(0, reportLoads);
         Assert.False(viewModel.Reports.IsReportModalOpen);
-        Assert.False(viewModel.Reports.HasReportToast);
+        Assert.Equal(previousToast, viewModel.Reports.HasReportToast);
+        Assert.Same(previousReport, viewModel.Reports.LoadedReport);
+        Assert.Equal(previousJson, viewModel.Reports.LoadedReportJson);
+        Assert.Equal(previousHistory, viewModel.Reports.ReportHistoryEntries);
         Assert.Equal(build ? "Build blocked" : "Preview blocked", viewModel.RunSession.LastRunResult.Title);
         Assert.Equal("AB_FORMAT_CHANGED: The accepted format publication changed.", viewModel.RunSession.LastRunResult.Detail);
         Assert.Equal("No output", viewModel.RunSession.LastRunResult.Output);
