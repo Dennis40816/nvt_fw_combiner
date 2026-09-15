@@ -243,6 +243,15 @@ public sealed class CtrlRamSelectorLayoutTests
                 window.KeyRelease(Key.Space, RawInputModifiers.None, PhysicalKey.Space, " ");
                 Render();
                 Assert.True(shell.Replace.ReplaceBaseSlot.IsAdditionalFirmwareFactsExpanded);
+                // Static geometry must be measured after the theme's key-release scale returns to identity.
+                var released = System.Diagnostics.Stopwatch.StartNew();
+                while (disclosure.RenderTransform is { Value.IsIdentity: false } && released.Elapsed < TimeSpan.FromSeconds(2))
+                {
+                    await Task.Delay(16, TestContext.Current.CancellationToken);
+                    Render();
+                }
+                Assert.True(disclosure.RenderTransform is null || disclosure.RenderTransform.Value.IsIdentity,
+                    "Disclosure key-release animation did not settle before measuring static layout.");
             }
             foreach (int resizedWidth in new[] { width == 980 ? 1440 : 980, width })
             {
