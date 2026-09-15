@@ -38,7 +38,7 @@
           <TextBlock Classes="supportingText" Text="/" />
           <TextBlock Classes="supportingText" Text="{Binding Text.EventBufferFormatTitle}" />
         </StackPanel>
-        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="{DynamicResource NfcSpace12}">
           <TextBlock Classes="pageTitle" Text="{Binding Text.EventBufferFormatTitle}" TextWrapping="Wrap" />
           <Button Grid.Column="1" Classes="semanticAction secondary"
               AutomationProperties.Name="{Binding Text.EventBufferFormatReloadLabel}"

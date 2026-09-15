@@ -1,0 +1,34 @@
+{
+  "schemaVersion": 2,
+  "taskId": "UI-116-CONFIG-SPACING-22",
+  "capability": "Reuse shared spacing token for the Config reload title row",
+  "integrationBase": "1670f3c66239e115a12eb0d9ebbd1f5dcfd384de",
+  "risk": "R1",
+  "kind": "ui",
+  "state": "design-active",
+  "mutablePaths": [
+    "src/NvtFwCombiner.Presentation.Avalonia/Resources/SettingsEventBufferFormatPageTemplate.axaml"
+  ],
+  "implementationOwner": "/root",
+  "searchEvidence": [
+    "Full verifier at 1670f3c6: CommonLayoutSpacingAndTypographyUseSharedScaleTokens failed; UI TRX 1361 passed, 1 failed, zero skips",
+    "Config template line 41 contains ColumnSpacing=12; Styles/ThemeTokens.axaml declares NfcSpace12 with value 12; the same template already consumes that shared token",
+    "codegraph explore CommonLayoutSpacingAndTypographyUseSharedScaleTokens returned unrelated source; inspected exact named test and git diff c6d3ba5f..1670f3c6 for the actual regression"
+  ],
+  "semanticOwner": "Presentation Styles/ThemeTokens.axaml owns the existing spacing scale; SettingsEventBufferFormatPageTemplate consumes it",
+  "terminalContract": "Config reload title row retains its 12-DIP spacing using the existing NfcSpace12 resource, preserving approved geometry and all commands, keyboard behavior and firmware semantics",
+  "disposition": "reuse",
+  "designReview": {
+    "reviewer": null,
+    "outcome": "not-required",
+    "evidence": "Owner-authorized release correction; bounded local R1 preflight recorded in the task before editing. Exact one-line resource substitution, unchanged spacing value and source line count; reuse existing failing token contract plus shown Config UI tests. Full candidate and release gates remain required."
+  },
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": {
+    "reviewer": null,
+    "outcome": "pending",
+    "evidence": ""
+  }
+}
