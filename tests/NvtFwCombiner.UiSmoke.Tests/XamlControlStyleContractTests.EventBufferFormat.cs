@@ -280,11 +280,12 @@ public sealed partial class XamlControlStyleContractTests
             () => CreateEventBufferReferenceViewModel(session, ShellLanguage.English, acquisition.Task), TestContext.Current.CancellationToken);
         viewModel.OpenSettingsCommand.Execute(null);
         viewModel.Settings.SelectSectionCommand.Execute(SettingsSection.EventBufferFormat);
+        var modal = new SettingsModal { DataContext = viewModel, IsOpen = true };
         var window = new Window
         {
             Width = 1672,
             Height = 941,
-            Content = new SettingsModal { DataContext = viewModel, IsOpen = true },
+            Content = modal,
         };
         AddSettingsAcceptanceResources(window);
         try
@@ -301,11 +302,14 @@ public sealed partial class XamlControlStyleContractTests
             acquisition.SetResult(session);
             await viewModel.Settings.EventBufferFormatLoadTask;
             RenderSettingsVersion(window);
+            Assert.Equal(viewModel.Settings.EventBufferFormatRows.Count, modal.ObservedEventBufferFormatRowCount);
             Assert.True(save.IsEffectivelyEnabled);
             Assert.True(restore.IsEffectivelyEnabled);
             PressSettingsControl(window, restore);
+            Assert.Equal(viewModel.Settings.EventBufferFormatRows.Count, modal.ObservedEventBufferFormatRowCount);
             PressSettingsControl(window, save);
             await Assert.IsType<Task>(viewModel.Settings.SaveEventBufferFormatCommand.ExecutionTask, exactMatch: false);
+            Assert.Equal(viewModel.Settings.EventBufferFormatRows.Count, modal.ObservedEventBufferFormatRowCount);
             Assert.Equal(EventBufferFormatConfigurationStatus.Ready, session.Current.Status);
         }
         finally

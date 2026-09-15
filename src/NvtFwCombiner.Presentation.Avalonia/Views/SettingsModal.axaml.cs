@@ -41,6 +41,8 @@ public sealed partial class SettingsModal : UserControl
         set => SetValue(IsOpenProperty, value);
     }
 
+    internal int ObservedEventBufferFormatRowCount => _observedFormatRows.Count;
+
     private void SettingsModal_OnAttachedToVisualTree(object? sender, VisualTreeAttachmentEventArgs e)
     {
         _owningTopLevel = TopLevel.GetTopLevel(this);
@@ -96,6 +98,25 @@ public sealed partial class SettingsModal : UserControl
 
     private void FormatRows_OnCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
     {
+        if (e.Action == NotifyCollectionChangedAction.Reset)
+        {
+            foreach (EventBufferFormatDraftRowViewModel row in _observedFormatRows)
+            {
+                row.PropertyChanged -= FormatRow_OnPropertyChanged;
+            }
+
+            _observedFormatRows.Clear();
+            if (_settings is not null)
+            {
+                foreach (EventBufferFormatDraftRowViewModel row in _settings.EventBufferFormatRows)
+                {
+                    ObserveFormatRow(row);
+                }
+            }
+
+            return;
+        }
+
         if (e.OldItems is not null)
         {
             foreach (EventBufferFormatDraftRowViewModel row in e.OldItems)
