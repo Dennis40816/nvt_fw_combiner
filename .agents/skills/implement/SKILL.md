@@ -17,12 +17,18 @@ the nearest `AGENTS.md`. Implement only owner-approved scope.
    ports/adapters, tests, and duplicate-risk helpers; record the owner or exact
    `none-found` evidence and the approved disposition. A projection may
    translate an existing typed result but must not re-derive its fact.
-3. Work one observable behavior at a time with this loop:
-   - **Red:** add a test that fails for the intended behavior.
+3. For new or corrected behavior, work one observable behavior at a time:
+   - **Red:** reproduce the defect or demonstrate the missing behavior with
+     a failing test; reuse an existing regression when it catches the same case.
    - **Green:** make the smallest production change that passes.
    - **Refactor:** while green, improve naming, locality, duplication, or module
      depth without changing behavior; rerun the same narrow test.
    - **Repeat:** move to the next observable behavior.
+
+   If reproduction is unavailable, preserve the observed evidence and name
+   the test gap; do not claim red/green proof. For behavior-preserving refactors,
+   use existing or added characterization checks. For documentation, use the
+   root's applicable document/consumer checks. Neither needs an invented failure.
 4. Prefer stable behavioral seams. Test an internal module directly only when
    it is a stable, named, pure contract in its own right. Firmware expected
    bytes remain independently owned by `$golden-regression`.

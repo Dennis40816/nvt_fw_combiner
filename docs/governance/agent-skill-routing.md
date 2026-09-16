@@ -32,8 +32,9 @@ CRC/header behavior, evidence, support, release authority, or permissions.
   review; its weighted progress model is not the default for current 1.x work.
   GitHub remains that program's live completion source.
 - Diagnose with `$diagnosing-bugs`; diagnosis alone does not authorize a fix.
-- Implement approved scope with `$implement`, including its
-  red-green-refactor loop.
+- Implement approved scope with `$implement`: red-green-refactor for changed
+  behavior, characterization for unchanged refactors, applicable document
+  checks for prose. Reuse existing evidence when it demonstrates the same case.
 - Review changes as a fixed diff with `$code-review` and scoped `$polytail`.
   For a current-state audit, pin the commit, subsystem/files and audit question;
   that audit does not replace change admission or fixed-diff review.

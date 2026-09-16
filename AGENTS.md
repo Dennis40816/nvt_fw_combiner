@@ -130,12 +130,6 @@ ordinary Git or document inspection.
   Extend the existing owner when its contract is insufficient. A second
   semantic path requires an approved migration seam and executable deletion
   milestone.
-- Read-only assessment and ordinary non-normative documentation need no
-  production capability-reuse record. The validator conservatively classifies
-  paths, not prose meaning: `AGENTS.md` and other classifier-governed documents
-  still follow the existing record/integration contract. A documentation label
-  does not authorize a normative, governance, permission or executable-policy
-  change. Reuse the admitted batch where applicable; do not invent evidence.
 - Every workflow uses one planner/executor. Merge initializes blank bytes;
   Replace clones a required immutable reference.
 - Profiles own regions, atomicity, access, mappings, overlap, processors,
@@ -166,11 +160,14 @@ A task-specific owner decision about review applies only to that task. It
 does not waive test results, Golden evidence, external permissions, or protected
 checks, and must not be recorded as a permanent exemption for future work.
 
-For that ordinary-document R0 path, finish the authorized edit and report the
-result briefly. No issue creation, capability record, fixed-head review cycle,
-code-size census or separate handoff document is required. Keep the existing
-branch; commit/publish authority and required CI remain unchanged. Changes to
-normative rules or machine-consumed documents use their affected authority gates.
+Read-only assessment needs no production capability record. For ordinary R0
+prose, finish the authorized edit on the existing branch and report briefly;
+no new issue, capability record, fixed-head review, code-size census or handoff
+document is required. The validator classifies paths, not prose meaning:
+`AGENTS.md` and other classifier-governed documents retain their record and
+integration contract. Normative, governance, permission and executable-policy
+changes use their affected gates, not the R0 shortcut. Reuse an admitted batch
+only within its scope. Commit/publish authority and required CI are unchanged.
 
 During development, run the affected tests after each coherent correction.
 A full-suite run belongs at a frozen integration/release boundary or a

@@ -12,6 +12,71 @@ AI-skill/workflow pilot and evidence-preserving documentation convergence:
 retrospective evidence and discussion boundary; it does not duplicate release
 scope or activate a workflow change without separate approval.
 
+## 1.1.8 local instruction pilot — 2026-09-16
+
+The owner prioritized repository skills, `AGENTS.md` and role/document reuse
+before further product-code refactoring. This bounded pilot follows the earlier
+1.1.8 source-size advisory, governance-pointer and audit-scope corrections.
+It does not close the broader retrospective below or certify integration/release.
+
+Observed conflicts and adopted corrections:
+
+- Root `AGENTS.md` owns task/risk/test applicability. Documentation instructions,
+  the execution runbook and Polytail policy now point to that owner instead of
+  maintaining parallel R0/R1/R2/R3 summaries. Polytail retains verdict/waiver
+  ownership; the capability record contract and executable gates are unchanged.
+- Four role configurations reuse the corresponding skills. In particular,
+  the implementer's frozen-handoff wording no longer conflates every local
+  handoff with the integration/release full-suite boundary. Sandbox, network,
+  reasoning and delegation settings are unchanged. Existing agents retain their
+  already-loaded developer instructions; these file edits apply on a future
+  configuration load, not retroactively to this session.
+- `implement` reuses a regression that demonstrates the same failure and uses
+  characterization/document checks for unchanged refactors/prose. It does not
+  invent failing tests to satisfy a process step.
+- `diagnosing-bugs` permits evidence-led code inspection before reproduction,
+  labels unresolved causes honestly, and uses bounded discriminating probes.
+  Fixed hypothesis/stress counts and Bash-only human feedback are removed;
+  the existing Bash template remains optional. Diagnosis still cannot authorize
+  a product fix, evidence substitution or unsafe access to firmware inputs.
+
+Independent instruction simulation covered ordinary prose, an existing UI
+regression, unchanged-function extraction, an unreproduced crash, an Application
+public-contract change, a firmware offset/expected-hash change and an attempt to
+reuse another candidate's Golden run for release. The resulting plans retained
+scope, appropriate tests, R2 admission and firmware/release evidence boundaries;
+no routing conflict was found. This was a read-only decision simulation, not
+execution of those product/release tasks or a measured productivity study.
+Skill inventory (23), selected governance lifecycle/classifier tests (5), both
+changed-skill metadata checks, role TOML/settings comparison and affected-link
+checks passed before fixed-head review. Exact review/final-gate evidence is
+tracked in [V118-AGENT-INSTRUCTION-REUSE-02](change-records/V118-AGENT-INSTRUCTION-REUSE-02.json).
+
+The first structure attempt failed: role TOMLs were incorrectly included in
+record `mutablePaths`, although the current classifier excludes them. Original
+branch/head `0c977bd5` and its active record are preserved, not integration-ready.
+A new branch from valid checkpoint `876df961` retains the reviewed content with
+an eight-governed-path admission; the four role files remain in whole-diff review.
+No validator, history or safety requirement was changed to recover.
+
+Reference method: OpenAI's [AGENTS.md guidance](https://developers.openai.com/codex/guides/agents-md)
+and [skills guidance](https://developers.openai.com/codex/skills), consulted
+2026-09-16, support scoped inheritance, progressive disclosure, focused triggers
+and realistic prompt tests. They inform this pilot, not repository permissions.
+For future authorized instruction reviews, reuse this compact review prompt:
+
+> Given the task and affected paths, trace which instruction owns each decision.
+> Identify conflicts, duplicate rules, stale scope and missing trigger links.
+> Propose the smallest correction in the existing owner; preserve applicable
+> safety and approval boundaries. Try realistic requests without supplying the
+> intended answer, and report observed decisions separately from untested claims.
+
+The pilot is reversible through reviewed new commits on the changed instruction
+files; immutable admission/evidence history is retained. Observe subsequent
+real tasks before claiming lower token use or faster delivery. No product
+architecture refactor, new skill/router, invocation-policy change, external
+publication or additional full product-suite run is part of this unit.
+
 ## Objective
 
 Use repository evidence from the `0.10.x`, `1.0.x`, and `1.1.0` development

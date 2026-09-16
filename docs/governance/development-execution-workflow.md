@@ -2,14 +2,11 @@
 
 Status: Active repository runbook.
 
-For ordinary non-normative, non-classifier-governed documentation, use the root
-R0 short path: preserve existing edits, update the existing owner, review the
-diff and affected links, then report the result briefly. Structure or consumer
-checks apply when document layout or parsed inputs change. This path needs no
-new issue, capability record, subagent, code-size census or handoff artifact.
-`AGENTS.md`, governance and other classifier-governed documents still follow
-their record/integration contract. Normative, permission and release changes
-are not R0 merely because their file is Markdown. Required CI is unchanged.
+Before choosing a path, apply the root
+[task scope](../../AGENTS.md#task-scope-and-autonomy) and
+[risk-adaptive gates](../../AGENTS.md#risk-adaptive-gates). Those sections own
+local applicability, including the ordinary-prose R0 path and governed-document
+exceptions. This runbook owns execution within those boundaries.
 
 ## Preflight
 
@@ -82,16 +79,12 @@ the execution sequence:
 
 ## Narrow test selection
 
-Local verification and every direct narrow test run only after one fixed,
-absolute, existing `NFC_TEST_AREA_ROOT` outside the repository is loaded into
-the current process. That process also explicitly sets `TEMP`, `TMP`, and
-`TMPDIR` to the root's existing `temp` child. The user-level declaration is
-initialized once; every shell repeats the process-level assignments. GitHub
-Actions derives `RUNNER_TEMP/NvtFwCombiner-TestArea` and rejects any conflicting
-declared root. These requirements apply to the bare commands below without
-changing their command text. Windows verifier custody of the validated root,
-sessions root, session, and marker remains live through scratch creation,
-descendant handoff, workload completion, and exact-session cleanup.
+Before each verifier or direct test, apply the root
+[test-area setup](../../AGENTS.md#canonical-commands); initialization is in
+[`CONTRIBUTING.md`](../../CONTRIBUTING.md). These requirements apply to every
+bare command below. Windows verifier custody of the validated root, sessions
+root, session, and marker remains live through scratch creation, descendant
+handoff, workload completion, and exact-session cleanup.
 
 | Changed surface | First test |
 | --- | --- |

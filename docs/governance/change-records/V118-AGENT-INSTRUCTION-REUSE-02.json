@@ -1,0 +1,46 @@
+{
+  "schemaVersion": 2,
+  "taskId": "V118-AGENT-INSTRUCTION-REUSE-02",
+  "capability": "Converge 1.1.8 agent instructions on scoped reusable workflow owners",
+  "integrationBase": "876df961a9095fa0ccca8700ebf6610d724f6621",
+  "risk": "R2",
+  "kind": "governance",
+  "state": "design-active",
+  "mutablePaths": [
+    "AGENTS.md",
+    "docs/AGENTS.md",
+    "docs/governance/development-execution-workflow.md",
+    "docs/governance/agent-skill-routing.md",
+    "docs/policies/polytail.md",
+    "docs/governance/post-v1.1.0-tool-development-process-retrospective-handoff.md",
+    ".agents/skills/implement/SKILL.md",
+    ".agents/skills/diagnosing-bugs/SKILL.md"
+  ],
+  "implementationOwner": "/root",
+  "searchEvidence": [
+    "Owner explicitly prioritized 1.1.8 skill/AGENTS/document reuse and deduplication over further product codebase refactoring on 2026-09-16.",
+    "Read root and all nested AGENTS, four .codex/agents roles, existing implement/diagnosing-bugs/polytail skills, routing, workflow, Polytail policy and retrospective handoff.",
+    "Root owns local risk/test/retry applicability; downstream prose repeats it. Implementer role conflates its frozen handoff with integration/release full-suite boundaries.",
+    "Diagnosis skill requires red-capable command before hypotheses, fixed hypothesis/stress counts and Bash-only human feedback; tests/AGENTS already permits existing regression reuse and explicit unavailable-reproduction limitations.",
+    "Consumer search found skill inventory wording checks for red/green/refactor phases; keep those behaviors and phases without inventing failing tests for unchanged refactors/docs. Role validator consumes TOML and nonempty instructions, not their prose.",
+    "Consulted official https://developers.openai.com/codex/guides/agents-md and https://developers.openai.com/codex/skills for scoped inheritance, progressive disclosure and realistic trigger tests; these references do not grant local authority.",
+    "Original content review at 0c977bd5 passed, but staged structure failed because four .codex/agents TOMLs were mistakenly listed as governed. _is_capability_reuse_governed_path confirms exactly eight governed paths. Preserve original branch/head/record; reconstruct on a new local branch from the same valid checkpoint without rewriting history or altering validation.",
+    "The four .codex/agents/{architect,evidence_reviewer,implementer,reviewer}.toml files remain authorized and independently reviewed change scope, but are not governed mutablePaths or auxiliary tests. Their complete diff and unchanged execution settings are verified separately."
+  ],
+  "semanticOwner": "Root AGENTS task/risk applicability, existing skills and routing, workflow execution sequence, Polytail verdict policy",
+  "terminalContract": "One canonical applicability owner referenced by scoped skills and roles; evidence-led diagnosis without arbitrary process quotas; behavioral red/green where relevant and honest characterization/document checks elsewhere. Preserve admission lifecycle, independent review, firmware/Golden/security/permission/CI/release gates, sandbox settings and invocation policies. Record only this bounded local documentation pilot, not product refactoring or publication.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "/root/v117_final_review",
+    "outcome": "approved",
+    "evidence": "Independent R2 recovery design PASS: original branch/head/active record preserved; new record lists only eight classifier-confirmed governed paths. Four nongoverned TOMLs remain in whole-diff review with non-instruction settings unchanged. Reapply identical reviewed content except record linkage and honest recovery notes; reuse identical-content test evidence explicitly, rerun classifier/coverage, exact-head review and structure. No validator/schema/permission/history changes."
+  },
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": {
+    "reviewer": null,
+    "outcome": "pending",
+    "evidence": ""
+  }
+}
