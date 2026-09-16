@@ -5,7 +5,7 @@
   "integrationBase": "876df961a9095fa0ccca8700ebf6610d724f6621",
   "risk": "R2",
   "kind": "governance",
-  "state": "design-active",
+  "state": "final-complete",
   "mutablePaths": [
     "AGENTS.md",
     "docs/AGENTS.md",
@@ -35,12 +35,12 @@
     "outcome": "approved",
     "evidence": "Independent R2 recovery design PASS: original branch/head/active record preserved; new record lists only eight classifier-confirmed governed paths. Four nongoverned TOMLs remain in whole-diff review with non-instruction settings unchanged. Reapply identical reviewed content except record linkage and honest recovery notes; reuse identical-content test evidence explicitly, rerun classifier/coverage, exact-head review and structure. No validator/schema/permission/history changes."
   },
-  "implementationHead": null,
-  "reviewedHead": null,
-  "pathStateDigest": null,
+  "implementationHead": "81a43497b511b1d1ca0a7d1ce6f312e962c8ae45",
+  "reviewedHead": "81a43497b511b1d1ca0a7d1ce6f312e962c8ae45",
+  "pathStateDigest": "456477b34a603ed3ba8643c8d133a80b5305f50a2b1a617c52d3e0c4fb014b14",
   "finalReview": {
-    "reviewer": null,
-    "outcome": "pending",
-    "evidence": ""
+    "reviewer": "/root/v117_final_review",
+    "outcome": "approved",
+    "evidence": "Fixed-head correctness/Polytail PASS, no findings, covering all twelve changed instruction/role/handoff files. Eleven instruction/role Git blobs equal previously reviewed 0c977bd5; handoff only changes record link and records recovery. Exact classifier coverage confirms eight governed paths; all four nongoverned TOMLs remain reviewed and execution settings unchanged. Fresh skill inventory23 and selected governance5 PASS. Both skill metadata validations, TOML/settings comparison and seven-request read-only simulation explicitly reused for identical content; recovery links/diff checks PASS. Original invalid branch/record preserved, not integration-ready. No validator/schema/security/release policy changes. Staged-final structure gate required before evidence commit; no full-suite/integration/publication claim."
   }
 }
