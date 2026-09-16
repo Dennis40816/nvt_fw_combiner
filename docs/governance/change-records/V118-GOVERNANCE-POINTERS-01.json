@@ -5,7 +5,7 @@
   "integrationBase": "61d205d97c7e75c865df25b5cbaba0289ed3f5de",
   "risk": "R2",
   "kind": "governance",
-  "state": "design-active",
+  "state": "final-complete",
   "mutablePaths": [
     "docs/governance/development-execution-workflow.md",
     ".agents/skills/implement/SKILL.md",
@@ -25,8 +25,12 @@
     "outcome": "approved",
     "evidence": "Independent R2 design PASS limited to three documents. Require mandatory read-and-follow pointer, unchanged headings and metadata, diagnostic/characterization allowance, R1 scope, P1 missing-admission severity and validation before evidence commit. Diff/link, existing governance tests and structure checks suffice locally."
   },
-  "implementationHead": null,
-  "reviewedHead": null,
-  "pathStateDigest": null,
-  "finalReview": {"reviewer": null, "outcome": "pending", "evidence": ""}
+  "implementationHead": "1e68026295629e8abd2a2a6d13c029e486d3d9ec",
+  "reviewedHead": "1e68026295629e8abd2a2a6d13c029e486d3d9ec",
+  "pathStateDigest": "5f3c5142e9cdc7d377415d7e7026213d161e37d8502a6e26a610152320704eac",
+  "finalReview": {
+    "reviewer": "/root/v117_final_review",
+    "outcome": "approved",
+    "evidence": "Fixed-head correctness/Polytail PASS with no findings. Compared removed mechanics individually against the unchanged record contract: staged blob, coverage, lifecycle, digest, checkpoint/activation, merge normalization and R3 attestations retained. Mandatory complete-contract pointer and admission/review/finalize/validate/evidence sequence preserved. R1 scope, unknown-owner block, diagnostic exception, P1 severity and unique skill steps unchanged. Skill inventory 23 tests and five selected governance tests PASS; relative links and diff checks PASS. No integration/release or full-suite claim."
+  }
 }
