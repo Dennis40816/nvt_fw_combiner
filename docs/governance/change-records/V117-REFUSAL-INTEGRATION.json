@@ -23,15 +23,15 @@
     "evidence": "Current R1 integration admission after explicitly approved bounded local correction; not a retroactive recorded-design claim."
   },
   "integrationBase": "ee29f969d7463ccf34adbbc69e1e1d099420f929",
-  "state": "design-active",
+  "state": "final-complete",
   "implementationOwner": "/root",
   "disposition": "reuse",
-  "implementationHead": null,
-  "reviewedHead": null,
-  "pathStateDigest": null,
+  "implementationHead": "556cb2f06e2d238620aa68d584d8c82f1faa14d4",
+  "reviewedHead": "556cb2f06e2d238620aa68d584d8c82f1faa14d4",
+  "pathStateDigest": "e0ff394371e5de90424aee74d664a371e2883627b5d0fa1150ca33b18f26633c",
   "finalReview": {
-    "reviewer": null,
-    "outcome": "pending",
-    "evidence": ""
+    "reviewer": "/root/v117_final_review",
+    "outcome": "approved",
+    "evidence": "Independent fixed-head556cb2f0 review2026-09-16 PASS/no findings for both refusal and exact-size records. Two production refusal owners preserve typed issues and session/generation guards; 17 affected tests PASS. Exact approved144821/41925 defaults, one baseline assertion and ADR append only; 19 policy tests PASS. Runtime102205 and all counting/negative protections unchanged. Paths occur in checkpointee29f969 diff with unique governed ownership. Admission validator PASS; canonical committed-path digest calculated for this exact head. Final-record validation and release-wide CI geometry, Golden/package/environment gates remain separate."
   }
 }
