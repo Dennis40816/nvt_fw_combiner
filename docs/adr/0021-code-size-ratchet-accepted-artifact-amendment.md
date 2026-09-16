@@ -885,3 +885,19 @@ growth/reduction/slice-equality and extra-source protections remain intact.
 There is no reserved or transferable capacity and no firmware, Golden, package,
 CI or publication exception. The prior full-verifier and baseline failures
 remain retained evidence; fresh focused policy and final gates are required.
+
+## 2026-09-16 v1.1.7 pre-confirmation refusal accounting
+
+The owner approved full production 144,809 to 144,821 for the completed
+correction at `787bc6ae`. The existing Application format assessor now raises
+the existing typed pre-run refusal. Presentation handles that expected refusal
+before opening Build settings, guarded by accepted-session and preparation
+identity. This adds 12 Presentation lines; Application and runtime are unchanged.
+
+Full production / warning baseline is 144,821 against the unchanged 102,896
+base and exact allowance 41,925. Runtime remains 102,205; all runtime slices,
+counting, exclusions, duplicate/partial thresholds and negative protections
+remain unchanged. This is not spare capacity for subsequent fixes or a release
+waiver. Independent R2 design admission is `V117-REFUSAL-EXACT-SIZE`.
+The pre-adjustment policy result was 18 pass / 1 fail (144809 != 144821);
+fresh policy and final integration checks remain required.

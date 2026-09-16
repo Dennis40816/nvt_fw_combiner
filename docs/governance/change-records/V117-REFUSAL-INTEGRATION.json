@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 2,
+  "taskId": "V117-REFUSAL-INTEGRATION",
+  "capability": "Integrate the locally verified AB output preparation refusal correction",
+  "risk": "R1",
+  "kind": "behavior",
+  "mutablePaths": [
+    "src/NvtFwCombiner.Application/Composition/CompositionOutputNamingExperience.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MergePresentationViewModel.Execution.cs",
+    "tests/NvtFwCombiner.UiSmoke.Tests/PresentationTestHost.cs",
+    "tests/NvtFwCombiner.UiSmoke.Tests/ShellViewModelTests.EventBufferFormat.cs",
+    "tests/NvtFwCombiner.UiSmoke.Tests/ShellViewModelTests.OutputPreparationRefusal.cs"
+  ],
+  "searchEvidence": [
+    "Bounded local R1 preflight in owner task at b700bf42 preceded production edits. Commit787bc6ae reused the existing CompositionPreRunRefusalException and guarded current-session/current-preparation UI result publication.",
+    "Actual invalid Config regression reproduced InvalidOperationException before the fix. 17 affected tests passed after correction, including delayed cancel/reopen/session refusals; independent local Polytail /root/v117_final_review PASS."
+  ],
+  "semanticOwner": "Application CompositionOutputNamingExperience canonical format assessor and existing CompositionPreRunRefusalException; Presentation Merge preparation lifecycle",
+  "terminalContract": "Expected format refusal before confirmation yields Build blocked and No output. Stale preparation cannot overwrite current result or modal. Preserve invariant failures, firmware bytes/ranges/CRC and execution policy.",
+  "designReview": {
+    "reviewer": null,
+    "outcome": "not-required",
+    "evidence": "Current R1 integration admission after explicitly approved bounded local correction; not a retroactive recorded-design claim."
+  },
+  "integrationBase": "ee29f969d7463ccf34adbbc69e1e1d099420f929",
+  "state": "design-active",
+  "implementationOwner": "/root",
+  "disposition": "reuse",
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": {
+    "reviewer": null,
+    "outcome": "pending",
+    "evidence": ""
+  }
+}
