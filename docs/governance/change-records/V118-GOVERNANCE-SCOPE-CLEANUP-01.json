@@ -5,7 +5,7 @@
   "integrationBase": "4c66e8737c608c83c460b7915b76cfaceb72da65",
   "risk": "R2",
   "kind": "governance",
-  "state": "design-active",
+  "state": "final-complete",
   "mutablePaths": [
     ".agents/skills/code-review/SKILL.md",
     ".agents/skills/nfc-architecture-change/SKILL.md",
@@ -30,8 +30,12 @@
     "outcome": "approved",
     "evidence": "R2 design PASS for six paths: snapshot scope/commit/question required and never substitutes for change review; relevant invariants, counterexamples, direct dependencies, contradiction escalation and external gates retained; remove only story quota and unrelated scope; historical audit is evidence, not proof of closed gates."
   },
-  "implementationHead": null,
-  "reviewedHead": null,
-  "pathStateDigest": null,
-  "finalReview": {"reviewer": null, "outcome": "pending", "evidence": ""}
+  "implementationHead": "56c19b7479f966a06c49fa8fbc4c6a8aaba5ebf8",
+  "reviewedHead": "56c19b7479f966a06c49fa8fbc4c6a8aaba5ebf8",
+  "pathStateDigest": "8f8c8dd37c59368e6240040ee84d6b41c39a000a504f33ab8182ae39eb249777",
+  "finalReview": {
+    "reviewer": "/root/v117_final_review",
+    "outcome": "approved",
+    "evidence": "Fixed-head correctness/Polytail PASS without findings across all six paths. Snapshot audits cannot substitute for fixed-diff review; dependency/contradiction expansion, bidirectional trace and firmware/Golden/permission/release gates retained. Historical 20260729 cadence and unresolved gates preserved. Skill inventory 23 and selected governance 5 tests PASS; relative links and diff checks PASS. Structure verification remains the staged-final gate; no full-suite/integration/release claim."
+  }
 }
