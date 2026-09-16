@@ -13,6 +13,25 @@ namespace NvtFwCombiner.UiSmoke.Tests;
 [Collection(UiAvaloniaRuntimeCollection.Name)]
 public sealed class OutputConfirmationLabelTests
 {
+    /// <summary>The confirmation reuses the input card's localized non-blocking version warning.</summary>
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    [InlineData(false, true)]
+    [InlineData(true, true)]
+    public void UnknownVersionWarningMatchesAcceptedInputHelp(bool chinese, bool trailing = false)
+    {
+        ShellTextResources text = ShellTextResources.For(chinese ? ShellLanguage.ChineseTraditional : ShellLanguage.English);
+        AuthoringInputSlotStatus status = StandardMergeFeedbackTests.Status("ab.input.version-unknown", AuthoringSlotLifecycle.Warning,
+            actualLength: trailing ? 4 : 2, ignoredTrailingBytes: trailing);
+        var input = new CompositionOutputInputSummary("tp-a-input", "tp-a-input", "input.bin", 2, [], null,
+            status.InspectionLifecycle, status.InspectionIssueCode)
+        { Inspection = status.Inspection };
+        string warning = text.FormatOutputInputWarning(input);
+        Assert.Equal(trailing ? text.CreateInputIssueCard(status, "TP A").Summary : text.GetInputSlotInspectionStatus(status), warning);
+        Assert.DoesNotContain("ab.input.version-unknown", warning, StringComparison.Ordinal);
+    }
+
     /// <summary>Using the same file in two roles shows two input rows but copies just one bundle source.</summary>
     [AvaloniaFact]
     public async Task SharedInputFileCountsRolesSeparatelyFromBundleCopies()
@@ -26,6 +45,15 @@ public sealed class OutputConfirmationLabelTests
             [new("tp-a-input", path, input), new("tp-b-input", path, input)], AbMergeDpMode.Dummy);
         Assert.True(prepared.Succeeded);
         CompositionOutputBundleProposal proposal = await host.CompositionOutputNaming.PrepareBundleProposalAsync(prepared.Snapshot!, TestContext.Current.CancellationToken);
+        foreach (ShellLanguage language in new[] { ShellLanguage.English, ShellLanguage.ChineseTraditional })
+        {
+            ShellTextResources text = ShellTextResources.For(language);
+            Assert.All(proposal.Confirmation!.Inputs, input =>
+            {
+                Assert.Equal(AuthoringSlotLifecycle.Warning, input.InspectionLifecycle);
+                Assert.Equal(text.AbUnknownVersionWarning, text.FormatOutputInputWarning(input));
+            });
+        }
         var vm = new OutputDeliveryConfirmationViewModel(host.CompositionOutputNaming, () => ShellTextResources.For(ShellLanguage.English));
         vm.Open(new OutputDeliveryRequest(proposal, false, null, () => true, null, null, null, _ => Task.CompletedTask));
         vm.SetBundleEnabled(true);
@@ -39,6 +67,7 @@ public sealed class OutputConfirmationLabelTests
             Assert.Equal("2 input sources", modal.FindControl<TextBlock>("SourcesCountLabel")!.Text);
             Assert.Equal("1 input sources", vm.SourcesSummary);
             Assert.Equal("Flash BIN + 1 source files", vm.DeliveryDescription);
+            Assert.True(vm.CanConfirm);
         }
         finally { window.Close(); }
     }

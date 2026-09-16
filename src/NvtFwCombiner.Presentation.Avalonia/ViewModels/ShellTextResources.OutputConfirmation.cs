@@ -1,4 +1,5 @@
 using NvtFwCombiner.Application.Authoring;
+using NvtFwCombiner.Application.InputInspection;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Domain.Firmware;
 
@@ -53,7 +54,8 @@ internal sealed partial class ShellTextResources
         return input.InspectionLifecycle != AuthoringSlotLifecycle.Warning ? string.Empty :
             GetIgnoredTrailingInputDescription(input.Inspection) ??
             GetInputIssueHelp(input.InspectionIssueCode ?? string.Empty, "warning", input.Inspection?.DiagnosticEvidence)?.Detail ??
-            SelectLanguage($"Review input before Build ({input.InspectionIssueCode}).", $"Build 前請確認輸入（{input.InspectionIssueCode}）。");
+            (input.InspectionIssueCode == InputArtifactInspectionIssueCodes.AbVersionMetadataUnknown ? AbUnknownVersionWarning :
+                SelectLanguage($"Review input before Build ({input.InspectionIssueCode}).", $"Build 前請確認輸入（{input.InspectionIssueCode}）。"));
     }
 
     internal string FormatOutputNumber(IcNumberSelection selection)

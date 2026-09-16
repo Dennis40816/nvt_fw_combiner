@@ -84,16 +84,20 @@ public sealed class AbDpMetadataTests
     [InlineData(false, false)]
     [InlineData(true, false)]
     [InlineData(true, true)]
-    public void TouchBankVersionIsNotDuplicatedByBackupFacts(bool hasFormat, bool chinese)
+    [InlineData(true, false, true)]
+    [InlineData(true, true, true)]
+    [InlineData(false, false, true)]
+    [InlineData(false, true, true)]
+    public void TouchBankVersionIsNotDuplicatedByBackupFacts(bool hasFormat, bool chinese, bool invalidVersion = false)
     {
         var slot = new FirmwareSlotViewModel(CompositionAddressSpaceIds.TpAInput,
             "TP A", "TP A input", FirmwareSlotKind.Tp);
         var inspection = new FirmwareInspectionSnapshot(null,
-            new(0x22000, "2.0.0", 0x81, 0x7E, true, 0, 1, 0x570A, null, default),
+            new(0x22000, "2.0.0", 0x81, 0x7E, !invalidVersion, 0, 1, 0x570A, null, default),
             null, null, null, null)
         {
             AbMergeFacts = new(CompositionAddressSpaceIds.TpAInput,
-                [new(CompiledInputVersionKind.TpA, 0x81, 0)])
+                [new(CompiledInputVersionKind.TpA, invalidVersion ? null : 0x81, invalidVersion ? null : 0)])
             {
                 EventBufferFormat = hasFormat
                     ? new(0x97, "desay", "Desay", 1, new string('a', 64), "primary",
@@ -106,7 +110,7 @@ public sealed class AbDpMetadataTests
         FirmwareInspectionProjection.ApplyAbInputFacts(slot, inspection, text);
         Assert.Equal(["TPA", "PID", "Common FW Version"],
             slot.FirmwareFacts.Take(3).Select(static fact => fact.Label));
-        Assert.Equal(["T81-00", "0x570A", "2.0.0"],
+        Assert.Equal([invalidVersion ? text.FirmwareSlotUnknownValueLabel : "T81-00", "0x570A", "2.0.0"],
             slot.FirmwareFacts.Take(3).Select(static fact => fact.Value));
         if (hasFormat)
         {

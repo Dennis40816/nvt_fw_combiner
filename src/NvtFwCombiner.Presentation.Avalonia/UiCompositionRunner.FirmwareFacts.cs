@@ -18,7 +18,7 @@ internal static partial class UiCompositionRunner
         IReadOnlyList<FirmwareSlotFactViewModel> dpFacts = includeBaseFacts
             ? GetDpFirmwareSlotFacts(inspection, text)
             : [];
-        if (metadata is null || (!metadata.IsFirmwareVersionBarValid && !includeBaseFacts))
+        if (metadata is null || (!metadata.IsFirmwareVersionBarValid && !includeBaseFacts && inspection.AbMergeFacts is null))
         {
             return dpFacts;
         }
