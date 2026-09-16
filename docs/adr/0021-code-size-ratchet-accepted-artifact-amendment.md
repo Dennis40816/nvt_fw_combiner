@@ -901,3 +901,21 @@ remain unchanged. This is not spare capacity for subsequent fixes or a release
 waiver. Independent R2 design admission is `V117-REFUSAL-EXACT-SIZE`.
 The pre-adjustment policy result was 18 pass / 1 fail (144809 != 144821);
 fresh policy and final integration checks remain required.
+
+## 2026-09-16 v1.1.7 final confirmation-label accounting
+
+The owner approved code-size increments for the current release corrections.
+The completed labels at `ef7bf925` add seven Presentation lines and final shared
+warning wording adds three: full production144,831, unchanged base102,896,
+exact allowance41,935. Runtime102,205 and every
+runtime slice remain unchanged. The earlier margin-only CJK correction is
+line-neutral. Input-role counts use the accepted confirmation while Bundle
+retains its physical-file count; IC labels only render existing selector tokens.
+
+Independent R2 admission `V117-CONFIRMATION-FINAL-SIZE` covers only two existing
+defaults, the exact baseline assertion and this ledger. Counting, exclusions,
+partial/duplicate warnings, negative guards, firmware, Golden and release gates
+remain unchanged. Owner consent is for these release corrections, not unlimited
+future headroom. Pre-adjustment evidence is18 pass/1 fail (144821 !=144828).
+The interim144828 policy and release-note tests passed26/26 before the final
+three-line warning correction; final exact-count validation is still required.

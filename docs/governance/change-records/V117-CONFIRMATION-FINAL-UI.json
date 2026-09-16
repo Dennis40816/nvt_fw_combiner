@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 2,
+  "taskId": "V117-CONFIRMATION-FINAL-UI",
+  "capability": "Integrate reviewed confirmation geometry and truthful input/topology labels",
+  "risk": "R1",
+  "kind": "ui",
+  "mutablePaths": [
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/OutputDeliveryConfirmationViewModel.Summary.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/UiCompositionRunner.FirmwareFacts.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ShellTextResources.DynamicText.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ShellTextResources.OutputConfirmation.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/Views/OutputDeliveryConfirmationModal.axaml",
+    "tests/NvtFwCombiner.UiSmoke.Tests/OutputConfirmationLabelTests.cs",
+    "tests/NvtFwCombiner.UiSmoke.Tests/AbDpMetadataTests.cs",
+    "tests/NvtFwCombiner.UiSmoke.Tests/ShellViewModelTests.OutputConfirmation.cs"
+  ],
+  "searchEvidence": [
+    "Owner-authorized local R1 preflight at87c368b8 preceded UI corrections. Commitscf4f5887 andef7bf925 retain existing shared confirmation projection and typed selector tokens.",
+    "CI35044488076 CJK extent573/viewport568 reproduced locally with real line-height delta; source margin5 to3 yields10/10 natural/stress geometry PASS and full980x820 light/dark render inspection.",
+    "Real two-binding/single-file proposal and numeric/cascade labels reproduced four failures before fixes. Combined19 tests then final allocation-free count5/5 PASS. Independent scoped Polytail PASS; current integration admission is not retroactive recorded design.",
+    "Additional PR review atcdaecd26 confirmed AB warning metadata and warning wording gaps. Four red cases prove missing typed PID/Common and internal-code fallback. Reuse shared firmware-fact projection and one existing localized Unknown-version warning; no classification or Build authority changes."
+  ],
+  "semanticOwner": "Existing OutputDeliveryConfirmationViewModel accepted Confirmation and physical Sources projections; shared modal and ShellTextResources",
+  "terminalContract": "Input disclosure counts accepted bindings; Bundle retains physical deduplicated file counts. Display existing typed IC tokens without changing firmware facts. Preserve fonts,720 frame, information, filenames, layout authority, CRC and all safety gates.",
+  "designReview": {
+    "reviewer": null,
+    "outcome": "not-required",
+    "evidence": "Local R1 scope and evidence recorded in owner discussion before edits; now admitted for integration."
+  },
+  "integrationBase": "87c368b880da217b023da6a840addae200bc5a2a",
+  "state": "design-active",
+  "implementationOwner": "/root",
+  "disposition": "reuse",
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": {
+    "reviewer": null,
+    "outcome": "pending",
+    "evidence": ""
+  }
+}

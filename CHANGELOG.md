@@ -23,6 +23,7 @@ layouts, output naming, integrity processing and support status are unchanged.
   version, followed by the admitted Event Buffer Version when available.
   AB inputs retain their individual TPA/TPB versions without a duplicate generic
   TP Version. Cards have more vertical breathing room and bounded narrow layouts.
+  Unknown AB versions retain independently valid PID and Common FW information.
 - Affected: existing firmware input cards, AB Code information and Appearance.
 - Support status: unchanged/support-neutral.
 - Compatibility: the new Details default is Off; the existing preference store
@@ -38,12 +39,17 @@ layouts, output naming, integrity processing and support status are unchanged.
 - Before → After: the confirmation shows IC/topology, mode/effective format
   and primary Flash output size. Expanded sources separate role, filename and
   actual size from expected-size and per-input Event Buffer checks.
+  Input-role counts remain distinct from bundled file counts, IC selectors use
+  readable labels, and Chinese font metrics no longer hide the destination panel.
+  Unknown-version warnings reuse the localized input-card explanation.
 - Affected: shared Build settings, loose or bundled delivery, optional additional
   A FlashCode output and existing Dummy DP disclosure.
 - Support status: unchanged/support-neutral.
 - Compatibility: canonical automatic filenames are preserved. Additional output
   has its own name/size; bundle and extra files do not inflate the primary Flash
   output size. Accepted input/configuration freshness is rechecked before Build.
+  Invalidated AB configuration before confirmation reports Build blocked without
+  opening an output or escaping the UI event as an unhandled exception.
 - Verification: four delivery-state geometry tests, source warnings, rename and
   async session/configuration tests; all25 required direct Golden output cases
   passed on the unchanged product tree. The release workflow executes those
