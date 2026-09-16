@@ -63,6 +63,35 @@ fixed-source review/integration, fresh candidate Golden and rebuilt package
 checks, and clean-machine GUI acceptance of that new candidate. No existing
 tag/asset is replaced; no release or full-Golden pass is inferred from the lab.
 
+### Runtime correction integration follow-up — 2026-09-17
+
+Owner requested release with the bundled runtime and answered the publisher
+eligibility question by stating that the company purchased Visual Studio.
+This is the owner's supplied statement, not an independent legal opinion.
+The unchanged implementation `064a7ba3` received independent fixed-head review
+with no P0-P3 findings; record-only `e103ebc1` and owner-attestation `4dd024af`
+preserve that exact production content and distinguish delegated authority
+from personal review of a subsequently generated SHA.
+
+On `4dd024af772433803fe67882bc0844b3bbe68b27`, fresh local
+`python scripts/verify.py --all` failed **one** case:
+`test_packaged_combiner_executes_certified_crc_command_without_mutation` raised
+Windows error 206 while creating its nested pytest package/Golden directory,
+before executing Combiner. Every other lane passed, including .NET (686.9 s),
+structure (263.7 s), release-package policy84 (396.5 s) and worker30 tests.
+This run is a failed full verification, not a full PASS. Exact-head CI
+`35122405244` passed all jobs; its shorter runner paths did not reproduce the
+local fixture failure.
+
+The bounded correction uses a standard-library `TemporaryDirectory` directly
+under the inherited test scratch, avoiding the extra pytest test-name directory.
+The full packaged Golden path, real executable/DLL, actual certified CRC call,
+complete-byte comparison and automatic cleanup remain unchanged. No product
+path limit, firmware expectation or verifier gate is changed. Corrected narrow
+verification passed all27 release-smoke tests in43.89 s, plus Ruff lint/format
+and diff checks. New exact-source CI remains necessary; unchanged lanes from the
+failed full run are supporting evidence only, not a fresh aggregate PASS.
+
 Current allocation amendment (2026-09-05): all remaining `1.1.x` CI/release
 optimization and follow-ups below are consolidated into `v1.1.3` in the
 [canonical roadmap](../architecture/nfc_roadmap.md). The latest same-day owner

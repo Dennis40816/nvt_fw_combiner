@@ -3,6 +3,7 @@ import json
 import os
 import shutil
 import subprocess
+import tempfile
 import zipfile
 from pathlib import Path
 
@@ -132,27 +133,29 @@ def test_combiner_runtime_is_independently_pinned(
 
 
 @pytest.mark.skipif(os.name != "nt", reason="The bundled Combiner is Windows x64")
-def test_packaged_combiner_executes_certified_crc_command_without_mutation(
-    tmp_path,
-) -> None:
-    package = tmp_path / "package"
-    tool_directory = package / COMBINER_DIRECTORY
-    tool_directory.mkdir(parents=True)
-    for name in ("Combiner.exe", "vcruntime140.dll"):
-        shutil.copy2(ROOT / COMBINER_DIRECTORY / name, tool_directory)
-    golden = package / "reference" / GOLDEN_PATH
-    golden.parent.mkdir(parents=True)
-    shutil.copy2(ROOT / GOLDEN_PATH, golden)
-    package_arg = str(package).replace("'", "''")
-    scratch_arg = str(tmp_path / "scratch").replace("'", "''")
-    result = run_release_functions(
-        "smoke-release.ps1",
-        ("Get-LowerSha256", "Assert-CombinerRuntime", "Invoke-CombinerSmoke"),
-        f"Invoke-CombinerSmoke -PackageRoot '{package_arg}' -SmokeRoot '{scratch_arg}'",
-    )
-    assert result.returncode == 0, result.stdout + result.stderr
-    assert "Bundled Combiner CRC smoke passed" in result.stdout
-    assert golden.read_bytes() == (ROOT / GOLDEN_PATH).read_bytes()
+def test_packaged_combiner_executes_certified_crc_command_without_mutation() -> None:
+    # Keep the real package layout, but avoid pytest's additional long test-name
+    # directory beneath the verifier's already nested session scratch.
+    with tempfile.TemporaryDirectory(prefix="crc-") as directory:
+        scratch = Path(directory)
+        package = scratch / "package"
+        tool_directory = package / COMBINER_DIRECTORY
+        tool_directory.mkdir(parents=True)
+        for name in ("Combiner.exe", "vcruntime140.dll"):
+            shutil.copy2(ROOT / COMBINER_DIRECTORY / name, tool_directory)
+        golden = package / "reference" / GOLDEN_PATH
+        golden.parent.mkdir(parents=True)
+        shutil.copy2(ROOT / GOLDEN_PATH, golden)
+        package_arg = str(package).replace("'", "''")
+        scratch_arg = str(scratch / "scratch").replace("'", "''")
+        result = run_release_functions(
+            "smoke-release.ps1",
+            ("Get-LowerSha256", "Assert-CombinerRuntime", "Invoke-CombinerSmoke"),
+            f"Invoke-CombinerSmoke -PackageRoot '{package_arg}' -SmokeRoot '{scratch_arg}'",
+        )
+        assert result.returncode == 0, result.stdout + result.stderr
+        assert "Bundled Combiner CRC smoke passed" in result.stdout
+        assert golden.read_bytes() == (ROOT / GOLDEN_PATH).read_bytes()
 
 
 @pytest.mark.parametrize(
