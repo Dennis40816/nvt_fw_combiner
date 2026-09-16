@@ -51,22 +51,21 @@ internal static class CompositionOutputConfirmationProjector
         CompiledComposition compiled = capability.CompiledComposition;
         var inputs = new List<CompositionOutputInputSummary>();
         bool generated = output.OutputName.Issues.Any(static issue => issue.Code == "output-naming.dummy-dp");
-        foreach (CompiledInputSpaceBinding binding in compiled.V2Details.InputContract.SpaceBindings)
+        foreach (CompositionOutputBundleSourceCandidate candidate in CompositionOutputBundleSourcePlanner.CreateCandidates(session))
         {
-            AuthoringInputSlotStatus? status = session.InputSlotStatuses.SingleOrDefault(candidate =>
-                candidate.AddressSpaceId == binding.AddressSpaceId);
-            if (status?.SelectedPathHint is not { } path || status.FileStamp is not { } stamp) { continue; }
-            if (VirtualArtifactLocator.IsVirtual(path)) { generated = true; continue; }
-            IReadOnlyList<long> expected = status.Inspection?.ExpectedOuterLengths ?? [];
-            inputs.Add(new(binding.AddressSpaceId, status.SlotId,
-                identityPolicy.Resolve(path).OriginalFileName, stamp.AcceptedLength,
+            if (VirtualArtifactLocator.IsVirtual(candidate.ArtifactLocator)) { generated |= capability.GeneralExecutionPlan is null; continue; }
+            AuthoringInputSlotStatus? status = session.InputSlotStatuses.SingleOrDefault(input =>
+                input.AddressSpaceId == candidate.BindingId);
+            IReadOnlyList<long> expected = status?.Inspection?.ExpectedOuterLengths ?? [];
+            inputs.Add(new(candidate.BindingId, candidate.SlotId,
+                identityPolicy.Resolve(candidate.ArtifactLocator).OriginalFileName, candidate.FileStamp.AcceptedLength,
                 Array.AsReadOnly(expected.ToArray()),
-                AbMergeAuthoringExperience.ProjectEventBufferFormat(status.AddressSpaceId, format),
-                status.InspectionLifecycle, status.InspectionIssueCode)
+                AbMergeAuthoringExperience.ProjectEventBufferFormat(candidate.BindingId, format),
+                status?.InspectionLifecycle, status?.InspectionIssueCode)
             {
-                Sha256 = stamp.Sha256,
-                Inspection = status.Inspection,
-                InspectionAdvisories = Array.AsReadOnly(status.InspectionAdvisories.ToArray()),
+                Sha256 = candidate.FileStamp.Sha256,
+                Inspection = status?.Inspection,
+                InspectionAdvisories = Array.AsReadOnly(status?.InspectionAdvisories.ToArray() ?? []),
             });
         }
         return new(capability.Identity.IcId, session.WorkflowId,

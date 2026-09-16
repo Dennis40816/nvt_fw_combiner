@@ -919,3 +919,14 @@ remain unchanged. Owner consent is for these release corrections, not unlimited
 future headroom. Pre-adjustment evidence is18 pass/1 fail (144821 !=144828).
 The interim144828 policy and release-note tests passed26/26 before the final
 three-line warning correction; final exact-count validation is still required.
+
+## 2026-09-16 General accepted-source correction
+
+The release owner approved current correction code-size increments. The existing
+bundle planner now shares accepted source candidates with confirmation and
+delegates General binding validation to the existing accepted execution-input
+owner. This adds19 Application/runtime/full lines: full144850, runtime102224,
+Application44760. Exact allowances become41954,32168,14070 respectively;
+ratchets, counting, exclusions and all other slices remain unchanged.
+Independent R2 design admission is `V117-GENERAL-ACCEPTED-SOURCES`.
+This is exact accounting, not future headroom or a release/firmware waiver.

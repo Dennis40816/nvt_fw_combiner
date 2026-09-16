@@ -43,6 +43,8 @@ layouts, output naming, integrity processing and support status are unchanged.
   Input-role counts remain distinct from bundled file counts, IC selectors use
   readable labels, and Chinese font metrics no longer hide the destination panel.
   Unknown-version warnings reuse the localized input-card explanation.
+  General workflows include accepted mapped sources and the Replace Base in
+  confirmation and bundles; repeated file bindings still copy only one file.
 - Affected: shared Build settings, loose or bundled delivery, optional additional
   A FlashCode output and existing Dummy DP disclosure.
 - Support status: unchanged/support-neutral.

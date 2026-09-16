@@ -210,11 +210,33 @@ internal static class CompositionOutputBundleSourcePlanner
         ActiveSessionSnapshot session,
         ICompositionArtifactIdentityPolicy identityPolicy)
     {
+        return Canonicalize(CreateCandidates(session), identityPolicy);
+    }
+
+    internal static IReadOnlyList<CompositionOutputBundleSourceCandidate> CreateCandidates(
+        ActiveSessionSnapshot session)
+    {
         ArgumentNullException.ThrowIfNull(session);
-        ArgumentNullException.ThrowIfNull(identityPolicy);
         ResolvedCapability capability = session.ExactCapability ??
             throw new InvalidOperationException(
                 "Bundle source planning requires one exact accepted capability.");
+        if (capability.GeneralExecutionPlan is { } plan)
+        {
+            CompiledComposition compiled = capability.CompiledComposition;
+            (InputArtifactBinding[] bindings, IReadOnlyDictionary<string, byte[]> artifacts) =
+                session.WorkflowId == ExperienceIds.GeneralReplace
+                    ? AcceptedSessionExecutionInputs.CreateGeneralReplaceBindings(compiled, session,
+                        plan.InputBindings, plan.VirtualArtifacts,
+                        AcceptedSessionExecutionInputs.ResolveReferenceImageAddressSpaceId(compiled))
+                    : AcceptedSessionExecutionInputs.CreateGeneralBindings(compiled, session,
+                        plan.InputBindings, plan.VirtualArtifacts);
+            return Array.AsReadOnly(bindings.Select(binding => new CompositionOutputBundleSourceCandidate(
+                binding.AddressSpaceId,
+                compiled.V2Details.InputContract.SpaceBindings.Single(input => input.AddressSpaceId == binding.AddressSpaceId).SlotId,
+                binding.ArtifactId,
+                binding.AcceptedContentStamp ?? FileStamp.FromBytes(artifacts[binding.ArtifactId]),
+                artifacts[binding.ArtifactId])).ToArray());
+        }
         Dictionary<string, AuthoringInputSlotStatus> statuses = session.InputSlotStatuses
             .Where(static status => status.AcceptedByteArray is not null)
             .ToDictionary(static status => status.AddressSpaceId, StringComparer.Ordinal);
@@ -225,8 +247,7 @@ internal static class CompositionOutputBundleSourcePlanner
             if (!statuses.TryGetValue(
                     binding.AddressSpaceId,
                     out AuthoringInputSlotStatus? status) ||
-                status.SelectedPathHint is not { } artifactLocator ||
-                VirtualArtifactLocator.IsVirtual(artifactLocator))
+                status.SelectedPathHint is not { } artifactLocator)
             {
                 continue;
             }
@@ -248,7 +269,7 @@ internal static class CompositionOutputBundleSourcePlanner
                 bytes));
         }
 
-        return Canonicalize(candidates, identityPolicy);
+        return candidates.AsReadOnly();
     }
 
     internal static IReadOnlyList<CompositionExecutionBundleSource> Canonicalize(
