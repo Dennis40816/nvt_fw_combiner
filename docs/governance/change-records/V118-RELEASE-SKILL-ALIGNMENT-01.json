@@ -5,7 +5,7 @@
   "integrationBase": "927bea190c10f2246f43543d95a3e663f707f5f7",
   "risk": "R2",
   "kind": "governance",
-  "state": "design-active",
+  "state": "final-complete",
   "mutablePaths": [".agents/skills/release-readiness/SKILL.md"],
   "implementationOwner": "/root",
   "searchEvidence": [
@@ -23,8 +23,12 @@
     "outcome": "approved",
     "evidence": "Independent R2 PASS for single-file guidance alignment. Distinguish protected-main workflow authority from approved release source, intended tag from subsequently peeled identity, complete workflow-owned publication from manual upload, and contract-bound same-run recovery from a new stable run. Retain all external gates; no R3 policy or publication change. Metadata/inventory, classifier/links, fixed-head review and staged-final structure are sufficient."
   },
-  "implementationHead": null,
-  "reviewedHead": null,
-  "pathStateDigest": null,
-  "finalReview": {"reviewer": null, "outcome": "pending", "evidence": ""}
+  "implementationHead": "891a62b9a56faa7de3ec286b58e2d5364b7e477d",
+  "reviewedHead": "891a62b9a56faa7de3ec286b58e2d5364b7e477d",
+  "pathStateDigest": "02c2c77d8910966d0385b724959827752f989080c704ac48c326b9273defda37",
+  "finalReview": {
+    "reviewer": "/root/v117_final_review",
+    "outcome": "approved",
+    "evidence": "Fixed-head correctness/Polytail PASS with no findings. New candidate without a tag, absence of preview packaging, and promotion failure after tag creation all route consistently with the canonical workflow/contract. Exact-source eligibility is distinct from protected-main workflow authority; Golden, immutable assets, external approval, download and clean-machine evidence remain required. Skill inventory23, quick_validate, actual classifier coverage, relative links/headings and diff checks PASS. Staged-final structure required before evidence commit; no release workflow, full product suite, publication or policy change performed."
+  }
 }
