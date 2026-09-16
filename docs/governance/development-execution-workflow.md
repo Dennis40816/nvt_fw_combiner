@@ -59,59 +59,26 @@ When required at its actual stage, run it unchanged and report every failure.
 
 ### Recorded design admission and integration evidence
 
-Before adding, changing, moving, wrapping, splitting, replacing, or refactoring
-behavior outside the bounded local R1 path, or admitting any change for
-integration, the active
-specification, ticket, or owner-approved handoff must contain a staged,
-`design-active` [capability-reuse record](capability-reuse-record.md).
-The record is parsed from its real staged Git blob; intent-to-add and any
-index/worktree byte mismatch fail closed. Diagnostic reads, characterization
-tests, and planning may proceed while it is incomplete; new or changed
-production behavior may not. Unknown, unsearched, or conflicting
-ownership fails the gate. Renaming, relocating, or wrapping a duplicate does
-not satisfy it. R2/R3 work records the independent
-architecture/contract admission before implementation begins. The frozen exact
-candidate then receives the risk-appropriate independent review. Before the
-evidence commit, every admitted record becomes `final-complete`, binds the same
-`implementationHead` and `reviewedHead`, records the committed path-state
-digest and final-review evidence, and passes the repository validator. Each
-task must still exist as `design-active` at that reviewed head; finalization
-preserves all admitted design fields and changes only lifecycle/final-evidence
-fields. Final review assigns each governed path exactly once through optional
-`integrationPaths`, retaining every original mutable path, digest and review
-obligation. R3 continues to require its existing external firmware-owner or
-release-owner gate and authority-specific evidence; schema v2 cannot satisfy
-that authority. Committed final records are immutable archives and never open
-a later batch. The final evidence commit is the direct child of the reviewed
-head, changes no governed path, and advances the only valid checkpoint. Every
-later batch binds that checkpoint exactly, including committed changes; the
-validator never substitutes a worktree-only `git diff HEAD`. Complete Git
-history is a prerequisite for this validation.
+Before changing behavior outside the bounded local R1 path (including R2/R3),
+and before every formal integration admission, read and follow the complete
+[capability-reuse record contract](capability-reuse-record.md). It owns the
+staged-blob, schema, path coverage, immutable lifecycle, checkpoint/activation,
+merge normalization and external-attestation requirements; this runbook owns
+the execution sequence:
 
-An initial checkpoint is not self-authorized by a record. ADR 0059 requires a
-reviewed governance implementation and then an explicitly owner-approved
-direct-child activation commit. That activation adds one immutable manifest,
-binds the reviewed head/tree and every legacy record blob, deletes exactly that
-inventory, and changes nothing else. Until it exists, the validator reports a
-pending-checkpoint error. Only the inventoried pre-activation lifecycle is
-retired; legacy task IDs remain reserved and every post-activation change uses
-the ordinary lifecycle above.
-
-A `final-complete` record and the activation manifest cannot satisfy R3
-firmware-owner, release-owner, golden/byte, exact-range, signing, permission, or
-protected-environment gates. One complete typed attestation batch must bind the
-exact final-evidence head and contain only its declared external-authority
-evidence. Each later R3 task uses a new task ID and attestation; prior immutable
-attestations remain auditable. Missing, extra, altered, or wrong-head evidence
-fails closed.
-
-Do not repair a redundant containment merge by rewriting history, replacing
-records, adding a trusted SHA, or creating another checkpoint. Under ADR 0061,
-the canonical validator alone may normalize a candidate merge node after
-proving it has exactly two parents, its full tree equals exactly one parent,
-and the other parent is already contained in that tree-equivalent parent. It
-continues auditing both ancestries, and any lookup error or different topology
-fails closed.
+1. Complete owner search and stage the `design-active` admission before
+   implementation; R2/R3 require independent architecture/contract admission.
+   Unknown, unsearched or conflicting ownership blocks production changes.
+   Renaming, relocating or wrapping a duplicate does not satisfy reuse.
+   Diagnostic reads, characterization tests and planning may proceed while
+   admission is incomplete.
+2. Implement and test the admitted scope, then commit and independently review
+   the frozen exact head as required by risk.
+3. Finalize the admitted records against that reviewed head under the contract,
+   stage them, and pass the repository validator before the evidence commit.
+4. Commit the final evidence as the reviewed head's direct child. R3 external
+   authority and evidence remain separate prerequisites, never supplied by a
+   record or reviewer verdict.
 
 ## Narrow test selection
 

@@ -16,10 +16,9 @@ Follow the mandatory verdict and waiver policy in
    A diff that adds, changes, moves, wraps, splits, replaces, or refactors
    production behavior, a semantic branch, or an owner contract without the applicable
    [capability-reuse gate evidence](../../../docs/governance/development-execution-workflow.md#capability-reuse-gate-fail-closed)
-   is a P1 finding even when its tests pass. For eligible bounded local R1 work,
-   inspect its owner/scope/base/paths and test evidence; do not invent a new JSON
-   record requirement or repeated sequencing waiver. R2/R3 design admission and
-   formal candidate record checks remain unchanged.
+   is a P1 finding even when its tests pass. Follow that gate's applicability
+   rules when selecting local R1 evidence or recorded admission/integration
+   evidence.
    For every added readiness calculation, validator, normalizer, or policy
    branch, trace its canonical producer. Treat re-deriving profile/compiler,
    inspector, session, or processor facts in Application/Bootstrap/UI as

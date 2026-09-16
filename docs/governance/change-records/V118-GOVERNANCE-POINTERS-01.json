@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 2,
+  "taskId": "V118-GOVERNANCE-POINTERS-01",
+  "capability": "Deduplicate workflow and skill instructions through the existing record contract",
+  "integrationBase": "61d205d97c7e75c865df25b5cbaba0289ed3f5de",
+  "risk": "R2",
+  "kind": "governance",
+  "state": "design-active",
+  "mutablePaths": [
+    "docs/governance/development-execution-workflow.md",
+    ".agents/skills/implement/SKILL.md",
+    ".agents/skills/polytail/SKILL.md"
+  ],
+  "implementationOwner": "/root",
+  "searchEvidence": [
+    "Compared the workflow recorded-design section with capability-reuse-record.md lifecycle, checkpoint, activation, merge and external-authority rules.",
+    "Compared implement and polytail gate summaries with the workflow bounded-R1 and recorded-design branches.",
+    "Independent reviewer found no prose assertions for the changed paragraphs; existing test_agent_governance.py checks skill path classification. Headings, anchors and metadata remain unchanged."
+  ],
+  "semanticOwner": "capability-reuse-record.md owns record mechanics; development-execution-workflow.md owns execution order and bounded R1 admission",
+  "terminalContract": "Read and follow the existing record contract before recorded admission and formal integration. Preserve pre-implementation admission, unknown-owner rejection, independent R2/R3 review, external authority, fixed-head/finalize/validate/evidence ordering, and Polytail P1 for missing admission. No executable policy changes.",
+  "disposition": "reuse",
+  "designReview": {
+    "reviewer": "/root/v117_final_review",
+    "outcome": "approved",
+    "evidence": "Independent R2 design PASS limited to three documents. Require mandatory read-and-follow pointer, unchanged headings and metadata, diagnostic/characterization allowance, R1 scope, P1 missing-admission severity and validation before evidence commit. Diff/link, existing governance tests and structure checks suffice locally."
+  },
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": {"reviewer": null, "outcome": "pending", "evidence": ""}
+}

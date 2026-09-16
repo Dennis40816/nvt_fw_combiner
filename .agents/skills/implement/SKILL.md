@@ -12,8 +12,7 @@ the nearest `AGENTS.md`. Implement only owner-approved scope.
    non-goals, mutable surfaces, evidence gates, narrow test, and final gate.
 2. Complete the applicable local R1 preflight or recorded design admission in the
    [capability-reuse gate](../../../docs/governance/development-execution-workflow.md#capability-reuse-gate-fail-closed)
-   before changing behavior. Use its bounded local R1 path when eligible;
-   unfinished integration records alone do not require a fresh local waiver.
+   before changing behavior; follow that gate's R1/R2/R3 applicability rules.
    Inventory existing semantic producers, callers,
    ports/adapters, tests, and duplicate-risk helpers; record the owner or exact
    `none-found` evidence and the approved disposition. A projection may
