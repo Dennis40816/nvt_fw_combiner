@@ -21,7 +21,7 @@ decisions**. Do not guess it and do not call the draft implementation-ready.
 Include:
 
 1. Problem and intended outcome.
-2. Three to eight necessary user stories.
+2. Necessary user stories or concrete observable behaviors, without a numeric quota.
 3. Scope and explicit non-goals.
 4. Canonical owners and affected layers/workflows/ICs.
 5. Functional and failure requirements.

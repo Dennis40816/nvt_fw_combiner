@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 2,
+  "taskId": "V118-GOVERNANCE-SCOPE-CLEANUP-01",
+  "capability": "Remove obsolete audit carryover and disproportionate instruction scope",
+  "integrationBase": "4c66e8737c608c83c460b7915b76cfaceb72da65",
+  "risk": "R2",
+  "kind": "governance",
+  "state": "design-active",
+  "mutablePaths": [
+    ".agents/skills/code-review/SKILL.md",
+    ".agents/skills/nfc-architecture-change/SKILL.md",
+    ".agents/skills/grill-with-docs/SKILL.md",
+    ".agents/skills/to-spec/SKILL.md",
+    "docs/governance/development-execution-workflow.md",
+    "docs/governance/agent-skill-routing.md"
+  ],
+  "implementationOwner": "/root",
+  "searchEvidence": [
+    "Owner requested review and deletion of outdated or unnecessarily limiting governance on 2026-09-16.",
+    "Root task-scoping rules already require affected-authority inspection rather than repository-wide audit for every local task.",
+    "Code-review rejects empty diffs without a snapshot-audit path; to-spec requires three to eight stories; architecture/grill wording invites unrelated whole-document and IC inventories.",
+    "Workflow recurring audit explicitly belongs to the 0.10.x restructuring program; the 20260729 historical audit records its three-ticket cadence. Current roadmap assigns workflow proportionality to 1.1.8.",
+    "No exact wording assertions found for the affected paragraphs in scripts or tests. Existing skill inventory and governance admission tests remain applicable."
+  ],
+  "semanticOwner": "Existing skill owners and development-execution-workflow/agent-skill-routing",
+  "terminalContract": "Bound snapshot audits separately from fixed-diff change reviews; inspect affected authority and expand on concrete dependencies or contradictions; use necessary behavioral examples without numeric story quotas; keep historical 0.10.x cadence out of ordinary 1.x work. Preserve approval, admission, independent review, bidirectional trace, firmware/Golden/security/release gates and all historical evidence.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "/root/v117_final_review",
+    "outcome": "approved",
+    "evidence": "R2 design PASS for six paths: snapshot scope/commit/question required and never substitutes for change review; relevant invariants, counterexamples, direct dependencies, contradiction escalation and external gates retained; remove only story quota and unrelated scope; historical audit is evidence, not proof of closed gates."
+  },
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": {"reviewer": null, "outcome": "pending", "evidence": ""}
+}

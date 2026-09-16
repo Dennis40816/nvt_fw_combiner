@@ -28,13 +28,15 @@ CRC/header behavior, evidence, support, release authority, or permissions.
 
 ## Workflow routes
 
-- Report current `0.10.x` completion, weighted program progress, and the
-  dependency-ready frontier with `$assess-refactor-progress`; GitHub remains
-  the sole live completion source.
+- Use `$assess-refactor-progress` for an explicitly requested `0.10.x` program
+  review; its weighted progress model is not the default for current 1.x work.
+  GitHub remains that program's live completion source.
 - Diagnose with `$diagnosing-bugs`; diagnosis alone does not authorize a fix.
 - Implement approved scope with `$implement`, including its
   red-green-refactor loop.
-- Review one fixed diff with `$code-review` and scoped `$polytail`.
+- Review changes as a fixed diff with `$code-review` and scoped `$polytail`.
+  For a current-state audit, pin the commit, subsystem/files and audit question;
+  that audit does not replace change admission or fixed-diff review.
 - Use `$grilling` when the owner explicitly requests a decision interview.
 - Use `$grill-with-docs` whenever an NFC specification, architecture, or
   terminology discussion still has owner decisions. It composes `$grilling`,
