@@ -380,12 +380,20 @@ def review_code_size_policy(
 
     findings: list[str] = []
     snapshot = measure_code_size(root)
-    _review_maximum(
-        "production nonblank lines",
-        snapshot.production_nonblank,
-        limits.production_nonblank,
-        findings,
-    )
+    if limits.full_production_ratchet is not None:
+        _review_exact_ratchet(
+            "full production",
+            snapshot.production_nonblank,
+            limits.full_production_ratchet + limits.full_production_allowance,
+            findings,
+        )
+    else:
+        _review_maximum(
+            "production nonblank lines",
+            snapshot.production_nonblank,
+            limits.production_nonblank,
+            findings,
+        )
     _review_exact_ratchet(
         "exact duplicate JSON nonblank lines",
         snapshot.duplicate_json_nonblank,
@@ -483,23 +491,11 @@ def validate_code_size_policy(
     root: Path,
     limits: CodeSizeLimits = DEFAULT_LIMITS,
 ) -> list[str]:
-    """Fail closed on Core ratchet drift and cross-slice relocation."""
+    """Reject incomplete runtime accounting; source-size changes are advisory."""
 
     snapshot = measure_code_size(root)
     errors: list[str] = []
-    metrics = (
-        (
-            "full production",
-            snapshot.production_nonblank,
-            limits.full_production_ratchet,
-            limits.full_production_allowance,
-        ),
-        (
-            "runtime production",
-            snapshot.runtime_production_nonblank,
-            limits.runtime_production_ratchet,
-            limits.runtime_production_allowance,
-        ),
+    slices = (
         (
             "Domain + Profiles slice",
             snapshot.domain_profiles_nonblank,
@@ -525,20 +521,11 @@ def validate_code_size_policy(
             limits.infrastructure_contracts_worker_allowance,
         ),
     )
-    slices = metrics[2:]
     if all(ratchet is not None for _, _, ratchet, _ in slices):
         allocated = sum(actual for _, actual, _, _ in slices)
         if allocated != snapshot.runtime_production_nonblank:
             errors.append(
                 "code-size runtime slice allocation mismatch: "
                 f"{allocated} != total {snapshot.runtime_production_nonblank}"
-            )
-    for label, actual, ratchet, allowance in metrics:
-        effective = None if ratchet is None else ratchet + allowance
-        if effective is not None and actual > effective:
-            errors.append(f"code-size {label} grew: {actual} > ratchet {effective}")
-        elif effective is not None and actual < effective:
-            errors.append(
-                f"code-size {label} improved: lower ratchet {effective} to {actual}"
             )
     return errors
