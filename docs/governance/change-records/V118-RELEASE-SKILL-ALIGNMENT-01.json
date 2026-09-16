@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 2,
+  "taskId": "V118-RELEASE-SKILL-ALIGNMENT-01",
+  "capability": "Align release guidance with the existing candidate and promotion workflow",
+  "integrationBase": "927bea190c10f2246f43543d95a3e663f707f5f7",
+  "risk": "R2",
+  "kind": "governance",
+  "state": "design-active",
+  "mutablePaths": [".agents/skills/release-readiness/SKILL.md"],
+  "implementationOwner": "/root",
+  "searchEvidence": [
+    "Owner approved correcting the two release-readiness discrepancies: annotated-tag dispatch ordering and an unnecessary preview-package prerequisite.",
+    "Existing skill lines 19 and 66 conflict with docs/ci/release-package.md Implemented commands: main-package is a manual preview, whereas release.yml admits exact source CI, builds/verifies candidate, then protected promotion creates the annotated tag and Release.",
+    "release.yml workflow_dispatch uses protected main definition and approved exact source SHA/final merged PR; source verification uses release-golden for current versions, promote declares environment release, and tag/Release writes belong only to promotion.",
+    "Package contract owns stage-specific same-run tag recovery, immutable Release behavior, complete candidate assets and fresh independent download verification. Branch/version governance owns source and review admission.",
+    "Classifier confirms the single skill path is governed R2. Existing skill inventory validates metadata/routing; no release-guidance wording assertion was found in that inventory. No executable, workflow, version, artifact or contract changes are planned."
+  ],
+  "semanticOwner": "Existing release-package contract and protected release.yml candidate/promotion owners",
+  "terminalContract": "Skill directs exact-source CI, candidate Golden/package/smoke, protected approval, workflow-only tag and complete immutable asset publication, then independent verification. Manual preview is neither an extra stable prerequisite nor a replacement. Preserve approved source exceptions, stage/run identity recovery, Golden, permission, clean-machine and evidence gates; grant no publication authority.",
+  "disposition": "reuse",
+  "designReview": {
+    "reviewer": "/root/v117_final_review",
+    "outcome": "approved",
+    "evidence": "Independent R2 PASS for single-file guidance alignment. Distinguish protected-main workflow authority from approved release source, intended tag from subsequently peeled identity, complete workflow-owned publication from manual upload, and contract-bound same-run recovery from a new stable run. Retain all external gates; no R3 policy or publication change. Metadata/inventory, classifier/links, fixed-head review and staged-final structure are sufficient."
+  },
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": {"reviewer": null, "outcome": "pending", "evidence": ""}
+}
