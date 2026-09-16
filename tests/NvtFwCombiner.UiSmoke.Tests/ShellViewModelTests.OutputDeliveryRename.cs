@@ -156,8 +156,8 @@ public sealed partial class FirmwareInspectionSlotTests
             window.MouseMove(disclosure.TranslatePoint(new Point(17, 17), window)!.Value, RawInputModifiers.None);
             Dispatcher.UIThread.RunJobs();
             Assert.Equal(0, Assert.IsType<ISolidColorBrush>(disclosureSurface.Background, exactMatch: false).Color.A);
-            Assert.Equal(3, modal.FindControl<Control>("SourcesExpandedChevron")!.RenderTransform!.Value.M32);
-            Assert.Equal(3, modal.FindControl<Control>("SourcesCollapsedChevron")!.RenderTransform!.Value.M32);
+            Assert.Null(modal.FindControl<Control>("SourcesExpandedChevron")!.RenderTransform);
+            Assert.Null(modal.FindControl<Control>("SourcesCollapsedChevron")!.RenderTransform);
             window.MouseMove(new Point(5, 5), RawInputModifiers.None);
             Assert.True(modal.FindControl<Control>("SourcesExpandedChevron")!.IsVisible);
             Assert.False(modal.FindControl<Control>("SourcesCollapsedChevron")!.IsVisible);
@@ -188,8 +188,8 @@ public sealed partial class FirmwareInspectionSlotTests
             Assert.Equal("delivery-folder", viewModel.OutputDelivery.BundleFolderName);
             double editLeft = edit.TranslatePoint(default, window)!.Value.X;
             double disclosureLeft = disclosure.TranslatePoint(default, window)!.Value.X;
-            Assert.True(editLeft < disclosureLeft, "The pencil must precede the far-right disclosure.");
-            Assert.Empty(disclosure.GetVisualDescendants().OfType<TextBlock>());
+            Assert.True(editLeft > disclosureLeft, "The pencil stays at the filename's right edge; source disclosure belongs below on the left.");
+            _ = Assert.Single(disclosure.GetVisualDescendants().OfType<TextBlock>());
             Assert.InRange(Math.Abs(
                 input.TranslatePoint(default, window)!.Value.Y + (input.Bounds.Height / 2) -
                 (edit.TranslatePoint(default, window)!.Value.Y + (edit.Bounds.Height / 2))), 0, 1);

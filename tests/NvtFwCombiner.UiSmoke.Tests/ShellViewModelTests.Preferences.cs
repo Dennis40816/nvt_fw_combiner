@@ -114,7 +114,8 @@ public sealed partial class ShellNavigationSystemTests
             Assert.Equal("Strict", entry.GetProperty("Strictness").GetString());
             Assert.Equal("Traditional Chinese", entry.GetProperty("Language").GetString());
             Assert.True(entry.GetProperty("IsReducedMotionEnabled").GetBoolean());
-            Assert.Equal(4, entry.EnumerateObject().Count());
+            Assert.False(entry.GetProperty("ExpandInputDetailsByDefault").GetBoolean());
+            Assert.Equal(5, entry.EnumerateObject().Count());
         }
 
         ShellPreferenceSnapshot loaded = LoadPreferences(preferencesPath);
@@ -163,6 +164,7 @@ public sealed partial class ShellNavigationSystemTests
         Assert.Equal("Light", defaultViewModel.SelectedTheme);
         Assert.Equal("English", defaultViewModel.SelectedLanguage);
         Assert.False(defaultViewModel.IsReducedMotionEnabled);
+        Assert.False(defaultViewModel.ExpandInputDetailsByDefault);
 
         defaultViewModel.LoadShellPreferences(new ShellPreferenceSnapshot("System", "English"));
 

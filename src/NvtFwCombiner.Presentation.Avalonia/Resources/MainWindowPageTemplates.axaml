@@ -494,6 +494,19 @@
                       IsChecked="{Binding IsReducedMotionEnabled, Mode=TwoWay}" />
                 </Grid>
               </Border>
+              <Border Classes="compactSubtleSurface settingsOptionRow">
+                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="{DynamicResource NfcSpace16}">
+                  <StackPanel Spacing="{DynamicResource NfcSpace2}">
+                    <TextBlock Classes="strongText" Text="{Binding Text.ExpandInputDetailsLabel}" />
+                    <TextBlock Classes="supportingText" Text="{Binding Text.ExpandInputDetailsDescription}" TextWrapping="Wrap" />
+                  </StackPanel>
+                  <ToggleSwitch
+                      Grid.Column="1"
+                      VerticalAlignment="Center"
+                      AutomationProperties.Name="{Binding Text.ExpandInputDetailsLabel}"
+                      IsChecked="{Binding ExpandInputDetailsByDefault, Mode=TwoWay}" />
+                </Grid>
+              </Border>
             </StackPanel>
           </Border>
         </StackPanel>

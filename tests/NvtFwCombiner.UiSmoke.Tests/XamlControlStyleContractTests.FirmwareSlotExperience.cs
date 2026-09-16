@@ -90,7 +90,7 @@ public sealed partial class XamlControlStyleContractTests
             "<UniformGrid Columns=\"{Binding FactColumnCount, ElementName=Root}\""));
         Assert.DoesNotContain("Rows=", slotCard, StringComparison.Ordinal);
         Assert.Contains("Classes=\"firmwareSlotFact\"", factTemplate, StringComparison.Ordinal);
-        Assert.Contains("Padding=\"0,0,16,0\"", factTemplate, StringComparison.Ordinal);
+        Assert.Contains("Padding=\"0,4,16,4\"", factTemplate, StringComparison.Ordinal);
         Assert.DoesNotContain("BorderThickness=", factTemplate, StringComparison.Ordinal);
         Assert.DoesNotContain("CornerRadius=", factTemplate, StringComparison.Ordinal);
         Assert.Contains("Orientation=\"Vertical\"", factTemplate, StringComparison.Ordinal);

@@ -188,6 +188,16 @@ internal sealed partial class MergePresentationViewModel
     internal async Task<bool> ReapplyAbMergeConfigurationAsync()
     {
         ClearAbMergeActionReadiness();
+        foreach (FirmwareSlotViewModel slot in AbMergeSlots)
+        {
+            if (slot.CurrentInspectionProjection is not { AbMergeFacts.EventBufferFormat: not null } previous) { continue; }
+            FirmwareInspectionSnapshot pending = previous with
+            {
+                AbMergeFacts = previous.AbMergeFacts with { EventBufferFormat = null },
+            };
+            slot.SetCurrentInspectionProjection(pending);
+            FirmwareInspectionProjection.ApplyAbInputFacts(slot, pending, Text);
+        }
         RefreshCommandState();
         try
         {
@@ -224,7 +234,8 @@ internal sealed partial class MergePresentationViewModel
                 {
                     InputSlotStatus = status,
                     InputSlotCatalog = result.Inspection.Catalog,
-                    AbMergeFacts = new(status.AddressSpaceId, status.Observation.Versions),
+                    AbMergeFacts = result.AbMergeFacts.GetValueOrDefault(slot.SlotId) ??
+                        new(status.AddressSpaceId, status.Observation.Versions),
                     AuthoringCompilationIssues = [],
                 };
                 slot.SetCurrentInspectionProjection(updated);

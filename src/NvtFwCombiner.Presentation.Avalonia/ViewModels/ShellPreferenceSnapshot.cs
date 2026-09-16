@@ -4,8 +4,9 @@ namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 internal sealed record ShellPreferenceSnapshot(
     string Theme,
     string Language,
-    bool IsReducedMotionEnabled = false)
+    bool IsReducedMotionEnabled = false,
+    bool ExpandInputDetailsByDefault = false)
 {
     /// <summary>Gets the fail-closed default shell preferences.</summary>
-    public static ShellPreferenceSnapshot Default { get; } = new("Light", "English", false);
+    public static ShellPreferenceSnapshot Default { get; } = new("Light", "English", false, false);
 }

@@ -4,6 +4,7 @@ using NvtFwCombiner.Application.Configuration;
 using NvtFwCombiner.Application.ExternalTools;
 using NvtFwCombiner.Application.Ports;
 using NvtFwCombiner.Domain.Composition;
+using NvtFwCombiner.Domain.Firmware;
 using System.Text.Json;
 using NvtFwCombiner.Infrastructure.ExternalTools;
 using NvtFwCombiner.Infrastructure.Files;
@@ -15,6 +16,211 @@ namespace NvtFwCombiner.Bootstrap.Tests;
 /// <summary>The real host must apply its saved configuration to AB preparation, not only to a pure helper.</summary>
 public sealed class AbMergeFormatRuntimeTests
 {
+    /// <summary>Cascade's selected lower bound is not presented as an observed exact count for independent A/B banks.</summary>
+    [Theory]
+    [InlineData(0x97, 3, TopologyRequirementKind.Cascade)]
+    [InlineData(0x84, 2, TopologyRequirementKind.ExactCount)]
+    public async Task OutputConfirmationRetainsCompiledTopologyConstraintAsync(byte format, byte bCount, TopologyRequirementKind expectedKind)
+    {
+        using TempWorkspace workspace = TempWorkspace.Create("confirmation-topology");
+        CompositionHostServices host = CompositionHostServices.Create(new ExternalProcessorEnvironmentLoader(),
+            loadPolicy: null, configurationPath: workspace.PathFor("format.json"));
+        IEventBufferFormatConfigurationSession configuration = await host.GetEventBufferFormatConfigurationAsync(TestContext.Current.CancellationToken);
+        Assert.True((await configuration.SaveAsync(configuration.CreateDefaultsDraft(), TestContext.Current.CancellationToken)).Succeeded);
+        CompiledAuthoringSessionPreparation prepared = await host.AbMergeAuthoring.PrepareSessionAsync(
+            new AuthoringSessionState(ExperienceIds.AbMerge), "NT51950", "cascade",
+            [new("tp-a-input", workspace.PathFor("a.bin"), CreateTp(format, 2)), new("tp-b-input", workspace.PathFor("b.bin"), CreateTp(format, bCount))],
+            AbMergeDpMode.Dummy, TestContext.Current.CancellationToken);
+        Assert.True(prepared.Succeeded);
+        CompositionOutputBundleProposal proposal = await host.CompositionOutputNaming.PrepareBundleProposalAsync(prepared.Snapshot!, TestContext.Current.CancellationToken);
+        TopologyRequirement requirement = Assert.IsType<TopologyRequirement>(proposal.Confirmation!.TopologyRequirement);
+        Assert.Equal(expectedKind, requirement.Kind);
+        Assert.Equal(expectedKind == TopologyRequirementKind.ExactCount ? 2 : null, requirement.ExactChipCount);
+        Assert.Same(prepared.Snapshot!.ExactCapability!.CompiledComposition.V2Details.Provenance.ResolvedMap.ImageMap.Applicability.TopologyRequirement,
+            requirement);
+    }
+
+    /// <summary>Confirmation retains real output capacity and per-binding primary evidence without reopening or double-counting delivery sources.</summary>
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task OutputConfirmationKeepsPerBindingFactsAndExactOutputSizeAsync(bool sameFile)
+    {
+        using TempWorkspace workspace = TempWorkspace.Create("output-confirmation-facts");
+        CompositionHostServices host = CompositionHostServices.Create(new ExternalProcessorEnvironmentLoader(),
+            loadPolicy: null, configurationPath: workspace.PathFor("format.json"));
+        IEventBufferFormatConfigurationSession configuration = await host.GetEventBufferFormatConfigurationAsync(TestContext.Current.CancellationToken);
+        Assert.True((await configuration.SaveAsync(configuration.CreateDefaultsDraft(), TestContext.Current.CancellationToken)).Succeeded);
+        var session = new AuthoringSessionState(ExperienceIds.AbMerge);
+        string a = workspace.PathFor("never-created-a.bin");
+        string b = sameFile ? a : workspace.PathFor("never-created-b.bin");
+        CompiledAuthoringSessionPreparation prepared = await host.AbMergeAuthoring.PrepareSessionAsync(session, "NT51950", "single",
+            [new("tp-a-input", a, CreateTp(0x97, 1)), new("tp-b-input", b, CreateTp(sameFile ? (byte)0x97 : (byte)0xA6, 1))],
+            AbMergeDpMode.Dummy, TestContext.Current.CancellationToken);
+        Assert.True(prepared.Succeeded);
+        CompositionOutputBundleProposal proposal = await host.CompositionOutputNaming.PrepareBundleProposalAsync(
+            prepared.Snapshot!, TestContext.Current.CancellationToken);
+        CompositionOutputConfirmationSummary summary = Assert.IsType<CompositionOutputConfirmationSummary>(proposal.Confirmation);
+        Assert.Equal("NT51950", summary.IcId);
+        Assert.Equal(ExperienceIds.AbMerge, summary.WorkflowId);
+        Assert.Equal(1, summary.Topology!.ChipCount);
+        Assert.Equal(0x100000, summary.OutputLengthBytes);
+        Assert.Equal("desay", summary.Format!.FormatId);
+        Assert.Equal("Desay", summary.Format.DisplayName);
+        Assert.True(summary.HasGeneratedInputs);
+        Assert.Equal(sameFile ? 1 : 2, proposal.Sources.Count);
+        Assert.Equal(2, summary.Inputs.Count);
+        Assert.Equal<string>(["tp-a-input", "tp-b-input"], summary.Inputs.Select(static input => input.BindingId));
+        Assert.Equal<byte>([0x97, sameFile ? (byte)0x97 : (byte)0xA6], summary.Inputs.Select(static input => input.EventBufferFormat!.RawByte));
+        Assert.All(summary.Inputs, input =>
+        {
+            AuthoringInputSlotStatus acceptedStatus = prepared.Snapshot!.InputSlotStatuses.Single(status => status.AddressSpaceId == input.BindingId);
+            Assert.Equal(0x37000, input.SizeBytes);
+            Assert.Equal(acceptedStatus.Inspection!.ExpectedOuterLengths, input.ExpectedLengths);
+            Assert.Same(acceptedStatus.Inspection, input.Inspection);
+            Assert.Equal(acceptedStatus.FileStamp!.Value.Sha256, input.Sha256);
+            Assert.Equal(acceptedStatus.InspectionAdvisories, input.InspectionAdvisories);
+            Assert.Equal(input.BindingId, input.EventBufferFormat!.ArtifactIdentity.ArtifactId);
+            Assert.Equal(0x22200, input.EventBufferFormat.PrimaryRange.Range.Start);
+            Assert.Equal(summary.Format.ConfigurationSourceSha256, input.EventBufferFormat.ConfigurationSourceSha256);
+        });
+        Assert.Equal(host.CompositionOutputNaming.ResolveAcceptedOutput(prepared.Snapshot!).OutputName.FileName,
+            proposal.OutputPreparation.OutputName.FileName);
+        Assert.False(File.Exists(a));
+        Assert.False(File.Exists(b));
+        Assert.True(await host.CompositionOutputNaming.IsProposalCurrentAsync(proposal, TestContext.Current.CancellationToken));
+        Assert.True(await host.CompositionOutputNaming.IsProposalCurrentAsync(proposal, TestContext.Current.CancellationToken));
+    }
+
+    /// <summary>Alias-only and rule changes both invalidate an open confirmation; unchanged reload generations do not.</summary>
+    [Theory]
+    [InlineData("alias")]
+    [InlineData("rules")]
+    public async Task OutputConfirmationRejectsChangedConfigurationAsync(string change)
+    {
+        using TempWorkspace workspace = TempWorkspace.Create("output-confirmation-current");
+        CompositionHostServices host = CompositionHostServices.Create(new ExternalProcessorEnvironmentLoader(),
+            loadPolicy: null, configurationPath: workspace.PathFor("format.json"));
+        IEventBufferFormatConfigurationSession configuration = await host.GetEventBufferFormatConfigurationAsync(TestContext.Current.CancellationToken);
+        Assert.True((await configuration.SaveAsync(configuration.CreateDefaultsDraft(), TestContext.Current.CancellationToken)).Succeeded);
+        CompiledAuthoringSessionPreparation prepared = await host.AbMergeAuthoring.PrepareSessionAsync(
+            new AuthoringSessionState(ExperienceIds.AbMerge), "NT51950", "single",
+            [new("tp-a-input", workspace.PathFor("a.bin"), CreateTp(0x97, 1)), new("tp-b-input", workspace.PathFor("b.bin"), CreateTp(0xA6, 1))],
+            AbMergeDpMode.Dummy, TestContext.Current.CancellationToken);
+        Assert.True(prepared.Succeeded);
+        CompositionOutputBundleProposal proposal = await host.CompositionOutputNaming.PrepareBundleProposalAsync(prepared.Snapshot!, TestContext.Current.CancellationToken);
+        Assert.True(await host.CompositionOutputNaming.IsProposalCurrentAsync(proposal, TestContext.Current.CancellationToken));
+        Assert.True((await configuration.SaveAsync([.. configuration.CreateDefaultsDraft().Select(entry => change == "alias"
+            ? entry! with { AliasName = "Customer alias" } : entry! with { RecognitionValues = [] })],
+            TestContext.Current.CancellationToken)).Succeeded);
+        Assert.False(await host.CompositionOutputNaming.IsProposalCurrentAsync(proposal, TestContext.Current.CancellationToken));
+        Assert.Equal("Desay", proposal.Confirmation!.Format!.DisplayName);
+        if (change == "alias")
+        {
+            CompositionOutputBundleProposal refreshed = await host.CompositionOutputNaming.PrepareBundleProposalAsync(prepared.Snapshot!, TestContext.Current.CancellationToken);
+            Assert.Equal("Customer alias", refreshed.Confirmation!.Format!.DisplayName);
+        }
+    }
+
+    /// <summary>Legacy AB does not invent a format or include the optional A output in Flash output size.</summary>
+    [Fact]
+    public async Task LegacyOutputConfirmationKeepsFormatAbsentAndAdditionalDeliverySeparateAsync()
+    {
+        using TempWorkspace workspace = TempWorkspace.Create("legacy-confirmation");
+        CompositionHostServices host = CompositionHostServices.Create();
+        CompiledAuthoringSessionPreparation prepared = host.AbMergeAuthoring.PrepareSession(
+            new AuthoringSessionState(ExperienceIds.AbMerge), "NT51932", null,
+            [new("tp-a-input", workspace.PathFor("a.bin"), new byte[0x40000]), new("tp-b-input", workspace.PathFor("b.bin"), new byte[0x40000])], AbMergeDpMode.Dummy);
+        Assert.True(prepared.Succeeded);
+        CompositionOutputBundleProposal proposal = await host.CompositionOutputNaming.PrepareBundleProposalAsync(prepared.Snapshot!, TestContext.Current.CancellationToken);
+        Assert.Null(proposal.Confirmation!.Format);
+        Assert.Equal(0x80000, proposal.Confirmation.OutputLengthBytes);
+        Assert.All(proposal.Confirmation.Inputs, static input => Assert.Null(input.EventBufferFormat));
+        Assert.NotEmpty(proposal.OutputPreparation.AdditionalDeliveries);
+        Assert.True(await host.CompositionOutputNaming.IsProposalCurrentAsync(proposal, TestContext.Current.CancellationToken));
+    }
+
+    /// <summary>DP actual/expected source lengths and warnings stay in the input facts, never replacing Flash output length.</summary>
+    [Theory]
+    [InlineData(0x100000)]
+    [InlineData(0x100010)]
+    public async Task OutputConfirmationPreservesDpInspectionExpectationsAsync(int dpLength)
+    {
+        using TempWorkspace workspace = TempWorkspace.Create("confirmation-dp-expectation");
+        CompositionHostServices host = CompositionHostServices.Create(new ExternalProcessorEnvironmentLoader(),
+            loadPolicy: null, configurationPath: workspace.PathFor("format.json"));
+        IEventBufferFormatConfigurationSession configuration = await host.GetEventBufferFormatConfigurationAsync(TestContext.Current.CancellationToken);
+        Assert.True((await configuration.SaveAsync(configuration.CreateDefaultsDraft(), TestContext.Current.CancellationToken)).Succeeded);
+        CompiledAuthoringSessionPreparation prepared = await host.AbMergeAuthoring.PrepareSessionAsync(
+            new AuthoringSessionState(ExperienceIds.AbMerge), "NT51950", "single",
+            [new("dp-ab-input", workspace.PathFor("dp.bin"), new byte[dpLength]),
+             new("tp-a-input", workspace.PathFor("a.bin"), CreateTp(0x97, 1)), new("tp-b-input", workspace.PathFor("b.bin"), CreateTp(0xA6, 1))],
+            AbMergeDpMode.Normal, TestContext.Current.CancellationToken);
+        Assert.True(prepared.Succeeded);
+        CompositionOutputBundleProposal proposal = await host.CompositionOutputNaming.PrepareBundleProposalAsync(prepared.Snapshot!, TestContext.Current.CancellationToken);
+        CompositionOutputInputSummary dp = Assert.Single(proposal.Confirmation!.Inputs, static input => input.SlotId == "dp-ab-input");
+        Assert.Equal(dpLength, dp.SizeBytes);
+        Assert.Equal<long>([0x100000], dp.ExpectedLengths);
+        Assert.Equal(0x100000, proposal.Confirmation.OutputLengthBytes);
+        Assert.Null(dp.EventBufferFormat);
+        Assert.False(proposal.Confirmation.HasGeneratedInputs);
+        Assert.Equal(3, proposal.Sources.Count);
+        if (dpLength != 0x100000) { Assert.Equal(AuthoringSlotLifecycle.Warning, dp.InspectionLifecycle); }
+        using var cancellation = new CancellationTokenSource();
+        cancellation.Cancel();
+        _ = await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
+            host.CompositionOutputNaming.PrepareBundleProposalAsync(prepared.Snapshot!, cancellation.Token).AsTask());
+        _ = await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
+            host.CompositionOutputNaming.IsProposalCurrentAsync(proposal, cancellation.Token).AsTask());
+    }
+
+    /// <summary>Only a successfully admitted primary format is projected, with independent A/B input provenance.</summary>
+    [Theory]
+    [InlineData("valid")]
+    [InlineData("unsaved")]
+    [InlineData("short-primary")]
+    [InlineData("mismatch")]
+    public async Task InputFormatFactsRequireSuccessfulAdmissionAsync(string state)
+    {
+        using TempWorkspace workspace = TempWorkspace.Create("ab-input-format-facts");
+        CompositionHostServices host = CompositionHostServices.Create(new ExternalProcessorEnvironmentLoader(),
+            loadPolicy: null, configurationPath: workspace.PathFor("format.json"));
+        IEventBufferFormatConfigurationSession configuration = await host.GetEventBufferFormatConfigurationAsync(TestContext.Current.CancellationToken);
+        if (state != "unsaved")
+        {
+            Assert.True((await configuration.SaveAsync(configuration.CreateDefaultsDraft(), TestContext.Current.CancellationToken)).Succeeded);
+        }
+        byte[] a = state == "short-primary" ? new byte[0x22200] : CreateTp(0x97, 1);
+        byte[] b = CreateTp(state == "mismatch" ? (byte)0x84 : (byte)0xA6, 1);
+        AbMergeInspectionBatch result = await ((AbMergeAuthoringExperience)host.AbMergeAuthoring).InspectInputSlotsAsync("NT51950",
+            [new("a", "a.bin", AbMergeAddressSpaceId: "tp-a-input", AbMergeTopologyToken: "single", AbMergeDpMode: AbMergeDpMode.Dummy),
+             new("b", "b.bin", AbMergeAddressSpaceId: "tp-b-input", AbMergeTopologyToken: "single", AbMergeDpMode: AbMergeDpMode.Dummy)],
+            path => path == "a.bin" ? a : b, TestContext.Current.CancellationToken);
+        Assert.Equal(2, result.Facts.Count);
+        if (state != "valid")
+        {
+            Assert.NotEmpty(result.Issues);
+            Assert.All(result.Facts.Values, static facts => Assert.Null(facts.EventBufferFormat));
+            return;
+        }
+        Assert.Empty(result.Issues);
+        foreach ((string id, string space, byte raw, byte[] bytes) in new[]
+        {
+            ("a", "tp-a-input", (byte)0x97, a), ("b", "tp-b-input", (byte)0xA6, b),
+        })
+        {
+            EventBufferFormatObservation format = Assert.IsType<EventBufferFormatObservation>(result.Facts[id].EventBufferFormat);
+            Assert.Equal(raw, format.RawByte);
+            Assert.Equal("desay", format.FormatId);
+            Assert.Equal("Desay", format.DisplayName);
+            Assert.Equal(space, format.ArtifactIdentity.ArtifactId);
+            Assert.Equal(FileStamp.FromBytes(bytes).Sha256, format.ArtifactIdentity.Sha256);
+            Assert.Equal(0x22200, format.PrimaryRange.Range.Start);
+            Assert.Contains("primary", format.PrimaryStructureId, StringComparison.OrdinalIgnoreCase);
+            Assert.Equal(configuration.Current.SourceSha256, format.ConfigurationSourceSha256);
+        }
+    }
+
     /// <summary>Retained source bytes are not admission: saving Config must still require every declared input.</summary>
     [Theory]
     [InlineData("complete")]
@@ -416,6 +622,7 @@ public sealed class AbMergeFormatRuntimeTests
         {
             CompiledAuthoringSessionPreparation result = Assert.IsType<CompiledAuthoringSessionPreparation>(await pending);
             Assert.False(result.Succeeded);
+            Assert.Empty(result.AbMergeFacts);
             if (mutation == "publication") { Assert.Contains(result.Issues, static issue => issue.Code == "AB_FORMAT_PUBLICATION_STALE"); }
             else { Assert.Equal(AuthoringSessionIssueCodes.StaleInspection, result.SessionIssue?.Code); }
         }
@@ -472,10 +679,11 @@ public sealed class AbMergeFormatRuntimeTests
             loadPolicy: null, configurationPath: workspace.PathFor("format.json"));
         IEventBufferFormatConfigurationSession configuration = await host.GetEventBufferFormatConfigurationAsync(TestContext.Current.CancellationToken);
         Assert.True((await configuration.SaveAsync(configuration.CreateDefaultsDraft(), TestContext.Current.CancellationToken)).Succeeded);
+        var session = new AuthoringSessionState(ExperienceIds.AbMerge);
         CompiledAuthoringSessionPreparation prepared = await host.AbMergeAuthoring.PrepareSessionAsync(
-            new AuthoringSessionState(ExperienceIds.AbMerge), "NT51950", "single",
+            session, "NT51950", "single",
             [new("tp-a-input", workspace.PathFor("never-created-a.bin"), CreateTp(0x97, 1)),
-             new("tp-b-input", workspace.PathFor("never-created-b.bin"), CreateTp(0x97, 1))],
+             new("tp-b-input", workspace.PathFor("never-created-b.bin"), CreateTp(0xA6, 1))],
             AbMergeDpMode.Dummy, TestContext.Current.CancellationToken);
         Assert.True(prepared.Succeeded);
         var owner = (AbMergeAuthoringExperience)host.AbMergeAuthoring;
@@ -496,6 +704,23 @@ public sealed class AbMergeFormatRuntimeTests
         Assert.True(second.ConfigurationGeneration > first.ConfigurationGeneration);
         Assert.Equal(first.MapId, second.MapId);
         Assert.Equal(aliasChange ? "My vendor" : first.DisplayName, second.DisplayName);
+        CompiledAuthoringSessionPreparation reapplied = Assert.IsType<CompiledAuthoringSessionPreparation>(
+            await owner.ReapplyAcceptedInputsAsync(session, TestContext.Current.CancellationToken));
+        Assert.True(reapplied.Succeeded);
+        foreach ((string slotId, byte raw) in new[] { ("tp-a-input", (byte)0x97), ("tp-b-input", (byte)0xA6) })
+        {
+            AbMergeInputFacts facts = reapplied.AbMergeFacts[slotId];
+            EventBufferFormatObservation format = Assert.IsType<EventBufferFormatObservation>(facts.EventBufferFormat);
+            Assert.Equal(raw, format.RawByte);
+            Assert.Equal("desay", format.FormatId);
+            Assert.Equal(aliasChange ? "My vendor" : first.DisplayName, format.DisplayName);
+            Assert.True(format.ConfigurationGeneration > first.ConfigurationGeneration);
+            Assert.Equal(configuration.Current.SourceSha256, format.ConfigurationSourceSha256);
+            Assert.Equal(slotId, format.ArtifactIdentity.ArtifactId);
+            Assert.Equal(FileStamp.FromBytes(CreateTp(raw, 1)).Sha256, format.ArtifactIdentity.Sha256);
+            Assert.Equal(0x22200, format.PrimaryRange.Range.Start);
+            Assert.Equal(prepared.Inspection!.Statuses[slotId].Observation.Versions, facts.Versions);
+        }
     }
 
     /// <summary>Policy-absent legacy AB performs no Config IO and still retains its accepted readiness.</summary>
@@ -632,7 +857,11 @@ public sealed class AbMergeFormatRuntimeTests
             IReadOnlyList<CompositionIssue> issues = inspection ? inspected!.Issues : prepared!.Issues;
             Assert.Contains(issues, static issue => issue.Code == "AB_FORMAT_PUBLICATION_STALE");
             Assert.Null(session.CurrentSnapshot?.ExactCapability);
-            if (inspection) { Assert.All(inspected!.Statuses.Values, static status => Assert.Null(status.AcceptedBytes)); }
+            if (inspection)
+            {
+                Assert.All(inspected!.Statuses.Values, static status => Assert.Null(status.AcceptedBytes));
+                Assert.All(inspected.Facts.Values, static facts => Assert.Null(facts.EventBufferFormat));
+            }
         }
     }
 
@@ -682,6 +911,7 @@ public sealed class AbMergeFormatRuntimeTests
             [new("tp-a-input", path, AbMergeAddressSpaceId: "tp-a-input", AuthoringRevision: started.Snapshot!.AuthoringRevision.Value,
                 ExactCapability: started.Snapshot.ExactCapability)], TestContext.Current.CancellationToken);
         AuthoringCapabilityCatalogSnapshot target = result.InspectionsById["tp-a-input"].InputSlotCatalog!;
+        Assert.Null(result.InspectionsById["tp-a-input"].AbMergeFacts!.EventBufferFormat);
         TestContext.Current.TestOutputHelper!.WriteLine($"source={started.Snapshot.CompilationFingerprint}; target={Assert.Single(target.Routes).CompilationFingerprint}");
         AuthoringSessionTransitionResult adopted = host.AbMergeAuthoring.AdoptInspectedBatch(session, target, started.Leases,
             result.InspectionsById.ToDictionary(static pair => pair.Key, static pair => pair.Value.InputSlotStatus!, StringComparer.Ordinal));

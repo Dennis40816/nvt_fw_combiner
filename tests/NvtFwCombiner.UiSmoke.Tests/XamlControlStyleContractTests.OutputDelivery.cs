@@ -24,7 +24,7 @@ public sealed partial class XamlControlStyleContractTests
         Assert.Contains("Command=\"{Binding CancelCommand}\"", modal, StringComparison.Ordinal);
         Assert.DoesNotContain("MinWidth=\"980\"", modal, StringComparison.Ordinal);
         Assert.Contains("NfcModalScrimBrush", modal, StringComparison.Ordinal);
-        Assert.Contains("ItemsSource=\"{Binding Sources}\"", modal, StringComparison.Ordinal);
+        Assert.Contains("ItemsSource=\"{Binding InputRows}\"", modal, StringComparison.Ordinal);
         Assert.Contains("x:Name=\"SourcesDisclosureToggle\"", modal, StringComparison.Ordinal);
         Assert.Contains("Classes=\"inlineDisclosure buildSettingsDisclosure\"", modal, StringComparison.Ordinal);
         Assert.Contains("IsChecked=\"{Binding AreSourcesExpanded}\"", modal, StringComparison.Ordinal);
@@ -63,7 +63,7 @@ public sealed partial class XamlControlStyleContractTests
         Assert.Contains("IsVisible=\"{Binding CtrlRamOptions.IsCtrlRamFirmwareVersionEditSelected}\"", modal, StringComparison.Ordinal);
         Assert.DoesNotContain("Classes=\"versionSummaryCard\"", modal, StringComparison.Ordinal);
         Assert.Contains("<ToolTip.Tip>", modal, StringComparison.Ordinal);
-        Assert.Contains("{Binding Size, StringFormat='{}{0:N0} bytes'}", modal, StringComparison.Ordinal);
+        Assert.Contains("{Binding Size}", modal, StringComparison.Ordinal);
         Assert.Contains("Text=\"{Binding Sha256}\"", modal, StringComparison.Ordinal);
         Assert.DoesNotContain("Classes=\"insetSurface\" Margin=\"0,0,0,6\"", modal, StringComparison.Ordinal);
         Assert.Contains("Classes=\"semanticAction primary action\"", modal, StringComparison.Ordinal);

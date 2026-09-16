@@ -7,7 +7,71 @@ assignments, use the [canonical roadmap](docs/architecture/nfc_roadmap.md).
 
 ## [Unreleased]
 
-Remaining Information and output-confirmation redesign is allocated to v1.1.7.
+## [1.1.7] - 2026-09-16
+
+### Summary
+
+Firmware information is easier to scan, and Build settings separates the Flash
+output from source checks and optional delivery artifacts. Existing firmware
+layouts, output naming, integrity processing and support status are unchanged.
+
+### Product changes
+
+#### Firmware information and Details preference
+
+- Before → After: input facts now prioritize TP version, PID and Common FW
+  version, followed by the admitted Event Buffer Version when available.
+  AB inputs retain their individual TPA/TPB versions without a duplicate generic
+  TP Version. Cards have more vertical breathing room and bounded narrow layouts.
+- Affected: existing firmware input cards, AB Code information and Appearance.
+- Support status: unchanged/support-neutral.
+- Compatibility: the new Details default is Off; the existing preference store
+  persists the choice. Config reapplication clears obsolete format information
+  while awaiting accepted current facts. Missing observations remain absent.
+- Verification: targeted information, preference, Config-race and layout tests;
+  the reconstructed product tree passed all6628 .NET tests and the full local
+  verifier. Exact release-source CI and package evidence accompany publication.
+- Limitations: this does not add new firmware format or IC support.
+
+#### Build settings output and source summary
+
+- Before → After: the confirmation shows IC/topology, mode/effective format
+  and primary Flash output size. Expanded sources separate role, filename and
+  actual size from expected-size and per-input Event Buffer checks.
+- Affected: shared Build settings, loose or bundled delivery, optional additional
+  A FlashCode output and existing Dummy DP disclosure.
+- Support status: unchanged/support-neutral.
+- Compatibility: canonical automatic filenames are preserved. Additional output
+  has its own name/size; bundle and extra files do not inflate the primary Flash
+  output size. Accepted input/configuration freshness is rechecked before Build.
+- Verification: four delivery-state geometry tests, source warnings, rename and
+  async session/configuration tests; all25 required direct Golden output cases
+  passed on the unchanged product tree. The release workflow executes those
+  cases again against its actual release source before packaging.
+- Limitations: no new CtrlRAM Replace support for AB Code Flash inputs is included.
+
+### Security
+
+No permissions, package trust or external-processor write boundaries change.
+
+### Known issues
+
+CtrlRAM Replace support for AB Code Flash inputs in the NT51932 Perfect family
+and NT51950 Partial family is scheduled separately and is not added here.
+Existing candidate/contract-only routes retain their prior support status.
+
+### Upgrade and rollback
+
+Upgrade from1.1.6 using the existing verified package or managed-update flow.
+Uses the existing preference format and output naming contracts. Retain the
+previous portable package for rollback; no firmware data migration is introduced.
+
+### Downloads and integrity
+
+Windows x64 portable package: `NvtFwCombiner-v1.1.7-win-x64.zip`.
+The separate distribution Launcher and GitHub source archives remain available
+through the standard release flow. Use the release checksums, SPDX SBOM and
+provenance to verify exact asset identity; the portable app includes its runtime.
 
 ## [1.1.6] - 2026-09-15
 

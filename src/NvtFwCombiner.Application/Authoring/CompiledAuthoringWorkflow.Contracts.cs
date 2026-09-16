@@ -1,4 +1,5 @@
 using NvtFwCombiner.Application.Capabilities;
+using NvtFwCombiner.Application.Composition;
 using NvtFwCombiner.Application.Metadata;
 using NvtFwCombiner.Domain.Composition;
 
@@ -74,6 +75,10 @@ public sealed record CompiledAuthoringSessionPreparation(
     CompiledAuthoringInspectionBatch? Inspection,
     AuthoringSessionIssue? SessionIssue)
 {
+    /// <summary>Per-slot AB facts published only after successful exact Config reinspection adoption.</summary>
+    public IReadOnlyDictionary<string, AbMergeInputFacts> AbMergeFacts { get; init; } =
+        System.Collections.Frozen.FrozenDictionary<string, AbMergeInputFacts>.Empty;
+
     /// <summary>True only when the exact inspected bytes are current and execution-ready.</summary>
     public bool Succeeded => SessionIssue is null &&
         Selection.Issues.Count == 0 &&

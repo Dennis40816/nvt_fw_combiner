@@ -355,6 +355,14 @@ public interface IFirmwareInspection
 /// <summary>Output-name projection from immutable inspections or an accepted AB session.</summary>
 public interface ICompositionOutputNaming
 {
+    /// <summary>Captures current accepted output and format facts without reopening input files.</summary>
+    ValueTask<CompositionOutputBundleProposal> PrepareBundleProposalAsync(
+        ActiveSessionSnapshot acceptedSession, CancellationToken cancellationToken,
+        CtrlRamFirmwareVersionDraftState? ctrlRamVersionEdit = null);
+
+    /// <summary>Rejects obsolete publication or format configuration before confirmation continues.</summary>
+    ValueTask<bool> IsProposalCurrentAsync(CompositionOutputBundleProposal proposal, CancellationToken cancellationToken);
+
     /// <summary>Resolves the compiled name from one exact accepted session without reopening inputs.</summary>
     CompositionOutputPreparation ResolveAcceptedOutput(
         ActiveSessionSnapshot acceptedSession,

@@ -249,6 +249,13 @@ internal sealed partial class AbMergeAuthoringExperience
                 current.InputSlotStatuses.ToDictionary(static status => status.SlotId, StringComparer.Ordinal), batch.Issues, current.MetadataInspection);
             selection = selection with { Catalog = batch.Catalog, Slots = [.. current.InputSlotStatuses.Select(static status => status.SelectionReadiness)] };
         }
-        return new(adopted.Snapshot, selection, batch, adopted.Issue);
+        return new(adopted.Snapshot, selection, batch, adopted.Issue)
+        {
+            AbMergeFacts = adopted.Succeeded
+                ? new System.Collections.ObjectModel.ReadOnlyDictionary<string, AbMergeInputFacts>(
+                    batch.Statuses.ToDictionary(static pair => pair.Key,
+                        pair => ProjectAbInputFacts(pair.Value, resolution), StringComparer.Ordinal))
+                : System.Collections.Frozen.FrozenDictionary<string, AbMergeInputFacts>.Empty,
+        };
     }
 }

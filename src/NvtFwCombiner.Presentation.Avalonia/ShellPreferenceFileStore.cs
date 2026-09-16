@@ -27,7 +27,11 @@ public static class ShellPreferenceFileStore
                     CancellationToken.None)
                 .ConfigureAwait(false);
             return file is { SchemaVersion: SchemaVersion, Preferences: { } entry }
-                ? new(entry.Theme ?? string.Empty, entry.Language ?? string.Empty, entry.IsReducedMotionEnabled)
+                ? new(
+                    entry.Theme ?? string.Empty,
+                    entry.Language ?? string.Empty,
+                    entry.IsReducedMotionEnabled,
+                    entry.ExpandInputDetailsByDefault)
                 : ShellPreferenceSnapshot.Default;
         }
         catch (Exception exception) when (exception is LocalFileReadException or JsonException or NotSupportedException)
@@ -51,7 +55,12 @@ public static class ShellPreferenceFileStore
                     JsonSerializer.SerializeToUtf8Bytes(
                         new ShellPreferenceFile(
                             SchemaVersion,
-                            new(preferences.Theme, "Strict", preferences.Language, preferences.IsReducedMotionEnabled)),
+                            new(
+                                preferences.Theme,
+                                "Strict",
+                                preferences.Language,
+                                preferences.IsReducedMotionEnabled,
+                                preferences.ExpandInputDetailsByDefault)),
                         LocalJsonDocument.Options),
                     cancellationToken)
                 .ConfigureAwait(false);
@@ -69,5 +78,6 @@ public static class ShellPreferenceFileStore
         string? Theme,
         string? Strictness,
         string? Language,
-        bool IsReducedMotionEnabled = false);
+        bool IsReducedMotionEnabled = false,
+        bool ExpandInputDetailsByDefault = false);
 }

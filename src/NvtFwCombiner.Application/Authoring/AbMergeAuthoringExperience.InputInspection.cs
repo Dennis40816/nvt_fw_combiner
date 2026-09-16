@@ -114,8 +114,29 @@ internal sealed partial class AbMergeAuthoringExperience
                 candidate.SlotId == input.AbMergeAddressSpaceId || candidate.AddressSpaceId == input.AbMergeAddressSpaceId);
             AuthoringInputSlotStatus status = batch.Statuses[binding.SlotId];
             statuses.Add(input.InspectionId, status);
-            facts.Add(input.InspectionId, new AbMergeInputFacts(binding.AddressSpaceId, status.Observation.Versions));
+            facts.Add(input.InspectionId, ProjectAbInputFacts(status, resolution));
         }
         return new(batch.Catalog, statuses, facts, batch.Issues);
+    }
+
+    private static AbMergeInputFacts ProjectAbInputFacts(AuthoringInputSlotStatus status, FormatResolution resolution)
+    {
+        var facts = new AbMergeInputFacts(status.AddressSpaceId, status.Observation.Versions);
+        return resolution.Capability is null || resolution.Issues.Count != 0 || resolution.Format is not { } format
+            ? facts : facts with { EventBufferFormat = ProjectEventBufferFormat(status.AddressSpaceId, format) };
+    }
+
+    internal static EventBufferFormatObservation? ProjectEventBufferFormat(string addressSpaceId, AbMergeFormatSelection? format)
+    {
+        if (format is null) { return null; }
+        bool isA = addressSpaceId == CompositionAddressSpaceIds.TpAInput;
+        if (!isA && addressSpaceId != CompositionAddressSpaceIds.TpBInput) { return null; }
+        FirmwareMetadataStructureResolution primary = isA ? format.TpAPrimary : format.TpBPrimary;
+        FirmwareResolvedMetadataStructure resolved = primary.Resolved ??
+            throw new InvalidOperationException("Admitted AB format requires resolved primary evidence.");
+        return new(isA ? format.TpAFormatByte : format.TpBFormatByte,
+                format.FormatId, format.DisplayName, format.ConfigurationGeneration,
+                format.ConfigurationSourceSha256, primary.MetadataStructureId,
+                resolved.LocatorOutcome.ResolvedRange, resolved.ArtifactIdentity);
     }
 }

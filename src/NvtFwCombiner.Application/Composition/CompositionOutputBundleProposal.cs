@@ -38,6 +38,11 @@ public sealed class CompositionOutputBundleProposal
     /// <summary>Exact path-free accepted source manifest in canonical binding order.</summary>
     public IReadOnlyList<CompositionOutputBundleSourceSummary> Sources { get; }
 
+    /// <summary>Accepted facts captured by asynchronous confirmation preparation; legacy naming-only proposals omit this.</summary>
+    public CompositionOutputConfirmationSummary? Confirmation { get; internal init; }
+
+    internal ActiveSessionSnapshot? ConfirmationSession { get; init; }
+
     internal CompositionOutputBundleAdmission Admission { get; }
 
     /// <summary>Applies an editable host destination to this exact prepared admission.</summary>

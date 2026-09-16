@@ -27,6 +27,8 @@ internal sealed partial class OutputDeliveryConfirmationViewModel : ObservableOb
     private readonly Func<ShellTextResources> _text;
     private OutputDeliveryRequest? _request;
     private bool _preserveCancelledDeliveryState;
+    private long _preparationGeneration;
+    private bool ProposalIsCurrent { get; set; } = true;
 
     internal OutputDeliveryConfirmationViewModel(
         ICompositionOutputNaming outputNaming,
@@ -96,13 +98,25 @@ internal sealed partial class OutputDeliveryConfirmationViewModel : ObservableOb
 
     public bool IsBundleDestinationValid { get; private set; }
 
-    public bool CanConfirm => !BundleEnabled || IsBundleDestinationValid;
+    public bool CanConfirm => ProposalIsCurrent && (!BundleEnabled || IsBundleDestinationValid);
 
     public IRelayCommand CancelCommand { get; }
+
+    internal long BeginPreparation()
+    {
+        return ++_preparationGeneration;
+    }
+
+    internal bool IsPreparationCurrent(long generation)
+    {
+        return generation == _preparationGeneration;
+    }
 
     internal void Open(OutputDeliveryRequest request, bool preserveDeliveryState = false)
     {
         ArgumentNullException.ThrowIfNull(request);
+        _preparationGeneration++;
+        ProposalIsCurrent = true;
         preserveDeliveryState |= _preserveCancelledDeliveryState &&
             _request is { } previous && previous.IsReplaceOutput == request.IsReplaceOutput && previous.IsCurrent();
         _preserveCancelledDeliveryState = false;
@@ -144,6 +158,7 @@ internal sealed partial class OutputDeliveryConfirmationViewModel : ObservableOb
         OnPropertyChanged(nameof(CanEditBundleDestination));
         OnPropertyChanged(nameof(IsBundleDestinationEditing));
         OnPropertyChanged(nameof(AdditionalDeliveryLabel));
+        NotifySummary();
         OnPropertyChanged(nameof(CanConfirm));
     }
 
@@ -198,6 +213,7 @@ internal sealed partial class OutputDeliveryConfirmationViewModel : ObservableOb
     {
         AdditionalDeliveryEnabled = OffersAdditionalDelivery && enabled;
         OnPropertyChanged(nameof(AdditionalDeliveryEnabled));
+        NotifySummary();
         OnPropertyChanged(nameof(CanConfirm));
     }
 
@@ -228,7 +244,7 @@ internal sealed partial class OutputDeliveryConfirmationViewModel : ObservableOb
         }
 
         OutputDeliveryRequest request = RequireOpenRequest();
-        if (!EnsureCurrent(request))
+        if (!await EnsureCurrentAsync(request))
         {
             return;
         }
@@ -251,7 +267,7 @@ internal sealed partial class OutputDeliveryConfirmationViewModel : ObservableOb
         }
 
         OutputDeliveryRequest request = RequireOpenRequest();
-        if (!EnsureCurrent(request))
+        if (!await EnsureCurrentAsync(request))
         {
             return;
         }
@@ -276,11 +292,13 @@ internal sealed partial class OutputDeliveryConfirmationViewModel : ObservableOb
     {
         OnPropertyChanged(nameof(Text));
         OnPropertyChanged(nameof(SourcesSummary));
+        NotifySummary();
         _ = RefreshValidation();
     }
 
     private void Cancel()
     {
+        _preparationGeneration++;
         _preserveCancelledDeliveryState |= IsOpen;
         _request?.Cancel?.Invoke();
         IsOpen = false;
@@ -301,14 +319,22 @@ internal sealed partial class OutputDeliveryConfirmationViewModel : ObservableOb
             : throw new InvalidOperationException("Output delivery confirmation is not open.");
     }
 
-    private bool EnsureCurrent(OutputDeliveryRequest request)
+    private async Task<bool> EnsureCurrentAsync(OutputDeliveryRequest request)
     {
-        if (request.IsCurrent())
+        bool current = request.IsCurrent() &&
+            await _outputNaming.IsProposalCurrentAsync(request.Proposal, CancellationToken.None);
+        if (!ReferenceEquals(_request, request) || !IsOpen)
+        {
+            return false;
+        }
+
+        if (current && request.IsCurrent())
         {
             return true;
         }
 
         IsBundleDestinationValid = false;
+        ProposalIsCurrent = false;
         ValidationMessage = Text.OutputDeliveryStaleAcceptedSession;
         NotifyValidation();
         return false;
@@ -316,6 +342,14 @@ internal sealed partial class OutputDeliveryConfirmationViewModel : ObservableOb
 
     private CompositionOutputBundleIntent? RefreshValidation()
     {
+        if (!ProposalIsCurrent)
+        {
+            IsBundleDestinationValid = false;
+            ValidationMessage = Text.OutputDeliveryStaleAcceptedSession;
+            NotifyValidation();
+            return null;
+        }
+
         if (!BundleEnabled || _request is null ||
             string.IsNullOrWhiteSpace(ParentDirectory) ||
             string.IsNullOrWhiteSpace(BundleFolderName))
@@ -371,6 +405,7 @@ internal sealed partial class OutputDeliveryConfirmationViewModel : ObservableOb
     {
         OnPropertyChanged(nameof(IsBundleDestinationValid));
         OnPropertyChanged(nameof(ValidationMessage));
+        OnPropertyChanged(nameof(HasValidationMessage));
         OnPropertyChanged(nameof(CanConfirm));
     }
 
@@ -397,6 +432,7 @@ internal sealed partial class OutputDeliveryConfirmationViewModel : ObservableOb
         OnPropertyChanged(nameof(IsBundleDestinationEditing));
         OnPropertyChanged(nameof(CanEditBundleDestination));
         OnPropertyChanged(nameof(AdditionalDeliveryEnabled));
+        NotifySummary();
         NotifyValidation();
     }
 }
