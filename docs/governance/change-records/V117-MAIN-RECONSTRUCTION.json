@@ -5,7 +5,7 @@
   "integrationBase": "a218e1a2e6f3a3fb482139cf1d5dc2b07e5e5577",
   "risk": "R2",
   "kind": "behavior",
-  "state": "design-active",
+  "state": "final-complete",
   "mutablePaths": [
     "docs/adr/0021-code-size-ratchet-accepted-artifact-amendment.md",
     "scripts/code_size_policy.py",
@@ -74,12 +74,12 @@
     "outcome": "approved",
     "evidence": "2026-09-16 independent main-based design approval:35 governed+17 auxiliary paths; latest checkpointa218e1a2, source65c0227e, main32f9f398. Single R2 admission is sufficient; exclude five historical V117 records, preserve both refs, prove exact product equality, fixed-head review then direct-child evidence. No validator/firmware/CI/package changes or implied release-owner approval."
   },
-  "implementationHead": null,
-  "reviewedHead": null,
-  "pathStateDigest": null,
+  "implementationHead": "0517c545b350e6509705a04d887b6366f6a2a714",
+  "reviewedHead": "0517c545b350e6509705a04d887b6366f6a2a714",
+  "pathStateDigest": "9c108bd60433f3886e5dfebcd41b92081241c01144cbe8b65c3f733b4ec50bb5",
   "finalReview": {
-    "reviewer": null,
-    "outcome": "pending",
-    "evidence": ""
+    "reviewer": "/root/v117_final_review",
+    "outcome": "approved",
+    "evidence": "Independent fixed-head review0517c545 on2026-09-16 PASS/noP0-P3 findings: main32f9f398 is ancestor; five former V117 records absent from ancestry;52 exact mutable paths cover35 governed and17 auxiliary tests. Product/tests/profiles/worker/sizepolicy/ADR equal65c0227e, preserving original reviewed source semantics and approved allowances. Version1.1.7 metadata and release notes accurate; diff-check clean and notes7/7PASS. Prior c081 fullPASS6628 plus Python/script/coverage is explicitly reused product evidence, not a fresh new-head run. Normal final validator, exact-source CI, release Golden/package and independent human/owner approvals remain required."
   }
 }
