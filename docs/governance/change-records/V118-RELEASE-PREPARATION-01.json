@@ -5,7 +5,7 @@
   "integrationBase": "844e994639e55dcf06b6b80ece7a4d581e83bf0b",
   "risk": "R2",
   "kind": "governance",
-  "state": "design-active",
+  "state": "final-complete",
   "mutablePaths": ["docs/governance/post-v1.1.0-tool-development-process-retrospective-handoff.md"],
   "implementationOwner": "/root",
   "searchEvidence": [
@@ -23,12 +23,12 @@
     "outcome": "approved",
     "evidence": "Independent R2 PASS: five content files stay within local release preparation, with only the governed handoff admitted. SPEC changes only current status/version and report changes only version header. Notes must distinguish unpublished preparation from release and earlier measurements from candidate gates. Renderer/sync tests, actual output/header/link checks, fixed-head review and staged-final structure suffice locally; frozen integration and external release requirements remain."
   },
-  "implementationHead": null,
-  "reviewedHead": null,
-  "pathStateDigest": null,
+  "implementationHead": "2e2cc6853d68cba64c4da99ea6728be98f4a8b65",
+  "reviewedHead": "2e2cc6853d68cba64c4da99ea6728be98f4a8b65",
+  "pathStateDigest": "566aaa27485111522abe40ed678a8bed55017848f1507ed6d04f36ae6b54d0bb",
   "finalReview": {
-    "reviewer": null,
-    "outcome": "pending",
-    "evidence": ""
+    "reviewer": "/root/v117_final_review",
+    "outcome": "approved",
+    "evidence": "Fixed-head correctness/Polytail PASS with no findings. All five content files stay in approved scope; only the handoff is governed, while version/header/notes changes remain whole-diff reviewed. Old notes and historical verification text are unchanged. Unreleased/local status and residual gates are explicit; historical timings and instruction simulation are not candidate evidence. Release renderer7 and derived-sync23 tests, zero-drift header check, actual 1.1.8 notes rendering, nine affected local links and diff checks PASS. Staged-final structure remains required before evidence commit. No full product suite, exact-source CI, candidate Golden/package, human release approval, external write or publication is claimed."
   }
 }
