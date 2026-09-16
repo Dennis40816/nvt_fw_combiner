@@ -128,7 +128,8 @@ public sealed class OutputConfirmationTests
     [InlineData(false, true, true, 1, 1)]
     [InlineData(true, true, true, 1, 1)]
     [InlineData(false, false, false, 2, 3)]
-    public async Task ApprovedOutputConfirmationStates(bool bundle, bool additional, bool chineseDark, byte countA, byte countB)
+    [InlineData(true, false, true, 1, 1, true)]
+    public async Task ApprovedOutputConfirmationStates(bool bundle, bool additional, bool chineseDark, byte countA, byte countB, bool tallerCjkMetrics = false)
     {
         using TempWorkspace workspace = TempWorkspace.Create("output-confirmation-reference");
         CompositionHostServices host = CompositionHostServices.Create(new ExternalProcessorEnvironmentLoader(), loadPolicy: null, configurationPath: workspace.PathFor("format.json"));
@@ -209,6 +210,16 @@ public sealed class OutputConfirmationTests
         try
         {
             window.Show();
+            if (tallerCjkMetrics)
+            {
+                // Replay the CI fallback-font metric delta without depending on an installed CJK font.
+                foreach (TextBlock block in Avalonia.VisualTree.VisualExtensions.GetVisualDescendants(modal).OfType<TextBlock>()
+                    .Where(block => block.IsEffectivelyVisible && block.FontSize != 12 &&
+                        block.Text?.Any(character => character is >= '\u4E00' and <= '\u9FFF') == true))
+                {
+                    block.LineHeight = block.TextLayout.Height + 1;
+                }
+            }
             window.Measure(new Size(980, 820));
             window.Arrange(new Rect(0, 0, 980, 820));
             Dispatcher.UIThread.RunJobs();
