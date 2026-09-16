@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 2,
+  "taskId": "V117-REFUSAL-INTEGRATION",
+  "capability": "Integrate the locally verified AB output preparation refusal correction",
+  "risk": "R1",
+  "kind": "behavior",
+  "mutablePaths": [
+    "src/NvtFwCombiner.Application/Composition/CompositionOutputNamingExperience.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MergePresentationViewModel.Execution.cs",
+    "tests/NvtFwCombiner.UiSmoke.Tests/PresentationTestHost.cs",
+    "tests/NvtFwCombiner.UiSmoke.Tests/ShellViewModelTests.EventBufferFormat.cs",
+    "tests/NvtFwCombiner.UiSmoke.Tests/ShellViewModelTests.OutputPreparationRefusal.cs"
+  ],
+  "searchEvidence": [
+    "Bounded local R1 preflight in owner task at b700bf42 preceded production edits. Commit787bc6ae reused the existing CompositionPreRunRefusalException and guarded current-session/current-preparation UI result publication.",
+    "Actual invalid Config regression reproduced InvalidOperationException before the fix. 17 affected tests passed after correction, including delayed cancel/reopen/session refusals; independent local Polytail /root/v117_final_review PASS."
+  ],
+  "semanticOwner": "Application CompositionOutputNamingExperience canonical format assessor and existing CompositionPreRunRefusalException; Presentation Merge preparation lifecycle",
+  "terminalContract": "Expected format refusal before confirmation yields Build blocked and No output. Stale preparation cannot overwrite current result or modal. Preserve invariant failures, firmware bytes/ranges/CRC and execution policy.",
+  "designReview": {
+    "reviewer": null,
+    "outcome": "not-required",
+    "evidence": "Current R1 integration admission after explicitly approved bounded local correction; not a retroactive recorded-design claim."
+  },
+  "integrationBase": "ee29f969d7463ccf34adbbc69e1e1d099420f929",
+  "state": "final-complete",
+  "implementationOwner": "/root",
+  "disposition": "reuse",
+  "implementationHead": "556cb2f06e2d238620aa68d584d8c82f1faa14d4",
+  "reviewedHead": "556cb2f06e2d238620aa68d584d8c82f1faa14d4",
+  "pathStateDigest": "e0ff394371e5de90424aee74d664a371e2883627b5d0fa1150ca33b18f26633c",
+  "finalReview": {
+    "reviewer": "/root/v117_final_review",
+    "outcome": "approved",
+    "evidence": "Independent fixed-head556cb2f0 review2026-09-16 PASS/no findings for both refusal and exact-size records. Two production refusal owners preserve typed issues and session/generation guards; 17 affected tests PASS. Exact approved144821/41925 defaults, one baseline assertion and ADR append only; 19 policy tests PASS. Runtime102205 and all counting/negative protections unchanged. Paths occur in checkpointee29f969 diff with unique governed ownership. Admission validator PASS; canonical committed-path digest calculated for this exact head. Final-record validation and release-wide CI geometry, Golden/package/environment gates remain separate."
+  }
+}

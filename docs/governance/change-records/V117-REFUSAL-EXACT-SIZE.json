@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 2,
+  "taskId": "V117-REFUSAL-EXACT-SIZE",
+  "capability": "Account for owner-approved exact 12-line presentation refusal correction",
+  "risk": "R2",
+  "kind": "governance",
+  "mutablePaths": [
+    "scripts/code_size_policy.py",
+    "docs/adr/0021-code-size-ratchet-accepted-artifact-amendment.md",
+    "tests/scripts/test_code_size_policy.py"
+  ],
+  "searchEvidence": [
+    "Owner approved exact full-production144809 to144821 in current task on2026-09-16 after crash correction787bc6ae.",
+    "measure_code_size reports144821 full and102205 runtime; Application replacement is line-neutral, Presentation adds12. Existing default limits remain the sole accounting owner."
+  ],
+  "semanticOwner": "scripts/code_size_policy.py physical source accounting and ADR0021 exact ledger",
+  "terminalContract": "Change only full-production warning baseline to144821 and allowance to41925 against unchanged102896 base, plus exact test and ledger. Runtime102205 and all slices, counting, exclusions, duplicate/partial guards, negative tests and release requirements unchanged. No spare capacity.",
+  "designReview": {
+    "reviewer": "/root/v117_final_review",
+    "outcome": "approved",
+    "evidence": "Independent bounded R2 design review2026-09-16 at787bc6ae approved these exact three paths and totals. Approval is only completed crash correction+12, not capacity for further UI work; preserves checkpointee29f969 and immutable archives."
+  },
+  "integrationBase": "ee29f969d7463ccf34adbbc69e1e1d099420f929",
+  "state": "final-complete",
+  "implementationOwner": "/root",
+  "disposition": "reuse",
+  "implementationHead": "556cb2f06e2d238620aa68d584d8c82f1faa14d4",
+  "reviewedHead": "556cb2f06e2d238620aa68d584d8c82f1faa14d4",
+  "pathStateDigest": "fe74b6512ab4f8cbdb15fe0c75f355b3111ca6c5306332c974a0c06925c3a156",
+  "finalReview": {
+    "reviewer": "/root/v117_final_review",
+    "outcome": "approved",
+    "evidence": "Independent fixed-head556cb2f0 review2026-09-16 PASS/no findings for both refusal and exact-size records. Two production refusal owners preserve typed issues and session/generation guards; 17 affected tests PASS. Exact approved144821/41925 defaults, one baseline assertion and ADR append only; 19 policy tests PASS. Runtime102205 and all counting/negative protections unchanged. Paths occur in checkpointee29f969 diff with unique governed ownership. Admission validator PASS; canonical committed-path digest calculated for this exact head. Final-record validation and release-wide CI geometry, Golden/package/environment gates remain separate."
+  }
+}

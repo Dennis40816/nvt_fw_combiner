@@ -36,7 +36,7 @@ internal sealed partial class ReplacePresentationViewModel
         await RequestBuildOutputDeliveryAsync();
     }
 
-    internal Task RequestBuildOutputDeliveryAsync(
+    internal async Task RequestBuildOutputDeliveryAsync(
         CtrlRamFirmwareVersionDraftState? ctrlRamFirmwareVersionEdit = null,
         ActiveSessionSnapshot? exactSession = null)
     {
@@ -48,10 +48,16 @@ internal sealed partial class ReplacePresentationViewModel
             _ => null,
         } ?? throw new InvalidOperationException(
             "Build output confirmation requires one accepted Replace session.");
+        long preparation = _stateBindings.OutputDelivery.BeginPreparation();
         CompositionOutputBundleProposal proposal =
-            _compositionServices.OutputNaming.ResolveAcceptedBundleProposal(
+            await _compositionServices.OutputNaming.PrepareBundleProposalAsync(
                 session,
+                CancellationToken.None,
                 exactSession is null ? ctrlRamFirmwareVersionEdit : null);
+        if (!IsAcceptedReplaceSessionCurrent(session) || !_stateBindings.OutputDelivery.IsPreparationCurrent(preparation))
+        {
+            return;
+        }
         CloseSelectionForRun();
         _stateBindings.OutputDelivery.Open(new OutputDeliveryRequest(
             proposal,
@@ -71,7 +77,6 @@ internal sealed partial class ReplacePresentationViewModel
                 decision.BundleIntent,
                 exactSession)),
             preserveDeliveryState: exactSession is not null);
-        return Task.CompletedTask;
     }
 
     internal async Task<bool> RequestCtrlRamBuildSettingsAsync()

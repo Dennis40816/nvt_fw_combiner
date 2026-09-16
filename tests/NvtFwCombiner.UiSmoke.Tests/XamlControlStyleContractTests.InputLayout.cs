@@ -57,7 +57,7 @@ public sealed partial class XamlControlStyleContractTests
 
         Assert.Equal("280,*", (string?)layout.Attribute("ColumnDefinitions"));
         Assert.Equal("*,Auto,Auto", (string?)layout.Attribute("RowDefinitions"));
-        Assert.Equal("16", (string?)layout.Attribute("Margin"));
+        Assert.Equal("16,20,16,16", (string?)layout.Attribute("Margin"));
         Assert.Equal("72", (string?)layout.Attribute("MinHeight"));
         Assert.Equal("{DynamicResource NfcSpace12}", (string?)identity.Attribute("Spacing"));
         Assert.Equal("Grid", header.Name.LocalName);
@@ -242,8 +242,8 @@ public sealed partial class XamlControlStyleContractTests
         Assert.Equal(36, clear.Bounds.Width, precision: 3);
         Assert.Equal(36, clear.Bounds.Height, precision: 3);
         Assert.True(clear.IsVisible);
-        // The approved dedicated filename row adds 22 px plus 16 px bottom padding.
-        Assert.Equal(146, selector.Bounds.Height, precision: 3);
+        // The approved Information padding increases the card without stretching its text.
+        Assert.Equal(154, selector.Bounds.Height, precision: 3);
         Assert.Null(browse.FocusAdorner);
         Assert.NotNull(browse.Theme);
         browse.ApplyTemplate();

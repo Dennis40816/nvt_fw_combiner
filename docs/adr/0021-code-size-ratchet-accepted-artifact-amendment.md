@@ -855,3 +855,78 @@ Only four existing policy defaults and three exact baseline assertions change.
 All counting, exclusions, ratchet bases, partial/duplicate and
 growth/reduction/slice-equality guards remain unchanged. No spare capacity or
 firmware, Golden, safety, CI, package or release exception is introduced.
+
+## 2026-09-16 v1.1.7 Information and confirmation accounting
+
+The owner explicitly approved the exact completed-feature increment at
+`408e08d1`: full production +491, runtime +175 (Application +174 and Bootstrap
++1). Independent R2 admission `V117-EXACT-SIZE-ALLOWANCE` remeasured the existing
+physical source owner and verified runtime slice equality.
+
+| Metric | Exact total | Preserved base | Allowance |
+| --- | ---: | ---: | ---: |
+| Full production / warning baseline | 144,809 | 102,896 | 41,913 |
+| Runtime | 102,205 | 70,056 | 32,149 |
+| Application | 44,741 | 30,690 | 14,051 |
+| Bootstrap + CLI + Desktop host | 5,131 | 3,378 | 1,753 |
+
+Application captures accepted per-binding Event Buffer and output-confirmation
+facts with session/configuration freshness through existing owners. Bootstrap
+wires the existing format admission. The full-only increment of 316 lines is
+shared Information/Details preference, fact projection and confirmation UI.
+Domain/Profiles remains 21,182 and Infrastructure/Contracts/worker remains 31,151;
+21,182 + 44,741 + 5,131 + 31,151 equals 102,205. Source review found no new semantic owner
+or speculative execution infrastructure, not a claim of global minimality.
+
+Only five existing defaults, four exact total assertions and the observed
+WorkflowSession 2693 assertion change. Its 13 files and warning threshold 2627
+remain unchanged. Counting, exclusions, ratchet bases, duplicate/partial-type,
+growth/reduction/slice-equality and extra-source protections remain intact.
+There is no reserved or transferable capacity and no firmware, Golden, package,
+CI or publication exception. The prior full-verifier and baseline failures
+remain retained evidence; fresh focused policy and final gates are required.
+
+## 2026-09-16 v1.1.7 pre-confirmation refusal accounting
+
+The owner approved full production 144,809 to 144,821 for the completed
+correction at `787bc6ae`. The existing Application format assessor now raises
+the existing typed pre-run refusal. Presentation handles that expected refusal
+before opening Build settings, guarded by accepted-session and preparation
+identity. This adds 12 Presentation lines; Application and runtime are unchanged.
+
+Full production / warning baseline is 144,821 against the unchanged 102,896
+base and exact allowance 41,925. Runtime remains 102,205; all runtime slices,
+counting, exclusions, duplicate/partial thresholds and negative protections
+remain unchanged. This is not spare capacity for subsequent fixes or a release
+waiver. Independent R2 design admission is `V117-REFUSAL-EXACT-SIZE`.
+The pre-adjustment policy result was 18 pass / 1 fail (144809 != 144821);
+fresh policy and final integration checks remain required.
+
+## 2026-09-16 v1.1.7 final confirmation-label accounting
+
+The owner approved code-size increments for the current release corrections.
+The completed labels at `ef7bf925` add seven Presentation lines and final shared
+warning wording adds three: full production144,831, unchanged base102,896,
+exact allowance41,935. Runtime102,205 and every
+runtime slice remain unchanged. The earlier margin-only CJK correction is
+line-neutral. Input-role counts use the accepted confirmation while Bundle
+retains its physical-file count; IC labels only render existing selector tokens.
+
+Independent R2 admission `V117-CONFIRMATION-FINAL-SIZE` covers only two existing
+defaults, the exact baseline assertion and this ledger. Counting, exclusions,
+partial/duplicate warnings, negative guards, firmware, Golden and release gates
+remain unchanged. Owner consent is for these release corrections, not unlimited
+future headroom. Pre-adjustment evidence is18 pass/1 fail (144821 !=144828).
+The interim144828 policy and release-note tests passed26/26 before the final
+three-line warning correction; final exact-count validation is still required.
+
+## 2026-09-16 General accepted-source correction
+
+The release owner approved current correction code-size increments. The existing
+bundle planner now shares accepted source candidates with confirmation and
+delegates General binding validation to the existing accepted execution-input
+owner. This adds19 Application/runtime/full lines: full144850, runtime102224,
+Application44760. Exact allowances become41954,32168,14070 respectively;
+ratchets, counting, exclusions and all other slices remain unchanged.
+Independent R2 design admission is `V117-GENERAL-ACCEPTED-SOURCES`.
+This is exact accounting, not future headroom or a release/firmware waiver.

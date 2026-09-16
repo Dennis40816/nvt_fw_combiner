@@ -74,10 +74,16 @@ public sealed partial class XamlControlStyleContractTests
                 Assert.All(
                     modal.GetVisualDescendants().OfType<ComboBox>().Where(static control => control.IsVisible),
                     control => AssertControlFits(control, content));
-                ToggleSwitch toggle = Assert.Single(
-                    modal.GetVisualDescendants().OfType<ToggleSwitch>(),
-                    control => control.IsVisible);
-                AssertControlFits(toggle, content);
+                ToggleSwitch[] toggles = [.. modal.GetVisualDescendants().OfType<ToggleSwitch>()
+                    .Where(static control => control.IsVisible)];
+                Assert.Equal(2, toggles.Length);
+                Assert.Contains(toggles, toggle => Equals(
+                    toggle.GetValue(Avalonia.Automation.AutomationProperties.NameProperty),
+                    viewModel.Text.ReducedMotionLabel));
+                Assert.Contains(toggles, toggle => Equals(
+                    toggle.GetValue(Avalonia.Automation.AutomationProperties.NameProperty),
+                    viewModel.Text.ExpandInputDetailsLabel));
+                Assert.All(toggles, toggle => AssertControlFits(toggle, content));
 
                 using Avalonia.Media.Imaging.Bitmap? frame = window.GetLastRenderedFrame();
                 Assert.NotNull(frame);

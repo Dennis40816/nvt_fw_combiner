@@ -248,6 +248,10 @@ internal sealed partial class ShellTextResources
         };
     }
 
+    internal string AbUnknownVersionWarning => SelectLanguage(
+        "Warning: version metadata is Unknown; Build remains available.",
+        "警告：版本資訊為 Unknown；仍可執行 Build。");
+
     public string GetInputSlotInspectionStatus(AuthoringInputSlotStatus status)
     {
         ArgumentNullException.ThrowIfNull(status);
@@ -266,9 +270,7 @@ internal sealed partial class ShellTextResources
                 "錯誤：所選 BIN 不符合 compiled input contract。"),
             AuthoringSlotLifecycle.Warning when StringComparer.Ordinal.Equals(
                 status.InspectionIssueCode,
-                InputArtifactInspectionIssueCodes.AbVersionMetadataUnknown) => SelectLanguage(
-                "Warning: version metadata is Unknown; Build remains available.",
-                "警告：版本資訊為 Unknown；仍可執行 Build。"),
+                InputArtifactInspectionIssueCodes.AbVersionMetadataUnknown) => AbUnknownVersionWarning,
             AuthoringSlotLifecycle.Warning when GetInputIssueHelp(status.InspectionIssueCode ?? string.Empty, "warning") is { } help =>
                 $"{help.Detail}\n{SelectLanguage("Diagnostic code", "診斷代碼")}: {status.InspectionIssueCode}",
             AuthoringSlotLifecycle.Warning => SelectLanguage(

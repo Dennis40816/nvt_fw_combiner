@@ -18,14 +18,13 @@ internal static partial class UiCompositionRunner
         IReadOnlyList<FirmwareSlotFactViewModel> dpFacts = includeBaseFacts
             ? GetDpFirmwareSlotFacts(inspection, text)
             : [];
-        if (metadata is null || (!metadata.IsFirmwareVersionBarValid && !includeBaseFacts))
+        if (metadata is null || (!metadata.IsFirmwareVersionBarValid && !includeBaseFacts && inspection.AbMergeFacts is null))
         {
             return dpFacts;
         }
 
         List<FirmwareSlotFactViewModel> facts =
         [
-            new("Common FW Version", metadata.CommonFwVersion),
             new(
                 "TP Version",
                 FormattableString.Invariant($"T{metadata.FirmwareVersion:X2}-{metadata.FirmwareSubVersion:X2}"),
@@ -33,8 +32,9 @@ internal static partial class UiCompositionRunner
                 metadata.IsFirmwareVersionBarValid ? null : text.FirmwareSlotWarningLabel,
                 metadata.IsFirmwareVersionBarValid ? null : text.FirmwareSlotWarningFactDetail),
             new("PID", FormattableString.Invariant($"0x{metadata.ProjectId:X4}")),
+            new("Common FW Version", metadata.CommonFwVersion),
         ];
-        return includeBaseFacts ? [.. dpFacts, .. facts] : facts;
+        return includeBaseFacts ? [.. facts, .. dpFacts] : facts;
     }
 
     /// <summary>Gets compact DP facts from one already-read inspection snapshot.</summary>

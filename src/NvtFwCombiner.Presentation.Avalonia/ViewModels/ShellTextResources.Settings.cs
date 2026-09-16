@@ -15,6 +15,7 @@ internal sealed partial class ShellTextResources
     public string EventBufferFormatNavigationLabel { get; private init; } = string.Empty;
 
     public string EventBufferFormatTitle { get; private init; } = string.Empty;
+    public string EventBufferVersionLabel { get; private init; } = string.Empty;
 
     public string EventBufferFormatSubtitle { get; private init; } = string.Empty;
 
@@ -127,6 +128,10 @@ internal sealed partial class ShellTextResources
     public string ReducedMotionLabel { get; private init; } = string.Empty;
 
     public string ReducedMotionDescription { get; private init; } = string.Empty;
+
+    public string ExpandInputDetailsLabel { get; private init; } = string.Empty;
+
+    public string ExpandInputDetailsDescription { get; private init; } = string.Empty;
 
     public string SupportMatrixTitle { get; private init; } = string.Empty;
 

@@ -519,7 +519,7 @@
       Classes.unknown="{Binding IsUnknown}"
       Classes.warning="{Binding IsWarning}"
       HorizontalAlignment="Stretch"
-      Padding="0,0,16,0">
+      Padding="0,4,16,4">
     <StackPanel Orientation="Vertical" Spacing="{DynamicResource NfcSpace2}">
       <TextBlock Classes="firmwareSlotFactLabel" Text="{Binding Label}" TextTrimming="CharacterEllipsis" />
       <Grid ColumnDefinitions="*,Auto" ColumnSpacing="{DynamicResource NfcSpace4}" HorizontalAlignment="Stretch">

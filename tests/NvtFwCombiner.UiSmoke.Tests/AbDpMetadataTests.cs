@@ -1,5 +1,6 @@
 using NvtFwCombiner.Application.InputInspection;
 using NvtFwCombiner.Domain.Composition;
+using NvtFwCombiner.Domain.Firmware;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
 namespace NvtFwCombiner.UiSmoke.Tests;
@@ -76,6 +77,48 @@ public sealed class AbDpMetadataTests
             new(CompiledInputVersionKind.TpB, 0x82, 3));
         Assert.Equal(["TPA", "TPB"], slot.FirmwareFacts.Select(static fact => fact.Label));
         Assert.Equal(["T81-00", "T82-03"], slot.FirmwareFacts.Select(static fact => fact.Value));
+    }
+
+    /// <summary>AB retains its accepted bank version and shows shared identity facts only once.</summary>
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(true, false)]
+    [InlineData(true, true)]
+    [InlineData(true, false, true)]
+    [InlineData(true, true, true)]
+    [InlineData(false, false, true)]
+    [InlineData(false, true, true)]
+    public void TouchBankVersionIsNotDuplicatedByBackupFacts(bool hasFormat, bool chinese, bool invalidVersion = false)
+    {
+        var slot = new FirmwareSlotViewModel(CompositionAddressSpaceIds.TpAInput,
+            "TP A", "TP A input", FirmwareSlotKind.Tp);
+        var inspection = new FirmwareInspectionSnapshot(null,
+            new(0x22000, "2.0.0", 0x81, 0x7E, !invalidVersion, 0, 1, 0x570A, null, default),
+            null, null, null, null)
+        {
+            AbMergeFacts = new(CompositionAddressSpaceIds.TpAInput,
+                [new(CompiledInputVersionKind.TpA, invalidVersion ? null : 0x81, invalidVersion ? null : 0)])
+            {
+                EventBufferFormat = hasFormat
+                    ? new(0x97, "desay", "Desay", 1, new string('a', 64), "primary",
+                        new(CompositionAddressSpaceIds.TpAInput, new ByteRange(0x22200, 0x100)),
+                        new FirmwareArtifactPayload(CompositionAddressSpaceIds.TpAInput, new byte[0x37000]).Identity)
+                    : null,
+            },
+        };
+        ShellTextResources text = ShellTextResources.For(chinese ? ShellLanguage.ChineseTraditional : ShellLanguage.English);
+        FirmwareInspectionProjection.ApplyAbInputFacts(slot, inspection, text);
+        Assert.Equal(["TPA", "PID", "Common FW Version"],
+            slot.FirmwareFacts.Take(3).Select(static fact => fact.Label));
+        Assert.Equal([invalidVersion ? text.FirmwareSlotUnknownValueLabel : "T81-00", "0x570A", "2.0.0"],
+            slot.FirmwareFacts.Take(3).Select(static fact => fact.Value));
+        if (hasFormat)
+        {
+            Assert.Equal(chinese ? "事件緩衝區版本" : "Event Buffer Version", slot.PrimaryFirmwareFacts[3].Label);
+            Assert.Equal("0x97 - Desay", slot.PrimaryFirmwareFacts[3].Value);
+        }
+        Assert.False(slot.HasAdditionalFirmwareFacts);
+        Assert.Equal(hasFormat ? 4 : 3, slot.PrimaryFirmwareFacts.Count);
     }
 
     internal static FirmwareSlotViewModel CreateSlot(

@@ -92,7 +92,7 @@ internal sealed partial class ShellTextResources
             OutputDeliveryOutputLabel = Pick("Output", "輸出"),
             OutputDeliveryEditOutputNameLabel = Pick("Edit output filename", "編輯輸出檔名"),
             OutputDeliverySourcesLabel = Pick("View source files", "檢視來源檔案"),
-            OutputDeliverySourcesSummaryFormat = Pick("{0} verified sources", "{0} 個已驗證來源"),
+            OutputDeliverySourcesSummaryFormat = Pick("{0} input sources", "{0} 個輸入來源"),
             OutputDeliveryFolderNameLabel = Pick("Bundle folder name", "Bundle 資料夾名稱"),
             OutputDeliveryParentLabel = Pick("Parent folder", "上層資料夾"),
             OutputDeliveryChooseParentLabel = Pick("Choose parent folder", "選擇上層資料夾"),
@@ -303,6 +303,7 @@ internal sealed partial class ShellTextResources
             SettingsPreferencesNavigationLabel = Pick("Appearance", "外觀"),
             EventBufferFormatNavigationLabel = Pick("Config", "設定"),
             EventBufferFormatTitle = Pick("Event Buffer Format", "事件緩衝區格式"),
+            EventBufferVersionLabel = Pick("Event Buffer Version", "事件緩衝區版本"),
             EventBufferFormatSubtitle = Pick(
                 "Choose a format, set its display alias, and manage recognition values.",
                 "選擇格式、設定顯示別名，並管理辨識值。"),
@@ -392,6 +393,10 @@ internal sealed partial class ShellTextResources
             ReducedMotionDescription = Pick(
                 "Keep step status visible while removing non-essential progress animation.",
                 "保留步驟狀態，同時停用非必要的進度動畫。"),
+            ExpandInputDetailsLabel = Pick("Expand input details by default", "預設展開輸入詳細資訊"),
+            ExpandInputDetailsDescription = Pick(
+                "Open secondary firmware information when a new input is inspected.",
+                "新輸入完成檢查時，自動展開次要韌體資訊。"),
             SupportMatrixTitle = Pick("Support Matrix", "支援矩陣"),
             SupportMatrixSubtitle = Pick(
                 "Workflow support and verification status by IC.",

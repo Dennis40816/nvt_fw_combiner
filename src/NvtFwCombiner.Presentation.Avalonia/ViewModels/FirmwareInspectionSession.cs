@@ -50,7 +50,8 @@ internal static class FirmwareInspectionProjection
     internal static void ApplyAbInputFacts(
         FirmwareSlotViewModel slot,
         FirmwareInspectionSnapshot inspection,
-        ShellTextResources text)
+        ShellTextResources text,
+        bool expandAdditionalByDefault = false)
     {
         AbMergeInputFacts abInput = inspection.AbMergeFacts ??
             throw new ArgumentException("AB firmware facts require AB input facts.", nameof(inspection));
@@ -79,14 +80,16 @@ internal static class FirmwareInspectionProjection
             }
         }
 
-        slot.SetFirmwareFacts(
-        [
-            .. facts,
-            // AB owns the bank-specific TP A/TP B version labels. Reuse the standard
-            // typed FWConfig projection for the remaining per-input TP identity facts.
-            .. UiCompositionRunner.GetFirmwareSlotFacts(inspection).Where(static fact =>
-                !string.Equals(fact.Label, "TP", StringComparison.Ordinal)),
-        ]);
+        // AB owns the bank-specific version label. The remaining facts come from
+        // existing typed projections, never from reading bytes or matching Config here.
+        facts.AddRange(UiCompositionRunner.GetFirmwareSlotFacts(inspection).Where(static fact =>
+            !string.Equals(fact.Label, "TP Version", StringComparison.Ordinal)));
+        if (abInput.EventBufferFormat is { } format)
+        {
+            facts.Add(new(text.EventBufferVersionLabel,
+                FormattableString.Invariant($"0x{format.RawByte:X2} - {format.DisplayName}")));
+        }
+        slot.SetFirmwareFacts(facts, expandAdditionalByDefault);
     }
 
     internal static void ApplyInputSlotInspection(

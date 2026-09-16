@@ -127,6 +127,7 @@ internal sealed partial class MainWindowViewModel
             Reports.SetShellToast,
             RecordSystemActivity,
             () => RefreshCommandState(refreshReplaceReadiness: false),
+            () => ExpandInputDetailsByDefault,
             new WorkflowSessionStateBindings(
                 () => SelectedPage,
                 IsCompositionRunInProgress,

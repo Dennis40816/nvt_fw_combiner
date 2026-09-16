@@ -20,7 +20,7 @@ internal sealed partial class MergePresentationViewModel
             aFlashCodeOutputPathUsesAutomaticName);
     }
 
-    internal Task RequestBuildOutputDeliveryAsync()
+    internal async Task RequestBuildOutputDeliveryAsync()
     {
         ActiveSessionSnapshot session = SelectedMergeMode switch
         {
@@ -30,8 +30,25 @@ internal sealed partial class MergePresentationViewModel
             _ => null,
         } ?? throw new InvalidOperationException(
             "Build output confirmation requires one accepted Merge session.");
-        CompositionOutputBundleProposal proposal =
-            _compositionServices.OutputNaming.ResolveAcceptedBundleProposal(session);
+        long preparation = _stateBindings.OutputDelivery.BeginPreparation();
+        CompositionOutputBundleProposal proposal;
+        try
+        {
+            proposal = await _compositionServices.OutputNaming.PrepareBundleProposalAsync(session, CancellationToken.None);
+        }
+        catch (CompositionPreRunRefusalException exception)
+        {
+            if (IsAcceptedMergeSessionCurrent(session) && _stateBindings.OutputDelivery.IsPreparationCurrent(preparation))
+            {
+                _stateBindings.PublishRunResult(new UiRunResultViewModel("Build blocked", exception.Message, "No output", succeeded: false));
+                await RefreshAbMergeActionReadinessAsync(CancellationToken.None);
+            }
+            return;
+        }
+        if (!IsAcceptedMergeSessionCurrent(session) || !_stateBindings.OutputDelivery.IsPreparationCurrent(preparation))
+        {
+            return;
+        }
         CompositionAdditionalDeliveryPlan? additional = proposal.OutputPreparation.AdditionalDeliveries
             .SingleOrDefault(delivery => StringComparer.Ordinal.Equals(
                 delivery.DeliveryKind,
@@ -51,7 +68,6 @@ internal sealed partial class MergePresentationViewModel
                 decision.OutputPathUsesAutomaticName,
                 decision.AdditionalOutputPathUsesAutomaticName,
                 decision.BundleIntent)));
-        return Task.CompletedTask;
     }
 
     private bool IsAcceptedMergeSessionCurrent(ActiveSessionSnapshot acceptedSession)

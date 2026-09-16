@@ -286,7 +286,7 @@ public sealed partial class MergeWorkflowTests
             static fact => fact.Label == "TPA" && fact.Value == "T81-00");
         Assert.Contains(tpASlot.FirmwareFacts, static fact => fact.Label == "Common FW Version" && fact.Value == "1.4.1");
         Assert.Contains(tpASlot.FirmwareFacts, static fact => fact.Label == "PID" && fact.Value == "0x5102");
-        Assert.Contains(tpASlot.FirmwareFacts, static fact => fact.Label == "TP Version" && fact.Value == "T81-00");
+        Assert.DoesNotContain(tpASlot.FirmwareFacts, static fact => fact.Label == "TP Version");
         FirmwareSlotViewModel tpBSlot = viewModel.Merge.MergeSlots.Single(
             static slot => slot.SlotId == CompositionAddressSpaceIds.TpBInput);
         Assert.Contains(
@@ -294,7 +294,7 @@ public sealed partial class MergeWorkflowTests
             static fact => fact.Label == "TPB" && fact.Value == "T82-03");
         Assert.Contains(tpBSlot.FirmwareFacts, static fact => fact.Label == "Common FW Version" && fact.Value == "2.0.0");
         Assert.Contains(tpBSlot.FirmwareFacts, static fact => fact.Label == "PID" && fact.Value == "0x6A5C");
-        Assert.Contains(tpBSlot.FirmwareFacts, static fact => fact.Label == "TP Version" && fact.Value == "T82-03");
+        Assert.DoesNotContain(tpBSlot.FirmwareFacts, static fact => fact.Label == "TP Version");
         Assert.True(viewModel.Merge.CanBuildMerge);
         Assert.True(viewModel.Merge.PreviewMergeCommand.CanExecute(null));
 

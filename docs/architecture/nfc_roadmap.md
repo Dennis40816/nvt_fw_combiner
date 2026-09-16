@@ -13,7 +13,35 @@ allocations in this document and linked dated handoffs, not their retained
 acceptance criteria, historical evidence or permissions. Detailed work packages
 below retain their boundaries; they are not a second schedule.
 
-Current progress: `v1.1.5` is published (see the
+Owner amendment, 2026-09-16: swap the previous `1.1.8` and `1.1.9`
+allocations, and tentatively add CtrlRAM Replace of AB Code Flash inputs for
+the NT51932 Perfect family and NT51950 Partial family in `1.1.10`.
+Finish `1.1.7` first. This schedules the feature; it does not establish bank
+write semantics, certify family support or waive existing release gates.
+
+1.1.7 checkpoint (2026-09-16): Information ordering/spacing, default-Off Details,
+Config-reapplied Event Buffer facts and the approved Build settings/C source
+panel are implemented. Remaining work is integration and release verification,
+not another UI redesign. Owner-authorized record recovery preserves original
+`1.1.7` at `41fa8484` and reconstructs identical product content on
+`codex/1.1.7-record-recovery` at `63983648`; record closure is `b89062c6`.
+The owner separately approved the exact code-size allowance on 2026-09-16
+(full production +491, runtime +175; Application +174, Bootstrap +1).
+Its focused policy tests pass 19/19. The subsequent full verifier passes
+structure/code-size and seven product test projects, but remains blocked by
+the separate MainWindow aggregate test (1006 actual versus998 limit).
+The owner subsequently approved the exact1006 test bound, retaining all
+navigation ownership assertions and the985 review warning. The full local
+verifier passed at `c081b834` (6628 .NET tests, all script lanes and Python).
+The owner explicitly approved publication and main-based reconstruction.
+`codex/1.1.7-release-main` starts from published1.1.6/main32f9f398 and preserves
+both existing branches. Its product/tests/policy match the verified recovery
+source65c0227e exactly; VERSION and release-note metadata now identify1.1.7.
+New-record finalization, exact-source CI/package and release-owner gates remain
+separate; no tag or publication has occurred yet.
+See the [current UI closure evidence](../ui/v1.1.x-custom-options-layout-handoff.md#117-integration-recovery-and-validation--2026-09-16).
+
+Earlier 1.1.6 checkpoint: `v1.1.5` is published (see the
 [release evidence](../references/verification-report.md)). Current `1.1.6`
 Memory Layout and selection-slot corrections, bold group headers and FW Info
 disclosure alignment are locally committed with recorded targeted evidence;
@@ -45,8 +73,9 @@ protected review/CI and candidate publication gates remain required.
 | --- | --- |
 | `1.1.6` | **Urgent NT51950/NT51951 partial-family AB correction + editable Desay Settings**: auto-detect the approved Desay markers, Desay TP B at `0x4A000`, public NT51950 partial-family **2 IC** TP B at `0x8A000`; update all coupled offsets, processors and allowed writes. Add required FWConfig/TPA-TPB format admission, the non-blocking DP AB size warning (`0x100000` bytes), and minimal effective-format/output disclosure. Settings supports adding/removing/editing supported-format marker values and separate ID/name lookup through one validated file-backed owner, with safe persistence, invalid-edit feedback and apply/reload invalidation. Include impacted Dummy DP, Memory Layout, Report and family regressions, exact write-range audit and required independent Golden evidence. Carry already-committed UI fixes forward without redesign. |
 | `1.1.7` | **Information and output confirmation UI**: TP Version → PID → Common FW Version → Event Buffer Version (`0x97 - Desay`, plain text); responsive action alignment, bounded Details and its default-Off appearance preference; clear IC/Mode/effective-format output confirmation. Final PID-inclusive preview/acceptance precedes implementation. |
-| `1.1.8` | **Remaining Settings conveniences**: inventory other user-adjustable preferences and complete justified reset/import/export conveniences through the owner introduced in `1.1.6`. Do not postpone basic Desay editability, safe persistence, validation or stale-state invalidation to this version. Arbitrary maps, CRC/ranges, safety overrides and support promotion are outside ordinary Settings. |
-| `1.1.9` | **Release/agent workflow proportionality**: gate inventory and evidence-backed simplification, AI Skill/documentation/routing consistency and a bounded reversible pilot. Assess code-size/count gates, repeated confirmations/tests and derived-data automation; do not weaken Golden, signing or publication boundaries. |
+| `1.1.8` | **Release/agent workflow proportionality**: gate inventory and evidence-backed simplification, AI Skill/documentation/routing consistency and a bounded reversible pilot. Assess code-size/count gates, repeated confirmations/tests and derived-data automation; do not weaken Golden, signing or publication boundaries. |
+| `1.1.9` | **Remaining Settings conveniences**: inventory other user-adjustable preferences and complete justified reset/import/export conveniences through the owner introduced in `1.1.6`. Do not postpone basic Desay editability, safe persistence, validation or stale-state invalidation to this version. Arbitrary maps, CRC/ranges, safety overrides and support promotion are outside ordinary Settings. |
+| `1.1.10` (tentative) | **CtrlRAM Replace with AB Code Flash inputs** for NT51932 Perfect family and NT51950 Partial family. Inventory current behavior and reuse declared family/profile facts; specify input shape, bank targeting, coupled header/CRC updates, preserved bytes and output/readiness/report disclosure before implementation. Include applicable topology and Common/Desay variants only under their approved contracts, with exact write-range audit and independent Golden evidence. No filename-based AB detection or blanket family promotion. |
 | `1.2.0` | **Launcher first development tranche**: current defect/security/evidence inventory plus actual bounded remediation, not only planning. Not the full Launcher release or production activation. Before release, refresh public NT51950 DP Perspective, Desay DP Perspective and Event Buffer ID/name material. |
 | `1.2.1` | **Family/Profile/state ownership convergence**: proven shared-fact duplication and DP CMI provider bindings first; distinguish IC identity, family, topology/IC Count, variant, input snapshots and page drafts. Preserve valid existing reuse; no wholesale profile rewrite. |
 | `1.2.2` | **DP Replace retirement** after `1.2.1` preserves shared definitions, Perfect-family disclosure and surviving consumers. Preserve historical Report interpretation and required evidence; verify surviving workflow bytes. |
@@ -1701,7 +1730,7 @@ another scheduler, verifier or evidence-document framework.
 
 Historical allocation: the owner merged the previous `1.1.6` and `1.1.7`
 milestones on 2026-09-05. The current sequence separates the workflow/gate
-audit (`1.1.9`), shared ownership (`1.2.1`) and documentation/minimality cleanup
+audit (`1.1.8`), shared ownership (`1.2.1`) and documentation/minimality cleanup
 (`1.2.7`), retaining the work-package boundaries below.
 Use capability, task difficulty, risk and coordination cost to select models
 and reasoning effort from all available models; disclose actual known model
@@ -1718,7 +1747,7 @@ or impose enterprise ceremony through this allocation.
 
 ### Release gate proportionality assessment
 
-Owner allocation, 2026-09-13 (now `1.1.9`): assess unreasonable release gates,
+Owner allocation, 2026-09-13 (now `1.1.8`, resequenced 2026-09-16): assess unreasonable release gates,
 including the rigid code-size accounting exposed during `1.1.5` preparation.
 This is an assessment and proposed simplification, not authorization to remove
 current checks or change the frozen `1.1.5` release procedure.
@@ -1771,7 +1800,7 @@ default expansion, initially Off. Responsive action alignment, primary-field
 layout and the PID-inclusive preview remain pending; these are recorded
 requirements, not completed UI work. The current sequence puts the urgent
 firmware/admission change and bounded Desay Settings editor in `1.1.6`,
-Information UI in `1.1.7`, and broader Settings conveniences in `1.1.8`.
+Information UI in `1.1.7`, and broader Settings conveniences in `1.1.9`.
 Required FWConfig unreadability/invalidity blocks the scoped
 format-dependent workflow, separately from the non-blocking DP-size warning.
 The owner also confirms that TPA/TPB Common-versus-Desay disagreement blocks

@@ -96,6 +96,7 @@ public sealed partial class ShellNavigationSystemTests
     [InlineData("replace")]
     [InlineData("failure")]
     [InlineData("reload")]
+    [InlineData("alias")]
     public async Task EventBufferFormatSaveReappliesLoadedAbInputsWithoutFileReload(string context)
     {
         using TempWorkspace workspace = TempWorkspace.Create("ui-ab-config-reapply");
@@ -104,6 +105,7 @@ public sealed partial class ShellNavigationSystemTests
         MainWindowViewModel viewModel = await CreateLoadedFormatAbViewModelAsync(workspace, host,
             secondFormat: context == "failure" ? (byte)0xA6 : (byte)0x97);
         FirmwareSlotViewModel slot = viewModel.Merge.AbMergeSlots.Single(static slot => slot.SlotId == "tp-a-input");
+        Assert.Contains(slot.FirmwareFacts, fact => fact.Label == "Event Buffer Version" && fact.Value == "0x97 - Desay");
         File.Delete(workspace.PathFor("a.bin"));
         File.Delete(workspace.PathFor("b.bin"));
         if (context == "standard") { viewModel.Merge.SelectedMergeMode = ExperienceIds.StandardMerge; }
@@ -128,14 +130,18 @@ public sealed partial class ShellNavigationSystemTests
         }
         else
         {
-            Assert.Single(viewModel.Settings.EventBufferFormatRows).RecognitionValues.Clear();
+            if (context == "alias") { Assert.Single(viewModel.Settings.EventBufferFormatRows).AliasName = "My vendor"; }
+            else { Assert.Single(viewModel.Settings.EventBufferFormatRows).RecognitionValues.Clear(); }
             if (context == "failure") { Assert.Single(viewModel.Settings.EventBufferFormatRows).RecognitionValues.Add(0xA6); }
             await viewModel.Settings.SaveEventBufferFormatCommand.ExecuteAsync(null);
         }
         if (context == "failure")
         {
             Assert.True(slot.BlocksBuild);
+            Assert.Null(slot.CurrentInspectionProjection!.AbMergeFacts!.EventBufferFormat);
+            Assert.DoesNotContain(slot.FirmwareFacts, fact => fact.Label == viewModel.Text.EventBufferVersionLabel);
             viewModel.SelectedLanguage = "Traditional Chinese";
+            Assert.DoesNotContain(slot.FirmwareFacts, fact => fact.Label == viewModel.Text.EventBufferVersionLabel);
             Assert.True(slot.BlocksBuild);
             Assert.Equal(viewModel.Text.EventBufferFormatReapplyFailedLabel, viewModel.Settings.EventBufferFormatStatus);
             Assert.False(viewModel.Settings.HasEventBufferFormatUnsavedChanges);
@@ -154,9 +160,12 @@ public sealed partial class ShellNavigationSystemTests
             Assert.True(viewModel.IsReplaceVisible);
             return;
         }
-        Assert.Equal("nt51950-ab-merge-maps", Assert.Single(slot.CurrentInspectionProjection!.InputSlotCatalog!.Routes).ExactCapability!.Identity.MapVariant);
+        Assert.Equal(context == "alias" ? "nt51950-ab-desay-maps" : "nt51950-ab-merge-maps",
+            Assert.Single(slot.CurrentInspectionProjection!.InputSlotCatalog!.Routes).ExactCapability!.Identity.MapVariant);
         Assert.False(slot.BlocksBuild);
         _ = Assert.NotNull(slot.CurrentInspectionProjection.InputSlotStatus!.AcceptedBytes);
+        Assert.Contains(slot.FirmwareFacts, fact => fact.Label == viewModel.Text.EventBufferVersionLabel &&
+            fact.Value == (context == "alias" ? "0x97 - My vendor" : "0x97 - Common"));
         Assert.False(viewModel.Settings.HasEventBufferFormatUnsavedChanges);
         Assert.Equal(viewModel.Text.EventBufferFormatSavedLabel, viewModel.Settings.EventBufferFormatStatus);
         Assert.Equal(selectedIc, viewModel.WorkflowSession.SelectedIc);
@@ -165,7 +174,7 @@ public sealed partial class ShellNavigationSystemTests
 
     private static async Task<MainWindowViewModel> CreateLoadedFormatAbViewModelAsync(
         TempWorkspace workspace, CompositionHostServices host, IAbMergeAuthoring? authoring = null, byte secondFormat = 0x97,
-        ICompositionExecution? execution = null, bool initializeConfiguration = true)
+        ICompositionExecution? execution = null, bool initializeConfiguration = true, ICompositionOutputNaming? outputNaming = null)
     {
         IEventBufferFormatConfigurationSession configuration = await host.GetEventBufferFormatConfigurationAsync(TestContext.Current.CancellationToken);
         if (initializeConfiguration)
@@ -173,7 +182,7 @@ public sealed partial class ShellNavigationSystemTests
             Assert.True((await configuration.SaveAsync(configuration.CreateDefaultsDraft(), TestContext.Current.CancellationToken)).Succeeded);
         }
         PresentationHostServices services = PresentationTestHost.CreateServices(ApplicationVersionProvider.InformationalVersion,
-            host, static general => general, authoring, execution);
+            host, static general => general, authoring, execution, outputNaming);
         MainWindowViewModel viewModel = PresentationTestHost.PublishCanonicalCatalog(services, ShellViewModelFactory.Create(services, ShellLanguage.English));
         viewModel.ShowMergeCommand.Execute(null);
         viewModel.WorkflowSession.SelectedIc = "NT51950";
@@ -370,6 +379,10 @@ public sealed partial class ShellNavigationSystemTests
         try
         {
             await entered.Task.WaitAsync(TestContext.Current.CancellationToken);
+            FirmwareSlotViewModel pendingSlot = viewModel.Merge.AbMergeSlots.Single(static slot => slot.SlotId == "tp-a-input");
+            Assert.Null(pendingSlot.CurrentInspectionProjection!.AbMergeFacts!.EventBufferFormat);
+            Assert.DoesNotContain(pendingSlot.FirmwareFacts, fact => fact.Label == viewModel.Text.EventBufferVersionLabel);
+            if (!preCompilation) { Assert.Contains(pendingSlot.FirmwareFacts, static fact => fact.Label == "TPA"); }
             byte[] replacement = await File.ReadAllBytesAsync(workspace.PathFor("b.bin"), TestContext.Current.CancellationToken);
             string replacementPath = workspace.Write("replacement-a.bin", replacement);
             await viewModel.WorkflowSession.SetSlotFileAsync("tp-a-input", replacementPath, TestContext.Current.CancellationToken);
@@ -382,6 +395,7 @@ public sealed partial class ShellNavigationSystemTests
             Assert.Equal(replacementPath, slot.FilePath);
             Assert.False(slot.BlocksBuild);
             Assert.Empty(slot.CurrentInspectionProjection!.AuthoringCompilationIssues);
+            Assert.Contains(slot.FirmwareFacts, fact => fact.Label == viewModel.Text.EventBufferVersionLabel);
         }
         finally
         {

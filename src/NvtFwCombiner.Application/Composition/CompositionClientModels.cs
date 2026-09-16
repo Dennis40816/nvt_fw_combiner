@@ -27,7 +27,22 @@ public enum FirmwareInputInspectionSeverity
 /// <summary>Informational AB version facts decoded only from the canonical accepted source view.</summary>
 public sealed record AbMergeInputFacts(
     string AddressSpaceId,
-    IReadOnlyList<CompiledInputVersionObservation> Versions);
+    IReadOnlyList<CompiledInputVersionObservation> Versions)
+{
+    /// <summary>Optional admitted format from this input's primary FWConfig, not a current-settings lookup.</summary>
+    public EventBufferFormatObservation? EventBufferFormat { get; init; }
+}
+
+/// <summary>Immutable display evidence from a successful AB format resolution; ranges remain in the source input.</summary>
+public sealed record EventBufferFormatObservation(
+    byte RawByte,
+    string FormatId,
+    string DisplayName,
+    long ConfigurationGeneration,
+    string ConfigurationSourceSha256,
+    string PrimaryStructureId,
+    FirmwareAddressedRange PrimaryRange,
+    FirmwareArtifactIdentity ArtifactIdentity);
 
 /// <summary>Firmware facts read from the canonical NVT-located FWConfig Backup block.</summary>
 public sealed record FirmwareConfigMetadataSnapshot(

@@ -385,7 +385,11 @@ internal sealed partial class WorkflowSessionPresentationViewModel
 
             if (inspection.AbMergeFacts is not null && FirmwareInspectionProjection.SupportsFacts(slot, inspection))
             {
-                FirmwareInspectionProjection.ApplyAbInputFacts(slot, inspection, Text);
+                FirmwareInspectionProjection.ApplyAbInputFacts(
+                    slot,
+                    inspection,
+                    Text,
+                    _expandInputDetailsByDefault());
             }
             else if (item.PublishFacts && FirmwareInspectionProjection.SupportsFacts(slot, inspection))
             {
@@ -394,7 +398,8 @@ internal sealed partial class WorkflowSessionPresentationViewModel
                     : UiCompositionRunner.GetFirmwareSlotFacts(
                         inspection,
                         includeBaseFacts: item.SlotKind == FirmwareSlotKind.Base,
-                        text: Text));
+                        text: Text),
+                    _expandInputDetailsByDefault());
             }
 
             if (inspection.AuthoringCompilationIssues.Count > 0)

@@ -18,7 +18,7 @@ verification evidence is produced by the canonical
 `python scripts/verify.py --structure-only` and `python scripts/verify.py --all`
 commands.
 
-Specification package version: `1.1.6`
+Specification package version: `1.1.7`
 
 Current allocation amendment (2026-09-05): all remaining `1.1.x` CI/release
 optimization and follow-ups below are consolidated into `v1.1.3` in the

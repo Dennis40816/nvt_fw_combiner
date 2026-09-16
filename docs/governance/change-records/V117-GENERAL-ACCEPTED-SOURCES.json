@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 2,
+  "taskId": "V117-GENERAL-ACCEPTED-SOURCES",
+  "capability": "Project General accepted sources consistently into confirmation and bundle delivery",
+  "risk": "R2",
+  "kind": "behavior",
+  "mutablePaths": [
+    "src/NvtFwCombiner.Application/Composition/CompositionExecutionBundleDelivery.cs",
+    "src/NvtFwCombiner.Application/Composition/CompositionOutputConfirmationSummary.cs",
+    "tests/NvtFwCombiner.Bootstrap.Tests/GeneralOutputConfirmationTests.cs",
+    "scripts/code_size_policy.py",
+    "tests/scripts/test_code_size_policy.py",
+    "docs/adr/0021-code-size-ratchet-accepted-artifact-amendment.md"
+  ],
+  "searchEvidence": [
+    "PR4022325434 reproduced via real General authoring and naming: Merge expected1 actual0; Replace expected2 actual0. Retained general-red.trx2026-09-16.",
+    "General stores accepted content in session Slots; both confirmation and existing BundleSourcePlanner only enumerate compiled InputSlotStatuses. AcceptedSessionExecutionInputs already owns General binding/path/stamp/bytes and Replace reference admission."
+  ],
+  "semanticOwner": "Existing CompositionOutputBundleSourcePlanner with AcceptedSessionExecutionInputs; existing confirmation projection",
+  "terminalContract": "Reuse accepted immutable candidates for binding-level confirmation and existing physical-file bundle canonicalization. Include Replace Base; exclude General virtual sources without claiming Dummy DP; preserve existing Dummy DP disclosure. Resolve SlotId from compiled space bindings. Preserve fixed inspection facts, no new IO/mapping/firmware/public contract/readiness semantics. Adjust size caps and existing assertions/ADR only to actual measured increment under owner consent, no headroom or counting changes.",
+  "designReview": {
+    "reviewer": "/root/v117_final_review",
+    "outcome": "approved",
+    "evidence": "Independent bounded R2 design admission2026-09-16 approved existing two production owners, one regression test and exact measured size-policy/assert/ADR accounting before production edits. Owner permits current release code-size increments. No firmware or release gate waiver."
+  },
+  "integrationBase": "f2d94e4f27156be64a97aa88bfc29b55e8f12871",
+  "state": "final-complete",
+  "implementationOwner": "/root",
+  "disposition": "reuse",
+  "implementationHead": "ca02d2a67adf33e7111048adc0e72e4044642ee3",
+  "reviewedHead": "ca02d2a67adf33e7111048adc0e72e4044642ee3",
+  "pathStateDigest": "b7065b448acddd4c761f718260422817abea76c8e52636bdf99a78d321d6770d",
+  "finalReview": {
+    "reviewer": "/root/v117_final_review",
+    "outcome": "approved",
+    "evidence": "Independent fixed-head ca02d2a6 review2026-09-16 PASS/no findings: code, architecture, Polytail and release prose. Shared accepted owner preserves immutable content, binding summaries and physical-file bundle dedup; SlotId comes from compiled contract; General virtual never claims Dummy DP. No new IO, firmware or readiness semantics. Directly inspected retained General/AB79, sharedUI35, architecture256 and policy/notes26 passing tests. Exact measured+19 full/runtime/Application accounting approved; no spare headroom or weakened guards. Canonical digest calculated; final-record validation, latest full/CI and actual release-source Golden/package/protected approval remain required."
+  }
+}

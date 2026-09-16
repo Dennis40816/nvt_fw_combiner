@@ -231,10 +231,14 @@ internal sealed partial class FirmwareSlotViewModel : ObservableObject
     }
 
     /// <summary>Replaces decoded firmware facts for this slot.</summary>
-    public void SetFirmwareFacts(IEnumerable<FirmwareSlotFactViewModel> facts)
+    public void SetFirmwareFacts(
+        IEnumerable<FirmwareSlotFactViewModel> facts,
+        bool expandAdditionalByDefault = false)
     {
         ArgumentNullException.ThrowIfNull(facts);
 
+        bool preserveExpansion = HasAdditionalFirmwareFacts;
+        bool wasExpanded = IsAdditionalFirmwareFactsExpanded;
         FirmwareFacts.Clear();
         foreach (FirmwareSlotFactViewModel fact in facts)
         {
@@ -244,7 +248,8 @@ internal sealed partial class FirmwareSlotViewModel : ObservableObject
             }
         }
 
-        IsAdditionalFirmwareFactsExpanded = false;
+        IsAdditionalFirmwareFactsExpanded = HasAdditionalFirmwareFacts &&
+            (preserveExpansion ? wasExpanded : expandAdditionalByDefault);
         OnPropertyChanged(nameof(HasFirmwareFacts));
         OnPropertyChanged(nameof(PrimaryFirmwareFacts));
         OnPropertyChanged(nameof(AdditionalFirmwareFacts));

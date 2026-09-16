@@ -14,7 +14,7 @@
           DragDrop.Drop="SlotDrop_OnDrop" Tag="{Binding SlotId}">
     <Grid RowDefinitions="Auto,Auto" ColumnDefinitions="*,Auto">
       <Border Grid.RowSpan="2" Grid.ColumnSpan="2" Classes="dropZoneOverlay" />
-      <Grid x:Name="SlotLayout" Margin="16" MinHeight="72" ColumnDefinitions="280,*"
+      <Grid x:Name="SlotLayout" Margin="16,20,16,16" MinHeight="72" ColumnDefinitions="280,*"
             ColumnSpacing="{DynamicResource NfcSpace24}" RowDefinitions="*,Auto,Auto">
         <StackPanel x:Name="SlotIdentity" Grid.Column="0" VerticalAlignment="Center"
                     Spacing="{DynamicResource NfcSpace12}">
@@ -173,7 +173,7 @@
                      FontSize="17" Text="&#xE74D;" />
         </Button>
       </StackPanel>
-      <Button Grid.Row="1" Margin="16,0,16,16" AutomationProperties.HelpText="{Binding DisplayDetail}" AutomationProperties.Name="{Binding DisplayNameWithSelectionContext}"
+      <Button Grid.Row="1" Margin="16,0,16,20" AutomationProperties.HelpText="{Binding DisplayDetail}" AutomationProperties.Name="{Binding DisplayNameWithSelectionContext}"
               Classes="fileRevealAction" Command="{ReflectionBinding $parent[Window].DataContext.RevealFileCommand}"
               CommandParameter="{Binding FilePath}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left"
               IsVisible="{Binding HasFile}" ToolTip.BetweenShowDelay="-1" ToolTip.Placement="BottomEdgeAlignedLeft"
