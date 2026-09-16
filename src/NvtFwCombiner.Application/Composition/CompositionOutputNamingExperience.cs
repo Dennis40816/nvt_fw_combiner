@@ -118,7 +118,7 @@ internal sealed class CompositionOutputNamingExperience : ICompositionOutputNami
         if (_assessFormat is null) { throw new InvalidOperationException("AB confirmation requires the canonical format assessor."); }
         (AbMergeFormatSelection? format, IReadOnlyList<CompositionIssue> issues) =
             await _assessFormat(session, cancellationToken).ConfigureAwait(false);
-        return issues.Count != 0 ? throw new InvalidOperationException(string.Join(" ", issues.Select(static issue => issue.Message))) : format;
+        return issues.Count != 0 ? throw new CompositionPreRunRefusalException(issues) : format;
     }
 
     public ValueTask<CompositionOutputPreparation> PrepareAutomaticOutputAsync(

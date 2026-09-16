@@ -31,8 +31,20 @@ internal sealed partial class MergePresentationViewModel
         } ?? throw new InvalidOperationException(
             "Build output confirmation requires one accepted Merge session.");
         long preparation = _stateBindings.OutputDelivery.BeginPreparation();
-        CompositionOutputBundleProposal proposal =
-            await _compositionServices.OutputNaming.PrepareBundleProposalAsync(session, CancellationToken.None);
+        CompositionOutputBundleProposal proposal;
+        try
+        {
+            proposal = await _compositionServices.OutputNaming.PrepareBundleProposalAsync(session, CancellationToken.None);
+        }
+        catch (CompositionPreRunRefusalException exception)
+        {
+            if (IsAcceptedMergeSessionCurrent(session) && _stateBindings.OutputDelivery.IsPreparationCurrent(preparation))
+            {
+                _stateBindings.PublishRunResult(new UiRunResultViewModel("Build blocked", exception.Message, "No output", succeeded: false));
+                await RefreshAbMergeActionReadinessAsync(CancellationToken.None);
+            }
+            return;
+        }
         if (!IsAcceptedMergeSessionCurrent(session) || !_stateBindings.OutputDelivery.IsPreparationCurrent(preparation))
         {
             return;

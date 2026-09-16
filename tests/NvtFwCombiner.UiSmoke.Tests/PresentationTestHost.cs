@@ -203,7 +203,8 @@ internal static class PresentationTestHost
         CompositionHostServices host,
         Func<IGeneralAuthoring, IGeneralAuthoring> generalAuthoringDecorator,
         IAbMergeAuthoring? abMergeAuthoring = null,
-        ICompositionExecution? execution = null)
+        ICompositionExecution? execution = null,
+        ICompositionOutputNaming? outputNaming = null)
     {
         return new PresentationHostServices(
             new PresentationCompositionServices(
@@ -214,7 +215,7 @@ internal static class PresentationTestHost
                 generalAuthoringDecorator(host.GeneralAuthoring),
                 host.CtrlRamAuthoring,
                 host.FirmwareInspectionExperience,
-                host.CompositionOutputNaming,
+                outputNaming ?? host.CompositionOutputNaming,
                 execution ?? host.CompositionExecution),
             CompositionHostServices.CreateFileRevealService(),
             host.CanonicalSupportMatrixQuery,

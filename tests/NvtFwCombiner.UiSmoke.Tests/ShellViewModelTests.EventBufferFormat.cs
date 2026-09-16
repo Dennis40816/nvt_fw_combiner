@@ -174,7 +174,7 @@ public sealed partial class ShellNavigationSystemTests
 
     private static async Task<MainWindowViewModel> CreateLoadedFormatAbViewModelAsync(
         TempWorkspace workspace, CompositionHostServices host, IAbMergeAuthoring? authoring = null, byte secondFormat = 0x97,
-        ICompositionExecution? execution = null, bool initializeConfiguration = true)
+        ICompositionExecution? execution = null, bool initializeConfiguration = true, ICompositionOutputNaming? outputNaming = null)
     {
         IEventBufferFormatConfigurationSession configuration = await host.GetEventBufferFormatConfigurationAsync(TestContext.Current.CancellationToken);
         if (initializeConfiguration)
@@ -182,7 +182,7 @@ public sealed partial class ShellNavigationSystemTests
             Assert.True((await configuration.SaveAsync(configuration.CreateDefaultsDraft(), TestContext.Current.CancellationToken)).Succeeded);
         }
         PresentationHostServices services = PresentationTestHost.CreateServices(ApplicationVersionProvider.InformationalVersion,
-            host, static general => general, authoring, execution);
+            host, static general => general, authoring, execution, outputNaming);
         MainWindowViewModel viewModel = PresentationTestHost.PublishCanonicalCatalog(services, ShellViewModelFactory.Create(services, ShellLanguage.English));
         viewModel.ShowMergeCommand.Execute(null);
         viewModel.WorkflowSession.SelectedIc = "NT51950";
