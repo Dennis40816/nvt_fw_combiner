@@ -232,7 +232,11 @@ public sealed class OutputConfirmationTests
                     files.TranslatePoint(default, modal)!.Value.Y + files.Bounds.Height);
             }
             Assert.True(viewport.Extent.Height <= viewport.Viewport.Height + 1,
-                $"The approved four states must show the complete destination panel: extent={viewport.Extent.Height}, viewport={viewport.Viewport.Height}.");
+                $"The approved four states must show the complete destination panel: extent={viewport.Extent.Height}, viewport={viewport.Viewport.Height}." +
+                Environment.NewLine + string.Join(Environment.NewLine,
+                    Avalonia.VisualTree.VisualExtensions.GetVisualDescendants(modal).OfType<TextBlock>()
+                        .Where(block => block.IsEffectivelyVisible)
+                        .Select(block => $"text={block.Text}; bounds={block.Bounds}; desired={block.DesiredSize}; font={block.FontFamily}; size={block.FontSize}; lines={block.TextLayout.TextLines.Count}")));
             Assert.True(modal.FindControl<Button>("ConfirmButton")!.IsEffectivelyVisible);
             string? outputDirectory = Environment.GetEnvironmentVariable("NFC_VISUAL_OUTPUT_DIR");
             if (!string.IsNullOrWhiteSpace(outputDirectory))
