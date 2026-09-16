@@ -41,14 +41,19 @@ internal sealed partial class ShellTextResources
     private string? GetIgnoredTrailingInputDescription(AuthoringInputSlotStatus status)
     {
         return status.InspectionLifecycle == AuthoringSlotLifecycle.Warning &&
-            status.InspectionNextAction == CompiledInputArtifactInspectionNextAction.ReviewIgnoredTrailingBytes &&
-            status.Inspection is
-            {
-                Severity: CompiledInputArtifactInspectionSeverity.Warning,
-                NextAction: CompiledInputArtifactInspectionNextAction.ReviewIgnoredTrailingBytes,
-                AcceptedSnapshotRange: { Length: > 0 } accepted,
-                IgnoredTrailingRange: { Length: > 0 } ignored,
-            } inspection ? SelectLanguage(
+            status.InspectionNextAction == CompiledInputArtifactInspectionNextAction.ReviewIgnoredTrailingBytes
+            ? GetIgnoredTrailingInputDescription(status.Inspection) : null;
+    }
+
+    private string? GetIgnoredTrailingInputDescription(CompiledInputArtifactInspectionResult? result)
+    {
+        return result is
+        {
+            Severity: CompiledInputArtifactInspectionSeverity.Warning,
+            NextAction: CompiledInputArtifactInspectionNextAction.ReviewIgnoredTrailingBytes,
+            AcceptedSnapshotRange: { Length: > 0 } accepted,
+            IgnoredTrailingRange: { Length: > 0 } ignored,
+        } inspection ? SelectLanguage(
             $"Input: {FormatInputLength(inspection.ActualLength)} · Used: {FormatInputLength(accepted.Length)}\nTrailing {FormatInputLength(ignored.Length)} will be ignored.",
             $"輸入：{FormatInputLength(inspection.ActualLength)} · 使用：{FormatInputLength(accepted.Length)}\n尾端 {FormatInputLength(ignored.Length)} 將被忽略。") : null;
     }

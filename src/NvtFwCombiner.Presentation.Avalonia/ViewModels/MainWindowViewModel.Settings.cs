@@ -15,9 +15,16 @@ internal sealed partial class MainWindowViewModel
     [ObservableProperty]
     public partial bool IsReducedMotionEnabled { get; set; }
 
+    [ObservableProperty]
+    public partial bool ExpandInputDetailsByDefault { get; set; }
+
     public ShellPreferenceSnapshot ExportShellPreferences()
     {
-        return new ShellPreferenceSnapshot(SelectedTheme, SelectedLanguage, IsReducedMotionEnabled);
+        return new ShellPreferenceSnapshot(
+            SelectedTheme,
+            SelectedLanguage,
+            IsReducedMotionEnabled,
+            ExpandInputDetailsByDefault);
     }
 
     public void LoadShellPreferences(ShellPreferenceSnapshot preferences)
@@ -33,6 +40,7 @@ internal sealed partial class MainWindowViewModel
             Settings.LanguageChoices.Select(static choice => choice.Value),
             SelectedLanguage);
         IsReducedMotionEnabled = preferences.IsReducedMotionEnabled;
+        ExpandInputDetailsByDefault = preferences.ExpandInputDetailsByDefault;
     }
 
     private void RefreshSettingsState()

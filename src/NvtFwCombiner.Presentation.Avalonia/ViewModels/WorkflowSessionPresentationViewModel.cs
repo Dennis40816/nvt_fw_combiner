@@ -16,6 +16,7 @@ internal sealed partial class WorkflowSessionPresentationViewModel : ObservableO
     private readonly Action _refreshCommandAvailability;
     private readonly WorkflowSessionStateBindings _stateBindings;
     private readonly Func<ShellTextResources> _textProvider;
+    private readonly Func<bool> _expandInputDetailsByDefault;
 
     internal WorkflowSessionPresentationViewModel(
         PresentationCompositionServices compositionServices,
@@ -26,6 +27,7 @@ internal sealed partial class WorkflowSessionPresentationViewModel : ObservableO
         Action<string, string> showToast,
         Action<SystemActivityDraft> recordActivity,
         Action refreshCommandAvailability,
+        Func<bool> expandInputDetailsByDefault,
         WorkflowSessionStateBindings stateBindings)
     {
         _compositionServices = compositionServices ??
@@ -38,6 +40,8 @@ internal sealed partial class WorkflowSessionPresentationViewModel : ObservableO
         _recordActivity = recordActivity ?? throw new ArgumentNullException(nameof(recordActivity));
         _refreshCommandAvailability = refreshCommandAvailability ??
             throw new ArgumentNullException(nameof(refreshCommandAvailability));
+        _expandInputDetailsByDefault = expandInputDetailsByDefault ??
+            throw new ArgumentNullException(nameof(expandInputDetailsByDefault));
         _stateBindings = stateBindings ?? throw new ArgumentNullException(nameof(stateBindings));
         WorkflowContextSetup = new WorkflowContextSetupViewModel();
         ConfirmWorkflowContextCommand = new RelayCommand(ConfirmWorkflowContext);
@@ -112,7 +116,11 @@ internal sealed partial class WorkflowSessionPresentationViewModel : ObservableO
 
             if (inspection.AbMergeFacts is not null)
             {
-                FirmwareInspectionProjection.ApplyAbInputFacts(slot, inspection, Text);
+                FirmwareInspectionProjection.ApplyAbInputFacts(
+                    slot,
+                    inspection,
+                    Text,
+                    _expandInputDetailsByDefault());
             }
             else
             {

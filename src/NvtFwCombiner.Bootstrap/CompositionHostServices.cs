@@ -85,7 +85,8 @@ public sealed class CompositionHostServices
             catalog,
             new SystemClock(),
             artifactIdentityPolicy,
-            bundleDestinationValidator);
+            bundleDestinationValidator,
+            abMergeAuthoring.AssessAcceptedFormatAsync);
         CompositionExecution = new CompositionExecutionExperience(
             catalog,
             new ProtectedCompositionDestinationProvider(),

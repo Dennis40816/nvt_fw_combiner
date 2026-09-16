@@ -655,7 +655,8 @@ public sealed partial class MainWindow : Window, IDisposable
         return propertyName is
             nameof(MainWindowViewModel.SelectedTheme) or
             nameof(MainWindowViewModel.SelectedLanguage) or
-            nameof(MainWindowViewModel.IsReducedMotionEnabled);
+            nameof(MainWindowViewModel.IsReducedMotionEnabled) or
+            nameof(MainWindowViewModel.ExpandInputDetailsByDefault);
     }
 
     private void ApplyDeferredShellContent(MainWindowViewModel viewModel)

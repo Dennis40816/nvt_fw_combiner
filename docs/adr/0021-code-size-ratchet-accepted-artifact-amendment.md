@@ -855,3 +855,33 @@ Only four existing policy defaults and three exact baseline assertions change.
 All counting, exclusions, ratchet bases, partial/duplicate and
 growth/reduction/slice-equality guards remain unchanged. No spare capacity or
 firmware, Golden, safety, CI, package or release exception is introduced.
+
+## 2026-09-16 v1.1.7 Information and confirmation accounting
+
+The owner explicitly approved the exact completed-feature increment at
+`408e08d1`: full production +491, runtime +175 (Application +174 and Bootstrap
++1). Independent R2 admission `V117-EXACT-SIZE-ALLOWANCE` remeasured the existing
+physical source owner and verified runtime slice equality.
+
+| Metric | Exact total | Preserved base | Allowance |
+| --- | ---: | ---: | ---: |
+| Full production / warning baseline | 144,809 | 102,896 | 41,913 |
+| Runtime | 102,205 | 70,056 | 32,149 |
+| Application | 44,741 | 30,690 | 14,051 |
+| Bootstrap + CLI + Desktop host | 5,131 | 3,378 | 1,753 |
+
+Application captures accepted per-binding Event Buffer and output-confirmation
+facts with session/configuration freshness through existing owners. Bootstrap
+wires the existing format admission. The full-only increment of 316 lines is
+shared Information/Details preference, fact projection and confirmation UI.
+Domain/Profiles remains 21,182 and Infrastructure/Contracts/worker remains 31,151;
+21,182 + 44,741 + 5,131 + 31,151 equals 102,205. Source review found no new semantic owner
+or speculative execution infrastructure, not a claim of global minimality.
+
+Only five existing defaults, four exact total assertions and the observed
+WorkflowSession 2693 assertion change. Its 13 files and warning threshold 2627
+remain unchanged. Counting, exclusions, ratchet bases, duplicate/partial-type,
+growth/reduction/slice-equality and extra-source protections remain intact.
+There is no reserved or transferable capacity and no firmware, Golden, package,
+CI or publication exception. The prior full-verifier and baseline failures
+remain retained evidence; fresh focused policy and final gates are required.

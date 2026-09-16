@@ -135,6 +135,7 @@
     <Setter Property="Stroke" Value="{DynamicResource NfcWarningTextBrush}" />
   </Style>
   <Style Selector="ToggleButton.slotStateAction.verified Path.slotStateIcon">
+    <Setter Property="RenderTransform"><TranslateTransform Y="1" /></Setter>
     <Setter Property="Stroke" Value="{DynamicResource NfcSuccessEmphasisBrush}" />
   </Style>
   <Style Selector="ToggleButton.slotStateAction.error Path.slotStateIcon, Border.firmwareSlotFact.error Path.firmwareSlotFactStateIcon">

@@ -29,7 +29,7 @@ public sealed partial class RepositoryBoundaryTests
                 "MainWindowViewModel*.cs",
                 SearchOption.TopDirectoryOnly)
             .Sum(path => File.ReadLines(path).Count(static line => !string.IsNullOrWhiteSpace(line)));
-        // Owner-approved 1.1.6 composition wiring; the policy warning remains 985.
-        Assert.InRange(mainAggregate, 1, 998);
+        // Owner-approved 1.1.7 composition wiring; the policy warning remains 985.
+        Assert.InRange(mainAggregate, 1, 1006);
     }
 }

@@ -149,7 +149,17 @@ public sealed class OutputDeliveryReferenceTests(ShellViewModelTestHostFixture f
             Assert.False(sources.IsVisible);
             Point sourceToggleOrigin = Assert.IsType<Point>(
                 sourcesToggle.TranslatePoint(new Point(), outputSection));
-            Assert.True(sourceToggleOrigin.X > outputSection.Bounds.Width / 2);
+            Assert.InRange(sourceToggleOrigin.X, 0, 1);
+            SelectableTextBlock outputName = modal.FindControl<SelectableTextBlock>("OutputFileNameDisplay")!;
+            Point nameOrigin = outputName.TranslatePoint(new Point(), outputSection)!.Value;
+            Assert.True(sourceToggleOrigin.Y >= nameOrigin.Y + outputName.Bounds.Height);
+            TextBlock sourceCount = modal.FindControl<TextBlock>("SourcesCountLabel")!;
+            Control chevron = modal.FindControl<Control>("SourcesCollapsedChevron")!;
+            Point countOrigin = sourceCount.TranslatePoint(new Point(), sourcesToggle)!.Value;
+            Point chevronOrigin = chevron.TranslatePoint(new Point(), sourcesToggle)!.Value;
+            Assert.InRange(chevronOrigin.X - countOrigin.X - sourceCount.Bounds.Width, 6, 10);
+            Assert.InRange(Math.Abs(chevronOrigin.Y + (chevron.Bounds.Height / 2) -
+                countOrigin.Y - (sourceCount.Bounds.Height / 2)), 0, 1);
 
             using Avalonia.Media.Imaging.Bitmap? frame = window.GetLastRenderedFrame();
             Assert.NotNull(frame);

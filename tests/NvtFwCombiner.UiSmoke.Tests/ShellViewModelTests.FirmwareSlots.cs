@@ -156,6 +156,8 @@ public sealed partial class FirmwareInspectionSlotTests
         await CurrentInspection(viewModel).ActiveTask;
 
         Assert.True(viewModel.Replace.ReplaceBaseSlot.HasFirmwareFacts);
+        Assert.Equal(["TP Version", "PID", "Common FW Version"],
+            viewModel.Replace.ReplaceBaseSlot.PrimaryFirmwareFacts.Take(3).Select(static fact => fact.Label));
         Assert.Contains(viewModel.Replace.ReplaceBaseSlot.FirmwareFacts, fact =>
             fact.Label == "DP Version" &&
             fact.Value == "D01-00");
