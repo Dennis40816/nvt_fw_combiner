@@ -28,15 +28,15 @@
     "evidence": "Local R1 scope and evidence recorded in owner discussion before edits; now admitted for integration."
   },
   "integrationBase": "87c368b880da217b023da6a840addae200bc5a2a",
-  "state": "design-active",
+  "state": "final-complete",
   "implementationOwner": "/root",
   "disposition": "reuse",
-  "implementationHead": null,
-  "reviewedHead": null,
-  "pathStateDigest": null,
+  "implementationHead": "e201d4dc0ca42328b47554459716e191e9c0679c",
+  "reviewedHead": "e201d4dc0ca42328b47554459716e191e9c0679c",
+  "pathStateDigest": "36e049f95e909e391d98d236d42549a2d4ec717bf09f597a347eb4b6f49f28da",
   "finalReview": {
-    "reviewer": null,
-    "outcome": "pending",
-    "evidence": ""
+    "reviewer": "/root/v117_final_review",
+    "outcome": "approved",
+    "evidence": "Independent fixed-head e201d4dc review on2026-09-16: source/architecture Polytail PASS; all five production and three test paths reviewed, unique ownership, real ancestry verified. Retained TRX35/35 and policy/notes XML26/26 verified directly. Localized warnings retain trailing-help precedence and accepted typed PID/Common facts; CJK geometry, input-role count and selector labels preserve firmware semantics. Release-note P2 corrected separately to identify older full/Golden evidence honestly. Final record validation, fresh full suite, CI and actual-source release Golden/package/environment gates remain required."
   }
 }

@@ -30,8 +30,9 @@ layouts, output naming, integrity processing and support status are unchanged.
   persists the choice. Config reapplication clears obsolete format information
   while awaiting accepted current facts. Missing observations remain absent.
 - Verification: targeted information, preference, Config-race and layout tests;
-  the reconstructed product tree passed all6628 .NET tests and the full local
-  verifier. Exact release-source CI and package evidence accompany publication.
+  an earlier reviewed source passed 6,628 .NET tests and the full local verifier.
+  Subsequent UI corrections passed targeted regressions; final-candidate full
+  verification, exact-source CI and package evidence remain publication gates.
 - Limitations: this does not add new firmware format or IC support.
 
 #### Build settings output and source summary
@@ -50,9 +51,10 @@ layouts, output naming, integrity processing and support status are unchanged.
   output size. Accepted input/configuration freshness is rechecked before Build.
   Invalidated AB configuration before confirmation reports Build blocked without
   opening an output or escaping the UI event as an unhandled exception.
-- Verification: four delivery-state geometry tests, source warnings, rename and
-  async session/configuration tests; all25 required direct Golden output cases
-  passed on the unchanged product tree. The release workflow executes those
+- Verification: delivery-state geometry and CJK-metrics tests, source warnings,
+  rename and async session/configuration tests; all 25 required direct Golden
+  output cases passed on an earlier reviewed source. Firmware semantics remain
+  unchanged, but this is not final-candidate evidence. The release workflow executes those
   cases again against its actual release source before packaging.
 - Limitations: no new CtrlRAM Replace support for AB Code Flash inputs is included.
 
