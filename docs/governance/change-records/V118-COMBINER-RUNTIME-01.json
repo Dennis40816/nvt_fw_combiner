@@ -1,0 +1,41 @@
+{
+  "schemaVersion": 2,
+  "taskId": "V118-COMBINER-RUNTIME-01",
+  "capability": "Ship the official app-local Combiner runtime and verify actual packaged execution",
+  "integrationBase": "0a14e3830a78af78485e5500febcea41b521daf8",
+  "risk": "R3",
+  "kind": "release",
+  "state": "design-active",
+  "mutablePaths": [
+    "scripts/package.ps1",
+    "scripts/smoke-release.ps1",
+    "scripts/external_tool_policy.py",
+    "docs/ci/release-package.md",
+    "tests/scripts/test_release_package_policy.py",
+    "tests/scripts/test_release_smoke_policy.py"
+  ],
+  "implementationOwner": "/root",
+  "searchEvidence": [
+    "Owner approved fixing official runtime packaging and package verification before rebuilding the untagged 1.1.8 candidate. Original candidate NT51950 single CtrlRAM Build failed with 0xC0000135; VCRUNTIME140.dll is absent from clean Windows Sandbox and the Combiner directory.",
+    "LegacyCombinerPostbuildProcessor launches the original executable beside its dependencies, using a separate host-owned staging working directory. Its loader, manifest schema, allowed writes and firmware commands need no change.",
+    "package.ps1 Copy-ApprovedExternalToolPackageFiles and Get-ExternalToolManifestEntries own copying and closed manifest identity. external_tool_policy.py and external-tools/catalog.json own the existing repository/package inventory. smoke-release.ps1 independently checks the closed package, sidecars and CRC worker but currently never runs Combiner.",
+    "Official VS2022 VC Redist x64 vcruntime140.dll 14.44.35211.0 is Microsoft-signed, 124544 bytes, SHA256 d5e4d9a3e835fa679450145d6a7d94e36573a509317111904d9b3712c30d9066. It is an unmodified app-local dependency, not a new processor; publisher redistribution eligibility remains a human gate.",
+    "Reuse RealToolRunsNt51927GoldenCrcOnlyWithoutUnexpectedChanges: NT51927BASED_GEN_CRC_MODE CRC32 target target, with the certified 262144-byte expected output SHA256 8e0d362b74ba65dfd8eb2d33a8ae6c1359b99ce2994d64d878bfdb393855cf80. No new firmware mapping or CRC algorithm is introduced."
+  ],
+  "semanticOwner": "Existing release packager, external-tool inventory and independent package smoke; Application retains command and write-range authority",
+  "terminalContract": "Ship exactly the pinned official DLL beside unchanged Combiner.exe; reject missing, substituted or extra tool files before execution. From product version 1.1.8 run the existing bounded CRC-only command on a staging copy and verify full unchanged output, unchanged source and no extra files. Preserve historical package checks, fresh candidate Golden, clean-machine GUI Build/Report, legal approval and protected publication gates.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "/root/v117_final_review",
+    "outcome": "approved",
+    "evidence": "Independent R3 packaging design PASS-WITH-HUMAN-GATE: fixed official DLL pin before copy and smoke, existing externalTool role and SBOM/notices without MIT relicensing, actual certified CRC command rather than exit-only smoke, missing/tampered/extra-file regressions, numeric 1.1.7/1.1.8/1.1.10 version boundary with invalid/tag mismatch rejection, timeout and exact child cleanup. No loader/schema/profile change. Original clean NT51950 Build must pass on the rebuilt candidate; release owner and redistribution eligibility are not supplied by this review."
+  },
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": {
+    "reviewer": null,
+    "outcome": "pending",
+    "evidence": ""
+  }
+}

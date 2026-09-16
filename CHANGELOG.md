@@ -11,11 +11,28 @@ assignments, use the [canonical roadmap](docs/architecture/nfc_roadmap.md).
 
 ### Summary
 
-This maintenance release improves repository checks and development guidance.
+This maintenance release improves repository checks and development guidance,
+and includes the missing app-local Combiner runtime for clean Windows machines.
 Application screens, firmware layouts, output naming, integrity processing and
 IC/mode support are unchanged.
 
 ### Product changes
+
+#### Complete portable Combiner dependencies
+
+- Before → After: a clean Windows machine could open the application but fail
+  Build with `0xC0000135` because Combiner's Microsoft runtime was absent. The
+  portable package includes the pinned official x64 `vcruntime140.dll` beside
+  the unchanged Combiner executable.
+- Affected: Windows portable packaging and release verification.
+- Support status: unchanged/support-neutral; no new IC or mode is enabled.
+- Compatibility: no system-wide runtime installation, settings migration,
+  firmware range, command, algorithm or output naming change is introduced.
+- Verification: targeted dependency tests cover missing/substituted runtime
+  rejection and actual certified CRC command execution. Fresh candidate Golden
+  and clean Windows GUI Build/Report verification remain required before release.
+- Limitations: the dependency smoke is not a substitute for every firmware
+  transform's Golden contract. Microsoft's redistribution terms apply.
 
 #### More focused development checks
 
@@ -60,8 +77,9 @@ IC/mode support are unchanged.
 
 ### Security
 
-No release permissions, package trust, immutable-asset rules or external-processor
-write boundaries change. Existing safety and independent-evidence gates remain.
+The closed package allowlist adds one exact Microsoft runtime DLL with independent
+hash verification. Release permissions, immutable-asset rules and external-processor
+write boundaries remain unchanged. Existing safety and evidence gates remain.
 
 ### Known issues
 

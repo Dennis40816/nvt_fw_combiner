@@ -1,5 +1,9 @@
 # NVT FW Combiner
 
+Windows portable packages from 1.1.8 also include Combiner's app-local Microsoft
+VC++ runtime; no system-wide VC++ Runtime installation is required. See
+[third-party notices](THIRD_PARTY_NOTICES.md#microsoft-visual-c-runtime).
+
 NVT FW Combiner is a profile-driven desktop utility for deterministic firmware image composition. The repository begins at the architecture/bootstrap node `v0.1.0-dev.0`; it does **not** claim firmware parity yet.
 
 ## Product model

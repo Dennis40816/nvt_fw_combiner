@@ -20,6 +20,49 @@ commands.
 
 Specification package version: `1.1.8`
 
+## 1.1.8 clean-Windows runtime correction — 2026-09-16
+
+The original untagged candidate from main
+`c580476ff016e168d856ef798e0a80d0180210a0`, workflow `35086708535` attempt 2,
+opened successfully but failed NT51950/single CtrlRAM GUI Build with
+`nt51950-single-merge-crc` exit `-1073741515` (`0xC0000135`). No output was
+committed. The tool imports `VCRUNTIME140.dll`; neither its executable directory
+nor clean Sandbox System32/SysWOW64 contained that dependency. Earlier worker
+and startup smoke did not execute Combiner. Do not promote this old candidate.
+
+The authorized correction adds the unmodified official x64 Microsoft runtime
+`14.44.35211.0` beside the unchanged tool, with independent package/smoke pins,
+closed inventories, redistribution notices and actual certified CRC-command
+smoke. Local checks passed: release-package policy **84 tests**, release-smoke
+plus external-tool policy **37 tests**, and canonical structure/Polytail fast
+checks. The initial structure run caught the new DLL not yet staged in Git;
+after adding that exact file to the index, the same check passed. No policy
+was weakened and no full product-suite run is claimed for this correction.
+
+A separate copy of the original package in the same clean Windows Sandbox,
+with only the pinned DLL added, passed both the certified NT51927 CRC command
+and the original NT51950/single GUI Build. The GUI displayed `Build complete`,
+and the saved Run Report displayed `Succeeded`, zero issues and committed
+output matching the actual 262144-byte BIN. System32/SysWOW64 remained without
+the runtime. This is a one-variable diagnostic lab, **not** a rebuilt candidate
+or a new Golden: the input NF is a generated 2816-byte pattern.
+
+- Lab output SHA-256:
+  `fdafb918a8c0dba4bbfa198c6f5886a014602d2afd53d4af372a675469a081c2`.
+- GUI-saved success Report SHA-256:
+  `420c519a14f6fe00e0baa1cfd16fbb47c06a3c82def10a83050dd1923763c467`.
+- Original failure Report SHA-256:
+  `2adc31f92eba205df2a5cabcea97da5cd5f02ab0697eda1301b9aa00cfdacccf`.
+- Local evidence: fixed test-area
+  `evidence/v118-release-sandbox/output/gui-runtime-success-evidence.json`,
+  `gui-runtime-success-report.json`, `gui-runtime-success-output.bin` and
+  the preserved `gui-build-failure-evidence.json` / `gui-build-failed-report.json`.
+
+Publication still requires publisher redistribution eligibility confirmation,
+fixed-source review/integration, fresh candidate Golden and rebuilt package
+checks, and clean-machine GUI acceptance of that new candidate. No existing
+tag/asset is replaced; no release or full-Golden pass is inferred from the lab.
+
 Current allocation amendment (2026-09-05): all remaining `1.1.x` CI/release
 optimization and follow-ups below are consolidated into `v1.1.3` in the
 [canonical roadmap](../architecture/nfc_roadmap.md). The latest same-day owner
