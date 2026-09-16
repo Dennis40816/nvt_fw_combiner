@@ -320,23 +320,30 @@ public sealed partial class ManagedLauncherEntryCoordinatorTests
     public async Task ReadyWaitMayOutliveLocalAdmissionDeadline()
     {
         string root = Root("slow-ready");
+        var time = new ManualTimeProvider();
         var handoff = new DeferredBootstrapHandoff();
         ManagedLauncherEntryCoordinator coordinator = Create(
             root,
             new EntryStateStore(BoundState(root)),
             new RecordingRootProbe(ManagedInstallationRootStatus.Present),
             handoff,
-            TimeSpan.FromMilliseconds(25));
+            admissionDeadline: TimeSpan.FromMilliseconds(25),
+            timeProvider: time);
 
         Task<ManagedLauncherEntryResult> running = coordinator.RunAsync(
             TestContext.Current.CancellationToken).AsTask();
-        await Task.Delay(TimeSpan.FromMilliseconds(75), TestContext.Current.CancellationToken);
+        _ = await Task.WhenAny(running, handoff.CompletionWaitStarted)
+            .WaitAsync(TestContext.Current.CancellationToken);
+        Assert.True(handoff.CompletionWaitStarted.IsCompletedSuccessfully);
+        time.Advance(TimeSpan.FromMilliseconds(75));
 
         Assert.False(running.IsCompleted);
         handoff.Complete(ImmutableBootstrapCompletionOutcome.Ready);
         ManagedLauncherEntryResult result = await running;
         Assert.Equal(ManagedLauncherEntryOutcome.LaunchInstalled, result.Outcome);
+        Assert.Equal(TimeSpan.FromMilliseconds(75), result.TotalElapsed);
         Assert.True(result.AdmissionElapsed < result.TotalElapsed);
+        Assert.False(handoff.CompletionWaitCancelled);
     }
 
     /// <summary>An internal admission deadline after process creation is termination-uncertain.</summary>

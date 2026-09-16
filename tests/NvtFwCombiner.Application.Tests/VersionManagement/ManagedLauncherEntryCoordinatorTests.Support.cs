@@ -370,7 +370,10 @@ public sealed partial class ManagedLauncherEntryCoordinatorTests
     {
         private readonly TaskCompletionSource<ImmutableBootstrapCompletionResult> _completion =
             new(TaskCreationOptions.RunContinuationsAsynchronously);
+        private readonly TaskCompletionSource _completionWaitStarted =
+            new(TaskCreationOptions.RunContinuationsAsynchronously);
 
+        internal Task CompletionWaitStarted => _completionWaitStarted.Task;
         internal bool CompletionWaitCancelled { get; private set; }
 
         internal void Complete(ImmutableBootstrapCompletionOutcome outcome)
@@ -392,6 +395,7 @@ public sealed partial class ManagedLauncherEntryCoordinatorTests
             return ValueTask.FromResult(new ImmutableBootstrapStartResult(
                 new DeferredBootstrapLaunch(
                     _completion.Task,
+                    () => _completionWaitStarted.TrySetResult(),
                     () => CompletionWaitCancelled = true),
                 ImmutableBootstrapStartIssue.None));
         }
@@ -399,6 +403,7 @@ public sealed partial class ManagedLauncherEntryCoordinatorTests
 
     private sealed class DeferredBootstrapLaunch(
         Task<ImmutableBootstrapCompletionResult> completion,
+        Action started,
         Action cancelled)
         : IImmutableBootstrapLaunch
     {
@@ -415,6 +420,7 @@ public sealed partial class ManagedLauncherEntryCoordinatorTests
             ImmutableBootstrapWaitBudget budget,
             CancellationToken cancellationToken)
         {
+            started();
             try
             {
                 return await completion.WaitAsync(cancellationToken);
