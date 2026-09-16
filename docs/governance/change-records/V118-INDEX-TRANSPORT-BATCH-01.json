@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 2,
+  "taskId": "V118-INDEX-TRANSPORT-BATCH-01",
+  "capability": "Batch current governance record index transport without changing admission",
+  "integrationBase": "ac261ced45546a7c9d154062e7b47802e7581544",
+  "risk": "R2",
+  "kind": "refactor",
+  "state": "design-active",
+  "mutablePaths": ["scripts/validate_repository.py", "tests/scripts/test_agent_governance.py"],
+  "implementationOwner": "/root",
+  "searchEvidence": [
+    "Owner requested repository architecture optimization. Measured baseline validator on ac261ced: cProfile 212.908 seconds, governance 179.642 seconds, subprocess.run 2866 calls, _git_index_blob 310 calls / 56.596 seconds.",
+    "Existing _git_index_blob owns per-path stage/mode/intent-to-add checks; _read_git_blob_batch owns cat-file framing. Existing history batching remains unchanged.",
+    "Twenty git rev-parse calls measured 1.143 seconds with pipes versus 1.145 seconds with temporary files: rejected I/O transport substitution as ineffective."
+  ],
+  "semanticOwner": "scripts/validate_repository.py::_git_index_blob",
+  "terminalContract": "Invocation-local snapshot carries raw entries, HEAD/staged paths and blobs to the existing per-path admission owner. Current record paths use bounded Git transport calls; checkpoint and external attestation callers remain unchanged. No persistent cache, validation bypass, firmware or release contract changes.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "/root/v117_final_review",
+    "outcome": "approved",
+    "evidence": "Independent R2 PASS for transport batching only. Preserve one per-path semantic owner and existing blob parser. Test single/batch parity for normal/new/empty/missing/intent-to-add/conflict/mode/path cases, command and protocol failures, same-blob different paths, fresh snapshots and bounded subprocess count. Keep all existing governance negatives."
+  },
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": {"reviewer": null, "outcome": "pending", "evidence": ""}
+}
