@@ -7,6 +7,83 @@ assignments, use the [canonical roadmap](docs/architecture/nfc_roadmap.md).
 
 ## [Unreleased]
 
+## [1.1.8] - Unreleased
+
+### Summary
+
+This maintenance candidate improves repository checks and development guidance.
+Application screens, firmware layouts, output naming, integrity processing and
+IC/mode support are unchanged. These notes describe local release preparation;
+final integration and publication evidence remain pending.
+
+### Product changes
+
+#### More focused development checks
+
+- Before → After: source line-count changes are advisory rather than automatic
+  blockers. Invalid runtime-source allocation remains an error. Governance-record
+  inspection batches Git index reads while preserving per-path validation and
+  using a fresh snapshot for each invocation.
+- Affected: repository contributors and local/CI repository validation, not the
+  firmware Build workflow.
+- Support status: unchanged/support-neutral.
+- Compatibility: existing verifier entry points remain valid; no persistent
+  validation cache or new tool dependency is introduced. Package-size limits,
+  firmware safety checks and required Golden execution are unchanged.
+- Verification: the source-size/ownership unit passed 38 targeted tests; the
+  index-transport unit passed all 140 governance tests, including malformed
+  transport, conflict, intent-to-add and snapshot-freshness cases. Reviewed local
+  units passed structure checks. These are unit-specific results, not a fresh
+  full-suite or final-candidate release certification.
+- Limitations: no application startup, page-switching or firmware execution
+  speedup is claimed.
+
+#### Consistent agent and release guidance
+
+- Before → After: skills and agent roles reuse canonical task/risk instructions
+  instead of repeating divergent rules. Diagnosis uses bounded evidence-led
+  probes; local edits use affected tests without requiring a full suite for
+  every small commit. Release guidance now follows candidate verification before
+  protected tag/publication; the separate manual preview is not an additional
+  stable-release prerequisite.
+- Affected: repository instructions, configured agent roles and release runbooks.
+- Support status: unchanged/support-neutral.
+- Compatibility: permissions, role runtime settings and executable release
+  policy are unchanged. Instruction changes apply when configuration is next
+  loaded; already-running agents are not reconfigured retroactively.
+- Verification: skill inventory, selected governance regressions, role-setting
+  comparison, link checks and independent fixed-head reviews passed. Seven
+  representative instruction scenarios were reviewed as a read-only simulation,
+  not executed product tests. Exact-source CI, fresh candidate Golden/package
+  checks and required human release review remain publication gates.
+- Limitations: this is a bounded workflow improvement, not a completed general
+  process redesign or a measured reduction in agent token usage.
+
+### Security
+
+No release permissions, package trust, immutable-asset rules or external-processor
+write boundaries change. Existing safety and independent-evidence gates remain.
+
+### Known issues
+
+No new firmware support is added. CtrlRAM Replace for AB Code Flash inputs in the
+NT51932 Perfect family and NT51950 Partial family remains deferred; existing
+candidate/contract-only routes keep their prior support status.
+
+### Upgrade and rollback
+
+After publication, upgrade from 1.1.7 using the existing verified package or
+managed-update flow. No preference or firmware-data migration is introduced.
+Retain the previous complete portable package for rollback.
+
+### Downloads and integrity
+
+Planned Windows x64 portable package: `NvtFwCombiner-v1.1.8-win-x64.zip`.
+This local checkpoint does not publish downloads. The standard release flow
+provides the separate distribution Launcher and GitHub source archives; verify
+published assets using their checksums, SPDX SBOM and provenance. The portable
+app includes its runtime.
+
 ## [1.1.7] - 2026-09-16
 
 ### Summary

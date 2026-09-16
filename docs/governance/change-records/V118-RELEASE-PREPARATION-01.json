@@ -1,0 +1,34 @@
+{
+  "schemaVersion": 2,
+  "taskId": "V118-RELEASE-PREPARATION-01",
+  "capability": "Record the bounded 1.1.8 workflow conclusions and prepare release identity",
+  "integrationBase": "844e994639e55dcf06b6b80ece7a4d581e83bf0b",
+  "risk": "R2",
+  "kind": "governance",
+  "state": "design-active",
+  "mutablePaths": ["docs/governance/post-v1.1.0-tool-development-process-retrospective-handoff.md"],
+  "implementationOwner": "/root",
+  "searchEvidence": [
+    "Owner approved local VERSION 1.1.8, complete release notes and the existing retrospective handoff update; no push, merge, tag, workflow dispatch or publication.",
+    "VERSION is consumed by Directory.Build.props and sync_derived release-version-headers; the latter owns only the SPEC and verification-report version projections. render_release_notes owns the changelog section and required feature fields.",
+    "The actual governed-path classifier includes only the handoff among the five content files. VERSION, CHANGELOG.md, SPEC.md and docs/references/verification-report.md remain whole-diff reviewed but are not permitted non-test mutablePaths.",
+    "Completed 1.1.8 records own source-size advisory, index transport batching, instruction reuse and release-skill alignment. No application/firmware changes occur in the v1.1.7-to-current diff.",
+    "Existing branch/version governance and release-package contract own exact-source CI, fresh candidate Golden, protected promotion, immutable assets and independent verification. main-package is optional manual preview. Earlier v1.1.7 timings are historical cost evidence, not 1.1.8 verification."
+  ],
+  "semanticOwner": "Existing retrospective handoff records conclusions; VERSION, derived header provider, changelog renderer and canonical release contracts retain their authority",
+  "terminalContract": "Prepare the local 1.1.8 version and accurate release notes, synchronize two existing version headers and SPEC candidate status, and summarize completed gate improvements in the existing handoff. Preserve historical evidence and all release requirements; make no application, firmware, policy or publication claim.",
+  "disposition": "reuse",
+  "designReview": {
+    "reviewer": "/root/v117_final_review",
+    "outcome": "approved",
+    "evidence": "Independent R2 PASS: five content files stay within local release preparation, with only the governed handoff admitted. SPEC changes only current status/version and report changes only version header. Notes must distinguish unpublished preparation from release and earlier measurements from candidate gates. Renderer/sync tests, actual output/header/link checks, fixed-head review and staged-final structure suffice locally; frozen integration and external release requirements remain."
+  },
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": {
+    "reviewer": null,
+    "outcome": "pending",
+    "evidence": ""
+  }
+}

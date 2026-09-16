@@ -77,6 +77,59 @@ real tasks before claiming lower token use or faster delivery. No product
 architecture refactor, new skill/router, invocation-policy change, external
 publication or additional full product-suite run is part of this unit.
 
+### 1.1.8 gate conclusions and local release preparation
+
+The owner approved preparing `VERSION` and complete 1.1.8 release notes, with
+the existing specification/report version headers synchronized. This is local
+preparation only: no push, merge, tag, workflow dispatch or publication is
+authorized by this unit. The dated verification report remains historical;
+changing its package-version header does not create new test evidence.
+
+The following records describe completed corrections or retained gates, not new
+policy. The [root risk rules](../../AGENTS.md#risk-adaptive-gates),
+[branch/version governance](branch-version-and-release-governance.md) and
+[release-package contract](../ci/release-package.md#implemented-commands)
+remain their canonical owners.
+
+| Gate / cost source | Conclusion and evidence | Boundary retained |
+| --- | --- | --- |
+| Source line-count thresholds | Downgraded count changes to advisory in [V118-SOURCE-SIZE-ADVISORY-01](change-records/V118-SOURCE-SIZE-ADVISORY-01.json). | Runtime allocation errors still block; package limits are separate and unchanged. |
+| Local edit review and tests | Reused root risk applicability and scoped instruction routing in [V118-AGENT-INSTRUCTION-REUSE-02](change-records/V118-AGENT-INSTRUCTION-REUSE-02.json); no automatic full-suite run per microcommit. | Affected behavioral tests, independent authority review and required integration/CI gates remain. |
+| Repository record inspection | Batched current-index transport in [V118-INDEX-TRANSPORT-BATCH-01](change-records/V118-INDEX-TRANSPORT-BATCH-01.json). | Per-path validation, immutable history and fresh invocation state remain; no persistent cache or skipped checks. |
+| Manual preview package | Corrected the skill so preview is optional, not an extra stable prerequisite, in [V118-RELEASE-SKILL-ALIGNMENT-01](change-records/V118-RELEASE-SKILL-ALIGNMENT-01.json). | Preview cannot substitute for the actual stable candidate's verification. |
+| Exact-source CI and candidate Golden/package verification | Retain: source eligibility and the independently built release candidate answer different questions. | Candidate executes all applicable certified Golden outputs; older source runs and fixture hashes cannot replace that execution. |
+| Protected promotion and published-download checks | Retain: approval, immutable publication and downloaded-byte verification cover distinct boundaries. | Workflow-only tag/assets, same-run recovery constraints and separate clean-Windows/visible acceptance remain; agent review is not human release approval. |
+
+Measured cost context (not 1.1.8 release evidence): the local structure runs
+before/after index batching took 205.1 s at `ac261ced` and 163.0 s at `bc1c6d5f`
+with each final record staged. This single comparison is about 20% shorter;
+it is not a controlled benchmark or an application/CI performance promise.
+The batching unit's 140 governance tests passed in 267.971 s. The separate
+212.908 s profiler baseline must not be mixed into the structure comparison.
+
+The published v1.1.7 source `e08bb4f4367e6bee26cf5b0f9ebf913cdaa4f365`
+provides the latest observed release-stage example:
+[CI run 35055567924](https://github.com/Dennis40816/nvt_fw_combiner/actions/runs/35055567924)
+took about 9 min 26 s across parallel jobs;
+[release run 35056237536](https://github.com/Dennis40816/nvt_fw_combiner/actions/runs/35056237536)
+recorded 11 min 25 s for candidate verification, 1 min 29 s for promotion and
+37 s for published-package smoke. The 11 min 05 s gap before promotion includes
+approval/queue time; it cannot be attributed entirely to human review or tests.
+These observations do not justify removing any retained gate.
+
+Release guidance now records the intended tag before candidate creation and
+verifies its peeled identity after workflow-owned promotion. It distinguishes
+protected-main workflow authority from approved source eligibility and preserves
+the existing failed-promotion recovery contract. No executable workflow or
+release permission was changed to align that guidance.
+
+Residual work is the existing frozen-source integration and release process,
+including required full verification/CI, human notes review, fresh candidate
+Golden/package evidence, protected approval and independent download/clean-machine
+checks. None is marked passed by this local unit or the older measurements.
+The broader retrospective below remains separate; do not start product work or
+expand release authority merely because the local preparation is complete.
+
 ## Objective
 
 Use repository evidence from the `0.10.x`, `1.0.x`, and `1.1.0` development
