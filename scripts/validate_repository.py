@@ -2184,8 +2184,69 @@ def _historical_final_records(
     return history, invalid_nested_paths, None
 
 
-def _git_index_blob(root: Path, relative: str) -> tuple[bytes | None, str | None]:
-    output, error = _git_object(root, ["ls-files", "--stage", "-z", "--", relative])
+@dataclass(frozen=True)
+class _GitIndexSnapshot:
+    entries: dict[str, bytes]
+    head_paths: frozenset[str]
+    staged_paths: frozenset[str]
+    blobs: dict[bytes, bytes]
+
+
+def _git_index_snapshot(
+    root: Path, paths: Iterable[str]
+) -> tuple[_GitIndexSnapshot | None, str | None]:
+    """Read transport bytes once; per-path admission stays in _git_index_blob."""
+    requested = set(paths)
+    if not requested:
+        return _GitIndexSnapshot({}, frozenset(), frozenset(), {}), None
+    try:
+        output, error = _git_object(root, ["ls-files", "--stage", "-z"])
+        if error is not None:
+            return None, error
+        if output and not output.endswith(b"\0"):
+            return None, "truncated Git index inventory"
+        entries: dict[str, bytes] = {}
+        object_ids: set[bytes] = set()
+        for entry in output.split(b"\0")[:-1]:
+            metadata, separator, encoded_path = entry.partition(b"\t")
+            if not separator:
+                return None, "malformed Git index inventory"
+            relative = encoded_path.decode("utf-8", errors="strict")
+            if relative not in requested:
+                continue
+            entries[relative] = entries.get(relative, b"") + entry + b"\0"
+            fields = metadata.split(b" ")
+            if len(fields) == 3 and re.fullmatch(rb"[0-9a-f]{40}", fields[1]) and fields[1] != b"0" * 40:
+                object_ids.add(fields[1])
+        inventories: list[frozenset[str]] = []
+        for arguments in (
+            ["ls-tree", "-r", "-t", "--name-only", "-z", "HEAD"],
+            ["diff", "--cached", "--name-only", "-z"],
+        ):
+            output, error = _git_object(root, arguments)
+            if error is not None:
+                return None, error
+            if output and not output.endswith(b"\0"):
+                return None, "truncated Git path inventory"
+            inventories.append(frozenset(
+                entry.decode("utf-8", errors="strict")
+                for entry in output.split(b"\0") if entry
+            ))
+        blobs, error = _read_git_blob_batch(root, object_ids)
+        if error is not None:
+            return None, error
+        return _GitIndexSnapshot(entries, inventories[0], inventories[1], blobs), None
+    except (OSError, UnicodeDecodeError) as exc:
+        return None, str(exc)
+
+
+def _git_index_blob(
+    root: Path, relative: str, snapshot: _GitIndexSnapshot | None = None
+) -> tuple[bytes | None, str | None]:
+    output, error = (
+        _git_object(root, ["ls-files", "--stage", "-z", "--", relative])
+        if snapshot is None else (snapshot.entries.get(relative, b""), None)
+    )
     if error is not None:
         return None, error
     entries = [entry for entry in output.split(b"\0") if entry]
@@ -2202,16 +2263,17 @@ def _git_index_blob(root: Path, relative: str) -> tuple[bytes | None, str | None
         return None, "record has an unresolved Git index stage"
     if object_id == b"0" * len(object_id):
         return None, "record is intent-to-add and has no indexed blob"
-    in_head = subprocess.run(
-        ["git", "cat-file", "-e", f"HEAD:{relative}"],
-        cwd=root,
-        check=False,
-        capture_output=True,
+    in_head = (
+        subprocess.run(
+            ["git", "cat-file", "-e", f"HEAD:{relative}"],
+            cwd=root, check=False, capture_output=True,
+        ).returncode == 0
+        if snapshot is None else relative in snapshot.head_paths
     )
-    if in_head.returncode != 0:
-        staged_paths, staged_error = _git_paths(
-            root,
-            ["diff", "--cached", "--name-only", "-z", "--", relative],
+    if not in_head:
+        staged_paths, staged_error = (
+            _git_paths(root, ["diff", "--cached", "--name-only", "-z", "--", relative])
+            if snapshot is None else (snapshot.staged_paths, None)
         )
         if staged_error is not None:
             return None, staged_error
@@ -2219,6 +2281,10 @@ def _git_index_blob(root: Path, relative: str) -> tuple[bytes | None, str | None
             return None, "record is intent-to-add and has no indexed candidate blob"
     if mode not in {b"100644", b"100755"}:
         return None, f"record has unsupported Git index mode {mode.decode('ascii')}"
+    if snapshot is not None:
+        if object_id not in snapshot.blobs:
+            return None, "requested Git batch blob is missing"
+        return snapshot.blobs[object_id], None
     content, content_error = _git_object(
         root,
         ["cat-file", "blob", object_id.decode("ascii")],
@@ -3038,6 +3104,10 @@ def validate_capability_reuse_governance(
         if PurePosixPath(relative).parent == CAPABILITY_REUSE_CHANGE_RECORD_ROOT
     }
     current_relatives = sorted(index_paths | worktree_paths)
+    index_snapshot, snapshot_error = _git_index_snapshot(root, current_relatives)
+    if snapshot_error is not None:
+        errors.append(f"capability-reuse Git index snapshot could not be read: {snapshot_error}")
+        return
 
     indexed_content: dict[str, bytes] = {}
     records_by_relative: dict[str, dict[str, Any]] = {}
@@ -3062,7 +3132,7 @@ def validate_capability_reuse_governance(
             )
             current_snapshot_failed = True
             continue
-        content, content_error = _git_index_blob(root, relative)
+        content, content_error = _git_index_blob(root, relative, index_snapshot)
         if content_error is not None or content is None:
             if content_error == "record is not present in the Git index":
                 errors.append(f"capability-reuse record must be tracked in Git: {relative}")

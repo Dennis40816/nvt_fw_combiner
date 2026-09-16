@@ -1727,6 +1727,78 @@ class AgentGovernanceTests(unittest.TestCase):
         history_audit.assert_not_called()
         self.assertTrue(any("mutable path is not governed" in error for error in errors))
 
+    def test_index_batch_preserves_single_path_results_with_bounded_transport(self) -> None:
+        paths = ["src/Product/Owner.cs", "new file.json", "empty.json", "待審 file.json", "intent.json", "missing.json"]
+        for path in paths[1:-2]:
+            self._write(path, "" if path == "empty.json" else "same bytes")
+            self._git("add", "--", path)
+        self._write("intent.json", "not staged")
+        self._git("add", "-N", "--", "intent.json")
+        expected = {path: repository_validator._git_index_blob(self.root, path) for path in paths}
+        with mock.patch.object(repository_validator.subprocess, "run", wraps=subprocess.run) as run:
+            snapshot, error = repository_validator._git_index_snapshot(self.root, paths)
+            self.assertIsNone(error)
+            actual = {path: repository_validator._git_index_blob(self.root, path, snapshot) for path in paths}
+        self.assertEqual(expected, actual)
+        self.assertEqual((b"", None), actual["empty.json"])
+        self.assertEqual((b"same bytes", None), actual["待審 file.json"])
+        self.assertIn("intent-to-add", actual["intent.json"][1])
+        self.assertEqual(4, run.call_count)
+        self._write("new file.json", "fresh bytes")
+        self._git("add", "--", "new file.json")
+        fresh, error = repository_validator._git_index_snapshot(self.root, paths)
+        self.assertIsNone(error)
+        self.assertEqual((b"fresh bytes", None), repository_validator._git_index_blob(self.root, "new file.json", fresh))
+
+    def test_index_batch_keeps_mode_and_conflict_checks_for_shared_blob(self) -> None:
+        oid = self._git("rev-parse", "HEAD:src/Product/Owner.cs").stdout.strip()
+        self._git("update-index", "--add", "--cacheinfo", f"120000,{oid},link.json")
+        subprocess.run(
+            ["git", "update-index", "--index-info"], cwd=self.root,
+            input=f"100644 {oid} 1\tconflict.json\n100644 {oid} 2\tconflict.json\n".encode(),
+            check=True, capture_output=True,
+        )
+        paths = ["src/Product/Owner.cs", "link.json", "conflict.json"]
+        expected = {path: repository_validator._git_index_blob(self.root, path) for path in paths}
+        snapshot, error = repository_validator._git_index_snapshot(self.root, paths)
+        self.assertIsNone(error)
+        actual = {path: repository_validator._git_index_blob(self.root, path, snapshot) for path in paths}
+        self.assertEqual(expected, actual)
+        self.assertIn("unsupported Git index mode", actual["link.json"][1])
+        self.assertIn("multiple or malformed", actual["conflict.json"][1])
+
+    def test_index_batch_nul_framing_preserves_unusual_paths(self) -> None:
+        paths = ["tab\tfile.json", "line\nbreak.json", "待審 file.json"]
+        oid = b"a" * 40
+        frames = b"".join(b"100644 " + oid + b" 0\t" + path.encode() + b"\0" for path in paths)
+        names = b"".join(path.encode() + b"\0" for path in paths)
+        with mock.patch.object(repository_validator, "_git_object", side_effect=[(frames, None), (names, None), (b"", None)]), mock.patch.object(
+            repository_validator, "_read_git_blob_batch", return_value=({oid: b"payload"}, None)
+        ):
+            snapshot, error = repository_validator._git_index_snapshot(self.root, paths)
+        self.assertIsNone(error)
+        for path in paths:
+            self.assertEqual((b"payload", None), repository_validator._git_index_blob(self.root, path, snapshot))
+
+    def test_index_batch_transport_failures_never_supply_a_snapshot(self) -> None:
+        oid = b"a" * 40
+        valid = (b"100644 " + oid + b" 0\tfile.json\0", None)
+        replies = [valid, (b"file.json\0", None), (b"", None)]
+        for position in range(3):
+            for broken in ((b"", "git failed"), (b"truncated", None), (b"\xff\0", None)):
+                with self.subTest(position=position, broken=broken), mock.patch.object(
+                    repository_validator, "_git_object", side_effect=[*replies[:position], broken]
+                ):
+                    snapshot, error = repository_validator._git_index_snapshot(self.root, ["file.json"])
+                    self.assertIsNone(snapshot)
+                    self.assertIsNotNone(error)
+        with mock.patch.object(repository_validator, "_git_object", side_effect=replies), mock.patch.object(
+            repository_validator, "_read_git_blob_batch", return_value=({}, "missing object")
+        ):
+            self.assertEqual((None, "missing object"), repository_validator._git_index_snapshot(self.root, ["file.json"]))
+        with mock.patch.object(repository_validator, "_git_object", side_effect=OSError("start failed")):
+            self.assertEqual((None, "start failed"), repository_validator._git_index_snapshot(self.root, ["file.json"]))
+
     def test_intent_to_add_record_cannot_open_gate(self) -> None:
         self._change()
         record = self._record()

@@ -35,31 +35,17 @@ class CodeSizePolicyTests(unittest.TestCase):
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(content, encoding="utf-8")
 
-    def test_current_reviewed_baseline_emits_no_full_production_warning(self) -> None:
+    def test_repository_runtime_sources_are_completely_allocated(self) -> None:
         snapshot = measure_code_size(REPOSITORY_ROOT)
-
-        self.assertEqual(144_850, snapshot.production_nonblank)
-        self.assertEqual(102_224, snapshot.runtime_production_nonblank)
-        self.assertEqual(21_182, snapshot.domain_profiles_nonblank)
-        self.assertEqual(44_760, snapshot.application_nonblank)
-        self.assertEqual(5_131, snapshot.bootstrap_cli_nonblank)
-        self.assertEqual(31_151, snapshot.infrastructure_contracts_worker_nonblank)
-        workflow_session = next(
-            partial_type
-            for partial_type in snapshot.partial_types
-            if partial_type.name
-            == "NvtFwCombiner.Presentation.Avalonia.ViewModels.WorkflowSessionPresentationViewModel"
+        self.assertGreater(snapshot.runtime_production_nonblank, 0)
+        self.assertEqual(
+            snapshot.runtime_production_nonblank,
+            snapshot.domain_profiles_nonblank
+            + snapshot.application_nonblank
+            + snapshot.bootstrap_cli_nonblank
+            + snapshot.infrastructure_contracts_worker_nonblank,
         )
-        self.assertEqual(13, workflow_session.file_count)
-        self.assertEqual(2_693, workflow_session.nonblank_lines)
-        self.assertEqual(snapshot.production_nonblank, DEFAULT_LIMITS.production_nonblank)
         self.assertEqual([], validate_code_size_policy(REPOSITORY_ROOT))
-        self.assertFalse(
-            any(
-                "code-size review production nonblank lines exceeded threshold" in finding
-                for finding in review_code_size_policy(REPOSITORY_ROOT)
-            )
-        )
 
     def test_launcher_structure_record_matches_the_canonical_exact_ledger(self) -> None:
         record = json.loads(
@@ -340,7 +326,7 @@ class CodeSizePolicyTests(unittest.TestCase):
         self.assertEqual(4, snapshot.runtime_production_files)
         self.assertEqual(4, snapshot.runtime_production_nonblank)
 
-    def test_core_ratchets_measure_exact_roots_and_fail_growth(self) -> None:
+    def test_core_counts_measure_exact_roots_and_warn_without_blocking(self) -> None:
         self.write("src/NvtFwCombiner.Domain/Domain.cs", "one\ntwo\n")
         self.write("src/NvtFwCombiner.Profiles/Profile.cs", "one\ntwo\nthree\n")
         self.write("src/Product/Program.cs", "outside-slice\n")
@@ -355,17 +341,11 @@ class CodeSizePolicyTests(unittest.TestCase):
         self.assertEqual(2, snapshot.domain_profiles_files)
         self.assertEqual(5, snapshot.domain_profiles_nonblank)
         self.assertEqual(
-            [
-                "code-size runtime production grew: 6 > ratchet 5",
-                "code-size Domain + Profiles slice grew: 5 > ratchet 4",
-            ],
+            [],
             validate_code_size_policy(self.root, limits),
         )
         self.assertEqual(
-            [
-                "code-size runtime production improved: lower ratchet 7 to 6",
-                "code-size Domain + Profiles slice improved: lower ratchet 6 to 5",
-            ],
+            [],
             validate_code_size_policy(
                 self.root,
                 self.limits(
@@ -383,27 +363,21 @@ class CodeSizePolicyTests(unittest.TestCase):
             )
         )
 
-    def test_full_production_ratchet_fails_growth_and_requires_lower_ratchet(
+    def test_full_production_changes_warn_without_blocking(
         self,
     ) -> None:
         self.write("src/Product/Program.cs", "one\ntwo\n")
 
-        self.assertEqual(
-            ["code-size full production grew: 2 > ratchet 1"],
-            validate_code_size_policy(
-                self.root,
-                self.limits(production=2, full_production_ratchet=1),
-            ),
-        )
-        self.assertEqual(
-            ["code-size full production improved: lower ratchet 3 to 2"],
-            validate_code_size_policy(
-                self.root,
-                self.limits(production=2, full_production_ratchet=3),
-            ),
-        )
+        for baseline, expected in ((1, "grew: 2 > ratchet 1"), (3, "improved:")):
+            with self.subTest(baseline=baseline):
+                limits = self.limits(production=2, full_production_ratchet=baseline)
+                self.assertEqual([], validate_code_size_policy(self.root, limits))
+                findings = self.review(limits)
+                self.assertEqual(1, len(findings))
+                self.assertIn("full production", findings[0])
+                self.assertIn(expected, findings[0])
 
-    def test_approved_allowance_preserves_historical_ratchet_and_fails_new_growth(
+    def test_historical_allowance_is_an_advisory_reference(
         self,
     ) -> None:
         self.write("src/Product/Program.cs", "one\ntwo\nthree\n")
@@ -416,11 +390,16 @@ class CodeSizePolicyTests(unittest.TestCase):
         self.assertEqual([], validate_code_size_policy(self.root, limits))
         self.write("src/Product/Program.cs", "one\ntwo\nthree\nfour\n")
         self.assertEqual(
-            ["code-size full production grew: 4 > ratchet 3"],
+            [],
             validate_code_size_policy(self.root, limits),
         )
 
-    def test_all_slice_ratchets_reject_cross_slice_relocation(self) -> None:
+        self.assertEqual(
+            ["code-size review full production grew: 4 > ratchet 3"],
+            self.review(limits),
+        )
+
+    def test_slice_relocation_is_visible_without_a_line_count_blocker(self) -> None:
         self.write("src/NvtFwCombiner.Domain/Domain.cs", "domain\n")
         self.write("src/NvtFwCombiner.Application/App.cs", "application\n")
         self.write("src/NvtFwCombiner.Bootstrap/Wiring.cs", "bootstrap\n")
@@ -445,14 +424,16 @@ class CodeSizePolicyTests(unittest.TestCase):
         )
         self.write("src/NvtFwCombiner.Bootstrap/Wiring.cs", "")
 
-        self.assertEqual(
-            [
-                "code-size Application slice grew: 2 > ratchet 1",
-                "code-size Bootstrap + CLI + Desktop host slice improved: "
-                "lower ratchet 2 to 1",
-            ],
-            validate_code_size_policy(self.root, limits),
-        )
+        self.assertEqual([], validate_code_size_policy(self.root, limits))
+        findings = self.review(limits)
+        self.assertTrue(any(
+            "Application slice grew: 2 > ratchet 1" in finding
+            for finding in findings
+        ))
+        self.assertTrue(any(
+            "Bootstrap + CLI + Desktop host slice improved:" in finding
+            for finding in findings
+        ))
 
     def test_complete_slice_ratchets_reject_unallocated_runtime_source(self) -> None:
         self.write("src/NvtFwCombiner.Domain/Domain.cs", "domain\n")

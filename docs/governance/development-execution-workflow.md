@@ -2,14 +2,11 @@
 
 Status: Active repository runbook.
 
-For ordinary non-normative, non-classifier-governed documentation, use the root
-R0 short path: preserve existing edits, update the existing owner, review the
-diff and affected links, then report the result briefly. Structure or consumer
-checks apply when document layout or parsed inputs change. This path needs no
-new issue, capability record, subagent, code-size census or handoff artifact.
-`AGENTS.md`, governance and other classifier-governed documents still follow
-their record/integration contract. Normative, permission and release changes
-are not R0 merely because their file is Markdown. Required CI is unchanged.
+Before choosing a path, apply the root
+[task scope](../../AGENTS.md#task-scope-and-autonomy) and
+[risk-adaptive gates](../../AGENTS.md#risk-adaptive-gates). Those sections own
+local applicability, including the ordinary-prose R0 path and governed-document
+exceptions. This runbook owns execution within those boundaries.
 
 ## Preflight
 
@@ -59,72 +56,35 @@ When required at its actual stage, run it unchanged and report every failure.
 
 ### Recorded design admission and integration evidence
 
-Before adding, changing, moving, wrapping, splitting, replacing, or refactoring
-behavior outside the bounded local R1 path, or admitting any change for
-integration, the active
-specification, ticket, or owner-approved handoff must contain a staged,
-`design-active` [capability-reuse record](capability-reuse-record.md).
-The record is parsed from its real staged Git blob; intent-to-add and any
-index/worktree byte mismatch fail closed. Diagnostic reads, characterization
-tests, and planning may proceed while it is incomplete; new or changed
-production behavior may not. Unknown, unsearched, or conflicting
-ownership fails the gate. Renaming, relocating, or wrapping a duplicate does
-not satisfy it. R2/R3 work records the independent
-architecture/contract admission before implementation begins. The frozen exact
-candidate then receives the risk-appropriate independent review. Before the
-evidence commit, every admitted record becomes `final-complete`, binds the same
-`implementationHead` and `reviewedHead`, records the committed path-state
-digest and final-review evidence, and passes the repository validator. Each
-task must still exist as `design-active` at that reviewed head; finalization
-preserves all admitted design fields and changes only lifecycle/final-evidence
-fields. Final review assigns each governed path exactly once through optional
-`integrationPaths`, retaining every original mutable path, digest and review
-obligation. R3 continues to require its existing external firmware-owner or
-release-owner gate and authority-specific evidence; schema v2 cannot satisfy
-that authority. Committed final records are immutable archives and never open
-a later batch. The final evidence commit is the direct child of the reviewed
-head, changes no governed path, and advances the only valid checkpoint. Every
-later batch binds that checkpoint exactly, including committed changes; the
-validator never substitutes a worktree-only `git diff HEAD`. Complete Git
-history is a prerequisite for this validation.
+Before changing behavior outside the bounded local R1 path (including R2/R3),
+and before every formal integration admission, read and follow the complete
+[capability-reuse record contract](capability-reuse-record.md). It owns the
+staged-blob, schema, path coverage, immutable lifecycle, checkpoint/activation,
+merge normalization and external-attestation requirements; this runbook owns
+the execution sequence:
 
-An initial checkpoint is not self-authorized by a record. ADR 0059 requires a
-reviewed governance implementation and then an explicitly owner-approved
-direct-child activation commit. That activation adds one immutable manifest,
-binds the reviewed head/tree and every legacy record blob, deletes exactly that
-inventory, and changes nothing else. Until it exists, the validator reports a
-pending-checkpoint error. Only the inventoried pre-activation lifecycle is
-retired; legacy task IDs remain reserved and every post-activation change uses
-the ordinary lifecycle above.
-
-A `final-complete` record and the activation manifest cannot satisfy R3
-firmware-owner, release-owner, golden/byte, exact-range, signing, permission, or
-protected-environment gates. One complete typed attestation batch must bind the
-exact final-evidence head and contain only its declared external-authority
-evidence. Each later R3 task uses a new task ID and attestation; prior immutable
-attestations remain auditable. Missing, extra, altered, or wrong-head evidence
-fails closed.
-
-Do not repair a redundant containment merge by rewriting history, replacing
-records, adding a trusted SHA, or creating another checkpoint. Under ADR 0061,
-the canonical validator alone may normalize a candidate merge node after
-proving it has exactly two parents, its full tree equals exactly one parent,
-and the other parent is already contained in that tree-equivalent parent. It
-continues auditing both ancestries, and any lookup error or different topology
-fails closed.
+1. Complete owner search and stage the `design-active` admission before
+   implementation; R2/R3 require independent architecture/contract admission.
+   Unknown, unsearched or conflicting ownership blocks production changes.
+   Renaming, relocating or wrapping a duplicate does not satisfy reuse.
+   Diagnostic reads, characterization tests and planning may proceed while
+   admission is incomplete.
+2. Implement and test the admitted scope, then commit and independently review
+   the frozen exact head as required by risk.
+3. Finalize the admitted records against that reviewed head under the contract,
+   stage them, and pass the repository validator before the evidence commit.
+4. Commit the final evidence as the reviewed head's direct child. R3 external
+   authority and evidence remain separate prerequisites, never supplied by a
+   record or reviewer verdict.
 
 ## Narrow test selection
 
-Local verification and every direct narrow test run only after one fixed,
-absolute, existing `NFC_TEST_AREA_ROOT` outside the repository is loaded into
-the current process. That process also explicitly sets `TEMP`, `TMP`, and
-`TMPDIR` to the root's existing `temp` child. The user-level declaration is
-initialized once; every shell repeats the process-level assignments. GitHub
-Actions derives `RUNNER_TEMP/NvtFwCombiner-TestArea` and rejects any conflicting
-declared root. These requirements apply to the bare commands below without
-changing their command text. Windows verifier custody of the validated root,
-sessions root, session, and marker remains live through scratch creation,
-descendant handoff, workload completion, and exact-session cleanup.
+Before each verifier or direct test, apply the root
+[test-area setup](../../AGENTS.md#canonical-commands); initialization is in
+[`CONTRIBUTING.md`](../../CONTRIBUTING.md). These requirements apply to every
+bare command below. Windows verifier custody of the validated root, sessions
+root, session, and marker remains live through scratch creation, descendant
+handoff, workload completion, and exact-session cleanup.
 
 | Changed surface | First test |
 | --- | --- |
@@ -187,34 +147,25 @@ interim status update or document handoff.
 
 ## Recurring specification conformance audit
 
-During the `0.10.x` restructuring program, perform a repository-wide
-conformance audit after every three tickets merged into the integration branch
-or at the end of a dependency block, whichever happens first. A firmware-
-semantic R3 ticket also audits its affected authority before owner review even
-when the global cadence has not yet been reached.
+The historical `0.10.x` restructuring cadence was a whole-repository audit
+after three merged tickets or a dependency block, whichever came first (see
+[the dated audit](0.10.x-spec-implementation-conformance-audit-20260729.md)).
+That program-specific cadence does not apply to ordinary 1.x tasks; historical
+records and their outstanding evidence statements remain unchanged.
 
-The audit is bidirectional:
+For current work, trace the affected authority in both directions: each
+requirement to its production owner and executable evidence (or named gap),
+and each changed behavior to its canonical requirement. A firmware-semantic
+R3 change still requires this audit before owner review. Expand the scope for
+a demonstrated dependency or contradiction, or an explicitly requested global
+audit. Historical evidence cannot silently become runtime policy.
 
-1. For every current canonical requirement in `SPEC.md`, accepted ADRs,
-   contracts, schemas, profiles, and owner-approved evidence, identify the
-   implementing production owner and executable test or record a named,
-   ticketed gap.
-2. For every new or changed production behavior, profile fact, validation,
-   issue code, processor range, and golden claim, identify exactly one current
-   canonical authority. Historical evidence may explain a fixture but cannot
-   silently become runtime policy.
-3. Run repository structure/contract validation and the affected architecture,
-   profile, golden, and behavior tests. Classify rather than conceal any
-   deferred mismatch: `fixed-now`, `allocated-to-ticket`, `blocked-evidence`,
-   or `obsolete-authority`.
-4. Record the audited integration commit, authority inventory, commands,
-   findings, dispositions, and next audit trigger in the corresponding
-   program/ticket document or PR evidence. A green verifier is supporting
-   evidence, not a substitute for the bidirectional review.
-
-Do not broaden the current ticket merely to close an unrelated allocated gap.
-Confirmed contradictions in authority or executable behavior must be fixed or
-explicitly block integration.
+Use the risk-appropriate tests and existing task/PR record to report the fixed
+source, scope, commands, findings and dispositions (`fixed-now`,
+`allocated-to-ticket`, `blocked-evidence`, `obsolete-authority`). A green test
+does not replace this trace. Confirmed authority/behavior contradictions must
+be corrected or explicitly block integration; unrelated allocated gaps do not
+expand the current implementation scope.
 
 ## Retry policy
 

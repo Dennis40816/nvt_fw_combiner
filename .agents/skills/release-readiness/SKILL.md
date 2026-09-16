@@ -5,20 +5,28 @@ description: Prepare, audit, or troubleshoot an NFC prerelease/stable release, c
 
 # Release Readiness
 
+Before release work, follow the [release-package contract](../../../docs/ci/release-package.md#implemented-commands)
+and [branch/version governance](../../../docs/governance/branch-version-and-release-governance.md).
+They own candidate eligibility, workflow authority, historical exceptions and
+recovery; this skill is not a separate publication path or permission grant.
+
 ## Lock The Release Identity
 
-1. Record the reviewed feature/version head, final merge commit, peeled tag SHA,
-   and trees. If the platform creates a merge commit, require the merged tree to
-   equal the reviewed tree; matching messages or ancestry alone is insufficient.
+1. Record the reviewed feature/version head, final merge commit, trees and
+   intended tag. After tag creation, verify its annotated object and peeled SHA
+   against that candidate. If the platform creates a merge commit, require the
+   merged tree to equal the reviewed tree; messages or ancestry alone are insufficient.
 2. Confirm version consistency across tag, `VERSION`, assemblies, worker,
    changelog, release manifest, package names, and release notes.
 3. When comparing an annotated-tag message returned by GitHub, normalize only
    transport CRLF/LF line endings. Keep every logical line, tag field, source
    SHA/tree, candidate run, manifest digest, artifact digest, release body,
    asset name, and asset hash as exact identity checks.
-4. Require the exact final `main` commit to pass CI and package workflows before
-   creating an annotated stable tag. Build only from that reachable commit in an
-   approved release environment.
+4. Require the contract's exact-source CI admission. The stable candidate job
+   performs the required fresh Golden verification, packaging and smoke before
+   protected promotion. `main-package.yml` is a separate manual preview: it is
+   neither an extra stable-release prerequisite nor a substitute for candidate
+   verification. Build only the admitted exact source in the approved environment.
 5. Never move or silently replace a stable tag or stable asset. A source or
    behavior correction requires a new version decision.
 
@@ -63,12 +71,14 @@ titles or implementation details.
 
 ## Publish And Independently Verify
 
-1. Run the stable workflow against the exact annotated tag. If it fails, classify
-   the failure before retrying. One rerun is permitted only after a material
-   environment/input change; a second failure requires diagnosis and a new
-   candidate decision, not repeated retries.
-2. Upload immutable, versioned portable ZIP, SBOM, and provenance assets. Confirm
-   the stable Release is neither draft nor prerelease.
+1. Once exact-source CI passes, dispatch `release.yml` from protected `main`
+   with the approved exact release-source SHA, final merged PR and required
+   inputs. After candidate verification and protected `release` approval, the
+   promotion job creates the annotated stable tag; do not create it manually
+   beforehand. Workflow authority and release-source eligibility remain distinct.
+2. Let that workflow publish the complete contract-declared candidate asset set.
+   Confirm the Release is immutable, neither draft nor prerelease; do not replace
+   workflow-owned publication with manual uploads or repair immutable assets.
 3. Confirm GitHub's tag-derived source `.zip` and `.tar.gz` downloads resolve in
    addition to the uploaded Windows package. Source archives are GitHub-generated
    release downloads, not uploaded binary assets.
@@ -79,3 +89,9 @@ titles or implementation details.
    retry history, and unresolved clean-machine, accessibility, signing, legal,
    firmware-owner, or private-golden gates. Never describe an omitted gate as
    passing.
+
+If a run fails, diagnose the failure and follow the contract's stage-specific
+recovery rules. If promotion fails after tag creation, eligible recovery reruns
+only that failed job in the same workflow run, preserving candidate/run/artifact
+identity. A new run cannot reuse that stable version; immutable Release
+conflicts require a new-version decision, not in-place repair.

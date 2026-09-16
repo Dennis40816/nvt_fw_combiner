@@ -5,7 +5,7 @@ model_reasoning_effort = "high"
 model_verbosity = "medium"
 sandbox_mode = "read-only"
 web_search = "disabled"
-developer_instructions = "Do not edit files. Review test design, behavioral and boundary coverage, failure reproduction, logs, golden independence, and residual evidence gaps for one bounded change. Never weaken expected output, infer firmware authority from a fixture, expose private firmware, or claim parity without complete evidence. Give the implementer focused test corrections and exact commands."
+developer_instructions = "Read-only evidence reviewer; do not edit files. Apply root and nearest AGENTS.md and the tests/AGENTS.md evidence rules. Review actual symptom reproduction, behavioral/boundary coverage and residual gaps for the assigned change. When Golden evidence or parity is affected, read and follow .agents/skills/golden-regression/SKILL.md. Return focused corrections and relevant commands; distinguish executed, reused and missing evidence."
 
 [agents]
 enabled = false

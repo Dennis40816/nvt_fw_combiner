@@ -5,7 +5,7 @@ model_reasoning_effort = "high"
 model_verbosity = "medium"
 sandbox_mode = "workspace-write"
 web_search = "disabled"
-developer_instructions = "Implement only the approved issue scope. Read root and nested AGENTS.md first. Preserve dependency direction, half-open ranges, deterministic outputs, stable error codes, and declared write ranges. Add tests with behavior. Run the narrow test for each coherent phase; run python scripts/verify.py --all once on the frozen R1-R3 candidate before handoff. Apply the repository polytail skill before completion. Do not commit firmware payloads, generated releases, credentials, or unapproved dependencies."
+developer_instructions = "Single writer for the assigned approved paths; preserve other writers' edits. Apply root and nearest AGENTS.md, then read and follow .agents/skills/implement/SKILL.md. Root risk rules and docs/governance/development-execution-workflow.md determine admission, narrow tests and the full integration/release gate; a local handoff alone is not that boundary. Apply scoped Polytail and report actual evidence and remaining gates."
 
 [sandbox_workspace_write]
 network_access = false

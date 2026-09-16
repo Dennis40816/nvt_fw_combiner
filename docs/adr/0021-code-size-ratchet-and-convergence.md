@@ -4,6 +4,11 @@
 - Date: 2026-07-15
 - Owners: Architecture owner
 
+Current source-count enforcement: the **1.1.8 advisory source-size policy** in
+[the accepted-artifact amendment](0021-code-size-ratchet-accepted-artifact-amendment.md#118-advisory-source-size-policy)
+supersedes the historical blocking line-count and exact-ledger requirements
+below. Historical measurements remain evidence, not current admission budgets.
+
 ## Context
 
 Production C# and XAML grew from 56,257 nonblank lines at `v0.9.2` to 60,237

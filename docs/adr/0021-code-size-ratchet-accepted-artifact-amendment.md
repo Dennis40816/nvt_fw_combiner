@@ -3,6 +3,30 @@
 Status: accepted normative appendix to
 `0021-code-size-ratchet-and-convergence.md`.
 
+## 1.1.8 advisory source-size policy
+
+Owner decision, 2026-09-16: source line counts are advisory, not a development
+or release admission budget. This supersedes the historical blocking full,
+runtime and per-layer exact ratchets and mandatory numerical ledger updates
+in ADR 0021 and its appendices. Preserve earlier measurements and records as
+dated evidence; do not rewrite them or update allowances for every code edit.
+
+The existing `scripts/code_size_policy.py` remains the single measurement
+owner. Its review findings report full/runtime/layer growth and reduction
+against the retained reference values; the full reference supersedes the
+legacy production maximum when configured, avoiding duplicate growth warnings.
+Existing duplicate-JSON and partial-type review findings remain advisory.
+Tests verify behavior with synthetic inputs instead of pinning current
+repository line counts or partial-type file counts. Exact synthetic counting
+assertions and historical evidence checks remain valid.
+
+Runtime slice allocation mismatch remains a validation error. It detects
+unallocated or double-counted totals, not architectural correctness; line
+counts no longer block cross-slice relocation. Existing architecture and
+dependency checks still enforce their contracts. Package byte limits, firmware
+semantics, Golden execution, signing, protected CI and publication authority
+are unchanged. This decision creates no release approval or new verifier.
+
 ## Decision
 
 The 2026-08-23 fixed-workflow same-locator correction removes the duplicate

@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 2,
+  "taskId": "V118-SOURCE-SIZE-ADVISORY-01",
+  "capability": "Report source line-count changes without blocking development",
+  "integrationBase": "2c11e5e42e7992d8d156efd37b4eb10a49846ed4",
+  "risk": "R2",
+  "kind": "governance",
+  "state": "final-complete",
+  "mutablePaths": [
+    "scripts/code_size_policy.py",
+    "tests/scripts/test_code_size_policy.py",
+    "docs/adr/0021-code-size-ratchet-and-convergence.md",
+    "docs/adr/0021-code-size-ratchet-accepted-artifact-amendment.md"
+  ],
+  "implementationOwner": "/root",
+  "searchEvidence": [
+    "Inspected measure_code_size, validate_code_size_policy, review_code_size_policy and synthetic/live-repository policy tests.",
+    "scripts/validate_repository.py already separates validation errors from review WARNING output; no consumer interface change required.",
+    "Owner approved source-count advisory policy for 1.1.8 on 2026-09-16; package-size limits remain separate and unchanged."
+  ],
+  "semanticOwner": "scripts/code_size_policy.py under ADR 0021",
+  "terminalContract": "Full/runtime/slice count changes emit advisory findings, not errors. Runtime allocation mismatch remains an error. No exact live-repository count assertions. Package, architecture, Golden and release gates remain unchanged.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "/root/v117_final_review",
+    "outcome": "approved",
+    "evidence": "Independent R2 admission PASS: retain allocation errors, add missing full-production increase/decrease findings without duplicate growth warnings, replace live counts with behavioral tests, link current ADR amendment and explicitly distinguish allocation from architecture checks."
+  },
+  "implementationHead": "9a1a2179054ab2686842b178dcf3f34b9172fe8b",
+  "reviewedHead": "9a1a2179054ab2686842b178dcf3f34b9172fe8b",
+  "pathStateDigest": "6887dba1d876ac021082f6a29bd5472b506b88ea40abfb5f636010ae6aac0453",
+  "finalReview": {
+    "reviewer": "/root/v117_final_review",
+    "outcome": "approved",
+    "evidence": "Fixed-head scoped correctness and Polytail PASS with no P0-P3 findings across all mutable paths and admission record. Policy tests reproduced five old blocking failures, then 19/19 passed; production-source ownership tests 19/19 passed. Full/runtime/slice changes are advisory and allocation mismatch remains blocking. Package/Golden/safety authority unchanged. No full-suite, integration or release claim; those remain boundary gates."
+  }
+}

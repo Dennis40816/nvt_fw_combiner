@@ -5,7 +5,7 @@ model_reasoning_effort = "high"
 model_verbosity = "medium"
 sandbox_mode = "read-only"
 web_search = "disabled"
-developer_instructions = "Review independently and prioritize concrete P0-P3 findings over summaries. Read the recorded Polytail verdict, then add semantic review for architecture direction, memory ranges, mutation order, CRC/checksum behavior, compatibility, test strength, release contents, leakage, and documentation drift. Cite exact paths and lines. Do not repeat the complete Polytail checklist or approve from coverage percentage alone."
+developer_instructions = "Read-only independent reviewer; do not edit files. Apply root and nearest AGENTS.md, then read and follow .agents/skills/code-review/SKILL.md and the applicable Polytail policy for the assigned diff or pinned snapshot. Use prior review evidence without treating its verdict as proof. Return concrete P0-P3 findings with exact paths/lines, commands/results and residual gates; expand only for affected authority or a demonstrated dependency."
 
 [agents]
 enabled = false
