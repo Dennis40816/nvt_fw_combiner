@@ -7,14 +7,13 @@ assignments, use the [canonical roadmap](docs/architecture/nfc_roadmap.md).
 
 ## [Unreleased]
 
-## [1.1.8] - Unreleased
+## [1.1.8] - 2026-09-16
 
 ### Summary
 
-This maintenance candidate improves repository checks and development guidance.
+This maintenance release improves repository checks and development guidance.
 Application screens, firmware layouts, output naming, integrity processing and
-IC/mode support are unchanged. These notes describe local release preparation;
-final integration and publication evidence remain pending.
+IC/mode support are unchanged.
 
 ### Product changes
 
@@ -72,15 +71,15 @@ candidate/contract-only routes keep their prior support status.
 
 ### Upgrade and rollback
 
-After publication, upgrade from 1.1.7 using the existing verified package or
-managed-update flow. No preference or firmware-data migration is introduced.
+Upgrade from 1.1.7 using the existing verified package or managed-update flow.
+No preference or firmware-data migration is introduced.
 Retain the previous complete portable package for rollback.
 
 ### Downloads and integrity
 
-Planned Windows x64 portable package: `NvtFwCombiner-v1.1.8-win-x64.zip`.
-This local checkpoint does not publish downloads. The standard release flow
-provides the separate distribution Launcher and GitHub source archives; verify
+Windows x64 portable package: `NvtFwCombiner-v1.1.8-win-x64.zip`.
+The standard release flow provides the separate distribution Launcher and
+GitHub source archives; verify
 published assets using their checksums, SPDX SBOM and provenance. The portable
 app includes its runtime.
 
