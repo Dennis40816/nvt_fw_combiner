@@ -15,6 +15,7 @@ internal sealed partial class OutputDeliveryConfirmationViewModel
     private CompositionOutputConfirmationSummary? Confirmation => _request?.Proposal.Confirmation;
 
     public bool HasConfirmation => Confirmation is not null;
+    public string InputSourcesSummary => string.Format(CultureInfo.CurrentCulture, Text.OutputDeliverySourcesSummaryFormat, Confirmation?.Inputs.Count ?? 0);
     public string TargetSummary
     {
         get
@@ -79,6 +80,7 @@ internal sealed partial class OutputDeliveryConfirmationViewModel
         OnPropertyChanged(nameof(HasInputNotice));
         OnPropertyChanged(nameof(HasInputWarnings));
         OnPropertyChanged(nameof(InputRows));
+        OnPropertyChanged(nameof(InputSourcesSummary));
         OnPropertyChanged(nameof(ExpectedInputChecks));
         OnPropertyChanged(nameof(EventBufferChecks));
         OnPropertyChanged(nameof(HasEventBufferChecks));

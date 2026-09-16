@@ -41,7 +41,7 @@ internal sealed partial class ShellTextResources
         return requirement?.Kind switch
         {
             TopologyRequirementKind.SingleChip => SelectLanguage("Single", "單 IC"),
-            TopologyRequirementKind.Cascade => "Cascade",
+            TopologyRequirementKind.Cascade => SelectLanguage("Cascade", "串接"),
             TopologyRequirementKind.ExactCount => $"{requirement.ExactChipCount} IC",
             TopologyRequirementKind.None => string.Empty,
             _ => string.Empty,
@@ -59,6 +59,11 @@ internal sealed partial class ShellTextResources
     internal string FormatOutputNumber(IcNumberSelection selection)
     {
         return selection.Mode == IcNumberInputMode.SingleSelector ? SelectLanguage("Single", "單 IC") :
-            string.Join(" / ", selection.Parts);
+            string.Join(" / ", selection.Parts.Select(part => part switch
+            {
+                IcNumberSelectionTokens.Cascade => SelectLanguage("Cascade", "串接"),
+                IcNumberSelectionTokens.CascadeTwoToEight => SelectLanguage("Cascade (2–8 IC)", "串接（2–8 IC）"),
+                _ => selection.Mode == IcNumberInputMode.NumericSelector ? $"{part} IC" : part,
+            }));
     }
 }

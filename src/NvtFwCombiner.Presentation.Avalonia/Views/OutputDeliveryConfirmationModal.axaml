@@ -51,7 +51,7 @@
                               IsChecked="{Binding AreSourcesExpanded}"
                               IsCheckedChanged="SourcesDisclosureToggle_OnIsCheckedChanged">
                   <StackPanel Orientation="Horizontal" Spacing="{DynamicResource NfcSpace8}">
-                    <TextBlock x:Name="SourcesCountLabel" Classes="detailText" Text="{Binding SourcesSummary}" VerticalAlignment="Center" />
+                    <TextBlock x:Name="SourcesCountLabel" Classes="detailText" Text="{Binding InputSourcesSummary}" VerticalAlignment="Center" />
                     <Path x:Name="SourcesCollapsedChevron" Width="10" Height="6" Data="M1 1L5 5L9 1" Fill="Transparent"
                           IsVisible="{Binding !AreSourcesExpanded}" VerticalAlignment="Center"
                           Stroke="{DynamicResource NfcTextMutedBrush}" StrokeThickness="1.5" Stretch="Uniform" />
