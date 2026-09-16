@@ -5,7 +5,7 @@
   "integrationBase": "ac261ced45546a7c9d154062e7b47802e7581544",
   "risk": "R2",
   "kind": "refactor",
-  "state": "design-active",
+  "state": "final-complete",
   "mutablePaths": ["scripts/validate_repository.py", "tests/scripts/test_agent_governance.py"],
   "implementationOwner": "/root",
   "searchEvidence": [
@@ -21,8 +21,12 @@
     "outcome": "approved",
     "evidence": "Independent R2 PASS for transport batching only. Preserve one per-path semantic owner and existing blob parser. Test single/batch parity for normal/new/empty/missing/intent-to-add/conflict/mode/path cases, command and protocol failures, same-blob different paths, fresh snapshots and bounded subprocess count. Keep all existing governance negatives."
   },
-  "implementationHead": null,
-  "reviewedHead": null,
-  "pathStateDigest": null,
-  "finalReview": {"reviewer": null, "outcome": "pending", "evidence": ""}
+  "implementationHead": "bc1c6d5fad0b4a08e1068c0309c616123b8d3577",
+  "reviewedHead": "bc1c6d5fad0b4a08e1068c0309c616123b8d3577",
+  "pathStateDigest": "6195882065ab8cf543c22c3415f87927ea6d9d164c81fe34de70a49a4efc9bdb",
+  "finalReview": {
+    "reviewer": "/root/v117_final_review",
+    "outcome": "approved",
+    "evidence": "Fixed-head correctness/Polytail PASS, no findings. Snapshot is transport only; one per-path stage/mode/intent owner and existing blob parser retained. Four new real-Git/transport tests pass, including bounded four-subprocess transport, distinct paths sharing blobs, conflict/mode/empty/Unicode/NUL/failure/fresh-index cases. Complete test_agent_governance suite: 140 tests PASS in 267.971 seconds. Diff check PASS. Final structure and measured runtime remain staged-final checks; no full-product-suite/integration/release claim."
+  }
 }
