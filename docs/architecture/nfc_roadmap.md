@@ -145,6 +145,18 @@ F20's separate picker-only gaps are also P2. Bringing the Report Save blocker
 forward requires the owner's next scope decision; it has not been silently
 implemented or waived. Existing future allocations remain pending that choice.
 
+Subsequent owner approval, 2026-09-18: also bring the **Report Save portion of
+F20** forward into `1.1.8`. Reviewed implementation `8332ef59` and final
+evidence `35421663` cover provider/write/flush/disposal failure containment,
+snapshot capture, duplicate-save protection and retry; F21 atomic replacement
+is not included. Integration follow-up `38c75f0e` passes the full local
+verifier and exact-head CI. PR435 merged into the version branch; publication
+still requires the release pipeline. Do not reimplement these completed F19/F20
+corrections in `1.2.x`. Retain their regressions and keep general picker gaps
+in `1.2.2`, alongside F21/F26/F24. The table below preserves the original
+relative sizing; subtract brought-forward work at admission rather than filling
+the freed capacity with unapproved scope.
+
 Relative sizing includes implementation, fault-injection/contract tests and
 scoped review: S=1, M=2, L=3 units. Units are comparative estimates, not days
 or measured duration. Aim for 6–8 audit units per release; count shared owners
