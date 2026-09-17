@@ -22,6 +22,26 @@ Specification package version: `1.1.8`
 
 ## 1.1.8 clean-Windows runtime correction — 2026-09-16
 
+### F20 Report Save correction — 2026-09-18
+
+Owner approved bringing the Report Save P1 forward into unpublished `1.1.8`.
+Source base: `8d2f33dc6cb7fc0076da2ec2da5564452e19e273`.
+Six injected provider/stream failure cases failed against the original save
+operation, then passed after containment and post-disposal success notification.
+The actual operation called by the UI event is exercised, not a duplicate saver.
+Snapshot capture, overlapping clicks, both picker cancellation forms, localized
+failure and retry are covered. Cancellation after destination selection reports
+potentially incomplete output. Atomic replacement remains deferred F21 scope.
+
+With canonical test-area TEMP/TMP/TMPDIR configured,
+`dotnet test tests/NvtFwCombiner.UiSmoke.Tests/NvtFwCombiner.UiSmoke.Tests.csproj --no-restore --filter "FullyQualifiedName~RunReportsListTests|FullyQualifiedName~ReportPresentation|FullyQualifiedName~ShellViewModelTests.Report"`
+passed **21/21**, zero skips. Evidence directory:
+`D:/NvtFwCombiner-TestArea/evidence/v118-f20`, files `f20-red.trx`
+(6 failed before fix), `f20-green.trx` (6 passed) and
+`f20-report-regression.trx` (21 passed, including 10 save cases).
+This is targeted local evidence, not fresh full-suite, candidate Golden,
+clean-machine GUI or publication acceptance.
+
 ### F19 staging ownership correction — 2026-09-18
 
 Owner approved bringing the shared-review F19 blocker forward from the future

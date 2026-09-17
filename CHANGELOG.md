@@ -18,6 +18,18 @@ IC/mode support are unchanged.
 
 ### Product changes
 
+#### Report Save failure handling
+
+- Before → After: picker, write or disposal failures could escape the UI save
+  operation, and success could appear before the file was completely closed.
+  Failures now preserve the loaded Report and show a localized retry message;
+  success appears only after all save resources close successfully.
+- The save captures the selected Report before opening the picker and ignores
+  overlapping save clicks. Cancelling the picker leaves the Report unchanged.
+- Verification: 21 targeted Report UI regressions passed, including injected
+  picker/open/write/flush/disposal failures and successful retry. Atomic file
+  replacement is not included; a failed destination may be incomplete.
+
 #### Preserve pre-existing Combiner staging
 
 - Before → After: rejecting an already-existing run directory could still

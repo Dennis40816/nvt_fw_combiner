@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 2,
+  "taskId": "V118-REPORT-SAVE-01",
+  "capability": "Contain Report Save I/O failures and publish success only after disposal",
+  "integrationBase": "8d2f33dc6cb7fc0076da2ec2da5564452e19e273",
+  "risk": "R1",
+  "kind": "ui",
+  "state": "design-active",
+  "mutablePaths": [
+    "src/NvtFwCombiner.Presentation.Avalonia/Views/ReportModal.axaml.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReportPresentationViewModel.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ShellTextResources.DynamicText.cs",
+    "tests/NvtFwCombiner.UiSmoke.Tests/RunReportsListTests.ReportSave.cs"
+  ],
+  "implementationOwner": "/root",
+  "searchEvidence": [
+    "Owner explicitly approved bringing the remaining Report Save P1 forward into unpublished 1.1.8 on 2026-09-18, following F19 closure. Base 8d2f33dc6cb7fc0076da2ec2da5564452e19e273.",
+    "CodeGraph traced ReportModal.SaveReportButton_OnClick through FirmwareFilePickerDialogs and ReportPresentationViewModel.NotifyReportSaved. The existing event directly awaits picker/open/write without an error boundary and publishes success before disposal. Existing RunReportsListTests.Loading provides controllable IStorageProvider/IStorageFile proxies.",
+    "Extend this existing view operation and existing localized Report toast owner, not a parallel persistence framework. Scope includes picker/open/write/flush/dispose failures, cancellation, snapshot capture, duplicate-save guard and retry. No layout, firmware, naming, Report wire schema or general picker change. Transactional file replacement remains the separate F21 roadmap scope."
+  ],
+  "semanticOwner": "ReportModal save operation and ReportPresentationViewModel localized save notification",
+  "terminalContract": "Save the pre-picker Report snapshot; notify success only after writer, stream and selected file disposal succeed. Contain cancellation and I/O/provider errors, preserve loaded Report on failure, show actionable localized failure, and permit retry without overlapping saves.",
+  "disposition": "extend-owner",
+  "designReview": { "reviewer": null, "outcome": "not-required", "evidence": "Bounded R1 UI operation correction; unchanged XAML and firmware contracts. Narrow actual-control operation tests inject provider and stream faults." },
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": { "reviewer": null, "outcome": "pending", "evidence": "" }
+}
