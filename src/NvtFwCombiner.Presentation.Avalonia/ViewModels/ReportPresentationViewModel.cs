@@ -297,6 +297,12 @@ internal sealed partial class ReportPresentationViewModel : ObservableObject
         SetReportToast(Text.FormatReportSavedToast(destinationName));
     }
 
+    /// <summary>Reports a failed save without replacing the loaded report or its history.</summary>
+    public void NotifyReportSaveFailed(string reason)
+    {
+        SetReportToast(Text.FormatReportSaveFailedToast(reason));
+    }
+
     public void LoadRunErrorReport(
         string action,
         string profileId,

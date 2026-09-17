@@ -258,14 +258,16 @@ $ApprovedRepositoryExternalToolPackagePaths = @(
     'external-tools/README.md',
     'external-tools/legacy-combiner/README.md',
     'external-tools/legacy-combiner/1.13.0/Combiner.exe',
-    'external-tools/legacy-combiner/1.13.0/manifest.json'
+    'external-tools/legacy-combiner/1.13.0/manifest.json',
+    'external-tools/legacy-combiner/1.13.0/vcruntime140.dll'
 ) | Sort-Object
 $ApprovedExternalToolPackagePaths = @(
     'external-tools/README.md',
     'external-tools/crc-worker/0.1.0/Nfc.CrcWorker.exe',
     'external-tools/legacy-combiner/README.md',
     'external-tools/legacy-combiner/1.13.0/Combiner.exe',
-    'external-tools/legacy-combiner/1.13.0/manifest.json'
+    'external-tools/legacy-combiner/1.13.0/manifest.json',
+    'external-tools/legacy-combiner/1.13.0/vcruntime140.dll'
 ) | Sort-Object
 
 $ApprovedRuntimeCatalogPackagePaths = @(
@@ -310,12 +312,23 @@ function Copy-PackageFileFromRoot {
     Copy-Item -LiteralPath $SourcePath -Destination $DestinationPath
 }
 
+function Assert-ApprovedCombinerRuntime {
+    param([Parameter(Mandatory = $true)][string]$Root)
+
+    $RuntimePath = Join-Path $Root 'external-tools/legacy-combiner/1.13.0/vcruntime140.dll'
+    if (-not (Test-Path -LiteralPath $RuntimePath -PathType Leaf) -or
+        (Get-LowerSha256 $RuntimePath) -ne 'd5e4d9a3e835fa679450145d6a7d94e36573a509317111904d9b3712c30d9066') {
+        throw 'Combiner runtime is missing or does not match the approved SHA-256.'
+    }
+}
+
 function Copy-ApprovedExternalToolPackageFiles {
     param(
         [Parameter(Mandatory = $true)][string]$DestinationRoot,
         [string]$SourceRoot = $RepoRoot
     )
 
+    Assert-ApprovedCombinerRuntime -Root $SourceRoot
     foreach ($ApprovedExternalToolPackagePath in $ApprovedRepositoryExternalToolPackagePaths) {
         Copy-PackageFileFromRoot `
             -SourceRoot $SourceRoot `
@@ -330,6 +343,7 @@ function Get-ExternalToolManifestEntries {
         [Parameter(Mandatory = $true)][string]$ExternalToolsRoot
     )
 
+    Assert-ApprovedCombinerRuntime -Root $PackageRoot
     $ExternalToolFiles = @(Get-ChildItem -LiteralPath $ExternalToolsRoot -File -Recurse | ForEach-Object FullName)
     $PackagedExternalToolPaths = @(
         $ExternalToolFiles |
@@ -668,6 +682,36 @@ function Invoke-ExternalToolPolicyDryRun {
         $DryRunEntries = @(Get-ExternalToolManifestEntries `
             -PackageRoot $DryRunPackageRoot `
             -ExternalToolsRoot $DryRunExternalToolsRoot)
+        $RuntimeRelativePath = 'external-tools/legacy-combiner/1.13.0/vcruntime140.dll'
+        $SourceRuntime = Join-Path $DryRunSourceRoot $RuntimeRelativePath
+        $PackagedRuntime = Join-Path $DryRunPackageRoot $RuntimeRelativePath
+        $RuntimeBytes = [IO.File]::ReadAllBytes($SourceRuntime)
+        foreach ($Mutation in @('missing', 'tampered')) {
+            if ($Mutation -eq 'missing') { Remove-Item -LiteralPath $SourceRuntime }
+            else { [IO.File]::WriteAllText($SourceRuntime, 'substituted runtime') }
+            $Rejected = $false
+            try {
+                Copy-ApprovedExternalToolPackageFiles -SourceRoot $DryRunSourceRoot -DestinationRoot $DryRunPackageRoot
+            }
+            catch {
+                if ($_.Exception.Message -notlike 'Combiner runtime is missing or does not match*') { throw }
+                $Rejected = $true
+            }
+            finally { [IO.File]::WriteAllBytes($SourceRuntime, $RuntimeBytes) }
+            if (-not $Rejected) { throw "Combiner runtime $Mutation source was admitted." }
+        }
+        [IO.File]::WriteAllText($PackagedRuntime, 'self-consistent manifest substitution probe')
+        $Rejected = $false
+        try {
+            Get-ExternalToolManifestEntries -PackageRoot $DryRunPackageRoot -ExternalToolsRoot $DryRunExternalToolsRoot | Out-Null
+        }
+        catch {
+            if ($_.Exception.Message -notlike 'Combiner runtime is missing or does not match*') { throw }
+            $Rejected = $true
+        }
+        finally { [IO.File]::WriteAllBytes($PackagedRuntime, $RuntimeBytes) }
+        if (-not $Rejected) { throw 'Combiner runtime substitution entered manifest generation.' }
+        Write-Host 'Combiner runtime policy dry-run passed: missing and tampered source rejected; manifest substitution rejected.'
         New-BuiltInProfilePolicyDryRunFixture -PublishedRoot $DryRunPublishedRoot
         Copy-PackageFileFromRoot `
             -SourceRoot $RepoRoot `

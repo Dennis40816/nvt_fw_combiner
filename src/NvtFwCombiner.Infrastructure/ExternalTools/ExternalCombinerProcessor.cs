@@ -63,12 +63,12 @@ public sealed partial class ExternalCombinerProcessor : IExternalProcessor
         string runDirectory = Path.Combine(_stagingRoot, request.RunId);
         try
         {
-            if (Directory.Exists(runDirectory))
+            using ExternalStagingDirectory? staging = ExternalStagingDirectory.TryAcquire(runDirectory);
+            if (staging is null)
             {
                 return Fail("external-tool.staging.exists", "External processor staging directory already exists.");
             }
 
-            _ = Directory.CreateDirectory(runDirectory);
             string workBin = Path.Combine(runDirectory, WorkFileName);
             string outputBin = Path.Combine(runDirectory, OutputFileName);
             await File.WriteAllBytesAsync(workBin, request.InputBytes, cancellationToken).ConfigureAwait(false);
@@ -167,10 +167,6 @@ public sealed partial class ExternalCombinerProcessor : IExternalProcessor
             return Fail(
                 "external-tool.staging.io-failed",
                 $"External processor staging failed ({exception.GetType().Name}).");
-        }
-        finally
-        {
-            ExternalStagingDirectory.TryDelete(runDirectory);
         }
     }
 

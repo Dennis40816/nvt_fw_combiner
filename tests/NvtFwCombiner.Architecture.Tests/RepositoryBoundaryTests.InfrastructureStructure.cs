@@ -77,7 +77,8 @@ public sealed partial class RepositoryBoundaryTests
         Assert.DoesNotContain("SHA256", root, StringComparison.Ordinal);
         Assert.Contains("ExpandArguments", staging, StringComparison.Ordinal);
         Assert.Contains("FindUnexpectedStagingFileIssue", staging, StringComparison.Ordinal);
-        Assert.Contains("ExternalStagingDirectory.TryDelete", root, StringComparison.Ordinal);
+        Assert.Contains("using ExternalStagingDirectory? staging = ExternalStagingDirectory.TryAcquire(runDirectory);", root, StringComparison.Ordinal);
+        Assert.DoesNotContain("ExternalStagingDirectory.TryDelete", root, StringComparison.Ordinal);
         Assert.DoesNotContain("TryDeleteDirectory", staging, StringComparison.Ordinal);
         Assert.Contains("File.WriteAllBytesAsync(workBin, request.InputBytes,", root, StringComparison.Ordinal);
         Assert.Contains("File.WriteAllBytesAsync(path, artifact.Bytes,", staging, StringComparison.Ordinal);

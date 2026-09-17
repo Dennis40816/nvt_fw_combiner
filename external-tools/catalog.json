@@ -3,8 +3,8 @@
   "repositoryFiles": [
     {
       "path": "external-tools/README.md",
-      "size": 2263,
-      "sha256": "379dd7bcd218d61b7aa2bccc2615c64e76f25940331ce91181592e7b73a290ec"
+      "size": 2495,
+      "sha256": "a3d535bd34a1e00b65959143037fc179c7aca3e42a18283657f1e4d35d285752"
     },
     {
       "path": "external-tools/diff-nf-merge/1.0.0/CommandLine.dll",
@@ -47,9 +47,14 @@
       "sha256": "1c60badcc23fc5f3708d7cfb171a9a2e94c708a1aa257d0dac3efb7a20d96442"
     },
     {
+      "path": "external-tools/legacy-combiner/1.13.0/vcruntime140.dll",
+      "size": 124544,
+      "sha256": "d5e4d9a3e835fa679450145d6a7d94e36573a509317111904d9b3712c30d9066"
+    },
+    {
       "path": "external-tools/legacy-combiner/README.md",
-      "size": 294,
-      "sha256": "791eac4243c01696f742423537d6001d4498a20dabe8054b64da37fa8fb3c909"
+      "size": 1721,
+      "sha256": "85a79ffe33122b60d4b70cebd0dd3808c7b191105a446953149f0f3f10df03ae"
     }
   ],
   "releasePackagePaths": [
@@ -57,7 +62,8 @@
     "external-tools/crc-worker/0.1.0/Nfc.CrcWorker.exe",
     "external-tools/legacy-combiner/README.md",
     "external-tools/legacy-combiner/1.13.0/Combiner.exe",
-    "external-tools/legacy-combiner/1.13.0/manifest.json"
+    "external-tools/legacy-combiner/1.13.0/manifest.json",
+    "external-tools/legacy-combiner/1.13.0/vcruntime140.dll"
   ],
   "tools": [
     {

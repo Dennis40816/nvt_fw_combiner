@@ -7,6 +7,75 @@ namespace NvtFwCombiner.Infrastructure.Tests.ExternalTools;
 
 public sealed partial class LegacyCombinerPostbuildProcessorTests
 {
+    /// <summary>Rejecting a pre-existing directory must not delete another run's evidence.</summary>
+    [Fact]
+    public async Task RejectedExistingStagingPreservesSentinelWithoutLaunchingTool()
+    {
+        using var workspace = TempWorkspace.Create();
+        string sha256 = workspace.CreateToolExecutable();
+        FakeProcessRunner runner = new(_ => throw new InvalidOperationException("Must not launch."));
+        LegacyCombinerPostbuildProfile profile = CreateCrcOnlyProfile("nfc.test.owned-staging-v1", "test_fw.bin");
+        var selection = new IcNumberSelection(IcNumberInputMode.SingleSelector, ["single"]);
+        ExternalProcessorRequest request = new(
+            "run-existing", profile.ProcessorId, profile.ToolBindingId, CreateFirmwareImage(), [],
+            selection, protocolPlan: CompileProtocolPlan(profile, selection));
+        string directory = Path.Combine(workspace.StagingRoot, request.RunId);
+        _ = Directory.CreateDirectory(directory);
+        string sentinel = Path.Combine(directory, "sentinel.bin");
+        byte[] expected = [7, 8, 9];
+        await File.WriteAllBytesAsync(sentinel, expected, TestContext.Current.CancellationToken);
+
+        ExternalProcessorResult result = await workspace.CreateProcessor(sha256, runner)
+            .TransformAsync(request, CancellationToken.None);
+
+        Assert.Equal("external-tool.staging.exists", Assert.Single(result.Issues).Code);
+        Assert.Equal(0, runner.RunCount);
+        Assert.True(File.Exists(sentinel));
+        Assert.Equal(expected, await File.ReadAllBytesAsync(sentinel, TestContext.Current.CancellationToken));
+        Assert.Equal([sentinel], Directory.GetFiles(directory));
+    }
+
+    /// <summary>All terminal paths release only this invocation's owned staging.</summary>
+    [Theory]
+    [InlineData(0)]
+    [InlineData(1)]
+    [InlineData(2)]
+    public async Task OwnedStagingIsCleanedAfterSuccessFailureOrCancellation(int outcome)
+    {
+        using var workspace = TempWorkspace.Create();
+        using var cancellation = new CancellationTokenSource();
+        string sha256 = workspace.CreateToolExecutable();
+        FakeProcessRunner runner = new(_ =>
+        {
+            if (outcome == 2)
+            {
+                cancellation.Cancel();
+                throw new OperationCanceledException(cancellation.Token);
+            }
+
+            return new ExternalProcessResult(outcome, false, string.Empty, string.Empty);
+        });
+        LegacyCombinerPostbuildProfile profile = CreateCrcOnlyProfile("nfc.test.cleanup-v1", "test_fw.bin");
+        var selection = new IcNumberSelection(IcNumberInputMode.SingleSelector, ["single"]);
+        ExternalProcessorRequest request = new(
+            "run-cleanup", profile.ProcessorId, profile.ToolBindingId, CreateFirmwareImage(), [],
+            selection, protocolPlan: CompileProtocolPlan(profile, selection));
+        LegacyCombinerPostbuildProcessor processor = workspace.CreateProcessor(sha256, runner);
+        if (outcome == 2)
+        {
+            _ = await Assert.ThrowsAsync<OperationCanceledException>(
+                () => processor.TransformAsync(request, cancellation.Token).AsTask());
+        }
+        else
+        {
+            ExternalProcessorResult result = await processor.TransformAsync(request, cancellation.Token);
+            Assert.Equal(outcome == 0, result.Succeeded);
+        }
+
+        Assert.Equal(1, runner.RunCount);
+        Assert.Empty(Directory.GetFileSystemEntries(workspace.StagingRoot));
+    }
+
     /// <summary>Rejects execution when the compiled invocation did not select the adapter protocol plan.</summary>
     [Fact]
     public async Task TransformRejectsMissingCompiledProtocolPlanBeforeLaunch()

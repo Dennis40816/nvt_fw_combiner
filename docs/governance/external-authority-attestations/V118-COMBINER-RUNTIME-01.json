@@ -1,0 +1,9 @@
+{
+  "schemaVersion": 1,
+  "taskId": "V118-COMBINER-RUNTIME-01",
+  "authorityType": "release-owner",
+  "reviewedHead": "e103ebc17a2cd0dee09105145866b52764282f2c",
+  "decision": "approved",
+  "reviewer": "Dennis Liu (release owner)",
+  "evidence": "The owner requested bundling the repo-approved Microsoft runtime by default, then explicitly instructed release of 1.1.8. On 2026-09-17, in direct response to the remaining redistribution-eligibility question, the owner stated that the company purchased Visual Studio. This records the owner's supplied eligibility statement and delegated release authority for the unchanged runtime correction, not an independent legal opinion or a claim to have inspected the company's license records. This attestation binds final-evidence head e103ebc17a2cd0dee09105145866b52764282f2c, the record-only direct child of the independently reviewed implementation 064a7ba3e76ba5596b995ac44ca1ddb0b4c0c8dd. The final-evidence SHA was produced while carrying out that authorization; it was not separately shown to or personally reviewed by the owner. Scope is the unchanged Combiner plus pinned official Microsoft x64 vcruntime140.dll 14.44.35211.0, closed packaging/notices and actual execution smoke. No firmware/profile/CRC behavior, runtime override UI or 1.1.9 feature is admitted. Existing Golden fixture authority is unchanged. Local121 affected tests, structure and the original-package single-variable Sandbox lab are supporting evidence only. Exact-source integration CI, fresh candidate Golden, rebuilt package/smoke, clean-Windows candidate GUI Build/Report and protected immutable publication must still pass. No omitted gate is waived and no tag, package or published asset may be replaced."
+}
