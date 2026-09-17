@@ -18,6 +18,18 @@ IC/mode support are unchanged.
 
 ### Product changes
 
+#### Preserve pre-existing Combiner staging
+
+- Before → After: rejecting an already-existing run directory could still
+  recursively remove it during cleanup. Both Combiner adapters now acquire
+  directory ownership atomically and only clean a successfully acquired run.
+- Affected: shared external Combiner staging, including AB and CtrlRAM routes.
+  Commands, firmware bytes/ranges/CRC, output naming and support are unchanged.
+- Verification: both adapter sentinel tests reproduced the deletion before
+  the fix. Focused tests cover contention, existing files, repeated disposal
+  and cleanup on success, failure and cancellation. Actual-candidate Golden
+  and clean-Windows package acceptance remain separate release gates.
+
 #### Complete portable Combiner dependencies
 
 - Before → After: a clean Windows machine could open the application but fail

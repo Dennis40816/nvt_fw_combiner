@@ -22,6 +22,29 @@ Specification package version: `1.1.8`
 
 ## 1.1.8 clean-Windows runtime correction — 2026-09-16
 
+### F19 staging ownership correction — 2026-09-18
+
+Owner approved bringing the shared-review F19 blocker forward from the future
+audit schedule into the unpublished `1.1.8` candidate. Source base:
+`cb9349dd71644f10f177e4edf46aaca038fe33a3`. Both adapter regressions failed
+because rejecting an existing run removed its sentinel; retained evidence:
+`D:/NvtFwCombiner-TestArea/evidence/v118-f19/f19-red.trx` (2 failed).
+The shared helper now acquires a directory with an exclusive native creation
+operation and returns a disposable owner only on success. Both adapters use
+that owner; no unowned cleanup remains. Acquisition contention and repeated
+disposal have behavioral coverage. No command, firmware or write-range
+contract changes are included.
+
+With the canonical user test root and TEMP/TMP/TMPDIR set to its temp child,
+`dotnet test tests/NvtFwCombiner.Infrastructure.Tests/NvtFwCombiner.Infrastructure.Tests.csproj --no-restore --filter "FullyQualifiedName~ExternalCombinerProcessorTests|FullyQualifiedName~LegacyCombinerPostbuildProcessorTests|FullyQualifiedName~ExternalStagingDirectoryTests"`
+passed **54/54**, zero skips, including both adapter success/failure/cancel
+cleanup paths. Evidence: `f19-expanded.trx` in the same directory. Initial
+test compilation/analyzer corrections preceded this pass. Windows native
+acquisition is exercised; the Unix branch is not locally verified. This is
+not a full-suite, independent-review, new-candidate Golden or publication pass.
+
+### Original runtime candidate evidence
+
 The original untagged candidate from main
 `c580476ff016e168d856ef798e0a80d0180210a0`, workflow `35086708535` attempt 2,
 opened successfully but failed NT51950/single CtrlRAM GUI Build with

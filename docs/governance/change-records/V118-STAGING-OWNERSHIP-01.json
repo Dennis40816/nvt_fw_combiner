@@ -1,0 +1,33 @@
+{
+  "schemaVersion": 2,
+  "taskId": "V118-STAGING-OWNERSHIP-01",
+  "capability": "Acquire exclusive Combiner staging ownership before cleanup",
+  "integrationBase": "e103ebc17a2cd0dee09105145866b52764282f2c",
+  "risk": "R1",
+  "kind": "behavior",
+  "state": "design-active",
+  "mutablePaths": [
+    "src/NvtFwCombiner.Infrastructure/ExternalTools/ExternalCombinerProcessor.cs",
+    "src/NvtFwCombiner.Infrastructure/ExternalTools/LegacyCombinerPostbuildProcessor.cs",
+    "src/NvtFwCombiner.Infrastructure/ExternalTools/StagedArtifactFileVerifier.cs",
+    "src/NvtFwCombiner.Infrastructure/ExternalTools/ExternalStagingDirectory.cs",
+    "tests/NvtFwCombiner.Infrastructure.Tests/ExternalTools/ExternalCombinerProcessorTests.cs",
+    "tests/NvtFwCombiner.Infrastructure.Tests/ExternalTools/LegacyCombinerPostbuildProcessorFailureTests.cs",
+    "tests/NvtFwCombiner.Infrastructure.Tests/ExternalTools/ExternalStagingDirectoryTests.cs"
+  ],
+  "implementationOwner": "/root",
+  "searchEvidence": [
+    "Owner approved bringing F19 forward into 1.1.8 before release on 2026-09-17. Local source base cb9349dd71644f10f177e4edf46aaca038fe33a3.",
+    "CodeGraph traced both adapter TransformAsync methods to unconditional ExternalStagingDirectory.TryDelete after rejecting existing directories. Existing shared helper owns cleanup but has no acquisition contract; Platform/Infrastructure search found no reusable exclusive directory acquisition helper.",
+    "Two adapter sentinel regressions failed before production changes: the rejected existing directory was removed, with no tool invocation. Evidence D:/NvtFwCombiner-TestArea/evidence/v118-f19/f19-red.trx.",
+    "Extend the existing staging helper into an internal disposable owner. Native exclusive directory creation avoids the Directory.Exists/CreateDirectory race; only successful acquisition permits cleanup. Reuse existing LibraryImport adapter conventions. Commands, run paths, input bytes, output validation and allowed writes remain unchanged."
+  ],
+  "semanticOwner": "Infrastructure ExternalStagingDirectory acquisition and cleanup, shared by both existing Combiner adapters",
+  "terminalContract": "Reject pre-existing/contended staging without mutation or process launch; clean only the acquired directory on success, failure or cancellation. Atomic acquisition has one winner; repeated disposal cannot delete a later owner. No firmware or release-policy change.",
+  "disposition": "extend-owner",
+  "designReview": { "reviewer": null, "outcome": "not-required", "evidence": "Bounded R1 adapter resource-ownership correction under explicit owner approval; no public contract, firmware geometry, CRC or command change." },
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": { "reviewer": null, "outcome": "pending", "evidence": "" }
+}

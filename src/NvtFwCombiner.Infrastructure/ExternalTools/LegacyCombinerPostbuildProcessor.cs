@@ -73,7 +73,8 @@ public sealed partial class LegacyCombinerPostbuildProcessor : IExternalProcesso
         List<ExternalProcessInvocation> executedCommands = [];
         try
         {
-            if (Directory.Exists(runDirectory))
+            using ExternalStagingDirectory? staging = ExternalStagingDirectory.TryAcquire(runDirectory);
+            if (staging is null)
             {
                 return Fail("external-tool.staging.exists", "External processor staging directory already exists.");
             }
@@ -212,10 +213,6 @@ public sealed partial class LegacyCombinerPostbuildProcessor : IExternalProcesso
                 "external-tool.staging.io-failed",
                 $"External processor staging failed ({exception.GetType().Name}).",
                 executedCommands);
-        }
-        finally
-        {
-            ExternalStagingDirectory.TryDelete(runDirectory);
         }
     }
 
