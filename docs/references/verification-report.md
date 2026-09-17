@@ -42,6 +42,13 @@ passed **21/21**, zero skips. Evidence directory:
 This is targeted local evidence, not fresh full-suite, candidate Golden,
 clean-machine GUI or publication acceptance.
 
+Independent review identified that assertions inside the success-notification
+observer could be swallowed by the existing observer isolation. The test now
+records notification-time disposal state and asserts it after awaiting save.
+`f20-reviewed-regression.trx` records the repeated **21/21** pass after that
+test correction. Release-note rendering also passed **7/7** after supplying
+the required support, compatibility and limitation fields for F19 and F20.
+
 ### F19 staging ownership correction — 2026-09-18
 
 Owner approved bringing the shared-review F19 blocker forward from the future

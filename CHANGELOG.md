@@ -24,11 +24,14 @@ IC/mode support are unchanged.
   operation, and success could appear before the file was completely closed.
   Failures now preserve the loaded Report and show a localized retry message;
   success appears only after all save resources close successfully.
-- The save captures the selected Report before opening the picker and ignores
+- Affected: Report Save across all workflows; no IC or mode-specific behavior.
+- Support status: unchanged/support-neutral.
+- Compatibility: the save captures the selected Report before opening the picker and ignores
   overlapping save clicks. Cancelling the picker leaves the Report unchanged.
 - Verification: 21 targeted Report UI regressions passed, including injected
-  picker/open/write/flush/disposal failures and successful retry. Atomic file
-  replacement is not included; a failed destination may be incomplete.
+  picker/open/write/flush/disposal failures and successful retry.
+- Limitations: atomic file replacement is not included; a failed destination
+  may be incomplete. No Report wire-schema or output naming changes.
 
 #### Preserve pre-existing Combiner staging
 
@@ -36,11 +39,14 @@ IC/mode support are unchanged.
   recursively remove it during cleanup. Both Combiner adapters now acquire
   directory ownership atomically and only clean a successfully acquired run.
 - Affected: shared external Combiner staging, including AB and CtrlRAM routes.
-  Commands, firmware bytes/ranges/CRC, output naming and support are unchanged.
+- Support status: unchanged/support-neutral.
+- Compatibility: commands, firmware bytes/ranges/CRC and output naming are unchanged.
 - Verification: both adapter sentinel tests reproduced the deletion before
   the fix. Focused tests cover contention, existing files, repeated disposal
   and cleanup on success, failure and cancellation. Actual-candidate Golden
   and clean-Windows package acceptance remain separate release gates.
+- Limitations: Unix native acquisition is not locally verified; this does not
+  provide protection against arbitrary hostile replacement of acquired paths.
 
 #### Complete portable Combiner dependencies
 

@@ -67,14 +67,14 @@ public sealed partial class RunReportsListTests
         };
         var selected = new TaskCompletionSource<IStorageFile?>(TaskCreationOptions.RunContinuationsAsynchronously);
         int pickerCount = 0;
+        var successObservations = new List<(bool FileDisposed, bool StreamClosed)>();
         IStorageProvider picker = DispatchProxy.Create<IStorageProvider, ReportStorageProxy>();
         ((ReportStorageProxy)picker).Call = (_, _) => { pickerCount++; return selected.Task; };
         reports.PropertyChanged += (_, args) =>
         {
             if (args.PropertyName == nameof(reports.ReportToastText) && reports.ReportToastText.StartsWith("Report saved", StringComparison.Ordinal))
             {
-                Assert.True(fileDisposed);
-                Assert.False(stream.CanWrite);
+                successObservations.Add((fileDisposed, !stream.CanWrite));
             }
         };
         Task saving = modal.SaveReportAsync(picker);
@@ -84,6 +84,7 @@ public sealed partial class RunReportsListTests
         Assert.Equal(1, pickerCount);
         selected.SetResult(file);
         await saving;
+        Assert.Equal((true, true), Assert.Single(successObservations));
         Assert.Equal(original, Encoding.UTF8.GetString(stream.ToArray()));
         Assert.Equal(newer, reports.LoadedReportJson);
         Assert.Equal(reports.Text.FormatReportSavedToast("saved.json"), reports.ReportToastText);
