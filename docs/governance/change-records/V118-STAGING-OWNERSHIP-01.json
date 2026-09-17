@@ -5,7 +5,7 @@
   "integrationBase": "e103ebc17a2cd0dee09105145866b52764282f2c",
   "risk": "R1",
   "kind": "behavior",
-  "state": "design-active",
+  "state": "final-complete",
   "mutablePaths": [
     "src/NvtFwCombiner.Infrastructure/ExternalTools/ExternalCombinerProcessor.cs",
     "src/NvtFwCombiner.Infrastructure/ExternalTools/LegacyCombinerPostbuildProcessor.cs",
@@ -26,8 +26,8 @@
   "terminalContract": "Reject pre-existing/contended staging without mutation or process launch; clean only the acquired directory on success, failure or cancellation. Atomic acquisition has one winner; repeated disposal cannot delete a later owner. No firmware or release-policy change.",
   "disposition": "extend-owner",
   "designReview": { "reviewer": null, "outcome": "not-required", "evidence": "Bounded R1 adapter resource-ownership correction under explicit owner approval; no public contract, firmware geometry, CRC or command change." },
-  "implementationHead": null,
-  "reviewedHead": null,
-  "pathStateDigest": null,
-  "finalReview": { "reviewer": null, "outcome": "pending", "evidence": "" }
+  "implementationHead": "8375dcb19cfc5eb19553f97a345343d68f3bfd6f",
+  "reviewedHead": "8375dcb19cfc5eb19553f97a345343d68f3bfd6f",
+  "pathStateDigest": "0a05d6d6a170d043300007e6178992d4d5318673313128ce6b545251d6605bf8",
+  "finalReview": { "reviewer": "/root/f19_fixed_review", "outcome": "approved", "evidence": "Independent fixed-head R1 correctness/Polytail PASS for cb9349dd..8375dcb19cfc5eb19553f97a345343d68f3bfd6f on 2026-09-18, no P0-P3 findings. Atomic native acquisition gives one cleanup owner; both adapters cover all terminal paths; repeated disposal cannot delete a later run. No firmware, command, write-range or public-contract changes. Reviewer inspected red TRX (2 sentinel failures) and focused green TRX (54 passed, zero skipped), confirmed prior e103 evidence checkpoint and seven mutable paths, and checked both diffs. Primary also executed Infrastructure suite: 1127 passed, zero skipped, 58 seconds; reviewer did not independently rerun it. Unix branch and arbitrary hostile replacement of acquired directories are not verified. Final validator, full integration/CI, fresh candidate Golden/package, clean Windows GUI and publication gates remain separate." }
 }
