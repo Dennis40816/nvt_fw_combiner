@@ -116,6 +116,62 @@ protected review/CI and candidate publication gates remain required.
 | `1.5.3` | **Full Launcher candidate acceptance**: clean Windows install/update/failure/recovery/rollback and end-to-end evidence across the integrated candidate. |
 | `2.0.0` | **Full Launcher release**. Actual Catalog/Registry production activation requires explicit owner GO and closed security/evidence/publication gates; the scheduled version is not approval to deploy. |
 
+### Shared audit allocation — 2026-09-17
+
+Owner direction: distribute the [shared review](https://chatgpt.com/share/6aaa7f89-1a70-83e9-bcac-badc1fdface2)
+across `1.2.0`–`1.2.x` by difficulty and comparable work volume, then resume
+`1.1.8` verification/publication. This table adds explicit acceptance to the
+existing version outcomes above; it does not merge future changes into the
+frozen `1.1.8` candidate. Full Launcher delivery remains `2.0.0`.
+
+Source read on 2026-09-17: the page contains overlapping A01–A14 and F01–F18
+reviews of `c580476f`, followed by the fuller `1.1.7`/`e08bb4f4` review with
+25 findings (F01–F26 excluding F12), then the owner's Customized naming
+decision. Use the final F identifiers below; do not count the earlier lists
+again. F12 is a naming requirement, not a confirmed defect. These are review
+claims to revalidate against each implementation head, not fresh local tests
+or a certification that all current versions reproduce them. Linked report
+attachments have not been independently inspected.
+
+Relative sizing includes implementation, fault-injection/contract tests and
+scoped review: S=1, M=2, L=3 units. Units are comparative estimates, not days
+or measured duration. Aim for 6–8 audit units per release; count shared owners
+once. Existing feature work also consumes capacity: at admission split an
+oversized existing feature into a separately bounded later patch, rather than
+silently dropping tests or claiming equal total release duration. Preserve
+the declared Family-before-retirement dependency and earlier firmware gates.
+
+| Version | Audit work / relative size | Required observable acceptance |
+| --- | --- | --- |
+| `1.2.0` | **Staging and runner reliability**: F19 (L), F03 + F06 (one L runner change); 6 units. | Pre-existing staging/sentinel survives rejection and acquisition races; no tool launch on rejected ownership. Cancellation callbacks do not leak expected OS errors; execution, termination confirmation and pipe drain have bounded completion. Exercise held child pipes, denied kill, timeout/cancel races. This is distinct from Launcher protocols; retain the existing bounded Launcher inventory/remediation outcome. |
+| `1.2.1` | **Window lifetime and recovery**: F01 + F25 (one L lifecycle change), F02 (M), F24 shared-fact preservation (M); 7 units. | Close → failed handoff → settings/history save → second Close works. READY cancellation is contained; active run/inspection/modal work drains before final disposal, and stale callbacks cannot publish. Preserve DPCMI and Perfect-family consumers through the existing Family/Profile milestone. |
+| `1.2.2` | **UI I/O and Report persistence**: F20 (L), F21 (M), F26 (S), F24 retirement verification (S); 7 units. | Picker/open/write/flush/dispose failures produce visible failure, never false success; fixed Report snapshot commits before success notification. Oversized JSON integer retains the Python safety limit and returns the worker's structured error. DP retirement follows preserved shared facts, including surviving routes and old Report readability. |
+| `1.2.3` | **Request identity and controlled entry**: F04 (L), F05 (L), F17 (M); 8 units. | Cancel/reopen across picker awaits cannot apply an old request; slow earlier Hex loads cannot replace a newer document. Missing/invalid Desktop arguments produce actionable errors before host construction. Reuse this evidence for the existing CLI/Desktop automation milestone. |
+| `1.2.4` | **Committed-output and persistence outcomes**: F07 (L), F08 (L); 6 units. | Cancellation after primary commit retains its receipt and reports incomplete loose delivery; do not conflate atomic bundle behavior. Settings/history persistence failures are visible/retryable without blocking firmware Build. Combine with the existing page-flow acceptance, not a new state store. |
+| `1.2.5` | **Typed results and language projection**: F09 (L), F10 (M), F12 naming requirement (M); 7 units. | Re-language completed/blocked/partial outcomes from typed state. General rows retain identity/drafts/mappings. Use Customized / Customized Merge / Customized Replace for relevant visible labels, CLI help and new Report labels; retain canonical IDs, command compatibility and unrelated Settings General text. Preserve historical Report interpretation. |
+| `1.2.6` | **Shared presentation owners**: F11 (L), F13 (L); 6 units. | Semantic typography controls actual effective style, with explicit legitimate variants and DPI/theme checks. Converge the proven duplicate accepted-output helper through its existing owner; retain AB/extra-A-output/Replace naming contracts, not a giant base ViewModel. |
+| `1.2.7` | **Bounded intake and explicit diagnostics**: F22 (L), F23 (M), F16 (S); 6 units. | Enforce single-artifact and aggregate budgets before materialization, including cancellation. Distinguish primary/None/unknown workflow tokens. Derive capacity text from typed limits and remove obsolete retirement reasons without reopening DP support. Preserve the existing evidence-aware cleanup scope. |
+| `1.2.8` | **Measured notification/allocation improvements**: F14 (L), F15 (L); 6 units. | Measure notification/inspection/compile/measure counts before and after; publish accepted state once and avoid unnecessary focus scans. Remove only the redundant after-range copy with byte/diff/hash/Golden equivalence and measured allocation evidence. Do not promise a speedup or reopen deferred startup work without demonstrated value. |
+
+**F18 is required in every affected release**, included in those estimates,
+not a final catch-up milestone: controllable interleaving and failure tests
+must demonstrate each acceptance sequence. Source-string checks alone cannot
+close a behavior finding. Keep staging, runner, UI I/O and window lifetime
+policies with existing owners; no second execution engine or global store.
+Earlier A07 picker localization is included with F20/F09; A08 duplicate
+publication with F14; A12 acceptance-pattern convergence is limited to proven
+F13 duplication, not an additional speculative framework.
+
+The earlier owner deadline for scoped CtrlRAM AB support remains before
+`1.2.0` (`1.1.10` tentative); the source's suggestion to do all refactors first
+does not override that explicit instruction. Do not mix AB bank/CRC changes
+into these audit corrections. The source supplies no approved new bank map.
+
+Release boundary: scheduling a reported issue for `1.2.x` is not a waiver for
+a confirmed current P0/P1. Revalidate the high-priority claims against the
+`1.1.8` candidate before publication; report any surviving blocker under the
+existing release policy rather than treating successful CI as proof of safety.
+
 ### Immediate prerequisites for 1.1.6
 
 Use the [Desay intake](../ui/v1.1.x-custom-options-layout-handoff.md#desay-nt51950--nt51951-rule-intake--2026-09-14)
