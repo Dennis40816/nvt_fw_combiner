@@ -72,6 +72,16 @@ not a full-suite, independent-review, new-candidate Golden or publication pass.
 
 ### Original runtime candidate evidence
 
+F19 integration follow-up on 2026-09-18: CI run `35244925176` exposed two
+Architecture source-shape assertions still requiring the removed unconditional
+cleanup helper. Both failures reproduced locally (`staging-architecture-red.trx`).
+The assertions now require both adapters to acquire the shared disposable owner,
+reject direct/unowned deletion, and retain one-shot cleanup checks; they do not
+replace F19's existing behavioral sentinel/concurrency tests. The entire
+Architecture project passed **256/256**, zero skips, in
+`D:/NvtFwCombiner-TestArea/evidence/v118-f19/staging-architecture-green.trx`.
+No production code or expected firmware outputs changed in this follow-up.
+
 The original untagged candidate from main
 `c580476ff016e168d856ef798e0a80d0180210a0`, workflow `35086708535` attempt 2,
 opened successfully but failed NT51950/single CtrlRAM GUI Build with
