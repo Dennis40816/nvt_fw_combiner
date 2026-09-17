@@ -133,6 +133,18 @@ claims to revalidate against each implementation head, not fresh local tests
 or a certification that all current versions reproduce them. Linked report
 attachments have not been independently inspected.
 
+Owner amendment, 2026-09-18: bring **F19 only** forward into unpublished
+`1.1.8`. Implementation `8375dcb1` and final evidence `8d2f33dc` close the
+bounded staging correction locally (54 focused and 1127 Infrastructure tests;
+independent R1 review and capability validator pass), not release publication.
+Do not implement F19 again in `1.2.0`; retain its regression in the runner
+acceptance. The remaining four external P1 claims were reviewed together at
+that source: Report Save's F20 I/O boundary remains a P1 release blocker;
+F01/F02/F03 are conditional P2 findings, not proof of ordinary-use crashes.
+F20's separate picker-only gaps are also P2. Bringing the Report Save blocker
+forward requires the owner's next scope decision; it has not been silently
+implemented or waived. Existing future allocations remain pending that choice.
+
 Relative sizing includes implementation, fault-injection/contract tests and
 scoped review: S=1, M=2, L=3 units. Units are comparative estimates, not days
 or measured duration. Aim for 6–8 audit units per release; count shared owners
