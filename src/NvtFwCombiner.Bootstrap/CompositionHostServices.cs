@@ -27,6 +27,8 @@ public sealed partial class CompositionHostServices
     private readonly Func<FirmwareFamilyResolutionDefinition> _loadConfigurationFamily;
     private readonly string? _configurationPath;
     private Task<IEventBufferFormatConfigurationSession>? _configuration;
+    private readonly IToolchainRuntimeConfigurationSession? _toolchainConfiguration;
+    private Task<IToolchainRuntimeConfigurationSession>? _toolchainConfigurationLoad;
 
     private CompositionHostServices(
         CanonicalCapabilityCatalog catalog,
@@ -34,12 +36,15 @@ public sealed partial class CompositionHostServices
         CanonicalCapabilityExperience projection,
         ExternalProcessorEnvironmentLoader externalEnvironment,
         Func<FirmwareFamilyResolutionDefinition>? loadConfigurationFamily,
-        string? configurationPath)
+        string? configurationPath,
+        ILocalFileStore? localFiles = null,
+        IToolchainRuntimeConfigurationSession? toolchainConfiguration = null)
     {
         _loadConfigurationFamily = loadConfigurationFamily ??
             (() => (BuiltInV2RegistrationRegistry.FindAbMergeRegistration("NT51950", "nt51950-ab-merge-maps") ??
                 throw new InvalidDataException("The declared Event Buffer configuration family is unavailable.")).GetFirmwareFamily());
         _configurationPath = configurationPath;
+        _toolchainConfiguration = toolchainConfiguration;
         Catalog = catalog ?? throw new ArgumentNullException(nameof(catalog));
         Compiler = compiler;
         CompositionCapabilityExperience = projection;
@@ -99,7 +104,7 @@ public sealed partial class CompositionHostServices
               new SystemClock(),
               abMergeAuthoring);
         RawBinaryEditorFileSessions = new RawBinaryEditorFileSessionFactory();
-        LocalFiles = new LocalFileStore();
+        LocalFiles = localFiles ?? new LocalFileStore();
     }
 
     internal CanonicalCapabilityCatalog Catalog { get; }
@@ -133,14 +138,23 @@ public sealed partial class CompositionHostServices
     internal static CompositionHostServices Create(Func<CanonicalCapabilityPolicySnapshot> loadPolicy)
     {
         ArgumentNullException.ThrowIfNull(loadPolicy);
-        return Create(new(), loadPolicy);
+        var files = new LocalFileStore();
+        string path = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+            "NvtFwCombiner", "toolchain-runtime.v1.json");
+        var session = new ToolchainRuntimeConfigurationSession(
+            new ToolchainRuntimeConfigurationStorage(files, path),
+            new ToolchainRuntimeCandidateInspector(files, RuntimeTrustProbeProcess.CreateDefault()));
+        return Create(new ExternalProcessorEnvironmentLoader(session), loadPolicy,
+            localFiles: files, toolchainConfiguration: session);
     }
 
     internal static CompositionHostServices Create(
         ExternalProcessorEnvironmentLoader externalEnvironment,
         Func<CanonicalCapabilityPolicySnapshot>? loadPolicy,
         Func<FirmwareFamilyResolutionDefinition>? loadConfigurationFamily = null,
-        string? configurationPath = null)
+        string? configurationPath = null,
+        ILocalFileStore? localFiles = null,
+        IToolchainRuntimeConfigurationSession? toolchainConfiguration = null)
     {
         var catalog = new CanonicalCapabilityCatalog(
             CreateCanonicalCapabilityCatalogSource(loadPolicy));
@@ -153,7 +167,9 @@ public sealed partial class CompositionHostServices
             new CanonicalCapabilityExperience(catalog, catalog),
             externalEnvironment,
             loadConfigurationFamily,
-            configurationPath);
+            configurationPath,
+            localFiles,
+            toolchainConfiguration);
     }
 
     /// <summary>

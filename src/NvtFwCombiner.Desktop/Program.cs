@@ -89,7 +89,8 @@ internal static class Program
                 managedRoot,
                 statePath,
                 bootstrapIdentity),
-            host.GetEventBufferFormatConfigurationAsync);
+            host.GetEventBufferFormatConfigurationAsync,
+            host.GetToolchainRuntimeConfigurationAsync);
     }
 
     private static (

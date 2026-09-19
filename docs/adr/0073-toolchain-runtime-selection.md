@@ -52,9 +52,14 @@ Windows candidate verification follows the separately reviewed
 [Toolchain runtime trust probe v1](../contracts/toolchain-runtime-probe-v1.md):
 an internal trusted-host child verifies strict WinTrust signer evidence while
 bounded PE inspection compares the selected DLL against the manifest-pinned
-Combiner imports without loading candidate code. Isolated deployment and
-processor consumption still require separate admission before integration.
-This configuration decision does not relax the
+Combiner imports without loading candidate code. Processor consumption uses a
+generation-bound external environment. User mode re-reads and re-hashes both
+the manifest-pinned executable and selected runtime, copies them into a private
+per-run deployment directory, and executes that copy without changing firmware
+working-directory or `PATH`. Bundled mode retains the approved package layout.
+A new configuration generation invalidates old Build admission immediately;
+a Build already holding an immutable environment lease may finish. This
+configuration decision does not relax the
 manifest, processor, firmware, Golden or release contracts. A session tested
 only against an inspector fake is not a completed Toolchain feature.
 

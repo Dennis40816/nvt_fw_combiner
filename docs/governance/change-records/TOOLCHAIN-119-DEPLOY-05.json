@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 2,
+  "taskId": "TOOLCHAIN-119-DEPLOY-05",
+  "capability": "Generation-bound selected runtime deployment for dependent external processors",
+  "integrationBase": "017c679d67a3794b74487dbfccc5202a8b748b4d",
+  "risk": "R3",
+  "kind": "behavior",
+  "state": "design-active",
+  "mutablePaths": [
+    "src/NvtFwCombiner.Infrastructure/ExternalTools/ExternalProcessorEnvironmentLoader.cs",
+    "src/NvtFwCombiner.Infrastructure/ExternalTools/ExternalProcessorRuntimeDependencyInspector.cs",
+    "src/NvtFwCombiner.Infrastructure/ExternalTools/ExternalRuntimeDeployment.cs",
+    "src/NvtFwCombiner.Infrastructure/ExternalTools/ExternalCombinerProcessor.cs",
+    "src/NvtFwCombiner.Infrastructure/ExternalTools/LegacyCombinerPostbuildProcessor.cs",
+    "src/NvtFwCombiner.Bootstrap/CompositionHostServices.cs",
+    "src/NvtFwCombiner.Bootstrap/CompositionHostServices.Toolchain.cs",
+    "src/NvtFwCombiner.Desktop/Program.cs",
+    "tests/NvtFwCombiner.Infrastructure.Tests/ExternalTools/ExternalRuntimeDeploymentTests.cs",
+    "tests/NvtFwCombiner.Infrastructure.Tests/ExternalTools/ExternalProcessorEnvironmentLoaderTests.cs",
+    "tests/NvtFwCombiner.Infrastructure.Tests/ExternalTools/ExternalProcessorRuntimeDependencyInspectorTests.cs",
+    "tests/NvtFwCombiner.Bootstrap.Tests/ToolchainConfigurationHostTests.cs",
+    "docs/adr/0073-toolchain-runtime-selection.md"
+  ],
+  "implementationOwner": "root",
+  "searchEvidence": [
+    "ExternalProcessorEnvironmentLoader is the existing atomic generation owner and processor construction root.",
+    "ExternalCombinerProcessor and LegacyCombinerPostbuildProcessor are the only production consumers of the approved legacy Combiner executable.",
+    "Application Toolchain session already publishes immutable generations; no second public lease type is needed."
+  ],
+  "semanticOwner": "Application selection generation plus Infrastructure external environment and private deployment lease",
+  "terminalContract": "Only dependent workflows use an exact selected runtime deployed beside a still-pinned executable; configuration publication invalidates old admissions without silent fallback",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "name_validation_design",
+    "outcome": "approved",
+    "evidence": "Reuse the existing long generation and external environment lease. Capture one session snapshot, compare again before publication and in AcquireCurrent/IsCurrent, preserve independent no-dependency branches, and deploy exact verified EXE plus exact selected DLL in a private per-run directory without PATH changes. Both processors share the deployment owner; failures call no runner."
+  },
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": { "reviewer": null, "outcome": "pending", "evidence": "" }
+}
