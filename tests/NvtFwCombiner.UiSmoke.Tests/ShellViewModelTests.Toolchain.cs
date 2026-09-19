@@ -123,9 +123,12 @@ public sealed class ToolchainSettingsTests
 
         await vm.Settings.DetectToolchainCommand.ExecuteAsync(null);
         vm.Settings.SelectToolchainCandidateCommand.Execute(session.Verified);
+        vm.Merge.PropertyChanged += static (_, _) =>
+            throw new InvalidOperationException("merge observer failed");
         await vm.Settings.SaveToolchainCommand.ExecuteAsync(null);
 
         Assert.Equal(2, loadCount);
+        Assert.Equal(1, session.SaveCount);
         Assert.Equal(2, session.Current.Generation);
         Assert.NotEqual(0, loader.AcquireCurrent().Generation);
         Assert.Empty(vm.Settings.ToolchainOperationStatus);
