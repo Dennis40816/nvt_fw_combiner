@@ -1,0 +1,40 @@
+{
+  "schemaVersion": 2,
+  "taskId": "TOOLCHAIN-119-CONFIG-02",
+  "capability": "Transactional Toolchain runtime selection and immutable configuration publication",
+  "integrationBase": "017c679d67a3794b74487dbfccc5202a8b748b4d",
+  "risk": "R2",
+  "kind": "behavior",
+  "state": "design-active",
+  "mutablePaths": [
+    "src/NvtFwCombiner.Application/Configuration/ToolchainRuntimeConfiguration.cs",
+    "src/NvtFwCombiner.Application/Configuration/IToolchainRuntimeConfigurationSession.cs",
+    "src/NvtFwCombiner.Application/Configuration/ToolchainRuntimeConfigurationSession.cs",
+    "src/NvtFwCombiner.Application/Ports/IToolchainRuntimeConfigurationStorage.cs",
+    "src/NvtFwCombiner.Application/Ports/IToolchainRuntimeCandidateInspector.cs",
+    "src/NvtFwCombiner.Contracts/Configuration/ToolchainRuntimeConfigurationDocument.cs",
+    "src/NvtFwCombiner.Infrastructure/Configuration/ToolchainRuntimeConfigurationStorage.cs",
+    "tests/NvtFwCombiner.Application.Tests/Configuration/ToolchainRuntimeConfigurationSessionTests.cs",
+    "tests/NvtFwCombiner.Infrastructure.Tests/Configuration/ToolchainRuntimeConfigurationStorageTests.cs",
+    "docs/adr/0073-toolchain-runtime-selection.md",
+    "docs/adr/README.md"
+  ],
+  "implementationOwner": "root",
+  "searchEvidence": [
+    "CodeGraph located EventBufferFormatConfigurationSession as the existing Config transaction pattern and ExternalProcessorEnvironmentLoader as the generation/lease owner.",
+    "No existing runtime user-selection contract exists. Firmware-specific EventBuffer types cannot own executable runtime selection.",
+    "Reuse ILocalFileStore for bounded stable reads and atomic persistence; new narrow runtime contracts project evidence without UI filesystem or certificate policy."
+  ],
+  "semanticOwner": "Application ToolchainRuntimeConfigurationSession; Infrastructure implements stable configuration storage and candidate evidence ports",
+  "terminalContract": "Save and Reload publish immutable generations from a fully verified exact User identity or explicit blocked state; missing configuration selects bundled, invalid or changed selection never silently falls back",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "name_validation_design",
+    "outcome": "approved",
+    "evidence": "Independent R2 architecture admission approved exact configuration/session/storage paths and inward contracts. User Save/Reload must require explicit complete Verified candidate result and exact accepted hash. Preserve requested User identity even when admitted selection is null. Atomic persistence success publishes despite later cancellation; observer failures cannot roll back a committed result. Detect is read-only bounded and never selects. Subsequent pre-commit admission also approves InspectBundledAsync delegation on the same ports/session and test doubles: observed metadata is Unknown, never Verified/Ready; missing/read errors stay visible. Trust/deployment and host/readiness consumption require their own admission before feature closure."
+  },
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": { "reviewer": null, "outcome": "pending", "evidence": "" }
+}
