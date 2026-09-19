@@ -131,6 +131,105 @@ public sealed class ToolchainSettingsTests
         Assert.Empty(vm.Settings.ToolchainOperationStatus);
     }
 
+    /// <summary>A superseding explicit refresh owns the terminal Save readiness result without a third load.</summary>
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task SaveWaitsForSupersedingExplicitEnvironmentRefresh(bool newerRefreshFails)
+    {
+        var session = new ToolchainUiSession();
+        var saveEntered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var explicitEntered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var releaseExplicit = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        int loadCount = 0;
+        var loader = new ExternalProcessorEnvironmentLoader(
+            async (_, cancellationToken) =>
+            {
+                int attempt = Interlocked.Increment(ref loadCount);
+                if (attempt == 2)
+                {
+                    saveEntered.SetResult();
+                    await Task.Delay(Timeout.InfiniteTimeSpan, cancellationToken);
+                }
+                if (attempt == 3)
+                {
+                    explicitEntered.SetResult();
+                    await releaseExplicit.Task.WaitAsync(cancellationToken);
+                    if (newerRefreshFails)
+                    {
+                        throw new InvalidDataException("newer refresh failed");
+                    }
+                }
+                return new(
+                    null,
+                    new EmptyReadiness(),
+                    0,
+                    null,
+                    session.Current.Generation);
+            },
+            session);
+        Assert.True((await ReadEnvironmentAsync(loader)).Succeeded);
+        MainWindowViewModel vm = CreateToolchainViewModel(session, externalEnvironmentLoader: loader);
+        vm.Settings.SelectSectionCommand.Execute(SettingsSection.Toolchain);
+        await vm.Settings.ToolchainLoadTask;
+        await vm.Settings.DetectToolchainCommand.ExecuteAsync(null);
+        vm.Settings.SelectToolchainCandidateCommand.Execute(session.Verified);
+
+        Task save = vm.Settings.SaveToolchainCommand.ExecuteAsync(null);
+        await saveEntered.Task.WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
+        Task refresh = vm.MessageCenter.RefreshCommand.ExecuteAsync(null);
+        await explicitEntered.Task.WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
+        Assert.False(save.IsCompleted);
+
+        releaseExplicit.SetResult();
+        await Task.WhenAll(save, refresh);
+
+        Assert.Equal(3, loadCount);
+        if (newerRefreshFails)
+        {
+            Assert.Equal(vm.Text.ToolchainRefreshFailedLabel, vm.Settings.ToolchainOperationStatus);
+            Assert.Equal(ExternalProcessorEnvironmentState.Unavailable, loader.Current.State);
+        }
+        else
+        {
+            Assert.Empty(vm.Settings.ToolchainOperationStatus);
+            Assert.Equal(ExternalProcessorEnvironmentState.Current, loader.Current.State);
+        }
+    }
+
+    /// <summary>A lone stale candidate cannot adopt the prior generation or trigger a hidden retry.</summary>
+    [Fact]
+    public async Task SaveRejectsSupersededReloadWithoutNewerPublication()
+    {
+        var session = new ToolchainUiSession();
+        int loadCount = 0;
+        var loader = new ExternalProcessorEnvironmentLoader(
+            (_, cancellationToken) =>
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                loadCount++;
+                return ValueTask.FromResult(new ExternalProcessorRuntimeEnvironment(
+                    null,
+                    new EmptyReadiness(),
+                    0,
+                    null,
+                    ToolchainGeneration: 1));
+            },
+            session);
+        Assert.True((await ReadEnvironmentAsync(loader)).Succeeded);
+        MainWindowViewModel vm = CreateToolchainViewModel(session, externalEnvironmentLoader: loader);
+        vm.Settings.SelectSectionCommand.Execute(SettingsSection.Toolchain);
+        await vm.Settings.ToolchainLoadTask;
+        await vm.Settings.DetectToolchainCommand.ExecuteAsync(null);
+        vm.Settings.SelectToolchainCandidateCommand.Execute(session.Verified);
+
+        await vm.Settings.SaveToolchainCommand.ExecuteAsync(null);
+
+        Assert.Equal(2, loadCount);
+        Assert.Equal(vm.Text.ToolchainRefreshFailedLabel, vm.Settings.ToolchainOperationStatus);
+        Assert.Equal(ExternalProcessorEnvironmentState.NotLoaded, loader.Current.State);
+    }
+
     /// <summary>An invalid user choice stays visible and cannot silently select Bundled.</summary>
     [Fact]
     public async Task RejectedPathRemainsSelectedAndCannotSaveOrFallBack()
