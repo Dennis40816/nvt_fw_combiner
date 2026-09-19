@@ -27,9 +27,7 @@ public sealed partial class RepositoryBoundaryTests
         string[] broadHostHandlers =
         [
             .. Directory.GetFiles(cliDirectory, "*.cs", SearchOption.TopDirectoryOnly)
-                .Where(path => !StringComparer.Ordinal.Equals(
-                    Path.GetFileName(path),
-                    "CliApplication.cs"))
+                .Where(path => Path.GetFileName(path) is not ("CliApplication.cs" or "Program.cs"))
                 .Where(path => File.ReadAllText(path).Contains(
                     "CompositionHostServices",
                     StringComparison.Ordinal))

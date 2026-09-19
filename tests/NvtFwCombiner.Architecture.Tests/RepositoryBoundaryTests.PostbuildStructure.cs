@@ -172,7 +172,8 @@ public sealed partial class RepositoryBoundaryTests
     {
         string loader = ReadText(
             "src/NvtFwCombiner.Infrastructure/ExternalTools/ExternalProcessorEnvironmentLoader.cs");
-        string host = ReadText("src/NvtFwCombiner.Bootstrap/CompositionHostServices.cs");
+        string host = ReadText("src/NvtFwCombiner.Bootstrap/CompositionHostServices.cs") +
+            ReadText("src/NvtFwCombiner.Bootstrap/CompositionHostServices.Toolchain.cs");
         string cli = ReadText("src/NvtFwCombiner.Cli/CliApplication.cs");
         string ctrlRam = ReadText(
             "src/NvtFwCombiner.Application/Composition/CompositionExecutionExperience.cs");
@@ -183,7 +184,7 @@ public sealed partial class RepositoryBoundaryTests
         Assert.False(File.Exists(Path.Combine(
             Root.FullName,
             "src/NvtFwCombiner.Bootstrap/RuntimeDependencyReadinessLeaseProvider.cs")));
-        Assert.Equal(1, CountOccurrences(host, "Create(new(), loadPolicy)"));
+        Assert.Equal(1, CountOccurrences(host, "new ExternalProcessorEnvironmentLoader(session)"));
         Assert.Contains("Channel.CreateBounded<ExternalProcessorEnvironmentLoadUpdate>", loader,
             StringComparison.Ordinal);
         Assert.Contains("MaximumDepth = 16", loader, StringComparison.Ordinal);

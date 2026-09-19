@@ -24,7 +24,8 @@ public sealed partial class RepositoryBoundaryTests
     public void CanonicalCapabilityCatalogIsInjectedWithoutAStaticBootstrapLocator()
     {
         string wiring = ReadText(
-            "src/NvtFwCombiner.Bootstrap/CompositionHostServices.cs");
+            "src/NvtFwCombiner.Bootstrap/CompositionHostServices.cs") +
+            ReadText("src/NvtFwCombiner.Bootstrap/CompositionHostServices.Toolchain.cs");
         string source = ReadText(
             "src/NvtFwCombiner.Application/Capabilities/CanonicalCapabilityCatalogSource.cs");
         string catalog = ReadText(
@@ -33,7 +34,7 @@ public sealed partial class RepositoryBoundaryTests
             "src/NvtFwCombiner.Application/Capabilities/ICanonicalCapabilityCatalogReloader.cs");
         string bootstrap = ReadProductionSources();
 
-        Assert.Contains("public sealed class CompositionHostServices", wiring, StringComparison.Ordinal);
+        Assert.Contains("public sealed partial class CompositionHostServices", wiring, StringComparison.Ordinal);
         Assert.Contains("public static CompositionHostServices Create()", wiring, StringComparison.Ordinal);
         Assert.Contains("ICanonicalCapabilityCatalogReloader", catalog, StringComparison.Ordinal);
         Assert.Contains("ICanonicalCapabilityCatalogLoader", catalog, StringComparison.Ordinal);
