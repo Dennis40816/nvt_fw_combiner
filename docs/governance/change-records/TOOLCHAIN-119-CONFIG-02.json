@@ -5,7 +5,7 @@
   "integrationBase": "017c679d67a3794b74487dbfccc5202a8b748b4d",
   "risk": "R2",
   "kind": "behavior",
-  "state": "design-active",
+  "state": "final-complete",
   "mutablePaths": [
     "src/NvtFwCombiner.Application/Configuration/ToolchainRuntimeConfiguration.cs",
     "src/NvtFwCombiner.Application/Configuration/IToolchainRuntimeConfigurationSession.cs",
@@ -33,8 +33,22 @@
     "outcome": "approved",
     "evidence": "Independent R2 architecture admission approved exact configuration/session/storage paths and inward contracts. User Save/Reload must require explicit complete Verified candidate result and exact accepted hash. Preserve requested User identity even when admitted selection is null. Atomic persistence success publishes despite later cancellation; observer failures cannot roll back a committed result. Detect is read-only bounded and never selects. Subsequent pre-commit admission also approves InspectBundledAsync delegation on the same ports/session and test doubles: observed metadata is Unknown, never Verified/Ready; missing/read errors stay visible. Trust/deployment and host/readiness consumption require their own admission before feature closure."
   },
-  "implementationHead": null,
-  "reviewedHead": null,
-  "pathStateDigest": null,
-  "finalReview": { "reviewer": null, "outcome": "pending", "evidence": "" }
+  "implementationHead": "d7545ca7129454eed779f4fe8d8e3034349937a2",
+  "reviewedHead": "d7545ca7129454eed779f4fe8d8e3034349937a2",
+  "pathStateDigest": "0b79d8425405cabcc100bc898db379f5a91abed1c5a3d8354c6e060f95a368f3",
+  "integrationPaths": [
+    "docs/adr/README.md",
+    "src/NvtFwCombiner.Application/Configuration/IToolchainRuntimeConfigurationSession.cs",
+    "src/NvtFwCombiner.Application/Configuration/ToolchainRuntimeConfiguration.cs",
+    "src/NvtFwCombiner.Application/Configuration/ToolchainRuntimeConfigurationSession.cs",
+    "src/NvtFwCombiner.Application/Ports/IToolchainRuntimeCandidateInspector.cs",
+    "src/NvtFwCombiner.Application/Ports/IToolchainRuntimeConfigurationStorage.cs",
+    "src/NvtFwCombiner.Contracts/Configuration/ToolchainRuntimeConfigurationDocument.cs",
+    "src/NvtFwCombiner.Infrastructure/Configuration/ToolchainRuntimeConfigurationStorage.cs"
+  ],
+  "finalReview": {
+    "reviewer": "name_validation_design",
+    "outcome": "approved",
+    "evidence": "Independent exact-head review approved d7545ca7129454eed779f4fe8d8e3034349937a2 with no P0-P3. Transactional save/reload, immutable generations, explicit blocked user selection and no silent fallback were traced through Application and storage. Focused configuration evidence passed 24/24; release gates remain separate."
+  }
 }

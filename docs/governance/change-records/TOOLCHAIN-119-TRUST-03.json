@@ -5,7 +5,7 @@
   "integrationBase": "017c679d67a3794b74487dbfccc5202a8b748b4d",
   "risk": "R3",
   "kind": "behavior",
-  "state": "design-active",
+  "state": "final-complete",
   "mutablePaths": [
     "src/NvtFwCombiner.Infrastructure/ExternalTools/RuntimeCandidateDependencyInspector.cs",
     "src/NvtFwCombiner.Infrastructure/ExternalTools/WindowsRuntimeTrustProbe.cs",
@@ -39,8 +39,21 @@
     "outcome": "approved",
     "evidence": "Independent R3 architecture admission approved isolated same-host internal probe, 30-second bound and actual exit evidence, working directory outside candidate/user-DLL directories, strict correlated versioned JSON, pinned snapshot hash and actual WinTrust signer state. Require WinVerifyTrust success with whole-chain/excluding-root revocation and no ignore/cache-only flags, ASN.1 Microsoft Organization, StateClose, and accurate cache semantics. Import names/ordinals come only from verified Combiner snapshots; reject missing/zero/out-of-bounds required exports or required forwarders with finite byte/string/table bounds. Loader change only reuses discovery metadata in this slice. Config-generation/deployment wiring and full Toolchain completion remain separate; firmware and release external gates are retained."
   },
-  "implementationHead": null,
-  "reviewedHead": null,
-  "pathStateDigest": null,
-  "finalReview": { "reviewer": null, "outcome": "pending", "evidence": "" }
+  "implementationHead": "d7545ca7129454eed779f4fe8d8e3034349937a2",
+  "reviewedHead": "d7545ca7129454eed779f4fe8d8e3034349937a2",
+  "pathStateDigest": "29ea4fae8cb96d584c72f7d7235011261745b627b2fbf54fc9af51756841541e",
+  "integrationPaths": [
+    "docs/adr/0006-external-combiner-tool-runner.md",
+    "docs/contracts/toolchain-runtime-probe-v1.md",
+    "src/NvtFwCombiner.Cli/Program.cs",
+    "src/NvtFwCombiner.Infrastructure/ExternalTools/RuntimeCandidateDependencyInspector.cs",
+    "src/NvtFwCombiner.Infrastructure/ExternalTools/RuntimeTrustProbeProcess.cs",
+    "src/NvtFwCombiner.Infrastructure/ExternalTools/ToolchainRuntimeCandidateInspector.cs",
+    "src/NvtFwCombiner.Infrastructure/ExternalTools/WindowsRuntimeTrustProbe.cs"
+  ],
+  "finalReview": {
+    "reviewer": "name_validation_design",
+    "outcome": "approved",
+    "evidence": "Independent exact-head review approved d7545ca7129454eed779f4fe8d8e3034349937a2 with no P0-P3. Strict correlated child probing, Microsoft WinTrust revocation policy, bounded PE import/export checks and exact hash identity fail closed. Probe terminal tests passed 9/9 and the actual self-child success protocol was observed; timeout/cancel/forced-exit native observation, ETW identity and clean-machine evidence remain external gates."
+  }
 }

@@ -5,7 +5,7 @@
   "integrationBase": "017c679d67a3794b74487dbfccc5202a8b748b4d",
   "risk": "R2",
   "kind": "behavior",
-  "state": "design-active",
+  "state": "final-complete",
   "mutablePaths": [
     "src/NvtFwCombiner.Application/Composition/CompositionOutputBundleIntent.cs",
     "src/NvtFwCombiner.Infrastructure/Files/CompositionOutputBundlePlatform.cs",
@@ -27,8 +27,18 @@
     "outcome": "approved",
     "evidence": "Independent architecture admission approved public immutable AdditionalDelivery projection and shared allocation, exact order/case-insensitive reservations/suffix strategy; retain 255/259 limits, source identity, A-only eligibility and firmware semantics. Required cases cover cross-role collisions, suffix growth, aliases, boundary acceptance and mutation-free preview."
   },
-  "implementationHead": null,
-  "reviewedHead": null,
-  "pathStateDigest": null,
-  "finalReview": { "reviewer": null, "outcome": "pending", "evidence": "" }
+  "implementationHead": "d7545ca7129454eed779f4fe8d8e3034349937a2",
+  "reviewedHead": "d7545ca7129454eed779f4fe8d8e3034349937a2",
+  "pathStateDigest": "195e230f914ccaf43b525d3fec258282f3fa49bfe896cd7b1e6edb4cadeff6ff",
+  "integrationPaths": [
+    "docs/adr/0050-atomic-output-bundle-delivery.md",
+    "src/NvtFwCombiner.Application/Composition/CompositionOutputBundleIntent.cs",
+    "src/NvtFwCombiner.Infrastructure/Files/AtomicBundleCompositionOutputWriter.cs",
+    "src/NvtFwCombiner.Infrastructure/Files/CompositionOutputBundlePlatform.cs"
+  ],
+  "finalReview": {
+    "reviewer": "name_validation_design",
+    "outcome": "approved",
+    "evidence": "Independent exact-head review approved d7545ca7129454eed779f4fe8d8e3034349937a2 with no P0-P3. Preview and commit share the same ordered allocation and boundary validation while retaining race rechecks and existing 255/259 limits. Scoped Application, Infrastructure and Bootstrap evidence passed; this does not replace release or package gates."
+  }
 }
