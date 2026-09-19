@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 2,
+  "taskId": "TOOLCHAIN-119-OBSERVER-09",
+  "capability": "Isolate AB Merge readiness presentation observers after Toolchain publication",
+  "integrationBase": "fc99fadba0737b578e5d2f6bde480110b4ddfd4f",
+  "risk": "R1",
+  "kind": "behavior",
+  "state": "design-active",
+  "mutablePaths": [
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MergePresentationViewModel.AbMergeAuthoring.cs",
+    "tests/NvtFwCombiner.UiSmoke.Tests/ShellViewModelTests.Toolchain.cs"
+  ],
+  "implementationOwner": "root",
+  "searchEvidence": [
+    "PR 442 review identified that RefreshAbMergeActionReadinessAsync publishes committed readiness through an unguarded RefreshCommandState call.",
+    "CodeGraph confirmed the readiness query and state assignment precede command/property notifications, and PresentationObserver is the existing owner for isolating committed Presentation sinks.",
+    "Replace and shell notification paths already isolate committed Presentation observers rather than converting subscriber faults into upstream operation failure."
+  ],
+  "semanticOwner": "MergePresentationViewModel AB Merge readiness projection and PresentationObserver notification boundary",
+  "terminalContract": "AB Merge readiness query and state publication retain typed failures, while command/property subscribers cannot turn a successfully committed Toolchain and external environment publication into a failed Settings result",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": null,
+    "outcome": "not-required",
+    "evidence": "R1 bounded Presentation correction at the latest final evidence checkpoint fc99fadb; intervening CI retry commits change no files. An advisory review confirmed that only committed notification sinks belong inside the existing PresentationObserver boundary."
+  },
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": {
+    "reviewer": null,
+    "outcome": "pending",
+    "evidence": ""
+  }
+}
