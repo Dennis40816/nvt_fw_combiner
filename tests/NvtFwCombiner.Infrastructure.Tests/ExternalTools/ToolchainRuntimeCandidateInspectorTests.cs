@@ -2,7 +2,6 @@ using System.Text.Json;
 using NvtFwCombiner.Application.Configuration;
 using NvtFwCombiner.Infrastructure.ExternalTools;
 using NvtFwCombiner.Infrastructure.Files;
-using NvtFwCombiner.TestSupport;
 
 namespace NvtFwCombiner.Infrastructure.Tests.ExternalTools;
 
@@ -146,26 +145,8 @@ public sealed class ToolchainRuntimeCandidateInspectorTests
         IExternalProcessRunner runner,
         IReadOnlyList<string>? imports = null)
     {
-        EnsureExternalToolsProjection();
         return new ToolchainRuntimeCandidateInspector(
             new LocalFileStore(),
             new RuntimeTrustProbeProcess(runner, TrustedHostPath(), imports ?? []));
-    }
-
-    private static void EnsureExternalToolsProjection()
-    {
-        string destinationRoot = Path.Combine(AppContext.BaseDirectory, "external-tools");
-        if (Directory.Exists(destinationRoot))
-        {
-            return;
-        }
-
-        string sourceRoot = RepositoryPaths.FromRepositoryRoot("external-tools");
-        foreach (string sourcePath in Directory.EnumerateFiles(sourceRoot, "*", SearchOption.AllDirectories))
-        {
-            string destinationPath = Path.Combine(destinationRoot, Path.GetRelativePath(sourceRoot, sourcePath));
-            _ = Directory.CreateDirectory(Path.GetDirectoryName(destinationPath)!);
-            File.Copy(sourcePath, destinationPath, overwrite: true);
-        }
     }
 }
