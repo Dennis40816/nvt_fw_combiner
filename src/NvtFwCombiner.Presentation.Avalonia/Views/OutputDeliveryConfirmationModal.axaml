@@ -36,13 +36,20 @@
                 <TextBox x:Name="OutputFileNameInput" Grid.Row="1" VerticalAlignment="Center" Classes="buildSettingInput outputNameInput editable"
                          AutomationProperties.Name="{Binding Text.OutputDeliveryOutputLabel}"
                          IsVisible="{Binding IsOutputFileNameEditing}" Text="{Binding OutputFileName, Mode=OneWay}"
-                         TextChanged="OutputFileNameInput_OnTextChanged" />
+                         TextChanged="OutputFileNameInput_OnTextChanged" KeyDown="OutputFileNameInput_OnKeyDown" />
                 <Button x:Name="EditOutputFileNameButton" Grid.Row="1" Grid.Column="1" VerticalAlignment="Center" Classes="semanticAction inlineEdit outputNameEdit"
                         AutomationProperties.Name="{Binding Text.OutputDeliveryEditOutputNameLabel}"
                         Click="EditOutputFileNameButton_OnClick" IsEnabled="{Binding CanEditOutputFileName}"
+                        IsVisible="{Binding !IsOutputFileNameEditing}"
                         ToolTip.Tip="{Binding Text.OutputDeliveryEditOutputNameLabel}">
                   <Path Width="16" Height="16" Data="{StaticResource NfcEditIconGeometry}"
                         Fill="Transparent" StrokeThickness="1.5" Stretch="Uniform" />
+                </Button>
+                <Button x:Name="CompleteOutputFileNameEditButton" Grid.Row="1" Grid.Column="1" VerticalAlignment="Center"
+                        Classes="semanticAction inlineEdit outputNameEdit" IsVisible="{Binding IsOutputFileNameEditing}"
+                        AutomationProperties.Name="{Binding Text.OutputDeliveryDoneOutputNameLabel}"
+                        ToolTip.Tip="{Binding Text.OutputDeliveryDoneOutputNameLabel}" Click="CompleteOutputFileNameEditButton_OnClick">
+                  <Path Width="16" Height="16" Data="M2 8L6 12L14 3" Fill="Transparent" StrokeThickness="1.5" Stretch="Uniform" />
                 </Button>
                 <ToggleButton x:Name="SourcesDisclosureToggle" Grid.Row="2" Grid.ColumnSpan="2" MinHeight="24" Padding="0,2"
                               HorizontalAlignment="Left" VerticalAlignment="Center" HorizontalContentAlignment="Left" Classes="inlineDisclosure buildSettingsDisclosure"
@@ -236,7 +243,7 @@
                       <TextBox x:Name="FolderNameInput" Grid.Row="1" VerticalAlignment="Center" Classes="buildSettingInput editable"
                                AutomationProperties.Name="{Binding Text.OutputDeliveryFolderNameLabel}"
                                IsVisible="{Binding IsBundleDestinationEditing}"
-                               Text="{Binding BundleFolderName}" TextChanged="FolderNameInput_OnTextChanged" />
+                               Text="{Binding BundleFolderName}" TextChanged="FolderNameInput_OnTextChanged" KeyDown="FolderNameInput_OnKeyDown" />
                     <Button x:Name="EditBundleDestinationButton" Grid.Row="1" Grid.Column="1"
                             Classes="semanticAction inlineEdit outputNameEdit" VerticalAlignment="Center"
                             AutomationProperties.Name="{Binding Text.OutputDeliveryEditBundleDestinationLabel}"

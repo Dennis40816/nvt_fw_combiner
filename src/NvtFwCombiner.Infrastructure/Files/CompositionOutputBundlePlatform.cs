@@ -29,6 +29,12 @@ internal sealed class FileSystemCompositionArtifactIdentityPolicy :
 internal sealed class FileSystemCompositionOutputBundleDestinationValidator :
     ICompositionOutputBundleDestinationValidator
 {
+    public CompositionOutputBundleValidationIssue? ValidateName(string value)
+    {
+        string? code = AtomicBundlePathRules.GetWindowsNameIssueCode(value);
+        return code is null ? null : new(code, AtomicBundlePathRules.GetWindowsNameIssueMessage(code, "Name"));
+    }
+
     public CompositionOutputBundleDestinationValidation Validate(
         CompositionOutputBundleIntent intent)
     {
@@ -113,9 +119,7 @@ internal sealed class FileSystemCompositionOutputBundleDestinationValidator :
         {
             issues.Add(new CompositionOutputBundleValidationIssue(
                 issueCode,
-                issueCode == CompositionOutputBundleValidationIssueCodes.NameReserved
-                    ? $"{label} uses a reserved Windows device name."
-                    : $"{label} is not a valid plain Windows name."));
+                AtomicBundlePathRules.GetWindowsNameIssueMessage(issueCode, label)));
         }
     }
 
@@ -143,7 +147,16 @@ internal static class AtomicBundlePathRules
 
     internal static string? GetWindowsNameIssueCode(string value)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(value);
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return CompositionOutputBundleValidationIssueCodes.NameInvalid;
+        }
+
+        if (value.Length > 255)
+        {
+            return CompositionOutputBundleValidationIssueCodes.PathTooLong;
+        }
+
         bool isInvalid = value is "." or ".." ||
             value[^1] is ' ' or '.' ||
             value.Any(static character =>
@@ -156,6 +169,16 @@ internal static class AtomicBundlePathRules
                 : null;
     }
 
+    internal static string GetWindowsNameIssueMessage(string code, string label)
+    {
+        return code switch
+        {
+            CompositionOutputBundleValidationIssueCodes.NameReserved => $"{label} uses a reserved Windows device name.",
+            CompositionOutputBundleValidationIssueCodes.PathTooLong => $"{label} exceeds 255 UTF-16 code units (including any extension). Shorten the name.",
+            _ => $"{label} is not a valid plain Windows name.",
+        };
+    }
+
     internal static void EnsureWindowsName(
         string value,
         string description,
@@ -165,9 +188,7 @@ internal static class AtomicBundlePathRules
         if (issueCode is not null)
         {
             throw new ArgumentException(
-                issueCode == CompositionOutputBundleValidationIssueCodes.NameReserved
-                    ? $"{description} uses a reserved Windows device name."
-                    : $"{description} is not a valid plain Windows name.",
+                GetWindowsNameIssueMessage(issueCode, description),
                 parameterName);
         }
     }

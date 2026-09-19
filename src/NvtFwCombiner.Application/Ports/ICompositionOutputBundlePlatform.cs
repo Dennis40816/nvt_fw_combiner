@@ -18,6 +18,9 @@ public sealed record CompositionAcceptedArtifactIdentity(
 /// <summary>Platform validation of one prepared bundle destination.</summary>
 public interface ICompositionOutputBundleDestinationValidator
 {
+    /// <summary>Checks one filename or folder component without filesystem access; null means valid.</summary>
+    CompositionOutputBundleValidationIssue? ValidateName(string value);
+
     CompositionOutputBundleDestinationValidation Validate(
         CompositionOutputBundleIntent intent);
 }

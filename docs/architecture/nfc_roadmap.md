@@ -126,7 +126,7 @@ protected review/CI and candidate publication gates remain required.
 | `1.5.3` | **Full Launcher candidate acceptance**: clean Windows install/update/failure/recovery/rollback and end-to-end evidence across the integrated candidate. |
 | `2.0.0` | **Full Launcher release**. Actual Catalog/Registry production activation requires explicit owner GO and closed security/evidence/publication gates; the scheduled version is not approval to deploy. |
 
-### Shared audit allocation — 2026-09-17
+## Shared audit allocation — 2026-09-17
 
 Owner direction: distribute the [shared review](https://chatgpt.com/share/6aaa7f89-1a70-83e9-bcac-badc1fdface2)
 across `1.2.0`–`1.2.x` by difficulty and comparable work volume, then resume

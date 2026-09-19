@@ -65,6 +65,11 @@ public sealed partial class ShellNavigationSystemTests
 
     private sealed class HeldOutputPreparation(ICompositionOutputNaming inner) : ICompositionOutputNaming
     {
+        public CompositionOutputBundleValidationIssue? ValidateName(string value)
+        {
+            return inner.ValidateName(value);
+        }
+
         internal TaskCompletionSource<ActiveSessionSnapshot> Entered { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
         internal TaskCompletionSource Release { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
         public async ValueTask<CompositionOutputBundleProposal> PrepareBundleProposalAsync(ActiveSessionSnapshot session, CancellationToken cancellationToken, CtrlRamFirmwareVersionDraftState? edit = null)

@@ -139,6 +139,10 @@ internal sealed partial class ShellTextResources
 
     public string OutputDeliveryDoneEditingLabel { get; private init; } = string.Empty;
 
+    public string OutputDeliveryDoneOutputNameLabel { get; private init; } = string.Empty;
+
+    public string OutputDeliveryNameRestored { get; private init; } = string.Empty;
+
     public string OutputDeliveryConfirmLabel { get; private init; } = string.Empty;
 
     public string OutputDeliveryCancelLabel { get; private init; } = string.Empty;

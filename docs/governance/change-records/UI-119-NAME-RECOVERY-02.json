@@ -1,0 +1,45 @@
+{
+  "schemaVersion": 2,
+  "taskId": "UI-119-NAME-RECOVERY-02",
+  "capability": "Shared output name validation and independent accepted-name edit recovery",
+  "integrationBase": "354216636ee74393b47d7fbdfc61d82e8281c31b",
+  "risk": "R2",
+  "kind": "ui",
+  "state": "design-active",
+  "mutablePaths": [
+    "docs/adr/0050-atomic-output-bundle-delivery.md",
+    "src/NvtFwCombiner.Application/Composition/CompositionExperiencePorts.cs",
+    "src/NvtFwCombiner.Application/Composition/CompositionOutputNamingExperience.cs",
+    "src/NvtFwCombiner.Application/Ports/ICompositionOutputBundlePlatform.cs",
+    "src/NvtFwCombiner.Infrastructure/Files/CompositionOutputBundlePlatform.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/OutputDeliveryConfirmationViewModel.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/OutputDeliveryConfirmationViewModel.NameEditing.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ShellTextResources.Core.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ShellTextResources.Localized.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/Views/OutputDeliveryConfirmationModal.axaml",
+    "src/NvtFwCombiner.Presentation.Avalonia/Views/OutputDeliveryConfirmationModal.axaml.cs",
+    "tests/NvtFwCombiner.Infrastructure.Tests/Files/CompositionOutputBundlePlatformTests.cs",
+    "tests/NvtFwCombiner.Infrastructure.Tests/Files/AtomicBundleCompositionOutputWriterTests.cs",
+    "tests/NvtFwCombiner.UiSmoke.Tests/ShellViewModelTests.OutputDeliveryValidation.cs",
+    "tests/NvtFwCombiner.UiSmoke.Tests/ShellViewModelTests.OutputConfirmation.cs",
+    "tests/NvtFwCombiner.UiSmoke.Tests/ShellViewModelTests.OutputPreparationRefusal.cs"
+  ],
+  "implementationOwner": "root",
+  "searchEvidence": [
+    "CodeGraph explored OutputDeliveryConfirmationViewModel and accepted output naming on f155e10d.",
+    "Read ICompositionOutputNaming, CompositionOutputNamingExperience, ICompositionOutputBundleDestinationValidator, AtomicBundlePathRules, shared modal handlers and implementing test doubles.",
+    "Independent name_validation_design reviewed the exact existing ownership chain and additive port design before production edits."
+  ],
+  "semanticOwner": "AtomicBundlePathRules via existing platform destination validator and Application output-naming facade; Presentation owns edit snapshots only",
+  "terminalContract": "Typed name issue before picker, unchanged full-destination validation before Build; invalid edit restores only its last accepted value and never overrides blocking readiness",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "name_validation_design",
+    "outcome": "approved",
+    "evidence": "Read-only independent architecture review approved existing-port extension, blank/255 UTF-16 handling, independent snapshots, candidate plus other accepted field path check, current-draft revalidation, guarded loose execution and localized recovery without masking errors. No fake bundle for loose output or new rules owner. Previous local R1 footer correction f155e10d is included for current integration coverage, not retroactive design approval."
+  },
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": { "reviewer": null, "outcome": "pending", "evidence": "" }
+}

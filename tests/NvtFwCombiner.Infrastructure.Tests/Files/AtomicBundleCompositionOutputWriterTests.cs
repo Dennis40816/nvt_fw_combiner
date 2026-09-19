@@ -163,13 +163,25 @@ public sealed class AtomicBundleCompositionOutputWriterTests
     public void PreflightRejectsOverlongDestinationPath()
     {
         using TempWorkspace workspace = TempWorkspace.Create();
+        string folderName = new('a', 260 - workspace.Root.Length - 1);
+        Assert.InRange(folderName.Length, 1, 255);
         AtomicBundleCompositionOutputWriter writer = new(
             workspace.Root,
-            new string('a', 260),
+            folderName,
             []);
 
         _ = Assert.Throws<PathTooLongException>(() => writer.EnsureCanCommit("output.bin", null));
 
+        Assert.Empty(Directory.EnumerateFileSystemEntries(workspace.Root));
+    }
+
+    /// <summary>Oversized components are rejected before any staging or destination access.</summary>
+    [Fact]
+    public void ConstructorRejectsOverlongComponentBeforeMutation()
+    {
+        using TempWorkspace workspace = TempWorkspace.Create();
+        _ = Assert.Throws<ArgumentException>(() =>
+            new AtomicBundleCompositionOutputWriter(workspace.Root, new string('a', 256), []));
         Assert.Empty(Directory.EnumerateFileSystemEntries(workspace.Root));
     }
 
