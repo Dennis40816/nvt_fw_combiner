@@ -206,7 +206,7 @@ public sealed partial class XamlControlStyleContractTests
         string codeBehind = ReadPresentationFile("Views/HexEditorPanel.axaml.cs");
 
         Assert.Contains(
-            "<ScrollViewer Grid.Row=\"3\" Classes=\"contentScrollSurface\">",
+            "<ScrollViewer Grid.Row=\"3\" Classes=\"contentScrollSurface\" VerticalScrollBarVisibility=\"Visible\">",
             shell,
             StringComparison.Ordinal);
         Assert.True(

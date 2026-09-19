@@ -55,7 +55,7 @@ public sealed partial class XamlControlStyleContractTests
 
         Assert.Contains("RowDefinitions=\"Auto,Auto,Auto,*,Auto\"", shell, StringComparison.Ordinal);
         Assert.Contains(
-            "<ScrollViewer Grid.Row=\"3\" Classes=\"contentScrollSurface\">",
+            "<ScrollViewer Grid.Row=\"3\" Classes=\"contentScrollSurface\" VerticalScrollBarVisibility=\"Visible\">",
             shell,
             StringComparison.Ordinal);
         Assert.Contains("x:Name=\"CompositionBuildActionRail\"", shell, StringComparison.Ordinal);
