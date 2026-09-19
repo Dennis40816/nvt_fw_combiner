@@ -5,7 +5,7 @@
   "integrationBase": "bcff86aa95dea9485ea663d25665c6c1f9a1222d",
   "risk": "R2",
   "kind": "behavior",
-  "state": "design-active",
+  "state": "final-complete",
   "mutablePaths": [
     "src/NvtFwCombiner.Infrastructure/ExternalTools/ExternalProcessorEnvironmentLoader.cs",
     "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MessageCenterViewModel.cs",
@@ -26,12 +26,12 @@
     "outcome": "findings-incorporated",
     "evidence": "Approved stale-generation LKG rejection with findings incorporated: apply the same current-generation predicate to Failed, Superseded metadata, and cancellation restoration. Track the complete MessageCenter publication task rather than diagnostics alone; wait only a newer task, avoid self-await and third reload, require a newer settled Current result for success, and preserve visible failure or cancellation."
   },
-  "implementationHead": null,
-  "reviewedHead": null,
-  "pathStateDigest": null,
+  "implementationHead": "632e380332a6697d26378db29a78a1458d526589",
+  "reviewedHead": "632e380332a6697d26378db29a78a1458d526589",
+  "pathStateDigest": "5ee4749f9d0e5da7745c05db0d989f12e55ce7cf619673f469b142cfa7051991",
   "finalReview": {
-    "reviewer": null,
-    "outcome": "pending",
-    "evidence": ""
+    "reviewer": "name_validation_design",
+    "outcome": "findings-incorporated",
+    "evidence": "Fixed-head review passed at 632e380332a6697d26378db29a78a1458d526589 after moving explicit-refresh publication registration behind successful activity setup and immediately before the guarded load. The prior P2 is closed; no new P0, P1, or P2 findings. Focused UI race tests passed 4/4 and git diff --check passed."
   }
 }
