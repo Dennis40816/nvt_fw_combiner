@@ -405,8 +405,6 @@ internal sealed partial class MessageCenterViewModel : ObservableObject
 
     private async Task RefreshExplicitAsync(CancellationToken cancellationToken)
     {
-        TaskCompletionSource<ExternalProcessorEnvironmentLoadResult> publication =
-            BeginEnvironmentPublication();
         _systemInformation.RecordActivity(new SystemActivityDraft(
             SystemActivityCodes.DiagnosticsRefreshRequested,
             SystemActivityImportance.Debug,
@@ -415,6 +413,8 @@ internal sealed partial class MessageCenterViewModel : ObservableObject
         NotifyActivityChanged();
         PresentationObserver.Invoke(() => IsRefreshInProgress = true);
         PresentationObserver.Invoke(() => OnPropertyChanged(nameof(ExternalEnvironmentSummary)));
+        TaskCompletionSource<ExternalProcessorEnvironmentLoadResult> publication =
+            BeginEnvironmentPublication();
         try
         {
             ExternalProcessorEnvironmentLoadResult result =
