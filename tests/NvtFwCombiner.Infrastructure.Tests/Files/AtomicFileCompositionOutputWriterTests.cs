@@ -7,6 +7,59 @@ namespace NvtFwCombiner.Infrastructure.Tests.Files;
 /// <summary>Tests atomic output commitment under configured roots.</summary>
 public sealed class AtomicFileCompositionOutputWriterTests
 {
+    /// <summary>A legal maximum-length destination is not made illegal by its temporary filename.</summary>
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task CommitMaximumLengthFileNamePreservesBytesAndCleansStaging(bool overwrite)
+    {
+        using TempWorkspace workspace = TempWorkspace.Create();
+        string fileName = new string('a', 251) + ".bin";
+        string destination = Path.Combine(workspace.Root, fileName);
+        if (overwrite)
+        {
+            await File.WriteAllBytesAsync(destination, [9], TestContext.Current.CancellationToken);
+        }
+        AtomicFileCompositionOutputWriter writer = new(workspace.Root, overwrite);
+
+        CompositionOutputCommitReceipt receipt = await writer.CommitAsync(
+            fileName, new byte[] { 1, 2, 3 }, TestContext.Current.CancellationToken);
+
+        Assert.Equal(destination, receipt.OutputId);
+        Assert.Equal(fileName, receipt.OutputFileName);
+        Assert.Equal([1, 2, 3], await File.ReadAllBytesAsync(destination, TestContext.Current.CancellationToken));
+        Assert.Equal([destination], Directory.EnumerateFileSystemEntries(workspace.Root));
+    }
+
+    /// <summary>Cancellation and refusal preserve a long existing destination and remove temporary output.</summary>
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task FailedLongNameCommitPreservesExistingOutput(bool cancel)
+    {
+        using TempWorkspace workspace = TempWorkspace.Create();
+        string fileName = new string('a', 251) + ".bin";
+        string destination = Path.Combine(workspace.Root, fileName);
+        await File.WriteAllBytesAsync(destination, [9], TestContext.Current.CancellationToken);
+        AtomicFileCompositionOutputWriter writer = new(workspace.Root, overwrite: cancel);
+        using CancellationTokenSource cancellation = new();
+        if (cancel) { cancellation.Cancel(); }
+
+        if (cancel)
+        {
+            _ = await Assert.ThrowsAnyAsync<OperationCanceledException>(async () =>
+                await writer.CommitAsync(fileName, new byte[] { 1 }, cancellation.Token));
+        }
+        else
+        {
+            _ = await Assert.ThrowsAsync<IOException>(async () =>
+                await writer.CommitAsync(fileName, new byte[] { 1 }, cancellation.Token));
+        }
+
+        Assert.Equal([9], await File.ReadAllBytesAsync(destination, TestContext.Current.CancellationToken));
+        Assert.Equal([destination], Directory.EnumerateFileSystemEntries(workspace.Root));
+    }
+
     /// <summary>Verifies successful output is promoted into the configured directory.</summary>
     [Fact]
     public async Task CommitAsyncWritesOutputUnderConfiguredRoot()

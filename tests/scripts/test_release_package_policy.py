@@ -84,12 +84,18 @@ PERSONAL_OWNER_IDENTIFIER = "Dennis40816"
 DISTRIBUTION_OWNER = "MSP/FW3"
 SOURCE_IDENTITY = "urn:msp-fw3:nvt-fw-combiner:source"
 HISTORICAL_VERIFICATION_URLS = (
-    "https://github.com/Dennis40816/nvt_fw_combiner/releases/tag/v1.1.5",
-    "https://github.com/Dennis40816/nvt_fw_combiner/pull/429",
-    "https://github.com/Dennis40816/nvt_fw_combiner/actions/runs/34736501547",
-    "https://github.com/Dennis40816/nvt_fw_combiner/actions/runs/33974287659",
-    "https://github.com/Dennis40816/nvt_fw_combiner/pull/426#discussion_r3941065650",
     "https://github.com/Dennis40816/nvt_fw_combiner/releases/tag/v1.1.3",
+    "https://github.com/Dennis40816/nvt_fw_combiner/releases/tag/v1.1.5",
+    "https://github.com/Dennis40816/nvt_fw_combiner/releases/tag/v1.1.8",
+    "https://github.com/Dennis40816/nvt_fw_combiner/pull/426#discussion_r3941065650",
+    "https://github.com/Dennis40816/nvt_fw_combiner/pull/429",
+    "https://github.com/Dennis40816/nvt_fw_combiner/pull/433",
+    "https://github.com/Dennis40816/nvt_fw_combiner/pull/436#issuecomment-5741860870",
+    "https://github.com/Dennis40816/nvt_fw_combiner/pull/436#issuecomment-5741906320",
+    "https://github.com/Dennis40816/nvt_fw_combiner/actions/runs/33974287659",
+    "https://github.com/Dennis40816/nvt_fw_combiner/actions/runs/34736501547",
+    "https://github.com/Dennis40816/nvt_fw_combiner/actions/runs/35086708535",
+    "https://github.com/Dennis40816/nvt_fw_combiner/actions/runs/35441813386",
 )
 LEGACY_PACKAGE_BYTES = 80_000_000
 MAXIMUM_PACKAGE_BYTES = 134_217_728

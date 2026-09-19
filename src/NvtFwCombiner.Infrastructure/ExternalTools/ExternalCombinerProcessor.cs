@@ -14,6 +14,7 @@ public sealed partial class ExternalCombinerProcessor : IExternalProcessor
     private readonly ExternalCombinerToolResolver _toolResolver;
     private readonly string _stagingRoot;
     private readonly IExternalProcessRunner _processRunner;
+    private readonly ExternalRuntimeDeployment? _runtimeDeployment;
     private readonly Dictionary<string, ExternalCombinerInvocationProfile> _invocationsByProcessorId;
 
     /// <summary>Creates a staged external combiner processor.</summary>
@@ -23,6 +24,17 @@ public sealed partial class ExternalCombinerProcessor : IExternalProcessor
         string stagingRoot,
         IExternalProcessRunner processRunner,
         IEnumerable<ExternalCombinerInvocationProfile> invocationProfiles)
+        : this(registry, toolRoot, stagingRoot, processRunner, invocationProfiles, null)
+    {
+    }
+
+    internal ExternalCombinerProcessor(
+        ExternalCombinerToolRegistry registry,
+        string toolRoot,
+        string stagingRoot,
+        IExternalProcessRunner processRunner,
+        IEnumerable<ExternalCombinerInvocationProfile> invocationProfiles,
+        ExternalRuntimeDeployment? runtimeDeployment)
     {
         ArgumentNullException.ThrowIfNull(registry);
         ArgumentException.ThrowIfNullOrWhiteSpace(toolRoot);
@@ -33,6 +45,7 @@ public sealed partial class ExternalCombinerProcessor : IExternalProcessor
         _toolResolver = new ExternalCombinerToolResolver(registry, toolRoot);
         _stagingRoot = Path.GetFullPath(stagingRoot);
         _processRunner = processRunner;
+        _runtimeDeployment = runtimeDeployment;
         _invocationsByProcessorId = CreateInvocationIndex(invocationProfiles);
     }
 
@@ -54,6 +67,14 @@ public sealed partial class ExternalCombinerProcessor : IExternalProcessor
         }
 
         ExternalCombinerToolManifest resolvedManifest = manifest!;
+        using ExternalRuntimeDeploymentResult? deployment = _runtimeDeployment is null
+            ? null
+            : await _runtimeDeployment.PrepareAsync(executablePath!, resolvedManifest.Sha256, cancellationToken).ConfigureAwait(false);
+        if (deployment?.Issue is { } deploymentIssue)
+        {
+            return ExternalProcessorResult.Failed([deploymentIssue]);
+        }
+        string executionPath = deployment?.ExecutablePath ?? executablePath!;
 
         if (!TryResolveInvocation(request, resolvedManifest, out ExternalCombinerInvocationProfile invocation, out CompositionIssue? invocationIssue))
         {
@@ -90,7 +111,7 @@ public sealed partial class ExternalCombinerProcessor : IExternalProcessor
                 return ExternalProcessorResult.Failed([argumentIssue!]);
             }
             var startInfo = new ExternalProcessStartInfo(
-                executablePath!,
+                executionPath,
                 runDirectory,
                 arguments!,
                 TimeSpan.FromSeconds(resolvedManifest.TimeoutSeconds));

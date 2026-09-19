@@ -3,6 +3,16 @@
 Status: active owner roadmap; release-closure checkpoint 2026-09-01;
 subsequent owner allocation amendments are recorded below.
 
+Current evidence checkpoint, 2026-09-19: **`v1.1.8` is published** at
+`a2273c8798beb43b217b0ecfb9275af8fe4f9f96`; see the
+[release closure](../references/verification-report.md#118-published-release-closure--2026-09-19).
+Earlier candidate checkpoints below remain dated history, not open release
+gates. The latest planning input is `codex/1.1.9-intake` at `8344cb69`,
+which already allocates F01–F26 beyond the documents shipped in the release.
+The [post-release reconciliation](../ui/v1.1.x-custom-options-layout-handoff.md#post-118-audit-reconciliation--2026-09-19)
+maps the new AUD/HG reference to that existing schedule; it does not authorize
+runtime implementation, create a watcher, or replace the version sequence.
+
 ## Current release sequence — 2026-09-14
 
 The owner requests redistribution of unfinished work across `1.1.6` through
@@ -18,6 +28,24 @@ allocations, and tentatively add CtrlRAM Replace of AB Code Flash inputs for
 the NT51932 Perfect family and NT51950 Partial family in `1.1.10`.
 Finish `1.1.7` first. This schedules the feature; it does not establish bank
 write semantics, certify family support or waive existing release gates.
+
+Further owner intake, 2026-09-16: record the linked CtrlRAM/AB discussion
+during `1.1.9` and complete the scoped support **before `1.2.0`**. Retain
+`1.1.10` as the tentative implementation slot; the `1.1.9` intake is not a
+claim that support already exists. The
+[AB support handoff](../ui/v1.1.x-custom-options-layout-handoff.md#ctrlram-replace-ab-code-intake--2026-09-16)
+records the reference and unresolved contract/evidence boundaries. Also admit
+the reported silent long Bundle-folder/output-name failure to `1.1.9` ahead
+of optional Settings conveniences; see [issue #434](https://github.com/Dennis40816/nvt_fw_combiner/issues/434)
+and the [naming handoff](../ui/v1.1.x-bundle-primary-output-rename-handoff.md#119-long-name-validation-and-recovery-intake--2026-09-16).
+
+Additional owner intake, 2026-09-16: add **Settings > Config > Toolchain**
+in `1.1.9` to detect available user-installed VC++ Runtime candidates and let
+the user select a compatible runtime, including newer installed versions.
+The owner confirms the tool should also bundle the repo-approved runtime and
+use it by default; user-installed selection is an optional explicit override.
+See the [Toolchain handoff](../ui/v1.1.x-custom-options-layout-handoff.md#toolchain-runtime-intake--2026-09-16).
+This is a future feature allocation, not a change to the frozen `1.1.8` scope.
 
 1.1.7 checkpoint (2026-09-16): Information ordering/spacing, default-Off Details,
 Config-reapplied Event Buffer facts and the approved Build settings/C source
@@ -74,8 +102,8 @@ protected review/CI and candidate publication gates remain required.
 | `1.1.6` | **Urgent NT51950/NT51951 partial-family AB correction + editable Desay Settings**: auto-detect the approved Desay markers, Desay TP B at `0x4A000`, public NT51950 partial-family **2 IC** TP B at `0x8A000`; update all coupled offsets, processors and allowed writes. Add required FWConfig/TPA-TPB format admission, the non-blocking DP AB size warning (`0x100000` bytes), and minimal effective-format/output disclosure. Settings supports adding/removing/editing supported-format marker values and separate ID/name lookup through one validated file-backed owner, with safe persistence, invalid-edit feedback and apply/reload invalidation. Include impacted Dummy DP, Memory Layout, Report and family regressions, exact write-range audit and required independent Golden evidence. Carry already-committed UI fixes forward without redesign. |
 | `1.1.7` | **Information and output confirmation UI**: TP Version → PID → Common FW Version → Event Buffer Version (`0x97 - Desay`, plain text); responsive action alignment, bounded Details and its default-Off appearance preference; clear IC/Mode/effective-format output confirmation. Final PID-inclusive preview/acceptance precedes implementation. |
 | `1.1.8` | **Release/agent workflow proportionality**: gate inventory and evidence-backed simplification, AI Skill/documentation/routing consistency and a bounded reversible pilot. Assess code-size/count gates, repeated confirmations/tests and derived-data automation; do not weaken Golden, signing or publication boundaries. |
-| `1.1.9` | **Remaining Settings conveniences**: inventory other user-adjustable preferences and complete justified reset/import/export conveniences through the owner introduced in `1.1.6`. Do not postpone basic Desay editability, safe persistence, validation or stale-state invalidation to this version. Arbitrary maps, CRC/ranges, safety overrides and support promotion are outside ordinary Settings. |
-| `1.1.10` (tentative) | **CtrlRAM Replace with AB Code Flash inputs** for NT51932 Perfect family and NT51950 Partial family. Inventory current behavior and reuse declared family/profile facts; specify input shape, bank targeting, coupled header/CRC updates, preserved bytes and output/readiness/report disclosure before implementation. Include applicable topology and Common/Desay variants only under their approved contracts, with exact write-range audit and independent Golden evidence. No filename-based AB detection or blanket family promotion. |
+| `1.1.9` | **Long-name failure/recovery first, then Toolchain Runtime selection, remaining Settings conveniences and CtrlRAM AB intake**: fix issue #434 with edit-time visible errors, recovery to the last accepted valid name on invalid commit, and safe handling of BIN/Bundle/staging names. Assess removal of the product's total-path cap separately from the filesystem component limit. Add **Settings > Config > Toolchain** for detection and user selection of available compatible VC++ runtimes, including newer installed versions; see the linked Toolchain handoff for admission/readiness and verification questions. Record/reconcile the owner-provided CtrlRAM AB reference and prepare its contract/evidence questions for completion before `1.2.0`. Inventory other user-adjustable preferences and justified reset/import/export conveniences through the `1.1.6` Settings owner. Arbitrary maps, CRC/ranges, safety overrides and support promotion are outside ordinary Settings. |
+| `1.1.10` (tentative implementation; required before `1.2.0`) | **CtrlRAM Replace with AB Code Flash inputs** for NT51932 Perfect family and NT51950 Partial family, following the `1.1.9` reference intake. Inventory current behavior and reuse declared family/profile facts; specify input shape, bank targeting, coupled header/CRC updates, preserved bytes and output/readiness/report disclosure before implementation. Include applicable topology and Common/Desay variants only under their approved contracts, with exact write-range audit and independent Golden evidence. No filename-based AB detection or blanket family promotion. |
 | `1.2.0` | **Launcher first development tranche**: current defect/security/evidence inventory plus actual bounded remediation, not only planning. Not the full Launcher release or production activation. Before release, refresh public NT51950 DP Perspective, Desay DP Perspective and Event Buffer ID/name material. |
 | `1.2.1` | **Family/Profile/state ownership convergence**: proven shared-fact duplication and DP CMI provider bindings first; distinguish IC identity, family, topology/IC Count, variant, input snapshots and page drafts. Preserve valid existing reuse; no wholesale profile rewrite. |
 | `1.2.2` | **DP Replace retirement** after `1.2.1` preserves shared definitions, Perfect-family disclosure and surviving consumers. Preserve historical Report interpretation and required evidence; verify surviving workflow bytes. |
@@ -97,6 +125,108 @@ protected review/CI and candidate publication gates remain required.
 | `1.5.2` | **Installer/download/recovery refinements**: measured transfer savings, exact installed bytes, failure recovery and rollback. |
 | `1.5.3` | **Full Launcher candidate acceptance**: clean Windows install/update/failure/recovery/rollback and end-to-end evidence across the integrated candidate. |
 | `2.0.0` | **Full Launcher release**. Actual Catalog/Registry production activation requires explicit owner GO and closed security/evidence/publication gates; the scheduled version is not approval to deploy. |
+
+## Shared audit allocation — 2026-09-17
+
+Owner direction: distribute the [shared review](https://chatgpt.com/share/6aaa7f89-1a70-83e9-bcac-badc1fdface2)
+across `1.2.0`–`1.2.x` by difficulty and comparable work volume, then resume
+`1.1.8` verification/publication. This table adds explicit acceptance to the
+existing version outcomes above; it does not merge future changes into the
+frozen `1.1.8` candidate. Full Launcher delivery remains `2.0.0`.
+
+Source read on 2026-09-17: the page contains overlapping A01–A14 and F01–F18
+reviews of `c580476f`, followed by the fuller `1.1.7`/`e08bb4f4` review with
+25 findings (F01–F26 excluding F12), then the owner's Customized naming
+decision. Use the final F identifiers below; do not count the earlier lists
+again. F12 is a naming requirement, not a confirmed defect. These are review
+claims to revalidate against each implementation head, not fresh local tests
+or a certification that all current versions reproduce them. Linked report
+attachments have not been independently inspected.
+
+Owner amendment, 2026-09-18: bring **F19 only** forward into unpublished
+`1.1.8`. Implementation `8375dcb1` and final evidence `8d2f33dc` close the
+bounded staging correction locally (54 focused and 1127 Infrastructure tests;
+independent R1 review and capability validator pass), not release publication.
+Do not implement F19 again in `1.2.0`; retain its regression in the runner
+acceptance. The remaining four external P1 claims were reviewed together at
+that source: Report Save's F20 I/O boundary remains a P1 release blocker;
+F01/F02/F03 are conditional P2 findings, not proof of ordinary-use crashes.
+F20's separate picker-only gaps are also P2. Bringing the Report Save blocker
+forward requires the owner's next scope decision; it has not been silently
+implemented or waived. Existing future allocations remain pending that choice.
+
+Subsequent owner approval, 2026-09-18: also bring the **Report Save portion of
+F20** forward into `1.1.8`. Reviewed implementation `8332ef59` and final
+evidence `35421663` cover provider/write/flush/disposal failure containment,
+snapshot capture, duplicate-save protection and retry; F21 atomic replacement
+is not included. Integration follow-up `38c75f0e` passes the full local
+verifier and exact-head CI. PR435 merged into the version branch; publication
+still requires the release pipeline. Do not reimplement these completed F19/F20
+corrections in `1.2.x`. Retain their regressions and keep general picker gaps
+in `1.2.2`, alongside F21/F26/F24. The table below preserves the original
+relative sizing; subtract brought-forward work at admission rather than filling
+the freed capacity with unapproved scope.
+
+Published-scope amendment, 2026-09-19: F19 and the Report Save subset of F20
+are now released in `v1.1.8`. F21 snapshot/reentry/post-disposal-success
+requirements are also satisfied by that Save correction; **atomic local
+replacement remains open**. General picker boundaries remain open. The dated
+paragraphs above retain their original pre-publication claims. Do not count
+those shipped portions as future implementation work. F01/F02/F03 retain
+their recorded conditional assessment; the external report's P1 labels are
+not a new local reproduction or an automatic severity upgrade.
+
+Relative sizing includes implementation, fault-injection/contract tests and
+scoped review: S=1, M=2, L=3 units. Units are comparative estimates, not days
+or measured duration. Aim for 6–8 audit units per release; count shared owners
+once. Existing feature work also consumes capacity: at admission split an
+oversized existing feature into a separately bounded later patch, rather than
+silently dropping tests or claiming equal total release duration. Preserve
+the declared Family-before-retirement dependency and earlier firmware gates.
+
+| Version | Audit work / relative size | Required observable acceptance |
+| --- | --- | --- |
+| `1.2.0` | **Staging and runner reliability**: F19 (L), F03 + F06 (one L runner change); 6 units. | Pre-existing staging/sentinel survives rejection and acquisition races; no tool launch on rejected ownership. Cancellation callbacks do not leak expected OS errors; execution, termination confirmation and pipe drain have bounded completion. Exercise held child pipes, denied kill, timeout/cancel races. This is distinct from Launcher protocols; retain the existing bounded Launcher inventory/remediation outcome. |
+| `1.2.1` | **Window lifetime and recovery**: F01 + F25 (one L lifecycle change), F02 (M), F24 shared-fact preservation (M); 7 units. | Close → failed handoff → settings/history save → second Close works. READY cancellation is contained; active run/inspection/modal work drains before final disposal, and stale callbacks cannot publish. Preserve DPCMI and Perfect-family consumers through the existing Family/Profile milestone. |
+| `1.2.2` | **UI I/O and Report persistence**: F20 (L), F21 (M), F26 (S), F24 retirement verification (S); 7 units. | Picker/open/write/flush/dispose failures produce visible failure, never false success; fixed Report snapshot commits before success notification. Oversized JSON integer retains the Python safety limit and returns the worker's structured error. DP retirement follows preserved shared facts, including surviving routes and old Report readability. |
+| `1.2.3` | **Request identity and controlled entry**: F04 (L), F05 (L), F17 (M); 8 units. | Cancel/reopen across picker awaits cannot apply an old request; slow earlier Hex loads cannot replace a newer document. Missing/invalid Desktop arguments produce actionable errors before host construction. Reuse this evidence for the existing CLI/Desktop automation milestone. |
+| `1.2.4` | **Committed-output and persistence outcomes**: F07 (L), F08 (L); 6 units. | Cancellation after primary commit retains its receipt and reports incomplete loose delivery; do not conflate atomic bundle behavior. Settings/history persistence failures are visible/retryable without blocking firmware Build. Combine with the existing page-flow acceptance, not a new state store. |
+| `1.2.5` | **Typed results and language projection**: F09 (L), F10 (M), F12 naming requirement (M); 7 units. | Re-language completed/blocked/partial outcomes from typed state. General rows retain identity/drafts/mappings. Use Customized / Customized Merge / Customized Replace for relevant visible labels, CLI help and new Report labels; retain canonical IDs, command compatibility and unrelated Settings General text. Preserve historical Report interpretation. |
+| `1.2.6` | **Shared presentation owners**: F11 (L), F13 (L); 6 units. | Semantic typography controls actual effective style, with explicit legitimate variants and DPI/theme checks. Converge the proven duplicate accepted-output helper through its existing owner; retain AB/extra-A-output/Replace naming contracts, not a giant base ViewModel. |
+| `1.2.7` | **Bounded intake and explicit diagnostics**: F22 (L), F23 (M), F16 (S); 6 units. | Enforce single-artifact and aggregate budgets before materialization, including cancellation. Distinguish primary/None/unknown workflow tokens. Derive capacity text from typed limits and remove obsolete retirement reasons without reopening DP support. Preserve the existing evidence-aware cleanup scope. |
+| `1.2.8` | **Measured notification/allocation improvements**: F14 (L), F15 (L); 6 units. | Measure notification/inspection/compile/measure counts before and after; publish accepted state once and avoid unnecessary focus scans. Remove only the redundant after-range copy with byte/diff/hash/Golden equivalence and measured allocation evidence. Do not promise a speedup or reopen deferred startup work without demonstrated value. |
+
+Post-release reading of this table: its 6–8-unit figures are the original
+allocation estimates, not remaining work estimates. Remove F19's three units
+from `1.2.0`; re-estimate the residual F20/F21 scope in `1.2.2` rather than
+subtracting an invented fraction. Keep the freed capacity unallocated.
+F22 in `1.2.7` splits into existing-limit bounded intake (AUD-11A) and a
+proposed aggregate budget (AUD-11B); no new numeric budget is approved.
+CRC duplicate-key policy (AUD-16B/N01) is new and **unallocated/pending decision**;
+it must not delay the already allocated F26 malformed-integer correction.
+AUD-01's persistence-health detail spans existing F08 (`1.2.4`) and window
+lifetime (`1.2.1`); AUD-07 and AUD-09 likewise span existing releases. A shared
+AUD label is not authority to pull every subitem into its earliest version.
+The external B0–B4 batches are advisory grouping only, not new release slots.
+
+**F18 is required in every affected release**, included in those estimates,
+not a final catch-up milestone: controllable interleaving and failure tests
+must demonstrate each acceptance sequence. Source-string checks alone cannot
+close a behavior finding. Keep staging, runner, UI I/O and window lifetime
+policies with existing owners; no second execution engine or global store.
+Earlier A07 picker localization is included with F20/F09; A08 duplicate
+publication with F14; A12 acceptance-pattern convergence is limited to proven
+F13 duplication, not an additional speculative framework.
+
+The earlier owner deadline for scoped CtrlRAM AB support remains before
+`1.2.0` (`1.1.10` tentative); the source's suggestion to do all refactors first
+does not override that explicit instruction. Do not mix AB bank/CRC changes
+into these audit corrections. The source supplies no approved new bank map.
+
+Release boundary: scheduling a reported issue for `1.2.x` is not a waiver for
+a confirmed current P0/P1. Revalidate the high-priority claims against the
+`1.1.8` candidate before publication; report any surviving blocker under the
+existing release policy rather than treating successful CI as proof of safety.
 
 ### Immediate prerequisites for 1.1.6
 

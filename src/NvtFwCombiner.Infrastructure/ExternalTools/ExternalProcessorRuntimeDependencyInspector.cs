@@ -1,5 +1,6 @@
 using System.Runtime.InteropServices;
 using NvtFwCombiner.Application.ExternalTools;
+using NvtFwCombiner.Application.Configuration;
 using NvtFwCombiner.Application.Ports;
 using NvtFwCombiner.Contracts.ExternalTools;
 using NvtFwCombiner.Domain.Composition;
@@ -17,13 +18,15 @@ public sealed class ExternalProcessorRuntimeDependencyInspector :
     private readonly string _toolRoot;
     private readonly string _stagingRoot;
     private readonly TimeProvider _timeProvider;
+    private readonly ToolchainRuntimeConfigurationSnapshot? _toolchain;
 
     /// <summary>Creates one refreshable current-machine dependency inspector.</summary>
     public ExternalProcessorRuntimeDependencyInspector(
         ExternalCombinerToolRegistry registry,
         string toolRoot,
         string stagingRoot,
-        TimeProvider timeProvider)
+        TimeProvider timeProvider,
+        ToolchainRuntimeConfigurationSnapshot? toolchain = null)
     {
         ArgumentNullException.ThrowIfNull(registry);
         ArgumentException.ThrowIfNullOrWhiteSpace(toolRoot);
@@ -33,6 +36,7 @@ public sealed class ExternalProcessorRuntimeDependencyInspector :
         _toolRoot = Path.GetFullPath(toolRoot);
         _stagingRoot = Path.GetFullPath(stagingRoot);
         _timeProvider = timeProvider;
+        _toolchain = toolchain;
     }
 
     /// <inheritdoc />
@@ -47,6 +51,16 @@ public sealed class ExternalProcessorRuntimeDependencyInspector :
         if (request.Dependencies.Count == 0)
         {
             return ValueTask.FromResult(CreateSnapshot(request, generation, []));
+        }
+        if (_toolchain is { Status: not ToolchainRuntimeConfigurationStatus.Current })
+        {
+            RuntimeDependencyEntry[] blocked = [.. request.Dependencies.Select(static dependency =>
+                RuntimeDependencyEntry.Blocked(
+                    dependency.ProcessorId,
+                    dependency.ToolBindingId,
+                    "toolchain-runtime.selection.blocked",
+                    "The selected Toolchain runtime is unavailable."))];
+            return ValueTask.FromResult(CreateSnapshot(request, generation, blocked));
         }
 
         CompositionIssue? stagingIssue = ProbeStaging();

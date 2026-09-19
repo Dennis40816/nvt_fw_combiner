@@ -7,6 +7,90 @@ assignments, use the [canonical roadmap](docs/architecture/nfc_roadmap.md).
 
 ## [Unreleased]
 
+## [1.1.9] - 2026-09-20
+
+### Summary
+
+This maintenance release makes long output names fail visibly and recoverably,
+and adds explicit VC++ Runtime selection for the existing external Combiner.
+Firmware layouts, processor commands, supported IC/mode declarations and output
+bytes remain unchanged.
+
+### Product changes
+
+#### Recover invalid output and Bundle names
+
+- Before → After: an overlong BIN name or Bundle folder could appear accepted
+  and then produce no output or a late generic failure. Name edits now show a
+  visible validation message, invalid commits recover to the last accepted
+  value, and Build validates the actual allocated Bundle children before write.
+- Affected: output confirmation and Bundle delivery for every workflow.
+- Support status: unchanged/support-neutral.
+- Compatibility: existing valid names, automatic collision suffixes, output
+  contents and delivery ordering are unchanged. Commit still rechecks races.
+- Verification: focused UI, naming, destination-allocation and Bundle-writer
+  regressions cover invalid edit recovery, picker-returned names, suffix growth,
+  cross-role collisions and accepted boundary cases.
+- Limitations: Windows component and application total-path limits remain
+  explicit. This release does not enable arbitrary native long-path output.
+
+#### Select a verified VC++ Runtime
+
+- Before → After: dependent Builds always used the bundled runtime. Settings >
+  Config > Toolchain now lets a user detect or browse to a compatible installed
+  runtime, review its evidence, and explicitly save that selection.
+- Affected: existing workflows that invoke the packaged external Combiner;
+  workflows without that dependency are unchanged.
+- Support status: unchanged/support-neutral; no IC, family, mode or profile is
+  promoted.
+- Compatibility: Bundled runtime remains the default. A saved user selection is
+  transactional and generation-bound; if it disappears, changes, or no longer
+  verifies, dependent Build is blocked until the user explicitly selects a
+  valid runtime or switches back to Bundled.
+- Verification: configuration tests cover transactional save/reload and stale
+  generations; process-adapter tests cover malformed, timeout, cancellation and
+  nonzero terminal mapping; both processor adapters and actual Combiner success
+  smoke cover bundled and selected-runtime deployment. Affected UI tests pass
+  for normal, invalid, close-confirmation and Build-admission states. Release
+  admission separately requires actual-child timeout/cancel/forced-exit evidence,
+  selected-module identity tracing, clean-Windows Save-to-Build, a fresh full
+  verifier, applicable Golden execution and protected publication checks.
+- Limitations: the app does not download or install runtimes and never selects a
+  detected candidate automatically. Strict certificate revocation checks may
+  reject a user runtime when Windows cannot establish its trust result.
+
+### Security
+
+User-selected native runtimes are admitted only through an isolated correlated
+probe, x64 PE dependency/export checks, exact file identity and Microsoft
+WinTrust chain verification with revocation checking. The selected DLL and the
+already pinned Combiner executable are copied into a private per-invocation
+directory; the process PATH and firmware working directory are not modified.
+Unknown or unverifiable evidence fails closed without silent fallback.
+
+### Known issues
+
+- Windows filename components remain limited to 255 characters and the current
+  application output-path budget remains 259 characters.
+- Toolchain detection is read-only. Users must choose and save a candidate; the
+  application does not repair, update or install VC++ components.
+- CtrlRAM Replace with AB Code Flash inputs remains planned for 1.1.10 and is
+  not enabled by this release.
+
+### Upgrade and rollback
+
+Upgrade directly from 1.1.8 with the portable package. No firmware profile,
+report schema or installation migration is required. Toolchain selection is a
+user-scoped preference; rolling back to 1.1.8 leaves firmware and outputs
+compatible and the older application simply does not expose that preference.
+
+### Downloads and integrity
+
+The stable release provides the Windows x64 portable ZIP, source archives,
+SBOM, provenance and SHA-256 hashes through the GitHub Release. Verify those
+published hashes before distribution. The portable package includes the
+repository-approved bundled VC++ Runtime used by the default configuration.
+
 ## [1.1.8] - 2026-09-16
 
 ### Summary

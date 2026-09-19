@@ -19,6 +19,7 @@ public sealed partial class RepositoryBoundaryTests
         string[] expected =
         [
             "ApplicationCompositionGlobalUsings.cs",
+            "CompositionHostServices.Toolchain.cs",
             "CompositionHostServices.cs",
             "ManagedDistributionLauncherHostServices.cs",
             "UpdateSourceRegistryLocator.cs",

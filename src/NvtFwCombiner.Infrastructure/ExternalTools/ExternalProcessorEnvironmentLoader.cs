@@ -1,6 +1,7 @@
 using System.Text.Json;
 using System.Threading.Channels;
 using NvtFwCombiner.Application.Authoring;
+using NvtFwCombiner.Application.Configuration;
 using NvtFwCombiner.Application.ExternalTools;
 using NvtFwCombiner.Application.Ports;
 using NvtFwCombiner.Contracts.ExternalTools;
@@ -13,10 +14,14 @@ internal delegate ValueTask<ExternalProcessorRuntimeEnvironment>
         Action<long, long> progress,
         CancellationToken cancellationToken);
 
+internal sealed record ResolvedRuntimeTool(string Path, string Sha256);
+
 internal sealed record ExternalProcessorRuntimeEnvironment(
     IExternalProcessor? Processor,
     IRuntimeDependencyReadinessProvider ReadinessProvider,
-    int ManifestCount);
+    int ManifestCount,
+    IReadOnlyList<ResolvedRuntimeTool>? RuntimeTools = null,
+    long ToolchainGeneration = 0);
 
 internal sealed record ExternalProcessorEnvironmentLease(
     long Generation,
@@ -40,6 +45,7 @@ internal sealed class ExternalProcessorEnvironmentLoader :
 
     private readonly Lock _gate = new();
     private readonly ExternalProcessorEnvironmentLoadOperation _load;
+    private readonly IToolchainRuntimeConfigurationSession? _toolchain;
     private ExternalProcessorRuntimeEnvironment? _environment;
     private CancellationTokenSource? _activeCancellation;
     private Task _active = Task.CompletedTask;
@@ -60,9 +66,23 @@ internal sealed class ExternalProcessorEnvironmentLoader :
         ArgumentException.ThrowIfNullOrWhiteSpace(toolRoot);
     }
 
+    internal ExternalProcessorEnvironmentLoader(IToolchainRuntimeConfigurationSession toolchain)
+        : this((progress, cancellationToken) => LoadConfiguredAsync(toolchain, progress, cancellationToken))
+    {
+        _toolchain = toolchain ?? throw new ArgumentNullException(nameof(toolchain));
+    }
+
     internal ExternalProcessorEnvironmentLoader(ExternalProcessorEnvironmentLoadOperation load)
     {
         _load = load ?? throw new ArgumentNullException(nameof(load));
+    }
+
+    internal ExternalProcessorEnvironmentLoader(
+        ExternalProcessorEnvironmentLoadOperation load,
+        IToolchainRuntimeConfigurationSession toolchain)
+        : this(load)
+    {
+        _toolchain = toolchain ?? throw new ArgumentNullException(nameof(toolchain));
     }
 
     internal ExternalProcessorEnvironmentLoader(ExternalProcessorRuntimeEnvironment environment)
@@ -154,10 +174,12 @@ internal sealed class ExternalProcessorEnvironmentLoader :
             }
 
             ExternalProcessorRuntimeEnvironment environment = _environment;
-            return new(
-                _publicationGeneration,
-                environment.Processor,
-                environment.ReadinessProvider);
+            return !IsConfigurationCurrent(environment)
+                ? new(0, null, UnpublishedReadinessProvider.Instance)
+                : new(
+                    _publicationGeneration,
+                    environment.Processor,
+                    environment.ReadinessProvider);
         }
     }
 
@@ -166,6 +188,7 @@ internal sealed class ExternalProcessorEnvironmentLoader :
         lock (_gate)
         {
             return generation == _publicationGeneration &&
+                (_environment is null || IsConfigurationCurrent(_environment)) &&
                 (generation == 0 ? _environment is null : _environment is not null);
         }
     }
@@ -216,6 +239,10 @@ internal sealed class ExternalProcessorEnvironmentLoader :
             lock (_gate)
             {
                 if (requestGeneration != _requestGeneration)
+                {
+                    result = Superseded(requestGeneration);
+                }
+                else if (!IsConfigurationCurrent(candidate))
                 {
                     result = Superseded(requestGeneration);
                 }
@@ -389,16 +416,36 @@ internal sealed class ExternalProcessorEnvironmentLoader :
         return LoadAsync(FindExternalToolsRoot, progress, cancellationToken);
     }
 
+    private static async ValueTask<ExternalProcessorRuntimeEnvironment> LoadConfiguredAsync(
+        IToolchainRuntimeConfigurationSession toolchain,
+        Action<long, long> progress,
+        CancellationToken cancellationToken)
+    {
+        if (toolchain.Current.Status == ToolchainRuntimeConfigurationStatus.NotLoaded)
+        {
+            _ = await toolchain.ReloadAsync(cancellationToken).ConfigureAwait(false);
+        }
+        ToolchainRuntimeConfigurationSnapshot snapshot = toolchain.Current;
+        return await LoadAsync(FindExternalToolsRoot, progress, cancellationToken, snapshot).ConfigureAwait(false);
+    }
+
+    internal static async ValueTask<IReadOnlyList<ResolvedRuntimeTool>> DiscoverRuntimeToolsAsync(CancellationToken cancellationToken)
+    {
+        ExternalProcessorRuntimeEnvironment environment = await LoadDefaultAsync(static (_, _) => { }, cancellationToken).ConfigureAwait(false);
+        return environment.RuntimeTools ?? [];
+    }
+
     private static async ValueTask<ExternalProcessorRuntimeEnvironment> LoadAsync(
         Func<string?> resolveRoot,
         Action<long, long> progress,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        ToolchainRuntimeConfigurationSnapshot? toolchain = null)
     {
         cancellationToken.ThrowIfCancellationRequested();
         string? configuredRoot = resolveRoot();
         if (configuredRoot is null || !Directory.Exists(configuredRoot))
         {
-            return CreateEnvironment([], configuredRoot, cancellationToken);
+            return CreateEnvironment([], configuredRoot, cancellationToken, toolchain);
         }
 
         string root = FileSystemPathGuard.ResolveExistingRoot(configuredRoot);
@@ -449,7 +496,7 @@ internal sealed class ExternalProcessorEnvironmentLoader :
             progress(index + 1, manifests.Length);
         }
 
-        return CreateEnvironment(parsed, root, cancellationToken);
+        return CreateEnvironment(parsed, root, cancellationToken, toolchain);
     }
 
     private static string[] DiscoverManifestPaths(string root, CancellationToken cancellationToken)
@@ -517,25 +564,31 @@ internal sealed class ExternalProcessorEnvironmentLoader :
     private static ExternalProcessorRuntimeEnvironment CreateEnvironment(
         List<ExternalCombinerToolManifest> manifests,
         string? root,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        ToolchainRuntimeConfigurationSnapshot? toolchain = null)
     {
         var registry = new ExternalCombinerToolRegistry(manifests);
         string toolRoot = root is null ? Path.Combine(AppContext.BaseDirectory, "external-tools") :
             Path.TrimEndingDirectorySeparator(root);
         var resolver = new ExternalCombinerToolResolver(registry, toolRoot);
+        List<ResolvedRuntimeTool> runtimeTools = [];
         foreach (ExternalCombinerToolManifest manifest in manifests)
         {
             cancellationToken.ThrowIfCancellationRequested();
             if (!resolver.TryResolve(
                     manifest.ToolBindingId,
                     out _,
-                    out _,
+                    out string? executablePath,
                     out _,
                     cancellationToken))
             {
                 throw new ExternalEnvironmentLoadException(
                     ExternalProcessorEnvironmentIssueCodes.CandidateInvalid,
                     "An external tool candidate failed executable identity validation.");
+            }
+            if (string.Equals(manifest.ToolId, "legacy-combiner", StringComparison.Ordinal))
+            {
+                runtimeTools.Add(new(executablePath!, manifest.Sha256));
             }
         }
         cancellationToken.ThrowIfCancellationRequested();
@@ -545,28 +598,42 @@ internal sealed class ExternalProcessorEnvironmentLoader :
             registry,
             toolRoot,
             stagingRoot,
-            TimeProvider.System);
+            TimeProvider.System,
+            toolchain);
         if (manifests.Count == 0)
         {
-            return new(null, readiness, 0);
+            return new(null, readiness, 0, null, toolchain?.Generation ?? 0);
         }
 
         var runner = new SystemExternalProcessRunner();
+        ExternalRuntimeDeployment? deployment = toolchain is null ? null : new(
+            toolchain,
+            new LocalFileStore(),
+            Path.Combine(stagingRoot, "runtime-deployments"));
         return new(
             new ExternalProcessorRouter(
                 new LegacyCombinerPostbuildProcessor(
                     registry,
                     toolRoot,
                     stagingRoot,
-                    runner),
+                    runner,
+                    deployment),
                 new ExternalCombinerProcessor(
                     registry,
                     toolRoot,
                     stagingRoot,
                     runner,
-                    ExternalCombinerInvocationCatalog.All)),
+                    ExternalCombinerInvocationCatalog.All,
+                    deployment)),
             readiness,
-            manifests.Count);
+            manifests.Count,
+            runtimeTools.AsReadOnly(),
+            toolchain?.Generation ?? 0);
+    }
+
+    private bool IsConfigurationCurrent(ExternalProcessorRuntimeEnvironment environment)
+    {
+        return _toolchain is null || environment.ToolchainGeneration == _toolchain.Current.Generation;
     }
 
     private static string? FindExternalToolsRoot()

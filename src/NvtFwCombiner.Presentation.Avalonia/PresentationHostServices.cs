@@ -53,7 +53,8 @@ public sealed class PresentationHostServices
         IVersionManagementExperience? versionManagement,
         IManagedApplicationStartupCoordinator? managedApplicationStartup,
         IStableLauncherHandoff? stableLauncherHandoff,
-        Func<CancellationToken, Task<IEventBufferFormatConfigurationSession>>? eventBufferFormatConfigurationSessionFactory = null)
+        Func<CancellationToken, Task<IEventBufferFormatConfigurationSession>>? eventBufferFormatConfigurationSessionFactory = null,
+        Func<CancellationToken, Task<IToolchainRuntimeConfigurationSession>>? toolchainRuntimeConfigurationSessionFactory = null)
     {
         Composition = composition ?? throw new ArgumentNullException(nameof(composition));
         FileReveal = fileReveal ?? throw new ArgumentNullException(nameof(fileReveal));
@@ -72,6 +73,7 @@ public sealed class PresentationHostServices
         ManagedApplicationStartup = managedApplicationStartup;
         StableLauncherHandoff = stableLauncherHandoff;
         EventBufferFormatConfigurationSessionFactory = eventBufferFormatConfigurationSessionFactory;
+        ToolchainRuntimeConfigurationSessionFactory = toolchainRuntimeConfigurationSessionFactory;
     }
 
     internal PresentationCompositionServices Composition { get; }
@@ -100,4 +102,5 @@ public sealed class PresentationHostServices
 
     /// <summary>Creates the host-scoped configuration session only when its Settings surface is opened.</summary>
     internal Func<CancellationToken, Task<IEventBufferFormatConfigurationSession>>? EventBufferFormatConfigurationSessionFactory { get; }
+    internal Func<CancellationToken, Task<IToolchainRuntimeConfigurationSession>>? ToolchainRuntimeConfigurationSessionFactory { get; }
 }

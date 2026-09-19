@@ -138,6 +138,18 @@ external-tools/
 - Every IC/mode/stage must pin the exact combiner version and allowed write ranges.
 - CI and review must reject float versions, direct executable paths in profiles, direct mutation of original BINs, shell command construction, missing SHA-256, and any transform path without independent host diff verification.
 
+### Toolchain runtime candidate boundary
+
+Optional user-selected VC++ runtime inspection is governed by
+[ADR 0073](0073-toolchain-runtime-selection.md) and the
+[runtime trust probe contract](../contracts/toolchain-runtime-probe-v1.md).
+The same trusted application host launches the internal, versioned probe with
+tokenized arguments and bounded output; the candidate DLL remains data and is
+never selected as an executable. Candidate verification does not authorize the
+existing processor runner to change `PATH`, load a DLL in the parent process,
+or consume that DLL directly. An independently reviewed deployment lease and
+matching configuration generation remain required before processor execution.
+
 ## Required tests for first implementation PR
 
 - Tool version `1.10` remains a string and is not normalized to `1.1`.

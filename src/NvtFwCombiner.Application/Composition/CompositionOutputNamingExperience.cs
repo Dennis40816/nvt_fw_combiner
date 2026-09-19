@@ -79,6 +79,11 @@ internal sealed class CompositionOutputNamingExperience : ICompositionOutputNami
         return _bundleDestinationValidator.Validate(intent);
     }
 
+    public CompositionOutputBundleValidationIssue? ValidateName(string value)
+    {
+        return _bundleDestinationValidator.ValidateName(value);
+    }
+
     public async ValueTask<CompositionOutputBundleProposal> PrepareBundleProposalAsync(
         ActiveSessionSnapshot acceptedSession, CancellationToken cancellationToken,
         CtrlRamFirmwareVersionDraftState? ctrlRamVersionEdit = null)

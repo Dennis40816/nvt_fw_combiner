@@ -85,8 +85,8 @@ internal sealed class AtomicBundleCompositionOutputWriter :
     public void EnsureCanCommit(string fileName, OutputNamingSummary? outputNaming)
     {
         _ = outputNaming;
-        _ = CreateArtifactNames(fileName);
-        _ = ResolveCandidatePath(suffix: 1);
+        List<string> artifactNames = CreateArtifactNames(fileName);
+        ValidateChildPaths(ResolveCandidatePath(FindFirstAvailableSuffix()), fileName, artifactNames);
     }
 
     public async ValueTask<CompositionOutputCommitReceipt> CommitAsync(
@@ -109,9 +109,10 @@ internal sealed class AtomicBundleCompositionOutputWriter :
         List<string> artifactNames = CreateArtifactNames(fileName);
         int additionalCount = additionalArtifacts.Count;
         int suffix = FindFirstAvailableSuffix();
+        ValidateChildPaths(ResolveCandidatePath(suffix), fileName, artifactNames);
         string stagingDirectory = Path.Combine(
             _parentDirectory,
-            $".{_folderName}.{Guid.NewGuid():N}.staging");
+            $".{Guid.NewGuid():N}.staging");
         AtomicBundlePathRules.EnsureSupportedPathLength(
             stagingDirectory,
             "Bundle staging directory");
@@ -295,18 +296,12 @@ internal sealed class AtomicBundleCompositionOutputWriter :
             outputFileName,
             "Output filename",
             nameof(outputFileName));
-        HashSet<string> allocated = new(StringComparer.OrdinalIgnoreCase)
-        {
-            outputFileName,
-        };
-        List<string> names = new(_additionalArtifacts.Count + _artifacts.Count);
         foreach (AtomicBundlePlannedArtifact artifact in _additionalArtifacts)
         {
             AtomicBundlePathRules.EnsureWindowsName(
                 artifact.SuggestedFileName,
                 "Bundle additional-delivery filename",
                 nameof(artifact.SuggestedFileName));
-            names.Add(AllocateUniqueFileName(artifact.SuggestedFileName, allocated));
         }
 
         foreach (AtomicBundleArtifact artifact in _artifacts)
@@ -315,18 +310,15 @@ internal sealed class AtomicBundleCompositionOutputWriter :
                 artifact.OriginalFileName,
                 "Bundle source filename",
                 nameof(artifact.OriginalFileName));
-            names.Add(AllocateUniqueFileName(artifact.OriginalFileName, allocated));
         }
 
-        string longestCandidate = ResolveCandidatePath(suffix: 2);
-        AtomicBundlePathRules.EnsureSupportedPathLength(
-            Path.Combine(longestCandidate, outputFileName),
-            "Bundle output path");
+        List<string> names = AtomicBundlePathRules.AllocateArtifactNames(
+            outputFileName,
+            _additionalArtifacts.Select(static artifact => artifact.SuggestedFileName),
+            _artifacts.Select(static artifact => artifact.OriginalFileName));
         foreach (string name in names)
         {
-            AtomicBundlePathRules.EnsureSupportedPathLength(
-                Path.Combine(longestCandidate, name),
-                "Bundle source path");
+            AtomicBundlePathRules.EnsureWindowsName(name, "Bundle collision filename", nameof(outputFileName));
         }
 
         return names;
@@ -350,32 +342,12 @@ internal sealed class AtomicBundleCompositionOutputWriter :
     {
         ArgumentOutOfRangeException.ThrowIfLessThan(suffix, 1);
         string folder = suffix == 1 ? _folderName : $"{_folderName} ({suffix})";
+        AtomicBundlePathRules.EnsureWindowsName(folder, "Bundle destination folder", nameof(suffix));
         string fullPath = Path.GetFullPath(Path.Combine(_parentDirectory, folder));
         AtomicBundlePathRules.EnsureSupportedPathLength(
             fullPath,
             "Bundle destination directory");
         return fullPath;
-    }
-
-    private static string AllocateUniqueFileName(
-        string originalFileName,
-        HashSet<string> allocated)
-    {
-        if (allocated.Add(originalFileName))
-        {
-            return originalFileName;
-        }
-
-        string extension = Path.GetExtension(originalFileName);
-        string basename = Path.GetFileNameWithoutExtension(originalFileName);
-        for (int suffix = 2; ; suffix++)
-        {
-            string candidate = $"{basename} ({suffix}){extension}";
-            if (allocated.Add(candidate))
-            {
-                return candidate;
-            }
-        }
     }
 
     private static bool DestinationExists(string path)

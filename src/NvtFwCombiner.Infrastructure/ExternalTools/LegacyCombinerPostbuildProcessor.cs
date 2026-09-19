@@ -15,6 +15,7 @@ public sealed partial class LegacyCombinerPostbuildProcessor : IExternalProcesso
     private readonly ExternalCombinerToolResolver _toolResolver;
     private readonly string _stagingRoot;
     private readonly IExternalProcessRunner _processRunner;
+    private readonly ExternalRuntimeDeployment? _runtimeDeployment;
 
     /// <summary>Creates a staged postbuild processor with approved tool and IC command profiles.</summary>
     public LegacyCombinerPostbuildProcessor(
@@ -22,6 +23,16 @@ public sealed partial class LegacyCombinerPostbuildProcessor : IExternalProcesso
         string toolRoot,
         string stagingRoot,
         IExternalProcessRunner processRunner)
+        : this(registry, toolRoot, stagingRoot, processRunner, null)
+    {
+    }
+
+    internal LegacyCombinerPostbuildProcessor(
+        ExternalCombinerToolRegistry registry,
+        string toolRoot,
+        string stagingRoot,
+        IExternalProcessRunner processRunner,
+        ExternalRuntimeDeployment? runtimeDeployment)
     {
         ArgumentNullException.ThrowIfNull(registry);
         ArgumentException.ThrowIfNullOrWhiteSpace(toolRoot);
@@ -31,6 +42,7 @@ public sealed partial class LegacyCombinerPostbuildProcessor : IExternalProcesso
         _toolResolver = new ExternalCombinerToolResolver(registry, toolRoot);
         _stagingRoot = Path.GetFullPath(stagingRoot);
         _processRunner = processRunner;
+        _runtimeDeployment = runtimeDeployment;
     }
 
     /// <inheritdoc />
@@ -61,6 +73,14 @@ public sealed partial class LegacyCombinerPostbuildProcessor : IExternalProcesso
         }
 
         ExternalCombinerToolManifest resolvedManifest = manifest!;
+        using ExternalRuntimeDeploymentResult? deployment = _runtimeDeployment is null
+            ? null
+            : await _runtimeDeployment.PrepareAsync(executablePath!, resolvedManifest.Sha256, cancellationToken).ConfigureAwait(false);
+        if (deployment?.Issue is { } deploymentIssue)
+        {
+            return ExternalProcessorResult.Failed([deploymentIssue]);
+        }
+        string executionPath = deployment?.ExecutablePath ?? executablePath!;
 
         string runDirectory = Path.GetFullPath(Path.Combine(_stagingRoot, request.RunId));
         if (!ExternalCombinerToolResolver.IsInsideDirectory(_stagingRoot, runDirectory))
@@ -128,7 +148,7 @@ public sealed partial class LegacyCombinerPostbuildProcessor : IExternalProcesso
                 }
 
                 var startInfo = new ExternalProcessStartInfo(
-                    executablePath!,
+                    executionPath,
                     runDirectory,
                     ResolveProtocolArguments(command, firmwarePath, binDirectory),
                     TimeSpan.FromSeconds(resolvedManifest.TimeoutSeconds));

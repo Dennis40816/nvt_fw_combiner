@@ -1,0 +1,41 @@
+{
+  "schemaVersion": 2,
+  "taskId": "TOOLCHAIN-119-IMAGE-01",
+  "capability": "Non-executing runtime candidate image header inspection",
+  "integrationBase": "1e946549d80b32e8f0a33ad59212cc81ef740dbb",
+  "risk": "R2",
+  "kind": "behavior",
+  "state": "final-complete",
+  "mutablePaths": [
+    "src/NvtFwCombiner.Infrastructure/ExternalTools/RuntimeCandidateImageInspector.cs",
+    "tests/NvtFwCombiner.Infrastructure.Tests/ExternalTools/RuntimeCandidateImageInspectorTests.cs",
+    "src/NvtFwCombiner.Infrastructure/Files/AtomicFileCompositionOutputWriter.cs",
+    "src/NvtFwCombiner.Infrastructure/Files/AtomicBundleCompositionOutputWriter.cs",
+    "src/NvtFwCombiner.Infrastructure/Files/ProtectedCompositionDestinationProvider.cs",
+    "tests/NvtFwCombiner.Infrastructure.Tests/Files/AtomicFileCompositionOutputWriterTests.cs",
+    "tests/NvtFwCombiner.Infrastructure.Tests/Files/AtomicBundleCompositionOutputWriterTests.cs",
+    "tests/NvtFwCombiner.Bootstrap.Tests/AtomicBundleDestinationProviderTests.cs"
+  ],
+  "implementationOwner": "root",
+  "searchEvidence": [
+    "CodeGraph inspected ExternalProcessorRuntimeDependencyInspector and existing configuration ownership at 03420c4a.",
+    "No existing PEReader/export parser exists; Launcher MZ checks are unrelated and are not reused as runtime admission.",
+    "System.Reflection.PortableExecutable.PEReader provides header facts without loading the candidate."
+  ],
+  "semanticOwner": "Infrastructure non-executing image inspection; existing runtime dependency owner retains terminal readiness",
+  "terminalContract": "Immutable snapshot yields observed PE header facts or malformed; never trust, compatibility, readiness or support approval",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "name_validation_design",
+    "outcome": "approved",
+    "evidence": "Independent review approved precisely the internal two-file component: PEReader only, actual Machine, DLL characteristic, CLR header presence and optional-header magic; stable malformed result for default/empty/truncated data; no public port, export parser, execution, writes or readiness changes. Browse must consume this component before Toolchain feature closure. Existing committed R1 output paths are declared for honest current integration coverage, not retroactive design admission."
+  },
+  "implementationHead": "dd32f358bb3ecd353da3e0de767dbd6de6490642",
+  "reviewedHead": "dd32f358bb3ecd353da3e0de767dbd6de6490642",
+  "pathStateDigest": "2674aca4d1767af0f80f8d570e412634f5ecb65c078ec3e12460fddf86e99bb8",
+  "finalReview": {
+    "reviewer": "name_validation_design",
+    "outcome": "approved",
+    "evidence": "Independent fixed-head correctness, architecture and scoped Polytail review PASS at dd32f358 versus checkpoint 1e946549; no P0/P1/P2 findings. Reviewed immutable PE facts/malformed contract and inherited local R1 staging, actual collision and selected-destination validation paths, including collision retry. Inspected runtime-image-final.trx (14: 11 image cases plus 3 existing readiness), runtime-image-architecture.trx (256), staging (35), collision-final.trx (38), picked-name-final.trx (6); all zero failures/skips. Reviewer inspected evidence without rerunning tests. git diff --check passed. No candidate execution, trust/readiness admission, firmware change or duplicate naming-policy owner. Browse consumer, Settings, signer/revocation/export checks and actual selected-module loading remain open; this scoped result is not full Toolchain, full-suite, native GUI, Golden, CI or release certification."
+  }
+}

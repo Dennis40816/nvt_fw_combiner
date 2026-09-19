@@ -45,7 +45,7 @@ public sealed class CompositionOutputBundleIntent
     public IReadOnlyList<CompositionExecutionBundleSource> Sources => Admission.Sources;
 
     /// <summary>Selected compiled additional delivery retained by this exact prepared admission.</summary>
-    internal CompositionAdditionalDeliveryPlan? AdditionalDelivery { get; }
+    public CompositionAdditionalDeliveryPlan? AdditionalDelivery { get; }
 
     private static void EnsurePlainFolderName(string folderName)
     {

@@ -234,9 +234,21 @@ public sealed partial class XamlControlStyleContractTests
 
         Assert.Equal(5, entries.Length);
         Assert.Equal(6, items.Elements().Count());
-        System.Xml.Linq.XElement subsection = Assert.Single(items.Elements(), element => element.Name.LocalName == "Border");
-        Assert.Equal("{Binding Settings.IsEventBufferFormatSelected}", (string?)subsection.Attribute("IsVisible"));
-        Assert.Equal("{Binding Text.EventBufferFormatTitle}", (string?)Assert.Single(subsection.Elements()).Attribute("Text"));
+        System.Xml.Linq.XElement subsection = Assert.Single(items.Elements(), element => element.Name.LocalName == "StackPanel");
+        Assert.Equal("{Binding Settings.IsConfigSelected}", (string?)subsection.Attribute("IsVisible"));
+        System.Xml.Linq.XElement[] configEntries = [.. subsection.Elements().Where(element => element.Name.LocalName == "Button")];
+        Assert.Equal(2, configEntries.Length);
+        Assert.Equal(["{Binding Text.EventBufferFormatTitle}", "{Binding Text.ToolchainTitle}"],
+            configEntries.Select(element => (string?)element.Attribute("Content")));
+        Assert.Equal(["{x:Static vm:SettingsSection.EventBufferFormat}", "{x:Static vm:SettingsSection.Toolchain}"],
+            configEntries.Select(element => (string?)element.Attribute("CommandParameter")));
+        Assert.All(configEntries, entry =>
+        {
+            Assert.Equal("{Binding Settings.SelectSectionCommand}", (string?)entry.Attribute("Command"));
+            Assert.Equal("semanticAction command", (string?)entry.Attribute("Classes"));
+            Assert.Equal("46,10,12,10", (string?)entry.Attribute("Padding"));
+            Assert.Equal("Left", (string?)entry.Attribute("HorizontalContentAlignment"));
+        });
         Assert.Equal("{x:Static vm:SettingsSection.EventBufferFormat}", (string?)entries[2].Attribute("CommandParameter"));
         Assert.All(entries, entry =>
         {

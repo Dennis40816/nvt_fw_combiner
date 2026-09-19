@@ -7,6 +7,95 @@ namespace NvtFwCombiner.Infrastructure.Tests.Files;
 /// <summary>Tests sibling-staged atomic bundle promotion.</summary>
 public sealed class AtomicBundleCompositionOutputWriterTests
 {
+    /// <summary>Source collision suffixes cannot create an illegal filename component.</summary>
+    [Fact]
+    public void PreflightRejectsOverlongSourceCollisionNameWithoutMutation()
+    {
+        using TempWorkspace workspace = TempWorkspace.Create();
+        string name = new string('a', 251) + ".bin";
+        AtomicBundleCompositionOutputWriter writer = new(workspace.Root, "bundle",
+            [new AtomicBundleArtifact(name, [1]), new AtomicBundleArtifact(name, [2])]);
+
+        ArgumentException error = Assert.Throws<ArgumentException>(() => writer.EnsureCanCommit("output.bin", null));
+
+        Assert.Contains("Bundle collision filename", error.Message, StringComparison.Ordinal);
+        Assert.Empty(Directory.EnumerateFileSystemEntries(workspace.Root));
+    }
+
+    /// <summary>Preflight uses the actual collision suffix, including the transition to two digits.</summary>
+    [Fact]
+    public void PreflightRejectsActualCollisionPathBeforeWriting()
+    {
+        using TempWorkspace workspace = TempWorkspace.Create();
+        string folderName = new('a', 259 - workspace.Root.Length - 16);
+        for (int suffix = 1; suffix <= 9; suffix++)
+        {
+            _ = Directory.CreateDirectory(Path.Combine(workspace.Root,
+                suffix == 1 ? folderName : $"{folderName} ({suffix})"));
+        }
+        Assert.Equal(260, Path.Combine(workspace.Root, folderName + " (10)", "output.bin").Length);
+        AtomicBundleCompositionOutputWriter writer = new(workspace.Root, folderName, []);
+
+        _ = Assert.Throws<PathTooLongException>(() => writer.EnsureCanCommit("output.bin", null));
+
+        Assert.Equal(9, Directory.EnumerateFileSystemEntries(workspace.Root).Count());
+    }
+
+    /// <summary>An unoccupied legal destination is not rejected for a suffix it does not need.</summary>
+    [Fact]
+    public async Task CommitAcceptsBoundaryDestinationWithoutHypotheticalCollision()
+    {
+        using TempWorkspace workspace = TempWorkspace.Create();
+        string folderName = new('a', 259 - workspace.Root.Length - 12);
+        string outputPath = Path.Combine(workspace.Root, folderName, "output.bin");
+        Assert.Equal(259, outputPath.Length);
+        AtomicBundleCompositionOutputWriter writer = new(workspace.Root, folderName, []);
+
+        writer.EnsureCanCommit("output.bin", null);
+        CompositionOutputCommitReceipt receipt = await writer.CommitAsync(
+            "output.bin", new byte[] { 1, 2 }, TestContext.Current.CancellationToken);
+
+        Assert.Equal(outputPath, receipt.OutputId);
+        Assert.Equal([1, 2], await File.ReadAllBytesAsync(outputPath, TestContext.Current.CancellationToken));
+        _ = Assert.Single(Directory.EnumerateFileSystemEntries(workspace.Root));
+    }
+
+    /// <summary>A legal long destination survives staging and existing-folder suffix allocation.</summary>
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task CommitLongFolderNameStagesCompleteBundleWithoutNameInflation(bool collision)
+    {
+        using TempWorkspace workspace = TempWorkspace.Create();
+        string folderName = new('a', 240 - workspace.Root.Length - 12);
+        string originalFolder = Path.Combine(workspace.Root, folderName);
+        if (collision)
+        {
+            _ = Directory.CreateDirectory(originalFolder);
+            await File.WriteAllBytesAsync(Path.Combine(originalFolder, "keep.bin"), [7],
+                TestContext.Current.CancellationToken);
+        }
+        AtomicBundleCompositionOutputWriter writer = new(workspace.Root, folderName,
+            [new AtomicBundleArtifact("output.bin", [3, 4])]);
+        writer.EnsureCanCommit("output.bin", null);
+
+        CompositionOutputCommitReceipt receipt = await writer.CommitAsync(
+            "output.bin", new byte[] { 1, 2 }, TestContext.Current.CancellationToken);
+
+        string destination = collision ? originalFolder + " (2)" : originalFolder;
+        Assert.Equal(Path.Combine(destination, "output.bin"), receipt.OutputId);
+        Assert.Equal([1, 2], await File.ReadAllBytesAsync(receipt.OutputId, TestContext.Current.CancellationToken));
+        Assert.Equal([3, 4], await File.ReadAllBytesAsync(Path.Combine(destination, "output (2).bin"),
+            TestContext.Current.CancellationToken));
+        Assert.Equal(collision ? 2 : 1, Directory.EnumerateFileSystemEntries(workspace.Root).Count());
+        Assert.Equal(2, Directory.EnumerateFileSystemEntries(destination).Count());
+        if (collision)
+        {
+            Assert.Equal([7], await File.ReadAllBytesAsync(Path.Combine(originalFolder, "keep.bin"),
+                TestContext.Current.CancellationToken));
+        }
+    }
+
     /// <summary>Compiled additional output is staged before sources with deterministic names and typed evidence.</summary>
     [Fact]
     public async Task CommitStagesAdditionalDeliveryAndSourcesInOneManifest()
@@ -163,13 +252,25 @@ public sealed class AtomicBundleCompositionOutputWriterTests
     public void PreflightRejectsOverlongDestinationPath()
     {
         using TempWorkspace workspace = TempWorkspace.Create();
+        string folderName = new('a', 260 - workspace.Root.Length - 1);
+        Assert.InRange(folderName.Length, 1, 255);
         AtomicBundleCompositionOutputWriter writer = new(
             workspace.Root,
-            new string('a', 260),
+            folderName,
             []);
 
         _ = Assert.Throws<PathTooLongException>(() => writer.EnsureCanCommit("output.bin", null));
 
+        Assert.Empty(Directory.EnumerateFileSystemEntries(workspace.Root));
+    }
+
+    /// <summary>Oversized components are rejected before any staging or destination access.</summary>
+    [Fact]
+    public void ConstructorRejectsOverlongComponentBeforeMutation()
+    {
+        using TempWorkspace workspace = TempWorkspace.Create();
+        _ = Assert.Throws<ArgumentException>(() =>
+            new AtomicBundleCompositionOutputWriter(workspace.Root, new string('a', 256), []));
         Assert.Empty(Directory.EnumerateFileSystemEntries(workspace.Root));
     }
 

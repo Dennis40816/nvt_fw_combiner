@@ -5,6 +5,7 @@ using Avalonia.Automation;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
+using Avalonia.Platform.Storage;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
@@ -74,6 +75,7 @@ public sealed partial class SettingsModal : UserControl
         }
 
         _settings.PropertyChanged += Settings_OnPropertyChanged;
+        _settings.ToolchainBrowseRequested += Settings_ToolchainBrowseRequested;
         _settings.EventBufferFormatRows.CollectionChanged += FormatRows_OnCollectionChanged;
         foreach (EventBufferFormatDraftRowViewModel row in _settings.EventBufferFormatRows)
         {
@@ -86,6 +88,7 @@ public sealed partial class SettingsModal : UserControl
         if (_settings is not null)
         {
             _settings.PropertyChanged -= Settings_OnPropertyChanged;
+            _settings.ToolchainBrowseRequested -= Settings_ToolchainBrowseRequested;
             _settings.EventBufferFormatRows.CollectionChanged -= FormatRows_OnCollectionChanged;
         }
         foreach (EventBufferFormatDraftRowViewModel row in _observedFormatRows)
@@ -174,32 +177,38 @@ public sealed partial class SettingsModal : UserControl
 
     private void Settings_OnPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
-        if (e.PropertyName != nameof(SettingsViewModel.IsEventBufferFormatCloseConfirmationOpen) || !IsOpen)
+        if (e.PropertyName is not (nameof(SettingsViewModel.IsEventBufferFormatCloseConfirmationOpen) or
+            nameof(SettingsViewModel.IsToolchainCloseConfirmationOpen)) || !IsOpen)
         {
             return;
         }
-        bool open = _settings!.IsEventBufferFormatCloseConfirmationOpen;
+        bool toolchain = _settings!.IsToolchainCloseConfirmationOpen ||
+            e.PropertyName == nameof(SettingsViewModel.IsToolchainCloseConfirmationOpen);
+        bool open = _settings.IsEventBufferFormatCloseConfirmationOpen || _settings.IsToolchainCloseConfirmationOpen;
         IInputElement? returnFocus = _confirmationReturnFocus;
         _confirmationReturnFocus = open ? _owningTopLevel?.FocusManager?.GetFocusedElement() : null;
         SettingsHeader.IsEnabled = !open;
         Control[] descendants = [.. this.GetVisualDescendants().OfType<Control>()];
         Control? rail = descendants.FirstOrDefault(control => control.Name == "SettingsNavigationRail");
         _ = rail?.IsEnabled = !open;
-        Grid? editor = descendants.OfType<Grid>().FirstOrDefault(control => control.Name == "EventBufferFormatPageRoot");
+        string pageName = toolchain ? "ToolchainPageRoot" : "EventBufferFormatPageRoot";
+        string confirmationName = toolchain ? "ToolchainCloseConfirmation" : "EventBufferFormatCloseConfirmation";
+        Grid? editor = descendants.OfType<Grid>().FirstOrDefault(control => control.Name == pageName);
         if (editor is not null)
         {
             foreach (Control child in editor.Children)
             {
-                child.IsEnabled = !open || child.Name == "EventBufferFormatCloseConfirmation";
+                child.IsEnabled = !open || child.Name == confirmationName;
             }
         }
         Dispatcher.UIThread.Post(() =>
         {
-            if (!IsOpen || _settings?.IsEventBufferFormatCloseConfirmationOpen != open) { return; }
+            if (!IsOpen || _settings is null ||
+                (_settings.IsEventBufferFormatCloseConfirmationOpen || _settings.IsToolchainCloseConfirmationOpen) != open) { return; }
             if (open)
             {
                 _ = this.GetVisualDescendants().OfType<Button>().FirstOrDefault(
-                    button => button.Command == _settings.CancelEventBufferFormatCloseCommand)?.Focus(NavigationMethod.Tab);
+                    button => ReferenceEquals(button.Command, toolchain ? _settings.CancelToolchainCloseCommand : _settings.CancelEventBufferFormatCloseCommand))?.Focus(NavigationMethod.Tab);
             }
             else if (returnFocus is not Control { IsEffectivelyVisible: true, IsEffectivelyEnabled: true } control ||
                 !control.Focus(NavigationMethod.Tab))
@@ -222,6 +231,7 @@ public sealed partial class SettingsModal : UserControl
         }
         else
         {
+            _settings?.InvalidateToolchainOperations();
             Dispatcher.UIThread.Post(
                 RestoreFocusAfterClose,
                 DispatcherPriority.Input);
@@ -263,10 +273,44 @@ public sealed partial class SettingsModal : UserControl
         {
             viewModel.Settings.CancelEventBufferFormatCloseCommand.Execute(null);
         }
+        else if (viewModel.Settings.IsToolchainCloseConfirmationOpen)
+        {
+            viewModel.Settings.CancelToolchainCloseCommand.Execute(null);
+        }
         else
         {
             viewModel.CloseSettingsCommand.Execute(null);
         }
         e.Handled = true;
+    }
+
+    private async void Settings_ToolchainBrowseRequested(object? sender, EventArgs e)
+    {
+        SettingsViewModel? settings = _settings;
+        if (!IsOpen || settings is null || !settings.CanEditToolchain || _owningTopLevel is null) { return; }
+        long operation = settings.ToolchainOperationGeneration;
+        IReadOnlyList<IStorageFile> files = [];
+        try
+        {
+            files = await _owningTopLevel.StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
+            {
+                Title = (DataContext as MainWindowViewModel)!.Text.ToolchainBrowseLabel,
+                AllowMultiple = false,
+                FileTypeFilter = [new FilePickerFileType("Runtime DLL") { Patterns = ["*.dll"] }],
+            });
+            if (IsOpen && ReferenceEquals(settings, _settings) && operation == settings.ToolchainOperationGeneration &&
+                files.Count > 0 && files[0].TryGetLocalPath() is { } path)
+            {
+                await settings.InspectToolchainPathAsync(path);
+            }
+        }
+        catch (Exception)
+        {
+            if (IsOpen && ReferenceEquals(settings, _settings) && operation == settings.ToolchainOperationGeneration)
+            {
+                settings.ReportToolchainBrowseFailure();
+            }
+        }
+        finally { foreach (IStorageFile file in files) { file.Dispose(); } }
     }
 }

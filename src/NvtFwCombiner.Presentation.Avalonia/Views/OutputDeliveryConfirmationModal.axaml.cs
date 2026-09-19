@@ -194,6 +194,27 @@ public sealed partial class OutputDeliveryConfirmationModal : UserControl
             DispatcherPriority.Input);
     }
 
+    private void CompleteOutputFileNameEditButton_OnClick(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is not OutputDeliveryConfirmationViewModel viewModel) { return; }
+        viewModel.CompleteOutputFileNameEdit();
+        Dispatcher.UIThread.Post(() => _ = EditOutputFileNameButton.Focus(NavigationMethod.Tab), DispatcherPriority.Input);
+    }
+
+    private void OutputFileNameInput_OnKeyDown(object? sender, KeyEventArgs e)
+    {
+        if (e.Key != Key.Enter) { return; }
+        CompleteOutputFileNameEditButton_OnClick(sender, e);
+        e.Handled = true;
+    }
+
+    private void FolderNameInput_OnKeyDown(object? sender, KeyEventArgs e)
+    {
+        if (e.Key != Key.Enter) { return; }
+        CompleteBundleDestinationEditButton_OnClick(sender, e);
+        e.Handled = true;
+    }
+
     private void CompleteBundleDestinationEditButton_OnClick(object? sender, RoutedEventArgs e)
     {
         if (DataContext is not OutputDeliveryConfirmationViewModel viewModel)
@@ -289,6 +310,8 @@ public sealed partial class OutputDeliveryConfirmationModal : UserControl
         ArgumentNullException.ThrowIfNull(viewModel);
         ArgumentNullException.ThrowIfNull(pickPrimaryAsync);
         ArgumentNullException.ThrowIfNull(pickAdditionalAsync);
+
+        if (!viewModel.CanConfirm) { return; }
 
         string? outputPath = await pickPrimaryAsync();
         if (outputPath is null)

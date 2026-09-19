@@ -1,0 +1,9 @@
+{
+  "schemaVersion": 1,
+  "taskId": "TOOLCHAIN-119-TRUST-03",
+  "authorityType": "release-owner",
+  "reviewedHead": "31bf47e1601ec1498672667ba7272b7739f75096",
+  "decision": "approved",
+  "reviewer": "Dennis Liu (release owner)",
+  "evidence": "The owner explicitly selected strict verification for a user-selected VC++ Runtime: unavailable revocation confirmation rejects the candidate, and a removed, changed or incompatible selected runtime blocks dependent Build until the user manually selects the bundled runtime. The owner also directed completion of v1.1.9. This attestation binds final-evidence head 31bf47e1601ec1498672667ba7272b7739f75096, whose independently reviewed implementation head d7545ca7129454eed779f4fe8d8e3034349937a2 passed with no P0-P3. Scope is only the isolated correlated runtime probe, strict Microsoft trust and revocation result, bounded PE dependency/export inspection and exact candidate identity. It does not waive the recorded native timeout/cancel/forced-exit observation, ETW module identity, clean-machine, full verification, package, signing, protected CI or publication gates, and it approves no firmware/profile/CRC behavior."
+}

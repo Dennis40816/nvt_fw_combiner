@@ -1,0 +1,57 @@
+{
+  "schemaVersion": 2,
+  "taskId": "TOOLCHAIN-119-DEPLOY-05",
+  "capability": "Generation-bound selected runtime deployment for dependent external processors",
+  "integrationBase": "017c679d67a3794b74487dbfccc5202a8b748b4d",
+  "risk": "R3",
+  "kind": "behavior",
+  "state": "final-complete",
+  "mutablePaths": [
+    "src/NvtFwCombiner.Infrastructure/ExternalTools/ExternalProcessorEnvironmentLoader.cs",
+    "src/NvtFwCombiner.Infrastructure/ExternalTools/ExternalProcessorRuntimeDependencyInspector.cs",
+    "src/NvtFwCombiner.Infrastructure/ExternalTools/ExternalRuntimeDeployment.cs",
+    "src/NvtFwCombiner.Infrastructure/ExternalTools/ExternalCombinerProcessor.cs",
+    "src/NvtFwCombiner.Infrastructure/ExternalTools/LegacyCombinerPostbuildProcessor.cs",
+    "src/NvtFwCombiner.Bootstrap/CompositionHostServices.cs",
+    "src/NvtFwCombiner.Bootstrap/CompositionHostServices.Toolchain.cs",
+    "src/NvtFwCombiner.Desktop/Program.cs",
+    "tests/NvtFwCombiner.Infrastructure.Tests/ExternalTools/ExternalRuntimeDeploymentTests.cs",
+    "tests/NvtFwCombiner.Infrastructure.Tests/ExternalTools/ExternalProcessorEnvironmentLoaderTests.cs",
+    "tests/NvtFwCombiner.Infrastructure.Tests/ExternalTools/ExternalProcessorRuntimeDependencyInspectorTests.cs",
+    "tests/NvtFwCombiner.Bootstrap.Tests/ToolchainConfigurationHostTests.cs",
+    "docs/adr/0073-toolchain-runtime-selection.md"
+  ],
+  "implementationOwner": "root",
+  "searchEvidence": [
+    "ExternalProcessorEnvironmentLoader is the existing atomic generation owner and processor construction root.",
+    "ExternalCombinerProcessor and LegacyCombinerPostbuildProcessor are the only production consumers of the approved legacy Combiner executable.",
+    "Application Toolchain session already publishes immutable generations; no second public lease type is needed."
+  ],
+  "semanticOwner": "Application selection generation plus Infrastructure external environment and private deployment lease",
+  "terminalContract": "Only dependent workflows use an exact selected runtime deployed beside a still-pinned executable; configuration publication invalidates old admissions without silent fallback",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "name_validation_design",
+    "outcome": "approved",
+    "evidence": "Reuse the existing long generation and external environment lease. Capture one session snapshot, compare again before publication and in AcquireCurrent/IsCurrent, preserve independent no-dependency branches, and deploy exact verified EXE plus exact selected DLL in a private per-run directory without PATH changes. Both processors share the deployment owner; failures call no runner."
+  },
+  "implementationHead": "d7545ca7129454eed779f4fe8d8e3034349937a2",
+  "reviewedHead": "d7545ca7129454eed779f4fe8d8e3034349937a2",
+  "pathStateDigest": "1114aaeb35a93c143ece0159d4b199b7fac4e1b121cfa8df05e49ea023072fa8",
+  "integrationPaths": [
+    "docs/adr/0073-toolchain-runtime-selection.md",
+    "src/NvtFwCombiner.Bootstrap/CompositionHostServices.Toolchain.cs",
+    "src/NvtFwCombiner.Bootstrap/CompositionHostServices.cs",
+    "src/NvtFwCombiner.Desktop/Program.cs",
+    "src/NvtFwCombiner.Infrastructure/ExternalTools/ExternalCombinerProcessor.cs",
+    "src/NvtFwCombiner.Infrastructure/ExternalTools/ExternalProcessorEnvironmentLoader.cs",
+    "src/NvtFwCombiner.Infrastructure/ExternalTools/ExternalProcessorRuntimeDependencyInspector.cs",
+    "src/NvtFwCombiner.Infrastructure/ExternalTools/ExternalRuntimeDeployment.cs",
+    "src/NvtFwCombiner.Infrastructure/ExternalTools/LegacyCombinerPostbuildProcessor.cs"
+  ],
+  "finalReview": {
+    "reviewer": "name_validation_design",
+    "outcome": "approved",
+    "evidence": "Independent exact-head review approved d7545ca7129454eed779f4fe8d8e3034349937a2 with no P0-P3. One generation-bound snapshot deploys exact verified EXE and DLL copies into a private per-invocation directory for both dependent processors, with no PATH mutation or silent fallback and cleanup after multi-command leases. Infrastructure evidence passed 127/127, processor regression 54/54 and actual bundled/selected Combiner smoke 2/2; ETW and clean-machine release evidence remain external gates."
+  }
+}

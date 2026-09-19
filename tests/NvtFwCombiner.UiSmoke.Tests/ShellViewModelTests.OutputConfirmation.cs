@@ -88,6 +88,11 @@ public sealed class OutputConfirmationTests
 
     private sealed class DelayedConfirmationNaming(ICompositionOutputNaming inner) : ICompositionOutputNaming
     {
+        public CompositionOutputBundleValidationIssue? ValidateName(string value)
+        {
+            return inner.ValidateName(value);
+        }
+
         internal TaskCompletionSource Entered { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
         internal TaskCompletionSource<bool> Completed { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
         public async ValueTask<bool> IsProposalCurrentAsync(CompositionOutputBundleProposal proposal, CancellationToken cancellationToken)
