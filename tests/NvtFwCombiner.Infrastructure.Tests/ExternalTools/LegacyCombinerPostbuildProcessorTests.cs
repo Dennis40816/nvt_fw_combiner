@@ -1,13 +1,74 @@
+using System.Security.Cryptography;
 using NvtFwCombiner.Application.Composition;
+using NvtFwCombiner.Application.Configuration;
 using NvtFwCombiner.Application.ExternalTools;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Infrastructure.ExternalTools;
+using NvtFwCombiner.Infrastructure.Files;
 
 namespace NvtFwCombiner.Infrastructure.Tests.ExternalTools;
 
 /// <summary>Tests staged CtrlRAM postbuild execution through approved legacy Combiner.exe profiles.</summary>
 public sealed partial class LegacyCombinerPostbuildProcessorTests
 {
+    /// <summary>Every command in one postbuild keeps the same private selected-runtime deployment alive.</summary>
+    [Fact]
+    public async Task MultiCommandTransformKeepsSelectedRuntimeDeploymentUntilCompletion()
+    {
+        using var workspace = TempWorkspace.Create();
+        string executableSha256 = workspace.CreateToolExecutable();
+        byte[] runtimeBytes = [0x4D, 0x5A, 0x14, 0x00];
+        string runtimePath = Path.Combine(workspace.Root, "runtime", "vcruntime140.dll");
+        _ = Directory.CreateDirectory(Path.GetDirectoryName(runtimePath)!);
+        await File.WriteAllBytesAsync(runtimePath, runtimeBytes, TestContext.Current.CancellationToken);
+        var selection = new ToolchainRuntimeSelection(
+            ToolchainRuntimeSource.User,
+            runtimePath,
+            Convert.ToHexStringLower(SHA256.HashData(runtimeBytes)));
+        var deployment = new ExternalRuntimeDeployment(
+            new(9, ToolchainRuntimeConfigurationStatus.Current, selection, selection, []),
+            new LocalFileStore(),
+            Path.Combine(workspace.Root, "deployments"));
+        var executablePaths = new List<string>();
+        bool mutated = false;
+        FakeProcessRunner runner = new(startInfo =>
+        {
+            executablePaths.Add(startInfo.ExecutablePath);
+            string privateDirectory = Path.GetDirectoryName(startInfo.ExecutablePath)!;
+            Assert.True(Directory.Exists(privateDirectory));
+            Assert.Equal(runtimeBytes, File.ReadAllBytes(Path.Combine(privateDirectory, "vcruntime140.dll")));
+            if (!mutated)
+            {
+                byte[] output = File.ReadAllBytes(startInfo.Arguments[1]);
+                output[0x32A70] ^= 0x5A;
+                File.WriteAllBytes(startInfo.Arguments[1], output);
+                mutated = true;
+            }
+            return new ExternalProcessResult(0, false, string.Empty, string.Empty);
+        });
+        LegacyCombinerPostbuildProcessor processor = workspace.CreateProcessor(
+            executableSha256,
+            runner,
+            runtimeDeployment: deployment);
+        byte[] firmware = CreateFirmwareImage();
+        var selectionInput = new IcNumberSelection(IcNumberInputMode.SingleSelector, ["single"]);
+        ExternalProcessorRequest request = new(
+            "run-selected-runtime",
+            LegacyCombinerPostbuildCatalog.Nt51926.ProcessorId,
+            "legacy-combiner-1.13.0",
+            firmware,
+            [new ByteRange(0x32A70, 1)],
+            selectionInput,
+            protocolPlan: CompileProtocolPlan(LegacyCombinerPostbuildCatalog.Nt51926.ProcessorId, selectionInput));
+
+        ExternalProcessorResult result = await processor.TransformAsync(request, TestContext.Current.CancellationToken);
+
+        Assert.True(result.Succeeded, string.Join("; ", result.Issues.Select(issue => issue.Message)));
+        Assert.Equal(2, executablePaths.Count);
+        _ = Assert.Single(executablePaths.Distinct(StringComparer.Ordinal));
+        Assert.False(Directory.Exists(Path.GetDirectoryName(executablePaths[0])));
+    }
+
     /// <summary>Verifies a normal-mode profile stages BIN files and accepts declared output changes.</summary>
     [Fact]
     public async Task TransformStagesBinFilesAndAcceptsDeclaredChanges()

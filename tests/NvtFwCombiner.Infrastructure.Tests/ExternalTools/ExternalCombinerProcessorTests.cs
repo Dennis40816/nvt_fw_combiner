@@ -1,9 +1,11 @@
 using System.Security.Cryptography;
 using NvtFwCombiner.Application.Composition;
+using NvtFwCombiner.Application.Configuration;
 using NvtFwCombiner.Application.ExternalTools;
 using NvtFwCombiner.Contracts.ExternalTools;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Infrastructure.ExternalTools;
+using NvtFwCombiner.Infrastructure.Files;
 using SharedTempWorkspace = NvtFwCombiner.TestSupport.TempWorkspace;
 
 namespace NvtFwCombiner.Infrastructure.Tests.ExternalTools;
@@ -509,6 +511,72 @@ public sealed class ExternalCombinerProcessorTests
         Assert.Empty(Directory.GetFileSystemEntries(workspace.StagingRoot));
     }
 
+    /// <summary>The selected runtime and pinned tool execute from one private directory for the whole invocation.</summary>
+    [Fact]
+    public async Task UserRuntimeDeploymentIsUsedAndCleanedAfterTransform()
+    {
+        using var workspace = TempWorkspace.Create();
+        string executableSha256 = workspace.CreateToolExecutable();
+        byte[] runtimeBytes = [0x4D, 0x5A, 0x14, 0x00];
+        string runtimePath = Path.Combine(workspace.Root, "runtime", "vcruntime140.dll");
+        _ = Directory.CreateDirectory(Path.GetDirectoryName(runtimePath)!);
+        await File.WriteAllBytesAsync(runtimePath, runtimeBytes, TestContext.Current.CancellationToken);
+        var selection = new ToolchainRuntimeSelection(
+            ToolchainRuntimeSource.User,
+            runtimePath,
+            Convert.ToHexStringLower(SHA256.HashData(runtimeBytes)));
+        var deployment = new ExternalRuntimeDeployment(
+            new(7, ToolchainRuntimeConfigurationStatus.Current, selection, selection, []),
+            new LocalFileStore(),
+            Path.Combine(workspace.Root, "deployments"));
+        string? privateDirectory = null;
+        FakeProcessRunner runner = new(startInfo =>
+        {
+            privateDirectory = Path.GetDirectoryName(startInfo.ExecutablePath);
+            Assert.NotEqual(Path.Combine(workspace.ToolRoot, "legacy-combiner", "1.10", "combiner.exe"), startInfo.ExecutablePath);
+            Assert.Equal(runtimeBytes, File.ReadAllBytes(Path.Combine(privateDirectory!, "vcruntime140.dll")));
+            File.WriteAllBytes(Path.Combine(startInfo.WorkingDirectory, "output.bin"), [0, 7, 0, 0]);
+            return new ExternalProcessResult(0, false, string.Empty, string.Empty);
+        });
+        ExternalCombinerProcessor processor = workspace.CreateProcessor(executableSha256, runner, runtimeDeployment: deployment);
+
+        ExternalProcessorResult result = await processor.TransformAsync(Request(), TestContext.Current.CancellationToken);
+
+        Assert.True(result.Succeeded);
+        Assert.Equal(1, runner.RunCount);
+        Assert.NotNull(privateDirectory);
+        Assert.False(Directory.Exists(privateDirectory));
+    }
+
+    /// <summary>A selected runtime identity change blocks the processor before its runner is called.</summary>
+    [Fact]
+    public async Task ChangedUserRuntimeBlocksBeforeProcessStart()
+    {
+        using var workspace = TempWorkspace.Create();
+        string executableSha256 = workspace.CreateToolExecutable();
+        byte[] runtimeBytes = [0x4D, 0x5A, 0x14, 0x00];
+        string runtimePath = Path.Combine(workspace.Root, "runtime", "vcruntime140.dll");
+        _ = Directory.CreateDirectory(Path.GetDirectoryName(runtimePath)!);
+        await File.WriteAllBytesAsync(runtimePath, runtimeBytes, TestContext.Current.CancellationToken);
+        var selection = new ToolchainRuntimeSelection(
+            ToolchainRuntimeSource.User,
+            runtimePath,
+            Convert.ToHexStringLower(SHA256.HashData(runtimeBytes)));
+        var deployment = new ExternalRuntimeDeployment(
+            new(8, ToolchainRuntimeConfigurationStatus.Current, selection, selection, []),
+            new LocalFileStore(),
+            Path.Combine(workspace.Root, "deployments"));
+        await File.WriteAllBytesAsync(runtimePath, [0xFF], TestContext.Current.CancellationToken);
+        FakeProcessRunner runner = new(_ => throw new InvalidOperationException("runner should not run"));
+        ExternalCombinerProcessor processor = workspace.CreateProcessor(executableSha256, runner, runtimeDeployment: deployment);
+
+        ExternalProcessorResult result = await processor.TransformAsync(Request(), TestContext.Current.CancellationToken);
+
+        Assert.False(result.Succeeded);
+        Assert.Equal("toolchain-runtime.identity.changed", Assert.Single(result.Issues).Code);
+        Assert.Equal(0, runner.RunCount);
+    }
+
     private static ExternalProcessorRequest Request(IReadOnlyList<ByteRange>? allowedWrites = null)
     {
         return new ExternalProcessorRequest(
@@ -580,7 +648,8 @@ public sealed class ExternalCombinerProcessorTests
             string executableSha256,
             IExternalProcessRunner runner,
             IReadOnlyList<string>? argumentTemplate = null,
-            IEnumerable<ExternalCombinerInvocationProfile>? invocationProfiles = null)
+            IEnumerable<ExternalCombinerInvocationProfile>? invocationProfiles = null,
+            ExternalRuntimeDeployment? runtimeDeployment = null)
         {
             ExternalCombinerToolRegistry registry = new([Manifest(executableSha256, argumentTemplate)]);
             return new ExternalCombinerProcessor(
@@ -588,7 +657,8 @@ public sealed class ExternalCombinerProcessorTests
                 ToolRoot,
                 StagingRoot,
                 runner,
-                invocationProfiles ?? []);
+                invocationProfiles ?? [],
+                runtimeDeployment);
         }
 
         public void Dispose()
