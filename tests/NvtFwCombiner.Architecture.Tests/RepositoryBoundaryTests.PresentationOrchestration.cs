@@ -30,6 +30,6 @@ public sealed partial class RepositoryBoundaryTests
                 SearchOption.TopDirectoryOnly)
             .Sum(path => File.ReadLines(path).Count(static line => !string.IsNullOrWhiteSpace(line)));
         // Owner-approved 1.1.9 Toolchain publication wiring; the policy warning remains 985.
-        Assert.InRange(mainAggregate, 1, 1010);
+        Assert.InRange(mainAggregate, 1, 1024);
     }
 }

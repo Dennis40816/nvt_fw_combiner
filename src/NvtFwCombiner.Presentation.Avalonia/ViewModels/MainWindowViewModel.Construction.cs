@@ -64,7 +64,7 @@ internal sealed partial class MainWindowViewModel
             hostServices.EventBufferFormatConfigurationSessionFactory,
             hostServices.ToolchainRuntimeConfigurationSessionFactory)
         {
-            ToolchainAppliedAsync = RefreshRuntimeReadinessAfterPublicationAsync,
+            ToolchainAppliedAsync = ReloadRuntimeEnvironmentAndRefreshReadinessAsync,
         };
         Settings.EventBufferFormatCloseAccepted += Settings_EventBufferFormatCloseAccepted;
         OutputDelivery = new OutputDeliveryConfirmationViewModel(

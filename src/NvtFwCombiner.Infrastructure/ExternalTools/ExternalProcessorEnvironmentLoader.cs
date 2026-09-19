@@ -244,6 +244,7 @@ internal sealed class ExternalProcessorEnvironmentLoader :
                 }
                 else if (!IsConfigurationCurrent(candidate))
                 {
+                    RestoreCurrentState(requestGeneration);
                     result = Superseded(requestGeneration);
                 }
                 else
@@ -303,8 +304,8 @@ internal sealed class ExternalProcessorEnvironmentLoader :
     {
         lock (_gate)
         {
-            bool retained = _environment is not null;
-            int manifestCount = _environment?.ManifestCount ?? 0;
+            bool retained = _environment is not null && IsConfigurationCurrent(_environment);
+            int manifestCount = retained ? _environment!.ManifestCount : 0;
             CurrentState = Status(
                 retained
                     ? ExternalProcessorEnvironmentState.LastKnownGood
@@ -327,12 +328,13 @@ internal sealed class ExternalProcessorEnvironmentLoader :
     {
         lock (_gate)
         {
+            bool retained = _environment is not null && IsConfigurationCurrent(_environment);
             return new(
                 ExternalProcessorEnvironmentLoadOutcome.Superseded,
                 requestGeneration,
                 _publicationGeneration,
-                _environment?.ManifestCount ?? 0,
-                RetainedLastKnownGood: _environment is not null,
+                retained ? _environment!.ManifestCount : 0,
+                RetainedLastKnownGood: retained,
                 []);
         }
     }
@@ -345,15 +347,21 @@ internal sealed class ExternalProcessorEnvironmentLoader :
             {
                 return;
             }
-            CurrentState = Status(
-                _environment is null
-                    ? ExternalProcessorEnvironmentState.NotLoaded
-                    : ExternalProcessorEnvironmentState.Current,
-                requestGeneration,
-                _publicationGeneration,
-                _environment?.ManifestCount ?? 0,
-                []);
+            RestoreCurrentState(requestGeneration);
         }
+    }
+
+    private void RestoreCurrentState(long requestGeneration)
+    {
+        bool current = _environment is not null && IsConfigurationCurrent(_environment);
+        CurrentState = Status(
+            current
+                ? ExternalProcessorEnvironmentState.Current
+                : ExternalProcessorEnvironmentState.NotLoaded,
+            requestGeneration,
+            _publicationGeneration,
+            current ? _environment!.ManifestCount : 0,
+            []);
     }
 
     private bool IsCurrentRequest(long requestGeneration)

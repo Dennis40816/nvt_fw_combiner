@@ -14,7 +14,9 @@ internal sealed partial class MessageCenterViewModel : ObservableObject
     private readonly ISystemDiagnosticsExporter _exporter;
     private readonly Action<bool> _diagnosticsChanged;
     private readonly Func<CancellationToken, Task>? _externalEnvironmentChanged;
+    private readonly Lock _environmentPublicationGate = new();
     private Task? _activeRefresh;
+    private Task<ExternalProcessorEnvironmentLoadResult>? _latestEnvironmentPublication;
     private bool _activeRefreshReloadsCatalog;
 
     internal MessageCenterViewModel(
@@ -218,29 +220,78 @@ internal sealed partial class MessageCenterViewModel : ObservableObject
             CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(progress);
-        ExternalProcessorEnvironmentLoadResult result = await _externalEnvironment.LoadToCompletionAsync(
-            progress,
-            cancellationToken);
-        switch (result.Outcome)
+        TaskCompletionSource<ExternalProcessorEnvironmentLoadResult> publication =
+            BeginEnvironmentPublication();
+        try
         {
-            case ExternalProcessorEnvironmentLoadOutcome.Succeeded:
-                await RefreshAsync(reloadCatalog: false, cancellationToken);
-                if (_externalEnvironmentChanged is not null)
-                {
-                    await _externalEnvironmentChanged(cancellationToken);
-                }
-                return;
-            case ExternalProcessorEnvironmentLoadOutcome.Superseded:
-                throw new ShellPreloadSupersededException();
-            case ExternalProcessorEnvironmentLoadOutcome.Failed:
-                await RefreshAsync(reloadCatalog: false, cancellationToken);
-                throw new InvalidOperationException(string.Join(
-                    " ",
-                    result.Issues.Select(static issue => issue.Message)));
-            case ExternalProcessorEnvironmentLoadOutcome.Unknown:
-            default:
-                throw new InvalidOperationException(
-                    "External environment loading returned an invalid terminal result.");
+            ExternalProcessorEnvironmentLoadResult result =
+                await _externalEnvironment.LoadToCompletionAsync(progress, cancellationToken);
+            switch (result.Outcome)
+            {
+                case ExternalProcessorEnvironmentLoadOutcome.Succeeded:
+                    await RefreshAsync(reloadCatalog: false, cancellationToken);
+                    if (_externalEnvironmentChanged is not null)
+                    {
+                        await _externalEnvironmentChanged(cancellationToken);
+                    }
+                    _ = publication.TrySetResult(result);
+                    return;
+                case ExternalProcessorEnvironmentLoadOutcome.Superseded:
+                    _ = publication.TrySetResult(result);
+                    throw new ShellPreloadSupersededException();
+                case ExternalProcessorEnvironmentLoadOutcome.Failed:
+                    await RefreshAsync(reloadCatalog: false, cancellationToken);
+                    _ = publication.TrySetResult(result);
+                    throw new InvalidOperationException(EnvironmentError(result));
+                case ExternalProcessorEnvironmentLoadOutcome.Unknown:
+                default:
+                    throw new InvalidOperationException(
+                        "External environment loading returned an invalid terminal result.");
+            }
+        }
+        catch (OperationCanceledException exception)
+        {
+            _ = publication.TrySetCanceled(exception.CancellationToken);
+            throw;
+        }
+        catch (Exception exception)
+        {
+            _ = publication.TrySetException(exception);
+            throw;
+        }
+    }
+
+    internal async Task<(bool Succeeded, string ErrorMessage)>
+        ReloadExternalEnvironmentAfterConfigurationAsync(CancellationToken cancellationToken)
+    {
+        TaskCompletionSource<ExternalProcessorEnvironmentLoadResult> publication =
+            BeginEnvironmentPublication();
+        try
+        {
+            PresentationObserver.Invoke(() => OnPropertyChanged(nameof(ExternalEnvironmentSummary)));
+            ExternalProcessorEnvironmentLoadResult result =
+                await _externalEnvironment.LoadToCompletionAsync(progress: null, cancellationToken);
+            PresentationObserver.Invoke(() => OnPropertyChanged(nameof(ExternalEnvironmentSummary)));
+            (bool succeeded, string errorMessage) resolution = result.Outcome ==
+                ExternalProcessorEnvironmentLoadOutcome.Superseded
+                    ? await AwaitSupersedingEnvironmentPublicationAsync(
+                        publication.Task,
+                        result.RequestGeneration,
+                        cancellationToken)
+                    : ProjectEnvironmentResult(result);
+            await RefreshDiagnosticsAfterEnvironmentPublicationAsync(cancellationToken);
+            _ = publication.TrySetResult(result);
+            return resolution;
+        }
+        catch (OperationCanceledException exception)
+        {
+            _ = publication.TrySetCanceled(exception.CancellationToken);
+            throw;
+        }
+        catch (Exception exception)
+        {
+            _ = publication.TrySetException(exception);
+            throw;
         }
     }
 
@@ -362,21 +413,115 @@ internal sealed partial class MessageCenterViewModel : ObservableObject
         NotifyActivityChanged();
         PresentationObserver.Invoke(() => IsRefreshInProgress = true);
         PresentationObserver.Invoke(() => OnPropertyChanged(nameof(ExternalEnvironmentSummary)));
+        TaskCompletionSource<ExternalProcessorEnvironmentLoadResult> publication =
+            BeginEnvironmentPublication();
         try
         {
-            _ = await _externalEnvironment.LoadToCompletionAsync(progress: null, cancellationToken);
+            ExternalProcessorEnvironmentLoadResult result =
+                await _externalEnvironment.LoadToCompletionAsync(progress: null, cancellationToken);
             PresentationObserver.Invoke(() => OnPropertyChanged(nameof(ExternalEnvironmentSummary)));
             await RefreshAsync(reloadCatalog: true, cancellationToken);
             if (_externalEnvironmentChanged is not null)
             {
                 await _externalEnvironmentChanged(cancellationToken);
             }
+            _ = publication.TrySetResult(result);
+        }
+        catch (OperationCanceledException exception)
+        {
+            _ = publication.TrySetCanceled(exception.CancellationToken);
+            throw;
+        }
+        catch (Exception exception)
+        {
+            _ = publication.TrySetException(exception);
+            throw;
         }
         finally
         {
             PresentationObserver.Invoke(() => IsRefreshInProgress = false);
             PresentationObserver.Invoke(() => OnPropertyChanged(nameof(ExternalEnvironmentSummary)));
         }
+    }
+
+    private TaskCompletionSource<ExternalProcessorEnvironmentLoadResult>
+        BeginEnvironmentPublication()
+    {
+        var publication = new TaskCompletionSource<ExternalProcessorEnvironmentLoadResult>(
+            TaskCreationOptions.RunContinuationsAsynchronously);
+        lock (_environmentPublicationGate)
+        {
+            _latestEnvironmentPublication = publication.Task;
+        }
+        return publication;
+    }
+
+    private async Task<(bool Succeeded, string ErrorMessage)>
+        AwaitSupersedingEnvironmentPublicationAsync(
+            Task<ExternalProcessorEnvironmentLoadResult> ownPublication,
+            long ownRequestGeneration,
+            CancellationToken cancellationToken)
+    {
+        Task<ExternalProcessorEnvironmentLoadResult> observed = ownPublication;
+        while (true)
+        {
+            Task<ExternalProcessorEnvironmentLoadResult>? latest;
+            lock (_environmentPublicationGate)
+            {
+                latest = _latestEnvironmentPublication;
+            }
+            if (latest is null || ReferenceEquals(latest, observed))
+            {
+                return (false, "External environment reload was superseded without a newer publication.");
+            }
+
+            ExternalProcessorEnvironmentLoadResult result;
+            try
+            {
+                result = await latest.WaitAsync(cancellationToken);
+            }
+            catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+            {
+                return (false, "The newer external environment reload was canceled before publication.");
+            }
+            observed = latest;
+            if (result.RequestGeneration <= ownRequestGeneration)
+            {
+                return (false, "External environment reload did not publish a newer request.");
+            }
+
+            lock (_environmentPublicationGate)
+            {
+                if (!ReferenceEquals(_latestEnvironmentPublication, latest))
+                {
+                    continue;
+                }
+            }
+            return ProjectEnvironmentResult(result);
+        }
+    }
+
+    private static (bool Succeeded, string ErrorMessage) ProjectEnvironmentResult(
+        ExternalProcessorEnvironmentLoadResult result)
+    {
+        return result.Outcome switch
+        {
+            ExternalProcessorEnvironmentLoadOutcome.Succeeded => (true, string.Empty),
+            ExternalProcessorEnvironmentLoadOutcome.Failed => (false, EnvironmentError(result)),
+            ExternalProcessorEnvironmentLoadOutcome.Superseded =>
+                (false, "External environment reload was superseded without a settled publication."),
+            ExternalProcessorEnvironmentLoadOutcome.Unknown =>
+                (false, "External environment loading returned an invalid terminal result."),
+            _ => throw new ArgumentOutOfRangeException(nameof(result), result.Outcome, null),
+        };
+    }
+
+    private static string EnvironmentError(ExternalProcessorEnvironmentLoadResult result)
+    {
+        string error = string.Join(" ", result.Issues.Select(static issue => issue.Message));
+        return string.IsNullOrWhiteSpace(error)
+            ? "External environment reload failed without a diagnostic issue."
+            : error;
     }
 
     private async Task RefreshCoreAsync(bool reloadCatalog, CancellationToken cancellationToken)
@@ -425,6 +570,28 @@ internal sealed partial class MessageCenterViewModel : ObservableObject
             // The explicit operator refresh still owns a fresh full attempt.
         }
         await RefreshAsync(reloadCatalog: true, cancellationToken);
+    }
+
+    private async Task RefreshDiagnosticsAfterEnvironmentPublicationAsync(
+        CancellationToken cancellationToken)
+    {
+        if (_activeRefresh is { IsCompleted: false } active)
+        {
+            try
+            {
+                await active.WaitAsync(cancellationToken);
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                throw;
+            }
+            catch (Exception)
+            {
+                // The post-publication refresh still owns a fresh diagnostics attempt.
+            }
+        }
+
+        await RefreshAsync(reloadCatalog: false, cancellationToken);
     }
 
     private async Task ObserveRefreshCompletionAsync(Task refresh)

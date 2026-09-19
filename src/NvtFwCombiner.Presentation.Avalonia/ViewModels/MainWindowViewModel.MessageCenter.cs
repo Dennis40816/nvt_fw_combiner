@@ -34,8 +34,23 @@ internal sealed partial class MainWindowViewModel
 
     private async Task RefreshRuntimeReadinessAfterPublicationAsync(CancellationToken cancellationToken)
     {
+        await Merge.RefreshAbMergeActionReadinessAsync(cancellationToken);
         await Replace.RefreshCtrlRamActionReadinessAsync(cancellationToken);
         MessageCenterDiagnosticsChanged(catalogPublicationChanged: false);
+    }
+
+    private async Task ReloadRuntimeEnvironmentAndRefreshReadinessAsync(
+        CancellationToken cancellationToken)
+    {
+        (bool succeeded, string errorMessage) =
+            await MessageCenter.ReloadExternalEnvironmentAfterConfigurationAsync(cancellationToken);
+        await RefreshRuntimeReadinessAfterPublicationAsync(cancellationToken);
+        if (succeeded)
+        {
+            return;
+        }
+
+        throw new InvalidOperationException(errorMessage);
     }
 
     private void MessageCenterDiagnosticsChanged(bool catalogPublicationChanged)

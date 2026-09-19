@@ -150,15 +150,15 @@ internal sealed partial class MainWindowViewModel
         Merge.PreviewMergeCommand.NotifyCanExecuteChanged();
         Merge.BuildMergeCommand.NotifyCanExecuteChanged();
         Reports.ShowReportCommand.NotifyCanExecuteChanged();
-        OnPropertyChanged(nameof(IsDeviceContextVisible));
-        OnPropertyChanged(nameof(Merge.CanBuildMerge));
-        OnPropertyChanged(nameof(Merge.MergeReadinessStatus));
-        OnPropertyChanged(nameof(HasMergeBuildBlocker));
-        OnPropertyChanged(nameof(MergeBuildBlockerText));
-        OnPropertyChanged(nameof(MergeBuildBlockerCard));
-        OnPropertyChanged(nameof(HasReplaceBuildBlocker));
-        OnPropertyChanged(nameof(ReplaceBuildBlockerText));
-        OnPropertyChanged(nameof(ReplaceBuildBlockerCard));
+        PresentationObserver.Invoke(() => OnPropertyChanged(nameof(IsDeviceContextVisible)));
+        PresentationObserver.Invoke(() => OnPropertyChanged(nameof(Merge.CanBuildMerge)));
+        PresentationObserver.Invoke(() => OnPropertyChanged(nameof(Merge.MergeReadinessStatus)));
+        PresentationObserver.Invoke(() => OnPropertyChanged(nameof(HasMergeBuildBlocker)));
+        PresentationObserver.Invoke(() => OnPropertyChanged(nameof(MergeBuildBlockerText)));
+        PresentationObserver.Invoke(() => OnPropertyChanged(nameof(MergeBuildBlockerCard)));
+        PresentationObserver.Invoke(() => OnPropertyChanged(nameof(HasReplaceBuildBlocker)));
+        PresentationObserver.Invoke(() => OnPropertyChanged(nameof(ReplaceBuildBlockerText)));
+        PresentationObserver.Invoke(() => OnPropertyChanged(nameof(ReplaceBuildBlockerCard)));
     }
 
 }

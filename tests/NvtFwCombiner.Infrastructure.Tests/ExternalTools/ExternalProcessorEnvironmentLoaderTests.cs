@@ -56,6 +56,9 @@ public sealed class ExternalProcessorEnvironmentLoaderTests
         ExternalProcessorEnvironmentLoadResult result = Terminal(await load);
 
         Assert.Equal(ExternalProcessorEnvironmentLoadOutcome.Superseded, result.Outcome);
+        Assert.False(result.RetainedLastKnownGood);
+        Assert.Equal(0, result.ManifestCount);
+        Assert.Equal(ExternalProcessorEnvironmentState.NotLoaded, loader.Current.State);
         Assert.Null(loader.AcquireCurrent().Processor);
     }
 
@@ -181,6 +184,81 @@ public sealed class ExternalProcessorEnvironmentLoaderTests
         Assert.Equal(first.Generation, retained.Generation);
         Assert.Same(first.Processor, retained.Processor);
         Assert.Equal(ExternalProcessorEnvironmentState.LastKnownGood, loader.Current.State);
+    }
+
+    /// <summary>A failed reload cannot retain an environment from an obsolete Toolchain generation.</summary>
+    [Fact]
+    public async Task FailedRefreshAfterToolchainChangeReportsUnavailable()
+    {
+        var session = new StubToolchainSession(1);
+        int invocation = 0;
+        var loader = new ExternalProcessorEnvironmentLoader(
+            (_, cancellationToken) =>
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                return invocation++ == 0
+                    ? ValueTask.FromResult(new ExternalProcessorRuntimeEnvironment(
+                        new StubExternalProcessor(),
+                        StubReadinessProvider.Instance,
+                        1,
+                        null,
+                        session.Current.Generation))
+                    : ValueTask.FromException<ExternalProcessorRuntimeEnvironment>(
+                        new InvalidDataException("invalid manifest"));
+            },
+            session);
+
+        Assert.True(Terminal(await ReadAsync(loader.LoadAsync(
+            TestContext.Current.CancellationToken))).Succeeded);
+        session.Publish(2);
+        ExternalProcessorEnvironmentLoadResult failed = Terminal(await ReadAsync(loader.LoadAsync(
+            TestContext.Current.CancellationToken)));
+
+        Assert.Equal(ExternalProcessorEnvironmentLoadOutcome.Failed, failed.Outcome);
+        Assert.False(failed.RetainedLastKnownGood);
+        Assert.Equal(0, failed.ManifestCount);
+        Assert.Equal(ExternalProcessorEnvironmentState.Unavailable, loader.Current.State);
+        Assert.Equal(0, loader.Current.ManifestCount);
+        Assert.Null(loader.AcquireCurrent().Processor);
+    }
+
+    /// <summary>Cancellation cannot restore an obsolete Toolchain generation as Current.</summary>
+    [Fact]
+    public async Task CancellationAfterToolchainChangeDoesNotRestoreStaleEnvironment()
+    {
+        var session = new StubToolchainSession(1);
+        int invocation = 0;
+        var entered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var loader = new ExternalProcessorEnvironmentLoader(async (_, cancellationToken) =>
+        {
+            if (invocation++ == 0)
+            {
+                return new(
+                    new StubExternalProcessor(),
+                    StubReadinessProvider.Instance,
+                    1,
+                    null,
+                    session.Current.Generation);
+            }
+
+            entered.SetResult();
+            await Task.Delay(Timeout.InfiniteTimeSpan, cancellationToken);
+            throw new InvalidOperationException("unreachable");
+        }, session);
+        Assert.True(Terminal(await ReadAsync(loader.LoadAsync(
+            TestContext.Current.CancellationToken))).Succeeded);
+        session.Publish(2);
+        using var cancellation = new CancellationTokenSource();
+        Task<List<ExternalProcessorEnvironmentLoadUpdate>> refresh = ReadAsync(
+            loader.LoadAsync(cancellation.Token));
+        await entered.Task;
+
+        cancellation.Cancel();
+        _ = await Assert.ThrowsAnyAsync<OperationCanceledException>(() => refresh);
+
+        Assert.Equal(ExternalProcessorEnvironmentState.NotLoaded, loader.Current.State);
+        Assert.Equal(0, loader.Current.ManifestCount);
+        Assert.Null(loader.AcquireCurrent().Processor);
     }
 
     /// <summary>A newer request cancels and drains an older request before materializing.</summary>

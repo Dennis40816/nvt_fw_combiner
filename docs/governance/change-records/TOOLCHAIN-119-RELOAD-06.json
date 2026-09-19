@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 2,
+  "taskId": "TOOLCHAIN-119-RELOAD-06",
+  "capability": "Republish external runtime environment after Toolchain selection changes",
+  "integrationBase": "31bf47e1601ec1498672667ba7272b7739f75096",
+  "risk": "R1",
+  "kind": "behavior",
+  "state": "final-complete",
+  "mutablePaths": [
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MainWindowViewModel.MessageCenter.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MainWindowViewModel.Construction.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MessageCenterViewModel.cs",
+    "tests/NvtFwCombiner.UiSmoke.Tests/ShellViewModelTests.CtrlRamRuntimeRefresh.cs",
+    "tests/NvtFwCombiner.UiSmoke.Tests/ShellViewModelTests.Toolchain.cs"
+  ],
+  "implementationOwner": "root",
+  "searchEvidence": [
+    "CodeGraph traced ToolchainAppliedAsync to RefreshRuntimeReadinessAfterPublicationAsync and found that it refreshed cached readiness without reloading the generation-bound ExternalProcessorEnvironmentLoader.",
+    "MessageCenterViewModel already owns every explicit external-environment load and diagnostics refresh; the correction reuses that owner instead of adding a second loader path.",
+    "AB Merge and CtrlRAM Replace are the current Presentation readiness caches backed by the external processor environment."
+  ],
+  "semanticOwner": "MessageCenterViewModel external-environment lifecycle with existing Merge and Replace readiness projections",
+  "terminalContract": "A successful Toolchain save first republishes the environment for the new configuration generation, then refreshes dependent readiness and global diagnostics; a failed publication stays visible and does not silently fall back",
+  "disposition": "reuse",
+  "designReview": {
+    "reviewer": null,
+    "outcome": "not-required",
+    "evidence": "Bounded R1 correction of the existing post-save callback; no new public contract, runtime trust policy, firmware semantics, or alternate environment owner."
+  },
+  "implementationHead": "18428abdad3ca5d78938215209185c810a5577e2",
+  "reviewedHead": "18428abdad3ca5d78938215209185c810a5577e2",
+  "pathStateDigest": "8083664ea5637b26b0ecb6725c1862970a5717ce750c12a8cf1a93dce8615f0f",
+  "finalReview": {
+    "reviewer": "name_validation_design",
+    "outcome": "findings-incorporated",
+    "evidence": "Independent fixed-head review PASS at 18428abdad3ca5d78938215209185c810a5577e2 after two P2 findings were incorporated. Toolchain Save exclusively performs reload plus fresh diagnostics and readiness refresh; startup and explicit publication callbacks are refresh-only. Post-publication diagnostics waits any older active refresh before taking a new snapshot. AB Merge and CtrlRAM readiness follow the environment publication without recursion or silent fallback. Targeted UI evidence passed 24/24 with four startup/explicit cases asserting one environment generation; git diff --check passed. Native and release gates remain separate."
+  }
+}

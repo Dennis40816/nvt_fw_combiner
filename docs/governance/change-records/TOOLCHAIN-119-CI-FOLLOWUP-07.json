@@ -1,0 +1,40 @@
+{
+  "schemaVersion": 2,
+  "taskId": "TOOLCHAIN-119-CI-FOLLOWUP-07",
+  "capability": "Preserve observer isolation and architecture boundaries after runtime reload",
+  "integrationBase": "6143d210ccf1d911c98294f3eea75263cb196ea4",
+  "risk": "R1",
+  "kind": "behavior",
+  "state": "final-complete",
+  "mutablePaths": [
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MainWindowViewModel.MergePresentation.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MainWindowViewModel.Context.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MainWindowViewModel.MessageCenter.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MainWindowViewModel.ReplacePresentation.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MainWindowViewModel.RunSession.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MessageCenterViewModel.cs",
+    "tests/NvtFwCombiner.Architecture.Tests/RepositoryBoundaryTests.PresentationOrchestration.cs"
+  ],
+  "implementationOwner": "root",
+  "searchEvidence": [
+    "PR 442 CI evidence identified one UI failure where an external shell observer escaped through Merge_OnPropertyChanged during the new readiness refresh.",
+    "PR 442 CI evidence identified a direct Application.ExternalTools namespace reference from MainWindowViewModel.MessageCenter.cs and an aggregate size of 1025 nonblank lines.",
+    "The existing PresentationObserver boundary and Application-owned loader contract are sufficient; no second lifecycle owner is required."
+  ],
+  "semanticOwner": "Existing Presentation observer isolation and MessageCenter external-environment lifecycle",
+  "terminalContract": "Runtime reload still refreshes AB Merge and CtrlRAM readiness, while notification observers cannot fail the operation and MainWindow remains free of direct ExternalTools namespace coupling",
+  "disposition": "reuse",
+  "designReview": {
+    "reviewer": null,
+    "outcome": "not-required",
+    "evidence": "CI follow-up for the already approved R1 correction; no new firmware, trust, or public contract."
+  },
+  "implementationHead": "ad97a8863c448464a9b05e6b95e44ab4a9d42370",
+  "reviewedHead": "ad97a8863c448464a9b05e6b95e44ab4a9d42370",
+  "pathStateDigest": "09eb7d861b5ed4c516c96f7824938d24e957049f8a7ff2e0f50e0d7ac8eefc64",
+  "finalReview": {
+    "reviewer": "name_validation_design",
+    "outcome": "approved",
+    "evidence": "Independent fixed-head review PASS at ad97a8863c448464a9b05e6b95e44ab4a9d42370 with no P0-P3 findings. Observer isolation wraps only committed-state notifications; loader, validation, readiness, and Application failures remain visible. MessageCenter projects the existing loader result without a second semantic path, MainWindow no longer references Application.ExternalTools, and the finite 1024 architecture ceiling retains the 985 warning. Targeted UI evidence passed 26/26, Architecture passed 256/256, and scoped Polytail fast checks passed with only pre-existing size warnings."
+  }
+}

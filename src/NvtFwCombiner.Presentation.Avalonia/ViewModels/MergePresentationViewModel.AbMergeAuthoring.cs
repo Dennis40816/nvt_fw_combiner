@@ -150,7 +150,7 @@ internal sealed partial class MergePresentationViewModel
         ActiveSessionSnapshot? session = _abMergeSession.CurrentSnapshot;
         if (!IsAbCodeMergeModeSelected || session is null)
         {
-            RefreshCommandState();
+            PresentationObserver.Invoke(RefreshCommandState);
             return;
         }
 
@@ -165,7 +165,7 @@ internal sealed partial class MergePresentationViewModel
             _abMergeActionReadiness = readiness;
             _abMergeReadinessSession = session;
         }
-        RefreshCommandState();
+        PresentationObserver.Invoke(RefreshCommandState);
     }
 
     internal bool HasCurrentAbMergeActionReadiness(bool build)

@@ -6,7 +6,7 @@ internal sealed partial class MainWindowViewModel
 
     private void Merge_OnPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
     {
-        OnPropertyChanged(nameof(Merge));
+        PresentationObserver.Invoke(() => OnPropertyChanged(nameof(Merge)));
         if (e.PropertyName is nameof(MergePresentationViewModel.IsAbSameTpConflictPromptOpen) or
             nameof(MergePresentationViewModel.IsAbDummyDpPromptOpen))
         {

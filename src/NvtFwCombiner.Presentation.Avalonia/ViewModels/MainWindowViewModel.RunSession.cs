@@ -106,7 +106,7 @@ internal sealed partial class MainWindowViewModel
 
     private void RunSession_OnPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
     {
-        OnPropertyChanged(nameof(RunSession));
+        PresentationObserver.Invoke(() => OnPropertyChanged(nameof(RunSession)));
         if (e.PropertyName == nameof(CompositionRunPresentationViewModel.IsRunInProgress))
         {
             NotifyShellRunStateChanged();
@@ -115,7 +115,7 @@ internal sealed partial class MainWindowViewModel
 
     private void NotifyShellRunStateChanged()
     {
-        OnPropertyChanged(nameof(IsDeviceContextVisible));
+        PresentationObserver.Invoke(() => OnPropertyChanged(nameof(IsDeviceContextVisible)));
         WorkflowSession.NotifyRunStateChanged();
     }
 }
