@@ -10,6 +10,22 @@ namespace NvtFwCombiner.UiSmoke.Tests;
 /// <summary>Observable Toolchain configuration editing and cross-page draft protection.</summary>
 public sealed class ToolchainSettingsTests
 {
+    /// <summary>Rejected detections remain explanatory text, never blank selectable rows.</summary>
+    [Fact]
+    public async Task RejectedDetectionDoesNotRenderBlankCandidate()
+    {
+        var session = new ToolchainUiSession { RejectInspection = true };
+        MainWindowViewModel vm = CreateToolchainViewModel(session);
+        vm.Settings.SelectSectionCommand.Execute(SettingsSection.Toolchain);
+        await vm.Settings.ToolchainLoadTask;
+
+        await vm.Settings.DetectToolchainCommand.ExecuteAsync(null);
+
+        Assert.Empty(vm.Settings.ToolchainCandidates);
+        Assert.Contains("untrusted", vm.Settings.ToolchainOperationStatus, StringComparison.Ordinal);
+        Assert.Contains("Microsoft trust unavailable", vm.Settings.ToolchainOperationStatus, StringComparison.Ordinal);
+    }
+
     /// <summary>Detection only observes; explicit selection and Save own the transaction.</summary>
     [Fact]
     public async Task DetectionDoesNotSelectAndSavePublishesOnlyExplicitVerifiedDraft()
@@ -212,6 +228,9 @@ internal sealed class ToolchainUiSession : IToolchainRuntimeConfigurationSession
     }
     public ValueTask<IReadOnlyList<ToolchainRuntimeCandidateInspection>> DetectAsync(CancellationToken cancellationToken)
     {
-        return ValueTask.FromResult<IReadOnlyList<ToolchainRuntimeCandidateInspection>>([Verified]);
+        return ValueTask.FromResult<IReadOnlyList<ToolchainRuntimeCandidateInspection>>(
+            RejectInspection
+                ? [new(null, ToolchainRuntimeCandidateVerification.Rejected, [new("untrusted", "Microsoft trust unavailable")])]
+                : [Verified]);
     }
 }

@@ -61,7 +61,7 @@ internal sealed class ToolchainRuntimeCandidateInspector(
                     await stream.ReadExactlyAsync(bytes, token).ConfigureAwait(false);
                     return bytes;
                 }, cancellationToken).ConfigureAwait(false);
-                string? issue = RuntimeCandidateDependencyInspector.Check(ImmutableArray.Create(executable), ImmutableArray.Create(runtime));
+                string? issue = CheckToolSnapshot(executable, tool.Sha256, runtime);
                 if (issue is not null) { return Rejected(issue, "The runtime does not satisfy the approved tool imports."); }
             }
 
@@ -78,7 +78,10 @@ internal sealed class ToolchainRuntimeCandidateInspector(
             }
 
             string version = FileVersionInfo.GetVersionInfo(fullPath).FileVersion ?? "Unknown";
-            return new(new(fullPath, sha256, version, facts.Machine.ToString()), ToolchainRuntimeCandidateVerification.Verified, []);
+            ToolchainRuntimeCandidateVerification verification = requireTrust
+                ? ToolchainRuntimeCandidateVerification.Verified
+                : ToolchainRuntimeCandidateVerification.Unknown;
+            return new(new(fullPath, sha256, version, facts.Machine.ToString()), verification, []);
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or ArgumentException or CryptographicException)
         {
@@ -89,5 +92,15 @@ internal sealed class ToolchainRuntimeCandidateInspector(
     private static ToolchainRuntimeCandidateInspection Rejected(string code, string message)
     {
         return new(null, ToolchainRuntimeCandidateVerification.Rejected, [new(code, message)]);
+    }
+
+    internal static string? CheckToolSnapshot(byte[] executable, string expectedSha256, byte[] runtime)
+    {
+        return string.Equals(
+            Convert.ToHexStringLower(SHA256.HashData(executable)),
+            expectedSha256,
+            StringComparison.OrdinalIgnoreCase)
+            ? RuntimeCandidateDependencyInspector.Check(ImmutableArray.Create(executable), ImmutableArray.Create(runtime))
+            : "runtime.tool.identity-changed";
     }
 }

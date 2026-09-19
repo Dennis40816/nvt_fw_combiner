@@ -157,8 +157,23 @@ internal sealed partial class SettingsViewModel
             IReadOnlyList<ToolchainRuntimeCandidateInspection> candidates = await _toolchainSession.DetectAsync(CancellationToken.None);
             if (operation != ToolchainOperationGeneration || generation != _toolchainSession.Current.Generation) { return; }
             ToolchainCandidates.Clear();
-            foreach (ToolchainRuntimeCandidateInspection candidate in candidates) { ToolchainCandidates.Add(candidate); }
-            if (candidates.Count == 0) { ToolchainOperationStatus = _textProvider().ToolchainNoCandidatesLabel; }
+            foreach (ToolchainRuntimeCandidateInspection candidate in candidates)
+            {
+                if (candidate.Identity is not null && candidate.Verification == ToolchainRuntimeCandidateVerification.Verified)
+                {
+                    ToolchainCandidates.Add(candidate);
+                }
+            }
+            ToolchainRuntimeConfigurationIssue[] rejectedIssues = [.. candidates.SelectMany(static candidate => candidate.Issues)];
+            if (rejectedIssues.Length > 0)
+            {
+                ToolchainOperationStatus = string.Join(Environment.NewLine,
+                    rejectedIssues.Select(static issue => $"{issue.Code}: {issue.Message}"));
+            }
+            else if (ToolchainCandidates.Count == 0)
+            {
+                ToolchainOperationStatus = _textProvider().ToolchainNoCandidatesLabel;
+            }
         }
         catch (Exception) { if (operation == ToolchainOperationGeneration) { ToolchainOperationStatus = _textProvider().ToolchainOperationFailedLabel; } }
         finally { if (operation == ToolchainOperationGeneration) { IsToolchainBusy = false; RefreshToolchainLabels(); } }

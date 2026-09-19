@@ -17,10 +17,19 @@ public sealed class ToolchainRuntimeCandidateInspectorTests
 
         ToolchainRuntimeCandidateInspection result = await inspector.InspectBundledAsync(TestContext.Current.CancellationToken);
 
-        Assert.Equal(ToolchainRuntimeCandidateVerification.Verified, result.Verification);
+        Assert.Equal(ToolchainRuntimeCandidateVerification.Unknown, result.Verification);
         Assert.NotNull(result.Identity);
         Assert.EndsWith("vcruntime140.dll", result.Identity.Path, StringComparison.OrdinalIgnoreCase);
         Assert.Empty(result.Issues);
+    }
+
+    /// <summary>Import inspection cannot consume executable bytes that differ from the manifest pin.</summary>
+    [Fact]
+    public void ChangedToolSnapshotRejectsBeforeCompatibilityParsing()
+    {
+        byte[] changed = [0x4D, 0x5A, 0x01];
+        Assert.Equal("runtime.tool.identity-changed",
+            ToolchainRuntimeCandidateInspector.CheckToolSnapshot(changed, new string('a', 64), [0x4D, 0x5A]));
     }
 
     /// <summary>A system candidate is admitted only after a matching response from the isolated trust process.</summary>
