@@ -7,6 +7,42 @@ namespace NvtFwCombiner.Infrastructure.Tests.Files;
 /// <summary>Tests sibling-staged atomic bundle promotion.</summary>
 public sealed class AtomicBundleCompositionOutputWriterTests
 {
+    /// <summary>A legal long destination survives staging and existing-folder suffix allocation.</summary>
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task CommitLongFolderNameStagesCompleteBundleWithoutNameInflation(bool collision)
+    {
+        using TempWorkspace workspace = TempWorkspace.Create();
+        string folderName = new('a', 240 - workspace.Root.Length - 12);
+        string originalFolder = Path.Combine(workspace.Root, folderName);
+        if (collision)
+        {
+            _ = Directory.CreateDirectory(originalFolder);
+            await File.WriteAllBytesAsync(Path.Combine(originalFolder, "keep.bin"), [7],
+                TestContext.Current.CancellationToken);
+        }
+        AtomicBundleCompositionOutputWriter writer = new(workspace.Root, folderName,
+            [new AtomicBundleArtifact("output.bin", [3, 4])]);
+        writer.EnsureCanCommit("output.bin", null);
+
+        CompositionOutputCommitReceipt receipt = await writer.CommitAsync(
+            "output.bin", new byte[] { 1, 2 }, TestContext.Current.CancellationToken);
+
+        string destination = collision ? originalFolder + " (2)" : originalFolder;
+        Assert.Equal(Path.Combine(destination, "output.bin"), receipt.OutputId);
+        Assert.Equal([1, 2], await File.ReadAllBytesAsync(receipt.OutputId, TestContext.Current.CancellationToken));
+        Assert.Equal([3, 4], await File.ReadAllBytesAsync(Path.Combine(destination, "output (2).bin"),
+            TestContext.Current.CancellationToken));
+        Assert.Equal(collision ? 2 : 1, Directory.EnumerateFileSystemEntries(workspace.Root).Count());
+        Assert.Equal(2, Directory.EnumerateFileSystemEntries(destination).Count());
+        if (collision)
+        {
+            Assert.Equal([7], await File.ReadAllBytesAsync(Path.Combine(originalFolder, "keep.bin"),
+                TestContext.Current.CancellationToken));
+        }
+    }
+
     /// <summary>Compiled additional output is staged before sources with deterministic names and typed evidence.</summary>
     [Fact]
     public async Task CommitStagesAdditionalDeliveryAndSourcesInOneManifest()

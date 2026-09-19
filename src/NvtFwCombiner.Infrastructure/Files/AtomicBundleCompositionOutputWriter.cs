@@ -111,7 +111,7 @@ internal sealed class AtomicBundleCompositionOutputWriter :
         int suffix = FindFirstAvailableSuffix();
         string stagingDirectory = Path.Combine(
             _parentDirectory,
-            $".{_folderName}.{Guid.NewGuid():N}.staging");
+            $".{Guid.NewGuid():N}.staging");
         AtomicBundlePathRules.EnsureSupportedPathLength(
             stagingDirectory,
             "Bundle staging directory");

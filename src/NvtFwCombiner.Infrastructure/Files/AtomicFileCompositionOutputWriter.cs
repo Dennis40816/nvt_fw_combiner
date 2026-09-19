@@ -25,7 +25,7 @@ public sealed class AtomicFileCompositionOutputWriter : ICompositionOutputWriter
         string destinationPath = FileSystemPathGuard.ResolveFileNameUnderRoot(fileName, _outputRoot);
         string tempPath = Path.Combine(
             _outputRoot,
-            $".{fileName}.{Guid.NewGuid():N}.tmp");
+            $".{Guid.NewGuid():N}.tmp");
         try
         {
             await using (var stream = new FileStream(
