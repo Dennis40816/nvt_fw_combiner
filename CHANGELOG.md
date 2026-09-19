@@ -39,8 +39,8 @@ bytes remain unchanged.
 - Before → After: dependent Builds always used the bundled runtime. Settings >
   Config > Toolchain now lets a user detect or browse to a compatible installed
   runtime, review its evidence, and explicitly save that selection.
-- Affected: the two existing workflows that invoke the packaged external
-  Combiner; workflows without that dependency are unchanged.
+- Affected: existing workflows that invoke the packaged external Combiner;
+  workflows without that dependency are unchanged.
 - Support status: unchanged/support-neutral; no IC, family, mode or profile is
   promoted.
 - Compatibility: Bundled runtime remains the default. A saved user selection is
@@ -48,10 +48,13 @@ bytes remain unchanged.
   verifies, dependent Build is blocked until the user explicitly selects a
   valid runtime or switches back to Bundled.
 - Verification: configuration tests cover transactional save/reload and stale
-  generations; trust tests cover malformed, timeout, cancellation and nonzero
-  probe results; both processor adapters and actual Combiner smoke cover bundled
-  and selected-runtime deployment. Affected UI tests pass for normal, invalid,
-  close-confirmation and Build-admission states.
+  generations; process-adapter tests cover malformed, timeout, cancellation and
+  nonzero terminal mapping; both processor adapters and actual Combiner success
+  smoke cover bundled and selected-runtime deployment. Affected UI tests pass
+  for normal, invalid, close-confirmation and Build-admission states. Release
+  admission separately requires actual-child timeout/cancel/forced-exit evidence,
+  selected-module identity tracing, clean-Windows Save-to-Build, a fresh full
+  verifier, applicable Golden execution and protected publication checks.
 - Limitations: the app does not download or install runtimes and never selects a
   detected candidate automatically. Strict certificate revocation checks may
   reject a user runtime when Windows cannot establish its trust result.
