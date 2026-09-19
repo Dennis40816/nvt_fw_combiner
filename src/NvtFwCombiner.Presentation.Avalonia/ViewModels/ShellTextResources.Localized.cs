@@ -98,6 +98,8 @@ internal sealed partial class ShellTextResources
             OutputDeliveryChooseParentLabel = Pick("Choose parent folder", "選擇上層資料夾"),
             OutputDeliveryEditBundleDestinationLabel = Pick("Edit bundle folder name", "編輯 Bundle 資料夾名稱"),
             OutputDeliveryDoneEditingLabel = Pick("Finish editing bundle folder name", "完成編輯 Bundle 資料夾名稱"),
+            OutputDeliveryDoneOutputNameLabel = Pick("Finish editing output filename", "完成編輯輸出檔名"),
+            OutputDeliveryNameRestored = Pick("Name not applied. Restored the last accepted name.", "名稱未套用，已回復上一個接受的名稱。"),
             OutputDeliveryConfirmLabel = Pick("Continue", "繼續"),
             OutputDeliveryCancelLabel = Pick("Cancel", "取消"),
             OutputDeliveryReadySummary = Pick("Ready to continue", "已可繼續"),

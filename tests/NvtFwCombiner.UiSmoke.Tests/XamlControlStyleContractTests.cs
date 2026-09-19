@@ -463,7 +463,7 @@ public sealed partial class XamlControlStyleContractTests
             [
                 "{Binding Settings.IsOverviewSelected, Mode=OneWay}",
                 "{Binding Settings.IsPreferencesSelected, Mode=OneWay}",
-                "{Binding Settings.IsEventBufferFormatSelected, Mode=OneWay}",
+                "{Binding Settings.IsConfigSelected, Mode=OneWay}",
                 "{Binding Settings.IsVersionSelected, Mode=OneWay}",
                 "{Binding Settings.IsSupportMatrixOpen, Mode=OneWay}",
             ],

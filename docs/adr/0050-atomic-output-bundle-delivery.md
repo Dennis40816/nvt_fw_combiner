@@ -71,6 +71,58 @@ no prompt. Omitting bundle intent preserves existing loose-output behavior.
 Reports add resolved bundle/artifact provenance and hashes; the effective primary
 name follows ADR 0036 while canonical automatic naming provenance remains retained.
 
+## 1.1.9 name-edit validation amendment (2026-09-19)
+
+Owner-approved recovery keeps separate accepted folder and primary-name values.
+Keystrokes preserve the exact draft and show validation; explicit completion
+accepts a valid edit or restores only that field's last accepted name. A
+localized recovery notice never masks a current blocking destination issue.
+The same draft/confirmation surface applies to loose and bundled primary names.
+
+The existing `ICompositionOutputBundleDestinationValidator` gains a pure
+`ValidateName(string)` operation, forwarded by `ICompositionOutputNaming`.
+It returns the existing typed name issue or null, without accessing a parent
+directory. `AtomicBundlePathRules` remains the single platform rule owner:
+blank/reserved/invalid names and components longer than 255 UTF-16 units
+(including extensions) are rejected without trimming or truncation. The
+existing full-path limit remains unchanged; a valid component is not a valid
+destination or authority to execute.
+
+For a bundled edit, path-aware acceptance checks the candidate against the
+other field's accepted value, not its uncommitted draft. Unrelated parent or
+protected-input failures still block delivery but do not reject an otherwise
+valid component. After completion/recovery, overall validation uses both
+current drafts and the existing destination validator. Loose confirmation
+checks the name before picker/execution; native picker final paths and actual
+writers retain their own destination checks. No new filesystem, firmware or
+profile authority belongs to Presentation. Generated staging/collision name
+limits and general long-path support remain separate follow-ups.
+
+Independent architecture admission: `name_validation_design`, 2026-09-19,
+approved the existing-owner extension and these failure/ownership constraints.
+
+## 1.1.9 actual Bundle destination preview amendment (2026-09-20)
+
+`CompositionOutputBundleIntent.AdditionalDelivery` exposes the existing admitted
+immutable plan through a public getter so the destination adapter can include
+its exact suggested filename. This projection does not select eligibility,
+recompile a delivery, or change the accepted plan.
+
+`AtomicBundlePathRules` owns the shared filename allocation used by preview and
+commit: reserve the primary name, then allocate additional deliveries and
+accepted sources in their existing order with case-insensitive collisions and
+numeric suffixes. Preview checks the actual allocated child components and
+paths, and checks every child against every accepted source identity. It also
+validates the actual suffix-resolved folder component. The existing 255 UTF-16
+component and 259-character full-path limits remain unchanged. Preview does not
+reserve or create a destination; commit retains its race-time checks.
+
+This closes the actual collision-name preview gap identified in the prior
+amendment. General long-path support and native-picker end-to-end evidence are
+separate work. No source bytes, identity, A-only eligibility or firmware
+semantics change. Independent R2 design admission: `name_validation_design`,
+2026-09-20, recorded in `OUTPUT-119-PREVIEW-03`.
+
 ## Consequences
 
 - Delivery becomes one transaction boundary rather than a post-Build copy step.

@@ -344,7 +344,8 @@ public sealed partial class LegacyCombinerPostbuildProcessorTests
         internal LegacyCombinerPostbuildProcessor CreateProcessor(
             string executableSha256,
             IExternalProcessRunner runner,
-            IEnumerable<LegacyCombinerPostbuildProfile>? profiles = null)
+            IEnumerable<LegacyCombinerPostbuildProfile>? profiles = null,
+            ExternalRuntimeDeployment? runtimeDeployment = null)
         {
             _ = profiles;
             var registry = new ExternalCombinerToolRegistry([Manifest(executableSha256)]);
@@ -352,7 +353,8 @@ public sealed partial class LegacyCombinerPostbuildProcessorTests
                 registry,
                 ToolRoot,
                 StagingRoot,
-                runner);
+                runner,
+                runtimeDeployment);
         }
 
         public void Dispose()

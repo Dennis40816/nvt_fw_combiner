@@ -10,6 +10,11 @@ internal static class Program
     [STAThread]
     public static int Main(string[] args)
     {
+        if (CompositionHostServices.TryHandleRuntimeTrustProbe(args, Console.Out, out int probeExitCode))
+        {
+            return probeExitCode;
+        }
+
         (
             string? managedRoot,
             string? statePath,
@@ -84,7 +89,8 @@ internal static class Program
                 managedRoot,
                 statePath,
                 bootstrapIdentity),
-            host.GetEventBufferFormatConfigurationAsync);
+            host.GetEventBufferFormatConfigurationAsync,
+            host.GetToolchainRuntimeConfigurationAsync);
     }
 
     private static (

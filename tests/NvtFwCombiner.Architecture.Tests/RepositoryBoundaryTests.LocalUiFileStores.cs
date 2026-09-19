@@ -29,7 +29,7 @@ public sealed partial class RepositoryBoundaryTests
         string stores = ReadText("src/NvtFwCombiner.Presentation.Avalonia/ReportHistoryFileStore.cs") +
             ReadText("src/NvtFwCombiner.Presentation.Avalonia/ShellPreferenceFileStore.cs");
 
-        AssertContainsAll(bootstrap, "LocalFiles = new LocalFileStore();",
+        AssertContainsAll(bootstrap, "LocalFiles = localFiles ?? new LocalFileStore();",
             "public static ILocalFileStore CreateLocalFileStore()");
         AssertContainsAll(adapter, "FileShare.Read | FileShare.Delete",
             "AtomicFileWriteScope.Open(fullPath)");

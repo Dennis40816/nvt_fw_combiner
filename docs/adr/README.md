@@ -30,3 +30,8 @@ When a later ADR changes an earlier one:
 
 Rejected alternatives remain inside the deciding ADR's `Rejected options`
 section; they do not require separate `Ignored` ADR files.
+
+Toolchain configuration publication is recorded in
+[ADR 0073](0073-toolchain-runtime-selection.md); its separately admitted
+executable-trust and deployment work must not be mistaken for completed
+configuration-only evidence.

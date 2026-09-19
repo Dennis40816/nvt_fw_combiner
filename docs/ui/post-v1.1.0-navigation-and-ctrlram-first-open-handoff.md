@@ -9,6 +9,19 @@ reassessment in `1.2.8`. Completed
 and its measured residuals retain their original evidence. Reassessment is
 not a commitment to optimize an unproven bottleneck or repeat shipped work.
 
+Post-release audit intake, 2026-09-19: the
+[AUD reconciliation](v1.1.x-custom-options-layout-handoff.md#aud-to-existing-allocation-and-acceptance-index)
+adds precise proposed failure sequences to existing scope, not a new page
+redesign. AUD-01 (`1.2.1`, persistence health subitem in `1.2.4`) covers
+Close → failed handoff → further save → second Close, contained READY
+cancellation and terminal run/inspection/Config/Report work before disposal.
+AUD-04 (`1.2.2`/`1.2.3`) covers old picker results after context change or
+Cancel/Reopen, including a legitimate preparation successor; AUD-05 (`1.2.3`)
+covers slow older Hex Load losing at the document owner, not merely in UI.
+These external proposals still need scoped implementation admission and
+current-head validation. They do not reopen completed `1.1.5` performance work,
+approve a new global lifetime store, or settle first-entry UX decisions below.
+
 This handoff records two owner-observed usability/performance problems. It is
 not part of `v1.1.1`, and grants no implementation or firmware authority. It
 does not authorize a UI, Application, preload, profile, or support change;

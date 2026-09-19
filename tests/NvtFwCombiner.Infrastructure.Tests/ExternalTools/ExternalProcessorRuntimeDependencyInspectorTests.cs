@@ -2,6 +2,7 @@ using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using NvtFwCombiner.Application.Authoring;
 using NvtFwCombiner.Application.Capabilities;
+using NvtFwCombiner.Application.Configuration;
 using NvtFwCombiner.Application.ExternalTools;
 using NvtFwCombiner.Application.Metadata;
 using NvtFwCombiner.Contracts.ExternalTools;
@@ -13,6 +14,31 @@ namespace NvtFwCombiner.Infrastructure.Tests.ExternalTools;
 /// <summary>Tests refreshable current-machine processor dependency inspection.</summary>
 public sealed class ExternalProcessorRuntimeDependencyInspectorTests
 {
+    /// <summary>A dependent route is blocked by an invalid explicit runtime while unrelated routes stay independent.</summary>
+    [Fact]
+    public async Task BlockedToolchainAffectsOnlyDeclaredDependencies()
+    {
+        var snapshot = new ToolchainRuntimeConfigurationSnapshot(
+            3, ToolchainRuntimeConfigurationStatus.Blocked,
+            new(ToolchainRuntimeSource.User, "C:/missing/vcruntime140.dll", new string('a', 64)), null,
+            [new("toolchain-runtime.selection.invalid", "Runtime unavailable")]);
+        using TempWorkspace workspace = TempWorkspace.Create("runtime-readiness-blocked");
+        var inspector = new ExternalProcessorRuntimeDependencyInspector(
+            new ExternalCombinerToolRegistry([]), workspace.Root, workspace.PathFor("staging"),
+            TimeProvider.System, snapshot);
+        var dependent = new RuntimeDependencyReadinessRequest("route", new string('a', 64), new string('b', 64),
+            new ResolutionToken("catalog:1"), new AuthoringRevision(1),
+            [new ExternalProcessorDependencyReference("processor", "binding")]);
+        var independent = new RuntimeDependencyReadinessRequest("route-independent", new string('c', 64), new string('d', 64),
+            new ResolutionToken("catalog:1"), new AuthoringRevision(1), []);
+
+        RuntimeDependencyReadinessSnapshot blocked = await inspector.RefreshAsync(dependent, 1, TestContext.Current.CancellationToken);
+        RuntimeDependencyReadinessSnapshot ready = await inspector.RefreshAsync(independent, 2, TestContext.Current.CancellationToken);
+
+        Assert.Equal("toolchain-runtime.selection.blocked", Assert.Single(blocked.Entries).IssueCode);
+        Assert.Empty(ready.Entries);
+    }
+
     /// <summary>Installing or replacing a tool is observed by the next explicit refresh generation.</summary>
     [Fact]
     public async Task RefreshRechecksMissingInstalledAndReplacedExecutable()

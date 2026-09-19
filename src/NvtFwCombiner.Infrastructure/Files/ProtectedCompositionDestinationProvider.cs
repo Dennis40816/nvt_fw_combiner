@@ -103,6 +103,7 @@ internal sealed class ProtectedCompositionDestinationProvider :
 
         private string EnsurePrimaryOutputPath(string fileName)
         {
+            AtomicBundlePathRules.EnsureWindowsName(fileName, "Output filename", nameof(fileName));
             string outputPath = ProtectedPathGuard.CombineFullPath(
                 _outputDirectory,
                 fileName);
@@ -162,6 +163,8 @@ internal sealed class ProtectedCompositionDestinationProvider :
                         "An automatic additional delivery requires one concrete destination directory."),
                     suggestedDeliveryFileName);
             string outputFileName = Path.GetFileName(deliveryOutputPath);
+            AtomicBundlePathRules.EnsureWindowsName(
+                outputFileName, "Additional delivery filename", nameof(suggestedDeliveryFileName));
             if (string.IsNullOrWhiteSpace(Path.GetDirectoryName(deliveryOutputPath)) ||
                 string.IsNullOrWhiteSpace(outputFileName))
             {

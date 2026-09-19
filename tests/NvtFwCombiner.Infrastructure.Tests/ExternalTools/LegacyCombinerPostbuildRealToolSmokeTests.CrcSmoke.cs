@@ -1,17 +1,22 @@
+using System.Security.Cryptography;
 using NvtFwCombiner.Application.Composition;
+using NvtFwCombiner.Application.Configuration;
 using NvtFwCombiner.Application.ExternalTools;
 using NvtFwCombiner.Contracts.ExternalTools;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Infrastructure.ExternalTools;
+using NvtFwCombiner.Infrastructure.Files;
 using NvtFwCombiner.TestSupport;
 
 namespace NvtFwCombiner.Infrastructure.Tests.ExternalTools;
 
 public sealed partial class LegacyCombinerPostbuildRealToolSmokeTests
 {
-    /// <summary>Verifies the real Combiner.exe can run a golden-backed NT51927 CRC-only command through the host adapter.</summary>
-    [Fact]
-    public async Task RealToolRunsNt51927GoldenCrcOnlyWithoutUnexpectedChanges()
+    /// <summary>Verifies the real Combiner.exe can run a golden-backed NT51927 CRC-only command with bundled or selected runtime deployment.</summary>
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task RealToolRunsNt51927GoldenCrcOnlyWithoutUnexpectedChanges(bool useSelectedRuntime)
     {
         if (!OperatingSystem.IsWindows())
         {
@@ -20,7 +25,8 @@ public sealed partial class LegacyCombinerPostbuildRealToolSmokeTests
 
         string repositoryRoot = RepositoryPaths.FindRepositoryRoot();
         string toolRoot = Path.Combine(repositoryRoot, "external-tools");
-        string stagingRoot = Path.Combine(Path.GetTempPath(), $"nfc-real-combiner-smoke-{Guid.NewGuid():N}");
+        string executionRoot = Path.Combine(Path.GetTempPath(), $"nfc-real-combiner-smoke-{Guid.NewGuid():N}");
+        string stagingRoot = Path.Combine(executionRoot, "firmware");
 
         try
         {
@@ -46,11 +52,24 @@ public sealed partial class LegacyCombinerPostbuildRealToolSmokeTests
                 [crcOnlyCommand],
                 "Windows smoke test for the committed Combiner 1.13.0 binding.");
             var registry = new ExternalCombinerToolRegistry([manifest]);
+            ExternalRuntimeDeployment? deployment = null;
+            if (useSelectedRuntime)
+            {
+                string runtimePath = Path.Combine(Environment.SystemDirectory, "vcruntime140.dll");
+                byte[] runtimeBytes = await File.ReadAllBytesAsync(runtimePath, TestContext.Current.CancellationToken);
+                string runtimeHash = Convert.ToHexStringLower(SHA256.HashData(runtimeBytes));
+                var selection = new ToolchainRuntimeSelection(ToolchainRuntimeSource.User, runtimePath, runtimeHash);
+                deployment = new ExternalRuntimeDeployment(
+                    new(1, ToolchainRuntimeConfigurationStatus.Current, selection, selection, []),
+                    new LocalFileStore(),
+                    Path.Combine(executionRoot, "toolchain"));
+            }
             var processor = new LegacyCombinerPostbuildProcessor(
                 registry,
                 toolRoot,
                 stagingRoot,
-                new SystemExternalProcessRunner());
+                new SystemExternalProcessRunner(),
+                deployment);
             var request = new ExternalProcessorRequest(
                 "real-tool-nt51927-crc-smoke",
                 smokeProfile.ProcessorId,
@@ -69,9 +88,9 @@ public sealed partial class LegacyCombinerPostbuildRealToolSmokeTests
         }
         finally
         {
-            if (Directory.Exists(stagingRoot))
+            if (Directory.Exists(executionRoot))
             {
-                Directory.Delete(stagingRoot, recursive: true);
+                Directory.Delete(executionRoot, recursive: true);
             }
         }
     }

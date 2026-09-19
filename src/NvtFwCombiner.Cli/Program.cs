@@ -4,6 +4,14 @@ internal static class Program
 {
     public static async Task<int> Main(string[] args)
     {
+        if (NvtFwCombiner.Bootstrap.CompositionHostServices.TryHandleRuntimeTrustProbe(
+                args,
+                Console.Out,
+                out int probeExitCode))
+        {
+            return probeExitCode;
+        }
+
         using var cancellation = new CancellationTokenSource();
         ConsoleCancelEventHandler cancelHandler = HandleCancel;
         Console.CancelKeyPress += cancelHandler;

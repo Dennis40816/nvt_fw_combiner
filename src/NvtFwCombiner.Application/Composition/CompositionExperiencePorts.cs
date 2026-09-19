@@ -377,6 +377,9 @@ public interface ICompositionOutputNaming
     CompositionOutputBundleDestinationValidation ValidateBundleDestination(
         CompositionOutputBundleIntent intent);
 
+    /// <summary>Checks one loose or bundled name through the platform owner, without validating a destination.</summary>
+    CompositionOutputBundleValidationIssue? ValidateName(string value);
+
     /// <summary>Resolves one AB automatic output name and its compiled optional deliveries without execution.</summary>
     ValueTask<CompositionOutputPreparation> PrepareAutomaticOutputAsync(
         ActiveSessionSnapshot acceptedSession,

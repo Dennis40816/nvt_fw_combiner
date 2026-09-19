@@ -1,0 +1,9 @@
+{
+  "schemaVersion": 1,
+  "taskId": "TOOLCHAIN-119-DEPLOY-05",
+  "authorityType": "release-owner",
+  "reviewedHead": "31bf47e1601ec1498672667ba7272b7739f75096",
+  "decision": "approved",
+  "reviewer": "Dennis Liu (release owner)",
+  "evidence": "The owner explicitly chose the repository-bundled VC++ Runtime as the default, required an invalid user-selected runtime to block dependent Build with manual recovery to the bundled version, and directed completion of v1.1.9. This attestation binds final-evidence head 31bf47e1601ec1498672667ba7272b7739f75096, whose independently reviewed implementation head d7545ca7129454eed779f4fe8d8e3034349937a2 passed with no P0-P3. Scope is only generation-bound deployment of the exact verified runtime and pinned Combiner executable into a private per-invocation directory for the two existing dependent processors, without PATH mutation or silent fallback. It does not waive ETW module identity, clean-machine Save-to-Build, full verification, Golden, package, signing, protected CI or publication gates, and it approves no firmware/profile/CRC behavior."
+}

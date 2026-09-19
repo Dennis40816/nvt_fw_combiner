@@ -25,7 +25,8 @@ public sealed partial class RepositoryBoundaryTests
             bundleSnapshot,
             StringComparison.Ordinal);
         string[] expectedCallers = ["Bundles/ProfileBundleFileSnapshot.cs", "Bundles/ProfileBundlePackageTrustIndex.cs",
-            "Configuration/EventBufferFormatConfigurationStorage.cs"];
+            "Configuration/EventBufferFormatConfigurationStorage.cs",
+            "Configuration/ToolchainRuntimeConfigurationStorage.cs"];
         Assert.Equal(expectedCallers.Order(StringComparer.Ordinal), snapshotCallers
             .Select(path => Path.GetRelativePath(infrastructureRoot, path).Replace('\\', '/')).Order(StringComparer.Ordinal));
         Assert.All(snapshotCallers, path => Assert.Equal(1,

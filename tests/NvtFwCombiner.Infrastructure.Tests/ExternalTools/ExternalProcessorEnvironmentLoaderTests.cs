@@ -1,6 +1,7 @@
 using System.Security.Cryptography;
 using NvtFwCombiner.Application.Authoring;
 using NvtFwCombiner.Application.Capabilities;
+using NvtFwCombiner.Application.Configuration;
 using NvtFwCombiner.Application.ExternalTools;
 using NvtFwCombiner.Application.Metadata;
 using NvtFwCombiner.Application.Ports;
@@ -11,6 +12,53 @@ namespace NvtFwCombiner.Infrastructure.Tests.ExternalTools;
 /// <summary>Locks bounded discovery and atomic external-environment publication.</summary>
 public sealed class ExternalProcessorEnvironmentLoaderTests
 {
+    /// <summary>A new Toolchain publication invalidates the old environment before a refresh notification.</summary>
+    [Fact]
+    public async Task ToolchainGenerationInvalidatesPublishedLeaseImmediately()
+    {
+        var session = new StubToolchainSession(1);
+        var loader = new ExternalProcessorEnvironmentLoader(
+            (progress, cancellationToken) =>
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                return ValueTask.FromResult(new ExternalProcessorRuntimeEnvironment(
+                    new StubExternalProcessor(), StubReadinessProvider.Instance, 1, null, session.Current.Generation));
+            }, session);
+        Assert.True(Terminal(await ReadAsync(loader.LoadAsync(TestContext.Current.CancellationToken))).Succeeded);
+        ExternalProcessorEnvironmentLease admitted = loader.AcquireCurrent();
+
+        session.Publish(2);
+
+        Assert.False(loader.IsCurrent(admitted.Generation));
+        Assert.Null(loader.AcquireCurrent().Processor);
+        Assert.Equal(0, loader.AcquireCurrent().Generation);
+    }
+
+    /// <summary>A configuration change during loading prevents the stale candidate from publishing.</summary>
+    [Fact]
+    public async Task ToolchainChangeDuringLoadRejectsStaleCandidate()
+    {
+        var session = new StubToolchainSession(1);
+        var entered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var loader = new ExternalProcessorEnvironmentLoader(async (progress, cancellationToken) =>
+        {
+            long captured = session.Current.Generation;
+            entered.SetResult();
+            await release.Task.WaitAsync(cancellationToken);
+            return new(new StubExternalProcessor(), StubReadinessProvider.Instance, 1, null, captured);
+        }, session);
+        Task<List<ExternalProcessorEnvironmentLoadUpdate>> load = ReadAsync(loader.LoadAsync(TestContext.Current.CancellationToken));
+        await entered.Task;
+
+        session.Publish(2);
+        release.SetResult();
+        ExternalProcessorEnvironmentLoadResult result = Terminal(await load);
+
+        Assert.Equal(ExternalProcessorEnvironmentLoadOutcome.Superseded, result.Outcome);
+        Assert.Null(loader.AcquireCurrent().Processor);
+    }
+
     /// <summary>Before first publication, dependency-bearing authoring receives a typed blocker instead of crashing.</summary>
     [Fact]
     public async Task UnpublishedEnvironmentProvidesBlockedReadinessWithoutProcessAuthority()
@@ -511,6 +559,37 @@ public sealed class ExternalProcessorEnvironmentLoaderTests
             CancellationToken cancellationToken)
         {
             throw new NotSupportedException();
+        }
+    }
+
+    private sealed class StubToolchainSession(long generation) : IToolchainRuntimeConfigurationSession
+    {
+        public ToolchainRuntimeConfigurationSnapshot Current { get; private set; } = Snapshot(generation);
+        internal void Publish(long nextGeneration) { Current = Snapshot(nextGeneration); }
+        public ValueTask<ToolchainRuntimeConfigurationOperationResult> ReloadAsync(CancellationToken cancellationToken)
+        {
+            return ValueTask.FromResult(new ToolchainRuntimeConfigurationOperationResult(Current, true, []));
+        }
+        public ValueTask<ToolchainRuntimeConfigurationOperationResult> SaveAsync(ToolchainRuntimeSelection selection, CancellationToken cancellationToken)
+        {
+            return ValueTask.FromResult(new ToolchainRuntimeConfigurationOperationResult(Current, false, []));
+        }
+        public ValueTask<ToolchainRuntimeCandidateInspection> InspectAsync(string path, CancellationToken cancellationToken)
+        {
+            throw new NotSupportedException();
+        }
+        public ValueTask<ToolchainRuntimeCandidateInspection> InspectBundledAsync(CancellationToken cancellationToken)
+        {
+            throw new NotSupportedException();
+        }
+        public ValueTask<IReadOnlyList<ToolchainRuntimeCandidateInspection>> DetectAsync(CancellationToken cancellationToken)
+        {
+            throw new NotSupportedException();
+        }
+        private static ToolchainRuntimeConfigurationSnapshot Snapshot(long value)
+        {
+            var selection = new ToolchainRuntimeSelection(ToolchainRuntimeSource.Bundled);
+            return new(value, ToolchainRuntimeConfigurationStatus.Current, selection, selection, []);
         }
     }
 
