@@ -5,7 +5,7 @@
   "integrationBase": "fc99fadba0737b578e5d2f6bde480110b4ddfd4f",
   "risk": "R1",
   "kind": "behavior",
-  "state": "design-active",
+  "state": "final-complete",
   "mutablePaths": [
     "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MergePresentationViewModel.AbMergeAuthoring.cs",
     "tests/NvtFwCombiner.UiSmoke.Tests/ShellViewModelTests.Toolchain.cs"
@@ -24,12 +24,12 @@
     "outcome": "not-required",
     "evidence": "R1 bounded Presentation correction at the latest final evidence checkpoint fc99fadb; intervening CI retry commits change no files. An advisory review confirmed that only committed notification sinks belong inside the existing PresentationObserver boundary."
   },
-  "implementationHead": null,
-  "reviewedHead": null,
-  "pathStateDigest": null,
+  "implementationHead": "a67f2efdc5706248b8b4110c94f89538a33d6864",
+  "reviewedHead": "a67f2efdc5706248b8b4110c94f89538a33d6864",
+  "pathStateDigest": "2283d0ef096a9adac7d607b7ea4378870701b3c80c0bce8ae1d0f86dedd08991",
   "finalReview": {
-    "reviewer": null,
-    "outcome": "pending",
-    "evidence": ""
+    "reviewer": "name_validation_design",
+    "outcome": "approved",
+    "evidence": "Fixed-head review at a67f2efdc5706248b8b4110c94f89538a33d6864 found no P0/P1/P2; the two mutable paths are byte-equivalent to the prior approved implementation, git diff --check passed, and the focused Toolchain save regression passed (1/1)."
   }
 }
