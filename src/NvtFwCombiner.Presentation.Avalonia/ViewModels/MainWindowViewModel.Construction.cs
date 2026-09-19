@@ -61,7 +61,11 @@ internal sealed partial class MainWindowViewModel
             supportMatrixQuery ?? hostServices.SupportMatrix,
             () => Text,
             hostServices.VersionManagement,
-            hostServices.EventBufferFormatConfigurationSessionFactory);
+            hostServices.EventBufferFormatConfigurationSessionFactory,
+            hostServices.ToolchainRuntimeConfigurationSessionFactory)
+        {
+            ToolchainAppliedAsync = RefreshRuntimeReadinessAfterPublicationAsync,
+        };
         Settings.EventBufferFormatCloseAccepted += Settings_EventBufferFormatCloseAccepted;
         OutputDelivery = new OutputDeliveryConfirmationViewModel(
             _compositionServices.OutputNaming,

@@ -263,13 +263,20 @@ internal sealed partial class SettingsViewModel
 
     internal bool RequestSettingsClose()
     {
-        if (IsEventBufferFormatBusy)
+        if (IsEventBufferFormatBusy || IsToolchainBusy)
         {
             return false;
         }
 
         if (!HasEventBufferFormatUnsavedChanges)
         {
+            if (HasToolchainUnsavedChanges)
+            {
+                SelectedSection = SettingsSection.Toolchain;
+                IsToolchainCloseConfirmationOpen = true;
+                return false;
+            }
+            InvalidateToolchainOperations();
             return true;
         }
 
@@ -423,7 +430,10 @@ internal sealed partial class SettingsViewModel
 
         DiscardEventBufferFormatChanges();
         IsEventBufferFormatCloseConfirmationOpen = false;
-        EventBufferFormatCloseAccepted?.Invoke(this, EventArgs.Empty);
+        if (RequestSettingsClose())
+        {
+            EventBufferFormatCloseAccepted?.Invoke(this, EventArgs.Empty);
+        }
     }
 
     [RelayCommand]

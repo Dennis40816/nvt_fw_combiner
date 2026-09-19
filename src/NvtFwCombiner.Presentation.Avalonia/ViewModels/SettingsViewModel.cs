@@ -13,6 +13,7 @@ internal enum SettingsSection
     Overview,
     Preferences,
     EventBufferFormat,
+    Toolchain,
     Version,
     SupportMatrix,
 }
@@ -37,13 +38,15 @@ internal sealed partial class SettingsViewModel : ObservableObject
         ICanonicalSupportMatrixQuery supportMatrixQuery,
         Func<ShellTextResources> textProvider,
         IVersionManagementExperience? versionManagement = null,
-        Func<CancellationToken, Task<IEventBufferFormatConfigurationSession>>? eventBufferFormatConfigurationSessionFactory = null)
+        Func<CancellationToken, Task<IEventBufferFormatConfigurationSession>>? eventBufferFormatConfigurationSessionFactory = null,
+        Func<CancellationToken, Task<IToolchainRuntimeConfigurationSession>>? toolchainRuntimeConfigurationSessionFactory = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(appVersion);
         _appVersion = appVersion;
         _textProvider = textProvider ?? throw new ArgumentNullException(nameof(textProvider));
         _versionManagement = versionManagement;
         _eventBufferFormatConfigurationSessionFactory = eventBufferFormatConfigurationSessionFactory;
+        _toolchainSessionFactory = toolchainRuntimeConfigurationSessionFactory;
         SupportMatrix = new SupportMatrixPresentationViewModel(supportMatrixQuery);
     }
 
@@ -72,6 +75,8 @@ internal sealed partial class SettingsViewModel : ObservableObject
     [NotifyPropertyChangedFor(nameof(IsPreferencesSelected))]
     [NotifyPropertyChangedFor(nameof(IsVersionSelected))]
     [NotifyPropertyChangedFor(nameof(IsEventBufferFormatSelected))]
+    [NotifyPropertyChangedFor(nameof(IsToolchainSelected))]
+    [NotifyPropertyChangedFor(nameof(IsConfigSelected))]
     [NotifyPropertyChangedFor(nameof(IsSupportMatrixOpen))]
     public partial SettingsSection SelectedSection { get; private set; }
 
@@ -82,6 +87,8 @@ internal sealed partial class SettingsViewModel : ObservableObject
     public bool IsVersionSelected => SelectedSection == SettingsSection.Version;
 
     public bool IsEventBufferFormatSelected => SelectedSection == SettingsSection.EventBufferFormat;
+    public bool IsToolchainSelected => SelectedSection == SettingsSection.Toolchain;
+    public bool IsConfigSelected => IsEventBufferFormatSelected || IsToolchainSelected;
 
     public bool IsSupportMatrixOpen => SelectedSection == SettingsSection.SupportMatrix;
 
@@ -91,6 +98,7 @@ internal sealed partial class SettingsViewModel : ObservableObject
         ApplyChoiceLabels(text);
         RefreshVersionLabels();
         RefreshEventBufferFormatLabels();
+        RefreshToolchainLabels();
         SupportMatrix.Refresh(text);
         bool chinese = text.Language == ShellLanguage.ChineseTraditional;
         SupportMatrixRowViewModel[] authoringAvailableRows =
@@ -206,6 +214,10 @@ internal sealed partial class SettingsViewModel : ObservableObject
         if (section == SettingsSection.EventBufferFormat)
         {
             BeginEventBufferFormatLoad();
+        }
+        if (section == SettingsSection.Toolchain)
+        {
+            BeginToolchainLoad();
         }
 
         SelectedSection = section;

@@ -1,0 +1,41 @@
+{
+  "schemaVersion": 2,
+  "taskId": "TOOLCHAIN-119-UI-04",
+  "capability": "Approved single-page Toolchain Config editing and runtime evidence presentation",
+  "integrationBase": "017c679d67a3794b74487dbfccc5202a8b748b4d",
+  "risk": "R2",
+  "kind": "ui",
+  "state": "design-active",
+  "mutablePaths": [
+    "src/NvtFwCombiner.Presentation.Avalonia/PresentationHostServices.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MainWindowViewModel.Construction.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/SettingsViewModel.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/SettingsViewModel.EventBufferFormat.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/SettingsViewModel.Toolchain.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ShellTextResources.Toolchain.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/Views/SettingsModal.axaml.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/Resources/MainWindowPageTemplates.axaml",
+    "src/NvtFwCombiner.Presentation.Avalonia/Resources/SettingsToolchainPageTemplate.axaml",
+    "tests/NvtFwCombiner.UiSmoke.Tests/ShellViewModelTests.Toolchain.cs",
+    "tests/NvtFwCombiner.UiSmoke.Tests/XamlControlStyleContractTests.Toolchain.cs",
+    "tests/NvtFwCombiner.UiSmoke.Tests/XamlControlStyleContractTests.SettingsModal.cs"
+  ],
+  "implementationOwner": "toolchain_ui",
+  "searchEvidence": [
+    "CodeGraph and scoped control inspection identified SettingsViewModel, SettingsModal and existing Config navigation as the shared owner.",
+    "ToolchainRuntimeConfigurationSession supplies all candidate/selection facts; native picker returns only a chosen path to the Application inspection boundary.",
+    "Approved Toolchain preview exec-48f89eac-2510-4a16-8a4f-77bb3ced190d.png is in the owner task; the separate invalid-state strip is illustrative, not a second production panel."
+  ],
+  "semanticOwner": "Application Toolchain session owns selection; Presentation owns draft, stale-result rejection and approved single-page layout",
+  "terminalContract": "User explicitly chooses and saves verified runtime; invalid selection remains selected with inline errors, no auto fallback, no loss of either Config draft on close",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "name_validation_design",
+    "outcome": "approved",
+    "evidence": "Independent R2 UI admission approved existing Config surface and factory, explicit Detect/Browse choices, session revalidation on Save, independent dirty drafts and combined close protection. Reject stale asynchronous responses after selection/close. Bundled observed metadata is Unknown with source wording, never fake Verified/Ready; errors take priority. Maintain approved geometry and validate full-page Light/Dark/narrow renders and control behavior, not XAML tokens alone. Readiness notification cannot replace upstream generation safety."
+  },
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": { "reviewer": null, "outcome": "pending", "evidence": "" }
+}

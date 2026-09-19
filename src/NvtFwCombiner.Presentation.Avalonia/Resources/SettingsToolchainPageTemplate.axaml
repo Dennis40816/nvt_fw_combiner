@@ -1,0 +1,109 @@
+<ResourceDictionary xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:vm="using:NvtFwCombiner.Presentation.Avalonia.ViewModels"
+    xmlns:config="using:NvtFwCombiner.Application.Configuration"
+    xmlns:converters="using:Avalonia.Data.Converters">
+  <DataTemplate x:Key="SettingsToolchainPageTemplate" DataType="vm:MainWindowViewModel">
+    <Grid x:Name="ToolchainPageRoot" Margin="36,20,36,32" RowDefinitions="Auto,*,Auto" RowSpacing="24">
+      <StackPanel Spacing="8">
+        <StackPanel Orientation="Horizontal" Spacing="6">
+          <TextBlock Classes="supportingText" Text="{Binding Text.EventBufferFormatNavigationLabel}" />
+          <TextBlock Classes="supportingText" Text="/" />
+          <TextBlock Classes="supportingText" Text="{Binding Text.ToolchainTitle}" />
+        </StackPanel>
+        <TextBlock Classes="pageTitle" Text="{Binding Text.ToolchainTitle}" />
+        <TextBlock Classes="pageSubtitle" Text="{Binding Text.ToolchainSubtitle}" TextWrapping="Wrap" />
+      </StackPanel>
+      <ScrollViewer Grid.Row="1" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+        <StackPanel>
+          <Border x:Name="ToolchainBundledRow" BorderBrush="{DynamicResource NfcDividerBrush}" BorderThickness="0,1" Padding="4,18">
+            <Grid ColumnDefinitions="210,*" ColumnSpacing="12">
+              <RadioButton GroupName="ToolchainSources" IsChecked="{Binding Settings.IsBundledToolchainSelected, Mode=OneWay}"
+                  Command="{Binding Settings.SelectBundledToolchainCommand}" Content="{Binding Text.ToolchainBundledLabel}"
+                  AutomationProperties.Name="{Binding Text.ToolchainBundledLabel}" />
+              <TextBlock Grid.Column="1" Classes="supportingText" VerticalAlignment="Center" Text="{Binding Text.ToolchainDefaultLabel}" />
+            </Grid>
+          </Border>
+          <Border x:Name="ToolchainUserRow" BorderBrush="{DynamicResource NfcDividerBrush}" BorderThickness="0,0,0,1" Padding="4,16">
+            <Grid RowDefinitions="Auto,Auto" ColumnDefinitions="210,*,Auto,Auto" ColumnSpacing="12" RowSpacing="12">
+              <RadioButton GroupName="ToolchainSources" IsChecked="{Binding Settings.IsUserToolchainSelected, Mode=OneWay}"
+                  Command="{Binding Settings.SelectUserToolchainCommand}" Content="{Binding Text.ToolchainUserLabel}"
+                  AutomationProperties.Name="{Binding Text.ToolchainUserLabel}" />
+              <TextBlock Grid.Column="1" Classes="supportingText" VerticalAlignment="Center" TextWrapping="Wrap" Text="{Binding Text.ToolchainSelectHint}" />
+              <Button x:Name="ToolchainDetectButton" Grid.Column="2" Classes="semanticAction secondary" Command="{Binding Settings.DetectToolchainCommand}"
+                  Content="{Binding Text.ToolchainDetectLabel}" AutomationProperties.Name="{Binding Text.ToolchainDetectLabel}" />
+              <Button x:Name="ToolchainBrowseButton" Grid.Column="3" Classes="semanticAction secondary" Command="{Binding Settings.BrowseToolchainCommand}"
+                  Content="{Binding Text.ToolchainBrowseLabel}" AutomationProperties.Name="{Binding Text.ToolchainBrowseLabel}" />
+              <StackPanel x:Name="ToolchainInlineIssue" Grid.Row="1" Grid.ColumnSpan="4" IsVisible="{Binding Settings.HasToolchainIssues}" Spacing="4">
+                <Grid ColumnDefinitions="24,*" ColumnSpacing="12">
+                  <Path Width="24" Height="24" VerticalAlignment="Top" Data="M11 2L21 20H1Z M11 8V13 M11 17V17.2" Stretch="Uniform"
+                      Stroke="{DynamicResource NfcWarningTextBrush}" StrokeThickness="1.8" />
+                  <TextBlock Grid.Column="1" Foreground="{DynamicResource NfcWarningTextBrush}" Text="{Binding Text.ToolchainInvalidHint}" TextWrapping="Wrap" />
+                </Grid>
+                <TextBlock Classes="supportingText" AutomationProperties.LiveSetting="Polite" Text="{Binding Settings.ToolchainIssueText}" TextWrapping="Wrap" />
+              </StackPanel>
+            </Grid>
+          </Border>
+          <ItemsControl ItemsSource="{Binding Settings.ToolchainCandidates}" Margin="0,8,0,0">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate DataType="config:ToolchainRuntimeCandidateInspection">
+                <Button Classes="semanticAction secondary" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Margin="0,0,0,6"
+                    Command="{Binding $parent[ItemsControl].DataContext.Settings.SelectToolchainCandidateCommand}" CommandParameter="{Binding}"
+                    AutomationProperties.Name="{Binding Identity.Path}">
+                  <StackPanel>
+                    <TextBlock Text="{Binding Identity.Path}" TextWrapping="Wrap" />
+                    <TextBlock Classes="captionText" Text="{Binding Identity.FileVersion}" />
+                  </StackPanel>
+                </Button>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+          <Grid x:Name="ToolchainMetadata" Margin="4,20,4,24" ColumnDefinitions="190,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto" ColumnSpacing="12" RowSpacing="14">
+            <TextBlock Classes="strongText" Text="{Binding Text.ToolchainRuntimeLabel}" />
+            <TextBlock Grid.Column="1" Classes="supportingText" Text="{Binding Settings.ToolchainRuntime}" TextWrapping="Wrap" />
+            <TextBlock Grid.Row="1" Classes="strongText" Text="{Binding Text.ToolchainVersionLabel}" />
+            <TextBlock Grid.Row="1" Grid.Column="1" Classes="supportingText" Text="{Binding Settings.ToolchainVersion}" TextWrapping="Wrap" />
+            <TextBlock Grid.Row="2" Classes="strongText" Text="{Binding Text.ToolchainArchitectureLabel}" />
+            <TextBlock Grid.Row="2" Grid.Column="1" Classes="supportingText" Text="{Binding Settings.ToolchainArchitecture}" />
+            <TextBlock Grid.Row="3" Classes="strongText" Text="{Binding Text.ToolchainSourceLabel}" />
+            <TextBlock Grid.Row="3" Grid.Column="1" Classes="supportingText" Text="{Binding Settings.ToolchainSource}" TextWrapping="Wrap" />
+            <TextBlock Grid.Row="4" Classes="strongText" Text="{Binding Text.ToolchainVerificationLabel}" />
+            <TextBlock Grid.Row="4" Grid.Column="1" Classes="supportingText" AutomationProperties.LiveSetting="Polite" Text="{Binding Settings.ToolchainVerification}" />
+          </Grid>
+          <Border BorderBrush="{DynamicResource NfcDividerBrush}" BorderThickness="0,1,0,0" Padding="0,22,0,0">
+            <Grid ColumnDefinitions="24,*" ColumnSpacing="12">
+              <Path Width="24" Height="24" VerticalAlignment="Top" Data="{StaticResource SettingsInformationIconGeometry}" Stroke="{DynamicResource NfcTextSecondaryBrush}" StrokeThickness="1.6" Stretch="Uniform" />
+              <TextBlock Grid.Column="1" Classes="supportingText" Text="{Binding Text.ToolchainHint}" TextWrapping="Wrap" />
+            </Grid>
+          </Border>
+          <TextBlock Classes="supportingText" Margin="0,12,0,0" AutomationProperties.LiveSetting="Polite"
+              Text="{Binding Settings.ToolchainOperationStatus}" TextWrapping="Wrap"
+              IsVisible="{Binding Settings.ToolchainOperationStatus, Converter={x:Static converters:StringConverters.IsNotNullOrEmpty}}" />
+        </StackPanel>
+      </ScrollViewer>
+      <Border x:Name="ToolchainCloseConfirmation" Grid.Row="1" VerticalAlignment="Bottom" KeyboardNavigation.TabNavigation="Cycle"
+          Classes="statusNotice warning" IsVisible="{Binding Settings.IsToolchainCloseConfirmationOpen}"
+          AutomationProperties.Name="{Binding Text.EventBufferFormatDiscardConfirmationTitle}">
+        <StackPanel Spacing="12">
+          <TextBlock Classes="sectionTitle" Text="{Binding Text.EventBufferFormatDiscardConfirmationTitle}" />
+          <TextBlock Classes="supportingText" Text="{Binding Text.ToolchainDiscardDetail}" TextWrapping="Wrap" />
+          <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
+            <Button Classes="semanticAction secondary" Command="{Binding Settings.CancelToolchainCloseCommand}" Content="{Binding Text.EventBufferFormatKeepEditingLabel}" />
+            <Button Classes="semanticAction primary" Command="{Binding Settings.ConfirmToolchainCloseCommand}" Content="{Binding Text.EventBufferFormatDiscardChangesLabel}" />
+          </StackPanel>
+        </StackPanel>
+      </Border>
+      <Border x:Name="ToolchainFooter" Grid.Row="2" Padding="0,20,0,0" BorderBrush="{DynamicResource NfcDividerBrush}" BorderThickness="0,1,0,0">
+        <Grid ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="12">
+          <Button Classes="semanticAction secondary" Height="48" Command="{Binding Settings.SelectBundledToolchainCommand}"
+              Content="{Binding Text.EventBufferFormatRestoreDefaultsLabel}" AutomationProperties.Name="{Binding Text.EventBufferFormatRestoreDefaultsLabel}" />
+          <TextBlock Grid.Column="1" Classes="captionText" Text="{Binding Settings.ToolchainDraftStatus}" TextWrapping="Wrap" VerticalAlignment="Center" HorizontalAlignment="Right" />
+          <Button Grid.Column="2" Classes="semanticAction secondary" Height="48" Command="{Binding Settings.DiscardToolchainChangesCommand}"
+              Content="{Binding Text.EventBufferFormatDiscardChangesLabel}" AutomationProperties.Name="{Binding Text.EventBufferFormatDiscardChangesLabel}" />
+          <Button Grid.Column="3" Classes="semanticAction primary" Height="48" Command="{Binding Settings.SaveToolchainCommand}"
+              Content="{Binding Text.EventBufferFormatSaveApplyLabel}" AutomationProperties.Name="{Binding Text.EventBufferFormatSaveApplyLabel}" />
+        </Grid>
+      </Border>
+    </Grid>
+  </DataTemplate>
+</ResourceDictionary>
