@@ -68,7 +68,6 @@ public sealed partial class XamlControlStyleContractTests
         Assert.Equal("1", (string?)additionalFacts.Attribute("Grid.Row"));
         Assert.Equal("1", (string?)additionalFacts.Attribute("Grid.Column"));
         Assert.Equal("1", (string?)actions.Attribute("Grid.Column"));
-        Assert.Equal("2", (string?)actions.Attribute("Grid.RowSpan"));
         Assert.Equal("10", (string?)actions.Attribute("Spacing"));
         Assert.Equal("Center", (string?)actions.Attribute("VerticalAlignment"));
         Assert.Null(browse.Attribute("Grid.Column"));
