@@ -271,18 +271,19 @@
                   </Grid>
                 </StackPanel>
               </Border>
-              <TextBlock Classes="warningText" AutomationProperties.LiveSetting="Assertive" IsVisible="{Binding HasValidationMessage}"
-                         Text="{Binding ValidationMessage}" TextWrapping="Wrap" />
             </StackPanel>
           </Border>
         </StackPanel>
       </ScrollViewer>
 
       <Border Grid.Row="2" Padding="22,14" BorderBrush="{DynamicResource NfcBorderMutedBrush}" BorderThickness="0,1,0,0">
-        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="{DynamicResource NfcSpace12}">
-          <TextBlock Classes="detailText" VerticalAlignment="Center" Text="{Binding Text.OutputDeliveryReadySummary}"
+        <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto" ColumnSpacing="{DynamicResource NfcSpace12}">
+          <TextBlock Grid.ColumnSpan="2" Margin="0,0,0,8" Classes="warningText"
+                     AutomationProperties.LiveSetting="Assertive" IsVisible="{Binding HasValidationMessage}"
+                     Text="{Binding ValidationMessage}" TextWrapping="Wrap" />
+          <TextBlock Grid.Row="1" Classes="detailText" VerticalAlignment="Center" Text="{Binding Text.OutputDeliveryReadySummary}"
                      IsVisible="{Binding CanConfirm}" />
-          <StackPanel Grid.Column="1" HorizontalAlignment="Right" Orientation="Horizontal" Spacing="{DynamicResource NfcSpace8}">
+          <StackPanel Grid.Row="1" Grid.Column="1" HorizontalAlignment="Right" Orientation="Horizontal" Spacing="{DynamicResource NfcSpace8}">
             <Button x:Name="CancelButton" Classes="semanticAction secondary" Command="{Binding CancelCommand}"
                     Content="{Binding Text.OutputDeliveryCancelLabel}" />
             <Button x:Name="ConfirmButton" Classes="semanticAction primary action" Click="ConfirmButton_OnClick"
