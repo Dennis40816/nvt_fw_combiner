@@ -1,0 +1,46 @@
+{
+  "schemaVersion": 2,
+  "taskId": "TOOLCHAIN-119-TRUST-03",
+  "capability": "Isolated strict Windows runtime candidate verification",
+  "integrationBase": "017c679d67a3794b74487dbfccc5202a8b748b4d",
+  "risk": "R3",
+  "kind": "behavior",
+  "state": "design-active",
+  "mutablePaths": [
+    "src/NvtFwCombiner.Infrastructure/ExternalTools/RuntimeCandidateDependencyInspector.cs",
+    "src/NvtFwCombiner.Infrastructure/ExternalTools/WindowsRuntimeTrustProbe.cs",
+    "src/NvtFwCombiner.Infrastructure/ExternalTools/RuntimeTrustProbeProcess.cs",
+    "src/NvtFwCombiner.Infrastructure/ExternalTools/ToolchainRuntimeCandidateInspector.cs",
+    "src/NvtFwCombiner.Infrastructure/ExternalTools/ExternalProcessorEnvironmentLoader.cs",
+    "src/NvtFwCombiner.Bootstrap/CompositionHostServices.cs",
+    "src/NvtFwCombiner.Bootstrap/CompositionHostServices.Toolchain.cs",
+    "src/NvtFwCombiner.Desktop/Program.cs",
+    "src/NvtFwCombiner.Cli/Program.cs",
+    "tests/NvtFwCombiner.Infrastructure.Tests/ExternalTools/RuntimeCandidateDependencyInspectorTests.cs",
+    "tests/NvtFwCombiner.Infrastructure.Tests/ExternalTools/RuntimeTrustProbeTests.cs",
+    "tests/NvtFwCombiner.Infrastructure.Tests/ExternalTools/ToolchainRuntimeCandidateInspectorTests.cs",
+    "tests/NvtFwCombiner.Bootstrap.Tests/ToolchainProbeHostTests.cs",
+    "docs/contracts/toolchain-runtime-probe-v1.md",
+    "docs/adr/0073-toolchain-runtime-selection.md",
+    "docs/adr/0006-external-combiner-tool-runner.md"
+  ],
+  "implementationOwner": "root",
+  "searchEvidence": [
+    "Existing RuntimeCandidateImageInspector is non-executing PE fact authority; no native signature/import/export verifier exists in this subsystem.",
+    "ExternalProcessorEnvironmentLoader and ExternalCombinerToolResolver already own bounded manifest discovery and pinned executable identity; reuse these snapshots rather than read manifests independently.",
+    "SystemExternalProcessRunner provides hidden argument-list launch, bounded output, cancellation and timeout; this slice must verify real trusted-child exit/kill and cannot claim stronger untested cleanup guarantees.",
+    "Microsoft WINTRUST_DATA documentation confirms entire-chain excluding-root revocation flags; network retrieval is allowed without cache-only, but valid Windows revocation caches may be used."
+  ],
+  "semanticOwner": "Infrastructure runtime evidence adapter and existing external-tool discovery; Application remains selection/readiness owner",
+  "terminalContract": "Only a correlated successful trusted-host probe plus compatible pinned-tool import/export evidence yields complete Verified; unknown, revocation unavailable, malformed, timeout and identity mismatch reject without executing the candidate",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "name_validation_design",
+    "outcome": "approved",
+    "evidence": "Independent R3 architecture admission approved isolated same-host internal probe, 30-second bound and actual exit evidence, working directory outside candidate/user-DLL directories, strict correlated versioned JSON, pinned snapshot hash and actual WinTrust signer state. Require WinVerifyTrust success with whole-chain/excluding-root revocation and no ignore/cache-only flags, ASN.1 Microsoft Organization, StateClose, and accurate cache semantics. Import names/ordinals come only from verified Combiner snapshots; reject missing/zero/out-of-bounds required exports or required forwarders with finite byte/string/table bounds. Loader change only reuses discovery metadata in this slice. Config-generation/deployment wiring and full Toolchain completion remain separate; firmware and release external gates are retained."
+  },
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": { "reviewer": null, "outcome": "pending", "evidence": "" }
+}

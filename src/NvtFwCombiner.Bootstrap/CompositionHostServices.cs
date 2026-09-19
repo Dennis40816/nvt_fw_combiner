@@ -21,7 +21,7 @@ using NvtFwCombiner.Infrastructure.VersionManagement;
 namespace NvtFwCombiner.Bootstrap;
 
 /// <summary>One explicitly constructed Bootstrap dependency graph.</summary>
-public sealed class CompositionHostServices
+public sealed partial class CompositionHostServices
 {
     private readonly Lock _configurationGate = new();
     private readonly Func<FirmwareFamilyResolutionDefinition> _loadConfigurationFamily;

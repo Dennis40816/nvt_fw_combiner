@@ -1,6 +1,6 @@
 # ADR 0073: Transactional Toolchain runtime selection
 
-- Status: Accepted for configuration publication; executable trust and deployment remain separately admitted work
+- Status: Accepted for configuration publication and candidate verification; deployment remains separately admitted work
 - Date: 2026-09-20
 - Related: [ADR 0006](0006-external-combiner-tool-runner.md), [ADR 0072](0072-event-buffer-format-configuration.md)
 
@@ -48,9 +48,13 @@ started operation's immutable execution lease. A notification callback may
 schedule refresh but cannot be the safety mechanism that invalidates old leases.
 Workflows without the dependency must remain independent.
 
-The actual Windows signature/revocation probe, import/export compatibility,
-isolated deployment and processor consumption require separate executable-trust
-admission before integration. This configuration decision does not relax the
+Windows candidate verification follows the separately reviewed
+[Toolchain runtime trust probe v1](../contracts/toolchain-runtime-probe-v1.md):
+an internal trusted-host child verifies strict WinTrust signer evidence while
+bounded PE inspection compares the selected DLL against the manifest-pinned
+Combiner imports without loading candidate code. Isolated deployment and
+processor consumption still require separate admission before integration.
+This configuration decision does not relax the
 manifest, processor, firmware, Golden or release contracts. A session tested
 only against an inspector fake is not a completed Toolchain feature.
 

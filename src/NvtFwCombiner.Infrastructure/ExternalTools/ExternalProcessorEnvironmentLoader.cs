@@ -13,10 +13,13 @@ internal delegate ValueTask<ExternalProcessorRuntimeEnvironment>
         Action<long, long> progress,
         CancellationToken cancellationToken);
 
+internal sealed record ResolvedRuntimeTool(string Path, string Sha256);
+
 internal sealed record ExternalProcessorRuntimeEnvironment(
     IExternalProcessor? Processor,
     IRuntimeDependencyReadinessProvider ReadinessProvider,
-    int ManifestCount);
+    int ManifestCount,
+    IReadOnlyList<ResolvedRuntimeTool>? RuntimeTools = null);
 
 internal sealed record ExternalProcessorEnvironmentLease(
     long Generation,
@@ -389,6 +392,12 @@ internal sealed class ExternalProcessorEnvironmentLoader :
         return LoadAsync(FindExternalToolsRoot, progress, cancellationToken);
     }
 
+    internal static async ValueTask<IReadOnlyList<ResolvedRuntimeTool>> DiscoverRuntimeToolsAsync(CancellationToken cancellationToken)
+    {
+        ExternalProcessorRuntimeEnvironment environment = await LoadDefaultAsync(static (_, _) => { }, cancellationToken).ConfigureAwait(false);
+        return environment.RuntimeTools ?? [];
+    }
+
     private static async ValueTask<ExternalProcessorRuntimeEnvironment> LoadAsync(
         Func<string?> resolveRoot,
         Action<long, long> progress,
@@ -523,19 +532,24 @@ internal sealed class ExternalProcessorEnvironmentLoader :
         string toolRoot = root is null ? Path.Combine(AppContext.BaseDirectory, "external-tools") :
             Path.TrimEndingDirectorySeparator(root);
         var resolver = new ExternalCombinerToolResolver(registry, toolRoot);
+        List<ResolvedRuntimeTool> runtimeTools = [];
         foreach (ExternalCombinerToolManifest manifest in manifests)
         {
             cancellationToken.ThrowIfCancellationRequested();
             if (!resolver.TryResolve(
                     manifest.ToolBindingId,
                     out _,
-                    out _,
+                    out string? executablePath,
                     out _,
                     cancellationToken))
             {
                 throw new ExternalEnvironmentLoadException(
                     ExternalProcessorEnvironmentIssueCodes.CandidateInvalid,
                     "An external tool candidate failed executable identity validation.");
+            }
+            if (string.Equals(manifest.ToolId, "legacy-combiner", StringComparison.Ordinal))
+            {
+                runtimeTools.Add(new(executablePath!, manifest.Sha256));
             }
         }
         cancellationToken.ThrowIfCancellationRequested();
@@ -566,7 +580,8 @@ internal sealed class ExternalProcessorEnvironmentLoader :
                     runner,
                     ExternalCombinerInvocationCatalog.All)),
             readiness,
-            manifests.Count);
+            manifests.Count,
+            runtimeTools.AsReadOnly());
     }
 
     private static string? FindExternalToolsRoot()
