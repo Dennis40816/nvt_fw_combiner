@@ -244,7 +244,7 @@ internal sealed partial class MessageCenterViewModel : ObservableObject
         }
     }
 
-    internal async Task<ExternalProcessorEnvironmentLoadResult>
+    internal async Task<(bool Succeeded, string ErrorMessage)>
         ReloadExternalEnvironmentAfterConfigurationAsync(CancellationToken cancellationToken)
     {
         PresentationObserver.Invoke(() => OnPropertyChanged(nameof(ExternalEnvironmentSummary)));
@@ -253,7 +253,9 @@ internal sealed partial class MessageCenterViewModel : ObservableObject
             cancellationToken);
         PresentationObserver.Invoke(() => OnPropertyChanged(nameof(ExternalEnvironmentSummary)));
         await RefreshDiagnosticsAfterEnvironmentPublicationAsync(cancellationToken);
-        return result;
+        return (
+            result.Succeeded,
+            string.Join(" ", result.Issues.Select(static issue => issue.Message)));
     }
 
     public async Task ExportAsync(string destinationPath, CancellationToken cancellationToken)

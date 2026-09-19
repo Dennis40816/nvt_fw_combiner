@@ -6,7 +6,7 @@ internal sealed partial class MainWindowViewModel
 
     private void Replace_OnPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
     {
-        OnPropertyChanged(nameof(Replace));
+        PresentationObserver.Invoke(() => OnPropertyChanged(nameof(Replace)));
         if (e.PropertyName is nameof(ReplacePresentationViewModel.IsReplaceSelectionModalOpen) or
             nameof(ReplacePresentationViewModel.IsCtrlRamFirmwareVersionModalOpen))
         {

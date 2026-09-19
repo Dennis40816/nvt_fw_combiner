@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 2,
+  "taskId": "TOOLCHAIN-119-CI-FOLLOWUP-07",
+  "capability": "Preserve observer isolation and architecture boundaries after runtime reload",
+  "integrationBase": "6143d210ccf1d911c98294f3eea75263cb196ea4",
+  "risk": "R1",
+  "kind": "behavior",
+  "state": "design-active",
+  "mutablePaths": [
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MainWindowViewModel.MergePresentation.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MainWindowViewModel.Context.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MainWindowViewModel.MessageCenter.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MainWindowViewModel.ReplacePresentation.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MainWindowViewModel.RunSession.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MessageCenterViewModel.cs",
+    "tests/NvtFwCombiner.Architecture.Tests/RepositoryBoundaryTests.PresentationOrchestration.cs"
+  ],
+  "implementationOwner": "root",
+  "searchEvidence": [
+    "PR 442 CI evidence identified one UI failure where an external shell observer escaped through Merge_OnPropertyChanged during the new readiness refresh.",
+    "PR 442 CI evidence identified a direct Application.ExternalTools namespace reference from MainWindowViewModel.MessageCenter.cs and an aggregate size of 1025 nonblank lines.",
+    "The existing PresentationObserver boundary and Application-owned loader contract are sufficient; no second lifecycle owner is required."
+  ],
+  "semanticOwner": "Existing Presentation observer isolation and MessageCenter external-environment lifecycle",
+  "terminalContract": "Runtime reload still refreshes AB Merge and CtrlRAM readiness, while notification observers cannot fail the operation and MainWindow remains free of direct ExternalTools namespace coupling",
+  "disposition": "reuse",
+  "designReview": {
+    "reviewer": null,
+    "outcome": "not-required",
+    "evidence": "CI follow-up for the already approved R1 correction; no new firmware, trust, or public contract."
+  }
+}
