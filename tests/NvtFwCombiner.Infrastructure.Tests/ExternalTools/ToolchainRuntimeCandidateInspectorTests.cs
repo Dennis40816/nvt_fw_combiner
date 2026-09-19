@@ -2,6 +2,7 @@ using System.Text.Json;
 using NvtFwCombiner.Application.Configuration;
 using NvtFwCombiner.Infrastructure.ExternalTools;
 using NvtFwCombiner.Infrastructure.Files;
+using NvtFwCombiner.TestSupport;
 
 namespace NvtFwCombiner.Infrastructure.Tests.ExternalTools;
 
@@ -12,8 +13,7 @@ public sealed class ToolchainRuntimeCandidateInspectorTests
     [Fact]
     public async Task BundledRuntimeUsesApprovedToolCompatibility()
     {
-        var inspector = new ToolchainRuntimeCandidateInspector(new LocalFileStore(),
-            new RuntimeTrustProbeProcess(new CorrelatedRunner(), TrustedHostPath(), []));
+        ToolchainRuntimeCandidateInspector inspector = CreateInspector(new CorrelatedRunner());
 
         ToolchainRuntimeCandidateInspection result = await inspector.InspectBundledAsync(TestContext.Current.CancellationToken);
 
@@ -38,8 +38,7 @@ public sealed class ToolchainRuntimeCandidateInspectorTests
     {
         if (!OperatingSystem.IsWindows()) { return; }
         var runner = new CorrelatedRunner();
-        var inspector = new ToolchainRuntimeCandidateInspector(new LocalFileStore(),
-            new RuntimeTrustProbeProcess(runner, TrustedHostPath(), ["trusted-entry.dll"]));
+        ToolchainRuntimeCandidateInspector inspector = CreateInspector(runner, ["trusted-entry.dll"]);
         string path = Path.Combine(Environment.SystemDirectory, "vcruntime140.dll");
 
         ToolchainRuntimeCandidateInspection result = await inspector.InspectAsync(path, TestContext.Current.CancellationToken);
@@ -55,8 +54,7 @@ public sealed class ToolchainRuntimeCandidateInspectorTests
     public async Task MismatchedProbeResponseRejectsCandidate()
     {
         if (!OperatingSystem.IsWindows()) { return; }
-        var inspector = new ToolchainRuntimeCandidateInspector(new LocalFileStore(),
-            new RuntimeTrustProbeProcess(new CorrelatedRunner(mismatch: true), TrustedHostPath(), []));
+        ToolchainRuntimeCandidateInspector inspector = CreateInspector(new CorrelatedRunner(mismatch: true));
 
         ToolchainRuntimeCandidateInspection result = await inspector.InspectAsync(
             Path.Combine(Environment.SystemDirectory, "vcruntime140.dll"), TestContext.Current.CancellationToken);
@@ -142,5 +140,32 @@ public sealed class ToolchainRuntimeCandidateInspectorTests
     private static string TrustedHostPath()
     {
         return Path.Combine(AppContext.BaseDirectory, "trusted-host.exe");
+    }
+
+    private static ToolchainRuntimeCandidateInspector CreateInspector(
+        IExternalProcessRunner runner,
+        IReadOnlyList<string>? imports = null)
+    {
+        EnsureExternalToolsProjection();
+        return new ToolchainRuntimeCandidateInspector(
+            new LocalFileStore(),
+            new RuntimeTrustProbeProcess(runner, TrustedHostPath(), imports ?? []));
+    }
+
+    private static void EnsureExternalToolsProjection()
+    {
+        string destinationRoot = Path.Combine(AppContext.BaseDirectory, "external-tools");
+        if (Directory.Exists(destinationRoot))
+        {
+            return;
+        }
+
+        string sourceRoot = RepositoryPaths.FromRepositoryRoot("external-tools");
+        foreach (string sourcePath in Directory.EnumerateFiles(sourceRoot, "*", SearchOption.AllDirectories))
+        {
+            string destinationPath = Path.Combine(destinationRoot, Path.GetRelativePath(sourceRoot, sourcePath));
+            _ = Directory.CreateDirectory(Path.GetDirectoryName(destinationPath)!);
+            File.Copy(sourcePath, destinationPath, overwrite: true);
+        }
     }
 }
