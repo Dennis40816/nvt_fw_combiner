@@ -5,7 +5,7 @@
   "integrationBase": "31bf47e1601ec1498672667ba7272b7739f75096",
   "risk": "R1",
   "kind": "behavior",
-  "state": "design-active",
+  "state": "final-complete",
   "mutablePaths": [
     "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MainWindowViewModel.MessageCenter.cs",
     "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MainWindowViewModel.Construction.cs",
@@ -27,12 +27,12 @@
     "outcome": "not-required",
     "evidence": "Bounded R1 correction of the existing post-save callback; no new public contract, runtime trust policy, firmware semantics, or alternate environment owner."
   },
-  "implementationHead": null,
-  "reviewedHead": null,
-  "pathStateDigest": null,
+  "implementationHead": "18428abdad3ca5d78938215209185c810a5577e2",
+  "reviewedHead": "18428abdad3ca5d78938215209185c810a5577e2",
+  "pathStateDigest": "8083664ea5637b26b0ecb6725c1862970a5717ce750c12a8cf1a93dce8615f0f",
   "finalReview": {
-    "reviewer": null,
-    "outcome": "pending",
-    "evidence": ""
+    "reviewer": "name_validation_design",
+    "outcome": "findings-incorporated",
+    "evidence": "Independent fixed-head review PASS at 18428abdad3ca5d78938215209185c810a5577e2 after two P2 findings were incorporated. Toolchain Save exclusively performs reload plus fresh diagnostics and readiness refresh; startup and explicit publication callbacks are refresh-only. Post-publication diagnostics waits any older active refresh before taking a new snapshot. AB Merge and CtrlRAM readiness follow the environment publication without recursion or silent fallback. Targeted UI evidence passed 24/24 with four startup/explicit cases asserting one environment generation; git diff --check passed. Native and release gates remain separate."
   }
 }
