@@ -15,6 +15,11 @@ runtime implementation, create a watcher, or replace the version sequence.
 
 ## Current release sequence — 2026-09-14
 
+Owner intake, 2026-09-20: preserve a [local user-data inventory](local-user-data-inventory.md)
+for future uninstall implementation, including settings, report history,
+version-manager state and transient coordination files. This records cleanup
+scope for planning only; it does not enable deletion or assign a new release slot.
+
 The owner requests redistribution of unfinished work across `1.1.6` through
 `1.5.x`, with Desay/public AB address corrections completed **before `1.2.0`**,
 and sets the **full Launcher release to `2.0.0`**. The sequence below is the
