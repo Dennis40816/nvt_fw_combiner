@@ -28,5 +28,13 @@
     "reviewer": null,
     "outcome": "not-required",
     "evidence": "CI follow-up for the already approved R1 correction; no new firmware, trust, or public contract."
+  },
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": {
+    "reviewer": null,
+    "outcome": "pending",
+    "evidence": ""
   }
 }
