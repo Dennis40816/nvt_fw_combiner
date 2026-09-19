@@ -62,6 +62,7 @@ public sealed partial class CtrlRamWorkflowTests
         }
 
         Assert.Equal(ExternalProcessorEnvironmentState.Current, loader.Current.State);
+        Assert.Equal(1, loader.Current.RequestGeneration);
         Assert.Equal(toolsAvailable, shell.Replace.CanBuildReplace);
         Assert.Equal(!toolsAvailable, shell.HasReplaceBuildBlocker);
         Assert.NotEmpty(blockerNotifications);

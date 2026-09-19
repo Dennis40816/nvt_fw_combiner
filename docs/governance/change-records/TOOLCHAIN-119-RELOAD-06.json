@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 2,
+  "taskId": "TOOLCHAIN-119-RELOAD-06",
+  "capability": "Republish external runtime environment after Toolchain selection changes",
+  "integrationBase": "31bf47e1601ec1498672667ba7272b7739f75096",
+  "risk": "R1",
+  "kind": "behavior",
+  "state": "design-active",
+  "mutablePaths": [
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MainWindowViewModel.MessageCenter.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MainWindowViewModel.Construction.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MessageCenterViewModel.cs",
+    "tests/NvtFwCombiner.UiSmoke.Tests/ShellViewModelTests.CtrlRamRuntimeRefresh.cs",
+    "tests/NvtFwCombiner.UiSmoke.Tests/ShellViewModelTests.Toolchain.cs"
+  ],
+  "implementationOwner": "root",
+  "searchEvidence": [
+    "CodeGraph traced ToolchainAppliedAsync to RefreshRuntimeReadinessAfterPublicationAsync and found that it refreshed cached readiness without reloading the generation-bound ExternalProcessorEnvironmentLoader.",
+    "MessageCenterViewModel already owns every explicit external-environment load and diagnostics refresh; the correction reuses that owner instead of adding a second loader path.",
+    "AB Merge and CtrlRAM Replace are the current Presentation readiness caches backed by the external processor environment."
+  ],
+  "semanticOwner": "MessageCenterViewModel external-environment lifecycle with existing Merge and Replace readiness projections",
+  "terminalContract": "A successful Toolchain save first republishes the environment for the new configuration generation, then refreshes dependent readiness and global diagnostics; a failed publication stays visible and does not silently fall back",
+  "disposition": "reuse",
+  "designReview": {
+    "reviewer": null,
+    "outcome": "not-required",
+    "evidence": "Bounded R1 correction of the existing post-save callback; no new public contract, runtime trust policy, firmware semantics, or alternate environment owner."
+  },
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": {
+    "reviewer": null,
+    "outcome": "pending",
+    "evidence": ""
+  }
+}

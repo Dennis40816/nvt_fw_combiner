@@ -97,6 +97,40 @@ public sealed class ToolchainSettingsTests
         Assert.False(vm.Settings.HasToolchainUnsavedChanges);
     }
 
+    /// <summary>Saving a new Toolchain generation republishes the external environment before readiness refresh.</summary>
+    [Fact]
+    public async Task SaveReloadsExternalEnvironmentForPublishedToolchainGeneration()
+    {
+        var session = new ToolchainUiSession();
+        int loadCount = 0;
+        var loader = new ExternalProcessorEnvironmentLoader(
+            (_, cancellationToken) =>
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                loadCount++;
+                return ValueTask.FromResult(new ExternalProcessorRuntimeEnvironment(
+                    null,
+                    new EmptyReadiness(),
+                    0,
+                    null,
+                    session.Current.Generation));
+            },
+            session);
+        Assert.True((await ReadEnvironmentAsync(loader)).Succeeded);
+        MainWindowViewModel vm = CreateToolchainViewModel(session, externalEnvironmentLoader: loader);
+        vm.Settings.SelectSectionCommand.Execute(SettingsSection.Toolchain);
+        await vm.Settings.ToolchainLoadTask;
+
+        await vm.Settings.DetectToolchainCommand.ExecuteAsync(null);
+        vm.Settings.SelectToolchainCandidateCommand.Execute(session.Verified);
+        await vm.Settings.SaveToolchainCommand.ExecuteAsync(null);
+
+        Assert.Equal(2, loadCount);
+        Assert.Equal(2, session.Current.Generation);
+        Assert.NotEqual(0, loader.AcquireCurrent().Generation);
+        Assert.Empty(vm.Settings.ToolchainOperationStatus);
+    }
+
     /// <summary>An invalid user choice stays visible and cannot silently select Bundled.</summary>
     [Fact]
     public async Task RejectedPathRemainsSelectedAndCannotSaveOrFallBack()
@@ -221,12 +255,13 @@ public sealed class ToolchainSettingsTests
     }
 
     internal static MainWindowViewModel CreateToolchainViewModel(IToolchainRuntimeConfigurationSession session, ShellLanguage language = ShellLanguage.English,
-        IEventBufferFormatConfigurationSession? formatSession = null)
+        IEventBufferFormatConfigurationSession? formatSession = null,
+        IExternalProcessorEnvironmentLoader? externalEnvironmentLoader = null)
     {
         PresentationHostServices original = PresentationTestHost.CreateServices(ApplicationVersionProvider.InformationalVersion);
         var services = new PresentationHostServices(original.Composition, original.FileReveal, original.SupportMatrix,
             original.SystemInformation, original.SystemDiagnosticsExporter, original.RawBinaryEditorFileSessions,
-            original.CanonicalCatalogLoader, original.ExternalEnvironmentLoader, original.LocalFiles,
+            original.CanonicalCatalogLoader, externalEnvironmentLoader ?? original.ExternalEnvironmentLoader, original.LocalFiles,
             versionManagement: null, managedApplicationStartup: null, stableLauncherHandoff: null,
             eventBufferFormatConfigurationSessionFactory: formatSession is null ? null : _ => Task.FromResult(formatSession),
             toolchainRuntimeConfigurationSessionFactory: _ => Task.FromResult<IToolchainRuntimeConfigurationSession>(session));

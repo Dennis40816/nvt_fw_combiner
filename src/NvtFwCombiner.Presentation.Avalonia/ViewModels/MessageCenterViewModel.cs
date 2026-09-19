@@ -244,6 +244,18 @@ internal sealed partial class MessageCenterViewModel : ObservableObject
         }
     }
 
+    internal async Task<ExternalProcessorEnvironmentLoadResult>
+        ReloadExternalEnvironmentAfterConfigurationAsync(CancellationToken cancellationToken)
+    {
+        PresentationObserver.Invoke(() => OnPropertyChanged(nameof(ExternalEnvironmentSummary)));
+        ExternalProcessorEnvironmentLoadResult result = await _externalEnvironment.LoadToCompletionAsync(
+            progress: null,
+            cancellationToken);
+        PresentationObserver.Invoke(() => OnPropertyChanged(nameof(ExternalEnvironmentSummary)));
+        await RefreshDiagnosticsAfterEnvironmentPublicationAsync(cancellationToken);
+        return result;
+    }
+
     public async Task ExportAsync(string destinationPath, CancellationToken cancellationToken)
     {
         try
@@ -425,6 +437,28 @@ internal sealed partial class MessageCenterViewModel : ObservableObject
             // The explicit operator refresh still owns a fresh full attempt.
         }
         await RefreshAsync(reloadCatalog: true, cancellationToken);
+    }
+
+    private async Task RefreshDiagnosticsAfterEnvironmentPublicationAsync(
+        CancellationToken cancellationToken)
+    {
+        if (_activeRefresh is { IsCompleted: false } active)
+        {
+            try
+            {
+                await active.WaitAsync(cancellationToken);
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                throw;
+            }
+            catch (Exception)
+            {
+                // The post-publication refresh still owns a fresh diagnostics attempt.
+            }
+        }
+
+        await RefreshAsync(reloadCatalog: false, cancellationToken);
     }
 
     private async Task ObserveRefreshCompletionAsync(Task refresh)

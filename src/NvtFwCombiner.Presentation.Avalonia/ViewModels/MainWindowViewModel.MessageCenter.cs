@@ -1,4 +1,5 @@
 using NvtFwCombiner.Application.Capabilities;
+using NvtFwCombiner.Application.ExternalTools;
 using System.ComponentModel;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
@@ -34,8 +35,23 @@ internal sealed partial class MainWindowViewModel
 
     private async Task RefreshRuntimeReadinessAfterPublicationAsync(CancellationToken cancellationToken)
     {
+        await Merge.RefreshAbMergeActionReadinessAsync(cancellationToken);
         await Replace.RefreshCtrlRamActionReadinessAsync(cancellationToken);
         MessageCenterDiagnosticsChanged(catalogPublicationChanged: false);
+    }
+
+    private async Task ReloadRuntimeEnvironmentAndRefreshReadinessAsync(
+        CancellationToken cancellationToken)
+    {
+        ExternalProcessorEnvironmentLoadResult result =
+            await MessageCenter.ReloadExternalEnvironmentAfterConfigurationAsync(cancellationToken);
+        await RefreshRuntimeReadinessAfterPublicationAsync(cancellationToken);
+        if (!result.Succeeded)
+        {
+            throw new InvalidOperationException(string.Join(
+                " ",
+                result.Issues.Select(static issue => issue.Message)));
+        }
     }
 
     private void MessageCenterDiagnosticsChanged(bool catalogPublicationChanged)
