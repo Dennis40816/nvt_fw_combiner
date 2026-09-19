@@ -47,25 +47,41 @@ internal sealed class FileSystemCompositionOutputBundleDestinationValidator :
             string parent = FileSystemPathGuard.ResolveExistingRoot(intent.ParentDirectory);
             ValidateName(intent.FolderName, "Bundle folder name", issues);
             ValidateName(intent.OutputFileName, "Primary output filename", issues);
+            if (intent.AdditionalDelivery is { } additional)
+            {
+                ValidateName(additional.SuggestedFileName, "Bundle additional-delivery filename", issues);
+            }
+
+            foreach (CompositionExecutionBundleSource source in intent.Sources)
+            {
+                ValidateName(source.Summary.OriginalFileName, "Bundle source filename", issues);
+            }
+
             if (issues.Count == 0)
             {
                 resolvedDirectory = ResolveAvailableDirectory(parent, intent.FolderName);
+                ValidateName(Path.GetFileName(resolvedDirectory), "Bundle destination folder", issues);
                 ValidatePath(resolvedDirectory, issues);
-                ValidatePath(
-                    Path.Combine(resolvedDirectory, intent.OutputFileName),
-                    issues);
-                foreach (CompositionExecutionBundleSource source in intent.Sources)
+                List<string> artifactNames = AtomicBundlePathRules.AllocateArtifactNames(
+                    intent.OutputFileName,
+                    intent.AdditionalDelivery is null ? [] : [intent.AdditionalDelivery.SuggestedFileName],
+                    intent.Sources.Select(static source => source.Summary.OriginalFileName));
+                ProtectedPathGuard.ProtectedPath[] protectedPaths =
+                [
+                    .. intent.Sources.Select(static source => new ProtectedPathGuard.ProtectedPath(
+                        source.AcceptedIdentity, $"accepted source '{source.Summary.BindingId}'")),
+                ];
+                foreach (string name in artifactNames.Prepend(intent.OutputFileName))
                 {
-                    string child = Path.Combine(resolvedDirectory, source.Summary.OriginalFileName);
+                    ValidateName(name, "Bundle child filename", issues);
+                    string child = Path.Combine(resolvedDirectory, name);
                     ValidatePath(child, issues);
                     try
                     {
                         ProtectedPathGuard.EnsureDoesNotAlias(
                             child,
                             "Bundle child path",
-                            [new ProtectedPathGuard.ProtectedPath(
-                                source.AcceptedIdentity,
-                                $"accepted source '{source.Summary.BindingId}'")],
+                            protectedPaths,
                             nameof(intent));
                     }
                     catch (Exception exception) when (
@@ -144,6 +160,36 @@ internal static class AtomicBundlePathRules
 {
     private const int MaximumWindowsPathLength = 259;
     private static readonly HashSet<string> WindowsReservedNames = CreateReservedNames();
+
+    /// <summary>Reserves the primary name, then allocates additional and source names; callers validate components.</summary>
+    internal static List<string> AllocateArtifactNames(
+        string outputFileName,
+        IEnumerable<string> additionalFileNames,
+        IEnumerable<string> sourceFileNames)
+    {
+        HashSet<string> allocated = new(StringComparer.OrdinalIgnoreCase) { outputFileName };
+        return [.. additionalFileNames.Concat(sourceFileNames)
+            .Select(name => AllocateUniqueFileName(name, allocated))];
+    }
+
+    private static string AllocateUniqueFileName(string originalFileName, HashSet<string> allocated)
+    {
+        if (allocated.Add(originalFileName))
+        {
+            return originalFileName;
+        }
+
+        string extension = Path.GetExtension(originalFileName);
+        string basename = Path.GetFileNameWithoutExtension(originalFileName);
+        for (int suffix = 2; ; suffix++)
+        {
+            string candidate = $"{basename} ({suffix}){extension}";
+            if (allocated.Add(candidate))
+            {
+                return candidate;
+            }
+        }
+    }
 
     internal static string? GetWindowsNameIssueCode(string value)
     {

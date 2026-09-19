@@ -296,18 +296,12 @@ internal sealed class AtomicBundleCompositionOutputWriter :
             outputFileName,
             "Output filename",
             nameof(outputFileName));
-        HashSet<string> allocated = new(StringComparer.OrdinalIgnoreCase)
-        {
-            outputFileName,
-        };
-        List<string> names = new(_additionalArtifacts.Count + _artifacts.Count);
         foreach (AtomicBundlePlannedArtifact artifact in _additionalArtifacts)
         {
             AtomicBundlePathRules.EnsureWindowsName(
                 artifact.SuggestedFileName,
                 "Bundle additional-delivery filename",
                 nameof(artifact.SuggestedFileName));
-            names.Add(AllocateUniqueFileName(artifact.SuggestedFileName, allocated));
         }
 
         foreach (AtomicBundleArtifact artifact in _artifacts)
@@ -316,7 +310,15 @@ internal sealed class AtomicBundleCompositionOutputWriter :
                 artifact.OriginalFileName,
                 "Bundle source filename",
                 nameof(artifact.OriginalFileName));
-            names.Add(AllocateUniqueFileName(artifact.OriginalFileName, allocated));
+        }
+
+        List<string> names = AtomicBundlePathRules.AllocateArtifactNames(
+            outputFileName,
+            _additionalArtifacts.Select(static artifact => artifact.SuggestedFileName),
+            _artifacts.Select(static artifact => artifact.OriginalFileName));
+        foreach (string name in names)
+        {
+            AtomicBundlePathRules.EnsureWindowsName(name, "Bundle collision filename", nameof(outputFileName));
         }
 
         return names;
@@ -346,28 +348,6 @@ internal sealed class AtomicBundleCompositionOutputWriter :
             fullPath,
             "Bundle destination directory");
         return fullPath;
-    }
-
-    private static string AllocateUniqueFileName(
-        string originalFileName,
-        HashSet<string> allocated)
-    {
-        if (allocated.Add(originalFileName))
-        {
-            return originalFileName;
-        }
-
-        string extension = Path.GetExtension(originalFileName);
-        string basename = Path.GetFileNameWithoutExtension(originalFileName);
-        for (int suffix = 2; ; suffix++)
-        {
-            string candidate = $"{basename} ({suffix}){extension}";
-            AtomicBundlePathRules.EnsureWindowsName(candidate, "Bundle collision filename", nameof(originalFileName));
-            if (allocated.Add(candidate))
-            {
-                return candidate;
-            }
-        }
     }
 
     private static bool DestinationExists(string path)

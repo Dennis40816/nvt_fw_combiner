@@ -1,0 +1,34 @@
+{
+  "schemaVersion": 2,
+  "taskId": "OUTPUT-119-PREVIEW-03",
+  "capability": "Preview and commit share actual Bundle child allocation",
+  "integrationBase": "017c679d67a3794b74487dbfccc5202a8b748b4d",
+  "risk": "R2",
+  "kind": "behavior",
+  "state": "design-active",
+  "mutablePaths": [
+    "src/NvtFwCombiner.Application/Composition/CompositionOutputBundleIntent.cs",
+    "src/NvtFwCombiner.Infrastructure/Files/CompositionOutputBundlePlatform.cs",
+    "src/NvtFwCombiner.Infrastructure/Files/AtomicBundleCompositionOutputWriter.cs",
+    "tests/NvtFwCombiner.Bootstrap.Tests/CompositionOutputBundleDestinationValidationTests.cs",
+    "docs/adr/0050-atomic-output-bundle-delivery.md"
+  ],
+  "implementationOwner": "bundle_preview",
+  "searchEvidence": [
+    "CodeGraph and scoped source inspection found FileSystemCompositionOutputBundleDestinationValidator checking original names while AtomicBundleCompositionOutputWriter allocated actual suffix names.",
+    "CompositionOutputBundleIntent already owns the admitted AdditionalDelivery plan; Infrastructure has no friend access. Expose the existing read-only projection, not a second admission policy.",
+    "AtomicBundlePathRules owns platform component and full-path checks; move existing writer allocation there and consume from both paths."
+  ],
+  "semanticOwner": "Application owns admitted output intent; Infrastructure AtomicBundlePathRules owns platform allocation and checks",
+  "terminalContract": "Preview validates actual primary/additional/source allocated children in the same order as commit, without reserving or mutating destinations; commit rechecks races",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "name_validation_design",
+    "outcome": "approved",
+    "evidence": "Independent architecture admission approved public immutable AdditionalDelivery projection and shared allocation, exact order/case-insensitive reservations/suffix strategy; retain 255/259 limits, source identity, A-only eligibility and firmware semantics. Required cases cover cross-role collisions, suffix growth, aliases, boundary acceptance and mutation-free preview."
+  },
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": { "reviewer": null, "outcome": "pending", "evidence": "" }
+}
