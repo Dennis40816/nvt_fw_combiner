@@ -85,8 +85,8 @@ internal sealed class AtomicBundleCompositionOutputWriter :
     public void EnsureCanCommit(string fileName, OutputNamingSummary? outputNaming)
     {
         _ = outputNaming;
-        _ = CreateArtifactNames(fileName);
-        _ = ResolveCandidatePath(suffix: 1);
+        List<string> artifactNames = CreateArtifactNames(fileName);
+        ValidateChildPaths(ResolveCandidatePath(FindFirstAvailableSuffix()), fileName, artifactNames);
     }
 
     public async ValueTask<CompositionOutputCommitReceipt> CommitAsync(
@@ -109,6 +109,7 @@ internal sealed class AtomicBundleCompositionOutputWriter :
         List<string> artifactNames = CreateArtifactNames(fileName);
         int additionalCount = additionalArtifacts.Count;
         int suffix = FindFirstAvailableSuffix();
+        ValidateChildPaths(ResolveCandidatePath(suffix), fileName, artifactNames);
         string stagingDirectory = Path.Combine(
             _parentDirectory,
             $".{Guid.NewGuid():N}.staging");
@@ -318,17 +319,6 @@ internal sealed class AtomicBundleCompositionOutputWriter :
             names.Add(AllocateUniqueFileName(artifact.OriginalFileName, allocated));
         }
 
-        string longestCandidate = ResolveCandidatePath(suffix: 2);
-        AtomicBundlePathRules.EnsureSupportedPathLength(
-            Path.Combine(longestCandidate, outputFileName),
-            "Bundle output path");
-        foreach (string name in names)
-        {
-            AtomicBundlePathRules.EnsureSupportedPathLength(
-                Path.Combine(longestCandidate, name),
-                "Bundle source path");
-        }
-
         return names;
     }
 
@@ -350,6 +340,7 @@ internal sealed class AtomicBundleCompositionOutputWriter :
     {
         ArgumentOutOfRangeException.ThrowIfLessThan(suffix, 1);
         string folder = suffix == 1 ? _folderName : $"{_folderName} ({suffix})";
+        AtomicBundlePathRules.EnsureWindowsName(folder, "Bundle destination folder", nameof(suffix));
         string fullPath = Path.GetFullPath(Path.Combine(_parentDirectory, folder));
         AtomicBundlePathRules.EnsureSupportedPathLength(
             fullPath,
@@ -371,6 +362,7 @@ internal sealed class AtomicBundleCompositionOutputWriter :
         for (int suffix = 2; ; suffix++)
         {
             string candidate = $"{basename} ({suffix}){extension}";
+            AtomicBundlePathRules.EnsureWindowsName(candidate, "Bundle collision filename", nameof(originalFileName));
             if (allocated.Add(candidate))
             {
                 return candidate;

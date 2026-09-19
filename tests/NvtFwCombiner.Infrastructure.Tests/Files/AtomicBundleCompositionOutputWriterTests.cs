@@ -7,6 +7,59 @@ namespace NvtFwCombiner.Infrastructure.Tests.Files;
 /// <summary>Tests sibling-staged atomic bundle promotion.</summary>
 public sealed class AtomicBundleCompositionOutputWriterTests
 {
+    /// <summary>Source collision suffixes cannot create an illegal filename component.</summary>
+    [Fact]
+    public void PreflightRejectsOverlongSourceCollisionNameWithoutMutation()
+    {
+        using TempWorkspace workspace = TempWorkspace.Create();
+        string name = new string('a', 251) + ".bin";
+        AtomicBundleCompositionOutputWriter writer = new(workspace.Root, "bundle",
+            [new AtomicBundleArtifact(name, [1]), new AtomicBundleArtifact(name, [2])]);
+
+        ArgumentException error = Assert.Throws<ArgumentException>(() => writer.EnsureCanCommit("output.bin", null));
+
+        Assert.Contains("Bundle collision filename", error.Message, StringComparison.Ordinal);
+        Assert.Empty(Directory.EnumerateFileSystemEntries(workspace.Root));
+    }
+
+    /// <summary>Preflight uses the actual collision suffix, including the transition to two digits.</summary>
+    [Fact]
+    public void PreflightRejectsActualCollisionPathBeforeWriting()
+    {
+        using TempWorkspace workspace = TempWorkspace.Create();
+        string folderName = new('a', 259 - workspace.Root.Length - 16);
+        for (int suffix = 1; suffix <= 9; suffix++)
+        {
+            _ = Directory.CreateDirectory(Path.Combine(workspace.Root,
+                suffix == 1 ? folderName : $"{folderName} ({suffix})"));
+        }
+        Assert.Equal(260, Path.Combine(workspace.Root, folderName + " (10)", "output.bin").Length);
+        AtomicBundleCompositionOutputWriter writer = new(workspace.Root, folderName, []);
+
+        _ = Assert.Throws<PathTooLongException>(() => writer.EnsureCanCommit("output.bin", null));
+
+        Assert.Equal(9, Directory.EnumerateFileSystemEntries(workspace.Root).Count());
+    }
+
+    /// <summary>An unoccupied legal destination is not rejected for a suffix it does not need.</summary>
+    [Fact]
+    public async Task CommitAcceptsBoundaryDestinationWithoutHypotheticalCollision()
+    {
+        using TempWorkspace workspace = TempWorkspace.Create();
+        string folderName = new('a', 259 - workspace.Root.Length - 12);
+        string outputPath = Path.Combine(workspace.Root, folderName, "output.bin");
+        Assert.Equal(259, outputPath.Length);
+        AtomicBundleCompositionOutputWriter writer = new(workspace.Root, folderName, []);
+
+        writer.EnsureCanCommit("output.bin", null);
+        CompositionOutputCommitReceipt receipt = await writer.CommitAsync(
+            "output.bin", new byte[] { 1, 2 }, TestContext.Current.CancellationToken);
+
+        Assert.Equal(outputPath, receipt.OutputId);
+        Assert.Equal([1, 2], await File.ReadAllBytesAsync(outputPath, TestContext.Current.CancellationToken));
+        _ = Assert.Single(Directory.EnumerateFileSystemEntries(workspace.Root));
+    }
+
     /// <summary>A legal long destination survives staging and existing-folder suffix allocation.</summary>
     [Theory]
     [InlineData(false)]
