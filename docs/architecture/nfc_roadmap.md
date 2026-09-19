@@ -3,6 +3,16 @@
 Status: active owner roadmap; release-closure checkpoint 2026-09-01;
 subsequent owner allocation amendments are recorded below.
 
+Current evidence checkpoint, 2026-09-19: **`v1.1.8` is published** at
+`a2273c8798beb43b217b0ecfb9275af8fe4f9f96`; see the
+[release closure](../references/verification-report.md#118-published-release-closure--2026-09-19).
+Earlier candidate checkpoints below remain dated history, not open release
+gates. The latest planning input is `codex/1.1.9-intake` at `8344cb69`,
+which already allocates F01–F26 beyond the documents shipped in the release.
+The [post-release reconciliation](../ui/v1.1.x-custom-options-layout-handoff.md#post-118-audit-reconciliation--2026-09-19)
+maps the new AUD/HG reference to that existing schedule; it does not authorize
+runtime implementation, create a watcher, or replace the version sequence.
+
 ## Current release sequence — 2026-09-14
 
 The owner requests redistribution of unfinished work across `1.1.6` through
@@ -157,6 +167,15 @@ in `1.2.2`, alongside F21/F26/F24. The table below preserves the original
 relative sizing; subtract brought-forward work at admission rather than filling
 the freed capacity with unapproved scope.
 
+Published-scope amendment, 2026-09-19: F19 and the Report Save subset of F20
+are now released in `v1.1.8`. F21 snapshot/reentry/post-disposal-success
+requirements are also satisfied by that Save correction; **atomic local
+replacement remains open**. General picker boundaries remain open. The dated
+paragraphs above retain their original pre-publication claims. Do not count
+those shipped portions as future implementation work. F01/F02/F03 retain
+their recorded conditional assessment; the external report's P1 labels are
+not a new local reproduction or an automatic severity upgrade.
+
 Relative sizing includes implementation, fault-injection/contract tests and
 scoped review: S=1, M=2, L=3 units. Units are comparative estimates, not days
 or measured duration. Aim for 6–8 audit units per release; count shared owners
@@ -176,6 +195,19 @@ the declared Family-before-retirement dependency and earlier firmware gates.
 | `1.2.6` | **Shared presentation owners**: F11 (L), F13 (L); 6 units. | Semantic typography controls actual effective style, with explicit legitimate variants and DPI/theme checks. Converge the proven duplicate accepted-output helper through its existing owner; retain AB/extra-A-output/Replace naming contracts, not a giant base ViewModel. |
 | `1.2.7` | **Bounded intake and explicit diagnostics**: F22 (L), F23 (M), F16 (S); 6 units. | Enforce single-artifact and aggregate budgets before materialization, including cancellation. Distinguish primary/None/unknown workflow tokens. Derive capacity text from typed limits and remove obsolete retirement reasons without reopening DP support. Preserve the existing evidence-aware cleanup scope. |
 | `1.2.8` | **Measured notification/allocation improvements**: F14 (L), F15 (L); 6 units. | Measure notification/inspection/compile/measure counts before and after; publish accepted state once and avoid unnecessary focus scans. Remove only the redundant after-range copy with byte/diff/hash/Golden equivalence and measured allocation evidence. Do not promise a speedup or reopen deferred startup work without demonstrated value. |
+
+Post-release reading of this table: its 6–8-unit figures are the original
+allocation estimates, not remaining work estimates. Remove F19's three units
+from `1.2.0`; re-estimate the residual F20/F21 scope in `1.2.2` rather than
+subtracting an invented fraction. Keep the freed capacity unallocated.
+F22 in `1.2.7` splits into existing-limit bounded intake (AUD-11A) and a
+proposed aggregate budget (AUD-11B); no new numeric budget is approved.
+CRC duplicate-key policy (AUD-16B/N01) is new and **unallocated/pending decision**;
+it must not delay the already allocated F26 malformed-integer correction.
+AUD-01's persistence-health detail spans existing F08 (`1.2.4`) and window
+lifetime (`1.2.1`); AUD-07 and AUD-09 likewise span existing releases. A shared
+AUD label is not authority to pull every subitem into its earliest version.
+The external B0–B4 batches are advisory grouping only, not new release slots.
 
 **F18 is required in every affected release**, included in those estimates,
 not a final catch-up milestone: controllable interleaving and failure tests

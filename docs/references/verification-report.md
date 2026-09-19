@@ -181,6 +181,56 @@ then full-screen inventory/reprioritization of the remaining work. Implementatio
 is one item at a time. The [roadmap execution order](../architecture/nfc_roadmap.md#114-ui-corrections-and-ab-dummy-dp)
 is the single queue; no production UI correction is claimed by this allocation.
 
+## 1.1.8 published release closure — 2026-09-19
+
+The [immutable stable release](https://github.com/Dennis40816/nvt_fw_combiner/releases/tag/v1.1.8)
+was published at `2026-09-19T12:29:23Z` (20:29:23 Asia/Taipei), with ten
+contract assets. Source `a2273c8798beb43b217b0ecfb9275af8fe4f9f96`, tree
+`3d2f58e27be17a53dee3a2727fe4968b5a5616ad`, equals the reviewed product tree
+at `38c75f0e`; annotated tag object is
+`1f73688cdeaefc205e4e9387d4b4b4dbb28cb23e`. PR435/436 integrated the candidate.
+The [release workflow](https://github.com/Dennis40816/nvt_fw_combiner/actions/runs/35441813386)
+completed candidate, promotion and published-smoke successfully.
+
+- Frozen local full verification at `38c75f0e`: 6672 .NET tests passed, zero
+  skips; script lanes and 30 CRC worker tests passed. This is reused historical
+  evidence, not a new run for this handoff update.
+- Exact-source main CI `35440919840` attempt 1 failed one Windows readiness
+  diagnostic timeout. The unchanged-source narrow pair passed 2/2 locally;
+  complete fresh-runner attempt 2 passed. Preserve that failure history; a
+  hosted cold-start hypothesis was not proven as the root cause.
+- Candidate freshly executed all 25 Direct Golden output cases. Input-only
+  cases and aliases remain non-parity evidence. Historical v0.9.16 parity
+  jobs were inapplicable, not skipped current Golden requirements.
+- Clean Windows Sandbox with no preinstalled .NET/Python or system VC runtime:
+  canonical package/worker/Combiner smoke passed; actual NT51950 single CtrlRAM
+  synthetic-NF GUI Build, History and Save report passed with zero issues.
+  Both inputs remained unchanged. Output: 262144 bytes, SHA-256
+  `fdafb918a8c0dba4bbfa198c6f5886a014602d2afd53d4af372a675469a081c2`.
+  Report JSON: 45189 bytes, SHA-256
+  `dc3a8a0325e8b1aa9f7cc12867e575757287ea196832c2fa474f2e98266279f3`.
+  Supplemental synthetic acceptance does not add a certified Golden case.
+- After canonical smoke passed, a PowerShell 5 helper failed copying a long
+  fixture path. PowerShell 7 resumed only that fixture preparation against
+  the same verified package/extraction. Product/candidate bytes were unchanged.
+- Promotion freshly downloaded all ten published assets and checked exact
+  bytes/digests; independent published-smoke job `105897011668` passed package
+  and bundled Combiner CRC smoke. Source ZIP and tar.gz both returned HTTP 200.
+  A redundant second local download was stopped for slowness; its partial
+  files are not verification evidence.
+- Published ZIP: 116767844 bytes, SHA-256
+  `81c00eea6b0907b9ed0a4eb106df64ff4df2134202a4325395828dc44bac6efc`.
+  Bundled official x64 `vcruntime140.dll` is 124544 bytes. Existing owner
+  redistribution/publication approval applies; no system installation needed.
+
+F19 staging ownership is shipped. F20 Report Save exception containment and
+F21 snapshot/reentry/post-disposal-success subitems are shipped; general
+picker boundaries and local atomic Report replacement remain future work.
+Detailed [GUI acceptance](https://github.com/Dennis40816/nvt_fw_combiner/pull/436#issuecomment-5741860870)
+and [release closure](https://github.com/Dennis40816/nvt_fw_combiner/pull/436#issuecomment-5741906320)
+retain the live evidence. This checkpoint supersedes candidate-only status,
+not the dated failed observations below; it does not claim zero remaining bugs.
+
 ## 1.1.8 candidate clean-Windows failure (2026-09-16)
 
 This is a dated failed-candidate observation, not release closure. At
