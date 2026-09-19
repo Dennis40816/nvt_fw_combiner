@@ -65,6 +65,48 @@ public sealed class ToolchainRuntimeCandidateInspectorTests
         Assert.Contains(result.Issues, static issue => issue.Code == "runtime.trust.protocol-invalid");
     }
 
+    /// <summary>Every child-process terminal failure maps to one stable fail-closed trust issue.</summary>
+    [Theory]
+    [InlineData(0, true, "", "runtime.trust.timeout")]
+    [InlineData(7, false, "", "runtime.trust.probe-failed")]
+    [InlineData(0, false, "{}", "runtime.trust.protocol-invalid")]
+    [InlineData(0, false, "not-json", "runtime.trust.protocol-invalid")]
+    public async Task ProbeTerminalFailureReturnsStableIssue(
+        int exitCode,
+        bool timedOut,
+        string standardOutput,
+        string expectedIssue)
+    {
+        var probe = new RuntimeTrustProbeProcess(
+            new FixedRunner(new ExternalProcessResult(exitCode, timedOut, standardOutput, string.Empty)),
+            TrustedHostPath(),
+            []);
+
+        string? issue = await probe.VerifyAsync(
+            Path.Combine(AppContext.BaseDirectory, "candidate.dll"),
+            new string('a', 64),
+            TestContext.Current.CancellationToken);
+
+        Assert.Equal(expectedIssue, issue);
+    }
+
+    /// <summary>Caller cancellation is never converted into a candidate rejection or fallback.</summary>
+    [Fact]
+    public async Task ProbeCancellationPropagates()
+    {
+        using var cancellation = new CancellationTokenSource();
+        await cancellation.CancelAsync();
+        var probe = new RuntimeTrustProbeProcess(
+            new FixedRunner(new ExternalProcessResult(0, false, string.Empty, string.Empty)),
+            TrustedHostPath(),
+            []);
+
+        _ = await Assert.ThrowsAsync<OperationCanceledException>(() => probe.VerifyAsync(
+            Path.Combine(AppContext.BaseDirectory, "candidate.dll"),
+            new string('a', 64),
+            cancellation.Token).AsTask());
+    }
+
     private sealed class CorrelatedRunner(bool mismatch = false) : IExternalProcessRunner
     {
         internal int Calls { get; private set; }
@@ -83,6 +125,17 @@ public sealed class ToolchainRuntimeCandidateInspectorTests
                 IssueCode = (string?)null,
             });
             return ValueTask.FromResult(new ExternalProcessResult(0, false, json, string.Empty));
+        }
+    }
+
+    private sealed class FixedRunner(ExternalProcessResult result) : IExternalProcessRunner
+    {
+        public ValueTask<ExternalProcessResult> RunAsync(
+            ExternalProcessStartInfo startInfo,
+            CancellationToken cancellationToken)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            return ValueTask.FromResult(result);
         }
     }
 
