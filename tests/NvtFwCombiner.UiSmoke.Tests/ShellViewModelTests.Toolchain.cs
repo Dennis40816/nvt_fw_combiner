@@ -1,5 +1,8 @@
 using NvtFwCombiner.Application.Configuration;
+using NvtFwCombiner.Application.ExternalTools;
+using NvtFwCombiner.Application.Ports;
 using NvtFwCombiner.Bootstrap;
+using NvtFwCombiner.Contracts.Configuration;
 using NvtFwCombiner.Infrastructure.ExternalTools;
 using NvtFwCombiner.Presentation.Avalonia;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
@@ -10,6 +13,30 @@ namespace NvtFwCombiner.UiSmoke.Tests;
 /// <summary>Observable Toolchain configuration editing and cross-page draft protection.</summary>
 public sealed class ToolchainSettingsTests
 {
+    /// <summary>A real published session remains generation-current when the already loaded page opens.</summary>
+    [Fact]
+    public async Task OpeningPagePreservesRealSessionEnvironmentGeneration()
+    {
+        using var session = new ToolchainRuntimeConfigurationSession(new MemoryToolchainStorage(), new BundledCandidateInspector());
+        _ = await session.ReloadAsync(TestContext.Current.CancellationToken);
+        var loader = new ExternalProcessorEnvironmentLoader(
+            (_, cancellationToken) =>
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                return ValueTask.FromResult(new ExternalProcessorRuntimeEnvironment(
+                    null, new EmptyReadiness(), 0, null, session.Current.Generation));
+            }, session);
+        Assert.True((await ReadEnvironmentAsync(loader)).Succeeded);
+        long lease = loader.AcquireCurrent().Generation;
+        MainWindowViewModel vm = CreateToolchainViewModel(session);
+
+        vm.Settings.SelectSectionCommand.Execute(SettingsSection.Toolchain);
+        await vm.Settings.ToolchainLoadTask;
+
+        Assert.True(loader.IsCurrent(lease));
+        Assert.Equal(1, session.Current.Generation);
+    }
+
     /// <summary>Opening an already loaded Config page does not publish a new generation or invalidate Build.</summary>
     [Fact]
     public async Task OpeningLoadedToolchainPageDoesNotReloadSession()
@@ -193,7 +220,7 @@ public sealed class ToolchainSettingsTests
         Assert.False(vm.Settings.HasEventBufferFormatUnsavedChanges);
     }
 
-    internal static MainWindowViewModel CreateToolchainViewModel(ToolchainUiSession session, ShellLanguage language = ShellLanguage.English,
+    internal static MainWindowViewModel CreateToolchainViewModel(IToolchainRuntimeConfigurationSession session, ShellLanguage language = ShellLanguage.English,
         IEventBufferFormatConfigurationSession? formatSession = null)
     {
         PresentationHostServices original = PresentationTestHost.CreateServices(ApplicationVersionProvider.InformationalVersion);
@@ -204,6 +231,53 @@ public sealed class ToolchainSettingsTests
             eventBufferFormatConfigurationSessionFactory: formatSession is null ? null : _ => Task.FromResult(formatSession),
             toolchainRuntimeConfigurationSessionFactory: _ => Task.FromResult<IToolchainRuntimeConfigurationSession>(session));
         return PresentationTestHost.PublishCanonicalCatalog(services, ShellViewModelFactory.Create(services, language));
+    }
+
+    private static async Task<ExternalProcessorEnvironmentLoadResult> ReadEnvironmentAsync(ExternalProcessorEnvironmentLoader loader)
+    {
+        ExternalProcessorEnvironmentLoadResult? result = null;
+        await foreach (ExternalProcessorEnvironmentLoadUpdate update in loader.LoadAsync(TestContext.Current.CancellationToken))
+        {
+            result = update.Result ?? result;
+        }
+        return Assert.IsType<ExternalProcessorEnvironmentLoadResult>(result);
+    }
+
+    private sealed class MemoryToolchainStorage : IToolchainRuntimeConfigurationStorage
+    {
+        public ValueTask<ToolchainRuntimeConfigurationDocument?> ReadAsync(CancellationToken cancellationToken)
+        {
+            return ValueTask.FromResult<ToolchainRuntimeConfigurationDocument?>(null);
+        }
+        public ValueTask WriteAsync(ToolchainRuntimeConfigurationDocument document, CancellationToken cancellationToken)
+        {
+            return ValueTask.CompletedTask;
+        }
+    }
+
+    private sealed class BundledCandidateInspector : IToolchainRuntimeCandidateInspector
+    {
+        public ValueTask<ToolchainRuntimeCandidateInspection> InspectAsync(string path, CancellationToken cancellationToken)
+        {
+            throw new NotSupportedException();
+        }
+        public ValueTask<ToolchainRuntimeCandidateInspection> InspectBundledAsync(CancellationToken cancellationToken)
+        {
+            return ValueTask.FromResult(new ToolchainRuntimeCandidateInspection(null, ToolchainRuntimeCandidateVerification.Unknown, []));
+        }
+        public ValueTask<IReadOnlyList<ToolchainRuntimeCandidateInspection>> DetectAsync(CancellationToken cancellationToken)
+        {
+            return ValueTask.FromResult<IReadOnlyList<ToolchainRuntimeCandidateInspection>>([]);
+        }
+    }
+
+    private sealed class EmptyReadiness : IRuntimeDependencyReadinessProvider
+    {
+        public ValueTask<RuntimeDependencyReadinessSnapshot> RefreshAsync(
+            RuntimeDependencyReadinessRequest request, long generation, CancellationToken cancellationToken)
+        {
+            throw new NotSupportedException();
+        }
     }
 }
 
