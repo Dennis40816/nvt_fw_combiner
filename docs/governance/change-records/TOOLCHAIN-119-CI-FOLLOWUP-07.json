@@ -5,7 +5,7 @@
   "integrationBase": "6143d210ccf1d911c98294f3eea75263cb196ea4",
   "risk": "R1",
   "kind": "behavior",
-  "state": "design-active",
+  "state": "final-complete",
   "mutablePaths": [
     "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MainWindowViewModel.MergePresentation.cs",
     "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MainWindowViewModel.Context.cs",
@@ -29,12 +29,12 @@
     "outcome": "not-required",
     "evidence": "CI follow-up for the already approved R1 correction; no new firmware, trust, or public contract."
   },
-  "implementationHead": null,
-  "reviewedHead": null,
-  "pathStateDigest": null,
+  "implementationHead": "ad97a8863c448464a9b05e6b95e44ab4a9d42370",
+  "reviewedHead": "ad97a8863c448464a9b05e6b95e44ab4a9d42370",
+  "pathStateDigest": "09eb7d861b5ed4c516c96f7824938d24e957049f8a7ff2e0f50e0d7ac8eefc64",
   "finalReview": {
-    "reviewer": null,
-    "outcome": "pending",
-    "evidence": ""
+    "reviewer": "name_validation_design",
+    "outcome": "approved",
+    "evidence": "Independent fixed-head review PASS at ad97a8863c448464a9b05e6b95e44ab4a9d42370 with no P0-P3 findings. Observer isolation wraps only committed-state notifications; loader, validation, readiness, and Application failures remain visible. MessageCenter projects the existing loader result without a second semantic path, MainWindow no longer references Application.ExternalTools, and the finite 1024 architecture ceiling retains the 985 warning. Targeted UI evidence passed 26/26, Architecture passed 256/256, and scoped Polytail fast checks passed with only pre-existing size warnings."
   }
 }
