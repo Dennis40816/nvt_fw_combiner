@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 2,
+  "taskId": "TOOLCHAIN-119-RACE-08",
+  "capability": "Converge Toolchain reload races and stale-generation environment status",
+  "integrationBase": "bcff86aa95dea9485ea663d25665c6c1f9a1222d",
+  "risk": "R2",
+  "kind": "behavior",
+  "state": "design-active",
+  "mutablePaths": [
+    "src/NvtFwCombiner.Infrastructure/ExternalTools/ExternalProcessorEnvironmentLoader.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MessageCenterViewModel.cs",
+    "tests/NvtFwCombiner.Infrastructure.Tests/ExternalTools/ExternalProcessorEnvironmentLoaderTests.cs",
+    "tests/NvtFwCombiner.UiSmoke.Tests/ShellViewModelTests.Toolchain.cs"
+  ],
+  "implementationOwner": "root",
+  "searchEvidence": [
+    "PR 442 review identified that a Toolchain Save reload treated a newer superseding refresh as failure.",
+    "CodeGraph traced all production external-environment loads to MessageCenterViewModel and the single ExternalProcessorEnvironmentLoader lifecycle owner.",
+    "ExternalProcessorEnvironmentLoader.AcquireCurrent already rejects stale Toolchain generations, while Failed, Superseded, and cancellation restoration still projected stale metadata as current or retained."
+  ],
+  "semanticOwner": "Application external-environment lifecycle contract implemented by ExternalProcessorEnvironmentLoader and orchestrated by MessageCenterViewModel",
+  "terminalContract": "A stale Toolchain generation is never reported as Current or Last Known Good, and a superseded Save waits for the newest already-started MessageCenter publication without polling, fallback, or a third reload",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "name_validation_design",
+    "outcome": "findings-incorporated",
+    "evidence": "Approved stale-generation LKG rejection with findings incorporated: apply the same current-generation predicate to Failed, Superseded metadata, and cancellation restoration. Track the complete MessageCenter publication task rather than diagnostics alone; wait only a newer task, avoid self-await and third reload, require a newer settled Current result for success, and preserve visible failure or cancellation."
+  },
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": {
+    "reviewer": null,
+    "outcome": "pending",
+    "evidence": ""
+  }
+}
