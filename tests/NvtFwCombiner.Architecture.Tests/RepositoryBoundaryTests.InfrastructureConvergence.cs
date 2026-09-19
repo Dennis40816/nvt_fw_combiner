@@ -12,7 +12,7 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Equal(1, CountOccurrences(loader, "JsonTypeInfo<T> typeInfo"));
     }
 
-    /// <summary>Both external processors use one best-effort staging-directory cleanup owner.</summary>
+    /// <summary>Both external processors acquire the shared disposable staging owner instead of deleting unowned paths.</summary>
     [Fact]
     public void InfrastructureConvergenceSharesStagingCleanup()
     {
@@ -25,16 +25,22 @@ public sealed partial class RepositoryBoundaryTests
             "src/NvtFwCombiner.Infrastructure/ExternalTools/LegacyCombinerPostbuildProcessor.cs")
             .ReplaceLineEndings("\n");
         string stagingFileSystem = ReadText(
-            "src/NvtFwCombiner.Infrastructure/ExternalTools/StagedArtifactFileVerifier.cs")
+            "src/NvtFwCombiner.Infrastructure/ExternalTools/ExternalStagingDirectory.cs")
             .ReplaceLineEndings("\n");
 
         Assert.DoesNotContain("private static void TryDeleteDirectory", manifestStaging, StringComparison.Ordinal);
         Assert.DoesNotContain("private static void TryDeleteDirectory", legacyProcessor, StringComparison.Ordinal);
-        Assert.Contains("internal static class ExternalStagingDirectory", stagingFileSystem, StringComparison.Ordinal);
-        const string cleanupFinally =
-            "finally\n        {\n            ExternalStagingDirectory.TryDelete(runDirectory);\n        }";
-        Assert.Contains(cleanupFinally, manifestProcessor, StringComparison.Ordinal);
-        Assert.Contains(cleanupFinally, legacyProcessor, StringComparison.Ordinal);
+        Assert.Contains("internal sealed partial class ExternalStagingDirectory : IDisposable", stagingFileSystem, StringComparison.Ordinal);
+        const string acquireOwner =
+            "using ExternalStagingDirectory? staging = ExternalStagingDirectory.TryAcquire(runDirectory);";
+        foreach (string processor in new[] { manifestProcessor, legacyProcessor })
+        {
+            Assert.Contains(acquireOwner, processor, StringComparison.Ordinal);
+            Assert.Contains("if (staging is null)", processor, StringComparison.Ordinal);
+            Assert.DoesNotContain("ExternalStagingDirectory.TryDelete", processor, StringComparison.Ordinal);
+            Assert.DoesNotContain("Directory.Delete", processor, StringComparison.Ordinal);
+        }
+        Assert.Contains("Interlocked.Exchange(ref _ownedPath, null)", stagingFileSystem, StringComparison.Ordinal);
         Assert.Contains("Directory.Delete(path, recursive: true);", stagingFileSystem, StringComparison.Ordinal);
         Assert.Contains("catch (IOException)\n        {\n        }", stagingFileSystem, StringComparison.Ordinal);
         Assert.Contains(

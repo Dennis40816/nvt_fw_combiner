@@ -10,12 +10,14 @@ ALLOWED_EXTERNAL_TOOL_BINARY_PAYLOADS = {
     PurePosixPath("external-tools/diff-nf-merge/1.0.0/CommandLine.dll"),
     PurePosixPath("external-tools/diff-nf-merge/1.0.0/DiffNFMerge.exe"),
     PurePosixPath("external-tools/legacy-combiner/1.13.0/Combiner.exe"),
+    PurePosixPath("external-tools/legacy-combiner/1.13.0/vcruntime140.dll"),
 }
 APPROVED_REPOSITORY_EXTERNAL_TOOL_PACKAGE_PATHS = {
     PurePosixPath("external-tools/README.md"),
     PurePosixPath("external-tools/legacy-combiner/README.md"),
     PurePosixPath("external-tools/legacy-combiner/1.13.0/Combiner.exe"),
     PurePosixPath("external-tools/legacy-combiner/1.13.0/manifest.json"),
+    PurePosixPath("external-tools/legacy-combiner/1.13.0/vcruntime140.dll"),
 }
 APPROVED_EXTERNAL_TOOL_PACKAGE_PATHS = (
     APPROVED_REPOSITORY_EXTERNAL_TOOL_PACKAGE_PATHS

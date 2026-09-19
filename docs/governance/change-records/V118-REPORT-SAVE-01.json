@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 2,
+  "taskId": "V118-REPORT-SAVE-01",
+  "capability": "Contain Report Save I/O failures and publish success only after disposal",
+  "integrationBase": "8d2f33dc6cb7fc0076da2ec2da5564452e19e273",
+  "risk": "R1",
+  "kind": "ui",
+  "state": "final-complete",
+  "mutablePaths": [
+    "src/NvtFwCombiner.Presentation.Avalonia/Views/ReportModal.axaml.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReportPresentationViewModel.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ShellTextResources.DynamicText.cs",
+    "tests/NvtFwCombiner.UiSmoke.Tests/RunReportsListTests.ReportSave.cs"
+  ],
+  "implementationOwner": "/root",
+  "searchEvidence": [
+    "Owner explicitly approved bringing the remaining Report Save P1 forward into unpublished 1.1.8 on 2026-09-18, following F19 closure. Base 8d2f33dc6cb7fc0076da2ec2da5564452e19e273.",
+    "CodeGraph traced ReportModal.SaveReportButton_OnClick through FirmwareFilePickerDialogs and ReportPresentationViewModel.NotifyReportSaved. The existing event directly awaits picker/open/write without an error boundary and publishes success before disposal. Existing RunReportsListTests.Loading provides controllable IStorageProvider/IStorageFile proxies.",
+    "Extend this existing view operation and existing localized Report toast owner, not a parallel persistence framework. Scope includes picker/open/write/flush/dispose failures, cancellation, snapshot capture, duplicate-save guard and retry. No layout, firmware, naming, Report wire schema or general picker change. Transactional file replacement remains the separate F21 roadmap scope."
+  ],
+  "semanticOwner": "ReportModal save operation and ReportPresentationViewModel localized save notification",
+  "terminalContract": "Save the pre-picker Report snapshot; notify success only after writer, stream and selected file disposal succeed. Contain cancellation and I/O/provider errors, preserve loaded Report on failure, show actionable localized failure, and permit retry without overlapping saves.",
+  "disposition": "extend-owner",
+  "designReview": { "reviewer": null, "outcome": "not-required", "evidence": "Bounded R1 UI operation correction; unchanged XAML and firmware contracts. Narrow actual-control operation tests inject provider and stream faults." },
+  "implementationHead": "8332ef59071f05c83049b5f86019e5e13157d83d",
+  "reviewedHead": "8332ef59071f05c83049b5f86019e5e13157d83d",
+  "pathStateDigest": "5357611bb85844854356730d6e533b051d170b9fad68f6e1a18dc22c70be4f60",
+  "finalReview": { "reviewer": "/root/f19_fixed_review", "outcome": "approved", "evidence": "Independent fixed-head R1 correctness/Polytail PASS for 8d2f33dc..8332ef59071f05c83049b5f86019e5e13157d83d on 2026-09-18. Initial P2 test assertion inside observer isolation was corrected to record disposal state and assert after awaiting save. No remaining P0-P3 findings. Existing save operation contains provider/write/flush/disposal faults, captures snapshot, guards overlapping saves, distinguishes picker cancellation and permits retry; no firmware/schema/layout changes. Reviewer inspected f20-reviewed-regression.trx: 21 passed, zero skipped, and diff check. Renderer 7/7 executed by primary, not independently rerun. F21 atomic replacement remains deferred. Two known stale Architecture assertions from F19 still block integration pending correction; canonical record validation, full integration/CI, candidate Golden/package, clean Windows and publication gates remain separate." }
+}

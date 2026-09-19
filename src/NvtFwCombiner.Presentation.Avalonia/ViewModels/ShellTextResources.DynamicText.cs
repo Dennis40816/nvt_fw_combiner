@@ -680,6 +680,13 @@ internal sealed partial class ShellTextResources
         return SelectLanguage($"{action} report generated", $"{action} report 已產生");
     }
 
+    public string FormatReportSaveFailedToast(string reason)
+    {
+        return SelectLanguage(
+            $"Report save failed. The destination may be incomplete; retry saving. {reason}",
+            $"Report 儲存失敗。目的檔案可能不完整，請重新儲存。{reason}");
+    }
+
     public string FormatVerifiedFirmwareContextToast(string selectionLabel, byte chipNumber)
     {
         return SelectLanguage(

@@ -58,6 +58,10 @@ APPROVED_EXTERNAL_TOOL_PATHS = (
     "external-tools/legacy-combiner/README.md",
     "external-tools/legacy-combiner/1.13.0/Combiner.exe",
     "external-tools/legacy-combiner/1.13.0/manifest.json",
+    "external-tools/legacy-combiner/1.13.0/vcruntime140.dll",
+)
+HISTORICAL_EXTERNAL_TOOL_PATHS = tuple(
+    path for path in APPROVED_EXTERNAL_TOOL_PATHS if not path.endswith("/vcruntime140.dll")
 )
 APPROVED_RUNTIME_CATALOG_PATHS = (
     "profiles/built-in/ctrlram-postbuild-v2/catalog.json",
@@ -1502,6 +1506,10 @@ finally {
         )
         self.assertIn(
             "Release hash-list policy dry-run passed: Unicode paths round-trip through UTF-8",
+            result.stdout,
+        )
+        self.assertIn(
+            "Combiner runtime policy dry-run passed: missing and tampered source rejected; manifest substitution rejected",
             result.stdout,
         )
 
@@ -4336,7 +4344,7 @@ finally {
 
             manifest_entries = []
             self.add_valid_capability_policy(package_root, manifest_entries)
-            for relative_path in APPROVED_EXTERNAL_TOOL_PATHS:
+            for relative_path in HISTORICAL_EXTERNAL_TOOL_PATHS:
                 external_path = package_root / relative_path
                 external_path.parent.mkdir(parents=True, exist_ok=True)
                 external_path.write_bytes(b"external-tool policy fixture\n")
@@ -4427,7 +4435,7 @@ finally {
 
             manifest_entries: list[dict[str, object]] = []
             self.add_valid_capability_policy(package_root, manifest_entries)
-            for relative_path in APPROVED_EXTERNAL_TOOL_PATHS:
+            for relative_path in HISTORICAL_EXTERNAL_TOOL_PATHS:
                 external_path = package_root / relative_path
                 external_path.parent.mkdir(parents=True, exist_ok=True)
                 external_path.write_bytes(b"external-tool policy fixture\n")
@@ -4491,7 +4499,7 @@ finally {
                 self.manifest_entry(application_path, package_root, "application")
             ]
             self.add_valid_capability_policy(package_root, manifest_entries)
-            for relative_path in APPROVED_EXTERNAL_TOOL_PATHS:
+            for relative_path in HISTORICAL_EXTERNAL_TOOL_PATHS:
                 destination = package_root / relative_path
                 destination.parent.mkdir(parents=True, exist_ok=True)
                 destination.write_bytes(b"external-tool policy fixture\n")
@@ -4680,7 +4688,7 @@ finally {
 
             manifest_entries: list[dict[str, object]] = []
             self.add_valid_capability_policy(package_root, manifest_entries)
-            for relative_path in APPROVED_EXTERNAL_TOOL_PATHS:
+            for relative_path in HISTORICAL_EXTERNAL_TOOL_PATHS:
                 external_path = package_root / relative_path
                 external_path.parent.mkdir(parents=True, exist_ok=True)
                 external_path.write_bytes(b"external-tool policy fixture\n")

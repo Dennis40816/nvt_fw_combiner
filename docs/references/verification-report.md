@@ -20,6 +20,138 @@ commands.
 
 Specification package version: `1.1.8`
 
+## 1.1.8 clean-Windows runtime correction — 2026-09-16
+
+### F20 Report Save correction — 2026-09-18
+
+Owner approved bringing the Report Save P1 forward into unpublished `1.1.8`.
+Source base: `8d2f33dc6cb7fc0076da2ec2da5564452e19e273`.
+Six injected provider/stream failure cases failed against the original save
+operation, then passed after containment and post-disposal success notification.
+The actual operation called by the UI event is exercised, not a duplicate saver.
+Snapshot capture, overlapping clicks, both picker cancellation forms, localized
+failure and retry are covered. Cancellation after destination selection reports
+potentially incomplete output. Atomic replacement remains deferred F21 scope.
+
+With canonical test-area TEMP/TMP/TMPDIR configured,
+`dotnet test tests/NvtFwCombiner.UiSmoke.Tests/NvtFwCombiner.UiSmoke.Tests.csproj --no-restore --filter "FullyQualifiedName~RunReportsListTests|FullyQualifiedName~ReportPresentation|FullyQualifiedName~ShellViewModelTests.Report"`
+passed **21/21**, zero skips. Evidence directory:
+`D:/NvtFwCombiner-TestArea/evidence/v118-f20`, files `f20-red.trx`
+(6 failed before fix), `f20-green.trx` (6 passed) and
+`f20-report-regression.trx` (21 passed, including 10 save cases).
+This is targeted local evidence, not fresh full-suite, candidate Golden,
+clean-machine GUI or publication acceptance.
+
+Independent review identified that assertions inside the success-notification
+observer could be swallowed by the existing observer isolation. The test now
+records notification-time disposal state and asserts it after awaiting save.
+`f20-reviewed-regression.trx` records the repeated **21/21** pass after that
+test correction. Release-note rendering also passed **7/7** after supplying
+the required support, compatibility and limitation fields for F19 and F20.
+
+### F19 staging ownership correction — 2026-09-18
+
+Owner approved bringing the shared-review F19 blocker forward from the future
+audit schedule into the unpublished `1.1.8` candidate. Source base:
+`cb9349dd71644f10f177e4edf46aaca038fe33a3`. Both adapter regressions failed
+because rejecting an existing run removed its sentinel; retained evidence:
+`D:/NvtFwCombiner-TestArea/evidence/v118-f19/f19-red.trx` (2 failed).
+The shared helper now acquires a directory with an exclusive native creation
+operation and returns a disposable owner only on success. Both adapters use
+that owner; no unowned cleanup remains. Acquisition contention and repeated
+disposal have behavioral coverage. No command, firmware or write-range
+contract changes are included.
+
+With the canonical user test root and TEMP/TMP/TMPDIR set to its temp child,
+`dotnet test tests/NvtFwCombiner.Infrastructure.Tests/NvtFwCombiner.Infrastructure.Tests.csproj --no-restore --filter "FullyQualifiedName~ExternalCombinerProcessorTests|FullyQualifiedName~LegacyCombinerPostbuildProcessorTests|FullyQualifiedName~ExternalStagingDirectoryTests"`
+passed **54/54**, zero skips, including both adapter success/failure/cancel
+cleanup paths. Evidence: `f19-expanded.trx` in the same directory. Initial
+test compilation/analyzer corrections preceded this pass. Windows native
+acquisition is exercised; the Unix branch is not locally verified. This is
+not a full-suite, independent-review, new-candidate Golden or publication pass.
+
+### Original runtime candidate evidence
+
+F19 integration follow-up on 2026-09-18: CI run `35244925176` exposed two
+Architecture source-shape assertions still requiring the removed unconditional
+cleanup helper. Both failures reproduced locally (`staging-architecture-red.trx`).
+The assertions now require both adapters to acquire the shared disposable owner,
+reject direct/unowned deletion, and retain one-shot cleanup checks; they do not
+replace F19's existing behavioral sentinel/concurrency tests. The entire
+Architecture project passed **256/256**, zero skips, in
+`D:/NvtFwCombiner-TestArea/evidence/v118-f19/staging-architecture-green.trx`.
+No production code or expected firmware outputs changed in this follow-up.
+
+The original untagged candidate from main
+`c580476ff016e168d856ef798e0a80d0180210a0`, workflow `35086708535` attempt 2,
+opened successfully but failed NT51950/single CtrlRAM GUI Build with
+`nt51950-single-merge-crc` exit `-1073741515` (`0xC0000135`). No output was
+committed. The tool imports `VCRUNTIME140.dll`; neither its executable directory
+nor clean Sandbox System32/SysWOW64 contained that dependency. Earlier worker
+and startup smoke did not execute Combiner. Do not promote this old candidate.
+
+The authorized correction adds the unmodified official x64 Microsoft runtime
+`14.44.35211.0` beside the unchanged tool, with independent package/smoke pins,
+closed inventories, redistribution notices and actual certified CRC-command
+smoke. Local checks passed: release-package policy **84 tests**, release-smoke
+plus external-tool policy **37 tests**, and canonical structure/Polytail fast
+checks. The initial structure run caught the new DLL not yet staged in Git;
+after adding that exact file to the index, the same check passed. No policy
+was weakened and no full product-suite run is claimed for this correction.
+
+A separate copy of the original package in the same clean Windows Sandbox,
+with only the pinned DLL added, passed both the certified NT51927 CRC command
+and the original NT51950/single GUI Build. The GUI displayed `Build complete`,
+and the saved Run Report displayed `Succeeded`, zero issues and committed
+output matching the actual 262144-byte BIN. System32/SysWOW64 remained without
+the runtime. This is a one-variable diagnostic lab, **not** a rebuilt candidate
+or a new Golden: the input NF is a generated 2816-byte pattern.
+
+- Lab output SHA-256:
+  `fdafb918a8c0dba4bbfa198c6f5886a014602d2afd53d4af372a675469a081c2`.
+- GUI-saved success Report SHA-256:
+  `420c519a14f6fe00e0baa1cfd16fbb47c06a3c82def10a83050dd1923763c467`.
+- Original failure Report SHA-256:
+  `2adc31f92eba205df2a5cabcea97da5cd5f02ab0697eda1301b9aa00cfdacccf`.
+- Local evidence: fixed test-area
+  `evidence/v118-release-sandbox/output/gui-runtime-success-evidence.json`,
+  `gui-runtime-success-report.json`, `gui-runtime-success-output.bin` and
+  the preserved `gui-build-failure-evidence.json` / `gui-build-failed-report.json`.
+
+Publication still requires publisher redistribution eligibility confirmation,
+fixed-source review/integration, fresh candidate Golden and rebuilt package
+checks, and clean-machine GUI acceptance of that new candidate. No existing
+tag/asset is replaced; no release or full-Golden pass is inferred from the lab.
+
+### Runtime correction integration follow-up — 2026-09-17
+
+Owner requested release with the bundled runtime and answered the publisher
+eligibility question by stating that the company purchased Visual Studio.
+This is the owner's supplied statement, not an independent legal opinion.
+The unchanged implementation `064a7ba3` received independent fixed-head review
+with no P0-P3 findings; record-only `e103ebc1` and owner-attestation `4dd024af`
+preserve that exact production content and distinguish delegated authority
+from personal review of a subsequently generated SHA.
+
+On `4dd024af772433803fe67882bc0844b3bbe68b27`, fresh local
+`python scripts/verify.py --all` failed **one** case:
+`test_packaged_combiner_executes_certified_crc_command_without_mutation` raised
+Windows error 206 while creating its nested pytest package/Golden directory,
+before executing Combiner. Every other lane passed, including .NET (686.9 s),
+structure (263.7 s), release-package policy84 (396.5 s) and worker30 tests.
+This run is a failed full verification, not a full PASS. Exact-head CI
+`35122405244` passed all jobs; its shorter runner paths did not reproduce the
+local fixture failure.
+
+The bounded correction uses a standard-library `TemporaryDirectory` directly
+under the inherited test scratch, avoiding the extra pytest test-name directory.
+The full packaged Golden path, real executable/DLL, actual certified CRC call,
+complete-byte comparison and automatic cleanup remain unchanged. No product
+path limit, firmware expectation or verifier gate is changed. Corrected narrow
+verification passed all27 release-smoke tests in43.89 s, plus Ruff lint/format
+and diff checks. New exact-source CI remains necessary; unchanged lanes from the
+failed full run are supporting evidence only, not a fresh aggregate PASS.
+
 Current allocation amendment (2026-09-05): all remaining `1.1.x` CI/release
 optimization and follow-ups below are consolidated into `v1.1.3` in the
 [canonical roadmap](../architecture/nfc_roadmap.md). The latest same-day owner

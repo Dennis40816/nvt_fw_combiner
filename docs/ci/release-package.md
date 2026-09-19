@@ -200,7 +200,8 @@ NvtFwCombiner-vX.Y.Z-win-x64/
 │     ├─ README.md
 │     └─ 1.13.0/
 │        ├─ Combiner.exe
-│        └─ manifest.json
+│        ├─ manifest.json
+│        └─ vcruntime140.dll
 ├─ docs/
 │  └─ contracts/
 │     └─ canonical-capability-policy-v1.json
@@ -271,6 +272,28 @@ authorize trimming, a separate runtime dependency, or any firmware/profile
 semantic change.
 
 `-ExternalToolPolicyDryRun` retains its compatibility name but exercises all closed package policies without publishing application or worker binaries. It creates a GUID-scoped temporary source beneath the ambient temporary root, copies only the approved external-tool inputs into it, adds the negative probe there, runs the same approved-file copy and external-tool manifest-entry code used by normal packaging, and proves the probe is absent from staging and the persisted manifest without writing under the repository `external-tools/` directory. It also builds a temporary materialized-profile fixture from the package trust index, includes the exact index and two fixed runtime-catalog files, runs the production allowlist/copy/manifest-entry functions, and proves unexpected bundle or runtime-catalog files are rejected. The same dry run copies the canonical capability policy only after its approved SHA-256 matches, proves the persisted manifest retains its exact path and `capabilityPolicy` role, and proves no retired `publicationPolicy` payload enters staging or the manifest. It resolves the exact hash-pinned `release-canonical-v1.json`, requires the canonical README exact-byte SHA-256 plus every selected case-manifest exact-byte SHA-256, disposition, alias source, artifact role/path/size/SHA-256, and physical byte to match the canonical inventory, enforces the 40/177/174 closure, and rejects unselected evidence, retired-IC, diagnostics, owner-handoff, CJK14/HackMD/archive/private/generated material, and unlisted content. It admits the selected direct input evidence only through the explicit three-way Direct-Golden/direct-input-evidence/alias branch: the NT51929 case's two neutral raw BINs and the two NT51927 cases' 16 input BINs are individually hash-pinned outer-ZIP entries, never nested archive content or a raw bypass. The deterministic `tests/scripts/test_release_package_policy.py` regression invokes this mode through the canonical verifier and proves release smoke rejects canonical capability-policy drift, Golden allowlist substitution, Golden artifact omission, executable-role provenance, retired publication policy, extra external tools, and incomplete materialized profiles.
+
+From product version `1.1.8`, the closed external-tool inventory also includes
+`external-tools/legacy-combiner/1.13.0/vcruntime140.dll`: official Microsoft x64
+runtime version `14.44.35211.0`, 124544 bytes, SHA-256
+`d5e4d9a3e835fa679450145d6a7d94e36573a509317111904d9b3712c30d9066`.
+Copying and manifest generation reject missing/substituted bytes; the policy
+dry-run exercises both negative paths without modifying repository inputs.
+The DLL has role `externalTool`, is included in manifest/hash/SBOM inventories,
+and retains its Microsoft redistribution terms in the shipped third-party
+notices. Confirm publisher eligibility under the applicable Visual Studio
+license before distributing it. Do not require a system-wide Runtime install.
+
+Independent smoke verifies the same fixed identity, then executes the existing
+`NT51927BASED_GEN_CRC_MODE CRC32 target target` command against a staging copy
+of the packaged certified NT51927 expected image. It pins the unchanged Combiner
+and Golden identities, bounds execution to 30 seconds, compares complete output
+and source hashes, and rejects extra staging files. This dependency/command
+smoke supplements, never replaces, fresh candidate Golden execution and the
+clean-machine NT51950 single CtrlRAM GUI Build/Report acceptance. Historical
+packages before `1.1.8` retain their original five-file external-tool inventory;
+the gate compares numeric product versions and rejects invalid/tag-mismatched
+identity. Current packaging and dry-run always use the new inventory.
 
 Stable packages use release-manifest schema `1.2`, include exactly one coupled
 launcher file, and bind its independent stable three-part version, protocol,

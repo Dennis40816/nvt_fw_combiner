@@ -11,11 +11,58 @@ assignments, use the [canonical roadmap](docs/architecture/nfc_roadmap.md).
 
 ### Summary
 
-This maintenance release improves repository checks and development guidance.
+This maintenance release improves repository checks and development guidance,
+and includes the missing app-local Combiner runtime for clean Windows machines.
 Application screens, firmware layouts, output naming, integrity processing and
 IC/mode support are unchanged.
 
 ### Product changes
+
+#### Report Save failure handling
+
+- Before → After: picker, write or disposal failures could escape the UI save
+  operation, and success could appear before the file was completely closed.
+  Failures now preserve the loaded Report and show a localized retry message;
+  success appears only after all save resources close successfully.
+- Affected: Report Save across all workflows; no IC or mode-specific behavior.
+- Support status: unchanged/support-neutral.
+- Compatibility: the save captures the selected Report before opening the picker and ignores
+  overlapping save clicks. Cancelling the picker leaves the Report unchanged.
+- Verification: 21 targeted Report UI regressions passed, including injected
+  picker/open/write/flush/disposal failures and successful retry.
+- Limitations: atomic file replacement is not included; a failed destination
+  may be incomplete. No Report wire-schema or output naming changes.
+
+#### Preserve pre-existing Combiner staging
+
+- Before → After: rejecting an already-existing run directory could still
+  recursively remove it during cleanup. Both Combiner adapters now acquire
+  directory ownership atomically and only clean a successfully acquired run.
+- Affected: shared external Combiner staging, including AB and CtrlRAM routes.
+- Support status: unchanged/support-neutral.
+- Compatibility: commands, firmware bytes/ranges/CRC and output naming are unchanged.
+- Verification: both adapter sentinel tests reproduced the deletion before
+  the fix. Focused tests cover contention, existing files, repeated disposal
+  and cleanup on success, failure and cancellation. Actual-candidate Golden
+  and clean-Windows package acceptance remain separate release gates.
+- Limitations: Unix native acquisition is not locally verified; this does not
+  provide protection against arbitrary hostile replacement of acquired paths.
+
+#### Complete portable Combiner dependencies
+
+- Before → After: a clean Windows machine could open the application but fail
+  Build with `0xC0000135` because Combiner's Microsoft runtime was absent. The
+  portable package includes the pinned official x64 `vcruntime140.dll` beside
+  the unchanged Combiner executable.
+- Affected: Windows portable packaging and release verification.
+- Support status: unchanged/support-neutral; no new IC or mode is enabled.
+- Compatibility: no system-wide runtime installation, settings migration,
+  firmware range, command, algorithm or output naming change is introduced.
+- Verification: targeted dependency tests cover missing/substituted runtime
+  rejection and actual certified CRC command execution. Fresh candidate Golden
+  and clean Windows GUI Build/Report verification remain required before release.
+- Limitations: the dependency smoke is not a substitute for every firmware
+  transform's Golden contract. Microsoft's redistribution terms apply.
 
 #### More focused development checks
 
@@ -60,8 +107,9 @@ IC/mode support are unchanged.
 
 ### Security
 
-No release permissions, package trust, immutable-asset rules or external-processor
-write boundaries change. Existing safety and independent-evidence gates remain.
+The closed package allowlist adds one exact Microsoft runtime DLL with independent
+hash verification. Release permissions, immutable-asset rules and external-processor
+write boundaries remain unchanged. Existing safety and evidence gates remain.
 
 ### Known issues
 

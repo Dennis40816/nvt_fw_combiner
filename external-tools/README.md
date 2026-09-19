@@ -11,6 +11,9 @@ Current runtime and release package:
 
 - generated `crc-worker/0.1.0/Nfc.CrcWorker.exe` release payload (built from `tools/crc-worker/`; not stored as a repository binary)
 - `legacy-combiner/1.13.0/Combiner.exe`
+- `legacy-combiner/1.13.0/vcruntime140.dll` (official app-local Microsoft runtime,
+  from application 1.1.8; exact identity and redistribution terms in the
+  [Combiner notice](legacy-combiner/README.md#app-local-microsoft-runtime))
 
 Repository-only intake:
 

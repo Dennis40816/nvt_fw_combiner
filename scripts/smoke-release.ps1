@@ -22,7 +22,8 @@ $ApprovedExternalToolPackagePaths = @(
     'external-tools/crc-worker/0.1.0/Nfc.CrcWorker.exe',
     'external-tools/legacy-combiner/README.md',
     'external-tools/legacy-combiner/1.13.0/Combiner.exe',
-    'external-tools/legacy-combiner/1.13.0/manifest.json'
+    'external-tools/legacy-combiner/1.13.0/manifest.json',
+    'external-tools/legacy-combiner/1.13.0/vcruntime140.dll'
 ) | Sort-Object
 
 $ApprovedRuntimeCatalogPackagePaths = @(
@@ -48,6 +49,98 @@ function Get-LowerSha256 {
     param([Parameter(Mandatory = $true)][string]$Path)
 
     return (Get-FileHash -LiteralPath $Path -Algorithm SHA256).Hash.ToLowerInvariant()
+}
+
+function Get-ReleaseProductVersion {
+    param([Parameter(Mandatory = $true)][object]$Manifest)
+
+    $VersionText = if ($Manifest.PSObject.Properties.Name -contains 'version') {
+        [string]$Manifest.version
+    }
+    else { ([string]$Manifest.sourceTag) -replace '^v', '' }
+    if ($VersionText -notmatch '^\d+\.\d+\.\d+$' -or
+        [string]$Manifest.sourceTag -ne "v$VersionText") {
+        throw 'Release product version and source tag are inconsistent.'
+    }
+    return [version]$VersionText
+}
+
+function Assert-CombinerRuntime {
+    param([Parameter(Mandatory = $true)][string]$PackageRoot)
+
+    # Independent pins: a self-consistent, substituted release manifest is insufficient.
+    $RuntimePath = Join-Path $PackageRoot 'external-tools/legacy-combiner/1.13.0/vcruntime140.dll'
+    if (-not (Test-Path -LiteralPath $RuntimePath -PathType Leaf) -or
+        (Get-LowerSha256 $RuntimePath) -ne 'd5e4d9a3e835fa679450145d6a7d94e36573a509317111904d9b3712c30d9066') {
+        throw 'Combiner runtime is missing or does not match the approved SHA-256.'
+    }
+    $CombinerPath = Join-Path $PackageRoot 'external-tools/legacy-combiner/1.13.0/Combiner.exe'
+    if (-not (Test-Path -LiteralPath $CombinerPath -PathType Leaf) -or
+        (Get-LowerSha256 $CombinerPath) -ne 'ed6b58289cc780f73d36b831f5424cef44ad93187ba7518d36df6a77ad0c76bf') {
+        throw 'Bundled Combiner does not match the approved SHA-256.'
+    }
+}
+
+function Invoke-CombinerSmoke {
+    param(
+        [Parameter(Mandatory = $true)][string]$PackageRoot,
+        [Parameter(Mandatory = $true)][string]$SmokeRoot
+    )
+
+    Assert-CombinerRuntime -PackageRoot $PackageRoot
+    $GoldenPath = Join-Path $PackageRoot 'reference/testdata/golden/canonical/NT51927/standard-merge/gen-flash/topology-unscoped/nt51927-gen-flash/expected/nt51927-expected-output.bin'
+    $GoldenHash = '8e0d362b74ba65dfd8eb2d33a8ae6c1359b99ce2994d64d878bfdb393855cf80'
+    if (-not (Test-Path -LiteralPath $GoldenPath -PathType Leaf) -or
+        (Get-LowerSha256 $GoldenPath) -ne $GoldenHash) {
+        throw 'Bundled Combiner smoke Golden does not match the approved SHA-256.'
+    }
+    $RunDirectory = Join-Path ([IO.Path]::GetFullPath($SmokeRoot)) 'combiner-crc'
+    if (Test-Path -LiteralPath $RunDirectory) {
+        throw 'Combiner smoke staging directory already exists.'
+    }
+    New-Item -ItemType Directory -Path $RunDirectory | Out-Null
+    $TargetPath = Join-Path $RunDirectory 'nt51927_fw.bin'
+    $Process = $null
+    try {
+        Copy-Item -LiteralPath $GoldenPath -Destination $TargetPath
+        $StartInfo = [Diagnostics.ProcessStartInfo]::new()
+        $StartInfo.FileName = Join-Path $PackageRoot 'external-tools/legacy-combiner/1.13.0/Combiner.exe'
+        $StartInfo.WorkingDirectory = $RunDirectory
+        $StartInfo.UseShellExecute = $false
+        $StartInfo.CreateNoWindow = $true
+        $StartInfo.RedirectStandardOutput = $true
+        $StartInfo.RedirectStandardError = $true
+        # Existing Application CrcOnlyMode command and certified unchanged-output contract.
+        foreach ($Argument in @('NT51927BASED_GEN_CRC_MODE', 'CRC32', $TargetPath, $TargetPath)) {
+            $StartInfo.ArgumentList.Add($Argument)
+        }
+        $Process = [Diagnostics.Process]::Start($StartInfo)
+        $Stdout = $Process.StandardOutput.ReadToEndAsync()
+        $Stderr = $Process.StandardError.ReadToEndAsync()
+        if (-not $Process.WaitForExit(30000)) {
+            throw 'Bundled Combiner CRC smoke timed out after 30 seconds.'
+        }
+        if ($Process.ExitCode -ne 0) {
+            throw "Bundled Combiner CRC smoke failed with exit code $($Process.ExitCode): $($Stdout.GetAwaiter().GetResult()) $($Stderr.GetAwaiter().GetResult())"
+        }
+        $StagedEntries = @(Get-ChildItem -LiteralPath $RunDirectory -Force -Recurse)
+        if ($StagedEntries.Count -ne 1 -or $StagedEntries[0].FullName -ne $TargetPath -or
+            (Get-LowerSha256 $TargetPath) -ne $GoldenHash -or
+            (Get-LowerSha256 $GoldenPath) -ne $GoldenHash) {
+            throw 'Bundled Combiner CRC smoke changed certified bytes, its source or the staging tree.'
+        }
+        Write-Host 'Bundled Combiner CRC smoke passed: certified output and source unchanged; no extra files.'
+    }
+    finally {
+        if ($null -ne $Process) {
+            if (-not $Process.HasExited) {
+                $Process.Kill($true)
+                $Process.WaitForExit()
+            }
+            $Process.Dispose()
+        }
+        Remove-Item -LiteralPath $RunDirectory -Recurse -Force
+    }
 }
 
 function Get-ProfileBundleEntryArrayHash {
@@ -539,6 +632,15 @@ try {
         [string]$manifest.version
     }
     else { $null }
+    $RequiresCombinerRuntime = $false
+    if ($null -ne $ManifestVersion -or $manifest.PSObject.Properties.Name -contains 'sourceTag') {
+        $RequiresCombinerRuntime = (Get-ReleaseProductVersion $manifest) -ge [version]'1.1.8'
+    }
+    if (-not $RequiresCombinerRuntime) {
+        # Published historical packages retain their original closed tool inventory.
+        $ApprovedExternalToolPackagePaths = @($ApprovedExternalToolPackagePaths |
+            Where-Object { $_ -ne 'external-tools/legacy-combiner/1.13.0/vcruntime140.dll' })
+    }
     $ManifestProtocolVersion = if ($manifest.PSObject.Properties.Name -contains 'versionManagementProtocolVersion') {
         [int]$manifest.versionManagementProtocolVersion
     }
@@ -643,6 +745,9 @@ try {
     $DeclaredExternalToolPaths = @($DeclaredExternalToolEntries | ForEach-Object { [string]$_.path } | Sort-Object)
     if (Compare-Object -ReferenceObject $ApprovedExternalToolPackagePaths -DifferenceObject $DeclaredExternalToolPaths) {
         throw 'Release manifest external-tool files differ from the approved allowlist.'
+    }
+    if ($RequiresCombinerRuntime) {
+        Assert-CombinerRuntime -PackageRoot $packageRoot
     }
 
     $DeclaredBuiltInProfileEntries = @(
@@ -796,6 +901,10 @@ try {
     $workerResponse = $workerOutput | ConvertFrom-Json
     if ($workerResponse.result.valueHex -ne '0x0376E6E7') {
         throw "Bundled CRC worker returned '$($workerResponse.result.valueHex)', expected 0x0376E6E7."
+    }
+
+    if ($RequiresCombinerRuntime) {
+        Invoke-CombinerSmoke -PackageRoot $packageRoot -SmokeRoot $smokeRoot
     }
 
     if (-not $SkipUiLaunch) {

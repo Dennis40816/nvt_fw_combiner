@@ -1,5 +1,25 @@
 # Third-Party Notices
 
+## Microsoft Visual C++ Runtime
+
+Application packages from 1.1.8 include the unmodified Microsoft Corporation
+`vcruntime140.dll`, x64, version `14.44.35211.0`, copyright Microsoft Corporation.
+It is an app-local dependency of the unchanged Combiner tool, not part of this
+project's MIT grant. Its 124544-byte SHA-256 is
+`d5e4d9a3e835fa679450145d6a7d94e36573a509317111904d9b3712c30d9066`.
+
+The file comes from Visual Studio 2022's `VC/Redist` directory. The
+[official redistribution list](https://learn.microsoft.com/en-us/visualstudio/releases/2022/redistribution)
+permits distribution of listed unmodified files with a program by appropriately
+licensed Visual Studio users, subject to the applicable license terms. The
+publisher must confirm eligibility before distribution. This notice does not
+grant additional rights. [Intake provenance](external-tools/legacy-combiner/README.md#app-local-microsoft-runtime)
+records the source and Microsoft signature. Release manifests, hashes and the
+SPDX file inventory include this DLL; its file license remains `NOASSERTION`,
+not MIT.
+
+## Other dependencies
+
 NVT FW Combiner restores third-party packages from their official package registries. The stable release pipeline must generate a version-specific notice and SBOM from the resolved lock graph before publication.
 
 Initial direct dependencies include Avalonia, CommunityToolkit.Mvvm, xUnit.net v3, Hatchling, Ruff, Pyright, Pylint, pytest, Hypothesis, coverage tooling, and PyInstaller. Their licenses remain governed by their respective projects; this inventory is not a substitute for release-time license scanning and legal review.
