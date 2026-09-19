@@ -10,6 +10,21 @@ namespace NvtFwCombiner.UiSmoke.Tests;
 /// <summary>Observable Toolchain configuration editing and cross-page draft protection.</summary>
 public sealed class ToolchainSettingsTests
 {
+    /// <summary>Opening an already loaded Config page does not publish a new generation or invalidate Build.</summary>
+    [Fact]
+    public async Task OpeningLoadedToolchainPageDoesNotReloadSession()
+    {
+        var session = new ToolchainUiSession();
+        long generation = session.Current.Generation;
+        MainWindowViewModel vm = CreateToolchainViewModel(session);
+
+        vm.Settings.SelectSectionCommand.Execute(SettingsSection.Toolchain);
+        await vm.Settings.ToolchainLoadTask;
+
+        Assert.Equal(0, session.ReloadCount);
+        Assert.Equal(generation, session.Current.Generation);
+    }
+
     /// <summary>Rejected detections remain explanatory text, never blank selectable rows.</summary>
     [Fact]
     public async Task RejectedDetectionDoesNotRenderBlankCandidate()
@@ -201,10 +216,12 @@ internal sealed class ToolchainUiSession : IToolchainRuntimeConfigurationSession
     internal bool FailSave { get; set; }
     internal bool BundledMissing { get; set; }
     internal int SaveCount { get; private set; }
+    internal int ReloadCount { get; private set; }
     internal ToolchainRuntimeSelection? LastSaved { get; private set; }
     internal TaskCompletionSource<ToolchainRuntimeCandidateInspection>? PendingInspection { get; set; }
     public ValueTask<ToolchainRuntimeConfigurationOperationResult> ReloadAsync(CancellationToken cancellationToken)
     {
+        ReloadCount++;
         return ValueTask.FromResult(new ToolchainRuntimeConfigurationOperationResult(Current, true, Current.Issues));
     }
     public ValueTask<ToolchainRuntimeConfigurationOperationResult> SaveAsync(ToolchainRuntimeSelection selection, CancellationToken cancellationToken)

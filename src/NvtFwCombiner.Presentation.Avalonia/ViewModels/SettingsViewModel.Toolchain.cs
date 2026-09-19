@@ -63,7 +63,10 @@ internal sealed partial class SettingsViewModel
         try
         {
             _toolchainSession ??= await _toolchainSessionFactory!(CancellationToken.None);
-            ToolchainRuntimeConfigurationOperationResult result = await _toolchainSession.ReloadAsync(CancellationToken.None);
+            ToolchainRuntimeConfigurationSnapshot snapshot = _toolchainSession.Current;
+            ToolchainRuntimeConfigurationOperationResult result = snapshot.Status == ToolchainRuntimeConfigurationStatus.NotLoaded
+                ? await _toolchainSession.ReloadAsync(CancellationToken.None)
+                : new(snapshot, true, snapshot.Issues);
             if (operation != ToolchainOperationGeneration) { return; }
             _toolchainBaseline = result.Snapshot.RequestedSelection;
             _toolchainDraft = _toolchainBaseline;
