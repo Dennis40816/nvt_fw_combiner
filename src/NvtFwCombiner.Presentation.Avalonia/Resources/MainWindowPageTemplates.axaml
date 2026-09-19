@@ -381,7 +381,7 @@
               <Path Grid.Column="2" Width="12" Height="7" Data="M0 0L6 6L12 0" Stretch="Uniform" IsVisible="{Binding Settings.IsConfigSelected}" />
             </Grid>
           </RadioButton>
-          <StackPanel IsVisible="{Binding Settings.IsConfigSelected}" Spacing="4">
+          <StackPanel IsVisible="{Binding Settings.IsConfigSelected}" Spacing="{DynamicResource NfcSpace4}">
             <StackPanel.Styles>
               <Style Selector="Button.configSelected">
                 <Setter Property="Foreground" Value="{DynamicResource NfcAccentStrongBrush}" />
