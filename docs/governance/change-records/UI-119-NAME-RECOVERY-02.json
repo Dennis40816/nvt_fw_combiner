@@ -5,7 +5,7 @@
   "integrationBase": "354216636ee74393b47d7fbdfc61d82e8281c31b",
   "risk": "R2",
   "kind": "ui",
-  "state": "design-active",
+  "state": "final-complete",
   "mutablePaths": [
     "docs/adr/0050-atomic-output-bundle-delivery.md",
     "src/NvtFwCombiner.Application/Composition/CompositionExperiencePorts.cs",
@@ -38,8 +38,12 @@
     "outcome": "approved",
     "evidence": "Read-only independent architecture review approved existing-port extension, blank/255 UTF-16 handling, independent snapshots, candidate plus other accepted field path check, current-draft revalidation, guarded loose execution and localized recovery without masking errors. No fake bundle for loose output or new rules owner. Previous local R1 footer correction f155e10d is included for current integration coverage, not retroactive design approval."
   },
-  "implementationHead": null,
-  "reviewedHead": null,
-  "pathStateDigest": null,
-  "finalReview": { "reviewer": null, "outcome": "pending", "evidence": "" }
+  "implementationHead": "f77cd46382442ff4cc284b930f6e278757f37d5e",
+  "reviewedHead": "f77cd46382442ff4cc284b930f6e278757f37d5e",
+  "pathStateDigest": "d26f405325c33665d11b41f6e4227c62c4001866b7d264f5053f662f5c5a0f46",
+  "finalReview": {
+    "reviewer": "name_validation_design",
+    "outcome": "approved",
+    "evidence": "Independent read-only fixed-head correctness, architecture and Polytail review PASS at f77cd46382442ff4cc284b930f6e278757f37d5e versus f155e10d. Prior draft-promotion P2 fixed with reopen regressions; no remaining scoped findings. Inspected recovery-final.trx (88 UI), name-platform-final.trx (29 platform/writer), name-architecture-final.trx (256 architecture), all zero failed/skipped; reviewer did not rerun tests. git diff --check passed. Component and full-path boundaries remain distinct; no firmware change or duplicate naming-policy owner. Staging/collision/final-picker-path work remains open. This is not full-suite, CI, native Windows, Golden or release certification. Initial structure run failed only on the pending active record; code-size findings were review warnings, not waived checks."
+  }
 }
