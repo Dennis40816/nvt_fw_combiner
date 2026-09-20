@@ -265,7 +265,7 @@ public sealed partial class ReportProjectionConcurrencyTests
     [Fact]
     public async Task WorkflowRunDelayedProjectionRetainsCapturedOwner()
     {
-        CompositionRunResult source = await CreateDpReplaceInspectionResultAsync(TestHost);
+        CompositionRunResult source = await CreateGeneralReplaceInspectionResultAsync(TestHost);
         CompositionRunResult result = WithReport(source, CreateLargeDifferenceReport(
             source.Report, count: 10_000, sectionCount: 40, runId: "captured-owner-projection"));
         MainWindowViewModel shell = PresentationTestHost.CreateViewModel();

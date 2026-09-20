@@ -117,7 +117,7 @@ public sealed class MemoryCoverageLegendTests
         using var workspace = TempWorkspace.Create("memory-legend");
         using var golden = StandardMergeGoldenManifest.Load();
         System.Text.Json.JsonElement inputs = golden.CaseByIc("51928").GetProperty("inputs");
-        PresentationHostServices services = await CreateServicesAsync(workspace);
+        PresentationHostServices services = await CreateServicesAsync(workspace, useRetainedDpReplacePolicy: replace);
         using var window = new MainWindow(UiLaunchOptions.Empty, StartupTraceSession.Disabled,
             services, ShellPreferenceSnapshot.Default)
         { Width = 1180, Height = 1040, RequestedThemeVariant = darkChinese ? ThemeVariant.Dark : ThemeVariant.Light };

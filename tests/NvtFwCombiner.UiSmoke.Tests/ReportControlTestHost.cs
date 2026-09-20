@@ -51,7 +51,7 @@ internal static class ReportControlTestHost
     }
 
     internal static async Task<PresentationHostServices> CreateServicesAsync(
-        TempWorkspace workspace, bool useRetainedDpReplacePolicy = true)
+        TempWorkspace workspace, bool useRetainedDpReplacePolicy = false)
     {
         PresentationHostServices services = await Task.Run(
             () => PresentationTestHost.CreateServices("ui-smoke", static authoring => authoring,

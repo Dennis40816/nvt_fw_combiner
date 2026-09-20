@@ -13,7 +13,7 @@ public sealed partial class BuildOutcomeTests
     public async Task CompletedBuildProjectionOpensOutputConfirmation()
     {
         string outputPath = Path.Combine(Path.GetTempPath(), "output", "firmware.bin");
-        CompositionRunResult result = await CreateDpReplaceInspectionResultAsync(TestHost);
+        CompositionRunResult result = await CreateGeneralReplaceInspectionResultAsync(TestHost);
         MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
 
         await viewModel.RunSession.ProjectAndApplyRunResultAsync(

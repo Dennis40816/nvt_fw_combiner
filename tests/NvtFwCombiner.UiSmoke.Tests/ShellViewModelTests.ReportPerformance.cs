@@ -10,7 +10,7 @@ public sealed partial class ReportProjectionConcurrencyTests
     [Fact]
     public async Task LiveTypedReportProjectionMatchesPersistedJsonProjection()
     {
-        CompositionRunResult result = await CreateDpReplaceInspectionResultAsync(TestHost);
+        CompositionRunResult result = await CreateGeneralReplaceInspectionResultAsync(TestHost);
         string json = CompositionRunReportJson.Serialize(result);
         var persisted = ReportReviewViewModel.FromJsonCancellable(
             json,
@@ -289,7 +289,7 @@ public sealed partial class ReportProjectionConcurrencyTests
     [Fact]
     public async Task CancelledRunHexDiffProjectionPublishesNoPartialState()
     {
-        CompositionRunResult result = await CreateDpReplaceInspectionResultAsync(TestHost);
+        CompositionRunResult result = await CreateGeneralReplaceInspectionResultAsync(TestHost);
         MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
         using var cancellationSource = new CancellationTokenSource();
         cancellationSource.Cancel();
@@ -358,7 +358,7 @@ public sealed partial class ReportProjectionConcurrencyTests
     [Fact]
     public async Task RunHexDiffProjectionUsesLatestReportGeneration()
     {
-        CompositionRunResult result = await CreateDpReplaceInspectionResultAsync(TestHost);
+        CompositionRunResult result = await CreateGeneralReplaceInspectionResultAsync(TestHost);
         using var source = JsonDocument.Parse(CompositionRunReportJson.Serialize(result));
         string runId = source.RootElement.GetProperty("RunId").GetString()!;
         CompositionRunResult largeResult = WithReport(
