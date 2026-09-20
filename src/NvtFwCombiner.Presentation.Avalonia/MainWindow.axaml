@@ -100,34 +100,41 @@
             </StackPanel>
           </Button>
           <Button
-              Classes="semanticAction iconButton"
+              Classes="semanticAction secondary"
               AutomationProperties.LiveSetting="Polite"
               AutomationProperties.Name="{Binding MessageCenter.MessageCenterAccessibleName}"
               Command="{Binding MessageCenter.OpenCommand}"
               ToolTip.Tip="{Binding Text.MessageCenterTooltip}">
-            <Grid Width="28" Height="24">
-              <TextBlock
-                  HorizontalAlignment="Center"
-                  VerticalAlignment="Center"
-                  FontSize="17"
-                  Text="▤" />
-              <Border
-                  MinWidth="16"
-                  Height="16"
-                  Padding="3,0"
-                  HorizontalAlignment="Right"
-                  VerticalAlignment="Top"
-                  Background="{DynamicResource NfcDangerTextBrush}"
-                  CornerRadius="{DynamicResource NfcPillCornerRadius}"
-                  IsVisible="{Binding MessageCenter.HasActiveDiagnostics}">
+            <StackPanel Orientation="Horizontal" Spacing="7">
+              <Grid Width="28" Height="24">
                 <TextBlock
                     HorizontalAlignment="Center"
                     VerticalAlignment="Center"
-                    FontSize="9"
-                    Foreground="White"
-                    Text="{Binding MessageCenter.ActiveBadgeCount}" />
-              </Border>
-            </Grid>
+                    FontSize="17"
+                    Text="▤" />
+                <Border
+                    MinWidth="16"
+                    Height="16"
+                    Padding="3,0"
+                    HorizontalAlignment="Right"
+                    VerticalAlignment="Top"
+                    Background="{DynamicResource NfcDangerTextBrush}"
+                    CornerRadius="{DynamicResource NfcPillCornerRadius}"
+                    IsVisible="{Binding MessageCenter.HasActiveDiagnostics}">
+                  <TextBlock
+                      HorizontalAlignment="Center"
+                      VerticalAlignment="Center"
+                      FontSize="9"
+                      Foreground="White"
+                      Text="{Binding MessageCenter.ActiveBadgeCount}" />
+                </Border>
+              </Grid>
+              <TextBlock
+                  VerticalAlignment="Center"
+                  FontSize="{DynamicResource NfcFontSize12}"
+                  FontWeight="SemiBold"
+                  Text="{Binding Text.MessageCenterTitle}" />
+            </StackPanel>
           </Button>
         </StackPanel>
       </Grid>

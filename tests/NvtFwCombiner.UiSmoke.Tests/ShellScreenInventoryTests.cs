@@ -46,7 +46,21 @@ public sealed class ShellScreenInventoryTests
             Record("debug-warning", SystemActivityImportance.Debug, SystemActivitySeverity.Warning);
             Record("debug-error", SystemActivityImportance.Debug, SystemActivitySeverity.Error);
             MessageCenterViewModel center = shell.MessageCenter;
-            center.OpenCommand.Execute(null);
+            Dispatcher.UIThread.RunJobs();
+            AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+            Button entry = Assert.Single(window.GetVisualDescendants().OfType<Button>(),
+                item => ReferenceEquals(item.Command, center.OpenCommand));
+            TextBlock entryTitle = Assert.Single(entry.GetVisualDescendants().OfType<TextBlock>(),
+                item => item.Text == shell.Text.MessageCenterTitle);
+            Assert.True(entryTitle.IsEffectivelyVisible);
+            Assert.True(entryTitle.TextLayout.WidthIncludingTrailingWhitespace <= entryTitle.Bounds.Width + 1);
+            Button settings = Assert.IsType<Button>(window.FindControl<Control>("SettingsUtilityButton"));
+            Point entryOrigin = entry.TranslatePoint(default, window)!.Value;
+            Point settingsOrigin = settings.TranslatePoint(default, window)!.Value;
+            Assert.True(settingsOrigin.X + settings.Bounds.Width <= entryOrigin.X);
+            Assert.True(entryOrigin.X + entry.Bounds.Width <= window.Bounds.Width);
+            Activate(center.OpenCommand);
+            Assert.True(center.IsOpen);
             Activate(center.ShowSystemInformationCommand);
             Activate(center.ShowWarningActivityCommand);
             Assert.Equal(warning, Assert.Single(center.ActivityItems).Detail);
