@@ -33,7 +33,7 @@ public sealed partial class MemoryCoverageBar
 
     private readonly Border _footer = new();
     private readonly MemoryHeaderPanel _header = new() { Name = "MemoryOverviewHeader", Margin = new Thickness(0, 0, 0, 8) };
-    private readonly WrapPanel _legend = new() { Name = "MemoryLegend" };
+    private readonly StackPanel _legend = new() { Name = "MemoryLegend" };
     private readonly TextBlock _heading = new() { Name = "MemoryOverviewHeading", Classes = { "bodyEmphasisText" }, FontSize = 14, TextWrapping = TextWrapping.Wrap };
     private readonly TextBlock _capacity = new() { Classes = { "captionText" }, VerticalAlignment = VerticalAlignment.Center };
     private readonly Grid _addresses = new() { Name = "MemoryOverviewAddresses", ColumnDefinitions = new ColumnDefinitions("*,Auto"), Margin = new Thickness(0, 0, 0, 4) };
@@ -141,6 +141,7 @@ public sealed partial class MemoryCoverageBar
             var row = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6 };
             row.Children.Add(new ContentControl { Content = slice, ContentTemplate = markerTemplate, VerticalAlignment = VerticalAlignment.Center });
             row.Children.Add(new TextBlock { Text = slice.DisplayTitle, Classes = { "bodyText" }, MaxWidth = 140, TextTrimming = TextTrimming.CharacterEllipsis });
+            row.Children.Add(new TextBlock { Text = slice.AddressRangeLabel, Classes = { "monoText", "captionText" }, VerticalAlignment = VerticalAlignment.Center });
             target.Child = row;
             AutomationProperties.SetName(target, slice.AccessibleDetail);
             MemoryCoverageInteractionBehavior.SetIsEnabled(target, true);

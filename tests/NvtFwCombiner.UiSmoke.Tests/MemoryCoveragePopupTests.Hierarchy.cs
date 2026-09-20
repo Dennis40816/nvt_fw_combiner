@@ -35,7 +35,7 @@ public sealed partial class MemoryCoveragePopupTests
         try
         {
             Control title = FindNamed<WrapPanel>(window, "MemoryOverviewTitle")!;
-            Control legend = FindNamed<WrapPanel>(window, "MemoryLegend")!;
+            Control legend = FindNamed<Panel>(window, "MemoryLegend")!;
             Control addresses = FindNamed<Grid>(window, "MemoryOverviewAddresses")!;
             Control rail = FindNamed<ItemsControl>(window, "MemoryMainRail")!;
             Rect titleBounds = BoundsInWindow(title, window);
@@ -53,7 +53,7 @@ public sealed partial class MemoryCoveragePopupTests
             TextBlock heading = FindNamed<TextBlock>(window, "MemoryOverviewHeading")!;
             TextBlock capacity = title.GetVisualDescendants().OfType<TextBlock>().Single(block => block.Text == "256 KiB");
             Assert.True(BoundsInWindow(capacity, window).Left >= BoundsInWindow(heading, window).Right);
-            if (width == 240) { Assert.True(legendBounds.Top >= titleBounds.Bottom); }
+            if (titleBounds.Width + 16 + legendBounds.Width > railBounds.Width) { Assert.True(legendBounds.Top >= titleBounds.Bottom); }
             else { Assert.InRange(Math.Abs(legendBounds.Center.Y - titleBounds.Center.Y), 0, 1); }
             Capture(window, $"header-{width}-{darkChinese}");
             bar.EndAddress = "0x7FFFF";
@@ -65,7 +65,7 @@ public sealed partial class MemoryCoveragePopupTests
 
     /// <summary>A later legend row must not hide earlier targets when its card opens upward.</summary>
     [AvaloniaFact]
-    public void UpperCardFromWrappedLegendKeepsAllLegendRowsVisible()
+    public void UpperCardFromStackedLegendKeepsAllLegendRowsVisible()
     {
         MemoryCoverageSegmentViewModel[] slices = [.. Enumerable.Range(0, 4).Select(index =>
             new MemoryCoverageSegmentViewModel("range", $"Source {index}", "detail", MemoryCoverageFillRole.Tp, 1,
@@ -79,7 +79,7 @@ public sealed partial class MemoryCoveragePopupTests
         Render();
         try
         {
-            WrapPanel legend = FindNamed<WrapPanel>(window, "MemoryLegend")!;
+            Panel legend = FindNamed<Panel>(window, "MemoryLegend")!;
             Control first = legend.Children[0];
             Control last = legend.Children[^1];
             Assert.True(BoundsInWindow(last, window).Top > BoundsInWindow(first, window).Top);
@@ -93,11 +93,11 @@ public sealed partial class MemoryCoveragePopupTests
         finally { window.Close(); }
     }
 
-    /// <summary>Footer wrapping preserves exact endpoint scale and all disconnected input identities.</summary>
+    /// <summary>Legend rows preserve exact endpoint scale and all disconnected input identities.</summary>
     [AvaloniaTheory]
     [InlineData(240)]
     [InlineData(620)]
-    public void LegendWrapsWithoutOverlappingEndpointsAndUpdatesWithInputs(int width)
+    public void LegendRowsAvoidOverlappingEndpointsAndUpdateWithInputs(int width)
     {
         ShellTextResources text = ShellTextResources.For(ShellLanguage.English);
         var region = new MemoryCoverageSegmentViewModel("range", "Normal", "detail", MemoryCoverageFillRole.CtrlRamNormal,
@@ -120,7 +120,7 @@ public sealed partial class MemoryCoveragePopupTests
         try
         {
             Border endpoint = FindNamed<Border>(window, "MemoryFocusPosition")!;
-            WrapPanel legend = FindNamed<WrapPanel>(window, "MemoryLegend")!;
+            Panel legend = FindNamed<Panel>(window, "MemoryLegend")!;
             Rect endpointBounds = BoundsInWindow(endpoint, window);
             Rect legendBounds = BoundsInWindow(legend, window);
             Assert.False(endpointBounds.Intersects(legendBounds));
