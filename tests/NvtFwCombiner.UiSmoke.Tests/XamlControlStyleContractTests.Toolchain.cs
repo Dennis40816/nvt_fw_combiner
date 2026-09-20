@@ -50,7 +50,10 @@ public sealed partial class XamlControlStyleContractTests
             Button detect = Assert.Single(page.GetVisualDescendants().OfType<Button>(), control => control.Name == "ToolchainDetectButton");
             Button browse = Assert.Single(page.GetVisualDescendants().OfType<Button>(), control => control.Name == "ToolchainBrowseButton");
             Assert.InRange(Math.Abs(EventBufferBounds(detect, window).Top - EventBufferBounds(browse, window).Top), 0, 0.5);
-            Assert.InRange(bounds.Right - EventBufferBounds(browse, window).Right, 0, 6);
+            ScrollViewer contentScroll = Assert.Single(page.GetVisualDescendants().OfType<ScrollViewer>());
+            Assert.False(contentScroll.AllowAutoHide);
+            double contentRight = EventBufferBounds(contentScroll, window).Left + contentScroll.Viewport.Width;
+            Assert.InRange(contentRight - EventBufferBounds(browse, window).Right, 0, 6);
             foreach (Button button in page.GetVisualDescendants().OfType<Button>().Where(control =>
                 control.IsEffectivelyVisible && (control.Classes.Contains("semanticAction") || control is RadioButton)))
             {

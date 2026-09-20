@@ -148,7 +148,15 @@ public sealed partial class MemoryCoveragePopupTests
             }
             ScrollViewer inner = Assert.IsType<ScrollViewer>(card.Child);
             double maximum = inner.Extent.Height - inner.Viewport.Height;
-            if (direction == 0) { Assert.True(maximum > 0); }
+            if (direction == 0)
+            {
+                Assert.True(maximum > 0);
+                ScrollBar scrollbar = Assert.Single(inner.GetVisualDescendants().OfType<ScrollBar>(),
+                    candidate => candidate.Orientation == Avalonia.Layout.Orientation.Vertical && candidate.IsVisible);
+                Assert.False(inner.AllowAutoHide);
+                Assert.Equal(14, scrollbar.Bounds.Width);
+                Assert.Equal(6, Assert.Single(scrollbar.GetVisualDescendants().OfType<Thumb>()).Bounds.Width);
+            }
             inner.Offset = new Vector(0, direction < 0 ? maximum : direction == 0 ? maximum / 2 : 0);
             Render();
             Vector original = scroll.Offset;

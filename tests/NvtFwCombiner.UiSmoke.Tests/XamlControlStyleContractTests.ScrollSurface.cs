@@ -4,6 +4,7 @@ using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
 using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
+using Avalonia.Input;
 using Avalonia.Markup.Xaml.Styling;
 using Avalonia.Styling;
 using Avalonia.Threading;
@@ -13,7 +14,60 @@ namespace NvtFwCombiner.UiSmoke.Tests;
 
 public sealed partial class XamlControlStyleContractTests
 {
-    /// <summary>Every ordinary vertical content viewport uses one shared scroll-surface owner.</summary>
+    /// <summary>Standalone bars share page-scrollbar geometry and still drag in both orientations and themes.</summary>
+    [AvaloniaTheory]
+    [InlineData(false, false)]
+    [InlineData(true, false)]
+    [InlineData(false, true)]
+    [InlineData(true, true)]
+    public void StandaloneScrollbarsUseSharedGeometryAndKeepDragging(bool horizontal, bool dark)
+    {
+        var bar = new ScrollBar
+        {
+            Orientation = horizontal ? Avalonia.Layout.Orientation.Horizontal : Avalonia.Layout.Orientation.Vertical,
+            Minimum = 0,
+            Maximum = 100,
+            ViewportSize = 25,
+        };
+        var window = new Window
+        {
+            Width = 360,
+            Height = 300,
+            RequestedThemeVariant = dark ? ThemeVariant.Dark : ThemeVariant.Light,
+            Content = new Border { Padding = new Thickness(16), Child = bar },
+        };
+        try
+        {
+            window.Show();
+            RenderScrollbar();
+            Thumb thumb = Assert.Single(bar.GetVisualDescendants().OfType<Thumb>());
+            Assert.False(bar.AllowAutoHide);
+            Assert.Equal(14, horizontal ? bar.Bounds.Height : bar.Bounds.Width);
+            Assert.Equal(6, horizontal ? thumb.Bounds.Height : thumb.Bounds.Width);
+            Point start = thumb.TranslatePoint(new Point(thumb.Bounds.Width / 2, thumb.Bounds.Height / 2), window)!.Value;
+            window.MouseMove(start);
+            RenderScrollbar();
+            Assert.Equal(6, horizontal ? thumb.Bounds.Height : thumb.Bounds.Width);
+            Assert.Equal(thumb.FindResource(thumb.ActualThemeVariant, "NfcTextMutedBrush"), thumb.Background);
+            Point end = start + (horizontal ? new Vector(40, 0) : new Vector(0, 40));
+            window.MouseDown(start, MouseButton.Left);
+            window.MouseMove(end, RawInputModifiers.LeftMouseButton);
+            window.MouseUp(end, MouseButton.Left);
+            RenderScrollbar();
+            Assert.InRange(bar.Value, double.Epsilon, bar.Maximum);
+            Assert.Equal(6, horizontal ? thumb.Bounds.Height : thumb.Bounds.Width);
+        }
+        finally { window.Close(); }
+
+        static void RenderScrollbar()
+        {
+            Dispatcher.UIThread.RunJobs();
+            AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+            Dispatcher.UIThread.RunJobs();
+        }
+    }
+
+    /// <summary>Existing viewport policies remain intact while scrollbar appearance no longer requires an opt-in class.</summary>
     [Fact]
     public void OrdinaryVerticalContentViewportsUseTheSharedScrollSurface()
     {
@@ -56,26 +110,26 @@ public sealed partial class XamlControlStyleContractTests
 
         Assert.Equal(11, sharedSurfaceCount);
 
-        string styles = ReadPresentationFile("Styles/MainWindowStyles.axaml");
-        string surface = ExtractStyle(styles, "ScrollViewer.contentScrollSurface");
+        string styles = ReadPresentationFile("Styles/MainWindowControlStyles.axaml");
+        string surface = ExtractStyle(styles, "ScrollViewer");
         string verticalBar = ExtractStyle(
             styles,
-            "ScrollViewer.contentScrollSurface /template/ ScrollBar:vertical");
+            "ScrollBar:vertical");
         string thumb = ExtractStyle(
             styles,
-            "ScrollViewer.contentScrollSurface /template/ ScrollBar:vertical /template/ Thumb");
+            "ScrollBar:vertical /template/ Thumb");
         string track = ExtractStyle(
             styles,
-            "ScrollViewer.contentScrollSurface /template/ ScrollBar:vertical /template/ Rectangle#TrackRect");
+            "ScrollBar:vertical /template/ Rectangle#TrackRect");
         string buttons = ExtractStyle(
             styles,
-            "ScrollViewer.contentScrollSurface /template/ ScrollBar:vertical /template/ RepeatButton");
+            "ScrollBar:vertical /template/ RepeatButton");
         string hoverThumb = ExtractStyle(
             styles,
-            "ScrollViewer.contentScrollSurface /template/ ScrollBar:vertical:pointerover /template/ Thumb");
+            "ScrollBar:vertical:pointerover /template/ Thumb");
         string hoverThumbSurface = ExtractStyle(
             styles,
-            "ScrollViewer.contentScrollSurface /template/ ScrollBar:vertical /template/ Thumb:pointerover /template/ Border");
+            "ScrollBar:vertical /template/ Thumb:pointerover /template/ Border");
 
         Assert.Contains("AllowAutoHide\" Value=\"False", surface, StringComparison.Ordinal);
         Assert.DoesNotContain("Padding", surface, StringComparison.Ordinal);
@@ -113,9 +167,11 @@ public sealed partial class XamlControlStyleContractTests
 
     /// <summary>The shared gutter keeps content left of one stable 14 px hit target in both themes.</summary>
     [AvaloniaTheory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public void SharedScrollSurfaceReservesTracklessGutterWithoutChangingThumbWidth(bool useDarkTheme)
+    [InlineData(false, false)]
+    [InlineData(true, false)]
+    [InlineData(false, true)]
+    [InlineData(true, true)]
+    public void SharedScrollSurfaceReservesTracklessGutterWithoutChangingThumbWidth(bool useDarkTheme, bool explicitClass)
     {
         var content = new Border
         {
@@ -143,7 +199,7 @@ public sealed partial class XamlControlStyleContractTests
             VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
             Content = content,
         };
-        viewport.Classes.Add("contentScrollSurface");
+        if (explicitClass) { viewport.Classes.Add("contentScrollSurface"); }
         var host = new Window
         {
             Width = 360,
@@ -186,7 +242,7 @@ public sealed partial class XamlControlStyleContractTests
                 _ = Directory.CreateDirectory(outputDirectory);
                 string themeName = useDarkTheme ? "dark" : "light";
                 using FileStream output = File.Create(
-                    Path.Combine(outputDirectory, $"scroll-surface-option-a-{themeName}.png"));
+                    Path.Combine(outputDirectory, $"scroll-surface-{themeName}-class-{explicitClass}.png"));
                 frame.Save(output);
             }
         }
