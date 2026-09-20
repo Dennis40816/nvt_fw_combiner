@@ -30,14 +30,18 @@ public sealed class Nt51950Nt51951TpPrerequisiteMetadataTests
         MetadataPlanDefinition nt51950 = CreateStandardMergePlan("NT51950");
         MetadataPlanDefinition nt51951 = CreateStandardMergePlan("NT51951");
         MetadataPlanDefinition nt51927 = CreateStandardMergePlan("NT51927", inputLength: null);
-        MetadataPlanDefinition nt51929 = CreateDpReplacePlan("NT51929");
 
         FirmwareMetadataStructure fwConfigProvider =
             StructureByDefinition(
                 nt51927,
                 FirmwareConfigDefinitionId);
-        FirmwareMetadataStructure dpcmiProvider =
-            Assert.Single(nt51929.Entries).StructureDefinition;
+        Assert.True(BuiltInCanonicalMetadataDefinitionResolver.Instance.TryResolve(
+            new FirmwareMetadataStructureDefinitionReferenceDocument(
+                "nt51929-nt51932", "1.3.0",
+                "6cd257c38e4c9ecb4e44c14d12027e44a6d484b8176112dceccb7328d153b617",
+                DpcmiMetadataContract.StructureId),
+            out FirmwareMetadataStructureDefinition? dpcmiProvider));
+        Assert.NotNull(dpcmiProvider);
         FirmwareMetadataStructure fwConfig950 =
             StructureByDefinition(
                 nt51950,
@@ -53,8 +57,8 @@ public sealed class Nt51950Nt51951TpPrerequisiteMetadataTests
 
         Assert.Same(fwConfigProvider.Definition, fwConfig950.Definition);
         Assert.Same(fwConfigProvider.Definition, fwConfig951.Definition);
-        Assert.Same(dpcmiProvider.Definition, dpcmi950.Definition);
-        Assert.Same(dpcmiProvider.Definition, dpcmi951.Definition);
+        Assert.Same(dpcmiProvider, dpcmi950.Definition);
+        Assert.Same(dpcmiProvider, dpcmi951.Definition);
         Assert.NotSame(dpcmi950, dpcmi951);
         Assert.Equal(
             "nt51950-standard-merge-256k",

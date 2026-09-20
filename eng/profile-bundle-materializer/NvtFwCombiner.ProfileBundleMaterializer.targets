@@ -545,6 +545,12 @@
             item.SetMetadata(
                 "FirmwareFamilySchemaFile",
                 firmwareFamilySchemaFile);
+            item.SetMetadata(
+                "HasCompositionProfileSchema",
+                entryPaths.Contains("schemas/composition-profile-v2.schema.json") ? "true" : "false");
+            item.SetMetadata(
+                "HasFirmwareFamilySchema",
+                entryPaths.Contains("schemas/firmware-family-v1.schema.json") ? "true" : "false");
             if (canonicalSource != null || canonicalDestination != null)
             {
                 item.SetMetadata(
@@ -580,11 +586,13 @@
         Exclude="$(BuiltInProfileSourceRoot)\%(BuiltInProfileBundle.Identity)\schemas\**\*">
         <BundleDirectory>%(BuiltInProfileBundle.Identity)</BundleDirectory>
       </_BuiltInProfileSource>
-      <_BuiltInProfileFamilySchema Include="@(BuiltInProfileBundle)">
+      <_BuiltInProfileFamilySchema Include="@(BuiltInProfileBundle)"
+        Condition="'%(BuiltInProfileBundle.HasFirmwareFamilySchema)' == 'true'">
         <SourceFile>$(ProfileContractRoot)\%(BuiltInProfileBundle.FirmwareFamilySchemaFile)</SourceFile>
         <DestinationFile>$(BuiltInProfileMaterializedRoot)\%(Identity)\schemas\firmware-family-v1.schema.json</DestinationFile>
       </_BuiltInProfileFamilySchema>
-      <_BuiltInProfileCompositionSchema Include="@(BuiltInProfileBundle)">
+      <_BuiltInProfileCompositionSchema Include="@(BuiltInProfileBundle)"
+        Condition="'%(BuiltInProfileBundle.HasCompositionProfileSchema)' == 'true'">
         <SourceFile>$(ProfileContractRoot)\%(BuiltInProfileBundle.CompositionProfileSchemaFile)</SourceFile>
         <DestinationFile>$(BuiltInProfileMaterializedRoot)\%(Identity)\schemas\composition-profile-v2.schema.json</DestinationFile>
       </_BuiltInProfileCompositionSchema>

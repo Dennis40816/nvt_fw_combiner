@@ -1,4 +1,5 @@
 using NvtFwCombiner.Application.Metadata;
+using NvtFwCombiner.Contracts.Firmware;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Domain.Firmware;
 
@@ -212,7 +213,7 @@ public sealed class FirmwareFamilyRelationshipBindingTests
                      "firmware-config-general-parameters")));
     }
 
-    /// <summary>Every evidenced DP route reuses the canonical DPCMI definition at its owner-backed locator.</summary>
+    /// <summary>DP inline members share their retained catalog; reference consumers share the neutral provider at exact locators.</summary>
     [Theory]
     [InlineData("NT51917", 0x3C01C)]
     [InlineData("NT51919", 0x401A)]
@@ -222,12 +223,25 @@ public sealed class FirmwareFamilyRelationshipBindingTests
     [InlineData("NT51928", 0x3C01C)]
     [InlineData("NT51929", 0x401A)]
     [InlineData("NT51932", 0x401A)]
-    public void EvidencedDpRoutesReuseOneDpcmiDefinition(
+    public void DpRoutesReuseTheirDeclaredDpcmiProvider(
         string icId,
         long expectedOffset)
     {
-        MetadataPlanEntry provider =
-            Assert.Single(CreateDpReplacePlan("NT51929").Entries);
+        FirmwareMetadataStructureDefinition provider;
+        if (icId is "NT51919" or "NT51929" or "NT51932")
+        {
+            provider = Assert.Single(CreateDpReplacePlan("NT51929").Entries).StructureDefinition.Definition;
+        }
+        else
+        {
+            Assert.True(BuiltInCanonicalMetadataDefinitionResolver.Instance.TryResolve(
+                new FirmwareMetadataStructureDefinitionReferenceDocument(
+                    "nt51929-nt51932", "1.3.0",
+                    "6cd257c38e4c9ecb4e44c14d12027e44a6d484b8176112dceccb7328d153b617",
+                    DpcmiMetadataContract.StructureId),
+                out FirmwareMetadataStructureDefinition? resolved));
+            provider = Assert.IsType<FirmwareMetadataStructureDefinition>(resolved);
+        }
         MetadataPlanEntry candidate = Assert.Single(
             (icId == "NT51928"
                 ? CreateStandardMergePlan(icId)
@@ -245,7 +259,7 @@ public sealed class FirmwareFamilyRelationshipBindingTests
                     locator.RegionId));
 
         Assert.Same(
-            provider.StructureDefinition.Definition,
+            provider,
             candidate.StructureDefinition.Definition);
         Assert.Equal(
             expectedOffset,

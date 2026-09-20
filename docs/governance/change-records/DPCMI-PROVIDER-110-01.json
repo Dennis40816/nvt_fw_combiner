@@ -1,0 +1,47 @@
+{
+  "schemaVersion": 2,
+  "taskId": "DPCMI-PROVIDER-110-01",
+  "capability": "Relocate the existing shared DPCMI family to a neutral metadata provider while preserving all consumers and retained DP runtime behavior",
+  "integrationBase": "b9a94a2bab1a7bc05129b3438f0c0afeaaf45ad4",
+  "risk": "R3",
+  "kind": "refactor",
+  "state": "design-active",
+  "mutablePaths": [
+    "profiles/built-in/nt51929-dp-replace/families/nt51929-nt51932.json",
+    "profiles/built-in/nt51919-nt51929-nt51932-shared-facts/families/nt51929-nt51932.json",
+    "profiles/built-in/nt51919-nt51929-nt51932-shared-facts/profile-bundle.json",
+    "profiles/built-in/package-trust-index.json",
+    "scripts/smoke-release.ps1",
+    "eng/profile-bundle-materializer/NvtFwCombiner.ProfileBundleMaterializer.targets",
+    "tests/NvtFwCombiner.Bootstrap.Tests/SharedDpcmiMetadataProviderTests.cs",
+    "tests/NvtFwCombiner.Infrastructure.Tests/Bundles/ProfileBundlePackageTrustIndexLoaderTests.cs",
+    "tests/NvtFwCombiner.Bootstrap.Tests/FirmwareFamilyRelationshipBindingTests.cs",
+    "tests/NvtFwCombiner.Bootstrap.Tests/Nt51950Nt51951TpPrerequisiteMetadataTests.cs",
+    "tests/NvtFwCombiner.Architecture.Tests/RepositoryBoundaryTests.PackageTrustIndex.cs",
+    "tests/NvtFwCombiner.Architecture.Tests/RepositoryBoundaryTests.ProfileStructure.cs"
+  ],
+  "implementationOwner": "/root/content_source_impl",
+  "searchEvidence": [
+    "Owner approved bringing DP Replace retirement and its shared-fact prerequisites into 1.1.10. Scoped source audit and consumers are recorded in docs/ui/v1.1.10-delivery.md; source c7072160fb9b65212bb8cf6a0107f003d8e26f8e.",
+    "BuiltInCanonicalMetadataDefinitionResolver already resolves exact family/version/reference identity through package-trust-index metadataProviderFamilies. Five Standard family roots and indirect CtrlRAM consumers use the existing nt51929-nt51932@1.3.0 definition; no consumer reference changes are required.",
+    "Existing canonicalFirmwareFamily materialization and bundle contracts support schema/family-only bundles with zero runtime registrations. Existing NT51928 and NT51950/51 DP trust entries demonstrate canonical family projection. Real deployment tests exposed unconditional copying of both schemas; the existing materializer must select only validated manifest schema entries. Existing ProfileBundleEntryArrayHasher and reviewed-source-pins sync retain hash ownership.",
+    "Independent source audit confirmed family SHA-256 6cd257c38e4c9ecb4e44c14d12027e44a6d484b8176112dceccb7328d153b617 and retained DP bundle hash 31c545eb367ff902eb2e95bc0b90643c337ab26b4e5831169bfc1a31f060f3cd. Perfect disclosure currently consumes compiled runtime maps and must remain intact until its separate migration.",
+    "Before their first edits, config_review approved four additional auxiliary test paths after successful real deployment exposed pinned inventory counts and tests selecting the former provider catalog. Reference consumers must retain Assert.Same with the exact resolver definition; the three retained DP inline consumers retain identity within their existing DP catalog, with hashes/locators preserved. Do not coalesce independent catalog instances or replace identity assertions with value equality."
+  ],
+  "semanticOwner": "Existing canonical nt51929-nt51932@1.3.0 family and BuiltInCanonicalMetadataDefinitionResolver; package materializer owns deployment projection",
+  "terminalContract": "Move the complete family bytes unchanged into nt51919-nt51929-nt51932-shared-facts. New bundle version 1.1.10-shared-facts.1 is the sole metadata provider and has no composition profiles or runtime registrations. Trust index version becomes 1.1.10.0. The old DP bundle materializes that same family and retains its manifest/hash/version/three runtime registrations. Preserve all exact consumer identities, Perfect declarations, policy and Golden. smoke-release.ps1 changes only its derived trust-index pin. Verify unique exact provider resolution, fail-closed mismatches, deployed byte identity and retained DP/Perfect behavior. No DP retirement or new firmware semantics are admitted by this unit.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "/root/config_review",
+    "outcome": "approved",
+    "evidence": "Independent read-only design admission at c7072160 approved whole-family byte-preserving relocation, a neutral metadata-only provider, existing canonical projection and unchanged consumers/DP runtime. Before the first admission commit, the same reviewer approved the trust-index loader auxiliary test update and, after real deployment failures, the additional materializer path before its modification: derive schema presence only from validated manifest entries and condition schema copying accordingly; retain RemoveDir, hashes, source bounds and unlisted-file rejection. Source-candidate and actual deployed inventories must exactly equal manifest plus its entries; run all-bundle deployed-loader and architecture materialization gates. Auxiliary docs may update effective links without rewriting history. Fixed-head review and R3 external attestations/Golden remain separate integration prerequisites."
+  },
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": {
+    "reviewer": null,
+    "outcome": "pending",
+    "evidence": ""
+  }
+}
