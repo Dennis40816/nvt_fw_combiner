@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 2,
+  "taskId": "UI-LAYOUT-110-INTEGRATION-01",
+  "capability": "Integrate previously completed mode scrollbar anchoring and empty firmware-slot spacing corrections",
+  "integrationBase": "08ab2818a278495cfe5dff3f7a30ad2610b7776d",
+  "risk": "R1",
+  "kind": "ui",
+  "state": "design-active",
+  "mutablePaths": [
+    "src/NvtFwCombiner.Presentation.Avalonia/MainWindow.axaml",
+    "src/NvtFwCombiner.Presentation.Avalonia/Views/FirmwareSlotCard.axaml",
+    "tests/NvtFwCombiner.UiSmoke.Tests/MergeModeLayoutTests.cs",
+    "tests/NvtFwCombiner.UiSmoke.Tests/XamlControlStyleContractTests.BuildCompleted.cs",
+    "tests/NvtFwCombiner.UiSmoke.Tests/XamlControlStyleContractTests.FirmwareSlotEmptySpacing.cs",
+    "tests/NvtFwCombiner.UiSmoke.Tests/XamlControlStyleContractTests.HexViewport.cs",
+    "tests/NvtFwCombiner.UiSmoke.Tests/XamlControlStyleContractTests.InputLayout.cs",
+    "tests/NvtFwCombiner.Architecture.Tests/RepositoryBoundaryTests.ShellSurface.cs"
+  ],
+  "implementationOwner": "root",
+  "searchEvidence": [
+    "Owner requested fixing remaining integration records and the stale shell assertion on 2026-09-20; current clean source was 52be24af.",
+    "Post-implementation integration admission under ADR 0071 for existing local R1 commits 0edd6c11/c732bcf4/b45965b8; this record does not claim prior staged admission.",
+    "Checkpoint-to-52be24af diff: MainWindow reserves vertical scrollbar gutter; shared FirmwareSlotCard hides absent facts and limits loaded action row span. Existing rendered mode-anchor and empty-slot tests cover both changes.",
+    "CodeGraph lookup followed by exact ShellSurface test and XAML diff located the stale ScrollViewer literal; only its expected attribute is updated."
+  ],
+  "semanticOwner": "Presentation.MainWindow and shared FirmwareSlotCard",
+  "terminalContract": "Mode anchors remain stable when content scrolls; empty slots reserve no hidden-row whitespace; loaded action alignment remains unchanged. No firmware or support semantics change.",
+  "disposition": "reuse",
+  "designReview": {
+    "outcome": "not-required",
+    "reviewer": null,
+    "evidence": "Current R1 integration admission for previously authorized local corrections; independent fixed-head review is required before finalization."
+  },
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": {
+    "outcome": "pending",
+    "reviewer": null,
+    "evidence": ""
+  }
+}

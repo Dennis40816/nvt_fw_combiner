@@ -81,7 +81,7 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("WindowState=\"Maximized\"", shell, StringComparison.Ordinal);
         Assert.Contains("RowDefinitions=\"Auto,Auto,Auto,*,Auto\"", shell, StringComparison.Ordinal);
         Assert.Contains(
-            "<ScrollViewer Grid.Row=\"3\" Classes=\"contentScrollSurface\">",
+            "<ScrollViewer Grid.Row=\"3\" Classes=\"contentScrollSurface\" VerticalScrollBarVisibility=\"Visible\">",
             shell,
             StringComparison.Ordinal);
         Assert.Contains("<Grid Margin=\"28,24,28,132\"", shell, StringComparison.Ordinal);
