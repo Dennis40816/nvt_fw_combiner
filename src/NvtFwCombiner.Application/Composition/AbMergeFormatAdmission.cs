@@ -136,40 +136,13 @@ internal static class AbMergeFormatAdmission
             return Blocked("AB_FORMAT_TOPOLOGY_UNEXPECTED", "This IC does not accept a topology selector.");
         }
 
-        EventBufferFormatEntry? formatA = configuration.Match(policy.ScopeId, rawA);
-        EventBufferFormatEntry? formatB = configuration.Match(policy.ScopeId, rawB);
-        string formatId = formatA?.UniqueId ?? policy.CommonFormatId;
-        if (formatId != (formatB?.UniqueId ?? policy.CommonFormatId))
-        {
-            return Blocked("AB_FORMAT_MISMATCH", "TPA and TPB resolve to different Event Buffer Formats.");
-        }
-
-        FirmwareImageMap[] variants = [.. policy.Variants
-            .Where(variant => variant.MemberId == memberId && variant.FormatId == formatId)
-            .Select(variant => family.ImageMaps.Single(map => map.MapId == variant.MapId))];
-        FirmwareImageMap[] baselines = [.. variants.Where(map =>
-            map.Applicability.TopologyRequirement.Kind != TopologyRequirementKind.ExactCount &&
-            map.Applicability.TopologyRequirement.Matches(selectedTopology))];
-        if (baselines.Length != 1)
-        {
-            return Blocked("AB_FORMAT_MAP_UNAVAILABLE", "No unique AB baseline matches the selected format and topology.");
-        }
-
-        // Counts are observations from the existing topology owner, not the Cascade picker's minimum.
-        FirmwareImageMap[] exact = [.. variants.Where(map =>
-            map.Applicability.TopologyRequirement.Kind == TopologyRequirementKind.ExactCount &&
-            topologyAdmission is { Succeeded: true, TpAChipCount: not null, TpBChipCount: not null } &&
-            map.Applicability.TopologyRequirement.ExactChipCount == topologyAdmission.TpAChipCount &&
-            map.Applicability.TopologyRequirement.ExactChipCount == topologyAdmission.TpBChipCount)];
-        if (exact.Length > 1)
-        {
-            return Blocked("AB_FORMAT_MAP_UNAVAILABLE", "More than one exact-count AB map matches these TP inputs.");
-        }
-
-        FirmwareImageMap selected = exact.Length == 1 ? exact[0] : baselines[0];
-        return new(new(selected.MapId, formatId, formatA?.DisplayName ?? policy.CommonDisplayName,
-            rawA, rawB, state!.Generation, state.SourceSha256!, family.FamilyId, family.FamilyVersion,
-            family.FamilyContentHash, primaryA, primaryB), []);
+        AbFormatMapResolutionResult resolved = AbFormatMapResolver.Resolve(family, memberId, configuration,
+            rawA, rawB, selectedTopology, topologyAdmission?.TpAChipCount, topologyAdmission?.TpBChipCount);
+        return resolved.Selection is { } selected
+            ? new(new(selected.MapId, selected.FormatId, selected.DisplayName,
+                rawA, rawB, state!.Generation, state.SourceSha256!, family.FamilyId, family.FamilyVersion,
+                family.FamilyContentHash, primaryA, primaryB), [])
+            : new(null, resolved.Issues);
     }
 
     private static EventBufferFormatConfiguration? AdmitCurrentConfiguration(

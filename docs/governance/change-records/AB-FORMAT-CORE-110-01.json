@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 2,
+  "taskId": "AB-FORMAT-CORE-110-01",
+  "capability": "Extract the existing AB format and map selection into a workflow-neutral Application owner without changing admission or firmware behavior",
+  "integrationBase": "b9a94a2bab1a7bc05129b3438f0c0afeaaf45ad4",
+  "risk": "R2",
+  "kind": "refactor",
+  "state": "design-active",
+  "mutablePaths": [
+    "src/NvtFwCombiner.Application/Composition/AbMergeFormatAdmission.cs",
+    "src/NvtFwCombiner.Application/Composition/AbFormatMapResolver.cs",
+    "tests/NvtFwCombiner.Bootstrap.Tests/AbFormatMapResolverTests.cs"
+  ],
+  "implementationOwner": "root",
+  "searchEvidence": [
+    "Owner approved 1.1.10 shared cross-page contracts, independent page instances and implementation on 2026-09-20. Preflight and current-source audit are in docs/ui/v1.1.10-delivery.md; inspected source 04a21b104c4e45221721c23681a74ee3bbe44236.",
+    "CodeGraph and scoped source inspection: AbMergeFormatAdmission owns matching configured bytes, member/format map filtering, unique baseline and exact observed-count override; AbMergeAuthoringExperience.Format is its retained caller. FirmwareAbFormatPolicy owns canonical declarations.",
+    "Existing AbMergeFormatAdmissionTests, PrimaryDiscovery and FormatRuntime cover provenance, immutable current artifacts, configuration generation, topology failure ordering and caller integration. No second classifier, profile table or page-owned semantic path is admitted."
+  ],
+  "semanticOwner": "Application AbFormatMapResolver for pure AB format/map selection; existing AbMergeFormatAdmission retains terminal input and provenance admission",
+  "terminalContract": "Pure selection returns only map/format/display identity or immutable issues. The caller retains canonical family/config/artifact/primary/topology validation and same-capture provenance. Preserve Common fallback, format alias behavior, unique-baseline prerequisite, exact override only for two matching observed counts, differing Cascade counts selecting baseline, and existing issue code/message/order. No profiles, bytes, ranges, processors, support promotion, AB Reference parser or public API changes.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "/root/layout_ownership_review",
+    "outcome": "approved",
+    "evidence": "Independent read-only design review of the exact three-file extraction at 04a21b10 approved neutral core inputs/results while retaining terminal admission and all selection/error invariants. Core success is not accepted artifacts or an authoring session. Narrow core characterization plus existing admission/PrimaryDiscovery/FormatRuntime and Architecture checks are required. Review does not admit AB Replace firmware execution."
+  },
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": {
+    "reviewer": null,
+    "outcome": "pending",
+    "evidence": ""
+  }
+}
