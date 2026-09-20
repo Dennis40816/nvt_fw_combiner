@@ -10,14 +10,14 @@ internal sealed record CtrlRamLaunchRequest(
 
 internal sealed partial class UiLaunchOptions
 {
-    private static bool TakeCtrlRamOption(
+    private static bool TakeInputOption(
         IReadOnlyList<string> args,
         ref int index,
         Dictionary<string, string> options,
         List<CtrlRamLaunchInput> inputs,
         List<string> issues)
     {
-        foreach (string name in new[] { "--workflow", "--ic", "--ic-num", "--base", "--ctrlram" })
+        foreach (string name in new[] { "--workflow", "--ic", "--ic-num", "--base", "--ctrlram", "--dp", "--tp-a", "--tp-b" })
         {
             if (!TrySplitValue(args[index], name, out string? inlineValue))
             {
@@ -59,6 +59,10 @@ internal sealed partial class UiLaunchOptions
         List<string> issues)
     {
         if (options.Count == 0) { return null; }
+        if (options.Keys.Any(name => name is "--dp" or "--tp-a" or "--tp-b"))
+        {
+            issues.Add("AB input options require --workflow ab-merge and cannot be combined with CtrlRAM inputs.");
+        }
         foreach (string name in new[] { "--workflow", "--ic", "--ic-num", "--base" })
         {
             if (!options.TryGetValue(name, out string? value) || string.IsNullOrWhiteSpace(value))

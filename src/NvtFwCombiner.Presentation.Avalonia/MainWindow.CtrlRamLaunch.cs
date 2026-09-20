@@ -1,3 +1,4 @@
+using CommunityToolkit.Mvvm.Input;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
 namespace NvtFwCombiner.Presentation.Avalonia;
@@ -9,11 +10,18 @@ public sealed partial class MainWindow
 
     private async Task LoadStartupInputsAsync(MainWindowViewModel shell, CancellationToken cancellationToken)
     {
-        if (_launchOptions.CtrlRam is not { } request || _startupInputsAttempted) { return; }
+        if (!_launchOptions.HasStartupInputs || _startupInputsAttempted) { return; }
         _startupInputsAttempted = true;
         try
         {
-            await ApplyCtrlRamLaunchAsync(shell, request, cancellationToken);
+            if (_launchOptions.CtrlRam is { } ctrlRam)
+            {
+                await ApplyCtrlRamLaunchAsync(shell, ctrlRam, cancellationToken);
+            }
+            else if (_launchOptions.AbMerge is { } abMerge)
+            {
+                await ApplyAbMergeLaunchAsync(shell, abMerge, cancellationToken);
+            }
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
@@ -34,32 +42,8 @@ public sealed partial class MainWindow
         MainWindowViewModel shell, CtrlRamLaunchRequest request, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        if (!shell.WorkflowSession.IsCanonicalCatalogReady || shell.HasSelectedFiles ||
-            shell.SelectedPage != ShellPage.Home || !shell.BeginCtrlRamReplaceFromHomeCommand.CanExecute(null))
-        {
-            throw new InvalidOperationException("CtrlRAM startup requires a ready, empty Home session.");
-        }
+        ApplyStartupContext(shell, shell.BeginCtrlRamReplaceFromHomeCommand, request.IcId, request.Number);
         WorkflowSessionPresentationViewModel workflow = shell.WorkflowSession;
-        shell.BeginCtrlRamReplaceFromHomeCommand.Execute(null);
-        try
-        {
-            WorkflowContextSetupViewModel setup = workflow.WorkflowContextSetup;
-            if (!setup.IcChoices.Contains(request.IcId, StringComparer.Ordinal))
-            {
-                throw new InvalidOperationException($"CtrlRAM IC '{request.IcId}' is unavailable. Choices: {string.Join(", ", setup.IcChoices)}.");
-            }
-            setup.SelectedIc = request.IcId;
-            if (!setup.NumberChoices.Any(choice => StringComparer.Ordinal.Equals(choice.Token, request.Number)))
-            {
-                throw new InvalidOperationException($"IC Number '{request.Number}' is unavailable for {request.IcId}. Choices: {string.Join(", ", setup.NumberChoices.Select(choice => choice.Token))}.");
-            }
-            setup.SelectedNumber = request.Number;
-            workflow.ConfirmWorkflowContextCommand.Execute(null);
-        }
-        finally
-        {
-            if (workflow.IsWorkflowContextModalOpen) { workflow.CancelWorkflowContextCommand.Execute(null); }
-        }
 
         await workflow.SetSlotFileAsync(shell.Replace.ReplaceBaseSlot.SlotId, request.BasePath, cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
@@ -87,6 +71,40 @@ public sealed partial class MainWindow
         {
             return slot.IsSemanticStateError || workflow.IsFirmwareIcMismatchModalOpen ||
                 workflow.IsFirmwareNumberMismatchModalOpen;
+        }
+    }
+
+    private static void ApplyStartupContext(MainWindowViewModel shell, IRelayCommand begin, string icId, string number)
+    {
+        WorkflowSessionPresentationViewModel workflow = shell.WorkflowSession;
+        if (!workflow.IsCanonicalCatalogReady || shell.HasSelectedFiles ||
+            shell.SelectedPage != ShellPage.Home || !begin.CanExecute(null))
+        {
+            throw new InvalidOperationException("Input startup requires a ready, empty Home session.");
+        }
+        begin.Execute(null);
+        try
+        {
+            WorkflowContextSetupViewModel setup = workflow.WorkflowContextSetup;
+            if (!setup.IcChoices.Contains(icId, StringComparer.Ordinal))
+            {
+                throw new InvalidOperationException($"IC '{icId}' is unavailable. Choices: {string.Join(", ", setup.IcChoices)}.");
+            }
+            setup.SelectedIc = icId;
+            if (!setup.NumberChoices.Any(choice => StringComparer.Ordinal.Equals(choice.Token, number)))
+            {
+                throw new InvalidOperationException($"IC Number '{number}' is unavailable for {icId}. Choices: {string.Join(", ", setup.NumberChoices.Select(choice => choice.Token))}.");
+            }
+            setup.SelectedNumber = number;
+            if (!workflow.ConfirmWorkflowContextCommand.CanExecute(null))
+            {
+                throw new InvalidOperationException("Input startup context is not available.");
+            }
+            workflow.ConfirmWorkflowContextCommand.Execute(null);
+        }
+        finally
+        {
+            if (workflow.IsWorkflowContextModalOpen) { workflow.CancelWorkflowContextCommand.Execute(null); }
         }
     }
 }

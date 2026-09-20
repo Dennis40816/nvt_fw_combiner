@@ -19,10 +19,75 @@ This document defines the owner-approved UI direction for the first usable NVT F
 - Reports: Preview/Build opens a report modal for diagnostics and evidence review.
 - Report review: the shell may load a structured run report JSON and render it as a readable summary panel. This is a review surface for existing reports, not firmware file execution.
 - UI launch control: the desktop process accepts `--page home|settings|merge|replace|hex-editor`, `--load-report <path>` or `--report <path>`, and `--open-report` so repeatable review can open a page or report modal from command line. These arguments only shape UI state and load existing report JSON; they never execute firmware composition or change profile policy.
+- Explicit input startup also supports AB Merge and CtrlRAM Replace through the same Home context and Browse inspection owners. See [desktop input startup](#desktop-input-startup) for arguments and canonical NT51950 AB examples.
 - Saved Rules: hidden in the first UI release until the saved-rule workflow is implemented and reviewed.
 - Localization: UI implementation uses a bilingual English/Chinese-ready text architecture, with English as the initial default.
 - Typography: Inter for Latin/English UI text; Microsoft JhengHei UI for Traditional Chinese on Windows, falling back to Noto Sans CJK TC, Noto Sans TC, and Segoe UI.
 - UI priority: core/Application/CLI behavior leads; UI binds to application services after the C# core is ready.
+
+## Desktop input startup
+
+Added to the local `1.1.10` development checkout on 2026-09-20. These commands
+open the desktop UI and inspect explicitly supplied inputs. They never invoke
+Preview or Build. IC, Number, slots, format and readiness still come from the
+current canonical catalog and Application services. Unsupported choices,
+missing files, invalid configuration and firmware mismatch remain visible;
+the startup loader does not confirm prompts on the user's behalf.
+
+AB syntax (all options are required; `--option=value` is also supported):
+
+```text
+NvtFwCombiner.Desktop.exe --workflow ab-merge --ic <IC> --ic-num <Number> --dp <DP_AB.bin> --tp-a <TP_A.bin> --tp-b <TP_B.bin>
+```
+
+AB opens Merge / AB Code with Dummy DP Off and independent TP selections.
+Pass the same path twice when both inputs should use one file; startup does not
+enable the linked same-TP convenience. `--page merge` is optional. Duplicate
+options, CtrlRAM input options, other pages, Settings, report loading and
+unknown arguments are rejected. A real input failure, configuration blocker,
+context mismatch or cancellation stops further automatic selections. An
+incomplete-pair AB readiness state waits for the remaining explicit inputs.
+
+Existing CtrlRAM syntax remains:
+
+```text
+NvtFwCombiner.Desktop.exe --workflow ctrlram-replace --ic <IC> --ic-num <Number> --base <Flash.bin> --ctrlram <slot-id>=<CtrlRAM.bin>
+```
+
+Repeat `--ctrlram` for distinct slots. Both workflows require an empty, ready
+Home session. Number tokens must be current selector choices, such as `single`
+or `cascade`; startup does not infer a token from filenames or golden topology.
+This explicit Number form requires a context with published Number choices.
+
+### NT51950 AB canonical examples from CMD
+
+Run from the repository root in **cmd.exe**, after building the current Desktop
+project. `NFC_APP` points to that build; substitute a current executable path
+when using another build directory. These fixtures must exist locally (including
+Git LFS payloads); no download or fixture creation is performed by the app.
+
+```bat
+set "NFC_APP=%CD%\src\NvtFwCombiner.Desktop\bin\Debug\net10.0\NvtFwCombiner.Desktop.exe"
+set "NFC_CASE=%CD%\testdata\golden\canonical\NT51950\ab-merge\boe-d82t80\topology-unscoped\nt51950-ab-boe-d82t80\inputs"
+start "" "%NFC_APP%" --workflow ab-merge --ic NT51950 --ic-num single --dp "%NFC_CASE%\NT51950TT_Initial Code_BOE_AS172QD0-B00 2560x1600_BOE only_PD fixed pixelonoff_D82_20260616.bin" --tp-a "%NFC_CASE%\nt51950_fw_T80.bin" --tp-b "%NFC_CASE%\nt51950_fw_T80.bin"
+```
+
+For Hiway, use the same `NFC_APP` and these commands:
+
+```bat
+set "NFC_CASE=%CD%\testdata\golden\canonical\NT51950\ab-merge\hiway-d82t80\topology-unscoped\nt51950-ab-hiway-d82t80\inputs"
+start "" "%NFC_APP%" --workflow ab-merge --ic NT51950 --ic-num single --dp "%NFC_CASE%\NT51950TT_Initial Code_BOE_AS172QD0-B00 2560x1600_NiOHiway_D82_20260616.bin" --tp-a "%NFC_CASE%\nt51950_fw_T80.bin" --tp-b "%NFC_CASE%\nt51950_fw_T80.bin"
+```
+
+Paths and input roles come from the canonical
+[BOE case](../../testdata/golden/canonical/NT51950/ab-merge/boe-d82t80/topology-unscoped/nt51950-ab-boe-d82t80/provenance/case.json)
+and [Hiway case](../../testdata/golden/canonical/NT51950/ab-merge/hiway-d82t80/topology-unscoped/nt51950-ab-hiway-d82t80/provenance/case.json).
+Both historic DP inputs are **524288 bytes (512 KiB / `0x80000`)**. Their Common
+single-IC route accepts this size; the Desay route's 1 MiB expectation must not
+be imposed on these examples. Input diagnostics follow the selected profile. The explicit
+`single` context is a current UI selection, not a topology certification from
+the manifests' `topology-unscoped` record. Opening these inputs verifies UI
+preload only, not golden output parity, support promotion or release readiness.
 
 ## Navigation model
 

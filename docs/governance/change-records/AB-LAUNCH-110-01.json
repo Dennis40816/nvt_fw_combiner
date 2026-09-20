@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 2,
+  "taskId": "AB-LAUNCH-110-01",
+  "capability": "Explicit AB Merge desktop startup input selection",
+  "integrationBase": "3e375443f08f82263b7c200af8fcf094fc4ec479",
+  "risk": "R2",
+  "kind": "ui",
+  "state": "design-active",
+  "mutablePaths": [
+    "src/NvtFwCombiner.Presentation.Avalonia/UiLaunchOptions.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/UiLaunchOptions.CtrlRam.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/UiLaunchOptions.AbMerge.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/MainWindow.axaml.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/MainWindow.CtrlRamLaunch.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/MainWindow.AbMergeLaunch.cs",
+    "tests/NvtFwCombiner.UiSmoke.Tests/AbMergeLaunchTests.cs"
+  ],
+  "implementationOwner": "root",
+  "searchEvidence": [
+    "codegraph explore UiLaunchOptions Program launch example demo; bounded reads of UiLaunchOptions.CtrlRam.cs, MainWindow.CtrlRamLaunch.cs and CtrlRamLaunchTests.cs identify existing startup owners.",
+    "MainWindowViewModel.BeginAbMergeFromHomeCommand, WorkflowContextSetup choices and Merge.AbMergeSlotsByAddressSpace already own AB context and input bindings; SetSlotFileAsync owns inspection.",
+    "Canonical NT51950 BOE/Hiway case.json declare dp-ab-input, tp-a-input and tp-b-input paths. Documentation only; no golden resolver or new support/byte semantics.",
+    "Owner requested CMD implementation and project documentation on 2026-09-20."
+  ],
+  "semanticOwner": "UiLaunchOptions startup syntax; existing WorkflowSession context and input selection; Application inspection/readiness",
+  "terminalContract": "Explicit AB input startup selects admitted context and files only; conflicting/incomplete args fail closed; inspection/config/mismatch/cancellation remain visible; no Preview or Build",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "/root/config_review",
+    "outcome": "approved",
+    "evidence": "Independent R2 design admission at 3e375443 on 2026-09-20 approved these production/test paths. Reuse startup lifetime and typed selector/input owners. Early-stop on terminal input health/config/mismatch, not incomplete-pair AB readiness; retain CtrlRAM coverage. Docs distinguish 512 KiB legacy input and explicit single context from topology-unscoped golden certification."
+  },
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": { "reviewer": null, "outcome": "pending", "evidence": "" }
+}
