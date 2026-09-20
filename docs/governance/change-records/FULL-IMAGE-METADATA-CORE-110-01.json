@@ -1,0 +1,48 @@
+{
+  "schemaVersion": 2,
+  "taskId": "FULL-IMAGE-METADATA-CORE-110-01",
+  "capability": "Declare immutable full-image metadata views in the existing firmware-family contract without workflow or execution authority",
+  "integrationBase": "b9a94a2bab1a7bc05129b3438f0c0afeaaf45ad4",
+  "risk": "R2",
+  "kind": "refactor",
+  "state": "design-active",
+  "mutablePaths": [
+    "docs/contracts/firmware-family-v1.md",
+    "docs/contracts/firmware-family-v1.3-full-image-metadata.schema.json",
+    "docs/adr/0040-canonical-metadata-definition-references-and-prerequisites.md",
+    "src/NvtFwCombiner.Contracts/Firmware/FirmwareFamilyDocument.cs",
+    "src/NvtFwCombiner.Contracts/Firmware/FirmwareFullImageMetadataViewDocument.cs",
+    "src/NvtFwCombiner.Domain/Firmware/FirmwareFamilyResolutionDefinition.cs",
+    "src/NvtFwCombiner.Domain/Firmware/FirmwareFullImageMetadataView.cs",
+    "src/NvtFwCombiner.Domain/Firmware/FirmwareFamilyResolutionDefinition.FullImageMetadata.cs",
+    "src/NvtFwCombiner.Profiles/FirmwareFamilies/FirmwareFamilyResolutionNormalizer.AliasResolution.cs",
+    "src/NvtFwCombiner.Profiles/FirmwareFamilies/FirmwareFamilyResolutionNormalizer.FullImageMetadata.cs",
+    "tests/NvtFwCombiner.ProfileContract.Tests/FirmwareFamilyFullImageMetadataTests.cs",
+    "tests/NvtFwCombiner.Domain.Tests/Firmware/FirmwareFullImageMetadataViewTests.cs",
+    "tests/NvtFwCombiner.Infrastructure.Tests/Bundles/ProfileBundleSchemaValidatorTests.FullImageMetadata.cs"
+  ],
+  "implementationOwner": "/root/content_source_impl",
+  "searchEvidence": [
+    "Owner approved independent shared contracts and preserving shared consumers before DP Replace retirement in 1.1.10. Source a51f3c5022270a5393ce12eb378e04e8f730a473 retains all existing workflow behavior.",
+    "FirmwareMetadataPlanAuthority currently selects the DP Replace published MetadataPlan for generic full-image and CtrlRAM Reference fallback. Replacing the workflow string with Standard changes artifact bindings and adds DPCMI facts for NT51928, whose existing DP metadata plan is explicitly empty.",
+    "Existing family metadata sets own canonical structures, locators and prerequisites; current family schemas have no consumer field-target view. Composition metadataBindings require executable profile shape. BuiltInV2Bundle.CreateMetadataPlanEntry already projects checked canonical references and must be reused by the later consumer unit rather than retaining a fake DP execution profile.",
+    "Independent exact-source census identified five existing family owners and a 68-path data/hash reference closure before new relocation destinations and fingerprint policy decisions. This foundation deliberately leaves those production facts, catalog queries, runtime registrations, adapters and package pins unchanged.",
+    "Before first commit, layout_ownership_review independently approved the thirteenth auxiliary Infrastructure schema-validator partial test path, reusing the real Draft 2020 validator and CaptureFirmwareFamily without changing project dependencies. Root stages the added path before editing. Reviewer also confirmed the existing map-dependency helper includes unrelated map predicates: view closure must instead check each selected binding's direct prerequisite membership, after canonical graph/cycle validation by the existing Domain owner; this requires no additional production path or resolver."
+  ],
+  "semanticOwner": "Existing immutable Domain firmware family and checked map/metadata references; Contracts serialize the declaration and Profiles normalizes it without a second resolver",
+  "terminalContract": "Add optional fullImageMetadataViews to the firmware-family strict successor. Each declared view names an exact map and members and explicit metadata bindings/targets with evidence references. All listed canonical artifact bindings and their required prerequisites are supplied by one captured full-image artifact; no arbitrary source remapping, offset, workflow, processor, operation, output or support fields are representable. Retain absent versus explicitly empty views. Domain owns immutable declarations, exact map/member binding and invariant validation; preserve canonical map/structure identities, checked ranges and existing prerequisite/cycle resolution. Reject duplicates, unknown or mismatched member/map/structure/target, missing prerequisite closure and ambiguous selection without guessing runtime metadata values. The v1.3-full-image-metadata schema file retains document schemaVersion 1.1 and the common schemaId and all existing relations/TP Header subject constraints, admitted by exact schema hash; bank/AB extensions remain outside this checkpoint. Connect the DTO through the existing normalizer to real Domain views. No Application query, Infrastructure inventory, production family/profile data, runtime registration, Report classification, execution or firmware-byte behavior changes. Later data and consumer migration requires separate R3 admission and parity evidence.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "/root/layout_ownership_review",
+    "outcome": "approved",
+    "evidence": "Independent design and exact twelve-path approval at a51f3c50 accepted the bounded R2 foundation with separate DTO/Domain type files and pure Domain tests. Require real schema deserialization, normalizer and Domain API positive/negative tests, absent/empty distinction, canonical reference identity, member/map/target/prerequisite/cycle/ambiguity checks, existing schema/normalizer characterization, narrow Architecture gate and scoped Polytail. No consumer or data migration is authorized by this record. Root stages this record before any implementation edit."
+  },
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": {
+    "reviewer": null,
+    "outcome": "pending",
+    "evidence": ""
+  }
+}

@@ -32,7 +32,8 @@ public sealed partial class FirmwareFamilyResolutionDefinition
         IEnumerable<FirmwareMetadataSet> metadataSets,
         IEnumerable<FirmwareMapFactBinding<FirmwareCapabilityFact>> capabilityBindings,
         IEnumerable<FirmwareFamilyRelationship> familyRelationships,
-        FirmwareAbFormatPolicy? abFormatPolicy = null)
+        FirmwareAbFormatPolicy? abFormatPolicy = null,
+        IEnumerable<FirmwareFullImageMetadataView>? fullImageMetadataViews = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(familyId);
         ArgumentException.ThrowIfNullOrWhiteSpace(familyVersion);
@@ -88,6 +89,7 @@ public sealed partial class FirmwareFamilyResolutionDefinition
         FamilyRelationships = Array.AsReadOnly(_familyRelationships);
         AbFormatPolicy = abFormatPolicy;
         abFormatPolicy?.ValidateFamily(this);
+        FullImageMetadataViews = SnapshotFullImageMetadataViews(fullImageMetadataViews);
     }
 
     /// <summary>Stable source-family identifier.</summary>
@@ -111,6 +113,9 @@ public sealed partial class FirmwareFamilyResolutionDefinition
 
     /// <summary>Optional immutable A/B format facts; selecting a format remains an Application concern.</summary>
     public FirmwareAbFormatPolicy? AbFormatPolicy { get; }
+
+    /// <summary>Optional declarations; null is absent, while a present view may explicitly select no metadata.</summary>
+    public IReadOnlyList<FirmwareFullImageMetadataView>? FullImageMetadataViews { get; }
 
     /// <summary>Returns metadata structures selected by one exact candidate map.</summary>
     public IReadOnlyList<FirmwareMetadataStructure> GetStructuresForMap(string mapId)

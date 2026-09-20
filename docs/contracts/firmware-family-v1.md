@@ -1,4 +1,4 @@
-# Firmware Family Contract 1.1 through 1.2
+# Firmware Family Contract 1.1 through 1.3 successors
 
 The executable schema is [`firmware-family-v1.schema.json`](firmware-family-v1.schema.json).
 It is the canonical source for physical firmware facts shared by Normal, AB, Merge, Replace,
@@ -259,6 +259,48 @@ overlap rules, and partition the root capacity. Every region that has children i
 partitioned by its direct children. Every otherwise unclassified interval is represented by a
 `reserved` or `unmapped` region.
 `customer-information` and `ctrlram` are physical classifications, not workflow permissions.
+
+## Full-image metadata views
+
+The exact-hash successor
+[`firmware-family-v1.3-full-image-metadata.schema.json`](firmware-family-v1.3-full-image-metadata.schema.json)
+retains document `schemaVersion: "1.1"`, the common family schema identifier,
+family relationships, metadata relations, and all accepted TP Header subjects.
+It does not admit the separate bank-instance or A/B-format extensions.
+
+Optional `fullImageMetadataViews` contains declarations with `viewId`, exact
+`mapId`, nonempty unique `memberIds`, `metadataBindings`, and nonempty
+`evidenceRefs`. Each binding contains `bindingId`, exact `structureId`, nonempty
+unique `targetReferences`, and nonempty `evidenceRefs`. A target uses the existing
+`targetKind` (`span`, `field`, `series`, or `group`) and `targetId` vocabulary.
+Targets must exist in the exact canonical structure definition. Binding and view
+identifiers are unique in their containing collection; a structure appears at
+most once per view. Two views cannot select the same map/member pair.
+
+Every canonical artifact binding selected by a view, including every required
+metadata prerequisite, is supplied by the **same captured full-image artifact**.
+This is fixed source semantics, not a configurable source mapping. No offsets,
+address translations, space overrides, workflow, processor, operation, output,
+support, or mutation policy can be declared. Existing canonical locators and
+checked half-open ranges retain their authority.
+
+Omission and an explicit empty `fullImageMetadataViews` collection remain
+distinct representations; neither supplies a view. A present view with
+`metadataBindings: []` explicitly declares an empty metadata view. It does not
+fall back to a workflow or infer metadata from another map.
+
+Domain retains the exact immutable map and structure objects. Each selected
+member must belong to the map and have exactly one matching canonical structure
+binding. Existing family validation checks locators, prerequisite fields,
+ranges, and cycles. The view then requires every selected structure's direct
+prerequisite to occur in its binding set, thereby closing all transitive edges.
+Unrelated map-selection predicates do not add bindings to a view.
+
+These are declarations, not evaluated runtime selections. Cross-map ambiguity,
+captured-artifact validation, and consumer publication remain responsibilities
+of their existing owners when a separately admitted consumer is implemented.
+This foundation changes no production family data, trust pins, metadata query,
+runtime registration, Report classification, or execution behavior.
 
 ## Aliases
 

@@ -87,7 +87,8 @@ internal static partial class FirmwareFamilyResolutionNormalizer
                 metadataSetsById.Values,
                 capabilities,
                 familyRelationships,
-                abFormatPolicy);
+                abFormatPolicy,
+                NormalizeFullImageMetadataViews(document.FullImageMetadataViews, normalizedMapsById, structuresByMap));
         }
         catch (FirmwareFamilyRelationshipInvariantException exception)
         {

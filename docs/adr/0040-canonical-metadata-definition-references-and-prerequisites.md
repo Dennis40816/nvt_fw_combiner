@@ -231,6 +231,29 @@ NT51932 Type-AB TP Flash Header:
 deletion. This extension therefore freezes their canonical seam without
 duplicating those downstream execution owners.
 
+### Full-image metadata declaration boundary
+
+The optional family `fullImageMetadataViews` declaration extends this same
+canonical owner. A view references one exact image map, explicit members, and
+canonical structure targets; it retains immutable map/structure/definition
+identity. All selected artifact bindings and their prerequisite closure refer
+to the same captured full-image artifact. No configurable source remapping,
+offset, workflow identity, or execution policy is added.
+
+The existing family constructor validates prerequisite fields, locator ranges,
+and cycles. View validation checks containment of each selected structure's
+direct prerequisite in the selected binding set, which proves transitive
+closure without a second resolver. Map predicates remain map-selection facts;
+the declaration does not evaluate them or infer runtime values. An explicitly
+empty view remains distinct from no view declaration.
+
+The strict successor and its wire fields are defined by the
+[firmware-family contract](../contracts/firmware-family-v1.md#full-image-metadata-views).
+This foundation admits no data relocation, catalog/query change, adapter,
+consumer fallback, or byte behavior. A later consumer must reuse checked
+canonical reference projection and preserve capture/selection authority;
+firmware data migration and parity evidence require separate admission.
+
 ## Alternatives
 
 - Copy canonical fields into every consumer family: rejected because it creates
