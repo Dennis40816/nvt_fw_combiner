@@ -1274,7 +1274,14 @@ class VerifyOrchestrationTests(unittest.TestCase):
             ) for name in ("first", "second"))
             with patch.object(MODULE, "REPOSITORY_SCRIPT_TESTS", root):
                 results = MODULE.run_lanes(lanes, jobs=2, log_directory=root / "logs")
-            self.assertTrue(all(result.succeeded for result in results), results)
+            failure_logs = "\n".join(
+                f"{result.log_path}:\n{result.log_path.read_text(encoding='utf-8')}"
+                for result in results
+                if not result.succeeded and result.log_path.is_file()
+            )
+            self.assertTrue(
+                all(result.succeeded for result in results), f"{results}\n{failure_logs}"
+            )
             scratch = [Path(path.read_text(encoding="utf-8")) for path in evidence.iterdir()]
             self.assertEqual(2, len(set(scratch)))
             for path in scratch:
