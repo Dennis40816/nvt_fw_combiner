@@ -136,6 +136,15 @@ internal sealed partial class MergePresentationViewModel
     private void ApplyAbMergeReadiness(CompiledAuthoringSelectionSnapshot projection)
     {
         ApplyInputReadiness(AbMergeSlots, projection.Slots, static slot => slot.SlotId);
+        if (_abMergeSession.CurrentSnapshot is not { } current) { return; }
+        foreach (AuthoringInputSlotStatus status in current.InputSlotStatuses.Where(static status => status.Readiness == NvtFwCombiner.Application.Metadata.ResolvedChildReadiness.Blocked))
+        {
+            FirmwareSlotViewModel? slot = AbMergeSlots.SingleOrDefault(slot => slot.SlotId == status.SlotId);
+            if (slot is not null && StringComparer.Ordinal.Equals(slot.FilePath, status.SelectedPathHint))
+            {
+                FirmwareInspectionProjection.ApplyInputSlotInspection(slot, status, Text);
+            }
+        }
     }
 
     private void SyncAbMergeMembership(ActiveSessionSnapshot? snapshot)
@@ -217,11 +226,19 @@ internal sealed partial class MergePresentationViewModel
                     {
                         if (slot.CurrentInspectionProjection is { } previous)
                         {
-                            slot.SetCurrentInspectionProjection(previous with { AuthoringCompilationIssues = result.Issues });
+                            AuthoringInputSlotStatus? blocked = result.Inspection?.Statuses.GetValueOrDefault(slot.SlotId);
+                            if (blocked is not null && !StringComparer.Ordinal.Equals(slot.FilePath, blocked.SelectedPathHint)) { continue; }
+                            slot.SetCurrentInspectionProjection(previous with
+                            {
+                                InputSlotStatus = blocked ?? previous.InputSlotStatus,
+                                InputSlotCatalog = result.Inspection?.Catalog ?? previous.InputSlotCatalog,
+                                AuthoringCompilationIssues = result.Issues,
+                            });
                         }
-                        FirmwareInspectionProjection.ApplyAuthoringIssues(slot, result.Issues);
+                        FirmwareInspectionProjection.ApplyAuthoringIssues(slot, result.Issues, Text);
                     }
                 }
+                await RefreshAbMergeActionReadinessAsync(CancellationToken.None);
                 return false;
             }
 

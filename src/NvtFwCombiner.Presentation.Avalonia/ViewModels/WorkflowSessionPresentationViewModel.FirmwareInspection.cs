@@ -406,7 +406,7 @@ internal sealed partial class WorkflowSessionPresentationViewModel
             {
                 FirmwareInspectionProjection.ApplyAuthoringIssues(
                     slot,
-                    inspection.AuthoringCompilationIssues);
+                    inspection.AuthoringCompilationIssues, Text);
             }
             else if (inspection.InputSlotStatus is { } inputSlotStatus)
             {

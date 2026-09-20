@@ -313,6 +313,14 @@ public sealed class AbMergeFormatRuntimeTests
         Assert.True(host.AbMergeAuthoring.AdoptInspectedBatch(session, catalog, started.Leases, statuses).Succeeded);
         Assert.False(session.CurrentSnapshot!.HasCurrentInputInspection);
         Assert.Null(session.CurrentSnapshot.ExactCapability);
+        if (inputState == "complete")
+        {
+            CapabilityActionBlocker blocker = Assert.Single(ActiveSessionBuildBlockerResolver.ResolveBuildAvailability(
+                session.CurrentSnapshot, ExperienceIds.AbMerge).Blockers);
+            Assert.Equal(CapabilityReadinessDimension.Configuration, blocker.Dimension);
+            Assert.Equal(CapabilityReadinessNextAction.ReviewConfiguration, blocker.NextAction);
+            Assert.Equal("event-buffer-format", blocker.SubjectId);
+        }
         foreach (string path in paths.Values) { File.Delete(path); }
         IEventBufferFormatConfigurationSession configuration = await host.GetEventBufferFormatConfigurationAsync(TestContext.Current.CancellationToken);
         Assert.True((await configuration.SaveAsync(configuration.CreateDefaultsDraft(), TestContext.Current.CancellationToken)).Succeeded);
@@ -599,15 +607,19 @@ public sealed class AbMergeFormatRuntimeTests
 
     /// <summary>A delayed reapplication never replaces later selections or another completed reapplication.</summary>
     [Theory]
-    [InlineData("new-input", false)]
-    [InlineData("new-reapply", false)]
-    [InlineData("cancel", false)]
-    [InlineData("publication", false)]
-    [InlineData("new-input", true)]
-    [InlineData("new-reapply", true)]
-    [InlineData("cancel", true)]
-    [InlineData("publication", true)]
-    public async Task ReapplicationRetainsSnapshotOwnershipAcrossWaitAsync(string mutation, bool preCompilation)
+    [InlineData("new-input", false, false)]
+    [InlineData("new-reapply", false, false)]
+    [InlineData("cancel", false, false)]
+    [InlineData("publication", false, false)]
+    [InlineData("new-input", true, false)]
+    [InlineData("new-reapply", true, false)]
+    [InlineData("cancel", true, false)]
+    [InlineData("publication", true, false)]
+    [InlineData("new-input", true, true)]
+    [InlineData("new-reapply", true, true)]
+    [InlineData("cancel", true, true)]
+    [InlineData("publication", true, true)]
+    public async Task ReapplicationRetainsSnapshotOwnershipAcrossWaitAsync(string mutation, bool preCompilation, bool blockedResolution)
     {
         using TempWorkspace workspace = TempWorkspace.Create("ab-format-reapply-race");
         var environment = new ExternalProcessorEnvironmentLoader();
@@ -653,7 +665,11 @@ public sealed class AbMergeFormatRuntimeTests
         Task<CompiledAuthoringSessionPreparation?> pending = owner.ReapplyAcceptedInputsAsync(session, cancellation.Token).AsTask();
         await entered.Task.WaitAsync(TestContext.Current.CancellationToken);
         if (mutation == "new-input") { Assert.True(session.BeginSlotFileInspection("tp-a-input", "new-a.bin").Succeeded); }
-        if (mutation == "new-reapply") { Assert.True((await host.AbMergeAuthoring.ReapplyAcceptedInputsAsync(session, TestContext.Current.CancellationToken))!.Succeeded); }
+        if (blockedResolution) { _ = workspace.Write("format.json", "invalid"u8.ToArray()); }
+        if (mutation == "new-reapply")
+        {
+            Assert.Equal(!blockedResolution, (await host.AbMergeAuthoring.ReapplyAcceptedInputsAsync(session, TestContext.Current.CancellationToken))!.Succeeded);
+        }
         if (mutation == "cancel") { await cancellation.CancelAsync(); }
         if (mutation == "publication") { Assert.True(host.Catalog.Reload(TestContext.Current.CancellationToken).Succeeded); }
         ActiveSessionSnapshot current = session.CurrentSnapshot!;
@@ -674,6 +690,11 @@ public sealed class AbMergeFormatRuntimeTests
             Assert.Empty(result.AbMergeFacts);
             if (mutation == "publication") { Assert.Contains(result.Issues, static issue => issue.Code == "AB_FORMAT_PUBLICATION_STALE"); }
             else { Assert.Equal(AuthoringSessionIssueCodes.StaleInspection, result.SessionIssue?.Code); }
+            if (blockedResolution && mutation is "new-input" or "new-reapply")
+            {
+                // The Presentation reference guard must reject the old batch, even when paths are unchanged.
+                Assert.NotSame(current, result.Snapshot);
+            }
         }
         Assert.Same(current, session.CurrentSnapshot);
     }
@@ -846,6 +867,12 @@ public sealed class AbMergeFormatRuntimeTests
                 await host.AbMergeAuthoring.GetActionReadinessAsync(prepared.Snapshot!, TestContext.Current.CancellationToken));
             Assert.Contains(readiness.Build.Blockers, blocker => blocker.Code == expectedCode);
             Assert.Contains(readiness.Preview.Blockers, blocker => blocker.Code == expectedCode);
+            if (change == "invalid")
+            {
+                CapabilityActionBlocker blocker = Assert.Single(readiness.Build.Blockers);
+                Assert.Equal(CapabilityReadinessDimension.Configuration, blocker.Dimension);
+                Assert.Equal(CapabilityReadinessNextAction.ReviewConfiguration, blocker.NextAction);
+            }
         }
         Assert.False(File.Exists(output));
     }

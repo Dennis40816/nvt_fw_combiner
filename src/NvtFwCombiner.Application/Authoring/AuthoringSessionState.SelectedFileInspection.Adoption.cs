@@ -5,6 +5,54 @@ namespace NvtFwCombiner.Application.Authoring;
 
 public sealed partial class AuthoringSessionState
 {
+    /// <summary>Refreshes only blocked prerequisite results for the same retained immutable sources.</summary>
+    internal AuthoringSessionTransitionResult TryRefreshBlockedInputInspection(ActiveSessionSnapshot expected,
+        AuthoringCapabilityCatalogSnapshot catalog, IReadOnlyCollection<AuthoringInputSlotStatus> statuses)
+    {
+        ArgumentNullException.ThrowIfNull(expected);
+        ArgumentNullException.ThrowIfNull(catalog);
+        ArgumentNullException.ThrowIfNull(statuses);
+        lock (_transitionLock)
+        {
+            AuthoringInputSlotStatus[] captured = [.. statuses];
+            AuthoringCapabilityRoute? route = catalog.Routes.Count == 1 ? catalog.Routes[0] : null;
+            bool valid = ReferenceEquals(_current, expected) && HasCoherentCapturedSources(expected) &&
+                catalog.WorkflowId == expected.WorkflowId && catalog.ResolutionToken == expected.ResolutionToken &&
+                route?.Identity.RouteId == expected.SelectedRouteId && route.CompilationFingerprint is null &&
+                route.CapabilityFingerprint == expected.CapabilityFingerprint &&
+                captured.Length == expected.InputSlotStatuses.Count &&
+                captured.Select(static status => status.SlotId).Distinct(StringComparer.Ordinal).Count() == captured.Length &&
+                captured.All(status =>
+                {
+                    AuthoringInputSlotStatus? previous = expected.InputSlotStatuses.SingleOrDefault(item => item.SlotId == status.SlotId);
+                    return previous is not null && status.WorkflowId == expected.WorkflowId &&
+                        status.RouteId == expected.SelectedRouteId && status.ResolutionToken == expected.ResolutionToken &&
+                        status.CapabilityFingerprint == expected.CapabilityFingerprint && status.AuthoringRevision == expected.AuthoringRevision &&
+                        status.CompilationFingerprint is null && !status.IsTerminal && status.AcceptedBytes is null &&
+                        status.Readiness == ResolvedChildReadiness.Blocked && status.AddressSpaceId == previous.AddressSpaceId &&
+                        status.SelectedPathHint == previous.SelectedPathHint && status.FileStamp == previous.FileStamp &&
+                        status.CapturedSource?.AcceptedBytes is { } source && previous.CapturedSource?.AcceptedBytes is { } retained &&
+                        source.Span.SequenceEqual(retained.Span);
+                });
+            if (!valid)
+            {
+                return Failure(AuthoringSessionIssueCodes.StaleInspection,
+                    "The blocked inspection no longer owns the current retained inputs.", WorkflowId);
+            }
+            Dictionary<string, AuthoringInputSlotStatus> bySlot = captured.ToDictionary(static status => status.SlotId, StringComparer.Ordinal);
+            string reference = FormattableString.Invariant($"inspection-batch:{expected.AuthoringRevision.Value}:pre-compilation");
+            AuthoringSlotState[] slots = [.. expected.Slots.Select(slot => bySlot.TryGetValue(slot.DefinitionId, out AuthoringInputSlotStatus? status)
+                ? new AuthoringSlotState(slot.DefinitionId, slot.SelectedPath, slot.FileStamp, AuthoringSlotLifecycle.Error,
+                    new AuthoringSlotIssueReference(AuthoringDerivedResultKind.Inspection, reference,
+                        status.SelectionReadiness.IssueCode ?? InputSelectionReadinessIssueCodes.SelectionNotApplicable))
+                : slot)];
+            ActiveSessionSnapshot refreshed = CopySnapshot(expected, expected.AuthoringRevision, slots,
+                expected.DraftState, expected.DraftCapabilityFingerprint, [], captured, expected.InputSelectionReadiness);
+            Volatile.Write(ref _current, refreshed);
+            return new(refreshed, null);
+        }
+    }
+
     /// <summary>Retains source inspection while revoking derived action results for one reinspection attempt.</summary>
     internal AuthoringSessionTransitionResult TryBeginAcceptedInputReinspection(ActiveSessionSnapshot expected)
     {

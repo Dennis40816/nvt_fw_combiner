@@ -30,7 +30,8 @@ public sealed class AuthoringInputSlotStatus
         ReadOnlyMemory<byte>? acceptedBytes = null,
         (string IssueCode, CompiledInputArtifactInspectionNextAction NextAction)?
             preContentIssue = null,
-        SelectedFileContentInspection? capturedSource = null)
+        SelectedFileContentInspection? capturedSource = null,
+        CapabilityActionBlocker? configurationBlocker = null)
     {
         ArgumentNullException.ThrowIfNull(identity);
         ArgumentNullException.ThrowIfNull(selectionReadiness);
@@ -62,6 +63,14 @@ public sealed class AuthoringInputSlotStatus
             throw new ArgumentException("A source capture requires a matching stable-read stamp and blocked non-executable declaration.", nameof(capturedSource));
         }
         CapturedSource = capturedSource;
+        if (configurationBlocker is not null &&
+            (configurationBlocker.Dimension != CapabilityReadinessDimension.Configuration ||
+             selectionReadiness.Readiness != ResolvedChildReadiness.Blocked ||
+             compilationFingerprint is not null || acceptedBytes is not null))
+        {
+            throw new ArgumentException("A configuration prerequisite cannot grant executable input admission.", nameof(configurationBlocker));
+        }
+        ConfigurationBlocker = configurationBlocker;
         Observation = observation ?? CompiledInputArtifactObservationResult.Empty;
         _inspectionAdvisories =
         [
@@ -148,6 +157,9 @@ public sealed class AuthoringInputSlotStatus
 
     /// <summary>Stable-read source retained for reinspection, not firmware admission or executable accepted bytes.</summary>
     internal SelectedFileContentInspection? CapturedSource { get; }
+
+    /// <summary>Shared workflow prerequisite, independent of selected firmware health.</summary>
+    public CapabilityActionBlocker? ConfigurationBlocker { get; }
 
     /// <summary>Canonical workflow owning this slot.</summary>
     public string WorkflowId { get; }
@@ -466,7 +478,8 @@ public static class AuthoringInputSlotInspectionService
     public static AuthoringInputSlotStatus BlockBeforeCompilation(
         ResolvedCapabilityRoute route, AuthoringRevision authoringRevision,
         string slotId, string addressSpaceId, string issueCode, string reason,
-        FileStamp? fileStamp, string selectedPathHint, SelectedFileContentInspection? capturedSource = null)
+        FileStamp? fileStamp, string selectedPathHint, SelectedFileContentInspection? capturedSource = null,
+        CapabilityActionBlocker? configurationBlocker = null)
     {
         ArgumentNullException.ThrowIfNull(route);
         ArgumentException.ThrowIfNullOrWhiteSpace(slotId);
@@ -478,7 +491,7 @@ public static class AuthoringInputSlotInspectionService
             false, reason, new InputSelectionNextAction(InputSelectionNextActionKind.CorrectSelection, slotId), issueCode);
         return Create(route.Identity, route.ResolutionToken, authoringRevision, route.CapabilityFingerprint,
             compilationFingerprint: null, readiness, addressSpaceId, inspectionLifecycle: null, fileStamp,
-            inspection: null, selectedPathHint, capturedSource: capturedSource);
+            inspection: null, selectedPathHint, capturedSource: capturedSource, configurationBlocker: configurationBlocker);
     }
 
     private static AuthoringInputSlotStatus Create(
@@ -518,7 +531,8 @@ public static class AuthoringInputSlotInspectionService
         ReadOnlyMemory<byte>? acceptedBytes = null,
         (string IssueCode, CompiledInputArtifactInspectionNextAction NextAction)?
             preContentIssue = null,
-        SelectedFileContentInspection? capturedSource = null)
+        SelectedFileContentInspection? capturedSource = null,
+        CapabilityActionBlocker? configurationBlocker = null)
     {
         return new AuthoringInputSlotStatus(
             identity,
@@ -535,7 +549,7 @@ public static class AuthoringInputSlotInspectionService
             observation,
             acceptedBytes,
             preContentIssue,
-            capturedSource);
+            capturedSource, configurationBlocker);
     }
 
     private static void ValidateInspectable(

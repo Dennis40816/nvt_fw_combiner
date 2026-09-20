@@ -1,4 +1,5 @@
 using NvtFwCombiner.Application.Authoring;
+using NvtFwCombiner.Application.Capabilities;
 using NvtFwCombiner.Application.Configuration;
 using NvtFwCombiner.Application.Ports;
 using NvtFwCombiner.Bootstrap;
@@ -224,7 +225,12 @@ public sealed partial class ShellNavigationSystemTests
         MainWindowViewModel viewModel = await CreateLoadedFormatAbViewModelAsync(workspace, host, initializeConfiguration: false);
         FirmwareSlotViewModel slot = viewModel.Merge.AbMergeSlots.Single(static slot => slot.SlotId == "tp-a-input");
         Assert.Equal(invalidConfig, slot.BlocksBuild);
-        if (invalidConfig) { Assert.Null(slot.CurrentInspectionProjection!.InputSlotStatus?.AcceptedBytes); }
+        if (invalidConfig)
+        {
+            Assert.Null(slot.CurrentInspectionProjection!.InputSlotStatus?.AcceptedBytes);
+            Assert.Null(slot.InputInspectionSeverity);
+            Assert.Equal("AB_FORMAT_CONFIGURATION_INVALID", Assert.Single(viewModel.Merge.BuildAvailability.Blockers).Code);
+        }
         else { _ = Assert.NotNull(slot.CurrentInspectionProjection!.InputSlotStatus?.AcceptedBytes); }
         File.Delete(workspace.PathFor("a.bin"));
         File.Delete(workspace.PathFor("b.bin"));
@@ -236,6 +242,67 @@ public sealed partial class ShellNavigationSystemTests
         Assert.False(slot.BlocksBuild);
         Assert.Equal("nt51950-ab-desay-maps", Assert.Single(slot.CurrentInspectionProjection!.InputSlotCatalog!.Routes).ExactCapability!.Identity.MapVariant);
         _ = Assert.NotNull(slot.CurrentInspectionProjection.InputSlotStatus!.AcceptedBytes);
+    }
+
+    /// <summary>Invalid configuration blocks once without blaming BINs; repair reuses captured sources even after deletion.</summary>
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(true, false)]
+    [InlineData(true, true)]
+    public async Task EventBufferFormatInvalidReloadShowsOneConfigurationBlockerAndRepairsRetainedInputs(bool initiallyInvalid, bool mismatchedRepair)
+    {
+        using TempWorkspace workspace = TempWorkspace.Create("ui-ab-config-blocker");
+        if (initiallyInvalid) { _ = workspace.Write("format.json", "invalid"u8.ToArray()); }
+        CompositionHostServices host = CompositionHostServices.Create(new ExternalProcessorEnvironmentLoader(),
+            loadPolicy: null, configurationPath: workspace.PathFor("format.json"));
+        MainWindowViewModel viewModel = await CreateLoadedFormatAbViewModelAsync(workspace, host,
+            secondFormat: mismatchedRepair ? (byte)0xA6 : (byte)0x97, initializeConfiguration: !initiallyInvalid);
+        File.Delete(workspace.PathFor("a.bin"));
+        File.Delete(workspace.PathFor("b.bin"));
+        _ = workspace.Write("format.json", "invalid"u8.ToArray());
+        viewModel.OpenSettingsCommand.Execute(null);
+        viewModel.Settings.SelectSectionCommand.Execute(SettingsSection.EventBufferFormat);
+        await viewModel.Settings.EventBufferFormatLoadTask;
+        await viewModel.Settings.ReloadEventBufferFormatCommand.ExecuteAsync(null);
+
+        CapabilityActionBlocker blocker = Assert.Single(viewModel.Merge.BuildAvailability.Blockers);
+        Assert.Equal(CapabilityReadinessDimension.Configuration, blocker.Dimension);
+        Assert.Equal(CapabilityReadinessNextAction.ReviewConfiguration, blocker.NextAction);
+        Assert.False(viewModel.Merge.CanBuildMerge);
+        foreach (FirmwareSlotViewModel slot in viewModel.Merge.AbMergeSlots.Where(static slot => slot.HasFile))
+        {
+            Assert.True(slot.BlocksBuild);
+            Assert.Null(slot.InputInspectionSeverity);
+            Assert.Null(slot.CurrentInspectionProjection!.InputSlotStatus!.AcceptedBytes);
+            Assert.NotNull(slot.CurrentInspectionProjection.InputSlotStatus.CapturedSource);
+        }
+        viewModel.SelectedLanguage = "Traditional Chinese";
+        Assert.Contains("設定無效", viewModel.Text.FormatCapabilityActionBlocker(blocker), StringComparison.Ordinal);
+        Assert.Contains("Event Buffer Format", viewModel.Text.FormatCapabilityActionBlocker(blocker), StringComparison.Ordinal);
+        Assert.All(viewModel.Merge.AbMergeSlots.Where(static slot => slot.HasFile), static slot => Assert.Null(slot.InputInspectionSeverity));
+
+        if (mismatchedRepair)
+        {
+            EventBufferFormatDraftRowViewModel row = Assert.Single(viewModel.Settings.EventBufferFormatRows);
+            row.RecognitionValues.Clear();
+            row.RecognitionValues.Add(0xA6);
+        }
+        await viewModel.Settings.SaveEventBufferFormatCommand.ExecuteAsync(null);
+        Assert.DoesNotContain(viewModel.Merge.BuildAvailability.Blockers, static item => item.Dimension == CapabilityReadinessDimension.Configuration);
+        if (mismatchedRepair)
+        {
+            Assert.False(viewModel.Merge.CanBuildMerge);
+            Assert.Contains(viewModel.Merge.BuildAvailability.Blockers, static item => item.Dimension == CapabilityReadinessDimension.Input);
+            Assert.All(viewModel.Merge.AbMergeSlots.Where(static slot => slot.HasFile), static slot =>
+                Assert.Equal(FirmwareInputInspectionSeverity.Blocking, slot.InputInspectionSeverity));
+            Assert.Single(viewModel.Settings.EventBufferFormatRows).RecognitionValues.Clear();
+            await viewModel.Settings.SaveEventBufferFormatCommand.ExecuteAsync(null);
+        }
+        Assert.All(viewModel.Merge.AbMergeSlots.Where(static slot => slot.HasFile), static slot =>
+        {
+            Assert.False(slot.BlocksBuild);
+            _ = Assert.NotNull(slot.CurrentInspectionProjection!.InputSlotStatus!.AcceptedBytes);
+        });
     }
 
     /// <summary>Saving while a real execution result awaits UI publication must not reset that run or adopt a newer map into its report.</summary>

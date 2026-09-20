@@ -158,6 +158,9 @@ internal sealed partial class ShellTextResources
         ArgumentNullException.ThrowIfNull(blocker);
         string message = blocker.Code switch
         {
+            "AB_FORMAT_CONFIGURATION_INVALID" => SelectLanguage(
+                "Event Buffer Format configuration is invalid or unreadable.",
+                "Event Buffer Format 設定無效或無法讀取。"),
             CapabilityActionReadinessIssueCodes.AuthoringUnavailable => SelectLanguage(
                 blocker.Message,
                 $"路由 {blocker.SubjectId} 不允許 authoring。"),
@@ -192,6 +195,9 @@ internal sealed partial class ShellTextResources
             CapabilityReadinessNextAction.CorrectInput => SelectLanguage(
                 "Correct or replace the input.",
                 "請修正或更換輸入。"),
+            CapabilityReadinessNextAction.ReviewConfiguration => SelectLanguage(
+                "Open Settings > Config > Event Buffer Format, correct and save the settings, or reload the repaired file.",
+                "請開啟設定 > Config > Event Buffer Format，修正並儲存設定，或重新載入已修復的檔案。"),
             CapabilityReadinessNextAction.ReviewCompilation => SelectLanguage(
                 "Review the compiled route.",
                 "請檢查編譯後的路由。"),

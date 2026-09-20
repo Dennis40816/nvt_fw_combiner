@@ -97,6 +97,11 @@ internal static class FirmwareInspectionProjection
         AuthoringInputSlotStatus status,
         ShellTextResources text)
     {
+        if (status.ConfigurationBlocker is not null)
+        {
+            ApplyConfigurationPrerequisite(slot, status, text);
+            return;
+        }
         string readinessLabel = text.GetDpInputSelectionReadinessLabel(status.SelectionReadiness);
         string readinessDetail = text.GetDpInputSelectionReadinessDetail(status.SelectionReadiness);
         slot.SetSelectionReadiness(
@@ -132,14 +137,28 @@ internal static class FirmwareInspectionProjection
 
     internal static void ApplyAuthoringIssues(
         FirmwareSlotViewModel slot,
-        IReadOnlyList<CompositionIssue> issues)
+        IReadOnlyList<CompositionIssue> issues,
+        ShellTextResources text)
     {
+        if (slot.CurrentInspectionProjection?.InputSlotStatus is { ConfigurationBlocker: not null } status)
+        {
+            ApplyConfigurationPrerequisite(slot, status, text);
+            return;
+        }
         slot.SetInputInspection(
             FirmwareInputInspectionSeverity.Blocking,
             string.Join(Environment.NewLine, issues.Select(static issue =>
                 issue.OperationId is { } operationId
                     ? $"{issue.Code} [{operationId}]: {issue.Message}"
                     : $"{issue.Code}: {issue.Message}")));
+    }
+
+    private static void ApplyConfigurationPrerequisite(FirmwareSlotViewModel slot, AuthoringInputSlotStatus status, ShellTextResources text)
+    {
+        // The shared Build prerequisite owns the actionable message; a config failure is not a BIN verdict.
+        slot.SetSelectionReadiness(status.Readiness, text.EventBufferFormatTitle, text.EventBufferFormatInvalidLabel,
+            text.GetInputSelectionReadinessAutomationText(text.EventBufferFormatTitle, text.EventBufferFormatInvalidLabel), status.CanSelect);
+        slot.ClearInputInspection();
     }
 
     internal static bool ApplyStaleInputInspection(

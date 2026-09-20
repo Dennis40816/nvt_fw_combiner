@@ -1,0 +1,47 @@
+{
+  "schemaVersion": 2,
+  "taskId": "CONFIG-ERRORS-110-01",
+  "capability": "Project invalid Event Buffer configuration as one actionable prerequisite while retaining input captures",
+  "integrationBase": "08ab2818a278495cfe5dff3f7a30ad2610b7776d",
+  "risk": "R2",
+  "kind": "behavior",
+  "state": "design-active",
+  "mutablePaths": [
+    "src/NvtFwCombiner.Application/Authoring/AbMergeAuthoringExperience.InputInspection.cs",
+    "src/NvtFwCombiner.Application/Authoring/AbMergeAuthoringExperience.Readiness.cs",
+    "src/NvtFwCombiner.Application/Authoring/AbMergeAuthoringExperience.Format.cs",
+    "src/NvtFwCombiner.Application/Authoring/AuthoringInputSlotInspection.cs",
+    "src/NvtFwCombiner.Application/Capabilities/ActiveSessionBuildBlockerResolver.cs",
+    "src/NvtFwCombiner.Application/Capabilities/CapabilityActionReadiness.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/FirmwareInspectionSession.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ShellTextResources.MessageCenter.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MergePresentationViewModel.AbMergeAuthoring.cs",
+    "tests/NvtFwCombiner.Bootstrap.Tests/AbMergeFormatRuntimeTests.cs",
+    "tests/NvtFwCombiner.UiSmoke.Tests/ShellViewModelTests.EventBufferFormat.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/WorkflowSessionPresentationViewModel.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/WorkflowSessionPresentationViewModel.FirmwareInspection.cs",
+    "src/NvtFwCombiner.Application/Authoring/AuthoringSessionState.SelectedFileInspection.Adoption.cs"
+  ],
+  "implementationOwner": "root",
+  "searchEvidence": [
+    "CodeGraph and bounded source trace: AbMergeAuthoringExperience owns config admission; status dictionary retains source capture and blocks compilation.",
+    "ActiveSessionBuildBlockerResolver currently repeats InputBlocked and CorrectInput per slot; exact Readiness repeats same classification.",
+    "Reapply Format preserves accepted source snapshot; MergePresentation currently paints compilation issues as every BIN error."
+  ],
+  "semanticOwner": "Application.AbMergeAuthoringExperience",
+  "terminalContract": "ConfigurationBlocker is a typed Application prerequisite; invalid config never grants execution or discards immutable captures; UI renders one localized corrective action.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "outcome": "approved",
+    "reviewer": "/root/config_review",
+    "evidence": "Independent review on 2026-09-20 approves nine exact production paths and Bootstrap/UI tests, shared blocker classification in existing AB owner, precomp deduplication, failed typed reapply batch without adoption, retained snapshot/path stale guards and source captures. Reviewer approved two explicit WorkflowSessionPresentationViewModel callsite paths to thread existing localized text through ApplyAuthoringIssues, preserving nonempty readiness/accessibility invariants. Reviewer approved existing session-owner blocked-refresh extension for invalid-config to real-input-failure transitions, requiring atomic expected/publication/binding/capture validation and stale rejection regression."
+  },
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": {
+    "outcome": "pending",
+    "reviewer": null,
+    "evidence": ""
+  }
+}

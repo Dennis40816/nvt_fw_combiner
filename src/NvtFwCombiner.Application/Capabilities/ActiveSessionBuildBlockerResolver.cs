@@ -76,11 +76,17 @@ public static class ActiveSessionBuildBlockerResolver
         // candidates, including orphan identities, rather than coalescing by slot state.
         var statusCandidateSlots = new HashSet<string>(StringComparer.Ordinal);
         var blockers = new List<RankedBlocker>();
+        var configurationBlockers = new HashSet<CapabilityActionBlocker>();
         foreach (AuthoringInputSlotStatus status in session.InputSlotStatuses
                      .Where(static status => status.Readiness == ResolvedChildReadiness.Blocked || status.BlocksBuild)
                      .OrderBy(static status => status.SlotId, StringComparer.Ordinal))
         {
             _ = statusCandidateSlots.Add(status.SlotId);
+            if (status.ConfigurationBlocker is { } configuration)
+            {
+                if (configurationBlockers.Add(configuration)) { blockers.Add(new RankedBlocker(0, configuration)); }
+                continue;
+            }
             blockers.Add(new RankedBlocker(
                 0,
                 new CapabilityActionBlocker(

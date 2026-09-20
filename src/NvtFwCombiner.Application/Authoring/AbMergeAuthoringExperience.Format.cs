@@ -229,7 +229,15 @@ internal sealed partial class AbMergeAuthoringExperience
         cancellationToken.ThrowIfCancellationRequested();
         if (resolution.Capability is not { } capability)
         {
-            return new(expected, declaration with { Issues = resolution.Issues }, null, null);
+            CompiledAuthoringInspectionBatch blocked = InspectResolvedAbInputs(original.SelectedIc,
+                new([], inputs, expected.AuthoringRevision, topology, mode), resolution);
+            if (accepted is null && _catalog.GetCurrentSnapshot().ResolutionToken == resolution.DiscoveryRoute.ResolutionToken)
+            {
+                AuthoringSessionTransitionResult refreshed = session.TryRefreshBlockedInputInspection(expected, blocked.Catalog, [.. blocked.Statuses.Values]);
+                return new(refreshed.Succeeded ? refreshed.Snapshot : expected,
+                    declaration with { Issues = resolution.Issues }, blocked, refreshed.Issue);
+            }
+            return new(expected, declaration with { Issues = resolution.Issues }, blocked, null);
         }
         CompiledAuthoringInspectionBatch batch = new CompiledAuthoringWorkflowService(
             new AbMergeAuthoringResolver(topology, _compiler, mode, capability))

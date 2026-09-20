@@ -8,6 +8,15 @@ namespace NvtFwCombiner.Application.Authoring;
 
 internal sealed partial class AbMergeAuthoringExperience
 {
+    private static CapabilityActionBlocker ProjectFormatBlocker(CompositionIssue issue, string routeId)
+    {
+        return issue.Code == "AB_FORMAT_CONFIGURATION_INVALID"
+            ? new(issue.Code, CapabilityReadinessDimension.Configuration, "event-buffer-format", issue.Message,
+                CapabilityReadinessNextAction.ReviewConfiguration)
+            : new(issue.Code, CapabilityReadinessDimension.Input, routeId, issue.Message,
+                CapabilityReadinessNextAction.CorrectInput);
+    }
+
     // A null selection with no issues is permitted only for an explicitly policy-absent family.
     internal async ValueTask<(AbMergeFormatSelection? Selection, IReadOnlyList<CompositionIssue> Issues)> AssessAcceptedFormatAsync(
         ActiveSessionSnapshot session, CancellationToken cancellationToken)
@@ -82,8 +91,7 @@ internal sealed partial class AbMergeAuthoringExperience
         if (formatIssues.Count != 0)
         {
             var unavailable = new CapabilityActionAvailability(formatIssues.Select(issue => new RankedBlocker(0,
-                new CapabilityActionBlocker(issue.Code, CapabilityReadinessDimension.Input, capability.Identity.RouteId,
-                    issue.Message, CapabilityReadinessNextAction.CorrectInput))));
+                ProjectFormatBlocker(issue, capability.Identity.RouteId))));
             return new(capability.Identity.RouteId, capability.CapabilityFingerprint, capability.CompiledComposition.CompilationFingerprint,
                 capability.ResolutionToken, acceptedSession.AuthoringRevision, 0, unavailable, unavailable);
         }

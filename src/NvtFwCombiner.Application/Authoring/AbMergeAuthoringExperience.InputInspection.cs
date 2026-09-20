@@ -98,7 +98,8 @@ internal sealed partial class AbMergeAuthoringExperience
                 ? new SelectedFileContentInspection(identity, acceptedBytes: input.Bytes) : null;
             return AuthoringInputSlotInspectionService.BlockBeforeCompilation(resolution.DiscoveryRoute, context.Revision,
                 input.SlotId, resolution.Definition.InputBindings.Single(binding => binding.SlotId == input.SlotId).AddressSpaceId,
-                primary.Code, primary.Message, stamp, input.SelectedPathHint, capture);
+                primary.Code, primary.Message, stamp, input.SelectedPathHint, capture,
+                primary.Code == "AB_FORMAT_CONFIGURATION_INVALID" ? ProjectFormatBlocker(primary, resolution.DiscoveryRoute.Identity.RouteId) : null);
         }, StringComparer.Ordinal), resolution.Issues);
     }
 
