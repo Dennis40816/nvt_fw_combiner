@@ -5,7 +5,7 @@
   "integrationBase": "08ab2818a278495cfe5dff3f7a30ad2610b7776d",
   "risk": "R1",
   "kind": "ui",
-  "state": "design-active",
+  "state": "final-complete",
   "mutablePaths": [
     "src/NvtFwCombiner.Presentation.Avalonia/MainWindow.axaml",
     "src/NvtFwCombiner.Presentation.Avalonia/Views/FirmwareSlotCard.axaml",
@@ -31,12 +31,12 @@
     "reviewer": null,
     "evidence": "Current R1 integration admission for previously authorized local corrections; independent fixed-head review is required before finalization."
   },
-  "implementationHead": null,
-  "reviewedHead": null,
-  "pathStateDigest": null,
+  "implementationHead": "0b209a83ec258e6b7c75b8ee5b25a27dc129a1c2",
+  "reviewedHead": "0b209a83ec258e6b7c75b8ee5b25a27dc129a1c2",
+  "pathStateDigest": "20254916d6ad4195587d164e241166fb391c3dc9ef0f7c2ec50b1a190f93f8e8",
   "finalReview": {
-    "outcome": "pending",
-    "reviewer": null,
-    "evidence": ""
+    "reviewer": "/root/config_review",
+    "outcome": "approved",
+    "evidence": "Independent fixed-head review at 0b209a83ec258e6b7c75b8ee5b25a27dc129a1c2: PASS, no P0-P3 findings. Reviewed all original mutable paths and immutable admissions; unchanged defaults/error blobs reuse their prior scoped reviews. All 22 governed paths have exactly one owner (Defaults 8, Errors 12, UI 2); auxiliary test overlap is allowed. Architecture 256/256 and rendered UI 9/9 passed; git diff --check from integrationBase passed. Canonical path-state digest binds this exact source; repository/full-verifier results are recorded in the existing 1.1.10 checkpoint."
   }
 }

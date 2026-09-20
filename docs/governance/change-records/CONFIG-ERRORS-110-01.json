@@ -5,7 +5,7 @@
   "integrationBase": "08ab2818a278495cfe5dff3f7a30ad2610b7776d",
   "risk": "R2",
   "kind": "behavior",
-  "state": "design-active",
+  "state": "final-complete",
   "mutablePaths": [
     "src/NvtFwCombiner.Application/Authoring/AbMergeAuthoringExperience.InputInspection.cs",
     "src/NvtFwCombiner.Application/Authoring/AbMergeAuthoringExperience.Readiness.cs",
@@ -36,12 +36,12 @@
     "reviewer": "/root/config_review",
     "evidence": "Independent review on 2026-09-20 approves nine exact production paths and Bootstrap/UI tests, shared blocker classification in existing AB owner, precomp deduplication, failed typed reapply batch without adoption, retained snapshot/path stale guards and source captures. Reviewer approved two explicit WorkflowSessionPresentationViewModel callsite paths to thread existing localized text through ApplyAuthoringIssues, preserving nonempty readiness/accessibility invariants. Reviewer approved existing session-owner blocked-refresh extension for invalid-config to real-input-failure transitions, requiring atomic expected/publication/binding/capture validation and stale rejection regression."
   },
-  "implementationHead": null,
-  "reviewedHead": null,
-  "pathStateDigest": null,
+  "implementationHead": "0b209a83ec258e6b7c75b8ee5b25a27dc129a1c2",
+  "reviewedHead": "0b209a83ec258e6b7c75b8ee5b25a27dc129a1c2",
+  "pathStateDigest": "663f635a5fa2f1dd18e538a94c93e7e233fef29e779718e2eae02989f3f367f1",
   "finalReview": {
-    "outcome": "pending",
-    "reviewer": null,
-    "evidence": ""
+    "reviewer": "/root/config_review",
+    "outcome": "approved",
+    "evidence": "Independent fixed-head review at 0b209a83ec258e6b7c75b8ee5b25a27dc129a1c2: PASS, no P0-P3 findings. Reviewed all original mutable paths and immutable admissions; unchanged defaults/error blobs reuse their prior scoped reviews. All 22 governed paths have exactly one owner (Defaults 8, Errors 12, UI 2); auxiliary test overlap is allowed. Architecture 256/256 and rendered UI 9/9 passed; git diff --check from integrationBase passed. Canonical path-state digest binds this exact source; repository/full-verifier results are recorded in the existing 1.1.10 checkpoint."
   }
 }

@@ -5,7 +5,7 @@
   "integrationBase": "08ab2818a278495cfe5dff3f7a30ad2610b7776d",
   "risk": "R2",
   "kind": "behavior",
-  "state": "design-active",
+  "state": "final-complete",
   "mutablePaths": [
     "src/NvtFwCombiner.Application/Configuration/EventBufferFormatConfigurationSession.cs",
     "src/NvtFwCombiner.Application/Configuration/EventBufferFormatConfigurationSession.State.cs",
@@ -36,12 +36,12 @@
     "outcome": "findings-incorporated",
     "evidence": "Independent architecture review approved session-owned defaults with typed provenance and domain-separated deterministic hash, no LastSaved mutation, defaults editor/baseline, retained invalid-custom fail-closed behavior. Continuation reviewer /root/config_review approved these four additional exact paths on 2026-09-20 before the interface documentation edit."
   },
-  "implementationHead": null,
-  "reviewedHead": null,
-  "pathStateDigest": null,
+  "implementationHead": "0b209a83ec258e6b7c75b8ee5b25a27dc129a1c2",
+  "reviewedHead": "0b209a83ec258e6b7c75b8ee5b25a27dc129a1c2",
+  "pathStateDigest": "82269ee0607ccfb95c5f9754e4daf0de8244693ae219305bbe33db301ce313b3",
   "finalReview": {
-    "reviewer": null,
-    "outcome": "pending",
-    "evidence": ""
+    "reviewer": "/root/config_review",
+    "outcome": "approved",
+    "evidence": "Independent fixed-head review at 0b209a83ec258e6b7c75b8ee5b25a27dc129a1c2: PASS, no P0-P3 findings. Reviewed all original mutable paths and immutable admissions; unchanged defaults/error blobs reuse their prior scoped reviews. All 22 governed paths have exactly one owner (Defaults 8, Errors 12, UI 2); auxiliary test overlap is allowed. Architecture 256/256 and rendered UI 9/9 passed; git diff --check from integrationBase passed. Canonical path-state digest binds this exact source; repository/full-verifier results are recorded in the existing 1.1.10 checkpoint."
   }
 }
