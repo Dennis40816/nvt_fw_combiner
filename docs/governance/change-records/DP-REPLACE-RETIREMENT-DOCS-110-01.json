@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 2,
+  "taskId": "DP-REPLACE-RETIREMENT-DOCS-110-01",
+  "capability": "Reconcile active product and architecture documentation with the owner-approved DP Replace runtime retirement while preserving historical evidence",
+  "integrationBase": "b9a94a2bab1a7bc05129b3438f0c0afeaaf45ad4",
+  "risk": "R2",
+  "kind": "refactor",
+  "state": "design-active",
+  "mutablePaths": [
+    "SPEC.md",
+    "docs/adr/0005-replace-personas-and-general-mapping.md",
+    "docs/contracts/composition-profile-v2.md",
+    "docs/architecture/experience-and-access-policy.md",
+    "docs/architecture/supported-ic-matrix.md",
+    "docs/architecture/ic-workflow-flowcharts.md",
+    "docs/architecture/nfc_roadmap.md",
+    "docs/ui/v1.1.10-delivery.md"
+  ],
+  "implementationOwner": "/root",
+  "searchEvidence": [
+    "Owner explicitly brought DP Replace retirement and its shared-fact prerequisites into1.1.10 on2026-09-20, and approved implementation. The choice to retire is settled; AB firmware write rules remain a separate evidence gap.",
+    "Source3379ca87f6abe0d89fda529a222fa3d39ee360f3 completes the independently reviewed canonical full-image data/consumer migration. Existing DPCMI, Perfect disclosure, historical Report and workflow ownership units are recorded in the delivery document; do not reconstruct their history.",
+    "Existing readonly design and precise shared-test closure are in D:/NvtFwCombiner-TestArea/artifacts/dp-runtime-retirement-design.md. SPEC current-owner priority still describes retirement as owner-unallocated, and active experience/access/flowchart surfaces still expose DP; distinguish these from dated evidence.",
+    "Independent architecture review confirmed oldtrusted DP profile can bypass runtime catalog via Profiles Succeed and public compiled Plan. A single typed retired-experience rejection before artifact creation in existing Succeed is the minimal closure; shared reference-clone lowering stays. RUNTIME exactscope/implementation still awaits its separate admission."
+  ],
+  "semanticOwner": "Existing SPEC product contract, ADR0005 authoring/execution boundary, composition-profile contract, architecture access/support/flowcharts and roadmap version allocation",
+  "terminalContract": "Record the accepted1.1.10 retirement in the existing canonical owners. Active DP authoring, CLI, typed service, compilation admission, runtime and packaged profiles are absent or explicitly rejected without General fallback and without output/report side effects. State the implemented compiler boundary after its separate owner review. Preserve the shared planner/executor, initialization, canonical DP/LDC/TP facts and DPCMI/Perfect/full-image metadata; historical DP Report/History identity remains readable. Keep dated ADR/history/evidence as history, marking superseded runtime statements rather than erasing provenance or reinterpreting old schemas. Five surviving workflow experiences retain their contracts; ordinary exposure remains governed by their actual policy. Synchronize support/help and flowcharts with actual inventory; retirement does not certify AB Replace or close missing Golden, firmware-owner or full-integration evidence. Update the roadmap's current migration status without changing settled version allocation; record exact commits, actual tests, original failures, scoped reviews and remaining gates in the existing delivery checklist. No new specification interview, global audit, new report framework or firmware-semantic assumption.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "/root/layout_ownership_review",
+    "outcome": "approved",
+    "evidence": "Independent design admission at source3379ca87 approved exact33DATA/8DOCS unique disjoint paths. Confirmed29to24bundles,64to54registrations,93to79routes,64supported survivor routes,8provider/1disclosure admissions. Existing trust/schema/materializer/policy owners, consistent-DP/unknown/old-schema negatives, immutable survivor definitions/fingerprints/Golden/allowlist, historical identity and shared lowering preservation are mandatory. DATA alone cannot claim execution retirement; RUNTIME must independently deliver exact deployment and public/CLI/compiler closure. Root stages before scoped implementation; R3 external and integration gates remain separate."
+  },
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": {
+    "reviewer": null,
+    "outcome": "pending",
+    "evidence": ""
+  }
+}

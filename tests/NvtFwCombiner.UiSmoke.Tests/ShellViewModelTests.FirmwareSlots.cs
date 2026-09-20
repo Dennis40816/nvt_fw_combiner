@@ -123,13 +123,6 @@ public sealed partial class FirmwareInspectionSlotTests
         AssertIconGeometry(viewModel.Replace.ReplaceBaseSlot);
         Assert.Equal("Reference firmware input", viewModel.Replace.ReplaceBaseSlot.SlotIconTooltip);
 
-        OpenReplace(viewModel, ExperienceIds.DpReplace);
-
-        Assert.Contains(viewModel.Replace.ReplaceSlots, slot =>
-            slot.SlotId == "replace-dp" &&
-            slot.SlotKind == FirmwareSlotKind.Dp &&
-            HasDrawableIcon(slot));
-
         OpenReplace(viewModel, ExperienceIds.CtrlRamReplace);
 
         Assert.All(
@@ -184,7 +177,7 @@ public sealed partial class FirmwareInspectionSlotTests
             [.. Enumerable.Repeat((byte)0xFF, 0x40000)]);
         MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
         viewModel.WorkflowSession.SelectedIc = "NT51926";
-        OpenReplace(viewModel, ExperienceIds.DpReplace);
+        OpenReplace(viewModel, ExperienceIds.CtrlRamReplace);
 
         await viewModel.WorkflowSession.SetSlotFileAsync(
             CompositionSlotIds.ReplaceBase,

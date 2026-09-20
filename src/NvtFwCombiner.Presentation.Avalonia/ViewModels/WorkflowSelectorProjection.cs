@@ -98,7 +98,6 @@ internal static class WorkflowPageModeCatalog
     ]);
     private static readonly ReadOnlyCollection<string> s_replace = Array.AsReadOnly(
     [
-        ExperienceIds.DpReplace,
         ExperienceIds.CtrlRamReplace,
         ExperienceIds.GeneralReplace,
     ]);

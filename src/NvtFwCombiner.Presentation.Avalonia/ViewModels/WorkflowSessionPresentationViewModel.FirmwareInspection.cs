@@ -145,7 +145,7 @@ internal sealed partial class WorkflowSessionPresentationViewModel
         return context switch
         {
             { IsStandardMerge: true } or { IsAbMerge: true } => MergeSlots,
-            { IsDpReplace: true } or { IsCtrlRamReplace: true } =>
+            { IsCtrlRamReplace: true } =>
                 ReplaceSlots.Append(ReplaceBaseSlot).Distinct(),
             { IsGeneralMerge: true } => [],
             { IsGeneralReplace: true } => [ReplaceBaseSlot],
@@ -190,12 +190,6 @@ internal sealed partial class WorkflowSessionPresentationViewModel
             applyVerifiedContext && IsNumberSelectorVisible,
             context.IsAbMerge ? AbMergeAddressSpaceBySlotId.GetValueOrDefault(slot.SlotId) : null,
             context.IsAbMerge ? _merge.GetSelectedAbMergeTopologyToken() : null,
-            context.IsDpReplace
-                ? ReferenceEquals(slot, ReplaceBaseSlot)
-                    ? CompositionAddressSpaceIds.ReferenceBase
-                    : slot.AddressSpaceId ?? throw new InvalidOperationException(
-                        $"DP Replace slot '{slot.SlotId}' has no canonical address-space id.")
-                : null,
             context.IsStandardMerge && _merge.IsStandardMergeSlot(slot) ? slot.AddressSpaceId : null,
             context.IsCtrlRamReplace && (ReferenceEquals(slot, ReplaceBaseSlot) ||
                 slot.ReplaceInputRole == ReplaceInputRole.CtrlRam)
@@ -223,8 +217,7 @@ internal sealed partial class WorkflowSessionPresentationViewModel
                 ? _merge.StandardMergeAuthoringRevision
                 : items.Any(static item => item.AbMergeAddressSpaceId is not null)
                     ? _merge.AbMergeAuthoringRevision
-                : items.Any(static item => item.DpReplaceAddressSpaceId is not null ||
-                    item.CtrlRamReplaceAddressSpaceId is not null)
+                : items.Any(static item => item.CtrlRamReplaceAddressSpaceId is not null)
                     ? _replace.ReplaceInputAuthoringRevision
                     : new AuthoringRevision(1);
         string icId = SelectedIc;
@@ -242,7 +235,6 @@ internal sealed partial class WorkflowSessionPresentationViewModel
                     items);
                 foreach (FirmwareInspectionItemRequest item in items.Where(static item =>
                              item.AbMergeAddressSpaceId is not null ||
-                             item.DpReplaceAddressSpaceId is not null ||
                              item.CtrlRamReplaceAddressSpaceId is not null ||
                              item.StandardMergeAddressSpaceId is not null))
                 {
@@ -262,7 +254,6 @@ internal sealed partial class WorkflowSessionPresentationViewModel
                             item.CtrlRamRequest,
                             item.AbMergeAddressSpaceId,
                             item.AbMergeTopologyToken,
-                            item.DpReplaceAddressSpaceId,
                             request.AuthoringRevision.Value,
                             item.StandardMergeAddressSpaceId,
                             item.CtrlRamReplaceAddressSpaceId,
@@ -357,8 +348,7 @@ internal sealed partial class WorkflowSessionPresentationViewModel
                 result.InspectionsById);
         FirmwareInspectionItemRequest[] replaceItems =
         [
-            .. request.Items.Where(static item => item.DpReplaceAddressSpaceId is not null ||
-                item.CtrlRamReplaceAddressSpaceId is not null),
+            .. request.Items.Where(static item => item.CtrlRamReplaceAddressSpaceId is not null),
         ];
         bool replaceDiscoveryOnly = replaceItems.Length > 0 && replaceItems.All(item =>
             result.InspectionsById[item.SlotId].CtrlRamBaseDiscoveryReadiness ==
@@ -414,8 +404,7 @@ internal sealed partial class WorkflowSessionPresentationViewModel
                         !standardMergeAccepted) ||
                     (item.AbMergeAddressSpaceId is not null &&
                         !abMergeAccepted) ||
-                    ((item.DpReplaceAddressSpaceId is not null ||
-                        item.CtrlRamReplaceAddressSpaceId is not null) &&
+                    (item.CtrlRamReplaceAddressSpaceId is not null &&
                         !replaceAccepted))
                 {
                     slot.SetInputInspection(
@@ -489,8 +478,7 @@ internal sealed partial class WorkflowSessionPresentationViewModel
         WorkflowInspectionContext context,
         IEnumerable<FirmwareSlotViewModel> candidateSlots,
         string? applyVerifiedContextSlotId,
-        CancellationToken cancellationToken,
-        CompiledAuthoringSelectionSnapshot? stagedDpProjection = null)
+        CancellationToken cancellationToken)
     {
         var slots = candidateSlots
             .Where(static slot => slot.HasFile)
@@ -539,10 +527,7 @@ internal sealed partial class WorkflowSessionPresentationViewModel
         items = AttachAbMergeInspectionLeases(context, items);
         if (context.IsReplace)
         {
-            items = _replace.AttachReplaceInspectionLeases(
-                items,
-                slots.Values,
-                stagedDpProjection);
+            _replace.BeginReplaceInputInspection(items);
         }
         foreach (FirmwareSlotViewModel slot in slots.Values)
         {
@@ -556,13 +541,6 @@ internal sealed partial class WorkflowSessionPresentationViewModel
                     slots.Keys.Any(AbMergeAddressSpaceBySlotId.ContainsKey))))
         {
             _merge.RefreshMergeMemoryMapState();
-        }
-
-        if (context.IsReplace &&
-            slots.ContainsKey(CompositionSlotIds.ReplaceBase) &&
-            context.IsDpReplace)
-        {
-            _replace.RefreshReplaceMemoryMapState();
         }
 
         return RunFirmwareInspectionAsync(context, items, cancellationToken);

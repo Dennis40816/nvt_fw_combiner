@@ -1,5 +1,4 @@
 using System.ComponentModel;
-using System.Text.Json;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Data;
@@ -12,7 +11,6 @@ using Avalonia.VisualTree;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Presentation.Avalonia;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
-using NvtFwCombiner.TestSupport;
 
 namespace NvtFwCombiner.UiSmoke.Tests;
 
@@ -202,18 +200,15 @@ public sealed class ModeSelectorBindingTests
     [AvaloniaFact]
     public async Task CtrlRamModeSelectionWithRetainedBaseInspectionPublishesPageContextOnce()
     {
-        JsonElement fixtureCase = CanonicalGoldenTestData.LoadDirectCase(
-            "ctrlram-replace",
-            "nt51950-fw200-single-auto-prj-676-20260717");
-        JsonElement baseArtifact = fixtureCase.GetProperty("artifacts").EnumerateArray().Single(
-            artifact => artifact.GetProperty("artifactId").GetString() == "tp-input");
+        using var golden = StandardMergeGoldenManifest.Load();
+        string basePath = golden.ManifestPath(golden.CaseByIc("51926").GetProperty("inputs").GetProperty("tp-input"));
         MainWindowViewModel viewModel = await CreateViewModelAsync();
         viewModel.ShowReplaceCommand.Execute(null);
-        viewModel.WorkflowSession.SelectedIc = "NT51950";
+        viewModel.WorkflowSession.SelectedIc = "NT51926";
         viewModel.Replace.SelectedReplaceMode = ExperienceIds.CtrlRamReplace;
         await viewModel.WorkflowSession.SetSlotFileAsync(
             CompositionSlotIds.ReplaceBase,
-            CanonicalGoldenTestData.ArtifactPath(baseArtifact),
+            basePath,
             TestContext.Current.CancellationToken);
         await viewModel.Replace.Inspection.ActiveTask.WaitAsync(
             TimeSpan.FromSeconds(15),
@@ -242,7 +237,7 @@ public sealed class ModeSelectorBindingTests
     {
         MainWindowViewModel viewModel = await CreateViewModelAsync();
         viewModel.ShowReplaceCommand.Execute(null);
-        viewModel.WorkflowSession.SelectedIc = "NT51950";
+        viewModel.WorkflowSession.SelectedIc = "NT51926";
         string alternateMode = viewModel.Replace.ReplaceModeChoices.First(mode =>
             mode != ExperienceIds.CtrlRamReplace);
         viewModel.Replace.SelectedReplaceMode = alternateMode;

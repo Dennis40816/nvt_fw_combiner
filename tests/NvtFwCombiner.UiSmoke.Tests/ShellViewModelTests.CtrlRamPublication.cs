@@ -96,7 +96,6 @@ public sealed partial class CtrlRamWorkflowTests
             current.Capabilities,
             current.StandardMergeAuthoring,
             current.AbMergeAuthoring,
-            current.DpReplaceAuthoring,
             current.GeneralAuthoring,
             ctrlRamAuthoring,
             current.FirmwareInspection,

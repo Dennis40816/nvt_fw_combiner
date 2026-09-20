@@ -65,7 +65,7 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("IsMergeVisible", shell, StringComparison.Ordinal);
         Assert.Contains("IsReplaceVisible", shell, StringComparison.Ordinal);
         Assert.Contains("IsHexEditorVisible", shell, StringComparison.Ordinal);
-        Assert.Contains("BeginDpReplaceFromHomeCommand", pageTemplates, StringComparison.Ordinal);
+        Assert.DoesNotContain("BeginDpReplaceFromHomeCommand", pageTemplates, StringComparison.Ordinal);
         Assert.Contains("BeginCtrlRamReplaceFromHomeCommand", pageTemplates, StringComparison.Ordinal);
         Assert.Contains("BeginGeneralReplaceFromHomeCommand", pageTemplates, StringComparison.Ordinal);
         Assert.Contains("ShowHexEditorCommand", pageTemplates, StringComparison.Ordinal);

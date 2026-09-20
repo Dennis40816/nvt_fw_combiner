@@ -16,7 +16,6 @@ public sealed partial class BundleCliCommandTests
         "standard-merge",
         "ab-merge",
         "general-merge",
-        "dp-replace",
         "ctrlram-replace",
         "general-replace",
     ];

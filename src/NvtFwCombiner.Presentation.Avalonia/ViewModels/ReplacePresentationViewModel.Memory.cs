@@ -9,8 +9,6 @@ internal sealed partial class ReplacePresentationViewModel
     [ObservableProperty]
     public partial bool HasMemoryLayoutDisplayError { get; private set; }
 
-    private string? _preparedDpReplaceIc;
-    private CompiledAuthoringSelectionSnapshot? _preparedDpReplaceSnapshot;
     private string? _preparedCtrlRamIc;
     private string? _preparedCtrlRamNumber;
     private CtrlRamInspectionDisplay? _preparedCtrlRamDisplay;
@@ -21,18 +19,6 @@ internal sealed partial class ReplacePresentationViewModel
         ArgumentException.ThrowIfNullOrWhiteSpace(mode);
         switch (mode)
         {
-            case DpReplaceMode:
-                _preparedDpReplaceIc = null;
-                _preparedDpReplaceSnapshot = null;
-                FirmwareSlotViewModel[] retainedDpSelections =
-                [
-                    .. CurrentReplaceInputSlots().DistinctBy(ReplaceInputId),
-                ];
-                CompiledAuthoringSelectionSnapshot dpSnapshot =
-                    ResolveDpReplaceAuthoringSnapshotCore(icId, retainedDpSelections);
-                _preparedDpReplaceIc = icId;
-                _preparedDpReplaceSnapshot = dpSnapshot;
-                break;
             case CtrlRamReplaceMode:
                 _preparedCtrlRamIc = null;
                 _preparedCtrlRamNumber = null;
@@ -302,7 +288,6 @@ internal sealed partial class ReplacePresentationViewModel
     {
         ActiveSessionSnapshot? acceptedSession = SelectedReplaceMode switch
         {
-            DpReplaceMode => _dpReplaceSession.CurrentSnapshot,
             CtrlRamReplaceMode => _ctrlRamReplaceSession.CurrentSnapshot,
             GeneralReplaceMode => _generalReplaceSession.CurrentSnapshot,
             _ => null,
@@ -319,7 +304,6 @@ internal sealed partial class ReplacePresentationViewModel
     {
         return SelectedReplaceMode switch
         {
-            DpReplaceMode => MemoryPendingPrerequisite.DpBin,
             CtrlRamReplaceMode => MemoryPendingPrerequisite.CtrlRamReplacement,
             _ => MemoryPendingPrerequisite.BaseBin,
         };
@@ -349,44 +333,22 @@ internal sealed partial class ReplacePresentationViewModel
                 .ToDictionary(slot => slot.SlotId, slot => slot.FilePath, StringComparer.Ordinal)
             : new Dictionary<string, string?>(StringComparer.Ordinal);
         ReplaceSlots.Clear();
-        CompiledAuthoringSelectionSnapshot? dpProjection = null;
-        bool usesPreparedDpProjection = SelectedReplaceMode == DpReplaceMode &&
-            string.Equals(_preparedDpReplaceIc, SelectedIc, StringComparison.Ordinal) &&
-            _preparedDpReplaceSnapshot is not null;
         if (IsSelectedReplaceModeSupported &&
-            SelectedReplaceMode is DpReplaceMode or CtrlRamReplaceMode)
+            SelectedReplaceMode == CtrlRamReplaceMode)
         {
             ReplaceSlots.Add(ReplaceBaseSlot);
-            IReadOnlyList<FirmwareSlotViewModel> inputSlots =
-                SelectedReplaceMode == CtrlRamReplaceMode && ctrlRamInputSlots is not null
-                    ? ctrlRamInputSlots
-                    : SelectedReplaceMode == DpReplaceMode
-                        ? UiCompositionRunner.GetDpReplaceInputSlots(
-                            dpProjection = ResolveDpReplaceAuthoringSnapshot([]))
-                        : ctrlRamInputSlots ?? throw new InvalidOperationException(
-                            "CtrlRAM mode requires one coherent discovery publication.");
+            IReadOnlyList<FirmwareSlotViewModel> inputSlots = ctrlRamInputSlots ??
+                throw new InvalidOperationException("CtrlRAM mode requires one coherent discovery publication.");
             foreach (FirmwareSlotViewModel slot in inputSlots)
             {
                 RestorePreservedSlotFile(slot, preservedSlotFiles);
                 ReplaceSlots.Add(slot);
             }
 
-            if (dpProjection is not null)
-            {
-                _ = _dpReplaceSession.Activate(dpProjection);
-                _catalogRefreshDpProjection = usesPreparedDpProjection
-                    ? dpProjection
-                    : null;
-            }
         }
 
         ApplyFirmwareSlotText();
         RefreshReplaceSlotGroups();
-        if (usesPreparedDpProjection && dpProjection is not null)
-        {
-            _preparedDpReplaceIc = SelectedIc;
-            _preparedDpReplaceSnapshot = dpProjection;
-        }
         RefreshCommandState();
     }
 

@@ -39,13 +39,13 @@ public sealed class ProfileBundlePackageTrustIndexLoaderTests
         ProfileBundlePackageTrustIndex index =
             ProfileBundlePackageTrustIndexLoader.Load(path);
 
-        Assert.Equal("1.4", index.SchemaVersion);
+        Assert.Equal("1.5", index.SchemaVersion);
         Assert.Equal("built-in-profile-bundles", index.TrustIndexId);
-        Assert.Equal("1.1.10.2", index.TrustIndexVersion);
+        Assert.Equal("1.1.10.3", index.TrustIndexVersion);
         Assert.Equal("built-in-profile-bundle-v2", index.TrustAnchorBindingId);
-        Assert.Equal(29, index.Bundles.Count);
+        Assert.Equal(24, index.Bundles.Count);
         Assert.Equal(
-            64,
+            54,
             index.Bundles.Sum(static bundle => bundle.RuntimeRegistrations.Count));
         ProfileBundleRuntimeRegistration generalReplace = index.Bundles
             .SelectMany(static bundle => bundle.RuntimeRegistrations)
@@ -57,7 +57,7 @@ public sealed class ProfileBundlePackageTrustIndexLoaderTests
         Assert.Equal("0.1.0", generalReplace.ProfileVersion);
         Assert.Equal(
             ["nt51919-ab-merge-512k", "nt51929-ab-merge-512k", "nt51932-ab-merge-512k",
-                "nt51928-dual-capacity-256k-512k", "nt51928-dual-capacity-256k-512k",
+                "nt51928-dual-capacity-256k-512k",
                 "nt51950-ab-merge-maps", "nt51951-ab-merge-1024k",
                 "nt51950-ab-desay-maps", "nt51951-ab-desay-maps", "nt51950-ab-common-2ic-maps"],
             index.Bundles.SelectMany(static bundle => bundle.RuntimeRegistrations)
@@ -135,7 +135,6 @@ public sealed class ProfileBundlePackageTrustIndexLoaderTests
     [Theory]
     [InlineData("standard-merge")]
     [InlineData("ab-merge")]
-    [InlineData("dp-replace")]
     public void LoadProjectsSyntheticExistingVocabularyRegistration(string workflowId)
     {
         string bundle = Bundle().Replace(
@@ -303,12 +302,47 @@ public sealed class ProfileBundlePackageTrustIndexLoaderTests
         Assert.Equal(Assert.Single(accepted.MetadataProviderFamilies), Assert.Single(accepted.FamilyDisclosureFamilies));
     }
 
+    /// <summary>Active registration admission rejects retired and unknown workflows.</summary>
+    [Theory]
+    [InlineData("dp-replace")]
+    [InlineData("unknown-workflow")]
+    public void LoadRejectsInactiveWorkflow(string workflowId)
+    {
+        string bundle = Bundle().Replace("\"runtimeRegistrations\": []",
+            "\"runtimeRegistrations\":[{" +
+            $"\"workflowId\":\"{workflowId}\"," +
+            "\"icId\":\"NT12345\",\"profileId\":\"synthetic-profile\",\"profileVersion\":\"1.0.0\"}]",
+            StringComparison.Ordinal);
+        using TempWorkspace workspace = WriteIndex(bundle);
+
+        InvalidDataException failure = Assert.Throws<InvalidDataException>(() =>
+            ProfileBundlePackageTrustIndexLoader.Load(Path.Combine(workspace.Root, "package-trust-index.json")));
+
+        Assert.Contains("does not satisfy schema", failure.Message, StringComparison.Ordinal);
+    }
+
+    /// <summary>The old schema cannot keep its previous workflow admission authority.</summary>
+    [Fact]
+    public void LoadRejectsLegacyAdmissionSchema()
+    {
+        using TempWorkspace workspace = WriteIndex(Bundle());
+        string path = Path.Combine(workspace.Root, "package-trust-index.json");
+        System.Text.Json.Nodes.JsonNode index = System.Text.Json.Nodes.JsonNode.Parse(File.ReadAllBytes(path))!;
+        index["schemaVersion"] = "1.4";
+        File.WriteAllText(path, index.ToJsonString());
+
+        InvalidDataException failure = Assert.Throws<InvalidDataException>(() =>
+            ProfileBundlePackageTrustIndexLoader.Load(path));
+
+        Assert.Contains("does not satisfy schema", failure.Message, StringComparison.Ordinal);
+    }
+
     private static TempWorkspace WriteIndex(params string[] bundles)
     {
         var workspace = TempWorkspace.Create("package-trust-index");
         string json = $$"""
             {
-              "schemaVersion": "1.4",
+              "schemaVersion": "1.5",
               "trustIndexId": "test-profile-bundles",
               "trustIndexVersion": "1.0.0",
               "trustAnchorBindingId": "test-profile-bundle-v2",

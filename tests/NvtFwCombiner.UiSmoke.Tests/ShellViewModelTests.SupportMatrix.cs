@@ -67,7 +67,7 @@ public sealed partial class ShellNavigationSystemTests
             Row(
                 "NT51929",
                 CapabilityAuthoringAvailability.Available,
-                "dp-replace",
+                "general-replace",
                 CapabilityEvidenceStatus.ContractOnly),
             Row(
                 "NT51929",
@@ -97,6 +97,7 @@ public sealed partial class ShellNavigationSystemTests
                 SupportMatrixCellStatus.ReviewedEvidence,
                 SupportMatrixCellStatus.Blocked,
                 SupportMatrixCellStatus.ReviewRequired,
+                SupportMatrixCellStatus.ContractOnly,
             ],
             nt51929.Cells.Select(static cell => cell.Status));
         SupportMatrixIcRowViewModel nt51950 = settings.SupportMatrix.IcRows[1];

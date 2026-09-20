@@ -214,7 +214,7 @@ public sealed partial class BuildOutcomeTests
     {
         string outputPath = Path.Combine(Path.GetTempPath(), "output", "firmware.bin");
         MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
-        OpenReplace(viewModel, ExperienceIds.DpReplace);
+        OpenReplace(viewModel, ExperienceIds.GeneralReplace);
 
         Assert.False(viewModel.IsLatestOutputActionVisible);
         Assert.True(viewModel.TryShowBuildCompleted(CreateRunResult(succeeded: true, outputPath), build: true));
@@ -259,7 +259,7 @@ public sealed partial class BuildOutcomeTests
             : PresentationTestHost.CreateViewModel();
         if (surface != "ctrlram-version")
         {
-            OpenReplace(viewModel, ExperienceIds.DpReplace);
+            OpenReplace(viewModel, ExperienceIds.GeneralReplace);
         }
 
         Assert.True(viewModel.IsCompositionActionRailVisible);

@@ -8,7 +8,6 @@ public sealed class PresentationCompositionServices
         ICompositionCapabilityExperience capabilities,
         IStandardMergeAuthoring standardMergeAuthoring,
         IAbMergeAuthoring abMergeAuthoring,
-        IDpReplaceAuthoring dpReplaceAuthoring,
         IGeneralAuthoring generalAuthoring,
         ICtrlRamAuthoring ctrlRamAuthoring,
         IFirmwareInspection firmwareInspection,
@@ -20,8 +19,6 @@ public sealed class PresentationCompositionServices
             throw new ArgumentNullException(nameof(standardMergeAuthoring));
         AbMergeAuthoring = abMergeAuthoring ??
             throw new ArgumentNullException(nameof(abMergeAuthoring));
-        DpReplaceAuthoring = dpReplaceAuthoring ??
-            throw new ArgumentNullException(nameof(dpReplaceAuthoring));
         GeneralAuthoring = generalAuthoring ??
             throw new ArgumentNullException(nameof(generalAuthoring));
         CtrlRamAuthoring = ctrlRamAuthoring ??
@@ -39,9 +36,6 @@ public sealed class PresentationCompositionServices
 
     /// <summary>Canonical AB Merge authoring.</summary>
     public IAbMergeAuthoring AbMergeAuthoring { get; }
-
-    /// <summary>Canonical DP Replace authoring.</summary>
-    public IDpReplaceAuthoring DpReplaceAuthoring { get; }
 
     /// <summary>Canonical General Merge and General Replace authoring.</summary>
     public IGeneralAuthoring GeneralAuthoring { get; }
@@ -68,7 +62,6 @@ public sealed class PresentationCompositionServices
                 Capabilities,
                 StandardMergeAuthoring,
                 AbMergeAuthoring,
-                DpReplaceAuthoring,
                 GeneralAuthoring,
                 CtrlRamAuthoring,
                 firmwareInspection,

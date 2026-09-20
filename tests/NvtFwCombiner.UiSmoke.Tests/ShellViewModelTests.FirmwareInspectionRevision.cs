@@ -6,14 +6,14 @@ namespace NvtFwCombiner.UiSmoke.Tests;
 
 public sealed partial class FirmwareInspectionSlotTests
 {
-    /// <summary>Each explicit DP reinspection advances one coherent canonical authoring revision.</summary>
+    /// <summary>Each explicit CtrlRAM reinspection advances one coherent canonical authoring revision.</summary>
     [Fact]
-    public async Task RepeatedDpInspectionAdvancesCanonicalBatchRevision()
+    public async Task RepeatedCtrlRamInspectionAdvancesCanonicalBatchRevision()
     {
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-dp-authoring-revision");
-        string referencePath = workspace.Write("reference.bin", new byte[0x40000]);
-        string firstDpPath = workspace.Write("dp-first.bin", new byte[0x40000]);
-        string secondDpPath = workspace.Write("dp-second.bin", new byte[0x40000]);
+        string referencePath = workspace.Write("reference.bin", ReadCtrlRamReference());
+        string firstDpPath = workspace.Write("dp-first.bin", ReadCtrlRamNormalSource());
+        string secondDpPath = workspace.Write("dp-second.bin", ReadCtrlRamNormalSource());
         var revisions = new List<long>();
         MainWindowViewModel viewModel = CreateBatchInspectionViewModel((icId, inputs) =>
         {
@@ -24,10 +24,10 @@ public sealed partial class FirmwareInspectionSlotTests
                 inputs);
         });
         viewModel.WorkflowSession.SelectedIc = "NT51950";
-        OpenReplace(viewModel, ExperienceIds.DpReplace);
+        OpenReplace(viewModel, ExperienceIds.CtrlRamReplace);
         viewModel.SetSlotFile(CompositionSlotIds.ReplaceBase, referencePath);
         await CurrentInspection(viewModel).ActiveTask;
-        viewModel.SetSlotFile(CompositionSlotIds.ReplaceDp, firstDpPath);
+        viewModel.SetSlotFile("replace-ctrlram-normal", firstDpPath);
         await CurrentInspection(viewModel).ActiveTask;
 
         revisions.Clear();
@@ -39,7 +39,7 @@ public sealed partial class FirmwareInspectionSlotTests
         Assert.True(repeatedRevision > stableRevision);
 
         revisions.Clear();
-        viewModel.SetSlotFile(CompositionSlotIds.ReplaceDp, secondDpPath);
+        viewModel.SetSlotFile("replace-ctrlram-normal", secondDpPath);
         await CurrentInspection(viewModel).ActiveTask;
         Assert.True(Assert.Single(revisions.Distinct()) > repeatedRevision);
     }

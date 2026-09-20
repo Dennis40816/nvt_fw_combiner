@@ -526,7 +526,6 @@ public sealed partial class CanonicalCapabilityCatalogTests
             new Dictionary<string, IReadOnlyList<CapabilityProfileSummary>>(
                 StringComparer.Ordinal),
             numberChoicesByIc,
-            new Dictionary<string, IReadOnlyList<long>>(StringComparer.Ordinal),
             new Dictionary<string, CapabilityFamilySummary>(StringComparer.Ordinal),
             []);
     }

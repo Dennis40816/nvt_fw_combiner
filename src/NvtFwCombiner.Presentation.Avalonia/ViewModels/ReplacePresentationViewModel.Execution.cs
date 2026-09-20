@@ -1,6 +1,5 @@
 using NvtFwCombiner.Application.Capabilities;
 using NvtFwCombiner.Application.Authoring;
-using NvtFwCombiner.Application.Metadata;
 using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
@@ -161,7 +160,6 @@ internal sealed partial class ReplacePresentationViewModel
             IsSelectedReplaceModeSupported &&
             (SelectedReplaceMode switch
             {
-                DpReplaceMode => CanRunDpReplace(),
                 CtrlRamReplaceMode =>
                     CanRunCompiledReplaceSession(_ctrlRamReplaceSession) &&
                     HasCurrentCtrlRamActionReadiness(build: false),
@@ -173,58 +171,13 @@ internal sealed partial class ReplacePresentationViewModel
             });
     }
 
-    private bool CanRunDpReplace()
+    private void ResetReplaceInputSelectionReadiness()
     {
-        return CanRunCompiledReplaceSession(_dpReplaceSession);
-    }
-
-    private void RefreshDpReplaceInputSelectionReadiness()
-    {
-        if (!HasSelectedIc)
-        {
-            foreach (FirmwareSlotViewModel slot in ReplaceSlots)
-            {
-                slot.ClearSelectionReadiness();
-            }
-            return;
-        }
-
-        FirmwareSlotViewModel[] selected = [.. CurrentReplaceInputSlots().DistinctBy(ReplaceInputId)];
-        ActiveSessionSnapshot? session = _dpReplaceSession.CurrentSnapshot;
-        bool currentSelection = session is not null &&
-            session.Slots.Count(static slot => slot.SelectedPath is not null) == selected.Length &&
-            selected.All(slot => session.Slots.Any(current =>
-                StringComparer.Ordinal.Equals(current.SelectedPath, slot.FilePath)));
-        IReadOnlyList<InputSelectionMemberReadiness>? readiness =
-            SelectedReplaceMode != DpReplaceMode
-                ? null
-                : currentSelection && session!.InputSelectionReadiness.Count != 0
-                    ? session.InputSelectionReadiness
-                    : ResolveDpReplaceAuthoringSnapshot(selected).Slots;
         foreach (FirmwareSlotViewModel slot in ReplaceSlots.ToArray().Where(slot =>
                      !ReferenceEquals(slot, ReplaceBaseSlot)))
         {
-            InputSelectionMemberReadiness? member = readiness?.FirstOrDefault(candidate =>
-                string.Equals(candidate.SlotId, slot.CompiledSlotId, StringComparison.Ordinal));
-            if (member is null)
-            {
-                slot.IsOptional = slot.DeclaredIsOptional;
-                slot.ClearSelectionReadiness();
-                continue;
-            }
-
-            slot.IsOptional = member.Readiness == ResolvedChildReadiness.Ready
-                ? !member.IsRequired
-                : slot.DeclaredIsOptional;
-
-            string label = Text.GetDpInputSelectionReadinessLabel(member);
-            string detail = Text.GetDpInputSelectionReadinessDetail(member);
-            slot.SetSelectionReadiness(
-                member.Readiness,
-                label,
-                detail,
-                Text.GetInputSelectionReadinessAutomationText(label, detail),
-                member.CanSelect);
+            slot.IsOptional = slot.DeclaredIsOptional;
+            slot.ClearSelectionReadiness();
         }
     }
 
@@ -260,7 +213,6 @@ internal sealed partial class ReplacePresentationViewModel
             generalSession?.DraftState as GeneralMappingDraftState;
         ActiveSessionSnapshot? compiledSession = replaceMode switch
         {
-            DpReplaceMode => context.AcceptedSession,
             CtrlRamReplaceMode => exactPreparedSession ?? ctrlRamTransition?.Session,
             _ => null,
         };
@@ -271,10 +223,7 @@ internal sealed partial class ReplacePresentationViewModel
             _ => null,
         };
         CompositionRunReport? diagnosticReport = _generalReplaceDiagnosticPreviewReport;
-        IReadOnlyList<CompositionIssue> inputIssues = replaceMode == DpReplaceMode &&
-            compiledSession?.GetAcceptedCapability(AuthoringDerivedResultKind.Inspection) is null
-            ? ResolveDpReplaceAuthoringSnapshot([.. CurrentReplaceInputSlots()]).Issues
-            : ctrlRamTransition?.Issues ?? [];
+        IReadOnlyList<CompositionIssue> inputIssues = ctrlRamTransition?.Issues ?? [];
         if (ctrlRamTransition?.Succeeded == true && compiledSession is not null)
         {
             actionReadiness = await _compositionServices.CtrlRamAuthoring.GetActionReadinessAsync(

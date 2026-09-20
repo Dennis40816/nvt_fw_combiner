@@ -34,7 +34,6 @@ public interface IFirmwareMetadataPlanAuthorityResolver
         string icId,
         FirmwareInspectionSnapshotInput input,
         long inputLength,
-        FirmwareInspectionStatusBatch dpInputBatch,
         FirmwareInspectionStatusBatch standardMergeInputBatch,
         FirmwareInspectionStatusBatch ctrlRamInputBatch);
 }
@@ -56,14 +55,12 @@ public sealed class FirmwareMetadataPlanAuthorityResolver(
         string icId,
         FirmwareInspectionSnapshotInput input,
         long inputLength,
-        FirmwareInspectionStatusBatch dpInputBatch,
         FirmwareInspectionStatusBatch standardMergeInputBatch,
         FirmwareInspectionStatusBatch ctrlRamInputBatch)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(icId);
         ArgumentNullException.ThrowIfNull(input);
         ArgumentOutOfRangeException.ThrowIfNegative(inputLength);
-        ArgumentNullException.ThrowIfNull(dpInputBatch);
         ArgumentNullException.ThrowIfNull(standardMergeInputBatch);
         ArgumentNullException.ThrowIfNull(ctrlRamInputBatch);
 
@@ -76,12 +73,6 @@ public sealed class FirmwareMetadataPlanAuthorityResolver(
         {
             return FirmwareMetadataPlanAuthority.Terminal(
                 standardMergeInputBatch.ExactMetadataPlan);
-        }
-
-        if (input.DpReplaceAddressSpaceId is not null)
-        {
-            return FirmwareMetadataPlanAuthority.Terminal(
-                dpInputBatch.ExactMetadataPlan);
         }
 
         if (input.CtrlRamReplaceAddressSpaceId is not null)

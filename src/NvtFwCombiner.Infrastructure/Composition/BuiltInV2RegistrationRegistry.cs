@@ -43,11 +43,6 @@ internal static class BuiltInV2RegistrationRegistry
             StringComparer.Ordinal.Equals(registration.IcId, icId));
     }
 
-    internal static Lazy<ReadOnlyDictionary<string, BuiltInV2Registration>> DpReplaceByIc { get; } =
-        new(() => new ReadOnlyDictionary<string, BuiltInV2Registration>(
-            CreateRegistrations(ExperienceIds.DpReplace)
-                .ToDictionary(static registration => registration.IcId, StringComparer.Ordinal)));
-
     internal static ReadOnlyDictionary<string, GeneralMergeV2CandidateRegistration> GeneralMergeByIc { get; } =
         new(SelectRegistrations(ExperienceIds.GeneralMerge)
             .Select(static item => new GeneralMergeV2CandidateRegistration(
@@ -69,9 +64,6 @@ internal static class BuiltInV2RegistrationRegistry
 
     private static ReadOnlyCollection<BuiltInV2Registration> CreateRegistrations(string workflowId)
     {
-        CompositionKind compositionKind = workflowId == ExperienceIds.DpReplace
-            ? CompositionKind.Replace
-            : CompositionKind.Merge;
         return Array.AsReadOnly(
         [
             .. SelectRegistrations(workflowId)
@@ -81,7 +73,7 @@ internal static class BuiltInV2RegistrationRegistry
                     item.Registration.ProfileVersion,
                     item.Registration.MapVariantSetId,
                     BuiltInV2BundleRegistry.All[item.Bundle.BundleDirectory],
-                    compositionKind,
+                    CompositionKind.Merge,
                     workflowId))
                 .OrderBy(static registration => registration.IcId, StringComparer.Ordinal),
         ]);
@@ -129,13 +121,9 @@ internal sealed class BuiltInV2Registration
         MapVariantSetId = mapVariantSetId;
         _bundle = bundle;
         CompositionKind = compositionKind;
-        WorkflowId = workflowId ?? (compositionKind == CompositionKind.Merge
-            ? ExperienceIds.StandardMerge
-            : ExperienceIds.DpReplace);
-        bool isKnownWorkflow = WorkflowId is ExperienceIds.StandardMerge or ExperienceIds.AbMerge or ExperienceIds.DpReplace;
-        bool kindMatchesWorkflow = WorkflowId == ExperienceIds.DpReplace
-            ? compositionKind == CompositionKind.Replace
-            : compositionKind == CompositionKind.Merge;
+        WorkflowId = workflowId ?? ExperienceIds.StandardMerge;
+        bool isKnownWorkflow = WorkflowId is ExperienceIds.StandardMerge or ExperienceIds.AbMerge;
+        bool kindMatchesWorkflow = compositionKind == CompositionKind.Merge;
         if (!isKnownWorkflow || !kindMatchesWorkflow)
         {
             throw new ArgumentException("Built-in registration workflow and composition kind are inconsistent.", nameof(workflowId));
@@ -180,13 +168,10 @@ internal sealed class BuiltInV2Registration
 
     private bool IsAbMerge => WorkflowId == ExperienceIds.AbMerge;
 
-    private bool IsDpReplace => WorkflowId == ExperienceIds.DpReplace;
-
     private string ProfileLabel => WorkflowId switch
     {
         ExperienceIds.StandardMerge => "Standard Merge profile",
         ExperienceIds.AbMerge => "AB Merge profile",
-        ExperienceIds.DpReplace => "DP Replace profile",
         _ => throw new InvalidOperationException("Unknown built-in workflow."),
     };
 
@@ -400,22 +385,6 @@ internal sealed class BuiltInV2Registration
                 requestedCapacity = inputLength;
             }
         }
-        else if (IsDpReplace)
-        {
-            if (inputLength is null || !capacities.Contains(inputLength.Value))
-            {
-                composition = null;
-                issues =
-                [
-                    new CompositionIssue(
-                        CompositionIssueCodes.InputAddressSpaceLengthMismatch,
-                        $"{IcId} DP Replace base flash BIN length must be one of {BuiltInV2Bundle.FormatCapacities(capacities)} (actual 0x{inputLength.GetValueOrDefault():X})."),
-                ];
-                return;
-            }
-
-            requestedCapacity = inputLength;
-        }
 
         V2CompositionPlanCompileResult compilation = CompileExecutable(
             requestedCapacity,
@@ -452,10 +421,8 @@ internal sealed class BuiltInV2Registration
                 [],
                 IsStandardMerge
                     ? StandardMergeFallbackOutputFileName
-                    : IsDpReplace
-                        ? $"nt{IcId[2..].ToLowerInvariant()}-dp-replace.bin"
-                        : $"nt{IcId[2..].ToLowerInvariant()}-ab-merge.bin",
-                IsDpReplace ? IcNumberInputMode.SingleSelector : null,
+                    : $"nt{IcId[2..].ToLowerInvariant()}-ab-merge.bin",
+                null,
                 CompileSucceeded: false,
                 Array.AsReadOnly(compilation.Issues.Select(static issue => issue.Code).ToArray()));
     }
@@ -490,9 +457,9 @@ internal sealed class BuiltInV2Registration
             (_, 0) => V2CompositionPlanCompileResult.Failed(
                 [new CompositionIssue(
                     BuiltInV2Bundle.CompilationFailed,
-                    $"The built-in V2 {ProfileLabel} for {IcId} has no declared {(IsDpReplace ? "base" : "map")} capacities.")]),
+                    $"The built-in V2 {ProfileLabel} for {IcId} has no declared map capacities.")]),
             _ => CompileExecutable(
-                IsDpReplace || (IsStandardMerge && capacities.Count > 1) ? capacities[0] : null),
+                IsStandardMerge && capacities.Count > 1 ? capacities[0] : null),
         };
     }
 

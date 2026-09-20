@@ -8,7 +8,7 @@ public sealed partial class DpReplaceWorkflowTests
 {
     /// <summary>The shipped policy omits DP Replace without changing selector geometry.</summary>
     [Fact]
-    public void ReplaceModeChoicesHideDpReplaceAndSelectAnAvailableMode()
+    public void ReplaceModeChoicesExcludeRetiredDpReplaceAndSelectAnAvailableMode()
     {
         MainWindowViewModel viewModel =
             PresentationTestHost.CreateProductViewModel();
@@ -25,14 +25,13 @@ public sealed partial class DpReplaceWorkflowTests
             Domain.Composition.ExperienceIds.CtrlRamReplace,
             viewModel.Replace.SelectedReplaceMode);
         Assert.True(viewModel.Replace.IsCtrlRamReplaceModeSelected);
-        Assert.False(viewModel.WorkflowSession.IsDpReplaceAvailable);
         string home = File.ReadAllText(RepositoryPaths.FromRepositoryRoot(
             "src",
             "NvtFwCombiner.Presentation.Avalonia",
             "Resources",
             "MainWindowPageTemplates.axaml"));
-        Assert.Contains(
-            "IsVisible=\"{Binding WorkflowSession.IsDpReplaceAvailable}\"",
+        Assert.DoesNotContain(
+            "BeginDpReplaceFromHomeCommand",
             home,
             StringComparison.Ordinal);
     }
@@ -49,7 +48,6 @@ public sealed partial class DpReplaceWorkflowTests
         viewModel.WorkflowSession.SelectedIc = "NT51929";
         viewModel.WorkflowSession.SelectedNumber = "cascade_2to8";
 
-        Assert.False(viewModel.BeginDpReplaceFromHomeCommand.CanExecute(null));
 
         viewModel.ShowReplaceCommand.Execute(null);
         string admittedMode = viewModel.Replace.SelectedReplaceMode;
@@ -148,15 +146,6 @@ public sealed partial class DpReplaceWorkflowTests
     public void ReplaceEvidenceBadgeDoesNotTurnPendingGoldenIntoFeatureBan()
     {
         MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
-        viewModel.WorkflowSession.SelectedIc = "NT51950";
-        OpenReplace(viewModel, Domain.Composition.ExperienceIds.DpReplace);
-
-        Assert.True(viewModel.Replace.IsSelectedReplaceModeEvidenceGated);
-        Assert.Equal("Evidence open", viewModel.Replace.SelectedReplaceModeEvidenceLabel);
-        Assert.Equal("Base firmware (FlashCode)", viewModel.Replace.ReplaceBaseSlot.Title);
-        Assert.Contains("Complete FlashCode", viewModel.Replace.ReplaceBaseSlot.Description, StringComparison.Ordinal);
-        Assert.Contains("Only declared DP ranges change", viewModel.Replace.ReplaceBaseSlot.Description, StringComparison.Ordinal);
-
         viewModel.WorkflowSession.SelectedIc = "NT51928";
         OpenReplace(viewModel, Domain.Composition.ExperienceIds.CtrlRamReplace);
 

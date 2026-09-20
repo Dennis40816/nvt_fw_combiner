@@ -1,5 +1,4 @@
 using CommunityToolkit.Mvvm.ComponentModel;
-using NvtFwCombiner.Application.Authoring;
 using NvtFwCombiner.Application.Capabilities;
 using NvtFwCombiner.Application.Diagnostics;
 using NvtFwCombiner.Domain.Composition;
@@ -125,10 +124,6 @@ internal sealed partial class WorkflowSessionPresentationViewModel
     /// <summary>Owner-declared fact reuse scope shown inside the IC selector detail card.</summary>
     public string SelectedIcDetailReuse => Text.GetIcDetailReuseValue(SelectedIcFamilySummary);
 
-    /// <summary>True when canonical policy permits the Home DP Replace entry.</summary>
-    public bool IsDpReplaceAvailable => !string.IsNullOrWhiteSpace(SelectedIc) &&
-        IsPublishedWorkflowAuthorable(SelectedIc, ExperienceIds.DpReplace);
-
     internal bool IsPublishedWorkflowAuthorable(string icId, string workflowId)
     {
         return !string.IsNullOrWhiteSpace(icId) && _selectorPublication is { } publication &&
@@ -148,7 +143,6 @@ internal sealed partial class WorkflowSessionPresentationViewModel
         : Text.GetIcDetailRuntimeValue(
             _merge.IsStandardMergeSupported,
             _merge.IsAbMergeSupported,
-            IsPublishedWorkflowAuthorable(SelectedIc, ExperienceIds.DpReplace),
             IsPublishedWorkflowAuthorable(SelectedIc, ExperienceIds.CtrlRamReplace),
             IsPublishedWorkflowAuthorable(SelectedIc, ExperienceIds.GeneralReplace));
 
@@ -156,7 +150,6 @@ internal sealed partial class WorkflowSessionPresentationViewModel
     public string SelectedIcDetailEvidence => string.IsNullOrWhiteSpace(SelectedIc)
         ? string.Empty
         : Text.GetIcDetailEvidenceValue(
-            _compositionServices.Capabilities.GetReplaceWorkflowReadiness(SelectedIc, ExperienceIds.DpReplace),
             _compositionServices.Capabilities.GetReplaceWorkflowReadiness(SelectedIc, ExperienceIds.CtrlRamReplace),
             _compositionServices.Capabilities.GetReplaceWorkflowReadiness(SelectedIc, ExperienceIds.GeneralReplace));
 
@@ -380,20 +373,10 @@ internal sealed partial class WorkflowSessionPresentationViewModel
             return;
         }
 
-        CompiledAuthoringSelectionSnapshot? stagedDpProjection;
-        try
-        {
-            RefreshContextState(
-                activeOwner,
-                preserveReplaceSlotFiles: activeOwner == WorkflowInspectionOwner.Replace,
-                selectorPublication: publication);
-            stagedDpProjection = _replace.TakeCatalogRefreshDpProjection();
-        }
-        catch
-        {
-            _replace.CompleteCatalogRefreshProjection();
-            throw;
-        }
+        RefreshContextState(
+            activeOwner,
+            preserveReplaceSlotFiles: activeOwner == WorkflowInspectionOwner.Replace,
+            selectorPublication: publication);
         if (activeOwner == WorkflowInspectionOwner.Merge)
         {
             _mergeWorkflowContextNeedsRefresh = false;
@@ -403,19 +386,11 @@ internal sealed partial class WorkflowSessionPresentationViewModel
             _replaceWorkflowContextNeedsRefresh = false;
         }
 
-        try
-        {
-            RefreshRetainedFirmwareInspections(activeOwner.Value, stagedDpProjection);
-        }
-        finally
-        {
-            _replace.CompleteCatalogRefreshProjection();
-        }
+        RefreshRetainedFirmwareInspections(activeOwner.Value);
     }
 
     private void RefreshRetainedFirmwareInspections(
-        WorkflowInspectionOwner owner,
-        CompiledAuthoringSelectionSnapshot? stagedDpProjection = null)
+        WorkflowInspectionOwner owner)
     {
         WorkflowInspectionContext context = InspectionContext(owner);
         string icId = GetWorkflowPageIc(owner);
@@ -431,8 +406,7 @@ internal sealed partial class WorkflowSessionPresentationViewModel
                 context,
                 InspectionSlots(context),
                 applyVerifiedContextSlotId: null,
-                CancellationToken.None,
-                stagedDpProjection);
+                CancellationToken.None);
     }
 
     private void PublishActiveSelectorState(string icId, string number)

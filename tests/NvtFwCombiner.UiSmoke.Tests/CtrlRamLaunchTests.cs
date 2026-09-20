@@ -98,11 +98,11 @@ public sealed class CtrlRamLaunchTests
             "--ctrlram", "replace-ctrlram-normal=" + NormalPath,
             "--ctrlram", "replace-ctrlram-vn=" + VnPath];
         using var workspace = TempWorkspace.Create("ctrlram-launch");
-        PresentationHostServices services = await CreateServicesAsync(workspace, useRetainedDpReplacePolicy: false);
+        PresentationHostServices services = await CreateServicesAsync(workspace);
         var execution = new NoRunExecution();
         PresentationCompositionServices original = services.Composition;
         services = new(new(original.Capabilities, original.StandardMergeAuthoring, original.AbMergeAuthoring,
-            original.DpReplaceAuthoring, original.GeneralAuthoring, original.CtrlRamAuthoring,
+            original.GeneralAuthoring, original.CtrlRamAuthoring,
             original.FirmwareInspection, original.OutputNaming, execution), services.FileReveal, services.SupportMatrix,
             services.SystemInformation, services.SystemDiagnosticsExporter, services.RawBinaryEditorFileSessions,
             services.CanonicalCatalogLoader, services.ExternalEnvironmentLoader, services.LocalFiles);

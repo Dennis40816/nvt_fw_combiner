@@ -28,7 +28,7 @@ public sealed class ShellScreenInventoryTests
     public async Task SystemActivityContentFitsAndFilters(int width, int height, bool dark, bool chinese)
     {
         using var workspace = TempWorkspace.Create("session-activity-content");
-        PresentationHostServices services = await CreateServicesAsync(workspace, useRetainedDpReplacePolicy: false);
+        PresentationHostServices services = await CreateServicesAsync(workspace);
         using var window = new MainWindow(UiLaunchOptions.Empty, StartupTraceSession.Disabled,
             services, ShellPreferenceSnapshot.Default)
         { Width = width, Height = height };
@@ -134,7 +134,7 @@ public sealed class ShellScreenInventoryTests
     public async Task SystemActivitySelectionsPreserveNavigationAndHistory(bool dark, bool chinese)
     {
         using var workspace = TempWorkspace.Create("session-activity-inventory");
-        PresentationHostServices services = await CreateServicesAsync(workspace, useRetainedDpReplacePolicy: false);
+        PresentationHostServices services = await CreateServicesAsync(workspace);
         using var window = new MainWindow(UiLaunchOptions.Empty, StartupTraceSession.Disabled,
             services, ShellPreferenceSnapshot.Default)
         { Width = 1440, Height = 900 };
@@ -215,7 +215,7 @@ public sealed class ShellScreenInventoryTests
     public async Task HomeAndSettingsSectionsRemainReachableWithoutWorkflowMutation(bool dark, bool chinese)
     {
         using var workspace = TempWorkspace.Create("shell-screen-inventory");
-        PresentationHostServices services = await CreateServicesAsync(workspace, useRetainedDpReplacePolicy: false);
+        PresentationHostServices services = await CreateServicesAsync(workspace);
         using var window = new MainWindow(UiLaunchOptions.Empty, StartupTraceSession.Disabled,
             services, ShellPreferenceSnapshot.Default)
         {

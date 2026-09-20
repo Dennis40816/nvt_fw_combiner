@@ -8,15 +8,12 @@ namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
 internal sealed partial class ReplacePresentationViewModel
 {
-    private const string DpReplaceMode = ExperienceIds.DpReplace;
     private const string CtrlRamReplaceMode = ExperienceIds.CtrlRamReplace;
     private const string GeneralReplaceMode = ExperienceIds.GeneralReplace;
-    private readonly AuthoringSessionState _dpReplaceSession = new(ExperienceIds.DpReplace);
     private readonly AuthoringSessionState _ctrlRamReplaceSession = new(ExperienceIds.CtrlRamReplace);
     private readonly AuthoringSessionState _generalReplaceSession = new(ExperienceIds.GeneralReplace);
     private readonly Dictionary<string, WorkflowRunState> _runStates = new(StringComparer.Ordinal)
     {
-        [DpReplaceMode] = new(),
         [CtrlRamReplaceMode] = new(),
         [GeneralReplaceMode] = new(),
     };
@@ -39,7 +36,6 @@ internal sealed partial class ReplacePresentationViewModel
     {
         AuthoringSessionState? session = mode switch
         {
-            DpReplaceMode => _dpReplaceSession,
             CtrlRamReplaceMode => _ctrlRamReplaceSession,
             GeneralReplaceMode => _generalReplaceSession,
             _ => null,
@@ -142,7 +138,6 @@ internal sealed partial class ReplacePresentationViewModel
         ? ResolveAcceptedOutputFileName(
             SelectedReplaceMode switch
             {
-                DpReplaceMode => _dpReplaceSession.CurrentSnapshot,
                 CtrlRamReplaceMode => _ctrlRamReplaceSession.CurrentSnapshot,
                 GeneralReplaceMode => _generalReplaceSession.CurrentSnapshot,
                 _ => null,
@@ -249,8 +244,8 @@ internal sealed partial class ReplacePresentationViewModel
             GeneralReplaceMode,
             _generalReplaceActionReadiness),
         _ => ActiveSessionBuildBlockerResolver.ResolveBuildAvailability(
-            _dpReplaceSession.CurrentSnapshot,
-            DpReplaceMode),
+            null,
+            SelectedReplaceMode),
     };
 
     public IRelayCommand AddGeneralReplaceMappingCommand { get; }
@@ -433,7 +428,7 @@ internal sealed partial class ReplacePresentationViewModel
 
     internal void NotifyCommandStateChanged()
     {
-        RefreshDpReplaceInputSelectionReadiness();
+        ResetReplaceInputSelectionReadiness();
         NotifyCommandAvailabilityChanged();
     }
 

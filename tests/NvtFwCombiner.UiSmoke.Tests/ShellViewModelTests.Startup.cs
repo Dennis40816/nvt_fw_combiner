@@ -21,7 +21,6 @@ public sealed partial class ShellNavigationSystemTests
             viewModel.BeginNormalMergeFromHomeCommand,
             viewModel.BeginAbMergeFromHomeCommand,
             viewModel.BeginGeneralMergeFromHomeCommand,
-            viewModel.BeginDpReplaceFromHomeCommand,
             viewModel.BeginCtrlRamReplaceFromHomeCommand,
             viewModel.BeginGeneralReplaceFromHomeCommand,
         ];

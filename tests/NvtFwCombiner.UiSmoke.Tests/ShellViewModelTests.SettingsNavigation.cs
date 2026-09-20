@@ -126,9 +126,9 @@ public sealed partial class ShellNavigationSystemTests
             slot.DisplayName == "尚未選擇 BIN");
     }
 
-    /// <summary>The shipped catalog hides DP Replace consistently in Settings while preserving the other authoring routes.</summary>
+    /// <summary>The shipped catalog excludes retired DP Replace consistently in Settings while preserving the other authoring routes.</summary>
     [Fact]
-    public void ProductSettingsProjectTheShippedHiddenDpReplacePolicy()
+    public void ProductSettingsProjectRetiredDpReplaceAbsence()
     {
         MainWindowViewModel viewModel = PresentationTestHost.CreateProductViewModel();
 
@@ -330,7 +330,7 @@ public sealed partial class ShellNavigationSystemTests
         viewModel.Navigation.GoBackCommand.Execute(null);
 
         Assert.True(viewModel.IsHomeVisible);
-        viewModel.BeginDpReplaceFromHomeCommand.Execute(null);
+        viewModel.BeginCtrlRamReplaceFromHomeCommand.Execute(null);
 
         Assert.True(viewModel.WorkflowSession.IsWorkflowContextModalOpen);
         Assert.Equal(expectedReplaceIc, viewModel.WorkflowSession.WorkflowContextSetup.SelectedIc);

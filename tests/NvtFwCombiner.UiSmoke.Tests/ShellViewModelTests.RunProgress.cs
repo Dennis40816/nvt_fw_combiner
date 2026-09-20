@@ -263,7 +263,7 @@ public sealed partial class RunAndHexEditorTests
         viewModel.ShowReplaceCommand.Execute(null);
         viewModel.WorkflowSession.SelectedIc = "NT51926";
         viewModel.WorkflowSession.SelectedNumber = IcNumberSelectionTokens.Cascade;
-        viewModel.Replace.SelectedReplaceMode = ExperienceIds.DpReplace;
+        viewModel.Replace.SelectedReplaceMode = ExperienceIds.CtrlRamReplace;
         var workerStarted = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         var releaseWorker = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         string activeContextLabel = string.Empty;
@@ -330,7 +330,7 @@ public sealed partial class RunAndHexEditorTests
             _ = releaseWorker.TrySetResult();
         }
 
-        Assert.Equal("DP · NT51926 / cascade", activeContextLabel);
+        Assert.Equal("CtrlRAM · NT51926 / cascade", activeContextLabel);
         Assert.StartsWith("NT51926 / cascade:", activeDeviceStatus, StringComparison.Ordinal);
         Assert.True(selectionWasReadOnly);
         string[] activeContextBindings =

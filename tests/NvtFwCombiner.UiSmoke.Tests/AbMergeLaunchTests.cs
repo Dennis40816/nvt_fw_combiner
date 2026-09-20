@@ -97,14 +97,14 @@ public sealed class AbMergeLaunchTests
     public async Task CanonicalAbInputsLoadThroughRealStartupWithoutRunning()
     {
         using var workspace = TempWorkspace.Create("ab-launch");
-        PresentationHostServices isolated = await CreateServicesAsync(workspace, useRetainedDpReplacePolicy: false);
+        PresentationHostServices isolated = await CreateServicesAsync(workspace);
         CompositionHostServices host = CompositionHostServices.Create(new ExternalProcessorEnvironmentLoader(),
             loadPolicy: null, configurationPath: workspace.PathFor("format.json"));
         PresentationHostServices services = PresentationTestHost.CreateServices("ui-smoke", host, static authoring => authoring);
         var execution = new NoRunExecution();
         PresentationCompositionServices original = services.Composition;
         services = new(new(original.Capabilities, original.StandardMergeAuthoring, original.AbMergeAuthoring,
-            original.DpReplaceAuthoring, original.GeneralAuthoring, original.CtrlRamAuthoring,
+            original.GeneralAuthoring, original.CtrlRamAuthoring,
             original.FirmwareInspection, original.OutputNaming, execution), services.FileReveal, services.SupportMatrix,
             services.SystemInformation, services.SystemDiagnosticsExporter, services.RawBinaryEditorFileSessions,
             services.CanonicalCatalogLoader, services.ExternalEnvironmentLoader, isolated.LocalFiles);

@@ -39,10 +39,8 @@ public sealed partial class RepositoryBoundaryTests
             sources,
             StringComparison.Ordinal);
 
-        string dpReplaceSupport = File.ReadAllText(Path.Combine(
-            directory,
-            "DpReplaceTestSupport.cs"));
-        Assert.DoesNotContain("BootstrapTestHost", dpReplaceSupport, StringComparison.Ordinal);
+        Assert.False(File.Exists(Path.Combine(directory, "DpReplaceTestSupport.cs")));
+
     }
 
     private static void AssertUiRuntimeControlConstructionIsSerialized()

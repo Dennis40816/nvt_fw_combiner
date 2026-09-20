@@ -43,7 +43,7 @@ public sealed class FirmwareSlotPersistenceControlTests
             inputs = [(CompositionSlotIds.MergeDp, standard.ManifestPath(paths.GetProperty("dp-input"))),
                 (CompositionSlotIds.MergeTp, standard.ManifestPath(paths.GetProperty("tp-input")))];
         }
-        PresentationHostServices services = await CreateServicesAsync(workspace, useRetainedDpReplacePolicy: false);
+        PresentationHostServices services = await CreateServicesAsync(workspace);
         using var window = new MainWindow(UiLaunchOptions.Empty, StartupTraceSession.Disabled, services, ShellPreferenceSnapshot.Default)
         { Width = dark ? 980 : 1440, Height = 900, RequestedThemeVariant = dark ? ThemeVariant.Dark : ThemeVariant.Light };
         window.Show();
@@ -101,7 +101,7 @@ public sealed class FirmwareSlotPersistenceControlTests
     public async Task StructuredReplaceCardsUseTheSameInputColumn(bool dark)
     {
         using var workspace = TempWorkspace.Create("replace-slot-column");
-        PresentationHostServices services = await CreateServicesAsync(workspace, useRetainedDpReplacePolicy: true);
+        PresentationHostServices services = await CreateServicesAsync(workspace);
         using var window = new MainWindow(UiLaunchOptions.Empty, StartupTraceSession.Disabled, services, ShellPreferenceSnapshot.Default)
         { Width = dark ? 980 : 1440, Height = 900, RequestedThemeVariant = dark ? ThemeVariant.Dark : ThemeVariant.Light };
         window.Show();
@@ -111,9 +111,9 @@ public sealed class FirmwareSlotPersistenceControlTests
             MainWindowViewModel shell = Assert.IsType<MainWindowViewModel>(window.DataContext);
             shell.ShowReplaceCommand.Execute(null);
             shell.WorkflowSession.SelectedIc = "NT51928";
-            shell.Replace.SelectedReplaceMode = ExperienceIds.DpReplace;
+            shell.Replace.SelectedReplaceMode = ExperienceIds.CtrlRamReplace;
             Render();
-            Assert.True(shell.Replace.IsNonCtrlRamStructuredReplaceModeSelected);
+            Assert.True(shell.Replace.IsCtrlRamReplaceModeSelected);
             FirmwareSlotCard[] cards = [.. window.GetVisualDescendants().OfType<FirmwareSlotCard>()
                 .Where(card => card.IsEffectivelyVisible)];
             Assert.Equal(shell.Replace.ReplaceSlots.Count, cards.Length);

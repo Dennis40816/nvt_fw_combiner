@@ -170,7 +170,6 @@ internal static class FirmwareInspectionProjection
         bool applied = false;
         foreach (FirmwareInspectionItemRequest item in request.Items.Where(static item =>
                      item.AbMergeAddressSpaceId is not null ||
-                     item.DpReplaceAddressSpaceId is not null ||
                      item.CtrlRamReplaceAddressSpaceId is not null ||
                      item.StandardMergeAddressSpaceId is not null))
         {
@@ -210,7 +209,6 @@ internal readonly record struct WorkflowInspectionContext(
     internal bool IsStandardMerge => IsMerge && Mode == ExperienceIds.StandardMerge;
     internal bool IsAbMerge => IsMerge && Mode == ExperienceIds.AbMerge;
     internal bool IsGeneralMerge => IsMerge && Mode == ExperienceIds.GeneralMerge;
-    internal bool IsDpReplace => IsReplace && Mode == ExperienceIds.DpReplace;
     internal bool IsCtrlRamReplace => IsReplace && Mode == ExperienceIds.CtrlRamReplace;
     internal bool IsGeneralReplace => IsReplace && Mode == ExperienceIds.GeneralReplace;
 }
@@ -233,7 +231,6 @@ internal readonly record struct FirmwareInspectionItemRequest(
     bool ApplyVerifiedContext,
     string? AbMergeAddressSpaceId,
     string? AbMergeTopologyToken,
-    string? DpReplaceAddressSpaceId,
     string? StandardMergeAddressSpaceId,
     string? CtrlRamReplaceAddressSpaceId = null,
     AuthoringSlotInspectionLease? InspectionLease = null);

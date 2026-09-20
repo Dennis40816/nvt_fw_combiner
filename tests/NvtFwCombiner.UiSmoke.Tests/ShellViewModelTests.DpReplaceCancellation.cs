@@ -7,23 +7,23 @@ namespace NvtFwCombiner.UiSmoke.Tests;
 
 public sealed partial class DpReplaceWorkflowTests
 {
-    /// <summary>Hidden DP selection cancellation cannot publish its Checking session as accepted.</summary>
+    /// <summary>CtrlRAM selection cancellation cannot publish its Checking session as accepted.</summary>
     [Fact]
-    public async Task DpReplaceSelectionPropagatesCallerCancellation()
+    public async Task CtrlRamSelectionPropagatesCallerCancellation()
     {
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-dp-cancellation");
         string basePath = workspace.Write(
             "reference.bin",
-            CreatePattern(0x40000, 0x71));
+            ReadCtrlRamReference());
         string replacementPath = workspace.Write(
             "replacement.bin",
-            CreatePattern(0x40000, 0x41));
+            ReadCtrlRamNormalSource());
         var inspection = new DpCancellationProbeFirmwareInspection(
             TestHost.FirmwareInspectionExperience,
             blockImmediately: false);
         MainWindowViewModel viewModel = CreateDpCancellationViewModel(inspection);
-        viewModel.WorkflowSession.SelectedIc = "NT51928";
-        OpenReplace(viewModel, ExperienceIds.DpReplace);
+        viewModel.WorkflowSession.SelectedIc = "NT51950";
+        OpenReplace(viewModel, ExperienceIds.CtrlRamReplace);
         await viewModel.WorkflowSession.SetSlotFileAsync(
             CompositionSlotIds.ReplaceBase,
             basePath,
@@ -33,7 +33,7 @@ public sealed partial class DpReplaceWorkflowTests
         using var cancellation = new CancellationTokenSource();
 
         Task selection = viewModel.WorkflowSession.SetSlotFileAsync(
-            CompositionSlotIds.ReplaceDp,
+            "replace-ctrlram-normal",
             replacementPath,
             cancellation.Token);
         await inspection.Entered.Task.WaitAsync(
@@ -46,12 +46,13 @@ public sealed partial class DpReplaceWorkflowTests
 
         FirmwareSlotViewModel baseSlot = viewModel.Replace.ReplaceBaseSlot;
         FirmwareSlotViewModel replacement = viewModel.Replace.ReplaceSlots.Single(static slot =>
-            slot.SlotId == CompositionSlotIds.ReplaceDp);
+            slot.SlotId == "replace-ctrlram-normal");
         Assert.True(inspection.ObservedCancellation);
         Assert.NotEmpty(inspection.BlockedInputs);
-        Assert.All(
-            inspection.BlockedInputs,
-            static input => Assert.NotNull(input.ExactCapability));
+        Assert.NotNull(Assert.Single(inspection.BlockedInputs, static input =>
+            input.InspectionId == CompositionSlotIds.ReplaceBase).CtrlRamRequest);
+        Assert.Equal("replace-ctrlram-normal", Assert.Single(inspection.BlockedInputs, static input =>
+            input.InspectionId == "replace-ctrlram-normal").CtrlRamReplaceAddressSpaceId);
         Assert.Equal(WorkflowInspectionAttemptState.Cancelled, viewModel.Replace.Inspection.State);
         Assert.True(baseSlot.HasFile);
         Assert.True(replacement.HasFile);
@@ -60,29 +61,29 @@ public sealed partial class DpReplaceWorkflowTests
         Assert.False(viewModel.Replace.CanBuildReplace);
     }
 
-    /// <summary>Hidden DP clear cancellation cannot republish the retained peer's old acceptance.</summary>
+    /// <summary>CtrlRAM clear cancellation cannot republish the retained peer's old acceptance.</summary>
     [Fact]
-    public async Task DpReplaceClearPropagatesCallerCancellationToRetainedSlotRefresh()
+    public async Task CtrlRamClearPropagatesCallerCancellationToRetainedSlotRefresh()
     {
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-dp-clear-cancellation");
         string basePath = workspace.Write(
             "reference.bin",
-            CreatePattern(0x40000, 0x71));
+            ReadCtrlRamReference());
         string replacementPath = workspace.Write(
             "initial-code.bin",
-            CreatePattern(0x40000, 0x41));
+            ReadCtrlRamNormalSource());
         var inspection = new DpCancellationProbeFirmwareInspection(
             TestHost.FirmwareInspectionExperience,
             blockImmediately: false);
         MainWindowViewModel viewModel = CreateDpCancellationViewModel(inspection);
-        viewModel.WorkflowSession.SelectedIc = "NT51928";
-        OpenReplace(viewModel, ExperienceIds.DpReplace);
+        viewModel.WorkflowSession.SelectedIc = "NT51950";
+        OpenReplace(viewModel, ExperienceIds.CtrlRamReplace);
         await viewModel.WorkflowSession.SetSlotFileAsync(
             CompositionSlotIds.ReplaceBase,
             basePath,
             TestContext.Current.CancellationToken);
         await viewModel.WorkflowSession.SetSlotFileAsync(
-            CompositionSlotIds.ReplaceDp,
+            "replace-ctrlram-normal",
             replacementPath,
             TestContext.Current.CancellationToken);
         Assert.True(viewModel.Replace.CanBuildReplace);
@@ -90,7 +91,7 @@ public sealed partial class DpReplaceWorkflowTests
         using var cancellation = new CancellationTokenSource();
 
         Task clear = viewModel.WorkflowSession.ClearSlotFileAsync(
-            CompositionSlotIds.ReplaceDp,
+            "replace-ctrlram-normal",
             cancellation.Token);
         await inspection.Entered.Task.WaitAsync(
             TimeSpan.FromSeconds(5),
@@ -102,11 +103,11 @@ public sealed partial class DpReplaceWorkflowTests
 
         FirmwareSlotViewModel baseSlot = viewModel.Replace.ReplaceBaseSlot;
         FirmwareSlotViewModel replacement = viewModel.Replace.ReplaceSlots.Single(static slot =>
-            slot.SlotId == CompositionSlotIds.ReplaceDp);
+            slot.SlotId == "replace-ctrlram-normal");
         Assert.True(inspection.ObservedCancellation);
         FirmwareInspectionSnapshotInput retainedBase = Assert.Single(inspection.BlockedInputs);
         Assert.Equal(CompositionSlotIds.ReplaceBase, retainedBase.InspectionId);
-        Assert.NotNull(retainedBase.ExactCapability);
+        Assert.NotNull(retainedBase.CtrlRamRequest);
         Assert.Equal(WorkflowInspectionAttemptState.Cancelled, viewModel.Replace.Inspection.State);
         Assert.True(baseSlot.HasFile);
         Assert.False(replacement.HasFile);

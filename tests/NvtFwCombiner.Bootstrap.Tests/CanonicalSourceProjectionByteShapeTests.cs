@@ -14,8 +14,6 @@ public sealed class CanonicalSourceProjectionByteShapeTests
 {
     private const string Nt51929BundleDirectory = "nt51929-standard-merge";
     private const string Nt51929BundleHash = "e043dad07ffd7670c96b07b7732a9889b33a4b00b143eba56ad02cac1bb59cb5";
-    private const string Nt51928StandardBundleDirectory = "nt51928-standard-merge";
-    private const string Nt51928StandardBundleHash = "df2e16879c5896c4680dc20e220cb92a8933f62e2363da0093227ca556ae71c8";
 
     /// <summary>
     /// Owner-approved NT51929 bytes prove both DP and TP slots produce the same full image
@@ -61,93 +59,6 @@ public sealed class CanonicalSourceProjectionByteShapeTests
                     CompositionAddressSpaceIds.DpInput,
                     new ByteRange(0x0000, 0x6000)),
             ]);
-    }
-
-    /// <summary>
-    /// Owner-approved NT51928 FlashCode proves selected Initial Code and LDC replacement
-    /// sources can be either minimum address-bearing artifacts or the same complete FlashCode.
-    /// </summary>
-    [Theory]
-    [InlineData(CompositionAddressSpaceIds.InitialCodeReplacement)]
-    [InlineData(CompositionAddressSpaceIds.LdcReplacement)]
-    public async Task Nt51928InitialCodeAndLdcAcceptStandaloneOrSameIcFlashCodeAsync(
-        string replacementAddressSpaceId)
-    {
-        GoldenEvidence golden = ReadGoldenEvidence("51928");
-        byte[] ownerFlashCode = golden.Inputs[
-            replacementAddressSpaceId == CompositionAddressSpaceIds.InitialCodeReplacement
-                ? CompositionAddressSpaceIds.DpInput
-                : CompositionAddressSpaceIds.LdcInput];
-        CompiledComposition classificationComposition = V2StandardMergeGoldenTestSupport.CompileV2(
-            V2StandardMergeGoldenTestSupport.LoadDeployedCatalog(
-                Nt51928StandardBundleDirectory,
-                Nt51928StandardBundleHash),
-            "nt51928-standard-merge-gen-flash",
-            "0.9.0",
-            "NT51928",
-            requestedMapCapacity: golden.ExpectedOutput.LongLength,
-            selectedInputSlotIds: [CompositionAddressSpaceIds.LdcInput]);
-        Assert.Equal(
-            CompiledFirmwareArtifactKind.FlashCode,
-            CompiledFirmwareArtifactClassifier.Classify(classificationComposition, ownerFlashCode).Kind);
-
-        bool registered = BootstrapTestHost.Canonical.Compiler.TryCompileDpReplace(
-            "NT51928",
-            golden.ExpectedOutput.LongLength,
-            [replacementAddressSpaceId],
-            out CompiledComposition? compiledComposition,
-            out ResolvedCapability? resolvedCapability,
-            out IReadOnlyList<CompositionIssue> issues);
-        Assert.True(registered);
-        Assert.Empty(issues);
-        CompiledComposition composition = Assert.IsType<CompiledComposition>(compiledComposition);
-        ExpectedOperation expectedOperation = replacementAddressSpaceId switch
-        {
-            CompositionAddressSpaceIds.InitialCodeReplacement =>
-                ExpectedOperation.Replace(
-                    "replace-dp-code",
-                    100,
-                    CompositionAddressSpaceIds.InitialCodeReplacement,
-                    new ByteRange(0x3C000, 0x4000)),
-            CompositionAddressSpaceIds.LdcReplacement =>
-                ExpectedOperation.Replace(
-                    "replace-ldc-code",
-                    200,
-                    CompositionAddressSpaceIds.LdcReplacement,
-                    new ByteRange(0x40000, 0x22000)),
-            _ => throw new ArgumentOutOfRangeException(
-                nameof(replacementAddressSpaceId),
-                replacementAddressSpaceId,
-                "Unsupported NT51928 replacement source."),
-        };
-        Assert.True(
-            ownerFlashCode.AsSpan(
-                checked((int)expectedOperation.Range.Start),
-                checked((int)expectedOperation.Range.Length))
-            .SequenceEqual(golden.ExpectedOutput.AsSpan(
-                checked((int)expectedOperation.Range.Start),
-                checked((int)expectedOperation.Range.Length))));
-        byte[] reference = CreateDistinctReference(
-            golden.ExpectedOutput,
-            expectedOperation.Range);
-
-        await AssertEquivalentSourceShapesAsync(
-            composition,
-            golden.ExpectedOutput,
-            new Dictionary<string, byte[]>(StringComparer.Ordinal)
-            {
-                [replacementAddressSpaceId] = ownerFlashCode,
-            },
-            new Dictionary<string, byte[]>(StringComparer.Ordinal)
-            {
-                [replacementAddressSpaceId] = ownerFlashCode,
-            },
-            [expectedOperation],
-            new Dictionary<string, byte[]>(StringComparer.Ordinal)
-            {
-                [CompositionAddressSpaceIds.ReferenceBase] = reference,
-            },
-            Assert.IsType<ResolvedCapability>(resolvedCapability));
     }
 
     private static async ValueTask AssertEquivalentSourceShapesAsync(
@@ -340,19 +251,6 @@ public sealed class CanonicalSourceProjectionByteShapeTests
             V2StandardMergeGoldenTestSupport.ReadInputs(goldenCase.GetProperty("inputs")),
             V2StandardMergeGoldenTestSupport.ReadManifestFile(
                 goldenCase.GetProperty("expectedOutput")));
-    }
-
-    private static byte[] CreateDistinctReference(byte[] expectedOutput, ByteRange replacedRange)
-    {
-        byte[] reference = [.. expectedOutput];
-        int first = checked((int)replacedRange.Start);
-        int middle = checked((int)(replacedRange.Start + (replacedRange.Length / 2)));
-        int last = checked((int)(replacedRange.EndExclusive - 1));
-        reference[first] ^= 0xFF;
-        reference[middle] ^= 0xFF;
-        reference[last] ^= 0xFF;
-        Assert.NotEqual(expectedOutput, reference);
-        return reference;
     }
 
     private static string Hash(ReadOnlySpan<byte> bytes)

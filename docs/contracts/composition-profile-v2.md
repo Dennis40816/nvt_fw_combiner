@@ -72,7 +72,7 @@ profiles omit `icNumberInputMode`; `Replace` profiles must declare exactly one o
 not an experience, UI, or member-id inference. The
 `V2PlanCompiled` eligibility remains non-executable except for the closed request-scoped candidate
 contexts in ADR 0019 and ADR 0020. The separate `V2RuntimeExecutable` eligibility is minted only by
-the Profiles compiler for the closed blank-output Merge, reference-clone DP Replace, or structurally
+the Profiles compiler for the closed blank-output Merge, structural reference-clone Replace, or structurally
 safe runtime-reference Replace subset when
 promotion is exactly `supported`, blockers are empty, every input space is immutable with its closed
 singleton or per-binding instance policy, and output naming is one of: a token-free legacy-schema
@@ -89,6 +89,15 @@ candidate-admission shapes. ADR 0055 permits a structurally safe supported runti
 to use ordinary runtime admission without weakening those candidate rules.
 `supported` is profile-level V2 runtime admission, not a global IC or product-support claim; the
 support matrix and its firmware-owner release gate remain separate authority.
+In 1.1.10 the exact `dp-replace` experience is retired. Historical versioned
+schemas and normalization may still read its declarations, but the existing
+compiler `Succeed` boundary rejects an otherwise valid declaration before
+creating either `V2PlanCompiled` or `V2RuntimeExecutable`, returning
+`profile.v2.plan.retired-experience` with no artifact. A declaration rejected
+earlier retains that existing typed failure and also produces no artifact.
+Changing eligibility alone is insufficient because a returned artifact exposes
+its plan. Shared reference-clone lowering for surviving experiences remains;
+Application and the Domain engine do not duplicate this retirement policy.
 Its `CompiledInputContract` retains each slot's id, role, artifact class, required/cardinality policy,
 accepted extensions, typed length rule, typed normalization rule, and every immutable plan-space binding
 including instance policy. The artifact does not treat `AddressSpace` geometry as a second source of
@@ -105,9 +114,9 @@ route, or make unrelated multi-input profiles optional.
 That successor also admits multiple declared maps for one NT51928 capability.
 For Standard Merge, LDC absence selects the `0x40000` candidate; supplied LDC
 selects the `0x80000` candidate and must then pass structural validation.
-Failure blocks and never falls back to absence. DP Replace resolves the same
-closed variants from accepted Reference length. Length never infers IC
-identity.
+Failure blocks and never falls back to absence. Before its 1.1.10 retirement,
+DP Replace resolved the same closed variants from accepted Reference length;
+that history no longer grants execution admission. Length never infers IC identity.
 
 Every admitted `requiredCapabilityIds` binding is retained in compilation provenance as the exact
 effective/direct `FirmwareMapFactBinding`, including capability value, applicability, alias chain, and
@@ -135,14 +144,14 @@ sole authority for physical region ranges; compiled views retain only their reso
 and exact physical region-chain identity so the artifact can verify that provenance.
 
 The Merge subset lowers `copy-range`, `fill-range`, `patch-scalar`, and checked `transform-scalar`
-operations with `reject` overlap policy. The DP Replace subset lowers one or more rejected
+operations with `reject` overlap policy. The structural reference-clone Replace subset lowers one or more rejected
 `replace-range` operations from declared `dp-firmware` inputs to canonical DP-owned regions or
 from profile-declared `auxiliary` inputs to canonical LDC-owned regions. Every other source/owner
-pair fails closed. DP Replace also permits only fully-covered `replace-existing`
+pair fails closed. This subset also permits only fully-covered `replace-existing`
 `copy-range` operations sourced from the exact cloned reference image at the identical resolved half-open
 range. `replace-range` is not a Merge
 operation; a Replace `copy-range` from DP or a rejected replacement copy fails closed. Clone initialization
-is permitted only for this exact, unnormalized `reference-image` DP Replace base. Metadata validation,
+is permitted only for this subset's exact, unnormalized `reference-image` base. Metadata validation,
 CRC-worker stages, and every other unrecognized runtime authority remain outside this subset and fail closed.
 The reserved future-schema `legacy-combiner-v1` stage lowers through the existing external-processor port
 only with profile-declared read/write ranges, staged sources, and, when required, named artifact bindings; it never grants

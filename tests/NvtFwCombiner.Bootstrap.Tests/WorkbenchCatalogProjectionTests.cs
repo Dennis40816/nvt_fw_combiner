@@ -70,7 +70,7 @@ public sealed class WorkbenchCatalogProjectionTests
             BootstrapTestHost.Canonical.Projection.GetStandardMergeProfileSummaries(),
             summary => StringComparer.Ordinal.Equals(summary.IcId, icId));
         Assert.DoesNotContain(
-            BootstrapTestHost.Canonical.Projection.GetDpReplaceProfileSummaries(),
+            BootstrapTestHost.Canonical.Projection.GetAbMergeProfileSummaries(),
             summary => StringComparer.Ordinal.Equals(summary.IcId, icId));
     }
 
@@ -81,15 +81,15 @@ public sealed class WorkbenchCatalogProjectionTests
         IReadOnlyList<CapabilityProfileSummary> standardSummaries =
             BootstrapTestHost.Canonical.Projection.GetStandardMergeProfileSummaries();
         IReadOnlyList<CapabilityProfileSummary> replaceSummaries =
-            BootstrapTestHost.Canonical.Projection.GetDpReplaceProfileSummaries();
+            BootstrapTestHost.Canonical.Projection.GetAbMergeProfileSummaries();
         AssertStandardMergeProfileSummaries(standardSummaries);
-        AssertV2DpReplaceProfileSummaries(replaceSummaries);
+        Assert.NotEmpty(replaceSummaries);
+        Assert.All(replaceSummaries, static summary => Assert.True(summary.CompileSucceeded));
         Assert.DoesNotContain(replaceSummaries, static summary => summary.IcId == "NT-SYNTHETIC");
 
         CapabilityCatalogSummary settings = BootstrapTestHost.Canonical.Projection.GetCatalogSummary();
         Assert.Equal(10, settings.CatalogIcCount);
         Assert.Equal(standardSummaries.Count, settings.StandardMergeProfileCount);
-        Assert.Equal(10, settings.DpReplaceProfileCount);
         Assert.Equal(10, settings.CtrlRamReplaceAvailableIcCount);
     }
 
@@ -124,35 +124,4 @@ public sealed class WorkbenchCatalogProjectionTests
         }
     }
 
-    private static void AssertV2DpReplaceProfileSummaries(
-        IReadOnlyList<CapabilityProfileSummary> summaries)
-    {
-        Assert.Equal(
-            [
-                "NT51917", "NT51919", "NT51923", "NT51926", "NT51927", "NT51928",
-                "NT51929", "NT51932", "NT51950", "NT51951",
-            ],
-            summaries.Select(static summary => summary.IcId).Order(StringComparer.Ordinal));
-
-        foreach (CapabilityProfileSummary summary in summaries)
-        {
-            long baseCapacity = summary.IcId == "NT51928" ? 0x80000 : 0x40000;
-            Assert.True(
-                BootstrapTestHost.Canonical.Compiler.TryCompileDpReplace(
-                    summary.IcId,
-                    baseCapacity,
-                    out CompiledComposition? composition,
-                    out IReadOnlyList<CompositionIssue> issues),
-                string.Join(Environment.NewLine, issues.Select(static issue => $"{issue.Code}: {issue.Message}")));
-
-            CompiledComposition artifact = Assert.IsType<CompiledComposition>(composition);
-            Assert.True(summary.CompileSucceeded);
-            Assert.Empty(summary.IssueCodes);
-            Assert.Equal(artifact.V2Details.ProfileId, summary.ProfileId);
-            Assert.Equal(artifact.V2Details.CompositionKind, summary.CompositionKind);
-            Assert.Equal(artifact.Plan.RequiredInputAddressSpaceIds, summary.RequiredInputAddressSpaceIds);
-            Assert.Equal(artifact.V2Details.OutputNamingRequirement.FileNameTemplate, summary.DefaultOutputFileName);
-            Assert.Equal(artifact.V2Details.IcNumberInputMode, summary.IcNumberInputMode);
-        }
-    }
 }

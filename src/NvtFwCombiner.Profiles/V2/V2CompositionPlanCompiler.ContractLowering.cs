@@ -124,6 +124,16 @@ internal static partial class V2CompositionPlanCompiler
         IEnumerable<CompiledValidationRequirement>? additionalValidationRequirements = null,
         IEnumerable<CompiledInputSelectionGroup>? inputSelectionGroups = null)
     {
+        if (StringComparer.Ordinal.Equals(profile.Header.ExperienceId, ExperienceIds.DpReplace))
+        {
+            return V2CompositionPlanCompileResult.Failed(
+            [
+                new CompositionIssue(
+                    "profile.v2.plan.retired-experience",
+                    "DP Replace is retired and cannot produce a composition artifact."),
+            ]);
+        }
+
         var provenance = new V2CompilationProvenance(
             bundleIdentity,
             profileEntryIdentity,

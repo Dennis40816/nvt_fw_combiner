@@ -27,7 +27,7 @@ public sealed class CtrlRamMemoryLayoutTests
     public async Task SharedCtrlRamCardsKeepSizeAndEveryTargetAfterLoading(bool darkChinese)
     {
         using var workspace = TempWorkspace.Create("ctrlram-shared-guidance");
-        PresentationHostServices services = await CreateServicesAsync(workspace, useRetainedDpReplacePolicy: false);
+        PresentationHostServices services = await CreateServicesAsync(workspace);
         using var window = new MainWindow(UiLaunchOptions.Empty, StartupTraceSession.Disabled,
             services, ShellPreferenceSnapshot.Default)
         { Width = 1180, Height = 1040 };
@@ -112,7 +112,7 @@ public sealed class CtrlRamMemoryLayoutTests
     public async Task LoadedCtrlRamWindowStartsWithOnlyTheOverview(CtrlRamRegionRole role, bool selected)
     {
         using var workspace = TempWorkspace.Create("ctrlram-layout-collapsed");
-        PresentationHostServices services = await CreateServicesAsync(workspace, useRetainedDpReplacePolicy: false);
+        PresentationHostServices services = await CreateServicesAsync(workspace);
         using var window = new MainWindow(UiLaunchOptions.Empty, StartupTraceSession.Disabled,
             services, ShellPreferenceSnapshot.Default)
         { Width = 1180, Height = 1040 };
@@ -194,7 +194,7 @@ public sealed class CtrlRamMemoryLayoutTests
     public async Task ThreeChipWindowShowsFirmwareOverviewAndSeparatePhysicalLanes()
     {
         using var workspace = TempWorkspace.Create("ctrlram-layout-threechip");
-        PresentationHostServices services = await CreateServicesAsync(workspace, useRetainedDpReplacePolicy: false);
+        PresentationHostServices services = await CreateServicesAsync(workspace);
         using var window = new MainWindow(UiLaunchOptions.Parse([]), StartupTraceSession.Disabled,
             services, ShellPreferenceSnapshot.Default)
         { Width = 1180, Height = 1040 };
@@ -302,7 +302,7 @@ public sealed class CtrlRamMemoryLayoutTests
         using var workspace = TempWorkspace.Create("memory-standard-928");
         using var golden = StandardMergeGoldenManifest.Load();
         JsonElement inputs = golden.CaseByIc("51928").GetProperty("inputs");
-        PresentationHostServices services = await CreateServicesAsync(workspace, useRetainedDpReplacePolicy: false);
+        PresentationHostServices services = await CreateServicesAsync(workspace);
         using var window = new MainWindow(UiLaunchOptions.Empty, StartupTraceSession.Disabled,
             services, ShellPreferenceSnapshot.Default)
         { Width = 1180, Height = 1040 };

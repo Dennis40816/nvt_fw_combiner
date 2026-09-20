@@ -23,8 +23,6 @@ internal sealed partial class BuiltInFirmwareInspection : IFirmwareInspection
     private readonly IAbMergeInputSlotInspector
         _abMergeAuthoring;
     private readonly ICompiledInputSlotInspector<FirmwareInspectionStatusBatch>
-        _dpReplaceAuthoring;
-    private readonly ICompiledInputSlotInspector<FirmwareInspectionStatusBatch>
         _ctrlRamAuthoring;
     private readonly ISelectedFileContentInspector _contentInspector;
     private readonly IFirmwareArtifactClassificationResolver _artifactClassification;
@@ -34,7 +32,6 @@ internal sealed partial class BuiltInFirmwareInspection : IFirmwareInspection
         ICompositionCapabilityExperience projection,
         ICompiledInputSlotInspector<FirmwareInspectionStatusBatch> standardMergeAuthoring,
         IAbMergeInputSlotInspector abMergeAuthoring,
-        ICompiledInputSlotInspector<FirmwareInspectionStatusBatch> dpReplaceAuthoring,
         ICompiledInputSlotInspector<FirmwareInspectionStatusBatch> ctrlRamAuthoring,
         IFirmwareArtifactClassificationResolver artifactClassification,
         ISelectedFileContentInspector? contentInspector = null)
@@ -46,8 +43,6 @@ internal sealed partial class BuiltInFirmwareInspection : IFirmwareInspection
             throw new ArgumentNullException(nameof(standardMergeAuthoring));
         _abMergeAuthoring = abMergeAuthoring ??
             throw new ArgumentNullException(nameof(abMergeAuthoring));
-        _dpReplaceAuthoring = dpReplaceAuthoring ??
-            throw new ArgumentNullException(nameof(dpReplaceAuthoring));
         _ctrlRamAuthoring = ctrlRamAuthoring ??
             throw new ArgumentNullException(nameof(ctrlRamAuthoring));
         _artifactClassification = artifactClassification ??
@@ -104,10 +99,6 @@ internal sealed partial class BuiltInFirmwareInspection : IFirmwareInspection
         }
 
         bool inspectAll = dispatch == FirmwareInspectionDispatch.AllStrategiesBaseline;
-        FirmwareInspectionStatusBatch dpInputBatch = inspectAll ||
-            inputs.Any(static input => input.DpReplaceAddressSpaceId is not null)
-                ? inspection._dpReplaceAuthoring.InspectInputSlots(icId, inputs, ReadOnce)
-                : FirmwareInspectionStatusBatch.Empty;
         FirmwareInspectionStatusBatch standardMergeInputBatch = inspectAll ||
             inputs.Any(static input => input.StandardMergeAddressSpaceId is not null)
                 ? inspection._standardMergeAuthoring.InspectInputSlots(icId, inputs, ReadOnce)
@@ -130,7 +121,6 @@ internal sealed partial class BuiltInFirmwareInspection : IFirmwareInspection
                     icId,
                     input,
                     primaryImage.LongLength,
-                    dpInputBatch,
                     standardMergeInputBatch,
                     ctrlRamInputBatch);
             FirmwareInspectionSnapshot snapshot = InspectFirmware(
@@ -150,17 +140,6 @@ internal sealed partial class BuiltInFirmwareInspection : IFirmwareInspection
                     AbMergeFacts = abMergeInputBatch.Facts[input.InspectionId],
                     InputSlotStatus = abMergeInputBatch.Statuses[input.InspectionId],
                     InputSlotCatalog = abMergeInputBatch.Catalog,
-                };
-            }
-
-            if (dpInputBatch.Statuses.TryGetValue(
-                    input.InspectionId,
-                    out AuthoringInputSlotStatus? status))
-            {
-                snapshot = snapshot with
-                {
-                    InputSlotStatus = status,
-                    InputSlotCatalog = dpInputBatch.Catalog,
                 };
             }
 
@@ -261,7 +240,6 @@ internal sealed partial class BuiltInFirmwareInspection : IFirmwareInspection
                 StandardMergeAddressSpaceId: standardMergeAddressSpaceId,
                 ExactCapability: exactCapability),
             image.LongLength,
-            FirmwareInspectionStatusBatch.Empty,
             FirmwareInspectionStatusBatch.Empty,
             FirmwareInspectionStatusBatch.Empty);
 

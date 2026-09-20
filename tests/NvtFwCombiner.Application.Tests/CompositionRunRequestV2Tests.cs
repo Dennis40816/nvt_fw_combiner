@@ -404,8 +404,8 @@ public sealed partial class CompositionRunRequestV2Tests
             runtimeExecutable: true,
             compositionKind: CompositionKind.Replace,
             icNumberInputMode: IcNumberInputMode.SingleSelector,
-            modeId: "dp-replace",
-            experienceId: "dp-replace",
+            modeId: "general-replace",
+            experienceId: "general-replace",
             inputContract: new CompiledInputContract(
                 [
                     CompiledInputSlotTestFactory.Create(

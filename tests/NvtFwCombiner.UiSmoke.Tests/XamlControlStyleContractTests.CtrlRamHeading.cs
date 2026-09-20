@@ -28,7 +28,7 @@ public sealed partial class XamlControlStyleContractTests
         ShellTextResources text = ShellTextResources.For(chinese ? ShellLanguage.ChineseTraditional : ShellLanguage.English);
         var slot = new FirmwareSlotViewModel(CompositionSlotIds.ReplaceBase, "Base", "Select base", FirmwareSlotKind.Base);
         slot.ApplyDisplayText(text.GetReplaceBaseTitle(ExperienceIds.CtrlRamReplace),
-            text.GetReplaceBaseDescription(ExperienceIds.CtrlRamReplace, null),
+            text.GetReplaceBaseDescription(ExperienceIds.CtrlRamReplace),
             text.RequiredLabel, text.OptionalLabel, text.NoBinSelectedLabel,
             ShellTextResources.GetReplaceBaseSubtitle(ExperienceIds.CtrlRamReplace));
         slot.ApplyExperienceText(text);

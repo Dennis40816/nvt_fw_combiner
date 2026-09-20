@@ -87,26 +87,6 @@ internal sealed class BuiltInV2DynamicCompilationAdapter :
         }
     }
 
-    public void CompileDefinition(
-        string icId,
-        string workflowId,
-        long? requestedMapCapacity,
-        IReadOnlyCollection<string>? selectedInputSlotIds,
-        out CompiledComposition? composition,
-        out IReadOnlyList<CompositionIssue> issues)
-    {
-        if (workflowId != ExperienceIds.DpReplace)
-        {
-            composition = null;
-            issues = [new CompositionIssue(CapabilityCatalogIssueCodes.RouteUnavailable,
-                "Only the existing DP Replace definition probe may compile without an exact published route.")];
-            return;
-        }
-
-        CompileRegistration(ResolveRegistration(icId, workflowId), requestedMapCapacity,
-            selectedInputSlotIds, out composition, out _, out issues, requestedTopology: null);
-    }
-
     private static void CompileRegistration(
         BuiltInV2Registration registration,
         long? requestedMapCapacity,
@@ -135,8 +115,6 @@ internal sealed class BuiltInV2DynamicCompilationAdapter :
         {
             ExperienceIds.StandardMerge =>
                 BuiltInV2RegistrationRegistry.StandardMergeByIc[icId],
-            ExperienceIds.DpReplace =>
-                BuiltInV2RegistrationRegistry.DpReplaceByIc.Value[icId],
             _ => throw new InvalidOperationException(
                 "Only registered map-bound dynamic routes use this compiler adapter."),
         };

@@ -66,7 +66,7 @@ public sealed partial class RepositoryBoundaryTests
         Assert.DoesNotContain("IcWorkflowIds", profileSources, StringComparison.Ordinal);
         Assert.DoesNotContain("IcWorkflowIds", bootstrapSources, StringComparison.Ordinal);
         Assert.Contains("ExperienceIds.StandardMerge", infrastructureComposition, StringComparison.Ordinal);
-        Assert.Contains("ExperienceIds.DpReplace", infrastructureComposition, StringComparison.Ordinal);
+        Assert.DoesNotContain("ExperienceIds.DpReplace", infrastructureComposition, StringComparison.Ordinal);
         Assert.Contains("ExperienceIds.CtrlRamReplace", infrastructureComposition, StringComparison.Ordinal);
         Assert.Contains("ExperienceIds.GeneralMerge", infrastructureComposition, StringComparison.Ordinal);
         Assert.Contains("ExperienceIds.GeneralReplace", infrastructureComposition, StringComparison.Ordinal);

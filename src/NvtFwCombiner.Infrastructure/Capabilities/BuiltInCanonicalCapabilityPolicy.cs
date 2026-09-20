@@ -10,7 +10,7 @@ internal static class BuiltInCanonicalCapabilityPolicy
     internal const string RelativePath =
         "docs/contracts/canonical-capability-policy-v1.json";
     internal const string ExpectedSha256 =
-        "5ea2157940b3c3d1335a4c35256152c8ef2d76dd3edaa8c604e38e2beb3dab19";
+        "15ab305742465e70c8940bb62ecad348937d5f9f0645f2b8fc4f746202dda131";
 
     internal static CanonicalCapabilityPolicySnapshot Load()
     {
@@ -33,11 +33,11 @@ internal static class BuiltInCanonicalCapabilityPolicy
                 "Built-in canonical capability policy has an invalid empty document.",
                 CanonicalCapabilityPolicyJsonContext.Default
                     .CanonicalCapabilityPolicyDocument);
-        if (!StringComparer.Ordinal.Equals(document.SchemaVersion, "1.0") ||
+        if (!StringComparer.Ordinal.Equals(document.SchemaVersion, "1.1") ||
             !StringComparer.Ordinal.Equals(
                 document.CatalogId,
                 "canonical-capability-policy") ||
-            !StringComparer.Ordinal.Equals(document.CatalogVersion, "1.16.2") ||
+            !StringComparer.Ordinal.Equals(document.CatalogVersion, "1.17.0") ||
             !IsIsoDate(document.IssuedOn) ||
             document.Routes is null ||
             document.Routes.Count == 0)
@@ -63,6 +63,12 @@ internal static class BuiltInCanonicalCapabilityPolicy
     private static CanonicalCapabilityPolicyRoute CreateRoute(
         CanonicalCapabilityRouteDocument source)
     {
+        if (source.WorkflowId is not ("standard-merge" or "ab-merge" or
+            "ctrlram-replace" or "general-merge" or "general-replace"))
+        {
+            throw Invalid("workflowId");
+        }
+
         var identity = new CapabilityRouteIdentity(
             source.IcId,
             source.WorkflowId,

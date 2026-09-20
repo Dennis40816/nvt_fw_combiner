@@ -206,12 +206,10 @@ public sealed partial class ShellNavigationSystemTests
         Assert.True(viewModel.ShowReplaceCommand.CanExecute(null));
         Assert.True(viewModel.ShowMergeCommand.CanExecute(null));
 
-        policy.DisableEveryWorkflow(ExperienceIds.DpReplace);
         policy.DisableEveryWorkflow(ExperienceIds.CtrlRamReplace);
         policy.DisableEveryWorkflow(ExperienceIds.GeneralReplace);
         await viewModel.MessageCenter.RefreshCommand.ExecuteAsync(null);
 
-        Assert.False(viewModel.BeginDpReplaceFromHomeCommand.CanExecute(null));
         Assert.False(viewModel.BeginCtrlRamReplaceFromHomeCommand.CanExecute(null));
         Assert.False(viewModel.BeginGeneralReplaceFromHomeCommand.CanExecute(null));
         Assert.False(viewModel.ShowReplaceCommand.CanExecute(null));
@@ -247,16 +245,11 @@ public sealed partial class ShellNavigationSystemTests
         }
         _ = sentinel.StandardMerge.IsSupported(AuthorableIc(ExperienceIds.StandardMerge));
         _ = sentinel.AbMerge.IsAvailable(AuthorableIc(ExperienceIds.AbMerge));
-        _ = sentinel.DpReplace.GetAuthoringSnapshot(
-            AuthorableIc(ExperienceIds.DpReplace),
-            [],
-            new Dictionary<string, FileStamp>(StringComparer.Ordinal),
-            new AuthoringRevision(1));
         _ = sentinel.General.GetDefaultOutputLength(AuthorableIc(ExperienceIds.GeneralMerge));
         _ = sentinel.CtrlRam.GetDiscoveryDisplay(
             AuthorableIc(ExperienceIds.CtrlRamReplace),
             IcNumberSelectionTokens.SingleChip);
-        Assert.Equal([1, 1, 1, 1, 1], sentinel.ArmedCallCounts);
+        Assert.Equal([1, 1, 1, 1], sentinel.ArmedCallCounts);
 
         policy.DisableEveryRoute();
         sentinel.Arm();
@@ -285,7 +278,7 @@ public sealed partial class ShellNavigationSystemTests
     [InlineData("Merge", "standard-merge")]
     [InlineData("Merge", "ab-merge")]
     [InlineData("Replace", "ctrlram-replace")]
-    [InlineData("Replace", "dp-replace")]
+    [InlineData("Replace", "general-replace")]
     public async Task LoadedWorkflowZeroGlobalRefreshKeepsBindingsQuerySafe(
         string page,
         string experienceId)
@@ -446,7 +439,6 @@ public sealed partial class ShellNavigationSystemTests
             current.Capabilities,
             sentinel.StandardMerge,
             sentinel.AbMerge,
-            sentinel.DpReplace,
             sentinel.General,
             sentinel.CtrlRam,
             current.FirmwareInspection,
@@ -471,7 +463,6 @@ public sealed partial class ShellNavigationSystemTests
     {
         private readonly CountingAuthoringProxy<IStandardMergeAuthoring> _standardMerge;
         private readonly CountingAuthoringProxy<IAbMergeAuthoring> _abMerge;
-        private readonly CountingAuthoringProxy<IDpReplaceAuthoring> _dpReplace;
         private readonly CountingAuthoringProxy<IGeneralAuthoring> _general;
         private readonly CountingAuthoringProxy<ICtrlRamAuthoring> _ctrlRam;
 
@@ -481,8 +472,6 @@ public sealed partial class ShellNavigationSystemTests
                 CountingAuthoringProxy<IStandardMergeAuthoring>.Wrap(services.StandardMergeAuthoring);
             (AbMerge, _abMerge) =
                 CountingAuthoringProxy<IAbMergeAuthoring>.Wrap(services.AbMergeAuthoring);
-            (DpReplace, _dpReplace) =
-                CountingAuthoringProxy<IDpReplaceAuthoring>.Wrap(services.DpReplaceAuthoring);
             (General, _general) =
                 CountingAuthoringProxy<IGeneralAuthoring>.Wrap(services.GeneralAuthoring);
             (CtrlRam, _ctrlRam) =
@@ -493,15 +482,12 @@ public sealed partial class ShellNavigationSystemTests
 
         internal IAbMergeAuthoring AbMerge { get; }
 
-        internal IDpReplaceAuthoring DpReplace { get; }
-
         internal IGeneralAuthoring General { get; }
 
         internal ICtrlRamAuthoring CtrlRam { get; }
 
         internal int ArmedCallCount => _standardMerge.ArmedCallCount +
             _abMerge.ArmedCallCount +
-            _dpReplace.ArmedCallCount +
             _general.ArmedCallCount +
             _ctrlRam.ArmedCallCount;
 
@@ -509,7 +495,6 @@ public sealed partial class ShellNavigationSystemTests
         [
             _standardMerge.ArmedCallCount,
             _abMerge.ArmedCallCount,
-            _dpReplace.ArmedCallCount,
             _general.ArmedCallCount,
             _ctrlRam.ArmedCallCount,
         ];
@@ -523,7 +508,6 @@ public sealed partial class ShellNavigationSystemTests
         {
             _standardMerge.Arm();
             _abMerge.Arm();
-            _dpReplace.Arm();
             _general.Arm();
             _ctrlRam.Arm();
         }
@@ -540,10 +524,10 @@ public sealed partial class ShellNavigationSystemTests
             _general.ThrowOn(methodName);
         }
 
-        internal void ArmDpFailure(string methodName, int invocation = 1)
+        internal void ArmCtrlRamFailure(string methodName, int invocation = 1)
         {
             Arm();
-            _dpReplace.ThrowOn(methodName, invocation);
+            _ctrlRam.ThrowOn(methodName, invocation);
         }
     }
 

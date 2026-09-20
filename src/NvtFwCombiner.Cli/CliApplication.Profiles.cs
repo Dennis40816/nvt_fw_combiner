@@ -53,22 +53,6 @@ public static partial class CliApplication
                 .ConfigureAwait(false);
         }
 
-        await output.WriteLineAsync("Built-in replace profiles:").ConfigureAwait(false);
-        foreach (CapabilityProfileSummary profile in
-            capabilities.GetDpReplaceProfileSummaries())
-        {
-            string inputs = profile.CompileSucceeded
-                ? string.Join(", ", profile.RequiredInputAddressSpaceIds)
-                : "compile-error";
-            string icNumberPolicy = FormatIcNumberPolicy(profile);
-            string issues = FormatProfileIssues(profile);
-            await output.WriteLineAsync(
-                    string.Create(
-                        CultureInfo.InvariantCulture,
-                        $"{profile.ProfileId}  ic={profile.IcId}  inputs={inputs}  ic-num={icNumberPolicy}  default-output={profile.DefaultOutputFileName}{issues}"))
-                .ConfigureAwait(false);
-        }
-
         return Success;
     }
 

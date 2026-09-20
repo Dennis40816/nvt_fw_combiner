@@ -58,7 +58,6 @@ public sealed partial class FirmwareInspectionSnapshotTests
             new FirmwareMetadataPlanAuthorityResolver(canonical.Catalog), canonical.Projection,
             (StandardMergeAuthoringExperience)host.StandardMergeAuthoring,
             (AbMergeAuthoringExperience)host.AbMergeAuthoring,
-            (DpReplaceAuthoringExperience)host.DpReplaceAuthoring,
             (CtrlRamAuthoringExperience)host.CtrlRamAuthoring,
             new FirmwareArtifactClassificationResolver(canonical.Catalog, host.Compiler),
             new DelegatingContentInspector((path, maximum, token) =>

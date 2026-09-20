@@ -392,19 +392,19 @@ public sealed partial class GeneralMergeCliCommandTests
         Assert.True(standardMerge.Succeeded);
 
         string baseImage = workspace.Write("replace-base.bin", new byte[0x40000]);
-        string replacementDp = workspace.Write("replace-dp.bin", new byte[0x40000]);
-        CliRunResult replace = await CliTestHarness.RunRetainedReplaceAsync(
+        string replacementDp = workspace.Write("replace-dp.bin", new byte[2]);
+        CliRunResult replace = await CliTestHarness.RunAsync(
             [
-                "dp-replace",
+                "general-replace",
                 "preview",
                 "--profile",
-                "NT51950",
+                "NT51926",
                 "--ic-num",
                 "single",
                 "--base",
                 baseImage,
-                "--dp",
-                replacementDp,
+                "--mapping",
+                $"0x3E020+0x2={replacementDp}",
             ],
             TestContext.Current.CancellationToken);
 

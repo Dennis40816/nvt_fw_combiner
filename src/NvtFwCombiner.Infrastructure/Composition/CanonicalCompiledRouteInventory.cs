@@ -86,9 +86,6 @@ internal static class CanonicalCompiledRouteInventory
                     .GetValueOrDefault(identity.IcId),
             ExperienceIds.AbMerge =>
                 BuiltInV2RegistrationRegistry.FindUniqueAbMergeRegistration(identity.IcId),
-            ExperienceIds.DpReplace =>
-                BuiltInV2RegistrationRegistry.DpReplaceByIc.Value
-                    .GetValueOrDefault(identity.IcId),
             _ => null,
         };
         return registration is not null &&

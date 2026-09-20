@@ -10,6 +10,6 @@ namespace NvtFwCombiner.Cli;
 internal sealed record CliCompositionServices(
     ICompositionCapabilityExperience Capabilities, ISavedRuleAuthoring SavedRuleAuthoring,
     IStandardMergeAuthoring StandardMergeAuthoring, IAbMergeAuthoring AbMergeAuthoring,
-    IDpReplaceAuthoring DpReplaceAuthoring, ICtrlRamAuthoring CtrlRamAuthoring,
+    ICtrlRamAuthoring CtrlRamAuthoring,
     IGeneralAuthoring GeneralAuthoring, ICompositionOutputNaming OutputNaming,
     ICompositionExecution Execution);

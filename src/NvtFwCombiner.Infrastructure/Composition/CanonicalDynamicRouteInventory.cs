@@ -172,7 +172,6 @@ internal static class CanonicalDynamicRouteInventory
             identity.WorkflowId switch
             {
                 ExperienceIds.StandardMerge => BuiltInV2RegistrationRegistry.StandardMergeByIc,
-                ExperienceIds.DpReplace => BuiltInV2RegistrationRegistry.DpReplaceByIc.Value,
                 _ => null,
             };
         registration = registrations?.GetValueOrDefault(identity.IcId);

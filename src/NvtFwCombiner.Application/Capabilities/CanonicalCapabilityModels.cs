@@ -265,9 +265,6 @@ public sealed record ResolvedCapability
     /// </summary>
     public AcceptedGeneralExecutionPlan? GeneralExecutionPlan { get; private init; }
 
-    /// <summary>Exact accepted DP execution selection, or null for other workflows.</summary>
-    public AcceptedDpExecutionPlan? DpExecutionPlan { get; private init; }
-
     /// <summary>Exact accepted CtrlRAM selections and advisory evidence, or null for other workflows.</summary>
     public AcceptedCtrlRamExecutionPlan? CtrlRamExecutionPlan { get; private init; }
 
@@ -300,16 +297,6 @@ public sealed record ResolvedCapability
             ? this with { GeneralExecutionPlan = plan }
             : throw new InvalidOperationException(
                 "Only a General workflow capability may retain a General execution plan.");
-    }
-
-    /// <summary>Binds one immutable DP execution plan to this exact compiled capability.</summary>
-    public ResolvedCapability BindDpExecutionPlan(AcceptedDpExecutionPlan plan)
-    {
-        ArgumentNullException.ThrowIfNull(plan);
-        return StringComparer.Ordinal.Equals(Identity.WorkflowId, ExperienceIds.DpReplace)
-            ? this with { DpExecutionPlan = plan }
-            : throw new InvalidOperationException(
-                "Only a DP Replace capability may retain a DP execution plan.");
     }
 
     /// <summary>Binds one immutable CtrlRAM execution plan to this exact compiled capability.</summary>

@@ -16,7 +16,6 @@ public sealed class InfrastructureAdapterBoundaryTests
         Assert.False(typeof(CanonicalCapabilityCompilerAdapter).IsPublic);
         Assert.False(typeof(StandardMergeAuthoringExperience).IsPublic);
         Assert.False(typeof(AbMergeAuthoringExperience).IsPublic);
-        Assert.False(typeof(DpReplaceAuthoringExperience).IsPublic);
         Assert.False(typeof(CtrlRamAuthoringExperience).IsPublic);
     }
 }

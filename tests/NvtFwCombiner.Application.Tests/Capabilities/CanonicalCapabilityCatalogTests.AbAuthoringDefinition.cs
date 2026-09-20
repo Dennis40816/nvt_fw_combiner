@@ -169,11 +169,5 @@ public sealed partial class CanonicalCapabilityCatalogTests
         {
             throw new InvalidOperationException("Declaration query must not compile.");
         }
-        public void CompileDefinition(string icId, string workflowId, long? requestedMapCapacity,
-            IReadOnlyCollection<string>? selectedInputSlotIds, out CompiledComposition? composition,
-            out IReadOnlyList<CompositionIssue> issues)
-        {
-            throw new InvalidOperationException("Declaration query must not compile.");
-        }
     }
 }

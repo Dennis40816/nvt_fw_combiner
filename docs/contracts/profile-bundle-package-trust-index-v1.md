@@ -59,7 +59,7 @@ no report classification must omit it. This is a cross-workflow counterpart
 reference, not a second map definition: the referenced map, metadata
 structure, report purpose, capacity, and selection rules remain owned by the
 registered Standard profile/family and the canonical profile compiler.
-Standard Merge, AB Merge or DP Replace registrations whose profile
+Standard Merge or AB Merge registrations whose profile
 declares a selection group additionally declare the reviewed
 `mapVariantSetId`; runtime projection rejects a missing or extraneous binding.
 Fields that do not belong to the selected workflow are forbidden.
@@ -153,4 +153,15 @@ context cannot authorize operations, support, Report classification or writes.
 Schema `1.4` additionally admits optional `familyDisclosureFamilies` as the
 explicit source authority described above. It adds no firmware relationships,
 execution support, or runtime registrations. The current built-in candidate uses
-schema `1.4`; Unit58 external owner attestation remains required before integration.
+schema `1.5`; applicable external owner attestation remains required before integration.
+
+Schema `1.5` retires DP Replace runtime admission. The active workflow set is
+exactly `standard-merge`, `ab-merge`, `ctrlram-replace`, `general-merge`, and
+`general-replace`; old schema `1.4`, `dp-replace`, and unknown registrations
+are rejected by both runtime loading and build materialization. The built-in
+index `1.1.10.3` admits 24 bundles and 54 runtime registrations. Its eight
+metadata-provider admissions and one family-disclosure admission remain
+unchanged. Retirement removes five manifests and ten profiles, while all
+surviving bundle, family, profile and manifest bytes retain their existing pins.
+Shared full-image metadata and Perfect disclosure retain their independent
+provider authority and do not require a DP runtime registration.

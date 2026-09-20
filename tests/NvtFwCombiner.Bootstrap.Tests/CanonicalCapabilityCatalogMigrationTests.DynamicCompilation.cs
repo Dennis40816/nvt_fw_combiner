@@ -1,4 +1,5 @@
 using NvtFwCombiner.Application.Capabilities;
+using NvtFwCombiner.Application.Metadata;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Infrastructure.Capabilities;
 using NvtFwCombiner.Profiles.V2;
@@ -179,13 +180,13 @@ public sealed partial class CanonicalCapabilityCatalogMigrationTests
         ResolvedCapabilityRoute route = reload.Snapshot!.DynamicRoutes.Single(
             candidate =>
                 candidate.Identity.IcId == "NT51928" &&
-                candidate.Identity.WorkflowId == "dp-replace");
+                candidate.Identity.WorkflowId == ExperienceIds.StandardMerge);
         BuiltInV2Registration registration =
-            BuiltInV2RegistrationRegistry.DpReplaceByIc.Value["NT51928"];
+            BuiltInV2RegistrationRegistry.StandardMergeByIc["NT51928"];
         registration.TryCompile(
             0x40000,
             requestedTopology: null,
-            [.. registration.InputSelectionGroupMemberSlotIds.Take(1)],
+            [],
             out CompiledComposition? compiled,
             out IReadOnlyList<CompositionIssue> issues);
         CanonicalCapabilityCompilationContract expected =
@@ -215,12 +216,23 @@ public sealed partial class CanonicalCapabilityCatalogMigrationTests
 
         Assert.True(reload.Succeeded);
         Assert.Empty(issues);
-        _ = Assert.Throws<ArgumentException>(() =>
-            PublishWithContract(route, wrongMap).BindCompilation(compiled!));
-        _ = Assert.Throws<ArgumentException>(() =>
-            PublishWithContract(route, wrongCompiler).BindCompilation(compiled!));
-        _ = Assert.Throws<ArgumentException>(() =>
-            PublishWithContract(route, wrongSelectionGroup).BindCompilation(compiled!));
+        MetadataPlanDefinition metadataPlan = registration.CreateMetadataPlan(compiled!);
+        _ = route.BindCompilation(compiled!, metadataPlan);
+        ResolvedCapabilityRoute mapRoute = PublishWithContract(route, wrongMap);
+        ResolvedCapabilityRoute compilerRoute = PublishWithContract(route, wrongCompiler);
+        ResolvedCapabilityRoute selectionRoute = PublishWithContract(route, wrongSelectionGroup);
+        ArgumentException mapFailure = Assert.Throws<ArgumentException>(() =>
+            mapRoute.BindCompilation(compiled!, metadataPlan));
+        ArgumentException compilerFailure = Assert.Throws<ArgumentException>(() =>
+            compilerRoute.BindCompilation(compiled!, metadataPlan));
+        ArgumentException selectionFailure = Assert.Throws<ArgumentException>(() =>
+            selectionRoute.BindCompilation(compiled!, metadataPlan));
+        Assert.Equal("composition", mapFailure.ParamName);
+        Assert.Contains("selected a map outside", mapFailure.Message, StringComparison.Ordinal);
+        Assert.Equal("composition", compilerFailure.ParamName);
+        Assert.Contains("reviewed compiler semantics", compilerFailure.Message, StringComparison.Ordinal);
+        Assert.Equal("composition", selectionFailure.ParamName);
+        Assert.Contains("Compiled semantic bindings do not match", selectionFailure.Message, StringComparison.Ordinal);
     }
 
     /// <summary>A compiler regression cannot erase a reviewed selection group.</summary>
@@ -234,13 +246,13 @@ public sealed partial class CanonicalCapabilityCatalogMigrationTests
         ResolvedCapabilityRoute route = reload.Snapshot!.DynamicRoutes.Single(
             candidate =>
                 candidate.Identity.IcId == "NT51928" &&
-                candidate.Identity.WorkflowId == "dp-replace");
+                candidate.Identity.WorkflowId == ExperienceIds.StandardMerge);
         BuiltInV2Registration registration =
-            BuiltInV2RegistrationRegistry.DpReplaceByIc.Value["NT51928"];
+            BuiltInV2RegistrationRegistry.StandardMergeByIc["NT51928"];
         registration.TryCompile(
             0x40000,
             requestedTopology: null,
-            [.. registration.InputSelectionGroupMemberSlotIds.Take(1)],
+            [],
             out CompiledComposition? compiled,
             out IReadOnlyList<CompositionIssue> issues);
         CompiledComposition withoutSelectionGroup = WithoutSelectionGroups(
@@ -248,8 +260,12 @@ public sealed partial class CanonicalCapabilityCatalogMigrationTests
 
         Assert.True(reload.Succeeded);
         Assert.Empty(issues);
-        _ = Assert.Throws<ArgumentException>(() =>
-            route.BindCompilation(withoutSelectionGroup));
+        MetadataPlanDefinition metadataPlan = registration.CreateMetadataPlan(compiled!);
+        _ = route.BindCompilation(compiled!, metadataPlan);
+        ArgumentException failure = Assert.Throws<ArgumentException>(() =>
+            route.BindCompilation(withoutSelectionGroup, metadataPlan));
+        Assert.Equal("composition", failure.ParamName);
+        Assert.Contains("Compiled semantic bindings do not match", failure.Message, StringComparison.Ordinal);
     }
 
     /// <summary>A logical-output compiler cannot drift from the reviewed firmware family.</summary>
@@ -301,13 +317,21 @@ public sealed partial class CanonicalCapabilityCatalogMigrationTests
         ResolvedCapabilityRoute source,
         CanonicalCapabilityCompilationContract contract)
     {
+        string fingerprint = CapabilityDefinitionFingerprint.Compute(
+            source.Identity,
+            contract.ProfileId,
+            contract.ProfileVersion,
+            contract.TrustedDefinitionSha256,
+            contract.AllowedMapVariantIds,
+            contract.CompilerSemanticId,
+            contract.SemanticBindingIds);
         var definition = new CanonicalDynamicCapabilityDefinition(
             source.Identity,
-            source.CapabilityFingerprint,
+            fingerprint,
             contract,
-            source.Authoring,
-            source.Publication,
-            source.Evidence);
+            Repin(source.Authoring, fingerprint),
+            Repin(source.Publication, fingerprint),
+            Repin(source.Evidence, fingerprint));
         var catalog = new CanonicalCapabilityCatalog(
             new SingleCandidateSource(new CanonicalCapabilityCatalogCandidate(
                 "semantic-drift-test",
@@ -320,6 +344,19 @@ public sealed partial class CanonicalCapabilityCatalogMigrationTests
 
         Assert.True(reload.Succeeded);
         return Assert.Single(reload.Snapshot!.DynamicRoutes);
+    }
+
+    private static PinnedCapabilityDecision<TValue> Repin<TValue>(
+        PinnedCapabilityDecision<TValue> decision,
+        string fingerprint)
+        where TValue : struct, Enum
+    {
+        return new(
+            decision.DecisionId,
+            decision.RouteId,
+            fingerprint,
+            decision.Value,
+            decision.SourceReference);
     }
 
     private static CompiledComposition WithoutSelectionGroups(

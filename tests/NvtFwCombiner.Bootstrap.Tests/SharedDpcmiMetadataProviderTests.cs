@@ -3,7 +3,6 @@ using System.Text.Json;
 using NvtFwCombiner.Application.Metadata;
 using NvtFwCombiner.Contracts.Bundles;
 using NvtFwCombiner.Contracts.Firmware;
-using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Domain.Firmware;
 using NvtFwCombiner.Infrastructure.Bundles;
 using NvtFwCombiner.Profiles.V2;
@@ -11,28 +10,27 @@ using NvtFwCombiner.TestSupport;
 
 namespace NvtFwCombiner.Bootstrap.Tests;
 
-/// <summary>A neutral provider supplies unchanged shared facts while retained DP runtime remains independent.</summary>
+/// <summary>A neutral provider supplies unchanged shared facts without a retired runtime bundle.</summary>
 public sealed class SharedDpcmiMetadataProviderTests
 {
     private const string Provider = "nt51919-nt51929-nt51932-shared-facts";
     private const string FamilyPath = "families/nt51929-nt51932.json";
     private const string FamilyHash = "d2499758dd19908422f857e5b7a68c24c47ac57961418da82d10dec2f039f3e8";
     private const string ProviderHash = "48c96d29b93cf7d78efc5266d6ead73e171f0012ddc5f7807242323327a5373f";
-    private const string DpHash = "807ca99b64c20fea5237f07f7ddb4a3daefb35e34e065a04def0fc410c10ca04";
 
     /// <summary>Production exact-identity resolution comes from the sole neutral metadata-only provider.</summary>
     [Fact]
     public void ExactDpcmiReferenceResolvesFromUniqueMetadataOnlyProvider()
     {
         ProfileBundlePackageTrustIndex index = BuiltInV2BundleRegistry.TrustIndex;
-        Assert.Equal("1.1.10.2", index.TrustIndexVersion);
+        Assert.Equal("1.1.10.3", index.TrustIndexVersion);
         ProfileBundlePackageTrustEntry provider = Assert.Single(index.Bundles, bundle =>
             bundle.MetadataProviderFamilies.Any(family => family.FamilyId == "nt51929-nt51932" && family.FamilyVersion == "1.3.1"));
         Assert.Equal(Provider, provider.BundleDirectory);
         Assert.Equal("1.1.10-full-image-metadata.1", provider.BundleVersion);
         Assert.Equal(ProviderHash, provider.ContentHash);
         Assert.Empty(provider.RuntimeRegistrations);
-        Assert.Empty(index.Bundles.Single(bundle => bundle.BundleDirectory == "nt51929-dp-replace").MetadataProviderFamilies);
+        Assert.DoesNotContain(index.Bundles, static bundle => bundle.BundleDirectory == "nt51929-dp-replace");
         var reference = new FirmwareMetadataStructureDefinitionReferenceDocument(
             "nt51929-nt51932", "1.3.1", FamilyHash, DpcmiMetadataContract.StructureId);
         Assert.True(BuiltInCanonicalMetadataDefinitionResolver.Instance.TryResolve(reference, out FirmwareMetadataStructureDefinition? definition));
@@ -48,7 +46,7 @@ public sealed class SharedDpcmiMetadataProviderTests
 
     /// <summary>Source and deployed catalogs consume identical family bytes and the existing manifest hash algorithm.</summary>
     [Fact]
-    public void SourceAndDeployedProvidersPreserveCompleteFamilyBytesAndRetainedDpManifest()
+    public void SourceAndDeployedProvidersPreserveCompleteFamilyBytesWithoutDpRuntime()
     {
         string source = RepositoryPaths.FromRepositoryRoot("profiles", "built-in", Provider);
         byte[] family = File.ReadAllBytes(Path.Combine(source, FamilyPath));
@@ -68,16 +66,8 @@ public sealed class SharedDpcmiMetadataProviderTests
         Assert.Empty(sourceCatalog.Profiles);
         Assert.Equal("1.3.1", Assert.Single(sourceCatalog.Families).Family.FamilyVersion);
 
-        using var dpWorkspace = TempWorkspace.Create("shared-dpcmi-retained-dp");
-        TrustedProfileBundleCatalog dpCatalog = BuiltInProfileMaterializationTestSupport.LoadSourceCandidateCatalog(
-            dpWorkspace, "nt51929-dp-replace", DpHash);
-        Assert.Equal(3, dpCatalog.Profiles.Count);
-        Assert.Equal("1.1.10-full-image-metadata.1", dpCatalog.BundleIdentity.BundleVersion);
-        Assert.Equal(DpHash, dpCatalog.BundleIdentity.ContentHash);
-        Assert.Equal(family, File.ReadAllBytes(dpWorkspace.PathFor(FamilyPath)));
         AssertClosedInventory(providerWorkspace.Root);
-        AssertClosedInventory(dpWorkspace.Root);
-        foreach (string bundle in new[] { Provider, "nt51929-dp-replace" })
+        foreach (string bundle in new[] { Provider })
         {
             string deployedRoot = Path.Combine(AppContext.BaseDirectory, "profiles", "built-in", bundle);
             var testOutput = new DirectoryInfo(AppContext.BaseDirectory);
@@ -89,28 +79,6 @@ public sealed class SharedDpcmiMetadataProviderTests
             Assert.Equal(bundle != Provider, File.Exists(Path.Combine(deployedRoot, "schemas", "composition-profile-v2.schema.json")));
         }
         Assert.False(File.Exists(RepositoryPaths.FromRepositoryRoot("profiles", "built-in", "nt51929-dp-replace", FamilyPath)));
-    }
-
-    /// <summary>All three retained DP registrations still compile against the same Perfect map and trusted runtime identity.</summary>
-    [Theory]
-    [InlineData("NT51919", "nt51919-dp-replace-gen-flash-alias", "0.2.0")]
-    [InlineData("NT51929", "nt51929-dp-replace-gen-flash", "0.3.0")]
-    [InlineData("NT51932", "nt51932-dp-replace-gen-flash", "0.2.0")]
-    public void RetainedDpRegistrationCompilesUnchangedPerfectMap(string ic, string profileId, string profileVersion)
-    {
-        BuiltInV2Registration registration = BuiltInV2RegistrationRegistry.DpReplaceByIc.Value[ic];
-        registration.TryCompile(0x40000, out CompiledComposition? composition, out IReadOnlyList<CompositionIssue> issues);
-        Assert.Empty(issues);
-        Assert.NotNull(composition);
-        Assert.Equal(profileId, composition.V2Details.ProfileId);
-        Assert.Equal(profileVersion, composition.V2Details.ProfileVersion);
-        Assert.Equal("nt51919-nt51929-nt51932-perfect-map-256k", composition.V2Details.Provenance.ResolvedMap.ImageMap.MapId);
-        Assert.Equal(DpHash, composition.V2Details.Provenance.Bundle.ContentHash);
-        Assert.Equal("1.1.10-full-image-metadata.1", composition.V2Details.Provenance.Bundle.BundleVersion);
-        if (ic == "NT51929")
-        {
-            Assert.Equal("97d91c4f824d089cc2821bc4d415137859ca3ebd46ece027a1355743e5c967eb", composition.CompilationFingerprint);
-        }
     }
 
     private static void AssertClosedInventory(string root)

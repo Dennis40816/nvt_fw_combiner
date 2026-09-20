@@ -154,7 +154,6 @@ internal sealed partial class BuiltInFirmwareInspection
         string?[] candidates =
         [
             input.AbMergeAddressSpaceId,
-            input.DpReplaceAddressSpaceId,
             input.StandardMergeAddressSpaceId,
             input.CtrlRamReplaceAddressSpaceId,
         ];

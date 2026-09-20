@@ -306,7 +306,7 @@ public sealed partial class FirmwareInspectionSnapshotTests
 
         Assert.False(authoring.Succeeded);
         Assert.Equal(
-            CapabilityCatalogIssueCodes.AuthoringUnavailable,
+            CapabilityCatalogIssueCodes.RouteUnavailable,
             authoring.Issue!.Code);
         Assert.Empty(inspection.AuthoringCompilationIssues);
         Assert.Equal(

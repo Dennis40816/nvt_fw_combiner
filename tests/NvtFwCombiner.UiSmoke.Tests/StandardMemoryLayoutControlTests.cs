@@ -31,7 +31,7 @@ public sealed class StandardMemoryLayoutControlTests
         using var workspace = TempWorkspace.Create("standard-memory-controls");
         using var golden = StandardMergeGoldenManifest.Load();
         JsonElement inputs = golden.CaseByIc("51928").GetProperty("inputs");
-        PresentationHostServices services = await CreateServicesAsync(workspace, useRetainedDpReplacePolicy: false);
+        PresentationHostServices services = await CreateServicesAsync(workspace);
         using var window = new MainWindow(UiLaunchOptions.Empty, StartupTraceSession.Disabled,
             services, ShellPreferenceSnapshot.Default)
         { Width = width, Height = height, RequestedThemeVariant = dark ? ThemeVariant.Dark : ThemeVariant.Light };

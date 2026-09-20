@@ -47,7 +47,6 @@ internal sealed partial class MainWindowViewModel
     {
         PresentationObserver.Invoke(ShowMergeCommand.NotifyCanExecuteChanged);
         PresentationObserver.Invoke(ShowReplaceCommand.NotifyCanExecuteChanged);
-        PresentationObserver.Invoke(BeginDpReplaceFromHomeCommand.NotifyCanExecuteChanged);
         PresentationObserver.Invoke(BeginCtrlRamReplaceFromHomeCommand.NotifyCanExecuteChanged);
         PresentationObserver.Invoke(BeginGeneralReplaceFromHomeCommand.NotifyCanExecuteChanged);
         PresentationObserver.Invoke(BeginNormalMergeFromHomeCommand.NotifyCanExecuteChanged);

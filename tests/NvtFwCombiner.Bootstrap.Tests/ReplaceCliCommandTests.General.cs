@@ -544,8 +544,6 @@ public sealed partial class ReplaceCliCommandTests
 
     /// <summary>Rejects General Replace-only mapping and patch options in other Replace command groups.</summary>
     [Theory]
-    [InlineData("dp-replace", "--mapping")]
-    [InlineData("dp-replace", "--patch")]
     [InlineData("ctrlram-replace", "--fill")]
     public async Task NonGeneralReplaceRejectsGeneralAuthoringOptions(string command, string option)
     {

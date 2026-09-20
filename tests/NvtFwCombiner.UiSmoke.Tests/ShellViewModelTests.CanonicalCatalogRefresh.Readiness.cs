@@ -358,7 +358,7 @@ public sealed partial class ShellNavigationSystemTests
         WorkflowInspectionLifecycle generalLifecycle = viewModel.Replace.Inspection;
         Task cancelledAttempt = generalLifecycle.ActiveTask;
 
-        viewModel.Replace.SelectedReplaceMode = ExperienceIds.DpReplace;
+        viewModel.Replace.SelectedReplaceMode = ExperienceIds.CtrlRamReplace;
         _ = reader.ReleaseInspection.TrySetResult();
         await cancelledAttempt.WaitAsync(
             TimeSpan.FromSeconds(10),
@@ -366,35 +366,36 @@ public sealed partial class ShellNavigationSystemTests
         await AwaitStableInspectionAsync(viewModel.Replace.Inspection);
         Assert.Equal(WorkflowInspectionAttemptState.Cancelled, generalLifecycle.State);
         Assert.Equal(verifiedBatchCount + 2, reader.BatchCount);
-        Assert.Equal(
-            refreshedToken,
-            ProjectionToken(viewModel.Replace.ReplaceBaseSlot.CurrentInspectionProjection));
 
         int recoveredBatchCount = reader.BatchCount;
         viewModel.Replace.SelectedReplaceMode = ExperienceIds.GeneralReplace;
         await AwaitStableInspectionAsync(viewModel.Replace.Inspection);
 
+        Assert.Equal(
+            refreshedToken,
+            Assert.IsType<ActiveSessionSnapshot>(viewModel.Replace.CaptureRunContext(
+                ExperienceIds.GeneralReplace).AcceptedSession).ResolutionToken);
         Assert.Equal(recoveredBatchCount, reader.BatchCount);
         Assert.Equal(basePath, viewModel.Replace.ReplaceBaseSlot.FilePath);
         Assert.Equal(replacementPath, mapping.FilePath);
         Assert.True(viewModel.Replace.CanBuildReplace, viewModel.Replace.ReplaceReadinessStatus);
     }
 
-    /// <summary>Confirmed page navigation clears DP state and a later token cannot revive it.</summary>
+    /// <summary>Confirmed page navigation clears CtrlRAM state and a later token cannot revive it.</summary>
     [Fact]
-    public async Task ConfirmedNavigationClearsDpAndFreshTokenDoesNotReviveStaleReplaceSession()
+    public async Task ConfirmedNavigationClearsCtrlRamAndFreshTokenDoesNotReviveStaleReplaceSession()
     {
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-hidden-dp-rebind");
         (PresentationHostServices services, MainWindowViewModel viewModel, BlockingInspectionReader reader) =
             CreateCatalogInspectionViewModel("0.10.6-hidden-dp-rebind-test");
-        viewModel.WorkflowSession.SelectedIc = "NT51928";
-        OpenReplace(viewModel, ExperienceIds.DpReplace);
+        viewModel.WorkflowSession.SelectedIc = "NT51950";
+        OpenReplace(viewModel, ExperienceIds.CtrlRamReplace);
         viewModel.SetSlotFile(
             CompositionSlotIds.ReplaceBase,
-            workspace.Write("reference.bin", new byte[0x40000]));
+            workspace.Write("reference.bin", ReadCtrlRamReference()));
         viewModel.SetSlotFile(
-            CompositionSlotIds.ReplaceDp,
-            workspace.Write("initial-code.bin", CreatePattern(0x40000, 0x41)));
+            "replace-ctrlram-normal",
+            workspace.Write("initial-code.bin", ReadCtrlRamNormalSource()));
         await viewModel.Replace.Inspection.ActiveTask;
         Assert.True(viewModel.Replace.CanBuildReplace, viewModel.Replace.ReplaceReadinessStatus);
         viewModel.ShowMergeCommand.Execute(null);

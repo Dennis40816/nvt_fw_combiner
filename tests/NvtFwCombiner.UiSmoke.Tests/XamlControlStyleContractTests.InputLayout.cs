@@ -521,63 +521,6 @@ public sealed partial class XamlControlStyleContractTests
         Assert.Equal(expectedBrowseAction, ToolTip.GetTip(browse));
     }
 
-    /// <summary>Real compiled DP Replace slots relocalize their copy and Browse-facing strings.</summary>
-    [AvaloniaFact]
-    public async Task DpReplaceSlotsRelocalizeTypedInitialCodeAndLdcBrowseActions()
-    {
-        MainWindowViewModel dpViewModel = await PresentationTestHost.CreateViewModelAsync(
-            TestContext.Current.CancellationToken);
-        dpViewModel.WorkflowSession.SelectedIc = "NT51927";
-        OpenReplace(dpViewModel, ExperienceIds.DpReplace);
-        FirmwareSlotViewModel dp = Assert.Single(
-            dpViewModel.Replace.ReplaceSlots,
-            slot => slot.AddressSpaceId == CompositionAddressSpaceIds.DpReplacement);
-        MainWindowViewModel nt51928ViewModel = await PresentationTestHost.CreateViewModelAsync(
-            TestContext.Current.CancellationToken);
-        nt51928ViewModel.WorkflowSession.SelectedIc = "NT51928";
-        OpenReplace(nt51928ViewModel, ExperienceIds.DpReplace);
-        FirmwareSlotViewModel initialCode = Assert.Single(
-            nt51928ViewModel.Replace.ReplaceSlots,
-            slot => slot.AddressSpaceId == CompositionAddressSpaceIds.InitialCodeReplacement);
-        FirmwareSlotViewModel ldc = Assert.Single(
-            nt51928ViewModel.Replace.ReplaceSlots,
-            slot => slot.AddressSpaceId == CompositionAddressSpaceIds.LdcReplacement);
-        dpViewModel.SelectedLanguage = "Traditional Chinese";
-        nt51928ViewModel.SelectedLanguage = "Traditional Chinese";
-
-        Assert.Equal("DP 取代 BIN 檔案", dp.Title);
-        Assert.Equal("由編譯後的 DP Replace 設定檔宣告之 DP 取代資料。", dp.Description);
-        Assert.Equal("Initial Code 取代 BIN 檔案", initialCode.Title);
-        Assert.Equal("由編譯後的 DP Replace 設定檔宣告之 Initial Code 資料。", initialCode.Description);
-        Assert.Equal("LDC 取代 BIN 檔案", ldc.Title);
-        Assert.Equal("由編譯後的 DP Replace 設定檔宣告之 LDC 資料。", ldc.Description);
-        Assert.DoesNotContain("profile", dp.Description, StringComparison.OrdinalIgnoreCase);
-        Assert.DoesNotContain("profile", initialCode.Description, StringComparison.OrdinalIgnoreCase);
-        Assert.DoesNotContain("profile", ldc.Description, StringComparison.OrdinalIgnoreCase);
-        AssertBrowseAction(dp, dpViewModel.Text);
-        AssertBrowseAction(initialCode, nt51928ViewModel.Text);
-        AssertBrowseAction(ldc, nt51928ViewModel.Text);
-
-        dpViewModel.SelectedLanguage = "English";
-        nt51928ViewModel.SelectedLanguage = "English";
-
-        Assert.Equal("DP replacement BIN", dp.Title);
-        Assert.Equal(
-            "Replacement DP payload declared by the compiled DP Replace profile.",
-            dp.Description);
-        Assert.Equal("Initial Code replacement BIN", initialCode.Title);
-        Assert.Equal(
-            "Initial Code payload declared by the compiled DP Replace profile.",
-            initialCode.Description);
-        Assert.Equal("LDC replacement BIN", ldc.Title);
-        Assert.Equal(
-            "LDC payload declared by the compiled DP Replace profile.",
-            ldc.Description);
-        AssertBrowseAction(dp, dpViewModel.Text);
-        AssertBrowseAction(initialCode, nt51928ViewModel.Text);
-        AssertBrowseAction(ldc, nt51928ViewModel.Text);
-    }
-
     /// <summary>Real typed CtrlRAM groups localize every group label without changing technical identifiers.</summary>
     [AvaloniaFact]
     public async Task CtrlRamSlotRelocalizesTypedRegionBrowseAction()

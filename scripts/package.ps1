@@ -279,7 +279,7 @@ $PackageTrustIndexPackagePath = 'profiles/built-in/package-trust-index.json'
 $ApprovedCanonicalCapabilityPolicyPackageContract = [pscustomobject]@{
     path = 'docs/contracts/canonical-capability-policy-v1.json'
     role = 'capabilityPolicy'
-    sha256 = '5ea2157940b3c3d1335a4c35256152c8ef2d76dd3edaa8c604e38e2beb3dab19'
+    sha256 = '15ab305742465e70c8940bb62ecad348937d5f9f0645f2b8fc4f746202dda131'
 }
 
 $ApprovedCanonicalCapabilityPolicyPackagePath =
@@ -441,7 +441,7 @@ function Get-BuiltInProfilePackagePaths {
     }
     $PublishedTrustIndex = Get-Content -LiteralPath $PublishedTrustIndexPath -Raw |
         ConvertFrom-Json -Depth 32
-    if ([string]$PublishedTrustIndex.schemaVersion -ne '1.4' -or
+    if ([string]$PublishedTrustIndex.schemaVersion -ne '1.5' -or
         [string]$PublishedTrustIndex.trustAnchorBindingId -ne 'built-in-profile-bundle-v2') {
         throw 'Published package trust index has an unsupported schema or trust anchor.'
     }

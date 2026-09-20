@@ -9,7 +9,6 @@ namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
 internal sealed partial class MainWindowViewModel
 {
-    private const string DpReplaceMode = ExperienceIds.DpReplace;
     private const string CtrlRamReplaceMode = ExperienceIds.CtrlRamReplace;
     private const string GeneralReplaceMode = ExperienceIds.GeneralReplace;
     private const string NormalMergeMode = ExperienceIds.StandardMerge;
@@ -195,8 +194,6 @@ internal sealed partial class MainWindowViewModel
         ShowReplaceCommand = CreateCatalogCommand(
             () => Navigation.NavigateToPage(ShellPage.Replace),
             [.. WorkflowPageModeCatalog.ForPage(ShellPage.Replace)]);
-        BeginDpReplaceFromHomeCommand = CreateCatalogCommand(
-            () => WorkflowSession.BeginWorkflowContext(ShellPage.Replace, DpReplaceMode, showNumber: true), DpReplaceMode);
         BeginCtrlRamReplaceFromHomeCommand = CreateCatalogCommand(
             () => WorkflowSession.BeginWorkflowContext(ShellPage.Replace, CtrlRamReplaceMode, showNumber: true), CtrlRamReplaceMode);
         BeginGeneralReplaceFromHomeCommand = CreateCatalogCommand(

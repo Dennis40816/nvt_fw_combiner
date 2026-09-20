@@ -18,10 +18,8 @@ public sealed partial class AuthoringInputSlotInspectionTests
         var query = new RecordingMetadataQuery(genericPlan);
         var resolver = new FirmwareMetadataPlanAuthorityResolver(query);
         ResolvedCapability standard = CreateCapability(ExperienceIds.StandardMerge);
-        ResolvedCapability dp = CreateCapability(ExperienceIds.DpReplace);
         ResolvedCapability ctrlRam = CreateCapability(ExperienceIds.CtrlRamReplace);
         FirmwareInspectionStatusBatch standardBatch = Batch(standard);
-        FirmwareInspectionStatusBatch dpBatch = Batch(dp);
         FirmwareInspectionStatusBatch ctrlRamBatch = Batch(ctrlRam);
 
         FirmwareMetadataPlanAuthority exactStandard = resolver.Resolve(
@@ -31,7 +29,6 @@ public sealed partial class AuthoringInputSlotInspectionTests
                 "dp.bin",
                 StandardMergeAddressSpaceId: CompositionAddressSpaceIds.DpInput),
             inputLength: 8,
-            FirmwareInspectionStatusBatch.Empty,
             standardBatch,
             FirmwareInspectionStatusBatch.Empty);
         Assert.Same(standard.MetadataPlan, exactStandard.Plan);
@@ -46,23 +43,9 @@ public sealed partial class AuthoringInputSlotInspectionTests
                 ExactCapability: standard),
             inputLength: 8,
             FirmwareInspectionStatusBatch.Empty,
-            FirmwareInspectionStatusBatch.Empty,
             FirmwareInspectionStatusBatch.Empty);
         Assert.True(rejectedRetained.IsApplicable);
         Assert.Null(rejectedRetained.Plan);
-        Assert.Empty(query.Calls);
-
-        FirmwareMetadataPlanAuthority exactDp = resolver.Resolve(
-            "NT-HEADLESS",
-            new FirmwareInspectionSnapshotInput(
-                "dp",
-                "base.bin",
-                DpReplaceAddressSpaceId: CompositionAddressSpaceIds.ReferenceBase),
-            inputLength: 8,
-            dpBatch,
-            FirmwareInspectionStatusBatch.Empty,
-            FirmwareInspectionStatusBatch.Empty);
-        Assert.Same(dp.MetadataPlan, exactDp.Plan);
         Assert.Empty(query.Calls);
 
         FirmwareMetadataPlanAuthority exactCtrlRamBase = resolver.Resolve(
@@ -72,7 +55,6 @@ public sealed partial class AuthoringInputSlotInspectionTests
                 "base.bin",
                 CtrlRamReplaceAddressSpaceId: CompositionAddressSpaceIds.ReferenceBase),
             inputLength: 8,
-            FirmwareInspectionStatusBatch.Empty,
             FirmwareInspectionStatusBatch.Empty,
             ctrlRamBatch);
         Assert.Same(genericPlan, exactCtrlRamBase.Plan);
@@ -89,7 +71,6 @@ public sealed partial class AuthoringInputSlotInspectionTests
                 CtrlRamReplaceAddressSpaceId: "replace-ctrlram-nf"),
             inputLength: 8,
             FirmwareInspectionStatusBatch.Empty,
-            FirmwareInspectionStatusBatch.Empty,
             ctrlRamBatch);
         Assert.Same(FirmwareMetadataPlanAuthority.NotApplicable, ctrlRamReplacement);
         Assert.Empty(query.Calls);
@@ -101,7 +82,6 @@ public sealed partial class AuthoringInputSlotInspectionTests
                 "ab.bin",
                 AbMergeAddressSpaceId: CompositionAddressSpaceIds.DpAbInput),
             inputLength: 8,
-            FirmwareInspectionStatusBatch.Empty,
             FirmwareInspectionStatusBatch.Empty,
             FirmwareInspectionStatusBatch.Empty);
         Assert.Same(FirmwareMetadataPlanAuthority.NotApplicable, ab);
@@ -115,7 +95,6 @@ public sealed partial class AuthoringInputSlotInspectionTests
                 CtrlRamReplaceAddressSpaceId: CompositionAddressSpaceIds.ReferenceBase),
             inputLength: 7,
             FirmwareInspectionStatusBatch.Empty,
-            FirmwareInspectionStatusBatch.Empty,
             FirmwareInspectionStatusBatch.Empty);
         Assert.Same(genericPlan, uncompiledCtrlRamBase.Plan);
         Assert.Equal(
@@ -126,7 +105,6 @@ public sealed partial class AuthoringInputSlotInspectionTests
             "NT-HEADLESS",
             new FirmwareInspectionSnapshotInput("generic", "base.bin"),
             inputLength: 8,
-            FirmwareInspectionStatusBatch.Empty,
             FirmwareInspectionStatusBatch.Empty,
             FirmwareInspectionStatusBatch.Empty);
         Assert.Same(genericPlan, generic.Plan);
@@ -145,7 +123,6 @@ public sealed partial class AuthoringInputSlotInspectionTests
             "NT-HEADLESS",
             new FirmwareInspectionSnapshotInput("ambiguous", "base.bin"),
             inputLength: 9,
-            FirmwareInspectionStatusBatch.Empty,
             FirmwareInspectionStatusBatch.Empty,
             FirmwareInspectionStatusBatch.Empty);
         Assert.Null(ambiguous.Plan);
@@ -172,7 +149,7 @@ public sealed partial class AuthoringInputSlotInspectionTests
         FirmwareMetadataPlanAuthority result = resolver.Resolve("NT-HEADLESS",
             new FirmwareInspectionSnapshotInput("base", "base.bin",
                 CtrlRamReplaceAddressSpaceId: CompositionAddressSpaceIds.ReferenceBase), 262144,
-            FirmwareInspectionStatusBatch.Empty, FirmwareInspectionStatusBatch.Empty,
+            FirmwareInspectionStatusBatch.Empty,
             Batch(CreateCapability(ExperienceIds.CtrlRamReplace)));
         Assert.True(result.IsApplicable);
         Assert.Null(result.Plan);
@@ -193,7 +170,7 @@ public sealed partial class AuthoringInputSlotInspectionTests
         FirmwareMetadataPlanAuthority result = resolver.Resolve("NT-HEADLESS",
             new FirmwareInspectionSnapshotInput("base", "base.bin",
                 CtrlRamReplaceAddressSpaceId: CompositionAddressSpaceIds.ReferenceBase), 8,
-            FirmwareInspectionStatusBatch.Empty, FirmwareInspectionStatusBatch.Empty, Batch(capability));
+            FirmwareInspectionStatusBatch.Empty, Batch(capability));
         Assert.True(result.IsApplicable);
         Assert.Same(capability.MetadataPlan, result.Plan);
         Assert.Empty(query.Calls);
@@ -212,7 +189,7 @@ public sealed partial class AuthoringInputSlotInspectionTests
         var resolver = new FirmwareMetadataPlanAuthorityResolver(query);
         FirmwareMetadataPlanAuthority result = resolver.Resolve("NT-HEADLESS",
             new FirmwareInspectionSnapshotInput("dp", "dp.bin", "tp.bin"), 8,
-            FirmwareInspectionStatusBatch.Empty, FirmwareInspectionStatusBatch.Empty, FirmwareInspectionStatusBatch.Empty);
+            FirmwareInspectionStatusBatch.Empty, FirmwareInspectionStatusBatch.Empty);
         Assert.Same(query.Result.MetadataPlan, result.Plan);
         Assert.Equal([new MetadataQueryCall("NT-HEADLESS", ExperienceIds.StandardMerge, "selector-free", 8)], query.Calls);
     }

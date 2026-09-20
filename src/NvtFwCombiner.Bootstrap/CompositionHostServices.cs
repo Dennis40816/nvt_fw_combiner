@@ -60,8 +60,6 @@ public sealed partial class CompositionHostServices
             externalEnvironment,
             GetEventBufferFormatConfigurationAsync);
         AbMergeAuthoring = abMergeAuthoring;
-        var dpReplaceAuthoring = new DpReplaceAuthoringExperience(compiler, catalog);
-        DpReplaceAuthoring = dpReplaceAuthoring;
         ExternalEnvironment = externalEnvironment ??
             throw new ArgumentNullException(nameof(externalEnvironment));
         GeneralAuthoring = new GeneralAuthoringExperience(
@@ -78,7 +76,6 @@ public sealed partial class CompositionHostServices
             projection,
             standardMergeAuthoring,
             abMergeAuthoring,
-            dpReplaceAuthoring,
             ctrlRamAuthoring,
             new FirmwareArtifactClassificationResolver(
                 catalog,
@@ -236,9 +233,6 @@ public sealed partial class CompositionHostServices
 
     /// <summary>Gets the focused AB Merge authoring owner.</summary>
     public IAbMergeAuthoring AbMergeAuthoring { get; }
-
-    /// <summary>Gets the focused DP Replace authoring owner.</summary>
-    public IDpReplaceAuthoring DpReplaceAuthoring { get; }
 
     /// <summary>Gets the focused General Merge and Replace authoring owner.</summary>
     public IGeneralAuthoring GeneralAuthoring { get; }

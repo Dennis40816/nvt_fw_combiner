@@ -15,7 +15,6 @@ public sealed partial class ShellNavigationSystemTests
             capabilities,
             current.StandardMergeAuthoring,
             current.AbMergeAuthoring,
-            current.DpReplaceAuthoring,
             current.GeneralAuthoring,
             current.CtrlRamAuthoring,
             current.FirmwareInspection,

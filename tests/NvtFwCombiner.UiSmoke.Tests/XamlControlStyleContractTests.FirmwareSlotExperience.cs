@@ -228,11 +228,8 @@ public sealed partial class XamlControlStyleContractTests
             generalMappingFileCount: 0);
         string[] localizedGuidance =
         [
-            text.GetReplaceMemorySummary(ExperienceIds.DpReplace),
             text.GetReplaceMemorySummary(ExperienceIds.CtrlRamReplace),
             text.GetReplaceMemorySummary(ExperienceIds.GeneralReplace),
-            text.GetReplaceReadinessStatus(ExperienceIds.DpReplace, canRun: true),
-            text.GetReplaceReadinessStatus(ExperienceIds.DpReplace, canRun: false),
             text.GetReplaceReadinessStatus(ExperienceIds.CtrlRamReplace, canRun: true),
             text.GetReplaceReadinessStatus(ExperienceIds.CtrlRamReplace, canRun: false),
             text.GetReplaceReadinessStatus(ExperienceIds.GeneralReplace, canRun: true),

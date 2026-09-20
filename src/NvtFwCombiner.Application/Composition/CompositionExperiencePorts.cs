@@ -42,9 +42,6 @@ public interface ICompositionCapabilityExperience
     /// <summary>Gets catalog counts for startup and Settings disclosure.</summary>
     CapabilityCatalogSummary GetCatalogSummary();
 
-    /// <summary>Gets current DP Replace Reference capacity disclosure.</summary>
-    string? GetDpReplaceReferenceCapacityLabel(string icId);
-
     /// <summary>Gets authorable AB Merge profiles.</summary>
     IReadOnlyList<CapabilityProfileSummary> GetAbMergeProfileSummaries();
 
@@ -56,9 +53,6 @@ public interface ICompositionCapabilityExperience
 
     /// <summary>Returns whether the current publication declares the IC.</summary>
     bool IsKnownIcId(string icId);
-
-    /// <summary>Gets authorable DP Replace profiles.</summary>
-    IReadOnlyList<CapabilityProfileSummary> GetDpReplaceProfileSummaries();
 
     /// <summary>Gets Replace readiness from canonical publication.</summary>
     CapabilityWorkflowReadiness GetReplaceWorkflowReadiness(
@@ -163,24 +157,6 @@ public interface IAbMergeAuthoring
     ValueTask<CapabilityActionReadinessSnapshot?> GetActionReadinessAsync(
         ActiveSessionSnapshot acceptedSession,
         CancellationToken cancellationToken);
-}
-
-/// <summary>Focused DP Replace authoring operations over one canonical workflow owner.</summary>
-public interface IDpReplaceAuthoring
-{
-    /// <summary>Projects exact selection readiness.</summary>
-    CompiledAuthoringSelectionSnapshot GetAuthoringSnapshot(
-        string icId,
-        IReadOnlyCollection<string> selectedSlotIds,
-        IReadOnlyDictionary<string, FileStamp> acceptedFileStamps,
-        AuthoringRevision authoringRevision,
-        ActiveSessionSnapshot? retainedSession = null);
-
-    /// <summary>Prepares one exact accepted session from immutable inputs.</summary>
-    CompiledAuthoringSessionPreparation PrepareSession(
-        AuthoringSessionState session,
-        string icId,
-        IReadOnlyCollection<CompiledAuthoringSelectedInput> inputs);
 }
 
 /// <summary>Focused General Merge and General Replace authoring owner.</summary>

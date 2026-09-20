@@ -26,7 +26,7 @@ public sealed class MemoryCoverageLegendTests
     public async Task Nt51950AbLegendCoalescesBanksAndPostbuildImports(bool darkChinese)
     {
         using var workspace = TempWorkspace.Create("ab-content-legend");
-        PresentationHostServices services = await CreateServicesAsync(workspace, useRetainedDpReplacePolicy: false);
+        PresentationHostServices services = await CreateServicesAsync(workspace);
         using var window = new MainWindow(UiLaunchOptions.Empty, StartupTraceSession.Disabled,
             services, ShellPreferenceSnapshot.Default)
         { Width = 1920, Height = 1032, RequestedThemeVariant = darkChinese ? ThemeVariant.Dark : ThemeVariant.Light };
@@ -117,7 +117,7 @@ public sealed class MemoryCoverageLegendTests
         using var workspace = TempWorkspace.Create("memory-legend");
         using var golden = StandardMergeGoldenManifest.Load();
         System.Text.Json.JsonElement inputs = golden.CaseByIc("51928").GetProperty("inputs");
-        PresentationHostServices services = await CreateServicesAsync(workspace, useRetainedDpReplacePolicy: replace);
+        PresentationHostServices services = await CreateServicesAsync(workspace);
         using var window = new MainWindow(UiLaunchOptions.Empty, StartupTraceSession.Disabled,
             services, ShellPreferenceSnapshot.Default)
         { Width = 1180, Height = 1040, RequestedThemeVariant = darkChinese ? ThemeVariant.Dark : ThemeVariant.Light };
@@ -128,16 +128,20 @@ public sealed class MemoryCoverageLegendTests
             MainWindowViewModel shell = Assert.IsType<MainWindowViewModel>(window.DataContext);
             if (replace) { shell.ShowReplaceCommand.Execute(null); }
             else { shell.ShowMergeCommand.Execute(null); }
-            shell.WorkflowSession.SelectedIc = "NT51928";
-            if (replace) { shell.Replace.SelectedReplaceMode = ExperienceIds.DpReplace; }
+            shell.WorkflowSession.SelectedIc = replace ? "NT51950" : "NT51928";
+            if (replace) { shell.Replace.SelectedReplaceMode = ExperienceIds.CtrlRamReplace; }
             else { shell.Merge.SelectedMergeMode = ExperienceIds.StandardMerge; }
             if (darkChinese) { shell.SelectedLanguage = "Traditional Chinese"; }
             (string, string)[] selectedInputs = replace
-                ? [(CompositionSlotIds.ReplaceBase, "dp-input"), (CompositionSlotIds.ReplaceDp, "dp-input")]
+                ? [(CompositionSlotIds.ReplaceBase, "reference"), ("replace-ctrlram-normal", "normal")]
                 : [(CompositionSlotIds.MergeDp, "dp-input"), (CompositionSlotIds.MergeTp, "tp-input"), (CompositionSlotIds.MergeLdc, "ldc-input")];
             foreach ((string slot, string artifact) in selectedInputs)
             {
-                await shell.WorkflowSession.SetSlotFileAsync(slot, golden.ManifestPath(inputs.GetProperty(artifact)),
+                string path = replace
+                    ? workspace.Write($"{artifact}.bin", artifact == "reference"
+                        ? ShellViewModelTestBase.ReadCtrlRamReference() : ShellViewModelTestBase.ReadCtrlRamNormalSource())
+                    : golden.ManifestPath(inputs.GetProperty(artifact));
+                await shell.WorkflowSession.SetSlotFileAsync(slot, path,
                     TestContext.Current.CancellationToken);
             }
             Render();

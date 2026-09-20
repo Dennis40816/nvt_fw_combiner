@@ -78,7 +78,7 @@ public sealed partial class RepositoryBoundaryTests
             inspectionSlots,
             StringComparison.Ordinal);
         Assert.Contains(
-            "{ IsDpReplace: true } or { IsCtrlRamReplace: true } =>",
+            "{ IsCtrlRamReplace: true } =>",
             inspectionSlots,
             StringComparison.Ordinal);
         Assert.Contains(

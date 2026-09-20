@@ -498,12 +498,6 @@ public sealed partial class FirmwareInspectionSnapshotTests
             throw new InvalidDataException("Synthetic malformed dynamic compilation.");
         }
 
-        public void CompileDefinition(string icId, string workflowId, long? requestedMapCapacity,
-            IReadOnlyCollection<string>? selectedInputSlotIds, out CompiledComposition? composition,
-            out IReadOnlyList<CompositionIssue> issues)
-        {
-            throw new InvalidDataException("Synthetic malformed dynamic compilation.");
-        }
     }
 
     private sealed class IncompleteDynamicCompilationAdapter(
@@ -542,12 +536,6 @@ public sealed partial class FirmwareInspectionSnapshotTests
                 requestedTopology);
         }
 
-        public void CompileDefinition(string icId, string workflowId, long? requestedMapCapacity,
-            IReadOnlyCollection<string>? selectedInputSlotIds, out CompiledComposition? composition,
-            out IReadOnlyList<CompositionIssue> issues)
-        {
-            inner.CompileDefinition(icId, workflowId, requestedMapCapacity, [], out composition, out issues);
-        }
     }
 
     private sealed class RolloverDynamicCompilationAdapter(
@@ -597,17 +585,6 @@ public sealed partial class FirmwareInspectionSnapshotTests
             }
         }
 
-        public void CompileDefinition(string icId, string workflowId, long? requestedMapCapacity,
-            IReadOnlyCollection<string>? selectedInputSlotIds, out CompiledComposition? composition,
-            out IReadOnlyList<CompositionIssue> issues)
-        {
-            inner.CompileDefinition(icId, workflowId, requestedMapCapacity, selectedInputSlotIds,
-                out composition, out issues);
-            if (Interlocked.Increment(ref _rolloverCalls) == 1)
-            {
-                rollover();
-            }
-        }
     }
 
     private static byte[] ReadOnce(
@@ -639,13 +616,6 @@ public sealed partial class FirmwareInspectionSnapshotTests
                 new("ab-tp-b", "ab-tp-b.bin", AbMergeAddressSpaceId: CompositionAddressSpaceIds.TpBInput),
             ],
             Images(("ab-dp.bin", 0x80000), ("ab-tp-a.bin", 0x40000), ("ab-tp-b.bin", 0x40000)));
-        yield return (
-            "NT51928",
-            [
-                new("dp-base", "dp-base.bin", DpReplaceAddressSpaceId: CompositionAddressSpaceIds.ReferenceBase),
-                new("dp-replacement", "dp-replacement.bin", DpReplaceAddressSpaceId: CompositionAddressSpaceIds.InitialCodeReplacement),
-            ],
-            Images(("dp-base.bin", 0x40000), ("dp-replacement.bin", 0x40000)));
         yield return (
             "NT51926",
             [new(
@@ -682,7 +652,6 @@ public sealed partial class FirmwareInspectionSnapshotTests
             BootstrapTestHost.Canonical.Projection,
             (StandardMergeAuthoringExperience)services.StandardMergeAuthoring,
             (AbMergeAuthoringExperience)services.AbMergeAuthoring,
-            (DpReplaceAuthoringExperience)services.DpReplaceAuthoring,
             (CtrlRamAuthoringExperience)services.CtrlRamAuthoring,
             new FirmwareArtifactClassificationResolver(catalog, services.Compiler),
             contentInspector);

@@ -47,7 +47,7 @@ public sealed partial class RepositoryBoundaryTests
         string root = ReadText("src/NvtFwCombiner.Cli/ReplaceCliCommandHandler.cs");
 
         Assert.Contains("internal static async Task<int> RunAsync", root, StringComparison.Ordinal);
-        Assert.Contains("RunDpReplaceAsync", root, StringComparison.Ordinal);
+        Assert.DoesNotContain("RunDpReplaceAsync", root, StringComparison.Ordinal);
         Assert.Contains("RunCtrlRamReplaceAsync", root, StringComparison.Ordinal);
         Assert.Contains("RunGeneralReplaceAsync", root, StringComparison.Ordinal);
         Assert.DoesNotContain("RunWorkbench", root, StringComparison.Ordinal);
@@ -110,55 +110,40 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("private static async Task PrintCompositionRunResultAsync", report, StringComparison.Ordinal);
     }
 
-    /// <summary>Verifies DP Replace IC facts come from the trusted V2 registrations instead of a legacy C# catalog.</summary>
+    /// <summary>Verifies surviving Replace reaches the shared engine from the trusted V2 bundle, not legacy profiles.</summary>
     [Fact]
-    public void BootstrapProjectsDpReplaceIcFactsFromV2Registrations()
-    {
-        string bootstrapSource = string.Concat(
-            ReadText("src/NvtFwCombiner.Cli/ReplaceCliCommandHandler.Dp.cs"),
-            ReadText("src/NvtFwCombiner.Application/Composition/CompositionExecutionExperience.cs"));
-
-        Assert.Contains("GetDpReplaceProfileSummaries()", bootstrapSource, StringComparison.Ordinal);
-        Assert.DoesNotContain("NT51950/NT51951", bootstrapSource, StringComparison.Ordinal);
-        Assert.DoesNotContain("NT51950", bootstrapSource, StringComparison.Ordinal);
-        Assert.DoesNotContain("Nt51950", bootstrapSource, StringComparison.Ordinal);
-        Assert.DoesNotContain("NT51928", bootstrapSource, StringComparison.Ordinal);
-    }
-
-    /// <summary>Verifies supported DP Replace reaches the shared engine from the trusted V2 bundle, not legacy profiles.</summary>
-    [Fact]
-    public void BootstrapRoutesSupportedDpReplaceThroughTrustedV2Artifacts()
+    public void BootstrapRoutesSurvivingReplaceThroughAcceptedV2Artifacts()
     {
         string replaceDp = ReadText("src/NvtFwCombiner.Application/Composition/CompositionExecutionExperience.cs");
         string sharedExecution = replaceDp;
         string capabilityResolution = ReadText(
-            "src/NvtFwCombiner.Application/Capabilities/CanonicalCapabilityCompiler.DpReplace.cs");
+            "src/NvtFwCombiner.Application/Capabilities/CanonicalCapabilityCompiler.cs");
         string v2Resolution = ReadText(
-            "src/NvtFwCombiner.Application/Authoring/DpReplaceAuthoringExperience.cs");
+            "src/NvtFwCombiner.Application/Authoring/CtrlRamAuthoringExperience.cs");
         string memoryLayout = ReadText("src/NvtFwCombiner.Application/MemoryLayout/MemoryLayoutProjector.cs");
         string replaceCli = string.Concat(
-            ReadText("src/NvtFwCombiner.Cli/ReplaceCliCommandHandler.Dp.cs"),
+            ReadText("src/NvtFwCombiner.Cli/ReplaceCliCommandHandler.CtrlRam.cs"),
             ReadText("src/NvtFwCombiner.Cli/ReplaceCliCommandHandler.RunSupport.cs"));
         string bundle = ReadText("src/NvtFwCombiner.Infrastructure/Composition/BuiltInV2Bundle.cs");
         string registrations = ReadText("src/NvtFwCombiner.Infrastructure/Composition/BuiltInV2RegistrationRegistry.cs");
         string packageTrustIndex = ReadText("profiles/built-in/package-trust-index.json");
 
-        Assert.Contains("TryCompileDpReplace", capabilityResolution, StringComparison.Ordinal);
+        Assert.DoesNotContain("TryCompileDpReplace", capabilityResolution, StringComparison.Ordinal);
         Assert.Contains("ExecuteAcceptedCompositionAsync", replaceDp, StringComparison.Ordinal);
         Assert.Equal(2, CountOccurrences(sharedExecution, "AcceptedSessionExecutionInputs.CreateBindings"));
         Assert.DoesNotContain("CompiledCompositionInputBindingFactory.Create", replaceDp, StringComparison.Ordinal);
         Assert.DoesNotContain("BuiltInReplaceProfiles", replaceDp, StringComparison.Ordinal);
         Assert.DoesNotContain("CompositionProfileCompiler", replaceDp, StringComparison.Ordinal);
-        Assert.Contains("services.DpReplaceAuthoring.PrepareSession", replaceCli, StringComparison.Ordinal);
+        Assert.Contains("services.CtrlRamAuthoring.PrepareSession", replaceCli, StringComparison.Ordinal);
         Assert.DoesNotContain("TryResolveBuiltInV2DpReplaceSelector", replaceCli, StringComparison.Ordinal);
         Assert.DoesNotContain("BuiltInReplaceProfiles", replaceCli, StringComparison.Ordinal);
         Assert.DoesNotContain("CompositionProfileDefinition", replaceCli, StringComparison.Ordinal);
-        Assert.Contains("ExperienceIds.DpReplace", registrations, StringComparison.Ordinal);
+        Assert.DoesNotContain("ExperienceIds.DpReplace", registrations, StringComparison.Ordinal);
         Assert.Contains(
             "nt51950-nt51951-standard-merge",
             packageTrustIndex,
             StringComparison.Ordinal);
-        Assert.Contains("TryResolveDpReplaceContracts", v2Resolution, StringComparison.Ordinal);
+        Assert.Contains("TryPrepareSession", v2Resolution, StringComparison.Ordinal);
         Assert.Contains("CompositionPlan plan = composition.Plan", memoryLayout, StringComparison.Ordinal);
         Assert.Contains("plan.OrderedOperations", memoryLayout, StringComparison.Ordinal);
         Assert.DoesNotContain("DpPerspectiveCatalog", memoryLayout, StringComparison.Ordinal);
@@ -454,7 +439,7 @@ public sealed partial class RepositoryBoundaryTests
         string bootstrapSource = ReadBootstrapSources();
         string infrastructureComposition = ReadInfrastructureCompositionSources();
 
-        Assert.Contains("ExperienceIds.DpReplace", infrastructureComposition, StringComparison.Ordinal);
+        Assert.DoesNotContain("ExperienceIds.DpReplace", infrastructureComposition, StringComparison.Ordinal);
         Assert.Contains("ExperienceIds.CtrlRamReplace", infrastructureComposition, StringComparison.Ordinal);
         Assert.Contains("ExperienceIds.GeneralReplace", infrastructureComposition, StringComparison.Ordinal);
         Assert.DoesNotContain("ExperienceIds.", bootstrapSource, StringComparison.Ordinal);
@@ -475,12 +460,13 @@ public sealed partial class RepositoryBoundaryTests
         foreach (string prefix in new[]
         {
             "ui", "ui-merge-general", "ui-merge-ab",
-            "ui-replace-dp", "ui-replace-ctrlram", "ui-replace-general",
+            "ui-replace-ctrlram", "ui-replace-general",
         })
         {
             Assert.Equal(1, CountOccurrences(runner, $"\"{prefix}\""));
         }
         Assert.DoesNotContain("private static string CreateWorkbenchReportRunId", runner, StringComparison.Ordinal);
+        Assert.DoesNotContain("ui-replace-dp", runner, StringComparison.Ordinal);
         Assert.DoesNotContain("CreateBlockedCompositionRunResult", bootstrapSource, StringComparison.Ordinal);
         Assert.DoesNotContain("CreateReplaceReadinessOnlyResult", bootstrapSource, StringComparison.Ordinal);
         Assert.False(File.Exists(Path.Combine(

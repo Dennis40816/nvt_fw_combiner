@@ -12,9 +12,6 @@ internal static class BootstrapTestHost
     internal static CompositionHostServices ProductServices { get; } =
         CreateProductServices();
 
-    internal static CompositionHostServices RetainedDpReplaceServices { get; } =
-        Services;
-
     internal static CanonicalTestContext Canonical { get; } = new(Services);
 
     internal static CanonicalTestContext ProductCanonical { get; } = new(ProductServices);
@@ -23,7 +20,7 @@ internal static class BootstrapTestHost
     {
         var services = CompositionHostServices.Create(
             CreateExternalEnvironmentLoader(),
-            NvtFwCombiner.TestSupport.RetainedDpReplaceRegressionPolicy.Load);
+            NvtFwCombiner.Infrastructure.Capabilities.BuiltInCanonicalCapabilityPolicy.Load);
         return services.ExternalEnvironmentLoader
             .LoadToCompletionAsync(null, CancellationToken.None)
             .GetAwaiter().GetResult().Succeeded

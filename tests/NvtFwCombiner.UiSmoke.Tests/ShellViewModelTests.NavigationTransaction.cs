@@ -201,9 +201,9 @@ public sealed partial class ShellNavigationSystemTests
         Assert.Equal(retainedState, retainedInspection.State);
     }
 
-    /// <summary>A failed first DP snapshot read cannot publish any part of the refreshed catalog state.</summary>
+    /// <summary>A failed first CtrlRAM discovery read cannot publish any part of the refreshed catalog state.</summary>
     [Fact]
-    public async Task CatalogDpSnapshotFirstReadFailureKeepsCompleteReplaceState()
+    public async Task CatalogCtrlRamSnapshotFirstReadFailureKeepsCompleteReplaceState()
     {
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-dp-refresh-first-read");
         var policy = new MutableAbCatalogPolicy();
@@ -214,14 +214,14 @@ public sealed partial class ShellNavigationSystemTests
         CapabilitySelectorPublication original = services.Composition.Capabilities
             .GetSelectorPublication();
         viewModel.ShowReplaceCommand.Execute(null);
-        viewModel.WorkflowSession.SelectedIc = "NT51928";
-        viewModel.Replace.SelectedReplaceMode = ExperienceIds.DpReplace;
+        viewModel.WorkflowSession.SelectedIc = "NT51950";
+        viewModel.Replace.SelectedReplaceMode = ExperienceIds.CtrlRamReplace;
         viewModel.SetSlotFile(
             CompositionSlotIds.ReplaceBase,
-            workspace.Write("reference.bin", new byte[0x40000]));
+            workspace.Write("reference.bin", ReadCtrlRamReference()));
         viewModel.SetSlotFile(
-            CompositionSlotIds.ReplaceDp,
-            workspace.Write("initial-code.bin", CreatePattern(0x40000, 0x41)));
+            "replace-ctrlram-normal",
+            workspace.Write("initial-code.bin", ReadCtrlRamNormalSource()));
         await viewModel.Replace.Inspection.ActiveTask.WaitAsync(
             TimeSpan.FromSeconds(10),
             TestContext.Current.CancellationToken);
@@ -231,25 +231,25 @@ public sealed partial class ShellNavigationSystemTests
             .Select(static slot => slot.FilePath!)];
         bool retainedCanBuild = viewModel.Replace.CanBuildReplace;
         policy.DisableAbFor(original.AbMergeIcIds[0]);
-        sentinel.ArmDpFailure(nameof(IDpReplaceAuthoring.GetAuthoringSnapshot));
+        sentinel.ArmCtrlRamFailure(nameof(ICtrlRamAuthoring.GetDiscoveryDisplay));
 
         InvalidOperationException failure = await Assert.ThrowsAsync<InvalidOperationException>(
             () => viewModel.MessageCenter.RefreshCommand.ExecuteAsync(null));
 
-        Assert.Equal("Injected GetAuthoringSnapshot failure.", failure.Message);
+        Assert.Equal("Injected GetDiscoveryDisplay failure.", failure.Message);
         Assert.Equal(retainedToken, viewModel.WorkflowSession.SelectorResolutionToken);
-        Assert.Equal("NT51928", viewModel.WorkflowSession.SelectedIc);
-        Assert.Equal(ExperienceIds.DpReplace, viewModel.Replace.SelectedReplaceMode);
+        Assert.Equal("NT51950", viewModel.WorkflowSession.SelectedIc);
+        Assert.Equal(ExperienceIds.CtrlRamReplace, viewModel.Replace.SelectedReplaceMode);
         Assert.Equal(retainedPaths, viewModel.Replace.ReplaceSlots
             .Where(static slot => slot.HasFile)
             .Select(static slot => slot.FilePath));
         Assert.Equal(retainedCanBuild, viewModel.Replace.CanBuildReplace);
-        Assert.Equal(1, sentinel.ArmedCallCounts[DpReplaceAuthoringPortIndex]);
+        Assert.Equal(1, sentinel.ArmedCallCounts[CtrlRamAuthoringPortIndex]);
     }
 
-    /// <summary>Slot construction and readiness consume one staged DP snapshot; a second read is forbidden.</summary>
+    /// <summary>Slot construction and readiness consume one staged CtrlRAM discovery; a second read is forbidden.</summary>
     [Fact]
-    public async Task CatalogDpRefreshUsesExactlyOneSnapshotForRetainedSelections()
+    public async Task CatalogCtrlRamRefreshUsesExactlyOneSnapshotForRetainedSelections()
     {
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-dp-refresh-single-read");
         var policy = new MutableAbCatalogPolicy();
@@ -260,29 +260,29 @@ public sealed partial class ShellNavigationSystemTests
         CapabilitySelectorPublication original = services.Composition.Capabilities
             .GetSelectorPublication();
         viewModel.ShowReplaceCommand.Execute(null);
-        viewModel.WorkflowSession.SelectedIc = "NT51928";
-        viewModel.Replace.SelectedReplaceMode = ExperienceIds.DpReplace;
+        viewModel.WorkflowSession.SelectedIc = "NT51950";
+        viewModel.Replace.SelectedReplaceMode = ExperienceIds.CtrlRamReplace;
         viewModel.SetSlotFile(
             CompositionSlotIds.ReplaceBase,
-            workspace.Write("reference.bin", new byte[0x40000]));
+            workspace.Write("reference.bin", ReadCtrlRamReference()));
         viewModel.SetSlotFile(
-            CompositionSlotIds.ReplaceDp,
-            workspace.Write("initial-code.bin", CreatePattern(0x40000, 0x51)));
+            "replace-ctrlram-normal",
+            workspace.Write("initial-code.bin", ReadCtrlRamNormalSource()));
         await viewModel.Replace.Inspection.ActiveTask.WaitAsync(
             TimeSpan.FromSeconds(10),
             TestContext.Current.CancellationToken);
         policy.DisableAbFor(original.AbMergeIcIds[0]);
-        sentinel.ArmDpFailure(nameof(IDpReplaceAuthoring.GetAuthoringSnapshot), invocation: 2);
+        sentinel.ArmCtrlRamFailure(nameof(ICtrlRamAuthoring.GetDiscoveryDisplay), invocation: 2);
 
         await viewModel.MessageCenter.RefreshCommand.ExecuteAsync(null);
 
-        Assert.Equal(1, sentinel.ArmedCallCounts[DpReplaceAuthoringPortIndex]);
-        Assert.Equal("NT51928", viewModel.WorkflowSession.SelectedIc);
-        Assert.Equal(ExperienceIds.DpReplace, viewModel.Replace.SelectedReplaceMode);
+        Assert.Equal(1, sentinel.ArmedCallCounts[CtrlRamAuthoringPortIndex]);
+        Assert.Equal("NT51950", viewModel.WorkflowSession.SelectedIc);
+        Assert.Equal(ExperienceIds.CtrlRamReplace, viewModel.Replace.SelectedReplaceMode);
         Assert.Contains(viewModel.Replace.ReplaceSlots, static slot =>
             slot.SlotId == CompositionSlotIds.ReplaceBase && slot.HasFile);
         Assert.Contains(viewModel.Replace.ReplaceSlots, static slot =>
-            slot.SlotId == CompositionSlotIds.ReplaceDp && slot.HasFile);
+            slot.SlotId == "replace-ctrlram-normal" && slot.HasFile);
     }
 
     /// <summary>Clearing a hidden General Merge page performs no authoring call with the destination IC.</summary>
@@ -325,7 +325,7 @@ public sealed partial class ShellNavigationSystemTests
 
         Assert.True(viewModel.IsReplaceVisible);
         Assert.Equal(expectedReplaceIc, viewModel.WorkflowSession.SelectedIc);
-        Assert.Equal(0, sentinel.ArmedCallCounts[3]);
+        Assert.Equal(0, sentinel.ArmedCallCounts[2]);
         Assert.All(viewModel.Merge.GeneralMergeMappings, static mapping => Assert.False(mapping.HasFile));
     }
 

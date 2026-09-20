@@ -287,8 +287,41 @@ public sealed class BuiltInV2StandardMergeRoutingTests
                 .Select(static bundle => bundle.BundleDirectory)
                 .Order(StringComparer.Ordinal),
         ];
-        Assert.NotEmpty(bundleDirectories);
+        string[] expectedBundles =
+        [
+            "nt51917-ctrlram-replace-alias-candidate", "nt51917-nt51927-general-merge-logical-candidate",
+            "nt51917-nt51927-shared-facts", "nt51919-nt51929-nt51932-ab-merge",
+            "nt51919-nt51929-nt51932-general-merge-logical-candidate", "nt51919-nt51929-nt51932-shared-facts",
+            "nt51923-ctrlram-replace-candidate", "nt51923-nt51926-general-merge-logical-candidate",
+            "nt51923-nt51926-shared-facts", "nt51923-standard-merge", "nt51926-ctrlram-replace-candidate",
+            "nt51927-ctrlram-replace-candidate", "nt51927-standard-merge", "nt51928-ctrlram-replace-candidate",
+            "nt51928-general-merge-logical-candidate", "nt51928-standard-merge", "nt51929-ctrlram-replace-candidate",
+            "nt51929-standard-merge", "nt51932-ctrlram-replace-candidate", "nt51950-ab-merge",
+            "nt51950-ctrlram-replace-candidate", "nt51950-nt51951-general-merge-logical-candidate",
+            "nt51950-nt51951-standard-merge", "nt51951-ctrlram-replace-candidate",
+        ];
+        Assert.Equal(expectedBundles, bundleDirectories);
+        foreach (string root in new[] { builtInRoot, materializedBuiltInRoot, deployedBuiltInRoot })
+        {
+            Assert.Equal(expectedBundles, Directory.EnumerateDirectories(root)
+                .Where(static directory => File.Exists(Path.Combine(directory, "profile-bundle.json")))
+                .Select(static directory => Path.GetFileName(directory)).Order(StringComparer.Ordinal));
+        }
+        foreach (string retired in new[]
+        {
+            "nt51923-dp-replace", "nt51927-dp-replace", "nt51928-dp-replace",
+            "nt51929-dp-replace", "nt51950-nt51951-dp-replace",
+        })
+        {
+            Assert.False(Directory.Exists(Path.Combine(materializedBuiltInRoot, retired)));
+            string deployedRetiredRoot = Path.Combine(deployedBuiltInRoot, retired);
+            if (Directory.Exists(deployedRetiredRoot))
+            {
+                Assert.Empty(Directory.EnumerateFiles(deployedRetiredRoot, "*", SearchOption.AllDirectories));
+            }
+        }
 
+        List<string> deployedFiles = ["package-trust-index.json", "ctrlram-postbuild-v2/catalog.json", "ctrlram-postbuild-v2/flash-map.json"];
         foreach (string bundleDirectory in bundleDirectories)
         {
             string sourceBundleRoot = Path.Combine(builtInRoot, bundleDirectory);
@@ -306,6 +339,13 @@ public sealed class BuiltInV2StandardMergeRoutingTests
                 Directory.Exists(Path.Combine(sourceBundleRoot, "schemas")),
                 $"Source bundle must not be used as a runtime root: {sourceBundleRoot}");
             JsonElement[] entries = [.. manifest.RootElement.GetProperty("entries").EnumerateArray()];
+            string[] expectedFiles = ["profile-bundle.json", .. entries.Select(static entry => entry.GetProperty("path").GetString()!)];
+            deployedFiles.AddRange(expectedFiles.Select(file => $"{bundleDirectory}/{file}"));
+            foreach (string root in new[] { materializedRoot, deployedRoot })
+            {
+                Assert.Equal(expectedFiles.Order(StringComparer.Ordinal), Directory.EnumerateFiles(root, "*", SearchOption.AllDirectories)
+                    .Select(file => Path.GetRelativePath(root, file).Replace('\\', '/')).Order(StringComparer.Ordinal));
+            }
             Assert.Contains(
                 entries,
                 static entry => StringComparer.Ordinal.Equals(entry.GetProperty("kind").GetString(), "schema"));
@@ -337,6 +377,8 @@ public sealed class BuiltInV2StandardMergeRoutingTests
                 bundleDirectory,
                 manifest.RootElement.GetProperty("contentHash").GetString()!);
         }
+        Assert.Equal(deployedFiles.Order(StringComparer.Ordinal), Directory.EnumerateFiles(deployedBuiltInRoot, "*", SearchOption.AllDirectories)
+            .Select(file => Path.GetRelativePath(deployedBuiltInRoot, file).Replace('\\', '/')).Order(StringComparer.Ordinal));
     }
 
     /// <summary>Verifies the second bundle reaches the shared engine with original input trace names.</summary>

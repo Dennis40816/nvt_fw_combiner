@@ -67,28 +67,6 @@ internal sealed class CompositionExecutionExperience : ICompositionExecution
                 cancellationToken);
     }
 
-    internal ValueTask<CompositionRunResult> ExecuteDpReplaceAsync(
-        AcceptedCompositionExecutionRequest request,
-        CompositionRunProgressFeed progress,
-        CancellationToken cancellationToken)
-    {
-        ResolvedCapability capability = AcceptedSessionExecutionInputs.RequireCapability(request.AcceptedSession, ExperienceIds.DpReplace, request.IcId, AuthoringDerivedResultKind.Inspection);
-        return ExecuteAcceptedCompositionAsync(
-            "ui-replace-dp",
-            request,
-            capability,
-            progress,
-            CompositionAddressSpaceIds.ReferenceBase,
-            externalProcessor: null,
-            capability.DpExecutionPlan?.IcNumberSelection ??
-                throw new InvalidOperationException(
-                    "Accepted DP Replace capability has no execution selection."),
-            abMergeTopologySelection: null,
-            additionalProtectedPaths: [],
-            additionalDelivery: null,
-            cancellationToken);
-    }
-
     internal async ValueTask<CompositionRunResult> ExecuteAbMergeAsync(
         AcceptedCompositionExecutionRequest request,
         CompositionRunProgressFeed progress,

@@ -282,11 +282,11 @@ public sealed partial class RepositoryBoundaryTests
             "src/NvtFwCombiner.Application/Authoring/GeneralMergeDraftState.cs");
 
         Assert.Equal(3, CountOccurrences(mergeState, "new(ExperienceIds."));
-        Assert.Equal(3, CountOccurrences(replaceState, "new(ExperienceIds."));
+        Assert.Equal(2, CountOccurrences(replaceState, "new(ExperienceIds."));
         Assert.Contains("ExperienceIds.StandardMerge", mergeState, StringComparison.Ordinal);
         Assert.Contains("ExperienceIds.AbMerge", mergeState, StringComparison.Ordinal);
         Assert.Contains("ExperienceIds.GeneralMerge", mergeState, StringComparison.Ordinal);
-        Assert.Contains("ExperienceIds.DpReplace", replaceState, StringComparison.Ordinal);
+        Assert.DoesNotContain("ExperienceIds.DpReplace", replaceState, StringComparison.Ordinal);
         Assert.Contains("ExperienceIds.CtrlRamReplace", replaceState, StringComparison.Ordinal);
         Assert.Contains("ExperienceIds.GeneralReplace", replaceState, StringComparison.Ordinal);
         Assert.Equal(0, CountOccurrences(rangeCodec, "GetEndInclusive("));

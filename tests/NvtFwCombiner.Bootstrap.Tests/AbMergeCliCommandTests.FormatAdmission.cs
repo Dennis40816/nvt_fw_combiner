@@ -49,7 +49,7 @@ public sealed partial class AbMergeCliCommandTests
             }
         });
         var services = new CliCompositionServices(host.CompositionCapabilityExperience, host.SavedRuleAuthoring,
-            host.StandardMergeAuthoring, host.AbMergeAuthoring, host.DpReplaceAuthoring, host.CtrlRamAuthoring,
+            host.StandardMergeAuthoring, host.AbMergeAuthoring, host.CtrlRamAuthoring,
             host.GeneralAuthoring, host.CompositionOutputNaming, changingExecution);
         using var output = new StringWriter();
         using var error = new StringWriter();

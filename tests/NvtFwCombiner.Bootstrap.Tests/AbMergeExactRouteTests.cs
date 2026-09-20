@@ -60,18 +60,6 @@ public sealed class AbMergeExactRouteTests
             route.CompilationContract.AllowedMapVariantIds);
     }
 
-    /// <summary>The prepublication DP probe cannot be reused to bypass exact AB selection.</summary>
-    [Fact]
-    public void DefinitionProbeRejectsAbWithoutSynthesizingCommon()
-    {
-        var adapter = new BuiltInV2DynamicCompilationAdapter();
-        adapter.CompileDefinition("NT51951", ExperienceIds.AbMerge, null, [],
-            out CompiledComposition? composition, out IReadOnlyList<CompositionIssue> issues);
-
-        Assert.Null(composition);
-        Assert.Equal(CapabilityCatalogIssueCodes.RouteUnavailable, Assert.Single(issues).Code);
-    }
-
     /// <summary>A static registration retains its exact individual map identity, not just matching capacity.</summary>
     [Theory]
     [InlineData("nt51929-standard-merge-256k", true)]

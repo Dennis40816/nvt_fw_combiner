@@ -34,7 +34,7 @@ public sealed class HeadlessCanonicalConvergenceTests
         ];
 
         (string[] missing, string[] unexpected) = Compare(expected, actual);
-        Assert.Equal(93, expected.Length);
+        Assert.Equal(79, expected.Length);
         Assert.Equal(expected.Length, expected.Distinct(StringComparer.Ordinal).Count());
         Assert.True(
             missing.Length == 0 && unexpected.Length == 0,

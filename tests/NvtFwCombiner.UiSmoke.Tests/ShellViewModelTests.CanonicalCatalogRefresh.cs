@@ -7,7 +7,6 @@ using NvtFwCombiner.Application.Capabilities;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Presentation.Avalonia;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
-using NvtFwCombiner.TestSupport;
 
 namespace NvtFwCombiner.UiSmoke.Tests;
 
@@ -63,6 +62,7 @@ public sealed partial class ShellNavigationSystemTests
     public async Task CanonicalCatalogRefreshPreservesActiveAbModeWhenOnly950RoutesAreRemoved()
     {
         var policy = new MutableAbCatalogPolicy();
+        policy.DisableAllRoutesFor("NT51917", "NT51919", "NT51923", "NT51926", "NT51927", "NT51928", "NT51929", "NT51932");
         (PresentationHostServices services, MainWindowViewModel viewModel) =
             CreateCatalogRefreshViewModel(policy);
         viewModel.ShowMergeCommand.Execute(null);
@@ -334,6 +334,7 @@ public sealed partial class ShellNavigationSystemTests
     public async Task CanonicalCatalogRefreshPreservesInactiveAbContextWhenOnly950RoutesAreRemoved()
     {
         var policy = new MutableAbCatalogPolicy();
+        policy.DisableAllRoutesFor("NT51917", "NT51919", "NT51923", "NT51926", "NT51927", "NT51928", "NT51929", "NT51932");
         (PresentationHostServices services, MainWindowViewModel viewModel) =
             CreateCatalogRefreshViewModel(policy);
         viewModel.ShowMergeCommand.Execute(null);
@@ -341,16 +342,16 @@ public sealed partial class ShellNavigationSystemTests
         viewModel.Merge.SelectedMergeMode = ExperienceIds.AbMerge;
         viewModel.WorkflowSession.SelectedNumber = IcNumberSelectionTokens.Cascade;
         viewModel.ShowReplaceCommand.Execute(null);
-        viewModel.WorkflowSession.SelectedIc = "NT51926";
+        viewModel.WorkflowSession.SelectedIc = "NT51951";
         string replaceNumber = viewModel.WorkflowSession.SelectedNumber;
 
         policy.DisableAllRoutesFor("NT51950");
         await viewModel.MessageCenter.RefreshCommand.ExecuteAsync(null);
 
         Assert.True(viewModel.IsReplaceVisible);
-        Assert.Equal("NT51926", viewModel.WorkflowSession.SelectedIc);
+        Assert.Equal("NT51951", viewModel.WorkflowSession.SelectedIc);
         Assert.Equal(
-            "NT51926",
+            "NT51951",
             viewModel.WorkflowSession.GetWorkflowPageIc(WorkflowInspectionOwner.Replace));
         Assert.Equal(
             replaceNumber,
@@ -608,7 +609,6 @@ public sealed partial class ShellNavigationSystemTests
             current.Capabilities,
             standardMergeAuthoring,
             current.AbMergeAuthoring,
-            current.DpReplaceAuthoring,
             current.GeneralAuthoring,
             current.CtrlRamAuthoring,
             current.FirmwareInspection,
@@ -703,7 +703,7 @@ public sealed partial class ShellNavigationSystemTests
         internal CanonicalCapabilityPolicySnapshot Load()
         {
             CanonicalCapabilityPolicySnapshot policy =
-                RetainedDpReplaceRegressionPolicy.Load();
+                NvtFwCombiner.Infrastructure.Capabilities.BuiltInCanonicalCapabilityPolicy.Load();
             CanonicalCapabilityPolicyRoute[] routes =
             [
                 .. policy.Routes.Select(route => IsDisabledRoute(route)

@@ -78,7 +78,7 @@ internal static class CompositionOutputConfirmationProjector
             TopologyRequirement = compiled.V2Details.Provenance.Context is MapBoundV2CompilationContext context
                 ? context.ResolvedMap.ImageMap.Applicability.TopologyRequirement : null,
             IcNumber = capability.CtrlRamExecutionPlan?.IcNumberSelection ??
-                capability.DpExecutionPlan?.IcNumberSelection ?? capability.GeneralExecutionPlan?.IcNumberSelection,
+                capability.GeneralExecutionPlan?.IcNumberSelection,
         };
     }
 }

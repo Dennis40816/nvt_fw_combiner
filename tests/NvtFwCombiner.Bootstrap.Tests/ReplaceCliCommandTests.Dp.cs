@@ -1,225 +1,35 @@
-using NvtFwCombiner.Application.Capabilities;
-using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.TestSupport;
 
 namespace NvtFwCombiner.Bootstrap.Tests;
 
 public sealed partial class ReplaceCliCommandTests
 {
-    /// <summary>NT51928 CLI uses generic selection-group cardinality instead of a route-specific branch.</summary>
-    [Fact]
-    public async Task Nt51928DpReplaceRequiresOneSelectionThroughApplicationReadiness()
-    {
-        using var workspace = TempWorkspace.Create();
-        string reference = workspace.Write("reference.bin", new byte[0x80000]);
-
-        CliRunResult result = await RunCliAsync([
-            "dp-replace",
-            "preview",
-            "--profile",
-            "NT51928",
-            "--ic-num",
-            "single",
-            "--base",
-            reference,
-        ]);
-
-        Assert.Equal(64, result.ExitCode);
-        Assert.Contains(
-            InputSelectionReadinessIssueCodes.SelectionPending,
-            result.Error,
-            StringComparison.Ordinal);
-        Assert.Contains(
-            "requires at least 1 applicable selection",
-            result.Error,
-            StringComparison.Ordinal);
-    }
-
-    /// <summary>NT51928 CLI exposes the profile-owned reason for LDC on a 256-KiB Reference.</summary>
-    [Fact]
-    public async Task Nt51928DpReplaceRejectsLdcForNoLdcReference()
-    {
-        using var workspace = TempWorkspace.Create();
-        string reference = workspace.Write("reference.bin", new byte[0x40000]);
-        string ldc = workspace.Write("ldc.bin", new byte[0x80000]);
-
-        CliRunResult result = await RunCliAsync([
-            "dp-replace",
-            "preview",
-            "--profile",
-            "NT51928",
-            "--ic-num",
-            "single",
-            "--base",
-            reference,
-            "--ldc",
-            ldc,
-        ]);
-
-        Assert.Equal(1, result.ExitCode);
-        Assert.Contains(
-            InputSelectionReadinessIssueCodes.SelectionNotApplicable,
-            result.Error,
-            StringComparison.Ordinal);
-        Assert.Contains(
-            "Reference length does not include LDC",
-            result.Error,
-            StringComparison.Ordinal);
-    }
-
-    /// <summary>NT51928 selected LDC must cover the complete compiled LDC source view.</summary>
-    [Fact]
-    public async Task Nt51928DpReplaceRejectsSelectedLdcWithWrongLength()
-    {
-        using var workspace = TempWorkspace.Create();
-        string reference = workspace.Write("reference.bin", new byte[0x80000]);
-        string ldc = workspace.Write("ldc.bin", new byte[0x40000]);
-
-        CliRunResult result = await RunCliAsync([
-            "dp-replace",
-            "preview",
-            "--profile",
-            "NT51928",
-            "--ic-num",
-            "single",
-            "--base",
-            reference,
-            "--ldc",
-            ldc,
-        ]);
-
-        Assert.Equal(1, result.ExitCode);
-        Assert.Contains(
-            CompositionIssueCodes.InputSourceViewIncomplete,
-            result.Error,
-            StringComparison.Ordinal);
-    }
-
-    /// <summary>Verifies NT51950 DP Replace restores TP only while customer information follows replacement DP.</summary>
+    /// <summary>The retired command rejects before input or delivery handling and preserves every existing artifact.</summary>
     [Theory]
-    [InlineData("NT51950")]
-    [InlineData("51950")]
-    [InlineData("nt51950-dp-replace-dp-perspective")]
-    public async Task DpReplaceBuildUsesNt51950SelectedBaseLength(string profileSelector)
+    [InlineData("preview")]
+    [InlineData("build")]
+    public async Task RetiredDpReplaceRejectsWithoutInputOrDeliverySideEffects(string action)
     {
-        using var workspace = TempWorkspace.Create();
-        byte[] referenceBytes = [.. Enumerable.Repeat((byte)0xA5, 0x80000)];
-        Array.Fill(referenceBytes, (byte)0x22, 0x0A000, 0x2D000);
-        Array.Fill(referenceBytes, (byte)0x33, 0x37000, 0x1000);
-        byte[] dpBytes = [.. Enumerable.Repeat((byte)0x11, 0x80000)];
-        string reference = workspace.Write("reference.bin", referenceBytes);
-        string dp = workspace.Write("dp.bin", dpBytes);
-        string output = workspace.PathFor("nt51950-dp-replace.bin");
+        using var workspace = TempWorkspace.Create("nfc-retired-dp-cli");
+        byte[] outputSentinel = [0xA5, 0x5A];
+        byte[] reportSentinel = [0x31, 0x32, 0x33];
+        string outputPath = workspace.Write("existing.bin", outputSentinel);
+        string reportPath = workspace.Write("existing-report.json", reportSentinel);
+        string[] before = [.. Directory.GetFileSystemEntries(workspace.Root).Order(StringComparer.Ordinal)];
 
-        CliRunResult result = await RunCliAsync([
-            "dp-replace",
-            "build",
-            "--profile",
-            profileSelector,
-            "--ic-num",
-            "single",
-            "--base",
-            reference,
-            "--dp",
-            dp,
-            "--output",
-            output,
-        ]);
-
-        Assert.Equal(0, result.ExitCode);
-        Assert.Contains("Status: Succeeded", result.Output, StringComparison.Ordinal);
-        Assert.Contains("nt51950-dp-replace-dp-perspective", result.Output, StringComparison.Ordinal);
-        byte[] bytes = await File.ReadAllBytesAsync(output, TestContext.Current.CancellationToken);
-        Assert.Equal(0x80000, bytes.Length);
-        Assert.Equal(0x11, bytes[0x00000]);
-        Assert.Equal(0x11, bytes[0x09FFF]);
-        Assert.Equal(0x22, bytes[0x0A000]);
-        Assert.Equal(0x22, bytes[0x36FFF]);
-        Assert.Equal(0x11, bytes[0x37000]);
-        Assert.Equal(0x11, bytes[0x37FFF]);
-        Assert.Equal(0x11, bytes[0x38000]);
-        Assert.Equal(0x11, bytes[0x40000]);
-        Assert.Equal(0x11, bytes[0x7FFFF]);
-    }
-
-    /// <summary>Verifies NT51950 DP Replace rejects replacement inputs larger than the selected base length before output commit.</summary>
-    [Fact]
-    public async Task DpReplaceBuildRejectsOversizedNt51950ReplacementSize()
-    {
-        using var workspace = TempWorkspace.Create();
-        string reference = workspace.Write("reference.bin", [.. Enumerable.Repeat((byte)0xA5, 0x40000)]);
-        string dp = workspace.Write("dp.bin", [.. Enumerable.Repeat((byte)0x11, 0x40001)]);
-        string output = workspace.PathFor("nt51950-dp-replace.bin");
-
-        CliRunResult result = await RunCliAsync([
-            "dp-replace",
-            "build",
-            "--profile",
-            "NT51950",
-            "--ic-num",
-            "single",
-            "--base",
-            reference,
-            "--dp",
-            dp,
-            "--output",
-            output,
-        ]);
-
-        Assert.Equal(1, result.ExitCode);
-        Assert.Contains(CompositionIssueCodes.InputAddressSpaceLengthMismatch, result.Error, StringComparison.Ordinal);
-        Assert.False(File.Exists(output));
-    }
-
-    /// <summary>Verifies NT51950 DP Replace rejects cascade-only IC family input before workbench execution.</summary>
-    [Fact]
-    public async Task DpReplacePreviewRejectsNt51950IcFamilyOption()
-    {
-        using var workspace = TempWorkspace.Create();
-        string reference = workspace.Write("reference.bin", [.. Enumerable.Repeat((byte)0xA5, 0x40000)]);
-        string dp = workspace.Write("dp.bin", [.. Enumerable.Repeat((byte)0x11, 0x40000)]);
-
-        CliRunResult result = await RunCliAsync([
-            "dp-replace",
-            "preview",
-            "--profile",
-            "NT51950",
-            "--ic-family",
-            "NT51",
-            "--ic-num",
-            "single",
-            "--base",
-            reference,
-            "--dp",
-            dp,
-        ]);
+        CliRunResult result = await CliTestHarness.RunAsync(
+        [
+            "dp-replace", action, "--profile", "NT51950", "--ic-num", "single",
+            "--base", "\0must-not-be-read.bin", "--dp", "\0must-not-be-read-either.bin",
+            "--output", outputPath, "--report", reportPath,
+            "--bundle-parent", workspace.Root, "--bundle-name", "must-not-be-created",
+        ], TestContext.Current.CancellationToken);
 
         Assert.Equal(64, result.ExitCode);
-        Assert.Contains("unknown option '--ic-family'", result.Error, StringComparison.Ordinal);
-    }
-
-    /// <summary>Verifies NT51950 DP Replace rejects numeric IC number input before workbench execution.</summary>
-    [Fact]
-    public async Task DpReplacePreviewRejectsNt51950NumericIcNumber()
-    {
-        using var workspace = TempWorkspace.Create();
-        string reference = workspace.Write("reference.bin", [.. Enumerable.Repeat((byte)0xA5, 0x40000)]);
-        string dp = workspace.Write("dp.bin", [.. Enumerable.Repeat((byte)0x11, 0x40000)]);
-
-        CliRunResult result = await RunCliAsync([
-            "dp-replace",
-            "preview",
-            "--profile",
-            "NT51950",
-            "--ic-num",
-            "51950",
-            "--base",
-            reference,
-            "--dp",
-            dp,
-        ]);
-
-        Assert.Equal(64, result.ExitCode);
-        Assert.Contains("requires --ic-num single", result.Error, StringComparison.Ordinal);
+        Assert.Contains("cli.retired-experience", result.Error, StringComparison.Ordinal);
+        Assert.Empty(result.Output);
+        Assert.Equal(before, Directory.GetFileSystemEntries(workspace.Root).Order(StringComparer.Ordinal));
+        Assert.Equal(outputSentinel, await File.ReadAllBytesAsync(outputPath, TestContext.Current.CancellationToken));
+        Assert.Equal(reportSentinel, await File.ReadAllBytesAsync(reportPath, TestContext.Current.CancellationToken));
     }
 }

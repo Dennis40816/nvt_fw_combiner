@@ -29,7 +29,7 @@ public sealed class BuiltInCanonicalCapabilityPolicyTests
                     "nt51929-standard-merge-256k"));
 
         Assert.Equal("canonical-capability-policy", policy.CatalogId);
-        Assert.Equal("1.16.2", policy.CatalogVersion);
+        Assert.Equal("1.17.0", policy.CatalogVersion);
         Assert.Equal(
             BuiltInCanonicalCapabilityPolicy.ExpectedSha256,
             policy.SourceSha256);
@@ -60,42 +60,12 @@ public sealed class BuiltInCanonicalCapabilityPolicyTests
             route.Evidence.DecisionId);
     }
 
-    /// <summary>All retained DP Replace routes remain hidden, internal, and honestly non-Golden.</summary>
+    /// <summary>Retired DP routes are absent from the active policy, not merely hidden.</summary>
     [Fact]
-    public void DpReplaceAuthoringIsUnavailableWithoutChangingRetainedEvidence()
+    public void ActivePolicyExcludesDpReplace()
     {
-        CanonicalCapabilityPolicySnapshot policy =
-            BuiltInCanonicalCapabilityPolicy.Load();
-        CanonicalCapabilityPolicyRoute[] routes =
-        [
-            .. policy.Routes.Where(static route =>
-                StringComparer.Ordinal.Equals(
-                    route.Identity.WorkflowId,
-                    "dp-replace")),
-        ];
-
-        Assert.Equal(14, routes.Length);
-        Assert.All(routes, static route =>
-        {
-            Assert.Equal(
-                CapabilityAuthoringAvailability.Unavailable,
-                route.Authoring.Value);
-            Assert.Equal(
-                "owner-decision:2026-08-24:dp-replace-hidden-until-1.1.0",
-                route.Authoring.SourceReference);
-            Assert.Equal(
-                CapabilityPublicationStatus.Internal,
-                route.Publication.Value);
-            Assert.Equal(
-                "owner-decision:2026-08-25:dp-replace-internal-until-1.1.0",
-                route.Publication.SourceReference);
-            Assert.Equal(
-                CapabilityEvidenceStatus.ContractOnly,
-                route.Evidence.Value);
-            Assert.Equal(
-                route.CapabilityFingerprint,
-                route.Evidence.CapabilityFingerprint);
-        });
+        Assert.DoesNotContain(BuiltInCanonicalCapabilityPolicy.Load().Routes,
+            static route => route.Identity.WorkflowId == "dp-replace");
     }
 
     /// <summary>The reviewed catalog fixes the exact formal-support and evidence denominators.</summary>
@@ -119,7 +89,7 @@ public sealed class BuiltInCanonicalCapabilityPolicyTests
                 !formatCandidateIds.Contains(route.Identity.RouteId, StringComparer.Ordinal)),
         ];
 
-        Assert.Equal(93, policy.Routes.Count);
+        Assert.Equal(79, policy.Routes.Count);
         Assert.Equal(64, formalRoutes.Length);
         Assert.All(formalRoutes, static route =>
         {
@@ -135,7 +105,7 @@ public sealed class BuiltInCanonicalCapabilityPolicyTests
             policy.Routes.Count(static route =>
                 route.Authoring.Value == CapabilityAuthoringAvailability.Available));
         Assert.Equal(
-            14,
+            0,
             policy.Routes.Count(static route =>
                 route.Authoring.Value == CapabilityAuthoringAvailability.Unavailable));
         Assert.Equal(
@@ -143,7 +113,7 @@ public sealed class BuiltInCanonicalCapabilityPolicyTests
             policy.Routes.Count(static route =>
                 route.Publication.Value == CapabilityPublicationStatus.Supported));
         Assert.Equal(
-            24,
+            10,
             policy.Routes.Count(static route =>
                 route.Publication.Value == CapabilityPublicationStatus.Internal));
         _ = Assert.Single(
@@ -177,7 +147,7 @@ public sealed class BuiltInCanonicalCapabilityPolicyTests
             policy.Routes.Count(static route =>
                 route.Evidence.Value == CapabilityEvidenceStatus.SyntheticOracle));
         Assert.Equal(
-            56,
+            42,
             policy.Routes.Count(static route =>
                 route.Evidence.Value == CapabilityEvidenceStatus.ContractOnly));
         string[] tpRoutesAwaitingIndependentExpectedOutput =
@@ -399,6 +369,51 @@ public sealed class BuiltInCanonicalCapabilityPolicyTests
             BuiltInCanonicalCapabilityPolicy.Load(
                 bytes,
                 PinnedJsonCatalogLoader.ComputeSha256(bytes)));
+    }
+
+    /// <summary>Even a correctly pinned route cannot reintroduce a retired or unknown workflow.</summary>
+    [Theory]
+    [InlineData("dp-replace")]
+    [InlineData("unknown-workflow")]
+    public void RejectsSelfConsistentInactiveWorkflow(string workflowId)
+    {
+        JsonObject policy = ParsePolicy();
+        JsonObject route = Assert.IsType<JsonObject>(
+            Assert.IsType<JsonArray>(policy["routes"])[0]!.DeepClone());
+        var identity = new CapabilityRouteIdentity(
+            route["icId"]!.GetValue<string>(),
+            workflowId,
+            route["icCountVariant"]!.GetValue<string>(),
+            route["mapVariant"]!.GetValue<string>());
+        route["workflowId"] = workflowId;
+        route["routeId"] = identity.RouteId;
+        foreach (string decision in new[] { "authoring", "publication", "evidence" })
+        {
+            JsonObject pin = Assert.IsType<JsonObject>(route[decision]);
+            pin["routeId"] = identity.RouteId;
+            Assert.Equal(route["capabilityFingerprint"]!.GetValue<string>(),
+                pin["capabilityFingerprint"]!.GetValue<string>());
+        }
+        policy["routes"] = new JsonArray(route);
+        byte[] bytes = Encoding.UTF8.GetBytes(policy.ToJsonString());
+
+        InvalidDataException failure = Assert.Throws<InvalidDataException>(() =>
+            BuiltInCanonicalCapabilityPolicy.Load(bytes, PinnedJsonCatalogLoader.ComputeSha256(bytes)));
+
+        Assert.Contains("workflowId", failure.Message, StringComparison.Ordinal);
+    }
+
+    /// <summary>The previous active-admission schema cannot re-enable retired policy rows.</summary>
+    [Fact]
+    public void RejectsLegacyAdmissionSchema()
+    {
+        JsonObject policy = ParsePolicy();
+        policy["schemaVersion"] = "1.0";
+        byte[] bytes = Encoding.UTF8.GetBytes(policy.ToJsonString());
+        InvalidDataException failure = Assert.Throws<InvalidDataException>(() =>
+            BuiltInCanonicalCapabilityPolicy.Load(bytes, PinnedJsonCatalogLoader.ComputeSha256(bytes)));
+
+        Assert.Contains("schemaVersion", failure.Message, StringComparison.Ordinal);
     }
 
     private static byte[] ReadPolicy()

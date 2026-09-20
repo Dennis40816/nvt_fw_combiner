@@ -24,7 +24,7 @@ public sealed class MergeModeLayoutTests
     public async Task ModeAnchorStaysFixedWhenContentStartsScrolling(int width, bool dark)
     {
         using var workspace = TempWorkspace.Create("merge-mode-layout");
-        PresentationHostServices services = await CreateServicesAsync(workspace, useRetainedDpReplacePolicy: false);
+        PresentationHostServices services = await CreateServicesAsync(workspace);
         using var window = new MainWindow(UiLaunchOptions.Empty, StartupTraceSession.Disabled,
             services, ShellPreferenceSnapshot.Default)
         { Width = width, Height = 2200, RequestedThemeVariant = dark ? ThemeVariant.Dark : ThemeVariant.Light };

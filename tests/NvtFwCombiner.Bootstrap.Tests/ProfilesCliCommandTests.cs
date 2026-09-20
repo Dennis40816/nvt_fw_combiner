@@ -6,9 +6,9 @@ namespace NvtFwCombiner.Bootstrap.Tests;
 /// <summary>CLI tests for stable profile catalog projections.</summary>
 public sealed class ProfilesCliCommandTests
 {
-    /// <summary>A failed DP Replace summary preserves its declared IC-number mode.</summary>
+    /// <summary>A failed Replace summary preserves its declared IC-number mode.</summary>
     [Fact]
-    public void FailedDpReplaceProfilePreservesDeclaredIcNumberMode()
+    public void FailedReplaceProfilePreservesDeclaredIcNumberMode()
     {
         var profile = new CapabilityProfileSummary(
             "profile",
@@ -70,7 +70,6 @@ public sealed class ProfilesCliCommandTests
             "nt51950-ab-merge-desay  ic=NT51950  inputs=dp-ab-input, tp-a-input, tp-b-input  default-output=NT{ic}_FlashCode_A_{dp-a}{tp-a}_B_{dp-b}{tp-b}_{date}.bin",
             "nt51951-ab-merge  ic=NT51951  inputs=dp-ab-input, tp-a-input, tp-b-input  default-output=NT{ic}_FlashCode_A_{dp-a}{tp-a}_B_{dp-b}{tp-b}_{date}.bin",
             "nt51951-ab-merge-desay  ic=NT51951  inputs=dp-ab-input, tp-a-input, tp-b-input  default-output=NT{ic}_FlashCode_A_{dp-a}{tp-a}_B_{dp-b}{tp-b}_{date}.bin",
-            "Built-in replace profiles:",
             string.Empty,
         ]);
 

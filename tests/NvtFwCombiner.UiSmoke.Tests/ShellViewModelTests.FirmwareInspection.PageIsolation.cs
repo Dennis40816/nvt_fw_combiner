@@ -17,7 +17,7 @@ public sealed partial class FirmwareInspectionSlotTests
     public void MergeDeviceContextChangeCannotMutateHiddenReplaceState()
     {
         MainWindowViewModel viewModel = CreateBatchInspectionViewModel((_, _) => []);
-        OpenReplace(viewModel, ExperienceIds.DpReplace);
+        OpenReplace(viewModel, ExperienceIds.CtrlRamReplace);
         viewModel.WorkflowSession.SelectedIc = "NT51927";
         viewModel.WorkflowSession.SelectedNumber = "2";
         MemoryMapRowViewModel retainedMemoryRow = viewModel.Replace.ReplaceMemoryRows.First();
@@ -54,7 +54,7 @@ public sealed partial class FirmwareInspectionSlotTests
         MemoryMapRowViewModel retainedMemoryRow = viewModel.Merge.MergeMemoryRows.First();
         string retainedOutputName = viewModel.Merge.MergeOutputFileName;
 
-        OpenReplace(viewModel, ExperienceIds.DpReplace);
+        OpenReplace(viewModel, ExperienceIds.CtrlRamReplace);
         viewModel.Merge.MergeDpSlot.FilePath = @"C:\hidden-merge.bin";
         viewModel.Merge.MergeDpSlot.SetFirmwareFacts([new("Sentinel", "Merge")]);
         viewModel.WorkflowSession.SelectedIc = "NT51927";
@@ -136,8 +136,8 @@ public sealed partial class FirmwareInspectionSlotTests
     [Fact]
     public async Task HiddenMergeModeChangeCannotInvalidateActiveReplaceInspection()
     {
-        using var golden = StandardMergeGoldenManifest.Load();
-        string basePath = golden.ExpectedOutputPath(golden.CaseByIc("51926"));
+        using var workspace = TempWorkspace.Create("replace-inspection-owner");
+        string basePath = workspace.Write("reference.bin", ReadCtrlRamReference());
         int batches = 0;
         var readerEntered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         var releaseReader = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -160,8 +160,8 @@ public sealed partial class FirmwareInspectionSlotTests
                         inputs);
                 }));
         _ = PresentationTestHost.PublishCanonicalCatalog(services, viewModel);
-        viewModel.WorkflowSession.SelectedIc = "NT51926";
-        OpenReplace(viewModel, ExperienceIds.DpReplace);
+        viewModel.WorkflowSession.SelectedIc = "NT51950";
+        OpenReplace(viewModel, ExperienceIds.CtrlRamReplace);
 
         Task selection = viewModel.WorkflowSession.SetSlotFileAsync(
             CompositionSlotIds.ReplaceBase,
@@ -172,13 +172,13 @@ public sealed partial class FirmwareInspectionSlotTests
             await readerEntered.Task.WaitAsync(
                 TimeSpan.FromSeconds(10),
                 TestContext.Current.CancellationToken);
-            WorkflowInspectionLifecycle dpReplace = viewModel.Replace.InspectionLifecycles[
-                ExperienceIds.DpReplace];
-            Assert.True(dpReplace.IsRunning);
+            WorkflowInspectionLifecycle ctrlRam = viewModel.Replace.InspectionLifecycles[
+                ExperienceIds.CtrlRamReplace];
+            Assert.True(ctrlRam.IsRunning);
 
             viewModel.Merge.SelectedMergeMode = ExperienceIds.GeneralMerge;
 
-            Assert.True(dpReplace.IsRunning);
+            Assert.True(ctrlRam.IsRunning);
             Assert.Equal(1, batches);
         }
         finally
@@ -189,7 +189,7 @@ public sealed partial class FirmwareInspectionSlotTests
         await selection;
         Assert.Equal(
             WorkflowInspectionAttemptState.Succeeded,
-            viewModel.Replace.InspectionLifecycles[ExperienceIds.DpReplace].State);
+            viewModel.Replace.InspectionLifecycles[ExperienceIds.CtrlRamReplace].State);
     }
 
     /// <summary>Selected-file admission rejects slots owned by the inactive page in both directions.</summary>
@@ -230,7 +230,7 @@ public sealed partial class FirmwareInspectionSlotTests
                     DpInspection("0202"))),
             ];
         });
-        OpenReplace(replaceViewModel, ExperienceIds.DpReplace);
+        OpenReplace(replaceViewModel, ExperienceIds.CtrlRamReplace);
 
         await replaceViewModel.WorkflowSession.SetSlotFileAsync(
             CompositionSlotIds.MergeDp,
@@ -401,7 +401,7 @@ public sealed partial class FirmwareInspectionSlotTests
     public async Task ReplaceInspectionCannotPublishAfterConfirmedMergeNavigation()
     {
         using var golden = StandardMergeGoldenManifest.Load();
-        string basePath = golden.ExpectedOutputPath(golden.CaseByIc("51926"));
+        string basePath = golden.ManifestPath(golden.CaseByIc("51926").GetProperty("inputs").GetProperty("tp-input"));
         using var readerEntered = new ManualResetEventSlim();
         using var releaseReader = new ManualResetEventSlim();
         MainWindowViewModel viewModel = CreateBatchInspectionViewModel((icId, inputs) =>
@@ -414,7 +414,7 @@ public sealed partial class FirmwareInspectionSlotTests
                 inputs);
         });
         viewModel.WorkflowSession.SelectedIc = "NT51926";
-        OpenReplace(viewModel, ExperienceIds.DpReplace);
+        OpenReplace(viewModel, ExperienceIds.CtrlRamReplace);
 
         Task selection = viewModel.WorkflowSession.SetSlotFileAsync(
             CompositionSlotIds.ReplaceBase,
@@ -441,7 +441,7 @@ public sealed partial class FirmwareInspectionSlotTests
         await selection;
         Assert.Equal(
             WorkflowInspectionAttemptState.Cancelled,
-            viewModel.Replace.InspectionLifecycles[ExperienceIds.DpReplace].State);
+            viewModel.Replace.InspectionLifecycles[ExperienceIds.CtrlRamReplace].State);
         Assert.Empty(viewModel.Replace.ReplaceBaseSlot.FirmwareFacts);
         Assert.False(viewModel.WorkflowSession.IsFirmwareIcMismatchModalOpen);
     }

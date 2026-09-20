@@ -60,9 +60,9 @@ public sealed class CanonicalCapabilityProjectionPolicyTests
             .HasExactRoute);
     }
 
-    /// <summary>DP evidence remains visible after the independent authoring gate is closed.</summary>
+    /// <summary>Retired DP Replace publishes neither a current route nor execution evidence.</summary>
     [Fact]
-    public void ReplaceReadinessSeparatesGoldenEvidenceFromAvailability()
+    public void RetiredReplaceReadinessHasNoRouteOrExecutionEvidence()
     {
         CapabilityWorkflowReadiness verified = BootstrapTestHost.ProductCanonical.Projection.GetReplaceWorkflowReadiness(
             "NT51929",
@@ -72,32 +72,13 @@ public sealed class CanonicalCapabilityProjectionPolicyTests
             ExperienceIds.DpReplace);
 
         Assert.False(verified.IsAvailable);
-        Assert.Equal(CapabilityEvidenceStatus.ContractOnly, verified.EvidenceStatus);
+        Assert.Equal(CapabilityEvidenceStatus.Missing, verified.EvidenceStatus);
         Assert.False(verified.HasReviewedEvidence);
         Assert.False(gated.IsAvailable);
-        Assert.Equal(CapabilityEvidenceStatus.ContractOnly, gated.EvidenceStatus);
+        Assert.Equal(CapabilityEvidenceStatus.Missing, gated.EvidenceStatus);
         Assert.False(gated.IsEvidencePending);
-        Assert.Contains("1.1.0", gated.OpenCondition, StringComparison.Ordinal);
-    }
-
-    /// <summary>Direct DP authoring fails closed with a typed issue before reading any input.</summary>
-    [Fact]
-    public void DpReplaceDirectAuthoringReturnsTypedUnavailableIssue()
-    {
-        CompiledAuthoringSelectionSnapshot selection =
-            BootstrapTestHost.ProductServices.DpReplaceAuthoring.GetAuthoringSnapshot(
-                "NT51950",
-                [],
-                new Dictionary<string, FileStamp>(StringComparer.Ordinal),
-                new AuthoringRevision(1));
-
-        Assert.Empty(selection.Catalog.Routes);
-        Assert.Empty(selection.InputBindings);
-        CompositionIssue issue = Assert.Single(selection.Issues);
-        Assert.Equal(
-            CompositionPlanningIssueCodes.ReplaceWorkflowNotSupported,
-            issue.Code);
-        Assert.Contains("Not available", issue.Message, StringComparison.Ordinal);
+        Assert.False(verified.HasExactRoute);
+        Assert.False(gated.HasExactRoute);
     }
 
     /// <summary>Workbench exposes owner-declared symmetric perfect/partial family facts.</summary>

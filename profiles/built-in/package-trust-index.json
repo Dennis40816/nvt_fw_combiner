@@ -1,7 +1,7 @@
 {
-  "schemaVersion": "1.4",
+  "schemaVersion": "1.5",
   "trustIndexId": "built-in-profile-bundles",
-  "trustIndexVersion": "1.1.10.2",
+  "trustIndexVersion": "1.1.10.3",
   "trustAnchorBindingId": "built-in-profile-bundle-v2",
   "bundles": [
     {
@@ -494,34 +494,6 @@
       ]
     },
     {
-      "bundleDirectory": "nt51923-dp-replace",
-      "bundleSchemaVersion": "1.0",
-      "bundleVersion": "1.1.10-full-image-metadata.1",
-      "contentHash": "532f71f4431e74e0cccd497dc2b06d97b35e34608ff6f7ce9208e10cb65822d8",
-      "materialization": {
-        "compositionProfileSchemaFile": "composition-profile-v2.15.schema.json",
-        "firmwareFamilySchemaFile": "firmware-family-v1.3-full-image-metadata.schema.json",
-        "canonicalFirmwareFamily": {
-          "source": "nt51923-nt51926-shared-facts/families/nt51923-nt51926.json",
-          "destination": "families/nt51923-nt51926.json"
-        }
-      },
-      "runtimeRegistrations": [
-        {
-          "workflowId": "dp-replace",
-          "icId": "NT51923",
-          "profileId": "nt51923-dp-replace-gen-flash",
-          "profileVersion": "0.3.0"
-        },
-        {
-          "workflowId": "dp-replace",
-          "icId": "NT51926",
-          "profileId": "nt51926-dp-replace-gen-flash",
-          "profileVersion": "0.3.0"
-        }
-      ]
-    },
-    {
       "bundleDirectory": "nt51923-standard-merge",
       "bundleSchemaVersion": "1.0",
       "bundleVersion": "1.1.10-full-image-metadata.1",
@@ -552,34 +524,6 @@
       ]
     },
     {
-      "bundleDirectory": "nt51927-dp-replace",
-      "bundleSchemaVersion": "1.0",
-      "bundleVersion": "1.1.10-full-image-metadata.1",
-      "contentHash": "e326f9c89e92a63730baaaded9cbdacfec8fc447c1abe278c572633bfa11bd1f",
-      "materialization": {
-        "compositionProfileSchemaFile": "composition-profile-v2.15.schema.json",
-        "firmwareFamilySchemaFile": "firmware-family-v1.3-full-image-metadata.schema.json",
-        "canonicalFirmwareFamily": {
-          "source": "nt51917-nt51927-shared-facts/families/nt51927.json",
-          "destination": "families/nt51927.json"
-        }
-      },
-      "runtimeRegistrations": [
-        {
-          "workflowId": "dp-replace",
-          "icId": "NT51917",
-          "profileId": "nt51917-dp-replace-gen-flash-alias",
-          "profileVersion": "0.3.0"
-        },
-        {
-          "workflowId": "dp-replace",
-          "icId": "NT51927",
-          "profileId": "nt51927-dp-replace-gen-flash",
-          "profileVersion": "0.3.0"
-        }
-      ]
-    },
-    {
       "bundleDirectory": "nt51927-standard-merge",
       "bundleSchemaVersion": "1.0",
       "bundleVersion": "1.1.10-full-image-metadata.1",
@@ -606,29 +550,6 @@
           "icId": "NT51927",
           "profileId": "nt51927-standard-merge-gen-flash",
           "profileVersion": "0.8.0"
-        }
-      ]
-    },
-    {
-      "bundleDirectory": "nt51928-dp-replace",
-      "bundleSchemaVersion": "1.0",
-      "bundleVersion": "1.1.10-full-image-metadata.1",
-      "contentHash": "db6588b3e3b066cb7237367363a1560ed17c63257cb1ccf9bdf73c65f0a63cd4",
-      "materialization": {
-        "compositionProfileSchemaFile": "composition-profile-v2.13.schema.json",
-        "firmwareFamilySchemaFile": "firmware-family-v1.3-full-image-metadata.schema.json",
-        "canonicalFirmwareFamily": {
-          "source": "nt51928-standard-merge/families/nt51927-nt51928-v1.5.json",
-          "destination": "families/nt51927-nt51928-v1.5.json"
-        }
-      },
-      "runtimeRegistrations": [
-        {
-          "workflowId": "dp-replace",
-          "icId": "NT51928",
-          "profileId": "nt51928-dp-replace-gen-flash",
-          "profileVersion": "0.3.0",
-          "mapVariantSetId": "nt51928-dual-capacity-256k-512k"
         }
       ]
     },
@@ -679,40 +600,6 @@
         }
       ],
       "runtimeRegistrations": []
-    },
-    {
-      "bundleDirectory": "nt51929-dp-replace",
-      "bundleSchemaVersion": "1.0",
-      "bundleVersion": "1.1.10-full-image-metadata.1",
-      "contentHash": "807ca99b64c20fea5237f07f7ddb4a3daefb35e34e065a04def0fc410c10ca04",
-      "materialization": {
-        "compositionProfileSchemaFile": "composition-profile-v2.13.schema.json",
-        "firmwareFamilySchemaFile": "firmware-family-v1.3-full-image-metadata.schema.json",
-        "canonicalFirmwareFamily": {
-          "source": "nt51919-nt51929-nt51932-shared-facts/families/nt51929-nt51932.json",
-          "destination": "families/nt51929-nt51932.json"
-        }
-      },
-      "runtimeRegistrations": [
-        {
-          "workflowId": "dp-replace",
-          "icId": "NT51919",
-          "profileId": "nt51919-dp-replace-gen-flash-alias",
-          "profileVersion": "0.2.0"
-        },
-        {
-          "workflowId": "dp-replace",
-          "icId": "NT51929",
-          "profileId": "nt51929-dp-replace-gen-flash",
-          "profileVersion": "0.3.0"
-        },
-        {
-          "workflowId": "dp-replace",
-          "icId": "NT51932",
-          "profileId": "nt51932-dp-replace-gen-flash",
-          "profileVersion": "0.2.0"
-        }
-      ]
     },
     {
       "bundleDirectory": "nt51929-standard-merge",
@@ -827,34 +714,6 @@
           "profileId": "nt51950-ab-merge-common-2ic",
           "profileVersion": "0.2.0",
           "mapVariantSetId": "nt51950-ab-common-2ic-maps"
-        }
-      ]
-    },
-    {
-      "bundleDirectory": "nt51950-nt51951-dp-replace",
-      "bundleSchemaVersion": "1.0",
-      "bundleVersion": "1.1.10-full-image-metadata.1",
-      "contentHash": "0f21efbd2d97157d286ff04bcb9eca32e9a0b627880a6132c6e9bdbfd81d21e4",
-      "materialization": {
-        "compositionProfileSchemaFile": "composition-profile-v2.15.schema.json",
-        "firmwareFamilySchemaFile": "firmware-family-v1.3-full-image-metadata.schema.json",
-        "canonicalFirmwareFamily": {
-          "source": "nt51950-nt51951-standard-merge/families/nt51950-nt51951-dp-perspective.json",
-          "destination": "families/nt51950-nt51951-dp-perspective.json"
-        }
-      },
-      "runtimeRegistrations": [
-        {
-          "workflowId": "dp-replace",
-          "icId": "NT51950",
-          "profileId": "nt51950-dp-replace-dp-perspective",
-          "profileVersion": "0.10.0"
-        },
-        {
-          "workflowId": "dp-replace",
-          "icId": "NT51951",
-          "profileId": "nt51951-dp-replace-dp-perspective",
-          "profileVersion": "0.10.0"
         }
       ]
     },

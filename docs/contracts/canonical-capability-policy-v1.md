@@ -2,6 +2,25 @@
 
 `canonical-capability-policy-v1.json` is the sole publication and evidence policy for exact compiled capability routes. Its normative structure is `canonical-capability-policy-v1.schema.json`.
 
+## Current active admission
+
+Schema `1.1` and catalog `1.17.0` retire all 14 DP Replace policy routes.
+The active workflow set is exactly `standard-merge`, `ab-merge`,
+`ctrlram-replace`, `general-merge`, and `general-replace`. The runtime policy
+loader rejects old schema `1.0`, `dp-replace`, and unknown workflows even when
+the row identity, three decision bindings, and source hash are self-consistent.
+Generic historical route identities remain valid as traceability values; they
+do not confer active admission.
+
+The 79 surviving routes keep their exact fingerprints and decision IDs,
+values, and source references. There remain 64 formal-supported routes, with
+26 direct-Golden, seven approved-alias, four synthetic-oracle, and 42
+contract-only decisions across the complete active catalog. Golden removes
+only the 14 retired `routeEvidence` rows; all 40 cases, expected bytes,
+difference bounds, alias facts, and redistribution authority remain unchanged.
+The versioned entries below describe their historical catalog decisions;
+DP availability and internal-publication statements are superseded by `1.17.0`.
+
 ## Route identity
 
 Every row identifies one exact tuple of `icId`, `workflowId`, `icCountVariant`, and `mapVariant`. `routeId` must equal the canonical `CapabilityRouteIdentity` derived from that tuple. Routes are unique by `routeId`; omission is not an implicit default or an inferred unsupported route.
@@ -93,6 +112,6 @@ A source reference that says `owner-approved` does not itself create owner appro
 
 ## Validation and publication
 
-The repository verifier validates the JSON against the normative schema. Runtime loading additionally pins the exact LF-normalized file SHA-256, rejects unknown members, derives `routeId`, checks decision pins, and enforces closed decision values.
+The repository verifier validates the JSON against the normative schema. Runtime loading additionally pins the exact LF-normalized file SHA-256, rejects unknown members, derives `routeId`, checks decision pins, and enforces the active workflow vocabulary and closed decision values.
 
 The release package ships the hash-pinned JSON runtime policy. The prose and schema remain repository contract authorities and contribute to the repository schema digest; they are not required runtime payloads. The retired standalone support-publication policy must not be restored.

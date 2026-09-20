@@ -91,7 +91,7 @@
             }
         }
         const string expectedSchemaSha256 =
-            "45536ba6443cd7b8d5456881c6786e3f3b7f0c0fb1cf92a91c777e3c0ead1f6f";
+            "9184e23578529c6b7b1779a65eeeee9a4abd938c1ecf757726b63b997b765c46";
         string actualSchemaSha256 = sha256Hex(readBoundedFile(TrustIndexSchemaPath, 131072));
         if (!string.Equals(actualSchemaSha256, expectedSchemaSha256, StringComparison.Ordinal))
         {
@@ -215,7 +215,7 @@
         string trustIndexId = readRequiredString(root, "trustIndexId", "trust-index root");
         string trustIndexVersion = readRequiredString(root, "trustIndexVersion", "trust-index root");
         string trustAnchorBindingId = readRequiredString(root, "trustAnchorBindingId", "trust-index root");
-        if (schemaVersion != "1.4")
+        if (schemaVersion != "1.5")
         {
             throw new InvalidDataException("Unsupported profile bundle package trust-index schema.");
         }
@@ -371,7 +371,7 @@
                     registration,
                     "reportMetadataMapId",
                     "runtime registration");
-                bool mapSetAllowed = workflow == "standard-merge" || workflow == "ab-merge" || workflow == "dp-replace";
+                bool mapSetAllowed = workflow == "standard-merge" || workflow == "ab-merge";
                 string memoryLayoutContextMapId = readOptionalString(registration, "memoryLayoutContextMapId", "runtime registration");
                 bool generalMerge = workflow == "general-merge";
                 bool ctrlRam = workflow == "ctrlram-replace";
@@ -382,7 +382,7 @@
                     mapVariantSetId ?? string.Empty,
                     processor ?? string.Empty,
                     branch ?? string.Empty);
-                if (!(new[] { "standard-merge", "ab-merge", "dp-replace", "general-merge", "general-replace", "ctrlram-replace" }).Contains(workflow) ||
+                if (!(new[] { "standard-merge", "ab-merge", "general-merge", "general-replace", "ctrlram-replace" }).Contains(workflow) ||
                     !Regex.IsMatch(icId, "^NT[0-9]{5}$") ||
                     !isToken(profileId) ||
                     !Regex.IsMatch(profileVersion, "^[0-9]+\\.[0-9]+\\.[0-9]+(?:-[A-Za-z0-9.-]+)?$") ||

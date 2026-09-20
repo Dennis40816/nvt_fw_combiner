@@ -2035,11 +2035,15 @@ retirement and its prerequisite shared-fact extraction into `1.1.10`, together
 with CtrlRAM AB Replace; see the [delivery checklist](../ui/v1.1.10-delivery.md).
 This supersedes the `1.2.2` retirement / `1.2.1` prerequisite allocation and
 the earlier `1.1.6` allocation; retirement itself is settled.
-The current task records the decision and impact assessment only: no runtime,
-profile, policy, test or Golden removal has been performed. Earlier
-"owner-unallocated" wording describes the preceding decision state, not a
-remaining choice to reopen the feature. The retained runtime contract remains
-in force until its explicit retirement migration is implemented and verified.
+The local retirement unit is implemented and its scoped review and regression
+gates are closed. Canonical full-image metadata ownership and its consumers
+were decoupled from DP runtime in `3379ca87`, following the shared DPCMI and
+explicit Perfect-disclosure migrations. The retirement removes dedicated
+runtime, profiles and policy rows while preserving shared tests and historical
+evidence. Actual commands, source boundaries and open integration/R3 gates are
+recorded in the delivery checklist; local completion is not a verified release.
+Earlier "owner-unallocated" wording describes the preceding decision state,
+not a remaining choice to reopen the feature.
 
 Target: retire the DP Replace experience without changing the behavior or
 output bytes of Standard Merge, AB Merge (including Dummy DP), CtrlRAM Replace
@@ -2047,22 +2051,21 @@ or the retained General workflows. This is an acceptance target, not an
 already-verified zero-impact claim. Removing DP Replace does not remove DP
 inputs, DP metadata/CMI, DP/TP map facts, or the common Replace operation model.
 
-The follow-up ownership decision above is a retirement prerequisite: shared
-metadata/family facts must survive independently of the DP Replace experience.
-Moving them under another workflow without preserving that ownership is not
-completion. Existing exact-reference and package-admission checks remain in
-force until the migration is implemented.
+The prerequisite shared metadata/family facts now have neutral canonical
+owners; their mutable page/session instances remain independent. This does
+not authorize removing the shared Replace engine or weakening exact-reference,
+package-admission and historical Report checks.
 
 Current impact and required migration boundary:
 
 | Surface | Assessment / retirement TODO |
 | --- | --- |
-| Ordinary UI and CLI authoring | All 14 DP Replace routes in the [shipped capability policy](../contracts/canonical-capability-policy-v1.json) are authoring-unavailable. The [CLI handler](../../src/NvtFwCombiner.Cli/ReplaceCliCommandHandler.cs) still recognizes the command and checks readiness before execution. Remove obsolete selectors, command/help and service wiring coherently; explicitly reject a retired command without falling through to another workflow. |
-| Shared DPCMI definition — direct dependency | The [trust index](../../profiles/built-in/package-trust-index.json) now registers the neutral `nt51919-nt51929-nt51932-shared-facts` provider for the unchanged `nt51929-nt51932@1.3.0`. The retained DP bundle materializes the same bytes. Standard families for 17/27, 23/26, 28, 19/29/32 and 50/51 retain their exact `dpcmi` references; CtrlRAM retains its Standard metadata plans. See the [1.1.10 delivery checklist](../ui/v1.1.10-delivery.md) for migration tests and remaining gates. |
-| Perfect family disclosure — direct dependency | The [NT51919/29/32 Perfect relationship](../../profiles/built-in/nt51919-nt51929-nt51932-shared-facts/families/nt51929-nt51932.json) remains in the unchanged canonical family, currently consumed through a DP Replace runtime map. [Global disclosure](../../src/NvtFwCombiner.Infrastructure/Composition/CanonicalCapabilityDisclosureInventory.cs) collects relationships from compiled runtime maps, not metadata-provider files. Preserve the owner's Perfect-family behavior, including badges and filename-only mismatch suppression, via an explicit canonical disclosure binding before removing DP runtime. Moving the metadata file alone is insufficient. Do not create per-IC maps or silently drop the relationship. |
+| Ordinary UI and CLI authoring | The retirement removes all 14 DP routes from the [capability policy](../contracts/canonical-capability-policy-v1.json), obsolete selectors, command/help and service wiring. The existing compiler terminal rejects valid retired-DP declarations before creating any artifact; earlier admission failures keep their typed issue. The [CLI handler](../../src/NvtFwCombiner.Cli/ReplaceCliCommandHandler.cs) must reject the retired command before input reads, execution or output/report side effects, without General fallback. |
+| Shared DPCMI definition — completed prerequisite | The [trust index](../../profiles/built-in/package-trust-index.json) registers neutral canonical providers. `nt51929-nt51932@1.3.1` adds declared full-image views while retaining its DPCMI facts; Standard families for 17/27, 23/26, 28, 19/29/32 and 50/51 retain their exact references. CtrlRAM uses the common full-image inspector without a DP runtime fallback. Migration evidence is recorded in the [delivery checklist](../ui/v1.1.10-delivery.md). |
+| Perfect family disclosure — completed prerequisite | The [NT51919/29/32 Perfect relationship](../../profiles/built-in/nt51919-nt51929-nt51932-shared-facts/families/nt51929-nt51932.json) remains canonical. [Global disclosure](../../src/NvtFwCombiner.Infrastructure/Composition/CanonicalCapabilityDisclosureInventory.cs) now consumes an explicit admitted family binding independently of DP runtime maps. Existing badge and filename-only mismatch-suppression behavior is covered by the committed disclosure regression unit. |
 | Shared execution and inspection | Preserve the [shared operation model and profile-owned access rules](../adr/0005-replace-personas-and-general-mapping.md). Remove only proven DP Replace-specific branches; keep reference initialization, range/CRC safety, metadata inspection and session behavior needed by the other workflows. |
 | Historical Report / History | Existing report [history labels](../../src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReportHistoryEntryViewModel.cs) read stored experience/mode identity. Retain read-only interpretation of old DP Replace records and their input/mutation details; do not erase user history or keep an executable workflow solely to display it. |
-| Tests, evidence and package catalogs | Separate obsolete DP Replace execution cases from shared-engine/family safety tests that currently use DP Replace fixtures. Preserve the latter coverage through a surviving workflow. Migrate trust indexes, publication/evidence policy and package manifests together, using existing synchronization tools for derived fingerprints. Preserve historical certification/provenance; no blanket test or Golden-directory deletion. |
+| Tests, evidence and package catalogs | Retarget shared-engine/family/UI safety tests to surviving workflows and retain historical reports/oracles. Migrate trust indexes, policy and packages together: 24 bundles, 54 runtime registrations and 79 policy routes survive. Survivor bundle bytes, route fingerprints and decision identities remain exact; removing DP rows does not require repinning them. Preserve all 40 canonical Golden cases, output contracts and the approved allowlist. |
 
 Implementation order: preserve shared facts and references first, remove the
 experience-specific runtime/authoring surfaces second, then reconcile active

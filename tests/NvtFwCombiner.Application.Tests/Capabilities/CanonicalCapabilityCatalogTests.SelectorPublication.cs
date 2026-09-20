@@ -479,16 +479,5 @@ public sealed partial class CanonicalCapabilityCatalogTests
             issues = [];
         }
 
-        public void CompileDefinition(
-            string icId,
-            string workflowId,
-            long? requestedMapCapacity,
-            IReadOnlyCollection<string>? selectedInputSlotIds,
-            out CompiledComposition? composition,
-            out IReadOnlyList<CompositionIssue> issues)
-        {
-            composition = null;
-            issues = [];
-        }
     }
 }

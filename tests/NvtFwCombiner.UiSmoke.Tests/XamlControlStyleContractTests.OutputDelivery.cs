@@ -129,7 +129,6 @@ public sealed partial class XamlControlStyleContractTests
         Assert.Contains("NormalMergeMode => _standardMergeSession", mergeState, StringComparison.Ordinal);
         Assert.Contains("AbCodeMergeMode => _abMergeSession", mergeState, StringComparison.Ordinal);
         Assert.Contains("GeneralMergeMode => _generalMergeSession", mergeState, StringComparison.Ordinal);
-        Assert.Contains("DpReplaceMode => _dpReplaceSession", replaceState, StringComparison.Ordinal);
         Assert.Contains("CtrlRamReplaceMode => _ctrlRamReplaceSession", replaceState, StringComparison.Ordinal);
         Assert.Contains("GeneralReplaceMode => _generalReplaceSession", replaceState, StringComparison.Ordinal);
         Assert.Contains("context.AcceptedSession", merge, StringComparison.Ordinal);

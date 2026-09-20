@@ -142,7 +142,7 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("InspectAsync", firmwareContentRead, StringComparison.Ordinal);
         Assert.DoesNotContain("File.ReadAllBytes", firmwareContentRead, StringComparison.Ordinal);
         Assert.Contains("ReadAndHashExactLengthAsync", contentInspector, StringComparison.Ordinal);
-        Assert.Contains(
+        Assert.DoesNotContain(
             "input.DpReplaceAddressSpaceId is not null",
             firmwareInspection,
             StringComparison.Ordinal);
@@ -571,8 +571,6 @@ public sealed partial class RepositoryBoundaryTests
         string registrations = ReadText("src/NvtFwCombiner.Infrastructure/Composition/BuiltInV2RegistrationRegistry.cs");
         string generalMerge = ReadText(
             "src/NvtFwCombiner.Infrastructure/Composition/BuiltInGeneralAuthoringPlanner.GeneralMerge.V2.cs");
-        string dpReplace = ReadText(
-            "src/NvtFwCombiner.Application/Authoring/DpReplaceAuthoringExperience.cs");
 
         static bool IsSha256Literal(string value)
         {
@@ -583,11 +581,11 @@ public sealed partial class RepositoryBoundaryTests
         [
             .. trustIndex.RootElement.GetProperty("bundles").EnumerateArray(),
         ];
-        Assert.Equal(26, entries.Length);
+        Assert.Equal(24, entries.Length);
         Assert.All(entries, entry =>
             Assert.True(IsSha256Literal(entry.GetProperty("contentHash").GetString()!)));
         Assert.Equal(
-            39,
+            29,
             entries.Sum(static entry => entry.GetProperty("runtimeRegistrations")
                 .EnumerateArray()
                 .Count(static registration => registration.GetProperty("workflowId").GetString() != "ctrlram-replace")));
@@ -596,18 +594,17 @@ public sealed partial class RepositoryBoundaryTests
         JsonElement abBundle = Assert.Single(entries, static entry => entry.GetProperty("bundleDirectory").GetString() ==
             "nt51950-ab-merge");
         using JsonDocument abManifest = JsonDocument.Parse(ReadText("profiles/built-in/nt51950-ab-merge/profile-bundle.json"));
-        Assert.Equal("1.1.6-ab-format.2", abBundle.GetProperty("bundleVersion").GetString());
+        Assert.Equal("1.1.10-full-image-metadata.1", abBundle.GetProperty("bundleVersion").GetString());
         Assert.Equal(abManifest.RootElement.GetProperty("bundleVersion").GetString(), abBundle.GetProperty("bundleVersion").GetString());
         Assert.Equal(abManifest.RootElement.GetProperty("contentHash").GetString(), abBundle.GetProperty("contentHash").GetString());
         Assert.Equal(
             1,
             CountOccurrences(
-                bundle + registrations + generalMerge + dpReplace,
+                bundle + registrations + generalMerge,
                 "new BuiltInV2Bundle("));
         Assert.DoesNotContain(bundle.Split('"'), IsSha256Literal);
         Assert.DoesNotContain(registrations.Split('"'), IsSha256Literal);
         Assert.DoesNotContain(generalMerge.Split('"'), IsSha256Literal);
-        Assert.DoesNotContain(dpReplace.Split('"'), IsSha256Literal);
     }
 
     /// <summary>Verifies the raw Hex Editor stays independent from firmware composition policy and UI file I/O.</summary>

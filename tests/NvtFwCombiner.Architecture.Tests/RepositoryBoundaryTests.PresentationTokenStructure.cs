@@ -60,7 +60,7 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("CompositionSlotIds.MergeTp", presentationSource, StringComparison.Ordinal);
         Assert.Contains("CompositionSlotIds.MergeLdc", presentationSource, StringComparison.Ordinal);
         Assert.Contains("CompositionSlotIds.ReplaceBase", presentationSource, StringComparison.Ordinal);
-        Assert.Contains("CompositionSlotIds.ReplaceDp", presentationSource, StringComparison.Ordinal);
+        Assert.DoesNotContain("CompositionSlotIds.ReplaceDp", presentationSource, StringComparison.Ordinal);
         Assert.Contains("DynamicCtrlRamReplacementIds.TryFormatDisplayLabel", presentationSource, StringComparison.Ordinal);
         foreach (string slotLiteral in new[]
         {

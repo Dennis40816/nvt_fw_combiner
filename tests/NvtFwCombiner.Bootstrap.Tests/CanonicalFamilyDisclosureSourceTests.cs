@@ -12,14 +12,14 @@ public sealed class CanonicalFamilyDisclosureSourceTests
     private static readonly string[] PerfectMembers = ["NT51919", "NT51929", "NT51932"];
     private const string Provider = "nt51919-nt51929-nt51932-shared-facts";
 
-    /// <summary>Removing real DP definitions preserves the same Perfect summary and every runtime projection.</summary>
+    /// <summary>Absent DP definitions preserve the same Perfect summary and every runtime projection.</summary>
     [Fact]
     public void ExplicitDisclosurePreservesPerfectWithoutDpDefinitions()
     {
         CanonicalCapabilityDisclosure? baseline = null;
         CanonicalCapabilityCatalogSource source = CreateSource((definitions, dynamicDefinitions) =>
         {
-            Assert.Contains(definitions, definition => definition.Identity.WorkflowId == ExperienceIds.DpReplace);
+            Assert.DoesNotContain(definitions, definition => definition.Identity.WorkflowId == ExperienceIds.DpReplace);
             baseline = CanonicalCapabilityDisclosureInventory.Create(definitions, dynamicDefinitions);
             CanonicalCapabilityDefinition[] withoutDp = [.. definitions.Where(definition => definition.Identity.WorkflowId != ExperienceIds.DpReplace)];
             CanonicalCapabilityDisclosure actual = CanonicalCapabilityDisclosureInventory.Create(withoutDp, dynamicDefinitions);

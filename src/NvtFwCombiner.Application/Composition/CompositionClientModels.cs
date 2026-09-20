@@ -189,7 +189,6 @@ public sealed record FirmwareInspectionSnapshotInput(
     CtrlRamInspectionRequest? CtrlRamRequest = null,
     string? AbMergeAddressSpaceId = null,
     string? AbMergeTopologyToken = null,
-    string? DpReplaceAddressSpaceId = null,
     long AuthoringRevision = 1,
     string? StandardMergeAddressSpaceId = null,
     string? CtrlRamReplaceAddressSpaceId = null,

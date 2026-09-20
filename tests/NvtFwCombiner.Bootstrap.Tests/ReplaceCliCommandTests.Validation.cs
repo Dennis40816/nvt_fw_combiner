@@ -19,76 +19,68 @@ public sealed partial class ReplaceCliCommandTests
         ], TestContext.Current.CancellationToken);
 
         Assert.DoesNotContain("dp-replace", help.Output, StringComparison.Ordinal);
-        Assert.Equal(1, direct.ExitCode);
-        Assert.Contains(
-            CompositionPlanningIssueCodes.ReplaceWorkflowNotSupported,
-            direct.Error,
-            StringComparison.Ordinal);
+        Assert.Equal(64, direct.ExitCode);
+        Assert.Contains("cli.retired-experience", direct.Error, StringComparison.Ordinal);
         Assert.DoesNotContain("--ic-num is required", direct.Error, StringComparison.Ordinal);
         Assert.DoesNotContain("--base is required", direct.Error, StringComparison.Ordinal);
     }
 
     /// <summary>Atomically replaces an unrelated existing Replace output.</summary>
     [Fact]
-    public async Task DpReplaceBuildReplacesExistingOutputWithoutOverwrite()
+    public async Task GeneralReplaceBuildReplacesExistingOutputWithoutOverwrite()
     {
         using var workspace = TempWorkspace.Create();
-        string reference = workspace.Write("reference.bin", new byte[0x40000]);
-        byte[] dpBytes = new byte[0x40000];
+        string reference = workspace.Write("reference.bin", File.ReadAllBytes(BootstrapTestData.GoldenArtifactPath("51926", "expected-output")));
+        byte[] dpBytes = [0x3C, 0x4D];
         dpBytes[0] = 0x3C;
         string dp = workspace.Write("dp.bin", dpBytes);
         byte[] existingOutput = [0xA5, 0x5A];
         string output = workspace.Write("out.bin", existingOutput);
 
         CliRunResult result = await RunCliAsync([
-            "dp-replace",
+            "general-replace",
             "build",
             "--profile",
-            "NT51950",
+            "NT51926",
             "--ic-num",
             "single",
             "--base",
             reference,
-            "--dp",
-            dp,
+            "--mapping",
+            $"0x3E020+0x2={dp}",
             "--output",
             output,
         ]);
 
         Assert.Equal(0, result.ExitCode);
-        Assert.Contains(
-            "output-naming.metadata-unknown",
-            result.Error,
-            StringComparison.Ordinal);
-        Assert.DoesNotContain(
-            "output-naming.metadata-required",
-            result.Error,
-            StringComparison.Ordinal);
         byte[] outputBytes = await File.ReadAllBytesAsync(output, TestContext.Current.CancellationToken);
         Assert.Equal(0x40000, outputBytes.Length);
-        Assert.Equal(0x3C, outputBytes[0]);
+        Assert.Equal(0x3C, outputBytes[0x3E020]);
+        byte[] expected = await File.ReadAllBytesAsync(reference, TestContext.Current.CancellationToken);
+        dpBytes.CopyTo(expected, 0x3E020);
+        Assert.Equal(expected, outputBytes);
     }
 
     /// <summary>Rejects Replace build outputs that would overwrite an input BIN.</summary>
     [Fact]
-    public async Task DpReplaceBuildRejectsOutputPathThatAliasesInput()
+    public async Task GeneralReplaceBuildRejectsOutputPathThatAliasesInput()
     {
         using var workspace = TempWorkspace.Create();
-        byte[] referenceBytes = new byte[0x40000];
+        byte[] referenceBytes = File.ReadAllBytes(BootstrapTestData.GoldenArtifactPath("51926", "expected-output"));
         string reference = workspace.Write("reference.bin", referenceBytes);
-        string dp = workspace.Write("dp.bin", new byte[0x40000]);
+        string dp = workspace.Write("dp.bin", new byte[2]);
 
         CliRunResult result = await RunCliAsync([
-            "dp-replace",
+            "general-replace",
             "build",
             "--profile",
-            "NT51950",
+            "NT51926",
             "--ic-num",
             "single",
             "--base",
             reference,
-            "--dp",
-            dp,
+            "--mapping",
+            $"0x3E020+0x2={dp}",
             "--output",
             reference,
         ]);
@@ -100,24 +92,24 @@ public sealed partial class ReplaceCliCommandTests
 
     /// <summary>Rejects Replace report paths that would overwrite the build output.</summary>
     [Fact]
-    public async Task DpReplaceBuildRejectsReportPathThatAliasesOutput()
+    public async Task GeneralReplaceBuildRejectsReportPathThatAliasesOutput()
     {
         using var workspace = TempWorkspace.Create();
-        string reference = workspace.Write("reference.bin", new byte[0x40000]);
-        string dp = workspace.Write("dp.bin", new byte[0x40000]);
+        string reference = workspace.Write("reference.bin", File.ReadAllBytes(BootstrapTestData.GoldenArtifactPath("51926", "expected-output")));
+        string dp = workspace.Write("dp.bin", new byte[2]);
         string output = workspace.PathFor("out.bin");
 
         CliRunResult result = await RunCliAsync([
-            "dp-replace",
+            "general-replace",
             "build",
             "--profile",
-            "NT51950",
+            "NT51926",
             "--ic-num",
             "single",
             "--base",
             reference,
-            "--dp",
-            dp,
+            "--mapping",
+            $"0x3E020+0x2={dp}",
             "--output",
             output,
             "--report",
@@ -134,18 +126,18 @@ public sealed partial class ReplaceCliCommandTests
     public async Task ReplacePreviewRejectsMissingIcNumber()
     {
         using var workspace = TempWorkspace.Create();
-        string reference = workspace.Write("reference.bin", new byte[0x40000]);
-        string dp = workspace.Write("dp.bin", new byte[0x40000]);
+        string reference = workspace.Write("reference.bin", File.ReadAllBytes(BootstrapTestData.GoldenArtifactPath("51926", "expected-output")));
+        string dp = workspace.Write("dp.bin", new byte[2]);
 
         CliRunResult result = await RunCliAsync([
-            "dp-replace",
+            "general-replace",
             "preview",
             "--profile",
-            "NT51950",
+            "NT51926",
             "--base",
             reference,
-            "--dp",
-            dp,
+            "--mapping",
+            $"0x3E020+0x2={dp}",
         ]);
 
         Assert.Equal(64, result.ExitCode);

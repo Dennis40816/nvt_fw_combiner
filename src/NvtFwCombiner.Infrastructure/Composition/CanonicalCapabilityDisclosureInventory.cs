@@ -51,8 +51,6 @@ internal static class CanonicalCapabilityDisclosureInventory
                 BuiltInV2RegistrationRegistry.StandardMergeByIc.Values),
             [ExperienceIds.AbMerge] = CreateProfileSummaries(
                 BuiltInV2RegistrationRegistry.AbMerge),
-            [ExperienceIds.DpReplace] = CreateProfileSummaries(
-                BuiltInV2RegistrationRegistry.DpReplaceByIc.Value.Values),
         };
         Dictionary<string, IReadOnlyList<CapabilityNumberChoice>> numberChoices =
             icIds.ToDictionary(
@@ -66,19 +64,6 @@ internal static class CanonicalCapabilityDisclosureInventory
                         choice.DisplayLabel)),
             ]),
             StringComparer.Ordinal);
-        var dpCapacities = new Dictionary<string, IReadOnlyList<long>>(
-            StringComparer.Ordinal);
-        foreach (BuiltInV2Registration registration in
-                 BuiltInV2RegistrationRegistry.DpReplaceByIc.Value.Values)
-        {
-            IReadOnlyList<long> capacities = registration.GetMapCapacities(
-                out IReadOnlyList<CompositionIssue> issues);
-            if (issues.Count == 0)
-            {
-                dpCapacities.Add(registration.IcId, capacities);
-            }
-        }
-
         Dictionary<string, CapabilityFamilySummary> families = icIds.ToDictionary(
             static icId => icId,
             icId => CreateFamilySummary(icId, definitions, dynamicDefinitions, disclosureFamilies),
@@ -93,7 +78,6 @@ internal static class CanonicalCapabilityDisclosureInventory
         return new CanonicalCapabilityDisclosure(
             profiles,
             numberChoices,
-            dpCapacities,
             families,
             dpPerspectiveIcs);
     }

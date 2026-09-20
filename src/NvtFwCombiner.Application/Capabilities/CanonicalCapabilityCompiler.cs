@@ -88,70 +88,6 @@ internal sealed partial class CanonicalCapabilityCompilerAdapter :
         return true;
     }
 
-    internal bool TryCompilePublishedDpReplaceCapability(
-        string icId,
-        long baseCapacity,
-        out CompiledComposition? composition,
-        out ResolvedCapability? resolvedCapability,
-        out IReadOnlyList<CompositionIssue> issues)
-    {
-        resolvedCapability = null;
-        CapabilityResolutionResult resolution = _catalog.ResolveUniqueRoute(
-                icId,
-                ExperienceIds.DpReplace,
-                "1-ic",
-                baseCapacity);
-        if (StringComparer.Ordinal.Equals(
-                resolution.Issue?.Code,
-                CapabilityCatalogIssueCodes.RouteUnavailable))
-        {
-            long[] capacities = GetCanonicalOutputCapacities(
-                icId,
-                ExperienceIds.DpReplace);
-            if (capacities.Length != 0)
-            {
-                composition = null;
-                issues =
-                [
-                    new CompositionIssue(
-                        CompositionIssueCodes.InputAddressSpaceLengthMismatch,
-                        $"{icId} DP Replace base flash BIN length must be one of {FormatCapacities(capacities)} (actual 0x{baseCapacity:X})."),
-                ];
-                return true;
-            }
-
-            composition = null;
-            issues = [];
-            return false;
-        }
-
-        composition = resolution.Capability?.CompiledComposition;
-        long? resolvedCapacity = composition?.V2Details.Provenance
-            .ResolvedMap.CapacityBytes;
-        if (composition is not null && resolvedCapacity != baseCapacity)
-        {
-            composition = null;
-            issues =
-            [
-                new CompositionIssue(
-                    CompositionIssueCodes.InputAddressSpaceLengthMismatch,
-                    $"{icId} DP Replace base flash BIN length must be 0x{resolvedCapacity:X} (actual 0x{baseCapacity:X})."),
-            ];
-            return true;
-        }
-
-        resolvedCapability = resolution.Capability;
-        issues = resolution.Issue is null
-            ? []
-            :
-            [
-                new CompositionIssue(
-                    resolution.Issue.Code,
-                    resolution.Issue.Message),
-            ];
-        return true;
-    }
-
     internal bool TryCompilePublishedDynamicCapability(
         string icId,
         string workflowId,
@@ -376,23 +312,6 @@ internal sealed partial class CanonicalCapabilityCompilerAdapter :
             metadataPlan ?? throw new InvalidOperationException(
                 "Canonical dynamic compilation omitted its metadata plan."));
         composition = resolvedCapability.CompiledComposition;
-    }
-
-    internal void CompileDynamicDefinition(
-        string icId,
-        string workflowId,
-        long? requestedMapCapacity,
-        IReadOnlyCollection<string>? selectedInputSlotIds,
-        out CompiledComposition? composition,
-        out IReadOnlyList<CompositionIssue> issues)
-    {
-        _dynamicCompiler.CompileDefinition(
-            IcIdentifier.Normalize(icId),
-            workflowId,
-            requestedMapCapacity,
-            selectedInputSlotIds,
-            out composition,
-            out issues);
     }
 
     private static string FormatCapacities(IEnumerable<long> capacities)
