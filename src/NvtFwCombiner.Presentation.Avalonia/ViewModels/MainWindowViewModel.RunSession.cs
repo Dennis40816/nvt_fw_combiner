@@ -9,21 +9,20 @@ internal sealed partial class MainWindowViewModel
     public CompositionRunPresentationViewModel RunSession { get; }
 
     private async Task RunCompositionAsync(
+        CompositionRunContext context,
         bool build,
         CompositionRunWork run,
         Action<string, string> loadErrorReport)
     {
-        string mode = GetSelectedRunMode();
-        string icId = GetWorkflowSelectedIc();
-        UiRunResultViewModel? previous = RunSession.LastRunResult;
+        string mode = context.Mode;
+        string icId = context.Ic;
         RecordDebugActivity(
             build ? SystemActivityCodes.BuildStarted : SystemActivityCodes.PreviewStarted,
             SystemActivityCategory.Composition,
             mode,
             icId);
-        await RunSession.RunCompositionAsync(build, run, loadErrorReport);
-        UiRunResultViewModel? result = RunSession.LastRunResult;
-        bool succeeded = !ReferenceEquals(previous, result) && result?.Succeeded == true;
+        UiRunResultViewModel? result = await RunSession.RunCompositionAsync(context, build, run, loadErrorReport);
+        bool succeeded = result?.Succeeded == true;
         RecordSystemActivity(new SystemActivityDraft(
             succeeded
                 ? build ? SystemActivityCodes.BuildCompleted : SystemActivityCodes.PreviewCompleted
@@ -35,16 +34,16 @@ internal sealed partial class MainWindowViewModel
             icId));
     }
 
-    private async Task ShowDiagnosticPreviewAsync(CompositionRunReport report)
+    private async Task ShowDiagnosticPreviewAsync(CompositionRunContext context, CompositionRunReport report)
     {
-        string mode = GetSelectedRunMode();
-        string icId = GetWorkflowSelectedIc();
+        string mode = context.Mode;
+        string icId = context.Ic;
         RecordDebugActivity(
             SystemActivityCodes.PreviewStarted,
             SystemActivityCategory.Composition,
             mode,
             icId);
-        await RunSession.ShowDiagnosticPreviewAsync(report);
+        await RunSession.ShowDiagnosticPreviewAsync(context, report);
         RecordSystemActivity(new SystemActivityDraft(
             SystemActivityCodes.PreviewFailed,
             SystemActivityImportance.Important,
@@ -55,10 +54,11 @@ internal sealed partial class MainWindowViewModel
     }
 
     private void ShowActionReadiness(
+        CompositionRunContext context,
         CapabilityActionReadinessSnapshot readiness,
         bool build)
     {
-        RunSession.ShowActionReadiness(readiness, build);
+        RunSession.ShowActionReadiness(context, readiness, build);
     }
 
     private bool IsCompositionRunInProgress()
@@ -91,19 +91,22 @@ internal sealed partial class MainWindowViewModel
         RunSession.NotifyContextChanged();
     }
 
-    private void ResetRunResultForContextChange()
+    private void ResetRunResultForContextChange(CompositionRunContext context)
     {
-        RunSession.ResetRunResultForContextChange();
+        RunSession.ResetRunResultForContextChange(context);
     }
 
-    private void PublishLastRunResult(UiRunResultViewModel result)
+    private void PublishLastRunResult(WorkflowRunState owner, UiRunResultViewModel result)
     {
-        RunSession.PublishRunResult(result);
+        if (!RunSession.IsRunInProgress)
+        {
+            RunSession.PublishRunResult(owner, result);
+        }
     }
 
-    private string GetSelectedRunMode()
+    private WorkflowRunState GetDisplayedRunOwner()
     {
-        return IsMergeVisible ? Merge.SelectedMergeMode : Replace.SelectedReplaceMode;
+        return IsMergeVisible ? Merge.RunState : Replace.RunState;
     }
 
     private void RunSession_OnPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)

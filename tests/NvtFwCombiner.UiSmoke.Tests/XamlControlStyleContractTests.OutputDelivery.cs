@@ -123,13 +123,17 @@ public sealed partial class XamlControlStyleContractTests
     {
         string merge = ReadPresentationFile("ViewModels/MergePresentationViewModel.Execution.cs");
         string replace = ReadPresentationFile("ViewModels/ReplacePresentationViewModel.Execution.cs");
+        string mergeState = ReadPresentationFile("ViewModels/MergePresentationViewModel.State.cs");
+        string replaceState = ReadPresentationFile("ViewModels/ReplacePresentationViewModel.State.cs");
 
-        Assert.Contains("NormalMergeMode => _standardMergeSession.CurrentSnapshot", merge, StringComparison.Ordinal);
-        Assert.Contains("AbCodeMergeMode => _abMergeSession.CurrentSnapshot", merge, StringComparison.Ordinal);
-        Assert.Contains("GeneralMergeMode => _generalMergeSession.CurrentSnapshot", merge, StringComparison.Ordinal);
-        Assert.Contains("DpReplaceMode => _dpReplaceSession.CurrentSnapshot", replace, StringComparison.Ordinal);
-        Assert.Contains("CtrlRamReplaceMode => _ctrlRamReplaceSession.CurrentSnapshot", replace, StringComparison.Ordinal);
-        Assert.Contains("GeneralReplaceMode => _generalReplaceSession.CurrentSnapshot", replace, StringComparison.Ordinal);
+        Assert.Contains("NormalMergeMode => _standardMergeSession", mergeState, StringComparison.Ordinal);
+        Assert.Contains("AbCodeMergeMode => _abMergeSession", mergeState, StringComparison.Ordinal);
+        Assert.Contains("GeneralMergeMode => _generalMergeSession", mergeState, StringComparison.Ordinal);
+        Assert.Contains("DpReplaceMode => _dpReplaceSession", replaceState, StringComparison.Ordinal);
+        Assert.Contains("CtrlRamReplaceMode => _ctrlRamReplaceSession", replaceState, StringComparison.Ordinal);
+        Assert.Contains("GeneralReplaceMode => _generalReplaceSession", replaceState, StringComparison.Ordinal);
+        Assert.Contains("context.AcceptedSession", merge, StringComparison.Ordinal);
+        Assert.Contains("context.AcceptedSession", replace, StringComparison.Ordinal);
         Assert.Contains("outputBundle: outputBundle", merge, StringComparison.Ordinal);
         Assert.Contains("outputBundle: outputBundle", replace, StringComparison.Ordinal);
         Assert.Contains("decision.OutputPathUsesAutomaticName", replace, StringComparison.Ordinal);

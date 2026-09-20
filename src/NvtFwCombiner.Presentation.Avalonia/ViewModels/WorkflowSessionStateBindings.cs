@@ -8,6 +8,6 @@ internal sealed record WorkflowSessionStateBindings(
     Func<string> DisplayedDeviceIc,
     Func<string> DisplayedDeviceNumber,
     Func<string> DisplayedDeviceContextRefreshSummary,
-    Action ResetRunResult,
+    Action<CompositionRunContext> ResetRunResult,
     Action RefreshCommandState,
     Action NotifyRunContextChanged);

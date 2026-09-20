@@ -1,4 +1,5 @@
 using NvtFwCombiner.Application.Authoring;
+using NvtFwCombiner.Application.Capabilities;
 using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
@@ -22,13 +23,8 @@ internal sealed partial class MergePresentationViewModel
 
     internal async Task RequestBuildOutputDeliveryAsync()
     {
-        ActiveSessionSnapshot session = SelectedMergeMode switch
-        {
-            NormalMergeMode => _standardMergeSession.CurrentSnapshot,
-            AbCodeMergeMode => _abMergeSession.CurrentSnapshot,
-            GeneralMergeMode => _generalMergeSession.CurrentSnapshot,
-            _ => null,
-        } ?? throw new InvalidOperationException(
+        CompositionRunContext context = CaptureRunContext(SelectedMergeMode, build: true);
+        ActiveSessionSnapshot session = context.AcceptedSession ?? throw new InvalidOperationException(
             "Build output confirmation requires one accepted Merge session.");
         long preparation = _stateBindings.OutputDelivery.BeginPreparation();
         CompositionOutputBundleProposal proposal;
@@ -38,14 +34,14 @@ internal sealed partial class MergePresentationViewModel
         }
         catch (CompositionPreRunRefusalException exception)
         {
-            if (IsAcceptedMergeSessionCurrent(session) && _stateBindings.OutputDelivery.IsPreparationCurrent(preparation))
+            if (IsAcceptedMergeSessionCurrent(context) && _stateBindings.OutputDelivery.IsPreparationCurrent(preparation))
             {
-                _stateBindings.PublishRunResult(new UiRunResultViewModel("Build blocked", exception.Message, "No output", succeeded: false));
+                _stateBindings.PublishRunResult(context.Owner, new UiRunResultViewModel("Build blocked", exception.Message, "No output", succeeded: false));
                 await RefreshAbMergeActionReadinessAsync(CancellationToken.None);
             }
             return;
         }
-        if (!IsAcceptedMergeSessionCurrent(session) || !_stateBindings.OutputDelivery.IsPreparationCurrent(preparation))
+        if (!IsAcceptedMergeSessionCurrent(context) || !_stateBindings.OutputDelivery.IsPreparationCurrent(preparation))
         {
             return;
         }
@@ -57,7 +53,7 @@ internal sealed partial class MergePresentationViewModel
             proposal,
             IsReplaceOutput: false,
             AdditionalDelivery: additional,
-            () => IsAcceptedMergeSessionCurrent(session),
+            () => IsAcceptedMergeSessionCurrent(context),
             CtrlRamOptions: null,
             PrepareModeSpecificAsync: null,
             Cancel: null,
@@ -70,16 +66,10 @@ internal sealed partial class MergePresentationViewModel
                 decision.BundleIntent)));
     }
 
-    private bool IsAcceptedMergeSessionCurrent(ActiveSessionSnapshot acceptedSession)
+    private bool IsAcceptedMergeSessionCurrent(CompositionRunContext context)
     {
-        ActiveSessionSnapshot? current = SelectedMergeMode switch
-        {
-            NormalMergeMode => _standardMergeSession.CurrentSnapshot,
-            AbCodeMergeMode => _abMergeSession.CurrentSnapshot,
-            GeneralMergeMode => _generalMergeSession.CurrentSnapshot,
-            _ => null,
-        };
-        return ReferenceEquals(current, acceptedSession);
+        return StringComparer.Ordinal.Equals(SelectedMergeMode, context.Mode) && context.IsPublicationCurrent &&
+            ReferenceEquals(context.AuthoringSession?.CurrentSnapshot, context.AcceptedSession);
     }
 
     private Task RunMergeAsync(
@@ -119,14 +109,16 @@ internal sealed partial class MergePresentationViewModel
         bool outputPathUsesAutomaticName,
         CompositionOutputBundleIntent? outputBundle = null)
     {
-        string icId = SelectedIc;
-        string number = SelectedNumber;
-        ActiveSessionSnapshot? acceptedSession = _standardMergeSession.CurrentSnapshot;
+        CompositionRunContext context = CaptureRunContext(NormalMergeMode, build);
+        string icId = context.Ic;
+        string number = context.Number;
+        ActiveSessionSnapshot? acceptedSession = context.AcceptedSession;
         IReadOnlyDictionary<string, string> slotPaths = CreateStandardMergeSlotPaths();
         string profileId =
             _compositionServices.StandardMergeAuthoring.GetProfileId(icId) ??
             ExperienceIds.StandardMerge;
         return RunCompositionAsync(
+            context,
             build,
             (progress, cancellationToken) => _compositionServices.Execution.ExecuteAsync(
                 new AcceptedCompositionExecutionRequest(
@@ -154,16 +146,18 @@ internal sealed partial class MergePresentationViewModel
         bool outputPathUsesAutomaticName,
         CompositionOutputBundleIntent? outputBundle = null)
     {
-        string icId = SelectedIc;
-        string number = SelectedNumber;
+        CompositionRunContext context = CaptureRunContext(GeneralMergeMode, build);
+        string icId = context.Ic;
+        string number = context.Number;
         ActiveSessionSnapshot acceptedSession =
-            _generalMergeSession.CurrentSnapshot ??
+            context.AcceptedSession ??
             throw new InvalidOperationException("General Merge requires one active authoring session.");
         GeneralMergeDraftState draft = acceptedSession.DraftState as GeneralMergeDraftState ??
             throw new InvalidOperationException("General Merge requires one admitted typed draft.");
         IReadOnlyDictionary<string, string> slotPaths = CreateGeneralMergeSlotPaths();
         string outputFileName = GeneralMergeAuthoringUseCase.GetDefaultOutputFileName(icId);
         return RunCompositionAsync(
+            context,
             build,
             async (progress, cancellationToken) =>
             {
@@ -181,8 +175,7 @@ internal sealed partial class MergePresentationViewModel
 
                 if (result.AcceptedGeneralMappingDraft is { } accepted &&
                     ReferenceEquals(draft, _generalMergeDraft) &&
-                    _generalMergeSession.CurrentSnapshot?.AuthoringRevision ==
-                        acceptedSession.AuthoringRevision)
+                    context.IsPublicationCurrent)
                 {
                     _generalMergeDraft = new GeneralMergeDraftState(
                         draft.OutputInitializer,
@@ -210,36 +203,30 @@ internal sealed partial class MergePresentationViewModel
         bool aFlashCodeOutputPathUsesAutomaticName,
         CompositionOutputBundleIntent? outputBundle = null)
     {
-        await RefreshAbMergeActionReadinessAsync(CancellationToken.None);
-        if (!HasCurrentAbMergeActionReadiness(build))
-        {
-            return;
-        }
-
-        await RunAbMergeWithCurrentReadinessAsync(
-            build,
-            outputPath,
-            aFlashCodeOutputPath,
-            outputPathUsesAutomaticName,
-            aFlashCodeOutputPathUsesAutomaticName,
-            outputBundle);
-    }
-
-    private Task RunAbMergeWithCurrentReadinessAsync(
-        bool build,
-        string? outputPath,
-        string? aFlashCodeOutputPath,
-        bool outputPathUsesAutomaticName,
-        bool aFlashCodeOutputPathUsesAutomaticName,
-        CompositionOutputBundleIntent? outputBundle)
-    {
-        ActiveSessionSnapshot session = _abMergeSession.CurrentSnapshot ??
+        CompositionRunContext context = CaptureRunContext(AbCodeMergeMode, build);
+        ActiveSessionSnapshot session = context.AcceptedSession ??
             throw new InvalidOperationException("AB Merge requires one accepted authoring session.");
-        string icId = session.SelectedIc;
-        string number = SelectedNumber;
+        string icId = context.Ic;
+        string number = context.Number;
         IReadOnlyDictionary<string, string> slotPaths = CreateAbMergeSlotPaths();
         string profileId = session.ExactCapability?.CompiledComposition.V2Details.ProfileId ??
             throw new InvalidOperationException("AB Merge requires one accepted exact profile.");
+        CapabilityActionReadinessSnapshot? readiness = await _compositionServices.AbMergeAuthoring
+            .GetActionReadinessAsync(session, CancellationToken.None);
+        if (context.IsPublicationCurrent && ReferenceEquals(session, _abMergeSession.CurrentSnapshot))
+        {
+            _abMergeActionReadiness = readiness;
+            _abMergeReadinessSession = session;
+            RefreshCommandState();
+        }
+        if (readiness is null || !(build ? readiness.Build : readiness.Preview).IsAvailable)
+        {
+            CapabilityActionBlocker? blocker = (build ? readiness?.Build : readiness?.Preview)?.PrimaryBlocker;
+            _stateBindings.PublishRunResult(context.Owner, new UiRunResultViewModel(
+                build ? "Build blocked" : "Preview blocked",
+                blocker?.Message ?? "The accepted AB Merge action is unavailable.", "No output", succeeded: false));
+            return;
+        }
         var request = new AcceptedCompositionExecutionRequest(
             session,
             slotPaths,
@@ -248,9 +235,10 @@ internal sealed partial class MergePresentationViewModel
             additionalDeliveryOutputPath: aFlashCodeOutputPath,
             outputPathUsesAutomaticName: outputPathUsesAutomaticName,
             additionalDeliveryOutputPathUsesAutomaticName: aFlashCodeOutputPathUsesAutomaticName,
-            actionReadiness: _abMergeActionReadiness,
+            actionReadiness: readiness,
             outputBundle: outputBundle);
-        return RunCompositionAsync(
+        await RunCompositionAsync(
+            context,
             build,
             (progress, cancellationToken) => _compositionServices.Execution.ExecuteAsync(
                 request,

@@ -295,7 +295,7 @@ public sealed partial class ReportProjectionConcurrencyTests
         cancellationSource.Cancel();
 
         _ = await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
-            viewModel.RunSession.ProjectAndApplyRunResultAsync(result, build: false, cancellationSource.Token));
+            viewModel.RunSession.ProjectAndApplyRunResultAsync(viewModel.Replace.CaptureRunContext(viewModel.Replace.SelectedReplaceMode), result, build: false, cancellationSource.Token));
 
         Assert.False(viewModel.Reports.HasLoadedReport);
         Assert.False(viewModel.Reports.HasReportHistory);
@@ -372,6 +372,7 @@ public sealed partial class ReportProjectionConcurrencyTests
         MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
 
         Task olderProjection = viewModel.RunSession.ProjectAndApplyRunResultAsync(
+            viewModel.Replace.CaptureRunContext(viewModel.Replace.SelectedReplaceMode),
             largeResult,
             build: false,
             TestContext.Current.CancellationToken);

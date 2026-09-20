@@ -1,0 +1,58 @@
+{
+  "schemaVersion": 2,
+  "taskId": "WORKFLOW-RUN-OWNER-110-01",
+  "capability": "Isolate run request, result and cancellation ownership per page instance and mode while retaining serialized execution and shared report presentation",
+  "integrationBase": "b9a94a2bab1a7bc05129b3438f0c0afeaaf45ad4",
+  "risk": "R2",
+  "kind": "refactor",
+  "state": "design-active",
+  "mutablePaths": [
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/CompositionRunContracts.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/CompositionRunPresentationViewModel.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/WorkflowRunState.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MainWindowViewModel.Construction.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MainWindowViewModel.RunSession.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MergeStateBindings.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReplaceStateBindings.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/WorkflowSessionStateBindings.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MergePresentationViewModel.State.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReplacePresentationViewModel.State.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MergePresentationViewModel.Execution.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReplacePresentationViewModel.Execution.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MergePresentationViewModel.General.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MergePresentationViewModel.AbMergeAuthoring.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/WorkflowSessionPresentationViewModel.ContextRefresh.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/WorkflowSessionPresentationViewModel.Slots.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/WorkflowSessionPresentationViewModel.AbDummyDp.cs",
+    "tests/NvtFwCombiner.UiSmoke.Tests/WorkflowRunOwnershipTests.cs",
+    "tests/NvtFwCombiner.UiSmoke.Tests/ShellViewModelTests.RunProgress.cs",
+    "tests/NvtFwCombiner.UiSmoke.Tests/ShellViewModelTests.BuildCompleted.cs",
+    "tests/NvtFwCombiner.UiSmoke.Tests/ShellViewModelTests.OutputPreparationRefusal.cs",
+    "tests/NvtFwCombiner.UiSmoke.Tests/ShellViewModelTests.ReportPerformance.cs",
+    "tests/NvtFwCombiner.Architecture.Tests/RepositoryBoundaryTests.PresentationViewModelStructure.cs",
+    "tests/NvtFwCombiner.UiSmoke.Tests/XamlControlStyleContractTests.OutputDelivery.cs"
+  ],
+  "implementationOwner": "/root/run_owner_impl",
+  "searchEvidence": [
+    "Owner approved cross-page neutral contracts with independent mutable page instances in 1.1.10; SHARE-03 is tracked in docs/ui/v1.1.10-delivery.md. Source 71dedf4974d80fbb757d8f64e1164e423fac0772 already corrects Standard snapshot capture and activity IC capture.",
+    "Independent caller audit by layout_ownership_review covered run invocation, direct publication, output-preparation refusal, readiness, diagnostic preview, page/slot/context resets, AB dummy inputs and window cancellation. Current singleton RunSession stores LastRunResult/CTS while AuthoringSessionState already isolates accepted snapshots and publication leases.",
+    "Existing CompositionRunUsesCapturedUiInputs requires a captured result/report to remain accessible after draft changes. Existing shared report-generation, history repository and BuildResult presentation policies remain in force; stale publication lease cannot erase a completed artifact.",
+    "Before first commit, content_source_impl independently approved a second auxiliary source-shape test synchronization in XamlControlStyleContractTests.OutputDelivery.cs: inspect the unchanged six mode-to-session mappings at their new State.cs capture owner and assert Execution consumes context.AcceptedSession; preserve output-bundle and automatic-name forwarding checks. Root stages this path before writer edits."
+  ],
+  "semanticOwner": "Existing Application accepted-session and execution contracts retain admission; Presentation WorkflowRunState owns only instance/mode run presentation state, with existing CompositionRunPresentationViewModel coordinating one active attempt",
+  "terminalContract": "Create one WorkflowRunState per page instance and mode, using object identity rather than workflow id, IC, revision or ShellPage as owner. All run/readiness/diagnostic/direct result paths receive explicit immutable captured context or owner, with existing accepted snapshot/publication lease where available. Capture before await. Store terminal state in the captured owner; shell LastRunResult is a display projection. Retain a single active attempt with owner, attempt identity and CTS; targeted cancellation matches owner plus attempt, while window close retains explicit global cancellation. Rejected concurrent requests cannot overwrite the active owner's progress/result. Explicit page/slot/context resets affect only specified owners; navigation changes display, not ownership. Preserve report/history/BuildResult background presentation and generation guards, partial delivery and error behavior. No Application contract, firmware, Settings, AXAML or generic bus changes. Existing RunCapture regression remains unchanged.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "/root/layout_ownership_review",
+    "outcome": "approved",
+    "evidence": "Independent complete caller audit at 71dedf49 supplied the exact seventeen production and five test paths and approved a coherent full-owner unit; root accepted the design with existing background presentation unchanged. Before first commit, content_source_impl independently approved adding RepositoryBoundaryTests.PresentationViewModelStructure.cs after its old implicit-owner source-shape assertion failed: retain three Merge and one Replace execution calls and generation/projection/cancellation/publication ordering, synchronize explicit context and attempt assertions, never weaken behavior gates. The added path is staged before editing. Verify two same-mode/same-revision instances, explicit hidden-page resets, all terminal branches, stale/wrong-owner cancellation, serialized gate, captured-input preservation, delayed projection/refusal and existing report performance. No implicit selected-page overload or new admission calculation is allowed; fixed-head scoped review remains required."
+  },
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": {
+    "reviewer": null,
+    "outcome": "pending",
+    "evidence": ""
+  }
+}

@@ -8,6 +8,40 @@ namespace NvtFwCombiner.UiSmoke.Tests;
 
 public sealed partial class ShellNavigationSystemTests
 {
+    /// <summary>A newer ready CtrlRAM context cannot authorize a proposal prepared from an older exact session.</summary>
+    [Fact]
+    public async Task ReplaceOutputPreparationRejectsOlderExactSessionAfterReadyContextChanges()
+    {
+        using var golden = StandardMergeGoldenManifest.Load();
+        using var workspace = TempWorkspace.Create("ui-replace-exact-session-refusal");
+        byte[] baseBytes = golden.ReadExpectedOutput(golden.CaseByIc("51926"));
+        MainWindowViewModel viewModel = CreateCtrlRamVersionReadyViewModel(baseBytes, workspace);
+        CompositionRunContext original = viewModel.Replace.CaptureRunContext(viewModel.Replace.SelectedReplaceMode, build: true);
+        ActiveSessionSnapshot older = Assert.IsType<ActiveSessionSnapshot>(original.AcceptedSession);
+        Assert.True(original.IsPublicationCurrent);
+        FirmwareSlotViewModel slot = viewModel.Replace.ReplaceSlots.Single(candidate =>
+            candidate.Title.Contains("VN CtrlRAM", StringComparison.Ordinal));
+        string newerPath = workspace.Write("newer-vn-ctrlram.bin", File.ReadAllBytes(slot.FilePath!));
+        viewModel.SetSlotFile(slot.SlotId, newerPath);
+        Assert.True(viewModel.Replace.CanBuildReplace, viewModel.Replace.ReplaceReadinessStatus);
+        CompositionRunContext current = viewModel.Replace.CaptureRunContext(viewModel.Replace.SelectedReplaceMode, build: true);
+        ActiveSessionSnapshot newer = Assert.IsType<ActiveSessionSnapshot>(current.AcceptedSession);
+        Assert.NotSame(older, newer);
+        Assert.False(original.IsPublicationCurrent);
+        Assert.True(current.IsPublicationCurrent);
+        var retained = new UiRunResultViewModel("Current result", "retained", "No output", false);
+        viewModel.RunSession.PublishRunResult(current.Owner, retained);
+
+        await viewModel.Replace.RequestBuildOutputDeliveryAsync(exactSession: older);
+
+        Assert.False(viewModel.OutputDelivery.IsOpen);
+        Assert.Same(retained, current.Owner.LastRunResult);
+        Assert.False(viewModel.Reports.HasReportHistory);
+        await viewModel.Replace.RequestBuildOutputDeliveryAsync(exactSession: newer);
+        Assert.True(viewModel.OutputDelivery.IsOpen);
+        Assert.Same(retained, current.Owner.LastRunResult);
+    }
+
     /// <summary>An external Config edit after input acceptance must refuse Build without escaping the UI event.</summary>
     [Fact]
     public async Task InvalidatedAbConfigurationBlocksOutputConfirmationWithoutThrowing()
@@ -34,6 +68,8 @@ public sealed partial class ShellNavigationSystemTests
     [InlineData("cancel")]
     [InlineData("reopen")]
     [InlineData("session")]
+    [InlineData("mode")]
+    [InlineData("page")]
     public async Task DelayedOutputPreparationRefusalPreservesCurrentOwnership(string change)
     {
         using TempWorkspace workspace = TempWorkspace.Create("ui-ab-stale-preparation");
@@ -53,7 +89,15 @@ public sealed partial class ShellNavigationSystemTests
                 _ => { executions++; return Task.CompletedTask; }));
         }
         if (change == "session") { viewModel.WorkflowSession.SelectedIc = "NT51932"; }
-        viewModel.RunSession.PublishRunResult(currentResult);
+        if (change == "mode") { viewModel.Merge.SelectedMergeMode = NvtFwCombiner.Domain.Composition.ExperienceIds.StandardMerge; }
+        if (change == "page")
+        {
+            viewModel.ShowReplaceCommand.Execute(null);
+            viewModel.Navigation.ConfirmNavigationAndClearCommand.Execute(null);
+            Assert.Equal(ShellPage.Replace, viewModel.SelectedPage);
+        }
+        WorkflowRunState owner = change == "page" ? viewModel.Replace.RunState : viewModel.Merge.RunState;
+        viewModel.RunSession.PublishRunResult(owner, currentResult);
         _ = workspace.Write("format.json", "invalid"u8.ToArray());
         naming.Release.SetResult();
         await preparing;

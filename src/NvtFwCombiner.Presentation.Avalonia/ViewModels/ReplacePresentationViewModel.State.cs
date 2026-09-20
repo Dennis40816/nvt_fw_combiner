@@ -14,6 +14,45 @@ internal sealed partial class ReplacePresentationViewModel
     private readonly AuthoringSessionState _dpReplaceSession = new(ExperienceIds.DpReplace);
     private readonly AuthoringSessionState _ctrlRamReplaceSession = new(ExperienceIds.CtrlRamReplace);
     private readonly AuthoringSessionState _generalReplaceSession = new(ExperienceIds.GeneralReplace);
+    private readonly Dictionary<string, WorkflowRunState> _runStates = new(StringComparer.Ordinal)
+    {
+        [DpReplaceMode] = new(),
+        [CtrlRamReplaceMode] = new(),
+        [GeneralReplaceMode] = new(),
+    };
+
+    internal IEnumerable<WorkflowRunState> RunStates => _runStates.Values;
+    internal WorkflowRunState RunState => GetRunState(SelectedReplaceMode);
+
+    internal WorkflowRunState GetRunState(string mode)
+    {
+        if (!_runStates.TryGetValue(mode, out WorkflowRunState? state))
+        {
+            state = new WorkflowRunState();
+            _runStates.Add(mode, state);
+        }
+        state.ApplyLanguage(Text);
+        return state;
+    }
+
+    internal CompositionRunContext CaptureRunContext(string mode, bool build = false)
+    {
+        AuthoringSessionState? session = mode switch
+        {
+            DpReplaceMode => _dpReplaceSession,
+            CtrlRamReplaceMode => _ctrlRamReplaceSession,
+            GeneralReplaceMode => _generalReplaceSession,
+            _ => null,
+        };
+        ActiveSessionSnapshot? snapshot = session?.CurrentSnapshot;
+        return new CompositionRunContext(
+            GetRunState(mode), mode, SelectedIc, SelectedNumber,
+            true,
+            _stateBindings.DeviceContextRefreshSummary(), snapshot, session,
+            snapshot is null ? null : session!.CapturePublicationLease(
+                build ? AuthoringDerivedResultKind.Build : AuthoringDerivedResultKind.Preview));
+    }
+
     private int _generalReplaceMappingCounter;
     private string _selectedReplaceMode = CtrlRamReplaceMode;
     private string? _catalogReconciliationPreviousMode;
@@ -242,11 +281,12 @@ internal sealed partial class ReplacePresentationViewModel
         _stateBindings.IsWorkflowAuthorable(SelectedIc, SelectedReplaceMode);
 
     private Task RunCompositionAsync(
+        CompositionRunContext context,
         bool build,
         CompositionRunWork run,
         Action<string, string> loadErrorReport)
     {
-        return _stateBindings.RunCompositionAsync(build, run, loadErrorReport);
+        return _stateBindings.RunCompositionAsync(context, build, run, loadErrorReport);
     }
 
     private void SetSelectedReplaceMode(string value)
@@ -331,7 +371,6 @@ internal sealed partial class ReplacePresentationViewModel
     internal void PublishCatalogReconciledReplaceMode()
     {
         PublishFullContext();
-        _stateBindings.ResetRunResult();
     }
 
     internal void PublishFullContext()

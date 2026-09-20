@@ -17,6 +17,7 @@ public sealed partial class BuildOutcomeTests
         MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
 
         await viewModel.RunSession.ProjectAndApplyRunResultAsync(
+            viewModel.Replace.CaptureRunContext(viewModel.Replace.SelectedReplaceMode),
             WithCommittedOutputId(result, outputPath),
             build: true,
             TestContext.Current.CancellationToken);
@@ -41,6 +42,7 @@ public sealed partial class BuildOutcomeTests
         MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
 
         await viewModel.RunSession.ProjectAndApplyRunResultAsync(
+            viewModel.Replace.CaptureRunContext(viewModel.Replace.SelectedReplaceMode),
             result,
             build: true,
             TestContext.Current.CancellationToken);
@@ -65,6 +67,7 @@ public sealed partial class BuildOutcomeTests
         MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
 
         await viewModel.RunSession.ProjectAndApplyRunResultAsync(
+            viewModel.Replace.CaptureRunContext(viewModel.Replace.SelectedReplaceMode),
             result,
             build: false,
             TestContext.Current.CancellationToken);
@@ -79,7 +82,8 @@ public sealed partial class BuildOutcomeTests
     {
         MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
 
-        await viewModel.RunSession.RunCompositionAsync(
+        _ = await viewModel.RunSession.RunCompositionAsync(
+                    viewModel.Replace.CaptureRunContext(viewModel.Replace.SelectedReplaceMode),
             build: true,
             (_, _) => throw new InvalidOperationException("No exact CtrlRAM route."),
             (action, message) => viewModel.Reports.LoadRunErrorReport(
@@ -109,7 +113,8 @@ public sealed partial class BuildOutcomeTests
         bool previousToast = viewModel.Reports.HasReportToast;
         int reportLoads = 0;
 
-        await viewModel.RunSession.RunCompositionAsync(
+        _ = await viewModel.RunSession.RunCompositionAsync(
+                    viewModel.Replace.CaptureRunContext(viewModel.Replace.SelectedReplaceMode),
             build,
             (_, _) => throw new CompositionPreRunRefusalException(
                 [new CompositionIssue("AB_FORMAT_CHANGED", "The accepted format publication changed.")]),

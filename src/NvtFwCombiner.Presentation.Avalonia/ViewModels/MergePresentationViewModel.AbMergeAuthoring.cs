@@ -263,7 +263,7 @@ internal sealed partial class MergePresentationViewModel
             if (IsAbCodeMergeModeSelected)
             {
                 RefreshMergeMemoryMapState(refreshAuthoring: false);
-                if (_stateBindings.IsMergePageActive() && !_stateBindings.IsRunInProgress()) { _stateBindings.ResetRunResult(); }
+                if (!_stateBindings.IsRunInProgress()) { _stateBindings.ResetRunResult(CaptureRunContext(AbCodeMergeMode)); }
             }
             await RefreshAbMergeActionReadinessAsync(CancellationToken.None);
             return true;
