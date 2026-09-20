@@ -121,6 +121,7 @@ internal sealed partial class MergePresentationViewModel
     {
         string icId = SelectedIc;
         string number = SelectedNumber;
+        ActiveSessionSnapshot? acceptedSession = _standardMergeSession.CurrentSnapshot;
         IReadOnlyDictionary<string, string> slotPaths = CreateStandardMergeSlotPaths();
         string profileId =
             _compositionServices.StandardMergeAuthoring.GetProfileId(icId) ??
@@ -129,7 +130,7 @@ internal sealed partial class MergePresentationViewModel
             build,
             (progress, cancellationToken) => _compositionServices.Execution.ExecuteAsync(
                 new AcceptedCompositionExecutionRequest(
-                    _standardMergeSession.CurrentSnapshot ?? throw new InvalidOperationException(
+                    acceptedSession ?? throw new InvalidOperationException(
                         "Standard Merge requires one accepted authoring session."),
                     slotPaths,
                     build,
