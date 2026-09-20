@@ -7,6 +7,33 @@ namespace NvtFwCombiner.UiSmoke.Tests;
 /// <summary>Imported data stays readable without inventing a successful run.</summary>
 public sealed class ReportImportOutcomeTests
 {
+    /// <summary>Historical DP wire data remains readable with the production authoring policy.</summary>
+    [Fact]
+    public void HistoricalDpReplaceReportKeepsIdentityOutputAndWarningWithoutRetainedPolicy()
+    {
+        MainWindowViewModel shell = PresentationTestHost.CreateProductViewModel();
+        string json = ReportJsonSamples.HistoricalDpReplace;
+        shell.Reports.LoadReportJson(json, "historical-dp.json");
+
+        ReportReviewViewModel report = shell.Reports.LoadedReport;
+        Assert.Equal("nt51950-dp-replace-dp-perspective", report.ProfileId);
+        Assert.Equal("NT51950", report.IcId);
+        Assert.Equal("dp-replace", report.ModeId);
+        Assert.Equal("dp-replace", report.ExperienceId);
+        Assert.Equal("historical-dp-replace", report.RunId);
+        Assert.Equal("historical-dp.bin", report.OutputFileName);
+        Assert.Equal(262144, report.OutputSize);
+        Assert.Equal("0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef", report.OutputSha256);
+        Assert.Equal("Succeeded with 1 warning(s)", report.Status);
+        Assert.Equal("Recorded DP replacement warning.", Assert.Single(report.Issues).Detail);
+        Assert.Equal(json, shell.Reports.LoadedReportJson);
+        ReportHistoryEntryViewModel entry = Assert.Single(shell.Reports.ReportHistoryEntries);
+        Assert.True(entry.IsWarning);
+        Assert.False(entry.IsError);
+        Assert.Equal(json, entry.ReportJson);
+        Assert.Equal("NT51950", entry.Ic);
+    }
+
     /// <summary>Unrecognized/incomplete objects retain exact raw data and a neutral outcome.</summary>
     [Theory]
     [InlineData("{}")]

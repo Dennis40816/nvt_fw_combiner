@@ -14,6 +14,37 @@ internal static class ReportJsonSamples
         DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
     };
 
+    // Fixed historical wire data: reading this report must not require a runnable DP route.
+    internal const string HistoricalDpReplace = """
+        {
+          "ProfileId": "nt51950-dp-replace-dp-perspective",
+          "IcId": "NT51950",
+          "ModeId": "dp-replace",
+          "ExperienceId": "dp-replace",
+          "CompositionKind": "Replace",
+          "RunId": "historical-dp-replace",
+          "StartedAtUtc": "2026-07-01T00:00:00Z",
+          "Inputs": [],
+          "Operations": [],
+          "Mutations": [],
+          "OutputDifferences": [],
+          "Issues": [
+            {
+              "Code": "historical.warning",
+              "Message": "Recorded DP replacement warning.",
+              "OperationId": "replace-dp",
+              "Severity": "warning"
+            }
+          ],
+          "Output": {
+            "FileName": "historical-dp.bin",
+            "Size": 262144,
+            "Committed": true,
+            "Sha256": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+          }
+        }
+        """;
+
     public static string Succeeded(
         string profileId = "nt51927-standard-merge-gen-flash",
         string icId = "NT51927",
