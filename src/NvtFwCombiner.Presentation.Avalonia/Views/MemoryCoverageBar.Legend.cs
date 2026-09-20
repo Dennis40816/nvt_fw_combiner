@@ -42,6 +42,7 @@ public sealed partial class MemoryCoverageBar
 
     private void InitializeOverview()
     {
+        Grid.SetIsSharedSizeScope(_legend, true);
         _header.Children.Add(new WrapPanel { Name = "MemoryOverviewTitle", Children = { _heading, _capacity } });
         _heading.Margin = new Thickness(0, 0, 8, 0);
         _header.Children.Add(_legend);
@@ -135,13 +136,18 @@ public sealed partial class MemoryCoverageBar
                 DataContext = slice,
                 FocusAdorner = null,
                 Background = Brushes.Transparent,
-                Padding = new Thickness(4, 3),
-                Margin = new Thickness(4, 0, 0, 2),
+                Padding = new Thickness(0, 3),
+                Margin = new Thickness(0, 0, 0, 2),
             };
-            var row = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6 };
+            var row = new Grid { ColumnDefinitions = new ColumnDefinitions("Auto,*,Auto") };
+            row.ColumnDefinitions[2].SharedSizeGroup = "LegendAddress";
             row.Children.Add(new ContentControl { Content = slice, ContentTemplate = markerTemplate, VerticalAlignment = VerticalAlignment.Center });
-            row.Children.Add(new TextBlock { Text = slice.DisplayTitle, Classes = { "bodyText" }, MaxWidth = 140, TextTrimming = TextTrimming.CharacterEllipsis });
-            row.Children.Add(new TextBlock { Text = slice.AddressRangeLabel, Classes = { "monoText", "captionText" }, VerticalAlignment = VerticalAlignment.Center });
+            var title = new TextBlock { Text = slice.DisplayTitle, Classes = { "bodyText" }, Margin = new Thickness(6, 0, 12, 0), VerticalAlignment = VerticalAlignment.Center, TextTrimming = TextTrimming.CharacterEllipsis };
+            Grid.SetColumn(title, 1);
+            row.Children.Add(title);
+            var address = new TextBlock { Text = slice.AddressRangeLabel, Classes = { "monoText", "bodyText" }, VerticalAlignment = VerticalAlignment.Center };
+            Grid.SetColumn(address, 2);
+            row.Children.Add(address);
             target.Child = row;
             AutomationProperties.SetName(target, slice.AccessibleDetail);
             MemoryCoverageInteractionBehavior.SetIsEnabled(target, true);
@@ -171,8 +177,8 @@ public sealed partial class MemoryCoverageBar
             Size legend = Children[1].DesiredSize;
             bool shared = Fits(finalSize.Width);
             Children[0].Arrange(new Rect(0, shared ? Math.Max(0, (legend.Height - title.Height) / 2) : 0, title.Width, title.Height));
-            double left = Math.Max(0, finalSize.Width - legend.Width);
-            Children[1].Arrange(new Rect(left, shared ? Math.Max(0, (title.Height - legend.Height) / 2) : title.Height + 6, Math.Min(finalSize.Width, legend.Width), legend.Height));
+            double left = shared && title.Width > 0 ? title.Width + 16 : 0;
+            Children[1].Arrange(new Rect(left, shared ? Math.Max(0, (title.Height - legend.Height) / 2) : title.Height + 6, Math.Max(0, finalSize.Width - left), legend.Height));
             return finalSize;
         }
 

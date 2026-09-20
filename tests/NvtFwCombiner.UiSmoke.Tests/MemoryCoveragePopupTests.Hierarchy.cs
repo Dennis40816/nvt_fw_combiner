@@ -18,7 +18,7 @@ public sealed partial class MemoryCoveragePopupTests
     [InlineData(620, false)]
     [InlineData(240, true)]
     [InlineData(620, true)]
-    public void OverviewHeaderAlignsLegendRightAndKeepsAddressesAboveRail(int width, bool darkChinese)
+    public void OverviewHeaderUsesAvailableLegendWidthAndKeepsAddressesAboveRail(int width, bool darkChinese)
     {
         ShellTextResources text = ShellTextResources.For(darkChinese ? ShellLanguage.ChineseTraditional : ShellLanguage.English);
         MemoryCoverageSegmentViewModel[] slices = [
@@ -53,8 +53,15 @@ public sealed partial class MemoryCoveragePopupTests
             TextBlock heading = FindNamed<TextBlock>(window, "MemoryOverviewHeading")!;
             TextBlock capacity = title.GetVisualDescendants().OfType<TextBlock>().Single(block => block.Text == "256 KiB");
             Assert.True(BoundsInWindow(capacity, window).Left >= BoundsInWindow(heading, window).Right);
-            if (titleBounds.Width + 16 + legendBounds.Width > railBounds.Width) { Assert.True(legendBounds.Top >= titleBounds.Bottom); }
-            else { Assert.InRange(Math.Abs(legendBounds.Center.Y - titleBounds.Center.Y), 0, 1); }
+            if (legendBounds.Top >= titleBounds.Bottom)
+            {
+                Assert.InRange(Math.Abs(legendBounds.Left - railBounds.Left), 0, 1);
+            }
+            else
+            {
+                Assert.InRange(Math.Abs(legendBounds.Left - titleBounds.Right - 16), 0, 1);
+                Assert.InRange(Math.Abs(legendBounds.Center.Y - titleBounds.Center.Y), 0, 1);
+            }
             Capture(window, $"header-{width}-{darkChinese}");
             bar.EndAddress = "0x7FFFF";
             Render();
