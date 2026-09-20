@@ -32,9 +32,9 @@ public sealed class EventBufferFormatConfigurationSessionTests
         Assert.Equal(0xA6, session.CreateSavedDraft()![0]!.RecognitionValues![0]);
     }
 
-    /// <summary>Missing startup and deletion are identical, including a newly constructed session.</summary>
+    /// <summary>Absent custom files activate canonical defaults without writes or saved-state mutation.</summary>
     [Fact]
-    public async Task MissingNeverActivatesDefaultsOrLastSavedAsync()
+    public async Task MissingActivatesDefaultsWithoutWritingOrUsingLastSavedAsync()
     {
         var storage = new Storage();
         using EventBufferFormatConfigurationSession session = Create(storage);
@@ -42,20 +42,35 @@ public sealed class EventBufferFormatConfigurationSessionTests
         Assert.Null(session.CreateSavedDraft());
         Assert.NotEmpty(session.CreateDefaultsDraft());
         Assert.Equal(0, storage.Writes);
-        Assert.Equal(EventBufferFormatConfigurationFailure.Missing, (await session.ReloadAsync(TestContext.Current.CancellationToken)).Failure);
-        Assert.Null(session.Current.Configuration);
-        Assert.True((await session.SaveAsync(session.CreateDefaultsDraft(), TestContext.Current.CancellationToken)).Succeeded);
+        Assert.True((await session.ReloadAsync(TestContext.Current.CancellationToken)).Succeeded);
+        Assert.Equal(EventBufferFormatConfigurationStatus.Ready, session.Current.Status);
+        Assert.NotNull(session.Current.Configuration!.Match(Scope, 0x97));
+        string? defaultHash = session.Current.SourceSha256;
+        Assert.Equal(64, defaultHash!.Length);
+        Assert.Equal(0, storage.Writes);
+        Assert.Null(session.Current.LastSaved);
+        Assert.True(session.Current.UsesBuiltInDefaults);
+        Assert.True((await session.SaveAsync([new("format-a", "Custom", [0xA6])], TestContext.Current.CancellationToken)).Succeeded);
         EventBufferFormatConfiguration captured = session.Current.Configuration!;
+        string? savedHash = session.Current.LastSavedSha256;
+        Assert.False(session.Current.UsesBuiltInDefaults);
         storage.Stored = null;
         _ = await session.ReloadAsync(TestContext.Current.CancellationToken);
-        Assert.Null(session.Current.Configuration);
+        Assert.NotNull(session.Current.Configuration!.Match(Scope, 0x97));
+        Assert.Null(session.Current.Configuration.Match(Scope, 0xA6));
+        Assert.True(session.Current.UsesBuiltInDefaults);
+        Assert.Equal(defaultHash, session.Current.SourceSha256);
+        Assert.Equal(savedHash, session.Current.LastSavedSha256);
+        Assert.Equal(1, storage.Writes);
         Assert.Same(captured, session.Current.LastSaved);
         Assert.NotNull(session.CreateSavedDraft());
         using EventBufferFormatConfigurationSession restarted = Create(storage);
-        Assert.Equal(EventBufferFormatConfigurationFailure.Missing, (await restarted.ReloadAsync(TestContext.Current.CancellationToken)).Failure);
-        Assert.Null(restarted.Current.Configuration);
+        Assert.True((await restarted.ReloadAsync(TestContext.Current.CancellationToken)).Succeeded);
+        Assert.Equal(defaultHash, restarted.Current.SourceSha256);
+        Assert.NotNull(restarted.Current.Configuration!.Match(Scope, 0x97));
         Assert.Null(restarted.Current.LastSaved);
-        Assert.NotNull(captured.Match(Scope, 0x97));
+        Assert.NotNull(captured.Match(Scope, 0xA6));
+        Assert.Null(captured.Match(Scope, 0x97));
     }
 
     /// <summary>Invalid drafts and storage failures do not replace an accepted publication.</summary>

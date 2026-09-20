@@ -91,6 +91,7 @@ internal sealed partial class ShellTextResources
     public string EventBufferFormatInvalidDocumentLabel { get; private init; } = string.Empty;
 
     public string EventBufferFormatSavedLabel { get; private init; } = string.Empty;
+    public string EventBufferFormatBuiltInLabel { get; private init; } = string.Empty;
     public string EventBufferFormatReapplyFailedLabel { get; private init; } = string.Empty;
 
     public string EventBufferFormatDiscardConfirmationTitle { get; private init; } = string.Empty;

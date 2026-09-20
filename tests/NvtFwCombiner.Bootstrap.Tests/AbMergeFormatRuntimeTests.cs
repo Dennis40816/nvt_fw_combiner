@@ -16,6 +16,51 @@ namespace NvtFwCombiner.Bootstrap.Tests;
 /// <summary>The real host must apply its saved configuration to AB preparation, not only to a pure helper.</summary>
 public sealed class AbMergeFormatRuntimeTests
 {
+    /// <summary>Fresh installations and deletion of a custom override build with defaults without Save.</summary>
+    [Theory]
+    [InlineData(false, 0x97, "desay")]
+    [InlineData(false, 0x84, "common")]
+    [InlineData(true, 0x97, "desay")]
+    public async Task MissingConfigurationBuildsAbInputsWithoutSavingAsync(bool deleteOverride, byte format, string expected)
+    {
+        using TempWorkspace workspace = TempWorkspace.Create("ab-first-use-defaults");
+        string path = workspace.PathFor("format.json");
+        var environment = new ExternalProcessorEnvironmentLoader(RepositoryPaths.FromRepositoryRoot("external-tools"));
+        Assert.True((await ((NvtFwCombiner.Application.ExternalTools.IExternalProcessorEnvironmentLoader)environment)
+            .LoadToCompletionAsync(null, TestContext.Current.CancellationToken)).Succeeded);
+        CompositionHostServices host = CompositionHostServices.Create(environment,
+            loadPolicy: null, configurationPath: path);
+        IEventBufferFormatConfigurationSession configuration = await host.GetEventBufferFormatConfigurationAsync(TestContext.Current.CancellationToken);
+        if (deleteOverride)
+        {
+            Assert.True((await configuration.SaveAsync(
+                [.. configuration.CreateDefaultsDraft().Select(static entry => entry! with { RecognitionValues = [], AliasName = "Custom" })],
+                TestContext.Current.CancellationToken)).Succeeded);
+            File.Delete(path);
+        }
+        string a = workspace.Write("a.bin", CreateTp(format, 1));
+        string b = workspace.Write("b.bin", CreateTp(format, 1));
+        CompiledAuthoringSessionPreparation prepared = await host.AbMergeAuthoring.PrepareSessionAsync(
+            new AuthoringSessionState(ExperienceIds.AbMerge), "NT51950", "single",
+            [new("tp-a-input", a, File.ReadAllBytes(a)), new("tp-b-input", b, File.ReadAllBytes(b))],
+            AbMergeDpMode.Dummy, TestContext.Current.CancellationToken);
+        Assert.True(prepared.Succeeded, string.Join(" | ", prepared.Issues.Select(issue => issue.Message)));
+        NvtFwCombiner.Application.Composition.CompositionOutputBundleProposal proposal = await host.CompositionOutputNaming.PrepareBundleProposalAsync(prepared.Snapshot!, TestContext.Current.CancellationToken);
+        Assert.Equal(expected, proposal.Confirmation!.Format!.FormatId);
+        CapabilityActionReadinessSnapshot? readiness = await host.AbMergeAuthoring.GetActionReadinessAsync(prepared.Snapshot!, TestContext.Current.CancellationToken);
+        string output = workspace.PathFor("output.bin");
+        CompositionRunResult run = await host.CompositionExecution.ExecuteAsync(
+            new AcceptedCompositionExecutionRequest(prepared.Snapshot!,
+                new Dictionary<string, string> { ["tp-a-input"] = a, ["tp-b-input"] = b },
+                build: true, outputPath: output, actionReadiness: readiness),
+            new CompositionRunProgressFeed(), TestContext.Current.CancellationToken);
+        Assert.True(run.Succeeded, CompositionRunReportJson.Serialize(run));
+        Assert.True(File.Exists(output));
+        Assert.Equal(expected, run.Report.AbMergeFormat!.FormatId);
+        Assert.True(configuration.Current.UsesBuiltInDefaults);
+        Assert.False(File.Exists(path));
+    }
+
     /// <summary>Cascade's selected lower bound is not presented as an observed exact count for independent A/B banks.</summary>
     [Theory]
     [InlineData(0x97, 3, TopologyRequirementKind.Cascade)]
@@ -178,6 +223,7 @@ public sealed class AbMergeFormatRuntimeTests
     [Theory]
     [InlineData("valid")]
     [InlineData("unsaved")]
+    [InlineData("invalid")]
     [InlineData("short-primary")]
     [InlineData("mismatch")]
     public async Task InputFormatFactsRequireSuccessfulAdmissionAsync(string state)
@@ -186,7 +232,8 @@ public sealed class AbMergeFormatRuntimeTests
         CompositionHostServices host = CompositionHostServices.Create(new ExternalProcessorEnvironmentLoader(),
             loadPolicy: null, configurationPath: workspace.PathFor("format.json"));
         IEventBufferFormatConfigurationSession configuration = await host.GetEventBufferFormatConfigurationAsync(TestContext.Current.CancellationToken);
-        if (state != "unsaved")
+        if (state == "invalid") { _ = workspace.Write("format.json", "invalid"u8.ToArray()); }
+        if (state is not ("unsaved" or "invalid"))
         {
             Assert.True((await configuration.SaveAsync(configuration.CreateDefaultsDraft(), TestContext.Current.CancellationToken)).Succeeded);
         }
@@ -197,7 +244,7 @@ public sealed class AbMergeFormatRuntimeTests
              new("b", "b.bin", AbMergeAddressSpaceId: "tp-b-input", AbMergeTopologyToken: "single", AbMergeDpMode: AbMergeDpMode.Dummy)],
             path => path == "a.bin" ? a : b, TestContext.Current.CancellationToken);
         Assert.Equal(2, result.Facts.Count);
-        if (state != "valid")
+        if (state is not ("valid" or "unsaved"))
         {
             Assert.NotEmpty(result.Issues);
             Assert.All(result.Facts.Values, static facts => Assert.Null(facts.EventBufferFormat));
@@ -230,6 +277,7 @@ public sealed class AbMergeFormatRuntimeTests
     public async Task FirstConfigurationSavePreservesInputRequirementsAsync(string inputState)
     {
         using TempWorkspace workspace = TempWorkspace.Create("ab-format-source-retention");
+        _ = workspace.Write("format.json", "invalid"u8.ToArray());
         CompositionHostServices host = CompositionHostServices.Create(new ExternalProcessorEnvironmentLoader(),
             loadPolicy: null, configurationPath: workspace.PathFor("format.json"));
         var session = new AuthoringSessionState(ExperienceIds.AbMerge);
@@ -569,6 +617,7 @@ public sealed class AbMergeFormatRuntimeTests
         var session = new AuthoringSessionState(ExperienceIds.AbMerge);
         if (preCompilation)
         {
+            _ = workspace.Write("format.json", "invalid"u8.ToArray());
             CompiledAuthoringSelectionSnapshot declaration = host.AbMergeAuthoring.GetAuthoringSnapshot("NT51950", "single",
                 [], new Dictionary<string, FileStamp>(), new AuthoringRevision(1), dpMode: AbMergeDpMode.Dummy);
             Assert.True(session.Activate(declaration.Catalog).Succeeded);
@@ -754,7 +803,9 @@ public sealed class AbMergeFormatRuntimeTests
         CompositionHostServices host = CompositionHostServices.Create(new ExternalProcessorEnvironmentLoader(),
             loadPolicy: null, configurationPath: configurationPath);
         IEventBufferFormatConfigurationSession configuration = await host.GetEventBufferFormatConfigurationAsync(TestContext.Current.CancellationToken);
-        Assert.True((await configuration.SaveAsync(configuration.CreateDefaultsDraft(), TestContext.Current.CancellationToken)).Succeeded);
+        Assert.True((await configuration.SaveAsync(change == "missing"
+            ? [.. configuration.CreateDefaultsDraft().Select(static entry => entry! with { RecognitionValues = [] })]
+            : configuration.CreateDefaultsDraft(), TestContext.Current.CancellationToken)).Succeeded);
         string a = workspace.Write("a.bin", CreateTp(0x97, 1));
         string b = workspace.Write("b.bin", CreateTp(0x97, 1));
         CompiledAuthoringSessionPreparation prepared = await host.AbMergeAuthoring.PrepareSessionAsync(
@@ -770,7 +821,7 @@ public sealed class AbMergeFormatRuntimeTests
                 [.. configuration.CreateDefaultsDraft().Select(static entry => entry! with { RecognitionValues = [] })],
                 TestContext.Current.CancellationToken)).Succeeded);
         }
-        string expectedCode = change == "changed" ? "AB_FORMAT_CHANGED" : "AB_FORMAT_CONFIGURATION_INVALID";
+        string expectedCode = change == "invalid" ? "AB_FORMAT_CONFIGURATION_INVALID" : "AB_FORMAT_CHANGED";
         string output = workspace.PathFor("must-not-exist.bin");
         if (execution)
         {
@@ -1074,7 +1125,7 @@ public sealed class AbMergeFormatRuntimeTests
 
     /// <summary>The host must not preserve a legacy executable session when current format admission fails.</summary>
     [Theory]
-    [InlineData("missing-config", "AB_FORMAT_CONFIGURATION_INVALID")]
+    [InlineData("invalid-config", "AB_FORMAT_CONFIGURATION_INVALID")]
     [InlineData("mismatched-format", "AB_FORMAT_MISMATCH")]
     [InlineData("invalid-primary", "AB_FORMAT_PRIMARY_INVALID")]
     public async Task InvalidCurrentFormatCannotPrepareLegacyOutputAsync(string failure, string expectedCode)
@@ -1082,7 +1133,8 @@ public sealed class AbMergeFormatRuntimeTests
         using TempWorkspace workspace = TempWorkspace.Create("ab-format-runtime-invalid");
         CompositionHostServices host = CompositionHostServices.Create(new ExternalProcessorEnvironmentLoader(),
             loadPolicy: null, configurationPath: workspace.PathFor("format.json"));
-        if (failure != "missing-config")
+        if (failure == "invalid-config") { _ = workspace.Write("format.json", "invalid"u8.ToArray()); }
+        if (failure != "invalid-config")
         {
             IEventBufferFormatConfigurationSession configuration = await host.GetEventBufferFormatConfigurationAsync(
                 TestContext.Current.CancellationToken);

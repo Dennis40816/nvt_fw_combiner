@@ -368,6 +368,9 @@ internal sealed partial class ShellTextResources
             EventBufferFormatSavedLabel = Pick(
                 "Configuration saved.",
                 "設定已儲存。"),
+            EventBufferFormatBuiltInLabel = Pick(
+                "Using built-in defaults. No custom event-buffer-format.v1.json exists. Changes apply after saving.",
+                "使用內建預設規則；尚無自訂 event-buffer-format.v1.json。修改後須儲存才生效。"),
             EventBufferFormatReapplyFailedLabel = Pick(
                 "Configuration saved, but AB inputs could not be refreshed. Check the input issues before Build.",
                 "設定已儲存，但 AB 輸入未能更新。請先確認輸入問題，再執行 Build。"),

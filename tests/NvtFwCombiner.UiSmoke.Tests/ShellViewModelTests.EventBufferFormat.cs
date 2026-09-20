@@ -223,14 +223,15 @@ public sealed partial class ShellNavigationSystemTests
             loadPolicy: null, configurationPath: workspace.PathFor("format.json"));
         MainWindowViewModel viewModel = await CreateLoadedFormatAbViewModelAsync(workspace, host, initializeConfiguration: false);
         FirmwareSlotViewModel slot = viewModel.Merge.AbMergeSlots.Single(static slot => slot.SlotId == "tp-a-input");
-        Assert.True(slot.BlocksBuild);
-        Assert.Null(slot.CurrentInspectionProjection!.InputSlotStatus?.AcceptedBytes);
+        Assert.Equal(invalidConfig, slot.BlocksBuild);
+        if (invalidConfig) { Assert.Null(slot.CurrentInspectionProjection!.InputSlotStatus?.AcceptedBytes); }
+        else { _ = Assert.NotNull(slot.CurrentInspectionProjection!.InputSlotStatus?.AcceptedBytes); }
         File.Delete(workspace.PathFor("a.bin"));
         File.Delete(workspace.PathFor("b.bin"));
         viewModel.OpenSettingsCommand.Execute(null);
         viewModel.Settings.SelectSectionCommand.Execute(SettingsSection.EventBufferFormat);
         await viewModel.Settings.EventBufferFormatLoadTask;
-        Assert.True(viewModel.Settings.IsEventBufferFormatMissingOrInvalid);
+        Assert.Equal(invalidConfig, viewModel.Settings.IsEventBufferFormatMissingOrInvalid);
         await viewModel.Settings.SaveEventBufferFormatCommand.ExecuteAsync(null);
         Assert.False(slot.BlocksBuild);
         Assert.Equal("nt51950-ab-desay-maps", Assert.Single(slot.CurrentInspectionProjection!.InputSlotCatalog!.Routes).ExactCapability!.Identity.MapVariant);
@@ -463,6 +464,38 @@ public sealed partial class ShellNavigationSystemTests
         Assert.Equal(viewModel.Text.EventBufferFormatSavedLabel, viewModel.Settings.EventBufferFormatStatus);
     }
 
+    /// <summary>Deleting a different saved override resets editor and Discard baseline without losing saved provenance.</summary>
+    [Fact]
+    public async Task EventBufferFormatDeletedOverrideRestoresBuiltInEditorAndDiscardBaseline()
+    {
+        var storage = new EventBufferFormatStorage();
+        using var session = new EventBufferFormatConfigurationSession(
+            "event-buffer-format", [new("desay", "Desay")], [new("desay", null, [0x97, 0xA6])], storage);
+        Assert.True((await session.SaveAsync([new("desay", "Custom", [0x84])], TestContext.Current.CancellationToken)).Succeeded);
+        MainWindowViewModel viewModel = CreateEventBufferFormatViewModel(session);
+        viewModel.OpenSettingsCommand.Execute(null);
+        viewModel.Settings.SelectSectionCommand.Execute(SettingsSection.EventBufferFormat);
+        await viewModel.Settings.EventBufferFormatLoadTask;
+        Assert.Equal("Custom", Assert.Single(viewModel.Settings.EventBufferFormatRows).AliasName);
+        EventBufferFormatConfiguration saved = session.Current.LastSaved!;
+
+        storage.Stored = null;
+        await viewModel.Settings.ReloadEventBufferFormatCommand.ExecuteAsync(null);
+        EventBufferFormatDraftRowViewModel row = Assert.Single(viewModel.Settings.EventBufferFormatRows);
+        Assert.Equal([0x97, 0xA6], row.RecognitionValues);
+        Assert.True(string.IsNullOrEmpty(row.AliasName));
+        Assert.False(viewModel.Settings.HasEventBufferFormatUnsavedChanges);
+        row.AliasName = "Unsaved";
+        viewModel.Settings.DiscardEventBufferFormatChangesCommand.Execute(null);
+        row = Assert.Single(viewModel.Settings.EventBufferFormatRows);
+        Assert.True(string.IsNullOrEmpty(row.AliasName));
+        Assert.Equal([0x97, 0xA6], row.RecognitionValues);
+        Assert.True(session.Current.UsesBuiltInDefaults);
+        Assert.Same(saved, session.Current.LastSaved);
+        Assert.Null(storage.Stored);
+        Assert.Equal(viewModel.Text.EventBufferFormatBuiltInLabel, viewModel.Settings.EventBufferFormatStatus);
+    }
+
     /// <summary>Missing configuration opens independent defaults, then saves only through the typed session.</summary>
     [Fact]
     public async Task EventBufferFormatUsesDraftDefaultsAndPreservesUnsavedCloseConfirmation()
@@ -479,8 +512,10 @@ public sealed partial class ShellNavigationSystemTests
         EventBufferFormatDraftRowViewModel row = Assert.Single(viewModel.Settings.EventBufferFormatRows);
         Assert.Equal("desay", row.UniqueId);
         Assert.Equal([0x97, 0xA6], row.RecognitionValues);
-        Assert.True(viewModel.Settings.IsEventBufferFormatMissingOrInvalid);
-        Assert.True(viewModel.Settings.CanSaveEventBufferFormat);
+        Assert.False(viewModel.Settings.IsEventBufferFormatMissingOrInvalid);
+        Assert.False(viewModel.Settings.CanSaveEventBufferFormat);
+        Assert.True(session.Current.UsesBuiltInDefaults);
+        Assert.Equal(viewModel.Text.EventBufferFormatBuiltInLabel, viewModel.Settings.EventBufferFormatStatus);
 
         row.AliasName = "Desk display";
         await viewModel.Settings.SaveEventBufferFormatCommand.ExecuteAsync(null);

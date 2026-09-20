@@ -19,6 +19,13 @@ public sealed partial class AbMergeCliCommandTests
     {
         using TempWorkspace workspace = TempWorkspace.Create("ab-cli-pre-run-refusal");
         CompositionHostServices host = await CreateFormatCliHostAsync(workspace);
+        if (change == "missing")
+        {
+            IEventBufferFormatConfigurationSession configuration = await host.GetEventBufferFormatConfigurationAsync(TestContext.Current.CancellationToken);
+            Assert.True((await configuration.SaveAsync(
+                [.. configuration.CreateDefaultsDraft().Select(static entry => entry! with { RecognitionValues = [] })],
+                TestContext.Current.CancellationToken)).Succeeded);
+        }
         string[] args = CreateFormatCliArguments(workspace, "NT51950", 0x97);
         args[0] = build ? "build" : "preview";
         int acquisitions = 0;
@@ -51,7 +58,7 @@ public sealed partial class AbMergeCliCommandTests
 
         Assert.Equal(1, exitCode);
         Assert.Equal(1, changingExecution.Calls);
-        Assert.Contains(change == "changed" ? "AB_FORMAT_CHANGED" : "AB_FORMAT_CONFIGURATION_INVALID",
+        Assert.Contains(change == "invalid" ? "AB_FORMAT_CONFIGURATION_INVALID" : "AB_FORMAT_CHANGED",
             error.ToString(), StringComparison.Ordinal);
         Assert.Equal(0, acquisitions);
         Assert.Equal(0, destinations.Calls);

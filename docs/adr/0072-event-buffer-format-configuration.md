@@ -59,6 +59,17 @@ runtime selection contracts need their own concrete admission before wiring.
   Later catalog integration must validate any actual overlapping scope conflict
   before claiming wider applicability.
 
+## 2026-09-20 amendment: built-in default availability
+
+The owner approved removing first-use Save as a prerequisite for AB Merge.
+Absent custom configuration now activates the canonical admitted defaults in
+the existing Application session, without persistence. An explicit typed source
+flag distinguishes built-in from saved snapshots; its domain-separated digest
+is not a file hash. Invalid/unreadable custom data still blocks. Built-in
+publication never overwrites LastSaved; Settings edits and Discard remain drafts.
+This supersedes the missing-file behavior in the historical implementation
+account below; the current persistence contract defines the effective rules.
+
 ## Implementation and verification boundary
 
 First unit: Application's EventBufferFormatConfiguration and its admission
