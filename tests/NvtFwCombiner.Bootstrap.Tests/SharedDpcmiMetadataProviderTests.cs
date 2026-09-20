@@ -25,7 +25,7 @@ public sealed class SharedDpcmiMetadataProviderTests
     public void ExactDpcmiReferenceResolvesFromUniqueMetadataOnlyProvider()
     {
         ProfileBundlePackageTrustIndex index = BuiltInV2BundleRegistry.TrustIndex;
-        Assert.Equal("1.1.10.0", index.TrustIndexVersion);
+        Assert.Equal("1.1.10.1", index.TrustIndexVersion);
         ProfileBundlePackageTrustEntry provider = Assert.Single(index.Bundles, bundle =>
             bundle.MetadataProviderFamilies.Any(family => family.FamilyId == "nt51929-nt51932" && family.FamilyVersion == "1.3.0"));
         Assert.Equal(Provider, provider.BundleDirectory);

@@ -3,6 +3,7 @@ using NvtFwCombiner.Application.Capabilities;
 using NvtFwCombiner.Application.FlashMaps;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Domain.Firmware;
+using NvtFwCombiner.Infrastructure.Bundles;
 using NvtFwCombiner.Infrastructure.ExternalTools;
 
 namespace NvtFwCombiner.Infrastructure.Composition;
@@ -18,8 +19,26 @@ internal static class CanonicalCapabilityDisclosureInventory
         IReadOnlyList<CanonicalCapabilityDefinition> definitions,
         IReadOnlyList<CanonicalDynamicCapabilityDefinition> dynamicDefinitions)
     {
+        return Create(definitions, dynamicDefinitions,
+            ResolveDisclosureFamilies(BuiltInV2BundleRegistry.TrustIndex.Bundles));
+    }
+
+    internal static IReadOnlyList<FirmwareFamilyResolutionDefinition> ResolveDisclosureFamilies(
+        IEnumerable<ProfileBundlePackageTrustEntry> bundles)
+    {
+        ArgumentNullException.ThrowIfNull(bundles);
+        return [.. bundles.SelectMany(bundle => bundle.FamilyDisclosureFamilies.Select(identity =>
+            BuiltInV2BundleRegistry.All[bundle.BundleDirectory].GetDisclosureFamily(identity)))];
+    }
+
+    internal static CanonicalCapabilityDisclosure Create(
+        IReadOnlyList<CanonicalCapabilityDefinition> definitions,
+        IReadOnlyList<CanonicalDynamicCapabilityDefinition> dynamicDefinitions,
+        IReadOnlyList<FirmwareFamilyResolutionDefinition> disclosureFamilies)
+    {
         ArgumentNullException.ThrowIfNull(definitions);
         ArgumentNullException.ThrowIfNull(dynamicDefinitions);
+        ArgumentNullException.ThrowIfNull(disclosureFamilies);
         string[] icIds =
         [
             .. BuiltInV2RegistrationRegistry.StandardMergeByIc.Keys
@@ -62,7 +81,7 @@ internal static class CanonicalCapabilityDisclosureInventory
 
         Dictionary<string, CapabilityFamilySummary> families = icIds.ToDictionary(
             static icId => icId,
-            icId => CreateFamilySummary(icId, definitions, dynamicDefinitions),
+            icId => CreateFamilySummary(icId, definitions, dynamicDefinitions, disclosureFamilies),
             StringComparer.Ordinal);
         string[] dpPerspectiveIcs =
         [
@@ -94,7 +113,8 @@ internal static class CanonicalCapabilityDisclosureInventory
     private static CapabilityFamilySummary CreateFamilySummary(
         string icId,
         IReadOnlyList<CanonicalCapabilityDefinition> definitions,
-        IReadOnlyList<CanonicalDynamicCapabilityDefinition> dynamicDefinitions)
+        IReadOnlyList<CanonicalDynamicCapabilityDefinition> dynamicDefinitions,
+        IReadOnlyList<FirmwareFamilyResolutionDefinition> disclosureFamilies)
     {
         var compositions = new List<CompiledComposition>(definitions
             .Where(definition =>
@@ -144,12 +164,8 @@ internal static class CanonicalCapabilityDisclosureInventory
             }
         }
 
-        var discovered = new List<(
-            string FamilyId,
-            FirmwareFamilyRelationship Relationship)>();
+        var discovered = new List<FamilyBinding>();
         foreach (MapBoundV2CompilationContext context in compositions
-                     .DistinctBy(static composition =>
-                         composition.CompilationFingerprint)
                      .Select(static composition =>
                          composition.V2Details.Provenance.Context)
                      .OfType<MapBoundV2CompilationContext>())
@@ -158,25 +174,45 @@ internal static class CanonicalCapabilityDisclosureInventory
                 .Where(relationship => relationship.MemberIds.Contains(
                     icId,
                     StringComparer.Ordinal))
-                .Select(relationship => (
+                .Select(relationship => new FamilyBinding(
                     context.ResolvedMap.FamilyId,
+                    context.ResolvedMap.FamilyVersion,
+                    context.ResolvedMap.FamilyContentHash,
                     relationship)));
         }
-
-        (string FamilyId, FirmwareFamilyRelationship Relationship)[] bindings =
-        [
-            .. discovered.DistinctBy(static binding => (
-                binding.FamilyId,
-                binding.Relationship.RelationshipId)),
-        ];
-        IEnumerable<(string FamilyId, FirmwareFamilyRelationship Relationship)>
+        discovered.AddRange(disclosureFamilies.SelectMany(family => family.FamilyRelationships
+            .Where(relationship => relationship.MemberIds.Contains(icId, StringComparer.Ordinal))
+            .Select(relationship => new FamilyBinding(family.FamilyId, family.FamilyVersion,
+                family.FamilyContentHash, relationship))));
+        var unique = new Dictionary<(string FamilyId, string RelationshipId), FamilyBinding>();
+        foreach (FamilyBinding binding in discovered)
+        {
+            (string FamilyId, string RelationshipId) key = (binding.FamilyId, binding.Relationship.RelationshipId);
+            if (unique.TryGetValue(key, out FamilyBinding? previous))
+            {
+                if (!SameBinding(previous, binding))
+                {
+                    throw new InvalidDataException($"Conflicting canonical family disclosure for '{icId}'.");
+                }
+            }
+            else
+            {
+                unique.Add(key, binding);
+            }
+        }
+        FamilyBinding[] bindings = [.. unique.Values];
+        if (bindings.Count(static binding => binding.Relationship is PerfectFamilyRelationship) > 1)
+        {
+            throw new InvalidDataException($"Overlapping Perfect-family disclosure for '{icId}'.");
+        }
+        IEnumerable<FamilyBinding>
             selectedSource = bindings.Any(static binding =>
                 binding.Relationship is PerfectFamilyRelationship)
                     ? bindings.Where(static binding =>
                         binding.Relationship is PerfectFamilyRelationship)
                     : bindings.Where(static binding =>
                         binding.Relationship is SharedFactRelationship);
-        (string FamilyId, FirmwareFamilyRelationship Relationship)[] selected =
+        FamilyBinding[] selected =
             [.. selectedSource];
         string[] familyIds =
         [
@@ -203,4 +239,24 @@ internal static class CanonicalCapabilityDisclosureInventory
                             .Distinct(StringComparer.Ordinal)
                             .Order(StringComparer.Ordinal)));
     }
+
+    private static bool SameBinding(FamilyBinding left, FamilyBinding right)
+    {
+        FirmwareFamilyRelationship first = left.Relationship;
+        FirmwareFamilyRelationship second = right.Relationship;
+        return left.FamilyVersion == right.FamilyVersion && left.FamilyHash == right.FamilyHash &&
+            first.GetType() == second.GetType() && first.Reason == second.Reason &&
+            first.MemberIds.Order(StringComparer.Ordinal).SequenceEqual(second.MemberIds.Order(StringComparer.Ordinal)) &&
+            first.EvidenceRefs.Order(StringComparer.Ordinal).SequenceEqual(second.EvidenceRefs.Order(StringComparer.Ordinal)) &&
+            (first is not SharedFactRelationship shared ||
+                (second is SharedFactRelationship other &&
+                    shared.Role == other.Role &&
+                    shared.ApplicableMaps.Select(static map => map.MapId)
+                        .SequenceEqual(other.ApplicableMaps.Select(static map => map.MapId)) &&
+                    shared.SharedFactReferences.Select(static fact => (fact.Kind, fact.FactId))
+                        .SequenceEqual(other.SharedFactReferences.Select(static fact => (fact.Kind, fact.FactId)))));
+    }
+
+    private sealed record FamilyBinding(string FamilyId, string FamilyVersion, string FamilyHash,
+        FirmwareFamilyRelationship Relationship);
 }

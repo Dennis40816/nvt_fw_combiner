@@ -156,3 +156,20 @@ promotion, or `0.9.17` hot-fix behavior.
 - NT51923/NT51926 retain distinct TP Flash Header and CtrlRAM/Postbuild
   definitions even when both reuse a global metadata definition.
 - Support, publication, evidence, and route admission remain independent.
+
+
+## 1.1.10 disclosure source authority
+
+Canonical family relationships remain normalized Domain facts. The package trust
+index may explicitly admit a family through `familyDisclosureFamilies`, independently
+of `metadataProviderFamilies` and runtime registrations. The existing trusted bundle
+catalog resolves the exact family id/version; its manifest closes the family hash.
+A metadata-only provider can therefore preserve Perfect-family disclosure when a
+workflow is retired without becoming executable or granting additional support.
+
+The existing disclosure inventory combines these typed relationships with compiled
+runtime sources. Identical family/version/hash/relationship facts coalesce; conflicting
+identity or overlapping contradictory Perfect sources reject the catalog candidate
+and retain the previous publication. The Standard registry still defines the disclosed
+IC universe. This source binding does not change Perfect/partial semantics, profile
+inventory, filename-only suppression, or firmware bytes.

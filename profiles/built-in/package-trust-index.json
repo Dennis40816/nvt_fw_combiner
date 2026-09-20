@@ -1,7 +1,7 @@
 {
-  "schemaVersion": "1.3",
+  "schemaVersion": "1.4",
   "trustIndexId": "built-in-profile-bundles",
-  "trustIndexVersion": "1.1.10.0",
+  "trustIndexVersion": "1.1.10.1",
   "trustAnchorBindingId": "built-in-profile-bundle-v2",
   "bundles": [
     {
@@ -653,6 +653,12 @@
         "firmwareFamilySchemaFile": "firmware-family-v1-relations.schema.json"
       },
       "metadataProviderFamilies": [
+        {
+          "familyId": "nt51929-nt51932",
+          "familyVersion": "1.3.0"
+        }
+      ],
+      "familyDisclosureFamilies": [
         {
           "familyId": "nt51929-nt51932",
           "familyVersion": "1.3.0"

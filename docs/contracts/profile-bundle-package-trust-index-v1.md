@@ -18,6 +18,20 @@ zero or more closed-vocabulary runtime registrations. Optional
 allowed to resolve that family's canonical metadata references; the reference's
 family content hash and structure id remain independently exact at runtime.
 
+Optional `familyDisclosureFamilies` independently opt an exact family id/version
+into canonical family disclosure. Both fields reuse the same closed pair shape
+and each requires global uniqueness within its own authority. A family may hold
+both authorities. Neither implies the other or any runtime registration.
+Disclosure resolves only within its owning trusted bundle's normalized catalog;
+the trusted manifest closes the family content hash. Missing or ambiguous exact
+identity rejects the candidate. No cross-bundle fallback is permitted.
+
+Disclosure merges these existing typed relationships with compiled runtime
+relationships. Duplicate exact family/version/hash/relationship facts may coalesce;
+conflicting facts or overlapping contradictory Perfect sources reject publication
+and retain the prior catalog. The Standard registry continues to define the IC
+universe, and runtime eligibility and profile inventory do not change.
+
 The index does not promote support, waive profile blockers, supply golden
 evidence, or grant external processor authority. The selected bundle manifest,
 profile/family contracts, capability publication policy, and evidence gates
@@ -106,8 +120,8 @@ The runtime reads it through a pre-allocation byte bound. An explicit
 capability-catalog publication reload does not re-read or hot-swap the package
 trust index or bundle bytes; observing a new package requires a new process.
 
-`trustIndexVersion` changes whenever admitted bundle materialization or runtime
-registrations change. Schema `1.1` adds only the closed CtrlRAM
+`trustIndexVersion` changes whenever admitted bundle materialization, family
+authority bindings, or runtime registrations change. Schema `1.1` adds only the closed CtrlRAM
 `reportMetadataMapId` counterpart described above; it does not move map or
 metadata semantics into the index. Schema-compatible data changes keep the
 current `schemaVersion`; vocabulary or semantic changes require a reviewed
@@ -127,5 +141,7 @@ space are retained as immutable Application context and fingerprint bindings.
 Omitting the display field preserves the existing report-map overview fallback;
 it never changes the mandatory Report presence/absence rules above. The display
 context cannot authorize operations, support, Report classification or writes.
-The current built-in candidate uses schema `1.3`; Unit58 external owner
-attestation remains required before integration.
+Schema `1.4` additionally admits optional `familyDisclosureFamilies` as the
+explicit source authority described above. It adds no firmware relationships,
+execution support, or runtime registrations. The current built-in candidate uses
+schema `1.4`; Unit58 external owner attestation remains required before integration.

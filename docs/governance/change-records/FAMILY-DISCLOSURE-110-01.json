@@ -1,0 +1,50 @@
+{
+  "schemaVersion": 2,
+  "taskId": "FAMILY-DISCLOSURE-110-01",
+  "capability": "Preserve canonical family disclosure independently of retiring DP Replace runtime through explicit trusted family bindings",
+  "integrationBase": "b9a94a2bab1a7bc05129b3438f0c0afeaaf45ad4",
+  "risk": "R3",
+  "kind": "refactor",
+  "state": "design-active",
+  "mutablePaths": [
+    "docs/contracts/profile-bundle-package-trust-index-v1.md",
+    "docs/contracts/profile-bundle-package-trust-index-v1.schema.json",
+    "docs/adr/0041-perfect-family-and-typed-shared-fact-relationships.md",
+    "profiles/built-in/package-trust-index.json",
+    "src/NvtFwCombiner.Infrastructure/Bundles/ProfileBundlePackageTrustIndex.cs",
+    "src/NvtFwCombiner.Infrastructure/Composition/BuiltInV2Bundle.cs",
+    "src/NvtFwCombiner.Infrastructure/Composition/CanonicalCapabilityDisclosureInventory.cs",
+    "eng/profile-bundle-materializer/NvtFwCombiner.ProfileBundleMaterializer.targets",
+    "scripts/package.ps1",
+    "scripts/smoke-release.ps1",
+    "tests/NvtFwCombiner.Infrastructure.Tests/Bundles/ProfileBundlePackageTrustIndexLoaderTests.cs",
+    "tests/NvtFwCombiner.Architecture.Tests/RepositoryBoundaryTests.PackageTrustIndex.cs",
+    "tests/NvtFwCombiner.Architecture.Tests/RepositoryBoundaryTests.PackageTrustMaterializationBatch.cs",
+    "tests/NvtFwCombiner.Architecture.Tests/RepositoryBoundaryTests.ProfileStructure.cs",
+    "tests/NvtFwCombiner.Bootstrap.Tests/CanonicalFamilyDisclosureSourceTests.cs",
+    "tests/NvtFwCombiner.Bootstrap.Tests/SharedDpcmiMetadataProviderTests.cs"
+  ],
+  "implementationOwner": "/root/content_source_impl",
+  "searchEvidence": [
+    "Owner approved preserving canonical shared facts and Perfect-family behavior before DP Replace retirement in 1.1.10. DPCMI neutral-provider prerequisite is implemented and independently reviewed at 3f946d88682deb57df5f2d478019fd7bf4aee4c2; current source is 71dedf4974d80fbb757d8f64e1164e423fac0772.",
+    "CanonicalCapabilityDisclosureInventory currently consumes compiled runtime maps. Standard nt51929-nt51932@1.2.1 and AB @0.3.0 have member-specific maps/aliases and no Perfect declaration; Domain rejects adding Perfect to these shapes. The unchanged neutral nt51929-nt51932@1.3.0 is the existing normalized complete-family owner.",
+    "BuiltInV2Bundle already owns normalized catalogs and exact family/metadata lookup. ProfileBundleMetadataProviderFamily and its schema definition already represent familyId/familyVersion; reuse that pair shape, with family content hash closed by the owning trusted bundle manifest. Metadata availability is not runtime or disclosure authority.",
+    "Existing trust-index loader/materializer, package/smoke version gates and Architecture mutation batch own package admission. Schema bytes are pinned by materializer expectedSchemaSha256; smoke index hash is maintained by sync_derived reviewed-source-pins. Preserve existing exact hash and closed-inventory checks."
+  ],
+  "semanticOwner": "Canonical Domain family relationships normalized by the existing Profiles catalog; explicit package trust binding admits disclosure sources, and the existing capability inventory projects them without granting workflow eligibility",
+  "terminalContract": "Add optional familyDisclosureFamilies using the existing familyId/familyVersion pair shape. Declare only the neutral shared-facts family. Schema becomes 1.4 and trust-index version 1.1.10.1. The loader checks shape and global uniqueness; BuiltInV2Bundle resolves a unique exact family within the owning trusted normalized catalog, never via cross-bundle fallback or a second JSON parser. Merge typed relationships into existing disclosure selection while preserving the existing Standard-registry IC universe. Same exact family/hash/relationship may deduplicate with retained DP compiled source; conflicting definitions or overlapping contradictory Perfect families reject candidate publication. An unlisted metadata provider contributes no disclosure; no new runtime registration, support, profile, policy, firmware facts or bytes are admitted. Preserve old publication on failed reload. Update schema/index pins and version gates, with real materialization and unchanged UI behavior tests.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "/root/config_review",
+    "outcome": "approved",
+    "evidence": "Independent design review approved fourteen exact contract/production/test paths and then the two additional ADR/SharedDpcmi test paths at 71dedf49. Reuse existing pair validation and normalized relationships; metadata/disclosure/runtime authorities remain distinct. Required evidence: no-DP-definition disclosure preservation, non-opt-in exclusion, exact-identity/conflict fail-closed with retained old publication, unchanged runtime inventory, loader/materializer malformed cases, family badge and filename-only suppression with header/unknown negative cases, and derived-pin/package-policy checks. Design admission is not final integration or R3 external approval."
+  },
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": {
+    "reviewer": null,
+    "outcome": "pending",
+    "evidence": ""
+  }
+}

@@ -13,6 +13,11 @@ public sealed partial class RepositoryBoundaryTests
     private static int _materializationDriverLaunchCount;
     private static readonly string[] TrustIndexMutations =
     [
+        "disclosure-families-wrong-type",
+        "disclosure-family-version-wrong-type",
+        "disclosure-family-unknown-field",
+        "disclosure-family-duplicate",
+        "metadata-family-duplicate",
         "unknown-field",
         "source-traversal",
         "leading-dot-source",
@@ -65,11 +70,11 @@ public sealed partial class RepositoryBoundaryTests
                 PrepareManifestSchemaDriftCase(batchRoot, "entry-path"),
                 PrepareManifestSchemaDriftCase(batchRoot, "schema-id"),
             ];
-            if (cases.Count != 15 ||
-                cases.Select(static item => item.Id).Distinct(StringComparer.Ordinal).Count() != 15)
+            if (cases.Count != 20 ||
+                cases.Select(static item => item.Id).Distinct(StringComparer.Ordinal).Count() != 20)
             {
                 throw new InvalidOperationException(
-                    "The package-trust materialization batch must contain 15 distinct cases.");
+                    "The package-trust materialization batch must contain 20 distinct cases.");
             }
 
             string driverPath = Path.Combine(batchRoot, "PackageTrustMaterializationBatch.proj");
@@ -95,6 +100,31 @@ public sealed partial class RepositoryBoundaryTests
             "package-trust-index.json"));
         string changed = mutation switch
         {
+            "disclosure-families-wrong-type" => MutateTrustIndex(source, static root =>
+            {
+                JsonObject bundle = root["bundles"]!.AsArray()[0]!.AsObject();
+                bundle["familyDisclosureFamilies"] = new JsonObject();
+            }),
+            "disclosure-family-version-wrong-type" => MutateTrustIndex(source, static root =>
+            {
+                JsonObject bundle = root["bundles"]!.AsArray()[0]!.AsObject();
+                bundle["familyDisclosureFamilies"] = new JsonArray(new JsonObject { ["familyId"] = "candidate-family", ["familyVersion"] = 123 });
+            }),
+            "disclosure-family-unknown-field" => MutateTrustIndex(source, static root =>
+            {
+                JsonObject bundle = root["bundles"]!.AsArray()[0]!.AsObject();
+                bundle["familyDisclosureFamilies"] = new JsonArray(new JsonObject { ["familyId"] = "candidate-family", ["familyVersion"] = "1.0.0", ["runtime"] = true });
+            }),
+            "disclosure-family-duplicate" => MutateTrustIndex(source, static root =>
+            {
+                JsonObject bundle = root["bundles"]!.AsArray()[0]!.AsObject();
+                bundle["familyDisclosureFamilies"] = root["bundles"]!.AsArray().First(static candidate => candidate!["familyDisclosureFamilies"] is not null)!["familyDisclosureFamilies"]!.DeepClone();
+            }),
+            "metadata-family-duplicate" => MutateTrustIndex(source, static root =>
+            {
+                JsonObject bundle = root["bundles"]!.AsArray()[0]!.AsObject();
+                bundle["metadataProviderFamilies"] = root["bundles"]!.AsArray().First(static candidate => candidate!["metadataProviderFamilies"] is not null)!["metadataProviderFamilies"]!.DeepClone();
+            }),
             "unknown-field" => source.Replace(
                 "\"trustIndexId\": \"built-in-profile-bundles\",",
                 "\"trustIndexId\": \"built-in-profile-bundles\",\n  \"executablePath\": \"forbidden.exe\",",

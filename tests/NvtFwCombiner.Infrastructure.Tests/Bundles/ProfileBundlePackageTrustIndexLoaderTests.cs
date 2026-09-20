@@ -39,9 +39,9 @@ public sealed class ProfileBundlePackageTrustIndexLoaderTests
         ProfileBundlePackageTrustIndex index =
             ProfileBundlePackageTrustIndexLoader.Load(path);
 
-        Assert.Equal("1.3", index.SchemaVersion);
+        Assert.Equal("1.4", index.SchemaVersion);
         Assert.Equal("built-in-profile-bundles", index.TrustIndexId);
-        Assert.Equal("1.1.10.0", index.TrustIndexVersion);
+        Assert.Equal("1.1.10.1", index.TrustIndexVersion);
         Assert.Equal("built-in-profile-bundle-v2", index.TrustAnchorBindingId);
         Assert.Equal(27, index.Bundles.Count);
         Assert.Equal(
@@ -66,6 +66,7 @@ public sealed class ProfileBundlePackageTrustIndexLoaderTests
         Assert.Equal(
             4,
             index.Bundles.Sum(static bundle => bundle.MetadataProviderFamilies.Count));
+        _ = Assert.Single(index.Bundles.SelectMany(static bundle => bundle.FamilyDisclosureFamilies));
         ProfileBundleRuntimeRegistration[] ctrlRam =
         [
             .. index.Bundles.SelectMany(static bundle => bundle.RuntimeRegistrations)
@@ -260,12 +261,54 @@ public sealed class ProfileBundlePackageTrustIndexLoaderTests
         }
     }
 
+    /// <summary>Both independent family authorities share exact pair shape and global uniqueness rules.</summary>
+    [Theory]
+    [InlineData("metadataProviderFamilies")]
+    [InlineData("familyDisclosureFamilies")]
+    public void FamilyAuthoritiesRejectMalformedAndDuplicateBindings(string field)
+    {
+        foreach (string value in new[] { "null", "{}", "[null]", "[{\"familyId\":\"test-family\",\"familyVersion\":123}]",
+                     "[{\"familyId\":\"test-family\",\"familyVersion\":\"bad\"}]",
+                     "[{\"familyId\":\"test-family\",\"familyVersion\":\"1.0.0\",\"runtime\":true}]" })
+        {
+            using TempWorkspace malformed = WriteIndex(Bundle()[..^1] + $",\"{field}\":{value}}}");
+            _ = Assert.Throws<InvalidDataException>(() => ProfileBundlePackageTrustIndexLoader.Load(
+                Path.Combine(malformed.Root, "package-trust-index.json")));
+        }
+        const string pair = "{\"familyId\":\"test-family\",\"familyVersion\":\"1.0.0\"}";
+        string first = Bundle()[..^1] + $",\"{field}\":[{pair}]}}";
+        string second = first.Replace("test-bundle", "other-bundle", StringComparison.Ordinal);
+        using TempWorkspace duplicatedAcross = WriteIndex(first, second);
+        _ = Assert.Throws<InvalidDataException>(() => ProfileBundlePackageTrustIndexLoader.Load(
+            Path.Combine(duplicatedAcross.Root, "package-trust-index.json")));
+        using TempWorkspace duplicatedWithin = WriteIndex(Bundle()[..^1] + $",\"{field}\":[{pair},{pair}]}}");
+        _ = Assert.Throws<InvalidDataException>(() => ProfileBundlePackageTrustIndexLoader.Load(
+            Path.Combine(duplicatedWithin.Root, "package-trust-index.json")));
+    }
+
+    /// <summary>Absence grants no family authority and one family may independently hold both authorities.</summary>
+    [Fact]
+    public void FamilyAuthoritiesAreOptionalAndIndependent()
+    {
+        using TempWorkspace omitted = WriteIndex(Bundle());
+        ProfileBundlePackageTrustEntry empty = Assert.Single(ProfileBundlePackageTrustIndexLoader.Load(
+            Path.Combine(omitted.Root, "package-trust-index.json")).Bundles);
+        Assert.Empty(empty.MetadataProviderFamilies);
+        Assert.Empty(empty.FamilyDisclosureFamilies);
+        const string pair = "{\"familyId\":\"test-family\",\"familyVersion\":\"1.0.0\"}";
+        using TempWorkspace both = WriteIndex(Bundle()[..^1] +
+            $",\"metadataProviderFamilies\":[{pair}],\"familyDisclosureFamilies\":[{pair}]}}");
+        ProfileBundlePackageTrustEntry accepted = Assert.Single(ProfileBundlePackageTrustIndexLoader.Load(
+            Path.Combine(both.Root, "package-trust-index.json")).Bundles);
+        Assert.Equal(Assert.Single(accepted.MetadataProviderFamilies), Assert.Single(accepted.FamilyDisclosureFamilies));
+    }
+
     private static TempWorkspace WriteIndex(params string[] bundles)
     {
         var workspace = TempWorkspace.Create("package-trust-index");
         string json = $$"""
             {
-              "schemaVersion": "1.3",
+              "schemaVersion": "1.4",
               "trustIndexId": "test-profile-bundles",
               "trustIndexVersion": "1.0.0",
               "trustAnchorBindingId": "test-profile-bundle-v2",

@@ -416,7 +416,7 @@ public sealed partial class RepositoryBoundaryTests
                 .Order(StringComparer.Ordinal)!,
         ];
 
-        Assert.Equal("1.3", index.RootElement.GetProperty("schemaVersion").GetString());
+        Assert.Equal("1.4", index.RootElement.GetProperty("schemaVersion").GetString());
         Assert.Equal(sourceDirectories, indexedDirectories);
         Assert.All(bundles, bundle =>
         {

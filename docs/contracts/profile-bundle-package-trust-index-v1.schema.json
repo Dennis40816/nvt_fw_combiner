@@ -12,7 +12,7 @@
     "bundles"
   ],
   "properties": {
-    "schemaVersion": { "const": "1.3" },
+    "schemaVersion": { "const": "1.4" },
     "trustIndexId": {
       "type": "string",
       "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
@@ -179,6 +179,11 @@
         "contentHash": { "$ref": "#/$defs/sha256" },
         "materialization": { "$ref": "#/$defs/materialization" },
         "metadataProviderFamilies": {
+          "type": "array",
+          "maxItems": 32,
+          "items": { "$ref": "#/$defs/metadataProviderFamily" }
+        },
+        "familyDisclosureFamilies": {
           "type": "array",
           "maxItems": 32,
           "items": { "$ref": "#/$defs/metadataProviderFamily" }

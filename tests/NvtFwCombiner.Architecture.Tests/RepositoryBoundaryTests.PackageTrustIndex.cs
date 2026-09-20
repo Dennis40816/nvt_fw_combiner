@@ -18,8 +18,8 @@ public sealed partial class RepositoryBoundaryTests
             "package-trust-index.json");
         using JsonDocument document = JsonDocument.Parse(File.ReadAllText(trustIndexPath));
         JsonElement root = document.RootElement;
-        Assert.Equal("1.3", root.GetProperty("schemaVersion").GetString());
-        Assert.Equal("1.1.6.0", root.GetProperty("trustIndexVersion").GetString());
+        Assert.Equal("1.4", root.GetProperty("schemaVersion").GetString());
+        Assert.Equal("1.1.10.1", root.GetProperty("trustIndexVersion").GetString());
 
         JsonElement[] ctrlRamRegistrations =
         [
@@ -81,6 +81,11 @@ public sealed partial class RepositoryBoundaryTests
 
     /// <summary>MSBuild materialization rejects authority fields and paths outside the normative index.</summary>
     [Theory]
+    [InlineData("disclosure-families-wrong-type")]
+    [InlineData("disclosure-family-version-wrong-type")]
+    [InlineData("disclosure-family-unknown-field")]
+    [InlineData("disclosure-family-duplicate")]
+    [InlineData("metadata-family-duplicate")]
     [InlineData("unknown-field")]
     [InlineData("source-traversal")]
     [InlineData("leading-dot-source")]
@@ -101,6 +106,10 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains(
             mutation switch
             {
+                "disclosure-families-wrong-type" => "families must be an array",
+                "disclosure-family-version-wrong-type" => "must be a JSON string",
+                "disclosure-family-unknown-field" => "closed package trust-index shape",
+                "disclosure-family-duplicate" or "metadata-family-duplicate" => "identities must be unique",
                 "unknown-field" => "closed package trust-index shape",
                 "source-traversal" or
                 "leading-dot-source" or
@@ -201,7 +210,7 @@ public sealed partial class RepositoryBoundaryTests
 
         using var document = JsonDocument.Parse(File.ReadAllText(trustIndexPath));
         JsonElement root = document.RootElement;
-        Assert.Equal("1.3", root.GetProperty("schemaVersion").GetString());
+        Assert.Equal("1.4", root.GetProperty("schemaVersion").GetString());
         Assert.Equal("built-in-profile-bundles", root.GetProperty("trustIndexId").GetString());
         Assert.False(string.IsNullOrWhiteSpace(root.GetProperty("trustIndexVersion").GetString()));
         Assert.Equal("built-in-profile-bundle-v2", root.GetProperty("trustAnchorBindingId").GetString());

@@ -205,6 +205,15 @@ internal sealed class BuiltInV2Bundle
             mapId);
     }
 
+    internal FirmwareFamilyResolutionDefinition GetDisclosureFamily(ProfileBundleMetadataProviderFamily identity)
+    {
+        ArgumentNullException.ThrowIfNull(identity);
+        return _catalog.Value.Families.SingleOrDefault(candidate =>
+            StringComparer.Ordinal.Equals(candidate.Family.FamilyId, identity.FamilyId) &&
+            StringComparer.Ordinal.Equals(candidate.Family.FamilyVersion, identity.FamilyVersion))?.Family
+            ?? throw new InvalidDataException("Declared disclosure family is absent from its owning trusted bundle.");
+    }
+
     internal bool TryResolveMetadataDefinition(
         FirmwareMetadataStructureDefinitionReferenceDocument reference,
         out FirmwareMetadataStructureDefinition? definition)
