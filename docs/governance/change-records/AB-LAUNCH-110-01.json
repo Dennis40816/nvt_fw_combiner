@@ -5,7 +5,7 @@
   "integrationBase": "3e375443f08f82263b7c200af8fcf094fc4ec479",
   "risk": "R2",
   "kind": "ui",
-  "state": "design-active",
+  "state": "final-complete",
   "mutablePaths": [
     "src/NvtFwCombiner.Presentation.Avalonia/UiLaunchOptions.cs",
     "src/NvtFwCombiner.Presentation.Avalonia/UiLaunchOptions.CtrlRam.cs",
@@ -30,8 +30,12 @@
     "outcome": "approved",
     "evidence": "Independent R2 design admission at 3e375443 on 2026-09-20 approved these production/test paths. Reuse startup lifetime and typed selector/input owners. Early-stop on terminal input health/config/mismatch, not incomplete-pair AB readiness; retain CtrlRAM coverage. Docs distinguish 512 KiB legacy input and explicit single context from topology-unscoped golden certification."
   },
-  "implementationHead": null,
-  "reviewedHead": null,
-  "pathStateDigest": null,
-  "finalReview": { "reviewer": null, "outcome": "pending", "evidence": "" }
+  "implementationHead": "4f6eee770d3cb66d2aa8c485d933e3b7af1df317",
+  "reviewedHead": "4f6eee770d3cb66d2aa8c485d933e3b7af1df317",
+  "pathStateDigest": "d2e278a236f6396b00b04abe2633fb9680cd4352249d603825fef2ef5c4f97cc",
+  "finalReview": {
+    "reviewer": "/root/config_review",
+    "outcome": "approved",
+    "evidence": "Independent fixed-head Polytail PASS at 4f6eee770d3cb66d2aa8c485d933e3b7af1df317 on 2026-09-20; all seven mutable paths and command documentation covered, no remaining P0-P3. Duplicate-page P2 fixed with red/green regressions. Startup UI 56/56, Architecture 256/256 (before final parser delta; covered by startup regressions), Desktop build 0 warnings/errors. Canonical BOE desktop launched through CMD; no firmware execution or new Golden certification. Local structure gate and residual full integration gate are recorded in the existing handoff."
+  }
 }
