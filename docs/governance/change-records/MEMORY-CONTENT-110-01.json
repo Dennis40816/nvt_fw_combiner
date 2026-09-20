@@ -1,0 +1,50 @@
+{
+  "schemaVersion": 2,
+  "taskId": "MEMORY-CONTENT-110-01",
+  "capability": "Input artifact attribution and adjacent memory display runs with below-rail legend",
+  "integrationBase": "b9a94a2bab1a7bc05129b3438f0c0afeaaf45ad4",
+  "risk": "R2",
+  "kind": "ui",
+  "state": "design-active",
+  "mutablePaths": [
+    "src/NvtFwCombiner.Application/MemoryLayout/MemoryLayoutModels.cs",
+    "src/NvtFwCombiner.Application/MemoryLayout/MemoryLayoutProjector.cs",
+    "src/NvtFwCombiner.Application/MemoryLayout/MemoryLayoutProjector.ContentSource.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/UiCompositionRunner.Common.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MemoryCoverageSegmentViewModel.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MemoryCoverageBarProjection.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/Views/MemoryCoverageBar.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/Views/MemoryCoverageBar.Legend.cs",
+    "tests/NvtFwCombiner.Application.Tests/MemoryLayout/MemoryLayoutProjectorTests.ContentSource.cs",
+    "tests/NvtFwCombiner.Bootstrap.Tests/MemoryContentSourceProjectionTests.cs",
+    "tests/NvtFwCombiner.UiSmoke.Tests/MemoryCoverageContentGroupingTests.cs",
+    "tests/NvtFwCombiner.UiSmoke.Tests/MemoryCoveragePopupTests.Hierarchy.cs",
+    "tests/NvtFwCombiner.UiSmoke.Tests/MemoryCoveragePopupTests.LegendRows.cs",
+    "tests/NvtFwCombiner.UiSmoke.Tests/MemoryCoverageLegendTests.cs",
+    "docs/adr/0015-canonical-firmware-map-and-compiled-composition.md",
+    "tests/NvtFwCombiner.UiSmoke.Tests/CtrlRamMemoryLayoutTests.cs",
+    "tests/NvtFwCombiner.UiSmoke.Tests/MemoryCoveragePopupTests.Lifecycle.cs"
+  ],
+  "implementationOwner": "root",
+  "searchEvidence": [
+    "Scoped codegraph and source inspection of MemoryLayoutProjector, AuthoringSlotState, AcceptedSessionExecutionInputs, UiCompositionRunner.Common and MemoryCoverageBarProjection identifies existing owners; no parallel projection is needed.",
+    "Existing LogicalCoverageGroupId intentionally groups CtrlRAM replacement and retained reference slices for partial detail; it cannot stand for artifact identity.",
+    "Owner approved adjacent same loaded BIN coalescing, different BIN separation, TP ownership of AB postbuild imports and below-rail legend on 2026-09-20."
+  ],
+  "semanticOwner": "Application.MemoryLayoutProjector owns immutable content-source attribution; Presentation MemoryCoverageBarProjection consumes that identity for display only; original logical grouping and operation sources remain authoritative.",
+  "terminalContract": "Same accepted normalized path and full FileStamp share a snapshot-local artifact identity across slots; unknown identity never merges. Main display coalesces only strict adjacency in one output address space. Proven AB map-bound staged processor round trips inherit prior content ownership without changing writer operations. CtrlRAM retained/replacement, mixed fills, partial details and diagnostics remain visible. No firmware bytes, plans or profiles change.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "/root/layout_ownership_review",
+    "outcome": "approved",
+    "evidence": "Independent R2 design admission on 2026-09-20: extend existing immutable MemoryLayoutSegment with nullable ContentSource(SourceSpaceId, SourceSlotId, ArtifactIdentity); derive identity only from accepted selected path plus FileStamp. Bound AB content inheritance to proven output-to-work processor round trips with overlap/provenance guards. Preserve legacy logical grouping and raw segment facts; merge only presentation runs and retain parts/state/severity. Add source-identity, adversarial round-trip, real NT51950 AB and CtrlRAM regression evidence."
+  },
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": {
+    "reviewer": null,
+    "outcome": "pending",
+    "evidence": ""
+  }
+}

@@ -63,7 +63,9 @@ internal sealed class MemoryCoverageSegmentViewModel
         string? sourceFieldLabel = null,
         string? displayTitle = null,
         string? addressSpaceId = null,
-        bool isPrimaryContent = true)
+        bool isPrimaryContent = true,
+        string? contentArtifactIdentity = null,
+        IReadOnlyList<MemoryCoverageSegmentViewModel>? displayParts = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(rangeLabel);
         ArgumentException.ThrowIfNullOrWhiteSpace(sourceLabel);
@@ -110,6 +112,8 @@ internal sealed class MemoryCoverageSegmentViewModel
         }
 
         RangeLabel = rangeLabel;
+        ContentArtifactIdentity = contentArtifactIdentity;
+        DisplayParts = displayParts ?? [];
         IsPrimaryContent = isPrimaryContent;
         AddressRangeLabel = addressRangeLabel ?? rangeLabel;
         LengthLabel = lengthLabel ?? string.Empty;
@@ -146,6 +150,7 @@ internal sealed class MemoryCoverageSegmentViewModel
         [
             .. (preservationDetails ?? []).Select(detail =>
                 new DiffDlmPreservationDetailViewModel(detail, text)),
+            .. DisplayParts.SelectMany(static part => part.PreservationDetails),
         ];
         PreservationSummary = PreservationDetails.Count > 0
             ? text.FormatDiffDlmPreservationSummary(PreservationDetails.Count)
@@ -177,6 +182,9 @@ internal sealed class MemoryCoverageSegmentViewModel
 
     /// <summary>Original physical parts used only to retain partial-fill geometry in a focus cell.</summary>
     public IReadOnlyList<MemoryCoverageSegmentViewModel> DisplayParts { get; internal init; } = [];
+
+    /// <summary>Opaque Application-owned loaded BIN identity, valid only within its snapshot.</summary>
+    public string? ContentArtifactIdentity { get; }
 
     /// <summary>Address range in half-open hex notation.</summary>
     public string RangeLabel { get; }

@@ -36,7 +36,7 @@ public sealed partial class MemoryCoverageBar : UserControl
     /// <summary>Shows compact labels in the existing rail, used by explicit focus views.</summary>
     public static readonly StyledProperty<bool> ShowLabelsProperty =
         AvaloniaProperty.Register<MemoryCoverageBar, bool>(nameof(ShowLabels));
-    /// <summary>Shows compact upper-right hover targets instead of persistent detail cards.</summary>
+    /// <summary>Shows compact legend rows below the rail instead of persistent detail cards.</summary>
     public static readonly StyledProperty<bool> ShowLegendProperty =
         AvaloniaProperty.Register<MemoryCoverageBar, bool>(nameof(ShowLegend));
     /// <summary>Optional exact positions whose contiguous lanes open through the shared local-view overlay.</summary>
@@ -57,6 +57,7 @@ public sealed partial class MemoryCoverageBar : UserControl
     private IDisposable? _pendingClose;
     private long _closeGeneration;
     private readonly List<Control> _sliceTargets = [];
+    private IReadOnlyList<MemoryCoverageSegmentViewModel> _displaySegments = [];
     private INotifyCollectionChanged? _collection;
     private INotifyCollectionChanged? _positionCollection;
     private MemoryCoverageBarItem? _activeGroup;
@@ -87,7 +88,7 @@ public sealed partial class MemoryCoverageBar : UserControl
         ClipToBounds = false;
         _track.Child = _main;
         InitializeOverview();
-        _footer.Child = _positions;
+        _footer.Child = new StackPanel { Children = { _positions, _legend } };
         Content = new Panel { Children = { new StackPanel { Children = { _header, _addresses, _track, _footer } }, _localPopup, _cardPopup } };
         _ = _track.Bind(Border.BackgroundProperty, new DynamicResourceExtension("NfcMemoryTrackBrush"));
         _track.PointerMoved += (_, e) =>
@@ -231,6 +232,7 @@ public sealed partial class MemoryCoverageBar : UserControl
     private void Rebuild()
     {
         CloseAll();
+        _displaySegments = MemoryCoverageBarProjection.CoalesceContent(ItemsSource?.Cast<MemoryCoverageSegmentViewModel>().ToArray() ?? [], Text);
         BuildPositions();
         BuildLegend();
         _main.ItemContainerTheme = (ControlTheme)this.FindResource("ProportionalContentPresenterTheme")!;
@@ -273,7 +275,7 @@ public sealed partial class MemoryCoverageBar : UserControl
             };
             return target;
         });
-        _main.ItemsSource = MemoryCoverageBarProjection.Create(ItemsSource?.Cast<MemoryCoverageSegmentViewModel>().ToArray() ?? []);
+        _main.ItemsSource = MemoryCoverageBarProjection.Create(_displaySegments);
     }
 
     private void BuildPositions()
@@ -346,28 +348,29 @@ public sealed partial class MemoryCoverageBar : UserControl
             border.Child = null;
             var overlay = new Panel();
             if (pattern is not null) { overlay.Children.Add(pattern); }
+            if (slice.DisplayParts.Any(part => part.FillRole != slice.FillRole || part.UsesKeptPattern != slice.UsesKeptPattern))
+            {
+                var parts = new ProportionalStackPanel { IsHitTestVisible = false };
+                foreach (MemoryCoverageSegmentViewModel part in slice.DisplayParts)
+                {
+                    Control fill = template.Build(part)!;
+                    fill.DataContext = part;
+                    fill.IsHitTestVisible = false;
+                    _ = fill.Classes.Remove("memoryCoverageBarSegment");
+                    _ = fill.Classes.Remove("memoryCoverageLinkedRow");
+                    MemoryCoverageInteractionBehavior.SetIsEnabled(fill, false);
+                    ProportionalStackPanel.SetWeight(fill, part.BarWidth);
+                    parts.Children.Add(fill);
+                }
+                overlay.Children.Add(parts);
+            }
             if (ShowLabels)
             {
                 control.Classes.Add("memoryFocusSlice");
-                if (slice.DisplayParts.Count > 0)
-                {
-                    var parts = new ProportionalStackPanel { IsHitTestVisible = false };
-                    foreach (MemoryCoverageSegmentViewModel part in slice.DisplayParts)
-                    {
-                        Control fill = template.Build(part)!;
-                        fill.DataContext = part;
-                        fill.IsHitTestVisible = false;
-                        _ = fill.Classes.Remove("memoryCoverageBarSegment");
-                        _ = fill.Classes.Remove("memoryCoverageLinkedRow");
-                        MemoryCoverageInteractionBehavior.SetIsEnabled(fill, false);
-                        ProportionalStackPanel.SetWeight(fill, part.BarWidth);
-                        parts.Children.Add(fill);
-                    }
-                    overlay.Children.Add(parts);
-                }
                 var label = new TextBlock
                 {
-                    Text = slice.ContentRole == Application.MemoryLayout.MemoryContentRole.CtrlRam
+                    Text = slice.ContentRole == Application.MemoryLayout.MemoryContentRole.CtrlRam &&
+                        slice.DisplayParts.All(part => part.CtrlRamRegionRole == slice.CtrlRamRegionRole)
                         ? ShellTextResources.GetMemoryFocusLabel(slice.CtrlRamRegionRole) : slice.DisplayTitle,
                     FontSize = 12,
                     FontWeight = FontWeight.SemiBold,
@@ -509,7 +512,8 @@ public sealed partial class MemoryCoverageBar : UserControl
         TopLevel top = TopLevel.GetTopLevel(this)!;
         Control anchor = lane is null ? _track : _positions;
         double above = anchor.TranslatePoint(default, top)?.Y ?? 0;
-        _localAbove = above > top.Bounds.Height - above - anchor.Bounds.Height;
+        double footerBottom = (_footer.TranslatePoint(default, top)?.Y ?? 0) + _footer.Bounds.Height;
+        _localAbove = above > top.Bounds.Height - (ShowLegend ? footerBottom : above + anchor.Bounds.Height);
         var header = new StackPanel { Name = "MemoryLocalHeader", Spacing = 3 };
         header.Children.Add(new TextBlock { Text = lane?.Title ?? Text.MemoryLocalViewLabel, Classes = { "bodyEmphasisText" }, TextWrapping = TextWrapping.Wrap, HorizontalAlignment = HorizontalAlignment.Left });
         header.Children.Add(new TextBlock { Text = $"{(lane is null ? Text.FormatMemorySliceCount(item.Slices.Count) : Text.MemoryCtrlRamDetailLabel)} · {item.SizeLabel} · {item.AddressSpace}", Classes = { "captionText" }, TextWrapping = TextWrapping.Wrap, HorizontalAlignment = HorizontalAlignment.Left });
@@ -519,7 +523,20 @@ public sealed partial class MemoryCoverageBar : UserControl
         content.Children.Add(endpoints);
         _local.Child = content;
         double left = target.TranslatePoint(default, anchor)?.X ?? 0;
-        Canvas connector = MemoryCoverageConnectorVisuals.LocalConnector(left + (target.Bounds.Width / 2), 10);
+        double connectorHeight = 10 + (ShowLegend && !_localAbove ? Math.Max(0, footerBottom - above - anchor.Bounds.Height) : 0);
+        Canvas connector;
+        if (connectorHeight > 10)
+        {
+            double anchorLeft = anchor.TranslatePoint(default, top)?.X ?? 0;
+            Rect[] labels = [.. _legend.GetVisualDescendants().OfType<TextBlock>().Select(block =>
+            {
+                Point point = block.TranslatePoint(default, top) ?? default;
+                return new Rect(point.X - anchorLeft, point.Y - above - anchor.Bounds.Height, block.Bounds.Width, block.Bounds.Height);
+            })];
+            connector = MemoryCoverageConnectorVisuals.CardConnector(left + (target.Bounds.Width / 2), connectorHeight, false, labels, "MemoryLocal");
+            connector.Name = "MemoryLocalConnector";
+        }
+        else { connector = MemoryCoverageConnectorVisuals.LocalConnector(left + (target.Bounds.Width / 2), 10); }
         StackPanel frame = PopupFrame(_local, connector, _localAbove);
         _localPopup.Child = frame;
         _localPopup.Width = Bounds.Width;
@@ -558,12 +575,14 @@ public sealed partial class MemoryCoverageBar : UserControl
             : ShowLabels ? 8 : 20;
         // Keep the pointer corridor inside the overlay, including the header between
         // the main rail and its upper card. Crossing a legend must not change the source.
-        bool crossesHeader = above && preferredAbove is null && ShowLegend && target.Name != "MemoryLegendTarget";
-        if (crossesHeader)
+        bool crossesOverview = preferredAbove is null && ShowLegend;
+        if (crossesOverview)
         {
-            connectorHeight += origin.Y - placementOrigin.Y;
+            connectorHeight += above ? origin.Y - placementOrigin.Y :
+                placementOrigin.Y + placementTarget.Bounds.Height - origin.Y - target.Bounds.Height;
             placementTarget = target;
             placementOrigin = origin;
+            below = top.Bounds.Height - origin.Y - target.Bounds.Height;
         }
         double available = (above ? placementOrigin.Y : below) - connectorHeight - 8;
         _card.MaxHeight = Math.Max(64, available);
@@ -576,7 +595,7 @@ public sealed partial class MemoryCoverageBar : UserControl
         double left = Math.Clamp(center - (width / 2), columnLeft, Math.Max(columnLeft, columnRight - width));
         double anchor = center - left;
         double connectorTop = above ? origin.Y - connectorHeight : origin.Y + target.Bounds.Height;
-        Rect[] labels = preferredAbove.HasValue || crossesHeader
+        Rect[] labels = preferredAbove.HasValue || crossesOverview
             ? [.. (preferredAbove.HasValue ? _local : (Control)this).GetVisualDescendants().OfType<TextBlock>().Where(static block => block.IsEffectivelyVisible)
                 .Select(block =>
                 {

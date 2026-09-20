@@ -2,6 +2,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Headless.XUnit;
 using Avalonia.VisualTree;
+using NvtFwCombiner.Application.MemoryLayout;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
 using NvtFwCombiner.Presentation.Avalonia.Views;
 
@@ -9,6 +10,37 @@ namespace NvtFwCombiner.UiSmoke.Tests;
 
 public sealed partial class MemoryCoveragePopupTests
 {
+    /// <summary>A same-bin mixed run retains proportional colors and kept pattern in a ten-pixel square.</summary>
+    [AvaloniaFact]
+    public void MixedContentLegendMarkerKeepsEveryFillPart()
+    {
+        MemoryCoverageSegmentViewModel[] slices = [
+            new("first", "BIN", "written", MemoryCoverageFillRole.Tp, 3,
+                disposition: MemoryWorkflowDisposition.WillReplace, rangeStart: 0, rangeEndExclusive: 3,
+                addressSpaceId: "output", contentArtifactIdentity: "same"),
+            new("second", "BIN", "kept", MemoryCoverageFillRole.Dp, 1,
+                disposition: MemoryWorkflowDisposition.Kept, usesBaseFirmwarePattern: true,
+                rangeStart: 3, rangeEndExclusive: 4, addressSpaceId: "output", contentArtifactIdentity: "same")];
+        Window window = CreateWindow(420, false, slices, out MemoryCoverageBar bar);
+        try
+        {
+            bar.ShowLegend = true;
+            Render();
+            Border marker = FindNamed<Border>(window, "MemoryMixedLegendMarker")!;
+            Assert.Equal(new Size(10, 10), marker.Bounds.Size);
+            Assert.Equal(new CornerRadius(2), marker.CornerRadius);
+            ProportionalStackPanel parts = Assert.IsType<ProportionalStackPanel>(marker.Child);
+            Assert.Equal(slices, parts.Children.Select(child => child.DataContext));
+            // Avalonia rounds each proportional edge to physical pixels (7.5 becomes 8 at 1x).
+            Assert.InRange(Math.Abs(parts.Children[0].Bounds.Width - 7.5), 0, 0.5);
+            Assert.InRange(Math.Abs(parts.Children[1].Bounds.Width - 2.5), 0, 0.5);
+            Assert.True(marker.ClipToBounds); // Independently rounded children must stay inside the 10px marker.
+            Assert.True(((MemoryCoverageSegmentViewModel)parts.Children[1].DataContext!).UsesKeptPattern);
+            Capture(window, "mixed-content-square");
+        }
+        finally { window.Close(); }
+    }
+
     /// <summary>Legend rows retain square markers and readable addresses without changing rail geometry.</summary>
     [AvaloniaTheory]
     [InlineData(388, false)]
@@ -32,6 +64,9 @@ public sealed partial class MemoryCoveragePopupTests
             Assert.Equal(slices.Length, rows.Length);
             Assert.Equal(railWidth, bar.Bounds.Width);
             double railLeft = BoundsInWindow(FindNamed<ItemsControl>(window, "MemoryMainRail")!, window).Left;
+            Assert.True(BoundsInWindow(rows[0], window).Top >=
+                BoundsInWindow(FindNamed<ItemsControl>(window, "MemoryMainRail")!, window).Bottom,
+                "Legend rows must follow the output rail.");
             Rect? previous = null;
             double? addressLeft = null;
             foreach (Border row in rows)

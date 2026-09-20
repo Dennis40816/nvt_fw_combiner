@@ -86,6 +86,27 @@ public sealed class MemoryLayoutPreservationDetail
     public MemoryWorkflowDisposition Disposition { get; } = MemoryWorkflowDisposition.Kept;
 }
 
+/// <summary>
+/// Accepted input content underlying a display segment. Artifact identity is opaque and
+/// snapshot-local; operation writer identities remain separately available on the segment.
+/// </summary>
+public sealed record MemoryLayoutContentSource
+{
+    internal MemoryLayoutContentSource(string sourceSpaceId, string sourceSlotId, string artifactIdentity)
+    {
+        SourceSpaceId = sourceSpaceId;
+        SourceSlotId = sourceSlotId;
+        ArtifactIdentity = artifactIdentity;
+    }
+
+    /// <summary>Input address space owning the content.</summary>
+    public string SourceSpaceId { get; }
+    /// <summary>Accepted authoring slot owning the content.</summary>
+    public string SourceSlotId { get; }
+    /// <summary>Equality token for the same accepted path and stamp within this snapshot.</summary>
+    public string ArtifactIdentity { get; }
+}
+
 /// <summary>One immutable checked segment in the canonical output address space.</summary>
 public sealed class MemoryLayoutSegment
 {
@@ -110,7 +131,8 @@ public sealed class MemoryLayoutSegment
         IEnumerable<CompositionOperation> contributingOperations,
         IEnumerable<MemoryLayoutPreservationDetail> preservationDetails,
         ReplaceRegionGroup regionGroup,
-        CtrlRamRegionRole ctrlRamRegionRole)
+        CtrlRamRegionRole ctrlRamRegionRole,
+        MemoryLayoutContentSource? contentSource)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(segmentId);
         ArgumentException.ThrowIfNullOrWhiteSpace(addressSpaceId);
@@ -171,6 +193,7 @@ public sealed class MemoryLayoutSegment
         Focus = focus;
         SourceSpaceId = sourceSpaceId;
         SourceSlotId = sourceSlotId;
+        ContentSource = contentSource;
         ContributingOperations = Array.AsReadOnly(operations);
         PreservationDetails = Array.AsReadOnly(details);
         RegionGroup = regionGroup;
@@ -213,6 +236,8 @@ public sealed class MemoryLayoutSegment
     public string? SourceSpaceId { get; }
     /// <summary>Contributing canonical input slot, if any.</summary>
     public string? SourceSlotId { get; }
+    /// <summary>Input content attribution for display coalescing, independent of the final writer.</summary>
+    public MemoryLayoutContentSource? ContentSource { get; }
     /// <summary>Exact ordered compiled operations contributing to this segment.</summary>
     public IReadOnlyList<CompositionOperation> ContributingOperations { get; }
     /// <summary>Typed kept details subordinate to this primary segment.</summary>
@@ -242,7 +267,8 @@ public sealed class MemoryLayoutSegment
         IEnumerable<MemoryLayoutPreservationDetail> preservationDetails,
         string logicalCoverageGroupId,
         ReplaceRegionGroup regionGroup = ReplaceRegionGroup.Common,
-        CtrlRamRegionRole ctrlRamRegionRole = CtrlRamRegionRole.Other)
+        CtrlRamRegionRole ctrlRamRegionRole = CtrlRamRegionRole.Other,
+        MemoryLayoutContentSource? contentSource = null)
     {
         return new(
             segmentId,
@@ -265,7 +291,8 @@ public sealed class MemoryLayoutSegment
             contributingOperations,
             preservationDetails,
             regionGroup,
-            ctrlRamRegionRole);
+            ctrlRamRegionRole,
+            contentSource);
     }
 
     internal static MemoryLayoutSegment CreateLogical(
@@ -288,7 +315,8 @@ public sealed class MemoryLayoutSegment
         IEnumerable<MemoryLayoutPreservationDetail> preservationDetails,
         string logicalCoverageGroupId,
         ReplaceRegionGroup regionGroup = ReplaceRegionGroup.Common,
-        CtrlRamRegionRole ctrlRamRegionRole = CtrlRamRegionRole.Other)
+        CtrlRamRegionRole ctrlRamRegionRole = CtrlRamRegionRole.Other,
+        MemoryLayoutContentSource? contentSource = null)
     {
         return new(
             segmentId,
@@ -311,7 +339,8 @@ public sealed class MemoryLayoutSegment
             contributingOperations,
             preservationDetails,
             regionGroup,
-            ctrlRamRegionRole);
+            ctrlRamRegionRole,
+            contentSource);
     }
 }
 

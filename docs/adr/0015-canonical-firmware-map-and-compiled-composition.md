@@ -2,7 +2,7 @@
 
 - Status: Accepted
 - Date: 2026-07-11
-- Last amended: 2026-08-09
+- Last amended: 2026-09-20
 - Owners: Product owner + architecture owner + firmware reviewers
 - Supersedes: ADR 0008 catalog-join ownership and the C# catalog ownership in
   ADR 0012/ADR 0013 after #194 compatibility migration; their firmware
@@ -91,6 +91,32 @@ and implements external adapters. Bootstrap wires bundle loading, Profiles resol
 and Application use cases without owning firmware facts. Application reads artifacts, executes
 generic metadata/validation stages, runs Preview/Build, and renders reports. Presentation and CLI
 only project the Bootstrap facade.
+
+The 2026-09-20 memory-display amendment keeps content ownership separate from
+the last writer. Application's existing `MemoryLayoutProjector` publishes a
+nullable immutable `MemoryLayoutSegment.ContentSource`: input address space,
+slot, and an opaque artifact identity local to that snapshot. Accepted slots
+with the same normalized selected path and full `FileStamp` share identity,
+including when selected in different slots. Different paths remain distinct
+even with equal bytes. Unaccepted or unresolved inputs have no content identity.
+
+For map-bound AB Code content, an output-to-work copy, declared processor write,
+and exact work-to-output return may retain the original input content owner
+only when the projector proves the range correspondence and uninterrupted
+provenance. Unproven scratch imports retain unknown ownership. This describes
+display attribution; source spaces, contributing operations, write ranges,
+integrity policy and execution remain unchanged and available in reports.
+
+Presentation may join consecutive primary display slices only when they carry
+the same nonempty artifact identity and strictly adjacent ranges in the same
+known output address space. Titles, hashes, slot IDs and bank labels do not
+establish identity. The shared rail and below-rail legend use these display
+runs; all original parts, mixed fills, preservation details, diagnostics and
+operation facts remain inspectable. Existing CtrlRAM logical/partial focus
+groups and typed section locators retain their separate meanings. In
+particular, a TP section is not evidence that its replacement and retained
+reference bytes came from one BIN. This extends the existing projector and
+display owner without introducing a compiler, executor or migration seam.
 
 The 2026-07-26 amendment names the Application-owned read model
 `CanonicalCapabilityCatalog`. Profiles remains the only authority that normalizes, resolves, and

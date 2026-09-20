@@ -1,3 +1,4 @@
+using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
@@ -18,6 +19,93 @@ namespace NvtFwCombiner.UiSmoke.Tests;
 /// <summary>All primary ranges remain inspectable without persistent supporting cards.</summary>
 public sealed class MemoryCoverageLegendTests
 {
+    /// <summary>The canonical AB example exposes five content runs while retaining exact raw operation facts.</summary>
+    [AvaloniaTheory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Nt51950AbLegendCoalescesBanksAndPostbuildImports(bool darkChinese)
+    {
+        using var workspace = TempWorkspace.Create("ab-content-legend");
+        PresentationHostServices services = await CreateServicesAsync(workspace, useRetainedDpReplacePolicy: false);
+        using var window = new MainWindow(UiLaunchOptions.Empty, StartupTraceSession.Disabled,
+            services, ShellPreferenceSnapshot.Default)
+        { Width = 1920, Height = 1032, RequestedThemeVariant = darkChinese ? ThemeVariant.Dark : ThemeVariant.Light };
+        window.Show();
+        try
+        {
+            await AwaitHistoryReadyAsync(window);
+            MainWindowViewModel shell = Assert.IsType<MainWindowViewModel>(window.DataContext);
+            string folder = RepositoryPaths.FromRepositoryRoot("testdata/golden/canonical/NT51950/ab-merge/boe-d82t80/topology-unscoped/nt51950-ab-boe-d82t80/inputs");
+            string dp = Path.Combine(folder, "NT51950TT_Initial Code_BOE_AS172QD0-B00 2560x1600_BOE only_PD fixed pixelonoff_D82_20260616.bin");
+            string tp = Path.Combine(folder, "nt51950_fw_T80.bin");
+            UiLaunchOptions options = UiLaunchOptions.Parse(["--workflow", "ab-merge", "--ic", "NT51950", "--ic-num", "single", "--dp", dp, "--tp-a", tp, "--tp-b", tp]);
+            await MainWindow.ApplyAbMergeLaunchAsync(shell, options.AbMerge!, TestContext.Current.CancellationToken);
+            if (darkChinese) { shell.SelectedLanguage = "Traditional Chinese"; }
+            Render();
+            MemoryCoverageBar bar = Assert.Single(window.GetVisualDescendants().OfType<MemoryCoverageBar>(), control => control.IsEffectivelyVisible);
+            MemoryCoverageSegmentViewModel[] raw = [.. (IEnumerable<MemoryCoverageSegmentViewModel>)bar.ItemsSource!];
+            MemoryCoverageSegmentViewModel[] rows = [.. bar.GetVisualDescendants().OfType<Border>()
+                .Where(border => border.Name == "MemoryLegendTarget").Select(border => (MemoryCoverageSegmentViewModel)border.DataContext!)];
+            Assert.Equal([(0L, 0xA000L), (0xA000L, 0x37000L), (0x37000L, 0x4A000L), (0x4A000L, 0x77000L), (0x77000L, 0x80000L)],
+                rows.Select(row => (row.RangeStart!.Value, row.RangeEndExclusive!.Value)));
+            Assert.Equal([MemoryCoverageFillRole.Dp, MemoryCoverageFillRole.Tp, MemoryCoverageFillRole.Dp, MemoryCoverageFillRole.TpBackup, MemoryCoverageFillRole.Dp],
+                rows.Select(row => row.FillRole));
+            Assert.Equal(rows[1].ContentArtifactIdentity, rows[3].ContentArtifactIdentity);
+            Assert.NotEqual(rows[0].ContentArtifactIdentity, rows[1].ContentArtifactIdentity);
+            Assert.Equal(raw, rows.SelectMany(row => row.DisplayParts.Count == 0 ? [row] : row.DisplayParts));
+            Assert.Equal(raw.SelectMany(row => row.ProcessingFacts).Distinct(), rows.SelectMany(row => row.ProcessingFacts).Distinct());
+            Assert.Empty(shell.Reports.ReportHistoryEntries);
+            SaveFrame(window, $"nt51950-ab-content-{darkChinese}.png");
+        }
+        finally { await CloseAndFlushAsync(window); }
+    }
+
+    /// <summary>Actual CtrlRAM keeps section context, partial focus and exact raw content ownership under the shared legend.</summary>
+    [AvaloniaFact]
+    public async Task Nt51950CtrlRamRetainsSectionOverviewAndDistinctReplacementBins()
+    {
+        using var workspace = TempWorkspace.Create("ctrlram-content-legend");
+        PresentationHostServices services = await CreateServicesAsync(workspace);
+        using var window = new MainWindow(UiLaunchOptions.Empty, StartupTraceSession.Disabled, services, ShellPreferenceSnapshot.Default)
+        { Width = 1440, Height = 1032 };
+        window.Show();
+        try
+        {
+            await AwaitHistoryReadyAsync(window);
+            MainWindowViewModel shell = Assert.IsType<MainWindowViewModel>(window.DataContext);
+            await XamlControlStyleContractTests.LoadNt51950GoldenCtrlRamInputsAsync(shell, TestContext.Current.CancellationToken);
+            Render();
+            IReadOnlyList<MemoryCoverageSegmentViewModel> raw = [.. shell.Replace.ReplaceCoverageSegments];
+            IReadOnlyList<MemoryCoverageSegmentViewModel> runs = MemoryCoverageBarProjection.CoalesceContent(raw, shell.Text);
+            Assert.Equal(raw, runs.SelectMany(run => run.DisplayParts.Count > 0 ? run.DisplayParts : [run]));
+            Assert.Contains(raw, part => part.IsSelectedForWrite && part.ContentArtifactIdentity is not null);
+            Assert.Contains(raw, part => part.UsesKeptPattern && part.ContentArtifactIdentity is not null);
+            foreach (MemoryCoverageSegmentViewModel run in runs.Where(run => run.DisplayParts.Count > 0))
+            {
+                _ = Assert.Single(run.DisplayParts.Select(part => part.ContentArtifactIdentity).Distinct());
+            }
+            Assert.Contains(shell.Replace.CtrlRamFocusLanes.SelectMany(lane => lane.Ranges), row =>
+                row.DisplayParts.Any(part => part.IsSelectedForWrite) && row.DisplayParts.Any(part => part.UsesKeptPattern));
+            MemoryCoverageBar overview = Assert.Single(window.GetVisualDescendants().OfType<MemoryCoverageBar>(), control => control.IsEffectivelyVisible);
+            Border[] legend = [.. overview.GetVisualDescendants().OfType<Border>().Where(border => border.Name == "MemoryLegendTarget")];
+            ItemsControl rail = Assert.Single(overview.GetVisualDescendants().OfType<ItemsControl>(), control => control.Name == "MemoryMainRail");
+            Assert.True(legend[0].TranslatePoint(default, window)!.Value.Y >= rail.TranslatePoint(default, window)!.Value.Y + rail.Bounds.Height);
+            Assert.All((IEnumerable<MemoryCoverageSegmentViewModel>)overview.ItemsSource!, section => Assert.Null(section.ContentArtifactIdentity));
+            SaveFrame(window, "nt51950-ctrlram-content.png");
+        }
+        finally { await CloseAndFlushAsync(window); }
+    }
+
+    private static void SaveFrame(Window window, string name)
+    {
+        string? directory = Environment.GetEnvironmentVariable("NFC_VISUAL_OUTPUT_DIR");
+        if (string.IsNullOrEmpty(directory)) { return; }
+        _ = Directory.CreateDirectory(directory);
+        using Avalonia.Media.Imaging.Bitmap? frame = window.GetLastRenderedFrame();
+        Assert.NotNull(frame);
+        frame.Save(Path.Combine(directory, name));
+    }
+
     /// <summary>Real NT51928 inputs keep exact DP/TP/LDC facts across workflows and relocalization.</summary>
     [AvaloniaTheory]
     [InlineData(false, false)]
@@ -97,8 +185,9 @@ public sealed class MemoryCoverageLegendTests
             void AssertLegendReferences()
             {
                 Assert.Equal(((IEnumerable<MemoryCoverageSegmentViewModel>)rail.ItemsSource!).Where(row => row.IsPrimaryContent)
-                    .OrderBy(row => row.ContentRole == MemoryContentRole.Unmapped).ThenBy(row => row.RangeStart),
-                    LegendTargets().Select(target => (MemoryCoverageSegmentViewModel)target.DataContext!));
+                    .OrderBy(row => row.RangeStart),
+                    LegendTargets().Select(target => (MemoryCoverageSegmentViewModel)target.DataContext!)
+                        .SelectMany(row => row.DisplayParts.Count > 0 ? row.DisplayParts : [row]));
             }
         }
         finally { await CloseAndFlushAsync(window); }

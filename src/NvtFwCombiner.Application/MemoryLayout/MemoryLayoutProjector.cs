@@ -126,6 +126,7 @@ public static partial class MemoryLayoutProjector
                 authoring.DraftState,
                 statesById);
         ValidateAuthoringSlots(requirementsByStateId, statesById);
+        var contentSources = new ContentSourceProjection(composition, slotsBySpace, statesById);
 
         MemoryLayoutPendingItem[] pendingItems =
             ProjectPendingItems(requirementsByStateId, statesById, authoring);
@@ -136,7 +137,8 @@ public static partial class MemoryLayoutProjector
                 map?.AddressSpaceId ?? plan.OutputSpaceId,
                 initialization,
                 slotsBySpace,
-                statesById);
+                statesById,
+                contentSources);
         MemoryLayoutSegment[] after = compiledOverlay is null
             ? before
             : ApplyOperations(
@@ -145,7 +147,8 @@ public static partial class MemoryLayoutProjector
                 map?.AddressSpaceId ?? plan.OutputSpaceId,
                 composition,
                 slotsBySpace,
-                statesById);
+                statesById,
+                contentSources);
 
         return map is null
             ? new MemoryLayoutSnapshot(
@@ -397,7 +400,8 @@ public static partial class MemoryLayoutProjector
         string addressSpaceId,
         ImageInitialization initialization,
         Dictionary<string, string> slotsBySpace,
-        Dictionary<string, AuthoringSlotState> statesById)
+        Dictionary<string, AuthoringSlotState> statesById,
+        ContentSourceProjection contentSources)
     {
         string? referenceSlotId = GetAdmittedReferenceSlot(
             initialization,
@@ -419,7 +423,8 @@ public static partial class MemoryLayoutProjector
                     contributingOperations: [],
                     diagnosticSeverity: MemoryDiagnosticSeverity.None,
                     selection: MemorySelectionState.NotSelected,
-                    processorEffect: MemoryProcessorEffect.None)),
+                    processorEffect: MemoryProcessorEffect.None,
+                    contentSource: contentSources.Initial(region.Range))),
         ];
     }
 
@@ -429,7 +434,8 @@ public static partial class MemoryLayoutProjector
         string addressSpaceId,
         CompiledComposition composition,
         Dictionary<string, string> slotsBySpace,
-        Dictionary<string, AuthoringSlotState> statesById)
+        Dictionary<string, AuthoringSlotState> statesById,
+        ContentSourceProjection contentSources)
     {
         CompositionPlan plan = composition.Plan;
         CompositionOperation[] planned =
@@ -500,7 +506,8 @@ public static partial class MemoryLayoutProjector
                                 canonicalRegion,
                                 out string? companionSlotId)
                                 ? companionSlotId
-                                : null));
+                                : null,
+                        contentSource: contentSources.Initial(range)));
                 continue;
             }
 
@@ -535,7 +542,8 @@ public static partial class MemoryLayoutProjector
                     contributors.Any(static operation =>
                         operation.ExternalProcessorInvocation is not null)
                             ? MemoryProcessorEffect.DeclaredWrite
-                            : MemoryProcessorEffect.None));
+                            : MemoryProcessorEffect.None,
+                    contentSource: contentSources.After(range)));
         }
 
         return [.. segments];
@@ -596,7 +604,8 @@ public static partial class MemoryLayoutProjector
         MemoryDiagnosticSeverity diagnosticSeverity,
         MemorySelectionState selection,
         MemoryProcessorEffect processorEffect,
-        string? retainedCompanionSlotId = null)
+        string? retainedCompanionSlotId = null,
+        MemoryLayoutContentSource? contentSource = null)
     {
         string segmentId = FormattableString.Invariant(
             $"{canonicalRegion.RegionId}:{range.Start:x}-{range.EndExclusive:x}");
@@ -626,7 +635,8 @@ public static partial class MemoryLayoutProjector
                     segmentId,
                     retainedCompanionSlotId),
                 canonicalRegion.RegionGroup,
-                canonicalRegion.CtrlRamRegionRole)
+                canonicalRegion.CtrlRamRegionRole,
+                contentSource)
             : MemoryLayoutSegment.CreateLogical(
                 segmentId,
                 addressSpaceId,
@@ -652,7 +662,8 @@ public static partial class MemoryLayoutProjector
                     segmentId,
                     retainedCompanionSlotId),
                 canonicalRegion.RegionGroup,
-                canonicalRegion.CtrlRamRegionRole);
+                canonicalRegion.CtrlRamRegionRole,
+                contentSource);
     }
 
     private static MemoryContentRole ClassifyContent(FirmwareRegion region)

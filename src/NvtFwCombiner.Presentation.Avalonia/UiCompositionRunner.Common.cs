@@ -161,7 +161,8 @@ internal static partial class UiCompositionRunner
         bool initialized = segment.SourceSpaceId is null && isInitialization;
         string sourceLabel = initialized
             ? $"0x{layout.BlankFillByte:X2}"
-            : text.GetMemoryPlanSourceLabel(MemorySource(layout, segment, text));
+            : text.GetMemoryPlanSourceLabel(segment.ContentSource is { } content && content.SourceSpaceId != segment.SourceSpaceId
+                ? AddressSpaceSource(content.SourceSpaceId) : MemorySource(layout, segment, text));
         string logicalSourceLabel = segment.ContentRole == MemoryContentRole.CtrlRam
             ? ShellTextResources.GetCtrlRamRegionTechnicalLabel(segment.CtrlRamRegionRole)
             : sourceLabel;
@@ -186,6 +187,7 @@ internal static partial class UiCompositionRunner
             rangeEndExclusive: segment.Range.EndExclusive,
             addressSpaceId: segment.AddressSpaceId,
             isPrimaryContent: segment.IsPrimaryContent,
+            contentArtifactIdentity: segment.ContentSource?.ArtifactIdentity,
             addressRangeLabel: FormatMemoryAddressRange(segment.Range),
             lengthLabel: FormatMemoryLength(segment.Range),
             compactDetail: MemoryCompactDetail(layout, segment, sourceLabel, text),
@@ -369,7 +371,7 @@ internal static partial class UiCompositionRunner
             return MemoryCoverageFillRole.Neutral;
         }
 
-        MemoryContentRole role = segment.SourceSpaceId switch
+        MemoryContentRole role = (segment.ContentSource?.SourceSpaceId ?? segment.SourceSpaceId) switch
         {
             CompositionAddressSpaceIds.DpInput or
             CompositionAddressSpaceIds.DpReplacement or
