@@ -147,7 +147,8 @@ public sealed class CatalogLoadScopedCtrlRamTests
             {
                 disclosures++;
                 return CanonicalCapabilityDisclosureInventory.Create(definitions, dynamicDefinitions);
-            });
+            },
+            CanonicalFullImageMetadataInventory.Create);
         var catalog = new CanonicalCapabilityCatalog(source);
         CapabilityCatalogReloadResult first = catalog.Reload(TestContext.Current.CancellationToken);
         Assert.True(first.Succeeded);
@@ -178,7 +179,8 @@ public sealed class CatalogLoadScopedCtrlRamTests
             CanonicalDynamicRouteInventory.IsDynamic,
             CanonicalCompiledRouteInventory.Resolve,
             factory,
-            CanonicalCapabilityDisclosureInventory.Create);
+            CanonicalCapabilityDisclosureInventory.Create,
+            CanonicalFullImageMetadataInventory.Create);
     }
 
     private static IEnumerable<CanonicalCtrlRamDefinition> LoadDefinitions()

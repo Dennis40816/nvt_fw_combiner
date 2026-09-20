@@ -13,9 +13,9 @@ namespace NvtFwCombiner.Bootstrap.Tests;
 public sealed class CanonicalSourceProjectionByteShapeTests
 {
     private const string Nt51929BundleDirectory = "nt51929-standard-merge";
-    private const string Nt51929BundleHash = "d70ee9a8534d2c91a1f674e92b888678d13ea1660a6540365abd42346c480a72";
+    private const string Nt51929BundleHash = "e043dad07ffd7670c96b07b7732a9889b33a4b00b143eba56ad02cac1bb59cb5";
     private const string Nt51928StandardBundleDirectory = "nt51928-standard-merge";
-    private const string Nt51928StandardBundleHash = "20ccd90376bee9a67832b3a808940017f3cab202ae5d9dfad7cb2dc4b9774c4e";
+    private const string Nt51928StandardBundleHash = "df2e16879c5896c4680dc20e220cb92a8933f62e2363da0093227ca556ae71c8";
 
     /// <summary>
     /// Owner-approved NT51929 bytes prove both DP and TP slots produce the same full image

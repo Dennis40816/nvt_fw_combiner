@@ -126,7 +126,7 @@ public static class FirmwareMetadataInspectionFormatter
         FirmwareAddressedRange? structureRange = resolved?.LocatorOutcome.ResolvedRange;
         return new FormattedMetadataStructure(
             entry.BindingId,
-            resolution?.MapId ?? entry.ResolvedMap.ImageMap.MapId,
+            resolution?.MapId ?? entry.ImageMap.MapId,
             entry.SpaceId,
             entry.StructureDefinition.StructureId,
             result.State,

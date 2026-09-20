@@ -39,6 +39,9 @@ public interface ICanonicalCapabilityQuery
         string icCountVariant,
         long? outputCapacity = null);
 
+    /// <summary>Resolves one declared full-image view by exact member and observed capacity, without a workflow.</summary>
+    MetadataPlanResolutionResult ResolveFullImageMetadataPlan(string icId, long inputLength);
+
     /// <summary>Resolves the sole exact route matching a topology selection.</summary>
     CapabilityResolutionResult ResolveUniqueTopologyRoute(
         string icId,

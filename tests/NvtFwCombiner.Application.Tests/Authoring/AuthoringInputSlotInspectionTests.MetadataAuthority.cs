@@ -77,7 +77,7 @@ public sealed partial class AuthoringInputSlotInspectionTests
             ctrlRamBatch);
         Assert.Same(genericPlan, exactCtrlRamBase.Plan);
         Assert.Equal(
-            [new MetadataQueryCall("NT-HEADLESS", ExperienceIds.DpReplace, "1-ic", 8)],
+            [new MetadataQueryCall("NT-HEADLESS", "full-image", "none", 8)],
             query.Calls);
         query.Calls.Clear();
 
@@ -119,7 +119,7 @@ public sealed partial class AuthoringInputSlotInspectionTests
             FirmwareInspectionStatusBatch.Empty);
         Assert.Same(genericPlan, uncompiledCtrlRamBase.Plan);
         Assert.Equal(
-            [new MetadataQueryCall("NT-HEADLESS", ExperienceIds.DpReplace, "1-ic", 7)],
+            [new MetadataQueryCall("NT-HEADLESS", "full-image", "none", 7)],
             query.Calls);
 
         FirmwareMetadataPlanAuthority generic = resolver.Resolve(
@@ -132,8 +132,8 @@ public sealed partial class AuthoringInputSlotInspectionTests
         Assert.Same(genericPlan, generic.Plan);
         Assert.Equal(
             [
-                new MetadataQueryCall("NT-HEADLESS", ExperienceIds.DpReplace, "1-ic", 7),
-                new MetadataQueryCall("NT-HEADLESS", ExperienceIds.DpReplace, "1-ic", 8),
+                new MetadataQueryCall("NT-HEADLESS", "full-image", "none", 7),
+                new MetadataQueryCall("NT-HEADLESS", "full-image", "none", 8),
             ],
             query.Calls);
 
@@ -152,9 +152,9 @@ public sealed partial class AuthoringInputSlotInspectionTests
         Assert.Same(ambiguity, ambiguous.Issue);
         Assert.Equal(
             [
-                new MetadataQueryCall("NT-HEADLESS", ExperienceIds.DpReplace, "1-ic", 7),
-                new MetadataQueryCall("NT-HEADLESS", ExperienceIds.DpReplace, "1-ic", 8),
-                new MetadataQueryCall("NT-HEADLESS", ExperienceIds.DpReplace, "1-ic", 9),
+                new MetadataQueryCall("NT-HEADLESS", "full-image", "none", 7),
+                new MetadataQueryCall("NT-HEADLESS", "full-image", "none", 8),
+                new MetadataQueryCall("NT-HEADLESS", "full-image", "none", 9),
             ],
             query.Calls);
     }
@@ -178,7 +178,7 @@ public sealed partial class AuthoringInputSlotInspectionTests
         Assert.Null(result.Plan);
         Assert.Same(issue, result.Issue);
         Assert.Equal(
-            [new MetadataQueryCall("NT-HEADLESS", ExperienceIds.DpReplace, "1-ic", 262144)],
+            [new MetadataQueryCall("NT-HEADLESS", "full-image", "none", 262144)],
             query.Calls);
     }
 
@@ -197,6 +197,24 @@ public sealed partial class AuthoringInputSlotInspectionTests
         Assert.True(result.IsApplicable);
         Assert.Same(capability.MetadataPlan, result.Plan);
         Assert.Empty(query.Calls);
+        MetadataInspectionSnapshot inspection = FirmwareMetadataInspector.Inspect(result.Plan!,
+            [new FirmwareArtifactPayload(CompositionAddressSpaceIds.DpReplacement, new byte[0x80])]);
+        Assert.Equal(MetadataInspectionState.Invalid, Assert.Single(inspection.Results).State);
+        Assert.False(DpcmiMetadataProjector.TryProject(inspection, out _));
+        Assert.Empty(query.Calls);
+    }
+
+    /// <summary>A separately supplied TP keeps the established Standard plan instead of a full-image view.</summary>
+    [Fact]
+    public void DistinctTpMetadataKeepsStandardPlanQuery()
+    {
+        var query = new RecordingMetadataQuery(MetadataPlanDefinition.Empty.Resolve(new ResolutionToken("standard")));
+        var resolver = new FirmwareMetadataPlanAuthorityResolver(query);
+        FirmwareMetadataPlanAuthority result = resolver.Resolve("NT-HEADLESS",
+            new FirmwareInspectionSnapshotInput("dp", "dp.bin", "tp.bin"), 8,
+            FirmwareInspectionStatusBatch.Empty, FirmwareInspectionStatusBatch.Empty, FirmwareInspectionStatusBatch.Empty);
+        Assert.Same(query.Result.MetadataPlan, result.Plan);
+        Assert.Equal([new MetadataQueryCall("NT-HEADLESS", ExperienceIds.StandardMerge, "selector-free", 8)], query.Calls);
     }
 
     private static FirmwareInspectionStatusBatch Batch(ResolvedCapability capability)
@@ -220,6 +238,12 @@ public sealed partial class AuthoringInputSlotInspectionTests
 
         internal MetadataPlanResolutionResult Result { get; set; } =
             new(plan, null);
+
+        public MetadataPlanResolutionResult ResolveFullImageMetadataPlan(string icId, long inputLength)
+        {
+            Calls.Add(new MetadataQueryCall(icId, "full-image", "none", inputLength));
+            return Result;
+        }
 
         public MetadataPlanResolutionResult ResolveUniqueMetadataPlan(
             string icId,

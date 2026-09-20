@@ -214,6 +214,23 @@ internal sealed class BuiltInV2Bundle
             ?? throw new InvalidDataException("Declared disclosure family is absent from its owning trusted bundle.");
     }
 
+    /// <summary>Projects only explicitly declared full-image views from one exact trusted provider family.</summary>
+    internal IReadOnlyList<MetadataPlanDefinition> CreateFullImageMetadataPlans(ProfileBundleMetadataProviderFamily identity)
+    {
+        ArgumentNullException.ThrowIfNull(identity);
+        FirmwareFamilyResolutionDefinition family = _catalog.Value.Families.SingleOrDefault(candidate =>
+            StringComparer.Ordinal.Equals(candidate.Family.FamilyId, identity.FamilyId) &&
+            StringComparer.Ordinal.Equals(candidate.Family.FamilyVersion, identity.FamilyVersion))?.Family
+            ?? throw new InvalidDataException("Declared metadata provider family is absent from its owning trusted bundle.");
+        return [.. (family.FullImageMetadataViews ?? []).SelectMany(view => view.MemberIds.Select(memberId =>
+        {
+            var context = new CanonicalFullImageMetadataContext(family, view, memberId, ContentHash);
+            return new MetadataPlanDefinition(context, view.MetadataBindings.Select(binding =>
+                new MetadataPlanEntry(context, binding,
+                    ResolveMetadataSetBinding(view.ImageMap, memberId, binding.Structure))));
+        }))];
+    }
+
     internal bool TryResolveMetadataDefinition(
         FirmwareMetadataStructureDefinitionReferenceDocument reference,
         out FirmwareMetadataStructureDefinition? definition)
@@ -601,23 +618,6 @@ internal sealed class BuiltInV2Bundle
                 $"Metadata binding '{binding.BindingId}' references a structure not selected by the compiled map.");
         }
 
-        FirmwareMapFactBinding<FirmwareMetadataSet>[] metadataBindings =
-        [
-            .. resolvedMap.ImageMap.MetadataSetBindings.Where(
-                candidate =>
-                    StringComparer.Ordinal.Equals(
-                        candidate.EffectiveKey.MemberId,
-                        resolvedMap.MemberId) &&
-                    candidate.Value.Structures.Any(
-                        candidateStructure =>
-                            ReferenceEquals(candidateStructure, structure))),
-        ];
-        if (metadataBindings.Length != 1)
-        {
-            throw new InvalidDataException(
-                $"Metadata binding '{binding.BindingId}' does not resolve to exactly one canonical map fact.");
-        }
-
         InputArtifactProfileSpace space = profile.Spaces
             .OfType<InputArtifactProfileSpace>()
             .Single(candidate => StringComparer.Ordinal.Equals(
@@ -629,11 +629,21 @@ internal sealed class BuiltInV2Bundle
             space.SlotId,
             family,
             resolvedMap,
-            metadataBindings[0],
+            ResolveMetadataSetBinding(resolvedMap.ImageMap, resolvedMap.MemberId, structure),
             structure,
             binding.TargetReferences,
             binding.Purposes.Select(ToReferencePurpose),
             binding.EvidenceRefs);
+    }
+
+    private static FirmwareMapFactBinding<FirmwareMetadataSet> ResolveMetadataSetBinding(
+        FirmwareImageMap map, string memberId, FirmwareMetadataStructure structure)
+    {
+        FirmwareMapFactBinding<FirmwareMetadataSet>[] matches = [.. map.MetadataSetBindings.Where(candidate =>
+            StringComparer.Ordinal.Equals(candidate.EffectiveKey.MemberId, memberId) &&
+            candidate.Value.Structures.Any(value => ReferenceEquals(value, structure)))];
+        return matches.Length == 1 ? matches[0] : throw new InvalidDataException(
+            $"Metadata structure '{structure.StructureId}' does not resolve to exactly one canonical map fact.");
     }
 
     private static MetadataReferencePurpose ToReferencePurpose(

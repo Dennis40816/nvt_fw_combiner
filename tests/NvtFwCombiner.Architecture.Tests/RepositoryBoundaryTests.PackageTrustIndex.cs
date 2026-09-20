@@ -19,7 +19,7 @@ public sealed partial class RepositoryBoundaryTests
         using JsonDocument document = JsonDocument.Parse(File.ReadAllText(trustIndexPath));
         JsonElement root = document.RootElement;
         Assert.Equal("1.4", root.GetProperty("schemaVersion").GetString());
-        Assert.Equal("1.1.10.1", root.GetProperty("trustIndexVersion").GetString());
+        Assert.Equal("1.1.10.2", root.GetProperty("trustIndexVersion").GetString());
 
         JsonElement[] ctrlRamRegistrations =
         [
@@ -216,7 +216,7 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Equal("built-in-profile-bundle-v2", root.GetProperty("trustAnchorBindingId").GetString());
 
         JsonElement[] bundles = [.. root.GetProperty("bundles").EnumerateArray()];
-        Assert.Equal(27, bundles.Length);
+        Assert.Equal(29, bundles.Length);
         Assert.Equal(
             bundles.Length,
             bundles.Select(static bundle => bundle.GetProperty("bundleDirectory").GetString())
@@ -270,7 +270,7 @@ public sealed partial class RepositoryBoundaryTests
                 .Count(static registration =>
                     registration.TryGetProperty("mapVariantSetId", out _)));
         Assert.Equal(
-            4,
+            8,
             bundles.Sum(static bundle =>
                 bundle.TryGetProperty("metadataProviderFamilies", out JsonElement providers)
                     ? providers.GetArrayLength()

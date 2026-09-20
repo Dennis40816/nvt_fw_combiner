@@ -296,11 +296,37 @@ ranges, and cycles. The view then requires every selected structure's direct
 prerequisite to occur in its binding set, thereby closing all transitive edges.
 Unrelated map-selection predicates do not add bindings to a view.
 
-These are declarations, not evaluated runtime selections. Cross-map ambiguity,
-captured-artifact validation, and consumer publication remain responsibilities
-of their existing owners when a separately admitted consumer is implemented.
-This foundation changes no production family data, trust pins, metadata query,
-runtime registration, Report classification, or execution behavior.
+The admitted read-only consumer loads views only from exact trusted
+`metadataProviderFamilies` owners. A declared provider missing from its owning
+bundle is invalid; an exact provider with no views supplies no view authority.
+The canonical capability catalog publishes the complete immutable view plans
+atomically with its other definitions, under the same `ResolutionToken`.
+Queries select only by explicit member and observed image capacity. Missing and
+ambiguous selections are typed failures; they never fall back to a DP workflow.
+A failed cold load publishes nothing. A failed reload retains the complete
+last-known-good publication and its original token, including its view plans.
+
+Each plan retains exact family/view/map/member references and both trusted
+bundle and family hashes, even for an explicitly empty view. Its source is a
+family view, never a fabricated profile. Entries come only from the exact
+selected view binding and targets. Their consumer purpose is `Inspection`;
+profile output-naming, Report-classification and execution purposes do not
+transfer with the references.
+
+The Domain view/member entrance and Application full-image inspector both
+accept one captured immutable payload. Its length must match the exact map;
+the Domain entrance supplies every selected canonical artifact binding from
+that same payload and shares the existing locator/prerequisite/decoder core.
+The artifact-list inspector rejects full-image plans. No resolved execution
+map or mode is manufactured, and unrelated map predicates are not evaluated.
+
+Generic full-image and CtrlRAM Reference discovery use this read-only query.
+Accepted exact workflow metadata plans remain terminal for both success and
+failure; a CtrlRAM plan without DPCMI retains its separate Report authority
+while the Reference uses the declared full-image view for DPCMI display.
+Standard inspection with a separate TP artifact retains its existing plan.
+This consumer grants no runtime registration, support, byte execution, output
+naming, Report classification or BIN-inspector formatting authority.
 
 ## Aliases
 

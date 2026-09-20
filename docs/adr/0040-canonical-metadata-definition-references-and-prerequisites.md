@@ -249,10 +249,31 @@ empty view remains distinct from no view declaration.
 
 The strict successor and its wire fields are defined by the
 [firmware-family contract](../contracts/firmware-family-v1.md#full-image-metadata-views).
-This foundation admits no data relocation, catalog/query change, adapter,
-consumer fallback, or byte behavior. A later consumer must reuse checked
-canonical reference projection and preserve capture/selection authority;
-firmware data migration and parity evidence require separate admission.
+The separately admitted full-image consumer extends the same Domain metadata
+resolver with a checked exact view/member/binding entrance. It accepts one
+immutable full-image payload and supplies all declared canonical artifact IDs
+to the existing locator/prerequisite core. The Application full-image inspector
+also accepts one payload and rejects the general artifact-list entrance for a
+view plan. No execution map, mode, profile identity or second resolver is
+manufactured.
+
+Trusted inventory reads explicit views from each exact
+`metadataProviderFamilies` owner; provider mismatch invalidates the candidate.
+The existing canonical catalog publishes view plans atomically with routes and
+binds them to its publication token. Selection uses member and observed
+capacity, returns typed missing/ambiguity outcomes, and never invokes DP
+execution fallback. Failed reloads retain the complete prior publication.
+Explicit-empty plans retain their family/view/map/member, family and bundle
+hashes, and publication token.
+
+Profile constructors and accepted exact metadata plans remain terminal,
+including decode/prerequisite failure. Only generic full-image and missing-DPCMI
+CtrlRAM Reference lookup move to the view query; separate-TP Standard plans and
+CtrlRAM Report classification retain their owners. View bindings supply only
+their exact selected targets with the `Inspection` purpose. They grant no
+output naming, Report classification, BIN formatting, support or write rights.
+Data migration and parity remain separately admitted, with expectations fixed
+from the pre-migration family/profile source rather than two migrated consumers.
 
 ## Alternatives
 

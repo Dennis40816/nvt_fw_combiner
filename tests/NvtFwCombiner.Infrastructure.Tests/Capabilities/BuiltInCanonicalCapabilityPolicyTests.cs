@@ -29,7 +29,7 @@ public sealed class BuiltInCanonicalCapabilityPolicyTests
                     "nt51929-standard-merge-256k"));
 
         Assert.Equal("canonical-capability-policy", policy.CatalogId);
-        Assert.Equal("1.16.1", policy.CatalogVersion);
+        Assert.Equal("1.16.2", policy.CatalogVersion);
         Assert.Equal(
             BuiltInCanonicalCapabilityPolicy.ExpectedSha256,
             policy.SourceSha256);
@@ -38,7 +38,7 @@ public sealed class BuiltInCanonicalCapabilityPolicyTests
         Assert.Equal("selector-free", route.Identity.IcCountVariant);
         Assert.Equal("nt51929-standard-merge-256k", route.Identity.MapVariant);
         Assert.Equal(
-            "447de186adabb4aae6adbbf810c726a24fea7283602306682f5a14842a9e5679",
+            "4ef7221d77f808ff2e3bd144da69251f912b386021312685409aaff72a55b637",
             route.CapabilityFingerprint);
         Assert.Equal(CapabilityAuthoringAvailability.Available, route.Authoring.Value);
         Assert.Equal(CapabilityPublicationStatus.Supported, route.Publication.Value);

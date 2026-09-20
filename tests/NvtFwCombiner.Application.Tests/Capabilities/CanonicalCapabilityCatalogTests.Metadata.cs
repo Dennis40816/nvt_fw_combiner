@@ -1,9 +1,79 @@
 using NvtFwCombiner.Application.Capabilities;
+using NvtFwCombiner.Application.Metadata;
+using NvtFwCombiner.Application.Tests.Metadata;
 
 namespace NvtFwCombiner.Application.Tests.Capabilities;
 
 public sealed partial class CanonicalCapabilityCatalogTests
 {
+    /// <summary>Metadata-only changes, failure and removal use complete immutable catalog publications.</summary>
+    [Fact]
+    public void FullImageMetadataPublicationCachesReloadsRetainsAndRemovesAtomically()
+    {
+        MetadataPlanDefinition firstPlan = FirmwareMetadataInspectorTests.CreateFullImagePlan();
+        MetadataPlanDefinition emptyPlan = FirmwareMetadataInspectorTests.CreateFullImagePlan(empty: true);
+        MetadataPlanDefinition[] mutable = [firstPlan];
+        CanonicalCapabilityCatalogCandidate initial = FullImageCandidate(mutable);
+        mutable[0] = emptyPlan;
+        Assert.Same(firstPlan, Assert.Single(initial.FullImageMetadataPlans));
+        var sourceIssue = new CapabilityCatalogIssue(CapabilityCatalogIssueCodes.SourceInvalid, "Bad view source.");
+        var source = new QueueCapabilitySource(
+            CapabilityCatalogLoadResult.Success(initial),
+            CapabilityCatalogLoadResult.Success(FullImageCandidate([emptyPlan])),
+            CapabilityCatalogLoadResult.Failure(sourceIssue),
+            CapabilityCatalogLoadResult.Success(FullImageCandidate([])));
+        var catalog = new CanonicalCapabilityCatalog(source);
+        MetadataPlanResolutionResult first = catalog.ResolveFullImageMetadataPlan("NT51929", 0x80);
+        Assert.True(first.Succeeded);
+        Assert.Same(first.MetadataPlan, catalog.ResolveFullImageMetadataPlan("NT51929", 0x80).MetadataPlan);
+        Assert.Equal(1, source.LoadCount);
+        CapabilityCatalogReloadResult changed = catalog.Reload(TestContext.Current.CancellationToken);
+        MetadataPlanResolutionResult empty = catalog.ResolveFullImageMetadataPlan("NT51929", 0x80);
+        Assert.True(empty.Succeeded);
+        Assert.Empty(empty.MetadataPlan!.Entries);
+        Assert.Same(emptyPlan.FullImageContext, empty.MetadataPlan.Definition.FullImageContext);
+        Assert.NotEqual(first.MetadataPlan!.ResolutionToken, empty.MetadataPlan.ResolutionToken);
+        Assert.Equal(changed.Snapshot!.ResolutionToken, empty.MetadataPlan.ResolutionToken);
+        Assert.NotEmpty(first.MetadataPlan.Entries);
+        CapabilityCatalogReloadResult failed = catalog.Reload(TestContext.Current.CancellationToken);
+        Assert.False(failed.Succeeded);
+        Assert.True(failed.RetainedLastKnownGood);
+        Assert.Same(changed.Snapshot, failed.Snapshot);
+        Assert.Same(empty.MetadataPlan, catalog.ResolveFullImageMetadataPlan("NT51929", 0x80).MetadataPlan);
+        Assert.True(catalog.Reload(TestContext.Current.CancellationToken).Succeeded);
+        Assert.Equal(CapabilityCatalogIssueCodes.FullImageMetadataUnavailable,
+            catalog.ResolveFullImageMetadataPlan("NT51929", 0x80).Issue!.Code);
+    }
+
+    /// <summary>Missing views, incompatible capacities, ambiguous views and cold failures never resolve a workflow fallback.</summary>
+    [Fact]
+    public void FullImageMetadataQueryFailsClosedWithoutWorkflowAuthority()
+    {
+        MetadataPlanDefinition first = FirmwareMetadataInspectorTests.CreateFullImagePlan();
+        var source = new QueueCapabilitySource(CapabilityCatalogLoadResult.Success(FullImageCandidate([
+            first, FirmwareMetadataInspectorTests.CreateFullImagePlan(viewId: "other-view")])));
+        var catalog = new CanonicalCapabilityCatalog(source);
+        Assert.Equal(CapabilityCatalogIssueCodes.FullImageMetadataAmbiguous,
+            catalog.ResolveFullImageMetadataPlan("NT51929", 0x80).Issue!.Code);
+        Assert.Equal(CapabilityCatalogIssueCodes.FullImageMetadataUnavailable,
+            catalog.ResolveFullImageMetadataPlan("NT51929", 0x81).Issue!.Code);
+        Assert.Equal(CapabilityCatalogIssueCodes.FullImageMetadataUnavailable,
+            catalog.ResolveFullImageMetadataPlan("NT51928", 0x80).Issue!.Code);
+        _ = Assert.Throws<ArgumentException>(() => FullImageCandidate([first, first]));
+        _ = Assert.Throws<ArgumentException>(() => FullImageCandidate([MetadataPlanDefinition.Empty]));
+        var cold = new CanonicalCapabilityCatalog(new QueueCapabilitySource(
+            CapabilityCatalogLoadResult.Failure(new CapabilityCatalogIssue(CapabilityCatalogIssueCodes.SourceInvalid, "Bad source."))));
+        Assert.Equal(CapabilityCatalogIssueCodes.CatalogUnavailable,
+            cold.ResolveFullImageMetadataPlan("NT51929", 0x80).Issue!.Code);
+        Assert.Null(cold.TryGetCurrentSnapshot());
+    }
+
+    private static CanonicalCapabilityCatalogCandidate FullImageCandidate(IEnumerable<MetadataPlanDefinition> plans)
+    {
+        return new("metadata-catalog", "1.0.0", new string('a', 64),
+            [CreateDefinition(CreateCompiledComposition())], fullImageMetadataPlans: plans);
+    }
+
     /// <summary>Read-only metadata lookup retains the publication plan without reopening authoring.</summary>
     [Fact]
     public void ResolveUniqueMetadataPlanIgnoresAuthoringWithoutReturningExecutionAuthority()

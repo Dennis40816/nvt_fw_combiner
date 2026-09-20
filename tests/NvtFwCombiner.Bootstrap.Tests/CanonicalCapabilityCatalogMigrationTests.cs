@@ -91,7 +91,7 @@ public sealed partial class CanonicalCapabilityCatalogMigrationTests
         Assert.Equal("NT51929", definition.Identity.IcId);
         Assert.Equal("nt51929-standard-merge-256k", definition.Identity.MapVariant);
         Assert.Equal(
-            "447de186adabb4aae6adbbf810c726a24fea7283602306682f5a14842a9e5679",
+            "4ef7221d77f808ff2e3bd144da69251f912b386021312685409aaff72a55b637",
             definition.CapabilityFingerprint);
         Assert.NotEqual(
             definition.CapabilityFingerprint,
@@ -715,7 +715,7 @@ public sealed partial class CanonicalCapabilityCatalogMigrationTests
             "nt51919-nt51929-nt51932-perfect-map-256k",
             composition.V2Details.Provenance.ResolvedMap.ImageMap.MapId);
         Assert.Equal(
-            "3d937f93a0cf0714b8d13ab5480d7f65a27da04a5c78aaab7a53ba25fb8a200c",
+            "97d91c4f824d089cc2821bc4d415137859ca3ebd46ece027a1355743e5c967eb",
             composition.CompilationFingerprint);
     }
 

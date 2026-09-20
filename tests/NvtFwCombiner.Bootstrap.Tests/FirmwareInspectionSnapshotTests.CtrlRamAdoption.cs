@@ -34,11 +34,7 @@ public sealed partial class FirmwareInspectionSnapshotTests
                 (icId, workflowId, icCountVariant, outputCapacity) =>
                 {
                     calls.Add((icId, workflowId, icCountVariant, outputCapacity));
-                    return queryCatalog.ResolveUniqueMetadataPlan(
-                        icId,
-                        workflowId,
-                        icCountVariant,
-                        outputCapacity);
+                    return queryCatalog.ResolveFullImageMetadataPlan(icId, outputCapacity!.Value);
                 }),
             new DelegatingContentInspector(static (path, _, _) =>
             {
@@ -77,7 +73,7 @@ public sealed partial class FirmwareInspectionSnapshotTests
                 DpcmiMetadataContract.StructureId));
         Assert.NotEmpty(exact.MetadataPlan.Definition.ReportProjections);
         Assert.Equal(
-            [("NT51926", ExperienceIds.DpReplace, "1-ic", 0x40000L)],
+            [("NT51926", "full-image", "none", 0x40000L)],
             calls);
         Assert.Equal(
             "0200",
@@ -108,7 +104,7 @@ public sealed partial class FirmwareInspectionSnapshotTests
                 (icId, workflowId, icCountVariant, outputCapacity) =>
                 {
                     calls.Add((icId, workflowId, icCountVariant, outputCapacity));
-                    return queryCatalog.ResolveUniqueMetadataPlan(icId, workflowId, icCountVariant, outputCapacity);
+                    return queryCatalog.ResolveFullImageMetadataPlan(icId, outputCapacity!.Value);
                 }),
             new DelegatingContentInspector(static (path, _, _) =>
             {
@@ -143,7 +139,7 @@ public sealed partial class FirmwareInspectionSnapshotTests
             Assert.Single(catalog.Routes).ExactCapability);
         Assert.Empty(exact.MetadataPlan.Entries);
         Assert.Empty(exact.MetadataPlan.Definition.ReportProjections);
-        Assert.Equal([("NT51950", ExperienceIds.DpReplace, "1-ic", 0x40000L)], calls);
+        Assert.Equal([("NT51950", "full-image", "none", 0x40000L)], calls);
         Assert.NotNull(inspection.InputSlotStatus);
         Assert.Equal("D86-00", Assert.IsType<DpVersionMetadata>(inspection.DpVersion).DisplayValue);
         Assert.Equal("8600", Assert.IsType<CmiDpCodeMetadata>(inspection.CmiDpCode).VersionToken);
@@ -184,11 +180,7 @@ public sealed partial class FirmwareInspectionSnapshotTests
                         workflowId,
                         icCountVariant,
                         outputCapacity));
-                    return queryCatalog.ResolveUniqueMetadataPlan(
-                        icId,
-                        workflowId,
-                        icCountVariant,
-                        outputCapacity);
+                    return queryCatalog.ResolveFullImageMetadataPlan(icId, outputCapacity!.Value);
                 }),
             new DelegatingContentInspector(static (path, _, _) =>
             {
@@ -316,7 +308,7 @@ public sealed partial class FirmwareInspectionSnapshotTests
             finalPaths.SequenceEqual([secondBasePath, secondNormalPath]));
         Assert.Equal(
             Enumerable.Repeat(
-                ("NT51923", ExperienceIds.DpReplace, "1-ic", (long?)0x40000),
+                ("NT51923", "full-image", "none", (long?)0x40000),
                 3),
             metadataCalls);
 

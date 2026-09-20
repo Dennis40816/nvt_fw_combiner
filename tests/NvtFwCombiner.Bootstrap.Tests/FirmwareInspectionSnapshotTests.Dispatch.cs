@@ -12,6 +12,56 @@ namespace NvtFwCombiner.Bootstrap.Tests;
 
 public sealed partial class FirmwareInspectionSnapshotTests
 {
+    /// <summary>The actual generic facade consumes one captured full image and a terminal query failure never reopens DP metadata.</summary>
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task GenericFullImageFacadeUsesOneCapturedPayloadAndTerminalAuthority(bool unavailable)
+    {
+        byte[] bytes = CreateNonUniformArtifact(0x40000);
+        bytes[0x36000] = 0x42;
+        bytes[0x36001] = 0xBD;
+        bytes[0x36017] = 1;
+        new byte[] { 0, 0x4E, 0x56, 0x54 }.CopyTo(bytes, 0x36FFC);
+        bytes[0x3B016] = 0x2E;
+        bytes[0x3B017] = 3;
+        bytes[0x3B018] = 0xA4;
+        ICanonicalCapabilityQuery query = BootstrapTestHost.Canonical.Catalog;
+        int queries = 0;
+        int reads = 0;
+        BuiltInFirmwareInspection inspection = CreateInspection(new InterceptingMetadataPlanQuery(query,
+            (ic, workflow, count, capacity) =>
+            {
+                queries++;
+                Assert.Equal(("NT51950", "full-image", "none", 0x40000L), (ic, workflow, count, capacity));
+                return unavailable
+                    ? new(null, new(CapabilityCatalogIssueCodes.FullImageMetadataUnavailable, "No declared view."))
+                    : query.ResolveFullImageMetadataPlan(ic, capacity!.Value);
+            }), new DelegatingContentInspector((path, _, _) =>
+            {
+                reads++;
+                return ValueTask.FromResult(new SelectedFileContentInspection(
+                    FileStamp.FromBytes(bytes), Path.GetFileName(path), acceptedBytes: bytes));
+            }));
+        FirmwareInspectionBatchResult batch = await inspection.InspectFirmwareBatchAsync("NT51950",
+            [new("reference", "generic-reference.bin")], TestContext.Current.CancellationToken);
+        bytes[0x3B017] = 0xFF;
+        Assert.Equal(1, reads);
+        Assert.Equal(1, queries);
+        FirmwareInspectionSnapshot result = batch.InspectionsById["reference"];
+        if (unavailable)
+        {
+            Assert.Null(result.DpVersion);
+            Assert.Null(result.CmiDpCode);
+        }
+        else
+        {
+            Assert.True(result.ArtifactClassification!.IsDpMetadataApplicable);
+            Assert.Equal("030A", Assert.IsType<DpVersionMetadata>(result.DpVersion).VersionToken);
+            Assert.Equal((ushort)1070, Assert.IsType<CmiDpCodeMetadata>(result.CmiDpCode).JiraNumber);
+        }
+    }
+
     /// <summary>Only explicit typed workflow roles admit their inspection strategies.</summary>
     [Fact]
     public void InspectionDispatchUsesOnlyTypedApplicableStrategies()
@@ -670,6 +720,11 @@ public sealed partial class FirmwareInspectionSnapshotTests
             long? outputCapacity = null)
         {
             return inner.ResolveUniqueRoute(icId, workflowId, icCountVariant, outputCapacity);
+        }
+
+        public MetadataPlanResolutionResult ResolveFullImageMetadataPlan(string icId, long inputLength)
+        {
+            return resolveMetadataPlan(icId, "full-image", "none", inputLength);
         }
 
         public MetadataPlanResolutionResult ResolveUniqueMetadataPlan(

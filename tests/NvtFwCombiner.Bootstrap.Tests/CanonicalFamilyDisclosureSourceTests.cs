@@ -55,8 +55,8 @@ public sealed class CanonicalFamilyDisclosureSourceTests
         _ = Assert.Single(provider.MetadataProviderFamilies);
         FirmwareFamilyResolutionDefinition family = Assert.Single(CanonicalCapabilityDisclosureInventory.ResolveDisclosureFamilies([provider]));
         Assert.Equal("nt51929-nt51932", family.FamilyId);
-        Assert.Equal("1.3.0", family.FamilyVersion);
-        Assert.Equal("6cd257c38e4c9ecb4e44c14d12027e44a6d484b8176112dceccb7328d153b617", family.FamilyContentHash);
+        Assert.Equal("1.3.1", family.FamilyVersion);
+        Assert.Equal("d2499758dd19908422f857e5b7a68c24c47ac57961418da82d10dec2f039f3e8", family.FamilyContentHash);
         IReadOnlyList<FirmwareFamilyResolutionDefinition> absent = CanonicalCapabilityDisclosureInventory.ResolveDisclosureFamilies(
             [provider with { FamilyDisclosureFamilies = [] }]);
         Assert.Empty(absent);
@@ -98,7 +98,7 @@ public sealed class CanonicalFamilyDisclosureSourceTests
                 {
                     BundleDirectory = mutation == "wrong-owning-bundle" ? "nt51927-standard-merge" : provider.BundleDirectory,
                     FamilyDisclosureFamilies = [new(mutation == "wrong-family" ? "absent-family" : "nt51929-nt51932",
-                        mutation == "wrong-version" ? "99.0.0" : "1.3.0")],
+                        mutation == "wrong-version" ? "99.0.0" : "1.3.1")],
                 };
                 return CanonicalCapabilityDisclosureInventory.Create(definitions, dynamicDefinitions,
                     CanonicalCapabilityDisclosureInventory.ResolveDisclosureFamilies([provider]));
@@ -134,6 +134,6 @@ public sealed class CanonicalFamilyDisclosureSourceTests
     {
         return new CanonicalCapabilityCatalogSource(BuiltInCanonicalCapabilityPolicy.Load,
             CanonicalDynamicRouteInventory.IsDynamic, CanonicalCompiledRouteInventory.Resolve,
-            CanonicalDynamicRouteInventory.CreateResolver, disclosure);
+            CanonicalDynamicRouteInventory.CreateResolver, disclosure, CanonicalFullImageMetadataInventory.Create);
     }
 }

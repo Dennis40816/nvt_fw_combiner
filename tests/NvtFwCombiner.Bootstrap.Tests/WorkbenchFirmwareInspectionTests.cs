@@ -278,11 +278,7 @@ public sealed partial class FirmwareInspectionSnapshotTests
                 (icId, workflowId, icCountVariant, outputCapacity) =>
                 {
                     calls.Add((icId, workflowId, icCountVariant, outputCapacity));
-                    return inner.ResolveUniqueMetadataPlan(
-                        icId,
-                        workflowId,
-                        icCountVariant,
-                        outputCapacity);
+                    return inner.ResolveFullImageMetadataPlan(icId, outputCapacity!.Value);
                 }),
             new DelegatingContentInspector(static (_, _, _) =>
                 ValueTask.FromException<SelectedFileContentInspection>(
@@ -317,7 +313,7 @@ public sealed partial class FirmwareInspectionSnapshotTests
             CtrlRamBaseDiscoveryReadiness.Inspected,
             inspection.CtrlRamBaseDiscoveryReadiness);
         Assert.Equal(
-            [("NT51926", ExperienceIds.DpReplace, "1-ic", 0x40000L)],
+            [("NT51926", "full-image", "none", 0x40000L)],
             calls);
         Assert.Equal(
             "0100",

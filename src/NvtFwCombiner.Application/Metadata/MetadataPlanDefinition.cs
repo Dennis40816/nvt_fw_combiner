@@ -2,7 +2,7 @@ using NvtFwCombiner.Application.Capabilities;
 
 namespace NvtFwCombiner.Application.Metadata;
 
-/// <summary>Trusted profile source retained by one metadata plan.</summary>
+/// <summary>Trusted profile or family-view source retained by one metadata plan.</summary>
 public sealed record MetadataPlanSourceIdentity
 {
     /// <summary>Creates one exact profile and bundle identity.</summary>
@@ -27,13 +27,51 @@ public sealed record MetadataPlanSourceIdentity
     }
 
     /// <summary>Exact profile which authored the metadata plan.</summary>
-    public string ProfileId { get; }
+    public string? ProfileId { get; }
 
     /// <summary>Exact profile version which authored the metadata plan.</summary>
-    public string ProfileVersion { get; }
+    public string? ProfileVersion { get; }
 
     /// <summary>Exact trusted bundle which authored the metadata plan.</summary>
     public string TrustedDefinitionSha256 { get; }
+
+    /// <summary>Exact family identity for a full-image view; null for profile plans.</summary>
+    public string? FamilyId { get; }
+
+    /// <summary>Exact family version for a full-image view.</summary>
+    public string? FamilyVersion { get; }
+
+    /// <summary>Hash of the canonical family source, distinct from its owning bundle hash.</summary>
+    public string? FamilyContentHash { get; }
+
+    /// <summary>Exact declared full-image view identity.</summary>
+    public string? ViewId { get; }
+
+    private MetadataPlanSourceIdentity(string familyId, string familyVersion,
+        string familyContentHash, string viewId, string trustedBundleSha256)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(familyId);
+        ArgumentException.ThrowIfNullOrWhiteSpace(familyVersion);
+        ArgumentException.ThrowIfNullOrWhiteSpace(viewId);
+        if (!CapabilityRouteIdentity.IsSha256(familyContentHash) ||
+            !CapabilityRouteIdentity.IsSha256(trustedBundleSha256))
+        {
+            throw new ArgumentException("Full-image sources require exact family and bundle SHA-256 identities.");
+        }
+
+        FamilyId = familyId;
+        FamilyVersion = familyVersion;
+        FamilyContentHash = familyContentHash;
+        ViewId = viewId;
+        TrustedDefinitionSha256 = trustedBundleSha256;
+    }
+
+    /// <summary>Creates a family-view identity without inventing a profile.</summary>
+    public static MetadataPlanSourceIdentity ForFullImageView(string familyId,
+        string familyVersion, string familyContentHash, string viewId, string trustedBundleSha256)
+    {
+        return new(familyId, familyVersion, familyContentHash, viewId, trustedBundleSha256);
+    }
 }
 
 /// <summary>Typed report-classification projection retained by a metadata plan.</summary>
@@ -66,6 +104,21 @@ public sealed class MetadataPlanDefinition
         IEnumerable<MetadataPlanEntry> entries,
         MetadataPlanSourceIdentity? sourceIdentity = null,
         IEnumerable<MetadataPlanReportProjection>? reportProjections = null)
+        : this(entries, sourceIdentity, reportProjections, null)
+    {
+    }
+
+    /// <summary>Creates a complete inspection-only plan, retaining even an explicitly empty view.</summary>
+    public MetadataPlanDefinition(CanonicalFullImageMetadataContext context,
+        IEnumerable<MetadataPlanEntry> entries)
+        : this(entries, (context ?? throw new ArgumentNullException(nameof(context))).SourceIdentity, null, context)
+    {
+    }
+
+    private MetadataPlanDefinition(IEnumerable<MetadataPlanEntry> entries,
+        MetadataPlanSourceIdentity? sourceIdentity,
+        IEnumerable<MetadataPlanReportProjection>? reportProjections,
+        CanonicalFullImageMetadataContext? fullImageContext)
     {
         ArgumentNullException.ThrowIfNull(entries);
         _entries = [.. entries];
@@ -85,12 +138,26 @@ public sealed class MetadataPlanDefinition
                     !ReferenceEquals(
                         entry.FamilyDefinition,
                         first.FamilyDefinition) ||
-                    !ReferenceEquals(entry.ResolvedMap, first.ResolvedMap)))
+                    !ReferenceEquals(entry.ImageMap, first.ImageMap) ||
+                    entry.MemberId != first.MemberId ||
+                    !ReferenceEquals(entry.FullImageContext, fullImageContext) ||
+                    (fullImageContext is null && !ReferenceEquals(entry.ResolvedMap, first.ResolvedMap))))
             {
                 throw new ArgumentException(
                     "One metadata plan cannot mix family or map resolutions.",
                     nameof(entries));
             }
+        }
+
+        if (fullImageContext is not null &&
+            (_entries.Length != fullImageContext.View.MetadataBindings.Count ||
+             _entries.Any(entry => !ReferenceEquals(entry.FullImageContext, fullImageContext))))
+        {
+            throw new ArgumentException("A full-image plan must retain every exact selected view binding.", nameof(entries));
+        }
+        if (sourceIdentity?.ViewId is not null && fullImageContext is null)
+        {
+            throw new ArgumentException("Family-view identities require their checked full-image context.", nameof(sourceIdentity));
         }
 
         MetadataPlanReportProjection[] entryReportProjections =
@@ -129,7 +196,7 @@ public sealed class MetadataPlanDefinition
                 nameof(reportProjections));
         }
 
-        if (_reportProjections.Length != 0 && sourceIdentity is null)
+        if (_reportProjections.Length != 0 && (sourceIdentity is null || sourceIdentity.ViewId is not null))
         {
             throw new ArgumentException(
                 "Metadata report projections require an exact trusted source identity.",
@@ -137,6 +204,7 @@ public sealed class MetadataPlanDefinition
         }
 
         SourceIdentity = sourceIdentity;
+        FullImageContext = fullImageContext;
         Entries = Array.AsReadOnly(_entries);
         ReportProjections = Array.AsReadOnly(_reportProjections);
     }
@@ -149,6 +217,9 @@ public sealed class MetadataPlanDefinition
 
     /// <summary>Exact trusted profile source, when retained by this plan.</summary>
     public MetadataPlanSourceIdentity? SourceIdentity { get; }
+
+    /// <summary>Exact full-image view/member identity, including explicitly empty plans.</summary>
+    public CanonicalFullImageMetadataContext? FullImageContext { get; }
 
     /// <summary>Typed report-classification projections in stable order.</summary>
     public IReadOnlyList<MetadataPlanReportProjection> ReportProjections { get; }

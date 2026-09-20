@@ -16,25 +16,25 @@ public sealed class SharedDpcmiMetadataProviderTests
 {
     private const string Provider = "nt51919-nt51929-nt51932-shared-facts";
     private const string FamilyPath = "families/nt51929-nt51932.json";
-    private const string FamilyHash = "6cd257c38e4c9ecb4e44c14d12027e44a6d484b8176112dceccb7328d153b617";
-    private const string ProviderHash = "f2fc92f624db2945789072d4dcff8c55e1bf45b239c57f7f8453359b2ce6464c";
-    private const string DpHash = "31c545eb367ff902eb2e95bc0b90643c337ab26b4e5831169bfc1a31f060f3cd";
+    private const string FamilyHash = "d2499758dd19908422f857e5b7a68c24c47ac57961418da82d10dec2f039f3e8";
+    private const string ProviderHash = "48c96d29b93cf7d78efc5266d6ead73e171f0012ddc5f7807242323327a5373f";
+    private const string DpHash = "807ca99b64c20fea5237f07f7ddb4a3daefb35e34e065a04def0fc410c10ca04";
 
     /// <summary>Production exact-identity resolution comes from the sole neutral metadata-only provider.</summary>
     [Fact]
     public void ExactDpcmiReferenceResolvesFromUniqueMetadataOnlyProvider()
     {
         ProfileBundlePackageTrustIndex index = BuiltInV2BundleRegistry.TrustIndex;
-        Assert.Equal("1.1.10.1", index.TrustIndexVersion);
+        Assert.Equal("1.1.10.2", index.TrustIndexVersion);
         ProfileBundlePackageTrustEntry provider = Assert.Single(index.Bundles, bundle =>
-            bundle.MetadataProviderFamilies.Any(family => family.FamilyId == "nt51929-nt51932" && family.FamilyVersion == "1.3.0"));
+            bundle.MetadataProviderFamilies.Any(family => family.FamilyId == "nt51929-nt51932" && family.FamilyVersion == "1.3.1"));
         Assert.Equal(Provider, provider.BundleDirectory);
-        Assert.Equal("1.1.10-shared-facts.1", provider.BundleVersion);
+        Assert.Equal("1.1.10-full-image-metadata.1", provider.BundleVersion);
         Assert.Equal(ProviderHash, provider.ContentHash);
         Assert.Empty(provider.RuntimeRegistrations);
         Assert.Empty(index.Bundles.Single(bundle => bundle.BundleDirectory == "nt51929-dp-replace").MetadataProviderFamilies);
         var reference = new FirmwareMetadataStructureDefinitionReferenceDocument(
-            "nt51929-nt51932", "1.3.0", FamilyHash, DpcmiMetadataContract.StructureId);
+            "nt51929-nt51932", "1.3.1", FamilyHash, DpcmiMetadataContract.StructureId);
         Assert.True(BuiltInCanonicalMetadataDefinitionResolver.Instance.TryResolve(reference, out FirmwareMetadataStructureDefinition? definition));
         Assert.NotNull(definition);
         Assert.False(BuiltInCanonicalMetadataDefinitionResolver.Instance.TryResolve(
@@ -66,13 +66,13 @@ public sealed class SharedDpcmiMetadataProviderTests
         TrustedProfileBundleCatalog sourceCatalog = BuiltInProfileMaterializationTestSupport.LoadSourceCandidateCatalog(
             providerWorkspace, Provider, ProviderHash);
         Assert.Empty(sourceCatalog.Profiles);
-        Assert.Equal("1.3.0", Assert.Single(sourceCatalog.Families).Family.FamilyVersion);
+        Assert.Equal("1.3.1", Assert.Single(sourceCatalog.Families).Family.FamilyVersion);
 
         using var dpWorkspace = TempWorkspace.Create("shared-dpcmi-retained-dp");
         TrustedProfileBundleCatalog dpCatalog = BuiltInProfileMaterializationTestSupport.LoadSourceCandidateCatalog(
             dpWorkspace, "nt51929-dp-replace", DpHash);
         Assert.Equal(3, dpCatalog.Profiles.Count);
-        Assert.Equal("0.10.1-shared-facts.1", dpCatalog.BundleIdentity.BundleVersion);
+        Assert.Equal("1.1.10-full-image-metadata.1", dpCatalog.BundleIdentity.BundleVersion);
         Assert.Equal(DpHash, dpCatalog.BundleIdentity.ContentHash);
         Assert.Equal(family, File.ReadAllBytes(dpWorkspace.PathFor(FamilyPath)));
         AssertClosedInventory(providerWorkspace.Root);
@@ -106,10 +106,10 @@ public sealed class SharedDpcmiMetadataProviderTests
         Assert.Equal(profileVersion, composition.V2Details.ProfileVersion);
         Assert.Equal("nt51919-nt51929-nt51932-perfect-map-256k", composition.V2Details.Provenance.ResolvedMap.ImageMap.MapId);
         Assert.Equal(DpHash, composition.V2Details.Provenance.Bundle.ContentHash);
-        Assert.Equal("0.10.1-shared-facts.1", composition.V2Details.Provenance.Bundle.BundleVersion);
+        Assert.Equal("1.1.10-full-image-metadata.1", composition.V2Details.Provenance.Bundle.BundleVersion);
         if (ic == "NT51929")
         {
-            Assert.Equal("3d937f93a0cf0714b8d13ab5480d7f65a27da04a5c78aaab7a53ba25fb8a200c", composition.CompilationFingerprint);
+            Assert.Equal("97d91c4f824d089cc2821bc4d415137859ca3ebd46ece027a1355743e5c967eb", composition.CompilationFingerprint);
         }
     }
 

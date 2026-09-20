@@ -11,7 +11,7 @@ namespace NvtFwCombiner.Bootstrap.Tests;
 public sealed class Nt51950Nt51951V2DpReplaceProfileTests
 {
     private const string BundleDirectory = "nt51950-nt51951-dp-replace";
-    private const string BundleContentHash = "efc155288c2c470c0cac15e51142ebd357eff6151259b9b8164560f2a105ec6d";
+    private const string BundleContentHash = "0f21efbd2d97157d286ff04bcb9eca32e9a0b627880a6132c6e9bdbfd81d21e4";
     private const int TpOverlayStart = 0x0A000;
     private const int TpOverlayLength = 0x2D000;
     private const int CustomerInfoStart = 0x37000;

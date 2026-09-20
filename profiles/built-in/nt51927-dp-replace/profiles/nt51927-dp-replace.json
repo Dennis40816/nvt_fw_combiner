@@ -11,8 +11,8 @@
     "inputPolicy": "fixed", "topologyAuthoring": "hidden", "displayNameKey": "profile.nt51927.dp-replace"
   },
   "mapBinding": {
-    "familyId": "nt51927", "familyVersion": "1.4.0",
-    "familyContentHash": "f6b87ff1b5c4ecbe4df9299ea2d10fc6d568d6d02d528a1119b5369465db2134",
+    "familyId": "nt51927", "familyVersion": "1.4.1",
+    "familyContentHash": "51c4ebca583052e26106974a2cf27431c1e02acba4d5b6923461e29feb44b4f8",
     "mapIds": ["nt51927-standard-merge-256k"], "requiredRegionIds": ["dp-code"],
     "requiredMetadataStructureIds": ["dpcmi", "firmware-config-general-parameters"], "requiredCapabilityIds": []
   },

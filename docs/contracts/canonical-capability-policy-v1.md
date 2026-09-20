@@ -50,6 +50,15 @@ or complete route-evidence cross-link. Those release gates remain independent.
 
 ## Pinned decisions
 
+Catalog `1.16.2` supersedes 92 exact route fingerprints after the reviewed
+full-image metadata family migration in `1.1.10`. The existing compiled and
+dynamic inventory producers supplied all 93 current fingerprints; one route
+retains its prior fingerprint. The change binds the updated family, profile
+and bundle hashes. Authoring, publication and evidence decisions retain their
+values and source references. Canonical Golden `routeEvidence` pins follow
+those exact fingerprints; cases, expected bytes and redistribution authority
+remain unchanged.
+
 Catalog `1.11.0` transitions the six AB IC/topology routes to profile-owned
 optional DP selection for v1.1.4. NT51950 retains distinct single/cascade axes
 within `nt51950-ab-merge-maps`; each axis admits only its original physical map.

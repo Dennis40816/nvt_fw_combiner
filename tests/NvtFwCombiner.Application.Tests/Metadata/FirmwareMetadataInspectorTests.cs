@@ -428,6 +428,74 @@ public sealed class FirmwareMetadataInspectorTests
         return definition.Resolve(new ResolutionToken("test-catalog:1"));
     }
 
+    /// <summary>One captured image supplies the view, while the general artifact-list entrance fails closed.</summary>
+    [Fact]
+    public void FullImagePlanRequiresSingleCaptureAndExactBinding()
+    {
+        MetadataPlanDefinition definition = CreateFullImagePlan();
+        ResolvedMetadataPlan plan = definition.Resolve(new ResolutionToken("full-image:1"));
+        byte[] bytes = new byte[0x80];
+        bytes[0x36] = 0x2E;
+        bytes[0x37] = 0x03;
+        bytes[0x38] = 0xA4;
+        var captured = new FirmwareArtifactPayload("reference", bytes);
+        MetadataInspectionSnapshot actual = FirmwareMetadataInspector.InspectFullImage(plan, captured, 7);
+        MetadataInspectionSnapshot expected = FirmwareMetadataInspector.Inspect(CreateDpcmiPlan(),
+            [new FirmwareArtifactPayload(CompositionAddressSpaceIds.DpReplacement, bytes)]);
+        Assert.True(DpcmiMetadataProjector.TryProject(actual, out DpcmiMetadataFacts actualFacts));
+        Assert.True(DpcmiMetadataProjector.TryProject(expected, out DpcmiMetadataFacts expectedFacts));
+        Assert.Equal(expectedFacts, actualFacts);
+        Assert.Equal(7, actual.AuthoringRevision);
+        Assert.Equal(captured.Identity, Assert.Single(actual.ArtifactIdentities));
+        Assert.Equal(plan.ResolutionToken, actual.ResolutionToken);
+        _ = Assert.Throws<ArgumentException>(() => FirmwareMetadataInspector.Inspect(plan, [captured]));
+        _ = Assert.Throws<ArgumentException>(() => FirmwareMetadataInspector.InspectFullImage(plan,
+            new FirmwareArtifactPayload("reference", new byte[0x40])));
+        MetadataPlanEntry entry = Assert.Single(definition.Entries);
+        _ = Assert.Throws<InvalidOperationException>(() => entry.ResolvedMap);
+        var foreign = new FirmwareFullImageMetadataBinding(entry.BindingId, entry.StructureDefinition,
+            [new(FirmwareMetadataReferenceTargetKind.Field, DpcmiMetadataContract.MajorVersionFieldId)], ["evidence"]);
+        _ = Assert.Throws<ArgumentException>(() => new MetadataPlanEntry(definition.FullImageContext!, foreign, entry.MetadataSetBinding));
+        _ = Assert.Throws<ArgumentException>(() => new MetadataPlanDefinition([entry], definition.SourceIdentity));
+    }
+
+    /// <summary>An empty view retains complete source authority without a profile or Report projection.</summary>
+    [Fact]
+    public void EmptyFullImagePlanRetainsCanonicalIdentityAndToken()
+    {
+        MetadataPlanDefinition definition = CreateFullImagePlan(empty: true);
+        CanonicalFullImageMetadataContext context = definition.FullImageContext!;
+        ResolvedMetadataPlan plan = definition.Resolve(new ResolutionToken("empty:2"));
+        MetadataInspectionSnapshot actual = FirmwareMetadataInspector.InspectFullImage(plan,
+            new FirmwareArtifactPayload("reference", new byte[0x80]));
+        Assert.Empty(actual.Results);
+        Assert.Empty(definition.ReportProjections);
+        Assert.Same(context.View.ImageMap, Assert.Single(context.Family.ImageMaps));
+        Assert.Equal("NT51929", context.MemberId);
+        Assert.Null(definition.SourceIdentity!.ProfileId);
+        Assert.Null(definition.SourceIdentity.ProfileVersion);
+        Assert.Equal(context.Family.FamilyId, definition.SourceIdentity.FamilyId);
+        Assert.Equal(context.Family.FamilyContentHash, definition.SourceIdentity.FamilyContentHash);
+        Assert.Equal(new string('b', 64), definition.SourceIdentity.TrustedDefinitionSha256);
+        Assert.Equal(context.View.ViewId, definition.SourceIdentity.ViewId);
+        Assert.Equal(plan.ResolutionToken, actual.ResolutionToken);
+    }
+
+    internal static MetadataPlanDefinition CreateFullImagePlan(bool empty = false, string viewId = "full-image")
+    {
+        DpcmiFixture fixture = CreateDpcmiFixture();
+        MetadataPlanEntry profileEntry = CreateDpcmiEntry(fixture);
+        var binding = new FirmwareFullImageMetadataBinding(profileEntry.BindingId, fixture.Structure,
+            profileEntry.TargetReferences, ["evidence"]);
+        var view = new FirmwareFullImageMetadataView(viewId, fixture.ResolvedMap.ImageMap,
+            ["NT51929"], empty ? [] : [binding], ["evidence"]);
+        var family = new FirmwareFamilyResolutionDefinition("nt51929", "1.0.0", FamilyHash,
+            fixture.Family.ImageMaps, fixture.Family.MetadataSets, [], [], null, [view]);
+        var context = new CanonicalFullImageMetadataContext(family, view, "NT51929", new string('b', 64));
+        return new MetadataPlanDefinition(context,
+            empty ? [] : [new MetadataPlanEntry(context, binding, fixture.MetadataBinding)]);
+    }
+
     private static MetadataPlanEntry CreateDpcmiEntry(
         DpcmiFixture fixture,
         string bindingId = "dpcmi-inspection",

@@ -32,7 +32,7 @@
   "mapBinding": {
     "familyId": "nt51950-ab-merge",
     "familyVersion": "0.6.0",
-    "familyContentHash": "e2866ea9494de9afcffd307c4041dc18f6c54404368928469e6339c80c68a94a",
+    "familyContentHash": "41654f4bc62e3e31157f93972433efaff32c2630c1d95ec7e45be578f4510a93",
     "mapIds": ["nt51951-ab-desay-1024k"],
     "requiredRegionIds": ["ab-image", "a-bank", "a-cmi-dp-version", "a-tp-code", "b-bank", "b-cmi-dp-version", "b-tp-code"],
     "requiredMetadataStructureIds": ["tp-a-primary-firmware-config", "tp-b-primary-firmware-config"],

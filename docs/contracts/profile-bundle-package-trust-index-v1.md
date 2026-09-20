@@ -18,6 +18,15 @@ zero or more closed-vocabulary runtime registrations. Optional
 allowed to resolve that family's canonical metadata references; the reference's
 family content hash and structure id remain independently exact at runtime.
 
+The same provider admission supplies explicit `fullImageMetadataViews` from
+that exact family's normalized catalog in the owning trusted bundle. The
+manifest pins its family bytes. A missing or mismatched declared family
+identity rejects the candidate; an existing exact family without views supplies
+no full-image metadata authority. Consumers do not scan projected family
+copies or substitute runtime profile metadata. This authority adds no runtime
+registration or family-disclosure permission. A present view with an empty
+binding collection remains an explicit empty declaration.
+
 Optional `familyDisclosureFamilies` independently opt an exact family id/version
 into canonical family disclosure. Both fields reuse the same closed pair shape
 and each requires global uniqueness within its own authority. A family may hold

@@ -103,22 +103,21 @@ public sealed class FirmwareMetadataPlanAuthorityResolver(
             // owns report classification, not the Base's read-only DP facts.
             // Resolve those through the same metadata-only port used before
             // any replacement is selected; this grants no DP write authority.
-            return ResolveGeneric(
-                icId,
-                ExperienceIds.DpReplace,
-                "1-ic",
-                inputLength);
+            return ResolveFullImage(icId, inputLength);
         }
 
         bool hasDistinctTpArtifact = !string.IsNullOrWhiteSpace(input.TpPath) &&
             !StringComparer.Ordinal.Equals(input.Path, input.TpPath);
-        return ResolveGeneric(
-            icId,
-            hasDistinctTpArtifact
-                ? ExperienceIds.StandardMerge
-                : ExperienceIds.DpReplace,
-            hasDistinctTpArtifact ? "selector-free" : "1-ic",
-            inputLength);
+        return hasDistinctTpArtifact
+            ? ResolveGeneric(icId, ExperienceIds.StandardMerge, "selector-free", inputLength)
+            : ResolveFullImage(icId, inputLength);
+    }
+
+    private FirmwareMetadataPlanAuthority ResolveFullImage(string icId, long inputLength)
+    {
+        MetadataPlanResolutionResult resolution = _catalog.ResolveFullImageMetadataPlan(
+            IcIdentifier.Normalize(icId), inputLength);
+        return FirmwareMetadataPlanAuthority.Terminal(resolution.MetadataPlan, resolution.Issue);
     }
 
     private FirmwareMetadataPlanAuthority ResolveGeneric(

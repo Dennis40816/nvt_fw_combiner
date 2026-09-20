@@ -99,7 +99,8 @@ public sealed record CanonicalCapabilityCatalogCandidate
         string catalogVersion,
         string sourceSha256,
         IEnumerable<CanonicalCapabilityDefinition> definitions,
-        IEnumerable<CanonicalDynamicCapabilityDefinition>? dynamicDefinitions = null)
+        IEnumerable<CanonicalDynamicCapabilityDefinition>? dynamicDefinitions = null,
+        IEnumerable<MetadataPlanDefinition>? fullImageMetadataPlans = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(catalogId);
         ArgumentException.ThrowIfNullOrWhiteSpace(catalogVersion);
@@ -117,6 +118,17 @@ public sealed record CanonicalCapabilityCatalogCandidate
         SourceSha256 = sourceSha256;
         Definitions = Array.AsReadOnly([.. definitions]);
         DynamicDefinitions = Array.AsReadOnly([.. dynamicDefinitions ?? []]);
+        MetadataPlanDefinition[] plans = [.. fullImageMetadataPlans ?? []];
+        if (plans.Any(static plan => plan?.FullImageContext is null) ||
+            plans.Select(static plan => (
+                plan.FullImageContext!.Family.FamilyId,
+                plan.FullImageContext.Family.FamilyVersion,
+                plan.FullImageContext.View.ViewId,
+                plan.FullImageContext.MemberId)).Distinct().Count() != plans.Length)
+        {
+            throw new ArgumentException("Full-image plans require unique checked family/view/member identities.", nameof(fullImageMetadataPlans));
+        }
+        FullImageMetadataPlans = Array.AsReadOnly(plans);
         Disclosure = CanonicalCapabilityDisclosure.Empty;
     }
 
@@ -134,6 +146,9 @@ public sealed record CanonicalCapabilityCatalogCandidate
 
     /// <summary>Policy-bound definitions compiled only after current authoring resolution.</summary>
     public IReadOnlyList<CanonicalDynamicCapabilityDefinition> DynamicDefinitions { get; }
+
+    /// <summary>Read-only family views awaiting the same atomic publication as executable routes.</summary>
+    public IReadOnlyList<MetadataPlanDefinition> FullImageMetadataPlans { get; }
 
     internal CanonicalCapabilityDisclosure Disclosure { get; private init; }
 
@@ -322,6 +337,8 @@ public sealed partial record CanonicalCapabilityCatalogSnapshot
         SourceSha256 = candidate.SourceSha256;
         ResolutionToken = resolutionToken;
         Disclosure = candidate.Disclosure;
+        FullImageMetadataPlans = Array.AsReadOnly([.. candidate.FullImageMetadataPlans
+            .Select(plan => plan.Resolve(resolutionToken))]);
 
         var byRouteId = new Dictionary<string, ResolvedCapability>(StringComparer.Ordinal);
         foreach (CanonicalCapabilityDefinition definition in candidate.Definitions)
@@ -405,6 +422,9 @@ public sealed partial record CanonicalCapabilityCatalogSnapshot
 
     /// <summary>Resolved exact routes in stable identity order.</summary>
     public IReadOnlyList<ResolvedCapability> Capabilities { get; }
+
+    /// <summary>Read-only family views bound to this exact complete publication.</summary>
+    public IReadOnlyList<ResolvedMetadataPlan> FullImageMetadataPlans { get; }
 
     /// <summary>Selector facts eagerly bound to this exact publication.</summary>
     public CapabilitySelectorPublication SelectorPublication { get; }

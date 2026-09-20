@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.1",
   "familyId": "nt51927",
-  "familyVersion": "1.4.0",
+  "familyVersion": "1.4.1",
   "members": [
     {
       "memberId": "NT51917",
@@ -87,7 +87,7 @@
           "definitionReference": {
             "familyId": "nt51917-nt51927-nt51928-canonical-container",
             "familyVersion": "1.4.0",
-            "familyContentHash": "11a286731539bc79eb4bc956cd62d5d4e4bb8662874a8f65f7f0cde6f974c761",
+            "familyContentHash": "e3bf3f27d1640d51620c108bce28b22edde2551cb441cf47d1d8641bb6e455af",
             "structureId": "dpcmi"
           }
         }
@@ -107,7 +107,7 @@
           "definitionReference": {
             "familyId": "nt51917-nt51927-nt51928-canonical-container",
             "familyVersion": "1.4.0",
-            "familyContentHash": "11a286731539bc79eb4bc956cd62d5d4e4bb8662874a8f65f7f0cde6f974c761",
+            "familyContentHash": "e3bf3f27d1640d51620c108bce28b22edde2551cb441cf47d1d8641bb6e455af",
             "structureId": "firmware-config-general-parameters"
           },
           "locator": {
@@ -225,5 +225,129 @@
     "gen-flash-bin-v2-51927-golden",
     "standard-merge-alias-51917-to-51927",
     "dp-replace-owner-decision-2026-07-20"
+  ],
+  "fullImageMetadataViews": [
+    {
+      "viewId": "nt51917-standard-merge-256k-full-image-metadata",
+      "mapId": "nt51917-standard-merge-256k",
+      "memberIds": [
+        "NT51917"
+      ],
+      "metadataBindings": [
+        {
+          "bindingId": "firmware-config-general-parameters-inspection",
+          "structureId": "firmware-config-general-parameters",
+          "targetReferences": [
+            {
+              "targetKind": "field",
+              "targetId": "tp-firmware-version"
+            },
+            {
+              "targetKind": "field",
+              "targetId": "tp-firmware-version-complement"
+            }
+          ],
+          "evidenceRefs": [
+            "common-fw-ap-fwconfig-general-parameters",
+            "gen-flash-bin-v2-51927-golden",
+            "standard-merge-alias-51917-to-51927"
+          ]
+        },
+        {
+          "bindingId": "dpcmi-inspection",
+          "structureId": "dpcmi",
+          "targetReferences": [
+            {
+              "targetKind": "field",
+              "targetId": "jira-low"
+            },
+            {
+              "targetKind": "field",
+              "targetId": "dp-major"
+            },
+            {
+              "targetKind": "field",
+              "targetId": "dp-minor"
+            },
+            {
+              "targetKind": "field",
+              "targetId": "jira-high"
+            }
+          ],
+          "evidenceRefs": [
+            "adr-0039-owner-accepted-2026-07-26",
+            "gen-flash-bin-v2-51927-golden",
+            "standard-merge-alias-51917-to-51927"
+          ]
+        }
+      ],
+      "evidenceRefs": [
+        "adr-0039-owner-accepted-2026-07-26",
+        "gen-flash-bin-v2-51927-golden",
+        "standard-merge-alias-51917-to-51927",
+        "dp-replace-owner-decision-2026-07-20"
+      ]
+    },
+    {
+      "viewId": "nt51927-standard-merge-256k-full-image-metadata",
+      "mapId": "nt51927-standard-merge-256k",
+      "memberIds": [
+        "NT51927"
+      ],
+      "metadataBindings": [
+        {
+          "bindingId": "firmware-config-general-parameters-inspection",
+          "structureId": "firmware-config-general-parameters",
+          "targetReferences": [
+            {
+              "targetKind": "field",
+              "targetId": "tp-firmware-version"
+            },
+            {
+              "targetKind": "field",
+              "targetId": "tp-firmware-version-complement"
+            }
+          ],
+          "evidenceRefs": [
+            "common-fw-ap-fwconfig-general-parameters",
+            "gen-flash-bin-v2-51927-golden",
+            "standard-merge-alias-51917-to-51927"
+          ]
+        },
+        {
+          "bindingId": "dpcmi-inspection",
+          "structureId": "dpcmi",
+          "targetReferences": [
+            {
+              "targetKind": "field",
+              "targetId": "jira-low"
+            },
+            {
+              "targetKind": "field",
+              "targetId": "dp-major"
+            },
+            {
+              "targetKind": "field",
+              "targetId": "dp-minor"
+            },
+            {
+              "targetKind": "field",
+              "targetId": "jira-high"
+            }
+          ],
+          "evidenceRefs": [
+            "adr-0039-owner-accepted-2026-07-26",
+            "gen-flash-bin-v2-51927-golden",
+            "standard-merge-alias-51917-to-51927"
+          ]
+        }
+      ],
+      "evidenceRefs": [
+        "adr-0039-owner-accepted-2026-07-26",
+        "gen-flash-bin-v2-51927-golden",
+        "standard-merge-alias-51917-to-51927",
+        "dp-replace-owner-decision-2026-07-20"
+      ]
+    }
   ]
 }

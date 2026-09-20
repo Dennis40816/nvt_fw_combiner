@@ -1,9 +1,9 @@
 {
   "schemaVersion": "1.0",
   "bundleId": "nt51919-nt51929-nt51932-general-merge-logical-candidate",
-  "bundleVersion": "0.10.5-family-reference.1",
+  "bundleVersion": "1.1.10-full-image-metadata.1",
   "hashAlgorithm": "sha256-rfc8785-entry-array-v1",
-  "contentHash": "6436c668b48899524e731cf897244144e1dff39d64c75ff886d90a7408448d14",
+  "contentHash": "54f5c973b51b99acf3447d2909fbc22270df52129d5aadaecf464b92cdcf5bd8",
   "trustAnchorBindingId": "built-in-profile-bundle-v2",
   "entries": [
     {
@@ -25,28 +25,28 @@
       "kind": "firmware-family",
       "path": "families/nt51929-nt51932.json",
       "schemaId": "https://example.invalid/nfc/schemas/firmware-family-v1.schema.json",
-      "contentHash": "31ffcdce64e01854f5362c0a50d7d7970968d3d2b09bdc327467af9a6f93ab69"
+      "contentHash": "1b29079e469ac1dff0b50b06a35e8e302e3f89b1dc4c1aef293f1f1668ee1728"
     },
     {
       "entryId": "nt51919-general-merge-logical-candidate-profile",
       "kind": "composition-profile",
       "path": "profiles/nt51919-general-merge-logical-candidate.json",
       "schemaId": "https://example.invalid/nfc/schemas/composition-profile-v2.schema.json",
-      "contentHash": "7727a074840d26c5e7b60f3f294339c96f3ec59d673c8be068883c7557fe1ff2"
+      "contentHash": "9356106409db59b792560b745941c9ac41112e844a2038fe469ffeede59b470c"
     },
     {
       "entryId": "nt51929-general-merge-logical-candidate-profile",
       "kind": "composition-profile",
       "path": "profiles/nt51929-general-merge-logical-candidate.json",
       "schemaId": "https://example.invalid/nfc/schemas/composition-profile-v2.schema.json",
-      "contentHash": "5924e05b5c18bee055e5b14d071ecd489b949a6a7dca2f19f285001f28f30bd1"
+      "contentHash": "367c3fd690ff4dfd94cc85e7ba48f55e26aeae86b9b1b18e169823d15b739e64"
     },
     {
       "entryId": "nt51932-general-merge-logical-candidate-profile",
       "kind": "composition-profile",
       "path": "profiles/nt51932-general-merge-logical-candidate.json",
       "schemaId": "https://example.invalid/nfc/schemas/composition-profile-v2.schema.json",
-      "contentHash": "c45a7600f171cd902ac47b8409244179055e32efbff9178243ab15fb48d1d99d"
+      "contentHash": "6f8b9b2df6e83ba30847810780959d1701ea22a90c146f5051122111243621d9"
     }
   ]
 }

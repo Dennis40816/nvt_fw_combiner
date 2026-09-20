@@ -84,7 +84,8 @@ public sealed partial class CanonicalCapabilityCatalogMigrationTests
                 return CanonicalCapabilityDisclosureInventory.Create(
                     definitions,
                     dynamicDefinitions);
-            });
+            },
+            CanonicalFullImageMetadataInventory.Create);
 
         CapabilityCatalogLoadResult result = source.Load(
             TestContext.Current.CancellationToken);
@@ -183,7 +184,8 @@ public sealed partial class CanonicalCapabilityCatalogMigrationTests
                 return CanonicalCompiledRouteInventory.Resolve(identity);
             },
             CanonicalDynamicRouteInventory.CreateResolver,
-            CanonicalCapabilityDisclosureInventory.Create);
+            CanonicalCapabilityDisclosureInventory.Create,
+            CanonicalFullImageMetadataInventory.Create);
         var catalog = new CanonicalCapabilityCatalog(source);
 
         List<CanonicalCapabilityCatalogLoadUpdate> seed = await ReadUpdatesAsync(
@@ -232,7 +234,8 @@ public sealed partial class CanonicalCapabilityCatalogMigrationTests
                 ? throw new InvalidDataException("Route materialization failed after progress.")
                 : CanonicalCompiledRouteInventory.Resolve(identity),
             CanonicalDynamicRouteInventory.CreateResolver,
-            CanonicalCapabilityDisclosureInventory.Create);
+            CanonicalCapabilityDisclosureInventory.Create,
+            CanonicalFullImageMetadataInventory.Create);
         var catalog = new CanonicalCapabilityCatalog(source);
 
         CapabilityCatalogReloadResult seed = TerminalResult(await ReadUpdatesAsync(
