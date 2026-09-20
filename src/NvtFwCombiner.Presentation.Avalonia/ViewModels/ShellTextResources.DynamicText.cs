@@ -240,8 +240,8 @@ internal sealed partial class ShellTextResources
         {
             CompiledInputVersionKind.DpA => "DP1",
             CompiledInputVersionKind.DpB => "DP2",
-            CompiledInputVersionKind.TpA => "TPA",
-            CompiledInputVersionKind.TpB => "TPB",
+            CompiledInputVersionKind.TpA => "TPA Version",
+            CompiledInputVersionKind.TpB => "TPB Version",
             CompiledInputVersionKind.TpReferenceFirmwareConfig =>
                 throw new ArgumentOutOfRangeException(nameof(kind), kind, null),
             _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, null),

@@ -27,7 +27,7 @@ public sealed partial class XamlControlStyleContractTests
     private static readonly Uri ProductionFirmwareSlotStylesUri = new(
         "avares://NvtFwCombiner.Presentation.Avalonia/Styles/FirmwareSlotExperienceStyles.axaml");
 
-    /// <summary>Selected-file facts use one fixed identity/four-column-facts/Browse anatomy.</summary>
+    /// <summary>Identity has its own row above responsive facts, with Browse in the action column.</summary>
     [Fact]
     public void FirmwareSlotCardUsesApprovedFixedFourColumnFactLayout()
     {
@@ -55,18 +55,19 @@ public sealed partial class XamlControlStyleContractTests
         XElement additionalFacts = Assert.Single(document.Descendants(), element =>
             HasXamlName(element, "AdditionalFirmwareFactsHost"));
 
-        Assert.Equal("280,*", (string?)layout.Attribute("ColumnDefinitions"));
-        Assert.Equal("*,Auto,Auto", (string?)layout.Attribute("RowDefinitions"));
+        Assert.Equal("*", (string?)layout.Attribute("ColumnDefinitions"));
+        Assert.Equal("Auto,Auto,Auto,Auto", (string?)layout.Attribute("RowDefinitions"));
         Assert.Equal("16,20,16,16", (string?)layout.Attribute("Margin"));
         Assert.Equal("72", (string?)layout.Attribute("MinHeight"));
         Assert.Equal("{DynamicResource NfcSpace12}", (string?)identity.Attribute("Spacing"));
         Assert.Equal("Grid", header.Name.LocalName);
         Assert.Equal("Auto,*", (string?)header.Attribute("ColumnDefinitions"));
         Assert.Equal("0", (string?)identity.Attribute("Grid.Column"));
-        Assert.Equal("1", (string?)factsRegion.Attribute("Grid.Column"));
+        Assert.Equal("0", (string?)factsRegion.Attribute("Grid.Column"));
+        Assert.Equal("1", (string?)factsRegion.Attribute("Grid.Row"));
         Assert.Equal("Center", (string?)factsRegion.Attribute("VerticalAlignment"));
-        Assert.Equal("1", (string?)additionalFacts.Attribute("Grid.Row"));
-        Assert.Equal("1", (string?)additionalFacts.Attribute("Grid.Column"));
+        Assert.Equal("2", (string?)additionalFacts.Attribute("Grid.Row"));
+        Assert.Equal("0", (string?)additionalFacts.Attribute("Grid.Column"));
         Assert.Equal("1", (string?)actions.Attribute("Grid.Column"));
         Assert.Equal("10", (string?)actions.Attribute("Spacing"));
         Assert.Equal("Center", (string?)actions.Attribute("VerticalAlignment"));
@@ -155,7 +156,7 @@ public sealed partial class XamlControlStyleContractTests
             FirmwareSlotCard.FormatBrowseActionLabel(browseLabel, slotTitle));
     }
 
-    /// <summary>Supported window widths keep four equal left-filled fact columns and a shared center axis.</summary>
+    /// <summary>Wide cards keep title and badge together, with four equal fact columns underneath.</summary>
     [AvaloniaTheory]
     [InlineData(900)]
     [InlineData(1180)]
@@ -213,7 +214,8 @@ public sealed partial class XamlControlStyleContractTests
 
         Assert.True(layout.Bounds.Width <= width);
         Assert.True(browseOrigin.X + browse.Bounds.Width <= selector.Bounds.Width);
-        Assert.Equal(280, identity.Bounds.Width, precision: 3);
+        Assert.Equal(layout.Bounds.Width, identity.Bounds.Width, precision: 3);
+        Assert.True(factsRegion.Bounds.Top >= identity.Bounds.Bottom + 11.5);
         Assert.Equal(factsRegion.Bounds.Width, primaryFacts.Bounds.Width, precision: 3);
         double browseCenter = browseOrigin.Y + (browse.Bounds.Height / 2);
         Assert.InRange(Math.Abs((selector.Bounds.Height / 2) - browseCenter), 0, 0.5);
@@ -241,8 +243,8 @@ public sealed partial class XamlControlStyleContractTests
         Assert.Equal(36, clear.Bounds.Width, precision: 3);
         Assert.Equal(36, clear.Bounds.Height, precision: 3);
         Assert.True(clear.IsVisible);
-        // The approved Information padding increases the card without stretching its text.
-        Assert.Equal(154, selector.Bounds.Height, precision: 3);
+        Point factsOrigin = Assert.IsType<Point>(factsRegion.TranslatePoint(default, selector));
+        Assert.True(factsOrigin.Y + factsRegion.Bounds.Height <= selector.Bounds.Height);
         Assert.Null(browse.FocusAdorner);
         Assert.NotNull(browse.Theme);
         browse.ApplyTemplate();
@@ -415,7 +417,6 @@ public sealed partial class XamlControlStyleContractTests
                 browseSurface.TranslatePoint(default, selector));
             Point clearOrigin = Assert.IsType<Point>(clear.TranslatePoint(default, selector));
             Point identityOrigin = Assert.IsType<Point>(identity.TranslatePoint(default, selector));
-            double factsCenter = factsOrigin.Y + (facts.Bounds.Height / 2);
             double browseCenter = browseSurfaceOrigin.Y + (browseSurface.Bounds.Height / 2);
             double clearCenter = clearOrigin.Y + (clear.Bounds.Height / 2);
             // The owner now wants actions centered on the complete card, including its filename.
@@ -426,20 +427,7 @@ public sealed partial class XamlControlStyleContractTests
             Assert.Equal(36, clear.Bounds.Height);
             Assert.InRange(clearOrigin.X, 0, selector.Bounds.Width - clear.Bounds.Width);
             Assert.InRange(Math.Abs(browseCenter - selectorCenter), 0, 0.5);
-            if (width >= 820)
-            {
-                double identityCenter = identityOrigin.Y + (identity.Bounds.Height / 2);
-                Assert.InRange(Math.Abs(factsCenter - identityCenter), 0, 0.5);
-                double selectorOffset = browseCenter - selectorCenter;
-                Assert.True(
-                    Math.Abs(selectorOffset) <= 0.5,
-                    $"Browse surface offset {selectorOffset:F3}; selector={selector.Bounds}; " +
-                    $"layout={layout.Bounds}; card={card.Bounds}.");
-            }
-            else
-            {
-                Assert.True(factsOrigin.Y >= identityOrigin.Y + identity.Bounds.Height);
-            }
+            Assert.True(factsOrigin.Y >= identityOrigin.Y + identity.Bounds.Height + 11.5);
 
             double selectedBrowseX = browseSurfaceOrigin.X;
             double selectedActionsWidth = actions.Bounds.Width;

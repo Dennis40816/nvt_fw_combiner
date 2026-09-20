@@ -450,7 +450,7 @@ public sealed partial class ShellNavigationSystemTests
             FirmwareSlotViewModel pendingSlot = viewModel.Merge.AbMergeSlots.Single(static slot => slot.SlotId == "tp-a-input");
             Assert.Null(pendingSlot.CurrentInspectionProjection!.AbMergeFacts!.EventBufferFormat);
             Assert.DoesNotContain(pendingSlot.FirmwareFacts, fact => fact.Label == viewModel.Text.EventBufferVersionLabel);
-            if (!preCompilation) { Assert.Contains(pendingSlot.FirmwareFacts, static fact => fact.Label == "TPA"); }
+            if (!preCompilation) { Assert.Contains(pendingSlot.FirmwareFacts, static fact => fact.Label == "TPA Version"); }
             byte[] replacement = await File.ReadAllBytesAsync(workspace.PathFor("b.bin"), TestContext.Current.CancellationToken);
             string replacementPath = workspace.Write("replacement-a.bin", replacement);
             await viewModel.WorkflowSession.SetSlotFileAsync("tp-a-input", replacementPath, TestContext.Current.CancellationToken);

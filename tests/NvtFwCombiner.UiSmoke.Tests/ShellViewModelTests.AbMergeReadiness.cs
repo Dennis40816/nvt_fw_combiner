@@ -187,7 +187,7 @@ public sealed partial class FirmwareInspectionSlotTests
             TestContext.Current.CancellationToken);
         FirmwareSlotViewModel slot = viewModel.Merge.MergeSlots.Single(static candidate =>
             candidate.SlotId == CompositionAddressSpaceIds.TpAInput);
-        Assert.Contains(slot.FirmwareFacts, static fact => fact.Label == "TPA" && fact.Value == "T81-00");
+        Assert.Contains(slot.FirmwareFacts, static fact => fact.Label == "TPA Version" && fact.Value == "T81-00");
         Assert.Contains(slot.FirmwareFacts, static fact => fact.Label == "Common FW Version");
         Assert.Contains(slot.FirmwareFacts, static fact => fact.Label == "PID" && fact.Value == "0x5102");
 

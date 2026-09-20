@@ -19,8 +19,8 @@
           DragDrop.Drop="SlotDrop_OnDrop" Tag="{Binding SlotId}">
     <Grid RowDefinitions="Auto,Auto" ColumnDefinitions="*,Auto">
       <Border Grid.RowSpan="2" Grid.ColumnSpan="2" Classes="dropZoneOverlay" />
-      <Grid x:Name="SlotLayout" Margin="16,20,16,16" MinHeight="72" ColumnDefinitions="280,*"
-            ColumnSpacing="{DynamicResource NfcSpace24}" RowDefinitions="*,Auto,Auto">
+      <Grid x:Name="SlotLayout" Margin="16,20,16,16" MinHeight="72" ColumnDefinitions="*"
+            RowDefinitions="Auto,Auto,Auto,Auto">
         <StackPanel x:Name="SlotIdentity" Grid.Column="0" VerticalAlignment="Center"
                     Spacing="{DynamicResource NfcSpace12}">
           <Grid x:Name="SlotHeaderContent" ColumnDefinitions="Auto,*" ColumnSpacing="{DynamicResource NfcSpace12}">
@@ -37,8 +37,6 @@
               <StackPanel Margin="0,0,10,0" VerticalAlignment="Center" Spacing="6">
                 <TextBlock x:Name="SlotTitle" Classes="firmwareSlotTitle"
                            Text="{Binding Title}" TextWrapping="Wrap" />
-                <TextBlock x:Name="SlotSubtitle" Classes="mutedText" IsVisible="{Binding HasSubtitle}"
-                           Text="{Binding Subtitle}" TextWrapping="Wrap" />
               </StackPanel>
               <WrapPanel VerticalAlignment="Center">
                 <Label Classes="compactBadge slotBadge firmwareSlotRequirement availableInput"
@@ -78,6 +76,8 @@
               </WrapPanel>
             </WrapPanel>
           </Grid>
+          <TextBlock x:Name="SlotSubtitle" Classes="mutedText" IsVisible="{Binding HasSubtitle}"
+                     Text="{Binding Subtitle}" TextWrapping="Wrap" />
           <StackPanel>
             <StackPanel.IsVisible>
               <MultiBinding Converter="{x:Static converters:BoolConverters.Or}">
@@ -108,7 +108,7 @@
                      IsVisible="{Binding IsSemanticStateDetailExpanded}"
                      Text="{Binding SemanticStateAutomationText}" TextWrapping="Wrap" />
         </StackPanel>
-        <StackPanel x:Name="SlotFactsRegion" Grid.Column="1" VerticalAlignment="Center" IsVisible="{Binding HasFirmwareFacts}"
+        <StackPanel x:Name="SlotFactsRegion" Grid.Row="1" Grid.Column="0" Margin="0,12,0,0" VerticalAlignment="Center" IsVisible="{Binding HasFirmwareFacts}"
                     Spacing="{DynamicResource NfcSpace8}">
           <ItemsControl x:Name="PrimaryFirmwareFactsHost" HorizontalAlignment="Stretch"
                         IsVisible="{Binding HasFirmwareFacts}" ItemsSource="{Binding PrimaryFirmwareFacts}">
@@ -122,7 +122,7 @@
             </ItemsControl.ItemTemplate>
           </ItemsControl>
         </StackPanel>
-        <ItemsControl x:Name="AdditionalFirmwareFactsHost" Grid.Row="1" Grid.Column="1" Margin="0,8,0,0"
+        <ItemsControl x:Name="AdditionalFirmwareFactsHost" Grid.Row="2" Grid.Column="0" Margin="0,8,0,0"
                       HorizontalAlignment="Stretch" IsVisible="{Binding IsAdditionalFirmwareFactsExpanded}"
                       ItemsSource="{Binding AdditionalFirmwareFacts}">
           <ItemsControl.ItemsPanel>
@@ -134,7 +134,7 @@
             <StaticResource ResourceKey="FirmwareSlotInformationFactTemplate" />
           </ItemsControl.ItemTemplate>
         </ItemsControl>
-        <StackPanel x:Name="SlotAdditionalFactsRegion" Grid.Row="2" Grid.ColumnSpan="2"
+        <StackPanel x:Name="SlotAdditionalFactsRegion" Grid.Row="3"
                     Margin="0,8,0,0" IsVisible="{Binding HasAdditionalFirmwareFacts}">
           <ToggleButton AutomationProperties.Name="{Binding AdditionalFirmwareFactsLabel}" Classes="quietDisclosure"
                         Content="{Binding AdditionalFirmwareFactsLabel}" HorizontalAlignment="Left"

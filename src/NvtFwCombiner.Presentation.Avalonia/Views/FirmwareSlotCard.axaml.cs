@@ -86,17 +86,6 @@ public sealed partial class FirmwareSlotCard : UserControl
         }
 
         _isCompactLayout = compact;
-        SlotLayout.ColumnDefinitions = new ColumnDefinitions(compact ? "*" : "280,*");
-        SlotLayout.RowDefinitions = new RowDefinitions(compact ? "Auto,Auto,Auto,Auto" : "*,Auto,Auto");
-
-        Grid.SetColumn(SlotFactsRegion, compact ? 0 : 1);
-        Grid.SetRow(SlotFactsRegion, compact ? 1 : 0);
-        SlotFactsRegion.Margin = compact ? new Thickness(0, 12, 0, 0) : default;
-        Grid.SetRow(SlotAdditionalFactsRegion, compact ? 3 : 2);
-        Grid.SetColumn(SlotAdditionalFactsRegion, 0);
-        Grid.SetColumnSpan(SlotAdditionalFactsRegion, compact ? 1 : 2);
-        Grid.SetRow(AdditionalFirmwareFactsHost, compact ? 2 : 1);
-        Grid.SetColumn(AdditionalFirmwareFactsHost, compact ? 0 : 1);
         SetCurrentValue(FactColumnCountProperty, compact ? 2 : 4);
     }
 
