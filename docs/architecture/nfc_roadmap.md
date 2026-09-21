@@ -118,7 +118,7 @@ protected review/CI and candidate publication gates remain required.
 | `1.1.9` | **Long-name failure/recovery first, then Toolchain Runtime selection, remaining Settings conveniences and CtrlRAM AB intake**: fix issue #434 with edit-time visible errors, recovery to the last accepted valid name on invalid commit, and safe handling of BIN/Bundle/staging names. Assess removal of the product's total-path cap separately from the filesystem component limit. Add **Settings > Config > Toolchain** for detection and user selection of available compatible VC++ runtimes, including newer installed versions; see the linked Toolchain handoff for admission/readiness and verification questions. Record/reconcile the owner-provided CtrlRAM AB reference and prepare its contract/evidence questions for completion before `1.2.0`. Inventory other user-adjustable preferences and justified reset/import/export conveniences through the `1.1.6` Settings owner. Arbitrary maps, CRC/ranges, safety overrides and support promotion are outside ordinary Settings. |
 | `1.1.10` (required before `1.2.0`; owner scope update 2026-09-20) | **CtrlRAM AB Replace, affected shared-contract extraction and DP Replace retirement**. Retain the NT51932 Perfect family／NT51950 Partial family intake and explicit Common/Desay/topology evidence. Share canonical AB format/layout ownership, preserve independent page instances, and detach shared DPCMI/Perfect-family dependencies before retiring DP Replace. Bank/source/version and fixed-Reference decisions, unresolved firmware rules, implementation and verification evidence are tracked in the [1.1.10 delivery checklist](../ui/v1.1.10-delivery.md). No filename-based AB detection or blanket family promotion. |
 | `1.2.0` | **Launcher first development tranche**: current defect/security/evidence inventory plus actual bounded remediation, not only planning. Not the full Launcher release or production activation. Before release, refresh public NT51950 DP Perspective, Desay DP Perspective and Event Buffer ID/name material. |
-| `1.2.1` | **Residual Family/Profile/state ownership convergence**: distinguish IC identity, family, topology/IC Count, variant, input snapshots and page drafts. The shared DPCMI/Perfect-family and page-contract work required by DP retirement moves to `1.1.10`; do not repeat completed migration. Preserve valid existing reuse; no wholesale profile rewrite. |
+| `1.2.1` | **Python Combiner replacement plus residual Family/Profile/state ownership convergence**: replace the current legacy Combiner with the owner's Python implementation after compatibility validation, and assess a dedicated B-bank CRC/postbuild mode; see the [2026-09-21 intake](#121-python-combiner-intake--2026-09-21). Retain the existing identity/family/topology/variant/input-snapshot/page-draft convergence work. Shared DPCMI/Perfect-family and page-contract work required by DP retirement remains in `1.1.10`; preserve completed reuse and avoid a wholesale profile rewrite. |
 | `1.2.2` | **Remaining UI I/O and Report persistence audit work** in the audit allocation below. DP Replace retirement and its compatibility verification move to `1.1.10` by owner decision on 2026-09-20; no replacement feature scope is implied. |
 | `1.2.3` | **CLI and deterministic Desktop automation** through existing Application/startup owners: workflow coverage, load-report/tab/state/capture/exit, actionable argument errors. Prioritize this before remaining broad UI acceptance. |
 | `1.2.4` | **First-entry and page flow**: IC/context lifetime, invalidation, Cancel/Back and remaining per-page custom-option density, using approved previews. Do not reopen completed slot/Memory Layout styling. |
@@ -2290,6 +2290,40 @@ An ADR must first define public contracts, migration/deletion milestones,
 repository trust boundary and rollback. Do not duplicate NVT FW Combiner's
 managed-version semantics or move firmware facts, composition, profiles,
 Golden authority or product-specific support policy into the extracted owner.
+
+## 1.2.1 Python Combiner intake — 2026-09-21
+
+Owner requested these TODOs for `1.2.1`; this is planning intake, not a tool
+binding change or an approved new firmware mode. Existing `1.2.1` allocations
+remain; the current `1.1.10` / planned `1.2.0` AB Replace work stays separate.
+
+- [ ] Replace the current legacy Combiner with
+  [Dennis40816/nvt_combiner](https://github.com/Dennis40816/nvt_combiner), the
+  Python implementation that can be packaged as `Combiner.exe`. Intake source:
+  `d7b08b92d1e566a0fc4066005e3e058d60ecd25f`, product version `2.0.0.1`, legacy
+  console banner `1.13.0.0`; the deployment candidate must be selected and pinned
+  during implementation. Inventory every currently used mode/argument contract,
+  compare complete outputs against the fixed legacy tool and applicable owner
+  Goldens, and verify package/runtime readiness, failures and rollback. Reuse
+  the existing processor adapter and host write-range audit; preserve independent
+  legacy reference evidence. The Python repo's existing differential records
+  have been read, not rerun or accepted as coverage of every current route.
+- [ ] Assess a dedicated B-bank CRC/postbuild mode in that repo. Compare a
+  CRC-only operation with a complete local-address normalization → existing
+  postbuild → B-address restoration/family CRC operation. CRC-only may be
+  insufficient: the observed 929 failure occurs at the Backup copy before CRC.
+  Evaluate explicit profile-bound bank geometry, exact read/write bounds,
+  preservation of B's own unselected content/version and byte-for-byte retention
+  of the unselected bank. Cover 929's three relocated fields outside Header CRC
+  separately from 950/951's relocated fields within Header CRC; do not introduce
+  one unconditional CRC rule. Mode name, arguments, CRC-only versus full
+  postbuild scope, implementation owner and integration contract remain pending.
+
+The linked repo currently records AB Merge and range-safety evidence, not
+complete AB CtrlRAM Replace validation. Final design and implementation
+admission follow that evaluation; this intake does not create GitHub issues,
+modify either runtime or promote support. The related current delivery entry is
+[1.1.10](../ui/v1.1.10-delivery.md#121-combiner-後續規劃--2026-09-21).
 
 ## Explicit owner-unallocated queue
 
