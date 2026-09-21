@@ -57,7 +57,7 @@ public sealed partial class AbMergeRuntimeAdmissionTests
                 AbMergeAddressSpaceId: CompositionAddressSpaceIds.DpAbInput),
             new(
                 CompositionAddressSpaceIds.TpAInput,
-                workspace.Write("tp-tail.bin", new byte[TpLength + 1]),
+                workspace.Write("tp-tail.bin", CreateTpImage(0x81, 0, chipCount: 1, length: TpLength + 1)),
                 AbMergeAddressSpaceId: CompositionAddressSpaceIds.TpAInput),
         ];
 
@@ -69,8 +69,9 @@ public sealed partial class AbMergeRuntimeAdmissionTests
             AuthoringSlotLifecycle.Error,
             results[CompositionAddressSpaceIds.DpAbInput].InputSlotStatus!.InspectionLifecycle);
         Assert.Equal(
-            AuthoringSlotLifecycle.Warning,
+            AuthoringSlotLifecycle.Verified,
             results[CompositionAddressSpaceIds.TpAInput].InputSlotStatus!.InspectionLifecycle);
+        Assert.Equal(new ByteRange(0, TpLength), results[CompositionAddressSpaceIds.TpAInput].InputSlotStatus!.Inspection!.AcceptedSnapshotRange);
     }
 
     /// <summary>Readiness observations and Build naming share one raw AB version decoder.</summary>

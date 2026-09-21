@@ -106,6 +106,7 @@ public sealed class Nt51950Nt51951V2StandardMergeGoldenTests
             ["dp-input"] = CreatePattern(capacity, 0x31),
             ["tp-input"] = CreatePattern(CustomerInfoStart, 0xC7),
         };
+        WriteSyntheticTpBackup(inputs["tp-input"]);
         CompiledComposition v2 = V2StandardMergeGoldenTestSupport.CompileV2(
             V2StandardMergeGoldenTestSupport.LoadDeployedCatalog(BundleDirectory, BundleContentHash),
             profileId,
@@ -133,6 +134,7 @@ public sealed class Nt51950Nt51951V2StandardMergeGoldenTests
     {
         byte[] dp = CreatePattern(0x40000, 0x31);
         byte[] tp = CreatePattern(0x3C000, 0xC7);
+        WriteSyntheticTpBackup(tp);
         var inputs = new Dictionary<string, byte[]>(StringComparer.Ordinal)
         {
             ["dp-input"] = dp,
@@ -150,6 +152,15 @@ public sealed class Nt51950Nt51951V2StandardMergeGoldenTests
 
         Assert.Equal(CompositionExecutionStatus.Succeeded, result.Status);
         Assert.Equal(ConstructDpPerspectiveOutput(dp, tp), result.OutputBytes.ToArray());
+    }
+
+    private static void WriteSyntheticTpBackup(byte[] tp)
+    {
+        // Metadata lies outside the TP overlay; independent output bytes and hashes remain unchanged.
+        tp[0x1000] = 0x81;
+        tp[0x1001] = 0x7E;
+        tp[0x1017] = 1;
+        "\0NVT"u8.CopyTo(tp.AsSpan(0x1FFC));
     }
 
     private static byte[] CreatePattern(int length, byte salt)

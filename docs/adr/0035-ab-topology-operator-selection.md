@@ -116,6 +116,14 @@ IC Count cannot be read or is zero. AB additionally requires identical TPA and
 TPB counts, including selector-free models and cascade pairs such as 2/3.
 Diagnostics distinguish unreadable count, a count read as zero, and an AB pair
 mismatch with both actual values. Only AB performs the pair comparison.
+The single-input rule applies to the compiled `TpFirmware` artifact class,
+through shared Application inspection and execution admission. Raw
+`CtrlRamReplacement`, `ReferenceImage`, DP and arbitrary General artifacts do
+not acquire TP semantics from a filename or from containing recognizable bytes.
+The shared issue codes are `firmware-config.chip-count-required` (read zero)
+and `firmware-config.chip-count-unreadable` (unknown); each carries its input
+address-space identity. Two invalid AB inputs retain both issues and nullable
+observations. AB pair mismatch remains `AB_TP_TOPOLOGY_MISMATCH`.
 This supersedes the earlier informational-only count admission policy, without
 adding hidden selectors or making count observations an output-map authority.
 Source-prefix boundaries, profile support, bank geometry and postbuild writes

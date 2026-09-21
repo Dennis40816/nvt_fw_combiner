@@ -56,9 +56,9 @@ public sealed partial class AbMergeRuntimeAdmissionTests
         Assert.False(b.InputSlotStatus!.BlocksBuild);
     }
 
-    /// <summary>Accepted unreadable TP version metadata publishes canonical Warning without blocking Build.</summary>
+    /// <summary>Even a lone TP slot blocks when canonical count cannot be read.</summary>
     [Fact]
-    public async Task WorkbenchLoadInspectionPublishesUnknownVersionWarning()
+    public async Task WorkbenchLoadInspectionBlocksUnreadableTpCount()
     {
         using var workspace = TempWorkspace.Create("nfc-ab-load-unknown-version");
 
@@ -67,15 +67,15 @@ public sealed partial class AbMergeRuntimeAdmissionTests
             CompositionAddressSpaceIds.TpAInput,
             workspace.Write("tp-a-unknown.bin", new byte[TpLength]));
 
-        Assert.Equal(AuthoringSlotLifecycle.Warning, inspection.InputSlotStatus!.InspectionLifecycle);
+        Assert.Equal(AuthoringSlotLifecycle.Error, inspection.InputSlotStatus!.InspectionLifecycle);
         Assert.Equal(
-            InputArtifactInspectionIssueCodes.AbVersionMetadataUnknown,
+            "firmware-config.chip-count-unreadable",
             inspection.InputSlotStatus.InspectionIssueCode);
         Assert.Equal(
-            CompiledInputArtifactInspectionNextAction.ReviewUnknownVersion,
+            CompiledInputArtifactInspectionNextAction.SelectCompatibleInput,
             inspection.InputSlotStatus.InspectionNextAction);
-        Assert.False(inspection.InputSlotStatus.BlocksBuild);
-        Assert.False(Assert.Single(inspection.AbMergeFacts!.Versions).IsKnown);
+        Assert.True(inspection.InputSlotStatus.BlocksBuild);
+        Assert.True(inspection.InputSlotStatus.AcceptedBytes.GetValueOrDefault().IsEmpty);
     }
 
     /// <summary>NT51950 Cascade projects DP versions from the compiled map CMI regions.</summary>

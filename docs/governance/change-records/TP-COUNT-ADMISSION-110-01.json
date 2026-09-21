@@ -1,0 +1,54 @@
+{
+  "schemaVersion": 2,
+  "taskId": "TP-COUNT-ADMISSION-110-01",
+  "capability": "Require readable positive IC Count for every compiled TP firmware input without applying AB pair rules to other workflows",
+  "integrationBase": "b9a94a2bab1a7bc05129b3438f0c0afeaaf45ad4",
+  "risk": "R2",
+  "kind": "behavior",
+  "state": "design-active",
+  "mutablePaths": [
+    "src/NvtFwCombiner.Application/FlashMaps/FirmwareConfigChipCountDiagnostics.cs",
+    "src/NvtFwCombiner.Application/InputInspection/CompiledInputArtifactInspectionService.cs",
+    "src/NvtFwCombiner.Application/Composition/CompositionRunService.Inputs.cs",
+    "src/NvtFwCombiner.Application/Composition/AbMergeTopologyAdmission.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ShellTextResources.DynamicText.cs",
+    "tests/NvtFwCombiner.Application.Tests/FlashMaps/FirmwareConfigChipCountDiagnosticsTests.cs",
+    "tests/NvtFwCombiner.Application.Tests/Composition/AbMergeTopologyAdmissionTests.cs",
+    "tests/NvtFwCombiner.Bootstrap.Tests/TpCountAdmissionTests.cs",
+    "tests/NvtFwCombiner.Bootstrap.Tests/AbMergeTopologyRuntimeAdmissionTests.cs",
+    "tests/NvtFwCombiner.Bootstrap.Tests/AbMergeFormatAdmissionTests.PrimaryDiscovery.cs",
+    "tests/NvtFwCombiner.Bootstrap.Tests/HeadlessInputSlotInspectionContractTests.StandardUniform.cs",
+    "tests/NvtFwCombiner.UiSmoke.Tests/ShellViewModelTests.TpCount.cs",
+    "tests/NvtFwCombiner.UiSmoke.Tests/ShellViewModelTests.AbMergeReadiness.cs",
+    "docs/adr/0035-ab-topology-operator-selection.md",
+    "tests/NvtFwCombiner.Bootstrap.Tests/AbMergeRuntimeAdmissionTests.cs",
+    "tests/NvtFwCombiner.Bootstrap.Tests/AbMergeRuntimeAdmissionTests.InputInspection.cs",
+    "tests/NvtFwCombiner.Bootstrap.Tests/AbMergeCanonicalReadinessTests.cs",
+    "tests/NvtFwCombiner.Application.Tests/Authoring/AuthoringInputSlotInspectionTests.cs",
+    "tests/NvtFwCombiner.Bootstrap.Tests/Nt51950Nt51951V2StandardMergeGoldenTests.cs",
+    "SPEC.md",
+    "src/NvtFwCombiner.Application/Authoring/CompiledAuthoringWorkflow.Contracts.cs"
+  ],
+  "implementationOwner": "root",
+  "searchEvidence": [
+    "Local source b4e99a73. Owner requires zero/unreadable errors for all TP slots and pair equality only in AB. Preserve owner CHANGELOG draft.",
+    "Independent reviewer traced existing compiled slot ArtifactClass.TpFirmware, Application inspector, runtime missing BlocksBuild consumption, and generic UI error projection. MetadataPlanAuthority is not count admission authority. Raw CtrlRAM and ReferenceImage are distinct typed classes.",
+    "Extend FirmwareConfigChipCountDiagnostics; shared positive/readable assessment from canonical Backup reader. Inspector validates only accepted prefix after size admission. Runtime consumes the same typed result before execution; UI renders codes. AB pair classification stays in existing AB owner."
+  ],
+  "semanticOwner": "Application compiled input inspection and FirmwareConfigChipCountDiagnostics own single TP positive/readable admission; AbMergeTopologyAdmission alone owns AB pair equality.",
+  "terminalContract": "Every compiled TpFirmware slot errors for unreadable or zero count, retaining distinct diagnostics and accepted range/hash; runtime blocks before processor/output. Non-TP artifacts are excluded. Different positive counts only cause pair errors in AB. No firmware bytes, maps, ranges or support promotion changes.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "/root/layout_ownership_review",
+    "outcome": "findings-incorporated",
+    "evidence": "Independent reviewer /root/layout_ownership_review approved the existing four-path core and caller closure. Shared assessment is reused by AB; typed count issue transport must preserve range/hash and not shadow length or other errors. New tests cover pure facts, authoring/runtime parity, unrelated classes, UI diagnostic/recovery and AB-only pairing. Test migration admission: existing unreadable single TP warning expectation becomes explicit count error; tail-only-warning case receives a valid positive Backup in its retained prefix, preserving exact tail/size assertions. AB legacy unreadable code expectations use the new shared stable code. Reviewer approved synthetic typed TP four/eight-byte tests to error while retaining geometry/hash assertions, and generic uniform-warning/immutable-byte cases to use existing StandardMerge DpFirmware fixture without weakening byte assertions or modifying factory. AB candidate count result must preserve nullable actual counts. Independent reviewer admitted the 7 synthetic 950/951 Golden inputs: add valid positive Backup at0x1000 and marker0x1FFC outside copiedTP[0xA000,0x37000); preserve all existing literaloutputhashes, independentexpectedbytes, DPpatterns and realGoldeninputs. ExistingUI950size test replaces cross-familyGolden input with valid syntheticTP; originalmethod had noGoldenbyteassertion, all command/report assertions retained. Synchronize current SPEC count-admission bullet with existing accepted ADR0035 amendment; preserve dated pilot history, no new product decision. Before edit independent reviewer approved preparation.Issues forwarding status.Inspection.AdmissionIssue unchanged, retaining existing priority/order/fallback. Five red cases verify explicit count message and address-space identity for CLI/preparation."
+  },
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": {
+    "reviewer": null,
+    "outcome": "pending",
+    "evidence": ""
+  }
+}

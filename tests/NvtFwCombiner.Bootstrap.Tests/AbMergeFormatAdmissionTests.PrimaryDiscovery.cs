@@ -7,6 +7,23 @@ namespace NvtFwCombiner.Bootstrap.Tests;
 
 public sealed partial class AbMergeFormatAdmissionTests
 {
+    /// <summary>Blocking pair assessment retains each observed count rather than erasing valid metadata.</summary>
+    [Theory]
+    [InlineData(false, 2, 0, 2, 1)]
+    [InlineData(true, 2, null, 2, 1)]
+    [InlineData(true, 0, null, 0, 2)]
+    public void CommonPrefixCountFailuresPreserveBothObservations(bool unreadableA, byte countB, int? expectedA, int expectedB, int issueCount)
+    {
+        byte[] a = Tp(0x84, 0);
+        if (unreadableA) { a[0x36FFC] = 0xFF; }
+        AbMergeTopologyAdmissionResult result = AbMergeTopologyAdmission.AssessCommonAcceptedPair(InputCandidates("NT51951", null), a, Tp(0x84, countB), null);
+        Assert.Equal<int?>(expectedA, result.TpAChipCount);
+        Assert.Equal<int?>(expectedB, result.TpBChipCount);
+        Assert.Equal(issueCount, result.Issues.Count);
+        Assert.Equal(CompositionAddressSpaceIds.TpAInput, result.Issues[0].OperationId);
+        Assert.All(result.Issues, static issue => Assert.Equal(CompositionIssueSeverity.Error, issue.Severity));
+    }
+
     /// <summary>Format discovery and execution use the same prefix; ignored tail markers never supply count.</summary>
     [Theory]
     [InlineData(false)]
@@ -27,7 +44,7 @@ public sealed partial class AbMergeFormatAdmissionTests
         Assert.Equal(discovery.Succeeded, runtime.Succeeded);
         if (backupOnlyInTail)
         {
-            Assert.All(discovery.Issues, issue => Assert.Equal("AB_TP_FIRMWARE_CONFIG_BACKUP_INVALID", issue.Code));
+            Assert.All(discovery.Issues, issue => Assert.Equal("firmware-config.chip-count-unreadable", issue.Code));
         }
         else
         {

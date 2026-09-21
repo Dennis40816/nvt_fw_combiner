@@ -17,6 +17,7 @@ public sealed partial class HeadlessInputSlotInspectionContractTests
         byte[] tp = new byte[0x40000];
         Array.Fill(dp, (byte)fill);
         Array.Fill(tp, (byte)fill);
+        WritePositiveTpBackup(tp);
         IReadOnlyList<FirmwareInspectionSnapshotResult> results = StandardBatch("NT51929", dp, tp);
         AssertWarning(results, "dp", "DP_UNIFORM_CONTENT_WARNING", dp);
         AssertWarning(results, "tp", "TP_UNIFORM_CONTENT_WARNING", tp);
@@ -34,6 +35,7 @@ public sealed partial class HeadlessInputSlotInspectionContractTests
         byte[] tp = new byte[0x37000];
         tp[1] = 1;
         tp.AsSpan(0xA000, 0x2D000).Fill(0xA5);
+        WritePositiveTpBackup(tp);
         IReadOnlyList<FirmwareInspectionSnapshotResult> results = StandardBatch(ic, dp, tp);
         AssertWarning(results, "tp", "TP_UNIFORM_CONTENT_WARNING", tp);
         Assert.Equal(AuthoringSlotLifecycle.Verified, results.Single(static result => result.InspectionId == "dp").Inspection.InputSlotStatus!.InspectionLifecycle);
@@ -68,6 +70,14 @@ public sealed partial class HeadlessInputSlotInspectionContractTests
             [new("dp", "dp.bin", StandardMergeAddressSpaceId: CompositionAddressSpaceIds.DpInput),
              new("tp", "tp.bin", StandardMergeAddressSpaceId: CompositionAddressSpaceIds.TpInput)],
             path => path == "dp.bin" ? dp : tp);
+    }
+
+    private static void WritePositiveTpBackup(byte[] tp)
+    {
+        tp[0x1000] = 0x81;
+        tp[0x1001] = 0x7E;
+        tp[0x1017] = 1;
+        "\0NVT"u8.CopyTo(tp.AsSpan(0x1FFC));
     }
 
     private static void AssertWarning(IReadOnlyList<FirmwareInspectionSnapshotResult> results, string id, string code, byte[] source)

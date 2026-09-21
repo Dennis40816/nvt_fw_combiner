@@ -14,8 +14,8 @@ public sealed partial class FirmwareInspectionSlotTests
     [InlineData("NT51951", "different", "AB_TP_TOPOLOGY_MISMATCH")]
     [InlineData("NT51929", "zero", "firmware-config.chip-count-required")]
     [InlineData("NT51951", "zero", "firmware-config.chip-count-required")]
-    [InlineData("NT51929", "unreadable", "AB_TP_FIRMWARE_CONFIG_BACKUP_INVALID")]
-    [InlineData("NT51951", "unreadable", "AB_TP_FIRMWARE_CONFIG_BACKUP_INVALID")]
+    [InlineData("NT51929", "unreadable", "firmware-config.chip-count-unreadable")]
+    [InlineData("NT51951", "unreadable", "firmware-config.chip-count-unreadable")]
     public async Task AbTpCountErrorsBlockSlotsAndRecover(string ic, string defect, string issueCode)
     {
         using var workspace = TempWorkspace.Create("ab-count-ui");
@@ -105,15 +105,17 @@ public sealed partial class FirmwareInspectionSlotTests
     [Fact]
     public async Task PreviewNt51950AcceptsTpInputWithinMaximum()
     {
-        using var golden = StandardMergeGoldenManifest.Load();
-        JsonElement goldenCase = golden.CaseByIc("51926");
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-950-negative");
         MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
         viewModel.ShowMergeCommand.Execute(null);
         viewModel.WorkflowSession.SelectedIc = "NT51950";
-        golden.CopyInputFilesToMergeSlots(viewModel, workspace, goldenCase);
+        await viewModel.WorkflowSession.SetSlotFileAsync(CompositionSlotIds.MergeDp,
+            workspace.Write("dp.bin", new byte[0x40000]), TestContext.Current.CancellationToken);
+        await viewModel.WorkflowSession.SetSlotFileAsync(CompositionSlotIds.MergeTp,
+            workspace.Write("tp.bin", CreateUiAbTpImage(0x81, 0, 1, 4, 1, 0x5102)), TestContext.Current.CancellationToken);
 
-        Assert.True(viewModel.Merge.PreviewMergeCommand.CanExecute(null));
+        Assert.True(viewModel.Merge.PreviewMergeCommand.CanExecute(null),
+            string.Join(" | ", viewModel.Merge.MergeSlots.Select(static slot => slot.InputInspectionStatus)));
         Assert.True(viewModel.Merge.CanBuildMerge);
 
         await viewModel.Merge.PreviewMergeCommand.ExecuteAsync(null);

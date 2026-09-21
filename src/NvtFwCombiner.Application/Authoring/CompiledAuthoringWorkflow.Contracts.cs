@@ -96,7 +96,7 @@ public sealed record CompiledAuthoringSessionPreparation(
                         .Where(static status =>
                             status.BlocksBuild &&
                             status.InspectionIssueCode is not null)
-                        .Select(static status => new CompositionIssue(
+                        .Select(static status => status.Inspection?.AdmissionIssue ?? new CompositionIssue(
                             status.InspectionIssueCode!,
                             "The selected input failed its compiled artifact inspection.",
                             status.SlotId)),

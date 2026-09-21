@@ -72,8 +72,8 @@ public sealed class AbMergeTopologyAdmissionTests
         Assert.Null(result.TpAChipCount);
         Assert.Null(result.TpBChipCount);
         Assert.Collection(result.Issues,
-            issue => AssertIssue(issue, "AB_TP_FIRMWARE_CONFIG_BACKUP_INVALID", "TPA IC Count is unreadable: no valid canonical NVT FWConfig Backup.", CompositionAddressSpaceIds.TpAInput),
-            issue => AssertIssue(issue, "AB_TP_FIRMWARE_CONFIG_BACKUP_INVALID", "TPB IC Count is unreadable: no valid canonical NVT FWConfig Backup.", CompositionAddressSpaceIds.TpBInput));
+            issue => AssertIssue(issue, "firmware-config.chip-count-unreadable", "tp-a-input: IC Count is unreadable; no unambiguous valid canonical NVT FWConfig Backup.", CompositionAddressSpaceIds.TpAInput),
+            issue => AssertIssue(issue, "firmware-config.chip-count-unreadable", "tp-b-input: IC Count is unreadable; no unambiguous valid canonical NVT FWConfig Backup.", CompositionAddressSpaceIds.TpBInput));
     }
 
     /// <summary>A decoded zero differs from unavailable metadata and precedes topology mismatch.</summary>
@@ -87,19 +87,28 @@ public sealed class AbMergeTopologyAdmissionTests
         Assert.False(result.Succeeded);
         Assert.Equal((byte)a, result.TpAChipCount);
         Assert.Equal((byte)b, result.TpBChipCount);
-        AssertIssue(Assert.Single(result.Issues), "firmware-config.chip-count-required",
-            $"IC Count Required: FWConfig Chip_Num at offset 0x17 is 0. {(a == 0 ? "TPA" : "TPB")} IC Count was read as 0; AB Code requires positive, identical TP counts. Set Chip_Num correctly before Build.", "ab-topology");
+        string[] slots = [.. new[] { (a, CompositionAddressSpaceIds.TpAInput), (b, CompositionAddressSpaceIds.TpBInput) }
+            .Where(static pair => pair.Item1 == 0).Select(static pair => pair.Item2)];
+        Assert.Equal(slots, result.Issues.Select(static issue => issue.OperationId));
+        foreach (CompositionIssue issue in result.Issues)
+        {
+            AssertIssue(issue, "firmware-config.chip-count-required",
+                $"IC Count Required: FWConfig Chip_Num at offset 0x17 is 0. {issue.OperationId}: IC Count was read as 0; TP firmware inputs require a positive count. Set Chip_Num correctly before Build.", issue.OperationId!);
+        }
     }
 
-    /// <summary>A bad Backup takes precedence over a valid zero on the other input.</summary>
+    /// <summary>Unreadable and zero remain separate causes on their respective input slots.</summary>
     [Fact]
     public void InvalidPrecedesZeroOnOtherInput()
     {
         AbMergeTopologyAdmissionResult result = AbMergeTopologyAdmission.Assess([], Tp(0), Selection(1));
         Assert.Null(result.TpAChipCount);
         Assert.Equal((byte)0, result.TpBChipCount);
-        AssertIssue(Assert.Single(result.Issues), "AB_TP_FIRMWARE_CONFIG_BACKUP_INVALID",
-            "TPA IC Count is unreadable: no valid canonical NVT FWConfig Backup.", CompositionAddressSpaceIds.TpAInput);
+        Assert.Equal(2, result.Issues.Count);
+        AssertIssue(result.Issues[0], "firmware-config.chip-count-unreadable",
+            "tp-a-input: IC Count is unreadable; no unambiguous valid canonical NVT FWConfig Backup.", CompositionAddressSpaceIds.TpAInput);
+        Assert.Equal("firmware-config.chip-count-required", result.Issues[1].Code);
+        Assert.Equal(CompositionAddressSpaceIds.TpBInput, result.Issues[1].OperationId);
     }
 
     /// <summary>Both single/cascade mismatch directions preserve issue priority and subjects.</summary>

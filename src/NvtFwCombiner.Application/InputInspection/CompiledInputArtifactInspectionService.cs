@@ -1,5 +1,6 @@
 using System.Security.Cryptography;
 using NvtFwCombiner.Application.Composition;
+using NvtFwCombiner.Application.FlashMaps;
 using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Application.InputInspection;
@@ -76,6 +77,9 @@ public sealed record CompiledInputArtifactInspectionResult(
 {
     /// <summary>Optional path-free evidence from the same compiled validation evaluation.</summary>
     public InputDiagnosticEvidence? DiagnosticEvidence { get; init; }
+
+    /// <summary>Typed blocking TP admission cause, retaining source geometry for diagnostics only.</summary>
+    public CompositionIssue? AdmissionIssue { get; init; }
 
     /// <summary>Number of immutable source bytes excluded from the execution snapshot.</summary>
     public long IgnoredTrailingBytes => IgnoredTrailingRange?.Length ?? 0;
@@ -178,7 +182,19 @@ public static class CompiledInputArtifactInspectionService
                     $"Compiled input address space '{addressSpaceId}' has no supported inspection projection.",
                     nameof(addressSpaceId)),
             };
-        return ApplyInputLoadValidation(composition, addressSpaceId, sourceBytes, inspection);
+        return !inspection.BlocksBuild && slot.ArtifactClass == CompiledInputArtifactClass.TpFirmware &&
+            inspection.AcceptedSnapshotRange is { } accepted &&
+            FirmwareConfigChipCountDiagnostics.AssessPositive(
+                sourceBytes.Span.Slice(checked((int)accepted.Start), checked((int)accepted.Length)), addressSpaceId, out _) is { } countIssue
+            ? inspection with
+            {
+                Severity = CompiledInputArtifactInspectionSeverity.Blocking,
+                IssueCode = countIssue.Code,
+                AdmissionIssue = countIssue,
+                BlocksBuild = true,
+                NextAction = CompiledInputArtifactInspectionNextAction.SelectCompatibleInput,
+            }
+            : ApplyInputLoadValidation(composition, addressSpaceId, sourceBytes, inspection);
     }
 
     private static CompiledInputArtifactInspectionResult InspectDeclaredPrefix(

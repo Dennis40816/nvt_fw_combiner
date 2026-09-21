@@ -12,10 +12,10 @@ public sealed partial class AbMergeRuntimeAdmissionTests
     [Theory]
     [InlineData("NT51929", "different", "AB_TP_TOPOLOGY_MISMATCH")]
     [InlineData("NT51929", "zero", "firmware-config.chip-count-required")]
-    [InlineData("NT51929", "unreadable", "AB_TP_FIRMWARE_CONFIG_BACKUP_INVALID")]
+    [InlineData("NT51929", "unreadable", "firmware-config.chip-count-unreadable")]
     [InlineData("NT51951", "different", "AB_TP_TOPOLOGY_MISMATCH")]
     [InlineData("NT51951", "zero", "firmware-config.chip-count-required")]
-    [InlineData("NT51951", "unreadable", "AB_TP_FIRMWARE_CONFIG_BACKUP_INVALID")]
+    [InlineData("NT51951", "unreadable", "firmware-config.chip-count-unreadable")]
     public async Task DirectAbExecutionRejectsInvalidCountsAsync(string icId, string defect, string issueCode)
     {
         using var workspace = TempWorkspace.Create("nfc-ab-direct-count-admission");
@@ -123,7 +123,7 @@ public sealed partial class AbMergeRuntimeAdmissionTests
         Assert.False(result.Succeeded);
         Assert.All(result.Issues, issue =>
         {
-            Assert.Equal("AB_TP_FIRMWARE_CONFIG_BACKUP_INVALID", issue.Code);
+            Assert.Equal("firmware-config.chip-count-unreadable", issue.Code);
             Assert.Contains("unreadable", issue.Message, StringComparison.Ordinal);
         });
         Assert.Equal(2, result.Issues.Count);

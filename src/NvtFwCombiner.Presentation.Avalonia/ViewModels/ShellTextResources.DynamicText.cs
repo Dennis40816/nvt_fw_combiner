@@ -3,6 +3,7 @@
 
 using NvtFwCombiner.Application.Authoring;
 using NvtFwCombiner.Application.Capabilities;
+using NvtFwCombiner.Application.FlashMaps;
 using NvtFwCombiner.Application.InputInspection;
 using NvtFwCombiner.Application.Metadata;
 using NvtFwCombiner.Domain.Composition;
@@ -251,6 +252,12 @@ internal sealed partial class ShellTextResources
         ArgumentNullException.ThrowIfNull(status);
         return status.InspectionLifecycle switch
         {
+            AuthoringSlotLifecycle.Error when status.InspectionIssueCode == FirmwareConfigChipCountDiagnostics.RequiredIssueCode => SelectLanguage(
+                "Error: TP IC Count was read as 0. Check FWConfig Chip_Num (offset 0x17).",
+                "錯誤：TP IC Count 讀到 0，請檢查 FWConfig Chip_Num（offset 0x17）。"),
+            AuthoringSlotLifecycle.Error when status.InspectionIssueCode == FirmwareConfigChipCountDiagnostics.UnreadableIssueCode => SelectLanguage(
+                "Error: TP IC Count is unreadable. Check the canonical NVT FWConfig Backup and its validity.",
+                "錯誤：TP IC Count 讀不到，請檢查 canonical NVT FWConfig Backup 與其有效性。"),
             AuthoringSlotLifecycle.Error when StringComparer.Ordinal.Equals(
                 status.InspectionIssueCode,
                 InputArtifactInspectionIssueCodes.ExtensionNotAccepted) => SelectLanguage(
