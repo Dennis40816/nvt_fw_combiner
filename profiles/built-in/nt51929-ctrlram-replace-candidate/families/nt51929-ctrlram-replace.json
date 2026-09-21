@@ -139,7 +139,7 @@
           "parentRegionId": "flash-image",
           "owner": "system",
           "kind": "firmware-config",
-          "range": { "start": 188416, "length": 124 },
+          "range": { "start": 188416, "length": 4096 },
           "writeConstraint": "explicit-range",
           "alignment": 1
         },
@@ -148,7 +148,7 @@
           "parentRegionId": "flash-image",
           "owner": "unknown",
           "kind": "unmapped",
-          "range": { "start": 188540, "length": 73604 },
+          "range": { "start": 192512, "length": 69632 },
           "writeConstraint": "forbidden",
           "alignment": 1
         }

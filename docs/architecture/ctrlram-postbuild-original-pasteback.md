@@ -456,3 +456,13 @@ write authority, admit an AB Replace route, prove unselected-bank preservation,
 or certify a new Golden. Follow-up implementation can use this existing source
 and the existing AB family owner; a second request for the same source is no
 longer necessary. No new product tests were run for this source/document correction.
+
+Subsequent local implementation on 2026-09-21 corrects the existing Single
+family Backup declaration to `[0x2E000,0x2F000)` while preserving the 124-byte
+metadata schema and adjacent-byte protection. Real NF replacement, the complete
+Backup copy/marker, output difference bounds, immutable inputs, original Golden
+and alias execution, and affected route/compiler regressions pass in the
+118-case targeted run. See the
+[delivery evidence](../ui/v1.1.10-delivery.md#nt51929nt51919-single-backup-修正--2026-09-21).
+This fixes the NF write-authority mismatch; it does not implement AB Replace or
+turn the prior characterization into an independent AB output Golden.

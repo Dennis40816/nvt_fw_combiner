@@ -1,0 +1,51 @@
+{
+  "schemaVersion": 2,
+  "taskId": "CTRLRAM-929-BACKUP-110-01",
+  "capability": "Declare the existing NT51919/NT51929 single-bank Combiner 4 KiB FWConfig Backup write envelope",
+  "integrationBase": "b9a94a2bab1a7bc05129b3438f0c0afeaaf45ad4",
+  "risk": "R3",
+  "kind": "behavior",
+  "state": "design-active",
+  "mutablePaths": [
+    "profiles/built-in/nt51929-ctrlram-replace-candidate/families/nt51929-ctrlram-replace.json",
+    "profiles/built-in/nt51929-ctrlram-replace-candidate/profiles/nt51919-ctrlram-replace-fw200-single.json",
+    "profiles/built-in/nt51929-ctrlram-replace-candidate/profiles/nt51929-ctrlram-replace-fw200-single.json",
+    "profiles/built-in/nt51929-ctrlram-replace-candidate/profiles/nt51919-ctrlram-replace-fw1x-cascade.json",
+    "profiles/built-in/nt51929-ctrlram-replace-candidate/profiles/nt51929-ctrlram-replace-fw1x-cascade.json",
+    "profiles/built-in/nt51929-ctrlram-replace-candidate/profile-bundle.json",
+    "profiles/built-in/package-trust-index.json",
+    "tests/NvtFwCombiner.Bootstrap.Tests/CtrlRamV2PlanClosureProfileTests.cs",
+    "tests/NvtFwCombiner.Bootstrap.Tests/Nt51929CtrlRamFw200SingleEvidenceTests.cs",
+    "tests/NvtFwCombiner.Bootstrap.Tests/Nt51929CtrlRamFw200SingleEvidenceTests.Backup.cs",
+    "docs/contracts/canonical-capability-policy-v1.json",
+    "src/NvtFwCombiner.Infrastructure/Capabilities/BuiltInCanonicalCapabilityPolicy.cs",
+    "tests/NvtFwCombiner.Bootstrap.Tests/CtrlRamDirectTpGoldenExecutionTests.cs",
+    "testdata/golden/canonical/manifest.json",
+    "scripts/package.ps1",
+    "scripts/smoke-release.ps1",
+    "tests/scripts/test_release_package_policy.py"
+  ],
+  "implementationOwner": "/root",
+  "searchEvidence": [
+    "Recovered owner Combiner 1.13 source archive 0c86ad1d292db279c613b0f23a2e4cef8c2422950c56d1c22fdd1130660b47b8; Combiner.c hash 7fb6551894d5a71f7df42b6b7c2bda99f35cbcc13f5c01713dc0ae596ebb5ea8, lines 1515-1526 copy 4096 bytes then set the NVT marker",
+    "Retained real-tool NF experiment 2ed41f9f7e2c4266ba920ec9c4409640 rejects the derived 0x2EA00 write; current family grants only [0x2E000,0x2E07C)",
+    "Existing RuntimeReferenceReplace postbuild narrowing retains canonical non-CtrlRAM write authority; no host, compiler, operation or runtime route change is needed",
+    "CanonicalDynamicRouteInventory.Resolve producer observed by SharedBackupFamilyRetainsExactRoutePins on a698cc8a plus admitted Backup profile patch: {\"2d1e60e07fb5668d4121b77ce1e6ec313dae89b2304969275b2760373bb2f755\": \"c3c532a1855cfbcac3b1a3d11c6c68b89407e97c0c4dac5cab01caa03cee61d9\", \"37c2bf75eff47b672497679413bc2f85ed63f14a697af239ab912a28926a0ee2\": \"f1b5ed745acd20ce7719c189bd9a5741bd4784ac7c77c4bf52967eb9876498ce\", \"94f713c823277f121f374c714e6c77e45c33bcc8f2b36b84efb288cca5bc65d5\": \"7d2fb62fcff68380282c8be747ed90963a8a800c7c436e46a317de93915fcd39\", \"bcd5c0dcec2cdc541408a7407f4a1f4d585d7ad4dc258249a7e0c7c554e720e0\": \"5fdc0b2612f2671a6cb31c9610b19574236df05960c22619b86b8f8dda830236\"}; policy raw SHA256 ffad43db514d4ab603303d9758d4628855b65df0b79affb18cfb573f512e72af -> 4b1427a8538d623cb7d262b3f7c2145545f77eb0ed3838b733b5ef6ef5890c05"
+  ],
+  "semanticOwner": "The existing nt51929-ctrlram-replace canonical family owns the FWConfig Backup region shared by NT51919 and NT51929",
+  "terminalContract": "Single region-set Backup authority expands from 124 to 4096 bytes at [0x2E000,0x2F000); adjacent tail remains forbidden. Metadata length remains 124. Existing staged processor and independent host audit enforce this declaration. Cascade, NT51950/NT51951 and AB support are unchanged",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "/root/layout_ownership_review",
+    "outcome": "approved",
+    "evidence": "2026-09-21 exact-scope R3 local admission after owner asked to derive and implement the source-backed fix. Preserve IDs, owner, constraint and unpublished versions; synchronize all content hashes. Require real NF byte and full Backup/marker checks, complete output difference bounds, both adjacent-byte refusals, original full Golden/alias hashes and existing closure regressions. No host allowlist shortcut, new AB route or Golden promotion. Firmware-owner/exact-head integration attestations remain separate. Scope delta approved by same independent reviewer: synchronize exact producer-derived NT51919/NT51929 Single/Cascade route identities, policy raw hash, two static test expectations and four Golden route associations including alias source fingerprint. Preserve evidence kinds, case references, original expected bytes/hashes and all publication decisions. Reexecute original full Single Golden and alias outputs; Cascade stays contract-only. Final auxiliary delta approved: literal policy raw SHA pins only in scripts/package.ps1, scripts/smoke-release.ps1 and tests/scripts/test_release_package_policy.py; keep closed allowlist, strict hash checks and all release behavior."
+  },
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": {
+    "reviewer": null,
+    "outcome": "pending",
+    "evidence": ""
+  }
+}

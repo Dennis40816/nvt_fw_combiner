@@ -220,10 +220,10 @@
       "evidenceId": "nt51919-ctrlram-replace-1-ic-nt51929-ctrlram-fw200-single-full-flash-evidence-v4",
       "kind": "approved-alias",
       "routeId": "route-7-nt51919-15-ctrlram-replace-4-1-ic-39-nt51929-ctrlram-fw200-single-full-flash",
-      "capabilityFingerprint": "37c2bf75eff47b672497679413bc2f85ed63f14a697af239ab912a28926a0ee2",
+      "capabilityFingerprint": "f1b5ed745acd20ce7719c189bd9a5741bd4784ac7c77c4bf52967eb9876498ce",
       "caseId": "nt51919-fw200-single-nt51929-alias",
       "sourceRouteId": "route-7-nt51929-15-ctrlram-replace-4-1-ic-39-nt51929-ctrlram-fw200-single-full-flash",
-      "sourceCapabilityFingerprint": "bcd5c0dcec2cdc541408a7407f4a1f4d585d7ad4dc258249a7e0c7c554e720e0",
+      "sourceCapabilityFingerprint": "5fdc0b2612f2671a6cb31c9610b19574236df05960c22619b86b8f8dda830236",
       "factScopeIds": [
         "nt51919-fw200-single-nt51929-alias:fact-1",
         "nt51919-fw200-single-nt51929-alias:fact-2",
@@ -235,7 +235,7 @@
       "evidenceId": "nt51919-ctrlram-replace-2-8-ic-nt51929-ctrlram-fw1x-cascade-full-flash-evidence-v4",
       "kind": "contract-only",
       "routeId": "route-7-nt51919-15-ctrlram-replace-6-2-8-ic-39-nt51929-ctrlram-fw1x-cascade-full-flash",
-      "capabilityFingerprint": "2d1e60e07fb5668d4121b77ce1e6ec313dae89b2304969275b2760373bb2f755",
+      "capabilityFingerprint": "c3c532a1855cfbcac3b1a3d11c6c68b89407e97c0c4dac5cab01caa03cee61d9",
       "contractReference": "profiles/built-in/nt51929-ctrlram-replace-candidate/profiles/nt51919-ctrlram-replace-fw1x-cascade.json"
     },
     {
@@ -561,7 +561,7 @@
       "evidenceId": "nt51929-ctrlram-replace-1-ic-nt51929-ctrlram-fw200-single-full-flash-evidence-v3",
       "kind": "direct-golden",
       "routeId": "route-7-nt51929-15-ctrlram-replace-4-1-ic-39-nt51929-ctrlram-fw200-single-full-flash",
-      "capabilityFingerprint": "bcd5c0dcec2cdc541408a7407f4a1f4d585d7ad4dc258249a7e0c7c554e720e0",
+      "capabilityFingerprint": "5fdc0b2612f2671a6cb31c9610b19574236df05960c22619b86b8f8dda830236",
       "caseId": "nt51929-fw200-single-auto-prj-594-20260717",
       "testReference": "tests/NvtFwCombiner.Bootstrap.Tests/Nt51929CtrlRamFw200SingleEvidenceTests.cs#V2ProducesLockedExactOutputWithCrcOnlyGoldenDeviationAsync"
     },
@@ -569,7 +569,7 @@
       "evidenceId": "nt51929-ctrlram-replace-2-8-ic-nt51929-ctrlram-fw1x-cascade-full-flash-evidence-v3",
       "kind": "contract-only",
       "routeId": "route-7-nt51929-15-ctrlram-replace-6-2-8-ic-39-nt51929-ctrlram-fw1x-cascade-full-flash",
-      "capabilityFingerprint": "94f713c823277f121f374c714e6c77e45c33bcc8f2b36b84efb288cca5bc65d5",
+      "capabilityFingerprint": "7d2fb62fcff68380282c8be747ed90963a8a800c7c436e46a317de93915fcd39",
       "contractReference": "profiles/built-in/nt51929-ctrlram-replace-candidate/profiles/nt51929-ctrlram-replace-fw1x-cascade.json"
     },
     {

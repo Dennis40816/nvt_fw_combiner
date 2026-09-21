@@ -390,7 +390,7 @@ public sealed partial class Nt51929CtrlRamFw200SingleEvidenceTests
         ByteRange[] expectedWrites = [
             new(0x7100, 4), new(0x7118, 4), new(NfStart, 1624), new(NormalStart, NormalLength),
             new(VnStart, VnMaximumLength), new(HeaderCopyStart, HeaderCopyLength),
-            new(0x2E000, FirmwareConfigLayout.RequiredLength),
+            new(0x2E000, 0x1000),
         ];
         Assert.Equal(expectedWrites, ReadRanges(session, "ProcessorAllowedWriteRanges"));
         string executable = session.GetProperty("ExecutedCommands")[0].GetProperty("ExecutablePath").GetString()!;
