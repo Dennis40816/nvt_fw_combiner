@@ -3,7 +3,11 @@
 Status: living investigation report, not a production support claim.
 Owner input gate: closed by the final 2026-07-18 intake; remaining parity,
 tool, route, and R2/R3 review gates are agent-owned.
-Last updated: 2026-07-21.
+Last updated: 2026-09-21 (AB source-evidence pointer; prior route history retained).
+
+AB extension investigation: [existing Combiner 1.13 source and address/CRC findings](ctrlram-postbuild-original-pasteback.md#recovered-existing-113-source--2026-09-21).
+The source is already in the ignored owner archive; the AB work no longer awaits
+another source upload. Runtime integration and exact output/write-range verification remain open.
 
 > **0.10.x target scope:** this report retains pre-#221 compatibility and
 > experiment history. NT51920, NT51925, NT51930, and NT51931 are retired

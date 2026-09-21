@@ -416,7 +416,43 @@ the allowed range or call the Normal control a fix for this NF failure.
 The final Windows filter `FullyQualifiedName~Nt51929Ab` passes **2/2**, zero
 skipped, including the existing first-half evidence test. This is successful
 characterization, not successful B runtime support or new Golden certification.
-To settle the production sequence, obtain a 1.13 specification/source or an
-independently validated B Replace input/output that resolves final stored
-addresses, CRC coverage and header-copy ordering; resolve the NF propagation
-authority before admitting NF replacement.
+At that checkpoint, source lookup had missed the ignored owner archive. The
+source findings below supersede the missing-source premise. Runtime integration,
+independent complete-output checks and exact NF propagation authority remain
+separate work.
+
+### Recovered existing 1.13 source — 2026-09-21
+
+The owner pointed out that this checkout already contains the 1.13 source.
+It is present under Git-ignored `.tmp/combiner-1.13-source/`, with the matching
+owner archive also in `.tmp/owner-archive/929-golden-combiner-intake/`.
+The previously inspected tracked `tddi-flash-header/Combiner.c` is a different,
+older source and was not a sufficient search of the available evidence.
+
+Provenance is already recorded in the
+[owner intake](../../testdata/golden/owner-handoff/combiner-and-51929/CASE.md).
+The nested `Combiner_1.13_SourceCode.7z` SHA-256 is
+`0c86ad1d292db279c613b0f23a2e4cef8c2422950c56d1c22fdd1130660b47b8`.
+The entry `firmware-merge-tool/Combiner/Combiner.c` was read directly from that
+archive and compared byte-for-byte with the existing extracted file; both hash
+to `7fb6551894d5a71f7df42b6b7c2bda99f35cbcc13f5c01713dc0ae596ebb5ea8`.
+The archived `.vcxproj` compiles `Combiner.c`; its `main` at line 2142 prints
+`Combiner version:1.13.0.0`. This establishes source provenance, not a claim of
+reproducible binary-build equivalence. No archive payload was added to Git.
+
+Source observations (line numbers refer to that exact C entry):
+
+| Path | Source evidence | Consequence for the experiment |
+| --- | --- | --- |
+| NT51929 uses the catalog's NT51932-based mode | `NT51932_CalculateDlmDiffCrcAndHeaderCrc`, lines 1469–1473, reads header start `0x7104` with size code `0x23`; `CRC8Alg` line 42 includes the end byte | Header CRC covers `[0x7104,0x7128)`, excluding address fields `0x7164/0x7168/0x716C` |
+| NT51932 AB assembly | `NT51932BasedMergeABMode`, lines 1658–1673, adds the B delta to the three main-header addresses and writes the output; it calls no CRC or header-copy routine | Normal postbuild followed by restoring only those addresses agrees with this source's assembly sequence; equal A/B CRCs and local copied addresses are not themselves a defect |
+| NT51950 AB assembly | `NT51950BasedMergeABMode`, lines 1930–1934, relocates ILM/DLM addresses then calls `NT51950_CalculateHeaderCrc` | Its header range is `[0xA100,0xA130)` (lines 1721–1727), including its address fields, so the 929 no-extra-CRC conclusion must not be generalized to 950 |
+| Local-B failure | `NT51932_MergeBinsThenInsertFwConfigAndEndFlag`, lines 1495–1520, allocates the local image and computes Backup destination from the stored DIFF address without a destination bound check | The observed 1-IC B control has length `0x40000`, DIFF address `0x6D100` and computed Backup destination `0x6E000`; the 4096-byte copy is outside its buffer even before CRC calculation. This is a concrete unsafe access explaining the crash, not a captured exception stack |
+| NF propagation | The same routine copies 4096 bytes from FWConfig source, then writes the final NVT marker | For the local control, `[0x1F200,0x20200)` is copied to `[0x2E000,0x2F000)`. NF byte `0x1FC00` is therefore copied to `0x2EA00`, exactly matching the retained host refusal |
+
+The source resolves the missing address/CRC-coverage explanation for these
+functions. It does not by itself widen the profile's 124-byte FWConfig Backup
+write authority, admit an AB Replace route, prove unselected-bank preservation,
+or certify a new Golden. Follow-up implementation can use this existing source
+and the existing AB family owner; a second request for the same source is no
+longer necessary. No new product tests were run for this source/document correction.
