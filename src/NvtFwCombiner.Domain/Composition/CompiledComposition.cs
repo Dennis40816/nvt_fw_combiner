@@ -34,6 +34,18 @@ public sealed partial class CompiledComposition
     /// <summary>Execution eligibility established by the compiler authority.</summary>
     public CompiledCompositionEligibility Eligibility { get; }
 
+    /// <summary>Closed local AB Replace candidate; parent support never certifies this new route.</summary>
+    public bool IsV2BankReplaceCandidate => Eligibility == CompiledCompositionEligibility.V2PlanCompiled &&
+        V2Details.Provenance.Context is RuntimeReferenceBankReplaceV2CompilationContext bank &&
+        ReferenceEquals(Plan, bank.CheckedPlan) && V2Details.CompositionKind == CompositionKind.Replace &&
+        V2Details.ExperienceId == ExperienceIds.CtrlRamReplace && V2Details.ProfileId == bank.Definition.DefinitionId &&
+        V2Details.ProfileVersion == bank.Definition.Version &&
+        V2Details.Provenance.Promotion.Stage == CompiledProfilePromotionStage.ExecutableCandidate &&
+        V2Details.Provenance.Promotion.Blockers.Any(static blocker => blocker.Kind == CompiledProfilePromotionBlockerKind.Golden) &&
+        V2Details.Provenance.Promotion.Blockers.Any(static blocker => blocker.Kind == CompiledProfilePromotionBlockerKind.HumanReview) &&
+        V2Details.Provenance.Promotion.Blockers.All(static blocker =>
+            blocker.Kind is CompiledProfilePromotionBlockerKind.Golden or CompiledProfilePromotionBlockerKind.HumanReview);
+
     /// <summary>
     /// Whether this profile-bundle candidate is the deliberately narrow AB Code
     /// function-open route: executable product behavior with only golden or

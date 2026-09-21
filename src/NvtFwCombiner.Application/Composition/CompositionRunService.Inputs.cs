@@ -28,6 +28,10 @@ public sealed partial class CompositionRunService
 
         foreach (string addressSpaceId in request.CompiledComposition.Plan.RequiredInputAddressSpaceIds)
         {
+            if (IsPrivateBankReference(request.CompiledComposition, addressSpaceId))
+            {
+                continue;
+            }
             await ReadRequiredBindingAsync(
                     request,
                     addressSpaceId,
@@ -40,6 +44,7 @@ public sealed partial class CompositionRunService
                 .ConfigureAwait(false);
         }
 
+        AddBankReferenceInputs(request.CompiledComposition, inputBytes, issues);
         ValidateV2InputLengthRequirements(request, inputBytes, issues, inputDiagnosticIssues);
         if (issues.Count == 0 && request.CompiledComposition.V2Details.Provenance.Context is not LogicalOutputV2CompilationContext)
         {

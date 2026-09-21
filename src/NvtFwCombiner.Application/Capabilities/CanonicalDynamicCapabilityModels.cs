@@ -127,6 +127,20 @@ public sealed record CanonicalCapabilityCompilationContract
         }
 
         V2CompilationProvenance provenance = composition.V2Details.Provenance;
+        if (provenance.Context is RuntimeReferenceBankReplaceV2CompilationContext bankContext)
+        {
+            if (!composition.IsV2BankReplaceCandidate ||
+                TrustedDefinitionSha256 != bankContext.Definition.ContentHash ||
+                CompilerSemanticId != CapabilityDefinitionFingerprint.RuntimeBankReplaceCompilerSemanticId ||
+                !_allowedMapVariantIds.Contains(bankContext.ResolvedMap.ImageMap.MapId, StringComparer.Ordinal) ||
+                memoryLayoutContext is not null || runtimeReferenceProof is null)
+            {
+                throw new ArgumentException("Composite bank compilation requires its own exact definition, map and proof.", nameof(composition));
+            }
+
+            ValidateSemanticBindings(runtimeReferenceProof.ValidateAndGetSemanticBindings(composition), composition);
+            return;
+        }
         if (!StringComparer.Ordinal.Equals(
                 TrustedDefinitionSha256,
                 provenance.Bundle.ContentHash))
@@ -278,6 +292,10 @@ public sealed record CanonicalCapabilityCompilationContract
     {
         ArgumentNullException.ThrowIfNull(identity);
         ArgumentNullException.ThrowIfNull(composition);
+        if (composition.V2Details.Provenance.Context is RuntimeReferenceBankReplaceV2CompilationContext)
+        {
+            throw new ArgumentException("Bank Replace requires an explicit composite definition and proof contract.", nameof(composition));
+        }
         string mapId = composition.V2Details.Provenance.Context is
             MapBoundV2CompilationContext mapContext
                 ? mapContext.ResolvedMap.ImageMap.MapId

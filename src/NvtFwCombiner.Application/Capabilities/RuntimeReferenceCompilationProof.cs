@@ -8,7 +8,7 @@ namespace NvtFwCombiner.Application.Capabilities;
 /// Application-owned proof that one reviewed postbuild plan is bound to the
 /// exact runtime-reference compilation which selected it.
 /// </summary>
-public sealed class RuntimeReferenceCompilationProof
+public sealed partial class RuntimeReferenceCompilationProof
 {
     private readonly ByteRange[] _allowedWriteRanges;
     private readonly WriteRangeSectionIdentity[] _allowedWriteRangeSections;
@@ -115,6 +115,10 @@ public sealed class RuntimeReferenceCompilationProof
         CompiledComposition composition)
     {
         ArgumentNullException.ThrowIfNull(composition);
+        if (_bankProofs is not null)
+        {
+            return ValidateBankProof(composition);
+        }
         ExternalProcessorInvocation invocation = GetSingleProcessor(composition);
         _ = StringComparer.Ordinal.Equals(
                 _compilationFingerprint,
@@ -142,6 +146,14 @@ public sealed class RuntimeReferenceCompilationProof
         CompiledComposition source,
         CompiledComposition bound)
     {
+        if (_bankProofs is not null)
+        {
+            _ = ValidateBankProof(source);
+            _ = ReferenceEquals(source.Plan, bound.Plan) && ReferenceEquals(source.V2Details, bound.V2Details)
+                ? true : throw new ArgumentException("Capability binding changed the checked bank compilation.", nameof(bound));
+            _ = ValidateBankAssembly(bound);
+            return new RuntimeReferenceCompilationProof(bound, _bankProofs);
+        }
         _ = ValidateAndGetSemanticBindings(source);
         ExternalProcessorInvocation invocation = GetSingleProcessor(bound);
         _ = StringComparer.Ordinal.Equals(

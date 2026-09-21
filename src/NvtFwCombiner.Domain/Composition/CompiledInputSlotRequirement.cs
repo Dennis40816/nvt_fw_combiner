@@ -270,6 +270,13 @@ public sealed class CompiledInputSlotRequirement
 
     /// <summary>Typed transient source normalization policy.</summary>
     public CompiledInputNormalization Normalization => _definition.Normalization;
+
+    internal CompiledInputSlotRequirement ResolveCompositeReferenceCapacity(long capacity)
+    {
+        DomainInvariant.Reject(ArtifactClass != CompiledInputArtifactClass.ReferenceImage,
+            "Only the reference slot resolves the composite output capacity.");
+        return new CompiledInputSlotRequirement(_definition, new CompiledExactResolvedMapCapacityInputLengthRequirement(capacity));
+    }
 }
 
 /// <summary>One immutable plan address-space binding supplied for one compiled input slot.</summary>

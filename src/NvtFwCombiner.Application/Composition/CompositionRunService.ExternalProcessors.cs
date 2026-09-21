@@ -47,7 +47,9 @@ public sealed partial class CompositionRunService
         try
         {
             processorRequest = new ExternalProcessorRequest(
-                $"{request.RunId}.{operation.OperationId}",
+                request.CompiledComposition.V2Details.Provenance.Context is RuntimeReferenceBankReplaceV2CompilationContext
+                    ? $"{request.RunId}.operation-{operation.Sequence}"
+                    : $"{request.RunId}.{operation.OperationId}",
                 invocation.ProcessorId,
                 invocation.ToolBindingId,
                 inputBytes,

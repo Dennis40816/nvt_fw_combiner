@@ -130,7 +130,7 @@ internal sealed class AcceptedSessionExecutionInputs
             .ToDictionary(static status => status.AddressSpaceId, StringComparer.Ordinal);
         if (!acceptedSession.HasCurrentInputInspection ||
             compiledComposition.Plan.RequiredInputAddressSpaceIds.Any(
-                addressSpaceId => !statuses.ContainsKey(addressSpaceId)))
+                addressSpaceId => !CompositionRunService.IsPrivateBankReference(compiledComposition, addressSpaceId) && !statuses.ContainsKey(addressSpaceId)))
         {
             throw new InvalidOperationException(
                 "Execution requires one current immutable inspection publication for every required input.");
@@ -139,6 +139,7 @@ internal sealed class AcceptedSessionExecutionInputs
         (InputArtifactBinding Binding, byte[] Bytes)[] accepted =
         [
             .. compiledComposition.Plan.RequiredInputAddressSpaceIds
+                .Where(addressSpaceId => !CompositionRunService.IsPrivateBankReference(compiledComposition, addressSpaceId))
                 .Order(StringComparer.Ordinal)
                 .Select(addressSpaceId =>
                 {

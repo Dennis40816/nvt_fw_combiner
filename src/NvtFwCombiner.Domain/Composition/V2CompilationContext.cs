@@ -55,12 +55,20 @@ public abstract class MapBoundV2CompilationContext : V2CompilationContext
     /// <summary>Creates one checked map-bound context with a closed purpose discriminator.</summary>
     protected MapBoundV2CompilationContext(
         FirmwareFamilyResolutionDefinition.ResolvedFirmwareImageMap resolvedMap)
+        : this(resolvedMap, RequireMap(resolvedMap).ModeId)
+    {
+    }
+
+    // Only closed Domain contexts may distinguish a composite use case from its source layout mode.
+    private protected MapBoundV2CompilationContext(
+        FirmwareFamilyResolutionDefinition.ResolvedFirmwareImageMap resolvedMap,
+        string compilationModeId)
         : base(
             RequireMap(resolvedMap).FamilyId,
             resolvedMap.FamilyVersion,
             resolvedMap.FamilyContentHash,
             resolvedMap.MemberId,
-            resolvedMap.ModeId)
+            compilationModeId)
     {
         ResolvedMap = resolvedMap;
     }

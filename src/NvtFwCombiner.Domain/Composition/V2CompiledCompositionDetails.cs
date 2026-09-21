@@ -241,6 +241,10 @@ public sealed class V2CompilationProvenance
     /// <summary>Trusted bundle-root identity recorded by the compiler.</summary>
     public ProfileBundleIdentity Bundle { get; }
 
+    /// <summary>Composite identity when Bundle/ProfileEntry identify the real layout source rather than the whole definition.</summary>
+    public BankReferenceReplaceDefinition? BankReplaceDefinition =>
+        (Context as RuntimeReferenceBankReplaceV2CompilationContext)?.Definition;
+
     /// <summary>Exact allowlisted composition-profile entry identity.</summary>
     public ProfileBundleEntryIdentity ProfileEntry { get; }
 
