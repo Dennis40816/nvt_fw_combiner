@@ -1,0 +1,40 @@
+{
+  "schemaVersion": 2,
+  "taskId": "CTRLRAM-AB-MEMORY-110-01",
+  "capability": "Project declared AB workspace effects and accepted content sources through the existing memory layout owner",
+  "integrationBase": "b9a94a2bab1a7bc05129b3438f0c0afeaaf45ad4",
+  "risk": "R2",
+  "kind": "behavior",
+  "state": "design-active",
+  "mutablePaths": [
+    "src/NvtFwCombiner.Application/MemoryLayout/MemoryLayoutProjector.cs",
+    "src/NvtFwCombiner.Application/MemoryLayout/MemoryLayoutProjector.ContentSource.cs",
+    "src/NvtFwCombiner.Application/MemoryLayout/MemoryLayoutProjector.Sections.cs",
+    "src/NvtFwCombiner.Application/MemoryLayout/MemoryLayoutProjector.Banks.cs",
+    "src/NvtFwCombiner.Application/MemoryLayout/MemoryLayoutProjector.LogicalCoverage.cs",
+    "tests/NvtFwCombiner.Bootstrap.Tests/AbCtrlRamMemoryLayoutTests.cs"
+  ],
+  "implementationOwner": "/root",
+  "searchEvidence": [
+    "MemoryLayoutProjector ApplyOperations currently selects outer-target writes, painting entire published banks and hiding local operations",
+    "ContentSourceProjection already traverses workspace writers; add private Reference aliases to accepted complete Reference",
+    "LogicalCoverage ResolveRetainedCompanionSlots is a direct projection-range consumer; pass the same display operation view",
+    "ProjectSections can use existing AB resolved map without inferring new firmware regions"
+  ],
+  "semanticOwner": "Application MemoryLayoutProjector",
+  "terminalContract": "Project checked bank-local write ranges into outer coordinates while retaining original operation objects, IDs, ordering and local ranges. Exclude only full-bank seed/publish transfer from coverage; retain them in plan/report. Shared content-source identity and companion grouping reuse existing projection owners. No execution plan, firmware byte or support change.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "/root/layout_ownership_review",
+    "outcome": "approved",
+    "evidence": "2026-09-22 /root/layout_ownership_review approved projection-only design and exact six-path scope, including direct LogicalCoverage consumer. Required A/B/Both ranges, untouched-bank kept coverage, source identity, original-operation identity, processor, partial companion and existing CtrlRamMemorySection tests. RED 3/3 recorded before production edit."
+  },
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": {
+    "reviewer": null,
+    "outcome": "pending",
+    "evidence": ""
+  }
+}

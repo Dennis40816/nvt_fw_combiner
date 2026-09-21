@@ -53,6 +53,14 @@ public static partial class MemoryLayoutProjector
 
                 _inputs.Add(spaceId, new MemoryLayoutContentSource(spaceId, slotId, identity));
             }
+            if (composition.V2Details.Provenance.Context is RuntimeReferenceBankReplaceV2CompilationContext banks &&
+                _inputs.TryGetValue(banks.Reference.ArtifactId, out MemoryLayoutContentSource? reference))
+            {
+                foreach (CompiledReferenceBank bank in banks.Banks)
+                {
+                    _inputs.Add(bank.Reference.ArtifactId, reference);
+                }
+            }
         }
 
         public MemoryLayoutContentSource? Initial(ByteRange range)

@@ -49,8 +49,7 @@ public static partial class MemoryLayoutProjector
 
     private static Dictionary<ProjectionRegion, string> ResolveRetainedCompanionSlots(
         IReadOnlyList<ProjectionRegion> primaryRegions,
-        IReadOnlyList<CompositionOperation> plannedOperations,
-        string outputSpaceId,
+        IReadOnlyList<ProjectedOperation> plannedOperations,
         Dictionary<string, string> slotsBySpace,
         Dictionary<string, AuthoringSlotState> statesById,
         CompositionKind compositionKind)
@@ -61,11 +60,9 @@ public static partial class MemoryLayoutProjector
             .Select(region => (
                 Region: region,
                 CandidateSlots: plannedOperations
-                    .Where(operation => StringComparer.Ordinal.Equals(
-                        operation.TargetSpaceId,
-                        outputSpaceId))
-                    .Where(operation => operation.DeclaredWriteRanges.Any(writeRange =>
+                    .Where(operation => operation.Ranges.Any(writeRange =>
                         region.Range.Overlaps(writeRange)))
+                    .Select(static operation => operation.Operation)
                     .Where(static operation => operation.SourceSpaceId is not null)
                     .Select(operation => slotsBySpace.TryGetValue(
                         operation.SourceSpaceId!,

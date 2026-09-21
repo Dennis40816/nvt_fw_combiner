@@ -438,15 +438,10 @@ public static partial class MemoryLayoutProjector
         ContentSourceProjection contentSources)
     {
         CompositionPlan plan = composition.Plan;
-        CompositionOperation[] planned =
-        [
-            .. plan.OrderedOperations.Where(operation =>
-                StringComparer.Ordinal.Equals(operation.TargetSpaceId, plan.OutputSpaceId)),
-        ];
+        ProjectedOperation[] planned = ProjectOperations(composition);
         Dictionary<ProjectionRegion, string> retainedCompanionSlots = ResolveRetainedCompanionSlots(
             primaryRegions,
             planned,
-            plan.OutputSpaceId,
             slotsBySpace,
             statesById,
             composition.V2Details.CompositionKind);
@@ -461,9 +456,9 @@ public static partial class MemoryLayoutProjector
             _ = boundaries.Add(region.Range.EndExclusive);
         }
 
-        foreach (CompositionOperation operation in planned)
+        foreach (ProjectedOperation operation in planned)
         {
-            foreach (ByteRange range in operation.DeclaredWriteRanges)
+            foreach (ByteRange range in operation.Ranges)
             {
                 _ = boundaries.Add(range.Start);
                 _ = boundaries.Add(range.EndExclusive);
@@ -479,7 +474,8 @@ public static partial class MemoryLayoutProjector
                 region => region.Range.Contains(range));
             CompositionOperation[] contributors =
             [
-                .. planned.Where(operation => OperationWritesRange(operation, range)),
+                .. planned.Where(operation => operation.Ranges.Any(write => write.Contains(range)))
+                    .Select(static operation => operation.Operation),
             ];
             if (contributors.Length == 0)
             {
@@ -517,6 +513,12 @@ public static partial class MemoryLayoutProjector
                 slotsBySpace.TryGetValue(dominant.SourceSpaceId, out string? boundSlot)
                     ? boundSlot
                     : null;
+            MemoryLayoutContentSource? contentSource = contentSources.After(range);
+            if (dominant.SourceSpaceId is not null &&
+                composition.V2Details.Provenance.Context is RuntimeReferenceBankReplaceV2CompilationContext)
+            {
+                sourceSlotId ??= contentSource?.SourceSlotId;
+            }
             bool sourceAdmitted = sourceSlotId is not null &&
                 IsAdmitted(statesById[sourceSlotId]);
             MemoryDiagnosticSeverity severity = sourceSlotId is not null &&
@@ -543,7 +545,7 @@ public static partial class MemoryLayoutProjector
                         operation.ExternalProcessorInvocation is not null)
                             ? MemoryProcessorEffect.DeclaredWrite
                             : MemoryProcessorEffect.None,
-                    contentSource: contentSources.After(range)));
+                    contentSource: contentSource));
         }
 
         return [.. segments];
