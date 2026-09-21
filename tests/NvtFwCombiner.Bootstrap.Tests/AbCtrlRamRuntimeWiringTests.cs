@@ -213,7 +213,7 @@ public sealed class AbCtrlRamRuntimeWiringTests
         Assert.Equal(0, writer.Count);
     }
 
-    private static CompiledComposition Compile(byte[] reference, bool a, bool b, bool editVersions = false,
+    internal static CompiledComposition Compile(byte[] reference, bool a, bool b, bool editVersions = false,
         CompiledValidationRequirement? extraTestValidation = null)
     {
         TrustedProfileBundleCatalog ab = V2StandardMergeGoldenTestSupport.LoadDeployedCatalog(
@@ -270,7 +270,7 @@ public sealed class AbCtrlRamRuntimeWiringTests
             d.ExperienceId, d.CompositionKind, provenance, d.InputContract, d.RegionAccessContract, d.OutputNamingRequirement, d.IcNumberInputMode));
     }
 
-    private static RuntimeReferenceCompilationProof Proof(CompiledComposition composition)
+    internal static RuntimeReferenceCompilationProof Proof(CompiledComposition composition)
     {
         var context = (RuntimeReferenceBankReplaceV2CompilationContext)composition.V2Details.Provenance.Context;
         return RuntimeReferenceCompilationProof.CreateBankReplace(composition, context.Banks.ToDictionary(static bank => bank.BankId, static _ => ToolPlan()));

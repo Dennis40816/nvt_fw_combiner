@@ -1,0 +1,45 @@
+{
+  "schemaVersion": 2,
+  "taskId": "CTRLRAM-AB-REGISTRY-110-01",
+  "capability": "Register the closed NT51929 AB CtrlRAM candidate from trusted definitions without loading a firmware artifact",
+  "integrationBase": "b9a94a2bab1a7bc05129b3438f0c0afeaaf45ad4",
+  "risk": "R3",
+  "kind": "behavior",
+  "state": "design-active",
+  "mutablePaths": [
+    "src/NvtFwCombiner.Domain/Composition/RuntimeReferenceBankReplaceV2CompilationContext.cs",
+    "src/NvtFwCombiner.Profiles/V2/TrustedProfileBundleCatalog.BankDefinitions.cs",
+    "src/NvtFwCombiner.Infrastructure/Composition/BuiltInV2Bundle.cs",
+    "src/NvtFwCombiner.Infrastructure/Composition/CanonicalDynamicRouteInventory.cs",
+    "src/NvtFwCombiner.Infrastructure/Composition/CanonicalDynamicRouteInventory.Banks.cs",
+    "docs/contracts/canonical-capability-policy-v1.json",
+    "src/NvtFwCombiner.Infrastructure/Capabilities/BuiltInCanonicalCapabilityPolicy.cs",
+    "scripts/package.ps1",
+    "scripts/smoke-release.ps1",
+    "tests/scripts/test_release_package_policy.py",
+    "testdata/golden/canonical/manifest.json",
+    "tests/NvtFwCombiner.Bootstrap.Tests/AbCtrlRamRegistryTests.cs",
+    "tests/NvtFwCombiner.Bootstrap.Tests/AbCtrlRamRuntimeWiringTests.cs",
+    "tests/NvtFwCombiner.Infrastructure.Tests/Capabilities/BuiltInCanonicalCapabilityPolicyTests.cs"
+  ],
+  "implementationOwner": "/root",
+  "searchEvidence": [
+    "Runtime source d6352cdf and independent exact-head review retained; its candidate tests do not constitute official registry wiring",
+    "CanonicalDynamicRouteInventory owns dynamic definition expansion per catalog load; BuiltInCanonicalCapabilityPolicy owns pinned authoring/publication/evidence decisions",
+    "TrustedProfileBundleCatalog.SelectProfile/GetMapVariants own definition selection; BuiltInV2Bundle is the existing closed loading facade",
+    "BankReferenceReplaceDefinition currently requires compiled parents although its hash only needs definitions; replace this dependency with pure source descriptors shared by registry and runtime",
+    "release_source_pins.plan_reviewed_source_pins already owns deterministic policy-hash consumers; golden manifest adds only a contract-only association without touching cases or expected outputs"
+  ],
+  "semanticOwner": "Domain composite definition identity; Profiles trusted source selection; Infrastructure catalog projection and pinned policy",
+  "terminalContract": "One NT51929 fw200 Single AB CtrlRAM route, Available/Candidate/ContractOnly. No BIN, zero artifact, synthetic firmware or private Golden read during registration. Parent/map/version mismatch fails closed. Existing Single routes and source hashes remain unchanged. Same pure descriptor constructor produces registry and runtime identity. No UI/authoring changes or support promotion in this unit.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "/root/layout_ownership_review",
+    "outcome": "approved",
+    "evidence": "2026-09-22 independent registry design admission and explicit BuiltInV2Bundle.cs thin facade extension; source descriptors retain true parent identities, catalog-load scope, missing-parent refusal and identity parity tests. Exact policy version assertion is an auxiliary consumer update. Human certification remains open."
+  },
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": { "reviewer": null, "outcome": "pending", "evidence": "" }
+}

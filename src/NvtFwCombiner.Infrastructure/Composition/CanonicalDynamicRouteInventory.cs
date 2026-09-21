@@ -9,7 +9,7 @@ using NvtFwCombiner.Infrastructure.ExternalTools;
 namespace NvtFwCombiner.Infrastructure.Composition;
 
 /// <summary>Definition-level inventory for routes compiled from current bounded authoring state.</summary>
-internal static class CanonicalDynamicRouteInventory
+internal static partial class CanonicalDynamicRouteInventory
 {
     internal static bool IsDynamic(CapabilityRouteIdentity identity)
     {
@@ -39,7 +39,9 @@ internal static class CanonicalDynamicRouteInventory
         ArgumentNullException.ThrowIfNull(loadCtrlRamDefinitions);
         // A resolver is created per catalog load; never retain failed or old definitions across reloads.
         var definitions = new Lazy<CanonicalCtrlRamDefinition[]>(() => [.. loadCtrlRamDefinitions()]);
-        return identity => Resolve(identity, definitions);
+        var bankDefinition = new Lazy<BankReferenceReplaceDefinition>(CreateBankReplaceDefinition);
+        return identity => identity.RouteId == BankReplaceIdentity.RouteId
+            ? ResolveBankReplace(identity, bankDefinition.Value, definitions.Value) : Resolve(identity, definitions);
     }
 
     private static CanonicalDynamicRoute Resolve(

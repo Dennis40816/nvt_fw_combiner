@@ -5,6 +5,41 @@ using static NvtFwCombiner.Domain.Firmware.FirmwareFingerprintWriter;
 
 namespace NvtFwCombiner.Domain.Composition;
 
+/// <summary>Pure trusted definition identity, independent of an artifact or resolved runtime metadata.</summary>
+public sealed class BankReferenceDefinitionSource
+{
+    internal BankReferenceDefinitionSource(string profileId, string profileVersion, ProfileBundleIdentity bundle,
+        ProfileBundleEntryIdentity entry, string familyHash, string memberId, string mapId, long capacityBytes)
+    {
+        ProfileId = RequiredValue.NotBlank(profileId);
+        ProfileVersion = RequiredValue.NotBlank(profileVersion);
+        Bundle = RequiredValue.NotNull(bundle);
+        Entry = RequiredValue.NotNull(entry);
+        FamilyHash = CanonicalSha256.Require(familyHash, nameof(familyHash));
+        MemberId = RequiredValue.NotBlank(memberId);
+        MapId = RequiredValue.NotBlank(mapId);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(capacityBytes);
+        CapacityBytes = capacityBytes;
+    }
+
+    /// <summary>Exact source profile identity.</summary>
+    public string ProfileId { get; }
+    /// <summary>Exact source profile version.</summary>
+    public string ProfileVersion { get; }
+    /// <summary>Real trusted source bundle.</summary>
+    public ProfileBundleIdentity Bundle { get; }
+    /// <summary>Real allowlisted profile entry.</summary>
+    public ProfileBundleEntryIdentity Entry { get; }
+    /// <summary>Trusted canonical family content hash.</summary>
+    public string FamilyHash { get; }
+    /// <summary>Declared member selection.</summary>
+    public string MemberId { get; }
+    /// <summary>Exact declared physical map.</summary>
+    public string MapId { get; }
+    /// <summary>Capacity declared by the exact hashed map.</summary>
+    public long CapacityBytes { get; }
+}
+
 /// <summary>Closed composite definition; both bundle entries remain real sources, never synthesized entries.</summary>
 public sealed class BankReferenceReplaceDefinition
 {
@@ -12,14 +47,18 @@ public sealed class BankReferenceReplaceDefinition
     public const string CompilerSemanticId = "nfc.compiler.profile-bundle-v2.runtime-bank-reference-replace.v1";
 
     internal BankReferenceReplaceDefinition(CompiledComposition layout, CompiledComposition local)
+        : this(Source(layout, layoutSource: true), Source(local, layoutSource: false))
     {
-        Layout = layout.V2Details;
-        Local = local.V2Details;
+    }
+
+    internal BankReferenceReplaceDefinition(BankReferenceDefinitionSource layout, BankReferenceDefinitionSource local)
+    {
+        Layout = RequiredValue.NotNull(layout);
+        Local = RequiredValue.NotNull(local);
         DomainInvariant.Reject(Layout.ProfileId != "nt51929-ab-merge" || Layout.ProfileVersion != "0.4.0" ||
             Local.ProfileId != "nt51929-ctrlram-replace-fw200-single" || Local.ProfileVersion != "0.3.0" ||
-            Layout.Provenance.Context.MemberId != "NT51929" || Local.Provenance.Context.MemberId != "NT51929" ||
-            Layout.Provenance.Context is not ResolvedMapV2CompilationContext ||
-            Local.Provenance.Context is not RuntimeReferenceReplaceV2CompilationContext,
+            Layout.MemberId != "NT51929" || Local.MemberId != "NT51929" ||
+            Layout.MapId != "nt51929-ab-merge-512k" || Local.MapId != "nt51929-ctrlram-fw200-single-full-flash",
             "Bank Replace definition is closed to the admitted NT51929 layout/local profile pair.");
         DefinitionId = "nt51929-ab-ctrlram-replace-fw200-single";
         Version = "1.0.0";
@@ -31,17 +70,27 @@ public sealed class BankReferenceReplaceDefinition
         AppendSource("local", Local);
         ContentHash = Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(builder.ToString())));
 
-        void AppendSource(string prefix, V2CompiledCompositionDetails details)
+        void AppendSource(string prefix, BankReferenceDefinitionSource details)
         {
-            V2CompilationProvenance provenance = details.Provenance;
             AppendField(builder, prefix + ".profile", details.ProfileId);
             AppendField(builder, prefix + ".version", details.ProfileVersion);
-            AppendField(builder, prefix + ".bundle", provenance.Bundle.ContentHash);
-            AppendField(builder, prefix + ".entry", provenance.ProfileEntry.ContentHash);
-            AppendField(builder, prefix + ".family", provenance.Context.FamilyContentHash);
-            AppendField(builder, prefix + ".member", provenance.Context.MemberId);
-            AppendField(builder, prefix + ".map", provenance.ResolvedMap.ImageMap.MapId);
+            AppendField(builder, prefix + ".bundle", details.Bundle.ContentHash);
+            AppendField(builder, prefix + ".entry", details.Entry.ContentHash);
+            AppendField(builder, prefix + ".family", details.FamilyHash);
+            AppendField(builder, prefix + ".member", details.MemberId);
+            AppendField(builder, prefix + ".map", details.MapId);
         }
+    }
+
+    private static BankReferenceDefinitionSource Source(CompiledComposition composition, bool layoutSource)
+    {
+        V2CompiledCompositionDetails details = composition.V2Details;
+        V2CompilationProvenance provenance = details.Provenance;
+        DomainInvariant.Reject(layoutSource ? provenance.Context is not ResolvedMapV2CompilationContext
+            : provenance.Context is not RuntimeReferenceReplaceV2CompilationContext, "Wrong bank definition source context.");
+        return new BankReferenceDefinitionSource(details.ProfileId, details.ProfileVersion, provenance.Bundle, provenance.ProfileEntry,
+            provenance.Context.FamilyContentHash, provenance.Context.MemberId, provenance.ResolvedMap.ImageMap.MapId,
+            provenance.ResolvedMap.ImageMap.CapacityBytes);
     }
 
     /// <summary>Identity of this composite definition, distinct from either parent profile.</summary>
@@ -51,9 +100,9 @@ public sealed class BankReferenceReplaceDefinition
     /// <summary>Stable hash of both definition sources and lowering semantics, without user input bytes.</summary>
     public string ContentHash { get; }
     /// <summary>True AB layout definition source.</summary>
-    public V2CompiledCompositionDetails Layout { get; }
+    public BankReferenceDefinitionSource Layout { get; }
     /// <summary>True local Replace definition source.</summary>
-    public V2CompiledCompositionDetails Local { get; }
+    public BankReferenceDefinitionSource Local { get; }
 }
 
 /// <summary>One selected bank's immutable local compilation, reference identity and final output placement.</summary>

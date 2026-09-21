@@ -1,8 +1,8 @@
 {
   "schemaVersion": "1.1",
   "catalogId": "canonical-capability-policy",
-  "catalogVersion": "1.18.0",
-  "issuedOn": "2026-09-21",
+  "catalogVersion": "1.19.0",
+  "issuedOn": "2026-09-22",
   "routes": [
     {
       "icId": "NT51917",
@@ -1365,6 +1365,35 @@
         "capabilityFingerprint": "ac9dcdc14368742fa9895136207ae5b6e59221b914912d3cd05a1e323b7bff6e",
         "value": "contract-only",
         "sourceReference": "contract:docs/ui/v1.1.x-ab-dummy-dp-handoff.md:dynamic-selection-pending-full-evidence"
+      }
+    },
+    {
+      "icId": "NT51929",
+      "workflowId": "ctrlram-replace",
+      "icCountVariant": "1-ic",
+      "mapVariant": "nt51929-ab-merge-512k",
+      "routeId": "route-7-nt51929-15-ctrlram-replace-4-1-ic-21-nt51929-ab-merge-512k",
+      "capabilityFingerprint": "ed23881a50793f41696b2fa27831a3978411680500468cbda91a1fcf7e1aa1ca",
+      "authoring": {
+        "decisionId": "nt51929-ab-ctrlram-replace-fw200-single-authoring-v1",
+        "routeId": "route-7-nt51929-15-ctrlram-replace-4-1-ic-21-nt51929-ab-merge-512k",
+        "capabilityFingerprint": "ed23881a50793f41696b2fa27831a3978411680500468cbda91a1fcf7e1aa1ca",
+        "value": "available",
+        "sourceReference": "docs/governance/change-records/CTRLRAM-AB-REGISTRY-110-01.json"
+      },
+      "publication": {
+        "decisionId": "nt51929-ab-ctrlram-replace-fw200-single-publication-v1",
+        "routeId": "route-7-nt51929-15-ctrlram-replace-4-1-ic-21-nt51929-ab-merge-512k",
+        "capabilityFingerprint": "ed23881a50793f41696b2fa27831a3978411680500468cbda91a1fcf7e1aa1ca",
+        "value": "candidate",
+        "sourceReference": "docs/governance/change-records/CTRLRAM-AB-REGISTRY-110-01.json"
+      },
+      "evidence": {
+        "decisionId": "nt51929-ab-ctrlram-replace-fw200-single-evidence-v1",
+        "routeId": "route-7-nt51929-15-ctrlram-replace-4-1-ic-21-nt51929-ab-merge-512k",
+        "capabilityFingerprint": "ed23881a50793f41696b2fa27831a3978411680500468cbda91a1fcf7e1aa1ca",
+        "value": "contract-only",
+        "sourceReference": "docs/governance/change-records/CTRLRAM-AB-REGISTRY-110-01.json"
       }
     },
     {

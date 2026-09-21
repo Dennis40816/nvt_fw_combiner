@@ -789,6 +789,13 @@
       "capabilityFingerprint": "1d867a058699556e078db6046a0425461adce72197ca84ada51f57f0671843da",
       "caseId": "51951-dp-512k",
       "testReference": "tests/NvtFwCombiner.GoldenRegression.Tests/StandardMergeWorkbenchGoldenTests.cs#WorkbenchBuildStandardMergeMatchesGoldenBytes"
+    },
+    {
+      "evidenceId": "nt51929-ab-ctrlram-replace-fw200-single-evidence-v1",
+      "kind": "contract-only",
+      "routeId": "route-7-nt51929-15-ctrlram-replace-4-1-ic-21-nt51929-ab-merge-512k",
+      "capabilityFingerprint": "ed23881a50793f41696b2fa27831a3978411680500468cbda91a1fcf7e1aa1ca",
+      "contractReference": "docs/governance/change-records/CTRLRAM-AB-REGISTRY-110-01.json"
     }
   ],
   "cases": [

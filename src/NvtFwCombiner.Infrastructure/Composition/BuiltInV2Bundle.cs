@@ -59,6 +59,12 @@ internal sealed class BuiltInV2Bundle
 
     internal string ContentHash { get; }
 
+    internal BankReferenceReplaceDefinition GetBankReplaceDefinition(BuiltInV2Bundle local)
+    {
+        ArgumentNullException.ThrowIfNull(local);
+        return _catalog.Value.CreateBankReplaceDefinition(local._catalog.Value);
+    }
+
     internal bool TryGetAbAuthoringDefinition(string profileId, string profileVersion,
         out CanonicalAbAuthoringDefinition? definition, out IReadOnlyList<CompositionIssue> issues)
     {
