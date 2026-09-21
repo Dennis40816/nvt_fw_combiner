@@ -12,32 +12,7 @@ public sealed partial class CompositionRunService
 
     private static void AddBankReferenceInputs(CompiledComposition compilation, Dictionary<string, byte[]> inputs, List<CompositionIssue> issues)
     {
-        if (compilation.V2Details.Provenance.Context is not RuntimeReferenceBankReplaceV2CompilationContext context)
-        {
-            return;
-        }
-
-        if (!inputs.TryGetValue(context.Reference.ArtifactId, out byte[]? reference) ||
-            reference.LongLength != context.Reference.LengthBytes || ToSha256Hex(reference) != context.Reference.Sha256 ||
-            context.Banks.Any(bank => inputs.ContainsKey(bank.Reference.ArtifactId)))
-        {
-            issues.Add(new CompositionIssue("input.bank-reference.identity-mismatch",
-                "AB Replace requires the exact captured Reference and forbids supplied private bank inputs.", context.Reference.ArtifactId));
-            return;
-        }
-
-        foreach (CompiledReferenceBank bank in context.Banks)
-        {
-            byte[] slice = reference.AsSpan(checked((int)bank.OutputRange.Start), checked((int)bank.OutputRange.Length)).ToArray();
-            if (slice.LongLength != bank.Reference.LengthBytes || ToSha256Hex(slice) != bank.Reference.Sha256)
-            {
-                issues.Add(new CompositionIssue("input.bank-reference.slice-mismatch",
-                    $"Captured Reference slice no longer matches {bank.BankId}'s local compilation.", context.Reference.ArtifactId));
-                return;
-            }
-
-            inputs.Add(bank.Reference.ArtifactId, slice);
-        }
+        VerifiedBankReferenceInputs.Add(compilation, inputs, issues);
     }
 
     private static Dictionary<string, byte[]> BankValidationInputs(IReadOnlyDictionary<string, byte[]> inputs, CompiledReferenceBank bank)
@@ -73,9 +48,12 @@ public sealed partial class CompositionRunService
     private static InputLoadValidationEvaluationResult EvaluateBankInputLoad(IReadOnlyDictionary<string, byte[]> inputs,
         CompiledBankScopedValidation requirement)
     {
-        return requirement.Local is CompiledUniformInputRangeValidation uniform
+        InputLoadValidationEvaluationResult result = requirement.Local is CompiledUniformInputRangeValidation uniform
             ? CompiledInputLoadValidationEvaluator.Evaluate(BankValidationInputs(inputs, requirement.Bank), uniform)
             : new InputLoadValidationEvaluationResult(new CompositionIssue(requirement.IssueCode,
                 "Unsupported bank input-load validation.", requirement.RuleId), DiagnosticEvidence: null);
+        return new InputLoadValidationEvaluationResult(VerifiedBankReferenceInputs.ProjectIssue(requirement.Bank, result.Issue),
+            VerifiedBankReferenceInputs.ProjectDiagnostic(requirement.Bank, result.DiagnosticEvidence,
+                inputs[requirement.Bank.LocalComposition.Plan.OutputInitialization.ReferenceSpaceId!].LongLength));
     }
 }

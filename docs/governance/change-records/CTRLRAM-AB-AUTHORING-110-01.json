@@ -1,0 +1,58 @@
+{
+  "schemaVersion": 2,
+  "taskId": "CTRLRAM-AB-AUTHORING-110-01",
+  "capability": "Bind explicit AB CtrlRAM drafts to the existing authoring session, immutable inspection and accepted execution",
+  "integrationBase": "b9a94a2bab1a7bc05129b3438f0c0afeaaf45ad4",
+  "risk": "R3",
+  "kind": "behavior",
+  "state": "design-active",
+  "mutablePaths": [
+    "src/NvtFwCombiner.Application/Authoring/CtrlRamAuthoringDraftState.cs",
+    "src/NvtFwCombiner.Application/Authoring/AuthoringSessionTransitionModels.cs",
+    "src/NvtFwCombiner.Application/Authoring/AuthoringSessionState.cs",
+    "src/NvtFwCombiner.Application/Authoring/CtrlRamAuthoringExperience.cs",
+    "src/NvtFwCombiner.Application/Authoring/CtrlRamAuthoringExperience.Transition.cs",
+    "src/NvtFwCombiner.Application/Authoring/CtrlRamAuthoringExperience.Inspection.cs",
+    "src/NvtFwCombiner.Application/Authoring/ICtrlRamAuthoringAdapter.cs",
+    "src/NvtFwCombiner.Application/Composition/CompositionExperiencePorts.cs",
+    "src/NvtFwCombiner.Application/Composition/CompositionClientModels.cs",
+    "src/NvtFwCombiner.Application/Composition/CompositionExecutionExperience.cs",
+    "src/NvtFwCombiner.Application/Composition/CompositionRunService.BankReferences.cs",
+    "src/NvtFwCombiner.Application/Composition/VerifiedBankReferenceInputs.cs",
+    "src/NvtFwCombiner.Application/Capabilities/AcceptedCtrlRamExecutionPlan.cs",
+    "src/NvtFwCombiner.Application/InputInspection/CompiledInputArtifactInspectionService.cs",
+    "src/NvtFwCombiner.Application/InputInspection/CompiledInputArtifactObservationService.cs",
+    "src/NvtFwCombiner.Application/InputInspection/CompiledReferenceBankInspection.cs",
+    "src/NvtFwCombiner.Infrastructure/Composition/BuiltInCtrlRamAuthoringAdapter.cs",
+    "src/NvtFwCombiner.Infrastructure/Composition/BuiltInCtrlRamAuthoringAdapter.V2.cs",
+    "src/NvtFwCombiner.Infrastructure/Composition/BuiltInCtrlRamAuthoringAdapter.Ab.cs",
+    "src/NvtFwCombiner.Infrastructure/Composition/BuiltInV2Bundle.cs",
+    "tests/NvtFwCombiner.Bootstrap.Tests/AbCtrlRamAuthoringTests.cs",
+    "tests/NvtFwCombiner.Bootstrap.Tests/FirmwareInspectionSnapshotTests.CtrlRamAdoption.cs",
+    "tests/NvtFwCombiner.UiSmoke.Tests/ShellViewModelTests.CtrlRamPublication.cs"
+  ],
+  "implementationOwner": "/root",
+  "searchEvidence": [
+    "Reuse CtrlRamAuthoringExperience Prepare/Transition and AuthoringSessionState revision/lease; no page dependency",
+    "Reuse BuiltInCtrlRamAuthoringAdapter CreateCtrlRamReplaceRunContext and extract its existing CreateCompileRequest; final core Prepare/Compile mandatory",
+    "Reuse BankReferenceDefinition source plus existing trusted layout compilation; project only checked RegionInstance ranges, never normalize in adapter",
+    "Reuse CompositionRunService bank identity verification through an Application helper; inspector applies existing local contracts and observation reader with bank-tagged selected-bank facts",
+    "Existing adapters/tests signature callers located by rg; Standard version/naming APIs remain compatible"
+  ],
+  "semanticOwner": "Application authoring/session and compiled inspection; Infrastructure translates trusted map slices into existing local compiler requests",
+  "terminalContract": "Explicit Standard/null or AB A/B/Both draft, default Both, independent nullable versions, same captured shared sources; only NT51929 fw200 Single Candidate. Checked profile slices feed existing local context; full core preparation remains mandatory. No filesystem fallback after capture, no alternate metadata parser, no UI enablement or support promotion. Accepted full draft and bank-local inspection retain exact Reference identity and current revision.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "/root/layout_ownership_review",
+    "outcome": "approved",
+    "evidence": "2026-09-22 /root/layout_ownership_review approved closed draft, captured-data reuse, checked map slice adapter and mandatory existing core admission; /root/content_source_impl inspected inspector gaps. Bank-aware inspection extends current owner, delegates verified slice identity to existing runtime logic, calls existing local Reference inspector/reader only for selected banks. Exact mutable caller closure enumerated before edits. Candidate human certification remains open."
+  },
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": {
+    "reviewer": null,
+    "outcome": "pending",
+    "evidence": ""
+  }
+}

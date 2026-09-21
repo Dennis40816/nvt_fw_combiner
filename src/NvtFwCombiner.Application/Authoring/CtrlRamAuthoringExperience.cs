@@ -64,7 +64,7 @@ internal sealed partial class CtrlRamAuthoringExperience :
         string number,
         IReadOnlyDictionary<string, string> slotPaths,
         IReadOnlyDictionary<string, byte[]> inputBytes,
-        CtrlRamFirmwareVersionDraftState? firmwareVersionEdit = null)
+        CtrlRamAuthoringDraftState? firmwareVersionEdit = null)
     {
         _ = TryPrepareSession(
             icId,
@@ -93,7 +93,7 @@ internal sealed partial class CtrlRamAuthoringExperience :
         string number,
         IReadOnlyDictionary<string, string> slotPaths,
         IReadOnlyDictionary<string, byte[]> inputBytes,
-        CtrlRamFirmwareVersionDraftState? firmwareVersionEdit,
+        CtrlRamAuthoringDraftState? firmwareVersionEdit,
         AuthoringSessionState session,
         out ActiveSessionSnapshot? acceptedSession,
         out IReadOnlyList<CompositionIssue> issues)
@@ -105,7 +105,7 @@ internal sealed partial class CtrlRamAuthoringExperience :
             icId,
             number,
             slotPaths,
-            firmwareVersionEdit: null,
+            firmwareVersionEdit,
             inputBytes);
         if (compilation.Capability is not { } resolved)
         {
@@ -171,6 +171,14 @@ internal sealed partial class CtrlRamAuthoringExperience :
             return false;
         }
 
+        AuthoringSessionTransitionResult drafted = session.SetDraft(firmwareVersionEdit);
+        if (!drafted.Succeeded)
+        {
+            acceptedSession = null;
+            issues = [new CompositionIssue(drafted.Issue!.Code, drafted.Issue.Message)];
+            return false;
+        }
+
         AuthoringSlotInspectionBatchStartResult started =
             session.BeginSlotFileInspections(pathsByDefinition);
         if (!started.Succeeded)
@@ -201,7 +209,7 @@ internal sealed partial class CtrlRamAuthoringExperience :
         [
             .. statuses.Values
             .Where(static status => status.BlocksBuild)
-            .Select(static status => new CompositionIssue(
+            .Select(static status => status.Inspection?.AdmissionIssue ?? new CompositionIssue(
                 status.InspectionIssueCode ??
                     InputSelectionReadinessIssueCodes.SelectionNotApplicable,
                 "The selected CtrlRAM input failed its compiled artifact inspection.",
@@ -220,19 +228,6 @@ internal sealed partial class CtrlRamAuthoringExperience :
                 issues = [new CompositionIssue(issue.Code, issue.Message, issue.Subject)];
             }
             return false;
-        }
-
-        if (firmwareVersionEdit is not null)
-        {
-            CtrlRamAuthoringTransitionResult transitioned = TransitionFirmwareVersionCompilation(
-                session,
-                icId,
-                number,
-                slotPaths,
-                firmwareVersionEdit);
-            acceptedSession = transitioned.Session;
-            issues = transitioned.Issues;
-            return transitioned.Succeeded;
         }
 
         return true;

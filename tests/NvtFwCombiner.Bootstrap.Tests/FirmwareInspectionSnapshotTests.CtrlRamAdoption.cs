@@ -376,7 +376,7 @@ public sealed partial class FirmwareInspectionSnapshotTests
             string icId,
             string number,
             IReadOnlyDictionary<string, string> slotPaths,
-            CtrlRamFirmwareVersionDraftState? firmwareVersionEdit,
+            CtrlRamAuthoringDraftState? firmwareVersionEdit,
             IReadOnlyDictionary<string, byte[]>? selectedInputBytes = null)
         {
             ResolveCalls++;
@@ -392,7 +392,7 @@ public sealed partial class FirmwareInspectionSnapshotTests
             string icId,
             string number,
             IReadOnlyDictionary<string, string> slotPaths,
-            CtrlRamFirmwareVersionDraftState? firmwareVersionEdit,
+            CtrlRamAuthoringDraftState? firmwareVersionEdit,
             IReadOnlyDictionary<string, byte[]>? selectedInputBytes,
             ResolvedCapability capability,
             out IReadOnlyDictionary<string, string> expectedPaths,

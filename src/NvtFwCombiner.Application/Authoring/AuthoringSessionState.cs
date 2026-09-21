@@ -532,7 +532,9 @@ public sealed partial class AuthoringSessionState
         AuthoringCapabilityRoute route,
         ActiveSessionSnapshot? previous)
     {
-        return previous is not null &&
+        return route.ExactCapability?.CtrlRamExecutionPlan is { } ctrlRam
+            ? ctrlRam.Draft
+            : previous is not null &&
             StringComparer.Ordinal.Equals(
                 previous.DraftCapabilityFingerprint,
                 route.CapabilityFingerprint)
@@ -551,7 +553,7 @@ public sealed partial class AuthoringSessionState
             ExperienceIds.GeneralReplace =>
                 draftKind is null or AuthoringDraftKind.GeneralMapping,
             ExperienceIds.CtrlRamReplace =>
-                draftKind is null or AuthoringDraftKind.CtrlRamFirmwareVersionEdit,
+                draftKind is null or AuthoringDraftKind.CtrlRamFirmwareVersionEdit or AuthoringDraftKind.AbCtrlRam,
             _ => draftKind is null,
         };
     }

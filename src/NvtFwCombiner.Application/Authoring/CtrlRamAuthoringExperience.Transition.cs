@@ -15,7 +15,7 @@ internal sealed partial class CtrlRamAuthoringExperience
             string icId,
             string number,
             IReadOnlyDictionary<string, string> slotPaths,
-            CtrlRamFirmwareVersionDraftState? firmwareVersionEdit)
+            CtrlRamAuthoringDraftState? firmwareVersionEdit)
     {
         ArgumentNullException.ThrowIfNull(session);
         ArgumentException.ThrowIfNullOrWhiteSpace(icId);
@@ -44,7 +44,7 @@ internal sealed partial class CtrlRamAuthoringExperience
             icId,
             number,
             slotPaths,
-            firmwareVersionEdit,
+            current.DraftState as CtrlRamAuthoringDraftState,
             acceptedInputBytes,
             accepted,
             out IReadOnlyDictionary<string, string> expectedPaths,
@@ -60,10 +60,19 @@ internal sealed partial class CtrlRamAuthoringExperience
                 "The CtrlRAM inputs no longer match the accepted inspection.")]);
         }
 
-        CtrlRamFirmwareVersionDraftState? desiredDraft = firmwareVersionEdit;
+        CtrlRamAuthoringDraftState? desiredDraft = firmwareVersionEdit;
         if (HasSameCtrlRamVersionDraft(current.DraftState, desiredDraft))
         {
             return new CtrlRamAuthoringTransitionResult(current, []);
+        }
+        if (current.DraftState is AbCtrlRamDraftState previousAb && desiredDraft is AbCtrlRamDraftState nextAb &&
+            previousAb.Banks == nextAb.Banks &&
+            ((nextAb.Banks == AbCtrlRamBankSelection.A && Equals(previousAb.AVersion, nextAb.AVersion)) ||
+             (nextAb.Banks == AbCtrlRamBankSelection.B && Equals(previousAb.BVersion, nextAb.BVersion))))
+        {
+            return Failed([new CompositionIssue(
+                "authoring.ctrlram.unselected-bank-version",
+                "Version editing is available only for selected banks. Select the bank before changing its version.")]);
         }
 
         var inputBytes = new Dictionary<string, ReadOnlyMemory<byte>?>(StringComparer.Ordinal);
@@ -144,14 +153,12 @@ internal sealed partial class CtrlRamAuthoringExperience
 
     internal static bool HasSameCtrlRamVersionDraft(
         AuthoringDraftState? current,
-        CtrlRamFirmwareVersionDraftState? desired)
+        CtrlRamAuthoringDraftState? desired)
     {
         return current is null
             ? desired is null
-            : current is CtrlRamFirmwareVersionDraftState accepted &&
-                desired is not null &&
-                accepted.FirmwareVersion == desired.FirmwareVersion &&
-                accepted.FirmwareSubVersion == desired.FirmwareSubVersion;
+            : current is CtrlRamAuthoringDraftState accepted &&
+                desired is not null && accepted.HasSameValue(desired);
     }
 
     private static CtrlRamAuthoringTransitionResult Failed(

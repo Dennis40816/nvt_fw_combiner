@@ -22,14 +22,14 @@ public interface ICtrlRamAuthoringAdapter
         string icId,
         string number,
         IReadOnlyDictionary<string, string> slotPaths,
-        CtrlRamFirmwareVersionDraftState? firmwareVersionEdit,
+        CtrlRamAuthoringDraftState? firmwareVersionEdit,
         IReadOnlyDictionary<string, byte[]>? selectedInputBytes = null);
 
     bool IsAcceptedCapability(
         string icId,
         string number,
         IReadOnlyDictionary<string, string> slotPaths,
-        CtrlRamFirmwareVersionDraftState? firmwareVersionEdit,
+        CtrlRamAuthoringDraftState? firmwareVersionEdit,
         IReadOnlyDictionary<string, byte[]>? selectedInputBytes,
         ResolvedCapability capability,
         out IReadOnlyDictionary<string, string> expectedPaths,

@@ -12,7 +12,7 @@ public sealed class AcceptedCtrlRamExecutionPlan
     /// <summary>Creates one accepted execution plan without retaining host paths or mutable bytes.</summary>
     public AcceptedCtrlRamExecutionPlan(
         IcNumberSelection icNumberSelection,
-        CtrlRamFirmwareVersionDraftState? firmwareVersionDraft,
+        CtrlRamAuthoringDraftState? firmwareVersionDraft,
         IEnumerable<CompositionIssue> advisoryIssues)
     {
         ArgumentNullException.ThrowIfNull(icNumberSelection);
@@ -26,7 +26,7 @@ public sealed class AcceptedCtrlRamExecutionPlan
         }
 
         IcNumberSelection = icNumberSelection;
-        FirmwareVersionDraft = firmwareVersionDraft;
+        Draft = firmwareVersionDraft;
         AdvisoryIssues = Array.AsReadOnly(_advisoryIssues);
     }
 
@@ -34,7 +34,10 @@ public sealed class AcceptedCtrlRamExecutionPlan
     public IcNumberSelection IcNumberSelection { get; }
 
     /// <summary>Optional firmware-version edit compiled into this exact plan.</summary>
-    public CtrlRamFirmwareVersionDraftState? FirmwareVersionDraft { get; }
+    public CtrlRamAuthoringDraftState? Draft { get; }
+
+    /// <summary>Legacy Standard-only version projection; AB callers use the complete <see cref="Draft"/>.</summary>
+    public CtrlRamFirmwareVersionDraftState? FirmwareVersionDraft => Draft as CtrlRamFirmwareVersionDraftState;
 
     /// <summary>Accepted non-blocking input observations reported by execution.</summary>
     public IReadOnlyList<CompositionIssue> AdvisoryIssues { get; }

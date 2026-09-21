@@ -255,7 +255,7 @@ internal sealed class CompositionExecutionExperience : ICompositionExecution
                 "The accepted CtrlRAM capability has no retained execution plan.");
         if (!CtrlRamAuthoringExperience.HasSameCtrlRamVersionDraft(
                 session.DraftState,
-                plan.FirmwareVersionDraft))
+                plan.Draft))
         {
             throw new InvalidOperationException(
                 "The accepted CtrlRAM firmware-version draft does not match its retained execution plan.");

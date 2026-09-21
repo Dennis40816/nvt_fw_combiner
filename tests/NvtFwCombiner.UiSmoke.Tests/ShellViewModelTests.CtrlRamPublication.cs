@@ -149,7 +149,7 @@ public sealed partial class CtrlRamWorkflowTests
             string number,
             IReadOnlyDictionary<string, string> slotPaths,
             IReadOnlyDictionary<string, byte[]> inputBytes,
-            CtrlRamFirmwareVersionDraftState? firmwareVersionEdit = null)
+            CtrlRamAuthoringDraftState? firmwareVersionEdit = null)
         {
             PrepareSessionCalls++;
             return inner.PrepareSession(
@@ -198,7 +198,7 @@ public sealed partial class CtrlRamWorkflowTests
             string icId,
             string number,
             IReadOnlyDictionary<string, string> slotPaths,
-            CtrlRamFirmwareVersionDraftState? firmwareVersionEdit)
+            CtrlRamAuthoringDraftState? firmwareVersionEdit)
         {
             return inner.TransitionFirmwareVersionCompilation(
                 session,

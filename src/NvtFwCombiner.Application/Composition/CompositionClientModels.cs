@@ -177,7 +177,7 @@ public sealed record FirmwareInspectionSnapshot(
 }
 
 /// <summary>Optional CtrlRAM display context projected during firmware inspection.</summary>
-public sealed record CtrlRamInspectionRequest(string NumberToken);
+public sealed record CtrlRamInspectionRequest(string NumberToken, CtrlRamAuthoringDraftState? Draft = null);
 
 /// <summary>Materialized CtrlRAM shell projections derived from the inspected base firmware.</summary>
 public sealed record CtrlRamInspectionDisplay(

@@ -69,10 +69,12 @@ public sealed class CompiledInputArtifactObservationResult
 {
     internal CompiledInputArtifactObservationResult(
         IEnumerable<CompiledInputVersionObservation> versions,
-        IEnumerable<CompiledInputArtifactInspectionAdvisory> advisories)
+        IEnumerable<CompiledInputArtifactInspectionAdvisory> advisories,
+        IEnumerable<CompiledReferenceBankObservation>? referenceBanks = null)
     {
         Versions = Array.AsReadOnly([.. versions]);
         Advisories = Array.AsReadOnly([.. advisories]);
+        ReferenceBanks = Array.AsReadOnly([.. referenceBanks ?? []]);
     }
 
     /// <summary>No role-specific observations or advisories.</summary>
@@ -80,6 +82,9 @@ public sealed class CompiledInputArtifactObservationResult
 
     /// <summary>Typed version facts, if declared by the compiled input role.</summary>
     public IReadOnlyList<CompiledInputVersionObservation> Versions { get; }
+
+    /// <summary>Inspected selected banks of an explicit AB Reference.</summary>
+    public IReadOnlyList<CompiledReferenceBankObservation> ReferenceBanks { get; }
 
     /// <summary>Stable accepted-input advisories ordered by issue code.</summary>
     public IReadOnlyList<CompiledInputArtifactInspectionAdvisory> Advisories { get; }
@@ -105,6 +110,10 @@ internal static class CompiledInputArtifactObservationService
         CompiledInputSlotRequirement slot = composition.V2Details.InputContract.Slots.Single(candidate =>
             StringComparer.Ordinal.Equals(candidate.SlotId, binding.SlotId));
         ReadOnlyMemory<byte> acceptedSnapshot = GetAcceptedSnapshot(sourceBytes, inspection);
+        if (slot.Role == ReferenceBaseRole && composition.V2Details.Provenance.Context is RuntimeReferenceBankReplaceV2CompilationContext)
+        {
+            return CompiledReferenceBankInspection.Observe(composition, acceptedSnapshot, inspection);
+        }
         if (slot.Role == ReferenceBaseRole)
         {
             return new([DecodeTp(CompiledInputVersionKind.TpReferenceFirmwareConfig, acceptedSnapshot)], []);

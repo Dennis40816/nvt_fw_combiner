@@ -194,7 +194,8 @@ public static class CompiledInputArtifactInspectionService
                 BlocksBuild = true,
                 NextAction = CompiledInputArtifactInspectionNextAction.SelectCompatibleInput,
             }
-            : ApplyInputLoadValidation(composition, addressSpaceId, sourceBytes, inspection);
+            : CompiledReferenceBankInspection.Inspect(composition, addressSpaceId, sourceBytes,
+                ApplyInputLoadValidation(composition, addressSpaceId, sourceBytes, inspection));
     }
 
     private static CompiledInputArtifactInspectionResult InspectDeclaredPrefix(
@@ -337,6 +338,7 @@ public static class CompiledInputArtifactInspectionService
                     ? CompiledInputArtifactInspectionSeverity.Blocking
                     : CompiledInputArtifactInspectionSeverity.Warning,
                 IssueCode = failed.Issue!.Code,
+                AdmissionIssue = blocksBuild ? failed.Issue : null,
                 BlocksBuild = blocksBuild,
                 NextAction = CompiledInputArtifactInspectionNextAction.None,
                 DiagnosticEvidence = failed.DiagnosticEvidence,

@@ -241,7 +241,7 @@ public interface ICtrlRamAuthoring
         string number,
         IReadOnlyDictionary<string, string> slotPaths,
         IReadOnlyDictionary<string, byte[]> inputBytes,
-        CtrlRamFirmwareVersionDraftState? firmwareVersionEdit = null);
+        CtrlRamAuthoringDraftState? firmwareVersionEdit = null);
 
     /// <summary>Adopts one already-inspected exact batch without resolving or reading it again.</summary>
     AuthoringSessionTransitionResult AdoptInspectedBatch(
@@ -263,7 +263,7 @@ public interface ICtrlRamAuthoring
         string icId,
         string number,
         IReadOnlyDictionary<string, string> slotPaths,
-        CtrlRamFirmwareVersionDraftState? firmwareVersionEdit);
+        CtrlRamAuthoringDraftState? firmwareVersionEdit);
 
     /// <summary>Projects path-free confirmation facts from one exact accepted session lease.</summary>
     CompiledInputVersionObservation? ProjectFirmwareVersionConfirmationLease(ActiveSessionSnapshot session);

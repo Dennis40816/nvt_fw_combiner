@@ -65,6 +65,13 @@ internal sealed class BuiltInV2Bundle
         return _catalog.Value.CreateBankReplaceDefinition(local._catalog.Value);
     }
 
+    internal CompiledComposition CompileBankReplace(CompiledComposition layout,
+        FirmwareArtifactPayload reference, IReadOnlyList<V2RuntimeReferenceBankReplaceRequest> requests)
+    {
+        return V2CompositionPlanCompiler.CompileAbRuntimeReferenceReplace(
+            V2CompositionPlanCompiler.PrepareAbRuntimeReferenceReplace(layout, reference, _catalog.Value, requests));
+    }
+
     internal bool TryGetAbAuthoringDefinition(string profileId, string profileVersion,
         out CanonicalAbAuthoringDefinition? definition, out IReadOnlyList<CompositionIssue> issues)
     {

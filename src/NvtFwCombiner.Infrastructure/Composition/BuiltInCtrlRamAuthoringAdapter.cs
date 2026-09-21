@@ -77,16 +77,20 @@ internal sealed partial class BuiltInCtrlRamAuthoringAdapter(
         string icId,
         string number,
         IReadOnlyDictionary<string, string> slotPaths,
-        CtrlRamFirmwareVersionDraftState? firmwareVersionEdit,
+        CtrlRamAuthoringDraftState? firmwareVersionEdit,
         IReadOnlyDictionary<string, byte[]>? selectedInputBytes = null)
     {
+        if (firmwareVersionEdit is AbCtrlRamDraftState ab)
+        {
+            return ResolveAb(icId, number, slotPaths, ab, selectedInputBytes);
+        }
         CtrlRamReplaceRunContext context =
             CreateCtrlRamReplaceRunContext(
                 _projection,
                 icId,
                 number,
                 slotPaths,
-                firmwareVersionEdit,
+                firmwareVersionEdit as CtrlRamFirmwareVersionDraftState,
                 selectedInputBytes);
         IReadOnlyDictionary<string, string> expectedPaths =
             CreateExpectedPaths(context, slotPaths);
@@ -103,19 +107,27 @@ internal sealed partial class BuiltInCtrlRamAuthoringAdapter(
         string icId,
         string number,
         IReadOnlyDictionary<string, string> slotPaths,
-        CtrlRamFirmwareVersionDraftState? firmwareVersionEdit,
+        CtrlRamAuthoringDraftState? firmwareVersionEdit,
         IReadOnlyDictionary<string, byte[]>? selectedInputBytes,
         ResolvedCapability capability,
         out IReadOnlyDictionary<string, string> expectedPaths,
         out IReadOnlyList<CompositionIssue> issues)
     {
+        if (firmwareVersionEdit is AbCtrlRamDraftState ab)
+        {
+            CtrlRamAuthoringCompilation resolved = ResolveAb(icId, number, slotPaths, ab, selectedInputBytes);
+            expectedPaths = resolved.ExpectedPaths;
+            issues = resolved.Issues;
+            return resolved.Capability is { } current && Equals(current.Identity, capability.Identity) &&
+                current.CompiledComposition.CompilationFingerprint == capability.CompiledComposition.CompilationFingerprint;
+        }
         CtrlRamReplaceRunContext context =
             CreateCtrlRamReplaceRunContext(
                 _projection,
                 icId,
                 number,
                 slotPaths,
-                firmwareVersionEdit,
+                firmwareVersionEdit as CtrlRamFirmwareVersionDraftState,
                 selectedInputBytes);
         expectedPaths = CreateExpectedPaths(context, slotPaths);
         issues = context.ValidationIssues;

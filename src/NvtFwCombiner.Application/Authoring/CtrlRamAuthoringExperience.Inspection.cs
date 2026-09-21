@@ -31,7 +31,7 @@ internal sealed partial class CtrlRamAuthoringExperience
                 icId,
                 number,
                 slotPaths,
-                firmwareVersionEdit: null,
+                acceptedSession.DraftState as CtrlRamAuthoringDraftState,
                 acceptedInputBytes,
                 capability,
                 out IReadOnlyDictionary<string, string> expectedPaths,
@@ -118,7 +118,7 @@ internal sealed partial class CtrlRamAuthoringExperience
                 icId,
                 number,
                 slotPaths,
-                firmwareVersionEdit: null,
+                reference.CtrlRamRequest!.Draft,
                 selectedInputBytes);
             capability = compilation.Capability;
             if (capability is null)
