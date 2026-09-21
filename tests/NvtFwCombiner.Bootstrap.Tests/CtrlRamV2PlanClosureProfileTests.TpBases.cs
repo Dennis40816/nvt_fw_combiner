@@ -7,6 +7,43 @@ namespace NvtFwCombiner.Bootstrap.Tests;
 
 public sealed partial class CtrlRamV2PlanClosureProfileTests
 {
+    /// <summary>Existing Standard routes cannot acquire AB write authority merely from a larger Reference.</summary>
+    [Theory]
+    [InlineData("nt51932-ctrlram-replace-candidate", Nt51932BundleHash, "nt51932-ctrlram-replace-fw1x-single", "0.3.0", "NT51932", 1, 0x1FC00, 0x40000, 0x80000)]
+    [InlineData("nt51932-ctrlram-replace-candidate", Nt51932BundleHash, "nt51932-ctrlram-replace-fw200-cascade", "0.5.0", "NT51932", 3, 0x1FC00, 0x40000, 0x80000)]
+    [InlineData("nt51950-ctrlram-replace-candidate", Nt51950BundleHash, "nt51950-ctrlram-replace-fw200-single", "0.5.0", "NT51950", 1, 0x22C00, 0x40000, 0x80000)]
+    [InlineData("nt51950-ctrlram-replace-candidate", Nt51950BundleHash, "nt51950-ctrlram-replace-fw200-single", "0.5.0", "NT51950", 1, 0x22C00, 0x40000, 0x100000)]
+    [InlineData("nt51950-ctrlram-replace-candidate", Nt51950BundleHash, "nt51950-ctrlram-replace-fw1x-cascade", "0.7.0", "NT51950", 2, 0x33200, 0x40000, 0x100000)]
+    [InlineData("nt51951-ctrlram-replace-candidate", Nt51951BundleHash, "nt51951-ctrlram-replace-fw200-single", "0.5.0", "NT51951", 1, 0x22C00, 0x80000, 0x100000)]
+    [InlineData("nt51951-ctrlram-replace-candidate", Nt51951BundleHash, "nt51951-ctrlram-replace-fw1x-cascade", "0.7.0", "NT51951", 2, 0x33200, 0x80000, 0x100000)]
+    public void StandardCtrlRamRoutesRejectAbContainerCapacitiesBeforeProducingAPlan(
+        string bundleDirectory,
+        string bundleHash,
+        string profileId,
+        string profileVersion,
+        string icId,
+        int chipCount,
+        long targetStart,
+        long standardCapacity,
+        long abCapacity)
+    {
+        CompiledComposition baseline = Compile(
+            bundleDirectory, bundleHash, profileId, icId, chipCount,
+            targetStart, targetLength: 1,
+            referenceCapacity: standardCapacity, profileVersion: profileVersion);
+        Assert.Equal(standardCapacity, baseline.Plan.OutputInitialization.Capacity);
+
+        V2CompositionPlanCompileResult result = CompileResult(
+            bundleDirectory, bundleHash, profileId, icId, chipCount,
+            targetStart, targetLength: 1,
+            referenceCapacity: abCapacity, profileVersion: profileVersion);
+
+        Assert.False(result.IsCompiled);
+        Assert.Null(result.CompiledComposition);
+        Assert.Contains(result.Issues,
+            static issue => issue.Code == "profile.v2.compile.map-selection-invalid");
+    }
+
     /// <summary>Every admitted TP/full route selects only its exact capacity map and limits processor authority to the TP prefix.</summary>
     [Theory]
     [InlineData("nt51917-ctrlram-replace-alias-candidate", Nt51917BundleHash, "nt51917-ctrlram-replace-fw141-single", "0.3.0", "NT51917", 1, 0x35000, 0x40000, 0x16800, "nt51927-ctrlram-fw141-single-tp-work-212k", "nt51927-ctrlram-fw141-single-full-flash")]
