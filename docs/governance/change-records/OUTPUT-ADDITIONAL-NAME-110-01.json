@@ -1,0 +1,48 @@
+{
+  "schemaVersion": 2,
+  "taskId": "OUTPUT-ADDITIONAL-NAME-110-01",
+  "capability": "Independently edit every generated BIN filename in Output Settings and preserve effective additional names through atomic bundle delivery",
+  "integrationBase": "b9a94a2bab1a7bc05129b3438f0c0afeaaf45ad4",
+  "risk": "R2",
+  "kind": "ui",
+  "state": "design-active",
+  "mutablePaths": [
+    "src/NvtFwCombiner.Application/Composition/CompositionAdditionalDeliveryPlan.cs",
+    "src/NvtFwCombiner.Application/Composition/CompositionOutputBundleProposal.cs",
+    "src/NvtFwCombiner.Application/Composition/CompositionOutputBundleIntent.cs",
+    "src/NvtFwCombiner.Application/Composition/CompositionRunRequest.cs",
+    "src/NvtFwCombiner.Application/Composition/CompositionRunService.cs",
+    "src/NvtFwCombiner.Infrastructure/Files/CompositionOutputBundlePlatform.cs",
+    "src/NvtFwCombiner.Infrastructure/Files/ProtectedCompositionDestinationProvider.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/OutputDeliveryConfirmationViewModel.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/OutputDeliveryConfirmationViewModel.NameEditing.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/OutputDeliveryConfirmationViewModel.AdditionalNameEditing.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ShellTextResources.OutputConfirmation.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReportPresentationViewModel.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/Views/OutputDeliveryConfirmationModal.axaml",
+    "src/NvtFwCombiner.Presentation.Avalonia/Views/OutputDeliveryConfirmationModal.axaml.cs",
+    "tests/NvtFwCombiner.UiSmoke.Tests/ShellViewModelTests.OutputDeliveryAdditionalRename.cs",
+    "tests/NvtFwCombiner.Application.Tests/Composition/CompositionExecutionBundleDeliveryTests.cs",
+    "tests/NvtFwCombiner.Bootstrap.Tests/CompositionOutputBundleDestinationValidationTests.cs",
+    "docs/adr/0050-atomic-output-bundle-delivery.md"
+  ],
+  "implementationOwner": "root",
+  "searchEvidence": [
+    "Owner explicitly requested every generated output BIN be renameable on 2026-09-21. Local source base ee459f5f; preserve existing uncommitted CHANGELOG.md.",
+    "Scoped CodeGraph and source inspection: OutputDeliveryConfirmationViewModel has only a primary editor; loose secondary picker already supports selected filenames. CompositionOutputBundleProposal/Intent and CompositionAdditionalDeliveryPlan own prepared delivery; RunService, CompositionOutputBundlePlatform and ProtectedCompositionDestinationProvider currently consume SuggestedFileName.",
+    "Existing CompositionRunRequest plain-filename guard, Infrastructure AtomicBundlePathRules, prepared admission, atomic artifact allocation and receipt reporting are reused. Tests use existing AB fixtures and real output controls; no new firmware authority, profile, range, CRC or naming-token renderer.",
+    "Before editing ReportPresentationViewModel, independent reviewer /root/layout_ownership_review admitted a bounded R1 correction exposed by loose same-path rejection: LoadRunErrorReport must accept a non-null empty selector-free number and render icId alone, preserving counted labels and original failure/report publication. No topology is inferred."
+  ],
+  "semanticOwner": "Application prepared additional-delivery plan and bundle intent own effective output name; Infrastructure retains platform/path/collision authority; Presentation owns per-request edit drafts",
+  "terminalContract": "Derive immutable effective additional name only from selected declared preparation, preserving canonical suggestion/profile/kind/range; reject override without selected delivery. Three independent accepted/draft names (primary/additional/folder); unselected additional draft cannot block or submit. Preserve drafts only for compatible current preparation. Loose automatic identity compares both editor and picked basename with canonical name. Bundle preflight/planned artifact/commit use same effective name, existing collisions and receipts; no report-schema or firmware-byte changes.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "/root/layout_ownership_review",
+    "outcome": "findings-incorporated",
+    "evidence": "Independent read-only design admission approved the existing-owner extension. Incorporated exact CompositionRunRequest guard reuse; no primary AllowOverride policy inheritance; selected-delivery-only override; all three accepted fields used in edit completion; current compatible request isolation; canonical loose automatic flags; effective name in all bundle adapters; preserve collision allocation and actual receipt identity. Narrow behavioral/UI/bytes/report regression and fixed-source review required; existing ADR0050 amendment is sufficient."
+  },
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": { "reviewer": null, "outcome": "pending", "evidence": "" }
+}

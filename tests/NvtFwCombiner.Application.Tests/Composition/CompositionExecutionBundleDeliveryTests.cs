@@ -9,6 +9,34 @@ namespace NvtFwCombiner.Application.Tests.Composition;
 /// <summary>Tests immutable accepted source evidence retained for atomic delivery.</summary>
 public sealed class CompositionExecutionBundleDeliveryTests
 {
+    /// <summary>A name edit preserves all accepted delivery facts and the canonical suggestion.</summary>
+    [Fact]
+    public void AdditionalNameOverrideRetainsCanonicalPlanAndIsImmutable()
+    {
+        CompositionAdditionalDeliveryPlan original = new("profile", "delivery", new ByteRange(0, 4), "automatic.bin");
+        CompositionAdditionalDeliveryPlan edited = original.WithFileName("customer.bin");
+        Assert.Equal("automatic.bin", original.FileName);
+        Assert.False(original.FileNameIsOverride);
+        Assert.Equal((original.ProfileId, original.DeliveryKind, original.SourceRange, original.SuggestedFileName),
+            (edited.ProfileId, edited.DeliveryKind, edited.SourceRange, edited.SuggestedFileName));
+        Assert.Equal("customer.bin", edited.FileName);
+        Assert.True(edited.FileNameIsOverride);
+        Assert.False(edited.WithFileName(original.SuggestedFileName).FileNameIsOverride);
+    }
+
+    /// <summary>Effective names remain plain components, never a new destination or source authority.</summary>
+    [Theory]
+    [InlineData("")]
+    [InlineData("../escape.bin")]
+    [InlineData("folder/output.bin")]
+    [InlineData("C:\\output.bin")]
+    public void AdditionalNameOverrideRejectsPathSyntax(string name)
+    {
+        CompositionAdditionalDeliveryPlan original = new("profile", "delivery", new ByteRange(0, 4), "automatic.bin");
+        _ = Assert.Throws<ArgumentException>(() => original.WithFileName(name));
+        Assert.Equal("automatic.bin", original.FileName);
+    }
+
     /// <summary>One bundle selects only a compiled delivery retained by its exact preparation.</summary>
     [Fact]
     public void AdditionalDeliverySelectionUsesExactPreparedPlan()

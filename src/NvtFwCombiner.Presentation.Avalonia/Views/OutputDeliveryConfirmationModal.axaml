@@ -219,10 +219,32 @@
                 </Grid>
                 <Grid ColumnDefinitions="188,*" ColumnSpacing="{DynamicResource NfcSpace12}" IsVisible="{Binding AdditionalDeliveryEnabled}">
                   <TextBlock Classes="mutedText" Text="A FlashCode" />
-                  <StackPanel Grid.Column="1" Spacing="3">
-                    <TextBlock Text="{Binding AdditionalSuggestedFileName}" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding AdditionalSuggestedFileName}" />
-                    <TextBlock Classes="detailText" Text="{Binding AdditionalOutputSize}" />
-                  </StackPanel>
+                  <Grid Grid.Column="1" ColumnDefinitions="*,34" RowDefinitions="Auto,Auto"
+                        ColumnSpacing="{DynamicResource NfcSpace12}" RowSpacing="3">
+                      <SelectableTextBlock x:Name="AdditionalOutputFileNameDisplay" MinHeight="24" VerticalAlignment="Center"
+                                           IsVisible="{Binding !IsAdditionalOutputFileNameEditing}"
+                                           AutomationProperties.Name="A FlashCode"
+                                           Text="{Binding AdditionalOutputFileName}" TextTrimming="CharacterEllipsis"
+                                           ToolTip.Tip="{Binding AdditionalOutputFileName}" />
+                      <TextBox x:Name="AdditionalOutputFileNameInput" VerticalAlignment="Center" Classes="buildSettingInput outputNameInput editable"
+                               AutomationProperties.Name="A FlashCode" IsVisible="{Binding IsAdditionalOutputFileNameEditing}"
+                               Text="{Binding AdditionalOutputFileName, Mode=OneWay}"
+                               TextChanged="AdditionalOutputFileNameInput_OnTextChanged" KeyDown="AdditionalOutputFileNameInput_OnKeyDown" />
+                      <Button x:Name="EditAdditionalOutputFileNameButton" Grid.Column="1" Grid.RowSpan="2" VerticalAlignment="Top" Classes="semanticAction inlineEdit outputNameEdit"
+                              AutomationProperties.Name="{Binding Text.OutputDeliveryEditAdditionalNameLabel}"
+                              ToolTip.Tip="{Binding Text.OutputDeliveryEditAdditionalNameLabel}"
+                              IsEnabled="{Binding CanEditAdditionalOutputFileName}" IsVisible="{Binding !IsAdditionalOutputFileNameEditing}"
+                              Click="EditAdditionalOutputFileNameButton_OnClick">
+                        <Path Width="16" Height="16" Data="{StaticResource NfcEditIconGeometry}" Fill="Transparent" StrokeThickness="1.5" Stretch="Uniform" />
+                      </Button>
+                      <Button x:Name="CompleteAdditionalOutputFileNameEditButton" Grid.Column="1" Grid.RowSpan="2" VerticalAlignment="Top" Classes="semanticAction inlineEdit outputNameEdit"
+                              AutomationProperties.Name="{Binding Text.OutputDeliveryDoneAdditionalNameLabel}"
+                              ToolTip.Tip="{Binding Text.OutputDeliveryDoneAdditionalNameLabel}"
+                              IsVisible="{Binding IsAdditionalOutputFileNameEditing}" Click="CompleteAdditionalOutputFileNameEditButton_OnClick">
+                        <Path Width="16" Height="16" Data="M2 8L6 12L14 3" Fill="Transparent" StrokeThickness="1.5" Stretch="Uniform" />
+                      </Button>
+                    <TextBlock Grid.Row="1" Classes="detailText" Text="{Binding AdditionalOutputSize}" />
+                  </Grid>
                 </Grid>
                 <Grid ColumnDefinitions="188,*" ColumnSpacing="{DynamicResource NfcSpace12}" IsVisible="{Binding ShowsBundleContents}">
                   <TextBlock Classes="mutedText" Text="{Binding Text.OutputConfirmationInputsLabel}" />

@@ -239,7 +239,7 @@ public sealed class CompositionRunRequest
         return copy;
     }
 
-    private static void ValidateOutputFileName(string outputFileName)
+    internal static void ValidateOutputFileName(string outputFileName)
     {
         if (outputFileName.IndexOfAny(['/', '\\', ':']) >= 0 ||
             outputFileName is "." or ".." ||

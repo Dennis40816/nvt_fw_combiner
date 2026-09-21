@@ -7,6 +7,8 @@ namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
 internal sealed partial class ShellTextResources
 {
+    public string OutputDeliveryEditAdditionalNameLabel => SelectLanguage("Edit A FlashCode filename", "編輯 A FlashCode 檔名");
+    public string OutputDeliveryDoneAdditionalNameLabel => SelectLanguage("Finish editing A FlashCode filename", "完成 A FlashCode 檔名編輯");
     public string OutputConfirmationTargetLabel => SelectLanguage("Target", "目標");
     public string OutputConfirmationModeLabel => SelectLanguage("Mode / Output format", "模式 / 輸出格式");
     public string OutputConfirmationSizeLabel => SelectLanguage("Flash output size", "Flash 輸出大小");
