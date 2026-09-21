@@ -256,10 +256,12 @@ internal static partial class UiCompositionRunner
         return IsReferenceKept(segment)
                 ? new(MemoryPlanSourceKind.BaseFirmware)
                 : segment.SourceSpaceId is { } sourceSpaceId
-                    ? DynamicCtrlRamReplacementIds.TryFormatDisplayLabel(sourceSpaceId, out _)
+                    ? DynamicCtrlRamReplacementIds.TryFormatDisplayLabel(sourceSpaceId, out string sourceLabel)
                         ? new(
                             MemoryPlanSourceKind.Technical,
-                            DynamicCtrlRamReplacementIds.FormatRegionDisplayLabel(segment.RegionId))
+                            segment.ContentRole == MemoryContentRole.CtrlRam
+                                ? DynamicCtrlRamReplacementIds.FormatRegionDisplayLabel(segment.RegionId)
+                                : sourceLabel)
                         : AddressSpaceSource(sourceSpaceId)
                     : new(MemoryPlanSourceKind.Localized, isInitialization
                         ? $"{text.MemoryInitializationLabel}: {value}"

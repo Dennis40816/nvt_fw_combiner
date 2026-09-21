@@ -128,6 +128,11 @@ public sealed partial class CtrlRamWorkflowTests
         internal (AuthoringInputSlotStatus[] Statuses, ActiveSessionSnapshot Snapshot)
             SingleSuccessfulAdoption => Assert.Single(_successfulAdoptions);
 
+        public CapabilityWorkflowReadiness GetAbReferenceReadiness(string icId, string number)
+        {
+            return inner.GetAbReferenceReadiness(icId, number);
+        }
+
         public CtrlRamInspectionDisplay GetDiscoveryDisplay(
             string icId,
             string number)

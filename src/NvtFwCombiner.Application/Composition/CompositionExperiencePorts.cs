@@ -223,6 +223,9 @@ public interface ISavedRuleAuthoring
 /// <summary>Focused CtrlRAM Replace authoring owner.</summary>
 public interface ICtrlRamAuthoring
 {
+    /// <summary>Projects the exact AB Reference route without inspecting input bytes.</summary>
+    CapabilityWorkflowReadiness GetAbReferenceReadiness(string icId, string number);
+
     /// <summary>Gets the declared CtrlRAM regions and input slots before a base is accepted.</summary>
     CtrlRamInspectionDisplay GetDiscoveryDisplay(
         string icId,

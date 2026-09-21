@@ -9,6 +9,8 @@ namespace NvtFwCombiner.Application.Authoring;
 /// <summary>Host adapter for profile-owned CtrlRAM compilation and display facts.</summary>
 public interface ICtrlRamAuthoringAdapter
 {
+    CapabilityRouteResolutionResult ResolveAbReferenceRoute(string icId, string number);
+
     CtrlRamInspectionDisplay GetDiscoveryDisplay(
         string icId,
         string number);

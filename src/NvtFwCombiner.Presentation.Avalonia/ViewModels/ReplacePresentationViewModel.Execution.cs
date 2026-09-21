@@ -18,7 +18,7 @@ internal sealed partial class ReplacePresentationViewModel
 
     public Task BuildReplaceAsync(
         string outputPath,
-        CtrlRamFirmwareVersionDraftState? ctrlRamFirmwareVersionEdit = null)
+        CtrlRamAuthoringDraftState? ctrlRamFirmwareVersionEdit = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(outputPath);
         return RunBuildReplaceAsync(outputPath, ctrlRamFirmwareVersionEdit);
@@ -36,7 +36,7 @@ internal sealed partial class ReplacePresentationViewModel
     }
 
     internal async Task RequestBuildOutputDeliveryAsync(
-        CtrlRamFirmwareVersionDraftState? ctrlRamFirmwareVersionEdit = null,
+        CtrlRamAuthoringDraftState? ctrlRamFirmwareVersionEdit = null,
         ActiveSessionSnapshot? exactSession = null)
     {
         CompositionRunContext context = CaptureRunContext(SelectedReplaceMode, build: true);
@@ -51,7 +51,7 @@ internal sealed partial class ReplacePresentationViewModel
             await _compositionServices.OutputNaming.PrepareBundleProposalAsync(
                 session,
                 CancellationToken.None,
-                exactSession is null ? ctrlRamFirmwareVersionEdit : null);
+                exactSession is null ? ctrlRamFirmwareVersionEdit as CtrlRamFirmwareVersionDraftState : null);
         if (!IsAcceptedReplaceSessionCurrent(context) || !_stateBindings.OutputDelivery.IsPreparationCurrent(preparation))
         {
             return;
@@ -90,7 +90,7 @@ internal sealed partial class ReplacePresentationViewModel
 
     private async Task<bool> PrepareCtrlRamBuildSettingsAsync()
     {
-        (bool succeeded, CtrlRamFirmwareVersionDraftState? edit) =
+        (bool succeeded, CtrlRamAuthoringDraftState? edit) =
             await TryCreateCtrlRamFirmwareVersionEditAsync();
         return succeeded && await RequestCtrlRamBuildOutputDeliveryAsync(edit);
     }
@@ -102,7 +102,7 @@ internal sealed partial class ReplacePresentationViewModel
     }
 
     internal async Task<bool> RequestCtrlRamBuildOutputDeliveryAsync(
-        CtrlRamFirmwareVersionDraftState? edit)
+        CtrlRamAuthoringDraftState? edit)
     {
         if (!IsCtrlRamReplaceModeSelected ||
             !await IsCtrlRamFirmwareVersionBuildConfirmationCurrentAsync())
@@ -122,6 +122,7 @@ internal sealed partial class ReplacePresentationViewModel
             return false;
         }
 
+        CurrentCtrlRamDraft = transition.Session.DraftState as CtrlRamAuthoringDraftState;
         await RefreshCtrlRamActionReadinessAsync(CancellationToken.None);
         if (!CanBuildReplace)
         {
@@ -144,7 +145,7 @@ internal sealed partial class ReplacePresentationViewModel
 
     private Task RunBuildReplaceAsync(
         string? outputPath,
-        CtrlRamFirmwareVersionDraftState? ctrlRamFirmwareVersionEdit)
+        CtrlRamAuthoringDraftState? ctrlRamFirmwareVersionEdit)
     {
         return RunReplaceAsync(
             build: true,
@@ -158,6 +159,7 @@ internal sealed partial class ReplacePresentationViewModel
         return !_stateBindings.IsGlobalBuildBlocked() &&
             !_stateBindings.IsRunInProgress() && !Inspection.IsRunning &&
             IsSelectedReplaceModeSupported &&
+            (SelectedReplaceMode != CtrlRamReplaceMode || !IsAbCtrlRamReference || AbCtrlRamReadiness.IsAvailable) &&
             (SelectedReplaceMode switch
             {
                 CtrlRamReplaceMode =>
@@ -184,7 +186,7 @@ internal sealed partial class ReplacePresentationViewModel
     private async Task RunReplaceAsync(
         bool build,
         string? outputPath,
-        CtrlRamFirmwareVersionDraftState? ctrlRamFirmwareVersionEdit,
+        CtrlRamAuthoringDraftState? ctrlRamFirmwareVersionEdit,
         bool outputPathUsesAutomaticName,
         CompositionOutputBundleIntent? outputBundle = null,
         ActiveSessionSnapshot? exactPreparedSession = null)
@@ -201,8 +203,12 @@ internal sealed partial class ReplacePresentationViewModel
                     icId,
                     number,
                     slotPaths,
-                    ctrlRamFirmwareVersionEdit)
+                    ctrlRamFirmwareVersionEdit ?? (IsAbCtrlRamReference ? CurrentCtrlRamDraft : null))
                 : null;
+        if (ctrlRamTransition?.Succeeded == true)
+        {
+            CurrentCtrlRamDraft = ctrlRamTransition.Session!.DraftState as CtrlRamAuthoringDraftState;
+        }
         CompositionRunContext context = CaptureRunContext(replaceMode, build);
         ActiveSessionSnapshot? generalSession = replaceMode == GeneralReplaceMode
             ? context.AcceptedSession ??

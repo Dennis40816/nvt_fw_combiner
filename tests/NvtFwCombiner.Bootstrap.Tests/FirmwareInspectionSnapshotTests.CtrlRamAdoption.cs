@@ -357,6 +357,11 @@ public sealed partial class FirmwareInspectionSnapshotTests
 
         private int IsAcceptedCapabilityCalls { get; set; }
 
+        public CapabilityRouteResolutionResult ResolveAbReferenceRoute(string icId, string number)
+        {
+            return inner.ResolveAbReferenceRoute(icId, number);
+        }
+
         public CtrlRamInspectionDisplay GetDiscoveryDisplay(
             string icId,
             string number)

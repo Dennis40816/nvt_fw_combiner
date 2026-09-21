@@ -1,6 +1,6 @@
-using System.Globalization;
 using NvtFwCombiner.Application.Authoring;
 using NvtFwCombiner.Application.InputInspection;
+using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
@@ -11,6 +11,8 @@ internal sealed partial class ReplacePresentationViewModel
     private CompiledInputVersionObservation? _ctrlRamFirmwareVersionObservation;
     private CtrlRamFirmwareVersionModalLease? _ctrlRamFirmwareVersionModalLease;
     private long _ctrlRamFirmwareVersionContextGeneration;
+    public IReadOnlyList<CtrlRamFirmwareVersionEditorViewModel> AbCtrlRamVersionEditors { get; private set; } = [];
+
 
     /// <summary>True when the CtrlRAM Build firmware-version confirmation modal is open.</summary>
     public bool IsCtrlRamFirmwareVersionModalOpen { get; private set; }
@@ -94,7 +96,8 @@ internal sealed partial class ReplacePresentationViewModel
 
         CompiledInputVersionObservation? observation = _compositionServices.CtrlRamAuthoring
             .ProjectFirmwareVersionConfirmationLease(acceptedSession);
-        if (observation is null ||
+        var ab = acceptedSession.DraftState as AbCtrlRamDraftState;
+        if ((observation is null && ab is null) ||
             !ReferenceEquals(acceptedSession, _ctrlRamReplaceSession.CurrentSnapshot) ||
             !IsCtrlRamReplaceModeSelected ||
             !CanRunReplace())
@@ -102,6 +105,12 @@ internal sealed partial class ReplacePresentationViewModel
             return Task.FromResult(false);
         }
 
+        IReadOnlyList<CompiledReferenceBankObservation> banks = acceptedSession.InputSlotStatuses.Single(
+            static status => status.AddressSpaceId == CompositionAddressSpaceIds.ReferenceBase).Observation.ReferenceBanks;
+        AbCtrlRamVersionEditors = ab is null ? [] : [.. banks.Select(bank =>
+            new CtrlRamFirmwareVersionEditorViewModel(bank.BankId,
+                bank.BankId == "a-bank" ? "TPA Version" : "TPB Version", bank.Version,
+                bank.BankId == "a-bank" ? ab.AVersion : ab.BVersion, Text))];
         _ctrlRamFirmwareVersionAcceptedSession = acceptedSession;
         _ctrlRamFirmwareVersionObservation = observation;
         _ctrlRamFirmwareVersionModalLease = new CtrlRamFirmwareVersionModalLease(
@@ -121,27 +130,49 @@ internal sealed partial class ReplacePresentationViewModel
     }
 
     /// <summary>Validates the accepted-session lease and creates the typed CtrlRAM version-edit request.</summary>
-    public Task<(bool Succeeded, CtrlRamFirmwareVersionDraftState? Edit)>
+    public Task<(bool Succeeded, CtrlRamAuthoringDraftState? Edit)>
         TryCreateCtrlRamFirmwareVersionEditAsync(CancellationToken cancellationToken = default)
     {
         if (cancellationToken.IsCancellationRequested)
         {
-            return Task.FromCanceled<(bool Succeeded, CtrlRamFirmwareVersionDraftState? Edit)>(
+            return Task.FromCanceled<(bool Succeeded, CtrlRamAuthoringDraftState? Edit)>(
                 cancellationToken);
         }
 
         if (!IsCtrlRamFirmwareVersionModalOpen ||
             !IsCtrlRamReplaceModeSelected)
         {
-            return Task.FromResult<(bool, CtrlRamFirmwareVersionDraftState?)>((false, null));
+            return Task.FromResult<(bool, CtrlRamAuthoringDraftState?)>((false, null));
         }
 
         if (!IsCtrlRamFirmwareVersionModalLeaseContextCurrent())
         {
             CloseCtrlRamFirmwareVersionModal();
-            return Task.FromResult<(bool, CtrlRamFirmwareVersionDraftState?)>((false, null));
+            return Task.FromResult<(bool, CtrlRamAuthoringDraftState?)>((false, null));
         }
 
+        if (_ctrlRamFirmwareVersionAcceptedSession?.DraftState is AbCtrlRamDraftState ab)
+        {
+            CtrlRamFirmwareVersionDraftState? aVersion = ab.AVersion;
+            CtrlRamFirmwareVersionDraftState? bVersion = ab.BVersion;
+            foreach (CtrlRamFirmwareVersionEditorViewModel editor in AbCtrlRamVersionEditors)
+            {
+                if (!editor.TryCreateDraft(out CtrlRamFirmwareVersionDraftState? version))
+                {
+                    return Task.FromResult<(bool, CtrlRamAuthoringDraftState?)>((false, null));
+                }
+                if (editor.BankId == "a-bank")
+                {
+                    aVersion = version;
+                }
+                else
+                {
+                    bVersion = version;
+                }
+            }
+            return Task.FromResult<(bool, CtrlRamAuthoringDraftState?)>((true,
+                new AbCtrlRamDraftState(ab.Banks, aVersion, bVersion)));
+        }
         if (!IsCtrlRamFirmwareVersionEditSelected)
         {
             bool preserveLeaseCurrent = ValidateCtrlRamFirmwareVersionModalLease();
@@ -150,7 +181,7 @@ internal sealed partial class ReplacePresentationViewModel
                 CloseCtrlRamFirmwareVersionModal();
             }
 
-            return Task.FromResult<(bool, CtrlRamFirmwareVersionDraftState?)>(
+            return Task.FromResult<(bool, CtrlRamAuthoringDraftState?)>(
                 (preserveLeaseCurrent, null));
         }
 
@@ -162,7 +193,7 @@ internal sealed partial class ReplacePresentationViewModel
             OnPropertyChanged(nameof(CanEditCtrlRamFirmwareVersion));
             OnPropertyChanged(nameof(CtrlRamFirmwareVersionCurrentValue));
             OnPropertyChanged(nameof(CtrlRamFirmwareVersionMetadataDetail));
-            return Task.FromResult<(bool, CtrlRamFirmwareVersionDraftState?)>((false, null));
+            return Task.FromResult<(bool, CtrlRamAuthoringDraftState?)>((false, null));
         }
 
         if (!TryParseHexByte(CtrlRamFirmwareVersionText, out byte firmwareVersion) ||
@@ -171,12 +202,12 @@ internal sealed partial class ReplacePresentationViewModel
             CtrlRamFirmwareVersionValidationDetail = Text.CtrlRamFirmwareVersionInvalidByteDetail;
             OnPropertyChanged(nameof(CtrlRamFirmwareVersionValidationDetail));
             OnPropertyChanged(nameof(HasCtrlRamFirmwareVersionValidation));
-            return Task.FromResult<(bool, CtrlRamFirmwareVersionDraftState?)>((false, null));
+            return Task.FromResult<(bool, CtrlRamAuthoringDraftState?)>((false, null));
         }
 
         var edit = new CtrlRamFirmwareVersionDraftState(firmwareVersion, firmwareSubVersion);
         ClearCtrlRamFirmwareVersionValidation();
-        return Task.FromResult<(bool, CtrlRamFirmwareVersionDraftState?)>((true, edit));
+        return Task.FromResult<(bool, CtrlRamAuthoringDraftState?)>((true, edit));
     }
 
     public Task<bool> IsCtrlRamFirmwareVersionBuildConfirmationCurrentAsync(
@@ -262,9 +293,7 @@ internal sealed partial class ReplacePresentationViewModel
 
     private static bool TryParseHexByte(string? text, out byte value)
     {
-        value = 0;
-        return text is { Length: 2 } &&
-            byte.TryParse(text, NumberStyles.AllowHexSpecifier, CultureInfo.InvariantCulture, out value);
+        return CtrlRamFirmwareVersionEditorViewModel.TryParseHexByte(text, out value);
     }
 
     private void ClearCtrlRamFirmwareVersionValidation()
@@ -281,6 +310,7 @@ internal sealed partial class ReplacePresentationViewModel
 
     private void NotifyCtrlRamFirmwareVersionState()
     {
+        OnPropertyChanged(nameof(AbCtrlRamVersionEditors));
         OnPropertyChanged(nameof(IsCtrlRamFirmwareVersionModalOpen));
         OnPropertyChanged(nameof(IsCtrlRamFirmwareVersionEditSelected));
         OnPropertyChanged(nameof(IsCtrlRamFirmwareVersionPreserveSelected));

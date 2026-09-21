@@ -1,0 +1,59 @@
+{
+  "schemaVersion": 2,
+  "taskId": "CTRLRAM-AB-UI-110-01",
+  "capability": "Wire explicit AB CtrlRAM authoring, immutable inspection, independent bank versions and the existing Build confirmation",
+  "integrationBase": "b9a94a2bab1a7bc05129b3438f0c0afeaaf45ad4",
+  "risk": "R2",
+  "kind": "behavior",
+  "state": "design-active",
+  "mutablePaths": [
+    "src/NvtFwCombiner.Application/Capabilities/CapabilityDisclosure.cs",
+    "src/NvtFwCombiner.Application/Composition/CompositionExperiencePorts.cs",
+    "src/NvtFwCombiner.Application/Authoring/ICtrlRamAuthoringAdapter.cs",
+    "src/NvtFwCombiner.Application/Authoring/CtrlRamAuthoringExperience.cs",
+    "src/NvtFwCombiner.Infrastructure/Composition/BuiltInCtrlRamAuthoringAdapter.Ab.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReplacePresentationViewModel.CtrlRamBanks.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/CtrlRamFirmwareVersionEditorViewModel.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReplacePresentationViewModel.CtrlRamFirmwareVersion.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReplacePresentationViewModel.Execution.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReplacePresentationViewModel.Authoring.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReplacePresentationViewModel.State.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReplaceStateBindings.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MainWindowViewModel.Construction.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/WorkflowSessionPresentationViewModel.FirmwareInspection.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ShellTextResources.Workflow.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ShellTextResources.Localized.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/Resources/MainWindowWorkflowTemplates.axaml",
+    "src/NvtFwCombiner.Presentation.Avalonia/Views/OutputDeliveryConfirmationModal.axaml",
+    "tests/NvtFwCombiner.UiSmoke.Tests/ShellViewModelTests.CtrlRamFirmwareVersion.cs",
+    "tests/NvtFwCombiner.UiSmoke.Tests/ShellViewModelTests.CtrlRamPublication.cs",
+    "tests/NvtFwCombiner.UiSmoke.Tests/ShellViewModelTests.AbCtrlRamAuthoring.cs",
+    "tests/NvtFwCombiner.UiSmoke.Tests/ShellVisualLayoutTests.AbCtrlRam.cs",
+    "tests/NvtFwCombiner.Bootstrap.Tests/FirmwareInspectionSnapshotTests.CtrlRamAdoption.cs",
+    "tests/NvtFwCombiner.Bootstrap.Tests/AbCtrlRamAuthoringTests.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReplacePresentationViewModel.Memory.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/UiCompositionRunner.Common.cs"
+  ],
+  "implementationOwner": "/root",
+  "searchEvidence": [
+    "Existing CtrlRamAuthoringExperience and official BankReplaceIdentity own accepted full drafts and exact route; expose pre-input readiness through existing CapabilityWorkflowReadinessProjector without Standard aggregate evidence.",
+    "ReplacePresentationViewModel owns page-specific pending state, accepted session, modal generation and Build handoff; WorkflowInspectionLifecycle owns asynchronous publication generation. Capture full draft before await and reject stale completion.",
+    "Existing compiled ReferenceBanks observations feed independent editors; existing Transition and output naming contracts remain terminal owners. Static AB discovery uses declared profile only."
+  ],
+  "semanticOwner": "Application CtrlRamAuthoringExperience and CapabilityWorkflowReadinessProjector; Presentation projects accepted typed facts",
+  "terminalContract": "Explicit Standard or AB Reference, default AB Both, shared source slots, independent optional A/B edits. Selection invalidates old session/lifecycle/modal. Exact AB route readiness remains Candidate / ContractOnly. Existing inspection, transition, memory projection and Build path reused; no firmware byte, profile, CRC or support change.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "/root/layout_ownership_review",
+    "outcome": "approved",
+    "evidence": "2026-09-22 independent R2 architecture/contract admission approved exact listed scope, exact-route disclosure, immutable request capture, existing generation/session guards, independent typed editors and existing terminal Build. Discovery characterization found slots already present; no BuiltInFirmwareInspection production change needed. Additional Memory.cs caller path approved by same independent reviewer before editing: accepted AB draft omits Standard discovery annotations, retains exact projector validation. Actual page screenshot and five RED assertions reproduce mismatch. UiCompositionRunner.Common.cs label-only extension also independently approved before editing: keep CtrlRam-role canonical subtype labels; otherwise render the already-parsed dynamic source label, never parse an AB parent region as NF subtype."
+  },
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": {
+    "reviewer": null,
+    "outcome": "pending",
+    "evidence": ""
+  }
+}

@@ -223,6 +223,11 @@ internal sealed partial class WorkflowSessionPresentationViewModel
         string icId = SelectedIc;
         string number = SelectedNumber;
         AbMergeDpMode abDpMode = _merge.UseDummyDpForAbMerge ? AbMergeDpMode.Dummy : AbMergeDpMode.Normal;
+        CtrlRamAuthoringDraftState? ctrlRamDraft = _replace.CurrentCtrlRamDraft;
+        items = [.. items.Select(item => item.CtrlRamRequest is null ? item : item with
+        {
+            CtrlRamRequest = new CtrlRamInspectionRequest(number, ctrlRamDraft),
+        })];
         return lifecycle.StartAsync(
             Text,
             async (progress, isCurrent, cancellationToken) =>

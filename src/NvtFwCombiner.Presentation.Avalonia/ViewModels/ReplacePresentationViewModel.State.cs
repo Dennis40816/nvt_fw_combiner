@@ -198,7 +198,9 @@ internal sealed partial class ReplacePresentationViewModel
     /// </summary>
     public CapabilityWorkflowReadiness? SelectedReplaceWorkflowReadiness =>
         HasSelectedIc
-            ? _compositionServices.Capabilities.GetReplaceWorkflowReadiness(SelectedIc, SelectedReplaceMode)
+            ? SelectedReplaceMode == CtrlRamReplaceMode && IsAbCtrlRamReference
+                ? AbCtrlRamReadiness
+                : _compositionServices.Capabilities.GetReplaceWorkflowReadiness(SelectedIc, SelectedReplaceMode)
             : null;
 
     /// <summary>Localized evidence badge for the selected Replace workflow.</summary>
@@ -380,6 +382,7 @@ internal sealed partial class ReplacePresentationViewModel
 
     private void PublishContextCore(bool includeModeChoices)
     {
+        NotifyCtrlRamBankState();
         if (includeModeChoices && _catalogReconciliationPreviousMode is { } previousMode)
         {
             if (previousMode.Length > 0)

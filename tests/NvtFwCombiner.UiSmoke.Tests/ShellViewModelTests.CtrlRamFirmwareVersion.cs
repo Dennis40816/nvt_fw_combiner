@@ -236,7 +236,7 @@ public sealed partial class CtrlRamWorkflowTests
             viewModel.OutputDelivery.BeginOutputFileNameEdit();
             viewModel.OutputDelivery.SetOutputFileName("operator-ctrlram.bin");
         }
-        (bool succeeded, CtrlRamFirmwareVersionDraftState? edit) =
+        (bool succeeded, CtrlRamAuthoringDraftState? edit) =
             await viewModel.Replace.TryCreateCtrlRamFirmwareVersionEditAsync(cancellationToken);
         Assert.True(succeeded);
 
@@ -267,7 +267,7 @@ public sealed partial class CtrlRamWorkflowTests
         Assert.False(viewModel.Replace.IsCtrlRamFirmwareVersionEditSelected);
         Assert.True(viewModel.Replace.CanEditCtrlRamFirmwareVersion, viewModel.Replace.CtrlRamFirmwareVersionMetadataDetail);
         Assert.Matches("^[0-9A-F]{2} / [0-9A-F]{2}$", viewModel.Replace.CtrlRamFirmwareVersionCurrentValue);
-        (bool preserveSucceeded, CtrlRamFirmwareVersionDraftState? preserveEdit) =
+        (bool preserveSucceeded, CtrlRamAuthoringDraftState? preserveEdit) =
             await viewModel.Replace.TryCreateCtrlRamFirmwareVersionEditAsync(cancellationToken);
         Assert.True(preserveSucceeded);
         Assert.Null(preserveEdit);
@@ -284,13 +284,13 @@ public sealed partial class CtrlRamWorkflowTests
 
         viewModel.Replace.CtrlRamFirmwareVersionText = "2A";
         viewModel.Replace.CtrlRamFirmwareSubVersionText = "0C";
-        (bool editSucceeded, CtrlRamFirmwareVersionDraftState? edit) =
+        (bool editSucceeded, CtrlRamAuthoringDraftState? edit) =
             await viewModel.Replace.TryCreateCtrlRamFirmwareVersionEditAsync(cancellationToken);
         Assert.True(editSucceeded);
         Assert.NotNull(edit);
-        Assert.Equal((byte)0x2A, edit.FirmwareVersion);
-        Assert.Equal((byte)0x0C, edit.FirmwareSubVersion);
-        Assert.Equal("nt51926-ctrlram-replace.bin", viewModel.Replace.CreateCtrlRamReplaceOutputFileName(edit));
+        Assert.Equal((byte)0x2A, Assert.IsType<CtrlRamFirmwareVersionDraftState>(edit).FirmwareVersion);
+        Assert.Equal((byte)0x0C, Assert.IsType<CtrlRamFirmwareVersionDraftState>(edit).FirmwareSubVersion);
+        Assert.Equal("nt51926-ctrlram-replace.bin", viewModel.Replace.CreateCtrlRamReplaceOutputFileName(Assert.IsType<CtrlRamFirmwareVersionDraftState>(edit)));
 
         viewModel.Replace.CloseCtrlRamFirmwareVersionModal();
         Assert.False(viewModel.Replace.IsCtrlRamFirmwareVersionModalOpen);
@@ -311,7 +311,7 @@ public sealed partial class CtrlRamWorkflowTests
         viewModel.Replace.SelectCtrlRamFirmwareVersionEditCommand.Execute(null);
         viewModel.Replace.CtrlRamFirmwareVersionText = "2A";
         viewModel.Replace.CtrlRamFirmwareSubVersionText = "0C";
-        (bool editSucceeded, CtrlRamFirmwareVersionDraftState? edit) =
+        (bool editSucceeded, CtrlRamAuthoringDraftState? edit) =
             await viewModel.Replace.TryCreateCtrlRamFirmwareVersionEditAsync(cancellationToken);
         Assert.True(editSucceeded);
         Assert.NotNull(edit);
@@ -493,7 +493,7 @@ public sealed partial class CtrlRamWorkflowTests
         viewModel.Replace.SelectCtrlRamFirmwareVersionEditCommand.Execute(null);
         viewModel.Replace.CtrlRamFirmwareVersionText = "2A";
         viewModel.Replace.CtrlRamFirmwareSubVersionText = "0C";
-        (bool succeeded, CtrlRamFirmwareVersionDraftState? edit) =
+        (bool succeeded, CtrlRamAuthoringDraftState? edit) =
             await viewModel.Replace.TryCreateCtrlRamFirmwareVersionEditAsync(cancellationToken);
         Assert.True(succeeded);
         Assert.NotNull(edit);

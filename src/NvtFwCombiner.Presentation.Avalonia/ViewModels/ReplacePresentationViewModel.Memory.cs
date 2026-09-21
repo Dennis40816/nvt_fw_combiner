@@ -172,7 +172,7 @@ internal sealed partial class ReplacePresentationViewModel
                     acceptedSession,
                     Text,
                     out overview,
-                    ctrlRamRegions: display.Regions);
+                    ctrlRamRegions: acceptedSession.DraftState is AbCtrlRamDraftState ? null : display.Regions);
             }
             catch (MemoryLayoutDisplayProjectionException)
             {

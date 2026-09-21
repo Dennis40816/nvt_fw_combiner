@@ -143,7 +143,8 @@
 
           <Border x:Name="CtrlRamVersionSettingSection" Padding="0,16" BorderBrush="{DynamicResource NfcBorderMutedBrush}"
                   BorderThickness="0,0,0,1" IsVisible="{Binding HasCtrlRamOptions}">
-            <Grid ColumnDefinitions="*,300" ColumnSpacing="{DynamicResource NfcSpace24}">
+            <StackPanel>
+            <Grid ColumnDefinitions="*,300" ColumnSpacing="{DynamicResource NfcSpace24}" IsVisible="{Binding CtrlRamOptions.IsStandardCtrlRamReference}">
               <StackPanel Spacing="3">
                 <TextBlock Classes="fieldLabel" FontWeight="Medium" Text="{Binding CtrlRamOptions.Text.CtrlRamFirmwareVersionTitle}" />
                 <TextBlock x:Name="CtrlRamBaseVersionValue" Classes="versionValue"
@@ -193,6 +194,48 @@
                            Text="{Binding CtrlRamOptions.CtrlRamFirmwareVersionValidationDetail}" TextWrapping="Wrap" />
               </StackPanel>
             </Grid>
+            <ItemsControl x:Name="AbCtrlRamVersionEditors" ItemsSource="{Binding CtrlRamOptions.AbCtrlRamVersionEditors}"
+                          IsVisible="{Binding CtrlRamOptions.IsAbCtrlRamReference}" ItemContainerTheme="{StaticResource StretchContentPresenterTheme}">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="vm:CtrlRamFirmwareVersionEditorViewModel">
+                  <Grid Classes="abVersionEditor" ColumnDefinitions="*,300" ColumnSpacing="24" Margin="0,6">
+                    <StackPanel Spacing="3">
+                      <TextBlock Classes="fieldLabel" FontWeight="Medium" Text="{Binding Title}" />
+                      <TextBlock Classes="versionValue" FontFamily="{DynamicResource NfcUiFontFamily}" FontWeight="Medium" Text="{Binding CurrentValue}" />
+                      <TextBlock Classes="detailText" Text="{Binding Detail}" TextWrapping="Wrap" />
+                    </StackPanel>
+                    <StackPanel Grid.Column="1" Spacing="12">
+                      <Grid ColumnDefinitions="*,*" ColumnSpacing="4">
+                        <ToggleButton Classes="segment versionChoice" FontFamily="{DynamicResource NfcUiFontFamily}" FontWeight="Medium" Command="{Binding PreserveCommand}"
+                                      IsChecked="{Binding IsPreserveSelected, Mode=OneWay}"
+                                      AutomationProperties.Name="{Binding Text.CtrlRamFirmwareVersionKeepLabel}">
+                          <TextBlock Text="{Binding Text.CtrlRamFirmwareVersionKeepLabel}" />
+                        </ToggleButton>
+                        <ToggleButton Grid.Column="1" Classes="segment versionChoice" FontFamily="{DynamicResource NfcUiFontFamily}" FontWeight="Medium" Command="{Binding EditCommand}"
+                                      IsChecked="{Binding IsEditSelected, Mode=OneWay}" IsEnabled="{Binding CanEdit}"
+                                      AutomationProperties.Name="{Binding Text.CtrlRamFirmwareVersionEditLabel}">
+                          <TextBlock Text="{Binding Text.CtrlRamFirmwareVersionEditLabel}" />
+                        </ToggleButton>
+                      </Grid>
+                      <Grid Classes="abVersionFields" ColumnDefinitions="*,*" ColumnSpacing="12" IsVisible="{Binding IsEditSelected}">
+                        <StackPanel Spacing="5">
+                          <TextBlock Classes="fieldLabel" Text="{Binding Text.CtrlRamFirmwareVersionByteLabel}" />
+                          <TextBox Classes="technicalCenteredInput hexByteInput" FontFamily="{DynamicResource NfcUiFontFamily}" FontWeight="Medium" Text="{Binding VersionText, Mode=TwoWay}"
+                                   AutomationProperties.Name="{Binding Text.CtrlRamFirmwareVersionByteLabel}" />
+                        </StackPanel>
+                        <StackPanel Grid.Column="1" Spacing="5">
+                          <TextBlock Classes="fieldLabel" Text="{Binding Text.CtrlRamFirmwareSubVersionByteLabel}" />
+                          <TextBox Classes="technicalCenteredInput hexByteInput" FontFamily="{DynamicResource NfcUiFontFamily}" FontWeight="Medium" Text="{Binding SubVersionText, Mode=TwoWay}"
+                                   AutomationProperties.Name="{Binding Text.CtrlRamFirmwareSubVersionByteLabel}" />
+                        </StackPanel>
+                      </Grid>
+                      <TextBlock Classes="warningText" Text="{Binding Validation}" IsVisible="{Binding HasValidation}" TextWrapping="Wrap" />
+                    </StackPanel>
+                  </Grid>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+            </StackPanel>
           </Border>
 
           <Border x:Name="DeliverySettingSection" Padding="0,4,0,8">

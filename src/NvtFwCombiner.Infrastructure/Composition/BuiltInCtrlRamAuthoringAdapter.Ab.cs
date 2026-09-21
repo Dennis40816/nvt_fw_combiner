@@ -9,16 +9,25 @@ namespace NvtFwCombiner.Infrastructure.Composition;
 
 internal sealed partial class BuiltInCtrlRamAuthoringAdapter
 {
+    public CapabilityRouteResolutionResult ResolveAbReferenceRoute(string icId, string number)
+    {
+        return !string.IsNullOrWhiteSpace(icId) &&
+            IcIdentifier.Normalize(icId) == CanonicalDynamicRouteInventory.BankReplaceIdentity.IcId &&
+            number == IcNumberSelectionTokens.SingleChip
+                ? _catalog.ResolveDynamicRoute(CanonicalDynamicRouteInventory.BankReplaceIdentity.RouteId)
+                : new(null, new CapabilityCatalogIssue(CapabilityCatalogIssueCodes.RouteUnavailable,
+                    "AB CtrlRAM Replace is available only for the NT51929 fw200 Single candidate."));
+    }
+
     private CtrlRamAuthoringCompilation ResolveAb(string icId, string number,
         IReadOnlyDictionary<string, string> slotPaths, AbCtrlRamDraftState draft,
         IReadOnlyDictionary<string, byte[]>? captured)
     {
         var expected = new Dictionary<string, string>(StringComparer.Ordinal);
-        if (IcIdentifier.Normalize(icId) != CanonicalDynamicRouteInventory.BankReplaceIdentity.IcId ||
-            number != IcNumberSelectionTokens.SingleChip)
+        CapabilityRouteResolutionResult available = ResolveAbReferenceRoute(icId, number);
+        if (!available.Succeeded)
         {
-            return Failed(CompositionPlanningIssueCodes.ReplaceWorkflowNotSupported,
-                "AB CtrlRAM Replace is available only for the NT51929 fw200 Single candidate.");
+            return Failed(CompositionPlanningIssueCodes.ReplaceWorkflowNotSupported, available.Issue!.Message);
         }
 
         // Capture once at this host boundary. Every local adapter call receives this dictionary.
@@ -86,12 +95,7 @@ internal sealed partial class BuiltInCtrlRamAuthoringAdapter
             }
             CompiledComposition compiled = localBundle.CompileBankReplace(layout,
                 new FirmwareArtifactPayload(CompositionAddressSpaceIds.ReferenceBase, bytes), requests);
-            CapabilityRouteResolutionResult resolution = _catalog.ResolveDynamicRoute(CanonicalDynamicRouteInventory.BankReplaceIdentity.RouteId);
-            if (!resolution.Succeeded)
-            {
-                return Failed(resolution.Issue!.Code, resolution.Issue.Message);
-            }
-            ResolvedCapability capability = resolution.Route!.BindCompilation(compiled,
+            ResolvedCapability capability = available.Route!.BindCompilation(compiled,
                 runtimeReferenceProof: RuntimeReferenceCompilationProof.CreateBankReplace(compiled, plans))
                 .BindCtrlRamExecutionPlan(new AcceptedCtrlRamExecutionPlan(IcNumberSelection.FromToken(number), draft, advisories));
             return new(capability, expected, []);

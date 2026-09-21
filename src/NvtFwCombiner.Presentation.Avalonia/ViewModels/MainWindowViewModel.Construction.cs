@@ -116,6 +116,7 @@ internal sealed partial class MainWindowViewModel
                  ShowDiagnosticPreviewAsync,
                  ShowActionReadiness,
                  () => WorkflowSession!.ApplyAcceptedReplaceModeContext(),
+                () => WorkflowSession!.RefreshSelectedReplaceFirmwareInspectionsAsync(),
                 ResetRunResultForContextChange,
                 () => RefreshCommandState(refreshReplaceReadiness: false),
                 OutputDelivery));

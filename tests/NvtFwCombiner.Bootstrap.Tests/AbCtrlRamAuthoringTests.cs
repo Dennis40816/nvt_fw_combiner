@@ -11,6 +11,46 @@ namespace NvtFwCombiner.Bootstrap.Tests;
 /// <summary>Real adapter and official catalog closure for captured AB authoring.</summary>
 public sealed class AbCtrlRamAuthoringTests
 {
+    /// <summary>Pre-input disclosure uses only the exact AB route and never inherits Standard evidence.</summary>
+    [Theory]
+    [InlineData("NT51929", "single", true)]
+    [InlineData("NT51929", "2", false)]
+    [InlineData("NT51950", "single", false)]
+    [InlineData("", "single", false)]
+    public void AbReferenceReadinessUsesExactRoute(string icId, string number, bool available)
+    {
+        CapabilityWorkflowReadiness readiness = BootstrapTestHost.Canonical.CtrlRamAuthoring.GetAbReferenceReadiness(icId, number);
+        Assert.Equal(available, readiness.IsAvailable);
+        Assert.Equal(available, readiness.HasExactRoute);
+        Assert.False(readiness.HasReviewedEvidence);
+        Assert.Equal(available, readiness.IsEvidencePending);
+        Assert.Equal(available ? CapabilityEvidenceStatus.ContractOnly : CapabilityEvidenceStatus.Missing, readiness.EvidenceStatus);
+    }
+
+    /// <summary>Explicit AB inspection retains the declared shared input slots before bank admission.</summary>
+    [Fact]
+    public async Task AbInspectionRetainsSharedDiscoverySlots()
+    {
+        using TempWorkspace workspace = TempWorkspace.Create("ab-discovery");
+        (_, Dictionary<string, byte[]> bytes) = Inputs();
+        string reference = workspace.Write("reference.bin", bytes[CompositionSlotIds.ReplaceBase]);
+        string nf = workspace.Write("nf.bin", bytes["replace-ctrlram-nf"]);
+        FirmwareInspectionBatchResult result = await BootstrapTestHost.Services.FirmwareInspectionExperience.InspectFirmwareBatchAsync(
+            "NT51929",
+            [
+                new FirmwareInspectionSnapshotInput("base", reference,
+                    CtrlRamRequest: new CtrlRamInspectionRequest("single", new AbCtrlRamDraftState()),
+                    CtrlRamReplaceAddressSpaceId: CompositionAddressSpaceIds.ReferenceBase),
+                new FirmwareInspectionSnapshotInput("nf", nf, CtrlRamReplaceAddressSpaceId: "replace-ctrlram-nf"),
+            ], TestContext.Current.CancellationToken);
+        CtrlRamInspectionDisplay display = Assert.IsType<CtrlRamInspectionDisplay>(result.InspectionsById["base"].CtrlRamDisplay);
+        CtrlRamInspectionDisplay declared = BootstrapTestHost.Canonical.CtrlRamAuthoring.GetDiscoveryDisplay("NT51929", "single");
+        Assert.NotEmpty(declared.InputSlots);
+        Assert.Equal(declared.InputSlots.Select(static slot => (slot.SlotId, slot.Title, slot.Description)),
+            display.InputSlots.Select(static slot => (slot.SlotId, slot.Title, slot.Description)));
+        Assert.Equal(declared.Regions, display.Regions);
+    }
+
     /// <summary>Each explicit selection reaches the official candidate through the normal session owner.</summary>
     [Theory]
     [InlineData(AbCtrlRamBankSelection.A)]

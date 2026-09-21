@@ -54,6 +54,12 @@ internal sealed partial class ReplacePresentationViewModel
             return true;
         }
 
+        CtrlRamAuthoringDraftState? capturedDraft = selected.SingleOrDefault(static item =>
+            item.CtrlRamRequest is not null).CtrlRamRequest?.Draft;
+        if (!Equals(capturedDraft, CurrentCtrlRamDraft))
+        {
+            return false;
+        }
         FirmwareInspectionSnapshot[] results = [.. selected.Select(item => inspections[item.SlotId])];
         AuthoringCapabilityCatalogSnapshot? catalog = results[0].InputSlotCatalog;
         AuthoringSessionState? session = CurrentReplaceInputSession;
@@ -69,6 +75,7 @@ internal sealed partial class ReplacePresentationViewModel
     {
         ActiveSessionSnapshot? snapshot = session.CurrentSnapshot;
         if (snapshot?.HasCurrentInputInspection != true ||
+            !Equals(snapshot.DraftState, CurrentCtrlRamDraft) ||
             !StringComparer.Ordinal.Equals(snapshot.SelectedIc, SelectedIc))
         {
             return false;

@@ -21,6 +21,20 @@ public sealed record CapabilityWorkflowReadiness(
 /// <summary>Projects one workflow disclosure from the canonical Support Matrix contract.</summary>
 public static class CapabilityWorkflowReadinessProjector
 {
+    /// <summary>Discloses only one exact route, without inheriting evidence from sibling routes.</summary>
+    public static CapabilityWorkflowReadiness Project(CapabilityRouteResolutionResult resolution)
+    {
+        ArgumentNullException.ThrowIfNull(resolution);
+        return resolution.Succeeded && resolution.Route is { } route
+            ? new CapabilityWorkflowReadiness(
+                route.Authoring.Value == CapabilityAuthoringAvailability.Available,
+                true, route.Evidence.Value,
+                $"{route.Publication.Value} / {route.Evidence.Value}",
+                "Firmware-owner review and independent output evidence remain separate from local authoring.")
+            : Unavailable(resolution.Issue?.Message ?? "The exact route is unavailable.",
+                "Select an available exact reference route.");
+    }
+
     /// <summary>Combines canonical onboarding exposure with exact-route evidence.</summary>
     public static CapabilityWorkflowReadiness Project(
         CanonicalSupportMatrixSnapshot? matrix,

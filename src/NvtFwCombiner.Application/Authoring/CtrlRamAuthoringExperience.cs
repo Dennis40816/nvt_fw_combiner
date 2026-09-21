@@ -20,6 +20,12 @@ internal sealed partial class CtrlRamAuthoringExperience :
         _runtimeLeases = runtimeLeases ?? throw new ArgumentNullException(nameof(runtimeLeases));
     }
 
+    /// <inheritdoc />
+    public CapabilityWorkflowReadiness GetAbReferenceReadiness(string icId, string number)
+    {
+        return CapabilityWorkflowReadinessProjector.Project(_adapter.ResolveAbReferenceRoute(icId, number));
+    }
+
     /// <summary>Gets the declared CtrlRAM regions and input slots before a base is accepted.</summary>
     public CtrlRamInspectionDisplay GetDiscoveryDisplay(
         string icId,

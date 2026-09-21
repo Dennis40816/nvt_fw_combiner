@@ -18,6 +18,7 @@ internal sealed record ReplaceStateBindings(
     Func<CompositionRunContext, CompositionRunReport, Task> ShowDiagnosticPreviewAsync,
     Action<CompositionRunContext, CapabilityActionReadinessSnapshot, bool> ShowActionReadiness,
     Action ApplyAcceptedModeContext,
+    Func<Task> RefreshReplaceInspectionsAsync,
     Action<CompositionRunContext> ResetRunResult,
     Action RefreshShellCommandState,
     OutputDeliveryConfirmationViewModel OutputDelivery);

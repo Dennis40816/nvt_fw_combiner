@@ -1,6 +1,7 @@
 <ResourceDictionary
     xmlns="https://github.com/avaloniaui"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:authoring="clr-namespace:NvtFwCombiner.Application.Authoring;assembly=NvtFwCombiner.Application"
     xmlns:views="using:NvtFwCombiner.Presentation.Avalonia.Views"
     xmlns:vm="using:NvtFwCombiner.Presentation.Avalonia.ViewModels">
 
@@ -35,6 +36,53 @@
         <StackPanel Spacing="3" Margin="0,0,0,16">
           <TextBlock Classes="sectionTitle" Text="{Binding Text.InputFilesTitle}" />
           <TextBlock Classes="mutedText" Text="{Binding Text.CtrlRamInputFilesDetail}" TextWrapping="Wrap" />
+        </StackPanel>
+
+        <StackPanel x:Name="CtrlRamReferenceSelector" Spacing="8" Margin="0,0,0,16">
+          <TextBlock Classes="fieldLabel" Text="{Binding Text.CtrlRamReferenceFormatLabel}" />
+          <StackPanel Orientation="Horizontal" Spacing="4">
+            <ToggleButton x:Name="CtrlRamStandardReferenceChoice" Classes="segment"
+                          AutomationProperties.Name="{Binding Text.CtrlRamStandardReferenceLabel}"
+
+                          Command="{Binding SelectStandardCtrlRamReferenceCommand}"
+                          IsChecked="{Binding IsStandardCtrlRamReference, Mode=OneWay}" >
+                <TextBlock Text="{Binding Text.CtrlRamStandardReferenceLabel}" />
+              </ToggleButton>
+            <ToggleButton x:Name="CtrlRamAbReferenceChoice" Classes="segment"
+                          AutomationProperties.Name="{Binding Text.CtrlRamAbReferenceLabel}"
+
+                          Command="{Binding SelectAbCtrlRamReferenceCommand}"
+                          IsChecked="{Binding IsAbCtrlRamReference, Mode=OneWay}"
+                          ToolTip.Tip="{Binding AbCtrlRamReadiness.Reason}" >
+                <TextBlock Text="{Binding Text.CtrlRamAbReferenceLabel}" />
+              </ToggleButton>
+          </StackPanel>
+          <StackPanel Spacing="8" IsVisible="{Binding IsAbCtrlRamReference}">
+            <Grid ColumnDefinitions="*,Auto">
+              <TextBlock Classes="fieldLabel" Text="{Binding Text.CtrlRamTargetBanksLabel}" />
+              <TextBlock Grid.Column="1" Classes="warningText" Text="{Binding SelectedReplaceModeEvidenceLabel}"
+                         ToolTip.Tip="{Binding SelectedReplaceModeEvidenceTooltip}" />
+            </Grid>
+            <StackPanel Orientation="Horizontal" Spacing="4">
+              <ToggleButton Classes="segment" AutomationProperties.Name="A Bank"
+                            Command="{Binding SelectCtrlRamBanksCommand}" CommandParameter="{x:Static authoring:AbCtrlRamBankSelection.A}"
+                            IsChecked="{Binding IsCtrlRamBankASelected, Mode=OneWay}" >
+                <TextBlock Text="A" />
+              </ToggleButton>
+              <ToggleButton Classes="segment" AutomationProperties.Name="B Bank"
+                            Command="{Binding SelectCtrlRamBanksCommand}" CommandParameter="{x:Static authoring:AbCtrlRamBankSelection.B}"
+                            IsChecked="{Binding IsCtrlRamBankBSelected, Mode=OneWay}" >
+                <TextBlock Text="B" />
+              </ToggleButton>
+              <ToggleButton Classes="segment"
+                            AutomationProperties.Name="{Binding Text.CtrlRamBothBanksLabel}"
+                            Command="{Binding SelectCtrlRamBanksCommand}" CommandParameter="{x:Static authoring:AbCtrlRamBankSelection.Both}"
+                            IsChecked="{Binding IsCtrlRamBothBanksSelected, Mode=OneWay}" >
+                <TextBlock Text="{Binding Text.CtrlRamBothBanksLabel}" />
+              </ToggleButton>
+            </StackPanel>
+            <TextBlock Classes="detailText" Text="{Binding Text.CtrlRamSharedSourcesDetail}" TextWrapping="Wrap" />
+          </StackPanel>
         </StackPanel>
 
         <ContentControl
