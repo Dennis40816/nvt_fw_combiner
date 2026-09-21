@@ -49,6 +49,31 @@ configuration provenance must invalidate stale run/inspection acceptance.
 Do not put alias text into firmware plan semantics. Exact JSON/report and
 runtime selection contracts need their own concrete admission before wiring.
 
+### Observed byte names — 2026-09-21
+
+The owner supplied `EventBufferFormat.xlsx` (SHA-256
+`7992f51901c238d8f0156652db5f2fbdab6ec2e05cee71e48fc7e04af902f705`).
+Its 29 explicit byte/name rows are display facts owned by
+`Domain.FirmwareEventBufferFormatDisplayNames`, separate from this ADR's
+configuration and map-selection authority. Imported labels replace underscores
+with spaces and the leading `AUTO` with `Auto`, preserving other acronym case:
+`0xA3` is `Auto STLA v1`; `0x97` and `0xA6` are respectively `Auto Desay` and
+`Auto Desay Palminfo`. The workbook's reserved `0x8x` note does not assign names
+to unlisted values such as `0x86..0x8F`.
+
+`EventBufferFormatObservation.DetectedDisplayName` projects the name of each
+input's already decoded raw byte. The existing `DisplayName` remains the
+effective configured format label or alias. Input facts and output confirmation
+checks prefer the detected name; if it is null, the existing effective label is
+a compatibility fallback, not a claim of canonical byte recognition. Config
+aliases are not normalized, and the output mode summary retains the effective
+label. Changing recognition values may change the selected map while the same
+raw byte's observed name stays constant.
+
+This adds no primary decoder, non-AB metadata read, recognition value, format
+variant or support claim. Existing primary/artifact and configuration provenance
+remain captured through the same Application observation path.
+
 ## Rejected options and consequences
 
 - Reusing preference fallback would silently change Build behavior after a bad

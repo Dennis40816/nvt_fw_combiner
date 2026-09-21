@@ -1,3 +1,8 @@
+using Avalonia.Controls;
+using Avalonia.Headless;
+using Avalonia.Headless.XUnit;
+using Avalonia.Threading;
+using Avalonia.VisualTree;
 using NvtFwCombiner.Application.Authoring;
 using NvtFwCombiner.Application.Capabilities;
 using NvtFwCombiner.Application.Configuration;
@@ -14,6 +19,62 @@ namespace NvtFwCombiner.UiSmoke.Tests;
 
 public sealed partial class ShellNavigationSystemTests
 {
+    /// <summary>The real AB slot info shows each accepted raw-byte name before opening output settings.</summary>
+    [AvaloniaFact]
+    public async Task EventBufferFormatNamesAppearInMainWindowTpSlotInfo()
+    {
+        using TempWorkspace workspace = TempWorkspace.Create("ui-ab-format-names");
+        PresentationHostServices services = await ReportControlTestHost.CreateServicesAsync(workspace);
+        using var window = new MainWindow(UiLaunchOptions.Empty, StartupTraceSession.Disabled, services,
+            ShellPreferenceSnapshot.Default)
+        { Width = 1440, Height = 1000 };
+        try
+        {
+            window.Show();
+            await ReportControlTestHost.AwaitHistoryReadyAsync(window);
+            MainWindowViewModel viewModel = Assert.IsType<MainWindowViewModel>(window.DataContext);
+            viewModel.SelectedTheme = "Light";
+            viewModel.ShowMergeCommand.Execute(null);
+            viewModel.WorkflowSession.SelectedIc = "NT51950";
+            viewModel.WorkflowSession.SelectedNumber = IcNumberSelectionTokens.SingleChip;
+            viewModel.Merge.SelectedMergeMode = ExperienceIds.AbMerge;
+            await viewModel.WorkflowSession.SetAbDummyDpModeAsync(true, TestContext.Current.CancellationToken);
+            byte[] tp = new byte[0x37000];
+            tp[0x22200] = 0x31;
+            tp[0x22201] = 0xCE;
+            tp[0x2220C] = 0xA3;
+            tp[0x36000] = 0x42;
+            tp[0x36001] = 0xBD;
+            tp[0x36017] = 1;
+            new byte[] { 0, 0x4E, 0x56, 0x54 }.CopyTo(tp, 0x36FFC);
+            await viewModel.WorkflowSession.SetSlotFileAsync("tp-a-input", workspace.Write("TPA_STLA.bin", tp), TestContext.Current.CancellationToken);
+            tp[0x2220C] = 0xA4;
+            await viewModel.WorkflowSession.SetSlotFileAsync("tp-b-input", workspace.Write("TPB_INX.bin", tp), TestContext.Current.CancellationToken);
+            Dispatcher.UIThread.RunJobs();
+            window.UpdateLayout();
+            AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+            TextBlock[] texts = [.. window.GetVisualDescendants().OfType<TextBlock>()];
+            foreach (string expected in new[] { "0xA3 - Auto STLA v1", "0xA4 - Auto INX v7" })
+            {
+                TextBlock label = Assert.Single(texts, text => text.Text == expected);
+                Assert.True(label.IsEffectivelyVisible);
+                Assert.True(label.Bounds.Width > 0 && label.Bounds.Height > 0);
+            }
+            string? outputDirectory = Environment.GetEnvironmentVariable("NFC_VISUAL_OUTPUT_DIR");
+            if (!string.IsNullOrWhiteSpace(outputDirectory))
+            {
+                _ = Directory.CreateDirectory(outputDirectory);
+                using Avalonia.Media.Imaging.Bitmap? frame = window.GetLastRenderedFrame();
+                Assert.NotNull(frame);
+                frame.Save(Path.Combine(outputDirectory, "event-buffer-tp-slot-info-light-en.png"));
+            }
+        }
+        finally
+        {
+            await ReportControlTestHost.CloseAndFlushAsync(window);
+        }
+    }
+
     /// <summary>Explicit reload accepts external changes and cannot replace an unsaved editor draft.</summary>
     [Theory]
     [InlineData(false)]
@@ -106,7 +167,7 @@ public sealed partial class ShellNavigationSystemTests
         MainWindowViewModel viewModel = await CreateLoadedFormatAbViewModelAsync(workspace, host,
             secondFormat: context == "failure" ? (byte)0xA6 : (byte)0x97);
         FirmwareSlotViewModel slot = viewModel.Merge.AbMergeSlots.Single(static slot => slot.SlotId == "tp-a-input");
-        Assert.Contains(slot.FirmwareFacts, fact => fact.Label == "Event Buffer Version" && fact.Value == "0x97 - Desay");
+        Assert.Contains(slot.FirmwareFacts, fact => fact.Label == "Event Buffer Version" && fact.Value == "0x97 - Auto Desay");
         File.Delete(workspace.PathFor("a.bin"));
         File.Delete(workspace.PathFor("b.bin"));
         if (context == "standard") { viewModel.Merge.SelectedMergeMode = ExperienceIds.StandardMerge; }
@@ -166,7 +227,9 @@ public sealed partial class ShellNavigationSystemTests
         Assert.False(slot.BlocksBuild);
         _ = Assert.NotNull(slot.CurrentInspectionProjection.InputSlotStatus!.AcceptedBytes);
         Assert.Contains(slot.FirmwareFacts, fact => fact.Label == viewModel.Text.EventBufferVersionLabel &&
-            fact.Value == (context == "alias" ? "0x97 - My vendor" : "0x97 - Common"));
+            fact.Value == "0x97 - Auto Desay");
+        Assert.Equal(context == "alias" ? "My vendor" : "Common",
+            slot.CurrentInspectionProjection.AbMergeFacts!.EventBufferFormat!.DisplayName);
         Assert.False(viewModel.Settings.HasEventBufferFormatUnsavedChanges);
         Assert.Equal(viewModel.Text.EventBufferFormatSavedLabel, viewModel.Settings.EventBufferFormatStatus);
         Assert.Equal(selectedIc, viewModel.WorkflowSession.SelectedIc);

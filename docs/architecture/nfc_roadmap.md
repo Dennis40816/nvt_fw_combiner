@@ -15,6 +15,14 @@ runtime implementation, create a watcher, or replace the version sequence.
 
 ## Current release sequence — 2026-09-14
 
+Owner amendment, 2026-09-21: the work tracked under `1.1.10` is planned for
+release as `1.2.0`. Within that work, complete independent Event Buffer display
+updates, Partial-family bank cleanup and test closure before AB CtrlRAM Replace;
+AB Replace is the final implementation item. The
+[1.1.10 delivery checklist](../ui/v1.1.10-delivery.md) retains the detailed
+status and evidence. This changes the accepted order and planned release label,
+not firmware support, the remaining release gates or unrelated backlog scope.
+
 Owner intake, 2026-09-20: preserve a [local user-data inventory](local-user-data-inventory.md)
 for future uninstall implementation, including settings, report history,
 version-manager state and transient coordination files. This records cleanup

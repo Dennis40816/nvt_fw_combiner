@@ -42,7 +42,11 @@ public sealed record EventBufferFormatObservation(
     string ConfigurationSourceSha256,
     string PrimaryStructureId,
     FirmwareAddressedRange PrimaryRange,
-    FirmwareArtifactIdentity ArtifactIdentity);
+    FirmwareArtifactIdentity ArtifactIdentity)
+{
+    /// <summary>Canonical name of this observed byte, separate from the effective format's DisplayName alias.</summary>
+    public string? DetectedDisplayName => FirmwareEventBufferFormatDisplayNames.GetDisplayName(RawByte);
+}
 
 /// <summary>Firmware facts read from the canonical NVT-located FWConfig Backup block.</summary>
 public sealed record FirmwareConfigMetadataSnapshot(

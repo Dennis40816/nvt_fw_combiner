@@ -117,7 +117,7 @@ public sealed class AbDpMetadataTests
         if (hasFormat)
         {
             Assert.Equal(chinese ? "事件緩衝區版本" : "Event Buffer Version", slot.PrimaryFirmwareFacts[3].Label);
-            Assert.Equal("0x97 - Desay", slot.PrimaryFirmwareFacts[3].Value);
+            Assert.Equal("0x97 - Auto Desay", slot.PrimaryFirmwareFacts[3].Value);
         }
         Assert.False(slot.HasAdditionalFirmwareFacts);
         Assert.Equal(hasFormat ? 4 : 3, slot.PrimaryFirmwareFacts.Count);

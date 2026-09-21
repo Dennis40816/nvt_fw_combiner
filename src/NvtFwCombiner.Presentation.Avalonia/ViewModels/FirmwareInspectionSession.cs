@@ -87,7 +87,7 @@ internal static class FirmwareInspectionProjection
         if (abInput.EventBufferFormat is { } format)
         {
             facts.Add(new(text.EventBufferVersionLabel,
-                FormattableString.Invariant($"0x{format.RawByte:X2} - {format.DisplayName}")));
+                FormattableString.Invariant($"0x{format.RawByte:X2} - {format.DetectedDisplayName ?? format.DisplayName}")));
         }
         slot.SetFirmwareFacts(facts, expandAdditionalByDefault);
     }

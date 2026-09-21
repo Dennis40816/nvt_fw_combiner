@@ -1,0 +1,44 @@
+{
+  "schemaVersion": 2,
+  "taskId": "EVENT-BUFFER-DISPLAY-110-01",
+  "capability": "Display owner-provided Event Buffer byte names separately from effective AB format labels",
+  "integrationBase": "b9a94a2bab1a7bc05129b3438f0c0afeaaf45ad4",
+  "risk": "R2",
+  "kind": "ui",
+  "state": "design-active",
+  "mutablePaths": [
+    "src/NvtFwCombiner.Domain/Firmware/FirmwareEventBufferFormatDisplayNames.cs",
+    "src/NvtFwCombiner.Application/Composition/CompositionClientModels.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/FirmwareInspectionSession.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/OutputDeliveryConfirmationViewModel.Summary.cs",
+    "tests/NvtFwCombiner.Domain.Tests/Firmware/FirmwareEventBufferFormatDisplayNamesTests.cs",
+    "tests/NvtFwCombiner.Bootstrap.Tests/AbMergeFormatAdmissionTests.DisplayNames.cs",
+    "tests/NvtFwCombiner.UiSmoke.Tests/ShellViewModelTests.EventBufferFormat.cs",
+    "tests/NvtFwCombiner.UiSmoke.Tests/ShellViewModelTests.OutputConfirmation.cs",
+    "tests/NvtFwCombiner.UiSmoke.Tests/AbDpMetadataTests.cs",
+    "docs/adr/0072-event-buffer-format-configuration.md",
+    "docs/architecture/nfc_roadmap.md"
+  ],
+  "implementationOwner": "root",
+  "searchEvidence": [
+    "Local source b8d5e575; owner requests latest EventBufferFormat.xlsx names, underscores replaced by spaces, example Auto STLA v1. Existing CHANGELOG draft preserved.",
+    "CodeGraph EventBufferFormat exploration; direct callers AbMergeAuthoringExperience.ProjectEventBufferFormat, CompositionOutputConfirmationSummary, FirmwareInspectionSession and OutputDeliveryConfirmationViewModel.Summary inspected.",
+    "Private workbook SHA256 7992f51901c238d8f0156652db5f2fbdab6ec2e05cee71e48fc7e04af902f705 contains 29 explicit IDs. Domain owns labels; no new decoder or map selection path."
+  ],
+  "semanticOwner": "Domain.FirmwareEventBufferFormatDisplayNames owns explicit raw-byte names; Application.EventBufferFormatObservation exposes them beside existing effective format label.",
+  "terminalContract": "Known bytes render workbook-derived name, underscores become spaces and leading AUTO becomes Auto; other acronyms unchanged. Unknown bytes return null and retain existing effective label fallback. Config aliases, recognition, map, metadata provenance and firmware behavior unchanged.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "outcome": "approved",
+    "evidence": "Independent bounded architecture admission approves one Domain lookup, computed nullable Observation property preserving constructor, and both existing consumers; 29 exact entries only, no inferred names for reserved IDs, no runtime recognition/support expansion. Tests independently verify table and paired raw names, effective aliases/map/provenance and UI. ADR records distinction. Reviewer also approved roadmap owner resequencing before edit, successful confirmation fixture 2/3 -> 3/3 with independent oversizedDp retaining all warning/layout assertions, and known/unknown custom-alias UI cases.",
+    "reviewer": "/root/layout_ownership_review"
+  },
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": {
+    "outcome": "pending",
+    "evidence": "",
+    "reviewer": null
+  }
+}
