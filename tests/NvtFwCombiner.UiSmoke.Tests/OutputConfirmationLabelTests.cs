@@ -13,6 +13,32 @@ namespace NvtFwCombiner.UiSmoke.Tests;
 [Collection(UiAvaloniaRuntimeCollection.Name)]
 public sealed class OutputConfirmationLabelTests
 {
+    /// <summary>A logical General Merge output does not claim a physical Flash map in either language.</summary>
+    [AvaloniaFact]
+    public async Task LogicalOutputShowsLocalizedNotApplicableMap()
+    {
+        using TempWorkspace workspace = TempWorkspace.Create("confirmation-logical-map");
+        CompositionHostServices host = CompositionHostServices.Create();
+        string source = workspace.Write("source.bin", [0xA5, 0x5A]);
+        var mappings = new GeneralMappingDraftState([
+            new GeneralMappingDraftRow("copy", ExplicitMappingOperationKind.CopyRange,
+                GeneralMappingSource.File(source), new ByteRange(0, 2), CompositionAddressSpaceIds.OutputImage,
+                new ByteRange(0, 2), OverlapPolicy.Reject, 1, "confirmation")]);
+        GeneralAuthoringSessionPreparation prepared = await host.GeneralAuthoring.PrepareMergeSessionAsync(
+            new AuthoringSessionState(ExperienceIds.GeneralMerge), "NT51926",
+            new GeneralMergeDraftState(new GeneralMergeOutputInitializer(16), mappings), TestContext.Current.CancellationToken);
+        Assert.True(prepared.Succeeded);
+        CompositionOutputBundleProposal proposal = await host.CompositionOutputNaming.PrepareBundleProposalAsync(
+            prepared.AcceptedSession!, TestContext.Current.CancellationToken);
+        Assert.Null(proposal.Confirmation!.FlashMap);
+        foreach (ShellLanguage language in new[] { ShellLanguage.English, ShellLanguage.ChineseTraditional })
+        {
+            var vm = new OutputDeliveryConfirmationViewModel(host.CompositionOutputNaming, () => ShellTextResources.For(language));
+            vm.Open(new OutputDeliveryRequest(proposal, false, null, () => true, null, null, null, _ => Task.CompletedTask));
+            Assert.Equal(language == ShellLanguage.English ? "Not applicable" : "不適用", vm.FlashMapSummary);
+        }
+    }
+
     /// <summary>The confirmation reuses the input card's localized non-blocking version warning.</summary>
     [Theory]
     [InlineData(false)]
@@ -70,6 +96,8 @@ public sealed class OutputConfirmationLabelTests
             Assert.Equal("2 input sources", modal.FindControl<TextBlock>("SourcesCountLabel")!.Text);
             Assert.Equal("1 input sources", vm.SourcesSummary);
             Assert.Equal("Flash BIN + 1 source files", vm.DeliveryDescription);
+            Assert.Equal("AB Code", vm.ModeSummary);
+            Assert.Equal("Common", vm.FlashMapSummary);
             Assert.True(vm.CanConfirm);
         }
         finally { window.Close(); }

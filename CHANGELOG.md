@@ -68,7 +68,7 @@ assignments, use the [canonical roadmap](docs/architecture/nfc_roadmap.md).
 #### 5. Build 設定與交付：每個 BIN 獨立改名、Bundle 及檔名恢復
 
 - 來源版本：**已發布 1.1.4、1.1.7、1.1.9**；主 BIN 與可選 A FlashCode 獨立改名為 **本地完成**。
-- Before → After: 輸出確認清楚呈現 IC／topology、mode／有效格式及主要 Flash 輸出大小；展開來源時分開顯示 role、檔名、實際／預期大小與 Event Buffer 檢查。過長 BIN 名稱或 Bundle 資料夾名稱會在編輯時顯示錯誤，無效提交回復最後接受的有效值。
+- Before → After: 全 IC 共用的輸出確認分列 IC／topology、Mode、Flash map 及主要 Flash 輸出大小；預設實體 map 顯示 Common，General logical output 顯示不適用。展開來源時分開顯示 role、檔名、實際／預期大小；TP A／TP B 的 Event Buffer Format 各占一行顯示 hex 與可讀名稱，設定 alias 不再混入 Mode 或 Flash map。過長 BIN 名稱或 Bundle 資料夾名稱會在編輯時顯示錯誤，無效提交回復最後接受的有效值。
 - Affected: 共用 Build settings、一般輸出／Bundle delivery、既有 Additional A FlashCode、General mapping 與 Dummy DP 說明。
 - Support status: unchanged/support-neutral；沒有新增 workflow 或命名規則來源。
 - Compatibility: 保留 canonical 自動檔名；主 BIN、可選 A FlashCode、Bundle 資料夾各自保存編輯名稱；loose／Bundle、Report receipt 與落盤名稱一致。額外輸出大小不灌入主要 Flash 大小。General sources 與 Replace Base 納入摘要及 Bundle，同檔多個 bindings 只複製一次；保留 collision suffix 與交付順序。

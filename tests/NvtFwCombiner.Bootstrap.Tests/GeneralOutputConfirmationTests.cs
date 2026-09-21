@@ -60,6 +60,17 @@ public sealed class GeneralOutputConfirmationTests
         CompositionOutputBundleProposal proposal = await host.CompositionOutputNaming.PrepareBundleProposalAsync(
             prepared.AcceptedSession, TestContext.Current.CancellationToken);
         CompositionOutputConfirmationSummary summary = Assert.IsType<CompositionOutputConfirmationSummary>(proposal.Confirmation);
+        if (replace)
+        {
+            MapBoundV2CompilationContext physical = Assert.IsType<MapBoundV2CompilationContext>(
+                prepared.AcceptedSession.ExactCapability!.CompiledComposition.V2Details.Provenance.Context, exactMatch: false);
+            Assert.Equal(new CompositionOutputFlashMapSummary(physical.ResolvedMap.ImageMap.MapId, physical.ResolvedMap.DisplayName), summary.FlashMap);
+        }
+        else
+        {
+            _ = Assert.IsType<LogicalOutputV2CompilationContext>(prepared.AcceptedSession.ExactCapability!.CompiledComposition.V2Details.Provenance.Context);
+            Assert.Null(summary.FlashMap);
+        }
         Assert.All(summary.Inputs, input => Assert.Equal(
             prepared.AcceptedSession.ExactCapability!.CompiledComposition.V2Details.InputContract.SpaceBindings
                 .Single(binding => binding.AddressSpaceId == input.BindingId).SlotId, input.SlotId));

@@ -10,7 +10,8 @@ internal sealed partial class ShellTextResources
     public string OutputDeliveryEditAdditionalNameLabel => SelectLanguage("Edit A FlashCode filename", "編輯 A FlashCode 檔名");
     public string OutputDeliveryDoneAdditionalNameLabel => SelectLanguage("Finish editing A FlashCode filename", "完成 A FlashCode 檔名編輯");
     public string OutputConfirmationTargetLabel => SelectLanguage("Target", "目標");
-    public string OutputConfirmationModeLabel => SelectLanguage("Mode / Output format", "模式 / 輸出格式");
+    public string OutputConfirmationModeLabel => SelectLanguage("Mode", "模式");
+    public string OutputConfirmationFlashMapLabel => SelectLanguage("Flash map", "Flash 配置");
     public string OutputConfirmationSizeLabel => SelectLanguage("Flash output size", "Flash 輸出大小");
     public string OutputConfirmationInputsLabel => SelectLanguage("Input sources", "輸入來源");
     public string OutputConfirmationLooseHint => SelectLanguage("Save the Flash BIN directly. Source files are not copied.", "直接儲存 Flash BIN，不複製來源檔案。");
@@ -21,7 +22,7 @@ internal sealed partial class ShellTextResources
         string role = bindingId == CompositionAddressSpaceIds.DpAbInput ? "DP" : GetOutputInputLabel(bindingId);
         return SelectLanguage($"Expected {role} size", $"預期 {role} 大小");
     }
-    public string OutputConfirmationEventLabel => SelectLanguage("Event Buffer Version", "Event Buffer 版本");
+    public string OutputConfirmationEventLabel => SelectLanguage("Event Buffer Format", "Event Buffer 格式");
 
     internal string FormatOutputBundleContents(int count)
     {

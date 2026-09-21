@@ -189,7 +189,7 @@ public sealed class OutputConfirmationTests
         Assert.Equal(proposal.OutputPreparation.OutputName.FileName, vm.OutputFileName);
         Assert.Equal(originalSize, vm.FlashOutputSize);
         Assert.Equal(additional || countA == 1 ? "512 KiB (524,288 bytes)" : "1 MiB (1,048,576 bytes)", vm.FlashOutputSize);
-        Assert.Equal(additional ? "AB Code" : customAlias ? "AB Code / My_vendor" : "AB Code / Desay", vm.ModeFormatSummary);
+        Assert.Equal("AB Code", vm.ModeSummary);
         Assert.Equal(additional ? 2 : 3, vm.InputRows.Count);
         if (oversizedTp)
         {
@@ -253,7 +253,12 @@ public sealed class OutputConfirmationTests
             AvaloniaHeadlessPlatform.ForceRenderTimerTick();
             TextBlock target = modal.FindControl<TextBlock>("OutputTargetValue")!;
             TextBlock mode = modal.FindControl<TextBlock>("OutputModeValue")!;
+            TextBlock flashMap = Assert.IsType<TextBlock>(modal.FindControl<TextBlock>("OutputFlashMapValue"));
+            Assert.Equal("Common", flashMap.Text);
+            Assert.Equal(target.Bounds.X, flashMap.Bounds.X);
+            Assert.True(flashMap.Bounds.Y >= mode.Bounds.Bottom);
             TextBlock size = modal.FindControl<TextBlock>("FlashOutputSizeValue")!;
+            Assert.True(size.Bounds.Y >= flashMap.Bounds.Bottom);
             Assert.Equal(target.Bounds.X, mode.Bounds.X);
             Assert.Equal(target.Bounds.X, size.Bounds.X);
             Assert.Equal(vm.FlashOutputSize, size.Text);
@@ -266,6 +271,17 @@ public sealed class OutputConfirmationTests
                 Control files = Assert.IsType<ItemsControl>(modal.FindControl<ItemsControl>("SourceFilesList"));
                 Control checks = Assert.IsType<Border>(modal.FindControl<Border>("SourceChecksPanel"));
                 Assert.True(checks.IsVisible);
+                TextBlock eventLabel = Assert.IsType<TextBlock>(modal.FindControl<TextBlock>("OutputEventBufferFormatLabel"));
+                Assert.Equal(chineseDark ? "Event Buffer 格式" : "Event Buffer Format", eventLabel.Text);
+                ItemsControl eventRows = Assert.IsType<ItemsControl>(modal.FindControl<ItemsControl>("OutputEventBufferFormatChecks"));
+                TextBlock[] eventValues = [.. Avalonia.VisualTree.VisualExtensions.GetVisualDescendants(eventRows).OfType<TextBlock>()
+                    .Where(block => block.Text?.StartsWith("0x", StringComparison.Ordinal) == true)];
+                Assert.Equal(2, eventValues.Length);
+                Assert.Equal(vm.EventBufferChecks.Select(check => check.Value), eventValues.Select(block => block.Text));
+                Point first = eventValues[0].TranslatePoint(default, modal)!.Value;
+                Point second = eventValues[1].TranslatePoint(default, modal)!.Value;
+                Assert.Equal(first.X, second.X);
+                Assert.True(second.Y >= first.Y + eventValues[0].Bounds.Height);
                 Assert.True(checks.TranslatePoint(default, modal)!.Value.Y >=
                     files.TranslatePoint(default, modal)!.Value.Y + files.Bounds.Height);
             }

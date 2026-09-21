@@ -112,6 +112,7 @@ public sealed class AbMergeFormatRuntimeTests
         Assert.Equal(0x80000, summary.OutputLengthBytes);
         Assert.Equal("desay", summary.Format!.FormatId);
         Assert.Equal("Desay", summary.Format.DisplayName);
+        Assert.Equal(new CompositionOutputFlashMapSummary("nt51950-ab-merge-512k", "Common"), summary.FlashMap);
         Assert.True(summary.HasGeneratedInputs);
         Assert.Equal(sameFile ? 1 : 2, proposal.Sources.Count);
         Assert.Equal(2, summary.Inputs.Count);
@@ -164,6 +165,7 @@ public sealed class AbMergeFormatRuntimeTests
         {
             CompositionOutputBundleProposal refreshed = await host.CompositionOutputNaming.PrepareBundleProposalAsync(prepared.Snapshot!, TestContext.Current.CancellationToken);
             Assert.Equal("Customer alias", refreshed.Confirmation!.Format!.DisplayName);
+            Assert.Equal(new CompositionOutputFlashMapSummary("nt51950-ab-merge-512k", "Common"), refreshed.Confirmation.FlashMap);
         }
     }
 
@@ -179,6 +181,9 @@ public sealed class AbMergeFormatRuntimeTests
         Assert.True(prepared.Succeeded);
         CompositionOutputBundleProposal proposal = await host.CompositionOutputNaming.PrepareBundleProposalAsync(prepared.Snapshot!, TestContext.Current.CancellationToken);
         Assert.Null(proposal.Confirmation!.Format);
+        Assert.Equal(prepared.Snapshot!.ExactCapability!.CompiledComposition.V2Details.Provenance.ResolvedMap.ImageMap.MapId,
+            proposal.Confirmation.FlashMap!.MapId);
+        Assert.Equal("Common", proposal.Confirmation.FlashMap.DisplayName);
         Assert.Equal(0x80000, proposal.Confirmation.OutputLengthBytes);
         Assert.All(proposal.Confirmation.Inputs, static input => Assert.Null(input.EventBufferFormat));
         Assert.NotEmpty(proposal.OutputPreparation.AdditionalDeliveries);

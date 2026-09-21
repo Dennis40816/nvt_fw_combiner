@@ -126,6 +126,7 @@ public sealed partial class FirmwareFamilyResolutionDefinition
             FamilyContentHash = definition.FamilyContentHash;
             FamilyRelationships = definition.FamilyRelationships;
             ImageMap = imageMap;
+            DisplayName = ProjectDisplayName(definition.AbFormatPolicy, inputs.MemberId, imageMap.MapId);
             MemberId = inputs.MemberId;
             ModeId = inputs.ModeId;
             CapacityBytes = inputs.CapacityBytes;
@@ -150,6 +151,9 @@ public sealed partial class FirmwareFamilyResolutionDefinition
 
         /// <summary>Exactly one selected immutable canonical image map.</summary>
         public FirmwareImageMap ImageMap { get; }
+
+        /// <summary>Output-confirmation label: explicit format name or the Common naming convention; null when special labels are ambiguous.</summary>
+        public string? DisplayName { get; }
 
         /// <summary>Selected IC member inside the image-map applicability.</summary>
         public string MemberId { get; }
@@ -176,6 +180,18 @@ public sealed partial class FirmwareFamilyResolutionDefinition
 
         /// <summary>Canonical lowercase SHA-256 over the resolved physical map and resolver-owned outcomes.</summary>
         public string ResolutionFingerprint { get; }
+
+        private static string? ProjectDisplayName(FirmwareAbFormatPolicy? policy, string memberId, string mapId)
+        {
+            if (policy is null) { return "Common"; }
+            string[] formats = [.. policy.Variants
+                .Where(variant => StringComparer.Ordinal.Equals(variant.MemberId, memberId) &&
+                    StringComparer.Ordinal.Equals(variant.MapId, mapId))
+                .Select(static variant => variant.FormatId).Distinct(StringComparer.Ordinal)];
+            return formats.Length == 0 || formats.Contains(policy.CommonFormatId, StringComparer.Ordinal) ? policy.CommonDisplayName : formats.Length == 1
+                ? policy.Formats.Single(format => StringComparer.Ordinal.Equals(format.UniqueId, formats[0])).DisplayName
+                : null;
+        }
 
         private static FirmwareFactProvenance[] SnapshotFactProvenance(FirmwareImageMap imageMap, string memberId)
         {

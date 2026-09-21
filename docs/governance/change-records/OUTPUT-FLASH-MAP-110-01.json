@@ -1,0 +1,41 @@
+{
+  "schemaVersion": 2,
+  "taskId": "OUTPUT-FLASH-MAP-110-01",
+  "capability": "Separate captured workflow, physical flash-map label and per-input Event Buffer facts in the shared output confirmation",
+  "integrationBase": "b9a94a2bab1a7bc05129b3438f0c0afeaaf45ad4",
+  "risk": "R2",
+  "kind": "ui",
+  "state": "design-active",
+  "mutablePaths": [
+    "docs/adr/0072-event-buffer-format-configuration.md",
+    "src/NvtFwCombiner.Domain/Firmware/FirmwareMapResolutionResult.cs",
+    "src/NvtFwCombiner.Application/Composition/CompositionOutputConfirmationSummary.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/OutputDeliveryConfirmationViewModel.Summary.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ShellTextResources.OutputConfirmation.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/Views/OutputDeliveryConfirmationModal.axaml",
+    "tests/NvtFwCombiner.Domain.Tests/Firmware/FirmwareMapResolutionResultTests.cs",
+    "tests/NvtFwCombiner.Bootstrap.Tests/AbFormatMapResolverTests.cs",
+    "tests/NvtFwCombiner.Bootstrap.Tests/AbMergeFormatRuntimeTests.cs",
+    "tests/NvtFwCombiner.Bootstrap.Tests/GeneralOutputConfirmationTests.cs",
+    "tests/NvtFwCombiner.UiSmoke.Tests/OutputConfirmationLabelTests.cs",
+    "tests/NvtFwCombiner.UiSmoke.Tests/ShellViewModelTests.OutputConfirmation.cs"
+  ],
+  "implementationOwner": "/root",
+  "searchEvidence": [
+    "CodeGraph explore output confirmation and resolved-map ownership; bounded reads of FirmwareMapResolutionResult, FirmwareAbFormatPolicy, CompositionOutputConfirmationProjector and the shared modal",
+    "AbFormatMapResolver is the existing selection owner; FirmwareImageMap has no canonical human display field; aliases belong to captured Event Buffer recognition, not geometry",
+    "Existing Bootstrap AB/General confirmation tests and 12 measured UI states; UI RED 12/12 fails on AB Code / Desay, output-format-ui-red.trx"
+  ],
+  "semanticOwner": "Domain ResolvedFirmwareImageMap projects display labels for the selected member/map; Application CompositionOutputConfirmationProjector captures the immutable physical-map identity and display label",
+  "terminalContract": "Nullable physical map summary with exact MapId and output-confirmation DisplayName: owner-approved Common naming for default physical maps, canonical explicit special names, null for ambiguous special names with MapId fallback; logical output has no physical-map claim. Labels never influence resolution, fingerprint, recognition, readiness, support or execution",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "/root/layout_ownership_review",
+    "outcome": "approved",
+    "evidence": "Independent bounded R2 admission against 29c7e7c499282dc7cac48b95d4b6226a465d67ee: project labels without selecting again; Common association wins when formats share geometry, otherwise require a unique special label; ambiguous declarations retain null/MapId. Subsequent explicit delta admission accepts owner statements that all IC output pages share the current Common naming and approval of the Mode/Flash map reference as sufficient authority: no-policy or unassociated physical maps display Common as a naming convention, not a declared geometry fact. Logical General is not a physical map, map-bound Replace retains actual map. Preserve configuration provenance and byte/CRC/selection behavior. Reference: docs/ui/references/v1.1.10-output-format-approved.png."
+  },
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": { "reviewer": null, "outcome": "pending", "evidence": "" }
+}

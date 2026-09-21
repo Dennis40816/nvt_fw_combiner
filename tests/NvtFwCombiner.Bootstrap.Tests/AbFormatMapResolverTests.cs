@@ -7,6 +7,41 @@ namespace NvtFwCombiner.Bootstrap.Tests;
 /// <summary>Characterizes the shared selection contract without claiming input or execution admission.</summary>
 public sealed class AbFormatMapResolverTests
 {
+    /// <summary>Map labels use exact canonical associations, never unrelated maps or arbitrary special names.</summary>
+    [Theory]
+    [InlineData("shared", "Common")]
+    [InlineData("special", "Vendor layout")]
+    [InlineData("ambiguous", null)]
+    [InlineData("unassociated", "Common")]
+    [InlineData("no-policy", "Common")]
+    public void SelectedMapLabelRetainsCanonicalDeclaration(string scenario, string? expected)
+    {
+        FirmwareFamilyResolutionDefinition original = Family();
+        FirmwareAbFormatPolicy policy = original.AbFormatPolicy!;
+        const string mapId = "nt51950-ab-merge-512k";
+        var formats = new List<FirmwareAbFormatDefinition>
+        {
+            new("desay", "Vendor layout", [0x97, 0xA6]),
+        };
+        var variants = policy.Variants.Where(variant => variant.MapId != mapId ||
+            scenario == "shared" || (scenario is "special" or "ambiguous" && variant.FormatId != policy.CommonFormatId)).ToList();
+        if (scenario == "ambiguous")
+        {
+            formats.Add(new("second-special", "Another layout", [0x20]));
+            variants.Add(new("NT51950", "second-special", mapId));
+        }
+        var definition = new FirmwareFamilyResolutionDefinition(original.FamilyId, original.FamilyVersion, original.FamilyContentHash,
+            original.ImageMaps, original.MetadataSets, original.CapabilityBindings, original.FamilyRelationships,
+            scenario == "no-policy" ? null : new FirmwareAbFormatPolicy(policy.ScopeId, policy.CommonFormatId,
+                policy.CommonDisplayName, formats, policy.PrimaryBindings, variants));
+        FirmwareMapResolutionResult result = definition.ResolveMapWithinForProfile(
+            new FirmwareMapResolutionInputs("NT51950", "ab-merge", 0x80000, Topology(1), []),
+            new HashSet<string>(StringComparer.Ordinal) { mapId }, new HashSet<string>(StringComparer.Ordinal));
+        Assert.Equal(FirmwareMapResolutionStatus.Unique, result.Status);
+        Assert.Equal(mapId, result.ResolvedMap!.ImageMap.MapId);
+        Assert.Equal(expected, result.ResolvedMap.DisplayName);
+    }
+
     /// <summary>Disabled vendor specialization preserves labels while selecting the common physical map.</summary>
     [Theory]
     [InlineData("NT51950", 1, "nt51950-ab-merge-512k")]

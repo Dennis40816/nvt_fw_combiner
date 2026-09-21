@@ -66,13 +66,37 @@ input's already decoded raw byte. The existing `DisplayName` remains the
 effective configured format label or alias. Input facts and output confirmation
 checks prefer the detected name; if it is null, the existing effective label is
 a compatibility fallback, not a claim of canonical byte recognition. Config
-aliases are not normalized, and the output mode summary retains the effective
-label. Changing recognition values may change the selected map while the same
+aliases are not normalized. The captured effective label remains configuration
+provenance; the output mode summary shows only the workflow. Changing recognition values may change the selected map while the same
 raw byte's observed name stays constant.
 
 This adds no primary decoder, non-AB metadata read, recognition value, format
 variant or support claim. Existing primary/artifact and configuration provenance
 remain captured through the same Application observation path.
+
+### Output confirmation separates workflow, map and observation — 2026-09-21
+
+The owner approved the shared [Output reference](../ui/references/v1.1.10-output-format-approved.png).
+All ICs and workflows use the same confirmation surface: `Mode` identifies the
+workflow; `Flash map` displays the actual compiled physical map's label; source
+checks show each TP input on its own line as `0xXX - readable name` under
+`Event Buffer Format`. A configured alias never becomes the Flash map label.
+
+`ResolvedFirmwareImageMap.DisplayName` is a presentation label projected by
+the existing Domain resolver after selection. For the exact member/map, a
+Common association wins when formats share geometry; otherwise one distinct
+special format supplies its canonical declared name. Multiple special names
+remain ambiguous and return null, so the UI displays the exact MapId. By the
+owner-approved naming convention, a physical map with no format policy or no
+format association displays Common. This default is not a claim that the
+family explicitly declares an AB Common format or shares another IC's geometry.
+
+Application captures this label and MapId in `CompositionOutputFlashMapSummary`
+from the accepted map-bound compilation. Logical General Merge has no physical
+map and displays localized Not applicable; map-bound General Replace retains
+its actual map. Existing `CompositionOutputFormatSummary` keeps recognition
+and configuration provenance separately. No display name participates in map
+selection, recognition, fingerprints, readiness, support or byte execution.
 
 ### Partial-family bank consolidation — 2026-09-21
 

@@ -26,9 +26,10 @@ internal sealed partial class OutputDeliveryConfirmationViewModel
             return string.IsNullOrWhiteSpace(topology) ? summary.IcId : $"{summary.IcId} · {topology}";
         }
     }
-    public string ModeFormatSummary => Confirmation is not { } summary ? string.Empty :
-        WorkflowModeDisplayConverters.GetDisplayName(summary.WorkflowId) +
-        (summary.Format is { } format ? $" / {format.DisplayName}" : string.Empty);
+    public string ModeSummary => Confirmation is not { } summary ? string.Empty :
+        WorkflowModeDisplayConverters.GetDisplayName(summary.WorkflowId);
+    public string FlashMapSummary => Confirmation?.FlashMap is { } map
+        ? map.DisplayName ?? map.MapId : Text.FirmwareSlotNotApplicableLabel;
     public string FlashOutputSize => Confirmation is { } summary ? FormatOutputBytes(summary.OutputLengthBytes) : string.Empty;
     public string AdditionalOutputSize => _request?.AdditionalDelivery is { } delivery ? FormatOutputBytes(delivery.SourceRange.Length) : string.Empty;
     public bool HasGeneratedInputs => Confirmation?.HasGeneratedInputs == true;
@@ -73,7 +74,8 @@ internal sealed partial class OutputDeliveryConfirmationViewModel
     {
         OnPropertyChanged(nameof(HasConfirmation));
         OnPropertyChanged(nameof(TargetSummary));
-        OnPropertyChanged(nameof(ModeFormatSummary));
+        OnPropertyChanged(nameof(ModeSummary));
+        OnPropertyChanged(nameof(FlashMapSummary));
         OnPropertyChanged(nameof(FlashOutputSize));
         OnPropertyChanged(nameof(AdditionalOutputSize));
         OnPropertyChanged(nameof(HasGeneratedInputs));
