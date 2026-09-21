@@ -17,7 +17,7 @@ public sealed partial class AbMergeGoldenRegressionTests
     private const string Nt51929BundleDirectory = "nt51919-nt51929-nt51932-ab-merge";
     private const string Nt51929BundleContentHash = "5acf2fd4d0757d7b757bf7491ff2f268d07cf70a76588f528d36b616e1e5eed0";
     private const string Nt51950BundleDirectory = "nt51950-ab-merge";
-    private const string Nt51950BundleContentHash = "8503cab05cc6b038f4b4093924f75cf6ca38f0ec178d30732fd23608dbbd699f";
+    private const string Nt51950BundleContentHash = "18ddf21d67694e01734f88fdd1e578f87f1d57bbb05cfa7c54bfeb8c665aab44";
 
     /// <summary>Verifies the supported NT51929 profile reproduces the supplied AB output byte-for-byte.</summary>
     [Fact]
@@ -197,7 +197,7 @@ public sealed partial class AbMergeGoldenRegressionTests
                 Nt51950BundleDirectory,
                 Nt51950BundleContentHash),
             "nt51950-ab-merge",
-            "0.6.0",
+            "0.7.0",
             "NT51950",
             goldenCase.GetProperty("mapCapacity").GetInt64());
         Dictionary<string, byte[]> inputs = ReadInputs(goldenCase);

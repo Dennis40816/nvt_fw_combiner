@@ -39,6 +39,9 @@ public sealed class OutputConfirmationLabelTests
         using TempWorkspace workspace = TempWorkspace.Create("confirmation-shared-source");
         CompositionHostServices host = CompositionHostServices.Create();
         byte[] input = new byte[0x40000];
+        input[0x36001] = 0xFF;
+        input[0x36017] = 1;
+        new byte[] { 0, 0x4E, 0x56, 0x54 }.CopyTo(input, 0x36FFC);
         string path = workspace.PathFor("shared.bin");
         CompiledAuthoringSessionPreparation prepared = host.AbMergeAuthoring.PrepareSession(
             new AuthoringSessionState(ExperienceIds.AbMerge), "NT51932", null,
@@ -50,8 +53,8 @@ public sealed class OutputConfirmationLabelTests
             ShellTextResources text = ShellTextResources.For(language);
             Assert.All(proposal.Confirmation!.Inputs, input =>
             {
-                Assert.Equal(AuthoringSlotLifecycle.Warning, input.InspectionLifecycle);
-                Assert.Equal(text.AbUnknownVersionWarning, text.FormatOutputInputWarning(input));
+                Assert.Equal(AuthoringSlotLifecycle.Verified, input.InspectionLifecycle);
+                Assert.Empty(text.FormatOutputInputWarning(input));
             });
         }
         var vm = new OutputDeliveryConfirmationViewModel(host.CompositionOutputNaming, () => ShellTextResources.For(ShellLanguage.English));

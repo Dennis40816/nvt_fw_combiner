@@ -7,25 +7,16 @@ namespace NvtFwCombiner.Bootstrap.Tests;
 
 public sealed partial class AbMergeCliCommandTests
 {
-    /// <summary>A Config change after readiness is a clean CLI refusal before any execution side effect.</summary>
+    /// <summary>Invalid Config or mismatched formats after readiness refuse before execution side effects.</summary>
     [Theory]
     [InlineData("invalid", false)]
-    [InlineData("missing", false)]
-    [InlineData("changed", false)]
+    [InlineData("mismatch", false)]
     [InlineData("invalid", true)]
-    [InlineData("missing", true)]
-    [InlineData("changed", true)]
+    [InlineData("mismatch", true)]
     public async Task ChangedConfigAfterCliReadinessReturnsFailureAsync(string change, bool build)
     {
         using TempWorkspace workspace = TempWorkspace.Create("ab-cli-pre-run-refusal");
         CompositionHostServices host = await CreateFormatCliHostAsync(workspace);
-        if (change == "missing")
-        {
-            IEventBufferFormatConfigurationSession configuration = await host.GetEventBufferFormatConfigurationAsync(TestContext.Current.CancellationToken);
-            Assert.True((await configuration.SaveAsync(
-                [.. configuration.CreateDefaultsDraft().Select(static entry => entry! with { RecognitionValues = [] })],
-                TestContext.Current.CancellationToken)).Succeeded);
-        }
         string[] args = CreateFormatCliArguments(workspace, "NT51950", 0x97);
         args[0] = build ? "build" : "preview";
         int acquisitions = 0;
@@ -38,13 +29,12 @@ public sealed partial class AbMergeCliCommandTests
         var changingExecution = new BeforeCliExecution(execution, async () =>
         {
             if (change == "invalid") { _ = workspace.Write("format.json", "invalid json"u8.ToArray()); }
-            if (change == "missing") { File.Delete(workspace.PathFor("format.json")); }
-            if (change == "changed")
+            if (change == "mismatch")
             {
                 IEventBufferFormatConfigurationSession config = await host.GetEventBufferFormatConfigurationAsync(
                     TestContext.Current.CancellationToken);
                 Assert.True((await config.SaveAsync(
-                    [.. config.CreateDefaultsDraft().Select(static entry => entry! with { RecognitionValues = [] })],
+                    [.. config.CreateDefaultsDraft().Select(static entry => entry! with { RecognitionValues = [0x97] })],
                     TestContext.Current.CancellationToken)).Succeeded);
             }
         });
@@ -58,7 +48,7 @@ public sealed partial class AbMergeCliCommandTests
 
         Assert.Equal(1, exitCode);
         Assert.Equal(1, changingExecution.Calls);
-        Assert.Contains(change == "invalid" ? "AB_FORMAT_CONFIGURATION_INVALID" : "AB_FORMAT_CHANGED",
+        Assert.Contains(change == "invalid" ? "AB_FORMAT_CONFIGURATION_INVALID" : "AB_FORMAT_MISMATCH",
             error.ToString(), StringComparison.Ordinal);
         Assert.Equal(0, acquisitions);
         Assert.Equal(0, destinations.Calls);
@@ -94,23 +84,25 @@ public sealed partial class AbMergeCliCommandTests
 
     /// <summary>Explicit profile IDs constrain admission; IC selectors retain automatic format selection.</summary>
     [Theory]
-    [InlineData("nt51950-ab-merge-desay", 0x84, false)]
-    [InlineData("nt51950-ab-merge-common-2ic", 0x97, false)]
-    [InlineData("nt51950-ab-merge", 0x84, false)]
-    [InlineData("nt51950-ab-merge-desay", 0x97, true)]
-    [InlineData("nt51950-ab-merge-common-2ic", 0x84, true)]
-    [InlineData("NT51950", 0x97, true)]
-    [InlineData("51950", 0x84, true)]
-    public async Task ExplicitProfileCannotSilentlySelectAnotherFormatAsync(string selector, byte format, bool succeeds)
+    [InlineData("nt51950-ab-merge-desay", 0x84, 64)]
+    [InlineData("nt51950-ab-merge-desay", 0x97, 64)]
+    [InlineData("nt51950-ab-merge-common-2ic", 0x84, 64)]
+    [InlineData("nt51950-ab-merge-common-2ic", 0x97, 64)]
+    [InlineData("nt51950-ab-merge", 0x84, 1)]
+    [InlineData("nt51950-ab-merge", 0x97, 1)]
+    [InlineData("nt51950-ab-merge-cascade", 0x84, 0)]
+    [InlineData("nt51950-ab-merge-cascade", 0x97, 0)]
+    [InlineData("NT51950", 0x97, 0)]
+    [InlineData("51950", 0x84, 0)]
+    public async Task ExplicitProfileCannotSilentlySelectAnotherFormatAsync(string selector, byte format, int expectedExit)
     {
         using TempWorkspace workspace = TempWorkspace.Create("ab-cli-profile-constraint");
         CompositionHostServices host = await CreateFormatCliHostAsync(workspace);
         string[] args = CreateFormatCliArguments(workspace, selector, format);
         CliRunResult result = await CliTestHarness.RunAbAsync(host, args, TestContext.Current.CancellationToken);
 
-        Assert.True(result.ExitCode == (succeeds ? 0 : 1), result.Error + result.Output);
-        string detected = format == 0x97 ? "nt51950-ab-merge-desay" : "nt51950-ab-merge-common-2ic";
-        if (succeeds)
+        Assert.True(result.ExitCode == expectedExit, result.Error + result.Output);
+        if (expectedExit == 0)
         {
             Assert.Contains("Status: Succeeded", result.Output, StringComparison.Ordinal);
             Assert.True(File.Exists(workspace.PathFor("report.json")));
@@ -118,7 +110,7 @@ public sealed partial class AbMergeCliCommandTests
         else
         {
             Assert.Contains(selector, result.Error, StringComparison.Ordinal);
-            Assert.Contains(detected, result.Error, StringComparison.Ordinal);
+            if (expectedExit == 1) { Assert.Contains("nt51950-ab-merge-cascade", result.Error, StringComparison.Ordinal); }
             Assert.DoesNotContain("Status: Succeeded", result.Output, StringComparison.Ordinal);
             Assert.False(File.Exists(workspace.PathFor("report.json")));
         }
@@ -148,9 +140,11 @@ public sealed partial class AbMergeCliCommandTests
         tp[0x36001] = 0xBD;
         tp[0x36017] = 2;
         new byte[] { 0, 0x4E, 0x56, 0x54 }.CopyTo(tp, 0x36FFC);
+        byte[] tpB = (byte[])tp.Clone();
+        tpB[0x2220C] = format == 0x97 ? (byte)0xA6 : format;
         return ["preview", "--profile", selector, "--ab-topology", "cascade",
             "--dp-ab", workspace.Write("dp.bin", new byte[0x100000]),
-            "--tp-a", workspace.Write("a.bin", tp), "--tp-b", workspace.Write("b.bin", tp),
+            "--tp-a", workspace.Write("a.bin", tp), "--tp-b", workspace.Write("b.bin", tpB),
             "--output", workspace.PathFor("output.bin"), "--report", workspace.PathFor("report.json")];
     }
 }

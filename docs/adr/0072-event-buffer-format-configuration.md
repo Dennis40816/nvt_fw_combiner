@@ -74,6 +74,40 @@ This adds no primary decoder, non-AB metadata read, recognition value, format
 variant or support claim. Existing primary/artifact and configuration provenance
 remain captured through the same Application observation path.
 
+### Partial-family bank consolidation — 2026-09-21
+
+The owner disables the NT51950/NT51951 Desay specialization while retaining
+its closed profiles and physical maps for future explicit readmission. Active
+format variants now share Common geometry: NT51950 single has 512 KiB output,
+`0x40000` banks and TPB `[0x4A000,0x77000)`; NT51950 cascade and selector-free
+NT51951 have 1 MiB output, `0x80000` banks and TPB `[0x8A000,0xB7000)`.
+The separate NT51950 Common exact-two override is removed; NT51927 exact-count
+rules are outside this change. The existing AB count/primary admission remains.
+
+Normal DP input must exactly match the selected Common capacity. Both shorter
+and oversized inputs block; the old Desay 1 MiB expectation, warning-only size
+exception and ignored DP tail no longer apply to runtime selection. Dummy DP
+retains blank initialization without a DP input. Standard Merge is unchanged.
+Recognition bytes, aliases, raw-byte display names, format mismatch checks and
+captured configuration provenance remain; configuration cannot re-enable the
+inactive geometry. Historical Desay implementation sections below describe
+the retained definitions, not current runtime availability.
+
+Family/profile declarations and existing trusted registrations remain the only
+selection/execution authority. Single retains its closed transport; generic
+cascade reuses the existing 1 MiB transport and `nfc-nt51951-ab-merge-combiner-v1`.
+DIFF uses the existing region-instance delta, and only the three four-byte B
+ILM/DLM/CRC fields may be imported after the host's write-range audit. No new
+processor, page branch, firmware decoder or alternate execution path is added.
+Old Desay, exact-two and generic-cascade runtime identities must fail closed.
+
+The new cascade route is Available/Candidate/ContractOnly; the old Supported
+identity is retired rather than transferred to changed bytes. Other surviving
+classifications remain unchanged. Independent synthetic full-output and actual
+processor tests do not establish direct product certification. Existing single
+Golden output bytes and hashes remain immutable; exact candidate firmware-owner
+review and release Golden execution remain required.
+
 ## Rejected options and consequences
 
 - Reusing preference fallback would silently change Build behavior after a bad

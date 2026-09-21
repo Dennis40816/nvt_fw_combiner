@@ -7,6 +7,182 @@ assignments, use the [canonical roadmap](docs/architecture/nfc_roadmap.md).
 
 ## [Unreleased]
 
+### Summary
+
+**1.2.0 累積變更整理草稿 — 從 1.1.1 起，截至 2026-09-21。**
+
+範圍包含 **1.1.1 本身，以及 1.1.2～1.1.9 已發布版本**，再加上截至
+`1631b7cc` 及本次 Partial-family bank 收尾的本地開發變更。以下依功能整併，並標明來源版本：
+
+- **已發布**：功能已在標示的 1.1.x 版本交付，列在此處方便總覽，不視為 1.2.0 首次新增。
+- **本地完成**：1.1.9 之後完成實作及相關窄測試，尚待最終整合／發布驗證。
+- **待完成**：放在 Known issues，沒有列為可用功能。
+
+本次預計發布目標為 **1.2.0**；既有文件中的 `1.1.10` 保留作原工作批次標籤。
+主要累積成果涵蓋 AB Code 配置、設定、資訊與記憶體顯示、輸出交付、Runtime、
+狀態隔離及驗證流程；DP Replace 專屬功能汰除已本地完成，CtrlRAM AB Replace 仍待完成。
+
+### Product changes
+
+#### 1. AB Code：Selector、Dummy DP、共用 bank 與 TP 驗證
+
+- 來源版本：**已發布 1.1.2、1.1.4、1.1.6**；bank 整理與 TP count 驗證為 **本地完成**。
+- Before → After: 修正冷啟動 AB Code 時 IC 選單混入其他 context、Mode 空白的問題；新增預設關閉且需確認的 Dummy DP，允許依既有 map 使用 TP-only 輸入，非 TP 區域填入 `0xFF`；指定 AB workflows 可由 primary FWConfig Event Buffer Format 自動選取宣告的 Common／Desay 配置。
+- Affected: AB selector；NT51919／NT51929／NT51932／NT51950／NT51951 的既有 AB Dummy DP 路徑；NT51950／NT51951 的 Common／Desay 配置。
+- Support status: 新 NT51950 Cascade 配置為 Available／Candidate／ContractOnly，舊 generic Cascade Supported identity 退役；Dummy DP、格式辨識及共用配置不等於新增 Golden 認證。
+- Compatibility: Dummy DP 預設 Off。Common／Desay 現在共用各 case 配置：NT51950 Single 為 exact 512 KiB DP／output、TPB `0x4A000`；NT51950 Cascade／NT51951 為 exact 1 MiB、TPB `0x8A000`。短或超長 DP 均拒絕。Desay 特化保留為 inactive 宣告，舊 explicit profile IDs 停用；移除的 exact-2 僅限 NT51950，NT51927 exact-2／3 保留。
+- Verification: 各版本已有 selector、Dummy DP map contract、format selection 及相關回歸證據；輸入參考資料與完整 expected-output Golden 分別記錄。
+- Input validation: 所有 TP firmware slots 讀到 count 0 或讀不到時都阻擋，訊息分別說明原因；AB 還要求 TPA／TPB 的正 count 一致。非 AB workflows 不比較 A/B peers。
+- Limitations: 不提供任意 vendor layout 或 CRC 編輯；這些是既有 AB Merge 與 TP admission 能力，CtrlRAM AB Replace 仍待完成。
+
+#### 2. 設定：Event Buffer Format 編輯、重載與缺檔預設
+
+- 來源版本：**已發布 1.1.6**；缺檔預設及共用錯誤恢復為 **本地完成**。
+- Before → After: Settings > Config 可編輯既有格式的 recognition bytes 與顯示別名，使用 Save and apply、Reload、Discard 管理草稿。後續修正為自訂檔不存在時直接使用內建預設，無須先 Save，也不自動建立設定檔。
+- Affected: Event Buffer Format 設定頁及依賴設定的 AB 輸入檢查；包含 reload、focus／Escape、移除按鈕的可及性資訊。
+- Support status: unchanged/support-neutral；顯示別名不改 firmware 行為，不允許新增未宣告的 layout 或支援範圍。
+- Compatibility: Reload 不覆寫未儲存草稿，重新套用可重查保留的輸入。缺檔時編輯／Discard 採目前生效的內建預設，保留先前儲存來源的追溯資訊；格式錯誤或無法讀取的自訂檔仍阻擋。
+- Verification: 已覆蓋設定編輯／reload、首次使用、刪除自訂內容、首次實際 Build，以及修正設定後恢復既有 BIN 檢查。
+- Limitations: 設定錯誤改為共用且可採取動作的提示，避免各 BIN 重複報錯；恢復後仍須通過真正的輸入驗證，不會靜默使用錯誤設定的 fallback。
+
+#### 3. 輸入卡片與資訊：版本、Details、標題及捲軸
+
+- 來源版本：**已發布 1.1.4、1.1.6、1.1.7**；標題分行、版本標籤與捲軸統一為 **本地完成**。
+- Before → After: 選檔後保留 CtrlRAM Max Size／Target Addr 指引，整理長 metadata 與檔案操作；資訊優先呈現 TP version、PID、Common FW version 與有效的 Event Buffer Version。依最新 Excel 的 29 個 ID 顯示名稱，底線轉空格，例如 `0xA3 - Auto STLA v1`；TP slot info 與 Output Settings 共用。AB 保留各自 TPA／TPB 資訊，沒有有效版本時仍可顯示獨立有效的 PID／Common FW 資訊。
+- Affected: Standard、AB、CtrlRAM input cards、Appearance Details 偏好，以及共用 selector／popup／捲軸。
+- Support status: unchanged/support-neutral；資訊呈現沒有擴大 IC 或 firmware format 支援。
+- Compatibility: Details 預設 Off 並由既有偏好儲存；重新套用設定會撤掉過期的 format 資訊。本地調整讓 title／badge 自成一列、說明與 info 在下方，明確使用 `TPA Version`／`TPB Version`；空 slot 收合閒置列，固定捲軸空間減少 selector 位移。
+- Verification: 已有寬／窄版面、語言／主題、資訊順序、未知版本、空白 slot、template 捲軸偏好及桌面預覽檢查。
+- Limitations: Headless renders 不等於完整原生高 DPI、高對比或 screen-reader 驗收；本地相關 UI 調整仍待最終候選整合驗證。
+
+#### 4. Memory Layout：概要、互動區域與 BIN 內容合併
+
+- 來源版本：**已發布 1.1.4、1.1.6**；同 BIN 合併及下方 Legend 為 **本地完成**。
+- Before → After: CtrlRAM overview 強調宣告的 TP／DP context，互動時展開連續 Master／Slave target lanes 與區域資訊；改善 hover 切換、滾輪及 popup 關閉問題。本地進一步將相鄰且屬於同一個已接受 BIN 來源的內容合併顯示。
+- Affected: Standard、AB／Dummy DP、CtrlRAM Memory Layout 與共用 controls。
+- Support status: unchanged/support-neutral；這些變更調整顯示，不改 firmware 寫入範圍。
+- Compatibility: 非相鄰區域不因來源相同而合併，不同 BIN 也不因標題相同而合併。Legend 移至 rail 下方，維持小方形色標、每項獨立一行並對齊名稱與地址；精確 patch／回填仍保留在 Report。
+- Verification: 已覆蓋宣告 map context、Normal／MP 區域分別檢視、popup teardown、指標與滾輪、相鄰合併／來源分離、NT51950 AB 五段呈現及像素取整。
+- Limitations: 不從 section locator 或標題推定 BIN 身分；CtrlRAM section overview／局部 focus 維持既有語義。顯示合併不能用來推定新的 bank、CRC 或寫入權限。
+
+#### 5. Build 設定與交付：每個 BIN 獨立改名、Bundle 及檔名恢復
+
+- 來源版本：**已發布 1.1.4、1.1.7、1.1.9**；主 BIN 與可選 A FlashCode 獨立改名為 **本地完成**。
+- Before → After: 輸出確認清楚呈現 IC／topology、mode／有效格式及主要 Flash 輸出大小；展開來源時分開顯示 role、檔名、實際／預期大小與 Event Buffer 檢查。過長 BIN 名稱或 Bundle 資料夾名稱會在編輯時顯示錯誤，無效提交回復最後接受的有效值。
+- Affected: 共用 Build settings、一般輸出／Bundle delivery、既有 Additional A FlashCode、General mapping 與 Dummy DP 說明。
+- Support status: unchanged/support-neutral；沒有新增 workflow 或命名規則來源。
+- Compatibility: 保留 canonical 自動檔名；主 BIN、可選 A FlashCode、Bundle 資料夾各自保存編輯名稱；loose／Bundle、Report receipt 與落盤名稱一致。額外輸出大小不灌入主要 Flash 大小。General sources 與 Replace Base 納入摘要及 Bundle，同檔多個 bindings 只複製一次；保留 collision suffix 與交付順序。
+- Verification: 已覆蓋來源與輸出大小、中文布局、接受狀態 freshness、無效 AB 設定於確認前阻擋、無效名稱恢復，以及實際 Bundle children 的名稱／路徑邊界和競態重查。
+- Limitations: Windows 檔名元件上限仍為 255 字元，應用程式輸出路徑預算仍為 259；未開放任意 native long-path 輸出。
+
+#### 6. Report、History 與訊息導覽
+
+- 來源版本：**已發布 1.1.4、1.1.8**；Message Center 文字入口及歷史 DP reader 回歸為 **本地完成**。
+- Before → After: 將目前／歷史 Report 入口整理為一致的清單與較清楚的導覽。Report Save 捕獲選定內容後才開 picker，避免重複點擊；picker、write 或 disposal 失敗會顯示可重試訊息，全部資源成功關閉後才回報成功。
+- Affected: Report list／detail／Save、History、System activity、Support Matrix 與右上角 Message Center 入口。
+- Support status: unchanged/support-neutral；未藉此啟用 Launcher 或自動更新權限。
+- Compatibility: 取消 picker 保留目前 Report，沒有不可逆的歷史資料遷移；右上角圖示增加可翻譯文字。DP Replace 退役後，舊 Report 的 experience、input、mutation 與 history 仍能讀取。
+- Verification: 已執行 Report 儲存成功／失敗／取消、固定 report snapshot、目前與歷史資料，以及 production policy 下舊 DP JSON 讀取的回歸。
+- Limitations: Save 尚非 atomic file replacement，失敗的目的檔可能不完整；Report physical-section grouping 與剩餘原生可及性工作未因此完成。
+
+#### 7. 外部工具與 Portable 套件：Runtime 選擇及 staging 保護
+
+- 來源版本：已發布於 **1.1.6、1.1.8、1.1.9**。
+- Before → After: 外部工具發布後重新計算 CtrlRAM readiness，修正輸入先載入而 Build 狀態未更新；Portable 補入既定 x64 `vcruntime140.dll`，處理乾淨 Windows 上 Combiner 缺 Runtime 的啟動失敗。Settings > Config > Toolchain 可偵測／瀏覽已安裝且通過驗證的 VC++ Runtime，再由使用者明確儲存選擇。
+- Affected: 使用既有外部 Combiner 的 AB／CtrlRAM 等流程、Message Center 環境刷新及 Windows portable packaging。
+- Support status: unchanged/support-neutral；沒有新增 IC、profile 或 mode 支援。
+- Compatibility: Bundled Runtime 仍為預設，不安裝系統級 Runtime、不自動下載或選取。已選 Runtime 遺失／變更／驗證失效時會阻擋相關 Build，直到明確重選。兩個 Combiner adapters 以原子方式取得 staging 目錄所有權，只清理自己成功取得的目錄，保留原先存在的資料。
+- Verification: 已有 Runtime probe、交易式儲存／reload、過期世代、processor adapters、實際 Combiner smoke，以及 staging ownership／cleanup 回歸；各次發布的 final-candidate／clean-machine 證據另行記錄。
+- Limitations: 真正缺少工具仍阻擋 Build；Windows 無法確認信任或憑證撤銷狀態時可拒絕使用者 Runtime。既有 staging 修正不宣稱防禦任意敵意路徑替換。
+
+#### 8. 啟動效能、刷新與執行狀態隔離
+
+- 來源版本：**已發布 1.1.5**；run owner／input capture／General Base clear 修正為 **本地完成**。
+- Before → After: 單次 catalog load 重用完整 CtrlRAM definitions，reload 使用新的 resolver；Message Center styles 隨既有延後載入視窗載入。未訪問的 workflow 首次進入才初始化，相符 CtrlRAM groups 保留 container／展開狀態並接收完整新 slots。本地執行再綁定排程前捕獲的輸入、IC 與原頁面／mode／操作實例。
+- Affected: Home startup、catalog reload、Merge／Replace navigation、CtrlRAM groups，以及現有 Preview／Build／取消／結果狀態。
+- Support status: unchanged/support-neutral；未新增永久 catalog cache 或其他 firmware 判讀方式。
+- Compatibility: 一般 draft 編輯保留已完成操作的捕獲結果；明確 Clear 撤銷相關結果。General 清除 Base 同步通知既有 Application session，保留 mapping 身分／路徑／範圍，撤銷舊 publication；重複 clear 維持冪等，不刪來源檔。
+- Verification: 已驗證 reload 不保留失敗／過期 definitions、取消與 rollback、完整資料刷新、切頁隔離、捕獲輸入及 General clear；本地最後受影響九個完整 classes 538/538。
+- Limitations: 不宣稱已達 700 ms startup 目標；延後工作不代表開啟所有頁面的總時間下降。CtrlRAM AB bank／版本草稿尚未實作，不能算在既有狀態隔離完成範圍內。
+
+#### 9. 桌面啟動：CMD 載入 AB Code 輸入
+
+- 來源版本：**本地完成，尚未發布**。
+- Before → After: 桌面命令列可指定 AB Merge 的 IC、Number、DP、TP A 與 TP B，開啟畫面並循既有檢查流程載入，減少逐一 Browse。
+- Affected: Desktop AB Merge 啟動；既有 CtrlRAM Replace 命令列入口保留。
+- Support status: unchanged/support-neutral；新增的是載入入口，不是 firmware 支援認證。
+- Compatibility: 沿用 canonical catalog、Home context、Browse 檢查與取消。TP A／TP B 獨立選取，目前 Single 的 Common／Desay 均要求 exact 512 KiB DP；參數見 [Desktop input startup](docs/ui/information-architecture.md#desktop-input-startup)。
+- Verification: 啟動回歸 56/56；文件中的 NT51950 canonical examples 已核對輸入並執行桌面載入。
+- Limitations: 只開啟並載入，不自動 Preview／Build，也不代替使用者確認；無效參數、設定、輸入或取消仍停止後續自動載入。
+
+#### 10. Firmware metadata：DPCMI 命名與共用定義解耦
+
+- 來源版本：**已發布 1.1.2**；中立 AB format／DPCMI／Perfect family／full-image views 為 **本地完成**。
+- Before → After: 修正 Standard NT51919／NT51929／NT51932 的 DPCMI 命名來源，以 CMD1 Page 0 `[0x401A,0x401D)` 取得預期的 `D2004`，避免讀取 compact header 而顯示 `D0200`。後續將 AB format/map selection、DPCMI provider、Perfect disclosure 與完整映像 metadata 移入共用 owner，解除對 DP Replace runtime 的依賴。
+- Affected: 指定 Perfect-family Standard 命名、共用 catalog／inspection，以及存續 Standard／AB／CtrlRAM consumers。
+- Support status: unchanged/support-neutral；不因共用 family、map 或 metadata 就推定新增 IC／format／Golden 認證。
+- Compatibility: 1.1.2 的命名修正保留 NT51929 Golden output SHA／bytes，AB 的既有 A/B CMD Page 讀取不變，General 不新增 DPCMI reader。本地遷移保留明確身分、單次讀取、immutable inputs 與單一 planner/executor。
+- Verification: 已有 DPCMI 來源／命名、full-image metadata、catalog atomic publication、family disclosure 及相依 consumers 回歸；保留歷史 input-only observation 與真正 output Golden 的證據區別。
+- Limitations: 共用 AB 解析是 CtrlRAM AB Replace 的前置；Reference consumer／bank 替換與其獨立 expected outputs 仍未完成。
+
+#### 11. 功能汰除：DP Replace
+
+- 來源版本：**本地完成，尚未發布**；提交 `7fee7af0`。
+- Before → After: 移除 DP Replace 專屬 UI／CLI／service／profile／package 執行能力；舊 CLI preview/build 明確回報 `cli.retired-experience`，exit code `64`。
+- Affected: DP Replace 使用者與自動化腳本；共用 DP metadata 與存續 General Replace 並未隨專屬入口移除。
+- Support status: removed；退役 14 個 DP policy routes，當時剩餘 24 bundles、54 registrations、79 routes；後續本次 bank 整理後為 24 bundles、52 registrations、75 routes，63 Supported；新增 Cascade candidate 見第一項。
+- Compatibility: 舊命令不自動改走 General Replace；拒絕前不讀輸入、不執行、不建立 output/report，既有檔案保留。歷史 Report／History、DPCMI、DP／LDC／TP 共用事實與 Perfect family 資訊保留。
+- Verification: 已驗證 public CLI 零副作用、compiler 不產生退役 artifact、實際 package materialization／deployment，以及共享行為與歷史資料回歸。
+- Limitations: 原 `dp-replace` 腳本需調整，沒有自動等價的替代命令；本地完成尚不等於最終 1.2.0 發布認證。
+
+#### 12. 驗證、發佈與開發維護
+
+- 來源版本：**已發布 1.1.1、1.1.2、1.1.3、1.1.4、1.1.5、1.1.8**；後續失敗診斷與 DP 測試遷移為 **本地完成**。
+- Before → After: 統一固定測試區、component manifests 與 aggregate verdict；CI shards 使用隔離 Windows runners，發布要求實際候選來源的 CI admission 與必要 fresh Golden。改善公開下載 smoke、可重現 fixtures、慢測試資訊與機械式同步；本地 verifier 可在既有預算內平行處理獨立工作，補回先前未被 unittest 執行的 pytest cases。
+- Affected: 開發者檢查、Windows CI／release、套件 reference evidence、文件與 agent 工作流程；不是新增終端使用者 firmware 功能。
+- Support status: unchanged/support-neutral；不以工具效率、fixture hash 或 input-only observation 代替支援認證。
+- Compatibility: 保留原 verifier／required checks／coverage 與實際 discovery/execution 對照；移除原本在 Windows 略過的六個 Unix-only 整合測試，保留 Windows／shared coverage，Windows 要求零 skipped .NET cases。1.1.2 增加公開 NT51929 input-only evidence；1.1.4 canonical references 由 35 擴至 40 cases，區分 25 direct outputs、3 input-only、12 fact-scoped aliases，沒有改寫既有 expected bytes。一般文字修訂及窄改動採相稱檢查，normative／release gates 保留。
+- Verification: 各版本的 CI、fixture、package／download、文件與 workflow 回歸見下方原始版本紀錄；本地另保留失敗 child-process 診斷，DP 測試遷移仍維持取消、read ceiling、immutable inputs 與歷史資料 assertions。
+- Limitations: 不宣稱完整驗證已達十分鐘、startup 已達 700 ms 或 token 用量已有量測下降；未把 1.1.0 的 manual-only 特例延長，也未啟用 Catalog／Registry 自動部署。原有 orchestration failure 與本次最終 release gates 另列如下。
+
+### Security
+
+- **已發布 1.1.1／1.1.3**：加強 exact-source admission 與 protected publication 證據；必要 Golden 不能以 cached result、matching hash 或另一個 sibling case 代替。
+- **已發布 1.1.8／1.1.9**：staging 僅清理成功取得所有權的目錄；使用者 Runtime 經隔離 probe、x64 相依／export、精確檔案身分及 Microsoft WinTrust 驗證，檢查失敗時阻擋，沒有靜默 fallback。
+- **本地完成**：DP retirement 由既有 compiler 終局檢查執行，舊 trusted DP profile 不能取得 executable artifact 或公開 compiled Plan。
+
+### Known issues
+
+- **CtrlRAM AB Replace 尚未實作完成**：A／B／A＋B、各自版本、AB Reference 接線、未選 bank 逐 byte 保留，以及 transform／CRC／header／backup 規則與獨立 expected outputs 仍待完成。
+- 最終 integration、firmware-owner 證據及實際候選來源的必要 Golden 尚未完成；local Golden project 14/14 不等於全部 40 個 canonical cases 或全部必要 release output cases 已執行。
+- 先前完整 verifier 的 orchestration concurrency failure 尚未證明根因修復。診斷紀錄已改善，後續未重現仍不能算修復完成。
+- 最近完整 UI run 為 1526/1527；唯一 failure 已由 General Base clear 修正與 538/538 窄 gate 關閉，沒有重新執行完整 UI 全數通過的宣稱。
+- Native high-DPI／assistive-technology、clean-machine 與最終 portable-package 驗收仍須依候選範圍完成；已發布版本的歷史證據不自動認證目前 source。
+- Roadmap 原有 1.2.0 與後續配置、`VERSION`、tag／package 身分仍需於版本整合時同步此次 1.2.0 目標；未將原排程中的 Launcher 等未完成工作列為成果。
+
+### Upgrade and rollback
+
+本整理**含 1.1.1 的變更**，因此累積比較從 1.1.0 之後開始；不是只整理 1.1.9 之後。
+1.1.1～1.1.9 的既有發布與升級紀錄保留在下方，沒有重新標成 1.2.0 才推出。
+
+目前 1.2.0 開發候選的主要相容性變動是 DP Replace 執行入口移除；相關腳本需先確認替代操作，
+歷史 DP Report／History 讀取仍保留。Runtime selection 是使用者偏好，預設仍為 Bundled；
+新候選的完整升級／回退及乾淨 Windows 驗證，需在最終版本完成後補齊。
+
+### Downloads and integrity
+
+1.1.1～1.1.9 的下載與 integrity 說明保留在各自版本紀錄。目前尚無本次 1.2.0 正式下載；
+發布時再填入 Windows x64 portable ZIP、source archives、SBOM、provenance 與 SHA-256。
+
+### 來源與驗證索引
+
+- 已發布部分：本文件下方 **1.1.1～1.1.9** 的原始 Product changes、相容性與驗證限制。
+- 本地設定、介面、Memory Layout 與 CMD：[1.1.10 checkpoint](docs/ui/v1.1.x-custom-options-layout-handoff.md#1110-conversation-checkpoint--2026-09-20)。
+- 共用架構、DP 汰除與未完成 AB 需求：[交付清單](docs/ui/v1.1.10-delivery.md)。
+- 已完成的開發文件補充：[使用者資料位置與生命週期盤點](docs/architecture/local-user-data-inventory.md)，供後續解除安裝規劃；尚無新增解除安裝／自動清除功能。
+- 最新 bank 單元：Bootstrap 501、UiSmoke 83、Infrastructure 50、Architecture 35、ProfileContract 449 全通過；兩個原 Single Golden 與 pinned-processor 輸出回歸均保留。其他單元的詳細來源與限制見交付清單。
+- 先前本地主要 gates：Application 161/161、Bootstrap 466/466 與後續 closure 58/58、Architecture 81/81、UI 受影響 classes 538/538、local Golden 14/14。這些是各自來源的窄 gate，不合併宣稱一次全套 PASS。
+
 ## [1.1.9] - 2026-09-20
 
 ### Summary

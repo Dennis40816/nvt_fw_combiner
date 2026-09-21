@@ -29,7 +29,7 @@ public sealed class BuiltInCanonicalCapabilityPolicyTests
                     "nt51929-standard-merge-256k"));
 
         Assert.Equal("canonical-capability-policy", policy.CatalogId);
-        Assert.Equal("1.17.0", policy.CatalogVersion);
+        Assert.Equal("1.18.0", policy.CatalogVersion);
         Assert.Equal(
             BuiltInCanonicalCapabilityPolicy.ExpectedSha256,
             policy.SourceSha256);
@@ -76,10 +76,7 @@ public sealed class BuiltInCanonicalCapabilityPolicyTests
             BuiltInCanonicalCapabilityPolicy.Load();
         string[] formatCandidateIds =
         [
-            "route-7-nt51950-8-ab-merge-4-1-ic-21-nt51950-ab-desay-maps",
-            "route-7-nt51950-8-ab-merge-9-2-plus-ic-21-nt51950-ab-desay-maps",
-            "route-7-nt51951-8-ab-merge-13-selector-free-21-nt51951-ab-desay-maps",
-            "route-7-nt51950-8-ab-merge-4-2-ic-26-nt51950-ab-common-2ic-maps",
+            "route-7-nt51950-8-ab-merge-9-2-plus-ic-23-nt51950-ab-cascade-maps",
         ];
         CanonicalCapabilityPolicyRoute[] formalRoutes =
         [
@@ -89,8 +86,8 @@ public sealed class BuiltInCanonicalCapabilityPolicyTests
                 !formatCandidateIds.Contains(route.Identity.RouteId, StringComparer.Ordinal)),
         ];
 
-        Assert.Equal(79, policy.Routes.Count);
-        Assert.Equal(64, formalRoutes.Length);
+        Assert.Equal(75, policy.Routes.Count);
+        Assert.Equal(63, formalRoutes.Length);
         Assert.All(formalRoutes, static route =>
         {
             Assert.Equal(
@@ -101,7 +98,7 @@ public sealed class BuiltInCanonicalCapabilityPolicyTests
                 route.Publication.Value);
         });
         Assert.Equal(
-            79,
+            75,
             policy.Routes.Count(static route =>
                 route.Authoring.Value == CapabilityAuthoringAvailability.Available));
         Assert.Equal(
@@ -109,7 +106,7 @@ public sealed class BuiltInCanonicalCapabilityPolicyTests
             policy.Routes.Count(static route =>
                 route.Authoring.Value == CapabilityAuthoringAvailability.Unavailable));
         Assert.Equal(
-            64,
+            63,
             policy.Routes.Count(static route =>
                 route.Publication.Value == CapabilityPublicationStatus.Supported));
         Assert.Equal(
@@ -147,7 +144,7 @@ public sealed class BuiltInCanonicalCapabilityPolicyTests
             policy.Routes.Count(static route =>
                 route.Evidence.Value == CapabilityEvidenceStatus.SyntheticOracle));
         Assert.Equal(
-            42,
+            38,
             policy.Routes.Count(static route =>
                 route.Evidence.Value == CapabilityEvidenceStatus.ContractOnly));
         string[] tpRoutesAwaitingIndependentExpectedOutput =

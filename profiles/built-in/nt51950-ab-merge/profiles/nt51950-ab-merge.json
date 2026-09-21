@@ -1,14 +1,14 @@
 {
   "schemaVersion": "2.14",
   "profileId": "nt51950-ab-merge",
-  "profileVersion": "0.6.0",
+  "profileVersion": "0.7.0",
   "promotion": {
     "stage": "executable-candidate",
     "blockers": [
       {
         "blockerId": "golden-certification-closure",
         "kind": "golden",
-        "reason": "Direct NT51950 single output evidence exists, while direct cascade certification remains open and must not be inferred from the shared placement contract.",
+        "reason": "Direct NT51950 single output evidence is retained; exact candidate certification and firmware-owner review remain required.",
         "evidenceRefs": [ "nt51950-ab-combiner-audit-2026-07-14" ]
       },
       {
@@ -31,9 +31,9 @@
   },
   "mapBinding": {
     "familyId": "nt51950-ab-merge",
-    "familyVersion": "0.6.0",
-    "familyContentHash": "41654f4bc62e3e31157f93972433efaff32c2630c1d95ec7e45be578f4510a93",
-    "mapIds": [ "nt51950-ab-merge-512k", "nt51950-ab-merge-1024k" ],
+    "familyVersion": "0.7.0",
+    "familyContentHash": "7aa145d966d39de7ab5b62cb8c805f72a745eee181f5c77075aeb02f9e79aa20",
+    "mapIds": [ "nt51950-ab-merge-512k" ],
     "requiredRegionIds": [
       "ab-image",
       "a-bank",

@@ -11,7 +11,7 @@ namespace NvtFwCombiner.Bootstrap.Tests;
 /// <summary>Independent synthetic byte evidence; not real Combiner or certified Golden evidence.</summary>
 public sealed class AbMergeFormatVariantProfileTests
 {
-    private const string BundleHash = "8503cab05cc6b038f4b4093924f75cf6ca38f0ec178d30732fd23608dbbd699f";
+    private const string BundleHash = "18ddf21d67694e01734f88fdd1e578f87f1d57bbb05cfa7c54bfeb8c665aab44";
     private const int Capacity = 0x100000;
     private static readonly int[] HeaderOffsets = [0xA100, 0xA110, 0xA130];
 
@@ -23,8 +23,10 @@ public sealed class AbMergeFormatVariantProfileTests
     [InlineData("NT51950", "desay", 3, 0x40000, true)]
     [InlineData("NT51951", "desay", 0, 0x40000, false)]
     [InlineData("NT51951", "desay", 0, 0x40000, true)]
-    [InlineData("NT51950", "common-2ic", 2, 0x80000, false)]
-    [InlineData("NT51950", "common-2ic", 2, 0x80000, true)]
+    [InlineData("NT51950", "cascade", 2, 0x80000, false)]
+    [InlineData("NT51950", "cascade", 2, 0x80000, true)]
+    [InlineData("NT51950", "cascade", 3, 0x80000, false)]
+    [InlineData("NT51950", "cascade", 4, 0x80000, true)]
     public async Task ClosedVariantExecutesExactIndependentOutput(
         string ic, string format, int count, int bankLength, bool dummy)
     {
@@ -92,15 +94,14 @@ public sealed class AbMergeFormatVariantProfileTests
         Assert.Equal(originals[2], tpB);
     }
 
-    /// <summary>Exact-2 is a profile contract, not the Cascade selector's minimum count.</summary>
+    /// <summary>Cascade rejects a missing or single topology.</summary>
     [Theory]
     [InlineData(0)]
     [InlineData(1)]
-    [InlineData(3)]
-    public void CommonExactTwoRejectsOtherOrMissingTopology(int count)
+    public void CascadeRejectsSingleOrMissingTopology(int count)
     {
         using var workspace = TempWorkspace.Create("nfc-ab-format-count");
-        V2CompositionPlanCompileResult result = CompileResult(workspace, "NT51950", "common-2ic", count, false);
+        V2CompositionPlanCompileResult result = CompileResult(workspace, "NT51950", "cascade", count, false);
         Assert.False(result.IsCompiled);
         Assert.NotEmpty(result.Issues);
         Assert.DoesNotContain(result.Issues, issue => issue.Code == "profile.v2.selection.not-found");
@@ -148,7 +149,7 @@ public sealed class AbMergeFormatVariantProfileTests
     [Theory]
     [InlineData("NT51950", "desay", 1, 0x40000)]
     [InlineData("NT51951", "desay", 0, 0x40000)]
-    [InlineData("NT51950", "common-2ic", 2, 0x80000)]
+    [InlineData("NT51950", "cascade", 2, 0x80000)]
     public void HostPolicyRejectsWritesOutsideCompiledHeaderSlices(string ic, string format, int count, int bankLength)
     {
         using var workspace = TempWorkspace.Create("nfc-ab-format-write-boundary");
@@ -188,7 +189,7 @@ public sealed class AbMergeFormatVariantProfileTests
         TempWorkspace workspace, string ic, string format, int count, bool dummy)
     {
         return AbMergeCandidateTestSupport.LoadSourceCandidateCatalog(workspace, "nt51950-ab-merge", BundleHash).Compile(
-            $"{ic.ToLowerInvariant()}-ab-merge-{format}", format == "desay" ? "0.2.1" : "0.2.0", ic, ExperienceIds.AbMerge, Capacity,
+            $"{ic.ToLowerInvariant()}-ab-merge-{format}", format == "desay" ? "0.2.1" : "0.3.0", ic, ExperienceIds.AbMerge, Capacity,
             count == 0 ? null : new TopologySelection(count, $"{count} IC", TopologySelectionSource.Requested, "test"),
             [], selectedInputSlotIds: dummy ? [] : ["dp-ab-input"]);
     }

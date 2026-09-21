@@ -7,19 +7,41 @@ namespace NvtFwCombiner.Bootstrap.Tests;
 /// <summary>Characterizes the shared selection contract without claiming input or execution admission.</summary>
 public sealed class AbFormatMapResolverTests
 {
+    /// <summary>Disabled vendor specialization preserves labels while selecting the common physical map.</summary>
+    [Theory]
+    [InlineData("NT51950", 1, "nt51950-ab-merge-512k")]
+    [InlineData("NT51950", 2, "nt51950-ab-merge-1024k")]
+    [InlineData("NT51950", 3, "nt51950-ab-merge-1024k")]
+    [InlineData("NT51951", 0, "nt51951-ab-merge-1024k")]
+    public void DisabledSpecializationUsesCommonMap(string member, int count, string expectedMap)
+    {
+        FirmwareFamilyResolutionDefinition family = Family();
+        AbFormatMapResolutionResult common = AbFormatMapResolver.Resolve(family, member, Configuration(family),
+            0x84, 0x85, Topology(count), count, count);
+        AbFormatMapResolutionResult desay = AbFormatMapResolver.Resolve(family, member, Configuration(family),
+            0x97, 0xA6, Topology(count), count, count);
+
+        Assert.Empty(common.Issues);
+        Assert.Empty(desay.Issues);
+        Assert.Equal(expectedMap, common.Selection!.MapId);
+        Assert.Equal(expectedMap, desay.Selection!.MapId);
+        Assert.Equal("common", common.Selection.FormatId);
+        Assert.Equal("desay", desay.Selection.FormatId);
+    }
+
     /// <summary>Every configured family map retains its explicit result, independent of a page or artifact DTO.</summary>
     [Theory]
     [InlineData("NT51950", 1, 1, 1, 0x84, 0x85, "common", "Common", "nt51950-ab-merge-512k")]
-    [InlineData("NT51950", 2, 2, 2, 0x84, 0x85, "common", "Common", "nt51950-ab-common-exact2-1024k")]
+    [InlineData("NT51950", 2, 2, 2, 0x84, 0x85, "common", "Common", "nt51950-ab-merge-1024k")]
     [InlineData("NT51950", 2, 3, 3, 0x84, 0x85, "common", "Common", "nt51950-ab-merge-1024k")]
     [InlineData("NT51950", 2, 2, 3, 0x84, 0x85, "common", "Common", "nt51950-ab-merge-1024k")]
     [InlineData("NT51950", 2, 3, 2, 0x84, 0x85, "common", "Common", "nt51950-ab-merge-1024k")]
     [InlineData("NT51950", 2, null, 2, 0x84, 0x85, "common", "Common", "nt51950-ab-merge-1024k")]
     [InlineData("NT51950", 2, 2, null, 0x84, 0x85, "common", "Common", "nt51950-ab-merge-1024k")]
-    [InlineData("NT51950", 1, 1, 1, 0x97, 0xA6, "desay", "Desay", "nt51950-ab-desay-single-1024k")]
-    [InlineData("NT51950", 2, 2, 3, 0x97, 0xA6, "desay", "Desay", "nt51950-ab-desay-cascade-1024k")]
+    [InlineData("NT51950", 1, 1, 1, 0x97, 0xA6, "desay", "Desay", "nt51950-ab-merge-512k")]
+    [InlineData("NT51950", 2, 2, 3, 0x97, 0xA6, "desay", "Desay", "nt51950-ab-merge-1024k")]
     [InlineData("NT51951", 0, null, null, 0x84, 0x85, "common", "Common", "nt51951-ab-merge-1024k")]
-    [InlineData("NT51951", 0, null, null, 0x97, 0xA6, "desay", "Desay", "nt51951-ab-desay-1024k")]
+    [InlineData("NT51951", 0, null, null, 0x97, 0xA6, "desay", "Desay", "nt51951-ab-merge-1024k")]
     public void DeclaredMapsUseObservedCountsAndCurrentFormat(
         string member, int selectedCount, int? countA, int? countB, byte rawA, byte rawB,
         string format, string displayName, string map)
@@ -61,26 +83,26 @@ public sealed class AbFormatMapResolverTests
         AbFormatMapResolutionResult renamed = AbFormatMapResolver.Resolve(family, "NT51951", changed,
             0x10, 0x11, null, null, null);
 
-        Assert.Equal(new AbFormatMapSelection("nt51951-ab-desay-1024k", "desay", "Desay"), original.Selection);
+        Assert.Equal(new AbFormatMapSelection("nt51951-ab-merge-1024k", "desay", "Desay"), original.Selection);
         Assert.Equal(new AbFormatMapSelection("nt51951-ab-merge-1024k", "common", "Common"), common.Selection);
-        Assert.Equal(new AbFormatMapSelection("nt51951-ab-desay-1024k", "desay", "Panel format"), renamed.Selection);
+        Assert.Equal(new AbFormatMapSelection("nt51951-ab-merge-1024k", "desay", "Panel format"), renamed.Selection);
         Assert.All<AbFormatMapResolutionResult>([original, common, renamed], result => Assert.Empty(result.Issues));
     }
 
     /// <summary>Invalid canonical declarations cannot be constructed to bypass the selection preconditions.</summary>
     [Theory]
-    [InlineData("missing-baseline")]
+    [InlineData("missing-map")]
     [InlineData("duplicate-baseline")]
-    [InlineData("duplicate-exact")]
-    public void CanonicalFamilyRejectsAmbiguousOrMissingBaselinesBeforeSelection(string mutation)
+    [InlineData("duplicate-variant")]
+    public void CanonicalFamilyRejectsAmbiguousOrMissingMapsBeforeSelection(string mutation)
     {
         FirmwareFamilyResolutionDefinition family = Family();
         FirmwareAbFormatPolicy policy = family.AbFormatPolicy!;
         IEnumerable<FirmwareAbFormatVariant> variants = mutation switch
         {
-            "missing-baseline" => policy.Variants.Where(variant => variant.MapId != "nt51950-ab-merge-1024k"),
+            "missing-map" => policy.Variants.Append(new("NT51950", "common", "missing-map")),
             "duplicate-baseline" => policy.Variants.Append(new("NT51950", "common", "nt51950-ab-desay-cascade-1024k")),
-            _ => policy.Variants.Append(policy.Variants.Single(variant => variant.MapId == "nt51950-ab-common-exact2-1024k")),
+            _ => policy.Variants.Append(policy.Variants[0]),
         };
 
         _ = Assert.Throws<ArgumentException>(() =>

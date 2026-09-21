@@ -66,10 +66,8 @@ public sealed class ProfilesCliCommandTests
             "nt51929-ab-merge  ic=NT51929  inputs=dp-ab-input, tp-a-input, tp-b-input  default-output=NT{ic}_FlashCode_A_{dp-a}{tp-a}_B_{dp-b}{tp-b}_{date}.bin",
             "nt51932-ab-merge  ic=NT51932  inputs=dp-ab-input, tp-a-input, tp-b-input  default-output=NT{ic}_FlashCode_A_{dp-a}{tp-a}_B_{dp-b}{tp-b}_{date}.bin",
             "nt51950-ab-merge  ic=NT51950  inputs=dp-ab-input, tp-a-input, tp-b-input  default-output=NT{ic}_FlashCode_A_{dp-a}{tp-a}_B_{dp-b}{tp-b}_{date}.bin",
-            "nt51950-ab-merge-common-2ic  ic=NT51950  inputs=dp-ab-input, tp-a-input, tp-b-input  default-output=NT{ic}_FlashCode_A_{dp-a}{tp-a}_B_{dp-b}{tp-b}_{date}.bin",
-            "nt51950-ab-merge-desay  ic=NT51950  inputs=dp-ab-input, tp-a-input, tp-b-input  default-output=NT{ic}_FlashCode_A_{dp-a}{tp-a}_B_{dp-b}{tp-b}_{date}.bin",
+            "nt51950-ab-merge-cascade  ic=NT51950  inputs=dp-ab-input, tp-a-input, tp-b-input  default-output=NT{ic}_FlashCode_A_{dp-a}{tp-a}_B_{dp-b}{tp-b}_{date}.bin",
             "nt51951-ab-merge  ic=NT51951  inputs=dp-ab-input, tp-a-input, tp-b-input  default-output=NT{ic}_FlashCode_A_{dp-a}{tp-a}_B_{dp-b}{tp-b}_{date}.bin",
-            "nt51951-ab-merge-desay  ic=NT51951  inputs=dp-ab-input, tp-a-input, tp-b-input  default-output=NT{ic}_FlashCode_A_{dp-a}{tp-a}_B_{dp-b}{tp-b}_{date}.bin",
             string.Empty,
         ]);
 

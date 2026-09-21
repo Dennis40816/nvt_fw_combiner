@@ -41,11 +41,11 @@ public sealed class ProfileBundlePackageTrustIndexLoaderTests
 
         Assert.Equal("1.5", index.SchemaVersion);
         Assert.Equal("built-in-profile-bundles", index.TrustIndexId);
-        Assert.Equal("1.1.10.3", index.TrustIndexVersion);
+        Assert.Equal("1.1.10.4", index.TrustIndexVersion);
         Assert.Equal("built-in-profile-bundle-v2", index.TrustAnchorBindingId);
         Assert.Equal(24, index.Bundles.Count);
         Assert.Equal(
-            54,
+            52,
             index.Bundles.Sum(static bundle => bundle.RuntimeRegistrations.Count));
         ProfileBundleRuntimeRegistration generalReplace = index.Bundles
             .SelectMany(static bundle => bundle.RuntimeRegistrations)
@@ -59,7 +59,7 @@ public sealed class ProfileBundlePackageTrustIndexLoaderTests
             ["nt51919-ab-merge-512k", "nt51929-ab-merge-512k", "nt51932-ab-merge-512k",
                 "nt51928-dual-capacity-256k-512k",
                 "nt51950-ab-merge-maps", "nt51951-ab-merge-1024k",
-                "nt51950-ab-desay-maps", "nt51951-ab-desay-maps", "nt51950-ab-common-2ic-maps"],
+                "nt51950-ab-cascade-maps"],
             index.Bundles.SelectMany(static bundle => bundle.RuntimeRegistrations)
                 .Where(static registration => registration.MapVariantSetId is not null)
                 .Select(static registration => registration.MapVariantSetId));

@@ -47,8 +47,8 @@ public sealed partial class AbMergeFormatAdmissionTests
 
     /// <summary>Real persisted configuration must be consumable immediately and after a fresh session reload.</summary>
     [Theory]
-    [InlineData(false, 0x97, "desay", "nt51951-ab-desay-1024k")]
-    [InlineData(true, 0x97, "desay", "nt51951-ab-desay-1024k")]
+    [InlineData(false, 0x97, "desay", "nt51951-ab-merge-1024k")]
+    [InlineData(true, 0x97, "desay", "nt51951-ab-merge-1024k")]
     [InlineData(false, 0x84, "common", "nt51951-ab-merge-1024k")]
     [InlineData(true, 0x84, "common", "nt51951-ab-merge-1024k")]
     public async Task PersistedConfigurationIsAcceptedByFormatAdmissionAsync(bool reload, byte raw, string format, string map)
@@ -85,15 +85,15 @@ public sealed partial class AbMergeFormatAdmissionTests
         Assert.Equal(saved.State.SourceSha256, current.State.SourceSha256);
     }
 
-    /// <summary>Raw Desay IDs may differ; Common exact-two requires both observed counts.</summary>
+    /// <summary>Raw format IDs may differ within one format; both observed TP counts must agree.</summary>
     [Theory]
-    [InlineData("NT51950", 1, 1, 1, 0x97, 0xA6, "desay", "nt51950-ab-desay-single-1024k")]
-    [InlineData("NT51950", 2, 3, 3, 0xA6, 0x97, "desay", "nt51950-ab-desay-cascade-1024k")]
-    [InlineData("NT51950", 2, 2, 2, 0x84, 0x85, "common", "nt51950-ab-common-exact2-1024k")]
+    [InlineData("NT51950", 1, 1, 1, 0x97, 0xA6, "desay", "nt51950-ab-merge-512k")]
+    [InlineData("NT51950", 2, 3, 3, 0xA6, 0x97, "desay", "nt51950-ab-merge-1024k")]
+    [InlineData("NT51950", 2, 2, 2, 0x84, 0x85, "common", "nt51950-ab-merge-1024k")]
     [InlineData("NT51950", 2, 3, 3, 0x84, 0x85, "common", "nt51950-ab-merge-1024k")]
     [InlineData("NT51950", 2, 3, 3, 0x84, 0x84, "common", "nt51950-ab-merge-1024k")]
     [InlineData("NT51950", 1, 1, 1, 0x84, 0x84, "common", "nt51950-ab-merge-512k")]
-    [InlineData("NT51951", 0, 1, 1, 0x97, 0xA6, "desay", "nt51951-ab-desay-1024k")]
+    [InlineData("NT51951", 0, 1, 1, 0x97, 0xA6, "desay", "nt51951-ab-merge-1024k")]
     [InlineData("NT51951", 0, 2, 2, 0x84, 0x84, "common", "nt51951-ab-merge-1024k")]
     public void CompiledPrimaryAndSuccessfulTopologySelectDeclaredMap(
         string ic, int requestedCount, byte countA, byte countB, byte rawA, byte rawB, string format, string map)
@@ -275,7 +275,7 @@ public sealed partial class AbMergeFormatAdmissionTests
         AbMergeFormatAdmissionResult previous = AssessFormat(oldFamily, "NT51950", Configuration(oldFamily),
             Inspect(oldPlan, Tp(0x84, 2), Tp(0x84, 2)), Topology(2), Artifacts(Tp(0x84, 2), Tp(0x84, 2)));
         Assert.True(previous.Succeeded);
-        Assert.Equal("nt51950-ab-common-exact2-1024k", previous.Selection!.MapId);
+        Assert.Equal("nt51950-ab-merge-1024k", previous.Selection!.MapId);
         AbMergeFormatAdmissionResult result = AssessFormat(family, "NT51950", Configuration(family),
             Inspect(plan, Tp(0x84, currentCount), Tp(0x84, currentCount)), Topology(selectedCount), Artifacts(Tp(0x84, currentCount), Tp(0x84, currentCount)));
         if (selectedCount == 1)
@@ -338,7 +338,8 @@ public sealed partial class AbMergeFormatAdmissionTests
 
     private static MetadataPlanDefinition Plan(string ic, int count)
     {
-        BuiltInV2Registration registration = BuiltInV2RegistrationRegistry.FindAbMergeRegistration(ic, ic == "NT51950" ? "nt51950-ab-merge-maps" : "nt51951-ab-merge-1024k")!;
+        BuiltInV2Registration registration = BuiltInV2RegistrationRegistry.FindAbMergeRegistration(ic, ic == "NT51950" ? count == 1 ? "nt51950-ab-merge-maps" : "nt51950-ab-cascade-maps"
+            : "nt51951-ab-merge-1024k")!;
         registration.TryCompile(null, Topology(count), out CompiledComposition? composition, out IReadOnlyList<CompositionIssue> issues);
         Assert.Empty(issues);
         return registration.CreateMetadataPlan(Assert.IsType<CompiledComposition>(composition));

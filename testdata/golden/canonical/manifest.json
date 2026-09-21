@@ -130,34 +130,6 @@
   ],
   "routeEvidence": [
     {
-      "evidenceId": "nt51950-ab-merge-1-ic-nt51950-ab-desay-maps-evidence-v116-format",
-      "kind": "contract-only",
-      "routeId": "route-7-nt51950-8-ab-merge-4-1-ic-21-nt51950-ab-desay-maps",
-      "capabilityFingerprint": "545e3c55aafae46c495c1190b206972c53feb6f7aeadb408e3ebbad1f74b8bf4",
-      "contractReference": "profiles/built-in/nt51950-ab-merge/profiles/nt51950-ab-merge-desay.json"
-    },
-    {
-      "evidenceId": "nt51950-ab-merge-2-plus-ic-nt51950-ab-desay-maps-evidence-v116-format",
-      "kind": "contract-only",
-      "routeId": "route-7-nt51950-8-ab-merge-9-2-plus-ic-21-nt51950-ab-desay-maps",
-      "capabilityFingerprint": "23fb05f9c3dcfa5a3a390adc307862c1108374aca228d22d87151f833aadf70e",
-      "contractReference": "profiles/built-in/nt51950-ab-merge/profiles/nt51950-ab-merge-desay.json"
-    },
-    {
-      "evidenceId": "nt51951-ab-merge-selector-free-nt51951-ab-desay-maps-evidence-v116-format",
-      "kind": "contract-only",
-      "routeId": "route-7-nt51951-8-ab-merge-13-selector-free-21-nt51951-ab-desay-maps",
-      "capabilityFingerprint": "58d381f9732ec1b373696ad42d8da49c0160349283c6f1001dc31f78a5482afd",
-      "contractReference": "profiles/built-in/nt51950-ab-merge/profiles/nt51951-ab-merge-desay.json"
-    },
-    {
-      "evidenceId": "nt51950-ab-merge-2-ic-nt51950-ab-common-2ic-maps-evidence-v116-format",
-      "kind": "contract-only",
-      "routeId": "route-7-nt51950-8-ab-merge-4-2-ic-26-nt51950-ab-common-2ic-maps",
-      "capabilityFingerprint": "ac09c1444316110a6bd07b1e4275bf6fe0161ad9e66166bd56ae50dafeb456f4",
-      "contractReference": "profiles/built-in/nt51950-ab-merge/profiles/nt51950-ab-merge-common-2ic.json"
-    },
-    {
       "evidenceId": "nt51917-ctrlram-replace-1-ic-nt51927-ctrlram-fw141-single-full-flash-evidence-v3",
       "kind": "approved-alias",
       "routeId": "route-7-nt51917-15-ctrlram-replace-4-1-ic-39-nt51927-ctrlram-fw141-single-full-flash",
@@ -656,15 +628,15 @@
       "evidenceId": "nt51950-ab-merge-1-ic-nt51950-ab-merge-maps-evidence-v116-primary",
       "kind": "contract-only",
       "routeId": "route-7-nt51950-8-ab-merge-4-1-ic-21-nt51950-ab-merge-maps",
-      "capabilityFingerprint": "f49551e1a422febae34a8a3a146c44bd5587bbb567a45fb2bd539f57def4d6ba",
+      "capabilityFingerprint": "9a5cae7120dca0f146504d5017b4513a3b75abc108f407b1c547517e70b54b01",
       "contractReference": "profiles/built-in/nt51950-ab-merge/profiles/nt51950-ab-merge.json"
     },
     {
-      "evidenceId": "nt51950-ab-merge-2-plus-ic-nt51950-ab-merge-maps-evidence-v116-primary",
+      "evidenceId": "nt51950-ab-cascade-evidence-v110-bank",
       "kind": "contract-only",
-      "routeId": "route-7-nt51950-8-ab-merge-9-2-plus-ic-21-nt51950-ab-merge-maps",
-      "capabilityFingerprint": "225132a9fd83db87e3cb1c0ad939f35db0a19f92f5114439dc1772774273a005",
-      "contractReference": "profiles/built-in/nt51950-ab-merge/profiles/nt51950-ab-merge.json"
+      "routeId": "route-7-nt51950-8-ab-merge-9-2-plus-ic-23-nt51950-ab-cascade-maps",
+      "capabilityFingerprint": "23cc96a906fbfc6cd38f2db5ae0ae773da390565624e7cf8f7f03831cbc176c7",
+      "contractReference": "profiles/built-in/nt51950-ab-merge/profiles/nt51950-ab-merge-cascade.json"
     },
     {
       "evidenceId": "nt51950-ctrlram-replace-1-ic-nt51950-ctrlram-fw200-single-full-flash-evidence-v4",
@@ -752,7 +724,7 @@
       "evidenceId": "nt51951-ab-merge-selector-free-nt51951-ab-merge-1024k-evidence-v116-primary",
       "kind": "contract-only",
       "routeId": "route-7-nt51951-8-ab-merge-13-selector-free-22-nt51951-ab-merge-1024k",
-      "capabilityFingerprint": "62b4297dd147bafd579458ad23ae8d4ce771ee3093c778b3f9153f2496e97816",
+      "capabilityFingerprint": "2b978d3e2d8d16895e3d19199af8d3de46022bb2176d8a104ca59c7e014b9d37",
       "contractReference": "profiles/built-in/nt51950-ab-merge/profiles/nt51951-ab-merge.json"
     },
     {

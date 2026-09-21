@@ -181,23 +181,11 @@ internal static class CanonicalFormalRouteRuntimeFixtureCatalog
     {
         CapabilityRouteIdentity identity = fixture.Policy.Identity;
         return identity.IcId == "NT51950" && identity.IcCountVariant == "2-plus-ic"
-            ? identity.MapVariant == "nt51950-ab-merge-maps"
-                ?
-                [
-                    MaterializeAbCase(fixture, workspace, requestedCount: 9),
-                    MaterializeAbCase(
-                        fixture,
-                        workspace,
-                        requestedCount: 3,
-                        tpAChipCount: 2,
-                        tpBChipCount: 3,
-                        caseSuffix: "mixed-2-3"),
-                ]
-                :
-                [
-                    MaterializeAbCase(fixture, workspace, requestedCount: 2),
-                    MaterializeAbCase(fixture, workspace, requestedCount: 9),
-                ]
+            ?
+            [
+                MaterializeAbCase(fixture, workspace, requestedCount: 2),
+                MaterializeAbCase(fixture, workspace, requestedCount: 9),
+            ]
             : [MaterializeAbCase(fixture, workspace, requestedCount: null)];
     }
 
@@ -232,14 +220,6 @@ internal static class CanonicalFormalRouteRuntimeFixtureCatalog
             sourceIcId = "NT51950";
             bytes = ReadAbGoldenInputs(sourceCaseId);
             witnessKind = CanonicalFormalRuntimeWitnessKind.DirectCanonicalInput;
-            if (identity.MapVariant == "nt51950-ab-desay-maps")
-            {
-                bytes[CompositionAddressSpaceIds.DpAbInput] = ResizeCanonicalInput(
-                    bytes[CompositionAddressSpaceIds.DpAbInput],
-                    0x100000,
-                    0x5D);
-                witnessKind = CanonicalFormalRuntimeWitnessKind.CanonicalDerived;
-            }
             selectedCount = 1;
         }
         else if (identity.IcId == "NT51950")
@@ -303,7 +283,7 @@ internal static class CanonicalFormalRouteRuntimeFixtureCatalog
                 ? fixture.RouteId
                 : $"{fixture.RouteId}:count-{selectedCount}{(caseSuffix is null ? string.Empty : $"-{caseSuffix}")}",
             fixture,
-            ExpectedAbMapId(identity, selectedCount),
+            ExpectedAbMapId(identity),
             selectedCount?.ToString(System.Globalization.CultureInfo.InvariantCulture),
             paths,
             witnesses,
@@ -318,20 +298,14 @@ internal static class CanonicalFormalRouteRuntimeFixtureCatalog
                 : null);
     }
 
-    private static string ExpectedAbMapId(CapabilityRouteIdentity identity, int? selectedCount)
+    private static string ExpectedAbMapId(CapabilityRouteIdentity identity)
     {
         // Policy identifies dynamic map sets; captured primary format chooses the
         // exact physical map inside the reviewed route.
         return identity.MapVariant switch
         {
-            "nt51950-ab-merge-maps" => selectedCount == 1
-                ? "nt51950-ab-merge-512k"
-                : "nt51950-ab-merge-1024k",
-            "nt51950-ab-desay-maps" => selectedCount == 1
-                ? "nt51950-ab-desay-single-1024k"
-                : "nt51950-ab-desay-cascade-1024k",
-            "nt51950-ab-common-2ic-maps" => "nt51950-ab-common-exact2-1024k",
-            "nt51951-ab-desay-maps" => "nt51951-ab-desay-1024k",
+            "nt51950-ab-merge-maps" => "nt51950-ab-merge-512k",
+            "nt51950-ab-cascade-maps" => "nt51950-ab-merge-1024k",
             _ => identity.MapVariant,
         };
     }
@@ -342,8 +316,7 @@ internal static class CanonicalFormalRouteRuntimeFixtureCatalog
     {
         byte? format = identity.MapVariant switch
         {
-            "nt51950-ab-desay-maps" or "nt51951-ab-desay-maps" => 0x97,
-            "nt51950-ab-common-2ic-maps" or "nt51951-ab-merge-1024k" => 0x84,
+            "nt51950-ab-cascade-maps" or "nt51951-ab-merge-1024k" => 0x84,
             _ => null,
         };
         if (format is not { } selectedFormat)

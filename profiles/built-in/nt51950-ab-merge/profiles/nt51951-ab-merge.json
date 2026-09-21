@@ -14,8 +14,8 @@
   "experience": { "experienceId": "ab-merge", "audience": "system", "layoutPolicy": "fixed", "inputPolicy": "fixed", "topologyAuthoring": "hidden", "displayNameKey": "profile.nt51951.ab-merge" },
   "mapBinding": {
     "familyId": "nt51950-ab-merge",
-    "familyVersion": "0.6.0",
-    "familyContentHash": "41654f4bc62e3e31157f93972433efaff32c2630c1d95ec7e45be578f4510a93",
+    "familyVersion": "0.7.0",
+    "familyContentHash": "7aa145d966d39de7ab5b62cb8c805f72a745eee181f5c77075aeb02f9e79aa20",
     "mapIds": [ "nt51951-ab-merge-1024k" ],
     "requiredRegionIds": [ "ab-image", "a-bank", "a-cmi-dp-version", "a-tp-code", "b-bank", "b-cmi-dp-version", "b-tp-code" ],
     "requiredMetadataStructureIds": ["tp-a-primary-firmware-config", "tp-b-primary-firmware-config"],

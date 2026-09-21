@@ -82,9 +82,10 @@ start "" "%NFC_APP%" --workflow ab-merge --ic NT51950 --ic-num single --dp "%NFC
 Paths and input roles come from the canonical
 [BOE case](../../testdata/golden/canonical/NT51950/ab-merge/boe-d82t80/topology-unscoped/nt51950-ab-boe-d82t80/provenance/case.json)
 and [Hiway case](../../testdata/golden/canonical/NT51950/ab-merge/hiway-d82t80/topology-unscoped/nt51950-ab-hiway-d82t80/provenance/case.json).
-Both historic DP inputs are **524288 bytes (512 KiB / `0x80000`)**. Their Common
-single-IC route accepts this size; the Desay route's 1 MiB expectation must not
-be imposed on these examples. Input diagnostics follow the selected profile. The explicit
+Both historic DP inputs are **524288 bytes (512 KiB / `0x80000`)**. The current
+NT51950 Single route requires this exact size for both Common and Desay.
+Desay-specific runtime geometry is disabled; Cascade and NT51951 require
+1 MiB. Input diagnostics follow the selected profile. The explicit
 `single` context is a current UI selection, not a topology certification from
 the manifests' `topology-unscoped` record. Opening these inputs verifies UI
 preload only, not golden output parity, support promotion or release readiness.

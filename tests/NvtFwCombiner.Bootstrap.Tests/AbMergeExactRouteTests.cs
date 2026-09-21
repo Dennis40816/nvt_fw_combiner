@@ -7,6 +7,28 @@ namespace NvtFwCombiner.Bootstrap.Tests;
 /// <summary>AB compilation retains the declared map-set axis instead of selecting by IC alone.</summary>
 public sealed class AbMergeExactRouteTests
 {
+    /// <summary>Retired identities cannot regain execution through explicit canonical compilation.</summary>
+    [Theory]
+    [InlineData("NT51950", "1-ic", "nt51950-ab-desay-maps")]
+    [InlineData("NT51950", "2-plus-ic", "nt51950-ab-desay-maps")]
+    [InlineData("NT51951", "selector-free", "nt51951-ab-desay-maps")]
+    [InlineData("NT51950", "2-ic", "nt51950-ab-common-2ic-maps")]
+    [InlineData("NT51950", "2-plus-ic", "nt51950-ab-merge-maps")]
+    public void RetiredRoutesCannotCompileThroughPublishedCatalog(string icId, string countVariant, string mapSet)
+    {
+        var catalog = new CanonicalCapabilityCatalog(CompositionHostServices.CreateCanonicalCapabilityCatalogSource());
+        Assert.True(catalog.Reload(TestContext.Current.CancellationToken).Succeeded);
+        var identity = new CapabilityRouteIdentity(icId, ExperienceIds.AbMerge, countVariant, mapSet);
+        Assert.DoesNotContain(catalog.GetCurrentSnapshot().DynamicRoutes, route => route.Identity == identity);
+        var compiler = new CanonicalCapabilityCompilerAdapter(catalog, new BuiltInV2DynamicCompilationAdapter());
+        Assert.True(compiler.TryCompilePublishedDynamicCapability(identity, null, [],
+            out CompiledComposition? composition, out ResolvedCapability? capability,
+            out IReadOnlyList<CompositionIssue> issues));
+        Assert.Null(composition);
+        Assert.Null(capability);
+        Assert.Equal(CapabilityCatalogIssueCodes.RouteUnavailable, Assert.Single(issues).Code);
+    }
+
     /// <summary>An unknown map-set is not a registered dynamic route, even for a known IC.</summary>
     [Theory]
     [InlineData("NT51950", "1-ic")]
@@ -31,12 +53,8 @@ public sealed class AbMergeExactRouteTests
     /// <summary>Exact published identities reach the real compiler and retain strict profile/map binding.</summary>
     [Theory]
     [InlineData("NT51950", "1-ic", "nt51950-ab-merge-maps")]
-    [InlineData("NT51950", "2-plus-ic", "nt51950-ab-merge-maps")]
+    [InlineData("NT51950", "2-plus-ic", "nt51950-ab-cascade-maps")]
     [InlineData("NT51951", "selector-free", "nt51951-ab-merge-1024k")]
-    [InlineData("NT51950", "1-ic", "nt51950-ab-desay-maps")]
-    [InlineData("NT51950", "2-plus-ic", "nt51950-ab-desay-maps")]
-    [InlineData("NT51951", "selector-free", "nt51951-ab-desay-maps")]
-    [InlineData("NT51950", "2-ic", "nt51950-ab-common-2ic-maps")]
     public void ExactPublishedRouteCompilesAndBindsItsOwnMapSubset(string icId, string countVariant, string mapSet)
     {
         var catalog = new CanonicalCapabilityCatalog(CompositionHostServices.CreateCanonicalCapabilityCatalogSource());

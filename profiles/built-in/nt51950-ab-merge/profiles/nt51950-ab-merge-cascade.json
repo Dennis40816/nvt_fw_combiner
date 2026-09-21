@@ -1,7 +1,7 @@
 {
   "schemaVersion": "2.14",
-  "profileId": "nt51950-ab-merge-common-2ic",
-  "profileVersion": "0.2.0",
+  "profileId": "nt51950-ab-merge-cascade",
+  "profileVersion": "0.3.0",
   "promotion": {
     "stage": "executable-candidate",
     "blockers": [
@@ -9,13 +9,13 @@
         "blockerId": "direct-golden-evidence",
         "kind": "golden",
         "reason": "Direct format-specific full-output certification remains required; synthetic byte tests are not certified firmware evidence.",
-        "evidenceRefs": ["owner-decision-20260914-ab-format-placement"]
+        "evidenceRefs": ["owner-decision-20260921-partial-ab-bank-consolidation"]
       },
       {
         "blockerId": "firmware-owner-review",
         "kind": "human-review",
         "reason": "Exact candidate firmware-owner review of format selection, coupled bank transport and TP-only imports remains required.",
-        "evidenceRefs": ["owner-decision-20260914-ab-format-placement"]
+        "evidenceRefs": ["owner-decision-20260921-partial-ab-bank-consolidation"]
       }
     ]
   },
@@ -31,9 +31,9 @@
   },
   "mapBinding": {
     "familyId": "nt51950-ab-merge",
-    "familyVersion": "0.6.0",
-    "familyContentHash": "41654f4bc62e3e31157f93972433efaff32c2630c1d95ec7e45be578f4510a93",
-    "mapIds": ["nt51950-ab-common-exact2-1024k"],
+    "familyVersion": "0.7.0",
+    "familyContentHash": "7aa145d966d39de7ab5b62cb8c805f72a745eee181f5c77075aeb02f9e79aa20",
+    "mapIds": ["nt51950-ab-merge-1024k"],
     "requiredRegionIds": ["ab-image", "a-bank", "a-cmi-dp-version", "a-tp-code", "b-bank", "b-cmi-dp-version", "b-tp-code"],
     "requiredMetadataStructureIds": ["tp-a-primary-firmware-config", "tp-b-primary-firmware-config"],
     "requiredCapabilityIds": []
@@ -253,5 +253,5 @@
     "invalidCharacterPolicy": "reject",
     "requiredTokenIds": ["date", "dp-a", "dp-b", "ic", "tp-a", "tp-b"]
   },
-  "evidenceRefs": ["owner-decision-20260914-ab-format-placement", "nt51951-ab-combiner-topology-regression-2026-07-15"]
+  "evidenceRefs": ["owner-decision-20260921-partial-ab-bank-consolidation", "nt51951-ab-combiner-topology-regression-2026-07-15"]
 }

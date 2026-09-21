@@ -23,12 +23,12 @@ public sealed class CanonicalFormalRouteRuntimeClosureTests
         IReadOnlyList<CanonicalFormalRouteRuntimeFixture> fixtures =
             CanonicalFormalRouteRuntimeFixtureCatalog.Create();
 
-        Assert.Equal(68, fixtures.Count);
-        Assert.Equal(68, fixtures.Select(static fixture => fixture.RouteId)
+        Assert.Equal(64, fixtures.Count);
+        Assert.Equal(64, fixtures.Select(static fixture => fixture.RouteId)
             .Distinct(StringComparer.Ordinal).Count());
         Assert.Equal(14, fixtures.Count(static fixture =>
             fixture.Policy.Identity.WorkflowId == ExperienceIds.StandardMerge));
-        Assert.Equal(10, fixtures.Count(static fixture =>
+        Assert.Equal(6, fixtures.Count(static fixture =>
             fixture.Policy.Identity.WorkflowId == ExperienceIds.AbMerge));
         Assert.Equal(44, fixtures.Count(static fixture =>
             fixture.Policy.Identity.WorkflowId == ExperienceIds.CtrlRamReplace));
@@ -40,7 +40,7 @@ public sealed class CanonicalFormalRouteRuntimeClosureTests
             fixture.PolicyEvidenceClass == CanonicalFormalRuntimePolicyEvidenceClass.ApprovedAlias));
         Assert.Equal(4, fixtures.Count(static fixture =>
             fixture.PolicyEvidenceClass == CanonicalFormalRuntimePolicyEvidenceClass.SyntheticOracle));
-        Assert.Equal(31, fixtures.Count(static fixture =>
+        Assert.Equal(27, fixtures.Count(static fixture =>
             fixture.PolicyEvidenceClass == CanonicalFormalRuntimePolicyEvidenceClass.ContractOnly));
     }
 
@@ -50,7 +50,7 @@ public sealed class CanonicalFormalRouteRuntimeClosureTests
     /// </summary>
     [Theory(Timeout = 180_000)]
     [InlineData(ExperienceIds.StandardMerge, 14, 15)]
-    [InlineData(ExperienceIds.AbMerge, 10, 12)]
+    [InlineData(ExperienceIds.AbMerge, 6, 7)]
     [InlineData(ExperienceIds.CtrlRamReplace, 44, 59)]
     public async Task FormalRoutesPreparePreviewAndBuildWithExactRuntimeIdentityAsync(
         string workflowId,

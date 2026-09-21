@@ -444,14 +444,14 @@ public sealed partial class AbMergeRuntimeAdmissionTests
     [Fact]
     public void Nt51950AbMapDoesNotDeclareTheAFlashCodeDelivery()
     {
-        AssertNoAFlashCodeDelivery("NT51950", expectedRoutes: 5);
+        AssertNoAFlashCodeDelivery("NT51950", expectedRoutes: 2);
     }
 
     /// <summary>NT51951's distinct selector-free AB layout likewise remains outside the perfect-family A-only delivery rule.</summary>
     [Fact]
     public void Nt51951AbMapDoesNotDeclareTheAFlashCodeDelivery()
     {
-        AssertNoAFlashCodeDelivery("NT51951", expectedRoutes: 2);
+        AssertNoAFlashCodeDelivery("NT51951", expectedRoutes: 1);
     }
 
     private static void AssertNoAFlashCodeDelivery(string icId, int expectedRoutes)

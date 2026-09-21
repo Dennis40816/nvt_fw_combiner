@@ -64,7 +64,7 @@ public sealed class AbMergeFormatRuntimeTests
     /// <summary>Cascade's selected lower bound is not presented as an observed exact count for independent A/B banks.</summary>
     [Theory]
     [InlineData(0x97, 3, TopologyRequirementKind.Cascade)]
-    [InlineData(0x84, 2, TopologyRequirementKind.ExactCount)]
+    [InlineData(0x84, 2, TopologyRequirementKind.Cascade)]
     public async Task OutputConfirmationRetainsCompiledTopologyConstraintAsync(byte format, byte bCount, TopologyRequirementKind expectedKind)
     {
         using TempWorkspace workspace = TempWorkspace.Create("confirmation-topology");
@@ -74,7 +74,7 @@ public sealed class AbMergeFormatRuntimeTests
         Assert.True((await configuration.SaveAsync(configuration.CreateDefaultsDraft(), TestContext.Current.CancellationToken)).Succeeded);
         CompiledAuthoringSessionPreparation prepared = await host.AbMergeAuthoring.PrepareSessionAsync(
             new AuthoringSessionState(ExperienceIds.AbMerge), "NT51950", "cascade",
-            [new("tp-a-input", workspace.PathFor("a.bin"), CreateTp(format, 2)), new("tp-b-input", workspace.PathFor("b.bin"), CreateTp(format, bCount))],
+            [new("tp-a-input", workspace.PathFor("a.bin"), CreateTp(format, bCount)), new("tp-b-input", workspace.PathFor("b.bin"), CreateTp(format, bCount))],
             AbMergeDpMode.Dummy, TestContext.Current.CancellationToken);
         Assert.True(prepared.Succeeded);
         CompositionOutputBundleProposal proposal = await host.CompositionOutputNaming.PrepareBundleProposalAsync(prepared.Snapshot!, TestContext.Current.CancellationToken);
@@ -109,7 +109,7 @@ public sealed class AbMergeFormatRuntimeTests
         Assert.Equal("NT51950", summary.IcId);
         Assert.Equal(ExperienceIds.AbMerge, summary.WorkflowId);
         Assert.Equal(1, summary.Topology!.ChipCount);
-        Assert.Equal(0x100000, summary.OutputLengthBytes);
+        Assert.Equal(0x80000, summary.OutputLengthBytes);
         Assert.Equal("desay", summary.Format!.FormatId);
         Assert.Equal("Desay", summary.Format.DisplayName);
         Assert.True(summary.HasGeneratedInputs);
@@ -175,7 +175,7 @@ public sealed class AbMergeFormatRuntimeTests
         CompositionHostServices host = CompositionHostServices.Create();
         CompiledAuthoringSessionPreparation prepared = host.AbMergeAuthoring.PrepareSession(
             new AuthoringSessionState(ExperienceIds.AbMerge), "NT51932", null,
-            [new("tp-a-input", workspace.PathFor("a.bin"), new byte[0x40000]), new("tp-b-input", workspace.PathFor("b.bin"), new byte[0x40000])], AbMergeDpMode.Dummy);
+            [new("tp-a-input", workspace.PathFor("a.bin"), (byte[])[.. CreateTp(0x84, 1), .. new byte[0x9000]]), new("tp-b-input", workspace.PathFor("b.bin"), (byte[])[.. CreateTp(0x84, 1), .. new byte[0x9000]])], AbMergeDpMode.Dummy);
         Assert.True(prepared.Succeeded);
         CompositionOutputBundleProposal proposal = await host.CompositionOutputNaming.PrepareBundleProposalAsync(prepared.Snapshot!, TestContext.Current.CancellationToken);
         Assert.Null(proposal.Confirmation!.Format);
@@ -187,8 +187,8 @@ public sealed class AbMergeFormatRuntimeTests
 
     /// <summary>DP actual/expected source lengths and warnings stay in the input facts, never replacing Flash output length.</summary>
     [Theory]
-    [InlineData(0x100000)]
-    [InlineData(0x100010)]
+    [InlineData(0x80000)]
+    [InlineData(0x80001)]
     public async Task OutputConfirmationPreservesDpInspectionExpectationsAsync(int dpLength)
     {
         using TempWorkspace workspace = TempWorkspace.Create("confirmation-dp-expectation");
@@ -201,16 +201,25 @@ public sealed class AbMergeFormatRuntimeTests
             [new("dp-ab-input", workspace.PathFor("dp.bin"), new byte[dpLength]),
              new("tp-a-input", workspace.PathFor("a.bin"), CreateTp(0x97, 1)), new("tp-b-input", workspace.PathFor("b.bin"), CreateTp(0xA6, 1))],
             AbMergeDpMode.Normal, TestContext.Current.CancellationToken);
+        if (dpLength != 0x80000)
+        {
+            Assert.False(prepared.Succeeded);
+            AuthoringInputSlotStatus rejected = Assert.Single(prepared.Snapshot!.InputSlotStatuses,
+                status => status.SlotId == "dp-ab-input");
+            Assert.True(rejected.BlocksBuild);
+            Assert.Equal(CompositionIssueCodes.InputAddressSpaceLengthMismatch, rejected.Inspection!.IssueCode);
+            return;
+        }
+
         Assert.True(prepared.Succeeded);
         CompositionOutputBundleProposal proposal = await host.CompositionOutputNaming.PrepareBundleProposalAsync(prepared.Snapshot!, TestContext.Current.CancellationToken);
         CompositionOutputInputSummary dp = Assert.Single(proposal.Confirmation!.Inputs, static input => input.SlotId == "dp-ab-input");
         Assert.Equal(dpLength, dp.SizeBytes);
-        Assert.Equal<long>([0x100000], dp.ExpectedLengths);
-        Assert.Equal(0x100000, proposal.Confirmation.OutputLengthBytes);
+        Assert.Equal<long>([0x80000], dp.ExpectedLengths);
+        Assert.Equal(0x80000, proposal.Confirmation.OutputLengthBytes);
         Assert.Null(dp.EventBufferFormat);
         Assert.False(proposal.Confirmation.HasGeneratedInputs);
         Assert.Equal(3, proposal.Sources.Count);
-        if (dpLength != 0x100000) { Assert.Equal(AuthoringSlotLifecycle.Warning, dp.InspectionLifecycle); }
         using var cancellation = new CancellationTokenSource();
         cancellation.Cancel();
         _ = await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
@@ -424,13 +433,13 @@ public sealed class AbMergeFormatRuntimeTests
             CompiledAuthoringSessionPreparation updated = Assert.IsType<CompiledAuthoringSessionPreparation>(
                 await host.AbMergeAuthoring.ReapplyAcceptedInputsAsync(session, TestContext.Current.CancellationToken));
             Assert.True(updated.Succeeded);
-            Assert.Equal("nt51950-ab-common-2ic-maps", updated.Snapshot!.ExactCapability!.Identity.MapVariant);
+            Assert.Equal("nt51950-ab-cascade-maps", updated.Snapshot!.ExactCapability!.Identity.MapVariant);
             destination.Release.Set();
             CompositionRunResult completed = await running;
             Assert.True(completed.Succeeded, CompositionRunReportJson.Serialize(completed));
             Assert.Equal(baseline.OutputBytes.ToArray(), completed.OutputBytes.ToArray());
             Assert.Same(prepared.Snapshot!.ExactCapability, completed.ResolvedCapability);
-            Assert.NotSame(updated.Snapshot.ExactCapability, completed.ResolvedCapability);
+            Assert.Same(updated.Snapshot.ExactCapability, completed.ResolvedCapability);
             AbMergeFormatRunSummary summary = Assert.IsType<AbMergeFormatRunSummary>(completed.Report.AbMergeFormat);
             Assert.Equal(captured.Generation, summary.ConfigurationGeneration);
             Assert.Equal(captured.SourceSha256, summary.ConfigurationSourceSha256);
@@ -445,10 +454,12 @@ public sealed class AbMergeFormatRuntimeTests
             Assert.DoesNotContain(workspace.PathFor(""), formatJson.ToString(), StringComparison.OrdinalIgnoreCase);
             Assert.DoesNotContain("ArtifactId", formatJson.ToString(), StringComparison.Ordinal);
             Assert.DoesNotContain("Bytes", formatJson.ToString(), StringComparison.Ordinal);
-            CompositionPreRunRefusalException next = await Assert.ThrowsAsync<CompositionPreRunRefusalException>(() =>
-                host.CompositionExecution.ExecuteAsync(request, new CompositionRunProgressFeed(), TestContext.Current.CancellationToken).AsTask());
-            Assert.Contains(next.Issues, static issue => issue.Code == "AB_FORMAT_CHANGED");
-            Assert.Contains("AB_FORMAT_CHANGED", next.Message, StringComparison.Ordinal);
+            CompositionRunResult next = await host.CompositionExecution.ExecuteAsync(request,
+                new CompositionRunProgressFeed(), TestContext.Current.CancellationToken);
+            Assert.True(next.Succeeded, CompositionRunReportJson.Serialize(next));
+            Assert.Same(prepared.Snapshot.ExactCapability, next.ResolvedCapability);
+            Assert.Equal(baseline.OutputBytes.ToArray(), next.OutputBytes.ToArray());
+            Assert.Equal("common", next.Report.AbMergeFormat!.FormatId);
             CapabilityActionReadinessSnapshot? nextReadiness = await host.AbMergeAuthoring.GetActionReadinessAsync(
                 updated.Snapshot, TestContext.Current.CancellationToken);
             var nextRequest = new AcceptedCompositionExecutionRequest(updated.Snapshot,
@@ -728,7 +739,7 @@ public sealed class AbMergeFormatRuntimeTests
         CompiledAuthoringSessionPreparation recovered = Assert.IsType<CompiledAuthoringSessionPreparation>(
             await host.AbMergeAuthoring.ReapplyAcceptedInputsAsync(session, TestContext.Current.CancellationToken));
         Assert.True(recovered.Succeeded, string.Join(" | ", recovered.Issues.Select(static issue => issue.Message)));
-        Assert.Equal("nt51950-ab-common-2ic-maps", recovered.Snapshot!.ExactCapability!.Identity.MapVariant);
+        Assert.Equal("nt51950-ab-cascade-maps", recovered.Snapshot!.ExactCapability!.Identity.MapVariant);
         Assert.All(recovered.Inspection!.Statuses.Values, status =>
             Assert.Equal(recovered.Snapshot.AuthoringRevision, status.AuthoringRevision));
         Assert.Same(recovered.Snapshot.ExactCapability, Assert.Single(recovered.Inspection.Catalog.Routes).ExactCapability);
@@ -801,7 +812,7 @@ public sealed class AbMergeFormatRuntimeTests
         var owner = new AbMergeAuthoringExperience(host.Compiler, host.Catalog, new ExternalProcessorEnvironmentLoader(),
             _ => throw new InvalidOperationException("Legacy policy must not request Config."));
         CompiledAuthoringSessionPreparation prepared = owner.PrepareSession(new AuthoringSessionState(ExperienceIds.AbMerge), "NT51929", null,
-            [new("tp-a-input", "a.bin", new byte[0x40000]), new("tp-b-input", "b.bin", new byte[0x40000])], AbMergeDpMode.Dummy);
+            [new("tp-a-input", "a.bin", (byte[])[.. CreateTp(0x84, 1), .. new byte[0x9000]]), new("tp-b-input", "b.bin", (byte[])[.. CreateTp(0x84, 1), .. new byte[0x9000]])], AbMergeDpMode.Dummy);
         Assert.True(prepared.Succeeded);
         CapabilityActionReadinessSnapshot readiness = Assert.IsType<CapabilityActionReadinessSnapshot>(
             await owner.GetActionReadinessAsync(prepared.Snapshot!, TestContext.Current.CancellationToken));
@@ -809,14 +820,68 @@ public sealed class AbMergeFormatRuntimeTests
         Assert.True(readiness.Preview.IsAvailable);
     }
 
-    /// <summary>Neither action readiness nor direct execution can retain a previously accepted format after configuration changes.</summary>
+    /// <summary>Equivalent plans survive valid recognition changes or fallback to defaults with fresh report provenance.</summary>
     [Theory]
-    [InlineData("missing", false)]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task EquivalentConfigurationKeepsAcceptedPlanAndBytesAsync(bool removeCustom)
+    {
+        using TempWorkspace workspace = TempWorkspace.Create("ab-format-equivalent-plan");
+        var environment = new ExternalProcessorEnvironmentLoader(RepositoryPaths.FromRepositoryRoot("external-tools"));
+        Assert.True((await ((NvtFwCombiner.Application.ExternalTools.IExternalProcessorEnvironmentLoader)environment)
+            .LoadToCompletionAsync(null, TestContext.Current.CancellationToken)).Succeeded);
+        CompositionHostServices host = CompositionHostServices.Create(environment,
+            loadPolicy: null, configurationPath: workspace.PathFor("format.json"));
+        IEventBufferFormatConfigurationSession configuration = await host.GetEventBufferFormatConfigurationAsync(TestContext.Current.CancellationToken);
+        Assert.True((await configuration.SaveAsync(removeCustom
+            ? [.. configuration.CreateDefaultsDraft().Select(static entry => entry! with { RecognitionValues = [] })]
+            : configuration.CreateDefaultsDraft(), TestContext.Current.CancellationToken)).Succeeded);
+        string a = workspace.Write("a.bin", CreateTp(0x97, 1));
+        string b = workspace.Write("b.bin", CreateTp(0xA6, 1));
+        CompiledAuthoringSessionPreparation prepared = await host.AbMergeAuthoring.PrepareSessionAsync(
+            new AuthoringSessionState(ExperienceIds.AbMerge), "NT51950", "single",
+            [new("tp-a-input", a, File.ReadAllBytes(a)), new("tp-b-input", b, File.ReadAllBytes(b))],
+            AbMergeDpMode.Dummy, TestContext.Current.CancellationToken);
+        Assert.True(prepared.Succeeded);
+        CapabilityActionReadinessSnapshot? readiness = await host.AbMergeAuthoring.GetActionReadinessAsync(
+            prepared.Snapshot!, TestContext.Current.CancellationToken);
+        var request = new AcceptedCompositionExecutionRequest(prepared.Snapshot!,
+            new Dictionary<string, string> { ["tp-a-input"] = a, ["tp-b-input"] = b }, build: false,
+            previewOutputFileName: "equivalent.bin", actionReadiness: readiness);
+        CompositionRunResult baseline = await host.CompositionExecution.ExecuteAsync(request,
+            new CompositionRunProgressFeed(), TestContext.Current.CancellationToken);
+        Assert.True(baseline.Succeeded, CompositionRunReportJson.Serialize(baseline));
+        if (removeCustom) { File.Delete(workspace.PathFor("format.json")); }
+        else
+        {
+            Assert.True((await configuration.SaveAsync(
+                [.. configuration.CreateDefaultsDraft().Select(static entry => entry! with { RecognitionValues = [], AliasName = "Changed alias" })],
+                TestContext.Current.CancellationToken)).Succeeded);
+        }
+        CompositionRunResult result = await host.CompositionExecution.ExecuteAsync(request,
+            new CompositionRunProgressFeed(), TestContext.Current.CancellationToken);
+        Assert.True(result.Succeeded, CompositionRunReportJson.Serialize(result));
+        Assert.Same(prepared.Snapshot!.ExactCapability, result.ResolvedCapability);
+        Assert.Equal(baseline.OutputBytes.ToArray(), result.OutputBytes.ToArray());
+        AbMergeFormatRunSummary before = Assert.IsType<AbMergeFormatRunSummary>(baseline.Report.AbMergeFormat);
+        AbMergeFormatRunSummary after = Assert.IsType<AbMergeFormatRunSummary>(result.Report.AbMergeFormat);
+        Assert.Equal(removeCustom ? "desay" : "common", after.FormatId);
+        Assert.Equal(removeCustom ? "Desay" : "Common", after.DisplayName);
+        Assert.NotEqual(before.FormatId, after.FormatId);
+        Assert.True(after.ConfigurationGeneration > before.ConfigurationGeneration);
+        Assert.NotEqual(before.ConfigurationSourceSha256, after.ConfigurationSourceSha256);
+        Assert.Equal(configuration.Current.Generation, after.ConfigurationGeneration);
+        Assert.Equal(configuration.Current.SourceSha256, after.ConfigurationSourceSha256);
+        Assert.Equal(JsonSerializer.Serialize(before.TpA), JsonSerializer.Serialize(after.TpA));
+        Assert.Equal(JsonSerializer.Serialize(before.TpB), JsonSerializer.Serialize(after.TpB));
+    }
+
+    /// <summary>Invalid configuration and newly mismatched formats reject before execution side effects.</summary>
+    [Theory]
     [InlineData("invalid", false)]
-    [InlineData("changed", false)]
-    [InlineData("missing", true)]
+    [InlineData("mismatch", false)]
     [InlineData("invalid", true)]
-    [InlineData("changed", true)]
+    [InlineData("mismatch", true)]
     public async Task ChangedConfigurationBlocksAcceptedAbRunAsync(string change, bool execution)
     {
         using TempWorkspace workspace = TempWorkspace.Create("ab-format-fresh-run");
@@ -824,25 +889,22 @@ public sealed class AbMergeFormatRuntimeTests
         CompositionHostServices host = CompositionHostServices.Create(new ExternalProcessorEnvironmentLoader(),
             loadPolicy: null, configurationPath: configurationPath);
         IEventBufferFormatConfigurationSession configuration = await host.GetEventBufferFormatConfigurationAsync(TestContext.Current.CancellationToken);
-        Assert.True((await configuration.SaveAsync(change == "missing"
-            ? [.. configuration.CreateDefaultsDraft().Select(static entry => entry! with { RecognitionValues = [] })]
-            : configuration.CreateDefaultsDraft(), TestContext.Current.CancellationToken)).Succeeded);
+        Assert.True((await configuration.SaveAsync(configuration.CreateDefaultsDraft(), TestContext.Current.CancellationToken)).Succeeded);
         string a = workspace.Write("a.bin", CreateTp(0x97, 1));
-        string b = workspace.Write("b.bin", CreateTp(0x97, 1));
+        string b = workspace.Write("b.bin", CreateTp(0xA6, 1));
         CompiledAuthoringSessionPreparation prepared = await host.AbMergeAuthoring.PrepareSessionAsync(
             new AuthoringSessionState(ExperienceIds.AbMerge), "NT51950", "single",
             [new("tp-a-input", a, File.ReadAllBytes(a)), new("tp-b-input", b, File.ReadAllBytes(b))],
             AbMergeDpMode.Dummy, TestContext.Current.CancellationToken);
         Assert.True(prepared.Succeeded);
-        if (change == "missing") { File.Delete(configurationPath); }
         if (change == "invalid") { _ = workspace.Write("format.json", "invalid json"u8.ToArray()); }
-        if (change == "changed")
+        if (change == "mismatch")
         {
             Assert.True((await configuration.SaveAsync(
-                [.. configuration.CreateDefaultsDraft().Select(static entry => entry! with { RecognitionValues = [] })],
+                [.. configuration.CreateDefaultsDraft().Select(static entry => entry! with { RecognitionValues = [0x97] })],
                 TestContext.Current.CancellationToken)).Succeeded);
         }
-        string expectedCode = change == "invalid" ? "AB_FORMAT_CONFIGURATION_INVALID" : "AB_FORMAT_CHANGED";
+        string expectedCode = change == "invalid" ? "AB_FORMAT_CONFIGURATION_INVALID" : "AB_FORMAT_MISMATCH";
         string output = workspace.PathFor("must-not-exist.bin");
         if (execution)
         {
@@ -1051,7 +1113,7 @@ public sealed class AbMergeFormatRuntimeTests
         if (mutation == "valid")
         {
             Assert.True(adopted.Snapshot!.HasCurrentInputInspection);
-            Assert.Equal(format == 0x84 ? "2-ic" : "2-plus-ic", adopted.Snapshot.ExactCapability!.Identity.IcCountVariant);
+            Assert.Equal("2-plus-ic", adopted.Snapshot.ExactCapability!.Identity.IcCountVariant);
         }
         else { Assert.Same(before, session.CurrentSnapshot); }
     }
@@ -1105,16 +1167,16 @@ public sealed class AbMergeFormatRuntimeTests
         else
         {
             Assert.Equal(tpA, status.AcceptedBytes!.Value.ToArray());
-            Assert.Equal("nt51950-ab-desay-maps", Assert.Single(result.InspectionsById["a"].InputSlotCatalog!.Routes).ExactCapability!.Identity.MapVariant);
+            Assert.Equal("nt51950-ab-merge-maps", Assert.Single(result.InspectionsById["a"].InputSlotCatalog!.Routes).ExactCapability!.Identity.MapVariant);
         }
     }
 
     /// <summary>Primary format and actual TP counts select the declared output profile in the host workflow.</summary>
     [Theory]
-    [InlineData("NT51950", "single", 1, 0x97, "nt51950-ab-merge-desay", "nt51950-ab-desay-single-1024k")]
-    [InlineData("NT51950", "cascade", 2, 0xA6, "nt51950-ab-merge-desay", "nt51950-ab-desay-cascade-1024k")]
-    [InlineData("NT51951", null, 2, 0x97, "nt51951-ab-merge-desay", "nt51951-ab-desay-1024k")]
-    [InlineData("NT51950", "cascade", 2, 0x84, "nt51950-ab-merge-common-2ic", "nt51950-ab-common-exact2-1024k")]
+    [InlineData("NT51950", "single", 1, 0x97, "nt51950-ab-merge", "nt51950-ab-merge-512k")]
+    [InlineData("NT51950", "cascade", 2, 0xA6, "nt51950-ab-merge-cascade", "nt51950-ab-merge-1024k")]
+    [InlineData("NT51951", null, 2, 0x97, "nt51951-ab-merge", "nt51951-ab-merge-1024k")]
+    [InlineData("NT51950", "cascade", 2, 0x84, "nt51950-ab-merge-cascade", "nt51950-ab-merge-1024k")]
     public async Task SavedFormatSelectsActualAbProfileAsync(
         string icId, string? topology, byte actualCount, byte format, string expectedProfile, string expectedMap)
     {

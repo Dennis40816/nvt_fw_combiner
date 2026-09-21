@@ -29,7 +29,7 @@ public sealed partial class AbMergeFormatAdmissionTests
         Assert.True(result.Succeeded, string.Join(" | ", result.Issues.Select(issue => issue.Code)));
         AbMergeFormatSelection selection = Assert.IsType<AbMergeFormatSelection>(result.Selection);
         bool desay = customRecognition || rawA == 0x97;
-        Assert.Equal(desay ? "nt51950-ab-desay-single-1024k" : "nt51950-ab-merge-512k", selection.MapId);
+        Assert.Equal("nt51950-ab-merge-512k", selection.MapId);
         Assert.Equal(desay ? "desay" : "common", selection.FormatId);
         Assert.Equal(desay ? "My_vendor" : "Common", selection.DisplayName);
         foreach ((string space, byte raw, string? name, FirmwareMetadataStructureResolution primary) in new[]

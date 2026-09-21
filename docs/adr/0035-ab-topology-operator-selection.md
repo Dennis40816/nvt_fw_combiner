@@ -78,11 +78,13 @@ external processor may modify DP bytes.
 | Selection | DP input/output | A/B slot boundary | DP CMD/CMI base within each A/B slot | TPA target | TPB target | TPB DIFF addend |
 | --- | --- | --- | --- | --- | --- | --- |
 | `single` | `[0x00000,0x80000)` | `0x40000` | `0x3B000`; A CMI `[0x3B016,0x3B019)`, B CMI `[0x7B016,0x7B019)` | `[0x0A000,0x37000)` | `[0x4A000,0x77000)` | `0x40000` |
-| `cascade` | `[0x00000,0x100000)` | `0x40000` | `0x05000`; A CMI `[0x05016,0x05019)`, B CMI `[0x45016,0x45019)` | `[0x0A000,0x37000)` | `[0x4A000,0x77000)` | `0x40000` |
+| `cascade` | `[0x00000,0x100000)` | `0x80000` | `0x05000`; A CMI `[0x05016,0x05019)`, B CMI `[0x85016,0x85019)` | `[0x0A000,0x37000)` | `[0x8A000,0xB7000)` | `0x80000` |
 
-The cascade plan copies the complete 1 MiB DP input first.  Its tail
-`[0x80000,0x100000)` remains DP bytes; it receives no invented second TP
-overlay.  The same TP slots already contain the cascade-required TP content.
+The 2026-09-21 owner amendment replaces the old cascade `0x40000` bank
+geometry with the existing NT51951 `0x80000` region set and private transport.
+The cascade plan copies the complete 1 MiB DP input first and preserves it
+outside the declared TPA/TPB overlays and three B-header imports. The same TP
+slots already contain the cascade-required TP content.
 The profile owns the exact TPB header/CRC write ranges, derived from the TP
 Flash Header catalog, and they must remain inside the TPB destination range.
 
@@ -99,6 +101,17 @@ the profile and TP Flash Header catalog.  Observed TP FWConfig count remains
 informational and cannot prompt, select, or mutate a plan.
 
 ### Availability and certification
+
+The 2026-09-21 consolidation retains the existing single and NT51951 evidence
+classifications. The changed NT51950 cascade is a new Available/Candidate/
+ContractOnly route; its old Supported identity cannot certify changed geometry.
+Common and Desay use the same active map per topology. Desay special profiles
+and maps remain as inactive compiler evidence, with no runtime registration;
+the separate NT51950 Common exact-two override is removed. NT51927 exact-two
+and exact-three declarations are unaffected. See the current amendment in
+[ADR 0072](0072-event-buffer-format-configuration.md#partial-family-bank-consolidation--2026-09-21).
+
+The following availability paragraph records the earlier `0.9.15` decision.
 
 NT51950 `single`/`cascade` and selector-free NT51951 are function-open in
 `0.9.15` once their declared profile/runtime/UI/CLI paths pass review.  Their

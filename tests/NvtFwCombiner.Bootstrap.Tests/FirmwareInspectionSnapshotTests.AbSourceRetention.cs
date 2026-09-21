@@ -11,9 +11,9 @@ namespace NvtFwCombiner.Bootstrap.Tests;
 
 public sealed partial class FirmwareInspectionSnapshotTests
 {
-    /// <summary>A changed format reads complete Normal DP bytes beyond the previous Common map's ceiling.</summary>
+    /// <summary>Format discovery reads the complete DP once and rejects oversized bytes under the shared Single map.</summary>
     [Fact]
-    public async Task AbFormatChangeReadsFullDpBeyondPreviousMapCeilingOnce()
+    public async Task AbFormatDiscoveryReadsFullDpOnceBeforeExactCapacityRefusal()
     {
         using var workspace = TempWorkspace.Create("ab-format-full-dp-inspection");
         CompositionHostServices host = CompositionHostServices.Create(new ExternalProcessorEnvironmentLoader(),
@@ -71,12 +71,13 @@ public sealed partial class FirmwareInspectionSnapshotTests
 
         AuthoringInputSlotStatus status = Assert.IsType<AuthoringInputSlotStatus>(
             result.InspectionsById["dp-ab-input"].InputSlotStatus);
-        ReadOnlyMemory<byte> acceptedBytes = Assert.NotNull(status.AcceptedBytes);
-        Assert.Equal(dp, acceptedBytes.ToArray());
+        Assert.Null(status.AcceptedBytes);
+        Assert.True(status.BlocksBuild);
+        Assert.Equal(CompositionIssueCodes.InputAddressSpaceLengthMismatch, status.InspectionIssueCode);
         Assert.Equal(FileStamp.FromBytes(dp), result.FileStamps[dpPath]);
         ResolvedCapability selected = Assert.IsType<ResolvedCapability>(Assert.Single(
             result.InspectionsById["dp-ab-input"].InputSlotCatalog!.Routes).ExactCapability);
-        Assert.Equal("nt51950-ab-desay-maps", selected.Identity.MapVariant);
+        Assert.Equal("nt51950-ab-merge-maps", selected.Identity.MapVariant);
         Assert.Equal(2, reads.Count);
         Assert.All(reads.Values, static count => Assert.Equal(1, count));
 

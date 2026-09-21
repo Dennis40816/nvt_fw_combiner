@@ -85,7 +85,7 @@ public sealed partial class AbMergeRuntimeAdmissionTests
         using var workspace = TempWorkspace.Create("nfc-nt51950-cascade-load-inspection");
         byte[] dpAb = new byte[0x100000];
         WriteCmiAt(dpAb, 0x5016, major: 0x82, minor: 0x03, jira: 0x123);
-        WriteCmiAt(dpAb, 0x45016, major: 0x83, minor: 0x04, jira: 0x456);
+        WriteCmiAt(dpAb, 0x85016, major: 0x83, minor: 0x04, jira: 0x456);
 
         CompositionHostServices host = CompositionHostServices.Create(new ExternalProcessorEnvironmentLoader(),
             loadPolicy: null, configurationPath: workspace.PathFor("format.json"));

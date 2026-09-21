@@ -31,12 +31,8 @@ public sealed class AbMergeAuthoringDefinitionTests
     /// <summary>Declaration membership matches real normal compilation without projecting output geometry.</summary>
     [Theory]
     [InlineData("NT51950", "1-ic", "nt51950-ab-merge-maps", true)]
-    [InlineData("NT51950", "2-plus-ic", "nt51950-ab-merge-maps", true)]
-    [InlineData("NT51950", "1-ic", "nt51950-ab-desay-maps", true)]
-    [InlineData("NT51950", "2-plus-ic", "nt51950-ab-desay-maps", true)]
-    [InlineData("NT51950", "2-ic", "nt51950-ab-common-2ic-maps", true)]
+    [InlineData("NT51950", "2-plus-ic", "nt51950-ab-cascade-maps", true)]
     [InlineData("NT51951", "selector-free", "nt51951-ab-merge-1024k", true)]
-    [InlineData("NT51951", "selector-free", "nt51951-ab-desay-maps", true)]
     [InlineData("NT51929", "selector-free", "nt51929-ab-merge-512k", false)]
     public void TrustedDeclarationMatchesCompiledInputMembership(string ic, string count, string maps, bool hasPolicy)
     {
@@ -78,10 +74,10 @@ public sealed class AbMergeAuthoringDefinitionTests
     [Theory]
     [InlineData("nt51950-ab-merge-desay", "0.2.1")]
     [InlineData("nt51951-ab-merge-desay", "0.2.1")]
-    [InlineData("nt51950-ab-merge-common-2ic", "0.2.0")]
+    [InlineData("nt51950-ab-merge-cascade", "0.3.0")]
     public void CandidateDeclarationNeedsNoExecutableMap(string profileId, string profileVersion)
     {
-        var bundle = new BuiltInV2Bundle("nt51950-ab-merge", "1.1.6-ab-format.2",
+        var bundle = new BuiltInV2Bundle("nt51950-ab-merge", "1.1.10-partial-ab-bank.1",
             BuiltInV2RegistrationRegistry.FindAbMergeRegistration("NT51950", "nt51950-ab-merge-maps")!.BundleContentHash,
             "built-in-profile-bundle-v2");
         Assert.True(bundle.TryGetAbAuthoringDefinition(profileId, profileVersion,

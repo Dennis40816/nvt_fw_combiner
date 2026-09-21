@@ -19,7 +19,7 @@ public sealed partial class RepositoryBoundaryTests
         using JsonDocument document = JsonDocument.Parse(File.ReadAllText(trustIndexPath));
         JsonElement root = document.RootElement;
         Assert.Equal("1.5", root.GetProperty("schemaVersion").GetString());
-        Assert.Equal("1.1.10.3", root.GetProperty("trustIndexVersion").GetString());
+        Assert.Equal("1.1.10.4", root.GetProperty("trustIndexVersion").GetString());
 
         JsonElement[] ctrlRamRegistrations =
         [
@@ -242,7 +242,7 @@ public sealed partial class RepositoryBoundaryTests
         });
 
         Assert.Equal(
-            54,
+            52,
             bundles.Sum(static bundle =>
                 bundle.GetProperty("runtimeRegistrations").GetArrayLength()));
         JsonElement abBundle = Assert.Single(bundles, static bundle =>
@@ -251,9 +251,7 @@ public sealed partial class RepositoryBoundaryTests
         [
             "NT51950/nt51950-ab-merge/nt51950-ab-merge-maps",
             "NT51951/nt51951-ab-merge/nt51951-ab-merge-1024k",
-            "NT51950/nt51950-ab-merge-desay/nt51950-ab-desay-maps",
-            "NT51951/nt51951-ab-merge-desay/nt51951-ab-desay-maps",
-            "NT51950/nt51950-ab-merge-common-2ic/nt51950-ab-common-2ic-maps",
+            "NT51950/nt51950-ab-merge-cascade/nt51950-ab-cascade-maps",
         ];
         Assert.Equal(expectedAbRegistrations.Order(StringComparer.Ordinal), abBundle.GetProperty("runtimeRegistrations")
             .EnumerateArray().Select(static registration =>
@@ -269,7 +267,7 @@ public sealed partial class RepositoryBoundaryTests
                     "general-replace");
         Assert.Equal("NT51926", generalReplace.GetProperty("icId").GetString());
         Assert.Equal(
-            9,
+            7,
             bundles.SelectMany(static bundle =>
                     bundle.GetProperty("runtimeRegistrations").EnumerateArray())
                 .Count(static registration =>

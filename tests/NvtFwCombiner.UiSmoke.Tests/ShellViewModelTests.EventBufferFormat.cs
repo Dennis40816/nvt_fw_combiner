@@ -222,7 +222,7 @@ public sealed partial class ShellNavigationSystemTests
             Assert.True(viewModel.IsReplaceVisible);
             return;
         }
-        Assert.Equal(context == "alias" ? "nt51950-ab-desay-maps" : "nt51950-ab-merge-maps",
+        Assert.Equal("nt51950-ab-merge-maps",
             Assert.Single(slot.CurrentInspectionProjection!.InputSlotCatalog!.Routes).ExactCapability!.Identity.MapVariant);
         Assert.False(slot.BlocksBuild);
         _ = Assert.NotNull(slot.CurrentInspectionProjection.InputSlotStatus!.AcceptedBytes);
@@ -270,7 +270,7 @@ public sealed partial class ShellNavigationSystemTests
         FirmwareSlotViewModel slot = viewModel.Merge.AbMergeSlots.Single(static slot => slot.SlotId == "tp-a-input");
         if (initializeConfiguration)
         {
-            Assert.Equal("nt51950-ab-desay-maps", Assert.Single(slot.CurrentInspectionProjection!.InputSlotCatalog!.Routes).ExactCapability!.Identity.MapVariant);
+            Assert.Equal("nt51950-ab-merge-maps", Assert.Single(slot.CurrentInspectionProjection!.InputSlotCatalog!.Routes).ExactCapability!.Identity.MapVariant);
         }
         return viewModel;
     }
@@ -303,7 +303,7 @@ public sealed partial class ShellNavigationSystemTests
         Assert.Equal(invalidConfig, viewModel.Settings.IsEventBufferFormatMissingOrInvalid);
         await viewModel.Settings.SaveEventBufferFormatCommand.ExecuteAsync(null);
         Assert.False(slot.BlocksBuild);
-        Assert.Equal("nt51950-ab-desay-maps", Assert.Single(slot.CurrentInspectionProjection!.InputSlotCatalog!.Routes).ExactCapability!.Identity.MapVariant);
+        Assert.Equal("nt51950-ab-merge-maps", Assert.Single(slot.CurrentInspectionProjection!.InputSlotCatalog!.Routes).ExactCapability!.Identity.MapVariant);
         _ = Assert.NotNull(slot.CurrentInspectionProjection.InputSlotStatus!.AcceptedBytes);
     }
 
@@ -397,7 +397,7 @@ public sealed partial class ShellNavigationSystemTests
             Assert.Same(previous, viewModel.RunSession.LastRunResult);
             FirmwareSlotViewModel slot = viewModel.Merge.AbMergeSlots.Single(static slot => slot.SlotId == "tp-a-input");
             Assert.Equal("nt51950-ab-merge-maps", Assert.Single(slot.CurrentInspectionProjection!.InputSlotCatalog!.Routes).ExactCapability!.Identity.MapVariant);
-            Assert.Equal("nt51950-ab-desay-maps", execution.Result!.ResolvedCapability!.Identity.MapVariant);
+            Assert.Equal("nt51950-ab-merge-maps", execution.Result!.ResolvedCapability!.Identity.MapVariant);
             execution.Release.SetResult();
             await running;
             Assert.False(viewModel.RunSession.IsRunInProgress);

@@ -70,11 +70,11 @@ public sealed partial class AbMergeFormatAdmissionTests
 
     /// <summary>Trusted family declarations and immutable inputs suffice; no compiled map is required.</summary>
     [Theory]
-    [InlineData("NT51950", 1, 1, 1, 0x97, 0xA6, "nt51950-ab-desay-single-1024k")]
-    [InlineData("NT51950", 2, 3, 3, 0x97, 0xA6, "nt51950-ab-desay-cascade-1024k")]
-    [InlineData("NT51950", 2, 2, 2, 0x84, 0x85, "nt51950-ab-common-exact2-1024k")]
+    [InlineData("NT51950", 1, 1, 1, 0x97, 0xA6, "nt51950-ab-merge-512k")]
+    [InlineData("NT51950", 2, 3, 3, 0x97, 0xA6, "nt51950-ab-merge-1024k")]
+    [InlineData("NT51950", 2, 2, 2, 0x84, 0x85, "nt51950-ab-merge-1024k")]
     [InlineData("NT51950", 2, 3, 3, 0x84, 0x85, "nt51950-ab-merge-1024k")]
-    [InlineData("NT51951", 0, 1, 1, 0x97, 0xA6, "nt51951-ab-desay-1024k")]
+    [InlineData("NT51951", 0, 1, 1, 0x97, 0xA6, "nt51951-ab-merge-1024k")]
     [InlineData("NT51951", 0, 2, 2, 0x84, 0x84, "nt51951-ab-merge-1024k")]
     public void PrimaryDiscoverySelectsFormatWithoutCompiledSnapshot(
         string ic, int count, byte countA, byte countB, byte rawA, byte rawB, string expectedMap)

@@ -12,7 +12,7 @@ namespace NvtFwCombiner.Bootstrap.Tests;
 public sealed class Nt51950AbMergeCandidateProfileTests
 {
     private const string BundleDirectory = "nt51950-ab-merge";
-    private const string BundleContentHash = "8503cab05cc6b038f4b4093924f75cf6ca38f0ec178d30732fd23608dbbd699f";
+    private const string BundleContentHash = "18ddf21d67694e01734f88fdd1e578f87f1d57bbb05cfa7c54bfeb8c665aab44";
     private const int Capacity = 0x80000;
     private const int BankLength = 0x40000;
     private const int TpInputLength = 0x37000;
@@ -29,7 +29,7 @@ public sealed class Nt51950AbMergeCandidateProfileTests
         Assert.Equal(CompiledCompositionEligibility.V2PlanCompiled, composition.Eligibility);
         Assert.True(composition.IsV2AbFunctionOpenCandidate);
         Assert.True(StringComparer.Ordinal.Equals(
-            "a46198afce73cae8279fa78ddcc86a1fb6e0dc3b1e4b27b5064357c866d63ce5",
+            "8458b94bf57b8eac9a764f62c14244ab1f7381a52eb400e716d5c1956a74d2c5",
             composition.CompilationFingerprint), composition.CompilationFingerprint);
         V2CompiledCompositionDetails details = Assert.IsType<V2CompiledCompositionDetails>(composition.V2Details);
         Assert.Equal("nt51950-ab-merge-512k", details.Provenance.ResolvedMap.ImageMap.MapId);
@@ -252,7 +252,7 @@ public sealed class Nt51950AbMergeCandidateProfileTests
         using var workspace = TempWorkspace.Create("nfc-nt51950-ab-candidate");
         V2CompositionPlanCompileResult compilation = AbMergeCandidateTestSupport.LoadSourceCandidateCatalog(workspace, BundleDirectory, BundleContentHash).Compile(
             "nt51950-ab-merge",
-            "0.6.0",
+            "0.7.0",
             "NT51950",
             ExperienceIds.AbMerge,
             requestedMapCapacity: BankLength);
@@ -269,8 +269,8 @@ public sealed class Nt51950AbMergeCandidateProfileTests
     {
         using var workspace = TempWorkspace.Create("nfc-nt51950-ab-candidate");
         V2CompositionPlanCompileResult compilation = AbMergeCandidateTestSupport.LoadSourceCandidateCatalog(workspace, BundleDirectory, BundleContentHash).Compile(
-            "nt51950-ab-merge",
-            "0.6.0",
+            "nt51950-ab-merge-cascade",
+            "0.3.0",
             "NT51950",
             ExperienceIds.AbMerge,
             requestedMapCapacity: 0x100000,
@@ -283,15 +283,15 @@ public sealed class Nt51950AbMergeCandidateProfileTests
         Assert.Equal("nt51950-ab-merge-1024k", details.Provenance.ResolvedMap.ImageMap.MapId);
         Assert.Equal(0x100000, composition.Plan.OutputInitialization.Capacity);
         AssertRegionRange(details, "a-cmi-dp-version", 0x5016, 3);
-        AssertRegionRange(details, "b-cmi-dp-version", 0x45016, 3);
+        AssertRegionRange(details, "b-cmi-dp-version", 0x85016, 3);
         Assert.Equal(
             [
                 ("copy-dp-ab-image", new ByteRange(0, 0x100000)),
                 ("overlay-tpa-into-output", new ByteRange(0xA000, TpCodeLength)),
-                ("overlay-tpb-into-output", new ByteRange(0x4A000, TpCodeLength)),
-                ("import-postbuild-b-ilm", new ByteRange(0x4A100, sizeof(uint))),
-                ("import-postbuild-b-dlm", new ByteRange(0x4A110, sizeof(uint))),
-                ("import-postbuild-b-crc", new ByteRange(0x4A130, sizeof(uint))),
+                ("overlay-tpb-into-output", new ByteRange(0x8A000, TpCodeLength)),
+                ("import-postbuild-b-ilm", new ByteRange(0x8A100, sizeof(uint))),
+                ("import-postbuild-b-dlm", new ByteRange(0x8A110, sizeof(uint))),
+                ("import-postbuild-b-crc", new ByteRange(0x8A130, sizeof(uint))),
             ],
             composition.Plan.OrderedOperations
                 .Where(operation => operation.TargetSpaceId == composition.Plan.OutputSpaceId)
@@ -305,7 +305,7 @@ public sealed class Nt51950AbMergeCandidateProfileTests
         CompositionOperation relocation = Assert.Single(
             composition.Plan.OrderedOperations,
             static operation => operation.OperationId == "relocate-tpb-diff-for-b-bank");
-        Assert.Equal(new BigInteger(0x40000), Assert.IsType<ScalarTransform>(relocation.ScalarTransform).Addend);
+        Assert.Equal(new BigInteger(0x80000), Assert.IsType<ScalarTransform>(relocation.ScalarTransform).Addend);
     }
 
     /// <summary>Verifies the cascade route never exposes or rewrites the opaque DP container tail during TP postbuild.</summary>
@@ -314,8 +314,8 @@ public sealed class Nt51950AbMergeCandidateProfileTests
     {
         using var workspace = TempWorkspace.Create("nfc-nt51950-ab-cascade-preservation");
         V2CompositionPlanCompileResult compilation = AbMergeCandidateTestSupport.LoadSourceCandidateCatalog(workspace, BundleDirectory, BundleContentHash).Compile(
-            "nt51950-ab-merge",
-            "0.6.0",
+            "nt51950-ab-merge-cascade",
+            "0.3.0",
             "NT51950",
             ExperienceIds.AbMerge,
             requestedMapCapacity: 0x100000,
@@ -340,9 +340,9 @@ public sealed class Nt51950AbMergeCandidateProfileTests
             (_, inputBytes, stagedSources, stagedArtifacts, _) =>
             {
                 Assert.Empty(stagedSources);
-                Assert.Equal(Capacity, inputBytes.Length);
+                Assert.Equal(0x100000, inputBytes.Length);
                 Assert.Equal(["a-bank", "b-bank"], stagedArtifacts.Select(static artifact => artifact.ArtifactId));
-                Assert.All(stagedArtifacts, artifact => Assert.Equal(BankLength, artifact.Bytes.Length));
+                Assert.All(stagedArtifacts, artifact => Assert.Equal(0x80000, artifact.Bytes.Length));
                 return ValueTask.FromResult(CompositionExternalProcessorResult.Success(inputBytes));
             },
             CancellationToken.None);
@@ -351,18 +351,18 @@ public sealed class Nt51950AbMergeCandidateProfileTests
         Assert.Equal(0x100000, result.OutputBytes.Length);
         Assert.Equal(originalTpB, tpB);
         AssertRangeEquals(dp, 0, result.OutputBytes.Span, 0, TpCodeStart);
-        AssertRangeEquals(dp, 0x37000, result.OutputBytes.Span, 0x37000, 0x13000);
-        AssertRangeEquals(dp, 0x77000, result.OutputBytes.Span, 0x77000, 0x89000);
+        AssertRangeEquals(dp, 0x37000, result.OutputBytes.Span, 0x37000, 0x53000);
+        AssertRangeEquals(dp, 0xB7000, result.OutputBytes.Span, 0xB7000, 0x49000);
         AssertRangeEquals(tpA, TpCodeStart, result.OutputBytes.Span, TpCodeStart, TpCodeLength);
-        AssertRangeEquals(tpB, TpCodeStart, result.OutputBytes.Span, BankLength + TpCodeStart, 0x120);
+        AssertRangeEquals(tpB, TpCodeStart, result.OutputBytes.Span, 0x80000 + TpCodeStart, 0x120);
         Assert.Equal(
-            0x12385678u,
-            BinaryPrimitives.ReadUInt32LittleEndian(result.OutputBytes.Span.Slice(BankLength + 0xA120, sizeof(uint))));
+            0x123C5678u,
+            BinaryPrimitives.ReadUInt32LittleEndian(result.OutputBytes.Span.Slice(0x80000 + 0xA120, sizeof(uint))));
         AssertRangeEquals(
             tpB,
             TpCodeStart + 0x124,
             result.OutputBytes.Span,
-            BankLength + TpCodeStart + 0x124,
+            0x80000 + TpCodeStart + 0x124,
             TpCodeLength - 0x124);
     }
 
@@ -423,7 +423,7 @@ public sealed class Nt51950AbMergeCandidateProfileTests
     {
         V2CompositionPlanCompileResult compilation = AbMergeCandidateTestSupport.LoadSourceCandidateCatalog(workspace, BundleDirectory, BundleContentHash).Compile(
             "nt51950-ab-merge",
-            "0.6.0",
+            "0.7.0",
             "NT51950",
             ExperienceIds.AbMerge,
             Capacity,
