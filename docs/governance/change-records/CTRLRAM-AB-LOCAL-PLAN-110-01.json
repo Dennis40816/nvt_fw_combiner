@@ -1,0 +1,40 @@
+{
+  "schemaVersion": 2,
+  "taskId": "CTRLRAM-AB-LOCAL-PLAN-110-01",
+  "capability": "Prepare one closed NT51929 AB reference bank-local Replace plan through the existing compiler and engine",
+  "integrationBase": "b9a94a2bab1a7bc05129b3438f0c0afeaaf45ad4",
+  "risk": "R3",
+  "kind": "behavior",
+  "state": "design-active",
+  "mutablePaths": [
+    "src/NvtFwCombiner.Profiles/V2/V2CompositionPlanCompiler.RuntimeReferenceReplace.Banks.cs",
+    "src/NvtFwCombiner.Profiles/V2/V2RuntimeReferenceBankReplacePlan.cs",
+    "src/NvtFwCombiner.Profiles/V2/V2CompositionPlanCompiler.RuntimeReferenceReplace.BankOperations.cs",
+    "tests/NvtFwCombiner.Bootstrap.Tests/AbCtrlRamReferencePlanTests.cs",
+    "src/NvtFwCombiner.Domain/Composition/CompositionOperation.cs",
+    "tests/NvtFwCombiner.Domain.Tests/Composition/CompositionPlanTests.WorkspaceOverlays.cs"
+  ],
+  "implementationOwner": "/root",
+  "searchEvidence": [
+    "Existing V2 runtime-reference compiler owns mapping, version edits, processor narrowing and typed validation; existing canonical AB plan owns region-instance scalar relocation; CompositionEngine owns execution and immutable Reference clone",
+    "Combiner 1.13 recovered source hash 7fb6551894d5a71f7df42b6b7c2bda99f35cbcc13f5c01713dc0ae596ebb5ea8: 929 AB adds three main fields outside Header CRC",
+    "Owner authorizes normalization -> existing Replace -> restoration and clarifies normalized B addresses must equal same immutable Reference A Header fields, not an independent fixed-value table",
+    "CompositionPlan already executes ReplaceExisting primitives, but GetProfileOverlapError restricts compiler-admitted fully-covered overlays to CopyRange and processor; extend only three named existing primitives with coverage unchanged"
+  ],
+  "semanticOwner": "Profiles.V2 runtime-reference compiler lowers trusted bank-local plans; canonical AB profile retains relocation and geometry authority; Domain retains primitive invariants",
+  "terminalContract": "Internal NT51929 preparation retains immutable Reference identity, trusted parent compilations and typed validation obligations. One cloned AB output and selected-bank workspaces use the existing engine. Reject mismatch, invalid range, wrong parent bindings and unknown operations/validations. No new runtime capability token, UI publication, tool replacement or support promotion in this unit. Application validation/capability admission remains required before product Build can consume it.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "/root/layout_ownership_review",
+    "outcome": "approved",
+    "evidence": "2026-09-22 bounded read-only admission for four preparation paths plus exact Domain overlap/helper-test delta. A/B address equality uses owner-approved same capture; retain range checks. Explicit ReplaceExisting additions limited to ReplaceRange/PatchScalar/TransformScalar, full prior single-write coverage unchanged; do not add FillRange or relax caller mappings. All local validation stages and source identities remain typed obligations; unknown shape fails closed. Require A/B/both, different-content, malformed-address, immutability and mismatched-parent tests. Exact-head/human/Golden/integration gates remain separate. Additional 2026-09-22 scoped admission: private source-backed NT51929 pair-only native preconditions from trusted tpa-code start +0x2B/+0x38 (Combiner 1.13 lines 1495/1515-1526); both counts=1, canonical FWConfig source with full 4KiB bounds, canonical 4KiB Backup strict-next-page destination. No generic metadata claim or future-family admission. Negative tests plus nonempty validation obligation required."
+  },
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": {
+    "reviewer": null,
+    "outcome": "pending",
+    "evidence": ""
+  }
+}
