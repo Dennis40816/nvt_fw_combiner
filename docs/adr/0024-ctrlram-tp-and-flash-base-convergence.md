@@ -86,3 +86,26 @@ publication decisions remain separate release authorities.
   the V1 full-Flash read authority, the V2 `[0,0x3C000)` read authority, exact
   write ranges, report identity, and full-Flash tail preservation. Runtime
   support promotion remains outside this amendment.
+
+## AB CtrlRAM conditional invariant — 2026-09-21
+
+The owner confirms that A and B reuse the same CtrlRAM replacement behavior.
+Each selected bank retains its own unselected content and firmware version;
+selecting only A or only B leaves the other bank byte-for-byte unchanged.
+B must not receive A's header as a substitute for its own header.
+
+When both banks have identical starting content and versions apart from their
+declared bank-related address/integrity fields, and receive identical replacement
+sources and edits, their final differences are limited to the declared
+bank-related header address fields and affected CRC fields. This is a conditional
+invariant, not a requirement to equalize independently different bank contents.
+The final B CRC values must correspond to B's final header and data, rather than
+being copied from A or assumed valid after address changes.
+
+This decision does not relax the existing zero-based processor-view restriction
+or admit an AB runtime route. Tool input coordinates, normalization/restoration,
+CRC recomputation and header-copy ordering still require evidence through the
+existing planner, processor and exact write-range audit. Characterization with
+synthetic same-content controls is not owner-certified AB Replace Golden evidence.
+The bounded experiment and its limitations are recorded in the
+[postbuild investigation](../architecture/ctrlram-postbuild-original-pasteback.md#nt51929-ab-address-strategy-characterization--2026-09-21).

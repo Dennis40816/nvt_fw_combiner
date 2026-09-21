@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 2,
+  "taskId": "AB-CTRLRAM-CHARACTERIZATION-110-01",
+  "capability": "Record the owner-approved conditional AB CtrlRAM invariant and characterize NT51929 bank-address strategies with the existing real processor",
+  "integrationBase": "b9a94a2bab1a7bc05129b3438f0c0afeaaf45ad4",
+  "risk": "R2",
+  "kind": "behavior",
+  "state": "design-active",
+  "mutablePaths": [
+    "docs/adr/0024-ctrlram-tp-and-flash-base-convergence.md",
+    "tests/NvtFwCombiner.Infrastructure.Tests/ExternalTools/LegacyCombinerPostbuildRealToolSmokeTests.Nt51929AbStrategies.cs"
+  ],
+  "implementationOwner": "/root",
+  "searchEvidence": [
+    "Bounded CodeGraph and source inspection of runtime Reference Replace, ADR 0024, typed NT51929 header metadata and AB reference relocation at 0x7164/0x7168/0x716C",
+    "Existing LegacyCombinerPostbuildProcessor, hash-pinned 1.13.0 catalog, staged sources and declared write-range compiler remain the sole execution path",
+    "Nt51929AbFirstHalfIsFactScopedCtrlRamEvidenceNotSingleGolden fixes the same-product A slice hash; original-pasteback investigation distinguishes tool observations from production and Golden authority"
+  ],
+  "semanticOwner": "ADR 0024 records the owner's conditional invariant; existing Domain/Profiles continue to own addresses, integrity and write authority",
+  "terminalContract": "With identical starting content, versions and replacement sources, final A/B differences are limited to declared bank-address fields and affected CRC fields. Each bank preserves its own unselected content and version; B CRC must correspond to its final bytes. Characterization does not change processor-view rules, tool sequencing, runtime support or Golden status",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "/root/layout_ownership_review",
+    "outcome": "approved",
+    "evidence": "Independent R2 admission on 2026-09-21 for ADR plus test only. Same-content synthetic controls, real staged nonzero replacement, exact field comparison and complete snapshots; failed strategies remain evidence. Require explicit Windows skip. Normal CtrlRAM control admitted after NF run exposed an undeclared 0x2EA00 write; preserve that failure and do not broaden authority. No production strategy or support admission."
+  },
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": { "reviewer": null, "outcome": "pending", "evidence": "" }
+}
