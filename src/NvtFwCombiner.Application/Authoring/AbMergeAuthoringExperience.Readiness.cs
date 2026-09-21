@@ -39,7 +39,6 @@ internal sealed partial class AbMergeAuthoringExperience
         {
             return (null, issues);
         }
-        if (definition.Family.AbFormatPolicy is null) { return (null, []); }
         AbMergeDpMode mode = GetAcceptedAbDpMode(accepted, definition);
         CompiledAuthoringSelectedInput[] inputs = CaptureAcceptedAbInputs(session);
         FormatResolution resolved = await ResolveAbFormatAsync(accepted.Identity.IcId,

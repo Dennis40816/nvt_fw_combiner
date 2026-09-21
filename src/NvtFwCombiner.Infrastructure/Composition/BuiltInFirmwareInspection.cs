@@ -140,6 +140,7 @@ internal sealed partial class BuiltInFirmwareInspection : IFirmwareInspection
                     AbMergeFacts = abMergeInputBatch.Facts[input.InspectionId],
                     InputSlotStatus = abMergeInputBatch.Statuses[input.InspectionId],
                     InputSlotCatalog = abMergeInputBatch.Catalog,
+                    AuthoringCompilationIssues = abMergeInputBatch.Issues,
                 };
             }
 

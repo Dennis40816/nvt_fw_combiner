@@ -80,9 +80,10 @@ public sealed partial class AbMergeRuntimeAdmissionTests
         using var workspace = TempWorkspace.Create("nfc-ab-version-decoder-parity");
         Dictionary<string, string> paths = WriteInputs(workspace);
         byte[] tpAWithIgnoredTail = new byte[TpLength + 17];
+        CreateTpImage(0x81, 0, chipCount: 1).CopyTo(tpAWithIgnoredTail, 0);
         tpAWithIgnoredTail[^1] = 0xA5;
         paths[CompositionAddressSpaceIds.TpAInput] = workspace.Write(
-            "tp-a-unknown-with-tail.bin",
+            "tp-a-with-tail.bin",
             tpAWithIgnoredTail);
         FirmwareInspectionSnapshotInput[] inputs =
         [

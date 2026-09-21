@@ -8,6 +8,42 @@ namespace NvtFwCombiner.UiSmoke.Tests;
 
 public sealed partial class FirmwareInspectionSlotTests
 {
+    /// <summary>Only AB compares peers; each TP count failure blocks the actual slots and recovers after correction.</summary>
+    [Theory]
+    [InlineData("NT51929", "different", "AB_TP_TOPOLOGY_MISMATCH")]
+    [InlineData("NT51951", "different", "AB_TP_TOPOLOGY_MISMATCH")]
+    [InlineData("NT51929", "zero", "firmware-config.chip-count-required")]
+    [InlineData("NT51951", "zero", "firmware-config.chip-count-required")]
+    [InlineData("NT51929", "unreadable", "AB_TP_FIRMWARE_CONFIG_BACKUP_INVALID")]
+    [InlineData("NT51951", "unreadable", "AB_TP_FIRMWARE_CONFIG_BACKUP_INVALID")]
+    public async Task AbTpCountErrorsBlockSlotsAndRecover(string ic, string defect, string issueCode)
+    {
+        using var workspace = TempWorkspace.Create("ab-count-ui");
+        MainWindowViewModel model = await PresentationTestHost.CreateConfiguredFormatViewModelAsync(workspace);
+        model.ShowMergeCommand.Execute(null);
+        model.WorkflowSession.SelectedIc = ic;
+        model.Merge.SelectedMergeMode = ExperienceIds.AbMerge;
+        byte[] good = ic == "NT51951" ? CreateUiAbFormatTpImage(0x84, 2) : CreateUiAbTpImage(0x81, 0, 1, 4, 1, 0x5102);
+        int backup = ic == "NT51951" ? 0x36000 : 0x1000;
+        good[backup + 0x17] = 2;
+        byte[] bad = [.. good];
+        if (defect == "unreadable") { bad[backup + 0xFFC] = 0xFF; }
+        else { bad[backup + 0x17] = defect == "zero" ? (byte)0 : (byte)3; }
+        await model.WorkflowSession.SetSlotFileAsync("dp-ab-input", workspace.Write("dp.bin", new byte[ic == "NT51951" ? 0x100000 : 0x80000]), TestContext.Current.CancellationToken);
+        await model.WorkflowSession.SetSlotFileAsync("tp-a-input", workspace.Write("a.bin", good), TestContext.Current.CancellationToken);
+        await model.WorkflowSession.SetSlotFileAsync("tp-b-input", workspace.Write("b.bin", good), TestContext.Current.CancellationToken);
+        Assert.True(model.Merge.CanBuildMerge);
+        await model.WorkflowSession.SetSlotFileAsync("tp-b-input", workspace.Write("invalid-b.bin", bad), TestContext.Current.CancellationToken);
+        FirmwareSlotViewModel slot = model.Merge.MergeSlots.Single(static item => item.SlotId == "tp-b-input");
+        Assert.True(slot.BlocksBuild);
+        Assert.Equal(FirmwareInputInspectionSeverity.Blocking, slot.InputInspectionSeverity);
+        Assert.False(model.Merge.CanBuildMerge);
+        Assert.Contains(issueCode, slot.InputInspectionStatus, StringComparison.Ordinal);
+        await model.WorkflowSession.SetSlotFileAsync("tp-b-input", workspace.Write("fixed-b.bin", good), TestContext.Current.CancellationToken);
+        Assert.False(slot.BlocksBuild);
+        Assert.True(model.Merge.CanBuildMerge);
+    }
+
     /// <summary>AB required inputs inspect independently in every order; only the final peer admits Build.</summary>
     [Theory]
     [InlineData("dp-ab-input,tp-a-input,tp-b-input")]

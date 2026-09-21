@@ -1,4 +1,5 @@
 using NvtFwCombiner.Application.FlashMaps;
+using NvtFwCombiner.Application.InputInspection;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Domain.Firmware;
 
@@ -14,13 +15,12 @@ internal sealed class AbMergeTopologyAdmissionResult(
     internal bool Succeeded => Issues.Count == 0;
 }
 
-/// <summary>Single owner of the existing AB single/cascade admission; exact counts are observations, not selectors.</summary>
+/// <summary>One owner for AB pair count equality and optional single/cascade selector admission.</summary>
 internal static class AbMergeTopologyAdmission
 {
     internal static AbMergeTopologyAdmissionResult Assess(
-        ReadOnlySpan<byte> tpA, ReadOnlySpan<byte> tpB, TopologySelection selected)
+        ReadOnlySpan<byte> tpA, ReadOnlySpan<byte> tpB, TopologySelection? selected)
     {
-        ArgumentNullException.ThrowIfNull(selected);
         var issues = new List<CompositionIssue>();
         bool validA = TryReadFirmwareConfig(tpA, out FirmwareConfigMetadata metadataA);
         bool validB = TryReadFirmwareConfig(tpB, out FirmwareConfigMetadata metadataB);
@@ -28,7 +28,7 @@ internal static class AbMergeTopologyAdmission
         {
             issues.Add(new CompositionIssue(
                 "AB_TP_FIRMWARE_CONFIG_BACKUP_INVALID",
-                "TPA has no valid canonical NVT FWConfig Backup.",
+                "TPA IC Count is unreadable: no valid canonical NVT FWConfig Backup.",
                 CompositionAddressSpaceIds.TpAInput));
         }
 
@@ -36,7 +36,7 @@ internal static class AbMergeTopologyAdmission
         {
             issues.Add(new CompositionIssue(
                 "AB_TP_FIRMWARE_CONFIG_BACKUP_INVALID",
-                "TPB has no valid canonical NVT FWConfig Backup.",
+                "TPB IC Count is unreadable: no valid canonical NVT FWConfig Backup.",
                 CompositionAddressSpaceIds.TpBInput));
         }
 
@@ -52,20 +52,19 @@ internal static class AbMergeTopologyAdmission
                 zeroMetadata,
                 FirmwareConfigChipCountRequirement.RequiredPositive,
                 "ab-topology",
-                "AB Code uses TPA and TPB IC Count to validate the selected topology.")!);
+                $"{(metadataA.ChipNumber == 0 ? "TPA" : "TPB")} IC Count was read as 0; AB Code requires positive, identical TP counts.")!);
             return new(metadataA.ChipNumber, metadataB.ChipNumber, issues);
         }
 
         bool tpASingle = metadataA.ChipNumber == 1;
-        bool tpBSingle = metadataB.ChipNumber == 1;
-        if (tpASingle != tpBSingle)
+        if (metadataA.ChipNumber != metadataB.ChipNumber)
         {
             issues.Add(new CompositionIssue(
                 "AB_TP_TOPOLOGY_MISMATCH",
-                $"TPA declares {FormatTopology(metadataA.ChipNumber)} but TPB declares {FormatTopology(metadataB.ChipNumber)}; AB Merge requires matching TP topology.",
+                $"TPA declares {metadataA.ChipNumber} IC but TPB declares {metadataB.ChipNumber} IC; AB Merge requires identical TP IC Counts.",
                 CompositionAddressSpaceIds.TpBInput));
         }
-        else if (selected.ChipCount == 1 != tpASingle)
+        else if (selected is not null && selected.ChipCount == 1 != tpASingle)
         {
             issues.Add(new CompositionIssue(
                 "AB_TP_TOPOLOGY_SELECTION_MISMATCH",
@@ -74,6 +73,68 @@ internal static class AbMergeTopologyAdmission
         }
 
         return new(metadataA.ChipNumber, metadataB.ChipNumber, issues);
+    }
+
+    internal static AbMergeTopologyAdmissionResult? AssessAcceptedPair(
+        CompiledComposition composition, ReadOnlyMemory<byte> tpA, ReadOnlyMemory<byte> tpB, TopologySelection? selected)
+    {
+        return TryGetAcceptedTpSourceView(composition, tpA, CompositionAddressSpaceIds.TpAInput, out ReadOnlySpan<byte> a) &&
+            TryGetAcceptedTpSourceView(composition, tpB, CompositionAddressSpaceIds.TpBInput, out ReadOnlySpan<byte> b)
+            ? Assess(a, b, selected) : null;
+    }
+
+    internal static AbMergeTopologyAdmissionResult AssessCommonAcceptedPair(
+        IReadOnlyList<CompiledComposition> candidates, ReadOnlyMemory<byte> tpA, ReadOnlyMemory<byte> tpB,
+        TopologySelection? selected)
+    {
+        ByteRange? acceptedA = null;
+        ByteRange? acceptedB = null;
+        long? requiredA = null;
+        long? requiredB = null;
+        if (candidates.Count == 0) { return InvalidGeometry(); }
+        foreach (CompiledComposition candidate in candidates)
+        {
+            if (!candidate.IsV2AbMergeRuntimeRoute ||
+                !candidate.V2Details.InputContract.SpaceBindings.Any(static binding => binding.AddressSpaceId == CompositionAddressSpaceIds.TpAInput) ||
+                !candidate.V2Details.InputContract.SpaceBindings.Any(static binding => binding.AddressSpaceId == CompositionAddressSpaceIds.TpBInput))
+            {
+                return InvalidGeometry();
+            }
+            CompiledInputArtifactInspectionResult a = CompiledInputArtifactInspectionService.Inspect(candidate, CompositionAddressSpaceIds.TpAInput, tpA);
+            CompiledInputArtifactInspectionResult b = CompiledInputArtifactInspectionService.Inspect(candidate, CompositionAddressSpaceIds.TpBInput, tpB);
+            if (a.BlocksBuild || b.BlocksBuild || a.AcceptedSnapshotRange is not { Start: 0 } aRange ||
+                b.AcceptedSnapshotRange is not { Start: 0 } bRange ||
+                (acceptedA is not null && (acceptedA != aRange || requiredA != a.RequiredEndExclusive)) ||
+                (acceptedB is not null && (acceptedB != bRange || requiredB != b.RequiredEndExclusive)))
+            {
+                return InvalidGeometry();
+            }
+            acceptedA = aRange;
+            acceptedB = bRange;
+            requiredA = a.RequiredEndExclusive;
+            requiredB = b.RequiredEndExclusive;
+        }
+        return Assess(tpA.Span[..checked((int)acceptedA!.Value.Length)], tpB.Span[..checked((int)acceptedB!.Value.Length)], selected);
+    }
+
+    private static AbMergeTopologyAdmissionResult InvalidGeometry()
+    {
+        return new(null, null, [new CompositionIssue("AB_TP_SOURCE_GEOMETRY_INVALID",
+            "TP inputs must satisfy one common accepted source range across all current AB format candidates.")]);
+    }
+
+    private static bool TryGetAcceptedTpSourceView(
+        CompiledComposition composition, ReadOnlyMemory<byte> bytes, string addressSpaceId, out ReadOnlySpan<byte> prefix)
+    {
+        prefix = default;
+        CompiledInputArtifactInspectionResult inspection = CompiledInputArtifactInspectionService.Inspect(
+            composition, addressSpaceId, bytes);
+        if (inspection.AcceptedSnapshotRange is not { Start: 0 } accepted || accepted.Length > int.MaxValue)
+        {
+            return false;
+        }
+        prefix = bytes.Span[..checked((int)accepted.Length)];
+        return true;
     }
 
     private static bool TryReadFirmwareConfig(ReadOnlySpan<byte> prefix, out FirmwareConfigMetadata metadata)

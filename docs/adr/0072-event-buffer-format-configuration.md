@@ -98,6 +98,21 @@ locator, profile variant, geometry or Settings integration.
 
 ## Primary AB observation
 
+### 2026-09-21 amendment: equal, readable positive TP counts
+
+Owner-approved TP validation now requires readable positive counts in each
+firmware slot. AB alone additionally compares the two counts numerically,
+before optional selector classification or format-map selection. Selector-free
+AB no longer bypasses count validation; missing/zero cannot be inferred as
+single or accepted as unknown. The same Application count owner supplies
+authoring errors, action readiness and execution rejection, including families
+without an Event Buffer format policy. Diagnostics distinguish unreadable,
+read-as-zero and unequal AB counts. This supersedes the earlier count-admission
+behavior described above; it does not change the historical evidence, primary
+Event Buffer decoding, bank geometry or external processor contract.
+
+### Primary metadata contract
+
 The owner-approved NT51950/NT51951 partial-family AB Event Buffer decision is
 a narrow exception to ADR 0012's prohibition on primary runtime metadata.
 Both native TP inputs use primary FWConfig at `flash [0x22200,0x22229)` and

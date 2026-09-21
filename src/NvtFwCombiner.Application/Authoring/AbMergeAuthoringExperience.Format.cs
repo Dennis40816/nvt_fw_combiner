@@ -16,13 +16,7 @@ internal sealed partial class AbMergeAuthoringExperience
     private (ResolvedCapabilityRoute Route, CanonicalAbAuthoringDefinition Definition) GetAbDeclarations(
         string icId, TopologySelection? topology)
     {
-        string member = IcIdentifier.Normalize(icId);
-        ResolvedCapabilityRoute[] routes = [.. _catalog.GetCurrentSnapshot().DynamicRoutes.Where(route =>
-            route.Identity.WorkflowId == ExperienceIds.AbMerge && route.Identity.IcId == member &&
-            route.Authoring.Value == CapabilityAuthoringAvailability.Available &&
-            (route.AbMergeTopologyChoice is { } choice
-                ? topology is not null && choice.Selection.ChipCount == 1 == (topology.ChipCount == 1)
-                : topology is null)).OrderBy(static route => route.Identity.RouteId, StringComparer.Ordinal)];
+        ResolvedCapabilityRoute[] routes = GetAbRoutes(icId, topology);
         if (routes.Length == 0)
         {
             throw new InvalidOperationException("No current AB declaration matches the selected IC and topology.");
@@ -43,6 +37,17 @@ internal sealed partial class AbMergeAuthoringExperience
         }
         // A deterministic declaration source is not an output-map choice.
         return (routes[0], first!);
+    }
+
+    private ResolvedCapabilityRoute[] GetAbRoutes(string icId, TopologySelection? topology)
+    {
+        string member = IcIdentifier.Normalize(icId);
+        return [.. _catalog.GetCurrentSnapshot().DynamicRoutes.Where(route =>
+            route.Identity.WorkflowId == ExperienceIds.AbMerge && route.Identity.IcId == member &&
+            route.Authoring.Value == CapabilityAuthoringAvailability.Available &&
+            (route.AbMergeTopologyChoice is { } choice
+                ? topology is not null && choice.Selection.ChipCount == 1 == (topology.ChipCount == 1)
+                : topology is null)).OrderBy(static route => route.Identity.RouteId, StringComparer.Ordinal)];
     }
 
     private static bool HasEquivalentAbInputs(CanonicalAbAuthoringDefinition first, CanonicalAbAuthoringDefinition next)
@@ -97,12 +102,29 @@ internal sealed partial class AbMergeAuthoringExperience
         ResolvedCapabilityRoute route = declarationRoute;
         if (definition.Family.AbFormatPolicy is not null)
         {
+            var candidates = new List<CompiledComposition>();
+            foreach (ResolvedCapabilityRoute candidate in GetAbRoutes(declarationRoute.Identity.IcId, topology))
+            {
+                if (candidate.ResolutionToken != declarationRoute.ResolutionToken ||
+                    !_compiler.TryGetAbAuthoringDefinition(candidate, out CanonicalAbAuthoringDefinition? candidateDefinition, out _) ||
+                    !HasEquivalentAbInputs(definition, candidateDefinition))
+                {
+                    return StaleAbPublication(declarationRoute, definition);
+                }
+                if (!_compiler.TryCompilePublishedDynamicCapability(candidate.Identity, null,
+                        dpMode == AbMergeDpMode.Dummy ? [] : definition.SelectionGroupMemberSlotIds,
+                        out CompiledComposition? candidateComposition, out _, out IReadOnlyList<CompositionIssue> candidateIssues, topology))
+                {
+                    return new(declarationRoute, definition, null, null, candidateIssues);
+                }
+                candidates.Add(candidateComposition!);
+            }
             FirmwareBinInspectionArtifact[] artifacts = [.. normalized.Where(static input => input.Bytes is { Length: > 0 })
                 .Select(input => new FirmwareBinInspectionArtifact(
                     definition.InputBindings.Single(binding => binding.SlotId == input.SlotId).AddressSpaceId,
                     input.Bytes!.Value))];
             AbMergeFormatAdmissionResult admitted = AbMergeFormatAdmission.Assess(definition.Family,
-                declarationRoute.Identity.IcId, state, topology, artifacts);
+                declarationRoute.Identity.IcId, state, topology, artifacts, candidates);
             if (!admitted.Succeeded)
             {
                 return new(declarationRoute, definition, null, null, admitted.Issues);
@@ -129,6 +151,14 @@ internal sealed partial class AbMergeAuthoringExperience
         _ = _compiler.TryCompilePublishedDynamicCapability(route.Identity, null,
                 dpMode == AbMergeDpMode.Dummy ? [] : definition.SelectionGroupMemberSlotIds,
                 out _, out ResolvedCapability? capability, out IReadOnlyList<CompositionIssue> issues, topology);
+        if (capability is not null && issues.Count == 0 && definition.Family.AbFormatPolicy is null &&
+            normalized.FirstOrDefault(input => definition.InputBindings.Any(binding => binding.SlotId == input.SlotId &&
+                binding.AddressSpaceId == CompositionAddressSpaceIds.TpAInput))?.Bytes is { } tpA &&
+            normalized.FirstOrDefault(input => definition.InputBindings.Any(binding => binding.SlotId == input.SlotId &&
+                binding.AddressSpaceId == CompositionAddressSpaceIds.TpBInput))?.Bytes is { } tpB)
+        {
+            issues = AbMergeTopologyAdmission.AssessAcceptedPair(capability.CompiledComposition, tpA, tpB, topology)?.Issues ?? [];
+        }
         return _catalog.GetCurrentSnapshot().ResolutionToken != declarationRoute.ResolutionToken ||
             (capability is not null && capability.ResolutionToken != declarationRoute.ResolutionToken)
             ? StaleAbPublication(declarationRoute, definition)

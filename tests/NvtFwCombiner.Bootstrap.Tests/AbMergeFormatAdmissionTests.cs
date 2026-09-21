@@ -15,6 +15,36 @@ public sealed partial class AbMergeFormatAdmissionTests
 {
     private const string ConfigHash = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
 
+    private static AbMergeFormatAdmissionResult AssessFormat(FirmwareFamilyResolutionDefinition family, string ic,
+        EventBufferFormatConfigurationState? state, TopologySelection? topology,
+        IReadOnlyCollection<FirmwareBinInspectionArtifact>? artifacts)
+    {
+        return AbMergeFormatAdmission.Assess(family, ic, state, topology, artifacts, InputCandidates(ic, topology));
+    }
+
+    private static AbMergeFormatAdmissionResult AssessFormat(FirmwareFamilyResolutionDefinition family, string ic,
+        EventBufferFormatConfigurationState? state, MetadataInspectionSnapshot? primary, TopologySelection? topology,
+        IReadOnlyCollection<FirmwareBinInspectionArtifact>? artifacts)
+    {
+        return AbMergeFormatAdmission.Assess(family, ic, state, primary, topology, artifacts, InputCandidates(ic, topology));
+    }
+
+    private static CompiledComposition[] InputCandidates(string ic, TopologySelection? topology)
+    {
+        TopologySelection? effective = ic == "NT51950" ? topology ?? Topology(1) : null;
+        var compositions = new List<CompiledComposition>();
+        foreach (ResolvedCapabilityRoute route in BootstrapTestHost.Services.Catalog.GetCurrentSnapshot().DynamicRoutes.Where(route =>
+            route.Identity.WorkflowId == ExperienceIds.AbMerge && route.Identity.IcId == ic &&
+            (route.AbMergeTopologyChoice is { } choice ? effective is not null && choice.Selection.ChipCount == 1 == (effective.ChipCount == 1) : effective is null)))
+        {
+            Assert.True(BootstrapTestHost.Services.Compiler.TryCompilePublishedDynamicCapability(route.Identity, null, null,
+                out CompiledComposition? compiled, out _, out IReadOnlyList<CompositionIssue> issues, effective), string.Join(',', issues.Select(static issue => issue.Code)));
+            compositions.Add(compiled!);
+        }
+        Assert.NotEmpty(compositions);
+        return [.. compositions];
+    }
+
     /// <summary>Real persisted configuration must be consumable immediately and after a fresh session reload.</summary>
     [Theory]
     [InlineData(false, 0x97, "desay", "nt51951-ab-desay-1024k")]
@@ -44,7 +74,7 @@ public sealed partial class AbMergeFormatAdmissionTests
             : saved;
         Assert.True(current.Succeeded);
         byte[] tp = Tp(raw);
-        AbMergeFormatAdmissionResult result = AbMergeFormatAdmission.Assess(family, "NT51951", current.State,
+        AbMergeFormatAdmissionResult result = AssessFormat(family, "NT51951", current.State,
             Inspect(plan, tp, tp), null, Artifacts(tp, tp));
 
         Assert.True(result.Succeeded, string.Join(" | ", result.Issues.Select(issue => issue.Code)));
@@ -58,13 +88,13 @@ public sealed partial class AbMergeFormatAdmissionTests
     /// <summary>Raw Desay IDs may differ; Common exact-two requires both observed counts.</summary>
     [Theory]
     [InlineData("NT51950", 1, 1, 1, 0x97, 0xA6, "desay", "nt51950-ab-desay-single-1024k")]
-    [InlineData("NT51950", 2, 2, 3, 0xA6, 0x97, "desay", "nt51950-ab-desay-cascade-1024k")]
+    [InlineData("NT51950", 2, 3, 3, 0xA6, 0x97, "desay", "nt51950-ab-desay-cascade-1024k")]
     [InlineData("NT51950", 2, 2, 2, 0x84, 0x85, "common", "nt51950-ab-common-exact2-1024k")]
-    [InlineData("NT51950", 2, 2, 3, 0x84, 0x85, "common", "nt51950-ab-merge-1024k")]
+    [InlineData("NT51950", 2, 3, 3, 0x84, 0x85, "common", "nt51950-ab-merge-1024k")]
     [InlineData("NT51950", 2, 3, 3, 0x84, 0x84, "common", "nt51950-ab-merge-1024k")]
     [InlineData("NT51950", 1, 1, 1, 0x84, 0x84, "common", "nt51950-ab-merge-512k")]
-    [InlineData("NT51951", 0, 0, 0, 0x97, 0xA6, "desay", "nt51951-ab-desay-1024k")]
-    [InlineData("NT51951", 0, 0, 0, 0x84, 0x84, "common", "nt51951-ab-merge-1024k")]
+    [InlineData("NT51951", 0, 1, 1, 0x97, 0xA6, "desay", "nt51951-ab-desay-1024k")]
+    [InlineData("NT51951", 0, 2, 2, 0x84, 0x84, "common", "nt51951-ab-merge-1024k")]
     public void CompiledPrimaryAndSuccessfulTopologySelectDeclaredMap(
         string ic, int requestedCount, byte countA, byte countB, byte rawA, byte rawB, string format, string map)
     {
@@ -72,15 +102,10 @@ public sealed partial class AbMergeFormatAdmissionTests
         FirmwareFamilyResolutionDefinition family = plan.Entries[0].FamilyDefinition;
         byte[] tpA = Tp(rawA, countA);
         byte[] tpB = Tp(rawB, countB);
-        if (requestedCount == 0)
-        {
-            tpA = tpA[..0x22229]; // No Backup: selector-free format admission must not introduce it.
-            tpB = tpB[..0x22229];
-        }
 
         MetadataInspectionSnapshot primary = Inspect(plan, tpA, tpB);
         TopologySelection? topology = Topology(requestedCount);
-        AbMergeFormatAdmissionResult result = AbMergeFormatAdmission.Assess(family, ic, Configuration(family), primary,
+        AbMergeFormatAdmissionResult result = AssessFormat(family, ic, Configuration(family), primary,
             topology, Artifacts(tpA, tpB));
 
         Assert.True(result.Succeeded, string.Join(" | ", result.Issues.Select(issue => issue.Code)));
@@ -102,7 +127,7 @@ public sealed partial class AbMergeFormatAdmissionTests
     {
         MetadataPlanDefinition plan = Plan("NT51951", 0);
         FirmwareFamilyResolutionDefinition family = plan.Entries[0].FamilyDefinition;
-        AbMergeFormatAdmissionResult result = AbMergeFormatAdmission.Assess(family, "NT51951",
+        AbMergeFormatAdmissionResult result = AssessFormat(family, "NT51951",
             Configuration(family, values: [recognition], alias: alias), Inspect(plan, Tp(0x97), Tp(0x97)), null, Artifacts(Tp(0x97), Tp(0x97)));
         Assert.True(result.Succeeded);
         Assert.Equal(expectedFormat, result.Selection!.FormatId);
@@ -115,7 +140,7 @@ public sealed partial class AbMergeFormatAdmissionTests
     {
         MetadataPlanDefinition plan = Plan("NT51951", 0);
         FirmwareFamilyResolutionDefinition family = plan.Entries[0].FamilyDefinition;
-        AssertBlocked(AbMergeFormatAdmission.Assess(family, "NT51951", Configuration(family),
+        AssertBlocked(AssessFormat(family, "NT51951", Configuration(family),
             Inspect(plan, Tp(0x97), Tp(0x84)), null, Artifacts(Tp(0x97), Tp(0x84))), "AB_FORMAT_MISMATCH");
     }
 
@@ -137,7 +162,7 @@ public sealed partial class AbMergeFormatAdmissionTests
             tpA[0x22201] = 0;
         }
 
-        AssertBlocked(AbMergeFormatAdmission.Assess(family, "NT51951", Configuration(family),
+        AssertBlocked(AssessFormat(family, "NT51951", Configuration(family),
             Inspect(plan, tpA, Tp(0x84)), null, Artifacts(tpA, Tp(0x84))), "AB_FORMAT_PRIMARY_INVALID");
     }
 
@@ -159,7 +184,7 @@ public sealed partial class AbMergeFormatAdmissionTests
             2 => Configuration(family, scope: "different-scope"),
             _ => saved with { SourceSha256 = null },
         };
-        AssertBlocked(AbMergeFormatAdmission.Assess(family, "NT51951", state,
+        AssertBlocked(AssessFormat(family, "NT51951", state,
             Inspect(plan, Tp(0x84), Tp(0x84)), null, Artifacts(Tp(0x84), Tp(0x84))), "AB_FORMAT_CONFIGURATION_INVALID");
     }
 
@@ -174,7 +199,7 @@ public sealed partial class AbMergeFormatAdmissionTests
         MetadataInspectionSnapshot source = Inspect(plan, Tp(0x97), Tp(0xA6));
         var primary = new MetadataInspectionSnapshot(source.ResolutionToken, source.AuthoringRevision, source.ArtifactIdentities,
             duplicate ? [.. source.Results, source.Results[0]] : [source.Results[1]]);
-        AssertBlocked(AbMergeFormatAdmission.Assess(family, "NT51951", Configuration(family), primary, null, Artifacts(Tp(0x97), Tp(0xA6))),
+        AssertBlocked(AssessFormat(family, "NT51951", Configuration(family), primary, null, Artifacts(Tp(0x97), Tp(0xA6))),
             "AB_FORMAT_PRIMARY_INVALID");
     }
 
@@ -187,7 +212,7 @@ public sealed partial class AbMergeFormatAdmissionTests
         byte[] a = Tp(0x84, 2);
         byte[] b = Tp(0x84, 2);
         TopologySelection topology = Topology(1)!;
-        AssertBlocked(AbMergeFormatAdmission.Assess(family, "NT51950", Configuration(family), Inspect(plan, a, b),
+        AssertBlocked(AssessFormat(family, "NT51950", Configuration(family), Inspect(plan, a, b),
             topology, Artifacts(a, b)), "AB_TP_TOPOLOGY_SELECTION_MISMATCH");
     }
 
@@ -205,7 +230,7 @@ public sealed partial class AbMergeFormatAdmissionTests
             : Inspect(Plan("NT51950", 1), Tp(0x97, 1), Tp(0x97, 1));
 
         byte count = missingIdentities ? (byte)2 : (byte)1;
-        AssertBlocked(AbMergeFormatAdmission.Assess(family, "NT51951", Configuration(family), primary, null, Artifacts(Tp(0x97, count), Tp(0x97, count))),
+        AssertBlocked(AssessFormat(family, "NT51951", Configuration(family), primary, null, Artifacts(Tp(0x97, count), Tp(0x97, count))),
             "AB_FORMAT_PRIMARY_INVALID");
     }
 
@@ -219,7 +244,7 @@ public sealed partial class AbMergeFormatAdmissionTests
         EventBufferFormatConfiguration stale = EventBufferFormatConfigurationAdmission.Admit(
             state.Configuration!.ScopeId, [new("unknown-vendor", "Old vendor")],
             [new("unknown-vendor", null, [0x97])]).Configuration!;
-        AssertBlocked(AbMergeFormatAdmission.Assess(family, "NT51951", state with { Configuration = stale },
+        AssertBlocked(AssessFormat(family, "NT51951", state with { Configuration = stale },
             Inspect(plan, Tp(0x97), Tp(0x97)), null, Artifacts(Tp(0x97), Tp(0x97))), "AB_FORMAT_CONFIGURATION_INVALID");
     }
 
@@ -233,7 +258,7 @@ public sealed partial class AbMergeFormatAdmissionTests
         MetadataInspectionResult[] results = [.. primary.Results];
         results[0] = results[0] with { Resolution = results[1].Resolution };
         primary = new(primary.ResolutionToken, primary.AuthoringRevision, primary.ArtifactIdentities, results);
-        AssertBlocked(AbMergeFormatAdmission.Assess(family, "NT51951", Configuration(family), primary, null, Artifacts(Tp(0x97), Tp(0xA6))),
+        AssertBlocked(AssessFormat(family, "NT51951", Configuration(family), primary, null, Artifacts(Tp(0x97), Tp(0xA6))),
             "AB_FORMAT_PRIMARY_INVALID");
     }
 
@@ -247,11 +272,11 @@ public sealed partial class AbMergeFormatAdmissionTests
         FirmwareFamilyResolutionDefinition family = plan.Entries[0].FamilyDefinition;
         MetadataPlanDefinition oldPlan = Plan("NT51950", 2);
         FirmwareFamilyResolutionDefinition oldFamily = oldPlan.Entries[0].FamilyDefinition;
-        AbMergeFormatAdmissionResult previous = AbMergeFormatAdmission.Assess(oldFamily, "NT51950", Configuration(oldFamily),
+        AbMergeFormatAdmissionResult previous = AssessFormat(oldFamily, "NT51950", Configuration(oldFamily),
             Inspect(oldPlan, Tp(0x84, 2), Tp(0x84, 2)), Topology(2), Artifacts(Tp(0x84, 2), Tp(0x84, 2)));
         Assert.True(previous.Succeeded);
         Assert.Equal("nt51950-ab-common-exact2-1024k", previous.Selection!.MapId);
-        AbMergeFormatAdmissionResult result = AbMergeFormatAdmission.Assess(family, "NT51950", Configuration(family),
+        AbMergeFormatAdmissionResult result = AssessFormat(family, "NT51950", Configuration(family),
             Inspect(plan, Tp(0x84, currentCount), Tp(0x84, currentCount)), Topology(selectedCount), Artifacts(Tp(0x84, currentCount), Tp(0x84, currentCount)));
         if (selectedCount == 1)
         {
@@ -284,7 +309,7 @@ public sealed partial class AbMergeFormatAdmissionTests
             2 => [.. Artifacts(Tp(0x84, 2), Tp(0x84, 2)), new("tp-a-input", Tp(0x84, 2))],
             _ => null,
         };
-        AssertBlocked(AbMergeFormatAdmission.Assess(family, "NT51950", Configuration(family), primary, Topology(2), artifacts),
+        AssertBlocked(AssessFormat(family, "NT51950", Configuration(family), primary, Topology(2), artifacts),
             "AB_FORMAT_PRIMARY_INVALID");
     }
 

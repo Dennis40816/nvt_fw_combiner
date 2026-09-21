@@ -1,0 +1,50 @@
+{
+  "schemaVersion": 2,
+  "taskId": "AB-COUNT-EQUALITY-110-01",
+  "capability": "Reject unequal observed positive TPA and TPB IC Counts consistently across AB authoring and execution",
+  "integrationBase": "b9a94a2bab1a7bc05129b3438f0c0afeaaf45ad4",
+  "risk": "R2",
+  "kind": "behavior",
+  "state": "design-active",
+  "mutablePaths": [
+    "src/NvtFwCombiner.Application/Composition/AbMergeTopologyAdmission.cs",
+    "src/NvtFwCombiner.Application/Composition/AbMergeFormatAdmission.cs",
+    "src/NvtFwCombiner.Application/Composition/CompositionRunService.AbMergeTopology.cs",
+    "src/NvtFwCombiner.Application/Authoring/AbMergeAuthoringExperience.Format.cs",
+    "src/NvtFwCombiner.Application/Authoring/AbMergeAuthoringExperience.Readiness.cs",
+    "src/NvtFwCombiner.Application/Authoring/AbMergeAuthoringExperience.cs",
+    "tests/NvtFwCombiner.Application.Tests/Composition/AbMergeTopologyAdmissionTests.cs",
+    "tests/NvtFwCombiner.Bootstrap.Tests/AbMergeFormatAdmissionTests.cs",
+    "tests/NvtFwCombiner.Bootstrap.Tests/AbMergeFormatAdmissionTests.PrimaryDiscovery.cs",
+    "tests/NvtFwCombiner.Bootstrap.Tests/AbMergeTopologyRuntimeAdmissionTests.cs",
+    "tests/NvtFwCombiner.Bootstrap.Tests/AbMergeCanonicalReadinessTests.cs",
+    "tests/NvtFwCombiner.UiSmoke.Tests/ShellViewModelTests.AbMergeReadiness.cs",
+    "tests/NvtFwCombiner.UiSmoke.Tests/FirmwareByteTestData.cs",
+    "docs/adr/0035-ab-topology-operator-selection.md",
+    "docs/adr/0072-event-buffer-format-configuration.md",
+    "src/NvtFwCombiner.Infrastructure/Composition/BuiltInFirmwareInspection.cs"
+  ],
+  "implementationOwner": "root",
+  "searchEvidence": [
+    "Owner requested matching AB TP slot IC Counts with an error on mismatch on 2026-09-21. Local source base 14724c03; preserve existing CHANGELOG.md and delivery discussion edits.",
+    "Scoped CodeGraph/source lookup: AbMergeTopologyAdmission.Assess owns Backup count reading but currently compares single/cascade only. AbMergeFormatAdmission and CompositionRunService.AbMergeTopology skip selector-free routes. Policy-absent authoring Format/Readiness and synchronous PrepareSession require caller closure.",
+    "Owner then explicitly required unreadable counts and zero to error for every TP slot, with distinct readable diagnostics. This AB unit applies that strict policy even without a selector; shared all-TP inspection closure is the next admitted surface. Synthetic positive TP fixtures must provide a real positive count; real firmware/Golden bytes remain unchanged.",
+    "Reuse CompiledInputArtifactInspectionService accepted prefix ranges, existing slot BlockBeforeCompilation, readiness CorrectInput projection and AB_TP_TOPOLOGY_MISMATCH issue. No UI decoder, new semantic owner, profile/bank/CRC/Golden edits. RED narrow test: 1 pass, 4 fail for mixed cascade and selector-free pairs."
+  ],
+  "semanticOwner": "Application AbMergeTopologyAdmission owns pair count equality and optional selector classification; existing authoring/readiness/RunService consume its typed issues",
+  "terminalContract": "Every AB route requires readable positive equal counts before execution and projects slot errors. Diagnostics distinguish unreadable, read-as-zero, and unequal AB counts. Missing/zero precede pair mismatch, which precedes selector mismatch; nullable selector is not inferred. Preserve observed nullable counts and accepted source-prefix boundaries. No bank selection, support promotion, firmware-byte or write-range change.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "/root/layout_ownership_review",
+    "outcome": "findings-incorporated",
+    "evidence": "Independent R2 admission approved positive count mismatch rejection and required an explicit owner decision for missing/zero; owner subsequently required both to error in every TP slot and limited pair comparison to AB. Incorporated non-format-policy authoring/readiness closure, synchronous preparation coverage and IsV2AbMergeRuntimeRoute runtime scope. Reuse count owner and existing error projection; ADR0035/0072 receive current amendments. Scoped review and narrow tests required. Before editing AbMergeCanonicalReadinessTests, admitted migration of its all-zero successful-naming fixture to a valid positive-count TP while preserving complete version/token/hash and ignored-tail assertions; unreadable input has separate rejection coverage. Independent reviewer approved AB snapshot forwarding of existing typed AuthoringCompilationIssues through the same adapter seam as CtrlRAM; retain true stale-file fallback and verify UI count/configuration/stale acceptance. P2 closure approved: compile every same-publication IC/topology/DP-mode candidate solely to compare compiler-owned TP input geometry; fail closed on any failed candidate or unequal boundary; preserve primary artifact identity and sole AbFormatMapResolver map selection. No guessed firmware ranges."
+  },
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": {
+    "reviewer": null,
+    "outcome": "pending",
+    "evidence": ""
+  }
+}

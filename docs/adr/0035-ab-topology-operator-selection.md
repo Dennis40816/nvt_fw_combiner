@@ -109,6 +109,21 @@ certification.
 
 ## Verification
 
+### 2026-09-21 amendment: TP count validity and AB pair equality
+
+The owner now requires every TP firmware slot to expose a blocking error when
+IC Count cannot be read or is zero. AB additionally requires identical TPA and
+TPB counts, including selector-free models and cascade pairs such as 2/3.
+Diagnostics distinguish unreadable count, a count read as zero, and an AB pair
+mismatch with both actual values. Only AB performs the pair comparison.
+This supersedes the earlier informational-only count admission policy, without
+adding hidden selectors or making count observations an output-map authority.
+Source-prefix boundaries, profile support, bank geometry and postbuild writes
+remain unchanged by this validation unit. Bank consolidation and Desay disabling
+are separately pending in the [delivery checklist](../ui/v1.1.10-delivery.md).
+
+### Existing byte and selector verification
+
 - Profile/compiler tests reject a selector for all other Merge routes.
 - UI/CLI tests accept only `single`/`cascade`, show `1 IC`/`Cascade`, and prove
   that metadata cannot silently change a selection.
