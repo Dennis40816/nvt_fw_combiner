@@ -109,6 +109,20 @@ internal sealed partial class FirmwareSlotViewModel : ObservableObject
     /// <summary>Current immutable Application inspection used only by this selected slot projection.</summary>
     internal FirmwareInspectionSnapshot? CurrentInspectionProjection { get; private set; }
 
+    /// <summary>Displays the Application's detected Base type without inferring it from UI state.</summary>
+    public string DetectedBaseTypeLabel => SlotKind == FirmwareSlotKind.Base && HasFile
+        ? CurrentInspectionProjection?.CtrlRamBaseInspection?.Kind switch
+        {
+            CtrlRamBaseKind.StandardTp => "Standard TP Code",
+            CtrlRamBaseKind.StandardFlash => "Standard FlashCode",
+            CtrlRamBaseKind.AbFlash => "AB FlashCode",
+            CtrlRamBaseKind.Unknown => string.Empty,
+            _ => string.Empty,
+        }
+        : string.Empty;
+
+    public bool HasDetectedBaseType => DetectedBaseTypeLabel.Length != 0;
+
     internal long? InspectedFileLength =>
         CurrentInspectionProjection?.FileStamp?.AcceptedLength;
 
@@ -267,11 +281,15 @@ internal sealed partial class FirmwareSlotViewModel : ObservableObject
         }
 
         CurrentInspectionProjection = inspection;
+        OnPropertyChanged(nameof(DetectedBaseTypeLabel));
+        OnPropertyChanged(nameof(HasDetectedBaseType));
     }
 
     internal void ClearCurrentInspectionProjection()
     {
         CurrentInspectionProjection = null;
+        OnPropertyChanged(nameof(DetectedBaseTypeLabel));
+        OnPropertyChanged(nameof(HasDetectedBaseType));
     }
 
     /// <summary>Reprojects cached facts after a language change without collapsing overflow disclosure state.</summary>

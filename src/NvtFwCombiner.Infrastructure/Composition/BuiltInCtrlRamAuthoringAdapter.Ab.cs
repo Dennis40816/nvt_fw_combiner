@@ -9,6 +9,40 @@ namespace NvtFwCombiner.Infrastructure.Composition;
 
 internal sealed partial class BuiltInCtrlRamAuthoringAdapter
 {
+    public IReadOnlyList<CompositionIssue> ValidateAbReference(CompiledComposition layout, ReadOnlyMemory<byte> reference)
+    {
+        try
+        {
+            BankReferenceReplaceDefinition definition = CanonicalDynamicRouteInventory.CreateBankReplaceDefinition();
+            BankReferenceDefinitionSource source = definition.Layout;
+            V2CompiledCompositionDetails details = layout.V2Details;
+            if (details.ProfileId != source.ProfileId || details.ProfileVersion != source.ProfileVersion ||
+                details.Provenance.Bundle.ContentHash != source.Bundle.ContentHash ||
+                details.Provenance.ProfileEntry.ContentHash != source.Entry.ContentHash ||
+                details.Provenance.Context.FamilyContentHash != source.FamilyHash ||
+                details.Provenance.ResolvedMap.ImageMap.MapId != source.MapId)
+            {
+                return [new("input.bank-reference.invalid", "AB detection requires the exact trusted layout definition.")];
+            }
+            BankReferenceDefinitionSource local = definition.Local;
+            IReadOnlyList<FirmwareImageMap> maps = BuiltInV2BundleRegistry.All["nt51929-ctrlram-replace-candidate"]
+                .GetMapVariants(local.ProfileId, local.ProfileVersion, local.MemberId, ExperienceIds.CtrlRamReplace,
+                    out IReadOnlyList<CompositionIssue> issues);
+            if (issues.Count != 0)
+            {
+                return issues;
+            }
+            FirmwareImageMap map = maps.Single(candidate => candidate.MapId == local.MapId);
+            V2CompositionPlanCompiler.ValidateAbReference(layout,
+                new FirmwareArtifactPayload(CompositionAddressSpaceIds.ReferenceBase, reference.Span), map);
+            return [];
+        }
+        catch (Exception exception) when (exception is ArgumentException or InvalidDataException or InvalidOperationException or OverflowException)
+        {
+            return [new("input.bank-reference.invalid", exception.Message, CompositionSlotIds.ReplaceBase)];
+        }
+    }
+
     public CapabilityRouteResolutionResult ResolveAbReferenceRoute(string icId, string number)
     {
         return !string.IsNullOrWhiteSpace(icId) &&

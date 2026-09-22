@@ -17,38 +17,9 @@ internal static partial class V2CompositionPlanCompiler
         ArgumentNullException.ThrowIfNull(reference);
         ArgumentNullException.ThrowIfNull(localCatalog);
         ArgumentNullException.ThrowIfNull(requests);
-        V2CompiledCompositionDetails details = abLayout.V2Details;
-        RequireBankShape(details.ProfileId == "nt51929-ab-merge" && details.ProfileVersion == "0.4.0" &&
-            details.Provenance.Context is ResolvedMapV2CompilationContext &&
-            details.Provenance.Context.MemberId == "NT51929" && details.ExperienceId == ExperienceIds.AbMerge,
-            "Only the trusted NT51929 AB layout is admitted by this preparation.");
-        FirmwareImageMap map = details.Provenance.ResolvedMap.ImageMap;
-        RequireBankShape(reference.LengthBytes == map.CapacityBytes && requests.Count is >= 1 and <= 2,
-            "Reference length and selected banks must match the canonical AB layout.");
-        FirmwareRegionInstance[] instances = [.. map.RegionSets.SelectMany(static set => set.RegionInstances)];
-        FirmwareRegionInstance a = instances.Single(static instance => instance.InstanceId == "a-bank");
-        FirmwareRegionInstance b = instances.Single(static instance => instance.InstanceId == "b-bank");
-        long delta = checked(b.BaseOffset - a.BaseOffset);
-        long capacity = a.Template.Capacity;
-        RequireBankShape(a.BaseOffset == 0 && delta == capacity && b.Template.Capacity == capacity &&
-            checked(b.BaseOffset + capacity) == reference.LengthBytes, "AB bank geometry is not a contiguous equal-sized pair.");
-        CompositionOperation[] relocation = [.. abLayout.Plan.OrderedOperations.Where(static operation =>
-            operation.Kind == CompositionOperationKind.TransformScalar)];
-        RequireBankShape(relocation.Length == 3 && !abLayout.Plan.OrderedOperations.Any(static operation =>
-            operation.Kind == CompositionOperationKind.RunExternalProcessor), "AB relocation requires a different finalization contract.");
-        foreach (CompositionOperation operation in relocation)
-        {
-            ScalarTransform transform = operation.ScalarTransform!;
-            RequireBankShape(transform.Width == ScalarTransformWidth.FourBytes &&
-                transform.ByteOrder == ScalarTransformByteOrder.LittleEndian && transform.Addend == delta &&
-                transform.AddendSource.SourceRegionInstanceId == a.InstanceId &&
-                transform.AddendSource.TargetRegionInstanceId == b.InstanceId &&
-                operation.SourceSpaceId == operation.TargetSpaceId && operation.SourceRange == operation.TargetRange &&
-                operation.TargetRange.EndExclusive <= capacity, "Unexpected canonical AB scalar relocation.");
-        }
-
-        // All address checks precede local compilation and every external operation, including A-only.
-        ValidateBankAddresses(map, reference, relocation, capacity, delta);
+        RequireBankShape(requests.Count is >= 1 and <= 2, "One or two selected banks are required.");
+        (FirmwareImageMap map, FirmwareRegionInstance a, FirmwareRegionInstance b, long capacity, long delta,
+            CompositionOperation[] relocation) = ValidateAbReferenceLayout(abLayout, reference);
         var banks = new List<V2RuntimeReferenceBankReplaceBinding>();
         var seen = new HashSet<string>(StringComparer.Ordinal);
         V2ExplicitMappingInputBinding[]? sharedSources = null;
@@ -155,6 +126,54 @@ internal static partial class V2CompositionPlanCompiler
         RequireBankShape(issues.Count == 0, string.Join("; ", issues.Select(static issue => issue.Message)));
         return new V2RuntimeReferenceBankReplacePlan(abLayout, reference,
             new CompositionPlan(initializations, output, spaces.Values, operations), banks);
+    }
+
+    /// <summary>Read-only structural verification shared by detection and execution; no replacement plan is created.</summary>
+    internal static void ValidateAbReference(CompiledComposition abLayout, FirmwareArtifactPayload reference, FirmwareImageMap localMap)
+    {
+        (FirmwareImageMap map, _, _, long capacity, long delta, CompositionOperation[] relocation) =
+            ValidateAbReferenceLayout(abLayout, reference);
+        ValidateSingleBankNativeInputs(map, localMap, reference,
+            relocation.Single(static operation => operation.OperationId == "relocate-tpb-diff").TargetRange, capacity, delta);
+    }
+
+    private static (FirmwareImageMap Map, FirmwareRegionInstance A, FirmwareRegionInstance B, long Capacity,
+        long Delta, CompositionOperation[] Relocation) ValidateAbReferenceLayout(
+        CompiledComposition abLayout, FirmwareArtifactPayload reference)
+    {
+        V2CompiledCompositionDetails details = abLayout.V2Details;
+        RequireBankShape(details.ProfileId == "nt51929-ab-merge" && details.ProfileVersion == "0.4.0" &&
+            details.Provenance.Context is ResolvedMapV2CompilationContext &&
+            details.Provenance.Context.MemberId == "NT51929" && details.ExperienceId == ExperienceIds.AbMerge,
+            "Only the trusted NT51929 AB layout is admitted by this preparation.");
+        FirmwareImageMap map = details.Provenance.ResolvedMap.ImageMap;
+        RequireBankShape(reference.LengthBytes == map.CapacityBytes,
+            "Reference length and selected banks must match the canonical AB layout.");
+        FirmwareRegionInstance[] instances = [.. map.RegionSets.SelectMany(static set => set.RegionInstances)];
+        FirmwareRegionInstance a = instances.Single(static instance => instance.InstanceId == "a-bank");
+        FirmwareRegionInstance b = instances.Single(static instance => instance.InstanceId == "b-bank");
+        long delta = checked(b.BaseOffset - a.BaseOffset);
+        long capacity = a.Template.Capacity;
+        RequireBankShape(a.BaseOffset == 0 && delta == capacity && b.Template.Capacity == capacity &&
+            checked(b.BaseOffset + capacity) == reference.LengthBytes, "AB bank geometry is not a contiguous equal-sized pair.");
+        CompositionOperation[] relocation = [.. abLayout.Plan.OrderedOperations.Where(static operation =>
+            operation.Kind == CompositionOperationKind.TransformScalar)];
+        RequireBankShape(relocation.Length == 3 && !abLayout.Plan.OrderedOperations.Any(static operation =>
+            operation.Kind == CompositionOperationKind.RunExternalProcessor), "AB relocation requires a different finalization contract.");
+        foreach (CompositionOperation operation in relocation)
+        {
+            ScalarTransform transform = operation.ScalarTransform!;
+            RequireBankShape(transform.Width == ScalarTransformWidth.FourBytes &&
+                transform.ByteOrder == ScalarTransformByteOrder.LittleEndian && transform.Addend == delta &&
+                transform.AddendSource.SourceRegionInstanceId == a.InstanceId &&
+                transform.AddendSource.TargetRegionInstanceId == b.InstanceId &&
+                operation.SourceSpaceId == operation.TargetSpaceId && operation.SourceRange == operation.TargetRange &&
+                operation.TargetRange.EndExclusive <= capacity, "Unexpected canonical AB scalar relocation.");
+        }
+
+        // All address checks precede local compilation and every external operation, including A-only.
+        ValidateBankAddresses(map, reference, relocation, capacity, delta);
+        return (map, a, b, capacity, delta, relocation);
     }
 
     private static void ValidateBankAddresses(FirmwareImageMap map, FirmwareArtifactPayload reference,

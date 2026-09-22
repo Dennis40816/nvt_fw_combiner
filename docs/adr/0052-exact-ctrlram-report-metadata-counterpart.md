@@ -126,6 +126,30 @@ selection is page-local: it never changes drafts, revisions, leases, inspection,
 Report or executable operations. Missing AB CtrlRAM endpoint metadata is not
 supplied by this extension.
 
+### Automatic Reference classification and complete bank facts — 2026-09-22
+
+Application reuses the current canonical publication and the existing trusted
+NT51929 AB/local pair for read-only Reference classification. Complete bank
+placements come from the exact AB map, not selected replacement obligations.
+Existing metadata readers and profile-owned structural guards inspect slices of
+the same captured Reference. Bank observations retain their identity and absolute
+Reference range. Local metadata plans remain local; they are not relabelled as
+full AB plans.
+
+Complete Reference observations are independent of A/B/Both replacement selection
+and the memory viewport. Neither classification nor observation grants execution
+or support authority. Exact route readiness, candidate disclosure, immutable-input
+admission and selected-bank execution validations remain mandatory. Ambiguous
+declarations, stale publication and invalid recognized AB structure are terminal;
+no Standard or alternate metadata-plan fallback is introduced. The effective draft
+is adopted atomically with a current successful inspection batch.
+
+The current NT51929 display binding does not select Event Buffer Format, although
+the shared structure declares the field. Its fact is explicitly unavailable;
+inspection must not bypass the binding with a raw offset or borrow the NT51950
+format-selection policy. Equal typed PID/Common/count values may share an A/B
+display label; differing values remain bank-specific.
+
 ## Verification
 
 - Schema and loader tests accept the 19 exact declarations and 6 exact

@@ -1,6 +1,7 @@
 using System.Text.Json;
 using NvtFwCombiner.Application.Authoring;
 using NvtFwCombiner.Application.Capabilities;
+using NvtFwCombiner.Application.InputInspection;
 using NvtFwCombiner.Application.Metadata;
 using NvtFwCombiner.Application.Ports;
 using NvtFwCombiner.Domain.Composition;
@@ -318,7 +319,8 @@ public sealed partial class FirmwareInspectionSnapshotTests
                 BootstrapTestHost.Canonical.Projection));
         var countedAuthoring = new CtrlRamAuthoringExperience(
             countingAdapter,
-            BootstrapTestHost.Services.ExternalEnvironment);
+            BootstrapTestHost.Services.ExternalEnvironment,
+            new FirmwareArtifactClassificationResolver(BootstrapTestHost.Canonical.Catalog, BootstrapTestHost.Services.Compiler));
         FirmwareInspectionStatusBatch countedBatch = countedAuthoring.InspectInputSlots(
             "NT51923",
             [
@@ -347,10 +349,30 @@ public sealed partial class FirmwareInspectionSnapshotTests
         Assert.Equal(callsAfterInspection, countingAdapter.Counts);
     }
 
+    /// <summary>Prepare cannot adopt a compilation from a publication different from its base observations.</summary>
+    [Fact]
+    public void CtrlRamPrepareRefusesPublicationChangedBetweenClassificationAndCompilation()
+    {
+        var host = new IsolatedBootstrapTestHost();
+        Assert.True(host.Catalog.Reload(TestContext.Current.CancellationToken).Succeeded);
+        var adapter = new CountingCtrlRamAuthoringAdapter(new BuiltInCtrlRamAuthoringAdapter(host.Canonical.Catalog, host.Canonical.Projection));
+        var owner = new CtrlRamAuthoringExperience(adapter, host.Services.ExternalEnvironment,
+            new FirmwareArtifactClassificationResolver(host.Canonical.Catalog, host.Services.Compiler));
+        (Dictionary<string, string> paths, Dictionary<string, byte[]> bytes) = AbCtrlRamAuthoringTests.Inputs();
+        Assert.True(owner.PrepareSession(new(ExperienceIds.CtrlRamReplace), "NT51929", "single", paths, bytes).Succeeded);
+        adapter.BeforeResolve = () => Assert.True(host.Catalog.Reload(TestContext.Current.CancellationToken).Succeeded);
+        var state = new AuthoringSessionState(ExperienceIds.CtrlRamReplace);
+        CtrlRamAuthoringSessionPreparation refused = owner.PrepareSession(state, "NT51929", "single", paths, bytes);
+        Assert.False(refused.Succeeded);
+        Assert.Contains(refused.Issues, static issue => issue.Code == AuthoringSessionIssueCodes.StaleInspection);
+        Assert.Null(state.CurrentSnapshot);
+    }
+
     private sealed class CountingCtrlRamAuthoringAdapter(ICtrlRamAuthoringAdapter inner)
         : ICtrlRamAuthoringAdapter
     {
         internal int ResolveCalls { get; private set; }
+        internal Action? BeforeResolve { get; set; }
 
         internal (int Resolve, int IsAccepted) Counts =>
             (ResolveCalls, IsAcceptedCapabilityCalls);
@@ -360,6 +382,11 @@ public sealed partial class FirmwareInspectionSnapshotTests
         public CapabilityRouteResolutionResult ResolveAbReferenceRoute(string icId, string number)
         {
             return inner.ResolveAbReferenceRoute(icId, number);
+        }
+
+        public IReadOnlyList<CompositionIssue> ValidateAbReference(CompiledComposition layout, ReadOnlyMemory<byte> reference)
+        {
+            return inner.ValidateAbReference(layout, reference);
         }
 
         public CtrlRamInspectionDisplay GetDiscoveryDisplay(
@@ -385,6 +412,7 @@ public sealed partial class FirmwareInspectionSnapshotTests
             IReadOnlyDictionary<string, byte[]>? selectedInputBytes = null)
         {
             ResolveCalls++;
+            BeforeResolve?.Invoke();
             return inner.Resolve(
                 icId,
                 number,

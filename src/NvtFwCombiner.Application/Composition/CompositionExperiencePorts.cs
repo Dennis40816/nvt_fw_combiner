@@ -223,6 +223,9 @@ public interface ISavedRuleAuthoring
 /// <summary>Focused CtrlRAM Replace authoring owner.</summary>
 public interface ICtrlRamAuthoring
 {
+    /// <summary>Checks the publication of a captured Base discovery before applying its draft.</summary>
+    bool IsCurrentBaseInspection(CtrlRamBaseInspection inspection);
+
     /// <summary>Projects the exact AB Reference route without inspecting input bytes.</summary>
     CapabilityWorkflowReadiness GetAbReferenceReadiness(string icId, string number);
 
@@ -250,7 +253,8 @@ public interface ICtrlRamAuthoring
     AuthoringSessionTransitionResult AdoptInspectedBatch(
         AuthoringSessionState session,
         AuthoringCapabilityCatalogSnapshot catalog,
-        IReadOnlyCollection<AuthoringInputSlotStatus> statuses);
+        IReadOnlyCollection<AuthoringInputSlotStatus> statuses,
+        CtrlRamBaseInspection? baseInspection = null);
 
     /// <summary>Gets CtrlRAM action readiness.</summary>
     ValueTask<CapabilityActionReadinessSnapshot?> GetActionReadinessAsync(

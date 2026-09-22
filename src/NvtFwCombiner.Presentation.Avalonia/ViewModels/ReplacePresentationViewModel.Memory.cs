@@ -169,6 +169,8 @@ internal sealed partial class ReplacePresentationViewModel
     /// <summary>Returns dynamic CtrlRAM inputs to discovery state after their Base identity is cleared.</summary>
     internal void ClearCtrlRamBaseSelectionState()
     {
+        CurrentCtrlRamDraft = null;
+        NotifyCtrlRamBankState();
         PrepareClearCtrlRamInspectionDisplay();
         RefreshReplaceModeState();
         PublishAcceptedModeContext();

@@ -132,7 +132,9 @@ internal sealed partial class BuiltInFirmwareInspection : IFirmwareInspection
                 ReadOnce,
                 input.ExactCapability,
                 input.StandardMergeAddressSpaceId,
-                metadataAuthority);
+                metadataAuthority,
+                input.CtrlRamReplaceAddressSpaceId == CompositionAddressSpaceIds.ReferenceBase
+                    ? ctrlRamInputBatch.CtrlRamBaseInspection : null);
             if (!string.IsNullOrWhiteSpace(input.AbMergeAddressSpaceId))
             {
                 snapshot = snapshot with
@@ -165,6 +167,8 @@ internal sealed partial class BuiltInFirmwareInspection : IFirmwareInspection
                     InputSlotStatus = ctrlRamStatus,
                     InputSlotCatalog = ctrlRamInputBatch.Catalog,
                     AuthoringCompilationIssues = input.CtrlRamReplaceAddressSpaceId == CompositionAddressSpaceIds.ReferenceBase ? ctrlRamInputBatch.Issues : [],
+                    CtrlRamBaseInspection = input.CtrlRamReplaceAddressSpaceId == CompositionAddressSpaceIds.ReferenceBase
+                        ? ctrlRamInputBatch.CtrlRamBaseInspection : null,
                     CtrlRamBaseDiscoveryReadiness =
                         ctrlRamInputBatch.CtrlRamBaseDiscovery is { } discovery &&
                         StringComparer.Ordinal.Equals(discovery.InspectionId, input.InspectionId)
@@ -209,7 +213,8 @@ internal sealed partial class BuiltInFirmwareInspection : IFirmwareInspection
         Func<string, byte[]?> readFirmwareImage,
         ResolvedCapability? exactCapability = null,
         string? standardMergeAddressSpaceId = null,
-        FirmwareMetadataPlanAuthority? metadataAuthority = null)
+        FirmwareMetadataPlanAuthority? metadataAuthority = null,
+        CtrlRamBaseInspection? baseInspection = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(icId);
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
@@ -249,8 +254,9 @@ internal sealed partial class BuiltInFirmwareInspection : IFirmwareInspection
             : string.Equals(path, tpPath, StringComparison.Ordinal)
                 ? image
                 : readFirmwareImage(tpPath);
+        bool isAbReference = baseInspection?.Kind == CtrlRamBaseKind.AbFlash;
         FirmwareConfigMetadata? firmwareConfig =
-            TryReadFirmwareConfigMetadataFromImage(
+            !isAbReference && TryReadFirmwareConfigMetadataFromImage(
                 inspection._projection,
                 icId,
                 image,
@@ -258,7 +264,7 @@ internal sealed partial class BuiltInFirmwareInspection : IFirmwareInspection
                     ? metadata
                     : null;
         CompiledFirmwareArtifactClassification? artifactClassification =
-            inspection._artifactClassification.Resolve(icId, exactCapability, image);
+            isAbReference ? null : inspection._artifactClassification.Resolve(icId, exactCapability, image);
         BaseFirmwareArtifactKind artifactKind = artifactClassification?.Kind switch
         {
             CompiledFirmwareArtifactKind.TpFirmware => BaseFirmwareArtifactKind.TpFirmware,
@@ -266,7 +272,7 @@ internal sealed partial class BuiltInFirmwareInspection : IFirmwareInspection
             CompiledFirmwareArtifactKind.Unknown or null => BaseFirmwareArtifactKind.Unknown,
             _ => throw new InvalidOperationException("Unknown compiled firmware artifact kind."),
         };
-        bool shouldProjectDpMetadata = artifactClassification?.IsDpMetadataApplicable != false;
+        bool shouldProjectDpMetadata = !isAbReference && artifactClassification?.IsDpMetadataApplicable != false;
         LegacyCombinerPostbuildProfile? postbuildProfile = TryResolvePostbuildProfileForDisplay(
             inspection._projection,
             icId,
@@ -275,7 +281,10 @@ internal sealed partial class BuiltInFirmwareInspection : IFirmwareInspection
                 ? resolvedProfile
                 : null;
         CtrlRamInspectionDisplay? ctrlRamDisplay = ctrlRamRequest is { } request
-            ? BuiltInCtrlRamAuthoringAdapter.CreateDisplay(
+            ? isAbReference
+                ? ProjectCtrlRamInspectionDisplay(inspection, icId, request.NumberToken,
+                    baseInspection!.Banks.FirstOrDefault(static bank => bank.FirmwareConfig is not null)?.FirmwareConfig)
+                : BuiltInCtrlRamAuthoringAdapter.CreateDisplay(
                 icId,
                 request.NumberToken,
                 postbuildProfile,

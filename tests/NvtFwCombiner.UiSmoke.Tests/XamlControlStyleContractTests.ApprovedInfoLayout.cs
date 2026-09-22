@@ -5,6 +5,8 @@ using Avalonia.Headless.XUnit;
 using Avalonia.Styling;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
+using NvtFwCombiner.Application.Capabilities;
+using NvtFwCombiner.Application.Authoring;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
 using NvtFwCombiner.Presentation.Avalonia.Views;
 
@@ -42,6 +44,10 @@ public sealed partial class XamlControlStyleContractTests
         };
         ShellTextResources text = ShellTextResources.For(chinese ? ShellLanguage.ChineseTraditional : ShellLanguage.English);
         slot.ApplyExperienceText(text);
+        slot.SetCurrentInspectionProjection(new(null, null, null, null, null, null)
+        {
+            CtrlRamBaseInspection = new(CtrlRamBaseKind.AbFlash, null, [], [], new ResolutionToken("visual-fixture"), FileStamp.FromBytes([])),
+        });
         slot.SetInputInspection(FirmwareInputInspectionSeverity.Valid, "Inspected");
         slot.SetFirmwareFacts([
             new("TPA Version", "T05-00"), new("TPB Version", "T06-00"),
@@ -61,6 +67,10 @@ public sealed partial class XamlControlStyleContractTests
         {
             Layout();
             Button filename = Assert.Single(card.GetVisualDescendants().OfType<Button>(), b => b.Classes.Contains("fileRevealAction"));
+            Label detectedType = card.FindControl<Label>("DetectedBaseType")!;
+            Assert.True(detectedType.IsEffectivelyVisible);
+            Assert.Equal("AB FlashCode", detectedType.Content);
+            Assert.True(Bottom(detectedType) <= Top(filename), "Detected type stays with the title above the filename and facts.");
             ItemsControl primary = card.FindControl<ItemsControl>("PrimaryFirmwareFactsHost")!;
             StackPanel actions = card.FindControl<StackPanel>("SlotActions")!;
             Grid main = card.FindControl<Grid>("SlotLayout")!;

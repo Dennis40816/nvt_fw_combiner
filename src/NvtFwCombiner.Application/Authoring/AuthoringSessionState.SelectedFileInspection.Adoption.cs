@@ -1,5 +1,7 @@
 using NvtFwCombiner.Application.Capabilities;
+using NvtFwCombiner.Application.Composition;
 using NvtFwCombiner.Application.Metadata;
+using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Application.Authoring;
 
@@ -135,7 +137,8 @@ public sealed partial class AuthoringSessionState
     /// <summary>Atomically adopts one complete exact inspection without re-reading its content.</summary>
     internal AuthoringSessionTransitionResult TryAdoptExactSlotFileInspectionBatch(
         AuthoringCapabilityCatalogSnapshot catalog,
-        IReadOnlyCollection<AuthoringInputSlotStatus> statuses)
+        IReadOnlyCollection<AuthoringInputSlotStatus> statuses,
+        CtrlRamBaseInspection? baseInspection = null)
     {
         ArgumentNullException.ThrowIfNull(catalog);
         ArgumentNullException.ThrowIfNull(statuses);
@@ -160,6 +163,13 @@ public sealed partial class AuthoringSessionState
                 .ToHashSet(StringComparer.Ordinal);
             bool invalid = route is null ||
                 inspected is null ||
+                (baseInspection is not null && (baseInspection.Issues.Count != 0 ||
+                    baseInspection.ResolutionToken != catalog.ResolutionToken ||
+                    baseInspection.Kind == CtrlRamBaseKind.Unknown ||
+                    !Equals(baseInspection.EffectiveDraft, inspected?.CtrlRamExecutionPlan?.Draft) ||
+                    captured.Count(static status => status.AddressSpaceId == CompositionAddressSpaceIds.ReferenceBase) != 1 ||
+                    !captured.Any(status => status.AddressSpaceId == CompositionAddressSpaceIds.ReferenceBase &&
+                        status.FileStamp == baseInspection.ReferenceStamp))) ||
                 captured.Length == 0 ||
                 definitionIds.Count != captured.Length ||
                 !definitionIds.SetEquals(route.SlotDefinitions.Select(
@@ -198,6 +208,15 @@ public sealed partial class AuthoringSessionState
             if (!activated.Succeeded)
             {
                 return activated;
+            }
+
+            if (baseInspection is not null)
+            {
+                AuthoringSessionTransitionResult drafted = SetDraft(baseInspection.EffectiveDraft);
+                if (!drafted.Succeeded)
+                {
+                    return drafted;
+                }
             }
 
             AuthoringSlotInspectionBatchStartResult started = BeginSlotFileInspections(

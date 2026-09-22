@@ -11,13 +11,23 @@ internal sealed partial class CtrlRamAuthoringExperience :
 {
     private readonly ICtrlRamAuthoringAdapter _adapter;
     private readonly IRuntimeDependencyReadinessLeaseProvider _runtimeLeases;
+    private readonly FirmwareArtifactClassificationResolver _artifactClassification;
 
     internal CtrlRamAuthoringExperience(
         ICtrlRamAuthoringAdapter adapter,
-        IRuntimeDependencyReadinessLeaseProvider runtimeLeases)
+        IRuntimeDependencyReadinessLeaseProvider runtimeLeases,
+        FirmwareArtifactClassificationResolver artifactClassification)
     {
         _adapter = adapter ?? throw new ArgumentNullException(nameof(adapter));
         _runtimeLeases = runtimeLeases ?? throw new ArgumentNullException(nameof(runtimeLeases));
+        _artifactClassification = artifactClassification ?? throw new ArgumentNullException(nameof(artifactClassification));
+    }
+
+    /// <inheritdoc />
+    public bool IsCurrentBaseInspection(CtrlRamBaseInspection inspection)
+    {
+        ArgumentNullException.ThrowIfNull(inspection);
+        return _artifactClassification.IsCurrent(inspection);
     }
 
     /// <inheritdoc />
@@ -88,10 +98,13 @@ internal sealed partial class CtrlRamAuthoringExperience :
     public AuthoringSessionTransitionResult AdoptInspectedBatch(
         AuthoringSessionState session,
         AuthoringCapabilityCatalogSnapshot catalog,
-        IReadOnlyCollection<AuthoringInputSlotStatus> statuses)
+        IReadOnlyCollection<AuthoringInputSlotStatus> statuses,
+        CtrlRamBaseInspection? baseInspection = null)
     {
         ArgumentNullException.ThrowIfNull(session);
-        return session.TryAdoptExactSlotFileInspectionBatch(catalog, statuses);
+        return baseInspection is not null && !_artifactClassification.IsCurrent(baseInspection)
+            ? new(session.CurrentSnapshot, new(AuthoringSessionIssueCodes.StaleInspection, "The Reference classification publication is no longer current."))
+            : session.TryAdoptExactSlotFileInspectionBatch(catalog, statuses, baseInspection);
     }
 
     private bool TryPrepareSession(
@@ -107,6 +120,20 @@ internal sealed partial class CtrlRamAuthoringExperience :
         ArgumentNullException.ThrowIfNull(slotPaths);
         ArgumentNullException.ThrowIfNull(inputBytes);
         ArgumentNullException.ThrowIfNull(session);
+        CtrlRamBaseInspection? baseInspection = null;
+        if (inputBytes.TryGetValue(CompositionSlotIds.ReplaceBase, out byte[]? reference))
+        {
+            CtrlRamBaseInspection inspection = _artifactClassification.ResolveCtrlRamBase(
+                icId, null, reference, firmwareVersionEdit, _adapter);
+            baseInspection = inspection;
+            if (inspection.Issues.Count != 0)
+            {
+                acceptedSession = null;
+                issues = inspection.Issues;
+                return false;
+            }
+            firmwareVersionEdit = inspection.EffectiveDraft;
+        }
         CtrlRamAuthoringCompilation compilation = _adapter.Resolve(
             icId,
             number,
@@ -166,6 +193,13 @@ internal sealed partial class CtrlRamAuthoringExperience :
 
         var catalog =
             AuthoringCapabilityCatalogSnapshot.FromResolvedCapability(resolved);
+        if (baseInspection is not null && (baseInspection.ResolutionToken != resolved.ResolutionToken ||
+            !_artifactClassification.IsCurrent(baseInspection)))
+        {
+            acceptedSession = null;
+            issues = [new(AuthoringSessionIssueCodes.StaleInspection, "The catalog changed between Base classification and compilation.")];
+            return false;
+        }
         AuthoringSessionTransitionResult activated = session.Activate(catalog);
         if (!activated.Succeeded)
         {

@@ -5,9 +5,8 @@ namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
 internal sealed partial class ShellTextResources
 {
-    public string CtrlRamReferenceFormatLabel { get; init; } = string.Empty;
-    public string CtrlRamStandardReferenceLabel { get; init; } = string.Empty;
-    public string CtrlRamAbReferenceLabel { get; init; } = string.Empty;
+    public string FirmwareFactNotProvidedLabel { get; init; } = string.Empty;
+    public string FirmwareFactNotProvidedDetail { get; init; } = string.Empty;
     public string CtrlRamTargetBanksLabel { get; init; } = string.Empty;
     public string CtrlRamBothBanksLabel { get; init; } = string.Empty;
     public string CtrlRamSharedSourcesDetail { get; init; } = string.Empty;

@@ -341,6 +341,11 @@ internal sealed partial class WorkflowSessionPresentationViewModel
         FirmwareInspectionBatchRequest request,
         FirmwareInspectionBatchResult result)
     {
+        if (result.InspectionsById.Values.Any(inspection => inspection.CtrlRamBaseInspection is { } baseInspection &&
+                !_compositionServices.CtrlRamAuthoring.IsCurrentBaseInspection(baseInspection)))
+        {
+            return false;
+        }
         bool standardMergeAccepted =
             !request.Items.Any(static item => item.StandardMergeAddressSpaceId is not null) ||
             _merge.TryCompleteStandardMergeInputBatch(
@@ -351,14 +356,7 @@ internal sealed partial class WorkflowSessionPresentationViewModel
             _merge.TryCompleteAbMergeInputBatch(
                 request.Items,
                 result.InspectionsById);
-        FirmwareInspectionItemRequest[] replaceItems =
-        [
-            .. request.Items.Where(static item => item.CtrlRamReplaceAddressSpaceId is not null),
-        ];
-        bool replaceDiscoveryOnly = replaceItems.Length > 0 && replaceItems.All(item =>
-            result.InspectionsById[item.SlotId].CtrlRamBaseDiscoveryReadiness ==
-                CtrlRamBaseDiscoveryReadiness.Inspected);
-        bool replaceAccepted = replaceDiscoveryOnly || _replace.TryCompleteReplaceInputBatch(
+        bool replaceAccepted = _replace.TryCompleteReplaceInputBatch(
             request.Items,
             result.InspectionsById);
         FirmwareInspectionItemRequest ctrlRamBase = request.Items.FirstOrDefault(static item =>
@@ -410,7 +408,7 @@ internal sealed partial class WorkflowSessionPresentationViewModel
                     (item.AbMergeAddressSpaceId is not null &&
                         !abMergeAccepted) ||
                     (item.CtrlRamReplaceAddressSpaceId is not null &&
-                        !replaceAccepted))
+                        !replaceAccepted && !inputSlotStatus.BlocksBuild))
                 {
                     slot.SetInputInspection(
                         FirmwareInputInspectionSeverity.Blocking,

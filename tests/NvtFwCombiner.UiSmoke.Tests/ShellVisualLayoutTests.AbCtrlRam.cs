@@ -45,13 +45,10 @@ public sealed class AbCtrlRamVisualTests(ShellViewModelTestHostFixture fixture)
             window.Measure(new Size(1440, 1000));
             window.Arrange(new Rect(0, 0, 1440, 1000));
             Dispatcher.UIThread.RunJobs();
-            ToggleButton ab = Assert.Single(window.GetVisualDescendants().OfType<ToggleButton>(), static item => item.Name == "CtrlRamAbReferenceChoice");
-            Assert.True(ab.Focus());
-            PressSpace(window);
+            Assert.DoesNotContain(window.GetVisualDescendants().OfType<ToggleButton>(), static item => item.Name is "CtrlRamAbReferenceChoice" or "CtrlRamStandardReferenceChoice");
+            await viewModel.WorkflowSession.SetSlotFileAsync(CompositionSlotIds.ReplaceBase, AbCtrlRamReferencePath, TestContext.Current.CancellationToken);
+            Dispatcher.UIThread.RunJobs();
             Assert.True(viewModel.Replace.IsAbCtrlRamReference);
-            Assert.True(ab.IsChecked);
-            PressSpace(window);
-            Assert.True(ab.IsChecked);
             Assert.True(viewModel.Replace.IsCtrlRamBothBanksSelected);
             DropDownButton scope = Assert.Single(window.GetVisualDescendants().OfType<DropDownButton>(), item => item.Name == "CtrlRamBankScopeMenu");
             MenuFlyout choices = Assert.IsType<MenuFlyout>(scope.Flyout);
@@ -72,7 +69,8 @@ public sealed class AbCtrlRamVisualTests(ShellViewModelTestHostFixture fixture)
             await viewModel.WorkflowSession.SetSlotFileAsync("replace-ctrlram-nf", AbCtrlRamNfPath, TestContext.Current.CancellationToken);
             Assert.True(viewModel.Replace.CanBuildReplace, viewModel.Replace.ReplaceReadinessStatus);
             Assert.False(viewModel.Replace.HasMemoryLayoutDisplayError);
-            Assert.Equal("TPA Version", Assert.Single(viewModel.Replace.ReplaceBaseSlot.PrimaryFirmwareFacts).Label);
+            Assert.Equal(["TPA Version", "TPB Version"], viewModel.Replace.ReplaceBaseSlot.PrimaryFirmwareFacts.Take(2).Select(static fact => fact.Label));
+            Assert.Equal("AB FlashCode", viewModel.Replace.ReplaceBaseSlot.DetectedBaseTypeLabel);
             Dispatcher.UIThread.RunJobs();
             AvaloniaHeadlessPlatform.ForceRenderTimerTick();
             ToggleButton bankView = Assert.Single(window.GetVisualDescendants().OfType<ToggleButton>(), item => item.Name == "CtrlRamBankViewSwitch");
@@ -128,12 +126,11 @@ public sealed class AbCtrlRamVisualTests(ShellViewModelTestHostFixture fixture)
             Assert.Empty(viewModel.Replace.CtrlRamOverview);
             viewModel.WorkflowSession.SelectedIc = "NT51929";
             viewModel.Replace.SelectedReplaceMode = ExperienceIds.CtrlRamReplace;
-            await viewModel.Replace.SelectAbCtrlRamReferenceCommand.ExecuteAsync(null);
-            await viewModel.Replace.SelectCtrlRamBanksCommand.ExecuteAsync(AbCtrlRamBankSelection.Both);
             await viewModel.WorkflowSession.SetSlotFileAsync(CompositionSlotIds.ReplaceBase, AbCtrlRamReferencePath, TestContext.Current.CancellationToken);
+            await viewModel.Replace.SelectCtrlRamBanksCommand.ExecuteAsync(AbCtrlRamBankSelection.Both);
             await viewModel.WorkflowSession.SetSlotFileAsync("replace-ctrlram-nf", AbCtrlRamNfPath, TestContext.Current.CancellationToken);
             Assert.True(viewModel.Replace.HasCtrlRamBankView);
-            Assert.Equal(["TPA Version", "TPB Version"], viewModel.Replace.ReplaceBaseSlot.PrimaryFirmwareFacts.Select(static fact => fact.Label));
+            Assert.Equal(["TPA Version", "TPB Version"], viewModel.Replace.ReplaceBaseSlot.PrimaryFirmwareFacts.Take(2).Select(static fact => fact.Label));
             viewModel.Replace.IsViewingCtrlRamBankB = true;
             Dispatcher.UIThread.RunJobs();
             AvaloniaHeadlessPlatform.ForceRenderTimerTick();
@@ -143,11 +140,23 @@ public sealed class AbCtrlRamVisualTests(ShellViewModelTestHostFixture fixture)
             {
                 bothFrame.Save(Path.Combine(output, $"ab-info-layout-1440x1000-{(dark ? "dark-zh" : "light-en")}.png"));
             }
-            await viewModel.Replace.SelectStandardCtrlRamReferenceCommand.ExecuteAsync(null);
+            viewModel.Replace.ReplaceBaseSlot.IsAdditionalFirmwareFactsExpanded = true;
+            Assert.Contains(viewModel.Replace.ReplaceBaseSlot.AdditionalFirmwareFacts, static fact => fact.Label == "DPA Version");
+            Assert.Contains(viewModel.Replace.ReplaceBaseSlot.AdditionalFirmwareFacts, static fact => fact.Label == "DPB Version");
+            Assert.Contains(viewModel.Replace.ReplaceBaseSlot.AdditionalFirmwareFacts, static fact => fact.Label == "IC Count (A/B)");
+            Dispatcher.UIThread.RunJobs();
+            AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+            using global::Avalonia.Media.Imaging.Bitmap? detailsFrame = window.GetLastRenderedFrame();
+            Assert.NotNull(detailsFrame);
+            if (output is not null)
+            {
+                detailsFrame.Save(Path.Combine(output, $"ab-info-details-1440x1000-{(dark ? "dark-zh" : "light-en")}.png"));
+            }
+            await viewModel.WorkflowSession.ClearSlotFileCommand.ExecuteAsync(CompositionSlotIds.ReplaceBase);
             Assert.False(viewModel.Replace.HasCtrlRamBankView);
             viewModel.WorkflowSession.SelectedIc = "NT51950";
             Dispatcher.UIThread.RunJobs();
-            Assert.False(ab.IsEffectivelyEnabled);
+            Assert.False(viewModel.Replace.HasCtrlRamBankSettings);
             Assert.False(viewModel.Replace.HasCtrlRamBankView);
         }
         finally

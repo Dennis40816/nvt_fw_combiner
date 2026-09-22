@@ -317,7 +317,7 @@ public interface IFirmwareArtifactClassificationResolver
 }
 
 /// <summary>Application-owned route selection and artifact classification policy.</summary>
-internal sealed class FirmwareArtifactClassificationResolver(
+internal sealed partial class FirmwareArtifactClassificationResolver(
     ICanonicalCapabilityQuery catalog,
     CanonicalCapabilityCompilerAdapter compiler) : IFirmwareArtifactClassificationResolver
 {

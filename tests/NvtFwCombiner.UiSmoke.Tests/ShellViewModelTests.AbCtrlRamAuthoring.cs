@@ -12,6 +12,87 @@ namespace NvtFwCombiner.UiSmoke.Tests;
 
 public sealed partial class CtrlRamWorkflowTests
 {
+    /// <summary>Healthy Base facts determine page controls even when the replacement source blocks execution.</summary>
+    [Fact]
+    public async Task CtrlRamDetectedBaseChangesModeWithInvalidReplacementSource()
+    {
+        using TempWorkspace workspace = TempWorkspace.Create("auto-base-invalid-source");
+        string badSource = workspace.PathFor("invalid-nf.txt");
+        await File.WriteAllBytesAsync(badSource, new byte[8], TestContext.Current.CancellationToken);
+        MainWindowViewModel viewModel = await CreateAbCtrlRamReadyAsync(AbCtrlRamBankSelection.Both);
+        Assert.True(await viewModel.Replace.RequestCtrlRamBuildSettingsAsync());
+        await viewModel.WorkflowSession.SetSlotFileAsync("replace-ctrlram-nf", badSource, TestContext.Current.CancellationToken);
+        Assert.False(viewModel.Replace.CanBuildReplace);
+        await viewModel.WorkflowSession.SetSlotFileAsync(CompositionSlotIds.ReplaceBase,
+            CanonicalGoldenTestData.ArtifactPath("standard-merge", "NT51929", "expected-output"), TestContext.Current.CancellationToken);
+        Assert.True(viewModel.Replace.IsStandardCtrlRamReference);
+        Assert.Equal("Standard FlashCode", viewModel.Replace.ReplaceBaseSlot.DetectedBaseTypeLabel);
+        Assert.False(viewModel.Replace.HasCtrlRamBankSettings);
+        Assert.False(viewModel.Replace.CanBuildReplace);
+        Assert.False(await viewModel.Replace.IsCtrlRamFirmwareVersionBuildConfirmationCurrentAsync(TestContext.Current.CancellationToken));
+        await viewModel.WorkflowSession.SetSlotFileAsync(CompositionSlotIds.ReplaceBase,
+            AbCtrlRamReferencePath, TestContext.Current.CancellationToken);
+        Assert.True(viewModel.Replace.IsAbCtrlRamReference);
+        Assert.Equal("AB FlashCode", viewModel.Replace.ReplaceBaseSlot.DetectedBaseTypeLabel);
+        Assert.True(viewModel.Replace.HasCtrlRamBankSettings);
+        Assert.False(viewModel.Replace.CanBuildReplace);
+    }
+
+    /// <summary>A freshness refusal after inspection cannot publish a Base type, draft or readiness.</summary>
+    [Fact]
+    public async Task CtrlRamBaseDiscoveryHonorsApplicationFreshnessBeforeUiPublication()
+    {
+        PresentationHostServices services = PresentationTestHost.CreateServices("ui-smoke");
+        var authoring = new RecordingCtrlRamAuthoring(services.Composition.CtrlRamAuthoring);
+        services = WithCtrlRamAuthoring(services, authoring);
+        var inspection = new DelayedPathFirmwareInspection(services.Composition.FirmwareInspection, AbCtrlRamReferencePath);
+        var viewModel = new MainWindowViewModel("ui-smoke", "ui-smoke", ShellLanguage.English, services, inspection);
+        _ = PresentationTestHost.PublishCanonicalCatalog(services, viewModel);
+        ConfigureAbCtrlRamPage(viewModel);
+        Task pending = viewModel.WorkflowSession.SetSlotFileAsync(CompositionSlotIds.ReplaceBase,
+            AbCtrlRamReferencePath, TestContext.Current.CancellationToken);
+        await inspection.Entered.Task.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
+        authoring.RejectBaseInspection = true;
+        inspection.Release();
+        await pending.WaitAsync(TimeSpan.FromSeconds(20), TestContext.Current.CancellationToken);
+        Assert.False(viewModel.Replace.IsAbCtrlRamReference);
+        Assert.False(viewModel.Replace.ReplaceBaseSlot.HasDetectedBaseType);
+        Assert.False(viewModel.Replace.CanBuildReplace);
+        Assert.NotEqual(WorkflowInspectionAttemptState.Succeeded, viewModel.Replace.Inspection.State);
+    }
+
+    /// <summary>Selecting a real AB Base discovers its type and both banks without a manual mode choice.</summary>
+    [Fact]
+    public async Task CtrlRamBaseAutomaticallyRecognizesAbAndKeepsBothBankFacts()
+    {
+        MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
+        ConfigureAbCtrlRamPage(viewModel);
+        Assert.True(viewModel.Replace.IsStandardCtrlRamReference);
+        await viewModel.WorkflowSession.SetSlotFileAsync(CompositionSlotIds.ReplaceBase, AbCtrlRamReferencePath, TestContext.Current.CancellationToken);
+        Assert.True(viewModel.Replace.IsAbCtrlRamReference);
+        Assert.True(viewModel.Replace.IsCtrlRamBothBanksSelected);
+        Assert.False(viewModel.Replace.CanBuildReplace);
+        string[] labels = [.. viewModel.Replace.ReplaceBaseSlot.FirmwareFacts.Select(static fact => fact.Label)];
+        Assert.Contains("TPA Version", labels);
+        Assert.Contains("TPB Version", labels);
+        Assert.Contains(labels, static label => label.StartsWith("PID", StringComparison.Ordinal));
+        Assert.Contains(labels, static label => label.StartsWith("Common FW", StringComparison.Ordinal));
+        await viewModel.WorkflowSession.SetSlotFileAsync("replace-ctrlram-nf", AbCtrlRamNfPath, TestContext.Current.CancellationToken);
+        await viewModel.Replace.SelectCtrlRamBanksCommand.ExecuteAsync(AbCtrlRamBankSelection.A);
+        Assert.True(viewModel.Replace.CanBuildReplace, viewModel.Replace.ReplaceReadinessStatus);
+        Assert.Equal(labels, viewModel.Replace.ReplaceBaseSlot.FirmwareFacts.Select(static fact => fact.Label));
+        await viewModel.Replace.SelectCtrlRamBanksCommand.ExecuteAsync(AbCtrlRamBankSelection.B);
+        Assert.True(viewModel.Replace.CanBuildReplace, viewModel.Replace.ReplaceReadinessStatus);
+        Assert.Equal(labels, viewModel.Replace.ReplaceBaseSlot.FirmwareFacts.Select(static fact => fact.Label));
+        await viewModel.WorkflowSession.SetSlotFileAsync(CompositionSlotIds.ReplaceBase,
+            CanonicalGoldenTestData.ArtifactPath("standard-merge", "NT51929", "expected-output"), TestContext.Current.CancellationToken);
+        Assert.True(viewModel.Replace.IsStandardCtrlRamReference);
+        Assert.False(viewModel.Replace.HasCtrlRamBankSettings);
+        Assert.Equal("Standard FlashCode", viewModel.Replace.ReplaceBaseSlot.DetectedBaseTypeLabel);
+        Assert.DoesNotContain(viewModel.Replace.ReplaceBaseSlot.FirmwareFacts, static fact => fact.Label == "TPB Version");
+        Assert.True(viewModel.Replace.CanBuildReplace, viewModel.Replace.ReplaceReadinessStatus);
+    }
+
     /// <summary>Real UI inspection and output confirmation preserve the selected banks and optional versions.</summary>
     [Theory]
     [InlineData(AbCtrlRamBankSelection.A, "a-bank")]
@@ -133,7 +214,7 @@ public sealed partial class CtrlRamWorkflowTests
         Assert.True(other.Replace.IsStandardCtrlRamReference);
     }
 
-    /// <summary>AB remains explicit and unavailable axes never inherit a Standard accepted build.</summary>
+    /// <summary>Unavailable axes never inherit an accepted build from another IC.</summary>
     [Theory]
     [InlineData("NT51950", "single")]
     [InlineData("NT51932", "single")]
@@ -145,7 +226,7 @@ public sealed partial class CtrlRamWorkflowTests
         Assert.Equal(number, viewModel.WorkflowSession.SelectedNumber);
         Assert.True(viewModel.Replace.IsAbCtrlRamReference);
         Assert.False(viewModel.Replace.AbCtrlRamReadiness.IsAvailable);
-        Assert.False(viewModel.Replace.SelectAbCtrlRamReferenceCommand.CanExecute(null));
+        Assert.False(viewModel.Replace.CanSelectAbCtrlRamReference);
         Assert.False(viewModel.Replace.CanBuildReplace);
         Assert.False(await viewModel.Replace.TryOpenCtrlRamFirmwareVersionModalAsync(TestContext.Current.CancellationToken));
     }
@@ -201,10 +282,9 @@ public abstract partial class ShellViewModelTestBase
     {
         MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
         ConfigureAbCtrlRamPage(viewModel);
-        await viewModel.Replace.SelectAbCtrlRamReferenceCommand.ExecuteAsync(null);
+        await viewModel.WorkflowSession.SetSlotFileAsync(CompositionSlotIds.ReplaceBase, AbCtrlRamReferencePath, TestContext.Current.CancellationToken);
         Assert.True(viewModel.Replace.IsCtrlRamBothBanksSelected);
         await viewModel.Replace.SelectCtrlRamBanksCommand.ExecuteAsync(selection);
-        await viewModel.WorkflowSession.SetSlotFileAsync(CompositionSlotIds.ReplaceBase, AbCtrlRamReferencePath, TestContext.Current.CancellationToken);
         await viewModel.WorkflowSession.SetSlotFileAsync("replace-ctrlram-nf", AbCtrlRamNfPath, TestContext.Current.CancellationToken);
         Assert.True(viewModel.Replace.CanBuildReplace, viewModel.Replace.ReplaceReadinessStatus);
         Assert.Equal(WorkflowInspectionAttemptState.Succeeded, viewModel.Replace.Inspection.State);

@@ -12,20 +12,9 @@
 </DataTemplate>
 
 <DataTemplate x:Key="CtrlRamModeSettingsTemplate" DataType="vm:ReplacePresentationViewModel">
-  <Border x:Name="CtrlRamModeSettings" Classes="panelSurface" Padding="16,10" IsVisible="{Binding IsCtrlRamReplaceModeSelected}">
-    <WrapPanel x:Name="CtrlRamReferenceSelector" VerticalAlignment="Center" LineSpacing="{DynamicResource NfcSpace8}">
+  <Border x:Name="CtrlRamModeSettings" Classes="panelSurface" Padding="16,10" IsVisible="{Binding HasCtrlRamBankSettings}">
+    <WrapPanel VerticalAlignment="Center" LineSpacing="{DynamicResource NfcSpace8}">
       <TextBlock Classes="bodyEmphasisText" Text="{Binding Text.ModeSettingsLabel}" VerticalAlignment="Center" Margin="0,0,20,0" />
-      <ToggleButton x:Name="CtrlRamStandardReferenceChoice" Classes="segment referenceChoice" Margin="0,0,4,0"
-                    AutomationProperties.Name="{Binding Text.CtrlRamStandardReferenceLabel}"
-                    Command="{Binding SelectStandardCtrlRamReferenceCommand}"
-                    IsChecked="{Binding IsStandardCtrlRamReference, Mode=OneWay}"
-                    Content="{Binding Text.CtrlRamStandardReferenceLabel}" />
-      <ToggleButton x:Name="CtrlRamAbReferenceChoice" Classes="segment referenceChoice" Margin="0,0,16,0"
-                    AutomationProperties.Name="{Binding Text.CtrlRamAbReferenceLabel}"
-                    Command="{Binding SelectAbCtrlRamReferenceCommand}"
-                    IsChecked="{Binding IsAbCtrlRamReference, Mode=OneWay}"
-                    ToolTip.Tip="{Binding AbCtrlRamReadiness.Reason}"
-                    Content="{Binding Text.CtrlRamAbReferenceLabel}" />
       <StackPanel Orientation="Horizontal" Spacing="{DynamicResource NfcSpace8}" IsVisible="{Binding IsAbCtrlRamReference}">
         <TextBlock Classes="fieldLabel" Text="{Binding Text.CtrlRamTargetBanksLabel}" VerticalAlignment="Center" />
         <DropDownButton x:Name="CtrlRamBankScopeMenu" Classes="bankScope" Content="{Binding CtrlRamSelectedBanksLabel}" MinWidth="100"

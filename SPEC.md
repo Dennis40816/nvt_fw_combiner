@@ -1959,6 +1959,16 @@ fingerprint, compilation fingerprint, and authoring revision reach Preview and
 Build. The former `AuthoringRevision(0)` compiled-route bridge is deleted and
 must not be restored as a second admission or dependency catalog.
 
+CtrlRAM Base inspection automatically distinguishes Standard TP Code, Standard
+FlashCode and the existing trusted NT51929 AB FlashCode through the Application
+artifact-classification owner. Classification uses one immutable capture and
+the current canonical publication. Exact maps and declared bank ranges constrain
+inspection; capacity, filenames, marker counts or successful compilation alone
+do not identify the format. A recognized AB structure with invalid bank metadata
+or header/address relationships is terminal and must not fall back to Standard.
+A recognized format without an available exact Replace route remains unsupported.
+Presentation consumes the typed result and offers no manual Standard/AB override.
+
 #### Shared presentation
 
 31. File slots, information cards, range input, buttons, issue summaries,
@@ -1983,6 +1993,12 @@ must not be restored as a second admission or dependency catalog.
     pending and error facts remain visible. File identity precedes facts;
     right-centered picker actions do not move when Details expands. The
     owner-approved 2026-09-22 v7 layout supersedes the four-primary-fact limit.
+    Flash Reference facts come from its read-only inspection. AB facts identify
+    both declared banks independently of replacement selection; observing a bank
+    does not select it for writing. Equal typed PID/Common/count facts may share
+    an A/B label; differing facts keep separate bank labels. Missing, unreadable
+    and undeclared facts remain distinguishable and are never synthesized from
+    the other bank or selected mode. Undeclared fields use Details disclosure.
 34. Empty slots show the requirement. Selected slots replace requirement
     badges with one semantic state icon/surface. Hover, keyboard focus, and
     assistive technology expose the same localized reason and next action.

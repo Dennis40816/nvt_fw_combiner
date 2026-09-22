@@ -67,9 +67,11 @@ public sealed partial class CompositionHostServices
             new FileContentSnapshotInspector(),
             externalEnvironment,
             new SystemClock());
+        var artifactClassification = new FirmwareArtifactClassificationResolver(catalog, compiler);
         var ctrlRamAuthoring = new CtrlRamAuthoringExperience(
             new BuiltInCtrlRamAuthoringAdapter(catalog, projection),
-            externalEnvironment);
+            externalEnvironment,
+            artifactClassification);
         CtrlRamAuthoring = ctrlRamAuthoring;
         FirmwareInspectionExperience = new BuiltInFirmwareInspection(
             new FirmwareMetadataPlanAuthorityResolver(catalog),
@@ -77,9 +79,7 @@ public sealed partial class CompositionHostServices
             standardMergeAuthoring,
             abMergeAuthoring,
             ctrlRamAuthoring,
-            new FirmwareArtifactClassificationResolver(
-                catalog,
-                compiler));
+            artifactClassification);
         var artifactIdentityPolicy = new FileSystemCompositionArtifactIdentityPolicy();
         var bundleDestinationValidator =
             new FileSystemCompositionOutputBundleDestinationValidator();

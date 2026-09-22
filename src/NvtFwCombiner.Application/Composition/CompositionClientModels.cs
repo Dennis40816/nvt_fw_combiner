@@ -174,6 +174,9 @@ public sealed record FirmwareInspectionSnapshot(
 
     /// <summary>Typed non-terminal CtrlRAM Base discovery result.</summary>
     public CtrlRamBaseDiscoveryReadiness CtrlRamBaseDiscoveryReadiness { get; init; }
+
+    /// <summary>Complete same-capture CtrlRAM reference classification and bank facts.</summary>
+    public CtrlRamBaseInspection? CtrlRamBaseInspection { get; init; }
 }
 
 /// <summary>Optional CtrlRAM display context projected during firmware inspection.</summary>
@@ -206,6 +209,9 @@ public sealed record FirmwareInspectionStatusBatch(
     IReadOnlyList<CompositionIssue> Issues,
     CtrlRamBaseDiscoveryResult? CtrlRamBaseDiscovery = null)
 {
+    /// <summary>Complete reference facts and the effective authoring draft for this batch.</summary>
+    public CtrlRamBaseInspection? CtrlRamBaseInspection { get; init; }
+
     public static FirmwareInspectionStatusBatch Empty { get; } =
         new(null, new Dictionary<string, AuthoringInputSlotStatus>(StringComparer.Ordinal), []);
 

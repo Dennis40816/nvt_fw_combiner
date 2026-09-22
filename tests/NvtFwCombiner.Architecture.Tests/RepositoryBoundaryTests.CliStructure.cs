@@ -222,6 +222,8 @@ public sealed partial class RepositoryBoundaryTests
         string sharedRun = run;
         string generalMergeProfile = ReadText(
             "src/NvtFwCombiner.Infrastructure/Composition/BuiltInGeneralAuthoringPlanner.cs");
+        string artifactClassification = ReadText(
+            "src/NvtFwCombiner.Application/InputInspection/FirmwareArtifactClassificationResolver.CtrlRam.cs");
         string resolver = ReadText(
             "src/NvtFwCombiner.Application/Capabilities/CanonicalCapabilityCompiler.StandardMerge.cs");
 
@@ -241,11 +243,12 @@ public sealed partial class RepositoryBoundaryTests
             [
                 "NvtFwCombiner.Application/Authoring/StandardMergeAuthoringExperience.cs",
                 "NvtFwCombiner.Application/Capabilities/CanonicalCapabilityCompiler.StandardMerge.cs",
+                "NvtFwCombiner.Application/InputInspection/FirmwareArtifactClassificationResolver.CtrlRam.cs",
                 "NvtFwCombiner.Infrastructure/Composition/BuiltInGeneralAuthoringPlanner.cs",
             ],
             compileSources);
 
-        foreach (string runtimeSource in new[] { generalMergeProfile })
+        foreach (string runtimeSource in new[] { generalMergeProfile, artifactClassification })
         {
             Assert.Contains("TryCompileStandardMerge", runtimeSource, StringComparison.Ordinal);
             Assert.DoesNotContain("CompositionProfileDefinition", runtimeSource, StringComparison.Ordinal);

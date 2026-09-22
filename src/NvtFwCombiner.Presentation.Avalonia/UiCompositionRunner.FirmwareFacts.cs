@@ -1,4 +1,5 @@
 using NvtFwCombiner.Domain.Composition;
+using NvtFwCombiner.Domain.Firmware;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
 namespace NvtFwCombiner.Presentation.Avalonia;
@@ -15,15 +16,9 @@ internal static partial class UiCompositionRunner
         ArgumentNullException.ThrowIfNull(inspection);
         text ??= ShellTextResources.For(ShellLanguage.English);
 
-        if (includeBaseFacts && inspection.InputSlotStatus?.Observation.ReferenceBanks is { Count: > 0 } banks)
+        if (includeBaseFacts && inspection.CtrlRamBaseInspection is { Kind: CtrlRamBaseKind.AbFlash } ab)
         {
-            // Only project observed banks. The current contract does not supply unselected-bank metadata.
-            return [.. banks.Select(bank => new FirmwareSlotFactViewModel(
-                bank.BankId == "a-bank" ? "TPA Version" : "TPB Version",
-                bank.Version.IsKnown ? FormattableString.Invariant($"T{bank.Version.Major:X2}-{bank.Version.Minor:X2}") : text.FirmwareSlotUnknownValueLabel,
-                bank.Version.IsKnown ? FirmwareSlotFactState.Ordinary : FirmwareSlotFactState.Unknown,
-                bank.Version.IsKnown ? null : text.FirmwareSlotUnknownValueLabel,
-                bank.Version.IsKnown ? null : text.FirmwareSlotUnknownFactDetail))];
+            return GetAbBaseFacts(ab.Banks, text);
         }
 
         FirmwareConfigMetadataSnapshot? metadata = inspection.FirmwareConfig;
@@ -51,6 +46,81 @@ internal static partial class UiCompositionRunner
             new("IC Count", FormattableString.Invariant($"{metadata.ChipNumber}"), priority: FirmwareSlotFactPriority.Details),
         ]);
         return includeBaseFacts ? [.. facts, .. dpFacts] : facts;
+    }
+
+    private static List<FirmwareSlotFactViewModel> GetAbBaseFacts(
+        IReadOnlyList<CtrlRamBaseBankInspection> banks, ShellTextResources text)
+    {
+        List<FirmwareSlotFactViewModel> facts = [];
+        foreach (CtrlRamBaseBankInspection bank in banks)
+        {
+            string label = bank.BankId == "a-bank" ? "TPA Version" : "TPB Version";
+            facts.Add(bank.TpVersion is { IsKnown: true } tp
+                ? new(label, FormattableString.Invariant($"T{tp.Major:X2}-{tp.Minor:X2}"))
+                : Unknown(label));
+        }
+        AddMetadata("PID", static metadata => FormattableString.Invariant($"0x{metadata.ProjectId:X4}"),
+            static (a, b) => a.ProjectId == b.ProjectId);
+        AddMetadata("Common FW Version", static metadata => metadata.CommonFwVersion,
+            static (a, b) => a.CommonFwVersion == b.CommonFwVersion);
+        AddMetadata("IC Count", static metadata => FormattableString.Invariant($"{metadata.ChipNumber}"),
+            static (a, b) => a.ChipNumber == b.ChipNumber, FirmwareSlotFactPriority.Details);
+        foreach (CtrlRamBaseBankInspection bank in banks)
+        {
+            string bankLabel = bank.BankId == "a-bank" ? "DPA" : "DPB";
+            if (bank.DpVersion is { IsKnown: true } dp)
+            {
+                facts.Add(new($"{bankLabel} Version", DpVersionMetadata.FormatDisplayValue(
+                    FormattableString.Invariant($"{dp.Major:X2}{dp.Minor:X2}")), priority: FirmwareSlotFactPriority.Details));
+                if (dp.TrackerId is > 0)
+                {
+                    facts.Add(new($"{bankLabel} Jira Index", FormattableString.Invariant($"AUTO_PRJ-{dp.TrackerId}"),
+                        priority: FirmwareSlotFactPriority.Details));
+                }
+            }
+            else
+            {
+                facts.Add(Unknown($"{bankLabel} Version", FirmwareSlotFactPriority.Details));
+            }
+        }
+        if (banks.Count > 0 && banks.All(static bank => bank.EventBufferFormatVersion is null))
+        {
+            facts.Add(new(text.EventBufferVersionLabel, text.FirmwareFactNotProvidedLabel,
+                stateDetail: text.FirmwareFactNotProvidedDetail, priority: FirmwareSlotFactPriority.Details));
+        }
+        else
+        {
+            foreach (CtrlRamBaseBankInspection bank in banks)
+            {
+                string label = $"{text.EventBufferVersionLabel} ({(bank.BankId == "a-bank" ? "A" : "B")})";
+                facts.Add(bank.EventBufferFormatVersion is byte raw
+                    ? new(label, FormattableString.Invariant($"0x{raw:X2} - {FirmwareEventBufferFormatDisplayNames.GetDisplayName(raw) ?? text.FirmwareSlotUnknownValueLabel}"))
+                    : Unknown(label));
+            }
+        }
+        return facts;
+
+        FirmwareSlotFactViewModel Unknown(string label, FirmwareSlotFactPriority priority = FirmwareSlotFactPriority.Primary)
+        {
+            return new(label, text.FirmwareSlotUnknownValueLabel, FirmwareSlotFactState.Unknown,
+                text.FirmwareSlotUnknownValueLabel, text.FirmwareSlotUnknownFactDetail, priority);
+        }
+
+        void AddMetadata(string label, Func<FirmwareConfigMetadataSnapshot, string> value,
+            Func<FirmwareConfigMetadataSnapshot, FirmwareConfigMetadataSnapshot, bool> same,
+            FirmwareSlotFactPriority priority = FirmwareSlotFactPriority.Primary)
+        {
+            if (banks.Count == 2 && banks[0].FirmwareConfig is { } a && banks[1].FirmwareConfig is { } b && same(a, b))
+            {
+                facts.Add(new($"{label} (A/B)", value(a), priority: priority));
+                return;
+            }
+            foreach (CtrlRamBaseBankInspection bank in banks)
+            {
+                string bankLabel = $"{label} ({(bank.BankId == "a-bank" ? "A" : "B")})";
+                facts.Add(bank.FirmwareConfig is { } metadata ? new(bankLabel, value(metadata), priority: priority) : Unknown(bankLabel, priority));
+            }
+        }
     }
 
     /// <summary>Gets compact DP facts from one already-read inspection snapshot.</summary>

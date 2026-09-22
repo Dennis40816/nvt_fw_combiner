@@ -7,11 +7,10 @@ namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 internal sealed partial class ReplacePresentationViewModel
 {
     // A page-local request, never an accepted executable capability.
-    private AsyncRelayCommand? _selectAbReference;
-
     internal CtrlRamAuthoringDraftState? CurrentCtrlRamDraft { get; private set; }
     public bool IsAbCtrlRamReference => CurrentCtrlRamDraft is AbCtrlRamDraftState;
     public bool IsStandardCtrlRamReference => !IsAbCtrlRamReference;
+    public bool HasCtrlRamBankSettings => IsCtrlRamReplaceModeSelected && IsAbCtrlRamReference;
     public CapabilityWorkflowReadiness AbCtrlRamReadiness =>
         _compositionServices.CtrlRamAuthoring.GetAbReferenceReadiness(SelectedIc, SelectedNumber);
     public bool CanSelectAbCtrlRamReference => HasSelectedIc && AbCtrlRamReadiness.IsAvailable;
@@ -20,11 +19,6 @@ internal sealed partial class ReplacePresentationViewModel
     public bool IsCtrlRamBothBanksSelected => CurrentCtrlRamDraft is AbCtrlRamDraftState { Banks: AbCtrlRamBankSelection.Both };
     public string CtrlRamSelectedBanksLabel => IsCtrlRamBothBanksSelected ? Text.CtrlRamBothBanksLabel : IsCtrlRamBankBSelected ? "B" : "A";
 
-    public IAsyncRelayCommand SelectStandardCtrlRamReferenceCommand => field ??=
-        new AsyncRelayCommand(() => SelectCtrlRamDraftAsync(IsAbCtrlRamReference ? null : CurrentCtrlRamDraft), AsyncRelayCommandOptions.AllowConcurrentExecutions);
-    public IAsyncRelayCommand SelectAbCtrlRamReferenceCommand => _selectAbReference ??=
-        new AsyncRelayCommand(() => SelectCtrlRamDraftAsync(IsAbCtrlRamReference ? CurrentCtrlRamDraft : new AbCtrlRamDraftState()),
-            () => CanSelectAbCtrlRamReference, AsyncRelayCommandOptions.AllowConcurrentExecutions);
     public IAsyncRelayCommand<AbCtrlRamBankSelection> SelectCtrlRamBanksCommand => field ??=
         new AsyncRelayCommand<AbCtrlRamBankSelection>(banks => SelectCtrlRamDraftAsync(
             CurrentCtrlRamDraft is AbCtrlRamDraftState current
@@ -55,13 +49,13 @@ internal sealed partial class ReplacePresentationViewModel
     {
         OnPropertyChanged(nameof(IsAbCtrlRamReference));
         OnPropertyChanged(nameof(IsStandardCtrlRamReference));
+        OnPropertyChanged(nameof(HasCtrlRamBankSettings));
         OnPropertyChanged(nameof(AbCtrlRamReadiness));
         OnPropertyChanged(nameof(CanSelectAbCtrlRamReference));
         OnPropertyChanged(nameof(IsCtrlRamBankASelected));
         OnPropertyChanged(nameof(IsCtrlRamBankBSelected));
         OnPropertyChanged(nameof(IsCtrlRamBothBanksSelected));
         OnPropertyChanged(nameof(CtrlRamSelectedBanksLabel));
-        _selectAbReference?.NotifyCanExecuteChanged();
         SelectCtrlRamBanksCommand.NotifyCanExecuteChanged();
         foreach (CtrlRamFirmwareVersionEditorViewModel editor in AbCtrlRamVersionEditors)
         {

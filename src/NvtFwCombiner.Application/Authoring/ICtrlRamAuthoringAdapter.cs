@@ -11,6 +11,9 @@ public interface ICtrlRamAuthoringAdapter
 {
     CapabilityRouteResolutionResult ResolveAbReferenceRoute(string icId, string number);
 
+    /// <summary>Checks captured AB Reference structure through the same trusted guards as execution.</summary>
+    IReadOnlyList<CompositionIssue> ValidateAbReference(CompiledComposition layout, ReadOnlyMemory<byte> reference);
+
     CtrlRamInspectionDisplay GetDiscoveryDisplay(
         string icId,
         string number);

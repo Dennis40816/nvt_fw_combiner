@@ -128,6 +128,13 @@ public sealed partial class CtrlRamWorkflowTests
         internal (AuthoringInputSlotStatus[] Statuses, ActiveSessionSnapshot Snapshot)
             SingleSuccessfulAdoption => Assert.Single(_successfulAdoptions);
 
+        internal bool RejectBaseInspection { get; set; }
+
+        public bool IsCurrentBaseInspection(CtrlRamBaseInspection inspection)
+        {
+            return !RejectBaseInspection && inner.IsCurrentBaseInspection(inspection);
+        }
+
         public CapabilityWorkflowReadiness GetAbReferenceReadiness(string icId, string number)
         {
             return inner.GetAbReferenceReadiness(icId, number);
@@ -169,13 +176,14 @@ public sealed partial class CtrlRamWorkflowTests
         public AuthoringSessionTransitionResult AdoptInspectedBatch(
             AuthoringSessionState session,
             AuthoringCapabilityCatalogSnapshot catalog,
-            IReadOnlyCollection<AuthoringInputSlotStatus> statuses)
+            IReadOnlyCollection<AuthoringInputSlotStatus> statuses,
+            CtrlRamBaseInspection? baseInspection = null)
         {
             AdoptInspectedBatchCalls++;
             AuthoringSessionTransitionResult result = inner.AdoptInspectedBatch(
                 session,
                 catalog,
-                statuses);
+                statuses, baseInspection);
             if (result.Succeeded)
             {
                 _successfulAdoptions.Add(([.. statuses], result.Snapshot!));

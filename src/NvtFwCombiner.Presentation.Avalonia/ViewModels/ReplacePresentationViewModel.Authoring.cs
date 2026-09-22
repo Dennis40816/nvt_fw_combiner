@@ -61,14 +61,49 @@ internal sealed partial class ReplacePresentationViewModel
             return false;
         }
         FirmwareInspectionSnapshot[] results = [.. selected.Select(item => inspections[item.SlotId])];
+        CtrlRamBaseInspection? baseInspection = results.Select(static result => result.CtrlRamBaseInspection)
+            .FirstOrDefault(static inspection => inspection is not null);
+        bool discoveryOnly = results.All(static result => result.CtrlRamBaseDiscoveryReadiness ==
+            CtrlRamBaseDiscoveryReadiness.Inspected);
+        if (discoveryOnly)
+        {
+            if (baseInspection is not null && !_compositionServices.CtrlRamAuthoring.IsCurrentBaseInspection(baseInspection))
+            {
+                return false;
+            }
+            _ctrlRamReplaceSession.InvalidateCanonicalPublication();
+            ClearCtrlRamActionReadiness();
+            InvalidateCtrlRamFirmwareVersionContext();
+            _stateBindings.ResetRunResult(CaptureRunContext(CtrlRamReplaceMode));
+            if (baseInspection is { Issues.Count: 0 })
+            {
+                CurrentCtrlRamDraft = baseInspection.EffectiveDraft;
+                NotifyCtrlRamBankState();
+            }
+            return true;
+        }
         AuthoringCapabilityCatalogSnapshot? catalog = results[0].InputSlotCatalog;
         AuthoringSessionState? session = CurrentReplaceInputSession;
-        return catalog is not null && session is not null && results.All(static result =>
+        bool adopted = catalog is not null && session is not null && results.All(static result =>
                 result.InputSlotCatalog is not null && result.InputSlotStatus is not null) &&
             _compositionServices.CtrlRamAuthoring.AdoptInspectedBatch(
             session,
             catalog,
-            [.. results.Select(static result => result.InputSlotStatus!)]).Succeeded;
+            [.. results.Select(static result => result.InputSlotStatus!)], baseInspection).Succeeded;
+        if (!adopted)
+        {
+            _ctrlRamReplaceSession.InvalidateCanonicalPublication();
+            ClearCtrlRamActionReadiness();
+            InvalidateCtrlRamFirmwareVersionContext();
+            _stateBindings.ResetRunResult(CaptureRunContext(CtrlRamReplaceMode));
+        }
+        if (baseInspection is { Issues.Count: 0 } &&
+            _compositionServices.CtrlRamAuthoring.IsCurrentBaseInspection(baseInspection))
+        {
+            CurrentCtrlRamDraft = baseInspection.EffectiveDraft;
+            NotifyCtrlRamBankState();
+        }
+        return adopted;
     }
 
     private bool CanRunCompiledReplaceSession(AuthoringSessionState session)
