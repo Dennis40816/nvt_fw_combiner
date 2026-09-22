@@ -79,7 +79,9 @@ public static partial class MemoryLayoutProjector
                         nameof(capability));
                 }
 
-                primaryRegions = SelectPrimaryRegions(map, ctrlRamRegions);
+                primaryRegions = mapContext is RuntimeReferenceBankReplaceV2CompilationContext banks
+                    ? SelectBankPrimaryRegions(banks, ctrlRamRegions)
+                    : SelectPrimaryRegions(map, ctrlRamRegions);
                 break;
             case LogicalOutputV2CompilationContext:
                 if (!StringComparer.Ordinal.Equals(details.ExperienceId, ExperienceIds.GeneralMerge) ||
@@ -636,10 +638,12 @@ public static partial class MemoryLayoutProjector
                     range,
                     sourceSlotId,
                     segmentId,
-                    retainedCompanionSlotId),
+                    retainedCompanionSlotId,
+                    canonicalRegion.BankRegion),
                 canonicalRegion.RegionGroup,
                 canonicalRegion.CtrlRamRegionRole,
-                contentSource)
+                contentSource,
+                canonicalRegion.BankRegion)
             : MemoryLayoutSegment.CreateLogical(
                 segmentId,
                 addressSpaceId,
@@ -698,5 +702,6 @@ public static partial class MemoryLayoutProjector
         MemoryContentRole ContentRole,
         FirmwareRegion? CanonicalRegion,
         ReplaceRegionGroup RegionGroup,
-        CtrlRamRegionRole CtrlRamRegionRole);
+        CtrlRamRegionRole CtrlRamRegionRole,
+        MemoryLayoutBankRegion? BankRegion = null);
 }

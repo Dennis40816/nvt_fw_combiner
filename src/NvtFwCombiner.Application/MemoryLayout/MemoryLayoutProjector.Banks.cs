@@ -1,18 +1,71 @@
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Domain.Firmware;
+using NvtFwCombiner.Application.Composition;
 
 namespace NvtFwCombiner.Application.MemoryLayout;
 
 public static partial class MemoryLayoutProjector
 {
+    private static ProjectionRegion[] SelectBankPrimaryRegions(
+        RuntimeReferenceBankReplaceV2CompilationContext context, IReadOnlyList<CtrlRamRegion>? ctrlRamRegions)
+    {
+        FirmwareImageMap map = context.ResolvedMap.ImageMap;
+        ProjectionRegion[] physical = SelectPrimaryRegions(map, null);
+        if (ctrlRamRegions is null)
+        {
+            return physical;
+        }
+
+        // The checked context already binds every local compilation to Definition.Local.
+        // Reuse that shared geometry for preserved banks, never their selected execution obligations.
+        FirmwareFamilyResolutionDefinition.ResolvedFirmwareImageMap local = context.Banks[0].LocalComposition.V2Details.Provenance.ResolvedMap;
+        ProjectionRegion[] localRegions = SelectPrimaryRegions(local.ImageMap, ctrlRamRegions);
+        MemoryLayoutBankLocator[] banks = ProjectBankLocators(context, map.AddressSpaceId, map.CapacityBytes);
+        var placed = new List<(MemoryLayoutBankRegion Attribution, ProjectionRegion Local)>();
+        foreach (MemoryLayoutBankLocator bank in banks)
+        {
+            foreach (ProjectionRegion region in localRegions.Where(static region => region.ContentRole == MemoryContentRole.CtrlRam))
+            {
+                placed.Add((new MemoryLayoutBankRegion(bank, local, region.CanonicalRegion!), region));
+            }
+        }
+        if (placed.Any(left => placed.Any(right => !ReferenceEquals(left.Attribution, right.Attribution) &&
+            left.Attribution.Range.Overlaps(right.Attribution.Range))))
+        {
+            throw new MemoryLayoutDisplayProjectionException("Placed CtrlRAM declarations must be unambiguous.", nameof(ctrlRamRegions));
+        }
+        long[] boundaries = [.. physical.SelectMany(static region => new[] { region.Range.Start, region.Range.EndExclusive })
+            .Concat(placed.SelectMany(static item => new[] { item.Attribution.Range.Start, item.Attribution.Range.EndExclusive }))
+            .Distinct().Order()];
+        var result = new List<ProjectionRegion>();
+        for (int i = 1; i < boundaries.Length; i++)
+        {
+            var range = ByteRange.FromStartEndExclusive(boundaries[i - 1], boundaries[i]);
+            ProjectionRegion original = physical.Single(region => region.Range.Contains(range));
+            (MemoryLayoutBankRegion? attribution, ProjectionRegion? detail) = placed
+                .SingleOrDefault(item => item.Attribution.Range.Contains(range));
+            result.Add(original with
+            {
+                Range = range,
+                ContentRole = detail?.ContentRole ?? original.ContentRole,
+                RegionGroup = detail?.RegionGroup ?? ReplaceRegionGroup.Base,
+                CtrlRamRegionRole = detail?.CtrlRamRegionRole ?? original.CtrlRamRegionRole,
+                BankRegion = attribution,
+            });
+        }
+        return [.. result];
+    }
+
     private static MemoryLayoutBankLocator[] ProjectBanks(
         CompiledComposition composition, string addressSpaceId, long capacity)
     {
-        if (composition.V2Details.Provenance.Context is not RuntimeReferenceBankReplaceV2CompilationContext context)
-        {
-            return [];
-        }
+        return composition.V2Details.Provenance.Context is RuntimeReferenceBankReplaceV2CompilationContext context
+            ? ProjectBankLocators(context, addressSpaceId, capacity) : [];
+    }
 
+    private static MemoryLayoutBankLocator[] ProjectBankLocators(
+        RuntimeReferenceBankReplaceV2CompilationContext context, string addressSpaceId, long capacity)
+    {
         FirmwareImageMap map = context.ResolvedMap.ImageMap;
         var output = new ByteRange(0, capacity);
         // Selected obligations omit preserved banks; the accepted canonical map owns both placements.

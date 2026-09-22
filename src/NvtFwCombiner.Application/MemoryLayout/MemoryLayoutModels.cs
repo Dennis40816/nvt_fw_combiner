@@ -107,6 +107,37 @@ public sealed record MemoryLayoutContentSource
     public string ArtifactIdentity { get; }
 }
 
+/// <summary>Original local declaration and its checked placement; not a synthesized firmware region.</summary>
+public sealed class MemoryLayoutBankRegion
+{
+    internal MemoryLayoutBankRegion(MemoryLayoutBankLocator bank,
+        FirmwareFamilyResolutionDefinition.ResolvedFirmwareImageMap localMap, FirmwareRegion localRegion)
+    {
+        if (!localMap.ImageMap.Regions.Any(region => ReferenceEquals(region, localRegion)) || localRegion.Kind != FirmwareRegionKind.CtrlRam ||
+            localMap.ImageMap.CapacityBytes != bank.Range.Length)
+        {
+            throw new MemoryLayoutDisplayProjectionException("Bank CtrlRAM attribution requires its exact local declaration.", nameof(localRegion));
+        }
+        Bank = bank;
+        LocalMap = localMap;
+        LocalRegion = localRegion;
+        Range = new ByteRange(checked(bank.Range.Start + localRegion.Range.Start), localRegion.Range.Length);
+        if (!bank.Range.Contains(Range))
+        {
+            throw new MemoryLayoutDisplayProjectionException("Placed CtrlRAM declaration must remain inside its bank.", nameof(bank));
+        }
+    }
+
+    /// <summary>Complete output bank, including when preserved.</summary>
+    public MemoryLayoutBankLocator Bank { get; }
+    /// <summary>Original trusted local map and topology shared by the accepted composite definition.</summary>
+    public FirmwareFamilyResolutionDefinition.ResolvedFirmwareImageMap LocalMap { get; }
+    /// <summary>Exact original local CtrlRAM region, without coordinate mutation.</summary>
+    public FirmwareRegion LocalRegion { get; }
+    /// <summary>Checked range in the complete output address space.</summary>
+    public ByteRange Range { get; }
+}
+
 /// <summary>One immutable checked segment in the canonical output address space.</summary>
 public sealed class MemoryLayoutSegment
 {
@@ -132,7 +163,8 @@ public sealed class MemoryLayoutSegment
         IEnumerable<MemoryLayoutPreservationDetail> preservationDetails,
         ReplaceRegionGroup regionGroup,
         CtrlRamRegionRole ctrlRamRegionRole,
-        MemoryLayoutContentSource? contentSource)
+        MemoryLayoutContentSource? contentSource,
+        MemoryLayoutBankRegion? bankRegion = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(segmentId);
         ArgumentException.ThrowIfNullOrWhiteSpace(addressSpaceId);
@@ -148,6 +180,11 @@ public sealed class MemoryLayoutSegment
         }
 
         MemoryLayoutGuard.Defined(contentRole, nameof(contentRole));
+        if (bankRegion is not null && (canonicalRegion is null || contentRole != MemoryContentRole.CtrlRam ||
+            bankRegion.Bank.AddressSpaceId != addressSpaceId || !bankRegion.Range.Contains(range)))
+        {
+            throw new MemoryLayoutDisplayProjectionException("Bank-local attribution must contain the physical CtrlRAM segment.", nameof(bankRegion));
+        }
         MemoryLayoutGuard.Defined(disposition, nameof(disposition));
         MemoryLayoutGuard.Defined(endpoint, nameof(endpoint));
         MemoryLayoutGuard.Defined(bank, nameof(bank));
@@ -198,6 +235,7 @@ public sealed class MemoryLayoutSegment
         PreservationDetails = Array.AsReadOnly(details);
         RegionGroup = regionGroup;
         CtrlRamRegionRole = ctrlRamRegionRole;
+        BankRegion = bankRegion;
     }
 
     /// <summary>Stable projection-local identity.</summary>
@@ -247,6 +285,9 @@ public sealed class MemoryLayoutSegment
     /// <summary>Closed detailed CtrlRAM family role; Other outside detailed CtrlRAM geometry.</summary>
     public CtrlRamRegionRole CtrlRamRegionRole { get; }
 
+    /// <summary>Original local CtrlRAM declaration and bank placement; null outside AB detail.</summary>
+    public MemoryLayoutBankRegion? BankRegion { get; }
+
     internal static MemoryLayoutSegment Create(
         string segmentId,
         string addressSpaceId,
@@ -268,7 +309,8 @@ public sealed class MemoryLayoutSegment
         string logicalCoverageGroupId,
         ReplaceRegionGroup regionGroup = ReplaceRegionGroup.Common,
         CtrlRamRegionRole ctrlRamRegionRole = CtrlRamRegionRole.Other,
-        MemoryLayoutContentSource? contentSource = null)
+        MemoryLayoutContentSource? contentSource = null,
+        MemoryLayoutBankRegion? bankRegion = null)
     {
         return new(
             segmentId,
@@ -292,7 +334,8 @@ public sealed class MemoryLayoutSegment
             preservationDetails,
             regionGroup,
             ctrlRamRegionRole,
-            contentSource);
+            contentSource,
+            bankRegion);
     }
 
     internal static MemoryLayoutSegment CreateLogical(

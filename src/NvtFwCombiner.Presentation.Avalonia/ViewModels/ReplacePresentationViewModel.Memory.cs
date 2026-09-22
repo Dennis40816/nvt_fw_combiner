@@ -1,6 +1,7 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using NvtFwCombiner.Application.Authoring;
 using NvtFwCombiner.Application.MemoryLayout;
+using NvtFwCombiner.Domain.Firmware;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
@@ -46,6 +47,7 @@ internal sealed partial class ReplacePresentationViewModel
         }
         MemoryLayoutBankLocator bank = layout.Banks.Single(item => item.BankId == _viewedCtrlRamBankId);
         ReplaceRows(CtrlRamOverview, UiCompositionRunner.GetMemoryOverview(layout, Text, bank));
+        RefreshReplaceCoverageGroups();
     }
 
     internal void ValidateContextRefresh(string icId, string number, string mode)
@@ -137,10 +139,19 @@ internal sealed partial class ReplacePresentationViewModel
         {
             ReplaceCoverageGroups.Add(group);
         }
+        MemoryLayoutBankLocator? bank = _ctrlRamMemoryLayout?.Banks.SingleOrDefault(item => item.BankId == _viewedCtrlRamBankId);
+        IEnumerable<MemoryCoverageLogicalItemViewModel> items = bank is null
+            ? ReplaceCoverageGroups.SelectMany(static group => group.Items)
+            : ReplaceRegionGroupBuilder.CreateLogicalItems(ReplaceCoverageSegments.Where(segment =>
+                segment.AddressSpaceId == bank.AddressSpaceId && segment.RangeStart >= bank.Range.Start &&
+                segment.RangeEndExclusive <= bank.Range.EndExclusive), Text);
+        FirmwareFamilyResolutionDefinition.ResolvedFirmwareImageMap? localMap = _ctrlRamMemoryLayout?.AfterSegments
+            .Select(static segment => segment.BankRegion?.LocalMap).Where(static map => map is not null)
+            .DistinctBy(static map => map, ReferenceEqualityComparer.Instance).SingleOrDefault();
         ReplaceRows(CtrlRamFocusLanes, MemoryFocusLaneViewModel.Create(
-            ReplaceCoverageGroups.SelectMany(static group => group.Items), Text,
-            isSingleIc: _ctrlRamReplaceSession.CurrentSnapshot?.ExactCapability?.CompiledComposition
-                .V2Details.Provenance.ResolvedMap.TopologySelection?.ChipCount == 1));
+            items, Text,
+            isSingleIc: (localMap ?? _ctrlRamReplaceSession.CurrentSnapshot?.ExactCapability?.CompiledComposition
+                .V2Details.Provenance.ResolvedMap)?.TopologySelection?.ChipCount == 1));
     }
 
     internal void ClearCtrlRamInspectionDisplay()
@@ -216,7 +227,7 @@ internal sealed partial class ReplacePresentationViewModel
                     Text,
                     out overview,
                     out MemoryLayoutSnapshot layout,
-                    ctrlRamRegions: acceptedSession.DraftState is AbCtrlRamDraftState ? null : display.Regions);
+                    ctrlRamRegions: display.Regions);
                 _ctrlRamMemoryLayout = layout;
                 if (layout.Banks.Count == 2 && !layout.Banks.Any(bank => bank.BankId == _viewedCtrlRamBankId))
                 {

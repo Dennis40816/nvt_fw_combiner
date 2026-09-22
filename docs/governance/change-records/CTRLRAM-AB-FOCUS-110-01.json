@@ -1,0 +1,44 @@
+{
+  "schemaVersion": 2,
+  "taskId": "CTRLRAM-AB-FOCUS-110-01",
+  "capability": "Complete AB CtrlRAM focus geometry through the shared memory projection",
+  "integrationBase": "b9a94a2bab1a7bc05129b3438f0c0afeaaf45ad4",
+  "risk": "R2",
+  "kind": "behavior",
+  "state": "design-active",
+  "mutablePaths": [
+    "src/NvtFwCombiner.Application/MemoryLayout/MemoryLayoutModels.cs",
+    "src/NvtFwCombiner.Application/MemoryLayout/MemoryLayoutProjector.cs",
+    "src/NvtFwCombiner.Application/MemoryLayout/MemoryLayoutProjector.Banks.cs",
+    "src/NvtFwCombiner.Application/MemoryLayout/MemoryLayoutProjector.LogicalCoverage.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReplacePresentationViewModel.Memory.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReplacePresentationViewModel.State.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MemoryFocusLaneViewModel.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/UiCompositionRunner.Common.cs",
+    "docs/adr/0052-exact-ctrlram-report-metadata-counterpart.md",
+    "tests/NvtFwCombiner.Bootstrap.Tests/AbCtrlRamMemoryLayoutTests.cs",
+    "tests/NvtFwCombiner.UiSmoke.Tests/ShellVisualLayoutTests.AbCtrlRam.cs"
+  ],
+  "implementationOwner": "/root is the sole writer",
+  "searchEvidence": [
+    "Base 29f83ffa76a4ca55728e8f88cf2fe395d88e9b44. CodeGraph and bounded owner reads traced MemoryLayoutProjector, RuntimeReferenceBankReplaceV2CompilationContext, MemoryLayoutSegment canonical identity guards and MemoryFocusLaneViewModel.",
+    "AB omits local discovery ranges; full AB map has no CtrlRAM endpoint classification. Existing context retains complete bank placements and selected local compilations sharing the closed Definition.Local.",
+    "Bootstrap RED: A/B/Both reject local ranges against full AB map; Standard passes. Evidence: D:/NvtFwCombiner-TestArea/evidence/v1110-ab-focus/ab-focus-red-v2.trx."
+  ],
+  "semanticOwner": "Application MemoryLayoutProjector translates trusted local canonical declaration geometry into accepted full AB placements; the existing plan owns all effects and source attribution. Presentation only selects a viewport and renders the shared marker/hover.",
+  "terminalContract": "Retain the exact AB canonical region and add immutable bank-local declaration attribution, never manufacture FirmwareRegion. Validate discovery ranges against the admitted local map and checked placement into both canonical banks. Selected-only obligations do not remove unselected bank geometry; unselected bank remains Kept. Preserve operation identity, write ranges, source/partial-kept grouping and full coverage. UI filters typed bank ranges and computes relative bar position while keeping absolute labels; viewport never mutates draft/revision/lease/readiness. Standard uses its existing path. No Domain/Profile/CRC/byte/support changes.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "/root/layout_ownership_review",
+    "outcome": "approved",
+    "evidence": "2026-09-22 independent R2 design review approved extending existing segment with bank/local-map/local-region/placed-range provenance, same coverage/projector, existing canonical membership guards, fail-closed local checks and bank bounds, retained-source grouping, viewport-relative position only. Required A/B/Both, preserved bank, invalid geometry, source/processor and Standard UI regressions; no second focus projector. Pre-freeze review admitted UiCompositionRunner.Common.cs to format source names from the retained local region identity rather than the AB parent."
+  },
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": {
+    "reviewer": null,
+    "outcome": "pending",
+    "evidence": ""
+  }
+}

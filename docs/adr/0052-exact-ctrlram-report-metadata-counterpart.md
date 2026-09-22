@@ -123,8 +123,20 @@ Section locators remain the complete authoritative output partition. A
 Presentation bank viewport may show their intersections with its selected
 bank, retaining absolute Reference addresses and canonical facts. This display
 selection is page-local: it never changes drafts, revisions, leases, inspection,
-Report or executable operations. Missing AB CtrlRAM endpoint metadata is not
-supplied by this extension.
+Report or executable operations.
+
+The follow-up CtrlRAM focus projection retains two distinct identities: each
+segment's exact containing AB canonical region, and an immutable attribution
+to its original local canonical CtrlRAM region/map plus checked bank placement.
+The accepted composite definition binds selected local compilations to one
+shared declaration; that geometry also describes preserved banks, without
+inventing unselected execution obligations or copying bank metadata. Discovery
+ranges must match that local map one-to-one before checked translation into
+the complete AB address space. No translated FirmwareRegion is manufactured.
+The existing coverage/operation projection remains the source of write state,
+contributors and partial-kept source grouping. Presentation filters to the
+typed viewport and uses its origin for bar proportions; labels and hover
+retain absolute addresses. This adds no firmware or support authority.
 
 ### Automatic Reference classification and complete bank facts — 2026-09-22
 

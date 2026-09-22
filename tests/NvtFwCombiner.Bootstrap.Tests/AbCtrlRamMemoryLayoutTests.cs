@@ -19,7 +19,9 @@ public sealed class AbCtrlRamMemoryLayoutTests
         ActiveSessionSnapshot session = BootstrapTestHost.Canonical.CtrlRamAuthoring.PrepareSession(
             new(ExperienceIds.CtrlRamReplace), "NT51929", "single", paths, bytes, new AbCtrlRamDraftState(selection)).AcceptedSession!;
         CompiledComposition composition = session.ExactCapability!.CompiledComposition;
-        MemoryLayoutSnapshot layout = MemoryLayoutProjector.Project(session.ExactCapability, session, composition);
+        IReadOnlyList<CtrlRamRegion> regions = BootstrapTestHost.Canonical.CtrlRamAuthoring
+            .GetDiscoveryDisplay("NT51929", "single").Regions;
+        MemoryLayoutSnapshot layout = MemoryLayoutProjector.Project(session.ExactCapability, session, composition, regions);
         Assert.Equal(0x80000, layout.Capacity);
         RuntimeReferenceBankReplaceV2CompilationContext context = Assert.IsType<RuntimeReferenceBankReplaceV2CompilationContext>(
             composition.V2Details.Provenance.Context);
@@ -44,6 +46,26 @@ public sealed class AbCtrlRamMemoryLayoutTests
             bool selected = selection == AbCtrlRamBankSelection.Both || (i == 0 ? selection == AbCtrlRamBankSelection.A : selection == AbCtrlRamBankSelection.B);
             MemoryLayoutSegment[] bank = [.. layout.AfterSegments.Where(segment => segment.Range.Start >= start && segment.Range.EndExclusive <= start + 0x40000)];
             Assert.NotEmpty(bank);
+            foreach (CtrlRamRegion region in regions)
+            {
+                var placed = new ByteRange(start + region.Start, region.Length);
+                MemoryLayoutSegment[] parts = [.. bank.Where(segment => placed.Contains(segment.Range))];
+                Assert.NotEmpty(parts);
+                Assert.Equal(placed.Length, parts.Sum(static segment => segment.Range.Length));
+                Assert.All(parts, segment =>
+                {
+                    Assert.Equal(MemoryContentRole.CtrlRam, segment.ContentRole);
+                    Assert.Equal(region.RegionGroup, segment.RegionGroup);
+                    Assert.Equal(region.Role, segment.CtrlRamRegionRole);
+                    MemoryLayoutBankRegion attribution = Assert.IsType<MemoryLayoutBankRegion>(segment.BankRegion);
+                    Assert.Equal(i == 0 ? "a-bank" : "b-bank", attribution.Bank.BankId);
+                    Assert.Equal(placed, attribution.Range);
+                    Assert.Equal(new ByteRange(region.Start, region.Length), attribution.LocalRegion.Range);
+                    Assert.Same(context.Banks[0].LocalComposition.V2Details.Provenance.ResolvedMap, attribution.LocalMap);
+                    Assert.Contains(attribution.LocalMap.ImageMap.Regions, candidate => ReferenceEquals(candidate, attribution.LocalRegion));
+                    Assert.Contains(layout.CanonicalRegions, candidate => ReferenceEquals(candidate, segment.CanonicalRegion));
+                });
+            }
             MemoryLayoutSegment nf = Assert.Single(bank, segment => segment.Range.Contains(new ByteRange(start + 0x1FC00, 1)));
             MemoryLayoutSegment retained = Assert.Single(bank, segment => segment.Range.Contains(new ByteRange(start + 0x32000, 1)));
             Assert.Equal(MemoryWorkflowDisposition.Kept, retained.Disposition);
@@ -53,7 +75,13 @@ public sealed class AbCtrlRamMemoryLayoutTests
                 Assert.Equal(MemoryWorkflowDisposition.WillReplace, nf.Disposition);
                 Assert.Equal("replace-ctrlram-nf", nf.SourceSlotId);
                 Assert.Equal("replace-ctrlram-nf", nf.ContentSource!.SourceSlotId);
-                Assert.Equal(nf.LogicalCoverageGroupId, retained.LogicalCoverageGroupId);
+                Assert.NotEqual(nf.LogicalCoverageGroupId, retained.LogicalCoverageGroupId);
+                MemoryLayoutSegment tail = Assert.Single(bank, segment => segment.Range.Contains(new ByteRange(start + 0x1FC01, 1)));
+                Assert.Equal(MemoryWorkflowDisposition.Kept, tail.Disposition);
+                Assert.Equal(nf.LogicalCoverageGroupId, tail.LogicalCoverageGroupId);
+                Assert.Same(nf.BankRegion, tail.BankRegion);
+                Assert.Equal("reference-base", tail.ContentSource!.SourceSpaceId);
+                Assert.Empty(tail.ContributingOperations);
                 Assert.Contains(bank, static segment => segment.ProcessorEffect == MemoryProcessorEffect.DeclaredWrite);
                 Assert.Equal(MemoryProcessorEffect.DeclaredWrite,
                     Assert.Single(bank, segment => segment.Range.Contains(new ByteRange(start + 0x2E000, 1))).ProcessorEffect);
@@ -67,6 +95,7 @@ public sealed class AbCtrlRamMemoryLayoutTests
             else
             {
                 Assert.All(bank, static segment => Assert.Equal(MemoryWorkflowDisposition.Kept, segment.Disposition));
+                Assert.All(bank, static segment => Assert.Empty(segment.ContributingOperations));
             }
         }
         Assert.Contains(layout.SectionLocators, static section => section.ContentRole == MemoryContentRole.Tp);
@@ -87,6 +116,21 @@ public sealed class AbCtrlRamMemoryLayoutTests
                 Assert.Contains(composition.Plan.OrderedOperations, original => ReferenceEquals(original, operation));
             });
         });
+    }
+
+    /// <summary>Optional display declarations cannot introduce unmatched or duplicate local geometry.</summary>
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void InvalidLocalDisplayGeometryIsRejected(bool duplicate)
+    {
+        (Dictionary<string, string> paths, Dictionary<string, byte[]> bytes) = AbCtrlRamAuthoringTests.Inputs();
+        ActiveSessionSnapshot session = BootstrapTestHost.Canonical.CtrlRamAuthoring.PrepareSession(
+            new(ExperienceIds.CtrlRamReplace), "NT51929", "single", paths, bytes, new AbCtrlRamDraftState()).AcceptedSession!;
+        CtrlRamRegion[] regions = [.. BootstrapTestHost.Canonical.CtrlRamAuthoring.GetDiscoveryDisplay("NT51929", "single").Regions];
+        regions = duplicate ? [.. regions, regions[0]] : [regions[0] with { Start = long.MaxValue }];
+        _ = Assert.Throws<MemoryLayoutDisplayProjectionException>(() => MemoryLayoutProjector.Project(
+            session.ExactCapability!, session, session.ExactCapability!.CompiledComposition, regions));
     }
 
     /// <summary>A Standard reference retains its complete sections without AB viewport identities.</summary>

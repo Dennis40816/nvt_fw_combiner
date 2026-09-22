@@ -11,7 +11,8 @@ public static partial class MemoryLayoutProjector
         ByteRange range,
         string? sourceSlotId,
         string segmentId,
-        string? retainedCompanionSlotId = null)
+        string? retainedCompanionSlotId = null,
+        MemoryLayoutBankRegion? bankRegion = null)
     {
         if (retainedCompanionSlotId is not null)
         {
@@ -26,6 +27,11 @@ public static partial class MemoryLayoutProjector
         if (map is null)
         {
             return $"segment:{segmentId}";
+        }
+
+        if (bankRegion is not null)
+        {
+            return $"region:{bankRegion.Bank.BankId}/{bankRegion.LocalRegion.RegionId}";
         }
 
         FirmwareRegion[] containing =

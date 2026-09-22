@@ -15,6 +15,13 @@ runtime implementation, create a watcher, or replace the version sequence.
 
 ## Current release sequence — 2026-09-14
 
+Owner amendment, 2026-09-22: the next release includes only fixes and changes
+allocated before `1.2.0` (through the current `1.1.10` delivery). The previously
+planned `1.2.0` release label for that delivery does not pull the separate
+Launcher development tranche into the package. Launcher work is excluded from
+this release; its next development slot remains to be scheduled. The full
+Launcher `2.0.0` target and its acceptance gates remain unchanged.
+
 Owner amendment, 2026-09-21: the work tracked under `1.1.10` is planned for
 release as `1.2.0`. Within that work, complete independent Event Buffer display
 updates, Partial-family bank cleanup and test closure before AB CtrlRAM Replace;
@@ -2140,9 +2147,27 @@ evidence and cannot wait until this version to execute mandatory Golden cases.
 
 ## Work package: bounded Launcher hardening and development
 
-Current allocation: first actual development in `1.2.0`; complete Launcher
-release in `2.0.0`, per the owner's 2026-09-14 decision. The data-refresh
-deadline below remains before `1.2.0`, not before `2.0.0`.
+2026-09-22 estimate (read-only assessment, not an implementation commitment):
+the first tranche is approximately **6–12 single-person focused workdays**,
+assuming inventory (1–2), two or three bounded corrections (3–6), and scoped
+regression/package/review closure (2–4). The exact defect set is not yet chosen.
+The complete Launcher scope through trust/security, controlled activation,
+installer refinements and clean-Windows recovery/rollback acceptance is roughly
+**28–50 focused workdays including that tranche**; external approvals and
+environment/key access waiting time are excluded. Optional repository extraction
+is excluded. Existing `ManagedDistributionLauncherHostServices`,
+`ManagedDistributionLauncherRuntime`, `ManagedLauncherEntry` and
+`VersionManagementExperience` already provide entry/setup/recovery, payload
+verification, READY/rollback and version-management foundations; this is not a
+from-zero estimate. No fresh test run was performed for this assessment.
+Per the current release-sequence amendment, this work is outside the next
+pre-`1.2.0`-scope delivery even if its release label is `1.2.0`.
+
+Historical allocation: first actual development under the `1.2.0` planning
+label; the 2026-09-22 amendment excludes that work from the next release and
+leaves its next development slot unscheduled. Complete Launcher release remains
+`2.0.0`. The data-refresh deadline below still applies to the next release,
+not the later Launcher release.
 
 Owner reminder, 2026-09-14: **before this release**, request/confirm the latest
 public NT51950 DP Perspective, Desay DP Perspective and Event Buffer ID/name

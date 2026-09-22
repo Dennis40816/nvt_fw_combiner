@@ -71,6 +71,11 @@ public sealed class AbCtrlRamVisualTests(ShellViewModelTestHostFixture fixture)
             Assert.False(viewModel.Replace.HasMemoryLayoutDisplayError);
             Assert.Equal(["TPA Version", "TPB Version"], viewModel.Replace.ReplaceBaseSlot.PrimaryFirmwareFacts.Take(2).Select(static fact => fact.Label));
             Assert.Equal("AB FlashCode", viewModel.Replace.ReplaceBaseSlot.DetectedBaseTypeLabel);
+            Assert.NotEmpty(viewModel.Replace.CtrlRamFocusLanes);
+            Assert.All(viewModel.Replace.CtrlRamFocusLanes, lane => Assert.Equal(chinese ? "主 IC" : "Master", lane.Title));
+            AssertNfSourceNames();
+            long[] aStarts = [.. viewModel.Replace.CtrlRamFocusLanes.Select(static lane => lane.Start)];
+            double[] aWeights = [.. viewModel.Replace.CtrlRamPositions.Select(static position => position.BarWidth)];
             Dispatcher.UIThread.RunJobs();
             AvaloniaHeadlessPlatform.ForceRenderTimerTick();
             ToggleButton bankView = Assert.Single(window.GetVisualDescendants().OfType<ToggleButton>(), item => item.Name == "CtrlRamBankViewSwitch");
@@ -102,6 +107,17 @@ public sealed class AbCtrlRamVisualTests(ShellViewModelTestHostFixture fixture)
             Assert.Equal(inspectionState, viewModel.Replace.Inspection.State);
             Assert.True(viewModel.Replace.IsCtrlRamBankASelected);
             Assert.True(viewModel.Replace.CanBuildReplace);
+            Assert.Equal(aStarts.Select(static start => start + 0x40000), viewModel.Replace.CtrlRamFocusLanes.Select(static lane => lane.Start));
+            Assert.Equal(aWeights, viewModel.Replace.CtrlRamPositions.Select(static position => position.BarWidth));
+            Assert.Equal(0x40000, viewModel.Replace.CtrlRamPositions.Sum(static position => position.BarWidth));
+            Assert.All(viewModel.Replace.CtrlRamFocusLanes.SelectMany(static lane => lane.Ranges),
+                static range => Assert.False(range.IsSelectedForWrite));
+            _ = CtrlRamMemoryLayoutTests.OpenLane(window, viewModel.Replace.CtrlRamFocusLanes[0]);
+            Border local = Assert.Single(window.GetVisualDescendants().OfType<Border>(), static control => control.Name == "MemoryLocalView");
+            Assert.Contains(local.GetVisualDescendants().OfType<TextBlock>(), static text => text.Text == "NF");
+            Assert.Contains(window.GetVisualDescendants().OfType<Border>(), static border =>
+                border.Classes.Contains("memoryPositionUnderline") && border.IsEffectivelyVisible);
+            Assert.True(bankView.Focus());
             AvaloniaHeadlessPlatform.ForceRenderTimerTick();
             string? output = Environment.GetEnvironmentVariable("NFC_VISUAL_OUTPUT_DIR");
             using global::Avalonia.Media.Imaging.Bitmap? frame = window.GetLastRenderedFrame();
@@ -130,6 +146,7 @@ public sealed class AbCtrlRamVisualTests(ShellViewModelTestHostFixture fixture)
             await viewModel.Replace.SelectCtrlRamBanksCommand.ExecuteAsync(AbCtrlRamBankSelection.Both);
             await viewModel.WorkflowSession.SetSlotFileAsync("replace-ctrlram-nf", AbCtrlRamNfPath, TestContext.Current.CancellationToken);
             Assert.True(viewModel.Replace.HasCtrlRamBankView);
+            AssertNfSourceNames();
             Assert.Equal(["TPA Version", "TPB Version"], viewModel.Replace.ReplaceBaseSlot.PrimaryFirmwareFacts.Take(2).Select(static fact => fact.Label));
             viewModel.Replace.IsViewingCtrlRamBankB = true;
             Dispatcher.UIThread.RunJobs();
@@ -152,6 +169,31 @@ public sealed class AbCtrlRamVisualTests(ShellViewModelTestHostFixture fixture)
             {
                 detailsFrame.Save(Path.Combine(output, $"ab-info-details-1440x1000-{(dark ? "dark-zh" : "light-en")}.png"));
             }
+            _ = CtrlRamMemoryLayoutTests.OpenLane(window, viewModel.Replace.CtrlRamFocusLanes[0]);
+            Control nfCell = window.GetVisualDescendants().OfType<Control>().First(static control =>
+                control.Classes.Contains("memoryLocalSlice") && control.Focusable &&
+                control.DataContext is MemoryCoverageSegmentViewModel { CtrlRamRegionRole: CtrlRamRegionRole.Nf });
+            Assert.True(nfCell.Focus(NavigationMethod.Tab));
+            Dispatcher.UIThread.RunJobs();
+            AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+            Border detailCard = Assert.Single(window.GetVisualDescendants().OfType<Border>(), static control => control.Name == "MemorySliceCard");
+            MemoryCoverageSegmentViewModel detailSegment = Assert.IsType<MemoryCoverageSegmentViewModel>(detailCard.DataContext);
+            Assert.Equal("NF CtrlRAM", detailSegment.SourceLabel);
+            Assert.Equal(0x5FC00, detailSegment.RangeStart);
+            await Task.Delay(350, TestContext.Current.CancellationToken);
+            Dispatcher.UIThread.RunJobs();
+            AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+            using global::Avalonia.Media.Imaging.Bitmap? hoverFrame = window.GetLastRenderedFrame();
+            Assert.NotNull(hoverFrame);
+            if (output is not null)
+            {
+                hoverFrame.Save(Path.Combine(output, $"ab-focus-hover-1440x1000-{(dark ? "dark-zh" : "light-en")}.png"));
+            }
+            await viewModel.Replace.SelectCtrlRamBanksCommand.ExecuteAsync(AbCtrlRamBankSelection.B);
+            AssertNfSourceNames();
+            viewModel.Replace.IsViewingCtrlRamBankB = false;
+            Assert.All(viewModel.Replace.CtrlRamFocusLanes.SelectMany(static lane => lane.Ranges),
+                static range => Assert.False(range.IsSelectedForWrite));
             await viewModel.WorkflowSession.ClearSlotFileCommand.ExecuteAsync(CompositionSlotIds.ReplaceBase);
             Assert.False(viewModel.Replace.HasCtrlRamBankView);
             viewModel.WorkflowSession.SelectedIc = "NT51950";
@@ -162,6 +204,14 @@ public sealed class AbCtrlRamVisualTests(ShellViewModelTestHostFixture fixture)
         finally
         {
             await ReportControlTestHost.CloseAndFlushAsync(window);
+        }
+
+        void AssertNfSourceNames()
+        {
+            MemoryCoverageSegmentViewModel[] selected = [.. viewModel.Replace.ReplaceCoverageSegments
+                .Where(static segment => segment.SourceSlotId == "replace-ctrlram-nf")];
+            Assert.NotEmpty(selected);
+            Assert.All(selected, static segment => Assert.Equal("NF CtrlRAM", segment.SourceLabel));
         }
     }
 

@@ -88,7 +88,8 @@ internal sealed partial class ReplacePresentationViewModel
     public string CtrlRamCapacityLabel => CtrlRamOverview.Count == 0 ? string.Empty :
         FormattableString.Invariant($"{CtrlRamOverview.Sum(static section => section.BarWidth) / 1024:0.###} KiB");
     public IReadOnlyList<MemoryFocusPositionViewModel> CtrlRamPositions => MemoryFocusLaneViewModel.CreatePositions(
-        CtrlRamFocusLanes, (long)CtrlRamOverview.Sum(static section => section.BarWidth));
+        CtrlRamFocusLanes, (long)CtrlRamOverview.Sum(static section => section.BarWidth),
+        CtrlRamOverview.FirstOrDefault()?.RangeStart ?? 0);
     public string CtrlRamEndAddress => CtrlRamOverview.Count == 0 ? string.Empty :
         FormattableString.Invariant($"0x{CtrlRamOverview[^1].RangeEndExclusive - 1:X5}");
     public string CtrlRamStartAddress => CtrlRamOverview.Count == 0 ? string.Empty :

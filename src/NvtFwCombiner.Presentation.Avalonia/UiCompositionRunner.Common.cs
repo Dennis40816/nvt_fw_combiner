@@ -290,7 +290,7 @@ internal static partial class UiCompositionRunner
                         ? new(
                             MemoryPlanSourceKind.Technical,
                             segment.ContentRole == MemoryContentRole.CtrlRam
-                                ? DynamicCtrlRamReplacementIds.FormatRegionDisplayLabel(segment.RegionId)
+                                ? DynamicCtrlRamReplacementIds.FormatRegionDisplayLabel(segment.BankRegion?.LocalRegion.RegionId ?? segment.RegionId)
                                 : sourceLabel)
                         : AddressSpaceSource(sourceSpaceId)
                     : new(MemoryPlanSourceKind.Localized, isInitialization
