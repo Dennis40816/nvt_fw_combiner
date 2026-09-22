@@ -139,7 +139,11 @@
           </ToggleButton>
         </StackPanel>
       </Grid>
-      <ItemsControl x:Name="AdditionalFirmwareFactsHost" Grid.Row="1" Grid.Column="0" Margin="16,0,16,16"
+      <Border x:Name="DetailsDivider" Grid.Row="1" Grid.ColumnSpan="2" Margin="16,0,16,0"
+              Height="1" VerticalAlignment="Top" IsHitTestVisible="False"
+              Background="{DynamicResource NfcBorderMutedBrush}"
+              IsVisible="{Binding IsAdditionalFirmwareFactsExpanded}" />
+      <ItemsControl x:Name="AdditionalFirmwareFactsHost" Grid.Row="1" Grid.Column="0" Margin="16,12,16,16"
                     HorizontalAlignment="Stretch" IsVisible="{Binding IsAdditionalFirmwareFactsExpanded}"
                     ItemsSource="{Binding AdditionalFirmwareFacts}">
         <ItemsControl.ItemsPanel>
