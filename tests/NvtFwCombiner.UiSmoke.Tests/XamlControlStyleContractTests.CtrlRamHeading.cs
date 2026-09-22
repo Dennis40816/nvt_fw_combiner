@@ -58,7 +58,7 @@ public sealed partial class XamlControlStyleContractTests
             Point subtitleOrigin = Assert.IsType<Point>(subtitle.TranslatePoint(default, card));
             Point browseOrigin = Assert.IsType<Point>(browse.TranslatePoint(default, card));
             Assert.InRange(Math.Abs(identityOrigin.X - subtitleOrigin.X), 0, 0.5);
-            Assert.InRange(subtitleOrigin.Y - headerOrigin.Y - header.Bounds.Height, 11.5, 12.5);
+            Assert.InRange(subtitleOrigin.Y - headerOrigin.Y - header.Bounds.Height, 7.5, 8.5);
             Assert.True(subtitleOrigin.X + subtitle.Bounds.Width < browseOrigin.X);
             Assert.NotEqual(title.Foreground, subtitle.Foreground);
             Assert.Contains(title.Text!, AutomationProperties.GetName(browse), StringComparison.Ordinal);

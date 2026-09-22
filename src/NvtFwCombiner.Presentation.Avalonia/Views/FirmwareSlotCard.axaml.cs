@@ -13,7 +13,6 @@ namespace NvtFwCombiner.Presentation.Avalonia.Views;
 public sealed partial class FirmwareSlotCard : UserControl
 {
     private const double CompactLayoutBreakpoint = 820;
-    private bool? _isCompactLayout;
 
     /// <summary>Formats the shared visible, assistive, and picker-title Browse phrase.</summary>
     public const string BrowseActionFormat = "{0} — {1}";
@@ -52,7 +51,7 @@ public sealed partial class FirmwareSlotCard : UserControl
 
     /// <summary>Defines the responsive number of columns used by compact firmware facts.</summary>
     public static readonly StyledProperty<int> FactColumnCountProperty =
-        AvaloniaProperty.Register<FirmwareSlotCard, int>(nameof(FactColumnCount), 4);
+        AvaloniaProperty.Register<FirmwareSlotCard, int>(nameof(FactColumnCount), 3);
 
     /// <summary>Gets or sets the shared selected-file clear command.</summary>
     public ICommand? ClearSelectionCommand
@@ -79,14 +78,13 @@ public sealed partial class FirmwareSlotCard : UserControl
 
     private void ApplyResponsiveLayout(double width)
     {
-        bool compact = width is > 0 and < CompactLayoutBreakpoint;
-        if (_isCompactLayout == compact)
+        int columns = width is > 0 and < 480 ? 1 : width is > 0 and < CompactLayoutBreakpoint ? 2 : 3;
+        if (FactColumnCount == columns)
         {
             return;
         }
 
-        _isCompactLayout = compact;
-        SetCurrentValue(FactColumnCountProperty, compact ? 2 : 4);
+        SetCurrentValue(FactColumnCountProperty, columns);
     }
 
     private MainWindowViewModel? ShellViewModel =>

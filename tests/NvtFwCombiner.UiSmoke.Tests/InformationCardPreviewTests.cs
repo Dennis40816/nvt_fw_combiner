@@ -33,8 +33,8 @@ public sealed partial class XamlControlStyleContractTests
             new("PID", "0x570A"),
             new("Common FW Version", "1.4.0"),
             new("Event Buffer Version", "0x97 - Desay"),
-            new("DP Version", "D08-00"),
-            new("Jira Index", "AUTO_PRJ-528"),
+            new("DP Version", "D08-00", priority: FirmwareSlotFactPriority.Details),
+            new("Jira Index", "AUTO_PRJ-528", priority: FirmwareSlotFactPriority.Details),
         ]);
         var card = new FirmwareSlotCard
         {

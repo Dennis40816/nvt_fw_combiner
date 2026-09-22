@@ -12,6 +12,41 @@ internal sealed partial class ReplacePresentationViewModel
     private string? _preparedCtrlRamIc;
     private string? _preparedCtrlRamNumber;
     private CtrlRamInspectionDisplay? _preparedCtrlRamDisplay;
+    private MemoryLayoutSnapshot? _ctrlRamMemoryLayout;
+    private string? _viewedCtrlRamBankId;
+
+    public bool HasCtrlRamBankView => IsCtrlRamReplaceModeSelected && IsAbCtrlRamReference &&
+        _ctrlRamMemoryLayout?.Banks.Count == 2;
+
+    public bool IsViewingCtrlRamBankB
+    {
+        get => _viewedCtrlRamBankId == "b-bank";
+        set
+        {
+            string id = value ? "b-bank" : "a-bank";
+            if (!HasCtrlRamBankView || id == _viewedCtrlRamBankId)
+            {
+                return;
+            }
+            _viewedCtrlRamBankId = id;
+            RefreshCtrlRamBankOverview();
+            PublishReplaceMemoryContext();
+        }
+    }
+
+    public string CtrlRamBankViewSubtitle => Text.FormatCtrlRamBankView(
+        IsViewingCtrlRamBankB,
+        IsCtrlRamBothBanksSelected || (IsViewingCtrlRamBankB ? IsCtrlRamBankBSelected : IsCtrlRamBankASelected));
+
+    private void RefreshCtrlRamBankOverview()
+    {
+        if (_ctrlRamMemoryLayout is not { Banks.Count: 2 } layout)
+        {
+            return;
+        }
+        MemoryLayoutBankLocator bank = layout.Banks.Single(item => item.BankId == _viewedCtrlRamBankId);
+        ReplaceRows(CtrlRamOverview, UiCompositionRunner.GetMemoryOverview(layout, Text, bank));
+    }
 
     internal void ValidateContextRefresh(string icId, string number, string mode)
     {
@@ -116,6 +151,11 @@ internal sealed partial class ReplacePresentationViewModel
 
     private void PrepareClearCtrlRamInspectionDisplay()
     {
+        _ctrlRamMemoryLayout = null;
+        if (!IsAbCtrlRamReference)
+        {
+            _viewedCtrlRamBankId = null;
+        }
         HasMemoryLayoutDisplayError = false;
         CtrlRamRegions.Clear();
         ReplaceMemoryRangeLabel = string.Empty;
@@ -153,6 +193,7 @@ internal sealed partial class ReplacePresentationViewModel
 
     private void ApplyCtrlRamMemoryDisplay(CtrlRamInspectionDisplay display)
     {
+        _ctrlRamMemoryLayout = null;
         ActiveSessionSnapshot? acceptedSession =
             _ctrlRamReplaceSession.CurrentSnapshot;
         IReadOnlyList<MemoryCoverageSegmentViewModel> overview = [];
@@ -172,7 +213,13 @@ internal sealed partial class ReplacePresentationViewModel
                     acceptedSession,
                     Text,
                     out overview,
+                    out MemoryLayoutSnapshot layout,
                     ctrlRamRegions: acceptedSession.DraftState is AbCtrlRamDraftState ? null : display.Regions);
+                _ctrlRamMemoryLayout = layout;
+                if (layout.Banks.Count == 2 && !layout.Banks.Any(bank => bank.BankId == _viewedCtrlRamBankId))
+                {
+                    _viewedCtrlRamBankId = IsCtrlRamBankBSelected ? "b-bank" : "a-bank";
+                }
             }
             catch (MemoryLayoutDisplayProjectionException)
             {
@@ -184,6 +231,7 @@ internal sealed partial class ReplacePresentationViewModel
             }
         }
         ApplyReplaceMemoryDisplay(result.rangeLabel, result.rows, result.coverageSegments, overview);
+        RefreshCtrlRamBankOverview();
     }
 
     private void RelocalizeReplaceMemoryMapState()
@@ -266,6 +314,10 @@ internal sealed partial class ReplacePresentationViewModel
 
     private void NotifyCoverageGroupingChanged()
     {
+        OnPropertyChanged(nameof(HasCtrlRamBankView));
+        OnPropertyChanged(nameof(IsViewingCtrlRamBankB));
+        OnPropertyChanged(nameof(CtrlRamBankViewSubtitle));
+        OnPropertyChanged(nameof(CtrlRamStartAddress));
         OnPropertyChanged(nameof(HasCtrlRamFocusLayout));
         OnPropertyChanged(nameof(CtrlRamCapacityLabel));
         OnPropertyChanged(nameof(CtrlRamPositions));
@@ -323,6 +375,7 @@ internal sealed partial class ReplacePresentationViewModel
         }
         else if (!IsCtrlRamReplaceModeSelected)
         {
+            _ctrlRamMemoryLayout = null;
             HasMemoryLayoutDisplayError = false;
             CtrlRamRegions.Clear();
         }

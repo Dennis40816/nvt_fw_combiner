@@ -69,9 +69,9 @@ public sealed partial class XamlControlStyleContractTests
         Assert.DoesNotContain("UsesLegacySlotPresentation", slotCard, StringComparison.Ordinal);
     }
 
-    /// <summary>Firmware facts use the approved borderless four-column grid and disclose only overflow.</summary>
+    /// <summary>Firmware facts use the approved borderless responsive grid and disclose only overflow.</summary>
     [Fact]
-    public void FirmwareSlotFactsUseApprovedBorderlessFourColumnGrid()
+    public void FirmwareSlotFactsUseApprovedBorderlessResponsiveGrid()
     {
         string slotCard = ReadPresentationFile("Views/FirmwareSlotCard.axaml");
         string templates = ReadPresentationFile("Resources/MainWindowSharedTemplates.axaml");
@@ -84,8 +84,8 @@ public sealed partial class XamlControlStyleContractTests
         Assert.DoesNotContain("IsChecked=\"{Binding IsFirmwareFactsExpanded}\"", slotCard, StringComparison.Ordinal);
         Assert.DoesNotContain("Content=\"{Binding FirmwareFactsDisclosureLabel}\"", slotCard, StringComparison.Ordinal);
         Assert.Contains("IsChecked=\"{Binding IsAdditionalFirmwareFactsExpanded}\"", slotCard, StringComparison.Ordinal);
-        Assert.Contains("Content=\"{Binding AdditionalFirmwareFactsLabel}\"", slotCard, StringComparison.Ordinal);
-        Assert.Equal(2, CountOccurrences(
+        Assert.Contains("Text=\"{Binding AdditionalFirmwareFactsLabel}\"", slotCard, StringComparison.Ordinal);
+        Assert.Equal(3, CountOccurrences(
             slotCard,
             "<UniformGrid Columns=\"{Binding FactColumnCount, ElementName=Root}\""));
         Assert.DoesNotContain("Rows=", slotCard, StringComparison.Ordinal);
@@ -94,7 +94,7 @@ public sealed partial class XamlControlStyleContractTests
         Assert.DoesNotContain("BorderThickness=", factTemplate, StringComparison.Ordinal);
         Assert.DoesNotContain("CornerRadius=", factTemplate, StringComparison.Ordinal);
         Assert.Contains("Orientation=\"Vertical\"", factTemplate, StringComparison.Ordinal);
-        Assert.Contains("Property=\"FontWeight\" Value=\"SemiBold\"", factLabelStyle, StringComparison.Ordinal);
+        Assert.Contains("Property=\"FontWeight\" Value=\"Normal\"", factLabelStyle, StringComparison.Ordinal);
         Assert.Contains("TextTrimming=\"CharacterEllipsis\"", factTemplate, StringComparison.Ordinal);
         Assert.Contains("Classes=\"firmwareSlotFactStateIcon\"", factTemplate, StringComparison.Ordinal);
         Assert.Contains("AutomationProperties.Name=\"{Binding StateAutomationText}\"", factTemplate, StringComparison.Ordinal);
@@ -448,7 +448,7 @@ public sealed partial class XamlControlStyleContractTests
 
     /// <summary>Firmware facts are visible by default while retaining localized collapse and overflow controls.</summary>
     [Fact]
-    public void FirmwareSlotFactsLimitPrimaryCardsAndPreserveAdditionalFacts()
+    public void FirmwareSlotFactsUseDeclaredPriorityAndPreserveAdditionalFacts()
     {
         var slot = new FirmwareSlotViewModel(
             "base",
@@ -457,8 +457,8 @@ public sealed partial class XamlControlStyleContractTests
             FirmwareSlotKind.Base);
         FirmwareSlotFactViewModel[] facts =
         [
-            new("DP Version", "D01-01"),
-            new("Jira Index", "NVT-1"),
+            new("DP Version", "D01-01", priority: FirmwareSlotFactPriority.Details),
+            new("Jira Index", "NVT-1", priority: FirmwareSlotFactPriority.Details),
             new("Common FW Version", "2.0.0"),
             new("TP Version", "T01-01"),
             new("PID", "0x5195"),
@@ -466,18 +466,18 @@ public sealed partial class XamlControlStyleContractTests
 
         slot.SetFirmwareFacts(facts);
 
-        Assert.Equal(4, slot.PrimaryFirmwareFacts.Count);
-        _ = Assert.Single(slot.AdditionalFirmwareFacts);
-        Assert.Equal("PID", slot.AdditionalFirmwareFacts[0].Label);
+        Assert.Equal(3, slot.PrimaryFirmwareFacts.Count);
+        Assert.Equal(2, slot.AdditionalFirmwareFacts.Count);
+        Assert.Equal("DP Version", slot.AdditionalFirmwareFacts[0].Label);
         Assert.True(slot.HasAdditionalFirmwareFacts);
-        Assert.Equal("Show 1 more details", slot.AdditionalFirmwareFactsLabel);
+        Assert.Equal("Details", slot.AdditionalFirmwareFactsLabel);
 
         slot.IsAdditionalFirmwareFactsExpanded = true;
 
         slot.RelocalizeFirmwareFacts(facts);
 
         Assert.True(slot.IsAdditionalFirmwareFactsExpanded);
-        Assert.Equal("Show fewer details", slot.AdditionalFirmwareFactsLabel);
+        Assert.Equal("Details", slot.AdditionalFirmwareFactsLabel);
         Assert.Equal(facts, slot.FirmwareFacts);
     }
 

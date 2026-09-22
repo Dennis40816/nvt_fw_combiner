@@ -1,7 +1,6 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using NvtFwCombiner.Application.Metadata;
 using NvtFwCombiner.Application.Authoring;
-using System.Globalization;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
@@ -24,8 +23,6 @@ internal sealed partial class FirmwareSlotViewModel
     private string _warningLabel = "Warning";
     private string _errorLabel = "Error";
     private string _notApplicableLabel = "Not applicable";
-    private string _showMoreFactsTemplate = "Show {0} more details";
-    private string _showFewerFactsLabel = "Show fewer details";
 
     public FirmwareSlotSemanticState SemanticState =>
         InputInspectionSeverity == FirmwareInputInspectionSeverity.Blocking
@@ -113,19 +110,17 @@ internal sealed partial class FirmwareSlotViewModel
     };
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsSemanticStateDetailVisible))]
     public partial bool IsSemanticStateDetailExpanded { get; set; }
 
-    /// <summary>True when facts after the four primary values are disclosed.</summary>
+    /// <summary>True when producer-declared secondary facts are disclosed.</summary>
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(AdditionalFirmwareFactsLabel))]
     public partial bool IsAdditionalFirmwareFactsExpanded { get; set; }
 
-    public string AdditionalFirmwareFactsLabel => IsAdditionalFirmwareFactsExpanded
-        ? _showFewerFactsLabel
-        : string.Format(
-            CultureInfo.CurrentCulture,
-            _showMoreFactsTemplate,
-            AdditionalFirmwareFacts.Count);
+    public string AdditionalFirmwareFactsLabel { get; private set; } = "Details";
+
+    public bool IsSemanticStateDetailVisible => IsSemanticStateError || IsSemanticStateDetailExpanded;
 
     public void ApplyExperienceText(ShellTextResources text)
     {
@@ -144,8 +139,7 @@ internal sealed partial class FirmwareSlotViewModel
         _warningLabel = text.FirmwareSlotWarningLabel;
         _errorLabel = text.FirmwareSlotErrorLabel;
         _notApplicableLabel = text.FirmwareSlotNotApplicableLabel;
-        _showMoreFactsTemplate = text.FirmwareSlotShowMoreFactsTemplate;
-        _showFewerFactsLabel = text.FirmwareSlotShowFewerFactsLabel;
+        AdditionalFirmwareFactsLabel = text.FirmwareSlotDetailsLabel;
         if (IsBaseDiscoveryInspected)
         {
             InputInspectionStatus = text.CtrlRamBaseInspectedDetail;
@@ -166,6 +160,7 @@ internal sealed partial class FirmwareSlotViewModel
     private void NotifySemanticStateChanged()
     {
         OnPropertyChanged(nameof(HasIssueCard));
+        OnPropertyChanged(nameof(IsSemanticStateDetailVisible));
         OnPropertyChanged(nameof(IssueCard));
         OnPropertyChanged(nameof(SemanticState));
         OnPropertyChanged(nameof(HasSemanticState));

@@ -115,16 +115,16 @@ internal sealed partial class FirmwareSlotViewModel : ObservableObject
     /// <summary>Firmware facts decoded from the selected file, when the active IC has a FWConfig map.</summary>
     public ObservableCollection<FirmwareSlotFactViewModel> FirmwareFacts { get; } = [];
 
-    public IReadOnlyList<FirmwareSlotFactViewModel> PrimaryFirmwareFacts => [.. FirmwareFacts.Take(4)];
+    public IReadOnlyList<FirmwareSlotFactViewModel> PrimaryFirmwareFacts => [.. FirmwareFacts.Where(static fact => fact.IsPrimary)];
 
-    /// <summary>Facts disclosed on demand after the four primary facts.</summary>
-    public IReadOnlyList<FirmwareSlotFactViewModel> AdditionalFirmwareFacts => [.. FirmwareFacts.Skip(4)];
+    /// <summary>Producer-declared secondary facts, independent of list order and translated labels.</summary>
+    public IReadOnlyList<FirmwareSlotFactViewModel> AdditionalFirmwareFacts => [.. FirmwareFacts.Where(static fact => !fact.IsPrimary)];
 
     /// <summary>True when the slot has decoded firmware facts to show.</summary>
     public bool HasFirmwareFacts => FirmwareFacts.Count > 0;
 
-    /// <summary>True when decoded firmware facts exceed the four-card primary limit.</summary>
-    public bool HasAdditionalFirmwareFacts => FirmwareFacts.Count > 4;
+    /// <summary>True when the producer has supplied secondary facts.</summary>
+    public bool HasAdditionalFirmwareFacts => FirmwareFacts.Any(static fact => !fact.IsPrimary);
 
     public bool HasInputInspectionStatus =>
         IsInputInspectionPending || InputInspectionSeverity is not null || IsBaseDiscoveryInspected;

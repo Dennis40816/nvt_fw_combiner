@@ -130,7 +130,7 @@
             <TextBlock Classes="warningText" IsVisible="{Binding HasGeneratedInputs}" Text="{Binding Text.OutputConfirmationGeneratedHint}" TextWrapping="Wrap" />
           </StackPanel>
           <Grid x:Name="OutputConfirmationSummary" ColumnDefinitions="188,*" RowDefinitions="Auto,Auto,Auto,Auto"
-                ColumnSpacing="{DynamicResource NfcSpace12}" RowSpacing="8" Margin="0,4,0,4" IsVisible="{Binding HasConfirmation}">
+                ColumnSpacing="{DynamicResource NfcSpace12}" RowSpacing="{DynamicResource NfcSpace8}" Margin="0,4,0,4" IsVisible="{Binding HasConfirmation}">
             <TextBlock Classes="mutedText" Text="{Binding Text.OutputConfirmationTargetLabel}" />
             <TextBlock x:Name="OutputTargetValue" Grid.Column="1" FontWeight="SemiBold" Text="{Binding TargetSummary}" TextWrapping="Wrap" />
             <TextBlock Grid.Row="1" Classes="mutedText" Text="{Binding Text.OutputConfirmationModeLabel}" />
@@ -204,8 +204,8 @@
                       <TextBlock Classes="versionValue" FontFamily="{DynamicResource NfcUiFontFamily}" FontWeight="Medium" Text="{Binding CurrentValue}" />
                       <TextBlock Classes="detailText" Text="{Binding Detail}" TextWrapping="Wrap" />
                     </StackPanel>
-                    <StackPanel Grid.Column="1" Spacing="12">
-                      <Grid ColumnDefinitions="*,*" ColumnSpacing="4">
+                    <StackPanel Grid.Column="1" Spacing="{DynamicResource NfcSpace12}">
+                      <Grid ColumnDefinitions="*,*" ColumnSpacing="{DynamicResource NfcSpace4}">
                         <ToggleButton Classes="segment versionChoice" FontFamily="{DynamicResource NfcUiFontFamily}" FontWeight="Medium" Command="{Binding PreserveCommand}"
                                       IsChecked="{Binding IsPreserveSelected, Mode=OneWay}"
                                       AutomationProperties.Name="{Binding Text.CtrlRamFirmwareVersionKeepLabel}">
@@ -217,7 +217,7 @@
                           <TextBlock Text="{Binding Text.CtrlRamFirmwareVersionEditLabel}" />
                         </ToggleButton>
                       </Grid>
-                      <Grid Classes="abVersionFields" ColumnDefinitions="*,*" ColumnSpacing="12" IsVisible="{Binding IsEditSelected}">
+                      <Grid Classes="abVersionFields" ColumnDefinitions="*,*" ColumnSpacing="{DynamicResource NfcSpace12}" IsVisible="{Binding IsEditSelected}">
                         <StackPanel Spacing="5">
                           <TextBlock Classes="fieldLabel" Text="{Binding Text.CtrlRamFirmwareVersionByteLabel}" />
                           <TextBox Classes="technicalCenteredInput hexByteInput" FontFamily="{DynamicResource NfcUiFontFamily}" FontWeight="Medium" Text="{Binding VersionText, Mode=TwoWay}"

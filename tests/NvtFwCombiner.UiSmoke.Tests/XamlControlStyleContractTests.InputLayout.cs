@@ -29,7 +29,7 @@ public sealed partial class XamlControlStyleContractTests
 
     /// <summary>Identity has its own row above responsive facts, with Browse in the action column.</summary>
     [Fact]
-    public void FirmwareSlotCardUsesApprovedFixedFourColumnFactLayout()
+    public void FirmwareSlotCardUsesApprovedResponsiveFactLayout()
     {
         string slotCard = ReadPresentationFile("Views/FirmwareSlotCard.axaml");
         string codeBehind = ReadPresentationFile("Views/FirmwareSlotCard.axaml.cs");
@@ -57,16 +57,16 @@ public sealed partial class XamlControlStyleContractTests
 
         Assert.Equal("*", (string?)layout.Attribute("ColumnDefinitions"));
         Assert.Equal("Auto,Auto,Auto,Auto", (string?)layout.Attribute("RowDefinitions"));
-        Assert.Equal("16,20,16,16", (string?)layout.Attribute("Margin"));
+        Assert.Equal("16,16,16,16", (string?)layout.Attribute("Margin"));
         Assert.Equal("72", (string?)layout.Attribute("MinHeight"));
-        Assert.Equal("{DynamicResource NfcSpace12}", (string?)identity.Attribute("Spacing"));
+        Assert.Equal("{DynamicResource NfcSpace8}", (string?)identity.Attribute("Spacing"));
         Assert.Equal("Grid", header.Name.LocalName);
         Assert.Equal("Auto,*", (string?)header.Attribute("ColumnDefinitions"));
         Assert.Equal("0", (string?)identity.Attribute("Grid.Column"));
         Assert.Equal("0", (string?)factsRegion.Attribute("Grid.Column"));
         Assert.Equal("1", (string?)factsRegion.Attribute("Grid.Row"));
         Assert.Equal("Center", (string?)factsRegion.Attribute("VerticalAlignment"));
-        Assert.Equal("2", (string?)additionalFacts.Attribute("Grid.Row"));
+        Assert.Equal("1", (string?)additionalFacts.Attribute("Grid.Row"));
         Assert.Equal("0", (string?)additionalFacts.Attribute("Grid.Column"));
         Assert.Equal("1", (string?)actions.Attribute("Grid.Column"));
         Assert.Equal("10", (string?)actions.Attribute("Spacing"));
@@ -156,11 +156,11 @@ public sealed partial class XamlControlStyleContractTests
             FirmwareSlotCard.FormatBrowseActionLabel(browseLabel, slotTitle));
     }
 
-    /// <summary>Wide cards keep title and badge together, with four equal fact columns underneath.</summary>
+    /// <summary>Wide cards keep title and badge together, with three equal fact columns underneath.</summary>
     [AvaloniaTheory]
     [InlineData(900)]
     [InlineData(1180)]
-    public void FirmwareSlotCardKeepsApprovedFourColumnGeometry(double width)
+    public void FirmwareSlotCardKeepsApprovedThreeColumnGeometry(double width)
     {
         var slot = new FirmwareSlotViewModel(
             "dp",
@@ -227,9 +227,9 @@ public sealed partial class XamlControlStyleContractTests
         Control[] factCells = [.. factGrid.Children.OfType<Control>()];
         Assert.Equal(4, factCells.Length);
         Assert.All(factCells, cell =>
-            Assert.InRange(Math.Abs(cell.Bounds.Width - (factGrid.Bounds.Width / 4)), 0, 0.5));
+            Assert.InRange(Math.Abs(cell.Bounds.Width - (factGrid.Bounds.Width / 3)), 0, 0.5));
         Assert.InRange(
-            Math.Abs(factCells.Sum(static cell => cell.Bounds.Width) - factGrid.Bounds.Width),
+            Math.Abs(factCells.Take(3).Sum(static cell => cell.Bounds.Width) - factGrid.Bounds.Width),
             0,
             2);
         Assert.Equal(88, browse.MinWidth);
@@ -297,8 +297,8 @@ public sealed partial class XamlControlStyleContractTests
         slot.SetInputInspection(FirmwareInputInspectionSeverity.Valid, "The selected BIN is valid.");
         slot.SetFirmwareFacts(
         [
-            new("DP Version", "DCC-00"),
-            new("Jira Index", "AUTO_PRJ-576"),
+            new("DP Version", "DCC-00", priority: FirmwareSlotFactPriority.Details),
+            new("Jira Index", "AUTO_PRJ-576", priority: FirmwareSlotFactPriority.Details),
             new("Common FW Version", "2.0.0"),
             new("TP Version", "T01-01"),
             new("PID", "0x135E"),
@@ -339,14 +339,14 @@ public sealed partial class XamlControlStyleContractTests
             Point primaryOrigin = Assert.IsType<Point>(primary.TranslatePoint(default, selector));
             Point additionalOrigin = Assert.IsType<Point>(additional.TranslatePoint(default, selector));
 
-            Assert.Equal("Show fewer details", slot.AdditionalFirmwareFactsLabel);
+            Assert.Equal("Details", slot.AdditionalFirmwareFactsLabel);
             Assert.True(additional.IsEffectivelyVisible);
             Assert.InRange(Math.Abs(primaryOrigin.X - additionalOrigin.X), 0, 0.5);
             Assert.True(additionalOrigin.X + additional.Bounds.Width <= selector.Bounds.Width + 0.5);
             StackPanel disclosure = card.FindControl<StackPanel>("SlotAdditionalFactsRegion")!;
             Point disclosureOrigin = Assert.IsType<Point>(disclosure.TranslatePoint(default, selector));
-            Assert.True(disclosureOrigin.Y >= additionalOrigin.Y + additional.Bounds.Height,
-                "Show details belongs below all facts, not between primary facts and PID.");
+            Assert.True(disclosureOrigin.Y + disclosure.Bounds.Height <= additionalOrigin.Y,
+                "Details opens below its stable disclosure row.");
         }
         finally
         {
@@ -631,8 +631,8 @@ public sealed partial class XamlControlStyleContractTests
             ]
             :
             [
-                new("DP Version", "DCC-00"),
-                new("Jira Index", "AUTO_PRJ-576"),
+                new("DP Version", "DCC-00", priority: FirmwareSlotFactPriority.Details),
+                new("Jira Index", "AUTO_PRJ-576", priority: FirmwareSlotFactPriority.Details),
             ]);
         return slot;
     }

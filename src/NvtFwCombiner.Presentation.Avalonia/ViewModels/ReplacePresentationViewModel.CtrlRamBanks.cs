@@ -18,6 +18,7 @@ internal sealed partial class ReplacePresentationViewModel
     public bool IsCtrlRamBankASelected => CurrentCtrlRamDraft is AbCtrlRamDraftState { Banks: AbCtrlRamBankSelection.A };
     public bool IsCtrlRamBankBSelected => CurrentCtrlRamDraft is AbCtrlRamDraftState { Banks: AbCtrlRamBankSelection.B };
     public bool IsCtrlRamBothBanksSelected => CurrentCtrlRamDraft is AbCtrlRamDraftState { Banks: AbCtrlRamBankSelection.Both };
+    public string CtrlRamSelectedBanksLabel => IsCtrlRamBothBanksSelected ? Text.CtrlRamBothBanksLabel : IsCtrlRamBankBSelected ? "B" : "A";
 
     public IAsyncRelayCommand SelectStandardCtrlRamReferenceCommand => field ??=
         new AsyncRelayCommand(() => SelectCtrlRamDraftAsync(IsAbCtrlRamReference ? null : CurrentCtrlRamDraft), AsyncRelayCommandOptions.AllowConcurrentExecutions);
@@ -59,6 +60,7 @@ internal sealed partial class ReplacePresentationViewModel
         OnPropertyChanged(nameof(IsCtrlRamBankASelected));
         OnPropertyChanged(nameof(IsCtrlRamBankBSelected));
         OnPropertyChanged(nameof(IsCtrlRamBothBanksSelected));
+        OnPropertyChanged(nameof(CtrlRamSelectedBanksLabel));
         _selectAbReference?.NotifyCanExecuteChanged();
         SelectCtrlRamBanksCommand.NotifyCanExecuteChanged();
         foreach (CtrlRamFirmwareVersionEditorViewModel editor in AbCtrlRamVersionEditors)

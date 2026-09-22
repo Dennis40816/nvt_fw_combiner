@@ -52,8 +52,8 @@ public sealed partial class XamlControlStyleContractTests
                 Assert.InRange(Math.Abs(badgePoint.Y + (badge.Bounds.Height / 2) -
                     titlePoint.Y - (title.Bounds.Height / 2)), 0, 0.5);
             }
-            Point layoutPoint = Assert.IsType<Point>(layout.TranslatePoint(default, card));
-            Assert.InRange(filePoint.Y - layoutPoint.Y - layout.Bounds.Height, 12, 16.5);
+            Grid header = card.FindControl<Grid>("SlotHeaderContent")!;
+            Assert.InRange(filePoint.Y - header.TranslatePoint(default, card)!.Value.Y - header.Bounds.Height, 7.5, 8.5);
             Assert.True(filename.TextLayout.TextLines.Count > 1);
             Assert.Equal(slot.DisplayNameWithSelectionContext, filename.Text);
             Assert.InRange(filename.TextLayout.Height, 1, filename.Bounds.Height + 0.5);

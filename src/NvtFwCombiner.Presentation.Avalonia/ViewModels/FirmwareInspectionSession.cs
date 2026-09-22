@@ -71,19 +71,20 @@ internal static class FirmwareInspectionProjection
                 value,
                 !version.IsKnown ? FirmwareSlotFactState.Unknown : FirmwareSlotFactState.Ordinary,
                 !version.IsKnown ? text.FirmwareSlotUnknownValueLabel : null,
-                !version.IsKnown ? text.FirmwareSlotUnknownFactDetail : null));
+                !version.IsKnown ? text.FirmwareSlotUnknownFactDetail : null,
+                isDp && slot.SlotKind == FirmwareSlotKind.Base ? FirmwareSlotFactPriority.Details : FirmwareSlotFactPriority.Primary));
             if (isDp && version.TrackerId is > 0)
             {
                 facts.Add(new FirmwareSlotFactViewModel(
                     $"{bankLabel} Jira Index",
-                    FormattableString.Invariant($"AUTO_PRJ-{version.TrackerId}")));
+                    FormattableString.Invariant($"AUTO_PRJ-{version.TrackerId}"),
+                    priority: slot.SlotKind == FirmwareSlotKind.Base ? FirmwareSlotFactPriority.Details : FirmwareSlotFactPriority.Primary));
             }
         }
 
         // AB owns the bank-specific version label. The remaining facts come from
         // existing typed projections, never from reading bytes or matching Config here.
-        facts.AddRange(UiCompositionRunner.GetFirmwareSlotFacts(inspection).Where(static fact =>
-            !string.Equals(fact.Label, "TP Version", StringComparison.Ordinal)));
+        facts.AddRange(UiCompositionRunner.GetFirmwareSlotFacts(inspection, text: text, includeTpVersion: false));
         if (abInput.EventBufferFormat is { } format)
         {
             facts.Add(new(text.EventBufferVersionLabel,

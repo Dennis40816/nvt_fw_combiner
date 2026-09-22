@@ -407,6 +407,27 @@ public sealed class MemoryLayoutPendingItem
     public MemoryLayoutBlockedIssueReference? BlockedIssue { get; }
 }
 
+/// <summary>Canonical bank placement for a read-only viewport, never write or selection authority.</summary>
+public sealed record MemoryLayoutBankLocator
+{
+    internal MemoryLayoutBankLocator(string bankId, string addressSpaceId, ByteRange range)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(bankId);
+        ArgumentException.ThrowIfNullOrWhiteSpace(addressSpaceId);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(range.Length);
+        BankId = bankId;
+        AddressSpaceId = addressSpaceId;
+        Range = range;
+    }
+
+    /// <summary>Exact canonical bank region identity.</summary>
+    public string BankId { get; }
+    /// <summary>Address space of the complete output image.</summary>
+    public string AddressSpaceId { get; }
+    /// <summary>Absolute half-open placement within the complete output.</summary>
+    public ByteRange Range { get; }
+}
+
 /// <summary>One disposable immutable layout projection for an authoring revision.</summary>
 public sealed class MemoryLayoutSnapshot
 {
@@ -418,7 +439,8 @@ public sealed class MemoryLayoutSnapshot
         IReadOnlyList<MemoryLayoutSegment> beforeSegments,
         IReadOnlyList<MemoryLayoutSegment> afterSegments,
         IEnumerable<MemoryLayoutPendingItem> pendingItems,
-        IReadOnlyList<MemoryLayoutSectionLocator> sectionLocators)
+        IReadOnlyList<MemoryLayoutSectionLocator> sectionLocators,
+        IReadOnlyList<MemoryLayoutBankLocator> banks)
         : this(
             capability,
             authoring,
@@ -430,7 +452,8 @@ public sealed class MemoryLayoutSnapshot
             beforeSegments,
             afterSegments,
             pendingItems,
-            sectionLocators)
+            sectionLocators,
+            banks)
     {
     }
 
@@ -453,6 +476,7 @@ public sealed class MemoryLayoutSnapshot
             beforeSegments,
             afterSegments,
             pendingItems,
+            [],
             [])
     {
     }
@@ -468,7 +492,8 @@ public sealed class MemoryLayoutSnapshot
         IReadOnlyList<MemoryLayoutSegment> beforeSegments,
         IReadOnlyList<MemoryLayoutSegment> afterSegments,
         IEnumerable<MemoryLayoutPendingItem> pendingItems,
-        IReadOnlyList<MemoryLayoutSectionLocator> sectionLocators)
+        IReadOnlyList<MemoryLayoutSectionLocator> sectionLocators,
+        IReadOnlyList<MemoryLayoutBankLocator> banks)
     {
         ArgumentNullException.ThrowIfNull(capability);
         ArgumentNullException.ThrowIfNull(authoring);
@@ -551,6 +576,7 @@ public sealed class MemoryLayoutSnapshot
             : Array.AsReadOnly(after);
         PendingItems = Array.AsReadOnly(pending);
         SectionLocators = Array.AsReadOnly(sections);
+        Banks = Array.AsReadOnly(banks.ToArray());
     }
 
     /// <summary>Exact canonical route identity.</summary>
@@ -584,6 +610,9 @@ public sealed class MemoryLayoutSnapshot
 
     /// <summary>Read-only CtrlRAM overview context; never write or capacity authority.</summary>
     public IReadOnlyList<MemoryLayoutSectionLocator> SectionLocators { get; }
+
+    /// <summary>Complete canonical AB bank placements, including preserved banks; empty for other layouts.</summary>
+    public IReadOnlyList<MemoryLayoutBankLocator> Banks { get; }
 
     private static void ValidateCoverage(
         MemoryLayoutSegment[] segments,

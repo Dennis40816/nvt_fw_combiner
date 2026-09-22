@@ -608,13 +608,58 @@
     <Setter Property="Foreground" Value="{DynamicResource NfcSuccessEmphasisBrush}" />
   </Style>
   <Style Selector="TextBlock.firmwareSlotFactLabel">
-    <Setter Property="FontSize" Value="{DynamicResource NfcFontSize11}" />
-    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="FontSize" Value="{DynamicResource NfcFontSize12}" />
+    <Setter Property="FontWeight" Value="Normal" />
     <Setter Property="Foreground" Value="{DynamicResource NfcTextSecondaryBrush}" />
+  </Style>
+  <Style Selector="ToggleButton.referenceChoice:checked /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource NfcAccentStrongBrush}" />
+  </Style>
+  <Style Selector="DropDownButton.bankScope">
+    <Setter Property="Background" Value="{DynamicResource NfcSurfaceBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource NfcTextBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource NfcBorderBrush}" />
+    <Setter Property="BorderThickness" Value="2" />
+    <Setter Property="CornerRadius" Value="4" />
+    <Setter Property="MinHeight" Value="32" />
+  </Style>
+  <Style Selector="ToggleButton.bankViewSwitch">
+    <Setter Property="Width" Value="44" />
+    <Setter Property="Height" Value="32" />
+    <Setter Property="MinWidth" Value="44" />
+    <Setter Property="MinHeight" Value="32" />
+    <Setter Property="Template">
+      <ControlTemplate>
+        <Grid Background="Transparent">
+          <Border x:Name="Track" Width="38" Height="22" CornerRadius="11"
+                  Background="{DynamicResource NfcBorderMutedBrush}" BorderThickness="2"
+                  BorderBrush="{DynamicResource NfcBorderBrush}" VerticalAlignment="Center">
+            <Ellipse x:Name="Thumb" Width="14" Height="14" Margin="2"
+                     Fill="{DynamicResource NfcSurfaceBrush}" HorizontalAlignment="Left" />
+          </Border>
+        </Grid>
+      </ControlTemplate>
+    </Setter>
+  </Style>
+  <Style Selector="ToggleButton.bankViewSwitch:checked /template/ Border#Track">
+    <Setter Property="Background" Value="{DynamicResource NfcAccentBrush}" />
+  </Style>
+  <Style Selector="ToggleButton.bankViewSwitch:checked /template/ Ellipse#Thumb">
+    <Setter Property="HorizontalAlignment" Value="Right" />
+  </Style>
+  <Style Selector="ToggleButton.bankViewSwitch:focus-visible /template/ Border#Track">
+    <Setter Property="BorderThickness" Value="2" />
+    <Setter Property="BorderBrush" Value="{DynamicResource NfcTextStrongBrush}" />
+  </Style>
+  <Style Selector="ToggleButton.bankViewSwitch:pointerover /template/ Border#Track">
+    <Setter Property="Opacity" Value="0.85" />
+  </Style>
+  <Style Selector="ToggleButton.bankViewSwitch:disabled">
+    <Setter Property="Opacity" Value="0.45" />
   </Style>
   <Style Selector="TextBlock.firmwareSlotFactValue">
     <Setter Property="FontFamily" Value="{DynamicResource NfcTechnicalFontFamily}" />
-    <Setter Property="FontSize" Value="{DynamicResource NfcFontSize12}" />
+    <Setter Property="FontSize" Value="{DynamicResource NfcFontSize13}" />
     <Setter Property="FontWeight" Value="Medium" />
     <Setter Property="Foreground" Value="{DynamicResource NfcTextStrongBrush}" />
   </Style>

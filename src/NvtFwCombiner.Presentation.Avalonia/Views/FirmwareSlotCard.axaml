@@ -5,11 +5,6 @@
              xmlns:vm="using:NvtFwCombiner.Presentation.Avalonia.ViewModels"
              xmlns:views="using:NvtFwCombiner.Presentation.Avalonia.Views"
              x:Name="Root" x:DataType="vm:FirmwareSlotViewModel">
-  <UserControl.Styles>
-    <Style Selector="StackPanel.slotActions.hasFile">
-      <Setter Property="Grid.RowSpan" Value="2" />
-    </Style>
-  </UserControl.Styles>
   <Border Classes="fileDropZone firmwareSlot compactExperience"
           Classes.hasFile="{Binding HasFile}" Classes.optional="{Binding IsOptional}"
           HorizontalAlignment="Stretch" Margin="0,0,0,12" Padding="0"
@@ -19,10 +14,10 @@
           DragDrop.Drop="SlotDrop_OnDrop" Tag="{Binding SlotId}">
     <Grid RowDefinitions="Auto,Auto" ColumnDefinitions="*,Auto">
       <Border Grid.RowSpan="2" Grid.ColumnSpan="2" Classes="dropZoneOverlay" />
-      <Grid x:Name="SlotLayout" Margin="16,20,16,16" MinHeight="72" ColumnDefinitions="*"
+      <Grid x:Name="SlotLayout" Margin="16,16,16,16" MinHeight="72" ColumnDefinitions="*"
             RowDefinitions="Auto,Auto,Auto,Auto">
         <StackPanel x:Name="SlotIdentity" Grid.Column="0" VerticalAlignment="Center"
-                    Spacing="{DynamicResource NfcSpace12}">
+                    Spacing="{DynamicResource NfcSpace8}">
           <Grid x:Name="SlotHeaderContent" ColumnDefinitions="Auto,*" ColumnSpacing="{DynamicResource NfcSpace12}">
             <Border VerticalAlignment="Center" Classes="slotTypeIcon"
                     Classes.base="{Binding SlotKind, Converter={x:Static converters:ObjectConverters.Equal}, ConverterParameter={x:Static vm:FirmwareSlotKind.Base}}"
@@ -76,6 +71,13 @@
               </WrapPanel>
             </WrapPanel>
           </Grid>
+          <Button x:Name="SlotFileName" AutomationProperties.HelpText="{Binding DisplayDetail}" AutomationProperties.Name="{Binding DisplayNameWithSelectionContext}"
+                  Classes="fileRevealAction" Command="{ReflectionBinding $parent[Window].DataContext.RevealFileCommand}"
+                  CommandParameter="{Binding FilePath}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left"
+                  IsVisible="{Binding HasFile}" ToolTip.BetweenShowDelay="-1" ToolTip.Placement="BottomEdgeAlignedLeft"
+                  ToolTip.ShowDelay="300" ToolTip.Tip="{Binding DisplayDetail}" ToolTip.VerticalOffset="8">
+            <TextBlock Text="{Binding DisplayNameWithSelectionContext}" TextWrapping="Wrap" />
+          </Button>
           <TextBlock x:Name="SlotSubtitle" Classes="mutedText" IsVisible="{Binding HasSubtitle}"
                      Text="{Binding Subtitle}" TextWrapping="Wrap" />
           <StackPanel>
@@ -88,14 +90,13 @@
             <TextBlock Classes="mutedText" IsVisible="{Binding !HasInputGuidanceFacts}" Text="{Binding Description}" TextWrapping="Wrap" />
             <StackPanel IsVisible="{Binding HasInputGuidanceFacts}" Spacing="6">
               <ItemsControl ItemsSource="{Binding InputGuidanceFacts}">
+                <ItemsControl.ItemsPanel>
+                  <ItemsPanelTemplate>
+                    <UniformGrid Columns="{Binding FactColumnCount, ElementName=Root}" />
+                  </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
                 <ItemsControl.ItemTemplate>
-                  <DataTemplate x:DataType="vm:FirmwareSlotFactViewModel">
-                    <Grid ColumnDefinitions="92,*" ColumnSpacing="{DynamicResource NfcSpace12}" Margin="0,2"
-                          AutomationProperties.Name="{Binding StateAutomationText}">
-                      <TextBlock Classes="mutedText" Text="{Binding Label}" />
-                      <TextBlock Grid.Column="1" Classes="mutedText" Text="{Binding Value}" TextWrapping="Wrap" />
-                    </Grid>
-                  </DataTemplate>
+                  <StaticResource ResourceKey="FirmwareSlotInformationFactTemplate" />
                 </ItemsControl.ItemTemplate>
               </ItemsControl>
               <TextBlock Classes="mutedText" IsVisible="{Binding HasInputGuidanceNote}"
@@ -105,7 +106,7 @@
           <TextBlock IsVisible="{Binding IsGuidanceVisible}" Classes="firmwareSlotGuidance"
                      Text="{Binding DisplayName}" TextWrapping="Wrap" />
           <TextBlock AutomationProperties.LiveSetting="Polite" Classes="slotStateDetail"
-                     IsVisible="{Binding IsSemanticStateDetailExpanded}"
+                     IsVisible="{Binding IsSemanticStateDetailVisible}"
                      Text="{Binding SemanticStateAutomationText}" TextWrapping="Wrap" />
         </StackPanel>
         <StackPanel x:Name="SlotFactsRegion" Grid.Row="1" Grid.Column="0" Margin="0,12,0,0" VerticalAlignment="Center" IsVisible="{Binding HasFirmwareFacts}"
@@ -122,25 +123,32 @@
             </ItemsControl.ItemTemplate>
           </ItemsControl>
         </StackPanel>
-        <ItemsControl x:Name="AdditionalFirmwareFactsHost" Grid.Row="2" Grid.Column="0" Margin="0,8,0,0"
-                      HorizontalAlignment="Stretch" IsVisible="{Binding IsAdditionalFirmwareFactsExpanded}"
-                      ItemsSource="{Binding AdditionalFirmwareFacts}">
-          <ItemsControl.ItemsPanel>
-            <ItemsPanelTemplate>
-              <UniformGrid Columns="{Binding FactColumnCount, ElementName=Root}" />
-            </ItemsPanelTemplate>
-          </ItemsControl.ItemsPanel>
-          <ItemsControl.ItemTemplate>
-            <StaticResource ResourceKey="FirmwareSlotInformationFactTemplate" />
-          </ItemsControl.ItemTemplate>
-        </ItemsControl>
+
         <StackPanel x:Name="SlotAdditionalFactsRegion" Grid.Row="3"
                     Margin="0,8,0,0" IsVisible="{Binding HasAdditionalFirmwareFacts}">
           <ToggleButton AutomationProperties.Name="{Binding AdditionalFirmwareFactsLabel}" Classes="quietDisclosure"
-                        Content="{Binding AdditionalFirmwareFactsLabel}" HorizontalAlignment="Left"
-                        IsChecked="{Binding IsAdditionalFirmwareFactsExpanded}" IsVisible="{Binding HasAdditionalFirmwareFacts}" />
+                        HorizontalAlignment="Left"
+                        IsChecked="{Binding IsAdditionalFirmwareFactsExpanded}" IsVisible="{Binding HasAdditionalFirmwareFacts}">
+            <StackPanel Orientation="Horizontal" Spacing="6">
+              <TextBlock Text="▸" IsVisible="{Binding !IsAdditionalFirmwareFactsExpanded}" />
+              <TextBlock Text="▾" IsVisible="{Binding IsAdditionalFirmwareFactsExpanded}" />
+              <TextBlock Text="{Binding AdditionalFirmwareFactsLabel}" />
+            </StackPanel>
+          </ToggleButton>
         </StackPanel>
       </Grid>
+      <ItemsControl x:Name="AdditionalFirmwareFactsHost" Grid.Row="1" Grid.Column="0" Margin="16,0,16,16"
+                    HorizontalAlignment="Stretch" IsVisible="{Binding IsAdditionalFirmwareFactsExpanded}"
+                    ItemsSource="{Binding AdditionalFirmwareFacts}">
+        <ItemsControl.ItemsPanel>
+          <ItemsPanelTemplate>
+            <UniformGrid Columns="{Binding FactColumnCount, ElementName=Root}" />
+          </ItemsPanelTemplate>
+        </ItemsControl.ItemsPanel>
+        <ItemsControl.ItemTemplate>
+          <StaticResource ResourceKey="FirmwareSlotInformationFactTemplate" />
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
       <StackPanel x:Name="SlotActions" Grid.Column="1" Classes="slotActions" Classes.hasFile="{Binding HasFile}" HorizontalAlignment="Right"
                   Margin="8,16,16,16" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
         <Button x:Name="BrowseButton" Classes="semanticAction action browseAction"
@@ -178,13 +186,7 @@
                      FontSize="17" Text="&#xE74D;" />
         </Button>
       </StackPanel>
-      <Button Grid.Row="1" Margin="16,0,16,20" AutomationProperties.HelpText="{Binding DisplayDetail}" AutomationProperties.Name="{Binding DisplayNameWithSelectionContext}"
-              Classes="fileRevealAction" Command="{ReflectionBinding $parent[Window].DataContext.RevealFileCommand}"
-              CommandParameter="{Binding FilePath}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left"
-              IsVisible="{Binding HasFile}" ToolTip.BetweenShowDelay="-1" ToolTip.Placement="BottomEdgeAlignedLeft"
-              ToolTip.ShowDelay="300" ToolTip.Tip="{Binding DisplayDetail}" ToolTip.VerticalOffset="8">
-        <TextBlock Text="{Binding DisplayNameWithSelectionContext}" TextWrapping="Wrap" />
-      </Button>
+
     </Grid>
   </Border>
 </UserControl>

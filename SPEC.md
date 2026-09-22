@@ -1974,9 +1974,15 @@ must not be restored as a second admission or dependency catalog.
     parsing, or Build policy. Splitting more partial files without moving these
     responsibilities is not a completed refactor, and a generic replacement
     god ViewModel is forbidden.
-33. Compact fact grids use stacked, left-aligned label/value cells; responsive
-    layouts use one to three columns and expose at most four primary facts
-    before quiet inline disclosure.
+33. Compact fact grids use stacked, left-aligned label/value cells in one to
+    three responsive columns. Producers declare primary/detail presentation
+    priority from typed observations and slot role, independent of list order
+    or translated labels. TP/Base primary facts are available TP bank versions,
+    PID, Common FW and Event Buffer Format; DP slots prioritize DP Version and
+    Jira. IC Count and Base DP metadata use quiet Details disclosure. Warning,
+    pending and error facts remain visible. File identity precedes facts;
+    right-centered picker actions do not move when Details expands. The
+    owner-approved 2026-09-22 v7 layout supersedes the four-primary-fact limit.
 34. Empty slots show the requirement. Selected slots replace requirement
     badges with one semantic state icon/surface. Hover, keyboard focus, and
     assistive technology expose the same localized reason and next action.

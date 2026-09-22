@@ -167,7 +167,8 @@ public static partial class MemoryLayoutProjector
                 before,
                 after,
                 pendingItems,
-                ProjectSections(capability, map.AddressSpaceId, capacity));
+                ProjectSections(capability, map.AddressSpaceId, capacity),
+                ProjectBanks(composition, map.AddressSpaceId, capacity));
     }
 
     private static void ValidateIdentity(

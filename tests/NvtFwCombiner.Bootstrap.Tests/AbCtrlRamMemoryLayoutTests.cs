@@ -1,6 +1,7 @@
 using NvtFwCombiner.Application.Authoring;
 using NvtFwCombiner.Application.MemoryLayout;
 using NvtFwCombiner.Domain.Composition;
+using NvtFwCombiner.TestSupport;
 
 namespace NvtFwCombiner.Bootstrap.Tests;
 
@@ -20,6 +21,22 @@ public sealed class AbCtrlRamMemoryLayoutTests
         CompiledComposition composition = session.ExactCapability!.CompiledComposition;
         MemoryLayoutSnapshot layout = MemoryLayoutProjector.Project(session.ExactCapability, session, composition);
         Assert.Equal(0x80000, layout.Capacity);
+        RuntimeReferenceBankReplaceV2CompilationContext context = Assert.IsType<RuntimeReferenceBankReplaceV2CompilationContext>(
+            composition.V2Details.Provenance.Context);
+        Assert.Collection(layout.Banks,
+            bank => Assert.Equal("a-bank", bank.BankId),
+            bank => Assert.Equal("b-bank", bank.BankId));
+        Assert.All(layout.Banks, bank =>
+        {
+            Assert.Equal(layout.AddressSpaceId, bank.AddressSpaceId);
+            Assert.Equal(context.ResolvedMap.ImageMap.Regions.Single(region => region.RegionId == bank.BankId).Range, bank.Range);
+            Assert.True(new ByteRange(0, layout.Capacity).Contains(bank.Range));
+        });
+        Assert.False(layout.Banks[0].Range.Overlaps(layout.Banks[1].Range));
+        Assert.All(context.Banks, bank => Assert.Equal(bank.OutputRange,
+            layout.Banks.Single(locator => locator.BankId == bank.BankId).Range));
+        IList<MemoryLayoutBankLocator> mutableBanks = Assert.IsType<IList<MemoryLayoutBankLocator>>(layout.Banks, exactMatch: false);
+        _ = Assert.Throws<NotSupportedException>(mutableBanks.Clear);
         Assert.All(layout.BeforeSegments, static segment => Assert.Equal(MemoryWorkflowDisposition.Kept, segment.Disposition));
         for (int i = 0; i < 2; i++)
         {
@@ -53,6 +70,13 @@ public sealed class AbCtrlRamMemoryLayoutTests
             }
         }
         Assert.Contains(layout.SectionLocators, static section => section.ContentRole == MemoryContentRole.Tp);
+        long sectionEnd = 0;
+        foreach (MemoryLayoutSectionLocator section in layout.SectionLocators)
+        {
+            Assert.Equal(sectionEnd, section.Range.Start);
+            sectionEnd = section.Range.EndExclusive;
+        }
+        Assert.Equal(layout.Capacity, sectionEnd);
         Assert.All(layout.AfterSegments, segment =>
         {
             Assert.Equal(MemoryObservedChange.NotObserved, segment.ObservedChange);
@@ -63,5 +87,22 @@ public sealed class AbCtrlRamMemoryLayoutTests
                 Assert.Contains(composition.Plan.OrderedOperations, original => ReferenceEquals(original, operation));
             });
         });
+    }
+
+    /// <summary>A Standard reference retains its complete sections without AB viewport identities.</summary>
+    [Fact]
+    public void StandardReferenceHasNoBankLocators()
+    {
+        (Dictionary<string, string> paths, Dictionary<string, byte[]> bytes) = AbCtrlRamAuthoringTests.Inputs();
+        bytes[CompositionSlotIds.ReplaceBase] = File.ReadAllBytes(CanonicalGoldenTestData.ArtifactPath(
+            "standard-merge", "NT51929", "expected-output"));
+        ActiveSessionSnapshot session = Assert.IsType<ActiveSessionSnapshot>(
+            BootstrapTestHost.Canonical.CtrlRamAuthoring.PrepareSession(
+                new(ExperienceIds.CtrlRamReplace), "NT51929", "single", paths, bytes).AcceptedSession);
+        MemoryLayoutSnapshot layout = MemoryLayoutProjector.Project(
+            session.ExactCapability!, session, session.ExactCapability!.CompiledComposition);
+
+        Assert.Empty(layout.Banks);
+        Assert.NotEmpty(layout.SectionLocators);
     }
 }

@@ -33,6 +33,21 @@ internal static partial class UiCompositionRunner
         GeneralAuthoringAdmissionResult? admission = null,
         IReadOnlyList<CtrlRamRegion>? ctrlRamRegions = null)
     {
+        return GetMemoryDisplay(services, acceptedSession, text, out overview, out _, admission, ctrlRamRegions);
+    }
+
+    internal static (
+        string RangeLabel,
+        IReadOnlyList<MemoryMapRowViewModel> Rows,
+        IReadOnlyList<MemoryCoverageSegmentViewModel> CoverageSegments) GetMemoryDisplay(
+        PresentationCompositionServices services,
+        ActiveSessionSnapshot acceptedSession,
+        ShellTextResources text,
+        out IReadOnlyList<MemoryCoverageSegmentViewModel> overview,
+        out MemoryLayoutSnapshot snapshot,
+        GeneralAuthoringAdmissionResult? admission = null,
+        IReadOnlyList<CtrlRamRegion>? ctrlRamRegions = null)
+    {
         ArgumentNullException.ThrowIfNull(services);
         ArgumentNullException.ThrowIfNull(acceptedSession);
         ArgumentNullException.ThrowIfNull(text);
@@ -44,20 +59,8 @@ internal static partial class UiCompositionRunner
             acceptedSession,
             capability.CompiledComposition,
             ctrlRamRegions);
-        overview = [.. layout.SectionLocators.Select(section =>
-        {
-            string title = text.GetMemorySectionTitle(section.ContentRole);
-            return new MemoryCoverageSegmentViewModel(
-                FormatMemoryRange(section.Range), title,
-                section.IsImageContainer ? text.MemoryDpImageContextDetail :
-                    section.IsImageOverlay ? text.MemoryTpOverlayContextDetail : text.MemorySectionContextDetail,
-                section.ContentRole == MemoryContentRole.Tp ? MemoryCoverageFillRole.Tp :
-                section.ContentRole == MemoryContentRole.Dp ? MemoryCoverageFillRole.Dp :
-                MemoryCoverageFillRole.Neutral, section.Range.Length,
-                text: text, rangeStart: section.Range.Start, rangeEndExclusive: section.Range.EndExclusive,
-                addressRangeLabel: FormatMemoryAddressRange(section.Range),
-                contentRole: section.ContentRole, displayTitle: title, addressSpaceId: section.AddressSpaceId);
-        })];
+        snapshot = layout;
+        overview = GetMemoryOverview(layout, text);
         IReadOnlyList<MemoryLayoutConflict> conflicts = admission is null
             ? []
             : MemoryLayoutProjector.ProjectAdmissionConflicts(admission, layout.Capacity);
@@ -71,6 +74,33 @@ internal static partial class UiCompositionRunner
                 .. layout.AfterSegments.Select(segment => ToMemoryCoverageSegment(layout, segment, text)),
                 .. conflicts.Select(conflict => ToMemoryCoverageSegment(layout, conflict, text)),
             ]);
+    }
+
+    internal static IReadOnlyList<MemoryCoverageSegmentViewModel> GetMemoryOverview(
+        MemoryLayoutSnapshot layout, ShellTextResources text, MemoryLayoutBankLocator? bank = null)
+    {
+        if (bank is not null && !layout.Banks.Contains(bank))
+        {
+            throw new ArgumentException("The viewport must belong to the accepted memory snapshot.", nameof(bank));
+        }
+        ByteRange viewport = bank?.Range ?? new ByteRange(0, layout.Capacity);
+        return [.. layout.SectionLocators.Where(section =>
+            section.Range.Start < viewport.EndExclusive && viewport.Start < section.Range.EndExclusive).Select(section =>
+        {
+            long start = Math.Max(section.Range.Start, viewport.Start);
+            var range = new ByteRange(start, Math.Min(section.Range.EndExclusive, viewport.EndExclusive) - start);
+            string title = text.GetMemorySectionTitle(section.ContentRole);
+            return new MemoryCoverageSegmentViewModel(
+                FormatMemoryRange(range), title,
+                section.IsImageContainer ? text.MemoryDpImageContextDetail :
+                    section.IsImageOverlay ? text.MemoryTpOverlayContextDetail : text.MemorySectionContextDetail,
+                section.ContentRole == MemoryContentRole.Tp ? MemoryCoverageFillRole.Tp :
+                section.ContentRole == MemoryContentRole.Dp ? MemoryCoverageFillRole.Dp :
+                MemoryCoverageFillRole.Neutral, range.Length,
+                text: text, rangeStart: range.Start, rangeEndExclusive: range.EndExclusive,
+                addressRangeLabel: FormatMemoryAddressRange(range),
+                contentRole: section.ContentRole, displayTitle: title, addressSpaceId: section.AddressSpaceId);
+        })];
     }
 
     /// <summary>Projects a typed pending state when no exact authoring publication exists.</summary>

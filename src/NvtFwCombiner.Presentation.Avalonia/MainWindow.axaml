@@ -168,7 +168,7 @@
             IsVisible="{Binding IsReplaceVisible}">
           <ContentControl.ContentTemplate>
             <DataTemplate DataType="vm:ReplacePresentationViewModel">
-              <Grid ColumnDefinitions="1.15*,430" ColumnSpacing="18" RowDefinitions="Auto,Auto" RowSpacing="{DynamicResource NfcSpace16}">
+              <Grid ColumnDefinitions="1.15*,430" ColumnSpacing="18" RowDefinitions="Auto,Auto,Auto" RowSpacing="{DynamicResource NfcSpace16}">
           <StackPanel Spacing="{DynamicResource NfcSpace16}" Container.Name="ReplaceContent" Container.Sizing="Width">
             <StackPanel.Styles>
               <Style Selector="Grid.replaceHeaderActions">
@@ -252,13 +252,16 @@
 
           </StackPanel>
 
+          <ContentControl Grid.Row="1" Grid.ColumnSpan="2" Content="{Binding}"
+                          ContentTemplate="{StaticResource CtrlRamModeSettingsTemplate}" />
+
           <ContentControl
-              Grid.Row="1"
+              Grid.Row="2"
               Content="{Binding}"
               ContentTemplate="{StaticResource ReplaceModeContentTemplate}" />
 
           <ContentControl
-              Grid.Row="1"
+              Grid.Row="2"
               Grid.Column="1"
               VerticalAlignment="Top"
               Content="{Binding}"

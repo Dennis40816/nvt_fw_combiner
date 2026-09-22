@@ -11,6 +11,41 @@
                           ClearSelectionCommand="{ReflectionBinding $parent[Window].DataContext.WorkflowSession.ClearSlotFileCommand}" />
 </DataTemplate>
 
+<DataTemplate x:Key="CtrlRamModeSettingsTemplate" DataType="vm:ReplacePresentationViewModel">
+  <Border x:Name="CtrlRamModeSettings" Classes="panelSurface" Padding="16,10" IsVisible="{Binding IsCtrlRamReplaceModeSelected}">
+    <WrapPanel x:Name="CtrlRamReferenceSelector" VerticalAlignment="Center" LineSpacing="{DynamicResource NfcSpace8}">
+      <TextBlock Classes="bodyEmphasisText" Text="{Binding Text.ModeSettingsLabel}" VerticalAlignment="Center" Margin="0,0,20,0" />
+      <ToggleButton x:Name="CtrlRamStandardReferenceChoice" Classes="segment referenceChoice" Margin="0,0,4,0"
+                    AutomationProperties.Name="{Binding Text.CtrlRamStandardReferenceLabel}"
+                    Command="{Binding SelectStandardCtrlRamReferenceCommand}"
+                    IsChecked="{Binding IsStandardCtrlRamReference, Mode=OneWay}"
+                    Content="{Binding Text.CtrlRamStandardReferenceLabel}" />
+      <ToggleButton x:Name="CtrlRamAbReferenceChoice" Classes="segment referenceChoice" Margin="0,0,16,0"
+                    AutomationProperties.Name="{Binding Text.CtrlRamAbReferenceLabel}"
+                    Command="{Binding SelectAbCtrlRamReferenceCommand}"
+                    IsChecked="{Binding IsAbCtrlRamReference, Mode=OneWay}"
+                    ToolTip.Tip="{Binding AbCtrlRamReadiness.Reason}"
+                    Content="{Binding Text.CtrlRamAbReferenceLabel}" />
+      <StackPanel Orientation="Horizontal" Spacing="{DynamicResource NfcSpace8}" IsVisible="{Binding IsAbCtrlRamReference}">
+        <TextBlock Classes="fieldLabel" Text="{Binding Text.CtrlRamTargetBanksLabel}" VerticalAlignment="Center" />
+        <DropDownButton x:Name="CtrlRamBankScopeMenu" Classes="bankScope" Content="{Binding CtrlRamSelectedBanksLabel}" MinWidth="100"
+                        AutomationProperties.Name="{Binding Text.CtrlRamTargetBanksLabel}">
+          <DropDownButton.Flyout>
+            <MenuFlyout>
+              <MenuItem Header="{Binding Text.CtrlRamBothBanksLabel}" Command="{Binding SelectCtrlRamBanksCommand}"
+                        CommandParameter="{x:Static authoring:AbCtrlRamBankSelection.Both}" />
+              <MenuItem Header="A" Command="{Binding SelectCtrlRamBanksCommand}"
+                        CommandParameter="{x:Static authoring:AbCtrlRamBankSelection.A}" />
+              <MenuItem Header="B" Command="{Binding SelectCtrlRamBanksCommand}"
+                        CommandParameter="{x:Static authoring:AbCtrlRamBankSelection.B}" />
+            </MenuFlyout>
+          </DropDownButton.Flyout>
+        </DropDownButton>
+      </StackPanel>
+    </WrapPanel>
+  </Border>
+</DataTemplate>
+
 <DataTemplate x:Key="ReplaceModeContentTemplate" DataType="vm:ReplacePresentationViewModel">
   <StackPanel Spacing="{DynamicResource NfcSpace16}">
     <Border
@@ -38,52 +73,6 @@
           <TextBlock Classes="mutedText" Text="{Binding Text.CtrlRamInputFilesDetail}" TextWrapping="Wrap" />
         </StackPanel>
 
-        <StackPanel x:Name="CtrlRamReferenceSelector" Spacing="8" Margin="0,0,0,16">
-          <TextBlock Classes="fieldLabel" Text="{Binding Text.CtrlRamReferenceFormatLabel}" />
-          <StackPanel Orientation="Horizontal" Spacing="4">
-            <ToggleButton x:Name="CtrlRamStandardReferenceChoice" Classes="segment"
-                          AutomationProperties.Name="{Binding Text.CtrlRamStandardReferenceLabel}"
-
-                          Command="{Binding SelectStandardCtrlRamReferenceCommand}"
-                          IsChecked="{Binding IsStandardCtrlRamReference, Mode=OneWay}" >
-                <TextBlock Text="{Binding Text.CtrlRamStandardReferenceLabel}" />
-              </ToggleButton>
-            <ToggleButton x:Name="CtrlRamAbReferenceChoice" Classes="segment"
-                          AutomationProperties.Name="{Binding Text.CtrlRamAbReferenceLabel}"
-
-                          Command="{Binding SelectAbCtrlRamReferenceCommand}"
-                          IsChecked="{Binding IsAbCtrlRamReference, Mode=OneWay}"
-                          ToolTip.Tip="{Binding AbCtrlRamReadiness.Reason}" >
-                <TextBlock Text="{Binding Text.CtrlRamAbReferenceLabel}" />
-              </ToggleButton>
-          </StackPanel>
-          <StackPanel Spacing="8" IsVisible="{Binding IsAbCtrlRamReference}">
-            <Grid ColumnDefinitions="*,Auto">
-              <TextBlock Classes="fieldLabel" Text="{Binding Text.CtrlRamTargetBanksLabel}" />
-              <TextBlock Grid.Column="1" Classes="warningText" Text="{Binding SelectedReplaceModeEvidenceLabel}"
-                         ToolTip.Tip="{Binding SelectedReplaceModeEvidenceTooltip}" />
-            </Grid>
-            <StackPanel Orientation="Horizontal" Spacing="4">
-              <ToggleButton Classes="segment" AutomationProperties.Name="A Bank"
-                            Command="{Binding SelectCtrlRamBanksCommand}" CommandParameter="{x:Static authoring:AbCtrlRamBankSelection.A}"
-                            IsChecked="{Binding IsCtrlRamBankASelected, Mode=OneWay}" >
-                <TextBlock Text="A" />
-              </ToggleButton>
-              <ToggleButton Classes="segment" AutomationProperties.Name="B Bank"
-                            Command="{Binding SelectCtrlRamBanksCommand}" CommandParameter="{x:Static authoring:AbCtrlRamBankSelection.B}"
-                            IsChecked="{Binding IsCtrlRamBankBSelected, Mode=OneWay}" >
-                <TextBlock Text="B" />
-              </ToggleButton>
-              <ToggleButton Classes="segment"
-                            AutomationProperties.Name="{Binding Text.CtrlRamBothBanksLabel}"
-                            Command="{Binding SelectCtrlRamBanksCommand}" CommandParameter="{x:Static authoring:AbCtrlRamBankSelection.Both}"
-                            IsChecked="{Binding IsCtrlRamBothBanksSelected, Mode=OneWay}" >
-                <TextBlock Text="{Binding Text.CtrlRamBothBanksLabel}" />
-              </ToggleButton>
-            </StackPanel>
-            <TextBlock Classes="detailText" Text="{Binding Text.CtrlRamSharedSourcesDetail}" TextWrapping="Wrap" />
-          </StackPanel>
-        </StackPanel>
 
         <ContentControl
             HorizontalAlignment="Stretch"
@@ -289,7 +278,7 @@
           <TextBlock Classes="sectionTitle" Text="{Binding Text.AbCodeMergeTitle}" />
           <TextBlock Classes="mutedText" Text="{Binding Text.AbCodeMergeDetail}" TextWrapping="Wrap" />
         </StackPanel>
-        <WrapPanel Orientation="Horizontal" ItemSpacing="24" LineSpacing="8">
+        <WrapPanel Orientation="Horizontal" ItemSpacing="24" LineSpacing="{DynamicResource NfcSpace8}">
           <CheckBox
             AutomationProperties.Name="{Binding Text.AbSameTpOptionLabel}"
             Command="{Binding ToggleAbSameTpCommand}"
@@ -348,6 +337,20 @@
         </Border>
       </StackPanel>
 
+      <Grid x:Name="CtrlRamBankViewHeading" ColumnDefinitions="*,Auto" ColumnSpacing="{DynamicResource NfcSpace12}"
+            IsVisible="{Binding HasCtrlRamBankView}">
+        <TextBlock x:Name="CtrlRamBankViewSubtitle" Classes="bodyEmphasisText" VerticalAlignment="Center"
+                   Text="{Binding CtrlRamBankViewSubtitle}" TextWrapping="Wrap" />
+        <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+          <TextBlock Text="A" VerticalAlignment="Center" />
+          <ToggleButton x:Name="CtrlRamBankViewSwitch" Classes="bankViewSwitch"
+                        AutomationProperties.Name="{Binding Text.CtrlRamViewBankLabel}"
+                        ToolTip.Tip="{Binding Text.CtrlRamViewBankLabel}"
+                        IsChecked="{Binding IsViewingCtrlRamBankB, Mode=TwoWay}" />
+          <TextBlock Text="B" VerticalAlignment="Center" />
+        </StackPanel>
+      </Grid>
+
       <StackPanel
           x:Name="ReplaceCoverageStateLegend"
           HorizontalAlignment="Right"
@@ -385,7 +388,7 @@
         <StackPanel x:Name="CtrlRamFlashOverview" Spacing="{DynamicResource NfcSpace12}">
           <views:MemoryCoverageBar ItemsSource="{Binding CtrlRamOverview}" FocusPositions="{Binding CtrlRamPositions}"
               Heading="{Binding Text.MemoryFlashOverviewLabel}" CapacityLabel="{Binding CtrlRamCapacityLabel}"
-              StartAddress="0x00000" EndAddress="{Binding CtrlRamEndAddress}"
+              StartAddress="{Binding CtrlRamStartAddress}" EndAddress="{Binding CtrlRamEndAddress}"
               Labels="{Binding Text}" ShowLabels="True" ShowLegend="True" ReducedMotion="{ReflectionBinding $parent[Window].DataContext.IsReducedMotionEnabled}" />
         </StackPanel>
         <TextBlock Classes="captionText" FontSize="{DynamicResource NfcFontSize11}" Text="{Binding CtrlRamSharedInputHint}" TextWrapping="Wrap" />

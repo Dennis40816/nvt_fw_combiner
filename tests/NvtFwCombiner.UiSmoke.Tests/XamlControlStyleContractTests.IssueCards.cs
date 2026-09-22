@@ -102,14 +102,22 @@ public sealed partial class XamlControlStyleContractTests
             Assert.False(viewModel.OutputDelivery.IsOpen);
             string uniformTp = workspace.PathFor("tp-uniform.bin");
             byte[] uniformBytes = File.ReadAllBytes(tpPath);
-            uniformBytes.AsSpan(0x7000).Fill(0xFF); // This certified NT51929 fixture's declared TP source range.
+            // Erasing the TP region also destroys its required IC Count metadata.
+            uniformBytes.AsSpan(0x7000).Fill(0xFF);
             File.WriteAllBytes(uniformTp, uniformBytes);
             await viewModel.WorkflowSession.SetSlotFileAsync(CompositionSlotIds.MergeTp, uniformTp, TestContext.Current.CancellationToken);
             Dispatcher.UIThread.RunJobs();
-            Assert.True(build.IsEnabled);
-            Assert.Equal("TP region contains only 0xFF", viewModel.Merge.MergeTpSlot.IssueCard!.Summary);
+            Assert.False(build.IsEnabled);
+            Assert.True(viewModel.Merge.MergeTpSlot.IsSemanticStateError);
+            Assert.True(target.IsVisible);
+            Assert.NotNull(viewModel.Merge.MergeTpSlot.IssueCard);
             Assert.True(tpBadge.Focus(NavigationMethod.Tab));
-            await SaveReferenceFrameAsync(window, "warning");
+            await SaveReferenceFrameAsync(window, "invalid-metadata");
+            await viewModel.WorkflowSession.SetSlotFileAsync(CompositionSlotIds.MergeTp, tpPath, TestContext.Current.CancellationToken);
+            Dispatcher.UIThread.RunJobs();
+            Assert.True(build.IsEnabled);
+            Assert.False(target.IsVisible);
+            Assert.Null(viewModel.Merge.MergeTpSlot.IssueCard);
             string? captureDirectory = Environment.GetEnvironmentVariable("NFC_UI_REFERENCE_CAPTURE_DIR");
             if (!string.IsNullOrWhiteSpace(captureDirectory) && File.Exists(Path.Combine(captureDirectory, "actual-failed-run-report.json")))
             {

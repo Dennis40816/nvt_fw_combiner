@@ -110,6 +110,22 @@ execution, Report authority, evidence rank or publication decisions.
 - Output bytes, ranges, operation order, processor authority, report values,
   evidence rank, publication status, naming, and UI remain unchanged.
 
+### AB bank viewport extension — 2026-09-22
+
+The Application memory projector exposes immutable bank locators from the
+complete accepted AB map, including banks not selected for replacement.
+Locators retain canonical bank identity, address space and checked output
+range; selected execution obligations must agree with their locators. Standard
+and logical layouts expose no bank locators. No bank is inferred from capacity,
+file names or UI labels, and no Standard counterpart is reselected.
+
+Section locators remain the complete authoritative output partition. A
+Presentation bank viewport may show their intersections with its selected
+bank, retaining absolute Reference addresses and canonical facts. This display
+selection is page-local: it never changes drafts, revisions, leases, inspection,
+Report or executable operations. Missing AB CtrlRAM endpoint metadata is not
+supplied by this extension.
+
 ## Verification
 
 - Schema and loader tests accept the 19 exact declarations and 6 exact
