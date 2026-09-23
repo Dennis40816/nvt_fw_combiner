@@ -87,7 +87,7 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("<Grid Margin=\"28,24,28,132\"", shell, StringComparison.Ordinal);
         Assert.Contains(
             "x:Name=\"CompositionBuildActionRail\"\n        Grid.Row=\"3\"",
-            shell,
+            shell.ReplaceLineEndings("\n"),
             StringComparison.Ordinal);
         Assert.Contains("DeviceContextTitle", workflowContextSetupModal, StringComparison.Ordinal);
         Assert.DoesNotContain("DeviceContextTitle", shellPanels, StringComparison.Ordinal);

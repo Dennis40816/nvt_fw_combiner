@@ -33,7 +33,7 @@ public sealed partial class AbMergeFormatAdmissionTests
     {
         TopologySelection? effective = ic == "NT51950" ? topology ?? Topology(1) : null;
         var compositions = new List<CompiledComposition>();
-        foreach (ResolvedCapabilityRoute route in BootstrapTestHost.Services.Catalog.GetCurrentSnapshot().DynamicRoutes.Where(route =>
+        foreach (ResolvedCapabilityRoute route in BootstrapTestHost.Canonical.Catalog.GetCurrentSnapshot().DynamicRoutes.Where(route =>
             route.Identity.WorkflowId == ExperienceIds.AbMerge && route.Identity.IcId == ic &&
             (route.AbMergeTopologyChoice is { } choice ? effective is not null && choice.Selection.ChipCount == 1 == (effective.ChipCount == 1) : effective is null)))
         {

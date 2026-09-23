@@ -120,7 +120,9 @@ public sealed partial class RepositoryBoundaryTests
             "src/NvtFwCombiner.Application/Capabilities/CanonicalCapabilityCompiler.cs");
         string v2Resolution = ReadText(
             "src/NvtFwCombiner.Application/Authoring/CtrlRamAuthoringExperience.cs");
-        string memoryLayout = ReadText("src/NvtFwCombiner.Application/MemoryLayout/MemoryLayoutProjector.cs");
+        string memoryLayout = string.Concat(
+            ReadText("src/NvtFwCombiner.Application/MemoryLayout/MemoryLayoutProjector.cs"),
+            ReadText("src/NvtFwCombiner.Application/MemoryLayout/MemoryLayoutProjector.Banks.cs"));
         string replaceCli = string.Concat(
             ReadText("src/NvtFwCombiner.Cli/ReplaceCliCommandHandler.CtrlRam.cs"),
             ReadText("src/NvtFwCombiner.Cli/ReplaceCliCommandHandler.RunSupport.cs"));

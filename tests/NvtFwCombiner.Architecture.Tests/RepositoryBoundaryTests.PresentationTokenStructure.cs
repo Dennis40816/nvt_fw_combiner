@@ -168,11 +168,17 @@ public sealed partial class RepositoryBoundaryTests
             "src/NvtFwCombiner.Application/MemoryLayout/MemoryLayoutProjector.cs");
         string logicalCoverage = ReadText(
             "src/NvtFwCombiner.Application/MemoryLayout/MemoryLayoutProjector.LogicalCoverage.cs");
+        string bankProjection = ReadText(
+            "src/NvtFwCombiner.Application/MemoryLayout/MemoryLayoutProjector.Banks.cs");
 
         Assert.Contains("operation.DeclaredWriteRanges", projector, StringComparison.Ordinal);
-        Assert.Contains("operation.DeclaredWriteRanges", logicalCoverage, StringComparison.Ordinal);
-        Assert.DoesNotContain("AllowedWriteRanges", projector, StringComparison.Ordinal);
-        Assert.DoesNotContain("TargetRange.Contains(range)", projector, StringComparison.Ordinal);
+        Assert.Contains("operation.DeclaredWriteRanges", bankProjection, StringComparison.Ordinal);
+        Assert.Contains("IReadOnlyList<ProjectedOperation> plannedOperations", logicalCoverage, StringComparison.Ordinal);
+        Assert.Contains("operation.Ranges.Any", logicalCoverage, StringComparison.Ordinal);
+        Assert.Contains("bank.OutputRange.Contains(range)", bankProjection, StringComparison.Ordinal);
+        string projectionSources = projector + logicalCoverage + bankProjection;
+        Assert.DoesNotContain("AllowedWriteRanges", projectionSources, StringComparison.Ordinal);
+        Assert.DoesNotContain("TargetRange.Contains(range)", projectionSources, StringComparison.Ordinal);
     }
 
     /// <summary>Verifies Presentation reads report output-difference classifications from Contracts directly.</summary>

@@ -585,7 +585,7 @@ public sealed partial class RepositoryBoundaryTests
         Assert.All(entries, entry =>
             Assert.True(IsSha256Literal(entry.GetProperty("contentHash").GetString()!)));
         Assert.Equal(
-            29,
+            27,
             entries.Sum(static entry => entry.GetProperty("runtimeRegistrations")
                 .EnumerateArray()
                 .Count(static registration => registration.GetProperty("workflowId").GetString() != "ctrlram-replace")));
@@ -594,7 +594,7 @@ public sealed partial class RepositoryBoundaryTests
         JsonElement abBundle = Assert.Single(entries, static entry => entry.GetProperty("bundleDirectory").GetString() ==
             "nt51950-ab-merge");
         using JsonDocument abManifest = JsonDocument.Parse(ReadText("profiles/built-in/nt51950-ab-merge/profile-bundle.json"));
-        Assert.Equal("1.1.10-full-image-metadata.1", abBundle.GetProperty("bundleVersion").GetString());
+        Assert.Equal("1.1.10-partial-ab-bank.1", abBundle.GetProperty("bundleVersion").GetString());
         Assert.Equal(abManifest.RootElement.GetProperty("bundleVersion").GetString(), abBundle.GetProperty("bundleVersion").GetString());
         Assert.Equal(abManifest.RootElement.GetProperty("contentHash").GetString(), abBundle.GetProperty("contentHash").GetString());
         Assert.Equal(

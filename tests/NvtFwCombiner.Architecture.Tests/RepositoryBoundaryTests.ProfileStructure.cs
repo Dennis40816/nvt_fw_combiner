@@ -331,10 +331,11 @@ public sealed partial class RepositoryBoundaryTests
         Assert.DoesNotContain("CompiledComposition.IcId", topologyValidation, StringComparison.Ordinal);
         Assert.DoesNotContain("NT51950", executionAdapter, StringComparison.Ordinal);
         Assert.DoesNotContain("NT51951", executionAdapter, StringComparison.Ordinal);
-        Assert.Contains("ChipNumber", topologyOwner, StringComparison.Ordinal);
+        Assert.Equal(2, CountOccurrences(topologyOwner, "FirmwareConfigChipCountDiagnostics.AssessPositive("));
+        Assert.Contains("countA!.Value != countB!.Value", topologyOwner, StringComparison.Ordinal);
         Assert.DoesNotContain("CompiledComposition.IcId", topologyOwner, StringComparison.Ordinal);
-        Assert.Contains("AbMergeTopologyAdmission.Assess(", topologyValidation, StringComparison.Ordinal);
-        Assert.Contains("AbMergeTopologyAdmission.Assess(", formatAdmission, StringComparison.Ordinal);
+        Assert.Contains("AbMergeTopologyAdmission.AssessAcceptedPair(", topologyValidation, StringComparison.Ordinal);
+        Assert.Contains("AbMergeTopologyAdmission.AssessCommonAcceptedPair(", formatAdmission, StringComparison.Ordinal);
 
         foreach (string profilePath in new[]
                  {
@@ -546,7 +547,9 @@ public sealed partial class RepositoryBoundaryTests
     {
         string registration = ReadText(
             "src/NvtFwCombiner.Infrastructure/Composition/CanonicalFullImageMetadataInventory.cs");
-        string display = ReadText("src/NvtFwCombiner.Application/MemoryLayout/MemoryLayoutProjector.cs");
+        string display = string.Concat(
+            ReadText("src/NvtFwCombiner.Application/MemoryLayout/MemoryLayoutProjector.cs"),
+            ReadText("src/NvtFwCombiner.Application/MemoryLayout/MemoryLayoutProjector.Banks.cs"));
 
         Assert.False(File.Exists(Path.Combine(
             Root.FullName,
