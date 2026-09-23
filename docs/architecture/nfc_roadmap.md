@@ -22,7 +22,7 @@ is the latest non-draft stable release; its local annotated tag peels to
 `b56b4eee5914f1651ed40747ea0ba48015a52105`. This observation does not reconstruct
 or certify missing predecessor closure evidence. The dated `1.1.8` checkpoint
 above remains historical. Current unfinished work and release evidence are
-tracked in the existing [delivery checklist](../ui/v1.1.10-delivery.md#11x-未完成項目彙整--2026-09-23).
+tracked in the existing [delivery checklist](../ui/v1.1.10-delivery.md#11x-未完成項目彙整--2026-09-24).
 
 Owner amendment, 2026-09-23: schedule Customized / General Merge large-file
 support and the Launcher delta-update, self-update and intranet-migration
