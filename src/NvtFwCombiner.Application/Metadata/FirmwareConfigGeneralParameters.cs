@@ -1,3 +1,4 @@
+using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Domain.Firmware;
 
 namespace NvtFwCombiner.Application.Metadata;
@@ -20,6 +21,7 @@ internal static class FirmwareConfigGeneralParametersContract
     public const string DisplayResolutionY = "display-resolution-y";
     public const string MaximumOperableFingers = "maximum-operable-fingers";
     public const string ReportIrqType = "report-irq-type";
+    public const string EventBufferFormatVersion = "event-buffer-format-version";
     public const string TpFirmwareSubVersion = "tp-firmware-subversion";
     public const string TpResolutionX = "tp-resolution-x";
     public const string TpResolutionY = "tp-resolution-y";
@@ -100,10 +102,93 @@ public sealed record FirmwareConfigGeneralParametersFacts(
 /// <summary>One report-safe canonical FirmwareConfig inspection diagnostic.</summary>
 public sealed record FirmwareConfigInspectionDiagnostic(string Code, string Message);
 
+/// <summary>One canonical field source, retained so multiple classified maps can agree without selecting a route.</summary>
+internal sealed record CanonicalEventBufferFieldObservation(
+    byte Value,
+    string FamilyContentHash,
+    string StructureId,
+    string DefinitionId,
+    string ArtifactBindingId,
+    FirmwareAddressedRange FieldRange,
+    FirmwareMetadataLocatorKind LocatorKind,
+    long? SelectedMarkerStart);
+
 /// <summary>Projects canonical FirmwareConfig facts without selecting IC, IC Count, family, or route.</summary>
 public static class FirmwareConfigGeneralParametersProjector
 {
     private const string MarkerCountMismatchCode = "firmware-config.marker-count-mismatch";
+
+    /// <summary>Reads one explicitly selected optional field from the same canonical structure and capture.</summary>
+    public static byte? ReadEventBufferFormatVersion(
+        ResolvedMetadataPlan plan,
+        ReadOnlyMemory<byte> image,
+        long expectedStructureStart,
+        bool requireFieldTarget = true)
+    {
+        return ReadEventBufferFormatObservation(plan, image, expectedStructureStart,
+            requireFieldTarget)?.Value;
+    }
+
+    internal static CanonicalEventBufferFieldObservation? ReadEventBufferFormatObservation(
+        ResolvedMetadataPlan plan,
+        ReadOnlyMemory<byte> image,
+        long expectedStructureStart,
+        bool requireFieldTarget = true)
+    {
+        ArgumentNullException.ThrowIfNull(plan);
+        MetadataPlanEntry[] entries =
+        [
+            .. plan.Entries.Select(static item => item.Definition)
+                .Where(entry => StringComparer.Ordinal.Equals(entry.StructureDefinition.StructureId,
+                    FirmwareConfigGeneralParametersContract.StructureId))
+                .Take(2),
+        ];
+        if (entries.Length != 1)
+        {
+            return null;
+        }
+
+        MetadataPlanEntry entry = entries[0];
+        if ((requireFieldTarget && !entry.TargetReferences.Any(target =>
+                target.Kind == FirmwareMetadataReferenceTargetKind.Field &&
+                StringComparer.Ordinal.Equals(target.TargetId,
+                    FirmwareConfigGeneralParametersContract.EventBufferFormatVersion))) ||
+            image.Length > entry.ResolvedMap.CapacityBytes ||
+            !StringComparer.Ordinal.Equals(entry.SpaceId, entry.StructureDefinition.ArtifactBindingId))
+        {
+            return null;
+        }
+
+        var inputs = new FirmwareMapResolutionInputs(entry.MemberId, entry.ResolvedMap.ModeId,
+            entry.ResolvedMap.CapacityBytes, requestedTopology: null,
+            [new FirmwareArtifactPayload(entry.SpaceId, image.Span)]);
+        FirmwareResolvedMetadataStructure? resolved = entry.FamilyDefinition.ResolveMetadataStructure(
+            entry.ImageMap.MapId, entry.StructureDefinition.StructureId, inputs).Resolved;
+        if (resolved is null || resolved.LocatorOutcome.ResolvedRange.Range.Start != expectedStructureStart)
+        {
+            return null;
+        }
+
+        FirmwareDecodedMetadataFact? fact = resolved.DecodedStructure.Facts.SingleOrDefault(candidate =>
+            StringComparer.Ordinal.Equals(candidate.FieldId,
+                FirmwareConfigGeneralParametersContract.EventBufferFormatVersion));
+        FirmwareMetadataField? field = entry.StructureDefinition.Fields.SingleOrDefault(candidate =>
+            StringComparer.Ordinal.Equals(candidate.FieldId,
+                FirmwareConfigGeneralParametersContract.EventBufferFormatVersion));
+        if (fact?.Value.UnsignedIntegerValue is not { } raw || raw > byte.MaxValue ||
+            field is not { WidthBytes: 1, Encoding: FirmwareMetadataEncoding.UnsignedInteger })
+        {
+            return null;
+        }
+
+        FirmwareAddressedRange structureRange = resolved.LocatorOutcome.ResolvedRange;
+        return new CanonicalEventBufferFieldObservation((byte)raw, entry.FamilyDefinition.FamilyContentHash,
+            entry.StructureDefinition.StructureId, entry.StructureDefinition.Definition.DefinitionId,
+            entry.StructureDefinition.ArtifactBindingId,
+            new FirmwareAddressedRange(structureRange.AddressSpaceId,
+                new ByteRange(checked(structureRange.Range.Start + field.Range.Start), field.Range.Length)),
+            resolved.LocatorOutcome.LocatorKind, resolved.LocatorOutcome.SelectedMarkerStart);
+    }
 
     /// <summary>Projects exactly one successful canonical General Parameters inspection.</summary>
     public static bool TryProject(

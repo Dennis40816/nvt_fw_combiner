@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.5",
   "trustIndexId": "built-in-profile-bundles",
-  "trustIndexVersion": "1.1.10.6",
+  "trustIndexVersion": "1.1.10.7",
   "trustAnchorBindingId": "built-in-profile-bundle-v2",
   "bundles": [
     {
@@ -526,8 +526,8 @@
     {
       "bundleDirectory": "nt51927-standard-merge",
       "bundleSchemaVersion": "1.0",
-      "bundleVersion": "1.1.10-full-image-metadata.1",
-      "contentHash": "60f7ad68c7f1fe97bffbb213962c9d033f72d9a8382cd5f1df129ecbeeb8e10f",
+      "bundleVersion": "1.1.10-standard-event-info.1",
+      "contentHash": "985a7d231a5a40f9c0cfe752dd43fea43dcfa05fb48128379fa020cef041fc04",
       "materialization": {
         "compositionProfileSchemaFile": "composition-profile-v2.15.schema.json",
         "firmwareFamilySchemaFile": "firmware-family-v1.2-tp-header-subjects.schema.json"
@@ -549,15 +549,15 @@
           "workflowId": "standard-merge",
           "icId": "NT51927",
           "profileId": "nt51927-standard-merge-gen-flash",
-          "profileVersion": "0.8.0"
+          "profileVersion": "0.8.1"
         }
       ]
     },
     {
       "bundleDirectory": "nt51928-standard-merge",
       "bundleSchemaVersion": "1.0",
-      "bundleVersion": "1.1.10-full-image-metadata.1",
-      "contentHash": "df2e16879c5896c4680dc20e220cb92a8933f62e2363da0093227ca556ae71c8",
+      "bundleVersion": "1.1.10-standard-event-info.1",
+      "contentHash": "8145e2e6f9697607fc91748d21f802ef2a8613021899d52a80828325bc50bae5",
       "materialization": {
         "compositionProfileSchemaFile": "composition-profile-v2.15.schema.json",
         "firmwareFamilySchemaFile": "firmware-family-v1.3-full-image-metadata.schema.json"
@@ -567,7 +567,7 @@
           "workflowId": "standard-merge",
           "icId": "NT51928",
           "profileId": "nt51928-standard-merge-gen-flash",
-          "profileVersion": "0.9.0",
+          "profileVersion": "0.9.1",
           "mapVariantSetId": "nt51928-dual-capacity-256k-512k"
         }
       ],

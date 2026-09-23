@@ -52,6 +52,7 @@ Owner 2026-09-23 明確將本次正式發布目標改為 **1.1.10**，取代先�
 - Affected: Standard、AB、CtrlRAM input cards、Appearance Details 偏好，以及共用 selector／popup／捲軸。
 - Support status: unchanged/support-neutral；資訊呈現沒有擴大 IC 或 firmware format 支援。
 - Compatibility: Details 預設 Off 並由既有偏好儲存；重新套用設定會撤掉過期的 format 資訊。本地調整讓 title／badge 自成一列、說明與 info 在下方，明確使用 `TPA Version`／`TPB Version`；空 slot 收合閒置列，固定捲軸空間減少 selector 位移。
+- NT51927／28 Standard TP slot 及 CtrlRAM Standard Base 已本地接上 profile 明選的 Event Buffer 欄位；TP-only Base 的多 map 候選只有在 canonical 欄位來源與值全數一致時才顯示。更換檔案或 catalog publication 會撤銷舊值；此唯讀資訊不改 Build 或輸出 bytes。
 - Verification: 已有寬／窄版面、語言／主題、資訊順序、未知版本、空白 slot、template 捲軸偏好及桌面預覽檢查。
 - Limitations: Headless renders 不等於完整原生高 DPI、高對比或 screen-reader 驗收；本地相關 UI 調整仍待最終候選整合驗證。
 

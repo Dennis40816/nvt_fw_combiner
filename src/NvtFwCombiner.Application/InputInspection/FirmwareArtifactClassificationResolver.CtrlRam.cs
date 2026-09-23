@@ -12,7 +12,12 @@ internal sealed partial class FirmwareArtifactClassificationResolver
 {
     internal bool IsCurrent(CtrlRamBaseInspection inspection)
     {
-        return _catalog.TryGetCurrentSnapshot()?.ResolutionToken == inspection.ResolutionToken;
+        return IsCurrent(inspection.ResolutionToken);
+    }
+
+    public bool IsCurrent(ResolutionToken resolutionToken)
+    {
+        return _catalog.TryGetCurrentSnapshot()?.ResolutionToken == resolutionToken;
     }
 
     internal CtrlRamBaseInspection ResolveCtrlRamBase(string icId, ResolvedCapability? exactCapability,
@@ -97,7 +102,9 @@ internal sealed partial class FirmwareArtifactClassificationResolver
             }
         }
 
-        CompiledFirmwareArtifactClassification? classified = Resolve(ic, exactCapability, candidate.Span);
+        (CompiledFirmwareArtifactClassification? classified, ResolvedCapability? exactStandard,
+            IReadOnlyList<ResolvedCapability>? consensusStandards) =
+            ResolveWithExactStandardCapability(ic, exactCapability, candidate.Span);
         CtrlRamBaseKind kind = classified?.Kind switch
         {
             CompiledFirmwareArtifactKind.TpFirmware => CtrlRamBaseKind.StandardTp,
@@ -105,19 +112,62 @@ internal sealed partial class FirmwareArtifactClassificationResolver
             CompiledFirmwareArtifactKind.Unknown or null => CtrlRamBaseKind.Unknown,
             _ => throw new InvalidOperationException("Unknown compiled firmware artifact kind."),
         };
+        byte? standardEventBufferFormat = null;
+        if (kind is CtrlRamBaseKind.StandardTp or CtrlRamBaseKind.StandardFlash &&
+            IsCurrentSnapshot(publication) &&
+            FirmwareConfigMetadataReader.TryReadBackup(candidate.Span, out FirmwareConfigMetadata standardConfig,
+                out _) && standardConfig.IsFirmwareVersionBarValid)
+        {
+            standardEventBufferFormat = exactStandard?.MetadataPlan.ResolutionToken == publication.ResolutionToken
+                ? FirmwareConfigGeneralParametersProjector.ReadEventBufferFormatVersion(
+                    exactStandard.MetadataPlan, candidate, standardConfig.StructureStart)
+                : consensusStandards is not null
+                    ? ReadConsensusEventBufferFormat(consensusStandards, publication.ResolutionToken,
+                        candidate, standardConfig.StructureStart)
+                    : null;
+        }
         return new(kind, kind == CtrlRamBaseKind.Unknown ? draft : draft as CtrlRamFirmwareVersionDraftState, [],
             !IsCurrentSnapshot(publication)
                 ? [new(AuthoringSessionIssueCodes.StaleInspection, "The catalog changed during Reference classification.")]
                 : kind == CtrlRamBaseKind.Unknown
                     ? [new("input.reference.unrecognized", "The captured Base is not an unambiguous Standard or trusted AB Reference.", CompositionSlotIds.ReplaceBase)]
                     : [],
-            publication.ResolutionToken, referenceStamp);
+            publication.ResolutionToken, referenceStamp, standardEventBufferFormat);
+    }
+
+    private static byte? ReadConsensusEventBufferFormat(
+        IReadOnlyList<ResolvedCapability> candidates, ResolutionToken resolutionToken,
+        ReadOnlyMemory<byte> candidate, long structureStart)
+    {
+        var observations = new List<CanonicalEventBufferFieldObservation?>(candidates.Count);
+        foreach (ResolvedCapability capability in candidates)
+        {
+            if (capability.ResolutionToken != resolutionToken ||
+                capability.MetadataPlan.ResolutionToken != resolutionToken)
+            {
+                return null;
+            }
+
+            observations.Add(FirmwareConfigGeneralParametersProjector.ReadEventBufferFormatObservation(
+                capability.MetadataPlan, candidate, structureStart));
+        }
+
+        return SelectCommonEventBufferFormat(observations);
+    }
+
+    internal static byte? SelectCommonEventBufferFormat(
+        IReadOnlyList<CanonicalEventBufferFieldObservation?> observations)
+    {
+        ArgumentNullException.ThrowIfNull(observations);
+        CanonicalEventBufferFieldObservation? first = observations.Count == 0 ? null : observations[0];
+        return first is not null && observations.All(observed => observed == first)
+            ? first.Value
+            : null;
     }
 
     private static byte? ReadBankEventBufferFormat(CompiledComposition standard,
         ResolvedCapability standardCapability, ReadOnlyMemory<byte> bankBytes, FirmwareConfigMetadata validatedConfig)
     {
-        const string fieldId = "event-buffer-format-version";
         MetadataPlanEntry[] matches =
         [
             .. standardCapability.MetadataPlan.Entries
@@ -138,31 +188,15 @@ internal sealed partial class FirmwareArtifactClassificationResolver
         MetadataPlanEntry entry = matches[0];
         FirmwareFamilyResolutionDefinition.ResolvedFirmwareImageMap map =
             standard.V2Details.Provenance.ResolvedMap;
-        if (bankBytes.Length != map.CapacityBytes ||
-            !StringComparer.Ordinal.Equals(entry.FamilyDefinition.FamilyContentHash,
-                standard.V2Details.Provenance.Context.FamilyContentHash) ||
-            !StringComparer.Ordinal.Equals(entry.ResolvedMap.ResolutionFingerprint,
-                map.ResolutionFingerprint) ||
-            !StringComparer.Ordinal.Equals(entry.SpaceId, entry.StructureDefinition.ArtifactBindingId))
-        {
-            return null;
-        }
-
-        var inputs = new FirmwareMapResolutionInputs(entry.MemberId, map.ModeId, bankBytes.Length,
-            requestedTopology: null, [new FirmwareArtifactPayload(entry.SpaceId, bankBytes.Span)]);
-        FirmwareMetadataStructureResolution resolution = entry.FamilyDefinition.ResolveMetadataStructure(
-            map.ImageMap.MapId, entry.StructureDefinition.StructureId, inputs);
-        FirmwareResolvedMetadataStructure? resolved = resolution.Resolved;
-        if (resolved is null ||
-            resolved.LocatorOutcome.ResolvedRange.Range.Start != validatedConfig.StructureStart)
-        {
-            return null;
-        }
-
-        FirmwareDecodedMetadataFact? fact = resolved.DecodedStructure.Facts.SingleOrDefault(candidate =>
-            StringComparer.Ordinal.Equals(candidate.FieldId, fieldId));
-        return fact?.Value.UnsignedIntegerValue is { } raw && raw <= byte.MaxValue
-            ? (byte)raw
-            : null;
+        return bankBytes.Length == map.CapacityBytes &&
+            StringComparer.Ordinal.Equals(entry.FamilyDefinition.FamilyContentHash,
+                standard.V2Details.Provenance.Context.FamilyContentHash) &&
+            StringComparer.Ordinal.Equals(entry.ResolvedMap.ResolutionFingerprint,
+                map.ResolutionFingerprint) &&
+            StringComparer.Ordinal.Equals(entry.SpaceId, entry.StructureDefinition.ArtifactBindingId)
+                ? FirmwareConfigGeneralParametersProjector.ReadEventBufferFormatVersion(
+                    standardCapability.MetadataPlan, bankBytes, validatedConfig.StructureStart,
+                    requireFieldTarget: false)
+                : null;
     }
 }

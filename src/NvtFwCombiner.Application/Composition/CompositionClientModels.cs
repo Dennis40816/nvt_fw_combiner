@@ -157,6 +157,9 @@ public sealed record FirmwareInspectionSnapshot(
     /// <summary>Application-owned profile-declared artifact classification and its typed evidence.</summary>
     public CompiledFirmwareArtifactClassification? ArtifactClassification { get; init; }
 
+    /// <summary>Optional canonical Event Buffer byte selected by this exact Standard input inspection.</summary>
+    public byte? StandardEventBufferFormatVersion { get; init; }
+
     /// <summary>AB-specific typed inspection when the request names one compiled AB input space.</summary>
     public AbMergeInputFacts? AbMergeFacts { get; init; }
 

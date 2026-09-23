@@ -3,6 +3,7 @@ using NvtFwCombiner.Application.Capabilities;
 using NvtFwCombiner.Application.ExternalTools;
 using NvtFwCombiner.Application.FlashMaps;
 using NvtFwCombiner.Application.InputInspection;
+using NvtFwCombiner.Application.Metadata;
 using NvtFwCombiner.Application.Ports;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Domain.Firmware;
@@ -310,6 +311,21 @@ internal sealed partial class BuiltInFirmwareInspection : IFirmwareInspection
             detectedIcHintSource = FirmwareIcHintSource.PrintableHeader;
         }
 
+        FileStamp imageStamp = FileStamp.FromBytes(image);
+        byte? standardEventBufferFormat = baseInspection is not null
+            ? baseInspection.Kind is CtrlRamBaseKind.StandardTp or CtrlRamBaseKind.StandardFlash &&
+              baseInspection.ReferenceStamp == imageStamp &&
+              inspection._artifactClassification.IsCurrent(baseInspection.ResolutionToken) &&
+              baseInspection.Issues.All(static issue => issue.Code != AuthoringSessionIssueCodes.StaleInspection)
+                ? baseInspection.StandardEventBufferFormatVersion
+                : null
+            : StringComparer.Ordinal.Equals(standardMergeAddressSpaceId, CompositionAddressSpaceIds.TpInput) &&
+              metadataAuthority.IsApplicable && metadataAuthority.Plan is { } standardPlan &&
+              firmwareConfig is { IsFirmwareVersionBarValid: true } config
+                ? FirmwareConfigGeneralParametersProjector.ReadEventBufferFormatVersion(
+                    standardPlan, image, config.StructureStart)
+                : null;
+
         return new FirmwareInspectionSnapshot(
             detectedIcId,
             ReadFirmwareConfigMetadata(firmwareConfig, postbuildProfile),
@@ -321,7 +337,8 @@ internal sealed partial class BuiltInFirmwareInspection : IFirmwareInspection
         {
             DetectedIcHintSource = detectedIcHintSource,
             ArtifactClassification = artifactClassification,
-            FileStamp = FileStamp.FromBytes(image),
+            FileStamp = imageStamp,
+            StandardEventBufferFormatVersion = standardEventBufferFormat,
             DpMetadataPrerequisite = dpMetadata.Prerequisite,
         };
     }

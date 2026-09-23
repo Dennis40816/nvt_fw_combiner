@@ -23,7 +23,7 @@ public sealed class CtrlRamBaseInspection
 {
     internal CtrlRamBaseInspection(CtrlRamBaseKind kind, CtrlRamAuthoringDraftState? effectiveDraft,
         IEnumerable<CtrlRamBaseBankInspection> banks, IEnumerable<CompositionIssue> issues, ResolutionToken resolutionToken,
-        FileStamp referenceStamp)
+        FileStamp referenceStamp, byte? standardEventBufferFormatVersion = null)
     {
         Kind = kind;
         EffectiveDraft = effectiveDraft;
@@ -31,6 +31,7 @@ public sealed class CtrlRamBaseInspection
         Issues = Array.AsReadOnly(issues.ToArray());
         ResolutionToken = resolutionToken;
         ReferenceStamp = referenceStamp;
+        StandardEventBufferFormatVersion = standardEventBufferFormatVersion;
     }
 
     /// <summary>Detected shape; blocking issues never demote an identified AB image to Standard.</summary>
@@ -45,6 +46,8 @@ public sealed class CtrlRamBaseInspection
     public ResolutionToken ResolutionToken { get; }
     /// <summary>Identity of the exact complete Reference capture used by these observations.</summary>
     public FileStamp ReferenceStamp { get; }
+    /// <summary>Canonical optional field from a unique exact Standard candidate or unanimous current TP-only candidates in this capture.</summary>
+    public byte? StandardEventBufferFormatVersion { get; }
 }
 
 /// <summary>Facts read from one declared bank without producing a replacement plan.</summary>

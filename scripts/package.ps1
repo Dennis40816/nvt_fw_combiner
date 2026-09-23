@@ -279,7 +279,7 @@ $PackageTrustIndexPackagePath = 'profiles/built-in/package-trust-index.json'
 $ApprovedCanonicalCapabilityPolicyPackageContract = [pscustomobject]@{
     path = 'docs/contracts/canonical-capability-policy-v1.json'
     role = 'capabilityPolicy'
-    sha256 = 'f633d9b03efa5adf366588847e281aff4cf512b20cb23fcda287ab47c6937b51'
+    sha256 = '5d88f8c90bdd322edc5e920746d43bcfac55181b6354e1e9abfc8bc904497b11'
 }
 
 $ApprovedCanonicalCapabilityPolicyPackagePath =

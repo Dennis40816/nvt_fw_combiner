@@ -1,0 +1,52 @@
+{
+  "schemaVersion": 2,
+  "taskId": "STANDARD-EVENT-INFO-1110-01",
+  "capability": "Project NT51927 and NT51928 Standard Event Buffer Format through the selected canonical metadata binding into TP and CtrlRAM Base Info",
+  "integrationBase": "b9a94a2bab1a7bc05129b3438f0c0afeaaf45ad4",
+  "risk": "R3",
+  "kind": "behavior",
+  "state": "design-active",
+  "mutablePaths": [
+    "profiles/built-in/nt51927-standard-merge/profiles/nt51927-standard-merge.json",
+    "profiles/built-in/nt51928-standard-merge/profiles/nt51928-standard-merge.json",
+    "profiles/built-in/nt51927-standard-merge/profile-bundle.json",
+    "profiles/built-in/nt51928-standard-merge/profile-bundle.json",
+    "profiles/built-in/package-trust-index.json",
+    "docs/contracts/canonical-capability-policy-v1.json",
+    "testdata/golden/canonical/manifest.json",
+    "src/NvtFwCombiner.Infrastructure/Capabilities/BuiltInCanonicalCapabilityPolicy.cs",
+    "scripts/package.ps1",
+    "scripts/smoke-release.ps1",
+    "tests/scripts/test_release_package_policy.py",
+    "src/NvtFwCombiner.Application/Composition/CompositionClientModels.cs",
+    "src/NvtFwCombiner.Application/Composition/CtrlRamBaseInspection.cs",
+    "src/NvtFwCombiner.Application/InputInspection/CompiledFirmwareArtifactClassifier.cs",
+    "src/NvtFwCombiner.Application/InputInspection/FirmwareArtifactClassificationResolver.CtrlRam.cs",
+    "src/NvtFwCombiner.Application/Metadata/FirmwareConfigGeneralParameters.cs",
+    "src/NvtFwCombiner.Infrastructure/Composition/BuiltInFirmwareInspection.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/UiCompositionRunner.FirmwareFacts.cs"
+  ],
+  "implementationOwner": "/root",
+  "searchEvidence": [
+    "2026-09-23: CodeGraph and bounded source inspection found the canonical 927/928 family event-buffer-format-version field, but Standard profile metadata binding fieldIds omit it; the common formatter respects TargetReferences. DecodedStructure containing the field is not display authorization.",
+    "The existing Application artifact classifier already compiles published Standard candidates and decides exact versus consensus; its dynamic branch previously discarded the ResolvedCapability. Standard Merge supplies an accepted exact metadata plan. CtrlRAM Base retains a unique exact Standard plan when selected; TP-only consensus projects only a field observation identical across every current candidate from that same classification pass.",
+    "BuiltInFirmwareInspection reads each selected path once and passes the same capture through authoring, classification and snapshot projection. The existing FirmwareConfigGeneralParameters projector and Domain canonical structure resolver own typed decoding; Presentation only formats the observation.",
+    "The path classifier requires R3 because the canonical Golden manifest carries refreshed capability identity pins. Structured diff confirms only 21 capabilityFingerprint and 3 sourceCapabilityFingerprint values changed there; case IDs, evidence kind, expected hashes and output bytes are unchanged. This is local identity maintenance, not release Golden execution or firmware-owner approval; both remain gated."
+  ],
+  "semanticOwner": "Canonical Standard profile metadata binding selects the field; Application owns exact-plan classification and typed read-only observation; Infrastructure transports the captured result; Presentation formats it",
+  "terminalContract": "For NT51927/28 Standard TP and CtrlRAM Standard Base, publish an optional raw Event Buffer byte only when the current Standard plan explicitly selects event-buffer-format-version and the canonical structure locator matches the validated FWConfig in the same captured image. Base uses the unique current exact Standard candidate selected during classification; for TP-only classification consensus, publish the byte only if every already-resolved current Standard candidate has the same declared family/structure/binding, absolute addressed field range, locator, and value from the same capture. Missing/ambiguous plan or locator, disagreeing candidate, stale publication, or stamp mismatch yields unavailable. Preserve raw 0x00 and unknown values; render raw hex plus the existing Domain display name without deriving offsets in UI. Do not change Build admission, output bytes, route support, DP facts, or AB bank behavior.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "/root/standard_event_binding_design",
+    "outcome": "approved",
+    "evidence": "Independent 2026-09-23 read-only architecture review approved one canonical Application projection with explicit 927/928 Standard profile binding, same Reference FileStamp/captured bytes, and no UI-only byte reads or second route decision. Revised review on 2026-09-23 approved a TP-only consensus observation over the candidates already resolved by that same classifier call: every candidate must have a current exact plan and identical selected family/structure/binding, absolute field range, locator and value; duplicate compilation fingerprint with ambiguous capability, disagreement, absence, or stale publication remains unavailable. This read-only fact cannot affect Build admission. ProfileContract, candidate disagreement and publication-race negatives, Bootstrap same-capture, UiSmoke and scoped architecture/Polytail review are required. Golden manifest path minimum is R3; independent Golden execution and firmware-owner finalization remain separate mandatory gates. No write-range or output changes."
+  },
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": {
+    "reviewer": null,
+    "outcome": "pending",
+    "evidence": ""
+  }
+}

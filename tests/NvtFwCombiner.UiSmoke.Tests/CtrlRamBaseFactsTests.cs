@@ -10,6 +10,43 @@ namespace NvtFwCombiner.UiSmoke.Tests;
 /// <summary>All-bank display facts are independent of the banks selected for execution.</summary>
 public sealed class CtrlRamBaseFactsTests
 {
+    /// <summary>Standard TP and Base format the one typed raw byte without adding a DP fact.</summary>
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void StandardEventBufferFactUsesExistingLocalizedInfoCard(bool chinese)
+    {
+        ShellTextResources text = ShellTextResources.For(
+            chinese ? ShellLanguage.ChineseTraditional : ShellLanguage.English);
+        var metadata = new FirmwareConfigMetadataSnapshot(0x1000, "2.5.9", 0x42, 0xBD,
+            true, 7, 1, 0x0927, null, default);
+        foreach ((byte raw, string expected) in new[]
+        {
+            ((byte)0xA3, "0xA3 - Auto STLA v1"),
+            ((byte)0x00, $"0x00 - {text.FirmwareSlotUnknownValueLabel}"),
+        })
+        {
+            var inspection = new FirmwareInspectionSnapshot(null, metadata, null, null, null, null)
+            {
+                StandardEventBufferFormatVersion = raw,
+            };
+            foreach (bool isBase in new[] { false, true })
+            {
+                IReadOnlyList<FirmwareSlotFactViewModel> facts = UiCompositionRunner.GetFirmwareSlotFacts(
+                    inspection, isBase, text);
+                Assert.Equal(expected, Assert.Single(facts,
+                    fact => fact.Label == text.EventBufferVersionLabel).Value);
+            }
+        }
+
+        var noTpMetadata = new FirmwareInspectionSnapshot(null, null, null, null, null, null)
+        {
+            StandardEventBufferFormatVersion = 0xA3,
+        };
+        Assert.DoesNotContain(UiCompositionRunner.GetFirmwareSlotFacts(noTpMetadata),
+            fact => fact.Label == text.EventBufferVersionLabel);
+    }
+
     /// <summary>Equal typed facts share one label; unequal facts retain their bank and DP stays in Details.</summary>
     [Theory]
     [InlineData(false)]

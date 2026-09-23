@@ -1,7 +1,7 @@
 {
   "schemaVersion": "2.15",
   "profileId": "nt51927-standard-merge-gen-flash",
-  "profileVersion": "0.8.0",
+  "profileVersion": "0.8.1",
   "promotion": {
     "stage": "supported",
     "blockers": []
@@ -147,6 +147,7 @@
         "display-resolution-y",
         "maximum-operable-fingers",
         "report-irq-type",
+        "event-buffer-format-version",
         "tp-firmware-subversion",
         "tp-resolution-x",
         "tp-resolution-y",

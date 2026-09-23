@@ -314,6 +314,9 @@ public interface IFirmwareArtifactClassificationResolver
         string icId,
         ResolvedCapability? exactCapability,
         ReadOnlySpan<byte> candidate);
+
+    /// <summary>Checks whether a previously captured observation still belongs to the current publication.</summary>
+    bool IsCurrent(ResolutionToken resolutionToken);
 }
 
 /// <summary>Application-owned route selection and artifact classification policy.</summary>
@@ -325,9 +328,20 @@ internal sealed partial class FirmwareArtifactClassificationResolver(
         catalog ?? throw new ArgumentNullException(nameof(catalog));
     private readonly CanonicalCapabilityCompilerAdapter _compiler =
         compiler ?? throw new ArgumentNullException(nameof(compiler));
+    private sealed record StandardCandidate(CompiledComposition Composition, ResolvedCapability? Capability);
 
     /// <inheritdoc />
     public CompiledFirmwareArtifactClassification? Resolve(
+        string icId,
+        ResolvedCapability? exactCapability,
+        ReadOnlySpan<byte> candidate)
+    {
+        return ResolveWithExactStandardCapability(icId, exactCapability, candidate).Classification;
+    }
+
+    internal (CompiledFirmwareArtifactClassification? Classification, ResolvedCapability? ExactCapability,
+        IReadOnlyList<ResolvedCapability>? ConsensusCapabilities)
+        ResolveWithExactStandardCapability(
         string icId,
         ResolvedCapability? exactCapability,
         ReadOnlySpan<byte> candidate)
@@ -339,7 +353,7 @@ internal sealed partial class FirmwareArtifactClassificationResolver(
             (exactCapability is not null &&
              !IsCurrentCapability(snapshot, normalizedIcId, exactCapability)))
         {
-            return null;
+            return (null, null, null);
         }
 
         if (exactCapability is not null && StringComparer.Ordinal.Equals(
@@ -350,15 +364,15 @@ internal sealed partial class FirmwareArtifactClassificationResolver(
                 CompiledFirmwareArtifactClassifier.Classify(
                     exactCapability.CompiledComposition,
                     candidate);
-            return IsCurrentSnapshot(snapshot) ? classification : null;
+            return IsCurrentSnapshot(snapshot) ? (classification, exactCapability, null) : (null, null, null);
         }
 
-        CompiledComposition[]? compositions = ResolveCurrentCompositions(
+        StandardCandidate[]? compositions = ResolveCurrentCompositions(
             snapshot,
             normalizedIcId);
         if (compositions is null || compositions.Length == 0)
         {
-            return null;
+            return (null, null, null);
         }
 
         long? authoritativeCapacity = exactCapability?
@@ -368,25 +382,31 @@ internal sealed partial class FirmwareArtifactClassificationResolver(
                 compositions,
                 authoritativeCapacity.Value,
                 candidate,
-                out CompiledFirmwareArtifactClassification? authoritative))
+                out CompiledFirmwareArtifactClassification? authoritative,
+                out StandardCandidate? authoritativeCandidate))
         {
-            return IsCurrentSnapshot(snapshot) ? authoritative : null;
+            return IsCurrentSnapshot(snapshot)
+                ? (authoritative, authoritativeCandidate?.Capability, null)
+                : (null, null, null);
         }
 
         if (authoritativeCapacity is null && TryClassifyExactCapacity(
                 compositions,
                 candidate.Length,
                 candidate,
-                out CompiledFirmwareArtifactClassification? exact))
+                out CompiledFirmwareArtifactClassification? exact,
+                out StandardCandidate? exactCandidate))
         {
-            return IsCurrentSnapshot(snapshot) ? exact : null;
+            return IsCurrentSnapshot(snapshot)
+                ? (exact, exactCandidate?.Capability, null)
+                : (null, null, null);
         }
 
         var classifications = new CompiledFirmwareArtifactClassification[compositions.Length];
         for (int index = 0; index < compositions.Length; index++)
         {
             classifications[index] = CompiledFirmwareArtifactClassifier.Classify(
-                compositions[index],
+                compositions[index].Composition,
                 candidate);
         }
         CompiledFirmwareArtifactKind kind = classifications[0].Kind;
@@ -395,21 +415,30 @@ internal sealed partial class FirmwareArtifactClassificationResolver(
             classifications.Any(classification => classification.Kind != kind)
                 ? null
                 : CreateConsensus(classifications, kind);
-        return IsCurrentSnapshot(snapshot) ? consensus : null;
+        if (!IsCurrentSnapshot(snapshot))
+        {
+            return (null, null, null);
+        }
+
+        IReadOnlyList<ResolvedCapability>? consensusCapabilities = consensus is not null &&
+            compositions.All(static composition => composition.Capability is not null)
+                ? Array.AsReadOnly(compositions.Select(static composition => composition.Capability!).ToArray())
+                : null;
+        return (consensus, null, consensusCapabilities);
     }
 
-    private CompiledComposition[]? ResolveCurrentCompositions(
+    private StandardCandidate[]? ResolveCurrentCompositions(
         CanonicalCapabilityCatalogSnapshot snapshot,
         string icId)
     {
-        var compositions = new List<CompiledComposition>();
+        var compositions = new List<StandardCandidate>();
         foreach (ResolvedCapability capability in snapshot.Capabilities.Where(capability =>
                      StringComparer.Ordinal.Equals(capability.Identity.IcId, icId) &&
                      StringComparer.Ordinal.Equals(
                          capability.Identity.WorkflowId,
                          ExperienceIds.StandardMerge)))
         {
-            AddUnique(compositions, capability.CompiledComposition);
+            AddUnique(compositions, new StandardCandidate(capability.CompiledComposition, capability));
         }
 
         ResolvedCapabilityRoute[] dynamicRoutes =
@@ -444,7 +473,7 @@ internal sealed partial class FirmwareArtifactClassificationResolver(
             string[][] selections = memberSlotIds.Count == 0
                 ? [[]]
                 : [[], [.. memberSlotIds]];
-            var dynamicCompositions = new List<CompiledComposition>(selections.Length);
+            var dynamicCompositions = new List<StandardCandidate>(selections.Length);
             foreach (string[] selection in selections)
             {
                 bool compiled = selectedCapacity is { } capacity
@@ -459,14 +488,15 @@ internal sealed partial class FirmwareArtifactClassificationResolver(
                     return null;
                 }
 
-                AddUnique(dynamicCompositions, exactCapability.CompiledComposition);
+                AddUnique(dynamicCompositions, new StandardCandidate(
+                    exactCapability.CompiledComposition, exactCapability));
             }
 
             string[] compiledMapIds =
             [
                 .. dynamicCompositions
-                    .Select(static composition =>
-                        composition.V2Details.Provenance.ResolvedMap.ImageMap.MapId)
+                    .Select(static candidate =>
+                        candidate.Composition.V2Details.Provenance.ResolvedMap.ImageMap.MapId)
                     .Distinct(StringComparer.Ordinal)
                     .Order(StringComparer.Ordinal),
             ];
@@ -477,7 +507,7 @@ internal sealed partial class FirmwareArtifactClassificationResolver(
                 return null;
             }
 
-            foreach (CompiledComposition composition in dynamicCompositions)
+            foreach (StandardCandidate composition in dynamicCompositions)
             {
                 AddUnique(compositions, composition);
             }
@@ -509,18 +539,20 @@ internal sealed partial class FirmwareArtifactClassificationResolver(
     }
 
     private static bool TryClassifyExactCapacity(
-        CompiledComposition[] compositions,
+        StandardCandidate[] compositions,
         long capacity,
         ReadOnlySpan<byte> candidate,
-        out CompiledFirmwareArtifactClassification? classification)
+        out CompiledFirmwareArtifactClassification? classification,
+        out StandardCandidate? exactCandidate)
     {
-        CompiledComposition[] exact =
+        StandardCandidate[] exact =
         [
             .. compositions.Where(composition =>
-                composition.Plan.OutputInitialization.Capacity == capacity),
+                composition.Composition.Plan.OutputInitialization.Capacity == capacity),
         ];
+        exactCandidate = exact.Length == 1 ? exact[0] : null;
         classification = exact.Length == 1
-            ? CompiledFirmwareArtifactClassifier.Classify(exact[0], candidate)
+            ? CompiledFirmwareArtifactClassifier.Classify(exact[0].Composition, candidate)
             : null;
         return exact.Length != 0;
     }
@@ -550,14 +582,20 @@ internal sealed partial class FirmwareArtifactClassificationResolver(
     }
 
     private static void AddUnique(
-        List<CompiledComposition> compositions,
-        CompiledComposition candidate)
+        List<StandardCandidate> compositions,
+        StandardCandidate candidate)
     {
-        if (compositions.All(existing => !StringComparer.Ordinal.Equals(
-                existing.CompilationFingerprint,
-                candidate.CompilationFingerprint)))
+        int existingIndex = compositions.FindIndex(existing => StringComparer.Ordinal.Equals(
+            existing.Composition.CompilationFingerprint,
+            candidate.Composition.CompilationFingerprint));
+        if (existingIndex < 0)
         {
             compositions.Add(candidate);
+            return;
         }
+
+        // Classification may deduplicate equivalent compositions, but their
+        // metadata ownership is ambiguous until an exact plan is selected.
+        compositions[existingIndex] = compositions[existingIndex] with { Capability = null };
     }
 }

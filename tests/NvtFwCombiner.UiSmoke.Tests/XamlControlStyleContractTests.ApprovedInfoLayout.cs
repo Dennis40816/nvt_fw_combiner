@@ -7,6 +7,7 @@ using Avalonia.Threading;
 using Avalonia.VisualTree;
 using NvtFwCombiner.Application.Capabilities;
 using NvtFwCombiner.Application.Authoring;
+using NvtFwCombiner.Presentation.Avalonia;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
 using NvtFwCombiner.Presentation.Avalonia.Views;
 
@@ -14,6 +15,66 @@ namespace NvtFwCombiner.UiSmoke.Tests;
 
 public sealed partial class XamlControlStyleContractTests
 {
+    /// <summary>The production card renders Standard TP and Base Event Buffer facts at normal width.</summary>
+    [AvaloniaTheory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void StandardEventBufferInfoCardRendersFromTypedSnapshot(bool isBase)
+    {
+        ShellTextResources text = ShellTextResources.For(ShellLanguage.English);
+        var slot = new FirmwareSlotViewModel(isBase ? "base" : "tp", isBase ? "Base" : "TP",
+            "Select firmware", isBase ? FirmwareSlotKind.Base : FirmwareSlotKind.Tp)
+        {
+            FilePath = @"C:\firmware\NT51927_Standard.bin",
+        };
+        slot.ApplyExperienceText(text);
+        var firmware = new FirmwareConfigMetadataSnapshot(0x1000, "2.5.9", 0x42, 0xBD,
+            true, 7, 1, 0x0927, null, default);
+        var snapshot = new FirmwareInspectionSnapshot(null, firmware, null, null, null, null)
+        {
+            StandardEventBufferFormatVersion = 0xA3,
+            CtrlRamBaseInspection = isBase
+                ? new(CtrlRamBaseKind.StandardFlash, null, [], [],
+                    new ResolutionToken("visual-fixture"), FileStamp.FromBytes([]), 0xA3)
+                : null,
+        };
+        slot.SetCurrentInspectionProjection(snapshot);
+        slot.SetInputInspection(FirmwareInputInspectionSeverity.Valid, "Inspected");
+        slot.SetFirmwareFacts(UiCompositionRunner.GetFirmwareSlotFacts(snapshot, isBase, text));
+        var card = new FirmwareSlotCard { DataContext = slot, BrowseLabel = text.BrowseLabel, Width = 900 };
+        (Window host, _, _) = HostWithProductionFirmwareSlotStyles(card);
+        host.Width = 940;
+        host.Height = 600;
+        card.VerticalAlignment = global::Avalonia.Layout.VerticalAlignment.Top;
+        host.Show();
+        try
+        {
+            host.Measure(new Size(940, 600));
+            card.Measure(new Size(900, 600));
+            card.Arrange(new Rect(0, 0, 900, card.DesiredSize.Height));
+            Dispatcher.UIThread.RunJobs();
+            card.Measure(new Size(900, 600));
+            card.Arrange(new Rect(0, 0, 900, card.DesiredSize.Height));
+            Assert.Contains(slot.PrimaryFirmwareFacts,
+                fact => fact.Label == text.EventBufferVersionLabel &&
+                    fact.Value == "0xA3 - Auto STLA v1");
+            AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+            using global::Avalonia.Media.Imaging.Bitmap? frame = host.GetLastRenderedFrame();
+            Assert.NotNull(frame);
+            string? directory = Environment.GetEnvironmentVariable("NFC_VISUAL_OUTPUT_DIR");
+            if (directory is not null)
+            {
+                _ = Directory.CreateDirectory(directory);
+                frame.Save(Path.Combine(directory,
+                    isBase ? "standard-base-event-info.png" : "standard-tp-event-info.png"));
+            }
+        }
+        finally
+        {
+            host.Close();
+        }
+    }
+
     /// <summary>Priority is explicit and diagnostics remain visible regardless of position or requested detail priority.</summary>
     [Fact]
     public void InfoPriorityDoesNotDependOnOrderAndNeverHidesBlockingFacts()

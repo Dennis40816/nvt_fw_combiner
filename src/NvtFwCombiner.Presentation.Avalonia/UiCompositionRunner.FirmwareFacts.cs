@@ -45,6 +45,11 @@ internal static partial class UiCompositionRunner
             new("Common FW Version", metadata.CommonFwVersion),
             new("IC Count", FormattableString.Invariant($"{metadata.ChipNumber}"), priority: FirmwareSlotFactPriority.Details),
         ]);
+        if (inspection.StandardEventBufferFormatVersion is byte raw)
+        {
+            facts.Add(new(text.EventBufferVersionLabel,
+                FormattableString.Invariant($"0x{raw:X2} - {FirmwareEventBufferFormatDisplayNames.GetDisplayName(raw) ?? text.FirmwareSlotUnknownValueLabel}")));
+        }
         return includeBaseFacts ? [.. facts, .. dpFacts] : facts;
     }
 

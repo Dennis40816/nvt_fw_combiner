@@ -1,9 +1,9 @@
 {
   "schemaVersion": "1.0",
   "bundleId": "nt51928-standard-merge-family",
-  "bundleVersion": "1.1.10-full-image-metadata.1",
+  "bundleVersion": "1.1.10-standard-event-info.1",
   "hashAlgorithm": "sha256-rfc8785-entry-array-v1",
-  "contentHash": "df2e16879c5896c4680dc20e220cb92a8933f62e2363da0093227ca556ae71c8",
+  "contentHash": "8145e2e6f9697607fc91748d21f802ef2a8613021899d52a80828325bc50bae5",
   "trustAnchorBindingId": "built-in-profile-bundle-v2",
   "entries": [
     {
@@ -32,7 +32,7 @@
       "kind": "composition-profile",
       "path": "profiles/nt51928-standard-merge.json",
       "schemaId": "https://example.invalid/nfc/schemas/composition-profile-v2.schema.json",
-      "contentHash": "0daae97d931c383a8cbcf2a8a72e0d708275cee65d1b5c04f186b097ac335d42"
+      "contentHash": "a23bd8e0f5af6d08c52f7aa1cac41476f64da252faeac484eae7a4840cadd5fd"
     }
   ]
 }
