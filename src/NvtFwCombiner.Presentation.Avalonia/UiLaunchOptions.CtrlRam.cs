@@ -17,7 +17,7 @@ internal sealed partial class UiLaunchOptions
         List<CtrlRamLaunchInput> inputs,
         List<string> issues)
     {
-        foreach (string name in new[] { "--workflow", "--ic", "--ic-num", "--base", "--ctrlram", "--dp", "--tp-a", "--tp-b" })
+        foreach (string name in new[] { "--workflow", "--ic", "--ic-num", "--base", "--ctrlram", "--dp", "--tp", "--tp-a", "--tp-b" })
         {
             if (!TrySplitValue(args[index], name, out string? inlineValue))
             {
@@ -59,9 +59,9 @@ internal sealed partial class UiLaunchOptions
         List<string> issues)
     {
         if (options.Count == 0) { return null; }
-        if (options.Keys.Any(name => name is "--dp" or "--tp-a" or "--tp-b"))
+        if (options.Keys.Any(name => name is "--dp" or "--tp" or "--tp-a" or "--tp-b"))
         {
-            issues.Add("AB input options require --workflow ab-merge and cannot be combined with CtrlRAM inputs.");
+            issues.Add("Merge input options require the corresponding Merge workflow and cannot be combined with CtrlRAM inputs.");
         }
         foreach (string name in new[] { "--workflow", "--ic", "--ic-num", "--base" })
         {

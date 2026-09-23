@@ -12,7 +12,8 @@ internal sealed partial class UiLaunchOptions
         bool openReport,
         IReadOnlyList<string> issues,
         CtrlRamLaunchRequest? ctrlRam = null,
-        AbMergeLaunchRequest? abMerge = null)
+        AbMergeLaunchRequest? abMerge = null,
+        StandardMergeLaunchRequest? standardMerge = null)
     {
         Page = page;
         OpenSettings = openSettings;
@@ -21,6 +22,7 @@ internal sealed partial class UiLaunchOptions
         Issues = issues;
         CtrlRam = ctrlRam;
         AbMerge = abMerge;
+        StandardMerge = standardMerge;
     }
 
     /// <summary>Gets empty launch options.</summary>
@@ -47,7 +49,10 @@ internal sealed partial class UiLaunchOptions
     /// <summary>Explicit AB selections inspected through the ordinary Browse owner; never executes a run.</summary>
     public AbMergeLaunchRequest? AbMerge { get; }
 
-    public bool HasStartupInputs => CtrlRam is not null || AbMerge is not null;
+    /// <summary>Explicit Standard Merge selections inspected through the ordinary Browse owner.</summary>
+    public StandardMergeLaunchRequest? StandardMerge { get; }
+
+    public bool HasStartupInputs => CtrlRam is not null || AbMerge is not null || StandardMerge is not null;
 
     /// <summary>Parses UI shell startup arguments.</summary>
     public static UiLaunchOptions Parse(IReadOnlyList<string> args)
@@ -102,12 +107,15 @@ internal sealed partial class UiLaunchOptions
 
         if (inputOptions.Count > 0 && pageCount > 1) { issues.Add("Duplicate option '--page'."); }
         bool isAbMerge = inputOptions.GetValueOrDefault("--workflow") == "ab-merge";
+        bool isStandardMerge = inputOptions.GetValueOrDefault("--workflow") == "standard-merge";
         AbMergeLaunchRequest? abMerge = isAbMerge ? ParseAbMergeRequest(
             inputOptions, page, openSettings, reportPath, openReport, unknownArguments, issues) : null;
-        CtrlRamLaunchRequest? ctrlRam = isAbMerge ? null : ParseCtrlRamRequest(
+        StandardMergeLaunchRequest? standardMerge = isStandardMerge ? ParseStandardMergeRequest(
+            inputOptions, page, openSettings, reportPath, openReport, unknownArguments, issues) : null;
+        CtrlRamLaunchRequest? ctrlRam = isAbMerge || isStandardMerge ? null : ParseCtrlRamRequest(
             inputOptions, inputs, page, openSettings, reportPath, openReport, unknownArguments, issues);
-        return new UiLaunchOptions(abMerge is not null ? ShellPage.Merge : ctrlRam is not null ? ShellPage.Replace : page,
-            openSettings, NormalizeBlank(reportPath), openReport, issues, ctrlRam, abMerge);
+        return new UiLaunchOptions(abMerge is not null || standardMerge is not null ? ShellPage.Merge : ctrlRam is not null ? ShellPage.Replace : page,
+            openSettings, NormalizeBlank(reportPath), openReport, issues, ctrlRam, abMerge, standardMerge);
     }
 
     private static bool TrySplitValue(string argument, string option, out string? value)

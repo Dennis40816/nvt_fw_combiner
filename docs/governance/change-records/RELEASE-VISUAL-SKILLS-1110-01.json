@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 2,
+  "taskId": "RELEASE-VISUAL-SKILLS-1110-01",
+  "capability": "Provide concise repository skills for canonical firmware example startup, headless release UI capture, and Golden evidence lookup",
+  "integrationBase": "b9a94a2bab1a7bc05129b3438f0c0afeaaf45ad4",
+  "risk": "R2",
+  "kind": "governance",
+  "state": "design-active",
+  "mutablePaths": [
+    ".agents/skills/capture-firmware-ui/SKILL.md",
+    ".agents/skills/capture-firmware-ui/agents/openai.yaml",
+    ".agents/skills/locate-golden-evidence/SKILL.md",
+    ".agents/skills/locate-golden-evidence/agents/openai.yaml",
+    ".agents/skills/manifest.json",
+    ".agents/skills/open-firmware-example/SKILL.md",
+    ".agents/skills/open-firmware-example/agents/openai.yaml",
+    "docs/governance/agent-skill-inventory.md",
+    "tests/scripts/test_skill_inventory_validation.py"
+  ],
+  "implementationOwner": "/root",
+  "searchEvidence": [
+    "2026-09-24: Existing release-readiness and golden-regression skills govern release and Golden promotion, but no repository skill opens a specified canonical case in the Desktop, renders both Details states, or locates a case's exact evidence disposition. The three added skills each route one concrete operator task to the existing CMD, UI smoke, or canonical manifest owner.",
+    "Skill inventory validation passes 23/23. The UI capture skill explicitly labels AvaloniaHeadless product MainWindow renders and directs OS-window fidelity checks to the Desktop startup skill; it does not label a candidate or input-only case as a direct Golden.",
+    "Local exploratory skill drafts preceded this formal integration admission and remain uncommitted pending exact-path design review and stage. This record does not assert retroactive authorization for those drafts."
+  ],
+  "semanticOwner": "The repository skill manifest and inventory own skill discovery; existing release-readiness and golden-regression contracts continue to own release and Golden promotion authority",
+  "terminalContract": "The skills route explicit owner requests to one canonical CMD example opener, one headless real-XAML screenshot matrix, or the canonical manifest/provenance lookup. They report the case evidence disposition, distinguish candidate and unsupported examples, keep private firmware and generated images outside Git, and defer output parity and release certification to existing Golden/release contracts.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "/root/visual_example_admission_review",
+    "outcome": "findings-incorporated",
+    "evidence": "Independent scoped R2 review and focused record recheck on 2026-09-24 approved this exact path set, R2 governance classification, reuse of the skill inventory and Golden/release authorities, and findings-incorporated outcome. The capture skill now says AvaloniaHeadless real-XAML render and points to Desktop for OS-window fidelity. The reviewer confirmed the local prototype predates formal admission and that this record grants no retroactive authorization; final-head review remains pending."
+  },
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": {
+    "reviewer": null,
+    "outcome": "pending",
+    "evidence": ""
+  }
+}

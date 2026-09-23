@@ -1,4 +1,5 @@
 using CommunityToolkit.Mvvm.Input;
+using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
 namespace NvtFwCombiner.Presentation.Avalonia;
@@ -21,6 +22,10 @@ public sealed partial class MainWindow
             else if (_launchOptions.AbMerge is { } abMerge)
             {
                 await ApplyAbMergeLaunchAsync(shell, abMerge, cancellationToken);
+            }
+            else if (_launchOptions.StandardMerge is { } standardMerge)
+            {
+                await ApplyStandardMergeLaunchAsync(shell, standardMerge, cancellationToken);
             }
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
@@ -91,11 +96,14 @@ public sealed partial class MainWindow
                 throw new InvalidOperationException($"IC '{icId}' is unavailable. Choices: {string.Join(", ", setup.IcChoices)}.");
             }
             setup.SelectedIc = icId;
-            if (!setup.NumberChoices.Any(choice => StringComparer.Ordinal.Equals(choice.Token, number)))
+            if ((setup.IsNumberVisible &&
+                !setup.NumberChoices.Any(choice => StringComparer.Ordinal.Equals(choice.Token, number))) ||
+                (!setup.IsNumberVisible &&
+                !StringComparer.Ordinal.Equals(number, IcNumberSelectionTokens.SingleChip)))
             {
                 throw new InvalidOperationException($"IC Number '{number}' is unavailable for {icId}. Choices: {string.Join(", ", setup.NumberChoices.Select(choice => choice.Token))}.");
             }
-            setup.SelectedNumber = number;
+            if (setup.IsNumberVisible) { setup.SelectedNumber = number; }
             if (!workflow.ConfirmWorkflowContextCommand.CanExecute(null))
             {
                 throw new InvalidOperationException("Input startup context is not available.");

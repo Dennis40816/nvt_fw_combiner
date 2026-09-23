@@ -1,0 +1,43 @@
+{
+  "schemaVersion": 2,
+  "taskId": "RELEASE-VISUAL-LAUNCH-1110-01",
+  "capability": "Open manifest-backed firmware examples in the existing Desktop input-selection workflows for 1.1.10 visual review",
+  "integrationBase": "b9a94a2bab1a7bc05129b3438f0c0afeaaf45ad4",
+  "risk": "R2",
+  "kind": "ui",
+  "state": "design-active",
+  "mutablePaths": [
+    "scripts/open_golden_example.py",
+    "src/NvtFwCombiner.Presentation.Avalonia/MainWindow.CtrlRamLaunch.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/MainWindow.StandardMergeLaunch.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/UiLaunchOptions.AbMerge.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/UiLaunchOptions.CtrlRam.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/UiLaunchOptions.StandardMerge.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/UiLaunchOptions.cs",
+    "tests/NvtFwCombiner.UiSmoke.Tests/AbMergeLaunchTests.cs",
+    "tests/NvtFwCombiner.UiSmoke.Tests/ReleaseExampleScreenshots.cs",
+    "tests/NvtFwCombiner.UiSmoke.Tests/StandardMergeLaunchTests.cs"
+  ],
+  "implementationOwner": "/root",
+  "searchEvidence": [
+    "2026-09-24: CodeGraph and scoped independent review traced UiLaunchOptions to MainWindow.LoadStartupInputsAsync and WorkflowSessionPresentationViewModel.SetSlotFileAsync. The existing Presentation startup adapter owns argument decoding and the existing workflow/session owns selected-slot inspection; Application/profile decisions remain unchanged.",
+    "The canonical example launcher selects case.json artifacts and checks containment, declared size, and SHA-256 before passing explicit paths. Its cross-case labels distinguish NT51929 AB CtrlRAM candidate and NT51950 AB CtrlRAM unsupported admission. It does not infer firmware support or calculate bytes.",
+    "Local exploratory candidate and 53 UI smoke checks preceded this formal integration admission; this record does not claim that design admission occurred before that local work. The governed files remain uncommitted pending this R2 review and stage. Five CMD dry-runs and a real NT51926 Desktop launch exercised the path."
+  ],
+  "semanticOwner": "Presentation UiLaunchOptions and MainWindow own startup input selection through the existing WorkflowSessionPresentationViewModel.SetSlotFileAsync; Application and Profiles retain firmware inspection, route, and build decisions",
+  "terminalContract": "Given a canonical case ID, the CMD helper validates every selected artifact under the canonical root against its declared size and SHA-256, then opens the existing Standard Merge, AB Merge, or CtrlRAM Replace Desktop workflow with explicit IC, topology, and input paths. Startup applies the same slot selection and inspection used by Browse, reports invalid options or blocking input issues, and does not run Preview or Build. The cross-case NT51929 AB CtrlRAM example remains Candidate; the NT51950 AB CtrlRAM example shows its current blocked reference-size state. Loaded inputs and screenshots are presentation evidence, not complete-output Golden proof.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "/root/visual_example_admission_review",
+    "outcome": "findings-incorporated",
+    "evidence": "Independent scoped R2 review and focused record recheck on 2026-09-24 approved this exact path set, R2 ui classification, existing startup/SetSlotFileAsync owner and input-only terminal contract with findings incorporated. The reviewer required this admission before integration and confirmed the searchEvidence honestly states the exploratory local prototype predates formal admission; it does not retroactively authorize that earlier work. A separate screenshot wording finding is closed in RELEASE-VISUAL-SKILLS-1110-01. Final-head review remains pending."
+  },
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": {
+    "reviewer": null,
+    "outcome": "pending",
+    "evidence": ""
+  }
+}

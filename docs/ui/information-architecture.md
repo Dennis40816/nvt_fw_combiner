@@ -19,7 +19,7 @@ This document defines the owner-approved UI direction for the first usable NVT F
 - Reports: Preview/Build opens a report modal for diagnostics and evidence review.
 - Report review: the shell may load a structured run report JSON and render it as a readable summary panel. This is a review surface for existing reports, not firmware file execution.
 - UI launch control: the desktop process accepts `--page home|settings|merge|replace|hex-editor`, `--load-report <path>` or `--report <path>`, and `--open-report` so repeatable review can open a page or report modal from command line. These arguments only shape UI state and load existing report JSON; they never execute firmware composition or change profile policy.
-- Explicit input startup also supports AB Merge and CtrlRAM Replace through the same Home context and Browse inspection owners. See [desktop input startup](#desktop-input-startup) for arguments and canonical NT51950 AB examples.
+- Explicit input startup supports Standard Merge, AB Merge and CtrlRAM Replace through the same Home context and Browse inspection owners. See [desktop input startup](#desktop-input-startup) for arguments and canonical examples.
 - Saved Rules: hidden in the first UI release until the saved-rule workflow is implemented and reviewed.
 - Localization: UI implementation uses a bilingual English/Chinese-ready text architecture, with English as the initial default.
 - Typography: Inter for Latin/English UI text; Microsoft JhengHei UI for Traditional Chinese on Windows, falling back to Noto Sans CJK TC, Noto Sans TC, and Segoe UI.
@@ -33,6 +33,18 @@ Preview or Build. IC, Number, slots, format and readiness still come from the
 current canonical catalog and Application services. Unsupported choices,
 missing files, invalid configuration and firmware mismatch remain visible;
 the startup loader does not confirm prompts on the user's behalf.
+
+Standard Merge syntax was added locally on 2026-09-24. All options are required;
+it opens Merge / Standard and selects DP and TP through the ordinary inspection owner:
+
+```text
+NvtFwCombiner.Desktop.exe --workflow standard-merge --ic <IC> --ic-num <Number> --dp <DP.bin> --tp <TP.bin>
+```
+
+For the canonical NT51926 example, run `scripts\open-golden-example.cmd nt51926-gen-flash`
+from CMD at the repository root. The script checks the manifest-backed input hashes,
+builds the current Desktop and opens it without Preview or Build. Run it with
+`--list` to see available case IDs or `--dry-run` to inspect the launch command.
 
 AB syntax (all options are required; `--option=value` is also supported):
 
@@ -54,10 +66,10 @@ Existing CtrlRAM syntax remains:
 NvtFwCombiner.Desktop.exe --workflow ctrlram-replace --ic <IC> --ic-num <Number> --base <Flash.bin> --ctrlram <slot-id>=<CtrlRAM.bin>
 ```
 
-Repeat `--ctrlram` for distinct slots. Both workflows require an empty, ready
-Home session. Number tokens must be current selector choices, such as `single`
-or `cascade`; startup does not infer a token from filenames or golden topology.
-This explicit Number form requires a context with published Number choices.
+Repeat `--ctrlram` for distinct slots. All three workflows require an empty, ready
+Home session. For a visible Number selector, the token must be a current choice,
+such as `single` or `cascade`; a context with no Number selector requires the
+literal `single`. Startup does not infer the token from filenames or golden topology.
 
 ### NT51950 AB canonical examples from CMD
 
@@ -83,9 +95,11 @@ Paths and input roles come from the canonical
 [BOE case](../../testdata/golden/canonical/NT51950/ab-merge/boe-d82t80/topology-unscoped/nt51950-ab-boe-d82t80/provenance/case.json)
 and [Hiway case](../../testdata/golden/canonical/NT51950/ab-merge/hiway-d82t80/topology-unscoped/nt51950-ab-hiway-d82t80/provenance/case.json).
 Both historic DP inputs are **524288 bytes (512 KiB / `0x80000`)**. The current
-NT51950 Single route requires this exact size for both Common and Desay.
-Desay-specific runtime geometry is disabled; Cascade and NT51951 require
-1 MiB. Input diagnostics follow the selected profile. The explicit
+NT51950 Single route requires at least this two-bank transport size for both
+recognized Event Buffer formats. A larger DP is preserved through the output
+and receives a nonstandard-size warning; a shorter DP is blocked. The
+Desay-specific runtime geometry is disabled; NT51950 Cascade and NT51951
+require at least 1 MiB. Input diagnostics follow the selected profile. The explicit
 `single` context is a current UI selection, not a topology certification from
 the manifests' `topology-unscoped` record. Opening these inputs verifies UI
 preload only, not golden output parity, support promotion or release readiness.

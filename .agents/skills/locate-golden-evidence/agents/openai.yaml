@@ -1,0 +1,4 @@
+interface:
+  display_name: "Locate Golden Evidence"
+  short_description: "Find canonical cases and classify their evidence"
+  default_prompt: "Use $locate-golden-evidence to locate this NVT FW Combiner case and state its proven evidence scope."

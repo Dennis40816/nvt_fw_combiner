@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Avalonia.Controls;
 using Avalonia.Headless.XUnit;
 using NvtFwCombiner.Bootstrap;
@@ -137,6 +138,27 @@ public sealed class AbMergeLaunchTests
             Assert.True(window.FindControl<Grid>("ShellInteractionHost")!.IsEnabled);
         }
         finally { await CloseAndFlushAsync(window); }
+    }
+
+    /// <summary>AB workflows with no visible IC Number selector still load the selected NT51929 files.</summary>
+    [Fact]
+    public async Task Nt51929HiddenNumberSelectorDoesNotBlockAbStartup()
+    {
+        using var workspace = TempWorkspace.Create("ab-launch-nt51929");
+        MainWindowViewModel shell = CreateShell(workspace);
+        JsonElement golden = CanonicalGoldenTestData.LoadDirectCase("ab-merge", "nt51929-ab-t05-d06");
+        string Input(string id)
+        {
+            return CanonicalGoldenTestData.ArtifactPath(
+                golden.GetProperty("artifacts").EnumerateArray().Single(artifact =>
+                    artifact.GetProperty("artifactId").GetString() == id));
+        }
+        var request = new AbMergeLaunchRequest("NT51929", "single", Input("dp-ab-input"),
+            Input("tp-a-input"), Input("tp-b-input"));
+        await MainWindow.ApplyAbMergeLaunchAsync(shell, request, TestContext.Current.CancellationToken);
+        Assert.Equal(ExperienceIds.AbMerge, shell.Merge.SelectedMergeMode);
+        Assert.Equal("NT51929", shell.WorkflowSession.SelectedIc);
+        Assert.All(shell.Merge.AbMergeSlots, slot => Assert.True(slot.HasFile));
     }
 
     /// <summary>Read failure stops immediately; an undersized DP stays blocked after pair admission.</summary>

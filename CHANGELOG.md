@@ -106,15 +106,15 @@ Owner 2026-09-23 明確將本次正式發布目標改為 **1.1.10**，取代先�
 - Verification: 已驗證 reload 不保留失敗／過期 definitions、取消與 rollback、完整資料刷新、切頁隔離、捕獲輸入及 General clear；本地最後受影響九個完整 classes 538/538。
 - Limitations: 不宣稱已達 700 ms startup 目標；延後工作不代表開啟所有頁面的總時間下降。CtrlRAM AB bank／版本草稿尚未實作，不能算在既有狀態隔離完成範圍內。
 
-#### 9. 桌面啟動：CMD 載入 AB Code 輸入
+#### 9. 桌面啟動：CMD 預載 Standard／AB Code／CtrlRAM 輸入
 
 - 來源版本：**本地完成，尚未發布**。
-- Before → After: 桌面命令列可指定 AB Merge 的 IC、Number、DP、TP A 與 TP B，開啟畫面並循既有檢查流程載入，減少逐一 Browse。
-- Affected: Desktop AB Merge 啟動；既有 CtrlRAM Replace 命令列入口保留。
+- Before → After: 桌面命令列可指定 AB Merge 的 IC、Number、DP、TP A 與 TP B；本地再補 Standard Merge 的 DP／TP。`scripts/open-golden-example.cmd <case-id>` 從 canonical provenance 取得檔案並核對 SHA，開啟最新 Desktop 供檢視，減少逐一 Browse。
+- Affected: Desktop Standard／AB Merge 預載；既有 CtrlRAM Replace 命令列入口及 NT51929 AB CtrlRAM 候選檢視保留。
 - Support status: unchanged/support-neutral；新增的是載入入口，不是 firmware 支援認證。
 - Compatibility: 沿用 canonical catalog、Home context、Browse 檢查與取消。TP A／TP B 獨立選取；NT51950 Single 的標準 DP 大小為 512 KiB，非標準大小仍須通過實際必要範圍檢查；參數見 [Desktop input startup](docs/ui/information-architecture.md#desktop-input-startup)。
-- Verification: 啟動回歸 56/56；文件中的 NT51950 canonical examples 已核對輸入並執行桌面載入。
-- Limitations: 只開啟並載入，不自動 Preview／Build，也不代替使用者確認；無效參數、設定、輸入或取消仍停止後續自動載入。
+- Verification: 原 AB 啟動回歸 56/56；本地新增 Standard／NT51929 hidden-Number 啟動測試與實檔 UI matrix，最後相關 53/53。CMD 已實際重建並開啟 NT51926 Standard，14 個代表案例各有 Details 關閉／展開的 MainWindow render。
+- Limitations: 只開啟並載入，不自動 Preview／Build，也不代替使用者確認；無效參數、設定、輸入或取消仍停止後續自動載入。NT51950 AB Base 在 CtrlRAM Replace 顯示不支援的長度錯誤，不列為可用 AB CtrlRAM 案例；截圖不等於 Golden。
 
 #### 10. Firmware metadata：DPCMI 命名與共用定義解耦
 
@@ -164,7 +164,7 @@ Owner 2026-09-23 明確將本次正式發布目標改為 **1.1.10**，取代先�
 
 ### Known issues
 
-- **CtrlRAM AB Replace 尚未完成全範圍認證**：NT51929 fw200 Single 已本地接線為 Candidate／ContractOnly；其他 member／shape 的 A／B／A＋B、未選 bank 保留及 transform／CRC／header／backup 的獨立 expected outputs 仍待閉合。
+- **CtrlRAM AB Replace 尚未完成全範圍認證**：NT51929 fw200 Single 已本地接線為 Candidate／ContractOnly；其 A-only／B-only／Both 實檔輸出已有 exact-case 獨立 CRC/header oracle 的完整 bytes 比對，仍待 firmware owner 認證為 Golden。其他 member／shape 的預期輸出與准入未完成；不能由 NT51929 推廣。
 - 最終 integration、firmware-owner 證據及實際發布候選來源的必要 Golden 尚未完成；本地預封存來源已執行 25 個 Direct 完整輸出案例，但 3 個 input-only 和 12 個 fact-scoped alias 並非 Golden 輸出案例，且來源後續變更須在正式候選重跑。
 - 先前完整 verifier 的 orchestration concurrency failure 尚未證明根因修復。診斷紀錄已改善，後續未重現仍不能算修復完成。
 - 較早候選來源的完整 UiSmoke 1593/1593 已通過；後續 AB Base Info 修正於固定來源 `f33099f33` 的受影響測試為 9/9。完整 UiSmoke 尚未在最終 frozen release candidate 重跑，也不是 exact-source CI。
