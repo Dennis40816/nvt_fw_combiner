@@ -92,7 +92,8 @@ internal static partial class UiCompositionRunner
                 : new(label, text.FirmwareFactNotProvidedLabel,
                     stateDetail: text.FirmwareFactNotProvidedDetail, priority: FirmwareSlotFactPriority.Details));
             facts.Add(new(text.GetCtrlRamBaseBankRangeLabel(bankLabel),
-                text.GetCtrlRamBaseReferenceRangeValue(FormatMemoryAddressRange(bank.Range)),
+                text.GetCtrlRamBaseReferenceRangeValue(FormattableString.Invariant(
+                    $"[0x{bank.Range.Start:X5},0x{bank.Range.EndExclusive:X5})")),
                 priority: FirmwareSlotFactPriority.Details));
             string backupLabel = text.GetCtrlRamBaseBackupOffsetLabel(bankLabel);
             facts.Add(bank.FirmwareConfig is { } metadata

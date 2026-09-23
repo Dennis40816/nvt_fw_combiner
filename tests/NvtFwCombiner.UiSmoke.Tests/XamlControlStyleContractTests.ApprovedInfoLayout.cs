@@ -55,9 +55,9 @@ public sealed partial class XamlControlStyleContractTests
             new("Event Buffer Format", "0xA3 · Auto STLA v1"),
             new("IC Count", "1", priority: FirmwareSlotFactPriority.Details),
             new("DP Version", "D06-00", priority: FirmwareSlotFactPriority.Details),
-            new(text.GetCtrlRamBaseBankRangeLabel("A"), text.GetCtrlRamBaseReferenceRangeValue("0x00000-0x3FFFF"), priority: FirmwareSlotFactPriority.Details),
+            new(text.GetCtrlRamBaseBankRangeLabel("A"), text.GetCtrlRamBaseReferenceRangeValue("[0x00000,0x40000)"), priority: FirmwareSlotFactPriority.Details),
             new(text.GetCtrlRamBaseBackupOffsetLabel("A"), text.GetCtrlRamBaseBackupOffsetValue(0x23000), priority: FirmwareSlotFactPriority.Details),
-            new(text.GetCtrlRamBaseBankRangeLabel("B"), text.GetCtrlRamBaseReferenceRangeValue("0x40000-0x7FFFF"), priority: FirmwareSlotFactPriority.Details),
+            new(text.GetCtrlRamBaseBankRangeLabel("B"), text.GetCtrlRamBaseReferenceRangeValue("[0x40000,0x80000)"), priority: FirmwareSlotFactPriority.Details),
             new(text.GetCtrlRamBaseBackupOffsetLabel("B"), text.GetCtrlRamBaseBackupOffsetValue(0x23020), priority: FirmwareSlotFactPriority.Details),
         ]);
         var card = new FirmwareSlotCard { DataContext = slot, BrowseLabel = text.BrowseLabel, Width = 900 };

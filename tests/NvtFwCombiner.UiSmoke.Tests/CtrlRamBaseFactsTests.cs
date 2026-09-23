@@ -48,8 +48,8 @@ public sealed class CtrlRamBaseFactsTests
         Assert.False(Assert.Single(facts, static fact => fact.Label == "DPB Version").IsPrimary);
         foreach ((string bank, string range, string backup) in new[]
         {
-            ("A", chinese ? "參考映像 0x00000-0x3FFFF" : "Reference 0x00000-0x3FFFF", chinese ? "Bank 內 +0x23000" : "bank-local +0x23000"),
-            ("B", chinese ? "參考映像 0x40000-0x7FFFF" : "Reference 0x40000-0x7FFFF", chinese ? "Bank 內 +0x23020" : "bank-local +0x23020"),
+            ("A", chinese ? "參考映像 [0x00000,0x40000)" : "Reference [0x00000,0x40000)", chinese ? "Bank 內 +0x23000" : "bank-local +0x23000"),
+            ("B", chinese ? "參考映像 [0x40000,0x80000)" : "Reference [0x40000,0x80000)", chinese ? "Bank 內 +0x23020" : "bank-local +0x23020"),
         })
         {
             string rangeLabel = chinese
