@@ -1,6 +1,7 @@
 using Avalonia.Controls;
 using Avalonia.Headless.XUnit;
 using NvtFwCombiner.Application.Authoring;
+using NvtFwCombiner.Application.InputInspection;
 using NvtFwCombiner.Bootstrap;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
@@ -13,6 +14,32 @@ namespace NvtFwCombiner.UiSmoke.Tests;
 [Collection(UiAvaloniaRuntimeCollection.Name)]
 public sealed class OutputConfirmationLabelTests
 {
+    /// <summary>Length and metadata warnings survive together, without repeated advisory codes.</summary>
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    [InlineData(false, true)]
+    [InlineData(true, true)]
+    public void ConfirmationRetainsLengthAndMetadataWarnings(bool chinese, bool advisoryIsPrimary = false)
+    {
+        ShellTextResources text = ShellTextResources.For(chinese ? ShellLanguage.ChineseTraditional : ShellLanguage.English);
+        AuthoringInputSlotStatus status = StandardMergeFeedbackTests.Status("input.outer-length.warning",
+            AuthoringSlotLifecycle.Warning, actualLength: 4, ignoredTrailingBytes: true);
+        var advisory = new CompiledInputArtifactInspectionAdvisory(
+            InputArtifactInspectionIssueCodes.AbVersionMetadataUnknown,
+            CompiledInputArtifactInspectionNextAction.ReviewUnknownVersion);
+        var input = new CompositionOutputInputSummary("tp-a-input", "tp-a-input", "input.bin", 4, [], null,
+            status.InspectionLifecycle, advisoryIsPrimary ? advisory.IssueCode : status.InspectionIssueCode)
+        {
+            Inspection = status.Inspection,
+            InspectionAdvisories = [advisory, advisory],
+        };
+
+        string warning = text.FormatOutputInputWarning(input);
+        Assert.Equal(text.CreateInputIssueCard(status, "TP A").Summary + Environment.NewLine +
+            text.AbUnknownVersionWarning, warning);
+    }
+
     /// <summary>A logical General Merge output does not claim a physical Flash map in either language.</summary>
     [AvaloniaFact]
     public async Task LogicalOutputShowsLocalizedNotApplicableMap()

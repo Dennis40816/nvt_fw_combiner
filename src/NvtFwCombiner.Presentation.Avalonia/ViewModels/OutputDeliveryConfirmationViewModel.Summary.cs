@@ -1,5 +1,4 @@
 using System.Globalization;
-using NvtFwCombiner.Application.Authoring;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
@@ -9,6 +8,7 @@ internal sealed record OutputConfirmationInputRow(string FileName, string Size, 
 }
 
 internal sealed record OutputConfirmationCheck(string Label, string Value);
+internal sealed record OutputConfirmationWarningRow(string Role, string Detail);
 
 internal sealed partial class OutputDeliveryConfirmationViewModel
 {
@@ -33,13 +33,17 @@ internal sealed partial class OutputDeliveryConfirmationViewModel
     public string FlashOutputSize => Confirmation is { } summary ? FormatOutputBytes(summary.OutputLengthBytes) : string.Empty;
     public string AdditionalOutputSize => _request?.AdditionalDelivery is { } delivery ? FormatOutputBytes(delivery.SourceRange.Length) : string.Empty;
     public bool HasGeneratedInputs => Confirmation?.HasGeneratedInputs == true;
-    public bool HasInputNotice => HasGeneratedInputs || HasInputWarnings;
     public bool HasValidationMessage => !string.IsNullOrWhiteSpace(ValidationMessage);
     public bool ShowsBundleContents => BundleEnabled && AdditionalDeliveryEnabled;
     public string DeliveryDescription => BundleEnabled && !AdditionalDeliveryEnabled
         ? Text.FormatOutputBundleContents(Sources.Count) : Text.OutputDeliveryBundleLabel;
-    public bool HasInputWarnings => Confirmation?.Inputs.Any(input =>
-        input.InspectionLifecycle == AuthoringSlotLifecycle.Warning) == true;
+    public IReadOnlyList<OutputConfirmationWarningRow> WarningRows => Confirmation?.Inputs.SelectMany(input =>
+        Text.FormatOutputInputWarnings(input).Select(detail =>
+            new OutputConfirmationWarningRow(ShellTextResources.GetOutputInputLabel(input.BindingId), detail))).ToArray() ?? [];
+    public bool HasInputWarnings => WarningRows.Count > 0;
+    public string BuildWarningsTitle => Text.FormatOutputWarningsTitle(WarningRows.Count);
+    public string BuildReadinessSummary => HasInputWarnings
+        ? Text.FormatOutputWarningsReady(WarningRows.Count) : Text.OutputDeliveryReadySummary;
 
     public IReadOnlyList<OutputConfirmationInputRow> InputRows => Confirmation?.Inputs.Select(input =>
         new OutputConfirmationInputRow(input.SourceFileName, FormatInputBytes(input.SizeBytes),
@@ -79,8 +83,10 @@ internal sealed partial class OutputDeliveryConfirmationViewModel
         OnPropertyChanged(nameof(FlashOutputSize));
         OnPropertyChanged(nameof(AdditionalOutputSize));
         OnPropertyChanged(nameof(HasGeneratedInputs));
-        OnPropertyChanged(nameof(HasInputNotice));
         OnPropertyChanged(nameof(HasInputWarnings));
+        OnPropertyChanged(nameof(WarningRows));
+        OnPropertyChanged(nameof(BuildWarningsTitle));
+        OnPropertyChanged(nameof(BuildReadinessSummary));
         OnPropertyChanged(nameof(InputRows));
         OnPropertyChanged(nameof(InputSourcesSummary));
         OnPropertyChanged(nameof(ExpectedInputChecks));

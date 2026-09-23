@@ -125,10 +125,8 @@
             </Grid>
           </Border>
 
-          <StackPanel Spacing="{DynamicResource NfcSpace8}" Margin="0,4,0,8" IsVisible="{Binding HasInputNotice}">
-            <TextBlock Classes="warningText" IsVisible="{Binding HasInputWarnings}" Text="{Binding Text.OutputConfirmationWarning}" TextWrapping="Wrap" />
-            <TextBlock Classes="warningText" IsVisible="{Binding HasGeneratedInputs}" Text="{Binding Text.OutputConfirmationGeneratedHint}" TextWrapping="Wrap" />
-          </StackPanel>
+          <TextBlock Classes="warningText" Margin="0,4,0,8" IsVisible="{Binding HasGeneratedInputs}"
+                     Text="{Binding Text.OutputConfirmationGeneratedHint}" TextWrapping="Wrap" />
           <Grid x:Name="OutputConfirmationSummary" ColumnDefinitions="188,*" RowDefinitions="Auto,Auto,Auto,Auto"
                 ColumnSpacing="{DynamicResource NfcSpace12}" RowSpacing="{DynamicResource NfcSpace8}" Margin="0,4,0,4" IsVisible="{Binding HasConfirmation}">
             <TextBlock Classes="mutedText" Text="{Binding Text.OutputConfirmationTargetLabel}" />
@@ -236,6 +234,30 @@
               </ItemsControl.ItemTemplate>
             </ItemsControl>
             </StackPanel>
+          </Border>
+
+          <Border x:Name="BuildWarningsPanel" Margin="0,12,0,12" Padding="16"
+                  IsVisible="{Binding HasInputWarnings}" CornerRadius="{DynamicResource NfcCompactCornerRadius}"
+                  Background="{DynamicResource NfcWarningSurfaceBrush}" BorderBrush="{DynamicResource NfcWarningBorderStrongBrush}" BorderThickness="1"
+                  AutomationProperties.Name="{Binding BuildWarningsTitle}">
+            <Grid ColumnDefinitions="20,*" ColumnSpacing="{DynamicResource NfcSpace12}">
+              <Path Width="18" Height="18" VerticalAlignment="Top" Margin="0,2,0,0" Stretch="Uniform"
+                    Data="M9 1L17 17H1Z M9 6V11 M9 13V14" Fill="Transparent"
+                    Stroke="{DynamicResource NfcWarningAccentStrongBrush}" StrokeThickness="1.5" />
+              <StackPanel Grid.Column="1" Spacing="{DynamicResource NfcSpace8}">
+                <TextBlock FontWeight="SemiBold" Text="{Binding BuildWarningsTitle}" />
+                <ItemsControl ItemsSource="{Binding WarningRows}">
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="vm:OutputConfirmationWarningRow">
+                      <StackPanel Spacing="{DynamicResource NfcSpace2}" Margin="0,0,0,4">
+                        <TextBlock FontWeight="Medium" Text="{Binding Role}" />
+                        <TextBlock Foreground="{DynamicResource NfcWarningTextBrush}" Text="{Binding Detail}" TextWrapping="Wrap" />
+                      </StackPanel>
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
+              </StackPanel>
+            </Grid>
           </Border>
 
           <Border x:Name="DeliverySettingSection" Padding="0,4,0,8">
@@ -354,7 +376,7 @@
           <TextBlock Grid.ColumnSpan="2" Margin="0,0,0,8" Classes="warningText"
                      AutomationProperties.LiveSetting="Assertive" IsVisible="{Binding HasValidationMessage}"
                      Text="{Binding ValidationMessage}" TextWrapping="Wrap" />
-          <TextBlock Grid.Row="1" Classes="detailText" VerticalAlignment="Center" Text="{Binding Text.OutputDeliveryReadySummary}"
+          <TextBlock x:Name="BuildReadinessSummary" Grid.Row="1" Classes="detailText" VerticalAlignment="Center" Text="{Binding BuildReadinessSummary}"
                      IsVisible="{Binding CanConfirm}" />
           <StackPanel Grid.Row="1" Grid.Column="1" HorizontalAlignment="Right" Orientation="Horizontal" Spacing="{DynamicResource NfcSpace8}">
             <Button x:Name="CancelButton" Classes="semanticAction secondary" Command="{Binding CancelCommand}"
