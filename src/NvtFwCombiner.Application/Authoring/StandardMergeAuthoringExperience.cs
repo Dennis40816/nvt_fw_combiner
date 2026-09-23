@@ -77,6 +77,17 @@ internal sealed partial class StandardMergeAuthoringExperience :
             retainedSession);
     }
 
+    /// <summary>Resolves one exact picker contract after a host captures the DP bytes.</summary>
+    public CompiledAuthoringSelectionSnapshot ResolveCapturedDpSelection(
+        string icId,
+        ReadOnlyMemory<byte> dpBytes,
+        IReadOnlyCollection<string> selectedSlotIds,
+        AuthoringRevision authoringRevision)
+    {
+        return CreateAuthoringService().ProjectCapturedSelection(
+            icId, authoringRevision, selectedSlotIds, dpBytes);
+    }
+
     /// <summary>Atomically prepares one exact Standard Merge session from immutable inputs.</summary>
     public CompiledAuthoringSessionPreparation PrepareSession(
         AuthoringSessionState session,
@@ -101,6 +112,31 @@ internal sealed partial class StandardMergeAuthoringExperience :
 
         public CompiledAuthoringWorkflowDiscovery Discover(string icId)
         {
+            bool sourceEnvelope = owner._compiler.TryGetPublishedStandardSourceEnvelopeRoute(
+                icId, out ResolvedCapabilityRoute? declarationRoute,
+                out IReadOnlyList<CompositionIssue> declarationIssues);
+            if (sourceEnvelope)
+            {
+                ResolvedCapabilityRoute route = declarationRoute ??
+                    throw new InvalidOperationException(
+                        declarationIssues.Count == 0
+                            ? $"No published Standard source-envelope route exists for '{icId}'."
+                            : string.Join(" | ", declarationIssues.Select(static issue => issue.Message)));
+                CanonicalCapabilityCatalogSnapshot publication =
+                    owner._catalog.TryGetCurrentSnapshot() ??
+                    throw new InvalidOperationException(
+                        "Canonical capability publication is unavailable.");
+                string[] slots = [.. owner.GetInputAddressSpaces(icId)];
+                return new CompiledAuthoringWorkflowDiscovery(
+                    DiscoveryCapability: null,
+                    slots,
+                    CompositionAddressSpaceIds.DpInput,
+                    publication.ResolveReviewedDiscoveryTransition(
+                        route, CompositionAddressSpaceIds.DpInput),
+                    [.. slots.Select(static slot => new CompiledAuthoringInputBinding(slot, slot))],
+                    route);
+            }
+
             bool compiled = owner._compiler.TryCompileStandardMerge(
                 icId,
                 dpInputLength: null,
@@ -169,6 +205,20 @@ internal sealed partial class StandardMergeAuthoringExperience :
             return new CompiledAuthoringWorkflowResolution(
                 compiled ? capability : null,
                 issues);
+        }
+
+        public CompiledAuthoringWorkflowResolution ResolveExact(
+            string icId,
+            AuthoringRevision authoringRevision,
+            ReadOnlyMemory<byte> capturedPrerequisite,
+            IReadOnlyCollection<string> selectedSlotIds)
+        {
+            bool compiled = owner._compiler.TryCompileStandardMerge(
+                icId, capturedPrerequisite, selectedSlotIds,
+                out _, out ResolvedCapability? capability,
+                out IReadOnlyList<CompositionIssue> issues);
+            return new CompiledAuthoringWorkflowResolution(
+                compiled ? capability : null, issues);
         }
     }
 }

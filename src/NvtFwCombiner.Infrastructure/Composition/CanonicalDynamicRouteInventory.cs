@@ -13,9 +13,18 @@ internal static partial class CanonicalDynamicRouteInventory
 {
     internal static bool IsDynamic(CapabilityRouteIdentity identity)
     {
+        return IsDynamic(identity, FindMapBoundRegistration);
+    }
+
+    internal static bool IsDynamic(
+        CapabilityRouteIdentity identity,
+        Func<CapabilityRouteIdentity, BuiltInV2Registration?> findMapBoundRegistration)
+    {
         ArgumentNullException.ThrowIfNull(identity);
-        return (TryGetMapBoundRegistration(identity, out BuiltInV2Registration? registration) &&
-                registration.SelectionGroupMapVariantSetId is not null) ||
+        ArgumentNullException.ThrowIfNull(findMapBoundRegistration);
+        return (findMapBoundRegistration(identity) is { } registration &&
+                (registration.SelectionGroupMapVariantSetId is not null ||
+                 registration.SourceEnvelopeBinding is not null)) ||
                identity.WorkflowId is
                    ExperienceIds.GeneralMerge or
                    ExperienceIds.GeneralReplace or
@@ -36,24 +45,34 @@ internal static partial class CanonicalDynamicRouteInventory
     internal static Func<CapabilityRouteIdentity, CanonicalDynamicRoute> CreateResolver(
         Func<IEnumerable<CanonicalCtrlRamDefinition>> loadCtrlRamDefinitions)
     {
+        return CreateResolver(loadCtrlRamDefinitions, FindMapBoundRegistration);
+    }
+
+    internal static Func<CapabilityRouteIdentity, CanonicalDynamicRoute> CreateResolver(
+        Func<IEnumerable<CanonicalCtrlRamDefinition>> loadCtrlRamDefinitions,
+        Func<CapabilityRouteIdentity, BuiltInV2Registration?> findMapBoundRegistration)
+    {
         ArgumentNullException.ThrowIfNull(loadCtrlRamDefinitions);
+        ArgumentNullException.ThrowIfNull(findMapBoundRegistration);
         // A resolver is created per catalog load; never retain failed or old definitions across reloads.
         var definitions = new Lazy<CanonicalCtrlRamDefinition[]>(() => [.. loadCtrlRamDefinitions()]);
         var bankDefinition = new Lazy<BankReferenceReplaceDefinition>(CreateBankReplaceDefinition);
         return identity => identity.RouteId == BankReplaceIdentity.RouteId
-            ? ResolveBankReplace(identity, bankDefinition.Value, definitions.Value) : Resolve(identity, definitions);
+            ? ResolveBankReplace(identity, bankDefinition.Value, definitions.Value)
+            : Resolve(identity, definitions, findMapBoundRegistration);
     }
 
     private static CanonicalDynamicRoute Resolve(
         CapabilityRouteIdentity identity,
-        Lazy<CanonicalCtrlRamDefinition[]> ctrlRamDefinitions)
+        Lazy<CanonicalCtrlRamDefinition[]> ctrlRamDefinitions,
+        Func<CapabilityRouteIdentity, BuiltInV2Registration?> findMapBoundRegistration)
     {
         ArgumentNullException.ThrowIfNull(identity);
-        return TryGetMapBoundRegistration(
-                   identity,
-                   out BuiltInV2Registration? registration) &&
-               registration.SelectionGroupMapVariantSetId is not null
+        BuiltInV2Registration? registration = findMapBoundRegistration(identity);
+        return registration?.SelectionGroupMapVariantSetId is not null
             ? ResolveSelectionGroup(identity, registration)
+            : registration?.SourceEnvelopeBinding is not null
+            ? ResolveSourceEnvelope(identity, registration)
             : identity.WorkflowId switch
             {
                 ExperienceIds.GeneralMerge => ResolveGeneralMerge(identity),
@@ -62,6 +81,37 @@ internal static partial class CanonicalDynamicRouteInventory
                 _ => throw new InvalidDataException(
                     $"No dynamic capability definition matches route '{identity.RouteId}'."),
             };
+    }
+
+    private static CanonicalDynamicRoute ResolveSourceEnvelope(
+        CapabilityRouteIdentity identity,
+        BuiltInV2Registration registration)
+    {
+        IReadOnlyList<FirmwareImageMap> maps = registration.GetMapVariants(
+            out IcNumberInputMode? inputMode,
+            out IReadOnlyList<CompositionIssue> issues);
+        if (issues.Count != 0) { throw InvalidDefinition(identity, issues); }
+        FirmwareImageMap map = maps.SingleOrDefault(candidate =>
+                StringComparer.Ordinal.Equals(candidate.MapId, identity.MapVariant)) ??
+            throw new InvalidDataException(
+                $"Source-envelope route '{identity.RouteId}' has no exact trusted map.");
+        string? countVariant = HeadlessRouteSelection.TryFormatIcCountVariant(
+            map.Applicability.TopologyRequirement, inputMode);
+        if (!StringComparer.Ordinal.Equals(countVariant, identity.IcCountVariant))
+        {
+            throw new InvalidDataException(
+                $"Source-envelope route '{identity.RouteId}' has an invalid IC Count axis.");
+        }
+
+        _ = registration.GetMapBoundDeclaration(map.MapId);
+        return Create(
+            identity,
+            registration.ProfileId,
+            registration.ProfileVersion,
+            registration.BundleContentHash,
+            [map.MapId],
+            CapabilityDefinitionFingerprint.MapBoundCompilerSemanticId,
+            registration.InputSelectionGroupMemberSlotIds);
     }
 
     internal static CapabilityRouteIdentity ResolveCtrlRamIdentity(
@@ -158,16 +208,13 @@ internal static partial class CanonicalDynamicRouteInventory
             abMergeTopologyChoice: topologyChoice);
     }
 
-    private static bool TryGetMapBoundRegistration(
-        CapabilityRouteIdentity identity,
-        [System.Diagnostics.CodeAnalysis.NotNullWhen(true)]
-        out BuiltInV2Registration? registration)
+    private static BuiltInV2Registration? FindMapBoundRegistration(
+        CapabilityRouteIdentity identity)
     {
         if (identity.WorkflowId == ExperienceIds.AbMerge)
         {
-            registration = BuiltInV2RegistrationRegistry.FindAbMergeRegistration(
+            return BuiltInV2RegistrationRegistry.FindAbMergeRegistration(
                 identity.IcId, identity.MapVariant);
-            return registration is not null;
         }
 
         IReadOnlyDictionary<string, BuiltInV2Registration>? registrations =
@@ -176,8 +223,7 @@ internal static partial class CanonicalDynamicRouteInventory
                 ExperienceIds.StandardMerge => BuiltInV2RegistrationRegistry.StandardMergeByIc,
                 _ => null,
             };
-        registration = registrations?.GetValueOrDefault(identity.IcId);
-        return registration is not null;
+        return registrations?.GetValueOrDefault(identity.IcId);
     }
 
     private static CanonicalDynamicRoute ResolveGeneralMerge(

@@ -75,6 +75,13 @@ public interface ICompositionCapabilityExperience
 /// <summary>Focused Standard Merge authoring operations over one canonical workflow owner.</summary>
 public interface IStandardMergeAuthoring
 {
+    /// <summary>Resolves an exact selection from one already-captured DP artifact.</summary>
+    CompiledAuthoringSelectionSnapshot ResolveCapturedDpSelection(
+        string icId,
+        ReadOnlyMemory<byte> dpBytes,
+        IReadOnlyCollection<string> selectedSlotIds,
+        AuthoringRevision authoringRevision);
+
     /// <summary>Returns whether the IC has one authorable Standard Merge route.</summary>
     bool IsSupported(string icId);
 

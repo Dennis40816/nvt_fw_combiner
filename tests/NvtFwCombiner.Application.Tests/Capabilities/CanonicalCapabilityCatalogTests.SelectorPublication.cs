@@ -1,3 +1,4 @@
+using NvtFwCombiner.Application.Authoring;
 using NvtFwCombiner.Application.Capabilities;
 using NvtFwCombiner.Application.Metadata;
 using NvtFwCombiner.Domain.Composition;
@@ -281,6 +282,67 @@ public sealed partial class CanonicalCapabilityCatalogTests
         Assert.Null(capability);
     }
 
+    /// <summary>A legacy adapter cannot silently compile a captured source through its length-only method.</summary>
+    [Fact]
+    public void CapturedCompilationDefaultsToTypedUnsupportedWithoutLengthOnlyDispatch()
+    {
+        var legacy = new UnusedDynamicCompiler();
+        ICanonicalDynamicCompilationAdapter adapter = legacy;
+        CapabilityRouteIdentity identity = CreateAbRoute(
+            "NT51951", "selector-free", "desay-maps");
+
+        adapter.Compile(
+            identity,
+            0x40001,
+            [new FirmwareArtifactPayload("dp-input", new byte[0x40001])],
+            [],
+            out CompiledComposition? composition,
+            out MetadataPlanDefinition? metadataPlan,
+            out IReadOnlyList<CompositionIssue> issues);
+
+        Assert.Null(composition);
+        Assert.Null(metadataPlan);
+        Assert.Null(legacy.CapturedIdentity);
+        Assert.Equal("capability.dynamic.captured-compilation-unsupported", Assert.Single(issues).Code);
+    }
+
+    /// <summary>A publication replaced inside captured compilation discards the adapter result.</summary>
+    [Fact]
+    public void CapturedCompilationRejectsCatalogReloadDuringAdapterCall()
+    {
+        CapabilityRouteIdentity identity = CreateAbRoute(
+            "NT51951", "selector-free", "desay-maps");
+        CanonicalCapabilityCatalogCandidate candidate = new(
+            "captured-reload-test", "1.0.0", new string('a', 64), [],
+            [CreateDynamicAbDefinition(identity)]);
+        var catalog = new CanonicalCapabilityCatalog(new QueueCapabilitySource(
+            CapabilityCatalogLoadResult.Success(candidate),
+            CapabilityCatalogLoadResult.Success(candidate)));
+        Assert.True(catalog.Reload(TestContext.Current.CancellationToken).Succeeded);
+        ResolutionToken before = catalog.GetCurrentSnapshot().ResolutionToken;
+        var adapter = new ReloadingCapturedCompiler
+        {
+            BeforeCapturedResult = () =>
+                Assert.True(catalog.Reload(TestContext.Current.CancellationToken).Succeeded),
+        };
+        var compiler = new CanonicalCapabilityCompilerAdapter(catalog, adapter);
+
+        bool routed = compiler.TryCompilePublishedDynamicCapability(
+            identity, 4,
+            [new FirmwareArtifactPayload("dp-input", new byte[4])],
+            [], out CompiledComposition? composition,
+            out ResolvedCapability? capability,
+            out IReadOnlyList<CompositionIssue> issues);
+
+        Assert.True(routed);
+        Assert.Equal(1, adapter.CapturedCalls);
+        Assert.NotEqual(before, catalog.GetCurrentSnapshot().ResolutionToken);
+        Assert.Null(composition);
+        Assert.Null(capability);
+        Assert.Equal(AuthoringSessionIssueCodes.StalePublication,
+            Assert.Single(issues).Code);
+    }
+
     /// <summary>Every identity axis must resolve in the current publication before the adapter is called.</summary>
     [Theory]
     [InlineData("NT51950", "ab-merge", "selector-free", "desay-maps")]
@@ -443,7 +505,7 @@ public sealed partial class CanonicalCapabilityCatalogTests
         return CompiledComposition.CreateV2RuntimeExecutable(plan, details);
     }
 
-    private sealed class UnusedDynamicCompiler : ICanonicalDynamicCompilationAdapter
+    private class UnusedDynamicCompiler : ICanonicalDynamicCompilationAdapter
     {
         public bool TryGetAbAuthoringDefinition(CapabilityRouteIdentity identity,
             out CanonicalAbAuthoringDefinition? definition, out IReadOnlyList<CompositionIssue> issues)
@@ -474,6 +536,36 @@ public sealed partial class CanonicalCapabilityCatalogTests
             TopologySelection? requestedTopology = null)
         {
             CapturedIdentity = identity;
+            composition = null;
+            metadataPlan = null;
+            issues = [];
+        }
+    }
+
+    private sealed class ReloadingCapturedCompiler : UnusedDynamicCompiler,
+        ICanonicalDynamicCompilationAdapter
+    {
+        internal Action? BeforeCapturedResult { get; init; }
+
+        internal int CapturedCalls { get; private set; }
+
+        public void Compile(
+            CapabilityRouteIdentity identity,
+            long? requestedMapCapacity,
+            IReadOnlyList<FirmwareArtifactPayload> capturedArtifacts,
+            IReadOnlyCollection<string>? selectedInputSlotIds,
+            out CompiledComposition? composition,
+            out MetadataPlanDefinition? metadataPlan,
+            out IReadOnlyList<CompositionIssue> issues,
+            TopologySelection? requestedTopology = null)
+        {
+            _ = identity;
+            _ = requestedMapCapacity;
+            _ = capturedArtifacts;
+            _ = selectedInputSlotIds;
+            _ = requestedTopology;
+            CapturedCalls++;
+            BeforeCapturedResult?.Invoke();
             composition = null;
             metadataPlan = null;
             issues = [];

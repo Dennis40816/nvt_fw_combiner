@@ -1,4 +1,5 @@
 using NvtFwCombiner.Application.Composition;
+using NvtFwCombiner.Application.Authoring;
 using NvtFwCombiner.Application.Metadata;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Domain.Firmware;
@@ -161,6 +162,91 @@ internal sealed partial class CanonicalCapabilityCompilerAdapter :
             out resolvedCapability,
             out issues,
             requestedTopology);
+        return true;
+    }
+
+    /// <summary>Compiles one published route from an immutable captured source without a length-only fallback.</summary>
+    internal bool TryCompilePublishedDynamicCapability(
+        CapabilityRouteIdentity identity,
+        long requestedMapCapacity,
+        IReadOnlyList<FirmwareArtifactPayload> capturedArtifacts,
+        IReadOnlyCollection<string>? selectedInputSlotIds,
+        out CompiledComposition? composition,
+        out ResolvedCapability? resolvedCapability,
+        out IReadOnlyList<CompositionIssue> issues)
+    {
+        ArgumentNullException.ThrowIfNull(identity);
+        ArgumentNullException.ThrowIfNull(capturedArtifacts);
+        CanonicalCapabilityCatalogSnapshot? snapshot = _catalog.TryGetCurrentSnapshot();
+        ResolvedCapabilityRoute? route = snapshot?.DynamicRoutes.SingleOrDefault(candidate =>
+            StringComparer.Ordinal.Equals(candidate.Identity.RouteId, identity.RouteId));
+        if (route is null)
+        {
+            composition = null;
+            resolvedCapability = null;
+            issues = [new CompositionIssue(
+                CapabilityCatalogIssueCodes.RouteUnavailable,
+                "Captured compilation requires one exact published dynamic route.")];
+            return false;
+        }
+
+        if (!IsCurrentPublishedRoute(snapshot!, route))
+        {
+            return StaleCapturedCompilation(out composition, out resolvedCapability, out issues);
+        }
+
+        _dynamicCompiler.Compile(
+            route.Identity,
+            requestedMapCapacity,
+            capturedArtifacts,
+            selectedInputSlotIds,
+            out CompiledComposition? compiled,
+            out MetadataPlanDefinition? metadataPlan,
+            out issues);
+        if (!IsCurrentPublishedRoute(snapshot!, route))
+        {
+            return StaleCapturedCompilation(out composition, out resolvedCapability, out issues);
+        }
+        if (compiled is null || issues.Count != 0)
+        {
+            composition = null;
+            resolvedCapability = null;
+            return true;
+        }
+
+        ResolvedCapability bound = route.BindCompilation(
+            compiled,
+            metadataPlan ?? throw new InvalidOperationException(
+                "Canonical captured compilation omitted its metadata plan."));
+        if (!IsCurrentPublishedRoute(snapshot!, route))
+        {
+            return StaleCapturedCompilation(out composition, out resolvedCapability, out issues);
+        }
+
+        resolvedCapability = bound;
+        composition = bound.CompiledComposition;
+        return true;
+    }
+
+    private bool IsCurrentPublishedRoute(
+        CanonicalCapabilityCatalogSnapshot snapshot,
+        ResolvedCapabilityRoute route)
+    {
+        CanonicalCapabilityCatalogSnapshot? current = _catalog.TryGetCurrentSnapshot();
+        return current?.ResolutionToken == snapshot.ResolutionToken &&
+            current.DynamicRoutes.Any(candidate => ReferenceEquals(candidate, route));
+    }
+
+    private static bool StaleCapturedCompilation(
+        out CompiledComposition? composition,
+        out ResolvedCapability? resolvedCapability,
+        out IReadOnlyList<CompositionIssue> issues)
+    {
+        composition = null;
+        resolvedCapability = null;
+        issues = [new CompositionIssue(
+            AuthoringSessionIssueCodes.StalePublication,
+            "The canonical publication changed during captured compilation.")];
         return true;
     }
 

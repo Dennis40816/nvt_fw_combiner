@@ -13,6 +13,26 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
     private static readonly JsonSerializerOptions s_sourceEnvelopeJsonOptions =
         new(JsonSerializerDefaults.Web);
 
+    /// <summary>Publication can read trusted map/template facts without a DP, while execution still requires it.</summary>
+    [Fact]
+    public void SourceEnvelopeDeclarationDoesNotAdmitExecutionWithoutCapturedDp()
+    {
+        TrustedProfileBundleCatalog catalog = CreateStandardEnvelopeCatalog();
+        TrustedMapBoundProfileDeclaration declaration = catalog.GetMapBoundDeclaration(
+            "nt51950-standard-merge-dp-perspective", "0.7.0", "NT51950",
+            "standard-merge", "nt51950-standard-merge-256k");
+
+        Assert.Equal("nt51950-standard-merge-256k", declaration.Map.MapId);
+        Assert.Equal(declaration.Map.MapId, declaration.SourceEnvelopeBinding?.LayoutTemplateMapId);
+        V2CompositionPlanCompileResult compilation = catalog.Compile(
+            "nt51950-standard-merge-dp-perspective", "0.7.0", "NT51950",
+            "standard-merge", 0x40000, requestedTopology: null,
+            resolutionArtifacts: []);
+        Assert.False(compilation.IsCompiled);
+        Assert.Contains(compilation.Issues, static issue =>
+            issue.Code == "profile.v2.source-envelope.source-missing");
+    }
+
     /// <summary>Executes a synthetic Standard profile with a complete DP envelope.</summary>
     [Theory]
     [InlineData(0x37000)]

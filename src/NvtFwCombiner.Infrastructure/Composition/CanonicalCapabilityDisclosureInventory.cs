@@ -116,7 +116,7 @@ internal static class CanonicalCapabilityDisclosureInventory
                 StringComparer.Ordinal.Equals(
                     definition.Identity.WorkflowId,
                     ExperienceIds.StandardMerge));
-        if (hasStandardRoute)
+        if (hasStandardRoute && registration.SourceEnvelopeBinding is null)
         {
             IReadOnlyList<long> capacities = registration.GetMapCapacities(
                 out IReadOnlyList<CompositionIssue> issues);
@@ -163,6 +163,14 @@ internal static class CanonicalCapabilityDisclosureInventory
                     context.ResolvedMap.FamilyVersion,
                     context.ResolvedMap.FamilyContentHash,
                     relationship)));
+        }
+        if (hasStandardRoute && registration.SourceEnvelopeBinding is not null)
+        {
+            FirmwareFamilyResolutionDefinition family = registration.GetFirmwareFamily();
+            discovered.AddRange(family.FamilyRelationships
+                .Where(relationship => relationship.MemberIds.Contains(icId, StringComparer.Ordinal))
+                .Select(relationship => new FamilyBinding(
+                    family.FamilyId, family.FamilyVersion, family.FamilyContentHash, relationship)));
         }
         discovered.AddRange(disclosureFamilies.SelectMany(family => family.FamilyRelationships
             .Where(relationship => relationship.MemberIds.Contains(icId, StringComparer.Ordinal))

@@ -27,7 +27,7 @@ public static partial class CliApplication
         foreach (CapabilityProfileSummary profile in
             capabilities.GetStandardMergeProfileSummaries())
         {
-            string inputs = profile.CompileSucceeded
+            string inputs = profile.CompileSucceeded || profile.DeclarationReady
                 ? string.Join(", ", profile.RequiredInputAddressSpaceIds)
                 : "compile-error";
             string issues = FormatProfileIssues(profile);
@@ -42,7 +42,7 @@ public static partial class CliApplication
         foreach (CapabilityProfileSummary profile in
             capabilities.GetAbMergeProfileSummaries())
         {
-            string inputs = profile.CompileSucceeded
+            string inputs = profile.CompileSucceeded || profile.DeclarationReady
                 ? string.Join(", ", profile.RequiredInputAddressSpaceIds)
                 : "compile-error";
             string issues = FormatProfileIssues(profile);
@@ -59,7 +59,7 @@ public static partial class CliApplication
     internal static string FormatIcNumberPolicy(CapabilityProfileSummary profile)
     {
         return profile.IcNumberInputMode is not { } mode
-            ? profile.CompileSucceeded ? "none" : "compile-error"
+            ? profile.CompileSucceeded || profile.DeclarationReady ? "none" : "compile-error"
             : Enum.IsDefined(mode) ? mode.ToString() : throw new ArgumentOutOfRangeException(
                 nameof(profile), mode, "Unknown IC-number input mode.");
     }
@@ -68,6 +68,8 @@ public static partial class CliApplication
     {
         return profile.CompileSucceeded
             ? string.Empty
+            : profile.DeclarationReady
+            ? "  status=pending-input"
             : $"  issues={string.Join(',', profile.IssueCodes)}";
     }
 }

@@ -814,6 +814,17 @@ public sealed partial class ShellNavigationSystemTests
                 retainedSession);
         }
 
+        public CompiledAuthoringSelectionSnapshot ResolveCapturedDpSelection(
+            string icId,
+            ReadOnlyMemory<byte> dpBytes,
+            IReadOnlyCollection<string> selectedSlotIds,
+            AuthoringRevision authoringRevision)
+        {
+            Record(nameof(ResolveCapturedDpSelection), icId);
+            return inner.ResolveCapturedDpSelection(
+                icId, dpBytes, selectedSlotIds, authoringRevision);
+        }
+
         public CompiledAuthoringSessionPreparation PrepareSession(
             AuthoringSessionState session,
             string icId,

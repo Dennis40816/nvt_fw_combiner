@@ -129,6 +129,23 @@ fingerprint, and it does not permit Bootstrap or Presentation to infer members.
 It is deleted for a route set when canonical policy publishes the variants as
 one reviewed dynamic capability with one stable capability fingerprint.
 
+**Captured Standard source-envelope amendment (2026-09-23):** a trusted
+source-envelope declaration can publish a reviewed dynamic route before a DP
+BIN is available. A selected path or `FileStamp`, even with length and SHA-256,
+does not supply compiler bytes. Its picker remains `PendingInput` with the DP
+prerequisite and `LoadArtifactFirst`, and carries no
+`CompilationFingerprint`. A host captures the complete DP once, sends those
+same immutable bytes and the full selected-slot set through the existing
+authoring compiler, then inspects the exact compiled bindings. An independently
+retained terminal result could be reused only if selected slot and path,
+accepted length and SHA-256, authoring revision, exact compilation fingerprint,
+and current publication token all match; B1 conservatively recompiles from
+captured bytes instead of taking that retention path. Different content at the
+same length and a catalog reload invalidate the old exact result. Unsupported
+captured compilation and stale publication fail with typed issues, without a
+length-only fallback. This is definition readiness, not execution admission;
+firmware/profile and Golden certification remain separate.
+
 Worker generation and authoring revision are different lifetimes. Generation
 suppresses or cancels obsolete background work and may advance for a repeated
 refresh. Authoring revision advances only when authoring inputs change. The

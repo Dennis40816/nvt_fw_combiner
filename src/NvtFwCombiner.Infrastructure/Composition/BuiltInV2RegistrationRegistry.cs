@@ -146,6 +146,15 @@ internal sealed class BuiltInV2Registration
 
     internal string BundleContentHash => _bundle.ContentHash;
 
+    internal SourceEnvelopeProfileBinding? SourceEnvelopeBinding => IsStandardMerge
+        ? _bundle.GetSourceEnvelopeBinding(ProfileId, ProfileVersion)
+        : null;
+
+    internal TrustedMapBoundProfileDeclaration GetMapBoundDeclaration(string mapId)
+    {
+        return _bundle.GetMapBoundDeclaration(ProfileId, ProfileVersion, IcId, WorkflowId, mapId);
+    }
+
     /// <summary>Projects the exact trusted family of this registration without synthesizing a compilation.</summary>
     internal FirmwareFamilyResolutionDefinition GetFirmwareFamily()
     {
@@ -221,6 +230,12 @@ internal sealed class BuiltInV2Registration
     internal MetadataPlanDefinition CreateExactMapMetadataPlan(string mapId)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(mapId);
+        if (SourceEnvelopeBinding is not null)
+        {
+            return _bundle.CreateDeclaredMetadataPlan(
+                ProfileId, ProfileVersion, IcId, WorkflowId, mapId);
+        }
+
         IReadOnlyList<FirmwareImageMap> maps = GetMapVariants(
             out _,
             out IReadOnlyList<CompositionIssue> mapIssues);
@@ -266,8 +281,9 @@ internal sealed class BuiltInV2Registration
         [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out V2StandardMergeContainerPolicy? policy)
     {
         IReadOnlyList<long> capacities = GetMapCapacities(out IReadOnlyList<CompositionIssue> issues);
-        CompiledComposition? composition = _summaryCompilation.Value.CompiledComposition;
-        FirmwareImageMap? map = composition?.V2Details.Provenance.ResolvedMap.ImageMap;
+        FirmwareImageMap? map = SourceEnvelopeBinding is { } envelope
+            ? GetMapBoundDeclaration(envelope.LayoutTemplateMapId).Map
+            : _summaryCompilation.Value.CompiledComposition?.V2Details.Provenance.ResolvedMap.ImageMap;
         FirmwareRegion? tpOverlay = map?.Regions.SingleOrDefault(static region => region.RegionId == "tp-overlay");
         FirmwareRegion? customerInfo = map?.Regions.SingleOrDefault(static region => region.RegionId == "customer-info");
         if (!IsStandardMerge || issues.Count != 0 || capacities.Count <= 1 || tpOverlay is null || customerInfo is null)
@@ -328,6 +344,19 @@ internal sealed class BuiltInV2Registration
         out CompiledComposition? composition,
         out IReadOnlyList<CompositionIssue> issues)
     {
+        TryCompile(inputLength, requestedTopology, selectedInputSlotIds, [],
+            out composition, out issues);
+    }
+
+    internal void TryCompile(
+        long? inputLength,
+        TopologySelection? requestedTopology,
+        IReadOnlyCollection<string>? selectedInputSlotIds,
+        IReadOnlyList<FirmwareArtifactPayload> resolutionArtifacts,
+        out CompiledComposition? composition,
+        out IReadOnlyList<CompositionIssue> issues)
+    {
+        ArgumentNullException.ThrowIfNull(resolutionArtifacts);
         if (requestedTopology is not null && !IsAbMerge)
         {
             composition = null;
@@ -367,7 +396,11 @@ internal sealed class BuiltInV2Registration
                 requestedCapacity = requestedTopology is null ? capacities[0] : null;
                 effectiveTopology ??= CreateSummaryTopology();
             }
-            else if (!capacities.Contains(inputLength.Value))
+            else if (!capacities.Contains(inputLength.Value) &&
+                !(IsStandardMerge && SourceEnvelopeBinding is { } envelope &&
+                  resolutionArtifacts.Count(artifact => StringComparer.Ordinal.Equals(
+                      artifact.ArtifactId, envelope.SourceSlotId) &&
+                      artifact.LengthBytes == inputLength.Value) == 1))
             {
                 composition = null;
                 issues =
@@ -389,7 +422,8 @@ internal sealed class BuiltInV2Registration
         V2CompositionPlanCompileResult compilation = CompileExecutable(
             requestedCapacity,
             effectiveTopology,
-            selectedInputSlotIds);
+            selectedInputSlotIds,
+            resolutionArtifacts);
         composition = compilation.CompiledComposition;
         issues = compilation.Issues;
     }
@@ -411,6 +445,25 @@ internal sealed class BuiltInV2Registration
 
     internal CapabilityProfileSummary CreateProfileSummary()
     {
+        if (SourceEnvelopeBinding is { } envelope)
+        {
+            TrustedMapBoundProfileDeclaration declaration = GetMapBoundDeclaration(
+                envelope.LayoutTemplateMapId);
+            CompositionProfileDefinition profile = declaration.ProfileEntry.Profile;
+            string[] requiredSpaces =
+            [
+                .. profile.Spaces.OfType<InputArtifactProfileSpace>()
+                    .Where(space => profile.InputSlots.Single(slot =>
+                        StringComparer.Ordinal.Equals(slot.SlotId, space.SlotId)).Required)
+                    .Select(static space => space.SpaceId)
+                    .Order(StringComparer.Ordinal),
+            ];
+            return new CapabilityProfileSummary(
+                ProfileId, IcId, CompositionKind, Array.AsReadOnly(requiredSpaces),
+                profile.Output.FileNameTemplate, profile.IcNumberInputMode,
+                CompileSucceeded: false, [], DeclarationReady: true);
+        }
+
         V2CompositionPlanCompileResult compilation = _summaryCompilation.Value;
         return compilation.CompiledComposition is { } composition
             ? CapabilityProfileSummary.FromCompiled(composition)
@@ -466,7 +519,8 @@ internal sealed class BuiltInV2Registration
     private V2CompositionPlanCompileResult CompileExecutable(
         long? requestedMapCapacity,
         TopologySelection? requestedTopology = null,
-        IReadOnlyCollection<string>? selectedInputSlotIds = null)
+        IReadOnlyCollection<string>? selectedInputSlotIds = null,
+        IReadOnlyList<FirmwareArtifactPayload>? resolutionArtifacts = null)
     {
         return IsAbMerge
             ? _bundle.CompileAbMergeFunctionOpen(
@@ -484,6 +538,7 @@ internal sealed class BuiltInV2Registration
                 WorkflowId,
                 requestedMapCapacity,
                 $"The built-in V2 {ProfileLabel} for {IcId} did not produce an executable composition.",
+                resolutionArtifacts ?? [],
                 selectedInputSlotIds);
     }
 

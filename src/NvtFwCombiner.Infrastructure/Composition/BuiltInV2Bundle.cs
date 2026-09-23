@@ -191,6 +191,31 @@ internal sealed class BuiltInV2Bundle
             : throw new InvalidDataException("Registered profile version does not match the trusted family binding.");
     }
 
+    /// <summary>Gets one trusted fixed-map declaration without a source BIN or executable compilation.</summary>
+    internal TrustedMapBoundProfileDeclaration GetMapBoundDeclaration(
+        string profileId,
+        string profileVersion,
+        string memberId,
+        string experienceId,
+        string mapId)
+    {
+        return _catalog.Value.GetMapBoundDeclaration(
+            profileId, profileVersion, memberId, experienceId, mapId);
+    }
+
+    internal SourceEnvelopeProfileBinding? GetSourceEnvelopeBinding(
+        string profileId,
+        string profileVersion)
+    {
+        TrustedCompositionProfileCatalogEntry entry = _catalog.Value.SelectProfile(
+                profileId,
+                profileVersion,
+                out IReadOnlyList<CompositionIssue> issues) ??
+            throw new InvalidDataException(
+                $"Trusted source-envelope declaration is unavailable: {string.Join(", ", issues.Select(static issue => issue.Code))}.");
+        return entry.Profile.Header.SourceEnvelopeBinding;
+    }
+
     private TrustedCompositionProfileCatalogEntry GetProfile(string profileId)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(profileId);
@@ -283,6 +308,21 @@ internal sealed class BuiltInV2Bundle
         string failureMessage,
         IReadOnlyCollection<string>? selectedInputSlotIds = null)
     {
+        return CompileExecutable(
+            profileId, profileVersion, icId, experienceId, requestedMapCapacity,
+            failureMessage, [], selectedInputSlotIds);
+    }
+
+    internal V2CompositionPlanCompileResult CompileExecutable(
+        string profileId,
+        string profileVersion,
+        string icId,
+        string experienceId,
+        long? requestedMapCapacity,
+        string failureMessage,
+        IReadOnlyList<FirmwareArtifactPayload> resolutionArtifacts,
+        IReadOnlyCollection<string>? selectedInputSlotIds = null)
+    {
         V2CompositionPlanCompileResult compilation = Compile(
             profileId,
             profileVersion,
@@ -290,7 +330,7 @@ internal sealed class BuiltInV2Bundle
             experienceId,
             requestedMapCapacity,
             requestedTopology: null,
-            resolutionArtifacts: [],
+            resolutionArtifacts,
             selectedInputSlotIds);
         return compilation.CompiledComposition is { Eligibility: CompiledCompositionEligibility.V2RuntimeExecutable }
             ? compilation
@@ -594,6 +634,45 @@ internal sealed class BuiltInV2Bundle
                 profileId,
                 profileVersion,
                 ContentHash));
+    }
+
+    /// <summary>Projects fixed-map metadata references from trusted declaration facts without compiling a plan.</summary>
+    internal MetadataPlanDefinition CreateDeclaredMetadataPlan(
+        string profileId,
+        string profileVersion,
+        string memberId,
+        string experienceId,
+        string mapId)
+    {
+        TrustedMapBoundProfileDeclaration declaration = GetMapBoundDeclaration(
+            profileId, profileVersion, memberId, experienceId, mapId);
+        CompositionProfileDefinition profile = declaration.ProfileEntry.Profile;
+        FirmwareFamilyResolutionDefinition family = declaration.ProfileEntry.Family.Family;
+        var deferredInspectionIds = profile.MetadataBindings
+            .Select(static binding => binding.StructureId)
+            .ToHashSet(StringComparer.Ordinal);
+        var requiredResolutionIds = profile.MapBinding.RequiredMetadataStructureIds
+            .Where(id => !deferredInspectionIds.Contains(id))
+            .ToHashSet(StringComparer.Ordinal);
+        FirmwareMapResolutionResult resolution = family.ResolveMapWithinForProfile(
+            new FirmwareMapResolutionInputs(memberId, experienceId,
+                declaration.Map.CapacityBytes, requestedTopology: null, artifacts: []),
+            new HashSet<string>(StringComparer.Ordinal) { mapId },
+            requiredResolutionIds);
+        if (resolution.Status != FirmwareMapResolutionStatus.Unique)
+        {
+            throw new InvalidDataException(
+                $"Trusted map '{mapId}' cannot provide metadata declaration without resolution inputs.");
+        }
+
+        MetadataPlanEntry[] entries =
+        [
+            .. profile.MetadataBindings.Select(binding => CreateMetadataPlanEntry(
+                family, resolution.ResolvedMap!, profile, binding)),
+        ];
+        return new MetadataPlanDefinition(
+            entries,
+            new MetadataPlanSourceIdentity(profileId, profileVersion, ContentHash));
     }
 
     /// <summary>Returns whether one trusted profile declares an exact metadata purpose.</summary>

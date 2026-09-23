@@ -11,7 +11,8 @@ public sealed record CapabilityProfileSummary(
     string DefaultOutputFileName,
     IcNumberInputMode? IcNumberInputMode,
     bool CompileSucceeded,
-    IReadOnlyList<string> IssueCodes)
+    IReadOnlyList<string> IssueCodes,
+    bool DeclarationReady = false)
 {
     /// <summary>Projects one compiled composition into authoring disclosure.</summary>
     public static CapabilityProfileSummary FromCompiled(
@@ -27,6 +28,7 @@ public sealed record CapabilityProfileSummary(
             composition.V2Details.OutputNamingRequirement.FileNameTemplate,
             composition.V2Details.IcNumberInputMode,
             CompileSucceeded: true,
-            []);
+            [],
+            DeclarationReady: true);
     }
 }

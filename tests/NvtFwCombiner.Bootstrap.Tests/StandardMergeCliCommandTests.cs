@@ -1,5 +1,10 @@
 using System.Text.Json;
+using System.Reflection;
+using System.Runtime.ExceptionServices;
+using NvtFwCombiner.Application.Authoring;
+using NvtFwCombiner.Application.Capabilities;
 using NvtFwCombiner.Application.InputInspection;
+using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.TestSupport;
 
 namespace NvtFwCombiner.Bootstrap.Tests;
@@ -7,6 +12,104 @@ namespace NvtFwCombiner.Bootstrap.Tests;
 /// <summary>CLI tests for Standard Merge command groups.</summary>
 public sealed class StandardMergeCliCommandTests
 {
+    /// <summary>The CLI passes one captured DP and the complete selected set before reading other inputs.</summary>
+    [Fact]
+    public async Task DeclarationReadyCliUsesCapturedDpSelectionBeforeRemainingReads()
+    {
+        using var workspace = TempWorkspace.Create();
+        byte[] dp = [1, 2, 3, 4];
+        string dpPath = workspace.Write("captured-dp.bin", dp);
+        string missingTpPath = workspace.PathFor("not-read-yet-tp.bin");
+        CompositionHostServices host = BootstrapTestHost.Services;
+        ICompositionCapabilityExperience capabilities =
+            DispatchProxy.Create<ICompositionCapabilityExperience, CapturedCliProxy>();
+        ((CapturedCliProxy)capabilities).Target = host.CompositionCapabilityExperience;
+        ((CapturedCliProxy)capabilities).Intercept = (method, result, _) =>
+        {
+            return method.Name == nameof(ICompositionCapabilityExperience.GetStandardMergeProfileSummaries)
+                ? ((IReadOnlyList<CapabilityProfileSummary>)result!).Select(summary =>
+                    summary.IcId == "NT51950"
+                        ? summary with { CompileSucceeded = false, DeclarationReady = true }
+                        : summary).ToArray()
+                : result;
+        };
+        IStandardMergeAuthoring authoring =
+            DispatchProxy.Create<IStandardMergeAuthoring, CapturedCliProxy>();
+        CapturedCliProxy authoringProxy = (CapturedCliProxy)authoring;
+        authoringProxy.Target = host.StandardMergeAuthoring;
+        int capturedCalls = 0;
+        authoringProxy.Intercept = (method, result, args) =>
+        {
+            if (method.Name != nameof(IStandardMergeAuthoring.ResolveCapturedDpSelection))
+            {
+                return result;
+            }
+            capturedCalls++;
+            Assert.Equal(dp, ((ReadOnlyMemory<byte>)args![1]!).ToArray());
+            Assert.Equal([CompositionAddressSpaceIds.DpInput, CompositionAddressSpaceIds.TpInput],
+                ((IReadOnlyCollection<string>)args[2]!).Order(StringComparer.Ordinal));
+            CompiledAuthoringSelectionSnapshot pending = host.StandardMergeAuthoring
+                .GetAuthoringSnapshot("NT51950",
+                    [CompositionAddressSpaceIds.DpInput, CompositionAddressSpaceIds.TpInput],
+                    new Dictionary<string, FileStamp>(StringComparer.Ordinal),
+                    new AuthoringRevision(1));
+            return pending with
+            {
+                Issues = [new CompositionIssue(
+                    "test.captured-dp-dispatched",
+                    "Captured DP selection reached the authoring port.")],
+            };
+        };
+        var services = new CliCompositionServices(
+            capabilities, host.SavedRuleAuthoring, authoring,
+            host.AbMergeAuthoring, host.CtrlRamAuthoring, host.GeneralAuthoring,
+            host.CompositionOutputNaming, host.CompositionExecution);
+        using var output = new StringWriter();
+        using var error = new StringWriter();
+
+        int exitCode = await CliApplication.RunStandardMergeAsync(
+            services, host.LocalFiles,
+            ["preview", "--profile", "NT51950", "--dp", dpPath,
+                "--tp", missingTpPath],
+            output, error, TestContext.Current.CancellationToken);
+
+        Assert.Equal(70, exitCode);
+        Assert.Equal(1, capturedCalls);
+        Assert.Contains("test.captured-dp-dispatched", error.ToString(), StringComparison.Ordinal);
+        Assert.DoesNotContain("not-read-yet-tp.bin", error.ToString(), StringComparison.Ordinal);
+    }
+
+    /// <summary>Test-only interface decorator that intercepts one declared host method.</summary>
+    public class CapturedCliProxy : DispatchProxy
+    {
+        /// <summary>Original production port.</summary>
+        public object Target { get; set; } = null!;
+
+        /// <summary>Optional projection after the original method is called.</summary>
+        public Func<MethodInfo, object?, object?[]?, object?>? Intercept { get; set; }
+
+        /// <inheritdoc />
+        protected override object? Invoke(MethodInfo? targetMethod, object?[]? args)
+        {
+            MethodInfo method = targetMethod ?? throw new ArgumentNullException(nameof(targetMethod));
+            if (method.Name == nameof(IStandardMergeAuthoring.ResolveCapturedDpSelection))
+            {
+                return Intercept?.Invoke(method, null, args) ??
+                    throw new InvalidOperationException("Captured test interception is required.");
+            }
+            object? result;
+            try
+            {
+                result = method.Invoke(Target, args);
+            }
+            catch (TargetInvocationException exception) when (exception.InnerException is not null)
+            {
+                ExceptionDispatchInfo.Capture(exception.InnerException).Throw();
+                throw;
+            }
+            return Intercept?.Invoke(method, result, args) ?? result;
+        }
+    }
     /// <summary>Verifies Standard Merge preview can export a structured JSON report.</summary>
     [Theory]
     [InlineData("NT51923")]

@@ -1,0 +1,63 @@
+{
+  "schemaVersion": 2,
+  "taskId": "DP-ENVELOPE-1110-B1-01",
+  "capability": "Separate source-envelope Standard route declaration from captured-DP execution without creating a second resolver",
+  "integrationBase": "f0f0f0a320bacb5f668867c911779c513ab6dcb3",
+  "risk": "R2",
+  "kind": "behavior",
+  "state": "design-active",
+  "mutablePaths": [
+    "docs/adr/0048-headless-slot-readiness-and-compilation-identity.md",
+    "src/NvtFwCombiner.Application/Authoring/AuthoringSessionModels.cs",
+    "src/NvtFwCombiner.Application/Authoring/CompiledAuthoringWorkflow.Contracts.cs",
+    "src/NvtFwCombiner.Application/Authoring/CompiledAuthoringWorkflow.Selection.cs",
+    "src/NvtFwCombiner.Application/Authoring/CompiledAuthoringWorkflow.cs",
+    "src/NvtFwCombiner.Application/Authoring/StandardMergeAuthoringExperience.cs",
+    "src/NvtFwCombiner.Application/Capabilities/CanonicalCapabilityCatalogSnapshot.AuthoringDiscovery.cs",
+    "src/NvtFwCombiner.Application/Capabilities/CanonicalCapabilityCompiler.StandardMerge.Routing.cs",
+    "src/NvtFwCombiner.Application/Capabilities/CanonicalCapabilityCompiler.StandardMerge.cs",
+    "src/NvtFwCombiner.Application/Capabilities/CanonicalCapabilityCompiler.cs",
+    "src/NvtFwCombiner.Application/Capabilities/CapabilityProfileSummary.cs",
+    "src/NvtFwCombiner.Application/Capabilities/ICanonicalDynamicCompilationAdapter.cs",
+    "src/NvtFwCombiner.Application/Composition/CompositionExperiencePorts.cs",
+    "src/NvtFwCombiner.Cli/CliApplication.Profiles.cs",
+    "src/NvtFwCombiner.Cli/CliApplication.StandardMerge.cs",
+    "src/NvtFwCombiner.Infrastructure/Composition/BuiltInV2Bundle.cs",
+    "src/NvtFwCombiner.Infrastructure/Composition/BuiltInV2DynamicCompilationAdapter.cs",
+    "src/NvtFwCombiner.Infrastructure/Composition/BuiltInV2RegistrationRegistry.cs",
+    "src/NvtFwCombiner.Infrastructure/Composition/CanonicalCapabilityDisclosureInventory.cs",
+    "src/NvtFwCombiner.Infrastructure/Composition/CanonicalDynamicRouteInventory.cs",
+    "src/NvtFwCombiner.Profiles/V2/TrustedProfileBundleCatalog.Selection.cs",
+    "tests/NvtFwCombiner.Application.Tests/Authoring/AuthoringInputSlotInspectionTests.ExactIdentity.cs",
+    "tests/NvtFwCombiner.Application.Tests/Capabilities/CanonicalCapabilityCatalogTests.SelectorPublication.cs",
+    "tests/NvtFwCombiner.Bootstrap.Tests/CanonicalCapabilityCatalogMigrationTests.DynamicCompilation.cs",
+    "tests/NvtFwCombiner.Bootstrap.Tests/CanonicalFamilyDisclosureSourceTests.cs",
+    "tests/NvtFwCombiner.Bootstrap.Tests/CatalogLoadScopedCtrlRamTests.cs",
+    "tests/NvtFwCombiner.Bootstrap.Tests/ProfilesCliCommandTests.cs",
+    "tests/NvtFwCombiner.Bootstrap.Tests/StandardMergeCliCommandTests.cs",
+    "tests/NvtFwCombiner.ProfileContract.Tests/TrustedProfileBundleCatalogFactoryTests.SourceEnvelope.cs",
+    "tests/NvtFwCombiner.UiSmoke.Tests/ShellViewModelTests.CanonicalCatalogRefresh.cs"
+  ],
+  "implementationOwner": "/root/dp_capacity_admission",
+  "searchEvidence": [
+    "2026-09-23: Unit A source-envelope foundation is committed at f0f0f0a32. B1 read-only design is frozen outside the repository as unit-b1-admission-proposal.md, SHA-256 afec4d7cc40ed2620ffbc2b3ce85bad87cfed0852a98d6a3be5019d0fe3c083d.",
+    "Existing Standard dynamic compilation passes only requested capacity and its no-BIN route inventory compiles empty artifacts. Source-envelope compilation requires captured immutable DP bytes; declaration and execution must be separate typed states.",
+    "The bounded proposal was independently reviewed by /root/layout_ownership_review in two passes. The final conditional finding required the existing ICompiledAuthoringWorkflowResolver length-only contract to remain and its captured overload to fail closed. The frozen proposal includes that exact amendment without adding paths."
+  ],
+  "semanticOwner": "Profiles trusted catalog owns map-bound declarations; Application owns captured-input compilation, publication and authoring admission; Infrastructure projects declarations and carries captured artifacts; CLI renders the typed state",
+  "terminalContract": "For source-envelope Standard routes, publish a trusted immutable declaration without BIN or executable capability. No-input discovery and profile summary distinguish declaration-ready/pending-input from compile success; no accepted session or Build readiness is inferred. Compile only through the existing Profiles compiler with the same captured immutable DP bytes and a published exact-map or profile-declared template route. Application rechecks publication token and exact route before, after adapter execution, and after bind; stale or unsupported captured calls discard results with typed issues and never retry a length-only path. Keep legacy and AB length-only abstract methods; captured overload defaults to fail-closed. FileStamp-only UI selection remains pending unless every accepted stamp, selected slot/path, revision, fingerprint and publication matches a terminal-inspected capability. CLI reads DP once, resolves the exact captured contract, then reads remaining inputs and prepares with the same DP bytes. Preserve legacy routes, CtrlRAM metadata counterpart, output bytes and built-in profiles; B2 owns actual profile/pins/report/warning/Golden promotion.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "/root/layout_ownership_review",
+    "outcome": "approved",
+    "evidence": "Independent R2 architecture review approved the declaration/capture split and 30-path scope after three bounded corrections: explicit Application publication guard, captured overload and CLI caller closure, and ADR 0048 synchronization. The final resolver overload amendment preserves the old abstract length-only method, defaults captured calls to typed unsupported/null, and routes only source-envelope definition discovery to the Standard implementation. Source revision SHA-256 afec4d7cc40ed2620ffbc2b3ce85bad87cfed0852a98d6a3be5019d0fe3c083d. Incremental review approved an internal per-load map-bound registration lookup injection in the already admitted CanonicalDynamicRouteInventory.cs and a real trusted synthetic bundle test in the already admitted DynamicCompilation test path; production keeps the static lookup and an injected miss cannot fall back. No paths were added. Implementation, tests and final review remain pending."
+  },
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": {
+    "reviewer": null,
+    "outcome": "pending",
+    "evidence": ""
+  }
+}
