@@ -25,7 +25,9 @@ future-version assignments, use the [canonical roadmap](docs/architecture/nfc_ro
 
 Owner 2026-09-23 明確將本次正式發布目標改為 **1.1.10**，取代先前的 `1.2.0` 標籤規劃。
 主要累積成果涵蓋 AB Code 配置、設定、資訊與記憶體顯示、輸出交付、Runtime、
-狀態隔離及驗證流程；DP Replace 專屬功能汰除已本地完成，CtrlRAM AB Replace 仍待完成。
+狀態隔離及驗證流程；DP Replace 專屬功能汰除已本地完成。CtrlRAM AB Replace 的
+NT51929 fw200 Single 已本地接線為 Candidate／ContractOnly；其他 member／shape 與
+firmware-owner／Golden／整合證據仍待完成。
 
 ### Product changes
 
@@ -38,7 +40,7 @@ Owner 2026-09-23 明確將本次正式發布目標改為 **1.1.10**，取代先�
 - Compatibility: Dummy DP 預設 Off。Common／Desay 共用各 case 配置：NT51950 Single 的標準 DP／output 為 512 KiB、TPB `0x4A000`；NT51950 Cascade／NT51951 的標準大小為 1 MiB、TPB `0x8A000`。本地新增的非標準 DP 同長輸出與必要範圍檢查見第 13 項。Desay 特化保留為 inactive 宣告，舊 explicit profile IDs 停用；移除的 exact-2 僅限 NT51950，NT51927 exact-2／3 保留。
 - Verification: 各版本已有 selector、Dummy DP map contract、format selection 及相關回歸證據；輸入參考資料與完整 expected-output Golden 分別記錄。
 - Input validation: 所有 TP firmware slots 讀到 count 0 或讀不到時都阻擋，訊息分別說明原因；AB 還要求 TPA／TPB 的正 count 一致。非 AB workflows 不比較 A/B peers。
-- Limitations: 不提供任意 vendor layout 或 CRC 編輯；這些是既有 AB Merge 與 TP admission 能力，CtrlRAM AB Replace 仍待完成。
+- Limitations: 不提供任意 vendor layout 或 CRC 編輯；這些是既有 AB Merge 與 TP admission 能力。CtrlRAM AB Replace 僅 NT51929 fw200 Single 已本地接線為 Candidate／ContractOnly，尚未認證為 Supported。
 
 #### 2. 設定：Event Buffer Format 編輯、重載與缺檔預設
 
@@ -109,7 +111,7 @@ Owner 2026-09-23 明確將本次正式發布目標改為 **1.1.10**，取代先�
 - Support status: unchanged/support-neutral；未新增永久 catalog cache 或其他 firmware 判讀方式。
 - Compatibility: 一般 draft 編輯保留已完成操作的捕獲結果；明確 Clear 撤銷相關結果。General 清除 Base 同步通知既有 Application session，保留 mapping 身分／路徑／範圍，撤銷舊 publication；重複 clear 維持冪等，不刪來源檔。
 - Verification: 已驗證 reload 不保留失敗／過期 definitions、取消與 rollback、完整資料刷新、切頁隔離、捕獲輸入及 General clear；本地最後受影響九個完整 classes 538/538。
-- Limitations: 不宣稱已達 700 ms startup 目標；延後工作不代表開啟所有頁面的總時間下降。CtrlRAM AB bank／版本草稿尚未實作，不能算在既有狀態隔離完成範圍內。
+- Limitations: 不宣稱已達 700 ms startup 目標；延後工作不代表開啟所有頁面的總時間下降。NT51929 fw200 Single 的 CtrlRAM AB bank／版本草稿已本地接線；本節狀態隔離驗證不代表其他 member／shape 或 firmware-owner／Golden gate 已完成。
 
 #### 9. 桌面啟動：CMD 預載 Standard／AB Code／CtrlRAM 輸入
 
