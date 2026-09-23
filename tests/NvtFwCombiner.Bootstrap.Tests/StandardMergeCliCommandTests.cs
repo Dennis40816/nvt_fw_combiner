@@ -3,6 +3,7 @@ using System.Reflection;
 using System.Runtime.ExceptionServices;
 using NvtFwCombiner.Application.Authoring;
 using NvtFwCombiner.Application.Capabilities;
+using NvtFwCombiner.Application.FlashMaps;
 using NvtFwCombiner.Application.InputInspection;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.TestSupport;
@@ -122,6 +123,7 @@ public sealed class StandardMergeCliCommandTests
         byte[] tp = new byte[0x3C000];
         dp[0x3E000] = 0x11;
         tp[0] = 0x22;
+        StampValidSingleIcFirmwareConfig(tp);
         string dpPath = workspace.Write("dp.bin", dp);
         string tpPath = workspace.Write("tp.bin", tp);
         string report = workspace.PathFor("standard-report.json");
@@ -162,6 +164,7 @@ public sealed class StandardMergeCliCommandTests
         byte[] tp = new byte[0x3C000];
         dp[0x3E000] = 0x11;
         tp[0] = 0x22;
+        StampValidSingleIcFirmwareConfig(tp);
         string dpPath = workspace.Write("dp.bin", dp);
         string tpPath = workspace.Write("tp.bin", tp);
         string outputPath = workspace.PathFor("caller-output.bin");
@@ -214,6 +217,7 @@ public sealed class StandardMergeCliCommandTests
         tp[0] = 0xA7;
         tp[1] = 0x58;
         tp[17] = 0xC9;
+        tp[FirmwareConfigLayout.ChipNumberOffset] = 1;
         tp[4092] = 0x00;
         tp[4093] = 0x4E;
         tp[4094] = 0x56;
@@ -273,6 +277,7 @@ public sealed class StandardMergeCliCommandTests
         byte[] tp = new byte[0x40000];
         dp[0] = 0x11;
         tp[0x7000] = 0x22;
+        StampValidSingleIcFirmwareConfig(tp);
         string dpPath = workspace.Write("dp.bin", dp);
         string tpPath = workspace.Write("tp.bin", tp);
         string outputPath = workspace.PathFor("caller-output.bin");
@@ -311,6 +316,7 @@ public sealed class StandardMergeCliCommandTests
         byte[] tp = new byte[0x35000];
         dp[0x3C000] = 0x11;
         tp[0] = 0x22;
+        StampValidSingleIcFirmwareConfig(tp);
         string dpPath = workspace.Write("dp.bin", dp);
         string tpPath = workspace.Write("tp.bin", tp);
         string outputPath = workspace.PathFor("caller-output.bin");
@@ -348,6 +354,7 @@ public sealed class StandardMergeCliCommandTests
         byte[] ld = new byte[0x80000];
         dp[0x3C000] = 0x11;
         tp[0] = 0x22;
+        StampValidSingleIcFirmwareConfig(tp);
         ld[0x40000] = 0x33;
         string dpPath = workspace.Write("dp.bin", dp);
         string tpPath = workspace.Write("tp.bin", tp);
@@ -385,7 +392,9 @@ public sealed class StandardMergeCliCommandTests
     {
         using var workspace = TempWorkspace.Create();
         string dpPath = workspace.Write("dp.bin", new byte[0x40000]);
-        string tpPath = workspace.Write("tp.bin", new byte[0x35000]);
+        byte[] tp = new byte[0x35000];
+        StampValidSingleIcFirmwareConfig(tp);
+        string tpPath = workspace.Write("tp.bin", tp);
 
         CliRunResult result = await RunCliAsync(
         [
@@ -401,7 +410,7 @@ public sealed class StandardMergeCliCommandTests
 
         Assert.Equal(0, result.ExitCode);
         Assert.Contains("DP_UNIFORM_CONTENT_WARNING", result.Error, StringComparison.Ordinal);
-        Assert.Contains("TP_UNIFORM_CONTENT_WARNING", result.Error, StringComparison.Ordinal);
+        Assert.DoesNotContain("TP_UNIFORM_CONTENT_WARNING", result.Error, StringComparison.Ordinal);
         Assert.Contains("Size: 262144 bytes", result.Output, StringComparison.Ordinal);
     }
 
@@ -539,6 +548,7 @@ public sealed class StandardMergeCliCommandTests
         using var workspace = TempWorkspace.Create();
         byte[] dp = new byte[0x40000];
         byte[] tp = new byte[0x3C000];
+        StampValidSingleIcFirmwareConfig(tp);
         string dpPath = workspace.Write("dp.bin", dp);
         string tpPath = workspace.Write("tp.bin", tp);
 
@@ -567,6 +577,7 @@ public sealed class StandardMergeCliCommandTests
         using var workspace = TempWorkspace.Create();
         byte[] dp = new byte[0x40000];
         byte[] tp = new byte[0x3C000];
+        StampValidSingleIcFirmwareConfig(tp);
         string dpPath = workspace.Write("dp.bin", dp);
         string tpPath = workspace.Write("tp.bin", tp);
 
@@ -595,6 +606,7 @@ public sealed class StandardMergeCliCommandTests
         using var workspace = TempWorkspace.Create();
         byte[] dp = new byte[0x40000];
         byte[] tp = new byte[0x3C000];
+        StampValidSingleIcFirmwareConfig(tp);
         string dpPath = workspace.Write("dp.bin", dp);
         string tpPath = workspace.Write("tp.bin", tp);
         string outputPath = workspace.PathFor("out.bin");
@@ -626,6 +638,7 @@ public sealed class StandardMergeCliCommandTests
         using var workspace = TempWorkspace.Create();
         byte[] dp = new byte[0x40000];
         byte[] tp = new byte[0x3C000];
+        StampValidSingleIcFirmwareConfig(tp);
         string dpPath = workspace.Write("dp.bin", dp);
         string tpPath = workspace.Write("tp.bin", tp);
 
@@ -753,6 +766,20 @@ public sealed class StandardMergeCliCommandTests
         Assert.Equal(100_000_000, bytes.LongLength);
         Assert.Equal(0, bytes[0]);
         Assert.Equal(0, bytes[^1]);
+    }
+
+    private static void StampValidSingleIcFirmwareConfig(byte[] tp)
+    {
+        const int backupStart = 0x1000;
+        const int markerStart = backupStart + 0xFFC;
+        const byte version = 0x81;
+        tp[backupStart + FirmwareConfigLayout.FirmwareVersionOffset] = version;
+        tp[backupStart + FirmwareConfigLayout.FirmwareVersionBarOffset] = unchecked((byte)~version);
+        tp[backupStart + FirmwareConfigLayout.ChipNumberOffset] = 1;
+        tp[markerStart] = 0x00;
+        tp[markerStart + 1] = (byte)'N';
+        tp[markerStart + 2] = (byte)'V';
+        tp[markerStart + 3] = (byte)'T';
     }
 
     private static async Task CreateSparseFileAsync(string path, long length)
