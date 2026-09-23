@@ -378,6 +378,14 @@ internal sealed class BuiltInV2Registration
 
         long? requestedCapacity = null;
         TopologySelection? effectiveTopology = requestedTopology;
+        SourceEnvelopeProfileBinding? capturedSourceEnvelope = IsAbMerge
+            ? _bundle.GetSourceEnvelopeBinding(ProfileId, ProfileVersion)
+            : SourceEnvelopeBinding;
+        bool hasCapturedEnvelopeLength = capturedSourceEnvelope is { } envelope &&
+            inputLength is > 0 &&
+            resolutionArtifacts.Count(artifact =>
+                StringComparer.Ordinal.Equals(artifact.ArtifactId, envelope.SourceSlotId) &&
+                artifact.LengthBytes == inputLength.Value) == 1;
         if ((IsStandardMerge || IsAbMerge) && capacities.Count > 1)
         {
             if (IsStandardMerge && InputSelectionGroupMemberSlotIds.Count != 0)
@@ -397,10 +405,7 @@ internal sealed class BuiltInV2Registration
                 effectiveTopology ??= CreateSummaryTopology();
             }
             else if (!capacities.Contains(inputLength.Value) &&
-                !(IsStandardMerge && SourceEnvelopeBinding is { } envelope &&
-                  resolutionArtifacts.Count(artifact => StringComparer.Ordinal.Equals(
-                      artifact.ArtifactId, envelope.SourceSlotId) &&
-                      artifact.LengthBytes == inputLength.Value) == 1))
+                !hasCapturedEnvelopeLength)
             {
                 composition = null;
                 issues =
@@ -417,6 +422,10 @@ internal sealed class BuiltInV2Registration
             {
                 requestedCapacity = inputLength;
             }
+        }
+        if (IsAbMerge && hasCapturedEnvelopeLength)
+        {
+            requestedCapacity = inputLength;
         }
 
         V2CompositionPlanCompileResult compilation = CompileExecutable(
@@ -530,7 +539,8 @@ internal sealed class BuiltInV2Registration
                 requestedMapCapacity,
                 requestedTopology,
                 $"The built-in V2 {ProfileLabel} for {IcId} did not produce an executable composition.",
-                selectedInputSlotIds)
+                selectedInputSlotIds,
+                resolutionArtifacts)
             : _bundle.CompileExecutable(
                 ProfileId,
                 ProfileVersion,

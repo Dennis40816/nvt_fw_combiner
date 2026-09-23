@@ -139,7 +139,7 @@ public sealed class AbMergeLaunchTests
         finally { await CloseAndFlushAsync(window); }
     }
 
-    /// <summary>Read failure stops immediately; compiled length failure stays blocked after pair admission.</summary>
+    /// <summary>Read failure stops immediately; an undersized DP stays blocked after pair admission.</summary>
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
@@ -156,8 +156,7 @@ public sealed class AbMergeLaunchTests
         Assert.Equal(truncated, shell.Merge.AbMergeSlotsByAddressSpace[CompositionAddressSpaceIds.TpBInput].HasFile);
         if (truncated)
         {
-            Assert.True(shell.Merge.AbMergeSlotsByAddressSpace[CompositionAddressSpaceIds.DpAbInput]
-                .CurrentInspectionProjection!.InputSlotStatus!.BlocksBuild);
+            Assert.False(shell.Merge.CanBuildMerge);
         }
         Assert.False(shell.Reports.HasLoadedReport);
     }

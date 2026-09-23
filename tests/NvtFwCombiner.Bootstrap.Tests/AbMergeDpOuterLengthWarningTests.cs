@@ -15,7 +15,55 @@ namespace NvtFwCombiner.Bootstrap.Tests;
 public sealed class AbMergeDpOuterLengthWarningTests
 {
     private const int Capacity = 0x100000;
-    private const string WarningCode = "DESAY_DP_SIZE_WARNING";
+    private const string WarningCode = "DP_NONSTANDARD_SIZE_WARNING";
+
+    /// <summary>Both recognized formats retain the complete DP outside the two declared TP overlays.</summary>
+    [Theory]
+    [InlineData("NT51950", "single", 0x84, 0x80001, 0x40000, 1)]
+    [InlineData("NT51950", "single", 0x97, 0x80001, 0x40000, 1)]
+    [InlineData("NT51950", "single", 0x97, 0x100000, 0x40000, 1)]
+    [InlineData("NT51950", "cascade", 0x84, 0x100001, 0x80000, 2)]
+    [InlineData("NT51950", "cascade", 0x97, 0x100001, 0x80000, 2)]
+    [InlineData("NT51950", "cascade", 0x84, 0x100001, 0x80000, 3)]
+    [InlineData("NT51951", null, 0x84, 0x100001, 0x80000, 1)]
+    [InlineData("NT51951", null, 0x97, 0x100001, 0x80000, 1)]
+    public async Task NonstandardNormalDpBuildsFromCompleteCapturedSourceAsync(
+        string ic, string? topology, byte format, int length, int bankLength, byte count)
+    {
+        using TempWorkspace workspace = TempWorkspace.Create("ab-nonstandard-dp");
+        CompositionHostServices host = await CreateHostAsync(workspace);
+        byte[] dp = [.. Enumerable.Repeat((byte)0x31, length)];
+        dp[^1] = 0xA7;
+        CompositionRunResult result = await BuildAsync(host, workspace, ic, topology, dp,
+            "nonstandard", format, expectedWarning: true, tpCount: count);
+        Assert.Equal(length, result.OutputBytes.Length);
+        Assert.Equal(dp.AsSpan(0, 0xA000).ToArray(), result.OutputBytes.Span[..0xA000].ToArray());
+        Assert.Equal(dp.AsSpan(0x37000, bankLength - 0x37000 + 0xA000).ToArray(),
+            result.OutputBytes.Span.Slice(0x37000, bankLength - 0x37000 + 0xA000).ToArray());
+        Assert.Equal(dp.AsSpan(bankLength + 0x37000).ToArray(),
+            result.OutputBytes.Span[(bankLength + 0x37000)..].ToArray());
+        Assert.Equal((byte)0xA7, result.OutputBytes.Span[^1]);
+    }
+
+    /// <summary>Equal lengths cannot cause one accepted DP payload to be reused for another.</summary>
+    [Fact]
+    public async Task EqualLengthDifferentDpPayloadsKeepTheirOwnTailAsync()
+    {
+        using TempWorkspace workspace = TempWorkspace.Create("ab-captured-dp-identity");
+        CompositionHostServices host = await CreateHostAsync(workspace);
+        byte[] first = [.. Enumerable.Repeat((byte)0x31, 0x80001)];
+        byte[] second = [.. first];
+        first[^1] = 0xA7;
+        second[^1] = 0x5C;
+        CompositionRunResult firstResult = await BuildAsync(host, workspace, "NT51950", "single",
+            first, "first", 0x84, expectedWarning: true);
+        CompositionRunResult secondResult = await BuildAsync(host, workspace, "NT51950", "single",
+            second, "second", 0x84, expectedWarning: true);
+        Assert.Equal((byte)0xA7, firstResult.OutputBytes.Span[^1]);
+        Assert.Equal((byte)0x5C, secondResult.OutputBytes.Span[^1]);
+        Assert.Equal(firstResult.OutputBytes.Span[..^1].ToArray(),
+            secondResult.OutputBytes.Span[..^1].ToArray());
+    }
 
     /// <summary>Both recognized formats use exact Common DP capacity and produce a complete output.</summary>
     [Theory]
@@ -39,22 +87,15 @@ public sealed class AbMergeDpOuterLengthWarningTests
         Assert.Null(input.ExecutionSnapshot!.IgnoredTrailingRange);
     }
 
-    /// <summary>Disabling specialization rejects short and oversized DP, including the old single Desay 1 MiB input.</summary>
+    /// <summary>Any DP shorter than the fixed two-bank transport remains a blocking input error.</summary>
     [Theory]
     [InlineData("NT51950", "single", 0x84, 0x80000, -1)]
-    [InlineData("NT51950", "single", 0x84, 0x80000, 1)]
     [InlineData("NT51950", "single", 0x97, 0x80000, -1)]
-    [InlineData("NT51950", "single", 0x97, 0x80000, 1)]
-    [InlineData("NT51950", "single", 0x97, 0x80000, 0x80000)]
     [InlineData("NT51950", "cascade", 0x84, 0x100000, -1)]
-    [InlineData("NT51950", "cascade", 0x84, 0x100000, 1)]
     [InlineData("NT51950", "cascade", 0x97, 0x100000, -1)]
-    [InlineData("NT51950", "cascade", 0x97, 0x100000, 1)]
     [InlineData("NT51951", null, 0x84, 0x100000, -1)]
-    [InlineData("NT51951", null, 0x84, 0x100000, 1)]
     [InlineData("NT51951", null, 0x97, 0x100000, -1)]
-    [InlineData("NT51951", null, 0x97, 0x100000, 1)]
-    public async Task NonExactDpCapacityBlocksForBothFormatsAsync(string ic, string? topology, byte format, int capacity, int delta)
+    public async Task ShortDpCapacityBlocksForBothFormatsAsync(string ic, string? topology, byte format, int capacity, int delta)
     {
         using TempWorkspace workspace = TempWorkspace.Create("common-dp-boundary");
         CompositionHostServices host = await CreateHostAsync(workspace);
@@ -65,20 +106,19 @@ public sealed class AbMergeDpOuterLengthWarningTests
              new("tp-b-input", workspace.PathFor("b.bin"), CreateTp(format, topology == "cascade" ? (byte)2 : (byte)1))],
             AbMergeDpMode.Normal, TestContext.Current.CancellationToken);
         Assert.False(prepared.Succeeded);
-        AuthoringInputSlotStatus dp = Assert.Single(session.CurrentSnapshot!.InputSlotStatuses, status => status.SlotId == "dp-ab-input");
-        Assert.Equal(CompositionIssueCodes.InputAddressSpaceLengthMismatch, dp.Inspection!.IssueCode);
-        Assert.True(dp.Inspection.BlocksBuild);
-        Assert.Null(dp.AcceptedBytes);
-        Assert.Equal(capacity, dp.Inspection.RequiredEndExclusive);
+        Assert.Contains(prepared.Issues, issue => issue.Code == "profile.v2.plan.invalid-view" &&
+            issue.Message.Contains("b-bank-output", StringComparison.Ordinal));
+        Assert.Null(prepared.Snapshot?.ExactCapability);
+        Assert.Empty(session.CurrentSnapshot?.InputSlotStatuses ?? []);
     }
 
-    /// <summary>Common gets no new size policy, and Dummy never invents a missing DP advisory.</summary>
+    /// <summary>Exact-size DP does not warn, and Dummy never invents a missing DP advisory.</summary>
     [Theory]
     [InlineData("NT51950", "cascade", false)]
     [InlineData("NT51951", null, false)]
     [InlineData("NT51950", "single", true)]
     [InlineData("NT51951", null, true)]
-    public async Task CommonAndDummyDoNotGainDesayDpWarningAsync(string ic, string? topology, bool dummy)
+    public async Task ExactDpAndDummyDoNotWarnAboutSizeAsync(string ic, string? topology, bool dummy)
     {
         using TempWorkspace workspace = TempWorkspace.Create("desay-dp-unaffected");
         CompositionHostServices host = await CreateHostAsync(workspace);
@@ -90,10 +130,11 @@ public sealed class AbMergeDpOuterLengthWarningTests
 
     /// <summary>All enclosing-bundle route pins remain exact, without changing publication/evidence decisions.</summary>
     [Fact]
-    public void AbBundleRoutePinsMatchCanonicalSource()
+    public void AffectedBundleRoutePinsMatchCanonicalSource()
     {
         CanonicalCapabilityPolicyRoute[] routes = [.. BuiltInCanonicalCapabilityPolicy.Load().Routes.Where(route =>
-            route.Identity.WorkflowId == ExperienceIds.AbMerge && route.Identity.IcId is "NT51950" or "NT51951")];
+            (route.Identity.WorkflowId is ExperienceIds.AbMerge or ExperienceIds.StandardMerge or ExperienceIds.CtrlRamReplace) &&
+            (route.Identity.IcId is "NT51950" or "NT51951"))];
         Assert.NotEmpty(routes);
         (CanonicalCapabilityPolicyRoute Policy, CanonicalDynamicRoute Actual)[] pairs =
             [.. routes.Select(route => (route, CanonicalDynamicRouteInventory.Resolve(route.Identity)))];
@@ -116,9 +157,10 @@ public sealed class AbMergeDpOuterLengthWarningTests
     }
 
     private static async Task<CompositionRunResult> BuildAsync(CompositionHostServices host, TempWorkspace workspace,
-        string ic, string? topology, byte[]? dpBytes, string prefix, byte format, bool expectedWarning)
+        string ic, string? topology, byte[]? dpBytes, string prefix, byte format, bool expectedWarning,
+        byte? tpCount = null)
     {
-        byte count = topology == "cascade" ? (byte)2 : (byte)1;
+        byte count = tpCount ?? (topology == "cascade" ? (byte)2 : (byte)1);
         var inputs = new List<CompiledAuthoringSelectedInput>
         {
             new("tp-a-input", workspace.Write($"{prefix}-a.bin", CreateTp(format, count)), CreateTp(format, count)),
@@ -136,12 +178,10 @@ public sealed class AbMergeDpOuterLengthWarningTests
             Assert.Equal(expectedWarning, inspection.Severity == CompiledInputArtifactInspectionSeverity.Warning);
             Assert.False(inspection.BlocksBuild);
             Assert.Equal(dpBytes.Length, inspection.ActualLength);
-            if (format == 0x97)
-            {
-                long compiledCapacity = prepared.Snapshot!.ExactCapability!.CompiledComposition.Plan.OutputInitialization.Capacity;
-                Assert.Equal(ic == "NT51950" && topology == "single" ? 0x80000 : Capacity, compiledCapacity);
-                Assert.Equal([compiledCapacity], inspection.ExpectedOuterLengths);
-            }
+            long templateCapacity = ic == "NT51950" && topology == "single" ? 0x80000 : Capacity;
+            long compiledCapacity = prepared.Snapshot!.ExactCapability!.CompiledComposition.Plan.OutputInitialization.Capacity;
+            Assert.Equal(expectedWarning ? dpBytes.Length : templateCapacity, compiledCapacity);
+            Assert.Equal([templateCapacity], inspection.ExpectedOuterLengths);
             if (expectedWarning) { Assert.Equal(WarningCode, inspection.IssueCode); }
         }
         CapabilityActionReadinessSnapshot readiness = (await host.AbMergeAuthoring.GetActionReadinessAsync(
@@ -158,10 +198,23 @@ public sealed class AbMergeDpOuterLengthWarningTests
         Assert.Equal(expectedWarning ? 1 : 0, result.Report.Issues.Count(issue => issue.Code == WarningCode));
         if (expectedWarning)
         {
+            SourceEnvelopeRunSummary envelope = Assert.IsType<SourceEnvelopeRunSummary>(result.Report.SourceEnvelope);
+            Assert.Equal("dp-ab-input", envelope.SourceSlotId);
+            Assert.Equal(ic == "NT51950" && topology == "single" ? 0x80000 : Capacity,
+                envelope.LayoutTemplateCapacity);
+            Assert.Equal(dpBytes!.Length, envelope.ActualOutputLength);
+        }
+        else
+        {
+            Assert.Null(result.Report.SourceEnvelope);
+        }
+        if (expectedWarning)
+        {
             CompositionIssue warning = Assert.Single(result.Report.Issues, issue => issue.Code == WarningCode);
             Assert.Equal("dp-ab-input", warning.OperationId);
-            Assert.Contains("1048578 bytes", warning.Message, StringComparison.Ordinal);
-            Assert.Contains("expected 0x100000", warning.Message, StringComparison.Ordinal);
+            Assert.Contains($"{dpBytes!.Length} bytes", warning.Message, StringComparison.Ordinal);
+            Assert.Contains($"expected 0x{(ic == "NT51950" && topology == "single" ? 0x80000 : Capacity):X}",
+                warning.Message, StringComparison.Ordinal);
         }
         using JsonDocument json = JsonDocument.Parse(CompositionRunReportJson.Serialize(result));
         JsonElement[] warnings = [.. json.RootElement.GetProperty("Issues").EnumerateArray().Where(issue => issue.GetProperty("Code").GetString() == WarningCode)];

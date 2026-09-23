@@ -41,7 +41,7 @@ public sealed class ProfileBundlePackageTrustIndexLoaderTests
 
         Assert.Equal("1.5", index.SchemaVersion);
         Assert.Equal("built-in-profile-bundles", index.TrustIndexId);
-        Assert.Equal("1.1.10.5", index.TrustIndexVersion);
+        Assert.Equal("1.1.10.6", index.TrustIndexVersion);
         Assert.Equal("built-in-profile-bundle-v2", index.TrustAnchorBindingId);
         Assert.Equal(24, index.Bundles.Count);
         Assert.Equal(

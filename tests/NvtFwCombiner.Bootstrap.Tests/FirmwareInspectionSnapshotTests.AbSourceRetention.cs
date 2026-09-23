@@ -11,9 +11,9 @@ namespace NvtFwCombiner.Bootstrap.Tests;
 
 public sealed partial class FirmwareInspectionSnapshotTests
 {
-    /// <summary>Format discovery reads the complete DP once and rejects oversized bytes under the shared Single map.</summary>
+    /// <summary>Format discovery reads the complete nonstandard DP once and retains its accepted extent.</summary>
     [Fact]
-    public async Task AbFormatDiscoveryReadsFullDpOnceBeforeExactCapacityRefusal()
+    public async Task AbFormatDiscoveryReadsFullDpOnceAndAcceptsNonstandardExtent()
     {
         using var workspace = TempWorkspace.Create("ab-format-full-dp-inspection");
         CompositionHostServices host = CompositionHostServices.Create(new ExternalProcessorEnvironmentLoader(),
@@ -71,13 +71,14 @@ public sealed partial class FirmwareInspectionSnapshotTests
 
         AuthoringInputSlotStatus status = Assert.IsType<AuthoringInputSlotStatus>(
             result.InspectionsById["dp-ab-input"].InputSlotStatus);
-        Assert.Null(status.AcceptedBytes);
-        Assert.True(status.BlocksBuild);
-        Assert.Equal(CompositionIssueCodes.InputAddressSpaceLengthMismatch, status.InspectionIssueCode);
+        Assert.Equal(dp, status.AcceptedBytes!.Value.ToArray());
+        Assert.False(status.BlocksBuild);
+        Assert.Equal("DP_NONSTANDARD_SIZE_WARNING", status.InspectionIssueCode);
         Assert.Equal(FileStamp.FromBytes(dp), result.FileStamps[dpPath]);
         ResolvedCapability selected = Assert.IsType<ResolvedCapability>(Assert.Single(
             result.InspectionsById["dp-ab-input"].InputSlotCatalog!.Routes).ExactCapability);
         Assert.Equal("nt51950-ab-merge-maps", selected.Identity.MapVariant);
+        Assert.Equal(dp.Length, selected.CompiledComposition.Plan.OutputInitialization.Capacity);
         Assert.Equal(2, reads.Count);
         Assert.All(reads.Values, static count => Assert.Equal(1, count));
 

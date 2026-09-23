@@ -57,15 +57,15 @@ public sealed class CtrlRamDirectTpGoldenExecutionTests
                 CapabilityEvidenceStatus.DirectGolden),
             [("NT51950", "single", "nt51950-ctrlram-fw200-single-tp-work")] = new(
                 "route-7-nt51950-15-ctrlram-replace-4-1-ic-36-nt51950-ctrlram-fw200-single-tp-work",
-                "c6e9c3244f3d9a25c11c9ad0d6a97685283ca966a6b6663c0c9f5cf0e9528199",
+                "bfd5a548d0ce86728a14cad7baf83893bd699c3743831257e305d866d25569bb",
                 CapabilityEvidenceStatus.ContractOnly),
             [("NT51951", "single", "nt51951-ctrlram-fw200-single-tp-work")] = new(
                 "route-7-nt51951-15-ctrlram-replace-4-1-ic-36-nt51951-ctrlram-fw200-single-tp-work",
-                "67e099dd1586e316517a6e6f3bdd7b86cc2aaeeb74c89da009e03751d9dff3b7",
+                "c6b079ad66a0fe064409dfb9316982c2bb642de7776e62c57033dd7a8e1620b1",
                 CapabilityEvidenceStatus.ContractOnly),
             [("NT51951", "cascade", "nt51951-ctrlram-fw1x-cascade-tp-work")] = new(
                 "route-7-nt51951-15-ctrlram-replace-4-2-ic-36-nt51951-ctrlram-fw1x-cascade-tp-work",
-                "7449c75343197fc799af4aed2dfe9a4a4b6310853df8be21cb9b24069711c6ff",
+                "53be95540d6cdb0269bb2abf5355064393b3e6369cf4213b6bb24d04f030b149",
                 CapabilityEvidenceStatus.ContractOnly),
         };
 

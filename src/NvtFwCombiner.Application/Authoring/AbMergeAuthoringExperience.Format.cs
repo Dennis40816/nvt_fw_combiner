@@ -148,9 +148,21 @@ internal sealed partial class AbMergeAuthoringExperience
         {
             return StaleAbPublication(declarationRoute, definition);
         }
+        IReadOnlyCollection<string> selectedSlots = dpMode == AbMergeDpMode.Dummy
+            ? [] : definition.SelectionGroupMemberSlotIds;
         _ = _compiler.TryCompilePublishedDynamicCapability(route.Identity, null,
-                dpMode == AbMergeDpMode.Dummy ? [] : definition.SelectionGroupMemberSlotIds,
-                out _, out ResolvedCapability? capability, out IReadOnlyList<CompositionIssue> issues, topology);
+            selectedSlots, out _, out ResolvedCapability? capability,
+            out IReadOnlyList<CompositionIssue> issues, topology);
+        CompiledAuthoringSelectedInput? selectedDp = format is null ? null : normalized.FirstOrDefault(input =>
+            definition.InputBindings.Any(binding => binding.SlotId == input.SlotId &&
+                binding.AddressSpaceId == CompositionAddressSpaceIds.DpAbInput));
+        if (capability is not null && issues.Count == 0 && selectedDp?.Bytes is { } dpBytes &&
+            dpBytes.Length != capability.CompiledComposition.Plan.OutputInitialization.Capacity)
+        {
+            _ = _compiler.TryCompilePublishedDynamicCapability(route.Identity, dpBytes.Length,
+                [new FirmwareArtifactPayload(CompositionAddressSpaceIds.DpAbInput, dpBytes.Span)],
+                selectedSlots, out _, out capability, out issues, topology);
+        }
         if (capability is not null && issues.Count == 0 && definition.Family.AbFormatPolicy is null &&
             normalized.FirstOrDefault(input => definition.InputBindings.Any(binding => binding.SlotId == input.SlotId &&
                 binding.AddressSpaceId == CompositionAddressSpaceIds.TpAInput))?.Bytes is { } tpA &&

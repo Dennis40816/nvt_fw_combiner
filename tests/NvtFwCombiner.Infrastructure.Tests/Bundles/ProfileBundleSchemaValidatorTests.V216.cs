@@ -6,6 +6,36 @@ namespace NvtFwCombiner.Infrastructure.Tests.Bundles;
 
 public sealed partial class ProfileBundleSchemaValidatorTests
 {
+    /// <summary>AB source envelopes retain their existing A/B naming while Standard requires typed naming.</summary>
+    [Theory]
+    [InlineData("nt51950-ab-merge.json")]
+    [InlineData("nt51950-ab-merge-cascade.json")]
+    [InlineData("nt51951-ab-merge.json")]
+    [InlineData("nt51950-ab-merge-desay.json")]
+    [InlineData("nt51951-ab-merge-desay.json")]
+    public void ValidateEntriesAcceptsExistingAbNamingInV216(string fileName)
+    {
+        string path = RepositoryPaths.FromRepositoryRoot("profiles", "built-in",
+            "nt51950-ab-merge", "profiles", fileName);
+        ProfileBundleSchemaValidator.ValidateEntries(
+            CaptureCompositionProfile(File.ReadAllText(path), "composition-profile-v2.16.schema.json"), 32);
+    }
+
+    /// <summary>The AB compatibility exception cannot weaken typed Standard naming.</summary>
+    [Fact]
+    public void ValidateEntriesStillRequiresTypedStandardNamingInV216()
+    {
+        string path = RepositoryPaths.FromRepositoryRoot("profiles", "built-in",
+            "nt51950-nt51951-standard-merge", "profiles", "nt51950-standard-merge.json");
+        JsonObject profile = Assert.IsType<JsonObject>(JsonNode.Parse(File.ReadAllText(path)));
+        JsonObject naming = Assert.IsType<JsonObject>(profile["output"]);
+        _ = naming.Remove("ruleId");
+        _ = naming.Remove("outputArtifactType");
+        _ = naming.Remove("tokenRequirements");
+        _ = Assert.Throws<InvalidDataException>(() => ProfileBundleSchemaValidator.ValidateEntries(
+            CaptureCompositionProfile(profile.ToJsonString(), "composition-profile-v2.16.schema.json"), 32));
+    }
+
     /// <summary>Schema 2.16 accepts only a bound source extent, explicit template, and source-sized output.</summary>
     [Theory]
     [InlineData("complete", true)]
@@ -13,6 +43,9 @@ public sealed partial class ProfileBundleSchemaValidatorTests
     [InlineData("missing-output-slot", false)]
     [InlineData("missing-binding", false)]
     [InlineData("old-schema", false)]
+    [InlineData("optional-ff", true)]
+    [InlineData("required-ff", false)]
+    [InlineData("optional-other-fill", false)]
     public void ValidateEntriesEnforcesSourceEnvelopeV216(string mutation, bool valid)
     {
         JsonObject profile = Assert.IsType<JsonObject>(JsonNode.Parse(
@@ -75,6 +108,17 @@ public sealed partial class ProfileBundleSchemaValidatorTests
                 break;
             case "old-schema":
                 profile["schemaVersion"] = "2.15";
+                break;
+            case "optional-ff":
+            case "optional-other-fill":
+                dpSlot["required"] = false;
+                dpSlot["cardinality"] = "zero-or-one";
+                Assert.IsType<JsonObject>(profile["sourceEnvelopeBinding"])["whenSourceAbsent"] = "resolved-map";
+                Assert.IsType<JsonObject>(output["initializer"])["fillByte"] =
+                    mutation == "optional-ff" ? 255 : 17;
+                break;
+            case "required-ff":
+                Assert.IsType<JsonObject>(output["initializer"])["fillByte"] = 255;
                 break;
             default: throw new ArgumentOutOfRangeException(nameof(mutation), mutation, "Unknown mutation.");
         }

@@ -249,7 +249,7 @@ public sealed class BuiltInV2StandardMergeRoutingTests
         CompiledComposition artifact = Assert.IsType<CompiledComposition>(composition);
         Assert.Equal(CompiledCompositionEligibility.V2RuntimeExecutable, artifact.Eligibility);
         V2CompiledCompositionDetails details = Assert.IsType<V2CompiledCompositionDetails>(artifact.V2Details);
-        Assert.Equal("4244b4ac3230d1431342f11a78994a17286dc03ccb9a6324834e7e9cd292dc6a", details.Provenance.Bundle.ContentHash);
+        Assert.Equal("658e188b0724a9a1f5d3389f7bc685a75b1dacfd36e030d79c9d0f83d8135652", details.Provenance.Bundle.ContentHash);
         Assert.Equal(profileId, artifact.V2Details.ProfileId);
         Assert.Equal(icId, artifact.V2Details.Provenance.Context.MemberId);
         Assert.Equal(dpInputLength, artifact.Plan.OutputInitialization.Capacity);

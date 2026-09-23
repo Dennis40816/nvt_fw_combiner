@@ -2,6 +2,7 @@ using NvtFwCombiner.Application.Authoring;
 using NvtFwCombiner.Application.Capabilities;
 using NvtFwCombiner.Application.Configuration;
 using NvtFwCombiner.Application.ExternalTools;
+using NvtFwCombiner.Application.InputInspection;
 using NvtFwCombiner.Application.Ports;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Domain.Firmware;
@@ -190,7 +191,7 @@ public sealed class AbMergeFormatRuntimeTests
         Assert.True(await host.CompositionOutputNaming.IsProposalCurrentAsync(proposal, TestContext.Current.CancellationToken));
     }
 
-    /// <summary>DP actual/expected source lengths and warnings stay in the input facts, never replacing Flash output length.</summary>
+    /// <summary>Output confirmation separates the actual DP/output length from the selected template map.</summary>
     [Theory]
     [InlineData(0x80000)]
     [InlineData(0x80001)]
@@ -206,22 +207,14 @@ public sealed class AbMergeFormatRuntimeTests
             [new("dp-ab-input", workspace.PathFor("dp.bin"), new byte[dpLength]),
              new("tp-a-input", workspace.PathFor("a.bin"), CreateTp(0x97, 1)), new("tp-b-input", workspace.PathFor("b.bin"), CreateTp(0xA6, 1))],
             AbMergeDpMode.Normal, TestContext.Current.CancellationToken);
-        if (dpLength != 0x80000)
-        {
-            Assert.False(prepared.Succeeded);
-            AuthoringInputSlotStatus rejected = Assert.Single(prepared.Snapshot!.InputSlotStatuses,
-                status => status.SlotId == "dp-ab-input");
-            Assert.True(rejected.BlocksBuild);
-            Assert.Equal(CompositionIssueCodes.InputAddressSpaceLengthMismatch, rejected.Inspection!.IssueCode);
-            return;
-        }
-
         Assert.True(prepared.Succeeded);
         CompositionOutputBundleProposal proposal = await host.CompositionOutputNaming.PrepareBundleProposalAsync(prepared.Snapshot!, TestContext.Current.CancellationToken);
         CompositionOutputInputSummary dp = Assert.Single(proposal.Confirmation!.Inputs, static input => input.SlotId == "dp-ab-input");
         Assert.Equal(dpLength, dp.SizeBytes);
         Assert.Equal<long>([0x80000], dp.ExpectedLengths);
-        Assert.Equal(0x80000, proposal.Confirmation.OutputLengthBytes);
+        Assert.Equal(dpLength, proposal.Confirmation.OutputLengthBytes);
+        Assert.Equal(dpLength != 0x80000, dp.Inspection?.Severity == CompiledInputArtifactInspectionSeverity.Warning);
+        if (dpLength != 0x80000) { Assert.Equal("DP_NONSTANDARD_SIZE_WARNING", dp.InspectionIssueCode); }
         Assert.Null(dp.EventBufferFormat);
         Assert.False(proposal.Confirmation.HasGeneratedInputs);
         Assert.Equal(3, proposal.Sources.Count);

@@ -74,14 +74,15 @@ public sealed class AbMergeAuthoringDefinitionTests
     [Theory]
     [InlineData("nt51950-ab-merge-desay", "0.2.1")]
     [InlineData("nt51951-ab-merge-desay", "0.2.1")]
-    [InlineData("nt51950-ab-merge-cascade", "0.3.0")]
+    [InlineData("nt51950-ab-merge-cascade", "0.4.0")]
     public void CandidateDeclarationNeedsNoExecutableMap(string profileId, string profileVersion)
     {
-        var bundle = new BuiltInV2Bundle("nt51950-ab-merge", "1.1.10-partial-ab-bank.1",
-            BuiltInV2RegistrationRegistry.FindAbMergeRegistration("NT51950", "nt51950-ab-merge-maps")!.BundleContentHash,
+        var bundle = new BuiltInV2Bundle("nt51950-ab-merge", "1.1.10-ab-dp-envelope.1",
+            "18b43352606ca744f499e328d5778c3b9e08307a97fd122ac38fd8762d37c8d1",
             "built-in-profile-bundle-v2");
-        Assert.True(bundle.TryGetAbAuthoringDefinition(profileId, profileVersion,
-            out CanonicalAbAuthoringDefinition? definition, out IReadOnlyList<CompositionIssue> issues));
+        bool loaded = bundle.TryGetAbAuthoringDefinition(profileId, profileVersion,
+            out CanonicalAbAuthoringDefinition? definition, out IReadOnlyList<CompositionIssue> issues);
+        Assert.True(loaded, string.Join(" | ", issues.Select(static issue => issue.Message)));
         Assert.Empty(issues);
         Assert.NotNull(definition);
         Assert.Equal(profileId, definition.ProfileId);

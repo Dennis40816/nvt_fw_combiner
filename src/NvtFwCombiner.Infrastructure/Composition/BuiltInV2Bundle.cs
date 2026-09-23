@@ -378,7 +378,8 @@ internal sealed class BuiltInV2Bundle
         long? requestedMapCapacity,
         TopologySelection? requestedTopology,
         string failureMessage,
-        IReadOnlyCollection<string>? selectedInputSlotIds = null)
+        IReadOnlyCollection<string>? selectedInputSlotIds = null,
+        IReadOnlyList<FirmwareArtifactPayload>? resolutionArtifacts = null)
     {
         V2CompositionPlanCompileResult compilation = Compile(
             profileId,
@@ -387,7 +388,7 @@ internal sealed class BuiltInV2Bundle
             ExperienceIds.AbMerge,
             requestedMapCapacity,
             requestedTopology,
-            [],
+            resolutionArtifacts ?? [],
             selectedInputSlotIds ?? GetInputSelectionGroupMemberSlotIds(profileId, profileVersion));
         return compilation.CompiledComposition is { } composition &&
                (composition.Eligibility == CompiledCompositionEligibility.V2RuntimeExecutable ||

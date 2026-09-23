@@ -25,6 +25,27 @@ public sealed class CompositionProfileV216SourceEnvelopeTests
         Assert.Equal("DP_NONSTANDARD_SIZE_WARNING", binding.UnexpectedLengthIssueCode);
     }
 
+    /// <summary>An optional complete source retains the existing FF blank image only when absent.</summary>
+    [Fact]
+    public void OptionalEnvelopeAcceptsExistingFfBlankInitializer()
+    {
+        CompositionProfileDefinition definition = CompositionProfileNormalizer.Normalize(
+            Document(allowsAbsentSource: true, fillByte: 0xFF));
+
+        Assert.True(Assert.IsType<SourceEnvelopeProfileBinding>(
+            definition.Header.SourceEnvelopeBinding).AllowsAbsentSource);
+    }
+
+    /// <summary>The required source keeps zero-fill and optional source admits no arbitrary fill.</summary>
+    [Theory]
+    [InlineData(false, 0xFF)]
+    [InlineData(true, 0x11)]
+    public void EnvelopeRejectsUnapprovedBlankFill(bool allowsAbsentSource, int fillByte)
+    {
+        _ = Assert.Throws<CompositionProfileNormalizationException>(() =>
+            CompositionProfileNormalizer.Normalize(Document(allowsAbsentSource, fillByte)));
+    }
+
     /// <summary>Graph admission refuses a different output source slot or a pre-2.16 envelope.</summary>
     [Theory]
     [InlineData("wrong-output-slot")]
@@ -48,7 +69,8 @@ public sealed class CompositionProfileV216SourceEnvelopeTests
             CompositionProfileNormalizer.Normalize(document));
     }
 
-    private static CompositionProfileDocument Document()
+    private static CompositionProfileDocument Document(
+        bool allowsAbsentSource = false, int fillByte = 0)
     {
         string path = FindRepositoryFile();
         JsonObject profile = Assert.IsType<JsonObject>(JsonNode.Parse(File.ReadAllText(path)));
@@ -58,7 +80,7 @@ public sealed class CompositionProfileV216SourceEnvelopeTests
             ["sourceSlotId"] = "dp-input",
             ["layoutTemplateMapId"] = "nt51950-standard-merge-256k",
             ["rootRegionId"] = "dp-container",
-            ["whenSourceAbsent"] = "reject",
+            ["whenSourceAbsent"] = allowsAbsentSource ? "resolved-map" : "reject",
             ["expectedOuterLengths"] = new JsonArray(0x40000, 0x80000, 0x100000),
             ["unexpectedLengthIssueCode"] = "DP_NONSTANDARD_SIZE_WARNING",
         };
@@ -66,6 +88,15 @@ public sealed class CompositionProfileV216SourceEnvelopeTests
             Assert.IsType<JsonArray>(profile["spaces"]).Select(static item => Assert.IsType<JsonObject>(item)),
             static space => space["kind"]?.GetValue<string>() == "output-image");
         output["capacity"] = new JsonObject { ["kind"] = "source-slot", ["sourceSlotId"] = "dp-input" };
+        Assert.IsType<JsonObject>(output["initializer"])["fillByte"] = fillByte;
+        if (allowsAbsentSource)
+        {
+            JsonObject dpSlot = Assert.Single(
+                Assert.IsType<JsonArray>(profile["inputSlots"]).Select(static item => Assert.IsType<JsonObject>(item)),
+                static slot => slot["slotId"]?.GetValue<string>() == "dp-input");
+            dpSlot["required"] = false;
+            dpSlot["cardinality"] = "zero-or-one";
+        }
         return Assert.IsType<CompositionProfileDocument>(JsonSerializer.Deserialize<CompositionProfileDocument>(
             profile.ToJsonString(), s_jsonOptions));
     }

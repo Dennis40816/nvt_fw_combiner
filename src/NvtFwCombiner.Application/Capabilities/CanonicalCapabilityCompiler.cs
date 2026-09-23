@@ -173,7 +173,8 @@ internal sealed partial class CanonicalCapabilityCompilerAdapter :
         IReadOnlyCollection<string>? selectedInputSlotIds,
         out CompiledComposition? composition,
         out ResolvedCapability? resolvedCapability,
-        out IReadOnlyList<CompositionIssue> issues)
+        out IReadOnlyList<CompositionIssue> issues,
+        TopologySelection? requestedTopology = null)
     {
         ArgumentNullException.ThrowIfNull(identity);
         ArgumentNullException.ThrowIfNull(capturedArtifacts);
@@ -192,7 +193,8 @@ internal sealed partial class CanonicalCapabilityCompilerAdapter :
 
         return CompileAndBindCapturedDynamicRoute(
             snapshot!, route, requestedMapCapacity, capturedArtifacts,
-            selectedInputSlotIds, out composition, out resolvedCapability, out issues);
+            selectedInputSlotIds, out composition, out resolvedCapability, out issues,
+            requestedTopology);
     }
 
     private bool CompileAndBindCapturedDynamicRoute(
@@ -203,7 +205,8 @@ internal sealed partial class CanonicalCapabilityCompilerAdapter :
         IReadOnlyCollection<string>? selectedInputSlotIds,
         out CompiledComposition? composition,
         out ResolvedCapability? resolvedCapability,
-        out IReadOnlyList<CompositionIssue> issues)
+        out IReadOnlyList<CompositionIssue> issues,
+        TopologySelection? requestedTopology = null)
     {
         if (!IsCurrentPublishedRoute(snapshot, route))
         {
@@ -217,7 +220,8 @@ internal sealed partial class CanonicalCapabilityCompilerAdapter :
             selectedInputSlotIds,
             out CompiledComposition? compiled,
             out MetadataPlanDefinition? metadataPlan,
-            out issues);
+            out issues,
+            requestedTopology);
         if (!IsCurrentPublishedRoute(snapshot, route))
         {
             return StaleCapturedCompilation(out composition, out resolvedCapability, out issues);

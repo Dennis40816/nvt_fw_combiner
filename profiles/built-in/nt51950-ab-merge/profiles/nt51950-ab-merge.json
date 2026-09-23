@@ -1,7 +1,7 @@
 {
-  "schemaVersion": "2.14",
+  "schemaVersion": "2.16",
   "profileId": "nt51950-ab-merge",
-  "profileVersion": "0.7.0",
+  "profileVersion": "0.8.0",
   "promotion": {
     "stage": "executable-candidate",
     "blockers": [
@@ -21,6 +21,14 @@
   },
   "compositionKind": "merge",
   "compilationContext": { "kind": "resolved-map" },
+  "sourceEnvelopeBinding": {
+    "sourceSlotId": "dp-ab-input",
+    "layoutTemplateMapId": "nt51950-ab-merge-512k",
+    "rootRegionId": "ab-image",
+    "whenSourceAbsent": "resolved-map",
+    "expectedOuterLengths": [524288],
+    "unexpectedLengthIssueCode": "DP_NONSTANDARD_SIZE_WARNING"
+  },
   "experience": {
     "experienceId": "ab-merge",
     "audience": "system",
@@ -111,7 +119,7 @@
     {
       "spaceId": "output-image",
       "kind": "output-image",
-      "capacity": { "kind": "resolved-map" },
+      "capacity": { "kind": "source-slot", "sourceSlotId": "dp-ab-input" },
       "initializer": { "kind": "blank", "fillByte": 255 }
     }
   ],

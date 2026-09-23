@@ -158,9 +158,9 @@ public sealed partial class MergeWorkflowTests
         Assert.Equal(TestProjection.GetIcIds(), viewModel.WorkflowSession.IcChoices);
     }
 
-    /// <summary>A rejected DP_AB size cannot override compiled coverage while processor effects remain on TPB.</summary>
+    /// <summary>A nonstandard DP_AB size extends output coverage while processor effects remain on TPB.</summary>
     [Fact]
-    public async Task Nt51950AbMemoryKeepsCompiledCapacityForRejectedDpLength()
+    public async Task Nt51950AbMemoryShowsCompleteNonstandardDpLength()
     {
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-ab-memory");
         string dpPath = workspace.Write("dp-ab-90000.bin", new byte[0x90000]);
@@ -176,7 +176,7 @@ public sealed partial class MergeWorkflowTests
             dpPath,
             TestContext.Current.CancellationToken);
 
-        Assert.Equal("0x00000-0x7FFFF (len 0x80000)", viewModel.Merge.MergeMemoryRangeLabel);
+        Assert.Equal("0x00000-0x8FFFF (len 0x90000)", viewModel.Merge.MergeMemoryRangeLabel);
         Assert.Contains(viewModel.Merge.MergeMemoryRows, row => row.AfterSource == "DP AB");
         Assert.Contains(viewModel.Merge.MergeMemoryRows, row => row.AfterSource == "TPA");
         Assert.Contains(viewModel.Merge.MergeMemoryRows, row => row.AfterSource == "TPB");
@@ -193,8 +193,10 @@ public sealed partial class MergeWorkflowTests
         Assert.Contains("TPB", sourceLabels);
         Assert.DoesNotContain(viewModel.Merge.MergeMemoryRows, static row =>
             row.RangeLabel.Contains("Staging", StringComparison.OrdinalIgnoreCase));
-        Assert.True(viewModel.Merge.MergeSlots.Single(static slot =>
-            slot.SlotId == CompositionAddressSpaceIds.DpAbInput).BlocksBuild);
+        FirmwareSlotViewModel dpSlot = viewModel.Merge.MergeSlots.Single(static slot =>
+            slot.SlotId == CompositionAddressSpaceIds.DpAbInput);
+        Assert.False(dpSlot.BlocksBuild);
+        Assert.Contains("DP_NONSTANDARD_SIZE_WARNING", dpSlot.InputInspectionStatus, StringComparison.Ordinal);
     }
 
     /// <summary>After primary discovery, each published format/topology projects its actual compiled capacity.</summary>

@@ -11,7 +11,7 @@ namespace NvtFwCombiner.Bootstrap.Tests;
 /// <summary>Independent synthetic byte evidence; not real Combiner or certified Golden evidence.</summary>
 public sealed class AbMergeFormatVariantProfileTests
 {
-    private const string BundleHash = "18ddf21d67694e01734f88fdd1e578f87f1d57bbb05cfa7c54bfeb8c665aab44";
+    private const string BundleHash = "18b43352606ca744f499e328d5778c3b9e08307a97fd122ac38fd8762d37c8d1";
     private const int Capacity = 0x100000;
     private static readonly int[] HeaderOffsets = [0xA100, 0xA110, 0xA130];
 
@@ -189,7 +189,7 @@ public sealed class AbMergeFormatVariantProfileTests
         TempWorkspace workspace, string ic, string format, int count, bool dummy)
     {
         return AbMergeCandidateTestSupport.LoadSourceCandidateCatalog(workspace, "nt51950-ab-merge", BundleHash).Compile(
-            $"{ic.ToLowerInvariant()}-ab-merge-{format}", format == "desay" ? "0.2.1" : "0.3.0", ic, ExperienceIds.AbMerge, Capacity,
+            $"{ic.ToLowerInvariant()}-ab-merge-{format}", format == "desay" ? "0.2.1" : "0.4.0", ic, ExperienceIds.AbMerge, Capacity,
             count == 0 ? null : new TopologySelection(count, $"{count} IC", TopologySelectionSource.Requested, "test"),
             [], selectedInputSlotIds: dummy ? [] : ["dp-ab-input"]);
     }

@@ -10,7 +10,7 @@ internal static class BuiltInCanonicalCapabilityPolicy
     internal const string RelativePath =
         "docs/contracts/canonical-capability-policy-v1.json";
     internal const string ExpectedSha256 =
-        "4b7ed862a2eb4a4e8eeb845245c4389768ca769725102a4b80fc90cc2ecf2bcc";
+        "f633d9b03efa5adf366588847e281aff4cf512b20cb23fcda287ab47c6937b51";
 
     internal static CanonicalCapabilityPolicySnapshot Load()
     {
@@ -37,7 +37,7 @@ internal static class BuiltInCanonicalCapabilityPolicy
             !StringComparer.Ordinal.Equals(
                 document.CatalogId,
                 "canonical-capability-policy") ||
-            !StringComparer.Ordinal.Equals(document.CatalogVersion, "1.20.0") ||
+            !StringComparer.Ordinal.Equals(document.CatalogVersion, "1.21.0") ||
             !IsIsoDate(document.IssuedOn) ||
             document.Routes is null ||
             document.Routes.Count == 0)

@@ -71,7 +71,11 @@ direct normalizer calls do not form a supported intake path.
 input. It names the existing layout-template map, full-root region, DP source slot, absent-source
 policy, standard outer lengths, and an unexpected-length warning code. The output-image space
 must declare `capacity: {"kind":"source-slot","sourceSlotId":"..."}` for that same DP slot
-and a zero-filled blank initializer. The profile's map binding must include the named template.
+and a blank initializer. A required `whenSourceAbsent: reject` source keeps the zero-fill
+rule. An optional `whenSourceAbsent: resolved-map` source may retain the profile's
+existing `0xFF` blank fill; only `0x00` and `0xFF` are admitted. When that source is
+present, the complete DP seed must overwrite `[0,L)` before later operations, so the
+blank fill never pads missing DP bytes. The profile's map binding must include the named template.
 These are profile facts; a source length never selects a nearest map or creates a new map.
 `whenSourceAbsent: reject` requires a required, exactly-one DP slot. The optional
 `resolved-map` form requires a nonrequired, zero-or-one DP slot and retains the
@@ -94,6 +98,11 @@ bytes; `AddressSpace` rejects both shorter and longer inputs without padding or 
 `expectedOuterLengths` are advisory only, including when `L` exceeds every expectation, and
 the engine emits the declared warning while retaining all accepted bytes. Extraction policy
 retains its prior, distinct declared-range semantics.
+
+In schema 2.16, `ab-merge` may retain its existing static A/B naming block without
+`ruleId`, `outputArtifactType`, or `tokenRequirements`; this admits the already declared
+`dp-a`/`tp-a` and `dp-b`/`tp-b` tokens without changing their renderer. Every other
+2.16 experience still requires the complete typed naming block from schema 2.15.
 
 The compiler admits exactly one full DP source view, one full output target view, and the
 first `copy-range` seed over `[0,L)`; every later final-output write must stay inside one

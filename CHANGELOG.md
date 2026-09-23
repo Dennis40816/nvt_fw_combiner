@@ -12,7 +12,7 @@ assignments, use the [canonical roadmap](docs/architecture/nfc_roadmap.md).
 **1.1.10 累積變更整理草稿 — 從 1.1.1 起，發布版本於 2026-09-23 確認。**
 
 範圍包含 **1.1.1 本身，以及 1.1.2～1.1.9 已發布版本**，再加上截至
-`1631b7cc` 及本次 Partial-family bank 收尾的本地開發變更。以下依功能整併，並標明來源版本：
+本次 NT51950／NT51951 DP envelope 單元的本地開發變更。以下依功能整併，並標明來源版本：
 
 - **已發布**：功能已在標示的 1.1.x 版本交付，列在此處方便總覽，不視為 1.1.10 首次新增。
 - **本地完成**：1.1.9 之後完成實作及相關窄測試，尚待最終整合／發布驗證。
@@ -30,7 +30,7 @@ Owner 2026-09-23 明確將本次正式發布目標改為 **1.1.10**，取代先�
 - Before → After: 修正冷啟動 AB Code 時 IC 選單混入其他 context、Mode 空白的問題；新增預設關閉且需確認的 Dummy DP，允許依既有 map 使用 TP-only 輸入，非 TP 區域填入 `0xFF`；指定 AB workflows 可由 primary FWConfig Event Buffer Format 自動選取宣告的 Common／Desay 配置。
 - Affected: AB selector；NT51919／NT51929／NT51932／NT51950／NT51951 的既有 AB Dummy DP 路徑；NT51950／NT51951 的 Common／Desay 配置。
 - Support status: 新 NT51950 Cascade 配置為 Available／Candidate／ContractOnly，舊 generic Cascade Supported identity 退役；Dummy DP、格式辨識及共用配置不等於新增 Golden 認證。
-- Compatibility: Dummy DP 預設 Off。Common／Desay 現在共用各 case 配置：NT51950 Single 為 exact 512 KiB DP／output、TPB `0x4A000`；NT51950 Cascade／NT51951 為 exact 1 MiB、TPB `0x8A000`。短或超長 DP 均拒絕。Desay 特化保留為 inactive 宣告，舊 explicit profile IDs 停用；移除的 exact-2 僅限 NT51950，NT51927 exact-2／3 保留。
+- Compatibility: Dummy DP 預設 Off。Common／Desay 共用各 case 配置：NT51950 Single 的標準 DP／output 為 512 KiB、TPB `0x4A000`；NT51950 Cascade／NT51951 的標準大小為 1 MiB、TPB `0x8A000`。本地新增的非標準 DP 同長輸出與必要範圍檢查見第 13 項。Desay 特化保留為 inactive 宣告，舊 explicit profile IDs 停用；移除的 exact-2 僅限 NT51950，NT51927 exact-2／3 保留。
 - Verification: 各版本已有 selector、Dummy DP map contract、format selection 及相關回歸證據；輸入參考資料與完整 expected-output Golden 分別記錄。
 - Input validation: 所有 TP firmware slots 讀到 count 0 或讀不到時都阻擋，訊息分別說明原因；AB 還要求 TPA／TPB 的正 count 一致。非 AB workflows 不比較 A/B peers。
 - Limitations: 不提供任意 vendor layout 或 CRC 編輯；這些是既有 AB Merge 與 TP admission 能力，CtrlRAM AB Replace 仍待完成。
@@ -111,7 +111,7 @@ Owner 2026-09-23 明確將本次正式發布目標改為 **1.1.10**，取代先�
 - Before → After: 桌面命令列可指定 AB Merge 的 IC、Number、DP、TP A 與 TP B，開啟畫面並循既有檢查流程載入，減少逐一 Browse。
 - Affected: Desktop AB Merge 啟動；既有 CtrlRAM Replace 命令列入口保留。
 - Support status: unchanged/support-neutral；新增的是載入入口，不是 firmware 支援認證。
-- Compatibility: 沿用 canonical catalog、Home context、Browse 檢查與取消。TP A／TP B 獨立選取，目前 Single 的 Common／Desay 均要求 exact 512 KiB DP；參數見 [Desktop input startup](docs/ui/information-architecture.md#desktop-input-startup)。
+- Compatibility: 沿用 canonical catalog、Home context、Browse 檢查與取消。TP A／TP B 獨立選取；NT51950 Single 的標準 DP 大小為 512 KiB，非標準大小仍須通過實際必要範圍檢查；參數見 [Desktop input startup](docs/ui/information-architecture.md#desktop-input-startup)。
 - Verification: 啟動回歸 56/56；文件中的 NT51950 canonical examples 已核對輸入並執行桌面載入。
 - Limitations: 只開啟並載入，不自動 Preview／Build，也不代替使用者確認；無效參數、設定、輸入或取消仍停止後續自動載入。
 
@@ -123,7 +123,7 @@ Owner 2026-09-23 明確將本次正式發布目標改為 **1.1.10**，取代先�
 - Support status: unchanged/support-neutral；不因共用 family、map 或 metadata 就推定新增 IC／format／Golden 認證。
 - Compatibility: 1.1.2 的命名修正保留 NT51929 Golden output SHA／bytes，AB 的既有 A/B CMD Page 讀取不變，General 不新增 DPCMI reader。本地遷移保留明確身分、單次讀取、immutable inputs 與單一 planner/executor。
 - Verification: 已有 DPCMI 來源／命名、full-image metadata、catalog atomic publication、family disclosure 及相依 consumers 回歸；保留歷史 input-only observation 與真正 output Golden 的證據區別。
-- Limitations: 共用 AB 解析是 CtrlRAM AB Replace 的前置；Reference consumer／bank 替換與其獨立 expected outputs 仍未完成。
+- Limitations: 共用 AB 解析是 CtrlRAM AB Replace 的前置；NT51929 fw200 Single 已有本地 Candidate／ContractOnly 路徑，其他 member／shape 及獨立 expected outputs 仍未完成。
 
 #### 11. 功能汰除：DP Replace
 
@@ -145,6 +145,16 @@ Owner 2026-09-23 明確將本次正式發布目標改為 **1.1.10**，取代先�
 - Verification: 各版本的 CI、fixture、package／download、文件與 workflow 回歸見下方原始版本紀錄；本地另保留失敗 child-process 診斷，DP 測試遷移仍維持取消、read ceiling、immutable inputs 與歷史資料 assertions。
 - Limitations: 不宣稱完整驗證已達十分鐘、startup 已達 700 ms 或 token 用量已有量測下降；未把 1.1.0 的 manual-only 特例延長，也未啟用 Catalog／Registry 自動部署。原有 orchestration failure 與本次最終 release gates 另列如下。
 
+#### 13. 非標準 DP：保留完整輸入並提示疑似 OSD 客製化
+
+- 來源版本：**1.1.10 本地完成，待整合及 firmware-owner 證據**；Standard Merge B2 已提交，AB Normal C 正在固定 checkpoint。
+- Before → After: NT51950／NT51951 的 Standard Merge 與 AB Normal 過去拒絕非標準 DP 大小；現在以既有 map 決定 TP 位置，輸出長度跟隨 DP，除已宣告 TP／postbuild 寫入外保留 DP 全部 bytes，並在輸入、Output Settings 與 Report 顯示疑似 OSD 客製化 warning。
+- Affected: NT51950／NT51951 Standard Merge；NT51950 Single／Cascade 與 NT51951 Single AB Code Normal。停用的 Desay 專屬配置未重新開放。
+- Support status: unchanged/support-neutral；沒有提高路由的 support 或 Golden evidence 等級。
+- Compatibility: 現有標準大小、無 DP／Dummy、bank staging、CRC／header 與命名路徑保留既有行為；非標準 DP 的輸出與輸入同長，不會 padding 或截短，缺少實際必要讀寫範圍仍阻擋 Build。
+- Verification: 本地完整 ProfileContract 473、Domain 467、Application 1607、Bootstrap 1696、Infrastructure 1264、Architecture 268、GoldenRegression 14 均通過；更新兩個舊 UI 斷言後，完整 UiSmoke 1593/1593 與 Python package policy 84/84 通過。這些分次執行，不是凍結候選來源的單次 full verifier；獨立 scoped review 為 PASS-WITH-HUMAN-GATE。
+- Limitations: 非標準 AB 輸出尚待 firmware-owner 與獨立 expected-output Golden 證據；整合 records、exact-source CI、封裝及正式發布尚未完成。
+
 ### Security
 
 - **已發布 1.1.1／1.1.3**：加強 exact-source admission 與 protected publication 證據；必要 Golden 不能以 cached result、matching hash 或另一個 sibling case 代替。
@@ -153,10 +163,10 @@ Owner 2026-09-23 明確將本次正式發布目標改為 **1.1.10**，取代先�
 
 ### Known issues
 
-- **CtrlRAM AB Replace 尚未實作完成**：A／B／A＋B、各自版本、AB Reference 接線、未選 bank 逐 byte 保留，以及 transform／CRC／header／backup 規則與獨立 expected outputs 仍待完成。
+- **CtrlRAM AB Replace 尚未完成全範圍認證**：NT51929 fw200 Single 已本地接線為 Candidate／ContractOnly；其他 member／shape 的 A／B／A＋B、未選 bank 保留及 transform／CRC／header／backup 的獨立 expected outputs 仍待閉合。
 - 最終 integration、firmware-owner 證據及實際候選來源的必要 Golden 尚未完成；local Golden project 14/14 不等於全部 40 個 canonical cases 或全部必要 release output cases 已執行。
 - 先前完整 verifier 的 orchestration concurrency failure 尚未證明根因修復。診斷紀錄已改善，後續未重現仍不能算修復完成。
-- 最近完整 UI run 為 1526/1527；唯一 failure 已由 General Base clear 修正與 538/538 窄 gate 關閉，沒有重新執行完整 UI 全數通過的宣稱。
+- 本地最新完整 UiSmoke 1593/1593 已通過；這仍不是 frozen release candidate 的 exact-source CI。
 - Native high-DPI／assistive-technology、clean-machine 與最終 portable-package 驗收仍須依候選範圍完成；已發布版本的歷史證據不自動認證目前 source。
 - Roadmap 已確認此次正式版本為 1.1.10；`VERSION`、tag／package 身分仍需於候選整合時同步，Customized／Launcher 新開發維持 1.2.1，未列為本次成果。
 
@@ -180,8 +190,7 @@ Owner 2026-09-23 明確將本次正式發布目標改為 **1.1.10**，取代先�
 - 本地設定、介面、Memory Layout 與 CMD：[1.1.10 checkpoint](docs/ui/v1.1.x-custom-options-layout-handoff.md#1110-conversation-checkpoint--2026-09-20)。
 - 共用架構、DP 汰除與未完成 AB 需求：[交付清單](docs/ui/v1.1.10-delivery.md)。
 - 已完成的開發文件補充：[使用者資料位置與生命週期盤點](docs/architecture/local-user-data-inventory.md)，供後續解除安裝規劃；尚無新增解除安裝／自動清除功能。
-- 最新 bank 單元：Bootstrap 501、UiSmoke 83、Infrastructure 50、Architecture 35、ProfileContract 449 全通過；兩個原 Single Golden 與 pinned-processor 輸出回歸均保留。其他單元的詳細來源與限制見交付清單。
-- 先前本地主要 gates：Application 161/161、Bootstrap 466/466 與後續 closure 58/58、Architecture 81/81、UI 受影響 classes 538/538、local Golden 14/14。這些是各自來源的窄 gate，不合併宣稱一次全套 PASS。
+- 最新 DP envelope 單元的完整專案測試與分次執行限制見第 13 項；此前 bank 單元的 Bootstrap 501、UiSmoke 83、Infrastructure 50、Architecture 35、ProfileContract 449 均通過，兩個原 Single Golden 與 pinned-processor 輸出回歸保留。各單元來源不同，不合併宣稱一次 exact-source full verifier PASS。
 
 ## [1.1.9] - 2026-09-20
 

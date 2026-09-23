@@ -360,7 +360,9 @@ internal sealed partial class CompositionProfileDefinition
             Header.MapBinding.RequiredRegionIds.Contains(binding.RootRegionId, StringComparer.Ordinal) &&
             output.Capacity is SourceSlotProfileCapacity sourceCapacity &&
             StringComparer.Ordinal.Equals(sourceCapacity.SourceSlotId, binding.SourceSlotId) &&
-            output.Initializer is BlankProfileInitializer { FillByte: 0 } &&
+            (output.Initializer is BlankProfileInitializer { FillByte: 0 } ||
+                (binding.AllowsAbsentSource &&
+                    output.Initializer is BlankProfileInitializer { FillByte: 0xFF })) &&
             _spaces.OfType<MutableCompositionProfileSpace>().All(space =>
                 ReferenceEquals(space, output) || space.Capacity is not SourceSlotProfileCapacity) &&
             slots.TryGetValue(binding.SourceSlotId, out CompositionInputSlotDefinition? sourceSlot) &&

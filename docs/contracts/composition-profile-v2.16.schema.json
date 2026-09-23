@@ -131,7 +131,10 @@
    }
   },
   "output": {
-   "$ref": "#/$defs/output"
+   "anyOf": [
+    { "$ref": "#/$defs/output" },
+    { "$ref": "#/$defs/legacyAbOutput" }
+   ]
   },
   "evidenceRefs": {
    "type": "array",
@@ -1077,7 +1080,7 @@
            "const": "blank"
           },
           "fillByte": {
-           "const": 0
+           "enum": [0, 255]
           }
          },
          "required": [
@@ -1098,6 +1101,38 @@
     },
     "required": [
      "mapBinding"
+    ],
+    "allOf": [
+     {
+      "if": {
+       "properties": {
+        "sourceEnvelopeBinding": {
+         "properties": {
+          "whenSourceAbsent": { "const": "reject" }
+         },
+         "required": ["whenSourceAbsent"]
+        }
+       }
+      },
+      "then": {
+       "properties": {
+        "spaces": {
+         "contains": {
+          "properties": {
+           "kind": { "const": "output-image" },
+           "initializer": {
+            "properties": {
+             "fillByte": { "const": 0 }
+            },
+            "required": ["fillByte"]
+           }
+          },
+          "required": ["kind", "initializer"]
+         }
+        }
+       }
+      }
+     }
     ]
    }
   },
@@ -1136,6 +1171,20 @@
     "required": [
      "sourceEnvelopeBinding"
     ]
+   }
+  },
+  {
+   "if": {
+    "properties": {
+     "experience": {
+      "properties": { "experienceId": { "const": "ab-merge" } },
+      "required": ["experienceId"]
+     }
+    },
+    "required": ["experience"]
+   },
+   "else": {
+    "properties": { "output": { "$ref": "#/$defs/output" } }
    }
   }
  ],
@@ -3422,6 +3471,21 @@
        }
       ]
      }
+    }
+   }
+  },
+  "legacyAbOutput": {
+   "type": "object",
+   "additionalProperties": false,
+   "required": ["fileNameTemplate", "allowOverride", "invalidCharacterPolicy", "requiredTokenIds"],
+   "properties": {
+    "fileNameTemplate": { "type": "string", "minLength": 1 },
+    "allowOverride": { "type": "boolean" },
+    "invalidCharacterPolicy": { "const": "reject" },
+    "requiredTokenIds": {
+     "type": "array",
+     "uniqueItems": true,
+     "items": { "$ref": "#/$defs/id" }
     }
    }
   },

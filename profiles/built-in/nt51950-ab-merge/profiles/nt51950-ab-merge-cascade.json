@@ -1,7 +1,7 @@
 {
-  "schemaVersion": "2.14",
+  "schemaVersion": "2.16",
   "profileId": "nt51950-ab-merge-cascade",
-  "profileVersion": "0.3.0",
+  "profileVersion": "0.4.0",
   "promotion": {
     "stage": "executable-candidate",
     "blockers": [
@@ -21,6 +21,14 @@
   },
   "compositionKind": "merge",
   "compilationContext": {"kind": "resolved-map"},
+  "sourceEnvelopeBinding": {
+    "sourceSlotId": "dp-ab-input",
+    "layoutTemplateMapId": "nt51950-ab-merge-1024k",
+    "rootRegionId": "ab-image",
+    "whenSourceAbsent": "resolved-map",
+    "expectedOuterLengths": [1048576],
+    "unexpectedLengthIssueCode": "DP_NONSTANDARD_SIZE_WARNING"
+  },
   "experience": {
     "experienceId": "ab-merge",
     "audience": "system",
@@ -74,7 +82,7 @@
     {"spaceId": "tp-b-input", "kind": "input-artifact", "slotId": "tp-b-input", "instancePolicy": "singleton"},
     {"spaceId": "ab-combiner-work", "kind": "work-buffer", "capacity": {"kind": "fixed", "bytes": 1048576}, "initializer": {"kind": "blank", "fillByte": 0}},
     {"spaceId": "tp-b-work", "kind": "work-buffer", "capacity": {"kind": "fixed", "bytes": 225280}, "initializer": {"kind": "clone", "sourceSlotId": "tp-b-input"}},
-    {"spaceId": "output-image", "kind": "output-image", "capacity": {"kind": "resolved-map"}, "initializer": {"kind": "blank", "fillByte": 255}}
+    {"spaceId": "output-image", "kind": "output-image", "capacity": {"kind": "source-slot", "sourceSlotId": "dp-ab-input"}, "initializer": {"kind": "blank", "fillByte": 255}}
   ],
   "views": [
     {"viewId": "dp-ab-source", "spaceId": "dp-ab-input", "selector": {"kind": "map-region", "regionId": "ab-image"}},
