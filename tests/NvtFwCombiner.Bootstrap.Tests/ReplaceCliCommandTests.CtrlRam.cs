@@ -555,8 +555,21 @@ public sealed partial class ReplaceCliCommandTests
         JsonElement[] expectedCommands = [.. trace.GetProperty("commands").EnumerateArray()];
         Assert.Equal(expectedCommands.Length, actualCommands.Length);
 
-        string executablePath = RepositoryPaths.FromRepositoryRoot(
-            "external-tools",
+        string? deployedToolsRoot = null;
+        for (DirectoryInfo? directory = new(AppContext.BaseDirectory);
+             directory is not null;
+             directory = directory.Parent)
+        {
+            string candidate = Path.Combine(directory.FullName, "external-tools");
+            if (Directory.Exists(candidate))
+            {
+                deployedToolsRoot = candidate;
+                break;
+            }
+        }
+        Assert.NotNull(deployedToolsRoot);
+        string executablePath = Path.Combine(
+            deployedToolsRoot,
             "legacy-combiner",
             trace.GetProperty("toolVersion").GetString()!,
             trace.GetProperty("executableName").GetString()!);
