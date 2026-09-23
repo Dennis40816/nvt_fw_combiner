@@ -1,4 +1,4 @@
-# Composition Profile Contract 2.0 through 2.15
+# Composition Profile Contract 2.0 through 2.16
 
 The executable schemas are [`composition-profile-v2.schema.json`](composition-profile-v2.schema.json)
 [`composition-profile-v2.1.schema.json`](composition-profile-v2.1.schema.json), and
@@ -15,7 +15,8 @@ The executable schemas are [`composition-profile-v2.schema.json`](composition-pr
 [`composition-profile-v2.12.schema.json`](composition-profile-v2.12.schema.json),
 [`composition-profile-v2.13.schema.json`](composition-profile-v2.13.schema.json), and
 [`composition-profile-v2.14.schema.json`](composition-profile-v2.14.schema.json), and
-[`composition-profile-v2.15.schema.json`](composition-profile-v2.15.schema.json). A trusted bundle
+[`composition-profile-v2.15.schema.json`](composition-profile-v2.15.schema.json), and
+[`composition-profile-v2.16.schema.json`](composition-profile-v2.16.schema.json). A trusted bundle
 selects one exact schema snapshot through its manifest content hash. They are the only declarative
 workflow policy compiled for Normal, AB, General, Merge, Replace, saved rules, and future Register work.
 
@@ -63,6 +64,38 @@ Domain constructors own canonical semantic invariants and the compiler owns
 selection/lowering semantics. Schema-shape failures therefore come from bundle
 loading/schema validation, not from a second version-aware normalizer. Test-only
 direct normalizer calls do not form a supported intake path.
+
+### Source envelope in schema 2.16
+
+`sourceEnvelopeBinding` is an opt-in resolved-map Merge declaration for one unnormalized DP
+input. It names the existing layout-template map, full-root region, DP source slot, absent-source
+policy, standard outer lengths, and an unexpected-length warning code. The output-image space
+must declare `capacity: {"kind":"source-slot","sourceSlotId":"..."}` for that same DP slot
+and a zero-filled blank initializer. The profile's map binding must include the named template.
+These are profile facts; a source length never selects a nearest map or creates a new map.
+`whenSourceAbsent: reject` requires a required, exactly-one DP slot. The optional
+`resolved-map` form requires a nonrequired, zero-or-one DP slot and retains the
+existing exact-map path when the source is absent; it creates no envelope extent.
+
+When a captured DP has a declared exact map capacity, ordinary exact-map resolution and its
+existing input-length terminal apply. A metadata, topology, capability, or other failure on that
+route cannot fall back to the template. Only a nonstandard requested length `L` equal to the
+accepted full DP payload length may use the explicit template for fixed layout anchors. The
+compiled context retains template map identity/capacity separately from actual extent `L`.
+The existing generic exact-bytes terminal requires the immutable DP to have precisely `L`
+bytes; `AddressSpace` rejects both shorter and longer inputs without padding or truncation.
+`expectedOuterLengths` are advisory only, including when `L` exceeds every expectation, and
+the engine emits the declared warning while retaining all accepted bytes. Extraction policy
+retains its prior, distinct declared-range semantics.
+
+The compiler admits exactly one full DP source view, one full output target view, and the
+first `copy-range` seed over `[0,L)`; every later final-output write must stay inside one
+canonical TP-owned region. It rejects any mandatory read or write outside `L`, including TP
+overlay coverage, without fabricating missing customer information. A display-only
+customer-information region may be clipped to `L`; Memory Layout projects an opaque preserved
+DP tail when `L` exceeds the template without presenting that tail as a canonical map region.
+No processor staging range, firmware byte rule, built-in profile, serialized report, or support
+promotion is changed by this schema foundation alone.
 
 ## Compiled Plan Boundary
 

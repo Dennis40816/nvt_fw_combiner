@@ -75,6 +75,7 @@ internal static partial class CompositionProfileNormalizer
                 long.MaxValue,
                 $"{path}.bytes"))),
             "runtime-request" => new RuntimeRequestProfileCapacity(),
+            "source-slot" => Wrap(path, () => new SourceSlotProfileCapacity(document.SourceSlotId!)),
             _ => throw Error($"{path}.kind", "Unknown profile capacity kind."),
         };
     }

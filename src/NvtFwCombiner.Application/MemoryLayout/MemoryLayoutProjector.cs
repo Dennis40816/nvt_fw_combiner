@@ -71,8 +71,11 @@ public static partial class MemoryLayoutProjector
                 FirmwareFamilyResolutionDefinition.ResolvedFirmwareImageMap resolvedMap =
                     mapContext.ResolvedMap;
                 map = resolvedMap.ImageMap;
-                capacity = resolvedMap.CapacityBytes;
-                if (initialization.Capacity != capacity || map.CapacityBytes != capacity)
+                SourceEnvelopeExtent? envelope = (mapContext as ResolvedMapV2CompilationContext)?.SourceEnvelope;
+                capacity = envelope?.ActualOutputLength ?? resolvedMap.CapacityBytes;
+                if (initialization.Capacity != capacity ||
+                    map.CapacityBytes != resolvedMap.CapacityBytes ||
+                    (envelope is null && map.CapacityBytes != capacity))
                 {
                     throw new ArgumentException(
                         "Compiled output and resolved physical-map capacities must agree.",
@@ -82,6 +85,10 @@ public static partial class MemoryLayoutProjector
                 primaryRegions = mapContext is RuntimeReferenceBankReplaceV2CompilationContext banks
                     ? SelectBankPrimaryRegions(banks, ctrlRamRegions)
                     : SelectPrimaryRegions(map, ctrlRamRegions);
+                if (envelope is not null)
+                {
+                    primaryRegions = ClipToSourceEnvelope(primaryRegions, envelope);
+                }
                 break;
             case LogicalOutputV2CompilationContext:
                 if (!StringComparer.Ordinal.Equals(details.ExperienceId, ExperienceIds.GeneralMerge) ||
@@ -290,6 +297,40 @@ public static partial class MemoryLayoutProjector
         }
 
         return [.. primary];
+    }
+
+    private static ProjectionRegion[] ClipToSourceEnvelope(
+        IReadOnlyList<ProjectionRegion> templateRegions,
+        SourceEnvelopeExtent envelope)
+    {
+        long actualEnd = envelope.ActualOutputLength;
+        var projected = new List<ProjectionRegion>();
+        foreach (ProjectionRegion region in templateRegions)
+        {
+            if (region.Range.Start >= actualEnd)
+            {
+                continue;
+            }
+
+            long end = Math.Min(region.Range.EndExclusive, actualEnd);
+            projected.Add(region with
+            {
+                Range = ByteRange.FromStartEndExclusive(region.Range.Start, end),
+            });
+        }
+
+        if (actualEnd > envelope.LayoutTemplateCapacity)
+        {
+            projected.Add(new ProjectionRegion(
+                "preserved-dp-tail",
+                ByteRange.FromStartEndExclusive(envelope.LayoutTemplateCapacity, actualEnd),
+                MemoryContentRole.Dp,
+                CanonicalRegion: null,
+                ReplaceRegionGroup.Common,
+                CtrlRamRegionRole.Other));
+        }
+
+        return [.. projected];
     }
 
     private static bool Tiles(IReadOnlyList<FirmwareRegion> regions, ByteRange range)
@@ -663,7 +704,7 @@ public static partial class MemoryLayoutProjector
                 contributingOperations,
                 [],
                 ResolveLogicalCoverageGroupId(
-                    map,
+                    null,
                     range,
                     sourceSlotId,
                     segmentId,

@@ -16,16 +16,19 @@ internal static class V2CompositionPreparationService
             ProfileBundleIdentity bundleIdentity,
             TrustedCompositionProfileCatalogEntry profileEntry,
             FirmwareFamilyResolutionDefinition.ResolvedFirmwareImageMap resolvedMap,
-            IReadOnlyList<FirmwareMapFactBinding<FirmwareCapabilityFact>> capabilityAdmissions)
+            IReadOnlyList<FirmwareMapFactBinding<FirmwareCapabilityFact>> capabilityAdmissions,
+            SourceEnvelopeExtent? sourceEnvelope)
         {
             (BundleIdentity, ProfileEntry, ResolvedMap, CapabilityAdmissions) =
-            (bundleIdentity, profileEntry, resolvedMap, capabilityAdmissions);
+                (bundleIdentity, profileEntry, resolvedMap, capabilityAdmissions);
+            SourceEnvelope = sourceEnvelope;
         }
 
         internal ProfileBundleIdentity BundleIdentity { get; }
         internal TrustedCompositionProfileCatalogEntry ProfileEntry { get; }
         internal FirmwareFamilyResolutionDefinition.ResolvedFirmwareImageMap ResolvedMap { get; }
         internal IReadOnlyList<FirmwareMapFactBinding<FirmwareCapabilityFact>> CapabilityAdmissions { get; }
+        internal SourceEnvelopeExtent? SourceEnvelope { get; }
 
         internal static bool TryCreate(
             TrustedProfileBundleCatalog catalog,
@@ -60,10 +63,66 @@ internal static class V2CompositionPreparationService
                 selectedProfile.Profile.MapBinding.RequiredMetadataStructureIds
                     .Where(structureId => !deferredInspectionStructureIds.Contains(structureId))
                     .ToHashSet(StringComparer.Ordinal);
-            mapResolution = selectedProfile.Family.Family.ResolveMapWithinForProfile(
-                resolutionInputs,
-                profileMapIds,
-                requiredMetadataStructureIds);
+            SourceEnvelopeExtent? envelope = null;
+            SourceEnvelopeProfileBinding? binding = selectedProfile.Profile.Header.SourceEnvelopeBinding;
+            FirmwareArtifactPayload? boundSource = binding is null
+                ? null
+                : resolutionInputs.Artifacts.SingleOrDefault(artifact =>
+                    StringComparer.Ordinal.Equals(artifact.ArtifactId, binding.SourceSlotId));
+            if (binding is { AllowsAbsentSource: false } && boundSource is null)
+            {
+                issues = [new CompositionIssue(
+                    "profile.v2.source-envelope.source-missing",
+                    "The profile requires one captured complete DP source before source-envelope compilation.")];
+                return false;
+            }
+
+            bool hasNonstandardBoundSource = binding is not null &&
+                boundSource is not null &&
+                boundSource.LengthBytes == resolutionInputs.CapacityBytes &&
+                !selectedProfile.Family.Family.ImageMaps.Any(map =>
+                    profileMapIds.Contains(map.MapId) &&
+                    map.Applicability.MemberIds.Contains(resolutionInputs.MemberId, StringComparer.Ordinal) &&
+                    map.Applicability.ModeIds.Contains(resolutionInputs.ModeId, StringComparer.Ordinal) &&
+                    map.CapacityBytes == boundSource.LengthBytes);
+            if (hasNonstandardBoundSource)
+            {
+                mapResolution = selectedProfile.Family.Family.ResolveLayoutTemplateWithinForProfile(
+                    resolutionInputs,
+                    binding!.LayoutTemplateMapId,
+                    profileMapIds,
+                    requiredMetadataStructureIds);
+                if (mapResolution.Status == FirmwareMapResolutionStatus.Unique)
+                {
+                    FirmwareFamilyResolutionDefinition.ResolvedFirmwareImageMap template = mapResolution.ResolvedMap!;
+                    FirmwareRegion? root = template.ImageMap.Regions.SingleOrDefault(region =>
+                        StringComparer.Ordinal.Equals(region.RegionId, binding.RootRegionId));
+                    if (root is null || root.ParentRegionId is not null ||
+                        root.Range.Start != 0 || root.Range.EndExclusive != template.CapacityBytes)
+                    {
+                        issues = [new CompositionIssue(
+                            "profile.v2.source-envelope.root-invalid",
+                            "The declared layout template must contain the exact full-container root.")];
+                        return false;
+                    }
+
+                    envelope = new SourceEnvelopeExtent(
+                        binding.SourceSlotId,
+                        binding.RootRegionId,
+                        binding.LayoutTemplateMapId,
+                        template.CapacityBytes,
+                        boundSource!.LengthBytes,
+                        binding.ExpectedOuterLengths,
+                        binding.UnexpectedLengthIssueCode);
+                }
+            }
+            else
+            {
+                mapResolution = selectedProfile.Family.Family.ResolveMapWithinForProfile(
+                    resolutionInputs,
+                    profileMapIds,
+                    requiredMetadataStructureIds);
+            }
             if (mapResolution.Status != FirmwareMapResolutionStatus.Unique)
             {
                 return false;
@@ -82,7 +141,8 @@ internal static class V2CompositionPreparationService
                 catalog.BundleIdentity,
                 selectedProfile,
                 mapResolution.ResolvedMap!,
-                admittedCapabilities);
+                admittedCapabilities,
+                envelope);
             return true;
         }
     }

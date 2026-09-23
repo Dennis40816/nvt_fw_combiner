@@ -65,6 +65,13 @@ public sealed partial class CompiledComposition
             AppendBankReferenceContext(builder, bankReference);
         }
         AppendField(builder, "resolved-map.fingerprint", provenance.ResolvedMap.ResolutionFingerprint);
+        if (context is ResolvedMapV2CompilationContext { SourceEnvelope: { } envelope })
+        {
+            AppendField(builder, "source-envelope.layout-template-map-id", envelope.LayoutTemplateMapId);
+            AppendField(builder, "source-envelope.source-slot-id", envelope.SourceSlotId);
+            AppendField(builder, "source-envelope.root-region-id", envelope.RootRegionId);
+            AppendInteger(builder, "source-envelope.actual-length", envelope.ActualOutputLength);
+        }
 
         return CompleteV2Fingerprint(
             builder,

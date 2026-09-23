@@ -582,8 +582,20 @@ public sealed class MemoryLayoutSnapshot
         {
             throw new ArgumentException("Only physical CtrlRAM layouts expose section context.", nameof(sectionLocators));
         }
-        ValidateCoverage(before, geometryKind, addressSpaceId, capacity, regions);
-        ValidateCoverage(after, geometryKind, addressSpaceId, capacity, regions);
+        SourceEnvelopeExtent? envelope =
+            (capability.CompiledComposition.V2Details.Provenance.Context as ResolvedMapV2CompilationContext)?
+                .SourceEnvelope;
+        if (envelope is not null &&
+            (geometryKind != MemoryLayoutGeometryKind.PhysicalMap || map is null ||
+             !StringComparer.Ordinal.Equals(envelope.LayoutTemplateMapId, map.MapId) ||
+             envelope.LayoutTemplateCapacity != map.CapacityBytes ||
+             envelope.ActualOutputLength != capacity))
+        {
+            throw new ArgumentException("Memory layout must retain distinct exact template and actual source extents.", nameof(capacity));
+        }
+
+        ValidateCoverage(before, geometryKind, addressSpaceId, capacity, regions, envelope);
+        ValidateCoverage(after, geometryKind, addressSpaceId, capacity, regions, envelope);
         if (pending.Select(static item => item.SlotId)
             .Distinct(StringComparer.Ordinal).Count() != pending.Length)
         {
@@ -613,6 +625,7 @@ public sealed class MemoryLayoutSnapshot
             ? initialization.FillByte
             : null;
         CanonicalRegions = Array.AsReadOnly(regions);
+        SourceEnvelope = envelope;
         BeforeSegments = Array.AsReadOnly(before);
         AfterSegments = ReferenceEquals(before, after)
             ? BeforeSegments
@@ -644,6 +657,8 @@ public sealed class MemoryLayoutSnapshot
     public byte? BlankFillByte { get; }
     /// <summary>Exact canonical region references, including nested regions.</summary>
     public IReadOnlyList<FirmwareRegion> CanonicalRegions { get; }
+    /// <summary>Actual accepted DP/output extent when the physical map is a layout template only.</summary>
+    public SourceEnvelopeExtent? SourceEnvelope { get; }
     /// <summary>Coverage seeded from workflow initialization.</summary>
     public IReadOnlyList<MemoryLayoutSegment> BeforeSegments { get; }
     /// <summary>Coverage after admitted selected operations.</summary>
@@ -662,7 +677,8 @@ public sealed class MemoryLayoutSnapshot
         MemoryLayoutGeometryKind geometryKind,
         string addressSpaceId,
         long capacity,
-        FirmwareRegion[] canonicalRegions)
+        FirmwareRegion[] canonicalRegions,
+        SourceEnvelopeExtent? sourceEnvelope)
     {
         if (segments.Length == 0 ||
             segments.Select(static segment => segment.SegmentId)
@@ -675,8 +691,12 @@ public sealed class MemoryLayoutSnapshot
         foreach (MemoryLayoutSegment segment in segments)
         {
             bool retainsExpectedGeometry = geometryKind == MemoryLayoutGeometryKind.PhysicalMap
-                ? segment.CanonicalRegion is not null &&
-                    canonicalRegions.Any(region => ReferenceEquals(region, segment.CanonicalRegion))
+                ? (segment.CanonicalRegion is not null &&
+                   canonicalRegions.Any(region => ReferenceEquals(region, segment.CanonicalRegion))) ||
+                  (sourceEnvelope is not null && segment.CanonicalRegion is null &&
+                   segment.ContentRole == MemoryContentRole.Dp &&
+                   segment.Range.Start >= sourceEnvelope.LayoutTemplateCapacity &&
+                   segment.Range.EndExclusive <= sourceEnvelope.ActualOutputLength)
                 : segment.CanonicalRegion is null;
             if (!StringComparer.Ordinal.Equals(segment.AddressSpaceId, addressSpaceId) ||
                 segment.Range.Start != expectedStart ||

@@ -16,7 +16,8 @@ internal static partial class V2CompositionPlanCompiler
             preparation.ProfileEntry,
             preparation.ResolvedMap,
             preparation.CapabilityAdmissions,
-            selectedInputSlotIds);
+            selectedInputSlotIds,
+            preparation.SourceEnvelope);
     }
 
     private static Dictionary<string, AddressSpace> LowerAddressSpaces(
@@ -24,7 +25,8 @@ internal static partial class V2CompositionPlanCompiler
         FirmwareFamilyResolutionDefinition family,
         FirmwareFamilyResolutionDefinition.ResolvedFirmwareImageMap resolvedMap,
         List<CompositionIssue> issues,
-        IReadOnlySet<string>? activeSlotIds = null)
+        IReadOnlySet<string>? activeSlotIds = null,
+        SourceEnvelopeExtent? sourceEnvelope = null)
     {
         var spaces = new Dictionary<string, AddressSpace>(StringComparer.Ordinal);
         InputArtifactProfileSpace[] inputSpaces =
@@ -77,7 +79,8 @@ internal static partial class V2CompositionPlanCompiler
                     slot,
                     resolvedMap,
                     issues,
-                    out long length))
+                    out long length,
+                    sourceEnvelope))
             {
                 continue;
             }
@@ -88,7 +91,8 @@ internal static partial class V2CompositionPlanCompiler
                 slot,
                 resolvedMap.CapacityBytes,
                 profile.CompositionKind,
-                IsCloneSourceSlot(profile, input.SlotId)));
+                IsCloneSourceSlot(profile, input.SlotId),
+                sourceEnvelope));
         }
 
         foreach (MutableCompositionProfileSpace mutableSpace in profile.Spaces.OfType<MutableCompositionProfileSpace>())
@@ -97,7 +101,7 @@ internal static partial class V2CompositionPlanCompiler
                 mutableSpace.SpaceId,
                 new AddressSpace(
                     mutableSpace.SpaceId,
-                    ResolveMutableSpaceCapacity(mutableSpace, resolvedMap.CapacityBytes),
+                    ResolveMutableSpaceCapacity(mutableSpace, resolvedMap.CapacityBytes, sourceEnvelope),
                     AddressSpaceMutability.Mutable));
         }
 
@@ -233,12 +237,17 @@ internal static partial class V2CompositionPlanCompiler
     private static CompiledInputSlotRequirement MapInputSlot(
         CompositionInputSlotDefinition slot,
         FirmwareFamilyResolutionDefinition.ResolvedFirmwareImageMap resolvedMap,
-        bool forceRequired = false)
+        bool forceRequired = false,
+        SourceEnvelopeExtent? sourceEnvelope = null)
     {
-        return new CompiledInputSlotRequirement(
+        var compiled = new CompiledInputSlotRequirement(
             slot,
             ResolveInputLengthRequirement(slot.LengthRequirement, resolvedMap.CapacityBytes),
             forceRequired);
+        return sourceEnvelope is not null &&
+            StringComparer.Ordinal.Equals(slot.SlotId, sourceEnvelope.SourceSlotId)
+                ? compiled.ResolveSourceEnvelopeLength(sourceEnvelope.ActualOutputLength)
+                : compiled;
     }
 
     private static CompiledInputSpaceBinding MapInputSpaceBinding(InputArtifactProfileSpace space)

@@ -4,6 +4,23 @@ namespace NvtFwCombiner.Domain.Tests.Composition;
 
 public sealed partial class CompositionPlanTests
 {
+    /// <summary>An exact immutable envelope accepts advisory lengths below its actual capacity without padding.</summary>
+    [Fact]
+    public void ExactImmutableSourceEnvelopeHasOneAllowedLengthAndIndependentAdvisory()
+    {
+        var source = new AddressSpace("dp-input", 5, AddressSpaceMutability.Immutable,
+            allowedInputLengths: [5], expectedInputLengths: [2, 3, 4],
+            unexpectedInputLengthIssueCode: "DP_NONSTANDARD_SIZE_WARNING");
+
+        Assert.Equal([5], source.AllowedInputLengths);
+        Assert.Equal([2, 3, 4], source.ExpectedInputLengths);
+        Assert.Null(source.InputPaddingByte);
+        Assert.Equal(InputOversizePolicy.Reject, source.InputOversizePolicy);
+        _ = Assert.Throws<ArgumentOutOfRangeException>(() => new AddressSpace("dp-input", 5,
+            AddressSpaceMutability.Immutable, allowedInputLengths: [4], expectedInputLengths: [2],
+            unexpectedInputLengthIssueCode: "DP_NONSTANDARD_SIZE_WARNING"));
+    }
+
     /// <summary>Verifies every mutable space is engine-owned and requires no caller seed.</summary>
     [Fact]
     public void EngineOwnedInitializersCoverEveryMutableAddressSpace()

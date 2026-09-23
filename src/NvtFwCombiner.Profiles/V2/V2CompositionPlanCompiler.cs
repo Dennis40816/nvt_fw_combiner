@@ -69,7 +69,8 @@ internal static partial class V2CompositionPlanCompiler
         TrustedCompositionProfileCatalogEntry profileEntry,
         FirmwareFamilyResolutionDefinition.ResolvedFirmwareImageMap resolvedMap,
         IReadOnlyList<FirmwareMapFactBinding<FirmwareCapabilityFact>> capabilityAdmissions,
-        IReadOnlyCollection<string>? selectedInputSlotIds = null)
+        IReadOnlyCollection<string>? selectedInputSlotIds = null,
+        SourceEnvelopeExtent? sourceEnvelope = null)
     {
         ArgumentNullException.ThrowIfNull(bundleIdentity);
         ArgumentNullException.ThrowIfNull(profileEntry);
@@ -100,7 +101,8 @@ internal static partial class V2CompositionPlanCompiler
                 resolvedMap,
                 capabilityAdmissions,
                 selectedInputSlotIds,
-                issues);
+                issues,
+                sourceEnvelope);
     }
 
     private static string ResolveCloneReferenceSourceSpaceId(CompositionProfileDefinition profile)
@@ -168,7 +170,9 @@ internal static partial class V2CompositionPlanCompiler
         FirmwareFamilyResolutionDefinition.ResolvedFirmwareImageMap resolvedMap,
         Dictionary<string, AddressSpace> spaces,
         List<CompositionIssue> issues,
-        IReadOnlySet<string>? activeViewIds = null)
+        IReadOnlySet<string>? activeViewIds = null,
+        SourceEnvelopeExtent? sourceEnvelope = null,
+        SourceEnvelopeSeed? sourceEnvelopeSeed = null)
     {
         var views = new Dictionary<string, ResolvedView>(StringComparer.Ordinal);
         var regionsById = resolvedMap.ImageMap.Regions.ToDictionary(
@@ -182,6 +186,28 @@ internal static partial class V2CompositionPlanCompiler
             }
 
             AddressSpace space = spaces[view.SpaceId];
+            if (sourceEnvelope is not null && sourceEnvelopeSeed is not null &&
+                (StringComparer.Ordinal.Equals(view.ViewId, sourceEnvelopeSeed.SourceViewId) ||
+                 StringComparer.Ordinal.Equals(view.ViewId, sourceEnvelopeSeed.TargetViewId)))
+            {
+                var fullRange = new ByteRange(0, sourceEnvelope.ActualOutputLength);
+                if (!space.Contains(fullRange))
+                {
+                    issues.Add(new CompositionIssue(
+                        InvalidView,
+                        $"Full DP view '{view.ViewId}' escapes address space '{space.AddressSpaceId}'.",
+                        view.ViewId));
+                    continue;
+                }
+
+                views.Add(view.ViewId, new ResolvedView(
+                    view.SpaceId,
+                    fullRange,
+                    [],
+                    IsSourceOnly: StringComparer.Ordinal.Equals(view.ViewId, sourceEnvelopeSeed.SourceViewId)));
+                continue;
+            }
+
             if (!TryResolveViewRange(view, resolvedMap, space, out ByteRange range, out string? error))
             {
                 issues.Add(new CompositionIssue(InvalidView, error!, view.ViewId));

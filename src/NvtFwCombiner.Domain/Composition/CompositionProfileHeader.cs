@@ -11,4 +11,33 @@ internal sealed record CompositionProfileHeader(
     string FamilyVersion,
     string FamilyContentHash,
     IReadOnlyList<string> LogicalOutputMemberIds,
-    bool AllowsConditionalProcessor);
+    bool AllowsConditionalProcessor,
+    SourceEnvelopeProfileBinding? SourceEnvelopeBinding = null);
+
+/// <summary>Profile-owned existing layout template and advisory facts for one complete DP source.</summary>
+internal sealed record SourceEnvelopeProfileBinding
+{
+    internal SourceEnvelopeProfileBinding(
+        string sourceSlotId,
+        string layoutTemplateMapId,
+        string rootRegionId,
+        bool allowsAbsentSource,
+        IReadOnlyList<long> expectedOuterLengths,
+        string unexpectedLengthIssueCode)
+    {
+        SourceSlotId = CanonicalPolicyValueRules.RequireCanonicalId(sourceSlotId, nameof(sourceSlotId));
+        LayoutTemplateMapId = CanonicalPolicyValueRules.RequireCanonicalId(layoutTemplateMapId, nameof(layoutTemplateMapId));
+        RootRegionId = CanonicalPolicyValueRules.RequireCanonicalId(rootRegionId, nameof(rootRegionId));
+        AllowsAbsentSource = allowsAbsentSource;
+        ExpectedOuterLengths = Array.AsReadOnly(InputLengthPolicyLimits.SnapshotExpectedOuterLengths(
+            expectedOuterLengths, nameof(expectedOuterLengths)));
+        UnexpectedLengthIssueCode = RequiredValue.NotBlank(unexpectedLengthIssueCode);
+    }
+
+    internal string SourceSlotId { get; }
+    internal string LayoutTemplateMapId { get; }
+    internal string RootRegionId { get; }
+    internal bool AllowsAbsentSource { get; }
+    internal IReadOnlyList<long> ExpectedOuterLengths { get; }
+    internal string UnexpectedLengthIssueCode { get; }
+}

@@ -34,7 +34,8 @@ internal static partial class CompositionProfileNormalizer
             compilationContext.FamilyVersion,
             compilationContext.FamilyContentHash,
             Array.AsReadOnly([.. compilationContext.LogicalOutputMemberIds]),
-            compilationContext.AllowsConditionalProcessor);
+            compilationContext.AllowsConditionalProcessor,
+            compilationContext.SourceEnvelopeBinding);
         CompositionInputSlotDefinition[] inputSlots = NormalizeList(
             document.InputSlots,
             "inputSlots",

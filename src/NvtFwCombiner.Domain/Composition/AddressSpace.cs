@@ -19,15 +19,19 @@ public sealed class AddressSpace
         ClosedEnum.ThrowIfUndefined(inputOversizePolicy, "Unknown input oversize policy.");
 
         AllowedInputLengths = NormalizeAllowedInputLengths(allowedInputLengths, length);
-        ExpectedInputLengths = NormalizeExpectedInputLengths(expectedInputLengths, length);
+        ExpectedInputLengths = NormalizeExpectedInputLengths(
+            expectedInputLengths, length, inputOversizePolicy, AllowedInputLengths);
         if (unexpectedInputLengthIssueCode is not null)
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(unexpectedInputLengthIssueCode);
             DomainInvariant.Reject(
                 mutability != AddressSpaceMutability.Immutable ||
-                inputOversizePolicy != InputOversizePolicy.ExtractDeclaredRange ||
+                (inputOversizePolicy != InputOversizePolicy.ExtractDeclaredRange &&
+                 !(inputOversizePolicy == InputOversizePolicy.Reject &&
+                   inputPaddingByte is null &&
+                   AllowedInputLengths.Count == 1 && AllowedInputLengths[0] == length)) ||
                 ExpectedInputLengths.Count == 0,
-                "An unexpected-length warning code requires declared-range extraction with expected input lengths.",
+                "An unexpected-length warning requires declared-range extraction or an exact immutable no-padding source with expected lengths.",
                 nameof(unexpectedInputLengthIssueCode));
         }
 
@@ -60,7 +64,7 @@ public sealed class AddressSpace
     /// <summary>Known source artifact lengths that remain non-blocking expectations for diagnostics and traceability.</summary>
     public IReadOnlyList<long> ExpectedInputLengths { get; }
 
-    /// <summary>Optional profile-owned warning code emitted when a declared-range extraction input has an unexpected outer length.</summary>
+    /// <summary>Optional profile-owned warning code for an unexpected outer length on an immutable extraction or exact source.</summary>
     public string? UnexpectedInputLengthIssueCode { get; }
 
     /// <summary>Returns true when <paramref name="range"/> is fully inside this address space.</summary>
@@ -95,7 +99,11 @@ public sealed class AddressSpace
         return normalized;
     }
 
-    private static long[] NormalizeExpectedInputLengths(IReadOnlyList<long>? expectedInputLengths, long declaredLength)
+    private static long[] NormalizeExpectedInputLengths(
+        IReadOnlyList<long>? expectedInputLengths,
+        long declaredLength,
+        InputOversizePolicy oversizePolicy,
+        IReadOnlyList<long> allowedInputLengths)
     {
         if (expectedInputLengths is null)
         {
@@ -110,7 +118,9 @@ public sealed class AddressSpace
         foreach (long expectedLength in normalized)
         {
             ArgumentOutOfRangeException.ThrowIfNegativeOrZero(expectedLength, nameof(expectedInputLengths));
-            if (expectedLength < declaredLength)
+            if (expectedLength < declaredLength &&
+                !(oversizePolicy == InputOversizePolicy.Reject &&
+                  allowedInputLengths.Count == 1 && allowedInputLengths[0] == declaredLength))
             {
                 throw new ArgumentOutOfRangeException(
                     nameof(expectedInputLengths),

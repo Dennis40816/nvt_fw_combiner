@@ -86,10 +86,63 @@ public abstract class MapBoundV2CompilationContext : V2CompilationContext
 /// <summary>Context backed by one uniquely resolved canonical firmware image map.</summary>
 public sealed class ResolvedMapV2CompilationContext : MapBoundV2CompilationContext
 {
-    internal ResolvedMapV2CompilationContext(FirmwareFamilyResolutionDefinition.ResolvedFirmwareImageMap resolvedMap)
+    internal ResolvedMapV2CompilationContext(
+        FirmwareFamilyResolutionDefinition.ResolvedFirmwareImageMap resolvedMap,
+        SourceEnvelopeExtent? sourceEnvelope = null)
         : base(resolvedMap)
     {
+        if (sourceEnvelope is not null &&
+            (!StringComparer.Ordinal.Equals(sourceEnvelope.LayoutTemplateMapId, resolvedMap.ImageMap.MapId) ||
+             sourceEnvelope.LayoutTemplateCapacity != resolvedMap.CapacityBytes))
+        {
+            throw new ArgumentException("Source envelope must retain its exact resolved layout template.", nameof(sourceEnvelope));
+        }
+
+        SourceEnvelope = sourceEnvelope;
     }
+
+    /// <summary>Actual accepted DP/output extent, separate from the layout template capacity.</summary>
+    public SourceEnvelopeExtent? SourceEnvelope { get; }
+}
+
+/// <summary>Closed actual extent of one immutable DP and its explicitly declared canonical layout template.</summary>
+public sealed class SourceEnvelopeExtent
+{
+    internal SourceEnvelopeExtent(
+        string sourceSlotId,
+        string rootRegionId,
+        string layoutTemplateMapId,
+        long layoutTemplateCapacity,
+        long actualOutputLength,
+        IReadOnlyList<long> expectedOuterLengths,
+        string unexpectedLengthIssueCode)
+    {
+        SourceSlotId = RequiredValue.NotBlank(sourceSlotId);
+        RootRegionId = RequiredValue.NotBlank(rootRegionId);
+        LayoutTemplateMapId = RequiredValue.NotBlank(layoutTemplateMapId);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(layoutTemplateCapacity);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(actualOutputLength);
+        LayoutTemplateCapacity = layoutTemplateCapacity;
+        ActualOutputLength = actualOutputLength;
+        ExpectedOuterLengths = Array.AsReadOnly(InputLengthPolicyLimits.SnapshotExpectedOuterLengths(
+            expectedOuterLengths, nameof(expectedOuterLengths)));
+        UnexpectedLengthIssueCode = RequiredValue.NotBlank(unexpectedLengthIssueCode);
+    }
+
+    /// <summary>One profile-bound immutable DP slot.</summary>
+    public string SourceSlotId { get; }
+    /// <summary>Existing canonical full-container root identity, used only for template anchors.</summary>
+    public string RootRegionId { get; }
+    /// <summary>Explicit profile-declared map identity used for layout facts.</summary>
+    public string LayoutTemplateMapId { get; }
+    /// <summary>Physical template capacity, not actual output capacity.</summary>
+    public long LayoutTemplateCapacity { get; }
+    /// <summary>Exact accepted immutable DP length and compiled output length.</summary>
+    public long ActualOutputLength { get; }
+    /// <summary>Advisory, non-filtering standard outer lengths.</summary>
+    public IReadOnlyList<long> ExpectedOuterLengths { get; }
+    /// <summary>Existing engine warning code for a nonstandard exact DP length.</summary>
+    public string UnexpectedLengthIssueCode { get; }
 }
 
 /// <summary>Context for the closed map-bound runtime reference-replace candidate shape.</summary>
