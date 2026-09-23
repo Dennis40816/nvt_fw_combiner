@@ -331,14 +331,16 @@ class V0916ParityPipelineTests(V0916ParityTestBase):
         self,
     ) -> None:
         plan = MODULE.load_and_validate_plan(self.plan_path, self.policy_path)
-        captured = MODULE.capture_canonical_authority_from_manifest_for_test(
-            ROOT / "testdata/golden/canonical/manifest.json"
-        )
         route_id = (
             "route-7-nt51927-14-standard-merge-13-selector-free-27-"
             "nt51927-standard-merge-256k"
         )
         with tempfile.TemporaryDirectory() as temporary:
+            captured = MODULE.materialize_and_validate_canonical_input_authority(
+                plan.raw,
+                git_reader=MODULE.PinnedGitReader(ROOT),
+                destination=Path(temporary) / "pinned-canonical",
+            )
             fake_root = Path(temporary) / "mutable-materialization"
             fake_root.mkdir()
             (fake_root / captured.manifest_relative).parent.mkdir(
@@ -447,11 +449,14 @@ class V0916ParityPipelineTests(V0916ParityTestBase):
             cli.parent.mkdir(parents=True)
             cli.write_bytes(b"cli")
             plan = MODULE.load_and_validate_plan(self.plan_path, self.policy_path)
+            canonical_authority = MODULE.materialize_and_validate_canonical_input_authority(
+                plan.raw,
+                git_reader=MODULE.PinnedGitReader(ROOT),
+                destination=root / "pinned-canonical",
+            )
             verified_inputs = MODULE.resolve_canonical_route_input(
                 plan,
-                MODULE.capture_canonical_authority_from_manifest_for_test(
-                    ROOT / "testdata/golden/canonical/manifest.json"
-                ),
+                canonical_authority,
                 admitted_input_root=root / "admitted-inputs",
                 route_id=(
                     "route-7-nt51927-14-standard-merge-13-selector-free-27-"
@@ -664,9 +669,7 @@ class V0916ParityPipelineTests(V0916ParityTestBase):
 
             baseline_inputs = MODULE.resolve_canonical_route_input(
                 plan,
-                MODULE.capture_canonical_authority_from_manifest_for_test(
-                    ROOT / "testdata/golden/canonical/manifest.json"
-                ),
+                canonical_authority,
                 admitted_input_root=root / "baseline-admitted-inputs",
                 route_id=verified_inputs.route_id,
                 execution_role="baseline-exact",
@@ -793,8 +796,10 @@ class V0916ParityPipelineTests(V0916ParityTestBase):
             plan = MODULE.load_and_validate_plan(self.plan_path, self.policy_path)
             verified = MODULE.resolve_canonical_route_input(
                 plan,
-                MODULE.capture_canonical_authority_from_manifest_for_test(
-                    ROOT / "testdata/golden/canonical/manifest.json"
+                MODULE.materialize_and_validate_canonical_input_authority(
+                    plan.raw,
+                    git_reader=MODULE.PinnedGitReader(ROOT),
+                    destination=root / "pinned-canonical",
                 ),
                 admitted_input_root=root / "admitted",
                 route_id=(
@@ -1262,9 +1267,7 @@ class V0916ParityPipelineTests(V0916ParityTestBase):
             precursor_route_id = cases[1][0]
             precursor_verified = MODULE.resolve_canonical_route_input(
                 plan,
-                MODULE.capture_canonical_authority_from_manifest_for_test(
-                    ROOT / "testdata/golden/canonical/manifest.json"
-                ),
+                canonical_authority,
                 admitted_input_root=root / "admitted-precursor-map-mismatch",
                 route_id=precursor_route_id,
                 execution_role="candidate-exact",
