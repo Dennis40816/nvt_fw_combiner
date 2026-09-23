@@ -300,7 +300,9 @@ public sealed class AbCtrlRamReferencePlanTests
 
         string caseName = selectA && selectB ? "both" : selectA ? "a-only" : "b-only";
         string caseDirectory = Path.Combine(parent, "nt51929-ab-ctrlram-" + caseName);
+        RejectReparsePointAncestors(caseDirectory);
         _ = Directory.CreateDirectory(caseDirectory);
+        RejectReparsePointAncestors(caseDirectory);
         File.WriteAllBytes(Path.Combine(caseDirectory, "reference-input.bin"), reference);
         File.WriteAllBytes(Path.Combine(caseDirectory, "candidate-output.bin"), output);
         File.WriteAllText(Path.Combine(caseDirectory, "report.json"), JsonSerializer.Serialize(new
@@ -316,6 +318,17 @@ public sealed class AbCtrlRamReferencePlanTests
             outputLength = output.Length,
             changedRanges = ByteDiff.FindChangedRanges(reference, output),
         }, EvidenceJsonOptions));
+    }
+
+    private static void RejectReparsePointAncestors(string directory)
+    {
+        for (DirectoryInfo? current = new(directory); current is not null; current = current.Parent)
+        {
+            if (current.Exists && (current.Attributes & FileAttributes.ReparsePoint) != 0)
+            {
+                throw new InvalidOperationException("AB evidence path cannot contain a junction or symbolic link.");
+            }
+        }
     }
 
     private static V2RuntimeReferenceBankReplacePlan Prepare(byte[] reference,
