@@ -171,6 +171,30 @@ IC-specific branch or workaround is not an extension mechanism. Approved
 external processors remain manifest-pinned, staged, range-constrained adapters;
 they are not compiler plugins.
 
+### Bounded 1.1.10 admission reconciliation — 2026-09-23
+
+Two previously admitted boundaries qualify the blanket identity prohibition
+above. Neither is a general IC-onboarding mechanism. The existing compiler
+`Succeed` rejects the retired `dp-replace` experience before creating any
+artifact, as admitted by `DP-REPLACE-RETIREMENT-RUNTIME-110-01`. Moving this
+terminal check to a UI or registry would leave direct compilation exposed.
+
+`CTRLRAM-AB-LOCAL-PLAN-110-01` and `CTRLRAM-AB-RUNTIME-110-01` admit only the
+fixed NT51929 AB `nt51929-ab-merge` version `0.4.0` and local
+`nt51929-ctrlram-replace-fw200-single` version `0.3.0` pair. Its existing
+Profiles bank preparation verifies that exact pair and native preconditions;
+bank compilation projects the CtrlRAM candidate identity. It reuses the local
+compiled plan and the single executor, retains complete range/processor proof,
+and does not inherit Supported or independent Golden certification.
+
+Architecture guards pin the exact retirement, local selection, layout
+admission and candidate-identity snippets at their existing owners. Everything
+else remains subject to the identity prohibition. Adding another pair, native
+constant or identity branch requires a new admission; this reconciliation does
+not establish a generic bank compiler or declare a migration complete. A future
+schema-driven bank extension must replace these exact selectors and their
+bounded guard exceptions together, with equivalent negative and byte evidence.
+
 Each exact route has a stable `RouteId` composed only from IC, workflow, IC Count variant, and map
 variant. Integrity, processor, artifact, metadata, operation, and other executable semantics are
 part of the separate `CapabilityFingerprint`. Authoring, publication, and evidence decisions bind

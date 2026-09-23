@@ -84,8 +84,9 @@ FlashCode or TP-firmware template without its schema-2.15 rule id, artifact
 type, typed token sources, and missing-value policies remains non-executable.
 Arbitrary token templates remain non-executable.
 An `executable-candidate` never creates generic runtime authority, production routing, or support;
-ADR 0019 logical-output and ADR 0020 runtime-reference-replace are the only explicit Application
-candidate-admission shapes. ADR 0055 permits a structurally safe supported runtime-reference profile
+ADR 0019 logical-output, ADR 0020 runtime-reference-replace and its explicitly admitted
+NT51929 bank candidate below are the closed Application candidate-admission shapes.
+ADR 0055 permits a structurally safe supported runtime-reference profile
 to use ordinary runtime admission without weakening those candidate rules.
 `supported` is profile-level V2 runtime admission, not a global IC or product-support claim; the
 support matrix and its firmware-owner release gate remain separate authority.
@@ -98,6 +99,17 @@ earlier retains that existing typed failure and also produces no artifact.
 Changing eligibility alone is insufficient because a returned artifact exposes
 its plan. Shared reference-clone lowering for surviving experiences remains;
 Application and the Domain engine do not duplicate this retirement policy.
+
+The existing NT51929 bank candidate is the fixed pair
+`nt51929-ab-merge` `0.4.0` / `nt51929-ctrlram-replace-fw200-single` `0.3.0`,
+admitted by `CTRLRAM-AB-LOCAL-PLAN-110-01` and `CTRLRAM-AB-RUNTIME-110-01`.
+Profiles retains exact pair/version and native shape checks, reuses the local
+compiled obligations and sole executor, and emits only the existing CtrlRAM
+candidate identity. No other member, topology, processor or Supported status
+is implied. Architecture tests pin these exact owner snippets plus the retired
+experience rejection, while forbidding additional identity-driven semantics.
+See the [ADR 0015 reconciliation](../adr/0015-canonical-firmware-map-and-compiled-composition.md#bounded-1110-admission-reconciliation--2026-09-23).
+
 Its `CompiledInputContract` retains each slot's id, role, artifact class, required/cardinality policy,
 accepted extensions, typed length rule, typed normalization rule, and every immutable plan-space binding
 including instance policy. The artifact does not treat `AddressSpace` geometry as a second source of

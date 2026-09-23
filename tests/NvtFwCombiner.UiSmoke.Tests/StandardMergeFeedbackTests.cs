@@ -10,6 +10,23 @@ namespace NvtFwCombiner.UiSmoke.Tests;
 /// <summary>Localized feedback explains typed findings without changing their authority.</summary>
 public sealed class StandardMergeFeedbackTests
 {
+    /// <summary>Focused client codes retain distinct bilingual zero/unreadable blocking feedback.</summary>
+    [Theory]
+    [InlineData("firmware-config.chip-count-required", false, "was read as 0")]
+    [InlineData("firmware-config.chip-count-required", true, "讀到 0")]
+    [InlineData("firmware-config.chip-count-unreadable", false, "is unreadable")]
+    [InlineData("firmware-config.chip-count-unreadable", true, "讀不到")]
+    public void TpChipCountErrorRetainsDistinctBlockingFeedback(string code, bool chinese, string expected)
+    {
+        AuthoringInputSlotStatus status = Status(code, AuthoringSlotLifecycle.Error);
+        FirmwareSlotViewModel slot = Slot(status, chinese);
+
+        Assert.Equal(code, status.InspectionIssueCode);
+        Assert.True(slot.IsSemanticStateError);
+        Assert.True(slot.BlocksBuild);
+        Assert.Contains(expected, slot.InputInspectionStatus, StringComparison.Ordinal);
+    }
+
     /// <summary>Uniform findings explain the declared range, possible intent, action and non-blocking impact.</summary>
     [Theory]
     [InlineData("DP", false)]

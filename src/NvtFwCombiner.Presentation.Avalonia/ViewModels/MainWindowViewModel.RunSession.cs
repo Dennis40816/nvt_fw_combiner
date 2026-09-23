@@ -14,13 +14,11 @@ internal sealed partial class MainWindowViewModel
         CompositionRunWork run,
         Action<string, string> loadErrorReport)
     {
-        string mode = context.Mode;
-        string icId = context.Ic;
         RecordDebugActivity(
             build ? SystemActivityCodes.BuildStarted : SystemActivityCodes.PreviewStarted,
             SystemActivityCategory.Composition,
-            mode,
-            icId);
+            context.Mode,
+            context.Ic);
         UiRunResultViewModel? result = await RunSession.RunCompositionAsync(context, build, run, loadErrorReport);
         bool succeeded = result?.Succeeded == true;
         RecordSystemActivity(new SystemActivityDraft(
@@ -30,27 +28,25 @@ internal sealed partial class MainWindowViewModel
             SystemActivityImportance.Important,
             SystemActivityCategory.Composition,
             succeeded ? SystemActivitySeverity.Success : SystemActivitySeverity.Error,
-            mode,
-            icId));
+            context.Mode,
+            context.Ic));
     }
 
     private async Task ShowDiagnosticPreviewAsync(CompositionRunContext context, CompositionRunReport report)
     {
-        string mode = context.Mode;
-        string icId = context.Ic;
         RecordDebugActivity(
             SystemActivityCodes.PreviewStarted,
             SystemActivityCategory.Composition,
-            mode,
-            icId);
+            context.Mode,
+            context.Ic);
         await RunSession.ShowDiagnosticPreviewAsync(context, report);
         RecordSystemActivity(new SystemActivityDraft(
             SystemActivityCodes.PreviewFailed,
             SystemActivityImportance.Important,
             SystemActivityCategory.Composition,
             SystemActivitySeverity.Warning,
-            mode,
-            icId));
+            context.Mode,
+            context.Ic));
     }
 
     private void ShowActionReadiness(

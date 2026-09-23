@@ -1,0 +1,41 @@
+{
+  "schemaVersion": 2,
+  "taskId": "ARCH-CLOSURE-1110-01",
+  "capability": "Reconcile accepted closed compiler admissions and focused presentation issue-code boundaries",
+  "integrationBase": "b9a94a2bab1a7bc05129b3438f0c0afeaaf45ad4",
+  "risk": "R2",
+  "kind": "refactor",
+  "state": "design-active",
+  "mutablePaths": [
+    "docs/adr/0015-canonical-firmware-map-and-compiled-composition.md",
+    "docs/adr/0020-v2-runtime-reference-replace.md",
+    "docs/contracts/composition-profile-v2.md",
+    "src/NvtFwCombiner.Application/InputInspection/CompiledInputArtifactInspectionService.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MainWindowViewModel.RunSession.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ShellTextResources.DynamicText.cs",
+    "tests/NvtFwCombiner.Architecture.Tests/RepositoryBoundaryTests.CanonicalProfileDefinition.cs",
+    "tests/NvtFwCombiner.UiSmoke.Tests/StandardMergeFeedbackTests.cs"
+  ],
+  "implementationOwner": "/root",
+  "searchEvidence": [
+    "2026-09-23: CodeGraph followed by bounded source inspection of V2 compiler, existing DP retirement and AB local/runtime admission records, ADR 0015/0020, and the composition-profile contract. Existing Succeed retirement and fixed NT51929 pair are admitted; broad ADR wording and architecture assertions were not synchronized.",
+    "InputArtifactInspectionIssueCodes is the existing typed-client issue-code surface; FirmwareConfigChipCountDiagnostics remains the diagnostic owner. CompositionRunContext is a sealed positional record with init-only Mode and Ic. Existing remaining-red.trx reproduces compiler, presentation dependency and navigation-size failures.",
+    "Latest final evidence checkpoint b9a94a2bab1a7bc05129b3438f0c0afeaaf45ad4 was inspected and checked through validate_repository.py during parallel DP admission. Existing unrelated records still prevent formal integration validation; this local admission does not claim their gates pass. Product start HEAD 63bd9ab2f follows separately reviewed R1 test corrections."
+  ],
+  "semanticOwner": "Existing Profiles compiler admissions and Application diagnostic owner; Presentation renders stable issue codes and immutable captured run identity",
+  "terminalContract": "Synchronize only previously admitted DP retirement and NT51929 candidate pair exceptions, pin each exact compiler snippet at its exact owner before excluding that snippet from otherwise unchanged global identity guards, expose two identical diagnostic-code aliases through existing InputArtifactInspectionIssueCodes, and reuse the same captured context directly without changing operation bytes, firmware support, severity, blocking or run ownership.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "/root/layout_ownership_review",
+    "outcome": "approved",
+    "evidence": "2026-09-23 independent exact eight-path admission approved. No whole-partial or regex exclusion; local pair selection and layout admission each pinned separately; no new general onboarding authority. Aliases reference existing constants, captured record properties remain immutable, and the 1024 navigation bound stays unchanged. Require four bilingual zero/unreadable blocking cases, RunCapture regression and unknown-token negative architecture evidence. Root writes contract first and explicitly releases it to the DP writer."
+  },
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": {
+    "reviewer": null,
+    "outcome": "pending",
+    "evidence": ""
+  }
+}

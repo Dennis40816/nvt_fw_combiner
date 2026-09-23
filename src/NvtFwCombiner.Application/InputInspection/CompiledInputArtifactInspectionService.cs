@@ -8,6 +8,12 @@ namespace NvtFwCombiner.Application.InputInspection;
 /// <summary>Stable generic issue codes emitted by compiled input inspection.</summary>
 public static class InputArtifactInspectionIssueCodes
 {
+    /// <summary>A canonical TP FWConfig declares a zero IC Count.</summary>
+    public const string TpChipCountRequired = FirmwareConfigChipCountDiagnostics.RequiredIssueCode;
+
+    /// <summary>A canonical TP FWConfig IC Count cannot be read.</summary>
+    public const string TpChipCountUnreadable = FirmwareConfigChipCountDiagnostics.UnreadableIssueCode;
+
     /// <summary>The source matches one compiler-owned expected outer length.</summary>
     public const string Ready = "input.inspection.ready";
 

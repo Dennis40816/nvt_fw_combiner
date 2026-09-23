@@ -6,6 +6,7 @@
 - Amended: 2026-07-29 for plan-only diagnostic Preview when required POSTBUILD is unavailable
 - Amended: 2026-08-07 to replace workflow-name semantics with closed profile and map semantics
 - Amended: 2026-08-25 by ADR 0055 for supported CtrlRAM runtime admission
+- Amended: 2026-09-23 to reconcile the already admitted NT51929 bank candidate and DP retirement boundaries
 - Owners: Architecture owner + firmware owner
 - Amends: ADR 0015 and ADR 0019
 - Amended by: ADR 0023, ADR 0024, and ADR 0055
@@ -35,6 +36,14 @@ user-defined/extensible source shape. The second is a fixed processor shape
 whose typed CtrlRAM source and Postbuild authority require direct evidence.
 That admission is compiler authority only and remains gated from runtime
 routing and support promotion.
+
+The [bounded 1.1.10 reconciliation in ADR 0015](0015-canonical-firmware-map-and-compiled-composition.md#bounded-1110-admission-reconciliation--2026-09-23)
+records the narrow exceptions to the identity rule: the no-artifact DP
+retirement boundary and exact NT51929 AB/local CtrlRAM candidate pair. The
+bank candidate wraps already compiled bank-local obligations in one plan;
+it does not introduce another executor or promote firmware support. Its
+fixed pair/version/native checks remain mandatory. Future pairs require new
+admission and evidence; arbitrary identity-based compiler routing stays forbidden.
 
 This acceptance authorizes only request-scoped candidate compilation and
 Application admission. It does not register a built-in route, promote firmware
