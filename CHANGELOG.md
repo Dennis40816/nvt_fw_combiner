@@ -164,7 +164,7 @@ Owner 2026-09-23 明確將本次正式發布目標改為 **1.1.10**，取代先�
 ### Known issues
 
 - **CtrlRAM AB Replace 尚未完成全範圍認證**：NT51929 fw200 Single 已本地接線為 Candidate／ContractOnly；其他 member／shape 的 A／B／A＋B、未選 bank 保留及 transform／CRC／header／backup 的獨立 expected outputs 仍待閉合。
-- 最終 integration、firmware-owner 證據及實際候選來源的必要 Golden 尚未完成；local Golden project 14/14 不等於全部 40 個 canonical cases 或全部必要 release output cases 已執行。
+- 最終 integration、firmware-owner 證據及實際發布候選來源的必要 Golden 尚未完成；本地預封存來源已執行 25 個 Direct 完整輸出案例，但 3 個 input-only 和 12 個 fact-scoped alias 並非 Golden 輸出案例，且來源後續變更須在正式候選重跑。
 - 先前完整 verifier 的 orchestration concurrency failure 尚未證明根因修復。診斷紀錄已改善，後續未重現仍不能算修復完成。
 - 本地最新完整 UiSmoke 1593/1593 已通過；這仍不是 frozen release candidate 的 exact-source CI。
 - Native high-DPI／assistive-technology、clean-machine 與最終 portable-package 驗收仍須依候選範圍完成；已發布版本的歷史證據不自動認證目前 source。
