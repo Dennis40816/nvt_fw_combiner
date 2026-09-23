@@ -1588,6 +1588,17 @@ CAPABILITY_REUSE_EXTERNAL_ATTESTATION_FIELDS = {
 CAPABILITY_REUSE_AUTHORITY_TYPES = {"firmware-owner", "release-owner"}
 CAPABILITY_REUSE_INITIAL_FIRMWARE_OWNER_TASKS = {"FORMAL-SUPPORT-01"}
 CAPABILITY_REUSE_RISK_LEVELS = {"R0": 0, "R1": 1, "R2": 2, "R3": 3}
+CAPABILITY_REUSE_CANONICAL_DOCUMENT_PATHS = frozenset({
+    "SPEC.md",
+    "docs/architecture/experience-and-access-policy.md",
+    "docs/architecture/nfc_roadmap.md",
+    "docs/architecture/supported-ic-matrix.md",
+    "docs/architecture/ic-workflow-flowcharts.md",
+})
+CAPABILITY_REUSE_AUXILIARY_DELIVERY_PATH = "docs/ui/v1.1.10-delivery.md"
+# Last sealed final batch before the exact-document classification was admitted.
+# Historical batches keep their original classifier; this is not a new checkpoint.
+CAPABILITY_REUSE_CLASSIFICATION_CUTOVER = "b9a94a2bab1a7bc05129b3438f0c0afeaaf45ad4"
 CAPABILITY_REUSE_FINALIZED_FIELDS = {
     "state",
     "implementationHead",
@@ -1654,19 +1665,25 @@ class _TrustedCapabilityCheckpoint:
     open_r3_authorities: dict[str, str]
 
 
-def _capability_integration_paths(record: dict[str, Any]) -> list[str]:
+def _capability_integration_paths(record: dict[str, Any], *, legacy: bool = False) -> list[str]:
     # An explicit empty partition differs from an omitted legacy partition.
     return record.get("integrationPaths", [
-        path for path in record["mutablePaths"] if _is_capability_reuse_governed_path(path)
+        path for path in record["mutablePaths"] if _is_capability_reuse_governed_path(path, legacy=legacy)
     ])
 
 
-def _is_capability_reuse_auxiliary_test_path(relative: str) -> bool:
-    # Governed test instructions remain authority, never auxiliary evidence.
-    return relative.startswith("tests/") and not _is_capability_reuse_governed_path(relative)
+def _capability_reuse_auxiliary_kind(relative: str, *, legacy: bool = False) -> str | None:
+    # Governed paths retain authority even when they sit beneath tests/.
+    if _is_capability_reuse_governed_path(relative, legacy=legacy):
+        return None
+    if relative.startswith("tests/"):
+        return "test"
+    if not legacy and relative == CAPABILITY_REUSE_AUXILIARY_DELIVERY_PATH:
+        return "documentation"
+    return None
 
 
-def _is_capability_reuse_governed_path(relative: str) -> bool:
+def _is_capability_reuse_governed_path(relative: str, *, legacy: bool = False) -> bool:
     path = PurePosixPath(relative)
     parts = path.parts
     if parts[:3] == CAPABILITY_REUSE_CHANGE_RECORD_ROOT.parts:
@@ -1679,6 +1696,8 @@ def _is_capability_reuse_governed_path(relative: str) -> bool:
     ):
         return False
     if path.name == "AGENTS.md":
+        return True
+    if not legacy and relative in CAPABILITY_REUSE_CANONICAL_DOCUMENT_PATHS:
         return True
     if parts[:2] == (".agents", "skills"):
         return True
@@ -1709,10 +1728,12 @@ def _is_capability_reuse_governed_path(relative: str) -> bool:
     )
 
 
-def _capability_reuse_minimum_risk(relative: str) -> str:
+def _capability_reuse_minimum_risk(relative: str, *, legacy: bool = False) -> str:
     path = PurePosixPath(relative)
     parts = path.parts
     if path.name == "AGENTS.md":
+        return "R2"
+    if not legacy and relative in CAPABILITY_REUSE_CANONICAL_DOCUMENT_PATHS:
         return "R2"
     if parts[:2] == (".agents", "skills"):
         return "R2"
@@ -2846,6 +2867,8 @@ def _validate_capability_reuse_record(
     path: Path,
     record: object,
     errors: list[str],
+    *,
+    legacy: bool = False,
 ) -> dict[str, Any] | None:
     relative = path.as_posix()
     if not isinstance(record, dict):
@@ -2926,7 +2949,7 @@ def _validate_capability_reuse_record(
     if record["disposition"] == "reject-duplicate" and state != "blocked":
         errors.append(f"reject-duplicate capability-reuse record must be blocked: {relative}")
     governed_mutable_paths = [
-        value for value in normalized_paths if _is_capability_reuse_governed_path(value)
+        value for value in normalized_paths if _is_capability_reuse_governed_path(value, legacy=legacy)
     ]
     if "integrationPaths" in record:
         owned_paths = record["integrationPaths"]
@@ -2941,12 +2964,12 @@ def _validate_capability_reuse_record(
             errors.append(f"integrationPaths must be an exact unique governed subset of mutablePaths: {relative}")
             return None
     if not governed_mutable_paths and any(
-        _is_capability_reuse_auxiliary_test_path(value) for value in normalized_paths
+        _capability_reuse_auxiliary_kind(value, legacy=legacy) is not None for value in normalized_paths
     ):
-        errors.append(f"capability-reuse auxiliary tests require a governed path: {relative}")
+        errors.append(f"capability-reuse auxiliary evidence requires a governed path: {relative}")
     if governed_mutable_paths and record["risk"] in CAPABILITY_REUSE_RISK_LEVELS:
         minimum_risk = max(
-            (_capability_reuse_minimum_risk(value) for value in governed_mutable_paths),
+            (_capability_reuse_minimum_risk(value, legacy=legacy) for value in governed_mutable_paths),
             key=CAPABILITY_REUSE_RISK_LEVELS.__getitem__,
         )
         if (
@@ -3109,8 +3132,31 @@ def validate_capability_reuse_governance(
         errors.append(f"capability-reuse Git index snapshot could not be read: {snapshot_error}")
         return
 
+    legacy_revisions: set[str] = set()
+    cutover = CAPABILITY_REUSE_CLASSIFICATION_CUTOVER
+    if cutover is not None:
+        if re.fullmatch(r"[0-9a-f]{40}", cutover) is None:
+            errors.append("capability-reuse classification cutover must be a full lowercase SHA")
+            return
+        ancestry = subprocess.run(
+            ["git", "merge-base", "--is-ancestor", cutover, "HEAD"],
+            cwd=root,
+            check=False,
+            capture_output=True,
+        )
+        if ancestry.returncode != 0:
+            errors.append("capability-reuse classification cutover is not on current HEAD ancestry")
+            return
+        revisions, revisions_error = _git_object(root, ["rev-list", cutover])
+        if revisions_error is not None:
+            errors.append(f"capability-reuse classification history could not be read: {revisions_error}")
+            return
+        legacy_revisions = set(revisions.decode("ascii").splitlines())
+
     indexed_content: dict[str, bytes] = {}
     records_by_relative: dict[str, dict[str, Any]] = {}
+    pending_final_values: dict[str, dict[str, Any]] = {}
+    parsed_task_ids: list[object] = []
     current_snapshot_failed = False
     for relative in current_relatives:
         path = root / PurePosixPath(relative)
@@ -3158,11 +3204,16 @@ def validate_capability_reuse_governance(
         except (UnicodeDecodeError, json.JSONDecodeError) as exc:
             errors.append(f"invalid capability-reuse JSON {relative}: {exc}")
             continue
+        if isinstance(value, dict):
+            parsed_task_ids.append(value.get("taskId"))
+            if value.get("state") == "final-complete":
+                pending_final_values[relative] = value
+                continue
         validated = _validate_capability_reuse_record(PurePosixPath(relative), value, errors)
         if validated is not None:
             records_by_relative[relative] = validated
 
-    task_ids = [record.get("taskId") for record in records_by_relative.values()]
+    task_ids = parsed_task_ids
     duplicate_task_ids = {
         value for value in task_ids if isinstance(value, str) and task_ids.count(value) > 1
     }
@@ -3176,7 +3227,7 @@ def validate_capability_reuse_governance(
         for relative in record.get("mutablePaths", []):
             if not (
                 _is_capability_reuse_governed_path(relative)
-                or _is_capability_reuse_auxiliary_test_path(relative)
+                or _capability_reuse_auxiliary_kind(relative) is not None
             ):
                 errors.append(
                     f"current capability-reuse mutable path is not governed: "
@@ -3189,6 +3240,20 @@ def validate_capability_reuse_governance(
     history, historical_nested_paths, history_error = _historical_final_records(root)
     if history_error is not None:
         errors.append(f"capability-reuse record history could not be read: {history_error}")
+        return
+    for relative, value in pending_final_values.items():
+        record_history = history.get(relative)
+        legacy_record = (
+            record_history is not None
+            and record_history.first_final is not None
+            and record_history.first_final.revision in legacy_revisions
+        )
+        validated = _validate_capability_reuse_record(
+            PurePosixPath(relative), value, errors, legacy=legacy_record
+        )
+        if validated is not None:
+            records_by_relative[relative] = validated
+    if len(errors) != capability_error_start:
         return
     for relative in sorted(historical_nested_paths):
         if relative not in invalid_nested_paths:
@@ -3291,6 +3356,9 @@ def validate_capability_reuse_governance(
             final_groups.setdefault(record_history.first_final.revision, []).append(
                 (relative, record_history.first_final.value)
             )
+    if cutover is not None and cutover not in final_groups:
+        errors.append("capability-reuse classification cutover is not a sealed final evidence batch")
+        return
     required_external_authorities: dict[str, str | None] = (
         dict(trusted_checkpoint.open_r3_authorities)
         if trusted_checkpoint is not None
@@ -3338,6 +3406,7 @@ def validate_capability_reuse_governance(
         )
     for evidence_commit in ordered_final_commits:
         group = final_groups[evidence_commit]
+        legacy_batch = evidence_commit in legacy_revisions
         batch_error_count = len(errors)
         if any(
             relative not in records_by_relative
@@ -3387,7 +3456,10 @@ def validate_capability_reuse_governance(
         )
         if evidence_error is not None:
             errors.append(f"final evidence diff could not be read: {evidence_commit}: {evidence_error}")
-        elif any(_is_capability_reuse_governed_path(path) for path in evidence_changes):
+        elif any(
+            _is_capability_reuse_governed_path(path, legacy=legacy_batch)
+            for path in evidence_changes
+        ):
             errors.append(
                 f"final evidence commit changes governed paths after reviewedHead: {evidence_commit}"
             )
@@ -3428,9 +3500,9 @@ def validate_capability_reuse_governance(
             if digest_error is not None or expected_digest != record.get("pathStateDigest"):
                 errors.append(f"final record pathStateDigest differs from reviewed Git state: {task_id}")
             for mutable_path in record.get("mutablePaths", []):
-                if _is_capability_reuse_governed_path(mutable_path):
+                if _is_capability_reuse_governed_path(mutable_path, legacy=legacy_batch):
                     admitted_batch_paths.add(mutable_path)
-            for owned_path in _capability_integration_paths(record):
+            for owned_path in _capability_integration_paths(record, legacy=legacy_batch):
                 batch_coverage.setdefault(owned_path, []).append(task_id)
         if checkpoint is not None:
             batch_changes, batch_diff_error = _git_revision_changed_paths(
@@ -3443,13 +3515,15 @@ def validate_capability_reuse_governance(
             else:
                 for _, record in group:
                     for path in record.get("mutablePaths", []):
-                        if _is_capability_reuse_auxiliary_test_path(path) and path not in batch_changes:
+                        auxiliary_kind = _capability_reuse_auxiliary_kind(path, legacy=legacy_batch)
+                        if auxiliary_kind is not None and path not in batch_changes:
                             errors.append(
-                                f"final capability-reuse auxiliary test path is not in the reviewed diff: "
+                                f"final capability-reuse auxiliary {auxiliary_kind} path is not in the reviewed diff: "
                                 f"{record['taskId']}: {path}"
                             )
                 governed_batch_changes = {
-                    path for path in batch_changes if _is_capability_reuse_governed_path(path)
+                    path for path in batch_changes
+                    if _is_capability_reuse_governed_path(path, legacy=legacy_batch)
                 }
                 if admitted_batch_paths != governed_batch_changes:
                     errors.append(f"final capability-reuse admitted paths differ from governed diff: {evidence_commit}")
@@ -3574,10 +3648,11 @@ def validate_capability_reuse_governance(
         task_id = str(record.get("taskId", "<invalid>"))
         for relative in record.get("mutablePaths", []):
             if not _is_capability_reuse_governed_path(relative):
-                if _is_capability_reuse_auxiliary_test_path(relative):
+                auxiliary_kind = _capability_reuse_auxiliary_kind(relative)
+                if auxiliary_kind is not None:
                     if relative not in tracked | untracked:
                         errors.append(
-                            f"current capability-reuse auxiliary test path is not in the current diff: "
+                            f"current capability-reuse auxiliary {auxiliary_kind} path is not in the current diff: "
                             f"{task_id}: {relative}"
                         )
                 else:

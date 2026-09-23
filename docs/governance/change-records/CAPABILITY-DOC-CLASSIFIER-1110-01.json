@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 2,
+  "taskId": "CAPABILITY-DOC-CLASSIFIER-1110-01",
+  "capability": "Classify exact canonical documentation authorities and admit one bounded delivery evidence path in capability-reuse validation",
+  "integrationBase": "b9a94a2bab1a7bc05129b3438f0c0afeaaf45ad4",
+  "risk": "R2",
+  "kind": "governance",
+  "state": "design-active",
+  "mutablePaths": [
+    "scripts/validate_repository.py",
+    "tests/scripts/test_agent_governance.py",
+    "docs/governance/capability-reuse-record.md",
+    "docs/adr/0071-final-integration-path-ownership.md"
+  ],
+  "implementationOwner": "/root",
+  "searchEvidence": [
+    "Frozen HEAD 620e2d6b0 structure verification has exactly ten current capability-reuse mutable path is not governed errors from earlier committed design-active records; the same ten errors occurred before this HEAD. The validator rejects these paths before historical and final ownership checks.",
+    "The existing scripts/validate_repository.py capability-reuse classifier and minimum-risk classifier are the single executable owners. docs/governance/capability-reuse-record.md owns auxiliary evidence and immutable record behavior; ADR 0071 owns final integration ownership. docs/AGENTS.md identifies SPEC and roadmap authority. No record-lifecycle replacement or firmware semantic owner is needed.",
+    "Independent read-only R2 design admission by /root/layout_ownership_review approved the four exact mutable paths and bounded contract on 2026-09-23; the five authority paths need one exact shared classification and the delivery path needs auxiliary evidence only. Do not edit committed admission fields or use task-ID exceptions.",
+    "Full structure validation exposed a historical temporal-classification boundary: the first affected sealed final batch predates the new exact document rules. Preserve its original policy through fixed final checkpoint b9a94a2bab1a7bc05129b3438f0c0afeaaf45ad4; apply the new rules only after that checkpoint, with ancestry and final-checkpoint validation. This does not waive historical coverage, digest, ownership, immutability, or R3 authority checks."
+  ],
+  "semanticOwner": "The existing capability-reuse validator owns exact path classification and evidence lifecycle; canonical specification, architecture documents and the record contract retain their existing normative authorities",
+  "terminalContract": "One exact shared path set classifies SPEC.md, docs/architecture/experience-and-access-policy.md, docs/architecture/nfc_roadmap.md, docs/architecture/supported-ic-matrix.md and docs/architecture/ic-workflow-flowcharts.md as governed with minimum R2 risk. Only exact docs/ui/v1.1.10-delivery.md may accompany a governed change as auxiliary documentation evidence: it must occur in current and final reviewed diffs, remain in complete path digest and immutable admission, and cannot own integrationPaths or authorize firmware, support, release or version policy. Apply the original path/risk/auxiliary/ownership policy to final batches sealed at or before fixed final checkpoint b9a94a2bab1a7bc05129b3438f0c0afeaaf45ad4; apply the new policy to the current diff and later final batches. Verify the cutover's ancestry and final-checkpoint authority; do not dynamically select a checkpoint or execute historical Python. Both policies retain all original coverage, digest, ownership, immutability, evidence-commit and R3 checks, and nearby names remain rejected after cutover. Tests exercise pre- and post-cutover real-Git finalization, governed omissions, cross-boundary behavior, invalid ancestry, evidence mutation, current/reviewed diffs, digest, ownership and immutable admission without task-ID exceptions.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "/root/layout_ownership_review",
+    "outcome": "approved",
+    "evidence": "Independent read-only R2 design admission on 2026-09-23 approved these four exact mutable paths with no P0-P3 findings. Subsequent independent read-only review explicitly approved the staged temporal addendum, confirmed b9a94a2b is the last sealed final evidence checkpoint and a HEAD ancestor, and required Git-ancestry-based legacy eligibility plus the unchanged history, owner and release gates. This is design admission, not implementation or integration PASS."
+  },
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": {
+    "reviewer": null,
+    "outcome": "pending",
+    "evidence": ""
+  }
+}

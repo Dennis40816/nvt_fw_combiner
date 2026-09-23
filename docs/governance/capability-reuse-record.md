@@ -27,15 +27,39 @@ are forbidden. A JSON record is valid only when its direct parent is exactly
 `docs/governance/change-records`; nested records are rejected before parsing or
 coverage and cannot later be moved into place for reuse.
 
-Exact non-governed files under `tests/` may accompany governed paths in
-`mutablePaths` as auxiliary evidence. They do not grant production authority
-or contribute to exactly-once governed coverage; a tests-only record cannot
-authorize a batch. Existing governed classification takes precedence (for
-example, `tests/AGENTS.md` remains governed). Auxiliary paths must occur in
-the current checkpoint diff and, at finalization, the checkpoint-to-reviewed
-diff. They remain included in the complete path-state digest and immutable
-admission fields. This exception does not admit other non-governed paths or
-relax index/worktree matching, review, Golden, or external release authority.
+Exact non-governed files under `tests/`, and only the exact
+`docs/ui/v1.1.10-delivery.md` status/evidence document, may accompany governed
+paths in `mutablePaths` as auxiliary evidence. They do not grant production
+authority or contribute to exactly-once governed coverage; an auxiliary-only
+record cannot authorize a batch. Existing governed classification takes
+precedence (for example, `tests/AGENTS.md` remains governed). Auxiliary paths
+must occur in the current checkpoint diff and, at finalization, the
+checkpoint-to-reviewed diff. They remain included in the complete path-state
+digest and immutable admission fields, but cannot appear in `integrationPaths`.
+The delivery document may cite accepted decisions and retain test/status
+evidence; it cannot itself decide firmware, support, release, or version rules.
+This exception does not admit other non-governed paths or relax index/worktree
+matching, review, Golden, or external release authority.
+
+The validator classifies `SPEC.md`,
+`docs/architecture/experience-and-access-policy.md`,
+`docs/architecture/nfc_roadmap.md`,
+`docs/architecture/supported-ic-matrix.md`, and
+`docs/architecture/ic-workflow-flowcharts.md` as exact governed paths with
+minimum R2 risk. Nearby files do not inherit that classification. The
+flowcharts remain a synchronized architecture projection, not an independent
+firmware or support authority. Committed admission fields remain immutable;
+this classification does not waive historical or final coverage checks.
+
+The exact-document and delivery-evidence classifications start after the sealed
+final evidence checkpoint `b9a94a2bab1a7bc05129b3438f0c0afeaaf45ad4`.
+Final batches at or before that commit in Git ancestry retain the preceding
+path, risk, auxiliary, ownership, and evidence-commit classification. The
+validator verifies the fixed cutover is an ancestor and a sealed final batch;
+it still replays every earlier final batch with its original coverage, digest,
+immutability, checkpoint, and external-authority checks. Current active records
+and the current checkpoint diff always use the new classification. The cutover
+is not a new trust root or permission to omit old governed paths.
 
 ## Lifecycle
 
@@ -50,7 +74,7 @@ All admitted governed paths must still equal the checkpoint diff as a set.
 Effective integration ownership must cover every changed governed path exactly
 once across the entire batch. Thus overlapping historical modifications may be
 partitioned at final review without hiding a stale path or leaving a gap.
-Auxiliary tests cannot be integration owners. Final review evidence must cover
+Auxiliary evidence cannot be an integration owner. Final review evidence must cover
 the chosen partition and all original mutable paths. Risk, independent review,
 full path-state digest and R3 attestations remain attached to each original
 record even when its `integrationPaths` is empty. The partition is a finalization

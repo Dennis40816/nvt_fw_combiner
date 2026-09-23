@@ -21,6 +21,19 @@ cover that same diff exactly once. All records finalize together against the
 same reviewed source; every original path remains in its record's digest.
 Empty ownership never removes review, minimum risk or R3 owner obligations.
 Historical records without the optional field retain their prior semantics.
+Exact auxiliary evidence paths, including the status-only 1.1.10 delivery
+document admitted by the record contract, remain in their original admissions,
+reviewed diffs and complete digests; they never enter `integrationPaths` or
+become a second product authority. Current canonical specification and
+architecture owners are governed paths, even when their Markdown syntax
+resembles an ordinary handoff. This classification does not rewrite earlier
+admissions or change the final checkpoint lifecycle.
+The record contract fixes the document-classification cutover at the last
+sealed final evidence checkpoint before those exact paths became governed.
+Earlier final batches are verified under their original classifier, while
+current and later batches use the new one. This preserves historical admission
+meaning without exempting any batch from its applicable coverage or ownership
+checks.
 
 ## Why and migration
 

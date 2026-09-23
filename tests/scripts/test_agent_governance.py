@@ -44,8 +44,15 @@ class AgentGovernanceTests(unittest.TestCase):
         self._git("commit", "-q", "-m", "baseline")
         self.integration_base = self._git("rev-parse", "HEAD").stdout.strip()
         self.trusted_initial_base = self.integration_base
+        # Synthetic repositories have no production cutover unless a test
+        # explicitly constructs and selects its own sealed final batch.
+        self.cutover_patch = mock.patch.object(
+            repository_validator, "CAPABILITY_REUSE_CLASSIFICATION_CUTOVER", None
+        )
+        self.cutover_patch.start()
 
     def tearDown(self) -> None:
+        self.cutover_patch.stop()
         self.temporary_directory.cleanup()
 
     def _git(self, *arguments: str) -> subprocess.CompletedProcess[str]:
@@ -1632,6 +1639,208 @@ class AgentGovernanceTests(unittest.TestCase):
         self._git("commit", "-q", "-m", "finalize with unowned R3 record")
         self.assertTrue(any("external" in e and "TEST-01" in e for e in self.validate()))
 
+    def test_exact_canonical_document_authorities_require_r2(self) -> None:
+        authorities = (
+            "SPEC.md",
+            "docs/architecture/experience-and-access-policy.md",
+            "docs/architecture/nfc_roadmap.md",
+            "docs/architecture/supported-ic-matrix.md",
+            "docs/architecture/ic-workflow-flowcharts.md",
+        )
+        for path in authorities:
+            with self.subTest(path=path):
+                self.assertTrue(_is_capability_reuse_governed_path(path))
+                self.assertEqual("R2", repository_validator._capability_reuse_minimum_risk(path))
+
+        self._change("SPEC.md")
+        self._write_record(self._record(paths=["SPEC.md"], risk="R1"))
+        self.assertTrue(any("risk is below path minimum R2" in error for error in self.validate()))
+
+    def _seal_legacy_document_batch(self, *, omit_old_governed: bool = False) -> str:
+        self._change()
+        self._write("SPEC.md", "Historical specification\n")
+        if omit_old_governed:
+            self._change("src/Product/Other.cs")
+        self._write_record(self._record())
+        self._git("add", ".")
+        self._git("commit", "-q", "-m", "implement before classifier cutover")
+        self._write_record(self._final_record())
+        self._git("commit", "-q", "-m", "seal legacy final batch")
+        return self._git("rev-parse", "HEAD").stdout.strip()
+
+    def test_document_classifier_preserves_sealed_legacy_batch_then_governs_new_diff(self) -> None:
+        cutover = self._seal_legacy_document_batch()
+        with mock.patch.object(repository_validator, "CAPABILITY_REUSE_CLASSIFICATION_CUTOVER", cutover):
+            self.assertEqual([], self.validate())
+            self.integration_base = cutover
+            self._change("src/Product/Other.cs")
+            self._write("SPEC.md", "New specification\n")
+            self._write_record(self._record("TEST-02", ["src/Product/Other.cs"]))
+            self.assertTrue(any(
+                "lacks a design-active/current-final" in error and "SPEC.md" in error
+                for error in self.validate()
+            ))
+
+    def test_document_classifier_does_not_waive_old_governed_omission(self) -> None:
+        cutover = self._seal_legacy_document_batch(omit_old_governed=True)
+        with mock.patch.object(repository_validator, "CAPABILITY_REUSE_CLASSIFICATION_CUTOVER", cutover):
+            self.assertTrue(any(
+                "final capability-reuse admitted paths differ from governed diff" in error
+                for error in self.validate()
+            ))
+
+    def test_document_classifier_rejects_new_evidence_commit_mutation(self) -> None:
+        cutover = self._seal_legacy_document_batch()
+        self.integration_base = cutover
+        paths = ["src/Product/Other.cs", "SPEC.md"]
+        self._change("src/Product/Other.cs")
+        self._write("SPEC.md", "New specification\n")
+        self._write_record(self._record("TEST-02", paths))
+        self._git("add", ".")
+        self._git("commit", "-q", "-m", "implement after classifier cutover")
+        self._write_record(self._final_record("TEST-02", paths))
+        self._write("docs/architecture/nfc_roadmap.md", "Post-review mutation\n")
+        self._git("add", ".")
+        self._git("commit", "-q", "-m", "seal mutated evidence batch")
+        with mock.patch.object(repository_validator, "CAPABILITY_REUSE_CLASSIFICATION_CUTOVER", cutover):
+            self.assertTrue(any(
+                "final evidence commit changes governed paths after reviewedHead" in error
+                for error in self.validate()
+            ))
+
+    def test_document_classifier_requires_ancestor_sealed_final_cutover(self) -> None:
+        with mock.patch.object(repository_validator, "CAPABILITY_REUSE_CLASSIFICATION_CUTOVER", "a" * 40):
+            self.assertTrue(any("cutover is not on current HEAD ancestry" in error
+                                for error in self.validate()))
+        implementation_head = self._commit_candidate_with_active_record()
+        with mock.patch.object(repository_validator, "CAPABILITY_REUSE_CLASSIFICATION_CUTOVER", implementation_head):
+            self.assertTrue(any("cutover is not a sealed final evidence batch" in error
+                                for error in self.validate()))
+
+    def test_staged_final_cannot_claim_legacy_policy_with_old_base(self) -> None:
+        cutover = self._seal_legacy_document_batch()
+        self._write("SPEC.md", "New specification\n")
+        self._write_record(self._final_record(
+            "TEST-02", ["SPEC.md"], risk="R1",
+            integrationBase=self.trusted_initial_base,
+            designReview={"reviewer": None, "outcome": "not-required", "evidence": ""},
+        ))
+        with mock.patch.object(repository_validator, "CAPABILITY_REUSE_CLASSIFICATION_CUTOVER", cutover):
+            self.assertTrue(any("risk is below path minimum R2" in error
+                                for error in self.validate()))
+            self._write_record(self._final_record(
+                "TEST-02", ["SPEC.md"], integrationBase=self.trusted_initial_base
+            ))
+            self.assertTrue(any("must bind latest evidence checkpoint" in error
+                                for error in self.validate()))
+
+    def test_document_authority_names_do_not_expand_to_nearby_files(self) -> None:
+        nearby = (
+            "SPEC.md.backup",
+            "docs/architecture/supported-ic-matrix-draft.md",
+            "docs/ui/v1.1.10-delivery-copy.md",
+        )
+        for path in nearby:
+            with self.subTest(path=path):
+                self.assertFalse(_is_capability_reuse_governed_path(path))
+                self._change()
+                self._change(path)
+                self._write_record(self._record(paths=["src/Product/Owner.cs", path]))
+                self.assertTrue(any("mutable path is not governed" in error for error in self.validate()))
+
+    def test_delivery_evidence_can_finalize_with_governed_owner(self) -> None:
+        delivery = "docs/ui/v1.1.10-delivery.md"
+        paths = ["src/Product/Owner.cs", delivery]
+        self._change()
+        self._change(delivery)
+        self._write_record(self._record(paths=paths))
+        self.assertEqual([], self.validate())
+        self._git("add", ".")
+        self._git("commit", "-q", "-m", "implement with delivery evidence")
+        self._write_record(self._final_record(paths=paths))
+        self.assertEqual([], self.validate())
+        self._git("commit", "-q", "-m", "finalize with delivery evidence")
+        self.assertEqual([], self.validate())
+
+    def test_delivery_evidence_survives_overlapping_final_ownership(self) -> None:
+        delivery = "docs/ui/v1.1.10-delivery.md"
+        paths = ["src/Product/Owner.cs", delivery]
+        self._change()
+        self._change(delivery)
+        self._write_record(self._record("TEST-01", paths=paths))
+        self._write_record(self._record("TEST-02"))
+        self._git("add", ".")
+        self._git("commit", "-q", "-m", "implement overlapping owner and delivery")
+        self._write_record(self._final_record("TEST-01", paths=paths, integrationPaths=[]))
+        self._write_record(self._final_record("TEST-02", integrationPaths=["src/Product/Owner.cs"]))
+        self.assertEqual([], self.validate())
+        self._git("commit", "-q", "-m", "finalize overlapping owner and delivery")
+        self.assertEqual([], self.validate())
+
+    def test_delivery_evidence_requires_governed_owner(self) -> None:
+        delivery = "docs/ui/v1.1.10-delivery.md"
+        self._change(delivery)
+        self._write_record(self._record(paths=[delivery]))
+        self.assertTrue(any("auxiliary evidence requires a governed path" in error for error in self.validate()))
+
+    def test_delivery_evidence_must_be_in_current_diff(self) -> None:
+        delivery = "docs/ui/v1.1.10-delivery.md"
+        self._write(delivery, "baseline\n")
+        self._git("add", ".")
+        self._git("commit", "-q", "-m", "baseline delivery")
+        self.integration_base = self._git("rev-parse", "HEAD").stdout.strip()
+        self.trusted_initial_base = self.integration_base
+        self._change()
+        self._write_record(self._record(paths=["src/Product/Owner.cs", delivery]))
+        self.assertTrue(any("auxiliary documentation path is not in the current diff" in error
+                            for error in self.validate()))
+
+    def test_delivery_evidence_cannot_own_final_integration(self) -> None:
+        delivery = "docs/ui/v1.1.10-delivery.md"
+        paths = ["src/Product/Owner.cs", delivery]
+        self._change()
+        self._change(delivery)
+        self._write_record(self._record(paths=paths))
+        self._git("add", ".")
+        self._git("commit", "-q", "-m", "implement with delivery evidence")
+        self._write_record(self._final_record(paths=paths, integrationPaths=[delivery]))
+        self.assertTrue(any("integrationPaths must be an exact unique governed subset" in error
+                            for error in self.validate()))
+
+    def test_delivery_evidence_stays_in_digest_and_immutable_admission(self) -> None:
+        delivery = "docs/ui/v1.1.10-delivery.md"
+        paths = ["src/Product/Owner.cs", delivery]
+        self._change()
+        self._change(delivery)
+        self._write_record(self._record(paths=paths))
+        self._git("add", ".")
+        self._git("commit", "-q", "-m", "implement with delivery evidence")
+        final_record = self._final_record(paths=paths)
+        digest, error = _capability_path_state_digest(self.root, "HEAD", paths[:1])
+        self.assertIsNone(error)
+        final_record["pathStateDigest"] = digest
+        self._write_record(final_record)
+        self.assertTrue(any("pathStateDigest differs" in error for error in self.validate()))
+        self._write_record(self._record(paths=paths[:1]))
+        self.assertTrue(any("immutable admitted fields" in error for error in self.validate()))
+
+    def test_final_delivery_evidence_must_be_in_reviewed_diff(self) -> None:
+        delivery = "docs/ui/v1.1.10-delivery.md"
+        self._write(delivery, "baseline\n")
+        self._git("add", ".")
+        self._git("commit", "-q", "-m", "baseline delivery")
+        self.integration_base = self._git("rev-parse", "HEAD").stdout.strip()
+        self.trusted_initial_base = self.integration_base
+        paths = ["src/Product/Owner.cs", delivery]
+        self._change()
+        self._write_record(self._record(paths=paths))
+        self._git("add", ".")
+        self._git("commit", "-q", "-m", "implement without delivery change")
+        self._write_record(self._final_record(paths=paths))
+        self._git("commit", "-q", "-m", "finalize stale delivery evidence")
+        self.assertTrue(any("auxiliary documentation path is not in the reviewed diff" in error
+                            for error in self.validate()))
+
     def test_changed_auxiliary_test_does_not_grant_production_authority(self) -> None:
         self._change()
         self._change("tests/test_owner.py")
@@ -1643,7 +1852,7 @@ class AgentGovernanceTests(unittest.TestCase):
     def test_auxiliary_test_requires_governed_owner(self) -> None:
         self._change("tests/test_owner.py")
         self._write_record(self._record(paths=["tests/test_owner.py"]))
-        self.assertTrue(any("auxiliary tests require a governed path" in error for error in self.validate()))
+        self.assertTrue(any("auxiliary evidence requires a governed path" in error for error in self.validate()))
 
     def test_auxiliary_test_must_occur_in_current_diff(self) -> None:
         self._change()
