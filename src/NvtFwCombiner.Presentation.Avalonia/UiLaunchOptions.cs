@@ -1,3 +1,4 @@
+using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
 namespace NvtFwCombiner.Presentation.Avalonia;
@@ -106,8 +107,8 @@ internal sealed partial class UiLaunchOptions
         }
 
         if (inputOptions.Count > 0 && pageCount > 1) { issues.Add("Duplicate option '--page'."); }
-        bool isAbMerge = inputOptions.GetValueOrDefault("--workflow") == "ab-merge";
-        bool isStandardMerge = inputOptions.GetValueOrDefault("--workflow") == "standard-merge";
+        bool isAbMerge = inputOptions.GetValueOrDefault("--workflow") == ExperienceIds.AbMerge;
+        bool isStandardMerge = inputOptions.GetValueOrDefault("--workflow") == ExperienceIds.StandardMerge;
         AbMergeLaunchRequest? abMerge = isAbMerge ? ParseAbMergeRequest(
             inputOptions, page, openSettings, reportPath, openReport, unknownArguments, issues) : null;
         StandardMergeLaunchRequest? standardMerge = isStandardMerge ? ParseStandardMergeRequest(
