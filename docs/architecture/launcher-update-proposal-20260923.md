@@ -130,6 +130,16 @@ Logical publisher/channel identity 不隨 server／share／URL 改變。新 clie
 
 ## 工期及需討論的決策
 
+2026-09-23 估算說明：下列 35–60 日把差異傳輸、三種 transport、企業認證、
+新版簽署／輪替、legacy bridge 與 clean Windows 故障驗收全部相加，屬於完整方案
+的人工作量模型，不是 Codex 的實際等待時間，也不是僅完成差異更新所需的時間。
+既有 Launcher 自更新已有基礎；未量測真實 package 的 chunk 重用率、未定義首套
+認證環境及 legacy 相容矩陣之前，這個區間不能作為交付日期。
+先以一條既有來源 → 差異取得 exact ZIP → 共用安裝／READY／rollback 的端到端
+切片收斂工期。新 client 的 locator abstraction 同步設計；多種企業認證、獨立
+Launcher-only 發布與所有歷史版本無人操作遷移按需求另排，不因本草稿自動開工。
+生產信任與 release gates 仍依適用政策，不能用 lab 切片宣稱已全部完成。
+
 粗估以一位熟悉 repo 的開發者專注工作日計，包含實作、測試及 review 修正，
 不含企業權限／金鑰／測試機等待；尚未用新模型分工量測，也不是曆日承諾。
 
