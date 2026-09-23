@@ -3,6 +3,7 @@ using System.Text.Json.Nodes;
 using NvtFwCombiner.Contracts.Profiles;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Profiles.V2;
+using NvtFwCombiner.TestSupport;
 
 namespace NvtFwCombiner.ProfileContract.Tests;
 
@@ -72,7 +73,8 @@ public sealed class CompositionProfileV216SourceEnvelopeTests
     private static CompositionProfileDocument Document(
         bool allowsAbsentSource = false, int fillByte = 0)
     {
-        string path = FindRepositoryFile();
+        string path = RepositoryPaths.FromRepositoryRoot("profiles", "built-in",
+            "nt51950-nt51951-standard-merge", "profiles", "nt51950-standard-merge.json");
         JsonObject profile = Assert.IsType<JsonObject>(JsonNode.Parse(File.ReadAllText(path)));
         profile["schemaVersion"] = "2.16";
         profile["sourceEnvelopeBinding"] = new JsonObject
@@ -99,21 +101,5 @@ public sealed class CompositionProfileV216SourceEnvelopeTests
         }
         return Assert.IsType<CompositionProfileDocument>(JsonSerializer.Deserialize<CompositionProfileDocument>(
             profile.ToJsonString(), s_jsonOptions));
-    }
-
-    private static string FindRepositoryFile()
-    {
-        for (DirectoryInfo? directory = new(AppContext.BaseDirectory);
-             directory is not null; directory = directory.Parent)
-        {
-            string path = Path.Combine(directory.FullName, "profiles", "built-in",
-                "nt51950-nt51951-standard-merge", "profiles", "nt51950-standard-merge.json");
-            if (File.Exists(path))
-            {
-                return path;
-            }
-        }
-
-        throw new InvalidOperationException("Canonical profile fixture not found.");
     }
 }

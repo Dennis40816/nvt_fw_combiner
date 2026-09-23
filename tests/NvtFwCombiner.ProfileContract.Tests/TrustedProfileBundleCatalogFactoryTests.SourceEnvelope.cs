@@ -5,6 +5,7 @@ using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Domain.Firmware;
 using NvtFwCombiner.Profiles.FirmwareFamilies;
 using NvtFwCombiner.Profiles.V2;
+using NvtFwCombiner.TestSupport;
 
 namespace NvtFwCombiner.ProfileContract.Tests;
 
@@ -471,16 +472,6 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
 
     private static string FindSourceEnvelopeRepositoryRoot()
     {
-        for (DirectoryInfo? directory = new(AppContext.BaseDirectory);
-             directory is not null;
-             directory = directory.Parent)
-        {
-            if (File.Exists(Path.Combine(directory.FullName, "NvtFwCombiner.slnx")))
-            {
-                return directory.FullName;
-            }
-        }
-
-        throw new InvalidOperationException("Repository root is unavailable to synthetic source-envelope tests.");
+        return RepositoryPaths.FindRepositoryRoot();
     }
 }
