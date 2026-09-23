@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 2,
+  "taskId": "CAPABILITY-CHECKPOINT-RECONCILIATION-1110-01",
+  "capability": "Reconcile an immutable mistaken integration base only at final capability-reuse evidence",
+  "integrationBase": "b9a94a2bab1a7bc05129b3438f0c0afeaaf45ad4",
+  "risk": "R2",
+  "kind": "governance",
+  "state": "design-active",
+  "mutablePaths": [
+    "scripts/validate_repository.py",
+    "tests/scripts/test_agent_governance.py",
+    "docs/governance/capability-reuse-record.md",
+    "docs/adr/0071-final-integration-path-ownership.md"
+  ],
+  "implementationOwner": "/root",
+  "searchEvidence": [
+    "Current HEAD 0095ca631 structure validation has 162 errors; the single current checkpoint binding error comes from immutable DP-ENVELOPE-1110-B1-01 integrationBase f0f0f0a32, a product commit after the last sealed final checkpoint b9a94a2b. B1 first-active admission was committed at 7676d49f2; no existing final-only field repairs this base.",
+    "scripts/validate_repository.py is the sole capability-reuse history replay, record parser and current/final checkpoint validator. tests/scripts/test_agent_governance.py owns real-Git lifecycle regression. docs/governance/capability-reuse-record.md owns the record contract; ADR 0071 owns final integration ownership. No second checkpoint or validator is introduced.",
+    "Owner explicitly approved a bounded final-only reconciliation that preserves the mistaken original admission and reviews the full diff from the actual b9a94a2b checkpoint. Independent read-only R2 design review by /root/layout_ownership_review approved the four exact paths and fail-closed contract on 2026-09-23."
+  ],
+  "semanticOwner": "The existing capability-reuse validator derives evidence checkpoints and validates immutable admission history; the record contract owns final-only reconciliation evidence",
+  "terminalContract": "Permit an optional closed-shape checkpointReconciliation object only in final-complete records, containing expectedCheckpoint, independent reviewer and nonempty evidence. The validator derives each batch checkpoint by unchanged historical replay, requires the field checkpoint to equal that computed value, and never uses it to select or reset a checkpoint. Reconciliation is valid only for a committed first-active admission whose original immutable integrationBase differs from the computed checkpoint and lies on the Git ancestry path from that checkpoint to its first-active commit. Preserve original admitted fields, first-active blob, reviewer independence, full checkpoint-to-reviewed governed and auxiliary diff, all original path digests, exactly-once integration ownership, direct-child evidence commit, immutable first-final blob, external R3 and release gates. Reject field use on design-active/blocked, missing first-active history, correct original base, malformed/extra keys, bad ancestry, forged checkpoint, evidence mutation, stale/missing/duplicate coverage, or post-final tampering. Apply the same rule to current finalization and historical final batches using each batch's actual replay checkpoint; do not alter temporal document-classifier eligibility or any firmware semantics.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "/root/layout_ownership_review",
+    "outcome": "approved",
+    "evidence": "Independent read-only R2 design review on 2026-09-23 approved the owner-authorized final-only reconciliation in these four existing owners, with no P0-P2 findings. Required tests include missing first-active, reviewer independence, unnecessary field, forged/wrong/nonancestor base, complete diff/digest/unique ownership/direct-child preservation, immutable sealed record, and two successive final batches. This admits implementation, not B1 finalization or release."
+  },
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": {
+    "reviewer": null,
+    "outcome": "pending",
+    "evidence": ""
+  }
+}

@@ -1,6 +1,6 @@
 # ADR 0071: Preserve change provenance with unique final integration ownership
 
-- Status: Accepted design; implementation and candidate verification pending
+- Status: Accepted design; checkpoint amendment approved 2026-09-23; implementation and candidate verification pending
 - Date: 2026-09-10
 - Owner: Repository owner, explicitly approved preserving historical records and unique final ownership
 - Risk: R2 governance
@@ -28,6 +28,19 @@ become a second product authority. Current canonical specification and
 architecture owners are governed paths, even when their Markdown syntax
 resembles an ordinary handoff. This classification does not rewrite earlier
 admissions or change the final checkpoint lifecycle.
+
+Owner amendment, 2026-09-23: a committed active admission may have named an
+intermediate product commit as `integrationBase` rather than the last sealed
+final evidence checkpoint. Preserve that erroneous field and the original
+first-active blob. Permit only a final-only, independently reviewed
+`checkpointReconciliation` under the [record contract](../governance/capability-reuse-record.md#lifecycle).
+The existing validator derives the checkpoint from historical replay and
+checks Git ancestry through the original base and first-active commit; the
+new evidence cannot reset the checkpoint. Final review still covers the full
+checkpoint-to-reviewed diff and every original mutable path, with unique
+ownership, digest, direct-child evidence, external R3 and release gates.
+Unneeded or premature reconciliation and changes to sealed final records fail.
+This does not claim the original admission met the checkpoint rule when filed.
 The record contract fixes the document-classification cutover at the last
 sealed final evidence checkpoint before those exact paths became governed.
 Earlier final batches are verified under their original classifier, while

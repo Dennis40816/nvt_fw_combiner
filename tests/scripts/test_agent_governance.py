@@ -1124,6 +1124,173 @@ class AgentGovernanceTests(unittest.TestCase):
 
         self.assertTrue(any("immutable after commit" in error for error in self.validate()))
 
+    def _admit_candidate_with_mistaken_product_base(self) -> str:
+        self._change()
+        self._git("add", "--", "src/Product/Owner.cs")
+        self._git("commit", "-q", "-m", "product checkpoint without final evidence")
+        mistaken_base = self._git("rev-parse", "HEAD").stdout.strip()
+        self._write("src/Product/Owner.cs", "internal sealed class Owner { public int Value => 2; }\n")
+        self._write_record(self._record(integrationBase=mistaken_base))
+        self._git("add", "--", "src/Product/Owner.cs")
+        self._git("commit", "-q", "-m", "implement with mistaken admitted base")
+        return mistaken_base
+
+    def _checkpoint_reconciliation(self, **overrides: Any) -> dict[str, str]:
+        evidence = {
+            "expectedCheckpoint": self.trusted_initial_base,
+            "reviewer": "independent-reviewer",
+            "evidence": "Original base named an intermediate product commit; full checkpoint diff reviewed.",
+        }
+        evidence.update(overrides)
+        return evidence
+
+    def test_final_checkpoint_reconciliation_preserves_full_diff_and_next_batch(self) -> None:
+        mistaken_base = self._admit_candidate_with_mistaken_product_base()
+        first_record = self._final_record(
+            integrationBase=mistaken_base,
+            checkpointReconciliation=self._checkpoint_reconciliation(),
+        )
+        self._write_record(first_record)
+        self.assertEqual([], self.validate())
+        self._git("commit", "-q", "-m", "seal reconciled final batch")
+        first_evidence_commit = self._git("rev-parse", "HEAD").stdout.strip()
+        self.assertEqual([], self.validate())
+
+        self.integration_base = first_evidence_commit
+        self._change("src/Product/Other.cs")
+        self._write_record(self._record("TEST-02", ["src/Product/Other.cs"]))
+        self._git("add", ".")
+        self._git("commit", "-q", "-m", "implement next batch")
+        self._write_record(self._final_record("TEST-02", ["src/Product/Other.cs"]))
+        self._git("commit", "-q", "-m", "seal next final batch")
+        self.assertEqual([], self.validate())
+
+    def test_checkpoint_reconciliation_cannot_be_active_or_unnecessary(self) -> None:
+        self._change()
+        self._write_record(self._record(
+            checkpointReconciliation=self._checkpoint_reconciliation()
+        ))
+        self.assertTrue(any("checkpointReconciliation requires final-complete" in error
+                            for error in self.validate()))
+
+        self._git("add", ".")
+        self._git("commit", "-q", "-m", "implement with invalid active evidence")
+        self._write_record(self._final_record(
+            checkpointReconciliation=self._checkpoint_reconciliation()
+        ))
+        self.assertTrue(any("reconciliation is unnecessary for a correct base" in error
+                            for error in self.validate()))
+
+    def test_checkpoint_reconciliation_rejects_forgery_and_missing_first_active(self) -> None:
+        mistaken_base = self._admit_candidate_with_mistaken_product_base()
+        self._write_record(self._final_record(
+            integrationBase=mistaken_base,
+            checkpointReconciliation=self._checkpoint_reconciliation(expectedCheckpoint="a" * 40),
+        ))
+        self.assertTrue(any("does not bind the replay checkpoint" in error
+                            for error in self.validate()))
+        self._write_record(self._final_record(
+            integrationBase=mistaken_base,
+            checkpointReconciliation=self._checkpoint_reconciliation(reviewer="IMPLEMENTER"),
+        ))
+        self.assertTrue(any("reviewer must be independent" in error
+                            for error in self.validate()))
+        self._write_record(self._final_record(
+            integrationBase=mistaken_base,
+            checkpointReconciliation={**self._checkpoint_reconciliation(), "extra": "forbidden"},
+        ))
+        self.assertTrue(any("exact final evidence fields" in error
+                            for error in self.validate()))
+
+        self._write_record(self._final_record(
+            integrationBase=mistaken_base,
+            checkpointReconciliation=self._checkpoint_reconciliation(),
+        ))
+        self._write_record(self._final_record(
+            "TEST-02", ["src/Product/Owner.cs"], integrationBase=mistaken_base,
+            checkpointReconciliation=self._checkpoint_reconciliation(),
+        ))
+        self.assertTrue(any("requires original committed design-active history" in error
+                            for error in self.validate()))
+
+    def test_checkpoint_reconciliation_keeps_full_diff_and_evidence_mutation_guards(self) -> None:
+        mistaken_base = self._admit_candidate_with_mistaken_product_base()
+        self._change("src/Product/Other.cs")
+        self._write_record(self._final_record(
+            integrationBase=mistaken_base,
+            checkpointReconciliation=self._checkpoint_reconciliation(),
+        ))
+        self.assertTrue(any("lacks a design-active/current-final" in error and
+                            "src/Product/Other.cs" in error for error in self.validate()))
+
+        self._write("src/Product/Other.cs", "internal sealed class Other {}\n")
+        self._write_record(self._final_record(
+            integrationBase=mistaken_base,
+            checkpointReconciliation=self._checkpoint_reconciliation(),
+        ))
+        self._write("src/Product/Other.cs", "internal sealed class Other { public int Value => 3; }\n")
+        self._git("add", "--", "src/Product/Other.cs")
+        self._git("commit", "-q", "-m", "seal final with post-review product mutation")
+        self.assertTrue(any("final evidence commit changes governed paths" in error
+                            for error in self.validate()))
+
+    def test_checkpoint_reconciliation_is_immutable_after_final_commit(self) -> None:
+        mistaken_base = self._admit_candidate_with_mistaken_product_base()
+        record = self._final_record(
+            integrationBase=mistaken_base,
+            checkpointReconciliation=self._checkpoint_reconciliation(),
+        )
+        self._write_record(record)
+        self._git("commit", "-q", "-m", "seal reconciled final batch")
+        record["checkpointReconciliation"]["evidence"] = "Changed after final evidence"
+        self._write_record(record)
+        self.assertTrue(any("immutable after commit" in error for error in self.validate()))
+
+    def test_checkpoint_reconciliation_requires_base_on_first_active_ancestry(self) -> None:
+        original_branch = self._git("branch", "--show-current").stdout.strip()
+        self._git("checkout", "-q", "-b", "side")
+        self._change("src/Product/Other.cs")
+        self._git("add", "--", "src/Product/Other.cs")
+        self._git("commit", "-q", "-m", "unrelated side product commit")
+        side_base = self._git("rev-parse", "HEAD").stdout.strip()
+        self._git("checkout", "-q", original_branch)
+        self._change()
+        self._write_record(self._record(integrationBase=side_base))
+        self._git("add", ".")
+        self._git("commit", "-q", "-m", "admit with nonancestor base")
+        self._write_record(self._final_record(
+            integrationBase=side_base,
+            checkpointReconciliation=self._checkpoint_reconciliation(),
+        ))
+        self.assertTrue(any("checkpoint reconciliation Git ancestry is invalid" in error
+                            for error in self.validate()))
+
+    def test_checkpoint_reconciliation_does_not_hide_duplicate_ownership(self) -> None:
+        mistaken_base = self._admit_candidate_with_mistaken_product_base()
+        self._write_record(self._record("TEST-02"))
+        self._git("commit", "-q", "-m", "admit overlapping owner")
+        self._write_record(self._final_record(
+            integrationBase=mistaken_base,
+            checkpointReconciliation=self._checkpoint_reconciliation(),
+        ))
+        self._write_record(self._final_record("TEST-02"))
+        self.assertTrue(any("duplicate capability-reuse coverage" in error
+                            for error in self.validate()))
+
+    def test_checkpoint_reconciliation_keeps_direct_child_evidence_requirement(self) -> None:
+        mistaken_base = self._admit_candidate_with_mistaken_product_base()
+        final_record = self._final_record(
+            integrationBase=mistaken_base,
+            checkpointReconciliation=self._checkpoint_reconciliation(),
+        )
+        self._write("scratch/after-review.txt", "unrelated follow-up\n")
+        self._git("add", "--", "scratch/after-review.txt")
+        self._git("commit", "-q", "-m", "intervening unreviewed commit")
+        self._write_record(final_record)
+        self._git("commit", "-q", "-m", "seal late final evidence")
+        self.assertTrue(any("direct child of reviewedHead" in error
+                            for error in self.validate()))
+
     def test_final_record_remains_valid_after_redundant_containment_merge(self) -> None:
         evidence_commit = self._finalize_first_batch()
         reviewed_head = self._git("rev-parse", f"{evidence_commit}^").stdout.strip()

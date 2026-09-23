@@ -1606,6 +1606,7 @@ CAPABILITY_REUSE_FINALIZED_FIELDS = {
     "pathStateDigest",
     "finalReview",
     "integrationPaths",
+    "checkpointReconciliation",
 }
 CAPABILITY_REUSE_R3_SCRIPTS = {
     "scripts/ab_merge_fixture_validation.py",
@@ -2878,11 +2879,12 @@ def _validate_capability_reuse_record(
         errors.append(f"capability-reuse record requires schemaVersion 2: {relative}")
         return None
     fields = set(record)
-    if fields - {"integrationPaths"} != CAPABILITY_REUSE_RECORD_FIELDS:
+    optional_final_fields = {"integrationPaths", "checkpointReconciliation"}
+    if fields - optional_final_fields != CAPABILITY_REUSE_RECORD_FIELDS:
         errors.append(
             f"capability-reuse record fields differ from v2 in {relative}: "
             f"missing={sorted(CAPABILITY_REUSE_RECORD_FIELDS - fields)}, "
-            f"extra={sorted(fields - CAPABILITY_REUSE_RECORD_FIELDS - {'integrationPaths'})}"
+            f"extra={sorted(fields - CAPABILITY_REUSE_RECORD_FIELDS - optional_final_fields)}"
         )
         return None
     for field in (
@@ -2963,6 +2965,24 @@ def _validate_capability_reuse_record(
         ):
             errors.append(f"integrationPaths must be an exact unique governed subset of mutablePaths: {relative}")
             return None
+    if "checkpointReconciliation" in record:
+        reconciliation = record["checkpointReconciliation"]
+        if state != "final-complete":
+            errors.append(f"checkpointReconciliation requires final-complete: {relative}")
+        if not isinstance(reconciliation, dict) or set(reconciliation) != {
+            "expectedCheckpoint", "reviewer", "evidence"
+        }:
+            errors.append(f"checkpointReconciliation must have exact final evidence fields: {relative}")
+            return None
+        if re.fullmatch(r"[0-9a-f]{40}", str(reconciliation["expectedCheckpoint"])) is None:
+            errors.append(f"checkpointReconciliation requires a full lowercase expectedCheckpoint: {relative}")
+        reconciliation_reviewer = reconciliation["reviewer"]
+        if not isinstance(reconciliation_reviewer, str) or not reconciliation_reviewer.strip():
+            errors.append(f"checkpointReconciliation requires an independent reviewer: {relative}")
+        elif reconciliation_reviewer.strip().casefold() == record["implementationOwner"].strip().casefold():
+            errors.append(f"checkpointReconciliation reviewer must be independent: {relative}")
+        if not isinstance(reconciliation["evidence"], str) or not reconciliation["evidence"].strip():
+            errors.append(f"checkpointReconciliation requires non-empty evidence: {relative}")
     if not governed_mutable_paths and any(
         _capability_reuse_auxiliary_kind(value, legacy=legacy) is not None for value in normalized_paths
     ):
@@ -3059,6 +3079,45 @@ def _validate_capability_reuse_record(
         if final_reviewer is not None or final_outcome != "pending" or final_evidence != "":
             errors.append(f"{state} capability-reuse final review must remain pending: {relative}")
     return record
+
+
+def _capability_effective_integration_base(
+    root: Path,
+    record: dict[str, Any],
+    checkpoint: str | None,
+    first_active: _CommittedCapabilityRecord | None,
+    errors: list[str],
+) -> str | None:
+    original_base = record.get("integrationBase")
+    reconciliation = record.get("checkpointReconciliation")
+    if reconciliation is None:
+        return original_base if isinstance(original_base, str) else None
+    task_id = str(record.get("taskId", "<invalid>"))
+    if checkpoint is None or reconciliation.get("expectedCheckpoint") != checkpoint:
+        errors.append(f"checkpoint reconciliation does not bind the replay checkpoint: {task_id}")
+        return None
+    if original_base == checkpoint:
+        errors.append(f"checkpoint reconciliation is unnecessary for a correct base: {task_id}")
+        return None
+    if first_active is None or first_active.value.get("integrationBase") != original_base:
+        errors.append(f"checkpoint reconciliation requires original committed design-active history: {task_id}")
+        return None
+    reviewed_head = record.get("reviewedHead")
+    for ancestor, descendant in (
+        (checkpoint, original_base),
+        (original_base, first_active.revision),
+        (first_active.revision, reviewed_head),
+    ):
+        ancestry = subprocess.run(
+            ["git", "merge-base", "--is-ancestor", ancestor, descendant],
+            cwd=root,
+            check=False,
+            capture_output=True,
+        )
+        if ancestry.returncode != 0:
+            errors.append(f"checkpoint reconciliation Git ancestry is invalid: {task_id}")
+            return None
+    return checkpoint
 
 
 def validate_capability_reuse_governance(
@@ -3429,7 +3488,16 @@ def validate_capability_reuse_governance(
                 f"{evidence_commit}: {missing_r3_authority}"
             )
         reviewed_heads = {record.get("reviewedHead") for _, record in group}
-        bases = {record.get("integrationBase") for _, record in group}
+        bases = {
+            _capability_effective_integration_base(
+                root,
+                record,
+                checkpoint,
+                history[relative].first_active,
+                errors,
+            )
+            for relative, record in group
+        }
         if checkpoint is None or bases != {checkpoint}:
             errors.append(
                 f"final capability-reuse batch does not bind the latest evidence checkpoint: {evidence_commit}"
@@ -3486,7 +3554,7 @@ def validate_capability_reuse_governance(
             if any(
                 design_record.get(field) is not None
                 for field in ("implementationHead", "reviewedHead", "pathStateDigest")
-            ) or design_record.get("finalReview") != {
+            ) or "checkpointReconciliation" in design_record or design_record.get("finalReview") != {
                 "reviewer": None,
                 "outcome": "pending",
                 "evidence": "",
@@ -3551,7 +3619,16 @@ def validate_capability_reuse_governance(
         )
         return
     bases = {
-        record.get("integrationBase")
+        _capability_effective_integration_base(
+            root,
+            record,
+            checkpoint,
+            history.get(
+                f"{CAPABILITY_REUSE_CHANGE_RECORD_ROOT.as_posix()}/{record.get('taskId')}.json",
+                _CapabilityRecordHistory(None, None, None, None),
+            ).first_active,
+            errors,
+        )
         for record in current_records
     }
     if current_records and bases != {checkpoint}:
@@ -3597,7 +3674,7 @@ def validate_capability_reuse_governance(
             if any(
                 design_record.get(field) is not None
                 for field in ("implementationHead", "reviewedHead", "pathStateDigest")
-            ) or design_record.get("finalReview") != {
+            ) or "checkpointReconciliation" in design_record or design_record.get("finalReview") != {
                 "reviewer": None,
                 "outcome": "pending",
                 "evidence": "",

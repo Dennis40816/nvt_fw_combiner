@@ -18,9 +18,12 @@ rejection is not a prohibition on separately authorized bounded local R1 work.
 
 The validator computes tracked renames, copies, additions, modifications, type
 changes, deletions, and non-ignored untracked files from the latest valid final
-evidence checkpoint. `integrationBase` must equal that checkpoint; it is not a
-self-attested ancestor. Both sides of a rename or copy are audited. Every governed
-path in the candidate must have exactly one effective integration owner,
+evidence checkpoint. For ordinary admission, `integrationBase` must equal that
+checkpoint; it is not a self-attested ancestor. A mistaken committed base may
+be reconciled only with the final-only evidence in [Lifecycle](#lifecycle),
+while the effective checkpoint still comes from replay. Both sides of a rename
+or copy are audited. Every governed path in the candidate must have exactly
+one effective integration owner,
 and every declared `mutablePaths` path must occur in that diff. Paths are
 exact, forward-slash, repository-relative names; globs and directory grants
 are forbidden. A JSON record is valid only when its direct parent is exactly
@@ -94,10 +97,39 @@ integration admission and review, not a retroactive design approval.
    commit, and `finalReview` records the independent result and evidence.
    The same task must exist as `design-active` at that reviewed commit;
    finalization may change only lifecycle and final-evidence fields (including
-   optional `integrationPaths`), never the
+   optional `integrationPaths` and `checkpointReconciliation`), never the
    admitted capability, base, paths, owners, disposition, risk, or design review.
 3. `blocked`: authorizes no paths. Head, digest, and final-review fields remain
    null/pending.
+
+For a committed `design-active` admission whose immutable `integrationBase`
+mistakenly names an intermediate product commit rather than the last sealed
+evidence checkpoint, `final-complete` may add exactly this final-only object:
+
+```json
+{
+  "checkpointReconciliation": {
+    "expectedCheckpoint": "0123456789abcdef0123456789abcdef01234567",
+    "reviewer": "independent-reviewer",
+    "evidence": "Original base named an intermediate product commit; the full checkpoint diff was reviewed."
+  }
+}
+```
+
+The validator derives the effective checkpoint from its unchanged historical
+replay, then requires `expectedCheckpoint` to equal that value. The field
+cannot choose a checkpoint. The original base must differ from the derived
+checkpoint and lie on the Git ancestry path from that checkpoint to the
+record's first committed `design-active` revision; that revision must also be
+an ancestor of `reviewedHead`. Missing history, malformed or extra fields,
+Git failures, an unnecessary reconciliation, or a reviewer equal to the
+implementation owner fail closed. The original first-active blob, admitted
+fields and independent `finalReview` remain mandatory. Full diff, path digest,
+unique `integrationPaths` ownership, direct-child final evidence, R3 authority
+and release checks still use the derived checkpoint and remain unchanged.
+Active or blocked records cannot carry this field, and a sealed final record
+cannot add or alter it later. This records the admission mistake honestly; it
+does not retroactively certify the original base as valid.
 
 The final record is committed as evidence immediately after the reviewed
 implementation commit. That evidence commit must have `reviewedHead` as its
