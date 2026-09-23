@@ -2,10 +2,15 @@
 
 All notable changes to NVT FW Combiner are documented here. The project follows Semantic Versioning and the Keep a Changelog section model.
 
-Released entries describe the state at publication. For current future-version
-assignments, use the [canonical roadmap](docs/architecture/nfc_roadmap.md).
+Released entries describe the state at publication. The 1.1.10 entry remains a
+release candidate until its gates and publication are complete. For current
+future-version assignments, use the [canonical roadmap](docs/architecture/nfc_roadmap.md).
 
 ## [Unreleased]
+
+1.1.10 is the current release candidate; later changes remain here.
+
+## [1.1.10]
 
 ### Summary
 
