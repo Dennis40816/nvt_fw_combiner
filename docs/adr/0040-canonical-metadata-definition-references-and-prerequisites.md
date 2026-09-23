@@ -8,6 +8,8 @@
   the owner-approved `0.10.x` specification and GitHub issue #176
 - Extended: 2026-07-28 by GitHub issue #186 for the typed TP Flash Header
   specialization and reference-only behavior-binding vocabulary
+- Extended: 2026-09-23 by 1.1.10 B2 local design admission for read-only
+  dynamic Standard metadata projection; release evidence remains pending
 - Owners: Product owner + architecture owner + firmware owner
 - Risk: R2 cross-layer architecture contract; each firmware locator binding
   remains R3
@@ -274,6 +276,16 @@ their exact selected targets with the `Inspection` purpose. They grant no
 output naming, Report classification, BIN formatting, support or write rights.
 Data migration and parity remain separately admitted, with expectations fixed
 from the pre-migration family/profile source rather than two migrated consumers.
+
+When a generic inspection supplies a distinct TP for a Standard source-envelope
+route, the Application compiler selects the single published exact map by the
+trusted DP capacity and exposes only its publication-bound metadata plan. This
+read-only projection does not grant the generic inspection authoring or execution
+authority. The Standard plan retains separate `dp-input` and `tp-input`
+artifacts; an absent TP stays an absent prerequisite and must not be substituted
+with DP bytes or a full-image view. Missing, ambiguous, stale, or failed exact
+selection is terminal. A nonstandard DP length needs captured DP bytes for an
+envelope plan; its length alone cannot select one.
 
 ## Alternatives
 

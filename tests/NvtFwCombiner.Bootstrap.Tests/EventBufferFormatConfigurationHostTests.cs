@@ -50,7 +50,11 @@ public sealed class EventBufferFormatConfigurationHostTests
         {
             Assert.Equal("desay", effect.UniqueId);
             Assert.Equal("flash", effect.AddressSpaceId);
-            Assert.Equal(new ByteRange(0x4A000, 0x2D000), effect.TpBRange);
+            Assert.Equal(
+                effect.MapId.EndsWith("1024k", StringComparison.Ordinal)
+                    ? new ByteRange(0x8A000, 0x2D000)
+                    : new ByteRange(0x4A000, 0x2D000),
+                effect.TpBRange);
         });
         Assert.True((await current.SaveAsync(current.CreateDefaultsDraft(), TestContext.Current.CancellationToken)).Succeeded);
         CompositionHostServices restarted = CompositionHostServices.Create(new ExternalProcessorEnvironmentLoader(), null,

@@ -16,7 +16,8 @@ public sealed class CompositionReportPerformanceBaselineTests
     private const int DifferenceCount = 10_000;
     private const int BaselineJsonCharacterCount = 17_718_178;
     private const string BaselineOutputSha256 = "e7b39a736b02c1793f1c22ab4c21e29bc478bd94465614c27bd70c4ac42c25b4";
-    private const string BaselineReportJsonSha256 = "71d6801f051ceb33660b6e6ede7d53dcfcce84a3a8f41d862c9aa737f653b36f";
+    // Synthetic source is Auxiliary rather than TP firmware; only CompilationFingerprint changes.
+    private const string BaselineReportJsonSha256 = "336c58c137c48dd332396f6eb37b61a4e5f1667f63fdb2314ea75c8f71ceda87";
     private static readonly DateTimeOffset StartedAtUtc = new(2026, 7, 18, 12, 0, 0, TimeSpan.Zero);
     private static readonly DateTimeOffset CompletedAtUtc = StartedAtUtc.AddSeconds(1);
     private static readonly JsonSerializerOptions ReportJsonOptions = new()
@@ -191,7 +192,8 @@ public sealed class CompositionReportPerformanceBaselineTests
                 "general-replace",
                 CompositionKind.Replace),
             "fragmented-report.bin",
-            IcNumberInputMode.SingleSelector);
+            IcNumberInputMode.SingleSelector,
+            nonReferenceArtifactClass: CompiledInputArtifactClass.Auxiliary);
         return new CompositionRunRequest(
             "fragmented-report-baseline-run",
             compiledComposition,
@@ -207,7 +209,7 @@ public sealed class CompositionReportPerformanceBaselineTests
                     "replacement-input",
                     "replacement-artifact",
                     "replacement-input.bin",
-                    CompiledInputArtifactClass.TpFirmware),
+                    CompiledInputArtifactClass.Auxiliary),
             ],
             "fragmented-report.bin",
             icNumberSelection: new IcNumberSelection(IcNumberInputMode.SingleSelector, ["single"]));

@@ -476,7 +476,8 @@ public sealed partial class CompiledAuthoringWorkflowService
         string icId,
         IReadOnlyCollection<string> selectedSlotIds,
         IReadOnlyDictionary<string, FileStamp> acceptedFileStamps,
-        ResolvedCapability? discoveredExactCapability)
+        ResolvedCapability? discoveredExactCapability,
+        string? routePrerequisiteSlotId = null)
     {
         if (session?.ExactCapability is not { } capability ||
             !StringComparer.Ordinal.Equals(session.WorkflowId, _resolver.WorkflowId) ||
@@ -487,7 +488,13 @@ public sealed partial class CompiledAuthoringWorkflowService
                 .Select(static slot => slot.DefinitionId)
                 .ToHashSet(StringComparer.Ordinal)
                 .SetEquals(selectedSlotIds) ||
-            session.Slots.Where(static slot => slot.SelectedPath is not null)
+            (routePrerequisiteSlotId is not null &&
+                !session.Slots.Any(slot =>
+                    StringComparer.Ordinal.Equals(slot.DefinitionId, routePrerequisiteSlotId) &&
+                    slot.SelectedPath is not null)) ||
+            session.Slots.Where(slot => slot.SelectedPath is not null &&
+                    (routePrerequisiteSlotId is null ||
+                        StringComparer.Ordinal.Equals(slot.DefinitionId, routePrerequisiteSlotId)))
                 .Any(static slot => slot.FileStamp is null ||
                     slot.Lifecycle is not (
                         AuthoringSlotLifecycle.Verified or
@@ -497,10 +504,15 @@ public sealed partial class CompiledAuthoringWorkflowService
         }
 
         var retainedStamps = session.Slots
-            .Where(static slot => slot.FileStamp is not null)
+            .Where(slot => slot.SelectedPath is not null && slot.FileStamp is not null &&
+                (routePrerequisiteSlotId is null ||
+                    StringComparer.Ordinal.Equals(slot.DefinitionId, routePrerequisiteSlotId)))
             .ToDictionary(static slot => slot.DefinitionId, static slot => slot.FileStamp!.Value,
                 StringComparer.Ordinal);
-        return retainedStamps.Count == acceptedFileStamps.Count &&
+        return (routePrerequisiteSlotId is null
+                ? retainedStamps.Count == acceptedFileStamps.Count
+                : retainedStamps.Count == 1 &&
+                    retainedStamps.ContainsKey(routePrerequisiteSlotId)) &&
             retainedStamps.All(pair => acceptedFileStamps.GetValueOrDefault(pair.Key) == pair.Value)
                 ? capability
                 : null;
@@ -532,14 +544,12 @@ public sealed partial class CompiledAuthoringWorkflowService
     private static ReadOnlyCollection<InputSelectionMemberReadiness> ProjectPendingPrerequisite(
         CompiledAuthoringWorkflowDiscovery discovery,
         IReadOnlyCollection<string> selectedSlotIds,
-        string prerequisiteSlotId,
-        bool requiresCapturedBytes = false)
+        string prerequisiteSlotId)
     {
         return Array.AsReadOnly(
         [
             .. discovery.AvailableSlotIds.Select(slotId =>
-                StringComparer.Ordinal.Equals(slotId, prerequisiteSlotId) &&
-                    !requiresCapturedBytes
+                StringComparer.Ordinal.Equals(slotId, prerequisiteSlotId)
                     ? new InputSelectionMemberReadiness(
                         slotId,
                         selectedSlotIds.Contains(slotId, StringComparer.Ordinal),

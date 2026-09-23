@@ -7,7 +7,7 @@ namespace NvtFwCombiner.Bootstrap.Tests;
 public sealed class Nt51950Nt51951V2StandardMergeGoldenTests
 {
     private const string BundleDirectory = "nt51950-nt51951-standard-merge";
-    private const string BundleContentHash = "f7ff35689ed2648c21e1ffc2dbf577663f75b2ef216c3a00a0dfb6f85aed1f25";
+    private const string BundleContentHash = "4244b4ac3230d1431342f11a78994a17286dc03ccb9a6324834e7e9cd292dc6a";
     private const int TpOverlayStart = 0x0A000;
     private const int TpOverlayLength = 0x2D000;
     private const int CustomerInfoStart = 0x37000;
@@ -73,7 +73,7 @@ public sealed class Nt51950Nt51951V2StandardMergeGoldenTests
         CompiledComposition v2 = V2StandardMergeGoldenTestSupport.CompileV2(
             V2StandardMergeGoldenTestSupport.LoadDeployedCatalog(BundleDirectory, BundleContentHash),
             profileId,
-            "0.7.0",
+            "0.8.0",
             icId,
             capacity);
 
@@ -110,7 +110,7 @@ public sealed class Nt51950Nt51951V2StandardMergeGoldenTests
         CompiledComposition v2 = V2StandardMergeGoldenTestSupport.CompileV2(
             V2StandardMergeGoldenTestSupport.LoadDeployedCatalog(BundleDirectory, BundleContentHash),
             profileId,
-            "0.7.0",
+            "0.8.0",
             icId,
             capacity);
 
@@ -143,7 +143,7 @@ public sealed class Nt51950Nt51951V2StandardMergeGoldenTests
         CompiledComposition v2 = V2StandardMergeGoldenTestSupport.CompileV2(
             V2StandardMergeGoldenTestSupport.LoadDeployedCatalog(BundleDirectory, BundleContentHash),
             "nt51950-standard-merge-dp-perspective",
-            "0.7.0",
+            "0.8.0",
             "NT51950",
             dp.LongLength);
 

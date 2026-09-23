@@ -1,8 +1,8 @@
 {
-  "schemaVersion": "2.15",
+  "schemaVersion": "2.16",
   "compilationContext": { "kind": "resolved-map" },
   "profileId": "nt51951-standard-merge-dp-perspective",
-  "profileVersion": "0.7.0",
+  "profileVersion": "0.8.0",
   "promotion": {
     "stage": "supported",
     "blockers": []
@@ -36,6 +36,14 @@
       "nt51951-dpcmi-standard-merge"
     ],
     "requiredCapabilityIds": []
+  },
+  "sourceEnvelopeBinding": {
+    "sourceSlotId": "dp-input",
+    "layoutTemplateMapId": "nt51951-standard-merge-256k",
+    "rootRegionId": "dp-container",
+    "whenSourceAbsent": "reject",
+    "expectedOuterLengths": [262144, 524288, 1048576],
+    "unexpectedLengthIssueCode": "DP_NONSTANDARD_SIZE_WARNING"
   },
   "inputSlots": [
     {
@@ -79,7 +87,7 @@
     {
       "spaceId": "output-image",
       "kind": "output-image",
-      "capacity": { "kind": "resolved-map" },
+      "capacity": { "kind": "source-slot", "sourceSlotId": "dp-input" },
       "initializer": { "kind": "blank", "fillByte": 0 }
     }
   ],

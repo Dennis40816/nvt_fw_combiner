@@ -45,10 +45,13 @@ public interface IFirmwareMetadataPlanAuthorityResolver
 /// capacity-bound metadata-only catalog query.
 /// </summary>
 public sealed class FirmwareMetadataPlanAuthorityResolver(
-    ICanonicalCapabilityQuery catalog) : IFirmwareMetadataPlanAuthorityResolver
+    ICanonicalCapabilityQuery catalog,
+    IStandardMergeMetadataPlanQuery standardMergeMetadata) : IFirmwareMetadataPlanAuthorityResolver
 {
     private readonly ICanonicalCapabilityQuery _catalog =
         catalog ?? throw new ArgumentNullException(nameof(catalog));
+    private readonly IStandardMergeMetadataPlanQuery _standardMergeMetadata =
+        standardMergeMetadata ?? throw new ArgumentNullException(nameof(standardMergeMetadata));
 
     /// <inheritdoc />
     public FirmwareMetadataPlanAuthority Resolve(
@@ -117,6 +120,18 @@ public sealed class FirmwareMetadataPlanAuthorityResolver(
         string icCountVariant,
         long inputLength)
     {
+        if (StringComparer.Ordinal.Equals(workflowId, ExperienceIds.StandardMerge))
+        {
+            MetadataPlanResolutionResult? dynamicResolution =
+                _standardMergeMetadata.ResolveSourceEnvelopeMetadataPlan(
+                    IcIdentifier.Normalize(icId), inputLength);
+            if (dynamicResolution is not null)
+            {
+                return FirmwareMetadataPlanAuthority.Terminal(
+                    dynamicResolution.MetadataPlan, dynamicResolution.Issue);
+            }
+        }
+
         MetadataPlanResolutionResult resolution =
             _catalog.ResolveUniqueMetadataPlan(
                 IcIdentifier.Normalize(icId),

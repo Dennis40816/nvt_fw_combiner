@@ -2,7 +2,7 @@
 
 - Status: Accepted
 - Date: 2026-07-11
-- Last amended: 2026-09-20
+- Last amended: 2026-09-23
 - Owners: Product owner + architecture owner + firmware reviewers
 - Supersedes: ADR 0008 catalog-join ownership and the C# catalog ownership in
   ADR 0012/ADR 0013 after #194 compatibility migration; their firmware
@@ -393,6 +393,11 @@ with no authorable route has `DefaultIcId == null` and empty selector collection
 profile-dependent query. Narrow ports register outer loader/compiler implementations without moving orchestration into
 Bootstrap, which retains no projection, materialization, fallback lookup, or second cache. UI and CLI query the Application
 snapshot; the migration `CanonicalCapabilityResolution*`/`CanonicalCapabilityProjection*` graph is deleted, not renamed.
+For the 1.1.10 initial selector, an authorable NT51950 is the preferred default IC.
+If NT51950 is unavailable, the existing deterministic route/workflow ranking
+selects another authorable IC; an empty publication still has no default. This
+preference applies only to initial selection and does not reset a still-valid
+user selection during reload.
 
 Authoring mutation has one state machine. `AuthoringSessionState` and
 `CompiledAuthoringWorkflowService` own all typed IC, IC Count, slot, draft, and

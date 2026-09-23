@@ -82,7 +82,7 @@ public sealed partial class CanonicalCapabilityCatalogMigrationTests
             bundleHash,
             manifest["trustAnchorBindingId"]!.GetValue<string>());
         var registration = new BuiltInV2Registration(
-            "NT51950", "nt51950-standard-merge-dp-perspective", "0.7.0", null,
+            "NT51950", "nt51950-standard-merge-dp-perspective", "0.8.0", null,
             bundle, CompositionKind.Merge, ExperienceIds.StandardMerge);
         CapabilityRouteIdentity identity = new(
             "NT51950", ExperienceIds.StandardMerge, "selector-free",
@@ -319,14 +319,22 @@ public sealed partial class CanonicalCapabilityCatalogMigrationTests
             .. reload.Snapshot!.DynamicRoutes.Where(static route =>
                 route.Identity.WorkflowId == ExperienceIds.CtrlRamReplace),
         ];
+        const string bankRouteId =
+            "route-7-nt51929-15-ctrlram-replace-4-1-ic-21-nt51929-ab-merge-512k";
+        ResolvedCapabilityRoute bankRoute = Assert.Single(ctrlRamRoutes,
+            route => route.Identity.RouteId == bankRouteId);
+        ResolvedCapabilityRoute[] legacyRoutes =
+        [
+            .. ctrlRamRoutes.Where(route => route.Identity.RouteId != bankRouteId),
+        ];
         ResolvedCapabilityRoute[] reportless =
         [
-            .. ctrlRamRoutes.Where(route =>
+            .. legacyRoutes.Where(route =>
                 route.Identity.IcId is "NT51919" or "NT51950" or "NT51951"),
         ];
         ResolvedCapabilityRoute[] reportful =
         [
-            .. ctrlRamRoutes.Except(reportless),
+            .. legacyRoutes.Except(reportless),
         ];
         CanonicalCapabilityPolicySnapshot policy =
             BuiltInCanonicalCapabilityPolicy.Load();
@@ -353,7 +361,8 @@ public sealed partial class CanonicalCapabilityCatalogMigrationTests
         };
 
         Assert.True(reload.Succeeded);
-        Assert.Equal(44, ctrlRamRoutes.Length);
+        Assert.Equal(45, ctrlRamRoutes.Length);
+        Assert.Equal(44, legacyRoutes.Length);
         Assert.Equal(10, reportless.Length);
         Assert.Equal(34, reportful.Length);
         Assert.Equal(
@@ -361,7 +370,23 @@ public sealed partial class CanonicalCapabilityCatalogMigrationTests
                 .Order(StringComparer.Ordinal),
             policyRoutes.Select(static route => route.Identity.RouteId)
                 .Order(StringComparer.Ordinal));
-        Assert.All(policyRoutes, route =>
+        CanonicalCapabilityPolicyRoute bankPolicy = Assert.Single(policyRoutes,
+            route => route.Identity.RouteId == bankRouteId);
+        Assert.Equal(CapabilityPublicationStatus.Candidate, bankRoute.Publication.Value);
+        Assert.Equal(CapabilityEvidenceStatus.ContractOnly, bankRoute.Evidence.Value);
+        Assert.EndsWith("-authoring-v1", bankPolicy.Authoring.DecisionId, StringComparison.Ordinal);
+        Assert.EndsWith("-publication-v1", bankPolicy.Publication.DecisionId, StringComparison.Ordinal);
+        Assert.EndsWith("-evidence-v1", bankPolicy.Evidence.DecisionId, StringComparison.Ordinal);
+        Assert.Equal(3, bankRoute.CompilationContract.SemanticBindingIds.Count);
+        Assert.Contains(bankRoute.CompilationContract.SemanticBindingIds,
+            static binding => binding.StartsWith("bank-definition:", StringComparison.Ordinal));
+        Assert.Contains(bankRoute.CompilationContract.SemanticBindingIds,
+            static binding => binding.StartsWith("postbuild-selector:", StringComparison.Ordinal));
+        Assert.Contains(bankRoute.CompilationContract.SemanticBindingIds,
+            static binding => binding.StartsWith("postbuild-plan:", StringComparison.Ordinal));
+        Assert.DoesNotContain(bankRoute.CompilationContract.SemanticBindingIds,
+            static binding => binding.StartsWith("report-metadata-", StringComparison.Ordinal));
+        Assert.All(policyRoutes.Where(route => route.Identity.RouteId != bankRouteId), route =>
         {
             // Catalog 1.12.0 adds display-only context to these ten routes.
             bool hasAddedContext = route.Identity.IcId is "NT51919" or "NT51950" or "NT51951";

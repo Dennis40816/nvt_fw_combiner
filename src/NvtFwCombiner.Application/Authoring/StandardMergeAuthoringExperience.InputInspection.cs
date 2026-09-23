@@ -40,7 +40,8 @@ internal sealed partial class StandardMergeAuthoringExperience
             exactCapability);
         return new FirmwareInspectionStatusBatch(
             batch.Catalog,
-            selected.ToDictionary(
+            selected.Where(input => batch.Statuses.ContainsKey(input.StandardMergeAddressSpaceId!))
+                .ToDictionary(
                 static input => input.InspectionId,
                 input => batch.Statuses[input.StandardMergeAddressSpaceId!],
                 StringComparer.Ordinal),

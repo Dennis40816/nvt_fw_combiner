@@ -76,6 +76,13 @@ These are profile facts; a source length never selects a nearest map or creates 
 `whenSourceAbsent: reject` requires a required, exactly-one DP slot. The optional
 `resolved-map` form requires a nonrequired, zero-or-one DP slot and retains the
 existing exact-map path when the source is absent; it creates no envelope extent.
+For a `reject` profile, an existing exact-capacity map may still compile its
+layout without map-resolution artifacts; this is not accepted execution and
+does not relax the required DP or exact input-length checks at Build. A
+nonstandard source-envelope fallback always requires a captured complete DP
+whose length equals the requested output extent. Failure of an exact-map
+topology, metadata, capability, or other admission check never falls back to
+the template.
 
 When a captured DP has a declared exact map capacity, ordinary exact-map resolution and its
 existing input-length terminal apply. A metadata, topology, capability, or other failure on that

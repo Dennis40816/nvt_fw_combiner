@@ -26,12 +26,24 @@ public sealed partial class CompiledAuthoringWorkflowService
         acceptedFileStamps = NormalizeFileStamps(acceptedFileStamps, inputBindings);
         if (discovery.DiscoveryRoute is not null)
         {
-            // A FileStamp proves an identity for inspection, not captured compiler input.
+            // Reuse only an exact capability inspected from the same prerequisite bytes
+            // and still admitted by this publication. A stamp alone cannot select a route.
+            ResolvedCapability? retainedCandidate = TryRetainExactCapability(
+                retainedSession, icId, selectedSlotIds, acceptedFileStamps, null,
+                discovery.CompilationPrerequisiteSlotId);
+            bool reusesExact = retainedCandidate is not null &&
+                MatchesDiscovery(discovery, retainedCandidate) &&
+                ContainsEverySelectedSlot(retainedCandidate, selectedSlotIds);
             return new CompiledAuthoringSelectionSnapshot(
-                DiscoveryCatalog(discovery),
-                ProjectPendingPrerequisite(
-                    discovery, selectedSlotIds, discovery.CompilationPrerequisiteSlotId!,
-                    requiresCapturedBytes: true),
+                reusesExact
+                    ? AuthoringCapabilityCatalogSnapshot.FromResolvedCapability(
+                        retainedCandidate!, discovery.DiscoveryTransition)
+                    : DiscoveryCatalog(discovery),
+                reusesExact
+                    ? ProjectExactSelection(
+                        discovery, retainedCandidate!, authoringRevision, selectedSlotIds, null)
+                    : ProjectPendingPrerequisite(
+                        discovery, selectedSlotIds, discovery.CompilationPrerequisiteSlotId!),
                 inputBindings,
                 []);
         }

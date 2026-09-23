@@ -14,6 +14,26 @@ namespace NvtFwCombiner.UiSmoke.Tests;
 [Collection(UiAvaloniaRuntimeCollection.Name)]
 public sealed class OutputConfirmationLabelTests
 {
+    /// <summary>The accepted DP length advisory is readable on the Output Settings confirmation.</summary>
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void NonstandardDpWarningExplainsSuspectedOsdWithoutBlocking(bool chinese)
+    {
+        ShellTextResources text = ShellTextResources.For(
+            chinese ? ShellLanguage.ChineseTraditional : ShellLanguage.English);
+        AuthoringInputSlotStatus status = StandardMergeFeedbackTests.Status(
+            "DP_NONSTANDARD_SIZE_WARNING", AuthoringSlotLifecycle.Warning,
+            actualLength: 0x40001);
+        var input = new CompositionOutputInputSummary("dp-input", "dp-input", "dp.bin", 0x40001,
+            [], null, status.InspectionLifecycle, status.InspectionIssueCode)
+        { Inspection = status.Inspection };
+
+        string warning = text.FormatOutputInputWarning(input);
+        Assert.Contains(chinese ? "OSD 客製化" : "customized OSD", warning, StringComparison.Ordinal);
+        Assert.DoesNotContain("DP_NONSTANDARD_SIZE_WARNING", warning, StringComparison.Ordinal);
+    }
+
     /// <summary>Length and metadata warnings survive together, without repeated advisory codes.</summary>
     [Theory]
     [InlineData(false)]

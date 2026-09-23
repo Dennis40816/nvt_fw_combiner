@@ -38,6 +38,7 @@ public sealed partial class XamlControlStyleContractTests
             ApprovedOutline("Resources/MainWindowReportAuditTemplates.axaml", "Button", xaml + "Name", "RawReportCopyButton"),
             ApprovedOutline("Views/FirmwareSlotCard.axaml", "Border", "IsVisible", "{Binding !HasIssueCard}"),
             ApprovedOutline("Views/RunReportsTable.axaml", "Border", xaml + "Name", "RunReportsTableSurface"),
+            ApprovedOutline("Views/OutputDeliveryConfirmationModal.axaml", "Border", xaml + "Name", "BuildWarningsPanel"),
             ApprovedOutline("Views/IssueDetailsCard.axaml", "Setter", "Selector", "Border.icDetailCard"),
             ApprovedOutline("Views/IssueDetailsCard.axaml", "Setter", "Selector", "Border.icDetailHeroIcon"),
             ApprovedOutline("Views/IssueDetailsCard.axaml", "Label", "Classes", "compactBadge neutralBadge"),

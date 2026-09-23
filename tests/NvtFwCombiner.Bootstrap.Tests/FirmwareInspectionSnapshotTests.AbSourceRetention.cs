@@ -55,7 +55,7 @@ public sealed partial class FirmwareInspectionSnapshotTests
         var reads = new Dictionary<string, int>(StringComparer.Ordinal);
         var files = new FileContentSnapshotInspector([workspace.Root]);
         var inspection = new BuiltInFirmwareInspection(
-            new FirmwareMetadataPlanAuthorityResolver(canonical.Catalog), canonical.Projection,
+            new FirmwareMetadataPlanAuthorityResolver(canonical.Catalog, canonical.Compiler), canonical.Projection,
             (StandardMergeAuthoringExperience)host.StandardMergeAuthoring,
             (AbMergeAuthoringExperience)host.AbMergeAuthoring,
             (CtrlRamAuthoringExperience)host.CtrlRamAuthoring,

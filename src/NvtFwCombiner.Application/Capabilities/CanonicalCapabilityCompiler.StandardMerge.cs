@@ -14,8 +14,22 @@ public interface IStandardMergeCompilationPort
         out IReadOnlyList<CompositionIssue> issues);
 }
 
-internal sealed partial class CanonicalCapabilityCompilerAdapter
+/// <summary>Read-only Standard source-envelope metadata lookup; never grants execution authority.</summary>
+public interface IStandardMergeMetadataPlanQuery
 {
+    /// <summary>Returns null only when the IC has no Standard source-envelope declaration.</summary>
+    MetadataPlanResolutionResult? ResolveSourceEnvelopeMetadataPlan(string icId, long dpInputLength);
+}
+
+internal sealed partial class CanonicalCapabilityCompilerAdapter : IStandardMergeMetadataPlanQuery
+{
+    MetadataPlanResolutionResult? IStandardMergeMetadataPlanQuery.ResolveSourceEnvelopeMetadataPlan(
+        string icId,
+        long dpInputLength)
+    {
+        return ResolveSourceEnvelopeMetadataPlan(icId, dpInputLength);
+    }
+
     bool IStandardMergeCompilationPort.TryCompileStandardMerge(
         string icId,
         long? dpInputLength,

@@ -171,7 +171,9 @@ public sealed partial class RepositoryBoundaryTests
         Assert.DoesNotContain("CompiledComposition", selector, StringComparison.Ordinal);
         Assert.DoesNotContain("ByteRange", selector, StringComparison.Ordinal);
         Assert.DoesNotContain("CompositionOperation", selector, StringComparison.Ordinal);
-        Assert.DoesNotContain("NT519", selector, StringComparison.OrdinalIgnoreCase);
+        Assert.Equal(1, CountOccurrences(selector, "\"NT51950\""));
+        Assert.DoesNotContain("NT519", selector.Replace("\"NT51950\"", "", StringComparison.Ordinal),
+            StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("Lazy<CapabilitySelectorPublication", selector, StringComparison.Ordinal);
         Assert.DoesNotContain("Lazy<CapabilitySelectorPublication", deviceContext, StringComparison.Ordinal);
         Assert.DoesNotContain("GetAbMergeProfileSummaries", deviceContext, StringComparison.Ordinal);

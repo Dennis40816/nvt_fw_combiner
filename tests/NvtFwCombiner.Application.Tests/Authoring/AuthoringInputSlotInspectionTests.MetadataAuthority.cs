@@ -16,7 +16,7 @@ public sealed partial class AuthoringInputSlotInspectionTests
         ResolvedMetadataPlan genericPlan = MetadataPlanDefinition.Empty.Resolve(
             new ResolutionToken("generic-metadata-publication"));
         var query = new RecordingMetadataQuery(genericPlan);
-        var resolver = new FirmwareMetadataPlanAuthorityResolver(query);
+        var resolver = new FirmwareMetadataPlanAuthorityResolver(query, query);
         ResolvedCapability standard = CreateCapability(ExperienceIds.StandardMerge);
         ResolvedCapability ctrlRam = CreateCapability(ExperienceIds.CtrlRamReplace);
         FirmwareInspectionStatusBatch standardBatch = Batch(standard);
@@ -145,7 +145,7 @@ public sealed partial class AuthoringInputSlotInspectionTests
         {
             Result = new MetadataPlanResolutionResult(null, issue),
         };
-        var resolver = new FirmwareMetadataPlanAuthorityResolver(query);
+        var resolver = new FirmwareMetadataPlanAuthorityResolver(query, query);
         FirmwareMetadataPlanAuthority result = resolver.Resolve("NT-HEADLESS",
             new FirmwareInspectionSnapshotInput("base", "base.bin",
                 CtrlRamReplaceAddressSpaceId: CompositionAddressSpaceIds.ReferenceBase), 262144,
@@ -166,7 +166,7 @@ public sealed partial class AuthoringInputSlotInspectionTests
         ResolvedMetadataPlan source = Metadata.FirmwareMetadataInspectorTests.CreateDpcmiPlan(expectedFirstByte: 0xAA);
         ResolvedCapability capability = CreateCapability(ExperienceIds.CtrlRamReplace, metadataPlan: source.Definition);
         var query = new RecordingMetadataQuery(MetadataPlanDefinition.Empty.Resolve(new ResolutionToken("unused")));
-        var resolver = new FirmwareMetadataPlanAuthorityResolver(query);
+        var resolver = new FirmwareMetadataPlanAuthorityResolver(query, query);
         FirmwareMetadataPlanAuthority result = resolver.Resolve("NT-HEADLESS",
             new FirmwareInspectionSnapshotInput("base", "base.bin",
                 CtrlRamReplaceAddressSpaceId: CompositionAddressSpaceIds.ReferenceBase), 8,
@@ -186,12 +186,34 @@ public sealed partial class AuthoringInputSlotInspectionTests
     public void DistinctTpMetadataKeepsStandardPlanQuery()
     {
         var query = new RecordingMetadataQuery(MetadataPlanDefinition.Empty.Resolve(new ResolutionToken("standard")));
-        var resolver = new FirmwareMetadataPlanAuthorityResolver(query);
+        var resolver = new FirmwareMetadataPlanAuthorityResolver(query, query);
         FirmwareMetadataPlanAuthority result = resolver.Resolve("NT-HEADLESS",
             new FirmwareInspectionSnapshotInput("dp", "dp.bin", "tp.bin"), 8,
             FirmwareInspectionStatusBatch.Empty, FirmwareInspectionStatusBatch.Empty);
         Assert.Same(query.Result.MetadataPlan, result.Plan);
+        Assert.Equal([new MetadataQueryCall("NT-HEADLESS", "source-envelope", "selector-free", 8)], query.DynamicCalls);
         Assert.Equal([new MetadataQueryCall("NT-HEADLESS", ExperienceIds.StandardMerge, "selector-free", 8)], query.Calls);
+    }
+
+    /// <summary>A dynamic Standard decision remains terminal and never changes to a full-image or static interpretation.</summary>
+    [Fact]
+    public void DistinctTpDynamicMetadataFailureDoesNotFallBack()
+    {
+        var query = new RecordingMetadataQuery(MetadataPlanDefinition.Empty.Resolve(new ResolutionToken("unused")));
+        var issue = new CapabilityCatalogIssue(CapabilityCatalogIssueCodes.RouteAmbiguous,
+            "The exact Standard map is ambiguous.");
+        query.DynamicResult = new MetadataPlanResolutionResult(null, issue);
+        var resolver = new FirmwareMetadataPlanAuthorityResolver(query, query);
+
+        FirmwareMetadataPlanAuthority result = resolver.Resolve("NT-HEADLESS",
+            new FirmwareInspectionSnapshotInput("dp", "dp.bin", "tp.bin"), 8,
+            FirmwareInspectionStatusBatch.Empty, FirmwareInspectionStatusBatch.Empty);
+
+        Assert.True(result.IsApplicable);
+        Assert.Null(result.Plan);
+        Assert.Same(issue, result.Issue);
+        _ = Assert.Single(query.DynamicCalls);
+        Assert.Empty(query.Calls);
     }
 
     private static FirmwareInspectionStatusBatch Batch(ResolvedCapability capability)
@@ -209,12 +231,22 @@ public sealed partial class AuthoringInputSlotInspectionTests
         long? OutputCapacity);
 
     private sealed class RecordingMetadataQuery(ResolvedMetadataPlan plan)
-        : ICanonicalCapabilityQuery
+        : ICanonicalCapabilityQuery, IStandardMergeMetadataPlanQuery
     {
         internal List<MetadataQueryCall> Calls { get; } = [];
 
+        internal List<MetadataQueryCall> DynamicCalls { get; } = [];
+
+        internal MetadataPlanResolutionResult? DynamicResult { get; set; }
+
         internal MetadataPlanResolutionResult Result { get; set; } =
             new(plan, null);
+
+        public MetadataPlanResolutionResult? ResolveSourceEnvelopeMetadataPlan(string icId, long dpInputLength)
+        {
+            DynamicCalls.Add(new MetadataQueryCall(icId, "source-envelope", "selector-free", dpInputLength));
+            return DynamicResult;
+        }
 
         public MetadataPlanResolutionResult ResolveFullImageMetadataPlan(string icId, long inputLength)
         {

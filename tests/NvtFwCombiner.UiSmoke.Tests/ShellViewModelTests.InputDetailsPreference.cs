@@ -44,7 +44,7 @@ public sealed partial class ShellNavigationSystemTests
             new("PID", "0x570A"),
             new("Common FW Version", "1.4.0"),
             new("Event Buffer Version", "0x97 - Desay"),
-            new("IC Count", "3"),
+            new("IC Count", "3", priority: FirmwareSlotFactPriority.Details),
         ];
 
         slot.SetFirmwareFacts(facts, expandAdditionalByDefault: true);

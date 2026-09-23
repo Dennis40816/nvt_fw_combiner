@@ -114,7 +114,9 @@ public sealed class WorkbenchCatalogProjectionTests
                     out IReadOnlyList<CompositionIssue> issues),
                 string.Join(Environment.NewLine, issues.Select(static issue => $"{issue.Code}: {issue.Message}")));
 
-            Assert.True(summary.CompileSucceeded);
+            Assert.True(summary.DeclarationReady);
+            Assert.Equal(summary.IcId is not ("NT51950" or "NT51951"),
+                summary.CompileSucceeded);
             Assert.Empty(summary.IssueCodes);
             Assert.Equal(composition.V2Details.ProfileId, summary.ProfileId);
             Assert.Equal(composition.V2Details.CompositionKind, summary.CompositionKind);

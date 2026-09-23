@@ -80,11 +80,11 @@ public sealed class StandardMergeCompilationTests
         Assert.Empty(issues);
     }
 
-    /// <summary>An unsupported DP Perspective length returns a stable issue without an artifact.</summary>
+    /// <summary>A nonstandard length alone cannot compile without the captured DP bytes.</summary>
     [Theory]
     [InlineData("NT51950")]
     [InlineData("NT51951")]
-    public void UnsupportedDpPerspectiveLengthDoesNotCompile(string icId)
+    public void NonstandardDpPerspectiveLengthWithoutCapturedBytesRemainsPending(string icId)
     {
         bool succeeded = BootstrapTestHost.Canonical.Compiler.TryCompileStandardMerge(
             icId,
@@ -94,9 +94,7 @@ public sealed class StandardMergeCompilationTests
 
         Assert.False(succeeded);
         Assert.Null(composition);
-        CompositionIssue issue = Assert.Single(issues);
-        Assert.Equal(CompositionPlanningIssueCodes.StandardMergeDpLengthUnsupported, issue.Code);
-        Assert.Contains("0x40001", issue.Message, StringComparison.Ordinal);
+        Assert.Empty(issues);
     }
 
     /// <summary>An unknown IC never produces an executable artifact.</summary>

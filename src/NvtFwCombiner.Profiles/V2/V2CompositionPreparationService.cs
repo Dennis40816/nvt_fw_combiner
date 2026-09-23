@@ -69,7 +69,13 @@ internal static class V2CompositionPreparationService
                 ? null
                 : resolutionInputs.Artifacts.SingleOrDefault(artifact =>
                     StringComparer.Ordinal.Equals(artifact.ArtifactId, binding.SourceSlotId));
-            if (binding is { AllowsAbsentSource: false } && boundSource is null)
+            bool hasExactProfileMap = selectedProfile.Family.Family.ImageMaps.Any(map =>
+                profileMapIds.Contains(map.MapId) &&
+                map.Applicability.MemberIds.Contains(resolutionInputs.MemberId, StringComparer.Ordinal) &&
+                map.Applicability.ModeIds.Contains(resolutionInputs.ModeId, StringComparer.Ordinal) &&
+                map.CapacityBytes == resolutionInputs.CapacityBytes);
+            if (binding is { AllowsAbsentSource: false } && boundSource is null &&
+                !hasExactProfileMap)
             {
                 issues = [new CompositionIssue(
                     "profile.v2.source-envelope.source-missing",
@@ -80,11 +86,7 @@ internal static class V2CompositionPreparationService
             bool hasNonstandardBoundSource = binding is not null &&
                 boundSource is not null &&
                 boundSource.LengthBytes == resolutionInputs.CapacityBytes &&
-                !selectedProfile.Family.Family.ImageMaps.Any(map =>
-                    profileMapIds.Contains(map.MapId) &&
-                    map.Applicability.MemberIds.Contains(resolutionInputs.MemberId, StringComparer.Ordinal) &&
-                    map.Applicability.ModeIds.Contains(resolutionInputs.ModeId, StringComparer.Ordinal) &&
-                    map.CapacityBytes == boundSource.LengthBytes);
+                !hasExactProfileMap;
             if (hasNonstandardBoundSource)
             {
                 mapResolution = selectedProfile.Family.Family.ResolveLayoutTemplateWithinForProfile(

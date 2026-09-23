@@ -119,7 +119,7 @@ public sealed partial class CompositionRunServiceTests
     public async Task TpMaximumCompatibilityPreviewAndBuildUseAcceptedSourceView()
     {
         (CompositionRunService service, CompositionRunRequest request, FakeOutputWriter writer) =
-            CreateTpMaximumRun(sourceLength: 8);
+            CreateTpMaximumRun(sourceLength: 0x1004);
 
         CompositionRunResult preview = await service.PreviewAsync(request, CancellationToken.None);
         CompositionRunResult build = await service.BuildAsync(
@@ -129,8 +129,8 @@ public sealed partial class CompositionRunServiceTests
         Assert.Equal(CompositionExecutionStatus.Succeeded, preview.Status);
         InputArtifactExecutionSnapshotSummary snapshot = Assert.IsType<InputArtifactExecutionSnapshotSummary>(
             Assert.Single(preview.Report.Inputs).ExecutionSnapshot);
-        Assert.Equal(new ByteRange(0, 4), snapshot.AcceptedRange);
-        Assert.Equal(new ByteRange(4, 4), snapshot.IgnoredTrailingRange);
+        Assert.Equal(new ByteRange(0, 0x1000), snapshot.AcceptedRange);
+        Assert.Equal(new ByteRange(0x1000, 4), snapshot.IgnoredTrailingRange);
         Assert.Equal(CompositionExecutionStatus.Succeeded, build.Status);
         Assert.True(writer.WasCalled);
         Assert.DoesNotContain(build.Report.Issues, issue => issue.Code == "input.artifact.read-failed");
@@ -138,8 +138,8 @@ public sealed partial class CompositionRunServiceTests
 
     /// <summary>TP maximum compatibility failures retain typed length issues instead of read failures.</summary>
     [Theory]
-    [InlineData(3, CompositionIssueCodes.InputSourceViewIncomplete)]
-    [InlineData(262145, CompositionIssueCodes.InputAddressSpaceLengthMismatch)]
+    [InlineData(0xFFF, CompositionIssueCodes.InputSourceViewIncomplete)]
+    [InlineData(0x40001, CompositionIssueCodes.InputAddressSpaceLengthMismatch)]
     public async Task TpMaximumCompatibilityPreviewReportsTypedLengthIssue(
         int sourceLength,
         string expectedIssueCode)
@@ -157,7 +157,7 @@ public sealed partial class CompositionRunServiceTests
             Assert.Equal("tp-input-slot", diagnostic.SlotId);
             Assert.Equal("tp-input", diagnostic.Evidence.AddressSpaceId);
             Assert.Equal(sourceLength, diagnostic.Evidence.ActualLength);
-            Assert.Equal(4, diagnostic.Evidence.RequiredEndExclusive);
+            Assert.Equal(0x1000, diagnostic.Evidence.RequiredEndExclusive);
             Assert.Null(diagnostic.Evidence.SourceRange);
             Assert.Null(diagnostic.Evidence.RepeatedByte);
         }
@@ -263,7 +263,7 @@ public sealed partial class CompositionRunServiceTests
                 "dp-input",
                 "dp-artifact",
                 "dp-input.bin",
-                CompiledInputArtifactClass.TpFirmware)],
+                CompiledInputArtifactClass.Auxiliary)],
             approvedPreviewToken: "approved-preview-token"));
 
         Assert.Contains("exactly match", exception.Message, StringComparison.OrdinalIgnoreCase);
@@ -286,10 +286,10 @@ public sealed partial class CompositionRunServiceTests
         [
             new InputArtifactBinding(
                 "dp-input", "dp-safe", hostLocator, "dp-input.bin",
-                CompiledInputArtifactClass.TpFirmware),
+                CompiledInputArtifactClass.Auxiliary),
             new InputArtifactBinding(
                 "tp-input", "tp-safe", "tp-artifact", "tp-input.bin",
-                CompiledInputArtifactClass.TpFirmware),
+                CompiledInputArtifactClass.Auxiliary),
         ]);
 
         CompositionRunResult result = await service.PreviewAsync(request, CancellationToken.None);
@@ -406,10 +406,10 @@ public sealed partial class CompositionRunServiceTests
         [
             new InputArtifactBinding(
                 "dp-input", "dp-safe", "missing-dp", "dp-input.bin",
-                CompiledInputArtifactClass.TpFirmware),
+                CompiledInputArtifactClass.Auxiliary),
             new InputArtifactBinding(
                 "tp-input", "tp-safe", "missing-tp", "tp-input.bin",
-                CompiledInputArtifactClass.TpFirmware),
+                CompiledInputArtifactClass.Auxiliary),
         ]);
 
         CompositionRunResult result = await service.PreviewAsync(request, CancellationToken.None);
@@ -433,10 +433,10 @@ public sealed partial class CompositionRunServiceTests
         [
             new InputArtifactBinding(
                 "dp-input", "dp-safe", "shared-artifact", "dp-input.bin",
-                CompiledInputArtifactClass.TpFirmware),
+                CompiledInputArtifactClass.Auxiliary),
             new InputArtifactBinding(
                 "tp-input", "tp-safe", "shared-artifact", "tp-input.bin",
-                CompiledInputArtifactClass.TpFirmware),
+                CompiledInputArtifactClass.Auxiliary),
         ]);
 
         CompositionRunResult result = await service.PreviewAsync(request, CancellationToken.None);
@@ -460,10 +460,10 @@ public sealed partial class CompositionRunServiceTests
         [
             new InputArtifactBinding(
                 "dp-input", "dp-safe", "missing-shared-artifact", "dp-input.bin",
-                CompiledInputArtifactClass.TpFirmware),
+                CompiledInputArtifactClass.Auxiliary),
             new InputArtifactBinding(
                 "tp-input", "tp-safe", "missing-shared-artifact", "tp-input.bin",
-                CompiledInputArtifactClass.TpFirmware),
+                CompiledInputArtifactClass.Auxiliary),
         ]);
 
         CompositionRunResult result = await service.PreviewAsync(request, CancellationToken.None);

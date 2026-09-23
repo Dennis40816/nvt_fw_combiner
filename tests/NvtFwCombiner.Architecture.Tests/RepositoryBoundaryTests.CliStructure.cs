@@ -192,7 +192,7 @@ public sealed partial class RepositoryBoundaryTests
         Assert.DoesNotContain("BuiltInReplaceProfiles", profiles, StringComparison.Ordinal);
         Assert.DoesNotContain("CompositionProfileCompiler", profiles, StringComparison.Ordinal);
         Assert.Contains("private static async Task PrintRunResultAsync", result, StringComparison.Ordinal);
-        Assert.Contains("private static async Task<int> RunStandardMergeAsync", standardMerge, StringComparison.Ordinal);
+        Assert.Contains("internal static async Task<int> RunStandardMergeAsync", standardMerge, StringComparison.Ordinal);
         Assert.Contains("exception.IsMissing", standardMerge, StringComparison.Ordinal);
         Assert.DoesNotContain("File.Exists(exception.Path)", standardMerge, StringComparison.Ordinal);
         Assert.Contains("private static async Task WriteUsageAsync", usage, StringComparison.Ordinal);

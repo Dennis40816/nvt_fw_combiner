@@ -24,6 +24,10 @@ public sealed partial class HeadlessInputSlotInspectionContractTests
                 [CompositionAddressSpaceIds.DpInput],
                 new Dictionary<string, FileStamp>(StringComparer.Ordinal),
                 new AuthoringRevision(1));
+        Assert.True(discovery.Slots.Single(static slot =>
+            slot.SlotId == CompositionAddressSpaceIds.DpInput).CanSelect);
+        Assert.False(discovery.Slots.Single(static slot =>
+            slot.SlotId == CompositionAddressSpaceIds.TpInput).CanSelect);
         AuthoringSessionTransitionResult activated = session.Activate(discovery.Catalog);
         Assert.True(activated.Succeeded, activated.Issue?.Message);
         ReviewedDiscoveryTransition proof = Assert.IsType<ReviewedDiscoveryTransition>(
@@ -62,6 +66,43 @@ public sealed partial class HeadlessInputSlotInspectionContractTests
         Assert.Equal(expectedMapVariant, completed.Snapshot.SelectedMapVariant);
         Assert.NotNull(completed.Snapshot.CompilationFingerprint);
         Assert.True(status.IsTerminal);
+
+        CompiledAuthoringSelectionSnapshot retained =
+            _host.Services.StandardMergeAuthoring.GetAuthoringSnapshot(
+                "NT51950",
+                [CompositionAddressSpaceIds.DpInput],
+                new Dictionary<string, FileStamp>(StringComparer.Ordinal)
+                {
+                    [CompositionAddressSpaceIds.DpInput] = status.FileStamp!.Value,
+                },
+                completed.Snapshot.AuthoringRevision,
+                completed.Snapshot);
+        Assert.True(retained.Slots.Single(static slot =>
+            slot.SlotId == CompositionAddressSpaceIds.TpInput).CanSelect);
+        Assert.Equal(completed.Snapshot.CompilationFingerprint,
+            Assert.Single(retained.Catalog.Routes).CompilationFingerprint);
+
+        CompiledAuthoringSelectionSnapshot missingDpStamp =
+            _host.Services.StandardMergeAuthoring.GetAuthoringSnapshot(
+                "NT51950", [CompositionAddressSpaceIds.DpInput],
+                new Dictionary<string, FileStamp>(StringComparer.Ordinal),
+                completed.Snapshot.AuthoringRevision, completed.Snapshot);
+        Assert.False(missingDpStamp.Slots.Single(static slot =>
+            slot.SlotId == CompositionAddressSpaceIds.TpInput).CanSelect);
+        Assert.Null(Assert.Single(missingDpStamp.Catalog.Routes).CompilationFingerprint);
+
+        CompiledAuthoringSelectionSnapshot differentDpStamp =
+            _host.Services.StandardMergeAuthoring.GetAuthoringSnapshot(
+                "NT51950", [CompositionAddressSpaceIds.DpInput],
+                new Dictionary<string, FileStamp>(StringComparer.Ordinal)
+                {
+                    [CompositionAddressSpaceIds.DpInput] = new FileStamp(
+                        status.FileStamp.Value.AcceptedLength, new string('a', 64)),
+                },
+                completed.Snapshot.AuthoringRevision, completed.Snapshot);
+        Assert.False(differentDpStamp.Slots.Single(static slot =>
+            slot.SlotId == CompositionAddressSpaceIds.TpInput).CanSelect);
+        Assert.Null(Assert.Single(differentDpStamp.Catalog.Routes).CompilationFingerprint);
     }
 
     /// <summary>A same-publication catalog still cannot invent a route or alter a reviewed capability.</summary>

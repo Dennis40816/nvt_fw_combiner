@@ -126,9 +126,9 @@ public sealed partial class AuthoringInputSlotInspectionTests
         Assert.All(result.Statuses.Values, static status => Assert.True(status.IsTerminal));
     }
 
-    /// <summary>File identity alone stays pending; distinct bytes at one length each reach captured compilation.</summary>
+    /// <summary>File identity alone cannot compile an exact route; captured bytes still distinguish equal lengths.</summary>
     [Fact]
-    public void DefinitionDiscoveryKeepsFileStampPendingAndCompilesEachCapturedContent()
+    public void DefinitionDiscoveryKeepsFileStampUncompiledAndCompilesEachCapturedContent()
     {
         ResolvedCapabilityRoute route = CreateRoute(ExperienceIds.StandardMerge);
         ResolvedCapability capability = CreateCapability(
@@ -148,9 +148,9 @@ public sealed partial class AuthoringInputSlotInspectionTests
             });
         Assert.Null(Assert.Single(picker.Catalog.Routes).ExactCapability);
         Assert.Null(Assert.Single(picker.Catalog.Routes).CompilationFingerprint);
-        Assert.Equal(ResolvedChildReadiness.PendingInput, Assert.Single(picker.Slots).Readiness);
-        Assert.Equal(InputSelectionNextActionKind.LoadArtifactFirst,
-            Assert.Single(picker.Slots).NextAction!.Kind);
+        Assert.Equal(ResolvedChildReadiness.Ready, Assert.Single(picker.Slots).Readiness);
+        Assert.True(Assert.Single(picker.Slots).CanSelect);
+        Assert.Null(Assert.Single(picker.Slots).NextAction);
         Assert.Equal(0, resolver.CapturedCalls);
         Assert.Equal(0, resolver.LengthOnlyCalls);
 

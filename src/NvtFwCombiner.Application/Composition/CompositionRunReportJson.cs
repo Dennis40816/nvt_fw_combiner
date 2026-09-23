@@ -79,6 +79,7 @@ public static class CompositionRunReportJson
         // New audit contracts use generated metadata; the existing report graph retains its legacy resolver.
         TypeInfoResolver = JsonTypeInfoResolver.Combine(
             AbMergeFormatReportJsonContext.Default,
+            SourceEnvelopeRunReportJsonContext.Default,
             new DefaultJsonTypeInfoResolver()),
     };
 
@@ -105,3 +106,6 @@ public static class CompositionRunReportJson
         return projection.ToJsonString(Options);
     }
 }
+
+[JsonSerializable(typeof(SourceEnvelopeRunSummary))]
+internal sealed partial class SourceEnvelopeRunReportJsonContext : JsonSerializerContext;

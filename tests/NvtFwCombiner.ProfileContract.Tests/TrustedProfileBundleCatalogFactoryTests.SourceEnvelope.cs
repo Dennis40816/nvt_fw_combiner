@@ -13,24 +13,44 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
     private static readonly JsonSerializerOptions s_sourceEnvelopeJsonOptions =
         new(JsonSerializerDefaults.Web);
 
-    /// <summary>Publication can read trusted map/template facts without a DP, while execution still requires it.</summary>
-    [Fact]
-    public void SourceEnvelopeDeclarationDoesNotAdmitExecutionWithoutCapturedDp()
+    /// <summary>Exact-map layout compilation needs no captured DP, but execution still requires it.</summary>
+    [Theory]
+    [InlineData(0x40000, "256k")]
+    [InlineData(0x80000, "512k")]
+    [InlineData(0x100000, "1024k")]
+    public void SourceEnvelopeDeclarationKeepsExactMapLayoutWithoutCapturedDp(
+        int capacity, string mapSuffix)
     {
         TrustedProfileBundleCatalog catalog = CreateStandardEnvelopeCatalog();
         TrustedMapBoundProfileDeclaration declaration = catalog.GetMapBoundDeclaration(
-            "nt51950-standard-merge-dp-perspective", "0.7.0", "NT51950",
+            "nt51950-standard-merge-dp-perspective", "0.8.0", "NT51950",
             "standard-merge", "nt51950-standard-merge-256k");
 
         Assert.Equal("nt51950-standard-merge-256k", declaration.Map.MapId);
         Assert.Equal(declaration.Map.MapId, declaration.SourceEnvelopeBinding?.LayoutTemplateMapId);
         V2CompositionPlanCompileResult compilation = catalog.Compile(
-            "nt51950-standard-merge-dp-perspective", "0.7.0", "NT51950",
-            "standard-merge", 0x40000, requestedTopology: null,
+            "nt51950-standard-merge-dp-perspective", "0.8.0", "NT51950",
+            "standard-merge", capacity, requestedTopology: null,
             resolutionArtifacts: []);
-        Assert.False(compilation.IsCompiled);
-        Assert.Contains(compilation.Issues, static issue =>
-            issue.Code == "profile.v2.source-envelope.source-missing");
+        Assert.True(compilation.IsCompiled, string.Join("; ",
+            compilation.Issues.Select(static issue => issue.Message)));
+        CompiledComposition compiled = Assert.IsType<CompiledComposition>(compilation.CompiledComposition);
+        Assert.Equal($"nt51950-standard-merge-{mapSuffix}",
+            compiled.V2Details.Provenance.ResolvedMap.ImageMap.MapId);
+        Assert.Null(Assert.IsType<ResolvedMapV2CompilationContext>(
+            compiled.V2Details.Provenance.Context).SourceEnvelope);
+        CompiledInputSlotRequirement dpSlot = Assert.Single(compiled.V2Details.InputContract.Slots,
+            static slot => slot.SlotId == "dp-input");
+        Assert.Equal(capacity,
+            Assert.IsType<CompiledExactResolvedMapCapacityInputLengthRequirement>(
+                dpSlot.LengthRequirement).Bytes);
+        CompositionExecutionResult missing = CompositionEngine.Execute(compiled.Plan,
+            new CompositionExecutionInput(new Dictionary<string, byte[]>
+            {
+                ["tp-input"] = new byte[0x37000],
+            }));
+        Assert.Equal(CompositionExecutionStatus.Failed, missing.Status);
+        Assert.NotEmpty(missing.Issues);
     }
 
     /// <summary>Executes a synthetic Standard profile with a complete DP envelope.</summary>
@@ -181,14 +201,14 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
             issue.Code == CompositionIssueCodes.InputAddressSpaceLengthMismatch);
     }
 
-    /// <summary>The explicit reject policy does not compile a source-sized profile without its DP.</summary>
+    /// <summary>The reject policy still forbids a nonstandard template fallback without captured DP.</summary>
     [Fact]
-    public void RejectPolicyRequiresCapturedDpEvenAtExactMapCapacity()
+    public void RejectPolicyRequiresCapturedDpForNonstandardCapacity()
     {
         TrustedProfileBundleCatalog catalog = CreateStandardEnvelopeCatalog();
         V2CompositionPlanCompileResult result = catalog.Compile(
-            "nt51950-standard-merge-dp-perspective", "0.7.0", "NT51950", "standard-merge",
-            0x40000, requestedTopology: null,
+            "nt51950-standard-merge-dp-perspective", "0.8.0", "NT51950", "standard-merge",
+            0x40001, requestedTopology: null,
             [new FirmwareArtifactPayload("tp-input", new byte[0x37000])]);
 
         Assert.False(result.IsCompiled);
@@ -242,7 +262,7 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
     {
         TrustedProfileBundleCatalog catalog = CreateStandardEnvelopeCatalog();
         V2CompositionPlanCompileResult result = catalog.Compile(
-            "nt51950-standard-merge-dp-perspective", "0.7.0", "NT51950", "standard-merge",
+            "nt51950-standard-merge-dp-perspective", "0.8.0", "NT51950", "standard-merge",
             0x40000,
             new TopologySelection(2, "cascade", TopologySelectionSource.Requested, "ic-number"),
             [
@@ -262,7 +282,7 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
     {
         return catalog.Compile(
             "nt51950-standard-merge-dp-perspective",
-            "0.7.0",
+            "0.8.0",
             "NT51950",
             "standard-merge",
             requestedLength,

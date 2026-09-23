@@ -146,14 +146,16 @@ internal sealed partial class BuiltInFirmwareInspection : IFirmwareInspection
                 };
             }
 
-            if (standardMergeInputBatch.Statuses.TryGetValue(
-                    input.InspectionId,
-                    out AuthoringInputSlotStatus? standardMergeStatus))
+            if (input.StandardMergeAddressSpaceId is not null)
             {
+                _ = standardMergeInputBatch.Statuses.TryGetValue(
+                    input.InspectionId,
+                    out AuthoringInputSlotStatus? standardMergeStatus);
                 snapshot = snapshot with
                 {
                     InputSlotStatus = standardMergeStatus,
                     InputSlotCatalog = standardMergeInputBatch.Catalog,
+                    AuthoringCompilationIssues = standardMergeInputBatch.Issues,
                 };
             }
 
@@ -298,6 +300,8 @@ internal sealed partial class BuiltInFirmwareInspection : IFirmwareInspection
                     image,
                     string.Equals(path, tpPath, StringComparison.Ordinal) ? null : tpImage,
                     standardMergeAddressSpaceId,
+                    !string.IsNullOrWhiteSpace(tpPath) &&
+                        !string.Equals(path, tpPath, StringComparison.Ordinal),
                     metadataAuthority)
                 : (null, null, null);
         if (detectedIcId is null && DetectFirmwareIcHintFromHeader(image) is { } headerHint)

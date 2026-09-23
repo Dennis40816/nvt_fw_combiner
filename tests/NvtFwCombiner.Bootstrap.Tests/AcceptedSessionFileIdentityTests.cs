@@ -1,6 +1,7 @@
 using NvtFwCombiner.Application.Authoring;
 using NvtFwCombiner.Application.Capabilities;
 using NvtFwCombiner.Application.ExternalTools;
+using NvtFwCombiner.Application.FlashMaps;
 using NvtFwCombiner.Application.Ports;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.TestSupport;
@@ -391,9 +392,19 @@ public sealed partial class AcceptedSessionFileIdentityTests
                 exactCatalog,
                 started.Leases,
                 statuses);
-        Assert.True(completed.Succeeded, completed.Issue?.Message);
+        Assert.True(completed.Succeeded,
+            $"{completed.Issue?.Message} | selected={started.Snapshot!.SelectedRouteId} " +
+            $"fingerprint={started.Snapshot.CompilationFingerprint} " +
+            $"inspected={string.Join(", ", exactCatalog.Routes.Select(static route =>
+                $"{route.Identity.RouteId}/{route.CompilationFingerprint}"))} " +
+            $"issues={string.Join(", ", inspected.InspectionsById.Values.SelectMany(static result =>
+                result.AuthoringCompilationIssues).Select(static issue => issue.Code))}");
         Assert.NotNull(completed.Snapshot!.GetAcceptedCapability(
             AuthoringDerivedResultKind.Inspection));
+        Assert.True(
+            completed.Snapshot.HasCurrentInputInspection,
+            string.Join(" | ", completed.Snapshot.InputSlotStatuses.Select(static status =>
+                $"{status.SlotId}: {status.InspectionLifecycle} {status.InspectionIssueCode}")));
         return completed.Snapshot;
     }
 
@@ -402,10 +413,23 @@ public sealed partial class AcceptedSessionFileIdentityTests
         return new Dictionary<string, string>(StringComparer.Ordinal)
         {
             [CompositionAddressSpaceIds.DpInput] = workspace.Write(
-                "dp.bin", CreatePattern(0x40000, 0x21)),
+                "dp.bin", CreateStandardImage(0x21)),
             [CompositionAddressSpaceIds.TpInput] = workspace.Write(
-                "tp.bin", CreatePattern(0x40000, 0x31)),
+                "tp.bin", CreateStandardImage(0x31)),
         };
+    }
+
+    private static byte[] CreateStandardImage(byte fill)
+    {
+        byte[] tp = new byte[0x40000];
+        tp.AsSpan().Fill(fill);
+        const int backupStart = 0x1000;
+        const byte version = 0x81;
+        tp[backupStart + FirmwareConfigLayout.FirmwareVersionOffset] = version;
+        tp[backupStart + FirmwareConfigLayout.FirmwareVersionBarOffset] = unchecked((byte)~version);
+        tp[backupStart + FirmwareConfigLayout.ChipNumberOffset] = 1;
+        "\0NVT"u8.CopyTo(tp.AsSpan(backupStart + 0xFFC));
+        return tp;
     }
 
     private static Dictionary<string, string> CreateAbInputs(TempWorkspace workspace)
@@ -415,9 +439,9 @@ public sealed partial class AcceptedSessionFileIdentityTests
             [CompositionAddressSpaceIds.DpAbInput] = workspace.Write(
                 "dp-ab.bin", CreatePattern(0x80000, 0x41)),
             [CompositionAddressSpaceIds.TpAInput] = workspace.Write(
-                "tp-a.bin", CreatePattern(0x40000, 0x51)),
+                "tp-a.bin", CreateStandardImage(0x51)),
             [CompositionAddressSpaceIds.TpBInput] = workspace.Write(
-                "tp-b.bin", CreatePattern(0x40000, 0x61)),
+                "tp-b.bin", CreateStandardImage(0x61)),
         };
     }
 

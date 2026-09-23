@@ -374,10 +374,13 @@ internal static class CanonicalFormalRouteRuntimeFixtureCatalog
         byte[] baseBytes = source.Bytes;
         int capacity = CtrlRamCapacity(identity);
         baseBytes = ResizeCanonicalInput(baseBytes, capacity, 0x6B);
-        PlaceFirmwareConfigBackupForTopology(
-            baseBytes,
-            identity,
-            checked((byte)chipCount));
+        if (identity.MapVariant != "nt51929-ab-merge-512k")
+        {
+            PlaceFirmwareConfigBackupForTopology(
+                baseBytes,
+                identity,
+                checked((byte)chipCount));
+        }
         string number = identity.IcCountVariant switch
         {
             "1-ic" => IcNumberSelectionTokens.SingleChip,
@@ -430,7 +433,7 @@ internal static class CanonicalFormalRouteRuntimeFixtureCatalog
             paths,
             witnesses,
             chipCount,
-            chipCount);
+            identity.MapVariant == "nt51929-ab-merge-512k" ? null : chipCount);
     }
 
     private static CanonicalFormalRuntimeSource ReadCtrlRamCanonicalBase(
@@ -438,6 +441,18 @@ internal static class CanonicalFormalRouteRuntimeFixtureCatalog
     {
         string map = identity.MapVariant;
         string ic = identity.IcId;
+        if (ic == "NT51929" && map == "nt51929-ab-merge-512k")
+        {
+            JsonElement goldenCase = CanonicalGoldenTestData.LoadDirectCase(
+                ExperienceIds.AbMerge,
+                "nt51929-ab-t05-d06");
+            return new CanonicalFormalRuntimeSource(
+                File.ReadAllBytes(CanonicalGoldenTestData.ArtifactPath(
+                    CanonicalGoldenTestData.Artifact(goldenCase, "expected-output"))),
+                ExperienceIds.AbMerge,
+                ic,
+                "nt51929-ab-t05-d06");
+        }
         if (ic is "NT51917" or "NT51927")
         {
             bool twoChip = map.Contains("fw132-twochip", StringComparison.Ordinal);
@@ -579,7 +594,9 @@ internal static class CanonicalFormalRouteRuntimeFixtureCatalog
     private static int CtrlRamCapacity(CapabilityRouteIdentity identity)
     {
         string map = identity.MapVariant;
-        return map.Contains("tp-work-212k", StringComparison.Ordinal)
+        return map == "nt51929-ab-merge-512k"
+            ? 0x80000
+            : map.Contains("tp-work-212k", StringComparison.Ordinal)
             ? 0x35000
             : map.Contains("tp-work-240k", StringComparison.Ordinal)
                 ? 0x3C000

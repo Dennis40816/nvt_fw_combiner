@@ -253,13 +253,14 @@ public sealed partial class CompositionRunServiceTests
                     "progress",
                     "standard-merge",
                     CompositionKind.Merge),
-                "progress.bin"),
+                "progress.bin",
+                nonReferenceArtifactClass: CompiledInputArtifactClass.Auxiliary),
             [new InputArtifactBinding(
                 "progress-input",
                 "progress-input",
                 "progress-input-artifact",
                 "progress-input.bin",
-                CompiledInputArtifactClass.TpFirmware)],
+                CompiledInputArtifactClass.Auxiliary)],
             "progress.bin");
     }
 

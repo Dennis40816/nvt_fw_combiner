@@ -59,7 +59,8 @@ public sealed partial class CompositionRunServiceTests
                 "standard-merge",
                 CompositionKind.Merge),
             "synthetic-standard-merge.bin",
-            allowOutputOverride: true);
+            allowOutputOverride: true,
+            nonReferenceArtifactClass: CompiledInputArtifactClass.Auxiliary);
     }
 
     private static CompositionRunRequest CreateScratchRequest(
@@ -98,7 +99,8 @@ public sealed partial class CompositionRunServiceTests
                 "scratch",
                 "general-merge",
                 CompositionKind.Merge),
-            "scratch.bin");
+            "scratch.bin",
+            nonReferenceArtifactClass: CompiledInputArtifactClass.Auxiliary);
         return new CompositionRunRequest(
             "run-scratch",
             compiledComposition,
@@ -109,7 +111,7 @@ public sealed partial class CompositionRunServiceTests
                     "v2-test-input",
                     "v2-test-input-artifact",
                     "v2-test-input.bin",
-                    CompiledInputArtifactClass.TpFirmware),
+                    CompiledInputArtifactClass.Auxiliary),
             ],
             "scratch.bin");
     }
@@ -141,7 +143,8 @@ public sealed partial class CompositionRunServiceTests
                 "fingerprint",
                 "general-merge",
                 CompositionKind.Merge),
-            "fingerprint.bin");
+            "fingerprint.bin",
+            nonReferenceArtifactClass: CompiledInputArtifactClass.Auxiliary);
         return new CompositionRunRequest(
             "run-initializer-fingerprint",
             compiledComposition,
@@ -150,7 +153,7 @@ public sealed partial class CompositionRunServiceTests
                 "v2-test-input",
                 "v2-test-input-artifact",
                 "v2-test-input.bin",
-                CompiledInputArtifactClass.TpFirmware)],
+                CompiledInputArtifactClass.Auxiliary)],
             "fingerprint.bin");
     }
 
@@ -256,7 +259,8 @@ public sealed partial class CompositionRunServiceTests
                 plan,
                 identity,
                 "padded.bin",
-                IcNumberInputMode.SingleSelector),
+                IcNumberInputMode.SingleSelector,
+                nonReferenceArtifactClass: CompiledInputArtifactClass.Auxiliary),
             [
                 new InputArtifactBinding(
                     "reference-base",
@@ -270,7 +274,7 @@ public sealed partial class CompositionRunServiceTests
                     artifactId,
                     "short-input.bin",
                     inputPaddingByte is null
-                        ? CompiledInputArtifactClass.TpFirmware
+                        ? CompiledInputArtifactClass.Auxiliary
                         : CompiledInputArtifactClass.DpFirmware),
             ],
             "padded.bin",
@@ -317,7 +321,8 @@ public sealed partial class CompositionRunServiceTests
                 plan,
                 identity,
                 "ctrlram.bin",
-                IcNumberInputMode.SingleSelector),
+                IcNumberInputMode.SingleSelector,
+                nonReferenceArtifactClass: CompiledInputArtifactClass.Auxiliary),
             [
                 new InputArtifactBinding(
                     "reference-base", "reference-safe", "reference-artifact", "reference-base.bin",
@@ -326,7 +331,7 @@ public sealed partial class CompositionRunServiceTests
                     "ctrlram-input", "ctrlram-safe", ctrlRamArtifactId, "ctrlram-input.bin",
                     inputOversizePolicy == InputOversizePolicy.TruncateWithWarning
                         ? CompiledInputArtifactClass.CtrlRamReplacement
-                        : CompiledInputArtifactClass.TpFirmware),
+                         : CompiledInputArtifactClass.Auxiliary),
             ],
             "ctrlram.bin",
             icNumberSelection: new IcNumberSelection(IcNumberInputMode.SingleSelector, ["SYNTHETIC"]));
@@ -456,7 +461,8 @@ public sealed partial class CompositionRunServiceTests
                 "overwrite",
                 "general-merge",
                 CompositionKind.Merge),
-            "overwrite.bin");
+            "overwrite.bin",
+            nonReferenceArtifactClass: CompiledInputArtifactClass.Auxiliary);
         return new CompositionRunRequest(
             runId,
             compiledComposition,
@@ -465,7 +471,7 @@ public sealed partial class CompositionRunServiceTests
                 "v2-test-input",
                 "v2-test-input-artifact",
                 "v2-test-input.bin",
-                CompiledInputArtifactClass.TpFirmware)],
+                CompiledInputArtifactClass.Auxiliary)],
             "overwrite.bin");
     }
 

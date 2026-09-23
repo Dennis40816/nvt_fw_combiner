@@ -691,13 +691,57 @@ public sealed class StandardMergeCliCommandTests
         Assert.Equal(expected, actual);
     }
 
-    /// <summary>Unsupported DP Perspective lengths fail closed before composition starts.</summary>
-    [Fact]
-    public async Task StandardMergePreviewRejectsUnsupportedDpPerspectiveLength()
+    /// <summary>Nonstandard DP containers retain every byte outside the declared TP overlay.</summary>
+    [Theory]
+    [InlineData("51950", 0x40001)]
+    [InlineData("51951", 0x80001)]
+    public async Task StandardMergeBuildPreservesNonstandardDpOuterLength(string profileSelector, int dpLength)
     {
         using var workspace = TempWorkspace.Create();
-        string dpPath = workspace.Write("dp.bin", new byte[0x40001]);
-        string tpPath = workspace.Write("tp.bin", new byte[0x30000]);
+        byte[] dp = new byte[dpLength];
+        Array.Fill(dp, (byte)0x42);
+        dp[0] = 0x11;
+        dp[^1] = 0xE2;
+        byte[] tp = new byte[0x37000];
+        Array.Fill(tp, (byte)0xA5);
+        StampValidDpPerspectiveTp(tp);
+        string dpPath = workspace.Write("dp.bin", dp);
+        string tpPath = workspace.Write("tp.bin", tp);
+        string outputPath = workspace.PathFor("out.bin");
+        string reportPath = workspace.PathFor("out-report.json");
+
+        CliRunResult result = await RunCliAsync([
+            "standard-merge", "build", "--profile", profileSelector,
+            "--dp", dpPath, "--tp", tpPath, "--output", outputPath,
+            "--report", reportPath,
+        ]);
+
+        Assert.True(result.ExitCode == 0, result.Error);
+        Assert.Contains("DP_NONSTANDARD_SIZE_WARNING", result.Error, StringComparison.Ordinal);
+        byte[] actual = await File.ReadAllBytesAsync(outputPath, TestContext.Current.CancellationToken);
+        byte[] expected = (byte[])dp.Clone();
+        tp.AsSpan(0xA000, 0x2D000).CopyTo(expected.AsSpan(0xA000));
+        Assert.Equal(expected, actual);
+        using JsonDocument report = JsonDocument.Parse(await File.ReadAllTextAsync(
+            reportPath, TestContext.Current.CancellationToken));
+        JsonElement envelope = report.RootElement.GetProperty("SourceEnvelope");
+        Assert.Equal(dpLength, envelope.GetProperty("ActualOutputLength").GetInt64());
+        Assert.Equal(0x40000, envelope.GetProperty("LayoutTemplateCapacity").GetInt64());
+        Assert.Equal($"nt{profileSelector}-standard-merge-256k",
+            envelope.GetProperty("LayoutTemplateMapId").GetString());
+        Assert.Equal("DP_NONSTANDARD_SIZE_WARNING",
+            envelope.GetProperty("UnexpectedLengthIssueCode").GetString());
+    }
+
+    /// <summary>A DP shorter than the TP overlay remains a range error, not an OSD warning.</summary>
+    [Fact]
+    public async Task StandardMergePreviewRejectsDpShorterThanRequiredOverlay()
+    {
+        using var workspace = TempWorkspace.Create();
+        string dpPath = workspace.Write("dp.bin", new byte[0x36FFF]);
+        byte[] tp = new byte[0x37000];
+        StampValidDpPerspectiveTp(tp);
+        string tpPath = workspace.Write("tp.bin", tp);
 
         CliRunResult result = await RunCliAsync([
             "standard-merge",
@@ -711,7 +755,8 @@ public sealed class StandardMergeCliCommandTests
         ]);
 
         Assert.Equal(70, result.ExitCode);
-        Assert.Contains("accepts DP input lengths", result.Error, StringComparison.Ordinal);
+        Assert.Contains("profile.v2.plan.invalid-view", result.Error, StringComparison.Ordinal);
+        Assert.Contains("tp-overlay", result.Error, StringComparison.Ordinal);
     }
 
     /// <summary>An oversized sparse source is rejected from file metadata before the CLI can allocate its payload or create outputs.</summary>
@@ -780,6 +825,19 @@ public sealed class StandardMergeCliCommandTests
         tp[markerStart + 1] = (byte)'N';
         tp[markerStart + 2] = (byte)'V';
         tp[markerStart + 3] = (byte)'T';
+    }
+
+    private static void StampValidDpPerspectiveTp(byte[] tp)
+    {
+        const int backupStart = 0x36000;
+        const byte version = 0x81;
+        tp[backupStart + FirmwareConfigLayout.FirmwareVersionOffset] = version;
+        tp[backupStart + FirmwareConfigLayout.FirmwareVersionBarOffset] = unchecked((byte)~version);
+        tp[backupStart + FirmwareConfigLayout.ChipNumberOffset] = 1;
+        tp[0x36FFC] = 0x00;
+        tp[0x36FFD] = (byte)'N';
+        tp[0x36FFE] = (byte)'V';
+        tp[0x36FFF] = (byte)'T';
     }
 
     private static async Task CreateSparseFileAsync(string path, long length)

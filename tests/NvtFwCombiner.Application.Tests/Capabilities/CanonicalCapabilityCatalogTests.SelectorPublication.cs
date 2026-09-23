@@ -42,6 +42,59 @@ public sealed partial class CanonicalCapabilityCatalogTests
             experience.GetNumberSelectionChoices("NT51929"));
     }
 
+    /// <summary>Route multiplicity cannot displace the owner-selected initial IC.</summary>
+    [Fact]
+    public void AuthorableNt51950IsDefaultEvenWhenAnotherIcHasMoreRoutes()
+    {
+        CanonicalCapabilityCatalogCandidate candidate = CreateCandidate(
+            DefaultRoute("NT51926", "map-a"),
+            DefaultRoute("NT51926", "map-b"),
+            DefaultRoute("NT51950", "map-a"));
+        var catalog = new CanonicalCapabilityCatalog(new QueueCapabilitySource(
+            CapabilityCatalogLoadResult.Success(candidate)));
+
+        Assert.True(catalog.Reload(TestContext.Current.CancellationToken).Succeeded);
+        Assert.Equal("NT51950", catalog.GetCurrentSnapshot().SelectorPublication.DefaultIcId);
+    }
+
+    /// <summary>A reload falls back when NT51950 is unavailable without mutating the old publication.</summary>
+    [Fact]
+    public void UnavailablePreferredIcUsesExistingRankingAndPreservesOldSelector()
+    {
+        var catalog = new CanonicalCapabilityCatalog(new QueueCapabilitySource(
+            CapabilityCatalogLoadResult.Success(CreateCandidate(
+                DefaultRoute("NT51926", "map-a"),
+                DefaultRoute("NT51950", "map-a"))),
+            CapabilityCatalogLoadResult.Success(CreateCandidate(
+                DefaultRoute("NT51926", "map-a"),
+                DefaultRoute("NT51927", "map-a"),
+                DefaultRoute("NT51950", "map-a",
+                    CapabilityAuthoringAvailability.Unavailable)))));
+
+        CapabilitySelectorPublication first = catalog
+            .Reload(TestContext.Current.CancellationToken).Snapshot!.SelectorPublication;
+        CapabilitySelectorPublication second = catalog
+            .Reload(TestContext.Current.CancellationToken).Snapshot!.SelectorPublication;
+
+        Assert.Equal("NT51950", first.DefaultIcId);
+        Assert.Equal("NT51926", second.DefaultIcId);
+        Assert.Equal(["NT51926", "NT51927"], second.IcIds);
+        Assert.NotEqual(first.ResolutionToken, second.ResolutionToken);
+        Assert.Equal(["NT51926", "NT51950"], first.IcIds);
+        Assert.Equal("NT51950", first.DefaultIcId);
+    }
+
+    private static CanonicalCapabilityDefinition DefaultRoute(
+        string icId,
+        string mapVariant,
+        CapabilityAuthoringAvailability availability = CapabilityAuthoringAvailability.Available)
+    {
+        var route = new CapabilityRouteIdentity(
+            icId, ExperienceIds.StandardMerge, "selector-free", mapVariant);
+        return CreateDefinition(CreateCompiledComposition(route: route), route,
+            authoringAvailability: availability);
+    }
+
     /// <summary>A later reload cannot mutate selector facts retained from an older publication.</summary>
     [Fact]
     public void ReloadPublishesFreshSelectorWithoutMutatingRetainedPublication()
@@ -221,6 +274,105 @@ public sealed partial class CanonicalCapabilityCatalogTests
 
         Assert.Equal(selector, compiled);
         Assert.Equal([1, 2], selector.Select(static choice => choice.Selection.ChipCount));
+    }
+
+    /// <summary>Capacity routes share one picker-slot contract before a DP capacity is selected.</summary>
+    [Fact]
+    public void StandardCapacityRoutesExposeTheirIdenticalMemberSlots()
+    {
+        CanonicalCapabilityCatalog catalog = CreateStandardMemberSlotCatalog(
+            ("256k", ["tp-input", "dp-input"]),
+            ("512k", ["dp-input", "tp-input"]),
+            ("1024k", ["tp-input", "dp-input"]));
+        var dynamicCompiler = new UnusedDynamicCompiler();
+        var compiler = new CanonicalCapabilityCompilerAdapter(catalog, dynamicCompiler);
+
+        Assert.Equal(["dp-input", "tp-input"],
+            compiler.GetPublishedDynamicSelectionGroupMemberSlotIds(
+                "NT51950", ExperienceIds.StandardMerge, "selector-free"));
+        Assert.Empty(compiler.GetPublishedDynamicSelectionGroupMemberSlotIds(
+            "NT51951", ExperienceIds.StandardMerge, "selector-free"));
+        Assert.Null(dynamicCompiler.CapturedIdentity);
+
+        CanonicalCapabilityCatalog single = CreateStandardMemberSlotCatalog(
+            ("256k", ["tp-input", "dp-input"]));
+        Assert.Equal(["dp-input", "tp-input"],
+            new CanonicalCapabilityCompilerAdapter(single, new UnusedDynamicCompiler())
+                .GetPublishedDynamicSelectionGroupMemberSlotIds(
+                    "NT51950", ExperienceIds.StandardMerge, "selector-free"));
+    }
+
+    /// <summary>Conflicting declarations cannot be combined into a synthetic picker contract.</summary>
+    [Fact]
+    public void StandardCapacityRoutesRejectConflictingMemberSlots()
+    {
+        CanonicalCapabilityCatalog catalog = CreateStandardMemberSlotCatalog(
+            ("256k", ["dp-input", "tp-input"]),
+            ("512k", ["dp-input", "extra-input"]));
+        var compiler = new CanonicalCapabilityCompilerAdapter(catalog,
+            new UnusedDynamicCompiler());
+
+        InvalidOperationException failure = Assert.Throws<InvalidOperationException>(() =>
+            compiler.GetPublishedDynamicSelectionGroupMemberSlotIds(
+                "NT51950", ExperienceIds.StandardMerge, "selector-free"));
+        Assert.Contains("NT51950", failure.Message, StringComparison.Ordinal);
+        Assert.Contains("256k", failure.Message, StringComparison.Ordinal);
+        Assert.Contains("512k", failure.Message, StringComparison.Ordinal);
+    }
+
+    /// <summary>A different compiler semantic cannot silently contribute picker slots.</summary>
+    [Fact]
+    public void StandardCapacityRoutesRejectMixedCompilerSemantics()
+    {
+        static CanonicalDynamicCapabilityDefinition Definition(string mapVariant, string semanticId)
+        {
+            var identity = new CapabilityRouteIdentity("NT51950",
+                ExperienceIds.StandardMerge, "selector-free", mapVariant);
+            var contract = new CanonicalCapabilityCompilationContract(
+                "synthetic-standard", "1.0.0", new string('a', 64),
+                [mapVariant], semanticId, ["dp-input"]);
+            return CreateDynamicAbDefinition(identity, compilationContract: contract);
+        }
+
+        var candidate = new CanonicalCapabilityCatalogCandidate(
+            "standard-mixed-semantics-test", "1.0.0", new string('a', 64), [],
+            [Definition("256k", CapabilityDefinitionFingerprint.MapBoundCompilerSemanticId),
+             Definition("512k", CapabilityDefinitionFingerprint.RuntimeReferenceReplaceCompilerSemanticId)]);
+        var catalog = new CanonicalCapabilityCatalog(new QueueCapabilitySource(
+            CapabilityCatalogLoadResult.Success(candidate)));
+        Assert.True(catalog.Reload(TestContext.Current.CancellationToken).Succeeded);
+        var compiler = new CanonicalCapabilityCompilerAdapter(catalog,
+            new UnusedDynamicCompiler());
+
+        InvalidOperationException failure = Assert.Throws<InvalidOperationException>(() =>
+            compiler.GetPublishedDynamicSelectionGroupMemberSlotIds(
+                "NT51950", ExperienceIds.StandardMerge, "selector-free"));
+        Assert.Contains("Published input-slot declarations disagree", failure.Message,
+            StringComparison.Ordinal);
+    }
+
+    private static CanonicalCapabilityCatalog CreateStandardMemberSlotCatalog(
+        params (string MapVariant, string[] MemberSlots)[] routes)
+    {
+        CanonicalDynamicCapabilityDefinition[] definitions =
+        [
+            .. routes.Select(route =>
+            {
+                var identity = new CapabilityRouteIdentity("NT51950",
+                    ExperienceIds.StandardMerge, "selector-free", route.MapVariant);
+                var contract = new CanonicalCapabilityCompilationContract(
+                    "synthetic-standard", "1.0.0", new string('a', 64),
+                    [route.MapVariant],
+                    CapabilityDefinitionFingerprint.MapBoundCompilerSemanticId,
+                    route.MemberSlots);
+                return CreateDynamicAbDefinition(identity, compilationContract: contract);
+            }),
+        ];
+        var catalog = new CanonicalCapabilityCatalog(new QueueCapabilitySource(
+            CapabilityCatalogLoadResult.Success(new CanonicalCapabilityCatalogCandidate(
+                "standard-slots-test", "1.0.0", new string('a', 64), [], definitions))));
+        Assert.True(catalog.Reload(TestContext.Current.CancellationToken).Succeeded);
+        return catalog;
     }
 
     /// <summary>Selector-free AB remains authorable without inventing a topology choice.</summary>

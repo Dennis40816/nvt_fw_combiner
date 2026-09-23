@@ -36,14 +36,14 @@ public sealed partial class CompositionRunServiceTests
                 "dp-input",
                 "dp-artifact",
                 "dp-input.bin",
-                CompiledInputArtifactClass.TpFirmware,
+                CompiledInputArtifactClass.Auxiliary,
                 acceptedContentStamp: FileStamp.FromBytes(acceptedDp)),
             new InputArtifactBinding(
                 "tp-input",
                 "tp-input",
                 "tp-artifact",
                 "tp-input.bin",
-                CompiledInputArtifactClass.TpFirmware,
+                CompiledInputArtifactClass.Auxiliary,
                 acceptedContentStamp: FileStamp.FromBytes([9, 8, 7, 6])),
         ]);
         CompositionRunResult preview =

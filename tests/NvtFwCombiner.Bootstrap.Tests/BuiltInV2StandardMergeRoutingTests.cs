@@ -1,6 +1,7 @@
 using System.Security.Cryptography;
 using System.Text.Json;
 using NvtFwCombiner.Application.Capabilities;
+using NvtFwCombiner.Application.FlashMaps;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Infrastructure.Bundles;
 using NvtFwCombiner.Infrastructure.Capabilities;
@@ -195,6 +196,7 @@ public sealed class BuiltInV2StandardMergeRoutingTests
     {
         using var workspace = TempWorkspace.Create($"nfc-nt51928-standard-{expectedCapacity:X}");
         byte[] tp = CreatePattern(0x40000, 0x31);
+        StampValidSingleIcFirmwareConfig(tp);
         byte[] dp = CreatePattern(expectedCapacity, 0x72);
         byte[] ldc = CreatePattern(0x80000, 0xB5);
         string outputPath = workspace.PathFor("output.bin");
@@ -247,7 +249,7 @@ public sealed class BuiltInV2StandardMergeRoutingTests
         CompiledComposition artifact = Assert.IsType<CompiledComposition>(composition);
         Assert.Equal(CompiledCompositionEligibility.V2RuntimeExecutable, artifact.Eligibility);
         V2CompiledCompositionDetails details = Assert.IsType<V2CompiledCompositionDetails>(artifact.V2Details);
-        Assert.Equal("f7ff35689ed2648c21e1ffc2dbf577663f75b2ef216c3a00a0dfb6f85aed1f25", details.Provenance.Bundle.ContentHash);
+        Assert.Equal("4244b4ac3230d1431342f11a78994a17286dc03ccb9a6324834e7e9cd292dc6a", details.Provenance.Bundle.ContentHash);
         Assert.Equal(profileId, artifact.V2Details.ProfileId);
         Assert.Equal(icId, artifact.V2Details.Provenance.Context.MemberId);
         Assert.Equal(dpInputLength, artifact.Plan.OutputInitialization.Capacity);
@@ -390,6 +392,7 @@ public sealed class BuiltInV2StandardMergeRoutingTests
         byte[] tp = new byte[0x40000];
         dp[0] = 0x11;
         tp[0x7000] = 0x22;
+        StampValidSingleIcFirmwareConfig(tp);
         string dpPath = workspace.Write("nt51929-dp.bin", dp);
         string tpPath = workspace.Write("nt51929-tp.bin", tp);
 
@@ -431,6 +434,16 @@ public sealed class BuiltInV2StandardMergeRoutingTests
                 .EnumerateArray()
                 .Select(static input => input.GetProperty("OriginalFileName").GetString())
                 .Order(StringComparer.Ordinal));
+    }
+
+    private static void StampValidSingleIcFirmwareConfig(byte[] tp)
+    {
+        const int backupStart = 0x1000;
+        const byte version = 0x81;
+        tp[backupStart + FirmwareConfigLayout.FirmwareVersionOffset] = version;
+        tp[backupStart + FirmwareConfigLayout.FirmwareVersionBarOffset] = unchecked((byte)~version);
+        tp[backupStart + FirmwareConfigLayout.ChipNumberOffset] = 1;
+        "\0NVT"u8.CopyTo(tp.AsSpan(backupStart + 0xFFC));
     }
 
     private static byte[] CreatePattern(int length, byte salt)

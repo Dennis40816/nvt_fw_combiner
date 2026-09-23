@@ -263,8 +263,10 @@ public sealed partial class FirmwareInspectionSlotTests
         JsonElement nt51950 = golden.CaseByIc("51950");
         string nt51950DpPath = golden.ManifestPath(nt51950.GetProperty("inputs").GetProperty("dp-input"));
         string nt51950TpPath = golden.ManifestPath(nt51950.GetProperty("inputs").GetProperty("tp-input"));
-        viewModel.SetSlotFile("merge-dp", nt51950DpPath);
-        viewModel.SetSlotFile("merge-tp", nt51950TpPath);
+        await viewModel.WorkflowSession.SetSlotFileAsync(
+            "merge-dp", nt51950DpPath, TestContext.Current.CancellationToken);
+        await viewModel.WorkflowSession.SetSlotFileAsync(
+            "merge-tp", nt51950TpPath, TestContext.Current.CancellationToken);
         await CurrentInspection(viewModel).ActiveTask;
 
         dpSlot = viewModel.Merge.MergeSlots.Single(slot => slot.SlotId == "merge-dp");

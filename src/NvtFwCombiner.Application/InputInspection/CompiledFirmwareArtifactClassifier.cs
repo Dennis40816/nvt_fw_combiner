@@ -420,56 +420,67 @@ internal sealed partial class FirmwareArtifactClassificationResolver(
                     route.Identity.WorkflowId,
                     ExperienceIds.StandardMerge)),
         ];
-        if (dynamicRoutes.Length > 1)
+        if (!_compiler.TryGetPublishedStandardSourceEnvelopeClassificationRoutes(
+                snapshot, icId,
+                out IReadOnlyList<(ResolvedCapabilityRoute Route, long Capacity)> exactRoutes))
         {
             return null;
         }
-
-        if (dynamicRoutes.Length == 0)
+        foreach (ResolvedCapabilityRoute route in dynamicRoutes)
         {
-            return [.. compositions];
-        }
+            long? selectedCapacity = null;
+            if (exactRoutes.Count != 0)
+            {
+                (ResolvedCapabilityRoute Route, long Capacity)[] matches =
+                    [.. exactRoutes.Where(item => ReferenceEquals(item.Route, route))];
+                if (matches.Length != 1)
+                {
+                    return null;
+                }
+                selectedCapacity = matches[0].Capacity;
+            }
+            IReadOnlyList<string> memberSlotIds =
+                route.CompilationContract.SemanticBindingIds;
+            string[][] selections = memberSlotIds.Count == 0
+                ? [[]]
+                : [[], [.. memberSlotIds]];
+            var dynamicCompositions = new List<CompiledComposition>(selections.Length);
+            foreach (string[] selection in selections)
+            {
+                bool compiled = selectedCapacity is { } capacity
+                    ? _compiler.TryCompilePublishedClassificationCandidate(
+                        route, capacity, selection, out ResolvedCapability? exactCapability)
+                    : _compiler.TryCompilePublishedClassificationCandidate(
+                        route, selection, out exactCapability);
+                if (!compiled ||
+                    exactCapability is null ||
+                    !IsCurrentCapability(snapshot, icId, exactCapability))
+                {
+                    return null;
+                }
 
-        ResolvedCapabilityRoute route = dynamicRoutes[0];
-        IReadOnlyList<string> memberSlotIds =
-            route.CompilationContract.SemanticBindingIds;
-        string[][] selections = memberSlotIds.Count == 0
-            ? [[]]
-            : [[], [.. memberSlotIds]];
-        var dynamicCompositions = new List<CompiledComposition>(selections.Length);
-        foreach (string[] selection in selections)
-        {
-            if (!_compiler.TryCompilePublishedClassificationCandidate(
-                    route,
-                    selection,
-                    out ResolvedCapability? capability) ||
-                capability is null ||
-                !IsCurrentCapability(snapshot, icId, capability))
+                AddUnique(dynamicCompositions, exactCapability.CompiledComposition);
+            }
+
+            string[] compiledMapIds =
+            [
+                .. dynamicCompositions
+                    .Select(static composition =>
+                        composition.V2Details.Provenance.ResolvedMap.ImageMap.MapId)
+                    .Distinct(StringComparer.Ordinal)
+                    .Order(StringComparer.Ordinal),
+            ];
+            if (!compiledMapIds.SequenceEqual(
+                    route.CompilationContract.AllowedMapVariantIds,
+                    StringComparer.Ordinal))
             {
                 return null;
             }
 
-            AddUnique(dynamicCompositions, capability.CompiledComposition);
-        }
-
-        string[] compiledMapIds =
-        [
-            .. dynamicCompositions
-                .Select(static composition =>
-                    composition.V2Details.Provenance.ResolvedMap.ImageMap.MapId)
-                .Distinct(StringComparer.Ordinal)
-                .Order(StringComparer.Ordinal),
-        ];
-        if (!compiledMapIds.SequenceEqual(
-                route.CompilationContract.AllowedMapVariantIds,
-                StringComparer.Ordinal))
-        {
-            return null;
-        }
-
-        foreach (CompiledComposition composition in dynamicCompositions)
-        {
-            AddUnique(compositions, composition);
+            foreach (CompiledComposition composition in dynamicCompositions)
+            {
+                AddUnique(compositions, composition);
+            }
         }
 
         return [.. compositions];

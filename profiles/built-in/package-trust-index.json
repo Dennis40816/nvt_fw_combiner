@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.5",
   "trustIndexId": "built-in-profile-bundles",
-  "trustIndexVersion": "1.1.10.4",
+  "trustIndexVersion": "1.1.10.5",
   "trustAnchorBindingId": "built-in-profile-bundle-v2",
   "bundles": [
     {
@@ -706,10 +706,10 @@
     {
       "bundleDirectory": "nt51950-nt51951-standard-merge",
       "bundleSchemaVersion": "1.0",
-      "bundleVersion": "1.1.10-full-image-metadata.1",
-      "contentHash": "f7ff35689ed2648c21e1ffc2dbf577663f75b2ef216c3a00a0dfb6f85aed1f25",
+      "bundleVersion": "1.1.10-dp-source-envelope.1",
+      "contentHash": "4244b4ac3230d1431342f11a78994a17286dc03ccb9a6324834e7e9cd292dc6a",
       "materialization": {
-        "compositionProfileSchemaFile": "composition-profile-v2.15.schema.json",
+        "compositionProfileSchemaFile": "composition-profile-v2.16.schema.json",
         "firmwareFamilySchemaFile": "firmware-family-v1.3-full-image-metadata.schema.json"
       },
       "runtimeRegistrations": [
@@ -717,13 +717,13 @@
           "workflowId": "standard-merge",
           "icId": "NT51950",
           "profileId": "nt51950-standard-merge-dp-perspective",
-          "profileVersion": "0.7.0"
+          "profileVersion": "0.8.0"
         },
         {
           "workflowId": "standard-merge",
           "icId": "NT51951",
           "profileId": "nt51951-standard-merge-dp-perspective",
-          "profileVersion": "0.7.0"
+          "profileVersion": "0.8.0"
         }
       ],
       "metadataProviderFamilies": [

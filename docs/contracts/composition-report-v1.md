@@ -27,6 +27,26 @@ Canonical schema: [`composition-report-v1.schema.json`](composition-report-v1.sc
 
 ## Application Run Report Semantic Extension
 
+### Captured DP source envelope (1.1.10 candidate)
+
+For a Standard Merge compiled from a nonstandard captured DP length, the
+Application run report adds optional `SourceEnvelope`. It records
+`SourceSlotId`, `RootRegionId`, `LayoutTemplateMapId`,
+`LayoutTemplateCapacity`, `ActualOutputLength`, declared
+`ExpectedOuterLengths`, and the typed nonblocking
+`UnexpectedLengthIssueCode`. These are copied from the exact compiled
+provenance; Save never reinterprets the current profile. `ActualOutputLength`
+must equal the complete output extent, while the template capacity identifies
+only the canonical map supplying layout anchors. Existing `MapId` continues
+to identify that canonical map and must not be read as output length.
+
+The property is omitted for exact-map and legacy runs. It contains no input
+path, firmware bytes, or separate execution semantics. The focused DTO uses
+generated JSON metadata through the existing Application resolver chain. This
+additive projection does not change the frozen canonical
+`composition-report-v1.schema.json`, existing report read completeness, or
+owner Golden evidence requirements.
+
 ### Execution-captured AB format (v1.1.6)
 
 `AbMergeFormat` is optional, immutable audit evidence on the Application run

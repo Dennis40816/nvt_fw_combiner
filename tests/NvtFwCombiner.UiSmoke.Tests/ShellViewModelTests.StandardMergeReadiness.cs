@@ -453,14 +453,15 @@ public sealed partial class FirmwareInspectionSlotTests
         Assert.False(ldc.IsInputInspectionPending);
     }
 
-    /// <summary>An unsupported DP capacity becomes terminal blocking UI health rather than stuck Checking.</summary>
+    /// <summary>A nonstandard captured DP remains selectable and shows its warning before TP selection.</summary>
     [Fact]
-    public async Task MultiMapStandardMergeUnsupportedDpCapacityTerminatesAsError()
+    public async Task MultiMapStandardMergeNonstandardDpCapacityTerminatesAsWarning()
     {
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-standard-invalid-capacity");
         MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
         viewModel.ShowMergeCommand.Execute(null);
         viewModel.WorkflowSession.SelectedIc = "NT51950";
+        Assert.True(viewModel.Merge.MergeDpSlot.CanSelectFile);
 
         await viewModel.WorkflowSession.SetSlotFileAsync(
             CompositionSlotIds.MergeDp,
@@ -471,10 +472,13 @@ public sealed partial class FirmwareInspectionSlotTests
             slot.SlotId == CompositionSlotIds.MergeDp);
         FirmwareSlotViewModel tp = viewModel.Merge.MergeSlots.Single(static slot =>
             slot.SlotId == CompositionSlotIds.MergeTp);
-        Assert.Equal(FirmwareSlotSemanticState.Error, dp.SemanticState);
+        Assert.Equal(FirmwareSlotSemanticState.Warning, dp.SemanticState);
+        Assert.True(dp.HasFile);
+        Assert.True(dp.CanSelectFile);
         Assert.False(dp.IsInputInspectionPending);
-        Assert.True(dp.BlocksBuild);
-        Assert.False(tp.CanSelectFile);
+        Assert.Contains("DP_NONSTANDARD_SIZE_WARNING", dp.InputInspectionStatus, StringComparison.Ordinal);
+        Assert.False(dp.BlocksBuild);
+        Assert.True(tp.CanSelectFile);
         Assert.False(viewModel.Merge.CanBuildMerge);
     }
 

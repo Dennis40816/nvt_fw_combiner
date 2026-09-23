@@ -114,13 +114,14 @@ public sealed partial class CompositionRunServiceTests
                 "general-merge",
                 CompositionKind.Merge),
             "uniform.bin",
-            validationRequirements: [validation]);
+            validationRequirements: [validation],
+            nonReferenceArtifactClass: CompiledInputArtifactClass.Auxiliary);
         return new CompositionRunRequest(
             "run-uniform-input-validation",
             compiled,
             [new InputArtifactBinding(
                 "input", "input", "uniform-artifact", "input.bin",
-                CompiledInputArtifactClass.TpFirmware)],
+                 CompiledInputArtifactClass.Auxiliary)],
             "uniform.bin");
     }
 }

@@ -74,7 +74,7 @@ public sealed partial class CompositionHostServices
             artifactClassification);
         CtrlRamAuthoring = ctrlRamAuthoring;
         FirmwareInspectionExperience = new BuiltInFirmwareInspection(
-            new FirmwareMetadataPlanAuthorityResolver(catalog),
+            new FirmwareMetadataPlanAuthorityResolver(catalog, compiler),
             projection,
             standardMergeAuthoring,
             abMergeAuthoring,

@@ -190,7 +190,22 @@ internal sealed partial class CanonicalCapabilityCompilerAdapter :
             return false;
         }
 
-        if (!IsCurrentPublishedRoute(snapshot!, route))
+        return CompileAndBindCapturedDynamicRoute(
+            snapshot!, route, requestedMapCapacity, capturedArtifacts,
+            selectedInputSlotIds, out composition, out resolvedCapability, out issues);
+    }
+
+    private bool CompileAndBindCapturedDynamicRoute(
+        CanonicalCapabilityCatalogSnapshot snapshot,
+        ResolvedCapabilityRoute route,
+        long requestedMapCapacity,
+        IReadOnlyList<FirmwareArtifactPayload> capturedArtifacts,
+        IReadOnlyCollection<string>? selectedInputSlotIds,
+        out CompiledComposition? composition,
+        out ResolvedCapability? resolvedCapability,
+        out IReadOnlyList<CompositionIssue> issues)
+    {
+        if (!IsCurrentPublishedRoute(snapshot, route))
         {
             return StaleCapturedCompilation(out composition, out resolvedCapability, out issues);
         }
@@ -203,7 +218,7 @@ internal sealed partial class CanonicalCapabilityCompilerAdapter :
             out CompiledComposition? compiled,
             out MetadataPlanDefinition? metadataPlan,
             out issues);
-        if (!IsCurrentPublishedRoute(snapshot!, route))
+        if (!IsCurrentPublishedRoute(snapshot, route))
         {
             return StaleCapturedCompilation(out composition, out resolvedCapability, out issues);
         }
@@ -218,7 +233,7 @@ internal sealed partial class CanonicalCapabilityCompilerAdapter :
             compiled,
             metadataPlan ?? throw new InvalidOperationException(
                 "Canonical captured compilation omitted its metadata plan."));
-        if (!IsCurrentPublishedRoute(snapshot!, route))
+        if (!IsCurrentPublishedRoute(snapshot, route))
         {
             return StaleCapturedCompilation(out composition, out resolvedCapability, out issues);
         }
@@ -291,18 +306,40 @@ internal sealed partial class CanonicalCapabilityCompilerAdapter :
         string icCountVariant)
     {
         string normalizedIcId = IcIdentifier.Normalize(icId);
-        ResolvedCapabilityRoute? route = _catalog.TryGetCurrentSnapshot()?
-            .DynamicRoutes.SingleOrDefault(candidate =>
+        CanonicalCapabilityCatalogSnapshot? snapshot = _catalog.TryGetCurrentSnapshot();
+        ResolvedCapabilityRoute[] routes =
+            snapshot is null ? [] :
+            [
+                .. snapshot.DynamicRoutes.Where(candidate =>
                 StringComparer.Ordinal.Equals(candidate.Identity.IcId, normalizedIcId) &&
                 StringComparer.Ordinal.Equals(candidate.Identity.WorkflowId, workflowId) &&
                 StringComparer.Ordinal.Equals(
                     candidate.Identity.IcCountVariant,
-                    icCountVariant));
-        return route is not null && StringComparer.Ordinal.Equals(
-                route.CompilationContract.CompilerSemanticId,
-                CapabilityDefinitionFingerprint.MapBoundCompilerSemanticId)
-            ? route.CompilationContract.SemanticBindingIds
-            : [];
+                    icCountVariant)),
+            ];
+        if (routes.Length == 0)
+        {
+            return [];
+        }
+
+        IReadOnlyList<string> memberSlotIds = routes[0].CompilationContract.SemanticBindingIds;
+        return routes.Length == 1
+            ? StringComparer.Ordinal.Equals(
+                    routes[0].CompilationContract.CompilerSemanticId,
+                    CapabilityDefinitionFingerprint.MapBoundCompilerSemanticId)
+                ? memberSlotIds
+                : []
+            : routes.Any(route =>
+                !StringComparer.Ordinal.Equals(
+                    route.CompilationContract.CompilerSemanticId,
+                    CapabilityDefinitionFingerprint.MapBoundCompilerSemanticId) ||
+                !route.CompilationContract.SemanticBindingIds.SequenceEqual(
+                    memberSlotIds, StringComparer.Ordinal))
+            ? throw new InvalidOperationException(
+                $"Published input-slot declarations disagree for '{normalizedIcId}'/" +
+                $"'{workflowId}'/'{icCountVariant}' across routes: " +
+                string.Join(", ", routes.Select(static route => route.Identity.RouteId)))
+            : memberSlotIds;
     }
 
     /// <summary>
@@ -312,6 +349,29 @@ internal sealed partial class CanonicalCapabilityCompilerAdapter :
     internal bool TryCompilePublishedClassificationCandidate(
         ResolvedCapabilityRoute publishedRoute,
         IReadOnlyCollection<string> selectedInputSlotIds,
+        out ResolvedCapability? capability)
+    {
+        return TryCompileClassificationCandidate(
+            publishedRoute, requestedMapCapacity: null, selectedInputSlotIds,
+            exactSourceEnvelopeRoute: false, out capability);
+    }
+
+    internal bool TryCompilePublishedClassificationCandidate(
+        ResolvedCapabilityRoute publishedRoute,
+        long exactMapCapacity,
+        IReadOnlyCollection<string> selectedInputSlotIds,
+        out ResolvedCapability? capability)
+    {
+        return TryCompileClassificationCandidate(
+            publishedRoute, exactMapCapacity, selectedInputSlotIds,
+            exactSourceEnvelopeRoute: true, out capability);
+    }
+
+    private bool TryCompileClassificationCandidate(
+        ResolvedCapabilityRoute publishedRoute,
+        long? requestedMapCapacity,
+        IReadOnlyCollection<string> selectedInputSlotIds,
+        bool exactSourceEnvelopeRoute,
         out ResolvedCapability? capability)
     {
         ArgumentNullException.ThrowIfNull(publishedRoute);
@@ -329,14 +389,44 @@ internal sealed partial class CanonicalCapabilityCompilerAdapter :
 
         try
         {
+            if (exactSourceEnvelopeRoute)
+            {
+                if (requestedMapCapacity is null or <= 0 ||
+                    publishedRoute.CompilationContract.AllowedMapVariantIds.Count != 1 ||
+                    !StringComparer.Ordinal.Equals(
+                        publishedRoute.CompilationContract.AllowedMapVariantIds[0],
+                        publishedRoute.Identity.MapVariant))
+                {
+                    return false;
+                }
+            }
+            else if (_dynamicCompiler.TryGetSourceEnvelopeMapVariant(
+                    publishedRoute.Identity.IcId,
+                    publishedRoute.Identity.WorkflowId,
+                    sourceLength: null,
+                    out _,
+                    out IReadOnlyList<CompositionIssue> envelopeIssues) ||
+                envelopeIssues.Count != 0)
+            {
+                // Source-envelope routes must arrive with the one selected route set.
+                return false;
+            }
+
             CompileAndBindDynamicRoute(
                 publishedRoute,
-                requestedMapCapacity: null,
+                requestedMapCapacity,
                 selectedInputSlotIds,
                 out _,
                 out ResolvedCapability? bound,
                 out IReadOnlyList<CompositionIssue> issues);
             if (bound is null || issues.Count != 0)
+            {
+                return false;
+            }
+
+            if (exactSourceEnvelopeRoute &&
+                !HasSelectedExactMap(bound.CompiledComposition,
+                    publishedRoute, requestedMapCapacity!.Value))
             {
                 return false;
             }

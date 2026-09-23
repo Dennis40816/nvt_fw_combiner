@@ -162,12 +162,14 @@ internal sealed partial class BuiltInFirmwareInspection
             byte[] image,
             byte[]? tpImage,
             string? standardMergeAddressSpaceId,
+            bool requiresSeparateTp,
             FirmwareMetadataPlanAuthority metadataAuthority)
     {
         if (TryReadCanonicalDpcmi(
                 image,
                 tpImage,
                 standardMergeAddressSpaceId,
+                requiresSeparateTp,
                 metadataAuthority,
                 out DpcmiMetadataFacts? dpcmi,
                 out FirmwareMetadataPrerequisite? prerequisite))
@@ -191,6 +193,7 @@ internal sealed partial class BuiltInFirmwareInspection
         byte[] image,
         byte[]? tpImage,
         string? standardMergeAddressSpaceId,
+        bool requiresSeparateTp,
         FirmwareMetadataPlanAuthority metadataAuthority,
         out DpcmiMetadataFacts? facts,
         out FirmwareMetadataPrerequisite? prerequisite)
@@ -203,7 +206,7 @@ internal sealed partial class BuiltInFirmwareInspection
             return false;
         }
 
-        bool isStandardMergeDpInput = StringComparer.Ordinal.Equals(
+        bool requiresTpArtifact = requiresSeparateTp || StringComparer.Ordinal.Equals(
             standardMergeAddressSpaceId,
             CompositionAddressSpaceIds.DpInput);
         ResolvedMetadataPlan? plan = metadataAuthority.Plan;
@@ -232,7 +235,7 @@ internal sealed partial class BuiltInFirmwareInspection
                     .Select(static entry => entry.Definition.SpaceId)
                     .Distinct(StringComparer.Ordinal)
                     .Where(spaceId =>
-                        !isStandardMergeDpInput ||
+                        !requiresTpArtifact ||
                         tpImage is not null ||
                         !StringComparer.Ordinal.Equals(
                             spaceId,

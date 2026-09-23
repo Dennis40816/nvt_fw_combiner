@@ -188,6 +188,7 @@ public static class CompiledInputArtifactInspectionService
                     $"Compiled input address space '{addressSpaceId}' has no supported inspection projection.",
                     nameof(addressSpaceId)),
             };
+        inspection = ApplySourceEnvelopeWarning(details, slot, inspection);
         return !inspection.BlocksBuild && slot.ArtifactClass == CompiledInputArtifactClass.TpFirmware &&
             inspection.AcceptedSnapshotRange is { } accepted &&
             FirmwareConfigChipCountDiagnostics.AssessPositive(
@@ -202,6 +203,26 @@ public static class CompiledInputArtifactInspectionService
             }
             : CompiledReferenceBankInspection.Inspect(composition, addressSpaceId, sourceBytes,
                 ApplyInputLoadValidation(composition, addressSpaceId, sourceBytes, inspection));
+    }
+
+    private static CompiledInputArtifactInspectionResult ApplySourceEnvelopeWarning(
+        V2CompiledCompositionDetails details,
+        CompiledInputSlotRequirement slot,
+        CompiledInputArtifactInspectionResult inspection)
+    {
+        return details.Provenance.Context is not ResolvedMapV2CompilationContext
+        { SourceEnvelope: { } envelope } ||
+            !StringComparer.Ordinal.Equals(slot.SlotId, envelope.SourceSlotId) ||
+            inspection.Severity != CompiledInputArtifactInspectionSeverity.Valid ||
+            envelope.ExpectedOuterLengths.Contains(inspection.ActualLength)
+            ? inspection
+            : inspection with
+            {
+                ExpectedOuterLengths = envelope.ExpectedOuterLengths,
+                Severity = CompiledInputArtifactInspectionSeverity.Warning,
+                IssueCode = envelope.UnexpectedLengthIssueCode,
+                NextAction = CompiledInputArtifactInspectionNextAction.ReviewUnexpectedOuterLength,
+            };
     }
 
     private static CompiledInputArtifactInspectionResult InspectDeclaredPrefix(

@@ -321,7 +321,7 @@ public sealed partial class FirmwareInspectionSnapshotTests
                     acceptedBytes: bytes));
             }));
 
-        _ = await inspection.InspectFirmwareBatchAsync(
+        FirmwareInspectionBatchResult batch = await inspection.InspectFirmwareBatchAsync(
             "NT51950",
             [new FirmwareInspectionSnapshotInput(
                 "dp",
@@ -333,6 +333,24 @@ public sealed partial class FirmwareInspectionSnapshotTests
 
         Assert.Equal(0x40000, maxima["dp.bin"]);
         Assert.Equal(100_000_000, maxima["tp-metadata.bin"]);
+        FirmwareInspectionSnapshot snapshot = batch.InspectionsById["dp"];
+        Assert.Equal(FileStamp.FromBytes([1]), snapshot.FileStamp);
+        Assert.Null(snapshot.InputSlotStatus);
+        Assert.All(Assert.IsType<AuthoringCapabilityCatalogSnapshot>(snapshot.InputSlotCatalog).Routes,
+            static route => Assert.Null(route.ExactCapability));
+        Assert.Collection(snapshot.AuthoringCompilationIssues,
+            static issue =>
+            {
+                Assert.Equal("profile.v2.plan.invalid-view", issue.Code);
+                Assert.Equal("dp-identity-source", issue.OperationId);
+                Assert.Equal("View 'dp-identity-source' escapes address space 'dp-input'.", issue.Message);
+            },
+            static issue =>
+            {
+                Assert.Equal("profile.v2.plan.invalid-view", issue.Code);
+                Assert.Equal("tp-overlay-output", issue.OperationId);
+                Assert.Equal("View 'tp-overlay-output' escapes address space 'output-image'.", issue.Message);
+            });
     }
 
     /// <summary>Multiple typed bindings on one path are read once at their minimum ceiling.</summary>
@@ -474,7 +492,7 @@ public sealed partial class FirmwareInspectionSnapshotTests
         CompositionHostServices services = BootstrapTestHost.Services;
         return new BuiltInFirmwareInspection(
             new FirmwareMetadataPlanAuthorityResolver(
-                BootstrapTestHost.Canonical.Catalog),
+                BootstrapTestHost.Canonical.Catalog, BootstrapTestHost.Canonical.Compiler),
             BootstrapTestHost.Canonical.Projection,
             (StandardMergeAuthoringExperience)services.StandardMergeAuthoring,
             (AbMergeAuthoringExperience)services.AbMergeAuthoring,
@@ -490,7 +508,7 @@ public sealed partial class FirmwareInspectionSnapshotTests
         ISelectedFileContentInspector contentInspector)
     {
         return new BuiltInFirmwareInspection(
-            new FirmwareMetadataPlanAuthorityResolver(host.Canonical.Catalog),
+            new FirmwareMetadataPlanAuthorityResolver(host.Canonical.Catalog, host.Canonical.Compiler),
             host.Canonical.Projection,
             (StandardMergeAuthoringExperience)host.Services.StandardMergeAuthoring,
             (AbMergeAuthoringExperience)host.Services.AbMergeAuthoring,
@@ -512,17 +530,18 @@ public sealed partial class FirmwareInspectionSnapshotTests
         IsolatedBootstrapTestHost host,
         bool extendedCapacity)
     {
-        CompiledAuthoringSelectionSnapshot snapshot = host.Services.StandardMergeAuthoring.GetAuthoringSnapshot(
+        int capacity = extendedCapacity ? 0x80000 : 0x40000;
+        byte[] dp = CreateNonUniformArtifact(capacity);
+        CompiledAuthoringSelectionSnapshot snapshot = host.Services.StandardMergeAuthoring.ResolveCapturedDpSelection(
             "NT51950",
-            extendedCapacity
-                ? [CompositionAddressSpaceIds.DpInput, CompositionAddressSpaceIds.TpInput, CompositionAddressSpaceIds.LdcInput]
-                : [CompositionAddressSpaceIds.DpInput, CompositionAddressSpaceIds.TpInput],
-            new Dictionary<string, FileStamp>(StringComparer.Ordinal)
-            {
-                [CompositionAddressSpaceIds.DpInput] = new(extendedCapacity ? 0x80000 : 0x40000, new string('a', 64)),
-            },
+            dp,
+            [CompositionAddressSpaceIds.DpInput, CompositionAddressSpaceIds.TpInput],
             new AuthoringRevision(1));
-        return Assert.IsType<ResolvedCapability>(Assert.Single(snapshot.Catalog.Routes).ExactCapability);
+        ResolvedCapability capability = Assert.IsType<ResolvedCapability>(
+            Assert.Single(snapshot.Catalog.Routes).ExactCapability);
+        Assert.Equal(capacity, capability.CompiledComposition.Plan.OutputInitialization.Capacity);
+        Assert.Equal(host.Catalog.TryGetCurrentSnapshot()!.ResolutionToken, capability.ResolutionToken);
+        return capability;
     }
 
     private sealed class ResourceCeilingObservedException : Exception
