@@ -166,7 +166,7 @@ Owner 2026-09-23 明確將本次正式發布目標改為 **1.1.10**，取代先�
 - **CtrlRAM AB Replace 尚未完成全範圍認證**：NT51929 fw200 Single 已本地接線為 Candidate／ContractOnly；其他 member／shape 的 A／B／A＋B、未選 bank 保留及 transform／CRC／header／backup 的獨立 expected outputs 仍待閉合。
 - 最終 integration、firmware-owner 證據及實際發布候選來源的必要 Golden 尚未完成；本地預封存來源已執行 25 個 Direct 完整輸出案例，但 3 個 input-only 和 12 個 fact-scoped alias 並非 Golden 輸出案例，且來源後續變更須在正式候選重跑。
 - 先前完整 verifier 的 orchestration concurrency failure 尚未證明根因修復。診斷紀錄已改善，後續未重現仍不能算修復完成。
-- 本地最新完整 UiSmoke 1593/1593 已通過；這仍不是 frozen release candidate 的 exact-source CI。
+- 較早候選來源的完整 UiSmoke 1593/1593 已通過；後續 AB Base Info 修正於固定來源 `f33099f33` 的受影響測試為 9/9。完整 UiSmoke 尚未在最終 frozen release candidate 重跑，也不是 exact-source CI。
 - Native high-DPI／assistive-technology、clean-machine 與最終 portable-package 驗收仍須依候選範圍完成；已發布版本的歷史證據不自動認證目前 source。
 - Roadmap 已確認此次正式版本為 1.1.10；`VERSION`、tag／package 身分仍需於候選整合時同步，Customized／Launcher 新開發維持 1.2.1，未列為本次成果。
 
