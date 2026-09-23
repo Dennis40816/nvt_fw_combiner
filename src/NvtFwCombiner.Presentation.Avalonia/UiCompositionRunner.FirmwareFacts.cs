@@ -85,10 +85,20 @@ internal static partial class UiCompositionRunner
         }
         foreach (CtrlRamBaseBankInspection bank in banks)
         {
-            string label = $"{text.EventBufferVersionLabel} ({(bank.BankId == "a-bank" ? "A" : "B")})";
+            string bankLabel = bank.BankId == "a-bank" ? "A" : "B";
+            string label = $"{text.EventBufferVersionLabel} ({bankLabel})";
             facts.Add(bank.EventBufferFormatVersion is byte raw
                 ? new(label, FormattableString.Invariant($"0x{raw:X2} - {FirmwareEventBufferFormatDisplayNames.GetDisplayName(raw) ?? text.FirmwareSlotUnknownValueLabel}"))
                 : new(label, text.FirmwareFactNotProvidedLabel,
+                    stateDetail: text.FirmwareFactNotProvidedDetail, priority: FirmwareSlotFactPriority.Details));
+            facts.Add(new(text.GetCtrlRamBaseBankRangeLabel(bankLabel),
+                text.GetCtrlRamBaseReferenceRangeValue(FormatMemoryAddressRange(bank.Range)),
+                priority: FirmwareSlotFactPriority.Details));
+            string backupLabel = text.GetCtrlRamBaseBackupOffsetLabel(bankLabel);
+            facts.Add(bank.FirmwareConfig is { } metadata
+                ? new(backupLabel, text.GetCtrlRamBaseBackupOffsetValue(metadata.FirmwareConfigBackupStart),
+                    priority: FirmwareSlotFactPriority.Details)
+                : new(backupLabel, text.FirmwareFactNotProvidedLabel,
                     stateDetail: text.FirmwareFactNotProvidedDetail, priority: FirmwareSlotFactPriority.Details));
         }
         return facts;

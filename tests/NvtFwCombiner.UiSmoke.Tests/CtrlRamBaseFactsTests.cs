@@ -18,7 +18,13 @@ public sealed class CtrlRamBaseFactsTests
     {
         ShellTextResources text = ShellTextResources.For(chinese ? ShellLanguage.ChineseTraditional : ShellLanguage.English);
         var a = new FirmwareConfigMetadataSnapshot(0x23000, "2.0.0", 5, 250, true, 0, 1, 0x4703, null, default);
-        FirmwareConfigMetadataSnapshot b = a with { FirmwareVersion = 6, FirmwareVersionBar = 249, ProjectId = 0x4704 };
+        FirmwareConfigMetadataSnapshot b = a with
+        {
+            FirmwareConfigBackupStart = 0x23020,
+            FirmwareVersion = 6,
+            FirmwareVersionBar = 249,
+            ProjectId = 0x4704,
+        };
         CtrlRamBaseBankInspection[] banks =
         [
             new("a-bank", new ByteRange(0, 0x40000), a,
@@ -40,6 +46,23 @@ public sealed class CtrlRamBaseFactsTests
         Assert.False(Assert.Single(facts, static fact => fact.Label == "IC Count (A/B)").IsPrimary);
         Assert.False(Assert.Single(facts, static fact => fact.Label == "DPA Version").IsPrimary);
         Assert.False(Assert.Single(facts, static fact => fact.Label == "DPB Version").IsPrimary);
+        foreach ((string bank, string range, string backup) in new[]
+        {
+            ("A", chinese ? "參考映像 0x00000-0x3FFFF" : "Reference 0x00000-0x3FFFF", chinese ? "Bank 內 +0x23000" : "bank-local +0x23000"),
+            ("B", chinese ? "參考映像 0x40000-0x7FFFF" : "Reference 0x40000-0x7FFFF", chinese ? "Bank 內 +0x23020" : "bank-local +0x23020"),
+        })
+        {
+            string rangeLabel = chinese
+                ? $"{bank} Bank 範圍"
+                : $"{bank} bank range";
+            string backupLabel = chinese ? $"{bank} FWConfig 備份" : $"{bank} FWConfig Backup";
+            FirmwareSlotFactViewModel rangeFact = Assert.Single(facts, fact => fact.Label == rangeLabel);
+            FirmwareSlotFactViewModel backupFact = Assert.Single(facts, fact => fact.Label == backupLabel);
+            Assert.Equal(range, rangeFact.Value);
+            Assert.Equal(backup, backupFact.Value);
+            Assert.False(rangeFact.IsPrimary);
+            Assert.False(backupFact.IsPrimary);
+        }
         foreach (string bankId in new[] { "A", "B" })
         {
             FirmwareSlotFactViewModel format = Assert.Single(facts,
@@ -68,6 +91,13 @@ public sealed class CtrlRamBaseFactsTests
             IReadOnlyList<FirmwareSlotFactViewModel> facts = UiCompositionRunner.GetFirmwareSlotFacts(inspection, true, text);
             string a = Assert.Single(facts, fact => fact.Label == $"{text.EventBufferVersionLabel} (A)").Value;
             string b = Assert.Single(facts, fact => fact.Label == $"{text.EventBufferVersionLabel} (B)").Value;
+            foreach (string bank in new[] { "A", "B" })
+            {
+                FirmwareSlotFactViewModel backup = Assert.Single(facts,
+                    fact => fact.Label == $"{bank} FWConfig Backup");
+                Assert.Equal(text.FirmwareFactNotProvidedLabel, backup.Value);
+                Assert.False(backup.IsPrimary);
+            }
             if (aValue is null)
             {
                 Assert.Equal(text.FirmwareFactNotProvidedLabel, a);

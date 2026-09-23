@@ -16,6 +16,28 @@ internal sealed partial class ShellTextResources
         return Language == ShellLanguage.ChineseTraditional ? traditionalChinese : english;
     }
 
+    public string GetCtrlRamBaseBankRangeLabel(string bank)
+    {
+        return SelectLanguage($"{bank} bank range", $"{bank} Bank 範圍");
+    }
+
+    public string GetCtrlRamBaseBackupOffsetLabel(string bank)
+    {
+        return SelectLanguage($"{bank} FWConfig Backup", $"{bank} FWConfig 備份");
+    }
+
+    public string GetCtrlRamBaseReferenceRangeValue(string range)
+    {
+        return SelectLanguage($"Reference {range}", $"參考映像 {range}");
+    }
+
+    public string GetCtrlRamBaseBackupOffsetValue(long offset)
+    {
+        return SelectLanguage(
+            FormattableString.Invariant($"bank-local +0x{offset:X}"),
+            FormattableString.Invariant($"Bank 內 +0x{offset:X}"));
+    }
+
     public string FormatDiffDlmPreservationSummary(int count)
     {
         return SelectLanguage(
