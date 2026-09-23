@@ -7,6 +7,7 @@ Included:
 - `IC_FlashMap_20260701.xlsx` workbook evidence used for human flash-map review.
 - `IC_FlashMap_20260725.xlsx` workbook update with NT51926/NT51927 TP Overview backup-region corrections and NT51926 versioned TP Overview sections. The current 2026-07-25 01:38:23 copy is tracked by SHA-256 in `SOURCE_MANIFEST.json`.
 - `IC_FlashMap_20260730.xlsx` owner-approved workbook update with the compact `TP Address Tables` sheet, unified hexadecimal ranges, separate Initial Code/LDC rows, and the reviewed IC/row exclusions. Its exact bytes are tracked by SHA-256 in `SOURCE_MANIFEST.json`.
+- `IC_FlashMap_20260922.xlsx` consolidates the latest owner-provided NT51950/NT51951 DP Perspective into the July workbook; the other eight sheets are preserved. See the source and limitations below.
 - `postbuild/` legacy postbuild BAT files used to verify Combiner command order and arguments.
 - `mmap/` legacy memory-map headers used to verify address ranges and header locations.
 - `common-fw/ap_fwconfig.c` FWConfig structure reference used to verify Common FW, FW/bar, and PID offsets.
@@ -26,6 +27,47 @@ python scripts/intake_ic_reference.py --source <owner-drop-folder> --ic <NTxxxxx
 ```
 
 Promote only reviewed, non-payload reference documents from the generated handoff manifest into this directory, then update `SOURCE_MANIFEST.json` with source path, size, SHA-256, and approval/provenance notes.
+
+## Public DP Perspective refresh — 2026-09-23
+
+The owner requested consolidation of `51950_51951_DP_Perspective_20260922.xlsx`
+received through the existing HackMD encrypted-transfer workflow. Source size:
+15,370 bytes; SHA-256:
+`81df46490d8b686d70135fa6b922c70919136c3898c42fb6399ea2af318c686b`.
+Its single `工作表1` sheet, `A1:I73`, replaces `51950 DP Perspective` in a new
+dated copy of the July 30 workbook. Original workbooks remain unchanged.
+
+The new table includes OSD allocation labels and revised NT51950 2 IC / 8 Mbit
+with-backup, without-LDC content: DP backup at `[0x80000,0x8A000)` and TP backup
+allocation at `[0x8A000,0xB8000)`. These are source observations, not new
+production write authority. Existing TP overlay `[0xA000,0x37000)` and protected
+customer information `[0x37000,0x38000)` remain governed by their approved
+profiles and owner decisions; the source's larger TP allocation label does not
+authorize expanding writes.
+
+Preserved source issues: `A59` literally says `B8000-BFFF`; OSD labels in
+`E73/G73/I73` have no address. No address was guessed or silently corrected.
+This source covers public NT51950/NT51951 layouts, not NT51928BT or the separate
+Desay intake below. `TP Address Tables` is still the July TP Overview summary
+(H/I headers explicitly say No Backup EN), not a summary of this DP Perspective.
+
+Verification: exact values/types, alignment, number formats, dimensions and
+merges match the new source; source and final affected-sheet PNGs have identical
+SHA-256. Only `xl/worksheets/sheet8.xml` and appended `xl/styles.xml` entries
+change in the original package. All other package parts and all prior style
+entries remain unchanged, including the other eight sheets, workbook metadata,
+theme and relationships. New sheet theme colors are resolved to source RGB so
+the original workbook theme does not recolor them. ZIP integrity, saved-file
+readback and an Artifact Tool formula-error scan pass; no macros/external links.
+Native Excel interaction was not exercised. Evidence is retained in the external
+test area's `outputs/v1110-perspective-20260922/evidence` directory.
+
+The new workbook's manifest size/hash passes. A wider manifest audit also found
+ten pre-existing mismatches in the nine `mmap/*.h` entries and
+`common-fw/ap_fwconfig.c`; each file is byte-identical to `73b3d6e5d`, whose Git
+blob already differs from the listed size/hash. This refresh does not alter
+those files or silently replace their original evidence hashes. The full
+reference-manifest audit is therefore not reported as passing.
 
 ## Desay workbook intake — 2026-09-08
 

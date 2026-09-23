@@ -2172,9 +2172,10 @@ not the later Launcher release.
 Owner reminder, 2026-09-14: **before this release**, request/confirm the latest
 public NT51950 DP Perspective, Desay DP Perspective and Event Buffer ID/name
 table. The [data-refresh checklist](../ui/v1.1.x-custom-options-layout-handoff.md#owner-data-refresh-before-120-release--2026-09-14)
-owns received/revision/applicability details. These updates are still awaiting
-owner material; do not treat an old workbook or display example as the latest
-approved source. This reminder does not itself allocate an unknown firmware
+owns received/revision/applicability details. As of 2026-09-23, the latest public
+NT51950/NT51951 Perspective is consolidated in the reference workbook and the
+latest Event Buffer names are already applied; separate Desay source questions
+remain unresolved. This reminder does not itself allocate an unknown firmware
 implementation, reopen DP Replace or add a new automated release gate.
 
 Launcher remains secondary to the `1.1.x` UI/performance priorities, but this
@@ -2189,6 +2190,13 @@ recovery and rollback authority. Production activation remains NO-GO until the
 separate security/evidence and activation gates below close.
 
 ## Work package: publisher trust, signing and security closure
+
+The owner's 2026-09-23 request for differential updates, Launcher self-update
+and future intranet migration is captured in the
+[complete proposal](launcher-update-proposal-20260923.md). It is pending
+discussion and does not admit implementation or alter this release allocation.
+The expanded draft estimates 35–60 focused workdays, including a 10–18-day first
+vertical slice; these supersede neither an approved schedule nor completed evidence.
 
 Current allocation: `1.5.0`.
 
