@@ -147,7 +147,7 @@ Owner 2026-09-23 明確將本次正式發布目標改為 **1.1.10**，取代先�
 
 #### 13. 非標準 DP：保留完整輸入並提示疑似 OSD 客製化
 
-- 來源版本：**1.1.10 本地完成，待整合及 firmware-owner 證據**；Standard Merge B2 已提交，AB Normal C 正在固定 checkpoint。
+- 來源版本：**1.1.10 本地完成，待整合及 firmware-owner 證據**；Standard Merge B2 已提交 `0fa943023`，AB Normal C 已提交 `620e2d6b0`。
 - Before → After: NT51950／NT51951 的 Standard Merge 與 AB Normal 過去拒絕非標準 DP 大小；現在以既有 map 決定 TP 位置，輸出長度跟隨 DP，除已宣告 TP／postbuild 寫入外保留 DP 全部 bytes，並在輸入、Output Settings 與 Report 顯示疑似 OSD 客製化 warning。
 - Affected: NT51950／NT51951 Standard Merge；NT51950 Single／Cascade 與 NT51951 Single AB Code Normal。停用的 Desay 專屬配置未重新開放。
 - Support status: unchanged/support-neutral；沒有提高路由的 support 或 Golden evidence 等級。
