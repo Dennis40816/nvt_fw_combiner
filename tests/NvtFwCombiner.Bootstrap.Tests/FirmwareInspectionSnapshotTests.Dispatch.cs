@@ -457,6 +457,47 @@ public sealed partial class FirmwareInspectionSnapshotTests
         Assert.Equal(1, adapter.RolloverCalls);
     }
 
+    /// <summary>Reload between AB layout and its Standard metadata counterpart cannot publish mixed bank facts.</summary>
+    [Fact]
+    public void AbBaseFactsRejectPublicationRolloverDuringStandardCompilation()
+    {
+        CanonicalCapabilityCatalogCandidate seed =
+            CompositionHostServices.CreateCanonicalCapabilityCatalogSource().Load(
+                TestContext.Current.CancellationToken).Candidate!;
+        var rollover = new CanonicalCapabilityCatalogCandidate(
+            seed.CatalogId, "ab-base-event-rollover-2", seed.SourceSha256,
+            seed.Definitions, seed.DynamicDefinitions);
+        var catalog = new CanonicalCapabilityCatalog(new QueuedCandidateSource(seed, rollover));
+        Assert.True(catalog.Reload(TestContext.Current.CancellationToken).Succeeded);
+        ResolutionToken originalToken = catalog.TryGetCurrentSnapshot()!.ResolutionToken;
+        CapabilityCatalogReloadResult? rolloverResult = null;
+        int standardQueries = 0;
+        var query = new InterceptingMetadataPlanQuery(catalog,
+            catalog.ResolveUniqueMetadataPlan,
+            (ic, workflow) =>
+            {
+                if (ic == "NT51929" && workflow == ExperienceIds.StandardMerge && ++standardQueries == 1)
+                {
+                    rolloverResult = catalog.Reload(TestContext.Current.CancellationToken);
+                }
+            });
+        var resolver = new FirmwareArtifactClassificationResolver(
+            query, new CanonicalCapabilityCompilerAdapter(query, new BuiltInV2DynamicCompilationAdapter()));
+        byte[] reference = File.ReadAllBytes(CanonicalGoldenTestData.ArtifactPath(
+            "ab-merge", "NT51929", "expected-output", "t05-d06"));
+
+        CtrlRamBaseInspection inspection = resolver.ResolveCtrlRamBase(
+            "NT51929", exactCapability: null, reference, draft: null,
+            adapter: new BuiltInCtrlRamAuthoringAdapter(catalog, BootstrapTestHost.Canonical.Projection));
+
+        Assert.True(rolloverResult?.Succeeded);
+        Assert.NotEqual(originalToken, catalog.TryGetCurrentSnapshot()!.ResolutionToken);
+        Assert.Equal(1, standardQueries);
+        Assert.NotEqual(CtrlRamBaseKind.AbFlash, inspection.Kind);
+        Assert.Empty(inspection.Banks);
+        Assert.Contains(inspection.Issues, static issue => issue.Code == AuthoringSessionIssueCodes.StaleInspection);
+    }
+
     private static byte[] CreateNonUniformArtifact(int length)
     {
         var artifact = new byte[length];
@@ -659,7 +700,8 @@ public sealed partial class FirmwareInspectionSnapshotTests
 
     private sealed class InterceptingMetadataPlanQuery(
         ICanonicalCapabilityQuery inner,
-        Func<string, string, string, long?, MetadataPlanResolutionResult> resolveMetadataPlan)
+        Func<string, string, string, long?, MetadataPlanResolutionResult> resolveMetadataPlan,
+        Action<string, string>? afterResolveRoute = null)
         : ICanonicalCapabilityQuery
     {
         public CanonicalCapabilityCatalogSnapshot GetCurrentSnapshot()
@@ -688,7 +730,10 @@ public sealed partial class FirmwareInspectionSnapshotTests
             string icCountVariant,
             long? outputCapacity = null)
         {
-            return inner.ResolveUniqueRoute(icId, workflowId, icCountVariant, outputCapacity);
+            CapabilityResolutionResult result = inner.ResolveUniqueRoute(
+                icId, workflowId, icCountVariant, outputCapacity);
+            afterResolveRoute?.Invoke(icId, workflowId);
+            return result;
         }
 
         public MetadataPlanResolutionResult ResolveFullImageMetadataPlan(string icId, long inputLength)

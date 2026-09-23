@@ -83,20 +83,13 @@ internal static partial class UiCompositionRunner
                 facts.Add(Unknown($"{bankLabel} Version", FirmwareSlotFactPriority.Details));
             }
         }
-        if (banks.Count > 0 && banks.All(static bank => bank.EventBufferFormatVersion is null))
+        foreach (CtrlRamBaseBankInspection bank in banks)
         {
-            facts.Add(new(text.EventBufferVersionLabel, text.FirmwareFactNotProvidedLabel,
-                stateDetail: text.FirmwareFactNotProvidedDetail, priority: FirmwareSlotFactPriority.Details));
-        }
-        else
-        {
-            foreach (CtrlRamBaseBankInspection bank in banks)
-            {
-                string label = $"{text.EventBufferVersionLabel} ({(bank.BankId == "a-bank" ? "A" : "B")})";
-                facts.Add(bank.EventBufferFormatVersion is byte raw
-                    ? new(label, FormattableString.Invariant($"0x{raw:X2} - {FirmwareEventBufferFormatDisplayNames.GetDisplayName(raw) ?? text.FirmwareSlotUnknownValueLabel}"))
-                    : Unknown(label));
-            }
+            string label = $"{text.EventBufferVersionLabel} ({(bank.BankId == "a-bank" ? "A" : "B")})";
+            facts.Add(bank.EventBufferFormatVersion is byte raw
+                ? new(label, FormattableString.Invariant($"0x{raw:X2} - {FirmwareEventBufferFormatDisplayNames.GetDisplayName(raw) ?? text.FirmwareSlotUnknownValueLabel}"))
+                : new(label, text.FirmwareFactNotProvidedLabel,
+                    stateDetail: text.FirmwareFactNotProvidedDetail, priority: FirmwareSlotFactPriority.Details));
         }
         return facts;
 

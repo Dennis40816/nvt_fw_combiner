@@ -156,11 +156,21 @@ declarations, stale publication and invalid recognized AB structure are terminal
 no Standard or alternate metadata-plan fallback is introduced. The effective draft
 is adopted atomically with a current successful inspection batch.
 
-The current NT51929 display binding does not select Event Buffer Format, although
-the shared structure declares the field. Its fact is explicitly unavailable;
-inspection must not bypass the binding with a raw offset or borrow the NT51950
-format-selection policy. Equal typed PID/Common/count values may share an A/B
-display label; differing values remain bank-specific.
+The NT51929 Standard metadata plan does not select Event Buffer Format as a
+target, although its canonical General Parameters structure declares the field.
+For the already admitted NT51929 AB Base classifier, the owner approved a
+separate read-only projection on 2026-09-23: retain the same-publication
+Standard composition and family, resolve that exact map-selected structure
+against each immutable bank-local slice, and accept its Event Buffer byte only
+when the resolved structure starts at the existing validated Backup location.
+This projection does not amend the Standard plan's target list or add an AB
+metadata binding. An optional locator/field failure yields a missing fact for
+that bank only; it adds no Build issue, format/map choice or write authority.
+The UI shows each bank's raw hex and approved name independently, including
+zero and unknown bytes, or bank-specific Not provided. Inspection must not use
+a raw offset or borrow the NT51950 format-selection policy. Equal typed
+PID/Common/count values may share an A/B display label; differing values remain
+bank-specific.
 
 ## Verification
 

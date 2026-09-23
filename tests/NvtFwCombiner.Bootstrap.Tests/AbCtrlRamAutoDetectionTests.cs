@@ -24,6 +24,12 @@ public sealed class AbCtrlRamAutoDetectionTests
         Assert.Collection(facts.Banks, bank => AssertBank(bank, "a-bank"), bank => AssertBank(bank, "b-bank"));
         Assert.False(facts.Banks[0].Range.Overlaps(facts.Banks[1].Range));
         Assert.Equal(bytes[CompositionSlotIds.ReplaceBase].Length, facts.Banks[1].Range.EndExclusive);
+        foreach (CtrlRamBaseBankInspection bank in facts.Banks)
+        {
+            // The fixture's owner-declared u8EventBufferFormatVersion is 0x0C bytes into each Backup.
+            int byteAddress = checked((int)(bank.Range.Start + bank.FirmwareConfig!.FirmwareConfigBackupStart + 0x0C));
+            Assert.Equal(bytes[CompositionSlotIds.ReplaceBase][byteAddress], bank.EventBufferFormatVersion);
+        }
     }
 
     /// <summary>Automatic selection and explicit per-bank choices survive atomic inspection adoption.</summary>
@@ -39,6 +45,10 @@ public sealed class AbCtrlRamAutoDetectionTests
         CtrlRamBaseInspection facts = Assert.IsType<CtrlRamBaseInspection>(batch.CtrlRamBaseInspection);
         Assert.Empty(batch.Issues);
         Assert.Equal(2, facts.Banks.Count);
+        Assert.All(facts.Banks, static bank =>
+        {
+            _ = Assert.NotNull(bank.EventBufferFormatVersion);
+        });
         var state = new AuthoringSessionState(ExperienceIds.CtrlRamReplace);
         AuthoringSessionTransitionResult adopted = BootstrapTestHost.Canonical.CtrlRamAuthoring.AdoptInspectedBatch(
             state, batch.Catalog!, [.. batch.Statuses.Values], facts);
@@ -77,6 +87,51 @@ public sealed class AbCtrlRamAutoDetectionTests
         Assert.Empty(batch.Issues);
         Assert.NotNull(batch.Catalog);
         Assert.IsNotType<RuntimeReferenceBankReplaceV2CompilationContext>(batch.Catalog.Routes[0].ExactCapability!.CompiledComposition.V2Details.Provenance.Context);
+    }
+
+    /// <summary>Each bank's observed byte comes from its own captured Backup, including zero and unknown values.</summary>
+    [Theory]
+    [InlineData((byte)0xA3, (byte)0x00)]
+    [InlineData((byte)0x7F, (byte)0xA3)]
+    public void BankEventBufferBytesStayIndependent(byte aValue, byte bValue)
+    {
+        (_, Dictionary<string, byte[]> bytes) = AbCtrlRamAuthoringTests.Inputs();
+        byte[] reference = bytes[CompositionSlotIds.ReplaceBase];
+        CtrlRamBaseInspection baseline = Inspect(bytes, sources: false).CtrlRamBaseInspection!;
+        byte[] values = [aValue, bValue];
+        for (int index = 0; index < baseline.Banks.Count; index++)
+        {
+            CtrlRamBaseBankInspection bank = baseline.Banks[index];
+            int fieldAddress = checked((int)(bank.Range.Start +
+                bank.FirmwareConfig!.FirmwareConfigBackupStart + 0x0C));
+            reference[fieldAddress] = values[index];
+        }
+
+        CtrlRamBaseInspection observed = Inspect(bytes, sources: false).CtrlRamBaseInspection!;
+        Assert.Equal(CtrlRamBaseKind.AbFlash, observed.Kind);
+        Assert.Equal(aValue, observed.Banks[0].EventBufferFormatVersion);
+        Assert.Equal(bValue, observed.Banks[1].EventBufferFormatVersion);
+    }
+
+    /// <summary>A legacy-readable Backup outside the declared TP region cannot supply a canonical display fact.</summary>
+    [Fact]
+    public void BankEventBufferOutsideCanonicalLocatorIsMissingOnlyForThatBank()
+    {
+        (_, Dictionary<string, byte[]> bytes) = AbCtrlRamAuthoringTests.Inputs();
+        byte[] reference = bytes[CompositionSlotIds.ReplaceBase];
+        CtrlRamBaseInspection baseline = Inspect(bytes, sources: false).CtrlRamBaseInspection!;
+        CtrlRamBaseBankInspection b = baseline.Banks[1];
+        int original = checked((int)(b.Range.Start + b.FirmwareConfig!.FirmwareConfigBackupStart));
+        int relocated = checked((int)(b.Range.Start + 0x1000));
+        Array.Copy(reference, original, reference, relocated, 0x1000);
+        reference[original + 0xFFC] ^= 1;
+
+        CtrlRamBaseInspection observed = Inspect(bytes, sources: false).CtrlRamBaseInspection!;
+        Assert.Equal(CtrlRamBaseKind.AbFlash, observed.Kind);
+        _ = Assert.NotNull(observed.Banks[0].EventBufferFormatVersion);
+        Assert.Empty(observed.Banks[1].Issues);
+        Assert.Equal(0x1000, observed.Banks[1].FirmwareConfig!.FirmwareConfigBackupStart);
+        Assert.Null(observed.Banks[1].EventBufferFormatVersion);
     }
 
     /// <summary>The existing Standard TP shape is recognized independently of CtrlRAM route capacity support.</summary>
@@ -281,6 +336,6 @@ public sealed class AbCtrlRamAutoDetectionTests
         Assert.NotEmpty(bank.FirmwareConfig.CommonFwVersion);
         Assert.True(bank.TpVersion!.IsKnown);
         Assert.True(bank.DpVersion!.IsKnown);
-        Assert.Null(bank.EventBufferFormatVersion);
+        _ = Assert.NotNull(bank.EventBufferFormatVersion);
     }
 }

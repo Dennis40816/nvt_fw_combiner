@@ -2,6 +2,7 @@ using NvtFwCombiner.Application.Authoring;
 using NvtFwCombiner.Application.Capabilities;
 using NvtFwCombiner.Application.Composition;
 using NvtFwCombiner.Application.FlashMaps;
+using NvtFwCombiner.Application.Metadata;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Domain.Firmware;
 
@@ -31,7 +32,11 @@ internal sealed partial class FirmwareArtifactClassificationResolver
                 out CompiledComposition? layout, out ResolvedCapability? layoutCapability, out _) &&
             layoutCapability is not null && IsCurrentCapability(publication, ic, layoutCapability) &&
             candidate.Length == layout!.V2Details.Provenance.ResolvedMap.CapacityBytes &&
-            _compiler.TryCompileStandardMerge(ic, null, out CompiledComposition? standard, out _))
+            _compiler.TryCompileStandardMerge(ic, null, out CompiledComposition? standard,
+                out ResolvedCapability? standardCapability, out _) &&
+            standardCapability is not null && IsCurrentCapability(publication, ic, standardCapability) &&
+            ReferenceEquals(standardCapability.CompiledComposition, standard) &&
+            standardCapability.MetadataPlan.ResolutionToken == publication.ResolutionToken)
         {
             FirmwareRegion[] banks = [.. layout.V2Details.Provenance.ResolvedMap.ImageMap.Regions
                 .Where(static region => region.RegionId is "a-bank" or "b-bank").OrderBy(static region => region.Range.Start)];
@@ -61,7 +66,9 @@ internal sealed partial class FirmwareArtifactClassificationResolver
                         CompiledInputArtifactObservationService.DecodeDpRegion(layout,
                             bank.RegionId == "a-bank" ? CompiledInputVersionKind.DpA : CompiledInputVersionKind.DpB,
                             bank.RegionId == "a-bank" ? "a-cmi-dp-version" : "b-cmi-dp-version", candidate),
-                        eventBufferFormatVersion: null, bankIssues));
+                        eventBufferFormatVersion: valid
+                            ? ReadBankEventBufferFormat(standard, standardCapability, bytes, config)
+                            : null, bankIssues));
                     issues.AddRange(bankIssues);
                 }
                 if (facts.All(static bank => bank.FirmwareConfig is not null) &&
@@ -79,12 +86,13 @@ internal sealed partial class FirmwareArtifactClassificationResolver
                     {
                         issues.Add(new("input.bank-reference.content", "AB bank contents do not satisfy the declared Flash plausibility checks.", CompositionSlotIds.ReplaceBase));
                     }
-                    if (!IsCurrentSnapshot(publication))
-                    {
-                        issues.Add(new(AuthoringSessionIssueCodes.StaleInspection, "The catalog changed during Reference classification."));
-                    }
-                    return new(CtrlRamBaseKind.AbFlash, draft as AbCtrlRamDraftState ?? new AbCtrlRamDraftState(),
-                        facts, issues, publication.ResolutionToken, referenceStamp);
+                    return IsCurrentSnapshot(publication)
+                        ? new(CtrlRamBaseKind.AbFlash, draft as AbCtrlRamDraftState ?? new AbCtrlRamDraftState(),
+                            facts, issues, publication.ResolutionToken, referenceStamp)
+                        : new(CtrlRamBaseKind.Unknown, draft, [],
+                            [new(AuthoringSessionIssueCodes.StaleInspection,
+                                "The catalog changed during Reference classification.")],
+                            publication.ResolutionToken, referenceStamp);
                 }
             }
         }
@@ -104,5 +112,57 @@ internal sealed partial class FirmwareArtifactClassificationResolver
                     ? [new("input.reference.unrecognized", "The captured Base is not an unambiguous Standard or trusted AB Reference.", CompositionSlotIds.ReplaceBase)]
                     : [],
             publication.ResolutionToken, referenceStamp);
+    }
+
+    private static byte? ReadBankEventBufferFormat(CompiledComposition standard,
+        ResolvedCapability standardCapability, ReadOnlyMemory<byte> bankBytes, FirmwareConfigMetadata validatedConfig)
+    {
+        const string fieldId = "event-buffer-format-version";
+        MetadataPlanEntry[] matches =
+        [
+            .. standardCapability.MetadataPlan.Entries
+                .Select(static item => item.Definition)
+                .Where(entry => StringComparer.Ordinal.Equals(entry.StructureDefinition.StructureId,
+                        FirmwareConfigGeneralParametersContract.StructureId) &&
+                    StringComparer.Ordinal.Equals(entry.ImageMap.MapId,
+                        standard.V2Details.Provenance.ResolvedMap.ImageMap.MapId) &&
+                    StringComparer.Ordinal.Equals(entry.MemberId,
+                        standard.V2Details.Provenance.Context.MemberId))
+                .Take(2),
+        ];
+        if (matches.Length != 1)
+        {
+            return null;
+        }
+
+        MetadataPlanEntry entry = matches[0];
+        FirmwareFamilyResolutionDefinition.ResolvedFirmwareImageMap map =
+            standard.V2Details.Provenance.ResolvedMap;
+        if (bankBytes.Length != map.CapacityBytes ||
+            !StringComparer.Ordinal.Equals(entry.FamilyDefinition.FamilyContentHash,
+                standard.V2Details.Provenance.Context.FamilyContentHash) ||
+            !StringComparer.Ordinal.Equals(entry.ResolvedMap.ResolutionFingerprint,
+                map.ResolutionFingerprint) ||
+            !StringComparer.Ordinal.Equals(entry.SpaceId, entry.StructureDefinition.ArtifactBindingId))
+        {
+            return null;
+        }
+
+        var inputs = new FirmwareMapResolutionInputs(entry.MemberId, map.ModeId, bankBytes.Length,
+            requestedTopology: null, [new FirmwareArtifactPayload(entry.SpaceId, bankBytes.Span)]);
+        FirmwareMetadataStructureResolution resolution = entry.FamilyDefinition.ResolveMetadataStructure(
+            map.ImageMap.MapId, entry.StructureDefinition.StructureId, inputs);
+        FirmwareResolvedMetadataStructure? resolved = resolution.Resolved;
+        if (resolved is null ||
+            resolved.LocatorOutcome.ResolvedRange.Range.Start != validatedConfig.StructureStart)
+        {
+            return null;
+        }
+
+        FirmwareDecodedMetadataFact? fact = resolved.DecodedStructure.Facts.SingleOrDefault(candidate =>
+            StringComparer.Ordinal.Equals(candidate.FieldId, fieldId));
+        return fact?.Value.UnsignedIntegerValue is { } raw && raw <= byte.MaxValue
+            ? (byte)raw
+            : null;
     }
 }

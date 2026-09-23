@@ -14,7 +14,7 @@ public sealed class CtrlRamBaseFactsTests
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
-    public void AbFactsRetainDistinctBanksAndDoNotInventAnUnboundEventBuffer(bool chinese)
+    public void AbFactsRetainDistinctBanksAndShowEachMissingEventBuffer(bool chinese)
     {
         ShellTextResources text = ShellTextResources.For(chinese ? ShellLanguage.ChineseTraditional : ShellLanguage.English);
         var a = new FirmwareConfigMetadataSnapshot(0x23000, "2.0.0", 5, 250, true, 0, 1, 0x4703, null, default);
@@ -40,10 +40,46 @@ public sealed class CtrlRamBaseFactsTests
         Assert.False(Assert.Single(facts, static fact => fact.Label == "IC Count (A/B)").IsPrimary);
         Assert.False(Assert.Single(facts, static fact => fact.Label == "DPA Version").IsPrimary);
         Assert.False(Assert.Single(facts, static fact => fact.Label == "DPB Version").IsPrimary);
-        FirmwareSlotFactViewModel format = Assert.Single(facts, fact => fact.Label == text.EventBufferVersionLabel);
-        Assert.Equal(text.FirmwareFactNotProvidedLabel, format.Value);
-        Assert.False(format.IsPrimary);
+        foreach (string bankId in new[] { "A", "B" })
+        {
+            FirmwareSlotFactViewModel format = Assert.Single(facts,
+                fact => fact.Label == $"{text.EventBufferVersionLabel} ({bankId})");
+            Assert.Equal(text.FirmwareFactNotProvidedLabel, format.Value);
+            Assert.False(format.IsPrimary);
+        }
         Assert.DoesNotContain(facts, static fact => fact.Label == "TP Version");
+    }
+
+    /// <summary>Raw bytes, names and missing values belong to their own bank.</summary>
+    [Fact]
+    public void AbEventBufferFactsRetainRawByteAndMissingBank()
+    {
+        ShellTextResources text = ShellTextResources.For(ShellLanguage.English);
+        foreach ((byte? aValue, byte? bValue) in new (byte?, byte?)[] { (0xA3, 0x00), (null, 0x7F) })
+        {
+            var inspection = new FirmwareInspectionSnapshot(null, null, null, null, null, null)
+            {
+                CtrlRamBaseInspection = new(CtrlRamBaseKind.AbFlash, new AbCtrlRamDraftState(AbCtrlRamBankSelection.B),
+                [
+                    new("a-bank", new ByteRange(0, 0x40000), null, null, null, aValue, []),
+                    new("b-bank", new ByteRange(0x40000, 0x40000), null, null, null, bValue, []),
+                ], [], new ResolutionToken("test-current-publication"), FileStamp.FromBytes([])),
+            };
+            IReadOnlyList<FirmwareSlotFactViewModel> facts = UiCompositionRunner.GetFirmwareSlotFacts(inspection, true, text);
+            string a = Assert.Single(facts, fact => fact.Label == $"{text.EventBufferVersionLabel} (A)").Value;
+            string b = Assert.Single(facts, fact => fact.Label == $"{text.EventBufferVersionLabel} (B)").Value;
+            if (aValue is null)
+            {
+                Assert.Equal(text.FirmwareFactNotProvidedLabel, a);
+                Assert.StartsWith("0x7F - ", b, StringComparison.Ordinal);
+            }
+            else
+            {
+                Assert.Equal("0xA3 - Auto STLA v1", a);
+                Assert.StartsWith("0x00 - ", b, StringComparison.Ordinal);
+                Assert.DoesNotContain(text.FirmwareFactNotProvidedLabel, b, StringComparison.Ordinal);
+            }
+        }
     }
 
     /// <summary>The shared card displays only the typed detected kind and clears it with the file.</summary>

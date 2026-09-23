@@ -45,6 +45,22 @@ internal sealed partial class CanonicalCapabilityCompilerAdapter
     internal bool TryCompileStandardMerge(
         string icId,
         long? dpInputLength,
+        [NotNullWhen(true)] out CompiledComposition? composition,
+        out ResolvedCapability? resolvedCapability,
+        out IReadOnlyList<CompositionIssue> issues)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(icId);
+        composition = null;
+        resolvedCapability = null;
+        issues = [];
+        return TryGetBuiltInV2StandardMergeCompilation(
+                icId, dpInputLength, out composition, out resolvedCapability, out issues) &&
+            composition is not null && resolvedCapability is not null;
+    }
+
+    internal bool TryCompileStandardMerge(
+        string icId,
+        long? dpInputLength,
         IReadOnlyCollection<string> selectedInputSlotIds,
         [NotNullWhen(true)] out CompiledComposition? composition,
         out IReadOnlyList<CompositionIssue> issues)

@@ -73,7 +73,7 @@ public sealed class CtrlRamBaseBankInspection
     public CompiledInputVersionObservation? TpVersion { get; }
     /// <summary>DP observation decoded from the canonical bank CMI region.</summary>
     public CompiledInputVersionObservation? DpVersion { get; }
-    /// <summary>Null when the exact metadata plan does not bind this field.</summary>
+    /// <summary>Bank-local canonical structure byte, or null when its optional read cannot resolve.</summary>
     public byte? EventBufferFormatVersion { get; }
     /// <summary>Bank-specific validation issues.</summary>
     public IReadOnlyList<CompositionIssue> Issues { get; }

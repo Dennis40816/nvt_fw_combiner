@@ -1,0 +1,41 @@
+{
+  "schemaVersion": 2,
+  "taskId": "AB-BASE-EVENT-INFO-1110-01",
+  "capability": "Project NT51929 AB CtrlRAM Base Event Buffer Format from the existing canonical bank-local structure without changing execution",
+  "integrationBase": "b9a94a2bab1a7bc05129b3438f0c0afeaaf45ad4",
+  "risk": "R2",
+  "kind": "behavior",
+  "state": "design-active",
+  "mutablePaths": [
+    "docs/adr/0052-exact-ctrlram-report-metadata-counterpart.md",
+    "src/NvtFwCombiner.Application/Capabilities/CanonicalCapabilityCompiler.StandardMerge.cs",
+    "src/NvtFwCombiner.Application/Composition/CtrlRamBaseInspection.cs",
+    "src/NvtFwCombiner.Application/InputInspection/FirmwareArtifactClassificationResolver.CtrlRam.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/UiCompositionRunner.FirmwareFacts.cs",
+    "tests/NvtFwCombiner.Bootstrap.Tests/AbCtrlRamAutoDetectionTests.cs",
+    "tests/NvtFwCombiner.Bootstrap.Tests/FirmwareInspectionSnapshotTests.Dispatch.cs",
+    "tests/NvtFwCombiner.UiSmoke.Tests/CtrlRamBaseFactsTests.cs"
+  ],
+  "implementationOwner": "/root",
+  "searchEvidence": [
+    "2026-09-23: CodeGraph and bounded source inspection located the NT51929 Standard compiled counterpart, its exact-map firmware-config-general-parameters structure, the existing bank-local Backup reader and the AB Base fact renderer.",
+    "The shared canonical structure already declares event-buffer-format-version. The Standard metadata plan does not expose that field as a target; adding AB metadata structures would change general map resolution and fingerprints. The existing Domain exact-map structure reader can decode the immutable bank slice without a profile/schema change.",
+    "CanonicalCapabilityCompiler.StandardMerge.Routing already obtains composition and ResolvedCapability together with selectedInputSlotIds null. The narrow new adapter overload exposes that result; MetadataPlan entries retain the exact immutable FamilyDefinition."
+  ],
+  "semanticOwner": "Domain exact-map canonical metadata structure; Application publication-bound read-only bank observation; Presentation renders the typed fact",
+  "terminalContract": "For the already declared NT51929 AB CtrlRAM Base classifier, use the same captured A/B bank slices and publication-bound Standard family/map to project the canonical Event Buffer byte when its FWConfig locator equals the existing validated Backup. Preserve raw 0x00 and unknown bytes as observed values; optional failure is null for only that bank. Do not add AB profile bindings, metadata target authorization, file reads, Build gates, issue codes, format/map selection, output bytes or support claims. Render A and B independently as hex plus existing name or bank-specific Not provided. Keep stale-publication refusal and original classification/admission behavior.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "/root/layout_ownership_review",
+    "outcome": "approved",
+    "evidence": "2026-09-23 independent R2 read-only design review approved the existing Domain exact-map reader on captured bank slices, same-publication Standard composition/capability/family chain and one thin adapter overload. Eight exact mutable paths include the existing Bootstrap publication-rollover test fixture, approved as an auxiliary scope amendment before any change to that file. Requires byte/unknown/missing/bank-selection tests, family/map/Backup locator mismatch and publication rollover negatives, and unchanged classification, Build readiness and bytes. No AB profile metadataSet or trust pin changes."
+  },
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": {
+    "reviewer": null,
+    "outcome": "pending",
+    "evidence": ""
+  }
+}
