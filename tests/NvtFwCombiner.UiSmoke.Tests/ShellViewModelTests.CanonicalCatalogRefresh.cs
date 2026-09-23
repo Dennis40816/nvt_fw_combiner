@@ -477,7 +477,6 @@ public sealed partial class ShellNavigationSystemTests
             Assert.IsType<IcNumberChoiceViewModel>(selector.SelectedItem).Token);
 
         policy.DisableAbVariant("NT51950", "2-plus-ic");
-        policy.DisableAbVariant("NT51950", "2-ic");
         await viewModel.MessageCenter.RefreshCommand.ExecuteAsync(null);
         Dispatcher.UIThread.RunJobs();
 
@@ -493,9 +492,9 @@ public sealed partial class ShellNavigationSystemTests
         Assert.False(viewModel.WorkflowSession.IsFirmwareNumberMismatchModalOpen);
     }
 
-    /// <summary>Removing one two-plus route retains Cascade when the two-IC Common route remains legal.</summary>
+    /// <summary>Removing the single-IC route retains the active Cascade selection.</summary>
     [AvaloniaFact]
-    public async Task CanonicalCatalogRefreshRetainsCascadeWhenTwoIcCommonRouteRemains()
+    public async Task CanonicalCatalogRefreshRetainsCascadeWhenSingleIcRouteIsRemoved()
     {
         var policy = new MutableAbCatalogPolicy();
         (_, MainWindowViewModel viewModel) = CreateCatalogRefreshViewModel(policy);
@@ -512,14 +511,14 @@ public sealed partial class ShellNavigationSystemTests
             new Binding("WorkflowSession.SelectedNumberChoice") { Mode = BindingMode.TwoWay });
         Dispatcher.UIThread.RunJobs();
 
-        policy.DisableAbVariant("NT51950", "2-plus-ic");
+        policy.DisableAbVariant("NT51950", "1-ic");
         await viewModel.MessageCenter.RefreshCommand.ExecuteAsync(null);
         Dispatcher.UIThread.RunJobs();
 
         Assert.True(viewModel.Merge.IsAbCodeMergeModeSelected);
         Assert.Equal("NT51950", viewModel.WorkflowSession.SelectedIc);
-        Assert.Contains(
-            IcNumberSelectionTokens.Cascade,
+        Assert.Equal(
+            [IcNumberSelectionTokens.Cascade],
             viewModel.WorkflowSession.NumberSelectionChoices.Select(static choice => choice.Token));
         Assert.Equal(IcNumberSelectionTokens.Cascade, viewModel.WorkflowSession.SelectedNumber);
         Assert.Equal(
