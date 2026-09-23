@@ -133,7 +133,7 @@ Owner 2026-09-23 明確將本次正式發布目標改為 **1.1.10**，取代先�
 - Support status: removed；退役 14 個 DP policy routes，當時剩餘 24 bundles、54 registrations、79 routes；後續本次 bank 整理後為 24 bundles、52 registrations、75 routes，63 Supported；新增 Cascade candidate 見第一項。
 - Compatibility: 舊命令不自動改走 General Replace；拒絕前不讀輸入、不執行、不建立 output/report，既有檔案保留。歷史 Report／History、DPCMI、DP／LDC／TP 共用事實與 Perfect family 資訊保留。
 - Verification: 已驗證 public CLI 零副作用、compiler 不產生退役 artifact、實際 package materialization／deployment，以及共享行為與歷史資料回歸。
-- Limitations: 原 `dp-replace` 腳本需調整，沒有自動等價的替代命令；本地完成尚不等於最終 1.2.0 發布認證。
+- Limitations: 原 `dp-replace` 腳本需調整，沒有自動等價的替代命令；本地完成尚不等於最終 1.1.10 發布認證。
 
 #### 12. 驗證、發佈與開發維護
 
@@ -158,20 +158,20 @@ Owner 2026-09-23 明確將本次正式發布目標改為 **1.1.10**，取代先�
 - 先前完整 verifier 的 orchestration concurrency failure 尚未證明根因修復。診斷紀錄已改善，後續未重現仍不能算修復完成。
 - 最近完整 UI run 為 1526/1527；唯一 failure 已由 General Base clear 修正與 538/538 窄 gate 關閉，沒有重新執行完整 UI 全數通過的宣稱。
 - Native high-DPI／assistive-technology、clean-machine 與最終 portable-package 驗收仍須依候選範圍完成；已發布版本的歷史證據不自動認證目前 source。
-- Roadmap 原有 1.2.0 與後續配置、`VERSION`、tag／package 身分仍需於版本整合時同步此次 1.2.0 目標；未將原排程中的 Launcher 等未完成工作列為成果。
+- Roadmap 已確認此次正式版本為 1.1.10；`VERSION`、tag／package 身分仍需於候選整合時同步，Customized／Launcher 新開發維持 1.2.1，未列為本次成果。
 
 ### Upgrade and rollback
 
 本整理**含 1.1.1 的變更**，因此累積比較從 1.1.0 之後開始；不是只整理 1.1.9 之後。
-1.1.1～1.1.9 的既有發布與升級紀錄保留在下方，沒有重新標成 1.2.0 才推出。
+1.1.1～1.1.9 的既有發布與升級紀錄保留在下方，沒有重新標成 1.1.10 才推出。
 
-目前 1.2.0 開發候選的主要相容性變動是 DP Replace 執行入口移除；相關腳本需先確認替代操作，
+目前 1.1.10 開發候選的主要相容性變動是 DP Replace 執行入口移除；相關腳本需先確認替代操作，
 歷史 DP Report／History 讀取仍保留。Runtime selection 是使用者偏好，預設仍為 Bundled；
 新候選的完整升級／回退及乾淨 Windows 驗證，需在最終版本完成後補齊。
 
 ### Downloads and integrity
 
-1.1.1～1.1.9 的下載與 integrity 說明保留在各自版本紀錄。目前尚無本次 1.2.0 正式下載；
+1.1.1～1.1.9 的下載與 integrity 說明保留在各自版本紀錄。目前尚無本次 1.1.10 正式下載；
 發布時再填入 Windows x64 portable ZIP、source archives、SBOM、provenance 與 SHA-256。
 
 ### 來源與驗證索引
