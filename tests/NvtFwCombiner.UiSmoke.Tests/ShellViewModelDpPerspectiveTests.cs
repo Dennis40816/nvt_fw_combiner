@@ -4,7 +4,7 @@ using NvtFwCombiner.TestSupport;
 namespace NvtFwCombiner.UiSmoke.Tests;
 
 /// <summary>Surviving Replace workflows and Standard DP perspective smoke coverage.</summary>
-public sealed partial class DpReplaceWorkflowTests
+public sealed partial class ReplaceSurfaceCompatibilityTests
 {
     /// <summary>General Replace retains readable coverage ranges through the shared display projection.</summary>
     [Fact]

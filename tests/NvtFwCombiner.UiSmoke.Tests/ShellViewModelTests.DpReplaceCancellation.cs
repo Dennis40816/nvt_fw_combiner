@@ -5,7 +5,7 @@ using NvtFwCombiner.TestSupport;
 
 namespace NvtFwCombiner.UiSmoke.Tests;
 
-public sealed partial class DpReplaceWorkflowTests
+public sealed partial class ReplaceSurfaceCompatibilityTests
 {
     /// <summary>CtrlRAM selection cancellation cannot publish its Checking session as accepted.</summary>
     [Fact]

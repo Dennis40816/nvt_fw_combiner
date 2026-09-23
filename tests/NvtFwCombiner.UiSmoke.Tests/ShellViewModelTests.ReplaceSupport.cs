@@ -4,7 +4,7 @@ using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.UiSmoke.Tests;
 
-public sealed partial class DpReplaceWorkflowTests
+public sealed partial class ReplaceSurfaceCompatibilityTests
 {
     /// <summary>The shipped policy omits DP Replace without changing selector geometry.</summary>
     [Fact]

@@ -4,7 +4,7 @@ using NvtFwCombiner.TestSupport;
 
 namespace NvtFwCombiner.UiSmoke.Tests;
 
-public sealed partial class DpReplaceWorkflowTests
+public sealed partial class ReplaceSurfaceCompatibilityTests
 {
     /// <summary>Readiness refresh tolerates a slot collection change raised by a slot projection update.</summary>
     [Fact]
