@@ -1,4 +1,5 @@
 using System.Buffers.Binary;
+using System.Security.Cryptography;
 using System.Text.Json;
 using NvtFwCombiner.Application.ExternalTools;
 using NvtFwCombiner.Contracts.ExternalTools;
@@ -13,6 +14,8 @@ namespace NvtFwCombiner.Bootstrap.Tests;
 /// <summary>Bank composition contracts, separate from final firmware/golden certification.</summary>
 public sealed class AbCtrlRamReferencePlanTests
 {
+    private static readonly JsonSerializerOptions EvidenceJsonOptions = new() { WriteIndented = true };
+
     /// <summary>Different A/B payloads survive local processing and only selected banks change.</summary>
     [Theory]
     [InlineData(true, false)]
@@ -274,6 +277,45 @@ public sealed class AbCtrlRamReferencePlanTests
 
         Assert.Equal(expected, output.OutputBytes.ToArray());
         Assert.Equal(original, prepared.Reference.Bytes.ToArray());
+        ExportCandidateEvidence(selectA, selectB, original, output.OutputBytes.ToArray(), manifest.Sha256);
+    }
+
+    private static void ExportCandidateEvidence(bool selectA, bool selectB, byte[] reference, byte[] output,
+        string toolSha256)
+    {
+        string? evidenceParent = Environment.GetEnvironmentVariable("NFC_AB_CTRLRAM_EVIDENCE_DIR");
+        if (string.IsNullOrWhiteSpace(evidenceParent))
+        {
+            return;
+        }
+
+        string testAreaRoot = Environment.GetEnvironmentVariable("NFC_TEST_AREA_ROOT")
+            ?? throw new InvalidOperationException("NFC_TEST_AREA_ROOT is required for private AB evidence export.");
+        string root = Path.GetFullPath(testAreaRoot).TrimEnd(Path.DirectorySeparatorChar) + Path.DirectorySeparatorChar;
+        string parent = Path.GetFullPath(evidenceParent).TrimEnd(Path.DirectorySeparatorChar) + Path.DirectorySeparatorChar;
+        if (!parent.StartsWith(root, StringComparison.OrdinalIgnoreCase))
+        {
+            throw new InvalidOperationException("AB evidence must remain inside NFC_TEST_AREA_ROOT.");
+        }
+
+        string caseName = selectA && selectB ? "both" : selectA ? "a-only" : "b-only";
+        string caseDirectory = Path.Combine(parent, "nt51929-ab-ctrlram-" + caseName);
+        _ = Directory.CreateDirectory(caseDirectory);
+        File.WriteAllBytes(Path.Combine(caseDirectory, "reference-input.bin"), reference);
+        File.WriteAllBytes(Path.Combine(caseDirectory, "candidate-output.bin"), output);
+        File.WriteAllText(Path.Combine(caseDirectory, "report.json"), JsonSerializer.Serialize(new
+        {
+            status = "candidate only; local control uses the same Combiner, not an independent firmware golden",
+            caseName,
+            source = "AB Merge NT51929 t05-d06 output; B 0x61000 XOR 0x34, B 0x5F200..0x5F201 set to bytes 0x29, 0xD6",
+            replacement = "single byte 0xA5 at selected bank NF start (A 0x1FC00, B 0x5FC00)",
+            toolVersion = "1.13.0",
+            toolSha256,
+            referenceSha256 = Convert.ToHexString(SHA256.HashData(reference)).ToLowerInvariant(),
+            outputSha256 = Convert.ToHexString(SHA256.HashData(output)).ToLowerInvariant(),
+            outputLength = output.Length,
+            changedRanges = ByteDiff.FindChangedRanges(reference, output),
+        }, EvidenceJsonOptions));
     }
 
     private static V2RuntimeReferenceBankReplacePlan Prepare(byte[] reference,
