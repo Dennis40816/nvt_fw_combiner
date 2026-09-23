@@ -172,11 +172,11 @@ firmware-owner／Golden／整合證據仍待完成。
 ### Known issues
 
 - **CtrlRAM AB Replace 尚未完成全範圍認證**：NT51929 fw200 Single 已本地接線為 Candidate／ContractOnly；其 A-only／B-only／Both 實檔輸出已有 exact-case 獨立 CRC/header oracle 的完整 bytes 比對，仍待 firmware owner 認證為 Golden。其他 member／shape 的預期輸出與准入未完成；不能由 NT51929 推廣。
-- 最終 integration、firmware-owner 證據及實際發布候選來源的必要 Golden 尚未完成；本地預封存來源已執行 25 個 Direct 完整輸出案例，但 3 個 input-only 和 12 個 fact-scoped alias 並非 Golden 輸出案例，且來源後續變更須在正式候選重跑。
-- 先前完整 verifier 的 orchestration concurrency failure 尚未證明根因修復。診斷紀錄已改善，後續未重現仍不能算修復完成。
-- 較早候選來源的完整 UiSmoke 1593/1593 已通過；後續 AB Base Info 修正於固定來源 `f33099f33` 的受影響測試為 9/9。完整 UiSmoke 尚未在最終 frozen release candidate 重跑，也不是 exact-source CI。
+- 最終 integration、firmware-owner 證據及正式候選的必要 Golden 尚未完成；乾淨預封存來源 `fd3a41ffc` 的 release Golden 已執行 25 個 Direct 完整輸出案例，Bootstrap 1708/1708、GoldenRegression 14/14 通過。3 個 input-only 和 12 個 fact-scoped alias 並非 Golden 輸出案例；後續文件提交使正式候選仍須重新固定來源與驗證。
+- 先前完整 verifier 的 orchestration concurrency failure 尚未證明根因修復；`fd3a41ffc` 的 `--skip-structure` 全輪通過且未重現。診斷紀錄與這次成功不等於根因已消除。
+- 完整 UiSmoke 於 `f102d571c` 通過 1619/1619，`fd3a41ffc` 的非結構 verifier .NET lane 亦通過；最終 frozen release candidate 的 `--all` 與 exact-source CI 仍未通過。
 - Native high-DPI／assistive-technology、clean-machine 與最終 portable-package 驗收仍須依候選範圍完成；已發布版本的歷史證據不自動認證目前 source。
-- Roadmap 已確認此次正式版本為 1.1.10；`VERSION`、tag／package 身分仍需於候選整合時同步，Customized／Launcher 新開發維持 1.2.1，未列為本次成果。
+- Roadmap 已確認此次正式版本為 1.1.10，`VERSION` 已同步；tag／package 身分仍需在候選整合與發布流程核對。Customized／Launcher 新開發維持 1.2.1，未列為本次成果。
 
 ### Upgrade and rollback
 
