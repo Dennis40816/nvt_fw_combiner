@@ -15,10 +15,19 @@ runtime implementation, create a watcher, or replace the version sequence.
 
 ## Current release sequence — 2026-09-14
 
+Owner release-identity amendment, 2026-09-23: publish the current work as
+**1.1.10**, replacing the earlier `1.2.0` label. GitHub read-only inspection on
+this date confirms [v1.1.9](https://github.com/Dennis40816/nvt_fw_combiner/releases/tag/v1.1.9)
+is the latest non-draft stable release; its local annotated tag peels to
+`b56b4eee5914f1651ed40747ea0ba48015a52105`. This observation does not reconstruct
+or certify missing predecessor closure evidence. The dated `1.1.8` checkpoint
+above remains historical. Current unfinished work and release evidence are
+tracked in the existing [delivery checklist](../ui/v1.1.10-delivery.md#11x-未完成項目彙整--2026-09-23).
+
 Owner amendment, 2026-09-23: schedule Customized / General Merge large-file
 support and the Launcher delta-update, self-update and intranet-migration
-development plan in `1.2.1`, after the current `1.1.10` work planned for release
-as `1.2.0`. The [1.2.1 handoff](v1.2.1-handoff.md) carries the scoped review,
+development plan in `1.2.1`, after the current `1.1.10` release.
+The [1.2.1 handoff](v1.2.1-handoff.md) carries the scoped review,
 sequence, unresolved decisions and evidence gates. Retain the existing Python
 Combiner replacement and ownership/recovery work in that slot. Scheduling does
 not approve every proposed contract or move the full Launcher release from
@@ -133,7 +142,7 @@ protected review/CI and candidate publication gates remain required.
 | `1.1.8` | **Release/agent workflow proportionality**: gate inventory and evidence-backed simplification, AI Skill/documentation/routing consistency and a bounded reversible pilot. Assess code-size/count gates, repeated confirmations/tests and derived-data automation; do not weaken Golden, signing or publication boundaries. |
 | `1.1.9` | **Long-name failure/recovery first, then Toolchain Runtime selection, remaining Settings conveniences and CtrlRAM AB intake**: fix issue #434 with edit-time visible errors, recovery to the last accepted valid name on invalid commit, and safe handling of BIN/Bundle/staging names. Assess removal of the product's total-path cap separately from the filesystem component limit. Add **Settings > Config > Toolchain** for detection and user selection of available compatible VC++ runtimes, including newer installed versions; see the linked Toolchain handoff for admission/readiness and verification questions. Record/reconcile the owner-provided CtrlRAM AB reference and prepare its contract/evidence questions for completion before `1.2.0`. Inventory other user-adjustable preferences and justified reset/import/export conveniences through the `1.1.6` Settings owner. Arbitrary maps, CRC/ranges, safety overrides and support promotion are outside ordinary Settings. |
 | `1.1.10` (required before `1.2.0`; owner scope update 2026-09-20) | **CtrlRAM AB Replace, affected shared-contract extraction and DP Replace retirement**. Retain the NT51932 Perfect family／NT51950 Partial family intake and explicit Common/Desay/topology evidence. Share canonical AB format/layout ownership, preserve independent page instances, and detach shared DPCMI/Perfect-family dependencies before retiring DP Replace. Bank/source/version and fixed-Reference decisions, unresolved firmware rules, implementation and verification evidence are tracked in the [1.1.10 delivery checklist](../ui/v1.1.10-delivery.md). No filename-based AB detection or blanket family promotion. |
-| `1.2.0` | **Release label for the completed `1.1.10` scope**, per the 2026-09-21/22 owner amendments. The former Launcher development tranche moves to `1.2.1`; no Launcher activation is included here. Reference refresh and current evidence remain in the `1.1.10` delivery. |
+| `1.2.0` | **No longer the release label for `1.1.10`**: the owner explicitly chose `1.1.10` on 2026-09-23. No additional scope is assigned by that numbering correction. The former Launcher development tranche remains in `1.2.1`; reference refresh and current evidence remain in the `1.1.10` delivery. |
 | `1.2.1` | **Customized large-file support, Launcher update development, Python Combiner replacement and residual ownership convergence**. Follow the [1.2.1 handoff](v1.2.1-handoff.md) for large-source/small-slice then large-output work, delta transfer, Launcher self-update and intranet migration. Preserve the [Python Combiner intake](#121-python-combiner-intake--2026-09-21), including B-bank CRC/postbuild mode assessment, and existing identity/family/topology/input-snapshot/page-draft and recovery work. Shared DPCMI/Perfect-family and page-contract work required by DP retirement remains in `1.1.10`; avoid a wholesale profile rewrite. |
 | `1.2.2` | **Remaining UI I/O and Report persistence audit work** in the audit allocation below. DP Replace retirement and its compatibility verification move to `1.1.10` by owner decision on 2026-09-20; no replacement feature scope is implied. |
 | `1.2.3` | **CLI and deterministic Desktop automation** through existing Application/startup owners: workflow coverage, load-report/tab/state/capture/exit, actionable argument errors. Prioritize this before remaining broad UI acceptance. |

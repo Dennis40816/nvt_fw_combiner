@@ -32,7 +32,7 @@ public sealed partial class RepositoryBoundaryTests
         Assert.DoesNotContain("SlotIconForegroundBrush", icons, StringComparison.Ordinal);
         Assert.DoesNotContain("InferSlotKind", icons, StringComparison.Ordinal);
         Assert.DoesNotContain("WorkbenchSlotIds", icons, StringComparison.Ordinal);
-        Assert.Contains("FirmwareSlotKind.Dp", replaceRunner, StringComparison.Ordinal);
+        Assert.DoesNotContain("FirmwareSlotKind.Dp", replaceRunner, StringComparison.Ordinal);
         Assert.Contains("FirmwareSlotKind.CtrlRam", replaceRunner, StringComparison.Ordinal);
         Assert.DoesNotContain("ExperienceIds.DpReplace => FirmwareSlotKind", replaceRunner, StringComparison.Ordinal);
         Assert.Contains("internal sealed record FirmwareSlotFactViewModel", facts, StringComparison.Ordinal);

@@ -27,10 +27,10 @@ internal static partial class V2CompositionPlanCompiler
         {
             RequireBankShape(request.BankInstanceId is "a-bank" or "b-bank" && seen.Add(request.BankInstanceId),
                 "Selected banks must be unique canonical A/B instances.");
-            V2ExplicitMappingInputBinding[] references = [.. request.Replace.Bindings.Where(static binding => binding.SlotId == "reference-base")];
+            V2ExplicitMappingInputBinding[] references = [.. request.Replace.Bindings.Where(static binding => binding.SlotId == CompositionAddressSpaceIds.ReferenceBase)];
             RequireBankShape(references.Length == 1 && references[0].BindingId == reference.ArtifactId &&
                 references[0].ExactLengthBytes == capacity, "Bank-local Reference binding must identify the captured AB Reference and local capacity.");
-            V2ExplicitMappingInputBinding[] sources = [.. request.Replace.Bindings.Where(static binding => binding.SlotId != "reference-base")
+            V2ExplicitMappingInputBinding[] sources = [.. request.Replace.Bindings.Where(static binding => binding.SlotId != CompositionAddressSpaceIds.ReferenceBase)
                 .OrderBy(static binding => binding.BindingId, StringComparer.Ordinal)];
             RequireBankShape(sharedSources is null || sources.Select(static item => (item.BindingId, item.SlotId, item.ExactLengthBytes))
                 .SequenceEqual(sharedSources.Select(static item => (item.BindingId, item.SlotId, item.ExactLengthBytes))),
