@@ -335,13 +335,13 @@ class V0916ParityPipelineTests(V0916ParityTestBase):
             "route-7-nt51927-14-standard-merge-13-selector-free-27-"
             "nt51927-standard-merge-256k"
         )
-        with tempfile.TemporaryDirectory() as temporary:
+        with MODULE.controlled_temporary_directory("nfc-v0916-captured-") as root:
             captured = MODULE.materialize_and_validate_canonical_input_authority(
                 plan.raw,
                 git_reader=MODULE.PinnedGitReader(ROOT),
-                destination=Path(temporary) / "pinned-canonical",
+                destination=root / "pinned-canonical",
             )
-            fake_root = Path(temporary) / "mutable-materialization"
+            fake_root = root / "mutable-materialization"
             fake_root.mkdir()
             (fake_root / captured.manifest_relative).parent.mkdir(
                 parents=True, exist_ok=True
@@ -353,7 +353,7 @@ class V0916ParityPipelineTests(V0916ParityTestBase):
             verified = MODULE.resolve_canonical_route_input(
                 plan,
                 swapped,
-                admitted_input_root=Path(temporary) / "admitted",
+                admitted_input_root=root / "admitted",
                 route_id=route_id,
                 execution_role="candidate-exact",
             )
@@ -441,8 +441,7 @@ class V0916ParityPipelineTests(V0916ParityTestBase):
         )
 
     def test_comparator_drives_existing_cli_preview_then_build_with_exact_paths(self) -> None:
-        with tempfile.TemporaryDirectory() as temporary:
-            root = Path(temporary)
+        with MODULE.controlled_temporary_directory("nfc-v0916-cli-") as root:
             source_root = root / "verified-source"
             source_root.mkdir()
             cli = source_root / "src/NvtFwCombiner.Cli/bin/Release/net10.0/win-x64/NvtFwCombiner.Cli.exe"
@@ -766,8 +765,7 @@ class V0916ParityPipelineTests(V0916ParityTestBase):
     def test_runtime_closure_uses_one_capture_and_rejects_staged_dependency_mutation(
         self,
     ) -> None:
-        with tempfile.TemporaryDirectory() as temporary:
-            root = Path(temporary)
+        with MODULE.controlled_temporary_directory("nfc-v0916-runtime-") as root:
             source_root = root / "verified-source"
             cli = (
                 source_root
