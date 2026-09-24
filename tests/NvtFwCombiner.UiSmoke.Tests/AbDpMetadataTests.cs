@@ -8,6 +8,28 @@ namespace NvtFwCombiner.UiSmoke.Tests;
 /// <summary>AB slot facts retain typed values without concatenating bank metadata.</summary>
 public sealed class AbDpMetadataTests
 {
+    /// <summary>A DP role does not surface TP identity facts from the same flash input.</summary>
+    [Fact]
+    public void DpSlotDoesNotLeakTouchIdentityFromFlashInspection()
+    {
+        var slot = new FirmwareSlotViewModel(CompositionAddressSpaceIds.DpAbInput,
+            "DP AB", "DP input", FirmwareSlotKind.Dp);
+        var inspection = new FirmwareInspectionSnapshot(null,
+            new(0x22000, "2.0.0", 0x81, 0, true, 0, 1, 0x570A, null, default),
+            null, null, null, null)
+        {
+            AbMergeFacts = new(CompositionAddressSpaceIds.DpAbInput,
+                [new(CompiledInputVersionKind.DpA, 6, 0, 4095), new(CompiledInputVersionKind.DpB, 9, 1, 607)]),
+            StandardEventBufferFormatVersion = 0x80,
+        };
+
+        FirmwareInspectionProjection.ApplyFirmwareFacts(slot, inspection, ShellTextResources.For(ShellLanguage.English));
+
+        Assert.Equal(["DP1 Version", "DP1 Jira Index", "DP2 Version", "DP2 Jira Index"],
+            slot.FirmwareFacts.Select(static fact => fact.Label));
+        Assert.False(slot.HasAdditionalFirmwareFacts);
+    }
+
     /// <summary>Each bank exposes independent version and optional tracker in reading order.</summary>
     [Fact]
     public void KnownBanksExposeFourExactIndependentFacts()
@@ -109,7 +131,7 @@ public sealed class AbDpMetadataTests
             },
         };
         ShellTextResources text = ShellTextResources.For(chinese ? ShellLanguage.ChineseTraditional : ShellLanguage.English);
-        FirmwareInspectionProjection.ApplyAbInputFacts(slot, inspection, text);
+        FirmwareInspectionProjection.ApplyFirmwareFacts(slot, inspection, text);
         Assert.Equal(["TPA Version", "PID", "Common FW Version"],
             slot.FirmwareFacts.Take(3).Select(static fact => fact.Label));
         Assert.Equal([invalidVersion ? text.FirmwareSlotUnknownValueLabel : "T81-00", "0x570A", "2.0.0"],
@@ -136,7 +158,7 @@ public sealed class AbDpMetadataTests
         ShellTextResources text = ShellTextResources.For(language);
         slot.ApplyExperienceText(text);
         slot.SetInputInspection(FirmwareInputInspectionSeverity.Valid, "Verified");
-        FirmwareInspectionProjection.ApplyAbInputFacts(slot,
+        FirmwareInspectionProjection.ApplyFirmwareFacts(slot,
             new FirmwareInspectionSnapshot(null, null, null, null, null, null)
             { AbMergeFacts = new(CompositionAddressSpaceIds.DpAbInput, versions) }, text);
         return slot;

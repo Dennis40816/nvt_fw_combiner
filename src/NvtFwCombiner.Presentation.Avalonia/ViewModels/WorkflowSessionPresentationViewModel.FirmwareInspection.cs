@@ -398,22 +398,12 @@ internal sealed partial class WorkflowSessionPresentationViewModel
 
             slot.SetCurrentInspectionProjection(inspection);
 
-            if (inspection.AbMergeFacts is not null && FirmwareInspectionProjection.SupportsFacts(slot, inspection))
+            if ((inspection.AbMergeFacts is not null || item.PublishFacts) && FirmwareInspectionProjection.SupportsFacts(slot, inspection))
             {
-                FirmwareInspectionProjection.ApplyAbInputFacts(
+                FirmwareInspectionProjection.ApplyFirmwareFacts(
                     slot,
                     inspection,
                     Text,
-                    _expandInputDetailsByDefault());
-            }
-            else if (item.PublishFacts && FirmwareInspectionProjection.SupportsFacts(slot, inspection))
-            {
-                slot.SetFirmwareFacts(item.SlotKind == FirmwareSlotKind.Dp
-                    ? UiCompositionRunner.GetDpFirmwareSlotFacts(inspection, Text)
-                    : UiCompositionRunner.GetFirmwareSlotFacts(
-                        inspection,
-                        includeBaseFacts: item.SlotKind == FirmwareSlotKind.Base,
-                        text: Text),
                     _expandInputDetailsByDefault());
             }
 
