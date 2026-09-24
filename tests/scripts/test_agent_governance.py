@@ -2093,6 +2093,159 @@ class AgentGovernanceTests(unittest.TestCase):
         self._git("commit", "-q", "-m", "finalize stale test evidence")
         self.assertTrue(any("auxiliary test path is not in" in error for error in self.validate()))
 
+    def _admit_unchanged_reconcilable_test(
+        self, *, implementation_owner: str = "implementer"
+    ) -> tuple[str, list[str]]:
+        task_id = "PARTIAL-AB-BANK-110-01"
+        auxiliary = "tests/NvtFwCombiner.Bootstrap.Tests/AbDummyDpOutputTests.cs"
+        self._write(auxiliary, "// unchanged test evidence\n")
+        self._git("add", "--", auxiliary)
+        self._git("commit", "-q", "-m", "baseline auxiliary test")
+        self.integration_base = self._git("rev-parse", "HEAD").stdout.strip()
+        self.trusted_initial_base = self.integration_base
+        paths = ["src/Product/Owner.cs", auxiliary]
+        self._change()
+        self._write_record(self._record(task_id, paths, implementationOwner=implementation_owner))
+        self._git("add", "--", "src/Product/Owner.cs")
+        self._git("commit", "-q", "-m", "admit unchanged auxiliary test")
+        return task_id, paths
+
+    def _unchanged_auxiliary_reconciliation(self, **overrides: Any) -> dict[str, str]:
+        evidence = {
+            "path": "tests/NvtFwCombiner.Bootstrap.Tests/AbDummyDpOutputTests.cs",
+            "expectedCheckpoint": self.trusted_initial_base,
+            "reviewer": "independent-reviewer",
+            "evidence": "Original admitted test blob and mode stayed unchanged through reviewed ancestry.",
+        }
+        evidence.update(overrides)
+        return evidence
+
+    def test_single_unchanged_auxiliary_reconciliation_survives_final_and_next_batch(self) -> None:
+        task_id, paths = self._admit_unchanged_reconcilable_test()
+        self._write_record(self._final_record(
+            task_id, paths,
+            auxiliaryPathReconciliation=self._unchanged_auxiliary_reconciliation(),
+        ))
+        self.assertEqual([], self.validate())
+        self._git("commit", "-q", "-m", "seal reconciled auxiliary evidence")
+        self.assertEqual([], self.validate())
+        self.integration_base = self._git("rev-parse", "HEAD").stdout.strip()
+        self._change("src/Product/Other.cs")
+        self._write_record(self._record("TEST-02", ["src/Product/Other.cs"]))
+        self._git("add", ".")
+        self._git("commit", "-q", "-m", "implement next batch")
+        self._write_record(self._final_record("TEST-02", ["src/Product/Other.cs"]))
+        self._git("commit", "-q", "-m", "seal next batch")
+        self.assertEqual([], self.validate())
+
+    def test_auxiliary_reconciliation_rejects_bad_fields(self) -> None:
+        task_id, paths = self._admit_unchanged_reconcilable_test()
+        for evidence in (
+            self._unchanged_auxiliary_reconciliation(extra="forbidden"),
+            self._unchanged_auxiliary_reconciliation(path="tests/other.cs"),
+            self._unchanged_auxiliary_reconciliation(expectedCheckpoint="a" * 40),
+            self._unchanged_auxiliary_reconciliation(reviewer="IMPLEMENTER"),
+            self._unchanged_auxiliary_reconciliation(evidence=""),
+        ):
+            with self.subTest(evidence=evidence):
+                self._write_record(self._final_record(
+                    task_id, paths, auxiliaryPathReconciliation=evidence,
+                ))
+                self.assertTrue(any("auxiliary" in error for error in self.validate()))
+        self._write_record(self._final_record(
+            task_id, paths,
+            auxiliaryPathReconciliation=self._unchanged_auxiliary_reconciliation(),
+        ))
+        self.assertEqual([], self.validate())
+        self._write_record(self._final_record(
+            task_id, paths,
+            auxiliaryPathReconciliation=self._unchanged_auxiliary_reconciliation(),
+            pathStateDigest="0" * 64,
+        ))
+        self.assertTrue(any("pathStateDigest differs" in error for error in self.validate()))
+        self._write_record(self._record(task_id, paths,
+            auxiliaryPathReconciliation=self._unchanged_auxiliary_reconciliation()))
+        self.assertTrue(any("auxiliaryPathReconciliation requires final-complete" in error
+                            for error in self.validate()))
+
+    def test_auxiliary_reconciliation_rejects_intermediate_change_and_restore(self) -> None:
+        task_id, paths = self._admit_unchanged_reconcilable_test()
+        auxiliary = paths[1]
+        self._write(auxiliary, "// changed temporarily\n")
+        self._git("add", "--", auxiliary)
+        self._git("commit", "-q", "-m", "change admitted test")
+        self._write(auxiliary, "// unchanged test evidence\n")
+        self._git("add", "--", auxiliary)
+        self._git("commit", "-q", "-m", "restore admitted test")
+        self._write_record(self._final_record(
+            task_id, paths,
+            auxiliaryPathReconciliation=self._unchanged_auxiliary_reconciliation(),
+        ))
+        self.assertTrue(any("changed within reviewed ancestry" in error for error in self.validate()))
+
+    def test_auxiliary_reconciliation_rejects_renamed_and_restored_path(self) -> None:
+        task_id, paths = self._admit_unchanged_reconcilable_test()
+        auxiliary = paths[1]
+        renamed = "tests/NvtFwCombiner.Bootstrap.Tests/Renamed.cs"
+        self._git("mv", auxiliary, renamed)
+        self._git("commit", "-q", "-m", "rename admitted test")
+        self._git("mv", renamed, auxiliary)
+        self._git("commit", "-q", "-m", "restore admitted path")
+        self._write_record(self._final_record(
+            task_id, paths,
+            auxiliaryPathReconciliation=self._unchanged_auxiliary_reconciliation(),
+        ))
+        self.assertTrue(any("changed within reviewed ancestry" in error for error in self.validate()))
+
+    def test_auxiliary_reconciliation_rejects_mode_change(self) -> None:
+        task_id, paths = self._admit_unchanged_reconcilable_test()
+        self._git("update-index", "--chmod=+x", paths[1])
+        self._git("commit", "-q", "-m", "change admitted test mode")
+        self._write_record(self._final_record(
+            task_id, paths,
+            auxiliaryPathReconciliation=self._unchanged_auxiliary_reconciliation(),
+        ))
+        self.assertTrue(any("path differs between checkpoint and reviewedHead" in error
+                            for error in self.validate()))
+
+    def test_auxiliary_reconciliation_rejects_root_reviewer_alias(self) -> None:
+        task_id, paths = self._admit_unchanged_reconcilable_test(implementation_owner="root")
+        self._write_record(self._final_record(
+            task_id, paths, implementationOwner="root",
+            auxiliaryPathReconciliation=self._unchanged_auxiliary_reconciliation(reviewer="/ROOT"),
+        ))
+        self.assertTrue(any("reviewer must be independent" in error for error in self.validate()))
+
+    def test_auxiliary_reconciliation_rejects_wrong_task(self) -> None:
+        self._admit_unchanged_reconcilable_test()
+        self._write_record(self._record(
+            "TEST-02", ["src/Product/Owner.cs", "tests/NvtFwCombiner.Bootstrap.Tests/AbDummyDpOutputTests.cs"],
+            auxiliaryPathReconciliation=self._unchanged_auxiliary_reconciliation(),
+        ))
+        self.assertTrue(any("is not authorized for task/path" in error for error in self.validate()))
+
+    def test_auxiliary_reconciliation_rejects_changed_final_diff(self) -> None:
+        task_id, paths = self._admit_unchanged_reconcilable_test()
+        self._write(paths[1], "// changed by implementation\n")
+        self._git("add", "--", paths[1])
+        self._git("commit", "-q", "-m", "change auxiliary test")
+        self._write_record(self._final_record(
+            task_id, paths,
+            auxiliaryPathReconciliation=self._unchanged_auxiliary_reconciliation(),
+        ))
+        self.assertTrue(any("path differs between checkpoint and reviewedHead" in error
+                            for error in self.validate()))
+
+    def test_auxiliary_reconciliation_rejects_missing_final_blob(self) -> None:
+        task_id, paths = self._admit_unchanged_reconcilable_test()
+        self._git("rm", "--", paths[1])
+        self._git("commit", "-q", "-m", "remove auxiliary test")
+        self._write_record(self._final_record(
+            task_id, paths,
+            auxiliaryPathReconciliation=self._unchanged_auxiliary_reconciliation(),
+        ))
+        self.assertTrue(any("requires a regular Git blob" in error for error in self.validate()))
+
     def test_non_governed_active_path_fails_before_history_audit(self) -> None:
         self._change()
         self._write_record(self._record(paths=["NvtFwCombiner.slnx"]))

@@ -59,7 +59,11 @@ For the current 1.1.4 batch, review original admissions and actual changes,
 admit missing local R1 paths with an explicit post-implementation integration
 review, freeze source, review the partition, then finalize the complete batch.
 Never claim that missing historical admission existed before implementation.
-No task-ID exception, record retirement or trusted-initial reactivation is used.
+That 1.1.4 ownership partition uses no task-ID exception, record retirement or
+trusted-initial reactivation. The later owner amendment on 2026-09-24 permits
+one final-only auxiliary-path reconciliation for `PARTIAL-AB-BANK-110-01` under
+the [record contract](../governance/capability-reuse-record.md#lifecycle). It
+does not change governed ownership or the original admission.
 
 ## Alternatives and verification
 

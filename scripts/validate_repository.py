@@ -1607,6 +1607,10 @@ CAPABILITY_REUSE_FINALIZED_FIELDS = {
     "finalReview",
     "integrationPaths",
     "checkpointReconciliation",
+    "auxiliaryPathReconciliation",
+}
+CAPABILITY_REUSE_RECONCILABLE_AUXILIARY = {
+    "PARTIAL-AB-BANK-110-01": "tests/NvtFwCombiner.Bootstrap.Tests/AbDummyDpOutputTests.cs",
 }
 CAPABILITY_REUSE_R3_SCRIPTS = {
     "scripts/ab_merge_fixture_validation.py",
@@ -2879,7 +2883,7 @@ def _validate_capability_reuse_record(
         errors.append(f"capability-reuse record requires schemaVersion 2: {relative}")
         return None
     fields = set(record)
-    optional_final_fields = {"integrationPaths", "checkpointReconciliation"}
+    optional_final_fields = {"integrationPaths", "checkpointReconciliation", "auxiliaryPathReconciliation"}
     if fields - optional_final_fields != CAPABILITY_REUSE_RECORD_FIELDS:
         errors.append(
             f"capability-reuse record fields differ from v2 in {relative}: "
@@ -2983,6 +2987,33 @@ def _validate_capability_reuse_record(
             errors.append(f"checkpointReconciliation reviewer must be independent: {relative}")
         if not isinstance(reconciliation["evidence"], str) or not reconciliation["evidence"].strip():
             errors.append(f"checkpointReconciliation requires non-empty evidence: {relative}")
+    if "auxiliaryPathReconciliation" in record:
+        auxiliary = record["auxiliaryPathReconciliation"]
+        if state != "final-complete":
+            errors.append(f"auxiliaryPathReconciliation requires final-complete: {relative}")
+        if not isinstance(auxiliary, dict) or set(auxiliary) != {
+            "path", "expectedCheckpoint", "reviewer", "evidence"
+        }:
+            errors.append(f"auxiliaryPathReconciliation must have exact final evidence fields: {relative}")
+            return None
+        allowed_path = CAPABILITY_REUSE_RECONCILABLE_AUXILIARY.get(task_id) if isinstance(task_id, str) else None
+        if auxiliary["path"] != allowed_path or allowed_path is None:
+            errors.append(f"auxiliaryPathReconciliation is not authorized for task/path: {relative}")
+        if not isinstance(auxiliary["expectedCheckpoint"], str) or re.fullmatch(
+            r"[0-9a-f]{40}", auxiliary["expectedCheckpoint"]
+        ) is None:
+            errors.append(f"auxiliaryPathReconciliation requires a full lowercase expectedCheckpoint: {relative}")
+        auxiliary_reviewer = auxiliary["reviewer"]
+        if not isinstance(auxiliary_reviewer, str) or not auxiliary_reviewer.strip():
+            errors.append(f"auxiliaryPathReconciliation requires an independent reviewer: {relative}")
+        elif (
+            not auxiliary_reviewer.strip().lstrip("/")
+            or auxiliary_reviewer.strip().casefold().lstrip("/")
+            == record["implementationOwner"].strip().casefold().lstrip("/")
+        ):
+            errors.append(f"auxiliaryPathReconciliation reviewer must be independent: {relative}")
+        if not isinstance(auxiliary["evidence"], str) or not auxiliary["evidence"].strip():
+            errors.append(f"auxiliaryPathReconciliation requires non-empty evidence: {relative}")
     if not governed_mutable_paths and any(
         _capability_reuse_auxiliary_kind(value, legacy=legacy) is not None for value in normalized_paths
     ):
@@ -3118,6 +3149,80 @@ def _capability_effective_integration_base(
             errors.append(f"checkpoint reconciliation Git ancestry is invalid: {task_id}")
             return None
     return checkpoint
+
+
+def _capability_reconciled_auxiliary_path(
+    root: Path,
+    record: dict[str, Any],
+    checkpoint: str | None,
+    first_active: _CommittedCapabilityRecord | None,
+) -> tuple[str | None, str | None]:
+    """Verify the one owner-approved unchanged auxiliary path through the reviewed ancestry."""
+    evidence = record.get("auxiliaryPathReconciliation")
+    if evidence is None:
+        return None, None
+    task_id = record.get("taskId")
+    expected_path = CAPABILITY_REUSE_RECONCILABLE_AUXILIARY.get(task_id) if isinstance(task_id, str) else None
+    if not isinstance(evidence, dict) or expected_path is None or evidence.get("path") != expected_path:
+        return None, "auxiliary reconciliation is not authorized for task/path"
+    if (
+        record.get("state") != "final-complete"
+        or checkpoint is None
+        or evidence.get("expectedCheckpoint") != checkpoint
+        or first_active is None
+        or expected_path not in first_active.value.get("mutablePaths", [])
+        or expected_path not in record.get("mutablePaths", [])
+        or _capability_reuse_auxiliary_kind(expected_path) != "test"
+        or expected_path in _capability_integration_paths(record)
+    ):
+        return None, "auxiliary reconciliation does not bind original admission and replay checkpoint"
+    reviewed_head = record.get("reviewedHead")
+    if not isinstance(reviewed_head, str) or re.fullmatch(r"[0-9a-f]{40}", reviewed_head) is None:
+        return None, "auxiliary reconciliation requires a reviewed commit"
+    for older, newer in ((checkpoint, first_active.revision), (first_active.revision, reviewed_head)):
+        ancestry = subprocess.run(
+            ["git", "merge-base", "--is-ancestor", older, newer],
+            cwd=root, check=False, capture_output=True,
+        )
+        if ancestry.returncode != 0:
+            return None, "auxiliary reconciliation Git ancestry is invalid"
+    states: list[tuple[bytes, bytes]] = []
+    for revision in (checkpoint, reviewed_head):
+        tree, tree_error = _git_object(root, ["ls-tree", "-z", revision, "--", expected_path])
+        if tree_error is not None:
+            return None, f"auxiliary reconciliation Git tree could not be read: {tree_error}"
+        metadata, separator, path = tree.rstrip(b"\0").partition(b"\t")
+        values = metadata.split(b" ")
+        if (
+            not tree.endswith(b"\0")
+            or not separator
+            or path != expected_path.encode("utf-8")
+            or len(values) != 3
+            or values[0] not in {b"100644", b"100755"}
+            or values[1] != b"blob"
+            or re.fullmatch(rb"[0-9a-f]{40}", values[2]) is None
+        ):
+            return None, "auxiliary reconciliation requires a regular Git blob at both ends"
+        states.append((values[0], values[2]))
+    if states[0] != states[1]:
+        return None, "auxiliary reconciliation path differs between checkpoint and reviewedHead"
+    revisions, revisions_error = _git_object(
+        root, ["rev-list", "--ancestry-path", f"{checkpoint}..{reviewed_head}"]
+    )
+    if revisions_error is not None:
+        return None, f"auxiliary reconciliation Git ancestry could not be read: {revisions_error}"
+    try:
+        commits = [value.decode("ascii") for value in revisions.splitlines()]
+    except UnicodeDecodeError:
+        return None, "auxiliary reconciliation Git ancestry is malformed"
+    if any(re.fullmatch(r"[0-9a-f]{40}", value) is None for value in commits):
+        return None, "auxiliary reconciliation Git ancestry is malformed"
+    changed, changed_error = _read_commit_path_batch(root, commits)
+    if changed_error is not None:
+        return None, f"auxiliary reconciliation commit diffs could not be read: {changed_error}"
+    if any(expected_path in changed[revision] for revision in commits):
+        return None, "auxiliary reconciliation path changed within reviewed ancestry"
+    return expected_path, None
 
 
 def validate_capability_reuse_governance(
@@ -3532,6 +3637,7 @@ def validate_capability_reuse_governance(
                 f"final evidence commit changes governed paths after reviewedHead: {evidence_commit}"
             )
         batch_coverage: dict[str, list[str]] = {}
+        reconciled_auxiliary: dict[str, str] = {}
         admitted_batch_paths: set[str] = set()
         for relative, record in group:
             task_id = str(record.get("taskId", "<invalid>"))
@@ -3554,7 +3660,7 @@ def validate_capability_reuse_governance(
             if any(
                 design_record.get(field) is not None
                 for field in ("implementationHead", "reviewedHead", "pathStateDigest")
-            ) or "checkpointReconciliation" in design_record or design_record.get("finalReview") != {
+            ) or "checkpointReconciliation" in design_record or "auxiliaryPathReconciliation" in design_record or design_record.get("finalReview") != {
                 "reviewer": None,
                 "outcome": "pending",
                 "evidence": "",
@@ -3567,6 +3673,14 @@ def validate_capability_reuse_governance(
             )
             if digest_error is not None or expected_digest != record.get("pathStateDigest"):
                 errors.append(f"final record pathStateDigest differs from reviewed Git state: {task_id}")
+            if "auxiliaryPathReconciliation" in record:
+                reconciled, reconcile_error = _capability_reconciled_auxiliary_path(
+                    root, record, checkpoint, history[relative].first_active,
+                )
+                if reconcile_error is not None:
+                    errors.append(f"final auxiliary reconciliation is invalid: {task_id}: {reconcile_error}")
+                elif reconciled is not None:
+                    reconciled_auxiliary[task_id] = reconciled
             for mutable_path in record.get("mutablePaths", []):
                 if _is_capability_reuse_governed_path(mutable_path, legacy=legacy_batch):
                     admitted_batch_paths.add(mutable_path)
@@ -3584,11 +3698,13 @@ def validate_capability_reuse_governance(
                 for _, record in group:
                     for path in record.get("mutablePaths", []):
                         auxiliary_kind = _capability_reuse_auxiliary_kind(path, legacy=legacy_batch)
-                        if auxiliary_kind is not None and path not in batch_changes:
+                        if auxiliary_kind is not None and path not in batch_changes and reconciled_auxiliary.get(record["taskId"]) != path:
                             errors.append(
                                 f"final capability-reuse auxiliary {auxiliary_kind} path is not in the reviewed diff: "
                                 f"{record['taskId']}: {path}"
                             )
+                        if auxiliary_kind is not None and path in batch_changes and reconciled_auxiliary.get(record["taskId"]) == path:
+                            errors.append(f"final auxiliary reconciliation is unnecessary for a changed path: {record['taskId']}: {path}")
                 governed_batch_changes = {
                     path for path in batch_changes
                     if _is_capability_reuse_governed_path(path, legacy=legacy_batch)
@@ -3636,6 +3752,7 @@ def validate_capability_reuse_governance(
             f"current capability-reuse records must bind latest evidence checkpoint {checkpoint}"
         )
 
+    reconciled_current_auxiliary: dict[str, str] = {}
     for record in current_records:
         task_id = str(record.get("taskId", "<invalid>"))
         relative = f"{CAPABILITY_REUSE_CHANGE_RECORD_ROOT.as_posix()}/{task_id}.json"
@@ -3674,7 +3791,7 @@ def validate_capability_reuse_governance(
             if any(
                 design_record.get(field) is not None
                 for field in ("implementationHead", "reviewedHead", "pathStateDigest")
-            ) or "checkpointReconciliation" in design_record or design_record.get("finalReview") != {
+            ) or "checkpointReconciliation" in design_record or "auxiliaryPathReconciliation" in design_record or design_record.get("finalReview") != {
                 "reviewer": None,
                 "outcome": "pending",
                 "evidence": "",
@@ -3688,6 +3805,15 @@ def validate_capability_reuse_governance(
             )
             if digest_error is not None or expected_digest != record.get("pathStateDigest"):
                 errors.append(f"final record pathStateDigest differs from reviewed Git state: {task_id}")
+            if "auxiliaryPathReconciliation" in record:
+                reconciled, reconcile_error = _capability_reconciled_auxiliary_path(
+                    root, record, checkpoint,
+                    history.get(relative, _CapabilityRecordHistory(None, None, None, None)).first_active,
+                )
+                if reconcile_error is not None:
+                    errors.append(f"current auxiliary reconciliation is invalid: {task_id}: {reconcile_error}")
+                elif reconciled is not None:
+                    reconciled_current_auxiliary[task_id] = reconciled
 
     if any(record.get("state") == "final-complete" for record in current_records):
         post_review_changes, post_review_error = _git_changed_paths(root, "HEAD")
@@ -3727,11 +3853,13 @@ def validate_capability_reuse_governance(
             if not _is_capability_reuse_governed_path(relative):
                 auxiliary_kind = _capability_reuse_auxiliary_kind(relative)
                 if auxiliary_kind is not None:
-                    if relative not in tracked | untracked:
+                    if relative not in tracked | untracked and reconciled_current_auxiliary.get(task_id) != relative:
                         errors.append(
                             f"current capability-reuse auxiliary {auxiliary_kind} path is not in the current diff: "
                             f"{task_id}: {relative}"
                         )
+                    if relative in tracked | untracked and reconciled_current_auxiliary.get(task_id) == relative:
+                        errors.append(f"current auxiliary reconciliation is unnecessary for a changed path: {task_id}: {relative}")
                 else:
                     errors.append(f"current capability-reuse mutable path is not governed: {task_id}: {relative}")
                 continue

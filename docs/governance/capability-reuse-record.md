@@ -36,8 +36,9 @@ paths in `mutablePaths` as auxiliary evidence. They do not grant production
 authority or contribute to exactly-once governed coverage; an auxiliary-only
 record cannot authorize a batch. Existing governed classification takes
 precedence (for example, `tests/AGENTS.md` remains governed). Auxiliary paths
-must occur in the current checkpoint diff and, at finalization, the
-checkpoint-to-reviewed diff. They remain included in the complete path-state
+ordinarily must occur in the current checkpoint diff and, at finalization, the
+checkpoint-to-reviewed diff. The single final-only reconciliation below handles
+one admitted unchanged test path. They remain included in the complete path-state
 digest and immutable admission fields, but cannot appear in `integrationPaths`.
 The delivery document may cite accepted decisions and retain test/status
 evidence; it cannot itself decide firmware, support, release, or version rules.
@@ -97,7 +98,8 @@ integration admission and review, not a retroactive design approval.
    commit, and `finalReview` records the independent result and evidence.
    The same task must exist as `design-active` at that reviewed commit;
    finalization may change only lifecycle and final-evidence fields (including
-   optional `integrationPaths` and `checkpointReconciliation`), never the
+   optional `integrationPaths`, `checkpointReconciliation`, and the bounded
+   `auxiliaryPathReconciliation`), never the
    admitted capability, base, paths, owners, disposition, risk, or design review.
 3. `blocked`: authorizes no paths. Head, digest, and final-review fields remain
    null/pending.
@@ -130,6 +132,36 @@ and release checks still use the derived checkpoint and remain unchanged.
 Active or blocked records cannot carry this field, and a sealed final record
 cannot add or alter it later. This records the admission mistake honestly; it
 does not retroactively certify the original base as valid.
+
+Owner amendment, 2026-09-24: only `PARTIAL-AB-BANK-110-01` may reconcile its
+unchanged admitted auxiliary test path
+`tests/NvtFwCombiner.Bootstrap.Tests/AbDummyDpOutputTests.cs` at finalization.
+Its immutable first-active admission still lists that path. It is absent from
+the checkpoint-to-reviewed diff, so it must not be changed merely to satisfy
+the ordinary diff requirement. The final record may add exactly:
+
+```json
+{
+  "auxiliaryPathReconciliation": {
+    "path": "tests/NvtFwCombiner.Bootstrap.Tests/AbDummyDpOutputTests.cs",
+    "expectedCheckpoint": "b9a94a2bab1a7bc05129b3438f0c0afeaaf45ad4",
+    "reviewer": "independent-reviewer",
+    "evidence": "The admitted test is an unchanged regular blob throughout the reviewed ancestry."
+  }
+}
+```
+
+The validator derives the actual checkpoint by historical replay, requires the
+field to bind it, verifies the original first-active path and its auxiliary
+test classification, and requires the same regular Git blob and mode at both
+ends with no intervening ancestry commit changing, deleting, renaming or
+restoring that path. A changed path cannot use this field. Other task/path
+pairs, malformed or extra fields, absent Git evidence, a reviewer equal to the
+implementation owner (including `root`/`/root` agent aliases), and active/blocked
+use fail. The path stays in the full
+path-state digest and final review; all governed unique ownership, other
+auxiliary diff checks, direct-child final evidence, R3 owner authority and
+release gates remain in force. Sealed final records cannot be amended later.
 
 The final record is committed as evidence immediately after the reviewed
 implementation commit. That evidence commit must have `reviewedHead` as its

@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 2,
+  "taskId": "CAPABILITY-AUXILIARY-RECONCILIATION-1110-01",
+  "capability": "Reconcile one unchanged admitted auxiliary test path at final integration",
+  "integrationBase": "b9a94a2bab1a7bc05129b3438f0c0afeaaf45ad4",
+  "risk": "R2",
+  "kind": "governance",
+  "state": "design-active",
+  "mutablePaths": [
+    "scripts/validate_repository.py",
+    "tests/scripts/test_agent_governance.py",
+    "docs/governance/capability-reuse-record.md",
+    "docs/adr/0071-final-integration-path-ownership.md"
+  ],
+  "implementationOwner": "/root",
+  "searchEvidence": [
+    "At d7d226871, structure-only reports PARTIAL-AB-BANK-110-01's admitted auxiliary test path tests/NvtFwCombiner.Bootstrap.Tests/AbDummyDpOutputTests.cs absent from the reviewed checkpoint-to-head diff. The immutable first-active admission at 29c7e7c4 includes the path; its regular Git blob at sealed checkpoint b9a94a2b and at d7d226871 is identical (263a93dc929ee9dcd15ae4c8f4304af543625b25), with no intervening path change.",
+    "scripts/validate_repository.py is the single record parser and historical/current integration validator; tests/scripts/test_agent_governance.py supplies real-Git lifecycle tests. The record contract and ADR 0071 own the finalization decision. The owner approved only a final-only auxiliary reconciliation and requested the structure correction, preserving original admission fields and all other gates.",
+    "Independent read-only R2 design review by /root/r2_final_review on 2026-09-24 approved one exact task/path pair and fail-closed final-only evidence, with no P0-P2 design findings."
+  ],
+  "semanticOwner": "Existing capability-reuse validator and its final-only record lifecycle",
+  "terminalContract": "Permit only PARTIAL-AB-BANK-110-01 to add a final-complete-only closed-shape auxiliaryPathReconciliation object for tests/NvtFwCombiner.Bootstrap.Tests/AbDummyDpOutputTests.cs, containing path, expectedCheckpoint, independent reviewer and nonempty evidence. Derive the checkpoint from unchanged replay; require the admitted first-active path, its non-governed auxiliary-test classification, identical regular blob and mode at checkpoint and reviewedHead, and no path change on any intermediate ancestry edge, including rename/delete/restore. Reject missing, malformed, extra, wrong or unnecessary reconciliation, active/blocked use, altered original admission, and auxiliary ownership in integrationPaths. Keep the path in the full pathStateDigest and final review; preserve all governed unique ownership, all other auxiliary diff, direct-child final evidence, R3 external authority and release gates in both current and historical final validation. Do not change firmware behavior or immutable sealed final records.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "/root/r2_final_review",
+    "outcome": "approved",
+    "evidence": "Independent read-only R2 design verdict on 2026-09-24 approved the exact single task/path final-only amendment and original-admission preservation; test both staged finalization and historical replay, malformed/unauthorized fields, Git blob and ancestry changes, digest, ownership, direct-child evidence and existing R3 authority. This admits implementation, not record finalization or release."
+  },
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": {
+    "reviewer": null,
+    "outcome": "pending",
+    "evidence": ""
+  }
+}
