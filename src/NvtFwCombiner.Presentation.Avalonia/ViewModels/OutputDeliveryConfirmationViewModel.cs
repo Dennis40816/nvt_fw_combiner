@@ -27,7 +27,6 @@ internal sealed partial class OutputDeliveryConfirmationViewModel : ObservableOb
     private readonly Func<ShellTextResources> _text;
     private OutputDeliveryRequest? _request;
     private bool _preserveCancelledDeliveryState;
-    private long _preparationGeneration;
     private bool ProposalIsCurrent { get; set; } = true;
 
     internal OutputDeliveryConfirmationViewModel(
@@ -109,18 +108,20 @@ internal sealed partial class OutputDeliveryConfirmationViewModel : ObservableOb
 
     internal long BeginPreparation()
     {
-        return ++_preparationGeneration;
+        return ++PreparationGeneration;
     }
+
+    internal long PreparationGeneration { get; private set; }
 
     internal bool IsPreparationCurrent(long generation)
     {
-        return generation == _preparationGeneration;
+        return generation == PreparationGeneration;
     }
 
     internal void Open(OutputDeliveryRequest request, bool preserveDeliveryState = false)
     {
         ArgumentNullException.ThrowIfNull(request);
-        _preparationGeneration++;
+        PreparationGeneration++;
         ProposalIsCurrent = true;
         preserveDeliveryState |= _preserveCancelledDeliveryState &&
             _request is { } previous && previous.IsReplaceOutput == request.IsReplaceOutput && previous.IsCurrent();
@@ -280,7 +281,7 @@ internal sealed partial class OutputDeliveryConfirmationViewModel : ObservableOb
 
     private void Cancel()
     {
-        _preparationGeneration++;
+        PreparationGeneration++;
         _preserveCancelledDeliveryState |= IsOpen;
         _request?.Cancel?.Invoke();
         IsOpen = false;
