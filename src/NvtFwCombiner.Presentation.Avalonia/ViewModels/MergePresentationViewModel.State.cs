@@ -103,6 +103,8 @@ internal sealed partial class MergePresentationViewModel
 
     public IReadOnlyList<string> MergeModeChoices => _mergeModeChoices;
 
+    public IReadOnlyList<string> VisibleMergeModeChoices => WorkflowModeDisplayConverters.GetVisibleChoices(MergeModeChoices);
+
     public PlanningCardText MergePreview => Text.MergePreview;
 
     public ObservableCollection<FirmwareSlotViewModel> MergeSlots { get; } = [];
@@ -449,6 +451,7 @@ internal sealed partial class MergePresentationViewModel
         {
             _mergeModeChoices.RemoveAt(_mergeModeChoices.Count - 1);
         }
+        OnPropertyChanged(nameof(VisibleMergeModeChoices));
     }
 
     internal void RefreshCommandState()
