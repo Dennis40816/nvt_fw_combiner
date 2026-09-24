@@ -47,10 +47,26 @@ internal static partial class UiCompositionRunner
         ]);
         if (inspection.StandardEventBufferFormatVersion is byte raw)
         {
-            facts.Add(new(text.EventBufferVersionLabel,
-                FormattableString.Invariant($"0x{raw:X2} - {FirmwareEventBufferFormatDisplayNames.GetDisplayName(raw) ?? text.FirmwareSlotUnknownValueLabel}")));
+            facts.Add(CreateEventBufferFact(raw, text));
         }
         return includeBaseFacts ? [.. facts, .. dpFacts] : facts;
+    }
+
+    internal static FirmwareSlotFactViewModel CreateEventBufferFact(
+        byte? raw, ShellTextResources text, string? label = null, string? fallbackDisplayName = null)
+    {
+        label ??= text.EventBufferVersionLabel;
+        if (raw is not { } value)
+        {
+            return new(label, text.FirmwareFactNotProvidedLabel,
+                stateDetail: text.FirmwareFactNotProvidedDetail, priority: FirmwareSlotFactPriority.Details);
+        }
+
+        string name = FirmwareEventBufferFormatDisplayNames.GetDisplayName(value) ??
+            fallbackDisplayName ?? text.FirmwareSlotUnknownValueLabel;
+        name = name == "Common Event Buffer Format" ? "Common" : name.Replace('_', ' ');
+        return new(label, FormattableString.Invariant($"{name} (0x{value:X2})"),
+            priority: FirmwareSlotFactPriority.Details);
     }
 
     private static List<FirmwareSlotFactViewModel> GetAbBaseFacts(
@@ -92,20 +108,11 @@ internal static partial class UiCompositionRunner
         {
             string bankLabel = bank.BankId == "a-bank" ? "A" : "B";
             string label = $"{text.EventBufferVersionLabel} ({bankLabel})";
-            facts.Add(bank.EventBufferFormatVersion is byte raw
-                ? new(label, FormattableString.Invariant($"0x{raw:X2} - {FirmwareEventBufferFormatDisplayNames.GetDisplayName(raw) ?? text.FirmwareSlotUnknownValueLabel}"))
-                : new(label, text.FirmwareFactNotProvidedLabel,
-                    stateDetail: text.FirmwareFactNotProvidedDetail, priority: FirmwareSlotFactPriority.Details));
+            facts.Add(CreateEventBufferFact(bank.EventBufferFormatVersion, text, label));
             facts.Add(new(text.GetCtrlRamBaseBankRangeLabel(bankLabel),
                 text.GetCtrlRamBaseReferenceRangeValue(FormattableString.Invariant(
                     $"[0x{bank.Range.Start:X5},0x{bank.Range.EndExclusive:X5})")),
                 priority: FirmwareSlotFactPriority.Details));
-            string backupLabel = text.GetCtrlRamBaseBackupOffsetLabel(bankLabel);
-            facts.Add(bank.FirmwareConfig is { } metadata
-                ? new(backupLabel, text.GetCtrlRamBaseBackupOffsetValue(metadata.FirmwareConfigBackupStart),
-                    priority: FirmwareSlotFactPriority.Details)
-                : new(backupLabel, text.FirmwareFactNotProvidedLabel,
-                    stateDetail: text.FirmwareFactNotProvidedDetail, priority: FirmwareSlotFactPriority.Details));
         }
         return facts;
 

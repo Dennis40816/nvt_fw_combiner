@@ -22,8 +22,10 @@ public sealed class CtrlRamBaseFactsTests
             true, 7, 1, 0x0927, null, default);
         foreach ((byte raw, string expected) in new[]
         {
-            ((byte)0xA3, "0xA3 - Auto STLA v1"),
-            ((byte)0x00, $"0x00 - {text.FirmwareSlotUnknownValueLabel}"),
+            ((byte)0xA3, "Auto STLA v1 (0xA3)"),
+            ((byte)0x00, $"{text.FirmwareSlotUnknownValueLabel} (0x00)"),
+            ((byte)0x80, "Common (0x80)"),
+            ((byte)0x85, "Common (0x85)"),
         })
         {
             var inspection = new FirmwareInspectionSnapshot(null, metadata, null, null, null, null)
@@ -34,8 +36,10 @@ public sealed class CtrlRamBaseFactsTests
             {
                 IReadOnlyList<FirmwareSlotFactViewModel> facts = UiCompositionRunner.GetFirmwareSlotFacts(
                     inspection, isBase, text);
-                Assert.Equal(expected, Assert.Single(facts,
-                    fact => fact.Label == text.EventBufferVersionLabel).Value);
+                FirmwareSlotFactViewModel format = Assert.Single(facts,
+                    fact => fact.Label == text.EventBufferVersionLabel);
+                Assert.Equal(expected, format.Value);
+                Assert.False(format.IsPrimary);
             }
         }
 
@@ -83,10 +87,10 @@ public sealed class CtrlRamBaseFactsTests
         Assert.False(Assert.Single(facts, static fact => fact.Label == "IC Count (A/B)").IsPrimary);
         Assert.False(Assert.Single(facts, static fact => fact.Label == "DPA Version").IsPrimary);
         Assert.False(Assert.Single(facts, static fact => fact.Label == "DPB Version").IsPrimary);
-        foreach ((string bank, string range, string backup) in new[]
+        foreach ((string bank, string range) in new[]
         {
-            ("A", chinese ? "參考映像 [0x00000,0x40000)" : "Reference [0x00000,0x40000)", chinese ? "Bank 內 +0x23000" : "bank-local +0x23000"),
-            ("B", chinese ? "參考映像 [0x40000,0x80000)" : "Reference [0x40000,0x80000)", chinese ? "Bank 內 +0x23020" : "bank-local +0x23020"),
+            ("A", chinese ? "參考映像 [0x00000,0x40000)" : "Reference [0x00000,0x40000)"),
+            ("B", chinese ? "參考映像 [0x40000,0x80000)" : "Reference [0x40000,0x80000)"),
         })
         {
             string rangeLabel = chinese
@@ -94,11 +98,9 @@ public sealed class CtrlRamBaseFactsTests
                 : $"{bank} bank range";
             string backupLabel = chinese ? $"{bank} FWConfig 備份" : $"{bank} FWConfig Backup";
             FirmwareSlotFactViewModel rangeFact = Assert.Single(facts, fact => fact.Label == rangeLabel);
-            FirmwareSlotFactViewModel backupFact = Assert.Single(facts, fact => fact.Label == backupLabel);
+            Assert.DoesNotContain(facts, fact => fact.Label == backupLabel);
             Assert.Equal(range, rangeFact.Value);
-            Assert.Equal(backup, backupFact.Value);
             Assert.False(rangeFact.IsPrimary);
-            Assert.False(backupFact.IsPrimary);
         }
         foreach (string bankId in new[] { "A", "B" })
         {
@@ -130,20 +132,18 @@ public sealed class CtrlRamBaseFactsTests
             string b = Assert.Single(facts, fact => fact.Label == $"{text.EventBufferVersionLabel} (B)").Value;
             foreach (string bank in new[] { "A", "B" })
             {
-                FirmwareSlotFactViewModel backup = Assert.Single(facts,
+                Assert.DoesNotContain(facts,
                     fact => fact.Label == $"{bank} FWConfig Backup");
-                Assert.Equal(text.FirmwareFactNotProvidedLabel, backup.Value);
-                Assert.False(backup.IsPrimary);
             }
             if (aValue is null)
             {
                 Assert.Equal(text.FirmwareFactNotProvidedLabel, a);
-                Assert.StartsWith("0x7F - ", b, StringComparison.Ordinal);
+                Assert.Equal($"{text.FirmwareSlotUnknownValueLabel} (0x7F)", b);
             }
             else
             {
-                Assert.Equal("0xA3 - Auto STLA v1", a);
-                Assert.StartsWith("0x00 - ", b, StringComparison.Ordinal);
+                Assert.Equal("Auto STLA v1 (0xA3)", a);
+                Assert.Equal($"{text.FirmwareSlotUnknownValueLabel} (0x00)", b);
                 Assert.DoesNotContain(text.FirmwareFactNotProvidedLabel, b, StringComparison.Ordinal);
             }
         }

@@ -87,8 +87,8 @@ internal static class FirmwareInspectionProjection
         facts.AddRange(UiCompositionRunner.GetFirmwareSlotFacts(inspection, text: text, includeTpVersion: false));
         if (abInput.EventBufferFormat is { } format)
         {
-            facts.Add(new(text.EventBufferVersionLabel,
-                FormattableString.Invariant($"0x{format.RawByte:X2} - {format.DetectedDisplayName ?? format.DisplayName}")));
+            facts.Add(UiCompositionRunner.CreateEventBufferFact(format.RawByte, text,
+                fallbackDisplayName: format.DisplayName));
         }
         slot.SetFirmwareFacts(facts, expandAdditionalByDefault);
     }

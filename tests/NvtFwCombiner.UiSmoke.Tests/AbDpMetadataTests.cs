@@ -116,11 +116,13 @@ public sealed class AbDpMetadataTests
             slot.FirmwareFacts.Take(3).Select(static fact => fact.Value));
         if (hasFormat)
         {
-            Assert.Equal(chinese ? "事件緩衝區版本" : "Event Buffer Version", slot.PrimaryFirmwareFacts[3].Label);
-            Assert.Equal("0x97 - Auto Desay", slot.PrimaryFirmwareFacts[3].Value);
+            FirmwareSlotFactViewModel format = Assert.Single(slot.AdditionalFirmwareFacts,
+                fact => fact.Label == text.EventBufferVersionLabel);
+            Assert.Equal("Auto Desay (0x97)", format.Value);
         }
-        Assert.Equal("IC Count", Assert.Single(slot.AdditionalFirmwareFacts).Label);
-        Assert.Equal(hasFormat ? 4 : 3, slot.PrimaryFirmwareFacts.Count);
+        _ = Assert.Single(slot.AdditionalFirmwareFacts, static fact => fact.Label == "IC Count");
+        Assert.Equal(hasFormat ? 2 : 1, slot.AdditionalFirmwareFacts.Count);
+        Assert.Equal(3, slot.PrimaryFirmwareFacts.Count);
     }
 
     internal static FirmwareSlotViewModel CreateSlot(
