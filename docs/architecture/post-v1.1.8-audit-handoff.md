@@ -21,6 +21,16 @@ accepted feature release. Refer to the roadmap for the CLI-scope decision and
 complete UI/firmware-review follow-up; this handoff does not create a second
 version-allocation owner.
 
+## Local delivery status — 2026-09-25
+
+1.1.10 is published. The approved 1.1.11 local input/Info/layout/UI-hide work is
+implemented; source `b28c1f3c5` passed all 7,504 .NET tests and all 38 remaining
+non-Structure verifier lanes. See the [1.1.11 delivery record](../ui/v1.1.11-delivery.md)
+for the 28 loaded-FW screenshots, scoped real-firmware evidence and exact
+owner-only acceptance list. AB/OSD certification, R3 authority and final record
+sealing remain open; this is not a 1.1.11 publication or a full Structure pass.
+Version allocations and the historical audit below remain unchanged.
+
 ## Post-1.1.8 audit reconciliation — 2026-09-19
 
 Owner request: correct and inventory the current handoff using the
