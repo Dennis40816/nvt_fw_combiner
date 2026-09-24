@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 2,
+  "taskId": "ROADMAP-1111-VERIFY-ORCHESTRATION-01",
+  "capability": "Allocate repair of the observed concurrent all-lane test_verify_orchestration failure to 1.1.11 without changing 1.1.10 release gates",
+  "integrationBase": "b9a94a2bab1a7bc05129b3438f0c0afeaaf45ad4",
+  "risk": "R2",
+  "kind": "governance",
+  "state": "design-active",
+  "mutablePaths": [
+    "docs/architecture/nfc_roadmap.md",
+    "docs/ui/v1.1.10-delivery.md"
+  ],
+  "implementationOwner": "/root",
+  "searchEvidence": [
+    "Owner instructed on 2026-09-24 that the failed verifier lane be repaired in 1.1.11. The current roadmap is the sole future-version allocation owner under docs/AGENTS.md; the 1.1.10 delivery document is auxiliary status/evidence only under the capability-reuse contract.",
+    "Existing DP-REPLACE-RETIREMENT-DOCS-110-01 includes these two paths but its terminal contract expressly forbids changing settled version allocation; it cannot authorize this new 1.1.11 decision. This record joins the still-open 1.1.10 checkpoint-to-head integration batch at b9a94a2b; at finalization its sole roadmap integration ownership must transfer from that prior record without altering either immutable admission. No second verifier or release-policy owner is created.",
+    "Exact candidate f85348ed5 log D:/NvtFwCombiner-TestArea/artifacts/v1110-release-skip-structure-f85348ed5.log records test_verify_orchestration 214/217 and overall FAIL; same-HEAD narrow 3/3 and isolated module 217/217 passed. These observations do not establish a root cause or waive the failed all-lane gate."
+  ],
+  "semanticOwner": "docs/architecture/nfc_roadmap.md owns the 1.1.11 allocation; scripts/verify.py and tests/scripts/test_verify_orchestration.py retain their existing execution/test contracts; docs/ui/v1.1.10-delivery.md records only the observed 1.1.10 evidence and accepted follow-up.",
+  "terminalContract": "Record exactly one owner-approved 1.1.11 follow-up to reproduce, diagnose, and repair the test_verify_orchestration failures seen during the concurrent 1.1.10 all-lane run. Preserve scratch isolation, managed descendant cancellation, and mixed-framework complete execution; do not preselect timeout, retry, decoding suppression, or weaker pass criteria as a fix before the cause is known. Link the current failed and isolated-passing evidence without asserting load causation. Do not change product firmware, route support, existing 1.1.10 scope, its required verifier/Golden/R3/release gates, or any other version allocation. The delivery document remains evidence, not authority. Final integration assigns the governed roadmap path uniquely to this record within the still-open 1.1.10 batch; the older DP docs record keeps its original mutablePaths; its pathStateDigest is recomputed from the new reviewedHead and all original paths receive independent final review. Final evidence is allowed only after the exact reviewed implementation head and independent review.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "/root/r2_final_review",
+    "outcome": "approved",
+    "evidence": "Independent R2 design review at f85348ed56ebeabe2ddbdfdcae3856d5fb3321e3 of the exact roadmap-delivery patch and ROADMAP-1111-VERIFY-ORCHESTRATION-01 draft on 2026-09-24. Confirmed owner-approved 1.1.11 allocation belongs to canonical roadmap; delivery is auxiliary evidence; b9a94a2b is the still-open batch checkpoint and both exact mutable paths are in its diff. Prior DP docs admission forbids new version allocation, so this separate record is required. Candidate log is 214/217 and overall FAIL; isolated 3/3 and 217/217 do not establish causation or waive the 1.1.10 verifier, Golden, R3, or release gates. Final integration must uniquely transfer roadmap ownership, rebind/review all 44 records at the new head, and recompute all affected digests."
+  },
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": {
+    "reviewer": null,
+    "outcome": "pending",
+    "evidence": ""
+  }
+}
