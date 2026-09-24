@@ -5,15 +5,24 @@ namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
 internal sealed partial class HexEditorWorkspaceViewModel
 {
+    private long _loadGeneration;
+
     public bool HasSelectedFile { get; private set; }
 
     public async Task LoadAsync(string path, CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
+        long generation = Interlocked.Increment(ref _loadGeneration);
         HasSelectedFile = true;
         FindAsciiCommand.Cancel();
 
         RawBinaryEditorFileResult result = await _files.LoadAsync(path, cancellationToken);
+        if (generation != Volatile.Read(ref _loadGeneration))
+        {
+            return;
+        }
+
+        cancellationToken.ThrowIfCancellationRequested();
         if (!result.Succeeded || result.State is null || string.IsNullOrWhiteSpace(result.Path))
         {
             EditorStatus = result.ErrorMessage ?? Text.HexEditorFileOperationFailedDetail;
