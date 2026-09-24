@@ -145,13 +145,13 @@ Candidate／ContractOnly；各路由的 firmware-owner／獨立 Golden／整合�
 
 #### 12. 驗證、發佈與開發維護
 
-- 來源版本：**已發布 1.1.1、1.1.2、1.1.3、1.1.4、1.1.5、1.1.8**；後續失敗診斷與 DP 測試遷移為 **本地完成**。
-- Before → After: 統一固定測試區、component manifests 與 aggregate verdict；CI shards 使用隔離 Windows runners，發布要求實際候選來源的 CI admission 與必要 fresh Golden。改善公開下載 smoke、可重現 fixtures、慢測試資訊與機械式同步；本地 verifier 可在既有預算內平行處理獨立工作，補回先前未被 unittest 執行的 pytest cases。
+- 來源版本：**已發布 1.1.1、1.1.2、1.1.3、1.1.4、1.1.5、1.1.8**；後續失敗診斷、DP 測試遷移與 pytest 收集邊界修正為 **本地完成**。
+- Before → After: 統一固定測試區、component manifests 與 aggregate verdict；CI shards 使用隔離 Windows runners，發布要求實際候選來源的 CI admission 與必要 fresh Golden。改善公開下載 smoke、可重現 fixtures、慢測試資訊與機械式同步；本地 verifier 可在既有預算內平行處理獨立工作，補回先前未被 unittest 執行的 pytest cases。針對並行失敗，repository-script pytest 的明確選檔不再向上掃描共享暫存祖先；測試失敗斷言保留原始 child log bytes 及原非零退出。
 - Affected: 開發者檢查、Windows CI／release、套件 reference evidence、文件與 agent 工作流程；不是新增終端使用者 firmware 功能。
 - Support status: unchanged/support-neutral；不以工具效率、fixture hash 或 input-only observation 代替支援認證。
 - Compatibility: 保留原 verifier／required checks／coverage 與實際 discovery/execution 對照；移除原本在 Windows 略過的六個 Unix-only 整合測試，保留 Windows／shared coverage，Windows 要求零 skipped .NET cases。1.1.2 增加公開 NT51929 input-only evidence；1.1.4 canonical references 由 35 擴至 40 cases，區分 25 direct outputs、3 input-only、12 fact-scoped aliases，沒有改寫既有 expected bytes。一般文字修訂及窄改動採相稱檢查，normative／release gates 保留。
-- Verification: 各版本的 CI、fixture、package／download、文件與 workflow 回歸見下方原始版本紀錄；本地另保留失敗 child-process 診斷，DP 測試遷移仍維持取消、read ceiling、immutable inputs 與歷史資料 assertions。
-- Limitations: 不宣稱完整驗證已達十分鐘、startup 已達 700 ms 或 token 用量已有量測下降；未把 1.1.0 的 manual-only 特例延長，也未啟用 Catalog／Registry 自動部署。原有 orchestration failure 與本次最終 release gates 另列如下。
+- Verification: 各版本的 CI、fixture、package／download、文件與 workflow 回歸見下方原始版本紀錄；本地新增越界 `conftest.py` 紅綠回歸及真子程序非 UTF-8／exit 2 負例，完整 orchestration 模組 219/219 通過。DP 測試遷移仍維持取消、read ceiling、immutable inputs 與歷史資料 assertions。
+- Limitations: 不宣稱完整驗證已達十分鐘、startup 已達 700 ms 或 token 用量已有量測下降；未把 1.1.0 的 manual-only 特例延長，也未啟用 Catalog／Registry 自動部署。並行全套與本次最終 release gates 另列如下。
 
 #### 13. 非標準 DP：保留完整輸入並提示疑似 OSD 客製化
 
@@ -173,7 +173,7 @@ Candidate／ContractOnly；各路由的 firmware-owner／獨立 Golden／整合�
 
 - **CtrlRAM AB Replace 尚未完成全範圍認證**：NT51919／29／32 Single／Cascade 及 NT51950／51 四條 Common 路由已本地接線為 Candidate／ContractOnly。NT51929 Single 的 A-only／B-only／Both 實檔輸出已有 exact-case 獨立 CRC/header oracle 的完整 bytes 比對；其他路由有局部真工具及 bank-local control 證據。各路由仍缺 firmware-owner 核准的獨立完整輸出 Golden 與精確寫入範圍審核，不能由既有 Standard／AB Merge 證據推廣為 Supported。
 - 最終 integration、firmware-owner 證據及正式候選的必要 Golden 尚未完成；乾淨預封存來源 `fd3a41ffc` 的 release Golden 已執行 25 個 Direct 完整輸出案例，Bootstrap 1708/1708、GoldenRegression 14/14 通過。3 個 input-only 和 12 個 fact-scoped alias 並非 Golden 輸出案例；後續文件提交使正式候選仍須重新固定來源與驗證。
-- 先前完整 verifier 的 orchestration concurrency failure 尚未證明根因修復；`fd3a41ffc` 的 `--skip-structure` 全輪通過且未重現。診斷紀錄與這次成功不等於根因已消除。
+- 先前完整 verifier 的 orchestration concurrency failure 已定位一個 pytest 越界收集共享暫存祖先的原因；本地修正及完整模組 219/219 通過。`fd3a41ffc` 的舊 `--skip-structure` 全輪通過屬不同來源，不能代替目前候選的並行全套驗證。另一次診斷全套的 Bootstrap Formal Route 測試觸及 180 秒 timeout，屬獨立待確認失敗。
 - 完整 UiSmoke 於 `f102d571c` 通過 1619/1619，`fd3a41ffc` 的非結構 verifier .NET lane 亦通過；最終 frozen release candidate 的 `--all` 與 exact-source CI 仍未通過。
 - Native high-DPI／assistive-technology、clean-machine 與最終 portable-package 驗收仍須依候選範圍完成；已發布版本的歷史證據不自動認證目前 source。
 - Roadmap 已確認此次正式版本為 1.1.10，`VERSION` 已同步；tag／package 身分仍需在候選整合與發布流程核對。Customized／Launcher 新開發維持 1.2.1，未列為本次成果。
