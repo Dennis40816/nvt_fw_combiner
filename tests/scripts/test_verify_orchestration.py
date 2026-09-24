@@ -1295,26 +1295,57 @@ class VerifyOrchestrationTests(unittest.TestCase):
             ) for name in ("first", "second"))
             with patch.object(MODULE, "REPOSITORY_SCRIPT_TESTS", root):
                 results = MODULE.run_lanes(lanes, jobs=2, log_directory=root / "logs")
-            failure_logs = []
-            for result in results:
-                if result.succeeded or not result.log_path.is_file():
-                    continue
-                raw = result.log_path.read_bytes()
-                try:
-                    rendered = raw.decode("utf-8")
-                except UnicodeDecodeError:
-                    rendered = raw.decode(locale.getpreferredencoding(False),
-                                          errors="backslashreplace")
-                failure_logs.append(f"{result.log_path}:\nraw={raw!r}\ntext={rendered}")
             self.assertTrue(
                 all(result.succeeded for result in results),
-                f"{results}\n" + "\n".join(failure_logs),
+                f"{results}\n{self.failed_lane_logs(results)}",
             )
             scratch = [Path(path.read_text(encoding="utf-8")) for path in evidence.iterdir()]
             self.assertEqual(2, len(set(scratch)))
             for path in scratch:
                 self.assertTrue(path.is_relative_to(Path(tempfile.gettempdir())))
                 self.assertFalse(path.exists(), "pytest scratch was not cleaned")
+
+    @staticmethod
+    def failed_lane_logs(results) -> str:
+        failure_logs = []
+        for result in results:
+            if result.succeeded or not result.log_path.is_file():
+                continue
+            raw = result.log_path.read_bytes()
+            try:
+                rendered = raw.decode("utf-8")
+            except UnicodeDecodeError:
+                rendered = raw.decode(locale.getpreferredencoding(False),
+                                      errors="backslashreplace")
+            failure_logs.append(f"{result.log_path}:\nraw={raw!r}\ntext={rendered}")
+        return "\n".join(failure_logs)
+
+    def test_failed_lane_preserves_non_utf8_child_bytes_and_original_exit(self) -> None:
+        def failing_child(log_path):
+            MODULE.run(
+                [sys.executable, "-c", "import os,sys; os.write(1,b'\\xa8'); sys.exit(2)"],
+                log_path=log_path,
+            )
+
+        with tempfile.TemporaryDirectory() as temporary:
+            results = MODULE.run_lanes(
+                (MODULE.VerificationLane("invalid-output", failing_child),),
+                jobs=1,
+                log_directory=Path(temporary),
+            )
+            self.assertFalse(results[0].succeeded)
+            self.assertIn("CalledProcessError", results[0].error)
+            self.assertIn("exit status 2", results[0].error)
+            self.assertIn(b"\xa8Command timing:", results[0].log_path.read_bytes())
+            with self.assertRaises(AssertionError) as failure:
+                self.assertTrue(
+                    all(result.succeeded for result in results),
+                    f"{results}\n{self.failed_lane_logs(results)}",
+                )
+            self.assertIn("CalledProcessError", str(failure.exception))
+            self.assertIn("raw=b", str(failure.exception))
+            self.assertIn("\\xa8Command timing:", str(failure.exception))
+            self.assertIn("text=", str(failure.exception))
 
     def test_group_budget_includes_queued_time_but_other_groups_get_fresh_budget(self) -> None:
         clock = [100.0]
