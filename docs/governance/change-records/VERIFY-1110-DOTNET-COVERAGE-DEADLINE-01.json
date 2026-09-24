@@ -5,7 +5,7 @@
   "integrationBase": "b9a94a2bab1a7bc05129b3438f0c0afeaaf45ad4",
   "risk": "R2",
   "kind": "behavior",
-  "state": "design-active",
+  "state": "final-complete",
   "mutablePaths": [
     "scripts/verify.py",
     "tests/scripts/test_verify_orchestration.py",
@@ -25,12 +25,15 @@
     "outcome": "approved",
     "evidence": "On 2026-09-24, independently reviewed the 1ace9c836 timed-out full-local run and two same-source UiSmoke Coverlet passes. The reviewer found that raising global DEFAULT_LANE_TIMEOUT_SECONDS would also change CI Python shard deadline at scripts/verify.py:5350, so approved only a local-full .NET coverage 1200-second default when no public timeout was explicitly supplied, preserving public custom 60-900 seconds and all CI deadlines. Approved increasing the existing single 480-second local project limit to 600 seconds for all eight projects as the smallest single-owner change without per-project scheduling branches. The 1200-second bound is a measured candidate requiring fixed-source full-verifier proof; coverage, freshness, Golden and R3 gates are not waived."
   },
-  "implementationHead": null,
-  "reviewedHead": null,
-  "pathStateDigest": null,
+  "implementationHead": "183a0d3652a81fb30dcb977d6ff1338f0f3bcd0f",
+  "reviewedHead": "183a0d3652a81fb30dcb977d6ff1338f0f3bcd0f",
+  "pathStateDigest": "c637d2e78969158a6363c3a27b7871482ca189065c49e5018711c3ece477fc90",
   "finalReview": {
-    "reviewer": null,
-    "outcome": "pending",
-    "evidence": ""
-  }
+    "reviewer": "/root/r2_final_review",
+    "outcome": "approved",
+    "evidence": "Independent exact-head R1/R2 rebind review on 2026-09-25 at 183a0d3652a81fb30dcb977d6ff1338f0f3bcd0f: reviewed the complete 85795b141..183a0d365 two-document delta and this record's original mutablePaths. Immutable admission and independent review remain intact; both final heads and the committed Git path-state digest bind 183a0d365. The 48-record checkpoint diff has 355 uniquely owned governed paths, with scripts/verify.py owned only by VERIFY-1110-DOTNET-COVERAGE-DEADLINE-01; no new mutable or integration path is needed. The afc203f9c nonstructure verifier pass and b9b5ddf5d 25-Direct release Golden pass remain attributed to their actual sources. The exact-183 structure-only run exited 1 solely for 17 missing R3 authorities, reported as 36 pending/batch-closure diagnostics, with no admission, digest or partition error. Earlier 900-second failures and 857 reviews remain dated history; this review does not approve R3, AB candidate Golden, --all, CI or release. Earlier dated evidence follows: At reviewedHead 85795b1416c689bfd484806d0425b9c06dfec9c1, independent /root/r2_final_review reviewed the immutable afc203f9c admission, all three original mutablePaths and unique final ownership of scripts/verify.py. Public and CI defaults remain 900 seconds; explicit 60-900 seconds remain binding; only unspecified full-local .NET coverage uses 1200 seconds and each of eight local projects uses 600 seconds. The afc203f9c fixed-source --skip-structure run passed all eight .NET projects, source freshness, 91.61% line and 80.52% branch coverage, and all script/Python lanes in 1174.9/1200 seconds. The b9b5ddf5d release Golden run executed 25 Direct cases; subsequent commits changed only delivery prose. This does not certify structure, --all, AB candidate Golden or external R3 authority."
+  },
+  "integrationPaths": [
+    "scripts/verify.py"
+  ]
 }

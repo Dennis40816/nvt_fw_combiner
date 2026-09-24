@@ -5,7 +5,7 @@
   "integrationBase": "b9a94a2bab1a7bc05129b3438f0c0afeaaf45ad4",
   "risk": "R3",
   "kind": "behavior",
-  "state": "design-active",
+  "state": "final-complete",
   "mutablePaths": [
     "src/NvtFwCombiner.Application/Authoring/CtrlRamAuthoringDraftState.cs",
     "src/NvtFwCombiner.Application/Authoring/AuthoringSessionTransitionModels.cs",
@@ -47,12 +47,26 @@
     "outcome": "approved",
     "evidence": "2026-09-22 /root/layout_ownership_review approved closed draft, captured-data reuse, checked map slice adapter and mandatory existing core admission; /root/content_source_impl inspected inspector gaps. Bank-aware inspection extends current owner, delegates verified slice identity to existing runtime logic, calls existing local Reference inspector/reader only for selected banks. Exact mutable caller closure enumerated before edits. Candidate human certification remains open."
   },
-  "implementationHead": null,
-  "reviewedHead": null,
-  "pathStateDigest": null,
+  "implementationHead": "183a0d3652a81fb30dcb977d6ff1338f0f3bcd0f",
+  "reviewedHead": "183a0d3652a81fb30dcb977d6ff1338f0f3bcd0f",
+  "pathStateDigest": "ce8a5e7989ffdc47b4da7045bf1e06b121578ec0745934cfecc26b1314bfcfe5",
   "finalReview": {
-    "reviewer": null,
-    "outcome": "pending",
-    "evidence": ""
-  }
+    "reviewer": "/root/r3_final_review",
+    "outcome": "approved",
+    "evidence": "Independent /root/r3_final_review exact-head final-preview confirmation on 2026-09-25 at 183a0d3652a81fb30dcb977d6ff1338f0f3bcd0f. Verified this staged record's unchanged immutable admission, reviewed integration partition, matching implementation/review heads and complete committed path-state digest. The delta from 85795b141 changes only CHANGELOG and auxiliary delivery prose; no firmware bytes, ranges, profile, policy or processor semantics changed. The Perfect/Partial auxiliary digests were recomputed and matched. Repository technical finalReview approved; no new P0-P2, scoped PASS-WITH-HUMAN-GATE. This review does not supply external firmware/release-owner attestations, AB CtrlRAM independent Golden or Header/CRC/exact-write-range approval. Earlier dated evidence follows: Independent /root/r3_final_review exact-head technical re-review on 2026-09-25 at 85795b1416c689bfd484806d0425b9c06dfec9c1. Compared the complete 022219d53-to-reviewed delta and all original mutable-path states. Immutable admission and this record's unique integration partition remain unchanged. No R3 governed firmware path changed; only Perfect/Partial records' auxiliary delivery evidence changed. Prior firmware substantive review remains applicable, with no new P0-P3 and scoped PASS-WITH-HUMAN-GATE. Verifier R2 review, typed external R3 attestations, independent AB CtrlRAM expected-output Golden and Header/CRC/exact-write-range approval remain separate gates. Earlier dated review evidence follows: Independent /root/r3_final_review exact-head technical rebind confirmation on 2026-09-24 at 022219d53bbb24e5434ab4f6185df3c0019e6890. The sole delta from reviewed 871c6810e is non-governed CHANGELOG verification-status prose. All 17 R3 admission blobs and all 444 unique original mutable-path states were checked unchanged between those heads. This record's complete committed Git path-state digest is ce8a5e7989ffdc47b4da7045bf1e06b121578ec0745934cfecc26b1314bfcfe5; its integration ownership remains within the unique 45-record/355-governed-path partition. No new P0-P2; repository technical finalReview approved, scoped Polytail PASS-WITH-HUMAN-GATE. External firmware/release-owner attestations, independent AB CtrlRAM Golden and exact write-range authority remain separate and absent; the full verifier is failing. Earlier dated technical review evidence follows: Independent /root/r3_final_review technical final review rebound on 2026-09-24 to d6b8ad31957b173ab82b46616159c2826d167368. Verified the complete delta from previously reviewed f85348ed5 consists only of the owner-approved 1.1.11 roadmap allocation, auxiliary delivery evidence and its new design-active admission. This record’s immutable admission and integration partition remain unchanged; its complete original mutablePaths digest was independently recomputed from committed Git bytes and matched. Prior firmware technical review remains applicable; no new P0-P2. Repository technical finalReview approved; scoped Polytail PASS-WITH-HUMAN-GATE. External firmware/release-owner authority, Candidate Golden and exact write-range approval remain separate mandatory gates; the failed verifier run is not waived or reclassified as passed."
+  },
+  "integrationPaths": [
+    "src/NvtFwCombiner.Application/Authoring/AuthoringSessionState.cs",
+    "src/NvtFwCombiner.Application/Authoring/AuthoringSessionTransitionModels.cs",
+    "src/NvtFwCombiner.Application/Authoring/CtrlRamAuthoringDraftState.cs",
+    "src/NvtFwCombiner.Application/Authoring/CtrlRamAuthoringExperience.Transition.cs",
+    "src/NvtFwCombiner.Application/Capabilities/AcceptedCtrlRamExecutionPlan.cs",
+    "src/NvtFwCombiner.Application/Composition/CompositionExecutionExperience.cs",
+    "src/NvtFwCombiner.Application/Composition/CompositionRunService.BankReferences.cs",
+    "src/NvtFwCombiner.Application/Composition/VerifiedBankReferenceInputs.cs",
+    "src/NvtFwCombiner.Application/InputInspection/CompiledInputArtifactObservationService.cs",
+    "src/NvtFwCombiner.Application/InputInspection/CompiledReferenceBankInspection.cs",
+    "src/NvtFwCombiner.Infrastructure/Composition/BuiltInCtrlRamAuthoringAdapter.V2.cs",
+    "src/NvtFwCombiner.Infrastructure/Composition/BuiltInCtrlRamAuthoringAdapter.cs"
+  ]
 }
