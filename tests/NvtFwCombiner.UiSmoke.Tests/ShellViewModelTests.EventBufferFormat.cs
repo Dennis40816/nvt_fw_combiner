@@ -50,11 +50,15 @@ public sealed partial class ShellNavigationSystemTests
             await viewModel.WorkflowSession.SetSlotFileAsync("tp-a-input", workspace.Write("TPA_STLA.bin", tp), TestContext.Current.CancellationToken);
             tp[0x2220C] = 0xA4;
             await viewModel.WorkflowSession.SetSlotFileAsync("tp-b-input", workspace.Write("TPB_INX.bin", tp), TestContext.Current.CancellationToken);
+            foreach (FirmwareSlotViewModel slot in viewModel.Merge.AbMergeSlots)
+            {
+                slot.IsAdditionalFirmwareFactsExpanded = true;
+            }
             Dispatcher.UIThread.RunJobs();
             window.UpdateLayout();
             AvaloniaHeadlessPlatform.ForceRenderTimerTick();
             TextBlock[] texts = [.. window.GetVisualDescendants().OfType<TextBlock>()];
-            foreach (string expected in new[] { "0xA3 - Auto STLA v1", "0xA4 - Auto INX v7" })
+            foreach (string expected in new[] { "Auto STLA v1 (0xA3)", "Auto INX v7 (0xA4)" })
             {
                 TextBlock label = Assert.Single(texts, text => text.Text == expected);
                 Assert.True(label.IsEffectivelyVisible);
@@ -167,7 +171,7 @@ public sealed partial class ShellNavigationSystemTests
         MainWindowViewModel viewModel = await CreateLoadedFormatAbViewModelAsync(workspace, host,
             secondFormat: context == "failure" ? (byte)0xA6 : (byte)0x97);
         FirmwareSlotViewModel slot = viewModel.Merge.AbMergeSlots.Single(static slot => slot.SlotId == "tp-a-input");
-        Assert.Contains(slot.FirmwareFacts, fact => fact.Label == "Event Buffer Version" && fact.Value == "0x97 - Auto Desay");
+        Assert.Contains(slot.FirmwareFacts, fact => fact.Label == "Event Buffer Version" && fact.Value == "Auto Desay (0x97)");
         File.Delete(workspace.PathFor("a.bin"));
         File.Delete(workspace.PathFor("b.bin"));
         if (context == "standard") { viewModel.Merge.SelectedMergeMode = ExperienceIds.StandardMerge; }
@@ -227,7 +231,7 @@ public sealed partial class ShellNavigationSystemTests
         Assert.False(slot.BlocksBuild);
         _ = Assert.NotNull(slot.CurrentInspectionProjection.InputSlotStatus!.AcceptedBytes);
         Assert.Contains(slot.FirmwareFacts, fact => fact.Label == viewModel.Text.EventBufferVersionLabel &&
-            fact.Value == "0x97 - Auto Desay");
+            fact.Value == "Auto Desay (0x97)");
         Assert.Equal(context == "alias" ? "My vendor" : "Common",
             slot.CurrentInspectionProjection.AbMergeFacts!.EventBufferFormat!.DisplayName);
         Assert.False(viewModel.Settings.HasEventBufferFormatUnsavedChanges);

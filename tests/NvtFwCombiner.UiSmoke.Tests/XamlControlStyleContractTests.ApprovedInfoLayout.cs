@@ -55,9 +55,10 @@ public sealed partial class XamlControlStyleContractTests
             Dispatcher.UIThread.RunJobs();
             card.Measure(new Size(900, 600));
             card.Arrange(new Rect(0, 0, 900, card.DesiredSize.Height));
-            Assert.Contains(slot.PrimaryFirmwareFacts,
+            Assert.DoesNotContain(slot.PrimaryFirmwareFacts, fact => fact.Label == text.EventBufferVersionLabel);
+            Assert.Contains(slot.AdditionalFirmwareFacts,
                 fact => fact.Label == text.EventBufferVersionLabel &&
-                    fact.Value == "0xA3 - Auto STLA v1");
+                    fact.Value == "Auto STLA v1 (0xA3)");
             AvaloniaHeadlessPlatform.ForceRenderTimerTick();
             using global::Avalonia.Media.Imaging.Bitmap? frame = host.GetLastRenderedFrame();
             Assert.NotNull(frame);

@@ -1,0 +1,40 @@
+{
+  "schemaVersion": 2,
+  "taskId": "UI-CLOSURE-1111-INTEGRATION-01",
+  "capability": "Close approved visible-mode navigation and Info regression failures",
+  "integrationBase": "3db701b70e0eec66889a4b030fcbb84db0db5693",
+  "risk": "R1",
+  "kind": "ui",
+  "state": "design-active",
+  "mutablePaths": [
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MergePresentationViewModel.State.cs",
+    "tests/NvtFwCombiner.UiSmoke.Tests/ShellViewModelTests.DeviceContextSelection.cs",
+    "tests/NvtFwCombiner.UiSmoke.Tests/FirstWorkflowActivationTests.cs",
+    "tests/NvtFwCombiner.UiSmoke.Tests/ShellViewModelTests.EventBufferFormat.cs",
+    "tests/NvtFwCombiner.UiSmoke.Tests/XamlControlStyleContractTests.ApprovedInfoLayout.cs",
+    "tests/NvtFwCombiner.UiSmoke.Tests/XamlControlStyleContractTests.FirmwareSlotExperience.cs",
+    "tests/NvtFwCombiner.Architecture.Tests/RepositoryBoundaryTests.PageInspectionIsolation.cs"
+  ],
+  "implementationOwner": "/root",
+  "searchEvidence": [
+    "MergePresentationViewModel owns page-local choice collections; WorkflowModeDisplayConverters remains the single UI-hide filter; FirmwareInspectionProjection remains typed info owner",
+    "Retain a stable per-page observable visible Merge choices projection and update it through the existing delta algorithm, without changing canonical choices or reintroducing Customized. Preserve existing ItemsSource identity and cold/warm AB selection tests. Update Event Buffer tests to owner-approved Details/Name (0xXX) presentation and source-boundary assertions to the actual shared owner; do not relax behavior assertions. Investigate legend failures after navigation repair rather than altering their expected firmware ranges.",
+    "Local R1 preflight preceded edits at c40267704; frozen ec0093089 had 15 UI failures. After correction 479 UI tests and the architecture owner-boundary test passed. Original expected layout ranges and firmware hashes were not changed."
+  ],
+  "semanticOwner": "MergePresentationViewModel owns page-local choice collections; WorkflowModeDisplayConverters remains the single UI-hide filter; FirmwareInspectionProjection remains typed info owner",
+  "terminalContract": "Retain a stable per-page observable visible Merge choices projection and update it through the existing delta algorithm, without changing canonical choices or reintroducing Customized. Preserve existing ItemsSource identity and cold/warm AB selection tests. Update Event Buffer tests to owner-approved Details/Name (0xXX) presentation and source-boundary assertions to the actual shared owner; do not relax behavior assertions. Investigate legend failures after navigation repair rather than altering their expected firmware ranges.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": null,
+    "outcome": "not-required",
+    "evidence": "Current integration admission for bounded R1 correction; preflight retained in external artifacts/v1111-ui-closure-preflight.json. Scoped independent review by /root/ab_layout_context_review found no P0-P2; final integration source gate remains."
+  },
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": {
+    "reviewer": null,
+    "outcome": "pending",
+    "evidence": ""
+  }
+}
