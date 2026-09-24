@@ -424,8 +424,7 @@ internal static partial class V2CompositionPlanCompiler
                     $"AB section exceeds the native processor staging view: bank=0x{bankBase:X}, field=0x{field.Start:X}.");
                 if (field == headerAddressFields[1])
                 {
-                    RequireBankShape(checked(localStart + 16) <= processorView.EndExclusive,
-                        $"AB DLM overlay descriptor exceeds the native processor staging view: bank=0x{bankBase:X}.");
+                    ValidateDlmOverlayDescriptor(localStart, processorView.EndExclusive, bankBase);
                 }
             }
         }
@@ -518,8 +517,18 @@ internal static partial class V2CompositionPlanCompiler
                 // DIFF has its own count-dependent envelope, checked before calling the native processor below.
                 RequireBankShape(semantic.Subject == TpFlashHeaderFieldSubject.DlmDifference || expected + sizeCode + 1 <= (ulong)capacity,
                     $"AB section out of bounds: {semantic.Subject}, bank=0x{bankBase:X}, start=0x{expected:X}, size code=0x{sizeCode:X}.");
+                if (semantic.Subject == TpFlashHeaderFieldSubject.Dlm)
+                {
+                    ValidateDlmOverlayDescriptor(checked((long)expected), capacity, bankBase);
+                }
             }
         }
+    }
+
+    private static void ValidateDlmOverlayDescriptor(long localStart, long processorViewEnd, long bankBase)
+    {
+        RequireBankShape(checked(localStart + 16) <= processorViewEnd,
+            $"AB DLM overlay descriptor exceeds the native processor staging view: bank=0x{bankBase:X}.");
     }
 
     private static uint ReadBankAddress(ReadOnlySpan<byte> bytes, long offset)

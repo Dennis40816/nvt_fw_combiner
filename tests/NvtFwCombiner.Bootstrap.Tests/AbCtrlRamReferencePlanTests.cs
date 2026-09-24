@@ -286,6 +286,35 @@ public sealed class AbCtrlRamReferencePlanTests
             layout, new FirmwareArtifactPayload("reference-base", reference), definition, map));
     }
 
+    /// <summary>Both recovered DLM addresses must leave room for the native overlay descriptor.</summary>
+    [Fact]
+    public void CascadeRejectsDlmDescriptorAtBankEndBeforeNativeProcessing()
+    {
+        BankReplaceRouteBinding binding = CanonicalDynamicRouteInventory.FindBankReplaceBinding("NT51932", "2-8-ic")!;
+        BankReferenceReplaceDefinition definition = binding.Definition;
+        byte[] reference = CascadeReference();
+        foreach (int bankBase in new[] { 0, 0x40000 })
+        {
+            BinaryPrimitives.WriteUInt32LittleEndian(reference.AsSpan(bankBase + 0x7168),
+                checked((uint)(bankBase + 0x3FFFC)));
+            BinaryPrimitives.WriteUInt16LittleEndian(reference.AsSpan(bankBase + 0x7114), 0);
+        }
+        TrustedProfileBundleCatalog ab = V2StandardMergeGoldenTestSupport.LoadDeployedCatalog(
+            "nt51919-nt51929-nt51932-ab-merge", definition.Layout.Bundle.ContentHash);
+        TrustedProfileBundleCatalog local = V2StandardMergeGoldenTestSupport.LoadDeployedCatalog(
+            binding.Local.Route.BundleId, definition.Local.Bundle.ContentHash);
+        CompiledComposition layout = ab.Compile(definition.Layout.ProfileId, definition.Layout.ProfileVersion,
+            "NT51932", ExperienceIds.AbMerge, 0x80000, null, [], selectedInputSlotIds: ["dp-ab-input"])
+            .CompiledComposition!;
+        FirmwareImageMap map = local.GetMapVariants(definition.Local.ProfileId, definition.Local.ProfileVersion,
+            "NT51932", ExperienceIds.CtrlRamReplace, out _, out _)
+            .Single(candidate => candidate.MapId == definition.Local.MapId);
+
+        ArgumentException issue = Assert.Throws<ArgumentException>(() => V2CompositionPlanCompiler.ValidateAbReference(
+            layout, new FirmwareArtifactPayload("reference-base", reference), definition, map));
+        Assert.Contains("DLM overlay descriptor", issue.Message, StringComparison.Ordinal);
+    }
+
     internal static byte[] CascadeReference()
     {
         byte[] localReference = File.ReadAllBytes(Path.Combine(CanonicalGoldenTestData.Root,
