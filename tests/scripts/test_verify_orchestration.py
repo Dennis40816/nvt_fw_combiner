@@ -823,7 +823,7 @@ class VerifyOrchestrationTests(unittest.TestCase):
         self.assertEqual([160.0, 160.0], deadlines)
         cleanup.assert_called_once()
 
-    def test_public_full_plan_builds_before_overlapping_lock_readers_and_coverage(
+    def test_public_full_plan_runs_dotnet_before_parallel_independent_lanes(
         self,
     ) -> None:
         calls: list[tuple[list[str], int, int]] = []
@@ -861,7 +861,12 @@ class VerifyOrchestrationTests(unittest.TestCase):
                     MODULE.DEFAULT_LANE_TIMEOUT_SECONDS,
                 ),
                 (
-                    ["dotnet", "structure", *(lane.name for lane in MODULE.local_repository_script_lanes()), "python"],
+                    ["dotnet"],
+                    1,
+                    MODULE.DEFAULT_LANE_TIMEOUT_SECONDS,
+                ),
+                (
+                    ["structure", *(lane.name for lane in MODULE.local_repository_script_lanes()), "python"],
                     MODULE.DEFAULT_VERIFY_JOBS,
                     MODULE.DEFAULT_LANE_TIMEOUT_SECONDS,
                 ),
@@ -898,56 +903,40 @@ class VerifyOrchestrationTests(unittest.TestCase):
         self.assertEqual(1, result)
         self.assertEqual([["structure-sync"]], calls)
 
-    def test_public_pool_overlaps_coverage_and_waits_for_siblings_before_cleanup(self) -> None:
-        coverage_started = threading.Event()
-        script_started = threading.Event()
-        coverage_failed = threading.Event()
-        completed: list[str] = []
-        cleanup_snapshots: list[tuple[str, ...]] = []
-        build_finished = False
+    def test_public_dotnet_failure_still_runs_independent_lanes_and_aggregates(self) -> None:
+        phases: list[list[str]] = []
+        stderr = io.StringIO()
 
-        def build(*_args, **_kwargs):
-            nonlocal build_finished
-            build_finished = True
-
-        def isolated(name, _log):
-            self.assertTrue(build_finished)
-            if name == "dotnet-coverage":
-                coverage_started.set()
-                self.assertTrue(script_started.wait(5), "scripts did not overlap coverage")
-                coverage_failed.set()
-                raise RuntimeError("coverage probe")
-            self.assertTrue(coverage_started.wait(5))
-            script_started.set()
-            self.assertTrue(coverage_failed.wait(5))
-            completed.append(name)
-
-        def cleanup(*_args):
-            cleanup_snapshots.append(tuple(completed))
+        def run_phase(lanes, **_kwargs):
+            names = [lane.name for lane in lanes]
+            phases.append(names)
+            if names == ["dotnet"]:
+                lanes[0].action(Path("dotnet.log"))
+            if "python" in names:
+                raise RuntimeError("python failed")
 
         with (
             patch.dict(os.environ, {MODULE.INTERNAL_LANE_ENVIRONMENT_VARIABLE: ""}),
             patch.object(MODULE, "resolve_dotnet", return_value="selected-dotnet"),
-            patch.object(MODULE, "run_dotnet_restore_plan"),
-            patch.object(MODULE, "run_dotnet_post_restore_build_plan", side_effect=build) as build_call,
-            patch.object(MODULE, "run_isolated_lane", side_effect=isolated),
-            patch.object(MODULE, "verify_repository_scripts",
-                         side_effect=lambda log, pattern: isolated(Path(pattern).stem, log)),
-            patch.object(MODULE, "cleanup_dotnet_batch", side_effect=cleanup) as cleanup_call,
-            contextlib.redirect_stdout(io.StringIO()),
-            contextlib.redirect_stderr(io.StringIO()),
+            patch.object(MODULE, "run_selected_lanes", side_effect=run_phase),
+            patch.object(MODULE, "run_dotnet_post_restore_build_plan"),
+            patch.object(MODULE, "run_isolated_lane",
+                         side_effect=RuntimeError("dotnet failed")),
+            patch.object(MODULE, "cleanup_dotnet_batch") as cleanup,
+            contextlib.redirect_stderr(stderr),
         ):
             self.assertEqual(1, MODULE.execute_verification(
                 MODULE.parse_args(["--skip-structure"])
             ))
-        build_call.assert_called_once()
-        cleanup_call.assert_called_once()
-        self.assertTrue(coverage_failed.is_set(), "coverage never observed a live sibling")
-        self.assertEqual(1, len(cleanup_snapshots))
-        self.assertCountEqual(
+        self.assertEqual(["dotnet-restore"], phases[0])
+        self.assertEqual(["dotnet"], phases[1])
+        self.assertEqual(
             [lane.name for lane in MODULE.local_repository_script_lanes()] + ["python"],
-            cleanup_snapshots[0],
+            phases[2],
         )
+        self.assertIn("dotnet failed", stderr.getvalue())
+        self.assertIn("python failed", stderr.getvalue())
+        cleanup.assert_called_once()
 
     def test_public_build_or_pool_setup_failure_and_cancellation_still_cleanup(self) -> None:
         for phase in ("dotnet-restore", "dotnet"):
@@ -4784,8 +4773,10 @@ class VerifyOrchestrationTests(unittest.TestCase):
         self,
     ) -> None:
         projects = (
-            MODULE.CiDotnetProject("tests/First/First.Tests.csproj"),
-            MODULE.CiDotnetProject("tests/Second/Second.Tests.csproj"),
+            MODULE.CiDotnetProject("tests/First/First.Tests.csproj",
+                                   requires_exclusive_local_coverage=True),
+            MODULE.CiDotnetProject("tests/Second/Second.Tests.csproj",
+                                   requires_exclusive_local_coverage=True),
             MODULE.CiDotnetProject("tests/Third/Third.Tests.csproj"),
         )
         attempted: list[str] = []
@@ -4968,7 +4959,11 @@ class VerifyOrchestrationTests(unittest.TestCase):
 
         self.assertEqual(expected, actual)
         self.assertEqual(
-            ["tests/NvtFwCombiner.UiSmoke.Tests/NvtFwCombiner.UiSmoke.Tests.csproj"],
+            [
+                "tests/NvtFwCombiner.UiSmoke.Tests/NvtFwCombiner.UiSmoke.Tests.csproj",
+                "tests/NvtFwCombiner.Infrastructure.Tests/"
+                "NvtFwCombiner.Infrastructure.Tests.csproj",
+            ],
             [
                 project.relative_path
                 for projects in MODULE.CI_DOTNET_SHARDS.values()

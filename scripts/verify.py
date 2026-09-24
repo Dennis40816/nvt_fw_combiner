@@ -420,6 +420,7 @@ CI_DOTNET_SHARDS: dict[str, tuple[CiDotnetProject, ...]] = {
         CiDotnetProject(
             "tests/NvtFwCombiner.Infrastructure.Tests/"
             "NvtFwCombiner.Infrastructure.Tests.csproj",
+            requires_exclusive_local_coverage=True,
         ),
         CiDotnetProject(
             "tests/NvtFwCombiner.ProfileContract.Tests/"
@@ -3452,6 +3453,9 @@ def collect_local_dotnet_coverage(
         )
         results = ()
         for batch in (batch for batch in batches if batch):
+            remaining_timeout()
+            if PROCESS_CANCELLATION_REQUESTED.is_set():
+                raise RuntimeError("local .NET coverage was cancelled")
             lanes = tuple(
                 VerificationLane(
                     stage.project.name,
@@ -3475,8 +3479,6 @@ def collect_local_dotnet_coverage(
                 preserve_cancellation_request=True,
             )
             results += batch_results
-            if any(not result.succeeded for result in batch_results):
-                break
         report_lane_results(results)
         try:
             require_local_dotnet_sources_unchanged(
@@ -5234,7 +5236,7 @@ def validate_internal_lane_arguments(args: argparse.Namespace) -> None:
 
 
 def run_local_full_verification(args: argparse.Namespace) -> None:
-    """Overlap post-restore gates in one pool, with build readiness owned by its lane."""
+    """Run .NET alone, then collect independent post-build lane results."""
 
     dotnet = resolve_dotnet()
     environment = dotnet_batch_environment()
@@ -5290,13 +5292,25 @@ def run_local_full_verification(args: argparse.Namespace) -> None:
             )),),
             jobs=args.jobs, lane_timeout_seconds=args.lane_timeout_seconds,
         )
-        lanes = [VerificationLane("dotnet", build_and_collect, on_terminal=fail_pending)]
+        dotnet_lane = VerificationLane("dotnet", build_and_collect, on_terminal=fail_pending)
+        lanes = []
         if not args.skip_structure:
             lanes.append(VerificationLane("structure", verify_structure_postchecks,
                                           isolate_action=True, internal_name="structure-postchecks"))
         lanes.extend(after_build(lane) for lane in local_repository_script_lanes())
         lanes.append(after_build(VerificationLane("python", verify_python, isolate_action=True)))
-        run_selected_lanes(lanes, jobs=args.jobs, lane_timeout_seconds=args.lane_timeout_seconds)
+        try:
+            run_selected_lanes((dotnet_lane,), jobs=1,
+                               lane_timeout_seconds=args.lane_timeout_seconds)
+        except RuntimeError as error:
+            if not ready.done() or ready.exception() is not None:
+                raise
+            failure = error
+        try:
+            run_selected_lanes(lanes, jobs=args.jobs,
+                               lane_timeout_seconds=args.lane_timeout_seconds)
+        except Exception as error:
+            failure = combine_failures(failure, error, secondary_label="independent lanes")
     except BaseException as error:
         failure = error
     finally:
