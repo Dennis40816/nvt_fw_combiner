@@ -14,7 +14,7 @@ future-version assignments, use the [canonical roadmap](docs/architecture/nfc_ro
 
 ### Summary
 
-**1.1.10 累積變更整理草稿 — 從 1.1.1 起，發布版本於 2026-09-23 確認。**
+**1.1.10 累積變更 — 從 1.1.1 起，發布版本於 2026-09-23 確認。**
 
 範圍包含 **1.1.1 本身，以及 1.1.2～1.1.9 已發布版本**，再加上截至
 目前 AB CtrlRAM 候選路由的本地開發變更。以下依功能整併，並標明來源版本：
@@ -171,9 +171,10 @@ Candidate／ContractOnly；各路由的 firmware-owner／獨立 Golden／整合�
 
 ### Known issues
 
+- **2026-09-25 單次發布例外**：owner 明確核准保留本版內容並推進 1.1.10 發布；AB CtrlRAM 的獨立完整輸出 Golden、Header／CRC、精確寫入範圍確認及尚未完成的人工作業移至 **1.1.11**。這些項目仍未完成，沒有標記為 PASS；Candidate／ContractOnly 不升為 Supported。此決定僅適用 1.1.10，不是後續版本的常態豁免。
 - **CtrlRAM AB Replace 尚未完成全範圍認證**：NT51919／29／32 Single／Cascade 及 NT51950／51 四條 Common 路由已本地接線為 Candidate／ContractOnly。NT51929 Single 的 A-only／B-only／Both 實檔輸出已有 exact-case 獨立 CRC/header oracle 的完整 bytes 比對；其他路由有局部真工具及 bank-local control 證據。各路由仍缺 firmware-owner 核准的獨立完整輸出 Golden 與精確寫入範圍審核，不能由既有 Standard／AB Merge 證據推廣為 Supported。
 - 固定程式碼來源 `afc203f9c` 的 `--skip-structure` 已通過八個 .NET 專案、repository-script／Python 檢查與覆蓋率（行 91.61%、分支 80.52%）；`b9b5ddf5d` 的 `--release-golden` 已完整執行並通過 25 個既有 Direct 輸出案例。其後僅交付文件變更，這兩次結果仍各自綁定實際執行的來源。3 個 input-only 和 12 個 fact-scoped alias 並非 Golden 輸出案例，亦不補足 AB CtrlRAM 的獨立 Golden。
-- 先前並行 verifier 的 pytest 收集越界、子程序失敗訊息與 .NET 本機時限問題已有有界修正，上述固定來源非結構完整執行已通過。現有 48 筆整合紀錄尚待正式封存；目前結構檢查因 17 筆 R3 外部簽認缺件而失敗，最終 `--all`、exact-source CI、封裝及正式發布尚未通過。
+- 先前並行 verifier 的 pytest 收集越界、子程序失敗訊息與 .NET 本機時限問題已有有界修正，上述固定來源非結構完整執行已通過。48 筆技術整合紀錄及 17 筆 release-owner 單次例外已於 `62a2416b7` 封存；這記錄發布決定，不宣稱補齊獨立 firmware 證據。GitHub CI、封裝與發布流程的實際結果另行記錄，不將未執行或失敗的檢查改為 PASS。
 - Native high-DPI／assistive-technology、clean-machine 與最終 portable-package 驗收仍須依候選範圍完成；已發布版本的歷史證據不自動認證目前 source。
 - Roadmap 已確認此次正式版本為 1.1.10，`VERSION` 已同步；tag／package 身分仍需在候選整合與發布流程核對。Customized／Launcher 新開發維持 1.2.1，未列為本次成果。
 
