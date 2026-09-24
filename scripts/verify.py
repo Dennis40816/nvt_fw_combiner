@@ -23,7 +23,7 @@ import threading
 import xml.etree.ElementTree as ET
 from collections import Counter
 from collections.abc import Callable, Sequence
-from concurrent.futures import Future, ThreadPoolExecutor, as_completed
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from contextlib import ExitStack, contextmanager
 from contextvars import ContextVar, copy_context
 from ctypes import wintypes
@@ -337,6 +337,14 @@ class LaneResult:
     duration_seconds: float
     log_path: Path
     error: str | None = None
+
+
+class VerificationLanesFailed(RuntimeError):
+    """Selected lanes ran to completion but at least one reported failure."""
+
+
+class VerificationLaneSetupFailure(RuntimeError):
+    """A parent-side lane launch/setup failure before usable child results."""
 
 
 @dataclass(frozen=True)
@@ -5105,6 +5113,8 @@ def run_lanes(
         finally:
             LANE_DEADLINE.reset(deadline_token)
         failure = notify_terminal(lane, failure)
+        if isinstance(failure, VerificationLaneSetupFailure):
+            raise failure
         if isinstance(failure, Exception):
             return LaneResult(
                 lane.name,
@@ -5202,11 +5212,12 @@ def run_selected_lanes(
             jobs=jobs,
             log_directory=Path(temporary),
             lane_timeout_seconds=lane_timeout_seconds,
+            preserve_cancellation_request=True,
         )
         report_lane_results(results)
     failures = [result.name for result in results if not result.succeeded]
     if failures:
-        raise RuntimeError(f"verification lanes failed: {', '.join(failures)}")
+        raise VerificationLanesFailed(f"verification lanes failed: {', '.join(failures)}")
 
 
 def validate_internal_lane_arguments(args: argparse.Namespace) -> None:
@@ -5236,48 +5247,19 @@ def validate_internal_lane_arguments(args: argparse.Namespace) -> None:
 
 
 def run_local_full_verification(args: argparse.Namespace) -> None:
-    """Run .NET alone, then collect independent post-build lane results."""
+    """Run bounded .NET build and coverage before independent postchecks."""
 
     dotnet = resolve_dotnet()
     environment = dotnet_batch_environment()
-    ready: Future[None] = Future()
-    readiness_lock = threading.Lock()
 
-    def fail_pending(error: BaseException | None) -> None:
-        with readiness_lock:
-            if not ready.done():
-                ready.set_exception(error or RuntimeError("build ended before readiness"))
-
-    def build_and_collect(log_path: Path | None) -> None:
-        run_dotnet_post_restore_build_plan(dotnet, environment=environment, log_path=log_path)
-        remaining_timeout()
-        with readiness_lock:
-            if ready.done():
-                ready.result()
-            else:
-                ready.set_result(None)
+    def collect_coverage(log_path: Path | None) -> None:
         assert log_path is not None
-        run_isolated_lane("dotnet-coverage", log_path)
-
-    def after_build(lane: VerificationLane) -> VerificationLane:
-        def action(log_path: Path | None) -> None:
-            while True:
-                if PROCESS_CANCELLATION_REQUESTED.is_set():
-                    raise RuntimeError("verification build wait was cancelled")
-                timeout = remaining_timeout()
-                try:
-                    ready.result(timeout=min(0.1, timeout) if timeout is not None else 0.1)
-                    break
-                except TimeoutError:
-                    if ready.done():
-                        raise
-            remaining_timeout()
-            if lane.isolate_action:
-                assert log_path is not None
-                run_isolated_lane(lane.internal_name or lane.name, log_path)
-            else:
-                lane.action(log_path)
-        return VerificationLane(lane.name, action, deadline_group=lane.deadline_group)
+        try:
+            run_isolated_lane("dotnet-coverage", log_path)
+        except OSError as error:
+            raise VerificationLaneSetupFailure(
+                f"dotnet coverage child launch/setup failed: {error}"
+            ) from error
 
     failure: BaseException | None = None
     try:
@@ -5292,29 +5274,36 @@ def run_local_full_verification(args: argparse.Namespace) -> None:
             )),),
             jobs=args.jobs, lane_timeout_seconds=args.lane_timeout_seconds,
         )
-        dotnet_lane = VerificationLane("dotnet", build_and_collect, on_terminal=fail_pending)
-        lanes = []
+        run_selected_lanes(
+            (VerificationLane("dotnet-build", lambda log: run_dotnet_post_restore_build_plan(
+                dotnet, environment=environment, log_path=log,
+            )),),
+            jobs=1, lane_timeout_seconds=args.lane_timeout_seconds,
+        )
+        independent_lanes = []
         if not args.skip_structure:
-            lanes.append(VerificationLane("structure", verify_structure_postchecks,
-                                          isolate_action=True, internal_name="structure-postchecks"))
-        lanes.extend(after_build(lane) for lane in local_repository_script_lanes())
-        lanes.append(after_build(VerificationLane("python", verify_python, isolate_action=True)))
+            independent_lanes.append(VerificationLane(
+                "structure", verify_structure_postchecks,
+                isolate_action=True, internal_name="structure-postchecks",
+            ))
+        independent_lanes.extend(local_repository_script_lanes())
+        independent_lanes.append(VerificationLane(
+            "python", verify_python, isolate_action=True,
+        ))
         try:
-            run_selected_lanes((dotnet_lane,), jobs=1,
-                               lane_timeout_seconds=args.lane_timeout_seconds)
-        except RuntimeError as error:
-            if not ready.done() or ready.exception() is not None:
-                raise
+            run_selected_lanes((VerificationLane(
+                "dotnet", collect_coverage,
+            ),), jobs=1, lane_timeout_seconds=args.lane_timeout_seconds)
+        except VerificationLanesFailed as error:
             failure = error
         try:
-            run_selected_lanes(lanes, jobs=args.jobs,
+            run_selected_lanes(independent_lanes, jobs=args.jobs,
                                lane_timeout_seconds=args.lane_timeout_seconds)
         except Exception as error:
             failure = combine_failures(failure, error, secondary_label="independent lanes")
     except BaseException as error:
         failure = error
     finally:
-        fail_pending(failure)
         try:
             cleanup_dotnet_batch(dotnet, environment, None)
         except BaseException as error:
