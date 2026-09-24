@@ -1,0 +1,9 @@
+{
+  "schemaVersion": 1,
+  "taskId": "DP-ENVELOPE-1110-FOUNDATION-01",
+  "authorityType": "release-owner",
+  "reviewedHead": "3db701b70e0eec66889a4b030fcbb84db0db5693",
+  "decision": "approved",
+  "reviewer": "Dennis Liu (repository and release owner; one-release exception)",
+  "evidence": "2026-09-25 owner explicitly approved all 17 R3 items ('17 筆 R3 同意了'), then corrected the temporary AB deferral decision with '更正在這個版本就發布，將驗證移動到 1.1.11' and '請強行通過', and instructed continuation. This is a bounded owner-directed release exception for the unchanged 1.1.10 candidate at 183a0d3652a81fb30dcb977d6ff1338f0f3bcd0f, not independent firmware certification. Existing technical final reviews and recorded fixed-source nonstructure verification and 25 Direct Golden results remain evidence only for their recorded sources. AB CtrlRAM independent complete-output Golden, Header/CRC and exact write-range validation remain uncompleted and are explicitly deferred to 1.1.11; Candidate/ContractOnly status is retained without Supported promotion. No missing or failed test is represented as PASS. This exception authorizes proceeding with this release despite the stated evidence gaps, does not alter expected firmware bytes or protected GitHub checks, and is not a standing waiver for later versions. The technical final-evidence commit is 3db701b70e0eec66889a4b030fcbb84db0db5693; it contains only the 48 reviewed records and no product changes. This separate direct-child commit records the owner exception."
+}
