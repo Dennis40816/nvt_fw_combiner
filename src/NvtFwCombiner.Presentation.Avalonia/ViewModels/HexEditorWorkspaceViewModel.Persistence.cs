@@ -6,12 +6,30 @@ namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 internal sealed partial class HexEditorWorkspaceViewModel
 {
     private long _loadGeneration;
+    private long _sourceSelectionGeneration;
 
     public bool HasSelectedFile { get; private set; }
+
+    internal long BeginSourceSelection()
+    {
+        return Interlocked.Increment(ref _sourceSelectionGeneration);
+    }
+
+    internal Task LoadFromSelectionAsync(
+        long selectionGeneration,
+        string path,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
+        return selectionGeneration == Volatile.Read(ref _sourceSelectionGeneration)
+            ? LoadAsync(path, cancellationToken)
+            : Task.CompletedTask;
+    }
 
     public async Task LoadAsync(string path, CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
+        _ = Interlocked.Increment(ref _sourceSelectionGeneration);
         long generation = Interlocked.Increment(ref _loadGeneration);
         HasSelectedFile = true;
         FindAsciiCommand.Cancel();

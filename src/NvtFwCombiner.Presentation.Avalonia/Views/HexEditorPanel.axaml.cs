@@ -4,6 +4,7 @@ using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
 using Avalonia.Input;
 using Avalonia.Interactivity;
+using Avalonia.Platform.Storage;
 using Avalonia.Threading;
 using NvtFwCombiner.Presentation.Avalonia.HexViewport;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
@@ -31,6 +32,10 @@ public sealed partial class HexEditorPanel : UserControl
     private bool _isDocumentScrollQueued;
     private TopLevel? _layoutTopLevel;
     private int _pendingDocumentScrollRow;
+    private long _pickerContextGeneration;
+
+    internal Func<IStorageProvider, string, Task<string?>> PickFirmwareFileAsync { get; init; } =
+        FirmwareFilePickerDialogs.PickFirmwareBinOpenFileAsync;
 
     /// <summary>Initializes the raw-BIN utility panel and its shared low-cost byte context menu.</summary>
     public HexEditorPanel()
@@ -66,11 +71,13 @@ public sealed partial class HexEditorPanel : UserControl
         AddHandler(KeyDownEvent, HexEditorPanel_OnKeyDown, RoutingStrategies.Tunnel);
         AttachedToVisualTree += HexEditorPanel_OnAttachedToVisualTree;
         DetachedFromVisualTree += HexEditorPanel_OnDetachedFromVisualTree;
+        DataContextChanged += (_, _) => _pickerContextGeneration++;
         SizeChanged += HexEditorPanel_OnSizeChanged;
     }
 
     private void HexEditorPanel_OnAttachedToVisualTree(object? sender, VisualTreeAttachmentEventArgs e)
     {
+        _pickerContextGeneration++;
         _layoutTopLevel = TopLevel.GetTopLevel(this);
         if (_layoutTopLevel is { } layoutTopLevel)
         {
@@ -82,6 +89,7 @@ public sealed partial class HexEditorPanel : UserControl
 
     private void HexEditorPanel_OnDetachedFromVisualTree(object? sender, VisualTreeAttachmentEventArgs e)
     {
+        _pickerContextGeneration++;
         if (_layoutTopLevel is { } layoutTopLevel)
         {
             layoutTopLevel.SizeChanged -= LayoutTopLevel_OnSizeChanged;
@@ -175,18 +183,24 @@ public sealed partial class HexEditorPanel : UserControl
 
     private async void OpenHexEditorSourceButton_OnClick(object? sender, RoutedEventArgs e)
     {
+        TopLevel? topLevel = TopLevel.GetTopLevel(this);
         if (DataContext is not HexEditorWorkspaceViewModel viewModel ||
-            TopLevel.GetTopLevel(this) is not { StorageProvider: { } storageProvider })
+            topLevel?.StorageProvider is not { } storageProvider)
         {
             return;
         }
 
-        string? sourcePath = await FirmwareFilePickerDialogs.PickFirmwareBinOpenFileAsync(
+        long contextGeneration = _pickerContextGeneration;
+        long selectionGeneration = viewModel.BeginSourceSelection();
+        string? sourcePath = await PickFirmwareFileAsync(
             storageProvider,
             "Open BIN in Hex Editor");
-        if (!string.IsNullOrWhiteSpace(sourcePath))
+        if (!string.IsNullOrWhiteSpace(sourcePath) &&
+            contextGeneration == _pickerContextGeneration &&
+            ReferenceEquals(DataContext, viewModel) &&
+            ReferenceEquals(TopLevel.GetTopLevel(this), topLevel))
         {
-            await viewModel.LoadAsync(sourcePath);
+            await viewModel.LoadFromSelectionAsync(selectionGeneration, sourcePath);
         }
     }
 
