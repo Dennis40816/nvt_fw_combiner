@@ -7,10 +7,19 @@ namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 internal sealed partial class WorkflowSessionPresentationViewModel
 {
     /// <summary>Selects a slot file, then projects all affected firmware facts outside the UI dispatcher.</summary>
-    public async Task SetSlotFileAsync(
+    public Task SetSlotFileAsync(
         string slotId,
         string path,
         CancellationToken cancellationToken = default)
+    {
+        return SetSlotFileCoreAsync(slotId, path, pickerSelection: null, cancellationToken);
+    }
+
+    private async Task SetSlotFileCoreAsync(
+        string slotId,
+        string path,
+        WorkflowPickerSelectionLease? pickerSelection,
+        CancellationToken cancellationToken)
     {
         if (!IsWorkflowLoaded)
         {
@@ -21,6 +30,19 @@ internal sealed partial class WorkflowSessionPresentationViewModel
         {
             return;
         }
+
+        object? target = FindPickerSelectionTarget(context, slotId);
+        GeneralMappingRowViewModel? mapping = target as GeneralMappingRowViewModel;
+        if (pickerSelection is not null &&
+            (target is null || !TryAcceptPickerSelection(pickerSelection, context, target)))
+        {
+            return;
+        }
+        if (pickerSelection is null && target is not null)
+        {
+            _ = TryAcceptPickerSelection(null, context, target);
+        }
+
         string contextIc = GetWorkflowPageIc(context.Owner);
         if (!IsPublishedWorkflowAuthorable(contextIc, context.Mode))
         {
@@ -30,15 +52,6 @@ internal sealed partial class WorkflowSessionPresentationViewModel
                 clearSlotProjections: true);
             return;
         }
-        GeneralMappingRowViewModel? mapping = context switch
-        {
-            { IsGeneralMerge: true } =>
-                _merge.GeneralMergeMappings.FirstOrDefault(
-                row => StringComparer.Ordinal.Equals(row.MappingId, slotId)),
-            { IsGeneralReplace: true } => _replace.GeneralReplaceMappings.FirstOrDefault(
-                row => StringComparer.Ordinal.Equals(row.MappingId, slotId)),
-            _ => null,
-        };
         if (mapping is not null)
         {
             if (!mapping.CanSelectFile)
@@ -127,6 +140,15 @@ internal sealed partial class WorkflowSessionPresentationViewModel
         }
         await RunFirmwareInspectionAsync(context, items, cancellationToken);
         RecordInputSelected(context, slot.SlotId);
+    }
+
+    internal Task SetSlotFileFromPickerAsync(
+        WorkflowPickerSelectionLease lease,
+        string path,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(lease);
+        return SetSlotFileCoreAsync(lease.SlotId, path, lease, cancellationToken);
     }
 
     private void RecordInputSelected(WorkflowInspectionContext context, string slotId)

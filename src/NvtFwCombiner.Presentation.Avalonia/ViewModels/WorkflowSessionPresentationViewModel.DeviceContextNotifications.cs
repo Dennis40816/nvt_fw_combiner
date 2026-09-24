@@ -13,6 +13,7 @@ internal sealed partial class WorkflowSessionPresentationViewModel
 
     internal void PublishActiveNavigationContext()
     {
+        ObservePickerContextTransition();
         OnPropertyChanged(nameof(IcChoices));
         OnPropertyChanged(nameof(SelectedIc));
         NotifySharedContextTextChanged();
@@ -32,6 +33,7 @@ internal sealed partial class WorkflowSessionPresentationViewModel
 
     private void RecordAcceptedModeSelection(string mode, string page)
     {
+        ObservePickerContextTransition();
         _recordActivity(new SystemActivityDraft(
             SystemActivityCodes.ModeSelected,
             SystemActivityImportance.Debug,

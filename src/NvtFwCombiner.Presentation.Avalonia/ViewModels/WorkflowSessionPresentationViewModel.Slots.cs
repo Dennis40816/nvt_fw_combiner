@@ -10,15 +10,22 @@ internal sealed partial class WorkflowSessionPresentationViewModel
 
         if (mapping is GeneralMergeMappingViewModel merge)
         {
-            _ = _merge.RemoveGeneralMapping(merge);
+            if (_merge.RemoveGeneralMapping(merge))
+            {
+                InvalidatePickerSelection(mapping);
+            }
             return;
         }
 
-        _ = mapping switch
+        bool removed = mapping switch
         {
             GeneralReplaceMappingViewModel replace => _replace.RemoveGeneralMapping(replace),
             _ => false,
         };
+        if (removed)
+        {
+            InvalidatePickerSelection(mapping);
+        }
     }
 
     internal bool HasSelectedInputs(ShellPage page)
@@ -67,14 +74,23 @@ internal sealed partial class WorkflowSessionPresentationViewModel
         if (page == ShellPage.Merge)
         {
             _merge.ClearStandardMergeAuthoringSelections();
-            foreach (FirmwareSlotViewModel slot in _merge.MergeSlots
-                         .Concat(_merge.AbMergeSlotsByAddressSpace.Values)
-                         .Concat([_merge.MergeDpSlot, _merge.MergeTpSlot, _merge.MergeLdcSlot])
-                         .Distinct())
+            FirmwareSlotViewModel[] mergeSlots =
+            [
+                .. _merge.MergeSlots
+                    .Concat(_merge.AbMergeSlotsByAddressSpace.Values)
+                    .Concat([_merge.MergeDpSlot, _merge.MergeTpSlot, _merge.MergeLdcSlot])
+                    .Distinct(),
+            ];
+            foreach (FirmwareSlotViewModel slot in mergeSlots)
             {
+                InvalidatePickerSelection(slot);
                 ClearFirmwareSlot(slot);
             }
 
+            foreach (GeneralMergeMappingViewModel mapping in _merge.GeneralMergeMappings)
+            {
+                InvalidatePickerSelection(mapping);
+            }
             _merge.ClearGeneralMergeMappingFilesWithoutRefresh();
             if (clearsActivePage)
             {
@@ -87,13 +103,22 @@ internal sealed partial class WorkflowSessionPresentationViewModel
         }
         else if (page == ShellPage.Replace)
         {
-            foreach (FirmwareSlotViewModel slot in _replace.ReplaceSlots
-                         .Concat([_replace.ReplaceBaseSlot])
-                         .Distinct())
+            FirmwareSlotViewModel[] replaceSlots =
+            [
+                .. _replace.ReplaceSlots
+                    .Concat([_replace.ReplaceBaseSlot])
+                    .Distinct(),
+            ];
+            foreach (FirmwareSlotViewModel slot in replaceSlots)
             {
+                InvalidatePickerSelection(slot);
                 ClearFirmwareSlot(slot);
             }
 
+            foreach (GeneralReplaceMappingViewModel mapping in _replace.GeneralReplaceMappings)
+            {
+                InvalidatePickerSelection(mapping);
+            }
             _replace.ClearGeneralReplaceMappingFilesWithoutRefresh();
             _replace.ClearCtrlRamInspectionDisplay();
             if (clearsActivePage)
@@ -148,6 +173,7 @@ internal sealed partial class WorkflowSessionPresentationViewModel
         }
         foreach (FirmwareSlotViewModel selected in slotsToClear)
         {
+            InvalidatePickerSelection(selected);
             ClearFirmwareSlot(selected);
         }
 
