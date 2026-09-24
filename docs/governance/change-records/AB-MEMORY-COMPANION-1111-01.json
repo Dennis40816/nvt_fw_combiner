@@ -1,0 +1,46 @@
+{
+  "schemaVersion": 2,
+  "taskId": "AB-MEMORY-COMPANION-1111-01",
+  "capability": "Reuse the existing exact Standard display companion for AB CtrlRAM bank overviews",
+  "integrationBase": "3db701b70e0eec66889a4b030fcbb84db0db5693",
+  "risk": "R3",
+  "kind": "ui",
+  "state": "design-active",
+  "mutablePaths": [
+    "src/NvtFwCombiner.Infrastructure/Composition/CanonicalDynamicRouteInventory.Banks.cs",
+    "src/NvtFwCombiner.Application/Capabilities/CanonicalDynamicCapabilityModels.cs",
+    "src/NvtFwCombiner.Application/MemoryLayout/MemoryLayoutProjector.Sections.cs",
+    "docs/contracts/canonical-capability-policy-v1.json",
+    "docs/contracts/canonical-capability-policy-v1.md",
+    "docs/adr/0052-exact-ctrlram-report-metadata-counterpart.md",
+    "testdata/golden/canonical/manifest.json",
+    "tests/NvtFwCombiner.Bootstrap.Tests/AbCtrlRamMemoryLayoutTests.cs",
+    "tests/NvtFwCombiner.Bootstrap.Tests/AbCtrlRamRegistryTests.cs",
+    "src/NvtFwCombiner.Infrastructure/Capabilities/BuiltInCanonicalCapabilityPolicy.cs"
+  ],
+  "implementationOwner": "/root",
+  "searchEvidence": [
+    "Current-source screenshot at 282ab7f4c shows NT51950 AB Merge DP AB coverage, but AB CtrlRAM overview labels the TP surroundings Unmapped. ProjectSections selects the AB execution map, whose TP surroundings are intentionally unmapped; this is not missing DP input data.",
+    "CtrlRamV2RouteRegistry already binds the exact same-IC trusted Standard MemoryLayoutContextMap. ResolveBankReplace omits that context, and CanonicalCapabilityCompilationContract rejects it for bank replacement. Extend these owners rather than introducing an IC branch, profile, map copy or UI classifier.",
+    "ProjectBankLocators already publishes all canonical banks including preserved banks. ADR 0052 owns display context and bank/local provenance. Retain the original local region plus explicit bank placement rather than manufacturing translated FirmwareRegion objects.",
+    "Latest committed change-record revision is sealed technical evidence checkpoint 3db701b70e0eec66889a4b030fcbb84db0db5693. Per capability-reuse-record.md integrationBase names the checkpoint, not the later main merge. Earlier R1 work and the roadmap draft still require separate final integration coverage.",
+    "Generic reuse affects existing NT51919, NT51950 and NT51951 single/cascade AB routes (six total), not a new IC classifier. The canonical Golden manifest pins their ContractOnly capability fingerprints and must remain synchronized with policy. Its governed path requires R3 even though output bytes, expected hashes and evidence dispositions stay unchanged.",
+    "2026-09-25 independent reviewer /root/ab_layout_context_review admitted tenth-path amendment: synchronize only the existing ExpectedSha256 pin after six display-binding fingerprint changes; preserve all hash verification and loader behavior."
+  ],
+  "semanticOwner": "Trusted CtrlRamV2Route.MemoryLayoutContext owns companion identity; Application capability validation owns coherent publication; MemoryLayoutProjector owns typed sections; Profiles and AB compiler retain executable geometry",
+  "terminalContract": "Propagate binding.Local.Route.MemoryLayoutContext when present without testing IC names. Bind its semantic IDs into the AB capability fingerprint and validate same member/address space, companion capacity against declared bank capacity, and translated TP code geometry against canonical AB bank placements. Use the existing complete bank locator owner including unselected banks. Retain explicit local-region/bank provenance while projecting checked global half-open section ranges. Routes without a companion keep existing behavior. Refresh only fingerprints derived from the new read-only binding, preserving policy decision values and source references. Do not change execution maps, profiles, writes, Report metadata, support/evidence status, source-envelope or reference-length admission. AB Merge OSD retained DP length cannot select bank capacity or expand AB Replace acceptance. Test valid single/cascade placements, A/B/Both, preserved banks, incompatible companion rejection, and unchanged execution/primary map semantics; retain NT51929 regression. Synchronize only the six affected ContractOnly routeEvidence capabilityFingerprint values in the canonical manifest and explain the read-only binding in the existing policy contract. No expected-output bytes/hash, case disposition or evidence rank changes. R3 final owner/evidence review remains required; design admission alone does not authorize promotion or release. Synchronize the existing BuiltInCanonicalCapabilityPolicy.ExpectedSha256 constant to the exact LF-normalized policy JSON; do not change hash verification behavior.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "/root/ab_layout_context_review",
+    "outcome": "approved",
+    "evidence": "2026-09-25 independent read-only exact nine-path design review: ADMITTED as bounded R3. Generic reuse covers six existing context-bearing AB routes; same-member/address-space/capacity/TP geometry validation, canonical preserved-bank placement and local-region attribution retain one owner. Policy and canonical manifest change only fingerprint references, not decision values, expected bytes, evidence rank or support. No profile, execution, source-envelope or UI classifier changes admitted. Final checkpoint replay, exact-head review and R3 owner/evidence gates remain pending. Tenth-path mechanical policy hash-pin amendment independently ADMITTED on 2026-09-25."
+  },
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": {
+    "reviewer": null,
+    "outcome": "pending",
+    "evidence": ""
+  }
+}
