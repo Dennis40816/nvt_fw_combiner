@@ -18,6 +18,64 @@ namespace NvtFwCombiner.UiSmoke.Tests;
 
 public sealed partial class XamlControlStyleContractTests
 {
+    /// <summary>A folder selection started by an earlier edit session cannot replace the reopened draft.</summary>
+    [Fact]
+    public async Task StaleUpdateSourceBrowseIsRejectedAfterCancelAndReopen()
+    {
+        MainWindowViewModel vm = await Task.Run(
+            () => PresentationTestHost.CreateViewModel(ShellLanguage.English),
+            TestContext.Current.CancellationToken);
+        vm.Settings.Refresh(vm.Text);
+        vm.Settings.ApplyVersionSnapshot(CreateApprovedSettingsReferenceSnapshot());
+        string originalSource = vm.Settings.UpdateSourcePath;
+        string stalePath = Path.Combine(Path.GetTempPath(), "stale-update-source");
+        int browseRequests = 0;
+        vm.Settings.UpdateSourceBrowseRequested += (_, _) => browseRequests++;
+
+        vm.Settings.BeginEditUpdateSourceCommand.Execute(null);
+        vm.Settings.BrowseUpdateSourceCommand.Execute(null);
+        Assert.Equal(1, browseRequests);
+        long pendingBrowse = Assert.IsType<long>(vm.Settings.BeginUpdateSourceBrowse());
+
+        vm.Settings.CancelEditUpdateSourceCommand.Execute(null);
+        vm.Settings.BeginEditUpdateSourceCommand.Execute(null);
+        vm.Settings.SetUpdateSourceDraft(stalePath, pendingBrowse);
+
+        Assert.True(vm.Settings.IsUpdateSourceEditing);
+        Assert.Equal(originalSource, vm.Settings.UpdateSourceDraft);
+    }
+
+    /// <summary>A closed and reopened Settings modal cannot accept its earlier folder picker result.</summary>
+    [AvaloniaFact]
+    public async Task StaleUpdateSourceBrowseIsRejectedAfterSettingsModalCloseAndReopen()
+    {
+        MainWindowViewModel vm = await Task.Run(
+            () => PresentationTestHost.CreateViewModel(ShellLanguage.English),
+            TestContext.Current.CancellationToken);
+        vm.Settings.Refresh(vm.Text);
+        vm.Settings.ApplyVersionSnapshot(CreateApprovedSettingsReferenceSnapshot());
+        string originalSource = vm.Settings.UpdateSourcePath;
+        string stalePath = Path.Combine(Path.GetTempPath(), "closed-update-source");
+        var modal = new SettingsModal { DataContext = vm, IsOpen = true };
+        var window = new Window { Width = 980, Height = 640, DataContext = vm, Content = modal };
+        try
+        {
+            window.Show();
+            vm.Settings.BeginEditUpdateSourceCommand.Execute(null);
+            long pendingBrowse = Assert.IsType<long>(vm.Settings.BeginUpdateSourceBrowse());
+
+            modal.IsOpen = false;
+            modal.IsOpen = true;
+            vm.Settings.SetUpdateSourceDraft(stalePath, pendingBrowse);
+
+            Assert.Equal(originalSource, vm.Settings.UpdateSourceDraft);
+        }
+        finally
+        {
+            window.Close();
+        }
+    }
+
     /// <summary>Source editing and row disclosure remain independent, keyboard accessible and bounded.</summary>
     [AvaloniaTheory]
     [InlineData(false, false)]
@@ -83,7 +141,7 @@ public sealed partial class XamlControlStyleContractTests
             PressSettingsControl(window, browse);
             Assert.Equal(1, browseRequests);
             string longPath = @"\\server\share\" + string.Join("\\", Enumerable.Repeat("long-update-source-folder", 14));
-            vm.Settings.SetUpdateSourceDraft(longPath);
+            vm.Settings.SetUpdateSourceDraft(longPath, Assert.IsType<long>(vm.Settings.BeginUpdateSourceBrowse()));
             RenderSettingsVersion(window);
             Assert.Equal(longPath, path.Text);
             Assert.Equal(longPath, ToolTip.GetTip(path));
