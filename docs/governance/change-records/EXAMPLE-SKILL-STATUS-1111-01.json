@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 2,
+  "taskId": "EXAMPLE-SKILL-STATUS-1111-01",
+  "capability": "Align existing example guidance and CMD status; capture settled loaded firmware UI",
+  "integrationBase": "3db701b70e0eec66889a4b030fcbb84db0db5693",
+  "risk": "R2",
+  "kind": "governance",
+  "state": "design-active",
+  "mutablePaths": [
+    ".agents/skills/capture-firmware-ui/SKILL.md",
+    ".agents/skills/open-firmware-example/SKILL.md",
+    "scripts/open_golden_example.py",
+    "tests/NvtFwCombiner.UiSmoke.Tests/ReleaseExampleScreenshots.cs"
+  ],
+  "implementationOwner": "/root",
+  "searchEvidence": [
+    "Both existing skills still describe the historical nt51950-ab-ctrlram-unsupported case as blocked. Current product screenshot at b75a9b74e and existing real CLI evidence show accepted Candidate with Evidence open. Skills must report observed UI and manifest disposition rather than infer support from a legacy filename.",
+    "CMD dry-run reproduces the same obsolete NT51950 unsupported text in open_golden_example.py:130. Latest 926 closed screenshot shows optional preload at 80%; existing screenshot test waits only HistoryStage, while ShellPreloadSession.HasOptionalStatus already owns settled optional status."
+  ],
+  "semanticOwner": "Current product UI and canonical evidence manifest own observed status; existing skills only explain how to launch and inspect them.",
+  "terminalContract": "Correct two skill final paragraphs and the CMD cross-case evidence message to Candidate, preserving historical IDs, launch args, artifact selection, build/dry-run behavior, permissions and Golden requirements. Reuse existing Candidate message for both cross-case examples. In the screenshot test only, wait for HasOptionalStatus=false within its existing 45-second deadline with UI pumping, then assert false before capture. Do not change application startup or firmware semantics; failed optional preload must not produce a purported settled screenshot.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "/root/ab_layout_context_review",
+    "outcome": "approved",
+    "evidence": "2026-09-25 independent expanded R2 design ADMITTED by /root/ab_layout_context_review before script/test edits: exactly two skills, existing CMD Python entrypoint and auxiliary screenshot test. Staged-only earlier admission expanded before first commit; no immutable admitted record rewritten. Confirmed message-only script change and bounded wait on existing preload status owner."
+  },
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": {
+    "reviewer": null,
+    "outcome": "pending",
+    "evidence": ""
+  }
+}

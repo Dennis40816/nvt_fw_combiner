@@ -55,13 +55,15 @@ public sealed class ReleaseExampleScreenshots
             using (var wait = new CancellationTokenSource(TimeSpan.FromSeconds(45)))
             {
                 while (preload.Stage(ShellPreloadSession.HistoryStageId).State is not
-                    (ShellPreloadStageState.Succeeded or ShellPreloadStageState.Failed or ShellPreloadStageState.Cancelled))
+                    (ShellPreloadStageState.Succeeded or ShellPreloadStageState.Failed or ShellPreloadStageState.Cancelled) ||
+                    preload.HasOptionalStatus)
                 {
                     Dispatcher.UIThread.RunJobs();
                     await Task.Delay(50, wait.Token);
                 }
             }
             Assert.Equal(ShellPreloadStageState.Succeeded, preload.Stage(ShellPreloadSession.HistoryStageId).State);
+            Assert.False(preload.HasOptionalStatus);
             MainWindowViewModel shell = Assert.IsType<MainWindowViewModel>(window.DataContext);
             Grid interaction = window.FindControl<Grid>("ShellInteractionHost")!;
             using (var wait = new CancellationTokenSource(TimeSpan.FromSeconds(30)))

@@ -11,4 +11,4 @@ The command resolves paths from `testdata/golden/canonical/**/provenance/case.js
 
 The printed evidence kind belongs to the case manifest. A loaded example is not proof of output byte parity. Use `$locate-golden-evidence` when a Golden claim is needed.
 
-For an NT51929 AB CtrlRAM **UI candidate**, use `nt51929-ab-ctrlram-candidate`. `nt51950-ab-ctrlram-unsupported` deliberately shows the currently blocked 512 KiB AB Base admission; report that error state as such.
+For AB CtrlRAM **UI candidates**, use `nt51929-ab-ctrlram-candidate` or `nt51950-ab-ctrlram-unsupported`. The latter is a historical case ID; report the current UI status and manifest evidence disposition instead of inferring support from that name. An accepted input or screenshot does not certify output byte parity or Golden support.
