@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 2,
+  "taskId": "VERIFY-1110-COLLECTION-BOUNDARY-01",
+  "capability": "Keep repository-script pytest collection inside its selected root and move the observed concurrent verifier repair into 1.1.10",
+  "integrationBase": "b9a94a2bab1a7bc05129b3438f0c0afeaaf45ad4",
+  "risk": "R2",
+  "kind": "behavior",
+  "state": "design-active",
+  "mutablePaths": [
+    "scripts/verify.py",
+    "tests/scripts/test_verify_orchestration.py",
+    "docs/architecture/nfc_roadmap.md",
+    "docs/ui/v1.1.10-delivery.md"
+  ],
+  "implementationOwner": "/root",
+  "searchEvidence": [
+    "On 2026-09-24 the owner moved the concurrent test_verify_orchestration repair from 1.1.11 into 1.1.10. docs/architecture/nfc_roadmap.md is the sole future-version allocation owner; docs/ui/v1.1.10-delivery.md is auxiliary evidence, not policy.",
+    "scripts/verify.py::verify_repository_scripts is the one existing repository-script pytest execution owner. It already selects exact test modules, creates independent --basetemp scratch, and rejects Python selection overrides. No repository conftest.py exists. The earlier ROADMAP-1111-VERIFY-ORCHESTRATION-01 admission is immutable and cannot authorize the new version decision.",
+    "Current d6b8ad319 full --skip-structure diagnostic log D:/NvtFwCombiner-TestArea/artifacts/v1110-verifier-diagnostic-d6.log failed test_verify_orchestration 1/217. Preserved raw synthetic child log D:/NvtFwCombiner-TestArea/artifacts/v1110-verifier-raw-d6/tmphe6c52mg/logs/second.log shows pytest collection calling Windows samefile on a sibling directory under the shared test-area session that was absent at inspection; the remover and causes of other failures are not established. _pytest/main.py traverses the explicit test file's ancestors unless confcutdir limits that traversal. A new uncommitted behavioral regression fails deterministically when parent scratch conftest.py is loaded despite an exact selected child test root. The same diagnostic run also hit a separate Bootstrap formal-route 180-second timeout; this record does not classify or waive it."
+  ],
+  "semanticOwner": "scripts/verify.py::verify_repository_scripts owns the single pytest invocation and selected-root boundary; tests/scripts/test_verify_orchestration.py verifies observable collection, mixed-framework completion, scratch isolation, and managed cancellation; the roadmap owns version allocation and delivery records dated evidence",
+  "terminalContract": "Repository-script verification runs each selected test module completely while pytest collects only from the selected REPOSITORY_SCRIPT_TESTS root, without traversing ancestors above the selected root or inspecting siblings in those shared ancestors. Preserve the exact shard selection, independent scratch and cleanup, managed descendant cancellation, rejection of forbidden overrides, and nonzero failures. On a failed child, retain its raw log bytes in a lossless assertion representation and provide an explicit readable decoding fallback that cannot mask the original nonzero exit or exception. Do not use retries, higher timeouts, decoding suppression alone, or weaker pass criteria as the repair. Move this work into 1.1.10 in the canonical roadmap and delivery evidence, preserving the historical 1.1.11 allocation and failed-run evidence as superseded history. Keep Golden, R3 owner authority, exact-source full verifier, and release gates intact; independently diagnose the separate Bootstrap timeout if it recurs. At final integration uniquely transfer governed path ownership to this record without rewriting earlier admissions, and rebind and review all existing final records against the new exact head.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "/root/r2_final_review",
+    "outcome": "findings-incorporated",
+    "evidence": "Independent R2 design review on 2026-09-24 of the exact proposed owner, four paths, terminal contract and preserved raw synthetic child log. Reviewer confirmed pytest 8.4.2 _pytest/main.py parent traversal and Windows samefile explain the collection boundary failure; the deterministic red regression proves ancestor conftest loading. Three P2 wording corrections are incorporated before this first staged admission: do not assert which actor removed the absent sibling, limit the no-sibling contract to ancestors above the selected test root, and require lossless raw failure bytes plus an explicit readable decoding fallback instead of generic diagnostics. The separate .NET Bootstrap timeout remains unresolved and all full-verifier, R3 and release gates remain in force."
+  },
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": {
+    "reviewer": null,
+    "outcome": "pending",
+    "evidence": ""
+  }
+}

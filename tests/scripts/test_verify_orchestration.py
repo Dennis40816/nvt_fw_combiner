@@ -9,6 +9,7 @@ import hashlib
 import importlib.util
 import io
 import json
+import locale
 import os
 import signal
 import subprocess
@@ -1202,6 +1203,26 @@ class VerifyOrchestrationTests(unittest.TestCase):
                 self.assertCountEqual(["unittest", "pytest-0", "pytest-1"],
                                       [path.name for path in evidence.iterdir()])
 
+    def test_script_owner_collects_only_within_selected_test_root(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            parent = Path(temporary)
+            (parent / "conftest.py").write_text(
+                "raise RuntimeError('parent scratch configuration was loaded')\n",
+                encoding="utf-8",
+            )
+            root = parent / "selected"
+            root.mkdir()
+            marker = root / "executed"
+            (root / "test_a_fixture.py").write_text(
+                "from pathlib import Path\n"
+                "def test_selected():\n"
+                f"    Path({str(marker)!r}).touch()\n",
+                encoding="utf-8",
+            )
+            with patch.object(MODULE, "REPOSITORY_SCRIPT_TESTS", root):
+                MODULE.verify_repository_scripts(root / "runner.log", "test_a_fixture.py")
+            self.assertTrue(marker.exists())
+
     def test_script_owner_rejects_free_test_failure_and_zero_collection(self) -> None:
         sources = {
             "failure": (
@@ -1274,13 +1295,20 @@ class VerifyOrchestrationTests(unittest.TestCase):
             ) for name in ("first", "second"))
             with patch.object(MODULE, "REPOSITORY_SCRIPT_TESTS", root):
                 results = MODULE.run_lanes(lanes, jobs=2, log_directory=root / "logs")
-            failure_logs = "\n".join(
-                f"{result.log_path}:\n{result.log_path.read_text(encoding='utf-8')}"
-                for result in results
-                if not result.succeeded and result.log_path.is_file()
-            )
+            failure_logs = []
+            for result in results:
+                if result.succeeded or not result.log_path.is_file():
+                    continue
+                raw = result.log_path.read_bytes()
+                try:
+                    rendered = raw.decode("utf-8")
+                except UnicodeDecodeError:
+                    rendered = raw.decode(locale.getpreferredencoding(False),
+                                          errors="backslashreplace")
+                failure_logs.append(f"{result.log_path}:\nraw={raw!r}\ntext={rendered}")
             self.assertTrue(
-                all(result.succeeded for result in results), f"{results}\n{failure_logs}"
+                all(result.succeeded for result in results),
+                f"{results}\n" + "\n".join(failure_logs),
             )
             scratch = [Path(path.read_text(encoding="utf-8")) for path in evidence.iterdir()]
             self.assertEqual(2, len(set(scratch)))

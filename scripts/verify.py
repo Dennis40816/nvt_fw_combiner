@@ -997,6 +997,7 @@ def verify_repository_scripts(
                 "pytest",
                 "-p",
                 "no:cacheprovider",
+                f"--confcutdir={REPOSITORY_SCRIPT_TESTS}",
                 f"--basetemp={Path(temporary) / 'base'}",
                 *(str(path) for path in paths),
             ],
