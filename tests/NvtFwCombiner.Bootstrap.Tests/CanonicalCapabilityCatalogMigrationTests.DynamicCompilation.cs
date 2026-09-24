@@ -323,9 +323,14 @@ public sealed partial class CanonicalCapabilityCatalogMigrationTests
             "route-7-nt51929-15-ctrlram-replace-4-1-ic-21-nt51929-ab-merge-512k";
         ResolvedCapabilityRoute bankRoute = Assert.Single(ctrlRamRoutes,
             route => route.Identity.RouteId == bankRouteId);
+        ResolvedCapabilityRoute[] bankRoutes =
+        [
+            .. ctrlRamRoutes.Where(static route => route.CompilationContract.SemanticBindingIds.Any(
+                static binding => binding.StartsWith("bank-definition:", StringComparison.Ordinal))),
+        ];
         ResolvedCapabilityRoute[] legacyRoutes =
         [
-            .. ctrlRamRoutes.Where(route => route.Identity.RouteId != bankRouteId),
+            .. ctrlRamRoutes.Except(bankRoutes),
         ];
         ResolvedCapabilityRoute[] reportless =
         [
@@ -361,7 +366,8 @@ public sealed partial class CanonicalCapabilityCatalogMigrationTests
         };
 
         Assert.True(reload.Succeeded);
-        Assert.Equal(45, ctrlRamRoutes.Length);
+        Assert.Equal(54, ctrlRamRoutes.Length);
+        Assert.Equal(10, bankRoutes.Length);
         Assert.Equal(44, legacyRoutes.Length);
         Assert.Equal(10, reportless.Length);
         Assert.Equal(34, reportful.Length);
@@ -386,7 +392,8 @@ public sealed partial class CanonicalCapabilityCatalogMigrationTests
             static binding => binding.StartsWith("postbuild-plan:", StringComparison.Ordinal));
         Assert.DoesNotContain(bankRoute.CompilationContract.SemanticBindingIds,
             static binding => binding.StartsWith("report-metadata-", StringComparison.Ordinal));
-        Assert.All(policyRoutes.Where(route => route.Identity.RouteId != bankRouteId), route =>
+        HashSet<string> legacyRouteIds = [.. legacyRoutes.Select(static route => route.Identity.RouteId)];
+        Assert.All(policyRoutes.Where(route => legacyRouteIds.Contains(route.Identity.RouteId)), route =>
         {
             // Catalog 1.12.0 adds display-only context to these ten routes.
             bool hasAddedContext = route.Identity.IcId is "NT51919" or "NT51950" or "NT51951";

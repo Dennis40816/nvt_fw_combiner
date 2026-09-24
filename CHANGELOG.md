@@ -17,7 +17,7 @@ future-version assignments, use the [canonical roadmap](docs/architecture/nfc_ro
 **1.1.10 累積變更整理草稿 — 從 1.1.1 起，發布版本於 2026-09-23 確認。**
 
 範圍包含 **1.1.1 本身，以及 1.1.2～1.1.9 已發布版本**，再加上截至
-本次 NT51950／NT51951 DP envelope 單元的本地開發變更。以下依功能整併，並標明來源版本：
+目前 AB CtrlRAM 候選路由的本地開發變更。以下依功能整併，並標明來源版本：
 
 - **已發布**：功能已在標示的 1.1.x 版本交付，列在此處方便總覽，不視為 1.1.10 首次新增。
 - **本地完成**：1.1.9 之後完成實作及相關窄測試，尚待最終整合／發布驗證。
@@ -26,8 +26,8 @@ future-version assignments, use the [canonical roadmap](docs/architecture/nfc_ro
 Owner 2026-09-23 明確將本次正式發布目標改為 **1.1.10**，取代先前的 `1.2.0` 標籤規劃。
 主要累積成果涵蓋 AB Code 配置、設定、資訊與記憶體顯示、輸出交付、Runtime、
 狀態隔離及驗證流程；DP Replace 專屬功能汰除已本地完成。CtrlRAM AB Replace 的
-NT51929 fw200 Single 已本地接線為 Candidate／ContractOnly；其他 member／shape 與
-firmware-owner／Golden／整合證據仍待完成。
+NT51919／29／32 Single／Cascade 及 NT51950／51 四條 Common 路由已本地接線為
+Candidate／ContractOnly；各路由的 firmware-owner／獨立 Golden／整合證據仍待完成。
 
 ### Product changes
 
@@ -40,7 +40,7 @@ firmware-owner／Golden／整合證據仍待完成。
 - Compatibility: Dummy DP 預設 Off。Common／Desay 共用各 case 配置：NT51950 Single 的標準 DP／output 為 512 KiB、TPB `0x4A000`；NT51950 Cascade／NT51951 的標準大小為 1 MiB、TPB `0x8A000`。本地新增的非標準 DP 同長輸出與必要範圍檢查見第 13 項。Desay 特化保留為 inactive 宣告，舊 explicit profile IDs 停用；移除的 exact-2 僅限 NT51950，NT51927 exact-2／3 保留。
 - Verification: 各版本已有 selector、Dummy DP map contract、format selection 及相關回歸證據；輸入參考資料與完整 expected-output Golden 分別記錄。
 - Input validation: 所有 TP firmware slots 讀到 count 0 或讀不到時都阻擋，訊息分別說明原因；AB 還要求 TPA／TPB 的正 count 一致。非 AB workflows 不比較 A/B peers。
-- Limitations: 不提供任意 vendor layout 或 CRC 編輯；這些是既有 AB Merge 與 TP admission 能力。CtrlRAM AB Replace 僅 NT51929 fw200 Single 已本地接線為 Candidate／ContractOnly，尚未認證為 Supported。
+- Limitations: 不提供任意 vendor layout 或 CRC 編輯；這些是既有 AB Merge 與 TP admission 能力。CtrlRAM AB Replace 的 Perfect-family 六條及 Partial-family 四條路由均只屬本地 Candidate／ContractOnly，尚未認證為 Supported。
 
 #### 2. 設定：Event Buffer Format 編輯、重載與缺檔預設
 
@@ -111,7 +111,7 @@ firmware-owner／Golden／整合證據仍待完成。
 - Support status: unchanged/support-neutral；未新增永久 catalog cache 或其他 firmware 判讀方式。
 - Compatibility: 一般 draft 編輯保留已完成操作的捕獲結果；明確 Clear 撤銷相關結果。General 清除 Base 同步通知既有 Application session，保留 mapping 身分／路徑／範圍，撤銷舊 publication；重複 clear 維持冪等，不刪來源檔。
 - Verification: 已驗證 reload 不保留失敗／過期 definitions、取消與 rollback、完整資料刷新、切頁隔離、捕獲輸入及 General clear；本地最後受影響九個完整 classes 538/538。
-- Limitations: 不宣稱已達 700 ms startup 目標；延後工作不代表開啟所有頁面的總時間下降。NT51929 fw200 Single 的 CtrlRAM AB bank／版本草稿已本地接線；本節狀態隔離驗證不代表其他 member／shape 或 firmware-owner／Golden gate 已完成。
+- Limitations: 不宣稱已達 700 ms startup 目標；延後工作不代表開啟所有頁面的總時間下降。CtrlRAM AB bank／版本草稿與 family 路由已本地接線為 Candidate；本節狀態隔離驗證不代表 firmware-owner／Golden gate 已完成。
 
 #### 9. 桌面啟動：CMD 預載 Standard／AB Code／CtrlRAM 輸入
 
@@ -121,7 +121,7 @@ firmware-owner／Golden／整合證據仍待完成。
 - Support status: unchanged/support-neutral；新增的是載入入口，不是 firmware 支援認證。
 - Compatibility: 沿用 canonical catalog、Home context、Browse 檢查與取消。TP A／TP B 獨立選取；NT51950 Single 的標準 DP 大小為 512 KiB，非標準大小仍須通過實際必要範圍檢查；參數見 [Desktop input startup](docs/ui/information-architecture.md#desktop-input-startup)。
 - Verification: 原 AB 啟動回歸 56/56；本地新增 Standard／NT51929 hidden-Number 啟動測試與實檔 UI matrix，最後相關 53/53。CMD 已實際重建並開啟 NT51926 Standard，14 個代表案例各有 Details 關閉／展開的 MainWindow render。
-- Limitations: 只開啟並載入，不自動 Preview／Build，也不代替使用者確認；無效參數、設定、輸入或取消仍停止後續自動載入。NT51950 AB Base 在 CtrlRAM Replace 顯示不支援的長度錯誤，不列為可用 AB CtrlRAM 案例；截圖不等於 Golden。
+- Limitations: 只開啟並載入，不自動 Preview／Build，也不代替使用者確認；無效參數、設定、輸入或取消仍停止後續自動載入。NT51950 AB Base 在目前工作候選可進入 Common Single AB CtrlRAM route，但截圖與載入不等於 Golden 或 Supported 認證。
 
 #### 10. Firmware metadata：DPCMI 命名與共用定義解耦
 
@@ -131,7 +131,7 @@ firmware-owner／Golden／整合證據仍待完成。
 - Support status: unchanged/support-neutral；不因共用 family、map 或 metadata 就推定新增 IC／format／Golden 認證。
 - Compatibility: 1.1.2 的命名修正保留 NT51929 Golden output SHA／bytes，AB 的既有 A/B CMD Page 讀取不變，General 不新增 DPCMI reader。本地遷移保留明確身分、單次讀取、immutable inputs 與單一 planner/executor。
 - Verification: 已有 DPCMI 來源／命名、full-image metadata、catalog atomic publication、family disclosure 及相依 consumers 回歸；保留歷史 input-only observation 與真正 output Golden 的證據區別。
-- Limitations: 共用 AB 解析是 CtrlRAM AB Replace 的前置；NT51929 fw200 Single 已有本地 Candidate／ContractOnly 路徑，其他 member／shape 及獨立 expected outputs 仍未完成。
+- Limitations: 共用 AB 解析是 CtrlRAM AB Replace 的前置；Perfect／Partial family 路由仍是本地 Candidate／ContractOnly，獨立 expected outputs 及 firmware-owner 審核尚未完成。
 
 #### 11. 功能汰除：DP Replace
 
@@ -171,7 +171,7 @@ firmware-owner／Golden／整合證據仍待完成。
 
 ### Known issues
 
-- **CtrlRAM AB Replace 尚未完成全範圍認證**：NT51929 fw200 Single 已本地接線為 Candidate／ContractOnly；其 A-only／B-only／Both 實檔輸出已有 exact-case 獨立 CRC/header oracle 的完整 bytes 比對，仍待 firmware owner 認證為 Golden。其他 member／shape 的預期輸出與准入未完成；不能由 NT51929 推廣。
+- **CtrlRAM AB Replace 尚未完成全範圍認證**：NT51919／29／32 Single／Cascade 及 NT51950／51 四條 Common 路由已本地接線為 Candidate／ContractOnly。NT51929 Single 的 A-only／B-only／Both 實檔輸出已有 exact-case 獨立 CRC/header oracle 的完整 bytes 比對；其他路由有局部真工具及 bank-local control 證據。各路由仍缺 firmware-owner 核准的獨立完整輸出 Golden 與精確寫入範圍審核，不能由既有 Standard／AB Merge 證據推廣為 Supported。
 - 最終 integration、firmware-owner 證據及正式候選的必要 Golden 尚未完成；乾淨預封存來源 `fd3a41ffc` 的 release Golden 已執行 25 個 Direct 完整輸出案例，Bootstrap 1708/1708、GoldenRegression 14/14 通過。3 個 input-only 和 12 個 fact-scoped alias 並非 Golden 輸出案例；後續文件提交使正式候選仍須重新固定來源與驗證。
 - 先前完整 verifier 的 orchestration concurrency failure 尚未證明根因修復；`fd3a41ffc` 的 `--skip-structure` 全輪通過且未重現。診斷紀錄與這次成功不等於根因已消除。
 - 完整 UiSmoke 於 `f102d571c` 通過 1619/1619，`fd3a41ffc` 的非結構 verifier .NET lane 亦通過；最終 frozen release candidate 的 `--all` 與 exact-source CI 仍未通過。

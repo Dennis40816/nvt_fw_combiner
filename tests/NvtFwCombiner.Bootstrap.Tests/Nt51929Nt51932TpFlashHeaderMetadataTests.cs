@@ -280,15 +280,17 @@ public sealed class Nt51929Nt51932TpFlashHeaderMetadataTests
         AssertUnshiftedSourceLocator(tpb.StructureDefinition);
     }
 
-    /// <summary>NT51919 AB also remains free of the unevidenced TP Header definition.</summary>
+    /// <summary>NT51919 AB reuses the approved Perfect-family TP Header read model.</summary>
     [Fact]
-    public void Nt51919AbDoesNotAcquireTpHeaderFromFamilyPackaging()
+    public void Nt51919AbUsesTheSharedPerfectFamilyTpHeaderReadModel()
     {
         MetadataPlanDefinition plan = CreatePlan(
             BuiltInV2RegistrationRegistry.FindAbMergeRegistration("NT51919", "nt51919-ab-merge-512k")!,
             inputLength: 0x80000);
 
-        Assert.Empty(plan.Entries);
+        Assert.Equal(5, plan.Entries.Count);
+        Assert.Contains(plan.Entries, static entry => entry.SlotId == "tp-a-input");
+        Assert.Contains(plan.Entries, static entry => entry.SlotId == "tp-b-input");
     }
 
     private static MetadataPlanDefinition CreatePlan(

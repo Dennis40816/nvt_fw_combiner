@@ -58,7 +58,9 @@ public sealed class CtrlRamContextAdmissionTests
     public void ContextFingerprintsMatchPinnedPolicy()
     {
         CanonicalCapabilityPolicyRoute[] policies = [.. BuiltInCanonicalCapabilityPolicy.Load().Routes.Where(row =>
-            row.Identity.WorkflowId == ExperienceIds.CtrlRamReplace && row.Identity.IcId is "NT51919" or "NT51950" or "NT51951")];
+            row.Identity.WorkflowId == ExperienceIds.CtrlRamReplace &&
+            (row.Identity.IcId is "NT51919" or "NT51950" or "NT51951") &&
+            !row.Identity.MapVariant.Contains("-ab-merge-", StringComparison.Ordinal))];
         Assert.Equal(10, policies.Length);
         Assert.All(policies, policy =>
         {

@@ -15,7 +15,7 @@ public sealed partial class CtrlRamV2PlanClosureProfileTests
     private const string Nt51926BundleHash = "8a6dc717feeb109ee265122b5796606297f1bbe14e11ec1e8da31d26678c26a7";
     private const string Nt51929BundleHash = "309f29e33a8fb672e92ed441d6633fab829bee3bd4c94a93fd842a7f3bb157d0";
     private const string Nt51928BundleHash = "82a7a98f4883540595a3af22887fecef5f283fdff5e2af816b294c6345bd523d";
-    private const string Nt51932BundleHash = "47361d7eb2c573f86f9d802f87d0db3ad8e0d41336a937ffe57a2a28239e7f61";
+    private const string Nt51932BundleHash = "da860e6146d0c755a64ec9bde4c467acf751dcaf1638fe43066d6b777cba0865";
     private const string Nt51950BundleHash = "86c06344e50856d590dc58bb0485de06ec9dcef825076a92a83574a3a0d6b554";
     private const string Nt51951BundleHash = "17380c4dfdc04123ee46504cf626f43365c9d506d798f2c1ada999f14c8d3c4c";
     private const string Nt51927BundleHash = "f44c1b82f3fc38905dee222a60be5b884f717b37cb3d8fafe8affd7c48353714";
@@ -281,7 +281,7 @@ public sealed partial class CtrlRamV2PlanClosureProfileTests
             static view => view.ViewId == "fw-config-backup-output");
     }
 
-    /// <summary>NT51932 single routes compile without their cascade-only DiffDLM ranges.</summary>
+    /// <summary>NT51932 Single grants only its fixed Backup page inside the cascade DiffDLM envelope.</summary>
     [Theory]
     [InlineData(
         "nt51932-ctrlram-replace-candidate",
@@ -292,8 +292,7 @@ public sealed partial class CtrlRamV2PlanClosureProfileTests
         0x2D100,
         0x8C00,
         0x1FC00,
-        1,
-        false)]
+        1)]
     public void SingleProfilesCompileWithoutCascadeDiffAuthority(
         string bundleDirectory,
         string bundleHash,
@@ -303,8 +302,7 @@ public sealed partial class CtrlRamV2PlanClosureProfileTests
         long diffStart,
         long diffLength,
         long targetStart,
-        long targetLength,
-        bool expectsBackupCopy)
+        long targetLength)
     {
         CompiledComposition composition = Compile(
             bundleDirectory,
@@ -317,16 +315,15 @@ public sealed partial class CtrlRamV2PlanClosureProfileTests
         ExternalProcessorInvocation processor = Processor(composition);
 
         Assert.Equal(processorId, processor.ProcessorId);
-        Assert.DoesNotContain(
-            processor.AllowedWriteRanges,
-            range => range.Overlaps(new ByteRange(diffStart, diffLength)));
+        var backup = new ByteRange(0x2E000, 0x1000);
+        Assert.Contains(backup, processor.AllowedWriteRanges);
+        Assert.DoesNotContain(processor.AllowedWriteRanges,
+            range => range.Overlaps(new ByteRange(diffStart, diffLength)) && range != backup);
         Assert.DoesNotContain(
             composition.V2Details.RegionAccessContract.Requirements,
             static requirement => requirement.RegionId == "diff-ctrlram");
-        Assert.Equal(
-            expectsBackupCopy,
-            composition.V2Details.RegionAccessContract.ResolvedViews.Any(
-                static view => view.ViewId == "fw-config-backup-copy-output"));
+        Assert.Contains(composition.V2Details.RegionAccessContract.ResolvedViews,
+            static view => view.ViewId == "fw-config-backup-output");
     }
 
     /// <summary>NT51928 keeps the NT51927 TP plans for all non-NB shapes inside its 512 KiB image.</summary>

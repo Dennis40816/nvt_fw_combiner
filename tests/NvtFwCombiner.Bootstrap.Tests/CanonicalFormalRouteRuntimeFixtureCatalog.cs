@@ -370,12 +370,20 @@ internal static class CanonicalFormalRouteRuntimeFixtureCatalog
         int chipCount)
     {
         CapabilityRouteIdentity identity = fixture.Policy.Identity;
-        CanonicalFormalRuntimeSource source = ReadCtrlRamCanonicalBase(identity);
+        bool bankRoute = identity.MapVariant.Contains("-ab-merge-", StringComparison.Ordinal);
+        CanonicalFormalRuntimeSource source = ReadCtrlRamCanonicalBase(identity, chipCount);
         byte[] baseBytes = source.Bytes;
         int capacity = CtrlRamCapacity(identity);
-        baseBytes = ResizeCanonicalInput(baseBytes, capacity, 0x6B);
-        if (identity.MapVariant != "nt51929-ab-merge-512k")
+        if (bankRoute)
         {
+            if (baseBytes.Length != capacity)
+            {
+                throw new InvalidDataException("Formal AB bank witness has the wrong exact capacity.");
+            }
+        }
+        else
+        {
+            baseBytes = ResizeCanonicalInput(baseBytes, capacity, 0x6B);
             PlaceFirmwareConfigBackupForTopology(
                 baseBytes,
                 identity,
@@ -433,25 +441,17 @@ internal static class CanonicalFormalRouteRuntimeFixtureCatalog
             paths,
             witnesses,
             chipCount,
-            identity.MapVariant == "nt51929-ab-merge-512k" ? null : chipCount);
+            bankRoute ? null : chipCount);
     }
 
     private static CanonicalFormalRuntimeSource ReadCtrlRamCanonicalBase(
-        CapabilityRouteIdentity identity)
+        CapabilityRouteIdentity identity, int chipCount)
     {
         string map = identity.MapVariant;
         string ic = identity.IcId;
-        if (ic == "NT51929" && map == "nt51929-ab-merge-512k")
+        if (map.Contains("-ab-merge-", StringComparison.Ordinal))
         {
-            JsonElement goldenCase = CanonicalGoldenTestData.LoadDirectCase(
-                ExperienceIds.AbMerge,
-                "nt51929-ab-t05-d06");
-            return new CanonicalFormalRuntimeSource(
-                File.ReadAllBytes(CanonicalGoldenTestData.ArtifactPath(
-                    CanonicalGoldenTestData.Artifact(goldenCase, "expected-output"))),
-                ExperienceIds.AbMerge,
-                ic,
-                "nt51929-ab-t05-d06");
+            return ReadAbCtrlRamCanonicalBase(identity, chipCount);
         }
         if (ic is "NT51917" or "NT51927")
         {
@@ -565,6 +565,64 @@ internal static class CanonicalFormalRouteRuntimeFixtureCatalog
         throw UnknownRoute(identity);
     }
 
+    private static CanonicalFormalRuntimeSource ReadAbCtrlRamCanonicalBase(
+        CapabilityRouteIdentity identity, int chipCount)
+    {
+        if (identity.IcId is "NT51919" or "NT51929" or "NT51932")
+        {
+            byte[] bytes = chipCount == 1
+                ? File.ReadAllBytes(CanonicalGoldenTestData.ArtifactPath(
+                    ExperienceIds.AbMerge, "NT51929", "expected-output", "t05-d06"))
+                : AbCtrlRamReferencePlanTests.CascadeReference();
+            if (chipCount > 1)
+            {
+                bytes[0x702B] = checked((byte)chipCount);
+                bytes[0x4702B] = checked((byte)chipCount);
+                int diffStart = checked((int)BinaryPrimitives.ReadUInt32LittleEndian(bytes.AsSpan(0x716C, 4)));
+                int diffStride = BinaryPrimitives.ReadUInt16LittleEndian(bytes.AsSpan(0x7120, 2)) + 1;
+                int activeDiffEnd = checked(diffStart + (diffStride * (chipCount - 1)));
+                int nextPage = checked((activeDiffEnd / 0x1000) + 1);
+                int backupStart = checked(nextPage * 0x1000);
+                foreach (int bankStart in new[] { 0, 0x40000 })
+                {
+                    byte[] backup = bytes.AsSpan(bankStart + 0x30000, 0x1000).ToArray();
+                    backup[0x17] = checked((byte)chipCount);
+                    bytes.AsSpan(bankStart + 0x30FFC, 4).Clear();
+                    backup.CopyTo(bytes, bankStart + backupStart);
+                }
+            }
+            return new(bytes, ExperienceIds.AbMerge, "NT51929", "nt51929-ab-t05-d06");
+        }
+        if (identity.IcId == "NT51950" && chipCount == 1)
+        {
+            JsonElement golden = CanonicalGoldenTestData.LoadDirectCase(
+                ExperienceIds.AbMerge, "nt51950-ab-boe-d82t80");
+            return new(File.ReadAllBytes(CanonicalGoldenTestData.ArtifactPath(
+                    CanonicalGoldenTestData.Artifact(golden, "expected-output"))),
+                ExperienceIds.AbMerge, "NT51950", "nt51950-ab-boe-d82t80");
+        }
+        string sourceCase = chipCount == 1
+            ? "nt51951-fw200-single-auto-prj-695-20260718"
+            : "nt51951-fw200-cascade2-auto-prj-599-20260731";
+        byte[] source = ReadCtrlRamArtifact(sourceCase, "expected-output");
+        int localLength = identity.IcId == "NT51950" ? 0x40000 : 0x80000;
+        const int bankLength = 0x80000;
+        byte[] bank = new byte[bankLength];
+        source.AsSpan(0, localLength).CopyTo(bank);
+        if (localLength < bankLength)
+        {
+            bank.AsSpan(localLength).Fill(0x5A);
+        }
+        byte[] reference = [.. bank, .. bank];
+        foreach (int field in new[] { 0xA100, 0xA110, 0xA120 })
+        {
+            uint address = BinaryPrimitives.ReadUInt32LittleEndian(reference.AsSpan(bankLength + field, 4));
+            BinaryPrimitives.WriteUInt32LittleEndian(reference.AsSpan(bankLength + field, 4),
+                checked(address + bankLength));
+        }
+        return new(reference, ExperienceIds.CtrlRamReplace, "NT51951", sourceCase);
+    }
+
     private static byte[] ReadCtrlRamArtifact(
         string caseId,
         string artifactId,
@@ -594,8 +652,8 @@ internal static class CanonicalFormalRouteRuntimeFixtureCatalog
     private static int CtrlRamCapacity(CapabilityRouteIdentity identity)
     {
         string map = identity.MapVariant;
-        return map == "nt51929-ab-merge-512k"
-            ? 0x80000
+        return map.Contains("-ab-merge-", StringComparison.Ordinal)
+            ? ParseCapacity(map)
             : map.Contains("tp-work-212k", StringComparison.Ordinal)
             ? 0x35000
             : map.Contains("tp-work-240k", StringComparison.Ordinal)

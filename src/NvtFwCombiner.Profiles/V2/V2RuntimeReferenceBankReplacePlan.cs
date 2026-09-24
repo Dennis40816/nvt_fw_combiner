@@ -19,12 +19,15 @@ internal sealed record V2RuntimeReferenceBankReplaceBinding(
 internal sealed class V2RuntimeReferenceBankReplacePlan(
     CompiledComposition abLayout,
     FirmwareArtifactPayload reference,
+    BankReferenceReplaceDefinition definition,
     CompositionPlan plan,
     IEnumerable<V2RuntimeReferenceBankReplaceBinding> banks)
 {
     internal CompiledComposition AbLayout { get; } = abLayout;
 
     internal FirmwareArtifactPayload Reference { get; } = reference;
+
+    internal BankReferenceReplaceDefinition Definition { get; } = definition;
 
     internal CompositionPlan Plan { get; } = plan;
 

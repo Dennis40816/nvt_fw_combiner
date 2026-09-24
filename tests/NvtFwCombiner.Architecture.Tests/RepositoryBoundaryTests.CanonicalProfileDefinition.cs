@@ -365,16 +365,34 @@ public sealed partial class RepositoryBoundaryTests
             "V2CompositionPlanCompiler.RuntimeReferenceReplace.Banks.cs" =>
             [
                 """
-                            V2CompositionPlanCompileResult compiled = localCatalog.CompileRuntimeReferenceReplace(
-                                "nt51929-ctrlram-replace-fw200-single", "0.3.0", "NT51929", ExperienceIds.CtrlRamReplace,
-                                new TopologySelection(1, "single", TopologySelectionSource.Requested, "number-selector"),
-                                [localReference], request.Replace);
+                        TrustedCompositionProfileCatalogEntry localProfile = localCatalog.SelectProfile(
+                            definition.Local.ProfileId, definition.Local.ProfileVersion, out _) ??
+                            throw new ArgumentException("Partial AB local profile is no longer trusted.");
+                        IReadOnlyList<FirmwareImageMap> localMaps = localCatalog.GetMapVariants(
+                            definition.Local.ProfileId, definition.Local.ProfileVersion, definition.Local.MemberId,
+                            localProfile.Profile.Header.ExperienceId, out _, out IReadOnlyList<CompositionIssue> mapIssues);
                 """,
                 """
-                        RequireBankShape(details.ProfileId == "nt51929-ab-merge" && details.ProfileVersion == "0.4.0" &&
+                        TrustedCompositionProfileCatalogEntry localProfile = localCatalog.SelectProfile(
+                            definition.Local.ProfileId, definition.Local.ProfileVersion, out _) ??
+                            throw new ArgumentException("AB local profile is no longer trusted.");
+                        V2CompositionPlanCompileResult compiled = localCatalog.CompileRuntimeReferenceReplace(
+                            definition.Local.ProfileId, definition.Local.ProfileVersion, definition.Local.MemberId,
+                            localProfile.Profile.Header.ExperienceId,
+                            new TopologySelection(topologyCount, topologyCount == 1 ? "single" : "cascade_2to8",
+                                TopologySelectionSource.Requested, "number-selector"),
+                            [localReference], request.Replace);
+                """,
+                """
+                        RequireBankShape(details.ProfileId == source.ProfileId && details.ProfileVersion == source.ProfileVersion &&
                             details.Provenance.Context is ResolvedMapV2CompilationContext &&
-                            details.Provenance.Context.MemberId == "NT51929" && details.ExperienceId == ExperienceIds.AbMerge,
-                            "Only the trusted NT51929 AB layout is admitted by this preparation.");
+                            details.Provenance.Context.MemberId == source.MemberId &&
+                            details.Provenance.Bundle.ContentHash == source.Bundle.ContentHash &&
+                            details.Provenance.ProfileEntry.ContentHash == source.Entry.ContentHash &&
+                            details.Provenance.Context.FamilyContentHash == source.FamilyHash &&
+                            details.Provenance.ResolvedMap.ImageMap.MapId == source.MapId &&
+                            details.ExperienceId == ExperienceIds.AbMerge,
+                            "Only the selected exact trusted AB layout is admitted by this preparation.");
                 """,
             ],
             "V2CompositionPlanCompiler.RuntimeReferenceReplace.BankCompilation.cs" =>
@@ -387,7 +405,8 @@ public sealed partial class RepositoryBoundaryTests
         foreach (string fragment in fragments)
         {
             string expected = fragment.ReplaceLineEndings("\n");
-            Assert.Equal(1, CountOccurrences(normalized, expected));
+            Assert.True(CountOccurrences(normalized, expected) == 1,
+                $"Admitted compiler identity fragment must occur once in {fileName}: {expected.Trim()}.");
             normalized = normalized.Replace(expected, string.Empty, StringComparison.Ordinal);
         }
         return normalized;

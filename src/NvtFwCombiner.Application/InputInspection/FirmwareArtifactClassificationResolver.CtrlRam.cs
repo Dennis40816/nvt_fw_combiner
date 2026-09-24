@@ -33,22 +33,25 @@ internal sealed partial class FirmwareArtifactClassificationResolver
                 publication?.ResolutionToken ?? default, referenceStamp);
         }
 
-        if (ic == "NT51929" && _compiler.TryCompileAbMergeCapability(ic, null, ["dp-ab-input"],
-                out CompiledComposition? layout, out ResolvedCapability? layoutCapability, out _) &&
+        if ((adapter.ResolveAbReferenceRoute(ic, IcNumberSelectionTokens.SingleChip).Succeeded ||
+             adapter.ResolveAbReferenceRoute(ic, IcNumberSelectionTokens.Cascade).Succeeded ||
+             adapter.ResolveAbReferenceRoute(ic, IcNumberSelectionTokens.CascadeTwoToEight).Succeeded) &&
+            TryCompileAbLayoutForReference(ic, candidate.Length,
+                out CompiledComposition? layout, out ResolvedCapability? layoutCapability) &&
             layoutCapability is not null && IsCurrentCapability(publication, ic, layoutCapability) &&
-            candidate.Length == layout!.V2Details.Provenance.ResolvedMap.CapacityBytes &&
-            _compiler.TryCompileStandardMerge(ic, null, out CompiledComposition? standard,
-                out ResolvedCapability? standardCapability, out _) &&
-            standardCapability is not null && IsCurrentCapability(publication, ic, standardCapability) &&
-            ReferenceEquals(standardCapability.CompiledComposition, standard) &&
-            standardCapability.MetadataPlan.ResolutionToken == publication.ResolutionToken)
+            candidate.Length == layout!.V2Details.Provenance.ResolvedMap.CapacityBytes)
         {
+            bool hasStandard = _compiler.TryCompileStandardMerge(ic, null, out CompiledComposition? standard,
+                out ResolvedCapability? standardCapability, out _) &&
+                standardCapability is not null && IsCurrentCapability(publication, ic, standardCapability) &&
+                ReferenceEquals(standardCapability.CompiledComposition, standard) &&
+                standardCapability.MetadataPlan.ResolutionToken == publication.ResolutionToken;
             FirmwareRegion[] banks = [.. layout.V2Details.Provenance.ResolvedMap.ImageMap.Regions
                 .Where(static region => region.RegionId is "a-bank" or "b-bank").OrderBy(static region => region.Range.Start)];
             if (banks.Length == 2 && banks.All(bank => bank.Range.EndExclusive <= candidate.Length))
             {
-                int plausibleBanks = banks.Count(bank => CompiledFirmwareArtifactClassifier.Classify(standard,
-                    candidate.Span.Slice(checked((int)bank.Range.Start), checked((int)bank.Range.Length))).Kind == CompiledFirmwareArtifactKind.FlashCode);
+                int plausibleBanks = hasStandard ? banks.Count(bank => CompiledFirmwareArtifactClassifier.Classify(standard!,
+                    candidate.Span.Slice(checked((int)bank.Range.Start), checked((int)bank.Range.Length))).Kind == CompiledFirmwareArtifactKind.FlashCode) : 0;
                 var facts = new List<CtrlRamBaseBankInspection>();
                 var issues = new List<CompositionIssue>();
                 foreach (FirmwareRegion bank in banks)
@@ -71,8 +74,8 @@ internal sealed partial class FirmwareArtifactClassificationResolver
                         CompiledInputArtifactObservationService.DecodeDpRegion(layout,
                             bank.RegionId == "a-bank" ? CompiledInputVersionKind.DpA : CompiledInputVersionKind.DpB,
                             bank.RegionId == "a-bank" ? "a-cmi-dp-version" : "b-cmi-dp-version", candidate),
-                        eventBufferFormatVersion: valid
-                            ? ReadBankEventBufferFormat(standard, standardCapability, bytes, config)
+                        eventBufferFormatVersion: valid && hasStandard
+                            ? ReadBankEventBufferFormat(standard!, standardCapability!, bytes, config)
                             : null, bankIssues));
                     issues.AddRange(bankIssues);
                 }
@@ -87,7 +90,7 @@ internal sealed partial class FirmwareArtifactClassificationResolver
                 if (plausibleBanks > 0 || (issues.Count == 0 && structureIssues.Count == 0))
                 {
                     issues.AddRange(structureIssues);
-                    if (plausibleBanks != banks.Length)
+                    if (hasStandard && plausibleBanks != banks.Length)
                     {
                         issues.Add(new("input.bank-reference.content", "AB bank contents do not satisfy the declared Flash plausibility checks.", CompositionSlotIds.ReplaceBase));
                     }
@@ -133,6 +136,37 @@ internal sealed partial class FirmwareArtifactClassificationResolver
                     ? [new("input.reference.unrecognized", "The captured Base is not an unambiguous Standard or trusted AB Reference.", CompositionSlotIds.ReplaceBase)]
                     : [],
             publication.ResolutionToken, referenceStamp, standardEventBufferFormat);
+    }
+
+    private bool TryCompileAbLayoutForReference(string icId, int length,
+        out CompiledComposition? composition, out ResolvedCapability? capability)
+    {
+        composition = null;
+        capability = null;
+        TopologySelection?[] selections =
+        [
+            null,
+            .. _compiler.GetAbMergeTopologyChoices(icId).Select(static choice => choice.Selection),
+        ];
+        foreach (TopologySelection? selection in selections)
+        {
+            if (!_compiler.TryCompileAbMergeCapability(icId, selection, ["dp-ab-input"],
+                    out CompiledComposition? candidate, out ResolvedCapability? published, out _) ||
+                candidate is null || published is null ||
+                candidate.V2Details.Provenance.ResolvedMap.CapacityBytes != length)
+            {
+                continue;
+            }
+            if (composition is not null)
+            {
+                composition = null;
+                capability = null;
+                return false;
+            }
+            composition = candidate;
+            capability = published;
+        }
+        return composition is not null;
     }
 
     private static byte? ReadConsensusEventBufferFormat(

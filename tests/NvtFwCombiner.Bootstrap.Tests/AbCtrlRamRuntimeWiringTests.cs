@@ -217,11 +217,14 @@ public sealed class AbCtrlRamRuntimeWiringTests
         CompiledValidationRequirement? extraTestValidation = null)
     {
         TrustedProfileBundleCatalog ab = V2StandardMergeGoldenTestSupport.LoadDeployedCatalog(
-            "nt51919-nt51929-nt51932-ab-merge", "5acf2fd4d0757d7b757bf7491ff2f268d07cf70a76588f528d36b616e1e5eed0");
+            "nt51919-nt51929-nt51932-ab-merge", "892af5d0f1ff0094bb96a0e30ffad3b6c2cf18451a6705623c2ca97206422c6b");
         CompiledComposition layout = ab.Compile("nt51929-ab-merge", "0.4.0", "NT51929", ExperienceIds.AbMerge,
             0x80000, null, [], selectedInputSlotIds: ["dp-ab-input"]).CompiledComposition!;
         TrustedProfileBundleCatalog local = V2StandardMergeGoldenTestSupport.LoadDeployedCatalog(
             "nt51929-ctrlram-replace-candidate", "309f29e33a8fb672e92ed441d6633fab829bee3bd4c94a93fd842a7f3bb157d0");
+        BankReferenceReplaceDefinition definition = ab.CreateBankReplaceDefinition(local, "NT51929",
+            "nt51929-ab-merge", "0.4.0", "nt51929-ab-merge-512k",
+            "nt51929-ctrlram-replace-fw200-single", "0.3.0", "nt51929-ctrlram-fw200-single-full-flash");
         LegacyCombinerPostbuildCommandPlan plan = ToolPlan();
         ByteRange[] staged = [.. LegacyCombinerPostbuildPlanCompiler.GetStagedFileBlocks(plan).Select(static block => block.FirmwareRange)];
         var request = new V2RuntimeReferenceReplaceCompileRequest(
@@ -242,10 +245,11 @@ public sealed class AbCtrlRamRuntimeWiringTests
         }
 
         V2RuntimeReferenceBankReplacePlan prepared = V2CompositionPlanCompiler.PrepareAbRuntimeReferenceReplace(
-            layout, new FirmwareArtifactPayload("reference-base", reference), local, banks);
+            layout, new FirmwareArtifactPayload("reference-base", reference), definition, 1, local, banks);
         if (extraTestValidation is not null)
         {
-            prepared = new V2RuntimeReferenceBankReplacePlan(prepared.AbLayout, prepared.Reference, prepared.Plan,
+            prepared = new V2RuntimeReferenceBankReplacePlan(prepared.AbLayout, prepared.Reference,
+                prepared.Definition, prepared.Plan,
                 prepared.Banks.Select(bank => bank with { LocalComposition = WithValidations(bank.LocalComposition, [extraTestValidation]) }));
         }
 

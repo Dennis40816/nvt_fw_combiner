@@ -5,6 +5,15 @@ using static NvtFwCombiner.Domain.Firmware.FirmwareFingerprintWriter;
 
 namespace NvtFwCombiner.Domain.Composition;
 
+/// <summary>Trusted AB finalization already declared by the selected layout's processor contract.</summary>
+public enum BankReferenceFinalizationKind
+{
+    /// <summary>Restore the three checked B Header addresses after the local postbuild.</summary>
+    RestoreAddresses,
+    /// <summary>Run the trusted AB stage after local postbuild to relocate B Header addresses and CRC.</summary>
+    RunAbHeaderProcessor,
+}
+
 /// <summary>Pure trusted definition identity, independent of an artifact or resolved runtime metadata.</summary>
 public sealed class BankReferenceDefinitionSource
 {
@@ -46,26 +55,43 @@ public sealed class BankReferenceReplaceDefinition
     /// <summary>Versioned semantics of the compiler-owned checked bank composition.</summary>
     public const string CompilerSemanticId = "nfc.compiler.profile-bundle-v2.runtime-bank-reference-replace.v1";
 
-    internal BankReferenceReplaceDefinition(CompiledComposition layout, CompiledComposition local)
-        : this(Source(layout, layoutSource: true), Source(local, layoutSource: false))
+    internal BankReferenceReplaceDefinition(CompiledComposition layout, CompiledComposition local,
+        ByteRange? localBankRange = null, BankReferenceFinalizationKind finalizationKind = BankReferenceFinalizationKind.RestoreAddresses)
+        : this(Source(layout, layoutSource: true), Source(local, layoutSource: false), localBankRange, finalizationKind)
     {
     }
 
-    internal BankReferenceReplaceDefinition(BankReferenceDefinitionSource layout, BankReferenceDefinitionSource local)
+    internal BankReferenceReplaceDefinition(BankReferenceDefinitionSource layout, BankReferenceDefinitionSource local,
+        ByteRange? localBankRange = null, BankReferenceFinalizationKind finalizationKind = BankReferenceFinalizationKind.RestoreAddresses)
     {
         Layout = RequiredValue.NotNull(layout);
         Local = RequiredValue.NotNull(local);
-        DomainInvariant.Reject(Layout.ProfileId != "nt51929-ab-merge" || Layout.ProfileVersion != "0.4.0" ||
-            Local.ProfileId != "nt51929-ctrlram-replace-fw200-single" || Local.ProfileVersion != "0.3.0" ||
-            Layout.MemberId != "NT51929" || Local.MemberId != "NT51929" ||
-            Layout.MapId != "nt51929-ab-merge-512k" || Local.MapId != "nt51929-ctrlram-fw200-single-full-flash",
-            "Bank Replace definition is closed to the admitted NT51929 layout/local profile pair.");
-        DefinitionId = "nt51929-ab-ctrlram-replace-fw200-single";
+        ClosedEnum.ThrowIfUndefined(finalizationKind, "Unknown bank finalization kind.");
+        DomainInvariant.Reject(Layout.MemberId != Local.MemberId || Layout.CapacityBytes % 2 != 0,
+            "Bank Replace parents must describe the same requested member and two equal AB banks.");
+        BankCapacityBytes = Layout.CapacityBytes / 2;
+        LocalBankRange = localBankRange ?? new ByteRange(0, Local.CapacityBytes);
+        FinalizationKind = finalizationKind;
+        DomainInvariant.Reject(LocalBankRange.Length != Local.CapacityBytes ||
+            LocalBankRange.EndExclusive > BankCapacityBytes,
+            "The local CtrlRAM Reference must be an exact declared slice of one AB bank.");
+        const string localSegment = "-ctrlram-replace-";
+        int segment = Local.ProfileId.IndexOf(localSegment, StringComparison.Ordinal);
+        DomainInvariant.Reject(segment < 0, "Bank Replace local profile has no canonical CtrlRAM identity segment.");
+        DefinitionId = Local.ProfileId.Insert(segment + 1, "ab-");
         Version = "1.0.0";
         var builder = new StringBuilder();
         AppendField(builder, "definition.id", DefinitionId);
         AppendField(builder, "definition.version", Version);
         AppendField(builder, "compiler", CompilerSemanticId);
+        if (FinalizationKind != BankReferenceFinalizationKind.RestoreAddresses ||
+            LocalBankRange != new ByteRange(0, BankCapacityBytes))
+        {
+            AppendField(builder, "bank.capacity", BankCapacityBytes.ToString(System.Globalization.CultureInfo.InvariantCulture));
+            AppendField(builder, "local.start", LocalBankRange.Start.ToString(System.Globalization.CultureInfo.InvariantCulture));
+            AppendField(builder, "local.length", LocalBankRange.Length.ToString(System.Globalization.CultureInfo.InvariantCulture));
+            AppendField(builder, "bank.finalization", FinalizationKind.ToString());
+        }
         AppendSource("layout", Layout);
         AppendSource("local", Local);
         ContentHash = Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(builder.ToString())));
@@ -103,6 +129,12 @@ public sealed class BankReferenceReplaceDefinition
     public BankReferenceDefinitionSource Layout { get; }
     /// <summary>True local Replace definition source.</summary>
     public BankReferenceDefinitionSource Local { get; }
+    /// <summary>Physical capacity of each complete AB bank.</summary>
+    public long BankCapacityBytes { get; }
+    /// <summary>Exact bank-relative slice accepted by the existing local CtrlRAM profile.</summary>
+    public ByteRange LocalBankRange { get; }
+    /// <summary>Checked end-of-bank finalization selected by the exact trusted AB profile.</summary>
+    public BankReferenceFinalizationKind FinalizationKind { get; }
 }
 
 /// <summary>One selected bank's immutable local compilation, reference identity and final output placement.</summary>
@@ -134,7 +166,7 @@ public sealed class CompiledReferenceBank
 public sealed class RuntimeReferenceBankReplaceV2CompilationContext : MapBoundV2CompilationContext
 {
     internal RuntimeReferenceBankReplaceV2CompilationContext(CompiledComposition layout, FirmwareArtifactIdentity reference,
-        CompositionPlan checkedPlan, IEnumerable<CompiledReferenceBank> banks)
+        BankReferenceReplaceDefinition definition, CompositionPlan checkedPlan, IEnumerable<CompiledReferenceBank> banks)
         : base(layout.V2Details.Provenance.ResolvedMap, ExperienceIds.CtrlRamReplace)
     {
         LayoutComposition = layout;
@@ -143,13 +175,17 @@ public sealed class RuntimeReferenceBankReplaceV2CompilationContext : MapBoundV2
         Banks = Array.AsReadOnly(banks.ToArray());
         DomainInvariant.Reject(Banks.Count is < 1 or > 2 || Banks.Select(static bank => bank.BankId).Distinct(StringComparer.Ordinal).Count() != Banks.Count,
             "A checked AB compilation requires one or two unique canonical banks.");
-        Definition = new BankReferenceReplaceDefinition(layout, Banks[0].LocalComposition);
+        Definition = RequiredValue.NotNull(definition);
+        DomainInvariant.Reject(new BankReferenceReplaceDefinition(layout, Banks[0].LocalComposition,
+                Definition.LocalBankRange, Definition.FinalizationKind).ContentHash != Definition.ContentHash,
+            "The checked AB definition must match both compiled trusted parents and its local bank slice.");
         foreach (CompiledReferenceBank bank in Banks)
         {
             DomainInvariant.Reject(bank.BankId is not ("a-bank" or "b-bank") ||
                 !bank.Reference.ArtifactId.StartsWith("ab-replace/", StringComparison.Ordinal) ||
                 bank.OutputRange.EndExclusive > reference.LengthBytes || bank.OutputRange.Length != bank.Reference.LengthBytes ||
-                new BankReferenceReplaceDefinition(layout, bank.LocalComposition).ContentHash != Definition.ContentHash,
+                new BankReferenceReplaceDefinition(layout, bank.LocalComposition,
+                    Definition.LocalBankRange, Definition.FinalizationKind).ContentHash != Definition.ContentHash,
                 "Bank identity, reference, placement and parent definition must agree.");
         }
     }

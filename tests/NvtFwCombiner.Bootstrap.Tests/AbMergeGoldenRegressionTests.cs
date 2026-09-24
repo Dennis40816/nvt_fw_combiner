@@ -15,7 +15,7 @@ namespace NvtFwCombiner.Bootstrap.Tests;
 public sealed partial class AbMergeGoldenRegressionTests
 {
     private const string Nt51929BundleDirectory = "nt51919-nt51929-nt51932-ab-merge";
-    private const string Nt51929BundleContentHash = "5acf2fd4d0757d7b757bf7491ff2f268d07cf70a76588f528d36b616e1e5eed0";
+    private const string Nt51929BundleContentHash = "892af5d0f1ff0094bb96a0e30ffad3b6c2cf18451a6705623c2ca97206422c6b";
     private const string Nt51950BundleDirectory = "nt51950-ab-merge";
     private const string Nt51950BundleContentHash = "18b43352606ca744f499e328d5778c3b9e08307a97fd122ac38fd8762d37c8d1";
 
@@ -565,7 +565,7 @@ public sealed partial class AbMergeGoldenRegressionTests
             CalculateCrc32Mpeg2(output.Slice(bTpCodeStart + CrcInputOffset, CrcInputLength)));
     }
 
-    private static uint CalculateCrc32Mpeg2(ReadOnlySpan<byte> bytes)
+    internal static uint CalculateCrc32Mpeg2(ReadOnlySpan<byte> bytes)
     {
         const uint Polynomial = 0x04C11DB7;
         uint remainder = uint.MaxValue;

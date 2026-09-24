@@ -56,9 +56,11 @@ internal static partial class CanonicalDynamicRouteInventory
         ArgumentNullException.ThrowIfNull(findMapBoundRegistration);
         // A resolver is created per catalog load; never retain failed or old definitions across reloads.
         var definitions = new Lazy<CanonicalCtrlRamDefinition[]>(() => [.. loadCtrlRamDefinitions()]);
-        var bankDefinition = new Lazy<BankReferenceReplaceDefinition>(CreateBankReplaceDefinition);
-        return identity => identity.RouteId == BankReplaceIdentity.RouteId
-            ? ResolveBankReplace(identity, bankDefinition.Value, definitions.Value)
+        var bankBindings = new Lazy<IReadOnlyDictionary<string, BankReplaceRouteBinding>>(
+            () => CreateBankReplaceBindings(definitions.Value));
+        return identity => identity.WorkflowId == ExperienceIds.CtrlRamReplace &&
+            bankBindings.Value.TryGetValue(identity.RouteId, out BankReplaceRouteBinding? bank)
+            ? ResolveBankReplace(bank)
             : Resolve(identity, definitions, findMapBoundRegistration);
     }
 

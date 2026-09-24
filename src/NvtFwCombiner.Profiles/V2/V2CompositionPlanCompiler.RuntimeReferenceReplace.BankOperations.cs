@@ -64,4 +64,34 @@ internal static partial class V2CompositionPlanCompiler
             OverlapPolicy.ReplaceExisting, restore ? "Restore canonical B addresses after local postbuild."
                 : "Normalize B addresses to the verified A Header addresses before postbuild.", canonical.Provenance);
     }
+
+    private static CompositionOperation PartialHeaderRelocation(
+        V2RuntimeReferenceBankReplaceBinding bank, int sequence, long field, long delta, ulong expected,
+        ScalarTransformAddendSource addendSource)
+    {
+        var range = new ByteRange(field, sizeof(uint));
+        return CompositionOperation.TransformScalar(
+            $"{bank.BankInstanceId}/normalize/header-0x{field:X}", sequence,
+            bank.WorkspaceId, range, bank.WorkspaceId, range,
+            new ScalarTransform(ScalarTransformWidth.FourBytes, ScalarTransformByteOrder.LittleEndian,
+                -delta, expected, ScalarTransformOverflowPolicy.Reject, addendSource),
+            OverlapPolicy.ReplaceExisting,
+            "Normalize the verified B Header address before the existing local CtrlRAM postbuild.");
+    }
+
+    private static CompositionOperation PartialAbFinalization(CompositionOperation canonical,
+        string output, int sequence)
+    {
+        ExternalProcessorInvocation source = canonical.ExternalProcessorInvocation!;
+        var invocation = new ExternalProcessorInvocation(source.ProcessorId, source.ToolBindingId,
+            source.AllowedReadRanges, source.AllowedWriteRanges,
+            source.StagedSourceBindings.Select(binding => new ExternalProcessorStagedSourceBinding(
+                output, binding.SourceRange, binding.FirmwareRange)), source.AllowedWriteRangeSections,
+            source.StagedArtifactBindings.Select(binding => new ExternalProcessorStagedArtifactBinding(
+                binding.ArtifactId, output, binding.SourceRange)), source.OutputAssertions, source.ProtocolPlan);
+        return CompositionOperation.RunExternalProcessor("ab-replace/b-finalize", sequence, output,
+            canonical.TargetRange, invocation, OverlapPolicy.ReplaceExisting,
+            "Use the trusted AB stage once to relocate B ILM/DLM and recalculate its Header CRC.",
+            canonical.Provenance);
+    }
 }

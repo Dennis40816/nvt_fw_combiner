@@ -14,7 +14,7 @@ public enum CtrlRamBaseKind
     StandardTp,
     /// <summary>A Standard complete flash reference.</summary>
     StandardFlash,
-    /// <summary>The declared NT51929 AB pair, possibly with blocking integrity issues.</summary>
+    /// <summary>A trusted AB bank pair, possibly with blocking integrity issues.</summary>
     AbFlash,
 }
 

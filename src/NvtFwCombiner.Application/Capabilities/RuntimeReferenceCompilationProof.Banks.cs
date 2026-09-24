@@ -73,6 +73,14 @@ public sealed partial class RuntimeReferenceCompilationProof
             composition.Plan.Initializations.Count == context.Banks.Count + 1);
         int firstProcessor = composition.Plan.OrderedOperations.First(static operation => operation.Kind == CompositionOperationKind.RunExternalProcessor).Sequence;
         CompositionOperation[] relocations = [.. context.LayoutComposition.Plan.OrderedOperations.Where(static operation => operation.Kind == CompositionOperationKind.TransformScalar)];
+        bool partial = context.Definition.FinalizationKind == BankReferenceFinalizationKind.RunAbHeaderProcessor;
+        CompositionOperation? abFinalizer = partial ? context.LayoutComposition.Plan.OrderedOperations.Single(static operation =>
+            operation.Kind == CompositionOperationKind.RunExternalProcessor) : null;
+        ByteRange[] headerAddressFields = abFinalizer is null ? [] :
+        [
+            .. abFinalizer.ExternalProcessorInvocation!.AllowedWriteRanges.Take(2).Select(range =>
+                new ByteRange(checked(range.Start - context.Definition.BankCapacityBytes), range.Length)),
+        ];
         foreach (CompiledReferenceBank bank in context.Banks)
         {
             var wholeBank = new ByteRange(0, bank.OutputRange.Length);
@@ -110,6 +118,20 @@ public sealed partial class RuntimeReferenceCompilationProof
 
             if (bank.BankId == "b-bank")
             {
+                if (partial)
+                {
+                    foreach (ByteRange field in headerAddressFields)
+                    {
+                        CompositionOperation normalize = Take($"b-bank/normalize/header-0x{field.Start:X}");
+                        Require(normalize.Kind == CompositionOperationKind.TransformScalar &&
+                            normalize.SourceSpaceId == bank.WorkspaceId && normalize.TargetSpaceId == bank.WorkspaceId &&
+                            normalize.SourceRange == field &&
+                            normalize.TargetRange == normalize.SourceRange &&
+                            normalize.ScalarTransform!.Addend == -context.Definition.BankCapacityBytes &&
+                            normalize.ScalarTransform.ExpectedBefore is not null &&
+                            normalize.Sequence > seed.Sequence && normalize.Sequence < firstProcessor);
+                    }
+                }
                 foreach (CompositionOperation canonical in relocations)
                 {
                     CompositionOperation normalize = Take(bank.BankId + "/normalize/" + canonical.OperationId);
@@ -139,6 +161,33 @@ public sealed partial class RuntimeReferenceCompilationProof
                 return space == bank.LocalComposition.Plan.OutputInitialization.ReferenceSpaceId ? bank.Reference.ArtifactId
                     : space == bank.LocalComposition.Plan.OutputSpaceId ? bank.WorkspaceId : space;
             }
+        }
+
+        if (partial && context.Banks.Any(static bank => bank.BankId == "b-bank"))
+        {
+            CompositionOperation canonical = abFinalizer!;
+            CompositionOperation finalizer = Take("ab-replace/b-finalize");
+            ExternalProcessorInvocation expected = canonical.ExternalProcessorInvocation!;
+            ExternalProcessorInvocation actual = finalizer.ExternalProcessorInvocation!;
+            Require(finalizer.Kind == CompositionOperationKind.RunExternalProcessor &&
+                finalizer.TargetSpaceId == composition.Plan.OutputSpaceId &&
+                finalizer.TargetRange == canonical.TargetRange &&
+                finalizer.Sequence > operations["b-bank/publish"].Sequence &&
+                expected.ProcessorId == actual.ProcessorId &&
+                expected.ToolBindingId == actual.ToolBindingId &&
+                expected.AllowedReadRanges.SequenceEqual(actual.AllowedReadRanges) &&
+                expected.AllowedWriteRanges.SequenceEqual(actual.AllowedWriteRanges) &&
+                expected.AllowedWriteRangeSections.SequenceEqual(actual.AllowedWriteRangeSections) &&
+                expected.OutputAssertions.SequenceEqual(actual.OutputAssertions) &&
+                ReferenceEquals(expected.ProtocolPlan, actual.ProtocolPlan) &&
+                expected.StagedSourceBindings.Select(binding => (composition.Plan.OutputSpaceId,
+                        binding.SourceRange, binding.FirmwareRange))
+                    .SequenceEqual(actual.StagedSourceBindings.Select(static binding =>
+                        (binding.SourceSpaceId, binding.SourceRange, binding.FirmwareRange))) &&
+                expected.StagedArtifactBindings.Select(binding => (binding.ArtifactId,
+                        composition.Plan.OutputSpaceId, binding.SourceRange))
+                    .SequenceEqual(actual.StagedArtifactBindings.Select(static binding =>
+                        (binding.ArtifactId, binding.SourceSpaceId, binding.SourceRange))));
         }
 
         Require(expectedIds.Count == operations.Count);

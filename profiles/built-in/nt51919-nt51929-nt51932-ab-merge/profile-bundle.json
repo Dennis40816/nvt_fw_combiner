@@ -3,7 +3,7 @@
   "bundleId": "nt51919-nt51929-nt51932-ab-merge-family",
   "bundleVersion": "1.1.10-full-image-metadata.1",
   "hashAlgorithm": "sha256-rfc8785-entry-array-v1",
-  "contentHash": "5acf2fd4d0757d7b757bf7491ff2f268d07cf70a76588f528d36b616e1e5eed0",
+  "contentHash": "892af5d0f1ff0094bb96a0e30ffad3b6c2cf18451a6705623c2ca97206422c6b",
   "trustAnchorBindingId": "built-in-profile-bundle-v2",
   "entries": [
     {
@@ -25,28 +25,28 @@
       "kind": "composition-profile",
       "path": "profiles/nt51919-ab-merge.json",
       "schemaId": "https://example.invalid/nfc/schemas/composition-profile-v2.schema.json",
-      "contentHash": "feb20aa11744e29c78647c943b038a02309ce43c80983ee17ac6f36c41ec69e8"
+      "contentHash": "28324622356d079d91f6af87bd049fc347f749be247f7e8fd7578601c231ea2b"
     },
     {
       "entryId": "nt51919-nt51929-nt51932-ab-merge-family",
       "kind": "firmware-family",
       "path": "families/nt51919-nt51929-nt51932-ab-merge.json",
       "schemaId": "https://example.invalid/nfc/schemas/firmware-family-v1.schema.json",
-      "contentHash": "d958f3ce755bc08bd8076ea3b674b0056d5204e40d691a5b38bfe0f3bb900ba8"
+      "contentHash": "87eab2aa0deb505a0ca938f5000d66ca1e9f59739520b5e2afd43fcd544edd78"
     },
     {
       "entryId": "nt51929-ab-merge-profile",
       "kind": "composition-profile",
       "path": "profiles/nt51929-ab-merge.json",
       "schemaId": "https://example.invalid/nfc/schemas/composition-profile-v2.schema.json",
-      "contentHash": "edb81d310d053a4385579db82bdcecc642b9a08e2737e4612b133dac077eedc0"
+      "contentHash": "52fccf8f3354e3f601f962e8a4b22095d61698f31ee382f7dd479ce7ffb51fc3"
     },
     {
       "entryId": "nt51932-ab-merge-profile",
       "kind": "composition-profile",
       "path": "profiles/nt51932-ab-merge.json",
       "schemaId": "https://example.invalid/nfc/schemas/composition-profile-v2.schema.json",
-      "contentHash": "b32b10d9c6a2aa5e4fbb5eec31516246df0c2b5ed12200818caac5233e179249"
+      "contentHash": "594a0cd31ccfd264e4ffc3e4a0fed087641cbc899eafd5e476d45d4d38cdd13b"
     }
   ]
 }

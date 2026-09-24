@@ -1,30 +1,78 @@
 using NvtFwCombiner.Application.Capabilities;
 using NvtFwCombiner.Domain.Composition;
+using NvtFwCombiner.Domain.Firmware;
+using NvtFwCombiner.Profiles.V2;
 
 namespace NvtFwCombiner.Infrastructure.Composition;
 
+internal sealed record BankReplaceRouteBinding(
+    CapabilityRouteIdentity Identity,
+    BankReferenceReplaceDefinition Definition,
+    CanonicalCtrlRamDefinition Local,
+    BuiltInV2Registration Layout);
+
 internal static partial class CanonicalDynamicRouteInventory
 {
-    internal static CapabilityRouteIdentity BankReplaceIdentity { get; } = new(
-        "NT51929", ExperienceIds.CtrlRamReplace, "1-ic", "nt51929-ab-merge-512k");
+    private const string PerfectAbBundleId = "nt51919-nt51929-nt51932-ab-merge";
+    private const string PartialAbBundleId = "nt51950-ab-merge";
 
-    internal static BankReferenceReplaceDefinition CreateBankReplaceDefinition()
+    internal static BankReplaceRouteBinding? FindBankReplaceBinding(string icId, string countVariant)
     {
-        return BuiltInV2BundleRegistry.All.TryGetValue("nt51919-nt51929-nt51932-ab-merge", out BuiltInV2Bundle? layout) &&
-            BuiltInV2BundleRegistry.All.TryGetValue("nt51929-ctrlram-replace-candidate", out BuiltInV2Bundle? local)
-            ? layout.GetBankReplaceDefinition(local)
-            : throw new InvalidDataException($"AB Replace route '{BankReplaceIdentity.RouteId}' requires both trusted parent bundles.");
+        CanonicalCtrlRamDefinition[] localDefinitions =
+            [.. CtrlRamV2RouteRegistry.All.SelectMany(CreateCtrlRamDefinitions)];
+        return CreateBankReplaceBindings(localDefinitions).Values.SingleOrDefault(binding =>
+            binding.Identity.IcId == icId && binding.Identity.IcCountVariant == countVariant);
     }
 
-    private static CanonicalDynamicRoute ResolveBankReplace(CapabilityRouteIdentity identity, BankReferenceReplaceDefinition definition,
+    internal static BankReplaceRouteBinding? FindBankReplaceBinding(string routeId)
+    {
+        CanonicalCtrlRamDefinition[] localDefinitions =
+            [.. CtrlRamV2RouteRegistry.All.SelectMany(CreateCtrlRamDefinitions)];
+        return CreateBankReplaceBindings(localDefinitions).GetValueOrDefault(routeId);
+    }
+
+    internal static IReadOnlyDictionary<string, BankReplaceRouteBinding> CreateBankReplaceBindings(
         IReadOnlyList<CanonicalCtrlRamDefinition> localDefinitions)
     {
-        CanonicalCtrlRamDefinition[] matches = [.. localDefinitions.Where(candidate => candidate.Route.ProfileId == definition.Local.ProfileId &&
-            candidate.Route.ProfileVersion == definition.Local.ProfileVersion && candidate.Identity.IcId == definition.Local.MemberId &&
-            candidate.Map.MapId == definition.Local.MapId && candidate.Map.CapacityBytes == definition.Local.CapacityBytes)];
-        CanonicalCtrlRamDefinition local = matches.Length == 1 ? matches[0] : throw new InvalidDataException(
-            $"AB Replace route '{identity.RouteId}' matched {matches.Length} definitions for parent '{definition.Local.ProfileId}@{definition.Local.ProfileVersion}'.");
-        return Create(identity, definition.DefinitionId, definition.Version, definition.ContentHash,
+        ArgumentNullException.ThrowIfNull(localDefinitions);
+        var bindings = new Dictionary<string, BankReplaceRouteBinding>(StringComparer.Ordinal);
+        foreach (string bundleId in new[] { PerfectAbBundleId, PartialAbBundleId })
+        {
+            BuiltInV2Bundle layoutBundle = BuiltInV2BundleRegistry.All[bundleId];
+            foreach (BuiltInV2Registration layout in BuiltInV2RegistrationRegistry.AbMerge.Where(registration =>
+                         registration.BundleContentHash == layoutBundle.ContentHash))
+            {
+                IReadOnlyList<FirmwareImageMap> maps = layout.GetMapVariants(out _, out IReadOnlyList<CompositionIssue> issues);
+                if (issues.Count != 0 || maps.Count != 1)
+                {
+                    throw new InvalidDataException($"AB layout for {layout.IcId} is not one trusted map.");
+                }
+                FirmwareImageMap map = maps[0];
+                foreach (CanonicalCtrlRamDefinition local in localDefinitions)
+                {
+                    BankReferenceReplaceAdmission? admission = layoutBundle.TryGetBankReplaceAdmission(
+                        BuiltInV2BundleRegistry.All[local.Route.BundleId], layout.IcId, local.Identity.IcId,
+                        layout.ProfileId, layout.ProfileVersion, map.MapId,
+                        local.Route.ProfileId, local.Route.ProfileVersion, local.Map.MapId);
+                    if (admission is null) { continue; }
+                    var identity = new CapabilityRouteIdentity(layout.IcId, ExperienceIds.CtrlRamReplace,
+                        admission.IcCountVariant, map.MapId);
+                    BankReferenceReplaceDefinition definition = admission.Definition;
+                    if (!bindings.TryAdd(identity.RouteId, new(identity, definition, local, layout)))
+                    {
+                        throw new InvalidDataException($"Duplicate AB Replace route '{identity.RouteId}'.");
+                    }
+                }
+            }
+        }
+        return bindings;
+    }
+
+    private static CanonicalDynamicRoute ResolveBankReplace(BankReplaceRouteBinding binding)
+    {
+        CanonicalCtrlRamDefinition local = binding.Local;
+        BankReferenceReplaceDefinition definition = binding.Definition;
+        return Create(binding.Identity, definition.DefinitionId, definition.Version, definition.ContentHash,
             [definition.Layout.MapId], BankReferenceReplaceDefinition.CompilerSemanticId,
             ["bank-definition:" + definition.ContentHash,
                 "postbuild-selector:" + local.Selector.Token, "postbuild-plan:" + local.PlanFingerprint]);

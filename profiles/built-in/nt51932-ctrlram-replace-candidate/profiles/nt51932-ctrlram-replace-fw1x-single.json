@@ -19,13 +19,14 @@
   "mapBinding": {
     "familyId": "nt51932-ctrlram-replace",
     "familyVersion": "0.4.0",
-      "familyContentHash": "a753e499753200ad74b6a7ed7d93ca55c95049101fba4dd3f56a9d6cc5925ddf",
+      "familyContentHash": "df75f34c325f06878bf16014ea805a4ea23cce6e87be8af9139a547b12a3bf5c",
     "mapIds": [
       "nt51932-ctrlram-fw1x-single-full-flash"
     ],
     "requiredRegionIds": [
       "flash-image",
       "fw-config-source",
+      "fw-config-backup",
       "header-crc-7100",
       "header-crc-7118",
       "nf-ctrlram",
@@ -161,6 +162,11 @@
         "kind": "map-region",
         "regionId": "header-copy"
       }
+    },
+    {
+      "viewId": "fw-config-backup-output",
+      "spaceId": "output-image",
+      "selector": { "kind": "map-region", "regionId": "fw-config-backup" }
     }
   ],
   "metadataBindings": [],
@@ -194,6 +200,11 @@
       "regionId": "header-copy",
       "access": "hidden",
       "reason": "Only the declared Legacy Combiner processor may refresh the 0x200-byte TP header copy and its CRC words."
+    },
+    {
+      "regionId": "fw-config-backup",
+      "access": "hidden",
+      "reason": "Only the declared Legacy Combiner processor may refresh the bounded 4 KiB FWConfig Backup."
     }
   ],
   "operations": [
@@ -227,7 +238,8 @@
         "nf-ctrlram-output",
         "normal-ctrlram-output",
         "vn-ctrlram-output",
-        "header-copy-output"
+        "header-copy-output",
+        "fw-config-backup-output"
       ],
       "stagedSourceBindings": [],
       "stagedArtifactBindings": [],

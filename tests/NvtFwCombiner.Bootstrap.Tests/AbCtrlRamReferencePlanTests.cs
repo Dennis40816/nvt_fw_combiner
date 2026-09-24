@@ -2,6 +2,7 @@ using System.Buffers.Binary;
 using System.Security.Cryptography;
 using System.Text.Json;
 using NvtFwCombiner.Application.ExternalTools;
+using NvtFwCombiner.Application.Capabilities;
 using NvtFwCombiner.Contracts.ExternalTools;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Domain.Firmware;
@@ -16,6 +17,290 @@ public sealed class AbCtrlRamReferencePlanTests
 {
     private static readonly JsonSerializerOptions EvidenceJsonOptions = new() { WriteIndented = true };
 
+    /// <summary>The existing NT51950 Single AB and local profiles compile one B-only prefix plan.</summary>
+    [Fact]
+    public void Nt51950SingleUsesExistingAbHeaderStageAfterLocalPostbuild()
+    {
+        BankReplaceRouteBinding binding = CanonicalDynamicRouteInventory.FindBankReplaceBinding("NT51950", "1-ic")!;
+        string expectedDirectory = Path.Combine(CanonicalGoldenTestData.Root, "NT51950", "ab-merge",
+            "boe-d82t80", "topology-unscoped", "nt51950-ab-boe-d82t80", "expected");
+        byte[] reference = File.ReadAllBytes(Directory.GetFiles(expectedDirectory, "*.bin").Single());
+        TrustedProfileBundleCatalog ab = V2StandardMergeGoldenTestSupport.LoadDeployedCatalog(
+            "nt51950-ab-merge", binding.Definition.Layout.Bundle.ContentHash);
+        TrustedProfileBundleCatalog local = V2StandardMergeGoldenTestSupport.LoadDeployedCatalog(
+            binding.Local.Route.BundleId, binding.Definition.Local.Bundle.ContentHash);
+        V2CompositionPlanCompileResult layout = ab.Compile(binding.Definition.Layout.ProfileId,
+            binding.Definition.Layout.ProfileVersion, "NT51950", ExperienceIds.AbMerge, 0x80000,
+            new TopologySelection(1, "single", TopologySelectionSource.Requested, "test"), [],
+            selectedInputSlotIds: ["dp-ab-input"]);
+        Assert.True(layout.IsCompiled, string.Join("; ", layout.Issues.Select(static issue => issue.Message)));
+        LegacyCombinerPostbuildProfile postbuild = BuiltInPostbuildProfileCatalog.GetProfiles("NT51950").Single();
+        LegacyCombinerPostbuildCommandPlan command = postbuild.ResolvePlan(
+            postbuild.PlanSelectors.Single(static selector => selector.Branch == LegacyCombinerPostbuildBranch.SingleChip));
+        ByteRange[] staged = [.. LegacyCombinerPostbuildPlanCompiler.GetStagedFileBlocks(command)
+            .Select(static block => block.FirmwareRange)];
+        var replace = new V2RuntimeReferenceReplaceCompileRequest(
+            [new("reference-base", "reference-base", 0x40000), new("source", "ctrlram-source", 1)],
+            [new ExplicitMapping("replace-nf", 100, ExplicitMappingOperationKind.ReplaceRange,
+                "source", new ByteRange(0, 1), CompositionAddressSpaceIds.OutputImage,
+                new ByteRange(0x22C00, 1), OverlapPolicy.Reject, alignment: 1,
+                reason: "Replace selected NF byte.")],
+            postbuildWriteRangeSections: LegacyCombinerPostbuildPlanCompiler.GetAllowedWriteRangeSectionsForStagedSources(
+                command, 0x40000, staged, staged), processorProtocolPlan: command.ProtocolPlan);
+        var payload = new FirmwareArtifactPayload("reference-base", reference);
+        FirmwareImageMap map = local.GetMapVariants(binding.Definition.Local.ProfileId,
+            binding.Definition.Local.ProfileVersion, "NT51950", ExperienceIds.CtrlRamReplace, out _, out _)
+            .Single(candidate => candidate.MapId == binding.Definition.Local.MapId);
+        V2CompositionPlanCompiler.ValidateAbReference(layout.CompiledComposition!, payload, binding.Definition, map);
+        V2RuntimeReferenceBankReplacePlan plan = V2CompositionPlanCompiler.PrepareAbRuntimeReferenceReplace(
+            layout.CompiledComposition!, payload, binding.Definition, 1, local,
+            [new V2RuntimeReferenceBankReplaceRequest("b-bank", replace)]);
+        Assert.Equal("b-bank", Assert.Single(plan.Banks).BankInstanceId);
+        Assert.Equal(0x40000, plan.Banks[0].OutputRange.Start);
+        Assert.Equal("ab-replace/b-finalize", plan.Plan.OrderedOperations[^1].OperationId);
+        Assert.Equal([new ByteRange(0x4A100, 4), new ByteRange(0x4A110, 4),
+            new ByteRange(0x4A130, 4)], plan.Plan.OrderedOperations[^1].ExternalProcessorInvocation!.AllowedWriteRanges);
+        CompiledComposition compiled = V2CompositionPlanCompiler.CompileAbRuntimeReferenceReplace(plan);
+        RuntimeReferenceCompilationProof proof = RuntimeReferenceCompilationProof.CreateBankReplace(compiled,
+            new Dictionary<string, LegacyCombinerPostbuildCommandPlan> { ["b-bank"] = command });
+        Assert.Contains("bank-definition:" + binding.Definition.ContentHash,
+            proof.ValidateAndGetSemanticBindings(compiled));
+    }
+
+    /// <summary>Each Partial-family topology uses its existing AB and CtrlRAM profiles; B only publishes its local prefix.</summary>
+    [Theory]
+    [InlineData("NT51950", "1-ic", "nt51950-fw200-single-auto-prj-676-20260717", 1, 0x40000)]
+    [InlineData("NT51950", "2-ic", "nt51951-fw200-cascade2-auto-prj-599-20260731", 2, 0x40000)]
+    [InlineData("NT51951", "1-ic", "nt51951-fw200-single-auto-prj-695-20260718", 1, 0x80000)]
+    [InlineData("NT51951", "2-ic", "nt51951-fw200-cascade2-auto-prj-599-20260731", 2, 0x80000)]
+    public void PartialFamilyCompilesExactExistingProfilesAndPreservesBankTail(
+        string member, string variant, string sourceCase, int count, int localLength)
+    {
+        BankReplaceRouteBinding binding = CanonicalDynamicRouteInventory.FindBankReplaceBinding(member, variant)!;
+        BankReferenceReplaceDefinition definition = binding.Definition;
+        JsonElement golden = CanonicalGoldenTestData.LoadDirectCase("ctrlram-replace", sourceCase);
+        JsonElement artifact = golden.GetProperty("artifacts").EnumerateArray().Single(static item =>
+            item.GetProperty("artifactId").GetString() == "expected-output");
+        byte[] local = File.ReadAllBytes(CanonicalGoldenTestData.ArtifactPath(artifact))[..localLength];
+        int bankLength = checked((int)definition.BankCapacityBytes);
+        byte[] bank = new byte[bankLength];
+        local.CopyTo(bank, 0);
+        if (bankLength > localLength)
+        {
+            bank.AsSpan(localLength).Fill(0x5A);
+        }
+        byte[] reference = [.. bank, .. bank];
+        foreach (int field in new[] { 0xA100, 0xA110, 0xA120 })
+        {
+            uint address = BinaryPrimitives.ReadUInt32LittleEndian(reference.AsSpan(bankLength + field, 4));
+            BinaryPrimitives.WriteUInt32LittleEndian(reference.AsSpan(bankLength + field, 4),
+                checked(address + (uint)bankLength));
+        }
+        TrustedProfileBundleCatalog ab = V2StandardMergeGoldenTestSupport.LoadDeployedCatalog(
+            BuiltInV2BundleRegistry.All.Single(entry => entry.Value.ContentHash ==
+                definition.Layout.Bundle.ContentHash).Key, definition.Layout.Bundle.ContentHash);
+        TrustedProfileBundleCatalog localCatalog = V2StandardMergeGoldenTestSupport.LoadDeployedCatalog(
+            binding.Local.Route.BundleId, definition.Local.Bundle.ContentHash);
+        FirmwareImageMap layoutMap = binding.Layout.GetMapVariants(out _, out _).Single();
+        TopologySelection? layoutTopology = layoutMap.Applicability.TopologyRequirement.Kind ==
+                TopologyRequirementKind.SingleChip
+            ? new TopologySelection(1, "single", TopologySelectionSource.Requested, "test")
+            : layoutMap.Applicability.TopologyRequirement.Kind == TopologyRequirementKind.Cascade
+                ? new TopologySelection(2, "cascade_2to8", TopologySelectionSource.Requested, "test")
+                : null;
+        V2CompositionPlanCompileResult layout = ab.Compile(definition.Layout.ProfileId,
+            definition.Layout.ProfileVersion, member, ExperienceIds.AbMerge, reference.LongLength,
+            layoutTopology, [], selectedInputSlotIds: ["dp-ab-input"]);
+        Assert.True(layout.IsCompiled, string.Join("; ", layout.Issues.Select(static issue => issue.Message)));
+        LegacyCombinerPostbuildProfile postbuild = BuiltInPostbuildProfileCatalog.GetProfiles(member).Single();
+        LegacyCombinerPostbuildCommandPlan command = postbuild.ResolvePlan(
+            postbuild.PlanSelectors.Single(selector => selector.Branch ==
+                (count == 1 ? LegacyCombinerPostbuildBranch.SingleChip : LegacyCombinerPostbuildBranch.Cascade)));
+        ByteRange[] staged = [.. LegacyCombinerPostbuildPlanCompiler.GetStagedFileBlocks(command)
+            .Select(static block => block.FirmwareRange)];
+        FirmwareImageMap localMap = localCatalog.GetMapVariants(definition.Local.ProfileId,
+            definition.Local.ProfileVersion, member, ExperienceIds.CtrlRamReplace, out _, out _)
+            .Single(candidate => candidate.MapId == definition.Local.MapId);
+        ByteRange normal = localMap.Regions.Single(static region => region.RegionId == "normal-ctrlram").Range;
+        var replace = new V2RuntimeReferenceReplaceCompileRequest(
+            [new("reference-base", "reference-base", localLength), new("source", "ctrlram-source", 1)],
+            [new ExplicitMapping("replace-normal", 100, ExplicitMappingOperationKind.ReplaceRange,
+                "source", new ByteRange(0, 1), CompositionAddressSpaceIds.OutputImage,
+                new ByteRange(normal.Start, 1), OverlapPolicy.Reject, alignment: 1,
+                reason: "Replace one selected Normal CtrlRAM byte.")],
+            postbuildWriteRangeSections: LegacyCombinerPostbuildPlanCompiler.GetAllowedWriteRangeSectionsForStagedSources(
+                command, localLength, staged, staged), processorProtocolPlan: command.ProtocolPlan);
+        var payload = new FirmwareArtifactPayload("reference-base", reference);
+        V2CompositionPlanCompiler.ValidateAbReference(layout.CompiledComposition!, payload, definition, localMap);
+        V2RuntimeReferenceBankReplacePlan plan = V2CompositionPlanCompiler.PrepareAbRuntimeReferenceReplace(
+            layout.CompiledComposition!, payload, definition, count, localCatalog,
+            [new V2RuntimeReferenceBankReplaceRequest("b-bank", replace)]);
+        Assert.Equal(bankLength, Assert.Single(plan.Banks).OutputRange.Start);
+        Assert.Equal(localLength, plan.Banks[0].OutputRange.Length);
+        Assert.Equal("ab-replace/b-finalize", plan.Plan.OrderedOperations[^1].OperationId);
+        Assert.DoesNotContain(plan.Plan.OrderedOperations, operation => operation.TargetRange.Start >=
+            2L * bankLength || operation.TargetRange.EndExclusive > 2L * bankLength);
+        CompiledComposition compiled = V2CompositionPlanCompiler.CompileAbRuntimeReferenceReplace(plan);
+        RuntimeReferenceCompilationProof proof = RuntimeReferenceCompilationProof.CreateBankReplace(compiled,
+            new Dictionary<string, LegacyCombinerPostbuildCommandPlan> { ["b-bank"] = command });
+        Assert.Contains("bank-definition:" + definition.ContentHash,
+            proof.ValidateAndGetSemanticBindings(compiled));
+        byte[] wrongBAddress = [.. reference];
+        BinaryPrimitives.WriteUInt32LittleEndian(wrongBAddress.AsSpan(bankLength + 0xA100, 4),
+            checked((uint)(bankLength + 0xA201)));
+        ArgumentException addressIssue = Assert.Throws<ArgumentException>(() =>
+            V2CompositionPlanCompiler.PrepareAbRuntimeReferenceReplace(layout.CompiledComposition!,
+                new FirmwareArtifactPayload("reference-base", wrongBAddress), definition, count, localCatalog,
+                [new V2RuntimeReferenceBankReplaceRequest("b-bank", replace)]));
+        Assert.Contains("AB address mismatch", addressIssue.Message, StringComparison.Ordinal);
+        byte[] mismatchedCount = [.. reference];
+        mismatchedCount[bankLength + 0x36017] = (byte)(count == 1 ? 2 : 1);
+        ArgumentException countIssue = Assert.Throws<ArgumentException>(() =>
+            V2CompositionPlanCompiler.PrepareAbRuntimeReferenceReplace(layout.CompiledComposition!,
+                new FirmwareArtifactPayload("reference-base", mismatchedCount), definition, count, localCatalog,
+                [new V2RuntimeReferenceBankReplaceRequest("b-bank", replace)]));
+        Assert.Contains("AB native IC count mismatch", countIssue.Message, StringComparison.Ordinal);
+        byte[] zeroCount = [.. reference];
+        zeroCount[bankLength + 0x36017] = 0;
+        ArgumentException zeroIssue = Assert.Throws<ArgumentException>(() =>
+            V2CompositionPlanCompiler.PrepareAbRuntimeReferenceReplace(layout.CompiledComposition!,
+                new FirmwareArtifactPayload("reference-base", zeroCount), definition, count, localCatalog,
+                [new V2RuntimeReferenceBankReplaceRequest("b-bank", replace)]));
+        Assert.Contains("Read 0", zeroIssue.Message, StringComparison.Ordinal);
+        foreach (int field in new[] { 0xA100, 0xA110 })
+        {
+            foreach (int unsafeBank in new[] { 0, bankLength })
+            {
+                byte[] outsideNativeView = [.. reference];
+                foreach (int bankBase in new[] { 0, bankLength })
+                {
+                    BinaryPrimitives.WriteUInt32LittleEndian(
+                        outsideNativeView.AsSpan(bankBase + field, sizeof(uint)),
+                        checked((uint)(bankBase + 0x36FF0)));
+                    BinaryPrimitives.WriteUInt32LittleEndian(
+                        outsideNativeView.AsSpan(bankBase + field + 8, sizeof(uint)),
+                        bankBase == unsafeBank ? 0x20u : 0u);
+                }
+                ArgumentException boundaryIssue = Assert.Throws<ArgumentException>(() =>
+                    V2CompositionPlanCompiler.PrepareAbRuntimeReferenceReplace(layout.CompiledComposition!,
+                        new FirmwareArtifactPayload("reference-base", outsideNativeView), definition, count, localCatalog,
+                        [new V2RuntimeReferenceBankReplaceRequest("b-bank", replace)]));
+                Assert.Contains("native processor staging view", boundaryIssue.Message, StringComparison.Ordinal);
+            }
+        }
+        byte[] outsideOverlayDescriptor = [.. reference];
+        foreach (int bankBase in new[] { 0, bankLength })
+        {
+            BinaryPrimitives.WriteUInt32LittleEndian(
+                outsideOverlayDescriptor.AsSpan(bankBase + 0xA110, sizeof(uint)),
+                checked((uint)(bankBase + 0x36FFC)));
+            BinaryPrimitives.WriteUInt32LittleEndian(
+                outsideOverlayDescriptor.AsSpan(bankBase + 0xA118, sizeof(uint)), 0);
+        }
+        foreach (string selectedBank in new[] { "a-bank", "b-bank" })
+        {
+            ArgumentException descriptorIssue = Assert.Throws<ArgumentException>(() =>
+                V2CompositionPlanCompiler.PrepareAbRuntimeReferenceReplace(layout.CompiledComposition!,
+                    new FirmwareArtifactPayload("reference-base", outsideOverlayDescriptor), definition, count, localCatalog,
+                    [new V2RuntimeReferenceBankReplaceRequest(selectedBank, replace)]));
+            Assert.Contains("DLM overlay descriptor", descriptorIssue.Message, StringComparison.Ordinal);
+        }
+    }
+
+    /// <summary>Every Perfect-family Cascade parent admits the native 2–8 boundary through the same bank-local plan.</summary>
+    [Theory]
+    [InlineData("NT51919", 2)]
+    [InlineData("NT51919", 3)]
+    [InlineData("NT51919", 8)]
+    [InlineData("NT51929", 2)]
+    [InlineData("NT51929", 3)]
+    [InlineData("NT51929", 8)]
+    [InlineData("NT51932", 2)]
+    [InlineData("NT51932", 3)]
+    [InlineData("NT51932", 8)]
+    public void CascadeUsesTheRequestedMemberAndKeepsBRestoration(string member, byte count)
+    {
+        BankReplaceRouteBinding binding = CanonicalDynamicRouteInventory.FindBankReplaceBinding(member, "2-8-ic")!;
+        BankReferenceReplaceDefinition definition = binding.Definition;
+        byte[] abReference = CascadeReference();
+        abReference[0x702B] = count;
+        abReference[0x4702B] = count;
+        TrustedProfileBundleCatalog ab = V2StandardMergeGoldenTestSupport.LoadDeployedCatalog(
+            "nt51919-nt51929-nt51932-ab-merge", definition.Layout.Bundle.ContentHash);
+        TrustedProfileBundleCatalog local = V2StandardMergeGoldenTestSupport.LoadDeployedCatalog(
+            binding.Local.Route.BundleId, definition.Local.Bundle.ContentHash);
+        V2CompositionPlanCompileResult layout = ab.Compile(definition.Layout.ProfileId,
+            definition.Layout.ProfileVersion, member, ExperienceIds.AbMerge, 0x80000, null, [],
+            selectedInputSlotIds: ["dp-ab-input"]);
+        Assert.True(layout.IsCompiled, string.Join("; ", layout.Issues.Select(static issue => issue.Message)));
+        var replace = new V2RuntimeReferenceReplaceCompileRequest(
+            [new("reference-base", "reference-base", 0x40000), new("source", "ctrlram-source", 1)],
+            [new ExplicitMapping("replace-nf", 100, ExplicitMappingOperationKind.ReplaceRange, "source",
+                new ByteRange(0, 1), CompositionAddressSpaceIds.OutputImage, new ByteRange(0x1FC00, 1),
+                OverlapPolicy.Reject, alignment: 1, reason: "Replace selected NF byte.")]);
+        var payload = new FirmwareArtifactPayload("reference-base", abReference);
+        V2CompositionPlanCompiler.ValidateAbReference(layout.CompiledComposition!, payload, definition,
+            local.GetMapVariants(definition.Local.ProfileId, definition.Local.ProfileVersion, member,
+                ExperienceIds.CtrlRamReplace, out _, out _).Single(map => map.MapId == definition.Local.MapId));
+        V2RuntimeReferenceBankReplacePlan plan = V2CompositionPlanCompiler.PrepareAbRuntimeReferenceReplace(
+            layout.CompiledComposition!, payload, definition, count, local,
+            [new V2RuntimeReferenceBankReplaceRequest("b-bank", replace)]);
+        Assert.Equal("b-bank", Assert.Single(plan.Banks).BankInstanceId);
+        Assert.Contains(plan.Plan.OrderedOperations, static operation => operation.OperationId.Contains("restore", StringComparison.Ordinal));
+    }
+
+    /// <summary>Native Cascade count, stride, and source pointers fail before any bank processor is scheduled.</summary>
+    [Theory]
+    [InlineData(0x4702B, 2, 1)]
+    [InlineData(0x4702B, 9, 1)]
+    [InlineData(0x47120, 0x0000, 2)]
+    [InlineData(0x47038, 0x3FFFF, 4)]
+    public void CascadeRejectsUnsafeBHeader(int offset, int value, int width)
+    {
+        BankReplaceRouteBinding binding = CanonicalDynamicRouteInventory.FindBankReplaceBinding("NT51932", "2-8-ic")!;
+        BankReferenceReplaceDefinition definition = binding.Definition;
+        byte[] reference = CascadeReference();
+        if (width == 1)
+        {
+            reference[offset] = checked((byte)value);
+        }
+        else if (width == 2)
+        {
+            BinaryPrimitives.WriteUInt16LittleEndian(reference.AsSpan(offset), checked((ushort)value));
+        }
+        else
+        {
+            BinaryPrimitives.WriteUInt32LittleEndian(reference.AsSpan(offset), checked((uint)value));
+        }
+        TrustedProfileBundleCatalog ab = V2StandardMergeGoldenTestSupport.LoadDeployedCatalog(
+            "nt51919-nt51929-nt51932-ab-merge", definition.Layout.Bundle.ContentHash);
+        TrustedProfileBundleCatalog local = V2StandardMergeGoldenTestSupport.LoadDeployedCatalog(
+            binding.Local.Route.BundleId, definition.Local.Bundle.ContentHash);
+        CompiledComposition layout = ab.Compile(definition.Layout.ProfileId, definition.Layout.ProfileVersion,
+            "NT51932", ExperienceIds.AbMerge, 0x80000, null, [], selectedInputSlotIds: ["dp-ab-input"])
+            .CompiledComposition!;
+        FirmwareImageMap map = local.GetMapVariants(definition.Local.ProfileId, definition.Local.ProfileVersion,
+            "NT51932", ExperienceIds.CtrlRamReplace, out _, out _)
+            .Single(candidate => candidate.MapId == definition.Local.MapId);
+        _ = Assert.Throws<ArgumentException>(() => V2CompositionPlanCompiler.ValidateAbReference(
+            layout, new FirmwareArtifactPayload("reference-base", reference), definition, map));
+    }
+
+    internal static byte[] CascadeReference()
+    {
+        byte[] localReference = File.ReadAllBytes(Path.Combine(CanonicalGoldenTestData.Root,
+            "NT51932", "ctrlram-replace", "fw2.0.0", "cascade-3",
+            "nt51932-fw200-cascade3-auto-prj-525-20260718", "expected",
+            "NT51932_FlashCode_D02T88_20260718.bin"));
+        byte[] abReference = [.. localReference, .. localReference];
+        foreach (int address in new[] { 0x7164, 0x7168, 0x716C })
+        {
+            uint value = BinaryPrimitives.ReadUInt32LittleEndian(localReference.AsSpan(address));
+            BinaryPrimitives.WriteUInt32LittleEndian(abReference.AsSpan(0x40000 + address), value + 0x40000);
+        }
+        return abReference;
+    }
+
     /// <summary>Different A/B payloads survive local processing and only selected banks change.</summary>
     [Theory]
     [InlineData(true, false)]
@@ -26,6 +311,9 @@ public sealed class AbCtrlRamReferencePlanTests
         byte[] original = ReadReference();
         original[0x43000] ^= 0x53;
         original[0x5FC00] ^= 0x6A;
+        uint bIlmSize = BinaryPrimitives.ReadUInt32LittleEndian(original.AsSpan(0x47108, 4));
+        Assert.True(bIlmSize > 0);
+        BinaryPrimitives.WriteUInt32LittleEndian(original.AsSpan(0x47108, 4), bIlmSize - 1);
         byte[] frozen = [.. original];
         V2RuntimeReferenceBankReplacePlan prepared = Prepare(original, Requests(selectA, selectB));
         original[0x3000] ^= 0xFF;
@@ -335,14 +623,17 @@ public sealed class AbCtrlRamReferencePlanTests
         IReadOnlyList<V2RuntimeReferenceBankReplaceRequest> requests, CompiledComposition? layoutOverride = null)
     {
         TrustedProfileBundleCatalog ab = V2StandardMergeGoldenTestSupport.LoadDeployedCatalog(
-            "nt51919-nt51929-nt51932-ab-merge", "5acf2fd4d0757d7b757bf7491ff2f268d07cf70a76588f528d36b616e1e5eed0");
+            "nt51919-nt51929-nt51932-ab-merge", "892af5d0f1ff0094bb96a0e30ffad3b6c2cf18451a6705623c2ca97206422c6b");
         V2CompositionPlanCompileResult compiled = ab.Compile("nt51929-ab-merge", "0.4.0", "NT51929", ExperienceIds.AbMerge,
             0x80000, null, [], selectedInputSlotIds: ["dp-ab-input"]);
         Assert.True(compiled.IsCompiled);
         TrustedProfileBundleCatalog local = V2StandardMergeGoldenTestSupport.LoadDeployedCatalog(
             "nt51929-ctrlram-replace-candidate", "309f29e33a8fb672e92ed441d6633fab829bee3bd4c94a93fd842a7f3bb157d0");
+        BankReferenceReplaceDefinition definition = ab.CreateBankReplaceDefinition(local, "NT51929",
+            "nt51929-ab-merge", "0.4.0", "nt51929-ab-merge-512k",
+            "nt51929-ctrlram-replace-fw200-single", "0.3.0", "nt51929-ctrlram-fw200-single-full-flash");
         return V2CompositionPlanCompiler.PrepareAbRuntimeReferenceReplace(layoutOverride ?? compiled.CompiledComposition!,
-            new FirmwareArtifactPayload("reference-base", reference), local, requests);
+            new FirmwareArtifactPayload("reference-base", reference), definition, 1, local, requests);
     }
 
     private static V2RuntimeReferenceBankReplaceRequest[] Requests(bool a, bool b)

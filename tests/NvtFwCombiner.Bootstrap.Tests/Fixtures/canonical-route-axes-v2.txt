@@ -75,3 +75,12 @@ NT51951|general-merge|not-applicable|generic
 NT51951|standard-merge|selector-free|nt51951-standard-merge-1024k
 NT51951|standard-merge|selector-free|nt51951-standard-merge-256k
 NT51951|standard-merge|selector-free|nt51951-standard-merge-512k
+NT51919|ctrlram-replace|1-ic|nt51919-ab-merge-512k
+NT51919|ctrlram-replace|2-8-ic|nt51919-ab-merge-512k
+NT51929|ctrlram-replace|2-8-ic|nt51929-ab-merge-512k
+NT51932|ctrlram-replace|1-ic|nt51932-ab-merge-512k
+NT51932|ctrlram-replace|2-8-ic|nt51932-ab-merge-512k
+NT51950|ctrlram-replace|1-ic|nt51950-ab-merge-512k
+NT51950|ctrlram-replace|2-ic|nt51950-ab-merge-1024k
+NT51951|ctrlram-replace|1-ic|nt51951-ab-merge-1024k
+NT51951|ctrlram-replace|2-ic|nt51951-ab-merge-1024k

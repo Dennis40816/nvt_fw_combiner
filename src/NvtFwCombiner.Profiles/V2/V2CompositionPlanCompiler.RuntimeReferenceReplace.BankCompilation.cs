@@ -9,7 +9,8 @@ internal static partial class V2CompositionPlanCompiler
         ArgumentNullException.ThrowIfNull(prepared);
         CompiledReferenceBank[] banks = [.. prepared.Banks.Select(static bank => new CompiledReferenceBank(
             bank.BankInstanceId, bank.WorkspaceId, bank.OutputRange, bank.Reference.Identity, bank.LocalComposition))];
-        var context = new RuntimeReferenceBankReplaceV2CompilationContext(prepared.AbLayout, prepared.Reference.Identity, prepared.Plan, banks);
+        var context = new RuntimeReferenceBankReplaceV2CompilationContext(prepared.AbLayout, prepared.Reference.Identity,
+            prepared.Definition, prepared.Plan, banks);
         BankReferenceReplaceDefinition definition = context.Definition;
         V2CompiledCompositionDetails local = banks[0].LocalComposition.V2Details;
         V2CompilationProvenance layoutSource = prepared.AbLayout.V2Details.Provenance;

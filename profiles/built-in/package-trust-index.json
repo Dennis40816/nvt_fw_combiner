@@ -407,7 +407,7 @@
       "bundleDirectory": "nt51932-ctrlram-replace-candidate",
       "bundleSchemaVersion": "1.0",
       "bundleVersion": "0.10.1-candidate.2",
-      "contentHash": "47361d7eb2c573f86f9d802f87d0db3ad8e0d41336a937ffe57a2a28239e7f61",
+      "contentHash": "da860e6146d0c755a64ec9bde4c467acf751dcaf1638fe43066d6b777cba0865",
       "materialization": {
         "compositionProfileSchemaFile": "composition-profile-v2.9.schema.json",
         "firmwareFamilySchemaFile": "firmware-family-v1.schema.json"
@@ -641,7 +641,7 @@
       "bundleDirectory": "nt51919-nt51929-nt51932-ab-merge",
       "bundleSchemaVersion": "1.0",
       "bundleVersion": "1.1.10-full-image-metadata.1",
-      "contentHash": "5acf2fd4d0757d7b757bf7491ff2f268d07cf70a76588f528d36b616e1e5eed0",
+      "contentHash": "892af5d0f1ff0094bb96a0e30ffad3b6c2cf18451a6705623c2ca97206422c6b",
       "materialization": {
         "compositionProfileSchemaFile": "composition-profile-v2.14.schema.json",
         "firmwareFamilySchemaFile": "firmware-family-v1.2-bank-instances.schema.json"

@@ -59,17 +59,23 @@ internal sealed class BuiltInV2Bundle
 
     internal string ContentHash { get; }
 
-    internal BankReferenceReplaceDefinition GetBankReplaceDefinition(BuiltInV2Bundle local)
+    internal BankReferenceReplaceAdmission? TryGetBankReplaceAdmission(BuiltInV2Bundle local,
+        string memberId, string localMemberId, string layoutProfileId, string layoutProfileVersion, string layoutMapId,
+        string localProfileId, string localProfileVersion, string localMapId)
     {
         ArgumentNullException.ThrowIfNull(local);
-        return _catalog.Value.CreateBankReplaceDefinition(local._catalog.Value);
+        return _catalog.Value.TryCreateBankReplaceAdmission(local._catalog.Value, memberId, localMemberId,
+            layoutProfileId, layoutProfileVersion, layoutMapId,
+            localProfileId, localProfileVersion, localMapId);
     }
 
     internal CompiledComposition CompileBankReplace(CompiledComposition layout,
-        FirmwareArtifactPayload reference, IReadOnlyList<V2RuntimeReferenceBankReplaceRequest> requests)
+        FirmwareArtifactPayload reference, BankReferenceReplaceDefinition definition,
+        int topologyCount, IReadOnlyList<V2RuntimeReferenceBankReplaceRequest> requests)
     {
         return V2CompositionPlanCompiler.CompileAbRuntimeReferenceReplace(
-            V2CompositionPlanCompiler.PrepareAbRuntimeReferenceReplace(layout, reference, _catalog.Value, requests));
+            V2CompositionPlanCompiler.PrepareAbRuntimeReferenceReplace(layout, reference,
+                definition, topologyCount, _catalog.Value, requests));
     }
 
     internal bool TryGetAbAuthoringDefinition(string profileId, string profileVersion,

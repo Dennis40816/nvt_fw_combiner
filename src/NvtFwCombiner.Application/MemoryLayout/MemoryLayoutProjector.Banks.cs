@@ -77,7 +77,10 @@ public static partial class MemoryLayoutProjector
             banks.Select(static bank => bank.BankId).Distinct(StringComparer.Ordinal).Count() != 2 ||
             banks.Any(bank => !output.Contains(bank.Range)) || banks[0].Range.Overlaps(banks[1].Range) ||
             context.Banks.Any(selected => !banks.Any(bank =>
-                bank.BankId == selected.BankId && bank.Range == selected.OutputRange));
+                bank.BankId == selected.BankId && bank.Range.Contains(selected.OutputRange) &&
+                selected.OutputRange == new ByteRange(
+                    checked(bank.Range.Start + context.Definition.LocalBankRange.Start),
+                    context.Definition.LocalBankRange.Length)));
         return invalid
             ? throw new InvalidOperationException("Bank display locators must agree with the complete canonical output and selected bank obligations.")
             : banks;
@@ -97,6 +100,12 @@ public static partial class MemoryLayoutProjector
         var projected = new List<ProjectedOperation>();
         foreach (CompositionOperation operation in plan.OrderedOperations)
         {
+            if (operation.TargetSpaceId == plan.OutputSpaceId &&
+                operation.Kind == CompositionOperationKind.RunExternalProcessor)
+            {
+                projected.Add(new ProjectedOperation(operation, operation.DeclaredWriteRanges));
+                continue;
+            }
             CompiledReferenceBank? bank = context.Banks.SingleOrDefault(bank => bank.WorkspaceId == operation.TargetSpaceId);
             if (bank is null)
             {

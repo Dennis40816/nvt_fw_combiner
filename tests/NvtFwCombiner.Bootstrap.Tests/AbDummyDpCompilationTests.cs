@@ -97,7 +97,7 @@ public sealed class AbDummyDpCompilationTests
             : "nt51919-nt51929-nt51932-ab-merge";
         string hash = legacyProcessorFamily
             ? "18b43352606ca744f499e328d5778c3b9e08307a97fd122ac38fd8762d37c8d1"
-            : "5acf2fd4d0757d7b757bf7491ff2f268d07cf70a76588f528d36b616e1e5eed0";
+            : "892af5d0f1ff0094bb96a0e30ffad3b6c2cf18451a6705623c2ca97206422c6b";
         using var workspace = TempWorkspace.Create("nfc-ab-dummy-compilation");
         TrustedProfileBundleCatalog catalog = AbMergeCandidateTestSupport.LoadSourceCandidateCatalog(
             workspace, bundle, hash);
@@ -152,10 +152,10 @@ public sealed class AbDummyDpCompilationTests
         Assert.Equal(composition.V2Details.Provenance.ResolvedMap.ImageMap.MapId,
             routed.V2Details.Provenance.ResolvedMap.ImageMap.MapId);
         Assert.Equal(expectedSlots, routed.V2Details.InputContract.Slots.Select(static slot => slot.SlotId));
-        // AB metadata remains TP-owned in Normal and Dummy modes: 929/932
+        // AB metadata remains TP-owned in Normal and Dummy modes: 919/929/932
         // have header bindings; 950/951 have independent primary observations.
         Assert.DoesNotContain(metadata.Entries, static entry => entry.SlotId == "dp-ab-input");
-        if (icId is "NT51929" or "NT51932")
+        if (icId is "NT51919" or "NT51929" or "NT51932")
         {
             Assert.Equal(5, metadata.Entries.Count);
             Assert.Contains(metadata.Entries, static entry => entry.SlotId == "tp-a-input");
@@ -166,10 +166,6 @@ public sealed class AbDummyDpCompilationTests
             Assert.Equal(["tp-a-input", "tp-b-input"], metadata.Entries.Select(static entry => entry.SlotId));
             Assert.All(metadata.Entries, static entry =>
                 Assert.Equal([MetadataReferencePurpose.Inspection], entry.Purposes));
-        }
-        else
-        {
-            Assert.Empty(metadata.Entries);
         }
     }
 
