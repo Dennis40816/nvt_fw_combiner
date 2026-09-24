@@ -35,7 +35,7 @@ $ApprovedPackageTrustIndexSha256 = 'a230518c7f33a0b9ab0a90250390a672e3579b57e90c
 $ApprovedCanonicalCapabilityPolicyPackageContract = [pscustomobject]@{
     path = 'docs/contracts/canonical-capability-policy-v1.json'
     role = 'capabilityPolicy'
-    sha256 = '8671a3aec41eaab51e53aaae022a3ae35faa50e700be4481a178e2f2b0eb0e8f'
+    sha256 = '7a3d35b7c80e2c459decd3c87e432c72f39ef282409b824b22a6a9d7d20ff5d6'
 }
 $ApprovedCanonicalGoldenAllowlistPath = Join-Path $PSScriptRoot '../testdata/golden/release-canonical-v1.json'
 $ApprovedCanonicalGoldenAllowlistSha256 = '18628e43e7b4789c9ec94f911e55b5dd2b50bd272aa13e0ba55350e8fa911e00'
