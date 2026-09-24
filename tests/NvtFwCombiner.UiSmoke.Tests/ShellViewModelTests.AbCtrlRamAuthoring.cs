@@ -216,8 +216,8 @@ public sealed partial class CtrlRamWorkflowTests
 
     /// <summary>Unavailable axes never inherit an accepted build from another IC.</summary>
     [Theory]
-    [InlineData("NT51950", "single")]
-    [InlineData("NT51932", "single")]
+    [InlineData("NT51926", "single")]
+    [InlineData("NT51923", "single")]
     public async Task AbCtrlRamUnsupportedAxesStayClosed(string icId, string number)
     {
         MainWindowViewModel viewModel = await CreateAbCtrlRamReadyAsync(AbCtrlRamBankSelection.Both);
