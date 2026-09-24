@@ -28,7 +28,7 @@ Owner allocation, 2026-09-24: investigate and repair in `1.1.11` the failure
 observed in the concurrent all-lane `test_verify_orchestration` run. The exact
 `1.1.10` candidate run failed this lane (214/217), while its three failed tests
 and then the complete module passed in isolated reruns (3/3 and 217/217). The
-[1.1.10 delivery checkpoint](../ui/v1.1.10-delivery.md#1111-verifier-orchestration-follow-up--2026-09-24)
+[1.1.10 delivery checkpoint](../ui/v1.1.10-delivery.md#1110-verifier-orchestration-repair--2026-09-24)
 retains logs and acceptance criteria. This allocation does not mark the failed
 run as passed or waive any applicable `1.1.10` release gate.
 
