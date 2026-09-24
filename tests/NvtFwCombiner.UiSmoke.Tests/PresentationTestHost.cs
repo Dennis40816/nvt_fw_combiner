@@ -23,7 +23,7 @@ internal static class PresentationTestHost
     {
         CompositionHostServices host = CompositionHostServices.Create(
             new ExternalProcessorEnvironmentLoader(ExternalEnvironment.Value),
-            RetainedDpReplaceRegressionPolicy.Load, configurationPath: workspace.PathFor("format.json"));
+            NvtFwCombiner.Infrastructure.Capabilities.BuiltInCanonicalCapabilityPolicy.Load, configurationPath: workspace.PathFor("format.json"));
         IEventBufferFormatConfigurationSession configuration = await host.GetEventBufferFormatConfigurationAsync(
             TestContext.Current.CancellationToken);
         Assert.True((await configuration.SaveAsync(configuration.CreateDefaultsDraft(),
@@ -48,8 +48,7 @@ internal static class PresentationTestHost
     {
         PresentationHostServices services = CreateServices(
             ApplicationVersionProvider.InformationalVersion,
-            static authoring => authoring,
-            useRetainedDpReplacePolicy: false);
+            static authoring => authoring);
         MainWindowViewModel viewModel = ShellViewModelFactory.Create(
             services,
             language);
@@ -156,13 +155,12 @@ internal static class PresentationTestHost
         var externalEnvironment = new ExternalProcessorEnvironmentLoader(ExternalEnvironment.Value);
         CompositionHostServices host = CompositionHostServices.Create(
             externalEnvironment,
-            RetainedDpReplaceRegressionPolicy.Load);
+            NvtFwCombiner.Infrastructure.Capabilities.BuiltInCanonicalCapabilityPolicy.Load);
         return new PresentationHostServices(
             new PresentationCompositionServices(
                 host.CompositionCapabilityExperience,
                 host.StandardMergeAuthoring,
                 host.AbMergeAuthoring,
-                host.DpReplaceAuthoring,
                 host.GeneralAuthoring,
                 host.CtrlRamAuthoring,
                 host.FirmwareInspectionExperience,
@@ -186,15 +184,10 @@ internal static class PresentationTestHost
 
     internal static PresentationHostServices CreateServices(
         string applicationVersion,
-        Func<IGeneralAuthoring, IGeneralAuthoring> generalAuthoringDecorator,
-        bool useRetainedDpReplacePolicy = true)
+        Func<IGeneralAuthoring, IGeneralAuthoring> generalAuthoringDecorator)
     {
         var externalEnvironment = new ExternalProcessorEnvironmentLoader(ExternalEnvironment.Value);
-        CompositionHostServices host = useRetainedDpReplacePolicy
-            ? CompositionHostServices.Create(
-                externalEnvironment,
-                RetainedDpReplaceRegressionPolicy.Load)
-            : CompositionHostServices.Create(externalEnvironment);
+        CompositionHostServices host = CompositionHostServices.Create(externalEnvironment);
         return CreateServices(applicationVersion, host, generalAuthoringDecorator);
     }
 
@@ -211,7 +204,6 @@ internal static class PresentationTestHost
                 host.CompositionCapabilityExperience,
                 host.StandardMergeAuthoring,
                 abMergeAuthoring ?? host.AbMergeAuthoring,
-                host.DpReplaceAuthoring,
                 generalAuthoringDecorator(host.GeneralAuthoring),
                 host.CtrlRamAuthoring,
                 host.FirmwareInspectionExperience,

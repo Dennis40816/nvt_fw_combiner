@@ -30,6 +30,44 @@ public sealed partial class FirmwareFamilyResolutionDefinition
             requiredMetadataStructureIds);
     }
 
+    /// <summary>
+    /// Resolves one explicitly profile-declared existing map for fixed layout facts only.
+    /// The caller's actual source extent remains separate and is never claimed as map capacity.
+    /// </summary>
+    internal FirmwareMapResolutionResult ResolveLayoutTemplateWithinForProfile(
+        FirmwareMapResolutionInputs actualInputs,
+        string layoutTemplateMapId,
+        IReadOnlySet<string> candidateMapIds,
+        IReadOnlySet<string> requiredMetadataStructureIds)
+    {
+        ArgumentNullException.ThrowIfNull(actualInputs);
+        ArgumentException.ThrowIfNullOrWhiteSpace(layoutTemplateMapId);
+        ArgumentNullException.ThrowIfNull(candidateMapIds);
+        ArgumentNullException.ThrowIfNull(requiredMetadataStructureIds);
+        if (!candidateMapIds.Contains(layoutTemplateMapId))
+        {
+            return FirmwareMapResolutionResult.Rejected(FirmwareMapResolutionRejectionKind.NoMatchingMap);
+        }
+
+        FirmwareImageMap? template = _imageMaps.SingleOrDefault(map =>
+            StringComparer.Ordinal.Equals(map.MapId, layoutTemplateMapId));
+        if (template is null)
+        {
+            return FirmwareMapResolutionResult.Rejected(FirmwareMapResolutionRejectionKind.NoMatchingMap);
+        }
+
+        var templateInputs = new FirmwareMapResolutionInputs(
+            actualInputs.MemberId,
+            actualInputs.ModeId,
+            template.CapacityBytes,
+            actualInputs.RequestedTopology,
+            actualInputs.Artifacts);
+        return ResolveMapCore(
+            templateInputs,
+            new HashSet<string>(StringComparer.Ordinal) { layoutTemplateMapId },
+            requiredMetadataStructureIds);
+    }
+
     private FirmwareMapResolutionResult ResolveMapCore(
         FirmwareMapResolutionInputs inputs,
         IReadOnlySet<string>? candidateMapIds,

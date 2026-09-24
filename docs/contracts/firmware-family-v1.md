@@ -1,4 +1,4 @@
-# Firmware Family Contract 1.1 through 1.2
+# Firmware Family Contract 1.1 through 1.3 successors
 
 The executable schema is [`firmware-family-v1.schema.json`](firmware-family-v1.schema.json).
 It is the canonical source for physical firmware facts shared by Normal, AB, Merge, Replace,
@@ -259,6 +259,74 @@ overlap rules, and partition the root capacity. Every region that has children i
 partitioned by its direct children. Every otherwise unclassified interval is represented by a
 `reserved` or `unmapped` region.
 `customer-information` and `ctrlram` are physical classifications, not workflow permissions.
+
+## Full-image metadata views
+
+The exact-hash successor
+[`firmware-family-v1.3-full-image-metadata.schema.json`](firmware-family-v1.3-full-image-metadata.schema.json)
+retains document `schemaVersion: "1.1"`, the common family schema identifier,
+family relationships, metadata relations, and all accepted TP Header subjects.
+It does not admit the separate bank-instance or A/B-format extensions.
+
+Optional `fullImageMetadataViews` contains declarations with `viewId`, exact
+`mapId`, nonempty unique `memberIds`, `metadataBindings`, and nonempty
+`evidenceRefs`. Each binding contains `bindingId`, exact `structureId`, nonempty
+unique `targetReferences`, and nonempty `evidenceRefs`. A target uses the existing
+`targetKind` (`span`, `field`, `series`, or `group`) and `targetId` vocabulary.
+Targets must exist in the exact canonical structure definition. Binding and view
+identifiers are unique in their containing collection; a structure appears at
+most once per view. Two views cannot select the same map/member pair.
+
+Every canonical artifact binding selected by a view, including every required
+metadata prerequisite, is supplied by the **same captured full-image artifact**.
+This is fixed source semantics, not a configurable source mapping. No offsets,
+address translations, space overrides, workflow, processor, operation, output,
+support, or mutation policy can be declared. Existing canonical locators and
+checked half-open ranges retain their authority.
+
+Omission and an explicit empty `fullImageMetadataViews` collection remain
+distinct representations; neither supplies a view. A present view with
+`metadataBindings: []` explicitly declares an empty metadata view. It does not
+fall back to a workflow or infer metadata from another map.
+
+Domain retains the exact immutable map and structure objects. Each selected
+member must belong to the map and have exactly one matching canonical structure
+binding. Existing family validation checks locators, prerequisite fields,
+ranges, and cycles. The view then requires every selected structure's direct
+prerequisite to occur in its binding set, thereby closing all transitive edges.
+Unrelated map-selection predicates do not add bindings to a view.
+
+The admitted read-only consumer loads views only from exact trusted
+`metadataProviderFamilies` owners. A declared provider missing from its owning
+bundle is invalid; an exact provider with no views supplies no view authority.
+The canonical capability catalog publishes the complete immutable view plans
+atomically with its other definitions, under the same `ResolutionToken`.
+Queries select only by explicit member and observed image capacity. Missing and
+ambiguous selections are typed failures; they never fall back to a DP workflow.
+A failed cold load publishes nothing. A failed reload retains the complete
+last-known-good publication and its original token, including its view plans.
+
+Each plan retains exact family/view/map/member references and both trusted
+bundle and family hashes, even for an explicitly empty view. Its source is a
+family view, never a fabricated profile. Entries come only from the exact
+selected view binding and targets. Their consumer purpose is `Inspection`;
+profile output-naming, Report-classification and execution purposes do not
+transfer with the references.
+
+The Domain view/member entrance and Application full-image inspector both
+accept one captured immutable payload. Its length must match the exact map;
+the Domain entrance supplies every selected canonical artifact binding from
+that same payload and shares the existing locator/prerequisite/decoder core.
+The artifact-list inspector rejects full-image plans. No resolved execution
+map or mode is manufactured, and unrelated map predicates are not evaluated.
+
+Generic full-image and CtrlRAM Reference discovery use this read-only query.
+Accepted exact workflow metadata plans remain terminal for both success and
+failure; a CtrlRAM plan without DPCMI retains its separate Report authority
+while the Reference uses the declared full-image view for DPCMI display.
+Standard inspection with a separate TP artifact retains its existing plan.
+This consumer grants no runtime registration, support, byte execution, output
+naming, Report classification or BIN-inspector formatting authority.
 
 ## Aliases
 

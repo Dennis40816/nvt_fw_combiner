@@ -77,35 +77,17 @@ public sealed class CanonicalCapabilityDependencyTests
         Assert.Equal(10, ctrlRamReplaceIcIds.Count);
     }
 
-    /// <summary>DP Replace exposure stays closed to members with trusted V2 runtime registrations.</summary>
+    /// <summary>Retired DP Replace has no authorable member or exact route.</summary>
     [Fact]
-    public void DpReplaceWorkflowRemainsClosedToV2RegisteredMembers()
+    public void DpReplaceWorkflowHasNoAuthorableMembers()
     {
-        string[] supportedIcIds =
-        [
-            .. GetAuthorableIcIds(ExperienceIds.DpReplace)
-                .Order(StringComparer.Ordinal),
-        ];
-        string[] registeredIcIds =
-        [
-            .. BootstrapTestHost.Canonical.Projection.GetDpReplaceProfileSummaries()
-                .Select(summary => summary.IcId)
-                .Order(StringComparer.Ordinal),
-        ];
-
-        Assert.Equal(registeredIcIds, supportedIcIds);
-        foreach (string icId in supportedIcIds)
+        Assert.Empty(GetAuthorableIcIds(ExperienceIds.DpReplace));
+        foreach (string icId in BootstrapTestHost.Canonical.Projection.GetIcIds())
         {
-            Assert.False(string.IsNullOrWhiteSpace(
-                BootstrapTestHost.Canonical.Projection
-                    .GetDpReplaceReferenceCapacityLabel(icId)));
-        }
-
-        foreach (string icId in BootstrapTestHost.Canonical.Projection.GetIcIds()
-                     .Except(supportedIcIds, StringComparer.Ordinal))
-        {
-            Assert.Null(BootstrapTestHost.Canonical.Projection
-                .GetDpReplaceReferenceCapacityLabel(icId));
+            CapabilityWorkflowReadiness readiness = BootstrapTestHost.Canonical.Projection
+                .GetReplaceWorkflowReadiness(icId, ExperienceIds.DpReplace);
+            Assert.False(readiness.HasExactRoute);
+            Assert.False(readiness.IsAvailable);
         }
     }
 

@@ -132,8 +132,12 @@ public sealed class AbMergePrimaryFirmwareConfigTests
 
     private static MetadataPlanDefinition CreatePlan(string icId, int count)
     {
-        BuiltInV2Registration registration = BuiltInV2RegistrationRegistry.FindAbMergeRegistration(icId, icId == "NT51950" ? "nt51950-ab-merge-maps" : "nt51951-ab-merge-1024k")!;
-        registration.TryCompile(null, count == 0 ? null : new TopologySelection(count, "test", TopologySelectionSource.Requested, "test"),
+        string mapVariant = icId == "NT51950"
+            ? count == 1 ? "nt51950-ab-merge-maps" : "nt51950-ab-cascade-maps"
+            : "nt51951-ab-merge-1024k";
+        BuiltInV2Registration registration = BuiltInV2RegistrationRegistry.FindAbMergeRegistration(icId, mapVariant)!;
+        registration.TryCompile(null,
+            count == 0 ? null : new TopologySelection(count, "test", TopologySelectionSource.Requested, "test"),
             out CompiledComposition? compiled, out IReadOnlyList<CompositionIssue> issues);
         Assert.Empty(issues);
         return registration.CreateMetadataPlan(Assert.IsType<CompiledComposition>(compiled));

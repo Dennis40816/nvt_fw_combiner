@@ -25,7 +25,8 @@ internal static class CapabilityPublicationCoherence
         CompiledComposition composition)
     {
         ArgumentNullException.ThrowIfNull(composition);
-        return composition.Eligibility == CompiledCompositionEligibility.V2RuntimeExecutable ||
+        return composition.IsV2BankReplaceCandidate ||
+               composition.Eligibility == CompiledCompositionEligibility.V2RuntimeExecutable ||
                (composition.Eligibility ==
                    CompiledCompositionEligibility.V2PlanCompiled &&
                composition.V2Details.Provenance.Promotion.Stage ==
@@ -137,6 +138,11 @@ internal static class CapabilityPublicationCoherence
             metadataPlan,
             runtimeReferenceProof,
             memoryLayoutContext);
+        if (compiledComposition.V2Details.Provenance.Context is RuntimeReferenceBankReplaceV2CompilationContext &&
+            (publication.Value != CapabilityPublicationStatus.Candidate || evidence.Value != CapabilityEvidenceStatus.ContractOnly))
+        {
+            throw new ArgumentException("AB Replace candidate cannot inherit a parent profile's publication or Golden status.");
+        }
         if (!StringComparer.Ordinal.Equals(
                 capabilityFingerprint,
                 compiledComposition.CapabilityFingerprint))

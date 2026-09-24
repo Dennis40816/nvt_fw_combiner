@@ -6,11 +6,7 @@ internal sealed partial class ReplacePresentationViewModel
     {
         ReplaceBaseSlot.ApplyDisplayText(
             Text.GetReplaceBaseTitle(SelectedReplaceMode),
-            Text.GetReplaceBaseDescription(
-                SelectedReplaceMode,
-                _stateBindings.IsWorkflowLoaded() && HasSelectedIc
-                    ? _compositionServices.Capabilities.GetDpReplaceReferenceCapacityLabel(SelectedIc)
-                    : null),
+            Text.GetReplaceBaseDescription(SelectedReplaceMode),
             Text.RequiredLabel,
             Text.OptionalLabel,
             Text.NoBinSelectedLabel,

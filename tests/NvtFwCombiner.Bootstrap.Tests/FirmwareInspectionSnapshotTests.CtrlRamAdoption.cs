@@ -1,6 +1,7 @@
 using System.Text.Json;
 using NvtFwCombiner.Application.Authoring;
 using NvtFwCombiner.Application.Capabilities;
+using NvtFwCombiner.Application.InputInspection;
 using NvtFwCombiner.Application.Metadata;
 using NvtFwCombiner.Application.Ports;
 using NvtFwCombiner.Domain.Composition;
@@ -34,11 +35,7 @@ public sealed partial class FirmwareInspectionSnapshotTests
                 (icId, workflowId, icCountVariant, outputCapacity) =>
                 {
                     calls.Add((icId, workflowId, icCountVariant, outputCapacity));
-                    return queryCatalog.ResolveUniqueMetadataPlan(
-                        icId,
-                        workflowId,
-                        icCountVariant,
-                        outputCapacity);
+                    return queryCatalog.ResolveFullImageMetadataPlan(icId, outputCapacity!.Value);
                 }),
             new DelegatingContentInspector(static (path, _, _) =>
             {
@@ -77,7 +74,7 @@ public sealed partial class FirmwareInspectionSnapshotTests
                 DpcmiMetadataContract.StructureId));
         Assert.NotEmpty(exact.MetadataPlan.Definition.ReportProjections);
         Assert.Equal(
-            [("NT51926", ExperienceIds.DpReplace, "1-ic", 0x40000L)],
+            [("NT51926", "full-image", "none", 0x40000L)],
             calls);
         Assert.Equal(
             "0200",
@@ -108,7 +105,7 @@ public sealed partial class FirmwareInspectionSnapshotTests
                 (icId, workflowId, icCountVariant, outputCapacity) =>
                 {
                     calls.Add((icId, workflowId, icCountVariant, outputCapacity));
-                    return queryCatalog.ResolveUniqueMetadataPlan(icId, workflowId, icCountVariant, outputCapacity);
+                    return queryCatalog.ResolveFullImageMetadataPlan(icId, outputCapacity!.Value);
                 }),
             new DelegatingContentInspector(static (path, _, _) =>
             {
@@ -143,7 +140,7 @@ public sealed partial class FirmwareInspectionSnapshotTests
             Assert.Single(catalog.Routes).ExactCapability);
         Assert.Empty(exact.MetadataPlan.Entries);
         Assert.Empty(exact.MetadataPlan.Definition.ReportProjections);
-        Assert.Equal([("NT51950", ExperienceIds.DpReplace, "1-ic", 0x40000L)], calls);
+        Assert.Equal([("NT51950", "full-image", "none", 0x40000L)], calls);
         Assert.NotNull(inspection.InputSlotStatus);
         Assert.Equal("D86-00", Assert.IsType<DpVersionMetadata>(inspection.DpVersion).DisplayValue);
         Assert.Equal("8600", Assert.IsType<CmiDpCodeMetadata>(inspection.CmiDpCode).VersionToken);
@@ -184,11 +181,7 @@ public sealed partial class FirmwareInspectionSnapshotTests
                         workflowId,
                         icCountVariant,
                         outputCapacity));
-                    return queryCatalog.ResolveUniqueMetadataPlan(
-                        icId,
-                        workflowId,
-                        icCountVariant,
-                        outputCapacity);
+                    return queryCatalog.ResolveFullImageMetadataPlan(icId, outputCapacity!.Value);
                 }),
             new DelegatingContentInspector(static (path, _, _) =>
             {
@@ -316,7 +309,7 @@ public sealed partial class FirmwareInspectionSnapshotTests
             finalPaths.SequenceEqual([secondBasePath, secondNormalPath]));
         Assert.Equal(
             Enumerable.Repeat(
-                ("NT51923", ExperienceIds.DpReplace, "1-ic", (long?)0x40000),
+                ("NT51923", "full-image", "none", (long?)0x40000),
                 3),
             metadataCalls);
 
@@ -326,7 +319,8 @@ public sealed partial class FirmwareInspectionSnapshotTests
                 BootstrapTestHost.Canonical.Projection));
         var countedAuthoring = new CtrlRamAuthoringExperience(
             countingAdapter,
-            BootstrapTestHost.Services.ExternalEnvironment);
+            BootstrapTestHost.Services.ExternalEnvironment,
+            new FirmwareArtifactClassificationResolver(BootstrapTestHost.Canonical.Catalog, BootstrapTestHost.Services.Compiler));
         FirmwareInspectionStatusBatch countedBatch = countedAuthoring.InspectInputSlots(
             "NT51923",
             [
@@ -355,15 +349,45 @@ public sealed partial class FirmwareInspectionSnapshotTests
         Assert.Equal(callsAfterInspection, countingAdapter.Counts);
     }
 
+    /// <summary>Prepare cannot adopt a compilation from a publication different from its base observations.</summary>
+    [Fact]
+    public void CtrlRamPrepareRefusesPublicationChangedBetweenClassificationAndCompilation()
+    {
+        var host = new IsolatedBootstrapTestHost();
+        Assert.True(host.Catalog.Reload(TestContext.Current.CancellationToken).Succeeded);
+        var adapter = new CountingCtrlRamAuthoringAdapter(new BuiltInCtrlRamAuthoringAdapter(host.Canonical.Catalog, host.Canonical.Projection));
+        var owner = new CtrlRamAuthoringExperience(adapter, host.Services.ExternalEnvironment,
+            new FirmwareArtifactClassificationResolver(host.Canonical.Catalog, host.Services.Compiler));
+        (Dictionary<string, string> paths, Dictionary<string, byte[]> bytes) = AbCtrlRamAuthoringTests.Inputs();
+        Assert.True(owner.PrepareSession(new(ExperienceIds.CtrlRamReplace), "NT51929", "single", paths, bytes).Succeeded);
+        adapter.BeforeResolve = () => Assert.True(host.Catalog.Reload(TestContext.Current.CancellationToken).Succeeded);
+        var state = new AuthoringSessionState(ExperienceIds.CtrlRamReplace);
+        CtrlRamAuthoringSessionPreparation refused = owner.PrepareSession(state, "NT51929", "single", paths, bytes);
+        Assert.False(refused.Succeeded);
+        Assert.Contains(refused.Issues, static issue => issue.Code == AuthoringSessionIssueCodes.StaleInspection);
+        Assert.Null(state.CurrentSnapshot);
+    }
+
     private sealed class CountingCtrlRamAuthoringAdapter(ICtrlRamAuthoringAdapter inner)
         : ICtrlRamAuthoringAdapter
     {
         internal int ResolveCalls { get; private set; }
+        internal Action? BeforeResolve { get; set; }
 
         internal (int Resolve, int IsAccepted) Counts =>
             (ResolveCalls, IsAcceptedCapabilityCalls);
 
         private int IsAcceptedCapabilityCalls { get; set; }
+
+        public CapabilityRouteResolutionResult ResolveAbReferenceRoute(string icId, string number)
+        {
+            return inner.ResolveAbReferenceRoute(icId, number);
+        }
+
+        public IReadOnlyList<CompositionIssue> ValidateAbReference(CompiledComposition layout, ReadOnlyMemory<byte> reference)
+        {
+            return inner.ValidateAbReference(layout, reference);
+        }
 
         public CtrlRamInspectionDisplay GetDiscoveryDisplay(
             string icId,
@@ -384,10 +408,11 @@ public sealed partial class FirmwareInspectionSnapshotTests
             string icId,
             string number,
             IReadOnlyDictionary<string, string> slotPaths,
-            CtrlRamFirmwareVersionDraftState? firmwareVersionEdit,
+            CtrlRamAuthoringDraftState? firmwareVersionEdit,
             IReadOnlyDictionary<string, byte[]>? selectedInputBytes = null)
         {
             ResolveCalls++;
+            BeforeResolve?.Invoke();
             return inner.Resolve(
                 icId,
                 number,
@@ -400,7 +425,7 @@ public sealed partial class FirmwareInspectionSnapshotTests
             string icId,
             string number,
             IReadOnlyDictionary<string, string> slotPaths,
-            CtrlRamFirmwareVersionDraftState? firmwareVersionEdit,
+            CtrlRamAuthoringDraftState? firmwareVersionEdit,
             IReadOnlyDictionary<string, byte[]>? selectedInputBytes,
             ResolvedCapability capability,
             out IReadOnlyDictionary<string, string> expectedPaths,

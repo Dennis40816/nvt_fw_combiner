@@ -44,8 +44,15 @@ class AgentGovernanceTests(unittest.TestCase):
         self._git("commit", "-q", "-m", "baseline")
         self.integration_base = self._git("rev-parse", "HEAD").stdout.strip()
         self.trusted_initial_base = self.integration_base
+        # Synthetic repositories have no production cutover unless a test
+        # explicitly constructs and selects its own sealed final batch.
+        self.cutover_patch = mock.patch.object(
+            repository_validator, "CAPABILITY_REUSE_CLASSIFICATION_CUTOVER", None
+        )
+        self.cutover_patch.start()
 
     def tearDown(self) -> None:
+        self.cutover_patch.stop()
         self.temporary_directory.cleanup()
 
     def _git(self, *arguments: str) -> subprocess.CompletedProcess[str]:
@@ -1117,6 +1124,173 @@ class AgentGovernanceTests(unittest.TestCase):
 
         self.assertTrue(any("immutable after commit" in error for error in self.validate()))
 
+    def _admit_candidate_with_mistaken_product_base(self) -> str:
+        self._change()
+        self._git("add", "--", "src/Product/Owner.cs")
+        self._git("commit", "-q", "-m", "product checkpoint without final evidence")
+        mistaken_base = self._git("rev-parse", "HEAD").stdout.strip()
+        self._write("src/Product/Owner.cs", "internal sealed class Owner { public int Value => 2; }\n")
+        self._write_record(self._record(integrationBase=mistaken_base))
+        self._git("add", "--", "src/Product/Owner.cs")
+        self._git("commit", "-q", "-m", "implement with mistaken admitted base")
+        return mistaken_base
+
+    def _checkpoint_reconciliation(self, **overrides: Any) -> dict[str, str]:
+        evidence = {
+            "expectedCheckpoint": self.trusted_initial_base,
+            "reviewer": "independent-reviewer",
+            "evidence": "Original base named an intermediate product commit; full checkpoint diff reviewed.",
+        }
+        evidence.update(overrides)
+        return evidence
+
+    def test_final_checkpoint_reconciliation_preserves_full_diff_and_next_batch(self) -> None:
+        mistaken_base = self._admit_candidate_with_mistaken_product_base()
+        first_record = self._final_record(
+            integrationBase=mistaken_base,
+            checkpointReconciliation=self._checkpoint_reconciliation(),
+        )
+        self._write_record(first_record)
+        self.assertEqual([], self.validate())
+        self._git("commit", "-q", "-m", "seal reconciled final batch")
+        first_evidence_commit = self._git("rev-parse", "HEAD").stdout.strip()
+        self.assertEqual([], self.validate())
+
+        self.integration_base = first_evidence_commit
+        self._change("src/Product/Other.cs")
+        self._write_record(self._record("TEST-02", ["src/Product/Other.cs"]))
+        self._git("add", ".")
+        self._git("commit", "-q", "-m", "implement next batch")
+        self._write_record(self._final_record("TEST-02", ["src/Product/Other.cs"]))
+        self._git("commit", "-q", "-m", "seal next final batch")
+        self.assertEqual([], self.validate())
+
+    def test_checkpoint_reconciliation_cannot_be_active_or_unnecessary(self) -> None:
+        self._change()
+        self._write_record(self._record(
+            checkpointReconciliation=self._checkpoint_reconciliation()
+        ))
+        self.assertTrue(any("checkpointReconciliation requires final-complete" in error
+                            for error in self.validate()))
+
+        self._git("add", ".")
+        self._git("commit", "-q", "-m", "implement with invalid active evidence")
+        self._write_record(self._final_record(
+            checkpointReconciliation=self._checkpoint_reconciliation()
+        ))
+        self.assertTrue(any("reconciliation is unnecessary for a correct base" in error
+                            for error in self.validate()))
+
+    def test_checkpoint_reconciliation_rejects_forgery_and_missing_first_active(self) -> None:
+        mistaken_base = self._admit_candidate_with_mistaken_product_base()
+        self._write_record(self._final_record(
+            integrationBase=mistaken_base,
+            checkpointReconciliation=self._checkpoint_reconciliation(expectedCheckpoint="a" * 40),
+        ))
+        self.assertTrue(any("does not bind the replay checkpoint" in error
+                            for error in self.validate()))
+        self._write_record(self._final_record(
+            integrationBase=mistaken_base,
+            checkpointReconciliation=self._checkpoint_reconciliation(reviewer="IMPLEMENTER"),
+        ))
+        self.assertTrue(any("reviewer must be independent" in error
+                            for error in self.validate()))
+        self._write_record(self._final_record(
+            integrationBase=mistaken_base,
+            checkpointReconciliation={**self._checkpoint_reconciliation(), "extra": "forbidden"},
+        ))
+        self.assertTrue(any("exact final evidence fields" in error
+                            for error in self.validate()))
+
+        self._write_record(self._final_record(
+            integrationBase=mistaken_base,
+            checkpointReconciliation=self._checkpoint_reconciliation(),
+        ))
+        self._write_record(self._final_record(
+            "TEST-02", ["src/Product/Owner.cs"], integrationBase=mistaken_base,
+            checkpointReconciliation=self._checkpoint_reconciliation(),
+        ))
+        self.assertTrue(any("requires original committed design-active history" in error
+                            for error in self.validate()))
+
+    def test_checkpoint_reconciliation_keeps_full_diff_and_evidence_mutation_guards(self) -> None:
+        mistaken_base = self._admit_candidate_with_mistaken_product_base()
+        self._change("src/Product/Other.cs")
+        self._write_record(self._final_record(
+            integrationBase=mistaken_base,
+            checkpointReconciliation=self._checkpoint_reconciliation(),
+        ))
+        self.assertTrue(any("lacks a design-active/current-final" in error and
+                            "src/Product/Other.cs" in error for error in self.validate()))
+
+        self._write("src/Product/Other.cs", "internal sealed class Other {}\n")
+        self._write_record(self._final_record(
+            integrationBase=mistaken_base,
+            checkpointReconciliation=self._checkpoint_reconciliation(),
+        ))
+        self._write("src/Product/Other.cs", "internal sealed class Other { public int Value => 3; }\n")
+        self._git("add", "--", "src/Product/Other.cs")
+        self._git("commit", "-q", "-m", "seal final with post-review product mutation")
+        self.assertTrue(any("final evidence commit changes governed paths" in error
+                            for error in self.validate()))
+
+    def test_checkpoint_reconciliation_is_immutable_after_final_commit(self) -> None:
+        mistaken_base = self._admit_candidate_with_mistaken_product_base()
+        record = self._final_record(
+            integrationBase=mistaken_base,
+            checkpointReconciliation=self._checkpoint_reconciliation(),
+        )
+        self._write_record(record)
+        self._git("commit", "-q", "-m", "seal reconciled final batch")
+        record["checkpointReconciliation"]["evidence"] = "Changed after final evidence"
+        self._write_record(record)
+        self.assertTrue(any("immutable after commit" in error for error in self.validate()))
+
+    def test_checkpoint_reconciliation_requires_base_on_first_active_ancestry(self) -> None:
+        original_branch = self._git("branch", "--show-current").stdout.strip()
+        self._git("checkout", "-q", "-b", "side")
+        self._change("src/Product/Other.cs")
+        self._git("add", "--", "src/Product/Other.cs")
+        self._git("commit", "-q", "-m", "unrelated side product commit")
+        side_base = self._git("rev-parse", "HEAD").stdout.strip()
+        self._git("checkout", "-q", original_branch)
+        self._change()
+        self._write_record(self._record(integrationBase=side_base))
+        self._git("add", ".")
+        self._git("commit", "-q", "-m", "admit with nonancestor base")
+        self._write_record(self._final_record(
+            integrationBase=side_base,
+            checkpointReconciliation=self._checkpoint_reconciliation(),
+        ))
+        self.assertTrue(any("checkpoint reconciliation Git ancestry is invalid" in error
+                            for error in self.validate()))
+
+    def test_checkpoint_reconciliation_does_not_hide_duplicate_ownership(self) -> None:
+        mistaken_base = self._admit_candidate_with_mistaken_product_base()
+        self._write_record(self._record("TEST-02"))
+        self._git("commit", "-q", "-m", "admit overlapping owner")
+        self._write_record(self._final_record(
+            integrationBase=mistaken_base,
+            checkpointReconciliation=self._checkpoint_reconciliation(),
+        ))
+        self._write_record(self._final_record("TEST-02"))
+        self.assertTrue(any("duplicate capability-reuse coverage" in error
+                            for error in self.validate()))
+
+    def test_checkpoint_reconciliation_keeps_direct_child_evidence_requirement(self) -> None:
+        mistaken_base = self._admit_candidate_with_mistaken_product_base()
+        final_record = self._final_record(
+            integrationBase=mistaken_base,
+            checkpointReconciliation=self._checkpoint_reconciliation(),
+        )
+        self._write("scratch/after-review.txt", "unrelated follow-up\n")
+        self._git("add", "--", "scratch/after-review.txt")
+        self._git("commit", "-q", "-m", "intervening unreviewed commit")
+        self._write_record(final_record)
+        self._git("commit", "-q", "-m", "seal late final evidence")
+        self.assertTrue(any("direct child of reviewedHead" in error
+                            for error in self.validate()))
+
     def test_final_record_remains_valid_after_redundant_containment_merge(self) -> None:
         evidence_commit = self._finalize_first_batch()
         reviewed_head = self._git("rev-parse", f"{evidence_commit}^").stdout.strip()
@@ -1632,6 +1806,208 @@ class AgentGovernanceTests(unittest.TestCase):
         self._git("commit", "-q", "-m", "finalize with unowned R3 record")
         self.assertTrue(any("external" in e and "TEST-01" in e for e in self.validate()))
 
+    def test_exact_canonical_document_authorities_require_r2(self) -> None:
+        authorities = (
+            "SPEC.md",
+            "docs/architecture/experience-and-access-policy.md",
+            "docs/architecture/nfc_roadmap.md",
+            "docs/architecture/supported-ic-matrix.md",
+            "docs/architecture/ic-workflow-flowcharts.md",
+        )
+        for path in authorities:
+            with self.subTest(path=path):
+                self.assertTrue(_is_capability_reuse_governed_path(path))
+                self.assertEqual("R2", repository_validator._capability_reuse_minimum_risk(path))
+
+        self._change("SPEC.md")
+        self._write_record(self._record(paths=["SPEC.md"], risk="R1"))
+        self.assertTrue(any("risk is below path minimum R2" in error for error in self.validate()))
+
+    def _seal_legacy_document_batch(self, *, omit_old_governed: bool = False) -> str:
+        self._change()
+        self._write("SPEC.md", "Historical specification\n")
+        if omit_old_governed:
+            self._change("src/Product/Other.cs")
+        self._write_record(self._record())
+        self._git("add", ".")
+        self._git("commit", "-q", "-m", "implement before classifier cutover")
+        self._write_record(self._final_record())
+        self._git("commit", "-q", "-m", "seal legacy final batch")
+        return self._git("rev-parse", "HEAD").stdout.strip()
+
+    def test_document_classifier_preserves_sealed_legacy_batch_then_governs_new_diff(self) -> None:
+        cutover = self._seal_legacy_document_batch()
+        with mock.patch.object(repository_validator, "CAPABILITY_REUSE_CLASSIFICATION_CUTOVER", cutover):
+            self.assertEqual([], self.validate())
+            self.integration_base = cutover
+            self._change("src/Product/Other.cs")
+            self._write("SPEC.md", "New specification\n")
+            self._write_record(self._record("TEST-02", ["src/Product/Other.cs"]))
+            self.assertTrue(any(
+                "lacks a design-active/current-final" in error and "SPEC.md" in error
+                for error in self.validate()
+            ))
+
+    def test_document_classifier_does_not_waive_old_governed_omission(self) -> None:
+        cutover = self._seal_legacy_document_batch(omit_old_governed=True)
+        with mock.patch.object(repository_validator, "CAPABILITY_REUSE_CLASSIFICATION_CUTOVER", cutover):
+            self.assertTrue(any(
+                "final capability-reuse admitted paths differ from governed diff" in error
+                for error in self.validate()
+            ))
+
+    def test_document_classifier_rejects_new_evidence_commit_mutation(self) -> None:
+        cutover = self._seal_legacy_document_batch()
+        self.integration_base = cutover
+        paths = ["src/Product/Other.cs", "SPEC.md"]
+        self._change("src/Product/Other.cs")
+        self._write("SPEC.md", "New specification\n")
+        self._write_record(self._record("TEST-02", paths))
+        self._git("add", ".")
+        self._git("commit", "-q", "-m", "implement after classifier cutover")
+        self._write_record(self._final_record("TEST-02", paths))
+        self._write("docs/architecture/nfc_roadmap.md", "Post-review mutation\n")
+        self._git("add", ".")
+        self._git("commit", "-q", "-m", "seal mutated evidence batch")
+        with mock.patch.object(repository_validator, "CAPABILITY_REUSE_CLASSIFICATION_CUTOVER", cutover):
+            self.assertTrue(any(
+                "final evidence commit changes governed paths after reviewedHead" in error
+                for error in self.validate()
+            ))
+
+    def test_document_classifier_requires_ancestor_sealed_final_cutover(self) -> None:
+        with mock.patch.object(repository_validator, "CAPABILITY_REUSE_CLASSIFICATION_CUTOVER", "a" * 40):
+            self.assertTrue(any("cutover is not on current HEAD ancestry" in error
+                                for error in self.validate()))
+        implementation_head = self._commit_candidate_with_active_record()
+        with mock.patch.object(repository_validator, "CAPABILITY_REUSE_CLASSIFICATION_CUTOVER", implementation_head):
+            self.assertTrue(any("cutover is not a sealed final evidence batch" in error
+                                for error in self.validate()))
+
+    def test_staged_final_cannot_claim_legacy_policy_with_old_base(self) -> None:
+        cutover = self._seal_legacy_document_batch()
+        self._write("SPEC.md", "New specification\n")
+        self._write_record(self._final_record(
+            "TEST-02", ["SPEC.md"], risk="R1",
+            integrationBase=self.trusted_initial_base,
+            designReview={"reviewer": None, "outcome": "not-required", "evidence": ""},
+        ))
+        with mock.patch.object(repository_validator, "CAPABILITY_REUSE_CLASSIFICATION_CUTOVER", cutover):
+            self.assertTrue(any("risk is below path minimum R2" in error
+                                for error in self.validate()))
+            self._write_record(self._final_record(
+                "TEST-02", ["SPEC.md"], integrationBase=self.trusted_initial_base
+            ))
+            self.assertTrue(any("must bind latest evidence checkpoint" in error
+                                for error in self.validate()))
+
+    def test_document_authority_names_do_not_expand_to_nearby_files(self) -> None:
+        nearby = (
+            "SPEC.md.backup",
+            "docs/architecture/supported-ic-matrix-draft.md",
+            "docs/ui/v1.1.10-delivery-copy.md",
+        )
+        for path in nearby:
+            with self.subTest(path=path):
+                self.assertFalse(_is_capability_reuse_governed_path(path))
+                self._change()
+                self._change(path)
+                self._write_record(self._record(paths=["src/Product/Owner.cs", path]))
+                self.assertTrue(any("mutable path is not governed" in error for error in self.validate()))
+
+    def test_delivery_evidence_can_finalize_with_governed_owner(self) -> None:
+        delivery = "docs/ui/v1.1.10-delivery.md"
+        paths = ["src/Product/Owner.cs", delivery]
+        self._change()
+        self._change(delivery)
+        self._write_record(self._record(paths=paths))
+        self.assertEqual([], self.validate())
+        self._git("add", ".")
+        self._git("commit", "-q", "-m", "implement with delivery evidence")
+        self._write_record(self._final_record(paths=paths))
+        self.assertEqual([], self.validate())
+        self._git("commit", "-q", "-m", "finalize with delivery evidence")
+        self.assertEqual([], self.validate())
+
+    def test_delivery_evidence_survives_overlapping_final_ownership(self) -> None:
+        delivery = "docs/ui/v1.1.10-delivery.md"
+        paths = ["src/Product/Owner.cs", delivery]
+        self._change()
+        self._change(delivery)
+        self._write_record(self._record("TEST-01", paths=paths))
+        self._write_record(self._record("TEST-02"))
+        self._git("add", ".")
+        self._git("commit", "-q", "-m", "implement overlapping owner and delivery")
+        self._write_record(self._final_record("TEST-01", paths=paths, integrationPaths=[]))
+        self._write_record(self._final_record("TEST-02", integrationPaths=["src/Product/Owner.cs"]))
+        self.assertEqual([], self.validate())
+        self._git("commit", "-q", "-m", "finalize overlapping owner and delivery")
+        self.assertEqual([], self.validate())
+
+    def test_delivery_evidence_requires_governed_owner(self) -> None:
+        delivery = "docs/ui/v1.1.10-delivery.md"
+        self._change(delivery)
+        self._write_record(self._record(paths=[delivery]))
+        self.assertTrue(any("auxiliary evidence requires a governed path" in error for error in self.validate()))
+
+    def test_delivery_evidence_must_be_in_current_diff(self) -> None:
+        delivery = "docs/ui/v1.1.10-delivery.md"
+        self._write(delivery, "baseline\n")
+        self._git("add", ".")
+        self._git("commit", "-q", "-m", "baseline delivery")
+        self.integration_base = self._git("rev-parse", "HEAD").stdout.strip()
+        self.trusted_initial_base = self.integration_base
+        self._change()
+        self._write_record(self._record(paths=["src/Product/Owner.cs", delivery]))
+        self.assertTrue(any("auxiliary documentation path is not in the current diff" in error
+                            for error in self.validate()))
+
+    def test_delivery_evidence_cannot_own_final_integration(self) -> None:
+        delivery = "docs/ui/v1.1.10-delivery.md"
+        paths = ["src/Product/Owner.cs", delivery]
+        self._change()
+        self._change(delivery)
+        self._write_record(self._record(paths=paths))
+        self._git("add", ".")
+        self._git("commit", "-q", "-m", "implement with delivery evidence")
+        self._write_record(self._final_record(paths=paths, integrationPaths=[delivery]))
+        self.assertTrue(any("integrationPaths must be an exact unique governed subset" in error
+                            for error in self.validate()))
+
+    def test_delivery_evidence_stays_in_digest_and_immutable_admission(self) -> None:
+        delivery = "docs/ui/v1.1.10-delivery.md"
+        paths = ["src/Product/Owner.cs", delivery]
+        self._change()
+        self._change(delivery)
+        self._write_record(self._record(paths=paths))
+        self._git("add", ".")
+        self._git("commit", "-q", "-m", "implement with delivery evidence")
+        final_record = self._final_record(paths=paths)
+        digest, error = _capability_path_state_digest(self.root, "HEAD", paths[:1])
+        self.assertIsNone(error)
+        final_record["pathStateDigest"] = digest
+        self._write_record(final_record)
+        self.assertTrue(any("pathStateDigest differs" in error for error in self.validate()))
+        self._write_record(self._record(paths=paths[:1]))
+        self.assertTrue(any("immutable admitted fields" in error for error in self.validate()))
+
+    def test_final_delivery_evidence_must_be_in_reviewed_diff(self) -> None:
+        delivery = "docs/ui/v1.1.10-delivery.md"
+        self._write(delivery, "baseline\n")
+        self._git("add", ".")
+        self._git("commit", "-q", "-m", "baseline delivery")
+        self.integration_base = self._git("rev-parse", "HEAD").stdout.strip()
+        self.trusted_initial_base = self.integration_base
+        paths = ["src/Product/Owner.cs", delivery]
+        self._change()
+        self._write_record(self._record(paths=paths))
+        self._git("add", ".")
+        self._git("commit", "-q", "-m", "implement without delivery change")
+        self._write_record(self._final_record(paths=paths))
+        self._git("commit", "-q", "-m", "finalize stale delivery evidence")
+        self.assertTrue(any("auxiliary documentation path is not in the reviewed diff" in error
+                            for error in self.validate()))
+
     def test_changed_auxiliary_test_does_not_grant_production_authority(self) -> None:
         self._change()
         self._change("tests/test_owner.py")
@@ -1643,7 +2019,7 @@ class AgentGovernanceTests(unittest.TestCase):
     def test_auxiliary_test_requires_governed_owner(self) -> None:
         self._change("tests/test_owner.py")
         self._write_record(self._record(paths=["tests/test_owner.py"]))
-        self.assertTrue(any("auxiliary tests require a governed path" in error for error in self.validate()))
+        self.assertTrue(any("auxiliary evidence requires a governed path" in error for error in self.validate()))
 
     def test_auxiliary_test_must_occur_in_current_diff(self) -> None:
         self._change()
@@ -1716,6 +2092,159 @@ class AgentGovernanceTests(unittest.TestCase):
         self._write_record(self._final_record(paths=paths))
         self._git("commit", "-q", "-m", "finalize stale test evidence")
         self.assertTrue(any("auxiliary test path is not in" in error for error in self.validate()))
+
+    def _admit_unchanged_reconcilable_test(
+        self, *, implementation_owner: str = "implementer"
+    ) -> tuple[str, list[str]]:
+        task_id = "PARTIAL-AB-BANK-110-01"
+        auxiliary = "tests/NvtFwCombiner.Bootstrap.Tests/AbDummyDpOutputTests.cs"
+        self._write(auxiliary, "// unchanged test evidence\n")
+        self._git("add", "--", auxiliary)
+        self._git("commit", "-q", "-m", "baseline auxiliary test")
+        self.integration_base = self._git("rev-parse", "HEAD").stdout.strip()
+        self.trusted_initial_base = self.integration_base
+        paths = ["src/Product/Owner.cs", auxiliary]
+        self._change()
+        self._write_record(self._record(task_id, paths, implementationOwner=implementation_owner))
+        self._git("add", "--", "src/Product/Owner.cs")
+        self._git("commit", "-q", "-m", "admit unchanged auxiliary test")
+        return task_id, paths
+
+    def _unchanged_auxiliary_reconciliation(self, **overrides: Any) -> dict[str, str]:
+        evidence = {
+            "path": "tests/NvtFwCombiner.Bootstrap.Tests/AbDummyDpOutputTests.cs",
+            "expectedCheckpoint": self.trusted_initial_base,
+            "reviewer": "independent-reviewer",
+            "evidence": "Original admitted test blob and mode stayed unchanged through reviewed ancestry.",
+        }
+        evidence.update(overrides)
+        return evidence
+
+    def test_single_unchanged_auxiliary_reconciliation_survives_final_and_next_batch(self) -> None:
+        task_id, paths = self._admit_unchanged_reconcilable_test()
+        self._write_record(self._final_record(
+            task_id, paths,
+            auxiliaryPathReconciliation=self._unchanged_auxiliary_reconciliation(),
+        ))
+        self.assertEqual([], self.validate())
+        self._git("commit", "-q", "-m", "seal reconciled auxiliary evidence")
+        self.assertEqual([], self.validate())
+        self.integration_base = self._git("rev-parse", "HEAD").stdout.strip()
+        self._change("src/Product/Other.cs")
+        self._write_record(self._record("TEST-02", ["src/Product/Other.cs"]))
+        self._git("add", ".")
+        self._git("commit", "-q", "-m", "implement next batch")
+        self._write_record(self._final_record("TEST-02", ["src/Product/Other.cs"]))
+        self._git("commit", "-q", "-m", "seal next batch")
+        self.assertEqual([], self.validate())
+
+    def test_auxiliary_reconciliation_rejects_bad_fields(self) -> None:
+        task_id, paths = self._admit_unchanged_reconcilable_test()
+        for evidence in (
+            self._unchanged_auxiliary_reconciliation(extra="forbidden"),
+            self._unchanged_auxiliary_reconciliation(path="tests/other.cs"),
+            self._unchanged_auxiliary_reconciliation(expectedCheckpoint="a" * 40),
+            self._unchanged_auxiliary_reconciliation(reviewer="IMPLEMENTER"),
+            self._unchanged_auxiliary_reconciliation(evidence=""),
+        ):
+            with self.subTest(evidence=evidence):
+                self._write_record(self._final_record(
+                    task_id, paths, auxiliaryPathReconciliation=evidence,
+                ))
+                self.assertTrue(any("auxiliary" in error for error in self.validate()))
+        self._write_record(self._final_record(
+            task_id, paths,
+            auxiliaryPathReconciliation=self._unchanged_auxiliary_reconciliation(),
+        ))
+        self.assertEqual([], self.validate())
+        self._write_record(self._final_record(
+            task_id, paths,
+            auxiliaryPathReconciliation=self._unchanged_auxiliary_reconciliation(),
+            pathStateDigest="0" * 64,
+        ))
+        self.assertTrue(any("pathStateDigest differs" in error for error in self.validate()))
+        self._write_record(self._record(task_id, paths,
+            auxiliaryPathReconciliation=self._unchanged_auxiliary_reconciliation()))
+        self.assertTrue(any("auxiliaryPathReconciliation requires final-complete" in error
+                            for error in self.validate()))
+
+    def test_auxiliary_reconciliation_rejects_intermediate_change_and_restore(self) -> None:
+        task_id, paths = self._admit_unchanged_reconcilable_test()
+        auxiliary = paths[1]
+        self._write(auxiliary, "// changed temporarily\n")
+        self._git("add", "--", auxiliary)
+        self._git("commit", "-q", "-m", "change admitted test")
+        self._write(auxiliary, "// unchanged test evidence\n")
+        self._git("add", "--", auxiliary)
+        self._git("commit", "-q", "-m", "restore admitted test")
+        self._write_record(self._final_record(
+            task_id, paths,
+            auxiliaryPathReconciliation=self._unchanged_auxiliary_reconciliation(),
+        ))
+        self.assertTrue(any("changed within reviewed ancestry" in error for error in self.validate()))
+
+    def test_auxiliary_reconciliation_rejects_renamed_and_restored_path(self) -> None:
+        task_id, paths = self._admit_unchanged_reconcilable_test()
+        auxiliary = paths[1]
+        renamed = "tests/NvtFwCombiner.Bootstrap.Tests/Renamed.cs"
+        self._git("mv", auxiliary, renamed)
+        self._git("commit", "-q", "-m", "rename admitted test")
+        self._git("mv", renamed, auxiliary)
+        self._git("commit", "-q", "-m", "restore admitted path")
+        self._write_record(self._final_record(
+            task_id, paths,
+            auxiliaryPathReconciliation=self._unchanged_auxiliary_reconciliation(),
+        ))
+        self.assertTrue(any("changed within reviewed ancestry" in error for error in self.validate()))
+
+    def test_auxiliary_reconciliation_rejects_mode_change(self) -> None:
+        task_id, paths = self._admit_unchanged_reconcilable_test()
+        self._git("update-index", "--chmod=+x", paths[1])
+        self._git("commit", "-q", "-m", "change admitted test mode")
+        self._write_record(self._final_record(
+            task_id, paths,
+            auxiliaryPathReconciliation=self._unchanged_auxiliary_reconciliation(),
+        ))
+        self.assertTrue(any("path differs between checkpoint and reviewedHead" in error
+                            for error in self.validate()))
+
+    def test_auxiliary_reconciliation_rejects_root_reviewer_alias(self) -> None:
+        task_id, paths = self._admit_unchanged_reconcilable_test(implementation_owner="root")
+        self._write_record(self._final_record(
+            task_id, paths, implementationOwner="root",
+            auxiliaryPathReconciliation=self._unchanged_auxiliary_reconciliation(reviewer="/ROOT"),
+        ))
+        self.assertTrue(any("reviewer must be independent" in error for error in self.validate()))
+
+    def test_auxiliary_reconciliation_rejects_wrong_task(self) -> None:
+        self._admit_unchanged_reconcilable_test()
+        self._write_record(self._record(
+            "TEST-02", ["src/Product/Owner.cs", "tests/NvtFwCombiner.Bootstrap.Tests/AbDummyDpOutputTests.cs"],
+            auxiliaryPathReconciliation=self._unchanged_auxiliary_reconciliation(),
+        ))
+        self.assertTrue(any("is not authorized for task/path" in error for error in self.validate()))
+
+    def test_auxiliary_reconciliation_rejects_changed_final_diff(self) -> None:
+        task_id, paths = self._admit_unchanged_reconcilable_test()
+        self._write(paths[1], "// changed by implementation\n")
+        self._git("add", "--", paths[1])
+        self._git("commit", "-q", "-m", "change auxiliary test")
+        self._write_record(self._final_record(
+            task_id, paths,
+            auxiliaryPathReconciliation=self._unchanged_auxiliary_reconciliation(),
+        ))
+        self.assertTrue(any("path differs between checkpoint and reviewedHead" in error
+                            for error in self.validate()))
+
+    def test_auxiliary_reconciliation_rejects_missing_final_blob(self) -> None:
+        task_id, paths = self._admit_unchanged_reconcilable_test()
+        self._git("rm", "--", paths[1])
+        self._git("commit", "-q", "-m", "remove auxiliary test")
+        self._write_record(self._final_record(
+            task_id, paths,
+            auxiliaryPathReconciliation=self._unchanged_auxiliary_reconciliation(),
+        ))
+        self.assertTrue(any("requires a regular Git blob" in error for error in self.validate()))
 
     def test_non_governed_active_path_fails_before_history_audit(self) -> None:
         self._change()

@@ -46,6 +46,7 @@ public sealed class FirmwareMapResolutionResultTests
         ResolvedFirmwareImageMap resolved = Assert.IsType<ResolvedFirmwareImageMap>(result.ResolvedMap);
 
         Assert.Equal(FirmwareMapResolutionStatus.Unique, result.Status);
+        Assert.Equal("Common", resolved.DisplayName);
         Assert.Same(resolved, result.ResolvedMap);
         Assert.Equal(["a-artifact", "z-artifact"], resolved.ArtifactIdentities.Select(static identity => identity.ArtifactId));
         Assert.Empty(resolved.ResolvedMetadataStructures);

@@ -1,0 +1,40 @@
+{
+  "schemaVersion": 2,
+  "taskId": "VERIFY-1110-COLLECTION-BOUNDARY-01",
+  "capability": "Keep repository-script pytest collection inside its selected root and move the observed concurrent verifier repair into 1.1.10",
+  "integrationBase": "b9a94a2bab1a7bc05129b3438f0c0afeaaf45ad4",
+  "risk": "R2",
+  "kind": "behavior",
+  "state": "final-complete",
+  "mutablePaths": [
+    "scripts/verify.py",
+    "tests/scripts/test_verify_orchestration.py",
+    "docs/architecture/nfc_roadmap.md",
+    "docs/ui/v1.1.10-delivery.md"
+  ],
+  "implementationOwner": "/root",
+  "searchEvidence": [
+    "On 2026-09-24 the owner moved the concurrent test_verify_orchestration repair from 1.1.11 into 1.1.10. docs/architecture/nfc_roadmap.md is the sole future-version allocation owner; docs/ui/v1.1.10-delivery.md is auxiliary evidence, not policy.",
+    "scripts/verify.py::verify_repository_scripts is the one existing repository-script pytest execution owner. It already selects exact test modules, creates independent --basetemp scratch, and rejects Python selection overrides. No repository conftest.py exists. The earlier ROADMAP-1111-VERIFY-ORCHESTRATION-01 admission is immutable and cannot authorize the new version decision.",
+    "Current d6b8ad319 full --skip-structure diagnostic log D:/NvtFwCombiner-TestArea/artifacts/v1110-verifier-diagnostic-d6.log failed test_verify_orchestration 1/217. Preserved raw synthetic child log D:/NvtFwCombiner-TestArea/artifacts/v1110-verifier-raw-d6/tmphe6c52mg/logs/second.log shows pytest collection calling Windows samefile on a sibling directory under the shared test-area session that was absent at inspection; the remover and causes of other failures are not established. _pytest/main.py traverses the explicit test file's ancestors unless confcutdir limits that traversal. A new uncommitted behavioral regression fails deterministically when parent scratch conftest.py is loaded despite an exact selected child test root. The same diagnostic run also hit a separate Bootstrap formal-route 180-second timeout; this record does not classify or waive it."
+  ],
+  "semanticOwner": "scripts/verify.py::verify_repository_scripts owns the single pytest invocation and selected-root boundary; tests/scripts/test_verify_orchestration.py verifies observable collection, mixed-framework completion, scratch isolation, and managed cancellation; the roadmap owns version allocation and delivery records dated evidence",
+  "terminalContract": "Repository-script verification runs each selected test module completely while pytest collects only from the selected REPOSITORY_SCRIPT_TESTS root, without traversing ancestors above the selected root or inspecting siblings in those shared ancestors. Preserve the exact shard selection, independent scratch and cleanup, managed descendant cancellation, rejection of forbidden overrides, and nonzero failures. On a failed child, retain its raw log bytes in a lossless assertion representation and provide an explicit readable decoding fallback that cannot mask the original nonzero exit or exception. Do not use retries, higher timeouts, decoding suppression alone, or weaker pass criteria as the repair. Move this work into 1.1.10 in the canonical roadmap and delivery evidence, preserving the historical 1.1.11 allocation and failed-run evidence as superseded history. Keep Golden, R3 owner authority, exact-source full verifier, and release gates intact; independently diagnose the separate Bootstrap timeout if it recurs. At final integration uniquely transfer governed path ownership to this record without rewriting earlier admissions, and rebind and review all existing final records against the new exact head.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "/root/r2_final_review",
+    "outcome": "findings-incorporated",
+    "evidence": "Independent R2 design review on 2026-09-24 of the exact proposed owner, four paths, terminal contract and preserved raw synthetic child log. Reviewer confirmed pytest 8.4.2 _pytest/main.py parent traversal and Windows samefile explain the collection boundary failure; the deterministic red regression proves ancestor conftest loading. Three P2 wording corrections are incorporated before this first staged admission: do not assert which actor removed the absent sibling, limit the no-sibling contract to ancestors above the selected test root, and require lossless raw failure bytes plus an explicit readable decoding fallback instead of generic diagnostics. The separate .NET Bootstrap timeout remains unresolved and all full-verifier, R3 and release gates remain in force."
+  },
+  "implementationHead": "183a0d3652a81fb30dcb977d6ff1338f0f3bcd0f",
+  "reviewedHead": "183a0d3652a81fb30dcb977d6ff1338f0f3bcd0f",
+  "pathStateDigest": "e33f22f391d3b037399b61e8190615908209dae8260cd4a5baae085315758b04",
+  "finalReview": {
+    "reviewer": "/root/r2_final_review",
+    "outcome": "findings-incorporated",
+    "evidence": "Independent exact-head R1/R2 rebind review on 2026-09-25 at 183a0d3652a81fb30dcb977d6ff1338f0f3bcd0f: reviewed the complete 85795b141..183a0d365 two-document delta and this record's original mutablePaths. Immutable admission and independent review remain intact; both final heads and the committed Git path-state digest bind 183a0d365. The 48-record checkpoint diff has 355 uniquely owned governed paths, with scripts/verify.py owned only by VERIFY-1110-DOTNET-COVERAGE-DEADLINE-01; no new mutable or integration path is needed. The afc203f9c nonstructure verifier pass and b9b5ddf5d 25-Direct release Golden pass remain attributed to their actual sources. The exact-183 structure-only run exited 1 solely for 17 missing R3 authorities, reported as 36 pending/batch-closure diagnostics, with no admission, digest or partition error. Earlier 900-second failures and 857 reviews remain dated history; this review does not approve R3, AB candidate Golden, --all, CI or release. Earlier dated evidence follows: Independent /root/r2_final_review exact-head technical re-review on 2026-09-25 at 85795b1416c689bfd484806d0425b9c06dfec9c1. Compared all original mutable paths and the complete 022219d53-to-reviewed six-path delta; immutable admissions remain unchanged and the 355-governed-path final partition has no gap or duplicate. Earlier dated failures describe their own source, not the current gate. The afc203f9c full nonstructure verifier and b9b5ddf5d 25 Direct Golden passed; structure, --all, AB candidate Golden and external R3 authority remain open. Its original collection behavior remains; its former final scripts/verify.py ownership was superseded by three separately admitted R2 corrections, and only the roadmap path remains in this record's final integration partition. Earlier dated review evidence follows: Independent /root/r2_final_review exact-head R2 final review and 2026-09-24 rebind at 022219d53bbb24e5434ab4f6185df3c0019e6890: immutable first-active admission and four original mutablePaths retained; current Git path-state digest 127d224a56912b9c2c0b4400edc1f572fc2d2f5bf5d609bbcb5ae0a5d8011927. scripts/verify.py and docs/architecture/nfc_roadmap.md uniquely own the two governed paths; tests/scripts/test_verify_orchestration.py and docs/ui/v1.1.10-delivery.md remain auxiliary. Deterministic parent-conftest red regression turned green with the selected-root --confcutdir; a real 0xA8/nonzero child verifies lossless failure evidence. Full orchestration module 219/219 passed before commit and again under both exact-head top-level schedules. The jobs=3 nonstructure run failed the dotnet lane: UiSmoke vstest timed out at 480s and the shadow test-output inventory/hash check also reported a change; their causal relationship is not established. The jobs=1 nonstructure run still failed an intermittent Infrastructure IdentityConflict despite UiSmoke 1619/1619 and all repository-script lanes passing. Fresh release Golden ran 25 Direct complete-output cases at this head. No P0-P2 in scoped technical review; full verifier, R3 owner attestations and publication remain blocked."
+  },
+  "integrationPaths": [
+    "docs/architecture/nfc_roadmap.md"
+  ]
+}

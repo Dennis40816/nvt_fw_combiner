@@ -12,10 +12,12 @@ public enum AuthoringDraftKind
     GeneralMerge,
     /// <summary>One owner-confirmed CtrlRAM TP firmware-version edit.</summary>
     CtrlRamFirmwareVersionEdit,
+    /// <summary>Explicit AB Reference selection and per-bank version edits.</summary>
+    AbCtrlRam,
 }
 
 /// <summary>Typed CtrlRAM firmware-version compiler input owned by one authoring revision.</summary>
-public sealed record CtrlRamFirmwareVersionDraftState : AuthoringDraftState
+public sealed record CtrlRamFirmwareVersionDraftState : CtrlRamAuthoringDraftState
 {
     /// <summary>Creates the exact TP firmware-version values compiled for Build.</summary>
     public CtrlRamFirmwareVersionDraftState(

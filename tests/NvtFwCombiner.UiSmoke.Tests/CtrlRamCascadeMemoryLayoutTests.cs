@@ -25,7 +25,7 @@ public sealed class CtrlRamCascadeMemoryLayoutTests
     public async Task CascadeInputsProduceCompleteDiffLayoutAndRetainBuildReadiness(string ic)
     {
         using var workspace = TempWorkspace.Create("ctrlram-cascade-layout");
-        PresentationHostServices services = await CreateServicesAsync(workspace, useRetainedDpReplacePolicy: false);
+        PresentationHostServices services = await CreateServicesAsync(workspace);
         using var window = new MainWindow(UiLaunchOptions.Empty, StartupTraceSession.Disabled, services, ShellPreferenceSnapshot.Default)
         { Width = 1440, Height = 1040, RequestedThemeVariant = ThemeVariant.Light };
         window.Show();

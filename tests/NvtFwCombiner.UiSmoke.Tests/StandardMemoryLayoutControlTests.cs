@@ -31,7 +31,7 @@ public sealed class StandardMemoryLayoutControlTests
         using var workspace = TempWorkspace.Create("standard-memory-controls");
         using var golden = StandardMergeGoldenManifest.Load();
         JsonElement inputs = golden.CaseByIc("51928").GetProperty("inputs");
-        PresentationHostServices services = await CreateServicesAsync(workspace, useRetainedDpReplacePolicy: false);
+        PresentationHostServices services = await CreateServicesAsync(workspace);
         using var window = new MainWindow(UiLaunchOptions.Empty, StartupTraceSession.Disabled,
             services, ShellPreferenceSnapshot.Default)
         { Width = width, Height = height, RequestedThemeVariant = dark ? ThemeVariant.Dark : ThemeVariant.Light };
@@ -117,7 +117,7 @@ public sealed class StandardMemoryLayoutControlTests
                     Assert.InRange(bounds.Left, 0, window.ClientSize.Width - bounds.Width);
                     Assert.InRange(bounds.Left, railBounds.Left - 1, railBounds.Right - bounds.Width + 1);
                     Assert.InRange(bounds.Top, 0, window.ClientSize.Height - bounds.Height);
-                    WrapPanel legend = Assert.Single(rail.GetVisualDescendants().OfType<WrapPanel>(), panel => panel.Name == "MemoryLegend");
+                    Control legend = Assert.Single(rail.GetVisualDescendants().OfType<Control>(), control => control.Name == "MemoryLegend");
                     Assert.False(bounds.Intersects(Bounds(legend)), "The card must not cover its sibling legend targets.");
                     string?[] visible = [.. card.GetVisualDescendants().OfType<TextBlock>()
                         .Where(block => block.IsEffectivelyVisible).Select(block => block.Text)];

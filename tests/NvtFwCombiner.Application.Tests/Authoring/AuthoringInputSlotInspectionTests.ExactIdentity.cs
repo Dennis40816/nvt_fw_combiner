@@ -126,6 +126,125 @@ public sealed partial class AuthoringInputSlotInspectionTests
         Assert.All(result.Statuses.Values, static status => Assert.True(status.IsTerminal));
     }
 
+    /// <summary>File identity alone cannot compile an exact route; captured bytes still distinguish equal lengths.</summary>
+    [Fact]
+    public void DefinitionDiscoveryKeepsFileStampUncompiledAndCompilesEachCapturedContent()
+    {
+        ResolvedCapabilityRoute route = CreateRoute(ExperienceIds.StandardMerge);
+        ResolvedCapability capability = CreateCapability(
+            ExperienceIds.StandardMerge,
+            publicationToken: route.ResolutionToken.Value);
+        var resolver = new CapturedStandardResolver(route, capability);
+        var service = new CompiledAuthoringWorkflowService(resolver);
+        var revision = new AuthoringRevision(1);
+        byte[] first = [1, 2, 3, 4];
+        byte[] second = [4, 3, 2, 1];
+
+        CompiledAuthoringSelectionSnapshot picker = service.ProjectSelection(
+            "NT-HEADLESS", revision, [SourceSlot],
+            new Dictionary<string, FileStamp>(StringComparer.Ordinal)
+            {
+                [SourceSlot] = FileStamp.FromBytes(first),
+            });
+        Assert.Null(Assert.Single(picker.Catalog.Routes).ExactCapability);
+        Assert.Null(Assert.Single(picker.Catalog.Routes).CompilationFingerprint);
+        Assert.Equal(ResolvedChildReadiness.Ready, Assert.Single(picker.Slots).Readiness);
+        Assert.True(Assert.Single(picker.Slots).CanSelect);
+        Assert.Null(Assert.Single(picker.Slots).NextAction);
+        Assert.Equal(0, resolver.CapturedCalls);
+        Assert.Equal(0, resolver.LengthOnlyCalls);
+
+        var session = new AuthoringSessionState(ExperienceIds.StandardMerge);
+        CompiledAuthoringSessionPreparation acceptedFirst = service.PrepareExactSession(
+            "NT-HEADLESS", session,
+            [new CompiledAuthoringSelectedInput(SourceSlot, "source.bin", first)]);
+        Assert.True(acceptedFirst.Succeeded,
+            string.Join(" | ", acceptedFirst.Issues.Select(static issue => issue.Code)));
+        first[0] = 0xFF;
+        CompiledAuthoringSessionPreparation acceptedSecond = service.PrepareExactSession(
+            "NT-HEADLESS", session,
+            [new CompiledAuthoringSelectedInput(SourceSlot, "source.bin", second)]);
+
+        Assert.True(acceptedSecond.Succeeded,
+            string.Join(" | ", acceptedSecond.Issues.Select(static issue => issue.Code)));
+        Assert.Equal(2, resolver.CapturedCalls);
+        Assert.Equal(0, resolver.LengthOnlyCalls);
+        Assert.Equal([1, 2, 3, 4], resolver.CapturedInputs[0]);
+        Assert.Equal(second, resolver.CapturedInputs[1]);
+        Assert.NotSame(acceptedFirst.Snapshot, acceptedSecond.Snapshot);
+        Assert.Same(acceptedSecond.Snapshot, session.CurrentSnapshot);
+        Assert.Equal([1, 2, 3, 4], acceptedFirst.Snapshot!.InputSlotStatuses.Single().AcceptedBytes!.Value.ToArray());
+        Assert.Equal(second, acceptedSecond.Snapshot!.InputSlotStatuses.Single().AcceptedBytes!.Value.ToArray());
+    }
+
+    /// <summary>An exact result from another publication cannot satisfy the reviewed transition.</summary>
+    [Fact]
+    public void DefinitionDiscoveryRejectsDifferentPublicationAfterCapturedCompilation()
+    {
+        ResolvedCapabilityRoute route = CreateRoute(ExperienceIds.StandardMerge);
+        ResolvedCapability stale = CreateCapability(ExperienceIds.StandardMerge);
+        var service = new CompiledAuthoringWorkflowService(
+            new CapturedStandardResolver(route, stale));
+
+        CompiledAuthoringSelectionSnapshot result = service.ProjectCapturedSelection(
+            "NT-HEADLESS", new AuthoringRevision(1), [SourceSlot], new byte[4]);
+
+        Assert.Null(Assert.Single(result.Catalog.Routes).ExactCapability);
+        Assert.Contains(result.Issues, static issue =>
+            issue.Code == AuthoringSessionIssueCodes.StalePublication);
+        Assert.Equal(ResolvedChildReadiness.Blocked, Assert.Single(result.Slots).Readiness);
+        Assert.Equal(InputSelectionNextActionKind.CorrectSelection,
+            Assert.Single(result.Slots).NextAction!.Kind);
+    }
+
+    private sealed class CapturedStandardResolver(
+        ResolvedCapabilityRoute route,
+        ResolvedCapability capability) : ICompiledAuthoringWorkflowResolver
+    {
+        public string WorkflowId => ExperienceIds.StandardMerge;
+        public int CapturedCalls { get; private set; }
+        public int LengthOnlyCalls { get; private set; }
+        public List<byte[]> CapturedInputs { get; } = [];
+
+        public CompiledAuthoringWorkflowDiscovery Discover(string icId)
+        {
+            var transition = new ReviewedDiscoveryTransition(
+                route.ResolutionToken,
+                route.Identity.WorkflowId,
+                route.Identity.IcId,
+                route.Identity.IcCountVariant,
+                new ReviewedDiscoveryExactMember(
+                    route.Identity.RouteId, route.CapabilityFingerprint),
+                SourceSlot,
+                [new ReviewedDiscoveryExactMember(
+                    capability.Identity.RouteId, capability.CapabilityFingerprint)]);
+            return new CompiledAuthoringWorkflowDiscovery(
+                null, [SourceSlot], SourceSlot, transition,
+                [new CompiledAuthoringInputBinding(SourceSlot, SourceSpace)], route);
+        }
+
+        public CompiledAuthoringWorkflowResolution ResolveExact(
+            string icId,
+            AuthoringRevision authoringRevision,
+            long? prerequisiteLength,
+            IReadOnlyCollection<string> selectedSlotIds)
+        {
+            LengthOnlyCalls++;
+            throw new InvalidOperationException("Definition discovery must not dispatch length-only compilation.");
+        }
+
+        public CompiledAuthoringWorkflowResolution ResolveExact(
+            string icId,
+            AuthoringRevision authoringRevision,
+            ReadOnlyMemory<byte> capturedPrerequisite,
+            IReadOnlyCollection<string> selectedSlotIds)
+        {
+            CapturedCalls++;
+            CapturedInputs.Add(capturedPrerequisite.ToArray());
+            return new CompiledAuthoringWorkflowResolution(capability, []);
+        }
+    }
+
     /// <summary>Reprojecting the same exact capability is an identity-preserving no-op.</summary>
     [Fact]
     public void SessionRetainsTheSameExactCapabilityInstance()

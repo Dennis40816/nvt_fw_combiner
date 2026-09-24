@@ -32,48 +32,21 @@ public sealed class CanonicalMemoryLayoutProjectionTests
         AssertCanonicalProjection(fixture, snapshot);
     }
 
-    /// <summary>Projects the real V2 DP Replace capability and its nested DPCMI map authority.</summary>
+    /// <summary>General Replace keeps retained base ranges distinct from compiled replacement ranges.</summary>
     [Fact]
-    public void Nt51929DpReplaceProjectsThePublishedCanonicalCapability()
+    public async Task GeneralReplaceDistinguishesBaseFirmwareFromReplacementInputs()
     {
-        PilotFixture fixture = CreatePilot(ExperienceIds.DpReplace);
-
-        MemoryLayoutSnapshot snapshot = MemoryLayoutProjector.Project(
-            fixture.Capability,
-            fixture.Session,
-            fixture.Capability.CompiledComposition);
-
-        Assert.Equal(0x40000, snapshot.Capacity);
-        Assert.Contains(
-            snapshot.CanonicalRegions,
-            static region => region.RegionId == "initial-code-cmd1-page0-anchor");
-        Assert.Contains(
-            fixture.Capability.CompiledComposition.Plan.OrderedOperations,
-            static operation => operation.OperationId == "replace-dp-code");
-        Assert.DoesNotContain(
-            snapshot.AfterSegments,
-            static segment => segment.Disposition == MemoryWorkflowDisposition.Kept);
-        Assert.Equal(2, snapshot.PendingItems.Count);
-        AssertCanonicalProjection(fixture, snapshot);
-    }
-
-    /// <summary>DP Replace keeps retained base ranges distinct from compiled replacement ranges.</summary>
-    [Fact]
-    public void DpReplaceDistinguishesBaseFirmwareFromReplacementInputs()
-    {
-        MemoryLayoutSnapshot layout =
-            CanonicalMemoryLayoutTestSupport.PrepareDpReplace("NT51951", 0x80000);
+        (MemoryLayoutSnapshot layout, string replacementAddressSpace) =
+            await CanonicalMemoryLayoutTestSupport.PrepareGeneralReplaceAsync();
 
         Assert.Contains(layout.BeforeSegments, static segment =>
             segment.Disposition == MemoryWorkflowDisposition.Kept);
-        Assert.Contains(layout.AfterSegments, static segment =>
+        Assert.Contains(layout.AfterSegments, segment =>
             segment.Disposition == MemoryWorkflowDisposition.WillReplace &&
-            segment.SourceSpaceId is CompositionAddressSpaceIds.DpReplacement or
-                CompositionAddressSpaceIds.InitialCodeReplacement);
-        Assert.DoesNotContain(layout.AfterSegments, static segment =>
+            segment.SourceSpaceId == replacementAddressSpace);
+        Assert.DoesNotContain(layout.AfterSegments, segment =>
             segment.Disposition == MemoryWorkflowDisposition.Kept &&
-            segment.SourceSpaceId is CompositionAddressSpaceIds.DpReplacement or
-                CompositionAddressSpaceIds.InitialCodeReplacement);
+            segment.SourceSpaceId == replacementAddressSpace);
     }
 
     /// <summary>Projects the real AB Merge overlay chain without a Bootstrap display replica.</summary>
@@ -132,7 +105,7 @@ public sealed class CanonicalMemoryLayoutProjectionTests
         }
         var catalog = new CanonicalCapabilityCatalog(
             CompositionHostServices.CreateCanonicalCapabilityCatalogSource(
-                NvtFwCombiner.TestSupport.RetainedDpReplaceRegressionPolicy.Load));
+                NvtFwCombiner.Infrastructure.Capabilities.BuiltInCanonicalCapabilityPolicy.Load));
         CapabilityCatalogReloadResult reload =
             catalog.Reload(TestContext.Current.CancellationToken);
         Assert.True(

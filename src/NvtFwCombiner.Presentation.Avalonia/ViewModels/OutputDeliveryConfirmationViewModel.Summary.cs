@@ -1,5 +1,4 @@
 using System.Globalization;
-using NvtFwCombiner.Application.Authoring;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
@@ -9,6 +8,7 @@ internal sealed record OutputConfirmationInputRow(string FileName, string Size, 
 }
 
 internal sealed record OutputConfirmationCheck(string Label, string Value);
+internal sealed record OutputConfirmationWarningRow(string Role, string Detail);
 
 internal sealed partial class OutputDeliveryConfirmationViewModel
 {
@@ -26,19 +26,24 @@ internal sealed partial class OutputDeliveryConfirmationViewModel
             return string.IsNullOrWhiteSpace(topology) ? summary.IcId : $"{summary.IcId} · {topology}";
         }
     }
-    public string ModeFormatSummary => Confirmation is not { } summary ? string.Empty :
-        WorkflowModeDisplayConverters.GetDisplayName(summary.WorkflowId) +
-        (summary.Format is { } format ? $" / {format.DisplayName}" : string.Empty);
+    public string ModeSummary => Confirmation is not { } summary ? string.Empty :
+        WorkflowModeDisplayConverters.GetDisplayName(summary.WorkflowId);
+    public string FlashMapSummary => Confirmation?.FlashMap is { } map
+        ? map.DisplayName ?? map.MapId : Text.FirmwareSlotNotApplicableLabel;
     public string FlashOutputSize => Confirmation is { } summary ? FormatOutputBytes(summary.OutputLengthBytes) : string.Empty;
     public string AdditionalOutputSize => _request?.AdditionalDelivery is { } delivery ? FormatOutputBytes(delivery.SourceRange.Length) : string.Empty;
     public bool HasGeneratedInputs => Confirmation?.HasGeneratedInputs == true;
-    public bool HasInputNotice => HasGeneratedInputs || HasInputWarnings;
     public bool HasValidationMessage => !string.IsNullOrWhiteSpace(ValidationMessage);
     public bool ShowsBundleContents => BundleEnabled && AdditionalDeliveryEnabled;
     public string DeliveryDescription => BundleEnabled && !AdditionalDeliveryEnabled
         ? Text.FormatOutputBundleContents(Sources.Count) : Text.OutputDeliveryBundleLabel;
-    public bool HasInputWarnings => Confirmation?.Inputs.Any(input =>
-        input.InspectionLifecycle == AuthoringSlotLifecycle.Warning) == true;
+    public IReadOnlyList<OutputConfirmationWarningRow> WarningRows => Confirmation?.Inputs.SelectMany(input =>
+        Text.FormatOutputInputWarnings(input).Select(detail =>
+            new OutputConfirmationWarningRow(ShellTextResources.GetOutputInputLabel(input.BindingId), detail))).ToArray() ?? [];
+    public bool HasInputWarnings => WarningRows.Count > 0;
+    public string BuildWarningsTitle => Text.FormatOutputWarningsTitle(WarningRows.Count);
+    public string BuildReadinessSummary => HasInputWarnings
+        ? Text.FormatOutputWarningsReady(WarningRows.Count) : Text.OutputDeliveryReadySummary;
 
     public IReadOnlyList<OutputConfirmationInputRow> InputRows => Confirmation?.Inputs.Select(input =>
         new OutputConfirmationInputRow(input.SourceFileName, FormatInputBytes(input.SizeBytes),
@@ -52,7 +57,7 @@ internal sealed partial class OutputDeliveryConfirmationViewModel
     public IReadOnlyList<OutputConfirmationCheck> EventBufferChecks => Confirmation?.Inputs
         .Where(input => input.EventBufferFormat is not null)
         .Select(input => new OutputConfirmationCheck(ShellTextResources.GetOutputInputLabel(input.BindingId),
-            $"0x{input.EventBufferFormat!.RawByte:X2} - {input.EventBufferFormat.DisplayName}")).ToArray() ?? [];
+            $"0x{input.EventBufferFormat!.RawByte:X2} - {input.EventBufferFormat.DetectedDisplayName ?? input.EventBufferFormat.DisplayName}")).ToArray() ?? [];
 
     public bool HasEventBufferChecks => EventBufferChecks.Count > 0;
     public bool HasSourceChecks => ExpectedInputChecks.Count > 0 || HasEventBufferChecks;
@@ -73,12 +78,15 @@ internal sealed partial class OutputDeliveryConfirmationViewModel
     {
         OnPropertyChanged(nameof(HasConfirmation));
         OnPropertyChanged(nameof(TargetSummary));
-        OnPropertyChanged(nameof(ModeFormatSummary));
+        OnPropertyChanged(nameof(ModeSummary));
+        OnPropertyChanged(nameof(FlashMapSummary));
         OnPropertyChanged(nameof(FlashOutputSize));
         OnPropertyChanged(nameof(AdditionalOutputSize));
         OnPropertyChanged(nameof(HasGeneratedInputs));
-        OnPropertyChanged(nameof(HasInputNotice));
         OnPropertyChanged(nameof(HasInputWarnings));
+        OnPropertyChanged(nameof(WarningRows));
+        OnPropertyChanged(nameof(BuildWarningsTitle));
+        OnPropertyChanged(nameof(BuildReadinessSummary));
         OnPropertyChanged(nameof(InputRows));
         OnPropertyChanged(nameof(InputSourcesSummary));
         OnPropertyChanged(nameof(ExpectedInputChecks));

@@ -8,12 +8,47 @@ namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
 internal sealed partial class ReplacePresentationViewModel
 {
-    private const string DpReplaceMode = ExperienceIds.DpReplace;
     private const string CtrlRamReplaceMode = ExperienceIds.CtrlRamReplace;
     private const string GeneralReplaceMode = ExperienceIds.GeneralReplace;
-    private readonly AuthoringSessionState _dpReplaceSession = new(ExperienceIds.DpReplace);
     private readonly AuthoringSessionState _ctrlRamReplaceSession = new(ExperienceIds.CtrlRamReplace);
     private readonly AuthoringSessionState _generalReplaceSession = new(ExperienceIds.GeneralReplace);
+    private readonly Dictionary<string, WorkflowRunState> _runStates = new(StringComparer.Ordinal)
+    {
+        [CtrlRamReplaceMode] = new(),
+        [GeneralReplaceMode] = new(),
+    };
+
+    internal IEnumerable<WorkflowRunState> RunStates => _runStates.Values;
+    internal WorkflowRunState RunState => GetRunState(SelectedReplaceMode);
+
+    internal WorkflowRunState GetRunState(string mode)
+    {
+        if (!_runStates.TryGetValue(mode, out WorkflowRunState? state))
+        {
+            state = new WorkflowRunState();
+            _runStates.Add(mode, state);
+        }
+        state.ApplyLanguage(Text);
+        return state;
+    }
+
+    internal CompositionRunContext CaptureRunContext(string mode, bool build = false)
+    {
+        AuthoringSessionState? session = mode switch
+        {
+            CtrlRamReplaceMode => _ctrlRamReplaceSession,
+            GeneralReplaceMode => _generalReplaceSession,
+            _ => null,
+        };
+        ActiveSessionSnapshot? snapshot = session?.CurrentSnapshot;
+        return new CompositionRunContext(
+            GetRunState(mode), mode, SelectedIc, SelectedNumber,
+            true,
+            _stateBindings.DeviceContextRefreshSummary(), snapshot, session,
+            snapshot is null ? null : session!.CapturePublicationLease(
+                build ? AuthoringDerivedResultKind.Build : AuthoringDerivedResultKind.Preview));
+    }
+
     private int _generalReplaceMappingCounter;
     private string _selectedReplaceMode = CtrlRamReplaceMode;
     private string? _catalogReconciliationPreviousMode;
@@ -49,13 +84,16 @@ internal sealed partial class ReplacePresentationViewModel
 
     public ObservableCollection<MemoryCoverageSegmentViewModel> CtrlRamOverview { get; } = [];
     public ObservableCollection<MemoryFocusLaneViewModel> CtrlRamFocusLanes { get; } = [];
-    public bool HasCtrlRamFocusLayout => IsCtrlRamReplaceModeSelected && CtrlRamFocusLanes.Count > 0;
+    public bool HasCtrlRamFocusLayout => IsCtrlRamReplaceModeSelected && (CtrlRamFocusLanes.Count > 0 || HasCtrlRamBankView);
     public string CtrlRamCapacityLabel => CtrlRamOverview.Count == 0 ? string.Empty :
         FormattableString.Invariant($"{CtrlRamOverview.Sum(static section => section.BarWidth) / 1024:0.###} KiB");
     public IReadOnlyList<MemoryFocusPositionViewModel> CtrlRamPositions => MemoryFocusLaneViewModel.CreatePositions(
-        CtrlRamFocusLanes, (long)CtrlRamOverview.Sum(static section => section.BarWidth));
+        CtrlRamFocusLanes, (long)CtrlRamOverview.Sum(static section => section.BarWidth),
+        CtrlRamOverview.FirstOrDefault()?.RangeStart ?? 0);
     public string CtrlRamEndAddress => CtrlRamOverview.Count == 0 ? string.Empty :
         FormattableString.Invariant($"0x{CtrlRamOverview[^1].RangeEndExclusive - 1:X5}");
+    public string CtrlRamStartAddress => CtrlRamOverview.Count == 0 ? string.Empty :
+        FormattableString.Invariant($"0x{CtrlRamOverview[0].RangeStart:X5}");
     public string CtrlRamSharedInputHint => Text.FormatMemorySharedInputHint(string.Join(" / ",
         CtrlRamFocusLanes.SelectMany(static lane => lane.Ranges)
             .Where(static range => range.IsSelectedForWrite && range.SourceSlotId is not null)
@@ -103,7 +141,6 @@ internal sealed partial class ReplacePresentationViewModel
         ? ResolveAcceptedOutputFileName(
             SelectedReplaceMode switch
             {
-                DpReplaceMode => _dpReplaceSession.CurrentSnapshot,
                 CtrlRamReplaceMode => _ctrlRamReplaceSession.CurrentSnapshot,
                 GeneralReplaceMode => _generalReplaceSession.CurrentSnapshot,
                 _ => null,
@@ -164,7 +201,9 @@ internal sealed partial class ReplacePresentationViewModel
     /// </summary>
     public CapabilityWorkflowReadiness? SelectedReplaceWorkflowReadiness =>
         HasSelectedIc
-            ? _compositionServices.Capabilities.GetReplaceWorkflowReadiness(SelectedIc, SelectedReplaceMode)
+            ? SelectedReplaceMode == CtrlRamReplaceMode && IsAbCtrlRamReference
+                ? AbCtrlRamReadiness
+                : _compositionServices.Capabilities.GetReplaceWorkflowReadiness(SelectedIc, SelectedReplaceMode)
             : null;
 
     /// <summary>Localized evidence badge for the selected Replace workflow.</summary>
@@ -210,8 +249,8 @@ internal sealed partial class ReplacePresentationViewModel
             GeneralReplaceMode,
             _generalReplaceActionReadiness),
         _ => ActiveSessionBuildBlockerResolver.ResolveBuildAvailability(
-            _dpReplaceSession.CurrentSnapshot,
-            DpReplaceMode),
+            null,
+            SelectedReplaceMode),
     };
 
     public IRelayCommand AddGeneralReplaceMappingCommand { get; }
@@ -242,11 +281,12 @@ internal sealed partial class ReplacePresentationViewModel
         _stateBindings.IsWorkflowAuthorable(SelectedIc, SelectedReplaceMode);
 
     private Task RunCompositionAsync(
+        CompositionRunContext context,
         bool build,
         CompositionRunWork run,
         Action<string, string> loadErrorReport)
     {
-        return _stateBindings.RunCompositionAsync(build, run, loadErrorReport);
+        return _stateBindings.RunCompositionAsync(context, build, run, loadErrorReport);
     }
 
     private void SetSelectedReplaceMode(string value)
@@ -331,7 +371,6 @@ internal sealed partial class ReplacePresentationViewModel
     internal void PublishCatalogReconciledReplaceMode()
     {
         PublishFullContext();
-        _stateBindings.ResetRunResult();
     }
 
     internal void PublishFullContext()
@@ -346,6 +385,7 @@ internal sealed partial class ReplacePresentationViewModel
 
     private void PublishContextCore(bool includeModeChoices)
     {
+        NotifyCtrlRamBankState();
         if (includeModeChoices && _catalogReconciliationPreviousMode is { } previousMode)
         {
             if (previousMode.Length > 0)
@@ -394,7 +434,7 @@ internal sealed partial class ReplacePresentationViewModel
 
     internal void NotifyCommandStateChanged()
     {
-        RefreshDpReplaceInputSelectionReadiness();
+        ResetReplaceInputSelectionReadiness();
         NotifyCommandAvailabilityChanged();
     }
 

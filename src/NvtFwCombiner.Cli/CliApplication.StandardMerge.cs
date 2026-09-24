@@ -15,7 +15,7 @@ public static partial class CliApplication
             [CompositionAddressSpaceIds.LdcInput] = "--ldc",
         };
 
-    private static async Task<int> RunStandardMergeAsync(
+    internal static async Task<int> RunStandardMergeAsync(
         CliCompositionServices services,
         ILocalFileStore localFiles,
         string[] args,
@@ -68,7 +68,7 @@ public static partial class CliApplication
             return UsageError;
         }
 
-        if (!selectedProfile.CompileSucceeded)
+        if (!selectedProfile.CompileSucceeded && !selectedProfile.DeclarationReady)
         {
             CompiledAuthoringSelectionSnapshot unavailable =
                 services.StandardMergeAuthoring.GetAuthoringSnapshot(
@@ -142,14 +142,21 @@ public static partial class CliApplication
                         exception);
                 }
 
-                exactSelection = services.StandardMergeAuthoring.GetAuthoringSnapshot(
-                    selectedProfile.IcId,
-                    [.. slotPaths.Keys],
-                    new Dictionary<string, FileStamp>(StringComparer.Ordinal)
-                    {
-                        [prerequisiteId] = FileStamp.FromBytes(prerequisiteBytes),
-                    },
-                    new AuthoringRevision(1));
+                exactSelection = selectedProfile.DeclarationReady &&
+                    !selectedProfile.CompileSucceeded
+                    ? services.StandardMergeAuthoring.ResolveCapturedDpSelection(
+                        selectedProfile.IcId,
+                        prerequisiteBytes,
+                        [.. slotPaths.Keys],
+                        new AuthoringRevision(1))
+                    : services.StandardMergeAuthoring.GetAuthoringSnapshot(
+                        selectedProfile.IcId,
+                        [.. slotPaths.Keys],
+                        new Dictionary<string, FileStamp>(StringComparer.Ordinal)
+                        {
+                            [prerequisiteId] = FileStamp.FromBytes(prerequisiteBytes),
+                        },
+                        new AuthoringRevision(1));
                 exactCapability = exactSelection.Catalog.Routes
                     .SingleOrDefault()?.ExactCapability;
                 if (exactCapability is null)

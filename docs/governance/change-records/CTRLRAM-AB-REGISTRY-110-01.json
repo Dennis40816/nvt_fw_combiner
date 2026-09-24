@@ -1,0 +1,50 @@
+{
+  "schemaVersion": 2,
+  "taskId": "CTRLRAM-AB-REGISTRY-110-01",
+  "capability": "Register the closed NT51929 AB CtrlRAM candidate from trusted definitions without loading a firmware artifact",
+  "integrationBase": "b9a94a2bab1a7bc05129b3438f0c0afeaaf45ad4",
+  "risk": "R3",
+  "kind": "behavior",
+  "state": "final-complete",
+  "mutablePaths": [
+    "src/NvtFwCombiner.Domain/Composition/RuntimeReferenceBankReplaceV2CompilationContext.cs",
+    "src/NvtFwCombiner.Profiles/V2/TrustedProfileBundleCatalog.BankDefinitions.cs",
+    "src/NvtFwCombiner.Infrastructure/Composition/BuiltInV2Bundle.cs",
+    "src/NvtFwCombiner.Infrastructure/Composition/CanonicalDynamicRouteInventory.cs",
+    "src/NvtFwCombiner.Infrastructure/Composition/CanonicalDynamicRouteInventory.Banks.cs",
+    "docs/contracts/canonical-capability-policy-v1.json",
+    "src/NvtFwCombiner.Infrastructure/Capabilities/BuiltInCanonicalCapabilityPolicy.cs",
+    "scripts/package.ps1",
+    "scripts/smoke-release.ps1",
+    "tests/scripts/test_release_package_policy.py",
+    "testdata/golden/canonical/manifest.json",
+    "tests/NvtFwCombiner.Bootstrap.Tests/AbCtrlRamRegistryTests.cs",
+    "tests/NvtFwCombiner.Bootstrap.Tests/AbCtrlRamRuntimeWiringTests.cs",
+    "tests/NvtFwCombiner.Infrastructure.Tests/Capabilities/BuiltInCanonicalCapabilityPolicyTests.cs"
+  ],
+  "implementationOwner": "/root",
+  "searchEvidence": [
+    "Runtime source d6352cdf and independent exact-head review retained; its candidate tests do not constitute official registry wiring",
+    "CanonicalDynamicRouteInventory owns dynamic definition expansion per catalog load; BuiltInCanonicalCapabilityPolicy owns pinned authoring/publication/evidence decisions",
+    "TrustedProfileBundleCatalog.SelectProfile/GetMapVariants own definition selection; BuiltInV2Bundle is the existing closed loading facade",
+    "BankReferenceReplaceDefinition currently requires compiled parents although its hash only needs definitions; replace this dependency with pure source descriptors shared by registry and runtime",
+    "release_source_pins.plan_reviewed_source_pins already owns deterministic policy-hash consumers; golden manifest adds only a contract-only association without touching cases or expected outputs"
+  ],
+  "semanticOwner": "Domain composite definition identity; Profiles trusted source selection; Infrastructure catalog projection and pinned policy",
+  "terminalContract": "One NT51929 fw200 Single AB CtrlRAM route, Available/Candidate/ContractOnly. No BIN, zero artifact, synthetic firmware or private Golden read during registration. Parent/map/version mismatch fails closed. Existing Single routes and source hashes remain unchanged. Same pure descriptor constructor produces registry and runtime identity. No UI/authoring changes or support promotion in this unit.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "/root/layout_ownership_review",
+    "outcome": "approved",
+    "evidence": "2026-09-22 independent registry design admission and explicit BuiltInV2Bundle.cs thin facade extension; source descriptors retain true parent identities, catalog-load scope, missing-parent refusal and identity parity tests. Exact policy version assertion is an auxiliary consumer update. Human certification remains open."
+  },
+  "implementationHead": "183a0d3652a81fb30dcb977d6ff1338f0f3bcd0f",
+  "reviewedHead": "183a0d3652a81fb30dcb977d6ff1338f0f3bcd0f",
+  "pathStateDigest": "3db7686b4a17760251f5fed97ca7f9d857cf5042880db845144bd1622e74d8d7",
+  "finalReview": {
+    "reviewer": "/root/r3_final_review",
+    "outcome": "approved",
+    "evidence": "Independent /root/r3_final_review exact-head final-preview confirmation on 2026-09-25 at 183a0d3652a81fb30dcb977d6ff1338f0f3bcd0f. Verified this staged record's unchanged immutable admission, reviewed integration partition, matching implementation/review heads and complete committed path-state digest. The delta from 85795b141 changes only CHANGELOG and auxiliary delivery prose; no firmware bytes, ranges, profile, policy or processor semantics changed. The Perfect/Partial auxiliary digests were recomputed and matched. Repository technical finalReview approved; no new P0-P2, scoped PASS-WITH-HUMAN-GATE. This review does not supply external firmware/release-owner attestations, AB CtrlRAM independent Golden or Header/CRC/exact-write-range approval. Earlier dated evidence follows: Independent /root/r3_final_review exact-head technical re-review on 2026-09-25 at 85795b1416c689bfd484806d0425b9c06dfec9c1. Compared the complete 022219d53-to-reviewed delta and all original mutable-path states. Immutable admission and this record's unique integration partition remain unchanged. No R3 governed firmware path changed; only Perfect/Partial records' auxiliary delivery evidence changed. Prior firmware substantive review remains applicable, with no new P0-P3 and scoped PASS-WITH-HUMAN-GATE. Verifier R2 review, typed external R3 attestations, independent AB CtrlRAM expected-output Golden and Header/CRC/exact-write-range approval remain separate gates. Earlier dated review evidence follows: Independent /root/r3_final_review exact-head technical rebind confirmation on 2026-09-24 at 022219d53bbb24e5434ab4f6185df3c0019e6890. The sole delta from reviewed 871c6810e is non-governed CHANGELOG verification-status prose. All 17 R3 admission blobs and all 444 unique original mutable-path states were checked unchanged between those heads. This record's complete committed Git path-state digest is 3db7686b4a17760251f5fed97ca7f9d857cf5042880db845144bd1622e74d8d7; its integration ownership remains within the unique 45-record/355-governed-path partition. No new P0-P2; repository technical finalReview approved, scoped Polytail PASS-WITH-HUMAN-GATE. External firmware/release-owner attestations, independent AB CtrlRAM Golden and exact write-range authority remain separate and absent; the full verifier is failing. Earlier dated technical review evidence follows: Independent /root/r3_final_review technical final review rebound on 2026-09-24 to d6b8ad31957b173ab82b46616159c2826d167368. Verified the complete delta from previously reviewed f85348ed5 consists only of the owner-approved 1.1.11 roadmap allocation, auxiliary delivery evidence and its new design-active admission. This record’s immutable admission and integration partition remain unchanged; its complete original mutablePaths digest was independently recomputed from committed Git bytes and matched. Prior firmware technical review remains applicable; no new P0-P2. Repository technical finalReview approved; scoped Polytail PASS-WITH-HUMAN-GATE. External firmware/release-owner authority, Candidate Golden and exact write-range approval remain separate mandatory gates; the failed verifier run is not waived or reclassified as passed."
+  },
+  "integrationPaths": []
+}

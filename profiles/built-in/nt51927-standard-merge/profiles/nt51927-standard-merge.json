@@ -1,7 +1,7 @@
 {
   "schemaVersion": "2.15",
   "profileId": "nt51927-standard-merge-gen-flash",
-  "profileVersion": "0.8.0",
+  "profileVersion": "0.8.1",
   "promotion": {
     "stage": "supported",
     "blockers": []
@@ -21,7 +21,7 @@
   "mapBinding": {
     "familyId": "nt51917-nt51927-nt51928-canonical-container",
     "familyVersion": "1.4.0",
-    "familyContentHash": "11a286731539bc79eb4bc956cd62d5d4e4bb8662874a8f65f7f0cde6f974c761",
+    "familyContentHash": "e3bf3f27d1640d51620c108bce28b22edde2551cb441cf47d1d8641bb6e455af",
     "mapIds": [
       "nt51927-standard-merge-256k"
     ],
@@ -147,6 +147,7 @@
         "display-resolution-y",
         "maximum-operable-fingers",
         "report-irq-type",
+        "event-buffer-format-version",
         "tp-firmware-subversion",
         "tp-resolution-x",
         "tp-resolution-y",

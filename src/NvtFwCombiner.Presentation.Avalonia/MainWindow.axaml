@@ -100,34 +100,41 @@
             </StackPanel>
           </Button>
           <Button
-              Classes="semanticAction iconButton"
+              Classes="semanticAction secondary"
               AutomationProperties.LiveSetting="Polite"
               AutomationProperties.Name="{Binding MessageCenter.MessageCenterAccessibleName}"
               Command="{Binding MessageCenter.OpenCommand}"
               ToolTip.Tip="{Binding Text.MessageCenterTooltip}">
-            <Grid Width="28" Height="24">
-              <TextBlock
-                  HorizontalAlignment="Center"
-                  VerticalAlignment="Center"
-                  FontSize="17"
-                  Text="▤" />
-              <Border
-                  MinWidth="16"
-                  Height="16"
-                  Padding="3,0"
-                  HorizontalAlignment="Right"
-                  VerticalAlignment="Top"
-                  Background="{DynamicResource NfcDangerTextBrush}"
-                  CornerRadius="{DynamicResource NfcPillCornerRadius}"
-                  IsVisible="{Binding MessageCenter.HasActiveDiagnostics}">
+            <StackPanel Orientation="Horizontal" Spacing="7">
+              <Grid Width="28" Height="24">
                 <TextBlock
                     HorizontalAlignment="Center"
                     VerticalAlignment="Center"
-                    FontSize="9"
-                    Foreground="White"
-                    Text="{Binding MessageCenter.ActiveBadgeCount}" />
-              </Border>
-            </Grid>
+                    FontSize="17"
+                    Text="▤" />
+                <Border
+                    MinWidth="16"
+                    Height="16"
+                    Padding="3,0"
+                    HorizontalAlignment="Right"
+                    VerticalAlignment="Top"
+                    Background="{DynamicResource NfcDangerTextBrush}"
+                    CornerRadius="{DynamicResource NfcPillCornerRadius}"
+                    IsVisible="{Binding MessageCenter.HasActiveDiagnostics}">
+                  <TextBlock
+                      HorizontalAlignment="Center"
+                      VerticalAlignment="Center"
+                      FontSize="9"
+                      Foreground="White"
+                      Text="{Binding MessageCenter.ActiveBadgeCount}" />
+                </Border>
+              </Grid>
+              <TextBlock
+                  VerticalAlignment="Center"
+                  FontSize="{DynamicResource NfcFontSize12}"
+                  FontWeight="SemiBold"
+                  Text="{Binding Text.MessageCenterTitle}" />
+            </StackPanel>
           </Button>
         </StackPanel>
       </Grid>
@@ -141,7 +148,7 @@
         ContentTemplate="{StaticResource DeviceContextPanelTemplate}"
         IsVisible="{Binding IsDeviceContextVisible}" />
 
-    <ScrollViewer Grid.Row="3" Classes="contentScrollSurface">
+    <ScrollViewer Grid.Row="3" Classes="contentScrollSurface" VerticalScrollBarVisibility="Visible">
       <Grid Margin="28,24,28,132" RowDefinitions="*" RowSpacing="0">
         <ContentControl
             x:Name="HomePageHost"
@@ -161,7 +168,7 @@
             IsVisible="{Binding IsReplaceVisible}">
           <ContentControl.ContentTemplate>
             <DataTemplate DataType="vm:ReplacePresentationViewModel">
-              <Grid ColumnDefinitions="1.15*,430" ColumnSpacing="18" RowDefinitions="Auto,Auto" RowSpacing="{DynamicResource NfcSpace16}">
+              <Grid ColumnDefinitions="1.15*,430" ColumnSpacing="18" RowDefinitions="Auto,Auto,Auto" RowSpacing="{DynamicResource NfcSpace16}">
           <StackPanel Spacing="{DynamicResource NfcSpace16}" Container.Name="ReplaceContent" Container.Sizing="Width">
             <StackPanel.Styles>
               <Style Selector="Grid.replaceHeaderActions">
@@ -245,13 +252,16 @@
 
           </StackPanel>
 
+          <ContentControl Grid.Row="1" Grid.ColumnSpan="2" Content="{Binding}"
+                          ContentTemplate="{StaticResource CtrlRamModeSettingsTemplate}" />
+
           <ContentControl
-              Grid.Row="1"
+              Grid.Row="2"
               Content="{Binding}"
               ContentTemplate="{StaticResource ReplaceModeContentTemplate}" />
 
           <ContentControl
-              Grid.Row="1"
+              Grid.Row="2"
               Grid.Column="1"
               VerticalAlignment="Top"
               Content="{Binding}"

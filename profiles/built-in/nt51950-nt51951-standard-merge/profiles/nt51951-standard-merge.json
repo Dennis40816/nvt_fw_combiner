@@ -1,8 +1,8 @@
 {
-  "schemaVersion": "2.15",
+  "schemaVersion": "2.16",
   "compilationContext": { "kind": "resolved-map" },
   "profileId": "nt51951-standard-merge-dp-perspective",
-  "profileVersion": "0.7.0",
+  "profileVersion": "0.8.0",
   "promotion": {
     "stage": "supported",
     "blockers": []
@@ -18,8 +18,8 @@
   },
   "mapBinding": {
     "familyId": "nt51950-nt51951-dp-perspective",
-    "familyVersion": "1.4.0",
-    "familyContentHash": "02597d709affd69adfbd92fac4a9a75f245385fb7c0954a5de1c86035e7babf6",
+    "familyVersion": "1.4.1",
+    "familyContentHash": "17b04684520efb5297e8096dec5fe20e57532e1ae1cc80ac26d6b86c27cdfb54",
     "mapIds": [
       "nt51951-standard-merge-256k",
       "nt51951-standard-merge-512k",
@@ -36,6 +36,14 @@
       "nt51951-dpcmi-standard-merge"
     ],
     "requiredCapabilityIds": []
+  },
+  "sourceEnvelopeBinding": {
+    "sourceSlotId": "dp-input",
+    "layoutTemplateMapId": "nt51951-standard-merge-256k",
+    "rootRegionId": "dp-container",
+    "whenSourceAbsent": "reject",
+    "expectedOuterLengths": [262144, 524288, 1048576],
+    "unexpectedLengthIssueCode": "DP_NONSTANDARD_SIZE_WARNING"
   },
   "inputSlots": [
     {
@@ -79,7 +87,7 @@
     {
       "spaceId": "output-image",
       "kind": "output-image",
-      "capacity": { "kind": "resolved-map" },
+      "capacity": { "kind": "source-slot", "sourceSlotId": "dp-input" },
       "initializer": { "kind": "blank", "fillByte": 0 }
     }
   ],

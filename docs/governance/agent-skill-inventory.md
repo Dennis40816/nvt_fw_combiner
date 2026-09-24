@@ -10,6 +10,7 @@ skills; they are not repository authority.
 | Skill | Invocation | Authority | Replaces |
 | --- | --- | --- | --- |
 | `assess-refactor-progress` | implicit | progress-report | — |
+| `capture-firmware-ui` | implicit | visual-evidence | — |
 | `code-review` | implicit | review | — |
 | `composition-experience-change` | implicit | experience | — |
 | `crc-worker-contract` | implicit | crc-worker | — |
@@ -21,7 +22,9 @@ skills; they are not repository authority.
 | `grill-with-docs` | implicit | decision-documentation | domain-modeling |
 | `grilling` | explicit | decision-interview | — |
 | `implement` | implicit | implementation | tdd |
+| `locate-golden-evidence` | implicit | golden-lookup | — |
 | `nfc-architecture-change` | implicit | architecture | codebase-design, improve-codebase-architecture |
+| `open-firmware-example` | implicit | example-opening | — |
 | `polytail` | implicit | quality-gate | — |
 | `release-readiness` | implicit | release | — |
 | `resolving-merge-conflicts` | implicit | conflict-recovery | — |

@@ -49,7 +49,6 @@ internal sealed partial class WorkflowSessionPresentationViewModel
         OnPropertyChanged(nameof(HasSelectedIcFamily));
         OnPropertyChanged(nameof(SelectedIcDetailFamily));
         OnPropertyChanged(nameof(SelectedIcDetailReuse));
-        OnPropertyChanged(nameof(IsDpReplaceAvailable));
         OnPropertyChanged(nameof(SelectedIcDetailRuntime));
         OnPropertyChanged(nameof(SelectedIcDetailEvidence));
         OnPropertyChanged(nameof(SelectedIcDetailSupport));

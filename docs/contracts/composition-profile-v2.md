@@ -1,4 +1,4 @@
-# Composition Profile Contract 2.0 through 2.15
+# Composition Profile Contract 2.0 through 2.16
 
 The executable schemas are [`composition-profile-v2.schema.json`](composition-profile-v2.schema.json)
 [`composition-profile-v2.1.schema.json`](composition-profile-v2.1.schema.json), and
@@ -15,7 +15,8 @@ The executable schemas are [`composition-profile-v2.schema.json`](composition-pr
 [`composition-profile-v2.12.schema.json`](composition-profile-v2.12.schema.json),
 [`composition-profile-v2.13.schema.json`](composition-profile-v2.13.schema.json), and
 [`composition-profile-v2.14.schema.json`](composition-profile-v2.14.schema.json), and
-[`composition-profile-v2.15.schema.json`](composition-profile-v2.15.schema.json). A trusted bundle
+[`composition-profile-v2.15.schema.json`](composition-profile-v2.15.schema.json), and
+[`composition-profile-v2.16.schema.json`](composition-profile-v2.16.schema.json). A trusted bundle
 selects one exact schema snapshot through its manifest content hash. They are the only declarative
 workflow policy compiled for Normal, AB, General, Merge, Replace, saved rules, and future Register work.
 
@@ -64,6 +65,54 @@ selection/lowering semantics. Schema-shape failures therefore come from bundle
 loading/schema validation, not from a second version-aware normalizer. Test-only
 direct normalizer calls do not form a supported intake path.
 
+### Source envelope in schema 2.16
+
+`sourceEnvelopeBinding` is an opt-in resolved-map Merge declaration for one unnormalized DP
+input. It names the existing layout-template map, full-root region, DP source slot, absent-source
+policy, standard outer lengths, and an unexpected-length warning code. The output-image space
+must declare `capacity: {"kind":"source-slot","sourceSlotId":"..."}` for that same DP slot
+and a blank initializer. A required `whenSourceAbsent: reject` source keeps the zero-fill
+rule. An optional `whenSourceAbsent: resolved-map` source may retain the profile's
+existing `0xFF` blank fill; only `0x00` and `0xFF` are admitted. When that source is
+present, the complete DP seed must overwrite `[0,L)` before later operations, so the
+blank fill never pads missing DP bytes. The profile's map binding must include the named template.
+These are profile facts; a source length never selects a nearest map or creates a new map.
+`whenSourceAbsent: reject` requires a required, exactly-one DP slot. The optional
+`resolved-map` form requires a nonrequired, zero-or-one DP slot and retains the
+existing exact-map path when the source is absent; it creates no envelope extent.
+For a `reject` profile, an existing exact-capacity map may still compile its
+layout without map-resolution artifacts; this is not accepted execution and
+does not relax the required DP or exact input-length checks at Build. A
+nonstandard source-envelope fallback always requires a captured complete DP
+whose length equals the requested output extent. Failure of an exact-map
+topology, metadata, capability, or other admission check never falls back to
+the template.
+
+When a captured DP has a declared exact map capacity, ordinary exact-map resolution and its
+existing input-length terminal apply. A metadata, topology, capability, or other failure on that
+route cannot fall back to the template. Only a nonstandard requested length `L` equal to the
+accepted full DP payload length may use the explicit template for fixed layout anchors. The
+compiled context retains template map identity/capacity separately from actual extent `L`.
+The existing generic exact-bytes terminal requires the immutable DP to have precisely `L`
+bytes; `AddressSpace` rejects both shorter and longer inputs without padding or truncation.
+`expectedOuterLengths` are advisory only, including when `L` exceeds every expectation, and
+the engine emits the declared warning while retaining all accepted bytes. Extraction policy
+retains its prior, distinct declared-range semantics.
+
+In schema 2.16, `ab-merge` may retain its existing static A/B naming block without
+`ruleId`, `outputArtifactType`, or `tokenRequirements`; this admits the already declared
+`dp-a`/`tp-a` and `dp-b`/`tp-b` tokens without changing their renderer. Every other
+2.16 experience still requires the complete typed naming block from schema 2.15.
+
+The compiler admits exactly one full DP source view, one full output target view, and the
+first `copy-range` seed over `[0,L)`; every later final-output write must stay inside one
+canonical TP-owned region. It rejects any mandatory read or write outside `L`, including TP
+overlay coverage, without fabricating missing customer information. A display-only
+customer-information region may be clipped to `L`; Memory Layout projects an opaque preserved
+DP tail when `L` exceeds the template without presenting that tail as a canonical map region.
+No processor staging range, firmware byte rule, built-in profile, serialized report, or support
+promotion is changed by this schema foundation alone.
+
 ## Compiled Plan Boundary
 
 When a profile is admitted to one resolved map, lowering produces one V2 plan artifact. `Merge`
@@ -72,7 +121,7 @@ profiles omit `icNumberInputMode`; `Replace` profiles must declare exactly one o
 not an experience, UI, or member-id inference. The
 `V2PlanCompiled` eligibility remains non-executable except for the closed request-scoped candidate
 contexts in ADR 0019 and ADR 0020. The separate `V2RuntimeExecutable` eligibility is minted only by
-the Profiles compiler for the closed blank-output Merge, reference-clone DP Replace, or structurally
+the Profiles compiler for the closed blank-output Merge, structural reference-clone Replace, or structurally
 safe runtime-reference Replace subset when
 promotion is exactly `supported`, blockers are empty, every input space is immutable with its closed
 singleton or per-binding instance policy, and output naming is one of: a token-free legacy-schema
@@ -84,11 +133,32 @@ FlashCode or TP-firmware template without its schema-2.15 rule id, artifact
 type, typed token sources, and missing-value policies remains non-executable.
 Arbitrary token templates remain non-executable.
 An `executable-candidate` never creates generic runtime authority, production routing, or support;
-ADR 0019 logical-output and ADR 0020 runtime-reference-replace are the only explicit Application
-candidate-admission shapes. ADR 0055 permits a structurally safe supported runtime-reference profile
+ADR 0019 logical-output, ADR 0020 runtime-reference-replace and its explicitly admitted
+NT51929 bank candidate below are the closed Application candidate-admission shapes.
+ADR 0055 permits a structurally safe supported runtime-reference profile
 to use ordinary runtime admission without weakening those candidate rules.
 `supported` is profile-level V2 runtime admission, not a global IC or product-support claim; the
 support matrix and its firmware-owner release gate remain separate authority.
+In 1.1.10 the exact `dp-replace` experience is retired. Historical versioned
+schemas and normalization may still read its declarations, but the existing
+compiler `Succeed` boundary rejects an otherwise valid declaration before
+creating either `V2PlanCompiled` or `V2RuntimeExecutable`, returning
+`profile.v2.plan.retired-experience` with no artifact. A declaration rejected
+earlier retains that existing typed failure and also produces no artifact.
+Changing eligibility alone is insufficient because a returned artifact exposes
+its plan. Shared reference-clone lowering for surviving experiences remains;
+Application and the Domain engine do not duplicate this retirement policy.
+
+The existing NT51929 bank candidate is the fixed pair
+`nt51929-ab-merge` `0.4.0` / `nt51929-ctrlram-replace-fw200-single` `0.3.0`,
+admitted by `CTRLRAM-AB-LOCAL-PLAN-110-01` and `CTRLRAM-AB-RUNTIME-110-01`.
+Profiles retains exact pair/version and native shape checks, reuses the local
+compiled obligations and sole executor, and emits only the existing CtrlRAM
+candidate identity. No other member, topology, processor or Supported status
+is implied. Architecture tests pin these exact owner snippets plus the retired
+experience rejection, while forbidding additional identity-driven semantics.
+See the [ADR 0015 reconciliation](../adr/0015-canonical-firmware-map-and-compiled-composition.md#bounded-1110-admission-reconciliation--2026-09-23).
+
 Its `CompiledInputContract` retains each slot's id, role, artifact class, required/cardinality policy,
 accepted extensions, typed length rule, typed normalization rule, and every immutable plan-space binding
 including instance policy. The artifact does not treat `AddressSpace` geometry as a second source of
@@ -105,9 +175,9 @@ route, or make unrelated multi-input profiles optional.
 That successor also admits multiple declared maps for one NT51928 capability.
 For Standard Merge, LDC absence selects the `0x40000` candidate; supplied LDC
 selects the `0x80000` candidate and must then pass structural validation.
-Failure blocks and never falls back to absence. DP Replace resolves the same
-closed variants from accepted Reference length. Length never infers IC
-identity.
+Failure blocks and never falls back to absence. Before its 1.1.10 retirement,
+DP Replace resolved the same closed variants from accepted Reference length;
+that history no longer grants execution admission. Length never infers IC identity.
 
 Every admitted `requiredCapabilityIds` binding is retained in compilation provenance as the exact
 effective/direct `FirmwareMapFactBinding`, including capability value, applicability, alias chain, and
@@ -135,14 +205,14 @@ sole authority for physical region ranges; compiled views retain only their reso
 and exact physical region-chain identity so the artifact can verify that provenance.
 
 The Merge subset lowers `copy-range`, `fill-range`, `patch-scalar`, and checked `transform-scalar`
-operations with `reject` overlap policy. The DP Replace subset lowers one or more rejected
+operations with `reject` overlap policy. The structural reference-clone Replace subset lowers one or more rejected
 `replace-range` operations from declared `dp-firmware` inputs to canonical DP-owned regions or
 from profile-declared `auxiliary` inputs to canonical LDC-owned regions. Every other source/owner
-pair fails closed. DP Replace also permits only fully-covered `replace-existing`
+pair fails closed. This subset also permits only fully-covered `replace-existing`
 `copy-range` operations sourced from the exact cloned reference image at the identical resolved half-open
 range. `replace-range` is not a Merge
 operation; a Replace `copy-range` from DP or a rejected replacement copy fails closed. Clone initialization
-is permitted only for this exact, unnormalized `reference-image` DP Replace base. Metadata validation,
+is permitted only for this subset's exact, unnormalized `reference-image` base. Metadata validation,
 CRC-worker stages, and every other unrecognized runtime authority remain outside this subset and fail closed.
 The reserved future-schema `legacy-combiner-v1` stage lowers through the existing external-processor port
 only with profile-declared read/write ranges, staged sources, and, when required, named artifact bindings; it never grants

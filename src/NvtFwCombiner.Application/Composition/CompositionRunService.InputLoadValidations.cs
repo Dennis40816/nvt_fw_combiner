@@ -14,6 +14,7 @@ public sealed partial class CompositionRunService
         {
             InputLoadValidationEvaluationResult evaluation = requirement switch
             {
+                CompiledBankScopedValidation bank => EvaluateBankInputLoad(inputBytes, bank),
                 CompiledUniformInputRangeValidation uniform =>
                     CompiledInputLoadValidationEvaluator.Evaluate(inputBytes, uniform),
                 _ => new InputLoadValidationEvaluationResult(

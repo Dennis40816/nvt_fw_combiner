@@ -148,7 +148,15 @@ public sealed partial class MemoryCoveragePopupTests
             }
             ScrollViewer inner = Assert.IsType<ScrollViewer>(card.Child);
             double maximum = inner.Extent.Height - inner.Viewport.Height;
-            if (direction == 0) { Assert.True(maximum > 0); }
+            if (direction == 0)
+            {
+                Assert.True(maximum > 0);
+                ScrollBar scrollbar = Assert.Single(inner.GetVisualDescendants().OfType<ScrollBar>(),
+                    candidate => candidate.Orientation == Avalonia.Layout.Orientation.Vertical && candidate.IsVisible);
+                Assert.False(inner.AllowAutoHide);
+                Assert.Equal(14, scrollbar.Bounds.Width);
+                Assert.Equal(6, Assert.Single(scrollbar.GetVisualDescendants().OfType<Thumb>()).Bounds.Width);
+            }
             inner.Offset = new Vector(0, direction < 0 ? maximum : direction == 0 ? maximum / 2 : 0);
             Render();
             Vector original = scroll.Offset;
@@ -165,14 +173,16 @@ public sealed partial class MemoryCoveragePopupTests
         finally { window.Close(); }
     }
 
-    /// <summary>The upward pointer corridor must not select a different legend item between TP and its own card.</summary>
+    /// <summary>Both pointer corridors cross footer legend rows without switching the selected source.</summary>
     [AvaloniaTheory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public async Task UpwardTpCardTransitDoesNotActivateDpLegend(bool dark)
+    [InlineData(false, false)]
+    [InlineData(true, false)]
+    [InlineData(false, true)]
+    [InlineData(true, true)]
+    public async Task CardTransitDoesNotActivateCrossedLegend(bool dark, bool above)
     {
         MemoryCoverageSegmentViewModel[] slices = TransitSlices();
-        Window window = CreateBottomWindow(dark, slices, out MemoryCoverageBar bar);
+        Window window = above ? CreateBottomWindow(dark, slices, out MemoryCoverageBar bar) : CreateWindow(420, dark, slices, out bar);
         bar.ShowLegend = true;
         bar.Heading = "Flash overview";
         bar.StartAddress = "0x00000";
@@ -181,7 +191,9 @@ public sealed partial class MemoryCoveragePopupTests
         Render();
         try
         {
-            Control tp = MainTarget(bar, 0);
+            MemoryCoverageSegmentViewModel selected = above ? slices[2] : slices[0];
+            Control tp = above ? Assert.Single(bar.GetVisualDescendants().OfType<Border>(),
+                control => control.Name == "MemoryLegendTarget" && ReferenceEquals(control.DataContext, selected)) : MainTarget(bar, 0);
             Border dpLegend = Assert.Single(bar.GetVisualDescendants().OfType<Border>(),
                 control => control.Name == "MemoryLegendTarget" && ReferenceEquals(control.DataContext, slices[1]));
             Point crossing = BoundsInWindow(dpLegend, window).Center;
@@ -190,15 +202,17 @@ public sealed partial class MemoryCoveragePopupTests
             window.MouseMove(new Point(crossing.X, tpBounds.Center.Y), RawInputModifiers.None);
             Render();
             Border card = Assert.IsType<Border>(FindNamed<Border>(window, "MemorySliceCard"));
-            Assert.Same(slices[0], card.DataContext);
+            Assert.Same(selected, card.DataContext);
+            Rect cardBounds = BoundsInWindow(card, window);
+            Assert.True(above ? cardBounds.Bottom < crossing.Y : cardBounds.Top > crossing.Y);
             window.MouseMove(crossing, RawInputModifiers.None);
             Render();
-            Assert.Same(slices[0], card.DataContext);
+            Assert.Same(selected, card.DataContext);
             Assert.False(dpLegend.IsPointerOver);
             window.MouseMove(BoundsInWindow(card, window).Center, RawInputModifiers.None);
             Render();
-            Assert.Same(slices[0], card.DataContext);
-            Capture(window, $"tp-transit-{dark}");
+            Assert.Same(selected, card.DataContext);
+            Capture(window, $"content-transit-{dark}-{above}");
             window.MouseMove(new Point(2, 2), RawInputModifiers.None);
             await Task.Delay(TimeSpan.FromMilliseconds(400), TestContext.Current.CancellationToken);
             Render();

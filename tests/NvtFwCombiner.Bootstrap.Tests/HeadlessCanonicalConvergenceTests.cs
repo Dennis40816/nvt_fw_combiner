@@ -34,7 +34,7 @@ public sealed class HeadlessCanonicalConvergenceTests
         ];
 
         (string[] missing, string[] unexpected) = Compare(expected, actual);
-        Assert.Equal(93, expected.Length);
+        Assert.Equal(85, expected.Length);
         Assert.Equal(expected.Length, expected.Distinct(StringComparer.Ordinal).Count());
         Assert.True(
             missing.Length == 0 && unexpected.Length == 0,
@@ -65,7 +65,7 @@ public sealed class HeadlessCanonicalConvergenceTests
                     "tests",
                     "NvtFwCombiner.Bootstrap.Tests",
                     "Fixtures",
-                    "canonical-route-axes-v1.txt"))
+                    "canonical-route-axes-v2.txt"))
                 .Where(static line =>
                     !string.IsNullOrWhiteSpace(line) &&
                     !line.StartsWith('#'))

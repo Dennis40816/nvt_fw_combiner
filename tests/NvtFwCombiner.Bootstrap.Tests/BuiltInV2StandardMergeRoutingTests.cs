@@ -1,6 +1,7 @@
 using System.Security.Cryptography;
 using System.Text.Json;
 using NvtFwCombiner.Application.Capabilities;
+using NvtFwCombiner.Application.FlashMaps;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Infrastructure.Bundles;
 using NvtFwCombiner.Infrastructure.Capabilities;
@@ -99,14 +100,14 @@ public sealed class BuiltInV2StandardMergeRoutingTests
 
     /// <summary>Verifies every registered IC selects one deployed V2 artifact without legacy fallback.</summary>
     [Theory]
-    [InlineData("NT51917", "nt51917-standard-merge-gen-flash-alias", "nt51927-standard-merge", "b1c9234e76ff6995ac362ee66a22eb3423024d116a858a93d2b733c0c380eafa", "dp-input,tp-input", "DpFirmware,TpFirmware")]
-    [InlineData("NT51919", "nt51919-standard-merge-gen-flash-alias", "nt51929-standard-merge", "d70ee9a8534d2c91a1f674e92b888678d13ea1660a6540365abd42346c480a72", "dp-input,tp-input", "DpFirmware,TpFirmware")]
-    [InlineData("NT51923", "nt51923-standard-merge-gen-flash", "nt51923-standard-merge", "9661f30be8b114cd679d08af8177d44bd372973943f2293228f85ff25ecf608c", "dp-input,tp-input", "DpFirmware,TpFirmware")]
-    [InlineData("NT51926", "nt51926-standard-merge-gen-flash", "nt51923-standard-merge", "9661f30be8b114cd679d08af8177d44bd372973943f2293228f85ff25ecf608c", "dp-input,tp-input", "DpFirmware,TpFirmware")]
-    [InlineData("NT51927", "nt51927-standard-merge-gen-flash", "nt51927-standard-merge", "b1c9234e76ff6995ac362ee66a22eb3423024d116a858a93d2b733c0c380eafa", "dp-input,tp-input", "DpFirmware,TpFirmware")]
-    [InlineData("NT51928", "nt51928-standard-merge-gen-flash", "nt51928-standard-merge", "20ccd90376bee9a67832b3a808940017f3cab202ae5d9dfad7cb2dc4b9774c4e", "dp-input,tp-input", "DpFirmware,TpFirmware")]
-    [InlineData("NT51929", "nt51929-standard-merge-gen-flash", "nt51929-standard-merge", "d70ee9a8534d2c91a1f674e92b888678d13ea1660a6540365abd42346c480a72", "dp-input,tp-input", "DpFirmware,TpFirmware")]
-    [InlineData("NT51932", "nt51932-standard-merge-gen-flash", "nt51929-standard-merge", "d70ee9a8534d2c91a1f674e92b888678d13ea1660a6540365abd42346c480a72", "dp-input,tp-input", "DpFirmware,TpFirmware")]
+    [InlineData("NT51917", "nt51917-standard-merge-gen-flash-alias", "nt51927-standard-merge", "985a7d231a5a40f9c0cfe752dd43fea43dcfa05fb48128379fa020cef041fc04", "dp-input,tp-input", "DpFirmware,TpFirmware")]
+    [InlineData("NT51919", "nt51919-standard-merge-gen-flash-alias", "nt51929-standard-merge", "e043dad07ffd7670c96b07b7732a9889b33a4b00b143eba56ad02cac1bb59cb5", "dp-input,tp-input", "DpFirmware,TpFirmware")]
+    [InlineData("NT51923", "nt51923-standard-merge-gen-flash", "nt51923-standard-merge", "803780d0835dab32b68bc92cf7c8e175aa338b6aaf0e0c7caaddd9712de4576f", "dp-input,tp-input", "DpFirmware,TpFirmware")]
+    [InlineData("NT51926", "nt51926-standard-merge-gen-flash", "nt51923-standard-merge", "803780d0835dab32b68bc92cf7c8e175aa338b6aaf0e0c7caaddd9712de4576f", "dp-input,tp-input", "DpFirmware,TpFirmware")]
+    [InlineData("NT51927", "nt51927-standard-merge-gen-flash", "nt51927-standard-merge", "985a7d231a5a40f9c0cfe752dd43fea43dcfa05fb48128379fa020cef041fc04", "dp-input,tp-input", "DpFirmware,TpFirmware")]
+    [InlineData("NT51928", "nt51928-standard-merge-gen-flash", "nt51928-standard-merge", "8145e2e6f9697607fc91748d21f802ef2a8613021899d52a80828325bc50bae5", "dp-input,tp-input", "DpFirmware,TpFirmware")]
+    [InlineData("NT51929", "nt51929-standard-merge-gen-flash", "nt51929-standard-merge", "e043dad07ffd7670c96b07b7732a9889b33a4b00b143eba56ad02cac1bb59cb5", "dp-input,tp-input", "DpFirmware,TpFirmware")]
+    [InlineData("NT51932", "nt51932-standard-merge-gen-flash", "nt51929-standard-merge", "e043dad07ffd7670c96b07b7732a9889b33a4b00b143eba56ad02cac1bb59cb5", "dp-input,tp-input", "DpFirmware,TpFirmware")]
     public void RegisteredStandardMergeUsesDeployedTrustedV2Artifact(
         string icId,
         string profileId,
@@ -195,6 +196,7 @@ public sealed class BuiltInV2StandardMergeRoutingTests
     {
         using var workspace = TempWorkspace.Create($"nfc-nt51928-standard-{expectedCapacity:X}");
         byte[] tp = CreatePattern(0x40000, 0x31);
+        StampValidSingleIcFirmwareConfig(tp);
         byte[] dp = CreatePattern(expectedCapacity, 0x72);
         byte[] ldc = CreatePattern(0x80000, 0xB5);
         string outputPath = workspace.PathFor("output.bin");
@@ -247,7 +249,7 @@ public sealed class BuiltInV2StandardMergeRoutingTests
         CompiledComposition artifact = Assert.IsType<CompiledComposition>(composition);
         Assert.Equal(CompiledCompositionEligibility.V2RuntimeExecutable, artifact.Eligibility);
         V2CompiledCompositionDetails details = Assert.IsType<V2CompiledCompositionDetails>(artifact.V2Details);
-        Assert.Equal("d62b6b3f83a2350724de476d582d3a8de3483366134c39d94f144b77ae1402d7", details.Provenance.Bundle.ContentHash);
+        Assert.Equal("658e188b0724a9a1f5d3389f7bc685a75b1dacfd36e030d79c9d0f83d8135652", details.Provenance.Bundle.ContentHash);
         Assert.Equal(profileId, artifact.V2Details.ProfileId);
         Assert.Equal(icId, artifact.V2Details.Provenance.Context.MemberId);
         Assert.Equal(dpInputLength, artifact.Plan.OutputInitialization.Capacity);
@@ -287,8 +289,41 @@ public sealed class BuiltInV2StandardMergeRoutingTests
                 .Select(static bundle => bundle.BundleDirectory)
                 .Order(StringComparer.Ordinal),
         ];
-        Assert.NotEmpty(bundleDirectories);
+        string[] expectedBundles =
+        [
+            "nt51917-ctrlram-replace-alias-candidate", "nt51917-nt51927-general-merge-logical-candidate",
+            "nt51917-nt51927-shared-facts", "nt51919-nt51929-nt51932-ab-merge",
+            "nt51919-nt51929-nt51932-general-merge-logical-candidate", "nt51919-nt51929-nt51932-shared-facts",
+            "nt51923-ctrlram-replace-candidate", "nt51923-nt51926-general-merge-logical-candidate",
+            "nt51923-nt51926-shared-facts", "nt51923-standard-merge", "nt51926-ctrlram-replace-candidate",
+            "nt51927-ctrlram-replace-candidate", "nt51927-standard-merge", "nt51928-ctrlram-replace-candidate",
+            "nt51928-general-merge-logical-candidate", "nt51928-standard-merge", "nt51929-ctrlram-replace-candidate",
+            "nt51929-standard-merge", "nt51932-ctrlram-replace-candidate", "nt51950-ab-merge",
+            "nt51950-ctrlram-replace-candidate", "nt51950-nt51951-general-merge-logical-candidate",
+            "nt51950-nt51951-standard-merge", "nt51951-ctrlram-replace-candidate",
+        ];
+        Assert.Equal(expectedBundles, bundleDirectories);
+        foreach (string root in new[] { builtInRoot, materializedBuiltInRoot, deployedBuiltInRoot })
+        {
+            Assert.Equal(expectedBundles, Directory.EnumerateDirectories(root)
+                .Where(static directory => File.Exists(Path.Combine(directory, "profile-bundle.json")))
+                .Select(static directory => Path.GetFileName(directory)).Order(StringComparer.Ordinal));
+        }
+        foreach (string retired in new[]
+        {
+            "nt51923-dp-replace", "nt51927-dp-replace", "nt51928-dp-replace",
+            "nt51929-dp-replace", "nt51950-nt51951-dp-replace",
+        })
+        {
+            Assert.False(Directory.Exists(Path.Combine(materializedBuiltInRoot, retired)));
+            string deployedRetiredRoot = Path.Combine(deployedBuiltInRoot, retired);
+            if (Directory.Exists(deployedRetiredRoot))
+            {
+                Assert.Empty(Directory.EnumerateFiles(deployedRetiredRoot, "*", SearchOption.AllDirectories));
+            }
+        }
 
+        List<string> deployedFiles = ["package-trust-index.json", "ctrlram-postbuild-v2/catalog.json", "ctrlram-postbuild-v2/flash-map.json"];
         foreach (string bundleDirectory in bundleDirectories)
         {
             string sourceBundleRoot = Path.Combine(builtInRoot, bundleDirectory);
@@ -306,6 +341,13 @@ public sealed class BuiltInV2StandardMergeRoutingTests
                 Directory.Exists(Path.Combine(sourceBundleRoot, "schemas")),
                 $"Source bundle must not be used as a runtime root: {sourceBundleRoot}");
             JsonElement[] entries = [.. manifest.RootElement.GetProperty("entries").EnumerateArray()];
+            string[] expectedFiles = ["profile-bundle.json", .. entries.Select(static entry => entry.GetProperty("path").GetString()!)];
+            deployedFiles.AddRange(expectedFiles.Select(file => $"{bundleDirectory}/{file}"));
+            foreach (string root in new[] { materializedRoot, deployedRoot })
+            {
+                Assert.Equal(expectedFiles.Order(StringComparer.Ordinal), Directory.EnumerateFiles(root, "*", SearchOption.AllDirectories)
+                    .Select(file => Path.GetRelativePath(root, file).Replace('\\', '/')).Order(StringComparer.Ordinal));
+            }
             Assert.Contains(
                 entries,
                 static entry => StringComparer.Ordinal.Equals(entry.GetProperty("kind").GetString(), "schema"));
@@ -337,6 +379,8 @@ public sealed class BuiltInV2StandardMergeRoutingTests
                 bundleDirectory,
                 manifest.RootElement.GetProperty("contentHash").GetString()!);
         }
+        Assert.Equal(deployedFiles.Order(StringComparer.Ordinal), Directory.EnumerateFiles(deployedBuiltInRoot, "*", SearchOption.AllDirectories)
+            .Select(file => Path.GetRelativePath(deployedBuiltInRoot, file).Replace('\\', '/')).Order(StringComparer.Ordinal));
     }
 
     /// <summary>Verifies the second bundle reaches the shared engine with original input trace names.</summary>
@@ -348,6 +392,7 @@ public sealed class BuiltInV2StandardMergeRoutingTests
         byte[] tp = new byte[0x40000];
         dp[0] = 0x11;
         tp[0x7000] = 0x22;
+        StampValidSingleIcFirmwareConfig(tp);
         string dpPath = workspace.Write("nt51929-dp.bin", dp);
         string tpPath = workspace.Write("nt51929-tp.bin", tp);
 
@@ -389,6 +434,16 @@ public sealed class BuiltInV2StandardMergeRoutingTests
                 .EnumerateArray()
                 .Select(static input => input.GetProperty("OriginalFileName").GetString())
                 .Order(StringComparer.Ordinal));
+    }
+
+    private static void StampValidSingleIcFirmwareConfig(byte[] tp)
+    {
+        const int backupStart = 0x1000;
+        const byte version = 0x81;
+        tp[backupStart + FirmwareConfigLayout.FirmwareVersionOffset] = version;
+        tp[backupStart + FirmwareConfigLayout.FirmwareVersionBarOffset] = unchecked((byte)~version);
+        tp[backupStart + FirmwareConfigLayout.ChipNumberOffset] = 1;
+        "\0NVT"u8.CopyTo(tp.AsSpan(backupStart + 0xFFC));
     }
 
     private static byte[] CreatePattern(int length, byte salt)

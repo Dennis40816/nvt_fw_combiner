@@ -15,9 +15,9 @@ namespace NvtFwCombiner.Bootstrap.Tests;
 public sealed partial class AbMergeGoldenRegressionTests
 {
     private const string Nt51929BundleDirectory = "nt51919-nt51929-nt51932-ab-merge";
-    private const string Nt51929BundleContentHash = "68527380d4e2de5994734b9357fc55963254e51382027d9f099699c9dc1a366f";
+    private const string Nt51929BundleContentHash = "892af5d0f1ff0094bb96a0e30ffad3b6c2cf18451a6705623c2ca97206422c6b";
     private const string Nt51950BundleDirectory = "nt51950-ab-merge";
-    private const string Nt51950BundleContentHash = "0f3db5b27468211ee5f60112d239423e2b0d99b3591c8dcc63db07a2e2987496";
+    private const string Nt51950BundleContentHash = "18b43352606ca744f499e328d5778c3b9e08307a97fd122ac38fd8762d37c8d1";
 
     /// <summary>Verifies the supported NT51929 profile reproduces the supplied AB output byte-for-byte.</summary>
     [Fact]
@@ -197,7 +197,7 @@ public sealed partial class AbMergeGoldenRegressionTests
                 Nt51950BundleDirectory,
                 Nt51950BundleContentHash),
             "nt51950-ab-merge",
-            "0.6.0",
+            "0.8.0",
             "NT51950",
             goldenCase.GetProperty("mapCapacity").GetInt64());
         Dictionary<string, byte[]> inputs = ReadInputs(goldenCase);
@@ -312,7 +312,7 @@ public sealed partial class AbMergeGoldenRegressionTests
                 Nt51950BundleDirectory,
                 Nt51950BundleContentHash),
             "nt51951-ab-merge",
-            "0.6.0",
+            "0.7.0",
             "NT51951",
             outputLength);
         byte[] dp = CreatePattern(outputLength, 37, 11);
@@ -565,7 +565,7 @@ public sealed partial class AbMergeGoldenRegressionTests
             CalculateCrc32Mpeg2(output.Slice(bTpCodeStart + CrcInputOffset, CrcInputLength)));
     }
 
-    private static uint CalculateCrc32Mpeg2(ReadOnlySpan<byte> bytes)
+    internal static uint CalculateCrc32Mpeg2(ReadOnlySpan<byte> bytes)
     {
         const uint Polynomial = 0x04C11DB7;
         uint remainder = uint.MaxValue;

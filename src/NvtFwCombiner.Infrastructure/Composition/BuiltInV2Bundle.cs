@@ -59,6 +59,25 @@ internal sealed class BuiltInV2Bundle
 
     internal string ContentHash { get; }
 
+    internal BankReferenceReplaceAdmission? TryGetBankReplaceAdmission(BuiltInV2Bundle local,
+        string memberId, string localMemberId, string layoutProfileId, string layoutProfileVersion, string layoutMapId,
+        string localProfileId, string localProfileVersion, string localMapId)
+    {
+        ArgumentNullException.ThrowIfNull(local);
+        return _catalog.Value.TryCreateBankReplaceAdmission(local._catalog.Value, memberId, localMemberId,
+            layoutProfileId, layoutProfileVersion, layoutMapId,
+            localProfileId, localProfileVersion, localMapId);
+    }
+
+    internal CompiledComposition CompileBankReplace(CompiledComposition layout,
+        FirmwareArtifactPayload reference, BankReferenceReplaceDefinition definition,
+        int topologyCount, IReadOnlyList<V2RuntimeReferenceBankReplaceRequest> requests)
+    {
+        return V2CompositionPlanCompiler.CompileAbRuntimeReferenceReplace(
+            V2CompositionPlanCompiler.PrepareAbRuntimeReferenceReplace(layout, reference,
+                definition, topologyCount, _catalog.Value, requests));
+    }
+
     internal bool TryGetAbAuthoringDefinition(string profileId, string profileVersion,
         out CanonicalAbAuthoringDefinition? definition, out IReadOnlyList<CompositionIssue> issues)
     {
@@ -178,6 +197,31 @@ internal sealed class BuiltInV2Bundle
             : throw new InvalidDataException("Registered profile version does not match the trusted family binding.");
     }
 
+    /// <summary>Gets one trusted fixed-map declaration without a source BIN or executable compilation.</summary>
+    internal TrustedMapBoundProfileDeclaration GetMapBoundDeclaration(
+        string profileId,
+        string profileVersion,
+        string memberId,
+        string experienceId,
+        string mapId)
+    {
+        return _catalog.Value.GetMapBoundDeclaration(
+            profileId, profileVersion, memberId, experienceId, mapId);
+    }
+
+    internal SourceEnvelopeProfileBinding? GetSourceEnvelopeBinding(
+        string profileId,
+        string profileVersion)
+    {
+        TrustedCompositionProfileCatalogEntry entry = _catalog.Value.SelectProfile(
+                profileId,
+                profileVersion,
+                out IReadOnlyList<CompositionIssue> issues) ??
+            throw new InvalidDataException(
+                $"Trusted source-envelope declaration is unavailable: {string.Join(", ", issues.Select(static issue => issue.Code))}.");
+        return entry.Profile.Header.SourceEnvelopeBinding;
+    }
+
     private TrustedCompositionProfileCatalogEntry GetProfile(string profileId)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(profileId);
@@ -203,6 +247,32 @@ internal sealed class BuiltInV2Bundle
             profile.Family.Family.FamilyVersion,
             profile.Family.Family.FamilyContentHash,
             mapId);
+    }
+
+    internal FirmwareFamilyResolutionDefinition GetDisclosureFamily(ProfileBundleMetadataProviderFamily identity)
+    {
+        ArgumentNullException.ThrowIfNull(identity);
+        return _catalog.Value.Families.SingleOrDefault(candidate =>
+            StringComparer.Ordinal.Equals(candidate.Family.FamilyId, identity.FamilyId) &&
+            StringComparer.Ordinal.Equals(candidate.Family.FamilyVersion, identity.FamilyVersion))?.Family
+            ?? throw new InvalidDataException("Declared disclosure family is absent from its owning trusted bundle.");
+    }
+
+    /// <summary>Projects only explicitly declared full-image views from one exact trusted provider family.</summary>
+    internal IReadOnlyList<MetadataPlanDefinition> CreateFullImageMetadataPlans(ProfileBundleMetadataProviderFamily identity)
+    {
+        ArgumentNullException.ThrowIfNull(identity);
+        FirmwareFamilyResolutionDefinition family = _catalog.Value.Families.SingleOrDefault(candidate =>
+            StringComparer.Ordinal.Equals(candidate.Family.FamilyId, identity.FamilyId) &&
+            StringComparer.Ordinal.Equals(candidate.Family.FamilyVersion, identity.FamilyVersion))?.Family
+            ?? throw new InvalidDataException("Declared metadata provider family is absent from its owning trusted bundle.");
+        return [.. (family.FullImageMetadataViews ?? []).SelectMany(view => view.MemberIds.Select(memberId =>
+        {
+            var context = new CanonicalFullImageMetadataContext(family, view, memberId, ContentHash);
+            return new MetadataPlanDefinition(context, view.MetadataBindings.Select(binding =>
+                new MetadataPlanEntry(context, binding,
+                    ResolveMetadataSetBinding(view.ImageMap, memberId, binding.Structure))));
+        }))];
     }
 
     internal bool TryResolveMetadataDefinition(
@@ -244,6 +314,21 @@ internal sealed class BuiltInV2Bundle
         string failureMessage,
         IReadOnlyCollection<string>? selectedInputSlotIds = null)
     {
+        return CompileExecutable(
+            profileId, profileVersion, icId, experienceId, requestedMapCapacity,
+            failureMessage, [], selectedInputSlotIds);
+    }
+
+    internal V2CompositionPlanCompileResult CompileExecutable(
+        string profileId,
+        string profileVersion,
+        string icId,
+        string experienceId,
+        long? requestedMapCapacity,
+        string failureMessage,
+        IReadOnlyList<FirmwareArtifactPayload> resolutionArtifacts,
+        IReadOnlyCollection<string>? selectedInputSlotIds = null)
+    {
         V2CompositionPlanCompileResult compilation = Compile(
             profileId,
             profileVersion,
@@ -251,7 +336,7 @@ internal sealed class BuiltInV2Bundle
             experienceId,
             requestedMapCapacity,
             requestedTopology: null,
-            resolutionArtifacts: [],
+            resolutionArtifacts,
             selectedInputSlotIds);
         return compilation.CompiledComposition is { Eligibility: CompiledCompositionEligibility.V2RuntimeExecutable }
             ? compilation
@@ -299,7 +384,8 @@ internal sealed class BuiltInV2Bundle
         long? requestedMapCapacity,
         TopologySelection? requestedTopology,
         string failureMessage,
-        IReadOnlyCollection<string>? selectedInputSlotIds = null)
+        IReadOnlyCollection<string>? selectedInputSlotIds = null,
+        IReadOnlyList<FirmwareArtifactPayload>? resolutionArtifacts = null)
     {
         V2CompositionPlanCompileResult compilation = Compile(
             profileId,
@@ -308,7 +394,7 @@ internal sealed class BuiltInV2Bundle
             ExperienceIds.AbMerge,
             requestedMapCapacity,
             requestedTopology,
-            [],
+            resolutionArtifacts ?? [],
             selectedInputSlotIds ?? GetInputSelectionGroupMemberSlotIds(profileId, profileVersion));
         return compilation.CompiledComposition is { } composition &&
                (composition.Eligibility == CompiledCompositionEligibility.V2RuntimeExecutable ||
@@ -557,6 +643,45 @@ internal sealed class BuiltInV2Bundle
                 ContentHash));
     }
 
+    /// <summary>Projects fixed-map metadata references from trusted declaration facts without compiling a plan.</summary>
+    internal MetadataPlanDefinition CreateDeclaredMetadataPlan(
+        string profileId,
+        string profileVersion,
+        string memberId,
+        string experienceId,
+        string mapId)
+    {
+        TrustedMapBoundProfileDeclaration declaration = GetMapBoundDeclaration(
+            profileId, profileVersion, memberId, experienceId, mapId);
+        CompositionProfileDefinition profile = declaration.ProfileEntry.Profile;
+        FirmwareFamilyResolutionDefinition family = declaration.ProfileEntry.Family.Family;
+        var deferredInspectionIds = profile.MetadataBindings
+            .Select(static binding => binding.StructureId)
+            .ToHashSet(StringComparer.Ordinal);
+        var requiredResolutionIds = profile.MapBinding.RequiredMetadataStructureIds
+            .Where(id => !deferredInspectionIds.Contains(id))
+            .ToHashSet(StringComparer.Ordinal);
+        FirmwareMapResolutionResult resolution = family.ResolveMapWithinForProfile(
+            new FirmwareMapResolutionInputs(memberId, experienceId,
+                declaration.Map.CapacityBytes, requestedTopology: null, artifacts: []),
+            new HashSet<string>(StringComparer.Ordinal) { mapId },
+            requiredResolutionIds);
+        if (resolution.Status != FirmwareMapResolutionStatus.Unique)
+        {
+            throw new InvalidDataException(
+                $"Trusted map '{mapId}' cannot provide metadata declaration without resolution inputs.");
+        }
+
+        MetadataPlanEntry[] entries =
+        [
+            .. profile.MetadataBindings.Select(binding => CreateMetadataPlanEntry(
+                family, resolution.ResolvedMap!, profile, binding)),
+        ];
+        return new MetadataPlanDefinition(
+            entries,
+            new MetadataPlanSourceIdentity(profileId, profileVersion, ContentHash));
+    }
+
     /// <summary>Returns whether one trusted profile declares an exact metadata purpose.</summary>
     internal bool ProfileDeclaresMetadataPurpose(
         string profileId,
@@ -592,23 +717,6 @@ internal sealed class BuiltInV2Bundle
                 $"Metadata binding '{binding.BindingId}' references a structure not selected by the compiled map.");
         }
 
-        FirmwareMapFactBinding<FirmwareMetadataSet>[] metadataBindings =
-        [
-            .. resolvedMap.ImageMap.MetadataSetBindings.Where(
-                candidate =>
-                    StringComparer.Ordinal.Equals(
-                        candidate.EffectiveKey.MemberId,
-                        resolvedMap.MemberId) &&
-                    candidate.Value.Structures.Any(
-                        candidateStructure =>
-                            ReferenceEquals(candidateStructure, structure))),
-        ];
-        if (metadataBindings.Length != 1)
-        {
-            throw new InvalidDataException(
-                $"Metadata binding '{binding.BindingId}' does not resolve to exactly one canonical map fact.");
-        }
-
         InputArtifactProfileSpace space = profile.Spaces
             .OfType<InputArtifactProfileSpace>()
             .Single(candidate => StringComparer.Ordinal.Equals(
@@ -620,11 +728,21 @@ internal sealed class BuiltInV2Bundle
             space.SlotId,
             family,
             resolvedMap,
-            metadataBindings[0],
+            ResolveMetadataSetBinding(resolvedMap.ImageMap, resolvedMap.MemberId, structure),
             structure,
             binding.TargetReferences,
             binding.Purposes.Select(ToReferencePurpose),
             binding.EvidenceRefs);
+    }
+
+    private static FirmwareMapFactBinding<FirmwareMetadataSet> ResolveMetadataSetBinding(
+        FirmwareImageMap map, string memberId, FirmwareMetadataStructure structure)
+    {
+        FirmwareMapFactBinding<FirmwareMetadataSet>[] matches = [.. map.MetadataSetBindings.Where(candidate =>
+            StringComparer.Ordinal.Equals(candidate.EffectiveKey.MemberId, memberId) &&
+            candidate.Value.Structures.Any(value => ReferenceEquals(value, structure)))];
+        return matches.Length == 1 ? matches[0] : throw new InvalidDataException(
+            $"Metadata structure '{structure.StructureId}' does not resolve to exactly one canonical map fact.");
     }
 
     private static MetadataReferencePurpose ToReferencePurpose(

@@ -344,3 +344,125 @@ Reasons:
 - Resolved 2026-07-19: NT51931 selects registered 1.13.0 `NT51931BASED_NORMAL_MODE CRC8`; the 1.13.0/51930-based combination is rejected.
 - Should the real-tool host adapter always stage an empty `map.txt` for no-overlay normal/NT-based commands, or should profiles declare map authority explicitly?
 - Which per-IC CRC/header diff ranges should be accepted for full postbuild no-op diagnostics, if any?
+
+## NT51929 AB address strategy characterization — 2026-09-21
+
+Status: investigation only; neither strategy is admitted for production AB Replace.
+The owner-approved conditional invariant is recorded in
+[ADR 0024](../adr/0024-ctrlram-tp-and-flash-base-convergence.md#ab-ctrlram-conditional-invariant--2026-09-21).
+
+The new Infrastructure test
+`Nt51929AbSameContentControlsPreserveRealToolStrategyEvidence` uses the existing
+`LegacyCombinerPostbuildProcessor`, staged replacement sources, profile command
+plan and host write audit. It does not modify the catalog or add a byte-execution
+path. Windows is required; other platforms explicitly skip the real-tool test.
+
+### Controlled input and evidence
+
+- Source: canonical `ab-merge / NT51929 / expected-output / t05-d06`, complete
+  SHA-256 `c7e1e263ac8ca70f83a6f66fa268da4aa9be37c2c822a39d58fa9c153d66abe2`.
+- A control: `[0,0x40000)` of that source; SHA-256
+  `e257e734a63d0d8a0e471bc7b541366578b9b56c94dd914197508d5af1127c12`.
+- Synthetic B: a separate copy of that same A slice, adding `0x40000` only to
+  its own U32 LE stored addresses at `0x7164`, `0x7168`, `0x716C` using checked
+  arithmetic. The original Golden B half is not this synthetic control.
+- Tool: existing Combiner 1.13.0, SHA-256
+  `ed6b58289cc780f73d36b831f5424cef44ad93187ba7518d36df6a77ad0c76bf`;
+  existing two-command `NT51932BASED_NORMAL_MODE CRC8` single-IC plan.
+- Normal control replacement: typed flash-map region `normal`, whose range
+  contains `0x21B90`; toggle the first source byte with `0x5A`, supplied through
+  `ExternalProcessorStagedSource`. Assert that it reaches the resulting output.
+- Compare complete outputs. Differences are classified only against the three
+  address words, declared CRC words `[0x7100,0x7104)` / `[0x7118,0x711C)`, and
+  their exact counterparts in the `[0x27EF0,0x280F0)` header copy. The whole copy
+  range is not a comparison allowance. Write authority and CRC read coverage
+  remain distinct facts.
+
+External private artifacts are under
+`D:\NvtFwCombiner-TestArea\evidence\v1110-nt51929-ab-ctrlram-characterization`.
+The final Normal run is `272de94807f8405d8a440d9712d6b716`; its `report.json`
+SHA-256 is `389cbb65b2f3d67b32a1e1926be5f30a927a2a9c83f5ffedc8acf5c240315348`.
+Each command retains full pre/post snapshots, exact argv, exit status, stdout,
+stderr, hashes, field values and complete changed ranges. Restored B is saved
+separately. These BIN files are private experiment artifacts, not Git fixtures.
+
+### Observations and limitations
+
+| Strategy | Observed result | What it establishes |
+| --- | --- | --- |
+| A, real Normal replacement | Success; nonzero replacement reaches output | Valid control through existing host audit |
+| Local B with final B stored addresses | First command exits `-1073741819` (`0xC0000005`); no successful processor output | This local-B invocation cannot be used unchanged |
+| B addresses normalized, same replacement | Success; complete output equals A control | Same-input tool consistency only |
+| Add B delta to the three main-header fields after postbuild | Exactly three changed bytes versus A: `0x7166`, `0x716A`, `0x716E` | Address restoration changes no other bytes; does not prove CRC correctness |
+
+A and normalized output SHA-256:
+`12d50be389c038644d0e1785e99c025d831359e388d6b48e8dd2dc78bf853d45`.
+Restored B SHA-256:
+`2900cb52f39a2e72c0c7be214a0041855e196f51d7431218f01d8a1422d6312a`.
+Restoration leaves CRCs equal to A and leaves the three copied addresses at
+`0x28054/0x28058/0x2805C` in A coordinates. No copied fields or CRCs were repaired
+to force agreement. An empty outside-field diff does **not** prove the CRC
+valid or invalid: the exact CRC read ranges and required copied-header generation
+are still unproven. The test does not cover differing A/B original contents,
+versions, unselected-bank preservation, cascade, NT51950 or NT51951.
+
+The earlier NF control is preserved separately as
+`2ed41f9f7e2c4266ba920ec9c4409640`. Toggling the NF byte at `0x1FC00` also changed
+`0x2EA00`; both A and normalized B were correctly rejected by host write audit.
+The current fw200 profile's Backup authority `[0x2E000,0x2E07C)` does not cover
+that byte. Its meaning and required authority are unresolved; do not expand
+the allowed range or call the Normal control a fix for this NF failure.
+
+The final Windows filter `FullyQualifiedName~Nt51929Ab` passes **2/2**, zero
+skipped, including the existing first-half evidence test. This is successful
+characterization, not successful B runtime support or new Golden certification.
+At that checkpoint, source lookup had missed the ignored owner archive. The
+source findings below supersede the missing-source premise. Runtime integration,
+independent complete-output checks and exact NF propagation authority remain
+separate work.
+
+### Recovered existing 1.13 source — 2026-09-21
+
+The owner pointed out that this checkout already contains the 1.13 source.
+It is present under Git-ignored `.tmp/combiner-1.13-source/`, with the matching
+owner archive also in `.tmp/owner-archive/929-golden-combiner-intake/`.
+The previously inspected tracked `tddi-flash-header/Combiner.c` is a different,
+older source and was not a sufficient search of the available evidence.
+
+Provenance is already recorded in the
+[owner intake](../../testdata/golden/owner-handoff/combiner-and-51929/CASE.md).
+The nested `Combiner_1.13_SourceCode.7z` SHA-256 is
+`0c86ad1d292db279c613b0f23a2e4cef8c2422950c56d1c22fdd1130660b47b8`.
+The entry `firmware-merge-tool/Combiner/Combiner.c` was read directly from that
+archive and compared byte-for-byte with the existing extracted file; both hash
+to `7fb6551894d5a71f7df42b6b7c2bda99f35cbcc13f5c01713dc0ae596ebb5ea8`.
+The archived `.vcxproj` compiles `Combiner.c`; its `main` at line 2142 prints
+`Combiner version:1.13.0.0`. This establishes source provenance, not a claim of
+reproducible binary-build equivalence. No archive payload was added to Git.
+
+Source observations (line numbers refer to that exact C entry):
+
+| Path | Source evidence | Consequence for the experiment |
+| --- | --- | --- |
+| NT51929 uses the catalog's NT51932-based mode | `NT51932_CalculateDlmDiffCrcAndHeaderCrc`, lines 1469–1473, reads header start `0x7104` with size code `0x23`; `CRC8Alg` line 42 includes the end byte | Header CRC covers `[0x7104,0x7128)`, excluding address fields `0x7164/0x7168/0x716C` |
+| NT51932 AB assembly | `NT51932BasedMergeABMode`, lines 1658–1673, adds the B delta to the three main-header addresses and writes the output; it calls no CRC or header-copy routine | Normal postbuild followed by restoring only those addresses agrees with this source's assembly sequence; equal A/B CRCs and local copied addresses are not themselves a defect |
+| NT51950 AB assembly | `NT51950BasedMergeABMode`, lines 1930–1934, relocates ILM/DLM addresses then calls `NT51950_CalculateHeaderCrc` | Its header range is `[0xA100,0xA130)` (lines 1721–1727), including its address fields, so the 929 no-extra-CRC conclusion must not be generalized to 950 |
+| Local-B failure | `NT51932_MergeBinsThenInsertFwConfigAndEndFlag`, lines 1495–1520, allocates the local image and computes Backup destination from the stored DIFF address without a destination bound check | The observed 1-IC B control has length `0x40000`, DIFF address `0x6D100` and computed Backup destination `0x6E000`; the 4096-byte copy is outside its buffer even before CRC calculation. This is a concrete unsafe access explaining the crash, not a captured exception stack |
+| NF propagation | The same routine copies 4096 bytes from FWConfig source, then writes the final NVT marker | For the local control, `[0x1F200,0x20200)` is copied to `[0x2E000,0x2F000)`. NF byte `0x1FC00` is therefore copied to `0x2EA00`, exactly matching the retained host refusal |
+
+The source resolves the missing address/CRC-coverage explanation for these
+functions. It does not by itself widen the profile's 124-byte FWConfig Backup
+write authority, admit an AB Replace route, prove unselected-bank preservation,
+or certify a new Golden. Follow-up implementation can use this existing source
+and the existing AB family owner; a second request for the same source is no
+longer necessary. No new product tests were run for this source/document correction.
+
+Subsequent local implementation on 2026-09-21 corrects the existing Single
+family Backup declaration to `[0x2E000,0x2F000)` while preserving the 124-byte
+metadata schema and adjacent-byte protection. Real NF replacement, the complete
+Backup copy/marker, output difference bounds, immutable inputs, original Golden
+and alias execution, and affected route/compiler regressions pass in the
+118-case targeted run. See the
+[delivery evidence](../ui/v1.1.10-delivery.md#nt51929nt51919-single-backup-修正--2026-09-21).
+This fixes the NF write-authority mismatch; it does not implement AB Replace or
+turn the prior characterization into an independent AB output Golden.

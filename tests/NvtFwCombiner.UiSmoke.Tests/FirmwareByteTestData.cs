@@ -49,6 +49,7 @@ internal static class FirmwareByteTestData
         image[backupStart + FirmwareConfigLayout.FirmwareVersionOffset] = version;
         image[backupStart + FirmwareConfigLayout.FirmwareVersionBarOffset] = unchecked((byte)~version);
         image[backupStart + FirmwareConfigLayout.FirmwareSubVersionOffset] = subVersion;
+        image[backupStart + FirmwareConfigLayout.ChipNumberOffset] = 1;
         image[backupStart + FirmwareConfigLayout.CommonFwMajorVersionOffset] = commonFwMajor;
         image[backupStart + FirmwareConfigLayout.CommonFwMinorVersionOffset] = commonFwMinor;
         image[backupStart + FirmwareConfigLayout.CommonFwAdditionalVersionOffset] = commonFwAdditional;

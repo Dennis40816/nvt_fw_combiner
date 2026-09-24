@@ -267,7 +267,7 @@ public sealed partial class XamlControlStyleContractTests
         Assert.InRange(control.Bottom, container.Top, container.Bottom + 1);
     }
 
-    /// <summary>First asynchronous Config load enables the already-mounted draft actions.</summary>
+    /// <summary>First load exposes active defaults; editing enables the already-mounted Save action.</summary>
     [AvaloniaFact]
     public async Task EventBufferFormatMountedBeforeFirstLoadEnablesSaveAndRestore()
     {
@@ -303,14 +303,22 @@ public sealed partial class XamlControlStyleContractTests
             await viewModel.Settings.EventBufferFormatLoadTask;
             RenderSettingsVersion(window);
             Assert.Equal(viewModel.Settings.EventBufferFormatRows.Count, modal.ObservedEventBufferFormatRowCount);
-            Assert.True(save.IsEffectivelyEnabled);
+            Assert.False(save.IsEffectivelyEnabled);
             Assert.True(restore.IsEffectivelyEnabled);
+            Assert.Single(viewModel.Settings.EventBufferFormatRows).AliasName = "Edited defaults";
+            RenderSettingsVersion(window);
+            Assert.True(save.IsEffectivelyEnabled);
             PressSettingsControl(window, restore);
             Assert.Equal(viewModel.Settings.EventBufferFormatRows.Count, modal.ObservedEventBufferFormatRowCount);
+            Assert.False(save.IsEffectivelyEnabled);
+            Assert.Single(viewModel.Settings.EventBufferFormatRows).AliasName = "Saved defaults";
+            RenderSettingsVersion(window);
             PressSettingsControl(window, save);
             await Assert.IsType<Task>(viewModel.Settings.SaveEventBufferFormatCommand.ExecutionTask, exactMatch: false);
             Assert.Equal(viewModel.Settings.EventBufferFormatRows.Count, modal.ObservedEventBufferFormatRowCount);
             Assert.Equal(EventBufferFormatConfigurationStatus.Ready, session.Current.Status);
+            Assert.False(session.Current.UsesBuiltInDefaults);
+            Assert.Equal("Saved defaults", Assert.Single(session.Current.Configuration!.Entries).AliasName);
         }
         finally
         {

@@ -42,7 +42,7 @@ public sealed class AbDummyDpCompilationTests
     [InlineData("NT51929", "selector-free", "nt51929-ab-merge-512k", "nt51929-ab-merge-512k", 0)]
     [InlineData("NT51932", "selector-free", "nt51932-ab-merge-512k", "nt51932-ab-merge-512k", 0)]
     [InlineData("NT51950", "1-ic", "nt51950-ab-merge-maps", "nt51950-ab-merge-512k", 1)]
-    [InlineData("NT51950", "2-plus-ic", "nt51950-ab-merge-maps", "nt51950-ab-merge-1024k", 2)]
+    [InlineData("NT51950", "2-plus-ic", "nt51950-ab-cascade-maps", "nt51950-ab-merge-1024k", 2)]
     [InlineData("NT51951", "selector-free", "nt51951-ab-merge-1024k", "nt51951-ab-merge-1024k", 0)]
     public void DynamicAbInventoryRestrictsTopologyMapSubset(string icId, string axis, string mapSet, string map, int count)
     {
@@ -79,13 +79,13 @@ public sealed class AbDummyDpCompilationTests
     [InlineData("NT51929", "nt51929-ab-merge", 0x80000, 0, true)]
     [InlineData("NT51932", "nt51932-ab-merge", 0x80000, 0, true)]
     [InlineData("NT51950", "nt51950-ab-merge", 0x80000, 1, true)]
-    [InlineData("NT51950", "nt51950-ab-merge", 0x100000, 2, true)]
+    [InlineData("NT51950", "nt51950-ab-merge-cascade", 0x100000, 2, true)]
     [InlineData("NT51951", "nt51951-ab-merge", 0x100000, 0, true)]
     [InlineData("NT51919", "nt51919-ab-merge-alias", 0x80000, 0, false)]
     [InlineData("NT51929", "nt51929-ab-merge", 0x80000, 0, false)]
     [InlineData("NT51932", "nt51932-ab-merge", 0x80000, 0, false)]
     [InlineData("NT51950", "nt51950-ab-merge", 0x80000, 1, false)]
-    [InlineData("NT51950", "nt51950-ab-merge", 0x100000, 2, false)]
+    [InlineData("NT51950", "nt51950-ab-merge-cascade", 0x100000, 2, false)]
     [InlineData("NT51951", "nt51951-ab-merge", 0x100000, 0, false)]
     public void SelectionPreservesTpAndUsesSeedOnlyWhenSelected(
         string icId, string profileId, int capacity, int chipCount, bool dummy)
@@ -96,8 +96,8 @@ public sealed class AbDummyDpCompilationTests
             ? "nt51950-ab-merge"
             : "nt51919-nt51929-nt51932-ab-merge";
         string hash = legacyProcessorFamily
-            ? "0f3db5b27468211ee5f60112d239423e2b0d99b3591c8dcc63db07a2e2987496"
-            : "68527380d4e2de5994734b9357fc55963254e51382027d9f099699c9dc1a366f";
+            ? "18b43352606ca744f499e328d5778c3b9e08307a97fd122ac38fd8762d37c8d1"
+            : "892af5d0f1ff0094bb96a0e30ffad3b6c2cf18451a6705623c2ca97206422c6b";
         using var workspace = TempWorkspace.Create("nfc-ab-dummy-compilation");
         TrustedProfileBundleCatalog catalog = AbMergeCandidateTestSupport.LoadSourceCandidateCatalog(
             workspace, bundle, hash);
@@ -106,7 +106,7 @@ public sealed class AbDummyDpCompilationTests
             : new TopologySelection(chipCount, "test", TopologySelectionSource.Requested, "test");
 
         V2CompositionPlanCompileResult result = catalog.Compile(
-            profileId, legacyProcessorFamily ? "0.6.0" : "0.4.0",
+            profileId, icId == "NT51950" ? chipCount == 1 ? "0.8.0" : "0.4.0" : legacyProcessorFamily ? "0.7.0" : "0.4.0",
             icId, ExperienceIds.AbMerge, capacity, topology, [],
             selectedInputSlotIds: dummy ? [] : ["dp-ab-input"]);
 
@@ -137,7 +137,7 @@ public sealed class AbDummyDpCompilationTests
         }
 
         var adapter = new BuiltInV2DynamicCompilationAdapter();
-        string mapSet = icId == "NT51950" ? "nt51950-ab-merge-maps"
+        string mapSet = icId == "NT51950" ? chipCount == 1 ? "nt51950-ab-merge-maps" : "nt51950-ab-cascade-maps"
             : icId == "NT51951" ? "nt51951-ab-merge-1024k" : $"{icId.ToLowerInvariant()}-ab-merge-512k";
         var identity = new CapabilityRouteIdentity(icId, ExperienceIds.AbMerge,
             chipCount == 0 ? "selector-free" : chipCount == 1 ? "1-ic" : "2-plus-ic", mapSet);
@@ -152,10 +152,10 @@ public sealed class AbDummyDpCompilationTests
         Assert.Equal(composition.V2Details.Provenance.ResolvedMap.ImageMap.MapId,
             routed.V2Details.Provenance.ResolvedMap.ImageMap.MapId);
         Assert.Equal(expectedSlots, routed.V2Details.InputContract.Slots.Select(static slot => slot.SlotId));
-        // AB metadata remains TP-owned in Normal and Dummy modes: 929/932
+        // AB metadata remains TP-owned in Normal and Dummy modes: 919/929/932
         // have header bindings; 950/951 have independent primary observations.
         Assert.DoesNotContain(metadata.Entries, static entry => entry.SlotId == "dp-ab-input");
-        if (icId is "NT51929" or "NT51932")
+        if (icId is "NT51919" or "NT51929" or "NT51932")
         {
             Assert.Equal(5, metadata.Entries.Count);
             Assert.Contains(metadata.Entries, static entry => entry.SlotId == "tp-a-input");
@@ -167,25 +167,22 @@ public sealed class AbDummyDpCompilationTests
             Assert.All(metadata.Entries, static entry =>
                 Assert.Equal([MetadataReferencePurpose.Inspection], entry.Purposes));
         }
-        else
-        {
-            Assert.Empty(metadata.Entries);
-        }
     }
 
-    /// <summary>Explicit topology never overrides incompatible capacity or a non-AB registration.</summary>
+    /// <summary>Explicit topology never overrides an incompatible profile or a non-AB registration.</summary>
     [Theory]
     [InlineData("NT51950", ExperienceIds.AbMerge, 0x80000, 2)]
     [InlineData("NT51950", ExperienceIds.AbMerge, 0x100000, 1)]
     [InlineData("NT51929", ExperienceIds.StandardMerge, 0x40000, 1)]
-    public void RegisteredDynamicAdapterRejectsTopologyConflicts(
+    public void RegisteredDynamicAdapterRejectsProfileTopologyConflicts(
         string icId, string workflowId, int capacity, int chipCount)
     {
         var adapter = new BuiltInV2DynamicCompilationAdapter();
         var topology = new TopologySelection(chipCount, "test", TopologySelectionSource.Requested, "test");
         var identity = new CapabilityRouteIdentity(icId, workflowId,
             workflowId == ExperienceIds.AbMerge ? chipCount == 1 ? "1-ic" : "2-plus-ic" : "selector-free",
-            workflowId == ExperienceIds.AbMerge ? "nt51950-ab-merge-maps" : "nt51929-standard-merge-256k");
+            workflowId == ExperienceIds.AbMerge ? chipCount == 1 ? "nt51950-ab-cascade-maps" : "nt51950-ab-merge-maps"
+                : "nt51929-standard-merge-256k");
         adapter.Compile(identity, capacity, [],
             out CompiledComposition? composition, out MetadataPlanDefinition? metadata,
             out IReadOnlyList<CompositionIssue> issues, topology);

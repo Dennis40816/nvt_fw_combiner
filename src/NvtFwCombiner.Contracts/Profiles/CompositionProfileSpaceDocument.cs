@@ -10,7 +10,9 @@ public sealed record CompositionProfileRelativeRangeDocument(JsonElement Start, 
 public sealed record CompositionProfileCapacityDocument(
     string Kind,
     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    JsonElement? Bytes = null);
+    JsonElement? Bytes = null,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    string? SourceSlotId = null);
 
 /// <summary>DTO for one engine-owned mutable-space initializer shape.</summary>
 public sealed record CompositionProfileInitializerDocument(

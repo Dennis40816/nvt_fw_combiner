@@ -3,6 +3,7 @@ using NvtFwCombiner.Application.Capabilities;
 using NvtFwCombiner.Application.ExternalTools;
 using NvtFwCombiner.Application.FlashMaps;
 using NvtFwCombiner.Application.InputInspection;
+using NvtFwCombiner.Application.Metadata;
 using NvtFwCombiner.Application.Ports;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Domain.Firmware;
@@ -23,8 +24,6 @@ internal sealed partial class BuiltInFirmwareInspection : IFirmwareInspection
     private readonly IAbMergeInputSlotInspector
         _abMergeAuthoring;
     private readonly ICompiledInputSlotInspector<FirmwareInspectionStatusBatch>
-        _dpReplaceAuthoring;
-    private readonly ICompiledInputSlotInspector<FirmwareInspectionStatusBatch>
         _ctrlRamAuthoring;
     private readonly ISelectedFileContentInspector _contentInspector;
     private readonly IFirmwareArtifactClassificationResolver _artifactClassification;
@@ -34,7 +33,6 @@ internal sealed partial class BuiltInFirmwareInspection : IFirmwareInspection
         ICompositionCapabilityExperience projection,
         ICompiledInputSlotInspector<FirmwareInspectionStatusBatch> standardMergeAuthoring,
         IAbMergeInputSlotInspector abMergeAuthoring,
-        ICompiledInputSlotInspector<FirmwareInspectionStatusBatch> dpReplaceAuthoring,
         ICompiledInputSlotInspector<FirmwareInspectionStatusBatch> ctrlRamAuthoring,
         IFirmwareArtifactClassificationResolver artifactClassification,
         ISelectedFileContentInspector? contentInspector = null)
@@ -46,8 +44,6 @@ internal sealed partial class BuiltInFirmwareInspection : IFirmwareInspection
             throw new ArgumentNullException(nameof(standardMergeAuthoring));
         _abMergeAuthoring = abMergeAuthoring ??
             throw new ArgumentNullException(nameof(abMergeAuthoring));
-        _dpReplaceAuthoring = dpReplaceAuthoring ??
-            throw new ArgumentNullException(nameof(dpReplaceAuthoring));
         _ctrlRamAuthoring = ctrlRamAuthoring ??
             throw new ArgumentNullException(nameof(ctrlRamAuthoring));
         _artifactClassification = artifactClassification ??
@@ -104,10 +100,6 @@ internal sealed partial class BuiltInFirmwareInspection : IFirmwareInspection
         }
 
         bool inspectAll = dispatch == FirmwareInspectionDispatch.AllStrategiesBaseline;
-        FirmwareInspectionStatusBatch dpInputBatch = inspectAll ||
-            inputs.Any(static input => input.DpReplaceAddressSpaceId is not null)
-                ? inspection._dpReplaceAuthoring.InspectInputSlots(icId, inputs, ReadOnce)
-                : FirmwareInspectionStatusBatch.Empty;
         FirmwareInspectionStatusBatch standardMergeInputBatch = inspectAll ||
             inputs.Any(static input => input.StandardMergeAddressSpaceId is not null)
                 ? inspection._standardMergeAuthoring.InspectInputSlots(icId, inputs, ReadOnce)
@@ -130,7 +122,6 @@ internal sealed partial class BuiltInFirmwareInspection : IFirmwareInspection
                     icId,
                     input,
                     primaryImage.LongLength,
-                    dpInputBatch,
                     standardMergeInputBatch,
                     ctrlRamInputBatch);
             FirmwareInspectionSnapshot snapshot = InspectFirmware(
@@ -142,7 +133,9 @@ internal sealed partial class BuiltInFirmwareInspection : IFirmwareInspection
                 ReadOnce,
                 input.ExactCapability,
                 input.StandardMergeAddressSpaceId,
-                metadataAuthority);
+                metadataAuthority,
+                input.CtrlRamReplaceAddressSpaceId == CompositionAddressSpaceIds.ReferenceBase
+                    ? ctrlRamInputBatch.CtrlRamBaseInspection : null);
             if (!string.IsNullOrWhiteSpace(input.AbMergeAddressSpaceId))
             {
                 snapshot = snapshot with
@@ -150,28 +143,20 @@ internal sealed partial class BuiltInFirmwareInspection : IFirmwareInspection
                     AbMergeFacts = abMergeInputBatch.Facts[input.InspectionId],
                     InputSlotStatus = abMergeInputBatch.Statuses[input.InspectionId],
                     InputSlotCatalog = abMergeInputBatch.Catalog,
+                    AuthoringCompilationIssues = abMergeInputBatch.Issues,
                 };
             }
 
-            if (dpInputBatch.Statuses.TryGetValue(
-                    input.InspectionId,
-                    out AuthoringInputSlotStatus? status))
+            if (input.StandardMergeAddressSpaceId is not null)
             {
-                snapshot = snapshot with
-                {
-                    InputSlotStatus = status,
-                    InputSlotCatalog = dpInputBatch.Catalog,
-                };
-            }
-
-            if (standardMergeInputBatch.Statuses.TryGetValue(
+                _ = standardMergeInputBatch.Statuses.TryGetValue(
                     input.InspectionId,
-                    out AuthoringInputSlotStatus? standardMergeStatus))
-            {
+                    out AuthoringInputSlotStatus? standardMergeStatus);
                 snapshot = snapshot with
                 {
                     InputSlotStatus = standardMergeStatus,
                     InputSlotCatalog = standardMergeInputBatch.Catalog,
+                    AuthoringCompilationIssues = standardMergeInputBatch.Issues,
                 };
             }
 
@@ -185,6 +170,8 @@ internal sealed partial class BuiltInFirmwareInspection : IFirmwareInspection
                     InputSlotStatus = ctrlRamStatus,
                     InputSlotCatalog = ctrlRamInputBatch.Catalog,
                     AuthoringCompilationIssues = input.CtrlRamReplaceAddressSpaceId == CompositionAddressSpaceIds.ReferenceBase ? ctrlRamInputBatch.Issues : [],
+                    CtrlRamBaseInspection = input.CtrlRamReplaceAddressSpaceId == CompositionAddressSpaceIds.ReferenceBase
+                        ? ctrlRamInputBatch.CtrlRamBaseInspection : null,
                     CtrlRamBaseDiscoveryReadiness =
                         ctrlRamInputBatch.CtrlRamBaseDiscovery is { } discovery &&
                         StringComparer.Ordinal.Equals(discovery.InspectionId, input.InspectionId)
@@ -229,7 +216,8 @@ internal sealed partial class BuiltInFirmwareInspection : IFirmwareInspection
         Func<string, byte[]?> readFirmwareImage,
         ResolvedCapability? exactCapability = null,
         string? standardMergeAddressSpaceId = null,
-        FirmwareMetadataPlanAuthority? metadataAuthority = null)
+        FirmwareMetadataPlanAuthority? metadataAuthority = null,
+        CtrlRamBaseInspection? baseInspection = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(icId);
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
@@ -262,7 +250,6 @@ internal sealed partial class BuiltInFirmwareInspection : IFirmwareInspection
                 ExactCapability: exactCapability),
             image.LongLength,
             FirmwareInspectionStatusBatch.Empty,
-            FirmwareInspectionStatusBatch.Empty,
             FirmwareInspectionStatusBatch.Empty);
 
         byte[]? tpImage = string.IsNullOrWhiteSpace(tpPath)
@@ -270,8 +257,9 @@ internal sealed partial class BuiltInFirmwareInspection : IFirmwareInspection
             : string.Equals(path, tpPath, StringComparison.Ordinal)
                 ? image
                 : readFirmwareImage(tpPath);
+        bool isAbReference = baseInspection?.Kind == CtrlRamBaseKind.AbFlash;
         FirmwareConfigMetadata? firmwareConfig =
-            TryReadFirmwareConfigMetadataFromImage(
+            !isAbReference && TryReadFirmwareConfigMetadataFromImage(
                 inspection._projection,
                 icId,
                 image,
@@ -279,7 +267,7 @@ internal sealed partial class BuiltInFirmwareInspection : IFirmwareInspection
                     ? metadata
                     : null;
         CompiledFirmwareArtifactClassification? artifactClassification =
-            inspection._artifactClassification.Resolve(icId, exactCapability, image);
+            isAbReference ? null : inspection._artifactClassification.Resolve(icId, exactCapability, image);
         BaseFirmwareArtifactKind artifactKind = artifactClassification?.Kind switch
         {
             CompiledFirmwareArtifactKind.TpFirmware => BaseFirmwareArtifactKind.TpFirmware,
@@ -287,7 +275,7 @@ internal sealed partial class BuiltInFirmwareInspection : IFirmwareInspection
             CompiledFirmwareArtifactKind.Unknown or null => BaseFirmwareArtifactKind.Unknown,
             _ => throw new InvalidOperationException("Unknown compiled firmware artifact kind."),
         };
-        bool shouldProjectDpMetadata = artifactClassification?.IsDpMetadataApplicable != false;
+        bool shouldProjectDpMetadata = !isAbReference && artifactClassification?.IsDpMetadataApplicable != false;
         LegacyCombinerPostbuildProfile? postbuildProfile = TryResolvePostbuildProfileForDisplay(
             inspection._projection,
             icId,
@@ -296,7 +284,10 @@ internal sealed partial class BuiltInFirmwareInspection : IFirmwareInspection
                 ? resolvedProfile
                 : null;
         CtrlRamInspectionDisplay? ctrlRamDisplay = ctrlRamRequest is { } request
-            ? BuiltInCtrlRamAuthoringAdapter.CreateDisplay(
+            ? isAbReference
+                ? ProjectCtrlRamInspectionDisplay(inspection, icId, request.NumberToken,
+                    baseInspection!.Banks.FirstOrDefault(static bank => bank.FirmwareConfig is not null)?.FirmwareConfig)
+                : BuiltInCtrlRamAuthoringAdapter.CreateDisplay(
                 icId,
                 request.NumberToken,
                 postbuildProfile,
@@ -310,6 +301,8 @@ internal sealed partial class BuiltInFirmwareInspection : IFirmwareInspection
                     image,
                     string.Equals(path, tpPath, StringComparison.Ordinal) ? null : tpImage,
                     standardMergeAddressSpaceId,
+                    !string.IsNullOrWhiteSpace(tpPath) &&
+                        !string.Equals(path, tpPath, StringComparison.Ordinal),
                     metadataAuthority)
                 : (null, null, null);
         if (detectedIcId is null && DetectFirmwareIcHintFromHeader(image) is { } headerHint)
@@ -317,6 +310,21 @@ internal sealed partial class BuiltInFirmwareInspection : IFirmwareInspection
             detectedIcId = headerHint;
             detectedIcHintSource = FirmwareIcHintSource.PrintableHeader;
         }
+
+        FileStamp imageStamp = FileStamp.FromBytes(image);
+        byte? standardEventBufferFormat = baseInspection is not null
+            ? baseInspection.Kind is CtrlRamBaseKind.StandardTp or CtrlRamBaseKind.StandardFlash &&
+              baseInspection.ReferenceStamp == imageStamp &&
+              inspection._artifactClassification.IsCurrent(baseInspection.ResolutionToken) &&
+              baseInspection.Issues.All(static issue => issue.Code != AuthoringSessionIssueCodes.StaleInspection)
+                ? baseInspection.StandardEventBufferFormatVersion
+                : null
+            : StringComparer.Ordinal.Equals(standardMergeAddressSpaceId, CompositionAddressSpaceIds.TpInput) &&
+              metadataAuthority.IsApplicable && metadataAuthority.Plan is { } standardPlan &&
+              firmwareConfig is { IsFirmwareVersionBarValid: true } config
+                ? FirmwareConfigGeneralParametersProjector.ReadEventBufferFormatVersion(
+                    standardPlan, image, config.StructureStart)
+                : null;
 
         return new FirmwareInspectionSnapshot(
             detectedIcId,
@@ -329,7 +337,8 @@ internal sealed partial class BuiltInFirmwareInspection : IFirmwareInspection
         {
             DetectedIcHintSource = detectedIcHintSource,
             ArtifactClassification = artifactClassification,
-            FileStamp = FileStamp.FromBytes(image),
+            FileStamp = imageStamp,
+            StandardEventBufferFormatVersion = standardEventBufferFormat,
             DpMetadataPrerequisite = dpMetadata.Prerequisite,
         };
     }

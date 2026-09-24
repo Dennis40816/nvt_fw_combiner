@@ -397,7 +397,7 @@ public sealed partial class CompositionRunService
                                 new CompositionOutputBundleCommitArtifact(
                                     "additional-delivery",
                                     bundledDeliveryPlan.DeliveryKind,
-                                    bundledDeliveryPlan.SuggestedFileName,
+                                    bundledDeliveryPlan.FileName,
                                     deliveryBytes),
                             ],
                             cancellationToken)

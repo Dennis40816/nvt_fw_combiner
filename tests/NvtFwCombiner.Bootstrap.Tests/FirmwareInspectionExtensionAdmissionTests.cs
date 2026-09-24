@@ -38,8 +38,8 @@ public sealed class FirmwareInspectionExtensionAdmissionTests
     {
         using var workspace = TempWorkspace.Create("ab-extension-inspection");
         string dpPath = workspace.Write("ab-dp.bin", new byte[0x80000]);
-        string tpAPath = workspace.Write("ab-tp-a.txt", new byte[0x40000]);
-        string tpBPath = workspace.Write("ab-tp-b.bin", new byte[0x40000]);
+        string tpAPath = workspace.Write("ab-tp-a.txt", CreateSingleIcTp());
+        string tpBPath = workspace.Write("ab-tp-b.bin", CreateSingleIcTp());
         FirmwareInspectionBatchResult result =
             await BootstrapTestHost.Services.FirmwareInspectionExperience.InspectFirmwareBatchAsync(
                 "NT51929",
@@ -119,5 +119,15 @@ public sealed class FirmwareInspectionExtensionAdmissionTests
         Assert.True(status.BlocksBuild);
         Assert.Null(status.FileStamp);
         Assert.Null(status.AcceptedBytes);
+    }
+
+    private static byte[] CreateSingleIcTp()
+    {
+        byte[] tp = new byte[0x40000];
+        tp[0] = 0xA7;
+        tp[1] = 0x58;
+        tp[0x17] = 1;
+        "\0NVT"u8.CopyTo(tp.AsSpan(0xFFC));
+        return tp;
     }
 }

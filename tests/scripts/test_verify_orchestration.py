@@ -9,6 +9,7 @@ import hashlib
 import importlib.util
 import io
 import json
+import locale
 import os
 import signal
 import subprocess
@@ -789,7 +790,7 @@ class VerifyOrchestrationTests(unittest.TestCase):
                 self.assertEqual([False], observations)
                 cleanup.assert_called_once()
 
-    def test_local_builder_and_coverage_keep_one_deadline(self) -> None:
+    def test_local_builder_and_coverage_each_inherit_requested_lane_deadline(self) -> None:
         clock = [100.0]
         deadlines = []
 
@@ -800,7 +801,7 @@ class VerifyOrchestrationTests(unittest.TestCase):
         def isolated(name, _log):
             if name == "dotnet-coverage":
                 deadlines.append(MODULE.LANE_DEADLINE.get())
-                self.assertEqual(3, MODULE.remaining_timeout())
+                self.assertEqual(60, MODULE.remaining_timeout())
                 clock[0] += 4
 
         with (
@@ -818,11 +819,11 @@ class VerifyOrchestrationTests(unittest.TestCase):
             result = MODULE.execute_verification(MODULE.parse_args(
                 ["--skip-structure", "--jobs=1", "--lane-timeout-seconds=60"]
             ))
-        self.assertEqual(1, result)
-        self.assertEqual([160.0, 160.0], deadlines)
+        self.assertEqual(0, result)
+        self.assertEqual([160.0, 217.0], deadlines)
         cleanup.assert_called_once()
 
-    def test_public_full_plan_builds_before_overlapping_lock_readers_and_coverage(
+    def test_public_full_plan_runs_dotnet_before_parallel_independent_lanes(
         self,
     ) -> None:
         calls: list[tuple[list[str], int, int]] = []
@@ -860,7 +861,17 @@ class VerifyOrchestrationTests(unittest.TestCase):
                     MODULE.DEFAULT_LANE_TIMEOUT_SECONDS,
                 ),
                 (
-                    ["dotnet", "structure", *(lane.name for lane in MODULE.local_repository_script_lanes()), "python"],
+                    ["dotnet-build"],
+                    1,
+                    MODULE.DEFAULT_LANE_TIMEOUT_SECONDS,
+                ),
+                (
+                    ["dotnet"],
+                    1,
+                    1200,
+                ),
+                (
+                    ["structure", *(lane.name for lane in MODULE.local_repository_script_lanes()), "python"],
                     MODULE.DEFAULT_VERIFY_JOBS,
                     MODULE.DEFAULT_LANE_TIMEOUT_SECONDS,
                 ),
@@ -871,6 +882,29 @@ class VerifyOrchestrationTests(unittest.TestCase):
         self.assertEqual("selected-dotnet", build.call_args.args[0])
         cleanup.assert_called_once()
         self.assertEqual("selected-dotnet", cleanup.call_args.args[0])
+
+    def test_explicit_local_full_deadline_still_bounds_dotnet_coverage(self) -> None:
+        for deadline in (60, 900):
+            with self.subTest(deadline=deadline):
+                calls: list[tuple[str, int]] = []
+
+                def record_phase(lanes, *, jobs, lane_timeout_seconds):
+                    del jobs
+                    calls.append((lanes[0].name, lane_timeout_seconds))
+
+                with (
+                    patch.dict(os.environ, {MODULE.INTERNAL_LANE_ENVIRONMENT_VARIABLE: ""}),
+                    patch.object(MODULE, "run_selected_lanes", side_effect=record_phase),
+                    patch.object(MODULE, "resolve_dotnet", return_value="selected-dotnet"),
+                    patch.object(MODULE, "cleanup_dotnet_batch"),
+                    contextlib.redirect_stdout(io.StringIO()),
+                ):
+                    self.assertEqual(0, MODULE.execute_verification(MODULE.parse_args(
+                        ["--skip-structure", f"--lane-timeout-seconds={deadline}"]
+                    )))
+
+                self.assertEqual(deadline, dict(calls)["dotnet"])
+                self.assertTrue(all(value == deadline for _, value in calls))
 
     def test_public_full_plan_stops_before_restore_when_structure_fails(self) -> None:
         calls: list[list[str]] = []
@@ -897,59 +931,40 @@ class VerifyOrchestrationTests(unittest.TestCase):
         self.assertEqual(1, result)
         self.assertEqual([["structure-sync"]], calls)
 
-    def test_public_pool_overlaps_coverage_and_waits_for_siblings_before_cleanup(self) -> None:
-        coverage_started = threading.Event()
-        script_started = threading.Event()
-        coverage_failed = threading.Event()
+    def test_public_dotnet_failure_still_runs_independent_lanes_and_aggregates(self) -> None:
         completed: list[str] = []
-        cleanup_snapshots: list[tuple[str, ...]] = []
-        build_finished = False
+        stderr = io.StringIO()
 
-        def build(*_args, **_kwargs):
-            nonlocal build_finished
-            build_finished = True
-
-        def isolated(name, _log):
-            self.assertTrue(build_finished)
-            if name == "dotnet-coverage":
-                coverage_started.set()
-                self.assertTrue(script_started.wait(5), "scripts did not overlap coverage")
-                coverage_failed.set()
-                raise RuntimeError("coverage probe")
-            self.assertTrue(coverage_started.wait(5))
-            script_started.set()
-            self.assertTrue(coverage_failed.wait(5))
+        def isolated(name: str, _log: Path) -> None:
             completed.append(name)
-
-        def cleanup(*_args):
-            cleanup_snapshots.append(tuple(completed))
+            if name in {"dotnet-coverage", "python"}:
+                raise RuntimeError(f"{name} failed")
 
         with (
             patch.dict(os.environ, {MODULE.INTERNAL_LANE_ENVIRONMENT_VARIABLE: ""}),
             patch.object(MODULE, "resolve_dotnet", return_value="selected-dotnet"),
             patch.object(MODULE, "run_dotnet_restore_plan"),
-            patch.object(MODULE, "run_dotnet_post_restore_build_plan", side_effect=build) as build_call,
+            patch.object(MODULE, "run_dotnet_post_restore_build_plan"),
+            patch.object(MODULE, "local_repository_script_lanes", return_value=(
+                MODULE.VerificationLane("script", lambda _log: completed.append("script")),
+            )),
             patch.object(MODULE, "run_isolated_lane", side_effect=isolated),
-            patch.object(MODULE, "verify_repository_scripts",
-                         side_effect=lambda log, pattern: isolated(Path(pattern).stem, log)),
-            patch.object(MODULE, "cleanup_dotnet_batch", side_effect=cleanup) as cleanup_call,
+            patch.object(MODULE, "cleanup_dotnet_batch") as cleanup,
             contextlib.redirect_stdout(io.StringIO()),
-            contextlib.redirect_stderr(io.StringIO()),
+            contextlib.redirect_stderr(stderr),
         ):
             self.assertEqual(1, MODULE.execute_verification(
                 MODULE.parse_args(["--skip-structure"])
             ))
-        build_call.assert_called_once()
-        cleanup_call.assert_called_once()
-        self.assertTrue(coverage_failed.is_set(), "coverage never observed a live sibling")
-        self.assertEqual(1, len(cleanup_snapshots))
-        self.assertCountEqual(
-            [lane.name for lane in MODULE.local_repository_script_lanes()] + ["python"],
-            cleanup_snapshots[0],
-        )
+        self.assertEqual("dotnet-coverage", completed[0])
+        self.assertCountEqual(["dotnet-coverage", "script", "python"], completed)
+        self.assertIn("verification lanes failed: dotnet", stderr.getvalue())
+        self.assertIn("independent lanes also failed: verification lanes failed: python",
+                      stderr.getvalue())
+        cleanup.assert_called_once()
 
     def test_public_build_or_pool_setup_failure_and_cancellation_still_cleanup(self) -> None:
-        for phase in ("dotnet-restore", "dotnet"):
+        for phase in ("dotnet-restore", "dotnet-build", "dotnet"):
             for error in (RuntimeError("probe"), OSError("launch probe"), KeyboardInterrupt()):
                 with self.subTest(phase=phase, error=type(error).__name__):
                     phases = []
@@ -972,9 +987,73 @@ class VerifyOrchestrationTests(unittest.TestCase):
                                 MODULE.execute_verification(args)
                         else:
                             self.assertEqual(1, MODULE.execute_verification(args))
-                    self.assertEqual(["dotnet-restore"] if phase == "dotnet-restore"
-                                     else ["dotnet-restore", "dotnet"], phases)
+                    expected_phases = ["dotnet-restore"]
+                    if phase != "dotnet-restore":
+                        expected_phases.append("dotnet-build")
+                    if phase == "dotnet":
+                        expected_phases.append("dotnet")
+                    self.assertEqual(expected_phases, phases)
                     cleanup.assert_called_once()
+
+    def test_coverage_child_launch_failure_stops_before_independent_lanes(self) -> None:
+        stderr = io.StringIO()
+        script = MagicMock()
+        with (
+            patch.dict(os.environ, {MODULE.INTERNAL_LANE_ENVIRONMENT_VARIABLE: ""}),
+            patch.object(MODULE, "resolve_dotnet", return_value="selected-dotnet"),
+            patch.object(MODULE, "run_dotnet_restore_plan"),
+            patch.object(MODULE, "run_dotnet_post_restore_build_plan"),
+            patch.object(MODULE, "local_repository_script_lanes", return_value=(
+                MODULE.VerificationLane("script", script),
+            )),
+            patch.object(MODULE, "start_owned_process",
+                         side_effect=OSError("coverage child launch probe")) as launch,
+            patch.object(MODULE, "cleanup_dotnet_batch") as cleanup,
+            contextlib.redirect_stdout(io.StringIO()),
+            contextlib.redirect_stderr(stderr),
+        ):
+            self.assertEqual(1, MODULE.execute_verification(
+                MODULE.parse_args(["--skip-structure"])
+            ))
+        self.assertEqual(1, launch.call_count)
+        script.assert_not_called()
+        self.assertIn("coverage child launch probe", stderr.getvalue())
+        cleanup.assert_called_once()
+
+    def test_real_lane_interruption_keeps_cleanup_from_starting_a_child(self) -> None:
+        for interruption in (KeyboardInterrupt(), MODULE.VerificationTerminationRequested(signal.SIGTERM)):
+            with self.subTest(interruption=type(interruption).__name__):
+                observed_cancellation: list[bool] = []
+                actual_cleanup = MODULE.cleanup_dotnet_batch
+
+                def cleanup(*args):
+                    observed_cancellation.append(MODULE.PROCESS_CANCELLATION_REQUESTED.is_set())
+                    actual_cleanup(*args)
+
+                def cancel():
+                    MODULE.PROCESS_CANCELLATION_REQUESTED.set()
+
+                try:
+                    with (
+                        patch.dict(os.environ, {MODULE.INTERNAL_LANE_ENVIRONMENT_VARIABLE: ""}),
+                        patch.object(MODULE, "resolve_dotnet", return_value="selected-dotnet"),
+                        patch.object(MODULE, "run_dotnet_restore_plan"),
+                        patch.object(MODULE, "run_dotnet_post_restore_build_plan",
+                                     side_effect=interruption),
+                        patch.object(MODULE, "cancel_active_processes_after_handoffs",
+                                     side_effect=cancel),
+                        patch.object(MODULE, "cleanup_dotnet_batch", side_effect=cleanup),
+                        patch.object(MODULE, "run") as process_run,
+                        patch.object(MODULE, "stop_idle_build_workers") as stop_workers,
+                        contextlib.redirect_stdout(io.StringIO()),
+                    ):
+                        with self.assertRaises(type(interruption)):
+                            MODULE.execute_verification(MODULE.parse_args(["--skip-structure"]))
+                    self.assertEqual([True], observed_cancellation)
+                    process_run.assert_not_called()
+                    stop_workers.assert_not_called()
+                finally:
+                    MODULE.PROCESS_CANCELLATION_REQUESTED.clear()
 
     def test_public_jobs_one_serializes_all_workloads_and_python_only_uses_pool(self) -> None:
         for flags in (["--skip-structure", "--jobs=1"],
@@ -1202,6 +1281,26 @@ class VerifyOrchestrationTests(unittest.TestCase):
                 self.assertCountEqual(["unittest", "pytest-0", "pytest-1"],
                                       [path.name for path in evidence.iterdir()])
 
+    def test_script_owner_collects_only_within_selected_test_root(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            parent = Path(temporary)
+            (parent / "conftest.py").write_text(
+                "raise RuntimeError('parent scratch configuration was loaded')\n",
+                encoding="utf-8",
+            )
+            root = parent / "selected"
+            root.mkdir()
+            marker = root / "executed"
+            (root / "test_a_fixture.py").write_text(
+                "from pathlib import Path\n"
+                "def test_selected():\n"
+                f"    Path({str(marker)!r}).touch()\n",
+                encoding="utf-8",
+            )
+            with patch.object(MODULE, "REPOSITORY_SCRIPT_TESTS", root):
+                MODULE.verify_repository_scripts(root / "runner.log", "test_a_fixture.py")
+            self.assertTrue(marker.exists())
+
     def test_script_owner_rejects_free_test_failure_and_zero_collection(self) -> None:
         sources = {
             "failure": (
@@ -1274,12 +1373,57 @@ class VerifyOrchestrationTests(unittest.TestCase):
             ) for name in ("first", "second"))
             with patch.object(MODULE, "REPOSITORY_SCRIPT_TESTS", root):
                 results = MODULE.run_lanes(lanes, jobs=2, log_directory=root / "logs")
-            self.assertTrue(all(result.succeeded for result in results), results)
+            self.assertTrue(
+                all(result.succeeded for result in results),
+                f"{results}\n{self.failed_lane_logs(results)}",
+            )
             scratch = [Path(path.read_text(encoding="utf-8")) for path in evidence.iterdir()]
             self.assertEqual(2, len(set(scratch)))
             for path in scratch:
                 self.assertTrue(path.is_relative_to(Path(tempfile.gettempdir())))
                 self.assertFalse(path.exists(), "pytest scratch was not cleaned")
+
+    @staticmethod
+    def failed_lane_logs(results) -> str:
+        failure_logs = []
+        for result in results:
+            if result.succeeded or not result.log_path.is_file():
+                continue
+            raw = result.log_path.read_bytes()
+            try:
+                rendered = raw.decode("utf-8")
+            except UnicodeDecodeError:
+                rendered = raw.decode(locale.getpreferredencoding(False),
+                                      errors="backslashreplace")
+            failure_logs.append(f"{result.log_path}:\nraw={raw!r}\ntext={rendered}")
+        return "\n".join(failure_logs)
+
+    def test_failed_lane_preserves_non_utf8_child_bytes_and_original_exit(self) -> None:
+        def failing_child(log_path):
+            MODULE.run(
+                [sys.executable, "-c", "import os,sys; os.write(1,b'\\xa8'); sys.exit(2)"],
+                log_path=log_path,
+            )
+
+        with tempfile.TemporaryDirectory() as temporary:
+            results = MODULE.run_lanes(
+                (MODULE.VerificationLane("invalid-output", failing_child),),
+                jobs=1,
+                log_directory=Path(temporary),
+            )
+            self.assertFalse(results[0].succeeded)
+            self.assertIn("CalledProcessError", results[0].error)
+            self.assertIn("exit status 2", results[0].error)
+            self.assertIn(b"\xa8Command timing:", results[0].log_path.read_bytes())
+            with self.assertRaises(AssertionError) as failure:
+                self.assertTrue(
+                    all(result.succeeded for result in results),
+                    f"{results}\n{self.failed_lane_logs(results)}",
+                )
+            self.assertIn("CalledProcessError", str(failure.exception))
+            self.assertIn("raw=b", str(failure.exception))
+            self.assertIn("\\xa8Command timing:", str(failure.exception))
+            self.assertIn("text=", str(failure.exception))
 
     def test_group_budget_includes_queued_time_but_other_groups_get_fresh_budget(self) -> None:
         clock = [100.0]
@@ -4455,6 +4599,7 @@ class VerifyOrchestrationTests(unittest.TestCase):
                     "run_local_dotnet_coverage_project",
                     side_effect=successful_run,
                 ),
+                patch.object(MODULE, "run_lanes", wraps=MODULE.run_lanes) as run_lanes,
                 patch.object(MODULE, "require_local_dotnet_sources_unchanged"),
                 patch.object(MODULE, "verify_coverage") as verify_coverage,
             ):
@@ -4474,6 +4619,10 @@ class VerifyOrchestrationTests(unittest.TestCase):
             self.assertEqual(len(projects), len(attempted))
             self.assertEqual(3, maximum_active)
             self.assertFalse(overlapped_exclusive)
+            self.assertTrue(all(
+                call.kwargs["lane_timeout_seconds"] == 600
+                for call in run_lanes.call_args_list
+            ))
             verify_coverage.assert_called_once_with("dotnet", coverage)
             self.assertFalse(work.exists())
 
@@ -4718,8 +4867,10 @@ class VerifyOrchestrationTests(unittest.TestCase):
         self,
     ) -> None:
         projects = (
-            MODULE.CiDotnetProject("tests/First/First.Tests.csproj"),
-            MODULE.CiDotnetProject("tests/Second/Second.Tests.csproj"),
+            MODULE.CiDotnetProject("tests/First/First.Tests.csproj",
+                                   requires_exclusive_local_coverage=True),
+            MODULE.CiDotnetProject("tests/Second/Second.Tests.csproj",
+                                   requires_exclusive_local_coverage=True),
             MODULE.CiDotnetProject("tests/Third/Third.Tests.csproj"),
         )
         attempted: list[str] = []
@@ -4902,7 +5053,11 @@ class VerifyOrchestrationTests(unittest.TestCase):
 
         self.assertEqual(expected, actual)
         self.assertEqual(
-            ["tests/NvtFwCombiner.UiSmoke.Tests/NvtFwCombiner.UiSmoke.Tests.csproj"],
+            [
+                "tests/NvtFwCombiner.UiSmoke.Tests/NvtFwCombiner.UiSmoke.Tests.csproj",
+                "tests/NvtFwCombiner.Infrastructure.Tests/"
+                "NvtFwCombiner.Infrastructure.Tests.csproj",
+            ],
             [
                 project.relative_path
                 for projects in MODULE.CI_DOTNET_SHARDS.values()

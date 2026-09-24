@@ -27,7 +27,7 @@ public static partial class CliApplication
         foreach (CapabilityProfileSummary profile in
             capabilities.GetStandardMergeProfileSummaries())
         {
-            string inputs = profile.CompileSucceeded
+            string inputs = profile.CompileSucceeded || profile.DeclarationReady
                 ? string.Join(", ", profile.RequiredInputAddressSpaceIds)
                 : "compile-error";
             string issues = FormatProfileIssues(profile);
@@ -42,7 +42,7 @@ public static partial class CliApplication
         foreach (CapabilityProfileSummary profile in
             capabilities.GetAbMergeProfileSummaries())
         {
-            string inputs = profile.CompileSucceeded
+            string inputs = profile.CompileSucceeded || profile.DeclarationReady
                 ? string.Join(", ", profile.RequiredInputAddressSpaceIds)
                 : "compile-error";
             string issues = FormatProfileIssues(profile);
@@ -53,29 +53,13 @@ public static partial class CliApplication
                 .ConfigureAwait(false);
         }
 
-        await output.WriteLineAsync("Built-in replace profiles:").ConfigureAwait(false);
-        foreach (CapabilityProfileSummary profile in
-            capabilities.GetDpReplaceProfileSummaries())
-        {
-            string inputs = profile.CompileSucceeded
-                ? string.Join(", ", profile.RequiredInputAddressSpaceIds)
-                : "compile-error";
-            string icNumberPolicy = FormatIcNumberPolicy(profile);
-            string issues = FormatProfileIssues(profile);
-            await output.WriteLineAsync(
-                    string.Create(
-                        CultureInfo.InvariantCulture,
-                        $"{profile.ProfileId}  ic={profile.IcId}  inputs={inputs}  ic-num={icNumberPolicy}  default-output={profile.DefaultOutputFileName}{issues}"))
-                .ConfigureAwait(false);
-        }
-
         return Success;
     }
 
     internal static string FormatIcNumberPolicy(CapabilityProfileSummary profile)
     {
         return profile.IcNumberInputMode is not { } mode
-            ? profile.CompileSucceeded ? "none" : "compile-error"
+            ? profile.CompileSucceeded || profile.DeclarationReady ? "none" : "compile-error"
             : Enum.IsDefined(mode) ? mode.ToString() : throw new ArgumentOutOfRangeException(
                 nameof(profile), mode, "Unknown IC-number input mode.");
     }
@@ -84,6 +68,8 @@ public static partial class CliApplication
     {
         return profile.CompileSucceeded
             ? string.Empty
+            : profile.DeclarationReady
+            ? "  status=pending-input"
             : $"  issues={string.Join(',', profile.IssueCodes)}";
     }
 }

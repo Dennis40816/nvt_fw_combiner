@@ -27,19 +27,6 @@
         <StackPanel Grid.Row="1" Margin="0,18,0,0" Spacing="{DynamicResource NfcSpace8}">
           <Button
               Classes="command"
-              IsVisible="{Binding WorkflowSession.IsDpReplaceAvailable}"
-              Command="{Binding BeginDpReplaceFromHomeCommand}">
-            <Border Classes="workflowCard">
-              <Grid ColumnDefinitions="*,Auto" ColumnSpacing="14">
-                <TextBlock Classes="strongText" Text="DP Replace" />
-                <Border Grid.Column="1" Classes="workflowOpenPill">
-                  <TextBlock Classes="workflowActionText" Text="{Binding Text.OpenLabel}" />
-                </Border>
-              </Grid>
-            </Border>
-          </Button>
-          <Button
-              Classes="command"
               Command="{Binding BeginCtrlRamReplaceFromHomeCommand}">
             <Border Classes="workflowCard">
               <Grid ColumnDefinitions="*,Auto" ColumnSpacing="14">

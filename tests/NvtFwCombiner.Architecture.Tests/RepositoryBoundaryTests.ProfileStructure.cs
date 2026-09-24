@@ -331,10 +331,11 @@ public sealed partial class RepositoryBoundaryTests
         Assert.DoesNotContain("CompiledComposition.IcId", topologyValidation, StringComparison.Ordinal);
         Assert.DoesNotContain("NT51950", executionAdapter, StringComparison.Ordinal);
         Assert.DoesNotContain("NT51951", executionAdapter, StringComparison.Ordinal);
-        Assert.Contains("ChipNumber", topologyOwner, StringComparison.Ordinal);
+        Assert.Equal(2, CountOccurrences(topologyOwner, "FirmwareConfigChipCountDiagnostics.AssessPositive("));
+        Assert.Contains("countA!.Value != countB!.Value", topologyOwner, StringComparison.Ordinal);
         Assert.DoesNotContain("CompiledComposition.IcId", topologyOwner, StringComparison.Ordinal);
-        Assert.Contains("AbMergeTopologyAdmission.Assess(", topologyValidation, StringComparison.Ordinal);
-        Assert.Contains("AbMergeTopologyAdmission.Assess(", formatAdmission, StringComparison.Ordinal);
+        Assert.Contains("AbMergeTopologyAdmission.AssessAcceptedPair(", topologyValidation, StringComparison.Ordinal);
+        Assert.Contains("AbMergeTopologyAdmission.AssessCommonAcceptedPair(", formatAdmission, StringComparison.Ordinal);
 
         foreach (string profilePath in new[]
                  {
@@ -416,7 +417,7 @@ public sealed partial class RepositoryBoundaryTests
                 .Order(StringComparer.Ordinal)!,
         ];
 
-        Assert.Equal("1.3", index.RootElement.GetProperty("schemaVersion").GetString());
+        Assert.Equal("1.5", index.RootElement.GetProperty("schemaVersion").GetString());
         Assert.Equal(sourceDirectories, indexedDirectories);
         Assert.All(bundles, bundle =>
         {
@@ -477,10 +478,8 @@ public sealed partial class RepositoryBoundaryTests
             ("nt51917-nt51927-general-merge-logical-candidate", "nt51927-standard-merge/families/nt51927-nt51928.json", "families/nt51927-nt51928.json"),
             ("nt51928-general-merge-logical-candidate", "nt51927-standard-merge/families/nt51927-nt51928.json", "families/nt51927-nt51928.json"),
             ("nt51923-nt51926-general-merge-logical-candidate", "nt51923-standard-merge/families/nt51923-nt51926.json", "families/nt51923-nt51926.json"),
-            ("nt51928-dp-replace", "nt51928-standard-merge/families/nt51927-nt51928-v1.5.json", "families/nt51927-nt51928-v1.5.json"),
             ("nt51950-nt51951-general-merge-logical-candidate", "nt51950-nt51951-standard-merge/families/nt51950-nt51951-dp-perspective.json", "families/nt51950-nt51951-dp-perspective.json"),
             ("nt51917-ctrlram-replace-alias-candidate", "nt51927-ctrlram-replace-candidate/families/nt51927-ctrlram-replace.json", "families/nt51927-ctrlram-replace.json"),
-            ("nt51950-nt51951-dp-replace", "nt51950-nt51951-standard-merge/families/nt51950-nt51951-dp-perspective.json", "families/nt51950-nt51951-dp-perspective.json"),
         ];
         JsonElement[] canonicalEntries =
         [
@@ -547,8 +546,10 @@ public sealed partial class RepositoryBoundaryTests
     public void DpPerspectiveFactsStayOwnedByTrustedV2Profiles()
     {
         string registration = ReadText(
-            "src/NvtFwCombiner.Application/Authoring/DpReplaceAuthoringExperience.cs");
-        string display = ReadText("src/NvtFwCombiner.Application/MemoryLayout/MemoryLayoutProjector.cs");
+            "src/NvtFwCombiner.Infrastructure/Composition/CanonicalFullImageMetadataInventory.cs");
+        string display = string.Concat(
+            ReadText("src/NvtFwCombiner.Application/MemoryLayout/MemoryLayoutProjector.cs"),
+            ReadText("src/NvtFwCombiner.Application/MemoryLayout/MemoryLayoutProjector.Banks.cs"));
 
         Assert.False(File.Exists(Path.Combine(
             Root.FullName,
@@ -556,7 +557,10 @@ public sealed partial class RepositoryBoundaryTests
             "NvtFwCombiner.Profiles",
             "DpPerspectiveCatalog.cs")));
         Assert.DoesNotContain("BuiltInReplaceProfiles", registration, StringComparison.Ordinal);
-        Assert.Contains("TryResolveDpReplaceContracts", registration, StringComparison.Ordinal);
+        Assert.Contains("bundle.MetadataProviderFamilies.SelectMany(owner.CreateFullImageMetadataPlans)",
+            registration, StringComparison.Ordinal);
+        Assert.False(File.Exists(Path.Combine(Root.FullName,
+            "src/NvtFwCombiner.Application/Authoring/DpReplaceAuthoringExperience.cs")));
         Assert.Contains("plan.OrderedOperations", display, StringComparison.Ordinal);
         Assert.False(File.Exists(Path.Combine(
             Root.FullName,

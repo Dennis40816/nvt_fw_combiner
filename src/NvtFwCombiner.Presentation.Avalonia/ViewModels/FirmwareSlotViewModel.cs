@@ -109,22 +109,36 @@ internal sealed partial class FirmwareSlotViewModel : ObservableObject
     /// <summary>Current immutable Application inspection used only by this selected slot projection.</summary>
     internal FirmwareInspectionSnapshot? CurrentInspectionProjection { get; private set; }
 
+    /// <summary>Displays the Application's detected Base type without inferring it from UI state.</summary>
+    public string DetectedBaseTypeLabel => SlotKind == FirmwareSlotKind.Base && HasFile
+        ? CurrentInspectionProjection?.CtrlRamBaseInspection?.Kind switch
+        {
+            CtrlRamBaseKind.StandardTp => "Standard TP Code",
+            CtrlRamBaseKind.StandardFlash => "Standard FlashCode",
+            CtrlRamBaseKind.AbFlash => "AB FlashCode",
+            CtrlRamBaseKind.Unknown => string.Empty,
+            _ => string.Empty,
+        }
+        : string.Empty;
+
+    public bool HasDetectedBaseType => DetectedBaseTypeLabel.Length != 0;
+
     internal long? InspectedFileLength =>
         CurrentInspectionProjection?.FileStamp?.AcceptedLength;
 
     /// <summary>Firmware facts decoded from the selected file, when the active IC has a FWConfig map.</summary>
     public ObservableCollection<FirmwareSlotFactViewModel> FirmwareFacts { get; } = [];
 
-    public IReadOnlyList<FirmwareSlotFactViewModel> PrimaryFirmwareFacts => [.. FirmwareFacts.Take(4)];
+    public IReadOnlyList<FirmwareSlotFactViewModel> PrimaryFirmwareFacts => [.. FirmwareFacts.Where(static fact => fact.IsPrimary)];
 
-    /// <summary>Facts disclosed on demand after the four primary facts.</summary>
-    public IReadOnlyList<FirmwareSlotFactViewModel> AdditionalFirmwareFacts => [.. FirmwareFacts.Skip(4)];
+    /// <summary>Producer-declared secondary facts, independent of list order and translated labels.</summary>
+    public IReadOnlyList<FirmwareSlotFactViewModel> AdditionalFirmwareFacts => [.. FirmwareFacts.Where(static fact => !fact.IsPrimary)];
 
     /// <summary>True when the slot has decoded firmware facts to show.</summary>
     public bool HasFirmwareFacts => FirmwareFacts.Count > 0;
 
-    /// <summary>True when decoded firmware facts exceed the four-card primary limit.</summary>
-    public bool HasAdditionalFirmwareFacts => FirmwareFacts.Count > 4;
+    /// <summary>True when the producer has supplied secondary facts.</summary>
+    public bool HasAdditionalFirmwareFacts => FirmwareFacts.Any(static fact => !fact.IsPrimary);
 
     public bool HasInputInspectionStatus =>
         IsInputInspectionPending || InputInspectionSeverity is not null || IsBaseDiscoveryInspected;
@@ -267,11 +281,15 @@ internal sealed partial class FirmwareSlotViewModel : ObservableObject
         }
 
         CurrentInspectionProjection = inspection;
+        OnPropertyChanged(nameof(DetectedBaseTypeLabel));
+        OnPropertyChanged(nameof(HasDetectedBaseType));
     }
 
     internal void ClearCurrentInspectionProjection()
     {
         CurrentInspectionProjection = null;
+        OnPropertyChanged(nameof(DetectedBaseTypeLabel));
+        OnPropertyChanged(nameof(HasDetectedBaseType));
     }
 
     /// <summary>Reprojects cached facts after a language change without collapsing overflow disclosure state.</summary>

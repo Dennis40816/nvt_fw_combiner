@@ -42,7 +42,11 @@ public sealed record EventBufferFormatObservation(
     string ConfigurationSourceSha256,
     string PrimaryStructureId,
     FirmwareAddressedRange PrimaryRange,
-    FirmwareArtifactIdentity ArtifactIdentity);
+    FirmwareArtifactIdentity ArtifactIdentity)
+{
+    /// <summary>Canonical name of this observed byte, separate from the effective format's DisplayName alias.</summary>
+    public string? DetectedDisplayName => FirmwareEventBufferFormatDisplayNames.GetDisplayName(RawByte);
+}
 
 /// <summary>Firmware facts read from the canonical NVT-located FWConfig Backup block.</summary>
 public sealed record FirmwareConfigMetadataSnapshot(
@@ -153,6 +157,9 @@ public sealed record FirmwareInspectionSnapshot(
     /// <summary>Application-owned profile-declared artifact classification and its typed evidence.</summary>
     public CompiledFirmwareArtifactClassification? ArtifactClassification { get; init; }
 
+    /// <summary>Optional canonical Event Buffer byte selected by this exact Standard input inspection.</summary>
+    public byte? StandardEventBufferFormatVersion { get; init; }
+
     /// <summary>AB-specific typed inspection when the request names one compiled AB input space.</summary>
     public AbMergeInputFacts? AbMergeFacts { get; init; }
 
@@ -170,10 +177,13 @@ public sealed record FirmwareInspectionSnapshot(
 
     /// <summary>Typed non-terminal CtrlRAM Base discovery result.</summary>
     public CtrlRamBaseDiscoveryReadiness CtrlRamBaseDiscoveryReadiness { get; init; }
+
+    /// <summary>Complete same-capture CtrlRAM reference classification and bank facts.</summary>
+    public CtrlRamBaseInspection? CtrlRamBaseInspection { get; init; }
 }
 
 /// <summary>Optional CtrlRAM display context projected during firmware inspection.</summary>
-public sealed record CtrlRamInspectionRequest(string NumberToken);
+public sealed record CtrlRamInspectionRequest(string NumberToken, CtrlRamAuthoringDraftState? Draft = null);
 
 /// <summary>Materialized CtrlRAM shell projections derived from the inspected base firmware.</summary>
 public sealed record CtrlRamInspectionDisplay(
@@ -189,7 +199,6 @@ public sealed record FirmwareInspectionSnapshotInput(
     CtrlRamInspectionRequest? CtrlRamRequest = null,
     string? AbMergeAddressSpaceId = null,
     string? AbMergeTopologyToken = null,
-    string? DpReplaceAddressSpaceId = null,
     long AuthoringRevision = 1,
     string? StandardMergeAddressSpaceId = null,
     string? CtrlRamReplaceAddressSpaceId = null,
@@ -203,6 +212,9 @@ public sealed record FirmwareInspectionStatusBatch(
     IReadOnlyList<CompositionIssue> Issues,
     CtrlRamBaseDiscoveryResult? CtrlRamBaseDiscovery = null)
 {
+    /// <summary>Complete reference facts and the effective authoring draft for this batch.</summary>
+    public CtrlRamBaseInspection? CtrlRamBaseInspection { get; init; }
+
     public static FirmwareInspectionStatusBatch Empty { get; } =
         new(null, new Dictionary<string, AuthoringInputSlotStatus>(StringComparer.Ordinal), []);
 

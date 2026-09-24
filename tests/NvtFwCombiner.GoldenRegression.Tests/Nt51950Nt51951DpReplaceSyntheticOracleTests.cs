@@ -1,12 +1,10 @@
 using System.Security.Cryptography;
 using System.Text.Json;
-using NvtFwCombiner.Application.Authoring;
-using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.TestSupport;
 
 namespace NvtFwCombiner.GoldenRegression.Tests;
 
-/// <summary>Archives superseded short-input hashes and verifies exact-pair production admission rejects them.</summary>
+/// <summary>Archives superseded short-input hashes and their independently declared byte ranges.</summary>
 public sealed class Nt51950Nt51951DpReplaceSyntheticOracleTests
 {
     private const int TpStart = 0x0A000;
@@ -14,9 +12,9 @@ public sealed class Nt51950Nt51951DpReplaceSyntheticOracleTests
     private const int CustomerInfoStart = 0x37000;
     private const int CustomerInfoLength = 0x1000;
 
-    /// <summary>Preserves every historical hash without allowing the superseded short inputs into production.</summary>
+    /// <summary>Preserves every historical hash and the reference/replacement byte provenance.</summary>
     [Fact]
-    public void HistoricalHashesRemainImmutableAndProductionRejectsShortInputs()
+    public void HistoricalHashesAndDeclaredRangesRemainImmutable()
     {
         using var document = JsonDocument.Parse(File.ReadAllText(RepositoryPaths.FromRepositoryRoot(
             "testdata",
@@ -37,7 +35,6 @@ public sealed class Nt51950Nt51951DpReplaceSyntheticOracleTests
 
         foreach (JsonElement testCase in root.GetProperty("cases").EnumerateArray())
         {
-            string icId = testCase.GetProperty("icId").GetString()!;
             int capacity = testCase.GetProperty("capacityBytes").GetInt32();
             int replacementLength = testCase.TryGetProperty("replacementLengthBytes", out JsonElement replacementLengthElement)
                 ? replacementLengthElement.GetInt32()
@@ -55,24 +52,7 @@ public sealed class Nt51950Nt51951DpReplaceSyntheticOracleTests
             Assert.Equal(ReplacementOrPadding(replacementBytes, CustomerInfoStart + CustomerInfoLength - 1), expectedBytes[CustomerInfoStart + CustomerInfoLength - 1]);
             Assert.Equal(0, expectedBytes[replacementLength]);
 
-            using var workspace = TempWorkspace.Create($"nfc-dp-replace-oracle-{icId}-{capacity:X}");
-            string basePath = workspace.Write("base.bin", baseBytes);
-            string replacementPath = workspace.Write("replacement-dp.bin", replacementBytes);
-            string outputPath = workspace.PathFor($"{icId.ToLowerInvariant()}-dp-replace.bin");
-            CompiledAuthoringSessionPreparation prepared = GoldenTestHost.PrepareDpReplace(
-                icId,
-                new Dictionary<string, string>(StringComparer.Ordinal)
-                {
-                    ["replace-base"] = basePath,
-                    ["replace-dp"] = replacementPath,
-                });
 
-            Assert.False(prepared.Succeeded, $"{icId} 0x{capacity:X}: superseded short input was accepted");
-            Assert.False(File.Exists(outputPath), outputPath);
-            Assert.Contains(
-                Assert.IsType<ActiveSessionSnapshot>(prepared.Snapshot).InputSlotStatuses,
-                status => status.InspectionIssueCode ==
-                    CompositionIssueCodes.InputAddressSpaceLengthMismatch);
         }
     }
 

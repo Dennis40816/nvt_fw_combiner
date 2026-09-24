@@ -57,6 +57,45 @@ internal sealed partial class MergePresentationViewModel
             ReferenceEquals(slot, MergeLdcSlot);
     }
 
+    private readonly Dictionary<string, WorkflowRunState> _runStates = new(StringComparer.Ordinal)
+    {
+        [NormalMergeMode] = new(),
+        [AbCodeMergeMode] = new(),
+        [GeneralMergeMode] = new(),
+    };
+
+    internal IEnumerable<WorkflowRunState> RunStates => _runStates.Values;
+    internal WorkflowRunState RunState => GetRunState(SelectedMergeMode);
+
+    internal WorkflowRunState GetRunState(string mode)
+    {
+        if (!_runStates.TryGetValue(mode, out WorkflowRunState? state))
+        {
+            state = new WorkflowRunState();
+            _runStates.Add(mode, state);
+        }
+        state.ApplyLanguage(Text);
+        return state;
+    }
+
+    internal CompositionRunContext CaptureRunContext(string mode, bool build = false)
+    {
+        AuthoringSessionState? session = mode switch
+        {
+            NormalMergeMode => _standardMergeSession,
+            AbCodeMergeMode => _abMergeSession,
+            GeneralMergeMode => _generalMergeSession,
+            _ => null,
+        };
+        ActiveSessionSnapshot? snapshot = session?.CurrentSnapshot;
+        return new CompositionRunContext(
+            GetRunState(mode), mode, SelectedIc, SelectedNumber,
+            mode == AbCodeMergeMode && HasAbMergeTopologyChoices,
+            _stateBindings.DeviceContextRefreshSummary(), snapshot, session,
+            snapshot is null ? null : session!.CapturePublicationLease(
+                build ? AuthoringDerivedResultKind.Build : AuthoringDerivedResultKind.Preview));
+    }
+
     private int _generalMergeMappingCounter;
     private string _selectedMergeMode = NormalMergeMode;
     private bool _isApplyingGeneralMergeInitializer;
@@ -228,11 +267,12 @@ internal sealed partial class MergePresentationViewModel
     private ReportPresentationViewModel Reports => _stateBindings.Reports();
 
     private Task RunCompositionAsync(
+        CompositionRunContext context,
         bool build,
         CompositionRunWork run,
         Action<string, string> loadErrorReport)
     {
-        return _stateBindings.RunCompositionAsync(build, run, loadErrorReport);
+        return _stateBindings.RunCompositionAsync(context, build, run, loadErrorReport);
     }
 
     internal void SelectMergeMode(string mode)
@@ -246,7 +286,6 @@ internal sealed partial class MergePresentationViewModel
         InspectionLifecycles[_selectedMergeMode].Invalidate();
         _selectedMergeMode = mode;
         _stateBindings.PublishAcceptedModeContext();
-        _stateBindings.ResetRunResult();
         _stateBindings.RefreshNumberChoices();
         if (!HasSelectedIc)
         {
@@ -324,7 +363,6 @@ internal sealed partial class MergePresentationViewModel
     internal void PublishCatalogReconciledMergeMode()
     {
         PublishFullContext();
-        _stateBindings.ResetRunResult();
     }
 
     internal void RefreshContextState()
@@ -477,7 +515,7 @@ internal sealed partial class MergePresentationViewModel
         }
 
         RefreshMergeMemoryMapState();
-        _stateBindings.ResetRunResult();
+        _stateBindings.ResetRunResult(CaptureRunContext(GeneralMergeMode));
         RefreshCommandState();
     }
 }

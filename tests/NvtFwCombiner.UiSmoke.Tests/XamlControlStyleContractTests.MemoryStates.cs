@@ -12,15 +12,15 @@ public sealed partial class XamlControlStyleContractTests
     {
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-memory-pattern");
         MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
-        viewModel.WorkflowSession.SelectedIc = "NT51951";
-        viewModel.Replace.SelectedReplaceMode = ExperienceIds.DpReplace;
+        viewModel.WorkflowSession.SelectedIc = "NT51950";
+        viewModel.Replace.SelectedReplaceMode = ExperienceIds.CtrlRamReplace;
         viewModel.ShowReplaceCommand.Execute(null);
         viewModel.SetSlotFile(
             CompositionSlotIds.ReplaceBase,
-            workspace.Write("reference.bin", new byte[0x80000]));
+            workspace.Write("reference.bin", ShellViewModelTestBase.ReadCtrlRamReference()));
         viewModel.SetSlotFile(
-            CompositionSlotIds.ReplaceDp,
-            workspace.Write("replacement.bin", new byte[0x80000]));
+            "replace-ctrlram-normal",
+            workspace.Write("replacement.bin", ShellViewModelTestBase.ReadCtrlRamNormalSource()));
 
         Assert.Contains(viewModel.Replace.ReplaceCoverageSegments, segment =>
             segment.FillRole == MemoryCoverageFillRole.Kept && segment.UsesKeptPattern);

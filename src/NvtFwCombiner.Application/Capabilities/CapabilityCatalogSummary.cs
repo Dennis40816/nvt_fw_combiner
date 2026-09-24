@@ -4,5 +4,4 @@ namespace NvtFwCombiner.Application.Capabilities;
 public sealed record CapabilityCatalogSummary(
     int CatalogIcCount,
     int StandardMergeProfileCount,
-    int DpReplaceProfileCount,
     int CtrlRamReplaceAvailableIcCount);

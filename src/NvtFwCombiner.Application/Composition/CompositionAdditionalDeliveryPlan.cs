@@ -15,6 +15,7 @@ public sealed class CompositionAdditionalDeliveryPlan
         DeliveryKind = deliveryKind;
         SourceRange = sourceRange;
         SuggestedFileName = suggestedFileName;
+        FileName = suggestedFileName;
     }
 
     /// <summary>Compiled profile that owns this delivery.</summary>
@@ -28,6 +29,19 @@ public sealed class CompositionAdditionalDeliveryPlan
 
     /// <summary>Plain filename rendered from the accepted primary-output naming tokens.</summary>
     public string SuggestedFileName { get; }
+
+    /// <summary>Effective plain filename used by destination validation and delivery.</summary>
+    public string FileName { get; private init; }
+
+    /// <summary>Whether the effective name differs from the accepted canonical suggestion.</summary>
+    public bool FileNameIsOverride => !StringComparer.Ordinal.Equals(FileName, SuggestedFileName);
+
+    internal CompositionAdditionalDeliveryPlan WithFileName(string fileName)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(fileName);
+        CompositionRunRequest.ValidateOutputFileName(fileName);
+        return new(ProfileId, DeliveryKind, SourceRange, SuggestedFileName) { FileName = fileName };
+    }
 }
 
 /// <summary>One accepted automatic primary name and every compiled optional delivery suggestion.</summary>

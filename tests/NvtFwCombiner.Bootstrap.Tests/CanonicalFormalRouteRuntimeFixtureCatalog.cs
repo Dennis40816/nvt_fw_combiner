@@ -181,23 +181,11 @@ internal static class CanonicalFormalRouteRuntimeFixtureCatalog
     {
         CapabilityRouteIdentity identity = fixture.Policy.Identity;
         return identity.IcId == "NT51950" && identity.IcCountVariant == "2-plus-ic"
-            ? identity.MapVariant == "nt51950-ab-merge-maps"
-                ?
-                [
-                    MaterializeAbCase(fixture, workspace, requestedCount: 9),
-                    MaterializeAbCase(
-                        fixture,
-                        workspace,
-                        requestedCount: 3,
-                        tpAChipCount: 2,
-                        tpBChipCount: 3,
-                        caseSuffix: "mixed-2-3"),
-                ]
-                :
-                [
-                    MaterializeAbCase(fixture, workspace, requestedCount: 2),
-                    MaterializeAbCase(fixture, workspace, requestedCount: 9),
-                ]
+            ?
+            [
+                MaterializeAbCase(fixture, workspace, requestedCount: 2),
+                MaterializeAbCase(fixture, workspace, requestedCount: 9),
+            ]
             : [MaterializeAbCase(fixture, workspace, requestedCount: null)];
     }
 
@@ -232,14 +220,6 @@ internal static class CanonicalFormalRouteRuntimeFixtureCatalog
             sourceIcId = "NT51950";
             bytes = ReadAbGoldenInputs(sourceCaseId);
             witnessKind = CanonicalFormalRuntimeWitnessKind.DirectCanonicalInput;
-            if (identity.MapVariant == "nt51950-ab-desay-maps")
-            {
-                bytes[CompositionAddressSpaceIds.DpAbInput] = ResizeCanonicalInput(
-                    bytes[CompositionAddressSpaceIds.DpAbInput],
-                    0x100000,
-                    0x5D);
-                witnessKind = CanonicalFormalRuntimeWitnessKind.CanonicalDerived;
-            }
             selectedCount = 1;
         }
         else if (identity.IcId == "NT51950")
@@ -303,7 +283,7 @@ internal static class CanonicalFormalRouteRuntimeFixtureCatalog
                 ? fixture.RouteId
                 : $"{fixture.RouteId}:count-{selectedCount}{(caseSuffix is null ? string.Empty : $"-{caseSuffix}")}",
             fixture,
-            ExpectedAbMapId(identity, selectedCount),
+            ExpectedAbMapId(identity),
             selectedCount?.ToString(System.Globalization.CultureInfo.InvariantCulture),
             paths,
             witnesses,
@@ -318,20 +298,14 @@ internal static class CanonicalFormalRouteRuntimeFixtureCatalog
                 : null);
     }
 
-    private static string ExpectedAbMapId(CapabilityRouteIdentity identity, int? selectedCount)
+    private static string ExpectedAbMapId(CapabilityRouteIdentity identity)
     {
         // Policy identifies dynamic map sets; captured primary format chooses the
         // exact physical map inside the reviewed route.
         return identity.MapVariant switch
         {
-            "nt51950-ab-merge-maps" => selectedCount == 1
-                ? "nt51950-ab-merge-512k"
-                : "nt51950-ab-merge-1024k",
-            "nt51950-ab-desay-maps" => selectedCount == 1
-                ? "nt51950-ab-desay-single-1024k"
-                : "nt51950-ab-desay-cascade-1024k",
-            "nt51950-ab-common-2ic-maps" => "nt51950-ab-common-exact2-1024k",
-            "nt51951-ab-desay-maps" => "nt51951-ab-desay-1024k",
+            "nt51950-ab-merge-maps" => "nt51950-ab-merge-512k",
+            "nt51950-ab-cascade-maps" => "nt51950-ab-merge-1024k",
             _ => identity.MapVariant,
         };
     }
@@ -342,8 +316,7 @@ internal static class CanonicalFormalRouteRuntimeFixtureCatalog
     {
         byte? format = identity.MapVariant switch
         {
-            "nt51950-ab-desay-maps" or "nt51951-ab-desay-maps" => 0x97,
-            "nt51950-ab-common-2ic-maps" or "nt51951-ab-merge-1024k" => 0x84,
+            "nt51950-ab-cascade-maps" or "nt51951-ab-merge-1024k" => 0x84,
             _ => null,
         };
         if (format is not { } selectedFormat)
@@ -397,14 +370,25 @@ internal static class CanonicalFormalRouteRuntimeFixtureCatalog
         int chipCount)
     {
         CapabilityRouteIdentity identity = fixture.Policy.Identity;
-        CanonicalFormalRuntimeSource source = ReadCtrlRamCanonicalBase(identity);
+        bool bankRoute = identity.MapVariant.Contains("-ab-merge-", StringComparison.Ordinal);
+        CanonicalFormalRuntimeSource source = ReadCtrlRamCanonicalBase(identity, chipCount);
         byte[] baseBytes = source.Bytes;
         int capacity = CtrlRamCapacity(identity);
-        baseBytes = ResizeCanonicalInput(baseBytes, capacity, 0x6B);
-        PlaceFirmwareConfigBackupForTopology(
-            baseBytes,
-            identity,
-            checked((byte)chipCount));
+        if (bankRoute)
+        {
+            if (baseBytes.Length != capacity)
+            {
+                throw new InvalidDataException("Formal AB bank witness has the wrong exact capacity.");
+            }
+        }
+        else
+        {
+            baseBytes = ResizeCanonicalInput(baseBytes, capacity, 0x6B);
+            PlaceFirmwareConfigBackupForTopology(
+                baseBytes,
+                identity,
+                checked((byte)chipCount));
+        }
         string number = identity.IcCountVariant switch
         {
             "1-ic" => IcNumberSelectionTokens.SingleChip,
@@ -457,14 +441,18 @@ internal static class CanonicalFormalRouteRuntimeFixtureCatalog
             paths,
             witnesses,
             chipCount,
-            chipCount);
+            bankRoute ? null : chipCount);
     }
 
     private static CanonicalFormalRuntimeSource ReadCtrlRamCanonicalBase(
-        CapabilityRouteIdentity identity)
+        CapabilityRouteIdentity identity, int chipCount)
     {
         string map = identity.MapVariant;
         string ic = identity.IcId;
+        if (map.Contains("-ab-merge-", StringComparison.Ordinal))
+        {
+            return ReadAbCtrlRamCanonicalBase(identity, chipCount);
+        }
         if (ic is "NT51917" or "NT51927")
         {
             bool twoChip = map.Contains("fw132-twochip", StringComparison.Ordinal);
@@ -577,6 +565,64 @@ internal static class CanonicalFormalRouteRuntimeFixtureCatalog
         throw UnknownRoute(identity);
     }
 
+    private static CanonicalFormalRuntimeSource ReadAbCtrlRamCanonicalBase(
+        CapabilityRouteIdentity identity, int chipCount)
+    {
+        if (identity.IcId is "NT51919" or "NT51929" or "NT51932")
+        {
+            byte[] bytes = chipCount == 1
+                ? File.ReadAllBytes(CanonicalGoldenTestData.ArtifactPath(
+                    ExperienceIds.AbMerge, "NT51929", "expected-output", "t05-d06"))
+                : AbCtrlRamReferencePlanTests.CascadeReference();
+            if (chipCount > 1)
+            {
+                bytes[0x702B] = checked((byte)chipCount);
+                bytes[0x4702B] = checked((byte)chipCount);
+                int diffStart = checked((int)BinaryPrimitives.ReadUInt32LittleEndian(bytes.AsSpan(0x716C, 4)));
+                int diffStride = BinaryPrimitives.ReadUInt16LittleEndian(bytes.AsSpan(0x7120, 2)) + 1;
+                int activeDiffEnd = checked(diffStart + (diffStride * (chipCount - 1)));
+                int nextPage = checked((activeDiffEnd / 0x1000) + 1);
+                int backupStart = checked(nextPage * 0x1000);
+                foreach (int bankStart in new[] { 0, 0x40000 })
+                {
+                    byte[] backup = bytes.AsSpan(bankStart + 0x30000, 0x1000).ToArray();
+                    backup[0x17] = checked((byte)chipCount);
+                    bytes.AsSpan(bankStart + 0x30FFC, 4).Clear();
+                    backup.CopyTo(bytes, bankStart + backupStart);
+                }
+            }
+            return new(bytes, ExperienceIds.AbMerge, "NT51929", "nt51929-ab-t05-d06");
+        }
+        if (identity.IcId == "NT51950" && chipCount == 1)
+        {
+            JsonElement golden = CanonicalGoldenTestData.LoadDirectCase(
+                ExperienceIds.AbMerge, "nt51950-ab-boe-d82t80");
+            return new(File.ReadAllBytes(CanonicalGoldenTestData.ArtifactPath(
+                    CanonicalGoldenTestData.Artifact(golden, "expected-output"))),
+                ExperienceIds.AbMerge, "NT51950", "nt51950-ab-boe-d82t80");
+        }
+        string sourceCase = chipCount == 1
+            ? "nt51951-fw200-single-auto-prj-695-20260718"
+            : "nt51951-fw200-cascade2-auto-prj-599-20260731";
+        byte[] source = ReadCtrlRamArtifact(sourceCase, "expected-output");
+        int localLength = identity.IcId == "NT51950" ? 0x40000 : 0x80000;
+        const int bankLength = 0x80000;
+        byte[] bank = new byte[bankLength];
+        source.AsSpan(0, localLength).CopyTo(bank);
+        if (localLength < bankLength)
+        {
+            bank.AsSpan(localLength).Fill(0x5A);
+        }
+        byte[] reference = [.. bank, .. bank];
+        foreach (int field in new[] { 0xA100, 0xA110, 0xA120 })
+        {
+            uint address = BinaryPrimitives.ReadUInt32LittleEndian(reference.AsSpan(bankLength + field, 4));
+            BinaryPrimitives.WriteUInt32LittleEndian(reference.AsSpan(bankLength + field, 4),
+                checked(address + bankLength));
+        }
+        return new(reference, ExperienceIds.CtrlRamReplace, "NT51951", sourceCase);
+    }
+
     private static byte[] ReadCtrlRamArtifact(
         string caseId,
         string artifactId,
@@ -606,7 +652,9 @@ internal static class CanonicalFormalRouteRuntimeFixtureCatalog
     private static int CtrlRamCapacity(CapabilityRouteIdentity identity)
     {
         string map = identity.MapVariant;
-        return map.Contains("tp-work-212k", StringComparison.Ordinal)
+        return map.Contains("-ab-merge-", StringComparison.Ordinal)
+            ? ParseCapacity(map)
+            : map.Contains("tp-work-212k", StringComparison.Ordinal)
             ? 0x35000
             : map.Contains("tp-work-240k", StringComparison.Ordinal)
                 ? 0x3C000

@@ -25,7 +25,8 @@ public sealed record CompositionProfileDocument(
     IReadOnlyList<string> EvidenceRefs,
     CompositionProfileCompilationContextDocument? CompilationContext = null,
     CompositionProfileLogicalOutputBindingDocument? LogicalOutputBinding = null,
-    IReadOnlyList<CompositionProfileInputSelectionGroupDocument>? InputSelectionGroups = null)
+    IReadOnlyList<CompositionProfileInputSelectionGroupDocument>? InputSelectionGroups = null,
+    CompositionProfileSourceEnvelopeBindingDocument? SourceEnvelopeBinding = null)
 {
     /// <summary>Preserves the original public transport constructor for previously compiled consumers.</summary>
     public CompositionProfileDocument(
@@ -68,7 +69,8 @@ public sealed record CompositionProfileDocument(
             EvidenceRefs,
             CompilationContext: null,
             LogicalOutputBinding: null,
-            InputSelectionGroups: null)
+            InputSelectionGroups: null,
+            SourceEnvelopeBinding: null)
     {
     }
 }
@@ -114,3 +116,12 @@ public sealed record CompositionProfileLogicalOutputBindingDocument(
     string FamilyVersion,
     string FamilyContentHash,
     IReadOnlyList<string> MemberIds);
+
+/// <summary>Explicit existing map used only for fixed layout facts when one DP source has a nonstandard extent.</summary>
+public sealed record CompositionProfileSourceEnvelopeBindingDocument(
+    string SourceSlotId,
+    string LayoutTemplateMapId,
+    string RootRegionId,
+    string WhenSourceAbsent,
+    IReadOnlyList<long> ExpectedOuterLengths,
+    string UnexpectedLengthIssueCode);

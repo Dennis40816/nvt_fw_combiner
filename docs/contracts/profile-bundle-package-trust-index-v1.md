@@ -18,6 +18,29 @@ zero or more closed-vocabulary runtime registrations. Optional
 allowed to resolve that family's canonical metadata references; the reference's
 family content hash and structure id remain independently exact at runtime.
 
+The same provider admission supplies explicit `fullImageMetadataViews` from
+that exact family's normalized catalog in the owning trusted bundle. The
+manifest pins its family bytes. A missing or mismatched declared family
+identity rejects the candidate; an existing exact family without views supplies
+no full-image metadata authority. Consumers do not scan projected family
+copies or substitute runtime profile metadata. This authority adds no runtime
+registration or family-disclosure permission. A present view with an empty
+binding collection remains an explicit empty declaration.
+
+Optional `familyDisclosureFamilies` independently opt an exact family id/version
+into canonical family disclosure. Both fields reuse the same closed pair shape
+and each requires global uniqueness within its own authority. A family may hold
+both authorities. Neither implies the other or any runtime registration.
+Disclosure resolves only within its owning trusted bundle's normalized catalog;
+the trusted manifest closes the family content hash. Missing or ambiguous exact
+identity rejects the candidate. No cross-bundle fallback is permitted.
+
+Disclosure merges these existing typed relationships with compiled runtime
+relationships. Duplicate exact family/version/hash/relationship facts may coalesce;
+conflicting facts or overlapping contradictory Perfect sources reject publication
+and retain the prior catalog. The Standard registry continues to define the IC
+universe, and runtime eligibility and profile inventory do not change.
+
 The index does not promote support, waive profile blockers, supply golden
 evidence, or grant external processor authority. The selected bundle manifest,
 profile/family contracts, capability publication policy, and evidence gates
@@ -36,7 +59,7 @@ no report classification must omit it. This is a cross-workflow counterpart
 reference, not a second map definition: the referenced map, metadata
 structure, report purpose, capacity, and selection rules remain owned by the
 registered Standard profile/family and the canonical profile compiler.
-Standard Merge, AB Merge or DP Replace registrations whose profile
+Standard Merge or AB Merge registrations whose profile
 declares a selection group additionally declare the reviewed
 `mapVariantSetId`; runtime projection rejects a missing or extraneous binding.
 Fields that do not belong to the selected workflow are forbidden.
@@ -106,8 +129,8 @@ The runtime reads it through a pre-allocation byte bound. An explicit
 capability-catalog publication reload does not re-read or hot-swap the package
 trust index or bundle bytes; observing a new package requires a new process.
 
-`trustIndexVersion` changes whenever admitted bundle materialization or runtime
-registrations change. Schema `1.1` adds only the closed CtrlRAM
+`trustIndexVersion` changes whenever admitted bundle materialization, family
+authority bindings, or runtime registrations change. Schema `1.1` adds only the closed CtrlRAM
 `reportMetadataMapId` counterpart described above; it does not move map or
 metadata semantics into the index. Schema-compatible data changes keep the
 current `schemaVersion`; vocabulary or semantic changes require a reviewed
@@ -127,5 +150,18 @@ space are retained as immutable Application context and fingerprint bindings.
 Omitting the display field preserves the existing report-map overview fallback;
 it never changes the mandatory Report presence/absence rules above. The display
 context cannot authorize operations, support, Report classification or writes.
-The current built-in candidate uses schema `1.3`; Unit58 external owner
-attestation remains required before integration.
+Schema `1.4` additionally admits optional `familyDisclosureFamilies` as the
+explicit source authority described above. It adds no firmware relationships,
+execution support, or runtime registrations. The current built-in candidate uses
+schema `1.5`; applicable external owner attestation remains required before integration.
+
+Schema `1.5` retires DP Replace runtime admission. The active workflow set is
+exactly `standard-merge`, `ab-merge`, `ctrlram-replace`, `general-merge`, and
+`general-replace`; old schema `1.4`, `dp-replace`, and unknown registrations
+are rejected by both runtime loading and build materialization. The built-in
+index `1.1.10.3` admits 24 bundles and 54 runtime registrations. Its eight
+metadata-provider admissions and one family-disclosure admission remain
+unchanged. Retirement removes five manifests and ten profiles, while all
+surviving bundle, family, profile and manifest bytes retain their existing pins.
+Shared full-image metadata and Perfect disclosure retain their independent
+provider authority and do not require a DP runtime registration.

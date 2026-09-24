@@ -124,7 +124,7 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("ICompositionCapabilityExperience", compositionRoot, StringComparison.Ordinal);
         Assert.Contains("IStandardMergeAuthoring", compositionRoot, StringComparison.Ordinal);
         Assert.Contains("IAbMergeAuthoring", compositionRoot, StringComparison.Ordinal);
-        Assert.Contains("IDpReplaceAuthoring", compositionRoot, StringComparison.Ordinal);
+        Assert.DoesNotContain("IDpReplaceAuthoring", compositionRoot, StringComparison.Ordinal);
         Assert.Contains("IGeneralAuthoring", compositionRoot, StringComparison.Ordinal);
         Assert.Contains("ICtrlRamAuthoring", compositionRoot, StringComparison.Ordinal);
         Assert.Contains("ICompositionOutputNaming", compositionRoot, StringComparison.Ordinal);

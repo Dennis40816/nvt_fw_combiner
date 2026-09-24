@@ -11,7 +11,7 @@ namespace NvtFwCombiner.UiSmoke.Tests;
 
 public sealed partial class XamlControlStyleContractTests
 {
-    /// <summary>Input guidance uses two readable lines without a suggested filename or a detached byte unit.</summary>
+    /// <summary>Input guidance uses readable responsive cells without a suggested filename or a detached byte unit.</summary>
     [AvaloniaTheory]
     [InlineData(false, 2960, 0x2D100, 480, false, false)]
     [InlineData(true, 2960, 0x2D100, 480, false, true)]
@@ -21,7 +21,7 @@ public sealed partial class XamlControlStyleContractTests
     [InlineData(true, 2960, 0x2D100, 480, true, true)]
     [InlineData(false, 18944, 0x21B90, 900, true, true)]
     [InlineData(true, 18944, 0x21B90, 900, true, false)]
-    public void CtrlRamGuidanceKeepsSizeAndOutputOffsetOnSeparateCompleteLines(
+    public void CtrlRamGuidanceKeepsSizeAndOutputOffsetInCompleteResponsiveCells(
         bool chinese, long length, long offset, int width, bool selected, bool dark)
     {
         var text = ShellTextResources.For(chinese ? ShellLanguage.ChineseTraditional : ShellLanguage.English);
@@ -54,7 +54,10 @@ public sealed partial class XamlControlStyleContractTests
             Assert.True(addressValue.IsEffectivelyVisible);
             _ = Assert.Single(sizeValue.TextLayout.TextLines);
             _ = Assert.Single(addressValue.TextLayout.TextLines);
-            Assert.Equal(sizeValue.TranslatePoint(default, card)!.Value.X, addressValue.TranslatePoint(default, card)!.Value.X);
+            Point sizePoint = sizeValue.TranslatePoint(default, card)!.Value;
+            Point addressPoint = addressValue.TranslatePoint(default, card)!.Value;
+            Assert.InRange(Math.Abs(sizePoint.Y - addressPoint.Y), 0, 0.5);
+            Assert.True(addressPoint.X > sizePoint.X);
             Assert.All(sizeValue.TextLayout.TextLines, line => Assert.False(line.HasCollapsed));
             Assert.All(addressValue.TextLayout.TextLines, line => Assert.False(line.HasCollapsed));
             Assert.Equal(selected ? 1 : 0, card.GetVisualDescendants().OfType<TextBlock>().Count(

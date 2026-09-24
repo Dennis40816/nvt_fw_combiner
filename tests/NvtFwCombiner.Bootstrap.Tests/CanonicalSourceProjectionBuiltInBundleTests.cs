@@ -7,18 +7,13 @@ public sealed class CanonicalSourceProjectionBuiltInBundleTests
 {
     /// <summary>Each source bundle must satisfy its exact manifest, schema, and projection contract.</summary>
     [Theory]
-    [InlineData("nt51923-dp-replace", "14d3a379d5fc29b37904897b044fd834d8f6e1399cee73f7b00147276ce7bc79")]
-    [InlineData("nt51923-standard-merge", "9661f30be8b114cd679d08af8177d44bd372973943f2293228f85ff25ecf608c")]
-    [InlineData("nt51927-dp-replace", "1b97f66f779ab9bc260e43b26abfcba0b1488dd18fe215a4d76ce2d8393e8ae6")]
-    [InlineData("nt51927-standard-merge", "b1c9234e76ff6995ac362ee66a22eb3423024d116a858a93d2b733c0c380eafa")]
-    [InlineData("nt51928-dp-replace", "d9845bce9c2b3d8a8aa101450d534ef00417f1c63862e69bc833ad57713ab9e5")]
-    [InlineData("nt51928-standard-merge", "20ccd90376bee9a67832b3a808940017f3cab202ae5d9dfad7cb2dc4b9774c4e")]
-    [InlineData("nt51929-dp-replace", "31c545eb367ff902eb2e95bc0b90643c337ab26b4e5831169bfc1a31f060f3cd")]
-    [InlineData("nt51929-standard-merge", "d70ee9a8534d2c91a1f674e92b888678d13ea1660a6540365abd42346c480a72")]
-    [InlineData("nt51919-nt51929-nt51932-ab-merge", "68527380d4e2de5994734b9357fc55963254e51382027d9f099699c9dc1a366f")]
-    [InlineData("nt51950-ab-merge", "0f3db5b27468211ee5f60112d239423e2b0d99b3591c8dcc63db07a2e2987496")]
-    [InlineData("nt51950-nt51951-dp-replace", "efc155288c2c470c0cac15e51142ebd357eff6151259b9b8164560f2a105ec6d")]
-    [InlineData("nt51950-nt51951-standard-merge", "d62b6b3f83a2350724de476d582d3a8de3483366134c39d94f144b77ae1402d7")]
+    [InlineData("nt51923-standard-merge", "803780d0835dab32b68bc92cf7c8e175aa338b6aaf0e0c7caaddd9712de4576f")]
+    [InlineData("nt51927-standard-merge", "985a7d231a5a40f9c0cfe752dd43fea43dcfa05fb48128379fa020cef041fc04")]
+    [InlineData("nt51928-standard-merge", "8145e2e6f9697607fc91748d21f802ef2a8613021899d52a80828325bc50bae5")]
+    [InlineData("nt51929-standard-merge", "e043dad07ffd7670c96b07b7732a9889b33a4b00b143eba56ad02cac1bb59cb5")]
+    [InlineData("nt51919-nt51929-nt51932-ab-merge", "892af5d0f1ff0094bb96a0e30ffad3b6c2cf18451a6705623c2ca97206422c6b")]
+    [InlineData("nt51950-ab-merge", "18b43352606ca744f499e328d5778c3b9e08307a97fd122ac38fd8762d37c8d1")]
+    [InlineData("nt51950-nt51951-standard-merge", "658e188b0724a9a1f5d3389f7bc685a75b1dacfd36e030d79c9d0f83d8135652")]
     public void MigratedBundleLoadsFromItsManifestPinnedSources(
         string bundleDirectory,
         string bundleContentHash)

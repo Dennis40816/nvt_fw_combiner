@@ -23,14 +23,14 @@ public sealed class CanonicalFormalRouteRuntimeClosureTests
         IReadOnlyList<CanonicalFormalRouteRuntimeFixture> fixtures =
             CanonicalFormalRouteRuntimeFixtureCatalog.Create();
 
-        Assert.Equal(68, fixtures.Count);
-        Assert.Equal(68, fixtures.Select(static fixture => fixture.RouteId)
+        Assert.Equal(74, fixtures.Count);
+        Assert.Equal(74, fixtures.Select(static fixture => fixture.RouteId)
             .Distinct(StringComparer.Ordinal).Count());
         Assert.Equal(14, fixtures.Count(static fixture =>
             fixture.Policy.Identity.WorkflowId == ExperienceIds.StandardMerge));
-        Assert.Equal(10, fixtures.Count(static fixture =>
+        Assert.Equal(6, fixtures.Count(static fixture =>
             fixture.Policy.Identity.WorkflowId == ExperienceIds.AbMerge));
-        Assert.Equal(44, fixtures.Count(static fixture =>
+        Assert.Equal(54, fixtures.Count(static fixture =>
             fixture.Policy.Identity.WorkflowId == ExperienceIds.CtrlRamReplace));
         // The v1.1.4 optional-DP definitions retain Normal Golden cases, but their
         // expanded route evidence is ContractOnly (policy catalog 1.11.0).
@@ -40,7 +40,7 @@ public sealed class CanonicalFormalRouteRuntimeClosureTests
             fixture.PolicyEvidenceClass == CanonicalFormalRuntimePolicyEvidenceClass.ApprovedAlias));
         Assert.Equal(4, fixtures.Count(static fixture =>
             fixture.PolicyEvidenceClass == CanonicalFormalRuntimePolicyEvidenceClass.SyntheticOracle));
-        Assert.Equal(31, fixtures.Count(static fixture =>
+        Assert.Equal(37, fixtures.Count(static fixture =>
             fixture.PolicyEvidenceClass == CanonicalFormalRuntimePolicyEvidenceClass.ContractOnly));
     }
 
@@ -50,8 +50,8 @@ public sealed class CanonicalFormalRouteRuntimeClosureTests
     /// </summary>
     [Theory(Timeout = 180_000)]
     [InlineData(ExperienceIds.StandardMerge, 14, 15)]
-    [InlineData(ExperienceIds.AbMerge, 10, 12)]
-    [InlineData(ExperienceIds.CtrlRamReplace, 44, 59)]
+    [InlineData(ExperienceIds.AbMerge, 6, 7)]
+    [InlineData(ExperienceIds.CtrlRamReplace, 54, 72)]
     public async Task FormalRoutesPreparePreviewAndBuildWithExactRuntimeIdentityAsync(
         string workflowId,
         int expectedRouteCount,
@@ -168,13 +168,19 @@ public sealed class CanonicalFormalRouteRuntimeClosureTests
         {
             Assert.All(processor.Requests, request =>
                 Assert.Equal(expectedIcCount, request.ResolvedIcCount));
-            if (runtimeCase.Fixture.Policy.Identity.WorkflowId == ExperienceIds.CtrlRamReplace)
-            {
-                long baseLength = new FileInfo(
-                    runtimeCase.SlotPaths[CompositionSlotIds.ReplaceBase]).Length;
-                Assert.Equal(baseLength, preview.OutputSize);
-                Assert.Equal(baseLength, build.OutputSize);
-            }
+        }
+        else if (runtimeCase.Fixture.Policy.Identity.WorkflowId == ExperienceIds.CtrlRamReplace &&
+            (runtimeCase.Fixture.Policy.Identity.IcId is "NT51919" or "NT51929" or "NT51932") &&
+            runtimeCase.Fixture.Policy.Identity.MapVariant.Contains("-ab-merge-", StringComparison.Ordinal))
+        {
+            Assert.All(processor.Requests, static request => Assert.Null(request.ResolvedIcCount));
+        }
+        if (runtimeCase.Fixture.Policy.Identity.WorkflowId == ExperienceIds.CtrlRamReplace)
+        {
+            long baseLength = new FileInfo(
+                runtimeCase.SlotPaths[CompositionSlotIds.ReplaceBase]).Length;
+            Assert.Equal(baseLength, preview.OutputSize);
+            Assert.Equal(baseLength, build.OutputSize);
         }
         Assert.All(originalInputHashes, pair => Assert.Equal(pair.Value, HashFile(pair.Key)));
     }
@@ -225,6 +231,20 @@ public sealed class CanonicalFormalRouteRuntimeClosureTests
         }
 
         string workflowId = runtimeCase.Fixture.Policy.Identity.WorkflowId;
+        if (workflowId == ExperienceIds.CtrlRamReplace &&
+            runtimeCase.Fixture.Policy.Identity.MapVariant.Contains("-ab-merge-", StringComparison.Ordinal))
+        {
+            byte[] abBase = File.ReadAllBytes(runtimeCase.SlotPaths[CompositionSlotIds.ReplaceBase]);
+            Assert.True(abBase.Length is 0x80000 or 0x100000);
+            int bankLength = abBase.Length / 2;
+            Assert.True(FirmwareConfigMetadataReader.TryReadBackup(
+                abBase.AsSpan(0, bankLength), out FirmwareConfigMetadata a));
+            Assert.True(FirmwareConfigMetadataReader.TryReadBackup(
+                abBase.AsSpan(bankLength, bankLength), out FirmwareConfigMetadata b));
+            Assert.Equal(expectedChipCount!.Value, a.ChipNumber);
+            Assert.Equal(expectedChipCount.Value, b.ChipNumber);
+            return;
+        }
         string[] metadataSlots = workflowId switch
         {
             ExperienceIds.AbMerge =>

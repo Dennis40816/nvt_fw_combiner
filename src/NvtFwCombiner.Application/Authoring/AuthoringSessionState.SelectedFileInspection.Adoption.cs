@@ -1,10 +1,60 @@
 using NvtFwCombiner.Application.Capabilities;
+using NvtFwCombiner.Application.Composition;
 using NvtFwCombiner.Application.Metadata;
+using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Application.Authoring;
 
 public sealed partial class AuthoringSessionState
 {
+    /// <summary>Refreshes only blocked prerequisite results for the same retained immutable sources.</summary>
+    internal AuthoringSessionTransitionResult TryRefreshBlockedInputInspection(ActiveSessionSnapshot expected,
+        AuthoringCapabilityCatalogSnapshot catalog, IReadOnlyCollection<AuthoringInputSlotStatus> statuses)
+    {
+        ArgumentNullException.ThrowIfNull(expected);
+        ArgumentNullException.ThrowIfNull(catalog);
+        ArgumentNullException.ThrowIfNull(statuses);
+        lock (_transitionLock)
+        {
+            AuthoringInputSlotStatus[] captured = [.. statuses];
+            AuthoringCapabilityRoute? route = catalog.Routes.Count == 1 ? catalog.Routes[0] : null;
+            bool valid = ReferenceEquals(_current, expected) && HasCoherentCapturedSources(expected) &&
+                catalog.WorkflowId == expected.WorkflowId && catalog.ResolutionToken == expected.ResolutionToken &&
+                route?.Identity.RouteId == expected.SelectedRouteId && route.CompilationFingerprint is null &&
+                route.CapabilityFingerprint == expected.CapabilityFingerprint &&
+                captured.Length == expected.InputSlotStatuses.Count &&
+                captured.Select(static status => status.SlotId).Distinct(StringComparer.Ordinal).Count() == captured.Length &&
+                captured.All(status =>
+                {
+                    AuthoringInputSlotStatus? previous = expected.InputSlotStatuses.SingleOrDefault(item => item.SlotId == status.SlotId);
+                    return previous is not null && status.WorkflowId == expected.WorkflowId &&
+                        status.RouteId == expected.SelectedRouteId && status.ResolutionToken == expected.ResolutionToken &&
+                        status.CapabilityFingerprint == expected.CapabilityFingerprint && status.AuthoringRevision == expected.AuthoringRevision &&
+                        status.CompilationFingerprint is null && !status.IsTerminal && status.AcceptedBytes is null &&
+                        status.Readiness == ResolvedChildReadiness.Blocked && status.AddressSpaceId == previous.AddressSpaceId &&
+                        status.SelectedPathHint == previous.SelectedPathHint && status.FileStamp == previous.FileStamp &&
+                        status.CapturedSource?.AcceptedBytes is { } source && previous.CapturedSource?.AcceptedBytes is { } retained &&
+                        source.Span.SequenceEqual(retained.Span);
+                });
+            if (!valid)
+            {
+                return Failure(AuthoringSessionIssueCodes.StaleInspection,
+                    "The blocked inspection no longer owns the current retained inputs.", WorkflowId);
+            }
+            Dictionary<string, AuthoringInputSlotStatus> bySlot = captured.ToDictionary(static status => status.SlotId, StringComparer.Ordinal);
+            string reference = FormattableString.Invariant($"inspection-batch:{expected.AuthoringRevision.Value}:pre-compilation");
+            AuthoringSlotState[] slots = [.. expected.Slots.Select(slot => bySlot.TryGetValue(slot.DefinitionId, out AuthoringInputSlotStatus? status)
+                ? new AuthoringSlotState(slot.DefinitionId, slot.SelectedPath, slot.FileStamp, AuthoringSlotLifecycle.Error,
+                    new AuthoringSlotIssueReference(AuthoringDerivedResultKind.Inspection, reference,
+                        status.SelectionReadiness.IssueCode ?? InputSelectionReadinessIssueCodes.SelectionNotApplicable))
+                : slot)];
+            ActiveSessionSnapshot refreshed = CopySnapshot(expected, expected.AuthoringRevision, slots,
+                expected.DraftState, expected.DraftCapabilityFingerprint, [], captured, expected.InputSelectionReadiness);
+            Volatile.Write(ref _current, refreshed);
+            return new(refreshed, null);
+        }
+    }
+
     /// <summary>Retains source inspection while revoking derived action results for one reinspection attempt.</summary>
     internal AuthoringSessionTransitionResult TryBeginAcceptedInputReinspection(ActiveSessionSnapshot expected)
     {
@@ -87,7 +137,8 @@ public sealed partial class AuthoringSessionState
     /// <summary>Atomically adopts one complete exact inspection without re-reading its content.</summary>
     internal AuthoringSessionTransitionResult TryAdoptExactSlotFileInspectionBatch(
         AuthoringCapabilityCatalogSnapshot catalog,
-        IReadOnlyCollection<AuthoringInputSlotStatus> statuses)
+        IReadOnlyCollection<AuthoringInputSlotStatus> statuses,
+        CtrlRamBaseInspection? baseInspection = null)
     {
         ArgumentNullException.ThrowIfNull(catalog);
         ArgumentNullException.ThrowIfNull(statuses);
@@ -112,6 +163,13 @@ public sealed partial class AuthoringSessionState
                 .ToHashSet(StringComparer.Ordinal);
             bool invalid = route is null ||
                 inspected is null ||
+                (baseInspection is not null && (baseInspection.Issues.Count != 0 ||
+                    baseInspection.ResolutionToken != catalog.ResolutionToken ||
+                    baseInspection.Kind == CtrlRamBaseKind.Unknown ||
+                    !Equals(baseInspection.EffectiveDraft, inspected?.CtrlRamExecutionPlan?.Draft) ||
+                    captured.Count(static status => status.AddressSpaceId == CompositionAddressSpaceIds.ReferenceBase) != 1 ||
+                    !captured.Any(status => status.AddressSpaceId == CompositionAddressSpaceIds.ReferenceBase &&
+                        status.FileStamp == baseInspection.ReferenceStamp))) ||
                 captured.Length == 0 ||
                 definitionIds.Count != captured.Length ||
                 !definitionIds.SetEquals(route.SlotDefinitions.Select(
@@ -150,6 +208,15 @@ public sealed partial class AuthoringSessionState
             if (!activated.Succeeded)
             {
                 return activated;
+            }
+
+            if (baseInspection is not null)
+            {
+                AuthoringSessionTransitionResult drafted = SetDraft(baseInspection.EffectiveDraft);
+                if (!drafted.Succeeded)
+                {
+                    return drafted;
+                }
             }
 
             AuthoringSlotInspectionBatchStartResult started = BeginSlotFileInspections(

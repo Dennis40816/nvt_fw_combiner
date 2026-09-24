@@ -20,15 +20,28 @@ public interface ICompiledAuthoringWorkflowResolver
         AuthoringRevision authoringRevision,
         long? prerequisiteLength,
         IReadOnlyCollection<string> selectedSlotIds);
+
+    /// <summary>Compiles a definition-level discovery from captured immutable prerequisite bytes.</summary>
+    CompiledAuthoringWorkflowResolution ResolveExact(
+        string icId,
+        AuthoringRevision authoringRevision,
+        ReadOnlyMemory<byte> capturedPrerequisite,
+        IReadOnlyCollection<string> selectedSlotIds)
+    {
+        return new CompiledAuthoringWorkflowResolution(null, [new CompositionIssue(
+            "authoring.compilation.captured-prerequisite-unsupported",
+            "This authoring resolver does not support captured prerequisite bytes.")]);
+    }
 }
 
 /// <summary>Reviewed pre-compilation facts exposed by a compiler adapter.</summary>
 public sealed record CompiledAuthoringWorkflowDiscovery(
-    ResolvedCapability DiscoveryCapability,
+    ResolvedCapability? DiscoveryCapability,
     IReadOnlyList<string> AvailableSlotIds,
     string? CompilationPrerequisiteSlotId,
     ReviewedDiscoveryTransition? DiscoveryTransition = null,
-    IReadOnlyList<CompiledAuthoringInputBinding>? AvailableInputBindings = null);
+    IReadOnlyList<CompiledAuthoringInputBinding>? AvailableInputBindings = null,
+    ResolvedCapabilityRoute? DiscoveryRoute = null);
 
 /// <summary>One exact compiler result with its original issues retained.</summary>
 public sealed record CompiledAuthoringWorkflowResolution(
@@ -96,7 +109,7 @@ public sealed record CompiledAuthoringSessionPreparation(
                         .Where(static status =>
                             status.BlocksBuild &&
                             status.InspectionIssueCode is not null)
-                        .Select(static status => new CompositionIssue(
+                        .Select(static status => status.Inspection?.AdmissionIssue ?? new CompositionIssue(
                             status.InspectionIssueCode!,
                             "The selected input failed its compiled artifact inspection.",
                             status.SlotId)),

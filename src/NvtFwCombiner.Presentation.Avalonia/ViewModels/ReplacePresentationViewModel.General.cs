@@ -31,6 +31,13 @@ internal sealed partial class ReplacePresentationViewModel
 
     private void RefreshGeneralReplaceAuthoringState()
     {
+        if (!ReplaceBaseSlot.HasFile &&
+            _generalReplaceSession.CurrentSnapshot?.ExactCapability?.CompiledComposition
+                .Plan.OutputInitialization.ReferenceSpaceId is string referenceSpaceId)
+        {
+            _ = _generalReplaceSession.SetSlotFile(referenceSpaceId, null, null);
+        }
+
         _generalReplaceAuthoringStates =
         [
             .. GeneralReplaceMappings

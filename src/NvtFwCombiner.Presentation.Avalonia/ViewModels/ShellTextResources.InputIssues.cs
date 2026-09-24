@@ -78,6 +78,11 @@ internal sealed partial class ShellTextResources
         {
             "warning" => code switch
             {
+                "DP_NONSTANDARD_SIZE_WARNING" => (
+                    SelectLanguage("DP size differs from standard capacity", "DP 大小與標準容量不同"),
+                    SelectLanguage(
+                        "This may be a customized OSD application. The complete DP is retained; confirm the selected BIN before Build.",
+                        "疑似 OSD 客製化應用導致 DP 大小不是標準大小。輸出會完整保留 DP；Build 前請確認所選 BIN。")),
                 "DP_UNIFORM_CONTENT_WARNING" => UniformInputHelp("DP"),
                 "TP_UNIFORM_CONTENT_WARNING" => UniformInputHelp("TP"),
                 "LDC_UNIFORM_CONTENT_WARNING" => UniformInputHelp("LDC"),

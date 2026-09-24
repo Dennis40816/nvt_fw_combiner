@@ -1,6 +1,6 @@
 # ADR 0071: Preserve change provenance with unique final integration ownership
 
-- Status: Accepted design; implementation and candidate verification pending
+- Status: Accepted design; checkpoint amendment approved 2026-09-23; implementation and candidate verification pending
 - Date: 2026-09-10
 - Owner: Repository owner, explicitly approved preserving historical records and unique final ownership
 - Risk: R2 governance
@@ -21,6 +21,32 @@ cover that same diff exactly once. All records finalize together against the
 same reviewed source; every original path remains in its record's digest.
 Empty ownership never removes review, minimum risk or R3 owner obligations.
 Historical records without the optional field retain their prior semantics.
+Exact auxiliary evidence paths, including the status-only 1.1.10 delivery
+document admitted by the record contract, remain in their original admissions,
+reviewed diffs and complete digests; they never enter `integrationPaths` or
+become a second product authority. Current canonical specification and
+architecture owners are governed paths, even when their Markdown syntax
+resembles an ordinary handoff. This classification does not rewrite earlier
+admissions or change the final checkpoint lifecycle.
+
+Owner amendment, 2026-09-23: a committed active admission may have named an
+intermediate product commit as `integrationBase` rather than the last sealed
+final evidence checkpoint. Preserve that erroneous field and the original
+first-active blob. Permit only a final-only, independently reviewed
+`checkpointReconciliation` under the [record contract](../governance/capability-reuse-record.md#lifecycle).
+The existing validator derives the checkpoint from historical replay and
+checks Git ancestry through the original base and first-active commit; the
+new evidence cannot reset the checkpoint. Final review still covers the full
+checkpoint-to-reviewed diff and every original mutable path, with unique
+ownership, digest, direct-child evidence, external R3 and release gates.
+Unneeded or premature reconciliation and changes to sealed final records fail.
+This does not claim the original admission met the checkpoint rule when filed.
+The record contract fixes the document-classification cutover at the last
+sealed final evidence checkpoint before those exact paths became governed.
+Earlier final batches are verified under their original classifier, while
+current and later batches use the new one. This preserves historical admission
+meaning without exempting any batch from its applicable coverage or ownership
+checks.
 
 ## Why and migration
 
@@ -33,7 +59,11 @@ For the current 1.1.4 batch, review original admissions and actual changes,
 admit missing local R1 paths with an explicit post-implementation integration
 review, freeze source, review the partition, then finalize the complete batch.
 Never claim that missing historical admission existed before implementation.
-No task-ID exception, record retirement or trusted-initial reactivation is used.
+That 1.1.4 ownership partition uses no task-ID exception, record retirement or
+trusted-initial reactivation. The later owner amendment on 2026-09-24 permits
+one final-only auxiliary-path reconciliation for `PARTIAL-AB-BANK-110-01` under
+the [record contract](../governance/capability-reuse-record.md#lifecycle). It
+does not change governed ownership or the original admission.
 
 ## Alternatives and verification
 

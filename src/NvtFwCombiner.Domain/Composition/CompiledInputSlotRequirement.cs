@@ -222,14 +222,19 @@ public sealed class CompiledInputSlotRequirement
     internal CompiledInputSlotRequirement(
         CompositionInputSlotDefinition definition,
         CompiledInputLengthRequirement lengthRequirement,
-        bool forceRequired = false)
+        bool forceRequired = false,
+        bool sourceEnvelopeExactLength = false)
     {
         ArgumentNullException.ThrowIfNull(definition);
         ArgumentNullException.ThrowIfNull(lengthRequirement);
         bool matchesDefinition = definition.LengthRequirement switch
         {
             ResolvedMapCapacityInputLengthDefinition =>
-                lengthRequirement is CompiledExactResolvedMapCapacityInputLengthRequirement,
+                lengthRequirement is CompiledExactResolvedMapCapacityInputLengthRequirement ||
+                (sourceEnvelopeExactLength &&
+                 definition.ArtifactClass == CompiledInputArtifactClass.DpFirmware &&
+                 definition.Normalization is CompiledNoInputNormalization &&
+                 lengthRequirement is CompiledExactBytesInputLengthRequirement),
             SourceViewCoverageInputLengthDefinition =>
                 lengthRequirement is CompiledSourceViewCoverageInputLengthRequirement,
             CompiledInputLengthRequirement fixedRequirement =>
@@ -268,8 +273,30 @@ public sealed class CompiledInputSlotRequirement
     /// <summary>Typed resolved source length acceptance policy.</summary>
     public CompiledInputLengthRequirement LengthRequirement { get; }
 
+    /// <summary>Resolves only a profile-bound unnormalized DP to the complete captured source extent.</summary>
+    internal CompiledInputSlotRequirement ResolveSourceEnvelopeLength(long actualLength)
+    {
+        DomainInvariant.Reject(
+            ArtifactClass != CompiledInputArtifactClass.DpFirmware ||
+            _definition.LengthRequirement is not ResolvedMapCapacityInputLengthDefinition ||
+            Normalization is not CompiledNoInputNormalization,
+            "Only an unnormalized resolved-map DP slot can bind a complete source envelope.");
+        return new CompiledInputSlotRequirement(
+            _definition,
+            new CompiledExactBytesInputLengthRequirement(actualLength),
+            forceRequired: Required && !_definition.Required,
+            sourceEnvelopeExactLength: true);
+    }
+
     /// <summary>Typed transient source normalization policy.</summary>
     public CompiledInputNormalization Normalization => _definition.Normalization;
+
+    internal CompiledInputSlotRequirement ResolveCompositeReferenceCapacity(long capacity)
+    {
+        DomainInvariant.Reject(ArtifactClass != CompiledInputArtifactClass.ReferenceImage,
+            "Only the reference slot resolves the composite output capacity.");
+        return new CompiledInputSlotRequirement(_definition, new CompiledExactResolvedMapCapacityInputLengthRequirement(capacity));
+    }
 }
 
 /// <summary>One immutable plan address-space binding supplied for one compiled input slot.</summary>

@@ -71,15 +71,24 @@ public static partial class MemoryLayoutProjector
                 FirmwareFamilyResolutionDefinition.ResolvedFirmwareImageMap resolvedMap =
                     mapContext.ResolvedMap;
                 map = resolvedMap.ImageMap;
-                capacity = resolvedMap.CapacityBytes;
-                if (initialization.Capacity != capacity || map.CapacityBytes != capacity)
+                SourceEnvelopeExtent? envelope = (mapContext as ResolvedMapV2CompilationContext)?.SourceEnvelope;
+                capacity = envelope?.ActualOutputLength ?? resolvedMap.CapacityBytes;
+                if (initialization.Capacity != capacity ||
+                    map.CapacityBytes != resolvedMap.CapacityBytes ||
+                    (envelope is null && map.CapacityBytes != capacity))
                 {
                     throw new ArgumentException(
                         "Compiled output and resolved physical-map capacities must agree.",
                         nameof(capability));
                 }
 
-                primaryRegions = SelectPrimaryRegions(map, ctrlRamRegions);
+                primaryRegions = mapContext is RuntimeReferenceBankReplaceV2CompilationContext banks
+                    ? SelectBankPrimaryRegions(banks, ctrlRamRegions)
+                    : SelectPrimaryRegions(map, ctrlRamRegions);
+                if (envelope is not null)
+                {
+                    primaryRegions = ClipToSourceEnvelope(primaryRegions, envelope);
+                }
                 break;
             case LogicalOutputV2CompilationContext:
                 if (!StringComparer.Ordinal.Equals(details.ExperienceId, ExperienceIds.GeneralMerge) ||
@@ -126,6 +135,7 @@ public static partial class MemoryLayoutProjector
                 authoring.DraftState,
                 statesById);
         ValidateAuthoringSlots(requirementsByStateId, statesById);
+        var contentSources = new ContentSourceProjection(composition, slotsBySpace, statesById);
 
         MemoryLayoutPendingItem[] pendingItems =
             ProjectPendingItems(requirementsByStateId, statesById, authoring);
@@ -136,7 +146,8 @@ public static partial class MemoryLayoutProjector
                 map?.AddressSpaceId ?? plan.OutputSpaceId,
                 initialization,
                 slotsBySpace,
-                statesById);
+                statesById,
+                contentSources);
         MemoryLayoutSegment[] after = compiledOverlay is null
             ? before
             : ApplyOperations(
@@ -145,7 +156,8 @@ public static partial class MemoryLayoutProjector
                 map?.AddressSpaceId ?? plan.OutputSpaceId,
                 composition,
                 slotsBySpace,
-                statesById);
+                statesById,
+                contentSources);
 
         return map is null
             ? new MemoryLayoutSnapshot(
@@ -164,7 +176,8 @@ public static partial class MemoryLayoutProjector
                 before,
                 after,
                 pendingItems,
-                ProjectSections(capability, map.AddressSpaceId, capacity));
+                ProjectSections(capability, map.AddressSpaceId, capacity),
+                ProjectBanks(composition, map.AddressSpaceId, capacity));
     }
 
     private static void ValidateIdentity(
@@ -286,6 +299,40 @@ public static partial class MemoryLayoutProjector
         return [.. primary];
     }
 
+    private static ProjectionRegion[] ClipToSourceEnvelope(
+        IReadOnlyList<ProjectionRegion> templateRegions,
+        SourceEnvelopeExtent envelope)
+    {
+        long actualEnd = envelope.ActualOutputLength;
+        var projected = new List<ProjectionRegion>();
+        foreach (ProjectionRegion region in templateRegions)
+        {
+            if (region.Range.Start >= actualEnd)
+            {
+                continue;
+            }
+
+            long end = Math.Min(region.Range.EndExclusive, actualEnd);
+            projected.Add(region with
+            {
+                Range = ByteRange.FromStartEndExclusive(region.Range.Start, end),
+            });
+        }
+
+        if (actualEnd > envelope.LayoutTemplateCapacity)
+        {
+            projected.Add(new ProjectionRegion(
+                "preserved-dp-tail",
+                ByteRange.FromStartEndExclusive(envelope.LayoutTemplateCapacity, actualEnd),
+                MemoryContentRole.Dp,
+                CanonicalRegion: null,
+                ReplaceRegionGroup.Common,
+                CtrlRamRegionRole.Other));
+        }
+
+        return [.. projected];
+    }
+
     private static bool Tiles(IReadOnlyList<FirmwareRegion> regions, ByteRange range)
     {
         long cursor = range.Start;
@@ -397,7 +444,8 @@ public static partial class MemoryLayoutProjector
         string addressSpaceId,
         ImageInitialization initialization,
         Dictionary<string, string> slotsBySpace,
-        Dictionary<string, AuthoringSlotState> statesById)
+        Dictionary<string, AuthoringSlotState> statesById,
+        ContentSourceProjection contentSources)
     {
         string? referenceSlotId = GetAdmittedReferenceSlot(
             initialization,
@@ -419,7 +467,8 @@ public static partial class MemoryLayoutProjector
                     contributingOperations: [],
                     diagnosticSeverity: MemoryDiagnosticSeverity.None,
                     selection: MemorySelectionState.NotSelected,
-                    processorEffect: MemoryProcessorEffect.None)),
+                    processorEffect: MemoryProcessorEffect.None,
+                    contentSource: contentSources.Initial(region.Range))),
         ];
     }
 
@@ -429,18 +478,14 @@ public static partial class MemoryLayoutProjector
         string addressSpaceId,
         CompiledComposition composition,
         Dictionary<string, string> slotsBySpace,
-        Dictionary<string, AuthoringSlotState> statesById)
+        Dictionary<string, AuthoringSlotState> statesById,
+        ContentSourceProjection contentSources)
     {
         CompositionPlan plan = composition.Plan;
-        CompositionOperation[] planned =
-        [
-            .. plan.OrderedOperations.Where(operation =>
-                StringComparer.Ordinal.Equals(operation.TargetSpaceId, plan.OutputSpaceId)),
-        ];
+        ProjectedOperation[] planned = ProjectOperations(composition);
         Dictionary<ProjectionRegion, string> retainedCompanionSlots = ResolveRetainedCompanionSlots(
             primaryRegions,
             planned,
-            plan.OutputSpaceId,
             slotsBySpace,
             statesById,
             composition.V2Details.CompositionKind);
@@ -455,9 +500,9 @@ public static partial class MemoryLayoutProjector
             _ = boundaries.Add(region.Range.EndExclusive);
         }
 
-        foreach (CompositionOperation operation in planned)
+        foreach (ProjectedOperation operation in planned)
         {
-            foreach (ByteRange range in operation.DeclaredWriteRanges)
+            foreach (ByteRange range in operation.Ranges)
             {
                 _ = boundaries.Add(range.Start);
                 _ = boundaries.Add(range.EndExclusive);
@@ -473,7 +518,8 @@ public static partial class MemoryLayoutProjector
                 region => region.Range.Contains(range));
             CompositionOperation[] contributors =
             [
-                .. planned.Where(operation => OperationWritesRange(operation, range)),
+                .. planned.Where(operation => operation.Ranges.Any(write => write.Contains(range)))
+                    .Select(static operation => operation.Operation),
             ];
             if (contributors.Length == 0)
             {
@@ -500,7 +546,8 @@ public static partial class MemoryLayoutProjector
                                 canonicalRegion,
                                 out string? companionSlotId)
                                 ? companionSlotId
-                                : null));
+                                : null,
+                        contentSource: contentSources.Initial(range)));
                 continue;
             }
 
@@ -510,6 +557,12 @@ public static partial class MemoryLayoutProjector
                 slotsBySpace.TryGetValue(dominant.SourceSpaceId, out string? boundSlot)
                     ? boundSlot
                     : null;
+            MemoryLayoutContentSource? contentSource = contentSources.After(range);
+            if (dominant.SourceSpaceId is not null &&
+                composition.V2Details.Provenance.Context is RuntimeReferenceBankReplaceV2CompilationContext)
+            {
+                sourceSlotId ??= contentSource?.SourceSlotId;
+            }
             bool sourceAdmitted = sourceSlotId is not null &&
                 IsAdmitted(statesById[sourceSlotId]);
             MemoryDiagnosticSeverity severity = sourceSlotId is not null &&
@@ -535,7 +588,8 @@ public static partial class MemoryLayoutProjector
                     contributors.Any(static operation =>
                         operation.ExternalProcessorInvocation is not null)
                             ? MemoryProcessorEffect.DeclaredWrite
-                            : MemoryProcessorEffect.None));
+                            : MemoryProcessorEffect.None,
+                    contentSource: contentSource));
         }
 
         return [.. segments];
@@ -596,7 +650,8 @@ public static partial class MemoryLayoutProjector
         MemoryDiagnosticSeverity diagnosticSeverity,
         MemorySelectionState selection,
         MemoryProcessorEffect processorEffect,
-        string? retainedCompanionSlotId = null)
+        string? retainedCompanionSlotId = null,
+        MemoryLayoutContentSource? contentSource = null)
     {
         string segmentId = FormattableString.Invariant(
             $"{canonicalRegion.RegionId}:{range.Start:x}-{range.EndExclusive:x}");
@@ -624,9 +679,12 @@ public static partial class MemoryLayoutProjector
                     range,
                     sourceSlotId,
                     segmentId,
-                    retainedCompanionSlotId),
+                    retainedCompanionSlotId,
+                    canonicalRegion.BankRegion),
                 canonicalRegion.RegionGroup,
-                canonicalRegion.CtrlRamRegionRole)
+                canonicalRegion.CtrlRamRegionRole,
+                contentSource,
+                canonicalRegion.BankRegion)
             : MemoryLayoutSegment.CreateLogical(
                 segmentId,
                 addressSpaceId,
@@ -646,13 +704,14 @@ public static partial class MemoryLayoutProjector
                 contributingOperations,
                 [],
                 ResolveLogicalCoverageGroupId(
-                    map,
+                    null,
                     range,
                     sourceSlotId,
                     segmentId,
                     retainedCompanionSlotId),
                 canonicalRegion.RegionGroup,
-                canonicalRegion.CtrlRamRegionRole);
+                canonicalRegion.CtrlRamRegionRole,
+                contentSource);
     }
 
     private static MemoryContentRole ClassifyContent(FirmwareRegion region)
@@ -684,5 +743,6 @@ public static partial class MemoryLayoutProjector
         MemoryContentRole ContentRole,
         FirmwareRegion? CanonicalRegion,
         ReplaceRegionGroup RegionGroup,
-        CtrlRamRegionRole CtrlRamRegionRole);
+        CtrlRamRegionRole CtrlRamRegionRole,
+        MemoryLayoutBankRegion? BankRegion = null);
 }

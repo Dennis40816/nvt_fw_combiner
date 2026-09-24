@@ -5,9 +5,9 @@ public enum EventBufferFormatConfigurationStatus
 {
     /// <summary>No persisted configuration has been read.</summary>
     NotLoaded,
-    /// <summary>The current persisted snapshot passed configuration admission.</summary>
+    /// <summary>The effective built-in or persisted snapshot passed configuration admission.</summary>
     Ready,
-    /// <summary>No persisted configuration exists; defaults remain draft material only.</summary>
+    /// <summary>Legacy unavailable state; normal missing-file reloads now publish built-in defaults.</summary>
     Missing,
     /// <summary>Persisted configuration could not be admitted.</summary>
     Invalid,
@@ -37,7 +37,11 @@ public sealed record EventBufferFormatConfigurationState(
     EventBufferFormatConfiguration? Configuration,
     string? SourceSha256,
     EventBufferFormatConfiguration? LastSaved,
-    string? LastSavedSha256);
+    string? LastSavedSha256)
+{
+    /// <summary>True when the admitted source is the canonical built-in defaults, not a saved file.</summary>
+    public bool UsesBuiltInDefaults { get; init; }
+}
 
 /// <summary>Operation result; success describes configuration only, not runtime re-evaluation.</summary>
 public sealed record EventBufferFormatConfigurationOperationResult(

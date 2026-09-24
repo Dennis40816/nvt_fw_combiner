@@ -122,8 +122,17 @@ internal sealed partial class AbMergeAuthoringExperience :
             AuthoringSessionTransitionResult invalidated = session.Activate(declaration.Catalog);
             return new(invalidated.Snapshot, declaration, null, invalidated.Issue);
         }
-        return CreateAbMergeAuthoringService(topology, _compiler, dpMode)
-            .PrepareExactSession(icId, session, inputs);
+        CompiledAuthoringSelectedInput[] captured = CaptureAbInputs(inputs);
+        FormatResolution resolved = ResolveCapturedFormat(route, definition, topology, captured, dpMode, null);
+        if (resolved.Capability is null)
+        {
+            CompiledAuthoringSelectionSnapshot declaration = DeclarationSelection(route, definition,
+                [.. captured.Select(static input => input.SlotId)], dpMode, resolved.Issues);
+            AuthoringSessionTransitionResult invalidated = session.Activate(declaration.Catalog);
+            return new(invalidated.Snapshot, declaration, null, invalidated.Issue);
+        }
+        return new CompiledAuthoringWorkflowService(new AbMergeAuthoringResolver(topology, _compiler, dpMode, resolved.Capability))
+            .PrepareExactSession(icId, session, captured);
     }
 
     private static CompiledAuthoringWorkflowService CreateAbMergeAuthoringService(

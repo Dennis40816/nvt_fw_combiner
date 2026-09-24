@@ -8,65 +8,58 @@ namespace NvtFwCombiner.UiSmoke.Tests;
 
 internal static class ShellViewModelTestData
 {
-    internal static async Task<CompositionRunResult> CreateDpReplaceInspectionResultAsync(
+    internal const int ReportFixtureTargetStart = 0x3E020;
+
+    internal static async Task<CompositionRunResult> CreateGeneralReplaceInspectionResultAsync(
         CompositionHostServices host,
         int changeLength = 2)
     {
+        ArgumentOutOfRangeException.ThrowIfLessThan(changeLength, 2);
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-report-hex-diff");
         byte[] baseBytes = CreatePattern(0x40000, 0x51);
-        byte[] replacementBytes = (byte[])baseBytes.Clone();
+        byte[] replacementBytes = baseBytes.AsSpan(ReportFixtureTargetStart, changeLength).ToArray();
         for (int index = 0; index < changeLength; index++)
         {
-            replacementBytes[0x100 + index] ^= 0xFF;
+            replacementBytes[index] ^= 0xFF;
         }
 
-        replacementBytes[0x100] = 0xA5;
-        replacementBytes[0x101] = 0x5A;
+        replacementBytes[0] = 0xA5;
+        replacementBytes[1] = 0x5A;
         string basePath = workspace.Write("base.bin", baseBytes);
         string replacementPath = workspace.Write("replacement.bin", replacementBytes);
         var paths = new Dictionary<string, string>(StringComparer.Ordinal)
         {
-            ["replace-base"] = basePath,
-            ["replace-dp"] = replacementPath,
+            [CompositionSlotIds.ReplaceBase] = basePath,
         };
-
-        CompiledAuthoringSelectionSnapshot discovery =
-            host.DpReplaceAuthoring.GetAuthoringSnapshot(
-                "NT51950",
-                [],
-                new Dictionary<string, FileStamp>(StringComparer.Ordinal),
-                new AuthoringRevision(1));
-        CompiledAuthoringInputBinding replacement = discovery.InputBindings.Single(static binding =>
-            !StringComparer.Ordinal.Equals(
-                binding.AddressSpaceId,
-                CompositionAddressSpaceIds.ReferenceBase) &&
-            !StringComparer.Ordinal.Equals(
-                binding.AddressSpaceId,
-                CompositionAddressSpaceIds.LdcReplacement));
-        var session = new AuthoringSessionState(ExperienceIds.DpReplace);
-        CompiledAuthoringSessionPreparation prepared =
-            host.DpReplaceAuthoring.PrepareSession(
-                session,
-                "NT51950",
-                [
-                    new CompiledAuthoringSelectedInput(
-                        CompositionAddressSpaceIds.ReferenceBase,
-                        basePath,
-                        baseBytes),
-                    new CompiledAuthoringSelectedInput(
-                        replacement.AddressSpaceId,
-                        replacementPath,
-                        replacementBytes),
-                ]);
+        var draft = new GeneralMappingDraftState(
+        [
+            new GeneralMappingDraftRow(
+                "report-diff",
+                ExplicitMappingOperationKind.ReplaceRange,
+                GeneralMappingSource.File(replacementPath),
+                new ByteRange(0, changeLength),
+                CompositionAddressSpaceIds.OutputImage,
+                new ByteRange(ReportFixtureTargetStart, changeLength),
+                OverlapPolicy.Reject,
+                alignment: 1,
+                "Synthetic Report replay fixture."),
+        ]);
+        GeneralAuthoringSessionPreparation prepared = await host.GeneralAuthoring.PrepareReplaceSessionAsync(
+            new AuthoringSessionState(ExperienceIds.GeneralReplace),
+            "NT51926",
+            "single",
+            basePath,
+            draft,
+            TestContext.Current.CancellationToken);
         Assert.True(prepared.Succeeded);
-        CompositionRunResult result = await host.CompositionExecution
-            .ExecuteAsync(
-                new AcceptedCompositionExecutionRequest(
-                    prepared.Snapshot!,
-                    paths,
-                    build: false),
-                new CompositionRunProgressFeed(),
-                TestContext.Current.CancellationToken);
+        CompositionRunResult result = await host.CompositionExecution.ExecuteAsync(
+            new AcceptedCompositionExecutionRequest(
+                prepared.AcceptedSession!,
+                paths,
+                build: false,
+                actionReadiness: prepared.Readiness),
+            new CompositionRunProgressFeed(),
+            TestContext.Current.CancellationToken);
         Assert.True(result.Succeeded, CompositionRunReportJson.Serialize(result));
         _ = Assert.IsType<CompositionRunInspectionSnapshot>(result.InspectionSnapshot);
         return result;

@@ -42,9 +42,6 @@ public interface ICompositionCapabilityExperience
     /// <summary>Gets catalog counts for startup and Settings disclosure.</summary>
     CapabilityCatalogSummary GetCatalogSummary();
 
-    /// <summary>Gets current DP Replace Reference capacity disclosure.</summary>
-    string? GetDpReplaceReferenceCapacityLabel(string icId);
-
     /// <summary>Gets authorable AB Merge profiles.</summary>
     IReadOnlyList<CapabilityProfileSummary> GetAbMergeProfileSummaries();
 
@@ -56,9 +53,6 @@ public interface ICompositionCapabilityExperience
 
     /// <summary>Returns whether the current publication declares the IC.</summary>
     bool IsKnownIcId(string icId);
-
-    /// <summary>Gets authorable DP Replace profiles.</summary>
-    IReadOnlyList<CapabilityProfileSummary> GetDpReplaceProfileSummaries();
 
     /// <summary>Gets Replace readiness from canonical publication.</summary>
     CapabilityWorkflowReadiness GetReplaceWorkflowReadiness(
@@ -81,6 +75,13 @@ public interface ICompositionCapabilityExperience
 /// <summary>Focused Standard Merge authoring operations over one canonical workflow owner.</summary>
 public interface IStandardMergeAuthoring
 {
+    /// <summary>Resolves an exact selection from one already-captured DP artifact.</summary>
+    CompiledAuthoringSelectionSnapshot ResolveCapturedDpSelection(
+        string icId,
+        ReadOnlyMemory<byte> dpBytes,
+        IReadOnlyCollection<string> selectedSlotIds,
+        AuthoringRevision authoringRevision);
+
     /// <summary>Returns whether the IC has one authorable Standard Merge route.</summary>
     bool IsSupported(string icId);
 
@@ -165,24 +166,6 @@ public interface IAbMergeAuthoring
         CancellationToken cancellationToken);
 }
 
-/// <summary>Focused DP Replace authoring operations over one canonical workflow owner.</summary>
-public interface IDpReplaceAuthoring
-{
-    /// <summary>Projects exact selection readiness.</summary>
-    CompiledAuthoringSelectionSnapshot GetAuthoringSnapshot(
-        string icId,
-        IReadOnlyCollection<string> selectedSlotIds,
-        IReadOnlyDictionary<string, FileStamp> acceptedFileStamps,
-        AuthoringRevision authoringRevision,
-        ActiveSessionSnapshot? retainedSession = null);
-
-    /// <summary>Prepares one exact accepted session from immutable inputs.</summary>
-    CompiledAuthoringSessionPreparation PrepareSession(
-        AuthoringSessionState session,
-        string icId,
-        IReadOnlyCollection<CompiledAuthoringSelectedInput> inputs);
-}
-
 /// <summary>Focused General Merge and General Replace authoring owner.</summary>
 public interface IGeneralAuthoring
 {
@@ -247,6 +230,12 @@ public interface ISavedRuleAuthoring
 /// <summary>Focused CtrlRAM Replace authoring owner.</summary>
 public interface ICtrlRamAuthoring
 {
+    /// <summary>Checks the publication of a captured Base discovery before applying its draft.</summary>
+    bool IsCurrentBaseInspection(CtrlRamBaseInspection inspection);
+
+    /// <summary>Projects the exact AB Reference route without inspecting input bytes.</summary>
+    CapabilityWorkflowReadiness GetAbReferenceReadiness(string icId, string number);
+
     /// <summary>Gets the declared CtrlRAM regions and input slots before a base is accepted.</summary>
     CtrlRamInspectionDisplay GetDiscoveryDisplay(
         string icId,
@@ -265,13 +254,14 @@ public interface ICtrlRamAuthoring
         string number,
         IReadOnlyDictionary<string, string> slotPaths,
         IReadOnlyDictionary<string, byte[]> inputBytes,
-        CtrlRamFirmwareVersionDraftState? firmwareVersionEdit = null);
+        CtrlRamAuthoringDraftState? firmwareVersionEdit = null);
 
     /// <summary>Adopts one already-inspected exact batch without resolving or reading it again.</summary>
     AuthoringSessionTransitionResult AdoptInspectedBatch(
         AuthoringSessionState session,
         AuthoringCapabilityCatalogSnapshot catalog,
-        IReadOnlyCollection<AuthoringInputSlotStatus> statuses);
+        IReadOnlyCollection<AuthoringInputSlotStatus> statuses,
+        CtrlRamBaseInspection? baseInspection = null);
 
     /// <summary>Gets CtrlRAM action readiness.</summary>
     ValueTask<CapabilityActionReadinessSnapshot?> GetActionReadinessAsync(
@@ -287,7 +277,7 @@ public interface ICtrlRamAuthoring
         string icId,
         string number,
         IReadOnlyDictionary<string, string> slotPaths,
-        CtrlRamFirmwareVersionDraftState? firmwareVersionEdit);
+        CtrlRamAuthoringDraftState? firmwareVersionEdit);
 
     /// <summary>Projects path-free confirmation facts from one exact accepted session lease.</summary>
     CompiledInputVersionObservation? ProjectFirmwareVersionConfirmationLease(ActiveSessionSnapshot session);

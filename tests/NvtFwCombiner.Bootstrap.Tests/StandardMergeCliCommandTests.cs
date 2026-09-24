@@ -1,5 +1,11 @@
 using System.Text.Json;
+using System.Reflection;
+using System.Runtime.ExceptionServices;
+using NvtFwCombiner.Application.Authoring;
+using NvtFwCombiner.Application.Capabilities;
+using NvtFwCombiner.Application.FlashMaps;
 using NvtFwCombiner.Application.InputInspection;
+using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.TestSupport;
 
 namespace NvtFwCombiner.Bootstrap.Tests;
@@ -7,6 +13,104 @@ namespace NvtFwCombiner.Bootstrap.Tests;
 /// <summary>CLI tests for Standard Merge command groups.</summary>
 public sealed class StandardMergeCliCommandTests
 {
+    /// <summary>The CLI passes one captured DP and the complete selected set before reading other inputs.</summary>
+    [Fact]
+    public async Task DeclarationReadyCliUsesCapturedDpSelectionBeforeRemainingReads()
+    {
+        using var workspace = TempWorkspace.Create();
+        byte[] dp = [1, 2, 3, 4];
+        string dpPath = workspace.Write("captured-dp.bin", dp);
+        string missingTpPath = workspace.PathFor("not-read-yet-tp.bin");
+        CompositionHostServices host = BootstrapTestHost.Services;
+        ICompositionCapabilityExperience capabilities =
+            DispatchProxy.Create<ICompositionCapabilityExperience, CapturedCliProxy>();
+        ((CapturedCliProxy)capabilities).Target = host.CompositionCapabilityExperience;
+        ((CapturedCliProxy)capabilities).Intercept = (method, result, _) =>
+        {
+            return method.Name == nameof(ICompositionCapabilityExperience.GetStandardMergeProfileSummaries)
+                ? ((IReadOnlyList<CapabilityProfileSummary>)result!).Select(summary =>
+                    summary.IcId == "NT51950"
+                        ? summary with { CompileSucceeded = false, DeclarationReady = true }
+                        : summary).ToArray()
+                : result;
+        };
+        IStandardMergeAuthoring authoring =
+            DispatchProxy.Create<IStandardMergeAuthoring, CapturedCliProxy>();
+        CapturedCliProxy authoringProxy = (CapturedCliProxy)authoring;
+        authoringProxy.Target = host.StandardMergeAuthoring;
+        int capturedCalls = 0;
+        authoringProxy.Intercept = (method, result, args) =>
+        {
+            if (method.Name != nameof(IStandardMergeAuthoring.ResolveCapturedDpSelection))
+            {
+                return result;
+            }
+            capturedCalls++;
+            Assert.Equal(dp, ((ReadOnlyMemory<byte>)args![1]!).ToArray());
+            Assert.Equal([CompositionAddressSpaceIds.DpInput, CompositionAddressSpaceIds.TpInput],
+                ((IReadOnlyCollection<string>)args[2]!).Order(StringComparer.Ordinal));
+            CompiledAuthoringSelectionSnapshot pending = host.StandardMergeAuthoring
+                .GetAuthoringSnapshot("NT51950",
+                    [CompositionAddressSpaceIds.DpInput, CompositionAddressSpaceIds.TpInput],
+                    new Dictionary<string, FileStamp>(StringComparer.Ordinal),
+                    new AuthoringRevision(1));
+            return pending with
+            {
+                Issues = [new CompositionIssue(
+                    "test.captured-dp-dispatched",
+                    "Captured DP selection reached the authoring port.")],
+            };
+        };
+        var services = new CliCompositionServices(
+            capabilities, host.SavedRuleAuthoring, authoring,
+            host.AbMergeAuthoring, host.CtrlRamAuthoring, host.GeneralAuthoring,
+            host.CompositionOutputNaming, host.CompositionExecution);
+        using var output = new StringWriter();
+        using var error = new StringWriter();
+
+        int exitCode = await CliApplication.RunStandardMergeAsync(
+            services, host.LocalFiles,
+            ["preview", "--profile", "NT51950", "--dp", dpPath,
+                "--tp", missingTpPath],
+            output, error, TestContext.Current.CancellationToken);
+
+        Assert.Equal(70, exitCode);
+        Assert.Equal(1, capturedCalls);
+        Assert.Contains("test.captured-dp-dispatched", error.ToString(), StringComparison.Ordinal);
+        Assert.DoesNotContain("not-read-yet-tp.bin", error.ToString(), StringComparison.Ordinal);
+    }
+
+    /// <summary>Test-only interface decorator that intercepts one declared host method.</summary>
+    public class CapturedCliProxy : DispatchProxy
+    {
+        /// <summary>Original production port.</summary>
+        public object Target { get; set; } = null!;
+
+        /// <summary>Optional projection after the original method is called.</summary>
+        public Func<MethodInfo, object?, object?[]?, object?>? Intercept { get; set; }
+
+        /// <inheritdoc />
+        protected override object? Invoke(MethodInfo? targetMethod, object?[]? args)
+        {
+            MethodInfo method = targetMethod ?? throw new ArgumentNullException(nameof(targetMethod));
+            if (method.Name == nameof(IStandardMergeAuthoring.ResolveCapturedDpSelection))
+            {
+                return Intercept?.Invoke(method, null, args) ??
+                    throw new InvalidOperationException("Captured test interception is required.");
+            }
+            object? result;
+            try
+            {
+                result = method.Invoke(Target, args);
+            }
+            catch (TargetInvocationException exception) when (exception.InnerException is not null)
+            {
+                ExceptionDispatchInfo.Capture(exception.InnerException).Throw();
+                throw;
+            }
+            return Intercept?.Invoke(method, result, args) ?? result;
+        }
+    }
     /// <summary>Verifies Standard Merge preview can export a structured JSON report.</summary>
     [Theory]
     [InlineData("NT51923")]
@@ -19,6 +123,7 @@ public sealed class StandardMergeCliCommandTests
         byte[] tp = new byte[0x3C000];
         dp[0x3E000] = 0x11;
         tp[0] = 0x22;
+        StampValidSingleIcFirmwareConfig(tp);
         string dpPath = workspace.Write("dp.bin", dp);
         string tpPath = workspace.Write("tp.bin", tp);
         string report = workspace.PathFor("standard-report.json");
@@ -59,6 +164,7 @@ public sealed class StandardMergeCliCommandTests
         byte[] tp = new byte[0x3C000];
         dp[0x3E000] = 0x11;
         tp[0] = 0x22;
+        StampValidSingleIcFirmwareConfig(tp);
         string dpPath = workspace.Write("dp.bin", dp);
         string tpPath = workspace.Write("tp.bin", tp);
         string outputPath = workspace.PathFor("caller-output.bin");
@@ -111,6 +217,7 @@ public sealed class StandardMergeCliCommandTests
         tp[0] = 0xA7;
         tp[1] = 0x58;
         tp[17] = 0xC9;
+        tp[FirmwareConfigLayout.ChipNumberOffset] = 1;
         tp[4092] = 0x00;
         tp[4093] = 0x4E;
         tp[4094] = 0x56;
@@ -170,6 +277,7 @@ public sealed class StandardMergeCliCommandTests
         byte[] tp = new byte[0x40000];
         dp[0] = 0x11;
         tp[0x7000] = 0x22;
+        StampValidSingleIcFirmwareConfig(tp);
         string dpPath = workspace.Write("dp.bin", dp);
         string tpPath = workspace.Write("tp.bin", tp);
         string outputPath = workspace.PathFor("caller-output.bin");
@@ -208,6 +316,7 @@ public sealed class StandardMergeCliCommandTests
         byte[] tp = new byte[0x35000];
         dp[0x3C000] = 0x11;
         tp[0] = 0x22;
+        StampValidSingleIcFirmwareConfig(tp);
         string dpPath = workspace.Write("dp.bin", dp);
         string tpPath = workspace.Write("tp.bin", tp);
         string outputPath = workspace.PathFor("caller-output.bin");
@@ -245,6 +354,7 @@ public sealed class StandardMergeCliCommandTests
         byte[] ld = new byte[0x80000];
         dp[0x3C000] = 0x11;
         tp[0] = 0x22;
+        StampValidSingleIcFirmwareConfig(tp);
         ld[0x40000] = 0x33;
         string dpPath = workspace.Write("dp.bin", dp);
         string tpPath = workspace.Write("tp.bin", tp);
@@ -282,7 +392,9 @@ public sealed class StandardMergeCliCommandTests
     {
         using var workspace = TempWorkspace.Create();
         string dpPath = workspace.Write("dp.bin", new byte[0x40000]);
-        string tpPath = workspace.Write("tp.bin", new byte[0x35000]);
+        byte[] tp = new byte[0x35000];
+        StampValidSingleIcFirmwareConfig(tp);
+        string tpPath = workspace.Write("tp.bin", tp);
 
         CliRunResult result = await RunCliAsync(
         [
@@ -298,7 +410,7 @@ public sealed class StandardMergeCliCommandTests
 
         Assert.Equal(0, result.ExitCode);
         Assert.Contains("DP_UNIFORM_CONTENT_WARNING", result.Error, StringComparison.Ordinal);
-        Assert.Contains("TP_UNIFORM_CONTENT_WARNING", result.Error, StringComparison.Ordinal);
+        Assert.DoesNotContain("TP_UNIFORM_CONTENT_WARNING", result.Error, StringComparison.Ordinal);
         Assert.Contains("Size: 262144 bytes", result.Output, StringComparison.Ordinal);
     }
 
@@ -436,6 +548,7 @@ public sealed class StandardMergeCliCommandTests
         using var workspace = TempWorkspace.Create();
         byte[] dp = new byte[0x40000];
         byte[] tp = new byte[0x3C000];
+        StampValidSingleIcFirmwareConfig(tp);
         string dpPath = workspace.Write("dp.bin", dp);
         string tpPath = workspace.Write("tp.bin", tp);
 
@@ -464,6 +577,7 @@ public sealed class StandardMergeCliCommandTests
         using var workspace = TempWorkspace.Create();
         byte[] dp = new byte[0x40000];
         byte[] tp = new byte[0x3C000];
+        StampValidSingleIcFirmwareConfig(tp);
         string dpPath = workspace.Write("dp.bin", dp);
         string tpPath = workspace.Write("tp.bin", tp);
 
@@ -492,6 +606,7 @@ public sealed class StandardMergeCliCommandTests
         using var workspace = TempWorkspace.Create();
         byte[] dp = new byte[0x40000];
         byte[] tp = new byte[0x3C000];
+        StampValidSingleIcFirmwareConfig(tp);
         string dpPath = workspace.Write("dp.bin", dp);
         string tpPath = workspace.Write("tp.bin", tp);
         string outputPath = workspace.PathFor("out.bin");
@@ -523,6 +638,7 @@ public sealed class StandardMergeCliCommandTests
         using var workspace = TempWorkspace.Create();
         byte[] dp = new byte[0x40000];
         byte[] tp = new byte[0x3C000];
+        StampValidSingleIcFirmwareConfig(tp);
         string dpPath = workspace.Write("dp.bin", dp);
         string tpPath = workspace.Write("tp.bin", tp);
 
@@ -575,13 +691,57 @@ public sealed class StandardMergeCliCommandTests
         Assert.Equal(expected, actual);
     }
 
-    /// <summary>Unsupported DP Perspective lengths fail closed before composition starts.</summary>
-    [Fact]
-    public async Task StandardMergePreviewRejectsUnsupportedDpPerspectiveLength()
+    /// <summary>Nonstandard DP containers retain every byte outside the declared TP overlay.</summary>
+    [Theory]
+    [InlineData("51950", 0x40001)]
+    [InlineData("51951", 0x80001)]
+    public async Task StandardMergeBuildPreservesNonstandardDpOuterLength(string profileSelector, int dpLength)
     {
         using var workspace = TempWorkspace.Create();
-        string dpPath = workspace.Write("dp.bin", new byte[0x40001]);
-        string tpPath = workspace.Write("tp.bin", new byte[0x30000]);
+        byte[] dp = new byte[dpLength];
+        Array.Fill(dp, (byte)0x42);
+        dp[0] = 0x11;
+        dp[^1] = 0xE2;
+        byte[] tp = new byte[0x37000];
+        Array.Fill(tp, (byte)0xA5);
+        StampValidDpPerspectiveTp(tp);
+        string dpPath = workspace.Write("dp.bin", dp);
+        string tpPath = workspace.Write("tp.bin", tp);
+        string outputPath = workspace.PathFor("out.bin");
+        string reportPath = workspace.PathFor("out-report.json");
+
+        CliRunResult result = await RunCliAsync([
+            "standard-merge", "build", "--profile", profileSelector,
+            "--dp", dpPath, "--tp", tpPath, "--output", outputPath,
+            "--report", reportPath,
+        ]);
+
+        Assert.True(result.ExitCode == 0, result.Error);
+        Assert.Contains("DP_NONSTANDARD_SIZE_WARNING", result.Error, StringComparison.Ordinal);
+        byte[] actual = await File.ReadAllBytesAsync(outputPath, TestContext.Current.CancellationToken);
+        byte[] expected = (byte[])dp.Clone();
+        tp.AsSpan(0xA000, 0x2D000).CopyTo(expected.AsSpan(0xA000));
+        Assert.Equal(expected, actual);
+        using JsonDocument report = JsonDocument.Parse(await File.ReadAllTextAsync(
+            reportPath, TestContext.Current.CancellationToken));
+        JsonElement envelope = report.RootElement.GetProperty("SourceEnvelope");
+        Assert.Equal(dpLength, envelope.GetProperty("ActualOutputLength").GetInt64());
+        Assert.Equal(0x40000, envelope.GetProperty("LayoutTemplateCapacity").GetInt64());
+        Assert.Equal($"nt{profileSelector}-standard-merge-256k",
+            envelope.GetProperty("LayoutTemplateMapId").GetString());
+        Assert.Equal("DP_NONSTANDARD_SIZE_WARNING",
+            envelope.GetProperty("UnexpectedLengthIssueCode").GetString());
+    }
+
+    /// <summary>A DP shorter than the TP overlay remains a range error, not an OSD warning.</summary>
+    [Fact]
+    public async Task StandardMergePreviewRejectsDpShorterThanRequiredOverlay()
+    {
+        using var workspace = TempWorkspace.Create();
+        string dpPath = workspace.Write("dp.bin", new byte[0x36FFF]);
+        byte[] tp = new byte[0x37000];
+        StampValidDpPerspectiveTp(tp);
+        string tpPath = workspace.Write("tp.bin", tp);
 
         CliRunResult result = await RunCliAsync([
             "standard-merge",
@@ -595,7 +755,8 @@ public sealed class StandardMergeCliCommandTests
         ]);
 
         Assert.Equal(70, result.ExitCode);
-        Assert.Contains("accepts DP input lengths", result.Error, StringComparison.Ordinal);
+        Assert.Contains("profile.v2.plan.invalid-view", result.Error, StringComparison.Ordinal);
+        Assert.Contains("tp-overlay", result.Error, StringComparison.Ordinal);
     }
 
     /// <summary>An oversized sparse source is rejected from file metadata before the CLI can allocate its payload or create outputs.</summary>
@@ -650,6 +811,33 @@ public sealed class StandardMergeCliCommandTests
         Assert.Equal(100_000_000, bytes.LongLength);
         Assert.Equal(0, bytes[0]);
         Assert.Equal(0, bytes[^1]);
+    }
+
+    private static void StampValidSingleIcFirmwareConfig(byte[] tp)
+    {
+        const int backupStart = 0x1000;
+        const int markerStart = backupStart + 0xFFC;
+        const byte version = 0x81;
+        tp[backupStart + FirmwareConfigLayout.FirmwareVersionOffset] = version;
+        tp[backupStart + FirmwareConfigLayout.FirmwareVersionBarOffset] = unchecked((byte)~version);
+        tp[backupStart + FirmwareConfigLayout.ChipNumberOffset] = 1;
+        tp[markerStart] = 0x00;
+        tp[markerStart + 1] = (byte)'N';
+        tp[markerStart + 2] = (byte)'V';
+        tp[markerStart + 3] = (byte)'T';
+    }
+
+    private static void StampValidDpPerspectiveTp(byte[] tp)
+    {
+        const int backupStart = 0x36000;
+        const byte version = 0x81;
+        tp[backupStart + FirmwareConfigLayout.FirmwareVersionOffset] = version;
+        tp[backupStart + FirmwareConfigLayout.FirmwareVersionBarOffset] = unchecked((byte)~version);
+        tp[backupStart + FirmwareConfigLayout.ChipNumberOffset] = 1;
+        tp[0x36FFC] = 0x00;
+        tp[0x36FFD] = (byte)'N';
+        tp[0x36FFE] = (byte)'V';
+        tp[0x36FFF] = (byte)'T';
     }
 
     private static async Task CreateSparseFileAsync(string path, long length)

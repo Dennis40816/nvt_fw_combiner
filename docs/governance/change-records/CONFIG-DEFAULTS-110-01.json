@@ -1,0 +1,47 @@
+{
+  "schemaVersion": 2,
+  "taskId": "CONFIG-DEFAULTS-110-01",
+  "capability": "Use admitted built-in Event Buffer Format rules when no custom configuration exists",
+  "integrationBase": "08ab2818a278495cfe5dff3f7a30ad2610b7776d",
+  "risk": "R2",
+  "kind": "behavior",
+  "state": "final-complete",
+  "mutablePaths": [
+    "src/NvtFwCombiner.Application/Configuration/EventBufferFormatConfigurationSession.cs",
+    "src/NvtFwCombiner.Application/Configuration/EventBufferFormatConfigurationSession.State.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/SettingsViewModel.EventBufferFormat.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ShellTextResources.Localized.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ShellTextResources.Settings.cs",
+    "docs/contracts/event-buffer-format-configuration-v1.md",
+    "docs/adr/0072-event-buffer-format-configuration.md",
+    "tests/NvtFwCombiner.Application.Tests/Configuration/EventBufferFormatConfigurationSessionTests.cs",
+    "tests/NvtFwCombiner.Bootstrap.Tests/AbMergeFormatRuntimeTests.cs",
+    "tests/NvtFwCombiner.UiSmoke.Tests/ShellViewModelTests.EventBufferFormat.cs",
+    "src/NvtFwCombiner.Application/Configuration/IEventBufferFormatConfigurationSession.cs",
+    "tests/NvtFwCombiner.Bootstrap.Tests/EventBufferFormatConfigurationHostTests.cs",
+    "tests/NvtFwCombiner.Bootstrap.Tests/AbMergeCliCommandTests.FormatAdmission.cs",
+    "tests/NvtFwCombiner.UiSmoke.Tests/XamlControlStyleContractTests.EventBufferFormat.cs"
+  ],
+  "implementationOwner": "root",
+  "searchEvidence": [
+    "EventBufferFormatConfigurationSession ReloadAsync currently publishes Missing for absent storage; AbMergeFormatAdmission accepts Ready with admitted configuration and SHA256.",
+    "Settings editor/baseline use saved draft; runtime tests pre-save defaults and mask first-run absence.",
+    "Owner approved defaults without manual Save and requested regression tests on 2026-09-20."
+  ],
+  "semanticOwner": "Application.EventBufferFormatConfigurationSession",
+  "terminalContract": "Ready effective configuration identifies BuiltIn versus Custom; invalid custom remains blocked; canonical defaults require no write and never overwrite LastSaved",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "config_defaults_review",
+    "outcome": "findings-incorporated",
+    "evidence": "Independent architecture review approved session-owned defaults with typed provenance and domain-separated deterministic hash, no LastSaved mutation, defaults editor/baseline, retained invalid-custom fail-closed behavior. Continuation reviewer /root/config_review approved these four additional exact paths on 2026-09-20 before the interface documentation edit."
+  },
+  "implementationHead": "0b209a83ec258e6b7c75b8ee5b25a27dc129a1c2",
+  "reviewedHead": "0b209a83ec258e6b7c75b8ee5b25a27dc129a1c2",
+  "pathStateDigest": "82269ee0607ccfb95c5f9754e4daf0de8244693ae219305bbe33db301ce313b3",
+  "finalReview": {
+    "reviewer": "/root/config_review",
+    "outcome": "approved",
+    "evidence": "Independent fixed-head review at 0b209a83ec258e6b7c75b8ee5b25a27dc129a1c2: PASS, no P0-P3 findings. Reviewed all original mutable paths and immutable admissions; unchanged defaults/error blobs reuse their prior scoped reviews. All 22 governed paths have exactly one owner (Defaults 8, Errors 12, UI 2); auxiliary test overlap is allowed. Architecture 256/256 and rendered UI 9/9 passed; git diff --check from integrationBase passed. Canonical path-state digest binds this exact source; repository/full-verifier results are recorded in the existing 1.1.10 checkpoint."
+  }
+}

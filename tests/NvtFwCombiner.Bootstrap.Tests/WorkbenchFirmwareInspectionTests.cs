@@ -278,11 +278,7 @@ public sealed partial class FirmwareInspectionSnapshotTests
                 (icId, workflowId, icCountVariant, outputCapacity) =>
                 {
                     calls.Add((icId, workflowId, icCountVariant, outputCapacity));
-                    return inner.ResolveUniqueMetadataPlan(
-                        icId,
-                        workflowId,
-                        icCountVariant,
-                        outputCapacity);
+                    return inner.ResolveFullImageMetadataPlan(icId, outputCapacity!.Value);
                 }),
             new DelegatingContentInspector(static (_, _, _) =>
                 ValueTask.FromException<SelectedFileContentInspection>(
@@ -310,14 +306,14 @@ public sealed partial class FirmwareInspectionSnapshotTests
 
         Assert.False(authoring.Succeeded);
         Assert.Equal(
-            CapabilityCatalogIssueCodes.AuthoringUnavailable,
+            CapabilityCatalogIssueCodes.RouteUnavailable,
             authoring.Issue!.Code);
         Assert.Empty(inspection.AuthoringCompilationIssues);
         Assert.Equal(
             CtrlRamBaseDiscoveryReadiness.Inspected,
             inspection.CtrlRamBaseDiscoveryReadiness);
         Assert.Equal(
-            [("NT51926", ExperienceIds.DpReplace, "1-ic", 0x40000L)],
+            [("NT51926", "full-image", "none", 0x40000L)],
             calls);
         Assert.Equal(
             "0100",
@@ -618,6 +614,54 @@ public sealed partial class FirmwareInspectionSnapshotTests
 
     [GeneratedRegex(@"(?<!\d)(?:NT)?(?<ic>519\d{2})(?:TT)?(?!\d)", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
     private static partial Regex LegacyFirmwareIcHintMarker();
+
+    /// <summary>Generic Standard metadata takes its branch from the supplied TP and does not substitute DP when TP is missing.</summary>
+    [Fact]
+    public void GenericDistinctTpMetadataUsesOnlyTheSuppliedTpPrerequisite()
+    {
+        byte[] dp = File.ReadAllBytes(GoldenArtifactPath("51950", "dp-input", "dp-256k"));
+        byte[] tp = File.ReadAllBytes(GoldenArtifactPath("51950", "tp-input", "dp-256k"));
+        // The DP-only artifact has no IC Count authority. Place TP-like decoy bytes
+        // at the same coordinates to catch accidental DP-as-TP substitution.
+        StampTpLikeBytes(dp, 2);
+        StampTpLikeBytes(tp, 1);
+        dp[0x3B016] = 0x34;
+        dp[0x3B017] = 0x12;
+        dp[0x3B018] = 0xA5;
+        dp[0x05016] = 0x78;
+        dp[0x05017] = 0x56;
+        dp[0x05018] = 0xB9;
+
+        byte[]? Read(string path)
+        {
+            return path switch
+            {
+                "dp.bin" => dp,
+                "tp.bin" => tp,
+                _ => null,
+            };
+        }
+        FirmwareInspectionSnapshot withTp = FirmwareInspectionTestSupport.InspectFirmware(
+            "NT51950", "dp.bin", "tp.bin", ctrlRamRequest: null,
+            readFirmwareImage: Read);
+        CmiDpCodeMetadata cmi = Assert.IsType<CmiDpCodeMetadata>(withTp.CmiDpCode);
+        Assert.Equal(0x3B016, cmi.Register16Offset);
+        Assert.Equal((byte)0x12, cmi.MajorVersionByte);
+
+        FirmwareInspectionSnapshot withoutTp = FirmwareInspectionTestSupport.InspectFirmware(
+            "NT51950", "dp.bin", "missing-tp.bin", ctrlRamRequest: null,
+            readFirmwareImage: Read);
+        Assert.Null(withoutTp.DpVersion);
+        Assert.Null(withoutTp.CmiDpCode);
+
+        static void StampTpLikeBytes(byte[] image, byte count)
+        {
+            image[0x36000] = 0x42;
+            image[0x36001] = 0xBD;
+            image[0x36017] = count;
+            "\0NVT"u8.CopyTo(image.AsSpan(0x36FFC));
+        }
+    }
 
     /// <summary>Paired DP/TP projections share one physical read for every distinct selected path.</summary>
     [Fact]

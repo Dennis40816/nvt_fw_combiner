@@ -9,6 +9,26 @@ namespace NvtFwCombiner.Application.FlashMaps;
 /// </summary>
 public static class FirmwareConfigChipCountDiagnostics
 {
+    /// <summary>A TP input has no unambiguous valid Backup from which to read IC Count.</summary>
+    public const string UnreadableIssueCode = "firmware-config.chip-count-unreadable";
+
+    /// <summary>Assesses one canonical accepted TP prefix without inferring topology or a peer.</summary>
+    public static CompositionIssue? AssessPositive(ReadOnlySpan<byte> prefix, string slot, out byte? count)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(slot);
+        count = null;
+        if (!FirmwareConfigMetadataReader.TryReadBackup(prefix, out FirmwareConfigMetadata metadata) || !metadata.IsFirmwareVersionBarValid)
+        {
+            return new CompositionIssue(UnreadableIssueCode,
+                $"{slot}: IC Count is unreadable; no unambiguous valid canonical NVT FWConfig Backup.", slot);
+        }
+        count = metadata.ChipNumber;
+        return count == 0
+            ? CreateZeroIssue(metadata, FirmwareConfigChipCountRequirement.RequiredPositive, slot,
+                $"{slot}: IC Count was read as 0; TP firmware inputs require a positive count.")
+            : null;
+    }
+
     /// <summary>Non-blocking issue code for a zero IC Count that is not consumed by the route.</summary>
     public const string ZeroWarningIssueCode = "firmware-config.chip-count-zero";
 

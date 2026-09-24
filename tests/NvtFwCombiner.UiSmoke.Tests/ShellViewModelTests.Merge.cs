@@ -158,9 +158,9 @@ public sealed partial class MergeWorkflowTests
         Assert.Equal(TestProjection.GetIcIds(), viewModel.WorkflowSession.IcChoices);
     }
 
-    /// <summary>A rejected DP_AB size cannot override compiled coverage while processor effects remain on TPB.</summary>
+    /// <summary>A nonstandard DP_AB size extends output coverage while processor effects remain on TPB.</summary>
     [Fact]
-    public async Task Nt51950AbMemoryKeepsCompiledCapacityForRejectedDpLength()
+    public async Task Nt51950AbMemoryShowsCompleteNonstandardDpLength()
     {
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-ab-memory");
         string dpPath = workspace.Write("dp-ab-90000.bin", new byte[0x90000]);
@@ -176,7 +176,7 @@ public sealed partial class MergeWorkflowTests
             dpPath,
             TestContext.Current.CancellationToken);
 
-        Assert.Equal("0x00000-0x7FFFF (len 0x80000)", viewModel.Merge.MergeMemoryRangeLabel);
+        Assert.Equal("0x00000-0x8FFFF (len 0x90000)", viewModel.Merge.MergeMemoryRangeLabel);
         Assert.Contains(viewModel.Merge.MergeMemoryRows, row => row.AfterSource == "DP AB");
         Assert.Contains(viewModel.Merge.MergeMemoryRows, row => row.AfterSource == "TPA");
         Assert.Contains(viewModel.Merge.MergeMemoryRows, row => row.AfterSource == "TPB");
@@ -193,15 +193,17 @@ public sealed partial class MergeWorkflowTests
         Assert.Contains("TPB", sourceLabels);
         Assert.DoesNotContain(viewModel.Merge.MergeMemoryRows, static row =>
             row.RangeLabel.Contains("Staging", StringComparison.OrdinalIgnoreCase));
-        Assert.True(viewModel.Merge.MergeSlots.Single(static slot =>
-            slot.SlotId == CompositionAddressSpaceIds.DpAbInput).BlocksBuild);
+        FirmwareSlotViewModel dpSlot = viewModel.Merge.MergeSlots.Single(static slot =>
+            slot.SlotId == CompositionAddressSpaceIds.DpAbInput);
+        Assert.False(dpSlot.BlocksBuild);
+        Assert.Contains("DP_NONSTANDARD_SIZE_WARNING", dpSlot.InputInspectionStatus, StringComparison.Ordinal);
     }
 
     /// <summary>After primary discovery, each published format/topology projects its actual compiled capacity.</summary>
     [Theory]
     [InlineData("NT51950", 0x84, 1, 0x80000, "0x00000-0x7FFFF (len 0x80000)")]
     [InlineData("NT51950", 0x84, 2, 0x100000, "0x00000-0xFFFFF (len 0x100000)")]
-    [InlineData("NT51950", 0x97, 1, 0x100000, "0x00000-0xFFFFF (len 0x100000)")]
+    [InlineData("NT51950", 0x97, 1, 0x80000, "0x00000-0x7FFFF (len 0x80000)")]
     [InlineData("NT51950", 0xA6, 2, 0x100000, "0x00000-0xFFFFF (len 0x100000)")]
     [InlineData("NT51951", 0x84, 1, 0x100000, "0x00000-0xFFFFF (len 0x100000)")]
     [InlineData("NT51951", 0x97, 1, 0x100000, "0x00000-0xFFFFF (len 0x100000)")]
@@ -283,7 +285,7 @@ public sealed partial class MergeWorkflowTests
             static slot => slot.SlotId == CompositionAddressSpaceIds.TpAInput);
         Assert.Contains(
             tpASlot.FirmwareFacts,
-            static fact => fact.Label == "TPA" && fact.Value == "T81-00");
+            static fact => fact.Label == "TPA Version" && fact.Value == "T81-00");
         Assert.Contains(tpASlot.FirmwareFacts, static fact => fact.Label == "Common FW Version" && fact.Value == "1.4.1");
         Assert.Contains(tpASlot.FirmwareFacts, static fact => fact.Label == "PID" && fact.Value == "0x5102");
         Assert.DoesNotContain(tpASlot.FirmwareFacts, static fact => fact.Label == "TP Version");
@@ -291,7 +293,7 @@ public sealed partial class MergeWorkflowTests
             static slot => slot.SlotId == CompositionAddressSpaceIds.TpBInput);
         Assert.Contains(
             tpBSlot.FirmwareFacts,
-            static fact => fact.Label == "TPB" && fact.Value == "T82-03");
+            static fact => fact.Label == "TPB Version" && fact.Value == "T82-03");
         Assert.Contains(tpBSlot.FirmwareFacts, static fact => fact.Label == "Common FW Version" && fact.Value == "2.0.0");
         Assert.Contains(tpBSlot.FirmwareFacts, static fact => fact.Label == "PID" && fact.Value == "0x6A5C");
         Assert.DoesNotContain(tpBSlot.FirmwareFacts, static fact => fact.Label == "TP Version");
@@ -353,9 +355,9 @@ public sealed partial class MergeWorkflowTests
         Assert.True(viewModel.Reports.HasLoadedReport);
     }
 
-    /// <summary>A short AB source blocks immediately while an ignored tail remains a non-blocking warning.</summary>
+    /// <summary>A short AB source blocks while a source-view TP tail remains non-blocking.</summary>
     [Fact]
-    public async Task AbMergeLoadHealthDistinguishesBlockingAndWarning()
+    public async Task AbMergeLoadHealthDistinguishesBlockingAndCoveredTail()
     {
         const int dpLength = 0x80000;
         const int tpLength = 0x40000;
@@ -375,15 +377,19 @@ public sealed partial class MergeWorkflowTests
         Assert.True(dpSlot.BlocksBuild);
         Assert.StartsWith("Error:", dpSlot.InputInspectionStatus, StringComparison.Ordinal);
 
+        byte[] tpWithTail = CreateUiAbTpImage(
+            0x81, 0x00, commonFwMajor: 1, commonFwMinor: 4,
+            commonFwAdditional: 1, projectId: 0x5102);
+        Array.Resize(ref tpWithTail, tpLength + 1);
         await viewModel.WorkflowSession.SetSlotFileAsync(
             CompositionAddressSpaceIds.TpAInput,
-            workspace.Write("tp-tail.bin", new byte[tpLength + 1]),
+            workspace.Write("tp-tail.bin", tpWithTail),
             TestContext.Current.CancellationToken);
         FirmwareSlotViewModel tpSlot = viewModel.Merge.MergeSlots.Single(
             static slot => slot.SlotId == CompositionAddressSpaceIds.TpAInput);
-        Assert.Equal(FirmwareInputInspectionSeverity.Warning, tpSlot.InputInspectionSeverity);
+        Assert.Equal(FirmwareInputInspectionSeverity.Valid, tpSlot.InputInspectionSeverity);
         Assert.False(tpSlot.BlocksBuild);
-        Assert.Contains("warning", tpSlot.InputInspectionStatus, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("warning", tpSlot.InputInspectionStatus, StringComparison.OrdinalIgnoreCase);
         Assert.False(viewModel.Merge.CanBuildMerge);
     }
 
@@ -640,11 +646,28 @@ public sealed partial class MergeWorkflowTests
         viewModel.WorkflowSession.SelectedIc = "NT51927";
         await CurrentInspection(viewModel).ActiveTask;
 
+        Assert.False(viewModel.Merge.CanBuildMerge);
+        Assert.Equal(FirmwareSlotSemanticState.Error, viewModel.Merge.MergeTpSlot.SemanticState);
+
+        JsonElement newIcCase = golden.CaseByIc("51927");
+        foreach (JsonProperty input in newIcCase.GetProperty("inputs").EnumerateObject())
+        {
+            await viewModel.WorkflowSession.SetSlotFileAsync(
+                StandardMergeGoldenManifest.SlotIdForAddressSpace(input.Name),
+                golden.ManifestPath(input.Value),
+                TestContext.Current.CancellationToken);
+        }
+
         Assert.True(viewModel.Merge.PreviewMergeCommand.CanExecute(null));
         Assert.True(viewModel.Merge.CanBuildMerge);
 
         string oversizedTpPath = workspace.PathFor("tp-input-oversized.bin");
-        File.WriteAllBytes(oversizedTpPath, new byte[0x40001]);
+        byte[] tpBytes = File.ReadAllBytes(golden.ManifestPath(
+            newIcCase.GetProperty("inputs").GetProperty("tp-input")));
+        Assert.True(tpBytes.Length <= 0x40000);
+        byte[] oversizedTp = new byte[0x40001];
+        tpBytes.CopyTo(oversizedTp, 0);
+        File.WriteAllBytes(oversizedTpPath, oversizedTp);
         viewModel.SetSlotFile(StandardMergeGoldenManifest.SlotIdForAddressSpace("tp-input"), oversizedTpPath);
 
         string outputPath = workspace.PathFor("source-view-standard-merge.bin");

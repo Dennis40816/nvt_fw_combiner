@@ -9,7 +9,6 @@ namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
 internal sealed partial class MainWindowViewModel
 {
-    private const string DpReplaceMode = ExperienceIds.DpReplace;
     private const string CtrlRamReplaceMode = ExperienceIds.CtrlRamReplace;
     private const string GeneralReplaceMode = ExperienceIds.GeneralReplace;
     private const string NormalMergeMode = ExperienceIds.StandardMerge;
@@ -77,6 +76,7 @@ internal sealed partial class MainWindowViewModel
             new MergeStateBindings(
                 () => WorkflowSession!.GetWorkflowPageIc(WorkflowInspectionOwner.Merge),
                 () => WorkflowSession!.GetWorkflowPageNumber(WorkflowInspectionOwner.Merge),
+                () => WorkflowSession!.DeviceContextRefreshSummary,
                 (icId, workflowId) => WorkflowSession!.IsPublishedWorkflowAuthorable(icId, workflowId),
                 icId => WorkflowSession!.GetPublishedAbMergeTopologyChoices(icId),
                 IsCompositionRunInProgress,
@@ -104,6 +104,7 @@ internal sealed partial class MainWindowViewModel
                 () => Text,
                 () => WorkflowSession!.GetWorkflowPageIc(WorkflowInspectionOwner.Replace),
                 () => WorkflowSession!.GetWorkflowPageNumber(WorkflowInspectionOwner.Replace),
+                () => WorkflowSession!.DeviceContextRefreshSummary,
                 (icId, workflowId) => WorkflowSession!.IsPublishedWorkflowAuthorable(icId, workflowId),
                 IsCompositionRunInProgress,
                 IsGlobalBuildBlocked,
@@ -115,6 +116,7 @@ internal sealed partial class MainWindowViewModel
                  ShowDiagnosticPreviewAsync,
                  ShowActionReadiness,
                  () => WorkflowSession!.ApplyAcceptedReplaceModeContext(),
+                () => WorkflowSession!.RefreshSelectedReplaceFirmwareInspectionsAsync(),
                 ResetRunResultForContextChange,
                 () => RefreshCommandState(refreshReplaceReadiness: false),
                 OutputDelivery));
@@ -152,8 +154,8 @@ internal sealed partial class MainWindowViewModel
                 () => Text,
                 GetWorkflowSelectedIc,
                 GetWorkflowSelectedNumber,
-                GetSelectedRunMode,
-                WorkflowSession.ShouldShowNumberSelectorForSelectedPage,
+                GetDisplayedRunOwner,
+                () => Merge.RunStates.Concat(Replace.RunStates),
                 () => WorkflowSession.DeviceContextRefreshSummary,
                 () => IsReducedMotionEnabled,
                 () => Reports,
@@ -193,8 +195,6 @@ internal sealed partial class MainWindowViewModel
         ShowReplaceCommand = CreateCatalogCommand(
             () => Navigation.NavigateToPage(ShellPage.Replace),
             [.. WorkflowPageModeCatalog.ForPage(ShellPage.Replace)]);
-        BeginDpReplaceFromHomeCommand = CreateCatalogCommand(
-            () => WorkflowSession.BeginWorkflowContext(ShellPage.Replace, DpReplaceMode, showNumber: true), DpReplaceMode);
         BeginCtrlRamReplaceFromHomeCommand = CreateCatalogCommand(
             () => WorkflowSession.BeginWorkflowContext(ShellPage.Replace, CtrlRamReplaceMode, showNumber: true), CtrlRamReplaceMode);
         BeginGeneralReplaceFromHomeCommand = CreateCatalogCommand(

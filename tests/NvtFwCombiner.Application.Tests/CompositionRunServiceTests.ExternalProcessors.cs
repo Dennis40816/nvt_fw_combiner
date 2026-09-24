@@ -45,13 +45,14 @@ public sealed partial class CompositionRunServiceTests
                     "external",
                     "standard-merge",
                     CompositionKind.Merge),
-                "external.bin"),
+                "external.bin",
+                nonReferenceArtifactClass: CompiledInputArtifactClass.Auxiliary),
             [new InputArtifactBinding(
                 "external-input",
                 "external-input",
                 "external-input-artifact",
                 "external-input.bin",
-                CompiledInputArtifactClass.TpFirmware)],
+                CompiledInputArtifactClass.Auxiliary)],
             "external.bin");
     }
 

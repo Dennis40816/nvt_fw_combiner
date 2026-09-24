@@ -39,13 +39,21 @@ public sealed partial class XamlControlStyleContractTests
             TextBlock filename = Assert.IsType<TextBlock>(file.Content);
             Border border = Assert.Single(card.GetVisualDescendants().OfType<Border>(), b => b.Classes.Contains("firmwareSlot"));
             Grid layout = Assert.IsType<Grid>(card.FindControl<Control>("SlotLayout"));
-            Assert.Equal(2, title.TextLayout.TextLines.Count);
+            Assert.Equal(width < 820 ? 2 : 1, title.TextLayout.TextLines.Count);
             Point titlePoint = Assert.IsType<Point>(title.TranslatePoint(default, card));
             Point badgePoint = Assert.IsType<Point>(badge.TranslatePoint(default, card));
             Point filePoint = Assert.IsType<Point>(file.TranslatePoint(default, card));
-            Assert.InRange(badgePoint.Y - titlePoint.Y - title.Bounds.Height, 8, 12);
-            Point layoutPoint = Assert.IsType<Point>(layout.TranslatePoint(default, card));
-            Assert.InRange(filePoint.Y - layoutPoint.Y - layout.Bounds.Height, 12, 16.5);
+            if (width < 820)
+            {
+                Assert.InRange(badgePoint.Y - titlePoint.Y - title.Bounds.Height, 8, 12);
+            }
+            else
+            {
+                Assert.InRange(Math.Abs(badgePoint.Y + (badge.Bounds.Height / 2) -
+                    titlePoint.Y - (title.Bounds.Height / 2)), 0, 0.5);
+            }
+            Grid header = card.FindControl<Grid>("SlotHeaderContent")!;
+            Assert.InRange(filePoint.Y - header.TranslatePoint(default, card)!.Value.Y - header.Bounds.Height, 7.5, 8.5);
             Assert.True(filename.TextLayout.TextLines.Count > 1);
             Assert.Equal(slot.DisplayNameWithSelectionContext, filename.Text);
             Assert.InRange(filename.TextLayout.Height, 1, filename.Bounds.Height + 0.5);

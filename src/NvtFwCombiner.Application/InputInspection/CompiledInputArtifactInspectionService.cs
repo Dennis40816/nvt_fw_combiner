@@ -1,5 +1,6 @@
 using System.Security.Cryptography;
 using NvtFwCombiner.Application.Composition;
+using NvtFwCombiner.Application.FlashMaps;
 using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Application.InputInspection;
@@ -7,6 +8,12 @@ namespace NvtFwCombiner.Application.InputInspection;
 /// <summary>Stable generic issue codes emitted by compiled input inspection.</summary>
 public static class InputArtifactInspectionIssueCodes
 {
+    /// <summary>A canonical TP FWConfig declares a zero IC Count.</summary>
+    public const string TpChipCountRequired = FirmwareConfigChipCountDiagnostics.RequiredIssueCode;
+
+    /// <summary>A canonical TP FWConfig IC Count cannot be read.</summary>
+    public const string TpChipCountUnreadable = FirmwareConfigChipCountDiagnostics.UnreadableIssueCode;
+
     /// <summary>The source matches one compiler-owned expected outer length.</summary>
     public const string Ready = "input.inspection.ready";
 
@@ -76,6 +83,9 @@ public sealed record CompiledInputArtifactInspectionResult(
 {
     /// <summary>Optional path-free evidence from the same compiled validation evaluation.</summary>
     public InputDiagnosticEvidence? DiagnosticEvidence { get; init; }
+
+    /// <summary>Typed blocking TP admission cause, retaining source geometry for diagnostics only.</summary>
+    public CompositionIssue? AdmissionIssue { get; init; }
 
     /// <summary>Number of immutable source bytes excluded from the execution snapshot.</summary>
     public long IgnoredTrailingBytes => IgnoredTrailingRange?.Length ?? 0;
@@ -178,7 +188,41 @@ public static class CompiledInputArtifactInspectionService
                     $"Compiled input address space '{addressSpaceId}' has no supported inspection projection.",
                     nameof(addressSpaceId)),
             };
-        return ApplyInputLoadValidation(composition, addressSpaceId, sourceBytes, inspection);
+        inspection = ApplySourceEnvelopeWarning(details, slot, inspection);
+        return !inspection.BlocksBuild && slot.ArtifactClass == CompiledInputArtifactClass.TpFirmware &&
+            inspection.AcceptedSnapshotRange is { } accepted &&
+            FirmwareConfigChipCountDiagnostics.AssessPositive(
+                sourceBytes.Span.Slice(checked((int)accepted.Start), checked((int)accepted.Length)), addressSpaceId, out _) is { } countIssue
+            ? inspection with
+            {
+                Severity = CompiledInputArtifactInspectionSeverity.Blocking,
+                IssueCode = countIssue.Code,
+                AdmissionIssue = countIssue,
+                BlocksBuild = true,
+                NextAction = CompiledInputArtifactInspectionNextAction.SelectCompatibleInput,
+            }
+            : CompiledReferenceBankInspection.Inspect(composition, addressSpaceId, sourceBytes,
+                ApplyInputLoadValidation(composition, addressSpaceId, sourceBytes, inspection));
+    }
+
+    private static CompiledInputArtifactInspectionResult ApplySourceEnvelopeWarning(
+        V2CompiledCompositionDetails details,
+        CompiledInputSlotRequirement slot,
+        CompiledInputArtifactInspectionResult inspection)
+    {
+        return details.Provenance.Context is not ResolvedMapV2CompilationContext
+        { SourceEnvelope: { } envelope } ||
+            !StringComparer.Ordinal.Equals(slot.SlotId, envelope.SourceSlotId) ||
+            inspection.Severity != CompiledInputArtifactInspectionSeverity.Valid ||
+            envelope.ExpectedOuterLengths.Contains(inspection.ActualLength)
+            ? inspection
+            : inspection with
+            {
+                ExpectedOuterLengths = envelope.ExpectedOuterLengths,
+                Severity = CompiledInputArtifactInspectionSeverity.Warning,
+                IssueCode = envelope.UnexpectedLengthIssueCode,
+                NextAction = CompiledInputArtifactInspectionNextAction.ReviewUnexpectedOuterLength,
+            };
     }
 
     private static CompiledInputArtifactInspectionResult InspectDeclaredPrefix(
@@ -321,6 +365,7 @@ public static class CompiledInputArtifactInspectionService
                     ? CompiledInputArtifactInspectionSeverity.Blocking
                     : CompiledInputArtifactInspectionSeverity.Warning,
                 IssueCode = failed.Issue!.Code,
+                AdmissionIssue = blocksBuild ? failed.Issue : null,
                 BlocksBuild = blocksBuild,
                 NextAction = CompiledInputArtifactInspectionNextAction.None,
                 DiagnosticEvidence = failed.DiagnosticEvidence,

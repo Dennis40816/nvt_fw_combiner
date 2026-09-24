@@ -81,9 +81,18 @@ public sealed class OutputConfirmationTests
     {
         CompiledAuthoringSessionPreparation prepared = host.AbMergeAuthoring.PrepareSession(
             new AuthoringSessionState(ExperienceIds.AbMerge), "NT51932", null,
-            [new("tp-a-input", workspace.PathFor("a.bin"), new byte[0x40000]), new("tp-b-input", workspace.PathFor("b.bin"), new byte[0x40000])], AbMergeDpMode.Dummy);
+            [new("tp-a-input", workspace.PathFor("a.bin"), CreateLegacyTp()), new("tp-b-input", workspace.PathFor("b.bin"), CreateLegacyTp())], AbMergeDpMode.Dummy);
         Assert.True(prepared.Succeeded);
         return await host.CompositionOutputNaming.PrepareBundleProposalAsync(prepared.Snapshot!, TestContext.Current.CancellationToken);
+    }
+
+    private static byte[] CreateLegacyTp()
+    {
+        byte[] tp = new byte[0x40000];
+        tp[0x36001] = 0xFF;
+        tp[0x36017] = 1;
+        new byte[] { 0, 0x4E, 0x56, 0x54 }.CopyTo(tp, 0x36FFC);
+        return tp;
     }
 
     private sealed class DelayedConfirmationNaming(ICompositionOutputNaming inner) : ICompositionOutputNaming
@@ -132,32 +141,37 @@ public sealed class OutputConfirmationTests
     [InlineData(true, false, true, 1, 1)]
     [InlineData(false, true, true, 1, 1)]
     [InlineData(true, true, true, 1, 1)]
-    [InlineData(false, false, false, 2, 3)]
+    [InlineData(false, false, false, 3, 3, false, true)]
     [InlineData(true, false, true, 1, 1, true)]
-    public async Task ApprovedOutputConfirmationStates(bool bundle, bool additional, bool chineseDark, byte countA, byte countB, bool tallerCjkMetrics = false)
+    [InlineData(true, false, false, 1, 1, false, false, 0xA3, 0xA4, true)]
+    [InlineData(true, false, true, 1, 1, false, false, 0xF1, 0xF2, true)]
+    public async Task ApprovedOutputConfirmationStates(bool bundle, bool additional, bool chineseDark, byte countA,
+        byte countB, bool tallerCjkMetrics = false, bool oversizedTp = false, byte rawA = 0x97, byte rawB = 0xA6,
+        bool customAlias = false)
     {
         using TempWorkspace workspace = TempWorkspace.Create("output-confirmation-reference");
         CompositionHostServices host = CompositionHostServices.Create(new ExternalProcessorEnvironmentLoader(), loadPolicy: null, configurationPath: workspace.PathFor("format.json"));
         IEventBufferFormatConfigurationSession configuration = await host.GetEventBufferFormatConfigurationAsync(TestContext.Current.CancellationToken);
-        Assert.True((await configuration.SaveAsync(configuration.CreateDefaultsDraft(), TestContext.Current.CancellationToken)).Succeeded);
+        Assert.True((await configuration.SaveAsync(customAlias ? [new("desay", "My_vendor", [rawA, rawB])] :
+            configuration.CreateDefaultsDraft(), TestContext.Current.CancellationToken)).Succeeded);
         string ic = additional ? "NT51932" : "NT51950";
-        byte[] tp = new byte[additional ? 0x40000 : 0x37000];
+        byte[] tp = new byte[additional ? 0x40000 : oversizedTp ? 0x37010 : 0x37000];
         tp[0x22200] = 0x31;
         tp[0x22201] = 0xCE;
-        tp[0x2220C] = 0x97;
+        tp[0x2220C] = rawA;
         tp[0x36000] = 0x42;
         tp[0x36001] = 0xBD;
         tp[0x36017] = countA;
         new byte[] { 0, 0x4E, 0x56, 0x54 }.CopyTo(tp, 0x36FFC);
         byte[] tpB = (byte[])tp.Clone();
         tpB[0x36017] = countB;
-        tpB[0x2220C] = 0xA6;
+        tpB[0x2220C] = rawB;
         var inputs = new List<CompiledAuthoringSelectedInput>
         {
             new("tp-a-input", workspace.PathFor("input-tpa.bin"), tp),
             new("tp-b-input", workspace.PathFor("input-tpb.bin"), tpB),
         };
-        if (!additional) { inputs.Insert(0, new("dp-ab-input", workspace.PathFor("input-dp-ab.bin"), new byte[countA != countB ? 0x100010 : 0x100000])); }
+        if (!additional) { inputs.Insert(0, new("dp-ab-input", workspace.PathFor("input-dp-ab.bin"), new byte[countA == 1 ? 0x80000 : 0x100000])); }
         CompiledAuthoringSessionPreparation prepared = await host.AbMergeAuthoring.PrepareSessionAsync(
             new AuthoringSessionState(ExperienceIds.AbMerge), ic, additional ? null : countA == 1 ? "single" : "cascade",
             inputs, additional ? AbMergeDpMode.Dummy : AbMergeDpMode.Normal, TestContext.Current.CancellationToken);
@@ -174,15 +188,21 @@ public sealed class OutputConfirmationTests
         vm.SetParentDirectory(workspace.Root);
         Assert.Equal(proposal.OutputPreparation.OutputName.FileName, vm.OutputFileName);
         Assert.Equal(originalSize, vm.FlashOutputSize);
-        Assert.Equal(additional ? "512 KiB (524,288 bytes)" : "1 MiB (1,048,576 bytes)", vm.FlashOutputSize);
-        Assert.Equal(additional ? "AB Code" : "AB Code / Desay", vm.ModeFormatSummary);
+        Assert.Equal(additional || countA == 1 ? "512 KiB (524,288 bytes)" : "1 MiB (1,048,576 bytes)", vm.FlashOutputSize);
+        Assert.Equal("AB Code", vm.ModeSummary);
         Assert.Equal(additional ? 2 : 3, vm.InputRows.Count);
-        if (countA != countB)
+        if (oversizedTp)
         {
             Assert.Contains("Cascade", vm.TargetSummary, StringComparison.OrdinalIgnoreCase);
             Assert.DoesNotContain("2 IC", vm.TargetSummary, StringComparison.Ordinal);
-            Assert.True(vm.HasInputWarnings);
-            Assert.Contains(vm.InputRows, row => row.Role == "DP AB Code" && row.HasWarning);
+            Assert.False(vm.HasInputWarnings);
+            Assert.DoesNotContain(vm.InputRows, row => row.HasWarning);
+            foreach (CompositionOutputInputSummary input in proposal.Confirmation!.Inputs.Where(input => input.BindingId is "tp-a-input" or "tp-b-input"))
+            {
+                Assert.Equal(new ByteRange(0, 0x37000), input.Inspection!.AcceptedSnapshotRange);
+                Assert.Equal(new ByteRange(0x37000, 0x10), input.Inspection.IgnoredTrailingRange);
+                Assert.False(input.Inspection.BlocksBuild);
+            }
         }
         Assert.Equal(additional, vm.HasGeneratedInputs);
         Assert.All(vm.InputRows, row => Assert.NotEmpty(row.Sha256));
@@ -193,8 +213,10 @@ public sealed class OutputConfirmationTests
         }
         else
         {
-            Assert.Equal([new OutputConfirmationCheck("TP A", "0x97 - Desay"), new OutputConfirmationCheck("TP B", "0xA6 - Desay")], vm.EventBufferChecks);
-            Assert.Equal("1,048,576 bytes", Assert.Single(vm.ExpectedInputChecks).Value);
+            string expectedA = rawA == 0xA3 ? "0xA3 - Auto STLA v1" : rawA == 0xF1 ? "0xF1 - My_vendor" : "0x97 - Auto Desay";
+            string expectedB = rawB == 0xA4 ? "0xA4 - Auto INX v7" : rawB == 0xF2 ? "0xF2 - My_vendor" : "0xA6 - Auto Desay Palminfo";
+            Assert.Equal([new OutputConfirmationCheck("TP A", expectedA), new OutputConfirmationCheck("TP B", expectedB)], vm.EventBufferChecks);
+            Assert.Equal(countA == 1 ? "524,288 bytes" : "1,048,576 bytes", Assert.Single(vm.ExpectedInputChecks).Value);
             Assert.Equal(chineseDark ? "預期 DP 大小" : "Expected DP size", Assert.Single(vm.ExpectedInputChecks).Label);
             Assert.Equal(["DP AB Code", "TP A", "TP B"], vm.InputRows.Select(row => row.Role));
         }
@@ -231,7 +253,12 @@ public sealed class OutputConfirmationTests
             AvaloniaHeadlessPlatform.ForceRenderTimerTick();
             TextBlock target = modal.FindControl<TextBlock>("OutputTargetValue")!;
             TextBlock mode = modal.FindControl<TextBlock>("OutputModeValue")!;
+            TextBlock flashMap = Assert.IsType<TextBlock>(modal.FindControl<TextBlock>("OutputFlashMapValue"));
+            Assert.Equal("Common", flashMap.Text);
+            Assert.Equal(target.Bounds.X, flashMap.Bounds.X);
+            Assert.True(flashMap.Bounds.Y >= mode.Bounds.Bottom);
             TextBlock size = modal.FindControl<TextBlock>("FlashOutputSizeValue")!;
+            Assert.True(size.Bounds.Y >= flashMap.Bounds.Bottom);
             Assert.Equal(target.Bounds.X, mode.Bounds.X);
             Assert.Equal(target.Bounds.X, size.Bounds.X);
             Assert.Equal(vm.FlashOutputSize, size.Text);
@@ -244,6 +271,17 @@ public sealed class OutputConfirmationTests
                 Control files = Assert.IsType<ItemsControl>(modal.FindControl<ItemsControl>("SourceFilesList"));
                 Control checks = Assert.IsType<Border>(modal.FindControl<Border>("SourceChecksPanel"));
                 Assert.True(checks.IsVisible);
+                TextBlock eventLabel = Assert.IsType<TextBlock>(modal.FindControl<TextBlock>("OutputEventBufferFormatLabel"));
+                Assert.Equal(chineseDark ? "Event Buffer 格式" : "Event Buffer Format", eventLabel.Text);
+                ItemsControl eventRows = Assert.IsType<ItemsControl>(modal.FindControl<ItemsControl>("OutputEventBufferFormatChecks"));
+                TextBlock[] eventValues = [.. Avalonia.VisualTree.VisualExtensions.GetVisualDescendants(eventRows).OfType<TextBlock>()
+                    .Where(block => block.Text?.StartsWith("0x", StringComparison.Ordinal) == true)];
+                Assert.Equal(2, eventValues.Length);
+                Assert.Equal(vm.EventBufferChecks.Select(check => check.Value), eventValues.Select(block => block.Text));
+                Point first = eventValues[0].TranslatePoint(default, modal)!.Value;
+                Point second = eventValues[1].TranslatePoint(default, modal)!.Value;
+                Assert.Equal(first.X, second.X);
+                Assert.True(second.Y >= first.Y + eventValues[0].Bounds.Height);
                 Assert.True(checks.TranslatePoint(default, modal)!.Value.Y >=
                     files.TranslatePoint(default, modal)!.Value.Y + files.Bounds.Height);
             }
@@ -260,7 +298,7 @@ public sealed class OutputConfirmationTests
                 _ = Directory.CreateDirectory(outputDirectory);
                 using Avalonia.Media.Imaging.Bitmap? frame = window.GetLastRenderedFrame();
                 Assert.NotNull(frame);
-                frame.Save(Path.Combine(outputDirectory, $"output-confirmation-{(bundle ? "bundle" : "loose")}-{(additional ? "extra" : "single")}-{(chineseDark ? "dark-zh" : "light-en")}{(countA != countB ? "-cascade" : "")}.png"));
+                frame.Save(Path.Combine(outputDirectory, $"output-confirmation-{(bundle ? "bundle" : "loose")}-{(additional ? "extra" : "single")}-{(chineseDark ? "dark-zh" : "light-en")}{(oversizedTp ? "-cascade" : "")}{(customAlias ? $"-{rawA:X2}-{rawB:X2}" : "")}.png"));
             }
         }
         finally { window.Close(); }

@@ -3,7 +3,7 @@ namespace NvtFwCombiner.Application.Configuration;
 /// <summary>One host-scoped configuration owner; successful persistence is not firmware execution admission.</summary>
 public interface IEventBufferFormatConfigurationSession
 {
-    /// <summary>Current immutable publication; missing/invalid state has no effective configuration.</summary>
+    /// <summary>Current immutable publication; absent custom storage uses built-in defaults; invalid state has no effective configuration.</summary>
     EventBufferFormatConfigurationState Current { get; }
 
     /// <summary>Trusted selectable identities and declared effects, not user-editable firmware geometry.</summary>
@@ -19,6 +19,6 @@ public interface IEventBufferFormatConfigurationSession
     ValueTask<EventBufferFormatConfigurationOperationResult> SaveAsync(
         IReadOnlyList<EventBufferFormatDraftEntry?>? draft, CancellationToken cancellationToken);
 
-    /// <summary>Admits current persisted bytes; invalid external configuration clears effective state.</summary>
+    /// <summary>Admits persisted bytes or built-in defaults when absent; invalid external configuration clears effective state.</summary>
     ValueTask<EventBufferFormatConfigurationOperationResult> ReloadAsync(CancellationToken cancellationToken);
 }

@@ -193,12 +193,11 @@ public sealed partial class FirmwareInspectionSnapshotTests
     /// <summary>Bindings without format reapplication reuse the shared compiled ceiling owner.</summary>
     [Theory]
     [InlineData("standard")]
-    [InlineData("dp-replace")]
     [InlineData("ctrlram-replace")]
     public async Task FixedWorkflowBindingFieldsReuseTheCompiledReadCeiling(string workflow)
     {
         IsolatedBootstrapTestHost host = CreateLoadedHost();
-        ResolvedCapability capability = DpReplaceCapability(host, includeLdc: false);
+        ResolvedCapability capability = StandardMergeCapability(host, extendedCapacity: false);
         long observedMaximum = 0;
         BuiltInFirmwareInspection inspection = CreateInspection(
             host,
@@ -213,17 +212,12 @@ public sealed partial class FirmwareInspectionSnapshotTests
             "standard" => new(
                 "input",
                 "input.bin",
-                StandardMergeAddressSpaceId: CompositionAddressSpaceIds.ReferenceBase,
-                ExactCapability: capability),
-            "dp-replace" => new(
-                "input",
-                "input.bin",
-                DpReplaceAddressSpaceId: CompositionAddressSpaceIds.ReferenceBase,
+                StandardMergeAddressSpaceId: CompositionAddressSpaceIds.DpInput,
                 ExactCapability: capability),
             "ctrlram-replace" => new(
                 "input",
                 "input.bin",
-                CtrlRamReplaceAddressSpaceId: CompositionAddressSpaceIds.ReferenceBase,
+                CtrlRamReplaceAddressSpaceId: CompositionAddressSpaceIds.DpInput,
                 ExactCapability: capability),
             _ => throw new ArgumentOutOfRangeException(nameof(workflow)),
         };
@@ -314,7 +308,7 @@ public sealed partial class FirmwareInspectionSnapshotTests
     public async Task TpMetadataDependencyKeepsTheHardCeilingWithoutItsOwnTypedBinding()
     {
         IsolatedBootstrapTestHost host = CreateLoadedHost();
-        ResolvedCapability capability = DpReplaceCapability(host, includeLdc: false);
+        ResolvedCapability capability = StandardMergeCapability(host, extendedCapacity: false);
         var maxima = new Dictionary<string, long>(StringComparer.Ordinal);
         BuiltInFirmwareInspection inspection = CreateInspection(
             host,
@@ -327,18 +321,36 @@ public sealed partial class FirmwareInspectionSnapshotTests
                     acceptedBytes: bytes));
             }));
 
-        _ = await inspection.InspectFirmwareBatchAsync(
-            "NT51928",
+        FirmwareInspectionBatchResult batch = await inspection.InspectFirmwareBatchAsync(
+            "NT51950",
             [new FirmwareInspectionSnapshotInput(
                 "dp",
                 "dp.bin",
                 TpPath: "tp-metadata.bin",
-                DpReplaceAddressSpaceId: CompositionAddressSpaceIds.ReferenceBase,
+                StandardMergeAddressSpaceId: CompositionAddressSpaceIds.DpInput,
                 ExactCapability: capability)],
             TestContext.Current.CancellationToken);
 
         Assert.Equal(0x40000, maxima["dp.bin"]);
         Assert.Equal(100_000_000, maxima["tp-metadata.bin"]);
+        FirmwareInspectionSnapshot snapshot = batch.InspectionsById["dp"];
+        Assert.Equal(FileStamp.FromBytes([1]), snapshot.FileStamp);
+        Assert.Null(snapshot.InputSlotStatus);
+        Assert.All(Assert.IsType<AuthoringCapabilityCatalogSnapshot>(snapshot.InputSlotCatalog).Routes,
+            static route => Assert.Null(route.ExactCapability));
+        Assert.Collection(snapshot.AuthoringCompilationIssues,
+            static issue =>
+            {
+                Assert.Equal("profile.v2.plan.invalid-view", issue.Code);
+                Assert.Equal("dp-identity-source", issue.OperationId);
+                Assert.Equal("View 'dp-identity-source' escapes address space 'dp-input'.", issue.Message);
+            },
+            static issue =>
+            {
+                Assert.Equal("profile.v2.plan.invalid-view", issue.Code);
+                Assert.Equal("tp-overlay-output", issue.OperationId);
+                Assert.Equal("View 'tp-overlay-output' escapes address space 'output-image'.", issue.Message);
+            });
     }
 
     /// <summary>Multiple typed bindings on one path are read once at their minimum ceiling.</summary>
@@ -346,8 +358,8 @@ public sealed partial class FirmwareInspectionSnapshotTests
     public async Task SharedPathUsesTheMostRestrictiveTypedBindingCeilingOnce()
     {
         IsolatedBootstrapTestHost host = CreateLoadedHost();
-        ResolvedCapability largerCapability = DpReplaceCapability(host, includeLdc: true);
-        ResolvedCapability smallerCapability = DpReplaceCapability(host, includeLdc: false);
+        ResolvedCapability largerCapability = StandardMergeCapability(host, extendedCapacity: true);
+        ResolvedCapability smallerCapability = StandardMergeCapability(host, extendedCapacity: false);
         int reads = 0;
         long observedMaximum = 0;
         BuiltInFirmwareInspection inspection = CreateInspection(
@@ -364,17 +376,17 @@ public sealed partial class FirmwareInspectionSnapshotTests
 
         _ = await Assert.ThrowsAsync<InvalidOperationException>(() =>
             inspection.InspectFirmwareBatchAsync(
-                "NT51928",
+                "NT51950",
                 [
                     new FirmwareInspectionSnapshotInput(
                         "larger-reference",
                         "shared.bin",
-                        DpReplaceAddressSpaceId: CompositionAddressSpaceIds.ReferenceBase,
+                        StandardMergeAddressSpaceId: CompositionAddressSpaceIds.DpInput,
                         ExactCapability: largerCapability),
                     new FirmwareInspectionSnapshotInput(
                         "smaller-reference",
                         "shared.bin",
-                        DpReplaceAddressSpaceId: CompositionAddressSpaceIds.ReferenceBase,
+                        StandardMergeAddressSpaceId: CompositionAddressSpaceIds.DpInput,
                         ExactCapability: smallerCapability),
                 ],
                 TestContext.Current.CancellationToken).AsTask());
@@ -393,7 +405,7 @@ public sealed partial class FirmwareInspectionSnapshotTests
         }
 
         IsolatedBootstrapTestHost host = CreateLoadedHost();
-        ResolvedCapability capability = DpReplaceCapability(host, includeLdc: false);
+        ResolvedCapability capability = StandardMergeCapability(host, extendedCapacity: false);
         string mixedCasePath = Path.Combine(
             Path.GetTempPath(),
             "Nfc-Inspection-Case-Alias",
@@ -415,12 +427,12 @@ public sealed partial class FirmwareInspectionSnapshotTests
             }));
 
         FirmwareInspectionBatchResult batch = await inspection.InspectFirmwareBatchAsync(
-            "NT51928",
+            "NT51950",
             [
                 new FirmwareInspectionSnapshotInput(
                     "bounded",
                     mixedCasePath,
-                    DpReplaceAddressSpaceId: CompositionAddressSpaceIds.ReferenceBase,
+                    StandardMergeAddressSpaceId: CompositionAddressSpaceIds.DpInput,
                     ExactCapability: capability),
                 new FirmwareInspectionSnapshotInput("alias", upperCasePath),
             ],
@@ -437,7 +449,7 @@ public sealed partial class FirmwareInspectionSnapshotTests
     public async Task RelativeAndAbsoluteAliasesReadOnceAtTheStrictestBindingCeiling()
     {
         IsolatedBootstrapTestHost host = CreateLoadedHost();
-        ResolvedCapability capability = DpReplaceCapability(host, includeLdc: false);
+        ResolvedCapability capability = StandardMergeCapability(host, extendedCapacity: false);
         string relativePath = Path.Combine(
             "nfc-inspection-relative-alias",
             "shared.bin");
@@ -457,12 +469,12 @@ public sealed partial class FirmwareInspectionSnapshotTests
             }));
 
         FirmwareInspectionBatchResult batch = await inspection.InspectFirmwareBatchAsync(
-            "NT51928",
+            "NT51950",
             [
                 new FirmwareInspectionSnapshotInput(
                     "bounded",
                     relativePath,
-                    DpReplaceAddressSpaceId: CompositionAddressSpaceIds.ReferenceBase,
+                    StandardMergeAddressSpaceId: CompositionAddressSpaceIds.DpInput,
                     ExactCapability: capability),
                 new FirmwareInspectionSnapshotInput("alias", absolutePath),
             ],
@@ -480,11 +492,10 @@ public sealed partial class FirmwareInspectionSnapshotTests
         CompositionHostServices services = BootstrapTestHost.Services;
         return new BuiltInFirmwareInspection(
             new FirmwareMetadataPlanAuthorityResolver(
-                BootstrapTestHost.Canonical.Catalog),
+                BootstrapTestHost.Canonical.Catalog, BootstrapTestHost.Canonical.Compiler),
             BootstrapTestHost.Canonical.Projection,
             (StandardMergeAuthoringExperience)services.StandardMergeAuthoring,
             (AbMergeAuthoringExperience)services.AbMergeAuthoring,
-            (DpReplaceAuthoringExperience)services.DpReplaceAuthoring,
             (CtrlRamAuthoringExperience)services.CtrlRamAuthoring,
             new FirmwareArtifactClassificationResolver(
                 BootstrapTestHost.Canonical.Catalog,
@@ -497,11 +508,10 @@ public sealed partial class FirmwareInspectionSnapshotTests
         ISelectedFileContentInspector contentInspector)
     {
         return new BuiltInFirmwareInspection(
-            new FirmwareMetadataPlanAuthorityResolver(host.Canonical.Catalog),
+            new FirmwareMetadataPlanAuthorityResolver(host.Canonical.Catalog, host.Canonical.Compiler),
             host.Canonical.Projection,
             (StandardMergeAuthoringExperience)host.Services.StandardMergeAuthoring,
             (AbMergeAuthoringExperience)host.Services.AbMergeAuthoring,
-            (DpReplaceAuthoringExperience)host.Services.DpReplaceAuthoring,
             (CtrlRamAuthoringExperience)host.Services.CtrlRamAuthoring,
             new FirmwareArtifactClassificationResolver(
                 host.Canonical.Catalog,
@@ -516,33 +526,22 @@ public sealed partial class FirmwareInspectionSnapshotTests
         return host;
     }
 
-    private static ResolvedCapability DpReplaceCapability(
+    private static ResolvedCapability StandardMergeCapability(
         IsolatedBootstrapTestHost host,
-        bool includeLdc)
+        bool extendedCapacity)
     {
-        string[] selected = includeLdc
-            ?
-            [
-                CompositionAddressSpaceIds.ReferenceBase,
-                CompositionAddressSpaceIds.InitialCodeReplacement,
-                CompositionAddressSpaceIds.LdcReplacement,
-            ]
-            :
-            [
-                CompositionAddressSpaceIds.ReferenceBase,
-                CompositionAddressSpaceIds.InitialCodeReplacement,
-            ];
-        CompiledAuthoringSelectionSnapshot snapshot = host.Services.DpReplaceAuthoring
-            .GetAuthoringSnapshot(
-                "NT51928",
-                selected,
-                new Dictionary<string, FileStamp>(StringComparer.Ordinal)
-                {
-                    [CompositionAddressSpaceIds.ReferenceBase] =
-                        new FileStamp(includeLdc ? 0x80000 : 0x40000, new string('a', 64)),
-                },
-                new AuthoringRevision(1));
-        return Assert.IsType<ResolvedCapability>(Assert.Single(snapshot.Catalog.Routes).ExactCapability);
+        int capacity = extendedCapacity ? 0x80000 : 0x40000;
+        byte[] dp = CreateNonUniformArtifact(capacity);
+        CompiledAuthoringSelectionSnapshot snapshot = host.Services.StandardMergeAuthoring.ResolveCapturedDpSelection(
+            "NT51950",
+            dp,
+            [CompositionAddressSpaceIds.DpInput, CompositionAddressSpaceIds.TpInput],
+            new AuthoringRevision(1));
+        ResolvedCapability capability = Assert.IsType<ResolvedCapability>(
+            Assert.Single(snapshot.Catalog.Routes).ExactCapability);
+        Assert.Equal(capacity, capability.CompiledComposition.Plan.OutputInitialization.Capacity);
+        Assert.Equal(host.Catalog.TryGetCurrentSnapshot()!.ResolutionToken, capability.ResolutionToken);
+        return capability;
     }
 
     private sealed class ResourceCeilingObservedException : Exception

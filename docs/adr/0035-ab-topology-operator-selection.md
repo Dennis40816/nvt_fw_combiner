@@ -78,11 +78,13 @@ external processor may modify DP bytes.
 | Selection | DP input/output | A/B slot boundary | DP CMD/CMI base within each A/B slot | TPA target | TPB target | TPB DIFF addend |
 | --- | --- | --- | --- | --- | --- | --- |
 | `single` | `[0x00000,0x80000)` | `0x40000` | `0x3B000`; A CMI `[0x3B016,0x3B019)`, B CMI `[0x7B016,0x7B019)` | `[0x0A000,0x37000)` | `[0x4A000,0x77000)` | `0x40000` |
-| `cascade` | `[0x00000,0x100000)` | `0x40000` | `0x05000`; A CMI `[0x05016,0x05019)`, B CMI `[0x45016,0x45019)` | `[0x0A000,0x37000)` | `[0x4A000,0x77000)` | `0x40000` |
+| `cascade` | `[0x00000,0x100000)` | `0x80000` | `0x05000`; A CMI `[0x05016,0x05019)`, B CMI `[0x85016,0x85019)` | `[0x0A000,0x37000)` | `[0x8A000,0xB7000)` | `0x80000` |
 
-The cascade plan copies the complete 1 MiB DP input first.  Its tail
-`[0x80000,0x100000)` remains DP bytes; it receives no invented second TP
-overlay.  The same TP slots already contain the cascade-required TP content.
+The 2026-09-21 owner amendment replaces the old cascade `0x40000` bank
+geometry with the existing NT51951 `0x80000` region set and private transport.
+The cascade plan copies the complete 1 MiB DP input first and preserves it
+outside the declared TPA/TPB overlays and three B-header imports. The same TP
+slots already contain the cascade-required TP content.
 The profile owns the exact TPB header/CRC write ranges, derived from the TP
 Flash Header catalog, and they must remain inside the TPB destination range.
 
@@ -100,6 +102,17 @@ informational and cannot prompt, select, or mutate a plan.
 
 ### Availability and certification
 
+The 2026-09-21 consolidation retains the existing single and NT51951 evidence
+classifications. The changed NT51950 cascade is a new Available/Candidate/
+ContractOnly route; its old Supported identity cannot certify changed geometry.
+Common and Desay use the same active map per topology. Desay special profiles
+and maps remain as inactive compiler evidence, with no runtime registration;
+the separate NT51950 Common exact-two override is removed. NT51927 exact-two
+and exact-three declarations are unaffected. See the current amendment in
+[ADR 0072](0072-event-buffer-format-configuration.md#partial-family-bank-consolidation--2026-09-21).
+
+The following availability paragraph records the earlier `0.9.15` decision.
+
 NT51950 `single`/`cascade` and selector-free NT51951 are function-open in
 `0.9.15` once their declared profile/runtime/UI/CLI paths pass review.  Their
 status is `Available — Golden certification pending`; it is neither
@@ -108,6 +121,29 @@ Build, but it remains visible in the report and Support Matrix and blocks
 certification.
 
 ## Verification
+
+### 2026-09-21 amendment: TP count validity and AB pair equality
+
+The owner now requires every TP firmware slot to expose a blocking error when
+IC Count cannot be read or is zero. AB additionally requires identical TPA and
+TPB counts, including selector-free models and cascade pairs such as 2/3.
+Diagnostics distinguish unreadable count, a count read as zero, and an AB pair
+mismatch with both actual values. Only AB performs the pair comparison.
+The single-input rule applies to the compiled `TpFirmware` artifact class,
+through shared Application inspection and execution admission. Raw
+`CtrlRamReplacement`, `ReferenceImage`, DP and arbitrary General artifacts do
+not acquire TP semantics from a filename or from containing recognizable bytes.
+The shared issue codes are `firmware-config.chip-count-required` (read zero)
+and `firmware-config.chip-count-unreadable` (unknown); each carries its input
+address-space identity. Two invalid AB inputs retain both issues and nullable
+observations. AB pair mismatch remains `AB_TP_TOPOLOGY_MISMATCH`.
+This supersedes the earlier informational-only count admission policy, without
+adding hidden selectors or making count observations an output-map authority.
+Source-prefix boundaries, profile support, bank geometry and postbuild writes
+remain unchanged by this validation unit. Bank consolidation and Desay disabling
+are separately pending in the [delivery checklist](../ui/v1.1.10-delivery.md).
+
+### Existing byte and selector verification
 
 - Profile/compiler tests reject a selector for all other Merge routes.
 - UI/CLI tests accept only `single`/`cascade`, show `1 IC`/`Cascade`, and prove

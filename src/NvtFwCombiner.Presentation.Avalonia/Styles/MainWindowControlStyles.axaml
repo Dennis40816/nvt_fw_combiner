@@ -114,14 +114,54 @@
     <Setter Property="BorderBrush" Value="{DynamicResource NfcAccentBrush}" />
     <Setter Property="BorderThickness" Value="2" />
   </Style>
-  <Style Selector="ScrollViewer#SupportMatrixScroll /template/ ScrollBar:horizontal">
-    <Setter Property="Margin" Value="0,8,0,0" />
+  <!-- Shared scrollbars: page, popup, templated and standalone; both orientations. -->
+  <Style Selector="ScrollViewer">
+    <Setter Property="AllowAutoHide" Value="False" />
+  </Style>
+  <Style Selector=":is(TemplatedControl)">
+    <Setter Property="ScrollViewer.AllowAutoHide" Value="False" />
+  </Style>
+  <Style Selector="ScrollBar:vertical">
+    <Setter Property="Width" Value="14" />
+    <Setter Property="MinWidth" Value="14" />
+    <Setter Property="MaxWidth" Value="14" />
+    <Setter Property="Background" Value="Transparent" />
+  </Style>
+  <Style Selector="ScrollBar:vertical /template/ Thumb">
+    <Setter Property="Width" Value="6" />
+    <Setter Property="MinWidth" Value="6" />
+    <Setter Property="MaxWidth" Value="6" />
+    <Setter Property="HorizontalAlignment" Value="Center" />
+    <Setter Property="Background" Value="{DynamicResource NfcTextDisabledBrush}" />
+    <Setter Property="CornerRadius" Value="{DynamicResource NfcPillCornerRadius}" />
+    <Setter Property="RenderTransform" Value="none" />
+  </Style>
+  <Style Selector="ScrollBar:vertical /template/ Rectangle#TrackRect">
+    <Setter Property="Opacity" Value="0" />
+  </Style>
+  <Style Selector="ScrollBar:vertical /template/ RepeatButton">
+    <Setter Property="Opacity" Value="0" />
+  </Style>
+  <Style Selector="ScrollBar:vertical:pointerover /template/ Thumb">
+    <Setter Property="Width" Value="6" />
+    <Setter Property="MinWidth" Value="6" />
+    <Setter Property="MaxWidth" Value="6" />
+    <Setter Property="Background" Value="{DynamicResource NfcTextMutedBrush}" />
+    <Setter Property="RenderTransform" Value="none" />
+  </Style>
+  <Style Selector="ScrollBar:vertical /template/ Thumb:pointerover /template/ Border">
+    <Setter Property="Background" Value="{DynamicResource NfcTextMutedBrush}" />
+  </Style>
+  <Style Selector="ScrollBar">
+    <Setter Property="AllowAutoHide" Value="False" />
+  </Style>
+  <Style Selector="ScrollBar:horizontal">
     <Setter Property="Height" Value="14" />
     <Setter Property="MinHeight" Value="14" />
     <Setter Property="MaxHeight" Value="14" />
     <Setter Property="Background" Value="Transparent" />
   </Style>
-  <Style Selector="ScrollViewer#SupportMatrixScroll /template/ ScrollBar:horizontal /template/ Thumb">
+  <Style Selector="ScrollBar:horizontal /template/ Thumb">
     <Setter Property="Height" Value="6" />
     <Setter Property="MinHeight" Value="6" />
     <Setter Property="MaxHeight" Value="6" />
@@ -130,18 +170,21 @@
     <Setter Property="CornerRadius" Value="{DynamicResource NfcPillCornerRadius}" />
     <Setter Property="RenderTransform" Value="none" />
   </Style>
-  <Style Selector="ScrollViewer#SupportMatrixScroll /template/ ScrollBar:horizontal /template/ Rectangle#TrackRect, ScrollViewer#SupportMatrixScroll /template/ ScrollBar:horizontal /template/ RepeatButton">
+  <Style Selector="ScrollBar:horizontal /template/ Rectangle#TrackRect, ScrollBar:horizontal /template/ RepeatButton">
     <Setter Property="Opacity" Value="0" />
   </Style>
-  <Style Selector="ScrollViewer#SupportMatrixScroll /template/ ScrollBar:horizontal:pointerover /template/ Thumb">
+  <Style Selector="ScrollBar:horizontal:pointerover /template/ Thumb">
     <Setter Property="Height" Value="6" />
     <Setter Property="MinHeight" Value="6" />
     <Setter Property="MaxHeight" Value="6" />
     <Setter Property="Background" Value="{DynamicResource NfcTextMutedBrush}" />
     <Setter Property="RenderTransform" Value="none" />
   </Style>
-  <Style Selector="ScrollViewer#SupportMatrixScroll /template/ ScrollBar:horizontal /template/ Thumb:pointerover /template/ Border">
+  <Style Selector="ScrollBar:horizontal /template/ Thumb:pointerover /template/ Border">
     <Setter Property="Background" Value="{DynamicResource NfcTextMutedBrush}" />
+  </Style>
+  <Style Selector="ScrollViewer#SupportMatrixScroll /template/ ScrollBar:horizontal">
+    <Setter Property="Margin" Value="0,8,0,0" />
   </Style>
   <Style Selector="Expander#SupportMatrixCatalogDetails /template/ ToggleButton#ExpanderHeader">
     <Setter Property="FocusAdorner" Value="{x:Null}" />
@@ -565,13 +608,58 @@
     <Setter Property="Foreground" Value="{DynamicResource NfcSuccessEmphasisBrush}" />
   </Style>
   <Style Selector="TextBlock.firmwareSlotFactLabel">
-    <Setter Property="FontSize" Value="{DynamicResource NfcFontSize11}" />
-    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="FontSize" Value="{DynamicResource NfcFontSize12}" />
+    <Setter Property="FontWeight" Value="Normal" />
     <Setter Property="Foreground" Value="{DynamicResource NfcTextSecondaryBrush}" />
+  </Style>
+  <Style Selector="ToggleButton.referenceChoice:checked /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource NfcAccentStrongBrush}" />
+  </Style>
+  <Style Selector="DropDownButton.bankScope">
+    <Setter Property="Background" Value="{DynamicResource NfcSurfaceBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource NfcTextBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource NfcBorderBrush}" />
+    <Setter Property="BorderThickness" Value="2" />
+    <Setter Property="CornerRadius" Value="4" />
+    <Setter Property="MinHeight" Value="32" />
+  </Style>
+  <Style Selector="ToggleButton.bankViewSwitch">
+    <Setter Property="Width" Value="44" />
+    <Setter Property="Height" Value="32" />
+    <Setter Property="MinWidth" Value="44" />
+    <Setter Property="MinHeight" Value="32" />
+    <Setter Property="Template">
+      <ControlTemplate>
+        <Grid Background="Transparent">
+          <Border x:Name="Track" Width="38" Height="22" CornerRadius="11"
+                  Background="{DynamicResource NfcBorderMutedBrush}" BorderThickness="2"
+                  BorderBrush="{DynamicResource NfcBorderBrush}" VerticalAlignment="Center">
+            <Ellipse x:Name="Thumb" Width="14" Height="14" Margin="2"
+                     Fill="{DynamicResource NfcSurfaceBrush}" HorizontalAlignment="Left" />
+          </Border>
+        </Grid>
+      </ControlTemplate>
+    </Setter>
+  </Style>
+  <Style Selector="ToggleButton.bankViewSwitch:checked /template/ Border#Track">
+    <Setter Property="Background" Value="{DynamicResource NfcAccentBrush}" />
+  </Style>
+  <Style Selector="ToggleButton.bankViewSwitch:checked /template/ Ellipse#Thumb">
+    <Setter Property="HorizontalAlignment" Value="Right" />
+  </Style>
+  <Style Selector="ToggleButton.bankViewSwitch:focus-visible /template/ Border#Track">
+    <Setter Property="BorderThickness" Value="2" />
+    <Setter Property="BorderBrush" Value="{DynamicResource NfcTextStrongBrush}" />
+  </Style>
+  <Style Selector="ToggleButton.bankViewSwitch:pointerover /template/ Border#Track">
+    <Setter Property="Opacity" Value="0.85" />
+  </Style>
+  <Style Selector="ToggleButton.bankViewSwitch:disabled">
+    <Setter Property="Opacity" Value="0.45" />
   </Style>
   <Style Selector="TextBlock.firmwareSlotFactValue">
     <Setter Property="FontFamily" Value="{DynamicResource NfcTechnicalFontFamily}" />
-    <Setter Property="FontSize" Value="{DynamicResource NfcFontSize12}" />
+    <Setter Property="FontSize" Value="{DynamicResource NfcFontSize13}" />
     <Setter Property="FontWeight" Value="Medium" />
     <Setter Property="Foreground" Value="{DynamicResource NfcTextStrongBrush}" />
   </Style>

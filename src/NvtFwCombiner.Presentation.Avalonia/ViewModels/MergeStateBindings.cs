@@ -5,6 +5,7 @@ namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 internal sealed record MergeStateBindings(
     Func<string> SelectedIc,
     Func<string> SelectedNumber,
+    Func<string> DeviceContextRefreshSummary,
     Func<string, string, bool> IsWorkflowAuthorable,
     Func<string, IReadOnlyList<CapabilityTopologyChoice>> GetAbMergeTopologyChoices,
     Func<bool> IsRunInProgress,
@@ -16,12 +17,12 @@ internal sealed record MergeStateBindings(
     Func<FirmwareSlotViewModel, long?> GetInspectedFileLength,
     Func<ReportPresentationViewModel> Reports,
     CompositionRunInvoker RunCompositionAsync,
-    Action<UiRunResultViewModel> PublishRunResult,
+    Action<WorkflowRunState, UiRunResultViewModel> PublishRunResult,
     Action RefreshNumberChoices,
     Action PublishAcceptedModeContext,
     Func<Task> RefreshSelectedFirmwareInspections,
     Func<string, CancellationToken, Task> SetAbSameTpFileAsync,
     Func<bool, CancellationToken, Task> SetAbDummyDpModeAsync,
-    Action ResetRunResult,
+    Action<CompositionRunContext> ResetRunResult,
     Action RefreshShellCommandState,
     OutputDeliveryConfirmationViewModel OutputDelivery);

@@ -29,9 +29,9 @@ public sealed partial class MergeWorkflowTests(ShellViewModelTestHostFixture fix
 {
 }
 
-/// <summary>DP Replace workflow smoke coverage.</summary>
+/// <summary>Replace surface compatibility and retired-mode smoke coverage.</summary>
 /// <param name="fixture">The group-local Bootstrap graph.</param>
-public sealed partial class DpReplaceWorkflowTests(ShellViewModelTestHostFixture fixture)
+public sealed partial class ReplaceSurfaceCompatibilityTests(ShellViewModelTestHostFixture fixture)
     : ShellViewModelTestBase(fixture), IClassFixture<ShellViewModelTestHostFixture>
 {
 }

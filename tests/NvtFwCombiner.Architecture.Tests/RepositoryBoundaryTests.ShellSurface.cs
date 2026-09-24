@@ -65,7 +65,7 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("IsMergeVisible", shell, StringComparison.Ordinal);
         Assert.Contains("IsReplaceVisible", shell, StringComparison.Ordinal);
         Assert.Contains("IsHexEditorVisible", shell, StringComparison.Ordinal);
-        Assert.Contains("BeginDpReplaceFromHomeCommand", pageTemplates, StringComparison.Ordinal);
+        Assert.DoesNotContain("BeginDpReplaceFromHomeCommand", pageTemplates, StringComparison.Ordinal);
         Assert.Contains("BeginCtrlRamReplaceFromHomeCommand", pageTemplates, StringComparison.Ordinal);
         Assert.Contains("BeginGeneralReplaceFromHomeCommand", pageTemplates, StringComparison.Ordinal);
         Assert.Contains("ShowHexEditorCommand", pageTemplates, StringComparison.Ordinal);
@@ -81,13 +81,13 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("WindowState=\"Maximized\"", shell, StringComparison.Ordinal);
         Assert.Contains("RowDefinitions=\"Auto,Auto,Auto,*,Auto\"", shell, StringComparison.Ordinal);
         Assert.Contains(
-            "<ScrollViewer Grid.Row=\"3\" Classes=\"contentScrollSurface\">",
+            "<ScrollViewer Grid.Row=\"3\" Classes=\"contentScrollSurface\" VerticalScrollBarVisibility=\"Visible\">",
             shell,
             StringComparison.Ordinal);
         Assert.Contains("<Grid Margin=\"28,24,28,132\"", shell, StringComparison.Ordinal);
         Assert.Contains(
             "x:Name=\"CompositionBuildActionRail\"\n        Grid.Row=\"3\"",
-            shell,
+            shell.ReplaceLineEndings("\n"),
             StringComparison.Ordinal);
         Assert.Contains("DeviceContextTitle", workflowContextSetupModal, StringComparison.Ordinal);
         Assert.DoesNotContain("DeviceContextTitle", shellPanels, StringComparison.Ordinal);

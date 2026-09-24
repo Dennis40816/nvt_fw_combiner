@@ -11,6 +11,9 @@ namespace NvtFwCombiner.Application.Composition;
 public sealed record CompositionOutputFormatSummary(
     string FormatId, string DisplayName, long ConfigurationGeneration, string ConfigurationSourceSha256);
 
+/// <summary>Actual compiled physical map identity and output-confirmation label; null label preserves ambiguous special names.</summary>
+public sealed record CompositionOutputFlashMapSummary(string MapId, string? DisplayName);
+
 /// <summary>One real accepted input binding, independent of delivery-file deduplication.</summary>
 public sealed record CompositionOutputInputSummary(
     string BindingId, string SlotId, string SourceFileName, long SizeBytes,
@@ -33,6 +36,9 @@ public sealed record CompositionOutputConfirmationSummary(
     CompositionOutputFormatSummary? Format, IReadOnlyList<CompositionOutputInputSummary> Inputs,
     bool HasGeneratedInputs)
 {
+    /// <summary>Physical map captured from compilation; logical-output compositions deliberately have no map.</summary>
+    public CompositionOutputFlashMapSummary? FlashMap { get; init; }
+
     /// <summary>Accepted Replace selector, retained without converting selector tokens into inferred topology.</summary>
     public IcNumberSelection? IcNumber { get; init; }
 
@@ -75,10 +81,12 @@ internal static class CompositionOutputConfirmationProjector
                 format.ConfigurationGeneration, format.ConfigurationSourceSha256),
             Array.AsReadOnly(inputs.ToArray()), generated)
         {
+            FlashMap = compiled.V2Details.Provenance.Context is MapBoundV2CompilationContext physical
+                ? new(physical.ResolvedMap.ImageMap.MapId, physical.ResolvedMap.DisplayName) : null,
             TopologyRequirement = compiled.V2Details.Provenance.Context is MapBoundV2CompilationContext context
                 ? context.ResolvedMap.ImageMap.Applicability.TopologyRequirement : null,
             IcNumber = capability.CtrlRamExecutionPlan?.IcNumberSelection ??
-                capability.DpExecutionPlan?.IcNumberSelection ?? capability.GeneralExecutionPlan?.IcNumberSelection,
+                capability.GeneralExecutionPlan?.IcNumberSelection,
         };
     }
 }

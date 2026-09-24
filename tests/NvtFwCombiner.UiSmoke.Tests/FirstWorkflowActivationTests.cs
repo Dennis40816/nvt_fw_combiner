@@ -89,7 +89,7 @@ public sealed class FirstWorkflowActivationTests
     public async Task DeferredPageUsesConfirmedContextInProductionControls(bool mergeFirst)
     {
         using var workspace = TempWorkspace.Create("workflow-first-activation");
-        PresentationHostServices services = await CreateServicesAsync(workspace, useRetainedDpReplacePolicy: false);
+        PresentationHostServices services = await CreateServicesAsync(workspace);
         using var window = new MainWindow(UiLaunchOptions.Empty, StartupTraceSession.Disabled, services, ShellPreferenceSnapshot.Default);
         window.Show();
         try

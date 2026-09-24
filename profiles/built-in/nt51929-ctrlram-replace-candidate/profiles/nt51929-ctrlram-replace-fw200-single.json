@@ -17,7 +17,7 @@
   "mapBinding": {
     "familyId": "nt51929-ctrlram-replace",
     "familyVersion": "0.5.0",
-      "familyContentHash": "86b69e9f1737d0bc0e547c0159d102cbebb154c7ce163760288e53a9fbcffbd8",
+      "familyContentHash": "e1a029fde4e5cd90942b95dedc5e931d79ff6e4403e46255927a3d2a52ab2d8b",
     "mapIds": [ "nt51929-ctrlram-fw200-single-full-flash" ],
     "requiredRegionIds": [
       "flash-image",

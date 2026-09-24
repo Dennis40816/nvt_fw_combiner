@@ -51,9 +51,19 @@ public sealed partial class RepositoryBoundaryTests
         Assert.DoesNotContain("CompiledComposition.CreateLegacy(", productionSources, StringComparison.Ordinal);
         Assert.Contains("CompiledComposition.CreateV2(", profileSources, StringComparison.Ordinal);
         Assert.Contains("CompiledComposition.CreateV2RuntimeExecutable(", profileSources, StringComparison.Ordinal);
-        Assert.Equal(1, CountOccurrences(profileSources, "CompiledComposition.CreateV2("));
+        string[] candidateOwners =
+        [
+            "src/NvtFwCombiner.Profiles/V2/V2CompositionPlanCompiler.ContractLowering.cs",
+            "src/NvtFwCombiner.Profiles/V2/V2CompositionPlanCompiler.RuntimeReferenceReplace.BankCompilation.cs",
+        ];
+        foreach (string owner in candidateOwners)
+        {
+            Assert.Equal(1, CountOccurrences(ReadText(owner), "CompiledComposition.CreateV2("));
+        }
+
+        Assert.Equal(candidateOwners.Length, CountOccurrences(profileSources, "CompiledComposition.CreateV2("));
         Assert.Equal(1, CountOccurrences(profileSources, "CompiledComposition.CreateV2RuntimeExecutable("));
-        Assert.Equal(1, CountOccurrences(productionSources, "CompiledComposition.CreateV2("));
+        Assert.Equal(candidateOwners.Length, CountOccurrences(productionSources, "CompiledComposition.CreateV2("));
         Assert.Equal(1, CountOccurrences(productionSources, "CompiledComposition.CreateV2RuntimeExecutable("));
         Assert.Contains("internal static CompiledComposition CreateV2", composition, StringComparison.Ordinal);
         Assert.Contains("internal static CompiledComposition CreateV2RuntimeExecutable", composition, StringComparison.Ordinal);

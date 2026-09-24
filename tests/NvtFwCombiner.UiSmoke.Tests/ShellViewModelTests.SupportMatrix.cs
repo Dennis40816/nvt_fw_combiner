@@ -17,8 +17,8 @@ public sealed partial class ShellNavigationSystemTests
 
         Assert.True(viewModel.Settings.IsSupportMatrixOpen);
         Assert.False(viewModel.Settings.IsOverviewSelected);
-        Assert.Equal(79, viewModel.Settings.SupportMatrix.Rows.Count);
-        Assert.Equal("79 routes", viewModel.Settings.SupportMatrix.RouteCountLabel);
+        Assert.Equal(85, viewModel.Settings.SupportMatrix.Rows.Count);
+        Assert.Equal("85 routes", viewModel.Settings.SupportMatrix.RouteCountLabel);
         Assert.Equal("Current", viewModel.Settings.SupportMatrix.CatalogStateLabel);
         Assert.False(viewModel.Settings.SupportMatrix.HasStatusNotice);
         Assert.Equal(5, viewModel.Settings.SupportMatrix.WorkflowColumns.Count);
@@ -67,7 +67,7 @@ public sealed partial class ShellNavigationSystemTests
             Row(
                 "NT51929",
                 CapabilityAuthoringAvailability.Available,
-                "dp-replace",
+                "general-replace",
                 CapabilityEvidenceStatus.ContractOnly),
             Row(
                 "NT51929",
@@ -97,6 +97,7 @@ public sealed partial class ShellNavigationSystemTests
                 SupportMatrixCellStatus.ReviewedEvidence,
                 SupportMatrixCellStatus.Blocked,
                 SupportMatrixCellStatus.ReviewRequired,
+                SupportMatrixCellStatus.ContractOnly,
             ],
             nt51929.Cells.Select(static cell => cell.Status));
         SupportMatrixIcRowViewModel nt51950 = settings.SupportMatrix.IcRows[1];

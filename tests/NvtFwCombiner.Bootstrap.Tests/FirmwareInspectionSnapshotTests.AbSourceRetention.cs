@@ -11,9 +11,9 @@ namespace NvtFwCombiner.Bootstrap.Tests;
 
 public sealed partial class FirmwareInspectionSnapshotTests
 {
-    /// <summary>A changed format reads complete Normal DP bytes beyond the previous Common map's ceiling.</summary>
+    /// <summary>Format discovery reads the complete nonstandard DP once and retains its accepted extent.</summary>
     [Fact]
-    public async Task AbFormatChangeReadsFullDpBeyondPreviousMapCeilingOnce()
+    public async Task AbFormatDiscoveryReadsFullDpOnceAndAcceptsNonstandardExtent()
     {
         using var workspace = TempWorkspace.Create("ab-format-full-dp-inspection");
         CompositionHostServices host = CompositionHostServices.Create(new ExternalProcessorEnvironmentLoader(),
@@ -55,10 +55,9 @@ public sealed partial class FirmwareInspectionSnapshotTests
         var reads = new Dictionary<string, int>(StringComparer.Ordinal);
         var files = new FileContentSnapshotInspector([workspace.Root]);
         var inspection = new BuiltInFirmwareInspection(
-            new FirmwareMetadataPlanAuthorityResolver(canonical.Catalog), canonical.Projection,
+            new FirmwareMetadataPlanAuthorityResolver(canonical.Catalog, canonical.Compiler), canonical.Projection,
             (StandardMergeAuthoringExperience)host.StandardMergeAuthoring,
             (AbMergeAuthoringExperience)host.AbMergeAuthoring,
-            (DpReplaceAuthoringExperience)host.DpReplaceAuthoring,
             (CtrlRamAuthoringExperience)host.CtrlRamAuthoring,
             new FirmwareArtifactClassificationResolver(canonical.Catalog, host.Compiler),
             new DelegatingContentInspector((path, maximum, token) =>
@@ -72,12 +71,14 @@ public sealed partial class FirmwareInspectionSnapshotTests
 
         AuthoringInputSlotStatus status = Assert.IsType<AuthoringInputSlotStatus>(
             result.InspectionsById["dp-ab-input"].InputSlotStatus);
-        ReadOnlyMemory<byte> acceptedBytes = Assert.NotNull(status.AcceptedBytes);
-        Assert.Equal(dp, acceptedBytes.ToArray());
+        Assert.Equal(dp, status.AcceptedBytes!.Value.ToArray());
+        Assert.False(status.BlocksBuild);
+        Assert.Equal("DP_NONSTANDARD_SIZE_WARNING", status.InspectionIssueCode);
         Assert.Equal(FileStamp.FromBytes(dp), result.FileStamps[dpPath]);
         ResolvedCapability selected = Assert.IsType<ResolvedCapability>(Assert.Single(
             result.InspectionsById["dp-ab-input"].InputSlotCatalog!.Routes).ExactCapability);
-        Assert.Equal("nt51950-ab-desay-maps", selected.Identity.MapVariant);
+        Assert.Equal("nt51950-ab-merge-maps", selected.Identity.MapVariant);
+        Assert.Equal(dp.Length, selected.CompiledComposition.Plan.OutputInitialization.Capacity);
         Assert.Equal(2, reads.Count);
         Assert.All(reads.Values, static count => Assert.Equal(1, count));
 

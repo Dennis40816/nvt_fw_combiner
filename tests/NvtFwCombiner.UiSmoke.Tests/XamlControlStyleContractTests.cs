@@ -342,7 +342,10 @@ public sealed partial class XamlControlStyleContractTests
         Assert.Contains("IsVisible=\"{Binding HasCtrlRamOptions}\"", modal, StringComparison.Ordinal);
         Assert.Contains("SelectCtrlRamFirmwareVersionPreserveCommand", modal, StringComparison.Ordinal);
         Assert.Contains("SelectCtrlRamFirmwareVersionEditCommand", modal, StringComparison.Ordinal);
-        Assert.Equal(2, modal.Split("Classes=\"segment versionChoice\"", StringSplitOptions.None).Length - 1);
+        // Standard has one preserve/edit pair; the AB editor template has its own pair.
+        Assert.Equal(4, modal.Split("Classes=\"segment versionChoice\"", StringSplitOptions.None).Length - 1);
+        Assert.Contains("Command=\"{Binding PreserveCommand}\"", modal, StringComparison.Ordinal);
+        Assert.Contains("Command=\"{Binding EditCommand}\"", modal, StringComparison.Ordinal);
         Assert.Contains("CtrlRamOptions.Text.CtrlRamFirmwareVersionKeepLabel", modal, StringComparison.Ordinal);
         Assert.Contains("CtrlRamOptions.Text.CtrlRamFirmwareVersionEditLabel", modal, StringComparison.Ordinal);
         Assert.Contains("TryCreateCtrlRamFirmwareVersionEdit", ReadPresentationFile("ViewModels/ReplacePresentationViewModel.Execution.cs"), StringComparison.Ordinal);

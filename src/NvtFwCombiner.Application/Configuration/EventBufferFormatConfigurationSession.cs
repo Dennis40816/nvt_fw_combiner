@@ -1,4 +1,6 @@
 using System.Globalization;
+using System.Security.Cryptography;
+using System.Text;
 using NvtFwCombiner.Application.Ports;
 using NvtFwCombiner.Contracts.Configuration;
 using NvtFwCombiner.Domain.Firmware;
@@ -104,8 +106,8 @@ internal sealed class EventBufferFormatConfigurationSession : IEventBufferFormat
             cancellationToken.ThrowIfCancellationRequested();
             if (stored is null)
             {
-                return Publish(null, null, EventBufferFormatConfigurationStatus.Missing,
-                    EventBufferFormatConfigurationFailure.Missing, []);
+                return Publish(_defaults, BuiltInDefaultsHash(), EventBufferFormatConfigurationStatus.Ready,
+                    null, [], usesBuiltInDefaults: true);
             }
 
             if (!StringComparer.Ordinal.Equals(_scopeId, stored.Document.ScopeId))
@@ -146,14 +148,35 @@ internal sealed class EventBufferFormatConfigurationSession : IEventBufferFormat
 
     private EventBufferFormatConfigurationOperationResult Publish(
         EventBufferFormatConfiguration? configuration, string? hash, EventBufferFormatConfigurationStatus status,
-        EventBufferFormatConfigurationFailure? failure, IReadOnlyList<EventBufferFormatConfigurationIssue> issues)
+        EventBufferFormatConfigurationFailure? failure, IReadOnlyList<EventBufferFormatConfigurationIssue> issues,
+        bool usesBuiltInDefaults = false)
     {
         EventBufferFormatConfigurationState previous = Current;
         var next = new EventBufferFormatConfigurationState(checked(previous.Generation + 1), status,
-            configuration, hash, configuration ?? previous.LastSaved,
-            configuration is null ? previous.LastSavedSha256 : hash);
+            configuration, hash, usesBuiltInDefaults ? previous.LastSaved : configuration ?? previous.LastSaved,
+            usesBuiltInDefaults || configuration is null ? previous.LastSavedSha256 : hash)
+        { UsesBuiltInDefaults = usesBuiltInDefaults };
         Volatile.Write(ref _current, next);
         return new(next, failure, issues);
+    }
+
+    private string BuiltInDefaultsHash()
+    {
+        // Versioned, length-prefixed canonical values; never represented as an on-disk file hash.
+        var text = new StringBuilder("nfc:event-buffer-format:built-in:v1\n");
+        Append(_defaults.ScopeId);
+        foreach (EventBufferFormatEntry entry in _defaults.Entries)
+        {
+            Append(entry.UniqueId);
+            Append(entry.DisplayName);
+            Append(string.Join(",", entry.RecognitionValues.Select(static value => value.ToString("X2", CultureInfo.InvariantCulture))));
+        }
+        return Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(text.ToString())));
+
+        void Append(string value)
+        {
+            _ = text.Append(value.Length.ToString(CultureInfo.InvariantCulture)).Append(':').Append(value);
+        }
     }
 
     private static EventBufferFormatConfigurationDocument ToDocument(EventBufferFormatConfiguration configuration)

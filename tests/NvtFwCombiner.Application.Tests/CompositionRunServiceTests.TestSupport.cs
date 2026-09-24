@@ -1,4 +1,5 @@
 using NvtFwCombiner.Application.Composition;
+using NvtFwCombiner.Application.FlashMaps;
 using NvtFwCombiner.Application.Ports;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.TestSupport;
@@ -30,13 +31,13 @@ public sealed partial class CompositionRunServiceTests
                 "dp-input",
                 "dp-artifact",
                 "dp-input.bin",
-                CompiledInputArtifactClass.TpFirmware),
+                CompiledInputArtifactClass.Auxiliary),
             new InputArtifactBinding(
                 "tp-input",
                 "tp-input",
                 "tp-artifact",
                 "tp-input.bin",
-                CompiledInputArtifactClass.TpFirmware),
+                CompiledInputArtifactClass.Auxiliary),
         ];
     }
 
@@ -45,7 +46,7 @@ public sealed partial class CompositionRunServiceTests
     {
         var source = new AddressSpace(
             "tp-input",
-            4,
+            0x1000,
             AddressSpaceMutability.Immutable,
             inputOversizePolicy: InputOversizePolicy.ExtractDeclaredRange);
         var plan = new CompositionPlan(
@@ -72,9 +73,20 @@ public sealed partial class CompositionRunServiceTests
             "synthetic-tp-maximum.bin",
             inputLengthRequirement: new CompiledSourceViewCoverageInputLengthRequirement(
                 maximumBytes: InputLengthPolicyLimits.MaximumTpFirmwareBytes));
+        byte[] tpBytes = new byte[sourceLength];
+        if (sourceLength >= 0x1000)
+        {
+            tpBytes[FirmwareConfigLayout.FirmwareVersionOffset] = 0x12;
+            tpBytes[FirmwareConfigLayout.FirmwareVersionBarOffset] = unchecked((byte)~0x12);
+            tpBytes[FirmwareConfigLayout.ChipNumberOffset] = 1;
+            tpBytes[0xFFC] = 0x00;
+            tpBytes[0xFFD] = (byte)'N';
+            tpBytes[0xFFE] = (byte)'V';
+            tpBytes[0xFFF] = (byte)'T';
+        }
         var reader = new FakeArtifactReader(new Dictionary<string, byte[]>
         {
-            ["tp-artifact"] = new byte[sourceLength],
+            ["tp-artifact"] = tpBytes,
         });
         var writer = new FakeOutputWriter();
         var service = new CompositionRunService(
@@ -101,7 +113,8 @@ public sealed partial class CompositionRunServiceTests
         IcNumberInputMode? icNumberInputMode = null,
         IReadOnlyList<CompiledValidationRequirement>? validationRequirements = null,
         bool allowOutputOverride = false,
-        CompiledInputLengthRequirement? inputLengthRequirement = null)
+        CompiledInputLengthRequirement? inputLengthRequirement = null,
+        CompiledInputArtifactClass? nonReferenceArtifactClass = null)
     {
         return CompiledCompositionTestFactory.Create(
             plan,
@@ -110,7 +123,8 @@ public sealed partial class CompositionRunServiceTests
             icNumberInputMode,
             validationRequirements,
             allowOutputOverride: allowOutputOverride,
-            inputLengthRequirement: inputLengthRequirement);
+            inputLengthRequirement: inputLengthRequirement,
+            nonReferenceArtifactClass: nonReferenceArtifactClass);
     }
 
     private sealed class FakeOutputWriter : ICompositionOutputWriter

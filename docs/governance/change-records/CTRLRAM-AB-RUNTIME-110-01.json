@@ -1,0 +1,72 @@
+{
+  "schemaVersion": 2,
+  "taskId": "CTRLRAM-AB-RUNTIME-110-01",
+  "capability": "Bind the checked NT51929 AB bank preparation to one candidate compiled artifact, exact composite proof and existing Application validation/execution",
+  "integrationBase": "b9a94a2bab1a7bc05129b3438f0c0afeaaf45ad4",
+  "risk": "R3",
+  "kind": "behavior",
+  "state": "final-complete",
+  "mutablePaths": [
+    "src/NvtFwCombiner.Domain/Composition/V2CompilationContext.cs",
+    "src/NvtFwCombiner.Domain/Composition/V2CompiledCompositionDetails.cs",
+    "src/NvtFwCombiner.Domain/Composition/CompiledComposition.cs",
+    "src/NvtFwCombiner.Domain/Composition/CompiledComposition.Fingerprint.cs",
+    "src/NvtFwCombiner.Domain/Composition/CompiledInputSlotRequirement.cs",
+    "src/NvtFwCombiner.Domain/Composition/RuntimeReferenceBankReplaceV2CompilationContext.cs",
+    "src/NvtFwCombiner.Domain/Composition/CompiledComposition.Fingerprint.Banks.cs",
+    "src/NvtFwCombiner.Domain/Composition/CompiledBankScopedValidation.cs",
+    "src/NvtFwCombiner.Profiles/V2/V2CompositionPlanCompiler.RuntimeReferenceReplace.BankCompilation.cs",
+    "src/NvtFwCombiner.Application/Capabilities/RuntimeReferenceCompilationProof.cs",
+    "src/NvtFwCombiner.Application/Capabilities/RuntimeReferenceCompilationProof.Banks.cs",
+    "src/NvtFwCombiner.Application/Capabilities/CanonicalDynamicCapabilityModels.cs",
+    "src/NvtFwCombiner.Application/Capabilities/CapabilityDefinitionFingerprint.cs",
+    "src/NvtFwCombiner.Application/Capabilities/CapabilityPublicationCoherence.cs",
+    "src/NvtFwCombiner.Application/Composition/CompositionRunRequest.cs",
+    "src/NvtFwCombiner.Application/Composition/CompositionRunService.Inputs.cs",
+    "src/NvtFwCombiner.Application/Composition/CompositionRunService.ExternalProcessors.cs",
+    "src/NvtFwCombiner.Application/Composition/CompositionRunService.InputLoadValidations.cs",
+    "src/NvtFwCombiner.Application/Composition/CompositionRunService.FinalOutputValidations.cs",
+    "src/NvtFwCombiner.Application/Composition/CompositionRunService.BankReferences.cs",
+    "src/NvtFwCombiner.Application/Composition/AcceptedSessionCompositionExecution.cs",
+    "tests/NvtFwCombiner.Bootstrap.Tests/AbCtrlRamRuntimeWiringTests.cs"
+  ],
+  "implementationOwner": "/root",
+  "searchEvidence": [
+    "HEAD0086fe12 checked bank preparation and independent scoped review retained",
+    "Current RuntimeReferenceCompilationProof binds exactly one local processor; CanonicalCapabilityCompilationContract identifies one trusted profile; neither is permission for AB support",
+    "CompositionRunService owns input/final validators, one CompositionEngine call and terminal commit; virtual bank inputs require exact captured Reference identity",
+    "Owner authorizes Application/UI wiring and tests; explicit local candidate retains independent firmware Golden/human release debt",
+    "Bounded R1 runtime test found slash-bearing bank operation IDs rejected by the existing native safe-ID contract. Before editing ExternalProcessors.cs, scope and sequence-based bank-only staging ID correction were disclosed; independent reviewer approved the delta. Original report operation identity and tool validator remain unchanged."
+  ],
+  "semanticOwner": "Profiles owns closed composite lowering/definition; Domain owns immutable provenance and fingerprint; Application owns exact proof, staged validation and terminal execution",
+  "terminalContract": "One closed composite definition retains true layout and local parent identities. Candidate only; no inherited Supported status. Reject caller virtual inputs, stale Reference/slices, changed bank/placement/proofs/operations, unknown validations and unproven processor authority. Existing four local validators are forwarded at their original stage and bank-local view. One compiled artifact and existing engine/commit. Registration/UI follow in a separately admitted bounded unit.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "/root/layout_ownership_review",
+    "outcome": "approved",
+    "evidence": "2026-09-22 independent concrete design admission: typed composite-definition variant, separated layout map mode and compilation mode, stable definition/run fingerprint distinction, private compiler factory, exact parent operation/proof binding, captured-hash-derived virtual bank inputs and four typed validator forwarding. No generic bundle schema or arbitrary candidate admission. Source-only bank coordinates verified; certification remains open."
+  },
+  "implementationHead": "183a0d3652a81fb30dcb977d6ff1338f0f3bcd0f",
+  "reviewedHead": "183a0d3652a81fb30dcb977d6ff1338f0f3bcd0f",
+  "pathStateDigest": "9f182b6f9fce5c4d1f9a9c8b74174f93225e12576a5ca377502d05c022544f78",
+  "finalReview": {
+    "reviewer": "/root/r3_final_review",
+    "outcome": "approved",
+    "evidence": "Independent /root/r3_final_review exact-head final-preview confirmation on 2026-09-25 at 183a0d3652a81fb30dcb977d6ff1338f0f3bcd0f. Verified this staged record's unchanged immutable admission, reviewed integration partition, matching implementation/review heads and complete committed path-state digest. The delta from 85795b141 changes only CHANGELOG and auxiliary delivery prose; no firmware bytes, ranges, profile, policy or processor semantics changed. The Perfect/Partial auxiliary digests were recomputed and matched. Repository technical finalReview approved; no new P0-P2, scoped PASS-WITH-HUMAN-GATE. This review does not supply external firmware/release-owner attestations, AB CtrlRAM independent Golden or Header/CRC/exact-write-range approval. Earlier dated evidence follows: Independent /root/r3_final_review exact-head technical re-review on 2026-09-25 at 85795b1416c689bfd484806d0425b9c06dfec9c1. Compared the complete 022219d53-to-reviewed delta and all original mutable-path states. Immutable admission and this record's unique integration partition remain unchanged. No R3 governed firmware path changed; only Perfect/Partial records' auxiliary delivery evidence changed. Prior firmware substantive review remains applicable, with no new P0-P3 and scoped PASS-WITH-HUMAN-GATE. Verifier R2 review, typed external R3 attestations, independent AB CtrlRAM expected-output Golden and Header/CRC/exact-write-range approval remain separate gates. Earlier dated review evidence follows: Independent /root/r3_final_review exact-head technical rebind confirmation on 2026-09-24 at 022219d53bbb24e5434ab4f6185df3c0019e6890. The sole delta from reviewed 871c6810e is non-governed CHANGELOG verification-status prose. All 17 R3 admission blobs and all 444 unique original mutable-path states were checked unchanged between those heads. This record's complete committed Git path-state digest is 9f182b6f9fce5c4d1f9a9c8b74174f93225e12576a5ca377502d05c022544f78; its integration ownership remains within the unique 45-record/355-governed-path partition. No new P0-P2; repository technical finalReview approved, scoped Polytail PASS-WITH-HUMAN-GATE. External firmware/release-owner attestations, independent AB CtrlRAM Golden and exact write-range authority remain separate and absent; the full verifier is failing. Earlier dated technical review evidence follows: Independent /root/r3_final_review technical final review rebound on 2026-09-24 to d6b8ad31957b173ab82b46616159c2826d167368. Verified the complete delta from previously reviewed f85348ed5 consists only of the owner-approved 1.1.11 roadmap allocation, auxiliary delivery evidence and its new design-active admission. This record’s immutable admission and integration partition remain unchanged; its complete original mutablePaths digest was independently recomputed from committed Git bytes and matched. Prior firmware technical review remains applicable; no new P0-P2. Repository technical finalReview approved; scoped Polytail PASS-WITH-HUMAN-GATE. External firmware/release-owner authority, Candidate Golden and exact write-range approval remain separate mandatory gates; the failed verifier run is not waived or reclassified as passed."
+  },
+  "integrationPaths": [
+    "src/NvtFwCombiner.Application/Capabilities/CanonicalDynamicCapabilityModels.cs",
+    "src/NvtFwCombiner.Application/Capabilities/CapabilityDefinitionFingerprint.cs",
+    "src/NvtFwCombiner.Application/Capabilities/CapabilityPublicationCoherence.cs",
+    "src/NvtFwCombiner.Application/Capabilities/RuntimeReferenceCompilationProof.cs",
+    "src/NvtFwCombiner.Application/Composition/AcceptedSessionCompositionExecution.cs",
+    "src/NvtFwCombiner.Application/Composition/CompositionRunRequest.cs",
+    "src/NvtFwCombiner.Application/Composition/CompositionRunService.ExternalProcessors.cs",
+    "src/NvtFwCombiner.Application/Composition/CompositionRunService.FinalOutputValidations.cs",
+    "src/NvtFwCombiner.Application/Composition/CompositionRunService.InputLoadValidations.cs",
+    "src/NvtFwCombiner.Application/Composition/CompositionRunService.Inputs.cs",
+    "src/NvtFwCombiner.Domain/Composition/CompiledBankScopedValidation.cs",
+    "src/NvtFwCombiner.Domain/Composition/CompiledComposition.Fingerprint.Banks.cs",
+    "src/NvtFwCombiner.Domain/Composition/CompiledComposition.cs"
+  ]
+}

@@ -30,17 +30,22 @@ internal sealed class MemoryFocusLaneViewModel
     public string PositionLabel => DisplayGroup is ReplaceRegionGroup.Base or ReplaceRegionGroup.Other ? "•" : Title;
 
     public static IReadOnlyList<MemoryFocusPositionViewModel> CreatePositions(
-        IEnumerable<MemoryFocusLaneViewModel> lanes, long capacity)
+        IEnumerable<MemoryFocusLaneViewModel> lanes, long capacity, long viewportStart = 0)
     {
         var parts = new List<MemoryFocusPositionViewModel>();
-        long cursor = 0;
+        long cursor = viewportStart;
+        long endExclusive = checked(viewportStart + capacity);
         foreach (MemoryFocusLaneViewModel lane in lanes.OrderBy(static lane => lane.Start))
         {
+            if (lane.Start < cursor || lane.EndExclusive > endExclusive)
+            {
+                throw new ArgumentException("Focus lanes must be ordered inside their viewport.", nameof(lanes));
+            }
             if (lane.Start > cursor) { parts.Add(new(lane.Start - cursor, string.Empty)); }
             parts.Add(new(lane.EndExclusive - lane.Start, lane.PositionLabel, lane));
             cursor = lane.EndExclusive;
         }
-        if (capacity > cursor) { parts.Add(new(capacity - cursor, string.Empty)); }
+        if (endExclusive > cursor) { parts.Add(new(endExclusive - cursor, string.Empty)); }
         return parts;
     }
 

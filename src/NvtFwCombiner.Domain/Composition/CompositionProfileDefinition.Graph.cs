@@ -25,6 +25,7 @@ internal sealed partial class CompositionProfileDefinition
         ValidateInputPolicy();
         ValidateInputSelectionGroups(slots);
         ValidateSpaces(slots);
+        ValidateSourceEnvelopeShape(slots);
         if (Header.CompilationContextKind == V2CompilationContextKind.LogicalOutput)
         {
             ValidateLogicalOutputShape();
@@ -334,6 +335,46 @@ internal sealed partial class CompositionProfileDefinition
         DomainInvariant.Require(
             _inputSlots.All(slot => referencedSlotIds.Contains(slot.SlotId)),
             "Every input slot must feed an input or clone space.");
+    }
+
+    private void ValidateSourceEnvelopeShape(
+        Dictionary<string, CompositionInputSlotDefinition> slots)
+    {
+        SourceEnvelopeProfileBinding? binding = Header.SourceEnvelopeBinding;
+        MutableCompositionProfileSpace output = _spaces.OfType<MutableCompositionProfileSpace>()
+            .Single(space => space.Kind == CompositionProfileSpaceKind.OutputImage);
+        if (binding is null)
+        {
+            DomainInvariant.Require(output.Capacity is not SourceSlotProfileCapacity &&
+                _spaces.OfType<MutableCompositionProfileSpace>().All(space =>
+                    space.Capacity is not SourceSlotProfileCapacity),
+                "Source-slot capacity requires an explicit source-envelope binding.");
+            return;
+        }
+
+        DomainInvariant.Require(
+            Header.CompilationContextKind == V2CompilationContextKind.ResolvedMap &&
+            CompositionKind == CompositionKind.Merge &&
+            Header.MapBinding is not null &&
+            Header.MapBinding.MapIds.Contains(binding.LayoutTemplateMapId, StringComparer.Ordinal) &&
+            Header.MapBinding.RequiredRegionIds.Contains(binding.RootRegionId, StringComparer.Ordinal) &&
+            output.Capacity is SourceSlotProfileCapacity sourceCapacity &&
+            StringComparer.Ordinal.Equals(sourceCapacity.SourceSlotId, binding.SourceSlotId) &&
+            (output.Initializer is BlankProfileInitializer { FillByte: 0 } ||
+                (binding.AllowsAbsentSource &&
+                    output.Initializer is BlankProfileInitializer { FillByte: 0xFF })) &&
+            _spaces.OfType<MutableCompositionProfileSpace>().All(space =>
+                ReferenceEquals(space, output) || space.Capacity is not SourceSlotProfileCapacity) &&
+            slots.TryGetValue(binding.SourceSlotId, out CompositionInputSlotDefinition? sourceSlot) &&
+            sourceSlot.ArtifactClass == CompiledInputArtifactClass.DpFirmware &&
+            sourceSlot.LengthRequirement is ResolvedMapCapacityInputLengthDefinition &&
+            sourceSlot.Normalization is CompiledNoInputNormalization &&
+            sourceSlot.Cardinality is CompiledInputSlotCardinality.ExactlyOne or
+                CompiledInputSlotCardinality.ZeroOrOne &&
+            sourceSlot.Required != binding.AllowsAbsentSource &&
+            _spaces.OfType<InputArtifactProfileSpace>().Count(space =>
+                StringComparer.Ordinal.Equals(space.SlotId, binding.SourceSlotId)) == 1,
+            "Source envelope requires one explicitly bound unnormalized DP slot, map template, root, and blank source-sized Merge output.");
     }
 
     private void ValidateViews(IReadOnlyDictionary<string, CompositionProfileSpace> spaces)

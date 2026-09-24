@@ -16,6 +16,7 @@ public sealed partial class CompositionRunService
         {
             CompositionIssue? issue = requirement switch
             {
+                CompiledBankScopedValidation bank => ValidateBankFinalOutput(inputBytes, outputBytes.Span, bank),
                 CompiledFirmwareConfigBackupVersionValidation firmwareConfig =>
                     ValidateFirmwareConfigBackupVersion(outputBytes.Span, firmwareConfig),
                 CompiledFirmwareConfigBackupPlacementAuthorityValidation authority =>

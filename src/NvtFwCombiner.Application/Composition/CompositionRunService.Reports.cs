@@ -94,6 +94,10 @@ public sealed partial class CompositionRunService
             resolvedMapId: request.CompiledComposition.V2Details.Provenance.Context
                 is MapBoundV2CompilationContext mapContext
                     ? mapContext.ResolvedMap.ImageMap.MapId
+                    : null,
+            sourceEnvelope: request.CompiledComposition.V2Details.Provenance.Context
+                is ResolvedMapV2CompilationContext { SourceEnvelope: { } envelope }
+                    ? new SourceEnvelopeRunSummary(envelope)
                     : null);
     }
 

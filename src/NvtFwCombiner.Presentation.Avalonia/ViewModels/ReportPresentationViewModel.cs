@@ -318,7 +318,7 @@ internal sealed partial class ReportPresentationViewModel : ObservableObject
         ArgumentException.ThrowIfNullOrWhiteSpace(action);
         ArgumentNullException.ThrowIfNull(profileId);
         ArgumentException.ThrowIfNullOrWhiteSpace(icId);
-        ArgumentException.ThrowIfNullOrWhiteSpace(number);
+        ArgumentNullException.ThrowIfNull(number);
         ArgumentException.ThrowIfNullOrWhiteSpace(message);
         ArgumentNullException.ThrowIfNull(slotPaths);
         ArgumentException.ThrowIfNullOrWhiteSpace(issueCode);
@@ -355,7 +355,7 @@ internal sealed partial class ReportPresentationViewModel : ObservableObject
                     Code = issueCode,
                     Severity = "error",
                     Message = message,
-                    OperationId = $"{icId} / {number}",
+                    OperationId = string.IsNullOrWhiteSpace(number) ? icId : $"{icId} / {number}",
                 },
             },
             Output = new

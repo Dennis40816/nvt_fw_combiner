@@ -2,6 +2,7 @@ using System.Security.Cryptography;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Avalonia.Controls;
+using NvtFwCombiner.Bootstrap;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Presentation.Avalonia.HexViewport;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
@@ -10,11 +11,23 @@ namespace NvtFwCombiner.UiSmoke.Tests;
 
 public sealed partial class ReportReviewHistoryTests
 {
+    /// <summary>The shared live Report fixture uses a surviving route under the actual product policy.</summary>
+    [Fact]
+    public async Task ReportInspectionFixtureUsesProductionGeneralReplace()
+    {
+        CompositionRunResult result = await CreateGeneralReplaceInspectionResultAsync(CompositionHostServices.Create());
+        using JsonDocument json = JsonDocument.Parse(CompositionRunReportJson.Serialize(result));
+
+        Assert.Equal(ExperienceIds.GeneralReplace, json.RootElement.GetProperty("ExperienceId").GetString());
+        Assert.Equal("NT51926", json.RootElement.GetProperty("IcId").GetString());
+        Assert.Equal(2, json.RootElement.GetProperty("OutputDifferences")[0].GetProperty("ChangedByteCount").GetInt32());
+    }
+
     /// <summary>Current and reopened reports project identical bytes through the shared viewport.</summary>
     [Fact]
     public async Task ReportHexDiffUsesVerifiedAndPersistedReplayBytes()
     {
-        CompositionRunResult result = await CreateDpReplaceInspectionResultAsync(TestHost);
+        CompositionRunResult result = await CreateGeneralReplaceInspectionResultAsync(TestHost);
         var report = ReportReviewViewModel.FromJsonCancellable(
             CompositionRunReportJson.Serialize(result),
             "preview report",
@@ -28,12 +41,12 @@ public sealed partial class ReportReviewHistoryTests
         Assert.False(report.HexDiff.IsReportedRangeMode);
         Assert.Equal("Complete Hex Diff", report.HexDiff.AvailabilityTitle);
         Assert.Equal(CompositionAddressSpaceIds.OutputImage, report.HexDiff.OutputSpaceId);
-        Assert.Equal(CompositionAddressSpaceIds.ReferenceBase, report.HexDiff.ReferenceSpaceId);
+        Assert.Equal("reference-image", report.HexDiff.ReferenceSpaceId);
         Assert.Equal(0x40000 / 16, report.HexDiff.TotalRowCount);
         Assert.Same(HexViewportCapabilityProfile.ReportDiff, report.HexDiff.ViewportSnapshot.Profile);
         Assert.InRange(report.HexDiff.ViewportSnapshot.Rows.Count, 1, 12);
         ReportHexDiffRangeViewModel selected = Assert.IsType<ReportHexDiffRangeViewModel>(report.HexDiff.SelectedRange);
-        Assert.Equal(0x100, selected.Start);
+        Assert.Equal(ReportFixtureTargetStart, selected.Start);
         Assert.True(selected.IsSelected);
         Assert.Contains("output-image", selected.AccessibleRange, StringComparison.Ordinal);
         Assert.Contains("half-open", selected.AccessibleRange, StringComparison.Ordinal);
@@ -42,7 +55,7 @@ public sealed partial class ReportReviewHistoryTests
             selected.DisplayRange);
         HexViewportCell currentChangedCell = report.HexDiff.ViewportSnapshot.Rows
             .SelectMany(static row => row.Cells)
-            .Single(cell => cell.Address == 0x100);
+            .Single(cell => cell.Address == ReportFixtureTargetStart);
         Assert.Equal((byte)0xA5, currentChangedCell.PrimaryValue);
         _ = Assert.NotNull(currentChangedCell.ComparisonValue);
         Assert.True(currentChangedCell.IsDataChanged);
@@ -58,7 +71,7 @@ public sealed partial class ReportReviewHistoryTests
         Assert.Contains("up to two aligned context rows", reopenedRange.ReplayCoverage, StringComparison.Ordinal);
         HexViewportCell reopenedChangedCell = reopened.HexDiff.ViewportSnapshot.Rows
             .SelectMany(static row => row.Cells)
-            .Single(cell => cell.Address == 0x100);
+            .Single(cell => cell.Address == ReportFixtureTargetStart);
         Assert.Equal(currentChangedCell.PrimaryValue, reopenedChangedCell.PrimaryValue);
         Assert.Equal(currentChangedCell.ComparisonValue, reopenedChangedCell.ComparisonValue);
         Assert.Equal(currentChangedCell.Decorations, reopenedChangedCell.Decorations);
@@ -144,7 +157,7 @@ public sealed partial class ReportReviewHistoryTests
     [Fact]
     public async Task ReportHexDiffRejectsUnverifiedSnapshotAndRangeIdentity()
     {
-        CompositionRunResult result = await CreateDpReplaceInspectionResultAsync(TestHost);
+        CompositionRunResult result = await CreateGeneralReplaceInspectionResultAsync(TestHost);
         using var source = JsonDocument.Parse(CompositionRunReportJson.Serialize(result));
         string runId = source.RootElement.GetProperty("RunId").GetString()!;
         (string Name, string Json)[] invalidReports =
@@ -222,7 +235,7 @@ public sealed partial class ReportReviewHistoryTests
     [Fact]
     public async Task ReportHexDiffRejectsTamperedPersistedReplayBytes()
     {
-        CompositionRunResult result = await CreateDpReplaceInspectionResultAsync(TestHost);
+        CompositionRunResult result = await CreateGeneralReplaceInspectionResultAsync(TestHost);
 
         foreach (bool tamperChangedByte in new[] { false, true })
         {
@@ -249,7 +262,7 @@ public sealed partial class ReportReviewHistoryTests
     [Fact]
     public async Task ReportHexDiffRejectsNonCanonicalReplayEvidence()
     {
-        CompositionRunResult result = await CreateDpReplaceInspectionResultAsync(TestHost);
+        CompositionRunResult result = await CreateGeneralReplaceInspectionResultAsync(TestHost);
         JsonNode shortenedRoot = JsonNode.Parse(CompositionRunReportJson.Serialize(result))!;
         JsonNode shortenedDifference = shortenedRoot["OutputDifferences"]!.AsArray()[0]!;
         JsonNode shortenedReplay = shortenedDifference["Replay"]!;
@@ -278,7 +291,7 @@ public sealed partial class ReportReviewHistoryTests
     [Fact]
     public async Task ReportHexDiffKeepsLongRangeScrollingLocalAndBounded()
     {
-        CompositionRunResult result = await CreateDpReplaceInspectionResultAsync(TestHost, changeLength: 0x200);
+        CompositionRunResult result = await CreateGeneralReplaceInspectionResultAsync(TestHost, changeLength: 0x200);
         var report = ReportReviewViewModel.FromJson(CompositionRunReportJson.Serialize(result), "persisted long range");
 
         Assert.True(report.HexDiff.IsReportedRangeMode);
@@ -327,7 +340,7 @@ public sealed partial class ReportReviewHistoryTests
     [Fact]
     public async Task ReportHexDiffKeepsLargeRangeNavigationBounded()
     {
-        CompositionRunResult result = await CreateDpReplaceInspectionResultAsync(TestHost);
+        CompositionRunResult result = await CreateGeneralReplaceInspectionResultAsync(TestHost);
         using var source = JsonDocument.Parse(CompositionRunReportJson.Serialize(result));
         string runId = source.RootElement.GetProperty("RunId").GetString()!;
         string json = ReportJsonSamples.ReplaceWithManyOutputDifferences(

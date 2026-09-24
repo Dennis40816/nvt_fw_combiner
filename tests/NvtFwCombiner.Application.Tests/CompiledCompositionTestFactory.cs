@@ -28,7 +28,8 @@ internal static class CompiledCompositionTestFactory
         bool allowOutputOverride = false,
         IReadOnlyDictionary<string, string>? inputRolesByAddressSpace = null,
         IReadOnlyList<string>? outputRequiredTokenIds = null,
-        CompiledInputLengthRequirement? inputLengthRequirement = null)
+        CompiledInputLengthRequirement? inputLengthRequirement = null,
+        CompiledInputArtifactClass? nonReferenceArtifactClass = null)
     {
         ArgumentNullException.ThrowIfNull(plan);
         ArgumentNullException.ThrowIfNull(identity);
@@ -55,7 +56,8 @@ internal static class CompiledCompositionTestFactory
             identity.ExperienceId,
             identity.CompositionKind,
             provenance,
-            CreateInputContract(plan, identity, inputRolesByAddressSpace, inputLengthRequirement),
+            CreateInputContract(plan, identity, inputRolesByAddressSpace, inputLengthRequirement,
+                nonReferenceArtifactClass),
             new CompiledRegionAccessContract([], []),
             new CompiledOutputNamingRequirement(
                 defaultOutputFileName,
@@ -70,7 +72,8 @@ internal static class CompiledCompositionTestFactory
         CompositionPlan plan,
         TestCompiledCompositionIdentity identity,
         IReadOnlyDictionary<string, string>? inputRolesByAddressSpace,
-        CompiledInputLengthRequirement? inputLengthRequirement)
+        CompiledInputLengthRequirement? inputLengthRequirement,
+        CompiledInputArtifactClass? nonReferenceArtifactClass)
     {
         var slots = new List<CompiledInputSlotRequirement>();
         var bindings = new List<CompiledInputSpaceBinding>();
@@ -89,7 +92,8 @@ internal static class CompiledCompositionTestFactory
                     space,
                     identity,
                     isReference,
-                    inputLengthRequirement);
+                     inputLengthRequirement,
+                     nonReferenceArtifactClass);
             slots.Add(CompiledInputSlotTestFactory.Create(
                 slotId,
                 inputRolesByAddressSpace?.GetValueOrDefault(space.AddressSpaceId) ??
@@ -115,7 +119,8 @@ internal static class CompiledCompositionTestFactory
         AddressSpace space,
         TestCompiledCompositionIdentity identity,
         bool isReference,
-        CompiledInputLengthRequirement? inputLengthRequirement)
+        CompiledInputLengthRequirement? inputLengthRequirement,
+        CompiledInputArtifactClass? nonReferenceArtifactClass)
     {
         if (isReference)
         {
@@ -128,10 +133,10 @@ internal static class CompiledCompositionTestFactory
         if (inputLengthRequirement is not null)
         {
             return (
-                inputLengthRequirement is CompiledSourceViewCoverageInputLengthRequirement
-                { MaximumBytes: not null }
+                nonReferenceArtifactClass ?? (inputLengthRequirement is
+                    CompiledSourceViewCoverageInputLengthRequirement { MaximumBytes: not null }
                     ? CompiledInputArtifactClass.TpFirmware
-                    : CompiledInputArtifactClass.Auxiliary,
+                    : CompiledInputArtifactClass.Auxiliary),
                 inputLengthRequirement,
                 new CompiledNoInputNormalization());
         }
@@ -171,7 +176,7 @@ internal static class CompiledCompositionTestFactory
         }
 
         return (
-            CompiledInputArtifactClass.TpFirmware,
+            nonReferenceArtifactClass ?? CompiledInputArtifactClass.TpFirmware,
             new CompiledExactBytesInputLengthRequirement(space.Length),
             new CompiledNoInputNormalization());
     }

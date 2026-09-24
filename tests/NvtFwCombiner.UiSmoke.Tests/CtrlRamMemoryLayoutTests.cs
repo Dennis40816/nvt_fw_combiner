@@ -27,7 +27,7 @@ public sealed class CtrlRamMemoryLayoutTests
     public async Task SharedCtrlRamCardsKeepSizeAndEveryTargetAfterLoading(bool darkChinese)
     {
         using var workspace = TempWorkspace.Create("ctrlram-shared-guidance");
-        PresentationHostServices services = await CreateServicesAsync(workspace, useRetainedDpReplacePolicy: false);
+        PresentationHostServices services = await CreateServicesAsync(workspace);
         using var window = new MainWindow(UiLaunchOptions.Empty, StartupTraceSession.Disabled,
             services, ShellPreferenceSnapshot.Default)
         { Width = 1180, Height = 1040 };
@@ -112,7 +112,7 @@ public sealed class CtrlRamMemoryLayoutTests
     public async Task LoadedCtrlRamWindowStartsWithOnlyTheOverview(CtrlRamRegionRole role, bool selected)
     {
         using var workspace = TempWorkspace.Create("ctrlram-layout-collapsed");
-        PresentationHostServices services = await CreateServicesAsync(workspace, useRetainedDpReplacePolicy: false);
+        PresentationHostServices services = await CreateServicesAsync(workspace);
         using var window = new MainWindow(UiLaunchOptions.Empty, StartupTraceSession.Disabled,
             services, ShellPreferenceSnapshot.Default)
         { Width = 1180, Height = 1040 };
@@ -194,7 +194,7 @@ public sealed class CtrlRamMemoryLayoutTests
     public async Task ThreeChipWindowShowsFirmwareOverviewAndSeparatePhysicalLanes()
     {
         using var workspace = TempWorkspace.Create("ctrlram-layout-threechip");
-        PresentationHostServices services = await CreateServicesAsync(workspace, useRetainedDpReplacePolicy: false);
+        PresentationHostServices services = await CreateServicesAsync(workspace);
         using var window = new MainWindow(UiLaunchOptions.Parse([]), StartupTraceSession.Disabled,
             services, ShellPreferenceSnapshot.Default)
         { Width = 1180, Height = 1040 };
@@ -302,7 +302,7 @@ public sealed class CtrlRamMemoryLayoutTests
         using var workspace = TempWorkspace.Create("memory-standard-928");
         using var golden = StandardMergeGoldenManifest.Load();
         JsonElement inputs = golden.CaseByIc("51928").GetProperty("inputs");
-        PresentationHostServices services = await CreateServicesAsync(workspace, useRetainedDpReplacePolicy: false);
+        PresentationHostServices services = await CreateServicesAsync(workspace);
         using var window = new MainWindow(UiLaunchOptions.Empty, StartupTraceSession.Disabled,
             services, ShellPreferenceSnapshot.Default)
         { Width = 1180, Height = 1040 };
@@ -383,12 +383,12 @@ public sealed class CtrlRamMemoryLayoutTests
                         ItemsControl main = Assert.Single(rail.GetVisualDescendants().OfType<ItemsControl>(),
                             control => control.Name == "MemoryMainRail");
                         Assert.InRange(main.Bounds.Height, 33.5, 34.5);
-                        WrapPanel legend = Assert.Single(rail.GetVisualDescendants().OfType<WrapPanel>(), panel => panel.Name == "MemoryLegend");
+                        Panel legend = Assert.Single(rail.GetVisualDescendants().OfType<Panel>(), panel => panel.Name == "MemoryLegend");
                         Assert.True(legend.IsEffectivelyVisible);
                         Point legendOrigin = legend.TranslatePoint(default, rail)!.Value;
                         Point mainOrigin = main.TranslatePoint(default, rail)!.Value;
                         Assert.True(legendOrigin.Y >= 0);
-                        Assert.True(legendOrigin.Y + legend.Bounds.Height <= mainOrigin.Y + 0.5);
+                        Assert.True(legendOrigin.Y >= mainOrigin.Y + main.Bounds.Height);
                         Assert.InRange(Math.Abs(legendOrigin.X + legend.Bounds.Width - rail.Bounds.Width), 0, 0.5);
                     }
                     foreach (FirmwareSlotCard card in window.GetVisualDescendants().OfType<FirmwareSlotCard>()

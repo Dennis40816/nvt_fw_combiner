@@ -1,6 +1,7 @@
 using NvtFwCombiner.Application.Authoring;
 using NvtFwCombiner.Application.Capabilities;
 using NvtFwCombiner.Application.ExternalTools;
+using NvtFwCombiner.Application.FlashMaps;
 using NvtFwCombiner.Application.Ports;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.TestSupport;
@@ -229,56 +230,57 @@ public sealed partial class AcceptedSessionFileIdentityTests
         Assert.DoesNotContain(paths[CompositionAddressSpaceIds.TpAInput], exception.Message, StringComparison.Ordinal);
     }
 
-    /// <summary>DP Replace ignores a client path alias after the session accepted canonical inputs.</summary>
+    /// <summary>General Replace ignores a client path alias after the session accepted canonical inputs.</summary>
     [Fact]
-    public async Task DpReplaceAcceptedSessionIgnoresSwappedClientPath()
+    public async Task GeneralReplaceAcceptedSessionIgnoresSwappedClientPath()
     {
         ReloadCatalog();
-        using var workspace = TempWorkspace.Create("nfc-dp-replace-accepted-path");
-        Dictionary<string, string> paths = CreateDpReplaceInputs(workspace);
-        ActiveSessionSnapshot accepted = await AcceptDpReplaceSessionAsync(paths);
+        using var workspace = TempWorkspace.Create("nfc-general-replace-accepted-path");
+        Dictionary<string, string> paths = CreateGeneralReplaceInputs(workspace);
+        GeneralAuthoringSessionPreparation prepared = await AcceptGeneralReplaceSessionAsync(paths);
+        ActiveSessionSnapshot accepted = prepared.AcceptedSession!;
         Dictionary<string, string> swapped = new(paths, StringComparer.Ordinal)
         {
-            [CompositionSlotIds.ReplaceDp] = workspace.Write(
+            ["mapping-1"] = workspace.Write(
                 "swapped-replacement.bin",
-                File.ReadAllBytes(paths[CompositionSlotIds.ReplaceDp])),
+                File.ReadAllBytes(paths["mapping-1"])),
         };
 
         CompositionRunResult expected = await ExecuteAsync(
             accepted,
-            paths);
+            paths, actionReadiness: prepared.Readiness);
         CompositionRunResult actual = await ExecuteAsync(
             accepted,
-            swapped);
+            swapped, actionReadiness: prepared.Readiness);
 
         Assert.True(expected.Succeeded, expected.OutcomeStatus);
         Assert.True(actual.Succeeded, actual.OutcomeStatus);
         Assert.Equal(expected.OutputSha256, actual.OutputSha256);
     }
 
-    /// <summary>DP Replace executes the immutable inspected bytes without reopening a changed path.</summary>
+    /// <summary>General Replace executes the immutable inspected bytes without reopening a changed path.</summary>
     [Fact]
-    public async Task DpReplaceAcceptedSessionUsesInspectedBytesAfterPathMutation()
+    public async Task GeneralReplaceAcceptedSessionUsesInspectedBytesAfterPathMutation()
     {
         ReloadCatalog();
-        using var workspace = TempWorkspace.Create("nfc-dp-replace-accepted-content");
-        Dictionary<string, string> paths = CreateDpReplaceInputs(workspace);
-        ActiveSessionSnapshot accepted = await AcceptDpReplaceSessionAsync(paths);
-        MutateFirstByte(paths[CompositionSlotIds.ReplaceDp]);
+        using var workspace = TempWorkspace.Create("nfc-general-replace-accepted-content");
+        Dictionary<string, string> paths = CreateGeneralReplaceInputs(workspace);
+        GeneralAuthoringSessionPreparation prepared = await AcceptGeneralReplaceSessionAsync(paths);
+        ActiveSessionSnapshot accepted = prepared.AcceptedSession!;
+        MutateFirstByte(paths["mapping-1"]);
 
         CompositionRunResult result = await ExecuteAsync(
             accepted,
-            paths);
+            paths, actionReadiness: prepared.Readiness);
 
         Assert.True(result.Succeeded, result.OutcomeStatus);
-        AuthoringInputSlotStatus replacement = accepted.InputSlotStatuses.Single(status =>
+        AuthoringSlotState replacement = accepted.Slots.Single(status =>
             StringComparer.Ordinal.Equals(
-                status.AddressSpaceId,
-                CompositionAddressSpaceIds.InitialCodeReplacement));
+                status.SelectedPath,
+                paths["mapping-1"]));
         CompositionOperation operation = accepted.ExactCapability!.CompiledComposition.Plan
-            .OrderedOperations.Single(candidate => StringComparer.Ordinal.Equals(
-                candidate.SourceSpaceId,
-                CompositionAddressSpaceIds.InitialCodeReplacement));
+            .OrderedOperations.Single(candidate => candidate.SourceSpaceId is not null &&
+                candidate.SourceSpaceId != accepted.ExactCapability.CompiledComposition.Plan.OutputInitialization.ReferenceSpaceId);
         Assert.Equal(
             replacement.AcceptedBytes!.Value.Span[0],
             result.OutputBytes.Span[checked((int)operation.TargetRange.Start)]);
@@ -326,29 +328,22 @@ public sealed partial class AcceptedSessionFileIdentityTests
             FixedInspectionKind.AbMerge);
     }
 
-    private Task<ActiveSessionSnapshot> AcceptDpReplaceSessionAsync(
+    private async Task<GeneralAuthoringSessionPreparation> AcceptGeneralReplaceSessionAsync(
         Dictionary<string, string> paths)
     {
-        var inspectionPaths = new Dictionary<string, string>(StringComparer.Ordinal)
-        {
-            [CompositionAddressSpaceIds.ReferenceBase] = paths[CompositionSlotIds.ReplaceBase],
-            [CompositionAddressSpaceIds.InitialCodeReplacement] = paths[CompositionSlotIds.ReplaceDp],
-        };
-        CompiledAuthoringSelectionSnapshot projection =
-            _host.Services.DpReplaceAuthoring.GetAuthoringSnapshot(
-                "NT51928",
-                [.. inspectionPaths.Keys],
-                inspectionPaths.ToDictionary(
-                    static pair => pair.Key,
-                    static pair => FileStamp.FromBytes(File.ReadAllBytes(pair.Value)),
-                    StringComparer.Ordinal),
-                new AuthoringRevision(1));
-        return AcceptSessionAsync(
-            ExperienceIds.DpReplace,
-            "NT51928",
-            projection.Catalog,
-            inspectionPaths,
-            FixedInspectionKind.DpReplace);
+        GeneralAuthoringSessionPreparation prepared = await _host.Services.GeneralAuthoring
+            .PrepareReplaceSessionAsync(
+                new AuthoringSessionState(ExperienceIds.GeneralReplace),
+                "NT51926",
+                "single",
+                paths[CompositionSlotIds.ReplaceBase],
+                GeneralTestDraftFactory.CreateReplaceDraft([
+                    GeneralTestDraftFactory.ReplaceFile("mapping-1", paths["mapping-1"], "0x3E020", "0x2"),
+                ]),
+                TestContext.Current.CancellationToken);
+        Assert.True(prepared.Succeeded, string.Join(" | ", prepared.Issues.Select(static issue => issue.Message)));
+        Assert.NotNull(prepared.AcceptedSession);
+        return prepared;
     }
 
     private async Task<ActiveSessionSnapshot> AcceptSessionAsync(
@@ -381,12 +376,6 @@ public sealed partial class AcceptedSessionFileIdentityTests
                     AbMergeAddressSpaceId: pair.Key,
                     AuthoringRevision: started.Snapshot!.AuthoringRevision.Value,
                     ExactCapability: exact),
-                FixedInspectionKind.DpReplace => new FirmwareInspectionSnapshotInput(
-                    pair.Key,
-                    pair.Value,
-                    DpReplaceAddressSpaceId: pair.Key,
-                    AuthoringRevision: started.Snapshot!.AuthoringRevision.Value,
-                    ExactCapability: exact),
                 _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, null),
             }),
         ];
@@ -403,9 +392,19 @@ public sealed partial class AcceptedSessionFileIdentityTests
                 exactCatalog,
                 started.Leases,
                 statuses);
-        Assert.True(completed.Succeeded, completed.Issue?.Message);
+        Assert.True(completed.Succeeded,
+            $"{completed.Issue?.Message} | selected={started.Snapshot!.SelectedRouteId} " +
+            $"fingerprint={started.Snapshot.CompilationFingerprint} " +
+            $"inspected={string.Join(", ", exactCatalog.Routes.Select(static route =>
+                $"{route.Identity.RouteId}/{route.CompilationFingerprint}"))} " +
+            $"issues={string.Join(", ", inspected.InspectionsById.Values.SelectMany(static result =>
+                result.AuthoringCompilationIssues).Select(static issue => issue.Code))}");
         Assert.NotNull(completed.Snapshot!.GetAcceptedCapability(
             AuthoringDerivedResultKind.Inspection));
+        Assert.True(
+            completed.Snapshot.HasCurrentInputInspection,
+            string.Join(" | ", completed.Snapshot.InputSlotStatuses.Select(static status =>
+                $"{status.SlotId}: {status.InspectionLifecycle} {status.InspectionIssueCode}")));
         return completed.Snapshot;
     }
 
@@ -414,10 +413,23 @@ public sealed partial class AcceptedSessionFileIdentityTests
         return new Dictionary<string, string>(StringComparer.Ordinal)
         {
             [CompositionAddressSpaceIds.DpInput] = workspace.Write(
-                "dp.bin", CreatePattern(0x40000, 0x21)),
+                "dp.bin", CreateStandardImage(0x21)),
             [CompositionAddressSpaceIds.TpInput] = workspace.Write(
-                "tp.bin", CreatePattern(0x40000, 0x31)),
+                "tp.bin", CreateStandardImage(0x31)),
         };
+    }
+
+    private static byte[] CreateStandardImage(byte fill)
+    {
+        byte[] tp = new byte[0x40000];
+        tp.AsSpan().Fill(fill);
+        const int backupStart = 0x1000;
+        const byte version = 0x81;
+        tp[backupStart + FirmwareConfigLayout.FirmwareVersionOffset] = version;
+        tp[backupStart + FirmwareConfigLayout.FirmwareVersionBarOffset] = unchecked((byte)~version);
+        tp[backupStart + FirmwareConfigLayout.ChipNumberOffset] = 1;
+        "\0NVT"u8.CopyTo(tp.AsSpan(backupStart + 0xFFC));
+        return tp;
     }
 
     private static Dictionary<string, string> CreateAbInputs(TempWorkspace workspace)
@@ -427,20 +439,20 @@ public sealed partial class AcceptedSessionFileIdentityTests
             [CompositionAddressSpaceIds.DpAbInput] = workspace.Write(
                 "dp-ab.bin", CreatePattern(0x80000, 0x41)),
             [CompositionAddressSpaceIds.TpAInput] = workspace.Write(
-                "tp-a.bin", CreatePattern(0x40000, 0x51)),
+                "tp-a.bin", CreateStandardImage(0x51)),
             [CompositionAddressSpaceIds.TpBInput] = workspace.Write(
-                "tp-b.bin", CreatePattern(0x40000, 0x61)),
+                "tp-b.bin", CreateStandardImage(0x61)),
         };
     }
 
-    private static Dictionary<string, string> CreateDpReplaceInputs(TempWorkspace workspace)
+    private static Dictionary<string, string> CreateGeneralReplaceInputs(TempWorkspace workspace)
     {
         return new Dictionary<string, string>(StringComparer.Ordinal)
         {
             [CompositionSlotIds.ReplaceBase] = workspace.Write(
-                "base.bin", CreatePattern(0x40000, 0x71)),
-            [CompositionSlotIds.ReplaceDp] = workspace.Write(
-                "replacement.bin", CreatePattern(0x40000, 0x81)),
+                "base.bin", File.ReadAllBytes(BootstrapTestData.GoldenArtifactPath("51926", "expected-output"))),
+            ["mapping-1"] = workspace.Write(
+                "replacement.bin", CreatePattern(2, 0x81)),
         };
     }
 
@@ -597,14 +609,15 @@ public sealed partial class AcceptedSessionFileIdentityTests
         ActiveSessionSnapshot session,
         IReadOnlyDictionary<string, string> paths,
         bool build = false,
-        string? outputPath = null)
+        string? outputPath = null,
+        CapabilityActionReadinessSnapshot? actionReadiness = null)
     {
         return _host.Services.CompositionExecution.ExecuteAsync(
             new AcceptedCompositionExecutionRequest(
                 session,
                 paths,
                 build,
-                outputPath),
+                outputPath, actionReadiness: actionReadiness),
             new CompositionRunProgressFeed(),
             TestContext.Current.CancellationToken);
     }
@@ -622,7 +635,6 @@ public sealed partial class AcceptedSessionFileIdentityTests
     {
         StandardMerge,
         AbMerge,
-        DpReplace,
     }
 
     private sealed class PassThroughProcessor : IExternalProcessor

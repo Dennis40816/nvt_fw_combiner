@@ -280,21 +280,22 @@ public sealed class CtrlRamReportMetadataPlanTests
             StringComparison.Ordinal);
     }
 
-    /// <summary>A readable base one byte outside every declared map becomes a typed input issue.</summary>
+    /// <summary>A non-map Base fails closed at classification or at exact-route length admission.</summary>
     [Theory]
-    [InlineData("nt51950-fw200-single-auto-prj-676-20260717", "NT51950", "tp-input", -1)]
-    [InlineData("nt51950-fw200-single-auto-prj-676-20260717", "NT51950", "tp-input", 1)]
-    [InlineData("nt51950-fw200-single-auto-prj-676-20260717", "NT51950", "expected-output", -1)]
-    [InlineData("nt51950-fw200-single-auto-prj-676-20260717", "NT51950", "expected-output", 1)]
-    [InlineData("nt51951-fw200-single-auto-prj-695-20260718", "NT51951", "tp-input", -1)]
-    [InlineData("nt51951-fw200-single-auto-prj-695-20260718", "NT51951", "tp-input", 1)]
-    [InlineData("nt51951-fw200-single-auto-prj-695-20260718", "NT51951", "expected-output", -1)]
-    [InlineData("nt51951-fw200-single-auto-prj-695-20260718", "NT51951", "expected-output", 1)]
-    public void NonMapReferenceCapacityReturnsTypedLengthIssue(
+    [InlineData("nt51950-fw200-single-auto-prj-676-20260717", "NT51950", "tp-input", -1, "input.reference.unrecognized")]
+    [InlineData("nt51950-fw200-single-auto-prj-676-20260717", "NT51950", "tp-input", 1, CompositionIssueCodes.InputAddressSpaceLengthMismatch)]
+    [InlineData("nt51950-fw200-single-auto-prj-676-20260717", "NT51950", "expected-output", -1, CompositionIssueCodes.InputAddressSpaceLengthMismatch)]
+    [InlineData("nt51950-fw200-single-auto-prj-676-20260717", "NT51950", "expected-output", 1, "input.reference.unrecognized")]
+    [InlineData("nt51951-fw200-single-auto-prj-695-20260718", "NT51951", "tp-input", -1, "input.reference.unrecognized")]
+    [InlineData("nt51951-fw200-single-auto-prj-695-20260718", "NT51951", "tp-input", 1, CompositionIssueCodes.InputAddressSpaceLengthMismatch)]
+    [InlineData("nt51951-fw200-single-auto-prj-695-20260718", "NT51951", "expected-output", -1, "input.reference.unrecognized")]
+    [InlineData("nt51951-fw200-single-auto-prj-695-20260718", "NT51951", "expected-output", 1, "input.reference.unrecognized")]
+    public void NonMapReferenceCapacityFailsClosedAtItsAdmissionStage(
         string caseId,
         string icId,
         string baseArtifactId,
-        int lengthDelta)
+        int lengthDelta,
+        string expectedIssueCode)
     {
         JsonElement fixtureCase = CanonicalGoldenTestData.LoadDirectCase(
             "ctrlram-replace",
@@ -333,9 +334,29 @@ public sealed class CtrlRamReportMetadataPlanTests
         Assert.Null(preparation.AcceptedSession);
         CompositionIssue issue = Assert.Single(
             preparation.Issues,
-            issue => issue.Code == CompositionIssueCodes.InputAddressSpaceLengthMismatch &&
+            issue => issue.Code == expectedIssueCode &&
                 issue.OperationId == CompositionSlotIds.ReplaceBase);
-        Assert.Contains("length", issue.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains(
+            expectedIssueCode == CompositionIssueCodes.InputAddressSpaceLengthMismatch
+                ? "length"
+                : "unambiguous",
+            issue.Message,
+            StringComparison.OrdinalIgnoreCase);
+
+        var adapter = new BuiltInCtrlRamAuthoringAdapter(
+            BootstrapTestHost.Canonical.Catalog,
+            BootstrapTestHost.Canonical.Projection);
+        CtrlRamAuthoringCompilation routeAdmission = adapter.Resolve(
+            icId,
+            "single",
+            slotPaths,
+            firmwareVersionEdit: null,
+            selectedInputBytes: inputBytes);
+        Assert.Null(routeAdmission.Capability);
+        CompositionIssue lengthIssue = Assert.Single(routeAdmission.Issues);
+        Assert.Equal(CompositionIssueCodes.InputAddressSpaceLengthMismatch, lengthIssue.Code);
+        Assert.Equal(CompositionSlotIds.ReplaceBase, lengthIssue.OperationId);
+        Assert.Contains("accepted exact reference lengths", lengthIssue.Message, StringComparison.Ordinal);
     }
 
     /// <summary>The shared firmware-inspection result preserves an exact CtrlRAM compilation failure.</summary>

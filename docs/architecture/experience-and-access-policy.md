@@ -7,7 +7,6 @@ Execution behavior and user role are orthogonal. The engine executes initializat
 | `standard-merge` | Merge | System | Fixed | Profile mappings only |
 | `ab-merge` | Merge | System | Fixed | Profile mappings and declared relocation/integrity stages |
 | `general-merge` | Merge | Advanced | User-defined | One or more inputs and explicit source-to-target mappings |
-| `dp-replace` | Replace | DP | Constrained | DP whole/declared partitions |
 | `ctrlram-replace` | Replace | CtrlRAM | Constrained | Physical TP CtrlRAM regions and approved all-CtrlRAM groups |
 | `general-replace` | Replace | Advanced | User-defined | One or more inputs and explicit mappings subject to protected ranges |
 
@@ -26,19 +25,30 @@ Each profile compiles canonical IC regions plus experience-specific `regionAcces
 ## Replace policy split
 
 - CtrlRAM membership is a canonical region attribute, not inferred from filenames or UI labels.
-- DP Replace exposes only DP whole or declared DP partitions.
+- The dedicated DP Replace experience is retired in 1.1.10; canonical DP and LDC regions remain available only under the surviving experiences' declared policies.
 - CtrlRAM Replace exposes only physical regions with `owner = tp` and `kind = ctrlram`, or approved
   groups composed only of those regions.
 - There is no separate TP firmware Replace category in the product taxonomy.
 - IC num input mode is profile-declared as `single`, `cascade`, or `numeric`; two-option profiles use text choices such as `single`/`cascade`, while three-or-more concrete count profiles use numeric selection with future room for Other/custom exceptions.
 
-### DP Replace eligibility and inputs
+### Retired DP execution and preserved facts
 
-- Standard Merge and DP Replace consume the same canonical memory-map facts. DP Replace therefore requires Standard Merge exposure for the same IC, but Standard Merge alone does not automatically promote DP Replace.
-- Promotion additionally requires explicit DP-owned write ranges, preserved ranges, accepted capacities, normalization, integrity/postbuild behavior, golden evidence, and firmware-owner review.
-- `reference-base` is presented as **Reference FlashCode**. For the current NT51950/NT51951 DP Perspective profiles it is one complete final Standard/Normal Merge `.bin` for the selected IC, with exact capacity `0x40000`, `0x80000`, or `0x100000`.
-- The current DP replacement slot accepts a DP/FlashCode-shaped `.bin` no larger than the selected Reference FlashCode. Shorter input uses the profile-declared `0x00` padding; oversized input fails closed.
-- Future AB FlashCode sources require an AB-specific, profile-declared artifact shape/extractor plus explicit A/B bank, header-copy, preservation, and Legacy Combiner behavior. A UI label or generic file length must never select AB offsets.
+The owner moved DP Replace retirement into 1.1.10. Active policy and package
+admission reject `dp-replace`; the old CLI command fails without falling through
+to General or producing output/report files. The existing Profiles compiler also
+rejects old trusted DP declarations before returning an executable or plan-only
+artifact. Earlier validation failures keep their existing typed results.
+
+Retirement leaves the shared Replace operation model, Standard DP inputs, DP/LDC
+regions, DPCMI and family relationships intact. Generic full-image inspection and
+CtrlRAM Reference metadata use explicit canonical family views through the shared
+catalog and inspector. They do not require a DP execution profile. Historical
+DP Report/History identities remain readable. See the retirement amendment in
+[ADR 0005](../adr/0005-replace-personas-and-general-mapping.md).
+
+AB FlashCode replacement still requires explicit format/topology, bank,
+header/CRC/backup preservation and processor authority. Shared metadata or
+Standard/AB Merge support does not supply those missing firmware contracts.
 
 Golden readiness is display/audit metadata, orthogonal to access. `Evidence open` does not disable a workflow whose executable/safety contract exists. `Not available` is used only when that contract is absent, and the UI must show the reason and opening condition.
 

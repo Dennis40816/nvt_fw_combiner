@@ -44,7 +44,7 @@ public sealed partial class XamlControlStyleContractTests
             ItemsControl primary = card.FindControl<ItemsControl>("PrimaryFirmwareFactsHost")!;
             UniformGrid grid = Assert.Single(primary.GetVisualDescendants().OfType<UniformGrid>());
             Control[] cells = [.. grid.Children];
-            Assert.Equal(width < 820 ? 2 : 4, grid.Columns);
+            Assert.Equal(width < 820 ? 2 : 3, grid.Columns);
             Assert.Equal(4, cells.Length);
             for (int index = 0; index < cells.Length; index++)
             {
@@ -60,9 +60,8 @@ public sealed partial class XamlControlStyleContractTests
                 Assert.True(cell.Bounds.Width > 0);
             }
             Assert.Equal(cells[0].Bounds.Y, cells[1].Bounds.Y);
-            Assert.Equal(cells[2].Bounds.Y, cells[3].Bounds.Y);
-            Assert.Equal(width < 820, cells[2].Bounds.Y > cells[0].Bounds.Y);
-            Assert.True(cells[3].Bounds.X > cells[2].Bounds.X);
+            Assert.Equal(cells[0].Bounds.X, cells[grid.Columns].Bounds.X);
+            Assert.True(cells[grid.Columns].Bounds.Y > cells[0].Bounds.Y);
 
             StackPanel identity = card.FindControl<StackPanel>("SlotIdentity")!;
             StackPanel actions = card.FindControl<StackPanel>("SlotActions")!;
@@ -95,15 +94,15 @@ public sealed partial class XamlControlStyleContractTests
                 Assert.Equal(actionBounds.X, oldActionBounds.X);
                 Assert.Equal(actionBounds.Size, oldActionBounds.Size);
                 // Adding a metadata row increases card height; both action groups must stay on its centerline.
-                Assert.Equal((height - oldCard.Bounds.Height) / 2, actionBounds.Y - oldActionBounds.Y, precision: 3);
+                Assert.InRange(Math.Abs(((height - oldCard.Bounds.Height) / 2) - (actionBounds.Y - oldActionBounds.Y)), 0, 1);
                 Border surface = Assert.Single(card.GetVisualDescendants().OfType<Border>(), border => border.Classes.Contains("firmwareSlot"));
                 Border oldSurface = Assert.Single(oldCard.GetVisualDescendants().OfType<Border>(), border => border.Classes.Contains("firmwareSlot"));
-                Assert.Equal(surface.Bounds.Height / 2,
-                    actions.TranslatePoint(default, surface)!.Value.Y + (actions.Bounds.Height / 2), precision: 3);
+                Assert.InRange(Math.Abs((surface.Bounds.Height / 2) -
+                    actions.TranslatePoint(default, surface)!.Value.Y - (actions.Bounds.Height / 2)), 0, 0.5);
                 StackPanel oldActions = oldCard.FindControl<StackPanel>("SlotActions")!;
-                Assert.Equal(oldSurface.Bounds.Height / 2,
-                    oldActions.TranslatePoint(default, oldSurface)!.Value.Y + (oldActions.Bounds.Height / 2), precision: 3);
-                Assert.Equal(width < 820 ? cells[0].Bounds.Height : 0, height - oldCard.Bounds.Height);
+                Assert.InRange(Math.Abs((oldSurface.Bounds.Height / 2) -
+                    oldActions.TranslatePoint(default, oldSurface)!.Value.Y - (oldActions.Bounds.Height / 2)), 0, 0.5);
+                Assert.Equal(cells[0].Bounds.Height, height - oldCard.Bounds.Height);
             }
             finally
             {

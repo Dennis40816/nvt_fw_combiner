@@ -366,7 +366,8 @@ public sealed class AuthoringCapabilityCatalogSnapshot
     /// <summary>Projects reviewed dynamic-route membership before exact compilation.</summary>
     public static AuthoringCapabilityCatalogSnapshot FromDynamicRoute(
         ResolvedCapabilityRoute route,
-        IEnumerable<string> slotDefinitionIds)
+        IEnumerable<string> slotDefinitionIds,
+        ReviewedDiscoveryTransition? discoveryTransition = null)
     {
         ArgumentNullException.ThrowIfNull(route);
         ArgumentNullException.ThrowIfNull(slotDefinitionIds);
@@ -375,8 +376,9 @@ public sealed class AuthoringCapabilityCatalogSnapshot
             route.ResolutionToken,
             route.CapabilityFingerprint,
             executionAdmitted: false,
-            slotDefinitionIds.Select(static slotId =>
-                new AuthoringSlotDefinitionReference(slotId)));
+              slotDefinitionIds.Select(static slotId =>
+                  new AuthoringSlotDefinitionReference(slotId)),
+              discoveryTransition: discoveryTransition);
     }
 
     private static AuthoringCapabilityCatalogSnapshot CreateSingleRouteCatalog(

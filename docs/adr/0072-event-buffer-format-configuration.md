@@ -49,6 +49,89 @@ configuration provenance must invalidate stale run/inspection acceptance.
 Do not put alias text into firmware plan semantics. Exact JSON/report and
 runtime selection contracts need their own concrete admission before wiring.
 
+### Observed byte names — 2026-09-21
+
+The owner supplied `EventBufferFormat.xlsx` (SHA-256
+`7992f51901c238d8f0156652db5f2fbdab6ec2e05cee71e48fc7e04af902f705`).
+Its 29 explicit byte/name rows are display facts owned by
+`Domain.FirmwareEventBufferFormatDisplayNames`, separate from this ADR's
+configuration and map-selection authority. Imported labels replace underscores
+with spaces and the leading `AUTO` with `Auto`, preserving other acronym case:
+`0xA3` is `Auto STLA v1`; `0x97` and `0xA6` are respectively `Auto Desay` and
+`Auto Desay Palminfo`. The workbook's reserved `0x8x` note does not assign names
+to unlisted values such as `0x86..0x8F`.
+
+`EventBufferFormatObservation.DetectedDisplayName` projects the name of each
+input's already decoded raw byte. The existing `DisplayName` remains the
+effective configured format label or alias. Input facts and output confirmation
+checks prefer the detected name; if it is null, the existing effective label is
+a compatibility fallback, not a claim of canonical byte recognition. Config
+aliases are not normalized. The captured effective label remains configuration
+provenance; the output mode summary shows only the workflow. Changing recognition values may change the selected map while the same
+raw byte's observed name stays constant.
+
+This adds no primary decoder, non-AB metadata read, recognition value, format
+variant or support claim. Existing primary/artifact and configuration provenance
+remain captured through the same Application observation path.
+
+### Output confirmation separates workflow, map and observation — 2026-09-21
+
+The owner approved the shared [Output reference](../ui/references/v1.1.10-output-format-approved.png).
+All ICs and workflows use the same confirmation surface: `Mode` identifies the
+workflow; `Flash map` displays the actual compiled physical map's label; source
+checks show each TP input on its own line as `0xXX - readable name` under
+`Event Buffer Format`. A configured alias never becomes the Flash map label.
+
+`ResolvedFirmwareImageMap.DisplayName` is a presentation label projected by
+the existing Domain resolver after selection. For the exact member/map, a
+Common association wins when formats share geometry; otherwise one distinct
+special format supplies its canonical declared name. Multiple special names
+remain ambiguous and return null, so the UI displays the exact MapId. By the
+owner-approved naming convention, a physical map with no format policy or no
+format association displays Common. This default is not a claim that the
+family explicitly declares an AB Common format or shares another IC's geometry.
+
+Application captures this label and MapId in `CompositionOutputFlashMapSummary`
+from the accepted map-bound compilation. Logical General Merge has no physical
+map and displays localized Not applicable; map-bound General Replace retains
+its actual map. Existing `CompositionOutputFormatSummary` keeps recognition
+and configuration provenance separately. No display name participates in map
+selection, recognition, fingerprints, readiness, support or byte execution.
+
+### Partial-family bank consolidation — 2026-09-21
+
+The owner disables the NT51950/NT51951 Desay specialization while retaining
+its closed profiles and physical maps for future explicit readmission. Active
+format variants now share Common geometry: NT51950 single has 512 KiB output,
+`0x40000` banks and TPB `[0x4A000,0x77000)`; NT51950 cascade and selector-free
+NT51951 have 1 MiB output, `0x80000` banks and TPB `[0x8A000,0xB7000)`.
+The separate NT51950 Common exact-two override is removed; NT51927 exact-count
+rules are outside this change. The existing AB count/primary admission remains.
+
+Normal DP input must exactly match the selected Common capacity. Both shorter
+and oversized inputs block; the old Desay 1 MiB expectation, warning-only size
+exception and ignored DP tail no longer apply to runtime selection. Dummy DP
+retains blank initialization without a DP input. Standard Merge is unchanged.
+Recognition bytes, aliases, raw-byte display names, format mismatch checks and
+captured configuration provenance remain; configuration cannot re-enable the
+inactive geometry. Historical Desay implementation sections below describe
+the retained definitions, not current runtime availability.
+
+Family/profile declarations and existing trusted registrations remain the only
+selection/execution authority. Single retains its closed transport; generic
+cascade reuses the existing 1 MiB transport and `nfc-nt51951-ab-merge-combiner-v1`.
+DIFF uses the existing region-instance delta, and only the three four-byte B
+ILM/DLM/CRC fields may be imported after the host's write-range audit. No new
+processor, page branch, firmware decoder or alternate execution path is added.
+Old Desay, exact-two and generic-cascade runtime identities must fail closed.
+
+The new cascade route is Available/Candidate/ContractOnly; the old Supported
+identity is retired rather than transferred to changed bytes. Other surviving
+classifications remain unchanged. Independent synthetic full-output and actual
+processor tests do not establish direct product certification. Existing single
+Golden output bytes and hashes remain immutable; exact candidate firmware-owner
+review and release Golden execution remain required.
+
 ## Rejected options and consequences
 
 - Reusing preference fallback would silently change Build behavior after a bad
@@ -58,6 +141,17 @@ runtime selection contracts need their own concrete admission before wiring.
 - Global overlap machinery is unnecessary in the first single-scope unit.
   Later catalog integration must validate any actual overlapping scope conflict
   before claiming wider applicability.
+
+## 2026-09-20 amendment: built-in default availability
+
+The owner approved removing first-use Save as a prerequisite for AB Merge.
+Absent custom configuration now activates the canonical admitted defaults in
+the existing Application session, without persistence. An explicit typed source
+flag distinguishes built-in from saved snapshots; its domain-separated digest
+is not a file hash. Invalid/unreadable custom data still blocks. Built-in
+publication never overwrites LastSaved; Settings edits and Discard remain drafts.
+This supersedes the missing-file behavior in the historical implementation
+account below; the current persistence contract defines the effective rules.
 
 ## Implementation and verification boundary
 
@@ -86,6 +180,21 @@ not the Cascade picker's minimum. This extraction adds no primary Event Buffer
 locator, profile variant, geometry or Settings integration.
 
 ## Primary AB observation
+
+### 2026-09-21 amendment: equal, readable positive TP counts
+
+Owner-approved TP validation now requires readable positive counts in each
+firmware slot. AB alone additionally compares the two counts numerically,
+before optional selector classification or format-map selection. Selector-free
+AB no longer bypasses count validation; missing/zero cannot be inferred as
+single or accepted as unknown. The same Application count owner supplies
+authoring errors, action readiness and execution rejection, including families
+without an Event Buffer format policy. Diagnostics distinguish unreadable,
+read-as-zero and unequal AB counts. This supersedes the earlier count-admission
+behavior described above; it does not change the historical evidence, primary
+Event Buffer decoding, bank geometry or external processor contract.
+
+### Primary metadata contract
 
 The owner-approved NT51950/NT51951 partial-family AB Event Buffer decision is
 a narrow exception to ADR 0012's prohibition on primary runtime metadata.

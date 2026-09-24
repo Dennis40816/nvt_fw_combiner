@@ -57,7 +57,7 @@ internal sealed class SupportMatrixPresentationViewModel(
         CanonicalSupportMatrixQueryResult result = _query.Query();
         ReplaceItems(
             Rows,
-            result.Matrix?.Rows.Where(static row => row.Identity.WorkflowId != ExperienceIds.DpReplace).Select(row =>
+            result.Matrix?.Rows.Select(row =>
                 SupportMatrixRowViewModel.Create(row, text)) ?? []);
         RebuildGrid(text);
         IsStale = result.IsStale;

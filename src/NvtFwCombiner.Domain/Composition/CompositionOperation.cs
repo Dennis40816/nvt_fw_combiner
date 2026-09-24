@@ -114,7 +114,8 @@ public sealed class CompositionOperation
             return $"Operation '{OperationId}' overlaps earlier operation '{overlaps[0].OperationId}' in target space '{TargetSpaceId}'.";
         }
 
-        bool fullyCovered = Kind is CompositionOperationKind.CopyRange or CompositionOperationKind.RunExternalProcessor &&
+        bool fullyCovered = Kind is CompositionOperationKind.CopyRange or CompositionOperationKind.RunExternalProcessor or
+            CompositionOperationKind.ReplaceRange or CompositionOperationKind.PatchScalar or CompositionOperationKind.TransformScalar &&
             DeclaredWriteRanges.All(writeRange => overlaps.Any(candidate =>
                 candidate.DeclaredWriteRanges.Any(candidateRange => candidateRange.Contains(writeRange))));
         return fullyCovered

@@ -110,6 +110,68 @@ execution, Report authority, evidence rank or publication decisions.
 - Output bytes, ranges, operation order, processor authority, report values,
   evidence rank, publication status, naming, and UI remain unchanged.
 
+### AB bank viewport extension — 2026-09-22
+
+The Application memory projector exposes immutable bank locators from the
+complete accepted AB map, including banks not selected for replacement.
+Locators retain canonical bank identity, address space and checked output
+range; selected execution obligations must agree with their locators. Standard
+and logical layouts expose no bank locators. No bank is inferred from capacity,
+file names or UI labels, and no Standard counterpart is reselected.
+
+Section locators remain the complete authoritative output partition. A
+Presentation bank viewport may show their intersections with its selected
+bank, retaining absolute Reference addresses and canonical facts. This display
+selection is page-local: it never changes drafts, revisions, leases, inspection,
+Report or executable operations.
+
+The follow-up CtrlRAM focus projection retains two distinct identities: each
+segment's exact containing AB canonical region, and an immutable attribution
+to its original local canonical CtrlRAM region/map plus checked bank placement.
+The accepted composite definition binds selected local compilations to one
+shared declaration; that geometry also describes preserved banks, without
+inventing unselected execution obligations or copying bank metadata. Discovery
+ranges must match that local map one-to-one before checked translation into
+the complete AB address space. No translated FirmwareRegion is manufactured.
+The existing coverage/operation projection remains the source of write state,
+contributors and partial-kept source grouping. Presentation filters to the
+typed viewport and uses its origin for bar proportions; labels and hover
+retain absolute addresses. This adds no firmware or support authority.
+
+### Automatic Reference classification and complete bank facts — 2026-09-22
+
+Application reuses the current canonical publication and the existing trusted
+NT51929 AB/local pair for read-only Reference classification. Complete bank
+placements come from the exact AB map, not selected replacement obligations.
+Existing metadata readers and profile-owned structural guards inspect slices of
+the same captured Reference. Bank observations retain their identity and absolute
+Reference range. Local metadata plans remain local; they are not relabelled as
+full AB plans.
+
+Complete Reference observations are independent of A/B/Both replacement selection
+and the memory viewport. Neither classification nor observation grants execution
+or support authority. Exact route readiness, candidate disclosure, immutable-input
+admission and selected-bank execution validations remain mandatory. Ambiguous
+declarations, stale publication and invalid recognized AB structure are terminal;
+no Standard or alternate metadata-plan fallback is introduced. The effective draft
+is adopted atomically with a current successful inspection batch.
+
+The NT51929 Standard metadata plan does not select Event Buffer Format as a
+target, although its canonical General Parameters structure declares the field.
+For the already admitted NT51929 AB Base classifier, the owner approved a
+separate read-only projection on 2026-09-23: retain the same-publication
+Standard composition and family, resolve that exact map-selected structure
+against each immutable bank-local slice, and accept its Event Buffer byte only
+when the resolved structure starts at the existing validated Backup location.
+This projection does not amend the Standard plan's target list or add an AB
+metadata binding. An optional locator/field failure yields a missing fact for
+that bank only; it adds no Build issue, format/map choice or write authority.
+The UI shows each bank's raw hex and approved name independently, including
+zero and unknown bytes, or bank-specific Not provided. Inspection must not use
+a raw offset or borrow the NT51950 format-selection policy. Equal typed
+PID/Common/count values may share an A/B display label; differing values remain
+bank-specific.
+
 ## Verification
 
 - Schema and loader tests accept the 19 exact declarations and 6 exact

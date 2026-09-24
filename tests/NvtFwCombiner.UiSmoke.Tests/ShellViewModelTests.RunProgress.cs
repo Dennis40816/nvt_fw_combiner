@@ -37,6 +37,7 @@ public sealed partial class RunAndHexEditorTests
             await uiThread.InvokeAsync(async () =>
             {
                 Task runTask = viewModel.RunSession.RunCompositionAsync(
+                    viewModel.Replace.CaptureRunContext(viewModel.Replace.SelectedReplaceMode),
                     build: true,
                     async (progress, cancellationToken) =>
                     {
@@ -154,6 +155,7 @@ public sealed partial class RunAndHexEditorTests
         await uiThread.InvokeAsync(async () =>
         {
             Task runTask = viewModel.RunSession.RunCompositionAsync(
+                    viewModel.Replace.CaptureRunContext(viewModel.Replace.SelectedReplaceMode),
                 build: false,
                 async (_, cancellationToken) =>
                 {
@@ -220,6 +222,7 @@ public sealed partial class RunAndHexEditorTests
             await uiThread.InvokeAsync(async () =>
             {
                 Task runTask = viewModel.RunSession.RunCompositionAsync(
+                    viewModel.Merge.CaptureRunContext(viewModel.Merge.SelectedMergeMode),
                     build: false,
                     async (_, cancellationToken) =>
                     {
@@ -260,7 +263,7 @@ public sealed partial class RunAndHexEditorTests
         viewModel.ShowReplaceCommand.Execute(null);
         viewModel.WorkflowSession.SelectedIc = "NT51926";
         viewModel.WorkflowSession.SelectedNumber = IcNumberSelectionTokens.Cascade;
-        viewModel.Replace.SelectedReplaceMode = ExperienceIds.DpReplace;
+        viewModel.Replace.SelectedReplaceMode = ExperienceIds.CtrlRamReplace;
         var workerStarted = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         var releaseWorker = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         string activeContextLabel = string.Empty;
@@ -297,6 +300,7 @@ public sealed partial class RunAndHexEditorTests
             await uiThread.InvokeAsync(async () =>
             {
                 Task runTask = viewModel.RunSession.RunCompositionAsync(
+                    viewModel.Replace.CaptureRunContext(viewModel.Replace.SelectedReplaceMode),
                     build: false,
                     async (_, cancellationToken) =>
                     {
@@ -326,7 +330,7 @@ public sealed partial class RunAndHexEditorTests
             _ = releaseWorker.TrySetResult();
         }
 
-        Assert.Equal("DP · NT51926 / cascade", activeContextLabel);
+        Assert.Equal("CtrlRAM · NT51926 / cascade", activeContextLabel);
         Assert.StartsWith("NT51926 / cascade:", activeDeviceStatus, StringComparison.Ordinal);
         Assert.True(selectionWasReadOnly);
         string[] activeContextBindings =
@@ -399,6 +403,7 @@ public sealed partial class RunAndHexEditorTests
         {
             InvalidOperationException exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
                 viewModel.RunSession.RunCompositionAsync(
+                    viewModel.Replace.CaptureRunContext(viewModel.Replace.SelectedReplaceMode),
                     build: false,
                     (progress, cancellationToken) => TestHost.CompositionExecution.ExecuteAsync(
                         new AcceptedCompositionExecutionRequest(
@@ -439,6 +444,8 @@ public sealed partial class RunAndHexEditorTests
                 sourcePath,
                 TestContext.Current.CancellationToken);
 
+            CompositionRunContext initialContext = viewModel.Merge.CaptureRunContext(ExperienceIds.GeneralMerge);
+            Assert.True(initialContext.IsPublicationCurrent);
             Task previewTask = viewModel.Merge.PreviewMergeCommand.ExecuteAsync(null);
             viewModel.WorkflowSession.SelectedIc = "NT51927";
             GeneralMergeMappingViewModel currentMapping = Assert.Single(
@@ -451,6 +458,13 @@ public sealed partial class RunAndHexEditorTests
             await previewTask;
             await viewModel.Merge.Inspection.ActiveTask;
 
+            CompositionRunContext completedContext = Assert.IsType<CompositionRunContext>(viewModel.Merge.RunState.CompletedContext);
+            Assert.Same(initialContext.AcceptedSession, completedContext.AcceptedSession);
+            Assert.False(initialContext.IsPublicationCurrent);
+            Assert.Equal("NT51926", completedContext.Ic);
+            Assert.False(completedContext.IsPublicationCurrent);
+            Assert.True(viewModel.Merge.RunState.LastRunResult.Succeeded);
+            Assert.True(viewModel.Reports.HasReportHistory);
             Assert.Equal("NT51926", viewModel.Reports.LoadedReport.IcId);
             using var report = JsonDocument.Parse(viewModel.Reports.LoadedReportJson);
             JsonElement operation = Assert.Single(report.RootElement.GetProperty("Operations").EnumerateArray());

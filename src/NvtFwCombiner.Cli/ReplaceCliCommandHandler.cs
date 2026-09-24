@@ -19,6 +19,12 @@ internal static partial class ReplaceCliCommandHandler
     {
         ArgumentNullException.ThrowIfNull(services);
         ArgumentNullException.ThrowIfNull(localFiles);
+        if (command is not (ExperienceIds.CtrlRamReplace or ExperienceIds.GeneralReplace))
+        {
+            await error.WriteLineAsync($"error: unsupported Replace command '{command}'").ConfigureAwait(false);
+            return UsageError;
+        }
+
         if (args.Length == 0 || args[0] is "--help")
         {
             await WriteUsageAsync(command, output).ConfigureAwait(false);
@@ -45,10 +51,6 @@ internal static partial class ReplaceCliCommandHandler
         List<string> repeatableValueOptions = [];
         switch (command)
         {
-            case ExperienceIds.DpReplace:
-                valueOptions.Add("--dp");
-                valueOptions.Add("--ldc");
-                break;
             case ExperienceIds.CtrlRamReplace:
                 valueOptions.Add("--ctrlram");
                 repeatableValueOptions.Add("--ctrlram");
@@ -85,42 +87,25 @@ internal static partial class ReplaceCliCommandHandler
             return UsageError;
         }
 
-        if (!TryResolveReplaceIc(
+        if (!TryResolveIc(
                 services.Capabilities,
-                command,
                 profileSelector,
                 out string? icId))
         {
             return await UnknownReplaceProfileAsync(command, profileSelector, error).ConfigureAwait(false);
         }
 
-        string replaceMode = command switch
-        {
-            ExperienceIds.DpReplace => ExperienceIds.DpReplace,
-            ExperienceIds.CtrlRamReplace => ExperienceIds.CtrlRamReplace,
-            _ => ExperienceIds.GeneralReplace,
-        };
         if (!services.Capabilities.IsReplaceWorkflowAvailable(
                 icId,
-                replaceMode))
+                command))
         {
             await error.WriteLineAsync(
-                $"error: {CompositionPlanningIssueCodes.ReplaceWorkflowNotSupported}: {icId} {replaceMode} Replace is Not available.")
+                $"error: {CompositionPlanningIssueCodes.ReplaceWorkflowNotSupported}: {icId} {command} Replace is Not available.")
                 .ConfigureAwait(false);
             return CompositionFailed;
         }
 
-        return command == ExperienceIds.DpReplace
-            ? await RunDpReplaceAsync(
-                    services,
-                    action,
-                    icId,
-                    options,
-                    output,
-                    error,
-                    cancellationToken)
-                .ConfigureAwait(false)
-            : command == ExperienceIds.CtrlRamReplace
+        return command == ExperienceIds.CtrlRamReplace
             ? await RunCtrlRamReplaceAsync(
                     services,
                     localFiles,

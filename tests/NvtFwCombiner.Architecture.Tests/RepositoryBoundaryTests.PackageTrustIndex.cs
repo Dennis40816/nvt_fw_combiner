@@ -18,8 +18,8 @@ public sealed partial class RepositoryBoundaryTests
             "package-trust-index.json");
         using JsonDocument document = JsonDocument.Parse(File.ReadAllText(trustIndexPath));
         JsonElement root = document.RootElement;
-        Assert.Equal("1.3", root.GetProperty("schemaVersion").GetString());
-        Assert.Equal("1.1.6.0", root.GetProperty("trustIndexVersion").GetString());
+        Assert.Equal("1.5", root.GetProperty("schemaVersion").GetString());
+        Assert.Equal("1.1.10.7", root.GetProperty("trustIndexVersion").GetString());
 
         JsonElement[] ctrlRamRegistrations =
         [
@@ -81,6 +81,14 @@ public sealed partial class RepositoryBoundaryTests
 
     /// <summary>MSBuild materialization rejects authority fields and paths outside the normative index.</summary>
     [Theory]
+    [InlineData("legacy-schema")]
+    [InlineData("retired-workflow")]
+    [InlineData("unknown-workflow")]
+    [InlineData("disclosure-families-wrong-type")]
+    [InlineData("disclosure-family-version-wrong-type")]
+    [InlineData("disclosure-family-unknown-field")]
+    [InlineData("disclosure-family-duplicate")]
+    [InlineData("metadata-family-duplicate")]
     [InlineData("unknown-field")]
     [InlineData("source-traversal")]
     [InlineData("leading-dot-source")]
@@ -101,6 +109,12 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains(
             mutation switch
             {
+                "legacy-schema" => "Unsupported profile bundle package trust-index schema",
+                "retired-workflow" or "unknown-workflow" => "closed workflow shape",
+                "disclosure-families-wrong-type" => "families must be an array",
+                "disclosure-family-version-wrong-type" => "must be a JSON string",
+                "disclosure-family-unknown-field" => "closed package trust-index shape",
+                "disclosure-family-duplicate" or "metadata-family-duplicate" => "identities must be unique",
                 "unknown-field" => "closed package trust-index shape",
                 "source-traversal" or
                 "leading-dot-source" or
@@ -201,13 +215,13 @@ public sealed partial class RepositoryBoundaryTests
 
         using var document = JsonDocument.Parse(File.ReadAllText(trustIndexPath));
         JsonElement root = document.RootElement;
-        Assert.Equal("1.3", root.GetProperty("schemaVersion").GetString());
+        Assert.Equal("1.5", root.GetProperty("schemaVersion").GetString());
         Assert.Equal("built-in-profile-bundles", root.GetProperty("trustIndexId").GetString());
         Assert.False(string.IsNullOrWhiteSpace(root.GetProperty("trustIndexVersion").GetString()));
         Assert.Equal("built-in-profile-bundle-v2", root.GetProperty("trustAnchorBindingId").GetString());
 
         JsonElement[] bundles = [.. root.GetProperty("bundles").EnumerateArray()];
-        Assert.Equal(26, bundles.Length);
+        Assert.Equal(24, bundles.Length);
         Assert.Equal(
             bundles.Length,
             bundles.Select(static bundle => bundle.GetProperty("bundleDirectory").GetString())
@@ -228,7 +242,7 @@ public sealed partial class RepositoryBoundaryTests
         });
 
         Assert.Equal(
-            64,
+            52,
             bundles.Sum(static bundle =>
                 bundle.GetProperty("runtimeRegistrations").GetArrayLength()));
         JsonElement abBundle = Assert.Single(bundles, static bundle =>
@@ -237,9 +251,7 @@ public sealed partial class RepositoryBoundaryTests
         [
             "NT51950/nt51950-ab-merge/nt51950-ab-merge-maps",
             "NT51951/nt51951-ab-merge/nt51951-ab-merge-1024k",
-            "NT51950/nt51950-ab-merge-desay/nt51950-ab-desay-maps",
-            "NT51951/nt51951-ab-merge-desay/nt51951-ab-desay-maps",
-            "NT51950/nt51950-ab-merge-common-2ic/nt51950-ab-common-2ic-maps",
+            "NT51950/nt51950-ab-merge-cascade/nt51950-ab-cascade-maps",
         ];
         Assert.Equal(expectedAbRegistrations.Order(StringComparer.Ordinal), abBundle.GetProperty("runtimeRegistrations")
             .EnumerateArray().Select(static registration =>
@@ -255,13 +267,13 @@ public sealed partial class RepositoryBoundaryTests
                     "general-replace");
         Assert.Equal("NT51926", generalReplace.GetProperty("icId").GetString());
         Assert.Equal(
-            10,
+            7,
             bundles.SelectMany(static bundle =>
                     bundle.GetProperty("runtimeRegistrations").EnumerateArray())
                 .Count(static registration =>
                     registration.TryGetProperty("mapVariantSetId", out _)));
         Assert.Equal(
-            4,
+            8,
             bundles.Sum(static bundle =>
                 bundle.TryGetProperty("metadataProviderFamilies", out JsonElement providers)
                     ? providers.GetArrayLength()
@@ -307,7 +319,9 @@ public sealed partial class RepositoryBoundaryTests
             "docs",
             "contracts",
             "profile-bundle-package-trust-index-v1.schema.json")))).ToLowerInvariant();
-        Assert.Contains(trustIndexSchemaHash, project, StringComparison.Ordinal);
+        Assert.Matches(
+            "const string expectedSchemaSha256 =\\s*\"" + trustIndexSchemaHash + "\";",
+            project);
         Assert.Contains("validator is not bound to the normative schema bytes", project, StringComparison.Ordinal);
         Assert.Contains("DuplicatePropertyNameHandling.Error", project, StringComparison.Ordinal);
         Assert.Contains("additionalProperties", ReadText(
@@ -316,10 +330,10 @@ public sealed partial class RepositoryBoundaryTests
         Assert.DoesNotContain("new FileInfo(TrustIndexPath).Length", project, StringComparison.Ordinal);
         Assert.DoesNotContain("File.OpenText(TrustIndexPath)", project, StringComparison.Ordinal);
         Assert.Contains("readBoundedFile(TrustIndexPath, 131072)", project, StringComparison.Ordinal);
-        Assert.Contains(
-            "7aa5e063c0c7f8f059e1032f6719f3cd5be778217f75e6e843f29e04dd6ae47e",
-            project,
-            StringComparison.Ordinal);
+        Assert.Matches(
+            "const string expectedProfileBundleSchemaSha256 =\\s*" +
+            "\"7aa5e063c0c7f8f059e1032f6719f3cd5be778217f75e6e843f29e04dd6ae47e\";",
+            project);
         Assert.Contains("$PackageTrustIndexPackagePath", packager, StringComparison.Ordinal);
         Assert.Contains("$TrustIndex.bundles", packager, StringComparison.Ordinal);
         Assert.DoesNotContain("File.ReadAllBytes(path)", trustIndexLoader, StringComparison.Ordinal);

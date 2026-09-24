@@ -5,7 +5,6 @@ using Avalonia.Controls.Templates;
 using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.VisualTree;
-using NvtFwCombiner.Application.MemoryLayout;
 using NvtFwCombiner.Presentation.Avalonia.Behaviors;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
@@ -32,8 +31,8 @@ public sealed partial class MemoryCoverageBar
     public string? EndAddress { get => GetValue(EndAddressProperty); set => SetValue(EndAddressProperty, value); }
 
     private readonly Border _footer = new();
-    private readonly MemoryHeaderPanel _header = new() { Name = "MemoryOverviewHeader", Margin = new Thickness(0, 0, 0, 8) };
-    private readonly WrapPanel _legend = new() { Name = "MemoryLegend" };
+    private readonly StackPanel _header = new() { Name = "MemoryOverviewHeader", Margin = new Thickness(0, 0, 0, 8) };
+    private readonly StackPanel _legend = new() { Name = "MemoryLegend", Margin = new Thickness(0, 8, 0, 0) };
     private readonly TextBlock _heading = new() { Name = "MemoryOverviewHeading", Classes = { "bodyEmphasisText" }, FontSize = 14, TextWrapping = TextWrapping.Wrap };
     private readonly TextBlock _capacity = new() { Classes = { "captionText" }, VerticalAlignment = VerticalAlignment.Center };
     private readonly Grid _addresses = new() { Name = "MemoryOverviewAddresses", ColumnDefinitions = new ColumnDefinitions("*,Auto"), Margin = new Thickness(0, 0, 0, 4) };
@@ -42,9 +41,9 @@ public sealed partial class MemoryCoverageBar
 
     private void InitializeOverview()
     {
+        Grid.SetIsSharedSizeScope(_legend, true);
         _header.Children.Add(new WrapPanel { Name = "MemoryOverviewTitle", Children = { _heading, _capacity } });
         _heading.Margin = new Thickness(0, 0, 8, 0);
-        _header.Children.Add(_legend);
         _addresses.Children.Add(_startAddress);
         Grid.SetColumn(_endAddress, 1);
         _addresses.Children.Add(_endAddress);
@@ -122,12 +121,8 @@ public sealed partial class MemoryCoverageBar
         _legend.IsVisible = ShowLegend;
         if (!ShowLegend) { return; }
         var markerTemplate = (IDataTemplate)this.FindResource("MemoryCoverageCompactMarkerTemplate")!;
-        // Retain each physical range and its typed identity, including disconnected ranges
-        // with the same source. Technical traces stay in the terminal card, not this legend.
-        foreach (MemoryCoverageSegmentViewModel slice in (ItemsSource?.Cast<MemoryCoverageSegmentViewModel>() ?? [])
-            .Where(static slice => slice.IsPrimaryContent)
-            .OrderBy(static slice => slice.ContentRole == MemoryContentRole.Unmapped)
-            .ThenBy(static slice => slice.RangeStart))
+        // The legend and rail share the same content runs in physical address order.
+        foreach (MemoryCoverageSegmentViewModel slice in _displaySegments.Where(static slice => slice.IsPrimaryContent))
         {
             var target = new Border
             {
@@ -135,12 +130,41 @@ public sealed partial class MemoryCoverageBar
                 DataContext = slice,
                 FocusAdorner = null,
                 Background = Brushes.Transparent,
-                Padding = new Thickness(4, 3),
-                Margin = new Thickness(4, 0, 0, 2),
+                Padding = new Thickness(0, 3),
+                Margin = new Thickness(0, 0, 0, 2),
             };
-            var row = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6 };
-            row.Children.Add(new ContentControl { Content = slice, ContentTemplate = markerTemplate, VerticalAlignment = VerticalAlignment.Center });
-            row.Children.Add(new TextBlock { Text = slice.DisplayTitle, Classes = { "bodyText" }, MaxWidth = 140, TextTrimming = TextTrimming.CharacterEllipsis });
+            var row = new Grid { ColumnDefinitions = new ColumnDefinitions("Auto,*,Auto") };
+            row.ColumnDefinitions[2].SharedSizeGroup = "LegendAddress";
+            Control marker = new ContentControl { Content = slice, ContentTemplate = markerTemplate, VerticalAlignment = VerticalAlignment.Center };
+            if (slice.DisplayParts.Any(part => part.FillRole != slice.FillRole || part.UsesKeptPattern != slice.UsesKeptPattern))
+            {
+                var parts = new ProportionalStackPanel { IsHitTestVisible = false };
+                foreach (MemoryCoverageSegmentViewModel part in slice.DisplayParts)
+                {
+                    Control fill = markerTemplate.Build(part)!;
+                    fill.DataContext = part;
+                    fill.Width = double.NaN;
+                    ProportionalStackPanel.SetWeight(fill, part.BarWidth);
+                    parts.Children.Add(fill);
+                }
+                marker = new Border
+                {
+                    Name = "MemoryMixedLegendMarker",
+                    Width = 10,
+                    Height = 10,
+                    CornerRadius = new CornerRadius(2),
+                    ClipToBounds = true,
+                    VerticalAlignment = VerticalAlignment.Center,
+                    Child = parts,
+                };
+            }
+            row.Children.Add(marker);
+            var title = new TextBlock { Text = slice.DisplayTitle, Classes = { "bodyText" }, Margin = new Thickness(6, 0, 12, 0), VerticalAlignment = VerticalAlignment.Center, TextTrimming = TextTrimming.CharacterEllipsis };
+            Grid.SetColumn(title, 1);
+            row.Children.Add(title);
+            var address = new TextBlock { Text = slice.AddressRangeLabel, Classes = { "monoText", "bodyText" }, VerticalAlignment = VerticalAlignment.Center };
+            Grid.SetColumn(address, 2);
+            row.Children.Add(address);
             target.Child = row;
             AutomationProperties.SetName(target, slice.AccessibleDetail);
             MemoryCoverageInteractionBehavior.SetIsEnabled(target, true);
@@ -150,36 +174,4 @@ public sealed partial class MemoryCoverageBar
         _header.InvalidateMeasure();
     }
 
-    // Only the header wraps. The address rail and endpoint geometry keep the full width.
-    private sealed class MemoryHeaderPanel : Panel
-    {
-        protected override Size MeasureOverride(Size availableSize)
-        {
-            foreach (Control child in Children) { child.Measure(availableSize); }
-            Size title = Children[0].DesiredSize;
-            Size legend = Children[1].DesiredSize;
-            bool shared = Fits(availableSize.Width);
-            double gap = title.Width > 0 && legend.Width > 0 ? 16 : 0;
-            return new Size(shared ? title.Width + gap + legend.Width : Math.Max(title.Width, legend.Width),
-                shared ? Math.Max(title.Height, legend.Height) : title.Height + 6 + legend.Height);
-        }
-
-        protected override Size ArrangeOverride(Size finalSize)
-        {
-            Size title = Children[0].DesiredSize;
-            Size legend = Children[1].DesiredSize;
-            bool shared = Fits(finalSize.Width);
-            Children[0].Arrange(new Rect(0, shared ? Math.Max(0, (legend.Height - title.Height) / 2) : 0, title.Width, title.Height));
-            double left = Math.Max(0, finalSize.Width - legend.Width);
-            Children[1].Arrange(new Rect(left, shared ? Math.Max(0, (title.Height - legend.Height) / 2) : title.Height + 6, Math.Min(finalSize.Width, legend.Width), legend.Height));
-            return finalSize;
-        }
-
-        private bool Fits(double width)
-        {
-            double title = Children[0].DesiredSize.Width;
-            double legend = Children[1].DesiredSize.Width;
-            return title == 0 || legend == 0 || title + 16 + legend <= width;
-        }
-    }
 }

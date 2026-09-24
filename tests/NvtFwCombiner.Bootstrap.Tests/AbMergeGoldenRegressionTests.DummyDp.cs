@@ -14,14 +14,16 @@ public sealed partial class AbMergeGoldenRegressionTests
     /// <summary>Independent accepted map and MPEG-2 expectation versus the real pinned processor; not certified Dummy Golden.</summary>
     [Theory]
     [InlineData("NT51950", 1, 0x80000, 0x40000)]
-    [InlineData("NT51950", 2, 0x100000, 0x40000)]
+    [InlineData("NT51950", 2, 0x100000, 0x80000)]
+    [InlineData("NT51950", 3, 0x100000, 0x80000)]
     [InlineData("NT51951", 0, 0x100000, 0x80000)]
     public async Task DummyProcessorOutputMatchesCompleteIndependentMap(string icId, int count, int capacity, int bankOffset)
     {
         var adapter = new BuiltInV2DynamicCompilationAdapter();
         var identity = new CapabilityRouteIdentity(icId, ExperienceIds.AbMerge,
             count == 0 ? "selector-free" : count == 1 ? "1-ic" : "2-plus-ic",
-            icId == "NT51950" ? "nt51950-ab-merge-maps" : "nt51951-ab-merge-1024k");
+            icId == "NT51950" ? count == 1 ? "nt51950-ab-merge-maps" : "nt51950-ab-cascade-maps"
+                : "nt51951-ab-merge-1024k");
         adapter.Compile(identity, capacity, [],
             out CompiledComposition? composition, out _, out IReadOnlyList<CompositionIssue> issues,
             count == 0 ? null : new TopologySelection(count, "test", TopologySelectionSource.Requested, "test"));

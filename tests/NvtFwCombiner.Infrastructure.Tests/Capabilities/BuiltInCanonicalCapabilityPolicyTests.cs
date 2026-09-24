@@ -29,7 +29,7 @@ public sealed class BuiltInCanonicalCapabilityPolicyTests
                     "nt51929-standard-merge-256k"));
 
         Assert.Equal("canonical-capability-policy", policy.CatalogId);
-        Assert.Equal("1.16.1", policy.CatalogVersion);
+        Assert.Equal("1.23.0", policy.CatalogVersion);
         Assert.Equal(
             BuiltInCanonicalCapabilityPolicy.ExpectedSha256,
             policy.SourceSha256);
@@ -38,7 +38,7 @@ public sealed class BuiltInCanonicalCapabilityPolicyTests
         Assert.Equal("selector-free", route.Identity.IcCountVariant);
         Assert.Equal("nt51929-standard-merge-256k", route.Identity.MapVariant);
         Assert.Equal(
-            "447de186adabb4aae6adbbf810c726a24fea7283602306682f5a14842a9e5679",
+            "4ef7221d77f808ff2e3bd144da69251f912b386021312685409aaff72a55b637",
             route.CapabilityFingerprint);
         Assert.Equal(CapabilityAuthoringAvailability.Available, route.Authoring.Value);
         Assert.Equal(CapabilityPublicationStatus.Supported, route.Publication.Value);
@@ -60,42 +60,12 @@ public sealed class BuiltInCanonicalCapabilityPolicyTests
             route.Evidence.DecisionId);
     }
 
-    /// <summary>All retained DP Replace routes remain hidden, internal, and honestly non-Golden.</summary>
+    /// <summary>Retired DP routes are absent from the active policy, not merely hidden.</summary>
     [Fact]
-    public void DpReplaceAuthoringIsUnavailableWithoutChangingRetainedEvidence()
+    public void ActivePolicyExcludesDpReplace()
     {
-        CanonicalCapabilityPolicySnapshot policy =
-            BuiltInCanonicalCapabilityPolicy.Load();
-        CanonicalCapabilityPolicyRoute[] routes =
-        [
-            .. policy.Routes.Where(static route =>
-                StringComparer.Ordinal.Equals(
-                    route.Identity.WorkflowId,
-                    "dp-replace")),
-        ];
-
-        Assert.Equal(14, routes.Length);
-        Assert.All(routes, static route =>
-        {
-            Assert.Equal(
-                CapabilityAuthoringAvailability.Unavailable,
-                route.Authoring.Value);
-            Assert.Equal(
-                "owner-decision:2026-08-24:dp-replace-hidden-until-1.1.0",
-                route.Authoring.SourceReference);
-            Assert.Equal(
-                CapabilityPublicationStatus.Internal,
-                route.Publication.Value);
-            Assert.Equal(
-                "owner-decision:2026-08-25:dp-replace-internal-until-1.1.0",
-                route.Publication.SourceReference);
-            Assert.Equal(
-                CapabilityEvidenceStatus.ContractOnly,
-                route.Evidence.Value);
-            Assert.Equal(
-                route.CapabilityFingerprint,
-                route.Evidence.CapabilityFingerprint);
-        });
+        Assert.DoesNotContain(BuiltInCanonicalCapabilityPolicy.Load().Routes,
+            static route => route.Identity.WorkflowId == "dp-replace");
     }
 
     /// <summary>The reviewed catalog fixes the exact formal-support and evidence denominators.</summary>
@@ -106,23 +76,20 @@ public sealed class BuiltInCanonicalCapabilityPolicyTests
             BuiltInCanonicalCapabilityPolicy.Load();
         string[] formatCandidateIds =
         [
-            "route-7-nt51950-8-ab-merge-4-1-ic-21-nt51950-ab-desay-maps",
-            "route-7-nt51950-8-ab-merge-9-2-plus-ic-21-nt51950-ab-desay-maps",
-            "route-7-nt51951-8-ab-merge-13-selector-free-21-nt51951-ab-desay-maps",
-            "route-7-nt51950-8-ab-merge-4-2-ic-26-nt51950-ab-common-2ic-maps",
+            "route-7-nt51950-8-ab-merge-9-2-plus-ic-23-nt51950-ab-cascade-maps",
+            "route-7-nt51929-15-ctrlram-replace-4-1-ic-21-nt51929-ab-merge-512k",
         ];
         CanonicalCapabilityPolicyRoute[] formalRoutes =
         [
-            .. policy.Routes.Where(route =>
-                route.Identity.WorkflowId is
-                    "standard-merge" or "ab-merge" or "ctrlram-replace" &&
-                !formatCandidateIds.Contains(route.Identity.RouteId, StringComparer.Ordinal)),
+            .. policy.Routes.Where(static route =>
+                route.Publication.Value == CapabilityPublicationStatus.Supported),
         ];
 
-        Assert.Equal(93, policy.Routes.Count);
-        Assert.Equal(64, formalRoutes.Length);
+        Assert.Equal(85, policy.Routes.Count);
+        Assert.Equal(63, formalRoutes.Length);
         Assert.All(formalRoutes, static route =>
         {
+            Assert.True(route.Identity.WorkflowId is "standard-merge" or "ab-merge" or "ctrlram-replace");
             Assert.Equal(
                 CapabilityAuthoringAvailability.Available,
                 route.Authoring.Value);
@@ -131,19 +98,19 @@ public sealed class BuiltInCanonicalCapabilityPolicyTests
                 route.Publication.Value);
         });
         Assert.Equal(
-            79,
+            85,
             policy.Routes.Count(static route =>
                 route.Authoring.Value == CapabilityAuthoringAvailability.Available));
         Assert.Equal(
-            14,
+            0,
             policy.Routes.Count(static route =>
                 route.Authoring.Value == CapabilityAuthoringAvailability.Unavailable));
         Assert.Equal(
-            64,
+            63,
             policy.Routes.Count(static route =>
                 route.Publication.Value == CapabilityPublicationStatus.Supported));
         Assert.Equal(
-            24,
+            10,
             policy.Routes.Count(static route =>
                 route.Publication.Value == CapabilityPublicationStatus.Internal));
         _ = Assert.Single(
@@ -155,14 +122,14 @@ public sealed class BuiltInCanonicalCapabilityPolicyTests
             .. policy.Routes.Where(static route =>
                 route.Publication.Value == CapabilityPublicationStatus.Candidate),
         ];
-        Assert.Equal(
-            formatCandidateIds.Order(StringComparer.Ordinal),
-            candidates.Select(static route => route.Identity.RouteId).Order(StringComparer.Ordinal));
+        Assert.Equal(11, candidates.Length);
+        Assert.All(formatCandidateIds, routeId =>
+            Assert.Contains(candidates, route => route.Identity.RouteId == routeId));
         Assert.All(candidates, static route =>
         {
             Assert.Equal(CapabilityAuthoringAvailability.Available, route.Authoring.Value);
             Assert.Equal(CapabilityEvidenceStatus.ContractOnly, route.Evidence.Value);
-            Assert.Equal("ab-merge", route.Identity.WorkflowId);
+            Assert.True(route.Identity.WorkflowId is "ab-merge" or "ctrlram-replace");
         });
         Assert.Equal(
             26,
@@ -177,7 +144,7 @@ public sealed class BuiltInCanonicalCapabilityPolicyTests
             policy.Routes.Count(static route =>
                 route.Evidence.Value == CapabilityEvidenceStatus.SyntheticOracle));
         Assert.Equal(
-            56,
+            48,
             policy.Routes.Count(static route =>
                 route.Evidence.Value == CapabilityEvidenceStatus.ContractOnly));
         string[] tpRoutesAwaitingIndependentExpectedOutput =
@@ -399,6 +366,51 @@ public sealed class BuiltInCanonicalCapabilityPolicyTests
             BuiltInCanonicalCapabilityPolicy.Load(
                 bytes,
                 PinnedJsonCatalogLoader.ComputeSha256(bytes)));
+    }
+
+    /// <summary>Even a correctly pinned route cannot reintroduce a retired or unknown workflow.</summary>
+    [Theory]
+    [InlineData("dp-replace")]
+    [InlineData("unknown-workflow")]
+    public void RejectsSelfConsistentInactiveWorkflow(string workflowId)
+    {
+        JsonObject policy = ParsePolicy();
+        JsonObject route = Assert.IsType<JsonObject>(
+            Assert.IsType<JsonArray>(policy["routes"])[0]!.DeepClone());
+        var identity = new CapabilityRouteIdentity(
+            route["icId"]!.GetValue<string>(),
+            workflowId,
+            route["icCountVariant"]!.GetValue<string>(),
+            route["mapVariant"]!.GetValue<string>());
+        route["workflowId"] = workflowId;
+        route["routeId"] = identity.RouteId;
+        foreach (string decision in new[] { "authoring", "publication", "evidence" })
+        {
+            JsonObject pin = Assert.IsType<JsonObject>(route[decision]);
+            pin["routeId"] = identity.RouteId;
+            Assert.Equal(route["capabilityFingerprint"]!.GetValue<string>(),
+                pin["capabilityFingerprint"]!.GetValue<string>());
+        }
+        policy["routes"] = new JsonArray(route);
+        byte[] bytes = Encoding.UTF8.GetBytes(policy.ToJsonString());
+
+        InvalidDataException failure = Assert.Throws<InvalidDataException>(() =>
+            BuiltInCanonicalCapabilityPolicy.Load(bytes, PinnedJsonCatalogLoader.ComputeSha256(bytes)));
+
+        Assert.Contains("workflowId", failure.Message, StringComparison.Ordinal);
+    }
+
+    /// <summary>The previous active-admission schema cannot re-enable retired policy rows.</summary>
+    [Fact]
+    public void RejectsLegacyAdmissionSchema()
+    {
+        JsonObject policy = ParsePolicy();
+        policy["schemaVersion"] = "1.0";
+        byte[] bytes = Encoding.UTF8.GetBytes(policy.ToJsonString());
+        InvalidDataException failure = Assert.Throws<InvalidDataException>(() =>
+            BuiltInCanonicalCapabilityPolicy.Load(bytes, PinnedJsonCatalogLoader.ComputeSha256(bytes)));
+
+        Assert.Contains("schemaVersion", failure.Message, StringComparison.Ordinal);
     }
 
     private static byte[] ReadPolicy()

@@ -16,12 +16,16 @@ internal static partial class V2CompositionPlanCompiler
         bool useProcessorWriteAuthority = false,
         IReadOnlySet<string>? activeOperationIds = null,
         FirmwareFamilyResolutionDefinition? family = null,
-        IReadOnlySet<string>? activeSlotIds = null)
+        IReadOnlySet<string>? activeSlotIds = null,
+        SourceEnvelopeSeed? sourceEnvelopeSeed = null)
     {
         var operations = new List<CompositionOperation>();
         string? replaceReferenceSourceSpaceId = profile.CompositionKind == CompositionKind.Replace
             ? ResolveCloneReferenceSourceSpaceId(profile)
             : null;
+        string? envelopeOutputSpaceId = sourceEnvelopeSeed is null
+            ? null
+            : AssertOutputSpace(profile).SpaceId;
         foreach (CompositionOperationDefinition operation in profile.Operations)
         {
             if (!useProcessorWriteAuthority &&
@@ -39,6 +43,33 @@ internal static partial class V2CompositionPlanCompiler
                 continue;
             }
 
+            if (sourceEnvelopeSeed is not null &&
+                !StringComparer.Ordinal.Equals(operation.OperationId, sourceEnvelopeSeed.OperationId) &&
+                (StringComparer.Ordinal.Equals(operation.SourceViewId, sourceEnvelopeSeed.SourceViewId) ||
+                 StringComparer.Ordinal.Equals(operation.TargetViewId, sourceEnvelopeSeed.TargetViewId)))
+            {
+                issues.Add(new CompositionIssue(
+                    SourceEnvelopeSeedInvalid,
+                    "Only the admitted full-DP seed may use the source-envelope root views.",
+                    operation.OperationId));
+                continue;
+            }
+
+            if (envelopeOutputSpaceId is not null &&
+                !StringComparer.Ordinal.Equals(operation.OperationId, sourceEnvelopeSeed!.OperationId) &&
+                operation.Kind != CompositionOperationKind.RunExternalProcessor &&
+                operation.TargetViewId is { } targetViewId &&
+                views.TryGetValue(targetViewId, out ResolvedView? targetView) &&
+                StringComparer.Ordinal.Equals(targetView.SpaceId, envelopeOutputSpaceId) &&
+                targetView.GoverningRegionChain.Count == 0)
+            {
+                issues.Add(new CompositionIssue(
+                    "profile.v2.source-envelope.non-tp-output-write",
+                    "Only the complete DP seed may write final output outside a canonical TP region.",
+                    operation.OperationId));
+                continue;
+            }
+
             if (!TryResolveSequence(operation, issues, out int sequence))
             {
                 continue;
@@ -48,7 +79,9 @@ internal static partial class V2CompositionPlanCompiler
             {
                 case CompositionOperationKind.CopyRange:
                 case CompositionOperationKind.ReplaceRange:
-                    LowerCopyOrReplaceOperation(profile, operation, sequence, views, regionAccess, operations, issues);
+                    LowerCopyOrReplaceOperation(
+                        profile, operation, sequence, views, regionAccess, operations, issues,
+                        sourceEnvelopeSeed);
                     break;
                 case CompositionOperationKind.FillRange:
                     LowerFillOperation(operation, sequence, views, regionAccess, operations, issues);
@@ -233,7 +266,8 @@ internal static partial class V2CompositionPlanCompiler
         IReadOnlyDictionary<string, ResolvedView> views,
         LoweredRegionAccess regionAccess,
         List<CompositionOperation> operations,
-        List<CompositionIssue> issues)
+        List<CompositionIssue> issues,
+        SourceEnvelopeSeed? sourceEnvelopeSeed = null)
     {
         ResolvedView source = views[operation.SourceViewId];
         ResolvedView target = views[operation.TargetViewId];
@@ -266,7 +300,14 @@ internal static partial class V2CompositionPlanCompiler
             return;
         }
 
-        if (!TryAuthorizeTargetWrite(operation.OperationId, operation.TargetViewId, target, regionAccess, issues))
+        bool isFullDpSeed = sourceEnvelopeSeed is not null &&
+            StringComparer.Ordinal.Equals(operation.OperationId, sourceEnvelopeSeed.OperationId) &&
+            StringComparer.Ordinal.Equals(operation.SourceViewId, sourceEnvelopeSeed.SourceViewId) &&
+            StringComparer.Ordinal.Equals(operation.TargetViewId, sourceEnvelopeSeed.TargetViewId) &&
+            operation.Kind == CompositionOperationKind.CopyRange &&
+            source.Range == target.Range && source.Range.Start == 0;
+        if (!isFullDpSeed &&
+            !TryAuthorizeTargetWrite(operation.OperationId, operation.TargetViewId, target, regionAccess, issues))
         {
             return;
         }

@@ -8,7 +8,15 @@ namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 internal sealed class CompositionRunPresentationViewModel : ObservableObject
 {
     private readonly CompositionRunStateBindings _stateBindings;
-    private CancellationTokenSource? _activeRunCancellationSource;
+    private sealed record RunAttempt(CompositionRunContext Context, Guid Id) : IDisposable
+    {
+        internal CancellationTokenSource Cancellation { get; } = new();
+        public void Dispose()
+        {
+            Cancellation.Dispose();
+        }
+    }
+    private RunAttempt? _activeAttempt;
     private bool _activeRunIsBuild;
     public bool ActiveRunShowsNumberSelector { get; private set; }
     private string ActiveRunDeviceContextRefreshSummary { get; set; } = string.Empty;
@@ -37,14 +45,10 @@ internal sealed class CompositionRunPresentationViewModel : ObservableObject
     /// <summary>Gets the localized projection of Application-owned composition phases.</summary>
     public CompositionRunProgressViewModel CompositionProgress { get; }
 
-    public UiRunResultViewModel LastRunResult { get; private set; } = new(
-        "No run yet",
-        "Drop required BIN files, then run Build.",
-        "No output",
-        succeeded: true);
+    public UiRunResultViewModel LastRunResult => _stateBindings.DisplayedOwner().LastRunResult;
 
     /// <summary>True while one composition Preview or Build owns the external processing lifetime.</summary>
-    public bool IsRunInProgress => _activeRunCancellationSource is not null;
+    public bool IsRunInProgress => _activeAttempt is not null;
 
     public string RunProgressAccessibleLabel => _activeRunIsBuild
         ? _stateBindings.Text().BuildRunProgressAccessibleLabel
@@ -78,46 +82,76 @@ internal sealed class CompositionRunPresentationViewModel : ObservableObject
     /// <summary>Cancels the active composition so external workers can terminate before the window closes.</summary>
     internal void CancelActiveRun()
     {
-        _activeRunCancellationSource?.Cancel();
+        _activeAttempt?.Cancellation.Cancel();
     }
 
-    private CancellationTokenSource BeginRun(bool build)
+    /// <summary>A delayed page cancellation can cancel only the exact attempt it observed.</summary>
+    internal bool CancelRun(WorkflowRunState owner, Guid attemptId)
     {
-        if (_activeRunCancellationSource is not null)
+        if (_activeAttempt is not { } attempt ||
+            !ReferenceEquals(attempt.Context.Owner, owner) || attempt.Id != attemptId)
         {
-            throw new InvalidOperationException("Another Preview or Build operation is already running.");
+            return false;
+        }
+        attempt.Cancellation.Cancel();
+        return true;
+    }
+
+    private RunAttempt? BeginRun(CompositionRunContext context, bool build)
+    {
+        if (_activeAttempt is not null)
+        {
+            return null;
         }
 
-        var cancellationSource = new CancellationTokenSource();
-        CompositionProgress.Reset();
-        _activeRunIsBuild = build;
-        ActiveRunShowsNumberSelector = _stateBindings.ShouldShowNumberSelector();
-        ActiveRunIc = _stateBindings.SelectedIc();
-        ActiveRunNumber = _stateBindings.SelectedNumber();
-        ActiveRunMode = _stateBindings.SelectedMode();
-        ActiveRunDeviceContextRefreshSummary = _stateBindings.DeviceContextRefreshSummary();
-        _activeRunCancellationSource = cancellationSource;
-        NotifyActiveRunContextChanged();
-        OnPropertyChanged(nameof(RunProgressAccessibleLabel));
-        _stateBindings.RefreshCommandState();
-        return cancellationSource;
-    }
-
-    private void CompleteRun(CancellationTokenSource cancellationSource)
-    {
-        if (ReferenceEquals(_activeRunCancellationSource, cancellationSource))
+        var attempt = new RunAttempt(context, Guid.NewGuid());
+        if (Interlocked.CompareExchange(ref _activeAttempt, attempt, null) is not null)
         {
-            _activeRunCancellationSource = null;
-            _stateBindings.RefreshCommandState();
-            ActiveRunShowsNumberSelector = false;
-            ActiveRunIc = string.Empty;
-            ActiveRunNumber = string.Empty;
-            ActiveRunMode = string.Empty;
-            ActiveRunDeviceContextRefreshSummary = string.Empty;
+            attempt.Dispose();
+            return null;
+        }
+        try
+        {
+            CompositionProgress.Reset();
+            _activeRunIsBuild = build;
+            ActiveRunShowsNumberSelector = context.ShowsNumberSelector;
+            ActiveRunIc = context.Ic;
+            ActiveRunNumber = context.Number;
+            ActiveRunMode = context.Mode;
+            ActiveRunDeviceContextRefreshSummary = context.DeviceContextRefreshSummary;
+            context.Owner.ActiveAttemptId = attempt.Id;
             NotifyActiveRunContextChanged();
+            OnPropertyChanged(nameof(RunProgressAccessibleLabel));
+            _stateBindings.RefreshCommandState();
+            return attempt;
         }
+        catch
+        {
+            CompleteRun(attempt);
+            throw;
+        }
+    }
 
-        cancellationSource.Dispose();
+    private void CompleteRun(RunAttempt attempt)
+    {
+        try
+        {
+            if (ReferenceEquals(Interlocked.CompareExchange(ref _activeAttempt, null, attempt), attempt))
+            {
+                attempt.Context.Owner.ActiveAttemptId = null;
+                ActiveRunShowsNumberSelector = false;
+                ActiveRunIc = string.Empty;
+                ActiveRunNumber = string.Empty;
+                ActiveRunMode = string.Empty;
+                ActiveRunDeviceContextRefreshSummary = string.Empty;
+                _stateBindings.RefreshCommandState();
+                NotifyActiveRunContextChanged();
+            }
+        }
+        finally
+        {
+            attempt.Dispose();
+        }
     }
 
     private void NotifyActiveRunContextChanged()
@@ -132,18 +166,23 @@ internal sealed class CompositionRunPresentationViewModel : ObservableObject
         _stateBindings.NotifyShellRunStateChanged();
     }
 
-    internal async Task RunCompositionAsync(
+    internal async Task<UiRunResultViewModel?> RunCompositionAsync(
+        CompositionRunContext context,
         bool build,
         CompositionRunWork run,
         Action<string, string> loadErrorReport)
     {
-        CancellationTokenSource? cancellationSource = null;
+        RunAttempt? attempt = BeginRun(context, build);
+        if (attempt is null)
+        {
+            return null;
+        }
+        CancellationTokenSource cancellationSource = attempt.Cancellation;
         CancellationTokenSource? progressObservationSource = null;
         CompositionRunProgressFeed? progress = null;
         Task progressObservation = Task.CompletedTask;
         try
         {
-            cancellationSource = BeginRun(build);
             progress = new CompositionRunProgressFeed();
             progressObservationSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationSource.Token);
             progressObservation = ObserveRunProgressAsync(progress, progressObservationSource.Token);
@@ -151,30 +190,30 @@ internal sealed class CompositionRunPresentationViewModel : ObservableObject
             CompositionRunResult result = await Task.Run(
                 () => run(progress, cancellationSource.Token).AsTask(), cancellationSource.Token);
             await (progress.IsAttached ? progressObservation : Task.CompletedTask);
-            await ProjectAndApplyRunResultAsync(result, build, cancellationSource.Token);
+            await ProjectAndApplyRunResultAsync(context, result, build, cancellationSource.Token);
         }
         catch (OperationCanceledException) when (cancellationSource is { IsCancellationRequested: true })
         {
-            return;
+            return null;
         }
         catch (CompositionPreRunRefusalException exception)
         {
             string action = build ? "Build" : "Preview";
-            LastRunResult = new UiRunResultViewModel(
+            context.Owner.Publish(new UiRunResultViewModel(
                 $"{action} blocked",
                 exception.Message,
                 "No output",
-                succeeded: false);
+                succeeded: false), context);
             OnPropertyChanged(nameof(LastRunResult));
         }
         catch (Exception exception) when (exception is InvalidOperationException or IOException or UnauthorizedAccessException or ArgumentException)
         {
             string action = build ? "Build" : "Preview";
-            LastRunResult = new UiRunResultViewModel(
+            context.Owner.Publish(new UiRunResultViewModel(
                 $"{action} failed",
                 exception.Message,
                 "No output",
-                succeeded: false);
+                succeeded: false), context);
             OnPropertyChanged(nameof(LastRunResult));
             loadErrorReport(action, exception.Message);
             if (build)
@@ -206,22 +245,25 @@ internal sealed class CompositionRunPresentationViewModel : ObservableObject
             finally
             {
                 progressObservationSource?.Dispose();
-                if (cancellationSource is not null)
-                {
-                    CompleteRun(cancellationSource);
-                }
+                CompleteRun(attempt);
             }
         }
+        return context.Owner.LastRunResult;
     }
 
-    internal async Task ShowDiagnosticPreviewAsync(CompositionRunReport report)
+    internal async Task ShowDiagnosticPreviewAsync(CompositionRunContext context, CompositionRunReport report)
     {
         ArgumentNullException.ThrowIfNull(report);
         GeneralReplaceDiagnosticPreviewSummary diagnostic = report.DiagnosticPreview ??
             throw new ArgumentException(
                 "A plan-only Preview requires its typed diagnostic marker.",
                 nameof(report));
-        CancellationTokenSource cancellationSource = BeginRun(build: false);
+        RunAttempt? attempt = BeginRun(context, build: false);
+        if (attempt is null)
+        {
+            return;
+        }
+        CancellationTokenSource cancellationSource = attempt.Cancellation;
         try
         {
             await Task.Yield();
@@ -242,11 +284,11 @@ internal sealed class CompositionRunPresentationViewModel : ObservableObject
             string reportJson = await reportJsonTask;
             ReportReviewViewModel projected = await projectionTask;
             cancellationSource.Token.ThrowIfCancellationRequested();
-            LastRunResult = new UiRunResultViewModel(
+            context.Owner.Publish(new UiRunResultViewModel(
                 "Preview blocked",
                 diagnostic.Message,
                 "No output",
-                succeeded: false);
+                succeeded: false), context);
             OnPropertyChanged(nameof(LastRunResult));
             if (reports.IsCurrentReportProjection(projectionGeneration))
             {
@@ -260,29 +302,32 @@ internal sealed class CompositionRunPresentationViewModel : ObservableObject
         }
         finally
         {
-            CompleteRun(cancellationSource);
+            CompleteRun(attempt);
         }
     }
 
     internal void ShowActionReadiness(
+        CompositionRunContext context,
         CapabilityActionReadinessSnapshot readiness,
         bool build)
     {
         ArgumentNullException.ThrowIfNull(readiness);
+        if (IsRunInProgress) { return; }
         string action = build ? "Build" : "Preview";
         CapabilityActionBlocker? blocker = build
             ? readiness.Build.PrimaryBlocker
             : readiness.Preview.PrimaryBlocker;
-        LastRunResult = new UiRunResultViewModel(
+        context.Owner.Publish(new UiRunResultViewModel(
             $"{action} blocked",
             blocker?.Message ?? $"{action} is unavailable.",
             "No output",
-            succeeded: false);
+            succeeded: false), context);
         OnPropertyChanged(nameof(LastRunResult));
     }
 
     /// <summary>Projects one completed run off-dispatcher and publishes it only while its generation is current.</summary>
     internal async Task ProjectAndApplyRunResultAsync(
+        CompositionRunContext context,
         CompositionRunResult result,
         bool build,
         CancellationToken cancellationToken)
@@ -307,6 +352,7 @@ internal sealed class CompositionRunPresentationViewModel : ObservableObject
         cancellationToken.ThrowIfCancellationRequested();
 
         ApplyRunResult(
+            context,
             result,
             build,
             report,
@@ -316,6 +362,7 @@ internal sealed class CompositionRunPresentationViewModel : ObservableObject
     }
 
     private void ApplyRunResult(
+        CompositionRunContext context,
         CompositionRunResult result,
         bool build,
         ReportReviewViewModel report,
@@ -329,13 +376,13 @@ internal sealed class CompositionRunPresentationViewModel : ObservableObject
             : result.Succeeded
             ? $"{result.ProfileId} / {result.OutputSize} bytes / {_stateBindings.Text().RunResultReportReadyLabel}"
             : report.Issues.Count == 0 ? result.OutcomeStatus : report.Issues[0].Detail;
-        LastRunResult = new UiRunResultViewModel(
+        context.Owner.Publish(new UiRunResultViewModel(
             result.Succeeded
                 ? deliveryComplete ? $"{action} succeeded" : $"{action} partially delivered"
                 : $"{action} blocked",
             detail,
             result.Succeeded ? result.CommittedOutputId ?? result.OutputFileName : "No output",
-            deliveryComplete);
+            deliveryComplete), context);
         OnPropertyChanged(nameof(LastRunResult));
         _ = _stateBindings.TryShowBuildCompleted(result, build);
 
@@ -384,34 +431,28 @@ internal sealed class CompositionRunPresentationViewModel : ObservableObject
         }
     }
 
-    internal void ResetRunResultForContextChange()
+    internal void ResetRunResultForContextChange(CompositionRunContext context)
     {
-        LastRunResult = new UiRunResultViewModel(
+        context.Owner.Publish(new UiRunResultViewModel(
             "Context changed",
-            $"{_stateBindings.SelectedIc()} / {_stateBindings.SelectedNumber()}: run Build to validate the latest context.",
+            $"{context.Ic} / {context.Number}: run Build to validate the latest context.",
             "No output",
-            succeeded: false);
+            succeeded: false));
         OnPropertyChanged(nameof(LastRunResult));
     }
 
-    internal void PublishRunResult(UiRunResultViewModel result)
+    internal void PublishRunResult(WorkflowRunState owner, UiRunResultViewModel result)
     {
-        LastRunResult = result;
+        owner.Publish(result);
         OnPropertyChanged(nameof(LastRunResult));
     }
 
     internal void ApplyLanguageChanged(ShellLanguage language)
     {
         CompositionProgress.ApplyLanguage(language);
-        if (string.Equals(LastRunResult.Title, "No run yet", StringComparison.Ordinal) ||
-            string.Equals(LastRunResult.Title, "尚未執行", StringComparison.Ordinal))
+        foreach (WorkflowRunState owner in _stateBindings.Owners())
         {
-            ShellTextResources text = _stateBindings.Text();
-            LastRunResult = new UiRunResultViewModel(
-                text.InitialRunTitle,
-                text.InitialRunDetail,
-                text.NoOutputLabel,
-                succeeded: true);
+            owner.ApplyLanguage(_stateBindings.Text());
         }
 
         OnPropertyChanged(nameof(LastRunResult));
@@ -422,6 +463,7 @@ internal sealed class CompositionRunPresentationViewModel : ObservableObject
 
     internal void NotifyContextChanged()
     {
+        OnPropertyChanged(nameof(LastRunResult));
         OnPropertyChanged(nameof(DisplayedDeviceIc));
         OnPropertyChanged(nameof(DisplayedDeviceNumber));
         OnPropertyChanged(nameof(DisplayedDeviceContextRefreshSummary));

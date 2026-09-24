@@ -267,6 +267,11 @@ internal sealed partial class ShellTextResources
             GeneralMergeMappingDetail = Pick("Copy explicit source BIN ranges into a blank output image. No postbuild command runs.", "將明確 source BIN ranges 複製到 blank output image；不執行 postbuild command。"),
             GeneralMergeMappingsDetail = Pick("Each row copies one source BIN range to one output target range.", "每列將一個 source BIN range 複製到一個 output target range。"),
             CtrlRamInputFilesDetail = Pick("Use a complete FlashCode or TP FW as Reference firmware. Add only the CtrlRAM areas to replace; short files stop at EOF and bytes beyond each maximum are ignored.", "Reference firmware 可使用完整 FlashCode 或 TP FW。只加入要取代的 CtrlRAM 區域；短檔於 EOF 停止，超過各區上限的 bytes 會忽略。"),
+            FirmwareFactNotProvidedLabel = Pick("Not provided", "未提供"),
+            FirmwareFactNotProvidedDetail = Pick("The current metadata binding does not provide this field.", "目前的 metadata binding 未提供此欄位。"),
+            CtrlRamTargetBanksLabel = Pick("Replace banks", "替換 Bank"),
+            CtrlRamBothBanksLabel = Pick("Both", "兩者"),
+            CtrlRamSharedSourcesDetail = Pick("Selected banks share these sources. Slot addresses are bank-local; Output layout shows complete Reference offsets. Unselected banks remain unchanged.", "選取的 Bank 共用下方來源。欄位地址為 bank 內局部地址；Output layout 顯示完整 Reference 位移。未選取的 Bank 保持原樣。"),
             CtrlRamFirmwareVersionTitle = Pick("Base TP version", "基礎 TP 版本"),
             CtrlRamFirmwareVersionDetail = Pick("Read from the selected Base firmware.", "從已選取的基礎韌體讀取。"),
             CtrlRamFirmwareVersionKeepLabel = Pick("Keep base", "沿用 Base"),
@@ -368,6 +373,9 @@ internal sealed partial class ShellTextResources
             EventBufferFormatSavedLabel = Pick(
                 "Configuration saved.",
                 "設定已儲存。"),
+            EventBufferFormatBuiltInLabel = Pick(
+                "Using built-in defaults. No custom event-buffer-format.v1.json exists. Changes apply after saving.",
+                "使用內建預設規則；尚無自訂 event-buffer-format.v1.json。修改後須儲存才生效。"),
             EventBufferFormatReapplyFailedLabel = Pick(
                 "Configuration saved, but AB inputs could not be refreshed. Check the input issues before Build.",
                 "設定已儲存，但 AB 輸入未能更新。請先確認輸入問題，再執行 Build。"),

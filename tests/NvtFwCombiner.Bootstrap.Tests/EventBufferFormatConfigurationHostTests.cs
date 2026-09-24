@@ -22,7 +22,7 @@ public sealed class EventBufferFormatConfigurationHostTests
 
     /// <summary>Construction does no family IO; concurrent opens share one session, not one global mutable state.</summary>
     [Fact]
-    public async Task HostDefersAndSharesConfigurationWithoutActivatingDefaultsAsync()
+    public async Task HostDefersAndSharesConfigurationWithBuiltInDefaultsAsync()
     {
         using TempWorkspace workspace = TempWorkspace.Create();
         int loads = 0;
@@ -40,8 +40,9 @@ public sealed class EventBufferFormatConfigurationHostTests
         Assert.Equal(1, loads);
         Assert.All(sessions, session => Assert.Same(sessions[0], session));
         IEventBufferFormatConfigurationSession current = sessions[0];
-        Assert.Equal(EventBufferFormatConfigurationStatus.Missing, current.Current.Status);
-        Assert.Null(current.Current.Configuration);
+        Assert.Equal(EventBufferFormatConfigurationStatus.Ready, current.Current.Status);
+        Assert.NotNull(current.Current.Configuration);
+        Assert.True(current.Current.UsesBuiltInDefaults);
         Assert.False(File.Exists(workspace.PathFor("config.json")));
         Assert.Equal("desay", Assert.Single(current.Catalog.Identities).UniqueId);
         Assert.Equal(3, current.Catalog.OutputEffects.Count);
@@ -49,7 +50,11 @@ public sealed class EventBufferFormatConfigurationHostTests
         {
             Assert.Equal("desay", effect.UniqueId);
             Assert.Equal("flash", effect.AddressSpaceId);
-            Assert.Equal(new ByteRange(0x4A000, 0x2D000), effect.TpBRange);
+            Assert.Equal(
+                effect.MapId.EndsWith("1024k", StringComparison.Ordinal)
+                    ? new ByteRange(0x8A000, 0x2D000)
+                    : new ByteRange(0x4A000, 0x2D000),
+                effect.TpBRange);
         });
         Assert.True((await current.SaveAsync(current.CreateDefaultsDraft(), TestContext.Current.CancellationToken)).Succeeded);
         CompositionHostServices restarted = CompositionHostServices.Create(new ExternalProcessorEnvironmentLoader(), null,
@@ -79,7 +84,7 @@ public sealed class EventBufferFormatConfigurationHostTests
         _ = await Assert.ThrowsAsync<IOException>(() => host.GetEventBufferFormatConfigurationAsync(TestContext.Current.CancellationToken));
         IEventBufferFormatConfigurationSession session = await host.GetEventBufferFormatConfigurationAsync(TestContext.Current.CancellationToken);
         Assert.Equal(2, loads);
-        Assert.Equal(EventBufferFormatConfigurationStatus.Missing, session.Current.Status);
+        Assert.Equal(EventBufferFormatConfigurationStatus.Ready, session.Current.Status);
     }
 
     /// <summary>One abandoned waiter cannot cancel another consumer's shared initialization.</summary>
@@ -115,7 +120,7 @@ public sealed class EventBufferFormatConfigurationHostTests
 
         IEventBufferFormatConfigurationSession session = await host.GetEventBufferFormatConfigurationAsync(TestContext.Current.CancellationToken);
         Assert.Equal(1, loads);
-        Assert.Equal(EventBufferFormatConfigurationStatus.Missing, session.Current.Status);
+        Assert.Equal(EventBufferFormatConfigurationStatus.Ready, session.Current.Status);
     }
 
     /// <summary>Disclosure follows the supplied canonical map references, not a fixed Desay address in the editor.</summary>

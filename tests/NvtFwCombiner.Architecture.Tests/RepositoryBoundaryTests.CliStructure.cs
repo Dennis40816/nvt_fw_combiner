@@ -37,7 +37,6 @@ public sealed partial class RepositoryBoundaryTests
     public void ReplaceCommandsShareRunLifecycle()
     {
         string support = ReadText("src/NvtFwCombiner.Cli/ReplaceCliCommandHandler.RunSupport.cs");
-        string dp = ReadText("src/NvtFwCombiner.Cli/ReplaceCliCommandHandler.Dp.cs");
         string ctrlRam = ReadText("src/NvtFwCombiner.Cli/ReplaceCliCommandHandler.CtrlRam.cs");
         string general = ReadText("src/NvtFwCombiner.Cli/ReplaceCliCommandHandler.General.cs");
 
@@ -46,7 +45,7 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("EnsureReportDoesNotAliasProtectedPaths", support, StringComparison.Ordinal);
         Assert.Contains("CliCompositionRunSupport.WriteReportJsonAsync", support, StringComparison.Ordinal);
         Assert.Contains("PrintCompositionRunResultAsync", support, StringComparison.Ordinal);
-        foreach (string workflow in new[] { dp, ctrlRam, general })
+        foreach (string workflow in new[] { ctrlRam, general })
         {
             Assert.Equal(1, CountOccurrences(workflow, "CompleteReplaceRunAsync("));
             Assert.DoesNotContain("EnsureOutputDoesNotAliasInputs", workflow, StringComparison.Ordinal);
@@ -55,12 +54,9 @@ public sealed partial class RepositoryBoundaryTests
             Assert.DoesNotContain("PrintCompositionRunResultAsync", workflow, StringComparison.Ordinal);
         }
 
-        Assert.DoesNotContain("EnsureReportDoesNotAliasProtectedPaths", dp, StringComparison.Ordinal);
         Assert.DoesNotContain("EnsureReportDoesNotAliasProtectedPaths", ctrlRam, StringComparison.Ordinal);
         Assert.Equal(1, CountOccurrences(general, "EnsureReportDoesNotAliasProtectedPaths("));
 
-        Assert.Contains("services.DpReplaceAuthoring.PrepareSession", dp, StringComparison.Ordinal);
-        Assert.Contains("services.Execution.ExecuteAsync", dp, StringComparison.Ordinal);
         Assert.Contains("services.CtrlRamAuthoring.PrepareSession", ctrlRam, StringComparison.Ordinal);
         Assert.Contains("services.Execution", ctrlRam, StringComparison.Ordinal);
         Assert.Contains(".ExecuteAsync(", ctrlRam, StringComparison.Ordinal);
@@ -73,7 +69,7 @@ public sealed partial class RepositoryBoundaryTests
             general,
             StringComparison.Ordinal);
         Assert.Equal(1, CountOccurrences(general, "services.Execution.ExecuteAsync"));
-        foreach (string workflow in new[] { dp, ctrlRam, general })
+        foreach (string workflow in new[] { ctrlRam, general })
         {
             Assert.Contains("ResolveAcceptedOutput", workflow, StringComparison.Ordinal);
             Assert.DoesNotContain("GetReplaceDefaultOutputFileName", workflow, StringComparison.Ordinal);
@@ -190,13 +186,13 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("internal sealed record ParsedCliOptions", optionParser, StringComparison.Ordinal);
         Assert.Contains("private static async Task<int> RunProfilesAsync", profiles, StringComparison.Ordinal);
         Assert.Contains("GetStandardMergeProfileSummaries", profiles, StringComparison.Ordinal);
-        Assert.Contains("GetDpReplaceProfileSummaries", profiles, StringComparison.Ordinal);
+        Assert.DoesNotContain("GetDpReplaceProfileSummaries", profiles, StringComparison.Ordinal);
         Assert.DoesNotContain("CompositionProfileDefinition", profiles, StringComparison.Ordinal);
         Assert.DoesNotContain("BuiltInStandardMergeProfiles", profiles, StringComparison.Ordinal);
         Assert.DoesNotContain("BuiltInReplaceProfiles", profiles, StringComparison.Ordinal);
         Assert.DoesNotContain("CompositionProfileCompiler", profiles, StringComparison.Ordinal);
         Assert.Contains("private static async Task PrintRunResultAsync", result, StringComparison.Ordinal);
-        Assert.Contains("private static async Task<int> RunStandardMergeAsync", standardMerge, StringComparison.Ordinal);
+        Assert.Contains("internal static async Task<int> RunStandardMergeAsync", standardMerge, StringComparison.Ordinal);
         Assert.Contains("exception.IsMissing", standardMerge, StringComparison.Ordinal);
         Assert.DoesNotContain("File.Exists(exception.Path)", standardMerge, StringComparison.Ordinal);
         Assert.Contains("private static async Task WriteUsageAsync", usage, StringComparison.Ordinal);
@@ -208,7 +204,7 @@ public sealed partial class RepositoryBoundaryTests
     {
         string handler = ReadText("src/NvtFwCombiner.Cli/ReplaceCliCommandHandler.cs");
 
-        Assert.Contains("RunDpReplaceAsync", handler, StringComparison.Ordinal);
+        Assert.DoesNotContain("RunDpReplaceAsync", handler, StringComparison.Ordinal);
         Assert.Contains("RunCtrlRamReplaceAsync", handler, StringComparison.Ordinal);
         Assert.Contains("RunGeneralReplaceAsync", handler, StringComparison.Ordinal);
         Assert.DoesNotContain("RunWorkbench", handler, StringComparison.Ordinal);
@@ -226,6 +222,8 @@ public sealed partial class RepositoryBoundaryTests
         string sharedRun = run;
         string generalMergeProfile = ReadText(
             "src/NvtFwCombiner.Infrastructure/Composition/BuiltInGeneralAuthoringPlanner.cs");
+        string artifactClassification = ReadText(
+            "src/NvtFwCombiner.Application/InputInspection/FirmwareArtifactClassificationResolver.CtrlRam.cs");
         string resolver = ReadText(
             "src/NvtFwCombiner.Application/Capabilities/CanonicalCapabilityCompiler.StandardMerge.cs");
 
@@ -245,11 +243,12 @@ public sealed partial class RepositoryBoundaryTests
             [
                 "NvtFwCombiner.Application/Authoring/StandardMergeAuthoringExperience.cs",
                 "NvtFwCombiner.Application/Capabilities/CanonicalCapabilityCompiler.StandardMerge.cs",
+                "NvtFwCombiner.Application/InputInspection/FirmwareArtifactClassificationResolver.CtrlRam.cs",
                 "NvtFwCombiner.Infrastructure/Composition/BuiltInGeneralAuthoringPlanner.cs",
             ],
             compileSources);
 
-        foreach (string runtimeSource in new[] { generalMergeProfile })
+        foreach (string runtimeSource in new[] { generalMergeProfile, artifactClassification })
         {
             Assert.Contains("TryCompileStandardMerge", runtimeSource, StringComparison.Ordinal);
             Assert.DoesNotContain("CompositionProfileDefinition", runtimeSource, StringComparison.Ordinal);

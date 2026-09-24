@@ -1,5 +1,8 @@
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
+/// <summary>Presentation priority declared where a typed observation is formatted.</summary>
+internal enum FirmwareSlotFactPriority { Primary, Details }
+
 /// <summary>One typed firmware fact projected below a selected BIN file name.</summary>
 internal sealed record FirmwareSlotFactViewModel
 {
@@ -9,13 +12,19 @@ internal sealed record FirmwareSlotFactViewModel
         string value,
         FirmwareSlotFactState state = FirmwareSlotFactState.Ordinary,
         string? stateLabel = null,
-        string? stateDetail = null)
+        string? stateDetail = null,
+        FirmwareSlotFactPriority priority = FirmwareSlotFactPriority.Primary)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(label);
         ArgumentException.ThrowIfNullOrWhiteSpace(value);
         if (!Enum.IsDefined(state))
         {
             throw new ArgumentOutOfRangeException(nameof(state), state, "Firmware fact state must be declared.");
+        }
+
+        if (!Enum.IsDefined(priority))
+        {
+            throw new ArgumentOutOfRangeException(nameof(priority), priority, "Firmware fact priority must be declared.");
         }
 
         if (state is not FirmwareSlotFactState.Ordinary and not FirmwareSlotFactState.NotApplicable)
@@ -29,11 +38,17 @@ internal sealed record FirmwareSlotFactViewModel
         State = state;
         StateLabel = stateLabel;
         StateDetail = stateDetail;
+        Priority = priority;
     }
 
     public string Label { get; }
 
     public string Value { get; }
+
+    public FirmwareSlotFactPriority Priority { get; }
+
+    public bool IsPrimary => Priority == FirmwareSlotFactPriority.Primary ||
+        State is FirmwareSlotFactState.Error or FirmwareSlotFactState.Warning or FirmwareSlotFactState.PendingInput;
 
     public FirmwareSlotFactState State { get; }
 

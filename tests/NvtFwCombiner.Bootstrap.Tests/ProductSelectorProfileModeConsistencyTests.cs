@@ -16,6 +16,12 @@ public sealed class ProductSelectorProfileModeConsistencyTests
         CanonicalCapabilityCatalogSnapshot snapshot = host.Catalog.GetCurrentSnapshot();
         CapabilitySelectorPublication selector = snapshot.SelectorPublication;
         Assert.NotEmpty(selector.IcIds);
+        Assert.DoesNotContain(snapshot.Capabilities, static capability =>
+            capability.Identity.WorkflowId == ExperienceIds.DpReplace &&
+            capability.Authoring.Value == CapabilityAuthoringAvailability.Available);
+        Assert.DoesNotContain(snapshot.DynamicRoutes, static route =>
+            route.Identity.WorkflowId == ExperienceIds.DpReplace &&
+            route.Authoring.Value == CapabilityAuthoringAvailability.Available);
 
         foreach (string icId in selector.IcIds)
         {

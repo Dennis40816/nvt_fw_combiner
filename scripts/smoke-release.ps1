@@ -31,11 +31,11 @@ $ApprovedRuntimeCatalogPackagePaths = @(
     'profiles/built-in/ctrlram-postbuild-v2/flash-map.json'
 ) | Sort-Object
 $PackageTrustIndexPackagePath = 'profiles/built-in/package-trust-index.json'
-$ApprovedPackageTrustIndexSha256 = '61b15094d7fa4bb3a68b7ee2f1b742b2e7b2396ea86eabcc05d802b706a9ce2a'
+$ApprovedPackageTrustIndexSha256 = 'a230518c7f33a0b9ab0a90250390a672e3579b57e90cfbfa3945798fe973f4b3'
 $ApprovedCanonicalCapabilityPolicyPackageContract = [pscustomobject]@{
     path = 'docs/contracts/canonical-capability-policy-v1.json'
     role = 'capabilityPolicy'
-    sha256 = 'f283eb6079ed59cb2441909de8b4c248683e988d2ecd0da19fcae19a5a0b07d3'
+    sha256 = '8671a3aec41eaab51e53aaae022a3ae35faa50e700be4481a178e2f2b0eb0e8f'
 }
 $ApprovedCanonicalGoldenAllowlistPath = Join-Path $PSScriptRoot '../testdata/golden/release-canonical-v1.json'
 $ApprovedCanonicalGoldenAllowlistSha256 = '18628e43e7b4789c9ec94f911e55b5dd2b50bd272aa13e0ba55350e8fa911e00'
@@ -782,7 +782,7 @@ try {
     }
     $PackageTrustIndex = Get-Content -LiteralPath $PackageTrustIndexPath -Raw |
         ConvertFrom-Json -Depth 32
-    if ([string]$PackageTrustIndex.schemaVersion -ne '1.3' -or
+    if ([string]$PackageTrustIndex.schemaVersion -ne '1.5' -or
         [string]$PackageTrustIndex.trustAnchorBindingId -ne 'built-in-profile-bundle-v2') {
         throw 'Release package trust index has an unsupported schema or trust anchor.'
     }

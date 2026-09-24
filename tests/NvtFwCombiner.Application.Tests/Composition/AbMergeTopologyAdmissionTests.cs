@@ -4,14 +4,14 @@ using NvtFwCombiner.Domain.Firmware;
 
 namespace NvtFwCombiner.Application.Tests.Composition;
 
-/// <summary>Checks exact observed counts and preserves the existing single/cascade admission policy.</summary>
+/// <summary>Checks pair count equality separately from the optional single/cascade selector.</summary>
 public sealed class AbMergeTopologyAdmissionTests
 {
     /// <summary>Cascade is a classification, not a replacement for each artifact's actual count.</summary>
     [Theory]
     [InlineData(1, 1, 1)]
-    [InlineData(2, 3, 2)]
-    [InlineData(3, 2, 2)]
+    [InlineData(2, 2, 2)]
+    [InlineData(3, 3, 2)]
     [InlineData(255, 255, 2)]
     public void AcceptedCountsRetainTheirExactValues(int a, int b, int selected)
     {
@@ -26,6 +26,27 @@ public sealed class AbMergeTopologyAdmissionTests
         Array.Clear(tpB);
         Assert.Equal((byte)a, result.TpAChipCount);
         Assert.Equal((byte)b, result.TpBChipCount);
+    }
+
+    /// <summary>Every AB pair must have identical counts, including selector-free and mixed cascade pairs.</summary>
+    [Theory]
+    [InlineData(1, 2, 1)]
+    [InlineData(2, 1, 2)]
+    [InlineData(2, 3, 2)]
+    [InlineData(3, 2, 2)]
+    [InlineData(1, 2, 0)]
+    [InlineData(2, 3, 0)]
+    public void DifferentExactCountsAreRejectedBeforeMapSelection(int a, int b, int selected)
+    {
+        AbMergeTopologyAdmissionResult result = AbMergeTopologyAdmission.Assess(Tp(a), Tp(b),
+            selected == 0 ? null : Selection(selected));
+        Assert.False(result.Succeeded);
+        CompositionIssue issue = Assert.Single(result.Issues);
+        Assert.Equal("AB_TP_TOPOLOGY_MISMATCH", issue.Code);
+        Assert.Equal(CompositionIssueSeverity.Error, issue.Severity);
+        Assert.Contains($"{a} IC", issue.Message, StringComparison.Ordinal);
+        Assert.Contains($"{b} IC", issue.Message, StringComparison.Ordinal);
+        Assert.Equal(CompositionAddressSpaceIds.TpBInput, issue.OperationId);
     }
 
     /// <summary>Invalid Backup has no count; errors retain A/B order and exact wording.</summary>
@@ -51,8 +72,8 @@ public sealed class AbMergeTopologyAdmissionTests
         Assert.Null(result.TpAChipCount);
         Assert.Null(result.TpBChipCount);
         Assert.Collection(result.Issues,
-            issue => AssertIssue(issue, "AB_TP_FIRMWARE_CONFIG_BACKUP_INVALID", "TPA has no valid canonical NVT FWConfig Backup.", CompositionAddressSpaceIds.TpAInput),
-            issue => AssertIssue(issue, "AB_TP_FIRMWARE_CONFIG_BACKUP_INVALID", "TPB has no valid canonical NVT FWConfig Backup.", CompositionAddressSpaceIds.TpBInput));
+            issue => AssertIssue(issue, "firmware-config.chip-count-unreadable", "tp-a-input: IC Count is unreadable; no unambiguous valid canonical NVT FWConfig Backup.", CompositionAddressSpaceIds.TpAInput),
+            issue => AssertIssue(issue, "firmware-config.chip-count-unreadable", "tp-b-input: IC Count is unreadable; no unambiguous valid canonical NVT FWConfig Backup.", CompositionAddressSpaceIds.TpBInput));
     }
 
     /// <summary>A decoded zero differs from unavailable metadata and precedes topology mismatch.</summary>
@@ -66,25 +87,34 @@ public sealed class AbMergeTopologyAdmissionTests
         Assert.False(result.Succeeded);
         Assert.Equal((byte)a, result.TpAChipCount);
         Assert.Equal((byte)b, result.TpBChipCount);
-        AssertIssue(Assert.Single(result.Issues), "firmware-config.chip-count-required",
-            "IC Count Required: FWConfig Chip_Num at offset 0x17 is 0. AB Code uses TPA and TPB IC Count to validate the selected topology. Set Chip_Num correctly before Build.", "ab-topology");
+        string[] slots = [.. new[] { (a, CompositionAddressSpaceIds.TpAInput), (b, CompositionAddressSpaceIds.TpBInput) }
+            .Where(static pair => pair.Item1 == 0).Select(static pair => pair.Item2)];
+        Assert.Equal(slots, result.Issues.Select(static issue => issue.OperationId));
+        foreach (CompositionIssue issue in result.Issues)
+        {
+            AssertIssue(issue, "firmware-config.chip-count-required",
+                $"IC Count Required: FWConfig Chip_Num at offset 0x17 is 0. {issue.OperationId}: IC Count was read as 0; TP firmware inputs require a positive count. Set Chip_Num correctly before Build.", issue.OperationId!);
+        }
     }
 
-    /// <summary>A bad Backup takes precedence over a valid zero on the other input.</summary>
+    /// <summary>Unreadable and zero remain separate causes on their respective input slots.</summary>
     [Fact]
     public void InvalidPrecedesZeroOnOtherInput()
     {
         AbMergeTopologyAdmissionResult result = AbMergeTopologyAdmission.Assess([], Tp(0), Selection(1));
         Assert.Null(result.TpAChipCount);
         Assert.Equal((byte)0, result.TpBChipCount);
-        AssertIssue(Assert.Single(result.Issues), "AB_TP_FIRMWARE_CONFIG_BACKUP_INVALID",
-            "TPA has no valid canonical NVT FWConfig Backup.", CompositionAddressSpaceIds.TpAInput);
+        Assert.Equal(2, result.Issues.Count);
+        AssertIssue(result.Issues[0], "firmware-config.chip-count-unreadable",
+            "tp-a-input: IC Count is unreadable; no unambiguous valid canonical NVT FWConfig Backup.", CompositionAddressSpaceIds.TpAInput);
+        Assert.Equal("firmware-config.chip-count-required", result.Issues[1].Code);
+        Assert.Equal(CompositionAddressSpaceIds.TpBInput, result.Issues[1].OperationId);
     }
 
     /// <summary>Both single/cascade mismatch directions preserve issue priority and subjects.</summary>
     [Theory]
-    [InlineData(1, 2, "TPA declares 1 IC but TPB declares Cascade (2 IC); AB Merge requires matching TP topology.")]
-    [InlineData(3, 1, "TPA declares Cascade (3 IC) but TPB declares 1 IC; AB Merge requires matching TP topology.")]
+    [InlineData(1, 2, "TPA declares 1 IC but TPB declares 2 IC; AB Merge requires identical TP IC Counts.")]
+    [InlineData(3, 1, "TPA declares 3 IC but TPB declares 1 IC; AB Merge requires identical TP IC Counts.")]
     public void InputTopologyMismatchPrecedesSelectedMismatch(int a, int b, string expected)
     {
         AbMergeTopologyAdmissionResult result = AbMergeTopologyAdmission.Assess(Tp(a), Tp(b), Selection(1));

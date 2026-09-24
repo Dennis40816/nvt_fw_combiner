@@ -228,7 +228,7 @@ public sealed partial class XamlControlStyleContractTests
 
         Assert.Equal(3, textBlocks.Count(element => HasClass(element, "workflowKicker")));
         Assert.Equal(3, textBlocks.Count(element => HasClass(element, "pageSubtitle")));
-        Assert.Equal(7, textBlocks.Count(element => HasClass(element, "workflowActionText")));
+        Assert.Equal(6, textBlocks.Count(element => HasClass(element, "workflowActionText")));
         Assert.All(textBlocks, static textBlock =>
         {
             Assert.Null(textBlock.Attribute("FontFamily"));

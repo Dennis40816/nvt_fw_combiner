@@ -11,15 +11,40 @@ public sealed partial record CanonicalCapabilityCatalogSnapshot
         string prerequisiteSlotId)
     {
         ArgumentNullException.ThrowIfNull(discoveryCapability);
+        return ResolveReviewedDiscoveryTransition(
+            discoveryCapability.Identity,
+            discoveryCapability.ResolutionToken,
+            discoveryCapability.CapabilityFingerprint,
+            prerequisiteSlotId);
+    }
+
+    /// <summary>Reviews one published dynamic definition before prerequisite bytes exist.</summary>
+    public ReviewedDiscoveryTransition ResolveReviewedDiscoveryTransition(
+        ResolvedCapabilityRoute discoveryRoute,
+        string prerequisiteSlotId)
+    {
+        ArgumentNullException.ThrowIfNull(discoveryRoute);
+        return ResolveReviewedDiscoveryTransition(
+            discoveryRoute.Identity,
+            discoveryRoute.ResolutionToken,
+            discoveryRoute.CapabilityFingerprint,
+            prerequisiteSlotId);
+    }
+
+    private ReviewedDiscoveryTransition ResolveReviewedDiscoveryTransition(
+        CapabilityRouteIdentity identity,
+        ResolutionToken resolutionToken,
+        string capabilityFingerprint,
+        string prerequisiteSlotId)
+    {
         ArgumentException.ThrowIfNullOrWhiteSpace(prerequisiteSlotId);
-        if (ResolutionToken != discoveryCapability.ResolutionToken)
+        if (ResolutionToken != resolutionToken)
         {
             throw new ArgumentException(
-                "Discovery capability and reviewed members must share one canonical publication.",
-                nameof(discoveryCapability));
+                "Discovery route and reviewed members must share one canonical publication.",
+                nameof(resolutionToken));
         }
 
-        CapabilityRouteIdentity identity = discoveryCapability.Identity;
         ReviewedDiscoveryExactMember[] allowed =
         [
             .. Capabilities
@@ -38,7 +63,7 @@ public sealed partial record CanonicalCapabilityCatalogSnapshot
         ];
         var discoveryMember = new ReviewedDiscoveryExactMember(
             identity.RouteId,
-            discoveryCapability.CapabilityFingerprint);
+            capabilityFingerprint);
         _ = allowed.Length != 0 && allowed.Contains(discoveryMember)
             ? true
             : throw new InvalidOperationException(

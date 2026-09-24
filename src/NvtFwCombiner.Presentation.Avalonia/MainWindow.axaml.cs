@@ -56,7 +56,7 @@ public sealed partial class MainWindow : Window, IDisposable
         ArgumentNullException.ThrowIfNull(hostServices);
         ArgumentNullException.ThrowIfNull(startupPreferences);
         _launchOptions = launchOptions;
-        _isStartupInputLoading = launchOptions.CtrlRam is not null;
+        _isStartupInputLoading = launchOptions.HasStartupInputs;
         _startupTrace = startupTrace;
         _hostServices = hostServices;
         _reportHistoryPersistence = new(

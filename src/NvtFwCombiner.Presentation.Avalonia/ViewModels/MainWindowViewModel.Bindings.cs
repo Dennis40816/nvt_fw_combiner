@@ -44,9 +44,6 @@ internal sealed partial class MainWindowViewModel
 
     public IRelayCommand ShowReplaceCommand { get; }
 
-    /// <summary>Home entry command that collects Replace context before opening DP Replace.</summary>
-    public IRelayCommand BeginDpReplaceFromHomeCommand { get; }
-
     /// <summary>Home entry command that collects Replace context before opening CtrlRAM Replace.</summary>
     public IRelayCommand BeginCtrlRamReplaceFromHomeCommand { get; }
 

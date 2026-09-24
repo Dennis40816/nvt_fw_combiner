@@ -60,8 +60,6 @@ public sealed partial class CompositionHostServices
             externalEnvironment,
             GetEventBufferFormatConfigurationAsync);
         AbMergeAuthoring = abMergeAuthoring;
-        var dpReplaceAuthoring = new DpReplaceAuthoringExperience(compiler, catalog);
-        DpReplaceAuthoring = dpReplaceAuthoring;
         ExternalEnvironment = externalEnvironment ??
             throw new ArgumentNullException(nameof(externalEnvironment));
         GeneralAuthoring = new GeneralAuthoringExperience(
@@ -69,20 +67,19 @@ public sealed partial class CompositionHostServices
             new FileContentSnapshotInspector(),
             externalEnvironment,
             new SystemClock());
+        var artifactClassification = new FirmwareArtifactClassificationResolver(catalog, compiler);
         var ctrlRamAuthoring = new CtrlRamAuthoringExperience(
             new BuiltInCtrlRamAuthoringAdapter(catalog, projection),
-            externalEnvironment);
+            externalEnvironment,
+            artifactClassification);
         CtrlRamAuthoring = ctrlRamAuthoring;
         FirmwareInspectionExperience = new BuiltInFirmwareInspection(
-            new FirmwareMetadataPlanAuthorityResolver(catalog),
+            new FirmwareMetadataPlanAuthorityResolver(catalog, compiler),
             projection,
             standardMergeAuthoring,
             abMergeAuthoring,
-            dpReplaceAuthoring,
             ctrlRamAuthoring,
-            new FirmwareArtifactClassificationResolver(
-                catalog,
-                compiler));
+            artifactClassification);
         var artifactIdentityPolicy = new FileSystemCompositionArtifactIdentityPolicy();
         var bundleDestinationValidator =
             new FileSystemCompositionOutputBundleDestinationValidator();
@@ -120,7 +117,8 @@ public sealed partial class CompositionHostServices
             CanonicalDynamicRouteInventory.IsDynamic,
             CanonicalCompiledRouteInventory.Resolve,
             CanonicalDynamicRouteInventory.CreateResolver,
-            CanonicalCapabilityDisclosureInventory.Create);
+            CanonicalCapabilityDisclosureInventory.Create,
+            CanonicalFullImageMetadataInventory.Create);
     }
 
     /// <summary>Creates one isolated host graph at an executable composition root.</summary>
@@ -235,9 +233,6 @@ public sealed partial class CompositionHostServices
 
     /// <summary>Gets the focused AB Merge authoring owner.</summary>
     public IAbMergeAuthoring AbMergeAuthoring { get; }
-
-    /// <summary>Gets the focused DP Replace authoring owner.</summary>
-    public IDpReplaceAuthoring DpReplaceAuthoring { get; }
 
     /// <summary>Gets the focused General Merge and Replace authoring owner.</summary>
     public IGeneralAuthoring GeneralAuthoring { get; }

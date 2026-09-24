@@ -182,12 +182,26 @@ internal sealed partial class TrustedProfileBundleCatalog
             return V2CompositionPlanCompileResult.Failed(resolutionIssues);
         }
 
+        bool usesSourceEnvelope = false;
         if (requestedMapCapacity is { } capacity)
         {
-            mapCandidates =
+            FirmwareImageMap[] exactCapacityCandidates =
             [
                 .. mapCandidates.Where(map => map.CapacityBytes == capacity),
             ];
+            SourceEnvelopeProfileBinding? envelopeBinding = selectedProfile.Profile.Header.SourceEnvelopeBinding;
+            FirmwareArtifactPayload? boundSource = envelopeBinding is null
+                ? null
+                : resolutionArtifacts.SingleOrDefault(artifact =>
+                    StringComparer.Ordinal.Equals(artifact.ArtifactId, envelopeBinding.SourceSlotId));
+            usesSourceEnvelope = exactCapacityCandidates.Length == 0 &&
+                envelopeBinding is not null && boundSource is not null &&
+                boundSource.LengthBytes == capacity;
+            mapCandidates =
+                usesSourceEnvelope
+                    ? [.. mapCandidates.Where(map =>
+                        StringComparer.Ordinal.Equals(map.MapId, envelopeBinding!.LayoutTemplateMapId))]
+                    : exactCapacityCandidates;
             if (mapCandidates.Length == 0)
             {
                 return Failed(
@@ -250,7 +264,7 @@ internal sealed partial class TrustedProfileBundleCatalog
             new FirmwareMapResolutionInputs(
                 memberId,
                 modeId,
-                mapCandidates[0].CapacityBytes,
+                usesSourceEnvelope ? requestedMapCapacity!.Value : mapCandidates[0].CapacityBytes,
                 requestedTopology,
                 resolutionArtifacts),
             out V2CompositionPreparationService.PreparedCompilation? preparation,

@@ -188,6 +188,9 @@ public enum CapabilityReadinessDimension
 
     /// <summary>Refreshable current-machine dependency state.</summary>
     RuntimeDependency,
+
+    /// <summary>Current user configuration required by the selected workflow.</summary>
+    Configuration,
 }
 
 /// <summary>Typed next action for a check-time blocker.</summary>
@@ -207,6 +210,9 @@ public enum CapabilityReadinessNextAction
 
     /// <summary>Refresh current-machine processor/tool discovery.</summary>
     RefreshRuntimeDependencies,
+
+    /// <summary>Repair and reload the named configuration in Settings.</summary>
+    ReviewConfiguration,
 }
 
 /// <summary>One typed pre-run blocker; this is never a Build Report issue.</summary>

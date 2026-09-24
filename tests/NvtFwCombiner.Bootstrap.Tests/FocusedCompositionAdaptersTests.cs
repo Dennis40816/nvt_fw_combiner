@@ -331,14 +331,14 @@ public sealed class FocusedCompositionAdaptersTests
             issue => issue.Code == ReplaceWorkflowNotSupported);
     }
 
-    /// <summary>Rejects Workbench DP Replace build outputs that would overwrite selected input BINs.</summary>
+    /// <summary>Rejects Workbench General Replace build outputs that would overwrite selected input BINs.</summary>
     [Fact]
-    public async Task DpReplaceBuildRejectsOutputPathThatAliasesInput()
+    public async Task GeneralReplaceBuildRejectsOutputPathThatAliasesInput()
     {
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-workbench-dp-alias");
-        byte[] baseBytes = CreatePattern(0x40000, 0x20);
+        byte[] baseBytes = File.ReadAllBytes(GoldenArtifactPath("51926", "expected-output"));
         string basePath = workspace.Write("base.bin", baseBytes);
-        string dpPath = workspace.Write("dp.bin", CreatePattern(0x40000, 0x80));
+        string dpPath = workspace.Write("dp.bin", CreatePattern(2, 0x80));
         Dictionary<string, string> slotPaths = new(StringComparer.Ordinal)
         {
             ["replace-base"] = basePath,
@@ -346,13 +346,13 @@ public sealed class FocusedCompositionAdaptersTests
         };
 
         ArgumentException exception = await Assert.ThrowsAsync<ArgumentException>(() =>
-            DpReplaceTestSupport.RunAsync(
-                    "NT51950",
-                    ExperienceIds.DpReplace,
-                    slotPaths,
-                    build: true,
-                    TestContext.Current.CancellationToken,
-                    outputPath: basePath)
+            GeneralWorkflowTestSupport.BuildGeneralReplaceAsync(
+                    BootstrapTestHost.Canonical, "NT51926", "single", slotPaths,
+                    GeneralTestDraftFactory.CreateReplaceDraft([
+                        GeneralTestDraftFactory.ReplaceFile("mapping-1", dpPath, "0x3E020", "0x2"),
+                    ]),
+                    basePath,
+                    TestContext.Current.CancellationToken)
                 .AsTask());
 
         Assert.Contains("Output path must not overwrite input artifact", exception.Message, StringComparison.Ordinal);

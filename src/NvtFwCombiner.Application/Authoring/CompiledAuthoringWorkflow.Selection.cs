@@ -1,5 +1,6 @@
 using System.Collections.ObjectModel;
 using NvtFwCombiner.Application.Capabilities;
+using NvtFwCombiner.Application.Metadata;
 using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Application.Authoring;
@@ -23,6 +24,30 @@ public sealed partial class CompiledAuthoringWorkflowService
             ProjectInputBindings(discovery);
         selectedSlotIds = NormalizeSlotIds(selectedSlotIds, inputBindings);
         acceptedFileStamps = NormalizeFileStamps(acceptedFileStamps, inputBindings);
+        if (discovery.DiscoveryRoute is not null)
+        {
+            // Reuse only an exact capability inspected from the same prerequisite bytes
+            // and still admitted by this publication. A stamp alone cannot select a route.
+            ResolvedCapability? retainedCandidate = TryRetainExactCapability(
+                retainedSession, icId, selectedSlotIds, acceptedFileStamps, null,
+                discovery.CompilationPrerequisiteSlotId);
+            bool reusesExact = retainedCandidate is not null &&
+                MatchesDiscovery(discovery, retainedCandidate) &&
+                ContainsEverySelectedSlot(retainedCandidate, selectedSlotIds);
+            return new CompiledAuthoringSelectionSnapshot(
+                reusesExact
+                    ? AuthoringCapabilityCatalogSnapshot.FromResolvedCapability(
+                        retainedCandidate!, discovery.DiscoveryTransition)
+                    : DiscoveryCatalog(discovery),
+                reusesExact
+                    ? ProjectExactSelection(
+                        discovery, retainedCandidate!, authoringRevision, selectedSlotIds, null)
+                    : ProjectPendingPrerequisite(
+                        discovery, selectedSlotIds, discovery.CompilationPrerequisiteSlotId!),
+                inputBindings,
+                []);
+        }
+
         FileStamp? prerequisiteStamp = null;
         if (discovery.CompilationPrerequisiteSlotId is { } prerequisite)
         {
@@ -44,7 +69,7 @@ public sealed partial class CompiledAuthoringWorkflowService
             selectedSlotIds,
             acceptedFileStamps,
             discovery.CompilationPrerequisiteSlotId is null
-                ? discovery.DiscoveryCapability
+                ? discovery.DiscoveryCapability!
                 : null);
         long? prerequisiteLength = prerequisiteStamp?.AcceptedLength;
         CompiledAuthoringWorkflowResolution exact = retained is null
@@ -95,6 +120,95 @@ public sealed partial class CompiledAuthoringWorkflowService
             []);
     }
 
+    /// <summary>Compiles one definition-level discovery from captured prerequisite bytes.</summary>
+    public CompiledAuthoringSelectionSnapshot ProjectCapturedSelection(
+        string icId,
+        AuthoringRevision authoringRevision,
+        IReadOnlyCollection<string> selectedSlotIds,
+        ReadOnlyMemory<byte> capturedPrerequisite)
+    {
+        CompiledAuthoringWorkflowDiscovery discovery = _resolver.Discover(icId);
+        ValidateDiscovery(discovery);
+        if (discovery.DiscoveryRoute is null)
+        {
+            IReadOnlyDictionary<string, FileStamp> stamps =
+                discovery.CompilationPrerequisiteSlotId is { } prerequisite
+                    ? new Dictionary<string, FileStamp>(StringComparer.Ordinal)
+                    {
+                        [prerequisite] = FileStamp.FromBytes(capturedPrerequisite.Span),
+                    }
+                    : new Dictionary<string, FileStamp>(StringComparer.Ordinal);
+            return ProjectSelection(
+                icId, authoringRevision, selectedSlotIds,
+                stamps);
+        }
+
+        ReadOnlyCollection<CompiledAuthoringInputBinding> bindings =
+            ProjectInputBindings(discovery);
+        string[] selected = NormalizeSlotIds(selectedSlotIds, bindings);
+        byte[] capturedBytes = capturedPrerequisite.ToArray();
+        CompiledAuthoringWorkflowResolution exact = _resolver.ResolveExact(
+            icId, authoringRevision, capturedBytes, selected);
+        if (!exact.Succeeded || !ContainsEverySelectedSlot(exact.Capability, selected) ||
+            !MatchesDiscovery(discovery, exact.Capability))
+        {
+            IReadOnlyList<CompositionIssue> issues = exact.Issues.Count != 0
+                ? exact.Issues
+                : exact.Capability is not null &&
+                    !MatchesDiscovery(discovery, exact.Capability)
+                    ? [new CompositionIssue(AuthoringSessionIssueCodes.StalePublication,
+                        "The exact compilation belongs to a different canonical publication.")]
+                : [new CompositionIssue(InputSelectionReadinessIssueCodes.SelectionNotApplicable,
+                    "The exact compilation does not contain every selected input.")];
+            return new CompiledAuthoringSelectionSnapshot(
+                DiscoveryCatalog(discovery),
+                Array.AsReadOnly(
+                [
+                    .. discovery.AvailableSlotIds.Select(slotId =>
+                        new InputSelectionMemberReadiness(
+                            slotId,
+                            selected.Contains(slotId, StringComparer.Ordinal),
+                            ResolvedChildReadiness.Blocked,
+                            CanSelect: false,
+                            issues[0].Message,
+                            new InputSelectionNextAction(
+                                InputSelectionNextActionKind.CorrectSelection, slotId),
+                            issues[0].Code)),
+                ]),
+                bindings,
+                issues);
+        }
+
+        ResolvedCapability capability = exact.Capability!;
+        CompiledInputContract contract =
+            capability.CompiledComposition.V2Details.InputContract;
+        return new CompiledAuthoringSelectionSnapshot(
+            AuthoringCapabilityCatalogSnapshot.FromResolvedCapability(
+                capability, discovery.DiscoveryTransition),
+            Array.AsReadOnly(
+            [
+                .. discovery.AvailableSlotIds.Select(slotId =>
+                    new InputSelectionMemberReadiness(
+                        slotId,
+                        selected.Contains(slotId, StringComparer.Ordinal),
+                        contract.Slots.Any(slot => StringComparer.Ordinal.Equals(
+                            slot.SlotId, slotId))
+                            ? ResolvedChildReadiness.Ready
+                            : ResolvedChildReadiness.NotApplicable,
+                        CanSelect: contract.Slots.Any(slot => StringComparer.Ordinal.Equals(
+                            slot.SlotId, slotId)),
+                        Reason: null,
+                        NextAction: null,
+                        IsRequired: contract.Slots.Any(slot =>
+                            StringComparer.Ordinal.Equals(slot.SlotId, slotId) && slot.Required))),
+            ]),
+            ProjectInputBindings(new CompiledAuthoringWorkflowDiscovery(
+                capability, discovery.AvailableSlotIds,
+                discovery.CompilationPrerequisiteSlotId,
+                discovery.DiscoveryTransition)),
+            []);
+    }
+
     private static ReadOnlyCollection<CompiledAuthoringInputBinding> ProjectInputBindings(
         CompiledAuthoringWorkflowDiscovery discovery)
     {
@@ -103,7 +217,7 @@ public sealed partial class CompiledAuthoringWorkflowService
             return Array.AsReadOnly([.. available]);
         }
 
-        CompiledComposition composition = discovery.DiscoveryCapability.CompiledComposition;
+        CompiledComposition composition = discovery.DiscoveryCapability!.CompiledComposition;
         return Array.AsReadOnly(
         [
             .. composition.V2Details.InputContract.SpaceBindings.Select(binding =>

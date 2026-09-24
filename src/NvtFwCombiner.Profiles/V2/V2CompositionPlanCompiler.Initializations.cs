@@ -41,12 +41,19 @@ internal static partial class V2CompositionPlanCompiler
         return [.. initializations];
     }
 
-    private static long ResolveMutableSpaceCapacity(MutableCompositionProfileSpace space, long resolvedMapCapacity)
+    private static long ResolveMutableSpaceCapacity(
+        MutableCompositionProfileSpace space,
+        long resolvedMapCapacity,
+        SourceEnvelopeExtent? sourceEnvelope = null)
     {
         return space.Capacity switch
         {
             ResolvedMapProfileCapacity => resolvedMapCapacity,
             FixedProfileCapacity fixedCapacity => fixedCapacity.Bytes,
+            SourceSlotProfileCapacity when sourceEnvelope is null => resolvedMapCapacity,
+            SourceSlotProfileCapacity sourceCapacity when
+                StringComparer.Ordinal.Equals(sourceCapacity.SourceSlotId, sourceEnvelope.SourceSlotId) =>
+                sourceEnvelope.ActualOutputLength,
             _ => throw new InvalidOperationException("Validated V2 lowering encountered an unsupported mutable capacity."),
         };
     }

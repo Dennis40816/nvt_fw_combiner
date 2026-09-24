@@ -8,6 +8,8 @@
   the owner-approved `0.10.x` specification and GitHub issue #176
 - Extended: 2026-07-28 by GitHub issue #186 for the typed TP Flash Header
   specialization and reference-only behavior-binding vocabulary
+- Extended: 2026-09-23 by 1.1.10 B2 local design admission for read-only
+  dynamic Standard metadata projection; release evidence remains pending
 - Owners: Product owner + architecture owner + firmware owner
 - Risk: R2 cross-layer architecture contract; each firmware locator binding
   remains R3
@@ -230,6 +232,60 @@ NT51932 Type-AB TP Flash Header:
 #194 owns the remaining headless runtime/report migration and parity-adapter
 deletion. This extension therefore freezes their canonical seam without
 duplicating those downstream execution owners.
+
+### Full-image metadata declaration boundary
+
+The optional family `fullImageMetadataViews` declaration extends this same
+canonical owner. A view references one exact image map, explicit members, and
+canonical structure targets; it retains immutable map/structure/definition
+identity. All selected artifact bindings and their prerequisite closure refer
+to the same captured full-image artifact. No configurable source remapping,
+offset, workflow identity, or execution policy is added.
+
+The existing family constructor validates prerequisite fields, locator ranges,
+and cycles. View validation checks containment of each selected structure's
+direct prerequisite in the selected binding set, which proves transitive
+closure without a second resolver. Map predicates remain map-selection facts;
+the declaration does not evaluate them or infer runtime values. An explicitly
+empty view remains distinct from no view declaration.
+
+The strict successor and its wire fields are defined by the
+[firmware-family contract](../contracts/firmware-family-v1.md#full-image-metadata-views).
+The separately admitted full-image consumer extends the same Domain metadata
+resolver with a checked exact view/member/binding entrance. It accepts one
+immutable full-image payload and supplies all declared canonical artifact IDs
+to the existing locator/prerequisite core. The Application full-image inspector
+also accepts one payload and rejects the general artifact-list entrance for a
+view plan. No execution map, mode, profile identity or second resolver is
+manufactured.
+
+Trusted inventory reads explicit views from each exact
+`metadataProviderFamilies` owner; provider mismatch invalidates the candidate.
+The existing canonical catalog publishes view plans atomically with routes and
+binds them to its publication token. Selection uses member and observed
+capacity, returns typed missing/ambiguity outcomes, and never invokes DP
+execution fallback. Failed reloads retain the complete prior publication.
+Explicit-empty plans retain their family/view/map/member, family and bundle
+hashes, and publication token.
+
+Profile constructors and accepted exact metadata plans remain terminal,
+including decode/prerequisite failure. Only generic full-image and missing-DPCMI
+CtrlRAM Reference lookup move to the view query; separate-TP Standard plans and
+CtrlRAM Report classification retain their owners. View bindings supply only
+their exact selected targets with the `Inspection` purpose. They grant no
+output naming, Report classification, BIN formatting, support or write rights.
+Data migration and parity remain separately admitted, with expectations fixed
+from the pre-migration family/profile source rather than two migrated consumers.
+
+When a generic inspection supplies a distinct TP for a Standard source-envelope
+route, the Application compiler selects the single published exact map by the
+trusted DP capacity and exposes only its publication-bound metadata plan. This
+read-only projection does not grant the generic inspection authoring or execution
+authority. The Standard plan retains separate `dp-input` and `tp-input`
+artifacts; an absent TP stays an absent prerequisite and must not be substituted
+with DP bytes or a full-image view. Missing, ambiguous, stale, or failed exact
+selection is terminal. A nonstandard DP length needs captured DP bytes for an
+envelope plan; its length alone cannot select one.
 
 ## Alternatives
 

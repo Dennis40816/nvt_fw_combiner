@@ -279,7 +279,8 @@ public sealed partial class RepositoryBoundaryTests
             "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReplacePresentationViewModel.Execution.cs");
         string selection = ReadText(
             "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/WorkflowSessionPresentationViewModel.FirmwareInspection.cs");
-        Assert.Equal(3, CountOccurrences(merge, "return RunCompositionAsync("));
+        Assert.Equal(2, CountOccurrences(merge, "return RunCompositionAsync("));
+        Assert.Equal(1, CountOccurrences(merge, "await RunCompositionAsync("));
         Assert.Equal(1, CountOccurrences(replace, "await RunCompositionAsync("));
         Assert.Equal(3, CountOccurrences(merge, "_compositionServices.Execution.ExecuteAsync"));
         Assert.Equal(1, CountOccurrences(replace, "_compositionServices.Execution.ExecuteAsync"));
@@ -296,7 +297,7 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("await Task.Yield();", lifecycle, StringComparison.Ordinal);
         Assert.Contains("await Task.Run(", lifecycle, StringComparison.Ordinal);
         Assert.Contains(
-            "await ProjectAndApplyRunResultAsync(result, build, cancellationSource.Token);",
+            "await ProjectAndApplyRunResultAsync(context, result, build, cancellationSource.Token);",
             lifecycle,
             StringComparison.Ordinal);
         int projectionMethodIndex = lifecycle.IndexOf(
@@ -338,7 +339,7 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("ReportReviewViewModel.FromJsonCancellable(", reportPresentation, StringComparison.Ordinal);
         Assert.Contains("ReportReviewViewModel.FromReportCancellable(", reportPresentation, StringComparison.Ordinal);
         Assert.Contains("loadErrorReport(action, exception.Message);", lifecycle, StringComparison.Ordinal);
-        Assert.Contains("CompleteRun(cancellationSource);", lifecycle, StringComparison.Ordinal);
+        Assert.Contains("CompleteRun(attempt);", lifecycle, StringComparison.Ordinal);
         Assert.Equal(
             1,
             CountOccurrences(

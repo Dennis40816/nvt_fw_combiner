@@ -25,7 +25,7 @@ public sealed class SupportMatrixInteractionTests
     public async Task MatrixExtremesAndKeyboardDetailsRemainReachable(int width, int height, bool darkChinese)
     {
         using var workspace = TempWorkspace.Create("support-matrix-interactions");
-        PresentationHostServices services = await CreateServicesAsync(workspace, useRetainedDpReplacePolicy: false);
+        PresentationHostServices services = await CreateServicesAsync(workspace);
         using var window = new MainWindow(UiLaunchOptions.Empty, StartupTraceSession.Disabled,
             services, ShellPreferenceSnapshot.Default)
         {

@@ -47,7 +47,7 @@ internal sealed partial class ReplacePresentationViewModel : ObservableObject
             group.ApplyText(Text);
         }
         InspectionLifecycles.ForEach(lifecycle => lifecycle.ApplyText(Text));
-        RefreshDpReplaceInputSelectionReadiness();
+        ResetReplaceInputSelectionReadiness();
         foreach (GeneralReplaceMappingViewModel mapping in GeneralReplaceMappings)
         {
             mapping.SetFileSelectionAvailability(

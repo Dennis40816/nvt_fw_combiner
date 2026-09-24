@@ -1,0 +1,72 @@
+{
+  "schemaVersion": 2,
+  "taskId": "WORKFLOW-RUN-OWNER-110-01",
+  "capability": "Isolate run request, result and cancellation ownership per page instance and mode while retaining serialized execution and shared report presentation",
+  "integrationBase": "b9a94a2bab1a7bc05129b3438f0c0afeaaf45ad4",
+  "risk": "R2",
+  "kind": "refactor",
+  "state": "final-complete",
+  "mutablePaths": [
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/CompositionRunContracts.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/CompositionRunPresentationViewModel.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/WorkflowRunState.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MainWindowViewModel.Construction.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MainWindowViewModel.RunSession.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MergeStateBindings.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReplaceStateBindings.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/WorkflowSessionStateBindings.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MergePresentationViewModel.State.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReplacePresentationViewModel.State.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MergePresentationViewModel.Execution.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReplacePresentationViewModel.Execution.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MergePresentationViewModel.General.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MergePresentationViewModel.AbMergeAuthoring.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/WorkflowSessionPresentationViewModel.ContextRefresh.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/WorkflowSessionPresentationViewModel.Slots.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/WorkflowSessionPresentationViewModel.AbDummyDp.cs",
+    "tests/NvtFwCombiner.UiSmoke.Tests/WorkflowRunOwnershipTests.cs",
+    "tests/NvtFwCombiner.UiSmoke.Tests/ShellViewModelTests.RunProgress.cs",
+    "tests/NvtFwCombiner.UiSmoke.Tests/ShellViewModelTests.BuildCompleted.cs",
+    "tests/NvtFwCombiner.UiSmoke.Tests/ShellViewModelTests.OutputPreparationRefusal.cs",
+    "tests/NvtFwCombiner.UiSmoke.Tests/ShellViewModelTests.ReportPerformance.cs",
+    "tests/NvtFwCombiner.Architecture.Tests/RepositoryBoundaryTests.PresentationViewModelStructure.cs",
+    "tests/NvtFwCombiner.UiSmoke.Tests/XamlControlStyleContractTests.OutputDelivery.cs"
+  ],
+  "implementationOwner": "/root/run_owner_impl",
+  "searchEvidence": [
+    "Owner approved cross-page neutral contracts with independent mutable page instances in 1.1.10; SHARE-03 is tracked in docs/ui/v1.1.10-delivery.md. Source 71dedf4974d80fbb757d8f64e1164e423fac0772 already corrects Standard snapshot capture and activity IC capture.",
+    "Independent caller audit by layout_ownership_review covered run invocation, direct publication, output-preparation refusal, readiness, diagnostic preview, page/slot/context resets, AB dummy inputs and window cancellation. Current singleton RunSession stores LastRunResult/CTS while AuthoringSessionState already isolates accepted snapshots and publication leases.",
+    "Existing CompositionRunUsesCapturedUiInputs requires a captured result/report to remain accessible after draft changes. Existing shared report-generation, history repository and BuildResult presentation policies remain in force; stale publication lease cannot erase a completed artifact.",
+    "Before first commit, content_source_impl independently approved a second auxiliary source-shape test synchronization in XamlControlStyleContractTests.OutputDelivery.cs: inspect the unchanged six mode-to-session mappings at their new State.cs capture owner and assert Execution consumes context.AcceptedSession; preserve output-bundle and automatic-name forwarding checks. Root stages this path before writer edits."
+  ],
+  "semanticOwner": "Existing Application accepted-session and execution contracts retain admission; Presentation WorkflowRunState owns only instance/mode run presentation state, with existing CompositionRunPresentationViewModel coordinating one active attempt",
+  "terminalContract": "Create one WorkflowRunState per page instance and mode, using object identity rather than workflow id, IC, revision or ShellPage as owner. All run/readiness/diagnostic/direct result paths receive explicit immutable captured context or owner, with existing accepted snapshot/publication lease where available. Capture before await. Store terminal state in the captured owner; shell LastRunResult is a display projection. Retain a single active attempt with owner, attempt identity and CTS; targeted cancellation matches owner plus attempt, while window close retains explicit global cancellation. Rejected concurrent requests cannot overwrite the active owner's progress/result. Explicit page/slot/context resets affect only specified owners; navigation changes display, not ownership. Preserve report/history/BuildResult background presentation and generation guards, partial delivery and error behavior. No Application contract, firmware, Settings, AXAML or generic bus changes. Existing RunCapture regression remains unchanged.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "/root/layout_ownership_review",
+    "outcome": "approved",
+    "evidence": "Independent complete caller audit at 71dedf49 supplied the exact seventeen production and five test paths and approved a coherent full-owner unit; root accepted the design with existing background presentation unchanged. Before first commit, content_source_impl independently approved adding RepositoryBoundaryTests.PresentationViewModelStructure.cs after its old implicit-owner source-shape assertion failed: retain three Merge and one Replace execution calls and generation/projection/cancellation/publication ordering, synchronize explicit context and attempt assertions, never weaken behavior gates. The added path is staged before editing. Verify two same-mode/same-revision instances, explicit hidden-page resets, all terminal branches, stale/wrong-owner cancellation, serialized gate, captured-input preservation, delayed projection/refusal and existing report performance. No implicit selected-page overload or new admission calculation is allowed; fixed-head scoped review remains required."
+  },
+  "implementationHead": "183a0d3652a81fb30dcb977d6ff1338f0f3bcd0f",
+  "reviewedHead": "183a0d3652a81fb30dcb977d6ff1338f0f3bcd0f",
+  "pathStateDigest": "1520e1a68fa1e4564016345bdf8f0c32420ffb7825c426fda86c43aa4772f9a3",
+  "finalReview": {
+    "reviewer": "/root/r2_final_review",
+    "outcome": "approved",
+    "evidence": "Independent exact-head R1/R2 rebind review on 2026-09-25 at 183a0d3652a81fb30dcb977d6ff1338f0f3bcd0f: reviewed the complete 85795b141..183a0d365 two-document delta and this record's original mutablePaths. Immutable admission and independent review remain intact; both final heads and the committed Git path-state digest bind 183a0d365. The 48-record checkpoint diff has 355 uniquely owned governed paths, with scripts/verify.py owned only by VERIFY-1110-DOTNET-COVERAGE-DEADLINE-01; no new mutable or integration path is needed. The afc203f9c nonstructure verifier pass and b9b5ddf5d 25-Direct release Golden pass remain attributed to their actual sources. The exact-183 structure-only run exited 1 solely for 17 missing R3 authorities, reported as 36 pending/batch-closure diagnostics, with no admission, digest or partition error. Earlier 900-second failures and 857 reviews remain dated history; this review does not approve R3, AB candidate Golden, --all, CI or release. Earlier dated evidence follows: Independent /root/r2_final_review exact-head technical re-review on 2026-09-25 at 85795b1416c689bfd484806d0425b9c06dfec9c1. Compared all original mutable paths and the complete 022219d53-to-reviewed six-path delta; immutable admissions remain unchanged and the 355-governed-path final partition has no gap or duplicate. Earlier dated failures describe their own source, not the current gate. The afc203f9c full nonstructure verifier and b9b5ddf5d 25 Direct Golden passed; structure, --all, AB candidate Golden and external R3 authority remain open. Earlier dated review evidence follows: Independent /root/r2_final_review exact-head rebind confirmation on 2026-09-24 at 022219d53bbb24e5434ab4f6185df3c0019e6890. Immutable first-active admission and all original mutablePaths retained; current committed Git path-state digest 1520e1a68fa1e4564016345bdf8f0c32420ffb7825c426fda86c43aa4772f9a3. The 45-record/355-governed-path partition is unique and prior substantive no-P0-P2 review remains applicable. The only 871c6810e..current delta is non-governed CHANGELOG prose. Full verifier is still failing; R3 owner and release gates remain separate. Earlier dated review evidence follows: Independent exact-head delta review on 2026-09-24 at d6b8ad31957b173ab82b46616159c2826d167368, sealed checkpoint b9a94a2bab1a7bc05129b3438f0c0afeaaf45ad4. Rechecked immutable first-active admission, all original mutablePaths, exact committed Git path-state digest and uniquely assigned integrationPaths within the complete 354-path governed diff. The only f853..d6 changes are the new roadmap allocation, its delivery evidence and its design-active record; none changes this record's admitted paths or prior f853 substantive findings. Prior f853 review evidence follows: Independent /root/r2_final_review exact-source final review on 2026-09-24 at f85348ed56ebeabe2ddbdfdcae3856d5fb3321e3, derived sealed checkpoint b9a94a2bab1a7bc05129b3438f0c0afeaaf45ad4. Verified unchanged first-active admission, all 24 original mutable paths, exact committed Git path-state digest, and 12 uniquely assigned integration paths within the complete 354-path governed diff. No original mutable path changed after the prior 3203f8ffe substantive review; its conclusion remains applicable. No remaining P0-P2 for this record; R3 external authority and release gates remain separate. No new P0-P2; scoped Polytail PASS-WITH-HUMAN-GATE for record-level review only. Full verifier, R3 external authority and release gates remain separate."
+  },
+  "integrationPaths": [
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/CompositionRunContracts.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/CompositionRunPresentationViewModel.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MergePresentationViewModel.AbMergeAuthoring.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MergePresentationViewModel.Execution.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MergePresentationViewModel.General.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MergePresentationViewModel.State.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MergeStateBindings.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/WorkflowRunState.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/WorkflowSessionPresentationViewModel.AbDummyDp.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/WorkflowSessionPresentationViewModel.ContextRefresh.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/WorkflowSessionPresentationViewModel.Slots.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/WorkflowSessionStateBindings.cs"
+  ]
+}

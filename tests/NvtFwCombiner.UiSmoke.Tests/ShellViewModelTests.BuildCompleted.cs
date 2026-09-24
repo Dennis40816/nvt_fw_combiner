@@ -13,10 +13,11 @@ public sealed partial class BuildOutcomeTests
     public async Task CompletedBuildProjectionOpensOutputConfirmation()
     {
         string outputPath = Path.Combine(Path.GetTempPath(), "output", "firmware.bin");
-        CompositionRunResult result = await CreateDpReplaceInspectionResultAsync(TestHost);
+        CompositionRunResult result = await CreateGeneralReplaceInspectionResultAsync(TestHost);
         MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
 
         await viewModel.RunSession.ProjectAndApplyRunResultAsync(
+            viewModel.Replace.CaptureRunContext(viewModel.Replace.SelectedReplaceMode),
             WithCommittedOutputId(result, outputPath),
             build: true,
             TestContext.Current.CancellationToken);
@@ -41,6 +42,7 @@ public sealed partial class BuildOutcomeTests
         MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
 
         await viewModel.RunSession.ProjectAndApplyRunResultAsync(
+            viewModel.Replace.CaptureRunContext(viewModel.Replace.SelectedReplaceMode),
             result,
             build: true,
             TestContext.Current.CancellationToken);
@@ -65,6 +67,7 @@ public sealed partial class BuildOutcomeTests
         MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
 
         await viewModel.RunSession.ProjectAndApplyRunResultAsync(
+            viewModel.Replace.CaptureRunContext(viewModel.Replace.SelectedReplaceMode),
             result,
             build: false,
             TestContext.Current.CancellationToken);
@@ -79,7 +82,8 @@ public sealed partial class BuildOutcomeTests
     {
         MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
 
-        await viewModel.RunSession.RunCompositionAsync(
+        _ = await viewModel.RunSession.RunCompositionAsync(
+                    viewModel.Replace.CaptureRunContext(viewModel.Replace.SelectedReplaceMode),
             build: true,
             (_, _) => throw new InvalidOperationException("No exact CtrlRAM route."),
             (action, message) => viewModel.Reports.LoadRunErrorReport(
@@ -109,7 +113,8 @@ public sealed partial class BuildOutcomeTests
         bool previousToast = viewModel.Reports.HasReportToast;
         int reportLoads = 0;
 
-        await viewModel.RunSession.RunCompositionAsync(
+        _ = await viewModel.RunSession.RunCompositionAsync(
+                    viewModel.Replace.CaptureRunContext(viewModel.Replace.SelectedReplaceMode),
             build,
             (_, _) => throw new CompositionPreRunRefusalException(
                 [new CompositionIssue("AB_FORMAT_CHANGED", "The accepted format publication changed.")]),
@@ -209,7 +214,7 @@ public sealed partial class BuildOutcomeTests
     {
         string outputPath = Path.Combine(Path.GetTempPath(), "output", "firmware.bin");
         MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
-        OpenReplace(viewModel, ExperienceIds.DpReplace);
+        OpenReplace(viewModel, ExperienceIds.GeneralReplace);
 
         Assert.False(viewModel.IsLatestOutputActionVisible);
         Assert.True(viewModel.TryShowBuildCompleted(CreateRunResult(succeeded: true, outputPath), build: true));
@@ -254,7 +259,7 @@ public sealed partial class BuildOutcomeTests
             : PresentationTestHost.CreateViewModel();
         if (surface != "ctrlram-version")
         {
-            OpenReplace(viewModel, ExperienceIds.DpReplace);
+            OpenReplace(viewModel, ExperienceIds.GeneralReplace);
         }
 
         Assert.True(viewModel.IsCompositionActionRailVisible);

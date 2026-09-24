@@ -11,43 +11,53 @@ internal static partial class V2CompositionPlanCompiler
         CompositionInputSlotDefinition slot,
         long resolvedMapCapacity,
         CompositionKind compositionKind,
-        bool isCloneSource)
+        bool isCloneSource,
+        SourceEnvelopeExtent? sourceEnvelope = null)
     {
-        return slot.LengthRequirement switch
-        {
-            SourceViewCoverageInputLengthDefinition sourceView => new AddressSpace(
+        return sourceEnvelope is not null &&
+            StringComparer.Ordinal.Equals(slot.SlotId, sourceEnvelope.SourceSlotId)
+            ? new AddressSpace(
                 addressSpaceId,
                 length,
                 AddressSpaceMutability.Immutable,
-                inputOversizePolicy: InputOversizePolicy.ExtractDeclaredRange,
-                expectedInputLengths: ResolveSourceViewExpectedOuterLengths(sourceView, resolvedMapCapacity),
-                unexpectedInputLengthIssueCode: sourceView.UnexpectedOuterLengthIssueCode),
-            CompiledExactBytesInputLengthRequirement when slot.Normalization is CompiledTruncateCtrlRamInputNormalization => new AddressSpace(
-                addressSpaceId,
-                length,
-                AddressSpaceMutability.Immutable,
-                inputOversizePolicy: InputOversizePolicy.TruncateWithWarning),
-            CompiledExactBytesInputLengthRequirement => new AddressSpace(
-                addressSpaceId,
-                length,
-                AddressSpaceMutability.Immutable),
-            ResolvedMapCapacityInputLengthDefinition when slot.Normalization is CompiledPadShorterInputNormalization padded => new AddressSpace(
-                addressSpaceId,
-                length,
-                AddressSpaceMutability.Immutable,
-                inputPaddingByte: padded.FillByte),
-            ResolvedMapCapacityInputLengthDefinition when isCloneSource ||
-                                                   (compositionKind == CompositionKind.Replace &&
-                                                    slot.ArtifactClass == CompiledInputArtifactClass.ReferenceImage) => new AddressSpace(
-                addressSpaceId,
-                length,
-                AddressSpaceMutability.Immutable),
-            _ => new AddressSpace(
-                addressSpaceId,
-                length,
-                AddressSpaceMutability.Immutable,
-                allowedInputLengths: [length]),
-        };
+                allowedInputLengths: [length],
+                expectedInputLengths: sourceEnvelope.ExpectedOuterLengths,
+                unexpectedInputLengthIssueCode: sourceEnvelope.UnexpectedLengthIssueCode)
+            : slot.LengthRequirement switch
+            {
+                SourceViewCoverageInputLengthDefinition sourceView => new AddressSpace(
+                    addressSpaceId,
+                    length,
+                    AddressSpaceMutability.Immutable,
+                    inputOversizePolicy: InputOversizePolicy.ExtractDeclaredRange,
+                    expectedInputLengths: ResolveSourceViewExpectedOuterLengths(sourceView, resolvedMapCapacity),
+                    unexpectedInputLengthIssueCode: sourceView.UnexpectedOuterLengthIssueCode),
+                CompiledExactBytesInputLengthRequirement when slot.Normalization is CompiledTruncateCtrlRamInputNormalization => new AddressSpace(
+                    addressSpaceId,
+                    length,
+                    AddressSpaceMutability.Immutable,
+                    inputOversizePolicy: InputOversizePolicy.TruncateWithWarning),
+                CompiledExactBytesInputLengthRequirement => new AddressSpace(
+                    addressSpaceId,
+                    length,
+                    AddressSpaceMutability.Immutable),
+                ResolvedMapCapacityInputLengthDefinition when slot.Normalization is CompiledPadShorterInputNormalization padded => new AddressSpace(
+                    addressSpaceId,
+                    length,
+                    AddressSpaceMutability.Immutable,
+                    inputPaddingByte: padded.FillByte),
+                ResolvedMapCapacityInputLengthDefinition when isCloneSource ||
+                                                       (compositionKind == CompositionKind.Replace &&
+                                                        slot.ArtifactClass == CompiledInputArtifactClass.ReferenceImage) => new AddressSpace(
+                    addressSpaceId,
+                    length,
+                    AddressSpaceMutability.Immutable),
+                _ => new AddressSpace(
+                    addressSpaceId,
+                    length,
+                    AddressSpaceMutability.Immutable,
+                    allowedInputLengths: [length]),
+            };
     }
 
     private static bool IsCurrentInputLengthRequirementSupported(CompositionInputSlotDefinition slot)
@@ -68,8 +78,16 @@ internal static partial class V2CompositionPlanCompiler
         CompositionInputSlotDefinition slot,
         FirmwareFamilyResolutionDefinition.ResolvedFirmwareImageMap resolvedMap,
         List<CompositionIssue> issues,
-        out long length)
+        out long length,
+        SourceEnvelopeExtent? sourceEnvelope = null)
     {
+        if (sourceEnvelope is not null &&
+            StringComparer.Ordinal.Equals(input.SlotId, sourceEnvelope.SourceSlotId))
+        {
+            length = sourceEnvelope.ActualOutputLength;
+            return true;
+        }
+
         switch (slot.LengthRequirement)
         {
             case CompiledExactBytesInputLengthRequirement exact:

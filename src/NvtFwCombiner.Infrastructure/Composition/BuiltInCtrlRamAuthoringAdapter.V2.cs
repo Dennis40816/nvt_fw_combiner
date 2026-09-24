@@ -107,6 +107,14 @@ internal sealed partial class BuiltInCtrlRamAuthoringAdapter
         TopologySelection topology,
         FirmwareArtifactPayload referencePayload)
     {
+        return BuiltInV2BundleRegistry.All[route.BundleId].CompileRuntimeReferenceReplace(
+            route.ProfileId, route.ProfileVersion, route.Key.IcId, ExperienceIds.CtrlRamReplace,
+            topology, [referencePayload], CreateCompileRequest(context, topology, referencePayload));
+    }
+
+    private static V2RuntimeReferenceReplaceCompileRequest CreateCompileRequest(
+        CtrlRamReplaceRunContext context, TopologySelection topology, FirmwareArtifactPayload referencePayload)
+    {
         V2ExplicitMappingInputBinding[] bindings =
         [
             new(
@@ -190,19 +198,7 @@ internal sealed partial class BuiltInCtrlRamAuthoringAdapter
                     stagedTargetRanges),
         ];
 
-        return BuiltInV2BundleRegistry.All[route.BundleId].CompileRuntimeReferenceReplace(
-            route.ProfileId,
-            route.ProfileVersion,
-            route.Key.IcId,
-            ExperienceIds.CtrlRamReplace,
-            topology,
-            [referencePayload],
-            new V2RuntimeReferenceReplaceCompileRequest(
-                bindings,
-                mappings,
-                firmwareVersionEdit,
-                postbuildPolicy,
-                postbuildWriteRangeSections,
-                commandPlan.ProtocolPlan));
+        return new V2RuntimeReferenceReplaceCompileRequest(bindings, mappings, firmwareVersionEdit,
+            postbuildPolicy, postbuildWriteRangeSections, commandPlan.ProtocolPlan);
     }
 }

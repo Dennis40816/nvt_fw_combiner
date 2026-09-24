@@ -18,24 +18,52 @@ rejection is not a prohibition on separately authorized bounded local R1 work.
 
 The validator computes tracked renames, copies, additions, modifications, type
 changes, deletions, and non-ignored untracked files from the latest valid final
-evidence checkpoint. `integrationBase` must equal that checkpoint; it is not a
-self-attested ancestor. Both sides of a rename or copy are audited. Every governed
-path in the candidate must have exactly one effective integration owner,
+evidence checkpoint. For ordinary admission, `integrationBase` must equal that
+checkpoint; it is not a self-attested ancestor. A mistaken committed base may
+be reconciled only with the final-only evidence in [Lifecycle](#lifecycle),
+while the effective checkpoint still comes from replay. Both sides of a rename
+or copy are audited. Every governed path in the candidate must have exactly
+one effective integration owner,
 and every declared `mutablePaths` path must occur in that diff. Paths are
 exact, forward-slash, repository-relative names; globs and directory grants
 are forbidden. A JSON record is valid only when its direct parent is exactly
 `docs/governance/change-records`; nested records are rejected before parsing or
 coverage and cannot later be moved into place for reuse.
 
-Exact non-governed files under `tests/` may accompany governed paths in
-`mutablePaths` as auxiliary evidence. They do not grant production authority
-or contribute to exactly-once governed coverage; a tests-only record cannot
-authorize a batch. Existing governed classification takes precedence (for
-example, `tests/AGENTS.md` remains governed). Auxiliary paths must occur in
-the current checkpoint diff and, at finalization, the checkpoint-to-reviewed
-diff. They remain included in the complete path-state digest and immutable
-admission fields. This exception does not admit other non-governed paths or
-relax index/worktree matching, review, Golden, or external release authority.
+Exact non-governed files under `tests/`, and only the exact
+`docs/ui/v1.1.10-delivery.md` status/evidence document, may accompany governed
+paths in `mutablePaths` as auxiliary evidence. They do not grant production
+authority or contribute to exactly-once governed coverage; an auxiliary-only
+record cannot authorize a batch. Existing governed classification takes
+precedence (for example, `tests/AGENTS.md` remains governed). Auxiliary paths
+ordinarily must occur in the current checkpoint diff and, at finalization, the
+checkpoint-to-reviewed diff. The single final-only reconciliation below handles
+one admitted unchanged test path. They remain included in the complete path-state
+digest and immutable admission fields, but cannot appear in `integrationPaths`.
+The delivery document may cite accepted decisions and retain test/status
+evidence; it cannot itself decide firmware, support, release, or version rules.
+This exception does not admit other non-governed paths or relax index/worktree
+matching, review, Golden, or external release authority.
+
+The validator classifies `SPEC.md`,
+`docs/architecture/experience-and-access-policy.md`,
+`docs/architecture/nfc_roadmap.md`,
+`docs/architecture/supported-ic-matrix.md`, and
+`docs/architecture/ic-workflow-flowcharts.md` as exact governed paths with
+minimum R2 risk. Nearby files do not inherit that classification. The
+flowcharts remain a synchronized architecture projection, not an independent
+firmware or support authority. Committed admission fields remain immutable;
+this classification does not waive historical or final coverage checks.
+
+The exact-document and delivery-evidence classifications start after the sealed
+final evidence checkpoint `b9a94a2bab1a7bc05129b3438f0c0afeaaf45ad4`.
+Final batches at or before that commit in Git ancestry retain the preceding
+path, risk, auxiliary, ownership, and evidence-commit classification. The
+validator verifies the fixed cutover is an ancestor and a sealed final batch;
+it still replays every earlier final batch with its original coverage, digest,
+immutability, checkpoint, and external-authority checks. Current active records
+and the current checkpoint diff always use the new classification. The cutover
+is not a new trust root or permission to omit old governed paths.
 
 ## Lifecycle
 
@@ -50,7 +78,7 @@ All admitted governed paths must still equal the checkpoint diff as a set.
 Effective integration ownership must cover every changed governed path exactly
 once across the entire batch. Thus overlapping historical modifications may be
 partitioned at final review without hiding a stale path or leaving a gap.
-Auxiliary tests cannot be integration owners. Final review evidence must cover
+Auxiliary evidence cannot be an integration owner. Final review evidence must cover
 the chosen partition and all original mutable paths. Risk, independent review,
 full path-state digest and R3 attestations remain attached to each original
 record even when its `integrationPaths` is empty. The partition is a finalization
@@ -70,10 +98,70 @@ integration admission and review, not a retroactive design approval.
    commit, and `finalReview` records the independent result and evidence.
    The same task must exist as `design-active` at that reviewed commit;
    finalization may change only lifecycle and final-evidence fields (including
-   optional `integrationPaths`), never the
+   optional `integrationPaths`, `checkpointReconciliation`, and the bounded
+   `auxiliaryPathReconciliation`), never the
    admitted capability, base, paths, owners, disposition, risk, or design review.
 3. `blocked`: authorizes no paths. Head, digest, and final-review fields remain
    null/pending.
+
+For a committed `design-active` admission whose immutable `integrationBase`
+mistakenly names an intermediate product commit rather than the last sealed
+evidence checkpoint, `final-complete` may add exactly this final-only object:
+
+```json
+{
+  "checkpointReconciliation": {
+    "expectedCheckpoint": "0123456789abcdef0123456789abcdef01234567",
+    "reviewer": "independent-reviewer",
+    "evidence": "Original base named an intermediate product commit; the full checkpoint diff was reviewed."
+  }
+}
+```
+
+The validator derives the effective checkpoint from its unchanged historical
+replay, then requires `expectedCheckpoint` to equal that value. The field
+cannot choose a checkpoint. The original base must differ from the derived
+checkpoint and lie on the Git ancestry path from that checkpoint to the
+record's first committed `design-active` revision; that revision must also be
+an ancestor of `reviewedHead`. Missing history, malformed or extra fields,
+Git failures, an unnecessary reconciliation, or a reviewer equal to the
+implementation owner fail closed. The original first-active blob, admitted
+fields and independent `finalReview` remain mandatory. Full diff, path digest,
+unique `integrationPaths` ownership, direct-child final evidence, R3 authority
+and release checks still use the derived checkpoint and remain unchanged.
+Active or blocked records cannot carry this field, and a sealed final record
+cannot add or alter it later. This records the admission mistake honestly; it
+does not retroactively certify the original base as valid.
+
+Owner amendment, 2026-09-24: only `PARTIAL-AB-BANK-110-01` may reconcile its
+unchanged admitted auxiliary test path
+`tests/NvtFwCombiner.Bootstrap.Tests/AbDummyDpOutputTests.cs` at finalization.
+Its immutable first-active admission still lists that path. It is absent from
+the checkpoint-to-reviewed diff, so it must not be changed merely to satisfy
+the ordinary diff requirement. The final record may add exactly:
+
+```json
+{
+  "auxiliaryPathReconciliation": {
+    "path": "tests/NvtFwCombiner.Bootstrap.Tests/AbDummyDpOutputTests.cs",
+    "expectedCheckpoint": "b9a94a2bab1a7bc05129b3438f0c0afeaaf45ad4",
+    "reviewer": "independent-reviewer",
+    "evidence": "The admitted test is an unchanged regular blob throughout the reviewed ancestry."
+  }
+}
+```
+
+The validator derives the actual checkpoint by historical replay, requires the
+field to bind it, verifies the original first-active path and its auxiliary
+test classification, and requires the same regular Git blob and mode at both
+ends with no intervening ancestry commit changing, deleting, renaming or
+restoring that path. A changed path cannot use this field. Other task/path
+pairs, malformed or extra fields, absent Git evidence, a reviewer equal to the
+implementation owner (including `root`/`/root` agent aliases), and active/blocked
+use fail. The path stays in the full
+path-state digest and final review; all governed unique ownership, other
+auxiliary diff checks, direct-child final evidence, R3 owner authority and
+release gates remain in force. Sealed final records cannot be amended later.
 
 The final record is committed as evidence immediately after the reviewed
 implementation commit. That evidence commit must have `reviewedHead` as its

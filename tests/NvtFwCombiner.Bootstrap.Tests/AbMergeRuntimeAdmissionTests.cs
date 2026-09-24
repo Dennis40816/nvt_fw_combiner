@@ -174,7 +174,7 @@ public sealed partial class AbMergeRuntimeAdmissionTests
             topologySelection: RequestedTopology("NT51950", "single"));
 
         Assert.False(result.Succeeded);
-        Assert.Contains(result.Issues, static issue => issue.Code == "AB_TP_FIRMWARE_CONFIG_BACKUP_INVALID");
+        Assert.Contains(result.Issues, static issue => issue.Code == "firmware-config.chip-count-unreadable");
     }
 
     /// <summary>Each selected source that ends one byte early blocks under its canonical input geometry.</summary>
@@ -444,14 +444,14 @@ public sealed partial class AbMergeRuntimeAdmissionTests
     [Fact]
     public void Nt51950AbMapDoesNotDeclareTheAFlashCodeDelivery()
     {
-        AssertNoAFlashCodeDelivery("NT51950", expectedRoutes: 5);
+        AssertNoAFlashCodeDelivery("NT51950", expectedRoutes: 2);
     }
 
     /// <summary>NT51951's distinct selector-free AB layout likewise remains outside the perfect-family A-only delivery rule.</summary>
     [Fact]
     public void Nt51951AbMapDoesNotDeclareTheAFlashCodeDelivery()
     {
-        AssertNoAFlashCodeDelivery("NT51951", expectedRoutes: 2);
+        AssertNoAFlashCodeDelivery("NT51951", expectedRoutes: 1);
     }
 
     private static void AssertNoAFlashCodeDelivery(string icId, int expectedRoutes)

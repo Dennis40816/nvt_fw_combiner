@@ -36,6 +36,23 @@ public sealed class CompositionRunReportReadTests
         Assert.False(document.RootElement.TryGetProperty("AbMergeFormat", out _));
     }
 
+    /// <summary>Captured extent provenance is additive to the existing readable Application report.</summary>
+    [Fact]
+    public void OptionalSourceEnvelopeDoesNotChangeLegacyReadCompleteness()
+    {
+        JsonObject report = CreateSerializedReport();
+        Assert.False(report.ContainsKey("SourceEnvelope"));
+        Assert.Equal(CompositionRunReportJson.ReadCompleteness.Recognized, Assess(report));
+        report["SourceEnvelope"] = new JsonObject
+        {
+            ["SourceSlotId"] = "dp-input",
+            ["LayoutTemplateMapId"] = "nt51950-standard-merge-256k",
+            ["LayoutTemplateCapacity"] = 0x40000,
+            ["ActualOutputLength"] = 0x40001,
+        };
+        Assert.Equal(CompositionRunReportJson.ReadCompleteness.Recognized, Assess(report));
+    }
+
     /// <summary>Each legacy identity field is required as data, not checked against a support catalog.</summary>
     [Theory]
     [InlineData("ProfileId")]

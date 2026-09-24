@@ -479,6 +479,7 @@ public sealed partial class CtrlRamWorkflowTests
     {
         MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
         OpenReplace(viewModel, ExperienceIds.CtrlRamReplace);
+        viewModel.WorkflowSession.SelectedIc = "NT51926";
         var traditionalChinese = ShellTextResources.For(ShellLanguage.ChineseTraditional);
 
         Assert.Equal("Base firmware", viewModel.Replace.ReplaceBaseSlot.Title);
@@ -501,17 +502,14 @@ public sealed partial class CtrlRamWorkflowTests
         Assert.Equal("FlashCode / TP FW", viewModel.Replace.ReplaceBaseSlot.Subtitle);
         viewModel.SelectedLanguage = "English";
 
-        OpenReplace(viewModel, ExperienceIds.DpReplace);
-        Assert.Equal("Base firmware (FlashCode)", viewModel.Replace.ReplaceBaseSlot.Title);
-        Assert.False(viewModel.Replace.ReplaceBaseSlot.HasSubtitle);
-        Assert.DoesNotContain("TP FW", viewModel.Replace.ReplaceBaseSlot.Title, StringComparison.Ordinal);
-
         OpenReplace(viewModel, ExperienceIds.GeneralReplace);
+        Assert.Equal(ExperienceIds.GeneralReplace, viewModel.Replace.SelectedReplaceMode);
         Assert.Equal("Base firmware (FlashCode)", viewModel.Replace.ReplaceBaseSlot.Title);
         Assert.False(viewModel.Replace.ReplaceBaseSlot.HasSubtitle);
         Assert.DoesNotContain("TP FW", viewModel.Replace.ReplaceBaseSlot.Title, StringComparison.Ordinal);
 
         OpenReplace(viewModel, ExperienceIds.CtrlRamReplace);
+        Assert.Equal(ExperienceIds.CtrlRamReplace, viewModel.Replace.SelectedReplaceMode);
         Assert.Equal("Base firmware", viewModel.Replace.ReplaceBaseSlot.Title);
         Assert.Equal("FlashCode / TP FW", viewModel.Replace.ReplaceBaseSlot.Subtitle);
     }

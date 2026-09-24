@@ -68,14 +68,16 @@ public sealed class AbDpMetadataTests
         Assert.Contains(text.FirmwareSlotUnknownFactDetail, unknown.StateAutomationText, StringComparison.Ordinal);
     }
 
-    /// <summary>Splitting DP facts does not relabel or reformat touch versions.</summary>
-    [Fact]
-    public void TouchVersionFactsRemainUnchanged()
+    /// <summary>Both bank labels identify versions while preserving their decoded values.</summary>
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void TouchVersionLabelsExplicitlyNameVersions(bool chinese)
     {
-        FirmwareSlotViewModel slot = CreateSlot(ShellLanguage.English,
+        FirmwareSlotViewModel slot = CreateSlot(chinese ? ShellLanguage.ChineseTraditional : ShellLanguage.English,
             new(CompiledInputVersionKind.TpA, 0x81, 0),
             new(CompiledInputVersionKind.TpB, 0x82, 3));
-        Assert.Equal(["TPA", "TPB"], slot.FirmwareFacts.Select(static fact => fact.Label));
+        Assert.Equal(["TPA Version", "TPB Version"], slot.FirmwareFacts.Select(static fact => fact.Label));
         Assert.Equal(["T81-00", "T82-03"], slot.FirmwareFacts.Select(static fact => fact.Value));
     }
 
@@ -108,16 +110,16 @@ public sealed class AbDpMetadataTests
         };
         ShellTextResources text = ShellTextResources.For(chinese ? ShellLanguage.ChineseTraditional : ShellLanguage.English);
         FirmwareInspectionProjection.ApplyAbInputFacts(slot, inspection, text);
-        Assert.Equal(["TPA", "PID", "Common FW Version"],
+        Assert.Equal(["TPA Version", "PID", "Common FW Version"],
             slot.FirmwareFacts.Take(3).Select(static fact => fact.Label));
         Assert.Equal([invalidVersion ? text.FirmwareSlotUnknownValueLabel : "T81-00", "0x570A", "2.0.0"],
             slot.FirmwareFacts.Take(3).Select(static fact => fact.Value));
         if (hasFormat)
         {
             Assert.Equal(chinese ? "事件緩衝區版本" : "Event Buffer Version", slot.PrimaryFirmwareFacts[3].Label);
-            Assert.Equal("0x97 - Desay", slot.PrimaryFirmwareFacts[3].Value);
+            Assert.Equal("0x97 - Auto Desay", slot.PrimaryFirmwareFacts[3].Value);
         }
-        Assert.False(slot.HasAdditionalFirmwareFacts);
+        Assert.Equal("IC Count", Assert.Single(slot.AdditionalFirmwareFacts).Label);
         Assert.Equal(hasFormat ? 4 : 3, slot.PrimaryFirmwareFacts.Count);
     }
 

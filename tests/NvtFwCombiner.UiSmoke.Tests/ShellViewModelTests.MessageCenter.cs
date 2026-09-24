@@ -364,9 +364,9 @@ public sealed partial class ShellNavigationSystemTests
             viewModel.MessageCenter.Current.CatalogState);
     }
 
-    /// <summary>A fresh token fail-closes DP Replace until automatic reinspection republishes readiness.</summary>
+    /// <summary>A fresh token fail-closes CtrlRAM Replace until automatic reinspection republishes readiness.</summary>
     [Fact]
-    public async Task FreshTokenReloadReinspectsVerifiedDpReplaceBeforeBuildReturns()
+    public async Task FreshTokenReloadReinspectsVerifiedCtrlRamReplaceBeforeBuildReturns()
     {
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-message-center-rebind");
         PresentationHostServices services = PresentationTestHost.CreateServices(
@@ -384,14 +384,14 @@ public sealed partial class ShellNavigationSystemTests
         _ = PresentationTestHost.PublishCanonicalCatalog(services, viewModel);
         ResolutionToken originalToken = services.Composition.Capabilities
             .GetSelectorPublication().ResolutionToken;
-        viewModel.WorkflowSession.SelectedIc = "NT51928";
-        OpenReplace(viewModel, ExperienceIds.DpReplace);
+        viewModel.WorkflowSession.SelectedIc = "NT51950";
+        OpenReplace(viewModel, ExperienceIds.CtrlRamReplace);
         viewModel.SetSlotFile(
             CompositionSlotIds.ReplaceBase,
-            workspace.Write("reference.bin", new byte[0x40000]));
+            workspace.Write("reference.bin", ReadCtrlRamReference()));
         viewModel.SetSlotFile(
-            CompositionSlotIds.ReplaceDp,
-            workspace.Write("initial-code.bin", CreatePattern(0x40000, 0x41)));
+            "replace-ctrlram-normal",
+            workspace.Write("initial-code.bin", ReadCtrlRamNormalSource()));
         Assert.True(viewModel.Replace.CanBuildReplace);
         reader.BlockNextBatch();
 

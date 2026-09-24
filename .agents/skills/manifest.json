@@ -11,6 +11,15 @@
       "replaces": []
     },
     {
+      "name": "capture-firmware-ui",
+      "status": "active",
+      "scope": "repo",
+      "invocation": "implicit",
+      "authority": "visual-evidence",
+      "owner": "repository",
+      "replaces": []
+    },
+    {
       "name": "code-review",
       "status": "active",
       "scope": "repo",
@@ -110,6 +119,15 @@
       "replaces": ["tdd"]
     },
     {
+      "name": "locate-golden-evidence",
+      "status": "active",
+      "scope": "repo",
+      "invocation": "implicit",
+      "authority": "golden-lookup",
+      "owner": "repository",
+      "replaces": []
+    },
+    {
       "name": "nfc-architecture-change",
       "status": "active",
       "scope": "repo",
@@ -117,6 +135,15 @@
       "authority": "architecture",
       "owner": "repository",
       "replaces": ["codebase-design", "improve-codebase-architecture"]
+    },
+    {
+      "name": "open-firmware-example",
+      "status": "active",
+      "scope": "repo",
+      "invocation": "implicit",
+      "authority": "example-opening",
+      "owner": "repository",
+      "replaces": []
     },
     {
       "name": "polytail",

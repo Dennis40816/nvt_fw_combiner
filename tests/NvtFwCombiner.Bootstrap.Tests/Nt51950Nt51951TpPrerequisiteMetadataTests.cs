@@ -30,14 +30,18 @@ public sealed class Nt51950Nt51951TpPrerequisiteMetadataTests
         MetadataPlanDefinition nt51950 = CreateStandardMergePlan("NT51950");
         MetadataPlanDefinition nt51951 = CreateStandardMergePlan("NT51951");
         MetadataPlanDefinition nt51927 = CreateStandardMergePlan("NT51927", inputLength: null);
-        MetadataPlanDefinition nt51929 = CreateDpReplacePlan("NT51929");
 
         FirmwareMetadataStructure fwConfigProvider =
             StructureByDefinition(
                 nt51927,
                 FirmwareConfigDefinitionId);
-        FirmwareMetadataStructure dpcmiProvider =
-            Assert.Single(nt51929.Entries).StructureDefinition;
+        Assert.True(BuiltInCanonicalMetadataDefinitionResolver.Instance.TryResolve(
+            new FirmwareMetadataStructureDefinitionReferenceDocument(
+                "nt51929-nt51932", "1.3.1",
+                "d2499758dd19908422f857e5b7a68c24c47ac57961418da82d10dec2f039f3e8",
+                DpcmiMetadataContract.StructureId),
+            out FirmwareMetadataStructureDefinition? dpcmiProvider));
+        Assert.NotNull(dpcmiProvider);
         FirmwareMetadataStructure fwConfig950 =
             StructureByDefinition(
                 nt51950,
@@ -53,8 +57,8 @@ public sealed class Nt51950Nt51951TpPrerequisiteMetadataTests
 
         Assert.Same(fwConfigProvider.Definition, fwConfig950.Definition);
         Assert.Same(fwConfigProvider.Definition, fwConfig951.Definition);
-        Assert.Same(dpcmiProvider.Definition, dpcmi950.Definition);
-        Assert.Same(dpcmiProvider.Definition, dpcmi951.Definition);
+        Assert.Same(dpcmiProvider, dpcmi950.Definition);
+        Assert.Same(dpcmiProvider, dpcmi951.Definition);
         Assert.NotSame(dpcmi950, dpcmi951);
         Assert.Equal(
             "nt51950-standard-merge-256k",
@@ -147,24 +151,21 @@ public sealed class Nt51950Nt51951TpPrerequisiteMetadataTests
         string icId,
         bool dpReplace)
     {
-        ResolvedMetadataPlan plan = Resolve(
-            dpReplace
-                ? CreateDpReplacePlan(icId)
-                : CreateStandardMergePlan(icId));
-        MetadataInspectionSnapshot snapshot = FirmwareMetadataInspector.Inspect(
-            plan,
-            [
-                new FirmwareArtifactPayload(
-                    dpReplace
-                        ? CompositionAddressSpaceIds.DpReplacement
-                        : "dp-input",
-                    CreateDp()),
-                new FirmwareArtifactPayload(
-                    dpReplace
-                        ? CompositionAddressSpaceIds.ReferenceBase
-                        : "tp-input",
-                    CreateTp(icCount: 0)),
-            ]);
+        MetadataInspectionSnapshot snapshot;
+        if (dpReplace)
+        {
+            ResolvedMetadataPlan plan = CreateFullImagePlan(icId);
+            byte[] image = CreateDp();
+            byte[] tp = CreateTp(icCount: 0);
+            tp.AsSpan(FirmwareConfigStart, 0x1000).CopyTo(image.AsSpan(FirmwareConfigStart));
+            snapshot = FirmwareMetadataInspector.InspectFullImage(plan, new FirmwareArtifactPayload("reference", image));
+        }
+        else
+        {
+            snapshot = FirmwareMetadataInspector.Inspect(Resolve(CreateStandardMergePlan(icId)),
+                [new FirmwareArtifactPayload("dp-input", CreateDp()),
+                 new FirmwareArtifactPayload("tp-input", CreateTp(icCount: 0))]);
+        }
 
         MetadataInspectionResult dpcmi = ResultByDefinition(
             snapshot,
@@ -217,8 +218,8 @@ public sealed class Nt51950Nt51951TpPrerequisiteMetadataTests
     {
         var exact = new FirmwareMetadataStructureDefinitionReferenceDocument(
                 "nt51929-nt51932",
-                "1.3.0",
-                "6cd257c38e4c9ecb4e44c14d12027e44a6d484b8176112dceccb7328d153b617",
+                "1.3.1",
+                "d2499758dd19908422f857e5b7a68c24c47ac57961418da82d10dec2f039f3e8",
                 DpcmiMetadataContract.StructureId);
         FirmwareMetadataStructureDefinitionReferenceDocument changed =
             mismatch switch
@@ -381,11 +382,11 @@ public sealed class Nt51950Nt51951TpPrerequisiteMetadataTests
             inputLength);
     }
 
-    private static MetadataPlanDefinition CreateDpReplacePlan(string icId)
+    private static ResolvedMetadataPlan CreateFullImagePlan(string icId)
     {
-        return CreatePlan(
-            BuiltInV2RegistrationRegistry.DpReplaceByIc.Value[icId],
-            Capacity);
+        MetadataPlanDefinition plan = CanonicalFullImageMetadataInventory.Create().Single(candidate =>
+            candidate.FullImageContext!.MemberId == icId && candidate.FullImageContext.View.ImageMap.CapacityBytes == Capacity);
+        return Resolve(plan);
     }
 
     private static MetadataPlanDefinition CreatePlan(

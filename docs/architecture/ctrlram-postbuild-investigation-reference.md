@@ -7,6 +7,11 @@ Search keywords: CtrlRAM postbuild, first run base, self-pasteback, NT51926, NT5
 
 Latest living status report: [`ctrlram-replace-status-report.md`](ctrlram-replace-status-report.md). Keep that report synchronized with new CtrlRAM Replace experiments and owner decisions until the workflow is formally accepted.
 
+2026-09-21: the existing owner archive contains Combiner **1.13.0.0** source.
+See [source provenance, AB CRC coverage and Backup-copy findings](ctrlram-postbuild-original-pasteback.md#recovered-existing-113-source--2026-09-21).
+This supersedes the AB investigation's missing-source premise; it does not
+promote AB Replace runtime support.
+
 ## Purpose
 
 This note records the current CtrlRAM Replace/postbuild investigation conclusions so future questions can be answered by searching this file first.

@@ -40,6 +40,10 @@ public sealed partial class FirmwareInspectionSlotTests
             slot.SlotId == CompositionSlotIds.MergeTp);
 
         Assert.True(viewModel.Merge.CanBuildMerge);
+        await viewModel.Merge.PreviewMergeCommand.ExecuteAsync(null);
+        Assert.True(viewModel.RunSession.LastRunResult.Succeeded);
+        CompositionRunContext completed = viewModel.Merge.CaptureRunContext(ExperienceIds.StandardMerge);
+        Assert.True(completed.IsPublicationCurrent);
         await viewModel.WorkflowSession.ClearSlotFileAsync(
             dp.SlotId,
             TestContext.Current.CancellationToken);
@@ -49,8 +53,14 @@ public sealed partial class FirmwareInspectionSlotTests
         Assert.False(dp.HasInputInspectionStatus);
         Assert.Null(dp.CurrentInspectionProjection);
         Assert.True(tp.HasFile);
+        Assert.Equal(tpPath, tp.FilePath);
         Assert.False(tp.IsInputInspectionPending);
         Assert.True(File.Exists(dpPath));
+        Assert.True(File.Exists(tpPath));
+        Assert.False(completed.IsPublicationCurrent);
+        Assert.False(viewModel.RunSession.LastRunResult.Succeeded);
+        Assert.Equal("Context changed", viewModel.RunSession.LastRunResult.Title);
+        Assert.Equal("No output", viewModel.RunSession.LastRunResult.Output);
         Assert.False(viewModel.Merge.CanBuildMerge);
     }
 
@@ -164,75 +174,69 @@ public sealed partial class FirmwareInspectionSlotTests
         Assert.True(File.Exists(tpBPath));
     }
 
-    /// <summary>DP Replace Clear preserves the peer and fails closed when either required identity is absent.</summary>
+    /// <summary>General Replace Base Clear invalidates acceptance while preserving the mapping selection and both source files.</summary>
     [Fact]
-    public async Task DpReplaceSlotClearPreservesPeerAndRecomputesDependentReadiness()
+    public async Task GeneralReplaceBaseClearPreservesMappingAndInvalidatesAcceptance()
     {
-        using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-dp-replace-slot-clear");
-        string basePath = workspace.Write("reference.bin", CreatePattern(0x40000, 0x71));
-        string replacementPath = workspace.Write(
-            "initial-code.bin",
-            CreatePattern(0x40000, 0x41));
+        using var workspace = TempWorkspace.Create("general-replace-slot-clear");
+        string basePath = workspace.Write("reference.bin", CreatePattern(0x40000, 0x26));
+        string replacementPath = workspace.Write("replacement.bin", [0xA5, 0x5A]);
         MainWindowViewModel viewModel = await PresentationTestHost.CreateViewModelAsync(
             TestContext.Current.CancellationToken);
-        viewModel.WorkflowSession.SelectedIc = "NT51928";
-        OpenReplace(viewModel, ExperienceIds.DpReplace);
+        viewModel.ShowReplaceCommand.Execute(null);
+        viewModel.WorkflowSession.SelectedIc = "NT51926";
+        viewModel.Replace.SelectedReplaceMode = ExperienceIds.GeneralReplace;
         await viewModel.WorkflowSession.SetSlotFileAsync(
-            CompositionSlotIds.ReplaceBase,
-            basePath,
-            TestContext.Current.CancellationToken);
+            CompositionSlotIds.ReplaceBase, basePath, TestContext.Current.CancellationToken);
+        GeneralReplaceMappingViewModel mapping = Assert.Single(viewModel.Replace.GeneralReplaceMappings);
+        string mappingId = mapping.MappingId;
+        mapping.TargetStartAddress = "0x3E020";
+        mapping.Length = "0x2";
         await viewModel.WorkflowSession.SetSlotFileAsync(
-            CompositionSlotIds.ReplaceDp,
-            replacementPath,
-            TestContext.Current.CancellationToken);
-        FirmwareSlotViewModel baseSlot = viewModel.Replace.ReplaceBaseSlot;
-        FirmwareSlotViewModel replacement = viewModel.Replace.ReplaceSlots.Single(static slot =>
-            slot.SlotId == CompositionSlotIds.ReplaceDp);
-
-        Assert.True(viewModel.Replace.CanBuildReplace);
+            mappingId, replacementPath, TestContext.Current.CancellationToken);
+        await viewModel.Replace.Inspection.ActiveTask;
+        Assert.True(viewModel.Replace.CanBuildReplace, viewModel.Replace.ReplaceReadinessStatus);
+        _ = Assert.NotNull(mapping.AcceptedFileStamp);
         await viewModel.Replace.PreviewReplaceCommand.ExecuteAsync(null);
         Assert.True(viewModel.RunSession.LastRunResult.Succeeded);
+        CompositionRunContext completed = viewModel.Replace.CaptureRunContext(ExperienceIds.GeneralReplace);
+        Assert.NotNull(completed.AcceptedSession);
+        Assert.True(completed.IsPublicationCurrent);
         await viewModel.WorkflowSession.ClearSlotFileAsync(
-            replacement.SlotId,
-            TestContext.Current.CancellationToken);
+            CompositionSlotIds.ReplaceBase, TestContext.Current.CancellationToken);
 
-        Assert.True(baseSlot.HasFile);
-        Assert.False(replacement.HasFile);
-        Assert.Empty(replacement.FirmwareFacts);
-        Assert.False(replacement.HasInputInspectionStatus);
-        Assert.Null(replacement.CurrentInspectionProjection);
+        Assert.False(viewModel.Replace.ReplaceBaseSlot.HasFile);
+        Assert.Null(viewModel.Replace.ReplaceBaseSlot.CurrentInspectionProjection);
+        Assert.Null(viewModel.Replace.ReplaceBaseSlot.InputInspectionSeverity);
+        Assert.Same(mapping, Assert.Single(viewModel.Replace.GeneralReplaceMappings));
+        Assert.Equal(mappingId, mapping.MappingId);
+        Assert.Equal(replacementPath, mapping.FilePath);
+        Assert.Equal("0x3E020", mapping.TargetStartAddress);
+        Assert.Equal("0x2", mapping.Length);
+        Assert.False(completed.IsPublicationCurrent);
+        ActiveSessionSnapshot? cleared = viewModel.Replace
+            .CaptureRunContext(ExperienceIds.GeneralReplace).AcceptedSession;
+        Assert.NotNull(cleared);
+        string? referenceSpaceId = cleared.ExactCapability?.CompiledComposition
+            .Plan.OutputInitialization.ReferenceSpaceId;
+        Assert.NotNull(referenceSpaceId);
+        AuthoringSlotState reference = Assert.Single(cleared.Slots, slot =>
+            StringComparer.Ordinal.Equals(slot.DefinitionId, referenceSpaceId));
+        Assert.Equal(AuthoringSlotLifecycle.Empty, reference.Lifecycle);
+        Assert.Null(reference.SelectedPath);
+        Assert.Null(reference.FileStamp);
+        Assert.True(reference.AcceptedBytes.GetValueOrDefault().IsEmpty);
+        Assert.False(cleared.HasCurrentInputInspection);
         Assert.False(viewModel.Replace.CanBuildReplace);
         Assert.False(viewModel.RunSession.LastRunResult.Succeeded);
         Assert.Equal("Context changed", viewModel.RunSession.LastRunResult.Title);
         Assert.Equal("No output", viewModel.RunSession.LastRunResult.Output);
         Assert.True(File.Exists(basePath));
         Assert.True(File.Exists(replacementPath));
-
-        await viewModel.WorkflowSession.SetSlotFileAsync(
-            replacement.SlotId,
-            replacementPath,
-            TestContext.Current.CancellationToken);
-        Assert.True(viewModel.Replace.CanBuildReplace);
         await viewModel.WorkflowSession.ClearSlotFileAsync(
-            baseSlot.SlotId,
-            TestContext.Current.CancellationToken);
-
-        Assert.False(baseSlot.HasFile);
-        Assert.True(replacement.HasFile);
-        FirmwareInspectionSnapshot pendingProjection = Assert.IsType<FirmwareInspectionSnapshot>(
-            replacement.CurrentInspectionProjection);
-        AuthoringInputSlotStatus pendingStatus = Assert.IsType<AuthoringInputSlotStatus>(
-            pendingProjection.InputSlotStatus);
-        Assert.Null(pendingStatus.CompilationFingerprint);
-        Assert.Equal(ResolvedChildReadiness.Blocked, pendingStatus.Readiness);
-        Assert.Equal(ResolvedChildReadiness.PendingInput, replacement.SelectionReadinessState);
-        Assert.Contains(
-            "Reference",
-            replacement.SelectionReadinessDetail,
-            StringComparison.OrdinalIgnoreCase);
-        Assert.False(viewModel.Replace.CanBuildReplace);
-        Assert.True(File.Exists(basePath));
-        Assert.True(File.Exists(replacementPath));
+            CompositionSlotIds.ReplaceBase, TestContext.Current.CancellationToken);
+        Assert.Same(cleared, viewModel.Replace
+            .CaptureRunContext(ExperienceIds.GeneralReplace).AcceptedSession);
     }
 
     /// <summary>CtrlRAM region Clear retains the accepted Base and recomputes replacement readiness.</summary>

@@ -28,7 +28,7 @@ public sealed class AbMemoryLayoutControlTests
     public async Task LoadedAbCardsStayInsideTheRailAndCloseOnExit(int width, int height, bool dark, bool chinese)
     {
         using var workspace = TempWorkspace.Create("ab-memory-controls");
-        PresentationHostServices services = await CreateServicesAsync(workspace, useRetainedDpReplacePolicy: false);
+        PresentationHostServices services = await CreateServicesAsync(workspace);
         using var window = new MainWindow(UiLaunchOptions.Empty, StartupTraceSession.Disabled,
             services, ShellPreferenceSnapshot.Default)
         { Width = width, Height = height, RequestedThemeVariant = dark ? ThemeVariant.Dark : ThemeVariant.Light };

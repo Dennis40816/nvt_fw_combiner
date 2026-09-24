@@ -7,7 +7,7 @@ namespace NvtFwCombiner.Bootstrap.Tests;
 public sealed class Nt51950Nt51951V2StandardMergeGoldenTests
 {
     private const string BundleDirectory = "nt51950-nt51951-standard-merge";
-    private const string BundleContentHash = "d62b6b3f83a2350724de476d582d3a8de3483366134c39d94f144b77ae1402d7";
+    private const string BundleContentHash = "658e188b0724a9a1f5d3389f7bc685a75b1dacfd36e030d79c9d0f83d8135652";
     private const int TpOverlayStart = 0x0A000;
     private const int TpOverlayLength = 0x2D000;
     private const int CustomerInfoStart = 0x37000;
@@ -73,7 +73,7 @@ public sealed class Nt51950Nt51951V2StandardMergeGoldenTests
         CompiledComposition v2 = V2StandardMergeGoldenTestSupport.CompileV2(
             V2StandardMergeGoldenTestSupport.LoadDeployedCatalog(BundleDirectory, BundleContentHash),
             profileId,
-            "0.7.0",
+            "0.8.0",
             icId,
             capacity);
 
@@ -106,10 +106,11 @@ public sealed class Nt51950Nt51951V2StandardMergeGoldenTests
             ["dp-input"] = CreatePattern(capacity, 0x31),
             ["tp-input"] = CreatePattern(CustomerInfoStart, 0xC7),
         };
+        WriteSyntheticTpBackup(inputs["tp-input"]);
         CompiledComposition v2 = V2StandardMergeGoldenTestSupport.CompileV2(
             V2StandardMergeGoldenTestSupport.LoadDeployedCatalog(BundleDirectory, BundleContentHash),
             profileId,
-            "0.7.0",
+            "0.8.0",
             icId,
             capacity);
 
@@ -133,6 +134,7 @@ public sealed class Nt51950Nt51951V2StandardMergeGoldenTests
     {
         byte[] dp = CreatePattern(0x40000, 0x31);
         byte[] tp = CreatePattern(0x3C000, 0xC7);
+        WriteSyntheticTpBackup(tp);
         var inputs = new Dictionary<string, byte[]>(StringComparer.Ordinal)
         {
             ["dp-input"] = dp,
@@ -141,7 +143,7 @@ public sealed class Nt51950Nt51951V2StandardMergeGoldenTests
         CompiledComposition v2 = V2StandardMergeGoldenTestSupport.CompileV2(
             V2StandardMergeGoldenTestSupport.LoadDeployedCatalog(BundleDirectory, BundleContentHash),
             "nt51950-standard-merge-dp-perspective",
-            "0.7.0",
+            "0.8.0",
             "NT51950",
             dp.LongLength);
 
@@ -150,6 +152,15 @@ public sealed class Nt51950Nt51951V2StandardMergeGoldenTests
 
         Assert.Equal(CompositionExecutionStatus.Succeeded, result.Status);
         Assert.Equal(ConstructDpPerspectiveOutput(dp, tp), result.OutputBytes.ToArray());
+    }
+
+    private static void WriteSyntheticTpBackup(byte[] tp)
+    {
+        // Metadata lies outside the TP overlay; independent output bytes and hashes remain unchanged.
+        tp[0x1000] = 0x81;
+        tp[0x1001] = 0x7E;
+        tp[0x1017] = 1;
+        "\0NVT"u8.CopyTo(tp.AsSpan(0x1FFC));
     }
 
     private static byte[] CreatePattern(int length, byte salt)

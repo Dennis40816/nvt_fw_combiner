@@ -10,7 +10,7 @@ public sealed partial class ReportProjectionConcurrencyTests
     [Fact]
     public async Task LiveTypedReportProjectionMatchesPersistedJsonProjection()
     {
-        CompositionRunResult result = await CreateDpReplaceInspectionResultAsync(TestHost);
+        CompositionRunResult result = await CreateGeneralReplaceInspectionResultAsync(TestHost);
         string json = CompositionRunReportJson.Serialize(result);
         var persisted = ReportReviewViewModel.FromJsonCancellable(
             json,
@@ -289,13 +289,13 @@ public sealed partial class ReportProjectionConcurrencyTests
     [Fact]
     public async Task CancelledRunHexDiffProjectionPublishesNoPartialState()
     {
-        CompositionRunResult result = await CreateDpReplaceInspectionResultAsync(TestHost);
+        CompositionRunResult result = await CreateGeneralReplaceInspectionResultAsync(TestHost);
         MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
         using var cancellationSource = new CancellationTokenSource();
         cancellationSource.Cancel();
 
         _ = await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
-            viewModel.RunSession.ProjectAndApplyRunResultAsync(result, build: false, cancellationSource.Token));
+            viewModel.RunSession.ProjectAndApplyRunResultAsync(viewModel.Replace.CaptureRunContext(viewModel.Replace.SelectedReplaceMode), result, build: false, cancellationSource.Token));
 
         Assert.False(viewModel.Reports.HasLoadedReport);
         Assert.False(viewModel.Reports.HasReportHistory);
@@ -358,7 +358,7 @@ public sealed partial class ReportProjectionConcurrencyTests
     [Fact]
     public async Task RunHexDiffProjectionUsesLatestReportGeneration()
     {
-        CompositionRunResult result = await CreateDpReplaceInspectionResultAsync(TestHost);
+        CompositionRunResult result = await CreateGeneralReplaceInspectionResultAsync(TestHost);
         using var source = JsonDocument.Parse(CompositionRunReportJson.Serialize(result));
         string runId = source.RootElement.GetProperty("RunId").GetString()!;
         CompositionRunResult largeResult = WithReport(
@@ -372,6 +372,7 @@ public sealed partial class ReportProjectionConcurrencyTests
         MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
 
         Task olderProjection = viewModel.RunSession.ProjectAndApplyRunResultAsync(
+            viewModel.Replace.CaptureRunContext(viewModel.Replace.SelectedReplaceMode),
             largeResult,
             build: false,
             TestContext.Current.CancellationToken);

@@ -129,6 +129,11 @@ internal sealed partial class OutputDeliveryConfirmationViewModel : ObservableOb
         bool preserveCustomOutputName =
             preserveDeliveryState &&
             !OutputFileNameUsesAutomaticName;
+        bool preserveAdditionalName = preserveDeliveryState &&
+            _request is { } previousRequest && previousRequest.IsCurrent() &&
+            previousRequest.AdditionalDelivery is { } previousDelivery && request.AdditionalDelivery is { } nextDelivery &&
+            previousDelivery.ProfileId == nextDelivery.ProfileId && previousDelivery.DeliveryKind == nextDelivery.DeliveryKind &&
+            previousDelivery.SourceRange == nextDelivery.SourceRange && !AdditionalOutputFileNameUsesAutomaticName;
         _request = request;
         AreSourcesExpanded = false;
         IsBundleDestinationEditing = false;
@@ -136,6 +141,7 @@ internal sealed partial class OutputDeliveryConfirmationViewModel : ObservableOb
         {
             ResetOutputFileName();
         }
+        if (!preserveAdditionalName) { ResetAdditionalOutputFileName(); }
 
         if (!preserveDeliveryState)
         {
@@ -178,6 +184,8 @@ internal sealed partial class OutputDeliveryConfirmationViewModel : ObservableOb
     internal void SetAdditionalDeliveryEnabled(bool enabled)
     {
         AdditionalDeliveryEnabled = OffersAdditionalDelivery && enabled;
+        _ = RefreshValidation();
+        NotifyAdditionalName();
         OnPropertyChanged(nameof(AdditionalDeliveryEnabled));
         NotifySummary();
         OnPropertyChanged(nameof(CanConfirm));
@@ -316,7 +324,8 @@ internal sealed partial class OutputDeliveryConfirmationViewModel : ObservableOb
 
     private CompositionOutputBundleIntent? RefreshValidation()
     {
-        CompositionOutputBundleValidationIssue? nameIssue = _outputNaming.ValidateName(OutputFileName);
+        CompositionOutputBundleValidationIssue? nameIssue = _outputNaming.ValidateName(OutputFileName) ??
+            (AdditionalDeliveryEnabled ? _outputNaming.ValidateName(AdditionalOutputFileName) : null);
         IsOutputNameValid = nameIssue is null;
         if (!ProposalIsCurrent)
         {
@@ -354,7 +363,9 @@ internal sealed partial class OutputDeliveryConfirmationViewModel : ObservableOb
                 AdditionalDeliveryEnabled
                     ? _request.AdditionalDelivery?.DeliveryKind
                     : null,
-                outputFileNameOverride: OutputFileNameUsesAutomaticName ? null : OutputFileName);
+                outputFileNameOverride: OutputFileNameUsesAutomaticName ? null : OutputFileName,
+                additionalOutputFileNameOverride: AdditionalDeliveryEnabled && !AdditionalOutputFileNameUsesAutomaticName
+                    ? AdditionalOutputFileName : null);
             ApplyValidation(_outputNaming.ValidateBundleDestination(intent));
             return intent;
         }
@@ -408,6 +419,7 @@ internal sealed partial class OutputDeliveryConfirmationViewModel : ObservableOb
         OnPropertyChanged(nameof(CanEditOutputFileName));
         OnPropertyChanged(nameof(OutputFileNameUsesAutomaticName));
         OnPropertyChanged(nameof(AdditionalSuggestedFileName));
+        NotifyAdditionalName();
         OnPropertyChanged(nameof(Sources));
         OnPropertyChanged(nameof(AreSourcesExpanded));
         OnPropertyChanged(nameof(SourcesSummary));

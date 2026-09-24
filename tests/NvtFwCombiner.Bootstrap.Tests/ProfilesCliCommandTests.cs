@@ -6,9 +6,9 @@ namespace NvtFwCombiner.Bootstrap.Tests;
 /// <summary>CLI tests for stable profile catalog projections.</summary>
 public sealed class ProfilesCliCommandTests
 {
-    /// <summary>A failed DP Replace summary preserves its declared IC-number mode.</summary>
+    /// <summary>A failed Replace summary preserves its declared IC-number mode.</summary>
     [Fact]
-    public void FailedDpReplaceProfilePreservesDeclaredIcNumberMode()
+    public void FailedReplaceProfilePreservesDeclaredIcNumberMode()
     {
         var profile = new CapabilityProfileSummary(
             "profile",
@@ -59,18 +59,15 @@ public sealed class ProfilesCliCommandTests
             "nt51928-standard-merge-gen-flash  ic=NT51928  inputs=dp-input, tp-input  default-output={ic}_FlashCode_D{dp-version}T{tp-version}_{date}.bin",
             "nt51929-standard-merge-gen-flash  ic=NT51929  inputs=dp-input, tp-input  default-output={ic}_FlashCode_D{dp-version}T{tp-version}_{date}.bin",
             "nt51932-standard-merge-gen-flash  ic=NT51932  inputs=dp-input, tp-input  default-output={ic}_FlashCode_D{dp-version}T{tp-version}_{date}.bin",
-            "nt51950-standard-merge-dp-perspective  ic=NT51950  inputs=dp-input, tp-input  default-output={ic}_FlashCode_D{dp-version}T{tp-version}_{date}.bin",
-            "nt51951-standard-merge-dp-perspective  ic=NT51951  inputs=dp-input, tp-input  default-output={ic}_FlashCode_D{dp-version}T{tp-version}_{date}.bin",
+            "nt51950-standard-merge-dp-perspective  ic=NT51950  inputs=dp-input, tp-input  default-output={ic}_FlashCode_D{dp-version}T{tp-version}_{date}.bin  status=pending-input",
+            "nt51951-standard-merge-dp-perspective  ic=NT51951  inputs=dp-input, tp-input  default-output={ic}_FlashCode_D{dp-version}T{tp-version}_{date}.bin  status=pending-input",
             "Built-in AB Merge profiles:",
             "nt51919-ab-merge-alias  ic=NT51919  inputs=dp-ab-input, tp-a-input, tp-b-input  default-output=NT{ic}_FlashCode_A_{dp-a}{tp-a}_B_{dp-b}{tp-b}_{date}.bin",
             "nt51929-ab-merge  ic=NT51929  inputs=dp-ab-input, tp-a-input, tp-b-input  default-output=NT{ic}_FlashCode_A_{dp-a}{tp-a}_B_{dp-b}{tp-b}_{date}.bin",
             "nt51932-ab-merge  ic=NT51932  inputs=dp-ab-input, tp-a-input, tp-b-input  default-output=NT{ic}_FlashCode_A_{dp-a}{tp-a}_B_{dp-b}{tp-b}_{date}.bin",
             "nt51950-ab-merge  ic=NT51950  inputs=dp-ab-input, tp-a-input, tp-b-input  default-output=NT{ic}_FlashCode_A_{dp-a}{tp-a}_B_{dp-b}{tp-b}_{date}.bin",
-            "nt51950-ab-merge-common-2ic  ic=NT51950  inputs=dp-ab-input, tp-a-input, tp-b-input  default-output=NT{ic}_FlashCode_A_{dp-a}{tp-a}_B_{dp-b}{tp-b}_{date}.bin",
-            "nt51950-ab-merge-desay  ic=NT51950  inputs=dp-ab-input, tp-a-input, tp-b-input  default-output=NT{ic}_FlashCode_A_{dp-a}{tp-a}_B_{dp-b}{tp-b}_{date}.bin",
+            "nt51950-ab-merge-cascade  ic=NT51950  inputs=dp-ab-input, tp-a-input, tp-b-input  default-output=NT{ic}_FlashCode_A_{dp-a}{tp-a}_B_{dp-b}{tp-b}_{date}.bin",
             "nt51951-ab-merge  ic=NT51951  inputs=dp-ab-input, tp-a-input, tp-b-input  default-output=NT{ic}_FlashCode_A_{dp-a}{tp-a}_B_{dp-b}{tp-b}_{date}.bin",
-            "nt51951-ab-merge-desay  ic=NT51951  inputs=dp-ab-input, tp-a-input, tp-b-input  default-output=NT{ic}_FlashCode_A_{dp-a}{tp-a}_B_{dp-b}{tp-b}_{date}.bin",
-            "Built-in replace profiles:",
             string.Empty,
         ]);
 

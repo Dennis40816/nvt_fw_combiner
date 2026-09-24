@@ -1,6 +1,7 @@
 <ResourceDictionary
     xmlns="https://github.com/avaloniaui"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:authoring="clr-namespace:NvtFwCombiner.Application.Authoring;assembly=NvtFwCombiner.Application"
     xmlns:views="using:NvtFwCombiner.Presentation.Avalonia.Views"
     xmlns:vm="using:NvtFwCombiner.Presentation.Avalonia.ViewModels">
 
@@ -8,6 +9,30 @@
   <views:FirmwareSlotCard BrowseLabel="{ReflectionBinding $parent[Window].DataContext.Text.BrowseLabel}"
                           ClearSelectionLabel="{ReflectionBinding $parent[Window].DataContext.Text.ClearFirmwareSelectionLabel}"
                           ClearSelectionCommand="{ReflectionBinding $parent[Window].DataContext.WorkflowSession.ClearSlotFileCommand}" />
+</DataTemplate>
+
+<DataTemplate x:Key="CtrlRamModeSettingsTemplate" DataType="vm:ReplacePresentationViewModel">
+  <Border x:Name="CtrlRamModeSettings" Classes="panelSurface" Padding="16,10" IsVisible="{Binding HasCtrlRamBankSettings}">
+    <WrapPanel VerticalAlignment="Center" LineSpacing="{DynamicResource NfcSpace8}">
+      <TextBlock Classes="bodyEmphasisText" Text="{Binding Text.ModeSettingsLabel}" VerticalAlignment="Center" Margin="0,0,20,0" />
+      <StackPanel Orientation="Horizontal" Spacing="{DynamicResource NfcSpace8}" IsVisible="{Binding IsAbCtrlRamReference}">
+        <TextBlock Classes="fieldLabel" Text="{Binding Text.CtrlRamTargetBanksLabel}" VerticalAlignment="Center" />
+        <DropDownButton x:Name="CtrlRamBankScopeMenu" Classes="bankScope" Content="{Binding CtrlRamSelectedBanksLabel}" MinWidth="100"
+                        AutomationProperties.Name="{Binding Text.CtrlRamTargetBanksLabel}">
+          <DropDownButton.Flyout>
+            <MenuFlyout>
+              <MenuItem Header="{Binding Text.CtrlRamBothBanksLabel}" Command="{Binding SelectCtrlRamBanksCommand}"
+                        CommandParameter="{x:Static authoring:AbCtrlRamBankSelection.Both}" />
+              <MenuItem Header="A" Command="{Binding SelectCtrlRamBanksCommand}"
+                        CommandParameter="{x:Static authoring:AbCtrlRamBankSelection.A}" />
+              <MenuItem Header="B" Command="{Binding SelectCtrlRamBanksCommand}"
+                        CommandParameter="{x:Static authoring:AbCtrlRamBankSelection.B}" />
+            </MenuFlyout>
+          </DropDownButton.Flyout>
+        </DropDownButton>
+      </StackPanel>
+    </WrapPanel>
+  </Border>
 </DataTemplate>
 
 <DataTemplate x:Key="ReplaceModeContentTemplate" DataType="vm:ReplacePresentationViewModel">
@@ -36,6 +61,7 @@
           <TextBlock Classes="sectionTitle" Text="{Binding Text.InputFilesTitle}" />
           <TextBlock Classes="mutedText" Text="{Binding Text.CtrlRamInputFilesDetail}" TextWrapping="Wrap" />
         </StackPanel>
+
 
         <ContentControl
             HorizontalAlignment="Stretch"
@@ -241,7 +267,7 @@
           <TextBlock Classes="sectionTitle" Text="{Binding Text.AbCodeMergeTitle}" />
           <TextBlock Classes="mutedText" Text="{Binding Text.AbCodeMergeDetail}" TextWrapping="Wrap" />
         </StackPanel>
-        <WrapPanel Orientation="Horizontal" ItemSpacing="24" LineSpacing="8">
+        <WrapPanel Orientation="Horizontal" ItemSpacing="24" LineSpacing="{DynamicResource NfcSpace8}">
           <CheckBox
             AutomationProperties.Name="{Binding Text.AbSameTpOptionLabel}"
             Command="{Binding ToggleAbSameTpCommand}"
@@ -300,6 +326,20 @@
         </Border>
       </StackPanel>
 
+      <Grid x:Name="CtrlRamBankViewHeading" ColumnDefinitions="*,Auto" ColumnSpacing="{DynamicResource NfcSpace12}"
+            IsVisible="{Binding HasCtrlRamBankView}">
+        <TextBlock x:Name="CtrlRamBankViewSubtitle" Classes="bodyEmphasisText" VerticalAlignment="Center"
+                   Text="{Binding CtrlRamBankViewSubtitle}" TextWrapping="Wrap" />
+        <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+          <TextBlock Text="A" VerticalAlignment="Center" />
+          <ToggleButton x:Name="CtrlRamBankViewSwitch" Classes="bankViewSwitch"
+                        AutomationProperties.Name="{Binding Text.CtrlRamViewBankLabel}"
+                        ToolTip.Tip="{Binding Text.CtrlRamViewBankLabel}"
+                        IsChecked="{Binding IsViewingCtrlRamBankB, Mode=TwoWay}" />
+          <TextBlock Text="B" VerticalAlignment="Center" />
+        </StackPanel>
+      </Grid>
+
       <StackPanel
           x:Name="ReplaceCoverageStateLegend"
           HorizontalAlignment="Right"
@@ -337,7 +377,7 @@
         <StackPanel x:Name="CtrlRamFlashOverview" Spacing="{DynamicResource NfcSpace12}">
           <views:MemoryCoverageBar ItemsSource="{Binding CtrlRamOverview}" FocusPositions="{Binding CtrlRamPositions}"
               Heading="{Binding Text.MemoryFlashOverviewLabel}" CapacityLabel="{Binding CtrlRamCapacityLabel}"
-              StartAddress="0x00000" EndAddress="{Binding CtrlRamEndAddress}"
+              StartAddress="{Binding CtrlRamStartAddress}" EndAddress="{Binding CtrlRamEndAddress}"
               Labels="{Binding Text}" ShowLabels="True" ShowLegend="True" ReducedMotion="{ReflectionBinding $parent[Window].DataContext.IsReducedMotionEnabled}" />
         </StackPanel>
         <TextBlock Classes="captionText" FontSize="{DynamicResource NfcFontSize11}" Text="{Binding CtrlRamSharedInputHint}" TextWrapping="Wrap" />

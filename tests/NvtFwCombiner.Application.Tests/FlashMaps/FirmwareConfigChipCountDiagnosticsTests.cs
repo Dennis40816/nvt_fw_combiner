@@ -6,6 +6,33 @@ namespace NvtFwCombiner.Application.Tests.FlashMaps;
 /// <summary>Tests the route-declared policy for canonical FWConfig <c>Chip_Num</c>.</summary>
 public sealed class FirmwareConfigChipCountDiagnosticsTests
 {
+    /// <summary>Single-input admission distinguishes unknown metadata, read zero and positive values.</summary>
+    [Theory]
+    [InlineData("positive", 3, null)]
+    [InlineData("zero", 0, FirmwareConfigChipCountDiagnostics.RequiredIssueCode)]
+    [InlineData("missing", null, FirmwareConfigChipCountDiagnostics.UnreadableIssueCode)]
+    [InlineData("duplicate", null, FirmwareConfigChipCountDiagnostics.UnreadableIssueCode)]
+    [InlineData("complement", null, FirmwareConfigChipCountDiagnostics.UnreadableIssueCode)]
+    public void PositiveAssessmentPreservesActualNullableCount(string defect, int? expectedCount, string? code)
+    {
+        byte[] bytes = new byte[0x3000];
+        bytes[0x1000] = 0x81;
+        bytes[0x1001] = defect == "complement" ? (byte)0 : (byte)0x7E;
+        bytes[0x1017] = defect == "zero" ? (byte)0 : (byte)3;
+        if (defect != "missing") { "\0NVT"u8.CopyTo(bytes.AsSpan(0x1FFC)); }
+        if (defect == "duplicate") { "\0NVT"u8.CopyTo(bytes.AsSpan(0x2FFC)); }
+        CompositionIssue? issue = FirmwareConfigChipCountDiagnostics.AssessPositive(bytes, "tp-slot", out byte? actual);
+        Assert.Equal<int?>(expectedCount, actual);
+        Assert.Equal(code, issue?.Code);
+        if (issue is not null)
+        {
+            Assert.Equal("tp-slot", issue.OperationId);
+            Assert.Equal(CompositionIssueSeverity.Error, issue.Severity);
+            Assert.Contains(expectedCount == 0 ? "read as 0" : "unreadable", issue.Message, StringComparison.Ordinal);
+            Assert.DoesNotContain("AB", issue.Message, StringComparison.Ordinal);
+        }
+    }
+
     /// <summary>Count-invariant routes expose zero as a non-blocking warning.</summary>
     [Fact]
     public void ZeroCountOnInvariantRouteCreatesWarning()

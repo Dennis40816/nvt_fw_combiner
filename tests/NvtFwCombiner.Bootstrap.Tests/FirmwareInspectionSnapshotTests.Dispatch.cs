@@ -12,6 +12,80 @@ namespace NvtFwCombiner.Bootstrap.Tests;
 
 public sealed partial class FirmwareInspectionSnapshotTests
 {
+    /// <summary>Read-only Standard metadata follows exact trusted capacity and never compiles an envelope from length alone.</summary>
+    [Theory]
+    [InlineData("NT51950", 0x40000)]
+    [InlineData("NT51950", 0x80000)]
+    [InlineData("NT51950", 0x100000)]
+    [InlineData("NT51951", 0x40000)]
+    [InlineData("NT51951", 0x80000)]
+    [InlineData("NT51951", 0x100000)]
+    public void GenericStandardMetadataUsesOnlyPublishedExactCapacity(string icId, long capacity)
+    {
+        var query = (IStandardMergeMetadataPlanQuery)BootstrapTestHost.Canonical.Compiler;
+        MetadataPlanResolutionResult exact = Assert.IsType<MetadataPlanResolutionResult>(
+            query.ResolveSourceEnvelopeMetadataPlan(icId, capacity));
+        Assert.NotNull(exact.MetadataPlan);
+        Assert.Null(exact.Issue);
+        Assert.Equal(BootstrapTestHost.Canonical.Catalog.GetCurrentSnapshot().ResolutionToken,
+            exact.MetadataPlan.ResolutionToken);
+
+        MetadataPlanResolutionResult nonstandard = Assert.IsType<MetadataPlanResolutionResult>(
+            query.ResolveSourceEnvelopeMetadataPlan(icId, capacity + 1));
+        Assert.Null(nonstandard.MetadataPlan);
+        Assert.Equal(CapabilityCatalogIssueCodes.RouteUnavailable, nonstandard.Issue?.Code);
+    }
+
+    /// <summary>The actual generic facade consumes one captured full image and a terminal query failure never reopens DP metadata.</summary>
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task GenericFullImageFacadeUsesOneCapturedPayloadAndTerminalAuthority(bool unavailable)
+    {
+        byte[] bytes = CreateNonUniformArtifact(0x40000);
+        bytes[0x36000] = 0x42;
+        bytes[0x36001] = 0xBD;
+        bytes[0x36017] = 1;
+        new byte[] { 0, 0x4E, 0x56, 0x54 }.CopyTo(bytes, 0x36FFC);
+        bytes[0x3B016] = 0x2E;
+        bytes[0x3B017] = 3;
+        bytes[0x3B018] = 0xA4;
+        ICanonicalCapabilityQuery query = BootstrapTestHost.Canonical.Catalog;
+        int queries = 0;
+        int reads = 0;
+        BuiltInFirmwareInspection inspection = CreateInspection(new InterceptingMetadataPlanQuery(query,
+            (ic, workflow, count, capacity) =>
+            {
+                queries++;
+                Assert.Equal(("NT51950", "full-image", "none", 0x40000L), (ic, workflow, count, capacity));
+                return unavailable
+                    ? new(null, new(CapabilityCatalogIssueCodes.FullImageMetadataUnavailable, "No declared view."))
+                    : query.ResolveFullImageMetadataPlan(ic, capacity!.Value);
+            }), new DelegatingContentInspector((path, _, _) =>
+            {
+                reads++;
+                return ValueTask.FromResult(new SelectedFileContentInspection(
+                    FileStamp.FromBytes(bytes), Path.GetFileName(path), acceptedBytes: bytes));
+            }));
+        FirmwareInspectionBatchResult batch = await inspection.InspectFirmwareBatchAsync("NT51950",
+            [new("reference", "generic-reference.bin")], TestContext.Current.CancellationToken);
+        bytes[0x3B017] = 0xFF;
+        Assert.Equal(1, reads);
+        Assert.Equal(1, queries);
+        FirmwareInspectionSnapshot result = batch.InspectionsById["reference"];
+        if (unavailable)
+        {
+            Assert.Null(result.DpVersion);
+            Assert.Null(result.CmiDpCode);
+        }
+        else
+        {
+            Assert.True(result.ArtifactClassification!.IsDpMetadataApplicable);
+            Assert.Equal("030A", Assert.IsType<DpVersionMetadata>(result.DpVersion).VersionToken);
+            Assert.Equal((ushort)1070, Assert.IsType<CmiDpCodeMetadata>(result.CmiDpCode).JiraNumber);
+        }
+    }
+
     /// <summary>Only explicit typed workflow roles admit their inspection strategies.</summary>
     [Fact]
     public void InspectionDispatchUsesOnlyTypedApplicableStrategies()
@@ -372,6 +446,227 @@ public sealed partial class FirmwareInspectionSnapshotTests
         Assert.Null(classification);
     }
 
+    /// <summary>Every published Standard capacity can classify its own complete Base.</summary>
+    [Theory]
+    [InlineData("NT51950", 0x40000)]
+    [InlineData("NT51950", 0x80000)]
+    [InlineData("NT51950", 0x100000)]
+    [InlineData("NT51951", 0x40000)]
+    [InlineData("NT51951", 0x80000)]
+    [InlineData("NT51951", 0x100000)]
+    public void StandardCapacityRoutesClassifyTheirExactBase(string icId, int capacity)
+    {
+        var catalog = new CanonicalCapabilityCatalog(
+            CompositionHostServices.CreateCanonicalCapabilityCatalogSource());
+        Assert.True(catalog.Reload(TestContext.Current.CancellationToken).Succeeded);
+        var resolver = new FirmwareArtifactClassificationResolver(
+            catalog,
+            new CanonicalCapabilityCompilerAdapter(
+                catalog,
+                new BuiltInV2DynamicCompilationAdapter()));
+
+        CompiledFirmwareArtifactClassification classification = Assert.IsType<
+            CompiledFirmwareArtifactClassification>(resolver.Resolve(
+                icId,
+                exactCapability: null,
+                CreateNonUniformArtifact(capacity)));
+        Assert.Equal(CompiledFirmwareArtifactKind.FlashCode, classification.Kind);
+    }
+
+    /// <summary>One classification resolves the trusted capacity-to-route table once.</summary>
+    [Fact]
+    public void StandardCapacityClassificationDoesNotRequeryRoutesPerCandidate()
+    {
+        var catalog = new CanonicalCapabilityCatalog(
+            CompositionHostServices.CreateCanonicalCapabilityCatalogSource());
+        Assert.True(catalog.Reload(TestContext.Current.CancellationToken).Succeeded);
+        var adapter = new FaultedStandardCapacityAdapter(
+            new BuiltInV2DynamicCompilationAdapter(), "none");
+        var resolver = new FirmwareArtifactClassificationResolver(
+            catalog, new CanonicalCapabilityCompilerAdapter(catalog, adapter));
+
+        Assert.NotNull(resolver.Resolve("NT51950", exactCapability: null,
+            CreateNonUniformArtifact(0x40000)));
+        Assert.Equal(1, adapter.CapacityQueryCount);
+        Assert.Equal(4, adapter.MapVariantQueryCount);
+    }
+
+    /// <summary>Classification requires every route; metadata compiles only its selected exact route.</summary>
+    [Theory]
+    [InlineData("missing", CapabilityCatalogIssueCodes.RouteUnavailable)]
+    [InlineData("duplicate", CapabilityCatalogIssueCodes.RouteAmbiguous)]
+    [InlineData("uncompiled", CapabilityCatalogIssueCodes.RouteUnavailable)]
+    public void StandardCapacityClassificationRejectsIncompletePublication(string fault, string expectedMetadataIssue)
+    {
+        var catalog = new CanonicalCapabilityCatalog(
+            CompositionHostServices.CreateCanonicalCapabilityCatalogSource());
+        Assert.True(catalog.Reload(TestContext.Current.CancellationToken).Succeeded);
+        var compiler = new CanonicalCapabilityCompilerAdapter(
+            catalog,
+            new FaultedStandardCapacityAdapter(
+                new BuiltInV2DynamicCompilationAdapter(), fault));
+        var resolver = new FirmwareArtifactClassificationResolver(catalog, compiler);
+
+        Assert.Null(resolver.Resolve(
+            "NT51950",
+            exactCapability: null,
+            CreateNonUniformArtifact(0x40000)));
+        MetadataPlanResolutionResult metadata = Assert.IsType<MetadataPlanResolutionResult>(
+            ((IStandardMergeMetadataPlanQuery)compiler).ResolveSourceEnvelopeMetadataPlan(
+                "NT51950", 0x40000));
+        if (fault == "uncompiled")
+        {
+            Assert.NotNull(metadata.MetadataPlan);
+            Assert.Null(metadata.Issue);
+            metadata = Assert.IsType<MetadataPlanResolutionResult>(
+                ((IStandardMergeMetadataPlanQuery)compiler).ResolveSourceEnvelopeMetadataPlan(
+                    "NT51950", 0x80000));
+        }
+        Assert.Null(metadata.MetadataPlan);
+        Assert.Equal(expectedMetadataIssue, metadata.Issue?.Code);
+    }
+
+    /// <summary>Changing the publication mid-enumeration cannot return a mixed-route classification.</summary>
+    [Fact]
+    public void StandardCapacityClassificationRejectsPublicationRollover()
+    {
+        CanonicalCapabilityCatalogCandidate seed =
+            CompositionHostServices.CreateCanonicalCapabilityCatalogSource().Load(
+                TestContext.Current.CancellationToken).Candidate!;
+        var rollover = new CanonicalCapabilityCatalogCandidate(
+            seed.CatalogId,
+            "standard-capacity-rollover-2",
+            seed.SourceSha256,
+            seed.Definitions,
+            seed.DynamicDefinitions);
+        var catalog = new CanonicalCapabilityCatalog(new QueuedCandidateSource(seed, rollover));
+        Assert.True(catalog.Reload(TestContext.Current.CancellationToken).Succeeded);
+        CapabilityCatalogReloadResult? rolloverResult = null;
+        var resolver = new FirmwareArtifactClassificationResolver(
+            catalog,
+            new CanonicalCapabilityCompilerAdapter(
+                catalog,
+                new FaultedStandardCapacityAdapter(
+                    new BuiltInV2DynamicCompilationAdapter(),
+                    "none",
+                    () => rolloverResult = catalog.Reload(TestContext.Current.CancellationToken))));
+
+        Assert.Null(resolver.Resolve(
+            "NT51950",
+            exactCapability: null,
+            CreateNonUniformArtifact(0x40000)));
+        Assert.True(rolloverResult?.Succeeded);
+    }
+
+    /// <summary>Length-only Standard compilation never fabricates a missing or duplicate exact capacity.</summary>
+    [Theory]
+    [InlineData("missing")]
+    [InlineData("duplicate")]
+    public void StandardLengthOnlyCompilationRejectsInvalidCapacityLookup(string fault)
+    {
+        var catalog = new CanonicalCapabilityCatalog(
+            CompositionHostServices.CreateCanonicalCapabilityCatalogSource());
+        Assert.True(catalog.Reload(TestContext.Current.CancellationToken).Succeeded);
+        var compiler = new CanonicalCapabilityCompilerAdapter(
+            catalog,
+            new FaultedStandardCapacityAdapter(new BuiltInV2DynamicCompilationAdapter(), fault));
+
+        Assert.False(compiler.TryCompileStandardMerge(
+            "NT51950", 0x40000, out CompiledComposition? composition, out _));
+        Assert.Null(composition);
+    }
+
+    /// <summary>A failed source-envelope query is terminal and retains its typed issue.</summary>
+    [Theory]
+    [InlineData("declaration-error")]
+    [InlineData("map-error")]
+    public void StandardRouteQueryFailureDoesNotFallThrough(string fault)
+    {
+        var catalog = new CanonicalCapabilityCatalog(
+            CompositionHostServices.CreateCanonicalCapabilityCatalogSource());
+        Assert.True(catalog.Reload(TestContext.Current.CancellationToken).Succeeded);
+        var adapter = new FaultedStandardCapacityAdapter(
+            new BuiltInV2DynamicCompilationAdapter(), fault);
+        var compiler = new CanonicalCapabilityCompilerAdapter(catalog, adapter);
+
+        Assert.False(compiler.TryCompileStandardMerge(
+            "NT51950", 0x40000, out CompiledComposition? composition,
+            out IReadOnlyList<CompositionIssue> issues));
+        Assert.Null(composition);
+        Assert.Equal("test.route-query-failed", Assert.Single(issues).Code);
+        Assert.Equal(0, adapter.CompileCallCount);
+    }
+
+    /// <summary>A reload during route-set materialization cannot publish a mixed selection.</summary>
+    [Fact]
+    public void StandardRouteQueryRejectsPublicationRollover()
+    {
+        CanonicalCapabilityCatalogCandidate seed =
+            CompositionHostServices.CreateCanonicalCapabilityCatalogSource().Load(
+                TestContext.Current.CancellationToken).Candidate!;
+        var rollover = new CanonicalCapabilityCatalogCandidate(
+            seed.CatalogId, "standard-query-rollover-2", seed.SourceSha256,
+            seed.Definitions, seed.DynamicDefinitions);
+        var catalog = new CanonicalCapabilityCatalog(new QueuedCandidateSource(seed, rollover));
+        Assert.True(catalog.Reload(TestContext.Current.CancellationToken).Succeeded);
+        var adapter = new FaultedStandardCapacityAdapter(
+            new BuiltInV2DynamicCompilationAdapter(), "none",
+            afterCapacityQuery: () => catalog.Reload(TestContext.Current.CancellationToken));
+        var compiler = new CanonicalCapabilityCompilerAdapter(catalog, adapter);
+
+        Assert.False(compiler.TryCompileStandardMerge(
+            "NT51950", 0x40000, out CompiledComposition? composition,
+            out IReadOnlyList<CompositionIssue> issues));
+        Assert.Null(composition);
+        Assert.Equal(AuthoringSessionIssueCodes.StalePublication, Assert.Single(issues).Code);
+        Assert.Equal(0, adapter.CompileCallCount);
+    }
+
+    /// <summary>A malformed selected compilation cannot escape generic metadata inspection.</summary>
+    [Fact]
+    public void StandardMetadataFailsClosedWhenSelectedCompilationThrows()
+    {
+        var catalog = new CanonicalCapabilityCatalog(
+            CompositionHostServices.CreateCanonicalCapabilityCatalogSource());
+        Assert.True(catalog.Reload(TestContext.Current.CancellationToken).Succeeded);
+        var compiler = new CanonicalCapabilityCompilerAdapter(
+            catalog, new FaultedStandardCapacityAdapter(
+                new BuiltInV2DynamicCompilationAdapter(), "invalid-data"));
+
+        MetadataPlanResolutionResult metadata = Assert.IsType<MetadataPlanResolutionResult>(
+            ((IStandardMergeMetadataPlanQuery)compiler).ResolveSourceEnvelopeMetadataPlan(
+                "NT51950", 0x40000));
+        Assert.Null(metadata.MetadataPlan);
+        Assert.Equal(CapabilityCatalogIssueCodes.RouteUnavailable, metadata.Issue?.Code);
+    }
+
+    /// <summary>Length-only exact compilation cannot bind a route from a newer publication.</summary>
+    [Fact]
+    public void StandardLengthOnlyCompilationRejectsPublicationRollover()
+    {
+        CanonicalCapabilityCatalogCandidate seed =
+            CompositionHostServices.CreateCanonicalCapabilityCatalogSource().Load(
+                TestContext.Current.CancellationToken).Candidate!;
+        var rollover = new CanonicalCapabilityCatalogCandidate(
+            seed.CatalogId, "standard-length-rollover-2", seed.SourceSha256,
+            seed.Definitions, seed.DynamicDefinitions);
+        var catalog = new CanonicalCapabilityCatalog(new QueuedCandidateSource(seed, rollover));
+        Assert.True(catalog.Reload(TestContext.Current.CancellationToken).Succeeded);
+        CapabilityCatalogReloadResult? rolloverResult = null;
+        var compiler = new CanonicalCapabilityCompilerAdapter(
+            catalog,
+            new FaultedStandardCapacityAdapter(
+                new BuiltInV2DynamicCompilationAdapter(), "none",
+                () => rolloverResult = catalog.Reload(TestContext.Current.CancellationToken)));
+
+        Assert.False(compiler.TryCompileStandardMerge(
+            "NT51950", 0x40000, out CompiledComposition? composition,
+            out IReadOnlyList<CompositionIssue> issues));
+        Assert.Null(composition);
+        Assert.True(rolloverResult?.Succeeded);
+        Assert.Contains(issues, static issue => issue.Code == AuthoringSessionIssueCodes.StalePublication);
+    }
+
     /// <summary>A catalog publication rollover during dynamic compilation fails closed.</summary>
     [Fact]
     public void DynamicArtifactClassificationFailsClosedOnPublicationRollover()
@@ -407,6 +702,47 @@ public sealed partial class FirmwareInspectionSnapshotTests
         Assert.Equal(1, adapter.RolloverCalls);
     }
 
+    /// <summary>Reload between AB layout and its Standard metadata counterpart cannot publish mixed bank facts.</summary>
+    [Fact]
+    public void AbBaseFactsRejectPublicationRolloverDuringStandardCompilation()
+    {
+        CanonicalCapabilityCatalogCandidate seed =
+            CompositionHostServices.CreateCanonicalCapabilityCatalogSource().Load(
+                TestContext.Current.CancellationToken).Candidate!;
+        var rollover = new CanonicalCapabilityCatalogCandidate(
+            seed.CatalogId, "ab-base-event-rollover-2", seed.SourceSha256,
+            seed.Definitions, seed.DynamicDefinitions);
+        var catalog = new CanonicalCapabilityCatalog(new QueuedCandidateSource(seed, rollover));
+        Assert.True(catalog.Reload(TestContext.Current.CancellationToken).Succeeded);
+        ResolutionToken originalToken = catalog.TryGetCurrentSnapshot()!.ResolutionToken;
+        CapabilityCatalogReloadResult? rolloverResult = null;
+        int standardQueries = 0;
+        var query = new InterceptingMetadataPlanQuery(catalog,
+            catalog.ResolveUniqueMetadataPlan,
+            (ic, workflow) =>
+            {
+                if (ic == "NT51929" && workflow == ExperienceIds.StandardMerge && ++standardQueries == 1)
+                {
+                    rolloverResult = catalog.Reload(TestContext.Current.CancellationToken);
+                }
+            });
+        var resolver = new FirmwareArtifactClassificationResolver(
+            query, new CanonicalCapabilityCompilerAdapter(query, new BuiltInV2DynamicCompilationAdapter()));
+        byte[] reference = File.ReadAllBytes(CanonicalGoldenTestData.ArtifactPath(
+            "ab-merge", "NT51929", "expected-output", "t05-d06"));
+
+        CtrlRamBaseInspection inspection = resolver.ResolveCtrlRamBase(
+            "NT51929", exactCapability: null, reference, draft: null,
+            adapter: new BuiltInCtrlRamAuthoringAdapter(catalog, BootstrapTestHost.Canonical.Projection));
+
+        Assert.True(rolloverResult?.Succeeded);
+        Assert.NotEqual(originalToken, catalog.TryGetCurrentSnapshot()!.ResolutionToken);
+        Assert.Equal(1, standardQueries);
+        Assert.NotEqual(CtrlRamBaseKind.AbFlash, inspection.Kind);
+        Assert.Empty(inspection.Banks);
+        Assert.Contains(inspection.Issues, static issue => issue.Code == AuthoringSessionIssueCodes.StaleInspection);
+    }
+
     private static byte[] CreateNonUniformArtifact(int length)
     {
         var artifact = new byte[length];
@@ -416,6 +752,83 @@ public sealed partial class FirmwareInspectionSnapshotTests
         }
 
         return artifact;
+    }
+
+    private sealed class FaultedStandardCapacityAdapter(
+        ICanonicalDynamicCompilationAdapter inner,
+        string fault,
+        Action? afterCompile = null,
+        Action? afterCapacityQuery = null) : ICanonicalDynamicCompilationAdapter
+    {
+        private int _compileCalls;
+        public int CapacityQueryCount { get; private set; }
+        public int MapVariantQueryCount { get; private set; }
+        public int CompileCallCount => _compileCalls;
+
+        public bool TryGetSourceEnvelopeMapVariant(string icId, string workflowId,
+            long? sourceLength, out string? mapVariant,
+            out IReadOnlyList<CompositionIssue> issues)
+        {
+            MapVariantQueryCount++;
+            if ((fault == "declaration-error" && sourceLength is null) ||
+                (fault == "map-error" && sourceLength == 0x80000))
+            {
+                mapVariant = null;
+                issues = [new CompositionIssue("test.route-query-failed", "Synthetic route query failure.")];
+                return false;
+            }
+            return inner.TryGetSourceEnvelopeMapVariant(
+                icId, workflowId, sourceLength, out mapVariant, out issues);
+        }
+
+        public bool TryGetAbAuthoringDefinition(CapabilityRouteIdentity identity,
+            out CanonicalAbAuthoringDefinition? definition,
+            out IReadOnlyList<CompositionIssue> issues)
+        {
+            return inner.TryGetAbAuthoringDefinition(identity, out definition, out issues);
+        }
+
+        public IReadOnlyList<long> GetMapCapacities(string icId, string workflowId,
+            out IReadOnlyList<CompositionIssue> issues)
+        {
+            CapacityQueryCount++;
+            IReadOnlyList<long> capacities = inner.GetMapCapacities(icId, workflowId, out issues);
+            afterCapacityQuery?.Invoke();
+            return fault switch
+            {
+                "missing" => [.. capacities.Skip(1)],
+                "duplicate" => [capacities[0], .. capacities],
+                _ => capacities,
+            };
+        }
+
+        public void Compile(CapabilityRouteIdentity identity, long? requestedMapCapacity,
+            IReadOnlyCollection<string>? selectedInputSlotIds,
+            out CompiledComposition? composition,
+            out MetadataPlanDefinition? metadataPlan,
+            out IReadOnlyList<CompositionIssue> issues,
+            TopologySelection? requestedTopology = null)
+        {
+            if (fault == "invalid-data")
+            {
+                throw new InvalidDataException("Synthetic malformed selected compilation.");
+            }
+            if (fault == "uncompiled" &&
+                identity.MapVariant == "nt51950-standard-merge-512k")
+            {
+                composition = null;
+                metadataPlan = null;
+                issues = [new CompositionIssue("test.incomplete-route", "One published route did not compile.")];
+                return;
+            }
+
+            inner.Compile(identity, requestedMapCapacity, selectedInputSlotIds,
+                out composition, out metadataPlan, out issues, requestedTopology);
+            if (Interlocked.Increment(ref _compileCalls) == 1)
+            {
+                afterCompile?.Invoke();
+            }
+        }
     }
 
     private sealed class InvalidDataDynamicCompilationAdapter :
@@ -448,12 +861,6 @@ public sealed partial class FirmwareInspectionSnapshotTests
             throw new InvalidDataException("Synthetic malformed dynamic compilation.");
         }
 
-        public void CompileDefinition(string icId, string workflowId, long? requestedMapCapacity,
-            IReadOnlyCollection<string>? selectedInputSlotIds, out CompiledComposition? composition,
-            out IReadOnlyList<CompositionIssue> issues)
-        {
-            throw new InvalidDataException("Synthetic malformed dynamic compilation.");
-        }
     }
 
     private sealed class IncompleteDynamicCompilationAdapter(
@@ -492,12 +899,6 @@ public sealed partial class FirmwareInspectionSnapshotTests
                 requestedTopology);
         }
 
-        public void CompileDefinition(string icId, string workflowId, long? requestedMapCapacity,
-            IReadOnlyCollection<string>? selectedInputSlotIds, out CompiledComposition? composition,
-            out IReadOnlyList<CompositionIssue> issues)
-        {
-            inner.CompileDefinition(icId, workflowId, requestedMapCapacity, [], out composition, out issues);
-        }
     }
 
     private sealed class RolloverDynamicCompilationAdapter(
@@ -547,17 +948,6 @@ public sealed partial class FirmwareInspectionSnapshotTests
             }
         }
 
-        public void CompileDefinition(string icId, string workflowId, long? requestedMapCapacity,
-            IReadOnlyCollection<string>? selectedInputSlotIds, out CompiledComposition? composition,
-            out IReadOnlyList<CompositionIssue> issues)
-        {
-            inner.CompileDefinition(icId, workflowId, requestedMapCapacity, selectedInputSlotIds,
-                out composition, out issues);
-            if (Interlocked.Increment(ref _rolloverCalls) == 1)
-            {
-                rollover();
-            }
-        }
     }
 
     private static byte[] ReadOnce(
@@ -590,13 +980,6 @@ public sealed partial class FirmwareInspectionSnapshotTests
             ],
             Images(("ab-dp.bin", 0x80000), ("ab-tp-a.bin", 0x40000), ("ab-tp-b.bin", 0x40000)));
         yield return (
-            "NT51928",
-            [
-                new("dp-base", "dp-base.bin", DpReplaceAddressSpaceId: CompositionAddressSpaceIds.ReferenceBase),
-                new("dp-replacement", "dp-replacement.bin", DpReplaceAddressSpaceId: CompositionAddressSpaceIds.InitialCodeReplacement),
-            ],
-            Images(("dp-base.bin", 0x40000), ("dp-replacement.bin", 0x40000)));
-        yield return (
             "NT51926",
             [new(
                 "ctrlram-base",
@@ -628,11 +1011,10 @@ public sealed partial class FirmwareInspectionSnapshotTests
     {
         CompositionHostServices services = BootstrapTestHost.Services;
         return new BuiltInFirmwareInspection(
-            new FirmwareMetadataPlanAuthorityResolver(catalog),
+            new FirmwareMetadataPlanAuthorityResolver(catalog, services.Compiler),
             BootstrapTestHost.Canonical.Projection,
             (StandardMergeAuthoringExperience)services.StandardMergeAuthoring,
             (AbMergeAuthoringExperience)services.AbMergeAuthoring,
-            (DpReplaceAuthoringExperience)services.DpReplaceAuthoring,
             (CtrlRamAuthoringExperience)services.CtrlRamAuthoring,
             new FirmwareArtifactClassificationResolver(catalog, services.Compiler),
             contentInspector);
@@ -640,7 +1022,8 @@ public sealed partial class FirmwareInspectionSnapshotTests
 
     private sealed class InterceptingMetadataPlanQuery(
         ICanonicalCapabilityQuery inner,
-        Func<string, string, string, long?, MetadataPlanResolutionResult> resolveMetadataPlan)
+        Func<string, string, string, long?, MetadataPlanResolutionResult> resolveMetadataPlan,
+        Action<string, string>? afterResolveRoute = null)
         : ICanonicalCapabilityQuery
     {
         public CanonicalCapabilityCatalogSnapshot GetCurrentSnapshot()
@@ -669,7 +1052,15 @@ public sealed partial class FirmwareInspectionSnapshotTests
             string icCountVariant,
             long? outputCapacity = null)
         {
-            return inner.ResolveUniqueRoute(icId, workflowId, icCountVariant, outputCapacity);
+            CapabilityResolutionResult result = inner.ResolveUniqueRoute(
+                icId, workflowId, icCountVariant, outputCapacity);
+            afterResolveRoute?.Invoke(icId, workflowId);
+            return result;
+        }
+
+        public MetadataPlanResolutionResult ResolveFullImageMetadataPlan(string icId, long inputLength)
+        {
+            return resolveMetadataPlan(icId, "full-image", "none", inputLength);
         }
 
         public MetadataPlanResolutionResult ResolveUniqueMetadataPlan(

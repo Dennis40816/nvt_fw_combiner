@@ -44,7 +44,8 @@ internal static class AbMergeFormatAdmission
         EventBufferFormatConfigurationState? state,
         MetadataInspectionSnapshot? primary,
         TopologySelection? selectedTopology,
-        IReadOnlyCollection<FirmwareBinInspectionArtifact>? artifacts)
+        IReadOnlyCollection<FirmwareBinInspectionArtifact>? artifacts,
+        IReadOnlyList<CompiledComposition> inputCandidates)
     {
         ArgumentNullException.ThrowIfNull(family);
         ArgumentException.ThrowIfNullOrWhiteSpace(memberId);
@@ -67,7 +68,7 @@ internal static class AbMergeFormatAdmission
             return InvalidPrimary();
         }
 
-        AbMergeFormatAdmissionResult result = Assess(family, memberId, state, selectedTopology, payloads);
+        AbMergeFormatAdmissionResult result = Assess(family, memberId, state, selectedTopology, payloads, inputCandidates);
         return result.Selection is { } selection
             ? new(selection with { PrimaryInspection = primary }, result.Issues)
             : result;
@@ -78,7 +79,8 @@ internal static class AbMergeFormatAdmission
         string memberId,
         EventBufferFormatConfigurationState? state,
         TopologySelection? selectedTopology,
-        IReadOnlyCollection<FirmwareBinInspectionArtifact>? artifacts)
+        IReadOnlyCollection<FirmwareBinInspectionArtifact>? artifacts,
+        IReadOnlyList<CompiledComposition> inputCandidates)
     {
         ArgumentNullException.ThrowIfNull(family);
         ArgumentException.ThrowIfNullOrWhiteSpace(memberId);
@@ -115,7 +117,6 @@ internal static class AbMergeFormatAdmission
         }
 
         bool requiresTopology = memberMaps.Any(map => map.Applicability.TopologyRequirement.Kind != TopologyRequirementKind.None);
-        AbMergeTopologyAdmissionResult? topologyAdmission = null;
         if (requiresTopology)
         {
             if (selectedTopology is null)
@@ -123,53 +124,24 @@ internal static class AbMergeFormatAdmission
                 return Blocked("AB_FORMAT_TOPOLOGY_REQUIRED", "Complete the existing TPA/TPB topology admission first.");
             }
 
-            // The existing topology owner inspects this same immutable input pair and current selector.
-            // Never accept a success result retained from another pair or earlier selector.
-            topologyAdmission = AbMergeTopologyAdmission.Assess(tpA.Bytes, tpB.Bytes, selectedTopology);
-            if (!topologyAdmission.Succeeded)
-            {
-                return new(null, topologyAdmission.Issues);
-            }
         }
         else if (selectedTopology is not null)
         {
             return Blocked("AB_FORMAT_TOPOLOGY_UNEXPECTED", "This IC does not accept a topology selector.");
         }
 
-        EventBufferFormatEntry? formatA = configuration.Match(policy.ScopeId, rawA);
-        EventBufferFormatEntry? formatB = configuration.Match(policy.ScopeId, rawB);
-        string formatId = formatA?.UniqueId ?? policy.CommonFormatId;
-        if (formatId != (formatB?.UniqueId ?? policy.CommonFormatId))
-        {
-            return Blocked("AB_FORMAT_MISMATCH", "TPA and TPB resolve to different Event Buffer Formats.");
-        }
+        // Pair equality is independent of whether this family exposes a topology selector.
+        AbMergeTopologyAdmissionResult topologyAdmission = AbMergeTopologyAdmission.AssessCommonAcceptedPair(
+            inputCandidates, tpA.Bytes.ToArray(), tpB.Bytes.ToArray(), selectedTopology);
+        if (!topologyAdmission.Succeeded) { return new(null, topologyAdmission.Issues); }
 
-        FirmwareImageMap[] variants = [.. policy.Variants
-            .Where(variant => variant.MemberId == memberId && variant.FormatId == formatId)
-            .Select(variant => family.ImageMaps.Single(map => map.MapId == variant.MapId))];
-        FirmwareImageMap[] baselines = [.. variants.Where(map =>
-            map.Applicability.TopologyRequirement.Kind != TopologyRequirementKind.ExactCount &&
-            map.Applicability.TopologyRequirement.Matches(selectedTopology))];
-        if (baselines.Length != 1)
-        {
-            return Blocked("AB_FORMAT_MAP_UNAVAILABLE", "No unique AB baseline matches the selected format and topology.");
-        }
-
-        // Counts are observations from the existing topology owner, not the Cascade picker's minimum.
-        FirmwareImageMap[] exact = [.. variants.Where(map =>
-            map.Applicability.TopologyRequirement.Kind == TopologyRequirementKind.ExactCount &&
-            topologyAdmission is { Succeeded: true, TpAChipCount: not null, TpBChipCount: not null } &&
-            map.Applicability.TopologyRequirement.ExactChipCount == topologyAdmission.TpAChipCount &&
-            map.Applicability.TopologyRequirement.ExactChipCount == topologyAdmission.TpBChipCount)];
-        if (exact.Length > 1)
-        {
-            return Blocked("AB_FORMAT_MAP_UNAVAILABLE", "More than one exact-count AB map matches these TP inputs.");
-        }
-
-        FirmwareImageMap selected = exact.Length == 1 ? exact[0] : baselines[0];
-        return new(new(selected.MapId, formatId, formatA?.DisplayName ?? policy.CommonDisplayName,
-            rawA, rawB, state!.Generation, state.SourceSha256!, family.FamilyId, family.FamilyVersion,
-            family.FamilyContentHash, primaryA, primaryB), []);
+        AbFormatMapResolutionResult resolved = AbFormatMapResolver.Resolve(family, memberId, configuration,
+            rawA, rawB, selectedTopology, topologyAdmission.TpAChipCount, topologyAdmission.TpBChipCount);
+        return resolved.Selection is { } selected
+            ? new(new(selected.MapId, selected.FormatId, selected.DisplayName,
+                rawA, rawB, state!.Generation, state.SourceSha256!, family.FamilyId, family.FamilyVersion,
+                family.FamilyContentHash, primaryA, primaryB), [])
+            : new(null, resolved.Issues);
     }
 
     private static EventBufferFormatConfiguration? AdmitCurrentConfiguration(

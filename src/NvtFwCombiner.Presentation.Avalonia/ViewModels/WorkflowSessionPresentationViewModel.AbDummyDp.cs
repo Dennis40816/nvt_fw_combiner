@@ -27,7 +27,7 @@ internal sealed partial class WorkflowSessionPresentationViewModel
             _merge.ApplyAbDummyDpMode(enabled);
             _merge.RefreshMergeMemoryMapState();
             NotifySlotFileOutputNames();
-            _stateBindings.ResetRunResult();
+            ResetRunResults(context.Owner, ExperienceIds.AbMerge);
             _stateBindings.RefreshCommandState();
             await RefreshSelectedMergeFirmwareInspectionsAsync(cancellationToken: cancellationToken);
         }

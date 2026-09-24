@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 2,
+  "taskId": "CAPABILITY-CHECKPOINT-RECONCILIATION-1110-01",
+  "capability": "Reconcile an immutable mistaken integration base only at final capability-reuse evidence",
+  "integrationBase": "b9a94a2bab1a7bc05129b3438f0c0afeaaf45ad4",
+  "risk": "R2",
+  "kind": "governance",
+  "state": "final-complete",
+  "mutablePaths": [
+    "scripts/validate_repository.py",
+    "tests/scripts/test_agent_governance.py",
+    "docs/governance/capability-reuse-record.md",
+    "docs/adr/0071-final-integration-path-ownership.md"
+  ],
+  "implementationOwner": "/root",
+  "searchEvidence": [
+    "Current HEAD 0095ca631 structure validation has 162 errors; the single current checkpoint binding error comes from immutable DP-ENVELOPE-1110-B1-01 integrationBase f0f0f0a32, a product commit after the last sealed final checkpoint b9a94a2b. B1 first-active admission was committed at 7676d49f2; no existing final-only field repairs this base.",
+    "scripts/validate_repository.py is the sole capability-reuse history replay, record parser and current/final checkpoint validator. tests/scripts/test_agent_governance.py owns real-Git lifecycle regression. docs/governance/capability-reuse-record.md owns the record contract; ADR 0071 owns final integration ownership. No second checkpoint or validator is introduced.",
+    "Owner explicitly approved a bounded final-only reconciliation that preserves the mistaken original admission and reviews the full diff from the actual b9a94a2b checkpoint. Independent read-only R2 design review by /root/layout_ownership_review approved the four exact paths and fail-closed contract on 2026-09-23."
+  ],
+  "semanticOwner": "The existing capability-reuse validator derives evidence checkpoints and validates immutable admission history; the record contract owns final-only reconciliation evidence",
+  "terminalContract": "Permit an optional closed-shape checkpointReconciliation object only in final-complete records, containing expectedCheckpoint, independent reviewer and nonempty evidence. The validator derives each batch checkpoint by unchanged historical replay, requires the field checkpoint to equal that computed value, and never uses it to select or reset a checkpoint. Reconciliation is valid only for a committed first-active admission whose original immutable integrationBase differs from the computed checkpoint and lies on the Git ancestry path from that checkpoint to its first-active commit. Preserve original admitted fields, first-active blob, reviewer independence, full checkpoint-to-reviewed governed and auxiliary diff, all original path digests, exactly-once integration ownership, direct-child evidence commit, immutable first-final blob, external R3 and release gates. Reject field use on design-active/blocked, missing first-active history, correct original base, malformed/extra keys, bad ancestry, forged checkpoint, evidence mutation, stale/missing/duplicate coverage, or post-final tampering. Apply the same rule to current finalization and historical final batches using each batch's actual replay checkpoint; do not alter temporal document-classifier eligibility or any firmware semantics.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "/root/layout_ownership_review",
+    "outcome": "approved",
+    "evidence": "Independent read-only R2 design review on 2026-09-23 approved the owner-authorized final-only reconciliation in these four existing owners, with no P0-P2 findings. Required tests include missing first-active, reviewer independence, unnecessary field, forged/wrong/nonancestor base, complete diff/digest/unique ownership/direct-child preservation, immutable sealed record, and two successive final batches. This admits implementation, not B1 finalization or release."
+  },
+  "implementationHead": "183a0d3652a81fb30dcb977d6ff1338f0f3bcd0f",
+  "reviewedHead": "183a0d3652a81fb30dcb977d6ff1338f0f3bcd0f",
+  "pathStateDigest": "a87968e97aa46039e64fec613b8b5bb8449e76b00e1c11e09a4fab8fb798fe14",
+  "finalReview": {
+    "reviewer": "/root/r2_final_review",
+    "outcome": "approved",
+    "evidence": "Independent exact-head R1/R2 rebind review on 2026-09-25 at 183a0d3652a81fb30dcb977d6ff1338f0f3bcd0f: reviewed the complete 85795b141..183a0d365 two-document delta and this record's original mutablePaths. Immutable admission and independent review remain intact; both final heads and the committed Git path-state digest bind 183a0d365. The 48-record checkpoint diff has 355 uniquely owned governed paths, with scripts/verify.py owned only by VERIFY-1110-DOTNET-COVERAGE-DEADLINE-01; no new mutable or integration path is needed. The afc203f9c nonstructure verifier pass and b9b5ddf5d 25-Direct release Golden pass remain attributed to their actual sources. The exact-183 structure-only run exited 1 solely for 17 missing R3 authorities, reported as 36 pending/batch-closure diagnostics, with no admission, digest or partition error. Earlier 900-second failures and 857 reviews remain dated history; this review does not approve R3, AB candidate Golden, --all, CI or release. Earlier dated evidence follows: Independent /root/r2_final_review exact-head technical re-review on 2026-09-25 at 85795b1416c689bfd484806d0425b9c06dfec9c1. Compared all original mutable paths and the complete 022219d53-to-reviewed six-path delta; immutable admissions remain unchanged and the 355-governed-path final partition has no gap or duplicate. Earlier dated failures describe their own source, not the current gate. The afc203f9c full nonstructure verifier and b9b5ddf5d 25 Direct Golden passed; structure, --all, AB candidate Golden and external R3 authority remain open. Earlier dated review evidence follows: Independent /root/r2_final_review exact-head rebind confirmation on 2026-09-24 at 022219d53bbb24e5434ab4f6185df3c0019e6890. Immutable first-active admission and all original mutablePaths retained; current committed Git path-state digest a87968e97aa46039e64fec613b8b5bb8449e76b00e1c11e09a4fab8fb798fe14. The 45-record/355-governed-path partition is unique and prior substantive no-P0-P2 review remains applicable. The only 871c6810e..current delta is non-governed CHANGELOG prose. Full verifier is still failing; R3 owner and release gates remain separate. Earlier dated review evidence follows: Independent exact-head delta review on 2026-09-24 at d6b8ad31957b173ab82b46616159c2826d167368, sealed checkpoint b9a94a2bab1a7bc05129b3438f0c0afeaaf45ad4. Rechecked immutable first-active admission, all original mutablePaths, exact committed Git path-state digest and uniquely assigned integrationPaths within the complete 354-path governed diff. The only f853..d6 changes are the new roadmap allocation, its delivery evidence and its design-active record; none changes this record's admitted paths or prior f853 substantive findings. Prior f853 review evidence follows: Independent /root/r2_final_review exact-source final review on 2026-09-24 at f85348ed56ebeabe2ddbdfdcae3856d5fb3321e3, derived sealed checkpoint b9a94a2bab1a7bc05129b3438f0c0afeaaf45ad4. Verified unchanged first-active admission, all 4 original mutable paths, exact committed Git path-state digest, and 0 uniquely assigned integration paths within the complete 354-path governed diff. No original mutable path changed after the prior 3203f8ffe substantive review; its conclusion remains applicable. No remaining P0-P2 for this record; R3 external authority and release gates remain separate. No new P0-P2; scoped Polytail PASS-WITH-HUMAN-GATE for record-level review only. Full verifier, R3 external authority and release gates remain separate."
+  },
+  "integrationPaths": []
+}

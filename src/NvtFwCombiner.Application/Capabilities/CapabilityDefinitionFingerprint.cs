@@ -21,6 +21,10 @@ public static class CapabilityDefinitionFingerprint
     public const string RuntimeReferenceReplaceCompilerSemanticId =
         "nfc.compiler.profile-bundle-v2.runtime-reference-replace.v1";
 
+    /// <summary>Closed compiler semantics for an AB Reference with checked bank-local Replace parents.</summary>
+    public const string RuntimeBankReplaceCompilerSemanticId =
+        Domain.Composition.BankReferenceReplaceDefinition.CompilerSemanticId;
+
     /// <summary>Computes one definition identity without per-compilation authoring state.</summary>
     public static string Compute(
         CapabilityRouteIdentity identity,

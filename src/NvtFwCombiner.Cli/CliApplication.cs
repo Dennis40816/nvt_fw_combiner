@@ -34,6 +34,13 @@ public static partial class CliApplication
             return args.Length == 0 ? UsageError : Success;
         }
 
+        if (args[0] == ExperienceIds.DpReplace)
+        {
+            await error.WriteLineAsync("error: cli.retired-experience: DP Replace is retired.")
+                .ConfigureAwait(false);
+            return UsageError;
+        }
+
         try
         {
             if (args[0] == "version-self-test")
@@ -54,7 +61,7 @@ public static partial class CliApplication
             var services = new CliCompositionServices(
                 host.CompositionCapabilityExperience, host.SavedRuleAuthoring,
                 host.StandardMergeAuthoring, host.AbMergeAuthoring,
-                host.DpReplaceAuthoring, host.CtrlRamAuthoring,
+                host.CtrlRamAuthoring,
                 host.GeneralAuthoring, host.CompositionOutputNaming, host.CompositionExecution);
 
             _ = await host.ExternalEnvironmentLoader.LoadToCompletionAsync(
@@ -80,7 +87,7 @@ public static partial class CliApplication
                 "saved-rule" => await SavedRuleCliCommandHandler.RunAsync(
                     services.SavedRuleAuthoring, args[1..], output, error, cancellationToken)
                     .ConfigureAwait(false),
-                ExperienceIds.DpReplace or ExperienceIds.CtrlRamReplace or ExperienceIds.GeneralReplace =>
+                ExperienceIds.CtrlRamReplace or ExperienceIds.GeneralReplace =>
                     await ReplaceCliCommandHandler.RunAsync(
                             services, host.LocalFiles, args[0], args[1..], output, error, cancellationToken)
                         .ConfigureAwait(false),

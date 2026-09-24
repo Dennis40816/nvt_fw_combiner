@@ -31,14 +31,20 @@ reload serialize. Save publishes only after successful persistence. Rejected
 drafts and failed writes leave Current and LastSaved unchanged. Cancellation is
 not reported as failure after a successful atomic commit.
 
-Missing, malformed, wrong-scope, semantically invalid, or unreadable external
-configuration publishes no usable configuration. This is identical at startup
-and after deletion; restart never silently restores defaults. LastSaved remains
-available only as a recovery draft, never an active fallback. Defaults and
-Discard are draft operations, with no write or publication. Explicit Save can
-recover. Previously captured immutable snapshots remain unchanged.
+As amended by the owner on 2026-09-20, an absent custom file publishes admitted
+canonical built-in defaults as Ready with UsesBuiltInDefaults=true, without
+writing a file. This also applies after deletion/restart. The built-in digest
+is SHA-256 of a versioned, domain-separated, length-prefixed canonical encoding
+of scope and sorted entries (identity, display name, sorted recognition bytes),
+not a persisted-file hash. Custom snapshots retain their raw-file SHA-256.
+Malformed, wrong-scope, semantically invalid or unreadable custom files remain
+Invalid; they never fall back. Built-in publication does not update LastSaved.
+Settings explicitly labels the active built-in source and uses defaults for both
+editor and baseline. Defaults/Discard remain draft operations; edits require
+Save. Previously captured immutable snapshots remain unchanged, and pre-Build
+admission still checks the current effective rules.
 
 This unit does not wire startup initialization, watchers, pre-Build refresh,
 runtime selection, UI, or CLI. Those integrations must consume this result and
-their own accepted readiness contracts; NotLoaded/Missing is not permission to
-use Common. An already-running operation retains its accepted captured state.
+their own accepted readiness contracts; NotLoaded is not permission to use
+Common. An already-running operation retains its accepted captured state.

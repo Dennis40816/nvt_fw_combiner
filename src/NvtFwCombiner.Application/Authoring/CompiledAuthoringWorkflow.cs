@@ -49,12 +49,22 @@ public sealed partial class CompiledAuthoringWorkflowService
                 static input => input.SlotId,
                 static input => FileStamp.FromBytes(input.Bytes!.Value.Span),
                 StringComparer.Ordinal);
-        CompiledAuthoringSelectionSnapshot selection = ProjectSelection(
-            icId,
-            session.CurrentSnapshot?.AuthoringRevision ?? new AuthoringRevision(1),
-            [.. selected.Select(static input => input.SlotId)],
-            acceptedFileStamps,
-            session.CurrentSnapshot);
+        CompiledAuthoringWorkflowDiscovery preparationDiscovery = _resolver.Discover(icId);
+        CompiledAuthoringSelectionSnapshot selection =
+            preparationDiscovery.DiscoveryRoute is not null &&
+            selected.SingleOrDefault(input => StringComparer.Ordinal.Equals(
+                input.SlotId, preparationDiscovery.CompilationPrerequisiteSlotId))?.Bytes is { } capturedDp
+                ? ProjectCapturedSelection(
+                    icId,
+                    session.CurrentSnapshot?.AuthoringRevision ?? new AuthoringRevision(1),
+                    [.. selected.Select(static input => input.SlotId)],
+                    capturedDp)
+                : ProjectSelection(
+                    icId,
+                    session.CurrentSnapshot?.AuthoringRevision ?? new AuthoringRevision(1),
+                    [.. selected.Select(static input => input.SlotId)],
+                    acceptedFileStamps,
+                    session.CurrentSnapshot);
         selected = NormalizeSelectedInputs(selected, selection.InputBindings);
         if (selection.Issues.Count != 0 ||
             selection.Catalog.Routes.SingleOrDefault()?.ExactCapability is null)
@@ -90,11 +100,20 @@ public sealed partial class CompiledAuthoringWorkflowService
                 started.Issue);
         }
 
-        CompiledAuthoringInspectionBatch inspection = InspectBatch(
-            icId,
-            started.Snapshot!.AuthoringRevision,
-            selected,
-            started.Snapshot.ExactCapability);
+        CompiledAuthoringInspectionBatch inspection =
+            preparationDiscovery.DiscoveryRoute is not null
+                ? InspectExactBatch(
+                    started.Snapshot!.ExactCapability ?? throw new InvalidOperationException(
+                        "Captured preparation lost its exact capability."),
+                    started.Snapshot.AuthoringRevision,
+                    selected,
+                    [.. selected.Select(static input => input.SlotId)],
+                    selection.Catalog.Routes.Single().DiscoveryTransition)
+                : InspectBatch(
+                    icId,
+                    started.Snapshot!.AuthoringRevision,
+                    selected,
+                    started.Snapshot.ExactCapability);
         AuthoringSessionTransitionResult completed =
             session.TryCompleteSlotFileInspectionBatch(
                 inspection.Catalog,
@@ -119,7 +138,34 @@ public sealed partial class CompiledAuthoringWorkflowService
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(icId);
         CompiledAuthoringSelectedInput[] captured = SnapshotInputs(inputs);
-        CompiledAuthoringSelectedInput[] selected = retainedCapability is null
+        bool retainedSourceEnvelope = retainedCapability?.CompiledComposition.V2Details
+            .Provenance.Context is ResolvedMapV2CompilationContext { SourceEnvelope: not null };
+        CompiledAuthoringSelectedInput[] retainedSelected = retainedCapability is null
+            ? captured
+            : NormalizeSelectedInputs(
+                captured,
+                [
+                    .. retainedCapability.CompiledComposition.V2Details.InputContract.SpaceBindings
+                        .Select(static binding => new CompiledAuthoringInputBinding(
+                            binding.SlotId, binding.AddressSpaceId)),
+                ]);
+        if (!retainedSourceEnvelope && retainedCapability is not null &&
+            CanInspectRetainedExactCapability(
+                retainedCapability,
+                icId,
+                [.. retainedSelected.Select(static input => input.SlotId)],
+                retainedSelected))
+        {
+            return InspectExactBatch(
+                retainedCapability,
+                authoringRevision,
+                retainedSelected,
+                [.. retainedSelected.Select(static input => input.SlotId)]);
+        }
+
+        CompiledAuthoringWorkflowDiscovery definitionDiscovery = _resolver.Discover(icId);
+        CompiledAuthoringSelectedInput[] selected = retainedCapability is null ||
+            definitionDiscovery.DiscoveryRoute is not null
             ? captured
             : NormalizeSelectedInputs(
                 captured,
@@ -131,21 +177,7 @@ public sealed partial class CompiledAuthoringWorkflowService
                 ]);
 
         string[] selectedSlotIds = [.. selected.Select(static input => input.SlotId)];
-        if (retainedCapability is not null &&
-            CanInspectRetainedExactCapability(
-                retainedCapability,
-                icId,
-                selectedSlotIds,
-                selected))
-        {
-            return InspectExactBatch(
-                retainedCapability,
-                authoringRevision,
-                selected,
-                selectedSlotIds);
-        }
-
-        CompiledAuthoringWorkflowDiscovery discovery = _resolver.Discover(icId);
+        CompiledAuthoringWorkflowDiscovery discovery = definitionDiscovery;
         ValidateDiscovery(discovery);
         selected = NormalizeSelectedInputs(captured, ProjectInputBindings(discovery));
         selectedSlotIds = [.. selected.Select(static input => input.SlotId)];
@@ -164,25 +196,41 @@ public sealed partial class CompiledAuthoringWorkflowService
                         InputArtifactInspectionIssueCodes.SourceUnreadable,
                         "The exact authoring compilation prerequisite is unreadable.",
                         discovery.CompilationPrerequisiteSlotId)])
-                : _resolver.ResolveExact(
-                    icId,
-                    authoringRevision,
-                    prerequisiteLength,
-                    selectedSlotIds);
-        if (!exact.Succeeded || !ContainsEverySelectedSlot(exact.Capability, selectedSlotIds))
+                : discovery.DiscoveryRoute is not null
+                    ? _resolver.ResolveExact(
+                        icId,
+                        authoringRevision,
+                        prerequisiteInput!.Bytes!.Value,
+                        selectedSlotIds)
+                    : _resolver.ResolveExact(
+                        icId,
+                        authoringRevision,
+                        prerequisiteLength,
+                        selectedSlotIds);
+        if (!exact.Succeeded || !ContainsEverySelectedSlot(exact.Capability, selectedSlotIds) ||
+            !MatchesDiscovery(discovery, exact.Capability))
         {
-            IReadOnlyList<CompositionIssue> issues = exact.Issues.Count == 0
-                ? [new CompositionIssue(
-                    InputSelectionReadinessIssueCodes.SelectionNotApplicable,
-                    "The exact compilation does not contain every selected input.")]
-                : exact.Issues;
+            IReadOnlyList<CompositionIssue> issues = exact.Issues.Count != 0
+                ? exact.Issues
+                : exact.Capability is not null &&
+                    !MatchesDiscovery(discovery, exact.Capability)
+                    ? [new CompositionIssue(AuthoringSessionIssueCodes.StalePublication,
+                        "The exact compilation belongs to a different canonical publication.")]
+                    : [new CompositionIssue(
+                        InputSelectionReadinessIssueCodes.SelectionNotApplicable,
+                        "The exact compilation does not contain every selected input.")];
             CompositionIssue primary = issues[0];
-            return new CompiledAuthoringInspectionBatch(
+            return discovery.DiscoveryRoute is not null
+                ? new CompiledAuthoringInspectionBatch(
+                    DiscoveryCatalog(discovery),
+                    new Dictionary<string, AuthoringInputSlotStatus>(StringComparer.Ordinal),
+                    issues)
+                : new CompiledAuthoringInspectionBatch(
                 DiscoveryCatalog(discovery),
                 selected.ToDictionary(
                     static input => input.SlotId,
                     input => AuthoringInputSlotInspectionService.BlockBeforeCompilation(
-                        discovery.DiscoveryCapability,
+                        discovery.DiscoveryCapability!,
                         authoringRevision,
                         input.SlotId,
                         input.SlotId,
@@ -197,7 +245,8 @@ public sealed partial class CompiledAuthoringWorkflowService
         ResolvedCapability resolved = exact.Capability ??
             throw new InvalidOperationException(
                 "A successful exact workflow resolution requires one capability.");
-        ResolvedCapability capability = retainedCapability is null
+        ResolvedCapability capability = retainedCapability is null ||
+            discovery.DiscoveryRoute is not null
             ? resolved
             : RetainEquivalentExactCapability(retainedCapability, resolved);
         return InspectExactBatch(
@@ -224,7 +273,10 @@ public sealed partial class CompiledAuthoringWorkflowService
             ? throw new ArgumentException(
                 "A compiled authoring inspection batch requires unique selected slots and paths.",
                 nameof(inputs))
-            : selected;
+            : [.. selected.Select(static input => input with
+            {
+                Bytes = input.Bytes?.ToArray(),
+            })];
     }
 
     private static CompiledAuthoringInspectionBatch InspectExactBatch(
@@ -424,7 +476,8 @@ public sealed partial class CompiledAuthoringWorkflowService
         string icId,
         IReadOnlyCollection<string> selectedSlotIds,
         IReadOnlyDictionary<string, FileStamp> acceptedFileStamps,
-        ResolvedCapability? discoveredExactCapability)
+        ResolvedCapability? discoveredExactCapability,
+        string? routePrerequisiteSlotId = null)
     {
         if (session?.ExactCapability is not { } capability ||
             !StringComparer.Ordinal.Equals(session.WorkflowId, _resolver.WorkflowId) ||
@@ -435,7 +488,13 @@ public sealed partial class CompiledAuthoringWorkflowService
                 .Select(static slot => slot.DefinitionId)
                 .ToHashSet(StringComparer.Ordinal)
                 .SetEquals(selectedSlotIds) ||
-            session.Slots.Where(static slot => slot.SelectedPath is not null)
+            (routePrerequisiteSlotId is not null &&
+                !session.Slots.Any(slot =>
+                    StringComparer.Ordinal.Equals(slot.DefinitionId, routePrerequisiteSlotId) &&
+                    slot.SelectedPath is not null)) ||
+            session.Slots.Where(slot => slot.SelectedPath is not null &&
+                    (routePrerequisiteSlotId is null ||
+                        StringComparer.Ordinal.Equals(slot.DefinitionId, routePrerequisiteSlotId)))
                 .Any(static slot => slot.FileStamp is null ||
                     slot.Lifecycle is not (
                         AuthoringSlotLifecycle.Verified or
@@ -445,10 +504,15 @@ public sealed partial class CompiledAuthoringWorkflowService
         }
 
         var retainedStamps = session.Slots
-            .Where(static slot => slot.FileStamp is not null)
+            .Where(slot => slot.SelectedPath is not null && slot.FileStamp is not null &&
+                (routePrerequisiteSlotId is null ||
+                    StringComparer.Ordinal.Equals(slot.DefinitionId, routePrerequisiteSlotId)))
             .ToDictionary(static slot => slot.DefinitionId, static slot => slot.FileStamp!.Value,
                 StringComparer.Ordinal);
-        return retainedStamps.Count == acceptedFileStamps.Count &&
+        return (routePrerequisiteSlotId is null
+                ? retainedStamps.Count == acceptedFileStamps.Count
+                : retainedStamps.Count == 1 &&
+                    retainedStamps.ContainsKey(routePrerequisiteSlotId)) &&
             retainedStamps.All(pair => acceptedFileStamps.GetValueOrDefault(pair.Key) == pair.Value)
                 ? capability
                 : null;
@@ -513,7 +577,7 @@ public sealed partial class CompiledAuthoringWorkflowService
         IReadOnlyList<CompositionIssue> issues,
         InputSelectionReadinessSnapshot? exactSelectionReadiness)
     {
-        CompiledInputContract contract = discovery.DiscoveryCapability.CompiledComposition
+        CompiledInputContract contract = discovery.DiscoveryCapability!.CompiledComposition
             .V2Details.InputContract;
         var groupMemberIds = contract.SelectionGroups
             .SelectMany(static group => group.MemberSlotIds)
@@ -583,10 +647,13 @@ public sealed partial class CompiledAuthoringWorkflowService
     private static AuthoringCapabilityCatalogSnapshot DiscoveryCatalog(
         CompiledAuthoringWorkflowDiscovery discovery)
     {
-        return AuthoringCapabilityCatalogSnapshot.FromDiscovery(
-            discovery.DiscoveryCapability,
-            discovery.AvailableSlotIds,
-            discovery.DiscoveryTransition);
+        return discovery.DiscoveryRoute is { } route
+            ? AuthoringCapabilityCatalogSnapshot.FromDynamicRoute(
+                route, discovery.AvailableSlotIds, discovery.DiscoveryTransition)
+            : AuthoringCapabilityCatalogSnapshot.FromDiscovery(
+                discovery.DiscoveryCapability!,
+                discovery.AvailableSlotIds,
+                discovery.DiscoveryTransition);
     }
 
     private static bool ContainsEverySelectedSlot(
@@ -598,12 +665,47 @@ public sealed partial class CompiledAuthoringWorkflowService
                 StringComparer.Ordinal.Equals(slot.SlotId, slotId)));
     }
 
+    private static bool MatchesDiscovery(
+        CompiledAuthoringWorkflowDiscovery discovery,
+        ResolvedCapability? capability)
+    {
+        if (capability is null || discovery.DiscoveryRoute is null)
+        {
+            return true;
+        }
+
+        ReviewedDiscoveryTransition transition = discovery.DiscoveryTransition!;
+        return capability.ResolutionToken == transition.ResolutionToken &&
+            StringComparer.Ordinal.Equals(capability.Identity.WorkflowId, transition.WorkflowId) &&
+            StringComparer.Ordinal.Equals(capability.Identity.IcId, transition.IcId) &&
+            StringComparer.Ordinal.Equals(
+                capability.Identity.IcCountVariant, transition.IcCountVariant) &&
+            transition.Allows(
+                capability.Identity.RouteId, capability.CapabilityFingerprint);
+    }
+
     private void ValidateDiscovery(CompiledAuthoringWorkflowDiscovery discovery)
     {
         ArgumentNullException.ThrowIfNull(discovery);
+        bool hasDefinition = discovery.DiscoveryRoute is not null;
+        if (hasDefinition == (discovery.DiscoveryCapability is not null))
+        {
+            throw new InvalidOperationException(
+                "Authoring discovery must contain exactly one compiled or definition-level route.");
+        }
+        CapabilityRouteIdentity identity = hasDefinition
+            ? discovery.DiscoveryRoute!.Identity
+            : discovery.DiscoveryCapability!.Identity;
+        ResolutionToken token = hasDefinition
+            ? discovery.DiscoveryRoute!.ResolutionToken
+            : discovery.DiscoveryCapability!.ResolutionToken;
+        string fingerprint = hasDefinition
+            ? discovery.DiscoveryRoute!.CapabilityFingerprint
+            : discovery.DiscoveryCapability!.CapabilityFingerprint;
         if (!StringComparer.Ordinal.Equals(
-                discovery.DiscoveryCapability.Identity.WorkflowId,
+                identity.WorkflowId,
                 _resolver.WorkflowId) ||
+            (hasDefinition && discovery.AvailableInputBindings is null) ||
             discovery.AvailableSlotIds.Count == 0 ||
             discovery.AvailableSlotIds.Any(string.IsNullOrWhiteSpace) ||
             discovery.AvailableSlotIds.Distinct(StringComparer.Ordinal).Count() !=
@@ -612,22 +714,22 @@ public sealed partial class CompiledAuthoringWorkflowService
                 (!discovery.AvailableSlotIds.Contains(prerequisite, StringComparer.Ordinal) ||
                     discovery.DiscoveryTransition is null ||
                     discovery.DiscoveryTransition.ResolutionToken !=
-                        discovery.DiscoveryCapability.ResolutionToken ||
+                        token ||
                     !StringComparer.Ordinal.Equals(
                         discovery.DiscoveryTransition.WorkflowId,
-                        discovery.DiscoveryCapability.Identity.WorkflowId) ||
+                        identity.WorkflowId) ||
                     !StringComparer.Ordinal.Equals(
                         discovery.DiscoveryTransition.IcId,
-                        discovery.DiscoveryCapability.Identity.IcId) ||
+                        identity.IcId) ||
                     !StringComparer.Ordinal.Equals(
                         discovery.DiscoveryTransition.IcCountVariant,
-                        discovery.DiscoveryCapability.Identity.IcCountVariant) ||
+                        identity.IcCountVariant) ||
                     !StringComparer.Ordinal.Equals(
                         discovery.DiscoveryTransition.DiscoveryMember.RouteId,
-                        discovery.DiscoveryCapability.Identity.RouteId) ||
+                        identity.RouteId) ||
                     !StringComparer.Ordinal.Equals(
                         discovery.DiscoveryTransition.DiscoveryMember.CapabilityFingerprint,
-                        discovery.DiscoveryCapability.CapabilityFingerprint) ||
+                        fingerprint) ||
                     !StringComparer.Ordinal.Equals(
                         discovery.DiscoveryTransition.PrerequisiteSlotId,
                         prerequisite))))

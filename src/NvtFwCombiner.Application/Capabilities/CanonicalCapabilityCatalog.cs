@@ -32,6 +32,12 @@ public static class CapabilityCatalogIssueCodes
     /// <summary>Selection axes do not identify one exact map variant.</summary>
     public const string RouteAmbiguous = "capability.route.ambiguous";
 
+    /// <summary>No full-image view declares the exact member and observed capacity.</summary>
+    public const string FullImageMetadataUnavailable = "capability.metadata.full-image-unavailable";
+
+    /// <summary>More than one full-image view declares the same member and capacity.</summary>
+    public const string FullImageMetadataAmbiguous = "capability.metadata.full-image-ambiguous";
+
     /// <summary>The exact route is intentionally unavailable for authoring.</summary>
     public const string AuthoringUnavailable = "capability.authoring.unavailable";
 
@@ -401,6 +407,32 @@ public sealed class CanonicalCapabilityCatalog :
             : new MetadataPlanResolutionResult(
                 selection.Capability.MetadataPlan,
                 null);
+    }
+
+    /// <inheritdoc />
+    public MetadataPlanResolutionResult ResolveFullImageMetadataPlan(string icId, long inputLength)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(icId);
+        ArgumentOutOfRangeException.ThrowIfNegative(inputLength);
+        _ = EnsureLoaded(CancellationToken.None);
+        CanonicalCapabilityCatalogSnapshot? snapshot = Volatile.Read(ref _current);
+        if (snapshot is null)
+        {
+            return new(null, new(CapabilityCatalogIssueCodes.CatalogUnavailable,
+                "No valid canonical capability catalog is loaded."));
+        }
+
+        ResolvedMetadataPlan[] matches = [.. snapshot.FullImageMetadataPlans.Where(plan =>
+            StringComparer.Ordinal.Equals(plan.Definition.FullImageContext!.MemberId, icId) &&
+            plan.Definition.FullImageContext.View.ImageMap.CapacityBytes == inputLength)];
+        return matches.Length switch
+        {
+            1 => new(matches[0], null),
+            0 => new(null, new(CapabilityCatalogIssueCodes.FullImageMetadataUnavailable,
+                "No declared full-image metadata view matches the member and capacity.", icId)),
+            _ => new(null, new(CapabilityCatalogIssueCodes.FullImageMetadataAmbiguous,
+                "Multiple full-image metadata views match the member and capacity.", icId)),
+        };
     }
 
     /// <summary>Resolves the sole published map admitted by an exact topology selection.</summary>

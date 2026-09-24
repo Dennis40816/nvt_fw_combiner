@@ -1,3 +1,4 @@
+using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
 namespace NvtFwCombiner.Presentation.Avalonia;
@@ -11,7 +12,9 @@ internal sealed partial class UiLaunchOptions
         string? reportPath,
         bool openReport,
         IReadOnlyList<string> issues,
-        CtrlRamLaunchRequest? ctrlRam = null)
+        CtrlRamLaunchRequest? ctrlRam = null,
+        AbMergeLaunchRequest? abMerge = null,
+        StandardMergeLaunchRequest? standardMerge = null)
     {
         Page = page;
         OpenSettings = openSettings;
@@ -19,6 +22,8 @@ internal sealed partial class UiLaunchOptions
         OpenReport = openReport;
         Issues = issues;
         CtrlRam = ctrlRam;
+        AbMerge = abMerge;
+        StandardMerge = standardMerge;
     }
 
     /// <summary>Gets empty launch options.</summary>
@@ -42,12 +47,21 @@ internal sealed partial class UiLaunchOptions
     /// <summary>Explicit input selection only; never grants Preview or Build authority.</summary>
     public CtrlRamLaunchRequest? CtrlRam { get; }
 
+    /// <summary>Explicit AB selections inspected through the ordinary Browse owner; never executes a run.</summary>
+    public AbMergeLaunchRequest? AbMerge { get; }
+
+    /// <summary>Explicit Standard Merge selections inspected through the ordinary Browse owner.</summary>
+    public StandardMergeLaunchRequest? StandardMerge { get; }
+
+    public bool HasStartupInputs => CtrlRam is not null || AbMerge is not null || StandardMerge is not null;
+
     /// <summary>Parses UI shell startup arguments.</summary>
     public static UiLaunchOptions Parse(IReadOnlyList<string> args)
     {
         ArgumentNullException.ThrowIfNull(args);
 
         ShellPage? page = null;
+        int pageCount = 0;
         bool openSettings = false;
         string? reportPath = null;
         bool openReport = false;
@@ -59,12 +73,13 @@ internal sealed partial class UiLaunchOptions
         for (int index = 0; index < args.Count; index++)
         {
             string argument = args[index];
-            if (TakeCtrlRamOption(args, ref index, inputOptions, inputs, issues))
+            if (TakeInputOption(args, ref index, inputOptions, inputs, issues))
             {
                 continue;
             }
             if (TrySplitValue(argument, "--page", out string? inlinePage))
             {
+                pageCount++;
                 string? value = inlinePage ?? TakeValue(args, ref index, "--page", issues);
                 page = ParsePage(value, issues, out bool settingsRequested);
                 openSettings |= settingsRequested;
@@ -91,10 +106,17 @@ internal sealed partial class UiLaunchOptions
             unknownArguments.Add(argument);
         }
 
-        CtrlRamLaunchRequest? ctrlRam = ParseCtrlRamRequest(
+        if (inputOptions.Count > 0 && pageCount > 1) { issues.Add("Duplicate option '--page'."); }
+        bool isAbMerge = inputOptions.GetValueOrDefault("--workflow") == ExperienceIds.AbMerge;
+        bool isStandardMerge = inputOptions.GetValueOrDefault("--workflow") == ExperienceIds.StandardMerge;
+        AbMergeLaunchRequest? abMerge = isAbMerge ? ParseAbMergeRequest(
+            inputOptions, page, openSettings, reportPath, openReport, unknownArguments, issues) : null;
+        StandardMergeLaunchRequest? standardMerge = isStandardMerge ? ParseStandardMergeRequest(
+            inputOptions, page, openSettings, reportPath, openReport, unknownArguments, issues) : null;
+        CtrlRamLaunchRequest? ctrlRam = isAbMerge || isStandardMerge ? null : ParseCtrlRamRequest(
             inputOptions, inputs, page, openSettings, reportPath, openReport, unknownArguments, issues);
-        return new UiLaunchOptions(ctrlRam is null ? page : ShellPage.Replace,
-            openSettings, NormalizeBlank(reportPath), openReport, issues, ctrlRam);
+        return new UiLaunchOptions(abMerge is not null || standardMerge is not null ? ShellPage.Merge : ctrlRam is not null ? ShellPage.Replace : page,
+            openSettings, NormalizeBlank(reportPath), openReport, issues, ctrlRam, abMerge, standardMerge);
     }
 
     private static bool TrySplitValue(string argument, string option, out string? value)

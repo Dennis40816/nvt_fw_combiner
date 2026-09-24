@@ -9,8 +9,8 @@ public sealed partial class ShellNavigationSystemTests
 {
     private const int StandardMergeAuthoringPortIndex = 0;
     private const int AbMergeAuthoringPortIndex = 1;
-    private const int DpReplaceAuthoringPortIndex = 2;
-    private const int CtrlRamAuthoringPortIndex = 4;
+    private const int GeneralAuthoringPortIndex = 2;
+    private const int CtrlRamAuthoringPortIndex = 3;
 
     /// <summary>A withdrawn Merge mode is neither listed nor dispatchable through its setter.</summary>
     [Theory]
@@ -48,7 +48,6 @@ public sealed partial class ShellNavigationSystemTests
 
     /// <summary>A withdrawn Replace mode is neither listed nor dispatchable through its setter.</summary>
     [Theory]
-    [InlineData(ExperienceIds.DpReplace)]
     [InlineData(ExperienceIds.CtrlRamReplace)]
     [InlineData(ExperienceIds.GeneralReplace)]
     public async Task WithdrawnReplaceModeIsAbsentAndSetterDoesNotDispatch(string withdrawnMode)
@@ -154,8 +153,8 @@ public sealed partial class ShellNavigationSystemTests
 
     /// <summary>A partial Replace withdrawal keeps the page IC and never queries the withdrawn authoring port.</summary>
     [Theory]
-    [InlineData(ExperienceIds.DpReplace, ExperienceIds.CtrlRamReplace)]
-    [InlineData(ExperienceIds.CtrlRamReplace, ExperienceIds.DpReplace)]
+    [InlineData(ExperienceIds.GeneralReplace, ExperienceIds.CtrlRamReplace)]
+    [InlineData(ExperienceIds.CtrlRamReplace, ExperienceIds.GeneralReplace)]
     public async Task PartialReplaceWithdrawalRepairsActiveModeWithoutQueryingWithdrawnPort(
         string withdrawnMode,
         string fallbackMode)
@@ -194,8 +193,8 @@ public sealed partial class ShellNavigationSystemTests
 
     /// <summary>A hidden Replace withdrawal is staged without borrowing Merge or querying the withdrawn port.</summary>
     [Theory]
-    [InlineData(ExperienceIds.DpReplace, ExperienceIds.CtrlRamReplace)]
-    [InlineData(ExperienceIds.CtrlRamReplace, ExperienceIds.DpReplace)]
+    [InlineData(ExperienceIds.GeneralReplace, ExperienceIds.CtrlRamReplace)]
+    [InlineData(ExperienceIds.CtrlRamReplace, ExperienceIds.GeneralReplace)]
     public async Task PartialReplaceWithdrawalRepairsHiddenModeWithoutDisturbingActiveMerge(
         string withdrawnMode,
         string fallbackMode)
@@ -438,7 +437,7 @@ public sealed partial class ShellNavigationSystemTests
     {
         return mode switch
         {
-            ExperienceIds.DpReplace => DpReplaceAuthoringPortIndex,
+            ExperienceIds.GeneralReplace => GeneralAuthoringPortIndex,
             ExperienceIds.CtrlRamReplace => CtrlRamAuthoringPortIndex,
             _ => throw new ArgumentException("Structured Replace mode expected.", nameof(mode)),
         };
@@ -456,7 +455,6 @@ public sealed partial class ShellNavigationSystemTests
             ],
             ShellPage.Replace =>
             [
-                ExperienceIds.DpReplace,
                 ExperienceIds.CtrlRamReplace,
                 ExperienceIds.GeneralReplace,
             ],

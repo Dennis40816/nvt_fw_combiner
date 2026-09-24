@@ -39,7 +39,7 @@ public sealed class LegacyTpFlashHeaderCanonicalMetadataTests
         Assert.Same(definition, nt51917.StructureDefinition.Definition);
         Assert.Same(definition, nt51928.StructureDefinition.Definition);
         Assert.Equal("1.4.0", nt51927.FamilyDefinition.FamilyVersion);
-        Assert.Equal("1.5.0", nt51928.FamilyDefinition.FamilyVersion);
+        Assert.Equal("1.5.1", nt51928.FamilyDefinition.FamilyVersion);
         Assert.NotEqual(
             nt51927.FamilyDefinition.FamilyContentHash,
             nt51928.FamilyDefinition.FamilyContentHash);

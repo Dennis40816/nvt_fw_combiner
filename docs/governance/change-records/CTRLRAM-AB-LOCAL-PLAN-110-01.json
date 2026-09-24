@@ -1,0 +1,43 @@
+{
+  "schemaVersion": 2,
+  "taskId": "CTRLRAM-AB-LOCAL-PLAN-110-01",
+  "capability": "Prepare one closed NT51929 AB reference bank-local Replace plan through the existing compiler and engine",
+  "integrationBase": "b9a94a2bab1a7bc05129b3438f0c0afeaaf45ad4",
+  "risk": "R3",
+  "kind": "behavior",
+  "state": "final-complete",
+  "mutablePaths": [
+    "src/NvtFwCombiner.Profiles/V2/V2CompositionPlanCompiler.RuntimeReferenceReplace.Banks.cs",
+    "src/NvtFwCombiner.Profiles/V2/V2RuntimeReferenceBankReplacePlan.cs",
+    "src/NvtFwCombiner.Profiles/V2/V2CompositionPlanCompiler.RuntimeReferenceReplace.BankOperations.cs",
+    "tests/NvtFwCombiner.Bootstrap.Tests/AbCtrlRamReferencePlanTests.cs",
+    "src/NvtFwCombiner.Domain/Composition/CompositionOperation.cs",
+    "tests/NvtFwCombiner.Domain.Tests/Composition/CompositionPlanTests.WorkspaceOverlays.cs"
+  ],
+  "implementationOwner": "/root",
+  "searchEvidence": [
+    "Existing V2 runtime-reference compiler owns mapping, version edits, processor narrowing and typed validation; existing canonical AB plan owns region-instance scalar relocation; CompositionEngine owns execution and immutable Reference clone",
+    "Combiner 1.13 recovered source hash 7fb6551894d5a71f7df42b6b7c2bda99f35cbcc13f5c01713dc0ae596ebb5ea8: 929 AB adds three main fields outside Header CRC",
+    "Owner authorizes normalization -> existing Replace -> restoration and clarifies normalized B addresses must equal same immutable Reference A Header fields, not an independent fixed-value table",
+    "CompositionPlan already executes ReplaceExisting primitives, but GetProfileOverlapError restricts compiler-admitted fully-covered overlays to CopyRange and processor; extend only three named existing primitives with coverage unchanged"
+  ],
+  "semanticOwner": "Profiles.V2 runtime-reference compiler lowers trusted bank-local plans; canonical AB profile retains relocation and geometry authority; Domain retains primitive invariants",
+  "terminalContract": "Internal NT51929 preparation retains immutable Reference identity, trusted parent compilations and typed validation obligations. One cloned AB output and selected-bank workspaces use the existing engine. Reject mismatch, invalid range, wrong parent bindings and unknown operations/validations. No new runtime capability token, UI publication, tool replacement or support promotion in this unit. Application validation/capability admission remains required before product Build can consume it.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "/root/layout_ownership_review",
+    "outcome": "approved",
+    "evidence": "2026-09-22 bounded read-only admission for four preparation paths plus exact Domain overlap/helper-test delta. A/B address equality uses owner-approved same capture; retain range checks. Explicit ReplaceExisting additions limited to ReplaceRange/PatchScalar/TransformScalar, full prior single-write coverage unchanged; do not add FillRange or relax caller mappings. All local validation stages and source identities remain typed obligations; unknown shape fails closed. Require A/B/both, different-content, malformed-address, immutability and mismatched-parent tests. Exact-head/human/Golden/integration gates remain separate. Additional 2026-09-22 scoped admission: private source-backed NT51929 pair-only native preconditions from trusted tpa-code start +0x2B/+0x38 (Combiner 1.13 lines 1495/1515-1526); both counts=1, canonical FWConfig source with full 4KiB bounds, canonical 4KiB Backup strict-next-page destination. No generic metadata claim or future-family admission. Negative tests plus nonempty validation obligation required."
+  },
+  "implementationHead": "183a0d3652a81fb30dcb977d6ff1338f0f3bcd0f",
+  "reviewedHead": "183a0d3652a81fb30dcb977d6ff1338f0f3bcd0f",
+  "pathStateDigest": "cc4524ce3e841142cec758c330b0d880e995885d312153bb531c08028972f921",
+  "finalReview": {
+    "reviewer": "/root/r3_final_review",
+    "outcome": "approved",
+    "evidence": "Independent /root/r3_final_review exact-head final-preview confirmation on 2026-09-25 at 183a0d3652a81fb30dcb977d6ff1338f0f3bcd0f. Verified this staged record's unchanged immutable admission, reviewed integration partition, matching implementation/review heads and complete committed path-state digest. The delta from 85795b141 changes only CHANGELOG and auxiliary delivery prose; no firmware bytes, ranges, profile, policy or processor semantics changed. The Perfect/Partial auxiliary digests were recomputed and matched. Repository technical finalReview approved; no new P0-P2, scoped PASS-WITH-HUMAN-GATE. This review does not supply external firmware/release-owner attestations, AB CtrlRAM independent Golden or Header/CRC/exact-write-range approval. Earlier dated evidence follows: Independent /root/r3_final_review exact-head technical re-review on 2026-09-25 at 85795b1416c689bfd484806d0425b9c06dfec9c1. Compared the complete 022219d53-to-reviewed delta and all original mutable-path states. Immutable admission and this record's unique integration partition remain unchanged. No R3 governed firmware path changed; only Perfect/Partial records' auxiliary delivery evidence changed. Prior firmware substantive review remains applicable, with no new P0-P3 and scoped PASS-WITH-HUMAN-GATE. Verifier R2 review, typed external R3 attestations, independent AB CtrlRAM expected-output Golden and Header/CRC/exact-write-range approval remain separate gates. Earlier dated review evidence follows: Independent /root/r3_final_review exact-head technical rebind confirmation on 2026-09-24 at 022219d53bbb24e5434ab4f6185df3c0019e6890. The sole delta from reviewed 871c6810e is non-governed CHANGELOG verification-status prose. All 17 R3 admission blobs and all 444 unique original mutable-path states were checked unchanged between those heads. This record's complete committed Git path-state digest is cc4524ce3e841142cec758c330b0d880e995885d312153bb531c08028972f921; its integration ownership remains within the unique 45-record/355-governed-path partition. No new P0-P2; repository technical finalReview approved, scoped Polytail PASS-WITH-HUMAN-GATE. External firmware/release-owner attestations, independent AB CtrlRAM Golden and exact write-range authority remain separate and absent; the full verifier is failing. Earlier dated technical review evidence follows: Independent /root/r3_final_review technical final review rebound on 2026-09-24 to d6b8ad31957b173ab82b46616159c2826d167368. Verified the complete delta from previously reviewed f85348ed5 consists only of the owner-approved 1.1.11 roadmap allocation, auxiliary delivery evidence and its new design-active admission. This record’s immutable admission and integration partition remain unchanged; its complete original mutablePaths digest was independently recomputed from committed Git bytes and matched. Prior firmware technical review remains applicable; no new P0-P2. Repository technical finalReview approved; scoped Polytail PASS-WITH-HUMAN-GATE. External firmware/release-owner authority, Candidate Golden and exact write-range approval remain separate mandatory gates; the failed verifier run is not waived or reclassified as passed."
+  },
+  "integrationPaths": [
+    "src/NvtFwCombiner.Domain/Composition/CompositionOperation.cs"
+  ]
+}

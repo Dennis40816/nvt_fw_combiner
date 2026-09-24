@@ -66,7 +66,6 @@ internal static class Program
                 host.CompositionCapabilityExperience,
                 host.StandardMergeAuthoring,
                 host.AbMergeAuthoring,
-                host.DpReplaceAuthoring,
                 host.GeneralAuthoring,
                 host.CtrlRamAuthoring,
                 host.FirmwareInspectionExperience,

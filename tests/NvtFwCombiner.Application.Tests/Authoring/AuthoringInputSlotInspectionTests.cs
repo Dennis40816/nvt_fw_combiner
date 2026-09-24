@@ -100,7 +100,7 @@ public sealed partial class AuthoringInputSlotInspectionTests
     [Theory]
     [InlineData(ExperienceIds.StandardMerge, 4, AuthoringSlotLifecycle.Verified)]
     [InlineData(ExperienceIds.AbMerge, 4, AuthoringSlotLifecycle.Verified)]
-    [InlineData(ExperienceIds.DpReplace, 4, AuthoringSlotLifecycle.Verified)]
+    [InlineData(ExperienceIds.DpReplace, 4, AuthoringSlotLifecycle.Error)]
     [InlineData(ExperienceIds.CtrlRamReplace, 6, AuthoringSlotLifecycle.Warning)]
     public void FourWorkflowsPublishTerminalCompiledInspection(
         string workflowId,
@@ -130,8 +130,8 @@ public sealed partial class AuthoringInputSlotInspectionTests
     /// <summary>The retained TP maximum alias reaches terminal shared source-view health without throwing.</summary>
     [Theory]
     [InlineData(3, AuthoringSlotLifecycle.Error, CompositionIssueCodes.InputSourceViewIncomplete)]
-    [InlineData(4, AuthoringSlotLifecycle.Verified, InputArtifactInspectionIssueCodes.Ready)]
-    [InlineData(8, AuthoringSlotLifecycle.Verified, InputArtifactInspectionIssueCodes.Ready)]
+    [InlineData(4, AuthoringSlotLifecycle.Error, "firmware-config.chip-count-unreadable")]
+    [InlineData(8, AuthoringSlotLifecycle.Error, "firmware-config.chip-count-unreadable")]
     [InlineData(262145, AuthoringSlotLifecycle.Error, CompositionIssueCodes.InputAddressSpaceLengthMismatch)]
     public void TpMaximumCompatibilityPublishesTerminalCompiledInspection(
         int sourceLength,
@@ -149,6 +149,12 @@ public sealed partial class AuthoringInputSlotInspectionTests
 
         Assert.Equal(expectedLifecycle, result.InspectionLifecycle);
         Assert.Equal(expectedIssueCode, result.Inspection!.IssueCode);
+        if (expectedIssueCode == "firmware-config.chip-count-unreadable")
+        {
+            Assert.Equal(new ByteRange(0, 4), result.Inspection.AcceptedSnapshotRange);
+            Assert.Equal(FileStamp.FromBytes(new byte[4]).Sha256, result.Inspection.AcceptedSnapshotSha256);
+            Assert.True(result.AcceptedBytes.GetValueOrDefault().IsEmpty);
+        }
     }
 
     /// <summary>Profile-declared input-load plausibility is part of terminal slot health.</summary>
@@ -163,7 +169,7 @@ public sealed partial class AuthoringInputSlotInspectionTests
                 SourceSpace,
                 [new ByteRange(0, 2)]);
         ResolvedCapability capability = CreateCapability(
-            ExperienceIds.DpReplace,
+            ExperienceIds.StandardMerge,
             validationRequirement: validation);
 
         AuthoringInputSlotStatus result = AuthoringInputSlotInspectionService.Inspect(
@@ -236,7 +242,7 @@ public sealed partial class AuthoringInputSlotInspectionTests
     [Fact]
     public void AcceptedInspectionRetainsImmutableExecutionBytes()
     {
-        ResolvedCapability capability = CreateCapability(ExperienceIds.DpReplace);
+        ResolvedCapability capability = CreateCapability(ExperienceIds.StandardMerge);
         byte[] source = [0x10, 0x20, 0x30, 0x40];
 
         AuthoringInputSlotStatus result = AuthoringInputSlotInspectionService.Inspect(

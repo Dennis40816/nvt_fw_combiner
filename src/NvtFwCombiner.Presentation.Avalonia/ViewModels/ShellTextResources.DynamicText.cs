@@ -16,6 +16,28 @@ internal sealed partial class ShellTextResources
         return Language == ShellLanguage.ChineseTraditional ? traditionalChinese : english;
     }
 
+    public string GetCtrlRamBaseBankRangeLabel(string bank)
+    {
+        return SelectLanguage($"{bank} bank range", $"{bank} Bank 範圍");
+    }
+
+    public string GetCtrlRamBaseBackupOffsetLabel(string bank)
+    {
+        return SelectLanguage($"{bank} FWConfig Backup", $"{bank} FWConfig 備份");
+    }
+
+    public string GetCtrlRamBaseReferenceRangeValue(string range)
+    {
+        return SelectLanguage($"Reference {range}", $"參考映像 {range}");
+    }
+
+    public string GetCtrlRamBaseBackupOffsetValue(long offset)
+    {
+        return SelectLanguage(
+            FormattableString.Invariant($"bank-local +0x{offset:X}"),
+            FormattableString.Invariant($"Bank 內 +0x{offset:X}"));
+    }
+
     public string FormatDiffDlmPreservationSummary(int count)
     {
         return SelectLanguage(
@@ -66,9 +88,6 @@ internal sealed partial class ShellTextResources
     {
         return mode switch
         {
-            ExperienceIds.DpReplace => SelectLanguage(
-                "Replace DP and optional LDC payloads without CRC postbuild.",
-                "取代 DP 與選用 LDC payload；不執行 CRC postbuild。"),
             ExperienceIds.CtrlRamReplace => SelectLanguage(
                 "Replace CtrlRAM payloads, then run combiner.exe postbuild for CRC/header refresh.",
                 "取代 CtrlRAM payload 後執行 combiner.exe postbuild 更新 CRC/header。"),
@@ -86,7 +105,7 @@ internal sealed partial class ShellTextResources
             ExperienceIds.CtrlRamReplace => SelectLanguage(
                 "Base firmware",
                 "基底韌體"),
-            ExperienceIds.DpReplace or ExperienceIds.GeneralReplace => SelectLanguage(
+            ExperienceIds.GeneralReplace => SelectLanguage(
                 "Base firmware (FlashCode)",
                 "基底韌體 (FlashCode)"),
             _ => SelectLanguage("Base firmware", "基底韌體"),
@@ -98,13 +117,10 @@ internal sealed partial class ShellTextResources
         return mode == ExperienceIds.CtrlRamReplace ? "FlashCode / TP FW" : string.Empty;
     }
 
-    public string GetReplaceBaseDescription(string mode, string? dpReferenceCapacityLabel)
+    public string GetReplaceBaseDescription(string mode)
     {
         return mode switch
         {
-            ExperienceIds.DpReplace => SelectLanguage(
-                $"Complete FlashCode for the same IC ({dpReferenceCapacityLabel ?? "profile-declared"}). Only declared DP ranges change.",
-                $"同一 IC 的完整 FlashCode（{dpReferenceCapacityLabel ?? "由 profile 宣告"}）；只變更已宣告的 DP 範圍。"),
             ExperienceIds.CtrlRamReplace => SelectLanguage(
                 "Complete FlashCode or TP FW recognized for this IC. Other regions remain unchanged.",
                 "此 IC 可辨識的完整 FlashCode 或 TP FW；其他區域保持不變。"),
@@ -240,8 +256,8 @@ internal sealed partial class ShellTextResources
         {
             CompiledInputVersionKind.DpA => "DP1",
             CompiledInputVersionKind.DpB => "DP2",
-            CompiledInputVersionKind.TpA => "TPA",
-            CompiledInputVersionKind.TpB => "TPB",
+            CompiledInputVersionKind.TpA => "TPA Version",
+            CompiledInputVersionKind.TpB => "TPB Version",
             CompiledInputVersionKind.TpReferenceFirmwareConfig =>
                 throw new ArgumentOutOfRangeException(nameof(kind), kind, null),
             _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, null),
@@ -257,6 +273,12 @@ internal sealed partial class ShellTextResources
         ArgumentNullException.ThrowIfNull(status);
         return status.InspectionLifecycle switch
         {
+            AuthoringSlotLifecycle.Error when status.InspectionIssueCode == InputArtifactInspectionIssueCodes.TpChipCountRequired => SelectLanguage(
+                "Error: TP IC Count was read as 0. Check FWConfig Chip_Num (offset 0x17).",
+                "錯誤：TP IC Count 讀到 0，請檢查 FWConfig Chip_Num（offset 0x17）。"),
+            AuthoringSlotLifecycle.Error when status.InspectionIssueCode == InputArtifactInspectionIssueCodes.TpChipCountUnreadable => SelectLanguage(
+                "Error: TP IC Count is unreadable. Check the canonical NVT FWConfig Backup and its validity.",
+                "錯誤：TP IC Count 讀不到，請檢查 canonical NVT FWConfig Backup 與其有效性。"),
             AuthoringSlotLifecycle.Error when StringComparer.Ordinal.Equals(
                 status.InspectionIssueCode,
                 InputArtifactInspectionIssueCodes.ExtensionNotAccepted) => SelectLanguage(
@@ -335,14 +357,12 @@ internal sealed partial class ShellTextResources
     public string GetIcDetailRuntimeValue(
         bool standardMerge,
         bool abMerge,
-        bool dpReplace,
         bool ctrlRamReplace,
         bool generalReplace)
     {
         List<string> workflows = [];
         Add("Standard", standardMerge);
         Add("AB", abMerge);
-        Add("DP", dpReplace);
         Add("CtrlRAM", ctrlRamReplace);
         Add("Customized", generalReplace);
         return workflows.Count == 0
@@ -359,18 +379,15 @@ internal sealed partial class ShellTextResources
     }
 
     public string GetIcDetailEvidenceValue(
-        CapabilityWorkflowReadiness dp,
         CapabilityWorkflowReadiness ctrlRam,
         CapabilityWorkflowReadiness general)
     {
-        ArgumentNullException.ThrowIfNull(dp);
         ArgumentNullException.ThrowIfNull(ctrlRam);
         ArgumentNullException.ThrowIfNull(general);
 
         List<string> verified = [];
         List<string> open = [];
         List<string> unavailable = [];
-        Add("DP", dp);
         Add("CtrlRAM", ctrlRam);
         Add("Customized", general);
 
@@ -431,9 +448,6 @@ internal sealed partial class ShellTextResources
     {
         return mode switch
         {
-            ExperienceIds.DpReplace => SelectLanguage(
-                "Blue shows new DP bytes; gray shows sections preserved or restored from the Reference FlashCode.",
-                "藍色代表新的 DP 資料；灰色代表從 Reference FlashCode 保留或還原的區段。"),
             ExperienceIds.CtrlRamReplace => SelectLanguage(
                 "Solid colors identify selected CtrlRAM regions; diagonal hatching means bytes remain from the base firmware.",
                 "實色標示已選取的 CtrlRAM 區域；斜線表示資料仍保留自基礎韌體。"),
@@ -450,12 +464,6 @@ internal sealed partial class ShellTextResources
     {
         return mode switch
         {
-            ExperienceIds.DpReplace when canRun => SelectLanguage(
-                "Ready: Build will validate DP Replace inputs, then write output and report.",
-                "已就緒：Build 會先驗證 DP Replace 輸入，再產生輸出與報告。"),
-            ExperienceIds.DpReplace => SelectLanguage(
-                "Build blocked: Reference FlashCode and required DP replacement inputs are required.",
-                "無法 Build：需要 Reference FlashCode 與必要的 DP 取代 BIN 檔案。"),
             ExperienceIds.CtrlRamReplace when canRun => SelectLanguage(
                 "Ready: Build will replace selected CtrlRAM regions and run postbuild.",
                 "已就緒：Build 會取代選定的 CtrlRAM 區域並執行 postbuild。"),

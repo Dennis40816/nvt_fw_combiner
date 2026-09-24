@@ -160,8 +160,7 @@ public static class AcceptedSessionOutputNameResolver
     private static IcNumberSelection ResolveAcceptedIcNumberSelection(
         ResolvedCapability capability)
     {
-        return capability.DpExecutionPlan?.IcNumberSelection ??
-            capability.CtrlRamExecutionPlan?.IcNumberSelection ??
+        return capability.CtrlRamExecutionPlan?.IcNumberSelection ??
             capability.GeneralExecutionPlan?.IcNumberSelection ??
             throw new InvalidOperationException(
                 "Replace output naming requires the exact accepted IC-number selection.");

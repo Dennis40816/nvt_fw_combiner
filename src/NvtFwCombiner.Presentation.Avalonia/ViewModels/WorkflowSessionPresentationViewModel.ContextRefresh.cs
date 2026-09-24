@@ -13,7 +13,7 @@ internal sealed partial class WorkflowSessionPresentationViewModel
 
     private void RefreshAcceptedReplaceModeContextState()
     {
-        RefreshContextStateCore(WorkflowInspectionOwner.Replace, resetRunResult: true,
+        RefreshContextStateCore(WorkflowInspectionOwner.Replace, resetRunResult: false,
             preserveReplaceSlotFiles: false, acceptedReplaceMode: true, selectorPublication: null);
     }
 
@@ -36,7 +36,7 @@ internal sealed partial class WorkflowSessionPresentationViewModel
             PublishRefreshedSharedContext();
             if (resetRunResult)
             {
-                _stateBindings.ResetRunResult();
+                ResetRunResults(owner);
             }
             return;
         }
@@ -69,7 +69,31 @@ internal sealed partial class WorkflowSessionPresentationViewModel
         PublishRefreshedSharedContext();
         if (resetRunResult)
         {
-            _stateBindings.ResetRunResult();
+            ResetRunResults(owner);
+        }
+    }
+
+    private void ResetRunResults(WorkflowInspectionOwner? owner, string? mode = null, bool allModes = false)
+    {
+        if (owner is null or WorkflowInspectionOwner.Merge)
+        {
+            IEnumerable<string> modes = allModes
+                ? WorkflowPageModeCatalog.ForPage(ShellPage.Merge)
+                : [mode ?? _merge.SelectedMergeMode];
+            foreach (string affectedMode in modes)
+            {
+                _stateBindings.ResetRunResult(_merge.CaptureRunContext(affectedMode));
+            }
+        }
+        if (owner is null or WorkflowInspectionOwner.Replace)
+        {
+            IEnumerable<string> modes = allModes
+                ? WorkflowPageModeCatalog.ForPage(ShellPage.Replace)
+                : [mode ?? _replace.SelectedReplaceMode];
+            foreach (string affectedMode in modes)
+            {
+                _stateBindings.ResetRunResult(_replace.CaptureRunContext(affectedMode));
+            }
         }
     }
 

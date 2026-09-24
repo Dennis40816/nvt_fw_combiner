@@ -145,12 +145,48 @@ public sealed class MetadataPlanEntry
         IEnumerable<FirmwareMetadataReferenceTarget> targetReferences,
         IEnumerable<MetadataReferencePurpose> purposes,
         IEnumerable<string> evidenceRefs)
+        : this(bindingId, spaceId, slotId, familyDefinition,
+            (resolvedMap ?? throw new ArgumentNullException(nameof(resolvedMap))).ImageMap,
+            resolvedMap.MemberId, resolvedMap, null, null, metadataSetBinding,
+            structureDefinition, targetReferences, purposes, evidenceRefs)
+    {
+    }
+
+    /// <summary>Creates an inspection-only entry from the exact selected view binding, without target overrides.</summary>
+    public MetadataPlanEntry(
+        CanonicalFullImageMetadataContext context,
+        FirmwareFullImageMetadataBinding binding,
+        FirmwareMapFactBinding<FirmwareMetadataSet> metadataSetBinding)
+        : this((binding ?? throw new ArgumentNullException(nameof(binding))).BindingId,
+            binding.Structure.ArtifactBindingId, binding.Structure.ArtifactBindingId,
+            (context ?? throw new ArgumentNullException(nameof(context))).Family,
+            context.View.ImageMap, context.MemberId, null, context, binding,
+            metadataSetBinding, binding.Structure, binding.TargetReferences,
+            [MetadataReferencePurpose.Inspection], binding.EvidenceRefs)
+    {
+        if (!context.View.MetadataBindings.Any(candidate => ReferenceEquals(candidate, binding)))
+        {
+            throw new ArgumentException("Metadata entries require the exact selected view binding.", nameof(binding));
+        }
+    }
+
+    private MetadataPlanEntry(
+        string bindingId, string spaceId, string slotId,
+        FirmwareFamilyResolutionDefinition familyDefinition,
+        FirmwareImageMap imageMap, string memberId,
+        ResolvedFirmwareImageMap? resolvedMap,
+        CanonicalFullImageMetadataContext? fullImageContext,
+        FirmwareFullImageMetadataBinding? fullImageBinding,
+        FirmwareMapFactBinding<FirmwareMetadataSet> metadataSetBinding,
+        FirmwareMetadataStructure structureDefinition,
+        IEnumerable<FirmwareMetadataReferenceTarget> targetReferences,
+        IEnumerable<MetadataReferencePurpose> purposes,
+        IEnumerable<string> evidenceRefs)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(bindingId);
         ArgumentException.ThrowIfNullOrWhiteSpace(spaceId);
         ArgumentException.ThrowIfNullOrWhiteSpace(slotId);
         ArgumentNullException.ThrowIfNull(familyDefinition);
-        ArgumentNullException.ThrowIfNull(resolvedMap);
         ArgumentNullException.ThrowIfNull(metadataSetBinding);
         ArgumentNullException.ThrowIfNull(structureDefinition);
         ArgumentNullException.ThrowIfNull(targetReferences);
@@ -158,9 +194,9 @@ public sealed class MetadataPlanEntry
         ArgumentNullException.ThrowIfNull(evidenceRefs);
 
         if (!familyDefinition.ImageMaps.Any(map =>
-                ReferenceEquals(map, resolvedMap.ImageMap)) ||
+                ReferenceEquals(map, imageMap)) ||
             !familyDefinition.TryResolveStructure(
-                resolvedMap.ImageMap.MapId,
+                imageMap.MapId,
                 structureDefinition.StructureId,
                 out FirmwareMetadataStructure? selectedStructure) ||
             !ReferenceEquals(selectedStructure, structureDefinition))
@@ -170,16 +206,16 @@ public sealed class MetadataPlanEntry
                 nameof(structureDefinition));
         }
 
-        if (!resolvedMap.ImageMap.MetadataSetBindings.Any(binding =>
+        if (!imageMap.MetadataSetBindings.Any(binding =>
                 ReferenceEquals(binding, metadataSetBinding)) ||
             !metadataSetBinding.Value.Structures.Any(structure =>
                 ReferenceEquals(structure, structureDefinition)) ||
             !StringComparer.Ordinal.Equals(
                 metadataSetBinding.EffectiveKey.MemberId,
-                resolvedMap.MemberId) ||
+                memberId) ||
             !StringComparer.Ordinal.Equals(
                 metadataSetBinding.EffectiveKey.MapId,
-                resolvedMap.ImageMap.MapId))
+                imageMap.MapId))
         {
             throw new ArgumentException(
                 "Metadata plan entries must retain the exact applicable map fact binding.",
@@ -247,7 +283,11 @@ public sealed class MetadataPlanEntry
         SpaceId = spaceId;
         SlotId = slotId;
         FamilyDefinition = familyDefinition;
-        ResolvedMap = resolvedMap;
+        ProfileMap = resolvedMap;
+        ImageMap = imageMap;
+        MemberId = memberId;
+        FullImageContext = fullImageContext;
+        FullImageBinding = fullImageBinding;
         MetadataSetBinding = metadataSetBinding;
         StructureDefinition = structureDefinition;
         TargetReferences = Array.AsReadOnly(targetReferenceSnapshot);
@@ -268,7 +308,22 @@ public sealed class MetadataPlanEntry
     public FirmwareFamilyResolutionDefinition FamilyDefinition { get; }
 
     /// <summary>Exact canonical map resolution reference.</summary>
-    public ResolvedFirmwareImageMap ResolvedMap { get; }
+    public ResolvedFirmwareImageMap ResolvedMap => ProfileMap ??
+        throw new InvalidOperationException("A full-image metadata view carries no execution map resolution.");
+
+    private ResolvedFirmwareImageMap? ProfileMap { get; }
+
+    /// <summary>Canonical map shared by profile and full-image metadata plans.</summary>
+    public FirmwareImageMap ImageMap { get; }
+
+    /// <summary>Exact canonical member shared by profile and full-image plans.</summary>
+    public string MemberId { get; }
+
+    /// <summary>Checked full-image context, or null for an accepted profile plan.</summary>
+    public CanonicalFullImageMetadataContext? FullImageContext { get; }
+
+    /// <summary>Exact selected view binding, or null for a profile binding.</summary>
+    public FirmwareFullImageMetadataBinding? FullImageBinding { get; }
 
     /// <summary>Applicable canonical metadata-set binding reference.</summary>
     public FirmwareMapFactBinding<FirmwareMetadataSet> MetadataSetBinding { get; }
@@ -473,6 +528,10 @@ public static class FirmwareMetadataInspector
     {
         ArgumentNullException.ThrowIfNull(request);
         ResolvedMetadataPlan plan = request.Plan;
+        if (plan.Definition.FullImageContext is not null)
+        {
+            throw new ArgumentException("Full-image metadata must use the single captured payload inspection entrance.", nameof(request));
+        }
         FirmwareArtifactPayload[] artifactSnapshot = [.. request.Artifacts];
         if (plan.Entries.Count == 0)
         {
@@ -517,6 +576,31 @@ public static class FirmwareMetadataInspector
             results);
     }
 
+    /// <summary>Inspects one full-image view using exactly one immutable captured payload for every binding.</summary>
+    public static MetadataInspectionSnapshot InspectFullImage(
+        ResolvedMetadataPlan plan,
+        FirmwareArtifactPayload fullImage,
+        long authoringRevision = 0)
+    {
+        ArgumentNullException.ThrowIfNull(plan);
+        ArgumentNullException.ThrowIfNull(fullImage);
+        ArgumentOutOfRangeException.ThrowIfNegative(authoringRevision);
+        CanonicalFullImageMetadataContext context = plan.Definition.FullImageContext ??
+            throw new ArgumentException("Single-image inspection requires a declared full-image plan.", nameof(plan));
+        if (fullImage.LengthBytes != context.View.ImageMap.CapacityBytes)
+        {
+            throw new ArgumentException("Captured full-image length must match the exact declared map capacity.", nameof(fullImage));
+        }
+        MetadataInspectionResult[] results = [.. plan.Entries.Select(entry =>
+        {
+            FirmwareMetadataStructureResolution resolution = context.Family.ResolveMetadataStructure(
+                context.View, context.MemberId, entry.Definition.FullImageBinding!, fullImage);
+            return CreateResult(entry, GetState(resolution), resolution, plan.Entries);
+        })];
+        return new MetadataInspectionSnapshot(plan.ResolutionToken, authoringRevision,
+            [fullImage.Identity], results);
+    }
+
     private static (
         ResolvedMetadataPlanEntry Entry,
         MetadataInspectionState State,
@@ -530,7 +614,12 @@ public static class FirmwareMetadataInspector
                 definition.ResolvedMap.ImageMap.MapId,
                 definition.StructureDefinition.StructureId,
                 inputs);
-        MetadataInspectionState state = resolution.Status switch
+        return (entry, GetState(resolution), resolution);
+    }
+
+    private static MetadataInspectionState GetState(FirmwareMetadataStructureResolution resolution)
+    {
+        return resolution.Status switch
         {
             FirmwareMetadataStructureResolutionStatus.Pending =>
                 MetadataInspectionState.WaitingForArtifact,
@@ -546,7 +635,6 @@ public static class FirmwareMetadataInspector
             _ => throw new InvalidOperationException(
                 "Unknown firmware metadata structure resolution status."),
         };
-        return (entry, state, resolution);
     }
 
     private static MetadataInspectionResult CreateResult(

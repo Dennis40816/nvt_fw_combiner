@@ -241,6 +241,10 @@ public sealed class V2CompilationProvenance
     /// <summary>Trusted bundle-root identity recorded by the compiler.</summary>
     public ProfileBundleIdentity Bundle { get; }
 
+    /// <summary>Composite identity when Bundle/ProfileEntry identify the real layout source rather than the whole definition.</summary>
+    public BankReferenceReplaceDefinition? BankReplaceDefinition =>
+        (Context as RuntimeReferenceBankReplaceV2CompilationContext)?.Definition;
+
     /// <summary>Exact allowlisted composition-profile entry identity.</summary>
     public ProfileBundleEntryIdentity ProfileEntry { get; }
 
@@ -305,6 +309,19 @@ public sealed class V2CompiledCompositionDetails
         if (provenance.Context is MapBoundV2CompilationContext mapContext)
         {
             ValidateRegionAccessContract(mapContext.ResolvedMap.ImageMap, regionAccessContract);
+            if (mapContext is ResolvedMapV2CompilationContext { SourceEnvelope: { } envelope })
+            {
+                DomainInvariant.Reject(
+                    !StringComparer.Ordinal.Equals(
+                        envelope.LayoutTemplateMapId, mapContext.ResolvedMap.ImageMap.MapId) ||
+                    envelope.LayoutTemplateCapacity != mapContext.ResolvedMap.CapacityBytes ||
+                    !mapContext.ResolvedMap.ImageMap.Regions.Any(region =>
+                        StringComparer.Ordinal.Equals(region.RegionId, envelope.RootRegionId) &&
+                        region.ParentRegionId is null && region.Range.Start == 0 &&
+                        region.Range.EndExclusive == envelope.LayoutTemplateCapacity),
+                    "Source envelope must retain a full-root canonical layout template.",
+                    nameof(provenance));
+            }
         }
         else if (regionAccessContract.Requirements.Count != 0 || regionAccessContract.ResolvedViews.Count != 0)
         {

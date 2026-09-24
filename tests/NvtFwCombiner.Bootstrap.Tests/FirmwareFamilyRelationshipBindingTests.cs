@@ -1,4 +1,6 @@
+using NvtFwCombiner.Application.Capabilities;
 using NvtFwCombiner.Application.Metadata;
+using NvtFwCombiner.Contracts.Firmware;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Domain.Firmware;
 
@@ -14,9 +16,9 @@ public sealed class FirmwareFamilyRelationshipBindingTests
     [Fact]
     public void Nt51919Nt51929Nt51932UseOnePerfectLikeFamily()
     {
-        MetadataPlanDefinition nt51919 = CreateDpReplacePlan("NT51919");
-        MetadataPlanDefinition nt51929 = CreateDpReplacePlan("NT51929");
-        MetadataPlanDefinition nt51932 = CreateDpReplacePlan("NT51932");
+        MetadataPlanDefinition nt51919 = CreateFullImagePlan("NT51919");
+        MetadataPlanDefinition nt51929 = CreateFullImagePlan("NT51929");
+        MetadataPlanDefinition nt51932 = CreateFullImagePlan("NT51932");
         FirmwareFamilyResolutionDefinition family =
             Assert.Single(nt51929.Entries).FamilyDefinition;
         PerfectFamilyRelationship relationship =
@@ -212,7 +214,7 @@ public sealed class FirmwareFamilyRelationshipBindingTests
                      "firmware-config-general-parameters")));
     }
 
-    /// <summary>Every evidenced DP route reuses the canonical DPCMI definition at its owner-backed locator.</summary>
+    /// <summary>DP inline members share their retained catalog; reference consumers share the neutral provider at exact locators.</summary>
     [Theory]
     [InlineData("NT51917", 0x3C01C)]
     [InlineData("NT51919", 0x401A)]
@@ -222,16 +224,29 @@ public sealed class FirmwareFamilyRelationshipBindingTests
     [InlineData("NT51928", 0x3C01C)]
     [InlineData("NT51929", 0x401A)]
     [InlineData("NT51932", 0x401A)]
-    public void EvidencedDpRoutesReuseOneDpcmiDefinition(
+    public void FullImageAndStandardViewsReuseTheirDeclaredDpcmiProvider(
         string icId,
         long expectedOffset)
     {
-        MetadataPlanEntry provider =
-            Assert.Single(CreateDpReplacePlan("NT51929").Entries);
+        FirmwareMetadataStructureDefinition provider;
+        if (icId is "NT51919" or "NT51929" or "NT51932")
+        {
+            provider = Assert.Single(CreateFullImagePlan("NT51929").Entries).StructureDefinition.Definition;
+        }
+        else
+        {
+            Assert.True(BuiltInCanonicalMetadataDefinitionResolver.Instance.TryResolve(
+                new FirmwareMetadataStructureDefinitionReferenceDocument(
+                    "nt51929-nt51932", "1.3.1",
+                    "d2499758dd19908422f857e5b7a68c24c47ac57961418da82d10dec2f039f3e8",
+                    DpcmiMetadataContract.StructureId),
+                out FirmwareMetadataStructureDefinition? resolved));
+            provider = Assert.IsType<FirmwareMetadataStructureDefinition>(resolved);
+        }
         MetadataPlanEntry candidate = Assert.Single(
             (icId == "NT51928"
                 ? CreateStandardMergePlan(icId)
-                : CreateDpReplacePlan(icId)).Entries,
+                : CreateFullImagePlan(icId)).Entries,
             static entry => StringComparer.Ordinal.Equals(
                 entry.StructureDefinition.StructureId,
                 DpcmiMetadataContract.StructureId));
@@ -239,13 +254,13 @@ public sealed class FirmwareFamilyRelationshipBindingTests
             Assert.IsType<FirmwareRegionRelativeLocator>(
                 candidate.StructureDefinition.Locator);
         FirmwareRegion baseRegion =
-            candidate.ResolvedMap.ImageMap.Regions.Single(region =>
+            (candidate.FullImageContext?.View.ImageMap ?? candidate.ResolvedMap.ImageMap).Regions.Single(region =>
                 StringComparer.Ordinal.Equals(
                     region.RegionId,
                     locator.RegionId));
 
         Assert.Same(
-            provider.StructureDefinition.Definition,
+            provider,
             candidate.StructureDefinition.Definition);
         Assert.Equal(
             expectedOffset,
@@ -277,10 +292,12 @@ public sealed class FirmwareFamilyRelationshipBindingTests
             BuiltInV2RegistrationRegistry.StandardMergeByIc[icId]);
     }
 
-    private static MetadataPlanDefinition CreateDpReplacePlan(string icId)
+    private static MetadataPlanDefinition CreateFullImagePlan(string icId)
     {
-        return CreatePlan(
-            BuiltInV2RegistrationRegistry.DpReplaceByIc.Value[icId]);
+        MetadataPlanResolutionResult result = BootstrapTestHost.Canonical.Catalog
+            .ResolveFullImageMetadataPlan(icId, 0x40000);
+        Assert.True(result.Succeeded);
+        return result.MetadataPlan!.Definition;
     }
 
     private static MetadataPlanDefinition CreatePlan(

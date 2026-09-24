@@ -139,7 +139,7 @@ public sealed class StandardMergeWorkbenchGoldenTests
             $"NT51929_FlashCode_D2004T0100_{resolvedAtUtc:yyyyMMdd}.bin",
             result.OutputFileName);
         Assert.Equal(
-            "fd964c74574d5711c1b8c8083018c58fac66c1749a21c47eca19855860ad8d63",
+            "8eb0b86591debc2d801c0490f7c5fd96684bd4a4a50d29d382ffa5af0970ae08",
             root.GetProperty("CompilationFingerprint").GetString());
         Assert.Equal(
             ["dp-input", "tp-input"],

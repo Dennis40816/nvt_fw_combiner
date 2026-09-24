@@ -132,7 +132,8 @@ public sealed class CtrlRamSelectorLayoutTests
                 Assert.InRange(Math.Abs(BoundsInWindow(details, window).Left - BoundsInWindow(content, window).Left), 0, 0.5);
                 Rect filenameBounds = BoundsInWindow(filename, window);
                 Rect contentBounds = BoundsInWindow(content, window);
-                Assert.InRange(filenameBounds.Top - contentBounds.Bottom, 12, 16.5);
+                Grid header = baseCard.FindControl<Grid>("SlotHeaderContent")!;
+                Assert.InRange(filenameBounds.Top - BoundsInWindow(header, window).Bottom, 7.5, 8.5);
                 Assert.InRange(Math.Abs(filenameBounds.Left - contentBounds.Left), 0, 0.5);
                 Assert.InRange(Math.Abs(filenameBounds.Right - contentBounds.Right), 0, 0.5);
                 TextBlock text = Assert.IsType<TextBlock>(filename.Content);

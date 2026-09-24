@@ -107,6 +107,9 @@ public sealed partial class AbMergeGoldenRegressionTests
             // A new runtime-admissible fixture; the original pattern/pinned SHA remains
             // independently exercised by Nt51951CandidatePlanWithCombinerMatchesPythonReferenceAsync.
             sharedTp[0x22201] = (byte)~sharedTp[0x22200];
+            sharedTp[0x36001] = (byte)~sharedTp[0x36000];
+            sharedTp[0x36017] = 1;
+            new byte[] { 0, 0x4E, 0x56, 0x54 }.CopyTo(sharedTp, 0x36FFC);
         }
         byte[] originalDp = [.. dp];
         byte[] originalTp = [.. sharedTp];

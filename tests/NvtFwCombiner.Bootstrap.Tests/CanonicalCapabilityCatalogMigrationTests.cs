@@ -1,4 +1,3 @@
-using NvtFwCombiner.Application.Authoring;
 using NvtFwCombiner.Application.Capabilities;
 using NvtFwCombiner.Application.Metadata;
 using NvtFwCombiner.Domain.Composition;
@@ -13,10 +12,7 @@ public sealed partial class CanonicalCapabilityCatalogMigrationTests
 {
     /// <summary>Format variants retain exact route pins without claiming independent Golden support.</summary>
     [Theory]
-    [InlineData("NT51950", "1-ic", "nt51950-ab-desay-maps", "nt51950-ab-desay-single-1024k")]
-    [InlineData("NT51950", "2-plus-ic", "nt51950-ab-desay-maps", "nt51950-ab-desay-cascade-1024k")]
-    [InlineData("NT51951", "selector-free", "nt51951-ab-desay-maps", "nt51951-ab-desay-1024k")]
-    [InlineData("NT51950", "2-ic", "nt51950-ab-common-2ic-maps", "nt51950-ab-common-exact2-1024k")]
+    [InlineData("NT51950", "2-plus-ic", "nt51950-ab-cascade-maps", "nt51950-ab-merge-1024k")]
     public void FormatVariantsRetainExactCandidatePublication(string icId, string count, string mapSet, string mapId)
     {
         var identity = new CapabilityRouteIdentity(icId, ExperienceIds.AbMerge, count, mapSet);
@@ -91,7 +87,7 @@ public sealed partial class CanonicalCapabilityCatalogMigrationTests
         Assert.Equal("NT51929", definition.Identity.IcId);
         Assert.Equal("nt51929-standard-merge-256k", definition.Identity.MapVariant);
         Assert.Equal(
-            "447de186adabb4aae6adbbf810c726a24fea7283602306682f5a14842a9e5679",
+            "4ef7221d77f808ff2e3bd144da69251f912b386021312685409aaff72a55b637",
             definition.CapabilityFingerprint);
         Assert.NotEqual(
             definition.CapabilityFingerprint,
@@ -158,56 +154,6 @@ public sealed partial class CanonicalCapabilityCatalogMigrationTests
             copyReference.Purposes);
     }
 
-    /// <summary>The NT51929 DP Replace route references one canonical DPCMI declaration and selected DP slot.</summary>
-    [Fact]
-    public void SourceMaterializesNt51929DpReplaceDpcmiPlan()
-    {
-        ICanonicalCapabilityCatalogSource source =
-            CompositionHostServices.CreateCanonicalCapabilityCatalogSource();
-
-        CapabilityCatalogLoadResult loaded =
-            source.Load(TestContext.Current.CancellationToken);
-        Assert.True(
-            loaded.Succeeded,
-            string.Join(
-                Environment.NewLine,
-                loaded.Issues.Select(static issue => $"{issue.Code}: {issue.Message}")));
-        CanonicalCapabilityDefinition definition =
-            loaded.Candidate!.Definitions.Single(candidate =>
-                candidate.Identity.IcId == "NT51929" &&
-                candidate.Identity.WorkflowId == "dp-replace");
-        MetadataPlanEntry entry = Assert.Single(definition.MetadataPlan.Entries);
-
-        Assert.Equal("NT51929", definition.Identity.IcId);
-        Assert.Equal(
-            "nt51919-nt51929-nt51932-perfect-map-256k",
-            definition.Identity.MapVariant);
-        Assert.Equal("dpcmi-inspection", entry.BindingId);
-        Assert.Equal("dp-replacement", entry.SpaceId);
-        Assert.Equal("dp-replacement", entry.SlotId);
-        Assert.Equal(DpcmiMetadataContract.StructureId, entry.StructureDefinition.StructureId);
-        FirmwareRegionRelativeLocator locator =
-            Assert.IsType<FirmwareRegionRelativeLocator>(entry.StructureDefinition.Locator);
-        Assert.Equal("initial-code-cmd1-page0-anchor", locator.RegionId);
-        Assert.Equal(DpcmiMetadataContract.FirstRegister, locator.Offset);
-        Assert.Equal(
-            [
-                DpcmiMetadataContract.MajorVersionFieldId,
-                DpcmiMetadataContract.MinorVersionFieldId,
-                DpcmiMetadataContract.JiraHighFieldId,
-                DpcmiMetadataContract.JiraLowFieldId,
-            ],
-            entry.FieldIds);
-        Assert.Equal(
-            [
-                MetadataReferencePurpose.Validation,
-                MetadataReferencePurpose.OutputNaming,
-                MetadataReferencePurpose.Display,
-                MetadataReferencePurpose.Version,
-            ],
-            entry.Purposes);
-    }
-
     /// <summary>One reviewed NT51928 capability binds both admitted maps to distinct exact compilations.</summary>
     [Fact]
     public void Nt51928DualCapacityKeepsDefinitionIdentityAndChangesCompilationIdentity()
@@ -219,14 +165,14 @@ public sealed partial class CanonicalCapabilityCatalogMigrationTests
         ResolvedCapabilityRoute route = reload.Snapshot!.DynamicRoutes.Single(
             candidate =>
                 candidate.Identity.IcId == "NT51928" &&
-                candidate.Identity.WorkflowId == "dp-replace");
+                candidate.Identity.WorkflowId == ExperienceIds.StandardMerge);
         BuiltInV2Registration registration =
-            BuiltInV2RegistrationRegistry.DpReplaceByIc.Value["NT51928"];
+            BuiltInV2RegistrationRegistry.StandardMergeByIc["NT51928"];
 
         registration.TryCompile(
             0x40000,
             requestedTopology: null,
-            [.. registration.InputSelectionGroupMemberSlotIds.Take(1)],
+            [],
             out CompiledComposition? compact,
             out IReadOnlyList<CompositionIssue> compactIssues);
         registration.TryCompile(
@@ -235,8 +181,8 @@ public sealed partial class CanonicalCapabilityCatalogMigrationTests
             registration.InputSelectionGroupMemberSlotIds,
             out CompiledComposition? extended,
             out IReadOnlyList<CompositionIssue> extendedIssues);
-        ResolvedCapability compactCapability = route.BindCompilation(compact!);
-        ResolvedCapability extendedCapability = route.BindCompilation(extended!);
+        ResolvedCapability compactCapability = route.BindCompilation(compact!, registration.CreateMetadataPlan(compact!));
+        ResolvedCapability extendedCapability = route.BindCompilation(extended!, registration.CreateMetadataPlan(extended!));
 
         Assert.True(reload.Succeeded);
         Assert.Empty(compactIssues);
@@ -270,13 +216,13 @@ public sealed partial class CanonicalCapabilityCatalogMigrationTests
         ResolvedCapabilityRoute route = reload.Snapshot!.DynamicRoutes.Single(
             candidate =>
                 candidate.Identity.IcId == "NT51928" &&
-                candidate.Identity.WorkflowId == "dp-replace");
+                candidate.Identity.WorkflowId == ExperienceIds.StandardMerge);
         BuiltInV2Registration registration =
-            BuiltInV2RegistrationRegistry.DpReplaceByIc.Value["NT51928"];
+            BuiltInV2RegistrationRegistry.StandardMergeByIc["NT51928"];
         registration.TryCompile(
             0x40000,
             requestedTopology: null,
-            [.. registration.InputSelectionGroupMemberSlotIds.Take(1)],
+            [],
             out CompiledComposition? compiled,
             out IReadOnlyList<CompositionIssue> issues);
         CompiledComposition drifted = WithBundleContentHash(
@@ -285,8 +231,12 @@ public sealed partial class CanonicalCapabilityCatalogMigrationTests
 
         Assert.True(reload.Succeeded);
         Assert.Empty(issues);
-        _ = Assert.Throws<ArgumentException>(() =>
-            route.BindCompilation(drifted));
+        NvtFwCombiner.Application.Metadata.MetadataPlanDefinition metadataPlan = registration.CreateMetadataPlan(compiled!);
+        _ = route.BindCompilation(compiled!, metadataPlan);
+        ArgumentException failure = Assert.Throws<ArgumentException>(() =>
+            route.BindCompilation(drifted, metadataPlan));
+        Assert.Equal("composition", failure.ParamName);
+        Assert.Contains("trusted definition does not match", failure.Message, StringComparison.Ordinal);
     }
 
     /// <summary>A reload cannot rebind an old compiled object to a different publication token.</summary>
@@ -469,77 +419,6 @@ public sealed partial class CanonicalCapabilityCatalogMigrationTests
             ExperienceIds.StandardMerge));
     }
 
-    /// <summary>NT51929 DP Replace compilation and metadata inspection share one published capability snapshot.</summary>
-    [Fact]
-    public void Nt51929DpReplaceUsesPublishedCanonicalSnapshotAndDpcmiAuthority()
-    {
-        var host = new IsolatedBootstrapTestHost();
-        CapabilityCatalogReloadResult reload =
-            host.Catalog.Reload(
-                TestContext.Current.CancellationToken);
-        CapabilityResolutionResult resolution = host.Canonical.Catalog.ResolveUniqueRoute(
-                "NT51929",
-                ExperienceIds.DpReplace,
-                "1-ic");
-        bool recognized = host.Canonical.Compiler.TryCompileDpReplace(
-            "NT51929",
-            0x40000,
-            out CompiledComposition? composition,
-            out IReadOnlyList<CompositionIssue> issues);
-
-        byte[] dp = new byte[0x6000];
-        dp[0] = 0x5A;
-        dp[0x67] = 0xFE;
-        dp[0x68] = 0xED;
-        dp[0x401A] = 0x2E;
-        dp[0x401B] = 0x03;
-        dp[0x401C] = 0xA4;
-        using var workspace = TempWorkspace.Create(
-            "nvt-fw-combiner-canonical-dpcmi");
-        string referencePath = workspace.Write("reference.bin", new byte[0x40000]);
-        string dpPath = workspace.Write("replacement-dp.bin", dp);
-
-        IReadOnlyList<FirmwareInspectionSnapshotResult> inspections =
-            BuiltInFirmwareInspection.InspectFirmwareBatch(
-                host.Canonical,
-                "NT51929",
-                [
-                    new FirmwareInspectionSnapshotInput(
-                        "reference",
-                        referencePath,
-                        DpReplaceAddressSpaceId: CompositionAddressSpaceIds.ReferenceBase),
-                    new FirmwareInspectionSnapshotInput(
-                        "dp",
-                        dpPath,
-                        DpReplaceAddressSpaceId: CompositionAddressSpaceIds.DpReplacement),
-                ]);
-        FirmwareInspectionSnapshot inspection = inspections.Single(static result =>
-            result.InspectionId == "dp").Inspection;
-        AuthoringCapabilityCatalogSnapshot inspectionCatalog = Assert.IsType<
-            AuthoringCapabilityCatalogSnapshot>(inspection.InputSlotCatalog);
-        ResolvedCapability inspectedCapability = Assert.IsType<ResolvedCapability>(
-            Assert.Single(inspectionCatalog.Routes).ExactCapability);
-        DpVersionMetadata? version = inspection.DpVersion;
-        CmiDpCodeMetadata? cmi = inspection.CmiDpCode;
-        Assert.True(reload.Succeeded);
-        Assert.True(resolution.Succeeded);
-        Assert.True(recognized);
-        Assert.Empty(issues);
-        Assert.Same(resolution.Capability!.CompiledComposition, composition);
-        Assert.Equal(resolution.Capability.Identity, inspectedCapability.Identity);
-        Assert.Equal(
-            resolution.Capability.CapabilityFingerprint,
-            inspectedCapability.CapabilityFingerprint);
-        Assert.Equal(resolution.Capability.ResolutionToken, inspectedCapability.ResolutionToken);
-        Assert.Same(resolution.Capability.MetadataPlan, inspectedCapability.MetadataPlan);
-        Assert.Equal(resolution.Capability.ResolutionToken, resolution.Capability.MetadataPlan.ResolutionToken);
-        Assert.Equal("030A", version!.Value.VersionToken);
-        Assert.Equal((byte)0x03, cmi!.Value.MajorVersionByte);
-        Assert.Equal((byte)0x0A, cmi.Value.MinorVersionNibble);
-        Assert.Equal((ushort)0x42E, cmi.Value.JiraNumber);
-        Assert.Equal(0x401A, cmi.Value.Register16Offset);
-    }
-
     /// <summary>A declared but truncated DPCMI does not fall back to the competing legacy DP-version bytes.</summary>
     [Fact]
     public void Nt51929DpcmiFailureDoesNotFallBackToLegacyDpVersionReader()
@@ -679,11 +558,6 @@ public sealed partial class CanonicalCapabilityCatalogMigrationTests
             dpInputLength: 0x40000,
             out CompiledComposition? standardComposition,
             out IReadOnlyList<CompositionIssue> standardIssues);
-        bool dpRecognized = BootstrapTestHost.Canonical.Compiler.TryCompileDpReplace(
-            icId,
-            baseCapacity: 0x40000,
-            out CompiledComposition? dpComposition,
-            out IReadOnlyList<CompositionIssue> dpIssues);
 
         Assert.False(standard.Succeeded);
         Assert.Equal(CapabilityCatalogIssueCodes.RouteUnavailable, standard.Issue!.Code);
@@ -692,31 +566,6 @@ public sealed partial class CanonicalCapabilityCatalogMigrationTests
         Assert.False(standardRecognized);
         Assert.Null(standardComposition);
         Assert.Empty(standardIssues);
-        Assert.False(dpRecognized);
-        Assert.Null(dpComposition);
-        Assert.Empty(dpIssues);
-    }
-
-    /// <summary>The policy-facing DP route compiles the perfect-like family map directly.</summary>
-    [Fact]
-    public void Nt51929DpReplacePolicyPinsPerfectLikeCompiledIdentity()
-    {
-        BuiltInV2Registration registration =
-            BuiltInV2RegistrationRegistry.DpReplaceByIc.Value["NT51929"];
-
-        registration.TryCompile(
-            0x40000,
-            out CompiledComposition? composition,
-            out IReadOnlyList<CompositionIssue> issues);
-
-        Assert.Empty(issues);
-        Assert.NotNull(composition);
-        Assert.Equal(
-            "nt51919-nt51929-nt51932-perfect-map-256k",
-            composition.V2Details.Provenance.ResolvedMap.ImageMap.MapId);
-        Assert.Equal(
-            "3d937f93a0cf0714b8d13ab5480d7f65a27da04a5c78aaab7a53ba25fb8a200c",
-            composition.CompilationFingerprint);
     }
 
     private static PinnedCapabilityDecision<TValue> Rebind<TValue>(

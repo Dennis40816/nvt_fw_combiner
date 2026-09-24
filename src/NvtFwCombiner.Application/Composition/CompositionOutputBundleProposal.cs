@@ -50,14 +50,16 @@ public sealed class CompositionOutputBundleProposal
         string parentDirectory,
         string folderName,
         string? additionalDeliveryKind = null,
-        string? outputFileNameOverride = null)
+        string? outputFileNameOverride = null,
+        string? additionalOutputFileNameOverride = null)
     {
         return new CompositionOutputBundleIntent(
             Admission,
             parentDirectory,
             folderName,
             additionalDeliveryKind,
-            outputFileNameOverride);
+            outputFileNameOverride,
+            additionalOutputFileNameOverride);
     }
 }
 

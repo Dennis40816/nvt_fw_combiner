@@ -8,7 +8,8 @@ public sealed class CompositionOutputBundleIntent
         string parentDirectory,
         string folderName,
         string? additionalDeliveryKind = null,
-        string? outputFileNameOverride = null)
+        string? outputFileNameOverride = null,
+        string? additionalOutputFileNameOverride = null)
     {
         ArgumentNullException.ThrowIfNull(admission);
         ArgumentException.ThrowIfNullOrWhiteSpace(parentDirectory);
@@ -24,6 +25,12 @@ public sealed class CompositionOutputBundleIntent
         AdditionalDelivery = CompositionExecutionBundleDelivery.ResolveAdditionalDelivery(
             admission.OutputPreparation.AdditionalDeliveries,
             additionalDeliveryKind);
+        if (additionalOutputFileNameOverride is not null)
+        {
+            AdditionalDelivery = AdditionalDelivery is { } delivery
+                ? delivery.WithFileName(additionalOutputFileNameOverride)
+                : throw new ArgumentException("An additional filename requires a selected declared delivery.", nameof(additionalOutputFileNameOverride));
+        }
     }
 
     internal CompositionOutputBundleAdmission Admission { get; }

@@ -93,7 +93,6 @@ internal static class AcceptedCompositionExecutionRoutes
             ExperienceIds.StandardMerge => static (owner, request, progress, token) => owner.ExecuteStandardMergeAsync(request, progress, token),
             ExperienceIds.AbMerge => static (owner, request, progress, token) => owner.ExecuteAbMergeAsync(request, progress, token),
             ExperienceIds.GeneralMerge => static (owner, request, progress, token) => owner.ExecuteGeneralMergeAsync(request, progress, token),
-            ExperienceIds.DpReplace => static (owner, request, progress, token) => owner.ExecuteDpReplaceAsync(request, progress, token),
             ExperienceIds.CtrlRamReplace => static (owner, request, progress, token) => owner.ExecuteCtrlRamReplaceAsync(request, progress, token),
             ExperienceIds.GeneralReplace => static (owner, request, progress, token) => owner.ExecuteGeneralReplaceAsync(request, progress, token),
             _ => throw new InvalidOperationException($"Accepted workflow '{workflowId}' has no execution path."),

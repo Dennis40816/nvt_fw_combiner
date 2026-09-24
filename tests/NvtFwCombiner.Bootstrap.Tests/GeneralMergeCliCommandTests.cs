@@ -378,7 +378,12 @@ public sealed partial class GeneralMergeCliCommandTests
         Assert.False(rejected.Succeeded);
 
         string dp = workspace.Write("standard-dp.bin", new byte[0x40000]);
-        string tp = workspace.Write("standard-tp.bin", new byte[0x3C000]);
+        byte[] tpInput = new byte[0x3C000];
+        tpInput[0] = 0xA7;
+        tpInput[1] = 0x58;
+        tpInput[0x17] = 1;
+        "\0NVT"u8.CopyTo(tpInput.AsSpan(0xFFC));
+        string tp = workspace.Write("standard-tp.bin", tpInput);
         CompositionRunResult standardMerge = await StandardMergeTestSupport.RunAsync(BootstrapTestHost.Services,
             "NT51923",
             new Dictionary<string, string>(StringComparer.Ordinal)
@@ -392,19 +397,19 @@ public sealed partial class GeneralMergeCliCommandTests
         Assert.True(standardMerge.Succeeded);
 
         string baseImage = workspace.Write("replace-base.bin", new byte[0x40000]);
-        string replacementDp = workspace.Write("replace-dp.bin", new byte[0x40000]);
-        CliRunResult replace = await CliTestHarness.RunRetainedReplaceAsync(
+        string replacementDp = workspace.Write("replace-dp.bin", new byte[2]);
+        CliRunResult replace = await CliTestHarness.RunAsync(
             [
-                "dp-replace",
+                "general-replace",
                 "preview",
                 "--profile",
-                "NT51950",
+                "NT51926",
                 "--ic-num",
                 "single",
                 "--base",
                 baseImage,
-                "--dp",
-                replacementDp,
+                "--mapping",
+                $"0x3E020+0x2={replacementDp}",
             ],
             TestContext.Current.CancellationToken);
 

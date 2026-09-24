@@ -31,6 +31,17 @@ internal sealed record FixedProfileCapacity : CompositionProfileCapacity
 internal sealed record RuntimeRequestProfileCapacity()
     : CompositionProfileCapacity;
 
+/// <summary>Uses the complete accepted immutable source-slot extent in an explicitly bound envelope.</summary>
+internal sealed record SourceSlotProfileCapacity : CompositionProfileCapacity
+{
+    internal SourceSlotProfileCapacity(string sourceSlotId)
+    {
+        SourceSlotId = CanonicalPolicyValueRules.RequireCanonicalId(sourceSlotId, nameof(sourceSlotId));
+    }
+
+    internal string SourceSlotId { get; }
+}
+
 /// <summary>Base value for one normalized mutable-space initializer.</summary>
 internal abstract record CompositionProfileInitializer;
 

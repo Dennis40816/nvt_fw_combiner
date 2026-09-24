@@ -13,6 +13,14 @@ public sealed partial class RepositoryBoundaryTests
     private static int _materializationDriverLaunchCount;
     private static readonly string[] TrustIndexMutations =
     [
+        "legacy-schema",
+        "retired-workflow",
+        "unknown-workflow",
+        "disclosure-families-wrong-type",
+        "disclosure-family-version-wrong-type",
+        "disclosure-family-unknown-field",
+        "disclosure-family-duplicate",
+        "metadata-family-duplicate",
         "unknown-field",
         "source-traversal",
         "leading-dot-source",
@@ -65,11 +73,11 @@ public sealed partial class RepositoryBoundaryTests
                 PrepareManifestSchemaDriftCase(batchRoot, "entry-path"),
                 PrepareManifestSchemaDriftCase(batchRoot, "schema-id"),
             ];
-            if (cases.Count != 15 ||
-                cases.Select(static item => item.Id).Distinct(StringComparer.Ordinal).Count() != 15)
+            if (cases.Count != 23 ||
+                cases.Select(static item => item.Id).Distinct(StringComparer.Ordinal).Count() != 23)
             {
                 throw new InvalidOperationException(
-                    "The package-trust materialization batch must contain 15 distinct cases.");
+                    "The package-trust materialization batch must contain 23 distinct cases.");
             }
 
             string driverPath = Path.Combine(batchRoot, "PackageTrustMaterializationBatch.proj");
@@ -95,6 +103,43 @@ public sealed partial class RepositoryBoundaryTests
             "package-trust-index.json"));
         string changed = mutation switch
         {
+            "legacy-schema" => MutateTrustIndex(source, static root => root["schemaVersion"] = "1.4"),
+            "retired-workflow" or "unknown-workflow" => MutateTrustIndex(source, root =>
+            {
+                JsonObject bundle = root["bundles"]!.AsArray()[0]!.AsObject();
+                bundle["runtimeRegistrations"] = new JsonArray(new JsonObject
+                {
+                    ["workflowId"] = mutation == "retired-workflow" ? "dp-replace" : "unknown-workflow",
+                    ["icId"] = "NT12345",
+                    ["profileId"] = "synthetic-profile",
+                    ["profileVersion"] = "1.0.0",
+                });
+            }),
+            "disclosure-families-wrong-type" => MutateTrustIndex(source, static root =>
+            {
+                JsonObject bundle = root["bundles"]!.AsArray()[0]!.AsObject();
+                bundle["familyDisclosureFamilies"] = new JsonObject();
+            }),
+            "disclosure-family-version-wrong-type" => MutateTrustIndex(source, static root =>
+            {
+                JsonObject bundle = root["bundles"]!.AsArray()[0]!.AsObject();
+                bundle["familyDisclosureFamilies"] = new JsonArray(new JsonObject { ["familyId"] = "candidate-family", ["familyVersion"] = 123 });
+            }),
+            "disclosure-family-unknown-field" => MutateTrustIndex(source, static root =>
+            {
+                JsonObject bundle = root["bundles"]!.AsArray()[0]!.AsObject();
+                bundle["familyDisclosureFamilies"] = new JsonArray(new JsonObject { ["familyId"] = "candidate-family", ["familyVersion"] = "1.0.0", ["runtime"] = true });
+            }),
+            "disclosure-family-duplicate" => MutateTrustIndex(source, static root =>
+            {
+                JsonObject bundle = root["bundles"]!.AsArray()[0]!.AsObject();
+                bundle["familyDisclosureFamilies"] = root["bundles"]!.AsArray().First(static candidate => candidate!["familyDisclosureFamilies"] is not null)!["familyDisclosureFamilies"]!.DeepClone();
+            }),
+            "metadata-family-duplicate" => MutateTrustIndex(source, static root =>
+            {
+                JsonObject bundle = root["bundles"]!.AsArray()[0]!.AsObject();
+                bundle["metadataProviderFamilies"] = root["bundles"]!.AsArray().First(static candidate => candidate!["metadataProviderFamilies"] is not null)!["metadataProviderFamilies"]!.DeepClone();
+            }),
             "unknown-field" => source.Replace(
                 "\"trustIndexId\": \"built-in-profile-bundles\",",
                 "\"trustIndexId\": \"built-in-profile-bundles\",\n  \"executablePath\": \"forbidden.exe\",",
@@ -199,7 +244,7 @@ public sealed partial class RepositoryBoundaryTests
         JsonObject selectedBundle = trustIndex["bundles"]!.AsArray()
             .Select(static node => node!.AsObject())
             .Single(static bundle =>
-                bundle["bundleDirectory"]!.GetValue<string>() == "nt51928-dp-replace")
+                bundle["bundleDirectory"]!.GetValue<string>() == "nt51928-general-merge-logical-candidate")
             .DeepClone()
             .AsObject();
         trustIndex["bundles"] = new JsonArray(selectedBundle);
@@ -207,7 +252,7 @@ public sealed partial class RepositoryBoundaryTests
         string workspace = CreateCaseWorkspace(batchRoot, EntryHashDriftCaseId);
         string sourceRoot = Path.Combine(workspace, "built-in");
         CopyDirectory(Path.Combine(Root.FullName, "profiles", "built-in"), sourceRoot);
-        string copiedBundleRoot = Path.Combine(sourceRoot, "nt51928-dp-replace");
+        string copiedBundleRoot = Path.Combine(sourceRoot, "nt51928-general-merge-logical-candidate");
         using var manifest = JsonDocument.Parse(File.ReadAllText(Path.Combine(
             copiedBundleRoot,
             "profile-bundle.json")));
@@ -246,7 +291,7 @@ public sealed partial class RepositoryBoundaryTests
         JsonObject selectedBundle = trustIndex["bundles"]!.AsArray()
             .Select(static node => node!.AsObject())
             .Single(static bundle =>
-                bundle["bundleDirectory"]!.GetValue<string>() == "nt51928-dp-replace")
+                bundle["bundleDirectory"]!.GetValue<string>() == "nt51928-general-merge-logical-candidate")
             .DeepClone()
             .AsObject();
         trustIndex["bundles"] = new JsonArray(selectedBundle);
@@ -255,7 +300,7 @@ public sealed partial class RepositoryBoundaryTests
         string workspace = CreateCaseWorkspace(batchRoot, caseId);
         string sourceRoot = Path.Combine(workspace, "built-in");
         CopyDirectory(Path.Combine(Root.FullName, "profiles", "built-in"), sourceRoot);
-        string bundleRoot = Path.Combine(sourceRoot, "nt51928-dp-replace");
+        string bundleRoot = Path.Combine(sourceRoot, "nt51928-general-merge-logical-candidate");
         string manifestPath = Path.Combine(bundleRoot, "profile-bundle.json");
         JsonObject manifest = JsonNode.Parse(File.ReadAllText(manifestPath))!.AsObject();
         JsonObject entry = manifest["entries"]!.AsArray()

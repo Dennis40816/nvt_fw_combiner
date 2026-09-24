@@ -1,7 +1,7 @@
 # NVT FW Combiner（NFC）實作規格
 
-> 文件狀態：`1.1.9 Release candidate; final release gates pending`
-> 文件版本：`1.1.9`
+> 文件狀態：`1.1.10 Release candidate; final release gates pending`
+> 文件版本：`1.1.10`
 > 文件基準日期：`2026-09-10`
 > 產品名稱：`NVT FW Combiner`
 > 短名：`NFC`
@@ -30,11 +30,32 @@
 
 ## 0.1 Current owner priority
 
+The owner-approved `1.1.10` scope retires the dedicated `dp-replace`
+experience. Active UI/CLI authoring, typed services, runtime registrations and
+packaged DP profiles are removed. Old trusted declarations remain readable,
+but otherwise valid compilation reaching the existing Profiles `Succeed`
+boundary returns `profile.v2.plan.retired-experience` and no compiled artifact
+or public plan. Earlier admission failures keep their original typed result.
+The old CLI command must fail without General fallback or output/report side
+effects. Historical DP Report/History identities remain readable.
+
+This retirement preserves the single planner/executor, shared structural
+Replace lowering, canonical DP/LDC/TP facts, DPCMI and Perfect relationships.
+Generic full-image and CtrlRAM Reference metadata use explicit canonical family
+views and the shared catalog/inspector independently of DP execution. The five
+surviving experiences retain independent mutable sessions. CtrlRAM AB Replace
+is a separate 1.1.10 requirement whose bank/processor write authority and
+independent Golden evidence must be established before claiming support.
+The [delivery checklist](docs/ui/v1.1.10-delivery.md) distinguishes local
+implementation, verification, integration and remaining evidence.
+
+The following earlier version records describe the pre-retirement baseline:
+
 `0.10.7` is the internal final-effect candidate. By owner decision on
 2026-08-24, ordinary DP Replace authoring is hidden in `0.10.7` and the initial
 `1.0.0`; all profiles, compiler/executor semantics, publication/evidence facts,
 and Golden regressions remain retained. Published `v1.1.0` made no decision to
-retire or reopen the feature; that decision remains owner-unallocated. The
+retire or reopen the feature; the later owner retirement decision above supersedes that state. The
 preceding `0.10.6` managed-version implementation follows the owner-approved
 specification and ADR 0051. This does not waive the public `1.0.0`
 release/security gates. It builds on the
@@ -65,10 +86,10 @@ passing.
   `tp-shared`; the two ICs are not a perfect family. NT51928 admits one
   `0x40000` form without LDC that directly follows the shared NT51927
   composition and one `0x80000` form with its distinct LDC
-  `[0x40000,0x62000)`. Standard Merge and DP Replace each remain one public
+  `[0x40000,0x62000)`. Before DP retirement, Standard Merge and DP Replace each exposed one public
   capability. Standard Merge LDC absence selects the `0x40000` candidate;
   supplied LDC selects `0x80000` and must pass structural validation without
-  fallback. DP Replace resolves from accepted Reference length. NT51928 NB
+  fallback. The retired DP Replace resolved from accepted Reference length. NT51928 NB
   remains excluded.
 - The approved `0.10.x` NT51950/NT51951 target exposes single and the
   owner-confirmed exact
@@ -98,13 +119,14 @@ passing.
 - `v1.1.4` adds explicitly selected AB Dummy DP for NT51919/NT51929/NT51932, NT51950 single/cascade and selector-free NT51951, excluding NT51952. It defaults Off. Enabling requires confirmation that Dummy Byte `0xFF` replaces all non-TP output; Cancel leaves state unchanged. Confirmation clears only the DP selection, never its source file, disables DP input and preserves TP selections and same-TP behavior. Switching Off does not restore DP selection. The existing profile/compiler/planner/executor retains the approved TP placements, relocation and processor semantics while all non-TP output, including gaps and tails, is `0xFF`; absent DP never implicitly enables this mode. The [accepted Dummy map inventory](docs/ui/v1.1.x-ab-dummy-dp-handoff.md) owns the detailed ranges. Independent complete-output map-based tests and exact-write-range review verify Dummy behavior without claiming certified Dummy Golden or support promotion; AB Normal/Off retains its existing Golden obligations and firmware-owner gates.
 - The first `v0.9.14` AB pilot treats NT51919/NT51929/NT51932 as one owner-confirmed perfect family whose AB layout is version-independent and whose route does not depend on IC Number. Its exact 512 KiB DP_AB container exposes DP1 `[0x00000,0x40000)` and DP2 `[0x40000,0x80000)`; both banks reuse the same IC-owned three-byte CMI DP layout through separate typed views. TPA and TPB each require the complete compiled 256 KiB TP-native source view, may use the same or different firmware versions, and must each expose its own decoded TP version. Version metadata is informational and cannot select or reject the route; unreadable metadata displays `Unknown` plus a non-blocking warning. A shorter input remains Build-blocking because it does not cover the compiled required end. A compatible FlashCode may supply either TP view; non-authoritative trailing bytes are ignored without mutating the source, while the report preserves the actual source identity and accepted execution snapshot.
 - Firmware ranges, aliases, metadata locators, capability evidence, workflow profiles, and execution promotion must converge through the versioned family/profile bundle and one compiled composition boundary defined by ADR 0015. Migration preserves current promotion stages and blockers; map coverage never grants Build authority.
+- The 1.1.10 [TP count admission amendment](docs/adr/0035-ab-topology-operator-selection.md#2026-09-21-amendment-tp-count-validity-and-ab-pair-equality) requires each compiled `TpFirmware` input to expose a readable positive IC Count from its accepted source prefix. Zero and unreadable counts are distinct blocking errors in authoring and execution. Only AB compares TPA/TPB counts for equality; raw CtrlRAM sections, ReferenceImage and arbitrary General inputs retain their declared contracts.
 - Normal/Standard Merge includes NT51950 and NT51951 through the DP Perspective selected-container policy. Current owner golden cases are recorded; firmware-owner sign-off is still required before production promotion.
 - In AB Dummy DP, both DP filename tokens are `Dummy`, with no claimed DP version or source hash. Report records the compiled `0xFF` initialization provenance and one informational non-TP-fill message. TP tokens, UTC date and effective overrides are unchanged; AB Normal with unreadable DP metadata still uses its existing placeholder and warning.
 - CtrlRAM Replace requires legacy `combiner.exe` CRC/header recalculation after replacement. Combiner `1.13.0` is imported under `external-tools/legacy-combiner/1.13.0/` and is pinned by SHA-256 manifest.
 - Owner-provided postbuild scripts are the behavioral truth for CtrlRAM Replace command order; mmap files explain offsets and sizes; TP Overview is the documentation baseline to correct when it conflicts with postbuild/mmap evidence.
 - CtrlRAM postbuild command sequences must be generated as structured command/argv data and tested against the hsi Combiner guide, not assembled as one shell command string. NT51927 requires explicit single, 2IC, and 3IC Replace branches.
 - Output naming is profile-owned and resolves the selected canonical IC plus accepted execution snapshots. AB follows ADR 0036's `NT519xx_FlashCode_A_DmmmmTvvvv_B_DmmmmTvvvv_yyyyMMdd.bin` form; its DP tokens use CMI Reg16h-18h facts and its TP tokens use validated FW version/sub-version bytes. Every mode uses the one UTC run-start date and the effective user override as its public output/report identity. An existing output may be atomically replaced only when it is not any selected input path. UI never infers version bytes from file names.
-- NT51950/NT51951 normal Merge and DP Replace should use the DP image as the base container and overlay/preserve the TP range. Standard Merge DP inputs are limited to the owner-confirmed DP Perspective sizes `0x40000`, `0x80000`, and `0x100000`; the Standard Merge output length follows the selected DP input length. DP Replace must derive its work length from the selected base firmware length, which must be one of `0x40000`, `0x80000`, or `0x100000`; never hard-code the maximum container as the base. The replacement DP must exactly equal that selected base capacity (`0x40000↔0x40000`, `0x80000↔0x80000`, or `0x100000↔0x100000`); shorter-input padding and cross-capacity pairs are not admitted. The confirmed TP overlay range is `0x0A000-0x36FFF (len 0x2D000)`; `0x37000-0x37FFF (len 0x1000)` is customer info and must not be overwritten by the TP overlay.
+- NT51950/NT51951 normal Merge uses the DP image as the base container and overlays the TP range; the former DP Replace preservation contract below is historical. Standard Merge DP inputs are limited to the owner-confirmed DP Perspective sizes `0x40000`, `0x80000`, and `0x100000`; the Standard Merge output length follows the selected DP input length. Historically, before its 1.1.10 retirement, DP Replace derived its work length from the selected base firmware length, which must be one of `0x40000`, `0x80000`, or `0x100000`; never hard-code the maximum container as the base. The replacement DP must exactly equal that selected base capacity (`0x40000↔0x40000`, `0x80000↔0x80000`, or `0x100000↔0x100000`); shorter-input padding and cross-capacity pairs are not admitted. The confirmed TP overlay range is `0x0A000-0x36FFF (len 0x2D000)`; `0x37000-0x37FFF (len 0x1000)` is customer info and must not be overwritten by the TP overlay.
 - Other Standard Merge profiles extract only their declared DP source views. A DP artifact that
   reaches every required end offset may have an arbitrary total length; non-authoritative trailing
   bytes are ignored. An outer-length warning exists only when the profile explicitly declares
@@ -122,7 +144,7 @@ passing.
   processor, evidence, and support decision remains separately profile-declared.
   NT51928 NB is a separate IC and must not inherit either scope unless
   explicitly approved.
-- The pre-retirement compatibility runtime has a trusted V2 DP Replace route
+- The pre-retirement compatibility runtime had a trusted V2 DP Replace route
   for all 13 formerly selectable ICs. The `0.10.x` target retains only the
   non-retired profile set; #221 removes NT51920/NT51925/NT51930/NT51931 rather
   than migrating those routes. Retained Gen Flash routes clone an accepted
@@ -224,7 +246,7 @@ passing.
   FWConfig at `0x22200` into that fixed Backup; Replace does not relocate it.
   Their current Cascade applicability is exactly 2 IC. Wider counts and the
   NT51929-family count-derived Backup placement formula are not inferred.
-- FW Register ranges are first-class map evidence. REG Replace is represented as a pending capability over those regions, but remains without an executable profile or UI exposure until owner evidence is approved. Current executable Replace semantics remain DP Replace, CtrlRAM Replace, and General Replace; ordinary DP Replace authoring is hidden by canonical policy through the initial `1.0.0` without deleting those semantics.
+- FW Register ranges are first-class map evidence. REG Replace is represented as a pending capability over those regions, but remains without an executable profile or UI exposure until owner evidence is approved. Current executable Replace semantics are CtrlRAM Replace and General Replace. The dedicated DP experience is retired in 1.1.10; its canonical firmware facts and historical records remain.
 - Merge and Replace runs must produce a report modal after Preview/Build and persist run history. The report must show each operation step, input/output hashes, IC/IC-num context, normalized ranges, external Combiner command sequence, processor result, warnings, and final artifact path.
 - Per-IC Merge/Replace flowcharts live in [`docs/architecture/ic-workflow-flowcharts.md`](docs/architecture/ic-workflow-flowcharts.md). Any change to built-in merge profiles, replace profiles, CtrlRAM postbuild catalog, 950/951 DP policy, or supported IC workflow matrix must update that reference in the same change.
 - Real firmware golden evidence is still required before declaring end-to-end CtrlRAM Replace parity for a production IC profile.
@@ -256,7 +278,6 @@ Merge：
 
 Replace：
 
-- `dp-replace`：DP whole 或 profile-declared partitions；LDC replacement also belongs to DP Replace and may be modeled as a separate LDC replacement BIN/slot from the DP BIN；不再提供獨立 TP persona replace 分類。
 - `ctrlram-replace`：只操作 physical `owner = tp`、`kind = ctrlram` 的 named regions，或完全由
   這類 regions 組成的 approved groups。
 - `general-replace`：required reference BIN 加上一或多個 replacement BIN；使用者自由建立多筆 explicit mappings，但仍受 protected ranges、alignment、overlap、processor dependency 與 Preview/Build validation 約束。Any mapping that touches a TP-classified range must compile with an approved legacy Combiner CRC/header refresh after the replacement mutation.
@@ -887,7 +908,6 @@ Rule v2 consume that same value; General Replace cannot declare it.
 
 ### 10.6 Replace experiences
 
-- DP Replace：DP-focused; DP whole/declared-part access only. LDC replacement is included in this experience and may be supplied as its own LDC BIN。
 - CtrlRAM Replace：只允許 physical `owner = tp`、`kind = ctrlram` regions 或完全由它們組成的
   approved groups。
 - General：explicit mapping inside profile-approved envelope。
@@ -895,8 +915,8 @@ Rule v2 consume that same value; General Replace cannot declare it.
 The pre-retirement compatibility runtime implemented 31 modeled CtrlRAM
 interval/plan pairs. The `0.10.x` target does not preserve that inventory:
 #221 removes NT51920/NT51925/NT51930/NT51931 and #194 must not migrate or
-re-expose them. Retained executable/regression scope includes DP Replace and
-CtrlRAM Replace for
+re-expose them. After the separate 1.1.10 DP experience retirement, retained
+CtrlRAM Replace executable/regression scope covers
 NT51917, NT51919, NT51923, NT51926, NT51927, NT51928 non-NB, NT51929,
 NT51932, NT51950, and NT51951. NT51919/NT51929 follow the NT51932 fact scope.
 NT51928 non-NB shares only the explicitly referenced NT51927 Initial Code and
@@ -948,13 +968,10 @@ Reports and diagnostics are secondary surfaces. Preview/Build reports and diagno
 
 Replace taxonomy groups experiences by user mental model：
 
-- DP Replace（retained but hidden from ordinary authoring in `0.10.7` and the
-  initial `1.0.0`; published `v1.1.0` made no retirement-or-reopening decision,
-  which remains owner-unallocated）。
 - CtrlRAM Replace。
 - General Replace。
 
-The UI must make atomicity visible: whole-only, declared-parts, or explicit-range. Replace uses slot cards for firmware inputs and the same fixed-position Memory coverage before/after area as Merge. Retained DP Replace regression projections must allow profile-declared DP and LDC payloads to be separate files when the profile requires it, but the shipped selector does not enumerate that mode while its canonical authoring policy is unavailable. Memory coverage is visual-first; tables are supporting detail. Replace must expose an explicit IC num selector/input before profile regions and processor readiness are shown. Current ordinary-authoring priority is CtrlRAM Replace; General Replace retains its existing gated surface. IC num mode is profile-declared: two-option profiles use text choices such as `single` and `cascade`; three-or-more concrete IC-count profiles use numeric count selection with future room for Other/custom exceptions.
+The UI must make atomicity visible: whole-only, declared-parts, or explicit-range. Replace uses slot cards for firmware inputs and the same fixed-position Memory coverage before/after area as Merge. Retired DP projections are absent. Shared input, cancellation, layout and report behavior must retain regression coverage through surviving workflows. Memory coverage is visual-first; tables are supporting detail. Replace must expose an explicit IC num selector/input before profile regions and processor readiness are shown. Current ordinary-authoring priority is CtrlRAM Replace; General Replace retains its existing gated surface. IC num mode is profile-declared: two-option profiles use text choices such as `single` and `cascade`; three-or-more concrete IC-count profiles use numeric count selection with future room for Other/custom exceptions.
 
 ### 11.4 Preview/Build separation
 
@@ -1092,7 +1109,7 @@ to each `0.10.x` version.
 
 1. As a firmware operator, I want to select an IC and understandable IC Count, so that I never need to interpret internal topology terminology.
 2. As a firmware operator, I want each selected IC/count combination to expose only applicable workflows, slots, metadata, and integrity routes, so that unavailable behavior cannot appear usable.
-3. As a firmware operator, I want switching between Standard Merge, AB Merge, General Merge, DP Replace, CtrlRAM Replace, and General Replace to restore only compatible state, so that data from a previous mode cannot leak into the current page.
+3. As a firmware operator, I want switching between Standard Merge, AB Merge, General Merge, CtrlRAM Replace, and General Replace to restore only compatible state, so that data from a previous mode cannot leak into the current page.
 4. As a firmware operator, I want stale background inspection results rejected after an IC, count, slot, or file change, so that the UI cannot publish obsolete facts.
 5. As a firmware operator, I want a missing prerequisite to say which input must be loaded, so that a topology-dependent DP inspection can say `TP input pending` instead of showing an unexplained gray value.
 6. As a firmware operator, I want each file slot to remain compact while showing Checking, Verified, Warning, or Error through consistent icons and surfaces, so that status is clear without repeated badges.
@@ -1161,10 +1178,11 @@ to each `0.10.x` version.
     duplicated owners and compatibility paths are actually deleted rather than
     reorganized into equally large replacement modules or retained to chase an
     unsupported numeric forecast.
-56. As an NT51928 operator, I want one Standard Merge and one DP Replace
+56. As an NT51928 operator, I want one Standard Merge
     capability to resolve either the shared `0x40000` no-LDC form or the
     `0x80000` LDC form, so container differences do not create duplicate
-    profiles, routes, or Support Matrix rows.
+    profiles, routes, or Support Matrix rows. The former DP Replace portion
+    of this story is retired in 1.1.10; its canonical container facts remain.
 57. As a firmware operator, I want an applicable replacement group to require
     at least one selected part while leaving each member optional, and I want a
     uniform Initial Code/DP/TP/LDC region reported as a warning rather than a Build
@@ -1402,9 +1420,10 @@ to each `0.10.x` version.
   perfect family resolves DPCMI solely from CMD1 Page 0 `[0x401A,0x401D)`;
   AB retains its existing per-bank CMD Page resolution and General has no DPCMI
   reader. There is no fallback or second executable owner. Standard Merge
-  tracing is complete under CMD Page authority; integrating the already
-  profile-owned DP Replace inspection into this tracer, and remaining
-  headless-route tracer work, are separately scoped migrations.
+  tracing is complete under CMD Page authority. The proposed DP Replace tracer
+  migration was cancelled by the 1.1.10 retirement; surviving full-image
+  inspection uses canonical family views and the shared metadata owner.
+  Remaining headless-route tracer work retains its separate scope.
 
 #### Application use-case boundary
 
@@ -1568,7 +1587,8 @@ to each `0.10.x` version.
   equivalent route/materialization owners are deleted rather than renamed.
 - The 2026-08-09 authoring-state decision makes `AuthoringSessionState` and
   `CompiledAuthoringWorkflowService` the only production mutation path. The
-  desktop owns exactly one isolated session for each of the six workflows; a
+  desktop owns exactly one isolated session for each surviving workflow (five
+  after the 1.1.10 DP retirement, formerly six); a
   CLI invocation owns an isolated ephemeral session. IC, IC Count, slot,
   typed-draft, and Reload changes enter the same typed Application command
   path. One accepted user mutation advances `AuthoringRevision` exactly once
@@ -1580,7 +1600,7 @@ to each `0.10.x` version.
   `ICompositionAuthoringSession` methods, `Workbench*InputProjection`, and
   equivalent slot/draft reconstruction are deleted. Merge/Replace session-set
   wrappers are also deleted when they provide only grouping; Presentation owns
-  the six session instances directly rather than introducing another aggregate.
+  the five surviving session instances directly rather than introducing another aggregate.
 - The 2026-08-09 report-and-delivery decision makes
   `CompositionRunResult`/`CompositionRunReport` the complete typed outcome of
   the shared Build path. Profiles and the compiled composition declare each
@@ -1669,9 +1689,9 @@ to each `0.10.x` version.
     `SharedFactRelationship`; NT51928 retains its distinct LDC and complete
     container facts. NT51928 Standard Merge resolves one `0x40000` shared
     Initial-Code/TP variant when LDC is absent and one `0x80000` variant when
-    LDC is selected. NT51928 DP Replace resolves those variants from the
-    accepted Reference length. Neither workflow duplicates public routes or
-    Support Matrix rows.
+    LDC is selected. Before retirement, NT51928 DP Replace resolved those
+    variants from accepted Reference length. The surviving Standard capability
+    does not duplicate public routes or Support Matrix rows.
 11. An artifact or part declares metadata structures once. The common
     inspection plan contains structure references and resolved state only; a
     common inspector and formatter read the accepted immutable snapshot.
@@ -1763,9 +1783,9 @@ to each `0.10.x` version.
 23. Application owns the host-independent `AuthoringSessionState` model and
     transition policy, including IC/IC Count selection, slot-definition
     references, mapping drafts, `AuthoringRevision`, compatibility preservation,
-    and derived-state invalidation. The desktop Presentation owns exactly six
+    and derived-state invalidation. The desktop Presentation owns exactly five
     metadata-only in-memory instances—Standard Merge, AB Merge, General Merge,
-    DP Replace, CtrlRAM Replace, and General Replace—plus page, disclosure,
+    CtrlRAM Replace, and General Replace—plus page, disclosure,
     hover, file-picker, and localized display state. CLI creates an ephemeral
     instance over the same Application contract; Application does not maintain
     a process-global mutable session store.
@@ -1822,7 +1842,8 @@ to each `0.10.x` version.
     The selected-file lifecycle is not stored in the immutable artifact
     definition. An explicit selection group may reference individually optional
     `zero-or-one` slots and own a minimum/maximum selected count across only the
-    members applicable to the resolved map. NT51928 DP Replace groups Initial
+    members applicable to the resolved map. As a historical pre-retirement
+    example, NT51928 DP Replace grouped Initial
     Code and LDC with selected count `1..2`; before Reference inspection both
     dependent members are `PendingInput` with selection disabled. A `0x40000`
     Reference enables Initial Code as the sole required member, makes LDC
@@ -1907,7 +1928,7 @@ to each `0.10.x` version.
     Preview, and Build Report but does not alter map resolution, selection,
     execution admission, or output bytes. The rule is explicit per profile and
     is never inferred globally from artifact class, filename, or hash.
-    Standard Merge, AB Merge, DP Replace, and CtrlRAM Replace publish this
+    Standard Merge, AB Merge, and CtrlRAM Replace publish this
     terminal inspection health through the same Application result and reuse
     the compiler-owned input contract. Existing AB valid/warning/blocking
     behavior is migrated rather than copied. CtrlRAM's concrete binding length
@@ -1938,6 +1959,16 @@ fingerprint, compilation fingerprint, and authoring revision reach Preview and
 Build. The former `AuthoringRevision(0)` compiled-route bridge is deleted and
 must not be restored as a second admission or dependency catalog.
 
+CtrlRAM Base inspection automatically distinguishes Standard TP Code, Standard
+FlashCode and the existing trusted NT51929 AB FlashCode through the Application
+artifact-classification owner. Classification uses one immutable capture and
+the current canonical publication. Exact maps and declared bank ranges constrain
+inspection; capacity, filenames, marker counts or successful compilation alone
+do not identify the format. A recognized AB structure with invalid bank metadata
+or header/address relationships is terminal and must not fall back to Standard.
+A recognized format without an available exact Replace route remains unsupported.
+Presentation consumes the typed result and offers no manual Standard/AB override.
+
 #### Shared presentation
 
 31. File slots, information cards, range input, buttons, issue summaries,
@@ -1953,9 +1984,21 @@ must not be restored as a second admission or dependency catalog.
     parsing, or Build policy. Splitting more partial files without moving these
     responsibilities is not a completed refactor, and a generic replacement
     god ViewModel is forbidden.
-33. Compact fact grids use stacked, left-aligned label/value cells; responsive
-    layouts use one to three columns and expose at most four primary facts
-    before quiet inline disclosure.
+33. Compact fact grids use stacked, left-aligned label/value cells in one to
+    three responsive columns. Producers declare primary/detail presentation
+    priority from typed observations and slot role, independent of list order
+    or translated labels. TP/Base primary facts are available TP bank versions,
+    PID, Common FW and Event Buffer Format; DP slots prioritize DP Version and
+    Jira. IC Count and Base DP metadata use quiet Details disclosure. Warning,
+    pending and error facts remain visible. File identity precedes facts;
+    right-centered picker actions do not move when Details expands. The
+    owner-approved 2026-09-22 v7 layout supersedes the four-primary-fact limit.
+    Flash Reference facts come from its read-only inspection. AB facts identify
+    both declared banks independently of replacement selection; observing a bank
+    does not select it for writing. Equal typed PID/Common/count facts may share
+    an A/B label; differing facts keep separate bank labels. Missing, unreadable
+    and undeclared facts remain distinguishable and are never synthesized from
+    the other bank or selected mode. Undeclared fields use Details disclosure.
 34. Empty slots show the requirement. Selected slots replace requirement
     badges with one semantic state icon/surface. Hover, keyboard focus, and
     assistive technology expose the same localized reason and next action.
@@ -2119,7 +2162,7 @@ after the grill closes so issues do not become a competing draft specification.
 6. Standard Merge and AB byte behavior use approved full-output golden vectors
    where available. Fact-scoped aliases remain explicit and cannot be presented
    as direct product evidence.
-7. DP Replace and mapping-family migrations require at least one changed-input
+7. Surviving mapping-family migrations require at least one changed-input
    oracle that would fail for a no-op executor; self-replacement alone is
    insufficient.
 8. CtrlRAM Replace and General Replace processor migrations require command

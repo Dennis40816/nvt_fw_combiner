@@ -34,7 +34,8 @@ public sealed class CompositionRunReport(
     CompositionOutputBundleDeliverySummary? bundleDelivery = null,
     string? resolvedMapId = null,
     IReadOnlyList<InputDiagnosticSummary>? inputDiagnostics = null,
-    AbMergeFormatRunSummary? abMergeFormat = null)
+    AbMergeFormatRunSummary? abMergeFormat = null,
+    SourceEnvelopeRunSummary? sourceEnvelope = null)
 {
     /// <summary>Stable run id.</summary>
     public string RunId { get; } = CompositionSummaryValue.NotBlank(runId, nameof(runId));
@@ -103,6 +104,10 @@ public sealed class CompositionRunReport(
     public string? MapId { get; } = resolvedMapId is null
         ? null
         : CompositionSummaryValue.NotBlank(resolvedMapId, nameof(resolvedMapId));
+
+    /// <summary>Actual DP/output extent and canonical layout template, omitted for exact map runs.</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public SourceEnvelopeRunSummary? SourceEnvelope { get; } = sourceEnvelope;
 
     /// <summary>Compiled validation outcomes retained independently from operation execution.</summary>
     public IReadOnlyList<ValidationRunSummary> Validations { get; } = Array.AsReadOnly(
@@ -180,4 +185,35 @@ public sealed class CompositionRunReport(
                 "Input diagnostics must contain unique in-bounds issue indexes.",
                 nameof(inputDiagnostics));
     }
+}
+
+/// <summary>Path-free provenance for one captured DP extent compiled from a canonical layout template.</summary>
+public sealed class SourceEnvelopeRunSummary
+{
+    internal SourceEnvelopeRunSummary(SourceEnvelopeExtent envelope)
+    {
+        ArgumentNullException.ThrowIfNull(envelope);
+        SourceSlotId = envelope.SourceSlotId;
+        RootRegionId = envelope.RootRegionId;
+        LayoutTemplateMapId = envelope.LayoutTemplateMapId;
+        LayoutTemplateCapacity = envelope.LayoutTemplateCapacity;
+        ActualOutputLength = envelope.ActualOutputLength;
+        ExpectedOuterLengths = Array.AsReadOnly([.. envelope.ExpectedOuterLengths]);
+        UnexpectedLengthIssueCode = envelope.UnexpectedLengthIssueCode;
+    }
+
+    /// <summary>Captured DP slot that determined actual output length.</summary>
+    public string SourceSlotId { get; }
+    /// <summary>Canonical full-container region used for template anchors.</summary>
+    public string RootRegionId { get; }
+    /// <summary>Canonical map used for layout facts, not the actual output extent.</summary>
+    public string LayoutTemplateMapId { get; }
+    /// <summary>Canonical layout template capacity in bytes.</summary>
+    public long LayoutTemplateCapacity { get; }
+    /// <summary>Actual captured DP and compiled output length in bytes.</summary>
+    public long ActualOutputLength { get; }
+    /// <summary>Declared standard lengths used only for the advisory.</summary>
+    public IReadOnlyList<long> ExpectedOuterLengths { get; }
+    /// <summary>Typed nonblocking warning for this unexpected outer length.</summary>
+    public string UnexpectedLengthIssueCode { get; }
 }

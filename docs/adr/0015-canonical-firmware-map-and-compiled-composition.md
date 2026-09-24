@@ -2,7 +2,7 @@
 
 - Status: Accepted
 - Date: 2026-07-11
-- Last amended: 2026-08-09
+- Last amended: 2026-09-23
 - Owners: Product owner + architecture owner + firmware reviewers
 - Supersedes: ADR 0008 catalog-join ownership and the C# catalog ownership in
   ADR 0012/ADR 0013 after #194 compatibility migration; their firmware
@@ -92,6 +92,32 @@ and Application use cases without owning firmware facts. Application reads artif
 generic metadata/validation stages, runs Preview/Build, and renders reports. Presentation and CLI
 only project the Bootstrap facade.
 
+The 2026-09-20 memory-display amendment keeps content ownership separate from
+the last writer. Application's existing `MemoryLayoutProjector` publishes a
+nullable immutable `MemoryLayoutSegment.ContentSource`: input address space,
+slot, and an opaque artifact identity local to that snapshot. Accepted slots
+with the same normalized selected path and full `FileStamp` share identity,
+including when selected in different slots. Different paths remain distinct
+even with equal bytes. Unaccepted or unresolved inputs have no content identity.
+
+For map-bound AB Code content, an output-to-work copy, declared processor write,
+and exact work-to-output return may retain the original input content owner
+only when the projector proves the range correspondence and uninterrupted
+provenance. Unproven scratch imports retain unknown ownership. This describes
+display attribution; source spaces, contributing operations, write ranges,
+integrity policy and execution remain unchanged and available in reports.
+
+Presentation may join consecutive primary display slices only when they carry
+the same nonempty artifact identity and strictly adjacent ranges in the same
+known output address space. Titles, hashes, slot IDs and bank labels do not
+establish identity. The shared rail and below-rail legend use these display
+runs; all original parts, mixed fills, preservation details, diagnostics and
+operation facts remain inspectable. Existing CtrlRAM logical/partial focus
+groups and typed section locators retain their separate meanings. In
+particular, a TP section is not evidence that its replacement and retained
+reference bytes came from one BIN. This extends the existing projector and
+display owner without introducing a compiler, executor or migration seam.
+
 The 2026-07-26 amendment names the Application-owned read model
 `CanonicalCapabilityCatalog`. Profiles remains the only authority that normalizes, resolves, and
 compiles canonical family/profile definitions. Infrastructure loads and hash-validates trusted
@@ -144,6 +170,30 @@ schema, Domain, compiler, fingerprint, conformance, and evidence updates. An
 IC-specific branch or workaround is not an extension mechanism. Approved
 external processors remain manifest-pinned, staged, range-constrained adapters;
 they are not compiler plugins.
+
+### Bounded 1.1.10 admission reconciliation — 2026-09-23
+
+Two previously admitted boundaries qualify the blanket identity prohibition
+above. Neither is a general IC-onboarding mechanism. The existing compiler
+`Succeed` rejects the retired `dp-replace` experience before creating any
+artifact, as admitted by `DP-REPLACE-RETIREMENT-RUNTIME-110-01`. Moving this
+terminal check to a UI or registry would leave direct compilation exposed.
+
+`CTRLRAM-AB-LOCAL-PLAN-110-01` and `CTRLRAM-AB-RUNTIME-110-01` admit only the
+fixed NT51929 AB `nt51929-ab-merge` version `0.4.0` and local
+`nt51929-ctrlram-replace-fw200-single` version `0.3.0` pair. Its existing
+Profiles bank preparation verifies that exact pair and native preconditions;
+bank compilation projects the CtrlRAM candidate identity. It reuses the local
+compiled plan and the single executor, retains complete range/processor proof,
+and does not inherit Supported or independent Golden certification.
+
+Architecture guards pin the exact retirement, local selection, layout
+admission and candidate-identity snippets at their existing owners. Everything
+else remains subject to the identity prohibition. Adding another pair, native
+constant or identity branch requires a new admission; this reconciliation does
+not establish a generic bank compiler or declare a migration complete. A future
+schema-driven bank extension must replace these exact selectors and their
+bounded guard exceptions together, with equivalent negative and byte evidence.
 
 Each exact route has a stable `RouteId` composed only from IC, workflow, IC Count variant, and map
 variant. Integrity, processor, artifact, metadata, operation, and other executable semantics are
@@ -343,6 +393,11 @@ with no authorable route has `DefaultIcId == null` and empty selector collection
 profile-dependent query. Narrow ports register outer loader/compiler implementations without moving orchestration into
 Bootstrap, which retains no projection, materialization, fallback lookup, or second cache. UI and CLI query the Application
 snapshot; the migration `CanonicalCapabilityResolution*`/`CanonicalCapabilityProjection*` graph is deleted, not renamed.
+For the 1.1.10 initial selector, an authorable NT51950 is the preferred default IC.
+If NT51950 is unavailable, the existing deterministic route/workflow ranking
+selects another authorable IC; an empty publication still has no default. This
+preference applies only to initial selection and does not reset a still-valid
+user selection during reload.
 
 Authoring mutation has one state machine. `AuthoringSessionState` and
 `CompiledAuthoringWorkflowService` own all typed IC, IC Count, slot, draft, and

@@ -37,8 +37,8 @@ public sealed partial class AbMergeCliCommandTests
     {
         using var workspace = TempWorkspace.Create("nfc-ab-cli");
         string dpPath = workspace.Write("dp-ab.bin", new byte[0x80000]);
-        string tpAPath = workspace.Write("tp-a.bin", new byte[0x40000]);
-        string tpBPath = workspace.Write("tp-b.bin", new byte[0x40000]);
+        string tpAPath = workspace.Write("tp-a.bin", CreateTp(0x80, 0));
+        string tpBPath = workspace.Write("tp-b.bin", CreateTp(0x80, 0));
         string reportPath = workspace.PathFor("ab-report.json");
         string logicalOutputPath = workspace.PathFor("logical-ab-output.bin");
 
@@ -62,7 +62,7 @@ public sealed partial class AbMergeCliCommandTests
             TestContext.Current.CancellationToken);
 
         Assert.Equal(0, result.ExitCode);
-        Assert.Contains("output-naming.metadata-unknown", result.Error, StringComparison.Ordinal);
+        Assert.Empty(result.Error);
         Assert.Contains("Status: Succeeded", result.Output, StringComparison.Ordinal);
         using var report = JsonDocument.Parse(await File.ReadAllTextAsync(
             reportPath,
@@ -76,7 +76,7 @@ public sealed partial class AbMergeCliCommandTests
         Assert.True(naming.GetProperty("IsExplicitOverride").GetBoolean());
         Assert.Equal("logical-ab-output.bin", naming.GetProperty("ActualFileName").GetString());
         Assert.Matches(
-            $"^{expectedIcId}_FlashCode_A_D0000Txxxx_B_D0000Txxxx_[0-9]{{8}}\\.bin$",
+            $"^{expectedIcId}_FlashCode_A_D0000T8000_B_D0000T8000_[0-9]{{8}}\\.bin$",
             naming.GetProperty("AutomaticFileName").GetString());
         Assert.False(File.Exists(logicalOutputPath));
     }
@@ -136,7 +136,7 @@ public sealed partial class AbMergeCliCommandTests
     /// <summary>NT51950 Cascade names read its profile-owned DP CMI locations, never TP metadata or a presentation bank offset.</summary>
     [Theory]
     [InlineData(2, 0x85016)]
-    [InlineData(3, 0x45016)]
+    [InlineData(3, 0x85016)]
     public async Task Nt51950CascadePreviewUsesProfileOwnedCmiPositionsForAutomaticNameAsync(byte chipCount, int bCmiOffset)
     {
         using var workspace = TempWorkspace.Create("nfc-nt51950-ab-cli-output-name");
@@ -224,8 +224,8 @@ public sealed partial class AbMergeCliCommandTests
     {
         using var workspace = TempWorkspace.Create("nfc-ab-cli-build");
         string dpPath = workspace.Write("dp-ab.bin", new byte[0x80000]);
-        string tpAPath = workspace.Write("tp-a.bin", new byte[0x40000]);
-        string tpBPath = workspace.Write("tp-b.bin", new byte[0x40000]);
+        string tpAPath = workspace.Write("tp-a.bin", CreateTp(0x80, 0));
+        string tpBPath = workspace.Write("tp-b.bin", CreateTp(0x80, 0));
         string outputPath = workspace.PathFor("requested-ab-output.bin");
 
         CliRunResult result = await CliTestHarness.RunAsync(
@@ -246,7 +246,7 @@ public sealed partial class AbMergeCliCommandTests
             TestContext.Current.CancellationToken);
 
         Assert.Equal(0, result.ExitCode);
-        Assert.Contains("output-naming.metadata-unknown", result.Error, StringComparison.Ordinal);
+        Assert.Empty(result.Error);
         Assert.Contains("Status: Succeeded", result.Output, StringComparison.Ordinal);
         Assert.Contains($"Committed: {outputPath}", result.Output, StringComparison.Ordinal);
         Assert.Equal(0x80000, new FileInfo(outputPath).Length);
@@ -258,8 +258,8 @@ public sealed partial class AbMergeCliCommandTests
     {
         using var workspace = TempWorkspace.Create("nfc-ab-cli-automatic-output");
         string dpPath = workspace.Write("dp-ab.bin", new byte[0x80000]);
-        string tpAPath = workspace.Write("tp-a.bin", new byte[0x40000]);
-        string tpBPath = workspace.Write("tp-b.bin", new byte[0x40000]);
+        string tpAPath = workspace.Write("tp-a.bin", CreateTp(0x80, 0));
+        string tpBPath = workspace.Write("tp-b.bin", CreateTp(0x80, 0));
         IReadOnlyDictionary<string, string> slots = new Dictionary<string, string>(StringComparer.Ordinal)
         {
             [CompositionAddressSpaceIds.DpAbInput] = dpPath,
@@ -413,7 +413,7 @@ public sealed partial class AbMergeCliCommandTests
     private static byte[] CreateTp(
         byte firmwareVersion,
         byte firmwareSubVersion,
-        byte chipCount = 0,
+        byte chipCount = 1,
         int length = 0x40000)
     {
         byte[] image = new byte[length];

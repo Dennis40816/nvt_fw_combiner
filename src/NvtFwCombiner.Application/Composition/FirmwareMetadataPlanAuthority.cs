@@ -34,7 +34,6 @@ public interface IFirmwareMetadataPlanAuthorityResolver
         string icId,
         FirmwareInspectionSnapshotInput input,
         long inputLength,
-        FirmwareInspectionStatusBatch dpInputBatch,
         FirmwareInspectionStatusBatch standardMergeInputBatch,
         FirmwareInspectionStatusBatch ctrlRamInputBatch);
 }
@@ -46,24 +45,25 @@ public interface IFirmwareMetadataPlanAuthorityResolver
 /// capacity-bound metadata-only catalog query.
 /// </summary>
 public sealed class FirmwareMetadataPlanAuthorityResolver(
-    ICanonicalCapabilityQuery catalog) : IFirmwareMetadataPlanAuthorityResolver
+    ICanonicalCapabilityQuery catalog,
+    IStandardMergeMetadataPlanQuery standardMergeMetadata) : IFirmwareMetadataPlanAuthorityResolver
 {
     private readonly ICanonicalCapabilityQuery _catalog =
         catalog ?? throw new ArgumentNullException(nameof(catalog));
+    private readonly IStandardMergeMetadataPlanQuery _standardMergeMetadata =
+        standardMergeMetadata ?? throw new ArgumentNullException(nameof(standardMergeMetadata));
 
     /// <inheritdoc />
     public FirmwareMetadataPlanAuthority Resolve(
         string icId,
         FirmwareInspectionSnapshotInput input,
         long inputLength,
-        FirmwareInspectionStatusBatch dpInputBatch,
         FirmwareInspectionStatusBatch standardMergeInputBatch,
         FirmwareInspectionStatusBatch ctrlRamInputBatch)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(icId);
         ArgumentNullException.ThrowIfNull(input);
         ArgumentOutOfRangeException.ThrowIfNegative(inputLength);
-        ArgumentNullException.ThrowIfNull(dpInputBatch);
         ArgumentNullException.ThrowIfNull(standardMergeInputBatch);
         ArgumentNullException.ThrowIfNull(ctrlRamInputBatch);
 
@@ -76,12 +76,6 @@ public sealed class FirmwareMetadataPlanAuthorityResolver(
         {
             return FirmwareMetadataPlanAuthority.Terminal(
                 standardMergeInputBatch.ExactMetadataPlan);
-        }
-
-        if (input.DpReplaceAddressSpaceId is not null)
-        {
-            return FirmwareMetadataPlanAuthority.Terminal(
-                dpInputBatch.ExactMetadataPlan);
         }
 
         if (input.CtrlRamReplaceAddressSpaceId is not null)
@@ -103,22 +97,21 @@ public sealed class FirmwareMetadataPlanAuthorityResolver(
             // owns report classification, not the Base's read-only DP facts.
             // Resolve those through the same metadata-only port used before
             // any replacement is selected; this grants no DP write authority.
-            return ResolveGeneric(
-                icId,
-                ExperienceIds.DpReplace,
-                "1-ic",
-                inputLength);
+            return ResolveFullImage(icId, inputLength);
         }
 
         bool hasDistinctTpArtifact = !string.IsNullOrWhiteSpace(input.TpPath) &&
             !StringComparer.Ordinal.Equals(input.Path, input.TpPath);
-        return ResolveGeneric(
-            icId,
-            hasDistinctTpArtifact
-                ? ExperienceIds.StandardMerge
-                : ExperienceIds.DpReplace,
-            hasDistinctTpArtifact ? "selector-free" : "1-ic",
-            inputLength);
+        return hasDistinctTpArtifact
+            ? ResolveGeneric(icId, ExperienceIds.StandardMerge, "selector-free", inputLength)
+            : ResolveFullImage(icId, inputLength);
+    }
+
+    private FirmwareMetadataPlanAuthority ResolveFullImage(string icId, long inputLength)
+    {
+        MetadataPlanResolutionResult resolution = _catalog.ResolveFullImageMetadataPlan(
+            IcIdentifier.Normalize(icId), inputLength);
+        return FirmwareMetadataPlanAuthority.Terminal(resolution.MetadataPlan, resolution.Issue);
     }
 
     private FirmwareMetadataPlanAuthority ResolveGeneric(
@@ -127,6 +120,18 @@ public sealed class FirmwareMetadataPlanAuthorityResolver(
         string icCountVariant,
         long inputLength)
     {
+        if (StringComparer.Ordinal.Equals(workflowId, ExperienceIds.StandardMerge))
+        {
+            MetadataPlanResolutionResult? dynamicResolution =
+                _standardMergeMetadata.ResolveSourceEnvelopeMetadataPlan(
+                    IcIdentifier.Normalize(icId), inputLength);
+            if (dynamicResolution is not null)
+            {
+                return FirmwareMetadataPlanAuthority.Terminal(
+                    dynamicResolution.MetadataPlan, dynamicResolution.Issue);
+            }
+        }
+
         MetadataPlanResolutionResult resolution =
             _catalog.ResolveUniqueMetadataPlan(
                 IcIdentifier.Normalize(icId),

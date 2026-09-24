@@ -1,0 +1,56 @@
+{
+  "schemaVersion": 2,
+  "taskId": "MEMORY-CONTENT-110-01",
+  "capability": "Input artifact attribution and adjacent memory display runs with below-rail legend",
+  "integrationBase": "b9a94a2bab1a7bc05129b3438f0c0afeaaf45ad4",
+  "risk": "R2",
+  "kind": "ui",
+  "state": "final-complete",
+  "mutablePaths": [
+    "src/NvtFwCombiner.Application/MemoryLayout/MemoryLayoutModels.cs",
+    "src/NvtFwCombiner.Application/MemoryLayout/MemoryLayoutProjector.cs",
+    "src/NvtFwCombiner.Application/MemoryLayout/MemoryLayoutProjector.ContentSource.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/UiCompositionRunner.Common.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MemoryCoverageSegmentViewModel.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MemoryCoverageBarProjection.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/Views/MemoryCoverageBar.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/Views/MemoryCoverageBar.Legend.cs",
+    "tests/NvtFwCombiner.Application.Tests/MemoryLayout/MemoryLayoutProjectorTests.ContentSource.cs",
+    "tests/NvtFwCombiner.Bootstrap.Tests/MemoryContentSourceProjectionTests.cs",
+    "tests/NvtFwCombiner.UiSmoke.Tests/MemoryCoverageContentGroupingTests.cs",
+    "tests/NvtFwCombiner.UiSmoke.Tests/MemoryCoveragePopupTests.Hierarchy.cs",
+    "tests/NvtFwCombiner.UiSmoke.Tests/MemoryCoveragePopupTests.LegendRows.cs",
+    "tests/NvtFwCombiner.UiSmoke.Tests/MemoryCoverageLegendTests.cs",
+    "docs/adr/0015-canonical-firmware-map-and-compiled-composition.md",
+    "tests/NvtFwCombiner.UiSmoke.Tests/CtrlRamMemoryLayoutTests.cs",
+    "tests/NvtFwCombiner.UiSmoke.Tests/MemoryCoveragePopupTests.Lifecycle.cs"
+  ],
+  "implementationOwner": "root",
+  "searchEvidence": [
+    "Scoped codegraph and source inspection of MemoryLayoutProjector, AuthoringSlotState, AcceptedSessionExecutionInputs, UiCompositionRunner.Common and MemoryCoverageBarProjection identifies existing owners; no parallel projection is needed.",
+    "Existing LogicalCoverageGroupId intentionally groups CtrlRAM replacement and retained reference slices for partial detail; it cannot stand for artifact identity.",
+    "Owner approved adjacent same loaded BIN coalescing, different BIN separation, TP ownership of AB postbuild imports and below-rail legend on 2026-09-20."
+  ],
+  "semanticOwner": "Application.MemoryLayoutProjector owns immutable content-source attribution; Presentation MemoryCoverageBarProjection consumes that identity for display only; original logical grouping and operation sources remain authoritative.",
+  "terminalContract": "Same accepted normalized path and full FileStamp share a snapshot-local artifact identity across slots; unknown identity never merges. Main display coalesces only strict adjacency in one output address space. Proven AB map-bound staged processor round trips inherit prior content ownership without changing writer operations. CtrlRAM retained/replacement, mixed fills, partial details and diagnostics remain visible. No firmware bytes, plans or profiles change.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "/root/layout_ownership_review",
+    "outcome": "approved",
+    "evidence": "Independent R2 design admission on 2026-09-20: extend existing immutable MemoryLayoutSegment with nullable ContentSource(SourceSpaceId, SourceSlotId, ArtifactIdentity); derive identity only from accepted selected path plus FileStamp. Bound AB content inheritance to proven output-to-work processor round trips with overlap/provenance guards. Preserve legacy logical grouping and raw segment facts; merge only presentation runs and retain parts/state/severity. Add source-identity, adversarial round-trip, real NT51950 AB and CtrlRAM regression evidence."
+  },
+  "implementationHead": "183a0d3652a81fb30dcb977d6ff1338f0f3bcd0f",
+  "reviewedHead": "183a0d3652a81fb30dcb977d6ff1338f0f3bcd0f",
+  "pathStateDigest": "6d3972ea25d43ee2434bc20868359b49744644ccc95ff32b365dc5bae4b2df9c",
+  "finalReview": {
+    "reviewer": "/root/r2_final_review",
+    "outcome": "approved",
+    "evidence": "Independent exact-head R1/R2 rebind review on 2026-09-25 at 183a0d3652a81fb30dcb977d6ff1338f0f3bcd0f: reviewed the complete 85795b141..183a0d365 two-document delta and this record's original mutablePaths. Immutable admission and independent review remain intact; both final heads and the committed Git path-state digest bind 183a0d365. The 48-record checkpoint diff has 355 uniquely owned governed paths, with scripts/verify.py owned only by VERIFY-1110-DOTNET-COVERAGE-DEADLINE-01; no new mutable or integration path is needed. The afc203f9c nonstructure verifier pass and b9b5ddf5d 25-Direct release Golden pass remain attributed to their actual sources. The exact-183 structure-only run exited 1 solely for 17 missing R3 authorities, reported as 36 pending/batch-closure diagnostics, with no admission, digest or partition error. Earlier 900-second failures and 857 reviews remain dated history; this review does not approve R3, AB candidate Golden, --all, CI or release. Earlier dated evidence follows: Independent /root/r2_final_review exact-head technical re-review on 2026-09-25 at 85795b1416c689bfd484806d0425b9c06dfec9c1. Compared all original mutable paths and the complete 022219d53-to-reviewed six-path delta; immutable admissions remain unchanged and the 355-governed-path final partition has no gap or duplicate. Earlier dated failures describe their own source, not the current gate. The afc203f9c full nonstructure verifier and b9b5ddf5d 25 Direct Golden passed; structure, --all, AB candidate Golden and external R3 authority remain open. Earlier dated review evidence follows: Independent /root/r2_final_review exact-head rebind confirmation on 2026-09-24 at 022219d53bbb24e5434ab4f6185df3c0019e6890. Immutable first-active admission and all original mutablePaths retained; current committed Git path-state digest 6d3972ea25d43ee2434bc20868359b49744644ccc95ff32b365dc5bae4b2df9c. The 45-record/355-governed-path partition is unique and prior substantive no-P0-P2 review remains applicable. The only 871c6810e..current delta is non-governed CHANGELOG prose. Full verifier is still failing; R3 owner and release gates remain separate. Earlier dated review evidence follows: Independent exact-head delta review on 2026-09-24 at d6b8ad31957b173ab82b46616159c2826d167368, sealed checkpoint b9a94a2bab1a7bc05129b3438f0c0afeaaf45ad4. Rechecked immutable first-active admission, all original mutablePaths, exact committed Git path-state digest and uniquely assigned integrationPaths within the complete 354-path governed diff. The only f853..d6 changes are the new roadmap allocation, its delivery evidence and its design-active record; none changes this record's admitted paths or prior f853 substantive findings. Prior f853 review evidence follows: Independent /root/r2_final_review exact-source final review on 2026-09-24 at f85348ed56ebeabe2ddbdfdcae3856d5fb3321e3, derived sealed checkpoint b9a94a2bab1a7bc05129b3438f0c0afeaaf45ad4. Verified unchanged first-active admission, all 17 original mutable paths, exact committed Git path-state digest, and 4 uniquely assigned integration paths within the complete 354-path governed diff. No original mutable path changed after the prior 3203f8ffe substantive review; its conclusion remains applicable. No remaining P0-P2 for this record; R3 external authority and release gates remain separate. No new P0-P2; scoped Polytail PASS-WITH-HUMAN-GATE for record-level review only. Full verifier, R3 external authority and release gates remain separate."
+  },
+  "integrationPaths": [
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MemoryCoverageBarProjection.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MemoryCoverageSegmentViewModel.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/Views/MemoryCoverageBar.Legend.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/Views/MemoryCoverageBar.cs"
+  ]
+}

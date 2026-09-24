@@ -1,12 +1,12 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://example.invalid/nfc/schemas/canonical-capability-policy-v1.schema.json",
-  "title": "NVT FW Combiner Canonical Capability Policy 1.0",
+  "title": "NVT FW Combiner Canonical Capability Policy 1.1",
   "type": "object",
   "additionalProperties": false,
   "required": ["schemaVersion", "catalogId", "catalogVersion", "issuedOn", "routes"],
   "properties": {
-    "schemaVersion": { "const": "1.0" },
+    "schemaVersion": { "const": "1.1" },
     "catalogId": { "const": "canonical-capability-policy" },
     "catalogVersion": { "$ref": "#/$defs/semver" },
     "issuedOn": { "$ref": "#/$defs/isoDate" },
@@ -86,7 +86,7 @@
       "properties": {
         "icId": { "type": "string", "pattern": "^NT[0-9]{5}$" },
         "workflowId": {
-          "enum": ["standard-merge", "ab-merge", "dp-replace", "ctrlram-replace", "general-merge", "general-replace"]
+          "enum": ["standard-merge", "ab-merge", "ctrlram-replace", "general-merge", "general-replace"]
         },
         "icCountVariant": { "$ref": "#/$defs/nonBlank" },
         "mapVariant": { "$ref": "#/$defs/nonBlank" },

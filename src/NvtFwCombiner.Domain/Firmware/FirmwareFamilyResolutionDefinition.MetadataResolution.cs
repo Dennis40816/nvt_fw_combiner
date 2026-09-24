@@ -36,7 +36,34 @@ public sealed partial class FirmwareFamilyResolutionDefinition
                 : throw new KeyNotFoundException(
                     $"Image map '{mapId}' does not select metadata structure '{metadataStructureId}'.");
 
-        return ResolveMetadataStructureCore(map, structure, inputs);
+        return ResolveMetadataStructureCore(map, structure, inputs.Artifacts, inputs.RequestedTopology);
+    }
+
+    /// <summary>Reads an exact declared view from one captured full image without resolving an execution map.</summary>
+    public FirmwareMetadataStructureResolution ResolveMetadataStructure(
+        FirmwareFullImageMetadataView view,
+        string memberId,
+        FirmwareFullImageMetadataBinding binding,
+        FirmwareArtifactPayload fullImage)
+    {
+        ArgumentNullException.ThrowIfNull(view);
+        ArgumentException.ThrowIfNullOrWhiteSpace(memberId);
+        ArgumentNullException.ThrowIfNull(binding);
+        ArgumentNullException.ThrowIfNull(fullImage);
+        if (FullImageMetadataViews is null ||
+            !FullImageMetadataViews.Any(candidate => ReferenceEquals(candidate, view)) ||
+            !view.MemberIds.Contains(memberId, StringComparer.Ordinal) ||
+            !view.MetadataBindings.Any(candidate => ReferenceEquals(candidate, binding)) ||
+            fullImage.LengthBytes != view.ImageMap.CapacityBytes)
+        {
+            throw new ArgumentException("Full-image inspection requires the exact family view, member and selected binding.", nameof(view));
+        }
+
+        FirmwareArtifactPayload[] artifacts = [.. view.MetadataBindings
+            .Select(static selected => selected.Structure.ArtifactBindingId)
+            .Distinct(StringComparer.Ordinal)
+            .Select(id => new FirmwareArtifactPayload(id, fullImage.Bytes))];
+        return ResolveMetadataStructureCore(view.ImageMap, binding.Structure, artifacts, requestedTopology: null);
     }
 
     private FirmwareMetadataStructureResolution ResolveMetadataStructureCore(
@@ -44,7 +71,16 @@ public sealed partial class FirmwareFamilyResolutionDefinition
         FirmwareMetadataStructure structure,
         FirmwareMapResolutionInputs inputs)
     {
-        FirmwareArtifactPayload? artifact = inputs.Artifacts.FirstOrDefault(candidate =>
+        return ResolveMetadataStructureCore(map, structure, inputs.Artifacts, inputs.RequestedTopology);
+    }
+
+    private FirmwareMetadataStructureResolution ResolveMetadataStructureCore(
+        FirmwareImageMap map,
+        FirmwareMetadataStructure structure,
+        IReadOnlyList<FirmwareArtifactPayload> artifacts,
+        TopologySelection? requestedTopology)
+    {
+        FirmwareArtifactPayload? artifact = artifacts.FirstOrDefault(candidate =>
             StringComparer.Ordinal.Equals(candidate.ArtifactId, structure.ArtifactBindingId));
         if (artifact is null)
         {
@@ -61,7 +97,8 @@ public sealed partial class FirmwareFamilyResolutionDefinition
                 structure,
                 selected,
                 artifact,
-                inputs);
+                artifacts,
+                requestedTopology);
         }
 
         if (!TryResolveLocator(
@@ -98,7 +135,7 @@ public sealed partial class FirmwareFamilyResolutionDefinition
                 map.MapId,
                 artifact.Identity,
                 structure,
-                inputs.RequestedTopology,
+                requestedTopology,
                 locatorOutcome,
                 decoded));
     }
@@ -108,7 +145,8 @@ public sealed partial class FirmwareFamilyResolutionDefinition
         FirmwareMetadataStructure structure,
         FirmwareMetadataFieldSelectedLocator locator,
         FirmwareArtifactPayload artifact,
-        FirmwareMapResolutionInputs inputs)
+        IReadOnlyList<FirmwareArtifactPayload> artifacts,
+        TopologySelection? requestedTopology)
     {
         if (!TryResolveStructure(
             map.MapId,
@@ -124,7 +162,7 @@ public sealed partial class FirmwareFamilyResolutionDefinition
             prerequisiteStructure.StructureId,
             locator.PrerequisiteFieldId);
         FirmwareMetadataStructureResolution prerequisiteResolution =
-            ResolveMetadataStructureCore(map, prerequisiteStructure, inputs);
+            ResolveMetadataStructureCore(map, prerequisiteStructure, artifacts, requestedTopology);
         if (prerequisiteResolution.Status == FirmwareMetadataStructureResolutionStatus.Pending)
         {
             return FirmwareMetadataStructureResolution.PendingForPrerequisite(
@@ -204,7 +242,7 @@ public sealed partial class FirmwareFamilyResolutionDefinition
                 map.MapId,
                 artifact.Identity,
                 structure,
-                inputs.RequestedTopology,
+                requestedTopology,
                 outcome,
                 decoded));
     }

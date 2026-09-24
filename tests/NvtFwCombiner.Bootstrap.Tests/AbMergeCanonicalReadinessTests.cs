@@ -57,7 +57,7 @@ public sealed partial class AbMergeRuntimeAdmissionTests
                 AbMergeAddressSpaceId: CompositionAddressSpaceIds.DpAbInput),
             new(
                 CompositionAddressSpaceIds.TpAInput,
-                workspace.Write("tp-tail.bin", new byte[TpLength + 1]),
+                workspace.Write("tp-tail.bin", CreateTpImage(0x81, 0, chipCount: 1, length: TpLength + 1)),
                 AbMergeAddressSpaceId: CompositionAddressSpaceIds.TpAInput),
         ];
 
@@ -69,8 +69,9 @@ public sealed partial class AbMergeRuntimeAdmissionTests
             AuthoringSlotLifecycle.Error,
             results[CompositionAddressSpaceIds.DpAbInput].InputSlotStatus!.InspectionLifecycle);
         Assert.Equal(
-            AuthoringSlotLifecycle.Warning,
+            AuthoringSlotLifecycle.Verified,
             results[CompositionAddressSpaceIds.TpAInput].InputSlotStatus!.InspectionLifecycle);
+        Assert.Equal(new ByteRange(0, TpLength), results[CompositionAddressSpaceIds.TpAInput].InputSlotStatus!.Inspection!.AcceptedSnapshotRange);
     }
 
     /// <summary>Readiness observations and Build naming share one raw AB version decoder.</summary>
@@ -80,9 +81,10 @@ public sealed partial class AbMergeRuntimeAdmissionTests
         using var workspace = TempWorkspace.Create("nfc-ab-version-decoder-parity");
         Dictionary<string, string> paths = WriteInputs(workspace);
         byte[] tpAWithIgnoredTail = new byte[TpLength + 17];
+        CreateTpImage(0x81, 0, chipCount: 1).CopyTo(tpAWithIgnoredTail, 0);
         tpAWithIgnoredTail[^1] = 0xA5;
         paths[CompositionAddressSpaceIds.TpAInput] = workspace.Write(
-            "tp-a-unknown-with-tail.bin",
+            "tp-a-with-tail.bin",
             tpAWithIgnoredTail);
         FirmwareInspectionSnapshotInput[] inputs =
         [

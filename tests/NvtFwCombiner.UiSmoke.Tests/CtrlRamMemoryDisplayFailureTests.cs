@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Avalonia.Automation;
 using Avalonia.Controls;
 using Avalonia.Headless.XUnit;
@@ -21,14 +22,14 @@ public sealed class CtrlRamMemoryDisplayFailureTests
     public async Task InvalidDisplayBindingDoesNotBlockValidCascadeInputs(bool dark)
     {
         using var workspace = TempWorkspace.Create("ctrlram-display-failure");
-        // The shipped 951 has no alternate Replace mode. The Dark case uses the
-        // existing test-only retained DP policy solely to exercise mode cleanup.
-        PresentationHostServices original = await CreateServicesAsync(workspace, useRetainedDpReplacePolicy: dark);
+        // NT51951 validates the cascade preview. NT51926 provides the two surviving Replace modes.
+        PresentationHostServices original = await CreateServicesAsync(workspace);
         bool failDisplay = true;
+        bool failFirstRegion = false;
         var inspection = new DelegatingFirmwareInspection(original.Composition.FirmwareInspection,
             displayProjector: display => !failDisplay ? display : display with
             {
-                Regions = [.. display.Regions.Select(region => region.Role == CtrlRamRegionRole.DiffDlm
+                Regions = [.. display.Regions.Select((region, index) => region.Role == CtrlRamRegionRole.DiffDlm || (failFirstRegion && index == 0)
                     ? region with { Length = region.Length - 1 } : region)],
             });
         var services = new PresentationHostServices(original.Composition.WithFirmwareInspection(inspection),
@@ -89,9 +90,25 @@ public sealed class CtrlRamMemoryDisplayFailureTests
             AssertPreviewUnavailable(shell.Replace);
             if (dark)
             {
-                Assert.Contains(ExperienceIds.DpReplace, shell.Replace.ReplaceModeChoices);
-                shell.Replace.SelectedReplaceMode = ExperienceIds.DpReplace;
-                Assert.Equal(ExperienceIds.DpReplace, shell.Replace.SelectedReplaceMode);
+                shell.WorkflowSession.SelectedIc = "NT51926";
+                shell.WorkflowSession.SelectedNumber = "single";
+                shell.Replace.SelectedReplaceMode = ExperienceIds.CtrlRamReplace;
+                failFirstRegion = true;
+                JsonElement singleCase = CanonicalGoldenTestData.LoadDirectCase(
+                    "ctrlram-replace", "nt51926-fw200-single-auto-prj-597-20260718");
+                string singleBase = CanonicalGoldenTestData.ArtifactPath(singleCase.GetProperty("artifacts").EnumerateArray()
+                    .Single(artifact => artifact.GetProperty("artifactId").GetString() == "expected-output"));
+                string singleSource = CanonicalGoldenTestData.ArtifactPath(singleCase.GetProperty("artifacts").EnumerateArray()
+                    .Single(artifact => artifact.GetProperty("artifactId").GetString() == "normal-ctrlram-input"));
+                await shell.WorkflowSession.SetSlotFileAsync("replace-base", singleBase, TestContext.Current.CancellationToken);
+                await shell.WorkflowSession.SetSlotFileAsync("replace-ctrlram-normal", singleSource, TestContext.Current.CancellationToken);
+                Assert.Equal("NT51926", shell.WorkflowSession.SelectedIc);
+                Assert.Equal(ExperienceIds.CtrlRamReplace, shell.Replace.SelectedReplaceMode);
+                Assert.True(shell.Replace.CanBuildReplace, shell.Replace.ReplaceReadinessStatus);
+                Assert.True(shell.Replace.HasMemoryLayoutDisplayError);
+                Assert.Contains(ExperienceIds.GeneralReplace, shell.Replace.ReplaceModeChoices);
+                shell.Replace.SelectedReplaceMode = ExperienceIds.GeneralReplace;
+                Assert.Equal(ExperienceIds.GeneralReplace, shell.Replace.SelectedReplaceMode);
                 Assert.False(shell.Replace.HasMemoryLayoutDisplayError);
             }
             Assert.Empty(shell.Reports.ReportHistoryEntries);

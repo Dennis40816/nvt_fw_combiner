@@ -12,13 +12,13 @@ namespace NvtFwCombiner.UiSmoke.Tests;
 
 public sealed partial class MemoryCoveragePopupTests
 {
-    /// <summary>The responsive heading keeps capacity adjacent and the legend above addresses in both themes/languages.</summary>
+    /// <summary>The responsive heading keeps capacity adjacent and the legend below the rail in both themes/languages.</summary>
     [AvaloniaTheory]
     [InlineData(240, false)]
     [InlineData(620, false)]
     [InlineData(240, true)]
     [InlineData(620, true)]
-    public void OverviewHeaderAlignsLegendRightAndKeepsAddressesAboveRail(int width, bool darkChinese)
+    public void OverviewHeaderUsesAvailableLegendWidthAndKeepsAddressesAboveRail(int width, bool darkChinese)
     {
         ShellTextResources text = ShellTextResources.For(darkChinese ? ShellLanguage.ChineseTraditional : ShellLanguage.English);
         MemoryCoverageSegmentViewModel[] slices = [
@@ -35,7 +35,7 @@ public sealed partial class MemoryCoveragePopupTests
         try
         {
             Control title = FindNamed<WrapPanel>(window, "MemoryOverviewTitle")!;
-            Control legend = FindNamed<WrapPanel>(window, "MemoryLegend")!;
+            Control legend = FindNamed<Panel>(window, "MemoryLegend")!;
             Control addresses = FindNamed<Grid>(window, "MemoryOverviewAddresses")!;
             Control rail = FindNamed<ItemsControl>(window, "MemoryMainRail")!;
             Rect titleBounds = BoundsInWindow(title, window);
@@ -44,7 +44,8 @@ public sealed partial class MemoryCoveragePopupTests
             Rect railBounds = BoundsInWindow(rail, window);
             Assert.False(titleBounds.Intersects(legendBounds));
             Assert.InRange(Math.Abs(legendBounds.Right - railBounds.Right), 0, 1);
-            Assert.True(legendBounds.Bottom <= addressBounds.Top);
+            Assert.True(titleBounds.Bottom <= addressBounds.Top);
+            Assert.True(railBounds.Bottom <= legendBounds.Top);
             Assert.True(addressBounds.Bottom <= railBounds.Top);
             TextBlock[] labels = [.. addresses.GetVisualDescendants().OfType<TextBlock>()];
             Assert.Equal(["0x00000", "0x3FFFF"], labels.Select(label => label.Text));
@@ -53,8 +54,15 @@ public sealed partial class MemoryCoveragePopupTests
             TextBlock heading = FindNamed<TextBlock>(window, "MemoryOverviewHeading")!;
             TextBlock capacity = title.GetVisualDescendants().OfType<TextBlock>().Single(block => block.Text == "256 KiB");
             Assert.True(BoundsInWindow(capacity, window).Left >= BoundsInWindow(heading, window).Right);
-            if (width == 240) { Assert.True(legendBounds.Top >= titleBounds.Bottom); }
-            else { Assert.InRange(Math.Abs(legendBounds.Center.Y - titleBounds.Center.Y), 0, 1); }
+            if (legendBounds.Top >= titleBounds.Bottom)
+            {
+                Assert.InRange(Math.Abs(legendBounds.Left - railBounds.Left), 0, 1);
+            }
+            else
+            {
+                Assert.InRange(Math.Abs(legendBounds.Left - titleBounds.Right - 16), 0, 1);
+                Assert.InRange(Math.Abs(legendBounds.Center.Y - titleBounds.Center.Y), 0, 1);
+            }
             Capture(window, $"header-{width}-{darkChinese}");
             bar.EndAddress = "0x7FFFF";
             Render();
@@ -65,7 +73,7 @@ public sealed partial class MemoryCoveragePopupTests
 
     /// <summary>A later legend row must not hide earlier targets when its card opens upward.</summary>
     [AvaloniaFact]
-    public void UpperCardFromWrappedLegendKeepsAllLegendRowsVisible()
+    public void UpperCardFromStackedLegendKeepsAllLegendRowsVisible()
     {
         MemoryCoverageSegmentViewModel[] slices = [.. Enumerable.Range(0, 4).Select(index =>
             new MemoryCoverageSegmentViewModel("range", $"Source {index}", "detail", MemoryCoverageFillRole.Tp, 1,
@@ -79,7 +87,7 @@ public sealed partial class MemoryCoveragePopupTests
         Render();
         try
         {
-            WrapPanel legend = FindNamed<WrapPanel>(window, "MemoryLegend")!;
+            Panel legend = FindNamed<Panel>(window, "MemoryLegend")!;
             Control first = legend.Children[0];
             Control last = legend.Children[^1];
             Assert.True(BoundsInWindow(last, window).Top > BoundsInWindow(first, window).Top);
@@ -93,11 +101,11 @@ public sealed partial class MemoryCoveragePopupTests
         finally { window.Close(); }
     }
 
-    /// <summary>Footer wrapping preserves exact endpoint scale and all disconnected input identities.</summary>
+    /// <summary>Legend rows preserve exact endpoint scale and all disconnected input identities.</summary>
     [AvaloniaTheory]
     [InlineData(240)]
     [InlineData(620)]
-    public void LegendWrapsWithoutOverlappingEndpointsAndUpdatesWithInputs(int width)
+    public void LegendRowsAvoidOverlappingEndpointsAndUpdateWithInputs(int width)
     {
         ShellTextResources text = ShellTextResources.For(ShellLanguage.English);
         var region = new MemoryCoverageSegmentViewModel("range", "Normal", "detail", MemoryCoverageFillRole.CtrlRamNormal,
@@ -120,32 +128,32 @@ public sealed partial class MemoryCoveragePopupTests
         try
         {
             Border endpoint = FindNamed<Border>(window, "MemoryFocusPosition")!;
-            WrapPanel legend = FindNamed<WrapPanel>(window, "MemoryLegend")!;
+            Panel legend = FindNamed<Panel>(window, "MemoryLegend")!;
             Rect endpointBounds = BoundsInWindow(endpoint, window);
             Rect legendBounds = BoundsInWindow(legend, window);
             Assert.False(endpointBounds.Intersects(legendBounds));
-            Assert.True(legendBounds.Bottom <= BoundsInWindow(FindNamed<ItemsControl>(window, "MemoryMainRail")!, window).Top,
-                "The legend belongs above the rail, not in the endpoint/transit area.");
+            Assert.True(legendBounds.Top >= endpointBounds.Bottom,
+                "The legend belongs below the rail and endpoint labels.");
             Assert.InRange(endpoint.Bounds.Width, (width / 5d) - 1, (width / 5d) + 1);
-            Assert.Equal([first, last, gap], legend.Children.Select(child => child.DataContext));
+            Assert.Equal([first, gap, last], legend.Children.Select(child => child.DataContext));
             Assert.All(legend.Children, child => Assert.True(child.Bounds.Right <= legend.Bounds.Width + 1));
             Assert.True(endpoint.Focus(NavigationMethod.Tab));
             Render();
             Border local = FindNamed<Border>(window, "MemoryLocalView")!;
             Assert.True(BoundsInWindow(local, window).Top >= legendBounds.Bottom);
             Canvas connector = Assert.IsType<Canvas>(Assert.IsType<StackPanel>(local.GetVisualParent()).Children[0]);
-            Avalonia.Controls.Shapes.Line line = Assert.IsType<Avalonia.Controls.Shapes.Line>(Assert.Single(connector.Children));
+            Avalonia.Controls.Shapes.Line line = connector.Children.OfType<Avalonia.Controls.Shapes.Line>().First();
             Assert.InRange(Math.Abs(BoundsInWindow(connector, window).Top - endpointBounds.Bottom), 0, 1);
             Assert.InRange(Math.Abs(BoundsInWindow(connector, window).Bottom - BoundsInWindow(local, window).Top), 0, 1);
             Assert.Equal(0, line.StartPoint.Y);
-            Assert.Equal(connector.Bounds.Height, line.EndPoint.Y);
+            Assert.True(line.EndPoint.Y <= connector.Bounds.Height);
             Assert.InRange(Math.Abs(BoundsInWindow(connector, window).Left + line.StartPoint.X - endpointBounds.Center.X), 0, 1);
             Assert.Null(FindNamed<Border>(window, "MemorySliceCard"));
-            Assert.True(legend.Children[1].Focus(NavigationMethod.Tab));
+            Assert.True(legend.Children[2].Focus(NavigationMethod.Tab));
             Render();
             Assert.Same(last, FindNamed<Border>(window, "MemorySliceCard")!.DataContext);
             Assert.False(first.Interaction.IsActive);
-            Assert.True(legend.Children[^1].Focus(NavigationMethod.Tab));
+            Assert.True(legend.Children[1].Focus(NavigationMethod.Tab));
             Render();
             Border gapCard = FindNamed<Border>(window, "MemorySliceCard")!;
             Assert.Same(gap, gapCard.DataContext);

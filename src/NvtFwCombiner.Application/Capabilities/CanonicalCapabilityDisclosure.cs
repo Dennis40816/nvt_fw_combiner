@@ -16,8 +16,6 @@ public sealed class CanonicalCapabilityDisclosure
         _profileSummariesByWorkflow;
     private readonly ReadOnlyDictionary<string, CapabilityNumberChoice[]>
         _numberChoicesByIc;
-    private readonly ReadOnlyDictionary<string, long[]>
-        _dpReferenceCapacitiesByIc;
     private readonly ReadOnlyDictionary<string, CapabilityFamilySummary>
         _familyByIc;
     private readonly HashSet<string> _dpPerspectiveIcs;
@@ -27,14 +25,11 @@ public sealed class CanonicalCapabilityDisclosure
             profileSummariesByWorkflow,
         IReadOnlyDictionary<string, IReadOnlyList<CapabilityNumberChoice>>
             numberChoicesByIc,
-        IReadOnlyDictionary<string, IReadOnlyList<long>>
-            dpReferenceCapacitiesByIc,
         IReadOnlyDictionary<string, CapabilityFamilySummary> familyByIc,
         IEnumerable<string> dpPerspectiveIcs)
     {
         ArgumentNullException.ThrowIfNull(profileSummariesByWorkflow);
         ArgumentNullException.ThrowIfNull(numberChoicesByIc);
-        ArgumentNullException.ThrowIfNull(dpReferenceCapacitiesByIc);
         ArgumentNullException.ThrowIfNull(familyByIc);
         ArgumentNullException.ThrowIfNull(dpPerspectiveIcs);
 
@@ -51,11 +46,6 @@ public sealed class CanonicalCapabilityDisclosure
                 static pair => IcIdentifier.Normalize(pair.Key),
                 static pair => pair.Value.ToArray(),
                 StringComparer.Ordinal));
-        _dpReferenceCapacitiesByIc = new ReadOnlyDictionary<string, long[]>(
-            dpReferenceCapacitiesByIc.ToDictionary(
-                static pair => IcIdentifier.Normalize(pair.Key),
-                static pair => pair.Value.Distinct().Order().ToArray(),
-                StringComparer.Ordinal));
         _familyByIc = new ReadOnlyDictionary<string, CapabilityFamilySummary>(
             familyByIc.ToDictionary(
                 static pair => IcIdentifier.Normalize(pair.Key),
@@ -71,7 +61,6 @@ public sealed class CanonicalCapabilityDisclosure
             StringComparer.Ordinal),
         new Dictionary<string, IReadOnlyList<CapabilityNumberChoice>>(
             StringComparer.Ordinal),
-        new Dictionary<string, IReadOnlyList<long>>(StringComparer.Ordinal),
         new Dictionary<string, CapabilityFamilySummary>(StringComparer.Ordinal),
         []);
 
@@ -92,15 +81,6 @@ public sealed class CanonicalCapabilityDisclosure
                 IcIdentifier.Normalize(icId),
                 out CapabilityNumberChoice[]? choices)
             ? Array.AsReadOnly(choices)
-            : [];
-    }
-
-    internal IReadOnlyList<long> GetDpReferenceCapacities(string icId)
-    {
-        return _dpReferenceCapacitiesByIc.TryGetValue(
-                IcIdentifier.Normalize(icId),
-                out long[]? capacities)
-            ? Array.AsReadOnly(capacities)
             : [];
     }
 

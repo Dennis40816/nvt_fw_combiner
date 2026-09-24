@@ -9,6 +9,8 @@ namespace NvtFwCombiner.Application.Capabilities;
 /// </summary>
 public sealed class CapabilitySelectorPublication
 {
+    private const string PreferredDefaultIcId = "NT51950";
+
     private readonly ReadOnlyCollection<string> _icIds;
     private readonly ReadOnlyCollection<string> _abMergeIcIds;
     private readonly ReadOnlyDictionary<string, ReadOnlyCollection<string>>
@@ -171,16 +173,18 @@ public sealed class CapabilitySelectorPublication
                 .Distinct(StringComparer.Ordinal)
                 .Order(StringComparer.Ordinal),
         ];
-        string? defaultIcId = authorableIdentities
-            .GroupBy(static identity => identity.IcId, StringComparer.Ordinal)
-            .OrderByDescending(static group => group.Count())
-            .ThenByDescending(static group => group
-                .Select(static identity => identity.WorkflowId)
-                .Distinct(StringComparer.Ordinal)
-                .Count())
-            .ThenBy(static group => group.Key, StringComparer.Ordinal)
-            .Select(static group => group.Key)
-            .FirstOrDefault();
+        string? defaultIcId = icIds.Contains(PreferredDefaultIcId, StringComparer.Ordinal)
+            ? PreferredDefaultIcId
+            : authorableIdentities
+                .GroupBy(static identity => identity.IcId, StringComparer.Ordinal)
+                .OrderByDescending(static group => group.Count())
+                .ThenByDescending(static group => group
+                    .Select(static identity => identity.WorkflowId)
+                    .Distinct(StringComparer.Ordinal)
+                    .Count())
+                .ThenBy(static group => group.Key, StringComparer.Ordinal)
+                .Select(static group => group.Key)
+                .FirstOrDefault();
         Dictionary<string, IReadOnlyList<string>> workflowsByIc = icIds
             .ToDictionary(
                 static icId => icId,

@@ -304,7 +304,7 @@ internal sealed partial class MergePresentationViewModel
             return;
         }
         RefreshMergeMemoryMapState();
-        _stateBindings.ResetRunResult();
+        _stateBindings.ResetRunResult(CaptureRunContext(GeneralMergeMode));
         RefreshCommandState();
     }
 }

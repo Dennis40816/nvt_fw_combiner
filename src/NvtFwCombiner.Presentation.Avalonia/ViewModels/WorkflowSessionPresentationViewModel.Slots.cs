@@ -110,7 +110,7 @@ internal sealed partial class WorkflowSessionPresentationViewModel
         {
             NotifySlotFileOutputNames();
         }
-        _stateBindings.ResetRunResult();
+        ResetRunResults(page == ShellPage.Merge ? WorkflowInspectionOwner.Merge : WorkflowInspectionOwner.Replace, allModes: true);
         _stateBindings.RefreshCommandState();
     }
 
@@ -168,7 +168,7 @@ internal sealed partial class WorkflowSessionPresentationViewModel
         }
 
         NotifySlotFileOutputNames();
-        _stateBindings.ResetRunResult();
+        ResetRunResults(context.Owner, context.Mode);
         _stateBindings.RefreshCommandState();
         Task refresh = context.IsMerge
             ? RefreshSelectedMergeFirmwareInspectionsAsync(cancellationToken: cancellationToken)

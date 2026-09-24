@@ -5,35 +5,6 @@ namespace NvtFwCombiner.Cli;
 
 internal static partial class ReplaceCliCommandHandler
 {
-    private static bool TryResolveReplaceIc(
-        ICompositionCapabilityExperience capabilities,
-        string command,
-        string selector,
-        [NotNullWhen(true)] out string? icId)
-    {
-        return (command == ExperienceIds.DpReplace &&
-                TryResolveDpProfile(capabilities, selector, out icId)) ||
-            TryResolveIc(capabilities, selector, out icId);
-    }
-
-    private static bool TryResolveDpProfile(
-        ICompositionCapabilityExperience capabilities,
-        string selector,
-        [NotNullWhen(true)] out string? icId)
-    {
-        string normalized = selector.Trim();
-        icId = capabilities.GetDpReplaceProfileSummaries()
-            .FirstOrDefault(profile =>
-                string.Equals(profile.ProfileId, normalized, StringComparison.OrdinalIgnoreCase) ||
-                string.Equals(profile.IcId, normalized, StringComparison.OrdinalIgnoreCase) ||
-                string.Equals(
-                    CliCompositionRunSupport.GetIcNumber(profile.IcId),
-                    normalized,
-                    StringComparison.OrdinalIgnoreCase))?
-            .IcId;
-        return icId is not null;
-    }
-
     private static bool TryResolveIc(
         ICompositionCapabilityExperience capabilities,
         string selector,

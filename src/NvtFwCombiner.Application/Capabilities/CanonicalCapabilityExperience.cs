@@ -56,20 +56,7 @@ public sealed class CanonicalCapabilityExperience : ICompositionCapabilityExperi
         return new CapabilityCatalogSummary(
             selector.IcIds.Count,
             GetProfileSummaries(snapshot, ExperienceIds.StandardMerge).Count,
-            GetProfileSummaries(snapshot, ExperienceIds.DpReplace).Count,
             CountAuthorableIcs(selector, ExperienceIds.CtrlRamReplace));
-    }
-
-    /// <inheritdoc />
-    public string? GetDpReplaceReferenceCapacityLabel(string icId)
-    {
-        IReadOnlyList<long> capacities = _catalog.GetCurrentSnapshot()
-            .Disclosure.GetDpReferenceCapacities(icId);
-        return capacities.Count == 0
-            ? null
-            : string.Join(
-                " / ",
-                capacities.Select(static capacity => $"0x{capacity:X}"));
     }
 
     /// <inheritdoc />
@@ -86,12 +73,6 @@ public sealed class CanonicalCapabilityExperience : ICompositionCapabilityExperi
     }
 
     /// <inheritdoc />
-    public IReadOnlyList<CapabilityProfileSummary> GetDpReplaceProfileSummaries()
-    {
-        return GetProfileSummaries(ExperienceIds.DpReplace);
-    }
-
-    /// <inheritdoc />
     public CapabilityWorkflowReadiness GetReplaceWorkflowReadiness(
         string icId,
         string replaceMode)
@@ -101,24 +82,16 @@ public sealed class CanonicalCapabilityExperience : ICompositionCapabilityExperi
         string normalizedIcId = IcIdentifier.Normalize(icId);
         string? workflowId = replaceMode switch
         {
-            ExperienceIds.DpReplace => ExperienceIds.DpReplace,
             ExperienceIds.CtrlRamReplace => ExperienceIds.CtrlRamReplace,
             ExperienceIds.GeneralReplace => ExperienceIds.GeneralReplace,
             _ => null,
         };
-        bool isDpReplace = StringComparer.Ordinal.Equals(
-            workflowId,
-            ExperienceIds.DpReplace);
         string unsupportedReason = workflowId is null
             ? "The selected Replace mode is not declared by the canonical capability contract."
-            : isDpReplace
-                ? "DP Replace authoring is hidden until the 1.1.0 retirement decision."
-                : "No owner-approved executable and safety contract is registered for this IC and Replace mode.";
+            : "No owner-approved executable and safety contract is registered for this IC and Replace mode.";
         string openCondition = workflowId is null
             ? "Add an owner-reviewed capability definition, profile/safety contract, and full-byte evidence."
-            : isDpReplace
-                ? "At 1.1.0, owner must retire the route or re-enable authoring after approved AB/non-AB admission evidence."
-                : "Owner must reactivate the scope with a safe executable contract, direct evidence, and firmware-owner review.";
+            : "Owner must reactivate the scope with a safe executable contract, direct evidence, and firmware-owner review.";
         return CapabilityWorkflowReadinessProjector.Project(
             _supportMatrix.Query().Matrix,
             normalizedIcId,

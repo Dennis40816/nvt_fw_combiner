@@ -18,6 +18,7 @@ public sealed class CompositionRunReportTests
             report, null, null, null, null, null, null);
         using JsonDocument json = JsonDocument.Parse(CompositionRunReportJson.Serialize(result));
         Assert.False(json.RootElement.TryGetProperty("AbMergeFormat", out _));
+        Assert.False(json.RootElement.TryGetProperty("SourceEnvelope", out _));
         Assert.Equal(CompositionRunReportJson.ReadCompleteness.Recognized,
             CompositionRunReportJson.AssessReadCompleteness(json.RootElement, TestContext.Current.CancellationToken));
     }

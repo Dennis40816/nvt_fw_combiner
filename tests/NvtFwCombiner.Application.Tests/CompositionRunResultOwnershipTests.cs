@@ -97,7 +97,8 @@ public sealed class CompositionRunResultOwnershipTests
                 "general-merge",
                 CompositionKind.Merge),
             "run-result-ownership.bin",
-            null);
+            null,
+            nonReferenceArtifactClass: CompiledInputArtifactClass.Auxiliary);
         return new CompositionRunRequest(
             "run-result-ownership",
             compiled,
@@ -106,7 +107,7 @@ public sealed class CompositionRunResultOwnershipTests
                 "ownership-input",
                 "ownership-input-artifact",
                 "ownership-input.bin",
-                CompiledInputArtifactClass.TpFirmware)],
+                CompiledInputArtifactClass.Auxiliary)],
             "run-result-ownership.bin");
     }
 }

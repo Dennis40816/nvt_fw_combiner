@@ -6,6 +6,7 @@ internal sealed partial class OutputDeliveryConfirmationViewModel
     private string _acceptedBundleFolderName = string.Empty;
     private bool _nameEditReverted;
     private bool IsOutputNameValid { get; set; }
+    private enum OutputNameField { Primary, Additional, Folder }
 
     internal void BeginBundleDestinationEdit()
     {
@@ -19,7 +20,7 @@ internal sealed partial class OutputDeliveryConfirmationViewModel
     internal void CompleteBundleDestinationEdit()
     {
         if (!IsBundleDestinationEditing) { return; }
-        _nameEditReverted = !IsEditedNameAcceptable(outputName: false);
+        _nameEditReverted = !IsEditedNameAcceptable(OutputNameField.Folder);
         if (_nameEditReverted) { BundleFolderName = _acceptedBundleFolderName; }
         else { _acceptedBundleFolderName = BundleFolderName; }
         IsBundleDestinationEditing = false;
@@ -40,7 +41,7 @@ internal sealed partial class OutputDeliveryConfirmationViewModel
     internal void CompleteOutputFileNameEdit()
     {
         if (!IsOutputFileNameEditing) { return; }
-        _nameEditReverted = !IsEditedNameAcceptable(outputName: true);
+        _nameEditReverted = !IsEditedNameAcceptable(OutputNameField.Primary);
         if (_nameEditReverted) { OutputFileName = _acceptedOutputFileName; }
         else { _acceptedOutputFileName = OutputFileName; }
         IsOutputFileNameEditing = false;
@@ -61,21 +62,30 @@ internal sealed partial class OutputDeliveryConfirmationViewModel
         OnPropertyChanged(nameof(OutputFileNameUsesAutomaticName));
     }
 
-    private bool IsEditedNameAcceptable(bool outputName)
+    private bool IsEditedNameAcceptable(OutputNameField field)
     {
-        string value = outputName ? OutputFileName : BundleFolderName;
+        string value = field switch
+        {
+            OutputNameField.Primary => OutputFileName,
+            OutputNameField.Additional => AdditionalOutputFileName,
+            OutputNameField.Folder => BundleFolderName,
+            _ => throw new ArgumentOutOfRangeException(nameof(field)),
+        };
         if (_outputNaming.ValidateName(value) is not null) { return false; }
         if (!BundleEnabled || _request is null || string.IsNullOrWhiteSpace(ParentDirectory)) { return true; }
 
         // Commit one field against the other committed value, never its unrelated draft.
-        string folder = outputName ? _acceptedBundleFolderName : value;
-        string primary = outputName ? value : _acceptedOutputFileName;
+        string folder = field == OutputNameField.Folder ? value : _acceptedBundleFolderName;
+        string primary = field == OutputNameField.Primary ? value : _acceptedOutputFileName;
+        string additional = field == OutputNameField.Additional ? value : _acceptedAdditionalOutputFileName;
         try
         {
             CompositionOutputBundleIntent intent = _request.Proposal.CreateIntent(
                 ParentDirectory, folder,
                 AdditionalDeliveryEnabled ? _request.AdditionalDelivery?.DeliveryKind : null,
-                outputFileNameOverride: StringComparer.Ordinal.Equals(primary, CanonicalOutputFileName) ? null : primary);
+                outputFileNameOverride: StringComparer.Ordinal.Equals(primary, CanonicalOutputFileName) ? null : primary,
+                additionalOutputFileNameOverride: AdditionalDeliveryEnabled &&
+                    !StringComparer.Ordinal.Equals(additional, AdditionalSuggestedFileName) ? additional : null);
             return !_outputNaming.ValidateBundleDestination(intent).Issues.Any(static issue =>
                 issue.Code is CompositionOutputBundleValidationIssueCodes.NameInvalid or
                     CompositionOutputBundleValidationIssueCodes.NameReserved or

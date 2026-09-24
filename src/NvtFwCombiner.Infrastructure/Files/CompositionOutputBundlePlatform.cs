@@ -49,7 +49,7 @@ internal sealed class FileSystemCompositionOutputBundleDestinationValidator :
             ValidateName(intent.OutputFileName, "Primary output filename", issues);
             if (intent.AdditionalDelivery is { } additional)
             {
-                ValidateName(additional.SuggestedFileName, "Bundle additional-delivery filename", issues);
+                ValidateName(additional.FileName, "Bundle additional-delivery filename", issues);
             }
 
             foreach (CompositionExecutionBundleSource source in intent.Sources)
@@ -64,7 +64,7 @@ internal sealed class FileSystemCompositionOutputBundleDestinationValidator :
                 ValidatePath(resolvedDirectory, issues);
                 List<string> artifactNames = AtomicBundlePathRules.AllocateArtifactNames(
                     intent.OutputFileName,
-                    intent.AdditionalDelivery is null ? [] : [intent.AdditionalDelivery.SuggestedFileName],
+                    intent.AdditionalDelivery is null ? [] : [intent.AdditionalDelivery.FileName],
                     intent.Sources.Select(static source => source.Summary.OriginalFileName));
                 ProtectedPathGuard.ProtectedPath[] protectedPaths =
                 [

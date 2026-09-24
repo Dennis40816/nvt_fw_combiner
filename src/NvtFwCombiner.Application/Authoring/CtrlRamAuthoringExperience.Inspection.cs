@@ -31,7 +31,7 @@ internal sealed partial class CtrlRamAuthoringExperience
                 icId,
                 number,
                 slotPaths,
-                firmwareVersionEdit: null,
+                acceptedSession.DraftState as CtrlRamAuthoringDraftState,
                 acceptedInputBytes,
                 capability,
                 out IReadOnlyDictionary<string, string> expectedPaths,
@@ -112,13 +112,30 @@ internal sealed partial class CtrlRamAuthoringExperience
         {
             throw new InvalidOperationException("CtrlRAM inspection leases disagree on the exact compilation.");
         }
+        CtrlRamBaseInspection? baseInspection = selectedInputBytes.TryGetValue(CompositionSlotIds.ReplaceBase, out byte[]? referenceBytes)
+            ? _artifactClassification.ResolveCtrlRamBase(icId, capability, referenceBytes, reference.CtrlRamRequest!.Draft, _adapter)
+            : null;
+        if (baseInspection?.Issues.Count > 0)
+        {
+            return FirmwareInspectionStatusBatch.Empty with { Issues = baseInspection.Issues, CtrlRamBaseInspection = baseInspection };
+        }
+        CtrlRamAuthoringDraftState? draft = baseInspection?.EffectiveDraft ?? reference.CtrlRamRequest!.Draft;
+        if (baseInspection is { Kind: CtrlRamBaseKind.StandardTp or CtrlRamBaseKind.StandardFlash })
+        {
+            draft = baseInspection.EffectiveDraft;
+        }
+        if (capability is not null &&
+            (capability.CompiledComposition.V2Details.Provenance.Context is RuntimeReferenceBankReplaceV2CompilationContext) != (draft is AbCtrlRamDraftState))
+        {
+            capability = null;
+        }
         if (capability is null)
         {
             CtrlRamAuthoringCompilation compilation = _adapter.Resolve(
                 icId,
                 number,
                 slotPaths,
-                firmwareVersionEdit: null,
+                draft,
                 selectedInputBytes);
             capability = compilation.Capability;
             if (capability is null)
@@ -136,6 +153,7 @@ internal sealed partial class CtrlRamAuthoringExperience
                 return FirmwareInspectionStatusBatch.Empty with
                 {
                     Issues = remainingIssues,
+                    CtrlRamBaseInspection = baseInspection,
                     CtrlRamBaseDiscovery = baseOnlyDiscovery
                         ? new CtrlRamBaseDiscoveryResult(
                             reference.InspectionId,
@@ -172,7 +190,10 @@ internal sealed partial class CtrlRamAuthoringExperience
                 static input => input.InspectionId,
                 input => statuses[input.CtrlRamReplaceAddressSpaceId!],
                 StringComparer.Ordinal),
-            []);
+            [])
+        {
+            CtrlRamBaseInspection = baseInspection,
+        };
     }
 
     private static bool HasExpectedPaths(

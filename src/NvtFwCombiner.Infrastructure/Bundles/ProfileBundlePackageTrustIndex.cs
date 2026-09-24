@@ -1,3 +1,4 @@
+using System.Collections.ObjectModel;
 using System.Text.Json;
 
 namespace NvtFwCombiner.Infrastructure.Bundles;
@@ -39,6 +40,7 @@ internal sealed record ProfileBundlePackageTrustEntry(
     string ContentHash,
     ProfileBundleMaterialization Materialization,
     IReadOnlyList<ProfileBundleMetadataProviderFamily> MetadataProviderFamilies,
+    IReadOnlyList<ProfileBundleMetadataProviderFamily> FamilyDisclosureFamilies,
     IReadOnlyList<ProfileBundleRuntimeRegistration> RuntimeRegistrations);
 
 /// <summary>Immutable versioned package trust material.</summary>
@@ -79,18 +81,8 @@ internal sealed class ProfileBundlePackageTrustIndex
         {
             throw new InvalidDataException("Package trust-index runtime registrations must be unique.");
         }
-        ProfileBundleMetadataProviderFamily[] metadataProviders =
-        [
-            .. bundleSnapshot.SelectMany(static bundle => bundle.MetadataProviderFamilies),
-        ];
-        if (metadataProviders
-                .Select(static provider => $"{provider.FamilyId}\n{provider.FamilyVersion}")
-                .Distinct(StringComparer.Ordinal)
-                .Count() != metadataProviders.Length)
-        {
-            throw new InvalidDataException(
-                "Package trust-index metadata provider families must be unique.");
-        }
+        RequireUniqueFamilies(bundleSnapshot.SelectMany(static bundle => bundle.MetadataProviderFamilies), "metadata provider");
+        RequireUniqueFamilies(bundleSnapshot.SelectMany(static bundle => bundle.FamilyDisclosureFamilies), "family disclosure");
 
         Array.Sort(bundleSnapshot, static (left, right) =>
             StringComparer.Ordinal.Compare(left.BundleDirectory, right.BundleDirectory));
@@ -110,6 +102,15 @@ internal sealed class ProfileBundlePackageTrustIndex
     internal string TrustAnchorBindingId { get; }
 
     internal IReadOnlyList<ProfileBundlePackageTrustEntry> Bundles { get; }
+
+    private static void RequireUniqueFamilies(IEnumerable<ProfileBundleMetadataProviderFamily> families, string authority)
+    {
+        var identities = new HashSet<ProfileBundleMetadataProviderFamily>();
+        if (families.Any(family => !identities.Add(family)))
+        {
+            throw new InvalidDataException($"Package trust-index {authority} families must be unique.");
+        }
+    }
 
     private static string CreateRegistrationKey(ProfileBundleRuntimeRegistration registration)
     {
@@ -198,19 +199,21 @@ internal static class ProfileBundlePackageTrustIndexLoader
                 materialization.GetProperty("compositionProfileSchemaFile").GetString()!,
                 materialization.GetProperty("firmwareFamilySchemaFile").GetString()!,
                 canonical),
-            Array.AsReadOnly(
-                element.TryGetProperty("metadataProviderFamilies", out JsonElement providers)
-                    ? providers.EnumerateArray()
-                        .Select(static provider => new ProfileBundleMetadataProviderFamily(
-                            provider.GetProperty("familyId").GetString()!,
-                            provider.GetProperty("familyVersion").GetString()!))
-                        .ToArray()
-                    : []),
+            ParseFamilies(element, "metadataProviderFamilies"),
+            ParseFamilies(element, "familyDisclosureFamilies"),
             Array.AsReadOnly(
                 element.GetProperty("runtimeRegistrations")
                     .EnumerateArray()
                     .Select(ParseRuntimeRegistration)
                     .ToArray()));
+    }
+
+    private static ReadOnlyCollection<ProfileBundleMetadataProviderFamily> ParseFamilies(JsonElement element, string propertyName)
+    {
+        return Array.AsReadOnly(element.TryGetProperty(propertyName, out JsonElement families)
+            ? families.EnumerateArray().Select(static family => new ProfileBundleMetadataProviderFamily(
+                family.GetProperty("familyId").GetString()!, family.GetProperty("familyVersion").GetString()!)).ToArray()
+            : []);
     }
 
     private static ProfileBundleRuntimeRegistration ParseRuntimeRegistration(JsonElement element)

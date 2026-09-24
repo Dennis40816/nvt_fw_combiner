@@ -33,7 +33,7 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("private static MemoryMapRowViewModel ToMemoryMapRow", common, StringComparison.Ordinal);
         Assert.Contains("GetFirmwareSlotFacts", facts, StringComparison.Ordinal);
         Assert.DoesNotContain("CreateFlashCodeOutputFileName", facts, StringComparison.Ordinal);
-        Assert.Contains("ExperienceIds.DpReplace", ReadText(
+        Assert.DoesNotContain("ExperienceIds.DpReplace", ReadText(
             "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MainWindowViewModel.Construction.cs"),
             StringComparison.Ordinal);
         Assert.Contains("GetMemoryDisplay", common, StringComparison.Ordinal);

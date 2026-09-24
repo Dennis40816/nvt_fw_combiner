@@ -1,4 +1,10 @@
+using Avalonia.Controls;
+using Avalonia.Headless;
+using Avalonia.Headless.XUnit;
+using Avalonia.Threading;
+using Avalonia.VisualTree;
 using NvtFwCombiner.Application.Authoring;
+using NvtFwCombiner.Application.Capabilities;
 using NvtFwCombiner.Application.Configuration;
 using NvtFwCombiner.Application.Ports;
 using NvtFwCombiner.Bootstrap;
@@ -13,6 +19,62 @@ namespace NvtFwCombiner.UiSmoke.Tests;
 
 public sealed partial class ShellNavigationSystemTests
 {
+    /// <summary>The real AB slot info shows each accepted raw-byte name before opening output settings.</summary>
+    [AvaloniaFact]
+    public async Task EventBufferFormatNamesAppearInMainWindowTpSlotInfo()
+    {
+        using TempWorkspace workspace = TempWorkspace.Create("ui-ab-format-names");
+        PresentationHostServices services = await ReportControlTestHost.CreateServicesAsync(workspace);
+        using var window = new MainWindow(UiLaunchOptions.Empty, StartupTraceSession.Disabled, services,
+            ShellPreferenceSnapshot.Default)
+        { Width = 1440, Height = 1000 };
+        try
+        {
+            window.Show();
+            await ReportControlTestHost.AwaitHistoryReadyAsync(window);
+            MainWindowViewModel viewModel = Assert.IsType<MainWindowViewModel>(window.DataContext);
+            viewModel.SelectedTheme = "Light";
+            viewModel.ShowMergeCommand.Execute(null);
+            viewModel.WorkflowSession.SelectedIc = "NT51950";
+            viewModel.WorkflowSession.SelectedNumber = IcNumberSelectionTokens.SingleChip;
+            viewModel.Merge.SelectedMergeMode = ExperienceIds.AbMerge;
+            await viewModel.WorkflowSession.SetAbDummyDpModeAsync(true, TestContext.Current.CancellationToken);
+            byte[] tp = new byte[0x37000];
+            tp[0x22200] = 0x31;
+            tp[0x22201] = 0xCE;
+            tp[0x2220C] = 0xA3;
+            tp[0x36000] = 0x42;
+            tp[0x36001] = 0xBD;
+            tp[0x36017] = 1;
+            new byte[] { 0, 0x4E, 0x56, 0x54 }.CopyTo(tp, 0x36FFC);
+            await viewModel.WorkflowSession.SetSlotFileAsync("tp-a-input", workspace.Write("TPA_STLA.bin", tp), TestContext.Current.CancellationToken);
+            tp[0x2220C] = 0xA4;
+            await viewModel.WorkflowSession.SetSlotFileAsync("tp-b-input", workspace.Write("TPB_INX.bin", tp), TestContext.Current.CancellationToken);
+            Dispatcher.UIThread.RunJobs();
+            window.UpdateLayout();
+            AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+            TextBlock[] texts = [.. window.GetVisualDescendants().OfType<TextBlock>()];
+            foreach (string expected in new[] { "0xA3 - Auto STLA v1", "0xA4 - Auto INX v7" })
+            {
+                TextBlock label = Assert.Single(texts, text => text.Text == expected);
+                Assert.True(label.IsEffectivelyVisible);
+                Assert.True(label.Bounds.Width > 0 && label.Bounds.Height > 0);
+            }
+            string? outputDirectory = Environment.GetEnvironmentVariable("NFC_VISUAL_OUTPUT_DIR");
+            if (!string.IsNullOrWhiteSpace(outputDirectory))
+            {
+                _ = Directory.CreateDirectory(outputDirectory);
+                using Avalonia.Media.Imaging.Bitmap? frame = window.GetLastRenderedFrame();
+                Assert.NotNull(frame);
+                frame.Save(Path.Combine(outputDirectory, "event-buffer-tp-slot-info-light-en.png"));
+            }
+        }
+        finally
+        {
+            await ReportControlTestHost.CloseAndFlushAsync(window);
+        }
+    }
+
     /// <summary>Explicit reload accepts external changes and cannot replace an unsaved editor draft.</summary>
     [Theory]
     [InlineData(false)]
@@ -105,7 +167,7 @@ public sealed partial class ShellNavigationSystemTests
         MainWindowViewModel viewModel = await CreateLoadedFormatAbViewModelAsync(workspace, host,
             secondFormat: context == "failure" ? (byte)0xA6 : (byte)0x97);
         FirmwareSlotViewModel slot = viewModel.Merge.AbMergeSlots.Single(static slot => slot.SlotId == "tp-a-input");
-        Assert.Contains(slot.FirmwareFacts, fact => fact.Label == "Event Buffer Version" && fact.Value == "0x97 - Desay");
+        Assert.Contains(slot.FirmwareFacts, fact => fact.Label == "Event Buffer Version" && fact.Value == "0x97 - Auto Desay");
         File.Delete(workspace.PathFor("a.bin"));
         File.Delete(workspace.PathFor("b.bin"));
         if (context == "standard") { viewModel.Merge.SelectedMergeMode = ExperienceIds.StandardMerge; }
@@ -160,12 +222,14 @@ public sealed partial class ShellNavigationSystemTests
             Assert.True(viewModel.IsReplaceVisible);
             return;
         }
-        Assert.Equal(context == "alias" ? "nt51950-ab-desay-maps" : "nt51950-ab-merge-maps",
+        Assert.Equal("nt51950-ab-merge-maps",
             Assert.Single(slot.CurrentInspectionProjection!.InputSlotCatalog!.Routes).ExactCapability!.Identity.MapVariant);
         Assert.False(slot.BlocksBuild);
         _ = Assert.NotNull(slot.CurrentInspectionProjection.InputSlotStatus!.AcceptedBytes);
         Assert.Contains(slot.FirmwareFacts, fact => fact.Label == viewModel.Text.EventBufferVersionLabel &&
-            fact.Value == (context == "alias" ? "0x97 - My vendor" : "0x97 - Common"));
+            fact.Value == "0x97 - Auto Desay");
+        Assert.Equal(context == "alias" ? "My vendor" : "Common",
+            slot.CurrentInspectionProjection.AbMergeFacts!.EventBufferFormat!.DisplayName);
         Assert.False(viewModel.Settings.HasEventBufferFormatUnsavedChanges);
         Assert.Equal(viewModel.Text.EventBufferFormatSavedLabel, viewModel.Settings.EventBufferFormatStatus);
         Assert.Equal(selectedIc, viewModel.WorkflowSession.SelectedIc);
@@ -206,7 +270,7 @@ public sealed partial class ShellNavigationSystemTests
         FirmwareSlotViewModel slot = viewModel.Merge.AbMergeSlots.Single(static slot => slot.SlotId == "tp-a-input");
         if (initializeConfiguration)
         {
-            Assert.Equal("nt51950-ab-desay-maps", Assert.Single(slot.CurrentInspectionProjection!.InputSlotCatalog!.Routes).ExactCapability!.Identity.MapVariant);
+            Assert.Equal("nt51950-ab-merge-maps", Assert.Single(slot.CurrentInspectionProjection!.InputSlotCatalog!.Routes).ExactCapability!.Identity.MapVariant);
         }
         return viewModel;
     }
@@ -223,18 +287,85 @@ public sealed partial class ShellNavigationSystemTests
             loadPolicy: null, configurationPath: workspace.PathFor("format.json"));
         MainWindowViewModel viewModel = await CreateLoadedFormatAbViewModelAsync(workspace, host, initializeConfiguration: false);
         FirmwareSlotViewModel slot = viewModel.Merge.AbMergeSlots.Single(static slot => slot.SlotId == "tp-a-input");
-        Assert.True(slot.BlocksBuild);
-        Assert.Null(slot.CurrentInspectionProjection!.InputSlotStatus?.AcceptedBytes);
+        Assert.Equal(invalidConfig, slot.BlocksBuild);
+        if (invalidConfig)
+        {
+            Assert.Null(slot.CurrentInspectionProjection!.InputSlotStatus?.AcceptedBytes);
+            Assert.Null(slot.InputInspectionSeverity);
+            Assert.Equal("AB_FORMAT_CONFIGURATION_INVALID", Assert.Single(viewModel.Merge.BuildAvailability.Blockers).Code);
+        }
+        else { _ = Assert.NotNull(slot.CurrentInspectionProjection!.InputSlotStatus?.AcceptedBytes); }
         File.Delete(workspace.PathFor("a.bin"));
         File.Delete(workspace.PathFor("b.bin"));
         viewModel.OpenSettingsCommand.Execute(null);
         viewModel.Settings.SelectSectionCommand.Execute(SettingsSection.EventBufferFormat);
         await viewModel.Settings.EventBufferFormatLoadTask;
-        Assert.True(viewModel.Settings.IsEventBufferFormatMissingOrInvalid);
+        Assert.Equal(invalidConfig, viewModel.Settings.IsEventBufferFormatMissingOrInvalid);
         await viewModel.Settings.SaveEventBufferFormatCommand.ExecuteAsync(null);
         Assert.False(slot.BlocksBuild);
-        Assert.Equal("nt51950-ab-desay-maps", Assert.Single(slot.CurrentInspectionProjection!.InputSlotCatalog!.Routes).ExactCapability!.Identity.MapVariant);
+        Assert.Equal("nt51950-ab-merge-maps", Assert.Single(slot.CurrentInspectionProjection!.InputSlotCatalog!.Routes).ExactCapability!.Identity.MapVariant);
         _ = Assert.NotNull(slot.CurrentInspectionProjection.InputSlotStatus!.AcceptedBytes);
+    }
+
+    /// <summary>Invalid configuration blocks once without blaming BINs; repair reuses captured sources even after deletion.</summary>
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(true, false)]
+    [InlineData(true, true)]
+    public async Task EventBufferFormatInvalidReloadShowsOneConfigurationBlockerAndRepairsRetainedInputs(bool initiallyInvalid, bool mismatchedRepair)
+    {
+        using TempWorkspace workspace = TempWorkspace.Create("ui-ab-config-blocker");
+        if (initiallyInvalid) { _ = workspace.Write("format.json", "invalid"u8.ToArray()); }
+        CompositionHostServices host = CompositionHostServices.Create(new ExternalProcessorEnvironmentLoader(),
+            loadPolicy: null, configurationPath: workspace.PathFor("format.json"));
+        MainWindowViewModel viewModel = await CreateLoadedFormatAbViewModelAsync(workspace, host,
+            secondFormat: mismatchedRepair ? (byte)0xA6 : (byte)0x97, initializeConfiguration: !initiallyInvalid);
+        File.Delete(workspace.PathFor("a.bin"));
+        File.Delete(workspace.PathFor("b.bin"));
+        _ = workspace.Write("format.json", "invalid"u8.ToArray());
+        viewModel.OpenSettingsCommand.Execute(null);
+        viewModel.Settings.SelectSectionCommand.Execute(SettingsSection.EventBufferFormat);
+        await viewModel.Settings.EventBufferFormatLoadTask;
+        await viewModel.Settings.ReloadEventBufferFormatCommand.ExecuteAsync(null);
+
+        CapabilityActionBlocker blocker = Assert.Single(viewModel.Merge.BuildAvailability.Blockers);
+        Assert.Equal(CapabilityReadinessDimension.Configuration, blocker.Dimension);
+        Assert.Equal(CapabilityReadinessNextAction.ReviewConfiguration, blocker.NextAction);
+        Assert.False(viewModel.Merge.CanBuildMerge);
+        foreach (FirmwareSlotViewModel slot in viewModel.Merge.AbMergeSlots.Where(static slot => slot.HasFile))
+        {
+            Assert.True(slot.BlocksBuild);
+            Assert.Null(slot.InputInspectionSeverity);
+            Assert.Null(slot.CurrentInspectionProjection!.InputSlotStatus!.AcceptedBytes);
+            Assert.NotNull(slot.CurrentInspectionProjection.InputSlotStatus.CapturedSource);
+        }
+        viewModel.SelectedLanguage = "Traditional Chinese";
+        Assert.Contains("設定無效", viewModel.Text.FormatCapabilityActionBlocker(blocker), StringComparison.Ordinal);
+        Assert.Contains("Event Buffer Format", viewModel.Text.FormatCapabilityActionBlocker(blocker), StringComparison.Ordinal);
+        Assert.All(viewModel.Merge.AbMergeSlots.Where(static slot => slot.HasFile), static slot => Assert.Null(slot.InputInspectionSeverity));
+
+        if (mismatchedRepair)
+        {
+            EventBufferFormatDraftRowViewModel row = Assert.Single(viewModel.Settings.EventBufferFormatRows);
+            row.RecognitionValues.Clear();
+            row.RecognitionValues.Add(0xA6);
+        }
+        await viewModel.Settings.SaveEventBufferFormatCommand.ExecuteAsync(null);
+        Assert.DoesNotContain(viewModel.Merge.BuildAvailability.Blockers, static item => item.Dimension == CapabilityReadinessDimension.Configuration);
+        if (mismatchedRepair)
+        {
+            Assert.False(viewModel.Merge.CanBuildMerge);
+            Assert.Contains(viewModel.Merge.BuildAvailability.Blockers, static item => item.Dimension == CapabilityReadinessDimension.Input);
+            Assert.All(viewModel.Merge.AbMergeSlots.Where(static slot => slot.HasFile), static slot =>
+                Assert.Equal(FirmwareInputInspectionSeverity.Blocking, slot.InputInspectionSeverity));
+            Assert.Single(viewModel.Settings.EventBufferFormatRows).RecognitionValues.Clear();
+            await viewModel.Settings.SaveEventBufferFormatCommand.ExecuteAsync(null);
+        }
+        Assert.All(viewModel.Merge.AbMergeSlots.Where(static slot => slot.HasFile), static slot =>
+        {
+            Assert.False(slot.BlocksBuild);
+            _ = Assert.NotNull(slot.CurrentInspectionProjection!.InputSlotStatus!.AcceptedBytes);
+        });
     }
 
     /// <summary>Saving while a real execution result awaits UI publication must not reset that run or adopt a newer map into its report.</summary>
@@ -266,7 +397,7 @@ public sealed partial class ShellNavigationSystemTests
             Assert.Same(previous, viewModel.RunSession.LastRunResult);
             FirmwareSlotViewModel slot = viewModel.Merge.AbMergeSlots.Single(static slot => slot.SlotId == "tp-a-input");
             Assert.Equal("nt51950-ab-merge-maps", Assert.Single(slot.CurrentInspectionProjection!.InputSlotCatalog!.Routes).ExactCapability!.Identity.MapVariant);
-            Assert.Equal("nt51950-ab-desay-maps", execution.Result!.ResolvedCapability!.Identity.MapVariant);
+            Assert.Equal("nt51950-ab-merge-maps", execution.Result!.ResolvedCapability!.Identity.MapVariant);
             execution.Release.SetResult();
             await running;
             Assert.False(viewModel.RunSession.IsRunInProgress);
@@ -382,7 +513,7 @@ public sealed partial class ShellNavigationSystemTests
             FirmwareSlotViewModel pendingSlot = viewModel.Merge.AbMergeSlots.Single(static slot => slot.SlotId == "tp-a-input");
             Assert.Null(pendingSlot.CurrentInspectionProjection!.AbMergeFacts!.EventBufferFormat);
             Assert.DoesNotContain(pendingSlot.FirmwareFacts, fact => fact.Label == viewModel.Text.EventBufferVersionLabel);
-            if (!preCompilation) { Assert.Contains(pendingSlot.FirmwareFacts, static fact => fact.Label == "TPA"); }
+            if (!preCompilation) { Assert.Contains(pendingSlot.FirmwareFacts, static fact => fact.Label == "TPA Version"); }
             byte[] replacement = await File.ReadAllBytesAsync(workspace.PathFor("b.bin"), TestContext.Current.CancellationToken);
             string replacementPath = workspace.Write("replacement-a.bin", replacement);
             await viewModel.WorkflowSession.SetSlotFileAsync("tp-a-input", replacementPath, TestContext.Current.CancellationToken);
@@ -463,6 +594,38 @@ public sealed partial class ShellNavigationSystemTests
         Assert.Equal(viewModel.Text.EventBufferFormatSavedLabel, viewModel.Settings.EventBufferFormatStatus);
     }
 
+    /// <summary>Deleting a different saved override resets editor and Discard baseline without losing saved provenance.</summary>
+    [Fact]
+    public async Task EventBufferFormatDeletedOverrideRestoresBuiltInEditorAndDiscardBaseline()
+    {
+        var storage = new EventBufferFormatStorage();
+        using var session = new EventBufferFormatConfigurationSession(
+            "event-buffer-format", [new("desay", "Desay")], [new("desay", null, [0x97, 0xA6])], storage);
+        Assert.True((await session.SaveAsync([new("desay", "Custom", [0x84])], TestContext.Current.CancellationToken)).Succeeded);
+        MainWindowViewModel viewModel = CreateEventBufferFormatViewModel(session);
+        viewModel.OpenSettingsCommand.Execute(null);
+        viewModel.Settings.SelectSectionCommand.Execute(SettingsSection.EventBufferFormat);
+        await viewModel.Settings.EventBufferFormatLoadTask;
+        Assert.Equal("Custom", Assert.Single(viewModel.Settings.EventBufferFormatRows).AliasName);
+        EventBufferFormatConfiguration saved = session.Current.LastSaved!;
+
+        storage.Stored = null;
+        await viewModel.Settings.ReloadEventBufferFormatCommand.ExecuteAsync(null);
+        EventBufferFormatDraftRowViewModel row = Assert.Single(viewModel.Settings.EventBufferFormatRows);
+        Assert.Equal([0x97, 0xA6], row.RecognitionValues);
+        Assert.True(string.IsNullOrEmpty(row.AliasName));
+        Assert.False(viewModel.Settings.HasEventBufferFormatUnsavedChanges);
+        row.AliasName = "Unsaved";
+        viewModel.Settings.DiscardEventBufferFormatChangesCommand.Execute(null);
+        row = Assert.Single(viewModel.Settings.EventBufferFormatRows);
+        Assert.True(string.IsNullOrEmpty(row.AliasName));
+        Assert.Equal([0x97, 0xA6], row.RecognitionValues);
+        Assert.True(session.Current.UsesBuiltInDefaults);
+        Assert.Same(saved, session.Current.LastSaved);
+        Assert.Null(storage.Stored);
+        Assert.Equal(viewModel.Text.EventBufferFormatBuiltInLabel, viewModel.Settings.EventBufferFormatStatus);
+    }
+
     /// <summary>Missing configuration opens independent defaults, then saves only through the typed session.</summary>
     [Fact]
     public async Task EventBufferFormatUsesDraftDefaultsAndPreservesUnsavedCloseConfirmation()
@@ -479,8 +642,10 @@ public sealed partial class ShellNavigationSystemTests
         EventBufferFormatDraftRowViewModel row = Assert.Single(viewModel.Settings.EventBufferFormatRows);
         Assert.Equal("desay", row.UniqueId);
         Assert.Equal([0x97, 0xA6], row.RecognitionValues);
-        Assert.True(viewModel.Settings.IsEventBufferFormatMissingOrInvalid);
-        Assert.True(viewModel.Settings.CanSaveEventBufferFormat);
+        Assert.False(viewModel.Settings.IsEventBufferFormatMissingOrInvalid);
+        Assert.False(viewModel.Settings.CanSaveEventBufferFormat);
+        Assert.True(session.Current.UsesBuiltInDefaults);
+        Assert.Equal(viewModel.Text.EventBufferFormatBuiltInLabel, viewModel.Settings.EventBufferFormatStatus);
 
         row.AliasName = "Desk display";
         await viewModel.Settings.SaveEventBufferFormatCommand.ExecuteAsync(null);

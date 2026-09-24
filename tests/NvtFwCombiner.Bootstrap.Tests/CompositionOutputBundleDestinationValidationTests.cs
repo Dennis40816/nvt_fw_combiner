@@ -10,6 +10,35 @@ namespace NvtFwCombiner.Bootstrap.Tests;
 /// <summary>Preview and commit validate the same actually allocated bundle names.</summary>
 public sealed class CompositionOutputBundleDestinationValidationTests
 {
+    /// <summary>An override cannot invent an additional delivery or be silently dropped when none is selected.</summary>
+    [Theory]
+    [InlineData(null)]
+    [InlineData("unknown-delivery")]
+    public void AdditionalOverrideRequiresSelectedDeclaredDelivery(string? kind)
+    {
+        using TempWorkspace workspace = TempWorkspace.Create();
+        CompositionOutputBundleIntent baseline = CreateIntent(workspace.Root, "bundle", "output.bin", [], "a.bin");
+        _ = Assert.Throws<ArgumentException>(() => new CompositionOutputBundleIntent(baseline.Admission,
+            workspace.Root, "bundle", kind, additionalOutputFileNameOverride: "custom-a.bin"));
+        Assert.Empty(Directory.EnumerateFileSystemEntries(workspace.Root));
+    }
+
+    /// <summary>Platform preflight validates the effective additional name, not merely its valid automatic suggestion.</summary>
+    [Theory]
+    [InlineData("CON.bin")]
+    [InlineData("bad?.bin")]
+    public void AdditionalOverrideRetainsCanonicalNameButUsesEffectiveNameForValidation(string invalid)
+    {
+        using TempWorkspace workspace = TempWorkspace.Create();
+        CompositionOutputBundleIntent baseline = CreateIntent(workspace.Root, "bundle", "output.bin", [], "a.bin");
+        var edited = new CompositionOutputBundleIntent(baseline.Admission, workspace.Root, "bundle", "test-delivery",
+            additionalOutputFileNameOverride: invalid);
+        Assert.Equal("a.bin", edited.AdditionalDelivery!.SuggestedFileName);
+        Assert.Equal(invalid, edited.AdditionalDelivery.FileName);
+        Assert.False(new FileSystemCompositionOutputBundleDestinationValidator().Validate(edited).IsValid);
+        Assert.Empty(Directory.EnumerateFileSystemEntries(workspace.Root));
+    }
+
     /// <summary>The resolved folder component includes its actual filesystem collision suffix.</summary>
     [Fact]
     public void PreviewRejectsOverlongActualFolderComponent()

@@ -71,6 +71,27 @@ no prompt. Omitting bundle intent preserves existing loose-output behavior.
 Reports add resolved bundle/artifact provenance and hashes; the effective primary
 name follows ADR 0036 while canonical automatic naming provenance remains retained.
 
+## Independent additional-output names (2026-09-21)
+
+The owner requires every generated BIN to be independently renameable in Output
+Settings, including the optional A FlashCode. Primary, additional and folder
+names retain separate draft and accepted values. Completing one edit validates
+against the other fields' accepted values; an invalid edit restores only its own
+accepted value. Unselecting additional delivery excludes its name from validation
+and submission. Delivery toggles retain drafts; a new incompatible preparation
+does not inherit the previous additional name.
+
+Application derives an effective additional `FileName` from the selected exact
+prepared plan, retaining its canonical `SuggestedFileName`, profile, kind and
+source range. An override without a selected declared delivery is rejected.
+Bundle preflight, artifact planning and commit consume the same effective name
+through existing collision allocation; receipts/report retain the actual delivered
+name and hashes. Loose Save dialogs start with the edited name and preserve the
+distinction between automatic and explicit names. Source copies, firmware bytes,
+CRC, output eligibility and report schema are unchanged. Independent design
+admission: `/root/layout_ownership_review`; implementation evidence is maintained
+in [the delivery checklist](../ui/v1.1.10-delivery.md).
+
 ## 1.1.9 name-edit validation amendment (2026-09-19)
 
 Owner-approved recovery keeps separate accepted folder and primary-name values.

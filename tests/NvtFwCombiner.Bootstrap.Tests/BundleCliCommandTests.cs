@@ -16,7 +16,6 @@ public sealed partial class BundleCliCommandTests
         "standard-merge",
         "ab-merge",
         "general-merge",
-        "dp-replace",
         "ctrlram-replace",
         "general-replace",
     ];
@@ -89,6 +88,7 @@ public sealed partial class BundleCliCommandTests
         tp[0] = 0xA7;
         tp[1] = 0x58;
         tp[17] = 0xC9;
+        tp[0x17] = 1;
         tp[4092] = 0x00;
         tp[4093] = 0x4E;
         tp[4094] = 0x56;
@@ -169,7 +169,7 @@ public sealed partial class BundleCliCommandTests
     {
         using var workspace = TempWorkspace.Create("nfc-cli-bundle-invalid");
         string dpPath = workspace.Write("dp.bin", new byte[0x40000]);
-        string tpPath = workspace.Write("tp.bin", new byte[0x3C000]);
+        string tpPath = workspace.Write("tp.bin", CreateTpWithSingleBackup(0x3C000, 0));
 
         CliRunResult result = await CliTestHarness.RunAsync(
             [
@@ -201,8 +201,8 @@ public sealed partial class BundleCliCommandTests
     {
         using var workspace = TempWorkspace.Create("nfc-cli-bundle-ab");
         string dpPath = workspace.Write("dp-ab.bin", new byte[0x80000]);
-        string tpAPath = workspace.Write("tp-a.bin", new byte[0x40000]);
-        string tpBPath = workspace.Write("tp-b.bin", new byte[0x40000]);
+        string tpAPath = workspace.Write("tp-a.bin", CreateTpWithSingleBackup(0x40000, 0));
+        string tpBPath = workspace.Write("tp-b.bin", CreateTpWithSingleBackup(0x40000, 0));
         string reportPath = workspace.PathFor("ab-bundle-report.json");
 
         CliRunResult result = await CliTestHarness.RunAsync(
@@ -281,7 +281,7 @@ public sealed partial class BundleCliCommandTests
         using var sharedWorkspace = TempWorkspace.Create("nfc-cli-bundle-ab-shared-tp");
         using var distinctWorkspace = TempWorkspace.Create("nfc-cli-bundle-ab-distinct-equal-tp");
         byte[] dp = [.. Enumerable.Repeat((byte)0xA5, 0x80000)];
-        byte[] tp = [.. Enumerable.Repeat((byte)0x5A, 0x40000)];
+        byte[] tp = CreateTpWithSingleBackup(0x40000, 0x5A);
         (string sharedJson, string sharedBundle) = await BuildBundleAsync(
             sharedWorkspace,
             sameTpPath: true,
@@ -631,4 +631,14 @@ public sealed partial class BundleCliCommandTests
                 TestContext.Current.CancellationToken));
     }
 
+    private static byte[] CreateTpWithSingleBackup(int length, byte fill)
+    {
+        byte[] tp = new byte[length];
+        tp.AsSpan().Fill(fill);
+        tp[0] = 0xA7;
+        tp[1] = 0x58;
+        tp[0x17] = 1;
+        "\0NVT"u8.CopyTo(tp.AsSpan(0xFFC));
+        return tp;
+    }
 }

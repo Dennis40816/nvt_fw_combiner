@@ -45,7 +45,8 @@ internal sealed class CanonicalCapabilityCatalogSource(
     Func<
         IReadOnlyList<CanonicalCapabilityDefinition>,
         IReadOnlyList<CanonicalDynamicCapabilityDefinition>,
-        CanonicalCapabilityDisclosure> loadDisclosure) :
+        CanonicalCapabilityDisclosure> loadDisclosure,
+    Func<IReadOnlyList<MetadataPlanDefinition>> loadFullImageMetadataPlans) :
     ICanonicalCapabilityCatalogSource
 {
     public CapabilityCatalogLoadResult Load(CancellationToken cancellationToken)
@@ -97,13 +98,16 @@ internal sealed class CanonicalCapabilityCatalogSource(
                 definitions,
                 dynamicDefinitions);
             cancellationToken.ThrowIfCancellationRequested();
+            IReadOnlyList<MetadataPlanDefinition> fullImagePlans = loadFullImageMetadataPlans();
+            cancellationToken.ThrowIfCancellationRequested();
             return CapabilityCatalogLoadResult.Success(
                 new CanonicalCapabilityCatalogCandidate(
                     policy.CatalogId,
                     policy.CatalogVersion,
                     policy.SourceSha256,
                     definitions,
-                    dynamicDefinitions)
+                    dynamicDefinitions,
+                    fullImagePlans)
                     .WithDisclosure(disclosure));
         }
         catch (Exception exception) when (TryGetSourceIssue(exception, out CapabilityCatalogIssue issue))

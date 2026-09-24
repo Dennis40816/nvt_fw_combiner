@@ -5,6 +5,12 @@ namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
 internal sealed partial class ShellTextResources
 {
+    public string FirmwareFactNotProvidedLabel { get; init; } = string.Empty;
+    public string FirmwareFactNotProvidedDetail { get; init; } = string.Empty;
+    public string CtrlRamTargetBanksLabel { get; init; } = string.Empty;
+    public string CtrlRamBothBanksLabel { get; init; } = string.Empty;
+    public string CtrlRamSharedSourcesDetail { get; init; } = string.Empty;
+
     public string ReviewReplacementInputsTooltip { get; private init; } = string.Empty;
 
     public string InputFilesTitle { get; private init; } = string.Empty;
@@ -82,6 +88,18 @@ internal sealed partial class ShellTextResources
     public string FirmwareSlotWarningFactDetail { get; private init; } = string.Empty;
 
     public string FirmwareSlotShowMoreFactsTemplate { get; private init; } = string.Empty;
+
+    public string FirmwareSlotDetailsLabel => SelectLanguage("Details", "詳細資訊");
+
+    public string ModeSettingsLabel => SelectLanguage("Mode settings", "模式設定");
+
+    public string CtrlRamViewBankLabel => SelectLanguage("View bank B", "檢視 B Bank");
+
+    public string FormatCtrlRamBankView(bool bankB, bool selected)
+    {
+        string status = selected ? SelectLanguage("Will replace", "將取代") : SelectLanguage("Preserved", "保留");
+        return $"{(bankB ? "B" : "A")} Code · {status}";
+    }
 
     public string FirmwareSlotShowFewerFactsLabel { get; private init; } = string.Empty;
 

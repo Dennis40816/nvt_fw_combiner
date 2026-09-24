@@ -174,6 +174,40 @@ public sealed partial class OutputDeliveryConfirmationModal : UserControl
             DispatcherPriority.Input);
     }
 
+    private void AdditionalOutputFileNameInput_OnTextChanged(object? sender, TextChangedEventArgs e)
+    {
+        if (DataContext is OutputDeliveryConfirmationViewModel viewModel)
+        {
+            viewModel.SetAdditionalOutputFileName(AdditionalOutputFileNameInput.Text ?? string.Empty);
+        }
+    }
+
+    private void EditAdditionalOutputFileNameButton_OnClick(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is not OutputDeliveryConfirmationViewModel viewModel) { return; }
+        viewModel.BeginAdditionalOutputFileNameEdit();
+        Dispatcher.UIThread.Post(() =>
+        {
+            if (!viewModel.IsAdditionalOutputFileNameEditing) { return; }
+            _ = AdditionalOutputFileNameInput.Focus(NavigationMethod.Tab);
+            AdditionalOutputFileNameInput.SelectAll();
+        }, DispatcherPriority.Input);
+    }
+
+    private void CompleteAdditionalOutputFileNameEditButton_OnClick(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is not OutputDeliveryConfirmationViewModel viewModel) { return; }
+        viewModel.CompleteAdditionalOutputFileNameEdit();
+        Dispatcher.UIThread.Post(() => _ = EditAdditionalOutputFileNameButton.Focus(NavigationMethod.Tab), DispatcherPriority.Input);
+    }
+
+    private void AdditionalOutputFileNameInput_OnKeyDown(object? sender, KeyEventArgs e)
+    {
+        if (e.Key != Key.Enter) { return; }
+        CompleteAdditionalOutputFileNameEditButton_OnClick(sender, e);
+        e.Handled = true;
+    }
+
     private void EditBundleDestinationButton_OnClick(object? sender, RoutedEventArgs e)
     {
         if (DataContext is not OutputDeliveryConfirmationViewModel viewModel)
@@ -299,7 +333,7 @@ public sealed partial class OutputDeliveryConfirmationModal : UserControl
                     viewModel.OutputFileName),
             () => FirmwareFilePickerDialogs.PickAbAFlashCodeOutputPathAsync(
                 storageProvider,
-                viewModel.AdditionalSuggestedFileName));
+                viewModel.AdditionalOutputFileName));
     }
 
     internal static async Task ConfirmPreparedLooseWithPickersAsync(
@@ -332,10 +366,10 @@ public sealed partial class OutputDeliveryConfirmationModal : UserControl
         bool primaryAutomatic =
             viewModel.OutputFileNameUsesAutomaticName &&
             StringComparer.Ordinal.Equals(Path.GetFileName(outputPath), viewModel.OutputFileName);
-        bool additionalAutomatic = additionalPath is not null &&
+        bool additionalAutomatic = additionalPath is not null && viewModel.AdditionalOutputFileNameUsesAutomaticName &&
             StringComparer.Ordinal.Equals(
                 Path.GetFileName(additionalPath),
-                viewModel.AdditionalSuggestedFileName);
+                viewModel.AdditionalOutputFileName);
         await viewModel.ConfirmLooseAsync(
             outputPath,
             additionalPath,

@@ -51,6 +51,59 @@ internal sealed class BuiltInV2DynamicCompilationAdapter :
         return ResolveRegistration(icId, workflowId).GetMapCapacities(out issues);
     }
 
+    public bool TryGetSourceEnvelopeMapVariant(
+        string icId,
+        string workflowId,
+        long? sourceLength,
+        out string? mapVariant,
+        out IReadOnlyList<CompositionIssue> issues)
+    {
+        if (sourceLength is { } length)
+        {
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(length);
+        }
+        BuiltInV2Registration registration = ResolveRegistration(icId, workflowId);
+        SourceEnvelopeProfileBinding? envelope = registration.SourceEnvelopeBinding;
+        if (envelope is null)
+        {
+            mapVariant = null;
+            issues = [];
+            return false;
+        }
+
+        IReadOnlyList<FirmwareImageMap> maps = registration.GetMapVariants(out _, out issues);
+        if (issues.Count != 0)
+        {
+            mapVariant = null;
+            return false;
+        }
+
+        FirmwareImageMap[] exact = sourceLength is { } actualLength
+            ? [.. maps.Where(map => map.CapacityBytes == actualLength)]
+            : [];
+        if (exact.Length > 1)
+        {
+            mapVariant = null;
+            issues = [new CompositionIssue(CapabilityCatalogIssueCodes.RouteAmbiguous,
+                "The trusted Standard declaration has multiple maps for this source length.")];
+            return false;
+        }
+
+        string selectedId = exact.Length == 1
+            ? exact[0].MapId
+            : envelope.LayoutTemplateMapId;
+        if (!maps.Any(map => StringComparer.Ordinal.Equals(map.MapId, selectedId)))
+        {
+            mapVariant = null;
+            issues = [new CompositionIssue(CapabilityCatalogIssueCodes.RouteUnavailable,
+                "The profile-declared source-envelope template is not a trusted Standard map.")];
+            return false;
+        }
+
+        mapVariant = selectedId;
+        return true;
+    }
+
     public void Compile(
         CapabilityRouteIdentity identity,
         long? requestedMapCapacity,
@@ -60,7 +113,22 @@ internal sealed class BuiltInV2DynamicCompilationAdapter :
         out IReadOnlyList<CompositionIssue> issues,
         TopologySelection? requestedTopology = null)
     {
+        Compile(identity, requestedMapCapacity, [], selectedInputSlotIds,
+            out composition, out metadataPlan, out issues, requestedTopology);
+    }
+
+    public void Compile(
+        CapabilityRouteIdentity identity,
+        long? requestedMapCapacity,
+        IReadOnlyList<FirmwareArtifactPayload> capturedArtifacts,
+        IReadOnlyCollection<string>? selectedInputSlotIds,
+        out CompiledComposition? composition,
+        out MetadataPlanDefinition? metadataPlan,
+        out IReadOnlyList<CompositionIssue> issues,
+        TopologySelection? requestedTopology = null)
+    {
         ArgumentNullException.ThrowIfNull(identity);
+        ArgumentNullException.ThrowIfNull(capturedArtifacts);
         BuiltInV2Registration? registration = identity.WorkflowId == ExperienceIds.AbMerge
             ? BuiltInV2RegistrationRegistry.FindAbMergeRegistration(identity.IcId, identity.MapVariant)
             : ResolveRegistration(identity.IcId, identity.WorkflowId);
@@ -75,7 +143,7 @@ internal sealed class BuiltInV2DynamicCompilationAdapter :
             return;
         }
 
-        CompileRegistration(registration, requestedMapCapacity, selectedInputSlotIds,
+        CompileRegistration(registration, requestedMapCapacity, capturedArtifacts, selectedInputSlotIds,
             out composition, out metadataPlan, out issues, requestedTopology);
         if (composition is not null && issues.Count == 0 && registration.SelectionGroupMapVariantSetId is null &&
             !StringComparer.Ordinal.Equals(composition.V2Details.Provenance.ResolvedMap.ImageMap.MapId, identity.MapVariant))
@@ -87,29 +155,10 @@ internal sealed class BuiltInV2DynamicCompilationAdapter :
         }
     }
 
-    public void CompileDefinition(
-        string icId,
-        string workflowId,
-        long? requestedMapCapacity,
-        IReadOnlyCollection<string>? selectedInputSlotIds,
-        out CompiledComposition? composition,
-        out IReadOnlyList<CompositionIssue> issues)
-    {
-        if (workflowId != ExperienceIds.DpReplace)
-        {
-            composition = null;
-            issues = [new CompositionIssue(CapabilityCatalogIssueCodes.RouteUnavailable,
-                "Only the existing DP Replace definition probe may compile without an exact published route.")];
-            return;
-        }
-
-        CompileRegistration(ResolveRegistration(icId, workflowId), requestedMapCapacity,
-            selectedInputSlotIds, out composition, out _, out issues, requestedTopology: null);
-    }
-
     private static void CompileRegistration(
         BuiltInV2Registration registration,
         long? requestedMapCapacity,
+        IReadOnlyList<FirmwareArtifactPayload> capturedArtifacts,
         IReadOnlyCollection<string>? selectedInputSlotIds,
         out CompiledComposition? composition,
         out MetadataPlanDefinition? metadataPlan,
@@ -120,6 +169,7 @@ internal sealed class BuiltInV2DynamicCompilationAdapter :
             requestedMapCapacity,
             requestedTopology,
             selectedInputSlotIds,
+            capturedArtifacts,
             out composition,
             out issues);
         metadataPlan = composition is not null && issues.Count == 0
@@ -135,8 +185,6 @@ internal sealed class BuiltInV2DynamicCompilationAdapter :
         {
             ExperienceIds.StandardMerge =>
                 BuiltInV2RegistrationRegistry.StandardMergeByIc[icId],
-            ExperienceIds.DpReplace =>
-                BuiltInV2RegistrationRegistry.DpReplaceByIc.Value[icId],
             _ => throw new InvalidOperationException(
                 "Only registered map-bound dynamic routes use this compiler adapter."),
         };

@@ -184,7 +184,7 @@
           "definitionReference": {
             "familyId": "nt51929-nt51932",
             "familyVersion": "1.2.1",
-            "familyContentHash": "549e12fc5642b61deb3dd8f94340b07c1c46aa95303bc076bd59a06fa59c8a04",
+            "familyContentHash": "d6517342dae5e1e6eab6cd591aa71eebae061076a571e678f05f98830fb03181",
             "structureId": "type-ab-tp-flash-header"
           }
         },
@@ -203,7 +203,7 @@
           "definitionReference": {
             "familyId": "nt51929-nt51932",
             "familyVersion": "1.2.1",
-            "familyContentHash": "549e12fc5642b61deb3dd8f94340b07c1c46aa95303bc076bd59a06fa59c8a04",
+            "familyContentHash": "d6517342dae5e1e6eab6cd591aa71eebae061076a571e678f05f98830fb03181",
             "structureId": "type-ab-tp-flash-header"
           }
         }
@@ -235,7 +235,9 @@
       "regionSetIds": [
         "nt51919-ab-merge-flash"
       ],
-      "metadataSetIds": [],
+      "metadataSetIds": [
+        "nt51929-nt51932-type-ab-tp-flash-headers"
+      ],
       "evidenceRefs": [
         "ab-merge-alias-51919-to-51929"
       ]

@@ -64,7 +64,9 @@ public static partial class MemoryLayoutProjector
         }
 
         var output = new ByteRange(0, capacity);
-        FirmwareImageMap[] maps = capability.MemoryLayoutContext is { } explicitContext ? [explicitContext.Map] :
+        FirmwareImageMap[] maps = capability.CompiledComposition.V2Details.Provenance.Context is RuntimeReferenceBankReplaceV2CompilationContext bankContext
+            ? [bankContext.ResolvedMap.ImageMap]
+            : capability.MemoryLayoutContext is { } explicitContext ? [explicitContext.Map] :
         [
             .. capability.MetadataPlan.Definition.Entries
                 .Where(static entry => entry.Purposes.Contains(MetadataReferencePurpose.ReportClassification))

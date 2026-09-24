@@ -15,6 +15,59 @@ runtime implementation, create a watcher, or replace the version sequence.
 
 ## Current release sequence — 2026-09-14
 
+Owner release-identity amendment, 2026-09-23: publish the current work as
+**1.1.10**, replacing the earlier `1.2.0` label. GitHub read-only inspection on
+this date confirms [v1.1.9](https://github.com/Dennis40816/nvt_fw_combiner/releases/tag/v1.1.9)
+is the latest non-draft stable release; its local annotated tag peels to
+`b56b4eee5914f1651ed40747ea0ba48015a52105`. This observation does not reconstruct
+or certify missing predecessor closure evidence. The dated `1.1.8` checkpoint
+above remains historical. Current unfinished work and release evidence are
+tracked in the existing [delivery checklist](../ui/v1.1.10-delivery.md#11x-未完成項目彙整--2026-09-24).
+
+Owner allocation, 2026-09-24: investigate and repair in `1.1.11` the failure
+observed in the concurrent all-lane `test_verify_orchestration` run. The exact
+`1.1.10` candidate run failed this lane (214/217), while its three failed tests
+and then the complete module passed in isolated reruns (3/3 and 217/217). The
+[1.1.10 delivery checkpoint](../ui/v1.1.10-delivery.md#1110-verifier-orchestration-repair--2026-09-24)
+retains logs and acceptance criteria. This allocation does not mark the failed
+run as passed or waive any applicable `1.1.10` release gate.
+
+Owner amendment later on 2026-09-24: move that verifier repair forward into
+**1.1.10**. The preceding `1.1.11` allocation remains dated history. The
+[current repair checkpoint](../ui/v1.1.10-delivery.md#1110-verifier-orchestration-repair--2026-09-24)
+records the reproduced pytest collection boundary, bounded correction and
+remaining all-lane evidence. No earlier failed run becomes a pass; the full
+verifier, Golden, R3 owner and release gates remain required.
+
+Owner amendment, 2026-09-23: schedule Customized / General Merge large-file
+support and the Launcher delta-update, self-update and intranet-migration
+development plan in `1.2.1`, after the current `1.1.10` release.
+The [1.2.1 handoff](v1.2.1-handoff.md) carries the scoped review,
+sequence, unresolved decisions and evidence gates. Retain the existing Python
+Combiner replacement and ownership/recovery work in that slot. Scheduling does
+not approve every proposed contract or move the full Launcher release from
+`2.0.0`; neither new workstream is part of the current `1.1.10` closure.
+
+Owner amendment, 2026-09-22: the next release includes only fixes and changes
+allocated before `1.2.0` (through the current `1.1.10` delivery). The previously
+planned `1.2.0` release label for that delivery does not pull the separate
+Launcher development tranche into the package. Launcher work is excluded from
+this release; its next development slot remains to be scheduled. The full
+Launcher `2.0.0` target and its acceptance gates remain unchanged.
+
+Owner amendment, 2026-09-21: the work tracked under `1.1.10` is planned for
+release as `1.2.0`. Within that work, complete independent Event Buffer display
+updates, Partial-family bank cleanup and test closure before AB CtrlRAM Replace;
+AB Replace is the final implementation item. The
+[1.1.10 delivery checklist](../ui/v1.1.10-delivery.md) retains the detailed
+status and evidence. This changes the accepted order and planned release label,
+not firmware support, the remaining release gates or unrelated backlog scope.
+
+Owner intake, 2026-09-20: preserve a [local user-data inventory](local-user-data-inventory.md)
+for future uninstall implementation, including settings, report history,
+version-manager state and transient coordination files. This records cleanup
+scope for planning only; it does not enable deletion or assign a new release slot.
+
 The owner requests redistribution of unfinished work across `1.1.6` through
 `1.5.x`, with Desay/public AB address corrections completed **before `1.2.0`**,
 and sets the **full Launcher release to `2.0.0`**. The sequence below is the
@@ -103,10 +156,11 @@ protected review/CI and candidate publication gates remain required.
 | `1.1.7` | **Information and output confirmation UI**: TP Version → PID → Common FW Version → Event Buffer Version (`0x97 - Desay`, plain text); responsive action alignment, bounded Details and its default-Off appearance preference; clear IC/Mode/effective-format output confirmation. Final PID-inclusive preview/acceptance precedes implementation. |
 | `1.1.8` | **Release/agent workflow proportionality**: gate inventory and evidence-backed simplification, AI Skill/documentation/routing consistency and a bounded reversible pilot. Assess code-size/count gates, repeated confirmations/tests and derived-data automation; do not weaken Golden, signing or publication boundaries. |
 | `1.1.9` | **Long-name failure/recovery first, then Toolchain Runtime selection, remaining Settings conveniences and CtrlRAM AB intake**: fix issue #434 with edit-time visible errors, recovery to the last accepted valid name on invalid commit, and safe handling of BIN/Bundle/staging names. Assess removal of the product's total-path cap separately from the filesystem component limit. Add **Settings > Config > Toolchain** for detection and user selection of available compatible VC++ runtimes, including newer installed versions; see the linked Toolchain handoff for admission/readiness and verification questions. Record/reconcile the owner-provided CtrlRAM AB reference and prepare its contract/evidence questions for completion before `1.2.0`. Inventory other user-adjustable preferences and justified reset/import/export conveniences through the `1.1.6` Settings owner. Arbitrary maps, CRC/ranges, safety overrides and support promotion are outside ordinary Settings. |
-| `1.1.10` (tentative implementation; required before `1.2.0`) | **CtrlRAM Replace with AB Code Flash inputs** for NT51932 Perfect family and NT51950 Partial family, following the `1.1.9` reference intake. Inventory current behavior and reuse declared family/profile facts; specify input shape, bank targeting, coupled header/CRC updates, preserved bytes and output/readiness/report disclosure before implementation. Include applicable topology and Common/Desay variants only under their approved contracts, with exact write-range audit and independent Golden evidence. No filename-based AB detection or blanket family promotion. |
-| `1.2.0` | **Launcher first development tranche**: current defect/security/evidence inventory plus actual bounded remediation, not only planning. Not the full Launcher release or production activation. Before release, refresh public NT51950 DP Perspective, Desay DP Perspective and Event Buffer ID/name material. |
-| `1.2.1` | **Family/Profile/state ownership convergence**: proven shared-fact duplication and DP CMI provider bindings first; distinguish IC identity, family, topology/IC Count, variant, input snapshots and page drafts. Preserve valid existing reuse; no wholesale profile rewrite. |
-| `1.2.2` | **DP Replace retirement** after `1.2.1` preserves shared definitions, Perfect-family disclosure and surviving consumers. Preserve historical Report interpretation and required evidence; verify surviving workflow bytes. |
+| `1.1.10` (required before `1.2.0`; owner scope update 2026-09-24) | **CtrlRAM AB Replace, affected shared-contract extraction, DP Replace retirement and verifier orchestration repair**. Retain the NT51932 Perfect family／NT51950 Partial family intake and explicit Common/Desay/topology evidence. Share canonical AB format/layout ownership, preserve independent page instances, and detach shared DPCMI/Perfect-family dependencies before retiring DP Replace. Keep repository-script pytest collection inside the selected test root while preserving exact selection, scratch isolation, cancellation and complete execution; pass the applicable fixed-source verifier. Bank/source/version and fixed-Reference decisions, unresolved firmware rules, implementation and verification evidence are tracked in the [1.1.10 delivery checklist](../ui/v1.1.10-delivery.md). No filename-based AB detection or blanket family promotion. |
+| `1.1.11` | The verifier orchestration follow-up originally allocated here on 2026-09-24 was moved into `1.1.10` by the later owner amendment above. This row assigns no replacement work and does not retrospectively pass the failed `1.1.10` run. |
+| `1.2.0` | **No longer the release label for `1.1.10`**: the owner explicitly chose `1.1.10` on 2026-09-23. No additional scope is assigned by that numbering correction. The former Launcher development tranche remains in `1.2.1`; reference refresh and current evidence remain in the `1.1.10` delivery. |
+| `1.2.1` | **Customized large-file support, Launcher update development, Python Combiner replacement and residual ownership convergence**. Follow the [1.2.1 handoff](v1.2.1-handoff.md) for large-source/small-slice then large-output work, delta transfer, Launcher self-update and intranet migration. Preserve the [Python Combiner intake](#121-python-combiner-intake--2026-09-21), including B-bank CRC/postbuild mode assessment, and existing identity/family/topology/input-snapshot/page-draft and recovery work. Progressively consolidate repeated family profile declarations through an explicit, validated shared-definition reference; retain each member's map, topology, identity and evidence. Shared DPCMI/Perfect-family and page-contract work required by DP retirement remains in `1.1.10`; avoid a wholesale profile rewrite. |
+| `1.2.2` | **Remaining UI I/O and Report persistence audit work** in the audit allocation below. DP Replace retirement and its compatibility verification move to `1.1.10` by owner decision on 2026-09-20; no replacement feature scope is implied. |
 | `1.2.3` | **CLI and deterministic Desktop automation** through existing Application/startup owners: workflow coverage, load-report/tab/state/capture/exit, actionable argument errors. Prioritize this before remaining broad UI acceptance. |
 | `1.2.4` | **First-entry and page flow**: IC/context lifetime, invalidation, Cancel/Back and remaining per-page custom-option density, using approved previews. Do not reopen completed slot/Memory Layout styling. |
 | `1.2.5` | **Report completion**: physical-section grouping and historical replay compatibility; preserve completed Changes cards/navigation. |
@@ -187,8 +241,8 @@ the declared Family-before-retirement dependency and earlier firmware gates.
 | Version | Audit work / relative size | Required observable acceptance |
 | --- | --- | --- |
 | `1.2.0` | **Staging and runner reliability**: F19 (L), F03 + F06 (one L runner change); 6 units. | Pre-existing staging/sentinel survives rejection and acquisition races; no tool launch on rejected ownership. Cancellation callbacks do not leak expected OS errors; execution, termination confirmation and pipe drain have bounded completion. Exercise held child pipes, denied kill, timeout/cancel races. This is distinct from Launcher protocols; retain the existing bounded Launcher inventory/remediation outcome. |
-| `1.2.1` | **Window lifetime and recovery**: F01 + F25 (one L lifecycle change), F02 (M), F24 shared-fact preservation (M); 7 units. | Close → failed handoff → settings/history save → second Close works. READY cancellation is contained; active run/inspection/modal work drains before final disposal, and stale callbacks cannot publish. Preserve DPCMI and Perfect-family consumers through the existing Family/Profile milestone. |
-| `1.2.2` | **UI I/O and Report persistence**: F20 (L), F21 (M), F26 (S), F24 retirement verification (S); 7 units. | Picker/open/write/flush/dispose failures produce visible failure, never false success; fixed Report snapshot commits before success notification. Oversized JSON integer retains the Python safety limit and returns the worker's structured error. DP retirement follows preserved shared facts, including surviving routes and old Report readability. |
+| `1.2.1` | **Window lifetime and recovery**: F01 + F25 (one L lifecycle change), F02 (M); 5 retained units after F24 shared-fact preservation (M) moves to `1.1.10` on 2026-09-20. | Close → failed handoff → settings/history save → second Close works. READY cancellation is contained; active run/inspection/modal work drains before final disposal, and stale callbacks cannot publish. F24 DPCMI and Perfect-family acceptance follows the `1.1.10` delivery checklist. |
+| `1.2.2` | **UI I/O and Report persistence**: F20 (L), F21 (M), F26 (S); 6 retained units after F24 retirement verification (S) moves to `1.1.10` on 2026-09-20. | Picker/open/write/flush/dispose failures produce visible failure, never false success; fixed Report snapshot commits before success notification. Oversized JSON integer retains the Python safety limit and returns the worker's structured error. F24 surviving-route and old-Report acceptance follows the `1.1.10` delivery checklist. |
 | `1.2.3` | **Request identity and controlled entry**: F04 (L), F05 (L), F17 (M); 8 units. | Cancel/reopen across picker awaits cannot apply an old request; slow earlier Hex loads cannot replace a newer document. Missing/invalid Desktop arguments produce actionable errors before host construction. Reuse this evidence for the existing CLI/Desktop automation milestone. |
 | `1.2.4` | **Committed-output and persistence outcomes**: F07 (L), F08 (L); 6 units. | Cancellation after primary commit retains its receipt and reports incomplete loose delivery; do not conflate atomic bundle behavior. Settings/history persistence failures are visible/retryable without blocking firmware Build. Combine with the existing page-flow acceptance, not a new state store. |
 | `1.2.5` | **Typed results and language projection**: F09 (L), F10 (M), F12 naming requirement (M); 7 units. | Re-language completed/blocked/partial outcomes from typed state. General rows retain identity/drafts/mappings. Use Customized / Customized Merge / Customized Replace for relevant visible labels, CLI help and new Report labels; retain canonical IDs, command compatibility and unrelated Settings General text. Preserve historical Report interpretation. |
@@ -1054,8 +1108,8 @@ declaration in one package does not overturn that owner direction.
 | NT51923/26 | Same Standard family container, but no explicit Perfect/shared-fact relationship in that definition; distinct CtrlRAM families. | A common container or similar addresses alone does not prove complete equivalence. Identify the actually shared facts before consolidation. |
 | NT51950/51 | Standard declares the TP overlay as a shared fact; DP-container/map variants and other workflows retain distinct identities. | Reuse the common TP fact, not an inferred whole-map Perfect relationship. Keep the pending Desay variant distinct. |
 
-Decisive evidence: the [19/29/32 DP Replace family](../../profiles/built-in/nt51929-dp-replace/families/nt51929-nt51932.json)
-has the Perfect declaration; the [Standard family](../../profiles/built-in/nt51929-standard-merge/families/nt51929-nt51932.json)
+Decisive evidence: the [normalized 19/29/32 family](../../profiles/built-in/nt51919-nt51929-nt51932-shared-facts/families/nt51929-nt51932.json)
+has the Perfect declaration (the audit loaded it through DP Replace; 1.1.10 relocates identical bytes to a neutral provider); the [Standard family](../../profiles/built-in/nt51929-standard-merge/families/nt51929-nt51932.json)
 has the 19-to-29 region-set alias. The Standard NT51919 metadata binding lacks
 the ReportClassification purpose used by the existing CtrlRAM companion path.
 Domain's [relationship validation](../../src/NvtFwCombiner.Domain/Firmware/FirmwareFamilyResolutionDefinition.cs)
@@ -2025,14 +2079,20 @@ not permission to auto-close issues or reopen immutable final records.
 
 ### DP Replace retirement — owner decision, 2026-09-09
 
-The owner has decided to remove DP Replace. The current sequence allocates
-implementation to `1.2.2`, after `1.2.1` disentangles the affected shared facts.
-This supersedes the preceding `1.1.6` allocation; retirement itself is settled.
-The current task records the decision and impact assessment only: no runtime,
-profile, policy, test or Golden removal has been performed. Earlier
-"owner-unallocated" wording describes the preceding decision state, not a
-remaining choice to reopen the feature. The retained runtime contract remains
-in force until its explicit retirement migration is implemented and verified.
+The owner has decided to remove DP Replace. On 2026-09-20 the owner moved
+retirement and its prerequisite shared-fact extraction into `1.1.10`, together
+with CtrlRAM AB Replace; see the [delivery checklist](../ui/v1.1.10-delivery.md).
+This supersedes the `1.2.2` retirement / `1.2.1` prerequisite allocation and
+the earlier `1.1.6` allocation; retirement itself is settled.
+The local retirement unit is implemented and its scoped review and regression
+gates are closed. Canonical full-image metadata ownership and its consumers
+were decoupled from DP runtime in `3379ca87`, following the shared DPCMI and
+explicit Perfect-disclosure migrations. The retirement removes dedicated
+runtime, profiles and policy rows while preserving shared tests and historical
+evidence. Actual commands, source boundaries and open integration/R3 gates are
+recorded in the delivery checklist; local completion is not a verified release.
+Earlier "owner-unallocated" wording describes the preceding decision state,
+not a remaining choice to reopen the feature.
 
 Target: retire the DP Replace experience without changing the behavior or
 output bytes of Standard Merge, AB Merge (including Dummy DP), CtrlRAM Replace
@@ -2040,22 +2100,21 @@ or the retained General workflows. This is an acceptance target, not an
 already-verified zero-impact claim. Removing DP Replace does not remove DP
 inputs, DP metadata/CMI, DP/TP map facts, or the common Replace operation model.
 
-The follow-up ownership decision above is a retirement prerequisite: shared
-metadata/family facts must survive independently of the DP Replace experience.
-Moving them under another workflow without preserving that ownership is not
-completion. Existing exact-reference and package-admission checks remain in
-force until the migration is implemented.
+The prerequisite shared metadata/family facts now have neutral canonical
+owners; their mutable page/session instances remain independent. This does
+not authorize removing the shared Replace engine or weakening exact-reference,
+package-admission and historical Report checks.
 
 Current impact and required migration boundary:
 
 | Surface | Assessment / retirement TODO |
 | --- | --- |
-| Ordinary UI and CLI authoring | All 14 DP Replace routes in the [shipped capability policy](../contracts/canonical-capability-policy-v1.json) are authoring-unavailable. The [CLI handler](../../src/NvtFwCombiner.Cli/ReplaceCliCommandHandler.cs) still recognizes the command and checks readiness before execution. Remove obsolete selectors, command/help and service wiring coherently; explicitly reject a retired command without falling through to another workflow. |
-| Shared DPCMI definition — direct dependency | The [trust index](../../profiles/built-in/package-trust-index.json) registers `nt51929-dp-replace` as the sole metadata provider for `nt51929-nt51932@1.3.0`. Standard families for 17/27, 23/26, 28, 19/29/32 and 50/51 reference its exact `dpcmi` identity/hash. The [metadata resolver](../../src/NvtFwCombiner.Infrastructure/Composition/BuiltInCanonicalMetadataDefinitionResolver.cs) requires that provider; deleting it would break those consumers and the Standard metadata plans used by CtrlRAM. Relocate the immutable definition through the existing provider mechanism before removing the bundle; preserve family id/version/content hash/structure id and never copy it into each consumer. |
-| Perfect family disclosure — direct dependency | The [NT51919/29/32 Perfect relationship](../../profiles/built-in/nt51929-dp-replace/families/nt51929-nt51932.json) currently comes from a DP Replace runtime family. [Global disclosure](../../src/NvtFwCombiner.Infrastructure/Composition/CanonicalCapabilityDisclosureInventory.cs) collects relationships from compiled runtime maps, not metadata-provider files. Preserve the owner's Perfect-family behavior, including badges and filename-only mismatch suppression, via a versioned canonical family/reference migration used by surviving routes. Moving the metadata file alone is insufficient. Do not create per-IC maps or silently drop the relationship. |
+| Ordinary UI and CLI authoring | The retirement removes all 14 DP routes from the [capability policy](../contracts/canonical-capability-policy-v1.json), obsolete selectors, command/help and service wiring. The existing compiler terminal rejects valid retired-DP declarations before creating any artifact; earlier admission failures keep their typed issue. The [CLI handler](../../src/NvtFwCombiner.Cli/ReplaceCliCommandHandler.cs) must reject the retired command before input reads, execution or output/report side effects, without General fallback. |
+| Shared DPCMI definition — completed prerequisite | The [trust index](../../profiles/built-in/package-trust-index.json) registers neutral canonical providers. `nt51929-nt51932@1.3.1` adds declared full-image views while retaining its DPCMI facts; Standard families for 17/27, 23/26, 28, 19/29/32 and 50/51 retain their exact references. CtrlRAM uses the common full-image inspector without a DP runtime fallback. Migration evidence is recorded in the [delivery checklist](../ui/v1.1.10-delivery.md). |
+| Perfect family disclosure — completed prerequisite | The [NT51919/29/32 Perfect relationship](../../profiles/built-in/nt51919-nt51929-nt51932-shared-facts/families/nt51929-nt51932.json) remains canonical. [Global disclosure](../../src/NvtFwCombiner.Infrastructure/Composition/CanonicalCapabilityDisclosureInventory.cs) now consumes an explicit admitted family binding independently of DP runtime maps. Existing badge and filename-only mismatch-suppression behavior is covered by the committed disclosure regression unit. |
 | Shared execution and inspection | Preserve the [shared operation model and profile-owned access rules](../adr/0005-replace-personas-and-general-mapping.md). Remove only proven DP Replace-specific branches; keep reference initialization, range/CRC safety, metadata inspection and session behavior needed by the other workflows. |
 | Historical Report / History | Existing report [history labels](../../src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReportHistoryEntryViewModel.cs) read stored experience/mode identity. Retain read-only interpretation of old DP Replace records and their input/mutation details; do not erase user history or keep an executable workflow solely to display it. |
-| Tests, evidence and package catalogs | Separate obsolete DP Replace execution cases from shared-engine/family safety tests that currently use DP Replace fixtures. Preserve the latter coverage through a surviving workflow. Migrate trust indexes, publication/evidence policy and package manifests together, using existing synchronization tools for derived fingerprints. Preserve historical certification/provenance; no blanket test or Golden-directory deletion. |
+| Tests, evidence and package catalogs | Retarget shared-engine/family/UI safety tests to surviving workflows and retain historical reports/oracles. Migrate trust indexes, policy and packages together: 24 bundles, 54 runtime registrations and 79 policy routes survive. Survivor bundle bytes, route fingerprints and decision identities remain exact; removing DP rows does not require repinning them. Preserve all 40 canonical Golden cases, output contracts and the approved allowlist. |
 
 Implementation order: preserve shared facts and references first, remove the
 experience-specific runtime/authoring surfaces second, then reconcile active
@@ -2122,16 +2181,35 @@ evidence and cannot wait until this version to execute mandatory Golden cases.
 
 ## Work package: bounded Launcher hardening and development
 
-Current allocation: first actual development in `1.2.0`; complete Launcher
-release in `2.0.0`, per the owner's 2026-09-14 decision. The data-refresh
-deadline below remains before `1.2.0`, not before `2.0.0`.
+2026-09-22 estimate (read-only assessment, not an implementation commitment):
+the first tranche is approximately **6–12 single-person focused workdays**,
+assuming inventory (1–2), two or three bounded corrections (3–6), and scoped
+regression/package/review closure (2–4). The exact defect set is not yet chosen.
+The complete Launcher scope through trust/security, controlled activation,
+installer refinements and clean-Windows recovery/rollback acceptance is roughly
+**28–50 focused workdays including that tranche**; external approvals and
+environment/key access waiting time are excluded. Optional repository extraction
+is excluded. Existing `ManagedDistributionLauncherHostServices`,
+`ManagedDistributionLauncherRuntime`, `ManagedLauncherEntry` and
+`VersionManagementExperience` already provide entry/setup/recovery, payload
+verification, READY/rollback and version-management foundations; this is not a
+from-zero estimate. No fresh test run was performed for this assessment.
+Per the current release-sequence amendment, this work is outside the next
+pre-`1.2.0`-scope delivery even if its release label is `1.2.0`.
+
+Historical allocation: first actual development under the `1.2.0` planning
+label; the 2026-09-22 amendment excludes that work from the next release and
+leaves its next development slot unscheduled. Complete Launcher release remains
+`2.0.0`. The data-refresh deadline below still applies to the next release,
+not the later Launcher release.
 
 Owner reminder, 2026-09-14: **before this release**, request/confirm the latest
 public NT51950 DP Perspective, Desay DP Perspective and Event Buffer ID/name
 table. The [data-refresh checklist](../ui/v1.1.x-custom-options-layout-handoff.md#owner-data-refresh-before-120-release--2026-09-14)
-owns received/revision/applicability details. These updates are still awaiting
-owner material; do not treat an old workbook or display example as the latest
-approved source. This reminder does not itself allocate an unknown firmware
+owns received/revision/applicability details. As of 2026-09-23, the latest public
+NT51950/NT51951 Perspective is consolidated in the reference workbook and the
+latest Event Buffer names are already applied; separate Desay source questions
+remain unresolved. This reminder does not itself allocate an unknown firmware
 implementation, reopen DP Replace or add a new automated release gate.
 
 Launcher remains secondary to the `1.1.x` UI/performance priorities, but this
@@ -2146,6 +2224,13 @@ recovery and rollback authority. Production activation remains NO-GO until the
 separate security/evidence and activation gates below close.
 
 ## Work package: publisher trust, signing and security closure
+
+The owner's 2026-09-23 request for differential updates, Launcher self-update
+and future intranet migration is captured in the
+[complete proposal](launcher-update-proposal-20260923.md). It is pending
+discussion and does not admit implementation or alter this release allocation.
+The expanded draft estimates 35–60 focused workdays, including a 10–18-day first
+vertical slice; these supersede neither an approved schedule nor completed evidence.
 
 Current allocation: `1.5.0`.
 
@@ -2199,7 +2284,7 @@ UI/CLI cannot bypass TP, range, integrity or processor authority.
 
 DP Replace is no longer an undecided item in this version: the owner decided
 to retire it on 2026-09-09 and allocated the
-[retirement and compatibility checks now in `1.2.2`](#dp-replace-retirement--owner-decision-2026-09-09).
+[retirement and compatibility checks now in `1.1.10`](#dp-replace-retirement--owner-decision-2026-09-09).
 General Replace continues to use the shared Replace engine; this does not
 implicitly reopen the retired DP Replace experience.
 
@@ -2272,6 +2357,40 @@ An ADR must first define public contracts, migration/deletion milestones,
 repository trust boundary and rollback. Do not duplicate NVT FW Combiner's
 managed-version semantics or move firmware facts, composition, profiles,
 Golden authority or product-specific support policy into the extracted owner.
+
+## 1.2.1 Python Combiner intake — 2026-09-21
+
+Owner requested these TODOs for `1.2.1`; this is planning intake, not a tool
+binding change or an approved new firmware mode. Existing `1.2.1` allocations
+remain; the current `1.1.10` / planned `1.2.0` AB Replace work stays separate.
+
+- [ ] Replace the current legacy Combiner with
+  [Dennis40816/nvt_combiner](https://github.com/Dennis40816/nvt_combiner), the
+  Python implementation that can be packaged as `Combiner.exe`. Intake source:
+  `d7b08b92d1e566a0fc4066005e3e058d60ecd25f`, product version `2.0.0.1`, legacy
+  console banner `1.13.0.0`; the deployment candidate must be selected and pinned
+  during implementation. Inventory every currently used mode/argument contract,
+  compare complete outputs against the fixed legacy tool and applicable owner
+  Goldens, and verify package/runtime readiness, failures and rollback. Reuse
+  the existing processor adapter and host write-range audit; preserve independent
+  legacy reference evidence. The Python repo's existing differential records
+  have been read, not rerun or accepted as coverage of every current route.
+- [ ] Assess a dedicated B-bank CRC/postbuild mode in that repo. Compare a
+  CRC-only operation with a complete local-address normalization → existing
+  postbuild → B-address restoration/family CRC operation. CRC-only may be
+  insufficient: the observed 929 failure occurs at the Backup copy before CRC.
+  Evaluate explicit profile-bound bank geometry, exact read/write bounds,
+  preservation of B's own unselected content/version and byte-for-byte retention
+  of the unselected bank. Cover 929's three relocated fields outside Header CRC
+  separately from 950/951's relocated fields within Header CRC; do not introduce
+  one unconditional CRC rule. Mode name, arguments, CRC-only versus full
+  postbuild scope, implementation owner and integration contract remain pending.
+
+The linked repo currently records AB Merge and range-safety evidence, not
+complete AB CtrlRAM Replace validation. Final design and implementation
+admission follow that evaluation; this intake does not create GitHub issues,
+modify either runtime or promote support. The related current delivery entry is
+[1.1.10](../ui/v1.1.10-delivery.md#121-combiner-後續規劃--2026-09-21).
 
 ## Explicit owner-unallocated queue
 

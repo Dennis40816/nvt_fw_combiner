@@ -1,6 +1,7 @@
 using System.Buffers.Binary;
 using NvtFwCombiner.Application.Capabilities;
 using NvtFwCombiner.Application.FlashMaps;
+using NvtFwCombiner.Application.InputInspection;
 using NvtFwCombiner.Application.Metadata;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Domain.Firmware;
@@ -16,6 +17,160 @@ public sealed class FirmwareConfigGeneralParametersPilotTests
     private const int TpLength = 217088;
     private const int BackupStart = 0x1000;
     private const int MarkerStart = BackupStart + 0xFFC;
+
+    /// <summary>Standard display explicitly selects the already-declared Event Buffer field.</summary>
+    [Theory]
+    [InlineData("NT51927")]
+    [InlineData("NT51928")]
+    public void StandardInspectionSelectsEventBufferField(string icId)
+    {
+        MetadataPlanEntry entry = CreatePlanEntry(icId);
+        Assert.Contains(entry.TargetReferences, static target =>
+            target.Kind == FirmwareMetadataReferenceTargetKind.Field &&
+            target.TargetId == "event-buffer-format-version");
+    }
+
+    /// <summary>The selected canonical field is read from the same TP capture and locator.</summary>
+    [Theory]
+    [InlineData("NT51927")]
+    [InlineData("NT51928")]
+    public void StandardEventBufferProjectionRejectsMovedOrAmbiguousBackup(string icId)
+    {
+        ResolvedMetadataPlan plan = CreateResolvedPlan(icId);
+        byte[] tp = CreateValidTp();
+        tp[BackupStart + 0x0C] = 0xA3;
+        Assert.Equal((byte)0xA3,
+            FirmwareConfigGeneralParametersProjector.ReadEventBufferFormatVersion(plan, tp, BackupStart));
+        CanonicalEventBufferFieldObservation observed = Assert.IsType<CanonicalEventBufferFieldObservation>(
+            FirmwareConfigGeneralParametersProjector.ReadEventBufferFormatObservation(plan, tp, BackupStart));
+        Assert.Equal(new ByteRange(BackupStart + 0x0C, 1), observed.FieldRange.Range);
+        Assert.Equal("flash", observed.FieldRange.AddressSpaceId);
+        tp[BackupStart + 0x0C] = 0;
+        Assert.Equal((byte)0,
+            FirmwareConfigGeneralParametersProjector.ReadEventBufferFormatVersion(plan, tp, BackupStart));
+        Assert.Null(FirmwareConfigGeneralParametersProjector.ReadEventBufferFormatVersion(
+            plan, tp, BackupStart + 1));
+        WriteMarker(tp, 0x3000);
+        Assert.Null(FirmwareConfigGeneralParametersProjector.ReadEventBufferFormatVersion(
+            plan, tp, BackupStart));
+    }
+
+    /// <summary>A physically decodable field without a selected profile target is unavailable.</summary>
+    [Fact]
+    public void EventBufferProjectionRequiresSelectedFieldTarget()
+    {
+        MetadataPlanEntry selected = CreatePlanEntry("NT51927");
+        var withoutEvent = new MetadataPlanEntry(selected.BindingId, selected.SpaceId, selected.SlotId,
+            selected.FamilyDefinition, selected.ResolvedMap, selected.MetadataSetBinding,
+            selected.StructureDefinition, selected.TargetReferences.Where(static target =>
+                target.TargetId != FirmwareConfigGeneralParametersContract.EventBufferFormatVersion),
+            selected.Purposes, selected.EvidenceRefs);
+        ResolvedMetadataPlan plan = new MetadataPlanDefinition([withoutEvent]).Resolve(
+            new ResolutionToken("standard-event-without-target"));
+        byte[] tp = CreateValidTp();
+        tp[BackupStart + 0x0C] = 0xA3;
+
+        Assert.Null(FirmwareConfigGeneralParametersProjector.ReadEventBufferFormatVersion(
+            plan, tp, BackupStart));
+    }
+
+    /// <summary>TP-only map consensus publishes only a source-identical canonical field.</summary>
+    [Fact]
+    public void StandardEventBufferConsensusRejectsMissingOrDisagreeingCandidate()
+    {
+        byte[] tp = CreateValidTp();
+        tp[BackupStart + 0x0C] = 0xA3;
+        CanonicalEventBufferFieldObservation observed = Assert.IsType<CanonicalEventBufferFieldObservation>(
+            FirmwareConfigGeneralParametersProjector.ReadEventBufferFormatObservation(
+                CreateResolvedPlan("NT51927"), tp, BackupStart));
+        Assert.Equal((byte)0xA3, FirmwareArtifactClassificationResolver.SelectCommonEventBufferFormat(
+            [observed, observed]));
+        Assert.Null(FirmwareArtifactClassificationResolver.SelectCommonEventBufferFormat(
+            [observed, null]));
+        Assert.Null(FirmwareArtifactClassificationResolver.SelectCommonEventBufferFormat(
+            [observed, observed with { Value = 0xA4 }]));
+        Assert.Null(FirmwareArtifactClassificationResolver.SelectCommonEventBufferFormat(
+            [observed, observed with { FamilyContentHash = "different-family" }]));
+        Assert.Null(FirmwareArtifactClassificationResolver.SelectCommonEventBufferFormat(
+            [observed, observed with { FieldRange = new FirmwareAddressedRange("flash",
+                new ByteRange(BackupStart + 0x0D, 1)) }]));
+    }
+
+    /// <summary>Standard TP and Base carry one typed observation; DP has no TP Event Buffer fact.</summary>
+    [Theory]
+    [InlineData("NT51927")]
+    [InlineData("NT51928")]
+    public void StandardTpAndBaseSnapshotsCarrySelectedEventBuffer(string icId)
+    {
+        byte[] tp = CreateValidTp();
+        tp[BackupStart + 0x0C] = 0xA3;
+        FirmwareInspectionSnapshotInput[] tpInput = icId == "NT51928"
+            ? [new("dp", "dp.bin", StandardMergeAddressSpaceId: CompositionAddressSpaceIds.DpInput),
+                new("tp", "tp.bin", StandardMergeAddressSpaceId: CompositionAddressSpaceIds.TpInput)]
+            : [new("tp", "tp.bin", StandardMergeAddressSpaceId: CompositionAddressSpaceIds.TpInput)];
+        IReadOnlyList<FirmwareInspectionSnapshotResult> standardResults =
+            BuiltInFirmwareInspection.InspectFirmwareBatch(BootstrapTestHost.Canonical, icId,
+                tpInput, path => path == "dp.bin" ? new byte[0x40000] : tp);
+        FirmwareInspectionSnapshot standard = standardResults.Single(static result =>
+            result.InspectionId == "tp").Inspection;
+        Assert.Equal((byte)0xA3, standard.StandardEventBufferFormatVersion);
+
+        FirmwareInspectionSnapshot reference = Assert.Single(
+            BuiltInFirmwareInspection.InspectFirmwareBatch(BootstrapTestHost.Canonical, icId,
+                [new("base", "base.bin", CtrlRamRequest: new CtrlRamInspectionRequest(
+                    IcNumberSelectionTokens.SingleChip),
+                    CtrlRamReplaceAddressSpaceId: CompositionAddressSpaceIds.ReferenceBase)],
+                _ => tp)).Inspection;
+        CtrlRamBaseInspection baseInspection = Assert.IsType<CtrlRamBaseInspection>(
+            reference.CtrlRamBaseInspection);
+        Assert.Equal(CtrlRamBaseKind.StandardTp, baseInspection.Kind);
+        // TP-only map consensus retains only a canonical field shared by every current candidate.
+        Assert.Equal((byte)0xA3, reference.StandardEventBufferFormatVersion);
+        Assert.Equal(reference.FileStamp, baseInspection.ReferenceStamp);
+
+        byte[] fullReference = new byte[icId == "NT51927" ? 0x40000 : 0x80000];
+        tp.CopyTo(fullReference, 0);
+        FirmwareInspectionSnapshot exactReference = Assert.Single(
+            BuiltInFirmwareInspection.InspectFirmwareBatch(BootstrapTestHost.Canonical, icId,
+                [new("base", "base.bin", CtrlRamRequest: new CtrlRamInspectionRequest(
+                    IcNumberSelectionTokens.SingleChip),
+                    CtrlRamReplaceAddressSpaceId: CompositionAddressSpaceIds.ReferenceBase)],
+                _ => fullReference)).Inspection;
+        Assert.Equal((byte)0xA3, exactReference.StandardEventBufferFormatVersion);
+    }
+
+    /// <summary>A captured Base fact cannot be carried into another file or catalog publication.</summary>
+    [Fact]
+    public void StandardBaseEventBufferRejectsChangedStampOrPublication()
+    {
+        var host = new IsolatedBootstrapTestHost();
+        byte[] tp = CreateValidTp();
+        tp[BackupStart + 0x0C] = 0xA3;
+        FirmwareInspectionSnapshot captured = Assert.Single(
+            BuiltInFirmwareInspection.InspectFirmwareBatch(host.Canonical, "NT51927",
+                [new("base", "base.bin", CtrlRamRequest: new CtrlRamInspectionRequest(
+                    IcNumberSelectionTokens.SingleChip),
+                    CtrlRamReplaceAddressSpaceId: CompositionAddressSpaceIds.ReferenceBase)],
+                _ => tp)).Inspection;
+        CtrlRamBaseInspection baseInspection = Assert.IsType<CtrlRamBaseInspection>(
+            captured.CtrlRamBaseInspection);
+        Assert.Equal((byte)0xA3, captured.StandardEventBufferFormatVersion);
+
+        byte[] changed = (byte[])tp.Clone();
+        changed[BackupStart + 0x0C] = 0;
+        FirmwareInspectionSnapshot changedFile = BuiltInFirmwareInspection.InspectFirmware(
+            host.Canonical.FirmwareInspection, "NT51927", "base.bin", null,
+            new CtrlRamInspectionRequest(IcNumberSelectionTokens.SingleChip), _ => changed,
+            baseInspection: baseInspection);
+        Assert.Null(changedFile.StandardEventBufferFormatVersion);
+
+        Assert.True(host.Catalog.Reload(TestContext.Current.CancellationToken).Succeeded);
+        FirmwareInspectionSnapshot changedPublication = BuiltInFirmwareInspection.InspectFirmware(
+            host.Canonical.FirmwareInspection, "NT51927", "base.bin", null,
+            new CtrlRamInspectionRequest(IcNumberSelectionTokens.SingleChip), _ => tp,
+            baseInspection: baseInspection);
+        Assert.Null(changedPublication.StandardEventBufferFormatVersion);
+    }
 
     /// <summary>
     /// Both pilot routes bind the same source-backed metadata structure while
@@ -37,7 +192,7 @@ public sealed class FirmwareConfigGeneralParametersPilotTests
             nt51927.FamilyDefinition.FamilyId,
             nt51928.FamilyDefinition.FamilyId);
         Assert.Equal("1.4.0", nt51927.FamilyDefinition.FamilyVersion);
-        Assert.Equal("1.5.0", nt51928.FamilyDefinition.FamilyVersion);
+        Assert.Equal("1.5.1", nt51928.FamilyDefinition.FamilyVersion);
         Assert.Equal(
             "firmware-config-general-parameters",
             nt51927.StructureDefinition.StructureId);

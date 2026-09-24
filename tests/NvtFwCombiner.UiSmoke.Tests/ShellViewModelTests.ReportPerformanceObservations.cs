@@ -11,7 +11,7 @@ public sealed partial class UiPerformanceObservationTests
     [Fact]
     public async Task LiveTypedReportProjectionEmitsJsonRoundTripSavings()
     {
-        CompositionRunResult source = await CreateDpReplaceInspectionResultAsync(TestHost);
+        CompositionRunResult source = await CreateGeneralReplaceInspectionResultAsync(TestHost);
         CompositionRunReport report = CreateLargeDifferenceReport(
             source.Report,
             count: 10_000,
@@ -78,7 +78,7 @@ public sealed partial class UiPerformanceObservationTests
     [Fact]
     public async Task ReportHexDiffEmitsColdWarmProjectionAndRangeSelectionObservations()
     {
-        CompositionRunResult result = await CreateDpReplaceInspectionResultAsync(TestHost);
+        CompositionRunResult result = await CreateGeneralReplaceInspectionResultAsync(TestHost);
         using var source = JsonDocument.Parse(CompositionRunReportJson.Serialize(result));
         string runId = source.RootElement.GetProperty("RunId").GetString()!;
         string json = ReportJsonSamples.ReplaceWithManyOutputDifferences(

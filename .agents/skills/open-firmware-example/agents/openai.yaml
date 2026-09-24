@@ -1,0 +1,4 @@
+interface:
+  display_name: "Open Firmware Example"
+  short_description: "Open canonical firmware inputs in Desktop from CMD"
+  default_prompt: "Use $open-firmware-example to open this NVT FW Combiner example with its declared input firmware loaded."

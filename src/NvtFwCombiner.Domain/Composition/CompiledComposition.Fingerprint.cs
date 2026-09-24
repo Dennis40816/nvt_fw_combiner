@@ -19,6 +19,7 @@ public sealed partial class CompiledComposition
         return details.Provenance.Context switch
         {
             RuntimeReferenceReplaceV2CompilationContext runtimeReference => CalculateMapBoundV2CompilationFingerprint(composition, runtimeReference),
+            RuntimeReferenceBankReplaceV2CompilationContext bankReference => CalculateMapBoundV2CompilationFingerprint(composition, bankReference),
             ResolvedMapV2CompilationContext resolvedMap => CalculateMapBoundV2CompilationFingerprint(composition, resolvedMap),
             LogicalOutputV2CompilationContext logical => CalculateLogicalOutputV2CompilationFingerprint(composition, logical),
             _ => throw new InvalidOperationException("Unknown profile-bundle-v2 compilation context."),
@@ -59,7 +60,18 @@ public sealed partial class CompiledComposition
         {
             AppendV2ProfileAdmission(builder, composition, provenance);
         }
+        if (context is RuntimeReferenceBankReplaceV2CompilationContext bankReference)
+        {
+            AppendBankReferenceContext(builder, bankReference);
+        }
         AppendField(builder, "resolved-map.fingerprint", provenance.ResolvedMap.ResolutionFingerprint);
+        if (context is ResolvedMapV2CompilationContext { SourceEnvelope: { } envelope })
+        {
+            AppendField(builder, "source-envelope.layout-template-map-id", envelope.LayoutTemplateMapId);
+            AppendField(builder, "source-envelope.source-slot-id", envelope.SourceSlotId);
+            AppendField(builder, "source-envelope.root-region-id", envelope.RootRegionId);
+            AppendInteger(builder, "source-envelope.actual-length", envelope.ActualOutputLength);
+        }
 
         return CompleteV2Fingerprint(
             builder,
@@ -371,10 +383,17 @@ public sealed partial class CompiledComposition
                 CompiledFirmwareConfigBackupPlacementAuthorityValidation => 6,
                 CompiledFirmwareConfigBackupExpectedAddressValidation => 7,
                 CompiledUniformInputRangeValidation => 8,
+                CompiledBankScopedValidation => 9,
                 _ => throw new InvalidOperationException("Unknown compiled validation kind."),
             });
             switch (requirement)
             {
+                case CompiledBankScopedValidation bank:
+                    AppendField(builder, $"{prefix}.bank", bank.Bank.BankId);
+                    AppendRange(builder, $"{prefix}.bank-output", bank.Bank.OutputRange);
+                    AppendField(builder, $"{prefix}.local-rule", bank.Local.RuleId);
+                    AppendField(builder, $"{prefix}.parent", bank.Bank.LocalComposition.CompilationFingerprint);
+                    break;
                 case CompiledMetadataValueValidation metadata:
                     AppendFieldReference(builder, $"{prefix}.field", metadata.Field);
                     AppendEnum(builder, $"{prefix}.comparison", metadata.Comparison);

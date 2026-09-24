@@ -86,6 +86,58 @@ public sealed class MemoryLayoutPreservationDetail
     public MemoryWorkflowDisposition Disposition { get; } = MemoryWorkflowDisposition.Kept;
 }
 
+/// <summary>
+/// Accepted input content underlying a display segment. Artifact identity is opaque and
+/// snapshot-local; operation writer identities remain separately available on the segment.
+/// </summary>
+public sealed record MemoryLayoutContentSource
+{
+    internal MemoryLayoutContentSource(string sourceSpaceId, string sourceSlotId, string artifactIdentity)
+    {
+        SourceSpaceId = sourceSpaceId;
+        SourceSlotId = sourceSlotId;
+        ArtifactIdentity = artifactIdentity;
+    }
+
+    /// <summary>Input address space owning the content.</summary>
+    public string SourceSpaceId { get; }
+    /// <summary>Accepted authoring slot owning the content.</summary>
+    public string SourceSlotId { get; }
+    /// <summary>Equality token for the same accepted path and stamp within this snapshot.</summary>
+    public string ArtifactIdentity { get; }
+}
+
+/// <summary>Original local declaration and its checked placement; not a synthesized firmware region.</summary>
+public sealed class MemoryLayoutBankRegion
+{
+    internal MemoryLayoutBankRegion(MemoryLayoutBankLocator bank,
+        FirmwareFamilyResolutionDefinition.ResolvedFirmwareImageMap localMap, FirmwareRegion localRegion)
+    {
+        if (!localMap.ImageMap.Regions.Any(region => ReferenceEquals(region, localRegion)) || localRegion.Kind != FirmwareRegionKind.CtrlRam ||
+            localMap.ImageMap.CapacityBytes != bank.Range.Length)
+        {
+            throw new MemoryLayoutDisplayProjectionException("Bank CtrlRAM attribution requires its exact local declaration.", nameof(localRegion));
+        }
+        Bank = bank;
+        LocalMap = localMap;
+        LocalRegion = localRegion;
+        Range = new ByteRange(checked(bank.Range.Start + localRegion.Range.Start), localRegion.Range.Length);
+        if (!bank.Range.Contains(Range))
+        {
+            throw new MemoryLayoutDisplayProjectionException("Placed CtrlRAM declaration must remain inside its bank.", nameof(bank));
+        }
+    }
+
+    /// <summary>Complete output bank, including when preserved.</summary>
+    public MemoryLayoutBankLocator Bank { get; }
+    /// <summary>Original trusted local map and topology shared by the accepted composite definition.</summary>
+    public FirmwareFamilyResolutionDefinition.ResolvedFirmwareImageMap LocalMap { get; }
+    /// <summary>Exact original local CtrlRAM region, without coordinate mutation.</summary>
+    public FirmwareRegion LocalRegion { get; }
+    /// <summary>Checked range in the complete output address space.</summary>
+    public ByteRange Range { get; }
+}
+
 /// <summary>One immutable checked segment in the canonical output address space.</summary>
 public sealed class MemoryLayoutSegment
 {
@@ -110,7 +162,9 @@ public sealed class MemoryLayoutSegment
         IEnumerable<CompositionOperation> contributingOperations,
         IEnumerable<MemoryLayoutPreservationDetail> preservationDetails,
         ReplaceRegionGroup regionGroup,
-        CtrlRamRegionRole ctrlRamRegionRole)
+        CtrlRamRegionRole ctrlRamRegionRole,
+        MemoryLayoutContentSource? contentSource,
+        MemoryLayoutBankRegion? bankRegion = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(segmentId);
         ArgumentException.ThrowIfNullOrWhiteSpace(addressSpaceId);
@@ -126,6 +180,11 @@ public sealed class MemoryLayoutSegment
         }
 
         MemoryLayoutGuard.Defined(contentRole, nameof(contentRole));
+        if (bankRegion is not null && (canonicalRegion is null || contentRole != MemoryContentRole.CtrlRam ||
+            bankRegion.Bank.AddressSpaceId != addressSpaceId || !bankRegion.Range.Contains(range)))
+        {
+            throw new MemoryLayoutDisplayProjectionException("Bank-local attribution must contain the physical CtrlRAM segment.", nameof(bankRegion));
+        }
         MemoryLayoutGuard.Defined(disposition, nameof(disposition));
         MemoryLayoutGuard.Defined(endpoint, nameof(endpoint));
         MemoryLayoutGuard.Defined(bank, nameof(bank));
@@ -171,10 +230,12 @@ public sealed class MemoryLayoutSegment
         Focus = focus;
         SourceSpaceId = sourceSpaceId;
         SourceSlotId = sourceSlotId;
+        ContentSource = contentSource;
         ContributingOperations = Array.AsReadOnly(operations);
         PreservationDetails = Array.AsReadOnly(details);
         RegionGroup = regionGroup;
         CtrlRamRegionRole = ctrlRamRegionRole;
+        BankRegion = bankRegion;
     }
 
     /// <summary>Stable projection-local identity.</summary>
@@ -213,6 +274,8 @@ public sealed class MemoryLayoutSegment
     public string? SourceSpaceId { get; }
     /// <summary>Contributing canonical input slot, if any.</summary>
     public string? SourceSlotId { get; }
+    /// <summary>Input content attribution for display coalescing, independent of the final writer.</summary>
+    public MemoryLayoutContentSource? ContentSource { get; }
     /// <summary>Exact ordered compiled operations contributing to this segment.</summary>
     public IReadOnlyList<CompositionOperation> ContributingOperations { get; }
     /// <summary>Typed kept details subordinate to this primary segment.</summary>
@@ -221,6 +284,9 @@ public sealed class MemoryLayoutSegment
     public ReplaceRegionGroup RegionGroup { get; }
     /// <summary>Closed detailed CtrlRAM family role; Other outside detailed CtrlRAM geometry.</summary>
     public CtrlRamRegionRole CtrlRamRegionRole { get; }
+
+    /// <summary>Original local CtrlRAM declaration and bank placement; null outside AB detail.</summary>
+    public MemoryLayoutBankRegion? BankRegion { get; }
 
     internal static MemoryLayoutSegment Create(
         string segmentId,
@@ -242,7 +308,9 @@ public sealed class MemoryLayoutSegment
         IEnumerable<MemoryLayoutPreservationDetail> preservationDetails,
         string logicalCoverageGroupId,
         ReplaceRegionGroup regionGroup = ReplaceRegionGroup.Common,
-        CtrlRamRegionRole ctrlRamRegionRole = CtrlRamRegionRole.Other)
+        CtrlRamRegionRole ctrlRamRegionRole = CtrlRamRegionRole.Other,
+        MemoryLayoutContentSource? contentSource = null,
+        MemoryLayoutBankRegion? bankRegion = null)
     {
         return new(
             segmentId,
@@ -265,7 +333,9 @@ public sealed class MemoryLayoutSegment
             contributingOperations,
             preservationDetails,
             regionGroup,
-            ctrlRamRegionRole);
+            ctrlRamRegionRole,
+            contentSource,
+            bankRegion);
     }
 
     internal static MemoryLayoutSegment CreateLogical(
@@ -288,7 +358,8 @@ public sealed class MemoryLayoutSegment
         IEnumerable<MemoryLayoutPreservationDetail> preservationDetails,
         string logicalCoverageGroupId,
         ReplaceRegionGroup regionGroup = ReplaceRegionGroup.Common,
-        CtrlRamRegionRole ctrlRamRegionRole = CtrlRamRegionRole.Other)
+        CtrlRamRegionRole ctrlRamRegionRole = CtrlRamRegionRole.Other,
+        MemoryLayoutContentSource? contentSource = null)
     {
         return new(
             segmentId,
@@ -311,7 +382,8 @@ public sealed class MemoryLayoutSegment
             contributingOperations,
             preservationDetails,
             regionGroup,
-            ctrlRamRegionRole);
+            ctrlRamRegionRole,
+            contentSource);
     }
 }
 
@@ -378,6 +450,27 @@ public sealed class MemoryLayoutPendingItem
     public MemoryLayoutBlockedIssueReference? BlockedIssue { get; }
 }
 
+/// <summary>Canonical bank placement for a read-only viewport, never write or selection authority.</summary>
+public sealed record MemoryLayoutBankLocator
+{
+    internal MemoryLayoutBankLocator(string bankId, string addressSpaceId, ByteRange range)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(bankId);
+        ArgumentException.ThrowIfNullOrWhiteSpace(addressSpaceId);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(range.Length);
+        BankId = bankId;
+        AddressSpaceId = addressSpaceId;
+        Range = range;
+    }
+
+    /// <summary>Exact canonical bank region identity.</summary>
+    public string BankId { get; }
+    /// <summary>Address space of the complete output image.</summary>
+    public string AddressSpaceId { get; }
+    /// <summary>Absolute half-open placement within the complete output.</summary>
+    public ByteRange Range { get; }
+}
+
 /// <summary>One disposable immutable layout projection for an authoring revision.</summary>
 public sealed class MemoryLayoutSnapshot
 {
@@ -389,7 +482,8 @@ public sealed class MemoryLayoutSnapshot
         IReadOnlyList<MemoryLayoutSegment> beforeSegments,
         IReadOnlyList<MemoryLayoutSegment> afterSegments,
         IEnumerable<MemoryLayoutPendingItem> pendingItems,
-        IReadOnlyList<MemoryLayoutSectionLocator> sectionLocators)
+        IReadOnlyList<MemoryLayoutSectionLocator> sectionLocators,
+        IReadOnlyList<MemoryLayoutBankLocator> banks)
         : this(
             capability,
             authoring,
@@ -401,7 +495,8 @@ public sealed class MemoryLayoutSnapshot
             beforeSegments,
             afterSegments,
             pendingItems,
-            sectionLocators)
+            sectionLocators,
+            banks)
     {
     }
 
@@ -424,6 +519,7 @@ public sealed class MemoryLayoutSnapshot
             beforeSegments,
             afterSegments,
             pendingItems,
+            [],
             [])
     {
     }
@@ -439,7 +535,8 @@ public sealed class MemoryLayoutSnapshot
         IReadOnlyList<MemoryLayoutSegment> beforeSegments,
         IReadOnlyList<MemoryLayoutSegment> afterSegments,
         IEnumerable<MemoryLayoutPendingItem> pendingItems,
-        IReadOnlyList<MemoryLayoutSectionLocator> sectionLocators)
+        IReadOnlyList<MemoryLayoutSectionLocator> sectionLocators,
+        IReadOnlyList<MemoryLayoutBankLocator> banks)
     {
         ArgumentNullException.ThrowIfNull(capability);
         ArgumentNullException.ThrowIfNull(authoring);
@@ -485,8 +582,20 @@ public sealed class MemoryLayoutSnapshot
         {
             throw new ArgumentException("Only physical CtrlRAM layouts expose section context.", nameof(sectionLocators));
         }
-        ValidateCoverage(before, geometryKind, addressSpaceId, capacity, regions);
-        ValidateCoverage(after, geometryKind, addressSpaceId, capacity, regions);
+        SourceEnvelopeExtent? envelope =
+            (capability.CompiledComposition.V2Details.Provenance.Context as ResolvedMapV2CompilationContext)?
+                .SourceEnvelope;
+        if (envelope is not null &&
+            (geometryKind != MemoryLayoutGeometryKind.PhysicalMap || map is null ||
+             !StringComparer.Ordinal.Equals(envelope.LayoutTemplateMapId, map.MapId) ||
+             envelope.LayoutTemplateCapacity != map.CapacityBytes ||
+             envelope.ActualOutputLength != capacity))
+        {
+            throw new ArgumentException("Memory layout must retain distinct exact template and actual source extents.", nameof(capacity));
+        }
+
+        ValidateCoverage(before, geometryKind, addressSpaceId, capacity, regions, envelope);
+        ValidateCoverage(after, geometryKind, addressSpaceId, capacity, regions, envelope);
         if (pending.Select(static item => item.SlotId)
             .Distinct(StringComparer.Ordinal).Count() != pending.Length)
         {
@@ -516,12 +625,14 @@ public sealed class MemoryLayoutSnapshot
             ? initialization.FillByte
             : null;
         CanonicalRegions = Array.AsReadOnly(regions);
+        SourceEnvelope = envelope;
         BeforeSegments = Array.AsReadOnly(before);
         AfterSegments = ReferenceEquals(before, after)
             ? BeforeSegments
             : Array.AsReadOnly(after);
         PendingItems = Array.AsReadOnly(pending);
         SectionLocators = Array.AsReadOnly(sections);
+        Banks = Array.AsReadOnly(banks.ToArray());
     }
 
     /// <summary>Exact canonical route identity.</summary>
@@ -546,6 +657,8 @@ public sealed class MemoryLayoutSnapshot
     public byte? BlankFillByte { get; }
     /// <summary>Exact canonical region references, including nested regions.</summary>
     public IReadOnlyList<FirmwareRegion> CanonicalRegions { get; }
+    /// <summary>Actual accepted DP/output extent when the physical map is a layout template only.</summary>
+    public SourceEnvelopeExtent? SourceEnvelope { get; }
     /// <summary>Coverage seeded from workflow initialization.</summary>
     public IReadOnlyList<MemoryLayoutSegment> BeforeSegments { get; }
     /// <summary>Coverage after admitted selected operations.</summary>
@@ -556,12 +669,16 @@ public sealed class MemoryLayoutSnapshot
     /// <summary>Read-only CtrlRAM overview context; never write or capacity authority.</summary>
     public IReadOnlyList<MemoryLayoutSectionLocator> SectionLocators { get; }
 
+    /// <summary>Complete canonical AB bank placements, including preserved banks; empty for other layouts.</summary>
+    public IReadOnlyList<MemoryLayoutBankLocator> Banks { get; }
+
     private static void ValidateCoverage(
         MemoryLayoutSegment[] segments,
         MemoryLayoutGeometryKind geometryKind,
         string addressSpaceId,
         long capacity,
-        FirmwareRegion[] canonicalRegions)
+        FirmwareRegion[] canonicalRegions,
+        SourceEnvelopeExtent? sourceEnvelope)
     {
         if (segments.Length == 0 ||
             segments.Select(static segment => segment.SegmentId)
@@ -574,8 +691,12 @@ public sealed class MemoryLayoutSnapshot
         foreach (MemoryLayoutSegment segment in segments)
         {
             bool retainsExpectedGeometry = geometryKind == MemoryLayoutGeometryKind.PhysicalMap
-                ? segment.CanonicalRegion is not null &&
-                    canonicalRegions.Any(region => ReferenceEquals(region, segment.CanonicalRegion))
+                ? (segment.CanonicalRegion is not null &&
+                   canonicalRegions.Any(region => ReferenceEquals(region, segment.CanonicalRegion))) ||
+                  (sourceEnvelope is not null && segment.CanonicalRegion is null &&
+                   segment.ContentRole == MemoryContentRole.Dp &&
+                   segment.Range.Start >= sourceEnvelope.LayoutTemplateCapacity &&
+                   segment.Range.EndExclusive <= sourceEnvelope.ActualOutputLength)
                 : segment.CanonicalRegion is null;
             if (!StringComparer.Ordinal.Equals(segment.AddressSpaceId, addressSpaceId) ||
                 segment.Range.Start != expectedStart ||

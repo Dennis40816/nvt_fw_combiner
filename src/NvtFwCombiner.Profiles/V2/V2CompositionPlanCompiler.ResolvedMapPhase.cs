@@ -17,7 +17,8 @@ internal static partial class V2CompositionPlanCompiler
             FirmwareFamilyResolutionDefinition.ResolvedFirmwareImageMap resolvedMap,
             IReadOnlyList<FirmwareMapFactBinding<FirmwareCapabilityFact>> capabilityAdmissions,
             IReadOnlyCollection<string>? selectedInputSlotIds,
-            List<CompositionIssue> issues)
+            List<CompositionIssue> issues,
+            SourceEnvelopeExtent? sourceEnvelope = null)
         {
             CompositionProfileDefinition profile = profileEntry.Profile;
             MutableCompositionProfileSpace output = AssertOutputSpace(profile);
@@ -25,7 +26,7 @@ internal static partial class V2CompositionPlanCompiler
             {
                 AddUnsupported(issues, "runtime-request output capacity requires logical-output V2 lowering");
             }
-            else if (output.Capacity is not ResolvedMapProfileCapacity)
+            else if (output.Capacity is not (ResolvedMapProfileCapacity or SourceSlotProfileCapacity))
             {
                 AddUnsupported(issues, "map-bound output images require resolved-map capacity");
             }
@@ -36,12 +37,18 @@ internal static partial class V2CompositionPlanCompiler
                 profile, resolvedMap, selectedInputSlotIds, issues);
             if (issues.Count != 0) { return V2CompositionPlanCompileResult.Failed(issues); }
 
+            SourceEnvelopeSeed? envelopeSeed = sourceEnvelope is null
+                ? null
+                : TryAdmitSourceEnvelopeSeed(profile, sourceEnvelope, inputSelection, issues);
+            if (issues.Count != 0) { return V2CompositionPlanCompileResult.Failed(issues); }
+
             Dictionary<string, AddressSpace> spaces = LowerAddressSpaces(
                 profile,
                 profileEntry.Family.Family,
                 resolvedMap,
                 issues,
-                inputSelection.ActiveSlotIds);
+                inputSelection.ActiveSlotIds,
+                sourceEnvelope);
             if (issues.Count != 0) { return V2CompositionPlanCompileResult.Failed(issues); }
 
             Dictionary<string, ResolvedView> views = LowerViews(
@@ -49,7 +56,9 @@ internal static partial class V2CompositionPlanCompiler
                 resolvedMap,
                 spaces,
                 issues,
-                inputSelection.ActiveViewIds);
+                inputSelection.ActiveViewIds,
+                sourceEnvelope,
+                envelopeSeed);
             if (issues.Count != 0) { return V2CompositionPlanCompileResult.Failed(issues); }
 
             LoweredRegionAccess regionAccess = LowerRegionAccess(
@@ -69,7 +78,14 @@ internal static partial class V2CompositionPlanCompiler
                 issues,
                 activeOperationIds: inputSelection.ActiveOperationIds,
                 family: profileEntry.Family.Family,
-                activeSlotIds: inputSelection.ActiveSlotIds);
+                activeSlotIds: inputSelection.ActiveSlotIds,
+                sourceEnvelopeSeed: envelopeSeed);
+            if (envelopeSeed is not null)
+            {
+                ValidateSourceEnvelopeOutputWrites(
+                    profile, resolvedMap.ImageMap, envelopeSeed, operations, issues);
+            }
+
             ValidateOperationOverlaps(operations, issues);
             if (issues.Count != 0) { return V2CompositionPlanCompileResult.Failed(issues); }
 
@@ -85,14 +101,15 @@ internal static partial class V2CompositionPlanCompiler
                 profile,
                 bundleIdentity,
                 profileEntry.EntryIdentity,
-                new ResolvedMapV2CompilationContext(resolvedMap),
+                new ResolvedMapV2CompilationContext(resolvedMap, sourceEnvelope),
                 plan,
                 profile.InputSlots
                     .Where(slot => inputSelection.ActiveSlotIds.Contains(slot.SlotId))
                     .Select(slot => MapInputSlot(
                         slot,
                         resolvedMap,
-                        forceRequired: !slot.Required)),
+                        forceRequired: !slot.Required,
+                        sourceEnvelope: sourceEnvelope)),
                 profile.Spaces
                     .OfType<InputArtifactProfileSpace>()
                     .Where(space => inputSelection.ActiveSlotIds.Contains(space.SlotId))

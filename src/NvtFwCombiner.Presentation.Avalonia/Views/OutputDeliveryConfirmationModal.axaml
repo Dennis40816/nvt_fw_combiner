@@ -25,7 +25,7 @@
       <ScrollViewer x:Name="BuildSettingsViewport" Grid.Row="1" Classes="contentScrollSurface"
                     HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
         <StackPanel Margin="22,0">
-          <Border x:Name="OutputSettingSection" Padding="0,16,0,8">
+          <Border x:Name="OutputSettingSection" Padding="0,12,0,4">
             <Grid ColumnDefinitions="*,34" RowDefinitions="Auto,Auto,Auto,Auto" ColumnSpacing="{DynamicResource NfcSpace12}" RowSpacing="3">
                 <TextBlock Classes="fieldLabel" FontWeight="SemiBold" Text="{Binding Text.OutputDeliveryOutputLabel}" />
                 <SelectableTextBlock x:Name="OutputFileNameDisplay" Grid.Row="1"
@@ -68,14 +68,14 @@
                   </StackPanel>
                 </ToggleButton>
 
-              <Border x:Name="SourcesListPanel" Grid.Row="3" Grid.ColumnSpan="2" Margin="0,8,0,0" Classes="compactSubtleSurface"
+              <Border x:Name="SourcesListPanel" Grid.Row="3" Grid.ColumnSpan="2" Margin="0,4,0,0" Classes="compactSubtleSurface"
                       Padding="10,5" IsVisible="{Binding AreSourcesExpanded}">
                 <StackPanel>
                 <ItemsControl x:Name="SourceFilesList" ItemsSource="{Binding InputRows}">
                   <ItemsControl.ItemTemplate>
                     <DataTemplate>
                       <Border BorderBrush="{DynamicResource NfcBorderMutedBrush}" BorderThickness="0,0,0,1">
-                      <Grid ColumnDefinitions="110,*,Auto" RowDefinitions="Auto,Auto" ColumnSpacing="{DynamicResource NfcSpace12}" RowSpacing="{DynamicResource NfcSpace2}" Margin="0,3">
+                      <Grid ColumnDefinitions="110,*,Auto" RowDefinitions="Auto,Auto" ColumnSpacing="{DynamicResource NfcSpace12}" RowSpacing="{DynamicResource NfcSpace2}" Margin="0,2">
                         <TextBlock Text="{Binding Role}" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding Role}" />
                         <TextBlock Grid.Column="1" FontWeight="Medium" Text="{Binding FileName}" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding FileName}" />
                         <TextBlock Grid.Column="2" VerticalAlignment="Center" Text="{Binding Size}" />
@@ -94,7 +94,7 @@
                   </ItemsControl.ItemTemplate>
                 </ItemsControl>
                 <Border x:Name="SourceChecksPanel" IsVisible="{Binding HasSourceChecks}" Padding="0,6,0,3">
-                  <StackPanel Spacing="{DynamicResource NfcSpace4}">
+                  <StackPanel Spacing="{DynamicResource NfcSpace2}">
                     <ItemsControl ItemsSource="{Binding ExpectedInputChecks}">
                       <ItemsControl.ItemTemplate>
                         <DataTemplate>
@@ -106,15 +106,14 @@
                       </ItemsControl.ItemTemplate>
                     </ItemsControl>
                     <Grid ColumnDefinitions="170,*" ColumnSpacing="{DynamicResource NfcSpace12}" IsVisible="{Binding HasEventBufferChecks}">
-                      <TextBlock Classes="mutedText" Text="{Binding Text.OutputConfirmationEventLabel}" TextWrapping="Wrap" />
-                      <ItemsControl Grid.Column="1" ItemsSource="{Binding EventBufferChecks}">
-                        <ItemsControl.ItemsPanel><ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                      <TextBlock x:Name="OutputEventBufferFormatLabel" Classes="mutedText" Text="{Binding Text.OutputConfirmationEventLabel}" TextWrapping="Wrap" />
+                      <ItemsControl x:Name="OutputEventBufferFormatChecks" Grid.Column="1" ItemsSource="{Binding EventBufferChecks}">
                         <ItemsControl.ItemTemplate>
                           <DataTemplate>
-                            <StackPanel Orientation="Horizontal" Spacing="{DynamicResource NfcSpace8}" Margin="0,0,22,2">
+                            <Grid ColumnDefinitions="34,*" ColumnSpacing="{DynamicResource NfcSpace8}" Margin="0,0,0,2">
                               <TextBlock Text="{Binding Label}" />
-                              <TextBlock Text="{Binding Value}" />
-                            </StackPanel>
+                              <TextBlock Grid.Column="1" Text="{Binding Value}" TextWrapping="Wrap" />
+                            </Grid>
                           </DataTemplate>
                         </ItemsControl.ItemTemplate>
                       </ItemsControl>
@@ -126,23 +125,24 @@
             </Grid>
           </Border>
 
-          <StackPanel Spacing="{DynamicResource NfcSpace8}" Margin="0,4,0,8" IsVisible="{Binding HasInputNotice}">
-            <TextBlock Classes="warningText" IsVisible="{Binding HasInputWarnings}" Text="{Binding Text.OutputConfirmationWarning}" TextWrapping="Wrap" />
-            <TextBlock Classes="warningText" IsVisible="{Binding HasGeneratedInputs}" Text="{Binding Text.OutputConfirmationGeneratedHint}" TextWrapping="Wrap" />
-          </StackPanel>
-          <Grid x:Name="OutputConfirmationSummary" ColumnDefinitions="188,*" RowDefinitions="Auto,Auto,Auto"
-                ColumnSpacing="{DynamicResource NfcSpace12}" RowSpacing="10" Margin="0,8,0,8" IsVisible="{Binding HasConfirmation}">
+          <TextBlock Classes="warningText" Margin="0,4,0,8" IsVisible="{Binding HasGeneratedInputs}"
+                     Text="{Binding Text.OutputConfirmationGeneratedHint}" TextWrapping="Wrap" />
+          <Grid x:Name="OutputConfirmationSummary" ColumnDefinitions="188,*" RowDefinitions="Auto,Auto,Auto,Auto"
+                ColumnSpacing="{DynamicResource NfcSpace12}" RowSpacing="{DynamicResource NfcSpace8}" Margin="0,4,0,4" IsVisible="{Binding HasConfirmation}">
             <TextBlock Classes="mutedText" Text="{Binding Text.OutputConfirmationTargetLabel}" />
             <TextBlock x:Name="OutputTargetValue" Grid.Column="1" FontWeight="SemiBold" Text="{Binding TargetSummary}" TextWrapping="Wrap" />
             <TextBlock Grid.Row="1" Classes="mutedText" Text="{Binding Text.OutputConfirmationModeLabel}" />
-            <TextBlock x:Name="OutputModeValue" Grid.Row="1" Grid.Column="1" FontWeight="SemiBold" Text="{Binding ModeFormatSummary}" TextWrapping="Wrap" />
-            <TextBlock Grid.Row="2" Classes="mutedText" Text="{Binding Text.OutputConfirmationSizeLabel}" />
-            <TextBlock x:Name="FlashOutputSizeValue" Grid.Row="2" Grid.Column="1" Text="{Binding FlashOutputSize}" TextWrapping="Wrap" />
+            <TextBlock x:Name="OutputModeValue" Grid.Row="1" Grid.Column="1" FontWeight="SemiBold" Text="{Binding ModeSummary}" TextWrapping="Wrap" />
+            <TextBlock Grid.Row="2" Classes="mutedText" Text="{Binding Text.OutputConfirmationFlashMapLabel}" />
+            <TextBlock x:Name="OutputFlashMapValue" Grid.Row="2" Grid.Column="1" FontWeight="SemiBold" Text="{Binding FlashMapSummary}" TextWrapping="Wrap" />
+            <TextBlock Grid.Row="3" Classes="mutedText" Text="{Binding Text.OutputConfirmationSizeLabel}" />
+            <TextBlock x:Name="FlashOutputSizeValue" Grid.Row="3" Grid.Column="1" Text="{Binding FlashOutputSize}" TextWrapping="Wrap" />
           </Grid>
 
           <Border x:Name="CtrlRamVersionSettingSection" Padding="0,16" BorderBrush="{DynamicResource NfcBorderMutedBrush}"
                   BorderThickness="0,0,0,1" IsVisible="{Binding HasCtrlRamOptions}">
-            <Grid ColumnDefinitions="*,300" ColumnSpacing="{DynamicResource NfcSpace24}">
+            <StackPanel>
+            <Grid ColumnDefinitions="*,300" ColumnSpacing="{DynamicResource NfcSpace24}" IsVisible="{Binding CtrlRamOptions.IsStandardCtrlRamReference}">
               <StackPanel Spacing="3">
                 <TextBlock Classes="fieldLabel" FontWeight="Medium" Text="{Binding CtrlRamOptions.Text.CtrlRamFirmwareVersionTitle}" />
                 <TextBlock x:Name="CtrlRamBaseVersionValue" Classes="versionValue"
@@ -192,9 +192,75 @@
                            Text="{Binding CtrlRamOptions.CtrlRamFirmwareVersionValidationDetail}" TextWrapping="Wrap" />
               </StackPanel>
             </Grid>
+            <ItemsControl x:Name="AbCtrlRamVersionEditors" ItemsSource="{Binding CtrlRamOptions.AbCtrlRamVersionEditors}"
+                          IsVisible="{Binding CtrlRamOptions.IsAbCtrlRamReference}" ItemContainerTheme="{StaticResource StretchContentPresenterTheme}">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="vm:CtrlRamFirmwareVersionEditorViewModel">
+                  <Grid Classes="abVersionEditor" ColumnDefinitions="*,300" ColumnSpacing="24" Margin="0,6">
+                    <StackPanel Spacing="3">
+                      <TextBlock Classes="fieldLabel" FontWeight="Medium" Text="{Binding Title}" />
+                      <TextBlock Classes="versionValue" FontFamily="{DynamicResource NfcUiFontFamily}" FontWeight="Medium" Text="{Binding CurrentValue}" />
+                      <TextBlock Classes="detailText" Text="{Binding Detail}" TextWrapping="Wrap" />
+                    </StackPanel>
+                    <StackPanel Grid.Column="1" Spacing="{DynamicResource NfcSpace12}">
+                      <Grid ColumnDefinitions="*,*" ColumnSpacing="{DynamicResource NfcSpace4}">
+                        <ToggleButton Classes="segment versionChoice" FontFamily="{DynamicResource NfcUiFontFamily}" FontWeight="Medium" Command="{Binding PreserveCommand}"
+                                      IsChecked="{Binding IsPreserveSelected, Mode=OneWay}"
+                                      AutomationProperties.Name="{Binding Text.CtrlRamFirmwareVersionKeepLabel}">
+                          <TextBlock Text="{Binding Text.CtrlRamFirmwareVersionKeepLabel}" />
+                        </ToggleButton>
+                        <ToggleButton Grid.Column="1" Classes="segment versionChoice" FontFamily="{DynamicResource NfcUiFontFamily}" FontWeight="Medium" Command="{Binding EditCommand}"
+                                      IsChecked="{Binding IsEditSelected, Mode=OneWay}" IsEnabled="{Binding CanEdit}"
+                                      AutomationProperties.Name="{Binding Text.CtrlRamFirmwareVersionEditLabel}">
+                          <TextBlock Text="{Binding Text.CtrlRamFirmwareVersionEditLabel}" />
+                        </ToggleButton>
+                      </Grid>
+                      <Grid Classes="abVersionFields" ColumnDefinitions="*,*" ColumnSpacing="{DynamicResource NfcSpace12}" IsVisible="{Binding IsEditSelected}">
+                        <StackPanel Spacing="5">
+                          <TextBlock Classes="fieldLabel" Text="{Binding Text.CtrlRamFirmwareVersionByteLabel}" />
+                          <TextBox Classes="technicalCenteredInput hexByteInput" FontFamily="{DynamicResource NfcUiFontFamily}" FontWeight="Medium" Text="{Binding VersionText, Mode=TwoWay}"
+                                   AutomationProperties.Name="{Binding Text.CtrlRamFirmwareVersionByteLabel}" />
+                        </StackPanel>
+                        <StackPanel Grid.Column="1" Spacing="5">
+                          <TextBlock Classes="fieldLabel" Text="{Binding Text.CtrlRamFirmwareSubVersionByteLabel}" />
+                          <TextBox Classes="technicalCenteredInput hexByteInput" FontFamily="{DynamicResource NfcUiFontFamily}" FontWeight="Medium" Text="{Binding SubVersionText, Mode=TwoWay}"
+                                   AutomationProperties.Name="{Binding Text.CtrlRamFirmwareSubVersionByteLabel}" />
+                        </StackPanel>
+                      </Grid>
+                      <TextBlock Classes="warningText" Text="{Binding Validation}" IsVisible="{Binding HasValidation}" TextWrapping="Wrap" />
+                    </StackPanel>
+                  </Grid>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+            </StackPanel>
           </Border>
 
-          <Border x:Name="DeliverySettingSection" Padding="0,8,0,12">
+          <Border x:Name="BuildWarningsPanel" Margin="0,12,0,12" Padding="16"
+                  IsVisible="{Binding HasInputWarnings}" CornerRadius="{DynamicResource NfcCompactCornerRadius}"
+                  Background="{DynamicResource NfcWarningSurfaceBrush}" BorderBrush="{DynamicResource NfcWarningBorderStrongBrush}" BorderThickness="1"
+                  AutomationProperties.Name="{Binding BuildWarningsTitle}">
+            <Grid ColumnDefinitions="20,*" ColumnSpacing="{DynamicResource NfcSpace12}">
+              <Path Width="18" Height="18" VerticalAlignment="Top" Margin="0,2,0,0" Stretch="Uniform"
+                    Data="M9 1L17 17H1Z M9 6V11 M9 13V14" Fill="Transparent"
+                    Stroke="{DynamicResource NfcWarningAccentStrongBrush}" StrokeThickness="1.5" />
+              <StackPanel Grid.Column="1" Spacing="{DynamicResource NfcSpace8}">
+                <TextBlock FontWeight="SemiBold" Text="{Binding BuildWarningsTitle}" />
+                <ItemsControl ItemsSource="{Binding WarningRows}">
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="vm:OutputConfirmationWarningRow">
+                      <StackPanel Spacing="{DynamicResource NfcSpace2}" Margin="0,0,0,4">
+                        <TextBlock FontWeight="Medium" Text="{Binding Role}" />
+                        <TextBlock Foreground="{DynamicResource NfcWarningTextBrush}" Text="{Binding Detail}" TextWrapping="Wrap" />
+                      </StackPanel>
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
+              </StackPanel>
+            </Grid>
+          </Border>
+
+          <Border x:Name="DeliverySettingSection" Padding="0,4,0,8">
             <StackPanel Spacing="{DynamicResource NfcSpace8}">
               <Grid ColumnDefinitions="*,Auto" ColumnSpacing="{DynamicResource NfcSpace12}">
                 <StackPanel Spacing="3">
@@ -219,10 +285,32 @@
                 </Grid>
                 <Grid ColumnDefinitions="188,*" ColumnSpacing="{DynamicResource NfcSpace12}" IsVisible="{Binding AdditionalDeliveryEnabled}">
                   <TextBlock Classes="mutedText" Text="A FlashCode" />
-                  <StackPanel Grid.Column="1" Spacing="3">
-                    <TextBlock Text="{Binding AdditionalSuggestedFileName}" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding AdditionalSuggestedFileName}" />
-                    <TextBlock Classes="detailText" Text="{Binding AdditionalOutputSize}" />
-                  </StackPanel>
+                  <Grid Grid.Column="1" ColumnDefinitions="*,34" RowDefinitions="Auto,Auto"
+                        ColumnSpacing="{DynamicResource NfcSpace12}" RowSpacing="3">
+                      <SelectableTextBlock x:Name="AdditionalOutputFileNameDisplay" MinHeight="24" VerticalAlignment="Center"
+                                           IsVisible="{Binding !IsAdditionalOutputFileNameEditing}"
+                                           AutomationProperties.Name="A FlashCode"
+                                           Text="{Binding AdditionalOutputFileName}" TextTrimming="CharacterEllipsis"
+                                           ToolTip.Tip="{Binding AdditionalOutputFileName}" />
+                      <TextBox x:Name="AdditionalOutputFileNameInput" VerticalAlignment="Center" Classes="buildSettingInput outputNameInput editable"
+                               AutomationProperties.Name="A FlashCode" IsVisible="{Binding IsAdditionalOutputFileNameEditing}"
+                               Text="{Binding AdditionalOutputFileName, Mode=OneWay}"
+                               TextChanged="AdditionalOutputFileNameInput_OnTextChanged" KeyDown="AdditionalOutputFileNameInput_OnKeyDown" />
+                      <Button x:Name="EditAdditionalOutputFileNameButton" Grid.Column="1" Grid.RowSpan="2" VerticalAlignment="Top" Classes="semanticAction inlineEdit outputNameEdit"
+                              AutomationProperties.Name="{Binding Text.OutputDeliveryEditAdditionalNameLabel}"
+                              ToolTip.Tip="{Binding Text.OutputDeliveryEditAdditionalNameLabel}"
+                              IsEnabled="{Binding CanEditAdditionalOutputFileName}" IsVisible="{Binding !IsAdditionalOutputFileNameEditing}"
+                              Click="EditAdditionalOutputFileNameButton_OnClick">
+                        <Path Width="16" Height="16" Data="{StaticResource NfcEditIconGeometry}" Fill="Transparent" StrokeThickness="1.5" Stretch="Uniform" />
+                      </Button>
+                      <Button x:Name="CompleteAdditionalOutputFileNameEditButton" Grid.Column="1" Grid.RowSpan="2" VerticalAlignment="Top" Classes="semanticAction inlineEdit outputNameEdit"
+                              AutomationProperties.Name="{Binding Text.OutputDeliveryDoneAdditionalNameLabel}"
+                              ToolTip.Tip="{Binding Text.OutputDeliveryDoneAdditionalNameLabel}"
+                              IsVisible="{Binding IsAdditionalOutputFileNameEditing}" Click="CompleteAdditionalOutputFileNameEditButton_OnClick">
+                        <Path Width="16" Height="16" Data="M2 8L6 12L14 3" Fill="Transparent" StrokeThickness="1.5" Stretch="Uniform" />
+                      </Button>
+                    <TextBlock Grid.Row="1" Classes="detailText" Text="{Binding AdditionalOutputSize}" />
+                  </Grid>
                 </Grid>
                 <Grid ColumnDefinitions="188,*" ColumnSpacing="{DynamicResource NfcSpace12}" IsVisible="{Binding ShowsBundleContents}">
                   <TextBlock Classes="mutedText" Text="{Binding Text.OutputConfirmationInputsLabel}" />
@@ -232,7 +320,7 @@
                            IsVisible="{Binding !BundleEnabled}" TextWrapping="Wrap" />
               </StackPanel>
 
-              <Border Classes="compactSubtleSurface" Padding="14" IsVisible="{Binding BundleEnabled}">
+              <Border Classes="compactSubtleSurface" Padding="14,12" IsVisible="{Binding BundleEnabled}">
                 <StackPanel Spacing="{DynamicResource NfcSpace8}">
                   <Grid x:Name="BundleReviewPanel" ColumnDefinitions="*,34" RowDefinitions="Auto,Auto,Auto,Auto"
                         ColumnSpacing="{DynamicResource NfcSpace12}" RowSpacing="{DynamicResource NfcSpace2}">
@@ -288,7 +376,7 @@
           <TextBlock Grid.ColumnSpan="2" Margin="0,0,0,8" Classes="warningText"
                      AutomationProperties.LiveSetting="Assertive" IsVisible="{Binding HasValidationMessage}"
                      Text="{Binding ValidationMessage}" TextWrapping="Wrap" />
-          <TextBlock Grid.Row="1" Classes="detailText" VerticalAlignment="Center" Text="{Binding Text.OutputDeliveryReadySummary}"
+          <TextBlock x:Name="BuildReadinessSummary" Grid.Row="1" Classes="detailText" VerticalAlignment="Center" Text="{Binding BuildReadinessSummary}"
                      IsVisible="{Binding CanConfirm}" />
           <StackPanel Grid.Row="1" Grid.Column="1" HorizontalAlignment="Right" Orientation="Horizontal" Spacing="{DynamicResource NfcSpace8}">
             <Button x:Name="CancelButton" Classes="semanticAction secondary" Command="{Binding CancelCommand}"

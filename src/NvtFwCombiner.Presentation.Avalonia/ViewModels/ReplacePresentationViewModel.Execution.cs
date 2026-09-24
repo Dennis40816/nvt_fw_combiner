@@ -1,6 +1,5 @@
 using NvtFwCombiner.Application.Capabilities;
 using NvtFwCombiner.Application.Authoring;
-using NvtFwCombiner.Application.Metadata;
 using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
@@ -19,7 +18,7 @@ internal sealed partial class ReplacePresentationViewModel
 
     public Task BuildReplaceAsync(
         string outputPath,
-        CtrlRamFirmwareVersionDraftState? ctrlRamFirmwareVersionEdit = null)
+        CtrlRamAuthoringDraftState? ctrlRamFirmwareVersionEdit = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(outputPath);
         return RunBuildReplaceAsync(outputPath, ctrlRamFirmwareVersionEdit);
@@ -37,24 +36,23 @@ internal sealed partial class ReplacePresentationViewModel
     }
 
     internal async Task RequestBuildOutputDeliveryAsync(
-        CtrlRamFirmwareVersionDraftState? ctrlRamFirmwareVersionEdit = null,
+        CtrlRamAuthoringDraftState? ctrlRamFirmwareVersionEdit = null,
         ActiveSessionSnapshot? exactSession = null)
     {
-        ActiveSessionSnapshot session = exactSession ?? SelectedReplaceMode switch
+        CompositionRunContext context = CaptureRunContext(SelectedReplaceMode, build: true);
+        if (exactSession is not null && !ReferenceEquals(exactSession, context.AcceptedSession))
         {
-            DpReplaceMode => _dpReplaceSession.CurrentSnapshot,
-            CtrlRamReplaceMode => _ctrlRamReplaceSession.CurrentSnapshot,
-            GeneralReplaceMode => _generalReplaceSession.CurrentSnapshot,
-            _ => null,
-        } ?? throw new InvalidOperationException(
+            return;
+        }
+        ActiveSessionSnapshot session = exactSession ?? context.AcceptedSession ?? throw new InvalidOperationException(
             "Build output confirmation requires one accepted Replace session.");
         long preparation = _stateBindings.OutputDelivery.BeginPreparation();
         CompositionOutputBundleProposal proposal =
             await _compositionServices.OutputNaming.PrepareBundleProposalAsync(
                 session,
                 CancellationToken.None,
-                exactSession is null ? ctrlRamFirmwareVersionEdit : null);
-        if (!IsAcceptedReplaceSessionCurrent(session) || !_stateBindings.OutputDelivery.IsPreparationCurrent(preparation))
+                exactSession is null ? ctrlRamFirmwareVersionEdit as CtrlRamFirmwareVersionDraftState : null);
+        if (!IsAcceptedReplaceSessionCurrent(context) || !_stateBindings.OutputDelivery.IsPreparationCurrent(preparation))
         {
             return;
         }
@@ -63,7 +61,7 @@ internal sealed partial class ReplacePresentationViewModel
             proposal,
             IsReplaceOutput: true,
             AdditionalDelivery: null,
-            () => IsAcceptedReplaceSessionCurrent(session),
+            () => IsAcceptedReplaceSessionCurrent(context),
             CtrlRamOptions: IsCtrlRamReplaceModeSelected ? this : null,
             PrepareModeSpecificAsync: IsCtrlRamReplaceModeSelected && exactSession is null
                 ? PrepareCtrlRamBuildSettingsAsync
@@ -92,25 +90,19 @@ internal sealed partial class ReplacePresentationViewModel
 
     private async Task<bool> PrepareCtrlRamBuildSettingsAsync()
     {
-        (bool succeeded, CtrlRamFirmwareVersionDraftState? edit) =
+        (bool succeeded, CtrlRamAuthoringDraftState? edit) =
             await TryCreateCtrlRamFirmwareVersionEditAsync();
         return succeeded && await RequestCtrlRamBuildOutputDeliveryAsync(edit);
     }
 
-    private bool IsAcceptedReplaceSessionCurrent(ActiveSessionSnapshot acceptedSession)
+    private bool IsAcceptedReplaceSessionCurrent(CompositionRunContext context)
     {
-        ActiveSessionSnapshot? current = SelectedReplaceMode switch
-        {
-            DpReplaceMode => _dpReplaceSession.CurrentSnapshot,
-            CtrlRamReplaceMode => _ctrlRamReplaceSession.CurrentSnapshot,
-            GeneralReplaceMode => _generalReplaceSession.CurrentSnapshot,
-            _ => null,
-        };
-        return ReferenceEquals(current, acceptedSession);
+        return StringComparer.Ordinal.Equals(SelectedReplaceMode, context.Mode) && context.IsPublicationCurrent &&
+            ReferenceEquals(context.AuthoringSession?.CurrentSnapshot, context.AcceptedSession);
     }
 
     internal async Task<bool> RequestCtrlRamBuildOutputDeliveryAsync(
-        CtrlRamFirmwareVersionDraftState? edit)
+        CtrlRamAuthoringDraftState? edit)
     {
         if (!IsCtrlRamReplaceModeSelected ||
             !await IsCtrlRamFirmwareVersionBuildConfirmationCurrentAsync())
@@ -130,6 +122,7 @@ internal sealed partial class ReplacePresentationViewModel
             return false;
         }
 
+        CurrentCtrlRamDraft = transition.Session.DraftState as CtrlRamAuthoringDraftState;
         await RefreshCtrlRamActionReadinessAsync(CancellationToken.None);
         if (!CanBuildReplace)
         {
@@ -152,7 +145,7 @@ internal sealed partial class ReplacePresentationViewModel
 
     private Task RunBuildReplaceAsync(
         string? outputPath,
-        CtrlRamFirmwareVersionDraftState? ctrlRamFirmwareVersionEdit)
+        CtrlRamAuthoringDraftState? ctrlRamFirmwareVersionEdit)
     {
         return RunReplaceAsync(
             build: true,
@@ -166,9 +159,9 @@ internal sealed partial class ReplacePresentationViewModel
         return !_stateBindings.IsGlobalBuildBlocked() &&
             !_stateBindings.IsRunInProgress() && !Inspection.IsRunning &&
             IsSelectedReplaceModeSupported &&
+            (SelectedReplaceMode != CtrlRamReplaceMode || !IsAbCtrlRamReference || AbCtrlRamReadiness.IsAvailable) &&
             (SelectedReplaceMode switch
             {
-                DpReplaceMode => CanRunDpReplace(),
                 CtrlRamReplaceMode =>
                     CanRunCompiledReplaceSession(_ctrlRamReplaceSession) &&
                     HasCurrentCtrlRamActionReadiness(build: false),
@@ -180,65 +173,20 @@ internal sealed partial class ReplacePresentationViewModel
             });
     }
 
-    private bool CanRunDpReplace()
+    private void ResetReplaceInputSelectionReadiness()
     {
-        return CanRunCompiledReplaceSession(_dpReplaceSession);
-    }
-
-    private void RefreshDpReplaceInputSelectionReadiness()
-    {
-        if (!HasSelectedIc)
-        {
-            foreach (FirmwareSlotViewModel slot in ReplaceSlots)
-            {
-                slot.ClearSelectionReadiness();
-            }
-            return;
-        }
-
-        FirmwareSlotViewModel[] selected = [.. CurrentReplaceInputSlots().DistinctBy(ReplaceInputId)];
-        ActiveSessionSnapshot? session = _dpReplaceSession.CurrentSnapshot;
-        bool currentSelection = session is not null &&
-            session.Slots.Count(static slot => slot.SelectedPath is not null) == selected.Length &&
-            selected.All(slot => session.Slots.Any(current =>
-                StringComparer.Ordinal.Equals(current.SelectedPath, slot.FilePath)));
-        IReadOnlyList<InputSelectionMemberReadiness>? readiness =
-            SelectedReplaceMode != DpReplaceMode
-                ? null
-                : currentSelection && session!.InputSelectionReadiness.Count != 0
-                    ? session.InputSelectionReadiness
-                    : ResolveDpReplaceAuthoringSnapshot(selected).Slots;
         foreach (FirmwareSlotViewModel slot in ReplaceSlots.ToArray().Where(slot =>
                      !ReferenceEquals(slot, ReplaceBaseSlot)))
         {
-            InputSelectionMemberReadiness? member = readiness?.FirstOrDefault(candidate =>
-                string.Equals(candidate.SlotId, slot.CompiledSlotId, StringComparison.Ordinal));
-            if (member is null)
-            {
-                slot.IsOptional = slot.DeclaredIsOptional;
-                slot.ClearSelectionReadiness();
-                continue;
-            }
-
-            slot.IsOptional = member.Readiness == ResolvedChildReadiness.Ready
-                ? !member.IsRequired
-                : slot.DeclaredIsOptional;
-
-            string label = Text.GetDpInputSelectionReadinessLabel(member);
-            string detail = Text.GetDpInputSelectionReadinessDetail(member);
-            slot.SetSelectionReadiness(
-                member.Readiness,
-                label,
-                detail,
-                Text.GetInputSelectionReadinessAutomationText(label, detail),
-                member.CanSelect);
+            slot.IsOptional = slot.DeclaredIsOptional;
+            slot.ClearSelectionReadiness();
         }
     }
 
     private async Task RunReplaceAsync(
         bool build,
         string? outputPath,
-        CtrlRamFirmwareVersionDraftState? ctrlRamFirmwareVersionEdit,
+        CtrlRamAuthoringDraftState? ctrlRamFirmwareVersionEdit,
         bool outputPathUsesAutomaticName,
         CompositionOutputBundleIntent? outputBundle = null,
         ActiveSessionSnapshot? exactPreparedSession = null)
@@ -255,14 +203,15 @@ internal sealed partial class ReplacePresentationViewModel
                     icId,
                     number,
                     slotPaths,
-                    ctrlRamFirmwareVersionEdit)
+                    ctrlRamFirmwareVersionEdit ?? (IsAbCtrlRamReference ? CurrentCtrlRamDraft : null))
                 : null;
         if (ctrlRamTransition?.Succeeded == true)
         {
-            await RefreshCtrlRamActionReadinessAsync(CancellationToken.None);
+            CurrentCtrlRamDraft = ctrlRamTransition.Session!.DraftState as CtrlRamAuthoringDraftState;
         }
+        CompositionRunContext context = CaptureRunContext(replaceMode, build);
         ActiveSessionSnapshot? generalSession = replaceMode == GeneralReplaceMode
-            ? _generalReplaceSession.CurrentSnapshot ??
+            ? context.AcceptedSession ??
                 throw new InvalidOperationException(
                     "General Replace requires one accepted authoring session.")
             : null;
@@ -270,7 +219,6 @@ internal sealed partial class ReplacePresentationViewModel
             generalSession?.DraftState as GeneralMappingDraftState;
         ActiveSessionSnapshot? compiledSession = replaceMode switch
         {
-            DpReplaceMode => _dpReplaceSession.CurrentSnapshot,
             CtrlRamReplaceMode => exactPreparedSession ?? ctrlRamTransition?.Session,
             _ => null,
         };
@@ -280,6 +228,21 @@ internal sealed partial class ReplacePresentationViewModel
             GeneralReplaceMode => _generalReplaceActionReadiness,
             _ => null,
         };
+        CompositionRunReport? diagnosticReport = _generalReplaceDiagnosticPreviewReport;
+        IReadOnlyList<CompositionIssue> inputIssues = ctrlRamTransition?.Issues ?? [];
+        if (ctrlRamTransition?.Succeeded == true && compiledSession is not null)
+        {
+            actionReadiness = await _compositionServices.CtrlRamAuthoring.GetActionReadinessAsync(
+                icId, number, slotPaths, compiledSession, CancellationToken.None);
+            if (context.IsPublicationCurrent && ReferenceEquals(compiledSession, _ctrlRamReplaceSession.CurrentSnapshot))
+            {
+                _ctrlRamActionReadiness = actionReadiness;
+                _ctrlRamReadinessSession = compiledSession;
+                _ctrlRamReadinessIc = icId;
+                _ctrlRamReadinessNumber = number;
+                NotifyCommandAvailabilityChanged();
+            }
+        }
         if (actionReadiness is { } readiness)
         {
             CapabilityActionAvailability action = build
@@ -287,18 +250,19 @@ internal sealed partial class ReplacePresentationViewModel
                 : readiness.Preview;
             if (!action.IsAvailable)
             {
-                _stateBindings.ShowActionReadiness(readiness, build);
+                _stateBindings.ShowActionReadiness(context, readiness, build);
                 return;
             }
             if (replaceMode == GeneralReplaceMode &&
                 !build &&
-                _generalReplaceDiagnosticPreviewReport is { } diagnosticReport)
+                diagnosticReport is not null)
             {
-                await _stateBindings.ShowDiagnosticPreviewAsync(diagnosticReport);
+                await _stateBindings.ShowDiagnosticPreviewAsync(context, diagnosticReport);
                 return;
             }
         }
         await RunCompositionAsync(
+            context,
             build,
             async (progress, cancellationToken) =>
             {
@@ -306,10 +270,7 @@ internal sealed partial class ReplacePresentationViewModel
                     compiledSession?.GetAcceptedCapability(
                         AuthoringDerivedResultKind.Inspection) is null)
                 {
-                    IReadOnlyList<CompositionIssue> issues = replaceMode == DpReplaceMode
-                        ? ResolveDpReplaceAuthoringSnapshot(
-                            [.. CurrentReplaceInputSlots()]).Issues
-                        : ctrlRamTransition?.Issues ?? [];
+                    IReadOnlyList<CompositionIssue> issues = inputIssues;
                     throw new InvalidOperationException(issues.Count == 0
                         ? "Replace requires one accepted selected-input inspection."
                         : string.Join(
@@ -334,8 +295,7 @@ internal sealed partial class ReplacePresentationViewModel
                 {
                     if (result.AcceptedGeneralMappingDraft is { } accepted &&
                         ReferenceEquals(generalDraft, _generalReplaceDraft) &&
-                        _generalReplaceSession.CurrentSnapshot?.AuthoringRevision ==
-                            generalSession!.AuthoringRevision)
+                        context.IsPublicationCurrent)
                     {
                         _generalReplaceDraft = accepted;
                     }

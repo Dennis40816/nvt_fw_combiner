@@ -171,7 +171,9 @@ public sealed partial class RepositoryBoundaryTests
         Assert.DoesNotContain("CompiledComposition", selector, StringComparison.Ordinal);
         Assert.DoesNotContain("ByteRange", selector, StringComparison.Ordinal);
         Assert.DoesNotContain("CompositionOperation", selector, StringComparison.Ordinal);
-        Assert.DoesNotContain("NT519", selector, StringComparison.OrdinalIgnoreCase);
+        Assert.Equal(1, CountOccurrences(selector, "\"NT51950\""));
+        Assert.DoesNotContain("NT519", selector.Replace("\"NT51950\"", "", StringComparison.Ordinal),
+            StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("Lazy<CapabilitySelectorPublication", selector, StringComparison.Ordinal);
         Assert.DoesNotContain("Lazy<CapabilitySelectorPublication", deviceContext, StringComparison.Ordinal);
         Assert.DoesNotContain("GetAbMergeProfileSummaries", deviceContext, StringComparison.Ordinal);
@@ -287,15 +289,15 @@ public sealed partial class RepositoryBoundaryTests
         Assert.DoesNotContain("CanonicalCapabilityCatalog catalog", presentation, StringComparison.Ordinal);
     }
 
-    /// <summary>DP Replace has one accepted session path and no path-backed planning reconstruction.</summary>
+    /// <summary>Surviving Replace has one accepted session path and no path-backed planning reconstruction.</summary>
     [Fact]
-    public void DpReplaceExecutesOnlyTheAcceptedApplicationSession()
+    public void ReplaceExecutesOnlyTheAcceptedApplicationSession()
     {
         string execution = ReadText(
             "src/NvtFwCombiner.Application/Composition/CompositionExecutionExperience.cs");
         string sharedExecution = execution;
         string cli = ReadText(
-            "src/NvtFwCombiner.Cli/ReplaceCliCommandHandler.Dp.cs");
+            "src/NvtFwCombiner.Cli/ReplaceCliCommandHandler.CtrlRam.cs");
         string presentation = ReadText(
             "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReplacePresentationViewModel.Authoring.cs");
 
@@ -310,7 +312,7 @@ public sealed partial class RepositoryBoundaryTests
             "AcceptedSessionExecutionInputs.CreateBindings("));
         Assert.DoesNotContain("TryCreateBuiltInV2DpReplaceRunContext", execution, StringComparison.Ordinal);
         Assert.DoesNotContain("new AuthoringRevision(", execution, StringComparison.Ordinal);
-        Assert.Contains("services.DpReplaceAuthoring.PrepareSession", cli, StringComparison.Ordinal);
+        Assert.Contains("services.CtrlRamAuthoring.PrepareSession", cli, StringComparison.Ordinal);
         Assert.DoesNotContain("CompositionExecutionAdapter.RunReplaceAsync", cli, StringComparison.Ordinal);
         Assert.DoesNotContain("_dpReplaceSelection", presentation, StringComparison.Ordinal);
     }

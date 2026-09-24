@@ -139,7 +139,9 @@ public static partial class CompositionEngine
             {
                 issues.Add(new CompositionIssue(
                     addressSpace.UnexpectedInputLengthIssueCode ?? CompositionIssueCodes.InputAddressSpaceLengthUnexpected,
-                    $"Input bytes for address space '{addressSpace.AddressSpaceId}' have unexpected length {immutableBytes.Length} bytes; expected {FormatAllowedLengths(addressSpace.ExpectedInputLengths)}. Execution uses only the declared source range [0x0, 0x{addressSpace.Length:X}).",
+                    addressSpace.InputOversizePolicy == InputOversizePolicy.Reject
+                        ? $"Input bytes for address space '{addressSpace.AddressSpaceId}' have unexpected length {immutableBytes.Length} bytes; expected {FormatAllowedLengths(addressSpace.ExpectedInputLengths)}. Execution retains the complete exact source range [0x0, 0x{addressSpace.Length:X})."
+                        : $"Input bytes for address space '{addressSpace.AddressSpaceId}' have unexpected length {immutableBytes.Length} bytes; expected {FormatAllowedLengths(addressSpace.ExpectedInputLengths)}. Execution uses only the declared source range [0x0, 0x{addressSpace.Length:X}).",
                     addressSpace.AddressSpaceId,
                     CompositionIssueSeverity.Warning));
             }

@@ -242,9 +242,9 @@ public sealed partial class RepositoryBoundaryTests
             Environment.NewLine,
             Directory.EnumerateFiles(compilerRoot, "V2CompositionPlanCompiler*.cs")
                 .OrderBy(static path => path, StringComparer.Ordinal)
-                .Select(File.ReadAllText));
+                .Select(path => RemoveAdmittedCompilerIdentity(Path.GetFileName(path), File.ReadAllText(path))));
 
-        Assert.DoesNotContain("ExperienceIds.", compilerSources, StringComparison.Ordinal);
+        AssertNoUnadmittedCompilerIdentity(compilerSources);
         Assert.DoesNotContain("ValidateSupportedProfile(", compilerSources, StringComparison.Ordinal);
         Assert.DoesNotContain("ValidateMapBoundOutputShape(", compilerSources, StringComparison.Ordinal);
         string trustedCompiler = ReadText(
@@ -285,10 +285,6 @@ public sealed partial class RepositoryBoundaryTests
             detailsConstructionCount,
             CompiledDetailsConstructionRegex().Count(profileSources));
 
-        Assert.Equal(1, CountOccurrences(compilerSources, ".ExperienceId"));
-        Assert.Equal(0, CountOccurrences(compilerSources, ".ModeId"));
-        Assert.Equal(1, CountOccurrences(compilerSources, ".ProfileId"));
-        Assert.Equal(1, CountOccurrences(compilerSources, ".FamilyId"));
         string contractLowering = ReadText(
             "src/NvtFwCombiner.Profiles/V2/V2CompositionPlanCompiler.ContractLowering.cs");
         Assert.Contains("profile.ProfileId,", contractLowering, StringComparison.Ordinal);
@@ -323,6 +319,97 @@ public sealed partial class RepositoryBoundaryTests
             "internal string? GetProfileOverlapError(",
             ReadText("src/NvtFwCombiner.Domain/Composition/CompositionOperation.cs"),
             StringComparison.Ordinal);
+    }
+
+    /// <summary>Exact admitted fragments cannot hide a newly introduced identity branch.</summary>
+    [Theory]
+    [InlineData("ExperienceIds.GeneralMerge")]
+    [InlineData("\"NT51950\"")]
+    [InlineData("extra.ProfileId")]
+    public void ClosedCompilerIdentityGuardRejectsAdditionalIdentity(string unadmitted)
+    {
+        string valid = "profile.ExperienceId profile.ProfileId profile.FamilyId";
+        AssertNoUnadmittedCompilerIdentity(valid);
+        _ = Assert.ThrowsAny<Xunit.Sdk.XunitException>(() => AssertNoUnadmittedCompilerIdentity(valid + " " + unadmitted));
+    }
+
+    private static void AssertNoUnadmittedCompilerIdentity(string source)
+    {
+        Assert.DoesNotContain("ExperienceIds.", source, StringComparison.Ordinal);
+        Assert.Empty(CompiledIcIdentityRegex().Matches(source));
+        Assert.Equal(1, CountOccurrences(source, ".ExperienceId"));
+        Assert.Equal(0, CountOccurrences(source, ".ModeId"));
+        Assert.Equal(1, CountOccurrences(source, ".ProfileId"));
+        Assert.Equal(1, CountOccurrences(source, ".FamilyId"));
+    }
+
+    private static string RemoveAdmittedCompilerIdentity(string fileName, string source)
+    {
+        // Pin each accepted boundary; never exempt an entire compiler partial.
+        string[] fragments = fileName switch
+        {
+            "V2CompositionPlanCompiler.ContractLowering.cs" =>
+            [
+                """
+                        if (StringComparer.Ordinal.Equals(profile.Header.ExperienceId, ExperienceIds.DpReplace))
+                        {
+                            return V2CompositionPlanCompileResult.Failed(
+                            [
+                                new CompositionIssue(
+                                    "profile.v2.plan.retired-experience",
+                                    "DP Replace is retired and cannot produce a composition artifact."),
+                            ]);
+                        }
+                """,
+            ],
+            "V2CompositionPlanCompiler.RuntimeReferenceReplace.Banks.cs" =>
+            [
+                """
+                        TrustedCompositionProfileCatalogEntry localProfile = localCatalog.SelectProfile(
+                            definition.Local.ProfileId, definition.Local.ProfileVersion, out _) ??
+                            throw new ArgumentException("Partial AB local profile is no longer trusted.");
+                        IReadOnlyList<FirmwareImageMap> localMaps = localCatalog.GetMapVariants(
+                            definition.Local.ProfileId, definition.Local.ProfileVersion, definition.Local.MemberId,
+                            localProfile.Profile.Header.ExperienceId, out _, out IReadOnlyList<CompositionIssue> mapIssues);
+                """,
+                """
+                        TrustedCompositionProfileCatalogEntry localProfile = localCatalog.SelectProfile(
+                            definition.Local.ProfileId, definition.Local.ProfileVersion, out _) ??
+                            throw new ArgumentException("AB local profile is no longer trusted.");
+                        V2CompositionPlanCompileResult compiled = localCatalog.CompileRuntimeReferenceReplace(
+                            definition.Local.ProfileId, definition.Local.ProfileVersion, definition.Local.MemberId,
+                            localProfile.Profile.Header.ExperienceId,
+                            new TopologySelection(topologyCount, topologyCount == 1 ? "single" : "cascade_2to8",
+                                TopologySelectionSource.Requested, "number-selector"),
+                            [localReference], request.Replace);
+                """,
+                """
+                        RequireBankShape(details.ProfileId == source.ProfileId && details.ProfileVersion == source.ProfileVersion &&
+                            details.Provenance.Context is ResolvedMapV2CompilationContext &&
+                            details.Provenance.Context.MemberId == source.MemberId &&
+                            details.Provenance.Bundle.ContentHash == source.Bundle.ContentHash &&
+                            details.Provenance.ProfileEntry.ContentHash == source.Entry.ContentHash &&
+                            details.Provenance.Context.FamilyContentHash == source.FamilyHash &&
+                            details.Provenance.ResolvedMap.ImageMap.MapId == source.MapId &&
+                            details.ExperienceId == ExperienceIds.AbMerge,
+                            "Only the selected exact trusted AB layout is admitted by this preparation.");
+                """,
+            ],
+            "V2CompositionPlanCompiler.RuntimeReferenceReplace.BankCompilation.cs" =>
+            [
+                "            definition.DefinitionId, definition.Version, ExperienceIds.CtrlRamReplace, CompositionKind.Replace,",
+            ],
+            _ => [],
+        };
+        string normalized = source.ReplaceLineEndings("\n");
+        foreach (string fragment in fragments)
+        {
+            string expected = fragment.ReplaceLineEndings("\n");
+            Assert.True(CountOccurrences(normalized, expected) == 1,
+                $"Admitted compiler identity fragment must occur once in {fileName}: {expected.Trim()}.");
+            normalized = normalized.Replace(expected, string.Empty, StringComparison.Ordinal);
+        }
+        return normalized;
     }
 
     /// <summary>Locks trusted compilation and bundle identity to their existing catalog owners.</summary>

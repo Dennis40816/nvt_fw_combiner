@@ -28,7 +28,7 @@ public sealed partial class RepositoryBoundaryTests
             "internal delegate ValueTask<CompositionRunResult> AcceptedCompositionExecutionRoute",
             "internal static class AcceptedCompositionExecutionRoutes",
             "ExperienceIds.StandardMerge =>", "ExperienceIds.AbMerge =>", "ExperienceIds.GeneralMerge =>",
-            "ExperienceIds.DpReplace =>", "ExperienceIds.CtrlRamReplace =>", "ExperienceIds.GeneralReplace =>");
+            "ExperienceIds.CtrlRamReplace =>", "ExperienceIds.GeneralReplace =>");
         AssertDoesNotContainAny(request, "AbMergeTopologyToken");
         AssertContainsAll(destination, "ICompositionExecutionDestinationProvider");
         Assert.Empty(Directory.EnumerateFiles(

@@ -71,23 +71,24 @@ internal static class FirmwareInspectionProjection
                 value,
                 !version.IsKnown ? FirmwareSlotFactState.Unknown : FirmwareSlotFactState.Ordinary,
                 !version.IsKnown ? text.FirmwareSlotUnknownValueLabel : null,
-                !version.IsKnown ? text.FirmwareSlotUnknownFactDetail : null));
+                !version.IsKnown ? text.FirmwareSlotUnknownFactDetail : null,
+                isDp && slot.SlotKind == FirmwareSlotKind.Base ? FirmwareSlotFactPriority.Details : FirmwareSlotFactPriority.Primary));
             if (isDp && version.TrackerId is > 0)
             {
                 facts.Add(new FirmwareSlotFactViewModel(
                     $"{bankLabel} Jira Index",
-                    FormattableString.Invariant($"AUTO_PRJ-{version.TrackerId}")));
+                    FormattableString.Invariant($"AUTO_PRJ-{version.TrackerId}"),
+                    priority: slot.SlotKind == FirmwareSlotKind.Base ? FirmwareSlotFactPriority.Details : FirmwareSlotFactPriority.Primary));
             }
         }
 
         // AB owns the bank-specific version label. The remaining facts come from
         // existing typed projections, never from reading bytes or matching Config here.
-        facts.AddRange(UiCompositionRunner.GetFirmwareSlotFacts(inspection).Where(static fact =>
-            !string.Equals(fact.Label, "TP Version", StringComparison.Ordinal)));
+        facts.AddRange(UiCompositionRunner.GetFirmwareSlotFacts(inspection, text: text, includeTpVersion: false));
         if (abInput.EventBufferFormat is { } format)
         {
             facts.Add(new(text.EventBufferVersionLabel,
-                FormattableString.Invariant($"0x{format.RawByte:X2} - {format.DisplayName}")));
+                FormattableString.Invariant($"0x{format.RawByte:X2} - {format.DetectedDisplayName ?? format.DisplayName}")));
         }
         slot.SetFirmwareFacts(facts, expandAdditionalByDefault);
     }
@@ -97,6 +98,11 @@ internal static class FirmwareInspectionProjection
         AuthoringInputSlotStatus status,
         ShellTextResources text)
     {
+        if (status.ConfigurationBlocker is not null)
+        {
+            ApplyConfigurationPrerequisite(slot, status, text);
+            return;
+        }
         string readinessLabel = text.GetDpInputSelectionReadinessLabel(status.SelectionReadiness);
         string readinessDetail = text.GetDpInputSelectionReadinessDetail(status.SelectionReadiness);
         slot.SetSelectionReadiness(
@@ -132,14 +138,28 @@ internal static class FirmwareInspectionProjection
 
     internal static void ApplyAuthoringIssues(
         FirmwareSlotViewModel slot,
-        IReadOnlyList<CompositionIssue> issues)
+        IReadOnlyList<CompositionIssue> issues,
+        ShellTextResources text)
     {
+        if (slot.CurrentInspectionProjection?.InputSlotStatus is { ConfigurationBlocker: not null } status)
+        {
+            ApplyConfigurationPrerequisite(slot, status, text);
+            return;
+        }
         slot.SetInputInspection(
             FirmwareInputInspectionSeverity.Blocking,
             string.Join(Environment.NewLine, issues.Select(static issue =>
                 issue.OperationId is { } operationId
                     ? $"{issue.Code} [{operationId}]: {issue.Message}"
                     : $"{issue.Code}: {issue.Message}")));
+    }
+
+    private static void ApplyConfigurationPrerequisite(FirmwareSlotViewModel slot, AuthoringInputSlotStatus status, ShellTextResources text)
+    {
+        // The shared Build prerequisite owns the actionable message; a config failure is not a BIN verdict.
+        slot.SetSelectionReadiness(status.Readiness, text.EventBufferFormatTitle, text.EventBufferFormatInvalidLabel,
+            text.GetInputSelectionReadinessAutomationText(text.EventBufferFormatTitle, text.EventBufferFormatInvalidLabel), status.CanSelect);
+        slot.ClearInputInspection();
     }
 
     internal static bool ApplyStaleInputInspection(
@@ -151,7 +171,6 @@ internal static class FirmwareInspectionProjection
         bool applied = false;
         foreach (FirmwareInspectionItemRequest item in request.Items.Where(static item =>
                      item.AbMergeAddressSpaceId is not null ||
-                     item.DpReplaceAddressSpaceId is not null ||
                      item.CtrlRamReplaceAddressSpaceId is not null ||
                      item.StandardMergeAddressSpaceId is not null))
         {
@@ -191,7 +210,6 @@ internal readonly record struct WorkflowInspectionContext(
     internal bool IsStandardMerge => IsMerge && Mode == ExperienceIds.StandardMerge;
     internal bool IsAbMerge => IsMerge && Mode == ExperienceIds.AbMerge;
     internal bool IsGeneralMerge => IsMerge && Mode == ExperienceIds.GeneralMerge;
-    internal bool IsDpReplace => IsReplace && Mode == ExperienceIds.DpReplace;
     internal bool IsCtrlRamReplace => IsReplace && Mode == ExperienceIds.CtrlRamReplace;
     internal bool IsGeneralReplace => IsReplace && Mode == ExperienceIds.GeneralReplace;
 }
@@ -214,7 +232,6 @@ internal readonly record struct FirmwareInspectionItemRequest(
     bool ApplyVerifiedContext,
     string? AbMergeAddressSpaceId,
     string? AbMergeTopologyToken,
-    string? DpReplaceAddressSpaceId,
     string? StandardMergeAddressSpaceId,
     string? CtrlRamReplaceAddressSpaceId = null,
     AuthoringSlotInspectionLease? InspectionLease = null);

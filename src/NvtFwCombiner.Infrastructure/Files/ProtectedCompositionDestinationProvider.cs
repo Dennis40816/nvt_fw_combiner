@@ -47,7 +47,7 @@ internal sealed class ProtectedCompositionDestinationProvider :
                         new AtomicBundlePlannedArtifact(
                             "additional-delivery",
                             bundle.AdditionalDelivery.DeliveryKind,
-                            bundle.AdditionalDelivery.SuggestedFileName),
+                            bundle.AdditionalDelivery.FileName),
                     ])
             : new ProtectedCompositionOutputWriter(
                 new AtomicFileCompositionOutputWriter(

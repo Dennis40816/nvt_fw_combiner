@@ -178,7 +178,7 @@ public sealed class CompositionRunRequest
     {
         if (resolvedCapability is null)
         {
-            if (compiledComposition.CapabilityFingerprint is not null)
+            if (compiledComposition.CapabilityFingerprint is not null || compiledComposition.IsV2BankReplaceCandidate)
             {
                 throw new ArgumentException(
                     "Capability-bound compilations require their exact current resolved capability.",
@@ -239,7 +239,7 @@ public sealed class CompositionRunRequest
         return copy;
     }
 
-    private static void ValidateOutputFileName(string outputFileName)
+    internal static void ValidateOutputFileName(string outputFileName)
     {
         if (outputFileName.IndexOfAny(['/', '\\', ':']) >= 0 ||
             outputFileName is "." or ".." ||
@@ -260,6 +260,10 @@ public sealed class CompositionRunRequest
 
     private static void ValidateExecutableComposition(CompiledComposition compiledComposition)
     {
+        if (compiledComposition.IsV2BankReplaceCandidate)
+        {
+            return;
+        }
         if (compiledComposition.Eligibility == CompiledCompositionEligibility.V2RuntimeExecutable)
         {
             return;
@@ -349,10 +353,9 @@ public sealed class CompositionRunRequest
             static slot => slot.SlotId,
             StringComparer.Ordinal);
         bool isLogicalOutput = details.Provenance.Context is LogicalOutputV2CompilationContext;
-        bool isRuntimeReferenceReplace = details.Provenance.Context is RuntimeReferenceReplaceV2CompilationContext;
+        bool isRuntimeReferenceReplace = details.Provenance.Context is RuntimeReferenceReplaceV2CompilationContext or RuntimeReferenceBankReplaceV2CompilationContext;
         CompiledInputArtifactClass runtimeReferenceSourceClass =
-            details.Provenance.Context is RuntimeReferenceReplaceV2CompilationContext runtimeReferenceContext &&
-            StringComparer.Ordinal.Equals(runtimeReferenceContext.ModeId, ExperienceIds.CtrlRamReplace)
+            isRuntimeReferenceReplace && StringComparer.Ordinal.Equals(details.Provenance.Context.ModeId, ExperienceIds.CtrlRamReplace)
                 ? CompiledInputArtifactClass.CtrlRamReplacement
                 : CompiledInputArtifactClass.Auxiliary;
         foreach (CompiledInputSpaceBinding expected in expectedBindings)
@@ -561,6 +564,11 @@ public sealed class CompositionRunRequest
                     requirement.Severity is
                         CompiledValidationSeverity.Error or
                         CompiledValidationSeverity.Warning,
+                CompiledBankScopedValidation bank =>
+                    bank.Local is CompiledFirmwareConfigBackupVersionValidation or CompiledFirmwareConfigBackupPlacementAuthorityValidation or
+                        CompiledFirmwareConfigBackupExpectedAddressValidation or CompiledUniformInputRangeValidation &&
+                    compiledComposition.V2Details.Provenance.Context is RuntimeReferenceBankReplaceV2CompilationContext context &&
+                    context.Banks.Contains(bank.Bank) && bank.Bank.LocalComposition.V2Details.Provenance.ValidationRequirements.Contains(bank.Local),
                 _ => false,
             })
             {

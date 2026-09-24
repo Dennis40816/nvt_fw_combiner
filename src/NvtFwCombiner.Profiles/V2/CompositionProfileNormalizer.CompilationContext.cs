@@ -13,22 +13,28 @@ internal static partial class CompositionProfileNormalizer
         string FamilyVersion,
         string FamilyContentHash,
         IReadOnlyList<string> LogicalOutputMemberIds,
-        bool AllowsConditionalProcessor);
+        bool AllowsConditionalProcessor,
+        SourceEnvelopeProfileBinding? SourceEnvelopeBinding);
 
     private static NormalizedCompilationContext NormalizeCompilationContext(
         CompositionProfileDocument document)
     {
+        SourceEnvelopeProfileBinding? envelope = document.SourceEnvelopeBinding is null
+            ? null
+            : NormalizeSourceEnvelopeBinding(document);
         return document.CompilationContext is null
             ? MapBoundContext(
                 V2CompilationContextKind.ResolvedMap,
                 NormalizeMapBinding(document.MapBinding!, "mapBinding"),
-                allowsConditionalProcessor: false)
+                allowsConditionalProcessor: false,
+                envelope)
             : document.CompilationContext.Kind switch
             {
                 "resolved-map" => MapBoundContext(
                     V2CompilationContextKind.ResolvedMap,
                     NormalizeMapBinding(document.MapBinding!, "mapBinding"),
-                    allowsConditionalProcessor: false),
+                    allowsConditionalProcessor: false,
+                    envelope),
                 "logical-output" => NormalizeLogicalOutputContext(document.LogicalOutputBinding!),
                 "runtime-reference-replace" =>
                     MapBoundContext(
@@ -57,14 +63,16 @@ internal static partial class CompositionProfileNormalizer
                 familyVersion,
                 familyContentHash,
                 document.MemberIds,
-                AllowsConditionalProcessor: false);
+                AllowsConditionalProcessor: false,
+                SourceEnvelopeBinding: null);
         });
     }
 
     private static NormalizedCompilationContext MapBoundContext(
         V2CompilationContextKind kind,
         CompositionProfileMapBinding mapBinding,
-        bool allowsConditionalProcessor)
+        bool allowsConditionalProcessor,
+        SourceEnvelopeProfileBinding? sourceEnvelopeBinding = null)
     {
         return new NormalizedCompilationContext(
             kind,
@@ -73,7 +81,33 @@ internal static partial class CompositionProfileNormalizer
             mapBinding.FamilyVersion,
             mapBinding.FamilyContentHash,
             [],
-            allowsConditionalProcessor);
+            allowsConditionalProcessor,
+            sourceEnvelopeBinding);
+    }
+
+    private static SourceEnvelopeProfileBinding NormalizeSourceEnvelopeBinding(
+        CompositionProfileDocument document)
+    {
+        if (document.SchemaVersion != "2.16" ||
+            document.CompilationContext?.Kind != "resolved-map")
+        {
+            throw Error("sourceEnvelopeBinding", "Source envelope requires schema 2.16 resolved-map compilation.");
+        }
+
+        CompositionProfileSourceEnvelopeBindingDocument binding = document.SourceEnvelopeBinding!;
+        bool allowsAbsentSource = binding.WhenSourceAbsent switch
+        {
+            "reject" => false,
+            "resolved-map" => true,
+            _ => throw Error("sourceEnvelopeBinding.whenSourceAbsent", "Unknown absent-source policy."),
+        };
+        return Wrap("sourceEnvelopeBinding", () => new SourceEnvelopeProfileBinding(
+            binding.SourceSlotId,
+            binding.LayoutTemplateMapId,
+            binding.RootRegionId,
+            allowsAbsentSource,
+            binding.ExpectedOuterLengths,
+            binding.UnexpectedLengthIssueCode));
     }
 
     private static string RequireFamilyContentHash(string familyContentHash)

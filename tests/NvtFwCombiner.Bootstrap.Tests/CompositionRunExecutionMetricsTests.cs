@@ -1,4 +1,3 @@
-using NvtFwCombiner.Application.Authoring;
 using NvtFwCombiner.Application.Capabilities;
 using NvtFwCombiner.Application.Tests;
 using NvtFwCombiner.Application.ExternalTools;
@@ -12,12 +11,12 @@ public sealed class CompositionRunExecutionMetricsTests
 {
     private static readonly DateTimeOffset StartedAtUtc = new(2026, 7, 18, 0, 0, 0, TimeSpan.Zero);
 
-    /// <summary>Verifies automatic DP Build preserves the approved two-run result with one run and one input pass.</summary>
+    /// <summary>Verifies automatic synthetic General Replace Build preserves the approved two-run result with one run and one input pass.</summary>
     [Theory]
     [InlineData(0x40000)]
     [InlineData(0x80000)]
     [InlineData(0x100000)]
-    public async Task AutomaticReferenceReplaceMatchesBaselineWithOneRunForEachDpCapacity(int outputLength)
+    public async Task AutomaticReferenceReplaceMatchesBaselineWithOneRunForEachSyntheticCapacity(int outputLength)
     {
         byte[] referenceBytes = CreateFilledBytes(outputLength, 0x11);
         byte[] replacementBytes = CreateFilledBytes(outputLength, 0x22);
@@ -32,7 +31,7 @@ public sealed class CompositionRunExecutionMetricsTests
             baselineReader,
             baselineClock,
             baselineWriter);
-        CompositionRunRequest request = CreateDpReplaceRequest(outputLength);
+        CompositionRunRequest request = CreateGeneralReplaceRequest(outputLength);
 
         CompositionRunResult baseline = await PreviewThenBuildAsync(baselineService, request);
 
@@ -56,7 +55,7 @@ public sealed class CompositionRunExecutionMetricsTests
 
         Assert.Equal(CompositionExecutionStatus.Succeeded, result.Status);
         Assert.Equal(
-            CreateExpectedDpReplaceOutput(request.CompiledComposition.Plan, referenceBytes, replacementBytes),
+            CreateExpectedGeneralReplaceOutput(referenceBytes, replacementBytes),
             result.OutputBytes.ToArray());
         AssertRunParity(baseline, result);
         Assert.Equal(2, baselineClock.RunCount);
@@ -85,7 +84,7 @@ public sealed class CompositionRunExecutionMetricsTests
 
         CompositionRunResult result = await service
             .PreviewOrBuildAsync(
-                CreateDpReplaceRequest(outputLength),
+                CreateGeneralReplaceRequest(outputLength),
                 build: false,
                 CancellationToken.None);
 
@@ -111,7 +110,7 @@ public sealed class CompositionRunExecutionMetricsTests
 
         CompositionRunResult result = await service
             .PreviewOrBuildAsync(
-                CreateDpReplaceRequest(outputLength),
+                CreateGeneralReplaceRequest(outputLength),
                 build: true,
                 CancellationToken.None);
 
@@ -254,48 +253,40 @@ public sealed class CompositionRunExecutionMetricsTests
             optimized.Report.Issues.Select(static issue => (issue.Code, issue.Message, issue.OperationId)));
     }
 
-    private static CompositionRunRequest CreateDpReplaceRequest(int outputLength)
+    // These synthetic sizes characterize orchestration; they do not advertise production General routes.
+    private static CompositionRunRequest CreateGeneralReplaceRequest(int outputLength)
     {
-        var session = new AuthoringSessionState(ExperienceIds.DpReplace);
-        CompiledAuthoringSessionPreparation prepared =
-            BootstrapTestHost.Services.DpReplaceAuthoring.PrepareSession(
-                session,
-                "NT51950",
-                [
-                    new CompiledAuthoringSelectedInput(
-                        CompositionAddressSpaceIds.ReferenceBase,
-                        "reference-artifact.bin",
-                        CreateFilledBytes(outputLength, 0x11)),
-                    new CompiledAuthoringSelectedInput(
-                        CompositionAddressSpaceIds.DpReplacement,
-                        "replacement-artifact.bin",
-                        CreateFilledBytes(outputLength, 0x22)),
-                ]);
-        Assert.True(prepared.Succeeded, string.Join(
-            Environment.NewLine,
-            prepared.Issues.Select(static issue => $"{issue.Code}: {issue.Message}")));
-        ActiveSessionSnapshot acceptedSession = Assert.IsType<ActiveSessionSnapshot>(prepared.Snapshot);
-        ResolvedCapability acceptedCapability = Assert.IsType<ResolvedCapability>(
-            acceptedSession.ExactCapability);
-        CompiledComposition compiledComposition = acceptedCapability.CompiledComposition;
-        AcceptedOutputNamingPublication namingPublication =
-            Assert.IsType<AcceptedOutputNamingPublication>(
-                AcceptedOutputNamingInspection.TryAcceptForCompiledRenderer(acceptedSession));
-        return CreateRequest(
-            compiledComposition,
+        var plan = new CompositionPlan(
+            ImageInitialization.Reference(
+                CompositionAddressSpaceIds.OutputImage, CompositionAddressSpaceIds.ReferenceBase, outputLength),
             [
-                AcceptedSessionExecutionInputs.CreateCompiledBinding(
-                    compiledComposition,
-                    CompositionAddressSpaceIds.ReferenceBase,
-                    "reference-artifact.bin"),
-                AcceptedSessionExecutionInputs.CreateCompiledBinding(
-                    compiledComposition,
-                    CompositionAddressSpaceIds.DpReplacement,
-                    "replacement-artifact.bin"),
+                new AddressSpace(CompositionAddressSpaceIds.ReferenceBase, outputLength, AddressSpaceMutability.Immutable),
+                new AddressSpace("mapping-1", outputLength, AddressSpaceMutability.Immutable),
+                new AddressSpace(CompositionAddressSpaceIds.OutputImage, outputLength, AddressSpaceMutability.Mutable),
             ],
-            new IcNumberSelection(IcNumberInputMode.SingleSelector, ["single"]),
-            acceptedCapability,
-            namingPublication);
+            [
+                CompositionOperation.CopyRange(
+                    "copy-explicit-mapping", 100, "mapping-1", new ByteRange(8, 16),
+                    CompositionAddressSpaceIds.OutputImage, new ByteRange(32, 16),
+                    OverlapPolicy.Reject, "Copy the fixed synthetic mapping into the immutable reference clone."),
+            ]);
+        CompiledComposition composition = CompiledCompositionTestFactory.Create(
+            plan,
+            new TestCompiledCompositionIdentity(
+                "synthetic-performance-general-replace", "1.0.0", "NT-SYNTHETIC",
+                ExperienceIds.GeneralReplace, ExperienceIds.GeneralReplace, CompositionKind.Replace),
+            "synthetic-performance-general-replace.bin", IcNumberInputMode.SingleSelector, [],
+            inputLengthRequirement: new CompiledExactBytesInputLengthRequirement(outputLength));
+        return CreateRequest(composition,
+            [
+                new InputArtifactBinding(
+                    CompositionAddressSpaceIds.ReferenceBase, "reference-base", "reference-artifact.bin",
+                    "reference.bin", CompiledInputArtifactClass.ReferenceImage),
+                new InputArtifactBinding(
+                    "mapping-1", "mapping-1", "replacement-artifact.bin", "replacement.bin",
+                    CompiledInputArtifactClass.Auxiliary),
+            ],
+            new IcNumberSelection(IcNumberInputMode.SingleSelector, ["single"]));
     }
 
     private static CompositionRunRequest CreateCtrlRamReplaceRequest(int outputLength, int ctrlRamLength)
@@ -391,29 +382,10 @@ public sealed class CompositionRunExecutionMetricsTests
             resolvedCapability: resolvedCapability);
     }
 
-    private static byte[] CreateExpectedDpReplaceOutput(
-        CompositionPlan plan,
-        byte[] referenceBytes,
-        byte[] replacementBytes)
+    private static byte[] CreateExpectedGeneralReplaceOutput(byte[] referenceBytes, byte[] replacementBytes)
     {
-        byte[] expected = [.. replacementBytes];
-        foreach (CompositionOperation operation in plan.OrderedOperations.Where(static operation =>
-                     string.Equals(
-                         operation.SourceSpaceId,
-                         CompositionAddressSpaceIds.ReferenceBase,
-                         StringComparison.Ordinal)))
-        {
-            ByteRange sourceRange = operation.SourceRange ?? throw new InvalidOperationException(
-                $"Reference restore operation '{operation.OperationId}' has no source range.");
-            ByteRange targetRange = operation.TargetRange;
-            referenceBytes.AsSpan(
-                    checked((int)sourceRange.Start),
-                    checked((int)sourceRange.Length))
-                .CopyTo(expected.AsSpan(
-                    checked((int)targetRange.Start),
-                    checked((int)targetRange.Length)));
-        }
-
+        byte[] expected = [.. referenceBytes];
+        replacementBytes.AsSpan(8, 16).CopyTo(expected.AsSpan(32, 16));
         return expected;
     }
 
