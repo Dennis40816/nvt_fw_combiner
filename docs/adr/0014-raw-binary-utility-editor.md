@@ -21,6 +21,17 @@ The Home-launched Hex Editor is intended for direct inspection and controlled ed
 8. Printable-ASCII search reports every in-memory match, highlights matching bytes and ASCII characters, and cycles deterministically through the result index. Contiguous changed blocks are navigation aids only; they do not imply firmware semantics. Value edits remain highlighted per byte. A structural shift uses text color rather than a byte-cell background, and its visible wrapped ASCII span is enclosed by one unfilled outline carrying the same one-based number as the changed-block inspector. The entire valid shift area inside that outline, including character spacing, padding, cross-row whitespace, and visible original comparison rows, exposes a context menu that navigates to the block head or tail. Optional original rows use the current display address, read same-address source bytes, and show `--` beyond the source end; when enabled, they appear for every visible value-edit or structural-shift row. Hover evidence lists the first value transition and exact derived insert/delete address and count.
 9. The Hex Editor must state that it does not validate firmware structure or produce a firmware composition report. A modified BIN can be structurally invalid firmware.
 
+## Accepted load publication — 1.1.11
+
+The file session publishes one immutable successful load receipt with accepted
+editor bytes and source path under its existing load gate. Each successful load
+has a new receipt identity, including reloads of the same path. A failed or
+cancelled read and Save As do not replace that receipt. Presentation reconciles
+the current accepted receipt after normal or exceptional await completion;
+request ordering only controls failure feedback and cannot undo an accepted
+load. Late cancellation can remain a cancellation result for the caller without
+misrepresenting the document already accepted by the file session.
+
 ## Consequences
 
 - General Replace remains the supported firmware-aware explicit mapping workflow, including profile compiler checks and required TP postbuild behavior.

@@ -13,6 +13,7 @@ public sealed class RawBinaryEditorFileSession : IRawBinaryEditorFileSession
     private readonly Func<string, CancellationToken, ValueTask<ReadOnlyMemory<byte>>> _readFile;
     private readonly Lock _loadGate = new();
     private long _loadGeneration;
+    private RawBinaryEditorFileResult? _acceptedLoad;
     private readonly Func<byte[], RawBinaryEditorState, string, long, CancellationToken, RawBinaryEditorSearchResult>
         _asciiSearch;
     private AsciiSearchResultCache? _asciiSearchResultCache;
@@ -47,7 +48,10 @@ public sealed class RawBinaryEditorFileSession : IRawBinaryEditorFileSession
     }
 
     /// <summary>Gets the normalized source path of the currently loaded document.</summary>
-    public string? SourcePath { get; private set; }
+    public string? SourcePath => AcceptedLoad?.Path;
+
+    /// <inheritdoc />
+    public RawBinaryEditorFileResult? AcceptedLoad => Volatile.Read(ref _acceptedLoad);
 
     /// <summary>Gets the suggested, non-destructive output file name for the loaded document.</summary>
     public string SuggestedOutputFileName => string.IsNullOrWhiteSpace(SourcePath)
@@ -97,8 +101,9 @@ public sealed class RawBinaryEditorFileSession : IRawBinaryEditorFileSession
 
                 InvalidateAsciiSearchSnapshot();
                 _ = _editor.Load(bytes.Span);
-                SourcePath = fullPath;
-                return RawBinaryEditorFileResult.Success(fullPath, _editor.State);
+                RawBinaryEditorFileResult accepted = RawBinaryEditorFileResult.Success(fullPath, _editor.State);
+                Volatile.Write(ref _acceptedLoad, accepted);
+                return accepted;
             }
         }
         catch (Exception exception) when (exception is ArgumentException or IOException or UnauthorizedAccessException or NotSupportedException)

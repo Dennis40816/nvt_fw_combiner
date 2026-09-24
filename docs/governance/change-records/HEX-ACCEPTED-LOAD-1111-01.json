@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 2,
+  "taskId": "HEX-ACCEPTED-LOAD-1111-01",
+  "capability": "Reconcile Hex UI with the single file-session accepted load receipt",
+  "integrationBase": "3db701b70e0eec66889a4b030fcbb84db0db5693",
+  "risk": "R2",
+  "kind": "behavior",
+  "state": "design-active",
+  "mutablePaths": [
+    "src/NvtFwCombiner.Application/HexEditor/IRawBinaryEditorFileSession.cs",
+    "src/NvtFwCombiner.Infrastructure/Files/RawBinaryEditorFileSession.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/HexEditorWorkspaceViewModel.Persistence.cs",
+    "tests/NvtFwCombiner.UiSmoke.Tests/HexEditorLoadOrderingTests.cs",
+    "tests/NvtFwCombiner.UiSmoke.Tests/ExitConfirmationTests.PendingHex.cs",
+    "docs/adr/0014-raw-binary-utility-editor.md"
+  ],
+  "implementationOwner": "/root",
+  "searchEvidence": [
+    "Independent review of frozen ec00930895facf0bbebe316681c962cd7abcf397 found a P1 F05 cross-layer race: RawBinaryEditorFileSession commits editor bytes/path before the UI continuation, but the workspace can suppress publication after late cancellation or a newer failed load. Separate adapter/VM ordering tests do not cover this interleave.",
+    "IRawBinaryEditorFileSession already owns accepted SourcePath; RawBinaryEditorFileResult is the existing immutable path/state result. Add one accepted-success receipt to that owner instead of another UI commit authority. Only production implementation is RawBinaryEditorFileSession; test implementations are ControlledFiles and DelayedSession."
+  ],
+  "semanticOwner": "IRawBinaryEditorFileSession accepted-load contract; RawBinaryEditorFileSession atomically publishes the receipt with accepted editor load; Workspace consumes receipt identity and uses request generation only for failure feedback",
+  "terminalContract": "Expose nullable immutable AcceptedLoad using the existing RawBinaryEditorFileResult. Publish a new receipt by identity only after a successful Load, together with bytes/path under the existing load gate. Failed/cancelled reads and SaveAs do not change the accepted receipt. UI reconciles any newly accepted receipt even when its await throws cancellation or the request is superseded; a stale historical result must never replay old state. Compare receipt identity, not equal values or path. Preserve precommit cancellation, latest-request adapter guards, non-destructive SaveAs, and existing UI picker lifetime guards. Add deterministic real-adapter/UI regressions for cancellation after commit, a later failed load before earlier UI publication, and delayed old completion after newer success; assert displayed path and exported bytes agree. Synchronize ADR 0014 and existing test doubles. No firmware/profile/CRC or release behavior changes.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "/root/ab_layout_context_review",
+    "outcome": "approved",
+    "evidence": "2026-09-25 bounded R2 design ADMITTED independently: existing atomic receipt owner is minimal; reconcile on cancellation/exception paths as well as normal completion, use object identity or monotonic commit identity, and do not change receipt on SaveAs/failure."
+  },
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": {
+    "reviewer": null,
+    "outcome": "pending",
+    "evidence": ""
+  }
+}

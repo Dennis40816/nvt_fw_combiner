@@ -7,6 +7,7 @@ internal sealed partial class HexEditorWorkspaceViewModel
 {
     private long _loadGeneration;
     private long _sourceSelectionGeneration;
+    private RawBinaryEditorFileResult? _publishedLoad;
 
     public bool HasSelectedFile { get; private set; }
 
@@ -34,19 +35,40 @@ internal sealed partial class HexEditorWorkspaceViewModel
         HasSelectedFile = true;
         FindAsciiCommand.Cancel();
 
-        RawBinaryEditorFileResult result = await _files.LoadAsync(path, cancellationToken);
+        RawBinaryEditorFileResult result;
+        try
+        {
+            result = await _files.LoadAsync(path, cancellationToken);
+        }
+        finally
+        {
+            SynchronizeAcceptedLoad();
+        }
         if (generation != Volatile.Read(ref _loadGeneration))
         {
             return;
         }
 
-        cancellationToken.ThrowIfCancellationRequested();
         if (!result.Succeeded || result.State is null || string.IsNullOrWhiteSpace(result.Path))
         {
             EditorStatus = result.ErrorMessage ?? Text.HexEditorFileOperationFailedDetail;
             return;
         }
 
+    }
+
+    private void SynchronizeAcceptedLoad()
+    {
+        RawBinaryEditorFileResult? result = _files.AcceptedLoad;
+        if (result is null || ReferenceEquals(result, _publishedLoad))
+        {
+            return;
+        }
+        if (!result.Succeeded || result.State is null || string.IsNullOrWhiteSpace(result.Path))
+        {
+            throw new InvalidOperationException("Accepted Hex load must contain a successful document receipt.");
+        }
+        _publishedLoad = result;
         SourcePath = result.Path;
         ViewportAddress = "0x000000";
         AsciiSearchText = string.Empty;

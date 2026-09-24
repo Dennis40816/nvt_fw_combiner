@@ -4,6 +4,8 @@ using Avalonia.Interactivity;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 using NvtFwCombiner.Application.HexEditor;
+using NvtFwCombiner.Infrastructure.Files;
+using NvtFwCombiner.TestSupport;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
 using NvtFwCombiner.Presentation.Avalonia.Views;
 
@@ -147,6 +149,102 @@ public sealed class HexEditorLoadOrderingTests
         }
     }
 
+    /// <summary>A real file commit remains the source of truth across delayed UI publication.</summary>
+    [AvaloniaTheory]
+    [InlineData("cancel-return")]
+    [InlineData("cancel-throw")]
+    [InlineData("newer-failure")]
+    [InlineData("newer-success")]
+    public async Task CommittedLoadAndDisplayedSourceRemainCoherent(string interleave)
+    {
+        ArgumentNullException.ThrowIfNull(interleave);
+        using var workspace = TempWorkspace.Create("hex-accepted-load");
+        string original = workspace.PathFor("original.bin");
+        string first = workspace.PathFor("first.bin");
+        string newer = workspace.PathFor("newer.bin");
+        string saved = workspace.PathFor("saved.bin");
+        await File.WriteAllBytesAsync(original, [1], TestContext.Current.CancellationToken);
+        await File.WriteAllBytesAsync(first, [2, 3], TestContext.Current.CancellationToken);
+        await File.WriteAllBytesAsync(newer, [4, 5, 6], TestContext.Current.CancellationToken);
+        var files = new CommitDelayedFiles();
+        var view = new HexEditorWorkspaceViewModel(ShellTextResources.For(ShellLanguage.English), files);
+        await view.LoadAsync(original, TestContext.Current.CancellationToken);
+        files.DelayedPath = first;
+        files.ThrowAfterCommit = interleave == "cancel-throw";
+        using var cancellation = new CancellationTokenSource();
+        Task pending = view.LoadAsync(first, cancellation.Token);
+        try
+        {
+            await files.Committed.Task.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
+            if (interleave.StartsWith("cancel", StringComparison.Ordinal))
+            {
+                cancellation.Cancel();
+            }
+            else
+            {
+                await view.LoadAsync(interleave == "newer-success" ? newer : workspace.PathFor("missing.bin"),
+                    TestContext.Current.CancellationToken);
+            }
+        }
+        finally
+        {
+            _ = files.Release.TrySetResult();
+        }
+        if (files.ThrowAfterCommit)
+        {
+            _ = await Assert.ThrowsAnyAsync<OperationCanceledException>(() => pending);
+        }
+        else
+        {
+            await pending;
+        }
+        string accepted = interleave == "newer-success" ? newer : first;
+        Assert.Equal(accepted, view.SourcePath);
+        Assert.Equal(files.SourcePath, view.SourcePath);
+        byte[] expected = await File.ReadAllBytesAsync(accepted, TestContext.Current.CancellationToken);
+        expected[0] = 0;
+        view.SetByteToZeroCommand.Execute(0L);
+        Assert.True(view.CanSave);
+        await view.SaveAsAsync(saved, TestContext.Current.CancellationToken);
+        Assert.Equal(expected, await File.ReadAllBytesAsync(saved, TestContext.Current.CancellationToken));
+    }
+
+    private sealed class CommitDelayedFiles : IRawBinaryEditorFileSessionFactory, IRawBinaryEditorFileSession
+    {
+        private IRawBinaryEditorFileSession _inner = null!;
+        internal string? DelayedPath { get; set; }
+        internal bool ThrowAfterCommit { get; set; }
+        internal TaskCompletionSource Committed { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        internal TaskCompletionSource Release { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        public string? SourcePath => _inner.SourcePath;
+        public RawBinaryEditorFileResult? AcceptedLoad => _inner.AcceptedLoad;
+        public string SuggestedOutputFileName => _inner.SuggestedOutputFileName;
+        public IRawBinaryEditorFileSession Create(RawBinaryEditorSession editor)
+        {
+            _inner = new RawBinaryEditorFileSessionFactory().Create(editor);
+            return this;
+        }
+        public async Task<RawBinaryEditorFileResult> LoadAsync(string sourcePath, CancellationToken cancellationToken = default)
+        {
+            RawBinaryEditorFileResult result = await _inner.LoadAsync(sourcePath, cancellationToken);
+            if (sourcePath == DelayedPath && result.Succeeded)
+            {
+                _ = Committed.TrySetResult();
+                await Release.Task;
+                if (ThrowAfterCommit) { cancellationToken.ThrowIfCancellationRequested(); }
+            }
+            return result;
+        }
+        public Task<RawBinaryEditorSearchResult> FindAsciiAsync(string text, long startOffset, CancellationToken cancellationToken = default)
+        {
+            return _inner.FindAsciiAsync(text, startOffset, cancellationToken);
+        }
+        public Task<RawBinaryEditorFileResult> SaveAsAsync(string outputPath, CancellationToken cancellationToken = default)
+        {
+            return _inner.SaveAsAsync(outputPath, cancellationToken);
+        }
+    }
+
     private sealed class ControlledFiles : IRawBinaryEditorFileSessionFactory, IRawBinaryEditorFileSession
     {
         private readonly Dictionary<string, TaskCompletionSource<RawBinaryEditorFileResult>> _pending = [];
@@ -161,6 +259,7 @@ public sealed class HexEditorLoadOrderingTests
         internal List<string> LoadedPaths { get; } = [];
 
         public string? SourcePath { get; private set; }
+        public RawBinaryEditorFileResult? AcceptedLoad { get; private set; }
         public string SuggestedOutputFileName => "edited.bin";
 
         public IRawBinaryEditorFileSession Create(RawBinaryEditorSession editor)
@@ -176,7 +275,8 @@ public sealed class HexEditorLoadOrderingTests
             {
                 _ = _editor.Load(sourcePath == "newer-drop.bin" ? [2, 3] : [1]);
                 SourcePath = sourcePath;
-                return Task.FromResult(RawBinaryEditorFileResult.Success(sourcePath, _editor.State));
+                AcceptedLoad = RawBinaryEditorFileResult.Success(sourcePath, _editor.State);
+                return Task.FromResult(AcceptedLoad);
             }
 
             var completion = new TaskCompletionSource<RawBinaryEditorFileResult>(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -191,6 +291,7 @@ public sealed class HexEditorLoadOrderingTests
             {
                 _ = _editor.Load([2, 3]);
                 SourcePath = path;
+                AcceptedLoad = RawBinaryEditorFileResult.Success(path, _editor.State);
             }
 
             _pending[path].SetResult(success
