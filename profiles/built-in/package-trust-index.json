@@ -407,7 +407,7 @@
       "bundleDirectory": "nt51932-ctrlram-replace-candidate",
       "bundleSchemaVersion": "1.0",
       "bundleVersion": "0.10.1-candidate.2",
-      "contentHash": "da860e6146d0c755a64ec9bde4c467acf751dcaf1638fe43066d6b777cba0865",
+      "contentHash": "7edb1c8b3b2d4d47963b4602000bd6c62fa43a52f55f6e70bdfac79a8c2c1fcc",
       "materialization": {
         "compositionProfileSchemaFile": "composition-profile-v2.9.schema.json",
         "firmwareFamilySchemaFile": "firmware-family-v1.schema.json"

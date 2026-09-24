@@ -1547,25 +1547,25 @@
       "icCountVariant": "1-ic",
       "mapVariant": "nt51932-ctrlram-fw1x-single-full-flash",
       "routeId": "route-7-nt51932-15-ctrlram-replace-4-1-ic-38-nt51932-ctrlram-fw1x-single-full-flash",
-      "capabilityFingerprint": "a27623be0145c80af0bd807ef5191531d7feadaf3b296ec237cf98779782212c",
+      "capabilityFingerprint": "0fdee1f3883096199d2c58f72e4eac1a489d76812481cf2909ddf1e8c2ef9602",
       "authoring": {
         "decisionId": "nt51932-ctrlram-replace-1-ic-nt51932-ctrlram-fw1x-single-full-flash-authoring-v3",
         "routeId": "route-7-nt51932-15-ctrlram-replace-4-1-ic-38-nt51932-ctrlram-fw1x-single-full-flash",
-        "capabilityFingerprint": "a27623be0145c80af0bd807ef5191531d7feadaf3b296ec237cf98779782212c",
+        "capabilityFingerprint": "0fdee1f3883096199d2c58f72e4eac1a489d76812481cf2909ddf1e8c2ef9602",
         "value": "available",
         "sourceReference": "owner-decision:2026-08-25:standard-ab-ctrlram-formal-support"
       },
       "publication": {
         "decisionId": "nt51932-ctrlram-replace-1-ic-nt51932-ctrlram-fw1x-single-full-flash-publication-v5",
         "routeId": "route-7-nt51932-15-ctrlram-replace-4-1-ic-38-nt51932-ctrlram-fw1x-single-full-flash",
-        "capabilityFingerprint": "a27623be0145c80af0bd807ef5191531d7feadaf3b296ec237cf98779782212c",
+        "capabilityFingerprint": "0fdee1f3883096199d2c58f72e4eac1a489d76812481cf2909ddf1e8c2ef9602",
         "value": "supported",
         "sourceReference": "owner-decision:2026-08-25:standard-ab-ctrlram-formal-support"
       },
       "evidence": {
         "decisionId": "nt51932-ctrlram-replace-1-ic-nt51932-ctrlram-fw1x-single-full-flash-evidence-v3",
         "routeId": "route-7-nt51932-15-ctrlram-replace-4-1-ic-38-nt51932-ctrlram-fw1x-single-full-flash",
-        "capabilityFingerprint": "a27623be0145c80af0bd807ef5191531d7feadaf3b296ec237cf98779782212c",
+        "capabilityFingerprint": "0fdee1f3883096199d2c58f72e4eac1a489d76812481cf2909ddf1e8c2ef9602",
         "value": "contract-only",
         "sourceReference": "ctrlram-v2:nt51932-ctrlram-replace-fw1x-single@0.2.0:nt51932-ctrlram-fw1x-single-full-flash:nfc.nt51932.ctrlram-postbuild-v1:legacy-combiner-1.13.0:SingleChip|capability-fingerprint:f8b6dcf0613fdfc8e08fb2109a37e46d764bd1c7ae7d3f541933b163ba95fb40"
       }
@@ -1576,25 +1576,25 @@
       "icCountVariant": "2-8-ic",
       "mapVariant": "nt51932-ctrlram-fw200-cascade-full-flash",
       "routeId": "route-7-nt51932-15-ctrlram-replace-6-2-8-ic-40-nt51932-ctrlram-fw200-cascade-full-flash",
-      "capabilityFingerprint": "addab5cd867172e0eb53dba20d4942ccdfdc2ef755f074165e01ff5557fc8f52",
+      "capabilityFingerprint": "fac92daa66692745439288a005a152932536e3e4a872d0b39965e2ddeeec470e",
       "authoring": {
         "decisionId": "nt51932-ctrlram-replace-2-8-ic-nt51932-ctrlram-fw200-cascade-full-flash-authoring-v3",
         "routeId": "route-7-nt51932-15-ctrlram-replace-6-2-8-ic-40-nt51932-ctrlram-fw200-cascade-full-flash",
-        "capabilityFingerprint": "addab5cd867172e0eb53dba20d4942ccdfdc2ef755f074165e01ff5557fc8f52",
+        "capabilityFingerprint": "fac92daa66692745439288a005a152932536e3e4a872d0b39965e2ddeeec470e",
         "value": "available",
         "sourceReference": "owner-decision:2026-08-25:standard-ab-ctrlram-formal-support"
       },
       "publication": {
         "decisionId": "nt51932-ctrlram-replace-2-8-ic-nt51932-ctrlram-fw200-cascade-full-flash-publication-v5",
         "routeId": "route-7-nt51932-15-ctrlram-replace-6-2-8-ic-40-nt51932-ctrlram-fw200-cascade-full-flash",
-        "capabilityFingerprint": "addab5cd867172e0eb53dba20d4942ccdfdc2ef755f074165e01ff5557fc8f52",
+        "capabilityFingerprint": "fac92daa66692745439288a005a152932536e3e4a872d0b39965e2ddeeec470e",
         "value": "supported",
         "sourceReference": "owner-decision:2026-08-25:standard-ab-ctrlram-formal-support"
       },
       "evidence": {
         "decisionId": "nt51932-ctrlram-replace-2-8-ic-nt51932-ctrlram-fw200-cascade-full-flash-evidence-v3",
         "routeId": "route-7-nt51932-15-ctrlram-replace-6-2-8-ic-40-nt51932-ctrlram-fw200-cascade-full-flash",
-        "capabilityFingerprint": "addab5cd867172e0eb53dba20d4942ccdfdc2ef755f074165e01ff5557fc8f52",
+        "capabilityFingerprint": "fac92daa66692745439288a005a152932536e3e4a872d0b39965e2ddeeec470e",
         "value": "direct-golden",
         "sourceReference": "canonical-golden:nt51932-fw200-cascade3-auto-prj-525-20260718"
       }
@@ -2301,25 +2301,25 @@
       "icCountVariant": "1-ic",
       "mapVariant": "nt51932-ab-merge-512k",
       "routeId": "route-7-nt51932-15-ctrlram-replace-4-1-ic-21-nt51932-ab-merge-512k",
-      "capabilityFingerprint": "5e291820b590b22c4dc93cd96d3ea8e6d5790be154f3aa83a67b050c683c2505",
+      "capabilityFingerprint": "ac5fad97d49f918b7fc9dc831b7a054494fd97bbc884addaaec4a716b08a4045",
       "authoring": {
         "decisionId": "nt51932-ab-ctrlram-replace-1-ic-authoring-v1",
         "routeId": "route-7-nt51932-15-ctrlram-replace-4-1-ic-21-nt51932-ab-merge-512k",
-        "capabilityFingerprint": "5e291820b590b22c4dc93cd96d3ea8e6d5790be154f3aa83a67b050c683c2505",
+        "capabilityFingerprint": "ac5fad97d49f918b7fc9dc831b7a054494fd97bbc884addaaec4a716b08a4045",
         "value": "available",
         "sourceReference": "docs/governance/change-records/CTRLRAM-AB-PERFECT-FAMILY-1110-01.json"
       },
       "publication": {
         "decisionId": "nt51932-ab-ctrlram-replace-1-ic-publication-v1",
         "routeId": "route-7-nt51932-15-ctrlram-replace-4-1-ic-21-nt51932-ab-merge-512k",
-        "capabilityFingerprint": "5e291820b590b22c4dc93cd96d3ea8e6d5790be154f3aa83a67b050c683c2505",
+        "capabilityFingerprint": "ac5fad97d49f918b7fc9dc831b7a054494fd97bbc884addaaec4a716b08a4045",
         "value": "candidate",
         "sourceReference": "docs/governance/change-records/CTRLRAM-AB-PERFECT-FAMILY-1110-01.json"
       },
       "evidence": {
         "decisionId": "nt51932-ab-ctrlram-replace-1-ic-evidence-v1",
         "routeId": "route-7-nt51932-15-ctrlram-replace-4-1-ic-21-nt51932-ab-merge-512k",
-        "capabilityFingerprint": "5e291820b590b22c4dc93cd96d3ea8e6d5790be154f3aa83a67b050c683c2505",
+        "capabilityFingerprint": "ac5fad97d49f918b7fc9dc831b7a054494fd97bbc884addaaec4a716b08a4045",
         "value": "contract-only",
         "sourceReference": "docs/governance/change-records/CTRLRAM-AB-PERFECT-FAMILY-1110-01.json"
       }
@@ -2330,25 +2330,25 @@
       "icCountVariant": "2-8-ic",
       "mapVariant": "nt51932-ab-merge-512k",
       "routeId": "route-7-nt51932-15-ctrlram-replace-6-2-8-ic-21-nt51932-ab-merge-512k",
-      "capabilityFingerprint": "fea8a0565ac2ff808e7a399c7d955a8f92ba71c9c689e0cae304c78dd28f6ecd",
+      "capabilityFingerprint": "388225f4468f01e8adbed25093e26849306840f36d510244de690bbbb25fc1ea",
       "authoring": {
         "decisionId": "nt51932-ab-ctrlram-replace-2-8-ic-authoring-v1",
         "routeId": "route-7-nt51932-15-ctrlram-replace-6-2-8-ic-21-nt51932-ab-merge-512k",
-        "capabilityFingerprint": "fea8a0565ac2ff808e7a399c7d955a8f92ba71c9c689e0cae304c78dd28f6ecd",
+        "capabilityFingerprint": "388225f4468f01e8adbed25093e26849306840f36d510244de690bbbb25fc1ea",
         "value": "available",
         "sourceReference": "docs/governance/change-records/CTRLRAM-AB-PERFECT-FAMILY-1110-01.json"
       },
       "publication": {
         "decisionId": "nt51932-ab-ctrlram-replace-2-8-ic-publication-v1",
         "routeId": "route-7-nt51932-15-ctrlram-replace-6-2-8-ic-21-nt51932-ab-merge-512k",
-        "capabilityFingerprint": "fea8a0565ac2ff808e7a399c7d955a8f92ba71c9c689e0cae304c78dd28f6ecd",
+        "capabilityFingerprint": "388225f4468f01e8adbed25093e26849306840f36d510244de690bbbb25fc1ea",
         "value": "candidate",
         "sourceReference": "docs/governance/change-records/CTRLRAM-AB-PERFECT-FAMILY-1110-01.json"
       },
       "evidence": {
         "decisionId": "nt51932-ab-ctrlram-replace-2-8-ic-evidence-v1",
         "routeId": "route-7-nt51932-15-ctrlram-replace-6-2-8-ic-21-nt51932-ab-merge-512k",
-        "capabilityFingerprint": "fea8a0565ac2ff808e7a399c7d955a8f92ba71c9c689e0cae304c78dd28f6ecd",
+        "capabilityFingerprint": "388225f4468f01e8adbed25093e26849306840f36d510244de690bbbb25fc1ea",
         "value": "contract-only",
         "sourceReference": "docs/governance/change-records/CTRLRAM-AB-PERFECT-FAMILY-1110-01.json"
       }
