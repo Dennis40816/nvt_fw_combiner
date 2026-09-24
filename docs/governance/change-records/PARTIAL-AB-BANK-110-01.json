@@ -5,7 +5,7 @@
   "integrationBase": "b9a94a2bab1a7bc05129b3438f0c0afeaaf45ad4",
   "risk": "R3",
   "kind": "behavior",
-  "state": "design-active",
+  "state": "final-complete",
   "mutablePaths": [
     "docs/adr/0035-ab-topology-operator-selection.md",
     "docs/adr/0072-event-buffer-format-configuration.md",
@@ -75,12 +75,23 @@
     "evidence": "Conditional design admission: 46 paths, shared canonical geometry and existing closed transports, unique cascade registration, retired explicit runtime identities fail closed, retained Desay direct synthetic coverage, new cascade Candidate/ContractOnly (Supported 64 -> 63). Unchanged single Golden outputs must execute; independent cascade full-output/range/pinned-processor tests required. DP input-policy owner answer (including exact size, short/oversized and warning/accepted-prefix behavior) required before staging or dependent product edits. This is not firmware certification or final integration approval. Owner has now supplied the remaining decision: Common exact-capacity admission, including rejection of short and oversized DP. Conditional design gate fulfilled; firmware certification and final integration gates remain separate. Independent follow-up admits CLI success TP-count fixture repairs and runtime cascade CMI assertions (2 added auxiliary paths), plus replacing obsolete successful oversized-DP UI fixture with exact DP and oversized TP while retaining warning/Cascade/layout assertions. ADR0072 equivalent-plan contract remains unchanged: valid config/recognition changes with the same plan may execute using freshly captured format/provenance; invalid config or newly mismatched A/B format must reject before side effects. Independent tests-only auxiliary admission adds runtime no-A-delivery active route counts (950:2, 951:1) and runtime closure denominator (64 total; AB 6 routes/7 cases; ContractOnly 27), preserving every route execution and output/identity/immutability assertion. Obsolete retired cascade mixed-count materializer branch is removed. Final auxiliary admission includes SharedDpcmi strict trust version and shared-input OutputConfirmation fixture. Follow-up source review corrects initial oversized-TP assumption: source-view coverage records ignored trailing range without Warning; test asserts this actual behavior. Existing four typed-warning text tests remain, obsolete Desay DP warning-success is replaced by strict capacity rejection. Legal TP count fixtures necessarily provide valid Backup versions; legacy success tests now assert actual known version and no warning rather than unreachable all-zero success. supported-ic-matrix.md is an affected non-normative inventory projection, outside the validator governed mutable-path classifier; reviewed with this unit as R0 prose, not declared a governed mutable path.",
     "reviewer": "/root/layout_ownership_review"
   },
-  "implementationHead": null,
-  "reviewedHead": null,
-  "pathStateDigest": null,
+  "implementationHead": "183a0d3652a81fb30dcb977d6ff1338f0f3bcd0f",
+  "reviewedHead": "183a0d3652a81fb30dcb977d6ff1338f0f3bcd0f",
+  "pathStateDigest": "9c863819f82bfd24d3ffbef0326a2a23c9594d5823bab46197b9e0653e6f537b",
   "finalReview": {
-    "outcome": "pending",
-    "evidence": "",
-    "reviewer": null
+    "reviewer": "/root/r3_final_review",
+    "outcome": "approved",
+    "evidence": "Independent /root/r3_final_review exact-head final-preview confirmation on 2026-09-25 at 183a0d3652a81fb30dcb977d6ff1338f0f3bcd0f. Verified this staged record's unchanged immutable admission, reviewed integration partition, matching implementation/review heads and complete committed path-state digest. The delta from 85795b141 changes only CHANGELOG and auxiliary delivery prose; no firmware bytes, ranges, profile, policy or processor semantics changed. The Perfect/Partial auxiliary digests were recomputed and matched. Repository technical finalReview approved; no new P0-P2, scoped PASS-WITH-HUMAN-GATE. This review does not supply external firmware/release-owner attestations, AB CtrlRAM independent Golden or Header/CRC/exact-write-range approval. Earlier dated evidence follows: Independent /root/r3_final_review exact-head technical re-review on 2026-09-25 at 85795b1416c689bfd484806d0425b9c06dfec9c1. Compared the complete 022219d53-to-reviewed delta and all original mutable-path states. Immutable admission and this record's unique integration partition remain unchanged. No R3 governed firmware path changed; only Perfect/Partial records' auxiliary delivery evidence changed. Prior firmware substantive review remains applicable, with no new P0-P3 and scoped PASS-WITH-HUMAN-GATE. Verifier R2 review, typed external R3 attestations, independent AB CtrlRAM expected-output Golden and Header/CRC/exact-write-range approval remain separate gates. Earlier dated review evidence follows: Independent /root/r3_final_review exact-head technical rebind confirmation on 2026-09-24 at 022219d53bbb24e5434ab4f6185df3c0019e6890. The sole delta from reviewed 871c6810e is non-governed CHANGELOG verification-status prose. All 17 R3 admission blobs and all 444 unique original mutable-path states were checked unchanged between those heads. This record's complete committed Git path-state digest is 9c863819f82bfd24d3ffbef0326a2a23c9594d5823bab46197b9e0653e6f537b; its integration ownership remains within the unique 45-record/355-governed-path partition. No new P0-P2; repository technical finalReview approved, scoped Polytail PASS-WITH-HUMAN-GATE. External firmware/release-owner attestations, independent AB CtrlRAM Golden and exact write-range authority remain separate and absent; the full verifier is failing. Earlier dated technical review evidence follows: Independent /root/r3_final_review technical final review rebound on 2026-09-24 to d6b8ad31957b173ab82b46616159c2826d167368. Verified the complete delta from previously reviewed f85348ed5 consists only of the owner-approved 1.1.11 roadmap allocation, auxiliary delivery evidence and its new design-active admission. This record’s immutable admission and integration partition remain unchanged; its complete original mutablePaths digest was independently recomputed from committed Git bytes and matched. Prior firmware technical review remains applicable; no new P0-P2. Repository technical finalReview approved; scoped Polytail PASS-WITH-HUMAN-GATE. External firmware/release-owner authority, Candidate Golden and exact write-range approval remain separate mandatory gates; the failed verifier run is not waived or reclassified as passed."
+  },
+  "integrationPaths": [
+    "docs/adr/0035-ab-topology-operator-selection.md",
+    "profiles/built-in/nt51950-ab-merge/families/nt51950-ab-merge.json",
+    "profiles/built-in/nt51950-ab-merge/profiles/nt51950-ab-merge-common-2ic.json"
+  ],
+  "auxiliaryPathReconciliation": {
+    "path": "tests/NvtFwCombiner.Bootstrap.Tests/AbDummyDpOutputTests.cs",
+    "expectedCheckpoint": "b9a94a2bab1a7bc05129b3438f0c0afeaaf45ad4",
+    "reviewer": "/root/r3_final_review",
+    "evidence": "Independently reviewed by /root/r3_final_review at d6b8ad31957b173ab82b46616159c2826d167368. The first-active admission at 29c7e7c49 includes this auxiliary test. Checkpoint, first-active admission, prior reviewed source 3203f8ffe, f853 reviewed source and current d6 reviewed source contain regular mode 100644 and blob 263a93dc929ee9dcd15ae4c8f4304af543625b25. Prior review verified zero changes across 119 checkpoint-to-f853 ancestry commits; the sole f853-to-d6 child changes only roadmap, delivery and the new admission record, not this test. It remains in original mutablePaths and the verified complete path-state digest, outside integrationPaths."
   }
 }

@@ -5,7 +5,7 @@
   "integrationBase": "b9a94a2bab1a7bc05129b3438f0c0afeaaf45ad4",
   "risk": "R3",
   "kind": "behavior",
-  "state": "design-active",
+  "state": "final-complete",
   "mutablePaths": [
     "profiles/built-in/nt51929-ctrlram-replace-candidate/families/nt51929-ctrlram-replace.json",
     "profiles/built-in/nt51929-ctrlram-replace-candidate/profiles/nt51919-ctrlram-replace-fw200-single.json",
@@ -40,12 +40,20 @@
     "outcome": "approved",
     "evidence": "2026-09-21 exact-scope R3 local admission after owner asked to derive and implement the source-backed fix. Preserve IDs, owner, constraint and unpublished versions; synchronize all content hashes. Require real NF byte and full Backup/marker checks, complete output difference bounds, both adjacent-byte refusals, original full Golden/alias hashes and existing closure regressions. No host allowlist shortcut, new AB route or Golden promotion. Firmware-owner/exact-head integration attestations remain separate. Scope delta approved by same independent reviewer: synchronize exact producer-derived NT51919/NT51929 Single/Cascade route identities, policy raw hash, two static test expectations and four Golden route associations including alias source fingerprint. Preserve evidence kinds, case references, original expected bytes/hashes and all publication decisions. Reexecute original full Single Golden and alias outputs; Cascade stays contract-only. Final auxiliary delta approved: literal policy raw SHA pins only in scripts/package.ps1, scripts/smoke-release.ps1 and tests/scripts/test_release_package_policy.py; keep closed allowlist, strict hash checks and all release behavior."
   },
-  "implementationHead": null,
-  "reviewedHead": null,
-  "pathStateDigest": null,
+  "implementationHead": "183a0d3652a81fb30dcb977d6ff1338f0f3bcd0f",
+  "reviewedHead": "183a0d3652a81fb30dcb977d6ff1338f0f3bcd0f",
+  "pathStateDigest": "ad94489981606455682e0fd6d216a04a6e7e310a3c2f335f726f5e139b663227",
   "finalReview": {
-    "reviewer": null,
-    "outcome": "pending",
-    "evidence": ""
-  }
+    "reviewer": "/root/r3_final_review",
+    "outcome": "approved",
+    "evidence": "Independent /root/r3_final_review exact-head final-preview confirmation on 2026-09-25 at 183a0d3652a81fb30dcb977d6ff1338f0f3bcd0f. Verified this staged record's unchanged immutable admission, reviewed integration partition, matching implementation/review heads and complete committed path-state digest. The delta from 85795b141 changes only CHANGELOG and auxiliary delivery prose; no firmware bytes, ranges, profile, policy or processor semantics changed. The Perfect/Partial auxiliary digests were recomputed and matched. Repository technical finalReview approved; no new P0-P2, scoped PASS-WITH-HUMAN-GATE. This review does not supply external firmware/release-owner attestations, AB CtrlRAM independent Golden or Header/CRC/exact-write-range approval. Earlier dated evidence follows: Independent /root/r3_final_review exact-head technical re-review on 2026-09-25 at 85795b1416c689bfd484806d0425b9c06dfec9c1. Compared the complete 022219d53-to-reviewed delta and all original mutable-path states. Immutable admission and this record's unique integration partition remain unchanged. No R3 governed firmware path changed; only Perfect/Partial records' auxiliary delivery evidence changed. Prior firmware substantive review remains applicable, with no new P0-P3 and scoped PASS-WITH-HUMAN-GATE. Verifier R2 review, typed external R3 attestations, independent AB CtrlRAM expected-output Golden and Header/CRC/exact-write-range approval remain separate gates. Earlier dated review evidence follows: Independent /root/r3_final_review exact-head technical rebind confirmation on 2026-09-24 at 022219d53bbb24e5434ab4f6185df3c0019e6890. The sole delta from reviewed 871c6810e is non-governed CHANGELOG verification-status prose. All 17 R3 admission blobs and all 444 unique original mutable-path states were checked unchanged between those heads. This record's complete committed Git path-state digest is ad94489981606455682e0fd6d216a04a6e7e310a3c2f335f726f5e139b663227; its integration ownership remains within the unique 45-record/355-governed-path partition. No new P0-P2; repository technical finalReview approved, scoped Polytail PASS-WITH-HUMAN-GATE. External firmware/release-owner attestations, independent AB CtrlRAM Golden and exact write-range authority remain separate and absent; the full verifier is failing. Earlier dated technical review evidence follows: Independent /root/r3_final_review technical final review rebound on 2026-09-24 to d6b8ad31957b173ab82b46616159c2826d167368. Verified the complete delta from previously reviewed f85348ed5 consists only of the owner-approved 1.1.11 roadmap allocation, auxiliary delivery evidence and its new design-active admission. This record’s immutable admission and integration partition remain unchanged; its complete original mutablePaths digest was independently recomputed from committed Git bytes and matched. Prior firmware technical review remains applicable; no new P0-P2. Repository technical finalReview approved; scoped Polytail PASS-WITH-HUMAN-GATE. External firmware/release-owner authority, Candidate Golden and exact write-range approval remain separate mandatory gates; the failed verifier run is not waived or reclassified as passed."
+  },
+  "integrationPaths": [
+    "profiles/built-in/nt51929-ctrlram-replace-candidate/families/nt51929-ctrlram-replace.json",
+    "profiles/built-in/nt51929-ctrlram-replace-candidate/profile-bundle.json",
+    "profiles/built-in/nt51929-ctrlram-replace-candidate/profiles/nt51919-ctrlram-replace-fw1x-cascade.json",
+    "profiles/built-in/nt51929-ctrlram-replace-candidate/profiles/nt51919-ctrlram-replace-fw200-single.json",
+    "profiles/built-in/nt51929-ctrlram-replace-candidate/profiles/nt51929-ctrlram-replace-fw1x-cascade.json",
+    "profiles/built-in/nt51929-ctrlram-replace-candidate/profiles/nt51929-ctrlram-replace-fw200-single.json"
+  ]
 }
