@@ -868,7 +868,7 @@ class VerifyOrchestrationTests(unittest.TestCase):
                 (
                     ["dotnet"],
                     1,
-                    MODULE.DEFAULT_LANE_TIMEOUT_SECONDS,
+                    1200,
                 ),
                 (
                     ["structure", *(lane.name for lane in MODULE.local_repository_script_lanes()), "python"],
@@ -882,6 +882,29 @@ class VerifyOrchestrationTests(unittest.TestCase):
         self.assertEqual("selected-dotnet", build.call_args.args[0])
         cleanup.assert_called_once()
         self.assertEqual("selected-dotnet", cleanup.call_args.args[0])
+
+    def test_explicit_local_full_deadline_still_bounds_dotnet_coverage(self) -> None:
+        for deadline in (60, 900):
+            with self.subTest(deadline=deadline):
+                calls: list[tuple[str, int]] = []
+
+                def record_phase(lanes, *, jobs, lane_timeout_seconds):
+                    del jobs
+                    calls.append((lanes[0].name, lane_timeout_seconds))
+
+                with (
+                    patch.dict(os.environ, {MODULE.INTERNAL_LANE_ENVIRONMENT_VARIABLE: ""}),
+                    patch.object(MODULE, "run_selected_lanes", side_effect=record_phase),
+                    patch.object(MODULE, "resolve_dotnet", return_value="selected-dotnet"),
+                    patch.object(MODULE, "cleanup_dotnet_batch"),
+                    contextlib.redirect_stdout(io.StringIO()),
+                ):
+                    self.assertEqual(0, MODULE.execute_verification(MODULE.parse_args(
+                        ["--skip-structure", f"--lane-timeout-seconds={deadline}"]
+                    )))
+
+                self.assertEqual(deadline, dict(calls)["dotnet"])
+                self.assertTrue(all(value == deadline for _, value in calls))
 
     def test_public_full_plan_stops_before_restore_when_structure_fails(self) -> None:
         calls: list[list[str]] = []
@@ -4576,6 +4599,7 @@ class VerifyOrchestrationTests(unittest.TestCase):
                     "run_local_dotnet_coverage_project",
                     side_effect=successful_run,
                 ),
+                patch.object(MODULE, "run_lanes", wraps=MODULE.run_lanes) as run_lanes,
                 patch.object(MODULE, "require_local_dotnet_sources_unchanged"),
                 patch.object(MODULE, "verify_coverage") as verify_coverage,
             ):
@@ -4595,6 +4619,10 @@ class VerifyOrchestrationTests(unittest.TestCase):
             self.assertEqual(len(projects), len(attempted))
             self.assertEqual(3, maximum_active)
             self.assertFalse(overlapped_exclusive)
+            self.assertTrue(all(
+                call.kwargs["lane_timeout_seconds"] == 600
+                for call in run_lanes.call_args_list
+            ))
             verify_coverage.assert_called_once_with("dotnet", coverage)
             self.assertFalse(work.exists())
 

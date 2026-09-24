@@ -71,7 +71,8 @@ DEFAULT_VERIFY_JOBS = 3
 MAXIMUM_VERIFY_JOBS = 4
 MAXIMUM_LOCAL_DOTNET_JOBS = 3
 DEFAULT_LANE_TIMEOUT_SECONDS = 900
-LOCAL_DOTNET_COVERAGE_TIMEOUT_SECONDS = 480
+LOCAL_DOTNET_COVERAGE_TIMEOUT_SECONDS = 600
+LOCAL_DOTNET_COVERAGE_LANE_TIMEOUT_SECONDS = 1200
 MINIMUM_LANE_TIMEOUT_SECONDS = 60
 MAXIMUM_LANE_TIMEOUT_SECONDS = 900
 CLEANUP_TIMEOUT_SECONDS = 30
@@ -5293,7 +5294,10 @@ def run_local_full_verification(args: argparse.Namespace) -> None:
         try:
             run_selected_lanes((VerificationLane(
                 "dotnet", collect_coverage,
-            ),), jobs=1, lane_timeout_seconds=args.lane_timeout_seconds)
+            ),), jobs=1, lane_timeout_seconds=(
+                args.lane_timeout_seconds if args.lane_timeout_was_supplied
+                else LOCAL_DOTNET_COVERAGE_LANE_TIMEOUT_SECONDS
+            ))
         except VerificationLanesFailed as error:
             failure = error
         try:

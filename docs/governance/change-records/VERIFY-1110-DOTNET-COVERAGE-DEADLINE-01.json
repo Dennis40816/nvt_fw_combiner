@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 2,
+  "taskId": "VERIFY-1110-DOTNET-COVERAGE-DEADLINE-01",
+  "capability": "Give complete local .NET coverage a measured bounded deadline without changing test selection or CI verification",
+  "integrationBase": "b9a94a2bab1a7bc05129b3438f0c0afeaaf45ad4",
+  "risk": "R2",
+  "kind": "behavior",
+  "state": "design-active",
+  "mutablePaths": [
+    "scripts/verify.py",
+    "tests/scripts/test_verify_orchestration.py",
+    "docs/ui/v1.1.10-delivery.md"
+  ],
+  "implementationOwner": "/root",
+  "searchEvidence": [
+    "At fixed HEAD 1ace9c836, scripts/verify.py::run_local_full_verification is the sole top-level local full-verifier scheduler and scripts/verify.py::collect_local_dotnet_coverage owns the complete eight-project inventory, snapshot/freshness checks, project lanes and aggregate coverage policy. The prior VERIFY-1110-DOTNET-BUILD-BOUNDARY-01 admission owns its earlier unchanged 900-second top-level and 480-second project limits; this separately reviewed correction changes only the measured local coverage deadlines.",
+    "Fixed-source python scripts/verify.py --skip-structure at 1ace9c836 passed restore in 4.6 seconds and the separate build lane in 125.8 seconds, but its .NET coverage lane timed out at 900.0 seconds. All repository-script and Python lanes passed; coverage was incomplete, with UiSmoke terminated near its 480-second project limit and Bootstrap lacking final TRX. Log: D:/NvtFwCombiner-TestArea/artifacts/v1110-release-skip-structure-1ace9c836.log.",
+    "On the same 1ace9c836 source with the canonical repository root, clean private shadow and Coverlet adapter, UiSmoke passed all 1619 tests twice: default xUnit parallelism in 9.1945 minutes (about 552 seconds) and eight threads in 8.9167 minutes (about 535 seconds). Long-running warnings were distributed across unrelated tests; reducing threads alone did not bring the suite below 480 seconds. Logs and TRX: D:/NvtFwCombiner-TestArea/artifacts/ui-timeout-diagnostic-rooted-1ace9c836 and D:/NvtFwCombiner-TestArea/artifacts/ui-timeout-diagnostic-threads8-1ace9c836. These direct diagnostics do not prove canonical full-verifier, source-freshness, Golden or release success."
+  ],
+  "semanticOwner": "scripts/verify.py::run_local_full_verification remains the only local full-verifier scheduler, and collect_local_dotnet_coverage remains the only local project collection and aggregate coverage owner",
+  "terminalContract": "For full local verification only, when --lane-timeout-seconds is not explicitly supplied, bound the exclusive .NET coverage top-level lane at 1200 seconds while structure, restore, build, repository-script and Python lanes retain their 900-second default. An explicitly supplied 60-900 second lane timeout continues to bind every selected top-level lane, including .NET coverage. Raise the existing single local per-project .NET coverage hard deadline from 480 to 600 seconds for all eight projects; keep one bounded project timeout rather than introducing a second special-case route. Preserve the exact project/test inventory, exclusive project ordering, Coverlet adapter, source snapshots/freshness, aggregate coverage thresholds, failure and cancellation behavior, CI shard deadlines and release Golden execution. Record deterministic parser, full-local default/explicit deadline and project-boundary tests, then run the fixed-source full nonstructure verifier; failure remains failure and no missing R3 or independent firmware Golden is waived.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "/root/r2_final_review",
+    "outcome": "approved",
+    "evidence": "On 2026-09-24, independently reviewed the 1ace9c836 timed-out full-local run and two same-source UiSmoke Coverlet passes. The reviewer found that raising global DEFAULT_LANE_TIMEOUT_SECONDS would also change CI Python shard deadline at scripts/verify.py:5350, so approved only a local-full .NET coverage 1200-second default when no public timeout was explicitly supplied, preserving public custom 60-900 seconds and all CI deadlines. Approved increasing the existing single 480-second local project limit to 600 seconds for all eight projects as the smallest single-owner change without per-project scheduling branches. The 1200-second bound is a measured candidate requiring fixed-source full-verifier proof; coverage, freshness, Golden and R3 gates are not waived."
+  },
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": {
+    "reviewer": null,
+    "outcome": "pending",
+    "evidence": ""
+  }
+}
