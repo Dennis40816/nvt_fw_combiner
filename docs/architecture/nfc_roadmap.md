@@ -15,6 +15,48 @@ runtime implementation, create a watcher, or replace the version sequence.
 
 ## Current release sequence — 2026-09-14
 
+### Owner-approved 1.1.x repair allocation — 2026-09-25
+
+This amendment supersedes the affected F01–F26 allocations below. The owner
+accepted prioritizing input identity, committed-output truth and file preservation
+before lifecycle repairs and bounded diagnostics. Validate each finding against
+the current implementation before changing it; old findings are not proof of a
+current defect. F18 behavioral/interleaving evidence accompanies every repair.
+
+- **1.1.10**: finish the current release. The owner subsequently retained AB
+  CtrlRAM Candidate/ContractOnly and explicitly deferred its missing independent
+  complete-output Golden, Header/CRC and exact-write-range confirmation and
+  remaining manual acceptance to **1.1.11**, under a one-release exception.
+  Missing evidence remains missing; this does not promote support or change
+  protected GitHub checks. See CHANGELOG and the release-owner attestations.
+- **1.1.11**: AB CtrlRAM/OSD evidence and current-head triage; fix reproduced
+  F04/F05 stale input/Hex acceptance first. Retain the shared Info/Details,
+  Event Buffer, NT51950 DP AB Memory Layout, Flash BIN input and actual firmware
+  screenshot/owner-review work already assigned here; cosmetic work follows
+  correctness. Temporarily hide **Customized Merge and Customized Replace**
+  from ordinary UI entry points while preserving implementation, canonical IDs,
+  drafts and historical reports. Reopen only in the release that delivers and
+  accepts the corresponding functionality, not automatically at a version bump.
+  CLI/direct-launch availability is an explicit implementation-scope question;
+  this UI-hide decision does not silently remove command compatibility or delete
+  functionality. General Merge/Replace milestones currently remain 1.3.0/1.3.1.
+- **1.1.12**: F07/F08 and residual F20/F21: committed BIN receipts, visible and
+  retryable persistence failures, remaining picker/I/O consumers and local
+  atomic Report replacement. Preserve the already shipped Report Save fixes.
+- **1.1.13**: F03/F06 bounded process cancellation/termination/pipe drain first,
+  then F01/F02/F25 close, READY cancellation, recovery and lifetime containment.
+- **1.1.14**: F17/F23/F26 controlled CLI/workflow/JSON errors, demonstrated F16
+  capacity/obsolete-message defects, and integrated regression of these repairs.
+- **Remain later**: F09/F10/F12 in 1.2.5; F11/F13 in 1.2.6; F22 in 1.2.7,
+  coordinated with 1.2.1 Customized large-file work; F14/F15 in 1.2.8.
+  A demonstrated OOM needs a bounded repair proposal, not an invented new limit.
+  F19 shipped in 1.1.8; F24 implementation is included in the 1.1.10 candidate.
+
+This is approved scheduling and UI-hide intent, not an implementation completion
+claim or wholesale acceptance of external APIs, numeric budgets or fault severity.
+The audit handoff retains acceptance details; this roadmap owns allocation.
+
+
 Owner release-identity amendment, 2026-09-23: publish the current work as
 **1.1.10**, replacing the earlier `1.2.0` label. GitHub read-only inspection on
 this date confirms [v1.1.9](https://github.com/Dennis40816/nvt_fw_combiner/releases/tag/v1.1.9)
@@ -22,7 +64,7 @@ is the latest non-draft stable release; its local annotated tag peels to
 `b56b4eee5914f1651ed40747ea0ba48015a52105`. This observation does not reconstruct
 or certify missing predecessor closure evidence. The dated `1.1.8` checkpoint
 above remains historical. Current unfinished work and release evidence are
-tracked in the existing [delivery checklist](../ui/v1.1.10-delivery.md#11x-未完成項目彙整--2026-09-24).
+tracked in the existing [delivery checklist](../ui/v1.1.10-delivery.md#11x-未完成項目彙整--2026-09-25).
 
 Owner allocation, 2026-09-24: investigate and repair in `1.1.11` the failure
 observed in the concurrent all-lane `test_verify_orchestration` run. The exact
@@ -38,6 +80,23 @@ Owner amendment later on 2026-09-24: move that verifier repair forward into
 records the reproduced pytest collection boundary, bounded correction and
 remaining all-lane evidence. No earlier failed run becomes a pass; the full
 verifier, Golden, R3 owner and release gates remain required.
+
+Owner 1.1.11 directions, 2026-09-25 (confirmed by the later implementation
+goal): use one shared slot-role/input-type mechanism for Standard and AB info.
+DP AB slots emphasize DP CMI A/B; TP A/B slots show their own bank; ordinary TP
+shows TP A; AB CtrlRAM Base emphasizes TP A/B. Put Event Buffer in expanded TP
+information as `Name (0x??)`, with `Common` kept concise. Retain A-bank range
+disclosure and hide FWConfig range in the requested info presentation; actual
+addresses/ranges remain profile-owned. Diagnose NT51950 AB Memory Layout's
+missing DP AB and verify Flash BIN combination eligibility. Shared-mechanism
+coverage, root causes, feasibility and final owner visual acceptance still need
+evidence; these display directions do not authorize invented firmware facts.
+The owner-provided NT51950 AB Code OSD upload enters the 1.1.11 validation
+intake only after provenance, hashes, applicable route and complete expected-
+output contract are checked; it is not yet an owner-certified Golden. The
+separate one-release exception above owns the 1.1.10 validation deferral; this
+UI/OSD intake does not alter it, the 1.2.1 Customized/Launcher allocation or the
+1.4.1 NT51950/51 AB evidence work.
 
 Owner amendment, 2026-09-23: schedule Customized / General Merge large-file
 support and the Launcher delta-update, self-update and intranet-migration
@@ -157,10 +216,13 @@ protected review/CI and candidate publication gates remain required.
 | `1.1.8` | **Release/agent workflow proportionality**: gate inventory and evidence-backed simplification, AI Skill/documentation/routing consistency and a bounded reversible pilot. Assess code-size/count gates, repeated confirmations/tests and derived-data automation; do not weaken Golden, signing or publication boundaries. |
 | `1.1.9` | **Long-name failure/recovery first, then Toolchain Runtime selection, remaining Settings conveniences and CtrlRAM AB intake**: fix issue #434 with edit-time visible errors, recovery to the last accepted valid name on invalid commit, and safe handling of BIN/Bundle/staging names. Assess removal of the product's total-path cap separately from the filesystem component limit. Add **Settings > Config > Toolchain** for detection and user selection of available compatible VC++ runtimes, including newer installed versions; see the linked Toolchain handoff for admission/readiness and verification questions. Record/reconcile the owner-provided CtrlRAM AB reference and prepare its contract/evidence questions for completion before `1.2.0`. Inventory other user-adjustable preferences and justified reset/import/export conveniences through the `1.1.6` Settings owner. Arbitrary maps, CRC/ranges, safety overrides and support promotion are outside ordinary Settings. |
 | `1.1.10` (required before `1.2.0`; owner scope update 2026-09-24) | **CtrlRAM AB Replace, affected shared-contract extraction, DP Replace retirement and verifier orchestration repair**. Retain the NT51932 Perfect family／NT51950 Partial family intake and explicit Common/Desay/topology evidence. Share canonical AB format/layout ownership, preserve independent page instances, and detach shared DPCMI/Perfect-family dependencies before retiring DP Replace. Keep repository-script pytest collection inside the selected test root while preserving exact selection, scratch isolation, cancellation and complete execution; pass the applicable fixed-source verifier. Bank/source/version and fixed-Reference decisions, unresolved firmware rules, implementation and verification evidence are tracked in the [1.1.10 delivery checklist](../ui/v1.1.10-delivery.md). No filename-based AB detection or blanket family promotion. |
-| `1.1.11` | The verifier orchestration follow-up originally allocated here on 2026-09-24 was moved into `1.1.10` by the later owner amendment above. This row assigns no replacement work and does not retrospectively pass the failed `1.1.10` run. |
+| `1.1.11` | **Input correctness, deferred AB/OSD verification and shared information UI**: reproduce/fix F04/F05; complete the current-source AB CtrlRAM and OSD evidence/owner review, retained Info/Details/Event Buffer/DP AB layout/Flash BIN assessment and loaded-FW screenshots. Temporarily hide Customized Merge/Replace UI entry points until their corresponding functionality is released and accepted; preserve implementation and data. See the owner-approved allocation above. |
+| `1.1.12` | **Output and persistence correctness**: F07/F08, residual F20/F21; preserve committed receipts and existing destinations, expose retryable errors. |
+| `1.1.13` | **Process cancellation then window lifetime**: F03/F06 before F01/F02/F25; bounded termination and recovery. |
+| `1.1.14` | **Controlled diagnostics and repair regression**: F17/F23/F26, demonstrated F16 defects; retain F18 evidence throughout. |
 | `1.2.0` | **No longer the release label for `1.1.10`**: the owner explicitly chose `1.1.10` on 2026-09-23. No additional scope is assigned by that numbering correction. The former Launcher development tranche remains in `1.2.1`; reference refresh and current evidence remain in the `1.1.10` delivery. |
 | `1.2.1` | **Customized large-file support, Launcher update development, Python Combiner replacement and residual ownership convergence**. Follow the [1.2.1 handoff](v1.2.1-handoff.md) for large-source/small-slice then large-output work, delta transfer, Launcher self-update and intranet migration. Preserve the [Python Combiner intake](#121-python-combiner-intake--2026-09-21), including B-bank CRC/postbuild mode assessment, and existing identity/family/topology/input-snapshot/page-draft and recovery work. Progressively consolidate repeated family profile declarations through an explicit, validated shared-definition reference; retain each member's map, topology, identity and evidence. Shared DPCMI/Perfect-family and page-contract work required by DP retirement remains in `1.1.10`; avoid a wholesale profile rewrite. |
-| `1.2.2` | **Remaining UI I/O and Report persistence audit work** in the audit allocation below. DP Replace retirement and its compatibility verification move to `1.1.10` by owner decision on 2026-09-20; no replacement feature scope is implied. |
+| `1.2.2` | Former residual F20/F21/F26 work moves to 1.1.12/1.1.14; F24 already moved to 1.1.10. No replacement scope is assigned. |
 | `1.2.3` | **CLI and deterministic Desktop automation** through existing Application/startup owners: workflow coverage, load-report/tab/state/capture/exit, actionable argument errors. Prioritize this before remaining broad UI acceptance. |
 | `1.2.4` | **First-entry and page flow**: IC/context lifetime, invalidation, Cancel/Back and remaining per-page custom-option density, using approved previews. Do not reopen completed slot/Memory Layout styling. |
 | `1.2.5` | **Report completion**: physical-section grouping and historical replay compatibility; preserve completed Changes cards/navigation. |
@@ -240,27 +302,24 @@ the declared Family-before-retirement dependency and earlier firmware gates.
 
 | Version | Audit work / relative size | Required observable acceptance |
 | --- | --- | --- |
-| `1.2.0` | **Staging and runner reliability**: F19 (L), F03 + F06 (one L runner change); 6 units. | Pre-existing staging/sentinel survives rejection and acquisition races; no tool launch on rejected ownership. Cancellation callbacks do not leak expected OS errors; execution, termination confirmation and pipe drain have bounded completion. Exercise held child pipes, denied kill, timeout/cancel races. This is distinct from Launcher protocols; retain the existing bounded Launcher inventory/remediation outcome. |
-| `1.2.1` | **Window lifetime and recovery**: F01 + F25 (one L lifecycle change), F02 (M); 5 retained units after F24 shared-fact preservation (M) moves to `1.1.10` on 2026-09-20. | Close → failed handoff → settings/history save → second Close works. READY cancellation is contained; active run/inspection/modal work drains before final disposal, and stale callbacks cannot publish. F24 DPCMI and Perfect-family acceptance follows the `1.1.10` delivery checklist. |
-| `1.2.2` | **UI I/O and Report persistence**: F20 (L), F21 (M), F26 (S); 6 retained units after F24 retirement verification (S) moves to `1.1.10` on 2026-09-20. | Picker/open/write/flush/dispose failures produce visible failure, never false success; fixed Report snapshot commits before success notification. Oversized JSON integer retains the Python safety limit and returns the worker's structured error. F24 surviving-route and old-Report acceptance follows the `1.1.10` delivery checklist. |
-| `1.2.3` | **Request identity and controlled entry**: F04 (L), F05 (L), F17 (M); 8 units. | Cancel/reopen across picker awaits cannot apply an old request; slow earlier Hex loads cannot replace a newer document. Missing/invalid Desktop arguments produce actionable errors before host construction. Reuse this evidence for the existing CLI/Desktop automation milestone. |
-| `1.2.4` | **Committed-output and persistence outcomes**: F07 (L), F08 (L); 6 units. | Cancellation after primary commit retains its receipt and reports incomplete loose delivery; do not conflate atomic bundle behavior. Settings/history persistence failures are visible/retryable without blocking firmware Build. Combine with the existing page-flow acceptance, not a new state store. |
+| `1.1.11` | **Input request identity**: F04/F05 plus AB/OSD verification and temporary Customized UI hiding. | Cancel/reopen cannot apply old picker results; a slow old Hex load cannot replace a newer accepted document; failed loading retains prior bytes/path. |
+| `1.1.13` | **Process and window lifetime**: F03/F06 precede F01/F02/F25. | Bound cancellation, termination confirmation and held-pipe drain; failed handoff resumes saving and allows a second Close; READY cancellation and stale callbacks remain contained. |
+| `1.1.12` | **Output and persistence truth**: F07/F08 and remaining F20/F21. | Preserve committed output receipt after cancellation; show retryable save failures; local Report replacement preserves the original destination on precommit failure. Keep shipped snapshot/reentry/disposal fixes. |
+| `1.1.14` | **Bounded diagnostics**: F17/F23/F26 and demonstrated F16 defects. | Invalid arguments fail controllably before host construction; None differs from unknown workflow; oversized JSON integer returns a structured error; text follows actual typed limits. |
+| Cross-release | **F18 evidence; F19/F24 completion tracking**. | F18 behavioral/interleaving tests accompany each affected change. F19 shipped in 1.1.8; F24 is implemented in the 1.1.10 candidate, with publication tracked separately. |
 | `1.2.5` | **Typed results and language projection**: F09 (L), F10 (M), F12 naming requirement (M); 7 units. | Re-language completed/blocked/partial outcomes from typed state. General rows retain identity/drafts/mappings. Use Customized / Customized Merge / Customized Replace for relevant visible labels, CLI help and new Report labels; retain canonical IDs, command compatibility and unrelated Settings General text. Preserve historical Report interpretation. |
 | `1.2.6` | **Shared presentation owners**: F11 (L), F13 (L); 6 units. | Semantic typography controls actual effective style, with explicit legitimate variants and DPI/theme checks. Converge the proven duplicate accepted-output helper through its existing owner; retain AB/extra-A-output/Replace naming contracts, not a giant base ViewModel. |
-| `1.2.7` | **Bounded intake and explicit diagnostics**: F22 (L), F23 (M), F16 (S); 6 units. | Enforce single-artifact and aggregate budgets before materialization, including cancellation. Distinguish primary/None/unknown workflow tokens. Derive capacity text from typed limits and remove obsolete retirement reasons without reopening DP support. Preserve the existing evidence-aware cleanup scope. |
+| `1.2.7` | **Bounded intake**: F22, coordinated with 1.2.1 large-file work. | Validate bounded reads and cancellation; assess aggregate materialization only after measured resource/compatibility decisions. No new numeric budget is approved. |
 | `1.2.8` | **Measured notification/allocation improvements**: F14 (L), F15 (L); 6 units. | Measure notification/inspection/compile/measure counts before and after; publish accepted state once and avoid unnecessary focus scans. Remove only the redundant after-range copy with byte/diff/hash/Golden equivalence and measured allocation evidence. Do not promise a speedup or reopen deferred startup work without demonstrated value. |
 
-Post-release reading of this table: its 6–8-unit figures are the original
-allocation estimates, not remaining work estimates. Remove F19's three units
-from `1.2.0`; re-estimate the residual F20/F21 scope in `1.2.2` rather than
-subtracting an invented fraction. Keep the freed capacity unallocated.
-F22 in `1.2.7` splits into existing-limit bounded intake (AUD-11A) and a
-proposed aggregate budget (AUD-11B); no new numeric budget is approved.
-CRC duplicate-key policy (AUD-16B/N01) is new and **unallocated/pending decision**;
-it must not delay the already allocated F26 malformed-integer correction.
-AUD-01's persistence-health detail spans existing F08 (`1.2.4`) and window
-lifetime (`1.2.1`); AUD-07 and AUD-09 likewise span existing releases. A shared
-AUD label is not authority to pull every subitem into its earliest version.
+The 2026-09-25 owner amendment above supersedes the original 1.2.0–1.2.4
+repair allocations and their old size estimates; no new duration estimate is
+implied. F19 is already shipped. Re-estimate only the remaining F20/F21 work.
+F22 retains AUD-11A bounded-intake and AUD-11B aggregate-budget assessment;
+no new numeric limit is approved. Duplicate-key policy AUD-16B/N01 remains
+unallocated/pending decision and must not delay F26 in 1.1.14.
+AUD-01 spans F08 in 1.1.12 and lifetime work in 1.1.13. Other shared AUD labels
+retain their per-finding allocations rather than moving every subitem together.
 The external B0–B4 batches are advisory grouping only, not new release slots.
 
 **F18 is required in every affected release**, included in those estimates,

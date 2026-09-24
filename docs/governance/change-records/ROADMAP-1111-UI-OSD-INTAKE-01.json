@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 2,
+  "taskId": "ROADMAP-1111-UI-OSD-INTAKE-01",
+  "capability": "Record owner-approved 1.1.11-1.1.14 repair allocation, temporary Customized UI hiding and deferred AB/OSD validation",
+  "integrationBase": "3db701b70e0eec66889a4b030fcbb84db0db5693",
+  "risk": "R2",
+  "kind": "governance",
+  "state": "design-active",
+  "mutablePaths": [
+    "docs/architecture/nfc_roadmap.md",
+    "docs/ui/v1.1.10-delivery.md"
+  ],
+  "implementationOwner": "/root",
+  "searchEvidence": [
+    "The owner assigned the AB/Standard slot-info presentation, compact TP Event Buffer display, bank/FWConfig range disclosure, NT51950 AB DP memory display, Flash BIN merge assessment and remaining UI polish to 1.1.11 discussion; the owner separately requested the uploaded NT51950 AB Code OSD Golden be included in the 1.1.11 validation flow. These are planning and evidence-intake instructions, not approval of new firmware rules or output bytes.",
+    "docs/architecture/nfc_roadmap.md is the sole version-allocation owner under docs/AGENTS.md. Its current 1.1.11 row says no replacement work after verifier repair moved to 1.1.10, while docs/ui/v1.1.10-delivery.md has a 1.1.x unfinished table without this accepted follow-up. The latter is auxiliary evidence only under the current capability-reuse classifier.",
+    "ROADMAP-1111-VERIFY-ORCHESTRATION-01 and VERIFY-1110-COLLECTION-BOUNDARY-01 already record the historical move of verifier repair into 1.1.10. Neither original terminal contract admits this later UI/OSD allocation; preserve both admissions and transfer sole final roadmap integration ownership from the current COLLECTION record to this new bounded record.",
+    "2026-09-25 owner accepted the risk-prioritized F01-F26 proposal and requested complete 1.1.x TODO reconciliation plus temporary Customized Merge/Replace UI hiding in 1.1.11 until the corresponding functionality release. Latest release instruction retains AB CtrlRAM in 1.1.10 with explicit validation deferral to 1.1.11. This expanded planning draft is not part of the frozen 1.1.10 release tree; the earlier narrower review does not approve this expansion.",
+    "Admission serialization correction: use latest sealed checkpoint 3db701b70; the audit handoff remains within the reviewed planning scope but is ordinary non-governed prose, so it is excluded from classifier-only mutablePaths. No approved planning decision changes."
+  ],
+  "semanticOwner": "docs/architecture/nfc_roadmap.md owns future-version allocation; docs/ui/v1.1.10-delivery.md records the remaining-work handoff without defining product, Golden or release authority",
+  "terminalContract": "Synchronize the canonical roadmap and its existing audit/delivery handoffs: 1.1.11 F04/F05, AB/OSD validation, retained information/UI/Flash BIN/actual-FW review and temporary Customized Merge/Replace UI hiding; 1.1.12 F07/F08 and residual F20/F21; 1.1.13 F03/F06 before F01/F02/F25; 1.1.14 F17/F23/F26 and demonstrated F16 defects. Preserve F18 per-change evidence, shipped F19, implemented F24, later F09/F10/F12, F11/F13, F22, F14/F15 and existing Launcher/Customized/Combiner/profile convergence. Record reopening only on corresponding accepted feature release, with no deletion of implementation/data and no silently altered CLI compatibility. Preserve historical evidence and describe owner release exception as deferral, never passed validation or support promotion. No production, profile, byte, verifier, workflow, permission or release-source change in this local planning draft. Commit/integration requires separate scoped review of this expanded document diff.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "/root/v1111_plan_review",
+    "outcome": "approved",
+    "evidence": "2026-09-25 independent read-only review of the expanded local planning diff. Confirmed owner-approved F01-F26 allocation and completion dispositions, Customized UI-hide/reopen boundary, preserved later versions, and affected local links. An initial apparent P2 was resolved against the explicit owner instructions by replacing the stale roadmap intake paragraph: slot-role display, TP Details Event Buffer Name (0x??)/Common, A-bank retained/FWConfig hidden are accepted directions, while numeric firmware facts stay profile-owned. Scoped design admission ADMITTED; no further wording finding and git diff --check clean. This is planning admission only, not implementation/final integration/release approval; OSD provenance/complete-output evidence and screenshot/owner acceptance remain."
+  },
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": {
+    "reviewer": null,
+    "outcome": "pending",
+    "evidence": ""
+  }
+}
