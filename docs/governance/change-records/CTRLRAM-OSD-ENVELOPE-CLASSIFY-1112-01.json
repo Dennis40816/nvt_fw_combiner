@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 2,
+  "taskId": "CTRLRAM-OSD-ENVELOPE-CLASSIFY-1112-01",
+  "capability": "Recognize a nonstandard-length NT51950/NT51951 Standard flash by its Standard prefix so a Display-OSD envelope of any length can be classified",
+  "integrationBase": "49e633f687ecd1337e78d8a4de5ca14f880d68c6",
+  "risk": "R3",
+  "kind": "behavior",
+  "state": "design-active",
+  "mutablePaths": [
+    "src/NvtFwCombiner.Application/InputInspection/CompiledFirmwareArtifactClassifier.cs",
+    "tests/NvtFwCombiner.Bootstrap.Tests/CtrlRamReportMetadataPlanTests.cs"
+  ],
+  "implementationOwner": "claude-code",
+  "searchEvidence": [
+    "Owner decision 2026-09-26 (board decision 17): nonstandard NT51950/NT51951 CtrlRAM Base lengths must be supported in 1.1.12, not only the published Standard lengths 256 KiB, 512 KiB and 1 MiB.",
+    "CTRLRAM-OSD-ENVELOPE-1112-01 admits a Base longer than the route's full-flash map with DP_NONSTANDARD_SIZE_WARNING, but Base classification returned Unknown for any length without an exact published Standard composition, so such a Base was rejected as input.reference.unrecognized before admission.",
+    "FirmwareArtifactClassificationResolver.ResolveWithExactStandardCapability owns Standard classification for CtrlRAM Base classification and firmware inspection; AB-TWO-NVT-1112-01 keeps its Standard/Unknown fallback call unchanged, and the existing TryGetPublishedStandardSourceEnvelopeClassificationRoutes names the published Standard lengths of an envelope-declaring IC."
+  ],
+  "semanticOwner": "FirmwareArtifactClassificationResolver.ResolveWithExactStandardCapability remains the only Standard classification owner; CtrlRAM admission (CTRLRAM-OSD-ENVELOPE-1112-01) remains the only length authority.",
+  "terminalContract": "When the IC's published Standard Merge profile declares a source envelope and no published Standard composition has the candidate's length, Standard classification judges the candidate by its prefix at the largest shorter published Standard length only: the candidate is Standard Flash only when that prefix classifies as Standard Flash under the exact published composition of that length; otherwise the existing consensus fallback applies unchanged. The returned classification keeps the prefix's signals, except that DeclaredContainerCapacity is reported as not satisfied with the prefix length and the unclassified tail range. The tail beyond the prefix is never inspected. Candidates of a published Standard length, ICs without a Standard source envelope, AB evidence precedence (AB-TWO-NVT-1112-01) and CtrlRAM admission, which alone decides whether a longer Base is admitted, are unchanged. As a consequence a nonstandard-length NT51950/NT51951 Base with a Standard Flash prefix is accepted with DP_NONSTANDARD_SIZE_WARNING when it is longer than the route's full-flash map and rejected at admission with its accepted exact lengths when it is shorter, instead of as unrecognized; firmware inspection shows it as Flash Code. No profile, schema, contract, CRC, byte or expected-output change.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "codex/gpt-6-sol",
+    "outcome": "findings-incorporated",
+    "evidence": "2026-09-26 independent read-only R3 design review, ACCEPT-WITH-CHANGES, no P0 or P1: the envelope declaration, the absence of an exact published Standard length, the largest shorter published prefix, the FlashCode-only result and the uninspected tail are appropriate; CtrlRAM AB evidence keeps precedence; the shared firmware inspector intentionally gains the same Flash Code result; governed paths do not overlap the envelope record. Incorporated: the capacity signal now reports the complete candidate as not satisfied with the prefix length and tail range; direct shared-inspection tests and a largest-shorter-prefix test (a 768 KiB candidate whose 256 KiB and 512 KiB prefixes both classify is decided by 512 KiB); the shorter-Base consequence is limited to a Base with a Standard Flash prefix. A strict negative case (invalid 512 KiB prefix over a valid 256 KiB one) is not constructible because the 512 KiB map declares no plausibility range beyond 256 KiB; the single largest-prefix attempt is structural."
+  },
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": {
+    "reviewer": null,
+    "outcome": "pending",
+    "evidence": ""
+  }
+}
