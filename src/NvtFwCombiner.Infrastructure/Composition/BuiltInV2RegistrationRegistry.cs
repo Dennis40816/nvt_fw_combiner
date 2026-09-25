@@ -357,27 +357,110 @@ internal sealed class BuiltInV2Registration
         out IReadOnlyList<CompositionIssue> issues)
     {
         ArgumentNullException.ThrowIfNull(resolutionArtifacts);
-        if (requestedTopology is not null && !IsAbMerge)
+        if (!TryAdmitCompileRequest(
+                inputLength,
+                requestedTopology,
+                resolutionArtifacts,
+                out long? requestedCapacity,
+                out TopologySelection? effectiveTopology,
+                out issues))
         {
             composition = null;
+            return;
+        }
+
+        V2CompositionPlanCompileResult compilation = CompileExecutable(
+            requestedCapacity,
+            effectiveTopology,
+            selectedInputSlotIds,
+            resolutionArtifacts);
+        composition = compilation.CompiledComposition;
+        issues = compilation.Issues;
+    }
+
+    /// <summary>
+    /// Compiles the plan that <c>TryCompile(inputLength, ...)</c> admits for each input length, in
+    /// order and only as far as the caller enumerates. Within one call, input lengths admitted to
+    /// the identical compiler request share its successful compilation; a request identical to this
+    /// Standard registration's successful summary compilation reuses that existing result. Failures
+    /// are never reused, and no other compilation outlives the call.
+    /// </summary>
+    internal IEnumerable<(long? InputLength, CompiledComposition? Composition, IReadOnlyList<CompositionIssue> Issues)>
+        TryCompileEach(IEnumerable<long?> inputLengths)
+    {
+        ArgumentNullException.ThrowIfNull(inputLengths);
+        var compiled = new List<(long? MapCapacity, V2CompositionPlanCompileResult Compilation)>();
+        foreach (long? inputLength in inputLengths)
+        {
+            if (!TryAdmitCompileRequest(
+                    inputLength,
+                    requestedTopology: null,
+                    [],
+                    out long? requestedCapacity,
+                    out TopologySelection? effectiveTopology,
+                    out IReadOnlyList<CompositionIssue> issues))
+            {
+                yield return (inputLength, null, issues);
+                continue;
+            }
+
+            // Only topology-free requests are keyed: with no topology, slot selection or resolution
+            // artifact, the map capacity is the sole varying compiler input.
+            int previous = effectiveTopology is null
+                ? compiled.FindIndex(entry => entry.MapCapacity == requestedCapacity)
+                : -1;
+            V2CompositionPlanCompileResult compilation;
+            if (previous >= 0)
+            {
+                compilation = compiled[previous].Compilation;
+            }
+            else
+            {
+                V2CompositionPlanCompileResult? summary =
+                    effectiveTopology is null && IsStandardSummaryRequest(requestedCapacity)
+                        ? _summaryCompilation.Value
+                        : null;
+                compilation = summary?.CompiledComposition is not null
+                    ? summary
+                    : CompileExecutable(requestedCapacity, effectiveTopology, null, []);
+                if (effectiveTopology is null && compilation.CompiledComposition is not null)
+                {
+                    compiled.Add((requestedCapacity, compilation));
+                }
+            }
+
+            yield return (inputLength, compilation.CompiledComposition, compilation.Issues);
+        }
+    }
+
+    /// <summary>Admits one input length and derives the exact map capacity and topology requested from the compiler.</summary>
+    private bool TryAdmitCompileRequest(
+        long? inputLength,
+        TopologySelection? requestedTopology,
+        IReadOnlyList<FirmwareArtifactPayload> resolutionArtifacts,
+        out long? requestedCapacity,
+        out TopologySelection? effectiveTopology,
+        out IReadOnlyList<CompositionIssue> issues)
+    {
+        requestedCapacity = null;
+        effectiveTopology = requestedTopology;
+        if (requestedTopology is not null && !IsAbMerge)
+        {
             issues =
             [
                 new CompositionIssue(
                     "profile.v2.builtin.topology-not-admitted",
                     "Only AB Merge built-in registrations admit an explicit topology selection."),
             ];
-            return;
+            return false;
         }
 
         IReadOnlyList<long> capacities = GetMapCapacities(out issues);
         if (issues.Count != 0)
         {
-            composition = null;
-            return;
+            return false;
         }
 
-        long? requestedCapacity = null;
-        TopologySelection? effectiveTopology = requestedTopology;
         SourceEnvelopeProfileBinding? capturedSourceEnvelope = IsAbMerge
             ? _bundle.GetSourceEnvelopeBinding(ProfileId, ProfileVersion)
             : SourceEnvelopeBinding;
@@ -396,9 +479,8 @@ internal sealed class BuiltInV2Registration
             {
                 if (IsStandardMerge && InputSelectionGroupMemberSlotIds.Count == 0)
                 {
-                    composition = null;
                     issues = [];
-                    return;
+                    return false;
                 }
 
                 requestedCapacity = requestedTopology is null ? capacities[0] : null;
@@ -407,7 +489,6 @@ internal sealed class BuiltInV2Registration
             else if (!capacities.Contains(inputLength.Value) &&
                 !hasCapturedEnvelopeLength)
             {
-                composition = null;
                 issues =
                 [
                     new CompositionIssue(
@@ -416,7 +497,7 @@ internal sealed class BuiltInV2Registration
                             : CompositionIssueCodes.InputAddressSpaceLengthMismatch,
                         $"Selected DP BIN length 0x{inputLength.Value:X} is unsupported; {IcId} {ProfileLabel} accepts DP input lengths {BuiltInV2Bundle.FormatCapacities(capacities)}."),
                 ];
-                return;
+                return false;
             }
             else
             {
@@ -428,13 +509,7 @@ internal sealed class BuiltInV2Registration
             requestedCapacity = inputLength;
         }
 
-        V2CompositionPlanCompileResult compilation = CompileExecutable(
-            requestedCapacity,
-            effectiveTopology,
-            selectedInputSlotIds,
-            resolutionArtifacts);
-        composition = compilation.CompiledComposition;
-        issues = compilation.Issues;
+        return true;
     }
 
     internal bool TryGetAuthoringDefaultCapacity(
@@ -512,17 +587,37 @@ internal sealed class BuiltInV2Registration
                 : CompileExecutable(representative.CapacityBytes, HeadlessRouteSelection.CreateTopologySelection(
                     representative.Applicability.TopologyRequirement, representative.MapId));
         }
-        IReadOnlyList<long> capacities = GetMapCapacities(out IReadOnlyList<CompositionIssue> issues);
-        return (issues.Count, capacities.Count) switch
+        return TryAdmitStandardSummaryRequest(out long? mapCapacity, out IReadOnlyList<CompositionIssue> issues)
+            ? CompileExecutable(mapCapacity)
+            : V2CompositionPlanCompileResult.Failed(issues);
+    }
+
+    /// <summary>Admits the topology-free map capacity that the Standard summary compiles.</summary>
+    private bool TryAdmitStandardSummaryRequest(
+        out long? mapCapacity,
+        out IReadOnlyList<CompositionIssue> issues)
+    {
+        IReadOnlyList<long> capacities = GetMapCapacities(out issues);
+        mapCapacity = IsStandardMerge && capacities.Count > 1 ? capacities[0] : null;
+        if (issues.Count == 0 && capacities.Count == 0)
         {
-            ( > 0, _) => V2CompositionPlanCompileResult.Failed(issues),
-            (_, 0) => V2CompositionPlanCompileResult.Failed(
-                [new CompositionIssue(
+            issues =
+            [
+                new CompositionIssue(
                     BuiltInV2Bundle.CompilationFailed,
-                    $"The built-in V2 {ProfileLabel} for {IcId} has no declared map capacities.")]),
-            _ => CompileExecutable(
-                IsStandardMerge && capacities.Count > 1 ? capacities[0] : null),
-        };
+                    $"The built-in V2 {ProfileLabel} for {IcId} has no declared map capacities."),
+            ];
+        }
+
+        return issues.Count == 0;
+    }
+
+    /// <summary>True when a topology-free request is exactly the one the Standard summary compiles.</summary>
+    private bool IsStandardSummaryRequest(long? mapCapacity)
+    {
+        return IsStandardMerge &&
+            TryAdmitStandardSummaryRequest(out long? summaryCapacity, out _) &&
+            summaryCapacity == mapCapacity;
     }
 
     private V2CompositionPlanCompileResult CompileExecutable(

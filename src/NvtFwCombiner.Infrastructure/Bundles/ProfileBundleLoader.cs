@@ -151,11 +151,12 @@ internal static class ProfileBundleLoader
         ProfileBundleFileSnapshot manifestSnapshot,
         int maximumJsonDepth)
     {
-        using JsonDocument document = manifestSnapshot.ParseStrictJson(maximumJsonDepth);
+        // ValidateManifest parsed this snapshot at the same depth; the snapshot serves that parse again.
+        JsonElement document = manifestSnapshot.GetStrictJsonRoot(maximumJsonDepth);
         try
         {
             return JsonSerializer.Deserialize(
-                document.RootElement,
+                document,
                 ProfileBundleJsonContext.Default.ProfileBundleDocument) ?? throw new InvalidDataException(
                 "Bundle manifest cannot be null.");
         }

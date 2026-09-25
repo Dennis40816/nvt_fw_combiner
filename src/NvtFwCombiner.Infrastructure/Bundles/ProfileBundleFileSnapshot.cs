@@ -8,6 +8,7 @@ namespace NvtFwCombiner.Infrastructure.Bundles;
 internal sealed class ProfileBundleFileSnapshot
 {
     private readonly byte[] _content;
+    private StrictJsonRoot? _strictJsonRoot;
 
     private ProfileBundleFileSnapshot(string manifestPath, string actualSha256, byte[] ownedContent)
     {
@@ -52,6 +53,26 @@ internal sealed class ProfileBundleFileSnapshot
             maximumDepth);
     }
 
+    /// <summary>
+    /// Returns the detached root of this snapshot's strict parse at <paramref name="maximumDepth"/>.
+    /// The private bytes never change, so one successful parse is kept as an immutable clone and every
+    /// later reader at the same depth shares it; a failed parse is never kept and fails again.
+    /// </summary>
+    internal JsonElement GetStrictJsonRoot(int maximumDepth)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maximumDepth);
+        StrictJsonRoot? parsed = Volatile.Read(ref _strictJsonRoot);
+        if (parsed is not null && parsed.MaximumDepth == maximumDepth)
+        {
+            return parsed.Root;
+        }
+
+        using JsonDocument document = ParseStrictJson(maximumDepth);
+        parsed = new StrictJsonRoot(maximumDepth, document.RootElement.Clone());
+        Volatile.Write(ref _strictJsonRoot, parsed);
+        return parsed.Root;
+    }
+
     private static ProfileBundleFileSnapshot ReadCore(
         string bundleRoot,
         string manifestPath,
@@ -87,4 +108,6 @@ internal sealed class ProfileBundleFileSnapshot
         string actualSha256 = Convert.ToHexString(SHA256.HashData(content)).ToLowerInvariant();
         return new ProfileBundleFileSnapshot(manifestPath, actualSha256, content);
     }
+
+    private sealed record StrictJsonRoot(int MaximumDepth, JsonElement Root);
 }
