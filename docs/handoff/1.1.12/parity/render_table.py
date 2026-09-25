@@ -43,9 +43,7 @@ def ranges_text(row: dict[str, Any]) -> str:
     text = ", ".join(parts)
     if comparison["rangesTruncated"]:
         text += f", ... ({comparison['rangeCount']} ranges)"
-    size = ""
-    if not comparison["sizeEqual"]:
-        size = f"; sizes {comparison['baselineSize']} vs {comparison['candidateSize']}"
+    size = f"; sizes {comparison['baselineSize']} / {comparison['candidateSize']} bytes"
     return f"{comparison['differentByteCount']} bytes in {comparison['rangeCount']}: {text}{size}"
 
 

@@ -40,6 +40,7 @@ PLAN = REPO / "docs/contracts/v0916-parity-certification-v1.json"
 RANGE_LIMIT = 32
 ADDRESS_SPACE = "output-file-offset"
 _REDACTIONS: list[tuple[str, str]] = []
+_PAUSE_FLAG: list[Path] = []
 
 
 def redact(text: str) -> str:
@@ -132,6 +133,7 @@ def run_invocation(
     stage: Path,
     action: str,
 ) -> dict[str, Any]:
+    wait_while_flag(_PAUSE_FLAG[0] if _PAUSE_FLAG else None)
     stage.mkdir(parents=True)
     output = stage / "output.bin"
     report = stage / "report.json"
@@ -335,6 +337,8 @@ def main(argv: Sequence[str] | None = None) -> int:
             (str(Path(os.environ["NFC_TEST_AREA_ROOT"]).resolve()), "<test-area>"),
         ]
     )
+    if args.pause_flag is not None:
+        _PAUSE_FLAG.append(args.pause_flag)
     if args.work_dir.exists():
         raise SystemExit("--work-dir must not exist yet")
     args.work_dir.mkdir(parents=True)
