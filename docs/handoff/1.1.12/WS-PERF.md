@@ -162,3 +162,22 @@ Open: the previous local baseline (1,235 ms to window, 6,498 ms to warm-up) was 
 package-equivalent figures. Turning off single-file compression is a packaging change (owner
 decision pending on the board).
 Next: GC configuration experiment; unit 2 (single parse per bundle document).
+
+### 2026-09-25 GC experiment; the compression option conflicts with an owner decision
+State: local
+Commits: this entry.
+Evidence: GC variants by environment on the unit 1 no-compression build (one warm-up, five scored
+runs each; test area `evidence/v1112-gc-nocompress-unit1/`), medians of process to window and
+managed entry to warm-up completed: default 484 / 2,026 ms; `GCgen0size` 64 MB 476 / 2,202 ms;
+non-concurrent 531 / 2,291 ms; server GC 608 / 2,596 ms. Default GC stays; no GC setting is adopted.
+Evidence: `tests/README.md` ("Home single-file compression diagnosis" and "Home size-constrained
+follow-up", 2026-09-11) records that the owner rejected the uncompressed single-file EXE (173 MB),
+kept the 80,000,000-byte EXE ceiling, asked for alternatives within 100,000,000 bytes, and accepted
+compressed composite ReadyToRun; a compressed non-composite ReadyToRun probe exited with
+`0xC0000602`. The commander's earlier proposal to turn compression off conflicts with that decision
+and is withdrawn unless the owner revisits it. New facts for the owner: the uncompressed EXE adds
+0.4 MB to a Deflate ZIP entry (71.5 to 71.9 MB), and unit 1 does not change the pre-window time.
+Open: first window stays about 760 ms in the package shape; the remaining gap is single-file
+decompression before managed entry. Owner decision needed on the options on the board.
+Next: unit 2 and unit 3 (R1) for the loading target; a composite-exclusion probe only if the owner
+approves it.
