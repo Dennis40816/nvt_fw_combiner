@@ -5,7 +5,7 @@
   "integrationBase": "206da25810f56f653036ba0060860524a6b2d474",
   "risk": "R2",
   "kind": "release",
-  "state": "design-active",
+  "state": "final-complete",
   "mutablePaths": [
     "docs/architecture/nfc_roadmap.md"
   ],
@@ -23,12 +23,15 @@
     "outcome": "approved",
     "evidence": "2026-09-26 independent R2 design review at the attested integration head, ACCEPT: only the new change record and the roadmap re-wrap are in the worktree; the whitespace-insensitive porcelain word diff shows no word additions or removals; the measured-startup bullet changes from 14 lines to 11, bringing the roadmap from 2,501 to 2,498 lines; the emergency ceiling and its test are unchanged; the release classification, R2 risk, integration base, single mutable path and text-preserving terminal contract are appropriate. The integration base was then set to the latest evidence checkpoint 206da2581, which the repository validator requires, instead of the attestation commit reviewed as the head."
   },
-  "implementationHead": null,
-  "reviewedHead": null,
-  "pathStateDigest": null,
+  "implementationHead": "c501812e9e0de86320d49e3f1f067b7fb8639346",
+  "reviewedHead": "c501812e9e0de86320d49e3f1f067b7fb8639346",
+  "pathStateDigest": "c69121c61e6931e2c7d7e17106cd8cf0df57b8dc47549aa78927a07d8bb353c1",
   "finalReview": {
-    "reviewer": null,
-    "outcome": "pending",
-    "evidence": ""
-  }
+    "reviewer": "codex/gpt-6-sol",
+    "outcome": "approved",
+    "evidence": "Independent final review by codex/gpt-6-sol of exact head c501812e9e0de86320d49e3f1f067b7fb8639346: APPROVED. The diff from e75b81c01 contains only the admission record and the 1.1.12 roadmap bullet re-wrap. The whitespace-insensitive porcelain word diff has no added or removed words; the roadmap falls from 2,501 to 2,498 lines, satisfying the unchanged terminal contract. The integration base points to the preceding evidence checkpoint. Commander reported Architecture.Tests passing 269/269 at this head, with only the expected design-active structure error remaining. No findings."
+  },
+  "integrationPaths": [
+    "docs/architecture/nfc_roadmap.md"
+  ]
 }
