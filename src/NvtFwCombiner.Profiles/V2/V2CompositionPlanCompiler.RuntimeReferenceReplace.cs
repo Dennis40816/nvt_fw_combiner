@@ -236,22 +236,20 @@ internal static partial class V2CompositionPlanCompiler
         V2ExplicitMappingInputBinding referenceBinding,
         List<CompositionIssue> issues)
     {
-        FirmwareRegion? root = resolvedMap.ImageMap.Regions.SingleOrDefault(region =>
-            region.ParentRegionId is null && region.Range.Start == 0 &&
-            region.Range.EndExclusive == resolvedMap.CapacityBytes);
-        if (root is null || envelope.LayoutTemplateCapacity != resolvedMap.CapacityBytes ||
+        string? rootRegionId = RuntimeReferenceReplaceV2CompilationContext.GetTilingTemplateRootRegionId(resolvedMap);
+        if (rootRegionId is null || envelope.LayoutTemplateCapacity != resolvedMap.CapacityBytes ||
             referenceBinding.ExactLengthBytes <= resolvedMap.CapacityBytes)
         {
             issues.Add(new CompositionIssue(
                 RuntimeReferenceSourceEnvelopeInvalid,
-                "A runtime reference envelope requires a longer reference over one full-root canonical layout template.",
+                "A runtime reference envelope requires a longer reference over a canonical layout template tiled by its top-level regions.",
                 shape.ReferenceSlot.SlotId));
             return null;
         }
 
         return new SourceEnvelopeExtent(
             shape.ReferenceSlot.SlotId,
-            root.RegionId,
+            rootRegionId,
             resolvedMap.ImageMap.MapId,
             resolvedMap.CapacityBytes,
             referenceBinding.ExactLengthBytes,

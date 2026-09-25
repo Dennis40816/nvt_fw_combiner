@@ -165,13 +165,11 @@ public sealed class RuntimeReferenceReplaceV2CompilationContext : MapBoundV2Comp
             (!StringComparer.Ordinal.Equals(sourceEnvelope.LayoutTemplateMapId, resolvedMap.ImageMap.MapId) ||
              sourceEnvelope.LayoutTemplateCapacity != resolvedMap.CapacityBytes ||
              sourceEnvelope.ActualOutputLength <= sourceEnvelope.LayoutTemplateCapacity ||
-             !resolvedMap.ImageMap.Regions.Any(region =>
-                 StringComparer.Ordinal.Equals(region.RegionId, sourceEnvelope.RootRegionId) &&
-                 region.ParentRegionId is null && region.Range.Start == 0 &&
-                 region.Range.EndExclusive == sourceEnvelope.LayoutTemplateCapacity)))
+             !StringComparer.Ordinal.Equals(
+                 GetTilingTemplateRootRegionId(resolvedMap), sourceEnvelope.RootRegionId)))
         {
             throw new ArgumentException(
-                "A runtime reference envelope must extend beyond its exact full-root resolved layout template.",
+                "A runtime reference envelope must extend beyond a resolved layout template tiled by its top-level regions.",
                 nameof(sourceEnvelope));
         }
 
@@ -188,6 +186,34 @@ public sealed class RuntimeReferenceReplaceV2CompilationContext : MapBoundV2Comp
 
     /// <summary>Captured reference extent beyond the layout template, when the Base is longer than every map.</summary>
     public SourceEnvelopeExtent? SourceEnvelope { get; }
+
+    /// <summary>
+    /// Returns the top-level region at offset zero when the map's top-level regions tile the complete template;
+    /// a runtime envelope anchors on it because a CtrlRAM template need not declare one full-container root.
+    /// </summary>
+    internal static string? GetTilingTemplateRootRegionId(
+        FirmwareFamilyResolutionDefinition.ResolvedFirmwareImageMap resolvedMap)
+    {
+        ArgumentNullException.ThrowIfNull(resolvedMap);
+        FirmwareRegion[] topLevel =
+        [
+            .. resolvedMap.ImageMap.Regions
+                .Where(static region => region.ParentRegionId is null)
+                .OrderBy(static region => region.Range.Start),
+        ];
+        long cursor = 0;
+        foreach (FirmwareRegion region in topLevel)
+        {
+            if (region.Range.Start != cursor)
+            {
+                return null;
+            }
+
+            cursor = region.Range.EndExclusive;
+        }
+
+        return topLevel.Length != 0 && cursor == resolvedMap.CapacityBytes ? topLevel[0].RegionId : null;
+    }
 }
 
 /// <summary>Context for a General Merge logical output that intentionally makes no physical map claim.</summary>

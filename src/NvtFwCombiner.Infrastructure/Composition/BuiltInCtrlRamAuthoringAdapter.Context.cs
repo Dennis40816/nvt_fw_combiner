@@ -293,7 +293,8 @@ internal sealed partial class BuiltInCtrlRamAuthoringAdapter
                         advisoryIssues.Add(new CompositionIssue(
                             envelope.UnexpectedLengthIssueCode,
                             $"Base firmware BIN length 0x{baseLength:X} is not a standard {icId} outer length; every byte beyond the 0x{template.CapacityBytes:X} layout template is kept unchanged.",
-                            CompositionSlotIds.ReplaceBase));
+                            CompositionSlotIds.ReplaceBase,
+                            CompositionIssueSeverity.Warning));
                     }
                 }
                 else if (!maps.Any(map => map.CapacityBytes == baseLength))
