@@ -27,8 +27,13 @@ version-allocation owner.
 implemented; source `b28c1f3c5` passed all 7,504 .NET tests and all 38 remaining
 non-Structure verifier lanes. See the [1.1.11 delivery record](../ui/v1.1.11-delivery.md)
 for the 28 loaded-FW screenshots, scoped real-firmware evidence and exact
-owner-only acceptance list. AB/OSD certification, R3 authority and final record
-sealing remain open; this is not a 1.1.11 publication or a full Structure pass.
+owner-only acceptance list. Owner has confirmed the supplied 950 1-IC OSD
+Golden case; remove that repeated human-approval item. Its metadata recording
+and candidate verification remain agent work. AB CtrlRAM evidence, remaining
+R3 authority and final record sealing remain open; this is not a 1.1.11
+publication or a full Structure pass. The latest delivery correction records
+Event Buffer as expected in the always-visible upper information area;
+current code/screenshots still place it in Details, pending the UI correction.
 Version allocations and the historical audit below remain unchanged.
 
 ### Profile improvement scope confirmed — 2026-09-25
