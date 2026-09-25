@@ -9,6 +9,70 @@ assignments, use the [canonical roadmap](docs/architecture/nfc_roadmap.md).
 
 Later changes remain assigned by the canonical roadmap.
 
+## [1.1.12]
+
+### Summary
+
+This section describes the 1.1.12 release contents; publication status is tracked
+by GitHub Releases. The release shortens startup loading and keeps a committed
+output's receipt when its delivery or report is interrupted. Existing firmware
+support levels are unchanged.
+
+### Product changes
+
+#### 1. Faster startup loading
+
+- Before → After: Startup validated identical profile schemas repeatedly, parsed each profile document twice, repeated identical compilations, and loaded every built-in profile bundle on one thread. Identical validation and compilation results are now reused, each document is parsed once, and independent bundles load in parallel in fixed dependency layers before the unchanged serial publication.
+- Measured on the package shape (same machine, five launches each): all startup loading finished 3.9-4.2 s after launch with 1.1.11 and about 2.0-2.1 s with 1.1.12; memory allocated during startup fell from about 783 MB to about 364 MB. Final figures are recorded at the release freeze.
+- Affected: application startup and its loading screen; capability publication for every workflow.
+- Support status: unchanged/support-neutral.
+- Compatibility: published routes, fingerprints, plans, progress, errors and firmware outputs are identical, pinned by a complete catalog snapshot digest and the Golden regression.
+- Verification: the pinned snapshot digest in fresh processes, dependency-layer and race-freedom checks, schema concurrency stress tests, catalog progress, cancellation and failure tests, Golden regression, and package-shape measurements.
+- Limitations: the owner targets 500 ms to the first window and 2,000 ms to complete loading. The first window still appears about 0.74 s after launch, because the compressed single-file package decompresses before the application starts (the package shape is unchanged). Loading completes around 2.0 s and not below 2,000 ms on every launch. Peak private memory is 2-4 MB above 1.1.11, which the owner accepted.
+
+#### 2. A committed output survives an interrupted delivery or report
+
+- Before → After: Cancelling the additional loose delivery after the primary output was written, or a failure while preparing the report, could drop the committed output's path, size and SHA-256 from the result. The result now keeps the committed primary output and reports the delivery or report as failed.
+- Affected: Build with an additional loose delivery; the run result and its report.
+- Support status: unchanged/support-neutral.
+- Compatibility: output bytes, names and ranges are unchanged and processors are not rerun. Cancellation before the primary output is written behaves as before.
+- Verification: service and UI regressions for cancellation during delivery and during report preparation.
+- Limitations: retryable persistence failures (F08) and the remaining picker and report residuals (F20, F21) are scheduled for 1.1.13.
+
+### Security
+
+No new external executable, update endpoint or permission is introduced.
+Parallel bundle loading uses a fixed worker bound; built-in bundles keep their
+hash-pinned trust checks, and no library-global schema registry is modified.
+
+### Known issues
+
+- Startup targets: see the limitations of Product change 1.
+- A non-certifying local comparison with v0.9.16 covered 37 routes with
+  canonical inputs: 34 identical, 2 different by the owner-approved Diff NF
+  preservation, and 1 rejected by both versions (NT51950 2-IC cascade CtrlRAM
+  full flash). The 27 routes without canonical input remain not covered. The
+  formal comparator for 1.x candidates is scheduled for 1.1.13.
+- The 32-byte Header-backup/CRC difference carried from 1.1.11 is scheduled for
+  1.1.13; that comparison is still not certified as byte-identical.
+- AB CtrlRAM routes retain their existing Candidate status.
+
+### Upgrade and rollback
+
+No saved-data migration is introduced. Extract the portable
+package into a separate directory and preserve existing settings and outputs.
+Keep the prior stable package for rollback; avoid replacing a running copy.
+
+### Downloads and integrity
+
+The Windows x64 portable package is named `NvtFwCombiner-v1.1.12-win-x64.zip`
+and is self-contained; no separate .NET or Python installation is required.
+Publication requires successful protected CI, fresh Golden execution, packaging
+and smoke checks. The release asset set includes SHA-256 checksums, SPDX SBOM,
+provenance, a candidate manifest and the coupled distribution/Bootstrap assets.
+Use GitHub Releases to check availability and verify downloads against their
+checksums and provenance. GitHub supplies the source ZIP and TAR.GZ downloads.
+
 ## [1.1.11]
 
 ### Summary
