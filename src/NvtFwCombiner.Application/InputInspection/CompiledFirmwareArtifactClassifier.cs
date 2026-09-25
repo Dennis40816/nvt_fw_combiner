@@ -19,7 +19,10 @@ public enum CompiledFirmwareArtifactKind
 /// <summary>Closed evidence kinds used by canonical firmware artifact classification.</summary>
 public enum CompiledFirmwareArtifactSignalKind
 {
-    /// <summary>The candidate length equals the resolved map capacity.</summary>
+    /// <summary>
+    /// The candidate length equals the resolved map capacity. A Standard source-envelope candidate classified by its
+    /// prefix reports this signal as not satisfied, with the prefix length and the unclassified tail range.
+    /// </summary>
     DeclaredContainerCapacity,
 
     /// <summary>The candidate covers the complete compiled DP/Initial-Code source projection.</summary>
@@ -409,6 +412,19 @@ internal sealed partial class FirmwareArtifactClassificationResolver(
                 : (null, null, null);
         }
 
+        if (TryClassifyStandardEnvelopePrefix(
+                snapshot,
+                normalizedIcId,
+                compositions,
+                candidate,
+                out CompiledFirmwareArtifactClassification? prefix,
+                out StandardCandidate? prefixCandidate))
+        {
+            return IsCurrentSnapshot(snapshot)
+                ? (prefix, prefixCandidate?.Capability, null)
+                : (null, null, null);
+        }
+
         var classifications = new CompiledFirmwareArtifactClassification[compositions.Length];
         for (int index = 0; index < compositions.Length; index++)
         {
@@ -432,6 +448,63 @@ internal sealed partial class FirmwareArtifactClassificationResolver(
                 ? Array.AsReadOnly(compositions.Select(static composition => composition.Capability!).ToArray())
                 : null;
         return (consensus, null, consensusCapabilities);
+    }
+
+    // CTRLRAM-OSD-ENVELOPE-CLASSIFY-1112-01: when the IC declares a Standard source envelope and no published Standard
+    // length equals the candidate, the candidate is Standard Flash only when its prefix at the largest shorter published
+    // Standard length classifies as Standard Flash; the envelope tail is never inspected.
+    private bool TryClassifyStandardEnvelopePrefix(
+        CanonicalCapabilityCatalogSnapshot snapshot,
+        string icId,
+        StandardCandidate[] compositions,
+        ReadOnlySpan<byte> candidate,
+        out CompiledFirmwareArtifactClassification? classification,
+        out StandardCandidate? prefixCandidate)
+    {
+        classification = null;
+        prefixCandidate = null;
+        long candidateLength = candidate.Length;
+        if (compositions.Any(composition =>
+                composition.Composition.Plan.OutputInitialization.Capacity == candidateLength) ||
+            !_compiler.TryGetPublishedStandardSourceEnvelopeClassificationRoutes(
+                snapshot,
+                icId,
+                out IReadOnlyList<(ResolvedCapabilityRoute Route, long Capacity)> exactRoutes))
+        {
+            return false;
+        }
+
+        long[] shorter = [.. exactRoutes.Select(static route => route.Capacity).Where(capacity => capacity < candidateLength)];
+        if (shorter.Length == 0)
+        {
+            return false;
+        }
+
+        int prefixLength = checked((int)shorter.Max());
+        if (!TryClassifyExactCapacity(
+                compositions,
+                prefixLength,
+                candidate[..prefixLength],
+                out CompiledFirmwareArtifactClassification? prefix,
+                out StandardCandidate? exact) ||
+            prefix?.Kind != CompiledFirmwareArtifactKind.FlashCode)
+        {
+            return false;
+        }
+
+        // The prefix decides the kind; the capacity signal stays truthful about the complete candidate.
+        classification = new CompiledFirmwareArtifactClassification(
+            prefix.Kind,
+            prefix.Signals.Select(signal => signal.Kind == CompiledFirmwareArtifactSignalKind.DeclaredContainerCapacity
+                ? signal with
+                {
+                    Status = CompiledFirmwareArtifactSignalStatus.NotSatisfied,
+                    RequiredEndExclusive = prefixLength,
+                    FailedRange = ByteRange.FromStartEndExclusive(prefixLength, candidateLength),
+                }
+                : signal));
+        prefixCandidate = exact;
+        return true;
     }
 
     private StandardCandidate[]? ResolveCurrentCompositions(

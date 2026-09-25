@@ -117,17 +117,44 @@ public sealed class Nt51950Nt51951DiffDlmMaskCascade2GoldenTests
     }
 
     /// <summary>
-    /// A Base whose length is not a published Standard length stays unrecognized in 1.1.12: Base classification
-    /// admits only published Standard lengths, so no processor runs and no output is written.
+    /// A nonstandard envelope length is recognized by its Standard prefix, kept byte-for-byte on the NT51950 2-IC
+    /// route and only warns.
     /// </summary>
     [Fact]
-    public void Nt51950CascadeNonstandardEnvelopeLengthFailsClosed()
+    public async Task Nt51950CascadeNonstandardEnvelopeKeepsEveryByteAndWarnsAsync()
     {
         OwnerCase evidence = ReadOwnerCase();
         using var workspace = TempWorkspace.Create("nfc-nt51950-cascade2-nonstandard-envelope");
-        string referencePath = workspace.Write(
-            "reference.bin",
-            ReconstructReference(evidence).AsSpan(0, NonstandardEnvelopeLength).ToArray());
+        byte[] reference = ReconstructReference(evidence).AsSpan(0, NonstandardEnvelopeLength).ToArray();
+        string referencePath = workspace.Write("reference.bin", reference);
+        string outputPath = workspace.PathFor("output.bin");
+        var processor = new CountingPassThroughProcessor();
+
+        CompositionRunResult result = await RunNt51950Async(
+            evidence, referencePath, evidence.DiffDlm.Path, outputPath, processor);
+
+        Assert.True(result.Succeeded, CompositionRunReportJson.Serialize(result));
+        Assert.Equal(1, processor.CallCount);
+        Assert.Equal(reference, File.ReadAllBytes(outputPath));
+        using var report = JsonDocument.Parse(CompositionRunReportJson.Serialize(result));
+        JsonElement warning = Assert.Single(
+            report.RootElement.GetProperty("Issues").EnumerateArray(),
+            static issue => issue.GetProperty("Code").GetString() == "DP_NONSTANDARD_SIZE_WARNING");
+        Assert.Equal("warning", warning.GetProperty("Severity").GetString());
+        JsonElement summary = report.RootElement.GetProperty("SourceEnvelope");
+        Assert.Equal(Nt51950TemplateCapacity, summary.GetProperty("LayoutTemplateCapacity").GetInt64());
+        Assert.Equal(NonstandardEnvelopeLength, summary.GetProperty("ActualOutputLength").GetInt64());
+    }
+
+    /// <summary>A nonstandard length whose Standard prefix is not a Standard Flash stays unrecognized.</summary>
+    [Fact]
+    public void Nt51950NonstandardLengthWithoutStandardPrefixFailsClosed()
+    {
+        OwnerCase evidence = ReadOwnerCase();
+        using var workspace = TempWorkspace.Create("nfc-nt51950-cascade2-nonstandard-no-prefix");
+        byte[] reference = ReconstructReference(evidence).AsSpan(0, NonstandardEnvelopeLength).ToArray();
+        reference.AsSpan(0, Nt51950TemplateCapacity).Fill(0xFF);
+        string referencePath = workspace.Write("reference.bin", reference);
 
         (ActiveSessionSnapshot? snapshot, IReadOnlyList<CompositionIssue> issues) =
             CtrlRamReplaceTestSupport.Prepare(
