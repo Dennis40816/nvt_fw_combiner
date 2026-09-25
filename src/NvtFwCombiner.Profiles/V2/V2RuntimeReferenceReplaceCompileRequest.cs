@@ -7,6 +7,10 @@ internal sealed record V2RuntimeReferenceReplaceFirmwareVersionEdit(
     byte FirmwareVersion, byte FirmwareSubVersion, string InvalidOutputIssueCode,
     string MismatchOutputIssueCode);
 
+/// <summary>Profile-published expectations for a captured reference longer than its layout template.</summary>
+internal sealed record V2RuntimeReferenceReplaceSourceEnvelope(
+    long LayoutTemplateCapacity, IReadOnlyList<long> ExpectedOuterLengths, string UnexpectedLengthIssueCode);
+
 /// <summary>Count-resolved postbuild authority and FWConfig Backup placement postcondition.</summary>
 internal sealed class V2RuntimeReferenceReplacePostbuildPolicy
 {
@@ -107,7 +111,8 @@ internal sealed class V2RuntimeReferenceReplaceCompileRequest : V2ExplicitMappin
         V2RuntimeReferenceReplaceFirmwareVersionEdit? firmwareVersionEdit = null,
         V2RuntimeReferenceReplacePostbuildPolicy? postbuildPolicy = null,
         IEnumerable<ExternalProcessorWriteRangeSection>? postbuildWriteRangeSections = null,
-        ExternalProcessorProtocolPlan? processorProtocolPlan = null)
+        ExternalProcessorProtocolPlan? processorProtocolPlan = null,
+        V2RuntimeReferenceReplaceSourceEnvelope? sourceEnvelope = null)
         : base(bindings, mappings)
     {
         PostbuildWriteRangeSections = Array.AsReadOnly(
@@ -115,6 +120,7 @@ internal sealed class V2RuntimeReferenceReplaceCompileRequest : V2ExplicitMappin
         FirmwareVersionEdit = firmwareVersionEdit;
         PostbuildPolicy = postbuildPolicy;
         ProcessorProtocolPlan = processorProtocolPlan;
+        SourceEnvelope = sourceEnvelope;
     }
 
     internal V2RuntimeReferenceReplaceFirmwareVersionEdit? FirmwareVersionEdit { get; }
@@ -126,4 +132,7 @@ internal sealed class V2RuntimeReferenceReplaceCompileRequest : V2ExplicitMappin
 
     /// <summary>Exact already-selected adapter protocol plan bound into the compiled processor invocation.</summary>
     internal ExternalProcessorProtocolPlan? ProcessorProtocolPlan { get; }
+
+    /// <summary>Layout-template envelope for a reference longer than every route map, when admitted.</summary>
+    internal V2RuntimeReferenceReplaceSourceEnvelope? SourceEnvelope { get; }
 }

@@ -245,10 +245,12 @@ internal static partial class V2CompositionPlanCompiler
             slot,
             ResolveInputLengthRequirement(slot.LengthRequirement, resolvedMap.CapacityBytes),
             forceRequired);
-        return sourceEnvelope is not null &&
-            StringComparer.Ordinal.Equals(slot.SlotId, sourceEnvelope.SourceSlotId)
-                ? compiled.ResolveSourceEnvelopeLength(sourceEnvelope.ActualOutputLength)
-                : compiled;
+        return sourceEnvelope is null ||
+            !StringComparer.Ordinal.Equals(slot.SlotId, sourceEnvelope.SourceSlotId)
+                ? compiled
+                : compiled.ArtifactClass == CompiledInputArtifactClass.ReferenceImage
+                ? compiled.ResolveCompositeReferenceCapacity(sourceEnvelope.ActualOutputLength)
+                : compiled.ResolveSourceEnvelopeLength(sourceEnvelope.ActualOutputLength);
     }
 
     private static CompiledInputSpaceBinding MapInputSpaceBinding(InputArtifactProfileSpace space)

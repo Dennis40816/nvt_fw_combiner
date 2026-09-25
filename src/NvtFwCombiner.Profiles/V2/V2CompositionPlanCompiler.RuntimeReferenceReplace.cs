@@ -13,6 +13,7 @@ internal static partial class V2CompositionPlanCompiler
     private const string RuntimeReferenceFirmwareVersionEditInvalid = "profile.v2.runtime-reference-replace.firmware-version-edit-invalid";
     private const string RuntimeReferenceProcessorRequired = "profile.v2.runtime-reference-replace.processor-required";
     private const string RuntimeReferenceProcessorOrderInvalid = "profile.v2.runtime-reference-replace.processor-order-invalid";
+    private const string RuntimeReferenceSourceEnvelopeInvalid = "profile.v2.runtime-reference-replace.source-envelope-invalid";
 
     /// <summary>Lowers one catalog-prepared runtime reference Replace request through the shared plan algebra.</summary>
     internal static V2CompositionPlanCompileResult CompileRuntimeReferenceReplacePrepared(
@@ -35,6 +36,16 @@ internal static partial class V2CompositionPlanCompiler
             return V2CompositionPlanCompileResult.Failed(issues);
         }
 
+        V2ExplicitMappingInputBinding referenceBinding = bindings.Values.Single(binding =>
+            StringComparer.Ordinal.Equals(binding.SlotId, shape.ReferenceSlot.SlotId));
+        SourceEnvelopeExtent? sourceEnvelope = request.SourceEnvelope is { } envelope
+            ? CreateRuntimeReferenceSourceEnvelope(shape, resolvedMap, envelope, referenceBinding, issues)
+            : null;
+        if (issues.Count != 0)
+        {
+            return V2CompositionPlanCompileResult.Failed(issues);
+        }
+
         bool truncateCtrlRamSources =
             shape.SourceSlot.Normalization is CompiledTruncateCtrlRamInputNormalization;
         var spaces = bindings.Values.ToDictionary(
@@ -52,7 +63,7 @@ internal static partial class V2CompositionPlanCompiler
             shape.Output.SpaceId,
             new AddressSpace(
                 shape.Output.SpaceId,
-                resolvedMap.CapacityBytes,
+                sourceEnvelope?.ActualOutputLength ?? resolvedMap.CapacityBytes,
                 AddressSpaceMutability.Mutable));
         Dictionary<string, ResolvedView> views = LowerViews(profile, resolvedMap, spaces, issues);
         LoweredRegionAccess regionAccess = LowerRegionAccess(profile, resolvedMap, views, issues);
@@ -133,10 +144,11 @@ internal static partial class V2CompositionPlanCompiler
             : [];
         CompositionOperation[] operations = [.. firmwareVersionEdit.Operations, .. mappingOperations, .. processorOperations];
 
-        V2ExplicitMappingInputBinding referenceBinding = bindings.Values.Single(binding =>
-            StringComparer.Ordinal.Equals(binding.SlotId, shape.ReferenceSlot.SlotId));
         var plan = new CompositionPlan(
-            [ImageInitialization.Reference(shape.Output.SpaceId, referenceBinding.BindingId, resolvedMap.CapacityBytes)],
+            [ImageInitialization.Reference(
+                shape.Output.SpaceId,
+                referenceBinding.BindingId,
+                sourceEnvelope?.ActualOutputLength ?? resolvedMap.CapacityBytes)],
             shape.Output.SpaceId,
             spaces.Values,
             operations);
@@ -196,9 +208,10 @@ internal static partial class V2CompositionPlanCompiler
             new RuntimeReferenceReplaceV2CompilationContext(
                 resolvedMap,
                 profile.Header.AllowsConditionalProcessor,
-                processorWriteViewIds),
+                processorWriteViewIds,
+                sourceEnvelope),
             plan,
-            profile.InputSlots.Select(slot => MapInputSlot(slot, resolvedMap)),
+            profile.InputSlots.Select(slot => MapInputSlot(slot, resolvedMap, sourceEnvelope: sourceEnvelope)),
             bindings.Values.Select(binding => new CompiledInputSpaceBinding(
                 binding.BindingId,
                 binding.SlotId,
@@ -214,6 +227,36 @@ internal static partial class V2CompositionPlanCompiler
                 .. versionValidations,
                 .. placementValidations,
             ]);
+    }
+
+    private static SourceEnvelopeExtent? CreateRuntimeReferenceSourceEnvelope(
+        RuntimeReferenceReplaceProfileShape shape,
+        FirmwareFamilyResolutionDefinition.ResolvedFirmwareImageMap resolvedMap,
+        V2RuntimeReferenceReplaceSourceEnvelope envelope,
+        V2ExplicitMappingInputBinding referenceBinding,
+        List<CompositionIssue> issues)
+    {
+        FirmwareRegion? root = resolvedMap.ImageMap.Regions.SingleOrDefault(region =>
+            region.ParentRegionId is null && region.Range.Start == 0 &&
+            region.Range.EndExclusive == resolvedMap.CapacityBytes);
+        if (root is null || envelope.LayoutTemplateCapacity != resolvedMap.CapacityBytes ||
+            referenceBinding.ExactLengthBytes <= resolvedMap.CapacityBytes)
+        {
+            issues.Add(new CompositionIssue(
+                RuntimeReferenceSourceEnvelopeInvalid,
+                "A runtime reference envelope requires a longer reference over one full-root canonical layout template.",
+                shape.ReferenceSlot.SlotId));
+            return null;
+        }
+
+        return new SourceEnvelopeExtent(
+            shape.ReferenceSlot.SlotId,
+            root.RegionId,
+            resolvedMap.ImageMap.MapId,
+            resolvedMap.CapacityBytes,
+            referenceBinding.ExactLengthBytes,
+            envelope.ExpectedOuterLengths,
+            envelope.UnexpectedLengthIssueCode);
     }
 
     private static RuntimeFirmwareVersionEditLowering LowerRuntimeFirmwareVersionEdit(

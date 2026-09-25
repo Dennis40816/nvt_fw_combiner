@@ -151,7 +151,8 @@ public sealed class RuntimeReferenceReplaceV2CompilationContext : MapBoundV2Comp
     internal RuntimeReferenceReplaceV2CompilationContext(
         FirmwareFamilyResolutionDefinition.ResolvedFirmwareImageMap resolvedMap,
         bool allowsConditionalProcessor,
-        IEnumerable<string>? processorWriteViewIds = null)
+        IEnumerable<string>? processorWriteViewIds = null,
+        SourceEnvelopeExtent? sourceEnvelope = null)
         : base(resolvedMap)
     {
         string[] processorWriteViewIdsSnapshot = ImmutableStringSnapshot.Create(
@@ -160,8 +161,23 @@ public sealed class RuntimeReferenceReplaceV2CompilationContext : MapBoundV2Comp
             requiredMessage: null,
             "Runtime-reference processor write-view ids must be non-empty.",
             "Runtime-reference processor write-view ids must be ordinally unique.");
+        if (sourceEnvelope is not null &&
+            (!StringComparer.Ordinal.Equals(sourceEnvelope.LayoutTemplateMapId, resolvedMap.ImageMap.MapId) ||
+             sourceEnvelope.LayoutTemplateCapacity != resolvedMap.CapacityBytes ||
+             sourceEnvelope.ActualOutputLength <= sourceEnvelope.LayoutTemplateCapacity ||
+             !resolvedMap.ImageMap.Regions.Any(region =>
+                 StringComparer.Ordinal.Equals(region.RegionId, sourceEnvelope.RootRegionId) &&
+                 region.ParentRegionId is null && region.Range.Start == 0 &&
+                 region.Range.EndExclusive == sourceEnvelope.LayoutTemplateCapacity)))
+        {
+            throw new ArgumentException(
+                "A runtime reference envelope must extend beyond its exact full-root resolved layout template.",
+                nameof(sourceEnvelope));
+        }
+
         AllowsConditionalProcessor = allowsConditionalProcessor;
         ProcessorWriteViewIds = Array.AsReadOnly(processorWriteViewIdsSnapshot);
+        SourceEnvelope = sourceEnvelope;
     }
 
     /// <summary>Whether the trusted profile contract can append one mapping-triggered processor stage.</summary>
@@ -169,6 +185,9 @@ public sealed class RuntimeReferenceReplaceV2CompilationContext : MapBoundV2Comp
 
     /// <summary>Exact profile view identities that grant processor write authority before runtime narrowing.</summary>
     public IReadOnlyList<string> ProcessorWriteViewIds { get; }
+
+    /// <summary>Captured reference extent beyond the layout template, when the Base is longer than every map.</summary>
+    public SourceEnvelopeExtent? SourceEnvelope { get; }
 }
 
 /// <summary>Context for a General Merge logical output that intentionally makes no physical map claim.</summary>

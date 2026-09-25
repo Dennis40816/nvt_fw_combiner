@@ -281,6 +281,21 @@ internal sealed partial class BuiltInCtrlRamAuthoringAdapter
                 {
                     validationIssues.AddRange(mapIssues);
                 }
+                else if (CanonicalDynamicRouteInventory.TryResolveCtrlRamEnvelopeTemplate(
+                             route,
+                             maps,
+                             baseLength,
+                             out FirmwareImageMap? template,
+                             out SourceEnvelopeProfileBinding? envelope))
+                {
+                    if (!envelope.ExpectedOuterLengths.Contains(baseLength))
+                    {
+                        advisoryIssues.Add(new CompositionIssue(
+                            envelope.UnexpectedLengthIssueCode,
+                            $"Base firmware BIN length 0x{baseLength:X} is not a standard {icId} outer length; every byte beyond the 0x{template.CapacityBytes:X} layout template is kept unchanged.",
+                            CompositionSlotIds.ReplaceBase));
+                    }
+                }
                 else if (!maps.Any(map => map.CapacityBytes == baseLength))
                 {
                     long[] acceptedCapacities =

@@ -20,6 +20,8 @@ public sealed class Nt51950Nt51951DiffDlmMaskCascade2GoldenTests
     private const int DiffNfLength = 0x0AF0;
     private const int BackupStart = 0x36000;
     private const int FirmwareConfigLength = 0x0780;
+    private const int Nt51950TemplateCapacity = 0x40000;
+    private const int NonstandardEnvelopeLength = 0x60000;
 
     /// <summary>The direct fixture independently locks reconstruction, preservation, and golden-only dummy quality.</summary>
     [Fact]
@@ -111,6 +113,48 @@ public sealed class Nt51950Nt51951DiffDlmMaskCascade2GoldenTests
         Assert.Equal(evidence.Expected.Bytes, File.ReadAllBytes(outputPath));
         using var report = JsonDocument.Parse(CompositionRunReportJson.Serialize(result));
         Assert.Equal("nt51950-ctrlram-replace-fw1x-cascade", report.RootElement.GetProperty("ProfileId").GetString());
+    }
+
+    /// <summary>A nonstandard envelope length is kept byte-for-byte on the NT51950 2-IC route and only warns.</summary>
+    [Fact]
+    public async Task Nt51950CascadeNonstandardEnvelopeKeepsEveryByteAndWarnsAsync()
+    {
+        OwnerCase evidence = ReadOwnerCase();
+        using var workspace = TempWorkspace.Create("nfc-nt51950-cascade2-nonstandard-envelope");
+        byte[] reference = ReconstructReference(evidence).AsSpan(0, NonstandardEnvelopeLength).ToArray();
+        string referencePath = workspace.Write("reference.bin", reference);
+        string outputPath = workspace.PathFor("output.bin");
+        var processor = new CountingPassThroughProcessor();
+
+        CompositionRunResult result = await RunNt51950Async(
+            evidence, referencePath, evidence.DiffDlm.Path, outputPath, processor);
+
+        Assert.True(result.Succeeded, CompositionRunReportJson.Serialize(result));
+        Assert.Equal(1, processor.CallCount);
+        Assert.Equal(reference, File.ReadAllBytes(outputPath));
+        using var report = JsonDocument.Parse(CompositionRunReportJson.Serialize(result));
+        Assert.Contains(
+            report.RootElement.GetProperty("Issues").EnumerateArray(),
+            issue => issue.GetProperty("Code").GetString() == "DP_NONSTANDARD_SIZE_WARNING");
+    }
+
+    /// <summary>The envelope tail beyond the 256 KiB layout template never gains processor write authority.</summary>
+    [Fact]
+    public async Task Nt51950CascadeEnvelopeTailMutationFailsClosedAsync()
+    {
+        OwnerCase evidence = ReadOwnerCase();
+        using var workspace = TempWorkspace.Create("nfc-nt51950-cascade2-envelope-tail");
+        string referencePath = workspace.Write(
+            "reference.bin",
+            ReconstructReference(evidence).AsSpan(0, NonstandardEnvelopeLength).ToArray());
+        string outputPath = workspace.PathFor("must-not-exist.bin");
+
+        CompositionRunResult result = await RunNt51950Async(
+            evidence, referencePath, evidence.DiffDlm.Path, outputPath,
+            new UnauthorizedMutationProcessor(Nt51950TemplateCapacity + 0x100));
+
+        Assert.False(result.Succeeded, CompositionRunReportJson.Serialize(result));
+        Assert.False(File.Exists(outputPath));
     }
 
     /// <summary>A nonzero active-prefix delta is applied while the adjacent DiffNF and later target record remain immutable.</summary>
@@ -350,6 +394,47 @@ public sealed class Nt51950Nt51951DiffDlmMaskCascade2GoldenTests
         Assert.Equal("1536d344af83aafd29e5884d9d2d904f1efa03c8fdcc4e913832253814644ebd", Hash(output));
     }
 
+    /// <summary>
+    /// Complete-output Golden evidence for the envelope: the registered Combiner on the NT51950 2-IC route over the
+    /// owner's 0x80000 flash differs from the owner expected output only where the NT51951 route also differs.
+    /// </summary>
+    [Fact]
+    public async Task Nt51950CascadeEnvelopeRegisteredCombinerMatchesTheOwnerExpectedAsync()
+    {
+        if (!OperatingSystem.IsWindows())
+        {
+            return;
+        }
+
+        OwnerCase evidence = ReadOwnerCase();
+        using var workspace = TempWorkspace.Create("nfc-nt51950-cascade2-envelope-real-combiner");
+        string referencePath = workspace.Write("reference.bin", ReconstructReference(evidence));
+        string outputPath = workspace.PathFor("output.bin");
+
+        CompositionRunResult result = await CtrlRamReplaceTestSupport.RunAsync(BootstrapTestHost.Canonical,
+            "NT51950", "cascade", ExperienceIds.CtrlRamReplace,
+            CreateSlotPaths(evidence, referencePath, evidence.DiffDlm.Path),
+            build: true,
+            TestContext.Current.CancellationToken,
+            outputPath);
+
+        Assert.True(result.Succeeded, CompositionRunReportJson.Serialize(result));
+        byte[] output = File.ReadAllBytes(outputPath);
+        (long differenceCount, ByteRange[] differenceRanges) = FindDifferences(evidence.Expected.Bytes, output);
+        Assert.Equal(16, differenceCount);
+        Assert.Equal(
+            [
+                new ByteRange(0xA11C, 4),
+                new ByteRange(0xA130, 4),
+                new ByteRange(0x2D428, 4),
+                new ByteRange(0x2D43C, 4),
+            ],
+            differenceRanges);
+        Assert.Equal(
+            evidence.Expected.Bytes.AsSpan(Nt51950TemplateCapacity).ToArray(),
+            output.AsSpan(Nt51950TemplateCapacity).ToArray());
+    }
+
     private static IReadOnlyList<CompositionIssue> PrepareRejected(
         IReadOnlyDictionary<string, string> slotPaths,
         string outputPath)
@@ -375,6 +460,18 @@ public sealed class Nt51950Nt51951DiffDlmMaskCascade2GoldenTests
     {
         return await CtrlRamReplaceTestSupport.RunWithProcessorAsync(BootstrapTestHost.Canonical,
             "NT51951", "cascade", CreateSlotPaths(evidence, referencePath, diffPath),
+            true, outputPath, null, processor, TestContext.Current.CancellationToken);
+    }
+
+    private static async Task<CompositionRunResult> RunNt51950Async(
+        OwnerCase evidence,
+        string referencePath,
+        string diffPath,
+        string outputPath,
+        IExternalProcessor processor)
+    {
+        return await CtrlRamReplaceTestSupport.RunWithProcessorAsync(BootstrapTestHost.Canonical,
+            "NT51950", "cascade", CreateSlotPaths(evidence, referencePath, diffPath),
             true, outputPath, null, processor, TestContext.Current.CancellationToken);
     }
 
