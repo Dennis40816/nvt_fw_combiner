@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 2,
+  "taskId": "MEMORY-ENDPOINT-INTEGRATION-1111-01",
+  "capability": "Account for the existing first-arrange memory endpoint caption correction in the current integration",
+  "integrationBase": "3db701b70e0eec66889a4b030fcbb84db0db5693",
+  "risk": "R1",
+  "kind": "ui",
+  "state": "design-active",
+  "mutablePaths": [
+    "src/NvtFwCombiner.Presentation.Avalonia/Views/MemoryCoverageBar.Legend.cs",
+    "tests/NvtFwCombiner.UiSmoke.Tests/MemoryCoveragePopupTests.EndpointLabels.cs"
+  ],
+  "implementationOwner": "/root",
+  "searchEvidence": [
+    "Existing bounded R1 implementation is commit eb7e96d88; this record is current integration admission, not a claim that historical JSON preflight existed.",
+    "The parent Bounds width is zero during the first child Arrange. Existing correction caches current finalSize.Width before base.ArrangeOverride and uses it only for endpoint label geometry.",
+    "Recorded failing first-render regressions were 3/3, then related UiSmoke 103/103 passed; latest 261dd1aee screenshots visibly retain the blue-line Master captions. See docs/ui/v1.1.11-delivery.md and artifacts/endpoint-label-green.log.",
+    "2026-09-25 independent current integration ADMIT by /root/ab_layout_context_review: scoped existing R1 diff has no P0-P2; current-arrange width replaces stale Bounds for endpoint labels. Explicitly not retroactive preflight or certification of unrelated authority."
+  ],
+  "semanticOwner": "Existing MemoryCoverageBar endpoint layout remains the sole presentation geometry owner.",
+  "terminalContract": "Account only for sealed base 3db701b70e0eec66889a4b030fcbb84db0db5693 through 261dd1aee3d48fbb7cb31d26349b300cf32d9e30 existing first-arrange caption diff and its regression. No new product edit, firmware bytes, range semantics, profile or contract change is authorized by this record. Formal final integration needs the final reviewed source and path-state digest.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": null,
+    "outcome": "not-required",
+    "evidence": "Existing bounded R1 local correction; current independent integration review is recorded in searchEvidence, not retroactive design approval."
+  },
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": {
+    "reviewer": null,
+    "outcome": "pending",
+    "evidence": ""
+  }
+}
