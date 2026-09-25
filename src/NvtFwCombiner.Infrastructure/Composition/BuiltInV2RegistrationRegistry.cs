@@ -382,8 +382,9 @@ internal sealed class BuiltInV2Registration
     /// Compiles the plan that <c>TryCompile(inputLength, ...)</c> admits for each input length, in
     /// order and only as far as the caller enumerates. Within one call, input lengths admitted to
     /// the identical compiler request share its successful compilation; a request identical to this
-    /// Standard registration's successful summary compilation reuses that existing result. Failures
-    /// are never reused, and no other compilation outlives the call.
+    /// Standard registration's successful summary compilation reuses that existing process-lifetime
+    /// result, which was already process-lifetime before this reuse. Failures are never reused, and
+    /// compilations made by this call are not retained after it.
     /// </summary>
     internal IEnumerable<(long? InputLength, CompiledComposition? Composition, IReadOnlyList<CompositionIssue> Issues)>
         TryCompileEach(IEnumerable<long?> inputLengths)
