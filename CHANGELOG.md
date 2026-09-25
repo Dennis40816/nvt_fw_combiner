@@ -14,9 +14,10 @@ Later changes remain assigned by the canonical roadmap.
 ### Summary
 
 This section describes the 1.1.12 release contents; publication status is tracked
-by GitHub Releases. The release shortens startup loading and keeps a committed
-output's receipt when its delivery or report is interrupted. Existing firmware
-support levels are unchanged.
+by GitHub Releases. The release shortens startup loading, keeps a committed
+output's receipt when its delivery or report is interrupted, accepts NT51950 and
+NT51951 CtrlRAM Replace Bases that carry Display OSD, and decides AB Bases by two
+NVT markers. Existing firmware support levels are unchanged.
 
 ### Product changes
 
@@ -39,6 +40,23 @@ support levels are unchanged.
 - Verification: service and UI regressions for cancellation during delivery and during report preparation.
 - Limitations: retryable persistence failures (F08) and the remaining picker and report residuals (F20, F21) are scheduled for 1.1.13.
 
+#### 3. NT51950/NT51951 CtrlRAM Replace accepts a Base with Display OSD
+
+- Before → After: CtrlRAM Replace required the Base length to equal a fixed map (NT51950 256 KiB, NT51951 512 KiB), so a flash carrying Display OSD, such as the owner's 0x80000 NT51950 2-IC flash, was rejected. A Base longer than the IC's largest CtrlRAM map is now accepted when the IC's Standard Merge profile declares the Display OSD envelope: that map is the layout template and every byte beyond it is kept unchanged.
+- Affected: NT51950 and NT51951 CtrlRAM Replace (single and 2-IC cascade), its memory layout and its run report.
+- Support status: unchanged/support-neutral.
+- Compatibility: a Base whose length equals a map behaves as before. Write ranges, Header/CRC authority and output naming are unchanged, and AB bank Replace keeps its own exact bank lengths. No profile, schema, contract or expected byte changes.
+- Verification: the owner's 0x80000 AUTO_PRJ-599 case on the NT51950 2-IC route reproduces the owner expected output, and with the registered Combiner differs from it only in the four approved CRC words; with the registered Combiner, NT51950 and NT51951 single and 2-IC Bases at 512 KiB and 1 MiB produce the exact-length Standard output inside the template and keep the tail; a processor write into the tail fails closed.
+- Limitations: Base classification recognizes only the published Standard lengths (256 KiB, 512 KiB and 1 MiB); a Base of any other length is rejected as unrecognized.
+
+#### 4. AB Bases are decided by two NVT markers
+
+- Before → After: when only one AB layout compiled at a Base's length, one plausible bank made it AB, so a 512 KiB NT51950 or 1 MiB NT51951 Standard Base with Display OSD was treated as AB. A Base is now AB only when it has the trusted AB structure or exactly one complete NVT marker (`00 4E 56 54`) in each canonical bank; markers in a Display OSD tail do not count.
+- Affected: CtrlRAM Replace Base classification for ICs with AB layouts.
+- Support status: unchanged/support-neutral.
+- Compatibility: every AB Golden input remains AB; bank issues are still reported, and equally evidenced layouts still report `input.bank-reference.ambiguous`. This supersedes the 1.1.11 single-candidate recognition for NT51929 and NT51951.
+- Verification: 27 characterization cases (one marker, one per bank, duplicate and tail markers, damaged-Backup structure, ambiguity), AB Golden regression and the full Bootstrap suite.
+
 ### Security
 
 No new external executable, update endpoint or permission is introduced.
@@ -51,7 +69,8 @@ hash-pinned trust checks, and no library-global schema registry is modified.
 - A non-certifying local comparison with v0.9.16, run with a candidate built
   from the 1.1.11 product source, covered 37 routes with canonical inputs: 34
   identical, 2 different by the owner-approved Diff NF preservation, and 1
-  rejected by both versions (NT51950 2-IC cascade CtrlRAM full flash). The 27
+  rejected by both versions (NT51950 2-IC cascade CtrlRAM full flash), which
+  1.1.12 accepts through Product change 3. The 27
   routes without canonical input have no Golden and remain not covered. The
   comparison is repeated on the frozen candidate before publication; the
   formal comparator for 1.x candidates is scheduled for 1.1.13.
