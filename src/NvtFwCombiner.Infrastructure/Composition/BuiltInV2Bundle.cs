@@ -59,6 +59,21 @@ internal sealed class BuiltInV2Bundle
 
     internal string ContentHash { get; }
 
+    internal bool IsCatalogCreated => _catalog.IsValueCreated;
+
+    /// <summary>Forces the lazy catalog ahead of the serial catalog pass (ADR 0075).</summary>
+    /// <remarks>A failure stays cached in the lazy catalog; the serial pass reports it in plan order.</remarks>
+    internal void Preload()
+    {
+        try
+        {
+            _ = _catalog.Value;
+        }
+        catch (Exception exception) when (exception is not OperationCanceledException)
+        {
+        }
+    }
+
     internal BankReferenceReplaceAdmission? TryGetBankReplaceAdmission(BuiltInV2Bundle local,
         string memberId, string localMemberId, string layoutProfileId, string layoutProfileVersion, string layoutMapId,
         string localProfileId, string localProfileVersion, string localMapId)
