@@ -23,11 +23,11 @@ support levels are unchanged.
 #### 1. Faster startup loading
 
 - Before → After: Startup validated identical profile schemas repeatedly, parsed each profile document twice, repeated identical compilations, and loaded every built-in profile bundle on one thread. Identical validation and compilation results are now reused, each document is parsed once, and independent bundles load in parallel in fixed dependency layers before the unchanged serial publication.
-- Measured on the package shape (same machine, five launches each): all startup loading finished 3.9-4.2 s after launch with 1.1.11 and about 2.0-2.1 s with 1.1.12; memory allocated during startup fell from about 783 MB to about 364 MB. Final figures are recorded at the release freeze.
+- Measured on the package shape (same machine, one warm-up and five scored launches each, development builds of this release): all startup loading finished 3.9-4.2 s after launch with the 1.1.11 source and about 2.0-2.1 s with the parallel preload; the median memory allocated during startup fell from about 783 MB to about 364 MB. The frozen candidate is measured again before publication.
 - Affected: application startup and its loading screen; capability publication for every workflow.
 - Support status: unchanged/support-neutral.
-- Compatibility: published routes, fingerprints, plans, progress, errors and firmware outputs are identical, pinned by a complete catalog snapshot digest and the Golden regression.
-- Verification: the pinned snapshot digest in fresh processes, dependency-layer and race-freedom checks, schema concurrency stress tests, catalog progress, cancellation and failure tests, Golden regression, and package-shape measurements.
+- Compatibility: for the built-in profiles, the published routes, fingerprints, plans, progress and errors are identical, pinned by a complete catalog snapshot digest; firmware outputs are unchanged for the Golden regression cases. No profile, contract, range, Header or CRC behavior changes.
+- Verification: the pinned snapshot digest in fresh processes, dependency-layer and race-freedom checks, schema concurrency stress tests, catalog progress, cancellation and failure tests, Golden regression, and package-shape measurements on development builds. Exact-source verification of the frozen candidate (protected CI, fresh Golden execution and packaging) is required before publication.
 - Limitations: the owner targets 500 ms to the first window and 2,000 ms to complete loading. The first window still appears about 0.74 s after launch, because the compressed single-file package decompresses before the application starts (the package shape is unchanged). Loading completes around 2.0 s and not below 2,000 ms on every launch. Peak private memory is 2-4 MB above 1.1.11, which the owner accepted.
 
 #### 2. A committed output survives an interrupted delivery or report
@@ -48,10 +48,12 @@ hash-pinned trust checks, and no library-global schema registry is modified.
 ### Known issues
 
 - Startup targets: see the limitations of Product change 1.
-- A non-certifying local comparison with v0.9.16 covered 37 routes with
-  canonical inputs: 34 identical, 2 different by the owner-approved Diff NF
-  preservation, and 1 rejected by both versions (NT51950 2-IC cascade CtrlRAM
-  full flash). The 27 routes without canonical input remain not covered. The
+- A non-certifying local comparison with v0.9.16, run with a candidate built
+  from the 1.1.11 product source, covered 37 routes with canonical inputs: 34
+  identical, 2 different by the owner-approved Diff NF preservation, and 1
+  rejected by both versions (NT51950 2-IC cascade CtrlRAM full flash). The 27
+  routes without canonical input have no Golden and remain not covered. The
+  comparison is repeated on the frozen candidate before publication; the
   formal comparator for 1.x candidates is scheduled for 1.1.13.
 - The 32-byte Header-backup/CRC difference carried from 1.1.11 is scheduled for
   1.1.13; that comparison is still not certified as byte-identical.
