@@ -73,6 +73,9 @@ public sealed record FirmwareConfigGeneralParametersFacts(
     ushort Pid,
     byte CascadeEnable)
 {
+    /// <summary>Optional display byte from the same decoded canonical structure; absent is not Common.</summary>
+    public byte? EventBufferFormatVersion { get; init; }
+
     /// <summary>
     /// Typed meaning for a known <c>u8IRQ_Type</c> byte; null preserves an
     /// owner-unknown value for inspection instead of discarding the structure.
@@ -113,33 +116,29 @@ internal sealed record CanonicalEventBufferFieldObservation(
     FirmwareMetadataLocatorKind LocatorKind,
     long? SelectedMarkerStart);
 
+internal sealed record CanonicalGeneralParametersObservation(
+    FirmwareConfigGeneralParametersFacts Facts, CanonicalEventBufferFieldObservation? EventBuffer);
+
 /// <summary>Projects canonical FirmwareConfig facts without selecting IC, IC Count, family, or route.</summary>
 public static class FirmwareConfigGeneralParametersProjector
 {
     private const string MarkerCountMismatchCode = "firmware-config.marker-count-mismatch";
 
-    /// <summary>Reads one explicitly selected optional field from the same canonical structure and capture.</summary>
-    public static byte? ReadEventBufferFormatVersion(
-        ResolvedMetadataPlan plan,
-        ReadOnlyMemory<byte> image,
-        long expectedStructureStart,
-        bool requireFieldTarget = true)
+    /// <summary>Projects common display facts from one canonical structure without per-profile field selection.</summary>
+    public static FirmwareConfigGeneralParametersFacts? ReadGeneralParameters(
+        ResolvedMetadataPlan plan, ReadOnlyMemory<byte> image, long expectedStructureStart)
     {
-        return ReadEventBufferFormatObservation(plan, image, expectedStructureStart,
-            requireFieldTarget)?.Value;
+        return ReadObservation(plan, image, expectedStructureStart)?.Facts;
     }
 
-    internal static CanonicalEventBufferFieldObservation? ReadEventBufferFormatObservation(
-        ResolvedMetadataPlan plan,
-        ReadOnlyMemory<byte> image,
-        long expectedStructureStart,
-        bool requireFieldTarget = true)
+    internal static CanonicalGeneralParametersObservation? ReadObservation(
+        ResolvedMetadataPlan plan, ReadOnlyMemory<byte> image, long expectedStructureStart)
     {
         ArgumentNullException.ThrowIfNull(plan);
         MetadataPlanEntry[] entries =
         [
             .. plan.Entries.Select(static item => item.Definition)
-                .Where(entry => StringComparer.Ordinal.Equals(entry.StructureDefinition.StructureId,
+                .Where(entry => StringComparer.Ordinal.Equals(entry.StructureDefinition.Definition.DefinitionId,
                     FirmwareConfigGeneralParametersContract.StructureId))
                 .Take(2),
         ];
@@ -149,45 +148,48 @@ public static class FirmwareConfigGeneralParametersProjector
         }
 
         MetadataPlanEntry entry = entries[0];
-        if ((requireFieldTarget && !entry.TargetReferences.Any(target =>
-                target.Kind == FirmwareMetadataReferenceTargetKind.Field &&
-                StringComparer.Ordinal.Equals(target.TargetId,
-                    FirmwareConfigGeneralParametersContract.EventBufferFormatVersion))) ||
-            image.Length > entry.ResolvedMap.CapacityBytes ||
-            !StringComparer.Ordinal.Equals(entry.SpaceId, entry.StructureDefinition.ArtifactBindingId))
+        FirmwareResolvedMetadataStructure? resolved;
+        if (plan.Definition.FullImageContext is { } fullImage)
+        {
+            if (image.Length != fullImage.View.ImageMap.CapacityBytes) { return null; }
+            MetadataInspectionSnapshot snapshot = FirmwareMetadataInspector.InspectFullImage(plan,
+                new FirmwareArtifactPayload(entry.SpaceId, image.Span));
+            resolved = FindSingle(snapshot, entry.BindingId)?.Resolution?.Resolved;
+        }
+        else
+        {
+            if (image.Length > entry.ResolvedMap.CapacityBytes ||
+                !StringComparer.Ordinal.Equals(entry.SpaceId, entry.StructureDefinition.ArtifactBindingId))
+            {
+                return null;
+            }
+            var inputs = new FirmwareMapResolutionInputs(entry.MemberId, entry.ResolvedMap.ModeId,
+                entry.ResolvedMap.CapacityBytes, requestedTopology: null,
+                [new FirmwareArtifactPayload(entry.SpaceId, image.Span)]);
+            resolved = entry.FamilyDefinition.ResolveMetadataStructure(
+                entry.ImageMap.MapId, entry.StructureDefinition.StructureId, inputs).Resolved;
+        }
+        if (resolved is null || resolved.LocatorOutcome.ResolvedRange.Range.Start != expectedStructureStart ||
+            !TryProjectDecoded(resolved.DecodedStructure, entry.StructureDefinition, out FirmwareConfigGeneralParametersFacts facts))
         {
             return null;
         }
 
-        var inputs = new FirmwareMapResolutionInputs(entry.MemberId, entry.ResolvedMap.ModeId,
-            entry.ResolvedMap.CapacityBytes, requestedTopology: null,
-            [new FirmwareArtifactPayload(entry.SpaceId, image.Span)]);
-        FirmwareResolvedMetadataStructure? resolved = entry.FamilyDefinition.ResolveMetadataStructure(
-            entry.ImageMap.MapId, entry.StructureDefinition.StructureId, inputs).Resolved;
-        if (resolved is null || resolved.LocatorOutcome.ResolvedRange.Range.Start != expectedStructureStart)
-        {
-            return null;
-        }
-
-        FirmwareDecodedMetadataFact? fact = resolved.DecodedStructure.Facts.SingleOrDefault(candidate =>
-            StringComparer.Ordinal.Equals(candidate.FieldId,
-                FirmwareConfigGeneralParametersContract.EventBufferFormatVersion));
         FirmwareMetadataField? field = entry.StructureDefinition.Fields.SingleOrDefault(candidate =>
             StringComparer.Ordinal.Equals(candidate.FieldId,
                 FirmwareConfigGeneralParametersContract.EventBufferFormatVersion));
-        if (fact?.Value.UnsignedIntegerValue is not { } raw || raw > byte.MaxValue ||
-            field is not { WidthBytes: 1, Encoding: FirmwareMetadataEncoding.UnsignedInteger })
+        if (facts.EventBufferFormatVersion is not { } raw || field is null)
         {
-            return null;
+            return new(facts with { EventBufferFormatVersion = null }, null);
         }
 
         FirmwareAddressedRange structureRange = resolved.LocatorOutcome.ResolvedRange;
-        return new CanonicalEventBufferFieldObservation((byte)raw, entry.FamilyDefinition.FamilyContentHash,
+        return new(facts, new CanonicalEventBufferFieldObservation(raw, entry.FamilyDefinition.FamilyContentHash,
             entry.StructureDefinition.StructureId, entry.StructureDefinition.Definition.DefinitionId,
             entry.StructureDefinition.ArtifactBindingId,
             new FirmwareAddressedRange(structureRange.AddressSpaceId,
                 new ByteRange(checked(structureRange.Range.Start + field.Range.Start), field.Range.Length)),
-            resolved.LocatorOutcome.LocatorKind, resolved.LocatorOutcome.SelectedMarkerStart);
+            resolved.LocatorOutcome.LocatorKind, resolved.LocatorOutcome.SelectedMarkerStart));
     }
 
     /// <summary>Projects exactly one successful canonical General Parameters inspection.</summary>
@@ -216,12 +218,15 @@ public static class FirmwareConfigGeneralParametersProjector
         ArgumentNullException.ThrowIfNull(snapshot);
         facts = null!;
         MetadataInspectionResult? result = FindSingle(snapshot, bindingId);
-        if (result is not { State: MetadataInspectionState.Value } ||
-            result.Resolution?.Resolved?.DecodedStructure is not { } decoded)
-        {
-            return false;
-        }
+        return result is { State: MetadataInspectionState.Value } &&
+            result.Resolution?.Resolved?.DecodedStructure is { } decoded &&
+            TryProjectDecoded(decoded, result.PlanEntry.Definition.StructureDefinition, out facts);
+    }
 
+    private static bool TryProjectDecoded(FirmwareDecodedMetadataStructure decoded,
+        FirmwareMetadataStructure structure, out FirmwareConfigGeneralParametersFacts facts)
+    {
+        facts = null!;
         var reader = new DecodedFactReader(decoded.Facts);
         if (!reader.TryReadByte(FirmwareConfigGeneralParametersContract.TpFirmwareVersion, out byte firmwareVersion) ||
             !reader.TryReadByte(FirmwareConfigGeneralParametersContract.TpFirmwareVersionComplement, out byte firmwareVersionBar) ||
@@ -283,7 +288,13 @@ public static class FirmwareConfigGeneralParametersProjector
             commonFirmwareMinorVersion,
             commonFirmwareAdditionalVersion,
             novatekProjectId,
-            cascadeEnable);
+            cascadeEnable)
+        {
+            EventBufferFormatVersion = structure.Fields.SingleOrDefault(static field =>
+                field.FieldId == FirmwareConfigGeneralParametersContract.EventBufferFormatVersion) is { WidthBytes: 1, Encoding: FirmwareMetadataEncoding.UnsignedInteger } && reader.TryReadByte(
+                FirmwareConfigGeneralParametersContract.EventBufferFormatVersion, out byte eventBuffer)
+                ? eventBuffer : null,
+        };
         return true;
     }
 

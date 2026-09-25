@@ -5,6 +5,7 @@ using NvtFwCombiner.Application.InputInspection;
 using NvtFwCombiner.Application.Metadata;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Domain.Firmware;
+using NvtFwCombiner.TestSupport;
 
 namespace NvtFwCombiner.Bootstrap.Tests;
 
@@ -40,24 +41,24 @@ public sealed class FirmwareConfigGeneralParametersPilotTests
         byte[] tp = CreateValidTp();
         tp[BackupStart + 0x0C] = 0xA3;
         Assert.Equal((byte)0xA3,
-            FirmwareConfigGeneralParametersProjector.ReadEventBufferFormatVersion(plan, tp, BackupStart));
+            FirmwareConfigGeneralParametersProjector.ReadGeneralParameters(plan, tp, BackupStart)?.EventBufferFormatVersion);
         CanonicalEventBufferFieldObservation observed = Assert.IsType<CanonicalEventBufferFieldObservation>(
-            FirmwareConfigGeneralParametersProjector.ReadEventBufferFormatObservation(plan, tp, BackupStart));
+            FirmwareConfigGeneralParametersProjector.ReadObservation(plan, tp, BackupStart)?.EventBuffer);
         Assert.Equal(new ByteRange(BackupStart + 0x0C, 1), observed.FieldRange.Range);
         Assert.Equal("flash", observed.FieldRange.AddressSpaceId);
         tp[BackupStart + 0x0C] = 0;
         Assert.Equal((byte)0,
-            FirmwareConfigGeneralParametersProjector.ReadEventBufferFormatVersion(plan, tp, BackupStart));
-        Assert.Null(FirmwareConfigGeneralParametersProjector.ReadEventBufferFormatVersion(
-            plan, tp, BackupStart + 1));
+            FirmwareConfigGeneralParametersProjector.ReadGeneralParameters(plan, tp, BackupStart)?.EventBufferFormatVersion);
+        Assert.Null(FirmwareConfigGeneralParametersProjector.ReadGeneralParameters(
+            plan, tp, BackupStart + 1)?.EventBufferFormatVersion);
         WriteMarker(tp, 0x3000);
-        Assert.Null(FirmwareConfigGeneralParametersProjector.ReadEventBufferFormatVersion(
-            plan, tp, BackupStart));
+        Assert.Null(FirmwareConfigGeneralParametersProjector.ReadGeneralParameters(
+            plan, tp, BackupStart)?.EventBufferFormatVersion);
     }
 
-    /// <summary>A physically decodable field without a selected profile target is unavailable.</summary>
+    /// <summary>Display facts come from the common structure without per-profile field selection.</summary>
     [Fact]
-    public void EventBufferProjectionRequiresSelectedFieldTarget()
+    public void EventBufferProjectionDoesNotRequirePerProfileFieldTarget()
     {
         MetadataPlanEntry selected = CreatePlanEntry("NT51927");
         var withoutEvent = new MetadataPlanEntry(selected.BindingId, selected.SpaceId, selected.SlotId,
@@ -70,8 +71,112 @@ public sealed class FirmwareConfigGeneralParametersPilotTests
         byte[] tp = CreateValidTp();
         tp[BackupStart + 0x0C] = 0xA3;
 
-        Assert.Null(FirmwareConfigGeneralParametersProjector.ReadEventBufferFormatVersion(
-            plan, tp, BackupStart));
+        Assert.Equal((byte)0xA3, FirmwareConfigGeneralParametersProjector.ReadGeneralParameters(
+            plan, tp, BackupStart)?.EventBufferFormatVersion);
+    }
+
+    /// <summary>Every Standard family supplies the same canonical TP display fact.</summary>
+    [Theory]
+    [InlineData("NT51917", 0)]
+    [InlineData("NT51917", 0xA3)]
+    [InlineData("NT51917", 0x7F)]
+    [InlineData("NT51919", 0)]
+    [InlineData("NT51919", 0xA3)]
+    [InlineData("NT51919", 0x7F)]
+    [InlineData("NT51923", 0)]
+    [InlineData("NT51923", 0xA3)]
+    [InlineData("NT51923", 0x7F)]
+    [InlineData("NT51926", 0)]
+    [InlineData("NT51926", 0xA3)]
+    [InlineData("NT51926", 0x7F)]
+    [InlineData("NT51927", 0)]
+    [InlineData("NT51927", 0xA3)]
+    [InlineData("NT51927", 0x7F)]
+    [InlineData("NT51928", 0)]
+    [InlineData("NT51928", 0xA3)]
+    [InlineData("NT51928", 0x7F)]
+    [InlineData("NT51929", 0)]
+    [InlineData("NT51929", 0xA3)]
+    [InlineData("NT51929", 0x7F)]
+    [InlineData("NT51932", 0)]
+    [InlineData("NT51932", 0xA3)]
+    [InlineData("NT51932", 0x7F)]
+    [InlineData("NT51950", 0)]
+    [InlineData("NT51950", 0xA3)]
+    [InlineData("NT51950", 0x7F)]
+    [InlineData("NT51951", 0)]
+    [InlineData("NT51951", 0xA3)]
+    [InlineData("NT51951", 0x7F)]
+    public void CommonEventBufferSupplyIsIndependentOfIcFieldLists(string icId, byte value)
+    {
+        const int start = 0x10000;
+        byte[] dp = new byte[0x40000];
+        dp[0] = 0x13;
+        Assert.True(BootstrapTestHost.Canonical.Compiler.TryCompileStandardMerge(icId, dp,
+            ["dp-input", "tp-input"], out _, out ResolvedCapability? capability, out IReadOnlyList<CompositionIssue> issues),
+            string.Join(" | ", issues.Select(static issue => issue.Message)));
+        Assert.NotNull(capability);
+        MetadataPlanEntry entry = capability.MetadataPlan.Entries.Single(static item =>
+            item.Definition.StructureDefinition.StructureId == "firmware-config-general-parameters").Definition;
+        ResolvedMetadataPlan plan = new MetadataPlanDefinition([entry]).Resolve(capability.ResolutionToken);
+        byte[] original = CreateValidTp();
+        byte[] image = new byte[entry.ResolvedMap.CapacityBytes];
+        original.AsSpan(BackupStart, 0x1000).CopyTo(image.AsSpan(start));
+        image[start + 0x0C] = value;
+        var inputs = new FirmwareMapResolutionInputs(entry.MemberId, entry.ResolvedMap.ModeId,
+            entry.ResolvedMap.CapacityBytes, requestedTopology: null,
+            [new FirmwareArtifactPayload(entry.SpaceId, image)]);
+        FirmwareMetadataStructureResolution resolution = entry.FamilyDefinition.ResolveMetadataStructure(entry.ImageMap.MapId,
+            entry.StructureDefinition.StructureId, inputs);
+        Assert.True(resolution.Resolved is not null, $"{icId}: {resolution.Failure}");
+        Assert.Equal(value, FirmwareConfigGeneralParametersProjector.ReadGeneralParameters(
+            plan, image, start)?.EventBufferFormatVersion);
+    }
+
+    /// <summary>The reported NT51926 screenshot input publishes Event Buffer through the real inspection path.</summary>
+    [Fact]
+    public void Nt51926CanonicalTpSnapshotIncludesCommonEventBuffer()
+    {
+        string folder = Path.Combine(RepositoryPaths.FindRepositoryRoot(),
+            "testdata/golden/canonical/NT51926/standard-merge/gen-flash/topology-unscoped/nt51926-gen-flash/inputs");
+        byte[] tp = File.ReadAllBytes(Path.Combine(folder, "nt51926-tp-input.bin"));
+        byte[] dp = File.ReadAllBytes(Path.Combine(folder, "nt51926-dp-input.bin"));
+        IReadOnlyList<FirmwareInspectionSnapshotResult> results = BuiltInFirmwareInspection.InspectFirmwareBatch(
+            BootstrapTestHost.Canonical, "NT51926",
+            [new("tp", "tp.bin", StandardMergeAddressSpaceId: CompositionAddressSpaceIds.TpInput),
+                new("dp", "dp.bin", StandardMergeAddressSpaceId: CompositionAddressSpaceIds.DpInput)],
+            path => path == "tp.bin" ? tp : dp);
+        Assert.Equal((byte)0x82, results.Single(static item => item.InspectionId == "tp")
+            .Inspection.StandardEventBufferFormatVersion);
+        Assert.Null(results.Single(static item => item.InspectionId == "dp")
+            .Inspection.StandardEventBufferFormatVersion);
+    }
+
+    /// <summary>A real partial-family AB Base has display metadata without manufacturing Standard inputs.</summary>
+    [Fact]
+    public void Nt51950AbBaseSuppliesBothEventBufferValues()
+    {
+        byte[] reference = File.ReadAllBytes(CanonicalGoldenTestData.ArtifactPath(
+            "ab-merge", "NT51950", "expected-output", "boe-d82t80"));
+        FirmwareInspectionSnapshot inspection = Assert.Single(BuiltInFirmwareInspection.InspectFirmwareBatch(
+            BootstrapTestHost.Canonical, "NT51950",
+            [new("base", "base.bin", CtrlRamRequest: new CtrlRamInspectionRequest(IcNumberSelectionTokens.SingleChip),
+                CtrlRamReplaceAddressSpaceId: CompositionAddressSpaceIds.ReferenceBase)], _ => reference)).Inspection;
+        Assert.Equal(CtrlRamBaseKind.AbFlash, inspection.CtrlRamBaseInspection!.Kind);
+        Assert.Equal(2, inspection.CtrlRamBaseInspection.Banks.Count);
+        foreach (CtrlRamBaseBankInspection bank in inspection.CtrlRamBaseInspection.Banks)
+        {
+            int fieldAddress = checked((int)(bank.Range.Start + bank.FirmwareConfig!.FirmwareConfigBackupStart + 0x0C));
+            Assert.Equal(reference[fieldAddress], bank.EventBufferFormatVersion);
+            byte[] bankBytes = reference.AsSpan(checked((int)bank.Range.Start), checked((int)bank.Range.Length)).ToArray();
+            ResolvedMetadataPlan plan = Assert.IsType<ResolvedMetadataPlan>(BootstrapTestHost.Canonical.Catalog
+                .ResolveFullImageMetadataPlan("NT51950", bankBytes.Length).MetadataPlan);
+            long start = bank.FirmwareConfig.FirmwareConfigBackupStart;
+            Assert.Null(FirmwareConfigGeneralParametersProjector.ReadGeneralParameters(plan, bankBytes, start + 1));
+            Assert.Null(FirmwareConfigGeneralParametersProjector.ReadGeneralParameters(plan, bankBytes.AsMemory(0, bankBytes.Length - 1), start));
+            WriteMarker(bankBytes, 0xB000);
+            Assert.Null(FirmwareConfigGeneralParametersProjector.ReadGeneralParameters(plan, bankBytes, start));
+        }
     }
 
     /// <summary>TP-only map consensus publishes only a source-identical canonical field.</summary>
@@ -81,8 +186,8 @@ public sealed class FirmwareConfigGeneralParametersPilotTests
         byte[] tp = CreateValidTp();
         tp[BackupStart + 0x0C] = 0xA3;
         CanonicalEventBufferFieldObservation observed = Assert.IsType<CanonicalEventBufferFieldObservation>(
-            FirmwareConfigGeneralParametersProjector.ReadEventBufferFormatObservation(
-                CreateResolvedPlan("NT51927"), tp, BackupStart));
+            FirmwareConfigGeneralParametersProjector.ReadObservation(
+                CreateResolvedPlan("NT51927"), tp, BackupStart)?.EventBuffer);
         Assert.Equal((byte)0xA3, FirmwareArtifactClassificationResolver.SelectCommonEventBufferFormat(
             [observed, observed]));
         Assert.Null(FirmwareArtifactClassificationResolver.SelectCommonEventBufferFormat(
@@ -431,9 +536,9 @@ public sealed class FirmwareConfigGeneralParametersPilotTests
             [new FirmwareArtifactPayload("tp-input", tp)]);
     }
 
-    private static ResolvedMetadataPlan CreateResolvedPlan(string icId)
+    private static ResolvedMetadataPlan CreateResolvedPlan(string icId, long? inputLength = null)
     {
-        MetadataPlanEntry entry = CreatePlanEntry(icId);
+        MetadataPlanEntry entry = CreatePlanEntry(icId, inputLength);
         return new MetadataPlanDefinition([entry]).Resolve(
             new ResolutionToken($"fwconfig-pilot:{icId}"));
     }

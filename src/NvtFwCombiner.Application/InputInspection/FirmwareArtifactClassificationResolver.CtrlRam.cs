@@ -74,8 +74,9 @@ internal sealed partial class FirmwareArtifactClassificationResolver
                         CompiledInputArtifactObservationService.DecodeDpRegion(layout,
                             bank.RegionId == "a-bank" ? CompiledInputVersionKind.DpA : CompiledInputVersionKind.DpB,
                             bank.RegionId == "a-bank" ? "a-cmi-dp-version" : "b-cmi-dp-version", candidate),
-                        eventBufferFormatVersion: valid && hasStandard
-                            ? ReadBankEventBufferFormat(standard!, standardCapability!, bytes, config)
+                        eventBufferFormatVersion: valid
+                            ? ReadBankEventBufferFormat(ic, publication.ResolutionToken,
+                                hasStandard ? standard : null, hasStandard ? standardCapability : null, bytes, config)
                             : null, bankIssues));
                     issues.AddRange(bankIssues);
                 }
@@ -122,8 +123,8 @@ internal sealed partial class FirmwareArtifactClassificationResolver
                 out _) && standardConfig.IsFirmwareVersionBarValid)
         {
             standardEventBufferFormat = exactStandard?.MetadataPlan.ResolutionToken == publication.ResolutionToken
-                ? FirmwareConfigGeneralParametersProjector.ReadEventBufferFormatVersion(
-                    exactStandard.MetadataPlan, candidate, standardConfig.StructureStart)
+                ? FirmwareConfigGeneralParametersProjector.ReadGeneralParameters(
+                    exactStandard.MetadataPlan, candidate, standardConfig.StructureStart)?.EventBufferFormatVersion
                 : consensusStandards is not null
                     ? ReadConsensusEventBufferFormat(consensusStandards, publication.ResolutionToken,
                         candidate, standardConfig.StructureStart)
@@ -182,8 +183,8 @@ internal sealed partial class FirmwareArtifactClassificationResolver
                 return null;
             }
 
-            observations.Add(FirmwareConfigGeneralParametersProjector.ReadEventBufferFormatObservation(
-                capability.MetadataPlan, candidate, structureStart));
+            observations.Add(FirmwareConfigGeneralParametersProjector.ReadObservation(
+                capability.MetadataPlan, candidate, structureStart)?.EventBuffer);
         }
 
         return SelectCommonEventBufferFormat(observations);
@@ -199,38 +200,33 @@ internal sealed partial class FirmwareArtifactClassificationResolver
             : null;
     }
 
-    private static byte? ReadBankEventBufferFormat(CompiledComposition standard,
-        ResolvedCapability standardCapability, ReadOnlyMemory<byte> bankBytes, FirmwareConfigMetadata validatedConfig)
+    private byte? ReadBankEventBufferFormat(string icId, ResolutionToken resolutionToken,
+        CompiledComposition? standard, ResolvedCapability? standardCapability,
+        ReadOnlyMemory<byte> bankBytes, FirmwareConfigMetadata validatedConfig)
     {
-        MetadataPlanEntry[] matches =
-        [
-            .. standardCapability.MetadataPlan.Entries
-                .Select(static item => item.Definition)
-                .Where(entry => StringComparer.Ordinal.Equals(entry.StructureDefinition.StructureId,
-                        FirmwareConfigGeneralParametersContract.StructureId) &&
-                    StringComparer.Ordinal.Equals(entry.ImageMap.MapId,
-                        standard.V2Details.Provenance.ResolvedMap.ImageMap.MapId) &&
-                    StringComparer.Ordinal.Equals(entry.MemberId,
-                        standard.V2Details.Provenance.Context.MemberId))
-                .Take(2),
-        ];
-        if (matches.Length != 1)
+        // An accepted Standard compilation owns its exact metadata. Without one, the
+        // existing full-image query supplies display authority, never execution support.
+        ResolvedMetadataPlan? plan = standardCapability?.MetadataPlan ??
+            _catalog.ResolveFullImageMetadataPlan(icId, bankBytes.Length).MetadataPlan;
+        if (plan is null || plan.ResolutionToken != resolutionToken) { return null; }
+        if (standard is not null)
         {
-            return null;
+            MetadataPlanEntry[] matches = [.. plan.Entries.Select(static item => item.Definition)
+                .Where(static entry => entry.StructureDefinition.Definition.DefinitionId ==
+                    FirmwareConfigGeneralParametersContract.StructureId).Take(2)];
+            if (matches.Length != 1) { return null; }
+            MetadataPlanEntry entry = matches[0];
+            FirmwareFamilyResolutionDefinition.ResolvedFirmwareImageMap map = standard.V2Details.Provenance.ResolvedMap;
+            if (bankBytes.Length != map.CapacityBytes ||
+                entry.ImageMap.MapId != map.ImageMap.MapId ||
+                entry.MemberId != standard.V2Details.Provenance.Context.MemberId ||
+                entry.FamilyDefinition.FamilyContentHash != standard.V2Details.Provenance.Context.FamilyContentHash ||
+                entry.ResolvedMap.ResolutionFingerprint != map.ResolutionFingerprint)
+            {
+                return null;
+            }
         }
-
-        MetadataPlanEntry entry = matches[0];
-        FirmwareFamilyResolutionDefinition.ResolvedFirmwareImageMap map =
-            standard.V2Details.Provenance.ResolvedMap;
-        return bankBytes.Length == map.CapacityBytes &&
-            StringComparer.Ordinal.Equals(entry.FamilyDefinition.FamilyContentHash,
-                standard.V2Details.Provenance.Context.FamilyContentHash) &&
-            StringComparer.Ordinal.Equals(entry.ResolvedMap.ResolutionFingerprint,
-                map.ResolutionFingerprint) &&
-            StringComparer.Ordinal.Equals(entry.SpaceId, entry.StructureDefinition.ArtifactBindingId)
-                ? FirmwareConfigGeneralParametersProjector.ReadEventBufferFormatVersion(
-                    standardCapability.MetadataPlan, bankBytes, validatedConfig.StructureStart,
-                    requireFieldTarget: false)
-                : null;
+        return FirmwareConfigGeneralParametersProjector.ReadGeneralParameters(
+            plan, bankBytes, validatedConfig.StructureStart)?.EventBufferFormatVersion;
     }
 }

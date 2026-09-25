@@ -322,8 +322,8 @@ internal sealed partial class BuiltInFirmwareInspection : IFirmwareInspection
             : StringComparer.Ordinal.Equals(standardMergeAddressSpaceId, CompositionAddressSpaceIds.TpInput) &&
               metadataAuthority.IsApplicable && metadataAuthority.Plan is { } standardPlan &&
               firmwareConfig is { IsFirmwareVersionBarValid: true } config
-                ? FirmwareConfigGeneralParametersProjector.ReadEventBufferFormatVersion(
-                    standardPlan, image, config.StructureStart)
+                ? FirmwareConfigGeneralParametersProjector.ReadGeneralParameters(
+                    standardPlan, image, config.StructureStart)?.EventBufferFormatVersion
                 : null;
 
         return new FirmwareInspectionSnapshot(
