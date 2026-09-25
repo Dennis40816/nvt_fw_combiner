@@ -5,7 +5,7 @@
   "integrationBase": "49e633f687ecd1337e78d8a4de5ca14f880d68c6",
   "risk": "R3",
   "kind": "release",
-  "state": "design-active",
+  "state": "final-complete",
   "mutablePaths": [
     "VERSION",
     "SPEC.md",
@@ -25,12 +25,17 @@
     "outcome": "findings-incorporated",
     "evidence": "2026-09-25 independent R3 design review (Codex, read-only) confirmed the sealed final evidence checkpoint, the exact governed VERSION, SPEC.md and roadmap paths, the R3 release classification, and reuse of the existing version-header provider. The admission was corrected to retain the owner's conditional WS-IO allocation, distinguish the manually edited SPEC status from provider-managed version headers, and require measured startup and memory disclosure with complete candidate release notes. This design authorizes candidate preparation only; frozen-head review, exact-source verification, release-owner attestation, and publication gates remain separate."
   },
-  "implementationHead": null,
-  "reviewedHead": null,
-  "pathStateDigest": null,
+  "implementationHead": "aa8ae537b8833c8369397fedcb208818c1dcf1f5",
+  "reviewedHead": "aa8ae537b8833c8369397fedcb208818c1dcf1f5",
+  "pathStateDigest": "877af330bae644c8f597ede2a825d7673b3bc0c87d6b7df232066e47697620b2",
   "finalReview": {
-    "reviewer": null,
-    "outcome": "pending",
-    "evidence": ""
-  }
+    "reviewer": "codex/gpt-6-sol",
+    "outcome": "findings-incorporated",
+    "evidence": "Independent codex/gpt-6-sol final review at exact head aa8ae537b8833c8369397fedcb208818c1dcf1f5: APPROVED; F-9 is closed. The sole change from the previously reviewed 439f89a81 head is CHANGELOG.md. Its non-certifying v0.9.16 statement identifies the badc545b0 candidate source, limits comparison with the 1c37bd718 source to the other 36 of 37 routes with canonical inputs, and explicitly states that the 27 routes lacking canonical input were not run. Src, profiles and tests match dc773e967. F-10 remains deferred to 1.1.13; exact-source CI, packaging, release-owner attestation and publication remain separate gates. Earlier findings F-5 to F-7 were incorporated."
+  },
+  "integrationPaths": [
+    "VERSION",
+    "SPEC.md",
+    "docs/architecture/nfc_roadmap.md"
+  ]
 }

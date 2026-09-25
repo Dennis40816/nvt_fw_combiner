@@ -5,7 +5,7 @@
   "integrationBase": "49e633f687ecd1337e78d8a4de5ca14f880d68c6",
   "risk": "R1",
   "kind": "behavior",
-  "state": "design-active",
+  "state": "final-complete",
   "mutablePaths": [
     "src/NvtFwCombiner.Application/MemoryLayout/MemoryLayoutProjector.cs",
     "src/NvtFwCombiner.Application/MemoryLayout/MemoryLayoutModels.cs",
@@ -25,12 +25,17 @@
     "outcome": "not-required",
     "evidence": "Bounded local R1 presentation correction that adds one existing-pattern arm in three projection owners; it is reviewed with CTRLRAM-OSD-ENVELOPE-1112-01 in the frozen-head final review."
   },
-  "implementationHead": null,
-  "reviewedHead": null,
-  "pathStateDigest": null,
+  "implementationHead": "aa8ae537b8833c8369397fedcb208818c1dcf1f5",
+  "reviewedHead": "aa8ae537b8833c8369397fedcb208818c1dcf1f5",
+  "pathStateDigest": "f799de0869e07c482c139a0fb8821e8253d2efb3713a2df3a82d9c913ffa4e5d",
   "finalReview": {
-    "reviewer": null,
-    "outcome": "pending",
-    "evidence": ""
-  }
+    "reviewer": "codex/gpt-6-sol",
+    "outcome": "approved",
+    "evidence": "Independent codex/gpt-6-sol final review at exact head aa8ae537b8833c8369397fedcb208818c1dcf1f5: APPROVED. Only CHANGELOG.md differs from the previously reviewed 439f89a81 head, and src, profiles and tests match dc773e967. The prior substantive review of the memory-layout and run-report projection of the compiled source envelope remains applicable; this verdict does not claim a fresh test run."
+  },
+  "integrationPaths": [
+    "src/NvtFwCombiner.Application/MemoryLayout/MemoryLayoutProjector.cs",
+    "src/NvtFwCombiner.Application/MemoryLayout/MemoryLayoutModels.cs",
+    "src/NvtFwCombiner.Application/Composition/CompositionRunService.Reports.cs"
+  ]
 }

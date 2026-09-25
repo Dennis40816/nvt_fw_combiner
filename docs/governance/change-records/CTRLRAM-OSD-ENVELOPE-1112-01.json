@@ -5,7 +5,7 @@
   "integrationBase": "49e633f687ecd1337e78d8a4de5ca14f880d68c6",
   "risk": "R3",
   "kind": "behavior",
-  "state": "design-active",
+  "state": "final-complete",
   "mutablePaths": [
     "src/NvtFwCombiner.Infrastructure/Composition/BuiltInCtrlRamAuthoringAdapter.Context.cs",
     "src/NvtFwCombiner.Infrastructure/Composition/BuiltInCtrlRamAuthoringAdapter.V2.cs",
@@ -32,12 +32,23 @@
     "outcome": "findings-incorporated",
     "evidence": "2026-09-26 independent R3 design review (read-only), ACCEPT-WITH-CHANGES, no P0: accept the full-flash map as a layout template and clone the complete captured Base. Incorporated: the runtime envelope context and input contract lowering paths are admitted; presentation paths move to a separate R1 record; canonical write authority stays unchanged; no claim of bounded external reads or unchanged CRC bytes without complete-output Golden comparison and an exact tail and write-range audit; the Standard fallback never selects an AB map."
   },
-  "implementationHead": null,
-  "reviewedHead": null,
-  "pathStateDigest": null,
+  "implementationHead": "aa8ae537b8833c8369397fedcb208818c1dcf1f5",
+  "reviewedHead": "aa8ae537b8833c8369397fedcb208818c1dcf1f5",
+  "pathStateDigest": "bd74dc53f6970add807a5023da203b7d56ba903bfa5ef19d76c58229e9bf67c4",
   "finalReview": {
-    "reviewer": null,
-    "outcome": "pending",
-    "evidence": ""
-  }
+    "reviewer": "codex/gpt-6-sol",
+    "outcome": "approved",
+    "evidence": "Independent codex/gpt-6-sol final review at exact head aa8ae537b8833c8369397fedcb208818c1dcf1f5: APPROVED. Only CHANGELOG.md differs from the previously reviewed 439f89a81 head, and src, profiles and tests match dc773e967; the prior substantive review of Standard CtrlRAM envelope admission, template extent, preserved tail and bounded write authority remains applicable. Required firmware-owner, exact candidate Golden and release gates remain separate."
+  },
+  "integrationPaths": [
+    "src/NvtFwCombiner.Infrastructure/Composition/BuiltInCtrlRamAuthoringAdapter.Context.cs",
+    "src/NvtFwCombiner.Infrastructure/Composition/BuiltInCtrlRamAuthoringAdapter.V2.cs",
+    "src/NvtFwCombiner.Infrastructure/Composition/CanonicalDynamicRouteInventory.cs",
+    "src/NvtFwCombiner.Profiles/V2/V2RuntimeReferenceReplaceCompileRequest.cs",
+    "src/NvtFwCombiner.Profiles/V2/TrustedProfileBundleCatalog.Compilation.cs",
+    "src/NvtFwCombiner.Profiles/V2/V2CompositionPlanCompiler.RuntimeReferenceReplace.cs",
+    "src/NvtFwCombiner.Profiles/V2/V2CompositionPlanCompiler.ContractLowering.cs",
+    "src/NvtFwCombiner.Domain/Composition/V2CompilationContext.cs",
+    "src/NvtFwCombiner.Application/Capabilities/RuntimeReferenceCompilationProof.cs"
+  ]
 }

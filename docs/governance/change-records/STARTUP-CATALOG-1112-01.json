@@ -5,7 +5,7 @@
   "integrationBase": "49e633f687ecd1337e78d8a4de5ca14f880d68c6",
   "risk": "R2",
   "kind": "behavior",
-  "state": "design-active",
+  "state": "final-complete",
   "mutablePaths": [
     "src/NvtFwCombiner.Infrastructure/Bundles/ProfileBundleSchemaValidator.cs",
     "src/NvtFwCombiner.Infrastructure/Bundles/ProfileBundleFileSnapshot.cs",
@@ -41,12 +41,27 @@
     "outcome": "findings-incorporated",
     "evidence": "2026-09-25 two independent read-only design reviews of ADR 0075 (draft and revision, both ACCEPT-WITH-CHANGES). Incorporated: equivalence limited to fixed re-readable inputs with the accepted process-lifetime failure cache pinned by test; dependency layers with barriers and a serial warm-up instead of a general acyclicity argument, with the layer table pinned against the recomputed reference graph; per-launch memory gates; precise cancellation and failure precedence; ordered-slot parallel computation evaluated per stage and deferred with reasons; shared JsonSchema evaluation admitted only with a source-level library audit, else per-worker isolation. Units 1 to 3 are bounded R1 corrections already tested locally; the final review covers them with the preload."
   },
-  "implementationHead": null,
-  "reviewedHead": null,
-  "pathStateDigest": null,
+  "implementationHead": "aa8ae537b8833c8369397fedcb208818c1dcf1f5",
+  "reviewedHead": "aa8ae537b8833c8369397fedcb208818c1dcf1f5",
+  "pathStateDigest": "dd1ed7e1d0d4ac7034f03a57c27121f0a16753b25d8719886f187453c3224d1f",
   "finalReview": {
-    "reviewer": null,
-    "outcome": "pending",
-    "evidence": ""
-  }
+    "reviewer": "codex/gpt-6-sol",
+    "outcome": "findings-incorporated",
+    "evidence": "Independent codex/gpt-6-sol final review at exact head aa8ae537b8833c8369397fedcb208818c1dcf1f5: APPROVED. Only CHANGELOG.md differs from the previously reviewed 439f89a81 head, and src, profiles and tests match the measured dc773e967 product source. The prior substantive startup catalog review remains applicable. The original ‘within the v1.1.11 baseline’ memory clause is superseded by owner decisions 12, 16 and 18 and their recorded package-shape measurements. This review did not rerun tests or certify release gates. First-round findings F-1 to F-4 and F-8 at d3eabec13 were incorporated."
+  },
+  "integrationPaths": [
+    "src/NvtFwCombiner.Infrastructure/Bundles/ProfileBundleSchemaValidator.cs",
+    "src/NvtFwCombiner.Infrastructure/Bundles/ProfileBundleFileSnapshot.cs",
+    "src/NvtFwCombiner.Infrastructure/Bundles/ProfileBundleLoader.cs",
+    "src/NvtFwCombiner.Infrastructure/Bundles/TrustedProfileBundleDocumentProjection.cs",
+    "src/NvtFwCombiner.Infrastructure/Composition/BuiltInV2RegistrationRegistry.cs",
+    "src/NvtFwCombiner.Infrastructure/Composition/CanonicalCapabilityDisclosureInventory.cs",
+    "src/NvtFwCombiner.Infrastructure/Composition/CtrlRamV2RouteRegistry.cs",
+    "src/NvtFwCombiner.Infrastructure/Composition/BuiltInV2Bundle.cs",
+    "src/NvtFwCombiner.Infrastructure/Composition/BuiltInV2BundlePreload.cs",
+    "src/NvtFwCombiner.Application/Capabilities/CanonicalCapabilityCatalogSource.cs",
+    "src/NvtFwCombiner.Bootstrap/CompositionHostServices.cs",
+    "docs/adr/0075-bounded-catalog-bundle-preload.md",
+    "docs/adr/0049-unified-preload-lifecycle.md"
+  ]
 }

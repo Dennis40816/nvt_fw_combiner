@@ -5,7 +5,7 @@
   "integrationBase": "49e633f687ecd1337e78d8a4de5ca14f880d68c6",
   "risk": "R3",
   "kind": "behavior",
-  "state": "design-active",
+  "state": "final-complete",
   "mutablePaths": [
     "src/NvtFwCombiner.Application/InputInspection/FirmwareArtifactClassificationResolver.CtrlRam.cs"
   ],
@@ -23,12 +23,15 @@
     "outcome": "findings-incorporated",
     "evidence": "2026-09-26 independent R3 design review (read-only), ACCEPT-WITH-CHANGES, no P0: accept one complete NVT marker in each compiled canonical AB bank while retaining the unique trusted structural-proof terminal and the ambiguity and stale-publication guards. Incorporated: the contract records that retiring legacy single-candidate evidence supersedes the 1.1.11 NT51929/NT51951 requirement, keeps OSD-tail markers outside canonical banks from counting, and requires characterization tests and executed AB Golden evidence."
   },
-  "implementationHead": null,
-  "reviewedHead": null,
-  "pathStateDigest": null,
+  "implementationHead": "aa8ae537b8833c8369397fedcb208818c1dcf1f5",
+  "reviewedHead": "aa8ae537b8833c8369397fedcb208818c1dcf1f5",
+  "pathStateDigest": "3a594cb452fba546142ea623925983cabf9f5f523b5fd94154d5fee9e54b528a",
   "finalReview": {
-    "reviewer": null,
-    "outcome": "pending",
-    "evidence": ""
-  }
+    "reviewer": "codex/gpt-6-sol",
+    "outcome": "approved",
+    "evidence": "Independent codex/gpt-6-sol final review at exact head aa8ae537b8833c8369397fedcb208818c1dcf1f5: APPROVED. Only CHANGELOG.md differs from the previously reviewed 439f89a81 head, and src, profiles and tests match dc773e967. The prior substantive review of one complete NVT marker in each canonical AB bank, trusted structural proof, ambiguity handling and exclusion of Display OSD tail markers remains applicable. Required Golden and firmware-owner gates remain separate."
+  },
+  "integrationPaths": [
+    "src/NvtFwCombiner.Application/InputInspection/FirmwareArtifactClassificationResolver.CtrlRam.cs"
+  ]
 }
