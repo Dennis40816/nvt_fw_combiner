@@ -66,14 +66,14 @@ hash-pinned trust checks, and no library-global schema registry is modified.
 ### Known issues
 
 - Startup targets: see the limitations of Product change 1.
-- A non-certifying local comparison with v0.9.16, run with a candidate built
-  from the 1.1.11 product source, covered 37 routes with canonical inputs: 34
-  identical, 2 different by the owner-approved Diff NF preservation, and 1
-  rejected by both versions (NT51950 2-IC cascade CtrlRAM full flash), which
-  1.1.12 accepts through Product change 3. The 27
-  routes without canonical input have no Golden and remain not covered. The
-  comparison is repeated on the frozen candidate before publication; the
-  formal comparator for 1.x candidates is scheduled for 1.1.13.
+- A non-certifying local comparison with v0.9.16, rerun with a candidate built
+  from the 1.1.12 product source (`badc545b0`), covered the 37 routes with
+  canonical inputs: 34 identical, 2 different by the owner-approved Diff NF
+  preservation, and 1 (NT51950 2-IC cascade CtrlRAM full flash) rejected by
+  v0.9.16 and accepted by 1.1.12 through Product change 3. Every other 1.1.12
+  output equals the output of the same run on the 1.1.11 source. The 27 routes
+  without canonical input have no Golden and remain not covered; the formal
+  comparator for 1.x candidates is scheduled for 1.1.13.
 - The 32-byte Header-backup/CRC difference carried from 1.1.11 is scheduled for
   1.1.13; that comparison is still not certified as byte-identical.
 - AB CtrlRAM routes retain their existing Candidate status.
