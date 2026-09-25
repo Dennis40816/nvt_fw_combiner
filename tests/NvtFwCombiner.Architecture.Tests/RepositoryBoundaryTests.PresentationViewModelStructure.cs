@@ -297,7 +297,7 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("await Task.Yield();", lifecycle, StringComparison.Ordinal);
         Assert.Contains("await Task.Run(", lifecycle, StringComparison.Ordinal);
         Assert.Contains(
-            "await ProjectAndApplyRunResultAsync(context, result, build, cancellationSource.Token);",
+            "await ProjectAndApplyRunResultAsync(context, completedResult, build, cancellationSource.Token);",
             lifecycle,
             StringComparison.Ordinal);
         int projectionMethodIndex = lifecycle.IndexOf(

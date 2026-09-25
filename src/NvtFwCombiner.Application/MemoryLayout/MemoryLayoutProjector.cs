@@ -75,6 +75,7 @@ public static partial class MemoryLayoutProjector
                 {
                     ResolvedMapV2CompilationContext resolved => resolved.SourceEnvelope,
                     RuntimeReferenceBankReplaceV2CompilationContext bankContext => bankContext.SourceEnvelope,
+                    RuntimeReferenceReplaceV2CompilationContext runtime => runtime.SourceEnvelope,
                     _ => null,
                 };
                 capacity = envelope?.ActualOutputLength ?? resolvedMap.CapacityBytes;

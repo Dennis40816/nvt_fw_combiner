@@ -116,10 +116,46 @@ internal static partial class CanonicalDynamicRouteInventory
             registration.InputSelectionGroupMemberSlotIds);
     }
 
+    /// <summary>
+    /// Resolves the largest route map as the layout template of a longer CtrlRAM reference,
+    /// only when the IC's published Standard Merge profile declares a source envelope.
+    /// </summary>
+    internal static bool TryResolveCtrlRamEnvelopeTemplate(
+        CtrlRamV2Route route,
+        IReadOnlyList<FirmwareImageMap> maps,
+        long referenceLength,
+        [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out FirmwareImageMap? template,
+        [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out SourceEnvelopeProfileBinding? envelope)
+    {
+        ArgumentNullException.ThrowIfNull(route);
+        ArgumentNullException.ThrowIfNull(maps);
+        template = null;
+        envelope = null;
+        if (maps.Count == 0 || maps.Any(map => map.CapacityBytes == referenceLength) ||
+            !BuiltInV2RegistrationRegistry.StandardMergeByIc.TryGetValue(
+                route.Key.IcId,
+                out BuiltInV2Registration? standard) ||
+            standard.SourceEnvelopeBinding is not { } binding)
+        {
+            return false;
+        }
+
+        long largestCapacity = maps.Max(static map => map.CapacityBytes);
+        FirmwareImageMap[] largest = [.. maps.Where(map => map.CapacityBytes == largestCapacity)];
+        if (referenceLength <= largestCapacity || largest.Length != 1)
+        {
+            return false;
+        }
+
+        template = largest[0];
+        envelope = binding;
+        return true;
+    }
+
     internal static CapabilityRouteIdentity ResolveCtrlRamIdentity(
         CtrlRamV2Route route,
         LegacyCombinerPostbuildCommandPlan plan,
-        long referenceCapacity)
+        long referenceLength)
     {
         ArgumentNullException.ThrowIfNull(route);
         ArgumentNullException.ThrowIfNull(plan);
@@ -132,9 +168,11 @@ internal static partial class CanonicalDynamicRouteInventory
                 out IReadOnlyList<CompositionIssue> issues);
         FirmwareImageMap map = issues.Count == 0
             ? maps.SingleOrDefault(candidate =>
-                    candidate.CapacityBytes == referenceCapacity) ??
-                throw new InvalidDataException(
-                    $"CtrlRAM reference capacity 0x{referenceCapacity:X} has no canonical map.")
+                    candidate.CapacityBytes == referenceLength) ??
+                (TryResolveCtrlRamEnvelopeTemplate(route, maps, referenceLength, out FirmwareImageMap? template, out _)
+                    ? template
+                    : throw new InvalidDataException(
+                        $"CtrlRAM reference length 0x{referenceLength:X} has no canonical map or layout template."))
             : throw InvalidDefinition(
                 new CapabilityRouteIdentity(
                     route.Key.IcId,

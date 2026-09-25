@@ -1,0 +1,67 @@
+{
+  "schemaVersion": 2,
+  "taskId": "STARTUP-CATALOG-1112-01",
+  "capability": "Shorten 1.1.12 startup catalog loading: deduplicate schema validation, parsing and compilation, and preload built-in bundles in bounded dependency layers",
+  "integrationBase": "49e633f687ecd1337e78d8a4de5ca14f880d68c6",
+  "risk": "R2",
+  "kind": "behavior",
+  "state": "final-complete",
+  "mutablePaths": [
+    "src/NvtFwCombiner.Infrastructure/Bundles/ProfileBundleSchemaValidator.cs",
+    "src/NvtFwCombiner.Infrastructure/Bundles/ProfileBundleFileSnapshot.cs",
+    "src/NvtFwCombiner.Infrastructure/Bundles/ProfileBundleLoader.cs",
+    "src/NvtFwCombiner.Infrastructure/Bundles/TrustedProfileBundleDocumentProjection.cs",
+    "src/NvtFwCombiner.Infrastructure/Composition/BuiltInV2RegistrationRegistry.cs",
+    "src/NvtFwCombiner.Infrastructure/Composition/CanonicalCapabilityDisclosureInventory.cs",
+    "src/NvtFwCombiner.Infrastructure/Composition/CtrlRamV2RouteRegistry.cs",
+    "src/NvtFwCombiner.Infrastructure/Composition/BuiltInV2Bundle.cs",
+    "src/NvtFwCombiner.Infrastructure/Composition/BuiltInV2BundlePreload.cs",
+    "src/NvtFwCombiner.Application/Capabilities/CanonicalCapabilityCatalogSource.cs",
+    "src/NvtFwCombiner.Bootstrap/CompositionHostServices.cs",
+    "docs/adr/0075-bounded-catalog-bundle-preload.md",
+    "docs/adr/0049-unified-preload-lifecycle.md",
+    "tests/NvtFwCombiner.Infrastructure.Tests/Bundles/ProfileBundleSchemaValidatorTests.SchemaReuse.cs",
+    "tests/NvtFwCombiner.Infrastructure.Tests/Bundles/ProfileBundleSchemaValidatorTests.ConcurrentReuse.cs",
+    "tests/NvtFwCombiner.Infrastructure.Tests/Bundles/ProfileBundleFileSnapshotTests.cs",
+    "tests/NvtFwCombiner.Infrastructure.Tests/Bundles/ProfileBundleSingleParseTests.cs",
+    "tests/NvtFwCombiner.Bootstrap.Tests/StartupCompilationReuseTests.cs",
+    "tests/NvtFwCombiner.Bootstrap.Tests/BuiltInBundlePreloadTests.cs"
+  ],
+  "implementationOwner": "claude-code",
+  "searchEvidence": [
+    "Owner decisions 9 to 11 (2026-09-25): startup optimization is the 1.1.12 product priority; memory must not regress against the v1.1.11 package shape; the commander may implement bounded parallel bundle loading under an ADR 0049 amendment. On 2026-09-25 the owner also directed parallel work wherever possible with no race condition.",
+    "Package-shape measurement and a sampled thread-time trace located the startup gap in the required catalog stage: built-in bundle loading, dominated by Draft 2020-12 schema meta-validation and instance evaluation, repeated parsing and repeated compilation, all serial on one worker thread.",
+    "Existing owners are extended, not duplicated: ProfileBundleSchemaValidator and ProfileBundleLoader own bundle trust checks; BuiltInV2Bundle owns each bundle's lazy catalog; BuiltInV2Registration and CtrlRamV2RouteRegistry own compilation and CtrlRAM report metadata; CanonicalCapabilityCatalogSource owns the serial catalog pass. Units 1 to 3 were implemented earlier under the bounded local R1 path (WS-PERF log); this record admits them with the R2 preload for integration."
+  ],
+  "semanticOwner": "ProfileBundleSchemaValidator and ProfileBundleLoader remain the only bundle trust gateway; BuiltInV2Bundle's lazy catalog remains the only bundle catalog; CanonicalCapabilityCatalogSource's serial pass remains the only publisher of routes, progress and errors.",
+  "terminalContract": "Keep every published route, fingerprint, plan, disclosure, selector publication, progress sequence, first error, issue code and message identical for the fixed built-in inputs, pinned by a complete catalog snapshot digest. Units 1 to 3 reuse only verdicts and compilations of identical inputs, never cache failures, and keep CtrlRAM definitions per load. The preload follows ADR 0075: fixed dependency layers with barriers, one serial warm-up bundle, at most min(4, ProcessorCount - 1) workers, no cross-worker waiting, failures left to the serial pass, cancellation propagated after started bundles finish, and serial loading when the trust index names a bundle outside the layer table. Concurrent evaluation of shared JsonSchema instances is used only with a source-level audit of JsonSchema.Net 8.0.5; otherwise workers use their own schema instances. Adoption requires per-launch package-shape memory within the v1.1.11 baseline and GC heap after warm-up at most 50 MB. No change to profiles, contracts, schemas, firmware bytes, ranges, package settings or the first-window path.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "codex/gpt-6-sol",
+    "outcome": "findings-incorporated",
+    "evidence": "2026-09-25 two independent read-only design reviews of ADR 0075 (draft and revision, both ACCEPT-WITH-CHANGES). Incorporated: equivalence limited to fixed re-readable inputs with the accepted process-lifetime failure cache pinned by test; dependency layers with barriers and a serial warm-up instead of a general acyclicity argument, with the layer table pinned against the recomputed reference graph; per-launch memory gates; precise cancellation and failure precedence; ordered-slot parallel computation evaluated per stage and deferred with reasons; shared JsonSchema evaluation admitted only with a source-level library audit, else per-worker isolation. Units 1 to 3 are bounded R1 corrections already tested locally; the final review covers them with the preload."
+  },
+  "implementationHead": "aa8ae537b8833c8369397fedcb208818c1dcf1f5",
+  "reviewedHead": "aa8ae537b8833c8369397fedcb208818c1dcf1f5",
+  "pathStateDigest": "dd1ed7e1d0d4ac7034f03a57c27121f0a16753b25d8719886f187453c3224d1f",
+  "finalReview": {
+    "reviewer": "codex/gpt-6-sol",
+    "outcome": "findings-incorporated",
+    "evidence": "Independent codex/gpt-6-sol final review at exact head aa8ae537b8833c8369397fedcb208818c1dcf1f5: APPROVED. Only CHANGELOG.md differs from the previously reviewed 439f89a81 head, and src, profiles and tests match the measured dc773e967 product source. The prior substantive startup catalog review remains applicable. The original ‘within the v1.1.11 baseline’ memory clause is superseded by owner decisions 12, 16 and 18 and their recorded package-shape measurements. This review did not rerun tests or certify release gates. First-round findings F-1 to F-4 and F-8 at d3eabec13 were incorporated."
+  },
+  "integrationPaths": [
+    "src/NvtFwCombiner.Infrastructure/Bundles/ProfileBundleSchemaValidator.cs",
+    "src/NvtFwCombiner.Infrastructure/Bundles/ProfileBundleFileSnapshot.cs",
+    "src/NvtFwCombiner.Infrastructure/Bundles/ProfileBundleLoader.cs",
+    "src/NvtFwCombiner.Infrastructure/Bundles/TrustedProfileBundleDocumentProjection.cs",
+    "src/NvtFwCombiner.Infrastructure/Composition/BuiltInV2RegistrationRegistry.cs",
+    "src/NvtFwCombiner.Infrastructure/Composition/CanonicalCapabilityDisclosureInventory.cs",
+    "src/NvtFwCombiner.Infrastructure/Composition/CtrlRamV2RouteRegistry.cs",
+    "src/NvtFwCombiner.Infrastructure/Composition/BuiltInV2Bundle.cs",
+    "src/NvtFwCombiner.Infrastructure/Composition/BuiltInV2BundlePreload.cs",
+    "src/NvtFwCombiner.Application/Capabilities/CanonicalCapabilityCatalogSource.cs",
+    "src/NvtFwCombiner.Bootstrap/CompositionHostServices.cs",
+    "docs/adr/0075-bounded-catalog-bundle-preload.md",
+    "docs/adr/0049-unified-preload-lifecycle.md"
+  ]
+}

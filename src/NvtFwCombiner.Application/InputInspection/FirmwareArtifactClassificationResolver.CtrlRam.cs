@@ -55,15 +55,14 @@ internal sealed partial class FirmwareArtifactClassificationResolver
                 }
             }
 
+            // AB-TWO-NVT-1112-01: a compiled AB layout is AB evidence only through its trusted
+            // structure or exactly one complete NVT marker in each canonical bank. Bank issues are
+            // reported on the AB result but never decide the kind.
             AbReferenceCandidateAssessment[] trusted =
                 [.. assessments.Where(static assessment => assessment.HasTrustedStructure)];
             AbReferenceCandidateAssessment[] recognized = trusted.Length != 0
                 ? trusted
-                : [.. assessments.Where(static assessment => assessment.HasTwoBankEvidence)];
-            if (recognized.Length == 0 && layouts.Count == 1)
-            {
-                recognized = [.. assessments.Where(static assessment => assessment.LegacySingleCandidateEvidence)];
-            }
+                : [.. assessments.Where(static assessment => assessment.HasOneNvtMarkerPerBank)];
             if (recognized.Length > 0)
             {
                 return !IsCurrentSnapshot(publication)
@@ -75,7 +74,7 @@ internal sealed partial class FirmwareArtifactClassificationResolver
                     ? new(CtrlRamBaseKind.AbFlash, draft as AbCtrlRamDraftState ?? new AbCtrlRamDraftState(),
                         recognized[0].Facts, recognized[0].Issues, publication.ResolutionToken, referenceStamp)
                     : new(CtrlRamBaseKind.AbFlash, draft as AbCtrlRamDraftState ?? new AbCtrlRamDraftState(), [],
-                        [new("input.bank-reference.ambiguous", "More than one trusted AB bank layout matches this Reference.",
+                        [new("input.bank-reference.ambiguous", "More than one AB bank layout matches this Reference with equal evidence.",
                             CompositionSlotIds.ReplaceBase)], publication.ResolutionToken, referenceStamp);
             }
         }
@@ -161,11 +160,13 @@ internal sealed partial class FirmwareArtifactClassificationResolver
                 CompiledFirmwareArtifactKind.FlashCode) : 0;
         var facts = new List<CtrlRamBaseBankInspection>(2);
         var issues = new List<CompositionIssue>();
+        bool oneNvtMarkerPerBank = true;
         foreach (FirmwareRegion bank in banks)
         {
             ReadOnlyMemory<byte> bytes = reference.Slice(checked((int)bank.Range.Start), checked((int)bank.Range.Length));
             bool readable = FirmwareConfigMetadataReader.TryReadBackup(bytes.Span, out FirmwareConfigMetadata config,
                 out int markers);
+            oneNvtMarkerPerBank &= markers == 1;
             bool valid = readable && config.IsFirmwareVersionBarValid && config.ChipNumber > 0;
             CompositionIssue[] bankIssues = valid ? [] :
                 [!readable
@@ -195,9 +196,6 @@ internal sealed partial class FirmwareArtifactClassificationResolver
             issues.Add(new("input.bank-reference.count", $"AB IC count mismatch: a-bank Read {facts[0].FirmwareConfig!.ChipNumber}, b-bank Read {facts[1].FirmwareConfig!.ChipNumber}.", CompositionSlotIds.ReplaceBase));
         }
         AbReferenceValidation validation = adapter.ValidateAbReference(layout, reference);
-        bool legacyEvidence = plausibleBanks > 0 || (issues.Count == 0 && validation.Issues.Count == 0);
-        bool twoBankEvidence = facts.All(static bank => bank.FirmwareConfig is not null) &&
-            plausibleBanks == banks.Length;
         issues.AddRange(validation.Issues);
         if (hasStandard && plausibleBanks != banks.Length)
         {
@@ -205,16 +203,14 @@ internal sealed partial class FirmwareArtifactClassificationResolver
                 "AB bank contents do not satisfy the declared Flash plausibility checks.",
                 CompositionSlotIds.ReplaceBase));
         }
-        return new([.. facts], [.. issues], validation.HasTrustedAbStructure,
-            twoBankEvidence, legacyEvidence);
+        return new([.. facts], [.. issues], validation.HasTrustedAbStructure, oneNvtMarkerPerBank);
     }
 
     private sealed record AbReferenceCandidateAssessment(
         IReadOnlyList<CtrlRamBaseBankInspection> Facts,
         IReadOnlyList<CompositionIssue> Issues,
         bool HasTrustedStructure,
-        bool HasTwoBankEvidence,
-        bool LegacySingleCandidateEvidence);
+        bool HasOneNvtMarkerPerBank);
 
     private static byte? ReadConsensusEventBufferFormat(
         IReadOnlyList<ResolvedCapability> candidates, ResolutionToken resolutionToken,

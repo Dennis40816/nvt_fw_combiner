@@ -2,6 +2,7 @@ using System.Security.Cryptography;
 using System.Text.Json;
 using NvtFwCombiner.Application.Authoring;
 using NvtFwCombiner.Application.ExternalTools;
+using NvtFwCombiner.Application.MemoryLayout;
 using NvtFwCombiner.Application.Ports;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.TestSupport;
@@ -20,6 +21,8 @@ public sealed class Nt51950Nt51951DiffDlmMaskCascade2GoldenTests
     private const int DiffNfLength = 0x0AF0;
     private const int BackupStart = 0x36000;
     private const int FirmwareConfigLength = 0x0780;
+    private const int Nt51950TemplateCapacity = 0x40000;
+    private const int NonstandardEnvelopeLength = 0x60000;
 
     /// <summary>The direct fixture independently locks reconstruction, preservation, and golden-only dummy quality.</summary>
     [Fact]
@@ -80,6 +83,106 @@ public sealed class Nt51950Nt51951DiffDlmMaskCascade2GoldenTests
         Assert.Equal(evidence.Expected.Bytes, File.ReadAllBytes(outputPath));
         using var report = JsonDocument.Parse(CompositionRunReportJson.Serialize(result));
         Assert.Equal("nt51951-ctrlram-replace-fw1x-cascade", report.RootElement.GetProperty("ProfileId").GetString());
+    }
+
+    /// <summary>
+    /// The owner's 0x80000 950-cascade flash also runs on the NT51950 2-IC route: its 256 KiB full-flash map is the
+    /// layout template of a captured envelope, so the complete Base is kept and the owner expected output is reproduced.
+    /// </summary>
+    [Fact]
+    public async Task Nt51950CascadeEnvelopeReproducesTheOwnerExpectedAsync()
+    {
+        OwnerCase evidence = ReadOwnerCase();
+        using var workspace = TempWorkspace.Create("nfc-nt51950-cascade2-owner-envelope");
+        string referencePath = workspace.Write("reference.bin", ReconstructReference(evidence));
+        string outputPath = workspace.PathFor("output.bin");
+        var processor = new CountingPassThroughProcessor();
+
+        CompositionRunResult result = await CtrlRamReplaceTestSupport.RunWithProcessorAsync(
+            BootstrapTestHost.Canonical,
+            "NT51950",
+            "cascade",
+            CreateSlotPaths(evidence, referencePath, evidence.DiffDlm.Path),
+            true,
+            outputPath,
+            null,
+            processor,
+            TestContext.Current.CancellationToken);
+
+        Assert.True(result.Succeeded, CompositionRunReportJson.Serialize(result));
+        Assert.Equal(1, processor.CallCount);
+        Assert.Equal(evidence.Expected.Bytes, File.ReadAllBytes(outputPath));
+        using var report = JsonDocument.Parse(CompositionRunReportJson.Serialize(result));
+        Assert.Equal("nt51950-ctrlram-replace-fw1x-cascade", report.RootElement.GetProperty("ProfileId").GetString());
+    }
+
+    /// <summary>
+    /// A nonstandard envelope length is recognized by its Standard prefix, kept byte-for-byte on the NT51950 2-IC
+    /// route and only warns.
+    /// </summary>
+    [Fact]
+    public async Task Nt51950CascadeNonstandardEnvelopeKeepsEveryByteAndWarnsAsync()
+    {
+        OwnerCase evidence = ReadOwnerCase();
+        using var workspace = TempWorkspace.Create("nfc-nt51950-cascade2-nonstandard-envelope");
+        byte[] reference = ReconstructReference(evidence).AsSpan(0, NonstandardEnvelopeLength).ToArray();
+        string referencePath = workspace.Write("reference.bin", reference);
+        string outputPath = workspace.PathFor("output.bin");
+        var processor = new CountingPassThroughProcessor();
+
+        CompositionRunResult result = await RunNt51950Async(
+            evidence, referencePath, evidence.DiffDlm.Path, outputPath, processor);
+
+        Assert.True(result.Succeeded, CompositionRunReportJson.Serialize(result));
+        Assert.Equal(1, processor.CallCount);
+        Assert.Equal(reference, File.ReadAllBytes(outputPath));
+        using var report = JsonDocument.Parse(CompositionRunReportJson.Serialize(result));
+        JsonElement warning = Assert.Single(
+            report.RootElement.GetProperty("Issues").EnumerateArray(),
+            static issue => issue.GetProperty("Code").GetString() == "DP_NONSTANDARD_SIZE_WARNING");
+        Assert.Equal("warning", warning.GetProperty("Severity").GetString());
+        JsonElement summary = report.RootElement.GetProperty("SourceEnvelope");
+        Assert.Equal(Nt51950TemplateCapacity, summary.GetProperty("LayoutTemplateCapacity").GetInt64());
+        Assert.Equal(NonstandardEnvelopeLength, summary.GetProperty("ActualOutputLength").GetInt64());
+    }
+
+    /// <summary>A nonstandard length whose Standard prefix is not a Standard Flash stays unrecognized.</summary>
+    [Fact]
+    public void Nt51950NonstandardLengthWithoutStandardPrefixFailsClosed()
+    {
+        OwnerCase evidence = ReadOwnerCase();
+        using var workspace = TempWorkspace.Create("nfc-nt51950-cascade2-nonstandard-no-prefix");
+        byte[] reference = ReconstructReference(evidence).AsSpan(0, NonstandardEnvelopeLength).ToArray();
+        reference.AsSpan(0, Nt51950TemplateCapacity).Fill(0xFF);
+        string referencePath = workspace.Write("reference.bin", reference);
+
+        (ActiveSessionSnapshot? snapshot, IReadOnlyList<CompositionIssue> issues) =
+            CtrlRamReplaceTestSupport.Prepare(
+                BootstrapTestHost.Canonical,
+                "NT51950",
+                "cascade",
+                CreateSlotPaths(evidence, referencePath, evidence.DiffDlm.Path),
+                firmwareVersionEdit: null);
+
+        Assert.Null(snapshot);
+        Assert.Contains(issues, issue => issue.Code == "input.reference.unrecognized");
+    }
+
+    /// <summary>The envelope tail beyond the 256 KiB layout template never gains processor write authority.</summary>
+    [Fact]
+    public async Task Nt51950CascadeEnvelopeTailMutationFailsClosedAsync()
+    {
+        OwnerCase evidence = ReadOwnerCase();
+        using var workspace = TempWorkspace.Create("nfc-nt51950-cascade2-envelope-tail");
+        string referencePath = workspace.Write("reference.bin", ReconstructReference(evidence));
+        string outputPath = workspace.PathFor("must-not-exist.bin");
+
+        CompositionRunResult result = await RunNt51950Async(
+            evidence, referencePath, evidence.DiffDlm.Path, outputPath,
+            new UnauthorizedMutationProcessor(Nt51950TemplateCapacity + 0x100));
+
+        Assert.False(result.Succeeded, CompositionRunReportJson.Serialize(result));
+        Assert.False(File.Exists(outputPath));
     }
 
     /// <summary>A nonzero active-prefix delta is applied while the adjacent DiffNF and later target record remain immutable.</summary>
@@ -319,6 +422,141 @@ public sealed class Nt51950Nt51951DiffDlmMaskCascade2GoldenTests
         Assert.Equal("1536d344af83aafd29e5884d9d2d904f1efa03c8fdcc4e913832253814644ebd", Hash(output));
     }
 
+    /// <summary>
+    /// Complete-output Golden evidence for the envelope: the registered Combiner on the NT51950 2-IC route over the
+    /// owner's 0x80000 flash differs from the owner expected output only where the NT51951 route also differs.
+    /// </summary>
+    [Fact]
+    public async Task Nt51950CascadeEnvelopeRegisteredCombinerMatchesTheOwnerExpectedAsync()
+    {
+        if (!OperatingSystem.IsWindows())
+        {
+            return;
+        }
+
+        OwnerCase evidence = ReadOwnerCase();
+        using var workspace = TempWorkspace.Create("nfc-nt51950-cascade2-envelope-real-combiner");
+        string referencePath = workspace.Write("reference.bin", ReconstructReference(evidence));
+        string outputPath = workspace.PathFor("output.bin");
+
+        CompositionRunResult result = await CtrlRamReplaceTestSupport.RunAsync(BootstrapTestHost.Canonical,
+            "NT51950", "cascade", ExperienceIds.CtrlRamReplace,
+            CreateSlotPaths(evidence, referencePath, evidence.DiffDlm.Path),
+            build: true,
+            TestContext.Current.CancellationToken,
+            outputPath);
+
+        Assert.True(result.Succeeded, CompositionRunReportJson.Serialize(result));
+        byte[] output = File.ReadAllBytes(outputPath);
+        (long differenceCount, ByteRange[] differenceRanges) = FindDifferences(evidence.Expected.Bytes, output);
+        Assert.Equal(16, differenceCount);
+        Assert.Equal(
+            [
+                new ByteRange(0xA11C, 4),
+                new ByteRange(0xA130, 4),
+                new ByteRange(0x2D428, 4),
+                new ByteRange(0x2D43C, 4),
+            ],
+            differenceRanges);
+        Assert.Equal(
+            evidence.Expected.Bytes.AsSpan(Nt51950TemplateCapacity).ToArray(),
+            output.AsSpan(Nt51950TemplateCapacity).ToArray());
+    }
+
+    /// <summary>
+    /// Display OSD envelope equivalence: the registered Combiner on a Standard Base followed by a tail produces the
+    /// exact-length Standard output inside the layout template and keeps every tail byte.
+    /// </summary>
+    [Theory]
+    [InlineData("NT51950", "single", 0x40000, 0x80000)]
+    [InlineData("NT51950", "single", 0x40000, 0x100000)]
+    [InlineData("NT51950", "cascade", 0x40000, 0x100000)]
+    [InlineData("NT51951", "single", 0x80000, 0x100000)]
+    [InlineData("NT51951", "cascade", 0x80000, 0x100000)]
+    public async Task StandardEnvelopeMatchesTheExactStandardOutputAndKeepsTheTailAsync(
+        string member, string number, int templateLength, int envelopeLength)
+    {
+        if (!OperatingSystem.IsWindows())
+        {
+            Assert.Skip("Real Combiner evidence requires Windows.");
+        }
+
+        byte[] standard = LoadStandardFlash(member, number)[..templateLength];
+        byte[] envelope = new byte[envelopeLength];
+        standard.CopyTo(envelope, 0);
+        for (int offset = templateLength; offset < envelopeLength; offset++)
+        {
+            envelope[offset] = unchecked((byte)offset);
+        }
+
+        (Dictionary<string, string> paths, Dictionary<string, byte[]> bytes) = AbCtrlRamAuthoringTests.Inputs();
+        if (number == "cascade")
+        {
+            _ = paths.Remove("replace-ctrlram-nf");
+            _ = bytes.Remove("replace-ctrlram-nf");
+        }
+        paths["replace-ctrlram-normal"] = Path.Combine(Path.GetTempPath(), "captured-envelope-normal.bin");
+        bytes["replace-ctrlram-normal"] = standard.AsSpan(0x25610, 0x5C00).ToArray();
+        bytes["replace-ctrlram-normal"][0] ^= 0x5A;
+
+        (CompositionRunResult control, _) = await BuildStandardAsync(member, number, paths, bytes, standard);
+        (CompositionRunResult built, ActiveSessionSnapshot session) =
+            await BuildStandardAsync(member, number, paths, bytes, envelope);
+
+        Assert.Equal(control.OutputBytes.ToArray(), built.OutputBytes[..templateLength].ToArray());
+        Assert.Equal(envelope[templateLength..], built.OutputBytes[templateLength..].ToArray());
+        using var report = JsonDocument.Parse(CompositionRunReportJson.Serialize(built));
+        JsonElement summary = report.RootElement.GetProperty("SourceEnvelope");
+        Assert.Equal(templateLength, summary.GetProperty("LayoutTemplateCapacity").GetInt64());
+        Assert.Equal(envelopeLength, summary.GetProperty("ActualOutputLength").GetInt64());
+        MemoryLayoutSnapshot layout = MemoryLayoutProjector.Project(
+            session.ExactCapability!, session, session.ExactCapability!.CompiledComposition);
+        Assert.Equal(envelopeLength, layout.Capacity);
+    }
+
+    private static byte[] LoadStandardFlash(string member, string number)
+    {
+        if (member == "NT51951" && number == "single")
+        {
+            JsonElement golden = CanonicalGoldenTestData.LoadDirectCase(
+                "ctrlram-replace", "nt51951-fw200-single-auto-prj-695-20260718");
+            JsonElement artifact = golden.GetProperty("artifacts").EnumerateArray().Single(static item =>
+                item.GetProperty("artifactId").GetString() == "expected-output");
+            return File.ReadAllBytes(CanonicalGoldenTestData.ArtifactPath(artifact));
+        }
+
+        if (member == "NT51950" && number == "single")
+        {
+            string expectedDirectory = Path.Combine(CanonicalGoldenTestData.Root, "NT51950", "ab-merge",
+                "boe-d82t80", "topology-unscoped", "nt51950-ab-boe-d82t80", "expected");
+            return File.ReadAllBytes(Directory.GetFiles(expectedDirectory, "*.bin").Single());
+        }
+
+        return ReadOwnerCase().Expected.Bytes;
+    }
+
+    private static async Task<(CompositionRunResult Result, ActiveSessionSnapshot Session)> BuildStandardAsync(
+        string member,
+        string number,
+        Dictionary<string, string> paths,
+        Dictionary<string, byte[]> bytes,
+        byte[] reference)
+    {
+        bytes[CompositionSlotIds.ReplaceBase] = reference;
+        CtrlRamAuthoringSessionPreparation prepared = BootstrapTestHost.Canonical.CtrlRamAuthoring.PrepareSession(
+            new(ExperienceIds.CtrlRamReplace), member, number, paths, bytes, null);
+        Assert.True(prepared.Succeeded, string.Join("; ", prepared.Issues.Select(static issue => issue.Message)));
+        ActiveSessionSnapshot session = prepared.AcceptedSession!;
+        _ = Assert.IsType<RuntimeReferenceReplaceV2CompilationContext>(
+            session.ExactCapability!.CompiledComposition.V2Details.Provenance.Context);
+        using TempWorkspace workspace = TempWorkspace.Create("ctrlram-envelope-build");
+        CompositionRunResult built = await CtrlRamReplaceTestSupport.ExecuteAcceptedWithProcessorAsync(
+            BootstrapTestHost.Canonical, session, paths, true, workspace.PathFor("result.bin"),
+            ExternalProcessorEnvironmentTestSupport.AcquireCurrent().Processor, TestContext.Current.CancellationToken);
+        Assert.Equal(CompositionExecutionStatus.Succeeded, built.Status);
+        return (built, session);
+    }
+
     private static IReadOnlyList<CompositionIssue> PrepareRejected(
         IReadOnlyDictionary<string, string> slotPaths,
         string outputPath)
@@ -344,6 +582,18 @@ public sealed class Nt51950Nt51951DiffDlmMaskCascade2GoldenTests
     {
         return await CtrlRamReplaceTestSupport.RunWithProcessorAsync(BootstrapTestHost.Canonical,
             "NT51951", "cascade", CreateSlotPaths(evidence, referencePath, diffPath),
+            true, outputPath, null, processor, TestContext.Current.CancellationToken);
+    }
+
+    private static async Task<CompositionRunResult> RunNt51950Async(
+        OwnerCase evidence,
+        string referencePath,
+        string diffPath,
+        string outputPath,
+        IExternalProcessor processor)
+    {
+        return await CtrlRamReplaceTestSupport.RunWithProcessorAsync(BootstrapTestHost.Canonical,
+            "NT51950", "cascade", CreateSlotPaths(evidence, referencePath, diffPath),
             true, outputPath, null, processor, TestContext.Current.CancellationToken);
     }
 

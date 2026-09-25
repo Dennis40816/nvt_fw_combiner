@@ -83,7 +83,9 @@ public sealed partial class RuntimeReferenceCompilationProof
                 nameof(plan));
         }
 
-        long capacity = composition.Plan.OutputInitialization.Capacity;
+        // An admitted envelope keeps postbuild authority and integrity identity on the layout template.
+        long capacity = context.SourceEnvelope?.LayoutTemplateCapacity ??
+            composition.Plan.OutputInitialization.Capacity;
         if (!plan.Profile.Owns(plan))
         {
             throw new ArgumentException(

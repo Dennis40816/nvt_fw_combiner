@@ -118,7 +118,8 @@ public sealed partial class CompositionHostServices
             CanonicalCompiledRouteInventory.Resolve,
             CanonicalDynamicRouteInventory.CreateResolver,
             CanonicalCapabilityDisclosureInventory.Create,
-            CanonicalFullImageMetadataInventory.Create);
+            CanonicalFullImageMetadataInventory.Create,
+            BuiltInV2BundlePreload.Run);
     }
 
     /// <summary>Creates one isolated host graph at an executable composition root.</summary>

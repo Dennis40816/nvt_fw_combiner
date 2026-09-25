@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Reflection;
 using System.Text.Json;
 using Json.Schema;
@@ -8,6 +9,12 @@ namespace NvtFwCombiner.Infrastructure.Bundles;
 internal static class ProfileBundleSchemaValidator
 {
     private const string Draft202012SchemaId = "https://json-schema.org/draft/2020-12/schema";
+    private const int MaximumCachedEntrySchemas = 64;
+
+    // Built-in bundles repeat the same schema bytes; identical bytes always give the same verdict,
+    // so only schemas that passed every check are reused. Failures are never cached.
+    private static readonly ConcurrentDictionary<EntrySchemaKey, JsonSchema> ValidatedEntrySchemas = new();
+    private static readonly Lock SchemaBuildLock = new();
 
     internal static void ValidateManifest(
         ProfileBundleFileSnapshot manifestSnapshot,
@@ -16,10 +23,10 @@ internal static class ProfileBundleSchemaValidator
         ArgumentNullException.ThrowIfNull(manifestSnapshot);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maximumJsonDepth);
 
-        using JsonDocument document = manifestSnapshot.ParseStrictJson(maximumJsonDepth);
+        JsonElement document = manifestSnapshot.GetStrictJsonRoot(maximumJsonDepth);
         ValidateInstance(
             ProfileBundleManifestSchema.Schema,
-            document.RootElement,
+            document,
             manifestSnapshot.ManifestPath,
             ProfileBundleManifestSchema.SchemaId);
     }
@@ -36,10 +43,7 @@ internal static class ProfileBundleSchemaValidator
         {
             if (entry.Entry.Kind == ProfileBundleEntryKind.Schema)
             {
-                using JsonDocument document = entry.FileSnapshot.ParseStrictJson(maximumJsonDepth);
-                schemas.Add(
-                    entry.Entry.SchemaId,
-                    ParseSchema(entry.Entry.Path, entry.Entry.SchemaId, document.RootElement));
+                schemas.Add(entry.Entry.SchemaId, GetOrParseEntrySchema(entry, maximumJsonDepth));
             }
         }
 
@@ -57,9 +61,25 @@ internal static class ProfileBundleSchemaValidator
                     $"Bundle entry references unavailable schema '{entry.Entry.SchemaId}'.");
             }
 
-            using JsonDocument document = entry.FileSnapshot.ParseStrictJson(maximumJsonDepth);
-            ValidateInstance(schema, document.RootElement, entry.Entry.Path, entry.Entry.SchemaId);
+            // The snapshot keeps this one strict parse for the document projection of the same load.
+            JsonElement document = entry.FileSnapshot.GetStrictJsonRoot(maximumJsonDepth);
+            ValidateInstance(schema, document, entry.Entry.Path, entry.Entry.SchemaId);
         }
+    }
+
+    private static JsonSchema GetOrParseEntrySchema(ProfileBundleEntrySnapshot entry, int maximumJsonDepth)
+    {
+        var key = new EntrySchemaKey(entry.Entry.SchemaId, entry.FileSnapshot.ActualSha256, maximumJsonDepth);
+        if (ValidatedEntrySchemas.TryGetValue(key, out JsonSchema? cached))
+        {
+            return cached;
+        }
+
+        using JsonDocument document = entry.FileSnapshot.ParseStrictJson(maximumJsonDepth);
+        JsonSchema schema = ParseSchema(entry.Entry.Path, entry.Entry.SchemaId, document.RootElement);
+        return ValidatedEntrySchemas.Count < MaximumCachedEntrySchemas
+            ? ValidatedEntrySchemas.GetOrAdd(key, schema)
+            : schema;
     }
 
     private static readonly EvaluationOptions EvaluationOptions = new()
@@ -92,26 +112,32 @@ internal static class ProfileBundleSchemaValidator
         ValidateRequiredRootString(root, "$id", schemaId, schemaPath);
         ValidateSchemaReferences(root, isRoot: true, schemaPath);
 
-        EvaluationResults metaValidation = MetaSchemas.Draft202012.Evaluate(root, EvaluationOptions);
-        if (!metaValidation.IsValid)
+        // Local-only references make every built schema fully resolved, so evaluating it later writes no
+        // shared state. Meta-validation and build run one at a time (ADR 0075): they read library-global
+        // registries, and serializing them costs little because validated schemas are cached.
+        lock (SchemaBuildLock)
         {
-            throw Error(schemaPath, "Bundle schema does not satisfy Draft 2020-12.");
-        }
-
-        try
-        {
-            return JsonSchema.FromText(root.GetRawText(), new BuildOptions
+            EvaluationResults metaValidation = MetaSchemas.Draft202012.Evaluate(root, EvaluationOptions);
+            if (!metaValidation.IsValid)
             {
-                SchemaRegistry = new SchemaRegistry(),
-            });
-        }
-        catch (JsonSchemaException exception)
-        {
-            throw Error(schemaPath, "Bundle schema could not be parsed.", exception);
-        }
-        catch (JsonException exception)
-        {
-            throw Error(schemaPath, "Bundle schema could not be parsed.", exception);
+                throw Error(schemaPath, "Bundle schema does not satisfy Draft 2020-12.");
+            }
+
+            try
+            {
+                return JsonSchema.FromText(root.GetRawText(), new BuildOptions
+                {
+                    SchemaRegistry = new SchemaRegistry(),
+                });
+            }
+            catch (JsonSchemaException exception)
+            {
+                throw Error(schemaPath, "Bundle schema could not be parsed.", exception);
+            }
+            catch (JsonException exception)
+            {
+                throw Error(schemaPath, "Bundle schema could not be parsed.", exception);
+            }
         }
     }
 
@@ -187,4 +213,6 @@ internal static class ProfileBundleSchemaValidator
     {
         return new InvalidDataException($"Bundle schema validation failed for '{entryPath}': {message}", innerException);
     }
+
+    private readonly record struct EntrySchemaKey(string SchemaId, string ContentSha256, int MaximumJsonDepth);
 }

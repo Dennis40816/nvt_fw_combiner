@@ -586,6 +586,7 @@ public sealed class MemoryLayoutSnapshot
         {
             ResolvedMapV2CompilationContext resolved => resolved.SourceEnvelope,
             RuntimeReferenceBankReplaceV2CompilationContext bankContext => bankContext.SourceEnvelope,
+            RuntimeReferenceReplaceV2CompilationContext runtime => runtime.SourceEnvelope,
             _ => null,
         };
         if (envelope is not null &&

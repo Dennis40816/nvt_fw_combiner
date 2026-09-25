@@ -125,9 +125,21 @@ internal sealed partial class TrustedProfileBundleCatalog
                 "Only a topology-disambiguating runtime reference-replace profile may supply one immutable map-resolution artifact matching the reference binding identity and length.");
         }
 
+        long referenceLength = referenceBindings[0].ExactLengthBytes;
+        long mapCapacity = request.SourceEnvelope?.LayoutTemplateCapacity ?? referenceLength;
+        if (request.SourceEnvelope is not null &&
+            (referenceLength <= mapCapacity ||
+             mapCandidates.Any(map => map.CapacityBytes == referenceLength || map.CapacityBytes > mapCapacity)))
+        {
+            return Failed(
+                [],
+                MapSelectionInvalid,
+                "A runtime reference envelope must use the largest canonical map as the layout template of a longer reference.");
+        }
+
         mapCandidates =
         [
-            .. mapCandidates.Where(map => map.CapacityBytes == referenceBindings[0].ExactLengthBytes),
+            .. mapCandidates.Where(map => map.CapacityBytes == mapCapacity),
         ];
         if (mapCandidates.Length == 0 ||
             ((!allowsTopologyDisambiguation || requestedTopology is null) && mapCandidates.Length != 1))
@@ -144,7 +156,7 @@ internal sealed partial class TrustedProfileBundleCatalog
             new FirmwareMapResolutionInputs(
                 memberId,
                 experienceId,
-                referenceBindings[0].ExactLengthBytes,
+                mapCapacity,
                 requestedTopology,
                 artifactSnapshots),
             out V2CompositionPreparationService.PreparedCompilation? preparation,

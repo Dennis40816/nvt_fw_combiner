@@ -1,0 +1,41 @@
+{
+  "schemaVersion": 2,
+  "taskId": "RELEASE-IDENTITY-1112-01",
+  "capability": "Prepare the owner-selected 1.1.12 candidate identity, release notes and roadmap outcome without publication",
+  "integrationBase": "49e633f687ecd1337e78d8a4de5ca14f880d68c6",
+  "risk": "R3",
+  "kind": "release",
+  "state": "final-complete",
+  "mutablePaths": [
+    "VERSION",
+    "SPEC.md",
+    "docs/architecture/nfc_roadmap.md"
+  ],
+  "implementationOwner": "claude-code",
+  "searchEvidence": [
+    "Owner decision 9 (2026-09-25): release 1.1.12 by 2026-09-28 through the 1.1.11 path. v1.1.11 is published; its peeled source and the 1.1.12 integration base branch point are 1c37bd718d8c4fbc5cc247952229e8b2f9f54ce8.",
+    "VERSION remains the canonical assembly and package identity; scripts/sync_derived.py release-version-headers projects it into the SPEC and docs/references/verification-report.md version headers, as in RELEASE-IDENTITY-1111-01.",
+    "docs/architecture/nfc_roadmap.md owns version allocation. Owner decisions 9 to 11 (2026-09-25) keep startup optimization and a non-certifying v0.9.16 alignment in 1.1.12; WS-IO ships in 1.1.12 only if its change is green by 2026-09-27 18:00 +08:00, and the commander scope decision recorded in the WS-IO log limits that change to F07, moving F08, F20 and F21 to 1.1.13. The governance reset, dual-runtime AI documents, test architecture, WS-FLOW corrections, TP Header SVN modeling and Header backup CRC work move to 1.1.13. The roadmap must record that allocation, including whether the WS-IO condition was met, and the measured startup outcome."
+  ],
+  "semanticOwner": "Existing VERSION release identity and the sync_derived release-version-headers provider; the roadmap owns version allocation; CHANGELOG owns user-visible candidate notes.",
+  "terminalContract": "Set VERSION to 1.1.12. Run the existing sync_derived release-version-headers provider, which updates only the SPEC.md and docs/references/verification-report.md version headers; edit the SPEC.md status header by hand to the 1.1.12 candidate with final gates pending. Amend the roadmap's 1.1.12 allocation with owner decisions 9 to 11: shipped scope, the WS-IO time-box outcome, items moved to 1.1.13, the non-certifying v0.9.16 alignment with the formal 1.x comparator in 1.1.13, and the measured package-shape startup and memory results against both startup targets and the memory budget, naming any missed target's gap and blocker (the compressed composite ReadyToRun shape is retained). Add the CHANGELOG 1.1.12 candidate section in the existing release-note structure: summary, product changes with support status and compatibility, security, known issues with each gap and limitation, upgrade and rollback, downloads and integrity, and verification. Do not promise a target in advance. Do not modify tags, assets, CI, release policy, profiles, expected bytes, Golden evidence or package settings, and do not claim publication. Final source verification, packaging and the release-owner attestation remain separately required.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "codex/gpt-6-sol",
+    "outcome": "findings-incorporated",
+    "evidence": "2026-09-25 independent R3 design review (Codex, read-only) confirmed the sealed final evidence checkpoint, the exact governed VERSION, SPEC.md and roadmap paths, the R3 release classification, and reuse of the existing version-header provider. The admission was corrected to retain the owner's conditional WS-IO allocation, distinguish the manually edited SPEC status from provider-managed version headers, and require measured startup and memory disclosure with complete candidate release notes. This design authorizes candidate preparation only; frozen-head review, exact-source verification, release-owner attestation, and publication gates remain separate."
+  },
+  "implementationHead": "aa8ae537b8833c8369397fedcb208818c1dcf1f5",
+  "reviewedHead": "aa8ae537b8833c8369397fedcb208818c1dcf1f5",
+  "pathStateDigest": "877af330bae644c8f597ede2a825d7673b3bc0c87d6b7df232066e47697620b2",
+  "finalReview": {
+    "reviewer": "codex/gpt-6-sol",
+    "outcome": "findings-incorporated",
+    "evidence": "Independent codex/gpt-6-sol final review at exact head aa8ae537b8833c8369397fedcb208818c1dcf1f5: APPROVED; F-9 is closed. The sole change from the previously reviewed 439f89a81 head is CHANGELOG.md. Its non-certifying v0.9.16 statement identifies the badc545b0 candidate source, limits comparison with the 1c37bd718 source to the other 36 of 37 routes with canonical inputs, and explicitly states that the 27 routes lacking canonical input were not run. Src, profiles and tests match dc773e967. F-10 remains deferred to 1.1.13; exact-source CI, packaging, release-owner attestation and publication remain separate gates. Earlier findings F-5 to F-7 were incorporated."
+  },
+  "integrationPaths": [
+    "VERSION",
+    "SPEC.md",
+    "docs/architecture/nfc_roadmap.md"
+  ]
+}
