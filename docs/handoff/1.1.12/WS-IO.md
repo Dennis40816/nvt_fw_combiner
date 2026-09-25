@@ -61,4 +61,33 @@ per the bug ledger in `docs/handoff/README.md`; cite IDs here.
 **Start.** After the base refresh (checklist A-7); 1.1.11 changes the same
 picker and input-result consumers.
 
+## Amendment 2026-09-25: release by 2026-09-28 (board decision 9)
+
+**Time box.** C-2 ships in 1.1.12 only if this branch is `verified` and its
+pull request is green by **2026-09-27 18:00 +08:00**; otherwise the commander
+moves it to 1.1.13. Order: F07, then F08. Start F20 and F21 residuals only if
+F07 and F08 are `verified` by 2026-09-26 20:00; otherwise record them as
+reallocated to 1.1.13 in your final checkpoint.
+
+**Write lock change.** Startup files now belong to two lanes: Startup A
+(Claude, everything after `main-window.opened`: catalog loading and
+application, startup warm-up) and Startup B (WS-WINDOW, Codex: process launch
+to `main-window.opened`, including `src/NvtFwCombiner.Desktop/`, `App.axaml*`,
+`MainWindow.axaml*` and pre-window resources). Any overlap stops that part and
+goes to the commander.
+
+**Checkpoints due.** First checkpoint (exact file list, revalidation result
+for F07 and F08) by 2026-09-25 23:00; then one per finding.
+
+**Common to every lane (decision 9).** Base `feature/1.1.12/handoff`; pull
+requests target the `1.1.12` integration branch; the commander pushes and
+opens them, the worker never pushes. The current rules still apply in full:
+complete the capability-reuse gate your change requires
+(`docs/governance/development-execution-workflow.md`), run the affected tests,
+and have `python scripts/verify.py --structure-only` pass on your final commit
+before you report `verified`. Builds must not leave modified
+`packages.lock.json` files; restore them if a build rewrites them. Record every
+bug in the bug ledger. The live board is `git show 1.1.x:docs/handoff/1.1.12.md`
+(section "Release plan to 2026-09-28").
+
 ## Checkpoints
