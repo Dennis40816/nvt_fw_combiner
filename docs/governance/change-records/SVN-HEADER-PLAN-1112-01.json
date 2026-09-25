@@ -1,0 +1,34 @@
+{
+  "schemaVersion": 2,
+  "taskId": "SVN-HEADER-PLAN-1112-01",
+  "capability": "Defer TP Header SVN modeling to 1.1.12 pending owner confirmation of Header contents",
+  "integrationBase": "3db701b70e0eec66889a4b030fcbb84db0db5693",
+  "risk": "R2",
+  "kind": "governance",
+  "state": "design-active",
+  "mutablePaths": [
+    "docs/architecture/nfc_roadmap.md"
+  ],
+  "implementationOwner": "/root",
+  "searchEvidence": [
+    "On 2026-09-25 the owner requested deferring the proposed shared TP Header SVN model to 1.1.12 until Header contents are confirmed. No SVN product/profile/schema change was applied.",
+    "docs/AGENTS.md identifies nfc_roadmap.md as the allocation owner and linked handoffs as detail only. Extend its existing 1.1.12 allocation and the existing post-v1.1.8 audit handoff, preserving output/persistence/startup work and broader 1.2.1 profile convergence.",
+    "Read-only inspection found existing 923/926/927 SVN fields at Header+0x24 and a separate 929 descriptor at TP+0x100. Field width, endianness and universal applicability remain explicitly pending owner confirmation; the shared-provider proposal is not an accepted executable contract."
+  ],
+  "semanticOwner": "docs/architecture/nfc_roadmap.md owns version allocation; the existing post-v1.1.8 audit handoff retains research and pending owner questions",
+  "terminalContract": "Schedule TP Header SVN common modeling under 1.1.12 only after owner confirmation of Header contents and a subsequent scoped implementation admission. Link the existing handoff's read-only findings and pending questions. Preserve existing 1.1.12 tasks, 1.2.1 broader profile work, 1.1.11 Replace SVN preservation, firmware behavior, Golden expectations and release gates. Do not claim implementation or approve unconfirmed field semantics.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "/root/ab_layout_context_review",
+    "outcome": "approved",
+    "evidence": "Independent 2026-09-25 read-only planning ADMIT: roadmap is the sole governed allocation path; handoff is non-normative detail. Mark Header semantics and implementation pending owner confirmation, with no production, schema, CRC, Golden or release-policy change."
+  },
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": {
+    "reviewer": null,
+    "outcome": "pending",
+    "evidence": ""
+  }
+}

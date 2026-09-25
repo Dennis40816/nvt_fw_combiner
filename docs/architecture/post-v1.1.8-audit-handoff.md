@@ -62,6 +62,39 @@ Do not expand 1.1.11 into wholesale profile merging or a new inheritance system.
 The roadmap already assigns these scopes; this clarification does not move
 work between versions or approve a concrete reference syntax.
 
+### TP Header SVN modeling deferred to 1.1.12 — 2026-09-25
+
+Owner 最新決定：先記錄於 **1.1.12**，待 owner 再確認 TP Header 內容後才實作。
+版本配置由 [roadmap](nfc_roadmap.md#owner-deferred-tp-header-svn-modeling--2026-09-25)
+擁有；本節保存調查與待確認事項。**尚未修改產品 profile、SVN 解析或寫入**，
+不列為 1.1.11 的完成項目或發布阻擋。
+
+- Owner 提出的定位是 **TP Header 起點 + `0x24`**。既有 923／926／927
+  `svn-auto-build-version` 模型為 4-byte unsigned little-endian；這是目前觀察，
+  仍待 owner 確認是否適用全部 TP FW、版本與 Header 類型。
+- 929 的 Type AB descriptor 位於 TP 起點 `+0x100`，其中相對 `+0x24`
+  已是 `build-read-command`；SVN 不可加到該 descriptor 或誤讀成 BIN 固定 `0x24`。
+  現有 TP local anchor：923／926／917／927／928 為 `0`，929 perfect family
+  為 `0x7000`，950／951 為 `0xA000`。AB 的 TP A／B 輸入各自使用 local
+  Header 起點；AB Base 依既有 bank-local 解析，不把 B output 位移套到獨立 TP B 輸入。
+- 候選共用方案：沿用 `metadataStructure`／`definitionReference`，只保留一份
+  `tp-global-prefix` SVN 定義，各 family 宣告 source binding 與 locator。
+  可放在既有無外部 definition dependency 的
+  `nt51919-nt51929-nt51932-shared-facts` provider；927 已引用該 provider 的 DPCMI，
+  若反向把共用 SVN 放到 927，會造成 hash 依賴循環。此處是設計草案，並非已實作契約。
+- 確認後需涵蓋 Standard、AB A／B、CtrlRAM Base 與已辨識的 General full-image；
+  任意 source 不直接視為 TP。CtrlRAM 沿既有 Standard metadata reuse；950／951
+  及 919 的 `reportMetadataMapId` 宣告需與新增的 report-purpose binding 一起核對。
+  移除既有 923／926／927 重複 SVN field／fieldSemantics，保留 Header 其餘欄位、
+  spans、copy 與 integrity 規則。FWConfig 的 SVN bytes 是另一位置，不混為同一欄位。
+- 待 owner 確認：各 Header 類型／版本的起點、`+0x24` 寬度與 byte order，
+  主 Header 與 backup 的角色，以及 AB A／B 是否各有 SVN。確認前不增加 UI、SVN
+  改寫、backup 同步或 CRC 行為；1.1.11 已接受的 Replace 保留 Base SVN 決定不變。
+- 後續驗證：一份 definition 的 exact references、不同來源的四 bytes 解碼、
+  descriptor 非混用、AB local／output 位移、缺值／短檔；保留既有 full-image 基線，
+  並確認 operations、write ranges 與完整輸出不因唯讀建模改變。同步既有 family／bundle
+  hashes 與政策來源 pins，不改 Golden expected bytes。廣泛 profile 去重仍留在 1.2.1。
+
 ### Current local startup measurement — 2026-09-25
 
 Product source: `eb7e96d880f93a020985724038ecfe6d061f7fca`; freshly built

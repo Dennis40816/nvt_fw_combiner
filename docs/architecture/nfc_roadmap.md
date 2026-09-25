@@ -44,7 +44,9 @@ current defect. F18 behavioral/interleaving evidence accompanies every repair.
   retryable persistence failures, remaining picker/I/O consumers and local
   atomic Report replacement. Preserve the already shipped Report Save fixes.
   Add Home startup/catalog-readiness optimization under the measurement-first
-  amendment below; retain all output/persistence repairs.
+  amendment below; retain all output/persistence repairs. TP Header SVN common
+  modeling is deferred here pending owner confirmation of Header contents;
+  see the bounded amendment below.
 - **1.1.13**: F03/F06 bounded process cancellation/termination/pipe drain first,
   then F01/F02/F25 close, READY cancellation, recovery and lifetime containment.
 - **1.1.14**: F17/F23/F26 controlled CLI/workflow/JSON errors, demonstrated F16
@@ -89,6 +91,17 @@ for current work; its unachieved historical evidence remains unchanged. No
 improvement or packaged/cold-launch pass has been demonstrated by this
 amendment. Broad profile reference convergence stays in `1.2.1`.
 
+
+### Owner-deferred TP Header SVN modeling — 2026-09-25
+
+The owner deferred shared TP Header SVN modeling to **1.1.12** to first confirm
+the Header contents. The [existing handoff](post-v1.1.8-audit-handoff.md#tp-header-svn-modeling-deferred-to-1112--2026-09-25)
+retains read-only findings, the common-definition proposal and pending Header
+questions. Implementation requires that confirmation and a subsequent scoped
+admission; this allocation does not accept unconfirmed field semantics or
+claim a product change. Preserve the existing output/persistence/startup work,
+the broader 1.2.1 profile convergence, and all 1.1.11 release/evidence gates.
+SVN modeling is neither a completed 1.1.11 feature nor a release blocker.
 
 Owner release-identity amendment, 2026-09-23: publish the current work as
 **1.1.10**, replacing the earlier `1.2.0` label. GitHub read-only inspection on
@@ -253,7 +266,7 @@ protected review/CI and candidate publication gates remain required.
 | `1.1.9` | **Long-name failure/recovery first, then Toolchain Runtime selection, remaining Settings conveniences and CtrlRAM AB intake**: fix issue #434 with edit-time visible errors, recovery to the last accepted valid name on invalid commit, and safe handling of BIN/Bundle/staging names. Assess removal of the product's total-path cap separately from the filesystem component limit. Add **Settings > Config > Toolchain** for detection and user selection of available compatible VC++ runtimes, including newer installed versions; see the linked Toolchain handoff for admission/readiness and verification questions. Record/reconcile the owner-provided CtrlRAM AB reference and prepare its contract/evidence questions for completion before `1.2.0`. Inventory other user-adjustable preferences and justified reset/import/export conveniences through the `1.1.6` Settings owner. Arbitrary maps, CRC/ranges, safety overrides and support promotion are outside ordinary Settings. |
 | `1.1.10` (required before `1.2.0`; owner scope update 2026-09-24) | **CtrlRAM AB Replace, affected shared-contract extraction, DP Replace retirement and verifier orchestration repair**. Retain the NT51932 Perfect family／NT51950 Partial family intake and explicit Common/Desay/topology evidence. Share canonical AB format/layout ownership, preserve independent page instances, and detach shared DPCMI/Perfect-family dependencies before retiring DP Replace. Keep repository-script pytest collection inside the selected test root while preserving exact selection, scratch isolation, cancellation and complete execution; pass the applicable fixed-source verifier. Bank/source/version and fixed-Reference decisions, unresolved firmware rules, implementation and verification evidence are tracked in the [1.1.10 delivery checklist](../ui/v1.1.10-delivery.md). No filename-based AB detection or blanket family promotion. |
 | `1.1.11` | **Input correctness, deferred AB/OSD verification and shared information UI**: reproduce/fix F04/F05; complete the current-source AB CtrlRAM and OSD evidence/owner review, retained Info/Details/Event Buffer/DP AB layout/Flash BIN assessment and loaded-FW screenshots. Temporarily hide Customized Merge/Replace UI entry points until their corresponding functionality is released and accepted; preserve implementation and data. See the owner-approved allocation above. |
-| `1.1.12` | **Output/persistence correctness and measured Home startup optimization**: F07/F08, residual F20/F21; preserve committed receipts and existing destinations, expose retryable errors. Hard targets from process launch: visible first window within 500 ms, all startup loading within 2,000 ms; nonessential work in background. Use comparable per-launch timing and first-navigation regression evidence; see the 2026-09-25 startup amendment. |
+| `1.1.12` | **Output/persistence correctness and measured Home startup optimization**: F07/F08, residual F20/F21; preserve committed receipts and existing destinations, expose retryable errors. Hard targets from process launch: visible first window within 500 ms, all startup loading within 2,000 ms; nonessential work in background. Use comparable per-launch timing and first-navigation regression evidence; see the 2026-09-25 startup amendment. TP Header SVN common modeling awaits owner confirmation under the linked deferral amendment. |
 | `1.1.13` | **Process cancellation then window lifetime**: F03/F06 before F01/F02/F25; bounded termination and recovery. |
 | `1.1.14` | **Controlled diagnostics and repair regression**: F17/F23/F26, demonstrated F16 defects; retain F18 evidence throughout. |
 | `1.2.0` | **No longer the release label for `1.1.10`**: the owner explicitly chose `1.1.10` on 2026-09-23. No additional scope is assigned by that numbering correction. The former Launcher development tranche remains in `1.2.1`; reference refresh and current evidence remain in the `1.1.10` delivery. |
@@ -340,7 +353,7 @@ the declared Family-before-retirement dependency and earlier firmware gates.
 | --- | --- | --- |
 | `1.1.11` | **Input request identity**: F04/F05 plus AB/OSD verification and temporary Customized UI hiding. | Cancel/reopen cannot apply old picker results; a slow old Hex load cannot replace a newer accepted document; failed loading retains prior bytes/path. |
 | `1.1.13` | **Process and window lifetime**: F03/F06 precede F01/F02/F25. | Bound cancellation, termination confirmation and held-pipe drain; failed handoff resumes saving and allows a second Close; READY cancellation and stale callbacks remain contained. |
-| `1.1.12` | **Output and persistence truth**: F07/F08 and remaining F20/F21; Home startup optimization added by the 2026-09-25 amendment. | Preserve committed output receipt after cancellation; show retryable save failures; local Report replacement preserves the original destination on precommit failure. Keep shipped snapshot/reentry/disposal fixes. Startup acceptance follows the linked handoff's comparable stage timings and navigation checks. |
+| `1.1.12` | **Output and persistence truth**: F07/F08 and remaining F20/F21; Home startup optimization and deferred TP Header SVN modeling follow the 2026-09-25 amendments. | Preserve committed output receipt after cancellation; show retryable save failures; local Report replacement preserves the original destination on precommit failure. Keep shipped snapshot/reentry/disposal fixes. Startup acceptance follows the linked handoff's comparable stage timings and navigation checks. Confirm Header contents with the owner before SVN model implementation. |
 | `1.1.14` | **Bounded diagnostics**: F17/F23/F26 and demonstrated F16 defects. | Invalid arguments fail controllably before host construction; None differs from unknown workflow; oversized JSON integer returns a structured error; text follows actual typed limits. |
 | Cross-release | **F18 evidence; F19/F24 completion tracking**. | F18 behavioral/interleaving tests accompany each affected change. F19 shipped in 1.1.8; F24 is implemented in the 1.1.10 candidate, with publication tracked separately. |
 | `1.2.5` | **Typed results and language projection**: F09 (L), F10 (M), F12 naming requirement (M); 7 units. | Re-language completed/blocked/partial outcomes from typed state. General rows retain identity/drafts/mappings. Use Customized / Customized Merge / Customized Replace for relevant visible labels, CLI help and new Report labels; retain canonical IDs, command compatibility and unrelated Settings General text. Preserve historical Report interpretation. |
