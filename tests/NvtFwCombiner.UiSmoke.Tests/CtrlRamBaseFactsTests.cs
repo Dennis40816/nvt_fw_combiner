@@ -85,6 +85,9 @@ public sealed class CtrlRamBaseFactsTests
         Assert.Equal("0x4704", Assert.Single(facts, static fact => fact.Label == "PID (B)").Value);
         _ = Assert.Single(facts, static fact => fact.Label == "Common FW Version (A/B)");
         Assert.False(Assert.Single(facts, static fact => fact.Label == "IC Count (A/B)").IsPrimary);
+        Assert.Equal(["IC Count (A/B)", $"{text.EventBufferVersionLabel} (A)",
+            $"{text.EventBufferVersionLabel} (B)"],
+            facts.Where(static fact => !fact.IsPrimary).Take(3).Select(static fact => fact.Label));
         Assert.False(Assert.Single(facts, static fact => fact.Label == "DPA Version").IsPrimary);
         Assert.False(Assert.Single(facts, static fact => fact.Label == "DPB Version").IsPrimary);
         foreach ((string bank, string range) in new[]

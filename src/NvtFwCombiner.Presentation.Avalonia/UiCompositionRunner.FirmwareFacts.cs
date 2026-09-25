@@ -88,6 +88,12 @@ internal static partial class UiCompositionRunner
             static (a, b) => a.ChipNumber == b.ChipNumber, FirmwareSlotFactPriority.Details);
         foreach (CtrlRamBaseBankInspection bank in banks)
         {
+            string bankLabel = bank.BankId == "a-bank" ? "A" : "B";
+            facts.Add(CreateEventBufferFact(bank.EventBufferFormatVersion, text,
+                $"{text.EventBufferVersionLabel} ({bankLabel})"));
+        }
+        foreach (CtrlRamBaseBankInspection bank in banks)
+        {
             string bankLabel = bank.BankId == "a-bank" ? "DPA" : "DPB";
             if (bank.DpVersion is { IsKnown: true } dp)
             {
@@ -107,8 +113,6 @@ internal static partial class UiCompositionRunner
         foreach (CtrlRamBaseBankInspection bank in banks)
         {
             string bankLabel = bank.BankId == "a-bank" ? "A" : "B";
-            string label = $"{text.EventBufferVersionLabel} ({bankLabel})";
-            facts.Add(CreateEventBufferFact(bank.EventBufferFormatVersion, text, label));
             facts.Add(new(text.GetCtrlRamBaseBankRangeLabel(bankLabel),
                 text.GetCtrlRamBaseReferenceRangeValue(FormattableString.Invariant(
                     $"[0x{bank.Range.Start:X5},0x{bank.Range.EndExclusive:X5})")),
