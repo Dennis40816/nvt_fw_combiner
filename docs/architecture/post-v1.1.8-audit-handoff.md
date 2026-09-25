@@ -31,6 +31,57 @@ owner-only acceptance list. AB/OSD certification, R3 authority and final record
 sealing remain open; this is not a 1.1.11 publication or a full Structure pass.
 Version allocations and the historical audit below remain unchanged.
 
+### Profile improvement scope confirmed — 2026-09-25
+
+Owner accepted a bounded 1.1.11 change: declare AB Code `isFullySymmetric` in
+the existing AB profile contract (929 perfect family: true; 950/951: false),
+and carry one typed decision to toggle, layout cropping, focus lanes,
+subtitle and view-state handling. Existing capability remains the sole AB
+support declaration. See the [accepted delivery detail](../ui/v1.1.11-delivery.md#已接受待獨立實作ab-code-完全對稱宣告).
+This contract change is pending; merely hiding the toggle is insufficient.
+
+The preliminary estimate is about 10–12 core source files, plus schema,
+profile declarations, derived hashes and affected tests; allow roughly 1–2
+working days including scoped review. This is a scope estimate, not measured
+effort or a delivery guarantee; schema compatibility and provenance checks
+may change it. Shared Event Buffer supply and the latest Info/label fixes are
+already locally verified at `eb7e96d88`, not part of that remaining estimate.
+
+Broader perfect/partial-family declaration deduplication and explicit shared
+references remain in the existing [1.2.1 handoff](v1.2.1-handoff.md#保留的原-121-工作).
+Do not expand 1.1.11 into wholesale profile merging or a new inheritance system.
+The roadmap already assigns these scopes; this clarification does not move
+work between versions or approve a concrete reference syntax.
+
+### Current local startup measurement — 2026-09-25
+
+Product source: `eb7e96d880f93a020985724038ecfe6d061f7fca`; freshly built
+`NvtFwCombiner.Desktop` Release / net10.0, framework-dependent local build.
+Build succeeded with zero warnings/errors. The existing
+[`measure-startup.ps1`](../../scripts/measure-startup.ps1) ran Home with one
+warm-up and five scored launches, a 30-second timeout and
+`-RequirePreloadLifecycle`. All five preload lifecycle stages succeeded.
+
+| Measurement | Median | Observed min–max |
+| --- | --- | --- |
+| Process launch to first window handle | 1.333 s | 1.255–1.405 s |
+| First window opened to catalog state applied | 4.846 s | 4.661–5.148 s |
+| Process launch to completed background warm-up trace | 6.518 s | 6.313–6.899 s |
+
+The window handle is an appearance proxy, not a pixel-presentation or
+interaction-latency measurement. Catalog state application and optional view
+warm-up are separate milestones; their medians must not be added as if they
+were one measured sample. The largest observed post-window interval precedes
+catalog state application; this does not isolate profile parsing as its cause.
+These are warm local launches, not cold-boot or published-portable benchmarks,
+and the tool's lifecycle validation is not release certification.
+
+Raw samples, trace stages and lifecycle results are retained outside Git at
+`D:/NvtFwCombiner-TestArea/evidence/v1111-startup-eb7e96d88/measurement.json`;
+build log: Test Area `artifacts/v1111-startup-build.log`. The measurement tool
+closed its own processes and removed its temporary traces. No startup
+optimization or profile contract implementation was performed for this check.
+
 ## Post-1.1.8 audit reconciliation — 2026-09-19
 
 Owner request: correct and inventory the current handoff using the
