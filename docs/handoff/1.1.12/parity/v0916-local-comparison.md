@@ -1,7 +1,10 @@
 # v0.9.16 local comparison for 1.1.12 (non-certifying)
 
-Status: complete for the 37 routes with canonical inputs; 27 routes are not
-covered. Owner disposition of each difference is pending.
+Status: rerun on the 1.1.12 frozen product source `badc545b0` for the 37
+routes with canonical inputs; 27 routes are not covered. The owner approved
+both Diff NF preservation differences on 2026-09-26. The first run, on the
+`v1.1.11` product source, had the same counts; only the error route changed
+side (see below).
 
 Authority: 1.1.12 board owner decision 10, option A, and the commander's
 2026-09-25 decision to use the probe predecessor build. This is a local
@@ -29,13 +32,18 @@ Differences, both explained; neither is unexplained:
    five ranges; both outputs 225,280 bytes. Same cause: v0.9.16 writes the
    whole Diff CtrlRAM record `[0x33200,0x34600)`, the candidate only the active
    span `[0x33200,0x33B10)` and preserves the Diff NF tail (CHANGELOG 0.10.1,
-   #188). The plan approves this correction only for NT51951, so the owner
-   must confirm it here
+   #188). The plan names this correction only for NT51951; the owner approved
+   it for this route on 2026-09-26
    ([bug](../../bugs/BUG-20260925-v0916-plan-nt51950-tp-work-correction-missing.md)).
 
-The error is NT51950 CtrlRAM FW1.x cascade full-flash. **Both** executors
-build the same plan-bound 512 KiB base and then reject it for the route's
-256 KiB map, so it is not a version difference
+The error is NT51950 CtrlRAM FW1.x cascade full-flash, now on the v0.9.16 side
+only. Both executors build the same plan-bound 512 KiB base. v0.9.16 rejects
+it for the route's 256 KiB map; the 1.1.12 candidate admits it as a
+Display-OSD envelope over that map (CTRLRAM-OSD-ENVELOPE-1112-01) and writes
+524,288 bytes equal to the registered-Combiner output of the NT51951 2-IC
+route, which differs from the Golden expected output only in the four approved
+CRC words. In the first run, on the `v1.1.11` product source, the candidate
+also rejected it
 ([bug](../../bugs/BUG-20260925-nt51950-cascade-ctrlram-plan-base.md)).
 
 Other facts from this run:
@@ -71,17 +79,17 @@ Other facts from this run:
   `scripts/canonical_golden_validation.py` through the existing parity loader.
   CtrlRAM full-flash routes rebuild their base with each executor's own
   Standard Merge from the case DP and TP inputs, as the plan declares.
-- Candidate: product source `1c37bd718d8c4fbc5cc247952229e8b2f9f54ce8`
-  (`v1.1.11`, tree `f7dcfbd03d2f182e609a57053add09ead3f9a1f4`), exported with
-  `git archive` into the test area and built with the command shape of
+- Candidate: 1.1.12 frozen product source `badc545b04cf98aaaec9c7c9eb0261bdcc5cee69`
+  (tree `c5ba8d404821386c63fc758a939b163f39d4c8a8`), exported with `git archive`
+  into the test area and built with the command shape of
   `docs/contracts/v100-candidate-source-executor-v1.json`:
   `dotnet restore src/NvtFwCombiner.Cli/NvtFwCombiner.Cli.csproj --locked-mode --disable-parallel --runtime win-x64`,
   then `dotnet build src/NvtFwCombiner.Cli/NvtFwCombiner.Cli.csproj --configuration Release --runtime win-x64 --self-contained true --no-restore -m:1 -p:ContinuousIntegrationBuild=true -p:PathMap=<source>=/_/src`.
   `NvtFwCombiner.Cli.exe` 162,304 bytes, SHA-256
-  `2709ccda1d77a4ab2a72e789da07eda9cabe558f0dc51813e225da31529567d6`; runtime
-  closure 366 files, 92,947,508 bytes, closure SHA-256
-  `66e41c6a3d6eebcdcdd86041be23ed6ce6d18441535ff351014743cc16c84689`. No lock
-  file changed.
+  `5dcfbeec54c89d81dc5c5e5df4f8d4e2b8eb6d3dac2a55618f20cb0884bfb468`; runtime
+  closure 366 files, 92,976,630 bytes. No lock file changed. The first run used
+  `v1.1.11` (`1c37bd718d8c4fbc5cc247952229e8b2f9f54ce8`), CLI SHA-256
+  `2709ccda1d77a4ab2a72e789da07eda9cabe558f0dc51813e225da31529567d6`.
 - Predecessor: `v0.9.16` (tag object `578b2614632d6c2affdf2000324b134b5d1a16c1`,
   peeled `462590e8b993b8e42d088bc07377571a4bb9f25d`, tree
   `dc46c9aa9ecf00cb898ba3bc287e1b15acdab735`), exported with `git archive`;
@@ -188,8 +196,8 @@ candidate's 4.9 s (103 runs), so the candidate side dominates.
 | 49 | NT51950 | AB | 2-plus-ic | `nt51950-ab-merge-1024k` | exact | no | not-covered | - | - | - | Not covered: no canonical input. |
 | 50 | NT51950 | CtrlRAM | 1-ic | `nt51950-ctrlram-fw200-single-full-flash` | exact | yes | equal | none | `a32e6896b840d44e` | `a32e6896b840d44e` | No difference. |
 | 51 | NT51950 | CtrlRAM | 1-ic | `nt51950-ctrlram-fw200-single-tp-work` | exact | no | not-covered | - | - | - | Not covered: no canonical input. |
-| 52 | NT51950 | CtrlRAM | 2-ic | `nt51950-ctrlram-fw1x-cascade-full-flash` | exact | yes | error | - | - | - | Error on both sides, not a version difference. Both build the same plan-bound 512 KiB precursor base (`ff9ad012...aa32`); v0.9.16 then blocks with `profile.v2.compile.map-selection-invalid` and the candidate with `input.bank-reference.*` because the route map declares 256 KiB. Suspected plan or alias binding defect (fact for both errors, hypothesis for the cause; BUG-20260925-nt51950-cascade-ctrlram-plan-base) |
-| 53 | NT51950 | CtrlRAM | 2-ic | `nt51950-ctrlram-fw1x-cascade-tp-work` | exact | yes | different | 2816 bytes in 5: [0xA11C,0xA120), [0xA130,0xA134), [0x2D428,0x2D42C), [0x2D43C,0x2D440), [0x33B10,0x34600); sizes 225280 / 225280 bytes | `cfae15911aac4ef6` | `a239645dd6e2527a` | Intended Diff NF preservation (0.10.1, `99766df75`, #188): v0.9.16 copies the whole 5,120-byte Diff CtrlRAM record `[0x33200,0x34600)`, the candidate only the 2,320-byte active span `[0x33200,0x33B10)`; the preserved NF tail `[0x33B10,0x34600)` and the four Header and backup-Header CRC words differ. Ranges and byte count equal the plan's owner-approved NT51951 correction, and the NT51950 alias case declares the same fact scope. The plan approves the correction only for the NT51951 route, so the owner must confirm it for this route (fact for the ranges and the operation ranges, proposed for the intent; CHANGELOG 0.10.1 'Reviewed firmware routes and exact preservation semantics'; CHANGELOG 1.0.0; ADR 0057; alias case nt51950-cascade2-geometry-nt51951-auto-prj-599-alias; BUG-20260925-v0916-plan-nt51950-tp-work-correction-missing) |
+| 52 | NT51950 | CtrlRAM | 2-ic | `nt51950-ctrlram-fw1x-cascade-full-flash` | exact | yes | error | - | - | `1536d344af83aafd` | v0.9.16 only. Both build the same plan-bound 512 KiB precursor base (`ff9ad012...aa32`); v0.9.16 blocks with `profile.v2.compile.map-selection-invalid` because the route map declares 256 KiB. The 1.1.12 candidate admits the base as a Display-OSD envelope over the 256 KiB template and writes `1536d344...4ebd`, the registered-Combiner output of the NT51951 2-IC route, which differs from the Golden expected output only in the four approved CRC words (fact; CTRLRAM-OSD-ENVELOPE-1112-01; BUG-20260925-nt51950-cascade-ctrlram-plan-base) |
+| 53 | NT51950 | CtrlRAM | 2-ic | `nt51950-ctrlram-fw1x-cascade-tp-work` | exact | yes | different | 2816 bytes in 5: [0xA11C,0xA120), [0xA130,0xA134), [0x2D428,0x2D42C), [0x2D43C,0x2D440), [0x33B10,0x34600); sizes 225280 / 225280 bytes | `cfae15911aac4ef6` | `a239645dd6e2527a` | Intended Diff NF preservation (0.10.1, `99766df75`, #188): v0.9.16 copies the whole 5,120-byte Diff CtrlRAM record `[0x33200,0x34600)`, the candidate only the 2,320-byte active span `[0x33200,0x33B10)`; the preserved NF tail `[0x33B10,0x34600)` and the four Header and backup-Header CRC words differ. Ranges and byte count equal the plan's owner-approved NT51951 correction, and the NT51950 alias case declares the same fact scope. The plan names the correction only for the NT51951 route; the owner approved it for this route on 2026-09-26 (fact for the ranges and the operation ranges, proposed for the intent; CHANGELOG 0.10.1 'Reviewed firmware routes and exact preservation semantics'; CHANGELOG 1.0.0; ADR 0057; alias case nt51950-cascade2-geometry-nt51951-auto-prj-599-alias; BUG-20260925-v0916-plan-nt51950-tp-work-correction-missing) |
 | 54 | NT51950 | Standard | selector-free | `nt51950-standard-merge-1024k` | exact | no | not-covered | - | - | - | Not covered: no canonical input. |
 | 55 | NT51950 | Standard | selector-free | `nt51950-standard-merge-256k` | exact | yes | equal | none | `11932f352c3268dc` | `11932f352c3268dc` | No difference. |
 | 56 | NT51950 | Standard | selector-free | `nt51950-standard-merge-512k` | exact | no | not-covered | - | - | - | Not covered: no canonical input. |
