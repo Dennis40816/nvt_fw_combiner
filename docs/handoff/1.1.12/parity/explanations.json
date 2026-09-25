@@ -1,0 +1,12 @@
+{
+ "route-7-nt51950-15-ctrlram-replace-4-2-ic-39-nt51950-ctrlram-fw1x-cascade-full-flash": {
+  "explanation": "Candidate error before any comparison: the plan-bound 512 KiB precursor base is rejected as an NT51950 AB reference; the route map declares 256 KiB. Suspected plan binding or classification defect",
+  "basis": "fact for the error, hypothesis for the cause",
+  "source": "BUG-20260925-nt51950-cascade-ctrlram-plan-base"
+ },
+ "route-7-nt51951-15-ctrlram-replace-4-2-ic-39-nt51951-ctrlram-fw1x-cascade-full-flash": {
+  "explanation": "Predecessor not run. The candidate output equals the plan's approved-correction candidate hash `1536d344...4ebd`; the expected v0.9.16 difference is the owner-approved Diff NF preservation (2816 bytes in five declared ranges)",
+  "basis": "fact for the candidate hash, expectation for the difference",
+  "source": "plan approvedSemanticCorrections; ADR 0057; CHANGELOG 1.0.0"
+ }
+}

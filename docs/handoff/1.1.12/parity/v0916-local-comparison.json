@@ -1,0 +1,4473 @@
+{
+ "kind": "v0916-local-comparison-non-certifying",
+ "authority": "1.1.12 board owner decision 10, option A",
+ "startedAt": "2026-09-25T09:18:12Z",
+ "completedAt": "2026-09-25T09:30:18Z",
+ "durationSeconds": 726.434,
+ "canonicalMaterializeSeconds": 22.857,
+ "plan": {
+  "path": "docs/contracts/v0916-parity-certification-v1.json",
+  "sha256": "8e6401cc2b7f54f81370b6fa93d5df19d2f44ab68c848cb93e1eda6decc09afb"
+ },
+ "candidate": {
+  "label": "v1.1.11 source 1c37bd718, test-area git-archive export, contract-shaped locked RID restore and Release self-contained build",
+  "cliSha256": "2709ccda1d77a4ab2a72e789da07eda9cabe558f0dc51813e225da31529567d6"
+ },
+ "baseline": {
+  "status": "not-run",
+  "reason": "BUG-20260925-v0916-baseline-restore-nu1004: pinned locked RID restore fails NU1004"
+ },
+ "addressSpace": "output-file-offset",
+ "rangeLimitPerFile": 32,
+ "counts": {
+  "candidate-only": 36,
+  "not-covered": 27,
+  "error": 1
+ },
+ "routes": [
+  {
+   "routeId": "route-7-nt51917-15-ctrlram-replace-4-1-ic-39-nt51927-ctrlram-fw141-single-full-flash",
+   "capabilityFingerprint": "7b9eb85553a6cffd5dfea33b78b7634dd8f5dad73817f3989d3523f45350963f",
+   "icId": "NT51917",
+   "workflowId": "ctrlram-replace",
+   "icCountVariant": "1-ic",
+   "mapVariant": "nt51927-ctrlram-fw141-single-full-flash",
+   "proofKind": "exact-output",
+   "runnable": true,
+   "routeEvidenceCaseId": "nt51917-fw141-single-nt51927-alias",
+   "resolvedCaseId": "nt51927-fw141-single-auto-prj-529-20260717",
+   "goldenExpectedOutput": {
+    "size": 262144,
+    "sha256": "fc4d2f9701c626b1c7cddd2b448970611d332295c64f86415af2855f1569c55a"
+   },
+   "inputs": [
+    {
+     "slotId": "dp-input",
+     "size": 262144,
+     "sha256": "bd8bd124c91cae29f0aeda8c9a49d48362b4497516d1c549eb1460fc661627bc"
+    },
+    {
+     "slotId": "tp-input",
+     "size": 217088,
+     "sha256": "4569893ba45af44ae28e7401374aa549201b9b2edeb2743e9f878d650ac248ee"
+    },
+    {
+     "slotId": "replace-ctrlram-mp-master",
+     "size": 655360,
+     "sha256": "ae8bea2d4fe1c0c3a182febbe8e258eb0908c3f99dcbbaee9ce2af167614aba2"
+    },
+    {
+     "slotId": "replace-ctrlram-nf",
+     "size": 4048,
+     "sha256": "a26e62e920df297423d478a2a0c2d2ce07053e091e4bada1f6eeb542d0e1d797"
+    },
+    {
+     "slotId": "replace-ctrlram-normal-master",
+     "size": 655360,
+     "sha256": "de73cded3235c24f517c815427cea8ec44678fa132fdf30e418381cd4b25e7d5"
+    },
+    {
+     "slotId": "replace-ctrlram-vn",
+     "size": 5728,
+     "sha256": "4847b6950b49b8dc9ed022924ea64ae43ac3c9dc7f8dbaad108755200522d709"
+    }
+   ],
+   "baseRecipe": {
+    "workflowId": "standard-merge",
+    "routeId": "route-7-nt51917-14-standard-merge-13-selector-free-27-nt51927-standard-merge-256k",
+    "mapVariant": "nt51927-standard-merge-256k"
+   },
+   "candidate": {
+    "executor": {
+     "label": "v1.1.11 source 1c37bd718, test-area git-archive export, contract-shaped locked RID restore and Release self-contained build",
+     "cliSha256": "2709ccda1d77a4ab2a72e789da07eda9cabe558f0dc51813e225da31529567d6"
+    },
+    "invocations": [
+     {
+      "stage": "base-precursor",
+      "action": "preview",
+      "exitCode": 0,
+      "durationSeconds": 6.709,
+      "inputsUnchanged": true,
+      "stderrFirstLine": "",
+      "report": {
+       "size": 6985,
+       "sha256": "a684f26e648f0e4fe88f5b248d0f62b935d2a88df1c99d864100e75080077d69"
+      },
+      "reportMapId": "nt51927-standard-merge-256k",
+      "reportIssueCount": 0,
+      "reportOperationCount": 2
+     },
+     {
+      "stage": "base-precursor",
+      "action": "build",
+      "exitCode": 0,
+      "durationSeconds": 4.541,
+      "inputsUnchanged": true,
+      "stderrFirstLine": "",
+      "report": {
+       "size": 6982,
+       "sha256": "f8f09872969c82d0aeaaabf3037a0fc33383485c665dd04aed36f1ad06666c22"
+      },
+      "reportMapId": "nt51927-standard-merge-256k",
+      "reportIssueCount": 0,
+      "reportOperationCount": 2,
+      "output": {
+       "size": 262144,
+       "sha256": "fc4d2f9701c626b1c7cddd2b448970611d332295c64f86415af2855f1569c55a"
+      }
+     },
+     {
+      "stage": "workflow",
+      "action": "preview",
+      "exitCode": 0,
+      "durationSeconds": 5.287,
+      "inputsUnchanged": true,
+      "stderrFirstLine": "Issues:",
+      "report": {
+       "size": 32002,
+       "sha256": "4a6405b7e047c5cc22bbbef50df9af84b711d8b5e52dadd63675f2c94ebc527c"
+      },
+      "reportMapId": "nt51927-ctrlram-fw141-single-full-flash",
+      "reportIssueCount": 2,
+      "reportOperationCount": 5
+     },
+     {
+      "stage": "workflow",
+      "action": "build",
+      "exitCode": 0,
+      "durationSeconds": 5.278,
+      "inputsUnchanged": true,
+      "stderrFirstLine": "Issues:",
+      "report": {
+       "size": 31925,
+       "sha256": "bd8357378e8b151a88c92ebc24eb6e4cb3d9155e0e8aaaf9dc101d872d00f0ce"
+      },
+      "reportMapId": "nt51927-ctrlram-fw141-single-full-flash",
+      "reportIssueCount": 2,
+      "reportOperationCount": 5,
+      "output": {
+       "size": 262144,
+       "sha256": "fdb8fef05bdb375e175091eb75d555c2b1c5ddb216a2815f02e25c6533020ab9"
+      }
+     }
+    ],
+    "basePrecursorOutput": {
+     "size": 262144,
+     "sha256": "fc4d2f9701c626b1c7cddd2b448970611d332295c64f86415af2855f1569c55a"
+    },
+    "durationSeconds": 21.893,
+    "status": "success",
+    "output": {
+     "size": 262144,
+     "sha256": "fdb8fef05bdb375e175091eb75d555c2b1c5ddb216a2815f02e25c6533020ab9"
+    }
+   },
+   "baseline": {
+    "status": "not-run",
+    "reason": "BUG-20260925-v0916-baseline-restore-nu1004: pinned locked RID restore fails NU1004"
+   },
+   "candidateEqualsGoldenExpected": false,
+   "result": "candidate-only"
+  },
+  {
+   "routeId": "route-7-nt51917-15-ctrlram-replace-4-2-ic-40-nt51927-ctrlram-fw132-twochip-full-flash",
+   "capabilityFingerprint": "d93e0ec95b5ff0d2ff27b29726bbc960f984eaf7c01059a6bd6b144698e064c2",
+   "icId": "NT51917",
+   "workflowId": "ctrlram-replace",
+   "icCountVariant": "2-ic",
+   "mapVariant": "nt51927-ctrlram-fw132-twochip-full-flash",
+   "proofKind": "exact-output",
+   "runnable": false,
+   "result": "not-covered",
+   "reason": "no canonical input (canonicalInputAuthority.currentlyMissingRouteIds)"
+  },
+  {
+   "routeId": "route-7-nt51917-15-ctrlram-replace-4-3-ic-42-nt51927-ctrlram-fw140-threechip-full-flash",
+   "capabilityFingerprint": "4631181c1d97fb29a94570c5db4f1ecfafb40b365cf6875ebfa42c038b9c1165",
+   "icId": "NT51917",
+   "workflowId": "ctrlram-replace",
+   "icCountVariant": "3-ic",
+   "mapVariant": "nt51927-ctrlram-fw140-threechip-full-flash",
+   "proofKind": "exact-output",
+   "runnable": false,
+   "result": "not-covered",
+   "reason": "no canonical input (canonicalInputAuthority.currentlyMissingRouteIds)"
+  },
+  {
+   "routeId": "route-7-nt51917-14-standard-merge-13-selector-free-27-nt51927-standard-merge-256k",
+   "capabilityFingerprint": "9e5ed454920a8a31492853149629164a9d9514c08c2e9e9af257001b2b53c307",
+   "icId": "NT51917",
+   "workflowId": "standard-merge",
+   "icCountVariant": "selector-free",
+   "mapVariant": "nt51927-standard-merge-256k",
+   "proofKind": "exact-output",
+   "runnable": true,
+   "routeEvidenceCaseId": "nt51917-standard-merge-gen-flash-alias",
+   "resolvedCaseId": "nt51927-gen-flash",
+   "goldenExpectedOutput": {
+    "size": 262144,
+    "sha256": "8e0d362b74ba65dfd8eb2d33a8ae6c1359b99ce2994d64d878bfdb393855cf80"
+   },
+   "inputs": [
+    {
+     "slotId": "dp-input",
+     "size": 2097152,
+     "sha256": "866bff2ed5759ec45c2343630e77b74c1b906b77d4ed2beba62d955cf13e1d18"
+    },
+    {
+     "slotId": "tp-input",
+     "size": 217088,
+     "sha256": "ad80a708579cfce8954c9a46e8d82846aff12f2659f0e81ff55a8d5c9f77f265"
+    }
+   ],
+   "candidate": {
+    "executor": {
+     "label": "v1.1.11 source 1c37bd718, test-area git-archive export, contract-shaped locked RID restore and Release self-contained build",
+     "cliSha256": "2709ccda1d77a4ab2a72e789da07eda9cabe558f0dc51813e225da31529567d6"
+    },
+    "invocations": [
+     {
+      "stage": "workflow",
+      "action": "preview",
+      "exitCode": 0,
+      "durationSeconds": 4.385,
+      "inputsUnchanged": true,
+      "stderrFirstLine": "",
+      "report": {
+       "size": 7093,
+       "sha256": "2b889c771d989b8cfceeb30d97d52a25a675fdfa4e79d29cbe7f7cfb2316cacd"
+      },
+      "reportMapId": "nt51927-standard-merge-256k",
+      "reportIssueCount": 0,
+      "reportOperationCount": 2
+     },
+     {
+      "stage": "workflow",
+      "action": "build",
+      "exitCode": 0,
+      "durationSeconds": 4.778,
+      "inputsUnchanged": true,
+      "stderrFirstLine": "",
+      "report": {
+       "size": 7090,
+       "sha256": "e726d291bafdf259b38cfa43076b520f02f4bd8feea5978c6fcd3def282c83a7"
+      },
+      "reportMapId": "nt51927-standard-merge-256k",
+      "reportIssueCount": 0,
+      "reportOperationCount": 2,
+      "output": {
+       "size": 262144,
+       "sha256": "8e0d362b74ba65dfd8eb2d33a8ae6c1359b99ce2994d64d878bfdb393855cf80"
+      }
+     }
+    ],
+    "durationSeconds": 9.198,
+    "status": "success",
+    "output": {
+     "size": 262144,
+     "sha256": "8e0d362b74ba65dfd8eb2d33a8ae6c1359b99ce2994d64d878bfdb393855cf80"
+    }
+   },
+   "baseline": {
+    "status": "not-run",
+    "reason": "BUG-20260925-v0916-baseline-restore-nu1004: pinned locked RID restore fails NU1004"
+   },
+   "candidateEqualsGoldenExpected": true,
+   "result": "candidate-only"
+  },
+  {
+   "routeId": "route-7-nt51919-8-ab-merge-13-selector-free-21-nt51919-ab-merge-512k",
+   "capabilityFingerprint": "ccf263b37aa6b9640790c8ad316b6c077eefebdaf5b44547f6ab7a95a9a0b4da",
+   "icId": "NT51919",
+   "workflowId": "ab-merge",
+   "icCountVariant": "selector-free",
+   "mapVariant": "nt51919-ab-merge-512k",
+   "proofKind": "exact-output",
+   "runnable": true,
+   "routeEvidenceCaseId": "nt51919-ab-t05-d06-alias",
+   "resolvedCaseId": "nt51929-ab-t05-d06",
+   "goldenExpectedOutput": {
+    "size": 524288,
+    "sha256": "c7e1e263ac8ca70f83a6f66fa268da4aa9be37c2c822a39d58fa9c153d66abe2"
+   },
+   "inputs": [
+    {
+     "slotId": "dp-ab-input",
+     "size": 524288,
+     "sha256": "ba99f6d117b5d620c1b41024ff001a665b4e1260b5e670c5992a6f5c07e39237"
+    },
+    {
+     "slotId": "tp-a-input",
+     "size": 262144,
+     "sha256": "7ae10d3642778fa399696d46291f7d237f9f165de0ab2faaa1369f65c2b9ce12"
+    },
+    {
+     "slotId": "tp-b-input",
+     "size": 262144,
+     "sha256": "7ae10d3642778fa399696d46291f7d237f9f165de0ab2faaa1369f65c2b9ce12"
+    }
+   ],
+   "candidate": {
+    "executor": {
+     "label": "v1.1.11 source 1c37bd718, test-area git-archive export, contract-shaped locked RID restore and Release self-contained build",
+     "cliSha256": "2709ccda1d77a4ab2a72e789da07eda9cabe558f0dc51813e225da31529567d6"
+    },
+    "invocations": [
+     {
+      "stage": "workflow",
+      "action": "preview",
+      "exitCode": 0,
+      "durationSeconds": 4.201,
+      "inputsUnchanged": true,
+      "stderrFirstLine": "",
+      "report": {
+       "size": 13136,
+       "sha256": "daedfecc24c81475369b18b5eb186b894d915971ff11e72ce64354e4795e7cb1"
+      },
+      "reportMapId": "nt51919-ab-merge-512k",
+      "reportIssueCount": 0,
+      "reportOperationCount": 6
+     },
+     {
+      "stage": "workflow",
+      "action": "build",
+      "exitCode": 0,
+      "durationSeconds": 4.136,
+      "inputsUnchanged": true,
+      "stderrFirstLine": "",
+      "report": {
+       "size": 13131,
+       "sha256": "ff258f0947327f6d34273fbfa558dc0a5b80d7ab13fd6e5cf640d4494c82080a"
+      },
+      "reportMapId": "nt51919-ab-merge-512k",
+      "reportIssueCount": 0,
+      "reportOperationCount": 6,
+      "output": {
+       "size": 524288,
+       "sha256": "c7e1e263ac8ca70f83a6f66fa268da4aa9be37c2c822a39d58fa9c153d66abe2"
+      }
+     }
+    ],
+    "durationSeconds": 8.368,
+    "status": "success",
+    "output": {
+     "size": 524288,
+     "sha256": "c7e1e263ac8ca70f83a6f66fa268da4aa9be37c2c822a39d58fa9c153d66abe2"
+    }
+   },
+   "baseline": {
+    "status": "not-run",
+    "reason": "BUG-20260925-v0916-baseline-restore-nu1004: pinned locked RID restore fails NU1004"
+   },
+   "candidateEqualsGoldenExpected": true,
+   "result": "candidate-only"
+  },
+  {
+   "routeId": "route-7-nt51919-15-ctrlram-replace-4-1-ic-39-nt51929-ctrlram-fw200-single-full-flash",
+   "capabilityFingerprint": "df281e85b4597ed2e71e03f088ff28c406ccea9d5a4f5ad62c6b12d0ebb8dafa",
+   "icId": "NT51919",
+   "workflowId": "ctrlram-replace",
+   "icCountVariant": "1-ic",
+   "mapVariant": "nt51929-ctrlram-fw200-single-full-flash",
+   "proofKind": "exact-output",
+   "runnable": true,
+   "routeEvidenceCaseId": "nt51919-fw200-single-nt51929-alias",
+   "resolvedCaseId": "nt51929-fw200-single-auto-prj-594-20260717",
+   "goldenExpectedOutput": {
+    "size": 262144,
+    "sha256": "d3c958d2aac1e29bd1f88b8ac62dc74c36810ab11e707770199d4b34f5ce3910"
+   },
+   "inputs": [
+    {
+     "slotId": "dp-input",
+     "size": 524288,
+     "sha256": "ba99f6d117b5d620c1b41024ff001a665b4e1260b5e670c5992a6f5c07e39237"
+    },
+    {
+     "slotId": "tp-input",
+     "size": 262144,
+     "sha256": "7ae10d3642778fa399696d46291f7d237f9f165de0ab2faaa1369f65c2b9ce12"
+    },
+    {
+     "slotId": "replace-ctrlram-nf",
+     "size": 1624,
+     "sha256": "d16f150e172df1b92d5db32472b245f39f4481351304dc197da6f1d3194ab9d2"
+    },
+    {
+     "slotId": "replace-ctrlram-normal",
+     "size": 655360,
+     "sha256": "c0c8058727406b50dce0e209554ed997c09084808babe2f2a537a9a4b75d1d4c"
+    },
+    {
+     "slotId": "replace-ctrlram-vn",
+     "size": 6496,
+     "sha256": "c90ced38fc2cc8e62cd0275050f7bfcc05e707eaaffd9704533f9a26a49de64d"
+    }
+   ],
+   "baseRecipe": {
+    "workflowId": "standard-merge",
+    "routeId": "route-7-nt51919-14-standard-merge-13-selector-free-27-nt51919-standard-merge-256k",
+    "mapVariant": "nt51919-standard-merge-256k"
+   },
+   "candidate": {
+    "executor": {
+     "label": "v1.1.11 source 1c37bd718, test-area git-archive export, contract-shaped locked RID restore and Release self-contained build",
+     "cliSha256": "2709ccda1d77a4ab2a72e789da07eda9cabe558f0dc51813e225da31529567d6"
+    },
+    "invocations": [
+     {
+      "stage": "base-precursor",
+      "action": "preview",
+      "exitCode": 0,
+      "durationSeconds": 4.851,
+      "inputsUnchanged": true,
+      "stderrFirstLine": "",
+      "report": {
+       "size": 7041,
+       "sha256": "0f0e1556fce5ee030dc749d06485889585bd850cefb7c7b83731df49ac196b77"
+      },
+      "reportMapId": "nt51919-standard-merge-256k",
+      "reportIssueCount": 0,
+      "reportOperationCount": 2
+     },
+     {
+      "stage": "base-precursor",
+      "action": "build",
+      "exitCode": 0,
+      "durationSeconds": 4.691,
+      "inputsUnchanged": true,
+      "stderrFirstLine": "",
+      "report": {
+       "size": 7038,
+       "sha256": "93a7ea553d606639a44a1ade4b46e34d3162c1e1cd6a40226edb9a44a3d180ce"
+      },
+      "reportMapId": "nt51919-standard-merge-256k",
+      "reportIssueCount": 0,
+      "reportOperationCount": 2,
+      "output": {
+       "size": 262144,
+       "sha256": "d3c958d2aac1e29bd1f88b8ac62dc74c36810ab11e707770199d4b34f5ce3910"
+      }
+     },
+     {
+      "stage": "workflow",
+      "action": "preview",
+      "exitCode": 0,
+      "durationSeconds": 7.374,
+      "inputsUnchanged": true,
+      "stderrFirstLine": "Issues:",
+      "report": {
+       "size": 19962,
+       "sha256": "c775a5e6a8a224b4194494bfeed76707d825267bacd994a3fefa0009dccabfd5"
+      },
+      "reportMapId": "nt51929-ctrlram-fw200-single-full-flash",
+      "reportIssueCount": 1,
+      "reportOperationCount": 4
+     },
+     {
+      "stage": "workflow",
+      "action": "build",
+      "exitCode": 0,
+      "durationSeconds": 5.548,
+      "inputsUnchanged": true,
+      "stderrFirstLine": "Issues:",
+      "report": {
+       "size": 19920,
+       "sha256": "43b62cad98a82065693032cb1596932505bd71584c6ec818c05eab1ebfc54bc2"
+      },
+      "reportMapId": "nt51929-ctrlram-fw200-single-full-flash",
+      "reportIssueCount": 1,
+      "reportOperationCount": 4,
+      "output": {
+       "size": 262144,
+       "sha256": "d23f53a13db3c6fc0009ed547e8cfa5f1b54033145825828416c7458b14f198f"
+      }
+     }
+    ],
+    "basePrecursorOutput": {
+     "size": 262144,
+     "sha256": "d3c958d2aac1e29bd1f88b8ac62dc74c36810ab11e707770199d4b34f5ce3910"
+    },
+    "durationSeconds": 22.52,
+    "status": "success",
+    "output": {
+     "size": 262144,
+     "sha256": "d23f53a13db3c6fc0009ed547e8cfa5f1b54033145825828416c7458b14f198f"
+    }
+   },
+   "baseline": {
+    "status": "not-run",
+    "reason": "BUG-20260925-v0916-baseline-restore-nu1004: pinned locked RID restore fails NU1004"
+   },
+   "candidateEqualsGoldenExpected": false,
+   "result": "candidate-only"
+  },
+  {
+   "routeId": "route-7-nt51919-15-ctrlram-replace-6-2-8-ic-39-nt51929-ctrlram-fw1x-cascade-full-flash",
+   "capabilityFingerprint": "3f0f1eb92ce68670d6ab292257d443aa1cd1ebe9238ad35a9c5483d7182fa204",
+   "icId": "NT51919",
+   "workflowId": "ctrlram-replace",
+   "icCountVariant": "2-8-ic",
+   "mapVariant": "nt51929-ctrlram-fw1x-cascade-full-flash",
+   "proofKind": "exact-output",
+   "runnable": false,
+   "result": "not-covered",
+   "reason": "no canonical input (canonicalInputAuthority.currentlyMissingRouteIds)"
+  },
+  {
+   "routeId": "route-7-nt51919-14-standard-merge-13-selector-free-27-nt51919-standard-merge-256k",
+   "capabilityFingerprint": "6e20f5386c011d3ac298493ccea67597a826149b4194345ced215e1b494c3e44",
+   "icId": "NT51919",
+   "workflowId": "standard-merge",
+   "icCountVariant": "selector-free",
+   "mapVariant": "nt51919-standard-merge-256k",
+   "proofKind": "exact-output",
+   "runnable": true,
+   "routeEvidenceCaseId": "nt51919-standard-merge-gen-flash-alias",
+   "resolvedCaseId": "nt51929-gen-flash",
+   "goldenExpectedOutput": {
+    "size": 262144,
+    "sha256": "fdba72984d662c4d652c56d909cf27756193f3766875b42d55207bccfca6867e"
+   },
+   "inputs": [
+    {
+     "slotId": "dp-input",
+     "size": 262144,
+     "sha256": "e9626d1230bb117a91e7cd365b060991b48bf555bda065a84f8a62edd8c95095"
+    },
+    {
+     "slotId": "tp-input",
+     "size": 262144,
+     "sha256": "a5631c8c05dd1e29b216b3cc00a84ef416db41e04c9d1e7c3d211a44bf7bc458"
+    }
+   ],
+   "candidate": {
+    "executor": {
+     "label": "v1.1.11 source 1c37bd718, test-area git-archive export, contract-shaped locked RID restore and Release self-contained build",
+     "cliSha256": "2709ccda1d77a4ab2a72e789da07eda9cabe558f0dc51813e225da31529567d6"
+    },
+    "invocations": [
+     {
+      "stage": "workflow",
+      "action": "preview",
+      "exitCode": 0,
+      "durationSeconds": 4.273,
+      "inputsUnchanged": true,
+      "stderrFirstLine": "",
+      "report": {
+       "size": 7043,
+       "sha256": "5287dc0399da3948146a6699e4d9b85806373935530cf2087c278e8925adb6fc"
+      },
+      "reportMapId": "nt51919-standard-merge-256k",
+      "reportIssueCount": 0,
+      "reportOperationCount": 2
+     },
+     {
+      "stage": "workflow",
+      "action": "build",
+      "exitCode": 0,
+      "durationSeconds": 4.826,
+      "inputsUnchanged": true,
+      "stderrFirstLine": "",
+      "report": {
+       "size": 7040,
+       "sha256": "25af72321d2e99ce9003811a7a449663dbfe31803144563421c6e7617e9c5f67"
+      },
+      "reportMapId": "nt51919-standard-merge-256k",
+      "reportIssueCount": 0,
+      "reportOperationCount": 2,
+      "output": {
+       "size": 262144,
+       "sha256": "fdba72984d662c4d652c56d909cf27756193f3766875b42d55207bccfca6867e"
+      }
+     }
+    ],
+    "durationSeconds": 9.124,
+    "status": "success",
+    "output": {
+     "size": 262144,
+     "sha256": "fdba72984d662c4d652c56d909cf27756193f3766875b42d55207bccfca6867e"
+    }
+   },
+   "baseline": {
+    "status": "not-run",
+    "reason": "BUG-20260925-v0916-baseline-restore-nu1004: pinned locked RID restore fails NU1004"
+   },
+   "candidateEqualsGoldenExpected": true,
+   "result": "candidate-only"
+  },
+  {
+   "routeId": "route-7-nt51923-15-ctrlram-replace-4-1-ic-39-nt51923-ctrlram-fw141-single-full-flash",
+   "capabilityFingerprint": "58e780d7b31e4bd2942bddfa6755880a92f5a3976faea3d46bdcb41538f60aa2",
+   "icId": "NT51923",
+   "workflowId": "ctrlram-replace",
+   "icCountVariant": "1-ic",
+   "mapVariant": "nt51923-ctrlram-fw141-single-full-flash",
+   "proofKind": "exact-output",
+   "runnable": true,
+   "routeEvidenceCaseId": "nt51923-fw141-single-auto-prj-662-20260717",
+   "resolvedCaseId": "nt51923-fw141-single-auto-prj-662-20260717",
+   "goldenExpectedOutput": {
+    "size": 262144,
+    "sha256": "a65ae33c9c11091f69d8935422ffc57db32262eb922590364d4bdd9c3af9916f"
+   },
+   "inputs": [
+    {
+     "slotId": "dp-input",
+     "size": 262144,
+     "sha256": "97a79100cc0e574ce69d7c7e8c9f15edeaa00d16c90a7583bc462b496fac984b"
+    },
+    {
+     "slotId": "tp-input",
+     "size": 245760,
+     "sha256": "d91dd6470fe6084b0d0bbf855e4c443f2911995b028b370ec8dccbef2efc3e78"
+    },
+    {
+     "slotId": "replace-ctrlram-mp",
+     "size": 655360,
+     "sha256": "1e5c60bfbe663938052a6c5c3b3db1fb8f67a80c7d5e32cd130c6306df737db5"
+    },
+    {
+     "slotId": "replace-ctrlram-nf",
+     "size": 17584,
+     "sha256": "5ca4457fda2e9ff7ff7c7f6beb8b2309eff50c6d6c08bde78de60c85e45f31fc"
+    },
+    {
+     "slotId": "replace-ctrlram-normal",
+     "size": 655360,
+     "sha256": "1d50b896ec989b49bda3dd0ac8a65e3afefee1f13745e61179683202580bf22a"
+    },
+    {
+     "slotId": "replace-ctrlram-vn",
+     "size": 5728,
+     "sha256": "53e794e27a3bc359c5a6a6da05bda004c7733501a577f3a9cd08044022ac2aef"
+    }
+   ],
+   "baseRecipe": {
+    "workflowId": "standard-merge",
+    "routeId": "route-7-nt51923-14-standard-merge-13-selector-free-27-nt51923-standard-merge-256k",
+    "mapVariant": "nt51923-standard-merge-256k"
+   },
+   "candidate": {
+    "executor": {
+     "label": "v1.1.11 source 1c37bd718, test-area git-archive export, contract-shaped locked RID restore and Release self-contained build",
+     "cliSha256": "2709ccda1d77a4ab2a72e789da07eda9cabe558f0dc51813e225da31529567d6"
+    },
+    "invocations": [
+     {
+      "stage": "base-precursor",
+      "action": "preview",
+      "exitCode": 0,
+      "durationSeconds": 4.378,
+      "inputsUnchanged": true,
+      "stderrFirstLine": "",
+      "report": {
+       "size": 6887,
+       "sha256": "6b3d3458a575e00154a661c6b7e56868bd134db46d1a75fb281f71575facd8b2"
+      },
+      "reportMapId": "nt51923-standard-merge-256k",
+      "reportIssueCount": 0,
+      "reportOperationCount": 2
+     },
+     {
+      "stage": "base-precursor",
+      "action": "build",
+      "exitCode": 0,
+      "durationSeconds": 4.251,
+      "inputsUnchanged": true,
+      "stderrFirstLine": "",
+      "report": {
+       "size": 6884,
+       "sha256": "59f9fe869100432c787254ecf7a3df8c67299dcd9534833d7935d84e45a23794"
+      },
+      "reportMapId": "nt51923-standard-merge-256k",
+      "reportIssueCount": 0,
+      "reportOperationCount": 2,
+      "output": {
+       "size": 262144,
+       "sha256": "a65ae33c9c11091f69d8935422ffc57db32262eb922590364d4bdd9c3af9916f"
+      }
+     },
+     {
+      "stage": "workflow",
+      "action": "preview",
+      "exitCode": 0,
+      "durationSeconds": 4.506,
+      "inputsUnchanged": true,
+      "stderrFirstLine": "Issues:",
+      "report": {
+       "size": 22504,
+       "sha256": "930f8a66bb247b300918a0e3efc7371516cb182740314d87165893557afb3238"
+      },
+      "reportMapId": "nt51923-ctrlram-fw141-single-full-flash",
+      "reportIssueCount": 2,
+      "reportOperationCount": 5
+     },
+     {
+      "stage": "workflow",
+      "action": "build",
+      "exitCode": 0,
+      "durationSeconds": 4.509,
+      "inputsUnchanged": true,
+      "stderrFirstLine": "Issues:",
+      "report": {
+       "size": 22462,
+       "sha256": "4100168499d2bc7c672f9082736170ef5625da3147bb7ae4eb3206177ed257a3"
+      },
+      "reportMapId": "nt51923-ctrlram-fw141-single-full-flash",
+      "reportIssueCount": 2,
+      "reportOperationCount": 5,
+      "output": {
+       "size": 262144,
+       "sha256": "4759a8e87ad7ff8a8e41ae91af6f0d05a847659ffbf06f3864d1ca093453da38"
+      }
+     }
+    ],
+    "basePrecursorOutput": {
+     "size": 262144,
+     "sha256": "a65ae33c9c11091f69d8935422ffc57db32262eb922590364d4bdd9c3af9916f"
+    },
+    "durationSeconds": 17.714,
+    "status": "success",
+    "output": {
+     "size": 262144,
+     "sha256": "4759a8e87ad7ff8a8e41ae91af6f0d05a847659ffbf06f3864d1ca093453da38"
+    }
+   },
+   "baseline": {
+    "status": "not-run",
+    "reason": "BUG-20260925-v0916-baseline-restore-nu1004: pinned locked RID restore fails NU1004"
+   },
+   "candidateEqualsGoldenExpected": false,
+   "result": "candidate-only"
+  },
+  {
+   "routeId": "route-7-nt51923-15-ctrlram-replace-9-2-plus-ic-41-nt51923-ctrlram-fw141-cascade3-full-flash",
+   "capabilityFingerprint": "0bea7949f831269994ff89ddb1e44c826c72c258a72adfdb707ca81700f0e63b",
+   "icId": "NT51923",
+   "workflowId": "ctrlram-replace",
+   "icCountVariant": "2-plus-ic",
+   "mapVariant": "nt51923-ctrlram-fw141-cascade3-full-flash",
+   "proofKind": "exact-output",
+   "runnable": true,
+   "routeEvidenceCaseId": "nt51923-fw141-cascade3-auto-prj-734-20260717",
+   "resolvedCaseId": "nt51923-fw141-cascade3-auto-prj-734-20260717",
+   "goldenExpectedOutput": {
+    "size": 262144,
+    "sha256": "06dda13a592c151a767d47fff60da993f33d7bda37666794dd9ea5cf92094d18"
+   },
+   "inputs": [
+    {
+     "slotId": "dp-input",
+     "size": 262144,
+     "sha256": "0a79f8f7b13b72c02861f34c7f6b73978f06c719a004bfef500d0c30228c345f"
+    },
+    {
+     "slotId": "tp-input",
+     "size": 245760,
+     "sha256": "1eb5f8647cf58dacfeea21010abb17c23c62d4adb6b790501236bf4ad1badbc7"
+    },
+    {
+     "slotId": "replace-ctrlram-diff",
+     "size": 10240,
+     "sha256": "09ebdf84a16f7f0ece24ccaf9c4c74e73002ffd1a57a7801bfec5c4c78c7f700"
+    },
+    {
+     "slotId": "replace-ctrlram-mp",
+     "size": 655360,
+     "sha256": "363c9439b555ab8f2ff9f92a8d1002ea3eaf71a8e2f7da3bd624070f8164bc2e"
+    },
+    {
+     "slotId": "replace-ctrlram-nf",
+     "size": 17584,
+     "sha256": "56b1a73b0e9b68ab074819d68cf4571678b82a8d8bff69c1652390d3e35be304"
+    },
+    {
+     "slotId": "replace-ctrlram-normal",
+     "size": 655360,
+     "sha256": "08c9dc02ac4d9c3feae9711311d84e9ca1a72928816a56a9acc4f78a98e13613"
+    },
+    {
+     "slotId": "replace-ctrlram-vn",
+     "size": 5728,
+     "sha256": "18a26e8e2a0bd06f0d37945f2c3b38d5927bf86513da600463b91b625faed88c"
+    }
+   ],
+   "baseRecipe": {
+    "workflowId": "standard-merge",
+    "routeId": "route-7-nt51923-14-standard-merge-13-selector-free-27-nt51923-standard-merge-256k",
+    "mapVariant": "nt51923-standard-merge-256k"
+   },
+   "candidate": {
+    "executor": {
+     "label": "v1.1.11 source 1c37bd718, test-area git-archive export, contract-shaped locked RID restore and Release self-contained build",
+     "cliSha256": "2709ccda1d77a4ab2a72e789da07eda9cabe558f0dc51813e225da31529567d6"
+    },
+    "invocations": [
+     {
+      "stage": "base-precursor",
+      "action": "preview",
+      "exitCode": 0,
+      "durationSeconds": 4.245,
+      "inputsUnchanged": true,
+      "stderrFirstLine": "",
+      "report": {
+       "size": 6888,
+       "sha256": "88a81108cccb96a3e4e16dedfd9e7845375eed200eb553aca5fd386e2f84a40b"
+      },
+      "reportMapId": "nt51923-standard-merge-256k",
+      "reportIssueCount": 0,
+      "reportOperationCount": 2
+     },
+     {
+      "stage": "base-precursor",
+      "action": "build",
+      "exitCode": 0,
+      "durationSeconds": 4.374,
+      "inputsUnchanged": true,
+      "stderrFirstLine": "",
+      "report": {
+       "size": 6885,
+       "sha256": "81ce896bc3dd2bb9fbaea0bfbe7472721347ae869acf3d853d75b4614ee4c36d"
+      },
+      "reportMapId": "nt51923-standard-merge-256k",
+      "reportIssueCount": 0,
+      "reportOperationCount": 2,
+      "output": {
+       "size": 262144,
+       "sha256": "06dda13a592c151a767d47fff60da993f33d7bda37666794dd9ea5cf92094d18"
+      }
+     },
+     {
+      "stage": "workflow",
+      "action": "preview",
+      "exitCode": 0,
+      "durationSeconds": 4.713,
+      "inputsUnchanged": true,
+      "stderrFirstLine": "Issues:",
+      "report": {
+       "size": 26928,
+       "sha256": "c11fc312c4d5ae90160e52d8083ecd6709c11b536999885b1268e1d7019b9e1d"
+      },
+      "reportMapId": "nt51923-ctrlram-fw141-cascade3-full-flash",
+      "reportIssueCount": 3,
+      "reportOperationCount": 7
+     },
+     {
+      "stage": "workflow",
+      "action": "build",
+      "exitCode": 0,
+      "durationSeconds": 4.511,
+      "inputsUnchanged": true,
+      "stderrFirstLine": "Issues:",
+      "report": {
+       "size": 26882,
+       "sha256": "c1caf35ee9623c4b340bb3ab147745b296cca78c974f3716aa92dfad944101c7"
+      },
+      "reportMapId": "nt51923-ctrlram-fw141-cascade3-full-flash",
+      "reportIssueCount": 3,
+      "reportOperationCount": 7,
+      "output": {
+       "size": 262144,
+       "sha256": "017a157ba2419ff29cfb00c14a88da75a64cfeac9b4dabeecf54d523b1ad115c"
+      }
+     }
+    ],
+    "basePrecursorOutput": {
+     "size": 262144,
+     "sha256": "06dda13a592c151a767d47fff60da993f33d7bda37666794dd9ea5cf92094d18"
+    },
+    "durationSeconds": 17.913,
+    "status": "success",
+    "output": {
+     "size": 262144,
+     "sha256": "017a157ba2419ff29cfb00c14a88da75a64cfeac9b4dabeecf54d523b1ad115c"
+    }
+   },
+   "baseline": {
+    "status": "not-run",
+    "reason": "BUG-20260925-v0916-baseline-restore-nu1004: pinned locked RID restore fails NU1004"
+   },
+   "candidateEqualsGoldenExpected": false,
+   "result": "candidate-only"
+  },
+  {
+   "routeId": "route-7-nt51923-14-standard-merge-13-selector-free-27-nt51923-standard-merge-256k",
+   "capabilityFingerprint": "9779a9408af88d9fbd1384cdc7ba4c765b85aea760462b1924810c1b0de97fd5",
+   "icId": "NT51923",
+   "workflowId": "standard-merge",
+   "icCountVariant": "selector-free",
+   "mapVariant": "nt51923-standard-merge-256k",
+   "proofKind": "exact-output",
+   "runnable": true,
+   "routeEvidenceCaseId": "nt51923-gen-flash",
+   "resolvedCaseId": "nt51923-gen-flash",
+   "goldenExpectedOutput": {
+    "size": 262144,
+    "sha256": "b611bd837991be1ccb8e1dfffa7a9a1e825e71221c27377cf1aca8b37cf5666f"
+   },
+   "inputs": [
+    {
+     "slotId": "dp-input",
+     "size": 262144,
+     "sha256": "eb15b2ad0172e325d767a27e32f56cc19df7b9d95e96e4b19cc2cd547656612d"
+    },
+    {
+     "slotId": "tp-input",
+     "size": 245760,
+     "sha256": "4efbb496096d5851b8ae5fee396a77f6aa85eb0240bc19e0fc3171c25c6b6514"
+    }
+   ],
+   "candidate": {
+    "executor": {
+     "label": "v1.1.11 source 1c37bd718, test-area git-archive export, contract-shaped locked RID restore and Release self-contained build",
+     "cliSha256": "2709ccda1d77a4ab2a72e789da07eda9cabe558f0dc51813e225da31529567d6"
+    },
+    "invocations": [
+     {
+      "stage": "workflow",
+      "action": "preview",
+      "exitCode": 0,
+      "durationSeconds": 4.39,
+      "inputsUnchanged": true,
+      "stderrFirstLine": "",
+      "report": {
+       "size": 6887,
+       "sha256": "d869d356dde273fd4de91df190c0695ee52e6d07cd065bb5b3ca174313021d19"
+      },
+      "reportMapId": "nt51923-standard-merge-256k",
+      "reportIssueCount": 0,
+      "reportOperationCount": 2
+     },
+     {
+      "stage": "workflow",
+      "action": "build",
+      "exitCode": 0,
+      "durationSeconds": 4.19,
+      "inputsUnchanged": true,
+      "stderrFirstLine": "",
+      "report": {
+       "size": 6883,
+       "sha256": "162212bd4f1cadc12c176207488d7cfe80e5c504700b5b319eaba56ce1bfb777"
+      },
+      "reportMapId": "nt51923-standard-merge-256k",
+      "reportIssueCount": 0,
+      "reportOperationCount": 2,
+      "output": {
+       "size": 262144,
+       "sha256": "b611bd837991be1ccb8e1dfffa7a9a1e825e71221c27377cf1aca8b37cf5666f"
+      }
+     }
+    ],
+    "durationSeconds": 8.6,
+    "status": "success",
+    "output": {
+     "size": 262144,
+     "sha256": "b611bd837991be1ccb8e1dfffa7a9a1e825e71221c27377cf1aca8b37cf5666f"
+    }
+   },
+   "baseline": {
+    "status": "not-run",
+    "reason": "BUG-20260925-v0916-baseline-restore-nu1004: pinned locked RID restore fails NU1004"
+   },
+   "candidateEqualsGoldenExpected": true,
+   "result": "candidate-only"
+  },
+  {
+   "routeId": "route-7-nt51926-15-ctrlram-replace-4-1-ic-37-nt51926-ctrlram-fw141-full-flash-256k",
+   "capabilityFingerprint": "c5d8b9dbf21de03d325cd0c287c6db94d143b7a1c55ca35f1b6a88c0ba82b16e",
+   "icId": "NT51926",
+   "workflowId": "ctrlram-replace",
+   "icCountVariant": "1-ic",
+   "mapVariant": "nt51926-ctrlram-fw141-full-flash-256k",
+   "proofKind": "exact-output",
+   "runnable": true,
+   "routeEvidenceCaseId": "nt51926-fw141-single-auto-prj-747-20260717",
+   "resolvedCaseId": "nt51926-fw141-single-auto-prj-747-20260717",
+   "goldenExpectedOutput": {
+    "size": 262144,
+    "sha256": "3a222cbc838192204e8a94b1677b3564fcabfa1983820eebc89e2ef10ec294cd"
+   },
+   "inputs": [
+    {
+     "slotId": "dp-input",
+     "size": 262144,
+     "sha256": "57b4630d60c06652a9bbe80dc13ed7a17e4be474ee307ae33ebaef16258604b2"
+    },
+    {
+     "slotId": "tp-input",
+     "size": 245760,
+     "sha256": "987274195623ed48d673a733fd4140fbfaadee5fa13168c42a50055e7ab8b1c3"
+    },
+    {
+     "slotId": "replace-ctrlram-mp",
+     "size": 655360,
+     "sha256": "f2f9b472e93d5dbbfe74b02d37979330bfd0c9899dd6c31b6e8e0f2c531df913"
+    },
+    {
+     "slotId": "replace-ctrlram-nf",
+     "size": 11728,
+     "sha256": "e9f9105978dafaa90b81f4d969291496035d3b0d91d54a77238f17051febd6db"
+    },
+    {
+     "slotId": "replace-ctrlram-normal",
+     "size": 655360,
+     "sha256": "4594037e292d31f4fa37aa732174fc7033435a34373cb3e9ff7dbd45e975ad6e"
+    },
+    {
+     "slotId": "replace-ctrlram-vn",
+     "size": 5728,
+     "sha256": "1a6b4476dd67af21dc276206a7f172f3c1d1ad9ae5340818fffca78568dc62f6"
+    }
+   ],
+   "baseRecipe": {
+    "workflowId": "standard-merge",
+    "routeId": "route-7-nt51926-14-standard-merge-13-selector-free-27-nt51926-standard-merge-256k",
+    "mapVariant": "nt51926-standard-merge-256k"
+   },
+   "candidate": {
+    "executor": {
+     "label": "v1.1.11 source 1c37bd718, test-area git-archive export, contract-shaped locked RID restore and Release self-contained build",
+     "cliSha256": "2709ccda1d77a4ab2a72e789da07eda9cabe558f0dc51813e225da31529567d6"
+    },
+    "invocations": [
+     {
+      "stage": "base-precursor",
+      "action": "preview",
+      "exitCode": 0,
+      "durationSeconds": 4.246,
+      "inputsUnchanged": true,
+      "stderrFirstLine": "",
+      "report": {
+       "size": 6886,
+       "sha256": "815a23d12f251cfa0ad3f28258ac59130ac2f9502605070cc3ea5b60324518ce"
+      },
+      "reportMapId": "nt51926-standard-merge-256k",
+      "reportIssueCount": 0,
+      "reportOperationCount": 2
+     },
+     {
+      "stage": "base-precursor",
+      "action": "build",
+      "exitCode": 0,
+      "durationSeconds": 4.442,
+      "inputsUnchanged": true,
+      "stderrFirstLine": "",
+      "report": {
+       "size": 6884,
+       "sha256": "ad416edcd624e22b74fa1a42c2704d65d7428b3f1d2b46e0a977e9fc41a10ab9"
+      },
+      "reportMapId": "nt51926-standard-merge-256k",
+      "reportIssueCount": 0,
+      "reportOperationCount": 2,
+      "output": {
+       "size": 262144,
+       "sha256": "3a222cbc838192204e8a94b1677b3564fcabfa1983820eebc89e2ef10ec294cd"
+      }
+     },
+     {
+      "stage": "workflow",
+      "action": "preview",
+      "exitCode": 0,
+      "durationSeconds": 4.587,
+      "inputsUnchanged": true,
+      "stderrFirstLine": "Issues:",
+      "report": {
+       "size": 22550,
+       "sha256": "7a3dfa7754e79f433fbed87d3700f5fa3b42dabc3bec9f1deef5f6e96d34e269"
+      },
+      "reportMapId": "nt51926-ctrlram-fw141-full-flash-256k",
+      "reportIssueCount": 2,
+      "reportOperationCount": 5
+     },
+     {
+      "stage": "workflow",
+      "action": "build",
+      "exitCode": 0,
+      "durationSeconds": 4.529,
+      "inputsUnchanged": true,
+      "stderrFirstLine": "Issues:",
+      "report": {
+       "size": 22508,
+       "sha256": "d89ac98de286dd5863567c77355f3854ff0d656ccda563ece14ac37e7a6d9495"
+      },
+      "reportMapId": "nt51926-ctrlram-fw141-full-flash-256k",
+      "reportIssueCount": 2,
+      "reportOperationCount": 5,
+      "output": {
+       "size": 262144,
+       "sha256": "30de4735472950e3e7b22e941cc0ae080f393b2b6e601e82b7b1b767b7c56e7a"
+      }
+     }
+    ],
+    "basePrecursorOutput": {
+     "size": 262144,
+     "sha256": "3a222cbc838192204e8a94b1677b3564fcabfa1983820eebc89e2ef10ec294cd"
+    },
+    "durationSeconds": 17.875,
+    "status": "success",
+    "output": {
+     "size": 262144,
+     "sha256": "30de4735472950e3e7b22e941cc0ae080f393b2b6e601e82b7b1b767b7c56e7a"
+    }
+   },
+   "baseline": {
+    "status": "not-run",
+    "reason": "BUG-20260925-v0916-baseline-restore-nu1004: pinned locked RID restore fails NU1004"
+   },
+   "candidateEqualsGoldenExpected": false,
+   "result": "candidate-only"
+  },
+  {
+   "routeId": "route-7-nt51926-15-ctrlram-replace-4-1-ic-34-nt51926-ctrlram-fw141-tp-work-240k",
+   "capabilityFingerprint": "7fb4770dece9b9e2055731c18f45c4f6427ae74a744ce6e9495b99ed3ed99544",
+   "icId": "NT51926",
+   "workflowId": "ctrlram-replace",
+   "icCountVariant": "1-ic",
+   "mapVariant": "nt51926-ctrlram-fw141-tp-work-240k",
+   "proofKind": "exact-output",
+   "runnable": true,
+   "routeEvidenceCaseId": "nt51926-fw141-single-auto-prj-747-20260717",
+   "resolvedCaseId": "nt51926-fw141-single-auto-prj-747-20260717",
+   "goldenExpectedOutput": {
+    "size": 262144,
+    "sha256": "3a222cbc838192204e8a94b1677b3564fcabfa1983820eebc89e2ef10ec294cd"
+   },
+   "inputs": [
+    {
+     "slotId": "replace-base",
+     "size": 245760,
+     "sha256": "987274195623ed48d673a733fd4140fbfaadee5fa13168c42a50055e7ab8b1c3"
+    },
+    {
+     "slotId": "replace-ctrlram-mp",
+     "size": 655360,
+     "sha256": "f2f9b472e93d5dbbfe74b02d37979330bfd0c9899dd6c31b6e8e0f2c531df913"
+    },
+    {
+     "slotId": "replace-ctrlram-nf",
+     "size": 11728,
+     "sha256": "e9f9105978dafaa90b81f4d969291496035d3b0d91d54a77238f17051febd6db"
+    },
+    {
+     "slotId": "replace-ctrlram-normal",
+     "size": 655360,
+     "sha256": "4594037e292d31f4fa37aa732174fc7033435a34373cb3e9ff7dbd45e975ad6e"
+    },
+    {
+     "slotId": "replace-ctrlram-vn",
+     "size": 5728,
+     "sha256": "1a6b4476dd67af21dc276206a7f172f3c1d1ad9ae5340818fffca78568dc62f6"
+    }
+   ],
+   "candidate": {
+    "executor": {
+     "label": "v1.1.11 source 1c37bd718, test-area git-archive export, contract-shaped locked RID restore and Release self-contained build",
+     "cliSha256": "2709ccda1d77a4ab2a72e789da07eda9cabe558f0dc51813e225da31529567d6"
+    },
+    "invocations": [
+     {
+      "stage": "workflow",
+      "action": "preview",
+      "exitCode": 0,
+      "durationSeconds": 4.409,
+      "inputsUnchanged": true,
+      "stderrFirstLine": "Issues:",
+      "report": {
+       "size": 22546,
+       "sha256": "1aa84f74fbdecde5229d4c86ba9389eeae0419f2970e05f21576c0ef01c96024"
+      },
+      "reportMapId": "nt51926-ctrlram-fw141-tp-work-240k",
+      "reportIssueCount": 2,
+      "reportOperationCount": 5
+     },
+     {
+      "stage": "workflow",
+      "action": "build",
+      "exitCode": 0,
+      "durationSeconds": 4.5,
+      "inputsUnchanged": true,
+      "stderrFirstLine": "Issues:",
+      "report": {
+       "size": 22504,
+       "sha256": "51ad3cfb658f018dc212c6c9280190a72278accf385d53b32a2544eb8b47df2a"
+      },
+      "reportMapId": "nt51926-ctrlram-fw141-tp-work-240k",
+      "reportIssueCount": 2,
+      "reportOperationCount": 5,
+      "output": {
+       "size": 245760,
+       "sha256": "22888325a4c15a149251427c258efff9854421ce3b94481eba2b356a0b2db893"
+      }
+     }
+    ],
+    "durationSeconds": 8.953,
+    "status": "success",
+    "output": {
+     "size": 245760,
+     "sha256": "22888325a4c15a149251427c258efff9854421ce3b94481eba2b356a0b2db893"
+    }
+   },
+   "baseline": {
+    "status": "not-run",
+    "reason": "BUG-20260925-v0916-baseline-restore-nu1004: pinned locked RID restore fails NU1004"
+   },
+   "candidateEqualsGoldenExpected": null,
+   "result": "candidate-only"
+  },
+  {
+   "routeId": "route-7-nt51926-15-ctrlram-replace-4-1-ic-37-nt51926-ctrlram-fw200-full-flash-256k",
+   "capabilityFingerprint": "ed6f302e3c1229a0174222f0fd5dc6a9c1a94af17f9bffc6e65d0b20ea7ea50f",
+   "icId": "NT51926",
+   "workflowId": "ctrlram-replace",
+   "icCountVariant": "1-ic",
+   "mapVariant": "nt51926-ctrlram-fw200-full-flash-256k",
+   "proofKind": "exact-output",
+   "runnable": true,
+   "routeEvidenceCaseId": "nt51926-fw200-single-auto-prj-597-20260718",
+   "resolvedCaseId": "nt51926-fw200-single-auto-prj-597-20260718",
+   "goldenExpectedOutput": {
+    "size": 262144,
+    "sha256": "bf4221635b58a33bff6875aacfb29636aa140354cb5ec5256bf2b0c09e9cc81c"
+   },
+   "inputs": [
+    {
+     "slotId": "dp-input",
+     "size": 262144,
+     "sha256": "448ef01056fb82bf4b146967b8faf0160eba62a9f9e7ee01af73cb94e1043a33"
+    },
+    {
+     "slotId": "tp-input",
+     "size": 245760,
+     "sha256": "258c1a51305edf966b8a8fb8fd64f50338385af1178076ea1c0b873db7d6999c"
+    },
+    {
+     "slotId": "replace-ctrlram-mp",
+     "size": 655360,
+     "sha256": "19b4b394a541dfbd37177cb42c7cb538bdc5910bb93152b4f9e56bbec1c66593"
+    },
+    {
+     "slotId": "replace-ctrlram-nf",
+     "size": 11728,
+     "sha256": "001795ec55fa6cbb07785c10b62c80db4d2a17bd7227ea224dc787d3c7f4a478"
+    },
+    {
+     "slotId": "replace-ctrlram-normal",
+     "size": 655360,
+     "sha256": "8caef6c99d9a5eab3a43bd1f377acd8916f9a655a56c4034a1ed3191d6531249"
+    },
+    {
+     "slotId": "replace-ctrlram-vn",
+     "size": 5728,
+     "sha256": "1a6b4476dd67af21dc276206a7f172f3c1d1ad9ae5340818fffca78568dc62f6"
+    }
+   ],
+   "baseRecipe": {
+    "workflowId": "standard-merge",
+    "routeId": "route-7-nt51926-14-standard-merge-13-selector-free-27-nt51926-standard-merge-256k",
+    "mapVariant": "nt51926-standard-merge-256k"
+   },
+   "candidate": {
+    "executor": {
+     "label": "v1.1.11 source 1c37bd718, test-area git-archive export, contract-shaped locked RID restore and Release self-contained build",
+     "cliSha256": "2709ccda1d77a4ab2a72e789da07eda9cabe558f0dc51813e225da31529567d6"
+    },
+    "invocations": [
+     {
+      "stage": "base-precursor",
+      "action": "preview",
+      "exitCode": 0,
+      "durationSeconds": 4.206,
+      "inputsUnchanged": true,
+      "stderrFirstLine": "",
+      "report": {
+       "size": 6887,
+       "sha256": "397e4528d24b52bf707ec7026637dc2950a112bb40821aa1659e1bdad5706516"
+      },
+      "reportMapId": "nt51926-standard-merge-256k",
+      "reportIssueCount": 0,
+      "reportOperationCount": 2
+     },
+     {
+      "stage": "base-precursor",
+      "action": "build",
+      "exitCode": 0,
+      "durationSeconds": 4.067,
+      "inputsUnchanged": true,
+      "stderrFirstLine": "",
+      "report": {
+       "size": 6884,
+       "sha256": "37e23ef8d0fc6f47270a20dd7213051d28fb7b332c57ac561c760f0f6c87bd76"
+      },
+      "reportMapId": "nt51926-standard-merge-256k",
+      "reportIssueCount": 0,
+      "reportOperationCount": 2,
+      "output": {
+       "size": 262144,
+       "sha256": "bf4221635b58a33bff6875aacfb29636aa140354cb5ec5256bf2b0c09e9cc81c"
+      }
+     },
+     {
+      "stage": "workflow",
+      "action": "preview",
+      "exitCode": 0,
+      "durationSeconds": 4.584,
+      "inputsUnchanged": true,
+      "stderrFirstLine": "Issues:",
+      "report": {
+       "size": 22839,
+       "sha256": "19bb520e6baa4e5f97f4297ab13203376ce2b9709f5998c7399daed7400851d1"
+      },
+      "reportMapId": "nt51926-ctrlram-fw200-full-flash-256k",
+      "reportIssueCount": 3,
+      "reportOperationCount": 5
+     },
+     {
+      "stage": "workflow",
+      "action": "build",
+      "exitCode": 0,
+      "durationSeconds": 4.715,
+      "inputsUnchanged": true,
+      "stderrFirstLine": "Issues:",
+      "report": {
+       "size": 22799,
+       "sha256": "92c88d1030eb56535c0883af9505d178a25569f6ab3573b97b68cf78c2823d4c"
+      },
+      "reportMapId": "nt51926-ctrlram-fw200-full-flash-256k",
+      "reportIssueCount": 3,
+      "reportOperationCount": 5,
+      "output": {
+       "size": 262144,
+       "sha256": "5f8913e48784bf0cdb15e64f3f6376dfe741f261ca6465242ec2956bbfe6c450"
+      }
+     }
+    ],
+    "basePrecursorOutput": {
+     "size": 262144,
+     "sha256": "bf4221635b58a33bff6875aacfb29636aa140354cb5ec5256bf2b0c09e9cc81c"
+    },
+    "durationSeconds": 17.633,
+    "status": "success",
+    "output": {
+     "size": 262144,
+     "sha256": "5f8913e48784bf0cdb15e64f3f6376dfe741f261ca6465242ec2956bbfe6c450"
+    }
+   },
+   "baseline": {
+    "status": "not-run",
+    "reason": "BUG-20260925-v0916-baseline-restore-nu1004: pinned locked RID restore fails NU1004"
+   },
+   "candidateEqualsGoldenExpected": false,
+   "result": "candidate-only"
+  },
+  {
+   "routeId": "route-7-nt51926-15-ctrlram-replace-4-1-ic-34-nt51926-ctrlram-fw200-tp-work-240k",
+   "capabilityFingerprint": "557d381e0fc2b7c9bf6a76e402d952012f1bbf6d1c45bd931bf48ca30aed9c9e",
+   "icId": "NT51926",
+   "workflowId": "ctrlram-replace",
+   "icCountVariant": "1-ic",
+   "mapVariant": "nt51926-ctrlram-fw200-tp-work-240k",
+   "proofKind": "exact-output",
+   "runnable": true,
+   "routeEvidenceCaseId": "nt51926-fw200-single-auto-prj-597-20260718",
+   "resolvedCaseId": "nt51926-fw200-single-auto-prj-597-20260718",
+   "goldenExpectedOutput": {
+    "size": 262144,
+    "sha256": "bf4221635b58a33bff6875aacfb29636aa140354cb5ec5256bf2b0c09e9cc81c"
+   },
+   "inputs": [
+    {
+     "slotId": "replace-base",
+     "size": 245760,
+     "sha256": "258c1a51305edf966b8a8fb8fd64f50338385af1178076ea1c0b873db7d6999c"
+    },
+    {
+     "slotId": "replace-ctrlram-mp",
+     "size": 655360,
+     "sha256": "19b4b394a541dfbd37177cb42c7cb538bdc5910bb93152b4f9e56bbec1c66593"
+    },
+    {
+     "slotId": "replace-ctrlram-nf",
+     "size": 11728,
+     "sha256": "001795ec55fa6cbb07785c10b62c80db4d2a17bd7227ea224dc787d3c7f4a478"
+    },
+    {
+     "slotId": "replace-ctrlram-normal",
+     "size": 655360,
+     "sha256": "8caef6c99d9a5eab3a43bd1f377acd8916f9a655a56c4034a1ed3191d6531249"
+    },
+    {
+     "slotId": "replace-ctrlram-vn",
+     "size": 5728,
+     "sha256": "1a6b4476dd67af21dc276206a7f172f3c1d1ad9ae5340818fffca78568dc62f6"
+    }
+   ],
+   "candidate": {
+    "executor": {
+     "label": "v1.1.11 source 1c37bd718, test-area git-archive export, contract-shaped locked RID restore and Release self-contained build",
+     "cliSha256": "2709ccda1d77a4ab2a72e789da07eda9cabe558f0dc51813e225da31529567d6"
+    },
+    "invocations": [
+     {
+      "stage": "workflow",
+      "action": "preview",
+      "exitCode": 0,
+      "durationSeconds": 4.362,
+      "inputsUnchanged": true,
+      "stderrFirstLine": "Issues:",
+      "report": {
+       "size": 22837,
+       "sha256": "298c20145a9471fcb396f5e8d0c06e0f4fbbf4756a9483f7c1cc626dd923d66c"
+      },
+      "reportMapId": "nt51926-ctrlram-fw200-tp-work-240k",
+      "reportIssueCount": 3,
+      "reportOperationCount": 5
+     },
+     {
+      "stage": "workflow",
+      "action": "build",
+      "exitCode": 0,
+      "durationSeconds": 4.465,
+      "inputsUnchanged": true,
+      "stderrFirstLine": "Issues:",
+      "report": {
+       "size": 22795,
+       "sha256": "181e8e7efe99ff14cc8f3b5af6016d72de2d17392c42e67ce9cca4a0d5337468"
+      },
+      "reportMapId": "nt51926-ctrlram-fw200-tp-work-240k",
+      "reportIssueCount": 3,
+      "reportOperationCount": 5,
+      "output": {
+       "size": 245760,
+       "sha256": "f1c4a61299741af4837ac656300ebe24da97742e9f0bac5d11617a6cfc277209"
+      }
+     }
+    ],
+    "durationSeconds": 8.864,
+    "status": "success",
+    "output": {
+     "size": 245760,
+     "sha256": "f1c4a61299741af4837ac656300ebe24da97742e9f0bac5d11617a6cfc277209"
+    }
+   },
+   "baseline": {
+    "status": "not-run",
+    "reason": "BUG-20260925-v0916-baseline-restore-nu1004: pinned locked RID restore fails NU1004"
+   },
+   "candidateEqualsGoldenExpected": null,
+   "result": "candidate-only"
+  },
+  {
+   "routeId": "route-7-nt51926-15-ctrlram-replace-9-2-plus-ic-37-nt51926-ctrlram-fw141-full-flash-256k",
+   "capabilityFingerprint": "d75d00d9a77abc5167cd1d1d0ab9c04b0c9d7a1c860ceec2bcd4ef5baf6c5a8a",
+   "icId": "NT51926",
+   "workflowId": "ctrlram-replace",
+   "icCountVariant": "2-plus-ic",
+   "mapVariant": "nt51926-ctrlram-fw141-full-flash-256k",
+   "proofKind": "exact-output",
+   "runnable": true,
+   "routeEvidenceCaseId": "nt51926-fw141-cascade2-auto-prj-597-20260717",
+   "resolvedCaseId": "nt51926-fw141-cascade2-auto-prj-597-20260717",
+   "goldenExpectedOutput": {
+    "size": 262144,
+    "sha256": "acdfb0a03c41d6b6e40d1e8f0f6ed72f7b82d5330aa3c13cc6269c930f7d016c"
+   },
+   "inputs": [
+    {
+     "slotId": "dp-input",
+     "size": 262144,
+     "sha256": "448ef01056fb82bf4b146967b8faf0160eba62a9f9e7ee01af73cb94e1043a33"
+    },
+    {
+     "slotId": "tp-input",
+     "size": 245760,
+     "sha256": "9c0b7338c2178d5a250960485bea3f9390ab85173f366bae4e2c4a8e29f279ab"
+    },
+    {
+     "slotId": "replace-ctrlram-diff",
+     "size": 10240,
+     "sha256": "72851fa78ce61d199b3765c5e1b392400e00b8f8ffaebe732b600238846039e3"
+    },
+    {
+     "slotId": "replace-ctrlram-mp",
+     "size": 655360,
+     "sha256": "3a7d407ef8426de2080056e35080cc73cd5b4a27e52f55d3ae89e1d1709153f7"
+    },
+    {
+     "slotId": "replace-ctrlram-nf",
+     "size": 11728,
+     "sha256": "65d1f8742422b26a6162639882d29883b3372b3583e7bd4cb1c68d0fa1df7241"
+    },
+    {
+     "slotId": "replace-ctrlram-normal",
+     "size": 655360,
+     "sha256": "7e9039509a5c0efe4eaa32ba77b2947e4ab883ebadb94497c0aec797fc25b5b6"
+    },
+    {
+     "slotId": "replace-ctrlram-vn",
+     "size": 5728,
+     "sha256": "b855cbc3ce8f9b57e83ee16ce4c902a8089689dfc951e9138dc4294acbf6c5c7"
+    }
+   ],
+   "baseRecipe": {
+    "workflowId": "standard-merge",
+    "routeId": "route-7-nt51926-14-standard-merge-13-selector-free-27-nt51926-standard-merge-256k",
+    "mapVariant": "nt51926-standard-merge-256k"
+   },
+   "candidate": {
+    "executor": {
+     "label": "v1.1.11 source 1c37bd718, test-area git-archive export, contract-shaped locked RID restore and Release self-contained build",
+     "cliSha256": "2709ccda1d77a4ab2a72e789da07eda9cabe558f0dc51813e225da31529567d6"
+    },
+    "invocations": [
+     {
+      "stage": "base-precursor",
+      "action": "preview",
+      "exitCode": 0,
+      "durationSeconds": 4.337,
+      "inputsUnchanged": true,
+      "stderrFirstLine": "",
+      "report": {
+       "size": 6886,
+       "sha256": "c13d7312d6502c956dfe41ba8fcd711e045abb453a31d84bc75d22eb740ec2e6"
+      },
+      "reportMapId": "nt51926-standard-merge-256k",
+      "reportIssueCount": 0,
+      "reportOperationCount": 2
+     },
+     {
+      "stage": "base-precursor",
+      "action": "build",
+      "exitCode": 0,
+      "durationSeconds": 4.384,
+      "inputsUnchanged": true,
+      "stderrFirstLine": "",
+      "report": {
+       "size": 6885,
+       "sha256": "0c0589e84749f220627fb8a3254e593b34a2d07a127b6ec3d46d6cf9d758d454"
+      },
+      "reportMapId": "nt51926-standard-merge-256k",
+      "reportIssueCount": 0,
+      "reportOperationCount": 2,
+      "output": {
+       "size": 262144,
+       "sha256": "acdfb0a03c41d6b6e40d1e8f0f6ed72f7b82d5330aa3c13cc6269c930f7d016c"
+      }
+     },
+     {
+      "stage": "workflow",
+      "action": "preview",
+      "exitCode": 0,
+      "durationSeconds": 4.441,
+      "inputsUnchanged": true,
+      "stderrFirstLine": "Issues:",
+      "report": {
+       "size": 24745,
+       "sha256": "19f45c5fc2faa02b4580d6b5f85351c129504a0af02733d032b8a85949b67157"
+      },
+      "reportMapId": "nt51926-ctrlram-fw141-full-flash-256k",
+      "reportIssueCount": 2,
+      "reportOperationCount": 6
+     },
+     {
+      "stage": "workflow",
+      "action": "build",
+      "exitCode": 0,
+      "durationSeconds": 4.294,
+      "inputsUnchanged": true,
+      "stderrFirstLine": "Issues:",
+      "report": {
+       "size": 24701,
+       "sha256": "ddfdf17bb113eea88f3cec8b6fe65742cf044f65c09c63579d6fcfe7d9f48920"
+      },
+      "reportMapId": "nt51926-ctrlram-fw141-full-flash-256k",
+      "reportIssueCount": 2,
+      "reportOperationCount": 6,
+      "output": {
+       "size": 262144,
+       "sha256": "a2169f9fc908207dae0820ebff2b88879fa68795a311337a87c0a4e8a30c8222"
+      }
+     }
+    ],
+    "basePrecursorOutput": {
+     "size": 262144,
+     "sha256": "acdfb0a03c41d6b6e40d1e8f0f6ed72f7b82d5330aa3c13cc6269c930f7d016c"
+    },
+    "durationSeconds": 17.524,
+    "status": "success",
+    "output": {
+     "size": 262144,
+     "sha256": "a2169f9fc908207dae0820ebff2b88879fa68795a311337a87c0a4e8a30c8222"
+    }
+   },
+   "baseline": {
+    "status": "not-run",
+    "reason": "BUG-20260925-v0916-baseline-restore-nu1004: pinned locked RID restore fails NU1004"
+   },
+   "candidateEqualsGoldenExpected": false,
+   "result": "candidate-only"
+  },
+  {
+   "routeId": "route-7-nt51926-15-ctrlram-replace-9-2-plus-ic-34-nt51926-ctrlram-fw141-tp-work-240k",
+   "capabilityFingerprint": "59f07391c59f7da664b5c99388c9a1dd631b3d3a531d636b974465d80a6ec45d",
+   "icId": "NT51926",
+   "workflowId": "ctrlram-replace",
+   "icCountVariant": "2-plus-ic",
+   "mapVariant": "nt51926-ctrlram-fw141-tp-work-240k",
+   "proofKind": "exact-output",
+   "runnable": true,
+   "routeEvidenceCaseId": "nt51926-fw141-cascade2-auto-prj-597-20260717",
+   "resolvedCaseId": "nt51926-fw141-cascade2-auto-prj-597-20260717",
+   "goldenExpectedOutput": {
+    "size": 262144,
+    "sha256": "acdfb0a03c41d6b6e40d1e8f0f6ed72f7b82d5330aa3c13cc6269c930f7d016c"
+   },
+   "inputs": [
+    {
+     "slotId": "replace-base",
+     "size": 245760,
+     "sha256": "9c0b7338c2178d5a250960485bea3f9390ab85173f366bae4e2c4a8e29f279ab"
+    },
+    {
+     "slotId": "replace-ctrlram-diff",
+     "size": 10240,
+     "sha256": "72851fa78ce61d199b3765c5e1b392400e00b8f8ffaebe732b600238846039e3"
+    },
+    {
+     "slotId": "replace-ctrlram-mp",
+     "size": 655360,
+     "sha256": "3a7d407ef8426de2080056e35080cc73cd5b4a27e52f55d3ae89e1d1709153f7"
+    },
+    {
+     "slotId": "replace-ctrlram-nf",
+     "size": 11728,
+     "sha256": "65d1f8742422b26a6162639882d29883b3372b3583e7bd4cb1c68d0fa1df7241"
+    },
+    {
+     "slotId": "replace-ctrlram-normal",
+     "size": 655360,
+     "sha256": "7e9039509a5c0efe4eaa32ba77b2947e4ab883ebadb94497c0aec797fc25b5b6"
+    },
+    {
+     "slotId": "replace-ctrlram-vn",
+     "size": 5728,
+     "sha256": "b855cbc3ce8f9b57e83ee16ce4c902a8089689dfc951e9138dc4294acbf6c5c7"
+    }
+   ],
+   "candidate": {
+    "executor": {
+     "label": "v1.1.11 source 1c37bd718, test-area git-archive export, contract-shaped locked RID restore and Release self-contained build",
+     "cliSha256": "2709ccda1d77a4ab2a72e789da07eda9cabe558f0dc51813e225da31529567d6"
+    },
+    "invocations": [
+     {
+      "stage": "workflow",
+      "action": "preview",
+      "exitCode": 0,
+      "durationSeconds": 4.385,
+      "inputsUnchanged": true,
+      "stderrFirstLine": "Issues:",
+      "report": {
+       "size": 24741,
+       "sha256": "e37091079d95eb48347acbe45617676fdf91d16b4a3879681a5c371a0166ee3a"
+      },
+      "reportMapId": "nt51926-ctrlram-fw141-tp-work-240k",
+      "reportIssueCount": 2,
+      "reportOperationCount": 6
+     },
+     {
+      "stage": "workflow",
+      "action": "build",
+      "exitCode": 0,
+      "durationSeconds": 4.674,
+      "inputsUnchanged": true,
+      "stderrFirstLine": "Issues:",
+      "report": {
+       "size": 24697,
+       "sha256": "a0f361d7abffb14f741b86e78f62e7dac04a9f20ff6a4efad6c5f91dcb714d87"
+      },
+      "reportMapId": "nt51926-ctrlram-fw141-tp-work-240k",
+      "reportIssueCount": 2,
+      "reportOperationCount": 6,
+      "output": {
+       "size": 245760,
+       "sha256": "ad6b5cd0b8a3babe7e0363d4a77f257b3170b3a5ca3ba58b96b43fa746064500"
+      }
+     }
+    ],
+    "durationSeconds": 9.109,
+    "status": "success",
+    "output": {
+     "size": 245760,
+     "sha256": "ad6b5cd0b8a3babe7e0363d4a77f257b3170b3a5ca3ba58b96b43fa746064500"
+    }
+   },
+   "baseline": {
+    "status": "not-run",
+    "reason": "BUG-20260925-v0916-baseline-restore-nu1004: pinned locked RID restore fails NU1004"
+   },
+   "candidateEqualsGoldenExpected": null,
+   "result": "candidate-only"
+  },
+  {
+   "routeId": "route-7-nt51926-15-ctrlram-replace-9-2-plus-ic-37-nt51926-ctrlram-fw200-full-flash-256k",
+   "capabilityFingerprint": "a937aa4b6feaffe0d74e3d1348b386b6637f758075da7c650924b7a78689b2ce",
+   "icId": "NT51926",
+   "workflowId": "ctrlram-replace",
+   "icCountVariant": "2-plus-ic",
+   "mapVariant": "nt51926-ctrlram-fw200-full-flash-256k",
+   "proofKind": "exact-output",
+   "runnable": true,
+   "routeEvidenceCaseId": "nt51926-fw200-cascade3-auto-prj-597-20260718",
+   "resolvedCaseId": "nt51926-fw200-cascade3-auto-prj-597-20260718",
+   "goldenExpectedOutput": {
+    "size": 262144,
+    "sha256": "2521192e6a846c8beeb49395e98977d243053efd292b094b31272fff70825825"
+   },
+   "inputs": [
+    {
+     "slotId": "dp-input",
+     "size": 262144,
+     "sha256": "448ef01056fb82bf4b146967b8faf0160eba62a9f9e7ee01af73cb94e1043a33"
+    },
+    {
+     "slotId": "tp-input",
+     "size": 245760,
+     "sha256": "5e12cf6484d1d681826192b0c2b8aabead4098285f6a2facdfde732f4d1bc7e2"
+    },
+    {
+     "slotId": "replace-ctrlram-diff",
+     "size": 10240,
+     "sha256": "869633426bb4dfe26f34c3542630e379eb54482e47c330d6286722a932354817"
+    },
+    {
+     "slotId": "replace-ctrlram-mp",
+     "size": 655360,
+     "sha256": "d512606dd69db32e11b616588e4874ecfa615b0660b33cc65a38f8fc29363c19"
+    },
+    {
+     "slotId": "replace-ctrlram-nf",
+     "size": 11728,
+     "sha256": "46c8a7eadadab86a4b2f04049619c8e60ca0ded410b89a0037dbf93be4564be1"
+    },
+    {
+     "slotId": "replace-ctrlram-normal",
+     "size": 655360,
+     "sha256": "3fb5fd130be8205b44f75a1c49356d00e51a47f884c477a7e17b1c3110d81da5"
+    },
+    {
+     "slotId": "replace-ctrlram-vn",
+     "size": 5728,
+     "sha256": "b855cbc3ce8f9b57e83ee16ce4c902a8089689dfc951e9138dc4294acbf6c5c7"
+    }
+   ],
+   "baseRecipe": {
+    "workflowId": "standard-merge",
+    "routeId": "route-7-nt51926-14-standard-merge-13-selector-free-27-nt51926-standard-merge-256k",
+    "mapVariant": "nt51926-standard-merge-256k"
+   },
+   "candidate": {
+    "executor": {
+     "label": "v1.1.11 source 1c37bd718, test-area git-archive export, contract-shaped locked RID restore and Release self-contained build",
+     "cliSha256": "2709ccda1d77a4ab2a72e789da07eda9cabe558f0dc51813e225da31529567d6"
+    },
+    "invocations": [
+     {
+      "stage": "base-precursor",
+      "action": "preview",
+      "exitCode": 0,
+      "durationSeconds": 4.185,
+      "inputsUnchanged": true,
+      "stderrFirstLine": "",
+      "report": {
+       "size": 6888,
+       "sha256": "f6927d6cbf4407cea98c32699b8f6535b9f2a58c759a79798c1a9187ab93f4ff"
+      },
+      "reportMapId": "nt51926-standard-merge-256k",
+      "reportIssueCount": 0,
+      "reportOperationCount": 2
+     },
+     {
+      "stage": "base-precursor",
+      "action": "build",
+      "exitCode": 0,
+      "durationSeconds": 4.345,
+      "inputsUnchanged": true,
+      "stderrFirstLine": "",
+      "report": {
+       "size": 6885,
+       "sha256": "10b2966799eac012185710e7ec7151510003d22e75d717851d36321e7df367a4"
+      },
+      "reportMapId": "nt51926-standard-merge-256k",
+      "reportIssueCount": 0,
+      "reportOperationCount": 2,
+      "output": {
+       "size": 262144,
+       "sha256": "2521192e6a846c8beeb49395e98977d243053efd292b094b31272fff70825825"
+      }
+     },
+     {
+      "stage": "workflow",
+      "action": "preview",
+      "exitCode": 0,
+      "durationSeconds": 4.559,
+      "inputsUnchanged": true,
+      "stderrFirstLine": "Issues:",
+      "report": {
+       "size": 25029,
+       "sha256": "628b28badb94619fcedc56f9f5e2f145f1102f1765819c2d6e384a95781cda6d"
+      },
+      "reportMapId": "nt51926-ctrlram-fw200-full-flash-256k",
+      "reportIssueCount": 3,
+      "reportOperationCount": 6
+     },
+     {
+      "stage": "workflow",
+      "action": "build",
+      "exitCode": 0,
+      "durationSeconds": 4.495,
+      "inputsUnchanged": true,
+      "stderrFirstLine": "Issues:",
+      "report": {
+       "size": 24986,
+       "sha256": "ad71ede08a260e40f75185ef9e7204c3b18a948dbee1d901fd5c44475df970b2"
+      },
+      "reportMapId": "nt51926-ctrlram-fw200-full-flash-256k",
+      "reportIssueCount": 3,
+      "reportOperationCount": 6,
+      "output": {
+       "size": 262144,
+       "sha256": "b4336e3d935466feb98695eb9f5fe8b10c91c632fc835ffcfa1ed7ffefe0495a"
+      }
+     }
+    ],
+    "basePrecursorOutput": {
+     "size": 262144,
+     "sha256": "2521192e6a846c8beeb49395e98977d243053efd292b094b31272fff70825825"
+    },
+    "durationSeconds": 17.653,
+    "status": "success",
+    "output": {
+     "size": 262144,
+     "sha256": "b4336e3d935466feb98695eb9f5fe8b10c91c632fc835ffcfa1ed7ffefe0495a"
+    }
+   },
+   "baseline": {
+    "status": "not-run",
+    "reason": "BUG-20260925-v0916-baseline-restore-nu1004: pinned locked RID restore fails NU1004"
+   },
+   "candidateEqualsGoldenExpected": false,
+   "result": "candidate-only"
+  },
+  {
+   "routeId": "route-7-nt51926-15-ctrlram-replace-9-2-plus-ic-34-nt51926-ctrlram-fw200-tp-work-240k",
+   "capabilityFingerprint": "71123feedb8bb0f7c87da35d6278cc443c2302510253d51c860b89304d092ef1",
+   "icId": "NT51926",
+   "workflowId": "ctrlram-replace",
+   "icCountVariant": "2-plus-ic",
+   "mapVariant": "nt51926-ctrlram-fw200-tp-work-240k",
+   "proofKind": "exact-output",
+   "runnable": true,
+   "routeEvidenceCaseId": "nt51926-fw200-cascade3-auto-prj-597-20260718",
+   "resolvedCaseId": "nt51926-fw200-cascade3-auto-prj-597-20260718",
+   "goldenExpectedOutput": {
+    "size": 262144,
+    "sha256": "2521192e6a846c8beeb49395e98977d243053efd292b094b31272fff70825825"
+   },
+   "inputs": [
+    {
+     "slotId": "replace-base",
+     "size": 245760,
+     "sha256": "5e12cf6484d1d681826192b0c2b8aabead4098285f6a2facdfde732f4d1bc7e2"
+    },
+    {
+     "slotId": "replace-ctrlram-diff",
+     "size": 10240,
+     "sha256": "869633426bb4dfe26f34c3542630e379eb54482e47c330d6286722a932354817"
+    },
+    {
+     "slotId": "replace-ctrlram-mp",
+     "size": 655360,
+     "sha256": "d512606dd69db32e11b616588e4874ecfa615b0660b33cc65a38f8fc29363c19"
+    },
+    {
+     "slotId": "replace-ctrlram-nf",
+     "size": 11728,
+     "sha256": "46c8a7eadadab86a4b2f04049619c8e60ca0ded410b89a0037dbf93be4564be1"
+    },
+    {
+     "slotId": "replace-ctrlram-normal",
+     "size": 655360,
+     "sha256": "3fb5fd130be8205b44f75a1c49356d00e51a47f884c477a7e17b1c3110d81da5"
+    },
+    {
+     "slotId": "replace-ctrlram-vn",
+     "size": 5728,
+     "sha256": "b855cbc3ce8f9b57e83ee16ce4c902a8089689dfc951e9138dc4294acbf6c5c7"
+    }
+   ],
+   "candidate": {
+    "executor": {
+     "label": "v1.1.11 source 1c37bd718, test-area git-archive export, contract-shaped locked RID restore and Release self-contained build",
+     "cliSha256": "2709ccda1d77a4ab2a72e789da07eda9cabe558f0dc51813e225da31529567d6"
+    },
+    "invocations": [
+     {
+      "stage": "workflow",
+      "action": "preview",
+      "exitCode": 0,
+      "durationSeconds": 4.514,
+      "inputsUnchanged": true,
+      "stderrFirstLine": "Issues:",
+      "report": {
+       "size": 25024,
+       "sha256": "5bae5b3179059a7084f59baa15a83fbe4dd0ea4ab92cfa5d7685da29e657f89c"
+      },
+      "reportMapId": "nt51926-ctrlram-fw200-tp-work-240k",
+      "reportIssueCount": 3,
+      "reportOperationCount": 6
+     },
+     {
+      "stage": "workflow",
+      "action": "build",
+      "exitCode": 0,
+      "durationSeconds": 4.552,
+      "inputsUnchanged": true,
+      "stderrFirstLine": "Issues:",
+      "report": {
+       "size": 24981,
+       "sha256": "0e3e0b6ac123e8266f7e0ef21e6b64f42754dadedce0ffa1a0b7b725e2b1780d"
+      },
+      "reportMapId": "nt51926-ctrlram-fw200-tp-work-240k",
+      "reportIssueCount": 3,
+      "reportOperationCount": 6,
+      "output": {
+       "size": 245760,
+       "sha256": "2e79b7634219c9e67b8f4311d2dc0252d49e7dbe81ec6a56d610298a19cda50d"
+      }
+     }
+    ],
+    "durationSeconds": 9.11,
+    "status": "success",
+    "output": {
+     "size": 245760,
+     "sha256": "2e79b7634219c9e67b8f4311d2dc0252d49e7dbe81ec6a56d610298a19cda50d"
+    }
+   },
+   "baseline": {
+    "status": "not-run",
+    "reason": "BUG-20260925-v0916-baseline-restore-nu1004: pinned locked RID restore fails NU1004"
+   },
+   "candidateEqualsGoldenExpected": null,
+   "result": "candidate-only"
+  },
+  {
+   "routeId": "route-7-nt51926-14-standard-merge-13-selector-free-27-nt51926-standard-merge-256k",
+   "capabilityFingerprint": "574fade7a5f9c32ed0fea42cab8cb7be948b36be17a2f6937ce8edbcc6f83218",
+   "icId": "NT51926",
+   "workflowId": "standard-merge",
+   "icCountVariant": "selector-free",
+   "mapVariant": "nt51926-standard-merge-256k",
+   "proofKind": "exact-output",
+   "runnable": true,
+   "routeEvidenceCaseId": "nt51926-gen-flash",
+   "resolvedCaseId": "nt51926-gen-flash",
+   "goldenExpectedOutput": {
+    "size": 262144,
+    "sha256": "910c302495ef037bad232b6c8e50fca58db643540bf0e5871a34a33ea907c305"
+   },
+   "inputs": [
+    {
+     "slotId": "dp-input",
+     "size": 262144,
+     "sha256": "2853828a2bafaf9b7611ca18008c2a3866b5d566f97ce116ecb15864e652259b"
+    },
+    {
+     "slotId": "tp-input",
+     "size": 245760,
+     "sha256": "9e5321fb7673736c6c52e61549e33347e3852488bd253088db7239d4d0f371fc"
+    }
+   ],
+   "candidate": {
+    "executor": {
+     "label": "v1.1.11 source 1c37bd718, test-area git-archive export, contract-shaped locked RID restore and Release self-contained build",
+     "cliSha256": "2709ccda1d77a4ab2a72e789da07eda9cabe558f0dc51813e225da31529567d6"
+    },
+    "invocations": [
+     {
+      "stage": "workflow",
+      "action": "preview",
+      "exitCode": 0,
+      "durationSeconds": 4.28,
+      "inputsUnchanged": true,
+      "stderrFirstLine": "",
+      "report": {
+       "size": 6888,
+       "sha256": "f2411debd12d78a23c681de426714f74c6024c1e16663bac059bcef782bb3edb"
+      },
+      "reportMapId": "nt51926-standard-merge-256k",
+      "reportIssueCount": 0,
+      "reportOperationCount": 2
+     },
+     {
+      "stage": "workflow",
+      "action": "build",
+      "exitCode": 0,
+      "durationSeconds": 4.452,
+      "inputsUnchanged": true,
+      "stderrFirstLine": "",
+      "report": {
+       "size": 6884,
+       "sha256": "3798b48de75742572ecf227617b4f43096a3d29ddf23367d5cd6b84188e3493c"
+      },
+      "reportMapId": "nt51926-standard-merge-256k",
+      "reportIssueCount": 0,
+      "reportOperationCount": 2,
+      "output": {
+       "size": 262144,
+       "sha256": "910c302495ef037bad232b6c8e50fca58db643540bf0e5871a34a33ea907c305"
+      }
+     }
+    ],
+    "durationSeconds": 8.752,
+    "status": "success",
+    "output": {
+     "size": 262144,
+     "sha256": "910c302495ef037bad232b6c8e50fca58db643540bf0e5871a34a33ea907c305"
+    }
+   },
+   "baseline": {
+    "status": "not-run",
+    "reason": "BUG-20260925-v0916-baseline-restore-nu1004: pinned locked RID restore fails NU1004"
+   },
+   "candidateEqualsGoldenExpected": true,
+   "result": "candidate-only"
+  },
+  {
+   "routeId": "route-7-nt51927-15-ctrlram-replace-4-1-ic-39-nt51927-ctrlram-fw141-single-full-flash",
+   "capabilityFingerprint": "72c1d750aca975c65567800d2e27621c2793596c59cc3ebebd2de06b6d363e90",
+   "icId": "NT51927",
+   "workflowId": "ctrlram-replace",
+   "icCountVariant": "1-ic",
+   "mapVariant": "nt51927-ctrlram-fw141-single-full-flash",
+   "proofKind": "exact-output",
+   "runnable": true,
+   "routeEvidenceCaseId": "nt51927-fw141-single-auto-prj-529-20260717",
+   "resolvedCaseId": "nt51927-fw141-single-auto-prj-529-20260717",
+   "goldenExpectedOutput": {
+    "size": 262144,
+    "sha256": "fc4d2f9701c626b1c7cddd2b448970611d332295c64f86415af2855f1569c55a"
+   },
+   "inputs": [
+    {
+     "slotId": "dp-input",
+     "size": 262144,
+     "sha256": "bd8bd124c91cae29f0aeda8c9a49d48362b4497516d1c549eb1460fc661627bc"
+    },
+    {
+     "slotId": "tp-input",
+     "size": 217088,
+     "sha256": "4569893ba45af44ae28e7401374aa549201b9b2edeb2743e9f878d650ac248ee"
+    },
+    {
+     "slotId": "replace-ctrlram-mp-master",
+     "size": 655360,
+     "sha256": "ae8bea2d4fe1c0c3a182febbe8e258eb0908c3f99dcbbaee9ce2af167614aba2"
+    },
+    {
+     "slotId": "replace-ctrlram-nf",
+     "size": 4048,
+     "sha256": "a26e62e920df297423d478a2a0c2d2ce07053e091e4bada1f6eeb542d0e1d797"
+    },
+    {
+     "slotId": "replace-ctrlram-normal-master",
+     "size": 655360,
+     "sha256": "de73cded3235c24f517c815427cea8ec44678fa132fdf30e418381cd4b25e7d5"
+    },
+    {
+     "slotId": "replace-ctrlram-vn",
+     "size": 5728,
+     "sha256": "4847b6950b49b8dc9ed022924ea64ae43ac3c9dc7f8dbaad108755200522d709"
+    }
+   ],
+   "baseRecipe": {
+    "workflowId": "standard-merge",
+    "routeId": "route-7-nt51927-14-standard-merge-13-selector-free-27-nt51927-standard-merge-256k",
+    "mapVariant": "nt51927-standard-merge-256k"
+   },
+   "candidate": {
+    "executor": {
+     "label": "v1.1.11 source 1c37bd718, test-area git-archive export, contract-shaped locked RID restore and Release self-contained build",
+     "cliSha256": "2709ccda1d77a4ab2a72e789da07eda9cabe558f0dc51813e225da31529567d6"
+    },
+    "invocations": [
+     {
+      "stage": "base-precursor",
+      "action": "preview",
+      "exitCode": 0,
+      "durationSeconds": 4.344,
+      "inputsUnchanged": true,
+      "stderrFirstLine": "",
+      "report": {
+       "size": 6889,
+       "sha256": "202a03ad653f4b7cd97c6e4c650ac16355af411d8e424fc7c0a3dd5332eeeb1a"
+      },
+      "reportMapId": "nt51927-standard-merge-256k",
+      "reportIssueCount": 0,
+      "reportOperationCount": 2
+     },
+     {
+      "stage": "base-precursor",
+      "action": "build",
+      "exitCode": 0,
+      "durationSeconds": 4.215,
+      "inputsUnchanged": true,
+      "stderrFirstLine": "",
+      "report": {
+       "size": 6888,
+       "sha256": "7ece2c5b76c050a2f557bf4da145b247b84b3b01d2a0a9fc151a6aa4f350eec8"
+      },
+      "reportMapId": "nt51927-standard-merge-256k",
+      "reportIssueCount": 0,
+      "reportOperationCount": 2,
+      "output": {
+       "size": 262144,
+       "sha256": "fc4d2f9701c626b1c7cddd2b448970611d332295c64f86415af2855f1569c55a"
+      }
+     },
+     {
+      "stage": "workflow",
+      "action": "preview",
+      "exitCode": 0,
+      "durationSeconds": 4.528,
+      "inputsUnchanged": true,
+      "stderrFirstLine": "Issues:",
+      "report": {
+       "size": 31931,
+       "sha256": "8c2b5eb43f6c92845fd18246c0dceea241b374b9e8d71f019878da4f85cd8df9"
+      },
+      "reportMapId": "nt51927-ctrlram-fw141-single-full-flash",
+      "reportIssueCount": 2,
+      "reportOperationCount": 5
+     },
+     {
+      "stage": "workflow",
+      "action": "build",
+      "exitCode": 0,
+      "durationSeconds": 4.714,
+      "inputsUnchanged": true,
+      "stderrFirstLine": "Issues:",
+      "report": {
+       "size": 31852,
+       "sha256": "24a086aa2e2a3d28642de3885ce6ccfa16b43c46bb48d49c59264548e9e87c6f"
+      },
+      "reportMapId": "nt51927-ctrlram-fw141-single-full-flash",
+      "reportIssueCount": 2,
+      "reportOperationCount": 5,
+      "output": {
+       "size": 262144,
+       "sha256": "fdb8fef05bdb375e175091eb75d555c2b1c5ddb216a2815f02e25c6533020ab9"
+      }
+     }
+    ],
+    "basePrecursorOutput": {
+     "size": 262144,
+     "sha256": "fc4d2f9701c626b1c7cddd2b448970611d332295c64f86415af2855f1569c55a"
+    },
+    "durationSeconds": 17.861,
+    "status": "success",
+    "output": {
+     "size": 262144,
+     "sha256": "fdb8fef05bdb375e175091eb75d555c2b1c5ddb216a2815f02e25c6533020ab9"
+    }
+   },
+   "baseline": {
+    "status": "not-run",
+    "reason": "BUG-20260925-v0916-baseline-restore-nu1004: pinned locked RID restore fails NU1004"
+   },
+   "candidateEqualsGoldenExpected": false,
+   "result": "candidate-only"
+  },
+  {
+   "routeId": "route-7-nt51927-15-ctrlram-replace-4-2-ic-40-nt51927-ctrlram-fw132-twochip-full-flash",
+   "capabilityFingerprint": "a9a1de56e93a93e31a6d7090b8a29eb58a28633cd0d7a445c9c44d677d5b3309",
+   "icId": "NT51927",
+   "workflowId": "ctrlram-replace",
+   "icCountVariant": "2-ic",
+   "mapVariant": "nt51927-ctrlram-fw132-twochip-full-flash",
+   "proofKind": "exact-output",
+   "runnable": false,
+   "result": "not-covered",
+   "reason": "no canonical input (canonicalInputAuthority.currentlyMissingRouteIds)"
+  },
+  {
+   "routeId": "route-7-nt51927-15-ctrlram-replace-4-3-ic-42-nt51927-ctrlram-fw140-threechip-full-flash",
+   "capabilityFingerprint": "4b4354d2ffdb29fc20b23e731bba7de6c0a4957d2871580ff8f0eff9895f0ed0",
+   "icId": "NT51927",
+   "workflowId": "ctrlram-replace",
+   "icCountVariant": "3-ic",
+   "mapVariant": "nt51927-ctrlram-fw140-threechip-full-flash",
+   "proofKind": "exact-output",
+   "runnable": false,
+   "result": "not-covered",
+   "reason": "no canonical input (canonicalInputAuthority.currentlyMissingRouteIds)"
+  },
+  {
+   "routeId": "route-7-nt51927-14-standard-merge-13-selector-free-27-nt51927-standard-merge-256k",
+   "capabilityFingerprint": "e4021770667b4c1fb1cb143226c1d0bc9c0d6857cd5c8bb32bdb0091d0bfe3ef",
+   "icId": "NT51927",
+   "workflowId": "standard-merge",
+   "icCountVariant": "selector-free",
+   "mapVariant": "nt51927-standard-merge-256k",
+   "proofKind": "exact-output",
+   "runnable": true,
+   "routeEvidenceCaseId": "nt51927-gen-flash",
+   "resolvedCaseId": "nt51927-gen-flash",
+   "goldenExpectedOutput": {
+    "size": 262144,
+    "sha256": "8e0d362b74ba65dfd8eb2d33a8ae6c1359b99ce2994d64d878bfdb393855cf80"
+   },
+   "inputs": [
+    {
+     "slotId": "dp-input",
+     "size": 2097152,
+     "sha256": "866bff2ed5759ec45c2343630e77b74c1b906b77d4ed2beba62d955cf13e1d18"
+    },
+    {
+     "slotId": "tp-input",
+     "size": 217088,
+     "sha256": "ad80a708579cfce8954c9a46e8d82846aff12f2659f0e81ff55a8d5c9f77f265"
+    }
+   ],
+   "candidate": {
+    "executor": {
+     "label": "v1.1.11 source 1c37bd718, test-area git-archive export, contract-shaped locked RID restore and Release self-contained build",
+     "cliSha256": "2709ccda1d77a4ab2a72e789da07eda9cabe558f0dc51813e225da31529567d6"
+    },
+    "invocations": [
+     {
+      "stage": "workflow",
+      "action": "preview",
+      "exitCode": 0,
+      "durationSeconds": 4.242,
+      "inputsUnchanged": true,
+      "stderrFirstLine": "",
+      "report": {
+       "size": 6999,
+       "sha256": "9c69b6ef02e543f1cbd73ea866cb05d676f9d3ac43b721d92fe83cb5daf54cc3"
+      },
+      "reportMapId": "nt51927-standard-merge-256k",
+      "reportIssueCount": 0,
+      "reportOperationCount": 2
+     },
+     {
+      "stage": "workflow",
+      "action": "build",
+      "exitCode": 0,
+      "durationSeconds": 4.181,
+      "inputsUnchanged": true,
+      "stderrFirstLine": "",
+      "report": {
+       "size": 6995,
+       "sha256": "68f6eb67dd538435cf11ee1dbeea96ea8ab4848ddbd21c750f6fc2681ed9099b"
+      },
+      "reportMapId": "nt51927-standard-merge-256k",
+      "reportIssueCount": 0,
+      "reportOperationCount": 2,
+      "output": {
+       "size": 262144,
+       "sha256": "8e0d362b74ba65dfd8eb2d33a8ae6c1359b99ce2994d64d878bfdb393855cf80"
+      }
+     }
+    ],
+    "durationSeconds": 8.462,
+    "status": "success",
+    "output": {
+     "size": 262144,
+     "sha256": "8e0d362b74ba65dfd8eb2d33a8ae6c1359b99ce2994d64d878bfdb393855cf80"
+    }
+   },
+   "baseline": {
+    "status": "not-run",
+    "reason": "BUG-20260925-v0916-baseline-restore-nu1004: pinned locked RID restore fails NU1004"
+   },
+   "candidateEqualsGoldenExpected": true,
+   "result": "candidate-only"
+  },
+  {
+   "routeId": "route-7-nt51928-15-ctrlram-replace-4-1-ic-39-nt51928-ctrlram-fw141-single-full-flash",
+   "capabilityFingerprint": "0e59580e365d1840a56b30aa44cdb3acc6fc07e708f96dd902c664e0d0a917b3",
+   "icId": "NT51928",
+   "workflowId": "ctrlram-replace",
+   "icCountVariant": "1-ic",
+   "mapVariant": "nt51928-ctrlram-fw141-single-full-flash",
+   "proofKind": "exact-output",
+   "runnable": false,
+   "result": "not-covered",
+   "reason": "no canonical input (canonicalInputAuthority.currentlyMissingRouteIds)"
+  },
+  {
+   "routeId": "route-7-nt51928-15-ctrlram-replace-4-2-ic-40-nt51928-ctrlram-fw132-twochip-full-flash",
+   "capabilityFingerprint": "5a452b8e652a0370e51dd9ff7566eb55eaba5505b5bd9593560a390772567854",
+   "icId": "NT51928",
+   "workflowId": "ctrlram-replace",
+   "icCountVariant": "2-ic",
+   "mapVariant": "nt51928-ctrlram-fw132-twochip-full-flash",
+   "proofKind": "exact-output",
+   "runnable": false,
+   "result": "not-covered",
+   "reason": "no canonical input (canonicalInputAuthority.currentlyMissingRouteIds)"
+  },
+  {
+   "routeId": "route-7-nt51928-15-ctrlram-replace-4-3-ic-42-nt51928-ctrlram-fw140-threechip-full-flash",
+   "capabilityFingerprint": "d69762482e840ce82faedcbae47942cd21fbf21faef1ab245b22d64f1ff99f96",
+   "icId": "NT51928",
+   "workflowId": "ctrlram-replace",
+   "icCountVariant": "3-ic",
+   "mapVariant": "nt51928-ctrlram-fw140-threechip-full-flash",
+   "proofKind": "exact-output",
+   "runnable": false,
+   "result": "not-covered",
+   "reason": "no canonical input (canonicalInputAuthority.currentlyMissingRouteIds)"
+  },
+  {
+   "routeId": "route-7-nt51928-14-standard-merge-13-selector-free-31-nt51928-dual-capacity-256k-512k",
+   "capabilityFingerprint": "3b21585c95eb934e2cd2465489b64ac6ede33c5745c049f3f1d6e114fccc0104",
+   "icId": "NT51928",
+   "workflowId": "standard-merge",
+   "icCountVariant": "selector-free",
+   "mapVariant": "nt51928-dual-capacity-256k-512k",
+   "proofKind": "exact-output",
+   "runnable": false,
+   "result": "not-covered",
+   "reason": "no canonical input (canonicalInputAuthority.currentlyMissingRouteIds)"
+  },
+  {
+   "routeId": "route-7-nt51929-8-ab-merge-13-selector-free-21-nt51929-ab-merge-512k",
+   "capabilityFingerprint": "94d31e3e032cce5cc53e62ff57c41c2aa50ac3d8c32c538d67027add98477f09",
+   "icId": "NT51929",
+   "workflowId": "ab-merge",
+   "icCountVariant": "selector-free",
+   "mapVariant": "nt51929-ab-merge-512k",
+   "proofKind": "exact-output",
+   "runnable": true,
+   "routeEvidenceCaseId": "nt51929-ab-t05-d06",
+   "resolvedCaseId": "nt51929-ab-t05-d06",
+   "goldenExpectedOutput": {
+    "size": 524288,
+    "sha256": "c7e1e263ac8ca70f83a6f66fa268da4aa9be37c2c822a39d58fa9c153d66abe2"
+   },
+   "inputs": [
+    {
+     "slotId": "dp-ab-input",
+     "size": 524288,
+     "sha256": "ba99f6d117b5d620c1b41024ff001a665b4e1260b5e670c5992a6f5c07e39237"
+    },
+    {
+     "slotId": "tp-a-input",
+     "size": 262144,
+     "sha256": "7ae10d3642778fa399696d46291f7d237f9f165de0ab2faaa1369f65c2b9ce12"
+    },
+    {
+     "slotId": "tp-b-input",
+     "size": 262144,
+     "sha256": "7ae10d3642778fa399696d46291f7d237f9f165de0ab2faaa1369f65c2b9ce12"
+    }
+   ],
+   "candidate": {
+    "executor": {
+     "label": "v1.1.11 source 1c37bd718, test-area git-archive export, contract-shaped locked RID restore and Release self-contained build",
+     "cliSha256": "2709ccda1d77a4ab2a72e789da07eda9cabe558f0dc51813e225da31529567d6"
+    },
+    "invocations": [
+     {
+      "stage": "workflow",
+      "action": "preview",
+      "exitCode": 0,
+      "durationSeconds": 4.212,
+      "inputsUnchanged": true,
+      "stderrFirstLine": "",
+      "report": {
+       "size": 13130,
+       "sha256": "caf45cf9e1d6d1e0ad354ae892ddea39437c75d21f7f883591f7da985d3221af"
+      },
+      "reportMapId": "nt51929-ab-merge-512k",
+      "reportIssueCount": 0,
+      "reportOperationCount": 6
+     },
+     {
+      "stage": "workflow",
+      "action": "build",
+      "exitCode": 0,
+      "durationSeconds": 4.344,
+      "inputsUnchanged": true,
+      "stderrFirstLine": "",
+      "report": {
+       "size": 13126,
+       "sha256": "ea9d74770c3fb6b6e004049f869f20266c2a6532db82128cf21233ba89b665cb"
+      },
+      "reportMapId": "nt51929-ab-merge-512k",
+      "reportIssueCount": 0,
+      "reportOperationCount": 6,
+      "output": {
+       "size": 524288,
+       "sha256": "c7e1e263ac8ca70f83a6f66fa268da4aa9be37c2c822a39d58fa9c153d66abe2"
+      }
+     }
+    ],
+    "durationSeconds": 8.586,
+    "status": "success",
+    "output": {
+     "size": 524288,
+     "sha256": "c7e1e263ac8ca70f83a6f66fa268da4aa9be37c2c822a39d58fa9c153d66abe2"
+    }
+   },
+   "baseline": {
+    "status": "not-run",
+    "reason": "BUG-20260925-v0916-baseline-restore-nu1004: pinned locked RID restore fails NU1004"
+   },
+   "candidateEqualsGoldenExpected": true,
+   "result": "candidate-only"
+  },
+  {
+   "routeId": "route-7-nt51929-15-ctrlram-replace-4-1-ic-39-nt51929-ctrlram-fw200-single-full-flash",
+   "capabilityFingerprint": "842dc2b4065d94f0558910b2717450490dabd42b205277376e2418987b0dca52",
+   "icId": "NT51929",
+   "workflowId": "ctrlram-replace",
+   "icCountVariant": "1-ic",
+   "mapVariant": "nt51929-ctrlram-fw200-single-full-flash",
+   "proofKind": "exact-output",
+   "runnable": true,
+   "routeEvidenceCaseId": "nt51929-fw200-single-auto-prj-594-20260717",
+   "resolvedCaseId": "nt51929-fw200-single-auto-prj-594-20260717",
+   "goldenExpectedOutput": {
+    "size": 262144,
+    "sha256": "d3c958d2aac1e29bd1f88b8ac62dc74c36810ab11e707770199d4b34f5ce3910"
+   },
+   "inputs": [
+    {
+     "slotId": "dp-input",
+     "size": 524288,
+     "sha256": "ba99f6d117b5d620c1b41024ff001a665b4e1260b5e670c5992a6f5c07e39237"
+    },
+    {
+     "slotId": "tp-input",
+     "size": 262144,
+     "sha256": "7ae10d3642778fa399696d46291f7d237f9f165de0ab2faaa1369f65c2b9ce12"
+    },
+    {
+     "slotId": "replace-ctrlram-nf",
+     "size": 1624,
+     "sha256": "d16f150e172df1b92d5db32472b245f39f4481351304dc197da6f1d3194ab9d2"
+    },
+    {
+     "slotId": "replace-ctrlram-normal",
+     "size": 655360,
+     "sha256": "c0c8058727406b50dce0e209554ed997c09084808babe2f2a537a9a4b75d1d4c"
+    },
+    {
+     "slotId": "replace-ctrlram-vn",
+     "size": 6496,
+     "sha256": "c90ced38fc2cc8e62cd0275050f7bfcc05e707eaaffd9704533f9a26a49de64d"
+    }
+   ],
+   "baseRecipe": {
+    "workflowId": "standard-merge",
+    "routeId": "route-7-nt51929-14-standard-merge-13-selector-free-27-nt51929-standard-merge-256k",
+    "mapVariant": "nt51929-standard-merge-256k"
+   },
+   "candidate": {
+    "executor": {
+     "label": "v1.1.11 source 1c37bd718, test-area git-archive export, contract-shaped locked RID restore and Release self-contained build",
+     "cliSha256": "2709ccda1d77a4ab2a72e789da07eda9cabe558f0dc51813e225da31529567d6"
+    },
+    "invocations": [
+     {
+      "stage": "base-precursor",
+      "action": "preview",
+      "exitCode": 0,
+      "durationSeconds": 4.243,
+      "inputsUnchanged": true,
+      "stderrFirstLine": "",
+      "report": {
+       "size": 6985,
+       "sha256": "e0279aa274b063c7c435c11ca298d09d8b0acf4032fa41992fd2eac7fb27c644"
+      },
+      "reportMapId": "nt51929-standard-merge-256k",
+      "reportIssueCount": 0,
+      "reportOperationCount": 2
+     },
+     {
+      "stage": "base-precursor",
+      "action": "build",
+      "exitCode": 0,
+      "durationSeconds": 4.347,
+      "inputsUnchanged": true,
+      "stderrFirstLine": "",
+      "report": {
+       "size": 6982,
+       "sha256": "069c7882c076d1909e48aef174ddd68d08a5244501138ce25ee0e020fcd97998"
+      },
+      "reportMapId": "nt51929-standard-merge-256k",
+      "reportIssueCount": 0,
+      "reportOperationCount": 2,
+      "output": {
+       "size": 262144,
+       "sha256": "d3c958d2aac1e29bd1f88b8ac62dc74c36810ab11e707770199d4b34f5ce3910"
+      }
+     },
+     {
+      "stage": "workflow",
+      "action": "preview",
+      "exitCode": 0,
+      "durationSeconds": 4.501,
+      "inputsUnchanged": true,
+      "stderrFirstLine": "Issues:",
+      "report": {
+       "size": 19914,
+       "sha256": "8146df1e14a5ad443668bc8c9c97961a9aca7b7b5b486594da3689d9070b6b51"
+      },
+      "reportMapId": "nt51929-ctrlram-fw200-single-full-flash",
+      "reportIssueCount": 1,
+      "reportOperationCount": 4
+     },
+     {
+      "stage": "workflow",
+      "action": "build",
+      "exitCode": 0,
+      "durationSeconds": 4.506,
+      "inputsUnchanged": true,
+      "stderrFirstLine": "Issues:",
+      "report": {
+       "size": 19872,
+       "sha256": "5e35e053e0af59f859cb926d4d54f046d050da0fac597a16dbecae176b2ca2dc"
+      },
+      "reportMapId": "nt51929-ctrlram-fw200-single-full-flash",
+      "reportIssueCount": 1,
+      "reportOperationCount": 4,
+      "output": {
+       "size": 262144,
+       "sha256": "d23f53a13db3c6fc0009ed547e8cfa5f1b54033145825828416c7458b14f198f"
+      }
+     }
+    ],
+    "basePrecursorOutput": {
+     "size": 262144,
+     "sha256": "d3c958d2aac1e29bd1f88b8ac62dc74c36810ab11e707770199d4b34f5ce3910"
+    },
+    "durationSeconds": 17.65,
+    "status": "success",
+    "output": {
+     "size": 262144,
+     "sha256": "d23f53a13db3c6fc0009ed547e8cfa5f1b54033145825828416c7458b14f198f"
+    }
+   },
+   "baseline": {
+    "status": "not-run",
+    "reason": "BUG-20260925-v0916-baseline-restore-nu1004: pinned locked RID restore fails NU1004"
+   },
+   "candidateEqualsGoldenExpected": false,
+   "result": "candidate-only"
+  },
+  {
+   "routeId": "route-7-nt51929-15-ctrlram-replace-6-2-8-ic-39-nt51929-ctrlram-fw1x-cascade-full-flash",
+   "capabilityFingerprint": "ffd490073505d9615d6c77a2e9dc81b6581a31b09d7c32098f2d44b765985ea9",
+   "icId": "NT51929",
+   "workflowId": "ctrlram-replace",
+   "icCountVariant": "2-8-ic",
+   "mapVariant": "nt51929-ctrlram-fw1x-cascade-full-flash",
+   "proofKind": "exact-output",
+   "runnable": false,
+   "result": "not-covered",
+   "reason": "no canonical input (canonicalInputAuthority.currentlyMissingRouteIds)"
+  },
+  {
+   "routeId": "route-7-nt51929-14-standard-merge-13-selector-free-27-nt51929-standard-merge-256k",
+   "capabilityFingerprint": "7241e513c36122a60f2535836fd3b5625dc4cafe304d002e713a1525a949ac68",
+   "icId": "NT51929",
+   "workflowId": "standard-merge",
+   "icCountVariant": "selector-free",
+   "mapVariant": "nt51929-standard-merge-256k",
+   "proofKind": "exact-output",
+   "runnable": true,
+   "routeEvidenceCaseId": "nt51929-gen-flash",
+   "resolvedCaseId": "nt51929-gen-flash",
+   "goldenExpectedOutput": {
+    "size": 262144,
+    "sha256": "fdba72984d662c4d652c56d909cf27756193f3766875b42d55207bccfca6867e"
+   },
+   "inputs": [
+    {
+     "slotId": "dp-input",
+     "size": 262144,
+     "sha256": "e9626d1230bb117a91e7cd365b060991b48bf555bda065a84f8a62edd8c95095"
+    },
+    {
+     "slotId": "tp-input",
+     "size": 262144,
+     "sha256": "a5631c8c05dd1e29b216b3cc00a84ef416db41e04c9d1e7c3d211a44bf7bc458"
+    }
+   ],
+   "candidate": {
+    "executor": {
+     "label": "v1.1.11 source 1c37bd718, test-area git-archive export, contract-shaped locked RID restore and Release self-contained build",
+     "cliSha256": "2709ccda1d77a4ab2a72e789da07eda9cabe558f0dc51813e225da31529567d6"
+    },
+    "invocations": [
+     {
+      "stage": "workflow",
+      "action": "preview",
+      "exitCode": 0,
+      "durationSeconds": 4.34,
+      "inputsUnchanged": true,
+      "stderrFirstLine": "",
+      "report": {
+       "size": 6985,
+       "sha256": "0f4eb39e1bded45ea366782e4bc826318d2e198918657fc152fd2bfa59b04044"
+      },
+      "reportMapId": "nt51929-standard-merge-256k",
+      "reportIssueCount": 0,
+      "reportOperationCount": 2
+     },
+     {
+      "stage": "workflow",
+      "action": "build",
+      "exitCode": 0,
+      "durationSeconds": 4.231,
+      "inputsUnchanged": true,
+      "stderrFirstLine": "",
+      "report": {
+       "size": 6982,
+       "sha256": "66c5bdcacce3f5c0c09c5dfe873b585881174b691cbd709db6205d52cbf2cc29"
+      },
+      "reportMapId": "nt51929-standard-merge-256k",
+      "reportIssueCount": 0,
+      "reportOperationCount": 2,
+      "output": {
+       "size": 262144,
+       "sha256": "fdba72984d662c4d652c56d909cf27756193f3766875b42d55207bccfca6867e"
+      }
+     }
+    ],
+    "durationSeconds": 8.59,
+    "status": "success",
+    "output": {
+     "size": 262144,
+     "sha256": "fdba72984d662c4d652c56d909cf27756193f3766875b42d55207bccfca6867e"
+    }
+   },
+   "baseline": {
+    "status": "not-run",
+    "reason": "BUG-20260925-v0916-baseline-restore-nu1004: pinned locked RID restore fails NU1004"
+   },
+   "candidateEqualsGoldenExpected": true,
+   "result": "candidate-only"
+  },
+  {
+   "routeId": "route-7-nt51932-8-ab-merge-13-selector-free-21-nt51932-ab-merge-512k",
+   "capabilityFingerprint": "04853e05982351ccdc7d0c1ba940127ea43aca7426d9cb0bbfdf2042912c6158",
+   "icId": "NT51932",
+   "workflowId": "ab-merge",
+   "icCountVariant": "selector-free",
+   "mapVariant": "nt51932-ab-merge-512k",
+   "proofKind": "exact-output",
+   "runnable": true,
+   "routeEvidenceCaseId": "nt51932-ab-t05-d06-alias",
+   "resolvedCaseId": "nt51929-ab-t05-d06",
+   "goldenExpectedOutput": {
+    "size": 524288,
+    "sha256": "c7e1e263ac8ca70f83a6f66fa268da4aa9be37c2c822a39d58fa9c153d66abe2"
+   },
+   "inputs": [
+    {
+     "slotId": "dp-ab-input",
+     "size": 524288,
+     "sha256": "ba99f6d117b5d620c1b41024ff001a665b4e1260b5e670c5992a6f5c07e39237"
+    },
+    {
+     "slotId": "tp-a-input",
+     "size": 262144,
+     "sha256": "7ae10d3642778fa399696d46291f7d237f9f165de0ab2faaa1369f65c2b9ce12"
+    },
+    {
+     "slotId": "tp-b-input",
+     "size": 262144,
+     "sha256": "7ae10d3642778fa399696d46291f7d237f9f165de0ab2faaa1369f65c2b9ce12"
+    }
+   ],
+   "candidate": {
+    "executor": {
+     "label": "v1.1.11 source 1c37bd718, test-area git-archive export, contract-shaped locked RID restore and Release self-contained build",
+     "cliSha256": "2709ccda1d77a4ab2a72e789da07eda9cabe558f0dc51813e225da31529567d6"
+    },
+    "invocations": [
+     {
+      "stage": "workflow",
+      "action": "preview",
+      "exitCode": 0,
+      "durationSeconds": 4.264,
+      "inputsUnchanged": true,
+      "stderrFirstLine": "",
+      "report": {
+       "size": 13130,
+       "sha256": "db8468613c11d1ee62385d88f97995ff45e9ca285bb859c3c8229540ba078c63"
+      },
+      "reportMapId": "nt51932-ab-merge-512k",
+      "reportIssueCount": 0,
+      "reportOperationCount": 6
+     },
+     {
+      "stage": "workflow",
+      "action": "build",
+      "exitCode": 0,
+      "durationSeconds": 4.341,
+      "inputsUnchanged": true,
+      "stderrFirstLine": "",
+      "report": {
+       "size": 13127,
+       "sha256": "b1b73f741bed0f088b2c2d3d5a98efea66df221d2fdc279936ae3cff91877fb9"
+      },
+      "reportMapId": "nt51932-ab-merge-512k",
+      "reportIssueCount": 0,
+      "reportOperationCount": 6,
+      "output": {
+       "size": 524288,
+       "sha256": "c7e1e263ac8ca70f83a6f66fa268da4aa9be37c2c822a39d58fa9c153d66abe2"
+      }
+     }
+    ],
+    "durationSeconds": 8.638,
+    "status": "success",
+    "output": {
+     "size": 524288,
+     "sha256": "c7e1e263ac8ca70f83a6f66fa268da4aa9be37c2c822a39d58fa9c153d66abe2"
+    }
+   },
+   "baseline": {
+    "status": "not-run",
+    "reason": "BUG-20260925-v0916-baseline-restore-nu1004: pinned locked RID restore fails NU1004"
+   },
+   "candidateEqualsGoldenExpected": true,
+   "result": "candidate-only"
+  },
+  {
+   "routeId": "route-7-nt51932-15-ctrlram-replace-4-1-ic-38-nt51932-ctrlram-fw1x-single-full-flash",
+   "capabilityFingerprint": "f61eaf6722fd61e04b52d489c0381be88d9be8c3f1dc5af6f0a9acab9c8864f0",
+   "icId": "NT51932",
+   "workflowId": "ctrlram-replace",
+   "icCountVariant": "1-ic",
+   "mapVariant": "nt51932-ctrlram-fw1x-single-full-flash",
+   "proofKind": "exact-output",
+   "runnable": false,
+   "result": "not-covered",
+   "reason": "no canonical input (canonicalInputAuthority.currentlyMissingRouteIds)"
+  },
+  {
+   "routeId": "route-7-nt51932-15-ctrlram-replace-6-2-8-ic-40-nt51932-ctrlram-fw200-cascade-full-flash",
+   "capabilityFingerprint": "79e337b555022db0c24d98104f255052eb12b227144c3b613a74ff335357b6a2",
+   "icId": "NT51932",
+   "workflowId": "ctrlram-replace",
+   "icCountVariant": "2-8-ic",
+   "mapVariant": "nt51932-ctrlram-fw200-cascade-full-flash",
+   "proofKind": "exact-output",
+   "runnable": true,
+   "routeEvidenceCaseId": "nt51932-fw200-cascade3-auto-prj-525-20260718",
+   "resolvedCaseId": "nt51932-fw200-cascade3-auto-prj-525-20260718",
+   "goldenExpectedOutput": {
+    "size": 262144,
+    "sha256": "3eb556e0a9323dd4fbe4c703be1eb33679df2b1ba839e79ddd7bbffa235008fd"
+   },
+   "inputs": [
+    {
+     "slotId": "dp-input",
+     "size": 262144,
+     "sha256": "d3105f69411aeca10c63eaa23592fa05a14d4876fbc209a489b86a129de1aac1"
+    },
+    {
+     "slotId": "tp-input",
+     "size": 262144,
+     "sha256": "db844b0fda5eda3c6df42237bbf8857f7d435ae51497b337b0d50f9ac80cb6c6"
+    },
+    {
+     "slotId": "replace-ctrlram-diff",
+     "size": 97280,
+     "sha256": "673b089947265ae766ff317ff2fc0ec1476171f644e7cea2247daf6d19c34dd4"
+    },
+    {
+     "slotId": "replace-ctrlram-normal",
+     "size": 655360,
+     "sha256": "da3613e8a858e408d2122a984554f20028e3621adf1b2a7e33cc753ae2abe89b"
+    },
+    {
+     "slotId": "replace-ctrlram-vn",
+     "size": 4120,
+     "sha256": "066815c150f47318ba255cf5d84b7b2116267b5adc6bbcf771a7c50f78bc289b"
+    }
+   ],
+   "baseRecipe": {
+    "workflowId": "standard-merge",
+    "routeId": "route-7-nt51932-14-standard-merge-13-selector-free-27-nt51932-standard-merge-256k",
+    "mapVariant": "nt51932-standard-merge-256k"
+   },
+   "candidate": {
+    "executor": {
+     "label": "v1.1.11 source 1c37bd718, test-area git-archive export, contract-shaped locked RID restore and Release self-contained build",
+     "cliSha256": "2709ccda1d77a4ab2a72e789da07eda9cabe558f0dc51813e225da31529567d6"
+    },
+    "invocations": [
+     {
+      "stage": "base-precursor",
+      "action": "preview",
+      "exitCode": 0,
+      "durationSeconds": 4.194,
+      "inputsUnchanged": true,
+      "stderrFirstLine": "",
+      "report": {
+       "size": 6986,
+       "sha256": "4a1e794bd05f431676ff47ea4c39e21e19a2a14450b58d8b476ea7c37c0c5bfe"
+      },
+      "reportMapId": "nt51932-standard-merge-256k",
+      "reportIssueCount": 0,
+      "reportOperationCount": 2
+     },
+     {
+      "stage": "base-precursor",
+      "action": "build",
+      "exitCode": 0,
+      "durationSeconds": 4.445,
+      "inputsUnchanged": true,
+      "stderrFirstLine": "",
+      "report": {
+       "size": 6983,
+       "sha256": "a3ce3063a78935b229aa6bf0a07ac0e13a69818dbb8b1b96cd39723117e8fc5f"
+      },
+      "reportMapId": "nt51932-standard-merge-256k",
+      "reportIssueCount": 0,
+      "reportOperationCount": 2,
+      "output": {
+       "size": 262144,
+       "sha256": "3eb556e0a9323dd4fbe4c703be1eb33679df2b1ba839e79ddd7bbffa235008fd"
+      }
+     },
+     {
+      "stage": "workflow",
+      "action": "preview",
+      "exitCode": 0,
+      "durationSeconds": 4.602,
+      "inputsUnchanged": true,
+      "stderrFirstLine": "Issues:",
+      "report": {
+       "size": 23248,
+       "sha256": "0cbf6e23386c0b244426de38dfac6ac88bfa16df96f410801fa3b895eb57107a"
+      },
+      "reportMapId": "nt51932-ctrlram-fw200-cascade-full-flash",
+      "reportIssueCount": 2,
+      "reportOperationCount": 5
+     },
+     {
+      "stage": "workflow",
+      "action": "build",
+      "exitCode": 0,
+      "durationSeconds": 4.613,
+      "inputsUnchanged": true,
+      "stderrFirstLine": "Issues:",
+      "report": {
+       "size": 23201,
+       "sha256": "9beec19dfcb3036ddfdc9ab36a8e70b5155547a96118afd9cea7408539a2d663"
+      },
+      "reportMapId": "nt51932-ctrlram-fw200-cascade-full-flash",
+      "reportIssueCount": 2,
+      "reportOperationCount": 5,
+      "output": {
+       "size": 262144,
+       "sha256": "0e59a2fbaab16979745b3543564b18f49c9d4eb7912bdea2e61383e31e662566"
+      }
+     }
+    ],
+    "basePrecursorOutput": {
+     "size": 262144,
+     "sha256": "3eb556e0a9323dd4fbe4c703be1eb33679df2b1ba839e79ddd7bbffa235008fd"
+    },
+    "durationSeconds": 17.912,
+    "status": "success",
+    "output": {
+     "size": 262144,
+     "sha256": "0e59a2fbaab16979745b3543564b18f49c9d4eb7912bdea2e61383e31e662566"
+    }
+   },
+   "baseline": {
+    "status": "not-run",
+    "reason": "BUG-20260925-v0916-baseline-restore-nu1004: pinned locked RID restore fails NU1004"
+   },
+   "candidateEqualsGoldenExpected": false,
+   "result": "candidate-only"
+  },
+  {
+   "routeId": "route-7-nt51932-14-standard-merge-13-selector-free-27-nt51932-standard-merge-256k",
+   "capabilityFingerprint": "6891a62aafe376f3d937fabb1723c9dd3120d914dda3c33618d3e416fed83d43",
+   "icId": "NT51932",
+   "workflowId": "standard-merge",
+   "icCountVariant": "selector-free",
+   "mapVariant": "nt51932-standard-merge-256k",
+   "proofKind": "exact-output",
+   "runnable": true,
+   "routeEvidenceCaseId": "nt51932-gen-flash",
+   "resolvedCaseId": "nt51932-gen-flash",
+   "goldenExpectedOutput": {
+    "size": 262144,
+    "sha256": "6a0c90b1c314536119dda9aacd1f3dfcccfc8b90aae6e43cdf713100bb308b14"
+   },
+   "inputs": [
+    {
+     "slotId": "dp-input",
+     "size": 262144,
+     "sha256": "c66e361bb04df9dd95aa0e10b38ee70bfbb6fa6fe2a6c8d1a0ab1124dd03542b"
+    },
+    {
+     "slotId": "tp-input",
+     "size": 262144,
+     "sha256": "3de3406d827b205601e085e163a0fff4c8180353e55535c33fb9f2b0357d9b9b"
+    }
+   ],
+   "candidate": {
+    "executor": {
+     "label": "v1.1.11 source 1c37bd718, test-area git-archive export, contract-shaped locked RID restore and Release self-contained build",
+     "cliSha256": "2709ccda1d77a4ab2a72e789da07eda9cabe558f0dc51813e225da31529567d6"
+    },
+    "invocations": [
+     {
+      "stage": "workflow",
+      "action": "preview",
+      "exitCode": 0,
+      "durationSeconds": 4.185,
+      "inputsUnchanged": true,
+      "stderrFirstLine": "",
+      "report": {
+       "size": 6985,
+       "sha256": "766f3f0da7590e86579fbf3cc27522b56ac5fd41ffaf745568008499a76d4470"
+      },
+      "reportMapId": "nt51932-standard-merge-256k",
+      "reportIssueCount": 0,
+      "reportOperationCount": 2
+     },
+     {
+      "stage": "workflow",
+      "action": "build",
+      "exitCode": 0,
+      "durationSeconds": 4.235,
+      "inputsUnchanged": true,
+      "stderrFirstLine": "",
+      "report": {
+       "size": 6982,
+       "sha256": "a8e7a33adb0f48b733d9a0923947004f6dbe6bc925620b02b83ce42f166cdbf3"
+      },
+      "reportMapId": "nt51932-standard-merge-256k",
+      "reportIssueCount": 0,
+      "reportOperationCount": 2,
+      "output": {
+       "size": 262144,
+       "sha256": "6a0c90b1c314536119dda9aacd1f3dfcccfc8b90aae6e43cdf713100bb308b14"
+      }
+     }
+    ],
+    "durationSeconds": 8.442,
+    "status": "success",
+    "output": {
+     "size": 262144,
+     "sha256": "6a0c90b1c314536119dda9aacd1f3dfcccfc8b90aae6e43cdf713100bb308b14"
+    }
+   },
+   "baseline": {
+    "status": "not-run",
+    "reason": "BUG-20260925-v0916-baseline-restore-nu1004: pinned locked RID restore fails NU1004"
+   },
+   "candidateEqualsGoldenExpected": true,
+   "result": "candidate-only"
+  },
+  {
+   "routeId": "route-7-nt51950-8-ab-merge-4-1-ic-21-nt51950-ab-merge-512k",
+   "capabilityFingerprint": "88e29264940e4dbc6a3648f127ae52924fee5d731e3dffde48f5d631be544908",
+   "icId": "NT51950",
+   "workflowId": "ab-merge",
+   "icCountVariant": "1-ic",
+   "mapVariant": "nt51950-ab-merge-512k",
+   "proofKind": "exact-output",
+   "runnable": true,
+   "routeEvidenceCaseId": "nt51950-ab-boe-d82t80",
+   "resolvedCaseId": "nt51950-ab-boe-d82t80",
+   "goldenExpectedOutput": {
+    "size": 524288,
+    "sha256": "d18db8dc02ab4ff52cb17b4b3b3b90f99047c9d1acd2a5c23627197cf32f8650"
+   },
+   "inputs": [
+    {
+     "slotId": "dp-ab-input",
+     "size": 524288,
+     "sha256": "d544717e647e27868086947b8c401b33cf42823857be81d6bd8c9efd57bee408"
+    },
+    {
+     "slotId": "tp-a-input",
+     "size": 225280,
+     "sha256": "dcdb291abc92ab8ab41453cdb14f80771cf8eed2095a402d81923fb804281102"
+    },
+    {
+     "slotId": "tp-b-input",
+     "size": 225280,
+     "sha256": "dcdb291abc92ab8ab41453cdb14f80771cf8eed2095a402d81923fb804281102"
+    }
+   ],
+   "candidate": {
+    "executor": {
+     "label": "v1.1.11 source 1c37bd718, test-area git-archive export, contract-shaped locked RID restore and Release self-contained build",
+     "cliSha256": "2709ccda1d77a4ab2a72e789da07eda9cabe558f0dc51813e225da31529567d6"
+    },
+    "invocations": [
+     {
+      "stage": "workflow",
+      "action": "preview",
+      "exitCode": 0,
+      "durationSeconds": 4.373,
+      "inputsUnchanged": true,
+      "stderrFirstLine": "",
+      "report": {
+       "size": 21429,
+       "sha256": "91fcb8e00901811fb283869ce0f53cdd39c12d7b483ca3214f7b3b5352575ab9"
+      },
+      "reportMapId": "nt51950-ab-merge-512k",
+      "reportIssueCount": 0,
+      "reportOperationCount": 10
+     },
+     {
+      "stage": "workflow",
+      "action": "build",
+      "exitCode": 0,
+      "durationSeconds": 4.218,
+      "inputsUnchanged": true,
+      "stderrFirstLine": "",
+      "report": {
+       "size": 21419,
+       "sha256": "3a7fb5e14f4b886cb49acde92bf3770e5d21328010998d7cdca721edf5bfc4b9"
+      },
+      "reportMapId": "nt51950-ab-merge-512k",
+      "reportIssueCount": 0,
+      "reportOperationCount": 10,
+      "output": {
+       "size": 524288,
+       "sha256": "d18db8dc02ab4ff52cb17b4b3b3b90f99047c9d1acd2a5c23627197cf32f8650"
+      }
+     }
+    ],
+    "durationSeconds": 8.622,
+    "status": "success",
+    "output": {
+     "size": 524288,
+     "sha256": "d18db8dc02ab4ff52cb17b4b3b3b90f99047c9d1acd2a5c23627197cf32f8650"
+    }
+   },
+   "baseline": {
+    "status": "not-run",
+    "reason": "BUG-20260925-v0916-baseline-restore-nu1004: pinned locked RID restore fails NU1004"
+   },
+   "candidateEqualsGoldenExpected": true,
+   "result": "candidate-only"
+  },
+  {
+   "routeId": "route-7-nt51950-8-ab-merge-9-2-plus-ic-22-nt51950-ab-merge-1024k",
+   "capabilityFingerprint": "8f9920a2411f7f601574b497df9b42d1b9de63a50b973948381194900e3e1ea3",
+   "icId": "NT51950",
+   "workflowId": "ab-merge",
+   "icCountVariant": "2-plus-ic",
+   "mapVariant": "nt51950-ab-merge-1024k",
+   "proofKind": "exact-output",
+   "runnable": false,
+   "result": "not-covered",
+   "reason": "no canonical input (canonicalInputAuthority.currentlyMissingRouteIds)"
+  },
+  {
+   "routeId": "route-7-nt51950-15-ctrlram-replace-4-1-ic-39-nt51950-ctrlram-fw200-single-full-flash",
+   "capabilityFingerprint": "1481d22a55850e1de38e1f7f460c63dc539ae0ccf67aa2fe7ab0db2d5070070b",
+   "icId": "NT51950",
+   "workflowId": "ctrlram-replace",
+   "icCountVariant": "1-ic",
+   "mapVariant": "nt51950-ctrlram-fw200-single-full-flash",
+   "proofKind": "exact-output",
+   "runnable": true,
+   "routeEvidenceCaseId": "nt51950-fw200-single-auto-prj-676-20260717",
+   "resolvedCaseId": "nt51950-fw200-single-auto-prj-676-20260717",
+   "goldenExpectedOutput": {
+    "size": 262144,
+    "sha256": "ccda75d0aa08540e293f9ab4a8058c43c4e39d2dd0238238848a2f13df68e38e"
+   },
+   "inputs": [
+    {
+     "slotId": "dp-input",
+     "size": 262144,
+     "sha256": "36fad781c12e955439054e851d2c6813d3f154d5f206fac9555d1913f987d254"
+    },
+    {
+     "slotId": "tp-input",
+     "size": 225280,
+     "sha256": "0bd070b3d05939e01346deb1f1d40ffcc3431692524cd18c90171869485d3f22"
+    },
+    {
+     "slotId": "replace-ctrlram-nf",
+     "size": 2816,
+     "sha256": "3531fd2a89195c1418d27673e4b7420cde0067be971ad72f666a01cf21e6a322"
+    },
+    {
+     "slotId": "replace-ctrlram-normal",
+     "size": 655360,
+     "sha256": "f2db8a22f7e2ba5d46699e6b405412e9e804d679448b2aa5e61fa14e9b07b478"
+    },
+    {
+     "slotId": "replace-ctrlram-vn",
+     "size": 8444,
+     "sha256": "3f1bd04de707ba7584dd860caa9069e4b66774b9c3b8a001eea1d69db62cb709"
+    }
+   ],
+   "baseRecipe": {
+    "workflowId": "standard-merge",
+    "routeId": "route-7-nt51950-14-standard-merge-13-selector-free-27-nt51950-standard-merge-256k",
+    "mapVariant": "nt51950-standard-merge-256k"
+   },
+   "candidate": {
+    "executor": {
+     "label": "v1.1.11 source 1c37bd718, test-area git-archive export, contract-shaped locked RID restore and Release self-contained build",
+     "cliSha256": "2709ccda1d77a4ab2a72e789da07eda9cabe558f0dc51813e225da31529567d6"
+    },
+    "invocations": [
+     {
+      "stage": "base-precursor",
+      "action": "preview",
+      "exitCode": 0,
+      "durationSeconds": 4.164,
+      "inputsUnchanged": true,
+      "stderrFirstLine": "",
+      "report": {
+       "size": 7139,
+       "sha256": "3746f8cfa6b81260a6a945c3f378465fd17c147bdc4b45ac6c76cb77c8d6281f"
+      },
+      "reportMapId": "nt51950-standard-merge-256k",
+      "reportIssueCount": 0,
+      "reportOperationCount": 2
+     },
+     {
+      "stage": "base-precursor",
+      "action": "build",
+      "exitCode": 0,
+      "durationSeconds": 4.213,
+      "inputsUnchanged": true,
+      "stderrFirstLine": "",
+      "report": {
+       "size": 7135,
+       "sha256": "8e317004d0eec13136924157552238cc7824b20857f6bb024b246fff1bfcd8d3"
+      },
+      "reportMapId": "nt51950-standard-merge-256k",
+      "reportIssueCount": 0,
+      "reportOperationCount": 2,
+      "output": {
+       "size": 262144,
+       "sha256": "ccda75d0aa08540e293f9ab4a8058c43c4e39d2dd0238238848a2f13df68e38e"
+      }
+     },
+     {
+      "stage": "workflow",
+      "action": "preview",
+      "exitCode": 0,
+      "durationSeconds": 4.638,
+      "inputsUnchanged": true,
+      "stderrFirstLine": "Issues:",
+      "report": {
+       "size": 19783,
+       "sha256": "edf0ee92c2817cfe342da18f2b3ab97e893b93994f6160f6765652727c3e09ab"
+      },
+      "reportMapId": "nt51950-ctrlram-fw200-single-full-flash",
+      "reportIssueCount": 1,
+      "reportOperationCount": 4
+     },
+     {
+      "stage": "workflow",
+      "action": "build",
+      "exitCode": 0,
+      "durationSeconds": 4.501,
+      "inputsUnchanged": true,
+      "stderrFirstLine": "Issues:",
+      "report": {
+       "size": 19741,
+       "sha256": "c55151cf6375f0139b18bd1d7f25f9169bb7ddb1013b2f7d4322537e5562e6bb"
+      },
+      "reportMapId": "nt51950-ctrlram-fw200-single-full-flash",
+      "reportIssueCount": 1,
+      "reportOperationCount": 4,
+      "output": {
+       "size": 262144,
+       "sha256": "a32e6896b840d44e4933adb8827d66bfe642a1347835a1c5bda848cb33ecd5c4"
+      }
+     }
+    ],
+    "basePrecursorOutput": {
+     "size": 262144,
+     "sha256": "ccda75d0aa08540e293f9ab4a8058c43c4e39d2dd0238238848a2f13df68e38e"
+    },
+    "durationSeconds": 17.57,
+    "status": "success",
+    "output": {
+     "size": 262144,
+     "sha256": "a32e6896b840d44e4933adb8827d66bfe642a1347835a1c5bda848cb33ecd5c4"
+    }
+   },
+   "baseline": {
+    "status": "not-run",
+    "reason": "BUG-20260925-v0916-baseline-restore-nu1004: pinned locked RID restore fails NU1004"
+   },
+   "candidateEqualsGoldenExpected": false,
+   "result": "candidate-only"
+  },
+  {
+   "routeId": "route-7-nt51950-15-ctrlram-replace-4-1-ic-36-nt51950-ctrlram-fw200-single-tp-work",
+   "capabilityFingerprint": "290123b9bdad932c1474a120def1386dfabaef3bb7ff03cecdec3e7025e37cbc",
+   "icId": "NT51950",
+   "workflowId": "ctrlram-replace",
+   "icCountVariant": "1-ic",
+   "mapVariant": "nt51950-ctrlram-fw200-single-tp-work",
+   "proofKind": "exact-output",
+   "runnable": false,
+   "result": "not-covered",
+   "reason": "no canonical input (canonicalInputAuthority.currentlyMissingRouteIds)"
+  },
+  {
+   "routeId": "route-7-nt51950-15-ctrlram-replace-4-2-ic-39-nt51950-ctrlram-fw1x-cascade-full-flash",
+   "capabilityFingerprint": "267bbab586f1742ce5e0a7da6586afb11c02652de1e0a767d007e2a9cee2e0a7",
+   "icId": "NT51950",
+   "workflowId": "ctrlram-replace",
+   "icCountVariant": "2-ic",
+   "mapVariant": "nt51950-ctrlram-fw1x-cascade-full-flash",
+   "proofKind": "exact-output",
+   "runnable": true,
+   "routeEvidenceCaseId": "nt51950-cascade2-geometry-nt51951-auto-prj-599-alias",
+   "resolvedCaseId": "nt51951-fw200-cascade2-auto-prj-599-20260731",
+   "goldenExpectedOutput": {
+    "size": 524288,
+    "sha256": "ff9ad012454cab3d9d76d7270dfde7b402d23c2d0376ba6776cd1a242144aa32"
+   },
+   "inputs": [
+    {
+     "slotId": "dp-input",
+     "size": 524288,
+     "sha256": "3fdcc5d7380d3b3dcbddd47d000e4bdafc1462497c3f49267fa1228590d35c40"
+    },
+    {
+     "slotId": "tp-input",
+     "size": 225280,
+     "sha256": "1397cfed395d937826d6e6378b030c80f7a0d6322102d028b1907e66d5a4a31a"
+    },
+    {
+     "slotId": "replace-ctrlram-normal",
+     "size": 655360,
+     "sha256": "e7dbfeb2f34c2dbb4f4e9531f3858b15f673b179b4118ad5f564f28976cf7129"
+    },
+    {
+     "slotId": "replace-ctrlram-vn",
+     "size": 4120,
+     "sha256": "066815c150f47318ba255cf5d84b7b2116267b5adc6bbcf771a7c50f78bc289b"
+    },
+    {
+     "slotId": "replace-ctrlram-diff",
+     "size": 10240,
+     "sha256": "d5b2a200645dc83c9cdf2988276915dfcfde656d2cfacb8a759ce0c5dd88eb00"
+    }
+   ],
+   "baseRecipe": {
+    "workflowId": "standard-merge",
+    "routeId": "route-7-nt51950-14-standard-merge-13-selector-free-27-nt51950-standard-merge-512k",
+    "mapVariant": "nt51950-standard-merge-512k"
+   },
+   "candidate": {
+    "executor": {
+     "label": "v1.1.11 source 1c37bd718, test-area git-archive export, contract-shaped locked RID restore and Release self-contained build",
+     "cliSha256": "2709ccda1d77a4ab2a72e789da07eda9cabe558f0dc51813e225da31529567d6"
+    },
+    "invocations": [
+     {
+      "stage": "base-precursor",
+      "action": "preview",
+      "exitCode": 0,
+      "durationSeconds": 4.476,
+      "inputsUnchanged": true,
+      "stderrFirstLine": "",
+      "report": {
+       "size": 7157,
+       "sha256": "f6b97c07e7aa85aa44fa29fabb222f15b168aea18537d805e57d73724a92db6c"
+      },
+      "reportMapId": "nt51950-standard-merge-512k",
+      "reportIssueCount": 0,
+      "reportOperationCount": 2
+     },
+     {
+      "stage": "base-precursor",
+      "action": "build",
+      "exitCode": 0,
+      "durationSeconds": 4.39,
+      "inputsUnchanged": true,
+      "stderrFirstLine": "",
+      "report": {
+       "size": 7155,
+       "sha256": "9237d4f48675d8d050eb150efa85870255937c104987bd206e55fc78e1d12139"
+      },
+      "reportMapId": "nt51950-standard-merge-512k",
+      "reportIssueCount": 0,
+      "reportOperationCount": 2,
+      "output": {
+       "size": 524288,
+       "sha256": "ff9ad012454cab3d9d76d7270dfde7b402d23c2d0376ba6776cd1a242144aa32"
+      }
+     },
+     {
+      "stage": "workflow",
+      "action": "preview",
+      "exitCode": 1,
+      "durationSeconds": 4.2,
+      "inputsUnchanged": true,
+      "stderrFirstLine": "Issues:"
+     }
+    ],
+    "basePrecursorOutput": {
+     "size": 524288,
+     "sha256": "ff9ad012454cab3d9d76d7270dfde7b402d23c2d0376ba6776cd1a242144aa32"
+    },
+    "durationSeconds": 13.117,
+    "status": "error",
+    "failedStage": "workflow"
+   },
+   "baseline": {
+    "status": "not-run",
+    "reason": "BUG-20260925-v0916-baseline-restore-nu1004: pinned locked RID restore fails NU1004"
+   },
+   "result": "error"
+  },
+  {
+   "routeId": "route-7-nt51950-15-ctrlram-replace-4-2-ic-36-nt51950-ctrlram-fw1x-cascade-tp-work",
+   "capabilityFingerprint": "df822064eaa890d08bc0e0ecbaa9d8cd7f6464395066308e1dd64b11507fbb49",
+   "icId": "NT51950",
+   "workflowId": "ctrlram-replace",
+   "icCountVariant": "2-ic",
+   "mapVariant": "nt51950-ctrlram-fw1x-cascade-tp-work",
+   "proofKind": "exact-output",
+   "runnable": true,
+   "routeEvidenceCaseId": "nt51950-cascade2-geometry-nt51951-auto-prj-599-alias",
+   "resolvedCaseId": "nt51951-fw200-cascade2-auto-prj-599-20260731",
+   "goldenExpectedOutput": {
+    "size": 524288,
+    "sha256": "ff9ad012454cab3d9d76d7270dfde7b402d23c2d0376ba6776cd1a242144aa32"
+   },
+   "inputs": [
+    {
+     "slotId": "replace-base",
+     "size": 225280,
+     "sha256": "1397cfed395d937826d6e6378b030c80f7a0d6322102d028b1907e66d5a4a31a"
+    },
+    {
+     "slotId": "replace-ctrlram-normal",
+     "size": 655360,
+     "sha256": "e7dbfeb2f34c2dbb4f4e9531f3858b15f673b179b4118ad5f564f28976cf7129"
+    },
+    {
+     "slotId": "replace-ctrlram-vn",
+     "size": 4120,
+     "sha256": "066815c150f47318ba255cf5d84b7b2116267b5adc6bbcf771a7c50f78bc289b"
+    },
+    {
+     "slotId": "replace-ctrlram-diff",
+     "size": 10240,
+     "sha256": "d5b2a200645dc83c9cdf2988276915dfcfde656d2cfacb8a759ce0c5dd88eb00"
+    }
+   ],
+   "candidate": {
+    "executor": {
+     "label": "v1.1.11 source 1c37bd718, test-area git-archive export, contract-shaped locked RID restore and Release self-contained build",
+     "cliSha256": "2709ccda1d77a4ab2a72e789da07eda9cabe558f0dc51813e225da31529567d6"
+    },
+    "invocations": [
+     {
+      "stage": "workflow",
+      "action": "preview",
+      "exitCode": 0,
+      "durationSeconds": 4.565,
+      "inputsUnchanged": true,
+      "stderrFirstLine": "Issues:",
+      "report": {
+       "size": 21292,
+       "sha256": "a47ac988857b990548e25f20465ae267314cdac37d68772dd5b63de4a0948e88"
+      },
+      "reportMapId": "nt51950-ctrlram-fw1x-cascade-tp-work",
+      "reportIssueCount": 2,
+      "reportOperationCount": 4
+     },
+     {
+      "stage": "workflow",
+      "action": "build",
+      "exitCode": 0,
+      "durationSeconds": 4.669,
+      "inputsUnchanged": true,
+      "stderrFirstLine": "Issues:",
+      "report": {
+       "size": 21248,
+       "sha256": "1a6402b6b85289c6d5435a86766a5a39e40c15339efe586563f645f2bf5b4c2c"
+      },
+      "reportMapId": "nt51950-ctrlram-fw1x-cascade-tp-work",
+      "reportIssueCount": 2,
+      "reportOperationCount": 4,
+      "output": {
+       "size": 225280,
+       "sha256": "a239645dd6e2527af34934e20ef7399ecb9d748aca32ce9ed4b829b94b8fc643"
+      }
+     }
+    ],
+    "durationSeconds": 9.265,
+    "status": "success",
+    "output": {
+     "size": 225280,
+     "sha256": "a239645dd6e2527af34934e20ef7399ecb9d748aca32ce9ed4b829b94b8fc643"
+    }
+   },
+   "baseline": {
+    "status": "not-run",
+    "reason": "BUG-20260925-v0916-baseline-restore-nu1004: pinned locked RID restore fails NU1004"
+   },
+   "candidateEqualsGoldenExpected": null,
+   "result": "candidate-only"
+  },
+  {
+   "routeId": "route-7-nt51950-14-standard-merge-13-selector-free-28-nt51950-standard-merge-1024k",
+   "capabilityFingerprint": "a192094ae814a0b6e8162e4d38a6a2ee1d304663cd61bac07aed353e9530c49b",
+   "icId": "NT51950",
+   "workflowId": "standard-merge",
+   "icCountVariant": "selector-free",
+   "mapVariant": "nt51950-standard-merge-1024k",
+   "proofKind": "exact-output",
+   "runnable": false,
+   "result": "not-covered",
+   "reason": "no canonical input (canonicalInputAuthority.currentlyMissingRouteIds)"
+  },
+  {
+   "routeId": "route-7-nt51950-14-standard-merge-13-selector-free-27-nt51950-standard-merge-256k",
+   "capabilityFingerprint": "0e34b844461bfa993606c1202e0a9e50746599a81bc523cf9b3d95ffa3170578",
+   "icId": "NT51950",
+   "workflowId": "standard-merge",
+   "icCountVariant": "selector-free",
+   "mapVariant": "nt51950-standard-merge-256k",
+   "proofKind": "exact-output",
+   "runnable": true,
+   "routeEvidenceCaseId": "51950-dp-256k",
+   "resolvedCaseId": "51950-dp-256k",
+   "goldenExpectedOutput": {
+    "size": 262144,
+    "sha256": "11932f352c3268dce75329eb80b57e3a20f31e7d1859d9ecf0700070c026f791"
+   },
+   "inputs": [
+    {
+     "slotId": "dp-input",
+     "size": 262144,
+     "sha256": "b9ac199003c86bb620d18cf08d9002678ef2e3e9b911020fbecdaa381fd887f1"
+    },
+    {
+     "slotId": "tp-input",
+     "size": 225280,
+     "sha256": "e76db49116af9502edd73a02df6eb0c86ed8bf2c74487d1917a1ce279bbaeab4"
+    }
+   ],
+   "candidate": {
+    "executor": {
+     "label": "v1.1.11 source 1c37bd718, test-area git-archive export, contract-shaped locked RID restore and Release self-contained build",
+     "cliSha256": "2709ccda1d77a4ab2a72e789da07eda9cabe558f0dc51813e225da31529567d6"
+    },
+    "invocations": [
+     {
+      "stage": "workflow",
+      "action": "preview",
+      "exitCode": 0,
+      "durationSeconds": 4.652,
+      "inputsUnchanged": true,
+      "stderrFirstLine": "",
+      "report": {
+       "size": 7139,
+       "sha256": "01f6e302147d1123defad653beb4f93eeaef83219bf34a4aab19ee30982dadfb"
+      },
+      "reportMapId": "nt51950-standard-merge-256k",
+      "reportIssueCount": 0,
+      "reportOperationCount": 2
+     },
+     {
+      "stage": "workflow",
+      "action": "build",
+      "exitCode": 0,
+      "durationSeconds": 4.135,
+      "inputsUnchanged": true,
+      "stderrFirstLine": "",
+      "report": {
+       "size": 7136,
+       "sha256": "2718086b325b89f20565e8906ba7509b6cadc867f2e498178665c56f2e3d7b1b"
+      },
+      "reportMapId": "nt51950-standard-merge-256k",
+      "reportIssueCount": 0,
+      "reportOperationCount": 2,
+      "output": {
+       "size": 262144,
+       "sha256": "11932f352c3268dce75329eb80b57e3a20f31e7d1859d9ecf0700070c026f791"
+      }
+     }
+    ],
+    "durationSeconds": 8.807,
+    "status": "success",
+    "output": {
+     "size": 262144,
+     "sha256": "11932f352c3268dce75329eb80b57e3a20f31e7d1859d9ecf0700070c026f791"
+    }
+   },
+   "baseline": {
+    "status": "not-run",
+    "reason": "BUG-20260925-v0916-baseline-restore-nu1004: pinned locked RID restore fails NU1004"
+   },
+   "candidateEqualsGoldenExpected": true,
+   "result": "candidate-only"
+  },
+  {
+   "routeId": "route-7-nt51950-14-standard-merge-13-selector-free-27-nt51950-standard-merge-512k",
+   "capabilityFingerprint": "a268ff68e9f653093e797116f50311ce754c7d6de996550c9bfee22c3920d36b",
+   "icId": "NT51950",
+   "workflowId": "standard-merge",
+   "icCountVariant": "selector-free",
+   "mapVariant": "nt51950-standard-merge-512k",
+   "proofKind": "exact-output",
+   "runnable": false,
+   "result": "not-covered",
+   "reason": "no canonical input (canonicalInputAuthority.currentlyMissingRouteIds)"
+  },
+  {
+   "routeId": "route-7-nt51951-8-ab-merge-13-selector-free-22-nt51951-ab-merge-1024k",
+   "capabilityFingerprint": "f9c4878fe8cf86a5a1124c5b6bb63f4f6864f6f95af8d26f62d63835636b0e04",
+   "icId": "NT51951",
+   "workflowId": "ab-merge",
+   "icCountVariant": "selector-free",
+   "mapVariant": "nt51951-ab-merge-1024k",
+   "proofKind": "exact-output",
+   "runnable": false,
+   "result": "not-covered",
+   "reason": "no canonical input (canonicalInputAuthority.currentlyMissingRouteIds)"
+  },
+  {
+   "routeId": "route-7-nt51951-15-ctrlram-replace-4-1-ic-39-nt51951-ctrlram-fw200-single-full-flash",
+   "capabilityFingerprint": "624a6d1a70bad19c8fc3cf4692c7587fe61e9a086ff813e023087fc181b06612",
+   "icId": "NT51951",
+   "workflowId": "ctrlram-replace",
+   "icCountVariant": "1-ic",
+   "mapVariant": "nt51951-ctrlram-fw200-single-full-flash",
+   "proofKind": "exact-output",
+   "runnable": true,
+   "routeEvidenceCaseId": "nt51951-fw200-single-auto-prj-695-20260718",
+   "resolvedCaseId": "nt51951-fw200-single-auto-prj-695-20260718",
+   "goldenExpectedOutput": {
+    "size": 524288,
+    "sha256": "c1cd54d93af431727220adc37fec2488765909dc09cb917d1ff69f6087bb6b69"
+   },
+   "inputs": [
+    {
+     "slotId": "dp-input",
+     "size": 524288,
+     "sha256": "0082b336161fa463573432dfb275fdb90154f1df6d9c01dba75610addcb1b423"
+    },
+    {
+     "slotId": "tp-input",
+     "size": 225280,
+     "sha256": "7a2ddf9b77558a3e3a32485c21aa62e900249cf473b7f1c67bb2f89dc1ad3f4a"
+    },
+    {
+     "slotId": "replace-ctrlram-nf",
+     "size": 2284,
+     "sha256": "7cb1a116876a13bb24bebc66ce36800f9c9117eacadb352cdbd5640720117d86"
+    },
+    {
+     "slotId": "replace-ctrlram-normal",
+     "size": 655360,
+     "sha256": "31669cd9413b7a7bd463eaa5d6b40a72e3c34ff67238f6e72d13e073397621e7"
+    },
+    {
+     "slotId": "replace-ctrlram-vn",
+     "size": 8444,
+     "sha256": "553fb914d6e38b0aadfd47e68ecdf167958f301e59661e379f484324e9f28946"
+    }
+   ],
+   "baseRecipe": {
+    "workflowId": "standard-merge",
+    "routeId": "route-7-nt51951-14-standard-merge-13-selector-free-27-nt51951-standard-merge-512k",
+    "mapVariant": "nt51951-standard-merge-512k"
+   },
+   "candidate": {
+    "executor": {
+     "label": "v1.1.11 source 1c37bd718, test-area git-archive export, contract-shaped locked RID restore and Release self-contained build",
+     "cliSha256": "2709ccda1d77a4ab2a72e789da07eda9cabe558f0dc51813e225da31529567d6"
+    },
+    "invocations": [
+     {
+      "stage": "base-precursor",
+      "action": "preview",
+      "exitCode": 0,
+      "durationSeconds": 4.099,
+      "inputsUnchanged": true,
+      "stderrFirstLine": "",
+      "report": {
+       "size": 7139,
+       "sha256": "6587866e1570307c651a3e563a067df4c8f8d6397c0cdbf84743d7599ddd8bc6"
+      },
+      "reportMapId": "nt51951-standard-merge-512k",
+      "reportIssueCount": 0,
+      "reportOperationCount": 2
+     },
+     {
+      "stage": "base-precursor",
+      "action": "build",
+      "exitCode": 0,
+      "durationSeconds": 4.333,
+      "inputsUnchanged": true,
+      "stderrFirstLine": "",
+      "report": {
+       "size": 7135,
+       "sha256": "aa26198ae96866b0328698cb8a60ac0cc6d66aad11b72e576194310a3f0c6845"
+      },
+      "reportMapId": "nt51951-standard-merge-512k",
+      "reportIssueCount": 0,
+      "reportOperationCount": 2,
+      "output": {
+       "size": 524288,
+       "sha256": "c1cd54d93af431727220adc37fec2488765909dc09cb917d1ff69f6087bb6b69"
+      }
+     },
+     {
+      "stage": "workflow",
+      "action": "preview",
+      "exitCode": 0,
+      "durationSeconds": 4.528,
+      "inputsUnchanged": true,
+      "stderrFirstLine": "Issues:",
+      "report": {
+       "size": 19771,
+       "sha256": "562de3db12aaf2ed78c0aa5b1372dfaa2e2c149a3155edc9a23615666d621425"
+      },
+      "reportMapId": "nt51951-ctrlram-fw200-single-full-flash",
+      "reportIssueCount": 1,
+      "reportOperationCount": 4
+     },
+     {
+      "stage": "workflow",
+      "action": "build",
+      "exitCode": 0,
+      "durationSeconds": 4.134,
+      "inputsUnchanged": true,
+      "stderrFirstLine": "Issues:",
+      "report": {
+       "size": 19728,
+       "sha256": "5ef323a1011922f923d8b628c4e700b0adc6effcafc1cb4ef24b0c8b2dc71153"
+      },
+      "reportMapId": "nt51951-ctrlram-fw200-single-full-flash",
+      "reportIssueCount": 1,
+      "reportOperationCount": 4,
+      "output": {
+       "size": 524288,
+       "sha256": "64ffa21a36a3a9560ebe109b9b0c94edcbb37c69a0dcb0aa183da7542694d1ea"
+      }
+     }
+    ],
+    "basePrecursorOutput": {
+     "size": 524288,
+     "sha256": "c1cd54d93af431727220adc37fec2488765909dc09cb917d1ff69f6087bb6b69"
+    },
+    "durationSeconds": 17.154,
+    "status": "success",
+    "output": {
+     "size": 524288,
+     "sha256": "64ffa21a36a3a9560ebe109b9b0c94edcbb37c69a0dcb0aa183da7542694d1ea"
+    }
+   },
+   "baseline": {
+    "status": "not-run",
+    "reason": "BUG-20260925-v0916-baseline-restore-nu1004: pinned locked RID restore fails NU1004"
+   },
+   "candidateEqualsGoldenExpected": false,
+   "result": "candidate-only"
+  },
+  {
+   "routeId": "route-7-nt51951-15-ctrlram-replace-4-1-ic-36-nt51951-ctrlram-fw200-single-tp-work",
+   "capabilityFingerprint": "824903e83aa402b8f47adec84313500802ed418053db9597508fd43a960d6b0f",
+   "icId": "NT51951",
+   "workflowId": "ctrlram-replace",
+   "icCountVariant": "1-ic",
+   "mapVariant": "nt51951-ctrlram-fw200-single-tp-work",
+   "proofKind": "exact-output",
+   "runnable": false,
+   "result": "not-covered",
+   "reason": "no canonical input (canonicalInputAuthority.currentlyMissingRouteIds)"
+  },
+  {
+   "routeId": "route-7-nt51951-15-ctrlram-replace-4-2-ic-39-nt51951-ctrlram-fw1x-cascade-full-flash",
+   "capabilityFingerprint": "6a8dfcce871d0aa5586a8bd2a393093776b687055e546d7dce37fb2e9f35909f",
+   "icId": "NT51951",
+   "workflowId": "ctrlram-replace",
+   "icCountVariant": "2-ic",
+   "mapVariant": "nt51951-ctrlram-fw1x-cascade-full-flash",
+   "proofKind": "exact-output",
+   "runnable": true,
+   "routeEvidenceCaseId": "nt51951-fw200-cascade2-auto-prj-599-20260731",
+   "resolvedCaseId": "nt51951-fw200-cascade2-auto-prj-599-20260731",
+   "goldenExpectedOutput": {
+    "size": 524288,
+    "sha256": "ff9ad012454cab3d9d76d7270dfde7b402d23c2d0376ba6776cd1a242144aa32"
+   },
+   "inputs": [
+    {
+     "slotId": "dp-input",
+     "size": 524288,
+     "sha256": "3fdcc5d7380d3b3dcbddd47d000e4bdafc1462497c3f49267fa1228590d35c40"
+    },
+    {
+     "slotId": "tp-input",
+     "size": 225280,
+     "sha256": "1397cfed395d937826d6e6378b030c80f7a0d6322102d028b1907e66d5a4a31a"
+    },
+    {
+     "slotId": "replace-ctrlram-normal",
+     "size": 655360,
+     "sha256": "e7dbfeb2f34c2dbb4f4e9531f3858b15f673b179b4118ad5f564f28976cf7129"
+    },
+    {
+     "slotId": "replace-ctrlram-vn",
+     "size": 4120,
+     "sha256": "066815c150f47318ba255cf5d84b7b2116267b5adc6bbcf771a7c50f78bc289b"
+    },
+    {
+     "slotId": "replace-ctrlram-diff",
+     "size": 10240,
+     "sha256": "d5b2a200645dc83c9cdf2988276915dfcfde656d2cfacb8a759ce0c5dd88eb00"
+    }
+   ],
+   "baseRecipe": {
+    "workflowId": "standard-merge",
+    "routeId": "route-7-nt51951-14-standard-merge-13-selector-free-27-nt51951-standard-merge-512k",
+    "mapVariant": "nt51951-standard-merge-512k"
+   },
+   "candidate": {
+    "executor": {
+     "label": "v1.1.11 source 1c37bd718, test-area git-archive export, contract-shaped locked RID restore and Release self-contained build",
+     "cliSha256": "2709ccda1d77a4ab2a72e789da07eda9cabe558f0dc51813e225da31529567d6"
+    },
+    "invocations": [
+     {
+      "stage": "base-precursor",
+      "action": "preview",
+      "exitCode": 0,
+      "durationSeconds": 3.987,
+      "inputsUnchanged": true,
+      "stderrFirstLine": "",
+      "report": {
+       "size": 7156,
+       "sha256": "af962624d142a5e65dbd43e62a47b0fdddb9a086f8789fcc90009bf2929fa34f"
+      },
+      "reportMapId": "nt51951-standard-merge-512k",
+      "reportIssueCount": 0,
+      "reportOperationCount": 2
+     },
+     {
+      "stage": "base-precursor",
+      "action": "build",
+      "exitCode": 0,
+      "durationSeconds": 3.919,
+      "inputsUnchanged": true,
+      "stderrFirstLine": "",
+      "report": {
+       "size": 7155,
+       "sha256": "59b322b3a2cf73088246d12e4be1c85b1a5cbfb401a60ec578313395060027b4"
+      },
+      "reportMapId": "nt51951-standard-merge-512k",
+      "reportIssueCount": 0,
+      "reportOperationCount": 2,
+      "output": {
+       "size": 524288,
+       "sha256": "ff9ad012454cab3d9d76d7270dfde7b402d23c2d0376ba6776cd1a242144aa32"
+      }
+     },
+     {
+      "stage": "workflow",
+      "action": "preview",
+      "exitCode": 0,
+      "durationSeconds": 4.242,
+      "inputsUnchanged": true,
+      "stderrFirstLine": "Issues:",
+      "report": {
+       "size": 21287,
+       "sha256": "363ad9c2f72f41022cb25552417e04e98504214019d456e11c2271450ef6f045"
+      },
+      "reportMapId": "nt51951-ctrlram-fw1x-cascade-full-flash",
+      "reportIssueCount": 2,
+      "reportOperationCount": 4
+     },
+     {
+      "stage": "workflow",
+      "action": "build",
+      "exitCode": 0,
+      "durationSeconds": 4.331,
+      "inputsUnchanged": true,
+      "stderrFirstLine": "Issues:",
+      "report": {
+       "size": 21243,
+       "sha256": "d908a24c0debfe51c0437d36d1b9bceed1e04818b4370168097bb3d2623a56a7"
+      },
+      "reportMapId": "nt51951-ctrlram-fw1x-cascade-full-flash",
+      "reportIssueCount": 2,
+      "reportOperationCount": 4,
+      "output": {
+       "size": 524288,
+       "sha256": "1536d344af83aafd29e5884d9d2d904f1efa03c8fdcc4e913832253814644ebd"
+      }
+     }
+    ],
+    "basePrecursorOutput": {
+     "size": 524288,
+     "sha256": "ff9ad012454cab3d9d76d7270dfde7b402d23c2d0376ba6776cd1a242144aa32"
+    },
+    "durationSeconds": 16.53,
+    "status": "success",
+    "output": {
+     "size": 524288,
+     "sha256": "1536d344af83aafd29e5884d9d2d904f1efa03c8fdcc4e913832253814644ebd"
+    }
+   },
+   "baseline": {
+    "status": "not-run",
+    "reason": "BUG-20260925-v0916-baseline-restore-nu1004: pinned locked RID restore fails NU1004"
+   },
+   "candidateEqualsGoldenExpected": false,
+   "result": "candidate-only"
+  },
+  {
+   "routeId": "route-7-nt51951-15-ctrlram-replace-4-2-ic-36-nt51951-ctrlram-fw1x-cascade-tp-work",
+   "capabilityFingerprint": "f1cf4f16561f4fa45f4d5ef204f8479e60bea491c215ae85b675eaf33ded0f44",
+   "icId": "NT51951",
+   "workflowId": "ctrlram-replace",
+   "icCountVariant": "2-ic",
+   "mapVariant": "nt51951-ctrlram-fw1x-cascade-tp-work",
+   "proofKind": "exact-output",
+   "runnable": false,
+   "result": "not-covered",
+   "reason": "no canonical input (canonicalInputAuthority.currentlyMissingRouteIds)"
+  },
+  {
+   "routeId": "route-7-nt51951-14-standard-merge-13-selector-free-28-nt51951-standard-merge-1024k",
+   "capabilityFingerprint": "d5ca1ddd1ebe4c9603df4619b3baf5503124aae1440289a507a88171e317bcbc",
+   "icId": "NT51951",
+   "workflowId": "standard-merge",
+   "icCountVariant": "selector-free",
+   "mapVariant": "nt51951-standard-merge-1024k",
+   "proofKind": "exact-output",
+   "runnable": false,
+   "result": "not-covered",
+   "reason": "no canonical input (canonicalInputAuthority.currentlyMissingRouteIds)"
+  },
+  {
+   "routeId": "route-7-nt51951-14-standard-merge-13-selector-free-27-nt51951-standard-merge-256k",
+   "capabilityFingerprint": "32c7cd2bf5f0d8de1f83daf0a29a7d56e248c9087c45d95c08f34d6a378499e3",
+   "icId": "NT51951",
+   "workflowId": "standard-merge",
+   "icCountVariant": "selector-free",
+   "mapVariant": "nt51951-standard-merge-256k",
+   "proofKind": "exact-output",
+   "runnable": false,
+   "result": "not-covered",
+   "reason": "no canonical input (canonicalInputAuthority.currentlyMissingRouteIds)"
+  },
+  {
+   "routeId": "route-7-nt51951-14-standard-merge-13-selector-free-27-nt51951-standard-merge-512k",
+   "capabilityFingerprint": "611f8a72a0b781f852069df7c475e3f39fa797b5193f49db9688a4c4625c6025",
+   "icId": "NT51951",
+   "workflowId": "standard-merge",
+   "icCountVariant": "selector-free",
+   "mapVariant": "nt51951-standard-merge-512k",
+   "proofKind": "exact-output",
+   "runnable": true,
+   "routeEvidenceCaseId": "51951-dp-512k",
+   "resolvedCaseId": "51951-dp-512k",
+   "goldenExpectedOutput": {
+    "size": 524288,
+    "sha256": "3266fae2f4873a7f21afdbcfe1b1d234c58204a2b319ff3ed09353ee84ff0e6e"
+   },
+   "inputs": [
+    {
+     "slotId": "dp-input",
+     "size": 524288,
+     "sha256": "ba4a61951b2da74cf7799885df7a0cbfefea4262ba6af56b34adc92691af1668"
+    },
+    {
+     "slotId": "tp-input",
+     "size": 225280,
+     "sha256": "7a2ddf9b77558a3e3a32485c21aa62e900249cf473b7f1c67bb2f89dc1ad3f4a"
+    }
+   ],
+   "candidate": {
+    "executor": {
+     "label": "v1.1.11 source 1c37bd718, test-area git-archive export, contract-shaped locked RID restore and Release self-contained build",
+     "cliSha256": "2709ccda1d77a4ab2a72e789da07eda9cabe558f0dc51813e225da31529567d6"
+    },
+    "invocations": [
+     {
+      "stage": "workflow",
+      "action": "preview",
+      "exitCode": 0,
+      "durationSeconds": 4.236,
+      "inputsUnchanged": true,
+      "stderrFirstLine": "",
+      "report": {
+       "size": 7139,
+       "sha256": "8aa9ed506b9dcd1801ea6acbfb437ee160b0fe070d0bcf521a00b92125276a91"
+      },
+      "reportMapId": "nt51951-standard-merge-512k",
+      "reportIssueCount": 0,
+      "reportOperationCount": 2
+     },
+     {
+      "stage": "workflow",
+      "action": "build",
+      "exitCode": 0,
+      "durationSeconds": 4.279,
+      "inputsUnchanged": true,
+      "stderrFirstLine": "",
+      "report": {
+       "size": 7136,
+       "sha256": "1f3a9f43ae63adcf00ad7b22cb95f695e39638622ef6d604d796b4fe1074e508"
+      },
+      "reportMapId": "nt51951-standard-merge-512k",
+      "reportIssueCount": 0,
+      "reportOperationCount": 2,
+      "output": {
+       "size": 524288,
+       "sha256": "3266fae2f4873a7f21afdbcfe1b1d234c58204a2b319ff3ed09353ee84ff0e6e"
+      }
+     }
+    ],
+    "durationSeconds": 8.535,
+    "status": "success",
+    "output": {
+     "size": 524288,
+     "sha256": "3266fae2f4873a7f21afdbcfe1b1d234c58204a2b319ff3ed09353ee84ff0e6e"
+    }
+   },
+   "baseline": {
+    "status": "not-run",
+    "reason": "BUG-20260925-v0916-baseline-restore-nu1004: pinned locked RID restore fails NU1004"
+   },
+   "candidateEqualsGoldenExpected": true,
+   "result": "candidate-only"
+  },
+  {
+   "routeId": "route-7-nt51917-15-ctrlram-replace-4-1-ic-41-nt51927-ctrlram-fw141-single-tp-work-212k",
+   "capabilityFingerprint": "a73736be4fa3a549a6e574e27ca3e1a6066e5772cc12fca58863de62155918b6",
+   "icId": "NT51917",
+   "workflowId": "ctrlram-replace",
+   "icCountVariant": "1-ic",
+   "mapVariant": "nt51927-ctrlram-fw141-single-tp-work-212k",
+   "proofKind": "tp-prefix-transitive",
+   "fullRouteId": "route-7-nt51917-15-ctrlram-replace-4-1-ic-39-nt51927-ctrlram-fw141-single-full-flash",
+   "tpLength": 217088,
+   "runnable": true,
+   "routeEvidenceCaseId": "nt51917-fw141-single-nt51927-alias",
+   "resolvedCaseId": "nt51927-fw141-single-auto-prj-529-20260717",
+   "goldenExpectedOutput": {
+    "size": 262144,
+    "sha256": "fc4d2f9701c626b1c7cddd2b448970611d332295c64f86415af2855f1569c55a"
+   },
+   "inputs": [
+    {
+     "slotId": "replace-base",
+     "size": 217088,
+     "sha256": "4569893ba45af44ae28e7401374aa549201b9b2edeb2743e9f878d650ac248ee"
+    },
+    {
+     "slotId": "replace-ctrlram-mp-master",
+     "size": 655360,
+     "sha256": "ae8bea2d4fe1c0c3a182febbe8e258eb0908c3f99dcbbaee9ce2af167614aba2"
+    },
+    {
+     "slotId": "replace-ctrlram-nf",
+     "size": 4048,
+     "sha256": "a26e62e920df297423d478a2a0c2d2ce07053e091e4bada1f6eeb542d0e1d797"
+    },
+    {
+     "slotId": "replace-ctrlram-normal-master",
+     "size": 655360,
+     "sha256": "de73cded3235c24f517c815427cea8ec44678fa132fdf30e418381cd4b25e7d5"
+    },
+    {
+     "slotId": "replace-ctrlram-vn",
+     "size": 5728,
+     "sha256": "4847b6950b49b8dc9ed022924ea64ae43ac3c9dc7f8dbaad108755200522d709"
+    }
+   ],
+   "candidate": {
+    "executor": {
+     "label": "v1.1.11 source 1c37bd718, test-area git-archive export, contract-shaped locked RID restore and Release self-contained build",
+     "cliSha256": "2709ccda1d77a4ab2a72e789da07eda9cabe558f0dc51813e225da31529567d6"
+    },
+    "invocations": [
+     {
+      "stage": "workflow",
+      "action": "preview",
+      "exitCode": 0,
+      "durationSeconds": 4.496,
+      "inputsUnchanged": true,
+      "stderrFirstLine": "Issues:",
+      "report": {
+       "size": 32004,
+       "sha256": "3c6484f542fc09a240680e6b80552bb98260ce71e14ee02655cc52584927dbda"
+      },
+      "reportMapId": "nt51927-ctrlram-fw141-single-tp-work-212k",
+      "reportIssueCount": 2,
+      "reportOperationCount": 5
+     },
+     {
+      "stage": "workflow",
+      "action": "build",
+      "exitCode": 0,
+      "durationSeconds": 4.232,
+      "inputsUnchanged": true,
+      "stderrFirstLine": "Issues:",
+      "report": {
+       "size": 31925,
+       "sha256": "ba38505b3727253066bd9f25dfa8f09016697dbe813dcdd855bef8d137a4e060"
+      },
+      "reportMapId": "nt51927-ctrlram-fw141-single-tp-work-212k",
+      "reportIssueCount": 2,
+      "reportOperationCount": 5,
+      "output": {
+       "size": 217088,
+       "sha256": "6a1bbb51faaad6fe543f960104e0cd21436df2cbdbbbdb466fedacfaba84db2c"
+      }
+     }
+    ],
+    "durationSeconds": 8.76,
+    "status": "success",
+    "output": {
+     "size": 217088,
+     "sha256": "6a1bbb51faaad6fe543f960104e0cd21436df2cbdbbbdb466fedacfaba84db2c"
+    }
+   },
+   "candidateEqualsGoldenExpected": null,
+   "result": "candidate-only",
+   "transitiveChecks": {
+    "tpLengthMatches": true,
+    "tpEqualsCandidateFullPrefix": true,
+    "candidateFullTailEqualsCandidateBase": true
+   }
+  },
+  {
+   "routeId": "route-7-nt51917-15-ctrlram-replace-4-2-ic-42-nt51927-ctrlram-fw132-twochip-tp-work-212k",
+   "capabilityFingerprint": "5c6863e03610d7e37fdcd350b3d29901ebc7cd605615898948dc4e039af87c30",
+   "icId": "NT51917",
+   "workflowId": "ctrlram-replace",
+   "icCountVariant": "2-ic",
+   "mapVariant": "nt51927-ctrlram-fw132-twochip-tp-work-212k",
+   "proofKind": "tp-prefix-transitive",
+   "fullRouteId": "route-7-nt51917-15-ctrlram-replace-4-2-ic-40-nt51927-ctrlram-fw132-twochip-full-flash",
+   "tpLength": 217088,
+   "runnable": false,
+   "result": "not-covered",
+   "reason": "no canonical input (canonicalInputAuthority.currentlyMissingRouteIds)"
+  },
+  {
+   "routeId": "route-7-nt51917-15-ctrlram-replace-4-3-ic-44-nt51927-ctrlram-fw140-threechip-tp-work-212k",
+   "capabilityFingerprint": "fd52a6332b005fda398b567493d4bf2e9faf48532085218ee63974bb5782b7cf",
+   "icId": "NT51917",
+   "workflowId": "ctrlram-replace",
+   "icCountVariant": "3-ic",
+   "mapVariant": "nt51927-ctrlram-fw140-threechip-tp-work-212k",
+   "proofKind": "tp-prefix-transitive",
+   "fullRouteId": "route-7-nt51917-15-ctrlram-replace-4-3-ic-42-nt51927-ctrlram-fw140-threechip-full-flash",
+   "tpLength": 217088,
+   "runnable": false,
+   "result": "not-covered",
+   "reason": "no canonical input (canonicalInputAuthority.currentlyMissingRouteIds)"
+  },
+  {
+   "routeId": "route-7-nt51923-15-ctrlram-replace-4-1-ic-41-nt51923-ctrlram-fw141-single-tp-work-240k",
+   "capabilityFingerprint": "4fbf5e5156050649d22c17d80534e000b088c6c28f93616fd37aef56ef4c8338",
+   "icId": "NT51923",
+   "workflowId": "ctrlram-replace",
+   "icCountVariant": "1-ic",
+   "mapVariant": "nt51923-ctrlram-fw141-single-tp-work-240k",
+   "proofKind": "tp-prefix-transitive",
+   "fullRouteId": "route-7-nt51923-15-ctrlram-replace-4-1-ic-39-nt51923-ctrlram-fw141-single-full-flash",
+   "tpLength": 245760,
+   "runnable": true,
+   "routeEvidenceCaseId": "nt51923-fw141-single-auto-prj-662-20260717",
+   "resolvedCaseId": "nt51923-fw141-single-auto-prj-662-20260717",
+   "goldenExpectedOutput": {
+    "size": 262144,
+    "sha256": "a65ae33c9c11091f69d8935422ffc57db32262eb922590364d4bdd9c3af9916f"
+   },
+   "inputs": [
+    {
+     "slotId": "replace-base",
+     "size": 245760,
+     "sha256": "d91dd6470fe6084b0d0bbf855e4c443f2911995b028b370ec8dccbef2efc3e78"
+    },
+    {
+     "slotId": "replace-ctrlram-mp",
+     "size": 655360,
+     "sha256": "1e5c60bfbe663938052a6c5c3b3db1fb8f67a80c7d5e32cd130c6306df737db5"
+    },
+    {
+     "slotId": "replace-ctrlram-nf",
+     "size": 17584,
+     "sha256": "5ca4457fda2e9ff7ff7c7f6beb8b2309eff50c6d6c08bde78de60c85e45f31fc"
+    },
+    {
+     "slotId": "replace-ctrlram-normal",
+     "size": 655360,
+     "sha256": "1d50b896ec989b49bda3dd0ac8a65e3afefee1f13745e61179683202580bf22a"
+    },
+    {
+     "slotId": "replace-ctrlram-vn",
+     "size": 5728,
+     "sha256": "53e794e27a3bc359c5a6a6da05bda004c7733501a577f3a9cd08044022ac2aef"
+    }
+   ],
+   "candidate": {
+    "executor": {
+     "label": "v1.1.11 source 1c37bd718, test-area git-archive export, contract-shaped locked RID restore and Release self-contained build",
+     "cliSha256": "2709ccda1d77a4ab2a72e789da07eda9cabe558f0dc51813e225da31529567d6"
+    },
+    "invocations": [
+     {
+      "stage": "workflow",
+      "action": "preview",
+      "exitCode": 0,
+      "durationSeconds": 4.514,
+      "inputsUnchanged": true,
+      "stderrFirstLine": "Issues:",
+      "report": {
+       "size": 22505,
+       "sha256": "9762a592af817874053267a19c80a9b7ce3add0381ad558560145b9079b8d881"
+      },
+      "reportMapId": "nt51923-ctrlram-fw141-single-tp-work-240k",
+      "reportIssueCount": 2,
+      "reportOperationCount": 5
+     },
+     {
+      "stage": "workflow",
+      "action": "build",
+      "exitCode": 0,
+      "durationSeconds": 4.36,
+      "inputsUnchanged": true,
+      "stderrFirstLine": "Issues:",
+      "report": {
+       "size": 22462,
+       "sha256": "6313f13898113b197b78b7eaf6a320ee242ca9b9b654b2da088ada13b2682639"
+      },
+      "reportMapId": "nt51923-ctrlram-fw141-single-tp-work-240k",
+      "reportIssueCount": 2,
+      "reportOperationCount": 5,
+      "output": {
+       "size": 245760,
+       "sha256": "6d14818a4b11ed9cebfcad810a3261f75e896e3378986736089541fe0fcc3e28"
+      }
+     }
+    ],
+    "durationSeconds": 8.909,
+    "status": "success",
+    "output": {
+     "size": 245760,
+     "sha256": "6d14818a4b11ed9cebfcad810a3261f75e896e3378986736089541fe0fcc3e28"
+    }
+   },
+   "candidateEqualsGoldenExpected": null,
+   "result": "candidate-only",
+   "transitiveChecks": {
+    "tpLengthMatches": true,
+    "tpEqualsCandidateFullPrefix": true,
+    "candidateFullTailEqualsCandidateBase": true
+   }
+  },
+  {
+   "routeId": "route-7-nt51923-15-ctrlram-replace-9-2-plus-ic-43-nt51923-ctrlram-fw141-cascade3-tp-work-240k",
+   "capabilityFingerprint": "7fe47d2fedb18d421ce7d75e9376857816e58294ac1d80a81618cbb741881202",
+   "icId": "NT51923",
+   "workflowId": "ctrlram-replace",
+   "icCountVariant": "2-plus-ic",
+   "mapVariant": "nt51923-ctrlram-fw141-cascade3-tp-work-240k",
+   "proofKind": "tp-prefix-transitive",
+   "fullRouteId": "route-7-nt51923-15-ctrlram-replace-9-2-plus-ic-41-nt51923-ctrlram-fw141-cascade3-full-flash",
+   "tpLength": 245760,
+   "runnable": true,
+   "routeEvidenceCaseId": "nt51923-fw141-cascade3-auto-prj-734-20260717",
+   "resolvedCaseId": "nt51923-fw141-cascade3-auto-prj-734-20260717",
+   "goldenExpectedOutput": {
+    "size": 262144,
+    "sha256": "06dda13a592c151a767d47fff60da993f33d7bda37666794dd9ea5cf92094d18"
+   },
+   "inputs": [
+    {
+     "slotId": "replace-base",
+     "size": 245760,
+     "sha256": "1eb5f8647cf58dacfeea21010abb17c23c62d4adb6b790501236bf4ad1badbc7"
+    },
+    {
+     "slotId": "replace-ctrlram-diff",
+     "size": 10240,
+     "sha256": "09ebdf84a16f7f0ece24ccaf9c4c74e73002ffd1a57a7801bfec5c4c78c7f700"
+    },
+    {
+     "slotId": "replace-ctrlram-mp",
+     "size": 655360,
+     "sha256": "363c9439b555ab8f2ff9f92a8d1002ea3eaf71a8e2f7da3bd624070f8164bc2e"
+    },
+    {
+     "slotId": "replace-ctrlram-nf",
+     "size": 17584,
+     "sha256": "56b1a73b0e9b68ab074819d68cf4571678b82a8d8bff69c1652390d3e35be304"
+    },
+    {
+     "slotId": "replace-ctrlram-normal",
+     "size": 655360,
+     "sha256": "08c9dc02ac4d9c3feae9711311d84e9ca1a72928816a56a9acc4f78a98e13613"
+    },
+    {
+     "slotId": "replace-ctrlram-vn",
+     "size": 5728,
+     "sha256": "18a26e8e2a0bd06f0d37945f2c3b38d5927bf86513da600463b91b625faed88c"
+    }
+   ],
+   "candidate": {
+    "executor": {
+     "label": "v1.1.11 source 1c37bd718, test-area git-archive export, contract-shaped locked RID restore and Release self-contained build",
+     "cliSha256": "2709ccda1d77a4ab2a72e789da07eda9cabe558f0dc51813e225da31529567d6"
+    },
+    "invocations": [
+     {
+      "stage": "workflow",
+      "action": "preview",
+      "exitCode": 0,
+      "durationSeconds": 4.285,
+      "inputsUnchanged": true,
+      "stderrFirstLine": "Issues:",
+      "report": {
+       "size": 26929,
+       "sha256": "8717fc3dc4aeb6d49ff6a54e1369d8681ab34cce58c25f5e33a4e2e7209f2926"
+      },
+      "reportMapId": "nt51923-ctrlram-fw141-cascade3-tp-work-240k",
+      "reportIssueCount": 3,
+      "reportOperationCount": 7
+     },
+     {
+      "stage": "workflow",
+      "action": "build",
+      "exitCode": 0,
+      "durationSeconds": 4.186,
+      "inputsUnchanged": true,
+      "stderrFirstLine": "Issues:",
+      "report": {
+       "size": 26882,
+       "sha256": "9ea0e0208cd4eaeab84f7c76cc10158e480af82ac9d93d634eaf3e4d4ac335a2"
+      },
+      "reportMapId": "nt51923-ctrlram-fw141-cascade3-tp-work-240k",
+      "reportIssueCount": 3,
+      "reportOperationCount": 7,
+      "output": {
+       "size": 245760,
+       "sha256": "7b7cb25f6c267d2a330b924c2ffc82db0d3afff06e2da35e8614f66225fa418d"
+      }
+     }
+    ],
+    "durationSeconds": 8.514,
+    "status": "success",
+    "output": {
+     "size": 245760,
+     "sha256": "7b7cb25f6c267d2a330b924c2ffc82db0d3afff06e2da35e8614f66225fa418d"
+    }
+   },
+   "candidateEqualsGoldenExpected": null,
+   "result": "candidate-only",
+   "transitiveChecks": {
+    "tpLengthMatches": true,
+    "tpEqualsCandidateFullPrefix": true,
+    "candidateFullTailEqualsCandidateBase": true
+   }
+  },
+  {
+   "routeId": "route-7-nt51927-15-ctrlram-replace-4-1-ic-41-nt51927-ctrlram-fw141-single-tp-work-212k",
+   "capabilityFingerprint": "e4ae2ab5b54c967438e442c48eadd2dea8861bcdec967ac3016e258353b4e07f",
+   "icId": "NT51927",
+   "workflowId": "ctrlram-replace",
+   "icCountVariant": "1-ic",
+   "mapVariant": "nt51927-ctrlram-fw141-single-tp-work-212k",
+   "proofKind": "tp-prefix-transitive",
+   "fullRouteId": "route-7-nt51927-15-ctrlram-replace-4-1-ic-39-nt51927-ctrlram-fw141-single-full-flash",
+   "tpLength": 217088,
+   "runnable": true,
+   "routeEvidenceCaseId": "nt51927-fw141-single-auto-prj-529-20260717",
+   "resolvedCaseId": "nt51927-fw141-single-auto-prj-529-20260717",
+   "goldenExpectedOutput": {
+    "size": 262144,
+    "sha256": "fc4d2f9701c626b1c7cddd2b448970611d332295c64f86415af2855f1569c55a"
+   },
+   "inputs": [
+    {
+     "slotId": "replace-base",
+     "size": 217088,
+     "sha256": "4569893ba45af44ae28e7401374aa549201b9b2edeb2743e9f878d650ac248ee"
+    },
+    {
+     "slotId": "replace-ctrlram-mp-master",
+     "size": 655360,
+     "sha256": "ae8bea2d4fe1c0c3a182febbe8e258eb0908c3f99dcbbaee9ce2af167614aba2"
+    },
+    {
+     "slotId": "replace-ctrlram-nf",
+     "size": 4048,
+     "sha256": "a26e62e920df297423d478a2a0c2d2ce07053e091e4bada1f6eeb542d0e1d797"
+    },
+    {
+     "slotId": "replace-ctrlram-normal-master",
+     "size": 655360,
+     "sha256": "de73cded3235c24f517c815427cea8ec44678fa132fdf30e418381cd4b25e7d5"
+    },
+    {
+     "slotId": "replace-ctrlram-vn",
+     "size": 5728,
+     "sha256": "4847b6950b49b8dc9ed022924ea64ae43ac3c9dc7f8dbaad108755200522d709"
+    }
+   ],
+   "candidate": {
+    "executor": {
+     "label": "v1.1.11 source 1c37bd718, test-area git-archive export, contract-shaped locked RID restore and Release self-contained build",
+     "cliSha256": "2709ccda1d77a4ab2a72e789da07eda9cabe558f0dc51813e225da31529567d6"
+    },
+    "invocations": [
+     {
+      "stage": "workflow",
+      "action": "preview",
+      "exitCode": 0,
+      "durationSeconds": 4.643,
+      "inputsUnchanged": true,
+      "stderrFirstLine": "Issues:",
+      "report": {
+       "size": 31932,
+       "sha256": "3945b554484aa5186497d9810bceb974d6f13b8dc71852eac11d5a2e4b2d4089"
+      },
+      "reportMapId": "nt51927-ctrlram-fw141-single-tp-work-212k",
+      "reportIssueCount": 2,
+      "reportOperationCount": 5
+     },
+     {
+      "stage": "workflow",
+      "action": "build",
+      "exitCode": 0,
+      "durationSeconds": 4.756,
+      "inputsUnchanged": true,
+      "stderrFirstLine": "Issues:",
+      "report": {
+       "size": 31854,
+       "sha256": "f1f3e66f9fbc40d8a77aea975cce35a3b9a028c087dbe74bd30eee281864bce1"
+      },
+      "reportMapId": "nt51927-ctrlram-fw141-single-tp-work-212k",
+      "reportIssueCount": 2,
+      "reportOperationCount": 5,
+      "output": {
+       "size": 217088,
+       "sha256": "6a1bbb51faaad6fe543f960104e0cd21436df2cbdbbbdb466fedacfaba84db2c"
+      }
+     }
+    ],
+    "durationSeconds": 9.431,
+    "status": "success",
+    "output": {
+     "size": 217088,
+     "sha256": "6a1bbb51faaad6fe543f960104e0cd21436df2cbdbbbdb466fedacfaba84db2c"
+    }
+   },
+   "candidateEqualsGoldenExpected": null,
+   "result": "candidate-only",
+   "transitiveChecks": {
+    "tpLengthMatches": true,
+    "tpEqualsCandidateFullPrefix": true,
+    "candidateFullTailEqualsCandidateBase": true
+   }
+  },
+  {
+   "routeId": "route-7-nt51927-15-ctrlram-replace-4-2-ic-42-nt51927-ctrlram-fw132-twochip-tp-work-212k",
+   "capabilityFingerprint": "b7e02494cd888fa8b3c82a827460a126a78026f1b75b9452e212f44fc53b6f3c",
+   "icId": "NT51927",
+   "workflowId": "ctrlram-replace",
+   "icCountVariant": "2-ic",
+   "mapVariant": "nt51927-ctrlram-fw132-twochip-tp-work-212k",
+   "proofKind": "tp-prefix-transitive",
+   "fullRouteId": "route-7-nt51927-15-ctrlram-replace-4-2-ic-40-nt51927-ctrlram-fw132-twochip-full-flash",
+   "tpLength": 217088,
+   "runnable": false,
+   "result": "not-covered",
+   "reason": "no canonical input (canonicalInputAuthority.currentlyMissingRouteIds)"
+  },
+  {
+   "routeId": "route-7-nt51927-15-ctrlram-replace-4-3-ic-44-nt51927-ctrlram-fw140-threechip-tp-work-212k",
+   "capabilityFingerprint": "a6aa2d0468200f68b67b2df44ecd1d55145fe69219a86d8d506842bcdb87aa5b",
+   "icId": "NT51927",
+   "workflowId": "ctrlram-replace",
+   "icCountVariant": "3-ic",
+   "mapVariant": "nt51927-ctrlram-fw140-threechip-tp-work-212k",
+   "proofKind": "tp-prefix-transitive",
+   "fullRouteId": "route-7-nt51927-15-ctrlram-replace-4-3-ic-42-nt51927-ctrlram-fw140-threechip-full-flash",
+   "tpLength": 217088,
+   "runnable": false,
+   "result": "not-covered",
+   "reason": "no canonical input (canonicalInputAuthority.currentlyMissingRouteIds)"
+  },
+  {
+   "routeId": "route-7-nt51928-15-ctrlram-replace-4-1-ic-41-nt51928-ctrlram-fw141-single-tp-work-212k",
+   "capabilityFingerprint": "189c76a4abdcf16571db26df98734eccd1a8a70f33d4068386475ec8854aa2a4",
+   "icId": "NT51928",
+   "workflowId": "ctrlram-replace",
+   "icCountVariant": "1-ic",
+   "mapVariant": "nt51928-ctrlram-fw141-single-tp-work-212k",
+   "proofKind": "tp-prefix-transitive",
+   "fullRouteId": "route-7-nt51928-15-ctrlram-replace-4-1-ic-39-nt51928-ctrlram-fw141-single-full-flash",
+   "tpLength": 217088,
+   "runnable": false,
+   "result": "not-covered",
+   "reason": "no canonical input (canonicalInputAuthority.currentlyMissingRouteIds)"
+  },
+  {
+   "routeId": "route-7-nt51928-15-ctrlram-replace-4-2-ic-42-nt51928-ctrlram-fw132-twochip-tp-work-212k",
+   "capabilityFingerprint": "2ebf25818f1bbbc922f580e6ff6116ac0ea74e6f2cedf938c69edbfa930f6f32",
+   "icId": "NT51928",
+   "workflowId": "ctrlram-replace",
+   "icCountVariant": "2-ic",
+   "mapVariant": "nt51928-ctrlram-fw132-twochip-tp-work-212k",
+   "proofKind": "tp-prefix-transitive",
+   "fullRouteId": "route-7-nt51928-15-ctrlram-replace-4-2-ic-40-nt51928-ctrlram-fw132-twochip-full-flash",
+   "tpLength": 217088,
+   "runnable": false,
+   "result": "not-covered",
+   "reason": "no canonical input (canonicalInputAuthority.currentlyMissingRouteIds)"
+  },
+  {
+   "routeId": "route-7-nt51928-15-ctrlram-replace-4-3-ic-44-nt51928-ctrlram-fw140-threechip-tp-work-212k",
+   "capabilityFingerprint": "1a7bf25b522346b0fb1548a3b631a2a9027685778a15ae9cd283c6b31de0133b",
+   "icId": "NT51928",
+   "workflowId": "ctrlram-replace",
+   "icCountVariant": "3-ic",
+   "mapVariant": "nt51928-ctrlram-fw140-threechip-tp-work-212k",
+   "proofKind": "tp-prefix-transitive",
+   "fullRouteId": "route-7-nt51928-15-ctrlram-replace-4-3-ic-42-nt51928-ctrlram-fw140-threechip-full-flash",
+   "tpLength": 217088,
+   "runnable": false,
+   "result": "not-covered",
+   "reason": "no canonical input (canonicalInputAuthority.currentlyMissingRouteIds)"
+  }
+ ]
+}
