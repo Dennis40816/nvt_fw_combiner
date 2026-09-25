@@ -1,9 +1,10 @@
 # ADR 0075: Bounded bundle preloading inside the required catalog stage
 
 Status: Accepted (owner decision, 2026-09-26, board decision 12: adopted with 4
-workers; the other memory gates of decision 8 stand. Board decision 16 raised
-the peak private-bytes allowance over the `v1.1.11` package shape to at most
-6 MB after the frozen-candidate measurement).
+workers; the other memory gates of decision 8 stand. After the frozen-candidate
+measurements, board decision 16 raised the peak private-bytes allowance over the
+`v1.1.11` package shape to at most 6 MB, and board decision 18 compares peak
+working set with the same-session `v1.1.11` measurement).
 Independent design reviews on 2026-09-25: ACCEPT-WITH-CHANGES twice; this
 revision answers both.
 
@@ -92,8 +93,9 @@ caches its value or its exception for the process lifetime.
    pinned by a test. Exception stack traces may differ; no catalog consumer
    reads them.
 8. Adoption requires, on the package shape and per scored launch (never a
-   median alone): peak working set not above the `v1.1.11` package baseline
-   (335 MB) and GC heap after warm-up at most 50 MB (board decision 11). Peak
+   median alone): peak working set not above the maximum of the `v1.1.11`
+   package measured in the same quiet session plus 1 MB (board decisions 11
+   and 18) and GC heap after warm-up at most 50 MB (board decision 11). Peak
    private bytes may exceed the `v1.1.11` baseline (330 MB) by at most 6 MB
    (owner exception, board decisions 12 and 16). The frozen candidate is
    measured on a quiet machine; a failing launch goes back to the owner.
