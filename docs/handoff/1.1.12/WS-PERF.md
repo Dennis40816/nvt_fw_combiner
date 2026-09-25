@@ -275,3 +275,31 @@ Evidence: the changelog's "about 364 MB" is the preload build's median allocatio
 (363,889,400 bytes, test area `evidence/v1112-pkg-preload-preload/measure-package.txt`).
 Open: F-1 and F-5 need the frozen candidate's quiet-machine per-launch measurement; a working-set launch
 above 335 MB goes back to the owner. A fixed-diff follow-up review precedes finalization.
+
+### 2026-09-26 Frozen-candidate gate measurement
+
+- State: measured; memory gate resolved by owner decision 16.
+- Source: product source `badc545b0` (tree `c5ba8d40`), exported with
+  `git archive` into the test area and published in the package shape
+  (compressed single file, composite ReadyToRun, self-contained win-x64;
+  EXE 76,349,589 bytes, under the 80,000,000-byte ceiling). The `v1.1.11`
+  package (`d4902f5ee` baseline artifact) was measured in the same quiet
+  session: `scripts/measure-startup.ps1 -RequirePreloadLifecycle`, one warm-up
+  and five scored launches each, then three `dotnet-counters` runs for GC heap.
+- Candidate per launch: window 713-745 ms (median 729); all loading done
+  2,160-2,210 ms (median 2,196); peak private 331.7-334.8 MB (median 334.1);
+  peak working set 329.7-334.5 MB (median 333.6). GC heap after warm-up
+  34.4-34.8 MB.
+- `v1.1.11` per launch: window 713-732 ms (median 717); all loading done
+  3,653-3,769 ms (median 3,691); peak private 327.9-329.2 MB (median 328.8);
+  peak working set 331.7-335.2 MB (median 333.6).
+- Gates: working set at most 335 MB, pass in 5 of 5 launches; GC heap at most
+  50 MB, pass; peak private at most 334 MB (decision 12), exceeded by
+  0.1-0.8 MB in 3 of 5 launches. The owner raised the allowance to 6 MB
+  (decision 16); every launch is within 336 MB. Startup targets: the first
+  window (500 ms) and complete loading (2,000 ms) are not met; loading is
+  about 40% faster than `v1.1.11` (median 2.20 s against 3.69 s).
+- Evidence: test area `evidence/v1112-freeze-badc545b0/` (measurement JSON,
+  counter CSV, publish and restore logs). The restore rewrote only the
+  exported copy's lock files for the win-x64 runtime, as in every earlier
+  package-shape measurement.
