@@ -144,12 +144,14 @@ internal sealed class TrustedProfileBundleDocumentProjection
         System.Text.Json.Serialization.Metadata.JsonTypeInfo<TDocument> typeInfo)
         where TDocument : class
     {
-        using JsonDocument document = entry.FileSnapshot.ParseStrictJson(maximumJsonDepth);
+        // Reuses the strict parse kept by the snapshot since schema validation. That root is already a
+        // detached clone, so Clone() copies nothing and no disposable document backs the projection.
+        JsonElement document = entry.FileSnapshot.GetStrictJsonRoot(maximumJsonDepth);
         try
         {
-            _ = JsonSerializer.Deserialize(document.RootElement, typeInfo) ?? throw new InvalidDataException(
+            _ = JsonSerializer.Deserialize(document, typeInfo) ?? throw new InvalidDataException(
                 $"Bundle entry '{entry.Entry.Path}' cannot deserialize to its canonical document type.");
-            return document.RootElement.Clone();
+            return document.Clone();
         }
         catch (JsonException exception)
         {
