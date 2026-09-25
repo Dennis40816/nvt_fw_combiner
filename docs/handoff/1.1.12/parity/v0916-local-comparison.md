@@ -42,8 +42,8 @@ are unchanged; the formal 1.x comparator moves to 1.1.13.
 
 Each executor runs `preview` then `build` for every route, exactly with the
 argument form of `scripts/v0916_parity_certification.py` (`_cli_arguments`),
-on fresh copies of the admitted inputs; input hashes are rechecked after every
-process. Exact routes compare complete outputs byte for byte. The four
+on inputs the plan's resolver writes afresh for each route and side; input
+hashes are rechecked after every process. Exact routes compare complete outputs byte for byte. The four
 runnable TP-work routes use the plan's transitive proof: TP output length,
 TP output equal to the candidate full-route prefix and to the v0.9.16
 full-route prefix, and the candidate full-route tail equal to its base.
