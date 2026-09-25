@@ -1,27 +1,14 @@
 # NFC Roadmap
 
-Status: active owner roadmap; release-closure checkpoint 2026-09-01;
-subsequent owner allocation amendments are recorded below.
+Status: active owner roadmap; release-closure checkpoint 2026-09-01; subsequent owner allocation amendments are recorded below.
 
-Current evidence checkpoint, 2026-09-19: **`v1.1.8` is published** at
-`a2273c8798beb43b217b0ecfb9275af8fe4f9f96`; see the
-[release closure](../references/verification-report.md#118-published-release-closure--2026-09-19).
-Earlier candidate checkpoints below remain dated history, not open release
-gates. The latest planning input is `codex/1.1.9-intake` at `8344cb69`,
-which already allocates F01–F26 beyond the documents shipped in the release.
-The [post-release reconciliation](../ui/v1.1.x-custom-options-layout-handoff.md#post-118-audit-reconciliation--2026-09-19)
-maps the new AUD/HG reference to that existing schedule; it does not authorize
-runtime implementation, create a watcher, or replace the version sequence.
+Current evidence checkpoint, 2026-09-19: **`v1.1.8` is published** at `a2273c8798beb43b217b0ecfb9275af8fe4f9f96`; see the [release closure](../references/verification-report.md#118-published-release-closure--2026-09-19). Earlier candidate checkpoints below remain dated history, not open release gates. The latest planning input is `codex/1.1.9-intake` at `8344cb69`, which already allocates F01–F26 beyond the documents shipped in the release. The [post-release reconciliation](../ui/v1.1.x-custom-options-layout-handoff.md#post-118-audit-reconciliation--2026-09-19) maps the new AUD/HG reference to that existing schedule; it does not authorize runtime implementation, create a watcher, or replace the version sequence.
 
 ## Current release sequence — 2026-09-14
 
 ### Owner-approved 1.1.x repair allocation — 2026-09-25
 
-This amendment supersedes the affected F01–F26 allocations below. The owner
-accepted prioritizing input identity, committed-output truth and file preservation
-before lifecycle repairs and bounded diagnostics. Validate each finding against
-the current implementation before changing it; old findings are not proof of a
-current defect. F18 behavioral/interleaving evidence accompanies every repair.
+This amendment supersedes the affected F01–F26 allocations below. The owner accepted prioritizing input identity, committed-output truth and file preservation before lifecycle repairs and bounded diagnostics. Validate each finding against the current implementation before changing it; old findings are not proof of a current defect. F18 behavioral/interleaving evidence accompanies every repair.
 
 - **1.1.10**: finish the current release. The owner subsequently retained AB
   CtrlRAM Candidate/ContractOnly and explicitly deferred its missing independent
@@ -57,66 +44,28 @@ current defect. F18 behavioral/interleaving evidence accompanies every repair.
   A demonstrated OOM needs a bounded repair proposal, not an invented new limit.
   F19 shipped in 1.1.8; F24 implementation is included in the 1.1.10 candidate.
 
-This is approved scheduling and UI-hide intent, not an implementation completion
-claim or wholesale acceptance of external APIs, numeric budgets or fault severity.
-The audit handoff retains acceptance details; this roadmap owns allocation.
+This is approved scheduling and UI-hide intent, not an implementation completion claim or wholesale acceptance of external APIs, numeric budgets or fault severity. The audit handoff retains acceptance details; this roadmap owns allocation.
 
 ### Owner-approved 1.1.12 startup optimization — 2026-09-25
 
-After reviewing current local warm-launch measurements, the owner requested
-startup optimization in `1.1.12`. Bring Home startup/catalog-ready work forward
-from the conditional `1.2.8` follow-up, alongside the existing F07/F08 and
-residual F20/F21 repairs. Keep CtrlRAM cold first-open and F14/F15 in `1.2.8`.
+After reviewing current local warm-launch measurements, the owner requested startup optimization in `1.1.12`. Bring Home startup/catalog-ready work forward from the conditional `1.2.8` follow-up, alongside the existing F07/F08 and residual F20/F21 repairs. Keep CtrlRAM cold first-open and F14/F15 in `1.2.8`.
 
-The [handoff](post-v1.1.8-audit-handoff.md#startup-optimization-assigned-to-1112--2026-09-25)
-records the baseline and acceptance detail: separate first-window,
-catalog-ready and complete-preload timings; break down the post-window wait;
-optimize through existing startup/catalog owners; compare equivalent builds
-and verify first navigation does not merely inherit the delay.
+The [handoff](post-v1.1.8-audit-handoff.md#startup-optimization-assigned-to-1112--2026-09-25) records the baseline and acceptance detail: separate first-window, catalog-ready and complete-preload timings; break down the post-window wait; optimize through existing startup/catalog owners; compare equivalent builds and verify first navigation does not merely inherit the delay.
 
-Owner hard-target amendment, 2026-09-25: from process launch, the first main
-window must be visibly presented within **500 ms**, and **all startup loading
-must complete within 2,000 ms**, including catalog readiness and deferred
-startup views. Nonessential work runs in the background without blocking the
-UI. Background execution does not exempt startup loading from the 2-second
-limit; unrelated maintenance must be identified separately. These are
-per-launch limits, not median-only targets. Measure cold and warm launches
-separately with the actual package on the controlled owner machine; a window
-handle alone does not prove visible presentation. The first-window limit does
-not require every page to be ready at 500 ms; full readiness has the 2-second
-limit. Preserve validation, honest loading/error feedback and first-navigation
-regression checks.
+Owner hard-target amendment, 2026-09-25: from process launch, the first main window must be visibly presented within **500 ms**, and **all startup loading must complete within 2,000 ms**, including catalog readiness and deferred startup views. Nonessential work runs in the background without blocking the UI. Background execution does not exempt startup loading from the 2-second limit; unrelated maintenance must be identified separately. These are per-launch limits, not median-only targets. Measure cold and warm launches separately with the actual package on the controlled owner machine; a window handle alone does not prove visible presentation. The first-window limit does not require every page to be ready at 500 ms; full readiness has the 2-second limit. Preserve validation, honest loading/error feedback and first-navigation regression checks.
 
-This replaces target-TBD planning and supersedes the historical 700 ms target
-for current work; its unachieved historical evidence remains unchanged. No
-improvement or packaged/cold-launch pass has been demonstrated by this
-amendment. Broad profile reference convergence stays in `1.2.1`.
+This replaces target-TBD planning and supersedes the historical 700 ms target for current work; its unachieved historical evidence remains unchanged. No improvement or packaged/cold-launch pass has been demonstrated by this amendment. Broad profile reference convergence stays in `1.2.1`.
 
 
 ### Owner-deferred TP Header SVN modeling — 2026-09-25
 
-The owner deferred shared TP Header SVN modeling to **1.1.12** to first confirm
-the Header contents. The [existing handoff](post-v1.1.8-audit-handoff.md#tp-header-svn-modeling-deferred-to-1112--2026-09-25)
-retains read-only findings, the common-definition proposal and pending Header
-questions. Implementation requires that confirmation and a subsequent scoped
-admission; this allocation does not accept unconfirmed field semantics or
-claim a product change. Preserve the existing output/persistence/startup work,
-the broader 1.2.1 profile convergence, and all 1.1.11 release/evidence gates.
-SVN modeling is neither a completed 1.1.11 feature nor a release blocker.
+The owner deferred shared TP Header SVN modeling to **1.1.12** to first confirm the Header contents. The [existing handoff](post-v1.1.8-audit-handoff.md#tp-header-svn-modeling-deferred-to-1112--2026-09-25) retains read-only findings, the common-definition proposal and pending Header questions. Implementation requires that confirmation and a subsequent scoped admission; this allocation does not accept unconfirmed field semantics or claim a product change. Preserve the existing output/persistence/startup work, the broader 1.2.1 profile convergence, and all 1.1.11 release/evidence gates. SVN modeling is neither a completed 1.1.11 feature nor a release blocker.
 
 ### Owner-deferred Header backup CRC investigation — 2026-09-25
 
-The owner assigned the observed **32-byte** Header backup/CRC difference in the
-NT51950 single-IC, 1 MiB OSD, Normal CtrlRAM **Both** candidate to **1.1.12**.
-Continue 1.1.11 release preparation with this uncertified case recorded as a
-known difference. The [existing handoff](post-v1.1.8-audit-handoff.md#header-backup-crc-investigation-deferred-to-1112--2026-09-25)
-retains the sequence hypothesis, exact byte ranges and firmware-impact questions.
+The owner assigned the observed **32-byte** Header backup/CRC difference in the NT51950 single-IC, 1 MiB OSD, Normal CtrlRAM **Both** candidate to **1.1.12**. Continue 1.1.11 release preparation with this uncertified case recorded as a known difference. The [existing handoff](post-v1.1.8-audit-handoff.md#header-backup-crc-investigation-deferred-to-1112--2026-09-25) retains the sequence hypothesis, exact byte ranges and firmware-impact questions.
 
-This is a bounded diagnostic deferral, not a claim of complete byte parity or
-firmware certification. Keep the original Golden and current processing intact;
-do not mask the CRC words, replace expected bytes or promote other routes.
-All applicable owner-certified Direct Golden cases, exact-source CI, structure
-and release gates remain required. Preserve existing 1.1.12 work.
+This is a bounded diagnostic deferral, not a claim of complete byte parity or firmware certification. Keep the original Golden and current processing intact; do not mask the CRC words, replace expected bytes or promote other routes. All applicable owner-certified Direct Golden cases, exact-source CI, structure and release gates remain required. Preserve existing 1.1.12 work.
 
 Owner release-identity amendment, 2026-09-23: publish the current work as
 **1.1.10**, replacing the earlier `1.2.0` label. GitHub read-only inspection on
@@ -127,13 +76,7 @@ or certify missing predecessor closure evidence. The dated `1.1.8` checkpoint
 above remains historical. Current unfinished work and release evidence are
 tracked in the existing [delivery checklist](../ui/v1.1.10-delivery.md#11x-未完成項目彙整--2026-09-25).
 
-Owner allocation, 2026-09-24: investigate and repair in `1.1.11` the failure
-observed in the concurrent all-lane `test_verify_orchestration` run. The exact
-`1.1.10` candidate run failed this lane (214/217), while its three failed tests
-and then the complete module passed in isolated reruns (3/3 and 217/217). The
-[1.1.10 delivery checkpoint](../ui/v1.1.10-delivery.md#1110-verifier-orchestration-repair--2026-09-24)
-retains logs and acceptance criteria. This allocation does not mark the failed
-run as passed or waive any applicable `1.1.10` release gate.
+Owner allocation, 2026-09-24: investigate and repair in `1.1.11` the failure observed in the concurrent all-lane `test_verify_orchestration` run. The exact `1.1.10` candidate run failed this lane (214/217), while its three failed tests and then the complete module passed in isolated reruns (3/3 and 217/217). The [1.1.10 delivery checkpoint](../ui/v1.1.10-delivery.md#1110-verifier-orchestration-repair--2026-09-24) retains logs and acceptance criteria. This allocation does not mark the failed run as passed or waive any applicable `1.1.10` release gate.
 
 Owner amendment later on 2026-09-24: move that verifier repair forward into
 **1.1.10**. The preceding `1.1.11` allocation remains dated history. The
@@ -142,34 +85,9 @@ records the reproduced pytest collection boundary, bounded correction and
 remaining all-lane evidence. No earlier failed run becomes a pass; the full
 verifier, Golden, R3 owner and release gates remain required.
 
-Owner 1.1.11 directions, 2026-09-25 (confirmed by the later implementation
-goal): use one shared slot-role/input-type mechanism for Standard and AB info.
-DP AB slots emphasize DP CMI A/B; TP A/B slots show their own bank; ordinary TP
-shows TP A; AB CtrlRAM Base emphasizes TP A/B. Owner's latest 2026-09-25
-correction puts Event Buffer in the always-visible primary information area
-for Standard TP, AB TP A/B and CtrlRAM Base as `Name (0x??)`, with `Common`
-kept concise. This supersedes the earlier Details placement; preserve bank
-labels and missing-value disclosure. Retain A-bank range
-disclosure and hide FWConfig range in the requested info presentation; actual
-addresses/ranges remain profile-owned. Diagnose NT51950 AB Memory Layout's
-missing DP AB and verify Flash BIN combination eligibility. Shared-mechanism
-coverage, root causes, feasibility and final owner visual acceptance still need
-evidence; these display directions do not authorize invented firmware facts.
-The owner-provided NT51950 AB Code OSD upload enters the 1.1.11 validation
-intake only after provenance, hashes, applicable route and complete expected-
-output contract are checked; it is not yet an owner-certified Golden. The
-separate one-release exception above owns the 1.1.10 validation deferral; this
-UI/OSD intake does not alter it, the 1.2.1 Customized/Launcher allocation or the
-1.4.1 NT51950/51 AB evidence work.
+Owner 1.1.11 directions, 2026-09-25 (confirmed by the later implementation goal): use one shared slot-role/input-type mechanism for Standard and AB info. DP AB slots emphasize DP CMI A/B; TP A/B slots show their own bank; ordinary TP shows TP A; AB CtrlRAM Base emphasizes TP A/B. Owner's latest 2026-09-25 correction puts Event Buffer in the always-visible primary information area for Standard TP, AB TP A/B and CtrlRAM Base as `Name (0x??)`, with `Common` kept concise. This supersedes the earlier Details placement; preserve bank labels and missing-value disclosure. Retain A-bank range disclosure and hide FWConfig range in the requested info presentation; actual addresses/ranges remain profile-owned. Diagnose NT51950 AB Memory Layout's missing DP AB and verify Flash BIN combination eligibility. Shared-mechanism coverage, root causes, feasibility and final owner visual acceptance still need evidence; these display directions do not authorize invented firmware facts. The owner-provided NT51950 AB Code OSD upload enters the 1.1.11 validation intake only after provenance, hashes, applicable route and complete expected- output contract are checked; it is not yet an owner-certified Golden. The separate one-release exception above owns the 1.1.10 validation deferral; this UI/OSD intake does not alter it, the 1.2.1 Customized/Launcher allocation or the 1.4.1 NT51950/51 AB evidence work.
 
-Owner amendment, 2026-09-23: schedule Customized / General Merge large-file
-support and the Launcher delta-update, self-update and intranet-migration
-development plan in `1.2.1`, after the current `1.1.10` release.
-The [1.2.1 handoff](v1.2.1-handoff.md) carries the scoped review,
-sequence, unresolved decisions and evidence gates. Retain the existing Python
-Combiner replacement and ownership/recovery work in that slot. Scheduling does
-not approve every proposed contract or move the full Launcher release from
-`2.0.0`; neither new workstream is part of the current `1.1.10` closure.
+Owner amendment, 2026-09-23: schedule Customized / General Merge large-file support and the Launcher delta-update, self-update and intranet-migration development plan in `1.2.1`, after the current `1.1.10` release. The [1.2.1 handoff](v1.2.1-handoff.md) carries the scoped review, sequence, unresolved decisions and evidence gates. Retain the existing Python Combiner replacement and ownership/recovery work in that slot. Scheduling does not approve every proposed contract or move the full Launcher release from `2.0.0`; neither new workstream is part of the current `1.1.10` closure.
 
 Owner amendment, 2026-09-22: the next release includes only fixes and changes
 allocated before `1.2.0` (through the current `1.1.10` delivery). The previously

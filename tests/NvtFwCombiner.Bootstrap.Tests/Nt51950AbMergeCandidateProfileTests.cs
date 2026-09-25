@@ -29,7 +29,7 @@ public sealed class Nt51950AbMergeCandidateProfileTests
         Assert.Equal(CompiledCompositionEligibility.V2PlanCompiled, composition.Eligibility);
         Assert.True(composition.IsV2AbFunctionOpenCandidate);
         Assert.True(StringComparer.Ordinal.Equals(
-            "962ea7873561ad6db3d7bd42bf8c9085af2c5e8562206ae9b5311d6522e66c98",
+            "6a747f136019020beca29190102f626c44661a502c331c3e1c3ead8f209fbb2f",
             composition.CompilationFingerprint), composition.CompilationFingerprint);
         V2CompiledCompositionDetails details = Assert.IsType<V2CompiledCompositionDetails>(composition.V2Details);
         Assert.Equal("nt51950-ab-merge-512k", details.Provenance.ResolvedMap.ImageMap.MapId);
@@ -125,7 +125,7 @@ public sealed class Nt51950AbMergeCandidateProfileTests
             BundleDirectory,
             "profiles",
             "nt51950-ab-merge.json")));
-        Assert.Equal("2.16", profile.RootElement.GetProperty("schemaVersion").GetString());
+        Assert.Equal("2.17", profile.RootElement.GetProperty("schemaVersion").GetString());
         JsonElement[] views = [.. profile.RootElement.GetProperty("views").EnumerateArray()];
         foreach (string viewId in new[] { "tp-a-code-source", "tp-b-code-source" })
         {
