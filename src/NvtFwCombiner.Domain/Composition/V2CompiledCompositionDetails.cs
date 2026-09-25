@@ -281,7 +281,8 @@ public sealed class V2CompiledCompositionDetails
         CompiledRegionAccessContract regionAccessContract,
         CompiledOutputNamingRequirement outputNamingRequirement,
         IcNumberInputMode? icNumberInputMode = null,
-        IEnumerable<CompiledAdditionalDelivery>? additionalDeliveries = null)
+        IEnumerable<CompiledAdditionalDelivery>? additionalDeliveries = null,
+        AbCodeDefinition? ab = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(profileId);
         ArgumentException.ThrowIfNullOrWhiteSpace(profileVersion);
@@ -293,6 +294,11 @@ public sealed class V2CompiledCompositionDetails
         }
 
         ArgumentNullException.ThrowIfNull(provenance);
+        if (ab is not null && experienceId != ExperienceIds.AbMerge &&
+            provenance.Context is not RuntimeReferenceBankReplaceV2CompilationContext)
+        {
+            throw new ArgumentException("AB declarations require an AB profile or bank Replace context.", nameof(ab));
+        }
         ArgumentNullException.ThrowIfNull(inputContract);
         ArgumentNullException.ThrowIfNull(regionAccessContract);
         ArgumentNullException.ThrowIfNull(outputNamingRequirement);
@@ -339,6 +345,7 @@ public sealed class V2CompiledCompositionDetails
         OutputNamingRequirement = outputNamingRequirement;
         IcNumberInputMode = icNumberInputMode;
         AdditionalDeliveries = Array.AsReadOnly(deliverySnapshot);
+        Ab = ab;
     }
 
     /// <summary>Stable profile id.</summary>
@@ -370,6 +377,9 @@ public sealed class V2CompiledCompositionDetails
 
     /// <summary>Optional artifacts derived from this exact completed primary output.</summary>
     public IReadOnlyList<CompiledAdditionalDelivery> AdditionalDeliveries { get; }
+
+    /// <summary>Canonical AB profile declaration, retained by composite bank replacement.</summary>
+    public AbCodeDefinition? Ab { get; }
 
     private static void ValidateRegionAccessContract(
         FirmwareImageMap map,

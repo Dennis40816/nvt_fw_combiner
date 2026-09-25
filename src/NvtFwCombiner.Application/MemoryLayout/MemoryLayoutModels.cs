@@ -633,6 +633,7 @@ public sealed class MemoryLayoutSnapshot
         PendingItems = Array.AsReadOnly(pending);
         SectionLocators = Array.AsReadOnly(sections);
         Banks = Array.AsReadOnly(banks.ToArray());
+        CanViewIndividualBanks = capability.CompiledComposition.V2Details.Ab?.IsFullySymmetric == true && Banks.Count == 2;
     }
 
     /// <summary>Exact canonical route identity.</summary>
@@ -671,6 +672,9 @@ public sealed class MemoryLayoutSnapshot
 
     /// <summary>Complete canonical AB bank placements, including preserved banks; empty for other layouts.</summary>
     public IReadOnlyList<MemoryLayoutBankLocator> Banks { get; }
+
+    /// <summary>Single presentation decision for bank switching, cropping and focus filtering.</summary>
+    public bool CanViewIndividualBanks { get; }
 
     private static void ValidateCoverage(
         MemoryLayoutSegment[] segments,

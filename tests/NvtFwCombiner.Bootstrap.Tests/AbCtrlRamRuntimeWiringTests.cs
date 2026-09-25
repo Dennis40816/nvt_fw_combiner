@@ -217,7 +217,7 @@ public sealed class AbCtrlRamRuntimeWiringTests
         CompiledValidationRequirement? extraTestValidation = null)
     {
         TrustedProfileBundleCatalog ab = V2StandardMergeGoldenTestSupport.LoadDeployedCatalog(
-            "nt51919-nt51929-nt51932-ab-merge", "892af5d0f1ff0094bb96a0e30ffad3b6c2cf18451a6705623c2ca97206422c6b");
+            "nt51919-nt51929-nt51932-ab-merge", "ece8e9ee7a81b3f00ce04bd7c1aa053acde26835d75c3042bf1a86302d8de793");
         CompiledComposition layout = ab.Compile("nt51929-ab-merge", "0.4.0", "NT51929", ExperienceIds.AbMerge,
             0x80000, null, [], selectedInputSlotIds: ["dp-ab-input"]).CompiledComposition!;
         TrustedProfileBundleCatalog local = V2StandardMergeGoldenTestSupport.LoadDeployedCatalog(

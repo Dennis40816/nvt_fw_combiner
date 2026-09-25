@@ -17,8 +17,11 @@ public sealed partial class ProfileBundleSchemaValidatorTests
     {
         string path = RepositoryPaths.FromRepositoryRoot("profiles", "built-in",
             "nt51950-ab-merge", "profiles", fileName);
+        JsonObject profile = Assert.IsType<JsonObject>(JsonNode.Parse(File.ReadAllText(path)));
+        profile["schemaVersion"] = "2.16";
+        _ = profile.Remove("ab");
         ProfileBundleSchemaValidator.ValidateEntries(
-            CaptureCompositionProfile(File.ReadAllText(path), "composition-profile-v2.16.schema.json"), 32);
+            CaptureCompositionProfile(profile.ToJsonString(), "composition-profile-v2.16.schema.json"), 32);
     }
 
     /// <summary>The AB compatibility exception cannot weaken typed Standard naming.</summary>

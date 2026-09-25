@@ -29,6 +29,8 @@ public sealed class AbCtrlRamMemoryLayoutTests
         ActiveSessionSnapshot session = prepared.AcceptedSession!;
         MemoryLayoutSnapshot layout = MemoryLayoutProjector.Project(
             session.ExactCapability!, session, session.ExactCapability!.CompiledComposition);
+        Assert.False(layout.CanViewIndividualBanks);
+        Assert.False(session.ExactCapability.CompiledComposition.V2Details.Ab!.IsFullySymmetric);
         BankReplaceRouteBinding binding = CanonicalDynamicRouteInventory.FindBankReplaceBinding("NT51950", "1-ic")!;
         CanonicalCapabilityCompilationContract original = CanonicalDynamicRouteInventory.Resolve(binding.Identity).CompilationContract;
         MemoryLayoutContextMap wrongCapacity = CanonicalDynamicRouteInventory.FindBankReplaceBinding("NT51950", "2-ic")!
@@ -112,6 +114,8 @@ public sealed class AbCtrlRamMemoryLayoutTests
             MemoryLayoutSnapshot layout = MemoryLayoutProjector.Project(
                 session.ExactCapability!, session, session.ExactCapability!.CompiledComposition);
             Assert.Equal(0x100000, layout.Capacity);
+            Assert.False(layout.CanViewIndividualBanks);
+            Assert.False(session.ExactCapability!.CompiledComposition.V2Details.Ab!.IsFullySymmetric);
             Assert.Equal(2, layout.Banks.Count);
             foreach (MemoryLayoutBankLocator bank in layout.Banks)
             {
@@ -140,6 +144,8 @@ public sealed class AbCtrlRamMemoryLayoutTests
             .GetDiscoveryDisplay("NT51929", "single").Regions;
         MemoryLayoutSnapshot layout = MemoryLayoutProjector.Project(session.ExactCapability, session, composition, regions);
         Assert.Equal(0x80000, layout.Capacity);
+        Assert.True(layout.CanViewIndividualBanks);
+        Assert.True(composition.V2Details.Ab!.IsFullySymmetric);
         RuntimeReferenceBankReplaceV2CompilationContext context = Assert.IsType<RuntimeReferenceBankReplaceV2CompilationContext>(
             composition.V2Details.Provenance.Context);
         Assert.Collection(layout.Banks,

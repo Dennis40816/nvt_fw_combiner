@@ -14,6 +14,7 @@ using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
 using NvtFwCombiner.Presentation.Avalonia;
 using NvtFwCombiner.Presentation.Avalonia.Views;
+using NvtFwCombiner.TestSupport;
 
 namespace NvtFwCombiner.UiSmoke.Tests;
 
@@ -194,8 +195,34 @@ public sealed class AbCtrlRamVisualTests(ShellViewModelTestHostFixture fixture)
             viewModel.Replace.IsViewingCtrlRamBankB = false;
             Assert.All(viewModel.Replace.CtrlRamFocusLanes.SelectMany(static lane => lane.Ranges),
                 static range => Assert.False(range.IsSelectedForWrite));
+            // A prior symmetric B viewport must not survive a non-symmetric AB Base.
+            viewModel.Replace.IsViewingCtrlRamBankB = true;
+            viewModel.WorkflowSession.SelectedIc = "NT51950";
+            await viewModel.WorkflowSession.SetSlotFileAsync(CompositionSlotIds.ReplaceBase,
+                CanonicalGoldenTestData.ArtifactPath("ab-merge", "NT51950", "expected-output", "boe-d82t80"),
+                TestContext.Current.CancellationToken);
+            await viewModel.WorkflowSession.SetSlotFileAsync("replace-ctrlram-nf",
+                CanonicalGoldenTestData.ArtifactPath(CanonicalGoldenTestData.Artifact(
+                    CanonicalGoldenTestData.LoadDirectCase("ctrlram-replace", "nt51950-fw200-single-auto-prj-676-20260717"),
+                    "postbuild-nf-ctrlram")), TestContext.Current.CancellationToken);
+            Dispatcher.UIThread.RunJobs();
+            Assert.False(viewModel.Replace.HasMemoryLayoutDisplayError);
+            Assert.True(viewModel.Replace.IsAbCtrlRamReference);
+            Assert.False(viewModel.Replace.HasCtrlRamBankView);
+            Assert.False(viewModel.Replace.IsViewingCtrlRamBankB);
+            Assert.False(bankView.IsEffectivelyVisible);
+            Assert.False(subtitle.IsEffectivelyVisible);
+            Assert.Empty(viewModel.Replace.CtrlRamBankViewSubtitle);
+            Assert.Equal("0x00000", viewModel.Replace.CtrlRamStartAddress);
+            Assert.Equal("0x7FFFF", viewModel.Replace.CtrlRamEndAddress);
+            Assert.Contains(viewModel.Replace.CtrlRamFocusLanes, static lane => lane.EndExclusive <= 0x40000);
+            Assert.Contains(viewModel.Replace.CtrlRamFocusLanes, static lane => lane.Start >= 0x40000);
+            viewModel.Replace.IsViewingCtrlRamBankB = true;
+            Assert.False(viewModel.Replace.IsViewingCtrlRamBankB);
+            Assert.Equal("0x7FFFF", viewModel.Replace.CtrlRamEndAddress);
             await viewModel.WorkflowSession.ClearSlotFileCommand.ExecuteAsync(CompositionSlotIds.ReplaceBase);
             Assert.False(viewModel.Replace.HasCtrlRamBankView);
+            Assert.Empty(viewModel.Replace.CtrlRamBankViewSubtitle);
             viewModel.WorkflowSession.SelectedIc = "NT51950";
             Dispatcher.UIThread.RunJobs();
             Assert.False(viewModel.Replace.HasCtrlRamBankSettings);

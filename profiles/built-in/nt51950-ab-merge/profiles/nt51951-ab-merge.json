@@ -1,5 +1,6 @@
 {
-  "schemaVersion": "2.16",
+  "schemaVersion": "2.17",
+  "ab": { "isFullySymmetric": false },
   "profileId": "nt51951-ab-merge",
   "profileVersion": "0.7.0",
   "promotion": {
