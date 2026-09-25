@@ -82,6 +82,37 @@ public sealed class Nt51950Nt51951DiffDlmMaskCascade2GoldenTests
         Assert.Equal("nt51951-ctrlram-replace-fw1x-cascade", report.RootElement.GetProperty("ProfileId").GetString());
     }
 
+    /// <summary>
+    /// The owner's 0x80000 950-cascade flash also runs on the NT51950 2-IC route: its 256 KiB full-flash map is the
+    /// layout template of a captured envelope, so the complete Base is kept and the owner expected output is reproduced.
+    /// </summary>
+    [Fact]
+    public async Task Nt51950CascadeEnvelopeReproducesTheOwnerExpectedAsync()
+    {
+        OwnerCase evidence = ReadOwnerCase();
+        using var workspace = TempWorkspace.Create("nfc-nt51950-cascade2-owner-envelope");
+        string referencePath = workspace.Write("reference.bin", ReconstructReference(evidence));
+        string outputPath = workspace.PathFor("output.bin");
+        var processor = new CountingPassThroughProcessor();
+
+        CompositionRunResult result = await CtrlRamReplaceTestSupport.RunWithProcessorAsync(
+            BootstrapTestHost.Canonical,
+            "NT51950",
+            "cascade",
+            CreateSlotPaths(evidence, referencePath, evidence.DiffDlm.Path),
+            true,
+            outputPath,
+            null,
+            processor,
+            TestContext.Current.CancellationToken);
+
+        Assert.True(result.Succeeded, CompositionRunReportJson.Serialize(result));
+        Assert.Equal(1, processor.CallCount);
+        Assert.Equal(evidence.Expected.Bytes, File.ReadAllBytes(outputPath));
+        using var report = JsonDocument.Parse(CompositionRunReportJson.Serialize(result));
+        Assert.Equal("nt51950-ctrlram-replace-fw1x-cascade", report.RootElement.GetProperty("ProfileId").GetString());
+    }
+
     /// <summary>A nonzero active-prefix delta is applied while the adjacent DiffNF and later target record remain immutable.</summary>
     [Fact]
     public async Task NonzeroActivePrefixWritesOnlyDeclaredDlmAsync()

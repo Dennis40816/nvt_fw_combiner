@@ -1,0 +1,43 @@
+{
+  "schemaVersion": 2,
+  "taskId": "CTRLRAM-OSD-ENVELOPE-1112-01",
+  "capability": "Accept an NT51950/NT51951 Standard CtrlRAM Base longer than its full-flash map (Display OSD) as a captured envelope that keeps every byte",
+  "integrationBase": "49e633f687ecd1337e78d8a4de5ca14f880d68c6",
+  "risk": "R3",
+  "kind": "behavior",
+  "state": "design-active",
+  "mutablePaths": [
+    "src/NvtFwCombiner.Infrastructure/Composition/BuiltInCtrlRamAuthoringAdapter.Context.cs",
+    "src/NvtFwCombiner.Infrastructure/Composition/BuiltInCtrlRamAuthoringAdapter.V2.cs",
+    "src/NvtFwCombiner.Infrastructure/Composition/CanonicalDynamicRouteInventory.cs",
+    "src/NvtFwCombiner.Profiles/V2/V2RuntimeReferenceReplaceCompileRequest.cs",
+    "src/NvtFwCombiner.Profiles/V2/TrustedProfileBundleCatalog.Compilation.cs",
+    "src/NvtFwCombiner.Profiles/V2/V2CompositionPlanCompiler.RuntimeReferenceReplace.cs",
+    "src/NvtFwCombiner.Profiles/V2/V2CompositionPlanCompiler.ContractLowering.cs",
+    "src/NvtFwCombiner.Domain/Composition/V2CompilationContext.cs",
+    "src/NvtFwCombiner.Application/Capabilities/RuntimeReferenceCompilationProof.cs",
+    "tests/NvtFwCombiner.Bootstrap.Tests/Nt51950Nt51951DiffDlmMaskCascade2GoldenTests.cs"
+  ],
+  "implementationOwner": "claude-code",
+  "searchEvidence": [
+    "Owner decision 2026-09-26 (board decision 12, reaffirmed): NT51950 and NT51951 flash capacity is no longer fixed because of Display OSD (see the NT51950 AB Code family); remove the hard size limits; all 1.1.12 content must ship.",
+    "The NT51950/NT51951 Standard Merge profiles already declare the Display OSD source envelope (schema 2.16): layout template 256 KiB, expectedOuterLengths 262144, 524288 and 1048576, unexpectedLengthIssueCode DP_NONSTANDARD_SIZE_WARNING. The 1.1.11 record OSD-AB-REFERENCE-ENVELOPE-1111-01 accepted a longer AB CtrlRAM Base in code only, keeping the map as a layout template and projecting the tail.",
+    "Investigation (read-only, 2026-09-26): CtrlRAM Replace enforces Base length equal to a map capacity at adapter admission, route identity, map selection and plan output initialization; the processor reads and writes only inside [0, 0x37000); the NT51950 2-IC cascade full-flash map declares 262144 while the owner's AUTO_PRJ-599 950 cascade case is 0x80000 bytes."
+  ],
+  "semanticOwner": "BuiltInCtrlRamAuthoringAdapter owns CtrlRAM Base admission; CanonicalDynamicRouteInventory owns route identity; TrustedProfileBundleCatalog and V2CompositionPlanCompiler own map selection and the runtime reference-replace plan; the IC's published Standard Merge source-envelope declaration owns which longer lengths are expected.",
+  "terminalContract": "For a CtrlRAM Replace Base whose length equals a declared map capacity, behavior is unchanged. When no map matches and the IC's published Standard Merge profile declares a source envelope, a Base longer than the route's largest (full-flash) Standard CtrlRAM map is admitted as a captured envelope: that map is the layout template and the runtime compilation context carries the template capacity as a typed extent; route identity, published fingerprints and the runtime proof keep the template capacity; the output is initialized from the complete Base; lengths outside the envelope's expectedOuterLengths add its unexpectedLengthIssueCode as a warning. Declared write ranges and processor write authority are not enlarged, and every byte of [templateCapacity, baseLength) must be byte-identical in the output. Header and CRC results inside the template are proven only by complete-output Golden comparison and an exact write-range and tail audit, including the owner's independent 0x80000 AUTO_PRJ-599 expected output on the NT51950 2-IC cascade route. The Standard fallback never selects an AB map; AB keeps its own envelope path. ICs without a Standard Merge source envelope keep exact-length admission. Memory layout, report and input inspection presentation of the envelope tail is covered by a separate R1 record. No profile, schema, contract, trust-index, policy or expected-byte change.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "codex/gpt-6-sol",
+    "outcome": "findings-incorporated",
+    "evidence": "2026-09-26 independent R3 design review (read-only), ACCEPT-WITH-CHANGES, no P0: accept the full-flash map as a layout template and clone the complete captured Base. Incorporated: the runtime envelope context and input contract lowering paths are admitted; presentation paths move to a separate R1 record; canonical write authority stays unchanged; no claim of bounded external reads or unchanged CRC bytes without complete-output Golden comparison and an exact tail and write-range audit; the Standard fallback never selects an AB map."
+  },
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": {
+    "reviewer": null,
+    "outcome": "pending",
+    "evidence": ""
+  }
+}

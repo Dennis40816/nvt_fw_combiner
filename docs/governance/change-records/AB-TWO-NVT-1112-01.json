@@ -1,0 +1,34 @@
+{
+  "schemaVersion": 2,
+  "taskId": "AB-TWO-NVT-1112-01",
+  "capability": "Classify a CtrlRAM Base as AB only when two NVT markers are found, so longer Standard OSD Bases stay Standard",
+  "integrationBase": "49e633f687ecd1337e78d8a4de5ca14f880d68c6",
+  "risk": "R3",
+  "kind": "behavior",
+  "state": "design-active",
+  "mutablePaths": [
+    "src/NvtFwCombiner.Application/InputInspection/FirmwareArtifactClassificationResolver.CtrlRam.cs"
+  ],
+  "implementationOwner": "claude-code",
+  "searchEvidence": [
+    "Owner decision 2026-09-26: decide AB flash by whether two NVT markers can be found.",
+    "The complete NVT marker is 00 4E 56 54; a Standard image carries exactly one canonical NVT FWConfig Backup and an AB image one per bank. Today a single plausible bank (legacy single-candidate evidence) makes a 512 KiB NT51950 or a 1 MiB NT51951 Base AB when only one AB layout compiles at that length, which blocks their Display OSD Standard Bases.",
+    "OSD-AB-REFERENCE-CLASSIFICATION-1111-01 keeps a unique trusted AB structural proof terminal for damaged Backups and requires a 1 MiB non-AB image built from a Standard output and a tail to stay non-AB."
+  ],
+  "semanticOwner": "FirmwareArtifactClassificationResolver remains the only CtrlRAM Base classification owner.",
+  "terminalContract": "A CtrlRAM Base is AB when a published AB layout compiles at its length and either the existing unique trusted AB structural proof holds (damaged-Backup case of OSD-AB-REFERENCE-CLASSIFICATION-1111-01) or exactly one complete NVT marker (00 4E 56 54) is found inside each of that compiled layout's two canonical banks. Markers outside the canonical banks, such as in a Display OSD tail, never count. The legacy single-candidate evidence is retired: this owner decision supersedes the 1.1.11 requirement to keep NT51929/NT51951 single-candidate recognition. Bank issues (version bar, IC count, content plausibility) stay reported on an AB result but no longer decide the kind. Multiple equally evidenced candidates stay input.bank-reference.ambiguous and stale publications stay rejected. NumberToken never determines the kind. Without AB evidence the existing Standard/Unknown fallback applies. No profile, schema, contract, CRC or expected-byte change. Evidence: characterization of one marker, one per canonical bank, duplicate or tail markers, damaged-Backup structural proof and ambiguity, plus executed AB Golden cases.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "codex/gpt-6-sol",
+    "outcome": "findings-incorporated",
+    "evidence": "2026-09-26 independent R3 design review (read-only), ACCEPT-WITH-CHANGES, no P0: accept one complete NVT marker in each compiled canonical AB bank while retaining the unique trusted structural-proof terminal and the ambiguity and stale-publication guards. Incorporated: the contract records that retiring legacy single-candidate evidence supersedes the 1.1.11 NT51929/NT51951 requirement, keeps OSD-tail markers outside canonical banks from counting, and requires characterization tests and executed AB Golden evidence."
+  },
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": {
+    "reviewer": null,
+    "outcome": "pending",
+    "evidence": ""
+  }
+}
