@@ -115,3 +115,22 @@ Evidence: after the F07 commit, `python scripts/verify.py --structure-only` firs
 Base clarification: this branch descends from `feature/1.1.12/handoff` at `bb327a509f02a20d23349ad66acc79ed0c172a4b`, as required by the Amendment. The first checkpoint's `1.1.x` merge-base value `1c37bd718` described its relationship to that moving trunk, not its dispatch base.
 Open: the integration record belongs under `docs/governance/change-records/`, outside this Write lock. F07's direct non-cancellation Report-failure evidence and the CLI path (`BUG-20260925-cli-report-failure-hides-receipt`) need allocation; F08's `MainWindow.axaml.cs` hookup is in WS-WINDOW's lock (`BUG-20260925-persistence-failure-not-actionable`). F20/F21 residuals are reallocated to 1.1.13 under the Amendment. C-2 remains local and cannot be reported `verified`, integrated or published.
 Next: commander assigns the crossed write locks and record owner, repairs normal Git metadata access, and decides whether C-2 can still meet the release green-PR deadline; the worker stops here.
+
+### 2026-09-25 Commander review of F07 and scope decision
+State: local (review by Claude Code, cross-runtime; implementation by Codex)
+Commits: reviewed `d4261e7ba` (F07 fix and tests) at branch head `6780fa1b7`.
+Evidence: read the production diff (`CompositionRunService.cs` delivery catch now includes
+`OperationCanceledException` after the primary output committed; `CompositionRunPresentationViewModel.cs`
+publishes a committed result without a report when report projection is cancelled or fails) and the
+tests `CompositionRunServiceTests.LooseDeliveryCancellationRetainsCommittedPrimaryReceipt` and the
+`ShellViewModelTests.RunProgress` additions. Worker evidence: Application 1,612/1,612 and UiSmoke
+1,653/1,653 passed.
+Verdict: approved, no P0-P2. P3 notes for 1.1.13: cancellation reuses the issue code
+`delivery.<kind>.failed` with the runtime's cancellation text; the committed-without-report result is
+shown as not succeeded by design. Cancellation before the primary commit is unchanged.
+Scope decision (commander, decisions 9 and 10): C-2 ships F07 only in 1.1.12. F08 needs
+`MainWindow.axaml.cs` and the CLI Report failure path needs reproduction; both move to 1.1.13 with
+F20/F21, given the Codex quota and the 2026-09-27 18:00 time box.
+Integration: this branch joins the single 1.1.12 integration batch with its own R1 capability-reuse
+record (implementation owner Codex, final reviewer Claude); the index was resynchronized with
+`git reset` after the worker's temporary-index commits.
