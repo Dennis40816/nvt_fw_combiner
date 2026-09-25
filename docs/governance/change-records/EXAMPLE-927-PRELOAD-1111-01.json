@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 2,
+  "taskId": "EXAMPLE-927-PRELOAD-1111-01",
+  "capability": "Correct canonical NT51927 single CtrlRAM example bindings for existing CMD and screenshot consumers",
+  "integrationBase": "3db701b70e0eec66889a4b030fcbb84db0db5693",
+  "risk": "R3",
+  "kind": "behavior",
+  "state": "design-active",
+  "mutablePaths": [
+    "testdata/golden/canonical/NT51927/ctrlram-replace/fw1.4.1/single/nt51927-fw141-single-auto-prj-529-20260717/provenance/case.json",
+    "testdata/golden/release-canonical-v1.json",
+    "scripts/package.ps1",
+    "scripts/smoke-release.ps1",
+    "tests/NvtFwCombiner.UiSmoke.Tests/ReleaseExampleScreenshots.cs"
+  ],
+  "implementationOwner": "/root",
+  "searchEvidence": [
+    "At 261dd1aee the 927 FW1.4.1 single screenshot captures Base but zero of four CtrlRAM inputs. The case lacks slotId; both existing consumers already prioritize artifact.slotId and otherwise derive unsuffixed IDs.",
+    "BuiltInTpFlashMapCatalog.Postbuild groups sources across the full flashMapProfile: MP and Normal have separate master files; NF and VN share physical sources across endpoints and retain unsuffixed IDs even in single mode. MainWindow.ApplyCtrlRamLaunchAsync correctly rejects unavailable input IDs before loading any replacement.",
+    "The canonical case is already selected by release-canonical-v1.json. Only its manifest SHA and existing derived reviewed-source pins need synchronization; payload selection, original artifact bytes and expected hashes are unchanged."
+  ],
+  "semanticOwner": "Canonical artifact.slotId declares the example bindings; existing CMD and release screenshot consumers transport that declaration to the typed Desktop startup request.",
+  "terminalContract": "Add replace-ctrlram-mp-master, replace-ctrlram-nf, replace-ctrlram-normal-master and replace-ctrlram-vn to the matching four postbuild artifacts in this one case. Preserve all other case fields and bytes. Update only its existing release allowlist manifestSha256 and actual reviewed-source-pins projections. Strengthen the existing screenshot regression to require every requested CtrlRAM slot to exist, have a file and accepted inspection, and be free of semantic error. Reproduce failure first, then verify the loaded screenshot and the four CMD bindings; validate canonical/allowlist/pin contracts. No production routing, profile, firmware behavior, Golden expected bytes, release selection or redistribution scope change. Use the existing 1600-pixel review viewport for AB Merge as well as Replace so expanded TP B Details are included; product window layout is unchanged.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "/root/ab_layout_context_review",
+    "outcome": "approved",
+    "evidence": "2026-09-25 independent R3 ADMIT by /root/ab_layout_context_review before fixture/pin edits: four existing slotId fields, exact selected manifest SHA, actual derived pins and screenshot requested-input assertions only. Preserve payloads and Golden contracts; retain red/green and CMD evidence. This metadata correction does not certify AB CtrlRAM or authorize publication. Actual requested-input regression and source-group inspection corrected the initial proposed NF/VN master suffix: those two retain existing shared source IDs, while MP/Normal use master. No production source rule changes."
+  },
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": {
+    "reviewer": null,
+    "outcome": "pending",
+    "evidence": ""
+  }
+}

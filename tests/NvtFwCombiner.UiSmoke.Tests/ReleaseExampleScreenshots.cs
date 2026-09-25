@@ -14,7 +14,7 @@ namespace NvtFwCombiner.UiSmoke.Tests;
 /// <summary>Real canonical input selections rendered by the product window for owner visual review.</summary>
 public sealed class ReleaseExampleScreenshots
 {
-    /// <summary>Captures both Details states for the 1.1.10 representative workflow matrix.</summary>
+    /// <summary>Captures both Details states for the representative release workflow matrix.</summary>
     [AvaloniaTheory]
     [InlineData("nt51926-gen-flash")]
     [InlineData("nt51927-gen-flash")]
@@ -45,7 +45,7 @@ public sealed class ReleaseExampleScreenshots
         {
             Width = 1440,
             Height = exampleId.Contains("3chip", StringComparison.Ordinal) ? 2600 :
-            options.CtrlRam is not null ? 1600 : 1100
+            options.CtrlRam is not null || options.AbMerge is not null ? 1600 : 1100
         };
         window.Show();
         try
@@ -83,6 +83,17 @@ public sealed class ReleaseExampleScreenshots
                 $"report={shell.Reports.HasLoadedReport}:" +
                 string.Join(" | ", shell.Reports.LoadedReport.Issues.Select(issue => issue.Detail)));
             Assert.All(selected, slot => Assert.NotNull(slot.CurrentInspectionProjection));
+            if (options.CtrlRam is { } ctrlRam)
+            {
+                foreach (CtrlRamLaunchInput input in ctrlRam.Inputs)
+                {
+                    FirmwareSlotViewModel slot = Assert.Single(shell.Replace.ReplaceSlots,
+                        slot => slot.SlotId == input.SlotId);
+                    Assert.True(slot.HasFile, $"Requested input {input.SlotId} was not loaded for {exampleId}.");
+                    Assert.NotNull(slot.CurrentInspectionProjection);
+                    Assert.False(slot.IsSemanticStateError);
+                }
+            }
             Assert.False(shell.Reports.HasLoadedReport);
             if (exampleId.Contains("3chip", StringComparison.Ordinal))
             {
