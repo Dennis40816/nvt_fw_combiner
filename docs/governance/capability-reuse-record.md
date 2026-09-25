@@ -30,6 +30,14 @@ are forbidden. A JSON record is valid only when its direct parent is exactly
 `docs/governance/change-records`; nested records are rejected before parsing or
 coverage and cannot later be moved into place for reuse.
 
+The filename stem must equal its uppercase `taskId` using ASCII letter
+case-insensitive comparison; other spelling differences fail. Record paths and
+task IDs that collide after ASCII case folding fail, even if Git can store both
+names. The validator retains each record's actual Git path for historical,
+predecessor, and `HEAD` checks; it does not reconstruct a path from `taskId`.
+This spelling tolerance does not weaken the staged blob, immutable admission,
+committed `design-active`, or exact `mutablePaths` checks.
+
 Exact non-governed files under `tests/`, and only the exact
 `docs/ui/v1.1.10-delivery.md` status/evidence document, may accompany governed
 paths in `mutablePaths` as auxiliary evidence. They do not grant production
@@ -64,6 +72,17 @@ it still replays every earlier final batch with its original coverage, digest,
 immutability, checkpoint, and external-authority checks. Current active records
 and the current checkpoint diff always use the new classification. The cutover
 is not a new trust root or permission to omit old governed paths.
+
+The exact root `VERSION` file is governed with minimum R3 risk for current and
+future batches after the separately sealed final evidence checkpoint
+`3db701b70e0eec66889a4b030fcbb84db0db5693`. The validator verifies this
+cutover is an ancestor and a sealed final batch, then replays batches through
+that commit with their original `VERSION` classification. In particular, the
+historical 1.1.10 `VERSION` edit is not retroactively covered by a new record.
+The earlier exact-document classification remains in effect for batches between
+its own cutover and this one. This adds current authority coverage for the
+previously declared `RELEASE-IDENTITY-1111-01` `VERSION` path without altering
+its admitted record fields or granting release approval.
 
 ## Lifecycle
 

@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 2,
+  "taskId": "GOVERNANCE-RECORD-IDENTITY-1111-01",
+  "capability": "Preserve sealed capability classification while governing current VERSION and case-insensitive record identity",
+  "integrationBase": "3db701b70e0eec66889a4b030fcbb84db0db5693",
+  "risk": "R3",
+  "kind": "governance",
+  "state": "design-active",
+  "mutablePaths": [
+    "scripts/validate_repository.py",
+    "docs/governance/capability-reuse-record.md",
+    "tests/scripts/test_agent_governance.py"
+  ],
+  "implementationOwner": "/root/ab_event_display",
+  "searchEvidence": [
+    "scripts/validate_repository.py replays historical final records through one classification path; the sealed b9a94a2... exact-document cutover already preserves earlier batches.",
+    "The RELEASE-IDENTITY-1111-01 active record declares VERSION, but the current validator leaves it non-governed and rejects the record. The sealed 1.1.10 VERSION change at e82 must retain its original non-governed classification.",
+    "scripts/validate_repository.py currently requires filename spelling equal taskId and later reconstructs taskId.json, rejecting the unchanged lowercase common-tp admission and losing actual path identity. tests/scripts/test_agent_governance.py owns adversarial Git history fixtures.",
+    "The repository owner explicitly agreed on 2026-09-25 to this bounded repair: post-3db VERSION R3 governance, ASCII case-only record filename tolerance with actual Git paths and collision rejection, while Golden, owner, and release gates remain unchanged."
+  ],
+  "semanticOwner": "The existing capability-reuse validator owns path classification, historical replay, record identity, checkpoint coverage, and immutable final evidence; its canonical contract documents the same rules.",
+  "terminalContract": "Treat exact root VERSION as governed with R3 minimum risk only for current and post-3db701b70e0eec66889a4b030fcbb84db0db5693 batches. Verify this new cutover is an ancestor and a sealed final evidence checkpoint; replay earlier batches through their original classification, preserving the b9a94a2 exact-document cutover and the historical 1.1.10 VERSION non-governed treatment. Accept a direct-child record filename when its ASCII letters equal taskId ignoring case, reject near misses and taskId/path casefold collisions, and retain the actual Git relative path for historical, predecessor, and HEAD lookups. A committed design-active record remains blocked, including lowercase filenames. Keep final-only path lookup and immutable admission checks intact. This corrects future authority coverage for the existing RELEASE-IDENTITY VERSION declaration without rewriting that record's original admission.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "/root/ab_layout_context_review",
+    "outcome": "approved",
+    "evidence": "2026-09-25 independent R3 design ADMIT for a sealed 3db classification epoch, exact root VERSION R3 current coverage, ASCII case-insensitive filename equality with collision rejection, and actual-path historical/predecessor/HEAD lookups. Historical sealed records and their original classification remain immutable. The repository owner explicitly confirmed the bounded repair on 2026-09-25; original Golden, owner, and release gates stay unchanged."
+  },
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": {
+    "reviewer": null,
+    "outcome": "pending",
+    "evidence": ""
+  }
+}
