@@ -1,0 +1,43 @@
+{
+  "schemaVersion": 2,
+  "taskId": "OSD-AB-REFERENCE-ENVELOPE-1111-01",
+  "capability": "Retain a captured 1 MiB NT51950 single OSD AB Base as the runtime CtrlRAM reference envelope",
+  "integrationBase": "3db701b70e0eec66889a4b030fcbb84db0db5693",
+  "risk": "R3",
+  "kind": "behavior",
+  "state": "design-active",
+  "mutablePaths": [
+    "src/NvtFwCombiner.Application/InputInspection/FirmwareArtifactClassificationResolver.CtrlRam.cs",
+    "src/NvtFwCombiner.Infrastructure/Composition/BuiltInCtrlRamAuthoringAdapter.Ab.cs",
+    "src/NvtFwCombiner.Profiles/V2/V2CompositionPlanCompiler.RuntimeReferenceReplace.Banks.cs",
+    "src/NvtFwCombiner.Domain/Composition/RuntimeReferenceBankReplaceV2CompilationContext.cs",
+    "src/NvtFwCombiner.Application/MemoryLayout/MemoryLayoutProjector.cs",
+    "src/NvtFwCombiner.Application/MemoryLayout/MemoryLayoutProjector.Sections.cs",
+    "src/NvtFwCombiner.Application/MemoryLayout/MemoryLayoutModels.cs",
+    "src/NvtFwCombiner.Application/Composition/CompositionRunService.Reports.cs",
+    "tests/NvtFwCombiner.Bootstrap.Tests/AbCtrlRamReferencePlanTests.cs",
+    "tests/NvtFwCombiner.Bootstrap.Tests/AbCtrlRamRuntimeWiringTests.cs"
+  ],
+  "implementationOwner": "/root/ab_event_display",
+  "searchEvidence": [
+    "The owner-approved NT51950 single OSD AB Golden case nt51950-ab-osd-d03t02-20260924 has a 1 MiB DP_AB and complete expected output but a 512 KiB canonical map template; a runtime reference plan already clones reference.LengthBytes.",
+    "FirmwareArtifactClassificationResolver.CtrlRam.cs and BuiltInCtrlRamAuthoringAdapter.Ab.cs currently compare the AB Base to the canonical template length, while the trusted dynamic AB compiler already captures source-envelope extent from the immutable accepted DP.",
+    "V2CompositionPlanCompiler.RuntimeReferenceReplace.Banks.cs retains fixed canonical A/B bank placement and finalizer contracts; MemoryLayoutProjector and CompositionRunService.Reports already render source-envelope provenance for resolved-map contexts."
+  ],
+  "semanticOwner": "The existing trusted dynamic AB compile and typed SourceEnvelopeExtent own accepted source length; runtime bank plan, classifier, authoring adapter, memory projection and report consume that captured provenance without redefining canonical bank ranges.",
+  "terminalContract": "For an admitted NT51950 single AB Base with original 1 MiB DP source envelope, classify and author from the same immutable accepted bytes through the existing dynamic AB compiler under exact publication/topology/stale constraints. Retain the full reference length in the existing clone plan, keep canonical 512 KiB A/B bank boundaries and strict b-bank end, allow compiler-proven actual length where previous guards required equality to mapCapacity, and reject no-extent length mismatch. Expose only the retained typed SourceEnvelope from the parent resolved-map context. Project the extra [mapCapacity,actualLength) bytes as actual DP tail with null bank/canonical-region identities, and report the same envelope while preserving the existing advisory warning. Verify A/B/Both writes, retained tail, finalizer words, no-extent/short negatives, and existing stale/ambiguous rejection tests. Do not change profile/schema, execution request, executor, CRC, expected Golden bytes, or claim full private Golden parity.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "/root/ab_layout_context_review",
+    "outcome": "approved",
+    "evidence": "Independent 2026-09-25 R3 design ADMIT: reuse the captured dynamic AB source envelope, existing immutable reference clone plan, strict canonical bank placement and typed extent; bound exactly eight production paths and two adjacent Bootstrap test files. Existing Application source-envelope tests remain unchanged and pass. Full private Normal CtrlRAM Golden and CRC comparison remain separate evidence gates."
+  },
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": {
+    "reviewer": null,
+    "outcome": "pending",
+    "evidence": ""
+  }
+}

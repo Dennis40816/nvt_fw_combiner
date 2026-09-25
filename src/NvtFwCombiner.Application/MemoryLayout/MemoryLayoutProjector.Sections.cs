@@ -76,7 +76,12 @@ public static partial class MemoryLayoutProjector
             return [.. ProjectBankLocators(bankProjection, addressSpaceId, capacity).SelectMany(bank =>
                 localSections.Select(section => new MemoryLayoutSectionLocator(addressSpaceId,
                     new ByteRange(checked(bank.Range.Start + section.Range.Start), section.Range.Length),
-                    companion.Map, section.CanonicalRegion, bank)))];
+                    companion.Map, section.CanonicalRegion, bank))),
+                .. bankProjection.SourceEnvelope is { } envelope && envelope.ActualOutputLength > envelope.LayoutTemplateCapacity
+                    ? new[] { new MemoryLayoutSectionLocator(addressSpaceId,
+                        new ByteRange(envelope.LayoutTemplateCapacity,
+                            envelope.ActualOutputLength - envelope.LayoutTemplateCapacity), null, null) }
+                    : []];
         }
         FirmwareImageMap[] maps = capability.CompiledComposition.V2Details.Provenance.Context is RuntimeReferenceBankReplaceV2CompilationContext bankContext
             ? [bankContext.ResolvedMap.ImageMap]

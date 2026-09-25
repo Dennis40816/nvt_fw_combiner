@@ -107,11 +107,6 @@ internal sealed partial class BuiltInCtrlRamAuthoringAdapter
                 throw new ArgumentException("AB Replace route lost its trusted parent binding.");
             BankReferenceReplaceDefinition definition = definitionRoute.Definition;
             BankReferenceDefinitionSource source = definition.Layout;
-            if (bytes.LongLength != source.CapacityBytes)
-            {
-                return Failed(CompositionIssueCodes.InputAddressSpaceLengthMismatch,
-                    $"AB Reference length is 0x{bytes.LongLength:X}; expected 0x{source.CapacityBytes:X}.");
-            }
             BuiltInV2Bundle layoutBundle = BuiltInV2BundleRegistry.All.Values.Single(bundle =>
                 bundle.ContentHash == definition.Layout.Bundle.ContentHash);
             BuiltInV2Bundle localBundle = BuiltInV2BundleRegistry.All[definitionRoute.Local.Route.BundleId];
@@ -123,7 +118,8 @@ internal sealed partial class BuiltInCtrlRamAuthoringAdapter
                     ? new TopologySelection(2, "cascade_2to8", TopologySelectionSource.Requested, "number-selector")
                     : null;
             V2CompositionPlanCompileResult layoutResult = layoutBundle.Compile(source.ProfileId, source.ProfileVersion,
-                source.MemberId, ExperienceIds.AbMerge, source.CapacityBytes, layoutTopology, [], selectedInputSlotIds: ["dp-ab-input"]);
+                source.MemberId, ExperienceIds.AbMerge, bytes.LongLength, layoutTopology,
+                [new FirmwareArtifactPayload("dp-ab-input", bytes)], selectedInputSlotIds: ["dp-ab-input"]);
             if (!layoutResult.IsCompiled)
             {
                 return new(null, expected, layoutResult.Issues);

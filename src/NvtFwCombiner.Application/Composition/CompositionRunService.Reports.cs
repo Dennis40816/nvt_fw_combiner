@@ -95,10 +95,14 @@ public sealed partial class CompositionRunService
                 is MapBoundV2CompilationContext mapContext
                     ? mapContext.ResolvedMap.ImageMap.MapId
                     : null,
-            sourceEnvelope: request.CompiledComposition.V2Details.Provenance.Context
-                is ResolvedMapV2CompilationContext { SourceEnvelope: { } envelope }
-                    ? new SourceEnvelopeRunSummary(envelope)
-                    : null);
+            sourceEnvelope: request.CompiledComposition.V2Details.Provenance.Context switch
+            {
+                ResolvedMapV2CompilationContext { SourceEnvelope: { } envelope } =>
+                    new SourceEnvelopeRunSummary(envelope),
+                RuntimeReferenceBankReplaceV2CompilationContext { SourceEnvelope: { } envelope } =>
+                    new SourceEnvelopeRunSummary(envelope),
+                _ => null,
+            });
     }
 
     private static ReadOnlyCollection<InputDiagnosticSummary>? CreateInputDiagnostics(

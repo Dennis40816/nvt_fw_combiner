@@ -36,10 +36,10 @@ internal sealed partial class FirmwareArtifactClassificationResolver
         if ((adapter.ResolveAbReferenceRoute(ic, IcNumberSelectionTokens.SingleChip).Succeeded ||
              adapter.ResolveAbReferenceRoute(ic, IcNumberSelectionTokens.Cascade).Succeeded ||
              adapter.ResolveAbReferenceRoute(ic, IcNumberSelectionTokens.CascadeTwoToEight).Succeeded) &&
-            TryCompileAbLayoutForReference(ic, candidate.Length,
+            TryCompileAbLayoutForReference(ic, candidate,
                 out CompiledComposition? layout, out ResolvedCapability? layoutCapability) &&
             layoutCapability is not null && IsCurrentCapability(publication, ic, layoutCapability) &&
-            candidate.Length == layout!.V2Details.Provenance.ResolvedMap.CapacityBytes)
+            layout!.Plan.OutputInitialization.Capacity == candidate.Length)
         {
             bool hasStandard = _compiler.TryCompileStandardMerge(ic, null, out CompiledComposition? standard,
                 out ResolvedCapability? standardCapability, out _) &&
@@ -139,11 +139,12 @@ internal sealed partial class FirmwareArtifactClassificationResolver
             publication.ResolutionToken, referenceStamp, standardEventBufferFormat);
     }
 
-    private bool TryCompileAbLayoutForReference(string icId, int length,
+    private bool TryCompileAbLayoutForReference(string icId, ReadOnlyMemory<byte> reference,
         out CompiledComposition? composition, out ResolvedCapability? capability)
     {
         composition = null;
         capability = null;
+        var candidates = new List<(CompiledComposition Composition, ResolvedCapability Capability)>();
         TopologySelection?[] selections =
         [
             null,
@@ -152,22 +153,49 @@ internal sealed partial class FirmwareArtifactClassificationResolver
         foreach (TopologySelection? selection in selections)
         {
             if (!_compiler.TryCompileAbMergeCapability(icId, selection, ["dp-ab-input"],
-                    out CompiledComposition? candidate, out ResolvedCapability? published, out _) ||
-                candidate is null || published is null ||
-                candidate.V2Details.Provenance.ResolvedMap.CapacityBytes != length)
+                    out _, out ResolvedCapability? published, out _) || published is null ||
+                !_compiler.TryCompilePublishedDynamicCapability(published.Identity, reference.Length,
+                    [new FirmwareArtifactPayload("dp-ab-input", reference.Span)], ["dp-ab-input"],
+                    out CompiledComposition? candidate, out ResolvedCapability? captured, out _, selection) ||
+                candidate is null || captured is null ||
+                candidate.Plan.OutputInitialization.Capacity != reference.Length)
             {
                 continue;
             }
-            if (composition is not null)
+            candidates.Add((candidate, captured));
+        }
+        if (candidates.Count > 1)
+        {
+            candidates = [.. candidates.Where(item => MatchesObservedAbTopology(item.Composition, reference))];
+        }
+        if (candidates.Count != 1) { return false; }
+        (composition, capability) = candidates[0];
+        return true;
+    }
+
+    private static bool MatchesObservedAbTopology(CompiledComposition layout, ReadOnlyMemory<byte> reference)
+    {
+        FirmwareImageMap map = layout.V2Details.Provenance.ResolvedMap.ImageMap;
+        FirmwareRegion[] banks = [.. map.Regions.Where(static region => region.RegionId is "a-bank" or "b-bank")];
+        if (banks.Length != 2 || banks.Any(bank => bank.Range.EndExclusive > reference.Length))
+        {
+            return false;
+        }
+        int? observed = null;
+        foreach (FirmwareRegion bank in banks)
+        {
+            ReadOnlySpan<byte> bytes = reference.Span.Slice(checked((int)bank.Range.Start), checked((int)bank.Range.Length));
+            if (!FirmwareConfigMetadataReader.TryReadBackup(bytes, out FirmwareConfigMetadata config, out _) ||
+                !config.IsFirmwareVersionBarValid || config.ChipNumber <= 0 ||
+                (observed is not null && observed != config.ChipNumber))
             {
-                composition = null;
-                capability = null;
                 return false;
             }
-            composition = candidate;
-            capability = published;
+            observed = config.ChipNumber;
         }
-        return composition is not null;
+        var topology = new TopologySelection(observed!.Value, "observed", TopologySelectionSource.Requested,
+            "reference-inspection");
+        return map.Applicability.TopologyRequirement.Matches(topology);
     }
 
     private static byte? ReadConsensusEventBufferFormat(

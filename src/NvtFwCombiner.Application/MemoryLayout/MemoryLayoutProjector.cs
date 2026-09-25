@@ -71,7 +71,12 @@ public static partial class MemoryLayoutProjector
                 FirmwareFamilyResolutionDefinition.ResolvedFirmwareImageMap resolvedMap =
                     mapContext.ResolvedMap;
                 map = resolvedMap.ImageMap;
-                SourceEnvelopeExtent? envelope = (mapContext as ResolvedMapV2CompilationContext)?.SourceEnvelope;
+                SourceEnvelopeExtent? envelope = mapContext switch
+                {
+                    ResolvedMapV2CompilationContext resolved => resolved.SourceEnvelope,
+                    RuntimeReferenceBankReplaceV2CompilationContext bankContext => bankContext.SourceEnvelope,
+                    _ => null,
+                };
                 capacity = envelope?.ActualOutputLength ?? resolvedMap.CapacityBytes;
                 if (initialization.Capacity != capacity ||
                     map.CapacityBytes != resolvedMap.CapacityBytes ||

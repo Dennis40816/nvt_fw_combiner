@@ -1,7 +1,9 @@
 using System.Text.Json;
 using NvtFwCombiner.Application.Capabilities;
+using NvtFwCombiner.Application.Authoring;
 using NvtFwCombiner.Application.ExternalTools;
 using NvtFwCombiner.Application.FlashMaps;
+using NvtFwCombiner.Application.MemoryLayout;
 using NvtFwCombiner.Application.Ports;
 using NvtFwCombiner.Contracts.ExternalTools;
 using NvtFwCombiner.Domain.Composition;
@@ -15,6 +17,94 @@ namespace NvtFwCombiner.Bootstrap.Tests;
 /// <summary>Candidate catalog admission and the real Application Preview/Build boundary.</summary>
 public sealed class AbCtrlRamRuntimeWiringTests
 {
+    /// <summary>The OSD Base keeps its extra DP tail while each bank selection uses the fixed 512 KiB AB template.</summary>
+    [Theory]
+    [InlineData(AbCtrlRamBankSelection.A)]
+    [InlineData(AbCtrlRamBankSelection.B)]
+    [InlineData(AbCtrlRamBankSelection.Both)]
+    public async Task Nt51950OsdBaseRetainsTailAndReportsActualEnvelope(AbCtrlRamBankSelection selection)
+    {
+        if (!OperatingSystem.IsWindows())
+        {
+            Assert.Skip("Real Combiner evidence requires Windows.");
+        }
+
+        JsonElement golden = CanonicalGoldenTestData.LoadDirectCase("ab-merge", "nt51950-ab-osd-d03t02-20260924");
+        JsonElement artifact = golden.GetProperty("artifacts").EnumerateArray().Single(static item =>
+            item.GetProperty("artifactId").GetString() == "expected-output");
+        byte[] reference = File.ReadAllBytes(CanonicalGoldenTestData.ArtifactPath(artifact));
+        (Dictionary<string, string> paths, Dictionary<string, byte[]> bytes) = AbCtrlRamAuthoringTests.Inputs();
+        bytes[CompositionSlotIds.ReplaceBase] = reference;
+        paths["replace-ctrlram-normal"] = Path.Combine(Path.GetTempPath(), "captured-950-osd-normal.bin");
+        bytes["replace-ctrlram-normal"] = reference.AsSpan(0x25610, 0x5C00).ToArray();
+        bytes["replace-ctrlram-normal"][0] ^= 0x5A;
+        TopologySelection chosen = BootstrapTestHost.Canonical.Compiler.GetAbMergeTopologyChoices("NT51950")
+            .Single(static choice => choice.Selection.ChipCount == 1).Selection;
+        Assert.True(BootstrapTestHost.Canonical.Compiler.TryCompileAbMergeCapability("NT51950", chosen,
+            ["dp-ab-input"], out _, out ResolvedCapability? published, out IReadOnlyList<CompositionIssue> compileIssues),
+            string.Join("; ", compileIssues.Select(static issue => issue.Message)));
+        Assert.True(BootstrapTestHost.Canonical.Compiler.TryCompilePublishedDynamicCapability(
+            published!.Identity, reference.LongLength, [new FirmwareArtifactPayload("dp-ab-input", reference)],
+            ["dp-ab-input"], out CompiledComposition? capturedLayout, out _, out compileIssues, chosen),
+            string.Join("; ", compileIssues.Select(static issue => issue.Message)));
+        Assert.NotNull(capturedLayout);
+        FirmwareInspectionStatusBatch inspected =
+            ((CtrlRamAuthoringExperience)BootstrapTestHost.Canonical.CtrlRamAuthoring).InspectInputSlots(
+                "NT51950", [new FirmwareInspectionSnapshotInput("base", CompositionSlotIds.ReplaceBase + ".bin",
+                    CtrlRamRequest: new("single", new AbCtrlRamDraftState(selection)),
+                    CtrlRamReplaceAddressSpaceId: CompositionAddressSpaceIds.ReferenceBase)],
+                path => bytes[Path.GetFileNameWithoutExtension(path)]);
+        Assert.Equal(CtrlRamBaseKind.AbFlash, inspected.CtrlRamBaseInspection?.Kind);
+        CtrlRamAuthoringSessionPreparation prepared = BootstrapTestHost.Canonical.CtrlRamAuthoring.PrepareSession(
+            new(ExperienceIds.CtrlRamReplace), "NT51950", "single", paths, bytes,
+            new AbCtrlRamDraftState(selection));
+        Assert.True(prepared.Succeeded, string.Join("; ", prepared.Issues.Select(static issue => issue.Message)));
+        ActiveSessionSnapshot session = prepared.AcceptedSession!;
+        CompiledComposition composition = session.ExactCapability!.CompiledComposition;
+        RuntimeReferenceBankReplaceV2CompilationContext context =
+            Assert.IsType<RuntimeReferenceBankReplaceV2CompilationContext>(composition.V2Details.Provenance.Context);
+        Assert.Equal(0x100000, context.SourceEnvelope?.ActualOutputLength);
+        Assert.Equal(0x100000, composition.Plan.OutputInitialization.Capacity);
+        if (selection != AbCtrlRamBankSelection.A)
+        {
+            Assert.Equal(new ByteRange(0, 0x80000), composition.Plan.OrderedOperations.Single(
+                static operation => operation.OperationId == "ab-replace/b-finalize").TargetRange);
+        }
+        Assert.All(composition.Plan.OrderedOperations,
+            static operation => Assert.True(operation.TargetRange.EndExclusive <= 0x80000));
+        MemoryLayoutSnapshot layout = MemoryLayoutProjector.Project(session.ExactCapability, session, composition);
+        Assert.Equal(0x100000, layout.Capacity);
+        Assert.Same(context.SourceEnvelope, layout.SourceEnvelope);
+        MemoryLayoutSegment tail = Assert.Single(layout.BeforeSegments,
+            static segment => segment.Range == new ByteRange(0x80000, 0x80000));
+        Assert.Null(tail.CanonicalRegion);
+        Assert.Equal(MemoryContentRole.Dp, tail.ContentRole);
+        Assert.Equal("reference-base", tail.SourceSlotId);
+        MemoryLayoutSectionLocator tailSection = Assert.Single(layout.SectionLocators,
+            static section => section.Range == new ByteRange(0x80000, 0x80000));
+        Assert.Null(tailSection.Bank);
+        Assert.Null(tailSection.CanonicalRegion);
+        Assert.Equal(new ByteRange(0, 0x40000), layout.Banks[0].Range);
+        Assert.Equal(new ByteRange(0x40000, 0x40000), layout.Banks[1].Range);
+        using TempWorkspace workspace = TempWorkspace.Create("ab-950-osd-envelope");
+        CompositionRunResult built = await CtrlRamReplaceTestSupport.ExecuteAcceptedWithProcessorAsync(
+            BootstrapTestHost.Canonical, session, paths, true, workspace.PathFor("result.bin"),
+            ExternalProcessorEnvironmentTestSupport.AcquireCurrent().Processor, TestContext.Current.CancellationToken);
+        Assert.Equal(CompositionExecutionStatus.Succeeded, built.Status);
+        Assert.Equal(reference.AsSpan(0x80000).ToArray(), built.OutputBytes[0x80000..].ToArray());
+        Assert.Equal(selection == AbCtrlRamBankSelection.B ? reference[0x25610] : bytes["replace-ctrlram-normal"][0],
+            built.OutputBytes.Span[0x25610]);
+        if (selection != AbCtrlRamBankSelection.A)
+        {
+            Assert.Equal(bytes["replace-ctrlram-normal"][0], built.OutputBytes.Span[0x65610]);
+        }
+        else
+        {
+            Assert.Equal(reference[0x65610], built.OutputBytes.Span[0x65610]);
+        }
+        Assert.Equal(0x100000, built.Report.SourceEnvelope?.ActualOutputLength);
+        Assert.Equal(0x80000, built.Report.SourceEnvelope?.LayoutTemplateCapacity);
+    }
     /// <summary>The shared runner executes selected banks and publishes once after an approved preview.</summary>
     [Theory]
     [InlineData(true, false)]

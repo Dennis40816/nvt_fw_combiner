@@ -332,7 +332,7 @@ internal static partial class V2CompositionPlanCompiler
         FirmwareImageMap map = abLayout.V2Details.Provenance.ResolvedMap.ImageMap;
         FirmwareRegion a = map.Regions.Single(static region => region.RegionId == "a-bank");
         FirmwareRegion b = map.Regions.Single(static region => region.RegionId == "b-bank");
-        RequireBankShape(reference.LengthBytes == map.CapacityBytes &&
+        RequireBankShape(PartialAbSourceLengthMatches(abLayout, reference, map) &&
             a.Range.Length == b.Range.Length && a.Range.Start == 0 &&
             b.Range.Start == a.Range.Length && b.Range.EndExclusive == map.CapacityBytes &&
             local.CapacityBytes <= a.Range.Length, "Partial AB Reference has no exact complete bank/local geometry.");
@@ -357,9 +357,9 @@ internal static partial class V2CompositionPlanCompiler
         FirmwareRegion a = map.Regions.Single(static region => region.RegionId == "a-bank");
         FirmwareRegion b = map.Regions.Single(static region => region.RegionId == "b-bank");
         long delta = b.Range.Start;
-        RequireBankShape(reference.LengthBytes == map.CapacityBytes && a.Range.Start == 0 &&
+        RequireBankShape(PartialAbSourceLengthMatches(abLayout, reference, map) && a.Range.Start == 0 &&
             a.Range.Length == definition.BankCapacityBytes && b.Range.Start == a.Range.Length &&
-            b.Range.Length == a.Range.Length && b.Range.EndExclusive == reference.LengthBytes &&
+            b.Range.Length == a.Range.Length && b.Range.EndExclusive == map.CapacityBytes &&
             definition.LocalBankRange.Start == 0 &&
             definition.LocalBankRange.Length == localMap.CapacityBytes &&
             localMap.MapId == definition.Local.MapId,
@@ -380,7 +380,7 @@ internal static partial class V2CompositionPlanCompiler
         RequireBankShape(invocation.ToolBindingId == "legacy-combiner-1.13.0" &&
             invocation.ProcessorId == (delta == 0x40000 ? "nfc-nt51950-ab-merge-combiner-v1" :
                 "nfc-nt51951-ab-merge-combiner-v1") &&
-            finalizer.TargetRange == new ByteRange(0, reference.LengthBytes) &&
+            finalizer.TargetRange == new ByteRange(0, map.CapacityBytes) &&
             invocation.AllowedWriteRanges.SequenceEqual(
             [
                 new ByteRange(checked(delta + 0xA100), sizeof(uint)),
@@ -429,6 +429,20 @@ internal static partial class V2CompositionPlanCompiler
             }
         }
         return (map, a, b, delta, diff, finalizer, headerAddressFields, processorView);
+    }
+
+    private static bool PartialAbSourceLengthMatches(CompiledComposition layout,
+        FirmwareArtifactPayload reference, FirmwareImageMap map)
+    {
+        SourceEnvelopeExtent? envelope =
+            (layout.V2Details.Provenance.Context as ResolvedMapV2CompilationContext)?.SourceEnvelope;
+        return envelope is null
+            ? reference.LengthBytes == map.CapacityBytes
+            : envelope.SourceSlotId == "dp-ab-input" &&
+                envelope.LayoutTemplateMapId == map.MapId &&
+                envelope.LayoutTemplateCapacity == map.CapacityBytes &&
+                envelope.ActualOutputLength == reference.LengthBytes &&
+                layout.Plan.OutputInitialization.Capacity == reference.LengthBytes;
     }
 
     private static void RequireExactAbLayout(V2CompiledCompositionDetails details,
