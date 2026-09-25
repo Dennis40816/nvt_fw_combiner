@@ -108,3 +108,29 @@ bug in the bug ledger. The live board is `git show 1.1.x:docs/handoff/1.1.12.md`
 (section "Release plan to 2026-09-28").
 
 ## Checkpoints
+
+### 2026-09-25 Startup A unit 1 admission: deduplicate bundle schema validation
+State: planned
+Commits: none yet; source base `d4902f5ee` (product source equal to `v1.1.11`, `1c37bd718`).
+Authorization: owner decisions 9 and 10 (board); this envelope and its amendment. Bounded local
+R1 path (`docs/governance/development-execution-workflow.md`, ADR 0070): an existing capability's
+implementation correction; no contract, schema, profile, ADR or byte change.
+Semantic owner: `ProfileBundleSchemaValidator` (Infrastructure, Bundles) owns bundle-schema
+meta-validation and build; `ProfileBundleLoader` stays its only bundle caller. No second path.
+Exact paths: `src/NvtFwCombiner.Infrastructure/Bundles/ProfileBundleSchemaValidator.cs`; a new
+partial test file under `tests/NvtFwCombiner.Infrastructure.Tests/Bundles/`.
+Change: a bounded, process-wide cache of schemas that passed meta-validation and build, keyed by
+schema id, entry content SHA-256 and maximum JSON depth. Failures are never cached; every schema
+entry is still read, hashed and matched; every document is still validated.
+Evidence: read-only hot-path analysis found 35 schema meta-validations and builds for 10 distinct
+contents across the 19 bundles loaded between `main-window.opened` and
+`startup-warmup.catalog-state.applied` (5,005 ms, 770 MB in the baseline).
+Acceptance: existing validator tests unchanged and passing; new tests for equal `$id` with
+different content, an invalid schema rejected on every attempt, and the depth limit still enforced
+on a cache hit; measured time and allocation reduction on the package-equivalent build.
+Narrow tests: Infrastructure `Bundles/ProfileBundleSchemaValidatorTests*`, `ProfileBundleLoaderTests`,
+`TrustedProfileBundleDocumentProjectionTests`; architecture `RepositoryBoundaryTests` profile-schema
+trust and infrastructure convergence; Bootstrap `CanonicalCapabilityCatalogMigrationTests*`.
+Residual gates: scoped Polytail; capability-reuse record, cross-runtime review (Codex) and Golden
+regression before integration; `verify.py --structure-only`.
+Next: implement unit 1 with its tests.
