@@ -66,6 +66,15 @@ pending their later release. Existing firmware support levels are unchanged.
 - Verification: Actual Home templates, mode selectors and catalog-refresh regressions confirm hidden entries with retained canonical choices.
 - Limitations: This is an entry-point change, not the later Customized large-file implementation.
 
+#### 6. Preserve the full OSD Base during AB CtrlRAM replacement
+
+- Before → After: A 1 MiB NT51950 single-IC OSD AB Base could be rejected because its file length exceeded the canonical 512 KiB AB map. Replacement now uses the existing captured source envelope, preserving the complete Base and OSD tail while retaining the declared A/B bank boundaries.
+- Affected: CtrlRAM Replace with the existing NT51950 partial-family AB layout; memory overview and Report show the actual output extent.
+- Support status: unchanged/Candidate; accepting the larger Base does not certify a new firmware route.
+- Compatibility: Replace preserves Base SVN and the unselected bank. Existing Header/CRC processing is unchanged; no new profile or alternate execution path is introduced.
+- Verification: A-only, B-only and Both runtime cases check exact replacement ranges, unchanged tail and unselected bank, actual output size, and rejection of missing or insufficient source extent. Damaged AB metadata or relocation retains an AB diagnostic rather than falling back to Standard; non-AB inputs and wrong Number selections have separate controls. The supplied complete 1 MiB Both output has also been compared.
+- Limitations: That comparison has a remaining 32-byte Header-backup/CRC difference requiring a firmware-owner contract decision. Final candidate verification remains pending.
+
 ### Security
 
 No new external executable, update endpoint or permission is introduced.
