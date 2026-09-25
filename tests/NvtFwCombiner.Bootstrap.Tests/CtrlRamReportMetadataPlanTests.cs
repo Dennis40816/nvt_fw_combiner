@@ -352,6 +352,22 @@ public sealed class CtrlRamReportMetadataPlanTests
             slotPaths,
             firmwareVersionEdit: null,
             selectedInputBytes: inputBytes);
+        if (lengthDelta > 0 && baseArtifactId == "expected-output")
+        {
+            // CTRLRAM-OSD-ENVELOPE-1112-01: route admission alone keeps a Base longer than the full-flash map as a
+            // Display-OSD envelope with a nonstandard-length warning; Base classification above still rejects it.
+            Assert.NotNull(routeAdmission.Capability);
+            RuntimeReferenceReplaceV2CompilationContext context = Assert.IsType<RuntimeReferenceReplaceV2CompilationContext>(
+                routeAdmission.Capability.CompiledComposition.V2Details.Provenance.Context);
+            Assert.Equal(source.LongLength, context.SourceEnvelope!.LayoutTemplateCapacity);
+            Assert.Equal(invalid.LongLength, context.SourceEnvelope.ActualOutputLength);
+            Assert.Contains(
+                routeAdmission.Capability.CtrlRamExecutionPlan!.AdvisoryIssues,
+                advisory => advisory.Code == "DP_NONSTANDARD_SIZE_WARNING" &&
+                    advisory.Severity == CompositionIssueSeverity.Warning);
+            return;
+        }
+
         Assert.Null(routeAdmission.Capability);
         CompositionIssue lengthIssue = Assert.Single(routeAdmission.Issues);
         Assert.Equal(CompositionIssueCodes.InputAddressSpaceLengthMismatch, lengthIssue.Code);
