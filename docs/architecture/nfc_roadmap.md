@@ -67,14 +67,16 @@ The owner set a 2026-09-28 release for `1.1.12` through the `1.1.11` release pat
   compilation, and bounded parallel bundle preloading under
   [ADR 0075](../adr/0075-bounded-catalog-bundle-preload.md). The compressed
   composite ReadyToRun package shape and its 80,000,000-byte EXE ceiling are
-  kept. Measured on the frozen candidate and the `1.1.11` package in the same
-  quiet session (package shape, five scored launches each): complete loading
-  median 2.20 s against 3.69 s, missing the 2,000 ms target by about 0.2 s;
-  the first window stays at about 0.73 s against the 500 ms target, blocked by
-  the compressed single-file start-up that the EXE ceiling keeps. Peak working
-  set (at most 334.5 MB) and GC heap after warm-up (at most 34.8 MB) pass;
-  peak private bytes are about 5 MB above `1.1.11`, within the owner's 6 MB
-  allowance (handoff decision 16). The WS-IO time box closed with F07 only;
+  kept. Measured on the final product source and the `1.1.11` package in the
+  same quiet session (package shape, five scored launches each): complete
+  loading median 2.20 s against 3.70 s, missing the 2,000 ms target by about
+  0.2 s; the first window stays at about 0.73 s against the 500 ms target,
+  blocked by the compressed single-file start-up that the EXE ceiling keeps.
+  GC heap after warm-up (at most 34.9 MB) passes; peak working set stays
+  within the same-session `1.1.11` maximum plus 1 MB (handoff decision 18);
+  peak private bytes are about 4 MB above `1.1.11` at the median, within the
+  owner's 6 MB allowance (handoff decision 16). The WS-IO time box closed
+  with F07 only;
 - F07: a committed output keeps its receipt when its delivery or report is
   interrupted;
 - removal of the hard NT51950/NT51951 CtrlRAM size limits for Display OSD
