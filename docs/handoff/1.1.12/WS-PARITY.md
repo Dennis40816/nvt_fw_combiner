@@ -116,3 +116,18 @@ Differences: (1) NT51951 CtrlRAM FW1.x cascade full-flash, 2,816 bytes in `[0xA1
 Error: NT51950 CtrlRAM FW1.x cascade full-flash fails on **both** sides after building the same 512 KiB base (`ff9ad012...aa32`): v0.9.16 `profile.v2.compile.map-selection-invalid`, candidate `input.bank-reference.*`; the route map declares 256 KiB. Not a version difference; `BUG-20260925-nt51950-cascade-ctrlram-plan-base` updated with the v0.9.16 outcome.
 Open: owner disposition of the two differences (09-26 evening window); the three bugs above for the commander and the 1.1.13 formal comparator. For the frozen-candidate rerun on 2026-09-27: rebuild the candidate from the frozen SHA with the same commands and rerun the harness into a new work directory (about 11 minutes on a quiet machine); map the renamed NT51950 AB route identity if a later policy is used.
 Next: commander review of the table.
+
+### 2026-09-25 Commander verification of the option A comparison
+State: local (non-certifying evidence; owner disposition pending)
+Commits: verified the worker's `000333f83`; the worker reported `python scripts/verify.py --structure-only`
+PASS (exit 0, 162 s) at that commit.
+Evidence: commander read the table and the machine-readable result, and checked the NT51951 row against
+`docs/contracts/v0916-parity-certification-v1.json` `approvedSemanticCorrections`: baseline
+`7d657a3d...edcca2` and candidate `1536d344...644ebd` hashes, 2,816 differing bytes and the five ranges
+`[41244,41248)`, `[41264,41268)`, `[185384,185388)`, `[185404,185408)`, `[211728,214528)` (file offsets)
+match the owner-approved correction exactly.
+Owner disposition requested (board, 2026-09-26 evening window): (1) NT51951 full-flash difference,
+already owner-approved on 2026-08-28; (2) NT51950 TP-work difference, the same Diff NF preservation,
+approved in the plan only for NT51951; (3) NT51950 cascade full-flash, an error on both sides, not a
+version difference; (4) the 27 routes without canonical inputs, reported as not covered.
+Next: rerun the harness on the frozen candidate on 2026-09-27 (about 11 minutes on a quiet machine).
