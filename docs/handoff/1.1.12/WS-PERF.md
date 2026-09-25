@@ -204,3 +204,23 @@ Acceptance for both: the existing affected tests unchanged and passing, new test
 results, and measured gains on the package-equivalent build (commander measures).
 Residual gates: capability-reuse record (R1, independent final review by Codex), Golden regression,
 `verify.py --structure-only`, scoped Polytail.
+
+### 2026-09-25 ADR 0075 independent design review and revision
+State: planned (R2 design; not implemented)
+Commits: draft `e2f5d80b7`; revision in this commit.
+Evidence: Codex (`gpt-6-sol`, high, read-only sandbox) reviewed the draft: ACCEPT-WITH-CHANGES.
+P1 before implementation: GR-1 (equivalence claim too strong: a preload can cache a transient
+failure earlier), GR-2 (concurrent evaluation of shared `JsonSchema` instances unproven; JsonSchema.Net
+8.0.5 documents thread safety only for its registries), GR-3 (deadlock argument must be a checked
+invariant; recommended provider-first layering), GR-5 (memory gate needs per-launch peaks and GC heap,
+not medians). P2: GR-4 (pin the preload set by test; the proposed predicate selects 19 of 24 today),
+GR-6 (precise cancellation and failure rules), GR-7 (wording, reciprocal ADR 0049 link).
+Revision: provider layer first and serially, then a bounded worker layer; tested precondition that
+non-provider bundles reference only providers; equivalence limited to fixed re-readable inputs;
+per-launch memory gate; a concurrency stress test as an adoption condition; PublicationOnly rejected
+for 1.1.12.
+Open: adoption waits for units 2 and 3 measurements (decision 11). If adopted, a fresh design
+review of this revision precedes the R2 record's design-active admission.
+Note: GR-2 also touches unit 1 (schemas now shared across bundles). Today the only caller is each
+bundle's lazy load, which the catalog drives serially on one worker thread; the concurrency stress
+test will be added before integration either way.
