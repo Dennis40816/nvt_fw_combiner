@@ -74,7 +74,7 @@ internal sealed partial class FirmwareArtifactClassificationResolver
                     ? new(CtrlRamBaseKind.AbFlash, draft as AbCtrlRamDraftState ?? new AbCtrlRamDraftState(),
                         recognized[0].Facts, recognized[0].Issues, publication.ResolutionToken, referenceStamp)
                     : new(CtrlRamBaseKind.AbFlash, draft as AbCtrlRamDraftState ?? new AbCtrlRamDraftState(), [],
-                        [new("input.bank-reference.ambiguous", "More than one trusted AB bank layout matches this Reference.",
+                        [new("input.bank-reference.ambiguous", "More than one AB bank layout matches this Reference with equal evidence.",
                             CompositionSlotIds.ReplaceBase)], publication.ResolutionToken, referenceStamp);
             }
         }
