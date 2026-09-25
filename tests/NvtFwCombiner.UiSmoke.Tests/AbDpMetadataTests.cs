@@ -21,6 +21,7 @@ public sealed class AbDpMetadataTests
             AbMergeFacts = new(CompositionAddressSpaceIds.DpAbInput,
                 [new(CompiledInputVersionKind.DpA, 6, 0, 4095), new(CompiledInputVersionKind.DpB, 9, 1, 607)]),
             StandardEventBufferFormatVersion = 0x80,
+            AbCommonEventBufferFormatVersion = 0xA3,
         };
 
         FirmwareInspectionProjection.ApplyFirmwareFacts(slot, inspection, ShellTextResources.For(ShellLanguage.English));
@@ -101,6 +102,39 @@ public sealed class AbDpMetadataTests
             new(CompiledInputVersionKind.TpB, 0x82, 3));
         Assert.Equal(["TPA Version", "TPB Version"], slot.FirmwareFacts.Select(static fact => fact.Label));
         Assert.Equal(["T81-00", "T82-03"], slot.FirmwareFacts.Select(static fact => fact.Value));
+    }
+
+    /// <summary>A read-only common TP byte fills an absent AB format fact without changing admitted format display.</summary>
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void AbTouchSlotUsesCommonEventBufferOnlyWhenAdmittedFormatIsAbsent(bool admittedFormat)
+    {
+        var slot = new FirmwareSlotViewModel(CompositionAddressSpaceIds.TpAInput,
+            "TP A", "TP A input", FirmwareSlotKind.Tp);
+        var inspection = new FirmwareInspectionSnapshot(null,
+            new(0x22000, "2.0.0", 0x81, 0, true, 0, 1, 0x570A, null, default),
+            null, null, null, null)
+        {
+            AbMergeFacts = new(CompositionAddressSpaceIds.TpAInput,
+                [new(CompiledInputVersionKind.TpA, 0x81, 0)])
+            {
+                EventBufferFormat = admittedFormat
+                    ? new(0x97, "desay", "Desay", 1, new string('a', 64), "primary",
+                        new(CompositionAddressSpaceIds.TpAInput, new ByteRange(0x22200, 0x100)),
+                        new FirmwareArtifactPayload(CompositionAddressSpaceIds.TpAInput, new byte[0x37000]).Identity)
+                    : null,
+            },
+            AbCommonEventBufferFormatVersion = 0xA3,
+        };
+        ShellTextResources text = ShellTextResources.For(ShellLanguage.English);
+
+        FirmwareInspectionProjection.ApplyFirmwareFacts(slot, inspection, text);
+
+        FirmwareSlotFactViewModel fact = Assert.Single(slot.FirmwareFacts,
+            candidate => candidate.Label == text.EventBufferVersionLabel);
+        Assert.Equal(admittedFormat ? "Auto Desay (0x97)" : "Auto STLA v1 (0xA3)", fact.Value);
+        Assert.Contains(fact, slot.PrimaryFirmwareFacts);
     }
 
     /// <summary>AB retains its accepted bank version and shows shared identity facts only once.</summary>

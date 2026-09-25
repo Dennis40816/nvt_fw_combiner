@@ -315,6 +315,13 @@ public interface IFirmwareArtifactClassificationResolver
         ResolvedCapability? exactCapability,
         ReadOnlySpan<byte> candidate);
 
+    /// <summary>Reads one consensus canonical Event Buffer display byte for a captured TP image.</summary>
+    byte? ReadCommonEventBufferFormatForTp(
+        string icId,
+        ResolutionToken capturedPublication,
+        ReadOnlyMemory<byte> acceptedTpBytes,
+        long expectedStructureStart);
+
     /// <summary>Checks whether a previously captured observation still belongs to the current publication.</summary>
     bool IsCurrent(ResolutionToken resolutionToken);
 }

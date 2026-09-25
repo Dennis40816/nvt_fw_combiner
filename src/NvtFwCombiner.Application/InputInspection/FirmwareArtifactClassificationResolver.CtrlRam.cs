@@ -190,6 +190,36 @@ internal sealed partial class FirmwareArtifactClassificationResolver
         return SelectCommonEventBufferFormat(observations);
     }
 
+    /// <inheritdoc />
+    public byte? ReadCommonEventBufferFormatForTp(
+        string icId,
+        ResolutionToken capturedPublication,
+        ReadOnlyMemory<byte> acceptedTpBytes,
+        long expectedStructureStart)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(icId);
+        ArgumentOutOfRangeException.ThrowIfNegative(expectedStructureStart);
+        string normalizedIcId = IcIdentifier.Normalize(icId);
+        CanonicalCapabilityCatalogSnapshot? publication = _catalog.TryGetCurrentSnapshot();
+        if (publication is null || publication.ResolutionToken != capturedPublication)
+        {
+            return null;
+        }
+
+        StandardCandidate[]? candidates = ResolveCurrentCompositions(publication, normalizedIcId);
+        if (candidates is null || candidates.Length == 0 ||
+            candidates.Any(static candidate => candidate.Capability is null))
+        {
+            return null;
+        }
+
+        ResolvedCapability[] capabilities =
+            [.. candidates.Select(static candidate => candidate.Capability!)];
+        byte? observed = ReadConsensusEventBufferFormat(capabilities, capturedPublication,
+            acceptedTpBytes, expectedStructureStart);
+        return IsCurrentSnapshot(publication) ? observed : null;
+    }
+
     internal static byte? SelectCommonEventBufferFormat(
         IReadOnlyList<CanonicalEventBufferFieldObservation?> observations)
     {

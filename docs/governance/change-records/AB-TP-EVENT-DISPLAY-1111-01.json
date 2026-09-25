@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 2,
+  "taskId": "AB-TP-EVENT-DISPLAY-1111-01",
+  "capability": "Show one read-only canonical Event Buffer fact for AB Merge TP inputs without changing AB format admission",
+  "integrationBase": "3db701b70e0eec66889a4b030fcbb84db0db5693",
+  "risk": "R2",
+  "kind": "behavior",
+  "state": "design-active",
+  "mutablePaths": [
+    "src/NvtFwCombiner.Application/InputInspection/CompiledFirmwareArtifactClassifier.cs",
+    "src/NvtFwCombiner.Application/InputInspection/FirmwareArtifactClassificationResolver.CtrlRam.cs",
+    "src/NvtFwCombiner.Application/Composition/CompositionClientModels.cs",
+    "src/NvtFwCombiner.Infrastructure/Composition/BuiltInFirmwareInspection.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/FirmwareInspectionSession.cs",
+    "tests/NvtFwCombiner.Application.Tests/CompiledFirmwareArtifactClassifierTests.cs",
+    "tests/NvtFwCombiner.Bootstrap.Tests/FirmwareInspectionSnapshotTests.AbSourceRetention.cs",
+    "tests/NvtFwCombiner.UiSmoke.Tests/AbDpMetadataTests.cs"
+  ],
+  "implementationOwner": "/root/ab_event_display",
+  "searchEvidence": [
+    "At HEAD 70ab0b7f3, AB Merge input facts expose EventBufferFormat only from admitted AB format selection; NT51929 AB has no such policy, so its TP A/B slot facts omit the display value.",
+    "The NT51929 AB metadata plan declares AB TP flash headers only. The shared full-image metadata view declares DPCMI only. Neither supplies canonical General Parameters for the selected TP input.",
+    "FirmwareArtifactClassificationResolver already enumerates current published Standard candidates and owns canonical Event Buffer consensus via FirmwareConfigGeneralParametersProjector.ReadObservation and SelectCommonEventBufferFormat. BuiltInFirmwareInspection already captures one immutable accepted image per canonical file identity and attaches AB facts after asynchronous AB admission.",
+    "UiCompositionRunner.CreateEventBufferFact owns existing localized Name (0xXX) rendering and primary placement; FirmwareInspectionProjection.GetAbInputFacts currently adds the admitted AB observation only."
+  ],
+  "semanticOwner": "Application FirmwareArtifactClassificationResolver owns publication-bound canonical common Event Buffer observation; AB authoring retains format admission; Infrastructure carries the same-capture nullable display byte; Presentation renders the existing typed fact",
+  "terminalContract": "For AB Merge TP A/B only, derive an optional read-only Event Buffer byte from the accepted TP image using current canonical Standard General Parameters metadata candidates and the existing projector. Require captured AB publication token to remain current after reading, exact content stamp agreement with the AB status and accepted bytes, valid FirmwareConfig Backup version bar, exact decoded locator structure start, and one identical canonical field observation across candidates; missing, stale, ambiguous or conflicting authority yields null. Read no other input bytes. Keep AB format policy, support, input admission, Standard inspection, firmware bytes and DP slot behavior unchanged. Presentation prefers admitted AbMergeFacts.EventBufferFormat; only when absent use this display byte, and render at most one Event Buffer fact with existing formatter and priority. Test NT51929 AB TP A/B supply, NT51950 admitted-format nonduplication, DP exclusion, and canonical consensus/stale failure.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "/root/ab_layout_context_review",
+    "outcome": "approved",
+    "evidence": "2026-09-25 independent R2 design ADMITTED: reuse existing projector and consensus owner; recheck publication after display read. Infrastructure requires TP A/B binding, matching status token/stamp/accepted bytes, no stale issue and valid FWConfig Backup bar. UI uses admitted AB format first and fallback only for missing value; existing Standard and DP paths remain unchanged."
+  },
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": {
+    "reviewer": null,
+    "outcome": "pending",
+    "evidence": ""
+  }
+}

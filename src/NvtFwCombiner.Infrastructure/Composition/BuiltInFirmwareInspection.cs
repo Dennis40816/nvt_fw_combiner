@@ -138,10 +138,32 @@ internal sealed partial class BuiltInFirmwareInspection : IFirmwareInspection
                     ? ctrlRamInputBatch.CtrlRamBaseInspection : null);
             if (!string.IsNullOrWhiteSpace(input.AbMergeAddressSpaceId))
             {
+                AuthoringInputSlotStatus status = abMergeInputBatch.Statuses[input.InspectionId];
+                AbMergeInputFacts abFacts = abMergeInputBatch.Facts[input.InspectionId];
+                byte? commonEventBuffer = null;
+                if ((input.AbMergeAddressSpaceId is CompositionAddressSpaceIds.TpAInput or
+                    CompositionAddressSpaceIds.TpBInput) &&
+                    abFacts.EventBufferFormat is null &&
+                    primaryImage is not null &&
+                    snapshot.FirmwareConfig is { IsFirmwareVersionBarValid: true } config &&
+                    snapshot.FileStamp is { } imageStamp &&
+                    status.FileStamp == imageStamp &&
+                    status.AcceptedBytes is { } accepted &&
+                    accepted.Span.SequenceEqual(primaryImage) &&
+                    !status.BlocksBuild &&
+                    abMergeInputBatch.Catalog is { } catalog &&
+                    status.ResolutionToken == catalog.ResolutionToken &&
+                    !abMergeInputBatch.Issues.Any(static issue =>
+                        issue.Code == AuthoringSessionIssueCodes.StaleInspection))
+                {
+                    commonEventBuffer = inspection._artifactClassification.ReadCommonEventBufferFormatForTp(
+                        icId, status.ResolutionToken, primaryImage, config.FirmwareConfigBackupStart);
+                }
                 snapshot = snapshot with
                 {
-                    AbMergeFacts = abMergeInputBatch.Facts[input.InspectionId],
-                    InputSlotStatus = abMergeInputBatch.Statuses[input.InspectionId],
+                    AbMergeFacts = abFacts,
+                    AbCommonEventBufferFormatVersion = commonEventBuffer,
+                    InputSlotStatus = status,
                     InputSlotCatalog = abMergeInputBatch.Catalog,
                     AuthoringCompilationIssues = abMergeInputBatch.Issues,
                 };

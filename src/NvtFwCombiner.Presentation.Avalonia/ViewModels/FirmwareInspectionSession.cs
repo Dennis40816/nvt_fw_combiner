@@ -115,6 +115,10 @@ internal static class FirmwareInspectionProjection
                 facts.Add(UiCompositionRunner.CreateEventBufferFact(format.RawByte, text,
                     fallbackDisplayName: format.DisplayName));
             }
+            else if (inspection.AbCommonEventBufferFormatVersion is { } commonRaw)
+            {
+                facts.Add(UiCompositionRunner.CreateEventBufferFact(commonRaw, text));
+            }
         }
         return facts;
     }
