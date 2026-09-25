@@ -437,18 +437,17 @@ internal sealed class CompositionRunPresentationViewModel : ObservableObject
             result.Succeeded ? result.CommittedOutputId ?? result.OutputFileName : "No output",
             deliveryComplete), context);
         OnPropertyChanged(nameof(LastRunResult));
-        _ = _stateBindings.TryShowBuildCompleted(result, build);
-
-        if (!publishReport)
+        if (publishReport)
         {
-            return;
+            _stateBindings.Reports().PublishGeneratedReport(
+                report,
+                reportJson,
+                action,
+                show: build && (!deliveryComplete || string.IsNullOrWhiteSpace(result.CommittedOutputId)));
         }
 
-        _stateBindings.Reports().PublishGeneratedReport(
-            report,
-            reportJson,
-            action,
-            show: build && (!deliveryComplete || string.IsNullOrWhiteSpace(result.CommittedOutputId)));
+        // A report-publication failure reaches the committed-output fallback before any success modal opens.
+        _ = _stateBindings.TryShowBuildCompleted(result, build);
     }
 
     private async Task ObserveRunProgressAsync(
