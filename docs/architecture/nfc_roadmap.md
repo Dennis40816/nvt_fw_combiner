@@ -69,12 +69,25 @@ The [handoff](post-v1.1.8-audit-handoff.md#startup-optimization-assigned-to-1112
 records the baseline and acceptance detail: separate first-window,
 catalog-ready and complete-preload timings; break down the post-window wait;
 optimize through existing startup/catalog owners; compare equivalent builds
-and verify first navigation does not merely inherit the delay. Set concrete
-targets after diagnosis and a comparable packaged baseline. The historical
-700 ms packaged-window target remains unachieved, not a newly accepted
-catalog-ready limit. This is a future-work allocation, not a performance
-implementation or a claim that the local build regressed against a different
-historical package. Broad profile reference convergence stays in `1.2.1`.
+and verify first navigation does not merely inherit the delay.
+
+Owner hard-target amendment, 2026-09-25: from process launch, the first main
+window must be visibly presented within **500 ms**, and **all startup loading
+must complete within 2,000 ms**, including catalog readiness and deferred
+startup views. Nonessential work runs in the background without blocking the
+UI. Background execution does not exempt startup loading from the 2-second
+limit; unrelated maintenance must be identified separately. These are
+per-launch limits, not median-only targets. Measure cold and warm launches
+separately with the actual package on the controlled owner machine; a window
+handle alone does not prove visible presentation. The first-window limit does
+not require every page to be ready at 500 ms; full readiness has the 2-second
+limit. Preserve validation, honest loading/error feedback and first-navigation
+regression checks.
+
+This replaces target-TBD planning and supersedes the historical 700 ms target
+for current work; its unachieved historical evidence remains unchanged. No
+improvement or packaged/cold-launch pass has been demonstrated by this
+amendment. Broad profile reference convergence stays in `1.2.1`.
 
 
 Owner release-identity amendment, 2026-09-23: publish the current work as
@@ -237,7 +250,7 @@ protected review/CI and candidate publication gates remain required.
 | `1.1.9` | **Long-name failure/recovery first, then Toolchain Runtime selection, remaining Settings conveniences and CtrlRAM AB intake**: fix issue #434 with edit-time visible errors, recovery to the last accepted valid name on invalid commit, and safe handling of BIN/Bundle/staging names. Assess removal of the product's total-path cap separately from the filesystem component limit. Add **Settings > Config > Toolchain** for detection and user selection of available compatible VC++ runtimes, including newer installed versions; see the linked Toolchain handoff for admission/readiness and verification questions. Record/reconcile the owner-provided CtrlRAM AB reference and prepare its contract/evidence questions for completion before `1.2.0`. Inventory other user-adjustable preferences and justified reset/import/export conveniences through the `1.1.6` Settings owner. Arbitrary maps, CRC/ranges, safety overrides and support promotion are outside ordinary Settings. |
 | `1.1.10` (required before `1.2.0`; owner scope update 2026-09-24) | **CtrlRAM AB Replace, affected shared-contract extraction, DP Replace retirement and verifier orchestration repair**. Retain the NT51932 Perfect family／NT51950 Partial family intake and explicit Common/Desay/topology evidence. Share canonical AB format/layout ownership, preserve independent page instances, and detach shared DPCMI/Perfect-family dependencies before retiring DP Replace. Keep repository-script pytest collection inside the selected test root while preserving exact selection, scratch isolation, cancellation and complete execution; pass the applicable fixed-source verifier. Bank/source/version and fixed-Reference decisions, unresolved firmware rules, implementation and verification evidence are tracked in the [1.1.10 delivery checklist](../ui/v1.1.10-delivery.md). No filename-based AB detection or blanket family promotion. |
 | `1.1.11` | **Input correctness, deferred AB/OSD verification and shared information UI**: reproduce/fix F04/F05; complete the current-source AB CtrlRAM and OSD evidence/owner review, retained Info/Details/Event Buffer/DP AB layout/Flash BIN assessment and loaded-FW screenshots. Temporarily hide Customized Merge/Replace UI entry points until their corresponding functionality is released and accepted; preserve implementation and data. See the owner-approved allocation above. |
-| `1.1.12` | **Output/persistence correctness and measured Home startup optimization**: F07/F08, residual F20/F21; preserve committed receipts and existing destinations, expose retryable errors. Diagnose and reduce Home startup/catalog-ready delay through existing owners with comparable timing and first-navigation regression evidence; see the 2026-09-25 startup amendment. |
+| `1.1.12` | **Output/persistence correctness and measured Home startup optimization**: F07/F08, residual F20/F21; preserve committed receipts and existing destinations, expose retryable errors. Hard targets from process launch: visible first window within 500 ms, all startup loading within 2,000 ms; nonessential work in background. Use comparable per-launch timing and first-navigation regression evidence; see the 2026-09-25 startup amendment. |
 | `1.1.13` | **Process cancellation then window lifetime**: F03/F06 before F01/F02/F25; bounded termination and recovery. |
 | `1.1.14` | **Controlled diagnostics and repair regression**: F17/F23/F26, demonstrated F16 defects; retain F18 evidence throughout. |
 | `1.2.0` | **No longer the release label for `1.1.10`**: the owner explicitly chose `1.1.10` on 2026-09-23. No additional scope is assigned by that numbering correction. The former Launcher development tranche remains in `1.2.1`; reference refresh and current evidence remain in the `1.1.10` delivery. |

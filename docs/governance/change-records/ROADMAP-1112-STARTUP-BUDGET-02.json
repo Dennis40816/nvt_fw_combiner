@@ -1,0 +1,34 @@
+{
+  "schemaVersion": 2,
+  "taskId": "ROADMAP-1112-STARTUP-BUDGET-02",
+  "capability": "Record owner hard startup budgets for 1.1.12",
+  "integrationBase": "3db701b70e0eec66889a4b030fcbb84db0db5693",
+  "risk": "R2",
+  "kind": "governance",
+  "state": "design-active",
+  "mutablePaths": [
+    "docs/architecture/nfc_roadmap.md"
+  ],
+  "implementationOwner": "/root",
+  "searchEvidence": [
+    "Owner explicitly changed the 1.1.12 hard targets on 2026-09-25: first window must appear within 500 ms, all loading complete within 2 seconds, unnecessary work in background. This supersedes the previous target-TBD planning decision but does not claim runtime improvement.",
+    "Current roadmap amendment and audit handoff both defer numeric targets until diagnosis. Extend those existing owners; preserve prior immutable ROADMAP-1112-STARTUP-01, historical 700 ms evidence, current baseline and unrelated version allocations.",
+    "Existing measurement records main-window handle as an appearance proxy. Future acceptance needs actual visible-window and complete-load evidence; background placement cannot exempt startup loads from the 2-second budget."
+  ],
+  "semanticOwner": "docs/architecture/nfc_roadmap.md owns version allocation and accepted planning targets; existing audit handoff records measurement and acceptance detail",
+  "terminalContract": "Record 1.1.12 hard limits from process launch: first visibly presented main window within 500 ms, all startup loads/readiness including deferred startup views within 2000 ms. Every measured run must meet limits, with cold/warm evidence separated on the controlled owner machine using the actual package; medians are descriptive only. Nonessential work runs in background without UI stalls; unrelated maintenance is distinct from required startup loading. Preserve validation/catalog/page readiness and first-navigation regression checks; no HWND-only or relabelled-work pass. Preserve historical 700 ms failure evidence while superseding it as the current target. Only planning documents change, not product behavior, measurement tools, release policy or runtime gates.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "/root/eventbuffer_design_review",
+    "outcome": "approved",
+    "evidence": "2026-09-25 independent planning R2 admission ADMITTED. Confirmed both limits run from process launch and apply per measured run; cold/warm packaged comparison and complete-startup boundary required. Incorporated correction: 500 ms means visibly presented main shell, not fully usable pages by 500 ms; page readiness is covered by 2 seconds. Background scheduling never excludes startup loads. Historical records remain unchanged; no production/test claim."
+  },
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": {
+    "reviewer": null,
+    "outcome": "pending",
+    "evidence": ""
+  }
+}

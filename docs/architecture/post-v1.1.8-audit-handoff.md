@@ -90,11 +90,22 @@ brings Home startup work forward from the conditional `1.2.8` follow-up;
 existing 1.1.12 output/persistence repairs remain in scope. This records the
 future work; no performance implementation or improved timing is claimed.
 
+- Owner hard-target amendment, 2026-09-25: first visibly presented main window
+  within **500 ms** and **all startup loading complete within 2,000 ms**, both
+  measured from process launch. The latter includes catalog validation,
+  required page readiness and deferred startup views. First appearance is not
+  a requirement that every page be ready at 500 ms. These limits supersede the
+  earlier target-TBD plan and the historical 700 ms current-work target;
+  historical measurements remain unchanged.
 - Establish comparable before/after evidence on the same machine, settings,
   build/package flavor and launch arguments. Keep first window, catalog-ready
   and complete background preload timings separate; distinguish cold and warm
-  launches. Use the existing measurement tool with one warm-up and five scored
-  launches, and retain raw stages and source identity.
+  launches. Retain the existing one-warm-up/five-scored warm-launch baseline,
+  and record controlled cold-launch evidence separately. Every measured launch
+  must satisfy both limits; a passing median cannot hide an over-budget run.
+  Final acceptance uses the actual package on the controlled owner machine,
+  retaining raw stages and source identity. The current window-handle proxy
+  needs visible-presentation evidence before claiming the 500 ms target met.
 - First break down the 4.846-second post-window interval before catalog state
   application. Investigate catalog/profile loading, validation/compilation,
   repeated work and UI materialization as hypotheses, not established causes.
@@ -104,11 +115,15 @@ future work; no performance implementation or improved timing is claimed.
   completeness, loading/error feedback and page readiness. Check first
   Merge/Replace navigation so a faster shell does not merely move the wait to
   the first click; preserve independent page instances and bounded lifetime.
-- Set concrete optimization targets after the breakdown and a comparable
-  packaged baseline. The historical 700 ms packaged-window target remains
-  unachieved; it is not automatically a catalog-ready budget. Report actual
-  gains, memory/allocation trade-offs and residual delays without inventing an
-  improvement percentage. CtrlRAM cold first-open and F14/F15 follow-up retain
+- Run nonessential work in the background without UI stalls or contention
+  that breaks the budgets. Any startup loading moved to a background task
+  still counts toward the 2-second completion limit; do not rename unfinished
+  loading as maintenance or hide its progress. Truly unrelated maintenance
+  may continue separately and must not be a prerequisite for page readiness.
+- Diagnose against the hard targets rather than resetting them after the
+  breakdown. Report actual gains, memory/allocation trade-offs and residual
+  delays; if a target is missed, identify the blocker instead of silently
+  relaxing the limit. CtrlRAM cold first-open and F14/F15 follow-up retain
   their 1.2.8 allocation except for navigation regression checks above.
 
 ## Post-1.1.8 audit reconciliation — 2026-09-19
