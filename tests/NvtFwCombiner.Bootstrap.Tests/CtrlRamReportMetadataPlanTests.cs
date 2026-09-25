@@ -467,6 +467,31 @@ public sealed class CtrlRamReportMetadataPlanTests
     }
 
     /// <summary>
+    /// CLASSIFY-EXACT-FALLTHROUGH-1112-01: with the active Standard Merge envelope capability, a nonstandard-length
+    /// flash still classifies as Flash Code by its largest shorter published Standard prefix.
+    /// </summary>
+    [Fact]
+    public void NonstandardEnvelopeFlashIsFlashCodeWithTheExactStandardCapability()
+    {
+        byte[] candidate = CreateEnvelopeCandidate("nt51950-fw200-single-auto-prj-676-20260717", 0x40000, 0x60000);
+        Assert.True(
+            BootstrapTestHost.Canonical.Compiler.TryCompileStandardMerge(
+                "NT51950", candidate, ["dp-input", "tp-input"],
+                out _, out ResolvedCapability? capability, out IReadOnlyList<CompositionIssue> issues),
+            string.Join(" | ", issues.Select(static issue => issue.Message)));
+        var resolver = new FirmwareArtifactClassificationResolver(
+            BootstrapTestHost.Canonical.Catalog, BootstrapTestHost.Services.Compiler);
+
+        CompiledFirmwareArtifactClassification classification = Assert.IsType<CompiledFirmwareArtifactClassification>(
+            resolver.Resolve("NT51950", Assert.IsType<ResolvedCapability>(capability), candidate));
+
+        Assert.Equal(CompiledFirmwareArtifactKind.FlashCode, classification.Kind);
+        Assert.Equal(0x40000, classification.Signals.Single(
+            static signal => signal.Kind == CompiledFirmwareArtifactSignalKind.DeclaredContainerCapacity)
+            .RequiredEndExclusive);
+    }
+
+    /// <summary>
     /// Known 1.1.12 limitation, fail-closed: a 512 KiB NT51950 Standard Base whose Display OSD half contains one
     /// complete NVT marker has one marker in each AB bank and is classified as AB; its B bank is not a valid bank,
     /// so the session is rejected and no Replace can run.
