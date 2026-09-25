@@ -18,7 +18,7 @@ verification evidence is produced by the canonical
 `python scripts/verify.py --structure-only` and `python scripts/verify.py --all`
 commands.
 
-Specification package version: `1.1.11`
+Specification package version: `1.1.12`
 
 ## 1.1.8 clean-Windows runtime correction — 2026-09-16
 
