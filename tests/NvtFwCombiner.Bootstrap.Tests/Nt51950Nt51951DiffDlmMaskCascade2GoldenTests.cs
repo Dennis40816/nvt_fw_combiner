@@ -187,6 +187,28 @@ public sealed class Nt51950Nt51951DiffDlmMaskCascade2GoldenTests
         }
     }
 
+    /// <summary>
+    /// Known 1.1.12 limitation, fail-closed: a complete NVT marker inside the Display OSD tail of a nonstandard
+    /// envelope makes the FWConfig Backup ambiguous, so Build fails without writing an output.
+    /// </summary>
+    [Fact]
+    public async Task Nt51950CascadeEnvelopeTailNvtMarkerFailsClosedAsync()
+    {
+        OwnerCase evidence = ReadOwnerCase();
+        using var workspace = TempWorkspace.Create("nfc-nt51950-cascade2-envelope-tail-marker");
+        byte[] reference = ReconstructReference(evidence).AsSpan(0, NonstandardEnvelopeLength).ToArray();
+        byte[] marker = [0x00, 0x4E, 0x56, 0x54];
+        marker.CopyTo(reference.AsSpan(Nt51950TemplateCapacity + 0x1000));
+        string referencePath = workspace.Write("reference.bin", reference);
+        string outputPath = workspace.PathFor("must-not-exist.bin");
+
+        CompositionRunResult result = await RunNt51950Async(
+            evidence, referencePath, evidence.DiffDlm.Path, outputPath, new CountingPassThroughProcessor());
+
+        Assert.False(result.Succeeded, CompositionRunReportJson.Serialize(result));
+        Assert.False(File.Exists(outputPath));
+    }
+
     /// <summary>A nonstandard length whose Standard prefix is not a Standard Flash stays unrecognized.</summary>
     [Fact]
     public void Nt51950NonstandardLengthWithoutStandardPrefixFailsClosed()
