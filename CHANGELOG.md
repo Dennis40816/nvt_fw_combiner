@@ -33,12 +33,12 @@ NVT markers. Existing firmware support levels are unchanged.
 
 #### 2. A committed output survives an interrupted delivery or report
 
-- Before → After: Cancelling the additional loose delivery after the primary output was written, or a failure while preparing the report, could drop the committed output's path, size and SHA-256 from the result. The result now keeps the committed primary output and reports the delivery or report as failed; in the desktop application the receipt appears in the selected language for a cancellation or any report-preparation failure after the output is written, without the Build completed dialog, and the progress ends as report unavailable.
+- Before → After: Cancelling the additional loose delivery after the primary output was written, or a failure while preparing the report, could drop the committed output's path, size and SHA-256 from the result. The result now keeps the committed primary output and reports the delivery or report as failed; in the desktop application the receipt appears in the selected language when the run is cancelled, or report preparation fails with a report-data, I/O or access error, after the output is written; the Build completed dialog is not shown for that result, and the progress ends as report unavailable.
 - Affected: Build with an additional loose delivery (desktop and CLI); report-preparation failures after the output is written in the desktop application.
 - Support status: unchanged/support-neutral.
 - Compatibility: output bytes, names and ranges are unchanged and processors are not rerun. Cancellation before the primary output is written behaves as before.
 - Verification: service and UI regressions for cancellation during delivery and during report preparation, and for report-materialization failures after the output is written, in both languages.
-- Limitations: in the CLI, a failure to write a requested report after the output is written still stops before the committed receipt is printed. This, retryable persistence failures (F08) and the remaining picker and report residuals (F20, F21) are scheduled for 1.1.13.
+- Limitations: in the CLI, a failure to write a requested report after the output is written still stops before the committed receipt is printed. In the desktop application, a result whose report is unavailable does not offer the latest-output shortcut; its path, size and SHA-256 stay in the run result. These, retryable persistence failures (F08) and the remaining picker and report residuals (F20, F21) are scheduled for 1.1.13.
 
 #### 3. NT51950/NT51951 CtrlRAM Replace accepts a Base with Display OSD
 
