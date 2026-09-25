@@ -117,8 +117,11 @@ verifier, Golden, R3 owner and release gates remain required.
 Owner 1.1.11 directions, 2026-09-25 (confirmed by the later implementation
 goal): use one shared slot-role/input-type mechanism for Standard and AB info.
 DP AB slots emphasize DP CMI A/B; TP A/B slots show their own bank; ordinary TP
-shows TP A; AB CtrlRAM Base emphasizes TP A/B. Put Event Buffer in expanded TP
-information as `Name (0x??)`, with `Common` kept concise. Retain A-bank range
+shows TP A; AB CtrlRAM Base emphasizes TP A/B. Owner's latest 2026-09-25
+correction puts Event Buffer in the always-visible primary information area
+for Standard TP, AB TP A/B and CtrlRAM Base as `Name (0x??)`, with `Common`
+kept concise. This supersedes the earlier Details placement; preserve bank
+labels and missing-value disclosure. Retain A-bank range
 disclosure and hide FWConfig range in the requested info presentation; actual
 addresses/ranges remain profile-owned. Diagnose NT51950 AB Memory Layout's
 missing DP AB and verify Flash BIN combination eligibility. Shared-mechanism

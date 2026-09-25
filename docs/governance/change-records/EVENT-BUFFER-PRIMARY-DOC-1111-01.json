@@ -1,0 +1,33 @@
+{
+  "schemaVersion": 2,
+  "taskId": "EVENT-BUFFER-PRIMARY-DOC-1111-01",
+  "capability": "Synchronize the 1.1.11 Event Buffer primary-info presentation direction",
+  "integrationBase": "3db701b70e0eec66889a4b030fcbb84db0db5693",
+  "risk": "R2",
+  "kind": "governance",
+  "state": "design-active",
+  "mutablePaths": [
+    "docs/architecture/nfc_roadmap.md"
+  ],
+  "implementationOwner": "/root",
+  "searchEvidence": [
+    "Owner corrected Event Buffer to the always-visible upper information area and then explicitly requested its UI implementation. The delivery correction at 630618fa6 records that expectation; current roadmap still says expanded TP information.",
+    "UiCompositionRunner.CreateEventBufferFact is the shared display owner for Standard TP/Base, AB TP and AB Base, including missing-bank placeholders. Product changes use the separately recorded bounded local R1 correction; no metadata, profile, firmware or Build contract changes."
+  ],
+  "semanticOwner": "docs/architecture/nfc_roadmap.md owns the accepted current direction; existing delivery/handoff retain implementation and dated evidence",
+  "terminalContract": "Replace current expanded-TP-Details direction with primary always-visible Event Buffer for Standard TP, AB TP A/B and CtrlRAM Base. Keep Name (0x??), Common short name, bank labels, missing values, DP exclusion and all unrelated scope. Preserve dated Details implementation evidence as history. Record document synchronization only; runtime changes follow the bounded local R1 preflight in the delivery record.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "/root/eventbuffer_design_review",
+    "outcome": "approved",
+    "evidence": "2026-09-25 independent scoped R2 design ADMITTED. Confirmed existing shared CreateEventBufferFact covers all consumers; two display priority branches suffice, including missing bank values. No per-IC/page duplicate rules required; preserve historical Details evidence and all unrelated allocation."
+  },
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": {
+    "reviewer": null,
+    "outcome": "pending",
+    "evidence": ""
+  }
+}

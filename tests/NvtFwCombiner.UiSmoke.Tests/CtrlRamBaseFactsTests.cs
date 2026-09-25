@@ -39,7 +39,7 @@ public sealed class CtrlRamBaseFactsTests
                 FirmwareSlotFactViewModel format = Assert.Single(facts,
                     fact => fact.Label == text.EventBufferVersionLabel);
                 Assert.Equal(expected, format.Value);
-                Assert.False(format.IsPrimary);
+                Assert.True(format.IsPrimary);
             }
         }
 
@@ -85,9 +85,10 @@ public sealed class CtrlRamBaseFactsTests
         Assert.Equal("0x4704", Assert.Single(facts, static fact => fact.Label == "PID (B)").Value);
         _ = Assert.Single(facts, static fact => fact.Label == "Common FW Version (A/B)");
         Assert.False(Assert.Single(facts, static fact => fact.Label == "IC Count (A/B)").IsPrimary);
-        Assert.Equal(["IC Count (A/B)", $"{text.EventBufferVersionLabel} (A)",
-            $"{text.EventBufferVersionLabel} (B)"],
+        Assert.Equal(["IC Count (A/B)", "DPA Version", "DPB Version"],
             facts.Where(static fact => !fact.IsPrimary).Take(3).Select(static fact => fact.Label));
+        Assert.Equal([$"{text.EventBufferVersionLabel} (A)", $"{text.EventBufferVersionLabel} (B)"],
+            facts.Where(static fact => fact.IsPrimary).TakeLast(2).Select(static fact => fact.Label));
         Assert.False(Assert.Single(facts, static fact => fact.Label == "DPA Version").IsPrimary);
         Assert.False(Assert.Single(facts, static fact => fact.Label == "DPB Version").IsPrimary);
         foreach ((string bank, string range) in new[]
@@ -110,7 +111,7 @@ public sealed class CtrlRamBaseFactsTests
             FirmwareSlotFactViewModel format = Assert.Single(facts,
                 fact => fact.Label == $"{text.EventBufferVersionLabel} ({bankId})");
             Assert.Equal(text.FirmwareFactNotProvidedLabel, format.Value);
-            Assert.False(format.IsPrimary);
+            Assert.True(format.IsPrimary);
         }
         Assert.DoesNotContain(facts, static fact => fact.Label == "TP Version");
     }

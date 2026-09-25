@@ -32,8 +32,12 @@ Golden case; remove that repeated human-approval item. Its metadata recording
 and candidate verification remain agent work. AB CtrlRAM evidence, remaining
 R3 authority and final record sealing remain open; this is not a 1.1.11
 publication or a full Structure pass. The latest delivery correction records
-Event Buffer as expected in the always-visible upper information area;
-current code/screenshots still place it in Details, pending the UI correction.
+Event Buffer in the always-visible upper information area; the shared UI
+priority correction passed 75 scoped tests and five screenshot cases. A
+pre-existing 929 AB Merge supply gap remains: its TP A/B slots receive neither
+a read-only Event display value nor an admitted format observation. Keep that
+metadata follow-up separate from the completed UI move; see the delivery
+record for exact evidence and the shared-owner boundary.
 Version allocations and the historical audit below remain unchanged.
 
 ### Profile improvement scope confirmed — 2026-09-25

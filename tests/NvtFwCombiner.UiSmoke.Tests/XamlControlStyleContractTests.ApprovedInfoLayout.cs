@@ -15,13 +15,16 @@ namespace NvtFwCombiner.UiSmoke.Tests;
 
 public sealed partial class XamlControlStyleContractTests
 {
-    /// <summary>The production card renders Standard TP and Base Event Buffer facts at normal width.</summary>
+    /// <summary>The production card renders Event Buffer above collapsed Details in both languages and themes.</summary>
     [AvaloniaTheory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public void StandardEventBufferInfoCardRendersFromTypedSnapshot(bool isBase)
+    [InlineData(false, false)]
+    [InlineData(true, false)]
+    [InlineData(false, true)]
+    [InlineData(true, true)]
+    public void StandardEventBufferInfoCardRendersFromTypedSnapshot(bool isBase, bool chineseDark)
     {
-        ShellTextResources text = ShellTextResources.For(ShellLanguage.English);
+        ShellTextResources text = ShellTextResources.For(
+            chineseDark ? ShellLanguage.ChineseTraditional : ShellLanguage.English);
         var slot = new FirmwareSlotViewModel(isBase ? "base" : "tp", isBase ? "Base" : "TP",
             "Select firmware", isBase ? FirmwareSlotKind.Base : FirmwareSlotKind.Tp)
         {
@@ -45,6 +48,7 @@ public sealed partial class XamlControlStyleContractTests
         (Window host, _, _) = HostWithProductionFirmwareSlotStyles(card);
         host.Width = 940;
         host.Height = 600;
+        host.RequestedThemeVariant = chineseDark ? ThemeVariant.Dark : ThemeVariant.Light;
         card.VerticalAlignment = global::Avalonia.Layout.VerticalAlignment.Top;
         host.Show();
         try
@@ -55,10 +59,17 @@ public sealed partial class XamlControlStyleContractTests
             Dispatcher.UIThread.RunJobs();
             card.Measure(new Size(900, 600));
             card.Arrange(new Rect(0, 0, 900, card.DesiredSize.Height));
-            Assert.DoesNotContain(slot.PrimaryFirmwareFacts, fact => fact.Label == text.EventBufferVersionLabel);
-            Assert.Contains(slot.AdditionalFirmwareFacts,
+            Assert.False(slot.IsAdditionalFirmwareFactsExpanded);
+            Assert.DoesNotContain(slot.AdditionalFirmwareFacts, fact => fact.Label == text.EventBufferVersionLabel);
+            Assert.Contains(slot.PrimaryFirmwareFacts,
                 fact => fact.Label == text.EventBufferVersionLabel &&
                     fact.Value == "Auto STLA v1 (0xA3)");
+            ItemsControl primary = card.FindControl<ItemsControl>("PrimaryFirmwareFactsHost")!;
+            TextBlock eventValue = Assert.Single(primary.GetVisualDescendants().OfType<TextBlock>(),
+                block => block.Text == "Auto STLA v1 (0xA3)");
+            Assert.True(eventValue.IsEffectivelyVisible);
+            Assert.True(eventValue.Bounds.Width > 0 && eventValue.Bounds.Height > 0);
+            Assert.False(card.FindControl<ItemsControl>("AdditionalFirmwareFactsHost")!.IsVisible);
             AvaloniaHeadlessPlatform.ForceRenderTimerTick();
             using global::Avalonia.Media.Imaging.Bitmap? frame = host.GetLastRenderedFrame();
             Assert.NotNull(frame);
@@ -67,7 +78,7 @@ public sealed partial class XamlControlStyleContractTests
             {
                 _ = Directory.CreateDirectory(directory);
                 frame.Save(Path.Combine(directory,
-                    isBase ? "standard-base-event-info.png" : "standard-tp-event-info.png"));
+                    $"standard-{(isBase ? "base" : "tp")}-event-info-{(chineseDark ? "zh-dark" : "en-light")}.png"));
             }
         }
         finally

@@ -32,14 +32,15 @@ public sealed partial class FirmwareInspectionSlotTests
 
         Assert.Equal(["DP Version", "Jira Index"], dp.PrimaryFirmwareFacts.Select(static fact => fact.Label));
         Assert.Empty(dp.AdditionalFirmwareFacts);
-        Assert.Equal(["TP Version", "PID", "Common FW Version"], tp.PrimaryFirmwareFacts.Select(static fact => fact.Label));
+        Assert.Equal(["TP Version", "PID", "Common FW Version", text.EventBufferVersionLabel],
+            tp.PrimaryFirmwareFacts.Select(static fact => fact.Label));
         Assert.DoesNotContain(tp.FirmwareFacts, static fact => fact.Label == "DP Version");
         Assert.Equal(tp.PrimaryFirmwareFacts, reference.PrimaryFirmwareFacts);
         Assert.Contains(reference.AdditionalFirmwareFacts, static fact => fact.Label == "DP Version" && fact.Value == "D06-00");
         Assert.Contains(reference.AdditionalFirmwareFacts, static fact => fact.Label == "Jira Index");
         foreach (FirmwareSlotViewModel slot in new[] { tp, reference })
         {
-            Assert.Contains(slot.AdditionalFirmwareFacts, fact => fact.Label == text.EventBufferVersionLabel && fact.Value == "Common (0x80)");
+            Assert.Contains(slot.PrimaryFirmwareFacts, fact => fact.Label == text.EventBufferVersionLabel && fact.Value == "Common (0x80)");
         }
     }
 

@@ -59,14 +59,14 @@ internal static partial class UiCompositionRunner
         if (raw is not { } value)
         {
             return new(label, text.FirmwareFactNotProvidedLabel,
-                stateDetail: text.FirmwareFactNotProvidedDetail, priority: FirmwareSlotFactPriority.Details);
+                stateDetail: text.FirmwareFactNotProvidedDetail, priority: FirmwareSlotFactPriority.Primary);
         }
 
         string name = FirmwareEventBufferFormatDisplayNames.GetDisplayName(value) ??
             fallbackDisplayName ?? text.FirmwareSlotUnknownValueLabel;
         name = name == "Common Event Buffer Format" ? "Common" : name.Replace('_', ' ');
         return new(label, FormattableString.Invariant($"{name} (0x{value:X2})"),
-            priority: FirmwareSlotFactPriority.Details);
+            priority: FirmwareSlotFactPriority.Primary);
     }
 
     private static List<FirmwareSlotFactViewModel> GetAbBaseFacts(
