@@ -1,0 +1,34 @@
+{
+  "schemaVersion": 2,
+  "taskId": "CRC-BACKUP-PLAN-1112-01",
+  "capability": "Schedule the NT51950 Normal AB Replace Header backup CRC investigation in 1.1.12",
+  "integrationBase": "3db701b70e0eec66889a4b030fcbb84db0db5693",
+  "risk": "R2",
+  "kind": "governance",
+  "state": "design-active",
+  "mutablePaths": [
+    "docs/architecture/nfc_roadmap.md"
+  ],
+  "implementationOwner": "/root",
+  "searchEvidence": [
+    "On 2026-09-25 the owner explicitly requested moving the observed 32-byte Header backup/CRC investigation to 1.1.12 while continuing 1.1.11 release preparation.",
+    "The private NT51950 single-IC 1 MiB Normal/Both candidate differs from the uploaded expected output only at eight four-byte CRC words; the complete source, hashes, ranges and independent comparison are retained in the existing 1.1.11 delivery evidence.",
+    "The current roadmap owns version allocation and the post-v1.1.8 audit handoff already owns 1.1.12 Header research. Extend those owners without changing processor behavior, Golden bytes, support or release policy."
+  ],
+  "semanticOwner": "docs/architecture/nfc_roadmap.md owns allocation; docs/architecture/post-v1.1.8-audit-handoff.md retains the scoped diagnostic and acceptance evidence",
+  "terminalContract": "Move only the unresolved NT51950 single-IC 1 MiB Normal/Both Header backup/CRC sequence and firmware-impact investigation to 1.1.12 as an uncertified Candidate diagnostic. Retain original expected bytes, hashes and exact differences. Record the owner's decision to continue 1.1.11 release preparation without claiming byte parity, certification, correct CRC differences or permission to replace expected bytes. Preserve all existing owner-certified Golden, exact-source CI, structure and release gates, other 1.1.12 work and route evidence boundaries.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "/root/ab_layout_context_review",
+    "outcome": "approved",
+    "evidence": "Independent 2026-09-25 R2 planning ADMIT: one governed roadmap path, existing handoff detail, delivery/changelog status only. Owner deferral applies to this uncertified Candidate diagnostic, not the 26 owner-certified Direct Golden cases or remaining release gates."
+  },
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": {
+    "reviewer": null,
+    "outcome": "pending",
+    "evidence": ""
+  }
+}

@@ -95,6 +95,33 @@ Owner 最新決定：先記錄於 **1.1.12**，待 owner 再確認 TP Header 內
   並確認 operations、write ranges 與完整輸出不因唯讀建模改變。同步既有 family／bundle
   hashes 與政策來源 pins，不改 Golden expected bytes。廣泛 profile 去重仍留在 1.2.1。
 
+### Header backup CRC investigation deferred to 1.1.12 — 2026-09-25
+
+Owner 已明確要求將這次 **NT51950 single、1 MiB OSD AB Base、Normal CtrlRAM Both**
+的 32-byte 差異列於 **1.1.12** 檢查，1.1.11 保留已知差異並繼續發布準備。
+版本配置由 [roadmap](nfc_roadmap.md#owner-deferred-header-backup-crc-investigation--2026-09-25)
+擁有；完整私有 intake 身份與比較結果沿用 [1.1.11 delivery](../ui/v1.1.11-delivery.md#新-nt51950-normal-ctrlram-ab-golden--2026-09-25)。
+本案例仍是未認證的 Candidate，不宣稱與上傳 Golden 完全相同。
+
+- 已確認：Normal 替換資料、SVN 與其餘 bytes 相同；OSD
+  `[0x80000,0x100000)` 不變。A bank 差異只在 `[0xA11C,0xA120)`、
+  `[0xA130,0xA134)`、`[0x2D428,0x2D42C)`、`[0x2D43C,0x2D440)`；
+  B bank 為相同位置加 `0x40000`，共 32 bytes。Candidate 與 Golden 的主
+  DLM／Header CRC 各自驗算成立，但不因此判定 backup 的 firmware 行為相同。
+- 現行序列可由既有 Combiner 1.13 source 及獨立計算重現：每 bank 執行兩輪
+  Header copy → DLM CRC → Header CRC。第二輪 copy 的是第一輪計算後的 Header，
+  接著主 Header 再更新。Backup 內的 8-byte CRC 差異連動主 DLM CRC 4 bytes、
+  主 Header CRC 4 bytes，因此每 bank 差 16 bytes。尚未證明 Golden 使用哪個
+  backup 初始值或生成階段；owner 提到以前可能遇過類似情況，仍待找到可核對證據。
+- 1.1.12 檢查：追查原始生成命令／工具版本及每次 copy／CRC 的時序，確認
+  firmware 使用主 Header／backup 的時機、CRC 的覆蓋區間與預期一致性，並核對
+  已有歷史案例。先確定可重現差異的原因與 firmware 接受條件，再決定是否修改
+  現有共用 processor 契約；不可因本例新增 IC 特判、第二份 CRC 實作或任意多跑一輪。
+- 驗證界線：原始 Golden／hash 保持不變，後續完整比較及允許差異必須有明確契約；
+  若採限定差異，仍逐 byte 獨立計算每個 CRC word，不能只 mask 或檢查主 CRC valid。
+  不將 Both 證據擴成 A-only／B-only、其他 family／topology 的認證。這次延期不豁免
+  既有 26 個 owner-certified Direct Golden、固定來源 CI 或其他結構／發布 gate。
+
 ### Current local startup measurement — 2026-09-25
 
 Product source: `eb7e96d880f93a020985724038ecfe6d061f7fca`; freshly built

@@ -73,7 +73,7 @@ pending their later release. Existing firmware support levels are unchanged.
 - Support status: unchanged/Candidate; accepting the larger Base does not certify a new firmware route.
 - Compatibility: Replace preserves Base SVN and the unselected bank. Existing Header/CRC processing is unchanged; no new profile or alternate execution path is introduced.
 - Verification: A-only, B-only and Both runtime cases check exact replacement ranges, unchanged tail and unselected bank, actual output size, and rejection of missing or insufficient source extent. Damaged AB metadata or relocation retains an AB diagnostic rather than falling back to Standard; non-AB inputs and wrong Number selections have separate controls. The supplied complete 1 MiB Both output has also been compared.
-- Limitations: That comparison has a remaining 32-byte Header-backup/CRC difference requiring a firmware-owner contract decision. Final candidate verification remains pending.
+- Limitations: That comparison has a remaining 32-byte Header-backup/CRC difference. The owner deferred its sequence and firmware-impact investigation to 1.1.12; the original expected output remains unchanged and this case is not certified as byte-identical. Final candidate verification remains pending.
 
 ### Security
 
