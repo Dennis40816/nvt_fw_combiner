@@ -71,10 +71,11 @@ hash-pinned trust checks, and no library-global schema registry is modified.
   from the 1.1.12 product source (`badc545b0`), covered the 37 routes with
   canonical inputs: 34 identical, 2 different by the owner-approved Diff NF
   preservation, and 1 (NT51950 2-IC cascade CtrlRAM full flash) rejected by
-  v0.9.16 and accepted by 1.1.12 through Product change 3. Every other 1.1.12
-  output equals the output of the same run on the 1.1.11 source. The 27 routes
-  without canonical input have no Golden and remain not covered; the formal
-  comparator for 1.x candidates is scheduled for 1.1.13.
+  v0.9.16 and accepted by 1.1.12 through Product change 3. For the other 36 of
+  these 37 routes, the 1.1.12 outputs equal those of the same comparison run
+  with the 1.1.11 source (`1c37bd718`). The comparison did not run the 27
+  routes that lack canonical input; the formal comparator for 1.x candidates
+  is scheduled for 1.1.13.
 - The 32-byte Header-backup/CRC difference carried from 1.1.11 is scheduled for
   1.1.13; that comparison is still not certified as byte-identical.
 - AB CtrlRAM routes retain their existing Candidate status.
