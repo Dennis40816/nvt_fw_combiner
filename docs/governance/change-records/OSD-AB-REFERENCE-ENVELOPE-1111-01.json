@@ -5,7 +5,7 @@
   "integrationBase": "3db701b70e0eec66889a4b030fcbb84db0db5693",
   "risk": "R3",
   "kind": "behavior",
-  "state": "design-active",
+  "state": "final-complete",
   "mutablePaths": [
     "src/NvtFwCombiner.Application/InputInspection/FirmwareArtifactClassificationResolver.CtrlRam.cs",
     "src/NvtFwCombiner.Infrastructure/Composition/BuiltInCtrlRamAuthoringAdapter.Ab.cs",
@@ -32,12 +32,20 @@
     "outcome": "approved",
     "evidence": "Independent 2026-09-25 R3 design ADMIT: reuse the captured dynamic AB source envelope, existing immutable reference clone plan, strict canonical bank placement and typed extent; bound exactly eight production paths and two adjacent Bootstrap test files. Existing Application source-envelope tests remain unchanged and pass. Full private Normal CtrlRAM Golden and CRC comparison remain separate evidence gates."
   },
-  "implementationHead": null,
-  "reviewedHead": null,
-  "pathStateDigest": null,
+  "implementationHead": "1754efb4831fb0ee0055fd91c0c3f9b9af8ed0b2",
+  "reviewedHead": "1754efb4831fb0ee0055fd91c0c3f9b9af8ed0b2",
+  "pathStateDigest": "53456b1fcf2e60b7ce3b5616ce670f8cd12ec38eed95be4c4a46df0634e49303",
   "finalReview": {
-    "reviewer": null,
-    "outcome": "pending",
-    "evidence": ""
-  }
+    "reviewer": "/root/ab_layout_context_review",
+    "outcome": "findings-incorporated",
+    "evidence": "afdcd3d05 eight-production/two-test review found classification P1; f89dbaf30 independently reviewed the correction in overlapping classifier/adapter/test paths. Other envelope, tail, bank and report paths had no remaining P0-P2. Independent fixed-diff follow-up at 1754efb4831fb0ee0055fd91c0c3f9b9af8ed0b2 found no P0-P2 issues. The final partition covers 91 governed checkpoint-to-review paths exactly once across 22 records, retaining each original admission and full mutable-path digest. The 90003b5c2 full nonstructure run failed eight .NET assertions and one Python script lane, while all 26 certified Direct Golden cases executed and passed. 1754efb48 changes only tests/prose and corrects those assertions: affected Bootstrap 27/27, Architecture 268/268 and canonical intake 7/7 passed; product/profile/Golden bytes are identical to 90003b5c2. These are scoped results, not a fresh full-suite PASS. On 2026-09-25 the owner approved all nine R3 closures for 1754efb48, sealing, push and formal release progression. Separate typed exact-head owner attestations follow this technical evidence commit. Formal exact-source CI, structure and fresh release Golden execution remain required before publication. The private 32-byte Header-backup/CRC difference remains uncertified Candidate evidence and is deferred by the owner to 1.1.12; no expected bytes, support status or test result is relabeled."
+  },
+  "integrationPaths": [
+    "src/NvtFwCombiner.Application/Composition/CompositionRunService.Reports.cs",
+    "src/NvtFwCombiner.Application/MemoryLayout/MemoryLayoutModels.cs",
+    "src/NvtFwCombiner.Application/MemoryLayout/MemoryLayoutProjector.Sections.cs",
+    "src/NvtFwCombiner.Application/MemoryLayout/MemoryLayoutProjector.cs",
+    "src/NvtFwCombiner.Domain/Composition/RuntimeReferenceBankReplaceV2CompilationContext.cs",
+    "src/NvtFwCombiner.Profiles/V2/V2CompositionPlanCompiler.RuntimeReferenceReplace.Banks.cs"
+  ]
 }

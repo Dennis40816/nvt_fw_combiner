@@ -5,7 +5,7 @@
   "integrationBase": "3db701b70e0eec66889a4b030fcbb84db0db5693",
   "risk": "R2",
   "kind": "behavior",
-  "state": "design-active",
+  "state": "final-complete",
   "mutablePaths": [
     "src/NvtFwCombiner.Application/HexEditor/IRawBinaryEditorFileSession.cs",
     "src/NvtFwCombiner.Infrastructure/Files/RawBinaryEditorFileSession.cs",
@@ -27,12 +27,18 @@
     "outcome": "approved",
     "evidence": "2026-09-25 bounded R2 design ADMITTED independently: existing atomic receipt owner is minimal; reconcile on cancellation/exception paths as well as normal completion, use object identity or monotonic commit identity, and do not change receipt on SaveAs/failure."
   },
-  "implementationHead": null,
-  "reviewedHead": null,
-  "pathStateDigest": null,
+  "implementationHead": "1754efb4831fb0ee0055fd91c0c3f9b9af8ed0b2",
+  "reviewedHead": "1754efb4831fb0ee0055fd91c0c3f9b9af8ed0b2",
+  "pathStateDigest": "2e591b10714b798f7aa3c8d2797f859fbcd81cf0aea3d6cb04a401d6815bbe5d",
   "finalReview": {
-    "reviewer": null,
-    "outcome": "pending",
-    "evidence": ""
-  }
+    "reviewer": "/root/ab_layout_context_review",
+    "outcome": "approved",
+    "evidence": "c40267704 independent accepted-load fixed review; four real-adapter interleavings and 20/20 UiSmoke; no later mutable-path change. Independent fixed-diff follow-up at 1754efb4831fb0ee0055fd91c0c3f9b9af8ed0b2 found no P0-P2 issues. The final partition covers 91 governed checkpoint-to-review paths exactly once across 22 records, retaining each original admission and full mutable-path digest. The 90003b5c2 full nonstructure run failed eight .NET assertions and one Python script lane, while all 26 certified Direct Golden cases executed and passed. 1754efb48 changes only tests/prose and corrects those assertions: affected Bootstrap 27/27, Architecture 268/268 and canonical intake 7/7 passed; product/profile/Golden bytes are identical to 90003b5c2. These are scoped results, not a fresh full-suite PASS. On 2026-09-25 the owner approved all nine R3 closures for 1754efb48, sealing, push and formal release progression. Separate typed exact-head owner attestations follow this technical evidence commit. Formal exact-source CI, structure and fresh release Golden execution remain required before publication. The private 32-byte Header-backup/CRC difference remains uncertified Candidate evidence and is deferred by the owner to 1.1.12; no expected bytes, support status or test result is relabeled."
+  },
+  "integrationPaths": [
+    "docs/adr/0014-raw-binary-utility-editor.md",
+    "src/NvtFwCombiner.Application/HexEditor/IRawBinaryEditorFileSession.cs",
+    "src/NvtFwCombiner.Infrastructure/Files/RawBinaryEditorFileSession.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/HexEditorWorkspaceViewModel.Persistence.cs"
+  ]
 }
