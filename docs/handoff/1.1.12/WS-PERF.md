@@ -74,4 +74,37 @@ IDs here; fix only what is in scope.
 
 **Start.** Right after the base refresh (checklist A-7).
 
+## Amendment 2026-09-25: release by 2026-09-28 (board decision 9)
+
+**Owner change.** Claude Code (Opus 5.5) now owns this workstream as Startup
+A: everything after `main-window.opened` (catalog loading, validation,
+compilation and application; startup warm-up of views). Startup B, process
+launch to `main-window.opened`, moves to WS-WINDOW (Codex) on
+`feature/1.1.12/startup-window`.
+
+**Baseline** (board, "Release plan to 2026-09-28"): `main-window.opened` to
+`startup-warmup.catalog-state.applied` 5,005 ms with 770 MB allocated; warm-up
+completed 6,498 ms after managed entry.
+
+**Write lock (Startup A).** This log; new bug files;
+`src/NvtFwCombiner.Application/Capabilities/`; catalog and registry loading in
+`src/NvtFwCombiner.Infrastructure/Composition/` and
+`src/NvtFwCombiner.Infrastructure/Bundles/`; catalog application and startup
+warm-up code in `src/NvtFwCombiner.Presentation.Avalonia/` (files listed in
+the first checkpoint); `scripts/measure-startup.ps1`; their tests.
+
+**Due.** Pull request by 2026-09-27 12:00 +08:00, reviewed by a fresh Codex
+thread.
+
+**Common to every lane (decision 9).** Base `feature/1.1.12/handoff`; pull
+requests target the `1.1.12` integration branch; the commander pushes and
+opens them, the worker never pushes. The current rules still apply in full:
+complete the capability-reuse gate your change requires
+(`docs/governance/development-execution-workflow.md`), run the affected tests,
+and have `python scripts/verify.py --structure-only` pass on your final commit
+before you report `verified`. Builds must not leave modified
+`packages.lock.json` files; restore them if a build rewrites them. Record every
+bug in the bug ledger. The live board is `git show 1.1.x:docs/handoff/1.1.12.md`
+(section "Release plan to 2026-09-28").
+
 ## Checkpoints
