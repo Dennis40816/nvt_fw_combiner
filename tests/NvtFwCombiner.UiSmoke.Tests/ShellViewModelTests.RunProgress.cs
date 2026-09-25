@@ -144,11 +144,30 @@ public sealed partial class RunAndHexEditorTests
     }
 
     /// <summary>Cancellation after commit keeps the exact committed receipt visible during report preparation.</summary>
-    [Fact]
-    public async Task PostcommitReportCancellationKeepsCommittedOutputVisible()
+    [Theory]
+    [InlineData(
+        "English",
+        "Build output committed; report unavailable",
+        "bytes",
+        "Report unavailable: Cancelled after output commit.",
+        "Output ready; report unavailable")]
+    [InlineData(
+        "ChineseTraditional",
+        "Build 輸出已寫入，報告無法使用",
+        "位元組",
+        "報告無法使用：輸出寫入後已取消。",
+        "輸出已就緒，報告無法使用")]
+    public async Task PostcommitReportCancellationKeepsCommittedOutputVisible(
+        string languageName,
+        string title,
+        string sizeUnit,
+        string reportFailure,
+        string progressLabel)
     {
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-postcommit-report");
-        MainWindowViewModel viewModel = ConfigureRunnableGeneralMerge(workspace);
+        MainWindowViewModel viewModel = ConfigureRunnableGeneralMerge(
+            workspace,
+            Enum.Parse<ShellLanguage>(languageName));
         string outputPath = workspace.PathFor("output.bin");
         int interrupted = 0;
         viewModel.RunSession.CompositionProgress.PropertyChanged += (_, args) =>
@@ -165,14 +184,106 @@ public sealed partial class RunAndHexEditorTests
 
         await viewModel.Merge.BuildMergeAsync(outputPath);
 
+        Assert.Equal(1, interrupted);
+        AssertCommittedOutputWithoutReport(viewModel, outputPath, title, sizeUnit, reportFailure, progressLabel);
+    }
+
+    /// <summary>Every report-materialization failure after commit publishes the committed receipt instead of escaping.</summary>
+    [Theory]
+    [InlineData(
+        nameof(JsonException),
+        "English",
+        "Build output committed; report unavailable",
+        "bytes",
+        "Report unavailable: Synthetic report materialization failure.",
+        "Output ready; report unavailable")]
+    [InlineData(
+        nameof(FormatException),
+        "English",
+        "Build output committed; report unavailable",
+        "bytes",
+        "Report unavailable: Synthetic report materialization failure.",
+        "Output ready; report unavailable")]
+    [InlineData(
+        nameof(OverflowException),
+        "ChineseTraditional",
+        "Build 輸出已寫入，報告無法使用",
+        "位元組",
+        "報告無法使用：Synthetic report materialization failure.",
+        "輸出已就緒，報告無法使用")]
+    [InlineData(
+        nameof(JsonException),
+        "ChineseTraditional",
+        "Build 輸出已寫入，報告無法使用",
+        "位元組",
+        "報告無法使用：Synthetic report materialization failure.",
+        "輸出已就緒，報告無法使用")]
+    public async Task PostcommitReportMaterializationFailureKeepsCommittedOutputVisible(
+        string exceptionName,
+        string languageName,
+        string title,
+        string sizeUnit,
+        string reportFailure,
+        string progressLabel)
+    {
+        using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-postcommit-report-failure");
+        MainWindowViewModel viewModel = ConfigureRunnableGeneralMerge(
+            workspace,
+            Enum.Parse<ShellLanguage>(languageName));
+        string outputPath = workspace.PathFor("output.bin");
+        int injected = 0;
+        viewModel.RunSession.PropertyChanged += (_, args) =>
+        {
+            if (injected > 0 ||
+                args.PropertyName != nameof(CompositionRunPresentationViewModel.LastRunResult) ||
+                viewModel.RunSession.CompositionProgress.DeliveryState != CompositionRunDeliveryState.ArtifactCommitted ||
+                !string.Equals(viewModel.RunSession.LastRunResult.Output, outputPath, StringComparison.Ordinal))
+            {
+                return;
+            }
+
+            // The committed run result is being projected; fail that post-commit projection once.
+            injected++;
+            Exception failure = exceptionName switch
+            {
+                nameof(JsonException) => new JsonException("Synthetic report materialization failure."),
+                nameof(FormatException) => new FormatException("Synthetic report materialization failure."),
+                nameof(OverflowException) => new OverflowException("Synthetic report materialization failure."),
+                _ => throw new ArgumentOutOfRangeException(nameof(exceptionName), exceptionName, null),
+            };
+            throw failure;
+        };
+
+        await viewModel.Merge.BuildMergeAsync(outputPath);
+
+        Assert.Equal(1, injected);
+        AssertCommittedOutputWithoutReport(viewModel, outputPath, title, sizeUnit, reportFailure, progressLabel);
+    }
+
+    private static void AssertCommittedOutputWithoutReport(
+        MainWindowViewModel viewModel,
+        string outputPath,
+        string title,
+        string sizeUnit,
+        string reportFailure,
+        string progressLabel)
+    {
         byte[] committedBytes = File.ReadAllBytes(outputPath);
         string sha256 = Convert.ToHexString(SHA256.HashData(committedBytes)).ToLowerInvariant();
-        Assert.Equal(1, interrupted);
-        Assert.Equal(outputPath, viewModel.RunSession.LastRunResult.Output);
-        Assert.Contains($"{committedBytes.Length} bytes", viewModel.RunSession.LastRunResult.Detail, StringComparison.Ordinal);
-        Assert.Contains(sha256, viewModel.RunSession.LastRunResult.Detail, StringComparison.Ordinal);
-        Assert.Equal(outputPath, viewModel.BuildResult.LatestCommittedOutputPath);
-        Assert.False(viewModel.RunSession.LastRunResult.Succeeded);
+        UiRunResultViewModel result = viewModel.RunSession.LastRunResult;
+        Assert.Equal(title, result.Title);
+        Assert.Equal(outputPath, result.Output);
+        Assert.Contains($"{committedBytes.Length} {sizeUnit}", result.Detail, StringComparison.Ordinal);
+        Assert.Contains(sha256, result.Detail, StringComparison.Ordinal);
+        Assert.EndsWith(reportFailure, result.Detail, StringComparison.Ordinal);
+        Assert.False(result.Succeeded);
+        Assert.False(viewModel.BuildResult.IsOpen);
+        Assert.False(viewModel.RunSession.IsRunInProgress);
+        Assert.Equal(outputPath, viewModel.RunSession.CompositionProgress.CommittedOutputId);
+        Assert.Equal(
+            CompositionRunDeliveryState.ReportUnavailable,
+            viewModel.RunSession.CompositionProgress.DeliveryState);
+        Assert.Equal(progressLabel, viewModel.RunSession.CompositionProgress.CurrentStepLabel);
     }
 
     /// <summary>Cancelling a planning-stage run stops its unattached observer and releases command ownership.</summary>
@@ -568,10 +679,12 @@ public sealed partial class RunAndHexEditorTests
             viewModel.RunSession.CompositionProgress.CurrentPhase);
     }
 
-    private static MainWindowViewModel ConfigureRunnableGeneralMerge(TempWorkspace workspace)
+    private static MainWindowViewModel ConfigureRunnableGeneralMerge(
+        TempWorkspace workspace,
+        ShellLanguage language = ShellLanguage.English)
     {
         string sourcePath = workspace.Write("source.bin", [0x10, 0x11, 0x12, 0x13]);
-        MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
+        MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel(language);
         viewModel.ShowMergeCommand.Execute(null);
         viewModel.WorkflowSession.SelectedIc = "NT51926";
         viewModel.Merge.SelectedMergeMode = ExperienceIds.GeneralMerge;
