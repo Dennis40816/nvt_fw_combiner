@@ -22,10 +22,10 @@ internal static class ProfileBundleSchemaValidator
         ArgumentNullException.ThrowIfNull(manifestSnapshot);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maximumJsonDepth);
 
-        using JsonDocument document = manifestSnapshot.ParseStrictJson(maximumJsonDepth);
+        JsonElement document = manifestSnapshot.GetStrictJsonRoot(maximumJsonDepth);
         ValidateInstance(
             ProfileBundleManifestSchema.Schema,
-            document.RootElement,
+            document,
             manifestSnapshot.ManifestPath,
             ProfileBundleManifestSchema.SchemaId);
     }
@@ -60,8 +60,9 @@ internal static class ProfileBundleSchemaValidator
                     $"Bundle entry references unavailable schema '{entry.Entry.SchemaId}'.");
             }
 
-            using JsonDocument document = entry.FileSnapshot.ParseStrictJson(maximumJsonDepth);
-            ValidateInstance(schema, document.RootElement, entry.Entry.Path, entry.Entry.SchemaId);
+            // The snapshot keeps this one strict parse for the document projection of the same load.
+            JsonElement document = entry.FileSnapshot.GetStrictJsonRoot(maximumJsonDepth);
+            ValidateInstance(schema, document, entry.Entry.Path, entry.Entry.SchemaId);
         }
     }
 
