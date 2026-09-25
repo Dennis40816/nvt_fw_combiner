@@ -1,0 +1,39 @@
+{
+  "schemaVersion": 2,
+  "taskId": "OSD-AB-REFERENCE-CLASSIFICATION-1111-01",
+  "capability": "Keep structurally recognized 1 MiB AB References terminal when bank metadata or relocation is damaged",
+  "integrationBase": "3db701b70e0eec66889a4b030fcbb84db0db5693",
+  "risk": "R3",
+  "kind": "behavior",
+  "state": "design-active",
+  "mutablePaths": [
+    "src/NvtFwCombiner.Application/InputInspection/FirmwareArtifactClassificationResolver.CtrlRam.cs",
+    "src/NvtFwCombiner.Application/Authoring/ICtrlRamAuthoringAdapter.cs",
+    "src/NvtFwCombiner.Infrastructure/Composition/BuiltInCtrlRamAuthoringAdapter.Ab.cs",
+    "tests/NvtFwCombiner.Bootstrap.Tests/AbCtrlRamRuntimeWiringTests.cs",
+    "tests/NvtFwCombiner.Bootstrap.Tests/FirmwareInspectionSnapshotTests.CtrlRamAdoption.cs"
+  ],
+  "implementationOwner": "/root/ab_event_display",
+  "searchEvidence": [
+    "On afdcd3d05059542065ebf79bbaeca729e2aa9f8e, 1 MiB OSD Base A/B Backup version-bar, zero-count, mismatch and marker damage each demote recognized AB to StandardFlash; the 10-case red test is in artifacts/v1111-osd-damaged-and-nonab-red.log outside Git.",
+    "The 1 MiB OSD Base with both Backups damaged or one B header relocation changed also demotes to StandardFlash; independent red logs are artifacts/v1111-osd-both-damaged-red.log and artifacts/v1111-osd-relocation-red.log outside Git.",
+    "A synthetic 1 MiB non-AB image assembled from the canonical NT51950 256 KiB Standard expected output and a fixed tail has a valid FWConfig and FlashCode prefix but must not become AB. The wrong Number and all-zero controls already pass.",
+    "The existing Partial Profiles V2CompositionPlanCompiler.ValidateAbReference validates trusted AB geometry and header structure separately from ReadPartialAbNativeCount; the adapter currently reads native count first and loses that structural evidence on damaged Backup."
+  ],
+  "semanticOwner": "Profiles keeps canonical AB structure and bank geometry checks; the Infrastructure adapter returns their typed result plus existing native metadata issues; the Application classifier selects exactly one captured published AB candidate from retained structure and bank facts without rereading FWConfig or using Number as artifact identity.",
+  "terminalContract": "For an immutable captured AB Base, evaluate each exact published dynamic candidate once. A unique trusted AB structural proof keeps AB classification and existing typed bank/native issues, even when one or both Backups are damaged. Without structural proof, only two valid canonical bank facts that each satisfy the existing exact-capacity Standard FlashCode classifier retain terminal AB with a structural issue. Multiple candidates with equal AB evidence return terminal input.bank-reference.ambiguous; no AB evidence permits the existing Standard/Unknown fallback. NumberToken never determines detected kind. Keep NT51929/NT51951 single-candidate recognition, stale publication checks, canonical 512 KiB bank boundaries and the 1 MiB tail behavior unchanged. Do not change Profiles validators, profiles, CRC, expected bytes, or release support.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "/root/ab_layout_context_review",
+    "outcome": "approved",
+    "evidence": "Independent 2026-09-25 R3 design ADMIT after five B and five A Backup red cases, both-Backup and relocation red cases, wrong-selector and synthetic non-AB controls. Exact three production and two test paths approved; shape proof must come from the existing Profiles Partial validator and exact canonical binding."
+  },
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": {
+    "reviewer": null,
+    "outcome": "pending",
+    "evidence": ""
+  }
+}

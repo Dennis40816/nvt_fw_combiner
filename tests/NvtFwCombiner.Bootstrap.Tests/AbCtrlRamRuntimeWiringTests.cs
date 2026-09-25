@@ -3,6 +3,7 @@ using NvtFwCombiner.Application.Capabilities;
 using NvtFwCombiner.Application.Authoring;
 using NvtFwCombiner.Application.ExternalTools;
 using NvtFwCombiner.Application.FlashMaps;
+using NvtFwCombiner.Application.InputInspection;
 using NvtFwCombiner.Application.MemoryLayout;
 using NvtFwCombiner.Application.Ports;
 using NvtFwCombiner.Contracts.ExternalTools;
@@ -17,6 +18,169 @@ namespace NvtFwCombiner.Bootstrap.Tests;
 /// <summary>Candidate catalog admission and the real Application Preview/Build boundary.</summary>
 public sealed class AbCtrlRamRuntimeWiringTests
 {
+    /// <summary>A damaged OSD A or B Backup remains recognized as AB and reports its bank issue.</summary>
+    [Theory]
+    [InlineData(0, "version-bar", "input.bank-reference.version-bar")]
+    [InlineData(0, "zero-count", "input.bank-reference.count-zero")]
+    [InlineData(0, "different-count", "input.bank-reference.count")]
+    [InlineData(0, "duplicate-marker", "input.bank-reference.metadata-ambiguous")]
+    [InlineData(0, "missing-marker", "input.bank-reference.metadata-unreadable")]
+    [InlineData(0x40000, "version-bar", "input.bank-reference.version-bar")]
+    [InlineData(0x40000, "zero-count", "input.bank-reference.count-zero")]
+    [InlineData(0x40000, "different-count", "input.bank-reference.count")]
+    [InlineData(0x40000, "duplicate-marker", "input.bank-reference.metadata-ambiguous")]
+    [InlineData(0x40000, "missing-marker", "input.bank-reference.metadata-unreadable")]
+    public void Nt51950OsdDamagedBankRemainsTerminalAb(int bankStart, string damage, string issueCode)
+    {
+        JsonElement golden = CanonicalGoldenTestData.LoadDirectCase("ab-merge", "nt51950-ab-osd-d03t02-20260924");
+        JsonElement artifact = golden.GetProperty("artifacts").EnumerateArray().Single(static item =>
+            item.GetProperty("artifactId").GetString() == "expected-output");
+        byte[] reference = File.ReadAllBytes(CanonicalGoldenTestData.ArtifactPath(artifact));
+        int backup = bankStart + 0x36000;
+        switch (damage)
+        {
+            case "version-bar": reference[backup + 1] ^= 1; break;
+            case "zero-count": reference[backup + 0x17] = 0; break;
+            case "different-count": reference[backup + 0x17] = 2; break;
+            case "duplicate-marker": new byte[] { 0, 0x4E, 0x56, 0x54 }.CopyTo(reference, bankStart + 0x1000); break;
+            case "missing-marker": reference[backup + 0xFFC] ^= 1; break;
+            default: throw new ArgumentOutOfRangeException(nameof(damage));
+        }
+        if (bankStart == 0x40000)
+        {
+            Assert.True(BootstrapTestHost.Canonical.Compiler.TryCompileStandardMerge("NT51950", 0x40000,
+                out CompiledComposition? standard, out _, out _));
+            Assert.Equal(CompiledFirmwareArtifactKind.FlashCode,
+                CompiledFirmwareArtifactClassifier.Classify(standard, reference.AsSpan(0, 0x40000)).Kind);
+        }
+        (Dictionary<string, string> paths, Dictionary<string, byte[]> bytes) = AbCtrlRamAuthoringTests.Inputs();
+        bytes[CompositionSlotIds.ReplaceBase] = reference;
+        paths["replace-ctrlram-normal"] = Path.Combine(Path.GetTempPath(), "captured-950-osd-normal.bin");
+        bytes["replace-ctrlram-normal"] = reference.AsSpan(0x25610, 0x5C00).ToArray();
+        FirmwareInspectionStatusBatch inspected =
+            ((CtrlRamAuthoringExperience)BootstrapTestHost.Canonical.CtrlRamAuthoring).InspectInputSlots(
+                "NT51950",
+                [
+                    new FirmwareInspectionSnapshotInput("base", CompositionSlotIds.ReplaceBase + ".bin",
+                        CtrlRamRequest: new("single", new AbCtrlRamDraftState()),
+                        CtrlRamReplaceAddressSpaceId: CompositionAddressSpaceIds.ReferenceBase),
+                    new FirmwareInspectionSnapshotInput("normal", "replace-ctrlram-normal.bin",
+                        CtrlRamReplaceAddressSpaceId: "replace-ctrlram-normal"),
+                ], path => bytes[Path.GetFileNameWithoutExtension(path)]);
+        Assert.Equal(CtrlRamBaseKind.AbFlash, inspected.CtrlRamBaseInspection?.Kind);
+        Assert.Contains(inspected.Issues, issue => issue.Code == issueCode);
+        Assert.Null(inspected.Catalog);
+        Assert.Empty(inspected.Statuses);
+    }
+
+    /// <summary>A wrong execution Number cannot redefine the captured OSD Base as Standard.</summary>
+    [Fact]
+    public void Nt51950OsdWrongNumberRetainsAbIdentity()
+    {
+        JsonElement golden = CanonicalGoldenTestData.LoadDirectCase("ab-merge", "nt51950-ab-osd-d03t02-20260924");
+        JsonElement artifact = golden.GetProperty("artifacts").EnumerateArray().Single(static item =>
+            item.GetProperty("artifactId").GetString() == "expected-output");
+        byte[] reference = File.ReadAllBytes(CanonicalGoldenTestData.ArtifactPath(artifact));
+        FirmwareInspectionStatusBatch inspected =
+            ((CtrlRamAuthoringExperience)BootstrapTestHost.Canonical.CtrlRamAuthoring).InspectInputSlots(
+                "NT51950", [new FirmwareInspectionSnapshotInput("base", CompositionSlotIds.ReplaceBase + ".bin",
+                    CtrlRamRequest: new("cascade", new AbCtrlRamDraftState()),
+                    CtrlRamReplaceAddressSpaceId: CompositionAddressSpaceIds.ReferenceBase)],
+                _ => reference);
+        Assert.Equal(CtrlRamBaseKind.AbFlash, inspected.CtrlRamBaseInspection?.Kind);
+        Assert.NotEmpty(inspected.Issues);
+        Assert.Null(inspected.Catalog);
+    }
+
+    /// <summary>A 1 MiB length without canonical bank evidence never grants AB identity.</summary>
+    [Fact]
+    public void Nt51950OsdCapacityAloneCannotIdentifyAb()
+    {
+        byte[] malformed = new byte[0x100000];
+        FirmwareInspectionStatusBatch inspected =
+            ((CtrlRamAuthoringExperience)BootstrapTestHost.Canonical.CtrlRamAuthoring).InspectInputSlots(
+                "NT51950", [new FirmwareInspectionSnapshotInput("base", CompositionSlotIds.ReplaceBase + ".bin",
+                    CtrlRamRequest: new("single", new AbCtrlRamDraftState()),
+                    CtrlRamReplaceAddressSpaceId: CompositionAddressSpaceIds.ReferenceBase)],
+                _ => malformed);
+        Assert.NotEqual(CtrlRamBaseKind.AbFlash, inspected.CtrlRamBaseInspection?.Kind);
+        Assert.Null(inspected.Catalog);
+    }
+
+    /// <summary>A synthetic 1 MiB non-AB image with a real Standard prefix is not a Golden or AB Reference.</summary>
+    [Fact]
+    public void Nt51950StandardPrefixWithSyntheticTailIsNotAb()
+    {
+        byte[] standard = File.ReadAllBytes(CanonicalGoldenTestData.ArtifactPath(
+            "standard-merge", "NT51950", "expected-output"));
+        Assert.Equal(0x40000, standard.Length);
+        Assert.True(BootstrapTestHost.Canonical.Compiler.TryCompileStandardMerge("NT51950", 0x40000,
+            out CompiledComposition? standardPlan, out _, out _));
+        Assert.Equal(CompiledFirmwareArtifactKind.FlashCode,
+            CompiledFirmwareArtifactClassifier.Classify(standardPlan, standard).Kind);
+        Assert.True(FirmwareConfigMetadataReader.TryReadBackup(standard, out FirmwareConfigMetadata config, out _));
+        Assert.True(config.IsFirmwareVersionBarValid);
+        byte[] synthetic = [.. Enumerable.Repeat((byte)0xFF, 0x100000)];
+        standard.CopyTo(synthetic, 0);
+        FirmwareInspectionStatusBatch inspected =
+            ((CtrlRamAuthoringExperience)BootstrapTestHost.Canonical.CtrlRamAuthoring).InspectInputSlots(
+                "NT51950", [new FirmwareInspectionSnapshotInput("base", CompositionSlotIds.ReplaceBase + ".bin",
+                    CtrlRamRequest: new("single", new AbCtrlRamDraftState()),
+                    CtrlRamReplaceAddressSpaceId: CompositionAddressSpaceIds.ReferenceBase)],
+                _ => synthetic);
+        Assert.NotEqual(CtrlRamBaseKind.AbFlash, inspected.CtrlRamBaseInspection?.Kind);
+        Assert.Empty(inspected.CtrlRamBaseInspection!.Banks);
+    }
+
+    /// <summary>Even two damaged Backups cannot turn a structurally recognized AB Base into executable Standard.</summary>
+    [Fact]
+    public void Nt51950OsdBothDamagedBanksRemainTerminalAb()
+    {
+        JsonElement golden = CanonicalGoldenTestData.LoadDirectCase("ab-merge", "nt51950-ab-osd-d03t02-20260924");
+        JsonElement artifact = golden.GetProperty("artifacts").EnumerateArray().Single(static item =>
+            item.GetProperty("artifactId").GetString() == "expected-output");
+        byte[] reference = File.ReadAllBytes(CanonicalGoldenTestData.ArtifactPath(artifact));
+        reference[0x36001] ^= 1;
+        reference[0x76001] ^= 1;
+        FirmwareInspectionStatusBatch inspected =
+            ((CtrlRamAuthoringExperience)BootstrapTestHost.Canonical.CtrlRamAuthoring).InspectInputSlots(
+                "NT51950", [new FirmwareInspectionSnapshotInput("base", CompositionSlotIds.ReplaceBase + ".bin",
+                    CtrlRamRequest: new("single", new AbCtrlRamDraftState()),
+                    CtrlRamReplaceAddressSpaceId: CompositionAddressSpaceIds.ReferenceBase)],
+                _ => reference);
+        Assert.Equal(CtrlRamBaseKind.AbFlash, inspected.CtrlRamBaseInspection?.Kind);
+        Assert.Equal(2, inspected.Issues.Count(static issue => issue.Code == "input.bank-reference.version-bar"));
+        Assert.Null(inspected.Catalog);
+        Assert.Empty(inspected.Statuses);
+    }
+
+    /// <summary>Broken B header relocation with both valid Backups remains terminal AB evidence.</summary>
+    [Fact]
+    public void Nt51950OsdRelocationDamageRemainsTerminalAb()
+    {
+        JsonElement golden = CanonicalGoldenTestData.LoadDirectCase("ab-merge", "nt51950-ab-osd-d03t02-20260924");
+        JsonElement artifact = golden.GetProperty("artifacts").EnumerateArray().Single(static item =>
+            item.GetProperty("artifactId").GetString() == "expected-output");
+        byte[] reference = File.ReadAllBytes(CanonicalGoldenTestData.ArtifactPath(artifact));
+        reference[0x4A100] ^= 1;
+        foreach (int bankStart in new[] { 0, 0x40000 })
+        {
+            Assert.True(FirmwareConfigMetadataReader.TryReadBackup(reference.AsSpan(bankStart, 0x40000),
+                out FirmwareConfigMetadata config, out _));
+            Assert.True(config.IsFirmwareVersionBarValid);
+        }
+        FirmwareInspectionStatusBatch inspected =
+            ((CtrlRamAuthoringExperience)BootstrapTestHost.Canonical.CtrlRamAuthoring).InspectInputSlots(
+                "NT51950", [new FirmwareInspectionSnapshotInput("base", CompositionSlotIds.ReplaceBase + ".bin",
+                    CtrlRamRequest: new("single", new AbCtrlRamDraftState()),
+                    CtrlRamReplaceAddressSpaceId: CompositionAddressSpaceIds.ReferenceBase)],
+                _ => reference);
+        Assert.Equal(CtrlRamBaseKind.AbFlash, inspected.CtrlRamBaseInspection?.Kind);
+        Assert.Contains(inspected.Issues, static issue => issue.Code == "input.bank-reference.invalid");
+        Assert.Null(inspected.Catalog);
+        Assert.Empty(inspected.Statuses);
+    }
+
     /// <summary>The OSD Base keeps its extra DP tail while each bank selection uses the fixed 512 KiB AB template.</summary>
     [Theory]
     [InlineData(AbCtrlRamBankSelection.A)]
