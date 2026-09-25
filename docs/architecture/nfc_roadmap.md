@@ -67,17 +67,21 @@ The owner set a 2026-09-28 release for `1.1.12` through the `1.1.11` release pat
   compilation, and bounded parallel bundle preloading under
   [ADR 0075](../adr/0075-bounded-catalog-bundle-preload.md). The compressed
   composite ReadyToRun package shape and its 80,000,000-byte EXE ceiling are
-  kept, so the first-window target is not expected to be met; the measured
-  outcome against both hard targets is recorded in the `1.1.12` CHANGELOG
-  entry at the release freeze. The owner accepted a 2-4 MB peak private-bytes
-  increase over `1.1.11` for the parallel preload;
+  kept. Measured on the frozen candidate and the `1.1.11` package in the same
+  quiet session (package shape, five scored launches each): complete loading
+  median 2.20 s against 3.69 s, missing the 2,000 ms target by about 0.2 s;
+  the first window stays at about 0.73 s against the 500 ms target, blocked by
+  the compressed single-file start-up that the EXE ceiling keeps. Peak working
+  set (at most 334.5 MB) and GC heap after warm-up (at most 34.8 MB) pass;
+  peak private bytes are about 5 MB above `1.1.11`, within the owner's 6 MB
+  allowance (handoff decision 16). The WS-IO time box closed with F07 only;
 - F07: a committed output keeps its receipt when its delivery or report is
   interrupted;
 - removal of the hard NT51950/NT51951 CtrlRAM size limits for Display OSD
   inputs (scoped R3 change; the owner required it in `1.1.12` on 2026-09-26),
-  with AB Bases decided by two NVT markers. Base classification recognizes the
-  published Standard lengths (256 KiB, 512 KiB, 1 MiB); other lengths stay
-  rejected unless the owner decides otherwise;
+  with AB Bases decided by two NVT markers. A Base longer than the IC's
+  full-flash map is accepted at any length, a nonstandard length with a
+  warning (handoff decision 17);
 - a non-certifying local alignment with v0.9.16 for the routes that have
   canonical inputs; the formal comparator for 1.x candidates is `1.1.13` work.
 

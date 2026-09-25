@@ -24,12 +24,12 @@ NVT markers. Existing firmware support levels are unchanged.
 #### 1. Faster startup loading
 
 - Before → After: Startup validated identical profile schemas repeatedly, parsed each profile document twice, repeated identical compilations, and loaded every built-in profile bundle on one thread. Identical validation and compilation results are now reused, each document is parsed once, and independent bundles load in parallel in fixed dependency layers before the unchanged serial publication.
-- Measured on the package shape (same machine, one warm-up and five scored launches each, development builds of this release): all startup loading finished 3.9-4.2 s after launch with the 1.1.11 source and about 2.0-2.1 s with the parallel preload; the median memory allocated during startup fell from about 783 MB to about 364 MB. The frozen candidate is measured again before publication.
+- Measured on the package shape with the 1.1.12 product source (`badc545b0`) and the 1.1.11 package in the same quiet session, one warm-up and five scored launches each: all startup loading finished at a median 3.69 s (3.65-3.77 s) after launch with 1.1.11 and 2.20 s (2.16-2.21 s) with 1.1.12. During development the median memory allocated during startup fell from about 783 MB to about 364 MB.
 - Affected: application startup and its loading screen; capability publication for every workflow.
 - Support status: unchanged/support-neutral.
 - Compatibility: for the built-in profiles, the published routes, fingerprints, plans, progress and errors are identical, pinned by a complete catalog snapshot digest; firmware outputs are unchanged for the Golden regression cases. No profile, contract, range, Header or CRC behavior changes.
 - Verification: the pinned snapshot digest in fresh processes, dependency-layer and race-freedom checks, schema concurrency stress tests, catalog progress, cancellation and failure tests, Golden regression, and package-shape measurements on development builds. Exact-source verification of the frozen candidate (protected CI, fresh Golden execution and packaging) is required before publication.
-- Limitations: the owner targets 500 ms to the first window and 2,000 ms to complete loading. The first window still appears about 0.74 s after launch, because the compressed single-file package decompresses before the application starts (the package shape is unchanged). Loading completes around 2.0 s and not below 2,000 ms on every launch. Peak private memory is 2-4 MB above 1.1.11, which the owner accepted.
+- Limitations: the owner targets 500 ms to the first window and 2,000 ms to complete loading. The first window still appears 0.71-0.75 s after launch, as with 1.1.11, because the compressed single-file package decompresses before the application starts (the package shape is unchanged). Loading completes 2.16-2.21 s after launch, not below 2,000 ms. Peak private memory is 331.7-334.8 MB against 327.9-329.2 MB for 1.1.11 (about 5 MB higher), within the owner's 6 MB allowance; peak working set (at most 334.5 MB) and managed heap after warm-up (at most 34.8 MB) stay within their limits.
 
 #### 2. A committed output survives an interrupted delivery or report
 
@@ -42,12 +42,12 @@ NVT markers. Existing firmware support levels are unchanged.
 
 #### 3. NT51950/NT51951 CtrlRAM Replace accepts a Base with Display OSD
 
-- Before → After: CtrlRAM Replace required the Base length to equal a fixed map (NT51950 256 KiB, NT51951 512 KiB), so a flash carrying Display OSD, such as the owner's 0x80000 NT51950 2-IC flash, was rejected. A Base longer than the IC's largest CtrlRAM map is now accepted when the IC's Standard Merge profile declares the Display OSD envelope: that map is the layout template and every byte beyond it is kept unchanged.
-- Affected: NT51950 and NT51951 CtrlRAM Replace (single and 2-IC cascade), its memory layout and its run report.
+- Before → After: CtrlRAM Replace required the Base length to equal a fixed map (NT51950 256 KiB, NT51951 512 KiB), so a flash carrying Display OSD, such as the owner's 0x80000 NT51950 2-IC flash, was rejected. A Base longer than the IC's largest CtrlRAM map is now accepted at any length when the IC's Standard Merge profile declares the Display OSD envelope: that map is the layout template and every byte beyond it is kept unchanged. A Base whose length is not a standard flash size (256 KiB, 512 KiB, 1 MiB) is recognized by its standard prefix and accepted with a nonstandard-size warning.
+- Affected: NT51950 and NT51951 CtrlRAM Replace (single and 2-IC cascade), its memory layout and its run report; firmware information shows such a flash as Flash Code.
 - Support status: unchanged/support-neutral.
 - Compatibility: a Base whose length equals a map behaves as before. Write ranges, Header/CRC authority and output naming are unchanged, and AB bank Replace keeps its own exact bank lengths. No profile, schema, contract or expected byte changes.
-- Verification: the owner's 0x80000 AUTO_PRJ-599 case on the NT51950 2-IC route reproduces the owner expected output, and with the registered Combiner differs from it only in the four approved CRC words; with the registered Combiner, NT51950 and NT51951 single and 2-IC Bases at 512 KiB and 1 MiB produce the exact-length Standard output inside the template and keep the tail; a processor write into the tail fails closed.
-- Limitations: Base classification recognizes only the published Standard lengths (256 KiB, 512 KiB and 1 MiB); a Base of any other length is rejected as unrecognized.
+- Verification: the owner's 0x80000 AUTO_PRJ-599 case on the NT51950 2-IC route reproduces the owner expected output, and with the registered Combiner differs from it only in the four approved CRC words; with the registered Combiner, NT51950 and NT51951 single and 2-IC Bases at 512 KiB and 1 MiB produce the exact-length Standard output inside the template and keep the tail; a nonstandard 0x60000 NT51950 2-IC Base keeps every byte and warns; a Base without a standard prefix stays rejected; a processor write into the tail fails closed.
+- Limitations: the Display OSD content beyond the layout template is kept byte-for-byte but is not inspected or validated. A nonstandard Base shorter than the full-flash map is rejected with the accepted exact lengths.
 
 #### 4. AB Bases are decided by two NVT markers
 
@@ -56,6 +56,7 @@ NVT markers. Existing firmware support levels are unchanged.
 - Support status: unchanged/support-neutral.
 - Compatibility: every AB Golden input remains AB; bank issues are still reported, and equally evidenced layouts still report `input.bank-reference.ambiguous`. This supersedes the 1.1.11 single-candidate recognition for NT51929 and NT51951.
 - Verification: 27 characterization cases (one marker, one per bank, duplicate and tail markers, damaged-Backup structure, ambiguity), AB Golden regression and the full Bootstrap suite.
+- Limitations: a Base with two markers in the same bank, or with a marker only in a Display OSD tail, is not AB evidence; without the trusted AB structure it is classified as Standard or rejected as unrecognized.
 
 ### Security
 
@@ -66,14 +67,14 @@ hash-pinned trust checks, and no library-global schema registry is modified.
 ### Known issues
 
 - Startup targets: see the limitations of Product change 1.
-- A non-certifying local comparison with v0.9.16, run with a candidate built
-  from the 1.1.11 product source, covered 37 routes with canonical inputs: 34
-  identical, 2 different by the owner-approved Diff NF preservation, and 1
-  rejected by both versions (NT51950 2-IC cascade CtrlRAM full flash), which
-  1.1.12 accepts through Product change 3. The 27
-  routes without canonical input have no Golden and remain not covered. The
-  comparison is repeated on the frozen candidate before publication; the
-  formal comparator for 1.x candidates is scheduled for 1.1.13.
+- A non-certifying local comparison with v0.9.16, rerun with a candidate built
+  from the 1.1.12 product source (`badc545b0`), covered the 37 routes with
+  canonical inputs: 34 identical, 2 different by the owner-approved Diff NF
+  preservation, and 1 (NT51950 2-IC cascade CtrlRAM full flash) rejected by
+  v0.9.16 and accepted by 1.1.12 through Product change 3. Every other 1.1.12
+  output equals the output of the same run on the 1.1.11 source. The 27 routes
+  without canonical input have no Golden and remain not covered; the formal
+  comparator for 1.x candidates is scheduled for 1.1.13.
 - The 32-byte Header-backup/CRC difference carried from 1.1.11 is scheduled for
   1.1.13; that comparison is still not certified as byte-identical.
 - AB CtrlRAM routes retain their existing Candidate status.
