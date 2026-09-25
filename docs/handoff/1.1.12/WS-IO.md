@@ -91,3 +91,11 @@ bug in the bug ledger. The live board is `git show 1.1.x:docs/handoff/1.1.12.md`
 (section "Release plan to 2026-09-28").
 
 ## Checkpoints
+
+### 2026-09-25 First checkpoint: F07/F08 current-head revalidation
+State: planned
+Commits: pending this checkpoint
+Evidence: `git status --short --branch` -> clean `feature/1.1.12/io-persistence` at `5882d7a57`; `CompositionRunService.cs:464-500` -> postcommit loose-delivery cancellation escapes; `CompositionRunPresentationViewModel.cs:190-220,338-360` -> report projection cancellation/failure drops the committed result; `LatestSnapshotPersistenceCoordinator.cs:84-123` and `MainWindow.axaml.cs:560-565,627-632` -> a save failure is recorded without user-visible retry. Source revalidation only; behavioral red/green evidence pending.
+Owned mutable files selected for F07: `src/NvtFwCombiner.Application/Composition/CompositionRunService.cs`, `src/NvtFwCombiner.Presentation.Avalonia/ViewModels/CompositionRunPresentationViewModel.cs`, `tests/NvtFwCombiner.Application.Tests/CompositionRunServiceTests.DeliveryCancellation.cs`, `tests/NvtFwCombiner.UiSmoke.Tests/ShellViewModelTests.RunProgress.cs`; this log and `docs/handoff/bugs/BUG-20260925-loose-delivery-cancel-loses-receipt.md`, `docs/handoff/bugs/BUG-20260925-report-projection-loses-committed-output.md`, `docs/handoff/bugs/BUG-20260925-persistence-failure-not-actionable.md`. Existing semantic owners are Application `CompositionRunService` for commit/delivery and Presentation `CompositionRunPresentationViewModel` for result projection; no new producer or public contract is planned. Base: `1.1.x` merge base `1c37bd718`; risk R1; narrow gates: Application and UiSmoke affected tests; final gate: structure verifier and scoped Polytail. F07 acceptance: exact committed path/size/hash survives cancellation and report projection failure without rerunning processors, while bundle delivery remains atomic.
+Open: F08 requires a failure notification and retry action at `src/NvtFwCombiner.Presentation.Avalonia/MainWindow.axaml.cs`, which WS-WINDOW owns under the Amendment. Stop that part and request commander allocation after F07. `BUG-20260925-persistence-failure-not-actionable` remains open. No F20/F21 work has started.
+Next: reproduce F07 with focused behavioral tests, then repair only the selected files.
