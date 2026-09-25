@@ -133,6 +133,7 @@ public sealed class OutputConfirmationLabelTests
         var vm = new OutputDeliveryConfirmationViewModel(host.CompositionOutputNaming, () => ShellTextResources.For(ShellLanguage.English));
         vm.Open(new OutputDeliveryRequest(proposal, false, null, () => true, null, null, null, _ => Task.CompletedTask));
         vm.SetBundleEnabled(true);
+        vm.SetParentDirectory(workspace.Root);
         var modal = new OutputDeliveryConfirmationModal { DataContext = vm, IsOpen = true };
         var window = new Window { Content = modal };
         try
