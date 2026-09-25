@@ -56,6 +56,7 @@ NVT markers. Existing firmware support levels are unchanged.
 - Support status: unchanged/support-neutral.
 - Compatibility: every AB Golden input remains AB; bank issues are still reported, and equally evidenced layouts still report `input.bank-reference.ambiguous`. This supersedes the 1.1.11 single-candidate recognition for NT51929 and NT51951.
 - Verification: 27 characterization cases (one marker, one per bank, duplicate and tail markers, damaged-Backup structure, ambiguity), AB Golden regression and the full Bootstrap suite.
+- Limitations: a Base with two markers in the same bank, or with a marker only in a Display OSD tail, is not AB evidence; without the trusted AB structure it is classified as Standard or rejected as unrecognized.
 
 ### Security
 
