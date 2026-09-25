@@ -181,3 +181,26 @@ Open: first window stays about 760 ms in the package shape; the remaining gap is
 decompression before managed entry. Owner decision needed on the options on the board.
 Next: unit 2 and unit 3 (R1) for the loading target; a composite-exclusion probe only if the owner
 approves it.
+
+### 2026-09-25 Startup A units 2 and 3 admission (local R1), delegated to Claude sub-agents
+State: planned
+Commits: none yet; source base is this commit. Authorization: decisions 9 to 11; bounded local R1
+path; same semantic owners, no second path, no contract, schema, profile or byte change.
+Unit 2 (single parse per bundle document), branch `feature/1.1.12/startup-parse-once`, worktree
+`<worktrees>/perf-u2`. Exact paths: `src/NvtFwCombiner.Infrastructure/Bundles/ProfileBundleLoader.cs`,
+`ProfileBundleSchemaValidator.cs`, `TrustedProfileBundleDocumentProjection.cs`,
+`ProfileBundleFileSnapshot.cs`, `ProfileBundleEntrySnapshotCollection.cs` (same folder), and tests under
+`tests/NvtFwCombiner.Infrastructure.Tests/Bundles/`. Change: each manifest and family/profile entry is
+parsed strictly once per load; the same duplicate-key, depth, schema and DTO checks run in the same
+order; `ValidateEntries` still precedes `new TrustedProfileBundle(` and `ValidateAndClone(`.
+Unit 3 (duplicate compilation removal), branch `feature/1.1.12/startup-compile-dedup`, worktree
+`<worktrees>/perf-u3`. Exact paths: `src/NvtFwCombiner.Infrastructure/Composition/BuiltInV2RegistrationRegistry.cs`,
+`CtrlRamV2RouteRegistry.cs`, `CanonicalCapabilityDisclosureInventory.cs` (same folder), and tests under
+`tests/NvtFwCombiner.Bootstrap.Tests/`. Change: identical compilations within one process-static
+initialization (CtrlRAM report metadata plans per standard registration and map) and identical
+disclosure compilations within one load are reused; CtrlRAM definitions stay per load
+(`CatalogLoadScopedCtrlRamTests`) and no compiled object is shared across catalog loads.
+Acceptance for both: the existing affected tests unchanged and passing, new tests proving identical
+results, and measured gains on the package-equivalent build (commander measures).
+Residual gates: capability-reuse record (R1, independent final review by Codex), Golden regression,
+`verify.py --structure-only`, scoped Polytail.
