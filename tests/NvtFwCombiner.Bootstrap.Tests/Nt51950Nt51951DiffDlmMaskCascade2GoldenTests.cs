@@ -116,27 +116,29 @@ public sealed class Nt51950Nt51951DiffDlmMaskCascade2GoldenTests
         Assert.Equal("nt51950-ctrlram-replace-fw1x-cascade", report.RootElement.GetProperty("ProfileId").GetString());
     }
 
-    /// <summary>A nonstandard envelope length is kept byte-for-byte on the NT51950 2-IC route and only warns.</summary>
+    /// <summary>
+    /// A Base whose length is not a published Standard length stays unrecognized in 1.1.12: Base classification
+    /// admits only published Standard lengths, so no processor runs and no output is written.
+    /// </summary>
     [Fact]
-    public async Task Nt51950CascadeNonstandardEnvelopeKeepsEveryByteAndWarnsAsync()
+    public void Nt51950CascadeNonstandardEnvelopeLengthFailsClosed()
     {
         OwnerCase evidence = ReadOwnerCase();
         using var workspace = TempWorkspace.Create("nfc-nt51950-cascade2-nonstandard-envelope");
-        byte[] reference = ReconstructReference(evidence).AsSpan(0, NonstandardEnvelopeLength).ToArray();
-        string referencePath = workspace.Write("reference.bin", reference);
-        string outputPath = workspace.PathFor("output.bin");
-        var processor = new CountingPassThroughProcessor();
+        string referencePath = workspace.Write(
+            "reference.bin",
+            ReconstructReference(evidence).AsSpan(0, NonstandardEnvelopeLength).ToArray());
 
-        CompositionRunResult result = await RunNt51950Async(
-            evidence, referencePath, evidence.DiffDlm.Path, outputPath, processor);
+        (ActiveSessionSnapshot? snapshot, IReadOnlyList<CompositionIssue> issues) =
+            CtrlRamReplaceTestSupport.Prepare(
+                BootstrapTestHost.Canonical,
+                "NT51950",
+                "cascade",
+                CreateSlotPaths(evidence, referencePath, evidence.DiffDlm.Path),
+                firmwareVersionEdit: null);
 
-        Assert.True(result.Succeeded, CompositionRunReportJson.Serialize(result));
-        Assert.Equal(1, processor.CallCount);
-        Assert.Equal(reference, File.ReadAllBytes(outputPath));
-        using var report = JsonDocument.Parse(CompositionRunReportJson.Serialize(result));
-        Assert.Contains(
-            report.RootElement.GetProperty("Issues").EnumerateArray(),
-            issue => issue.GetProperty("Code").GetString() == "DP_NONSTANDARD_SIZE_WARNING");
+        Assert.Null(snapshot);
+        Assert.Contains(issues, issue => issue.Code == "input.reference.unrecognized");
     }
 
     /// <summary>The envelope tail beyond the 256 KiB layout template never gains processor write authority.</summary>
@@ -145,9 +147,7 @@ public sealed class Nt51950Nt51951DiffDlmMaskCascade2GoldenTests
     {
         OwnerCase evidence = ReadOwnerCase();
         using var workspace = TempWorkspace.Create("nfc-nt51950-cascade2-envelope-tail");
-        string referencePath = workspace.Write(
-            "reference.bin",
-            ReconstructReference(evidence).AsSpan(0, NonstandardEnvelopeLength).ToArray());
+        string referencePath = workspace.Write("reference.bin", ReconstructReference(evidence));
         string outputPath = workspace.PathFor("must-not-exist.bin");
 
         CompositionRunResult result = await RunNt51950Async(
