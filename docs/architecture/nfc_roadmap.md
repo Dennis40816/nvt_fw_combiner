@@ -43,6 +43,8 @@ current defect. F18 behavioral/interleaving evidence accompanies every repair.
 - **1.1.12**: F07/F08 and residual F20/F21: committed BIN receipts, visible and
   retryable persistence failures, remaining picker/I/O consumers and local
   atomic Report replacement. Preserve the already shipped Report Save fixes.
+  Add Home startup/catalog-readiness optimization under the measurement-first
+  amendment below; retain all output/persistence repairs.
 - **1.1.13**: F03/F06 bounded process cancellation/termination/pipe drain first,
   then F01/F02/F25 close, READY cancellation, recovery and lifetime containment.
 - **1.1.14**: F17/F23/F26 controlled CLI/workflow/JSON errors, demonstrated F16
@@ -55,6 +57,24 @@ current defect. F18 behavioral/interleaving evidence accompanies every repair.
 This is approved scheduling and UI-hide intent, not an implementation completion
 claim or wholesale acceptance of external APIs, numeric budgets or fault severity.
 The audit handoff retains acceptance details; this roadmap owns allocation.
+
+### Owner-approved 1.1.12 startup optimization — 2026-09-25
+
+After reviewing current local warm-launch measurements, the owner requested
+startup optimization in `1.1.12`. Bring Home startup/catalog-ready work forward
+from the conditional `1.2.8` follow-up, alongside the existing F07/F08 and
+residual F20/F21 repairs. Keep CtrlRAM cold first-open and F14/F15 in `1.2.8`.
+
+The [handoff](post-v1.1.8-audit-handoff.md#startup-optimization-assigned-to-1112--2026-09-25)
+records the baseline and acceptance detail: separate first-window,
+catalog-ready and complete-preload timings; break down the post-window wait;
+optimize through existing startup/catalog owners; compare equivalent builds
+and verify first navigation does not merely inherit the delay. Set concrete
+targets after diagnosis and a comparable packaged baseline. The historical
+700 ms packaged-window target remains unachieved, not a newly accepted
+catalog-ready limit. This is a future-work allocation, not a performance
+implementation or a claim that the local build regressed against a different
+historical package. Broad profile reference convergence stays in `1.2.1`.
 
 
 Owner release-identity amendment, 2026-09-23: publish the current work as
@@ -217,7 +237,7 @@ protected review/CI and candidate publication gates remain required.
 | `1.1.9` | **Long-name failure/recovery first, then Toolchain Runtime selection, remaining Settings conveniences and CtrlRAM AB intake**: fix issue #434 with edit-time visible errors, recovery to the last accepted valid name on invalid commit, and safe handling of BIN/Bundle/staging names. Assess removal of the product's total-path cap separately from the filesystem component limit. Add **Settings > Config > Toolchain** for detection and user selection of available compatible VC++ runtimes, including newer installed versions; see the linked Toolchain handoff for admission/readiness and verification questions. Record/reconcile the owner-provided CtrlRAM AB reference and prepare its contract/evidence questions for completion before `1.2.0`. Inventory other user-adjustable preferences and justified reset/import/export conveniences through the `1.1.6` Settings owner. Arbitrary maps, CRC/ranges, safety overrides and support promotion are outside ordinary Settings. |
 | `1.1.10` (required before `1.2.0`; owner scope update 2026-09-24) | **CtrlRAM AB Replace, affected shared-contract extraction, DP Replace retirement and verifier orchestration repair**. Retain the NT51932 Perfect family／NT51950 Partial family intake and explicit Common/Desay/topology evidence. Share canonical AB format/layout ownership, preserve independent page instances, and detach shared DPCMI/Perfect-family dependencies before retiring DP Replace. Keep repository-script pytest collection inside the selected test root while preserving exact selection, scratch isolation, cancellation and complete execution; pass the applicable fixed-source verifier. Bank/source/version and fixed-Reference decisions, unresolved firmware rules, implementation and verification evidence are tracked in the [1.1.10 delivery checklist](../ui/v1.1.10-delivery.md). No filename-based AB detection or blanket family promotion. |
 | `1.1.11` | **Input correctness, deferred AB/OSD verification and shared information UI**: reproduce/fix F04/F05; complete the current-source AB CtrlRAM and OSD evidence/owner review, retained Info/Details/Event Buffer/DP AB layout/Flash BIN assessment and loaded-FW screenshots. Temporarily hide Customized Merge/Replace UI entry points until their corresponding functionality is released and accepted; preserve implementation and data. See the owner-approved allocation above. |
-| `1.1.12` | **Output and persistence correctness**: F07/F08, residual F20/F21; preserve committed receipts and existing destinations, expose retryable errors. |
+| `1.1.12` | **Output/persistence correctness and measured Home startup optimization**: F07/F08, residual F20/F21; preserve committed receipts and existing destinations, expose retryable errors. Diagnose and reduce Home startup/catalog-ready delay through existing owners with comparable timing and first-navigation regression evidence; see the 2026-09-25 startup amendment. |
 | `1.1.13` | **Process cancellation then window lifetime**: F03/F06 before F01/F02/F25; bounded termination and recovery. |
 | `1.1.14` | **Controlled diagnostics and repair regression**: F17/F23/F26, demonstrated F16 defects; retain F18 evidence throughout. |
 | `1.2.0` | **No longer the release label for `1.1.10`**: the owner explicitly chose `1.1.10` on 2026-09-23. No additional scope is assigned by that numbering correction. The former Launcher development tranche remains in `1.2.1`; reference refresh and current evidence remain in the `1.1.10` delivery. |
@@ -228,7 +248,7 @@ protected review/CI and candidate publication gates remain required.
 | `1.2.5` | **Report completion**: physical-section grouping and historical replay compatibility; preserve completed Changes cards/navigation. |
 | `1.2.6` | **Shared visual/native acceptance**: evidence-driven theme fixes, DPI/high contrast/screen reader and remaining System activity native checks. |
 | `1.2.7` | **Documentation and proven-unused code cleanup**: current-versus-history/SPEC/issue reconciliation, remeasured analyzer baseline and reviewable cleanup; preserve evidence and canonical ownership. |
-| `1.2.8` | **Conditional performance follow-up**: remeasure residual Home startup/CtrlRAM cold first-open only if still valuable; implement only a demonstrated worthwhile change. Preserve the owner's deferral of further startup optimization; do not reopen completed `1.1.5` work or claim a new ten-minute result. |
+| `1.2.8` | **Conditional performance follow-up**: F14/F15 and residual CtrlRAM cold first-open, only with demonstrated value. Home startup/catalog-ready optimization moved to `1.1.12` by the 2026-09-25 owner amendment; preserve completed `1.1.5` evidence and do not claim a new ten-minute result. |
 | `1.3.0` | **General Merge authoring** through existing typed mappings/compiler/executor. |
 | `1.3.1` | **General Replace authoring**, immutable reference and the same shared operation model. |
 | `1.3.2` | **Saved/custom rules**: edit, persistence, import and validation after the General contracts settle. Distinct from the narrow Settings marker editor. |
@@ -304,13 +324,13 @@ the declared Family-before-retirement dependency and earlier firmware gates.
 | --- | --- | --- |
 | `1.1.11` | **Input request identity**: F04/F05 plus AB/OSD verification and temporary Customized UI hiding. | Cancel/reopen cannot apply old picker results; a slow old Hex load cannot replace a newer accepted document; failed loading retains prior bytes/path. |
 | `1.1.13` | **Process and window lifetime**: F03/F06 precede F01/F02/F25. | Bound cancellation, termination confirmation and held-pipe drain; failed handoff resumes saving and allows a second Close; READY cancellation and stale callbacks remain contained. |
-| `1.1.12` | **Output and persistence truth**: F07/F08 and remaining F20/F21. | Preserve committed output receipt after cancellation; show retryable save failures; local Report replacement preserves the original destination on precommit failure. Keep shipped snapshot/reentry/disposal fixes. |
+| `1.1.12` | **Output and persistence truth**: F07/F08 and remaining F20/F21; Home startup optimization added by the 2026-09-25 amendment. | Preserve committed output receipt after cancellation; show retryable save failures; local Report replacement preserves the original destination on precommit failure. Keep shipped snapshot/reentry/disposal fixes. Startup acceptance follows the linked handoff's comparable stage timings and navigation checks. |
 | `1.1.14` | **Bounded diagnostics**: F17/F23/F26 and demonstrated F16 defects. | Invalid arguments fail controllably before host construction; None differs from unknown workflow; oversized JSON integer returns a structured error; text follows actual typed limits. |
 | Cross-release | **F18 evidence; F19/F24 completion tracking**. | F18 behavioral/interleaving tests accompany each affected change. F19 shipped in 1.1.8; F24 is implemented in the 1.1.10 candidate, with publication tracked separately. |
 | `1.2.5` | **Typed results and language projection**: F09 (L), F10 (M), F12 naming requirement (M); 7 units. | Re-language completed/blocked/partial outcomes from typed state. General rows retain identity/drafts/mappings. Use Customized / Customized Merge / Customized Replace for relevant visible labels, CLI help and new Report labels; retain canonical IDs, command compatibility and unrelated Settings General text. Preserve historical Report interpretation. |
 | `1.2.6` | **Shared presentation owners**: F11 (L), F13 (L); 6 units. | Semantic typography controls actual effective style, with explicit legitimate variants and DPI/theme checks. Converge the proven duplicate accepted-output helper through its existing owner; retain AB/extra-A-output/Replace naming contracts, not a giant base ViewModel. |
 | `1.2.7` | **Bounded intake**: F22, coordinated with 1.2.1 large-file work. | Validate bounded reads and cancellation; assess aggregate materialization only after measured resource/compatibility decisions. No new numeric budget is approved. |
-| `1.2.8` | **Measured notification/allocation improvements**: F14 (L), F15 (L); 6 units. | Measure notification/inspection/compile/measure counts before and after; publish accepted state once and avoid unnecessary focus scans. Remove only the redundant after-range copy with byte/diff/hash/Golden equivalence and measured allocation evidence. Do not promise a speedup or reopen deferred startup work without demonstrated value. |
+| `1.2.8` | **Measured notification/allocation improvements**: F14 (L), F15 (L); 6 units. | Measure notification/inspection/compile/measure counts before and after; publish accepted state once and avoid unnecessary focus scans. Remove only the redundant after-range copy with byte/diff/hash/Golden equivalence and measured allocation evidence. Do not promise a speedup; Home startup is separately scheduled in `1.1.12`, while CtrlRAM cold first-open remains conditional here. |
 
 The 2026-09-25 owner amendment above supersedes the original 1.2.0–1.2.4
 repair allocations and their old size estimates; no new duration estimate is
@@ -1910,6 +1930,10 @@ promotion or byte behavior is certified by scheduling alone.
 
 ## `1.1.5`: startup, first-open and local verification performance
 
+Current allocation pointer, 2026-09-25: the owner brought Home startup/catalog
+readiness optimization into [1.1.12](#owner-approved-1112-startup-optimization--2026-09-25).
+The targets, deferral and measurements below retain their dated 1.1.5 meaning.
+
 | Target | Measurement and implementation gate |
 | --- | --- |
 | Packaged Home first window | Close the retained [700 ms residual](../references/v0.10.4-startup-700ms-evidence.md): exact package on the controlled owner Windows machine, one unscored warm-up and five scored launches, median nonzero main-window handle at or below 700 ms; record cold behavior separately. The stable predecessor did not reproduce the target. |
@@ -2464,7 +2488,7 @@ release.
 
 | Retained issue | Current allocation and reconciliation boundary |
 | --- | --- |
-| [#380 preload evidence/release](https://github.com/Dennis40816/nvt_fw_combiner/issues/380) | Preserve completed `1.1.3`/`1.1.5` CI/performance history; reconcile provenance in `1.2.7` and reassess worthwhile residual performance only in `1.2.8`. Do not restore its old five-minute CI target or re-release `0.10.5`. |
+| [#380 preload evidence/release](https://github.com/Dennis40816/nvt_fw_combiner/issues/380) | Preserve completed `1.1.3`/`1.1.5` CI/performance history; Home startup/catalog-ready optimization is now `1.1.12`, provenance reconciliation remains `1.2.7`, and conditional CtrlRAM cold first-open/F14/F15 follow-up remains `1.2.8`. Do not restore its old five-minute CI target or re-release `0.10.5`. |
 | [#291 theme audit](https://github.com/Dennis40816/nvt_fw_combiner/issues/291) | Remaining existing-surface theme and native-accessibility audit belongs to `1.2.6`; preserve shipped `1.1.4` corrections and their evidence. |
 | [#2 early UI planning](https://github.com/Dennis40816/nvt_fw_combiner/issues/2) | Reconcile the early umbrella in `1.2.7`; remaining existing-screen work follows `1.1.7` and `1.2.4`-`1.2.6`, with new authoring in `1.3.x`. Do not redo completed demo/shell work. |
 | [#1 early core implementation](https://github.com/Dennis40816/nvt_fw_combiner/issues/1) | Reconcile the early umbrella in `1.2.7`; an old open item is not evidence that the current compiler/planner/executor is missing. Retain any genuine unmet acceptance criteria. |

@@ -1,0 +1,34 @@
+{
+  "schemaVersion": 2,
+  "taskId": "ROADMAP-1112-STARTUP-01",
+  "capability": "Schedule measured Home startup and catalog-readiness optimization in 1.1.12",
+  "integrationBase": "3db701b70e0eec66889a4b030fcbb84db0db5693",
+  "risk": "R2",
+  "kind": "governance",
+  "state": "design-active",
+  "mutablePaths": [
+    "docs/architecture/nfc_roadmap.md"
+  ],
+  "implementationOwner": "/root",
+  "searchEvidence": [
+    "Owner request on 2026-09-25: 時間變太長了 我要在 1.1.12 優化. Current local source eb7e96d88 measured Home warm startup with one warm-up and five scored launches: window 1.333 s, post-window catalog interval 4.846 s, complete preload trace 6.518 s. These are distinct milestones and a framework-dependent local build, not a portable or cold benchmark.",
+    "docs/architecture/nfc_roadmap.md currently assigns 1.1.12 output/persistence repairs and defers Home/CtrlRAM performance to 1.2.8. Existing post-v1.1.8 audit handoff owns measurement and acceptance detail. Extend these owners; do not introduce a second queue or alter historical 1.1.5 evidence.",
+    "Independent review identified the active release table and retained issue #380 reconciliation as additional current-allocation consumers. Preserve 1.2.8 CtrlRAM cold first-open/F14/F15, 1.2.1 profile convergence and all existing 1.1.12 repairs. Original committed records stay unchanged."
+  ],
+  "semanticOwner": "docs/architecture/nfc_roadmap.md owns version allocation; existing post-v1.1.8 audit handoff owns baseline and acceptance detail",
+  "terminalContract": "Record Home startup/catalog-ready optimization in 1.1.12 alongside F07/F08 and residual F20/F21. Move only Home startup from conditional 1.2.8 follow-up; preserve CtrlRAM cold first-open and F14/F15 there. Plan comparable measurement-first stage breakdown, existing-owner optimization and first-navigation regression checks. No new numeric target, product implementation, profile/firmware semantics, gate, release permission or historical-pass claim. Preserve the historical unachieved 700 ms packaged-window target and distinguish it from current catalog readiness. Synchronize current table/retained-issue links and handoff.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "/root/eventbuffer_design_review",
+    "outcome": "approved",
+    "evidence": "2026-09-25 independent read-only planning R2 admission ADMITTED. Reviewed current roadmap allocations and startup handoff baseline; confirmed integrationBase 3db701b70, exact governed path, retained 1.1.12 repairs/1.2.8 CtrlRAM and F14/F15. Required active #380 reconciliation and historical 1.1.5 current-allocation pointer are included in planned edits. No runtime implementation or new numeric budget admitted."
+  },
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": {
+    "reviewer": null,
+    "outcome": "pending",
+    "evidence": ""
+  }
+}

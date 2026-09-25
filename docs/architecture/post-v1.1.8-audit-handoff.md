@@ -82,6 +82,35 @@ build log: Test Area `artifacts/v1111-startup-build.log`. The measurement tool
 closed its own processes and removed its temporary traces. No startup
 optimization or profile contract implementation was performed for this check.
 
+### Startup optimization assigned to 1.1.12 — 2026-09-25
+
+Owner judged the measured delay too long and requested optimization in
+`1.1.12`. The [roadmap allocation](nfc_roadmap.md#owner-approved-1112-startup-optimization--2026-09-25)
+brings Home startup work forward from the conditional `1.2.8` follow-up;
+existing 1.1.12 output/persistence repairs remain in scope. This records the
+future work; no performance implementation or improved timing is claimed.
+
+- Establish comparable before/after evidence on the same machine, settings,
+  build/package flavor and launch arguments. Keep first window, catalog-ready
+  and complete background preload timings separate; distinguish cold and warm
+  launches. Use the existing measurement tool with one warm-up and five scored
+  launches, and retain raw stages and source identity.
+- First break down the 4.846-second post-window interval before catalog state
+  application. Investigate catalog/profile loading, validation/compilation,
+  repeated work and UI materialization as hypotheses, not established causes.
+  Extend existing startup/catalog owners; broad profile reference convergence
+  remains in 1.2.1.
+- Reduce measured critical-path work while preserving validation, catalog
+  completeness, loading/error feedback and page readiness. Check first
+  Merge/Replace navigation so a faster shell does not merely move the wait to
+  the first click; preserve independent page instances and bounded lifetime.
+- Set concrete optimization targets after the breakdown and a comparable
+  packaged baseline. The historical 700 ms packaged-window target remains
+  unachieved; it is not automatically a catalog-ready budget. Report actual
+  gains, memory/allocation trade-offs and residual delays without inventing an
+  improvement percentage. CtrlRAM cold first-open and F14/F15 follow-up retain
+  their 1.2.8 allocation except for navigation regression checks above.
+
 ## Post-1.1.8 audit reconciliation — 2026-09-19
 
 Owner request: correct and inventory the current handoff using the
