@@ -303,3 +303,24 @@ above 335 MB goes back to the owner. A fixed-diff follow-up review precedes fina
   counter CSV, publish and restore logs). The restore rewrote only the
   exported copy's lock files for the win-x64 runtime, as in every earlier
   package-shape measurement.
+
+### 2026-09-26 Final product source gate measurement
+
+- State: measured; working-set gate resolved by owner decision 18.
+- Source: final product source `dc773e967` (tree `798f3976`), which adds only
+  the nonstandard-length Standard-prefix classification (owner decision 17)
+  outside the startup path. Same method and session layout as the
+  `badc545b0` checkpoint; EXE 76,350,820 bytes.
+- 1.1.12 per launch: window 724-733 ms (median 728); all loading done
+  2,163-2,215 ms (median 2,196); peak private 331.9-334.8 MB (median 333.8);
+  peak working set 331.3-335.6 MB (median 333.2). GC heap after warm-up
+  34.7-34.9 MB.
+- `v1.1.11` per launch: window 716-749 ms (median 743); all loading done
+  3,545-3,845 ms (median 3,698); peak private 326.2-330.0 MB (median 329.7);
+  peak working set 331.7-335.3 MB (median 333.7).
+- Gates: private at most 336 MB (decision 16), pass; GC heap at most 50 MB,
+  pass; working set: one launch at 335.6 MB exceeded the fixed 335 MB bound,
+  which `v1.1.11` also exceeded (335.3 MB) in the same session. Owner decision
+  18 sets the per-launch bound to the same-session `v1.1.11` maximum plus 1 MB
+  (336.3 MB); every launch passes.
+- Evidence: test area `evidence/v1112-freeze-dc773e967/`.
