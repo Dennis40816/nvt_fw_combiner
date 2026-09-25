@@ -31,14 +31,14 @@ $ApprovedRuntimeCatalogPackagePaths = @(
     'profiles/built-in/ctrlram-postbuild-v2/flash-map.json'
 ) | Sort-Object
 $PackageTrustIndexPackagePath = 'profiles/built-in/package-trust-index.json'
-$ApprovedPackageTrustIndexSha256 = 'a230518c7f33a0b9ab0a90250390a672e3579b57e90cfbfa3945798fe973f4b3'
+$ApprovedPackageTrustIndexSha256 = '1dd8dd5e6a00f4e4f2e5a6b77f50348d3f72371ec9fafcc0f99c06a995c8ca05'
 $ApprovedCanonicalCapabilityPolicyPackageContract = [pscustomobject]@{
     path = 'docs/contracts/canonical-capability-policy-v1.json'
     role = 'capabilityPolicy'
-    sha256 = '8671a3aec41eaab51e53aaae022a3ae35faa50e700be4481a178e2f2b0eb0e8f'
+    sha256 = '143c918a60ebf5355e7f8797c0e988a9d419c99b5152e6d302534236613d185e'
 }
 $ApprovedCanonicalGoldenAllowlistPath = Join-Path $PSScriptRoot '../testdata/golden/release-canonical-v1.json'
-$ApprovedCanonicalGoldenAllowlistSha256 = '18628e43e7b4789c9ec94f911e55b5dd2b50bd272aa13e0ba55350e8fa911e00'
+$ApprovedCanonicalGoldenAllowlistSha256 = '4496e7a6379e05877f0f372e5ec056938f6b279b2508400f96b52bb213219a87'
 $CanonicalGoldenPackagePrefix = 'reference/testdata/golden/canonical'
 $CanonicalGoldenAllowlistPackagePath = 'reference/testdata/golden/release-canonical-v1.json'
 $RetiredSupportPublicationPolicyPackagePaths = @(

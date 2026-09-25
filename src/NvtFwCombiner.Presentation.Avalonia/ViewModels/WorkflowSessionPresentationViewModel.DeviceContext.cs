@@ -486,6 +486,7 @@ internal sealed partial class WorkflowSessionPresentationViewModel
 
     private void OnSelectedIcChanged(string value, WorkflowInspectionOwner? owner)
     {
+        ObservePickerContextTransition();
         _recordActivity(new SystemActivityDraft(
             SystemActivityCodes.IcSelected,
             SystemActivityImportance.Debug,
@@ -560,6 +561,7 @@ internal sealed partial class WorkflowSessionPresentationViewModel
 
     partial void OnSelectedNumberChanged(string value)
     {
+        ObservePickerContextTransition();
         if (_isActivatingWorkflowPageContext)
         {
             OnPropertyChanged(nameof(SelectedNumberChoice));

@@ -63,6 +63,7 @@ public sealed partial class ExitConfirmationTests
         private sealed class DelayedSession(IRawBinaryEditorFileSession inner, Task release) : IRawBinaryEditorFileSession
         {
             public string? SourcePath => inner.SourcePath;
+            public RawBinaryEditorFileResult? AcceptedLoad => inner.AcceptedLoad;
             public string SuggestedOutputFileName => inner.SuggestedOutputFileName;
 
             public async Task<RawBinaryEditorFileResult> LoadAsync(string sourcePath, CancellationToken cancellationToken = default)

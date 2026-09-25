@@ -1,0 +1,39 @@
+{
+  "schemaVersion": 2,
+  "taskId": "MEMORY-ENDPOINT-INTEGRATION-1111-01",
+  "capability": "Account for the existing first-arrange memory endpoint caption correction in the current integration",
+  "integrationBase": "3db701b70e0eec66889a4b030fcbb84db0db5693",
+  "risk": "R1",
+  "kind": "ui",
+  "state": "final-complete",
+  "mutablePaths": [
+    "src/NvtFwCombiner.Presentation.Avalonia/Views/MemoryCoverageBar.Legend.cs",
+    "tests/NvtFwCombiner.UiSmoke.Tests/MemoryCoveragePopupTests.EndpointLabels.cs"
+  ],
+  "implementationOwner": "/root",
+  "searchEvidence": [
+    "Existing bounded R1 implementation is commit eb7e96d88; this record is current integration admission, not a claim that historical JSON preflight existed.",
+    "The parent Bounds width is zero during the first child Arrange. Existing correction caches current finalSize.Width before base.ArrangeOverride and uses it only for endpoint label geometry.",
+    "Recorded failing first-render regressions were 3/3, then related UiSmoke 103/103 passed; latest 261dd1aee screenshots visibly retain the blue-line Master captions. See docs/ui/v1.1.11-delivery.md and artifacts/endpoint-label-green.log.",
+    "2026-09-25 independent current integration ADMIT by /root/ab_layout_context_review: scoped existing R1 diff has no P0-P2; current-arrange width replaces stale Bounds for endpoint labels. Explicitly not retroactive preflight or certification of unrelated authority."
+  ],
+  "semanticOwner": "Existing MemoryCoverageBar endpoint layout remains the sole presentation geometry owner.",
+  "terminalContract": "Account only for sealed base 3db701b70e0eec66889a4b030fcbb84db0db5693 through 261dd1aee3d48fbb7cb31d26349b300cf32d9e30 existing first-arrange caption diff and its regression. No new product edit, firmware bytes, range semantics, profile or contract change is authorized by this record. Formal final integration needs the final reviewed source and path-state digest.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": null,
+    "outcome": "not-required",
+    "evidence": "Existing bounded R1 local correction; current independent integration review is recorded in searchEvidence, not retroactive design approval."
+  },
+  "implementationHead": "1754efb4831fb0ee0055fd91c0c3f9b9af8ed0b2",
+  "reviewedHead": "1754efb4831fb0ee0055fd91c0c3f9b9af8ed0b2",
+  "pathStateDigest": "644eee18b990a9294a808e510bc05826a7b791d634b50191c86d42ed99591aea",
+  "finalReview": {
+    "reviewer": "/root/ab_layout_context_review",
+    "outcome": "approved",
+    "evidence": "3bcc1ce01 current R1 integration review of eb7e96d88 caption change, architecture targeted 2/2 and affected UI evidence; historical preflight was not retroactively claimed. Independent fixed-diff follow-up at 1754efb4831fb0ee0055fd91c0c3f9b9af8ed0b2 found no P0-P2 issues. The final partition covers 91 governed checkpoint-to-review paths exactly once across 22 records, retaining each original admission and full mutable-path digest. The 90003b5c2 full nonstructure run failed eight .NET assertions and one Python script lane, while all 26 certified Direct Golden cases executed and passed. 1754efb48 changes only tests/prose and corrects those assertions: affected Bootstrap 27/27, Architecture 268/268 and canonical intake 7/7 passed; product/profile/Golden bytes are identical to 90003b5c2. These are scoped results, not a fresh full-suite PASS. On 2026-09-25 the owner approved all nine R3 closures for 1754efb48, sealing, push and formal release progression. Separate typed exact-head owner attestations follow this technical evidence commit. Formal exact-source CI, structure and fresh release Golden execution remain required before publication. The private 32-byte Header-backup/CRC difference remains uncertified Candidate evidence and is deferred by the owner to 1.1.12; no expected bytes, support status or test result is relabeled."
+  },
+  "integrationPaths": [
+    "src/NvtFwCombiner.Presentation.Avalonia/Views/MemoryCoverageBar.Legend.cs"
+  ]
+}

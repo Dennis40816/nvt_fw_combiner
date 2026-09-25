@@ -31,6 +31,6 @@ internal static partial class V2CompositionPlanCompiler
         return CompiledComposition.CreateV2(prepared.Plan, new V2CompiledCompositionDetails(
             definition.DefinitionId, definition.Version, ExperienceIds.CtrlRamReplace, CompositionKind.Replace,
             provenance, inputs, prepared.AbLayout.V2Details.RegionAccessContract, local.OutputNamingRequirement,
-            local.IcNumberInputMode));
+            local.IcNumberInputMode, ab: prepared.AbLayout.V2Details.Ab));
     }
 }

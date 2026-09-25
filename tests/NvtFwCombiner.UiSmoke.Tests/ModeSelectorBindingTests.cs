@@ -45,6 +45,8 @@ public sealed class ModeSelectorBindingTests
                 window.GetVisualDescendants().OfType<ComboBox>(),
                 candidate => candidate.IsVisible && ReferenceEquals(candidate.DataContext, viewModel.Merge));
             Assert.Equal(ExperienceIds.StandardMerge, selector.SelectedItem);
+            Assert.DoesNotContain(ExperienceIds.GeneralMerge, selector.Items.Cast<string>());
+            Assert.Contains(ExperienceIds.GeneralMerge, viewModel.Merge.MergeModeChoices);
             object? originalItemsSource = selector.ItemsSource;
             Assert.NotNull(originalItemsSource);
             int modeActivityCount = viewModel.MessageCenter.ActivityItems.Count(static item =>
@@ -69,6 +71,16 @@ public sealed class ModeSelectorBindingTests
                 candidate => candidate.IsVisible && candidate.Text == viewModel.Text.AbCodeMergeTitle);
             Assert.Equal(modeActivityCount + 1, viewModel.MessageCenter.ActivityItems.Count(static item =>
                 item.Title == "Mode selected"));
+
+            viewModel.ShowReplaceCommand.Execute(null);
+            viewModel.WorkflowSession.SelectedIc = "NT51926";
+            Dispatcher.UIThread.RunJobs();
+            ComboBox replaceSelector = Assert.Single(
+                window.GetVisualDescendants().OfType<ComboBox>(),
+                candidate => candidate.IsEffectivelyVisible && ReferenceEquals(candidate.DataContext, viewModel.Replace));
+            Assert.DoesNotContain(ExperienceIds.GeneralReplace, replaceSelector.Items.Cast<string>());
+            Assert.Contains(ExperienceIds.CtrlRamReplace, replaceSelector.Items.Cast<string>());
+            Assert.Contains(ExperienceIds.GeneralReplace, viewModel.Replace.ReplaceModeChoices);
         }
         finally
         {

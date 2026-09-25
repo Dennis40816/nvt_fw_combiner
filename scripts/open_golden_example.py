@@ -127,8 +127,7 @@ def main() -> int:
         args = ["--workflow", "ctrlram-replace", "--ic", ic, "--ic-num", "single",
             "--base", str(artifact(ab, "expected-output")), "--ctrlram",
             f"replace-ctrlram-nf={artifact(ctrl, 'postbuild-nf-ctrlram')}"]
-        evidence = ("Cross-case UI example only; NT51950 AB Base is unsupported by CtrlRAM Replace"
-            if ic == "NT51950" else "Cross-case UI candidate; no approved AB CtrlRAM full-output Golden")
+        evidence = "Cross-case UI candidate; no approved AB CtrlRAM full-output Golden"
     else:
         case = catalog[options.case_id]
         args = launch_args(case)

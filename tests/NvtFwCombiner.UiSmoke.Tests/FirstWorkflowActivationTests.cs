@@ -115,6 +115,10 @@ public sealed class FirstWorkflowActivationTests
             object owner = mergeFirst ? shell.Replace : shell.Merge;
             ComboBox selector = Assert.Single(window.GetVisualDescendants().OfType<ComboBox>(),
                 candidate => candidate.IsVisible && ReferenceEquals(candidate.DataContext, owner));
+            if (!mergeFirst)
+            {
+                Assert.Same(shell.Merge.VisibleMergeModeChoices, selector.ItemsSource);
+            }
             Assert.Equal(expectedMode, selector.SelectedItem);
             FirmwareSlotViewModel[] slots = [.. mergeFirst ? shell.Replace.ReplaceSlots : shell.Merge.MergeSlots];
             Assert.NotEmpty(slots);

@@ -77,6 +77,61 @@ public sealed class OutputConfirmationTests
         if (change == "reopen") { Assert.True(vm.IsOpen); Assert.True(vm.IsReplaceOutput); }
     }
 
+    /// <summary>A picker result cannot execute either a canceled request or its reopened successor.</summary>
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task OutputPickerRejectsCancelAndReopen(bool reopen)
+    {
+        using TempWorkspace workspace = TempWorkspace.Create("confirmation-picker-race");
+        CompositionHostServices host = CompositionHostServices.Create();
+        CompositionOutputBundleProposal proposal = await PrepareLegacyProposalAsync(host, workspace);
+        var vm = new OutputDeliveryConfirmationViewModel(host.CompositionOutputNaming,
+            () => ShellTextResources.For(ShellLanguage.English));
+        int executions = 0;
+        var request = new OutputDeliveryRequest(proposal, false, null, () => true, null, null, null,
+            _ => { executions++; return Task.CompletedTask; });
+        vm.Open(request);
+        var picker = new TaskCompletionSource<string?>(TaskCreationOptions.RunContinuationsAsynchronously);
+        Task confirmation = OutputDeliveryConfirmationModal.ConfirmPreparedLooseWithPickersAsync(vm,
+            () => picker.Task, () => throw new InvalidOperationException("No additional output was requested."));
+        Assert.False(confirmation.IsCompleted);
+        vm.CancelCommand.Execute(null);
+        if (reopen) { vm.Open(request); }
+        picker.SetResult(workspace.PathFor("obsolete.bin"));
+        await confirmation;
+
+        Assert.Equal(0, executions);
+        Assert.Equal(reopen, vm.IsOpen);
+        Assert.False(File.Exists(workspace.PathFor("obsolete.bin")));
+    }
+
+    /// <summary>A folder picker belongs to the confirmation that opened it.</summary>
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task ParentDirectoryPickerRejectsCancelAndReopen(bool reopen)
+    {
+        using TempWorkspace workspace = TempWorkspace.Create("confirmation-directory-race");
+        CompositionHostServices host = CompositionHostServices.Create();
+        CompositionOutputBundleProposal proposal = await PrepareLegacyProposalAsync(host, workspace);
+        var vm = new OutputDeliveryConfirmationViewModel(host.CompositionOutputNaming,
+            () => ShellTextResources.For(ShellLanguage.English));
+        var request = new OutputDeliveryRequest(proposal, false, null, () => true, null, null, null,
+            _ => Task.CompletedTask);
+        vm.Open(request);
+        string original = vm.ParentDirectory;
+        var picker = new TaskCompletionSource<string?>(TaskCreationOptions.RunContinuationsAsynchronously);
+        Task selection = OutputDeliveryConfirmationModal.ChooseParentWithPickerAsync(vm, () => picker.Task);
+        vm.CancelCommand.Execute(null);
+        if (reopen) { vm.Open(request); }
+        picker.SetResult(workspace.Root);
+        await selection;
+
+        Assert.Equal(original, vm.ParentDirectory);
+        Assert.Equal(reopen, vm.IsOpen);
+    }
+
     private static async Task<CompositionOutputBundleProposal> PrepareLegacyProposalAsync(CompositionHostServices host, TempWorkspace workspace)
     {
         CompiledAuthoringSessionPreparation prepared = host.AbMergeAuthoring.PrepareSession(

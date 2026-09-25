@@ -582,9 +582,12 @@ public sealed class MemoryLayoutSnapshot
         {
             throw new ArgumentException("Only physical CtrlRAM layouts expose section context.", nameof(sectionLocators));
         }
-        SourceEnvelopeExtent? envelope =
-            (capability.CompiledComposition.V2Details.Provenance.Context as ResolvedMapV2CompilationContext)?
-                .SourceEnvelope;
+        SourceEnvelopeExtent? envelope = capability.CompiledComposition.V2Details.Provenance.Context switch
+        {
+            ResolvedMapV2CompilationContext resolved => resolved.SourceEnvelope,
+            RuntimeReferenceBankReplaceV2CompilationContext bankContext => bankContext.SourceEnvelope,
+            _ => null,
+        };
         if (envelope is not null &&
             (geometryKind != MemoryLayoutGeometryKind.PhysicalMap || map is null ||
              !StringComparer.Ordinal.Equals(envelope.LayoutTemplateMapId, map.MapId) ||
@@ -633,6 +636,7 @@ public sealed class MemoryLayoutSnapshot
         PendingItems = Array.AsReadOnly(pending);
         SectionLocators = Array.AsReadOnly(sections);
         Banks = Array.AsReadOnly(banks.ToArray());
+        CanViewIndividualBanks = capability.CompiledComposition.V2Details.Ab?.IsFullySymmetric == true && Banks.Count == 2;
     }
 
     /// <summary>Exact canonical route identity.</summary>
@@ -671,6 +675,9 @@ public sealed class MemoryLayoutSnapshot
 
     /// <summary>Complete canonical AB bank placements, including preserved banks; empty for other layouts.</summary>
     public IReadOnlyList<MemoryLayoutBankLocator> Banks { get; }
+
+    /// <summary>Single presentation decision for bank switching, cropping and focus filtering.</summary>
+    public bool CanViewIndividualBanks { get; }
 
     private static void ValidateCoverage(
         MemoryLayoutSegment[] segments,

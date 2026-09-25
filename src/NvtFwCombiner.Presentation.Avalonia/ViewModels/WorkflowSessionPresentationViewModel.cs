@@ -104,6 +104,7 @@ internal sealed partial class WorkflowSessionPresentationViewModel : ObservableO
     private void RelocalizeFirmwareFacts()
     {
         foreach (FirmwareSlotViewModel slot in _merge.MergeSlots
+                     .Concat(_merge.AbMergeSlots)
                      .Concat(_replace.ReplaceSlots)
                      .Append(_replace.ReplaceBaseSlot)
                      .Distinct())
@@ -114,23 +115,7 @@ internal sealed partial class WorkflowSessionPresentationViewModel : ObservableO
                 continue;
             }
 
-            if (inspection.AbMergeFacts is not null)
-            {
-                FirmwareInspectionProjection.ApplyAbInputFacts(
-                    slot,
-                    inspection,
-                    Text,
-                    _expandInputDetailsByDefault());
-            }
-            else
-            {
-                slot.RelocalizeFirmwareFacts(slot.SlotKind == FirmwareSlotKind.Dp
-                    ? UiCompositionRunner.GetDpFirmwareSlotFacts(inspection, Text)
-                    : UiCompositionRunner.GetFirmwareSlotFacts(
-                        inspection,
-                        includeBaseFacts: slot.SlotKind == FirmwareSlotKind.Base,
-                        text: Text));
-            }
+            slot.RelocalizeFirmwareFacts(FirmwareInspectionProjection.GetFirmwareFacts(slot, inspection, Text));
         }
     }
 

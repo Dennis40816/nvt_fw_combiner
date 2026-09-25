@@ -12,7 +12,7 @@ public interface ICtrlRamAuthoringAdapter
     CapabilityRouteResolutionResult ResolveAbReferenceRoute(string icId, string number);
 
     /// <summary>Checks captured AB Reference structure through the same trusted guards as execution.</summary>
-    IReadOnlyList<CompositionIssue> ValidateAbReference(CompiledComposition layout, ReadOnlyMemory<byte> reference);
+    AbReferenceValidation ValidateAbReference(CompiledComposition layout, ReadOnlyMemory<byte> reference);
 
     CtrlRamInspectionDisplay GetDiscoveryDisplay(
         string icId,
@@ -39,6 +39,20 @@ public interface ICtrlRamAuthoringAdapter
         ResolvedCapability capability,
         out IReadOnlyDictionary<string, string> expectedPaths,
         out IReadOnlyList<CompositionIssue> issues);
+}
+
+/// <summary>Trusted AB structural proof retained separately from native metadata issues.</summary>
+public sealed class AbReferenceValidation
+{
+    public AbReferenceValidation(bool hasTrustedAbStructure, IEnumerable<CompositionIssue> issues)
+    {
+        HasTrustedAbStructure = hasTrustedAbStructure;
+        Issues = Array.AsReadOnly([.. issues]);
+    }
+
+    public bool HasTrustedAbStructure { get; }
+
+    public IReadOnlyList<CompositionIssue> Issues { get; }
 }
 
 public sealed class CtrlRamAuthoringCompilation

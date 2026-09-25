@@ -1031,6 +1031,7 @@ def _validate_artifact(
     errors: list[str],
     *,
     requires_legacy_paths: bool = True,
+    approved_intake_source: bool = False,
 ) -> None:
     if not isinstance(artifact, dict):
         errors.append(f"{label} must be an object")
@@ -1097,6 +1098,13 @@ def _validate_artifact(
             f"expected {expected_sha}, actual {actual_sha}"
         )
     legacy_paths = artifact.get("legacyPaths")
+    if legacy_paths is None and approved_intake_source:
+        source_path = _relative_path(
+            artifact.get("sourcePath"), f"{label}.sourcePath", errors
+        )
+        if source_path is not None and not source_path.parts:
+            errors.append(f"{label}.sourcePath must name an archive member")
+        return
     if not requires_legacy_paths and legacy_paths is None:
         return
     if not isinstance(legacy_paths, list) or not legacy_paths:
@@ -1115,6 +1123,51 @@ def _validate_artifact(
                 normalized.add(str(path))
         if len(normalized) != len(legacy_paths):
             errors.append(f"{label} contains duplicate legacyPaths")
+
+
+def _validate_intake_source(
+    root_manifest: dict[str, Any], case: dict[str, Any], label: str,
+    errors: list[str],
+) -> bool:
+    """Bind a post-migration intake to one approved, declared source archive."""
+    if "intakeSource" not in case:
+        return False
+    intake = case["intakeSource"]
+    if not isinstance(intake, dict) or set(intake) != {"name", "sha256"}:
+        errors.append(f"{label}.intakeSource must contain only name and sha256")
+        return False
+    name = _required_string(intake, "name", f"{label}.intakeSource", errors)
+    sha256 = intake.get("sha256")
+    if not isinstance(sha256, str) or SHA256_PATTERN.fullmatch(sha256) is None:
+        errors.append(f"{label}.intakeSource has invalid sha256: {sha256}")
+        return False
+    if name is None:
+        return False
+    collections = root_manifest.get("sourceCollections")
+    matches: list[dict[str, Any]] = []
+    if isinstance(collections, list):
+        for collection in collections:
+            if not isinstance(collection, dict):
+                continue
+            sources = collection.get("additionalSources")
+            if not isinstance(sources, list):
+                continue
+            matches.extend(
+                source for source in sources
+                if isinstance(source, dict)
+                and source.get("name") == name
+                and source.get("sha256") == sha256
+            )
+    if len(matches) != 1:
+        errors.append(
+            f"{label}.intakeSource must match exactly one declared additionalSources archive"
+        )
+        return False
+    for field in ("sourceClassification", "approval"):
+        if not isinstance(matches[0].get(field), str) or not matches[0][field].strip():
+            errors.append(f"{label}.intakeSource archive lacks {field}")
+            return False
+    return True
 
 
 def validate_canonical_golden(repository_root: Path, errors: list[str]) -> None:
@@ -1234,6 +1287,9 @@ def validate_canonical_golden(repository_root: Path, errors: list[str]) -> None:
             if isinstance(workflow, str):
                 direct_source_workflows[case_id] = workflow
             artifacts = case.get("artifacts")
+            approved_intake_source = _validate_intake_source(
+                root_manifest, case, label, errors
+            )
             if not isinstance(artifacts, list) or not artifacts:
                 kind = "direct golden" if direct else "direct evidence"
                 errors.append(f"{label} {kind} must contain artifacts")
@@ -1249,7 +1305,11 @@ def validate_canonical_golden(repository_root: Path, errors: list[str]) -> None:
                     artifact_ids,
                     roles,
                     errors,
-                    requires_legacy_paths=case_id != CERTIFIED_NT51929_DPCMI_CASE_ID,
+                    requires_legacy_paths=(
+                        case_id != CERTIFIED_NT51929_DPCMI_CASE_ID
+                        and not approved_intake_source
+                    ),
+                    approved_intake_source=approved_intake_source,
                 )
                 if (
                     isinstance(artifact, dict)
@@ -1274,6 +1334,8 @@ def validate_canonical_golden(repository_root: Path, errors: list[str]) -> None:
             if "alias" in case:
                 errors.append(f"{label} direct case cannot declare alias")
         else:
+            if "intakeSource" in case:
+                errors.append(f"{label} alias cannot declare intakeSource")
             if case.get("artifacts") not in (None, []):
                 errors.append(f"{label} alias case cannot contain physical artifacts")
             alias = case.get("alias")

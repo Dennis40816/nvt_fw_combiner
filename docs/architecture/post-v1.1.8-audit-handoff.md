@@ -5,6 +5,196 @@ implementation authority. The [roadmap](nfc_roadmap.md) owns version scheduling;
 this handoff owns the linked audit acceptance detail. Original source and
 review limitations are preserved below.
 
+
+## Current allocation amendment — 2026-09-25
+
+The owner accepted the [1.1.x repair allocation](nfc_roadmap.md#owner-approved-11x-repair-allocation--2026-09-25).
+The current table below follows it; dated source descriptions retain their
+historical allocation. Revalidate findings against the actual implementation.
+F19 is shipped; F20/F21 remain partially completed; F24 shared-fact extraction
+and DP retirement are implemented in the 1.1.10 candidate. F18 applies to each
+repair. AB CtrlRAM independent evidence/owner checks and OSD intake are deferred
+to 1.1.11 by the explicit one-release decision; they are not certified by it.
+1.1.11 also temporarily hides Customized Merge/Replace UI entry points while
+preserving implementation and data, with reopening tied to the corresponding
+accepted feature release. Refer to the roadmap for the CLI-scope decision and
+complete UI/firmware-review follow-up; this handoff does not create a second
+version-allocation owner.
+
+## Local delivery status — 2026-09-25
+
+1.1.10 is published. The approved 1.1.11 local input/Info/layout/UI-hide work is
+implemented; source `b28c1f3c5` passed all 7,504 .NET tests and all 38 remaining
+non-Structure verifier lanes. See the [1.1.11 delivery record](../ui/v1.1.11-delivery.md)
+for the 28 loaded-FW screenshots, scoped real-firmware evidence and exact
+owner-only acceptance list. Owner has confirmed the supplied 950 1-IC OSD
+Golden case; remove that repeated human-approval item. Its metadata recording
+and candidate verification remain agent work. AB CtrlRAM evidence, remaining
+R3 authority and final record sealing remain open; this is not a 1.1.11
+publication or a full Structure pass. The latest delivery correction records
+Event Buffer in the always-visible upper information area; the shared UI
+priority correction passed 75 scoped tests and five screenshot cases. A
+pre-existing 929 AB Merge supply gap remains: its TP A/B slots receive neither
+a read-only Event display value nor an admitted format observation. Keep that
+metadata follow-up separate from the completed UI move; see the delivery
+record for exact evidence and the shared-owner boundary.
+Version allocations and the historical audit below remain unchanged.
+
+### Profile improvement scope confirmed — 2026-09-25
+
+Owner accepted a bounded 1.1.11 change: declare AB Code `isFullySymmetric` in
+the existing AB profile contract (929 perfect family: true; 950/951: false),
+and carry one typed decision to toggle, layout cropping, focus lanes,
+subtitle and view-state handling. Existing capability remains the sole AB
+support declaration. See the [accepted delivery detail](../ui/v1.1.11-delivery.md#已接受待獨立實作ab-code-完全對稱宣告).
+This contract change is pending; merely hiding the toggle is insufficient.
+
+The preliminary estimate is about 10–12 core source files, plus schema,
+profile declarations, derived hashes and affected tests; allow roughly 1–2
+working days including scoped review. This is a scope estimate, not measured
+effort or a delivery guarantee; schema compatibility and provenance checks
+may change it. Shared Event Buffer supply and the latest Info/label fixes are
+already locally verified at `eb7e96d88`, not part of that remaining estimate.
+
+Broader perfect/partial-family declaration deduplication and explicit shared
+references remain in the existing [1.2.1 handoff](v1.2.1-handoff.md#保留的原-121-工作).
+Do not expand 1.1.11 into wholesale profile merging or a new inheritance system.
+The roadmap already assigns these scopes; this clarification does not move
+work between versions or approve a concrete reference syntax.
+
+### TP Header SVN modeling deferred to 1.1.12 — 2026-09-25
+
+Owner 最新決定：先記錄於 **1.1.12**，待 owner 再確認 TP Header 內容後才實作。
+版本配置由 [roadmap](nfc_roadmap.md#owner-deferred-tp-header-svn-modeling--2026-09-25)
+擁有；本節保存調查與待確認事項。**尚未修改產品 profile、SVN 解析或寫入**，
+不列為 1.1.11 的完成項目或發布阻擋。
+
+- Owner 提出的定位是 **TP Header 起點 + `0x24`**。既有 923／926／927
+  `svn-auto-build-version` 模型為 4-byte unsigned little-endian；這是目前觀察，
+  仍待 owner 確認是否適用全部 TP FW、版本與 Header 類型。
+- 929 的 Type AB descriptor 位於 TP 起點 `+0x100`，其中相對 `+0x24`
+  已是 `build-read-command`；SVN 不可加到該 descriptor 或誤讀成 BIN 固定 `0x24`。
+  現有 TP local anchor：923／926／917／927／928 為 `0`，929 perfect family
+  為 `0x7000`，950／951 為 `0xA000`。AB 的 TP A／B 輸入各自使用 local
+  Header 起點；AB Base 依既有 bank-local 解析，不把 B output 位移套到獨立 TP B 輸入。
+- 候選共用方案：沿用 `metadataStructure`／`definitionReference`，只保留一份
+  `tp-global-prefix` SVN 定義，各 family 宣告 source binding 與 locator。
+  可放在既有無外部 definition dependency 的
+  `nt51919-nt51929-nt51932-shared-facts` provider；927 已引用該 provider 的 DPCMI，
+  若反向把共用 SVN 放到 927，會造成 hash 依賴循環。此處是設計草案，並非已實作契約。
+- 確認後需涵蓋 Standard、AB A／B、CtrlRAM Base 與已辨識的 General full-image；
+  任意 source 不直接視為 TP。CtrlRAM 沿既有 Standard metadata reuse；950／951
+  及 919 的 `reportMetadataMapId` 宣告需與新增的 report-purpose binding 一起核對。
+  移除既有 923／926／927 重複 SVN field／fieldSemantics，保留 Header 其餘欄位、
+  spans、copy 與 integrity 規則。FWConfig 的 SVN bytes 是另一位置，不混為同一欄位。
+- 待 owner 確認：各 Header 類型／版本的起點、`+0x24` 寬度與 byte order，
+  主 Header 與 backup 的角色，以及 AB A／B 是否各有 SVN。確認前不增加 UI、SVN
+  改寫、backup 同步或 CRC 行為；1.1.11 已接受的 Replace 保留 Base SVN 決定不變。
+- 後續驗證：一份 definition 的 exact references、不同來源的四 bytes 解碼、
+  descriptor 非混用、AB local／output 位移、缺值／短檔；保留既有 full-image 基線，
+  並確認 operations、write ranges 與完整輸出不因唯讀建模改變。同步既有 family／bundle
+  hashes 與政策來源 pins，不改 Golden expected bytes。廣泛 profile 去重仍留在 1.2.1。
+
+### Header backup CRC investigation deferred to 1.1.12 — 2026-09-25
+
+Owner 已明確要求將這次 **NT51950 single、1 MiB OSD AB Base、Normal CtrlRAM Both**
+的 32-byte 差異列於 **1.1.12** 檢查，1.1.11 保留已知差異並繼續發布準備。
+版本配置由 [roadmap](nfc_roadmap.md#owner-deferred-header-backup-crc-investigation--2026-09-25)
+擁有；完整私有 intake 身份與比較結果沿用 [1.1.11 delivery](../ui/v1.1.11-delivery.md#新-nt51950-normal-ctrlram-ab-golden--2026-09-25)。
+本案例仍是未認證的 Candidate，不宣稱與上傳 Golden 完全相同。
+
+- 已確認：Normal 替換資料、SVN 與其餘 bytes 相同；OSD
+  `[0x80000,0x100000)` 不變。A bank 差異只在 `[0xA11C,0xA120)`、
+  `[0xA130,0xA134)`、`[0x2D428,0x2D42C)`、`[0x2D43C,0x2D440)`；
+  B bank 為相同位置加 `0x40000`，共 32 bytes。Candidate 與 Golden 的主
+  DLM／Header CRC 各自驗算成立，但不因此判定 backup 的 firmware 行為相同。
+- 現行序列可由既有 Combiner 1.13 source 及獨立計算重現：每 bank 執行兩輪
+  Header copy → DLM CRC → Header CRC。第二輪 copy 的是第一輪計算後的 Header，
+  接著主 Header 再更新。Backup 內的 8-byte CRC 差異連動主 DLM CRC 4 bytes、
+  主 Header CRC 4 bytes，因此每 bank 差 16 bytes。尚未證明 Golden 使用哪個
+  backup 初始值或生成階段；owner 提到以前可能遇過類似情況，仍待找到可核對證據。
+- 1.1.12 檢查：追查原始生成命令／工具版本及每次 copy／CRC 的時序，確認
+  firmware 使用主 Header／backup 的時機、CRC 的覆蓋區間與預期一致性，並核對
+  已有歷史案例。先確定可重現差異的原因與 firmware 接受條件，再決定是否修改
+  現有共用 processor 契約；不可因本例新增 IC 特判、第二份 CRC 實作或任意多跑一輪。
+- 驗證界線：原始 Golden／hash 保持不變，後續完整比較及允許差異必須有明確契約；
+  若採限定差異，仍逐 byte 獨立計算每個 CRC word，不能只 mask 或檢查主 CRC valid。
+  不將 Both 證據擴成 A-only／B-only、其他 family／topology 的認證。這次延期不豁免
+  既有 26 個 owner-certified Direct Golden、固定來源 CI 或其他結構／發布 gate。
+
+### Current local startup measurement — 2026-09-25
+
+Product source: `eb7e96d880f93a020985724038ecfe6d061f7fca`; freshly built
+`NvtFwCombiner.Desktop` Release / net10.0, framework-dependent local build.
+Build succeeded with zero warnings/errors. The existing
+[`measure-startup.ps1`](../../scripts/measure-startup.ps1) ran Home with one
+warm-up and five scored launches, a 30-second timeout and
+`-RequirePreloadLifecycle`. All five preload lifecycle stages succeeded.
+
+| Measurement | Median | Observed min–max |
+| --- | --- | --- |
+| Process launch to first window handle | 1.333 s | 1.255–1.405 s |
+| First window opened to catalog state applied | 4.846 s | 4.661–5.148 s |
+| Process launch to completed background warm-up trace | 6.518 s | 6.313–6.899 s |
+
+The window handle is an appearance proxy, not a pixel-presentation or
+interaction-latency measurement. Catalog state application and optional view
+warm-up are separate milestones; their medians must not be added as if they
+were one measured sample. The largest observed post-window interval precedes
+catalog state application; this does not isolate profile parsing as its cause.
+These are warm local launches, not cold-boot or published-portable benchmarks,
+and the tool's lifecycle validation is not release certification.
+
+Raw samples, trace stages and lifecycle results are retained outside Git at
+`D:/NvtFwCombiner-TestArea/evidence/v1111-startup-eb7e96d88/measurement.json`;
+build log: Test Area `artifacts/v1111-startup-build.log`. The measurement tool
+closed its own processes and removed its temporary traces. No startup
+optimization or profile contract implementation was performed for this check.
+
+### Startup optimization assigned to 1.1.12 — 2026-09-25
+
+Owner judged the measured delay too long and requested optimization in
+`1.1.12`. The [roadmap allocation](nfc_roadmap.md#owner-approved-1112-startup-optimization--2026-09-25)
+brings Home startup work forward from the conditional `1.2.8` follow-up;
+existing 1.1.12 output/persistence repairs remain in scope. This records the
+future work; no performance implementation or improved timing is claimed.
+
+- Owner hard-target amendment, 2026-09-25: first visibly presented main window
+  within **500 ms** and **all startup loading complete within 2,000 ms**, both
+  measured from process launch. The latter includes catalog validation,
+  required page readiness and deferred startup views. First appearance is not
+  a requirement that every page be ready at 500 ms. These limits supersede the
+  earlier target-TBD plan and the historical 700 ms current-work target;
+  historical measurements remain unchanged.
+- Establish comparable before/after evidence on the same machine, settings,
+  build/package flavor and launch arguments. Keep first window, catalog-ready
+  and complete background preload timings separate; distinguish cold and warm
+  launches. Retain the existing one-warm-up/five-scored warm-launch baseline,
+  and record controlled cold-launch evidence separately. Every measured launch
+  must satisfy both limits; a passing median cannot hide an over-budget run.
+  Final acceptance uses the actual package on the controlled owner machine,
+  retaining raw stages and source identity. The current window-handle proxy
+  needs visible-presentation evidence before claiming the 500 ms target met.
+- First break down the 4.846-second post-window interval before catalog state
+  application. Investigate catalog/profile loading, validation/compilation,
+  repeated work and UI materialization as hypotheses, not established causes.
+  Extend existing startup/catalog owners; broad profile reference convergence
+  remains in 1.2.1.
+- Reduce measured critical-path work while preserving validation, catalog
+  completeness, loading/error feedback and page readiness. Check first
+  Merge/Replace navigation so a faster shell does not merely move the wait to
+  the first click; preserve independent page instances and bounded lifetime.
+- Run nonessential work in the background without UI stalls or contention
+  that breaks the budgets. Any startup loading moved to a background task
+  still counts toward the 2-second completion limit; do not rename unfinished
+  loading as maintenance or hide its progress. Truly unrelated maintenance
+  may continue separately and must not be a prerequisite for page readiness.
+- Diagnose against the hard targets rather than resetting them after the
+  breakdown. Report actual gains, memory/allocation trade-offs and residual
+  delays; if a target is missed, identify the blocker instead of silently
+  relaxing the limit. CtrlRAM cold first-open and F14/F15 follow-up retain
+  their 1.2.8 allocation except for navigation regression checks above.
+
 ## Post-1.1.8 audit reconciliation — 2026-09-19
 
 Owner request: correct and inventory the current handoff using the
@@ -67,24 +257,24 @@ policy defaults. Completed/disposition rows are documentary evidence only.
 | AUD / original finding | Planning coverage | Residual owner and observable acceptance / definition boundary |
 | --- | --- | --- |
 | AUD-00: F16/F19, HG01/HG10 | This handoff reconciliation | Bind release and planning SHAs; retain old evidence; subtract only shipped subitems. No runtime work. |
-| AUD-01: F01/F02/F08/F18/F25, HG02 | `1.2.1` lifetime; F08 persistence health remains `1.2.4` | `MainWindow`, `LatestSnapshotPersistenceCoordinator`, run/inspection/Config/Report task owners: failed handoff can resume saving and close again; READY cancellation contained; observe terminal work before permanent disposal. Specified proposal, not a newly approved shutdown state machine. |
-| AUD-02: F03/F06, HG03 | `1.2.0` | `SystemExternalProcessRunner` / `BoundedProcessOutputReader`: cancellation callback signals; one owner bounds termination confirmation and pipe drain, including held child pipes/denied kill. Preserve F19 ownership. Proposed extra five-second cleanup budget and typed result/API shape need admission; not an existing profile timeout. |
-| AUD-03: F07, HG04 | `1.2.4` | `CompositionRunService` and run presentation: keep exact committed path/size/hash after loose-delivery cancellation or Report failure; do not rerun processors to repair a report. Atomic bundles retain one transaction. Specified proposal. |
-| AUD-04: F04/F20, HG05/HG06 | `1.2.2` I/O; `1.2.3` request identity | Existing firmware/mapping/output/Hex/Settings picker and accepting session owners: capture original context/request before await; reject Cancel/Reopen or changed-slot stale returns without mutation; visible I/O failure and retry. Preserve legitimate preparation successors and shipped Report Save. Specified proposal. |
-| AUD-05: F05, HG05 | `1.2.3` | `RawBinaryEditorFileSession` and Hex workspace: later selection wins at document mutation, not only UI publication; failed new Load preserves accepted bytes/path. Proposed edit/save disabling while loading remains reviewable, not accepted UX. |
-| AUD-06: F21, HG06 | `1.2.2` | Existing `ILocalFileStore` / atomic-write owner with Report Save: failure before local commit preserves original destination; no half-file or false success. Nonlocal providers need explicit best-effort disclosure, not a fake filesystem path. Keep 1.1.8 snapshot/guard/error behavior. Specified proposal. |
-| AUD-07: F09/F10/F12/F16, HG07/HG08 | `1.2.5` typed/language/naming; F16 capacity text `1.2.7`, DP reason with retirement | Run state/resources/mapping-row owners: language changes preserve drafts and typed results. Use Customized labels without changing IDs/commands/history; capacity text comes from the actual limit. Naming is already recorded in the [Settings handoff](../ui/v1.1.x-custom-options-layout-handoff.md), not a missing decision. |
+| AUD-01: F01/F02/F08/F18/F25, HG02 | `1.1.13` lifetime; F08 persistence in `1.1.12` | `MainWindow`, `LatestSnapshotPersistenceCoordinator`, run/inspection/Config/Report task owners: failed handoff can resume saving and close again; READY cancellation contained; observe terminal work before permanent disposal. Specified proposal, not a newly approved shutdown state machine. |
+| AUD-02: F03/F06, HG03 | `1.1.13`, before full lifetime acceptance | `SystemExternalProcessRunner` / `BoundedProcessOutputReader`: cancellation callback signals; one owner bounds termination confirmation and pipe drain, including held child pipes/denied kill. Preserve F19 ownership. Proposed extra five-second cleanup budget and typed result/API shape need admission; not an existing profile timeout. |
+| AUD-03: F07, HG04 | `1.1.12` | `CompositionRunService` and run presentation: keep exact committed path/size/hash after loose-delivery cancellation or Report failure; do not rerun processors to repair a report. Atomic bundles retain one transaction. Specified proposal. |
+| AUD-04: F04/F20, HG05/HG06 | F04 `1.1.11`; F20 residual I/O `1.1.12` | Existing firmware/mapping/output/Hex/Settings picker and accepting session owners: capture original context/request before await; reject Cancel/Reopen or changed-slot stale returns without mutation; visible I/O failure and retry. Preserve legitimate preparation successors and shipped Report Save. Specified proposal. |
+| AUD-05: F05, HG05 | `1.1.11` | `RawBinaryEditorFileSession` and Hex workspace: later selection wins at document mutation, not only UI publication; failed new Load preserves accepted bytes/path. Proposed edit/save disabling while loading remains reviewable, not accepted UX. |
+| AUD-06: F21, HG06 | `1.1.12` | Existing `ILocalFileStore` / atomic-write owner with Report Save: failure before local commit preserves original destination; no half-file or false success. Nonlocal providers need explicit best-effort disclosure, not a fake filesystem path. Keep 1.1.8 snapshot/guard/error behavior. Specified proposal. |
+| AUD-07: F09/F10/F12/F16, HG07/HG08 | F09/F10/F12 `1.2.5`; F16 `1.1.14`; DP retirement `1.1.10` | Run state/resources/mapping-row owners: language changes preserve drafts and typed results. Use Customized labels without changing IDs/commands/history; capacity text comes from the actual limit. Naming is already recorded in the [Settings handoff](../ui/v1.1.x-custom-options-layout-handoff.md), not a missing decision. |
 | AUD-08: F11, HG07 | `1.2.6` | Shared styles/templates: remove proven same-role local overrides, retain named legitimate variants and approved rendered geometry; do not ban every XAML numeric value. Specified proposal. |
-| AUD-09: F13/F14/F23, HG10 | F13 `1.2.6`; F23 `1.2.7`; F14 `1.2.8` | Existing accepted-output helper, command publication and `WorkflowInspectionSet`: preserve naming order; distinguish legal None from unknown mode; count duplicate notifications before changing them. Do not combine these into one global store or pull all into `1.2.6`. |
+| AUD-09: F13/F14/F23, HG10 | F13 `1.2.6`; F23 `1.1.14`; F14 `1.2.8` | Existing accepted-output helper, command publication and `WorkflowInspectionSet`: preserve naming order; distinguish legal None from unknown mode; count duplicate notifications before changing them. Do not combine these into one global store or pull all into `1.2.6`. |
 | AUD-10: F15, HG11 | `1.2.8` explicitly includes allocation work | **MEASUREMENT_FIRST**: engine after-range copy may be removed only after allocation/ownership evidence; preserve complete bytes, before/after hashes, diff ranges and ordering. No-benefit is a valid outcome; not an unallocated startup redesign. |
 | AUD-11A: F22, HG11 | `1.2.7` | File snapshot/external output/Hex existing-limit owners: same-handle bounded read rejects short/growing/oversized content before full allocation; preserve source-stability checks. Specified proposal; no invented new capacity. |
 | AUD-11B: F22, HG11 | `1.2.7` assessment; implementation **BLOCKED_RESOURCE_POLICY** | Aggregate materialization budget requires measured peak model, numeric limit and compatibility decision. Existing inline/single-file limits do not approve a total budget. |
-| AUD-12: F17 | `1.2.3` | Desktop `Program` / `UiLaunchOptions`: missing value, next flag as value and invalid path produce controlled failure before host; preserve valid argument passthrough and handle cleanup. Proposed usage exit code 2 is not silently adopted. |
-| AUD-13: F24, HG10 | `1.2.1` | Canonical metadata/family/trust-index owners: DPCMI and 19/29/32 Perfect relations survive without DP authoring registration; exact references and surviving workflow bytes remain valid. Existing prerequisite, not a new map per IC. |
-| AUD-14: F24/F16 | `1.2.2`, after AUD-13 | Retire only DP-specific routes/wiring/commands; retain DP input/shared Replace, metadata, old Report interpretation and required evidence. Update obsolete current-runtime reason, not historical records. |
-| AUD-15A: HG09 | `1.1.9` intake → tentative `1.1.10`, before `1.2.0` | Read-only per-member/layout/count/bank/material matrix from existing profiles: AB Merge and CtrlRAM postbuild availability separate; equal capacity is not layout identity. List missing independent inputs/expected BINs. Specified prework, not implemented here. |
-| AUD-15B: HG09 | Tentative `1.1.10`, before `1.2.0` | **BLOCKED_FIRMWARE_DECISIONS_EVIDENCE**: target-bank/default/source policy, layout recognition, 932 inverse relocation, 950 B header/CRC/finalize and independent expected outputs. Preserve non-target bank/DP/customer bytes; no length-only admission or blanket family promotion. |
-| AUD-16A: F26, HG12 | `1.2.2` | Worker lexical JSON boundary: oversized integer returns one structured request error rather than empty stdout/traceback; keep digit/payload limits and valid CRC result. External 5000-digit reproduction is not a test rerun by this update. Specified proposal. |
+| AUD-12: F17 | `1.1.14` | Desktop `Program` / `UiLaunchOptions`: missing value, next flag as value and invalid path produce controlled failure before host; preserve valid argument passthrough and handle cleanup. Proposed usage exit code 2 is not silently adopted. |
+| AUD-13: F24, HG10 | `1.1.10` implemented; publication pending | Canonical metadata/family/trust-index owners: DPCMI and 19/29/32 Perfect relations survive without DP authoring registration; exact references and surviving workflow bytes remain valid. Existing prerequisite, not a new map per IC. |
+| AUD-14: F24/F16 | `1.1.10` implemented after shared-fact extraction; F16 remaining text `1.1.14` | Retire only DP-specific routes/wiring/commands; retain DP input/shared Replace, metadata, old Report interpretation and required evidence. Update obsolete current-runtime reason, not historical records. |
+| AUD-15A: HG09 | `1.1.10` implementation; remaining evidence `1.1.11` | Read-only per-member/layout/count/bank/material matrix from existing profiles: AB Merge and CtrlRAM postbuild availability separate; equal capacity is not layout identity. List missing independent inputs/expected BINs. Specified prework, not implemented here. |
+| AUD-15B: HG09 | `1.1.10` Candidate implementation; independent evidence/validation `1.1.11` | The target-bank/default/source decisions and shared bank implementation are recorded in the 1.1.10 delivery. Remaining 1.1.11 work validates inverse relocation, B Header/CRC/finalization and independent complete outputs for the admitted shapes. Preserve non-target bank/DP/customer bytes and Candidate/ContractOnly; the release exception is not Golden certification. |
+| AUD-16A: F26, HG12 | `1.1.14` | Worker lexical JSON boundary: oversized integer returns one structured request error rather than empty stdout/traceback; keep digit/payload limits and valid CRC result. External 5000-digit reproduction is not a test rerun by this update. Specified proposal. |
 | AUD-16B: HG12/N01 | New policy intake; **unallocated / BLOCKED_PROTOCOL_POLICY** | Decide duplicate-key last-wins versus strict rejection and compatibility. Observation is not a proven contract violation; do not block F26 or silently change all JSON consumers. |
 
 Coverage check: the 20 rows retain all F01–F26 and HG01–HG12 references.

@@ -9,12 +9,14 @@ namespace NvtFwCombiner.Application.MemoryLayout;
 public sealed record MemoryLayoutSectionLocator
 {
     internal MemoryLayoutSectionLocator(
-        string addressSpaceId, ByteRange range, FirmwareImageMap? map, FirmwareRegion? region)
+        string addressSpaceId, ByteRange range, FirmwareImageMap? map, FirmwareRegion? region,
+        MemoryLayoutBankLocator? bank = null)
     {
         AddressSpaceId = addressSpaceId;
         Range = range;
         MapId = map?.MapId;
         CanonicalRegion = region;
+        Bank = bank;
         IsImageContainer = region?.Kind == FirmwareRegionKind.Image;
         IsImageOverlay = region is not null && map is not null && region.Kind == FirmwareRegionKind.Code &&
             HasImageAncestor(region, map);
@@ -33,6 +35,8 @@ public sealed record MemoryLayoutSectionLocator
     public string? MapId { get; }
     /// <summary>Declared region reference, or null for neutral context.</summary>
     public FirmwareRegion? CanonicalRegion { get; }
+    /// <summary>Canonical bank placement when the region belongs to a local companion map.</summary>
+    public MemoryLayoutBankLocator? Bank { get; }
     /// <summary>TP, DP, explicit Unmapped, or neutral General context.</summary>
     public MemoryContentRole ContentRole { get; }
     /// <summary>The canonical section is an image container, not standalone firmware code.</summary>
@@ -64,6 +68,21 @@ public static partial class MemoryLayoutProjector
         }
 
         var output = new ByteRange(0, capacity);
+        if (capability.CompiledComposition.V2Details.Provenance.Context is RuntimeReferenceBankReplaceV2CompilationContext bankProjection &&
+            capability.MemoryLayoutContext is { } companion)
+        {
+            IReadOnlyList<MemoryLayoutSectionLocator> localSections = ProjectMapSections(
+                companion.Map, addressSpaceId, companion.Map.CapacityBytes);
+            return [.. ProjectBankLocators(bankProjection, addressSpaceId, capacity).SelectMany(bank =>
+                localSections.Select(section => new MemoryLayoutSectionLocator(addressSpaceId,
+                    new ByteRange(checked(bank.Range.Start + section.Range.Start), section.Range.Length),
+                    companion.Map, section.CanonicalRegion, bank))),
+                .. bankProjection.SourceEnvelope is { } envelope && envelope.ActualOutputLength > envelope.LayoutTemplateCapacity
+                    ? new[] { new MemoryLayoutSectionLocator(addressSpaceId,
+                        new ByteRange(envelope.LayoutTemplateCapacity,
+                            envelope.ActualOutputLength - envelope.LayoutTemplateCapacity), null, null) }
+                    : []];
+        }
         FirmwareImageMap[] maps = capability.CompiledComposition.V2Details.Provenance.Context is RuntimeReferenceBankReplaceV2CompilationContext bankContext
             ? [bankContext.ResolvedMap.ImageMap]
             : capability.MemoryLayoutContext is { } explicitContext ? [explicitContext.Map] :
@@ -73,12 +92,15 @@ public static partial class MemoryLayoutProjector
                 .Select(static entry => entry.ResolvedMap.ImageMap).Distinct(),
         ];
         MemoryLayoutSectionLocator[] context = [new(addressSpaceId, output, null, null)];
-        if (maps.Length != 1 || maps[0].AddressSpaceId != addressSpaceId)
-        {
-            return context;
-        }
+        return maps.Length != 1 || maps[0].AddressSpaceId != addressSpaceId
+            ? context : ProjectMapSections(maps[0], addressSpaceId, capacity);
+    }
 
-        FirmwareImageMap map = maps[0];
+    private static IReadOnlyList<MemoryLayoutSectionLocator> ProjectMapSections(
+        FirmwareImageMap map, string addressSpaceId, long capacity)
+    {
+        var output = new ByteRange(0, capacity);
+        MemoryLayoutSectionLocator[] context = [new(addressSpaceId, output, null, null)];
         FirmwareRegion[] codes =
         [
             .. map.Regions.Where(region => (region.Kind == FirmwareRegionKind.Code ||

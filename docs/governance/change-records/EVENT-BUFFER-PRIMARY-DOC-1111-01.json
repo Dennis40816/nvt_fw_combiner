@@ -1,0 +1,34 @@
+{
+  "schemaVersion": 2,
+  "taskId": "EVENT-BUFFER-PRIMARY-DOC-1111-01",
+  "capability": "Synchronize the 1.1.11 Event Buffer primary-info presentation direction",
+  "integrationBase": "3db701b70e0eec66889a4b030fcbb84db0db5693",
+  "risk": "R2",
+  "kind": "governance",
+  "state": "final-complete",
+  "mutablePaths": [
+    "docs/architecture/nfc_roadmap.md"
+  ],
+  "implementationOwner": "/root",
+  "searchEvidence": [
+    "Owner corrected Event Buffer to the always-visible upper information area and then explicitly requested its UI implementation. The delivery correction at 630618fa6 records that expectation; current roadmap still says expanded TP information.",
+    "UiCompositionRunner.CreateEventBufferFact is the shared display owner for Standard TP/Base, AB TP and AB Base, including missing-bank placeholders. Product changes use the separately recorded bounded local R1 correction; no metadata, profile, firmware or Build contract changes."
+  ],
+  "semanticOwner": "docs/architecture/nfc_roadmap.md owns the accepted current direction; existing delivery/handoff retain implementation and dated evidence",
+  "terminalContract": "Replace current expanded-TP-Details direction with primary always-visible Event Buffer for Standard TP, AB TP A/B and CtrlRAM Base. Keep Name (0x??), Common short name, bank labels, missing values, DP exclusion and all unrelated scope. Preserve dated Details implementation evidence as history. Record document synchronization only; runtime changes follow the bounded local R1 preflight in the delivery record.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "/root/eventbuffer_design_review",
+    "outcome": "approved",
+    "evidence": "2026-09-25 independent scoped R2 design ADMITTED. Confirmed existing shared CreateEventBufferFact covers all consumers; two display priority branches suffice, including missing bank values. No per-IC/page duplicate rules required; preserve historical Details evidence and all unrelated allocation."
+  },
+  "implementationHead": "1754efb4831fb0ee0055fd91c0c3f9b9af8ed0b2",
+  "reviewedHead": "1754efb4831fb0ee0055fd91c0c3f9b9af8ed0b2",
+  "pathStateDigest": "81d92f8508ef2b27a724f3b1c7d5f000bb565d503e98f0bde200d2e458a451b6",
+  "finalReview": {
+    "reviewer": "/root/ab_layout_context_review",
+    "outcome": "approved",
+    "evidence": "70ab0b7f3 Event Buffer primary placement scoped review and 75/75 UI evidence; subsequent roadmap wording in ffd7f0cd9 and 90003b5c2 reviewed as bounded planning amendments. Independent fixed-diff follow-up at 1754efb4831fb0ee0055fd91c0c3f9b9af8ed0b2 found no P0-P2 issues. The final partition covers 91 governed checkpoint-to-review paths exactly once across 22 records, retaining each original admission and full mutable-path digest. The 90003b5c2 full nonstructure run failed eight .NET assertions and one Python script lane, while all 26 certified Direct Golden cases executed and passed. 1754efb48 changes only tests/prose and corrects those assertions: affected Bootstrap 27/27, Architecture 268/268 and canonical intake 7/7 passed; product/profile/Golden bytes are identical to 90003b5c2. These are scoped results, not a fresh full-suite PASS. On 2026-09-25 the owner approved all nine R3 closures for 1754efb48, sealing, push and formal release progression. Separate typed exact-head owner attestations follow this technical evidence commit. Formal exact-source CI, structure and fresh release Golden execution remain required before publication. The private 32-byte Header-backup/CRC difference remains uncertified Candidate evidence and is deferred by the owner to 1.1.12; no expected bytes, support status or test result is relabeled."
+  },
+  "integrationPaths": []
+}

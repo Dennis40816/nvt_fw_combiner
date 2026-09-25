@@ -25,6 +25,9 @@ public sealed class AbCtrlRamRegistryTests(ITestOutputHelper output)
         Assert.Equal(new ByteRange(0, localCapacity), binding.Definition.LocalBankRange);
         Assert.Equal(icId, binding.Definition.Local.MemberId);
         Assert.Equal(binding.Local.Route.ProfileId, binding.Definition.Local.ProfileId);
+        CanonicalDynamicRoute route = CanonicalDynamicRouteInventory.Resolve(binding.Identity);
+        Assert.Same(binding.Local.Route.MemoryLayoutContext, route.MemoryLayoutContext);
+        Assert.Equal(bankCapacity, route.MemoryLayoutContext!.Map.CapacityBytes);
         output.WriteLine($"{binding.Identity.RouteId} {CanonicalDynamicRouteInventory.Resolve(binding.Identity).CapabilityFingerprint}");
         Assert.Equal("nt51950-ab-merge", binding.Layout.BundleContentHash ==
             BuiltInV2BundleRegistry.All["nt51950-ab-merge"].ContentHash
@@ -109,7 +112,7 @@ public sealed class AbCtrlRamRegistryTests(ITestOutputHelper output)
     public void MissingParentAndChangedIdentityNeverReuseAnAdmission()
     {
         TrustedProfileBundleCatalog ab = V2StandardMergeGoldenTestSupport.LoadDeployedCatalog(
-            "nt51919-nt51929-nt51932-ab-merge", "892af5d0f1ff0094bb96a0e30ffad3b6c2cf18451a6705623c2ca97206422c6b");
+            "nt51919-nt51929-nt51932-ab-merge", "ece8e9ee7a81b3f00ce04bd7c1aa053acde26835d75c3042bf1a86302d8de793");
         BankReplaceRouteBinding binding = CanonicalDynamicRouteInventory.FindBankReplaceBinding("NT51929", "1-ic")!;
         BankReferenceReplaceDefinition definition = binding.Definition;
         _ = Assert.Throws<ArgumentException>(() => ab.CreateBankReplaceDefinition(ab,

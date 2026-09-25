@@ -10,6 +10,40 @@ namespace NvtFwCombiner.UiSmoke.Tests;
 
 public sealed partial class FirmwareInspectionSlotTests
 {
+    /// <summary>The same flash inspection is presented by slot role without reclassifying its bytes.</summary>
+    [Fact]
+    public void SharedFlashInspectionProjectsDpTpAndBaseRolesIndependently()
+    {
+        var inspection = new FirmwareInspectionSnapshot(null,
+            new(0x22000, "2.0.0", 0x81, 0, true, 0, 2, 0x570A, null, default),
+            null, new CmiDpCodeMetadata(6, 0, JiraNumber: 607, Register16Offset: 0), null, null)
+        {
+            ArtifactClassification = CreateArtifactClassification(CompiledFirmwareArtifactKind.FlashCode),
+            StandardEventBufferFormatVersion = 0x80,
+        };
+        ShellTextResources text = ShellTextResources.For(ShellLanguage.English);
+        var dp = new FirmwareSlotViewModel("dp", "DP", "Display input", FirmwareSlotKind.Dp);
+        var tp = new FirmwareSlotViewModel("tp", "TP", "Touch input", FirmwareSlotKind.Tp);
+        var reference = new FirmwareSlotViewModel("base", "Base", "Reference input", FirmwareSlotKind.Base);
+        foreach (FirmwareSlotViewModel slot in new[] { dp, tp, reference })
+        {
+            FirmwareInspectionProjection.ApplyFirmwareFacts(slot, inspection, text);
+        }
+
+        Assert.Equal(["DP Version", "Jira Index"], dp.PrimaryFirmwareFacts.Select(static fact => fact.Label));
+        Assert.Empty(dp.AdditionalFirmwareFacts);
+        Assert.Equal(["TP Version", "PID", "Common FW Version", text.EventBufferVersionLabel],
+            tp.PrimaryFirmwareFacts.Select(static fact => fact.Label));
+        Assert.DoesNotContain(tp.FirmwareFacts, static fact => fact.Label == "DP Version");
+        Assert.Equal(tp.PrimaryFirmwareFacts, reference.PrimaryFirmwareFacts);
+        Assert.Contains(reference.AdditionalFirmwareFacts, static fact => fact.Label == "DP Version" && fact.Value == "D06-00");
+        Assert.Contains(reference.AdditionalFirmwareFacts, static fact => fact.Label == "Jira Index");
+        foreach (FirmwareSlotViewModel slot in new[] { tp, reference })
+        {
+            Assert.Contains(slot.PrimaryFirmwareFacts, fact => fact.Label == text.EventBufferVersionLabel && fact.Value == "Common (0x80)");
+        }
+    }
+
     /// <summary>Every authorable Standard Merge IC retains the owner-approved FlashCode naming contract.</summary>
     [Fact]
     public void EveryAuthorableStandardMergeIcUsesCanonicalGoldenOutputName()

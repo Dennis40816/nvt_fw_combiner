@@ -1,0 +1,39 @@
+{
+  "schemaVersion": 2,
+  "taskId": "RELEASE-IDENTITY-1111-01",
+  "capability": "Prepare the owner-selected 1.1.11 candidate identity and release notes without publication",
+  "integrationBase": "3db701b70e0eec66889a4b030fcbb84db0db5693",
+  "risk": "R3",
+  "kind": "release",
+  "state": "final-complete",
+  "mutablePaths": [
+    "VERSION",
+    "SPEC.md"
+  ],
+  "implementationOwner": "/root",
+  "searchEvidence": [
+    "Owner requests completion of feasible 1.1.11 work before supplying remaining AB CtrlRAM Golden. 1.1.10 is already published at v1.1.10, peeled source a90c640f2bb54b8b1b82d4010c461b3bd8efa0b1.",
+    "VERSION remains the canonical assembly/package identity; sync_derived.py release-version-headers projects its value into SPEC and the historical verification-report version header.",
+    "CHANGELOG current heading incorrectly still calls 1.1.10 unpublished. Add the new 1.1.11 candidate section and correct the top-level state without rewriting the historical released section."
+  ],
+  "semanticOwner": "Existing VERSION release identity and sync_derived release-version-headers provider; CHANGELOG owns user-visible candidate notes.",
+  "terminalContract": "Set VERSION to 1.1.11 and SPEC version/status headers to the same candidate identity with final gates pending. Use existing sync_derived provider for SPEC and docs/references/verification-report.md version headers only. Add complete CHANGELOG candidate notes with supported-neutral status and truthful outstanding independent AB Golden, owner review and publication gates. Do not modify stable tags/assets, CI, release policy, decisions, expected bytes, or claim publication. Validate version/header synchronization and release note renderer; final source verification, signing/package and external owner evidence remain separately required.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "/root/ab_layout_context_review",
+    "outcome": "approved",
+    "evidence": "2026-09-25 independent R3 design ADMITTED: exact governed VERSION/SPEC.md; two ordinary documentation projections named in evidence. Existing provider only updates unique version headers. No tag/push/publication or AB evidence promotion. Stage before editing; final release authority remains pending."
+  },
+  "implementationHead": "1754efb4831fb0ee0055fd91c0c3f9b9af8ed0b2",
+  "reviewedHead": "1754efb4831fb0ee0055fd91c0c3f9b9af8ed0b2",
+  "pathStateDigest": "2a7ec8882ab02617dd4b384ce9edf4d5ee23bb25795d8f17e759c19007dd6a3e",
+  "finalReview": {
+    "reviewer": "/root/ab_layout_context_review",
+    "outcome": "approved",
+    "evidence": "261dd1aee bounded release-identity review: VERSION 1.1.11 and SPEC header only, derived verification header and candidate changelog; no later mutable-path change. Independent fixed-diff follow-up at 1754efb4831fb0ee0055fd91c0c3f9b9af8ed0b2 found no P0-P2 issues. The final partition covers 91 governed checkpoint-to-review paths exactly once across 22 records, retaining each original admission and full mutable-path digest. The 90003b5c2 full nonstructure run failed eight .NET assertions and one Python script lane, while all 26 certified Direct Golden cases executed and passed. 1754efb48 changes only tests/prose and corrects those assertions: affected Bootstrap 27/27, Architecture 268/268 and canonical intake 7/7 passed; product/profile/Golden bytes are identical to 90003b5c2. These are scoped results, not a fresh full-suite PASS. On 2026-09-25 the owner approved all nine R3 closures for 1754efb48, sealing, push and formal release progression. Separate typed exact-head owner attestations follow this technical evidence commit. Formal exact-source CI, structure and fresh release Golden execution remain required before publication. The private 32-byte Header-backup/CRC difference remains uncertified Candidate evidence and is deferred by the owner to 1.1.12; no expected bytes, support status or test result is relabeled."
+  },
+  "integrationPaths": [
+    "SPEC.md",
+    "VERSION"
+  ]
+}

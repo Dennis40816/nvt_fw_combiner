@@ -9,6 +9,9 @@ namespace NvtFwCombiner.Presentation.Avalonia.Views;
 /// <summary>Shared General mapping row with local BIN browse and drop selection.</summary>
 public sealed partial class GeneralMappingRow : UserControl
 {
+    internal Func<global::Avalonia.Platform.Storage.IStorageProvider, string, Task<string?>> PickFirmwareFileAsync { get; init; } =
+        FirmwareFilePickerDialogs.PickFirmwareBinOpenFileAsync;
+
     /// <summary>Defines the localized browse button label.</summary>
     public static readonly StyledProperty<string> BrowseLabelProperty =
         AvaloniaProperty.Register<GeneralMappingRow, string>(nameof(BrowseLabel), "Browse");
@@ -96,12 +99,19 @@ public sealed partial class GeneralMappingRow : UserControl
         string title = string.IsNullOrWhiteSpace(SelectBinTooltip)
             ? mapping is GeneralMergeMappingViewModel ? "Select source BIN" : "Select replacement BIN"
             : SelectBinTooltip;
-        string? path = await FirmwareFilePickerDialogs.PickFirmwareBinOpenFileAsync(
+        WorkflowPickerSelectionLease? selection =
+            viewModel.WorkflowSession.BeginFirmwarePickerSelection(mapping.MappingId, mapping);
+        if (selection is null)
+        {
+            return;
+        }
+
+        string? path = await PickFirmwareFileAsync(
             topLevel.StorageProvider,
             title);
         if (!string.IsNullOrWhiteSpace(path))
         {
-            await viewModel.WorkflowSession.SetSlotFileAsync(mapping.MappingId, path);
+            await viewModel.WorkflowSession.SetSlotFileFromPickerAsync(selection, path);
         }
     }
 

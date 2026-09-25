@@ -28,6 +28,8 @@ internal sealed partial class WorkflowSessionPresentationViewModel
             return;
         }
 
+        InvalidatePickerSelection(tpA);
+        InvalidatePickerSelection(tpB);
         FirmwareSlotViewModel? selectedA = SelectSlotFile(context, tpA.SlotId, path);
         FirmwareSlotViewModel? selectedB = SelectSlotFile(context, tpB.SlotId, path);
         if (selectedA is null || selectedB is null)

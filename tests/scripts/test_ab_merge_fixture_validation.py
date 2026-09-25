@@ -143,6 +143,28 @@ class AbMergeFixtureValidationTests(unittest.TestCase):
             any("referenceParity drift" in error for error in errors), errors
         )
 
+    def test_rejects_osd_topology_or_archive_provenance_drift(self) -> None:
+        osd = self.case("nt51950-ab-osd-d03t02-20260924")
+        osd["topology"] = "topology-unscoped"
+        osd["intakeSource"]["sha256"] = "0" * 64
+
+        errors = self.validate()
+
+        self.assertTrue(any("topology drift" in error for error in errors), errors)
+        self.assertTrue(any("intakeSource drift" in error for error in errors), errors)
+
+    def test_rejects_osd_owner_payload_identity_or_parity_drift(self) -> None:
+        osd = self.case("nt51950-ab-osd-d03t02-20260924")
+        osd["referenceParity"]["snapshot"] = "refcode/ab_code_combiner"
+        osd["artifacts"][0]["sha256"] = "0" * 64
+        osd["artifacts"][2]["sourcePath"] = "other-tp.bin"
+
+        errors = self.validate()
+
+        self.assertTrue(any("referenceParity drift" in error for error in errors), errors)
+        self.assertTrue(any("owner identity drift" in error for error in errors), errors)
+        self.assertTrue(any("share one physical archive member" in error for error in errors), errors)
+
     def case(self, case_id: str) -> dict[str, Any]:
         entry = next(
             entry for entry in self.manifest["cases"] if entry["caseId"] == case_id

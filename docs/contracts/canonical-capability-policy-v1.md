@@ -112,6 +112,14 @@ A source reference that says `owner-approved` does not itself create owner appro
 
 ## Validation and publication
 
+The 1.1.11 AB CtrlRAM display-context binding reuses the exact Standard
+companion already declared by the local route. This changes definition
+fingerprints for the existing NT51919, NT51950 and NT51951 single/cascade AB
+routes, including their matching canonical manifest `routeEvidence` pins.
+It does not change any decision value or source reference, expected output
+bytes/hash, evidence rank or publication status. The binding identifies
+read-only bank section context; it grants no new execution or input authority.
+
 The repository verifier validates the JSON against the normative schema. Runtime loading additionally pins the exact LF-normalized file SHA-256, rejects unknown members, derives `routeId`, checks decision pins, and enforces the active workflow vocabulary and closed decision values.
 
 The release package ships the hash-pinned JSON runtime policy. The prose and schema remain repository contract authorities and contribute to the repository schema digest; they are not required runtime payloads. The retired standalone support-publication policy must not be restored.

@@ -205,7 +205,7 @@ internal sealed partial class MergePresentationViewModel
                 AbMergeFacts = previous.AbMergeFacts with { EventBufferFormat = null },
             };
             slot.SetCurrentInspectionProjection(pending);
-            FirmwareInspectionProjection.ApplyAbInputFacts(slot, pending, Text);
+            FirmwareInspectionProjection.ApplyFirmwareFacts(slot, pending, Text);
         }
         RefreshCommandState();
         try
@@ -256,7 +256,7 @@ internal sealed partial class MergePresentationViewModel
                     AuthoringCompilationIssues = [],
                 };
                 slot.SetCurrentInspectionProjection(updated);
-                FirmwareInspectionProjection.ApplyAbInputFacts(slot, updated, Text);
+                FirmwareInspectionProjection.ApplyFirmwareFacts(slot, updated, Text);
                 FirmwareInspectionProjection.ApplyInputSlotInspection(slot, status, Text);
             }
             SyncAbMergeMembership(result.Snapshot);

@@ -164,12 +164,19 @@ public sealed partial class FirmwareSlotCard : UserControl
             return;
         }
 
+        WorkflowPickerSelectionLease? selection =
+            viewModel.WorkflowSession.BeginFirmwarePickerSelection(slotId, slot);
+        if (selection is null)
+        {
+            return;
+        }
+
         string? path = await PickFirmwareFileAsync(
             topLevel.StorageProvider,
             FormatBrowseActionLabel(BrowseLabel, slot.Title));
         if (!string.IsNullOrWhiteSpace(path))
         {
-            await viewModel.WorkflowSession.SetSlotFileAsync(slotId, path);
+            await viewModel.WorkflowSession.SetSlotFileFromPickerAsync(selection, path);
         }
     }
 

@@ -47,11 +47,34 @@ internal static class FirmwareInspectionProjection
                     inspection.FirmwareConfig);
     }
 
-    internal static void ApplyAbInputFacts(
+    internal static void ApplyFirmwareFacts(
         FirmwareSlotViewModel slot,
         FirmwareInspectionSnapshot inspection,
         ShellTextResources text,
         bool expandAdditionalByDefault = false)
+    {
+        slot.SetFirmwareFacts(GetFirmwareFacts(slot, inspection, text), expandAdditionalByDefault);
+    }
+
+    internal static IReadOnlyList<FirmwareSlotFactViewModel> GetFirmwareFacts(
+        FirmwareSlotViewModel slot,
+        FirmwareInspectionSnapshot inspection,
+        ShellTextResources text)
+    {
+        return !SupportsFacts(slot, inspection) ? []
+            : slot.SlotKind == FirmwareSlotKind.Base
+                ? UiCompositionRunner.GetFirmwareSlotFacts(inspection, includeBaseFacts: true, text: text)
+            : inspection.AbMergeFacts is not null
+                ? GetAbInputFacts(slot.SlotKind, inspection, text)
+            : slot.SlotKind == FirmwareSlotKind.Dp
+                ? UiCompositionRunner.GetDpFirmwareSlotFacts(inspection, text)
+            : UiCompositionRunner.GetFirmwareSlotFacts(inspection, text: text);
+    }
+
+    private static List<FirmwareSlotFactViewModel> GetAbInputFacts(
+        FirmwareSlotKind slotKind,
+        FirmwareInspectionSnapshot inspection,
+        ShellTextResources text)
     {
         AbMergeInputFacts abInput = inspection.AbMergeFacts ??
             throw new ArgumentException("AB firmware facts require AB input facts.", nameof(inspection));
@@ -72,25 +95,32 @@ internal static class FirmwareInspectionProjection
                 !version.IsKnown ? FirmwareSlotFactState.Unknown : FirmwareSlotFactState.Ordinary,
                 !version.IsKnown ? text.FirmwareSlotUnknownValueLabel : null,
                 !version.IsKnown ? text.FirmwareSlotUnknownFactDetail : null,
-                isDp && slot.SlotKind == FirmwareSlotKind.Base ? FirmwareSlotFactPriority.Details : FirmwareSlotFactPriority.Primary));
+                FirmwareSlotFactPriority.Primary));
             if (isDp && version.TrackerId is > 0)
             {
                 facts.Add(new FirmwareSlotFactViewModel(
                     $"{bankLabel} Jira Index",
                     FormattableString.Invariant($"AUTO_PRJ-{version.TrackerId}"),
-                    priority: slot.SlotKind == FirmwareSlotKind.Base ? FirmwareSlotFactPriority.Details : FirmwareSlotFactPriority.Primary));
+                    priority: FirmwareSlotFactPriority.Primary));
             }
         }
 
         // AB owns the bank-specific version label. The remaining facts come from
         // existing typed projections, never from reading bytes or matching Config here.
-        facts.AddRange(UiCompositionRunner.GetFirmwareSlotFacts(inspection, text: text, includeTpVersion: false));
-        if (abInput.EventBufferFormat is { } format)
+        if (slotKind == FirmwareSlotKind.Tp)
         {
-            facts.Add(new(text.EventBufferVersionLabel,
-                FormattableString.Invariant($"0x{format.RawByte:X2} - {format.DetectedDisplayName ?? format.DisplayName}")));
+            facts.AddRange(UiCompositionRunner.GetFirmwareSlotFacts(inspection, text: text, includeTpVersion: false));
+            if (abInput.EventBufferFormat is { } format)
+            {
+                facts.Add(UiCompositionRunner.CreateEventBufferFact(format.RawByte, text,
+                    fallbackDisplayName: format.DisplayName));
+            }
+            else if (inspection.AbCommonEventBufferFormatVersion is { } commonRaw)
+            {
+                facts.Add(UiCompositionRunner.CreateEventBufferFact(commonRaw, text));
+            }
         }
-        slot.SetFirmwareFacts(facts, expandAdditionalByDefault);
+        return facts;
     }
 
     internal static void ApplyInputSlotInspection(

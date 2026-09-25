@@ -58,6 +58,7 @@
     },
     {
       "artifactId": "postbuild-mp-ctrlram",
+      "slotId": "replace-ctrlram-mp-master",
       "role": "input",
       "path": "NT51927/ctrlram-replace/fw1.4.1/single/nt51927-fw141-single-auto-prj-529-20260717/inputs/postbuild/nt51927-postbuild-mp-ctrlram.bin",
       "size": 655360,
@@ -70,6 +71,7 @@
     },
     {
       "artifactId": "postbuild-nf-ctrlram",
+      "slotId": "replace-ctrlram-nf",
       "role": "input",
       "path": "NT51927/ctrlram-replace/fw1.4.1/single/nt51927-fw141-single-auto-prj-529-20260717/inputs/postbuild/nt51927-postbuild-nf-ctrlram.bin",
       "size": 4048,
@@ -82,6 +84,7 @@
     },
     {
       "artifactId": "postbuild-normal-ctrlram",
+      "slotId": "replace-ctrlram-normal-master",
       "role": "input",
       "path": "NT51927/ctrlram-replace/fw1.4.1/single/nt51927-fw141-single-auto-prj-529-20260717/inputs/postbuild/nt51927-postbuild-normal-ctrlram.bin",
       "size": 655360,
@@ -94,6 +97,7 @@
     },
     {
       "artifactId": "postbuild-vn-ctrlram",
+      "slotId": "replace-ctrlram-vn",
       "role": "input",
       "path": "NT51927/ctrlram-replace/fw1.4.1/single/nt51927-fw141-single-auto-prj-529-20260717/inputs/postbuild/nt51927-postbuild-vn-ctrlram.bin",
       "size": 5728,

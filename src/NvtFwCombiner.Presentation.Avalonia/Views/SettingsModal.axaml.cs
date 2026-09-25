@@ -60,6 +60,7 @@ public sealed partial class SettingsModal : UserControl
     {
         _owningTopLevel?.RemoveHandler(KeyDownEvent, SettingsModal_OnKeyDown);
         _owningTopLevel = null;
+        _settings?.InvalidateUpdateSourceBrowse();
         StopObservingSettings();
         _settings = null;
         _confirmationReturnFocus = null;
@@ -220,7 +221,16 @@ public sealed partial class SettingsModal : UserControl
 
     private void SettingsModal_OnPropertyChanged(object? sender, AvaloniaPropertyChangedEventArgs e)
     {
-        if (e.Property != IsOpenProperty || VisualRoot is null)
+        if (e.Property != IsOpenProperty)
+        {
+            return;
+        }
+
+        if (!IsOpen)
+        {
+            _settings?.InvalidateUpdateSourceBrowse();
+        }
+        if (VisualRoot is null)
         {
             return;
         }

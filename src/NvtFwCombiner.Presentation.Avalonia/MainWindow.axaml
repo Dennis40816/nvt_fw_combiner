@@ -207,7 +207,7 @@
                   <Grid ColumnDefinitions="158,Auto" ColumnSpacing="6">
                     <ComboBox
                         MinHeight="32"
-                        ItemsSource="{Binding ReplaceModeChoices}"
+                        ItemsSource="{Binding VisibleReplaceModeChoices}"
                         SelectedItem="{Binding SelectedReplaceMode, Mode=TwoWay}">
                       <ComboBox.ItemTemplate>
                         <DataTemplate>
@@ -295,7 +295,7 @@
                   <TextBlock Classes="fieldLabel" Text="{Binding Text.ModeLabel}" />
                   <ComboBox
                       MinHeight="32"
-                      ItemsSource="{Binding MergeModeChoices}"
+                      ItemsSource="{Binding VisibleMergeModeChoices}"
                       SelectedItem="{Binding SelectedMergeMode, Mode=TwoWay}">
                     <ComboBox.ItemTemplate>
                       <DataTemplate>

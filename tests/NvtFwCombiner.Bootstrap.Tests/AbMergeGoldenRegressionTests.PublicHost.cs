@@ -23,7 +23,50 @@ public sealed partial class AbMergeGoldenRegressionTests
         SkipUnless = nameof(IsWindows))]
     public async Task Nt51950PublicHostBuildAcceptsOneCanonicalTpFileForBothLogicalSlotsAsync()
     {
-        JsonElement goldenCase = ReadGoldenCase("nt51950-ab-boe-d82t80");
+        (byte[] output, string reportJson) = await RunNt51950CanonicalPublicHostAsync(
+            "nt51950-ab-boe-d82t80", "nfc-nt51950-ab-public-same-tp");
+        AssertPostbuildMpeg2Crc(output, bTpCodeStart: 0x4A000);
+        using var report = JsonDocument.Parse(reportJson);
+        AssertPublicSameTpBuildReport(
+            report.RootElement,
+            "NT51950",
+            "nt51950-ab-merge",
+            "nfc-nt51950-ab-merge-combiner-v1",
+            0x4A000,
+            "0x40000");
+    }
+
+    /// <summary>The owner-certified single OSD case runs through the same public CLI and matches all 1 MiB.</summary>
+    [Fact(
+        Skip = "Requires the packaged Windows legacy Combiner processor.",
+        SkipUnless = nameof(IsWindows))]
+    public async Task Nt51950OsdPublicHostMatchesOwnerCertifiedGoldenAsync()
+    {
+        (byte[] output, string reportJson) = await RunNt51950CanonicalPublicHostAsync(
+            "nt51950-ab-osd-d03t02-20260924", "nfc-nt51950-ab-osd-public-same-tp");
+        Assert.Equal(0x100000, output.Length);
+        AssertPostbuildMpeg2Crc(output, bTpCodeStart: 0x4A000);
+        using var report = JsonDocument.Parse(reportJson);
+        AssertPublicSameTpBuildReport(
+            report.RootElement,
+            "NT51950",
+            "nt51950-ab-merge",
+            "nfc-nt51950-ab-merge-combiner-v1",
+            0x4A000,
+            "0x40000");
+        JsonElement warning = Assert.Single(report.RootElement.GetProperty("Issues").EnumerateArray(),
+            static issue => issue.GetProperty("Code").GetString() == "DP_NONSTANDARD_SIZE_WARNING");
+        Assert.Equal("warning", warning.GetProperty("Severity").GetString());
+        Assert.Equal(CompositionAddressSpaceIds.DpAbInput, warning.GetProperty("OperationId").GetString());
+        JsonElement envelope = report.RootElement.GetProperty("SourceEnvelope");
+        Assert.Equal(0x80000, envelope.GetProperty("LayoutTemplateCapacity").GetInt64());
+        Assert.Equal(0x100000, envelope.GetProperty("ActualOutputLength").GetInt64());
+    }
+
+    private static async Task<(byte[] Output, string ReportJson)> RunNt51950CanonicalPublicHostAsync(
+        string caseId, string workspacePrefix)
+    {
+        JsonElement goldenCase = ReadGoldenCase(caseId);
         JsonElement[] artifacts = [.. goldenCase.GetProperty("artifacts").EnumerateArray()];
         string dpPath = CanonicalGoldenTestData.ArtifactPath(artifacts.Single(static artifact =>
             artifact.GetProperty("artifactId").GetString() == CompositionAddressSpaceIds.DpAbInput));
@@ -34,7 +77,7 @@ public sealed partial class AbMergeGoldenRegressionTests
         Assert.Equal(tpAPath, tpBPath);
         byte[] originalDp = File.ReadAllBytes(dpPath);
         byte[] originalTp = File.ReadAllBytes(tpAPath);
-        using var workspace = TempWorkspace.Create("nfc-nt51950-ab-public-same-tp");
+        using var workspace = TempWorkspace.Create(workspacePrefix);
         CompositionHostServices host = await CreateFormatGoldenHostAsync(workspace);
         string selectedDpPath = workspace.Write("dp-ab.bin", originalDp);
         string selectedTpPath = workspace.Write("shared-tp.bin", originalTp);
@@ -64,22 +107,16 @@ public sealed partial class AbMergeGoldenRegressionTests
         Assert.True(result.ExitCode == 0, result.Error + Environment.NewLine + result.Output);
         Assert.Contains($"Committed: {outputPath}", result.Output, StringComparison.Ordinal);
         byte[] output = File.ReadAllBytes(outputPath);
-        Assert.Equal(ReadExpected(goldenCase), output);
-        AssertPostbuildMpeg2Crc(output, bTpCodeStart: 0x4A000);
+        byte[] expected = ReadExpected(goldenCase);
+        Assert.Equal(expected, output);
+        Assert.Equal(Hash(expected), Hash(output));
         Assert.Equal(originalDp, File.ReadAllBytes(selectedDpPath));
         Assert.Equal(originalTp, File.ReadAllBytes(selectedTpPath));
         Assert.Equal(originalDp, File.ReadAllBytes(dpPath));
         Assert.Equal(originalTp, File.ReadAllBytes(tpAPath));
-        using var report = JsonDocument.Parse(await File.ReadAllTextAsync(
-            reportPath,
-            TestContext.Current.CancellationToken));
-        AssertPublicSameTpBuildReport(
-            report.RootElement,
-            "NT51950",
-            "nt51950-ab-merge",
-            "nfc-nt51950-ab-merge-combiner-v1",
-            0x4A000,
-            "0x40000");
+        string reportJson = await File.ReadAllTextAsync(
+            reportPath, TestContext.Current.CancellationToken);
+        return (output, reportJson);
     }
 
     /// <summary>

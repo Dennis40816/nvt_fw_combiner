@@ -12,7 +12,7 @@ namespace NvtFwCombiner.Application.Tests.Metadata;
 public sealed class FirmwareConfigGeneralParametersProjectorTests
 {
     private const int CapacityBytes = 0x40;
-    private const int StructureLengthBytes = 23;
+    private const int StructureLengthBytes = 25;
     private const string ArtifactBindingId = "tp-firmware";
     private const string FamilyHash =
         "abababababababababababababababababababababababababababababababab";
@@ -37,11 +37,12 @@ public sealed class FirmwareConfigGeneralParametersProjectorTests
         new(FirmwareConfigGeneralParametersContract.CommonFirmwareAdditionalVersion, 19, 1, 6),
         new(FirmwareConfigGeneralParametersContract.Pid, 20, 2, 0x1234),
         new(FirmwareConfigGeneralParametersContract.CascadeEnable, 22, 1, 1),
+        new(FirmwareConfigGeneralParametersContract.EventBufferFormatVersion, 23, 1, 0xA3),
     ];
 
     /// <summary>Every semantic projector input is required; no partial fact object may escape.</summary>
     public static TheoryData<string> RequiredFieldIds =>
-        [.. FieldDefinitions.Select(static definition => definition.FieldId)];
+        [.. FieldDefinitions.Where(static definition => definition.FieldId != FirmwareConfigGeneralParametersContract.EventBufferFormatVersion).Select(static definition => definition.FieldId)];
 
     /// <summary>Verifies one complete decoded structure becomes the owner-approved semantic projection.</summary>
     [Fact]
@@ -52,6 +53,7 @@ public sealed class FirmwareConfigGeneralParametersProjectorTests
         Assert.True(FirmwareConfigGeneralParametersProjector.TryProject(
             snapshot,
             out FirmwareConfigGeneralParametersFacts facts));
+        Assert.Equal((byte)0xA3, facts.EventBufferFormatVersion);
         Assert.Equal((byte)0x5A, facts.TpFirmwareVersion);
         Assert.Equal((byte)0xA5, facts.TpFirmwareVersionComplement);
         Assert.True(facts.IsTpFirmwareVersionComplementValid);
@@ -173,13 +175,34 @@ public sealed class FirmwareConfigGeneralParametersProjectorTests
         Assert.False(FirmwareConfigGeneralParametersProjector.TryCreateDiagnostic(absent, out _));
     }
 
+    /// <summary>Older decoded structures without the optional display field retain their other facts.</summary>
+    [Fact]
+    public void MissingEventBufferDoesNotInvalidateCommonFacts()
+    {
+        Assert.True(FirmwareConfigGeneralParametersProjector.TryProject(
+            CreateSnapshot(FirmwareConfigGeneralParametersContract.EventBufferFormatVersion), out FirmwareConfigGeneralParametersFacts facts));
+        Assert.Null(facts.EventBufferFormatVersion);
+        Assert.Equal((byte)0x5A, facts.TpFirmwareVersion);
+    }
+
+    /// <summary>A widened field cannot become a display byte merely because its numeric value fits.</summary>
+    [Fact]
+    public void WidenedEventBufferRetainsOtherFactsButNoDisplayByte()
+    {
+        Assert.True(FirmwareConfigGeneralParametersProjector.TryProject(
+            CreateSnapshot(eventFieldWidth: 2), out FirmwareConfigGeneralParametersFacts facts));
+        Assert.Null(facts.EventBufferFormatVersion);
+        Assert.Equal((byte)0x5A, facts.TpFirmwareVersion);
+    }
+
     private static MetadataInspectionSnapshot CreateSnapshot(
         string? omittedFieldId = null,
         bool validComplement = true,
         byte reportIrqType = 0x10,
         byte outermostIcMasterEnable = 1,
         bool includeComplementRelation = true,
-        bool misbindComplementRelation = false)
+        bool misbindComplementRelation = false,
+        int eventFieldWidth = 1)
     {
         FieldDefinition[] selectedDefinitions =
         [
@@ -188,10 +211,10 @@ public sealed class FirmwareConfigGeneralParametersProjectorTests
         ];
         FirmwareMetadataField[] fields =
         [
-            .. selectedDefinitions.Select(static field => new FirmwareMetadataField(
+            .. selectedDefinitions.Select(field => new FirmwareMetadataField(
                 field.FieldId,
                 field.Offset,
-                field.WidthBytes,
+                field.FieldId == FirmwareConfigGeneralParametersContract.EventBufferFormatVersion ? eventFieldWidth : field.WidthBytes,
                 FirmwareMetadataEncoding.UnsignedInteger,
                 FirmwareMetadataByteOrder.LittleEndian)),
         ];

@@ -563,7 +563,8 @@ public sealed partial class ProfileBundleSchemaValidatorTests
                         profileBytes,
                         schemaId),
                 ]),
-            new ProfileBundleEntrySnapshotLimits(8, 65536, 131072, 32));
+            // The current closed schema exceeds 64 KiB; this is only the test fixture capture limit.
+            new ProfileBundleEntrySnapshotLimits(8, 131072, 262144, 32));
     }
 
     private static JsonObject LegacyCombinerStage(string toolBindingId)

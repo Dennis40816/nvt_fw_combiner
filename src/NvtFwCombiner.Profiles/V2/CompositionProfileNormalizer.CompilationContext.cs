@@ -88,10 +88,10 @@ internal static partial class CompositionProfileNormalizer
     private static SourceEnvelopeProfileBinding NormalizeSourceEnvelopeBinding(
         CompositionProfileDocument document)
     {
-        if (document.SchemaVersion != "2.16" ||
+        if (document.SchemaVersion is not ("2.16" or "2.17") ||
             document.CompilationContext?.Kind != "resolved-map")
         {
-            throw Error("sourceEnvelopeBinding", "Source envelope requires schema 2.16 resolved-map compilation.");
+            throw Error("sourceEnvelopeBinding", "Source envelope requires schema 2.16 or 2.17 resolved-map compilation.");
         }
 
         CompositionProfileSourceEnvelopeBindingDocument binding = document.SourceEnvelopeBinding!;
