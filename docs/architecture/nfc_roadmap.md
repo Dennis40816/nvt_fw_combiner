@@ -74,8 +74,10 @@ The owner set a 2026-09-28 release for `1.1.12` through the `1.1.11` release pat
 - F07: a committed output keeps its receipt when its delivery or report is
   interrupted;
 - removal of the hard NT51950/NT51951 CtrlRAM size limits for Display OSD
-  inputs (scoped R3 change), if its firmware-owner, Golden and write-range
-  evidence completes by the freeze; otherwise it moves to `1.1.13`;
+  inputs (scoped R3 change; the owner required it in `1.1.12` on 2026-09-26),
+  with AB Bases decided by two NVT markers. Base classification recognizes the
+  published Standard lengths (256 KiB, 512 KiB, 1 MiB); other lengths stay
+  rejected unless the owner decides otherwise;
 - a non-certifying local alignment with v0.9.16 for the routes that have
   canonical inputs; the formal comparator for 1.x candidates is `1.1.13` work.
 
