@@ -1,6 +1,7 @@
 using System.Security.Cryptography;
 using System.Text.Json;
 using NvtFwCombiner.Application.Authoring;
+using NvtFwCombiner.Application.Ports;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Presentation.Avalonia;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
@@ -188,37 +189,54 @@ public sealed partial class RunAndHexEditorTests
         AssertCommittedOutputWithoutReport(viewModel, outputPath, title, sizeUnit, reportFailure, progressLabel);
     }
 
-    /// <summary>Every report-materialization failure after commit publishes the committed receipt instead of escaping.</summary>
+    /// <summary>
+    /// Every report-materialization, I/O, or access failure in post-commit projection publishes the committed
+    /// receipt instead of escaping.
+    /// </summary>
     [Theory]
     [InlineData(
         nameof(JsonException),
         "English",
         "Build output committed; report unavailable",
         "bytes",
-        "Report unavailable: Synthetic report materialization failure.",
+        "Report unavailable: Synthetic post-commit failure.",
         "Output ready; report unavailable")]
     [InlineData(
         nameof(FormatException),
         "English",
         "Build output committed; report unavailable",
         "bytes",
-        "Report unavailable: Synthetic report materialization failure.",
+        "Report unavailable: Synthetic post-commit failure.",
+        "Output ready; report unavailable")]
+    [InlineData(
+        nameof(IOException),
+        "English",
+        "Build output committed; report unavailable",
+        "bytes",
+        "Report unavailable: Synthetic post-commit failure.",
         "Output ready; report unavailable")]
     [InlineData(
         nameof(OverflowException),
         "ChineseTraditional",
         "Build 輸出已寫入，報告無法使用",
         "位元組",
-        "報告無法使用：Synthetic report materialization failure.",
+        "報告無法使用：Synthetic post-commit failure.",
         "輸出已就緒，報告無法使用")]
     [InlineData(
         nameof(JsonException),
         "ChineseTraditional",
         "Build 輸出已寫入，報告無法使用",
         "位元組",
-        "報告無法使用：Synthetic report materialization failure.",
+        "報告無法使用：Synthetic post-commit failure.",
         "輸出已就緒，報告無法使用")]
-    public async Task PostcommitReportMaterializationFailureKeepsCommittedOutputVisible(
+    [InlineData(
+        nameof(UnauthorizedAccessException),
+        "ChineseTraditional",
+        "Build 輸出已寫入，報告無法使用",
+        "位元組",
+        "報告無法使用：Synthetic post-commit failure.",
+        "輸出已就緒，報告無法使用")]
+    public async Task PostcommitProjectionFailureKeepsCommittedOutputVisible(
         string exceptionName,
         string languageName,
         string title,
@@ -244,14 +262,7 @@ public sealed partial class RunAndHexEditorTests
 
             // The committed run result is being projected; fail that post-commit projection once.
             injected++;
-            Exception failure = exceptionName switch
-            {
-                nameof(JsonException) => new JsonException("Synthetic report materialization failure."),
-                nameof(FormatException) => new FormatException("Synthetic report materialization failure."),
-                nameof(OverflowException) => new OverflowException("Synthetic report materialization failure."),
-                _ => throw new ArgumentOutOfRangeException(nameof(exceptionName), exceptionName, null),
-            };
-            throw failure;
+            throw CreateSyntheticFailure(exceptionName, "Synthetic post-commit failure.");
         };
 
         await viewModel.Merge.BuildMergeAsync(outputPath);
@@ -284,6 +295,294 @@ public sealed partial class RunAndHexEditorTests
             CompositionRunDeliveryState.ReportUnavailable,
             viewModel.RunSession.CompositionProgress.DeliveryState);
         Assert.Equal(progressLabel, viewModel.RunSession.CompositionProgress.CurrentStepLabel);
+    }
+
+    /// <summary>A report-publication failure after commit reaches the fallback before any success modal opens.</summary>
+    [Theory]
+    [InlineData(nameof(InvalidOperationException))]
+    [InlineData(nameof(IOException))]
+    [InlineData(nameof(UnauthorizedAccessException))]
+    public async Task PostcommitReportPublicationFailureKeepsBuildCompletedClosed(string exceptionName)
+    {
+        const string outputPath = "committed-output.bin";
+        var harness = new ReportPublicationFailureHarness(
+            CreateSyntheticFailure(exceptionName, "Synthetic report publication failure."));
+        CompositionRunResult committed = CreateSyntheticBuildResult(outputPath);
+
+        UiRunResultViewModel? result = await harness.RunAsync(committed);
+
+        Assert.True(harness.PublicationFailed);
+        Assert.NotNull(result);
+        Assert.Same(harness.Owner.LastRunResult, result);
+        Assert.Equal("Build output committed; report unavailable", result.Title);
+        Assert.Equal(
+            $"{committed.OutputSize} bytes / SHA-256 {committed.OutputSha256}. " +
+                "Report unavailable: Synthetic report publication failure.",
+            result.Detail);
+        Assert.Equal(outputPath, result.Output);
+        Assert.False(result.Succeeded);
+        Assert.False(harness.BuildResult.IsOpen);
+        Assert.Equal(0, harness.ErrorReportLoads);
+        Assert.False(harness.RunSession.IsRunInProgress);
+        Assert.Equal(
+            CompositionRunDeliveryState.ReportUnavailable,
+            harness.RunSession.CompositionProgress.DeliveryState);
+    }
+
+    /// <summary>A report failure for a Build that committed no output keeps the original failure handling.</summary>
+    [Fact]
+    public async Task UncommittedBuildReportFailureKeepsOriginalHandling()
+    {
+        var ioHarness = new ReportPublicationFailureHarness(new IOException("Synthetic report publication failure."));
+
+        UiRunResultViewModel? failed = await ioHarness.RunAsync(CreateSyntheticBuildResult(committedOutputPath: null));
+
+        Assert.True(ioHarness.PublicationFailed);
+        Assert.NotNull(failed);
+        Assert.Equal("Build failed", failed.Title);
+        Assert.Equal("Synthetic report publication failure.", failed.Detail);
+        Assert.Equal("No output", failed.Output);
+        Assert.Equal(1, ioHarness.ErrorReportLoads);
+        Assert.False(ioHarness.BuildResult.IsOpen);
+
+        var jsonHarness = new ReportPublicationFailureHarness(new JsonException("Synthetic report publication failure."));
+
+        _ = await Assert.ThrowsAsync<JsonException>(
+            () => jsonHarness.RunAsync(CreateSyntheticBuildResult(committedOutputPath: null)));
+
+        Assert.True(jsonHarness.PublicationFailed);
+        Assert.Equal("Build blocked", jsonHarness.Owner.LastRunResult.Title);
+        Assert.Equal(0, jsonHarness.ErrorReportLoads);
+        Assert.False(jsonHarness.BuildResult.IsOpen);
+        Assert.False(jsonHarness.RunSession.IsRunInProgress);
+    }
+
+    /// <summary>An I/O failure before any output commits still produces the original Build failure.</summary>
+    [Fact]
+    public async Task PrecommitIoFailureKeepsOriginalBuildFailure()
+    {
+        MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
+        CompositionRunContext context = viewModel.Replace.CaptureRunContext(viewModel.Replace.SelectedReplaceMode);
+        List<(string Action, string Message)> errorReports = [];
+
+        UiRunResultViewModel? result = await viewModel.RunSession.RunCompositionAsync(
+            context,
+            build: true,
+            (_, _) => throw new IOException("Synthetic pre-commit failure."),
+            (action, message) => errorReports.Add((action, message)));
+
+        Assert.NotNull(result);
+        Assert.Same(context.Owner.LastRunResult, result);
+        Assert.Equal("Build failed", result.Title);
+        Assert.Equal("Synthetic pre-commit failure.", result.Detail);
+        Assert.Equal("No output", result.Output);
+        Assert.False(result.Succeeded);
+        Assert.Equal(("Build", "Synthetic pre-commit failure."), Assert.Single(errorReports));
+        Assert.False(viewModel.BuildResult.IsOpen);
+        Assert.NotEqual(
+            CompositionRunDeliveryState.ReportUnavailable,
+            viewModel.RunSession.CompositionProgress.DeliveryState);
+    }
+
+    /// <summary>A report-materialization failure before any output commits is not turned into the committed fallback.</summary>
+    [Fact]
+    public async Task PrecommitJsonFailureIsNotTreatedAsCommittedOutput()
+    {
+        MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
+        CompositionRunContext context = viewModel.Replace.CaptureRunContext(viewModel.Replace.SelectedReplaceMode);
+        UiRunResultViewModel initial = context.Owner.LastRunResult;
+        int errorReports = 0;
+
+        JsonException exception = await Assert.ThrowsAsync<JsonException>(
+            () => viewModel.RunSession.RunCompositionAsync(
+                context,
+                build: true,
+                (_, _) => throw new JsonException("Synthetic pre-commit failure."),
+                (_, _) => errorReports++));
+
+        Assert.Equal("Synthetic pre-commit failure.", exception.Message);
+        Assert.Same(initial, context.Owner.LastRunResult);
+        Assert.Equal(0, errorReports);
+        Assert.False(viewModel.BuildResult.IsOpen);
+        Assert.False(viewModel.RunSession.IsRunInProgress);
+    }
+
+    private static Exception CreateSyntheticFailure(string exceptionName, string message)
+    {
+        return exceptionName switch
+        {
+            nameof(JsonException) => new JsonException(message),
+            nameof(FormatException) => new FormatException(message),
+            nameof(OverflowException) => new OverflowException(message),
+            nameof(InvalidOperationException) => new InvalidOperationException(message),
+            nameof(IOException) => new IOException(message),
+            nameof(UnauthorizedAccessException) => new UnauthorizedAccessException(message),
+            _ => throw new ArgumentOutOfRangeException(nameof(exceptionName), exceptionName, null),
+        };
+    }
+
+    /// <summary>Creates a Build result that either committed a small output or was blocked before output.</summary>
+    private static CompositionRunResult CreateSyntheticBuildResult(string? committedOutputPath)
+    {
+        bool committed = committedOutputPath is not null;
+        DateTimeOffset timestamp = new(2026, 9, 1, 0, 0, 0, TimeSpan.Zero);
+        byte[] outputBytes = committed ? [0x01, 0x02, 0x03, 0x04] : [];
+        var report = new CompositionRunReport(
+            "ui-smoke-report-publication",
+            "test-profile",
+            "1.0.0",
+            "NT51927",
+            "ctrlram-replace",
+            "ctrlram-replace",
+            CompositionKind.Replace,
+            timestamp,
+            timestamp,
+            [],
+            [],
+            [],
+            committed
+                ? []
+                : [new CompositionIssue(
+                    "processor.tool.missing",
+                    "Combiner executable is not available.",
+                    "run-ctrlram-postbuild")],
+            new OutputArtifactSummary(
+                committed ? "firmware.bin" : "No output",
+                outputBytes.Length,
+                committed ? Convert.ToHexString(SHA256.HashData(outputBytes)).ToLowerInvariant() : "empty-hash",
+                committed));
+        return new CompositionRunResult(
+            committed ? CompositionExecutionStatus.Succeeded : CompositionExecutionStatus.Failed,
+            outputBytes,
+            report,
+            committedOutputPath,
+            previewToken: null,
+            inspectionOutputSpaceId: null,
+            inspectionReferenceSpaceId: null,
+            inspectionReferenceBytes: null,
+            inspectionOutputBytes: null,
+            outcomeStatus: committed ? "Succeeded" : "Blocked");
+    }
+
+    /// <summary>
+    /// Drives the real run lifecycle owner with explicit bindings and fails the first report publication after
+    /// the run result is published.
+    /// </summary>
+    private sealed class ReportPublicationFailureHarness
+    {
+        private readonly ShellTextResources _text = ShellTextResources.For(ShellLanguage.English);
+        private readonly Exception _failure;
+        private bool _publicationArmed;
+
+        internal ReportPublicationFailureHarness(Exception failure)
+        {
+            _failure = failure;
+            Reports = new ReportPresentationViewModel(GetReportText, static () => { });
+            BuildResult = new BuildResultViewModel(new UnusedFileRevealService(), static () => "Open folder failed.");
+            RunSession = new CompositionRunPresentationViewModel(
+                ShellLanguage.English,
+                new CompositionRunStateBindings(
+                    () => _text,
+                    static () => "NT51927",
+                    static () => "single",
+                    () => Owner,
+                    () => [Owner],
+                    static () => string.Empty,
+                    static () => true,
+                    () => Reports,
+                    BuildResult.TryShow,
+                    static () => { },
+                    static () => { }));
+            Owner.PropertyChanged += (_, args) =>
+            {
+                // The run result is published immediately before its report; arm one publication failure.
+                if (args.PropertyName == nameof(WorkflowRunState.LastRunResult) && !PublicationFailed)
+                {
+                    _publicationArmed = true;
+                }
+            };
+        }
+
+        internal WorkflowRunState Owner { get; } = new();
+
+        internal ReportPresentationViewModel Reports { get; }
+
+        internal BuildResultViewModel BuildResult { get; }
+
+        internal CompositionRunPresentationViewModel RunSession { get; }
+
+        internal bool PublicationFailed { get; private set; }
+
+        internal int ErrorReportLoads { get; private set; }
+
+        internal Task<UiRunResultViewModel?> RunAsync(CompositionRunResult result)
+        {
+            var context = new CompositionRunContext(
+                Owner,
+                "ctrlram-replace",
+                "NT51927",
+                "single",
+                ShowsNumberSelector: true,
+                string.Empty);
+            return RunSession.RunCompositionAsync(
+                context,
+                build: true,
+                (progress, _) =>
+                {
+                    if (result.CommittedOutputId is { } committedOutputId)
+                    {
+                        PublishCommittedProgress(progress, result.Report.RunId, committedOutputId);
+                    }
+
+                    return ValueTask.FromResult(result);
+                },
+                (_, _) => ErrorReportLoads++);
+        }
+
+        private static void PublishCommittedProgress(
+            CompositionRunProgressFeed progress,
+            string runId,
+            string committedOutputId)
+        {
+            CompositionRunPhase[] phases =
+            [
+                CompositionRunPhase.Preparing,
+                CompositionRunPhase.ReadingInputs,
+                CompositionRunPhase.ExecutingComposition,
+                CompositionRunPhase.ValidatingOutput,
+                CompositionRunPhase.CommittingOutput,
+                CompositionRunPhase.PreparingReport,
+            ];
+            progress.Start(runId);
+            progress.Publish(new CompositionRunProgressSnapshot(
+                runId,
+                CompositionRunPhase.PreparingReport,
+                phases,
+                phases[..^1],
+                committedOutputId));
+            progress.Complete();
+        }
+
+        private ShellTextResources GetReportText()
+        {
+            if (!_publicationArmed)
+            {
+                return _text;
+            }
+
+            // The report owner reads its text while publishing the generated report and its notification.
+            _publicationArmed = false;
+            PublicationFailed = true;
+            throw _failure;
+        }
+    }
+
+    private sealed class UnusedFileRevealService : IFileRevealService
+    {
+        public bool TryRevealFile(string? filePath)
+        {
+            return false;
+        }
     }
 
     /// <summary>Cancelling a planning-stage run stops its unattached observer and releases command ownership.</summary>
