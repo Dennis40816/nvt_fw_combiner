@@ -143,6 +143,25 @@ class CanonicalGoldenValidationTests(unittest.TestCase):
             "legacyPaths": [legacy_path],
         }
 
+    def declare_approved_intake(self) -> None:
+        archive = {
+            "name": "owner-intake.7z",
+            "sha256": "a" * 64,
+            "sourceClassification": "private-owner-approved-golden",
+            "approval": "Owner approved this synthetic test intake.",
+        }
+        self.root_manifest["sourceCollections"] = [
+            {"additionalSources": [archive]}
+        ]
+        self.case_manifest["intakeSource"] = {
+            "name": archive["name"], "sha256": archive["sha256"]
+        }
+        for artifact in self.case_manifest["artifacts"]:
+            artifact.pop("legacyPaths")
+            artifact["sourcePath"] = Path(artifact["path"]).name
+        self.write_json(self.canonical / "manifest.json", self.root_manifest)
+        self.write_json(self.case_directory / "provenance/case.json", self.case_manifest)
+
     @staticmethod
     def write_json(path: Path, document: object) -> None:
         path.write_text(json.dumps(document, indent=2) + "\n", encoding="utf-8")
@@ -429,6 +448,48 @@ class CanonicalGoldenValidationTests(unittest.TestCase):
 
     def test_accepts_hash_pinned_direct_case(self) -> None:
         self.assertEqual([], self.validate())
+
+    def test_accepts_approved_archive_intake_without_historical_paths(self) -> None:
+        self.declare_approved_intake()
+
+        self.assertEqual([], self.validate())
+
+    def test_rejects_archive_intake_with_wrong_sha_or_duplicate_source(self) -> None:
+        self.declare_approved_intake()
+        self.case_manifest["intakeSource"]["sha256"] = "b" * 64
+        self.rewrite_case()
+        self.assertTrue(any("exactly one" in error for error in self.validate()))
+
+        self.case_manifest["intakeSource"]["sha256"] = "a" * 64
+        self.root_manifest["sourceCollections"].append(
+            deepcopy(self.root_manifest["sourceCollections"][0])
+        )
+        self.rewrite_case()
+        self.rewrite_root()
+        self.assertTrue(any("exactly one" in error for error in self.validate()))
+
+    def test_rejects_archive_intake_without_owner_approval(self) -> None:
+        self.declare_approved_intake()
+        self.root_manifest["sourceCollections"][0]["additionalSources"][0]["approval"] = ""
+        self.rewrite_root()
+
+        self.assertTrue(any("archive lacks approval" in error for error in self.validate()))
+
+    def test_rejects_unsafe_archive_member_without_historical_paths(self) -> None:
+        self.declare_approved_intake()
+        self.case_manifest["artifacts"][0]["sourcePath"] = "../other.bin"
+        self.rewrite_case()
+
+        self.assertTrue(any("sourcePath is not a normalized confined path" in error
+                            for error in self.validate()))
+
+    def test_retains_strict_historical_paths_when_intake_is_declared(self) -> None:
+        self.declare_approved_intake()
+        self.case_manifest["artifacts"][0]["legacyPaths"] = ["../invented.bin"]
+        self.rewrite_case()
+
+        self.assertTrue(any("legacyPaths[0] is not a normalized confined path" in error
+                            for error in self.validate()))
 
     def test_accepts_direct_route_evidence_without_an_expected_view(self) -> None:
         del self.root_manifest["routeEvidence"][0]["expectedView"]

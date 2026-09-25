@@ -94,8 +94,8 @@ workflows are `standard-merge`, `ab-merge`, `dp-replace`, or `ctrlram-replace`; 
 
 A direct golden declares `directGolden: true` and at least one immutable input plus one expected output.
 Every artifact declares a case-unique `artifactId`, role, canonical path, non-negative JSON integer
-byte size, lowercase SHA-256,
-and one or more pre-migration `legacyPaths`. Input, expected, and provenance artifacts stay below
+byte size, and lowercase SHA-256. Migrated artifacts retain one or more pre-migration
+`legacyPaths`. Input, expected, and provenance artifacts stay below
 the corresponding case subtree; nested source groups such as `inputs/NF/` remain confined there.
 Expected bytes are never regenerated during layout migration.
 
@@ -106,12 +106,22 @@ may remain when they already identify the same case IC; otherwise the preferred 
 `<ic>-<artifact-id>.bin`. The original supplied filename remains evidence in `originalFileName`
 and/or `legacyPaths`; renaming a canonical path never authorizes payload or hash changes.
 
-The sole owner-certified public-input exception is
+For a newly owner-approved archive intake with no pre-migration repository path, a direct case
+may instead declare `intakeSource` with exactly `name` and lowercase `sha256`. Both values must
+match exactly one entry in the root manifest's `sourceCollections[].additionalSources`; that entry
+must declare non-empty `sourceClassification` and `approval`. Each artifact without `legacyPaths`
+then declares a normalized, safe archive-relative `sourcePath` naming its original archive member.
+When an artifact does declare `legacyPaths`, the full historical path checks still apply. This
+intake binding records provenance only; it does not authorize release redistribution or runtime
+support. Multiple logical artifacts may refer to the same immutable physical BIN when one owner
+file fills two input slots.
+
+The separate owner-certified public-input exception is
 `nt51929-certified-metadata-inputs-20260904`. Its artifact declarations omit
 `legacyPaths` because the original names and intake archive are prohibited from
 Git; the case's owner certification, two exact artifact SHA-256 values, and
-exact release allowlist admission are its provenance. No other canonical
-artifact may omit `legacyPaths`.
+exact release allowlist admission are its provenance. Other artifacts may omit `legacyPaths`
+only through the approved archive intake binding above.
 
 A direct input-evidence case declares `directGolden: false` and `directEvidence: true`. It contains
 one or more immutable input artifacts but cannot declare an expected artifact. This represents

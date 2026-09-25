@@ -1,0 +1,47 @@
+{
+  "schemaVersion": 2,
+  "taskId": "OSD-GOLDEN-1111-01",
+  "capability": "Admit the owner-certified NT51950 single OSD AB complete-output case into canonical Golden execution",
+  "integrationBase": "3db701b70e0eec66889a4b030fcbb84db0db5693",
+  "risk": "R3",
+  "kind": "behavior",
+  "state": "design-active",
+  "mutablePaths": [
+    "docs/contracts/canonical-golden-manifest-v1.md",
+    "scripts/canonical_golden_validation.py",
+    "scripts/ab_merge_fixture_validation.py",
+    "testdata/golden/canonical/manifest.json",
+    "testdata/golden/canonical/NT51950/ab-merge/osd-d03t02/single/nt51950-ab-osd-d03t02-20260924/provenance/case.json",
+    "testdata/golden/canonical/NT51950/ab-merge/osd-d03t02/single/nt51950-ab-osd-d03t02-20260924/inputs/NT51950TT_Initial Code_BOE_AS172QD0-B00 2560x1600_NiOHiway_D03_OSD ICON_20260923.bin",
+    "testdata/golden/canonical/NT51950/ab-merge/osd-d03t02/single/nt51950-ab-osd-d03t02-20260924/inputs/nt51950_fw_T02.bin",
+    "testdata/golden/canonical/NT51950/ab-merge/osd-d03t02/single/nt51950-ab-osd-d03t02-20260924/expected/NT51950TT_Flashcode_BOE_NIO_Hiway_A_D03T02_B_D03T02_NioHiway_20260924.bin",
+    "tests/NvtFwCombiner.Bootstrap.Tests/AbMergeGoldenRegressionTests.PublicHost.cs",
+    "tests/scripts/test_canonical_golden_validation.py",
+    "tests/scripts/test_ab_merge_fixture_validation.py",
+    "tests/scripts/test_verify_orchestration.py"
+  ],
+  "implementationOwner": "/root/ab_event_display",
+  "searchEvidence": [
+    "Owner's 2026-09-25 correction in docs/ui/v1.1.11-delivery.md confirms OSD approval item 3 is complete; the existing archive is 51950_1IC_OSD_AB_Code_Golden.7z with SHA-256 d7fa71719e0ed16fbfdddc774c3ed573ebf191d407f4ed21587e0ae1107989ce.",
+    "D:/NvtFwCombiner-TestArea/evidence/v1111-osd-intake-20260925/intake.json records the three physical BIN sizes/hashes; comparison.json records full 1,048,576-byte equality and expected SHA-256 71de58a5f9a2ca2cb0d51789794af64586435b09e4ca61d176b6cd41b4990136 at source 282ab7f4c.",
+    "The current AB canonical cases use historical legacyPaths; the new D-slot intake has no historical repository path. scripts/canonical_golden_validation.py currently requires legacyPaths except one older NT51929 DPCMI case, so a generic approved archive intake must be represented without inventing migration history.",
+    "Existing AbMergeGoldenRegressionTests.PublicHost.cs runs CLI AB with one physical TP bound to A/B and compares complete output bytes; scripts/verify.py --release-golden discovers direct-full-output evidenceRefs and requires fresh passed execution.",
+    "scripts/ab_merge_fixture_validation.py enforces the existing three AB direct case IDs and historical topology/referenceParity fields; the OSD single case needs its own exact expected fields without relaxing those three. tests/scripts/test_verify_orchestration.py currently asserts 25 direct cases and must include the new evidenceRef as case 26."
+  ],
+  "semanticOwner": "Canonical Golden manifest and its validator own fixture provenance and exact payload identity; the existing public-host AB Golden runner owns complete output execution evidence; production firmware profile and release redistribution policy remain separate",
+  "terminalContract": "Add one NT51950 single OSD direct-full-output case with three owner-approved physical BINs (four logical artifacts: one 1 MiB DP_AB, one 225280-byte TP shared by A/B, one 1 MiB expected output), exact hashes, archive-member provenance, profile nt51950-ab-merge version 0.8.0 and mapCapacity 524288 as the canonical template rather than output length. Add the owner-approved archive as an additional source of the existing AB collection without changing its historical source approval. For a direct case lacking legacyPaths, require case-level intakeSource name/SHA to match exactly one root sourceCollections additionalSources entry with nonempty approval/classification, and require each such artifact's sourcePath to be safe and archive-relative. Keep full legacyPaths validation when provided and the existing NT51929 DPCMI historical exception. Extend the existing AB fixture validator with the OSD single case's exact evidence and true owner-current parity metadata; retain the three historical topology/referenceParity constraints. Run the OSD case through the existing CLI public-host AB path with original DP and shared TP, compare all output bytes to the untouched owner expected BIN, assert nonstandard DP warning and immutable inputs, and reference that test from direct-full-output disposition so release Golden selection discovers all 26 direct cases. Do not alter release-canonical-v1.json, its selection summary, refcode, production byte semantics, runtime support, or other Golden cases. This is local fixture certification, not redistribution or release approval; fixed-source execution and R3 final authority remain separate.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "/root/ab_layout_context_review",
+    "outcome": "approved",
+    "evidence": "2026-09-25 independent R3 design ADMIT: generic new-intake provenance uses case intakeSource name/SHA uniquely matched to an approved root additionalSources entry plus safe artifact sourcePath when legacyPaths is absent. Existing historical validation and DPCMI exception remain. OSD mapCapacity is the 512 KiB template while DP and expected artifacts are 1 MiB. Public-host full-byte runner and exact three-BIN owner approval are bounded to this one case; redistribution allowlist is unchanged."
+  },
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": {
+    "reviewer": null,
+    "outcome": "pending",
+    "evidence": ""
+  }
+}

@@ -12,11 +12,14 @@ EXPECTED_CASES: dict[str, dict[str, Any]] = {
         "profileId": "nt51929-ab-merge",
         "profileVersion": "0.2.0",
         "mapCapacity": 524288,
+        "topology": "topology-unscoped",
         "directMemberIds": ["NT51929"],
         "factScopedAliasMemberIds": ["NT51919", "NT51932"],
         "notEstablishedMemberIds": [],
         "referenceStatus": "full-byte-match",
         "referenceConfiguration": "51929",
+        "referenceSnapshot": "refcode/ab_code_combiner",
+        "referenceObservedOn": "2026-07-15",
         "promotion": (
             "supported runtime pilot for NT51919, NT51929, and NT51932 under "
             "the owner-approved fixed AB plan; NT51950/NT51951 remain excluded"
@@ -28,6 +31,7 @@ EXPECTED_CASES: dict[str, dict[str, Any]] = {
         "profileId": "nt51950-ab-merge",
         "profileVersion": "0.1.1",
         "mapCapacity": 524288,
+        "topology": "topology-unscoped",
         "directMemberIds": ["NT51950"],
         "factScopedAliasMemberIds": ["NT51951"],
         "notEstablishedMemberIds": [],
@@ -35,6 +39,8 @@ EXPECTED_CASES: dict[str, dict[str, Any]] = {
             "full-byte-match-to-uploaded-python-reference-and-legacy-combiner-1.13.0"
         ),
         "referenceConfiguration": "51950",
+        "referenceSnapshot": "refcode/ab_code_combiner",
+        "referenceObservedOn": "2026-07-15",
         "promotion": (
             "executable candidate only; full-byte Python/Combiner parity is tracked, but "
             "firmware-owner review remains required before runtime exposure"
@@ -46,6 +52,7 @@ EXPECTED_CASES: dict[str, dict[str, Any]] = {
         "profileId": "nt51950-ab-merge",
         "profileVersion": "0.1.1",
         "mapCapacity": 524288,
+        "topology": "topology-unscoped",
         "directMemberIds": ["NT51950"],
         "factScopedAliasMemberIds": ["NT51951"],
         "notEstablishedMemberIds": [],
@@ -53,11 +60,50 @@ EXPECTED_CASES: dict[str, dict[str, Any]] = {
             "full-byte-match-to-uploaded-python-reference-and-legacy-combiner-1.13.0"
         ),
         "referenceConfiguration": "51950",
+        "referenceSnapshot": "refcode/ab_code_combiner",
+        "referenceObservedOn": "2026-07-15",
         "promotion": (
             "executable candidate only; full-byte Python/Combiner parity is tracked, but "
             "firmware-owner review remains required before runtime exposure"
         ),
     },
+    "nt51950-ab-osd-d03t02-20260924": {
+        "ic": "NT51950",
+        "variantOrVersion": "osd-d03t02",
+        "profileId": "nt51950-ab-merge",
+        "profileVersion": "0.8.0",
+        "mapCapacity": 524288,
+        "topology": "single",
+        "directMemberIds": ["NT51950"],
+        "factScopedAliasMemberIds": [],
+        "notEstablishedMemberIds": ["NT51951"],
+        "referenceStatus": "full-byte-match-to-owner-supplied-osd-expected",
+        "referenceSnapshot": "51950_1IC_OSD_AB_Code_Golden.7z",
+        "referenceConfiguration": "NT51950 single OSD AB",
+        "referenceObservedOn": "2026-09-25",
+        "intakeSource": {
+            "name": "51950_1IC_OSD_AB_Code_Golden.7z",
+            "sha256": "d7fa71719e0ed16fbfdddc774c3ed573ebf191d407f4ed21587e0ae1107989ce",
+        },
+        "evidenceScope": (
+            "NT51950 single OSD AB complete 1 MiB output. mapCapacity is the 512 KiB canonical "
+            "layout template; the original DP source envelope and expected output are each 1 MiB. "
+            "TP A and B bind the same 225280-byte physical file. This does not establish NT51951 "
+            "product bytes, runtime support promotion, or release redistribution."
+        ),
+        "promotion": (
+            "Owner-certified NT51950 single OSD AB complete-output fixture only; "
+            "no runtime support promotion or release redistribution."
+        ),
+    },
+}
+
+OSD_CASE_ID = "nt51950-ab-osd-d03t02-20260924"
+OSD_ARTIFACT_FACTS = {
+    "dp-ab-input": (1048576, "1c7d52cdeda3f0c831632d9d3c2a6ade7636c872c332256fd44ece4d51db849c", "NT51950TT_Initial Code_BOE_AS172QD0-B00 2560x1600_NiOHiway_D03_OSD ICON_20260923.bin"),
+    "tp-a-input": (225280, "aa9582ba68a7f6f422bc13469d7c7cfeb6a756a8e9196fc34ab5313e3c5ce2f2", "nt51950_fw_T02.bin"),
+    "tp-b-input": (225280, "aa9582ba68a7f6f422bc13469d7c7cfeb6a756a8e9196fc34ab5313e3c5ce2f2", "nt51950_fw_T02.bin"),
+    "expected-output": (1048576, "71de58a5f9a2ca2cb0d51789794af64586435b09e4ca61d176b6cd41b4990136", "NT51950TT_Flashcode_BOE_NIO_Hiway_A_D03T02_B_D03T02_NioHiway_20260924.bin"),
 }
 
 EXPECTED_ALIASES = {
@@ -199,7 +245,7 @@ def _validate_case_evidence(
 
     if item.get("workflow") != "ab-merge" or item.get("directGolden") is not True:
         errors.append(f"AB merge golden case '{case_id}' must remain a direct AB case")
-    if item.get("topology") != "topology-unscoped":
+    if item.get("topology") != expected["topology"]:
         errors.append(f"AB merge golden case '{case_id}' topology drift")
 
     applicability = item.get("evidenceApplicability")
@@ -224,9 +270,9 @@ def _validate_case_evidence(
     else:
         expected_reference = {
             "status": expected["referenceStatus"],
-            "snapshot": "refcode/ab_code_combiner",
+            "snapshot": expected["referenceSnapshot"],
             "configuration": expected["referenceConfiguration"],
-            "observedOn": "2026-07-15",
+            "observedOn": expected["referenceObservedOn"],
         }
         if reference != expected_reference:
             errors.append(
@@ -236,6 +282,10 @@ def _validate_case_evidence(
 
     if item.get("promotion") != expected["promotion"]:
         errors.append(f"AB merge golden case '{case_id}' promotion gate drift")
+    if item.get("intakeSource") != expected.get("intakeSource"):
+        errors.append(f"AB merge golden case '{case_id}' intakeSource drift")
+    if "evidenceScope" in expected and item.get("evidenceScope") != expected["evidenceScope"]:
+        errors.append(f"AB merge golden case '{case_id}' evidenceScope drift")
     ctrlram_evidence = item.get("ctrlRamFirstHalfSelfReplacementEvidence")
     expected_ctrlram_evidence = (
         NT51929_CTRLRAM_FIRST_HALF_EVIDENCE if case_id == "nt51929-ab-t05-d06" else None
@@ -371,6 +421,17 @@ def validate_ab_merge_golden_fixtures(
             errors.append(
                 f"canonical AB case '{case_id}' must declare exactly the three logical inputs and expected-output"
             )
+        if case_id == OSD_CASE_ID:
+            for artifact_id, (size, sha256, source_path) in OSD_ARTIFACT_FACTS.items():
+                artifact = artifacts_by_id.get(artifact_id)
+                if not isinstance(artifact, dict) or (
+                    artifact.get("size"), artifact.get("sha256"), artifact.get("sourcePath")
+                ) != (size, sha256, source_path):
+                    errors.append(f"canonical AB OSD artifact '{artifact_id}' owner identity drift")
+            tp_a = artifacts_by_id.get("tp-a-input", {})
+            tp_b = artifacts_by_id.get("tp-b-input", {})
+            if tp_a.get("path") != tp_b.get("path") or tp_a.get("sourcePath") != tp_b.get("sourcePath"):
+                errors.append("canonical AB OSD TP A/B must share one physical archive member")
         for artifact_id, artifact in artifacts_by_id.items():
             expected_role = "expected" if artifact_id == "expected-output" else "input"
             if artifact.get("role") != expected_role:

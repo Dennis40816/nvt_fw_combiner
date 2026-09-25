@@ -32,7 +32,16 @@
         "sourceClassification": "private-owner-approved-golden",
         "approval": "Repository owner supplied the archive and directed AB golden BIN fixtures to be tracked on 2026-07-14.",
         "evidenceApplicabilityApproval": "On 2026-07-18 the repository owner approved NT51929 AB evidence as fact-scoped NT51919 and NT51932 family aliases, and NT51950 AB evidence as fact-scoped NT51951 workflow-logic evidence. On 2026-07-22 the owner separately approved the fixed NT51919/NT51929/NT51932 version-independent runtime pilot; NT51950/NT51951 remain excluded."
-      }
+      },
+      "additionalSources": [
+        {
+          "name": "51950_1IC_OSD_AB_Code_Golden.7z",
+          "sha256": "d7fa71719e0ed16fbfdddc774c3ed573ebf191d407f4ed21587e0ae1107989ce",
+          "sourceClassification": "private-owner-approved-golden",
+          "approval": "Repository owner approved the NT51950 single OSD AB archive's three BINs as a complete-output Golden on 2026-09-25.",
+          "evidenceScope": "NT51950 single OSD AB only: 512 KiB canonical map template, 1 MiB DP source envelope and expected output; no NT51951 alias, runtime support promotion, or release redistribution."
+        }
+      ]
     },
     {
       "legacyRoot": "testdata/golden/ctrlram-replace/fixtures/20260717",
@@ -921,6 +930,10 @@
     {
       "caseId": "nt51950-ab-hiway-d82t80",
       "manifestPath": "NT51950/ab-merge/hiway-d82t80/topology-unscoped/nt51950-ab-hiway-d82t80/provenance/case.json"
+    },
+    {
+      "caseId": "nt51950-ab-osd-d03t02-20260924",
+      "manifestPath": "NT51950/ab-merge/osd-d03t02/single/nt51950-ab-osd-d03t02-20260924/provenance/case.json"
     },
     {
       "caseId": "nt51951-ab-boe-d82t80-workflow-alias",
