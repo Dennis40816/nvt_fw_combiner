@@ -2,6 +2,7 @@ using System.Security.Cryptography;
 using System.Text.Json;
 using NvtFwCombiner.Application.Authoring;
 using NvtFwCombiner.Application.ExternalTools;
+using NvtFwCombiner.Application.InputInspection;
 using NvtFwCombiner.Application.MemoryLayout;
 using NvtFwCombiner.Application.Ports;
 using NvtFwCombiner.Domain.Composition;
@@ -144,6 +145,46 @@ public sealed class Nt51950Nt51951DiffDlmMaskCascade2GoldenTests
         JsonElement summary = report.RootElement.GetProperty("SourceEnvelope");
         Assert.Equal(Nt51950TemplateCapacity, summary.GetProperty("LayoutTemplateCapacity").GetInt64());
         Assert.Equal(NonstandardEnvelopeLength, summary.GetProperty("ActualOutputLength").GetInt64());
+    }
+
+    /// <summary>
+    /// ENVELOPE-INPUT-WARNING-1112-01: input inspection warns about a nonstandard envelope Base before Build, and a
+    /// standard outer length stays valid.
+    /// </summary>
+    [Theory]
+    [InlineData(NonstandardEnvelopeLength, true)]
+    [InlineData(0x80000, false)]
+    public void Nt51950CascadeEnvelopeInputInspectionWarnsOnlyForNonstandardLength(int length, bool expectWarning)
+    {
+        OwnerCase evidence = ReadOwnerCase();
+        using var workspace = TempWorkspace.Create("nfc-nt51950-cascade2-envelope-inspection");
+        byte[] reference = ReconstructReference(evidence).AsSpan(0, length).ToArray();
+        string referencePath = workspace.Write("reference.bin", reference);
+
+        (ActiveSessionSnapshot? snapshot, IReadOnlyList<CompositionIssue> issues) =
+            CtrlRamReplaceTestSupport.Prepare(
+                BootstrapTestHost.Canonical,
+                "NT51950",
+                "cascade",
+                CreateSlotPaths(evidence, referencePath, evidence.DiffDlm.Path),
+                firmwareVersionEdit: null);
+        Assert.True(snapshot is not null, string.Join("; ", issues.Select(static issue => $"{issue.Code}: {issue.Message}")));
+        ActiveSessionSnapshot session = snapshot;
+        CompiledInputArtifactInspectionResult inspection = CompiledInputArtifactInspectionService.Inspect(
+            session.ExactCapability!.CompiledComposition, CompositionAddressSpaceIds.ReferenceBase, reference);
+
+        if (expectWarning)
+        {
+            Assert.Equal(CompiledInputArtifactInspectionSeverity.Warning, inspection.Severity);
+            Assert.Equal("DP_NONSTANDARD_SIZE_WARNING", inspection.IssueCode);
+            Assert.Equal(CompiledInputArtifactInspectionNextAction.ReviewUnexpectedOuterLength, inspection.NextAction);
+            Assert.Equal([0x40000L, 0x80000L, 0x100000L], inspection.ExpectedOuterLengths);
+            Assert.False(inspection.BlocksBuild);
+        }
+        else
+        {
+            Assert.Equal(CompiledInputArtifactInspectionSeverity.Valid, inspection.Severity);
+        }
     }
 
     /// <summary>A nonstandard length whose Standard prefix is not a Standard Flash stays unrecognized.</summary>
