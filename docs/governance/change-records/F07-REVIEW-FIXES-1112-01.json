@@ -5,7 +5,7 @@
   "integrationBase": "6b31408279b326cb8043a7a8a36cbf496964aa82",
   "risk": "R1",
   "kind": "ui",
-  "state": "design-active",
+  "state": "final-complete",
   "mutablePaths": [
     "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/CompositionRunPresentationViewModel.cs",
     "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/CompositionRunProgressViewModel.cs",
@@ -27,12 +27,18 @@
     "outcome": "not-required",
     "evidence": "Bounded local R1 correction of review findings on pull requests #448 and #449; reviewed with the batch in the fixed-head final review."
   },
-  "implementationHead": null,
-  "reviewedHead": null,
-  "pathStateDigest": null,
+  "implementationHead": "ee634de0cbba04b4d0a5dfd286ca88c736372d10",
+  "reviewedHead": "ee634de0cbba04b4d0a5dfd286ca88c736372d10",
+  "pathStateDigest": "6495acddc98f1d871a95a265e4100d98d98608af5b4ce9b0e9599b4a8ec10b57",
   "finalReview": {
-    "reviewer": null,
-    "outcome": "pending",
-    "evidence": ""
-  }
+    "reviewer": "codex/gpt-6-sol",
+    "outcome": "findings-incorporated",
+    "evidence": "Independent read-only final review by codex/gpt-6-sol at exact head ee634de0cbba04b4d0a5dfd286ca88c736372d10: APPROVED after findings F-1 to F-4 found at 8a9f2b84d were incorporated. Generated-report publication now precedes the Build completed modal; UI regressions exercise publication-stage InvalidOperationException, IOException and UnauthorizedAccessException, post-commit projection failures including JsonException, FormatException and OverflowException, and unchanged pre-commit handling, in both languages; the CHANGELOG narrows its failure claim and discloses the unavailable latest-output shortcut. Commander evidence at this head: UiSmoke 1666/1666 and Architecture 269/269 passed; the full local verifier at 8a9f2b84d passed every .NET suite including Golden regression. Partial LoadedReport or history mutation on a publication failure is an existing rollback residual tracked for 1.1.13."
+  },
+  "integrationPaths": [
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/CompositionRunPresentationViewModel.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/CompositionRunProgressViewModel.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ShellTextResources.RunProgress.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReportPresentationViewModel.cs"
+  ]
 }
