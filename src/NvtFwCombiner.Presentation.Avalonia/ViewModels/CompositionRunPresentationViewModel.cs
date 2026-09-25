@@ -181,20 +181,24 @@ internal sealed class CompositionRunPresentationViewModel : ObservableObject
         CancellationTokenSource? progressObservationSource = null;
         CompositionRunProgressFeed? progress = null;
         Task progressObservation = Task.CompletedTask;
+        CompositionRunResult? completedResult = null;
         try
         {
             progress = new CompositionRunProgressFeed();
             progressObservationSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationSource.Token);
             progressObservation = ObserveRunProgressAsync(progress, progressObservationSource.Token);
             await Task.Yield();
-            CompositionRunResult result = await Task.Run(
+            completedResult = await Task.Run(
                 () => run(progress, cancellationSource.Token).AsTask(), cancellationSource.Token);
             await (progress.IsAttached ? progressObservation : Task.CompletedTask);
-            await ProjectAndApplyRunResultAsync(context, result, build, cancellationSource.Token);
+            await ProjectAndApplyRunResultAsync(context, completedResult, build, cancellationSource.Token);
         }
         catch (OperationCanceledException) when (cancellationSource is { IsCancellationRequested: true })
         {
-            return null;
+            if (!TryPublishCommittedResultWithoutReport(context, completedResult, build, "Cancelled after output commit."))
+            {
+                return null;
+            }
         }
         catch (CompositionPreRunRefusalException exception)
         {
@@ -208,6 +212,11 @@ internal sealed class CompositionRunPresentationViewModel : ObservableObject
         }
         catch (Exception exception) when (exception is InvalidOperationException or IOException or UnauthorizedAccessException or ArgumentException)
         {
+            if (TryPublishCommittedResultWithoutReport(context, completedResult, build, exception.Message))
+            {
+                return context.Owner.LastRunResult;
+            }
+
             string action = build ? "Build" : "Preview";
             context.Owner.Publish(new UiRunResultViewModel(
                 $"{action} failed",
@@ -249,6 +258,28 @@ internal sealed class CompositionRunPresentationViewModel : ObservableObject
             }
         }
         return context.Owner.LastRunResult;
+    }
+
+    private bool TryPublishCommittedResultWithoutReport(
+        CompositionRunContext context,
+        CompositionRunResult? result,
+        bool build,
+        string reason)
+    {
+        if (!build || result is not { Succeeded: true, Report.Output.Committed: true } ||
+            string.IsNullOrWhiteSpace(result.CommittedOutputId))
+        {
+            return false;
+        }
+
+        context.Owner.Publish(new UiRunResultViewModel(
+            "Build output committed; report unavailable",
+            $"{result.OutputSize} bytes / SHA-256 {result.OutputSha256}. Report unavailable: {reason}",
+            result.CommittedOutputId,
+            succeeded: false), context);
+        OnPropertyChanged(nameof(LastRunResult));
+        _ = _stateBindings.TryShowBuildCompleted(result, build);
+        return true;
     }
 
     internal async Task ShowDiagnosticPreviewAsync(CompositionRunContext context, CompositionRunReport report)

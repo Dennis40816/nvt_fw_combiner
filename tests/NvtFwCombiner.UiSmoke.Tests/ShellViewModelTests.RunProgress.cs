@@ -1,3 +1,4 @@
+using System.Security.Cryptography;
 using System.Text.Json;
 using NvtFwCombiner.Application.Authoring;
 using NvtFwCombiner.Domain.Composition;
@@ -140,6 +141,38 @@ public sealed partial class RunAndHexEditorTests
         Assert.Equal("Report ready", viewModel.RunSession.CompositionProgress.CurrentStepLabel);
         Assert.True(File.Exists(outputPath));
         Assert.True(viewModel.RunSession.LastRunResult.Succeeded, viewModel.RunSession.LastRunResult.Detail);
+    }
+
+    /// <summary>Cancellation after commit keeps the exact committed receipt visible during report preparation.</summary>
+    [Fact]
+    public async Task PostcommitReportCancellationKeepsCommittedOutputVisible()
+    {
+        using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-postcommit-report");
+        MainWindowViewModel viewModel = ConfigureRunnableGeneralMerge(workspace);
+        string outputPath = workspace.PathFor("output.bin");
+        int interrupted = 0;
+        viewModel.RunSession.CompositionProgress.PropertyChanged += (_, args) =>
+        {
+            if (args.PropertyName != nameof(CompositionRunProgressViewModel.DeliveryState) ||
+                viewModel.RunSession.CompositionProgress.DeliveryState != CompositionRunDeliveryState.ArtifactCommitted)
+            {
+                return;
+            }
+
+            interrupted++;
+            viewModel.RunSession.CancelActiveRun();
+        };
+
+        await viewModel.Merge.BuildMergeAsync(outputPath);
+
+        byte[] committedBytes = File.ReadAllBytes(outputPath);
+        string sha256 = Convert.ToHexString(SHA256.HashData(committedBytes)).ToLowerInvariant();
+        Assert.Equal(1, interrupted);
+        Assert.Equal(outputPath, viewModel.RunSession.LastRunResult.Output);
+        Assert.Contains($"{committedBytes.Length} bytes", viewModel.RunSession.LastRunResult.Detail, StringComparison.Ordinal);
+        Assert.Contains(sha256, viewModel.RunSession.LastRunResult.Detail, StringComparison.Ordinal);
+        Assert.Equal(outputPath, viewModel.BuildResult.LatestCommittedOutputPath);
+        Assert.False(viewModel.RunSession.LastRunResult.Succeeded);
     }
 
     /// <summary>Cancelling a planning-stage run stops its unattached observer and releases command ownership.</summary>
