@@ -2,9 +2,8 @@
 
 All notable changes to NVT FW Combiner are documented here. The project follows Semantic Versioning and the Keep a Changelog section model.
 
-Released entries describe the state at publication. Version 1.1.10 has been
-published; 1.1.11 is in candidate preparation. For current
-future-version assignments, use the [canonical roadmap](docs/architecture/nfc_roadmap.md).
+Released entries describe the state at publication. For current future-version
+assignments, use the [canonical roadmap](docs/architecture/nfc_roadmap.md).
 
 ## [Unreleased]
 
@@ -14,7 +13,8 @@ Later changes remain assigned by the canonical roadmap.
 
 ### Summary
 
-**Candidate preparation; not yet published.** This release fixes delayed file
+This section describes the 1.1.11 release contents; publication status is tracked
+by GitHub Releases. The release fixes delayed file
 selection and Hex Editor loading, unifies firmware information, and corrects AB
 CtrlRAM memory presentation. Customized Merge/Replace entry points are hidden
 pending their later release. Existing firmware support levels are unchanged.
@@ -73,7 +73,7 @@ pending their later release. Existing firmware support levels are unchanged.
 - Support status: unchanged/Candidate; accepting the larger Base does not certify a new firmware route.
 - Compatibility: Replace preserves Base SVN and the unselected bank. Existing Header/CRC processing is unchanged; no new profile or alternate execution path is introduced.
 - Verification: A-only, B-only and Both runtime cases check exact replacement ranges, unchanged tail and unselected bank, actual output size, and rejection of missing or insufficient source extent. Damaged AB metadata or relocation retains an AB diagnostic rather than falling back to Standard; non-AB inputs and wrong Number selections have separate controls. The supplied complete 1 MiB Both output has also been compared.
-- Limitations: That comparison has a remaining 32-byte Header-backup/CRC difference. The owner deferred its sequence and firmware-impact investigation to 1.1.12; the original expected output remains unchanged and this case is not certified as byte-identical. Final candidate verification remains pending.
+- Limitations: That comparison has a remaining 32-byte Header-backup/CRC difference. The owner deferred its sequence and firmware-impact investigation to 1.1.12; the original expected output remains unchanged and this case is not certified as byte-identical.
 
 ### Security
 
@@ -85,22 +85,27 @@ Stale asynchronous results are rejected at their existing acceptance owners.
 - AB CtrlRAM routes retain their existing Candidate status. Independent expected
   outputs and firmware-owner review are still required for uncovered cases;
   successful execution or screenshots do not establish byte parity.
-- Final candidate integration, owner visual acceptance and release checks are
-  pending. This changelog entry is not a publication or certification statement.
+- The supplied AB CtrlRAM Both comparison retains a 32-byte Header-backup/CRC
+  difference. Its sequence and firmware impact are scheduled for 1.1.12; this
+  comparison is not certified as byte-identical.
 - Startup optimization is allocated to 1.1.12. Customized large-file work,
   differential/self-updating Launcher and broader profile reuse remain later work.
 
 ### Upgrade and rollback
 
-No saved-data migration is introduced. When released, extract the portable
+No saved-data migration is introduced. Extract the portable
 package into a separate directory and preserve existing settings and outputs.
 Keep the prior stable package for rollback; avoid replacing a running copy.
 
 ### Downloads and integrity
 
-The Windows x64 portable package, SHA-256 checksums, SBOM and provenance will be
-provided by the protected release workflow after final gates pass. No 1.1.11
-download has been published by this candidate preparation.
+The Windows x64 portable package is named `NvtFwCombiner-v1.1.11-win-x64.zip`
+and is self-contained; no separate .NET or Python installation is required.
+Publication requires successful protected CI, fresh Golden execution, packaging
+and smoke checks. The release asset set includes SHA-256 checksums, SPDX SBOM,
+provenance, a candidate manifest and the coupled distribution/Bootstrap assets.
+Use GitHub Releases to check availability and verify downloads against their
+checksums and provenance. GitHub supplies the source ZIP and TAR.GZ downloads.
 
 ## [1.1.10]
 
