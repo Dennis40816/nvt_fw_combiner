@@ -259,3 +259,19 @@ the schema concurrency stress test passed 15 repeated runs; Architecture 269, In
 and Bootstrap preload, digest and catalog 54 passed.
 Follow-up (1.1.13): the audit recommends the local-reference rule also for
 `EmbeddedVersionManagementSchema.Load`; not needed for the preload, which evaluates bundle schemas only.
+
+### 2026-09-26 First final review (Codex) and fixes
+State: local
+Commits: review of integration head `d3eabec13`; fixes `7f385fd4e` (code, tests, ADR decision 8) and
+release-prep `d08e29fb5` (changelog wording).
+Evidence: Codex `gpt-6-sol` xhigh read-only review: STARTUP-CATALOG-1112-01 BLOCKED (F-1 working-set gate,
+F-2 two warm-up bundles versus the admitted one, F-3 trust-index fallback not exact, F-4 missing
+cancellation and multi-failure evidence), RELEASE-IDENTITY-1112-01 findings required (F-5 roadmap outcome
+at freeze, F-6 parity source, F-7 wording), IO-LOOSE-DELIVERY-1112-01 record structure and coverage
+approved; the 18 governed paths are covered exactly once; no profile, contract, Golden, range or package
+change. Fixed: F-2, F-3, F-4, F-6, F-7, F-8. Preload tests passed 15 repeated runs; Bootstrap preload,
+digest and reuse 21 passed; Architecture 269 passed.
+Evidence: the changelog's "about 364 MB" is the preload build's median allocation at warm-up completion
+(363,889,400 bytes, test area `evidence/v1112-pkg-preload-preload/measure-package.txt`).
+Open: F-1 and F-5 need the frozen candidate's quiet-machine per-launch measurement; a working-set launch
+above 335 MB goes back to the owner. A fixed-diff follow-up review precedes finalization.

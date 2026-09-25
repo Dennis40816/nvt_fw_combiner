@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 2,
+  "taskId": "CTRLRAM-OSD-ENVELOPE-VIEW-1112-01",
+  "capability": "Show the CtrlRAM Display-OSD envelope in the memory layout and run report",
+  "integrationBase": "49e633f687ecd1337e78d8a4de5ca14f880d68c6",
+  "risk": "R1",
+  "kind": "behavior",
+  "state": "design-active",
+  "mutablePaths": [
+    "src/NvtFwCombiner.Application/MemoryLayout/MemoryLayoutProjector.cs",
+    "src/NvtFwCombiner.Application/MemoryLayout/MemoryLayoutModels.cs",
+    "src/NvtFwCombiner.Application/Composition/CompositionRunService.Reports.cs"
+  ],
+  "implementationOwner": "claude-code",
+  "searchEvidence": [
+    "CTRLRAM-OSD-ENVELOPE-1112-01 assigns memory layout, report and input inspection presentation of the envelope tail to a separate R1 record.",
+    "MemoryLayoutProjector, MemoryLayoutModels and the run report already project SourceEnvelopeExtent for the Standard Merge and AB bank Replace contexts; without the runtime reference-replace arm a CtrlRAM envelope run fails memory-layout projection because the output capacity differs from the template map.",
+    "CtrlRAM Base input inspection goes through FirmwareArtifactClassificationResolver (AB-TWO-NVT-1112-01), so CompiledInputArtifactInspectionService needs no change."
+  ],
+  "semanticOwner": "RuntimeReferenceReplaceV2CompilationContext.SourceEnvelope (CTRLRAM-OSD-ENVELOPE-1112-01) owns the envelope facts; MemoryLayoutProjector, MemoryLayoutModels and CompositionRunService remain the only projection owners.",
+  "terminalContract": "A compiled CtrlRAM Replace envelope is projected exactly like the existing Standard Merge and AB bank envelopes: the memory layout keeps the template regions clipped to the actual length and adds the preserved tail segment, and the run report carries the SourceEnvelope summary (template map, template capacity and actual length). Compositions without an envelope and every output byte, name and range stay unchanged.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": null,
+    "outcome": "not-required",
+    "evidence": "Bounded local R1 presentation correction that adds one existing-pattern arm in three projection owners; it is reviewed with CTRLRAM-OSD-ENVELOPE-1112-01 in the frozen-head final review."
+  },
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": {
+    "reviewer": null,
+    "outcome": "pending",
+    "evidence": ""
+  }
+}

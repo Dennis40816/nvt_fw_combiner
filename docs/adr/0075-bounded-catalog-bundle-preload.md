@@ -91,9 +91,11 @@ caches its value or its exception for the process lifetime.
    pinned by a test. Exception stack traces may differ; no catalog consumer
    reads them.
 8. Adoption requires, on the package shape and per scored launch (never a
-   median alone): peak private bytes and peak working set not above the
-   `v1.1.11` package baseline (330 MB and 335 MB), and GC heap after warm-up at
-   most 50 MB (board decision 11).
+   median alone): peak working set not above the `v1.1.11` package baseline
+   (335 MB) and GC heap after warm-up at most 50 MB (board decision 11). Peak
+   private bytes may exceed the `v1.1.11` baseline (330 MB) by at most 4 MB
+   (owner exception, board decision 12). The frozen candidate is measured on a
+   quiet machine; a failing launch goes back to the owner.
 9. Optional stages keep ADR 0049's limit of two concurrent workers and their
    ordering edges. This ADR is the only exception to ADR 0049's "no nested
    parallel fan-out" rule, limited to the fixed bundle layers of the required
