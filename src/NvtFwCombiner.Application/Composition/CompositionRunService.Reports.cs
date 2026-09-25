@@ -101,6 +101,8 @@ public sealed partial class CompositionRunService
                     new SourceEnvelopeRunSummary(envelope),
                 RuntimeReferenceBankReplaceV2CompilationContext { SourceEnvelope: { } envelope } =>
                     new SourceEnvelopeRunSummary(envelope),
+                RuntimeReferenceReplaceV2CompilationContext { SourceEnvelope: { } envelope } =>
+                    new SourceEnvelopeRunSummary(envelope),
                 _ => null,
             });
     }

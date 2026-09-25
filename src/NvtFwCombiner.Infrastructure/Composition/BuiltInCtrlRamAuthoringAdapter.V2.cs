@@ -109,12 +109,29 @@ internal sealed partial class BuiltInCtrlRamAuthoringAdapter
     {
         return BuiltInV2BundleRegistry.All[route.BundleId].CompileRuntimeReferenceReplace(
             route.ProfileId, route.ProfileVersion, route.Key.IcId, ExperienceIds.CtrlRamReplace,
-            topology, [referencePayload], CreateCompileRequest(context, topology, referencePayload));
+            topology, [referencePayload], CreateCompileRequest(context, topology, referencePayload, route));
     }
 
+    // Only the Standard route passes envelopeRoute; AB bank slices keep exact-length compilation.
     private static V2RuntimeReferenceReplaceCompileRequest CreateCompileRequest(
-        CtrlRamReplaceRunContext context, TopologySelection topology, FirmwareArtifactPayload referencePayload)
+        CtrlRamReplaceRunContext context, TopologySelection topology, FirmwareArtifactPayload referencePayload,
+        CtrlRamV2Route? envelopeRoute = null)
     {
+        V2RuntimeReferenceReplaceSourceEnvelope? sourceEnvelope =
+            envelopeRoute is not null &&
+            CanonicalDynamicRouteInventory.TryResolveCtrlRamEnvelopeTemplate(
+                envelopeRoute,
+                BuiltInV2BundleRegistry.All[envelopeRoute.BundleId].GetMapVariants(
+                    envelopeRoute.ProfileId, envelopeRoute.ProfileVersion, envelopeRoute.Key.IcId,
+                    ExperienceIds.CtrlRamReplace, out _),
+                referencePayload.LengthBytes,
+                out FirmwareImageMap? template,
+                out SourceEnvelopeProfileBinding? envelope)
+                ? new V2RuntimeReferenceReplaceSourceEnvelope(
+                    template.CapacityBytes, envelope.ExpectedOuterLengths, envelope.UnexpectedLengthIssueCode)
+                : null;
+        // Postbuild write authority stays on the layout template; the envelope tail is never writable.
+        long authorityCapacity = sourceEnvelope?.LayoutTemplateCapacity ?? referencePayload.LengthBytes;
         V2ExplicitMappingInputBinding[] bindings =
         [
             new(
@@ -193,12 +210,12 @@ internal sealed partial class BuiltInCtrlRamAuthoringAdapter
         [
             .. LegacyCombinerPostbuildPlanCompiler.GetAllowedWriteRangeSectionsForStagedSources(
                     commandPlan,
-                    referencePayload.LengthBytes,
+                    authorityCapacity,
                     stagedTargetRanges,
                     stagedTargetRanges),
         ];
 
         return new V2RuntimeReferenceReplaceCompileRequest(bindings, mappings, firmwareVersionEdit,
-            postbuildPolicy, postbuildWriteRangeSections, commandPlan.ProtocolPlan);
+            postbuildPolicy, postbuildWriteRangeSections, commandPlan.ProtocolPlan, sourceEnvelope);
     }
 }

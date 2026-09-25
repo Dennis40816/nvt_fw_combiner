@@ -1,0 +1,17 @@
+{
+ "route-7-nt51950-15-ctrlram-replace-4-2-ic-39-nt51950-ctrlram-fw1x-cascade-full-flash": {
+  "explanation": "v0.9.16 only. Both build the same plan-bound 512 KiB precursor base (`ff9ad012...aa32`); v0.9.16 blocks with `profile.v2.compile.map-selection-invalid` because the route map declares 256 KiB. The 1.1.12 candidate admits the base as a Display-OSD envelope over the 256 KiB template and writes `1536d344...4ebd`, the registered-Combiner output of the NT51951 2-IC route, which differs from the Golden expected output only in the four approved CRC words",
+  "basis": "fact",
+  "source": "CTRLRAM-OSD-ENVELOPE-1112-01; BUG-20260925-nt51950-cascade-ctrlram-plan-base"
+ },
+ "route-7-nt51950-15-ctrlram-replace-4-2-ic-36-nt51950-ctrlram-fw1x-cascade-tp-work": {
+  "explanation": "Intended Diff NF preservation (0.10.1, `99766df75`, #188): v0.9.16 copies the whole 5,120-byte Diff CtrlRAM record `[0x33200,0x34600)`, the candidate only the 2,320-byte active span `[0x33200,0x33B10)`; the preserved NF tail `[0x33B10,0x34600)` and the four Header and backup-Header CRC words differ. Ranges and byte count equal the plan's owner-approved NT51951 correction, and the NT51950 alias case declares the same fact scope. The plan names the correction only for the NT51951 route; the owner approved it for this route on 2026-09-26",
+  "basis": "fact for the ranges and the operation ranges, proposed for the intent",
+  "source": "CHANGELOG 0.10.1 'Reviewed firmware routes and exact preservation semantics'; CHANGELOG 1.0.0; ADR 0057; alias case nt51950-cascade2-geometry-nt51951-auto-prj-599-alias; BUG-20260925-v0916-plan-nt51950-tp-work-correction-missing"
+ },
+ "route-7-nt51951-15-ctrlram-replace-4-2-ic-39-nt51951-ctrlram-fw1x-cascade-full-flash": {
+  "explanation": "Owner-approved Diff NF preservation (owner decision 2026-08-28): both output hashes, the 2,816-byte count and all five ranges equal the plan's `approvedSemanticCorrections` row; the rebuilt bases are identical. v0.9.16 copies the whole Diff record `[0x33200,0x34600)`, the candidate only `[0x33200,0x33B10)`",
+  "basis": "fact",
+  "source": "plan approvedSemanticCorrections; ADR 0057; CHANGELOG 1.0.0 and 0.10.1"
+ }
+}

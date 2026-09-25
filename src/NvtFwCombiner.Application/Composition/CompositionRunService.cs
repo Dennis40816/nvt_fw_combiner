@@ -481,7 +481,8 @@ public sealed partial class CompositionRunService
                     deliveryPlan.SourceRange,
                     deliverySha256));
             }
-            catch (Exception exception) when (exception is ArgumentException or IOException or UnauthorizedAccessException)
+            catch (Exception exception) when (exception is
+                ArgumentException or IOException or UnauthorizedAccessException or OperationCanceledException)
             {
                 deliverySummaries.Add(new DeliveryArtifactSummary(
                     deliveryPlan.DeliveryKind,

@@ -1,6 +1,7 @@
 using System.Text.Json;
 using NvtFwCombiner.Application.Authoring;
 using NvtFwCombiner.Application.Capabilities;
+using NvtFwCombiner.Application.InputInspection;
 using NvtFwCombiner.Application.Metadata;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Infrastructure.Bundles;
@@ -285,11 +286,9 @@ public sealed class CtrlRamReportMetadataPlanTests
     [InlineData("nt51950-fw200-single-auto-prj-676-20260717", "NT51950", "tp-input", -1, "input.reference.unrecognized")]
     [InlineData("nt51950-fw200-single-auto-prj-676-20260717", "NT51950", "tp-input", 1, CompositionIssueCodes.InputAddressSpaceLengthMismatch)]
     [InlineData("nt51950-fw200-single-auto-prj-676-20260717", "NT51950", "expected-output", -1, CompositionIssueCodes.InputAddressSpaceLengthMismatch)]
-    [InlineData("nt51950-fw200-single-auto-prj-676-20260717", "NT51950", "expected-output", 1, "input.reference.unrecognized")]
     [InlineData("nt51951-fw200-single-auto-prj-695-20260718", "NT51951", "tp-input", -1, "input.reference.unrecognized")]
     [InlineData("nt51951-fw200-single-auto-prj-695-20260718", "NT51951", "tp-input", 1, CompositionIssueCodes.InputAddressSpaceLengthMismatch)]
-    [InlineData("nt51951-fw200-single-auto-prj-695-20260718", "NT51951", "expected-output", -1, "input.reference.unrecognized")]
-    [InlineData("nt51951-fw200-single-auto-prj-695-20260718", "NT51951", "expected-output", 1, "input.reference.unrecognized")]
+    [InlineData("nt51951-fw200-single-auto-prj-695-20260718", "NT51951", "expected-output", -1, CompositionIssueCodes.InputAddressSpaceLengthMismatch)]
     public void NonMapReferenceCapacityFailsClosedAtItsAdmissionStage(
         string caseId,
         string icId,
@@ -357,6 +356,114 @@ public sealed class CtrlRamReportMetadataPlanTests
         Assert.Equal(CompositionIssueCodes.InputAddressSpaceLengthMismatch, lengthIssue.Code);
         Assert.Equal(CompositionSlotIds.ReplaceBase, lengthIssue.OperationId);
         Assert.Contains("accepted exact reference lengths", lengthIssue.Message, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// CTRLRAM-OSD-ENVELOPE-1112-01: a Base one byte longer than the full-flash map is recognized by its Standard
+    /// prefix and accepted as a Display-OSD envelope with the nonstandard-length warning.
+    /// </summary>
+    [Theory]
+    [InlineData("nt51950-fw200-single-auto-prj-676-20260717", "NT51950")]
+    [InlineData("nt51951-fw200-single-auto-prj-695-20260718", "NT51951")]
+    public void LongerThanFullFlashBaseIsAcceptedAsAnEnvelope(string caseId, string icId)
+    {
+        JsonElement fixtureCase = CanonicalGoldenTestData.LoadDirectCase("ctrlram-replace", caseId);
+        JsonElement baseArtifact = fixtureCase.GetProperty("artifacts").EnumerateArray().Single(
+            static artifact => artifact.GetProperty("artifactId").GetString() == "expected-output");
+        JsonElement replacementArtifact = fixtureCase.GetProperty("artifacts").EnumerateArray().Single(
+            static artifact => artifact.GetProperty("originalFileName").GetString() == "NF_Ctrlram.bin");
+        byte[] source = File.ReadAllBytes(CanonicalGoldenTestData.ArtifactPath(baseArtifact));
+        using var workspace = TempWorkspace.Create("nvt-fw-combiner-ctrlram-envelope-capacity");
+        var slotPaths = new Dictionary<string, string>(StringComparer.Ordinal)
+        {
+            [CompositionSlotIds.ReplaceBase] = workspace.Write("reference.bin", [.. source, 0x00]),
+            ["replace-ctrlram-nf"] = CanonicalGoldenTestData.ArtifactPath(replacementArtifact),
+        };
+        Dictionary<string, byte[]> inputBytes = slotPaths.ToDictionary(
+            static pair => pair.Key,
+            static pair => File.ReadAllBytes(pair.Value),
+            StringComparer.Ordinal);
+
+        CtrlRamAuthoringSessionPreparation preparation = BootstrapTestHost.Canonical.CtrlRamAuthoring.PrepareSession(
+            new AuthoringSessionState(ExperienceIds.CtrlRamReplace), icId, "single", slotPaths, inputBytes);
+
+        ResolvedCapability capability = Assert.IsType<ResolvedCapability>(preparation.AcceptedSession?.ExactCapability);
+        RuntimeReferenceReplaceV2CompilationContext context = Assert.IsType<RuntimeReferenceReplaceV2CompilationContext>(
+            capability.CompiledComposition.V2Details.Provenance.Context);
+        Assert.Equal(source.LongLength, context.SourceEnvelope!.LayoutTemplateCapacity);
+        Assert.Equal(source.LongLength + 1, context.SourceEnvelope.ActualOutputLength);
+        Assert.Contains(
+            capability.CtrlRamExecutionPlan!.AdvisoryIssues,
+            static advisory => advisory.Code == "DP_NONSTANDARD_SIZE_WARNING" &&
+                advisory.Severity == CompositionIssueSeverity.Warning);
+    }
+
+    /// <summary>
+    /// CTRLRAM-OSD-ENVELOPE-CLASSIFY-1112-01: shared firmware inspection shows a nonstandard-length flash as Flash
+    /// Code by its prefix at the largest shorter published Standard length, and reports the complete candidate as
+    /// not matching that capacity.
+    /// </summary>
+    [Theory]
+    [InlineData("nt51950-fw200-single-auto-prj-676-20260717", "NT51950", 0x40000, 0x60000, 0x40000)]
+    [InlineData("nt51951-fw200-cascade2-auto-prj-599-20260731", "NT51950", 0x80000, 0xC0000, 0x80000)]
+    [InlineData("nt51951-fw200-single-auto-prj-695-20260718", "NT51951", 0x80000, 0xC0000, 0x80000)]
+    public void NonstandardEnvelopeFlashIsFlashCodeByItsLargestShorterPrefix(
+        string caseId, string icId, int flashLength, int candidateLength, int expectedPrefixLength)
+    {
+        byte[] candidate = CreateEnvelopeCandidate(caseId, flashLength, candidateLength);
+        using var workspace = TempWorkspace.Create("nvt-fw-combiner-envelope-inspection");
+
+        FirmwareInspectionSnapshot inspection = FirmwareInspectionTestSupport.InspectFirmware(
+            icId, workspace.Write("flash.bin", candidate), tpPath: null, ctrlRamRequest: null);
+
+        CompiledFirmwareArtifactClassification classification = Assert.IsType<
+            CompiledFirmwareArtifactClassification>(inspection.ArtifactClassification);
+        Assert.Equal(BaseFirmwareArtifactKind.FlashCode, inspection.BaseFirmwareArtifactKind);
+        Assert.Equal(CompiledFirmwareArtifactKind.FlashCode, classification.Kind);
+        CompiledFirmwareArtifactSignal capacity = classification.Signals.Single(
+            static signal => signal.Kind == CompiledFirmwareArtifactSignalKind.DeclaredContainerCapacity);
+        Assert.Equal(CompiledFirmwareArtifactSignalStatus.NotSatisfied, capacity.Status);
+        Assert.Equal(expectedPrefixLength, capacity.RequiredEndExclusive);
+        Assert.Equal(ByteRange.FromStartEndExclusive(expectedPrefixLength, candidateLength), capacity.FailedRange);
+    }
+
+    /// <summary>
+    /// Only the largest shorter published length is tried: when both the 256 KiB and the 512 KiB prefixes of a
+    /// 768 KiB NT51950 candidate would classify, the 512 KiB composition decides and no shorter prefix is consulted.
+    /// </summary>
+    [Fact]
+    public void NonstandardEnvelopeFlashUsesOnlyTheLargestShorterPrefix()
+    {
+        byte[] candidate = CreateEnvelopeCandidate("nt51950-fw200-single-auto-prj-676-20260717", 0x40000, 0xC0000);
+        candidate.AsSpan(0x40000, 0x40000).Fill(0xFF);
+        using var workspace = TempWorkspace.Create("nvt-fw-combiner-envelope-largest-prefix");
+
+        FirmwareInspectionSnapshot inspection = FirmwareInspectionTestSupport.InspectFirmware(
+            "NT51950", workspace.Write("flash.bin", candidate), tpPath: null, ctrlRamRequest: null);
+
+        CompiledFirmwareArtifactClassification classification = Assert.IsType<
+            CompiledFirmwareArtifactClassification>(inspection.ArtifactClassification);
+        Assert.Equal(CompiledFirmwareArtifactKind.FlashCode, classification.Kind);
+        Assert.Equal(0x80000, classification.Signals.Single(
+            static signal => signal.Kind == CompiledFirmwareArtifactSignalKind.DeclaredContainerCapacity)
+            .RequiredEndExclusive);
+    }
+
+    private static byte[] CreateEnvelopeCandidate(string caseId, int flashLength, int candidateLength)
+    {
+        JsonElement fixtureCase = CanonicalGoldenTestData.LoadDirectCase("ctrlram-replace", caseId);
+        JsonElement flashArtifact = fixtureCase.GetProperty("artifacts").EnumerateArray().Single(
+            static artifact => artifact.GetProperty("artifactId").GetString() == "expected-output");
+        byte[] flash = File.ReadAllBytes(CanonicalGoldenTestData.ArtifactPath(flashArtifact));
+        Assert.Equal(flashLength, flash.Length);
+        byte[] candidate = new byte[candidateLength];
+        flash.CopyTo(candidate, 0);
+        for (int offset = flashLength; offset < candidateLength; offset++)
+        {
+            candidate[offset] = unchecked((byte)offset);
+        }
+
+        return candidate;
     }
 
     /// <summary>The shared firmware-inspection result preserves an exact CtrlRAM compilation failure.</summary>

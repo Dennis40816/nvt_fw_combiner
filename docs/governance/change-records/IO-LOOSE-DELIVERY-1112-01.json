@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 2,
+  "taskId": "IO-LOOSE-DELIVERY-1112-01",
+  "capability": "Keep the committed primary output receipt when loose delivery or report projection is cancelled or fails after the primary commit (F07)",
+  "integrationBase": "49e633f687ecd1337e78d8a4de5ca14f880d68c6",
+  "risk": "R1",
+  "kind": "behavior",
+  "state": "final-complete",
+  "mutablePaths": [
+    "src/NvtFwCombiner.Application/Composition/CompositionRunService.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/CompositionRunPresentationViewModel.cs",
+    "tests/NvtFwCombiner.Application.Tests/CompositionRunServiceTests.DeliveryCancellation.cs",
+    "tests/NvtFwCombiner.UiSmoke.Tests/OutputConfirmationLabelTests.cs",
+    "tests/NvtFwCombiner.UiSmoke.Tests/ShellViewModelTests.RunProgress.cs"
+  ],
+  "implementationOwner": "codex/gpt-6-sol",
+  "searchEvidence": [
+    "The 1.1.12 roadmap allocation keeps the F07 output-truth repair; owner decisions 9 to 13 (2026-09-25 and 2026-09-26) keep WS-IO in 1.1.12 subject to its time box, and the commander scope decision in the WS-IO log limits it to F07.",
+    "Revalidated against v1.1.11: a cancellation of the loose delivery after the primary commit propagated as a run cancellation, and a cancelled or failed report projection dropped the committed output's path, size and SHA-256 from the presentation.",
+    "Existing owners are extended: CompositionRunService owns delivery and the run result; CompositionRunPresentationViewModel owns run-result projection. No second delivery or projection path is added."
+  ],
+  "semanticOwner": "CompositionRunService remains the only delivery and run-result owner; CompositionRunPresentationViewModel remains the only run-result projection owner.",
+  "terminalContract": "After the primary output commits, a cancelled loose delivery is recorded as a failed delivery with the committed primary receipt kept, without rerunning processors; a cancelled or failed report projection publishes the committed output's path, size and SHA-256 without a report. Cancellation before the primary commit and every output byte, name and range stay unchanged.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": null,
+    "outcome": "not-required",
+    "evidence": "Bounded local R1 correction under ADR 0070; the commander's cross-runtime review of d4261e7ba is recorded in the WS-IO log and becomes the final review of the frozen head."
+  },
+  "implementationHead": "aa8ae537b8833c8369397fedcb208818c1dcf1f5",
+  "reviewedHead": "aa8ae537b8833c8369397fedcb208818c1dcf1f5",
+  "pathStateDigest": "d7a492ab1786a4fc8e502e985db54a16740d764e31ac4d9334c59a419e945797",
+  "finalReview": {
+    "reviewer": "claude-code",
+    "outcome": "approved",
+    "evidence": "Independent cross-runtime semantic final review by claude-code (Claude Opus 5.5) at exact head aa8ae537b8833c8369397fedcb208818c1dcf1f5: APPROVED. The five declared paths are unchanged since the reviewed F07 commit d4261e7ba. After the primary output commits, a cancelled loose delivery is recorded as a failed delivery while the committed primary receipt is kept and no processor reruns; a cancelled or failed report projection publishes the committed output's path, size and SHA-256 without a report; cancellation before the primary commit is unchanged. The architecture pin of the run-result projection call was updated for the renamed completed result. The full local verifier on the identical product source dc773e967 passed every .NET suite including Golden regression; the remaining script-lane failures also fail on main and are environment-specific. Structural review by codex/gpt-6-sol at the same head: APPROVED. P3 notes for 1.1.13: cancellation reuses delivery.<kind>.failed with the runtime text, and a committed-without-report result is shown as not succeeded by design."
+  },
+  "integrationPaths": [
+    "src/NvtFwCombiner.Application/Composition/CompositionRunService.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/CompositionRunPresentationViewModel.cs"
+  ]
+}

@@ -46,7 +46,8 @@ internal sealed class CanonicalCapabilityCatalogSource(
         IReadOnlyList<CanonicalCapabilityDefinition>,
         IReadOnlyList<CanonicalDynamicCapabilityDefinition>,
         CanonicalCapabilityDisclosure> loadDisclosure,
-    Func<IReadOnlyList<MetadataPlanDefinition>> loadFullImageMetadataPlans) :
+    Func<IReadOnlyList<MetadataPlanDefinition>> loadFullImageMetadataPlans,
+    Action<CancellationToken>? preloadDependencies = null) :
     ICanonicalCapabilityCatalogSource
 {
     public CapabilityCatalogLoadResult Load(CancellationToken cancellationToken)
@@ -73,6 +74,9 @@ internal sealed class CanonicalCapabilityCatalogSource(
             int totalRoutes = policy.Routes.Count;
             int completedRoutes = 0;
             _ = progress?.TryWrite(new(0, Result: null));
+            // ADR 0075: warms dependencies only; the serial pass below still decides and reports everything.
+            preloadDependencies?.Invoke(cancellationToken);
+            cancellationToken.ThrowIfCancellationRequested();
             List<CanonicalCapabilityDefinition> definitions = [];
             List<CanonicalDynamicCapabilityDefinition> dynamicDefinitions = [];
             ILookup<bool, CanonicalCapabilityPolicyRoute> classifiedRoutes =

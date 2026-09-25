@@ -130,12 +130,10 @@ internal static class CanonicalCapabilityDisclosureInventory
             long?[] candidates = capacities.Count == 0
                 ? [null]
                 : [.. capacities.Select(static capacity => (long?)capacity)];
-            foreach (long? capacity in candidates)
+            // Candidates admitted to one identical compiler request share one compilation.
+            foreach ((long? capacity, CompiledComposition? composition, IReadOnlyList<CompositionIssue> compileIssues) in
+                     registration.TryCompileEach(candidates))
             {
-                registration.TryCompile(
-                    capacity,
-                    out CompiledComposition? composition,
-                    out IReadOnlyList<CompositionIssue> compileIssues);
                 if (composition is null || compileIssues.Count != 0)
                 {
                     throw new InvalidDataException(
