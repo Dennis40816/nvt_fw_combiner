@@ -57,6 +57,34 @@ Owner hard-target amendment, 2026-09-25: from process launch, the first main win
 This replaces target-TBD planning and supersedes the historical 700 ms target for current work; its unachieved historical evidence remains unchanged. No improvement or packaged/cold-launch pass has been demonstrated by this amendment. Broad profile reference convergence stays in `1.2.1`.
 
 
+### Owner release scope for 1.1.12 — 2026-09-26
+
+The owner set a 2026-09-28 release for `1.1.12` through the `1.1.11` release path
+(decisions of 2026-09-25 and 2026-09-26 in the [1.1.12 handoff board](../handoff/1.1.12.md)).
+`1.1.12` ships:
+
+- measured startup optimization: deduplicated schema validation, parsing and
+  compilation, and bounded parallel bundle preloading under
+  [ADR 0075](../adr/0075-bounded-catalog-bundle-preload.md). The compressed
+  composite ReadyToRun package shape and its 80,000,000-byte EXE ceiling are
+  kept, so the first-window target is not expected to be met; the measured
+  outcome against both hard targets is recorded in the `1.1.12` CHANGELOG
+  entry at the release freeze. The owner accepted a 2-4 MB peak private-bytes
+  increase over `1.1.11` for the parallel preload;
+- F07: a committed output keeps its receipt when its delivery or report is
+  interrupted;
+- removal of the hard NT51950/NT51951 CtrlRAM size limits for Display OSD
+  inputs (scoped R3 change), if its firmware-owner, Golden and write-range
+  evidence completes by the freeze; otherwise it moves to `1.1.13`;
+- a non-certifying local alignment with v0.9.16 for the routes that have
+  canonical inputs; the formal comparator for 1.x candidates is `1.1.13` work.
+
+Moved to `1.1.13`, ahead of its existing scope: F08 and residual F20/F21; TP
+Header SVN modeling (owner flag definitions are recorded in the handoff board);
+the Header backup CRC investigation; the development-process reset,
+dual-runtime agent documents, test architecture and the WS-FLOW corrections;
+rolling v0.9.16 parity; and first-window work within the EXE ceiling.
+
 ### Owner-deferred TP Header SVN modeling — 2026-09-25
 
 The owner deferred shared TP Header SVN modeling to **1.1.12** to first confirm the Header contents. The [existing handoff](post-v1.1.8-audit-handoff.md#tp-header-svn-modeling-deferred-to-1112--2026-09-25) retains read-only findings, the common-definition proposal and pending Header questions. Implementation requires that confirmation and a subsequent scoped admission; this allocation does not accept unconfirmed field semantics or claim a product change. Preserve the existing output/persistence/startup work, the broader 1.2.1 profile convergence, and all 1.1.11 release/evidence gates. SVN modeling is neither a completed 1.1.11 feature nor a release blocker.
@@ -199,8 +227,8 @@ protected review/CI and candidate publication gates remain required.
 | `1.1.9` | **Long-name failure/recovery first, then Toolchain Runtime selection, remaining Settings conveniences and CtrlRAM AB intake**: fix issue #434 with edit-time visible errors, recovery to the last accepted valid name on invalid commit, and safe handling of BIN/Bundle/staging names. Assess removal of the product's total-path cap separately from the filesystem component limit. Add **Settings > Config > Toolchain** for detection and user selection of available compatible VC++ runtimes, including newer installed versions; see the linked Toolchain handoff for admission/readiness and verification questions. Record/reconcile the owner-provided CtrlRAM AB reference and prepare its contract/evidence questions for completion before `1.2.0`. Inventory other user-adjustable preferences and justified reset/import/export conveniences through the `1.1.6` Settings owner. Arbitrary maps, CRC/ranges, safety overrides and support promotion are outside ordinary Settings. |
 | `1.1.10` (required before `1.2.0`; owner scope update 2026-09-24) | **CtrlRAM AB Replace, affected shared-contract extraction, DP Replace retirement and verifier orchestration repair**. Retain the NT51932 Perfect family／NT51950 Partial family intake and explicit Common/Desay/topology evidence. Share canonical AB format/layout ownership, preserve independent page instances, and detach shared DPCMI/Perfect-family dependencies before retiring DP Replace. Keep repository-script pytest collection inside the selected test root while preserving exact selection, scratch isolation, cancellation and complete execution; pass the applicable fixed-source verifier. Bank/source/version and fixed-Reference decisions, unresolved firmware rules, implementation and verification evidence are tracked in the [1.1.10 delivery checklist](../ui/v1.1.10-delivery.md). No filename-based AB detection or blanket family promotion. |
 | `1.1.11` | **Input correctness, deferred AB/OSD verification and shared information UI**: reproduce/fix F04/F05; complete the current-source AB CtrlRAM and OSD evidence/owner review, retained Info/Details/Event Buffer/DP AB layout/Flash BIN assessment and loaded-FW screenshots. Temporarily hide Customized Merge/Replace UI entry points until their corresponding functionality is released and accepted; preserve implementation and data. See the owner-approved allocation above. |
-| `1.1.12` | **Output/persistence correctness and measured Home startup optimization**: F07/F08, residual F20/F21; preserve committed receipts and existing destinations, expose retryable errors. Hard targets from process launch: visible first window within 500 ms, all startup loading within 2,000 ms; nonessential work in background. Use comparable per-launch timing and first-navigation regression evidence; see the 2026-09-25 startup amendment. TP Header SVN common modeling awaits owner confirmation; the scoped NT51950 Normal/Both Header backup CRC investigation follows its linked deferral amendment. |
-| `1.1.13` | **Process cancellation then window lifetime**: F03/F06 before F01/F02/F25; bounded termination and recovery. |
+| `1.1.12` | **Output/persistence correctness and measured Home startup optimization**: F07/F08, residual F20/F21; preserve committed receipts and existing destinations, expose retryable errors. Hard targets from process launch: visible first window within 500 ms, all startup loading within 2,000 ms; nonessential work in background. Use comparable per-launch timing and first-navigation regression evidence; see the 2026-09-25 startup amendment. TP Header SVN common modeling awaits owner confirmation; the scoped NT51950 Normal/Both Header backup CRC investigation follows its linked deferral amendment. 2026-09-26 release scope: see [Owner release scope for 1.1.12](#owner-release-scope-for-1112--2026-09-26); F08, residual F20/F21, TP Header SVN modeling and the Header backup CRC investigation move to `1.1.13`. |
+| `1.1.13` | **Items moved from 1.1.12, then process cancellation and window lifetime**: the 2026-09-26 [moved items](#owner-release-scope-for-1112--2026-09-26) first; then F03/F06 before F01/F02/F25; bounded termination and recovery. |
 | `1.1.14` | **Controlled diagnostics and repair regression**: F17/F23/F26, demonstrated F16 defects; retain F18 evidence throughout. |
 | `1.2.0` | **No longer the release label for `1.1.10`**: the owner explicitly chose `1.1.10` on 2026-09-23. No additional scope is assigned by that numbering correction. The former Launcher development tranche remains in `1.2.1`; reference refresh and current evidence remain in the `1.1.10` delivery. |
 | `1.2.1` | **Customized large-file support, Launcher update development, Python Combiner replacement and residual ownership convergence**. Follow the [1.2.1 handoff](v1.2.1-handoff.md) for large-source/small-slice then large-output work, delta transfer, Launcher self-update and intranet migration. Preserve the [Python Combiner intake](#121-python-combiner-intake--2026-09-21), including B-bank CRC/postbuild mode assessment, and existing identity/family/topology/input-snapshot/page-draft and recovery work. Progressively consolidate repeated family profile declarations through an explicit, validated shared-definition reference; retain each member's map, topology, identity and evidence. Shared DPCMI/Perfect-family and page-contract work required by DP retirement remains in `1.1.10`; avoid a wholesale profile rewrite. |
