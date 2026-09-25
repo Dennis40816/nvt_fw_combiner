@@ -224,3 +224,22 @@ review of this revision precedes the R2 record's design-active admission.
 Note: GR-2 also touches unit 1 (schemas now shared across bundles). Today the only caller is each
 bundle's lazy load, which the catalog drives serially on one worker thread; the concurrency stress
 test will be added before integration either way.
+
+### 2026-09-25 Preload gate measurements (package shape, per launch)
+State: local (preload implemented at `412c7b4b6`; adoption pending owner decision)
+Evidence: `412c7b4b6` passed Bootstrap catalog 626, Architecture 268, Golden regression 14 and the new
+preload tests 5. Package-shape publishes, one warm-up and five scored launches each, plus three
+`dotnet-counters` runs for GC heap (test area `evidence/v1112-pkg-*`):
+
+| Build | Process to loading done | Peak private | Peak working set |
+| --- | ---: | ---: | ---: |
+| `v1.1.11` source | 3,885-4,179 ms | 328.7-331.1 MB | 334.2-335.7 MB |
+| Units 1 to 3 | 2,291-2,344 ms | 324.5-326.8 MB | 321.8-325.2 MB |
+| Preload, 4 workers | 1,973-2,077 ms | 331.0-334.9 MB | 330.5-337.3 MB |
+| Preload, 2 workers (experiment, reverted) | 2,077-2,166 ms | 331.7-334.0 MB | 330.2-334.0 MB |
+
+GC heap after warm-up with preload: 36-38 MB (budget 50 MB). The catalog interval fell from 1,487 ms
+(units 1 to 3) to 1,184 ms (preload, 4 workers). Preload raises peak private bytes by about 7 MB over
+units 1 to 3 regardless of the worker bound, which is 2-4 MB above the `v1.1.11` maximum; 2 of 5
+launches met 2,000 ms. Neither variant meets every gate of ADR 0075 decision 8; the owner decides.
+Open: JsonSchema.Net 8.0.5 source audit (ADR 0075 decision 4) still running.
