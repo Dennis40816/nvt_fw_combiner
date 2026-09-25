@@ -14,6 +14,7 @@ internal static class ProfileBundleSchemaValidator
     // Built-in bundles repeat the same schema bytes; identical bytes always give the same verdict,
     // so only schemas that passed every check are reused. Failures are never cached.
     private static readonly ConcurrentDictionary<EntrySchemaKey, JsonSchema> ValidatedEntrySchemas = new();
+    private static readonly Lock SchemaBuildLock = new();
 
     internal static void ValidateManifest(
         ProfileBundleFileSnapshot manifestSnapshot,
@@ -111,26 +112,32 @@ internal static class ProfileBundleSchemaValidator
         ValidateRequiredRootString(root, "$id", schemaId, schemaPath);
         ValidateSchemaReferences(root, isRoot: true, schemaPath);
 
-        EvaluationResults metaValidation = MetaSchemas.Draft202012.Evaluate(root, EvaluationOptions);
-        if (!metaValidation.IsValid)
+        // Local-only references make every built schema fully resolved, so evaluating it later writes no
+        // shared state. Meta-validation and build run one at a time (ADR 0075): they read library-global
+        // registries, and serializing them costs little because validated schemas are cached.
+        lock (SchemaBuildLock)
         {
-            throw Error(schemaPath, "Bundle schema does not satisfy Draft 2020-12.");
-        }
-
-        try
-        {
-            return JsonSchema.FromText(root.GetRawText(), new BuildOptions
+            EvaluationResults metaValidation = MetaSchemas.Draft202012.Evaluate(root, EvaluationOptions);
+            if (!metaValidation.IsValid)
             {
-                SchemaRegistry = new SchemaRegistry(),
-            });
-        }
-        catch (JsonSchemaException exception)
-        {
-            throw Error(schemaPath, "Bundle schema could not be parsed.", exception);
-        }
-        catch (JsonException exception)
-        {
-            throw Error(schemaPath, "Bundle schema could not be parsed.", exception);
+                throw Error(schemaPath, "Bundle schema does not satisfy Draft 2020-12.");
+            }
+
+            try
+            {
+                return JsonSchema.FromText(root.GetRawText(), new BuildOptions
+                {
+                    SchemaRegistry = new SchemaRegistry(),
+                });
+            }
+            catch (JsonSchemaException exception)
+            {
+                throw Error(schemaPath, "Bundle schema could not be parsed.", exception);
+            }
+            catch (JsonException exception)
+            {
+                throw Error(schemaPath, "Bundle schema could not be parsed.", exception);
+            }
         }
     }
 

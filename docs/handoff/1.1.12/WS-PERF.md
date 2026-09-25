@@ -243,3 +243,19 @@ GC heap after warm-up with preload: 36-38 MB (budget 50 MB). The catalog interva
 units 1 to 3 regardless of the worker bound, which is 2-4 MB above the `v1.1.11` maximum; 2 of 5
 launches met 2,000 ms. Neither variant meets every gate of ADR 0075 decision 8; the owner decides.
 Open: JsonSchema.Net 8.0.5 source audit (ADR 0075 decision 4) still running.
+
+### 2026-09-25 Race-freedom evidence for the preload
+State: local
+Commits: this commit (build lock, architecture guard, ADR 0075 decision 4) on `c63c95a98`.
+Evidence: source audit of JsonSchema.Net 8.0.5 (commit `3520d7ac43e5c6c9b91abeac5af992eb82ffbf63`,
+identified from the NuGet nuspec, the csproj version and the loaded assembly's informational version):
+concurrent evaluation of one fully resolved schema with shared options, concurrent Draft 2020-12
+meta-validation, and concurrent builds with private registries are safe under three conditions: no
+production write to the library's global registries, schemas fully resolved (local references only),
+and a known `$schema`. Enforcement added: meta-validation and build under one lock; the architecture
+test `ProductionCodeNeverWritesJsonSchemaGlobalState`. Observed evidence: the snapshot digest pinned
+before units 3 and the preload matched in 11 fresh processes, each running the cold parallel preload;
+the schema concurrency stress test passed 15 repeated runs; Architecture 269, Infrastructure bundles 328
+and Bootstrap preload, digest and catalog 54 passed.
+Follow-up (1.1.13): the audit recommends the local-reference rule also for
+`EmbeddedVersionManagementSchema.Load`; not needed for the preload, which evaluates bundle schemas only.

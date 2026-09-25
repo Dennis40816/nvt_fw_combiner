@@ -59,12 +59,17 @@ caches its value or its exception for the process lifetime.
    a thread-safe collection (the validated-schema `ConcurrentDictionary`; a
    concurrent miss may build a schema twice and keep one, which is a bounded
    cost, not a result difference), or a built `JsonSchema` and its evaluation
-   options. Concurrent evaluation of built `JsonSchema` instances, the Draft
-   2020-12 meta-schema and shared evaluation options is admitted only with a
-   source-level audit of JsonSchema.Net 8.0.5 showing that evaluation writes no
-   shared state, plus the concurrency stress test. If the audit does not show
-   that, each worker uses its own schema instances and evaluation options
-   instead.
+   options. A source-level audit of JsonSchema.Net 8.0.5 (source commit
+   `3520d7ac43e5c6c9b91abeac5af992eb82ffbf63`, 2026-09-25) found evaluation
+   of a fully resolved schema read-only, including shared evaluation options;
+   the Draft 2020-12 meta-schema reads the global schema registry; and a build
+   writes only its own registry unless its `$schema` is unknown or it points
+   into the global registry. The conditions are enforced: bundle schemas
+   accept only local references (so every built schema is fully resolved) and
+   the Draft 2020-12 dialect; meta-validation and build run under one lock; an
+   architecture test forbids production writes to the library's global
+   registries and requires a private registry for every schema build. The
+   concurrency stress test adds observed-execution evidence.
 5. Preloading publishes nothing, reports no progress and decides nothing. A
    worker catches every failure of its bundle and leaves it cached in the lazy
    catalog for the serial pass to report. Cancellation of the load's token
