@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 2,
+  "taskId": "RELEASE-IDENTITY-1111-01",
+  "capability": "Prepare the owner-selected 1.1.11 candidate identity and release notes without publication",
+  "integrationBase": "3db701b70e0eec66889a4b030fcbb84db0db5693",
+  "risk": "R3",
+  "kind": "release",
+  "state": "design-active",
+  "mutablePaths": [
+    "VERSION",
+    "SPEC.md"
+  ],
+  "implementationOwner": "/root",
+  "searchEvidence": [
+    "Owner requests completion of feasible 1.1.11 work before supplying remaining AB CtrlRAM Golden. 1.1.10 is already published at v1.1.10, peeled source a90c640f2bb54b8b1b82d4010c461b3bd8efa0b1.",
+    "VERSION remains the canonical assembly/package identity; sync_derived.py release-version-headers projects its value into SPEC and the historical verification-report version header.",
+    "CHANGELOG current heading incorrectly still calls 1.1.10 unpublished. Add the new 1.1.11 candidate section and correct the top-level state without rewriting the historical released section."
+  ],
+  "semanticOwner": "Existing VERSION release identity and sync_derived release-version-headers provider; CHANGELOG owns user-visible candidate notes.",
+  "terminalContract": "Set VERSION to 1.1.11 and SPEC version/status headers to the same candidate identity with final gates pending. Use existing sync_derived provider for SPEC and docs/references/verification-report.md version headers only. Add complete CHANGELOG candidate notes with supported-neutral status and truthful outstanding independent AB Golden, owner review and publication gates. Do not modify stable tags/assets, CI, release policy, decisions, expected bytes, or claim publication. Validate version/header synchronization and release note renderer; final source verification, signing/package and external owner evidence remain separately required.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "/root/ab_layout_context_review",
+    "outcome": "approved",
+    "evidence": "2026-09-25 independent R3 design ADMITTED: exact governed VERSION/SPEC.md; two ordinary documentation projections named in evidence. Existing provider only updates unique version headers. No tag/push/publication or AB evidence promotion. Stage before editing; final release authority remains pending."
+  },
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": {
+    "reviewer": null,
+    "outcome": "pending",
+    "evidence": ""
+  }
+}

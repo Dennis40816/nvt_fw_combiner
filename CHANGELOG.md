@@ -2,13 +2,96 @@
 
 All notable changes to NVT FW Combiner are documented here. The project follows Semantic Versioning and the Keep a Changelog section model.
 
-Released entries describe the state at publication. The 1.1.10 entry remains a
-release candidate until its gates and publication are complete. For current
+Released entries describe the state at publication. Version 1.1.10 has been
+published; 1.1.11 is in candidate preparation. For current
 future-version assignments, use the [canonical roadmap](docs/architecture/nfc_roadmap.md).
 
 ## [Unreleased]
 
-1.1.10 is the current release candidate; later changes remain here.
+Later changes remain assigned by the canonical roadmap.
+
+## [1.1.11]
+
+### Summary
+
+**Candidate preparation; not yet published.** This release fixes delayed file
+selection and Hex Editor loading, unifies firmware information, and corrects AB
+CtrlRAM memory presentation. Customized Merge/Replace entry points are hidden
+pending their later release. Existing firmware support levels are unchanged.
+
+### Product changes
+
+#### 1. Delayed file selections cannot overwrite newer work
+
+- Before → After: A picker returning after a page, mode, IC, slot or dialog changed could apply its old selection. Current selection generations now reject those stale results, including Same TP transitions and cancelled/reopened output confirmation.
+- Affected: Firmware slots, General mapping, Hex Editor, output folders and update-source settings.
+- Support status: unchanged/support-neutral.
+- Compatibility: Existing selections and newer edits are preserved; output naming and firmware execution are unchanged.
+- Verification: Controlled delayed-completion, cancel/reopen, context-change and successful-picker regressions cover the affected owners.
+- Limitations: No new operating-system picker or firmware type is introduced.
+
+#### 2. Hex Editor keeps accepted bytes and filename together
+
+- Before → After: An older asynchronous read or late cancellation could leave bytes, filename and error state inconsistent. The accepted load now commits bytes and path together, while obsolete completions are ignored.
+- Affected: Hex Editor file loading and native picker interaction.
+- Support status: unchanged/support-neutral.
+- Compatibility: A failed newer read retains the last successfully accepted document.
+- Verification: Out-of-order reads, cancellation, failure and page-context regressions exercise the adapter and actual view model.
+- Limitations: Customized large-file redesign is scheduled separately.
+
+#### 3. Shared firmware information and visible Event Buffer
+
+- Before → After: Slot information varied by page and some TP inputs omitted Event Buffer. Shared slot-role projection now presents the appropriate DP, TP A/B or Base facts; Event Buffer uses compact `Name (0xXX)` text in the primary information area, including NT51926 and NT51929 AB TP inputs.
+- Affected: Standard TP, AB TP A/B and CtrlRAM Standard/AB Base cards. DP_AB displays DP information; AB Base prioritizes TP information and places DP details below.
+- Support status: unchanged/support-neutral; read-only Event Buffer display does not grant AB format admission.
+- Compatibility: Bank ranges remain in Details; FWConfig ranges are omitted. IC Count and DP details retain expandable disclosure. Common uses its short display name.
+- Verification: Shared metadata projection, missing/ambiguous/stale observations, nonduplicate AB facts, languages/themes and loaded-firmware UI cases.
+- Limitations: Unreadable metadata is not fabricated; format-selection policy remains separate from display information.
+
+#### 4. Correct AB memory overview and CtrlRAM labels
+
+- Before → After: NT51950 AB Base could omit DP context and show a symmetric-bank toggle; CtrlRAM underlines could lose text on initial layout. The overview reuses the canonical Standard companion, displays DP/TP coverage, and switches banks only when the AB profile explicitly declares complete symmetry. Initial underline text receives its actual arranged width.
+- Affected: CtrlRAM Replace memory layout; NT51919/51929/51932 retain A/B views, while NT51950/51951 show the complete output.
+- Support status: unchanged/support-neutral; no additional page profile or firmware route.
+- Compatibility: Viewing a bank never changes the selected replacement banks. Non-symmetric layouts clear a previous bank viewport. Address ranges, writes, headers and CRC behavior remain unchanged.
+- Verification: Profile/schema validation, composite declaration propagation, complete-range projection, preserved-bank coverage and real-window cross-IC transitions.
+- Limitations: Independent AB CtrlRAM output certification remains open; display correction is not certification.
+
+#### 5. Hide Customized workflows until their later release
+
+- Before → After: Customized Merge/Replace appeared in Home and ordinary mode selectors. Those entry points are now hidden consistently.
+- Affected: Home, Merge and Replace navigation.
+- Support status: UI availability reduced; underlying canonical capabilities are not promoted or removed.
+- Compatibility: Existing drafts, history and underlying command compatibility remain intact.
+- Verification: Actual Home templates, mode selectors and catalog-refresh regressions confirm hidden entries with retained canonical choices.
+- Limitations: This is an entry-point change, not the later Customized large-file implementation.
+
+### Security
+
+No new external executable, update endpoint or permission is introduced.
+Stale asynchronous results are rejected at their existing acceptance owners.
+
+### Known issues
+
+- AB CtrlRAM routes retain their existing Candidate status. Independent expected
+  outputs and firmware-owner review are still required for uncovered cases;
+  successful execution or screenshots do not establish byte parity.
+- Final candidate integration, owner visual acceptance and release checks are
+  pending. This changelog entry is not a publication or certification statement.
+- Startup optimization is allocated to 1.1.12. Customized large-file work,
+  differential/self-updating Launcher and broader profile reuse remain later work.
+
+### Upgrade and rollback
+
+No saved-data migration is introduced. When released, extract the portable
+package into a separate directory and preserve existing settings and outputs.
+Keep the prior stable package for rollback; avoid replacing a running copy.
+
+### Downloads and integrity
+
+The Windows x64 portable package, SHA-256 checksums, SBOM and provenance will be
+provided by the protected release workflow after final gates pass. No 1.1.11
+download has been published by this candidate preparation.
 
 ## [1.1.10]
 
