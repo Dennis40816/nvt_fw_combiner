@@ -134,3 +134,31 @@ trust and infrastructure convergence; Bootstrap `CanonicalCapabilityCatalogMigra
 Residual gates: scoped Polytail; capability-reuse record, cross-runtime review (Codex) and Golden
 regression before integration; `verify.py --structure-only`.
 Next: implement unit 1 with its tests.
+
+### 2026-09-25 Startup A unit 1 verified locally: schema validation dedup
+State: local
+Commits: this commit (unit 1 code, tests and this entry) on `0f4495edd`.
+Evidence: package-equivalent publish (the exact `scripts/package.ps1` app flags: self-contained
+win-x64, single file with compression, ReadyToRun composite, untrimmed) and a no-compression
+variant; `scripts/measure-startup.ps1 -RequirePreloadLifecycle`, one warm-up and five scored runs;
+raw data in the test area under `evidence/v1112-pkg-baseline-d4902f5ee/` and
+`evidence/v1112-pkg-unit1-unit1/`. Other agents built on the machine during some runs; allocation
+figures are unaffected by that.
+
+| Median | Before, package | Unit 1, package | Unit 1, no compression |
+| --- | ---: | ---: | ---: |
+| Process launch to first window handle | 765 ms | 762 ms | 494 ms |
+| `main-window.opened` to `catalog-state.applied` | 3,080 ms | 1,590 ms | 1,505 ms |
+| Managed entry to warm-up completed | 3,639 ms | 2,128 ms | 2,001 ms |
+| Allocated by warm-up completed | 783 MB | 371 MB | 371 MB |
+
+Evidence: a sampled thread-time trace of the package build (`package.nettrace`, same folder) put
+81% of catalog loading in `ProfileBundleSchemaValidator.ValidateEntries`, 46% in `ParseSchema`.
+Evidence: tests at this state: Infrastructure `Bundles` 312 passed (3 new); Architecture profile
+schema trust, infrastructure convergence and catalog 9 passed; Bootstrap
+`CanonicalCapabilityCatalogMigrationTests` and `CatalogLoadScopedCtrlRamTests` 45 passed.
+Open: the previous local baseline (1,235 ms to window, 6,498 ms to warm-up) was a plain
+`dotnet build` without ReadyToRun and overstates the shipped package; decisions use the
+package-equivalent figures. Turning off single-file compression is a packaging change (owner
+decision pending on the board).
+Next: GC configuration experiment; unit 2 (single parse per bundle document).
