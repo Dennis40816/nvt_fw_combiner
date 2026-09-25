@@ -1,7 +1,10 @@
 # ADR 0075: Bounded bundle preloading inside the required catalog stage
 
-Status: Proposed (independent design reviews on 2026-09-25: ACCEPT-WITH-CHANGES
-twice; this third revision answers both reviews).
+Status: Accepted (owner decision, 2026-09-26, board decision 12: adopted with 4
+workers; the owner accepts a 2-4 MB peak private-bytes increase over the
+`v1.1.11` package shape, and the other memory gates of decision 8 stand).
+Independent design reviews on 2026-09-25: ACCEPT-WITH-CHANGES twice; this
+revision answers both.
 
 Amends: [ADR 0049](0049-unified-preload-lifecycle.md), section "Concurrency and
 bounds are explicit", only for the required catalog stage.
