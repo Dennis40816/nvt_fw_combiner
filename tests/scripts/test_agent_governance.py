@@ -50,8 +50,13 @@ class AgentGovernanceTests(unittest.TestCase):
             repository_validator, "CAPABILITY_REUSE_CLASSIFICATION_CUTOVER", None
         )
         self.cutover_patch.start()
+        self.version_cutover_patch = mock.patch.object(
+            repository_validator, "CAPABILITY_REUSE_VERSION_CUTOVER", None, create=True
+        )
+        self.version_cutover_patch.start()
 
     def tearDown(self) -> None:
+        self.version_cutover_patch.stop()
         self.cutover_patch.stop()
         self.temporary_directory.cleanup()
 
@@ -475,6 +480,88 @@ class AgentGovernanceTests(unittest.TestCase):
 
         self.assertTrue(any("taskId has invalid format" in error for error in errors))
         self.assertTrue(any("filename must equal taskId" in error for error in errors))
+
+    def test_lowercase_filename_preserves_uppercase_task_identity(self) -> None:
+        self._change()
+        self._write_record(
+            self._record("COMMON-TP-EVENT-BUFFER-1111-01"),
+            "docs/governance/change-records/common-tp-event-buffer-1111-01.json",
+        )
+
+        self.assertEqual([], self.validate())
+
+    def test_record_filename_rejects_near_miss_and_casefold_collision(self) -> None:
+        self._change()
+        self._write_record(
+            self._record("TEST-01"),
+            "docs/governance/change-records/test-01-extra.json",
+        )
+        self.assertTrue(any("filename must equal taskId" in error for error in self.validate()))
+
+        self._git("rm", "-f", "-q", "--", "docs/governance/change-records/test-01-extra.json")
+        self._write_record(self._record("TEST-01"))
+        self._write_record(
+            self._record("TEST-01"),
+            "docs/governance/change-records/another-file.json",
+        )
+        self.assertTrue(any("taskId must be unique" in error for error in self.validate()))
+
+    def test_git_index_paths_colliding_only_by_case_are_rejected(self) -> None:
+        self._change()
+        lower = "docs/governance/change-records/test-01.json"
+        upper = "docs/governance/change-records/TEST-01.json"
+        self._write_record(self._record("TEST-01"), lower)
+        blob = self._git("hash-object", "-w", "--", lower).stdout.strip()
+        self._git(
+            "-c", "core.ignorecase=false", "update-index", "--add", "--cacheinfo",
+            f"100644,{blob},{upper}",
+        )
+
+        self.assertTrue(any("paths collide ignoring ASCII case" in error
+                            for error in self.validate()))
+
+    def test_committed_lowercase_design_active_still_fails(self) -> None:
+        self._change()
+        self._write_record(
+            self._record("TEST-01"),
+            "docs/governance/change-records/test-01.json",
+        )
+        self._git("add", "--", "src/Product/Owner.cs")
+        self._git("commit", "-q", "-m", "commit lowercase active admission")
+
+        self.assertTrue(any(
+            "design-active capability-reuse record cannot remain committed or be reused"
+            in error for error in self.validate()
+        ))
+
+    def test_committed_lowercase_active_cannot_be_reused_after_reformatting(self) -> None:
+        self._change()
+        relative = "docs/governance/change-records/test-01.json"
+        record = self._record("TEST-01")
+        self._write_record(record, relative)
+        self._git("add", "--", "src/Product/Owner.cs")
+        self._git("commit", "-q", "-m", "commit lowercase active admission")
+        self._write(relative, json.dumps(record, separators=(",", ":")) + "\n")
+        self._git("add", "--", relative)
+
+        self.assertTrue(any(
+            "design-active capability-reuse record cannot remain committed or be reused"
+            in error for error in self.validate()
+        ))
+
+    def test_lowercase_final_only_uses_real_path_and_preserves_admission(self) -> None:
+        self._change()
+        relative = "docs/governance/change-records/test-01.json"
+        self._write_record(self._record("TEST-01"), relative)
+        self._git("add", "--", "src/Product/Owner.cs")
+        self._git("commit", "-q", "-m", "review lowercase admission")
+        self._write_record(self._final_record("TEST-01"), relative)
+        self.assertEqual([], self.validate())
+
+        changed = self._final_record("TEST-01", terminalContract="Changed after admission")
+        self._write_record(changed, relative)
+        self.assertTrue(any("changed admitted design fields" in error
+                            for error in self.validate()))
 
     def test_duplicate_task_id_is_rejected(self) -> None:
         self._change()
@@ -1882,6 +1969,45 @@ class AgentGovernanceTests(unittest.TestCase):
         implementation_head = self._commit_candidate_with_active_record()
         with mock.patch.object(repository_validator, "CAPABILITY_REUSE_CLASSIFICATION_CUTOVER", implementation_head):
             self.assertTrue(any("cutover is not a sealed final evidence batch" in error
+                                for error in self.validate()))
+
+    def _seal_legacy_version_batch(self) -> str:
+        self._change()
+        self._write("VERSION", "1.1.10\n")
+        self._write_record(self._record())
+        self._git("add", ".")
+        self._git("commit", "-q", "-m", "implement before VERSION cutover")
+        self._write_record(self._final_record())
+        self._git("commit", "-q", "-m", "seal pre-VERSION final batch")
+        return self._git("rev-parse", "HEAD").stdout.strip()
+
+    def test_version_classifier_preserves_sealed_old_batch_and_requires_current_r3(self) -> None:
+        cutover = self._seal_legacy_version_batch()
+        with mock.patch.object(repository_validator, "CAPABILITY_REUSE_VERSION_CUTOVER", cutover):
+            self.assertEqual([], self.validate())
+            self.integration_base = cutover
+            self._change("src/Product/Other.cs")
+            self._write("VERSION", "1.1.11\n")
+            self._write_record(self._record("TEST-02", ["src/Product/Other.cs"]))
+            self.assertTrue(any(
+                "lacks a design-active/current-final" in error and "VERSION" in error
+                for error in self.validate()
+            ))
+            self._write_record(self._record("TEST-02", ["src/Product/Other.cs", "VERSION"]))
+            self.assertTrue(any("risk is below path minimum R3" in error
+                                for error in self.validate()))
+            self._write_record(self._record(
+                "TEST-02", ["src/Product/Other.cs", "VERSION"], risk="R3"
+            ))
+            self.assertEqual([], self.validate())
+
+    def test_version_cutover_requires_ancestor_sealed_final_batch(self) -> None:
+        with mock.patch.object(repository_validator, "CAPABILITY_REUSE_VERSION_CUTOVER", "a" * 40):
+            self.assertTrue(any("VERSION cutover is not on current HEAD ancestry" in error
+                                for error in self.validate()))
+        implementation_head = self._commit_candidate_with_active_record()
+        with mock.patch.object(repository_validator, "CAPABILITY_REUSE_VERSION_CUTOVER", implementation_head):
+            self.assertTrue(any("VERSION cutover is not a sealed final evidence batch" in error
                                 for error in self.validate()))
 
     def test_staged_final_cannot_claim_legacy_policy_with_old_base(self) -> None:

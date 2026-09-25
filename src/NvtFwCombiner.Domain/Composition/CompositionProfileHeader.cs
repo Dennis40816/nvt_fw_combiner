@@ -12,7 +12,8 @@ internal sealed record CompositionProfileHeader(
     string FamilyContentHash,
     IReadOnlyList<string> LogicalOutputMemberIds,
     bool AllowsConditionalProcessor,
-    SourceEnvelopeProfileBinding? SourceEnvelopeBinding = null);
+    SourceEnvelopeProfileBinding? SourceEnvelopeBinding = null,
+    AbCodeDefinition? Ab = null);
 
 /// <summary>Profile-owned existing layout template and advisory facts for one complete DP source.</summary>
 internal sealed record SourceEnvelopeProfileBinding

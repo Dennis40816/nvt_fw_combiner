@@ -1,0 +1,75 @@
+{
+  "schemaVersion": "1.0",
+  "caseId": "nt51950-ab-osd-d03t02-20260924",
+  "ic": "NT51950",
+  "workflow": "ab-merge",
+  "variantOrVersion": "osd-d03t02",
+  "topology": "single",
+  "directGolden": true,
+  "testDisposition": {
+    "kind": "direct-full-output",
+    "evidenceRefs": [
+      "tests/NvtFwCombiner.Bootstrap.Tests/AbMergeGoldenRegressionTests.PublicHost.cs#Nt51950OsdPublicHostMatchesOwnerCertifiedGoldenAsync"
+    ]
+  },
+  "sourceClassification": "private-owner-approved-golden",
+  "ownerApproval": "Repository owner approved the NT51950 single OSD AB archive's three BINs as a complete-output Golden on 2026-09-25.",
+  "intakeSource": {
+    "name": "51950_1IC_OSD_AB_Code_Golden.7z",
+    "sha256": "d7fa71719e0ed16fbfdddc774c3ed573ebf191d407f4ed21587e0ae1107989ce"
+  },
+  "profileId": "nt51950-ab-merge",
+  "profileVersion": "0.8.0",
+  "mapCapacity": 524288,
+  "evidenceScope": "NT51950 single OSD AB complete 1 MiB output. mapCapacity is the 512 KiB canonical layout template; the original DP source envelope and expected output are each 1 MiB. TP A and B bind the same 225280-byte physical file. This does not establish NT51951 product bytes, runtime support promotion, or release redistribution.",
+  "artifacts": [
+    {
+      "artifactId": "dp-ab-input",
+      "role": "input",
+      "path": "NT51950/ab-merge/osd-d03t02/single/nt51950-ab-osd-d03t02-20260924/inputs/NT51950TT_Initial Code_BOE_AS172QD0-B00 2560x1600_NiOHiway_D03_OSD ICON_20260923.bin",
+      "size": 1048576,
+      "sha256": "1c7d52cdeda3f0c831632d9d3c2a6ade7636c872c332256fd44ece4d51db849c",
+      "originalFileName": "NT51950TT_Initial Code_BOE_AS172QD0-B00 2560x1600_NiOHiway_D03_OSD ICON_20260923.bin",
+      "sourcePath": "NT51950TT_Initial Code_BOE_AS172QD0-B00 2560x1600_NiOHiway_D03_OSD ICON_20260923.bin"
+    },
+    {
+      "artifactId": "tp-a-input",
+      "role": "input",
+      "path": "NT51950/ab-merge/osd-d03t02/single/nt51950-ab-osd-d03t02-20260924/inputs/nt51950_fw_T02.bin",
+      "size": 225280,
+      "sha256": "aa9582ba68a7f6f422bc13469d7c7cfeb6a756a8e9196fc34ab5313e3c5ce2f2",
+      "originalFileName": "nt51950_fw_T02.bin",
+      "sourcePath": "nt51950_fw_T02.bin"
+    },
+    {
+      "artifactId": "tp-b-input",
+      "role": "input",
+      "path": "NT51950/ab-merge/osd-d03t02/single/nt51950-ab-osd-d03t02-20260924/inputs/nt51950_fw_T02.bin",
+      "size": 225280,
+      "sha256": "aa9582ba68a7f6f422bc13469d7c7cfeb6a756a8e9196fc34ab5313e3c5ce2f2",
+      "originalFileName": "nt51950_fw_T02.bin",
+      "sourcePath": "nt51950_fw_T02.bin"
+    },
+    {
+      "artifactId": "expected-output",
+      "role": "expected",
+      "path": "NT51950/ab-merge/osd-d03t02/single/nt51950-ab-osd-d03t02-20260924/expected/NT51950TT_Flashcode_BOE_NIO_Hiway_A_D03T02_B_D03T02_NioHiway_20260924.bin",
+      "size": 1048576,
+      "sha256": "71de58a5f9a2ca2cb0d51789794af64586435b09e4ca61d176b6cd41b4990136",
+      "originalFileName": "NT51950TT_Flashcode_BOE_NIO_Hiway_A_D03T02_B_D03T02_NioHiway_20260924.bin",
+      "sourcePath": "NT51950TT_Flashcode_BOE_NIO_Hiway_A_D03T02_B_D03T02_NioHiway_20260924.bin"
+    }
+  ],
+  "referenceParity": {
+    "status": "full-byte-match-to-owner-supplied-osd-expected",
+    "snapshot": "51950_1IC_OSD_AB_Code_Golden.7z",
+    "configuration": "NT51950 single OSD AB",
+    "observedOn": "2026-09-25"
+  },
+  "evidenceApplicability": {
+    "directMemberIds": ["NT51950"],
+    "factScopedAliasMemberIds": [],
+    "notEstablishedMemberIds": ["NT51951"]
+  },
+  "promotion": "Owner-certified NT51950 single OSD AB complete-output fixture only; no runtime support promotion or release redistribution."
+}

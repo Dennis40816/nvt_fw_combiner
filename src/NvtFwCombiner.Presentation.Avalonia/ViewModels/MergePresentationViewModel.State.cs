@@ -19,6 +19,7 @@ internal sealed partial class MergePresentationViewModel
     private readonly AuthoringSessionState _abMergeSession = new(ExperienceIds.AbMerge);
     private readonly AuthoringSessionState _generalMergeSession = new(ExperienceIds.GeneralMerge);
     private readonly ObservableCollection<string> _mergeModeChoices = [];
+    private readonly ObservableCollection<string> _visibleMergeModeChoices = [];
     private string? _abMergeTopologyChoicesIcId;
     private readonly MergeStateBindings _stateBindings;
     internal FirmwareSlotViewModel MergeDpSlot { get; } = new(
@@ -102,6 +103,8 @@ internal sealed partial class MergePresentationViewModel
     private string? _catalogReconciliationPreviousMode;
 
     public IReadOnlyList<string> MergeModeChoices => _mergeModeChoices;
+
+    public IReadOnlyList<string> VisibleMergeModeChoices => _visibleMergeModeChoices;
 
     public PlanningCardText MergePreview => Text.MergePreview;
 
@@ -426,28 +429,38 @@ internal sealed partial class MergePresentationViewModel
             ? [.. WorkflowPageModeCatalog.ForPage(ShellPage.Merge).Where(mode =>
                 _stateBindings.IsWorkflowAuthorable(SelectedIc, mode))]
             : [];
-        for (int index = 0; index < desired.Length; index++)
+        ReconcileChoices(_mergeModeChoices, desired);
+        ReconcileChoices(
+            _visibleMergeModeChoices,
+            WorkflowModeDisplayConverters.GetVisibleChoices(desired));
+    }
+
+    private static void ReconcileChoices(
+        ObservableCollection<string> choices,
+        IReadOnlyList<string> desired)
+    {
+        for (int index = 0; index < desired.Count; index++)
         {
-            if (index < _mergeModeChoices.Count &&
-                string.Equals(_mergeModeChoices[index], desired[index], StringComparison.Ordinal))
+            if (index < choices.Count &&
+                string.Equals(choices[index], desired[index], StringComparison.Ordinal))
             {
                 continue;
             }
 
-            int existingIndex = _mergeModeChoices.IndexOf(desired[index]);
+            int existingIndex = choices.IndexOf(desired[index]);
             if (existingIndex >= index)
             {
-                _mergeModeChoices.Move(existingIndex, index);
+                choices.Move(existingIndex, index);
             }
             else
             {
-                _mergeModeChoices.Insert(index, desired[index]);
+                choices.Insert(index, desired[index]);
             }
         }
 
-        while (_mergeModeChoices.Count > desired.Length)
+        while (choices.Count > desired.Count)
         {
-            _mergeModeChoices.RemoveAt(_mergeModeChoices.Count - 1);
+            choices.RemoveAt(choices.Count - 1);
         }
     }
 

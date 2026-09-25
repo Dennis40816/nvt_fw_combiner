@@ -62,6 +62,8 @@ internal sealed partial class ReplacePresentationViewModel
                     _stateBindings.IsWorkflowAuthorable(SelectedIc, mode)),
             ]);
 
+    public IReadOnlyList<string> VisibleReplaceModeChoices => WorkflowModeDisplayConverters.GetVisibleChoices(ReplaceModeChoices);
+
     public PlanningCardText ReplacePreview => Text.ReplacePreview;
 
     /// <summary>Gets the independent General Replace base firmware slot.</summary>
@@ -404,6 +406,7 @@ internal sealed partial class ReplacePresentationViewModel
         if (includeModeChoices)
         {
             OnPropertyChanged(nameof(ReplaceModeChoices));
+            OnPropertyChanged(nameof(VisibleReplaceModeChoices));
         }
         OnPropertyChanged(nameof(ReplacePreview));
         OnPropertyChanged(nameof(SelectedReplaceModeDescription));

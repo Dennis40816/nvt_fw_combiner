@@ -5,21 +5,70 @@ namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
 internal sealed partial class HexEditorWorkspaceViewModel
 {
+    private long _loadGeneration;
+    private long _sourceSelectionGeneration;
+    private RawBinaryEditorFileResult? _publishedLoad;
+
     public bool HasSelectedFile { get; private set; }
+
+    internal long BeginSourceSelection()
+    {
+        return Interlocked.Increment(ref _sourceSelectionGeneration);
+    }
+
+    internal Task LoadFromSelectionAsync(
+        long selectionGeneration,
+        string path,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
+        return selectionGeneration == Volatile.Read(ref _sourceSelectionGeneration)
+            ? LoadAsync(path, cancellationToken)
+            : Task.CompletedTask;
+    }
 
     public async Task LoadAsync(string path, CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
+        _ = Interlocked.Increment(ref _sourceSelectionGeneration);
+        long generation = Interlocked.Increment(ref _loadGeneration);
         HasSelectedFile = true;
         FindAsciiCommand.Cancel();
 
-        RawBinaryEditorFileResult result = await _files.LoadAsync(path, cancellationToken);
+        RawBinaryEditorFileResult result;
+        try
+        {
+            result = await _files.LoadAsync(path, cancellationToken);
+        }
+        finally
+        {
+            SynchronizeAcceptedLoad();
+        }
+        if (generation != Volatile.Read(ref _loadGeneration))
+        {
+            return;
+        }
+
         if (!result.Succeeded || result.State is null || string.IsNullOrWhiteSpace(result.Path))
         {
             EditorStatus = result.ErrorMessage ?? Text.HexEditorFileOperationFailedDetail;
             return;
         }
 
+    }
+
+    private void SynchronizeAcceptedLoad()
+    {
+        RawBinaryEditorFileResult? result = _files.AcceptedLoad;
+        if (result is null || ReferenceEquals(result, _publishedLoad))
+        {
+            return;
+        }
+        if (!result.Succeeded || result.State is null || string.IsNullOrWhiteSpace(result.Path))
+        {
+            throw new InvalidOperationException("Accepted Hex load must contain a successful document receipt.");
+        }
+        _publishedLoad = result;
         SourcePath = result.Path;
         ViewportAddress = "0x000000";
         AsciiSearchText = string.Empty;

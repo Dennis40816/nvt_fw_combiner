@@ -75,6 +75,8 @@ internal static partial class CanonicalDynamicRouteInventory
         return Create(binding.Identity, definition.DefinitionId, definition.Version, definition.ContentHash,
             [definition.Layout.MapId], BankReferenceReplaceDefinition.CompilerSemanticId,
             ["bank-definition:" + definition.ContentHash,
-                "postbuild-selector:" + local.Selector.Token, "postbuild-plan:" + local.PlanFingerprint]);
+                "postbuild-selector:" + local.Selector.Token, "postbuild-plan:" + local.PlanFingerprint,
+                .. local.Route.MemoryLayoutContext?.SemanticBindingIds ?? []],
+            memoryLayoutContext: local.Route.MemoryLayoutContext);
     }
 }

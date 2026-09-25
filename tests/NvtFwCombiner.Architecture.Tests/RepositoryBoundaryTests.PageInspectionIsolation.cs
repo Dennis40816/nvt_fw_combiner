@@ -8,6 +8,8 @@ public sealed partial class RepositoryBoundaryTests
     {
         string inspection = ReadText(
             "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/WorkflowSessionPresentationViewModel.FirmwareInspection.cs");
+        string pickerSelection = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/WorkflowSessionPresentationViewModel.PickerSelection.cs");
         string inspectionRefresh = ReadText(
             "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/WorkflowSessionPresentationViewModel.FirmwareInspectionRefresh.cs");
         string deviceContext = ReadText(
@@ -71,7 +73,7 @@ public sealed partial class RepositoryBoundaryTests
             StringComparison.Ordinal);
         Assert.Contains(
             "{ IsGeneralReplace: true } => _replace.GeneralReplaceMappings",
-            inspection,
+            pickerSelection,
             StringComparison.Ordinal);
         Assert.Contains(
             "{ IsStandardMerge: true } or { IsAbMerge: true } => MergeSlots",

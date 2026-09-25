@@ -1,5 +1,6 @@
 {
-  "schemaVersion": "2.16",
+  "schemaVersion": "2.17",
+  "ab": { "isFullySymmetric": false },
   "profileId": "nt51950-ab-merge-cascade",
   "profileVersion": "0.4.0",
   "promotion": {

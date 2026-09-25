@@ -1,4 +1,5 @@
 using NvtFwCombiner.Application.InputInspection;
+using NvtFwCombiner.Application.Metadata;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Domain.Firmware;
 using NvtFwCombiner.TestSupport;
@@ -8,6 +9,25 @@ namespace NvtFwCombiner.Application.Tests;
 /// <summary>Canonical Application classification evidence for one resolved DP/TP composition.</summary>
 public sealed class CompiledFirmwareArtifactClassifierTests
 {
+    /// <summary>Read-only Event Buffer consensus fails closed when canonical locator provenance differs.</summary>
+    [Fact]
+    public void CommonEventBufferConsensusRequiresOneCanonicalFieldObservation()
+    {
+        var observation = new CanonicalEventBufferFieldObservation(0xA3, "family-hash",
+            "general", "general", CompositionAddressSpaceIds.TpInput,
+            new(CompositionAddressSpaceIds.TpInput, new ByteRange(0x123, 1)),
+            FirmwareMetadataLocatorKind.AbsoluteRange, null);
+
+        Assert.Equal((byte)0xA3, FirmwareArtifactClassificationResolver.SelectCommonEventBufferFormat(
+            [observation, observation with { }]));
+        Assert.Null(FirmwareArtifactClassificationResolver.SelectCommonEventBufferFormat(
+            [observation, observation with { FieldRange = new(CompositionAddressSpaceIds.TpInput,
+                new ByteRange(0x124, 1)) }]));
+        Assert.Null(FirmwareArtifactClassificationResolver.SelectCommonEventBufferFormat(
+            [observation, null]));
+        Assert.Null(FirmwareArtifactClassificationResolver.SelectCommonEventBufferFormat([]));
+    }
+
     /// <summary>An exact container with plausible DP and TP source ranges is FlashCode.</summary>
     [Fact]
     public void ExactContainerWithDeclaredDpAndTpContentIsFlashCode()

@@ -174,6 +174,23 @@ bank-specific.
 
 ## Verification
 
+### 1.1.11 AB display companion
+
+AB CtrlRAM routes reuse their existing local route's exact Standard
+`MemoryLayoutContextMap` when present. The same companion identity is included
+in the AB capability fingerprint; no IC-specific selector or copied map is
+introduced. Compilation validates the member, address space, declared bank
+capacity and translated TP code ranges against the canonical AB layout.
+
+The section projector applies the existing Standard section projection to each
+canonical bank, including an unselected bank. Each section retains its original
+local `CanonicalRegion`, companion map identity and explicit bank placement.
+Only its visible range is translated into the output address space. Execution
+maps, primary segment provenance, operations, Report metadata and evidence
+status remain unchanged. A missing companion retains the existing projection.
+An oversized AB Merge DP input does not redefine bank capacity or authorize an
+oversized AB Replace reference.
+
 - Schema and loader tests accept the 19 exact declarations and 6 exact
   omissions, and reject wrong types, invalid tokens, extraneous workflow use,
   missing, unknown, cross-IC, and same-capacity substitute maps.

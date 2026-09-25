@@ -8,6 +8,29 @@ namespace NvtFwCombiner.UiSmoke.Tests;
 /// <summary>AB slot facts retain typed values without concatenating bank metadata.</summary>
 public sealed class AbDpMetadataTests
 {
+    /// <summary>A DP role does not surface TP identity facts from the same flash input.</summary>
+    [Fact]
+    public void DpSlotDoesNotLeakTouchIdentityFromFlashInspection()
+    {
+        var slot = new FirmwareSlotViewModel(CompositionAddressSpaceIds.DpAbInput,
+            "DP AB", "DP input", FirmwareSlotKind.Dp);
+        var inspection = new FirmwareInspectionSnapshot(null,
+            new(0x22000, "2.0.0", 0x81, 0, true, 0, 1, 0x570A, null, default),
+            null, null, null, null)
+        {
+            AbMergeFacts = new(CompositionAddressSpaceIds.DpAbInput,
+                [new(CompiledInputVersionKind.DpA, 6, 0, 4095), new(CompiledInputVersionKind.DpB, 9, 1, 607)]),
+            StandardEventBufferFormatVersion = 0x80,
+            AbCommonEventBufferFormatVersion = 0xA3,
+        };
+
+        FirmwareInspectionProjection.ApplyFirmwareFacts(slot, inspection, ShellTextResources.For(ShellLanguage.English));
+
+        Assert.Equal(["DP1 Version", "DP1 Jira Index", "DP2 Version", "DP2 Jira Index"],
+            slot.FirmwareFacts.Select(static fact => fact.Label));
+        Assert.False(slot.HasAdditionalFirmwareFacts);
+    }
+
     /// <summary>Each bank exposes independent version and optional tracker in reading order.</summary>
     [Fact]
     public void KnownBanksExposeFourExactIndependentFacts()
@@ -81,6 +104,39 @@ public sealed class AbDpMetadataTests
         Assert.Equal(["T81-00", "T82-03"], slot.FirmwareFacts.Select(static fact => fact.Value));
     }
 
+    /// <summary>A read-only common TP byte fills an absent AB format fact without changing admitted format display.</summary>
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void AbTouchSlotUsesCommonEventBufferOnlyWhenAdmittedFormatIsAbsent(bool admittedFormat)
+    {
+        var slot = new FirmwareSlotViewModel(CompositionAddressSpaceIds.TpAInput,
+            "TP A", "TP A input", FirmwareSlotKind.Tp);
+        var inspection = new FirmwareInspectionSnapshot(null,
+            new(0x22000, "2.0.0", 0x81, 0, true, 0, 1, 0x570A, null, default),
+            null, null, null, null)
+        {
+            AbMergeFacts = new(CompositionAddressSpaceIds.TpAInput,
+                [new(CompiledInputVersionKind.TpA, 0x81, 0)])
+            {
+                EventBufferFormat = admittedFormat
+                    ? new(0x97, "desay", "Desay", 1, new string('a', 64), "primary",
+                        new(CompositionAddressSpaceIds.TpAInput, new ByteRange(0x22200, 0x100)),
+                        new FirmwareArtifactPayload(CompositionAddressSpaceIds.TpAInput, new byte[0x37000]).Identity)
+                    : null,
+            },
+            AbCommonEventBufferFormatVersion = 0xA3,
+        };
+        ShellTextResources text = ShellTextResources.For(ShellLanguage.English);
+
+        FirmwareInspectionProjection.ApplyFirmwareFacts(slot, inspection, text);
+
+        FirmwareSlotFactViewModel fact = Assert.Single(slot.FirmwareFacts,
+            candidate => candidate.Label == text.EventBufferVersionLabel);
+        Assert.Equal(admittedFormat ? "Auto Desay (0x97)" : "Auto STLA v1 (0xA3)", fact.Value);
+        Assert.Contains(fact, slot.PrimaryFirmwareFacts);
+    }
+
     /// <summary>AB retains its accepted bank version and shows shared identity facts only once.</summary>
     [Theory]
     [InlineData(false, false)]
@@ -109,17 +165,19 @@ public sealed class AbDpMetadataTests
             },
         };
         ShellTextResources text = ShellTextResources.For(chinese ? ShellLanguage.ChineseTraditional : ShellLanguage.English);
-        FirmwareInspectionProjection.ApplyAbInputFacts(slot, inspection, text);
+        FirmwareInspectionProjection.ApplyFirmwareFacts(slot, inspection, text);
         Assert.Equal(["TPA Version", "PID", "Common FW Version"],
             slot.FirmwareFacts.Take(3).Select(static fact => fact.Label));
         Assert.Equal([invalidVersion ? text.FirmwareSlotUnknownValueLabel : "T81-00", "0x570A", "2.0.0"],
             slot.FirmwareFacts.Take(3).Select(static fact => fact.Value));
         if (hasFormat)
         {
-            Assert.Equal(chinese ? "事件緩衝區版本" : "Event Buffer Version", slot.PrimaryFirmwareFacts[3].Label);
-            Assert.Equal("0x97 - Auto Desay", slot.PrimaryFirmwareFacts[3].Value);
+            FirmwareSlotFactViewModel format = Assert.Single(slot.PrimaryFirmwareFacts,
+                fact => fact.Label == text.EventBufferVersionLabel);
+            Assert.Equal("Auto Desay (0x97)", format.Value);
         }
-        Assert.Equal("IC Count", Assert.Single(slot.AdditionalFirmwareFacts).Label);
+        _ = Assert.Single(slot.AdditionalFirmwareFacts, static fact => fact.Label == "IC Count");
+        _ = Assert.Single(slot.AdditionalFirmwareFacts);
         Assert.Equal(hasFormat ? 4 : 3, slot.PrimaryFirmwareFacts.Count);
     }
 
@@ -134,7 +192,7 @@ public sealed class AbDpMetadataTests
         ShellTextResources text = ShellTextResources.For(language);
         slot.ApplyExperienceText(text);
         slot.SetInputInspection(FirmwareInputInspectionSeverity.Valid, "Verified");
-        FirmwareInspectionProjection.ApplyAbInputFacts(slot,
+        FirmwareInspectionProjection.ApplyFirmwareFacts(slot,
             new FirmwareInspectionSnapshot(null, null, null, null, null, null)
             { AbMergeFacts = new(CompositionAddressSpaceIds.DpAbInput, versions) }, text);
         return slot;

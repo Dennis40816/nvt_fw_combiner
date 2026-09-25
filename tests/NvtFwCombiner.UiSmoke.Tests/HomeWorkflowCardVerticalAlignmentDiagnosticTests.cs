@@ -76,9 +76,12 @@ public sealed class HomeWorkflowCardVerticalAlignmentDiagnosticTests
             [
                 .. page.GetVisualDescendants().OfType<Border>()
                     .Where(static candidate =>
-                        candidate.IsVisible && candidate.Classes.Contains("workflowCard")),
+                        candidate.IsEffectivelyVisible && candidate.Classes.Contains("workflowCard")),
             ];
-            Assert.Equal(6, cards.Length);
+            Assert.Equal(4, cards.Length);
+            Assert.DoesNotContain(page.GetVisualDescendants().OfType<TextBlock>(),
+                static text => text.IsEffectivelyVisible &&
+                    text.Text is "Customized Merge" or "Customized Replace");
 
             foreach (Border card in cards)
             {

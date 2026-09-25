@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 2,
+  "taskId": "SVN-HEADER-PLAN-1112-01",
+  "capability": "Defer TP Header SVN modeling to 1.1.12 pending owner confirmation of Header contents",
+  "integrationBase": "3db701b70e0eec66889a4b030fcbb84db0db5693",
+  "risk": "R2",
+  "kind": "governance",
+  "state": "final-complete",
+  "mutablePaths": [
+    "docs/architecture/nfc_roadmap.md"
+  ],
+  "implementationOwner": "/root",
+  "searchEvidence": [
+    "On 2026-09-25 the owner requested deferring the proposed shared TP Header SVN model to 1.1.12 until Header contents are confirmed. No SVN product/profile/schema change was applied.",
+    "docs/AGENTS.md identifies nfc_roadmap.md as the allocation owner and linked handoffs as detail only. Extend its existing 1.1.12 allocation and the existing post-v1.1.8 audit handoff, preserving output/persistence/startup work and broader 1.2.1 profile convergence.",
+    "Read-only inspection found existing 923/926/927 SVN fields at Header+0x24 and a separate 929 descriptor at TP+0x100. Field width, endianness and universal applicability remain explicitly pending owner confirmation; the shared-provider proposal is not an accepted executable contract."
+  ],
+  "semanticOwner": "docs/architecture/nfc_roadmap.md owns version allocation; the existing post-v1.1.8 audit handoff retains research and pending owner questions",
+  "terminalContract": "Schedule TP Header SVN common modeling under 1.1.12 only after owner confirmation of Header contents and a subsequent scoped implementation admission. Link the existing handoff's read-only findings and pending questions. Preserve existing 1.1.12 tasks, 1.2.1 broader profile work, 1.1.11 Replace SVN preservation, firmware behavior, Golden expectations and release gates. Do not claim implementation or approve unconfirmed field semantics.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "/root/ab_layout_context_review",
+    "outcome": "approved",
+    "evidence": "Independent 2026-09-25 read-only planning ADMIT: roadmap is the sole governed allocation path; handoff is non-normative detail. Mark Header semantics and implementation pending owner confirmation, with no production, schema, CRC, Golden or release-policy change."
+  },
+  "implementationHead": "1754efb4831fb0ee0055fd91c0c3f9b9af8ed0b2",
+  "reviewedHead": "1754efb4831fb0ee0055fd91c0c3f9b9af8ed0b2",
+  "pathStateDigest": "81d92f8508ef2b27a724f3b1c7d5f000bb565d503e98f0bde200d2e458a451b6",
+  "finalReview": {
+    "reviewer": "/root/ab_layout_context_review",
+    "outcome": "approved",
+    "evidence": "ffd7f0cd9 three-path fixed docs-only review; later 90003b5c2 CRC planning amendment inspected and does not change deferred SVN authority. Independent fixed-diff follow-up at 1754efb4831fb0ee0055fd91c0c3f9b9af8ed0b2 found no P0-P2 issues. The final partition covers 91 governed checkpoint-to-review paths exactly once across 22 records, retaining each original admission and full mutable-path digest. The 90003b5c2 full nonstructure run failed eight .NET assertions and one Python script lane, while all 26 certified Direct Golden cases executed and passed. 1754efb48 changes only tests/prose and corrects those assertions: affected Bootstrap 27/27, Architecture 268/268 and canonical intake 7/7 passed; product/profile/Golden bytes are identical to 90003b5c2. These are scoped results, not a fresh full-suite PASS. On 2026-09-25 the owner approved all nine R3 closures for 1754efb48, sealing, push and formal release progression. Separate typed exact-head owner attestations follow this technical evidence commit. Formal exact-source CI, structure and fresh release Golden execution remain required before publication. The private 32-byte Header-backup/CRC difference remains uncertified Candidate evidence and is deferred by the owner to 1.1.12; no expected bytes, support status or test result is relabeled."
+  },
+  "integrationPaths": []
+}

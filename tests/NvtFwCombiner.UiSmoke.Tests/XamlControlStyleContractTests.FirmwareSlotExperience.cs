@@ -16,7 +16,7 @@ public sealed partial class XamlControlStyleContractTests
 
         Assert.Contains("!FirmwareInspectionProjection.SupportsFacts(slot, inspection)", localization, StringComparison.Ordinal);
         Assert.Contains(
-            "else if (item.PublishFacts && FirmwareInspectionProjection.SupportsFacts(slot, inspection))",
+            "if ((inspection.AbMergeFacts is not null || item.PublishFacts) && FirmwareInspectionProjection.SupportsFacts(slot, inspection))",
             inspection,
             StringComparison.Ordinal);
     }

@@ -17,7 +17,7 @@ internal sealed partial class ReplacePresentationViewModel
     private string? _viewedCtrlRamBankId;
 
     public bool HasCtrlRamBankView => IsCtrlRamReplaceModeSelected && IsAbCtrlRamReference &&
-        _ctrlRamMemoryLayout?.Banks.Count == 2;
+        _ctrlRamMemoryLayout?.CanViewIndividualBanks == true;
 
     public bool IsViewingCtrlRamBankB
     {
@@ -35,13 +35,13 @@ internal sealed partial class ReplacePresentationViewModel
         }
     }
 
-    public string CtrlRamBankViewSubtitle => Text.FormatCtrlRamBankView(
+    public string CtrlRamBankViewSubtitle => HasCtrlRamBankView ? Text.FormatCtrlRamBankView(
         IsViewingCtrlRamBankB,
-        IsCtrlRamBothBanksSelected || (IsViewingCtrlRamBankB ? IsCtrlRamBankBSelected : IsCtrlRamBankASelected));
+        IsCtrlRamBothBanksSelected || (IsViewingCtrlRamBankB ? IsCtrlRamBankBSelected : IsCtrlRamBankASelected)) : string.Empty;
 
     private void RefreshCtrlRamBankOverview()
     {
-        if (_ctrlRamMemoryLayout is not { Banks.Count: 2 } layout)
+        if (_ctrlRamMemoryLayout is not { CanViewIndividualBanks: true } layout)
         {
             return;
         }
@@ -139,7 +139,9 @@ internal sealed partial class ReplacePresentationViewModel
         {
             ReplaceCoverageGroups.Add(group);
         }
-        MemoryLayoutBankLocator? bank = _ctrlRamMemoryLayout?.Banks.SingleOrDefault(item => item.BankId == _viewedCtrlRamBankId);
+        MemoryLayoutBankLocator? bank = HasCtrlRamBankView
+            ? _ctrlRamMemoryLayout!.Banks.SingleOrDefault(item => item.BankId == _viewedCtrlRamBankId)
+            : null;
         IEnumerable<MemoryCoverageLogicalItemViewModel> items = bank is null
             ? ReplaceCoverageGroups.SelectMany(static group => group.Items)
             : ReplaceRegionGroupBuilder.CreateLogicalItems(ReplaceCoverageSegments.Where(segment =>
@@ -163,10 +165,7 @@ internal sealed partial class ReplacePresentationViewModel
     private void PrepareClearCtrlRamInspectionDisplay()
     {
         _ctrlRamMemoryLayout = null;
-        if (!IsAbCtrlRamReference)
-        {
-            _viewedCtrlRamBankId = null;
-        }
+        _viewedCtrlRamBankId = null;
         HasMemoryLayoutDisplayError = false;
         CtrlRamRegions.Clear();
         ReplaceMemoryRangeLabel = string.Empty;
@@ -229,7 +228,11 @@ internal sealed partial class ReplacePresentationViewModel
                     out MemoryLayoutSnapshot layout,
                     ctrlRamRegions: display.Regions);
                 _ctrlRamMemoryLayout = layout;
-                if (layout.Banks.Count == 2 && !layout.Banks.Any(bank => bank.BankId == _viewedCtrlRamBankId))
+                if (!layout.CanViewIndividualBanks)
+                {
+                    _viewedCtrlRamBankId = null;
+                }
+                else if (!layout.Banks.Any(bank => bank.BankId == _viewedCtrlRamBankId))
                 {
                     _viewedCtrlRamBankId = IsCtrlRamBankBSelected ? "b-bank" : "a-bank";
                 }

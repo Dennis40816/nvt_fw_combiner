@@ -77,8 +77,8 @@ public sealed class AbMergeAuthoringDefinitionTests
     [InlineData("nt51950-ab-merge-cascade", "0.4.0")]
     public void CandidateDeclarationNeedsNoExecutableMap(string profileId, string profileVersion)
     {
-        var bundle = new BuiltInV2Bundle("nt51950-ab-merge", "1.1.10-ab-dp-envelope.1",
-            "18b43352606ca744f499e328d5778c3b9e08307a97fd122ac38fd8762d37c8d1",
+        var bundle = new BuiltInV2Bundle("nt51950-ab-merge", "1.1.11-ab-symmetry.1",
+            "3fff3d0e923652ef52c360bc21d4e4191820e54bff04a6ba47558974d0adbab5",
             "built-in-profile-bundle-v2");
         bool loaded = bundle.TryGetAbAuthoringDefinition(profileId, profileVersion,
             out CanonicalAbAuthoringDefinition? definition, out IReadOnlyList<CompositionIssue> issues);

@@ -17,6 +17,30 @@ namespace NvtFwCombiner.UiSmoke.Tests;
 
 public sealed partial class MergeWorkflowTests
 {
+    /// <summary>A late secondary picker cannot close or execute a newly opened delivery proposal.</summary>
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task AdditionalOutputPickerRejectsCancelAndReopen(bool reopen)
+    {
+        using var inputs = TempWorkspace.Create("ab-picker-context-inputs");
+        using var destination = TempWorkspace.Create("ab-picker-context-output");
+        MainWindowViewModel model = await CreateAbOutputNamingModelAsync(inputs);
+        await model.Merge.RequestBuildOutputDeliveryAsync();
+        model.OutputDelivery.SetAdditionalDeliveryEnabled(true);
+        var pending = new TaskCompletionSource<string?>(TaskCreationOptions.RunContinuationsAsynchronously);
+        Task confirmation = OutputDeliveryConfirmationModal.ConfirmPreparedLooseWithPickersAsync(model.OutputDelivery,
+            () => Task.FromResult<string?>(destination.PathFor("ab.bin")), () => pending.Task);
+        Assert.False(confirmation.IsCompleted);
+        model.OutputDelivery.CancelCommand.Execute(null);
+        if (reopen) { await model.Merge.RequestBuildOutputDeliveryAsync(); }
+        pending.SetResult(destination.PathFor("a.bin"));
+        await confirmation;
+
+        Assert.Equal(reopen, model.OutputDelivery.IsOpen);
+        Assert.Empty(Directory.EnumerateFileSystemEntries(destination.Root));
+    }
+
     /// <summary>Each enabled output has an independent inline editor in both delivery modes.</summary>
     [AvaloniaTheory]
     [InlineData(false)]

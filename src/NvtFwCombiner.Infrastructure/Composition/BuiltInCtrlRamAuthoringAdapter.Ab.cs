@@ -9,13 +9,18 @@ namespace NvtFwCombiner.Infrastructure.Composition;
 
 internal sealed partial class BuiltInCtrlRamAuthoringAdapter
 {
-    public IReadOnlyList<CompositionIssue> ValidateAbReference(CompiledComposition layout, ReadOnlyMemory<byte> reference)
+    public AbReferenceValidation ValidateAbReference(CompiledComposition layout, ReadOnlyMemory<byte> reference)
     {
+        bool hasTrustedShape = false;
         try
         {
             var payload = new FirmwareArtifactPayload(CompositionAddressSpaceIds.ReferenceBase, reference.Span);
             string memberId = layout.V2Details.Provenance.Context.MemberId;
             BankReplaceRouteBinding? countSource = CanonicalDynamicRouteInventory.FindBankReplaceBinding(memberId, "1-ic");
+            if (countSource?.Definition.FinalizationKind == BankReferenceFinalizationKind.RunAbHeaderProcessor)
+            {
+                hasTrustedShape = HasTrustedPartialAbStructure(layout, payload);
+            }
             int count = countSource?.Definition.FinalizationKind == BankReferenceFinalizationKind.RunAbHeaderProcessor
                 ? V2CompositionPlanCompiler.ReadPartialAbNativeCount(layout, payload,
                     countSource.Definition.Local, BuiltInV2BundleRegistry.All[countSource.Local.Route.BundleId]
@@ -35,7 +40,8 @@ internal sealed partial class BuiltInCtrlRamAuthoringAdapter
                 details.Provenance.Context.FamilyContentHash != source.FamilyHash ||
                 details.Provenance.ResolvedMap.ImageMap.MapId != source.MapId)
             {
-                return [new("input.bank-reference.invalid", "AB detection requires the exact trusted layout definition.")];
+                return new(hasTrustedShape,
+                    [new("input.bank-reference.invalid", "AB detection requires the exact trusted layout definition.")]);
             }
             BankReferenceDefinitionSource local = definition.Local;
             IReadOnlyList<FirmwareImageMap> maps = BuiltInV2BundleRegistry.All[definitionRoute.Local.Route.BundleId]
@@ -43,16 +49,48 @@ internal sealed partial class BuiltInCtrlRamAuthoringAdapter
                     out IReadOnlyList<CompositionIssue> issues);
             if (issues.Count != 0)
             {
-                return issues;
+                return new(hasTrustedShape, issues);
             }
             FirmwareImageMap map = maps.Single(candidate => candidate.MapId == local.MapId);
             V2CompositionPlanCompiler.ValidateAbReference(layout, payload, definition, map);
-            return [];
+            return new(true, []);
         }
         catch (Exception exception) when (exception is ArgumentException or InvalidDataException or InvalidOperationException or OverflowException)
         {
-            return [new("input.bank-reference.invalid", exception.Message, CompositionSlotIds.ReplaceBase)];
+            return new(hasTrustedShape,
+                [new("input.bank-reference.invalid", exception.Message, CompositionSlotIds.ReplaceBase)]);
         }
+    }
+
+    private static bool HasTrustedPartialAbStructure(CompiledComposition layout, FirmwareArtifactPayload reference)
+    {
+        string memberId = layout.V2Details.Provenance.Context.MemberId;
+        string mapId = layout.V2Details.Provenance.ResolvedMap.ImageMap.MapId;
+        foreach (string variant in new[] { "1-ic", "2-ic", "2-8-ic" })
+        {
+            BankReplaceRouteBinding? binding = CanonicalDynamicRouteInventory.FindBankReplaceBinding(memberId, variant);
+            if (binding?.Definition.FinalizationKind != BankReferenceFinalizationKind.RunAbHeaderProcessor ||
+                binding.Definition.Layout.MapId != mapId)
+            {
+                continue;
+            }
+            try
+            {
+                BankReferenceDefinitionSource local = binding.Definition.Local;
+                IReadOnlyList<FirmwareImageMap> maps = BuiltInV2BundleRegistry.All[binding.Local.Route.BundleId]
+                    .GetMapVariants(local.ProfileId, local.ProfileVersion, local.MemberId,
+                        ExperienceIds.CtrlRamReplace, out IReadOnlyList<CompositionIssue> issues);
+                if (issues.Count != 0) { continue; }
+                FirmwareImageMap map = maps.Single(candidate => candidate.MapId == local.MapId);
+                V2CompositionPlanCompiler.ValidateAbReference(layout, reference, binding.Definition, map);
+                return true;
+            }
+            catch (Exception exception) when (exception is ArgumentException or InvalidDataException or InvalidOperationException or OverflowException)
+            {
+                // Another declared local route may share this AB map; only a complete trusted check proves shape.
+            }
+        }
+        return false;
     }
 
     public CapabilityRouteResolutionResult ResolveAbReferenceRoute(string icId, string number)
@@ -107,11 +145,6 @@ internal sealed partial class BuiltInCtrlRamAuthoringAdapter
                 throw new ArgumentException("AB Replace route lost its trusted parent binding.");
             BankReferenceReplaceDefinition definition = definitionRoute.Definition;
             BankReferenceDefinitionSource source = definition.Layout;
-            if (bytes.LongLength != source.CapacityBytes)
-            {
-                return Failed(CompositionIssueCodes.InputAddressSpaceLengthMismatch,
-                    $"AB Reference length is 0x{bytes.LongLength:X}; expected 0x{source.CapacityBytes:X}.");
-            }
             BuiltInV2Bundle layoutBundle = BuiltInV2BundleRegistry.All.Values.Single(bundle =>
                 bundle.ContentHash == definition.Layout.Bundle.ContentHash);
             BuiltInV2Bundle localBundle = BuiltInV2BundleRegistry.All[definitionRoute.Local.Route.BundleId];
@@ -123,7 +156,8 @@ internal sealed partial class BuiltInCtrlRamAuthoringAdapter
                     ? new TopologySelection(2, "cascade_2to8", TopologySelectionSource.Requested, "number-selector")
                     : null;
             V2CompositionPlanCompileResult layoutResult = layoutBundle.Compile(source.ProfileId, source.ProfileVersion,
-                source.MemberId, ExperienceIds.AbMerge, source.CapacityBytes, layoutTopology, [], selectedInputSlotIds: ["dp-ab-input"]);
+                source.MemberId, ExperienceIds.AbMerge, bytes.LongLength, layoutTopology,
+                [new FirmwareArtifactPayload("dp-ab-input", bytes)], selectedInputSlotIds: ["dp-ab-input"]);
             if (!layoutResult.IsCompiled)
             {
                 return new(null, expected, layoutResult.Issues);

@@ -10,6 +10,7 @@ internal sealed partial class SettingsViewModel
     private VersionManagementSnapshot? _versionSnapshot;
     private SettingsVersionRowViewModel? _pendingVersionRow;
     private VersionConfirmationAction _pendingConfirmation;
+    private long _updateSourceBrowseGeneration;
 
     internal event EventHandler? UpdateSourceBrowseRequested;
 
@@ -55,6 +56,10 @@ internal sealed partial class SettingsViewModel
 
     [ObservableProperty]
     public partial bool IsUpdateSourceEditing { get; private set; }
+
+    partial void OnUpdateSourceDraftChanged(string value) => InvalidateUpdateSourceBrowse();
+
+    partial void OnIsUpdateSourceEditingChanged(bool value) => InvalidateUpdateSourceBrowse();
 
     [ObservableProperty]
     public partial bool IsVersionBusy { get; private set; }
@@ -281,12 +286,24 @@ internal sealed partial class SettingsViewModel
         }
     }
 
-    internal void SetUpdateSourceDraft(string path)
+    internal long? BeginUpdateSourceBrowse()
     {
-        if (IsUpdateSourceEditing && !string.IsNullOrWhiteSpace(path))
+        return IsUpdateSourceEditing ? ++_updateSourceBrowseGeneration : null;
+    }
+
+    internal void SetUpdateSourceDraft(string path, long browseGeneration)
+    {
+        if (IsUpdateSourceEditing &&
+            browseGeneration == _updateSourceBrowseGeneration &&
+            !string.IsNullOrWhiteSpace(path))
         {
             UpdateSourceDraft = path;
         }
+    }
+
+    internal void InvalidateUpdateSourceBrowse()
+    {
+        _updateSourceBrowseGeneration++;
     }
 
     private void RefreshVersionLabels()

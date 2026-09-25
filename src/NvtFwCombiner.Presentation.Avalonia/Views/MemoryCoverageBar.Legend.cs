@@ -38,6 +38,15 @@ public sealed partial class MemoryCoverageBar
     private readonly Grid _addresses = new() { Name = "MemoryOverviewAddresses", ColumnDefinitions = new ColumnDefinitions("*,Auto"), Margin = new Thickness(0, 0, 0, 4) };
     private readonly TextBlock _startAddress = new() { Classes = { "monoText", "captionText" } };
     private readonly TextBlock _endAddress = new() { Classes = { "monoText", "captionText" } };
+    private double _arrangedRailWidth;
+
+    /// <inheritdoc />
+    protected override Size ArrangeOverride(Size finalSize)
+    {
+        // Child arrangement runs before this control's Bounds is updated.
+        _arrangedRailWidth = finalSize.Width;
+        return base.ArrangeOverride(finalSize);
+    }
 
     private void InitializeOverview()
     {
@@ -75,8 +84,8 @@ public sealed partial class MemoryCoverageBar
 
         protected override Size ArrangeOverride(Size finalSize)
         {
-            double start = _owner.Bounds.Width * _startFraction;
-            double width = Math.Min(Children[1].DesiredSize.Width, _owner.Bounds.Width);
+            double start = _owner._arrangedRailWidth * _startFraction;
+            double width = Math.Min(Children[1].DesiredSize.Width, _owner._arrangedRailWidth);
             double left = GetLabelLeft();
             Children[0].Arrange(new Rect(0, 0, finalSize.Width, 2));
             Children[1].Arrange(new Rect(left - start, 4, width, Math.Max(0, finalSize.Height - 4)));
@@ -87,17 +96,17 @@ public sealed partial class MemoryCoverageBar
         {
             MemoryEndpointPanel[] peers = [.. _owner._positions.GetVisualDescendants().OfType<MemoryEndpointPanel>()
                 .OrderBy(static peer => peer._startFraction)];
-            double[] widths = [.. peers.Select(peer => Math.Min(peer.Children[1].DesiredSize.Width, _owner.Bounds.Width))];
+            double[] widths = [.. peers.Select(peer => Math.Min(peer.Children[1].DesiredSize.Width, _owner._arrangedRailWidth))];
             var lefts = new double[peers.Length];
             double cursor = 0;
             for (int index = 0; index < peers.Length; index++)
             {
-                double center = _owner.Bounds.Width * (peers[index]._startFraction + (peers[index]._widthFraction / 2));
+                double center = _owner._arrangedRailWidth * (peers[index]._startFraction + (peers[index]._widthFraction / 2));
                 lefts[index] = Math.Max(cursor, center - (widths[index] / 2));
                 cursor = lefts[index] + widths[index] + 6;
             }
             // Pack back from the right edge when a short end range cannot center its label.
-            cursor = _owner.Bounds.Width;
+            cursor = _owner._arrangedRailWidth;
             for (int index = peers.Length - 1; index >= 0; index--)
             {
                 lefts[index] = Math.Min(lefts[index], cursor - widths[index]);

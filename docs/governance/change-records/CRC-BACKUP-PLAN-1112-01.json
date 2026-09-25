@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 2,
+  "taskId": "CRC-BACKUP-PLAN-1112-01",
+  "capability": "Schedule the NT51950 Normal AB Replace Header backup CRC investigation in 1.1.12",
+  "integrationBase": "3db701b70e0eec66889a4b030fcbb84db0db5693",
+  "risk": "R2",
+  "kind": "governance",
+  "state": "final-complete",
+  "mutablePaths": [
+    "docs/architecture/nfc_roadmap.md"
+  ],
+  "implementationOwner": "/root",
+  "searchEvidence": [
+    "On 2026-09-25 the owner explicitly requested moving the observed 32-byte Header backup/CRC investigation to 1.1.12 while continuing 1.1.11 release preparation.",
+    "The private NT51950 single-IC 1 MiB Normal/Both candidate differs from the uploaded expected output only at eight four-byte CRC words; the complete source, hashes, ranges and independent comparison are retained in the existing 1.1.11 delivery evidence.",
+    "The current roadmap owns version allocation and the post-v1.1.8 audit handoff already owns 1.1.12 Header research. Extend those owners without changing processor behavior, Golden bytes, support or release policy."
+  ],
+  "semanticOwner": "docs/architecture/nfc_roadmap.md owns allocation; docs/architecture/post-v1.1.8-audit-handoff.md retains the scoped diagnostic and acceptance evidence",
+  "terminalContract": "Move only the unresolved NT51950 single-IC 1 MiB Normal/Both Header backup/CRC sequence and firmware-impact investigation to 1.1.12 as an uncertified Candidate diagnostic. Retain original expected bytes, hashes and exact differences. Record the owner's decision to continue 1.1.11 release preparation without claiming byte parity, certification, correct CRC differences or permission to replace expected bytes. Preserve all existing owner-certified Golden, exact-source CI, structure and release gates, other 1.1.12 work and route evidence boundaries.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "/root/ab_layout_context_review",
+    "outcome": "approved",
+    "evidence": "Independent 2026-09-25 R2 planning ADMIT: one governed roadmap path, existing handoff detail, delivery/changelog status only. Owner deferral applies to this uncertified Candidate diagnostic, not the 26 owner-certified Direct Golden cases or remaining release gates."
+  },
+  "implementationHead": "1754efb4831fb0ee0055fd91c0c3f9b9af8ed0b2",
+  "reviewedHead": "1754efb4831fb0ee0055fd91c0c3f9b9af8ed0b2",
+  "pathStateDigest": "81d92f8508ef2b27a724f3b1c7d5f000bb565d503e98f0bde200d2e458a451b6",
+  "finalReview": {
+    "reviewer": "/root/ab_layout_context_review",
+    "outcome": "approved",
+    "evidence": "90003b5c2 five-path fixed docs-only review: known 32-byte Candidate difference deferred to 1.1.12, original Golden and processing unchanged, other release gates retained. Independent fixed-diff follow-up at 1754efb4831fb0ee0055fd91c0c3f9b9af8ed0b2 found no P0-P2 issues. The final partition covers 91 governed checkpoint-to-review paths exactly once across 22 records, retaining each original admission and full mutable-path digest. The 90003b5c2 full nonstructure run failed eight .NET assertions and one Python script lane, while all 26 certified Direct Golden cases executed and passed. 1754efb48 changes only tests/prose and corrects those assertions: affected Bootstrap 27/27, Architecture 268/268 and canonical intake 7/7 passed; product/profile/Golden bytes are identical to 90003b5c2. These are scoped results, not a fresh full-suite PASS. On 2026-09-25 the owner approved all nine R3 closures for 1754efb48, sealing, push and formal release progression. Separate typed exact-head owner attestations follow this technical evidence commit. Formal exact-source CI, structure and fresh release Golden execution remain required before publication. The private 32-byte Header-backup/CRC difference remains uncertified Candidate evidence and is deferred by the owner to 1.1.12; no expected bytes, support status or test result is relabeled."
+  },
+  "integrationPaths": [
+    "docs/architecture/nfc_roadmap.md"
+  ]
+}

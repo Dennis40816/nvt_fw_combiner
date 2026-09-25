@@ -10,6 +10,10 @@ namespace NvtFwCombiner.Infrastructure.Files;
 public sealed class RawBinaryEditorFileSession : IRawBinaryEditorFileSession
 {
     private readonly RawBinaryEditorSession _editor;
+    private readonly Func<string, CancellationToken, ValueTask<ReadOnlyMemory<byte>>> _readFile;
+    private readonly Lock _loadGate = new();
+    private long _loadGeneration;
+    private RawBinaryEditorFileResult? _acceptedLoad;
     private readonly Func<byte[], RawBinaryEditorState, string, long, CancellationToken, RawBinaryEditorSearchResult>
         _asciiSearch;
     private AsciiSearchResultCache? _asciiSearchResultCache;
@@ -24,10 +28,12 @@ public sealed class RawBinaryEditorFileSession : IRawBinaryEditorFileSession
 
     internal RawBinaryEditorFileSession(
         RawBinaryEditorSession editor,
-        Func<byte[], RawBinaryEditorState, string, long, CancellationToken, RawBinaryEditorSearchResult> asciiSearch)
+        Func<byte[], RawBinaryEditorState, string, long, CancellationToken, RawBinaryEditorSearchResult> asciiSearch,
+        Func<string, CancellationToken, ValueTask<ReadOnlyMemory<byte>>>? readFile = null)
     {
         _editor = editor ?? throw new ArgumentNullException(nameof(editor));
         _asciiSearch = asciiSearch ?? throw new ArgumentNullException(nameof(asciiSearch));
+        _readFile = readFile ?? ReadFileAsync;
     }
 
     internal int AsciiSearchSnapshotCaptureCount => Volatile.Read(ref _asciiSearchSnapshotCaptureCount);
@@ -42,7 +48,10 @@ public sealed class RawBinaryEditorFileSession : IRawBinaryEditorFileSession
     }
 
     /// <summary>Gets the normalized source path of the currently loaded document.</summary>
-    public string? SourcePath { get; private set; }
+    public string? SourcePath => AcceptedLoad?.Path;
+
+    /// <inheritdoc />
+    public RawBinaryEditorFileResult? AcceptedLoad => Volatile.Read(ref _acceptedLoad);
 
     /// <summary>Gets the suggested, non-destructive output file name for the loaded document.</summary>
     public string SuggestedOutputFileName => string.IsNullOrWhiteSpace(SourcePath)
@@ -54,6 +63,12 @@ public sealed class RawBinaryEditorFileSession : IRawBinaryEditorFileSession
         string sourcePath,
         CancellationToken cancellationToken = default)
     {
+        long generation;
+        lock (_loadGate)
+        {
+            generation = ++_loadGeneration;
+        }
+
         if (string.IsNullOrWhiteSpace(sourcePath))
         {
             return RawBinaryEditorFileResult.Failure("Select a BIN file to open in Hex Editor.");
@@ -74,18 +89,33 @@ public sealed class RawBinaryEditorFileSession : IRawBinaryEditorFileSession
                     $"The selected BIN exceeds the {RawBinaryEditorSession.MaximumDocumentLength} byte Hex Editor limit.");
             }
 
-            var reader = new FileArtifactReader([directory]);
-            ReadOnlyMemory<byte> bytes = await reader.ReadAsync(fullPath, cancellationToken)
+            ReadOnlyMemory<byte> bytes = await _readFile(fullPath, cancellationToken)
                 .ConfigureAwait(false);
-            InvalidateAsciiSearchSnapshot();
-            _ = _editor.Load(bytes.Span);
-            SourcePath = fullPath;
-            return RawBinaryEditorFileResult.Success(fullPath, _editor.State);
+            lock (_loadGate)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                if (generation != _loadGeneration)
+                {
+                    return RawBinaryEditorFileResult.Failure("A newer BIN selection superseded this read.");
+                }
+
+                InvalidateAsciiSearchSnapshot();
+                _ = _editor.Load(bytes.Span);
+                RawBinaryEditorFileResult accepted = RawBinaryEditorFileResult.Success(fullPath, _editor.State);
+                Volatile.Write(ref _acceptedLoad, accepted);
+                return accepted;
+            }
         }
         catch (Exception exception) when (exception is ArgumentException or IOException or UnauthorizedAccessException or NotSupportedException)
         {
             return RawBinaryEditorFileResult.Failure("The selected BIN could not be opened.");
         }
+    }
+
+    private static ValueTask<ReadOnlyMemory<byte>> ReadFileAsync(string path, CancellationToken cancellationToken)
+    {
+        var reader = new FileArtifactReader([Path.GetDirectoryName(path)!]);
+        return reader.ReadAsync(path, cancellationToken);
     }
 
     /// <summary>

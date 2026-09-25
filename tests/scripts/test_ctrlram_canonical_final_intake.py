@@ -79,7 +79,7 @@ class CtrlRamCanonicalFinalIntakeTests(unittest.TestCase):
         counts = Counter(case["testDisposition"]["kind"] for case in cases)
         self.assertEqual(
             {
-                "direct-full-output": 11,
+                "direct-full-output": 12,
                 "allowed-byte-difference": 14,
                 "input-only-evidence": 3,
                 "fact-scoped-alias": 12,
@@ -121,14 +121,16 @@ class CtrlRamCanonicalFinalIntakeTests(unittest.TestCase):
             ).encode("utf-8")
             return hashlib.sha256(payload).hexdigest()
 
-        self.assertEqual(40, len(cases))
+        # Includes the approved OSD AB case and the NT51927 preload slot bindings.
+        # Previously retained artifact identities and hashes are unchanged.
+        self.assertEqual(41, len(cases))
         self.assertEqual(
-            "f46b2e934bc614159b62ff22f83bb671fdc12cf10f61a4a7de3e1f21b134d039",
+            "7880cb8ae40d1a4450a5e44cd42425885900e362298aa4637ab73d42d83bc96a",
             normalized_sha256(cases),
         )
-        self.assertEqual(177, len(artifact_facts))
+        self.assertEqual(181, len(artifact_facts))
         self.assertEqual(
-            "c861abf92a3d35c897b47a7152a998d2c2d048879a70445e7b95cbeedd1dd395",
+            "1ef491f1915fca6d46dd92238ffab44f3c1388205584d8d1ad4293bdf87e5309",
             normalized_sha256(artifact_facts),
         )
 

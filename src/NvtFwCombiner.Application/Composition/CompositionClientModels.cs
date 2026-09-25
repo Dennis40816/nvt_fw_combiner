@@ -160,6 +160,9 @@ public sealed record FirmwareInspectionSnapshot(
     /// <summary>Optional canonical Event Buffer byte selected by this exact Standard input inspection.</summary>
     public byte? StandardEventBufferFormatVersion { get; init; }
 
+    /// <summary>Optional read-only common Event Buffer display byte for one captured AB TP input.</summary>
+    public byte? AbCommonEventBufferFormatVersion { get; init; }
+
     /// <summary>AB-specific typed inspection when the request names one compiled AB input space.</summary>
     public AbMergeInputFacts? AbMergeFacts { get; init; }
 

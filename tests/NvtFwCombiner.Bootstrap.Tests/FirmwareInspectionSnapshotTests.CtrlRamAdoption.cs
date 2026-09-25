@@ -384,7 +384,7 @@ public sealed partial class FirmwareInspectionSnapshotTests
             return inner.ResolveAbReferenceRoute(icId, number);
         }
 
-        public IReadOnlyList<CompositionIssue> ValidateAbReference(CompiledComposition layout, ReadOnlyMemory<byte> reference)
+        public AbReferenceValidation ValidateAbReference(CompiledComposition layout, ReadOnlyMemory<byte> reference)
         {
             return inner.ValidateAbReference(layout, reference);
         }

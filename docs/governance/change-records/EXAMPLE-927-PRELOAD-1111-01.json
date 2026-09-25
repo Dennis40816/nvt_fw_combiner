@@ -1,0 +1,44 @@
+{
+  "schemaVersion": 2,
+  "taskId": "EXAMPLE-927-PRELOAD-1111-01",
+  "capability": "Correct canonical NT51927 single CtrlRAM example bindings for existing CMD and screenshot consumers",
+  "integrationBase": "3db701b70e0eec66889a4b030fcbb84db0db5693",
+  "risk": "R3",
+  "kind": "behavior",
+  "state": "final-complete",
+  "mutablePaths": [
+    "testdata/golden/canonical/NT51927/ctrlram-replace/fw1.4.1/single/nt51927-fw141-single-auto-prj-529-20260717/provenance/case.json",
+    "testdata/golden/release-canonical-v1.json",
+    "scripts/package.ps1",
+    "scripts/smoke-release.ps1",
+    "tests/NvtFwCombiner.UiSmoke.Tests/ReleaseExampleScreenshots.cs"
+  ],
+  "implementationOwner": "/root",
+  "searchEvidence": [
+    "At 261dd1aee the 927 FW1.4.1 single screenshot captures Base but zero of four CtrlRAM inputs. The case lacks slotId; both existing consumers already prioritize artifact.slotId and otherwise derive unsuffixed IDs.",
+    "BuiltInTpFlashMapCatalog.Postbuild groups sources across the full flashMapProfile: MP and Normal have separate master files; NF and VN share physical sources across endpoints and retain unsuffixed IDs even in single mode. MainWindow.ApplyCtrlRamLaunchAsync correctly rejects unavailable input IDs before loading any replacement.",
+    "The canonical case is already selected by release-canonical-v1.json. Only its manifest SHA and existing derived reviewed-source pins need synchronization; payload selection, original artifact bytes and expected hashes are unchanged."
+  ],
+  "semanticOwner": "Canonical artifact.slotId declares the example bindings; existing CMD and release screenshot consumers transport that declaration to the typed Desktop startup request.",
+  "terminalContract": "Add replace-ctrlram-mp-master, replace-ctrlram-nf, replace-ctrlram-normal-master and replace-ctrlram-vn to the matching four postbuild artifacts in this one case. Preserve all other case fields and bytes. Update only its existing release allowlist manifestSha256 and actual reviewed-source-pins projections. Strengthen the existing screenshot regression to require every requested CtrlRAM slot to exist, have a file and accepted inspection, and be free of semantic error. Reproduce failure first, then verify the loaded screenshot and the four CMD bindings; validate canonical/allowlist/pin contracts. No production routing, profile, firmware behavior, Golden expected bytes, release selection or redistribution scope change. Use the existing 1600-pixel review viewport for AB Merge as well as Replace so expanded TP B Details are included; product window layout is unchanged.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "/root/ab_layout_context_review",
+    "outcome": "approved",
+    "evidence": "2026-09-25 independent R3 ADMIT by /root/ab_layout_context_review before fixture/pin edits: four existing slotId fields, exact selected manifest SHA, actual derived pins and screenshot requested-input assertions only. Preserve payloads and Golden contracts; retain red/green and CMD evidence. This metadata correction does not certify AB CtrlRAM or authorize publication. Actual requested-input regression and source-group inspection corrected the initial proposed NF/VN master suffix: those two retain existing shared source IDs, while MP/Normal use master. No production source rule changes."
+  },
+  "implementationHead": "1754efb4831fb0ee0055fd91c0c3f9b9af8ed0b2",
+  "reviewedHead": "1754efb4831fb0ee0055fd91c0c3f9b9af8ed0b2",
+  "pathStateDigest": "7ed0598d26cef2dfc5f9ad36d4a67ccaf2a4e140252a3b6ff4d6b6b24b19f13d",
+  "finalReview": {
+    "reviewer": "/root/ab_layout_context_review",
+    "outcome": "approved",
+    "evidence": "680ded90e scoped fixed review: requested slot identities, CMD four bindings/hash and screenshot input assertions; red-to-green UI and Python policy evidence recorded in v1.1.11 delivery. Independent fixed-diff follow-up at 1754efb4831fb0ee0055fd91c0c3f9b9af8ed0b2 found no P0-P2 issues. The final partition covers 91 governed checkpoint-to-review paths exactly once across 22 records, retaining each original admission and full mutable-path digest. The 90003b5c2 full nonstructure run failed eight .NET assertions and one Python script lane, while all 26 certified Direct Golden cases executed and passed. 1754efb48 changes only tests/prose and corrects those assertions: affected Bootstrap 27/27, Architecture 268/268 and canonical intake 7/7 passed; product/profile/Golden bytes are identical to 90003b5c2. These are scoped results, not a fresh full-suite PASS. On 2026-09-25 the owner approved all nine R3 closures for 1754efb48, sealing, push and formal release progression. Separate typed exact-head owner attestations follow this technical evidence commit. Formal exact-source CI, structure and fresh release Golden execution remain required before publication. The private 32-byte Header-backup/CRC difference remains uncertified Candidate evidence and is deferred by the owner to 1.1.12; no expected bytes, support status or test result is relabeled."
+  },
+  "integrationPaths": [
+    "scripts/package.ps1",
+    "scripts/smoke-release.ps1",
+    "testdata/golden/canonical/NT51927/ctrlram-replace/fw1.4.1/single/nt51927-fw141-single-auto-prj-529-20260717/provenance/case.json",
+    "testdata/golden/release-canonical-v1.json"
+  ]
+}

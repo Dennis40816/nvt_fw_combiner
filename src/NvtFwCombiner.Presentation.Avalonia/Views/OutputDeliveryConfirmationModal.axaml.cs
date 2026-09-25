@@ -270,10 +270,21 @@ public sealed partial class OutputDeliveryConfirmationModal : UserControl
             return;
         }
 
-        string? directory = await FirmwareFilePickerDialogs.PickBundleParentDirectoryAsync(
+        await ChooseParentWithPickerAsync(viewModel, () => FirmwareFilePickerDialogs.PickBundleParentDirectoryAsync(
             storageProvider,
-            viewModel.Text.OutputDeliveryChooseParentLabel);
-        if (directory is not null)
+            viewModel.Text.OutputDeliveryChooseParentLabel));
+    }
+
+    internal static async Task ChooseParentWithPickerAsync(
+        OutputDeliveryConfirmationViewModel viewModel,
+        Func<Task<string?>> pickDirectoryAsync)
+    {
+        ArgumentNullException.ThrowIfNull(viewModel);
+        ArgumentNullException.ThrowIfNull(pickDirectoryAsync);
+        if (!viewModel.IsOpen) { return; }
+        long generation = viewModel.PreparationGeneration;
+        string? directory = await pickDirectoryAsync();
+        if (directory is not null && viewModel.IsPreparationCurrent(generation))
         {
             viewModel.SetParentDirectory(directory);
         }
@@ -345,10 +356,11 @@ public sealed partial class OutputDeliveryConfirmationModal : UserControl
         ArgumentNullException.ThrowIfNull(pickPrimaryAsync);
         ArgumentNullException.ThrowIfNull(pickAdditionalAsync);
 
-        if (!viewModel.CanConfirm) { return; }
+        if (!viewModel.IsOpen || !viewModel.CanConfirm) { return; }
+        long generation = viewModel.PreparationGeneration;
 
         string? outputPath = await pickPrimaryAsync();
-        if (outputPath is null)
+        if (outputPath is null || !viewModel.IsPreparationCurrent(generation))
         {
             return;
         }
@@ -357,7 +369,7 @@ public sealed partial class OutputDeliveryConfirmationModal : UserControl
         if (viewModel.AdditionalDeliveryEnabled && !viewModel.BundleEnabled)
         {
             additionalPath = await pickAdditionalAsync();
-            if (additionalPath is null)
+            if (additionalPath is null || !viewModel.IsPreparationCurrent(generation))
             {
                 return;
             }

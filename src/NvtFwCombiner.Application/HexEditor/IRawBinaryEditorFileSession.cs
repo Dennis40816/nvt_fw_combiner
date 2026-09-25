@@ -10,6 +10,10 @@ public interface IRawBinaryEditorFileSessionFactory
 /// <summary>Loads, searches, and atomically exports one raw-BIN editor document.</summary>
 public interface IRawBinaryEditorFileSession
 {
+    /// <summary>Gets the last successful load receipt, atomically published with the accepted document.
+    /// Each accepted load has a new object identity; failure, cancellation and export leave it unchanged.</summary>
+    RawBinaryEditorFileResult? AcceptedLoad { get; }
+
     /// <summary>Gets the normalized source path of the loaded document.</summary>
     string? SourcePath { get; }
 

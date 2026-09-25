@@ -194,6 +194,9 @@ public sealed class RuntimeReferenceBankReplaceV2CompilationContext : MapBoundV2
     public BankReferenceReplaceDefinition Definition { get; }
     /// <summary>AB Merge compilation used only for layout and relocation authority.</summary>
     public CompiledComposition LayoutComposition { get; }
+    /// <summary>Actual immutable source extent retained by the compiled AB layout, when declared.</summary>
+    public SourceEnvelopeExtent? SourceEnvelope =>
+        (LayoutComposition.V2Details.Provenance.Context as ResolvedMapV2CompilationContext)?.SourceEnvelope;
     /// <summary>Full Reference identity checked before deriving any private bank input.</summary>
     public FirmwareArtifactIdentity Reference { get; }
     /// <summary>Selected bank obligations in deterministic order.</summary>

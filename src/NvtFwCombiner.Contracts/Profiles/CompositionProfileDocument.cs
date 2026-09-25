@@ -26,7 +26,8 @@ public sealed record CompositionProfileDocument(
     CompositionProfileCompilationContextDocument? CompilationContext = null,
     CompositionProfileLogicalOutputBindingDocument? LogicalOutputBinding = null,
     IReadOnlyList<CompositionProfileInputSelectionGroupDocument>? InputSelectionGroups = null,
-    CompositionProfileSourceEnvelopeBindingDocument? SourceEnvelopeBinding = null)
+    CompositionProfileSourceEnvelopeBindingDocument? SourceEnvelopeBinding = null,
+    CompositionProfileAbDocument? Ab = null)
 {
     /// <summary>Preserves the original public transport constructor for previously compiled consumers.</summary>
     public CompositionProfileDocument(
@@ -74,6 +75,9 @@ public sealed record CompositionProfileDocument(
     {
     }
 }
+
+/// <summary>Explicit AB Code characteristics; absence is not a symmetry declaration.</summary>
+public sealed record CompositionProfileAbDocument(bool? IsFullySymmetric);
 
 /// <summary>DTO for profile promotion state and its explicit blockers.</summary>
 public sealed record CompositionProfilePromotionDocument(

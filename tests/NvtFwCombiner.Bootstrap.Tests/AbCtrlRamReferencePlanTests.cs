@@ -17,6 +17,47 @@ public sealed class AbCtrlRamReferencePlanTests
 {
     private static readonly JsonSerializerOptions EvidenceJsonOptions = new() { WriteIndented = true };
 
+    /// <summary>The owner-approved OSD AB output is a larger source around fixed canonical banks.</summary>
+    [Fact]
+    public void Nt51950OsdFullSourceEnvelopeRetainsCanonicalBankGeometry()
+    {
+        JsonElement golden = CanonicalGoldenTestData.LoadDirectCase("ab-merge", "nt51950-ab-osd-d03t02-20260924");
+        JsonElement artifact = golden.GetProperty("artifacts").EnumerateArray().Single(static item =>
+            item.GetProperty("artifactId").GetString() == "expected-output");
+        byte[] reference = File.ReadAllBytes(CanonicalGoldenTestData.ArtifactPath(artifact));
+        BankReplaceRouteBinding binding = CanonicalDynamicRouteInventory.FindBankReplaceBinding("NT51950", "1-ic")!;
+        TrustedProfileBundleCatalog ab = V2StandardMergeGoldenTestSupport.LoadDeployedCatalog(
+            "nt51950-ab-merge", binding.Definition.Layout.Bundle.ContentHash);
+        V2CompositionPlanCompileResult layout = ab.Compile(binding.Definition.Layout.ProfileId,
+            binding.Definition.Layout.ProfileVersion, "NT51950", ExperienceIds.AbMerge, reference.LongLength,
+            new TopologySelection(1, "single", TopologySelectionSource.Requested, "test"),
+            [new FirmwareArtifactPayload("dp-ab-input", reference)], selectedInputSlotIds: ["dp-ab-input"]);
+        Assert.True(layout.IsCompiled, string.Join("; ", layout.Issues.Select(static issue => issue.Message)));
+        CompiledComposition composition = layout.CompiledComposition!;
+        Assert.Equal(0x80000, composition.V2Details.Provenance.ResolvedMap.CapacityBytes);
+        Assert.Equal(reference.LongLength,
+            Assert.IsType<ResolvedMapV2CompilationContext>(composition.V2Details.Provenance.Context)
+                .SourceEnvelope?.ActualOutputLength);
+        Assert.Equal(new ByteRange(0, 0x80000), composition.Plan.OrderedOperations.Single(
+            static operation => operation.Kind == CompositionOperationKind.RunExternalProcessor).TargetRange);
+        var payload = new FirmwareArtifactPayload("reference-base", reference);
+        TrustedProfileBundleCatalog local = V2StandardMergeGoldenTestSupport.LoadDeployedCatalog(
+            binding.Local.Route.BundleId, binding.Definition.Local.Bundle.ContentHash);
+        FirmwareImageMap map = local.GetMapVariants(binding.Definition.Local.ProfileId,
+            binding.Definition.Local.ProfileVersion, "NT51950", ExperienceIds.CtrlRamReplace, out _, out _)
+            .Single(candidate => candidate.MapId == binding.Definition.Local.MapId);
+        V2CompositionPlanCompiler.ValidateAbReference(composition, payload, binding.Definition, map);
+        V2CompositionPlanCompileResult noCapturedSource = ab.Compile(binding.Definition.Layout.ProfileId,
+            binding.Definition.Layout.ProfileVersion, "NT51950", ExperienceIds.AbMerge, reference.LongLength,
+            new TopologySelection(1, "single", TopologySelectionSource.Requested, "test"), [],
+            selectedInputSlotIds: ["dp-ab-input"]);
+        Assert.False(noCapturedSource.IsCompiled);
+        ArgumentException shortReference = Assert.Throws<ArgumentException>(() =>
+            V2CompositionPlanCompiler.ValidateAbReference(composition,
+                new FirmwareArtifactPayload("reference-base", reference.AsSpan(0, 0x80000)), binding.Definition, map));
+        Assert.Contains("Partial AB bank geometry", shortReference.Message, StringComparison.Ordinal);
+    }
+
     /// <summary>The existing NT51950 Single AB and local profiles compile one B-only prefix plan.</summary>
     [Fact]
     public void Nt51950SingleUsesExistingAbHeaderStageAfterLocalPostbuild()
@@ -652,7 +693,7 @@ public sealed class AbCtrlRamReferencePlanTests
         IReadOnlyList<V2RuntimeReferenceBankReplaceRequest> requests, CompiledComposition? layoutOverride = null)
     {
         TrustedProfileBundleCatalog ab = V2StandardMergeGoldenTestSupport.LoadDeployedCatalog(
-            "nt51919-nt51929-nt51932-ab-merge", "892af5d0f1ff0094bb96a0e30ffad3b6c2cf18451a6705623c2ca97206422c6b");
+            "nt51919-nt51929-nt51932-ab-merge", "ece8e9ee7a81b3f00ce04bd7c1aa053acde26835d75c3042bf1a86302d8de793");
         V2CompositionPlanCompileResult compiled = ab.Compile("nt51929-ab-merge", "0.4.0", "NT51929", ExperienceIds.AbMerge,
             0x80000, null, [], selectedInputSlotIds: ["dp-ab-input"]);
         Assert.True(compiled.IsCompiled);

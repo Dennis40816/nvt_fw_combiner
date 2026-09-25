@@ -67,7 +67,11 @@ public sealed partial class MainWindow
 
     private async void Settings_UpdateSourceBrowseRequested(object? sender, EventArgs e)
     {
-        if (DataContext is not MainWindowViewModel viewModel)
+        if (sender is not SettingsViewModel settings ||
+            DataContext is not MainWindowViewModel viewModel ||
+            !ReferenceEquals(viewModel.Settings, settings) ||
+            !viewModel.IsSettingsModalOpen ||
+            settings.BeginUpdateSourceBrowse() is not { } generation)
         {
             return;
         }
@@ -77,9 +81,12 @@ public sealed partial class MainWindow
                 AllowMultiple = false,
                 Title = viewModel.Settings.UpdateSourceHeading,
             });
-        if (folders.Count == 1 && folders[0].TryGetLocalPath() is { } path)
+        if (ReferenceEquals(DataContext, viewModel) &&
+            ReferenceEquals(viewModel.Settings, settings) &&
+            viewModel.IsSettingsModalOpen &&
+            folders.Count == 1 && folders[0].TryGetLocalPath() is { } path)
         {
-            viewModel.Settings.SetUpdateSourceDraft(path);
+            settings.SetUpdateSourceDraft(path, generation);
         }
     }
 

@@ -183,6 +183,7 @@ public sealed partial class ShellNavigationSystemTests
             Assert.Equal(ExperienceIds.StandardMerge, initialSelector.SelectedItem);
             object? originalItemsSource = initialSelector.ItemsSource;
             Assert.NotNull(originalItemsSource);
+            Assert.Same(viewModel.Merge.VisibleMergeModeChoices, originalItemsSource);
             System.Collections.Specialized.INotifyCollectionChanged modeProjection =
                 Assert.IsType<System.Collections.Specialized.INotifyCollectionChanged>(
                     viewModel.Merge.MergeModeChoices,
@@ -307,6 +308,7 @@ public sealed partial class ShellNavigationSystemTests
             ComboBox selector = GetVisibleMergeModeSelector(window, viewModel);
             object? originalItemsSource = selector.ItemsSource;
             Assert.NotNull(originalItemsSource);
+            Assert.Same(viewModel.Merge.VisibleMergeModeChoices, originalItemsSource);
             Assert.Equal(ExperienceIds.AbMerge, selector.SelectedItem);
             Assert.Equal(ExperienceIds.AbMerge, viewModel.Merge.SelectedMergeMode);
             Assert.Equal("NT51950", viewModel.WorkflowSession.SelectedIc);

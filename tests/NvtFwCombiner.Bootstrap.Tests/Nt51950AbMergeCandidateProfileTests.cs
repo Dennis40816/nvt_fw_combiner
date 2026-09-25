@@ -12,7 +12,7 @@ namespace NvtFwCombiner.Bootstrap.Tests;
 public sealed class Nt51950AbMergeCandidateProfileTests
 {
     private const string BundleDirectory = "nt51950-ab-merge";
-    private const string BundleContentHash = "18b43352606ca744f499e328d5778c3b9e08307a97fd122ac38fd8762d37c8d1";
+    private const string BundleContentHash = "3fff3d0e923652ef52c360bc21d4e4191820e54bff04a6ba47558974d0adbab5";
     private const int Capacity = 0x80000;
     private const int BankLength = 0x40000;
     private const int TpInputLength = 0x37000;
@@ -29,7 +29,7 @@ public sealed class Nt51950AbMergeCandidateProfileTests
         Assert.Equal(CompiledCompositionEligibility.V2PlanCompiled, composition.Eligibility);
         Assert.True(composition.IsV2AbFunctionOpenCandidate);
         Assert.True(StringComparer.Ordinal.Equals(
-            "962ea7873561ad6db3d7bd42bf8c9085af2c5e8562206ae9b5311d6522e66c98",
+            "6a747f136019020beca29190102f626c44661a502c331c3e1c3ead8f209fbb2f",
             composition.CompilationFingerprint), composition.CompilationFingerprint);
         V2CompiledCompositionDetails details = Assert.IsType<V2CompiledCompositionDetails>(composition.V2Details);
         Assert.Equal("nt51950-ab-merge-512k", details.Provenance.ResolvedMap.ImageMap.MapId);
@@ -125,7 +125,7 @@ public sealed class Nt51950AbMergeCandidateProfileTests
             BundleDirectory,
             "profiles",
             "nt51950-ab-merge.json")));
-        Assert.Equal("2.16", profile.RootElement.GetProperty("schemaVersion").GetString());
+        Assert.Equal("2.17", profile.RootElement.GetProperty("schemaVersion").GetString());
         JsonElement[] views = [.. profile.RootElement.GetProperty("views").EnumerateArray()];
         foreach (string viewId in new[] { "tp-a-code-source", "tp-b-code-source" })
         {

@@ -1,3 +1,4 @@
+using System.Text.Json;
 using NvtFwCombiner.Application.Authoring;
 using NvtFwCombiner.Application.Capabilities;
 using NvtFwCombiner.Application.Configuration;
@@ -11,6 +12,64 @@ namespace NvtFwCombiner.Bootstrap.Tests;
 
 public sealed partial class FirmwareInspectionSnapshotTests
 {
+    /// <summary>AB TP inputs retain a common read-only Event Buffer byte when no AB format policy exists.</summary>
+    [Fact]
+    public async Task Nt51929AbTouchInputsExposeCommonEventBufferWithoutFormatAdmission()
+    {
+        using var workspace = TempWorkspace.Create("ab-common-event-display");
+        CompositionHostServices host = CompositionHostServices.Create(new ExternalProcessorEnvironmentLoader(),
+            loadPolicy: null, configurationPath: workspace.PathFor("format.json"));
+        Assert.True(host.Catalog.Reload(TestContext.Current.CancellationToken).Succeeded);
+        JsonElement golden = CanonicalGoldenTestData.LoadDirectCase("ab-merge", "nt51929-ab-t05-d06");
+        string PathFor(string id)
+        {
+            return CanonicalGoldenTestData.ArtifactPath(
+                golden.GetProperty("artifacts").EnumerateArray().Single(artifact =>
+                    artifact.GetProperty("artifactId").GetString() == id));
+        }
+
+        FirmwareInspectionBatchResult batch = await host.FirmwareInspectionExperience.InspectFirmwareBatchAsync(
+            "NT51929",
+            [Input(CompositionAddressSpaceIds.DpAbInput),
+                Input(CompositionAddressSpaceIds.TpAInput),
+                Input(CompositionAddressSpaceIds.TpBInput)],
+            TestContext.Current.CancellationToken);
+
+        foreach (string slot in new[] { CompositionAddressSpaceIds.TpAInput,
+                     CompositionAddressSpaceIds.TpBInput })
+        {
+            FirmwareInspectionSnapshot inspection = batch.InspectionsById[slot];
+            Assert.Null(inspection.AbMergeFacts?.EventBufferFormat);
+            _ = Assert.NotNull(inspection.AbCommonEventBufferFormatVersion);
+            Assert.False(Assert.IsType<AuthoringInputSlotStatus>(inspection.InputSlotStatus).BlocksBuild);
+        }
+        Assert.Null(batch.InspectionsById[CompositionAddressSpaceIds.DpAbInput]
+            .AbCommonEventBufferFormatVersion);
+
+        FirmwareInspectionSnapshot tpA = batch.InspectionsById[CompositionAddressSpaceIds.TpAInput];
+        byte[] acceptedTp = File.ReadAllBytes(PathFor(CompositionAddressSpaceIds.TpAInput));
+        var canonical = new CanonicalTestContext(host);
+        var resolver = new FirmwareArtifactClassificationResolver(canonical.Catalog, canonical.Compiler);
+        long structureStart = Assert.IsType<FirmwareConfigMetadataSnapshot>(tpA.FirmwareConfig)
+            .FirmwareConfigBackupStart;
+        ResolutionToken current = Assert.IsType<AuthoringInputSlotStatus>(tpA.InputSlotStatus)
+            .ResolutionToken;
+        Assert.Equal(tpA.AbCommonEventBufferFormatVersion,
+            resolver.ReadCommonEventBufferFormatForTp("NT51929", current, acceptedTp, structureStart));
+        Assert.Null(resolver.ReadCommonEventBufferFormatForTp("NT51929",
+            new ResolutionToken("stale-publication"), acceptedTp, structureStart));
+        Assert.Null(resolver.ReadCommonEventBufferFormatForTp("NT51929", current,
+            acceptedTp, structureStart + 1));
+        Assert.Null(resolver.ReadCommonEventBufferFormatForTp("NT51929", current,
+            acceptedTp.AsMemory(0, 16), structureStart));
+
+        FirmwareInspectionSnapshotInput Input(string slot)
+        {
+            return new(slot, PathFor(slot),
+                AbMergeAddressSpaceId: slot);
+        }
+    }
+
     /// <summary>Format discovery reads the complete nonstandard DP once and retains its accepted extent.</summary>
     [Fact]
     public async Task AbFormatDiscoveryReadsFullDpOnceAndAcceptsNonstandardExtent()
@@ -81,6 +140,8 @@ public sealed partial class FirmwareInspectionSnapshotTests
         Assert.Equal(dp.Length, selected.CompiledComposition.Plan.OutputInitialization.Capacity);
         Assert.Equal(2, reads.Count);
         Assert.All(reads.Values, static count => Assert.Equal(1, count));
+        Assert.Null(result.InspectionsById["tp-a-input"].AbCommonEventBufferFormatVersion);
+        Assert.Null(result.InspectionsById["tp-b-input"].AbCommonEventBufferFormatVersion);
 
         FirmwareInspectionSnapshotInput Input(string slot, string path)
         {

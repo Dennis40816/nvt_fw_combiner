@@ -1,4 +1,4 @@
-# Composition Profile Contract 2.0 through 2.16
+# Composition Profile Contract 2.0 through 2.17
 
 The executable schemas are [`composition-profile-v2.schema.json`](composition-profile-v2.schema.json)
 [`composition-profile-v2.1.schema.json`](composition-profile-v2.1.schema.json), and
@@ -16,11 +16,20 @@ The executable schemas are [`composition-profile-v2.schema.json`](composition-pr
 [`composition-profile-v2.13.schema.json`](composition-profile-v2.13.schema.json), and
 [`composition-profile-v2.14.schema.json`](composition-profile-v2.14.schema.json), and
 [`composition-profile-v2.15.schema.json`](composition-profile-v2.15.schema.json), and
-[`composition-profile-v2.16.schema.json`](composition-profile-v2.16.schema.json). A trusted bundle
+[`composition-profile-v2.16.schema.json`](composition-profile-v2.16.schema.json), and
+[`composition-profile-v2.17.schema.json`](composition-profile-v2.17.schema.json). A trusted bundle
 selects one exact schema snapshot through its manifest content hash. They are the only declarative
 workflow policy compiled for Normal, AB, General, Merge, Replace, saved rules, and future Register work.
 
 ## Boundary
+
+Schema 2.17 adds optional `ab: { "isFullySymmetric": true | false }` only to
+AB Merge profiles. The closed object requires an explicit boolean; absence
+retains no symmetry declaration. It does not declare AB support or change
+execution. The immutable fact passes through the compiler and AB bank Replace
+composition from the existing AB layout profile. Application derives one
+individual-bank presentation decision; UI must not infer symmetry from IC,
+family or geometry. See [ADR 0074](../adr/0074-profile-owned-ab-symmetry.md).
 
 A profile binds an exact firmware-family content hash and an explicit set of compatible map ids.
 The compiler accepts one already resolved map, proves it is in that set, and records the exact map

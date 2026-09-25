@@ -156,7 +156,8 @@ internal static partial class V2CompositionPlanCompiler
             regionAccess,
             profile.Output,
             profile.IcNumberInputMode,
-            CreateAdditionalDeliveries(profile, context));
+            CreateAdditionalDeliveries(profile, context),
+            profile.Header.Ab);
         ValidateArtifactAdmission(details, runtimeExecutable);
         CompiledComposition artifact = runtimeExecutable
             ? CompiledComposition.CreateV2RuntimeExecutable(plan, details)

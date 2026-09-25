@@ -1,5 +1,6 @@
 using NvtFwCombiner.Application.Metadata;
 using NvtFwCombiner.Domain.Composition;
+using NvtFwCombiner.Domain.Firmware;
 
 namespace NvtFwCombiner.Application.Capabilities;
 
@@ -133,12 +134,32 @@ public sealed record CanonicalCapabilityCompilationContract
                 TrustedDefinitionSha256 != bankContext.Definition.ContentHash ||
                 CompilerSemanticId != CapabilityDefinitionFingerprint.RuntimeBankReplaceCompilerSemanticId ||
                 !_allowedMapVariantIds.Contains(bankContext.ResolvedMap.ImageMap.MapId, StringComparer.Ordinal) ||
-                memoryLayoutContext is not null || runtimeReferenceProof is null)
+                runtimeReferenceProof is null)
             {
                 throw new ArgumentException("Composite bank compilation requires its own exact definition, map and proof.", nameof(composition));
             }
 
-            ValidateSemanticBindings(runtimeReferenceProof.ValidateAndGetSemanticBindings(composition), composition);
+            if (memoryLayoutContext is not null)
+            {
+                FirmwareImageMap companion = memoryLayoutContext.Map;
+                FirmwareImageMap layout = bankContext.ResolvedMap.ImageMap;
+                FirmwareRegion[] banks = [.. layout.Regions.Where(static region => region.RegionId is "a-bank" or "b-bank")];
+                FirmwareRegion[] localCodes = [.. companion.Regions.Where(static region =>
+                    region.Owner == FirmwareRegionOwner.Tp && region.Kind == FirmwareRegionKind.Code)];
+                bool invalid = companion.CapacityBytes != bankContext.Definition.BankCapacityBytes ||
+                    banks.Length != 2 || localCodes.Length == 0 || banks.Any(bank =>
+                        bank.Range.Length != companion.CapacityBytes || !localCodes.Select(code =>
+                            new ByteRange(checked(bank.Range.Start + code.Range.Start), code.Range.Length))
+                        .OrderBy(static range => range.Start).SequenceEqual(layout.Regions.Where(region =>
+                            region.Owner == FirmwareRegionOwner.Tp && region.Kind == FirmwareRegionKind.Code &&
+                            bank.Range.Contains(region.Range)).Select(static region => region.Range).OrderBy(static range => range.Start)));
+                if (invalid)
+                {
+                    throw new ArgumentException("AB memory context must match declared bank capacity and TP code placement.", nameof(memoryLayoutContext));
+                }
+            }
+            ValidateSemanticBindings([.. runtimeReferenceProof.ValidateAndGetSemanticBindings(composition),
+                .. memoryLayoutContext?.SemanticBindingIds ?? []], composition);
             return;
         }
         if (!StringComparer.Ordinal.Equals(

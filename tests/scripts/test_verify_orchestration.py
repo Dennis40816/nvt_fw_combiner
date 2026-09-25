@@ -41,7 +41,11 @@ class VerifyOrchestrationTests(unittest.TestCase):
             {"NvtFwCombiner.Bootstrap.Tests", "NvtFwCombiner.GoldenRegression.Tests"},
             {project.name for project in projects},
         )
-        self.assertEqual(25, len(cases))  # Independent inventory at this revision.
+        self.assertEqual(26, len(cases))  # Independent inventory at this revision.
+        self.assertEqual(
+            (("NvtFwCombiner.Bootstrap.Tests", "Nt51950OsdPublicHostMatchesOwnerCertifiedGoldenAsync"),),
+            cases["nt51950-ab-osd-d03t02-20260924"],
+        )
         self.assertTrue(all(refs for refs in cases.values()))
         self.assertTrue(all(
             project in {item.name for item in projects}

@@ -33,75 +33,50 @@ internal sealed partial class FirmwareArtifactClassificationResolver
                 publication?.ResolutionToken ?? default, referenceStamp);
         }
 
-        if ((adapter.ResolveAbReferenceRoute(ic, IcNumberSelectionTokens.SingleChip).Succeeded ||
-             adapter.ResolveAbReferenceRoute(ic, IcNumberSelectionTokens.Cascade).Succeeded ||
-             adapter.ResolveAbReferenceRoute(ic, IcNumberSelectionTokens.CascadeTwoToEight).Succeeded) &&
-            TryCompileAbLayoutForReference(ic, candidate.Length,
-                out CompiledComposition? layout, out ResolvedCapability? layoutCapability) &&
-            layoutCapability is not null && IsCurrentCapability(publication, ic, layoutCapability) &&
-            candidate.Length == layout!.V2Details.Provenance.ResolvedMap.CapacityBytes)
+        if (adapter.ResolveAbReferenceRoute(ic, IcNumberSelectionTokens.SingleChip).Succeeded ||
+            adapter.ResolveAbReferenceRoute(ic, IcNumberSelectionTokens.Cascade).Succeeded ||
+            adapter.ResolveAbReferenceRoute(ic, IcNumberSelectionTokens.CascadeTwoToEight).Succeeded)
         {
-            bool hasStandard = _compiler.TryCompileStandardMerge(ic, null, out CompiledComposition? standard,
-                out ResolvedCapability? standardCapability, out _) &&
-                standardCapability is not null && IsCurrentCapability(publication, ic, standardCapability) &&
-                ReferenceEquals(standardCapability.CompiledComposition, standard) &&
-                standardCapability.MetadataPlan.ResolutionToken == publication.ResolutionToken;
-            FirmwareRegion[] banks = [.. layout.V2Details.Provenance.ResolvedMap.ImageMap.Regions
-                .Where(static region => region.RegionId is "a-bank" or "b-bank").OrderBy(static region => region.Range.Start)];
-            if (banks.Length == 2 && banks.All(bank => bank.Range.EndExclusive <= candidate.Length))
+            List<(CompiledComposition Layout, ResolvedCapability Capability)> layouts =
+                CompileAbLayoutsForReference(ic, candidate);
+            var assessments = new List<AbReferenceCandidateAssessment>(layouts.Count);
+            foreach ((CompiledComposition layout, ResolvedCapability layoutCapability) in layouts)
             {
-                int plausibleBanks = hasStandard ? banks.Count(bank => CompiledFirmwareArtifactClassifier.Classify(standard!,
-                    candidate.Span.Slice(checked((int)bank.Range.Start), checked((int)bank.Range.Length))).Kind == CompiledFirmwareArtifactKind.FlashCode) : 0;
-                var facts = new List<CtrlRamBaseBankInspection>();
-                var issues = new List<CompositionIssue>();
-                foreach (FirmwareRegion bank in banks)
+                if (!IsCurrentCapability(publication, ic, layoutCapability) ||
+                    layout.Plan.OutputInitialization.Capacity != candidate.Length)
                 {
-                    ReadOnlyMemory<byte> bytes = candidate.Slice(checked((int)bank.Range.Start), checked((int)bank.Range.Length));
-                    bool readable = FirmwareConfigMetadataReader.TryReadBackup(bytes.Span, out FirmwareConfigMetadata config, out int markers);
-                    bool valid = readable && config.IsFirmwareVersionBarValid && config.ChipNumber > 0;
-                    CompositionIssue[] bankIssues = valid ? [] :
-                        [!readable
-                            ? new(markers > 1 ? "input.bank-reference.metadata-ambiguous" : "input.bank-reference.metadata-unreadable",
-                                $"{bank.RegionId}: FWConfig/IC count unreadable; expected one valid Backup, marker count={markers}.", CompositionSlotIds.ReplaceBase)
-                            : !config.IsFirmwareVersionBarValid
-                                ? new("input.bank-reference.version-bar", $"{bank.RegionId}: FWConfig version/bar mismatch.", CompositionSlotIds.ReplaceBase)
-                                : new("input.bank-reference.count-zero", $"{bank.RegionId}: IC count Read 0; a positive count is required.", CompositionSlotIds.ReplaceBase)];
-                    FirmwareConfigMetadataSnapshot? snapshot = valid ? new(config.StructureStart, config.CommonFwVersion,
-                        config.FirmwareVersion, config.FirmwareVersionBar, config.IsFirmwareVersionBarValid, config.FirmwareSubVersion,
-                        config.ChipNumber, config.ProjectId, null, config.Hardware) : null;
-                    facts.Add(new(bank.RegionId, bank.Range, snapshot,
-                        valid ? new(CompiledInputVersionKind.TpReferenceFirmwareConfig, config.FirmwareVersion, config.FirmwareSubVersion) : null,
-                        CompiledInputArtifactObservationService.DecodeDpRegion(layout,
-                            bank.RegionId == "a-bank" ? CompiledInputVersionKind.DpA : CompiledInputVersionKind.DpB,
-                            bank.RegionId == "a-bank" ? "a-cmi-dp-version" : "b-cmi-dp-version", candidate),
-                        eventBufferFormatVersion: valid && hasStandard
-                            ? ReadBankEventBufferFormat(standard!, standardCapability!, bytes, config)
-                            : null, bankIssues));
-                    issues.AddRange(bankIssues);
+                    continue;
                 }
-                if (facts.All(static bank => bank.FirmwareConfig is not null) &&
-                    facts[0].FirmwareConfig!.ChipNumber != facts[1].FirmwareConfig!.ChipNumber)
+                AbReferenceCandidateAssessment? assessment = InspectAbCandidate(
+                    ic, publication, layout, candidate, adapter);
+                if (assessment is not null)
                 {
-                    issues.Add(new("input.bank-reference.count", $"AB IC count mismatch: a-bank Read {facts[0].FirmwareConfig!.ChipNumber}, b-bank Read {facts[1].FirmwareConfig!.ChipNumber}.", CompositionSlotIds.ReplaceBase));
+                    assessments.Add(assessment);
                 }
-                IReadOnlyList<CompositionIssue> structureIssues = adapter.ValidateAbReference(layout, candidate);
-                // A verified canonical header/native structure plus both valid Backups remains AB evidence
-                // even if corrupted DP contents no longer satisfy the Standard Flash plausibility signal.
-                if (plausibleBanks > 0 || (issues.Count == 0 && structureIssues.Count == 0))
-                {
-                    issues.AddRange(structureIssues);
-                    if (hasStandard && plausibleBanks != banks.Length)
-                    {
-                        issues.Add(new("input.bank-reference.content", "AB bank contents do not satisfy the declared Flash plausibility checks.", CompositionSlotIds.ReplaceBase));
-                    }
-                    return IsCurrentSnapshot(publication)
-                        ? new(CtrlRamBaseKind.AbFlash, draft as AbCtrlRamDraftState ?? new AbCtrlRamDraftState(),
-                            facts, issues, publication.ResolutionToken, referenceStamp)
-                        : new(CtrlRamBaseKind.Unknown, draft, [],
-                            [new(AuthoringSessionIssueCodes.StaleInspection,
-                                "The catalog changed during Reference classification.")],
-                            publication.ResolutionToken, referenceStamp);
-                }
+            }
+
+            AbReferenceCandidateAssessment[] trusted =
+                [.. assessments.Where(static assessment => assessment.HasTrustedStructure)];
+            AbReferenceCandidateAssessment[] recognized = trusted.Length != 0
+                ? trusted
+                : [.. assessments.Where(static assessment => assessment.HasTwoBankEvidence)];
+            if (recognized.Length == 0 && layouts.Count == 1)
+            {
+                recognized = [.. assessments.Where(static assessment => assessment.LegacySingleCandidateEvidence)];
+            }
+            if (recognized.Length > 0)
+            {
+                return !IsCurrentSnapshot(publication)
+                    ? new(CtrlRamBaseKind.Unknown, draft, [],
+                        [new(AuthoringSessionIssueCodes.StaleInspection,
+                            "The catalog changed during Reference classification.")],
+                        publication.ResolutionToken, referenceStamp)
+                    : recognized.Length == 1
+                    ? new(CtrlRamBaseKind.AbFlash, draft as AbCtrlRamDraftState ?? new AbCtrlRamDraftState(),
+                        recognized[0].Facts, recognized[0].Issues, publication.ResolutionToken, referenceStamp)
+                    : new(CtrlRamBaseKind.AbFlash, draft as AbCtrlRamDraftState ?? new AbCtrlRamDraftState(), [],
+                        [new("input.bank-reference.ambiguous", "More than one trusted AB bank layout matches this Reference.",
+                            CompositionSlotIds.ReplaceBase)], publication.ResolutionToken, referenceStamp);
             }
         }
 
@@ -122,8 +97,8 @@ internal sealed partial class FirmwareArtifactClassificationResolver
                 out _) && standardConfig.IsFirmwareVersionBarValid)
         {
             standardEventBufferFormat = exactStandard?.MetadataPlan.ResolutionToken == publication.ResolutionToken
-                ? FirmwareConfigGeneralParametersProjector.ReadEventBufferFormatVersion(
-                    exactStandard.MetadataPlan, candidate, standardConfig.StructureStart)
+                ? FirmwareConfigGeneralParametersProjector.ReadGeneralParameters(
+                    exactStandard.MetadataPlan, candidate, standardConfig.StructureStart)?.EventBufferFormatVersion
                 : consensusStandards is not null
                     ? ReadConsensusEventBufferFormat(consensusStandards, publication.ResolutionToken,
                         candidate, standardConfig.StructureStart)
@@ -138,11 +113,10 @@ internal sealed partial class FirmwareArtifactClassificationResolver
             publication.ResolutionToken, referenceStamp, standardEventBufferFormat);
     }
 
-    private bool TryCompileAbLayoutForReference(string icId, int length,
-        out CompiledComposition? composition, out ResolvedCapability? capability)
+    private List<(CompiledComposition Layout, ResolvedCapability Capability)> CompileAbLayoutsForReference(
+        string icId, ReadOnlyMemory<byte> reference)
     {
-        composition = null;
-        capability = null;
+        var candidates = new List<(CompiledComposition Layout, ResolvedCapability Capability)>();
         TopologySelection?[] selections =
         [
             null,
@@ -151,23 +125,96 @@ internal sealed partial class FirmwareArtifactClassificationResolver
         foreach (TopologySelection? selection in selections)
         {
             if (!_compiler.TryCompileAbMergeCapability(icId, selection, ["dp-ab-input"],
-                    out CompiledComposition? candidate, out ResolvedCapability? published, out _) ||
-                candidate is null || published is null ||
-                candidate.V2Details.Provenance.ResolvedMap.CapacityBytes != length)
+                    out _, out ResolvedCapability? published, out _) || published is null ||
+                !_compiler.TryCompilePublishedDynamicCapability(published.Identity, reference.Length,
+                    [new FirmwareArtifactPayload("dp-ab-input", reference.Span)], ["dp-ab-input"],
+                    out CompiledComposition? candidate, out ResolvedCapability? captured, out _, selection) ||
+                candidate is null || captured is null ||
+                candidate.Plan.OutputInitialization.Capacity != reference.Length)
             {
                 continue;
             }
-            if (composition is not null)
-            {
-                composition = null;
-                capability = null;
-                return false;
-            }
-            composition = candidate;
-            capability = published;
+            candidates.Add((candidate, captured));
         }
-        return composition is not null;
+        return candidates;
     }
+
+    private AbReferenceCandidateAssessment? InspectAbCandidate(string icId,
+        CanonicalCapabilityCatalogSnapshot publication, CompiledComposition layout,
+        ReadOnlyMemory<byte> reference, ICtrlRamAuthoringAdapter adapter)
+    {
+        FirmwareRegion[] banks = [.. layout.V2Details.Provenance.ResolvedMap.ImageMap.Regions
+            .Where(static region => region.RegionId is "a-bank" or "b-bank")
+            .OrderBy(static region => region.Range.Start)];
+        if (banks.Length != 2 || banks.Any(bank => bank.Range.EndExclusive > reference.Length) ||
+            banks[0].Range.Length != banks[1].Range.Length)
+        {
+            return null;
+        }
+        bool hasStandard = _compiler.TryCompileStandardMerge(icId, banks[0].Range.Length,
+            out CompiledComposition? standard, out ResolvedCapability? standardCapability, out _) &&
+            standardCapability is not null && IsCurrentCapability(publication, icId, standardCapability) &&
+            ReferenceEquals(standardCapability.CompiledComposition, standard) &&
+            standardCapability.MetadataPlan.ResolutionToken == publication.ResolutionToken;
+        int plausibleBanks = hasStandard ? banks.Count(bank => CompiledFirmwareArtifactClassifier.Classify(standard!,
+            reference.Span.Slice(checked((int)bank.Range.Start), checked((int)bank.Range.Length))).Kind ==
+                CompiledFirmwareArtifactKind.FlashCode) : 0;
+        var facts = new List<CtrlRamBaseBankInspection>(2);
+        var issues = new List<CompositionIssue>();
+        foreach (FirmwareRegion bank in banks)
+        {
+            ReadOnlyMemory<byte> bytes = reference.Slice(checked((int)bank.Range.Start), checked((int)bank.Range.Length));
+            bool readable = FirmwareConfigMetadataReader.TryReadBackup(bytes.Span, out FirmwareConfigMetadata config,
+                out int markers);
+            bool valid = readable && config.IsFirmwareVersionBarValid && config.ChipNumber > 0;
+            CompositionIssue[] bankIssues = valid ? [] :
+                [!readable
+                    ? new(markers > 1 ? "input.bank-reference.metadata-ambiguous" : "input.bank-reference.metadata-unreadable",
+                        $"{bank.RegionId}: FWConfig/IC count unreadable; expected one valid Backup, marker count={markers}.", CompositionSlotIds.ReplaceBase)
+                    : !config.IsFirmwareVersionBarValid
+                        ? new("input.bank-reference.version-bar", $"{bank.RegionId}: FWConfig version/bar mismatch.", CompositionSlotIds.ReplaceBase)
+                        : new("input.bank-reference.count-zero", $"{bank.RegionId}: IC count Read 0; a positive count is required.", CompositionSlotIds.ReplaceBase)];
+            FirmwareConfigMetadataSnapshot? snapshot = valid ? new(config.StructureStart, config.CommonFwVersion,
+                config.FirmwareVersion, config.FirmwareVersionBar, config.IsFirmwareVersionBarValid, config.FirmwareSubVersion,
+                config.ChipNumber, config.ProjectId, null, config.Hardware) : null;
+            facts.Add(new(bank.RegionId, bank.Range, snapshot,
+                valid ? new(CompiledInputVersionKind.TpReferenceFirmwareConfig, config.FirmwareVersion,
+                    config.FirmwareSubVersion) : null,
+                CompiledInputArtifactObservationService.DecodeDpRegion(layout,
+                    bank.RegionId == "a-bank" ? CompiledInputVersionKind.DpA : CompiledInputVersionKind.DpB,
+                    bank.RegionId == "a-bank" ? "a-cmi-dp-version" : "b-cmi-dp-version", reference),
+                eventBufferFormatVersion: valid
+                    ? ReadBankEventBufferFormat(icId, publication.ResolutionToken,
+                        hasStandard ? standard : null, hasStandard ? standardCapability : null, bytes, config)
+                    : null, bankIssues));
+            issues.AddRange(bankIssues);
+        }
+        if (facts.All(static bank => bank.FirmwareConfig is not null) &&
+            facts[0].FirmwareConfig!.ChipNumber != facts[1].FirmwareConfig!.ChipNumber)
+        {
+            issues.Add(new("input.bank-reference.count", $"AB IC count mismatch: a-bank Read {facts[0].FirmwareConfig!.ChipNumber}, b-bank Read {facts[1].FirmwareConfig!.ChipNumber}.", CompositionSlotIds.ReplaceBase));
+        }
+        AbReferenceValidation validation = adapter.ValidateAbReference(layout, reference);
+        bool legacyEvidence = plausibleBanks > 0 || (issues.Count == 0 && validation.Issues.Count == 0);
+        bool twoBankEvidence = facts.All(static bank => bank.FirmwareConfig is not null) &&
+            plausibleBanks == banks.Length;
+        issues.AddRange(validation.Issues);
+        if (hasStandard && plausibleBanks != banks.Length)
+        {
+            issues.Add(new("input.bank-reference.content",
+                "AB bank contents do not satisfy the declared Flash plausibility checks.",
+                CompositionSlotIds.ReplaceBase));
+        }
+        return new([.. facts], [.. issues], validation.HasTrustedAbStructure,
+            twoBankEvidence, legacyEvidence);
+    }
+
+    private sealed record AbReferenceCandidateAssessment(
+        IReadOnlyList<CtrlRamBaseBankInspection> Facts,
+        IReadOnlyList<CompositionIssue> Issues,
+        bool HasTrustedStructure,
+        bool HasTwoBankEvidence,
+        bool LegacySingleCandidateEvidence);
 
     private static byte? ReadConsensusEventBufferFormat(
         IReadOnlyList<ResolvedCapability> candidates, ResolutionToken resolutionToken,
@@ -182,11 +229,41 @@ internal sealed partial class FirmwareArtifactClassificationResolver
                 return null;
             }
 
-            observations.Add(FirmwareConfigGeneralParametersProjector.ReadEventBufferFormatObservation(
-                capability.MetadataPlan, candidate, structureStart));
+            observations.Add(FirmwareConfigGeneralParametersProjector.ReadObservation(
+                capability.MetadataPlan, candidate, structureStart)?.EventBuffer);
         }
 
         return SelectCommonEventBufferFormat(observations);
+    }
+
+    /// <inheritdoc />
+    public byte? ReadCommonEventBufferFormatForTp(
+        string icId,
+        ResolutionToken capturedPublication,
+        ReadOnlyMemory<byte> acceptedTpBytes,
+        long expectedStructureStart)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(icId);
+        ArgumentOutOfRangeException.ThrowIfNegative(expectedStructureStart);
+        string normalizedIcId = IcIdentifier.Normalize(icId);
+        CanonicalCapabilityCatalogSnapshot? publication = _catalog.TryGetCurrentSnapshot();
+        if (publication is null || publication.ResolutionToken != capturedPublication)
+        {
+            return null;
+        }
+
+        StandardCandidate[]? candidates = ResolveCurrentCompositions(publication, normalizedIcId);
+        if (candidates is null || candidates.Length == 0 ||
+            candidates.Any(static candidate => candidate.Capability is null))
+        {
+            return null;
+        }
+
+        ResolvedCapability[] capabilities =
+            [.. candidates.Select(static candidate => candidate.Capability!)];
+        byte? observed = ReadConsensusEventBufferFormat(capabilities, capturedPublication,
+            acceptedTpBytes, expectedStructureStart);
+        return IsCurrentSnapshot(publication) ? observed : null;
     }
 
     internal static byte? SelectCommonEventBufferFormat(
@@ -199,38 +276,33 @@ internal sealed partial class FirmwareArtifactClassificationResolver
             : null;
     }
 
-    private static byte? ReadBankEventBufferFormat(CompiledComposition standard,
-        ResolvedCapability standardCapability, ReadOnlyMemory<byte> bankBytes, FirmwareConfigMetadata validatedConfig)
+    private byte? ReadBankEventBufferFormat(string icId, ResolutionToken resolutionToken,
+        CompiledComposition? standard, ResolvedCapability? standardCapability,
+        ReadOnlyMemory<byte> bankBytes, FirmwareConfigMetadata validatedConfig)
     {
-        MetadataPlanEntry[] matches =
-        [
-            .. standardCapability.MetadataPlan.Entries
-                .Select(static item => item.Definition)
-                .Where(entry => StringComparer.Ordinal.Equals(entry.StructureDefinition.StructureId,
-                        FirmwareConfigGeneralParametersContract.StructureId) &&
-                    StringComparer.Ordinal.Equals(entry.ImageMap.MapId,
-                        standard.V2Details.Provenance.ResolvedMap.ImageMap.MapId) &&
-                    StringComparer.Ordinal.Equals(entry.MemberId,
-                        standard.V2Details.Provenance.Context.MemberId))
-                .Take(2),
-        ];
-        if (matches.Length != 1)
+        // An accepted Standard compilation owns its exact metadata. Without one, the
+        // existing full-image query supplies display authority, never execution support.
+        ResolvedMetadataPlan? plan = standardCapability?.MetadataPlan ??
+            _catalog.ResolveFullImageMetadataPlan(icId, bankBytes.Length).MetadataPlan;
+        if (plan is null || plan.ResolutionToken != resolutionToken) { return null; }
+        if (standard is not null)
         {
-            return null;
+            MetadataPlanEntry[] matches = [.. plan.Entries.Select(static item => item.Definition)
+                .Where(static entry => entry.StructureDefinition.Definition.DefinitionId ==
+                    FirmwareConfigGeneralParametersContract.StructureId).Take(2)];
+            if (matches.Length != 1) { return null; }
+            MetadataPlanEntry entry = matches[0];
+            FirmwareFamilyResolutionDefinition.ResolvedFirmwareImageMap map = standard.V2Details.Provenance.ResolvedMap;
+            if (bankBytes.Length != map.CapacityBytes ||
+                entry.ImageMap.MapId != map.ImageMap.MapId ||
+                entry.MemberId != standard.V2Details.Provenance.Context.MemberId ||
+                entry.FamilyDefinition.FamilyContentHash != standard.V2Details.Provenance.Context.FamilyContentHash ||
+                entry.ResolvedMap.ResolutionFingerprint != map.ResolutionFingerprint)
+            {
+                return null;
+            }
         }
-
-        MetadataPlanEntry entry = matches[0];
-        FirmwareFamilyResolutionDefinition.ResolvedFirmwareImageMap map =
-            standard.V2Details.Provenance.ResolvedMap;
-        return bankBytes.Length == map.CapacityBytes &&
-            StringComparer.Ordinal.Equals(entry.FamilyDefinition.FamilyContentHash,
-                standard.V2Details.Provenance.Context.FamilyContentHash) &&
-            StringComparer.Ordinal.Equals(entry.ResolvedMap.ResolutionFingerprint,
-                map.ResolutionFingerprint) &&
-            StringComparer.Ordinal.Equals(entry.SpaceId, entry.StructureDefinition.ArtifactBindingId)
-                ? FirmwareConfigGeneralParametersProjector.ReadEventBufferFormatVersion(
-                    standardCapability.MetadataPlan, bankBytes, validatedConfig.StructureStart,
-                    requireFieldTarget: false)
-                : null;
+        return FirmwareConfigGeneralParametersProjector.ReadGeneralParameters(
+            plan, bankBytes, validatedConfig.StructureStart)?.EventBufferFormatVersion;
     }
 }
