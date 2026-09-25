@@ -11,20 +11,7 @@ namespace NvtFwCombiner.Infrastructure.Composition;
 /// <summary>Projects production CtrlRAM routes from the reviewed package trust index.</summary>
 internal static class CtrlRamV2RouteRegistry
 {
-    private static readonly ReadOnlyCollection<CtrlRamV2Route> Routes = Array.AsReadOnly(
-    [
-        .. BuiltInV2BundleRegistry.TrustIndex.Bundles
-            .SelectMany(
-                static bundle => bundle.RuntimeRegistrations,
-                static (bundle, registration) => (Bundle: bundle, Registration: registration))
-            .Where(static item => StringComparer.Ordinal.Equals(
-                item.Registration.WorkflowId,
-                ExperienceIds.CtrlRamReplace))
-            .Select(static item => CreateRoute(item.Bundle, item.Registration))
-            .OrderBy(static route => route.Key.IcId, StringComparer.Ordinal)
-            .ThenBy(static route => route.Key.PostbuildProcessorId, StringComparer.Ordinal)
-            .ThenBy(static route => route.Key.Branch),
-    ]);
+    private static readonly ReadOnlyCollection<CtrlRamV2Route> Routes = CreateRoutes();
 
     private static readonly ReadOnlyDictionary<CtrlRamV2RouteKey, CtrlRamV2Route> ByKey =
         new(Routes.ToDictionary(static route => route.Key));
@@ -50,15 +37,49 @@ internal static class CtrlRamV2RouteRegistry
             out route);
     }
 
+    private static ReadOnlyCollection<CtrlRamV2Route> CreateRoutes()
+    {
+        // Routes naming the same Standard registration (by reference) and exact map share that
+        // map's compilation while this table is built; each route still projects and validates its
+        // own report plan, and the memo is discarded with this initializer.
+        var exactMapPlans = new Dictionary<(BuiltInV2Registration Registration, string MapId), MetadataPlanDefinition>();
+        MetadataPlanDefinition CreateExactMapMetadataPlan(BuiltInV2Registration standardRegistration, string mapId)
+        {
+            if (!exactMapPlans.TryGetValue((standardRegistration, mapId), out MetadataPlanDefinition? plan))
+            {
+                plan = standardRegistration.CreateExactMapMetadataPlan(mapId);
+                exactMapPlans.Add((standardRegistration, mapId), plan);
+            }
+
+            return plan;
+        }
+
+        return Array.AsReadOnly(
+        [
+            .. BuiltInV2BundleRegistry.TrustIndex.Bundles
+                .SelectMany(
+                    static bundle => bundle.RuntimeRegistrations,
+                    static (bundle, registration) => (Bundle: bundle, Registration: registration))
+                .Where(static item => StringComparer.Ordinal.Equals(
+                    item.Registration.WorkflowId,
+                    ExperienceIds.CtrlRamReplace))
+                .Select(item => CreateRoute(item.Bundle, item.Registration, CreateExactMapMetadataPlan))
+                .OrderBy(static route => route.Key.IcId, StringComparer.Ordinal)
+                .ThenBy(static route => route.Key.PostbuildProcessorId, StringComparer.Ordinal)
+                .ThenBy(static route => route.Key.Branch),
+        ]);
+    }
+
     private static CtrlRamV2Route CreateRoute(
         ProfileBundlePackageTrustEntry bundle,
-        ProfileBundleRuntimeRegistration registration)
+        ProfileBundleRuntimeRegistration registration,
+        Func<BuiltInV2Registration, string, MetadataPlanDefinition> createExactMapMetadataPlan)
     {
         BuiltInV2Registration? standardRegistration =
             BuiltInV2RegistrationRegistry.StandardMergeByIc.GetValueOrDefault(
                 registration.IcId);
-        MetadataPlanDefinition reportMetadataPlan =
-            ValidateReportMetadataCounterpart(registration, standardRegistration);
+        MetadataPlanDefinition reportMetadataPlan = ValidateReportMetadataCounterpart(
+            registration, standardRegistration, createExactMapMetadataPlan);
         return new CtrlRamV2Route(
             new CtrlRamV2RouteKey(
                 registration.IcId,
@@ -99,6 +120,17 @@ internal static class CtrlRamV2RouteRegistry
         ProfileBundleRuntimeRegistration registration,
         BuiltInV2Registration? standardRegistration)
     {
+        return ValidateReportMetadataCounterpart(
+            registration,
+            standardRegistration,
+            static (standard, mapId) => standard.CreateExactMapMetadataPlan(mapId));
+    }
+
+    private static MetadataPlanDefinition ValidateReportMetadataCounterpart(
+        ProfileBundleRuntimeRegistration registration,
+        BuiltInV2Registration? standardRegistration,
+        Func<BuiltInV2Registration, string, MetadataPlanDefinition> createExactMapMetadataPlan)
+    {
         ArgumentNullException.ThrowIfNull(registration);
         if (standardRegistration is null ||
             !StringComparer.Ordinal.Equals(
@@ -119,15 +151,17 @@ internal static class CtrlRamV2RouteRegistry
             ? MetadataPlanDefinition.Empty
             : CreateReportMetadataPlan(
                 standardRegistration,
-                registration.ReportMetadataMapId);
+                registration.ReportMetadataMapId,
+                createExactMapMetadataPlan);
     }
 
     private static MetadataPlanDefinition CreateReportMetadataPlan(
         BuiltInV2Registration standardRegistration,
-        string reportMetadataMapId)
+        string reportMetadataMapId,
+        Func<BuiltInV2Registration, string, MetadataPlanDefinition> createExactMapMetadataPlan)
     {
         MetadataPlanDefinition sourcePlan =
-            standardRegistration.CreateExactMapMetadataPlan(reportMetadataMapId);
+            createExactMapMetadataPlan(standardRegistration, reportMetadataMapId);
         MetadataPlanEntry[] entries =
         [
             .. sourcePlan.Entries
