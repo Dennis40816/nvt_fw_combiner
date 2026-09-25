@@ -51,4 +51,33 @@ file under `docs/handoff/bugs/` per the bug ledger; cite IDs here.
 **Start.** Early, right after the base refresh (checklist A-7), so
 differences surface long before freeze.
 
+## Amendment 2026-09-25: release by 2026-09-28 (board decision 9)
+
+**Candidate.** The `1.1.12` product source, today equal to `v1.1.11`
+(`1c37bd718`). Record the exact command so the commander can rerun it on the
+frozen candidate on 2026-09-27; record how long one full run takes.
+
+**Due.** The complete difference table, with a proposed explanation per
+difference, by **2026-09-26 18:00 +08:00**, so the owner can dispose of each
+difference in the 2026-09-26 evening window. Report partial coverage rather
+than waiting past the deadline.
+
+**Stop and ask** (replaces the B-7 reference): when the script cannot run for
+a 1.x candidate without changing `scripts/` or a workflow, stop and report
+the exact blocker; the commander decides.
+
+**Machine.** Other lanes build and measure on the same machine. Do not run
+more than one heavy job (build, test run, parity run) at a time.
+
+**Common to every lane (decision 9).** Base `feature/1.1.12/handoff`; pull
+requests target the `1.1.12` integration branch; the commander pushes and
+opens them, the worker never pushes. The current rules still apply in full:
+complete the capability-reuse gate your change requires
+(`docs/governance/development-execution-workflow.md`), run the affected tests,
+and have `python scripts/verify.py --structure-only` pass on your final commit
+before you report `verified`. Builds must not leave modified
+`packages.lock.json` files; restore them if a build rewrites them. Record every
+bug in the bug ledger. The live board is `git show 1.1.x:docs/handoff/1.1.12.md`
+(section "Release plan to 2026-09-28").
+
 ## Checkpoints
