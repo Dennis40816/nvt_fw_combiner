@@ -1,0 +1,34 @@
+{
+  "schemaVersion": 2,
+  "taskId": "ROADMAP-LINE-CEILING-1112-01",
+  "capability": "Keep the canonical roadmap within the repository text-file line ceiling after the 1.1.12 measured outcome",
+  "integrationBase": "206da25810f56f653036ba0060860524a6b2d474",
+  "risk": "R2",
+  "kind": "release",
+  "state": "design-active",
+  "mutablePaths": [
+    "docs/architecture/nfc_roadmap.md"
+  ],
+  "implementationOwner": "claude-code",
+  "searchEvidence": [
+    "CI run 36150288626 on pull request #448 and a local run at the attested head e75b81c01 fail RepositoryBoundaryTests.RepositoryTextFilesStayBelowEmergencyCeiling: docs/architecture/nfc_roadmap.md has 2,501 lines against the 2,500-line ceiling.",
+    "The measured-outcome amendment after the final product source measurement added two lines to the roadmap's 1.1.12 startup bullet; RELEASE-IDENTITY-1112-01 is final-complete and owner-attested, so its roadmap path needs a new record.",
+    "The existing ceiling test and the roadmap remain the owners; no ceiling change is proposed."
+  ],
+  "semanticOwner": "docs/architecture/nfc_roadmap.md remains the canonical roadmap; the architecture test keeps the unchanged 2,500-line ceiling.",
+  "terminalContract": "Re-wrap only the roadmap's 1.1.12 measured-startup bullet to a wider line width so the file stays below the 2,500-line ceiling. Every word, number, link and the order of the text stay identical (a whitespace-insensitive word diff is empty); no other roadmap line, ceiling, test, record, release note or product file changes.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "codex/gpt-6-sol",
+    "outcome": "approved",
+    "evidence": "2026-09-26 independent R2 design review at the attested integration head, ACCEPT: only the new change record and the roadmap re-wrap are in the worktree; the whitespace-insensitive porcelain word diff shows no word additions or removals; the measured-startup bullet changes from 14 lines to 11, bringing the roadmap from 2,501 to 2,498 lines; the emergency ceiling and its test are unchanged; the release classification, R2 risk, integration base, single mutable path and text-preserving terminal contract are appropriate. The integration base was then set to the latest evidence checkpoint 206da2581, which the repository validator requires, instead of the attestation commit reviewed as the head."
+  },
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": {
+    "reviewer": null,
+    "outcome": "pending",
+    "evidence": ""
+  }
+}
