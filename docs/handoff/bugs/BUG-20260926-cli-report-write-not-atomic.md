@@ -1,6 +1,6 @@
 # BUG-20260926-cli-report-write-not-atomic: a failed `--report` write can leave a partial report
 
-Status: open
+Status: fixing (on `feature/1.1.13/cli-hardening`, not yet integrated)
 Severity: P2
 Found: 2026-09-26, automated review of pull request #457 (thread on
 `src/NvtFwCombiner.Cli/CliCompositionRunSupport.cs`), also noted by the implementer of
@@ -13,4 +13,4 @@ destination keeps partial JSON (or a damaged earlier report), while the CLI prin
 Expected: write to a staging file in the same directory and replace the destination atomically; clean
 up the staging file on every handled failure, so a failure never changes the destination.
 Owner: 1.1.13 wave 2, with the CLI items after #457 merges.
-Resolution: not fixed.
+Resolution: fixed on `feature/1.1.13/cli-hardening` by `CLI-REPORT-ATOMIC-1113-01` (R1): the report is written to a same-directory staging file and replaces the destination with one rename; a handled failure before the rename deletes the staging file. Final review pending; not yet integrated.
