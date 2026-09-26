@@ -1,0 +1,39 @@
+{
+  "schemaVersion": 2,
+  "taskId": "AGENT-MODEL-ROUTING-1113-01",
+  "capability": "Create the single canonical owner for current per-runtime agent model-tier defaults (owner decision 56) and point AGENTS.md and the supervised-branch-development skill's model-routing prose at it instead of naming models in two places",
+  "integrationBase": "84b084dd8fd218730ce75adb93b5dc2c456dd3c6",
+  "risk": "R2",
+  "kind": "governance",
+  "state": "design-active",
+  "mutablePaths": [
+    "AGENTS.md",
+    "docs/governance/agent-model-routing.md",
+    ".agents/skills/supervised-branch-development/SKILL.md"
+  ],
+  "implementationOwner": "claude-code",
+  "searchEvidence": [
+    "Owner decision 56, 2026-09-26 (docs/handoff/1.1.12.md lines 421-430): delegation picks the model tier by task class; Claude Opus 5.5 (R3 firmware semantics, architecture design, complex cross-module implementation) / Sonnet 5 (clear-spec R1 implementation, document/board edits, review-driven revisions) / Haiku 4.5 (pure lookup and inventory); Codex gpt-6-astra (firmware and architecture review) / gpt-6-sol (code review and implementation) / gpt-6-luna (mechanical verification); the mapping is dated and replaceable, the repository principle stays model-neutral.",
+    "grep -rn 'Sol, Terra, and Luna' .agents docs: the only hardcoded per-runtime model-name list in repository authority was .agents/skills/supervised-branch-development/SKILL.md:23. AGENTS.md 'Delegation and model selection' (lines 65-93) states principles only and names no models; docs/governance/agent-skill-routing.md routes by changed surface/authority, not by model name, and holds no model mapping, so it needs no edit for this task.",
+    "git grep -i terra across all tracked files (not limited to docs/*.md and *.json): roughly 90 hits, excluding this record's own text. Examples only, not an exhaustive list: the undated SKILL.md heuristic being replaced here; historical GPT-5.6-dated review citations in docs/architecture/nfc_roadmap.md:1032,1105,1489 and docs/ui/v1.1.x-ctrlram-selector-visual-contract.md:128; reviewer-field citations across roughly 44 historical docs/governance/change-records/*.json records, for example DOCS-112-BOILERPLATE-CLEANUP-03.json and RELEASE-DERIVED-IDENTITY-PIN-112-02.json; and a non-doc hit in tests/scripts/test_skill_inventory_validation.py. None postdate owner decision 56, which names gpt-6-astra/gpt-6-sol/gpt-6-luna and never mentions Terra. Commander decision, 2026-09-26: decision 56 already supersedes the old Terra name for current work; historical dated records keep their original text unchanged, and no owner interview is needed. This document's dated Codex table follows decision 56 exactly (astra/sol/luna) and does not carry the older name forward.",
+    "scripts/validate_repository.py _is_capability_reuse_governed_path and _capability_reuse_minimum_risk (lines 1698-1780): AGENTS.md is governed by filename at minimum R2; docs/governance/** and .agents/skills/** are governed at minimum R2; docs/governance/change-records/** is excluded from governed classification, so this record's own path is correctly absent from mutablePaths.",
+    "git show 9565b4f9e2dc40678c774e5faa0205aa218b75d6:docs/governance/change-records/ROADMAP-HISTORY-1113-01.json (branch feature/1.1.13/roadmap-tidy, not present on feature/1.1.13/model-routing) is a same-day R2 kind-governance design-active precedent using the same integrationBase 84b084dd8fd218730ce75adb93b5dc2c456dd3c6 and disposition extend-owner, confirming the schema shape and checkpoint used here.",
+    "Independent R2 design review, codex/gpt-6-sol, 2026-09-26 (verdict ACCEPT-WITH-CHANGES; scoped Polytail FAIL pending F-1/F-2) reviewed these uncommitted worktree changes against base 71f81df2ea9166b135369752694ab6dd42ff5986; confirmed integrationBase, disposition, mutablePaths classification, dated mapping, dispatch disclosure, inherits-parent wording, and unchanged risk/evidence gates are sound. F-1 (overlapping cross-runtime task-class table misrouting Codex implementation toward gpt-6-astra) and F-2 (Terra searchEvidence citations read as an exhaustive list) are addressed in this revision. designReview now records reviewer codex/gpt-6-sol and outcome findings-incorporated for this admission; the fixed-head final review verifies that F-1/F-2 closure holds."
+  ],
+  "semanticOwner": "docs/governance/agent-model-routing.md becomes the single owner of the current dated per-runtime agent model-tier defaults. AGENTS.md's 'Delegation and model selection' section and the supervised-branch-development skill's 'Model routing' section keep owning the selection principles and point to the new file instead of naming models themselves.",
+  "terminalContract": "Add docs/governance/agent-model-routing.md: a 'Status' line, a short principles recap (capability/difficulty/risk selection, owner-request precedence, never lowering risk/gates/evidence) citing AGENTS.md and the skill as the principle owners, no separate cross-runtime task-class table, and a single 2026-09-26 owner-decision-56 dated section whose Claude table (tier, decision-56 task class, and Opus 5.5 / Sonnet 5 / Haiku 4.5) and Codex table (tier, decision-56 task class, and gpt-6-astra / gpt-6-sol / gpt-6-luna) each pair a tier and decision-56's own task-class wording directly with that runtime's model, plus a note that the tier label is not a cross-runtime equivalence (Claude's strongest-reasoning tier includes complex implementation; Codex's strongest-reasoning model is scoped to review only, and Codex implementation work stays on its capable-implementation model regardless of complexity), an inherits-parent instruction for tiers the dispatching tool does not expose, a pointer to the skill's existing dispatch-disclosure field order (role/model/reasoning effort/inherited-or-override/read-only-or-write/scope/selection reason) without redefining it, and a three-step procedure for a listed model being currently unavailable. In AGENTS.md 'Delegation and model selection', add exactly one sentence after 'Explicit owner choices take precedence when supported by tooling.' pointing to the new file as the current dated mapping; no other AGENTS.md text changes. In .agents/skills/supervised-branch-development/SKILL.md 'Model routing', replace only the sentence 'Sol, Terra, and Luna are current examples/default heuristics, not hard requirements.' with a pointer to the same file; no other skill text changes. docs/governance/agent-skill-routing.md is read but not edited. No firmware, code, test, or other governance document changes.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "codex/gpt-6-sol",
+    "outcome": "findings-incorporated",
+    "evidence": "Independent R2 design review by codex/gpt-6-sol examined the uncommitted worktree changes against base commit 71f81df2ea9166b135369752694ab6dd42ff5986. The record’s integration base, 84b084dd8fd218730ce75adb93b5dc2c456dd3c6, matches the latest change-record checkpoint inspected. The dated model mapping, owner-choice precedence, dispatch disclosure, inheritance wording, and unchanged risk and evidence gates are sound. Conditional acceptance requires resolving the overlapping task-class assignments against owner decision 56 and clarifying that the Terra search citations are examples. This is design feedback on uncommitted changes, not a fixed-head implementation review. F-1 (task-class overlap) and F-2 (Terra search examples) were incorporated before admission; the fixed-head final review verifies their closure."
+  },
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": {
+    "reviewer": null,
+    "outcome": "pending",
+    "evidence": ""
+  }
+}
