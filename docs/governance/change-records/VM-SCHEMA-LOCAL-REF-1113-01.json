@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 2,
+  "taskId": "VM-SCHEMA-LOCAL-REF-1113-01",
+  "capability": "VersionManagement embedded schemas build only as fully resolved Draft 2020-12 resources: local fragment references and no nested $id or $schema",
+  "integrationBase": "84b084dd8fd218730ce75adb93b5dc2c456dd3c6",
+  "risk": "R1",
+  "kind": "behavior",
+  "state": "design-active",
+  "mutablePaths": [
+    "src/NvtFwCombiner.VersionManagement.Infrastructure/VersionManagement/ReleaseManifestSchema.cs",
+    "tests/NvtFwCombiner.Architecture.Tests/RepositoryBoundaryTests.JsonSchemaConcurrency.cs",
+    "tests/NvtFwCombiner.Infrastructure.Tests/VersionManagement/EmbeddedVersionManagementSchemaTests.cs"
+  ],
+  "implementationOwner": "claude-code",
+  "searchEvidence": [
+    "docs/handoff/1.1.12/WS-PERF.md, 2026-09-25 race-freedom entry: the JsonSchema.Net 8.0.5 source audit makes concurrent evaluation, Draft 2020-12 meta-validation and private-registry builds safe only when production never writes the library's global registries, every schema is fully resolved (local references only) and its $schema is known; it recommends the local-reference rule for EmbeddedVersionManagementSchema.Load as a 1.1.13 follow-up (board wave 4).",
+    "rg -n 'JsonSchema.FromText' src: exactly two production schema builds, ProfileBundleSchemaValidator.ParseSchema and EmbeddedVersionManagementSchema.Load, pinned by RepositoryBoundaryTests.ProductionCodeNeverWritesJsonSchemaGlobalState. The bundle builder already requires the Draft 2020-12 $schema, string local fragment $ref/$dynamicRef/$recursiveRef and no nested $id/$schema (profile-bundle-v1.md, ADR 0075 decision 4); EmbeddedVersionManagementSchema.Load checks only the root $id and Draft 2020-12 meta-validation, so a VersionManagement schema with a remote reference or another dialect would still build.",
+    "The seven embedded VersionManagement schemas (docs/contracts release-manifest-v1, update-catalog-v1, update-catalog-v2, update-source-registry-v1, launcher-bootstrap-v1, managed-setup-payload-admission-v1, managed-setup-transaction-v1) each declare the Draft 2020-12 $schema and $id once at the root and use only '#/$defs/...' references, so the rule changes no shipped schema, contract or document verdict.",
+    "ProjectDependencyTests.CoreCompositionProjectsKeepVersionBoundedContextSeparate pins NvtFwCombiner.VersionManagement.Infrastructure to Contracts, Platform and VersionManagement.Application, so ProfileBundleSchemaValidator cannot be reused across the bounded context without an architecture change; the existing VersionManagement loader is extended and an architecture test requires the rule at every production schema build."
+  ],
+  "semanticOwner": "EmbeddedVersionManagementSchema remains the only loader and builder of VersionManagement embedded schemas, and the seven lazy schema holders in ReleaseManifestSchema.cs remain its only callers. ProfileBundleSchemaValidator remains the bundle-schema owner. Instance parsing (ParseStrict), evaluation options and every caller are unchanged.",
+  "terminalContract": "Loading a VersionManagement embedded schema fails closed with InvalidOperationException unless the resource root declares the expected $id and exactly the Draft 2020-12 $schema, every $ref, $dynamicRef and $recursiveRef is a string local fragment reference beginning with '#', and no subschema declares $id or $schema; meta-validation and the private-registry build then run as before. The seven shipped schemas load unchanged, so update-catalog, source-registry, release-manifest, launcher-bootstrap, setup-payload and setup-transaction verdicts, JSON outputs, schemas and contracts are unchanged.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": null,
+    "outcome": "not-required",
+    "evidence": "Bounded local R1 hardening of the existing VersionManagement schema loader recommended by the 1.1.12 JsonSchema.Net audit (owner task, 1.1.13 board wave 4); no schema, contract, profile, firmware byte, range or output change. Narrow tests: Infrastructure.Tests VersionManagement, Application.Tests VersionManagement, Architecture.Tests. Residual gates: independent fixed-head review and finalization."
+  },
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": {
+    "reviewer": null,
+    "outcome": "pending",
+    "evidence": ""
+  }
+}
