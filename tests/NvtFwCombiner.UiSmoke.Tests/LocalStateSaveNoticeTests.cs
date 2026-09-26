@@ -291,10 +291,7 @@ public sealed class LocalStateSaveNoticeTests
         string? outputDirectory = Environment.GetEnvironmentVariable("NFC_VISUAL_OUTPUT_DIR");
         using var workspace = TempWorkspace.Create("f08-save-notice-visual");
         (PresentationHostServices services, ScriptedStateFiles files) = await CreateScriptedServicesAsync(workspace);
-        string[] arguments = ["--workflow", "standard-merge", "--ic", "NT51923", "--ic-num", "single",
-            "--dp", RepositoryPaths.FromRepositoryRoot(ReferenceCase + "nt51923-dp-input.bin"),
-            "--tp", RepositoryPaths.FromRepositoryRoot(ReferenceCase + "nt51923-tp-input.bin")];
-        using var window = new MainWindow(UiLaunchOptions.Parse(arguments), StartupTraceSession.Disabled, services,
+        using var window = new MainWindow(ReferenceMergeLaunch(), StartupTraceSession.Disabled, services,
             ShellPreferenceSnapshot.Default)
         { Width = 1440, Height = 1100 };
         window.Show();
@@ -389,8 +386,8 @@ public sealed class LocalStateSaveNoticeTests
             Save(chinese ? "zh" : "en", dark ? "dark" : "light", "single");
 
             // The reference's hover state is the shared secondary hover: accent surface and border, an accent
-            // refresh icon and the bilingual tooltip centred above the strip, clear of the button so the hover
-            // state persists while the tooltip is open; leaving restores the resting icon.
+            // refresh icon and the bilingual tooltip beside the button (owner decision 42), clear of the button so
+            // the hover state persists while the tooltip is open; leaving restores the resting icon.
             window.MouseMove(new Point(4, 4), RawInputModifiers.None);
             window.MouseMove(Bounds(retry, window).Center, RawInputModifiers.None);
             await WaitUntilAsync(() => ToolTip.GetIsOpen(retry), TimeSpan.FromSeconds(5));
@@ -400,10 +397,7 @@ public sealed class LocalStateSaveNoticeTests
             AssertBrush(retry, retryPresenter.BorderBrush, "NfcAccentBorderBrush");
             AssertBrush(retry, refresh.Stroke, "NfcAccentStrongBrush");
             Assert.Equal(chinese ? "重試" : "Retry", ToolTip.GetTip(retry));
-            ToolTip tip = Assert.Single(window.GetVisualDescendants().OfType<ToolTip>());
-            Rect tipBounds = Bounds(tip, window);
-            Assert.True(tipBounds.Bottom <= strip.Top, $"The Retry tooltip {tipBounds} covers the strip {strip}.");
-            Assert.Equal(Bounds(retry, window).Center.X, tipBounds.Center.X, tolerance: 1);
+            ToolTip tip = AssertRetryTooltipBesideButton(window, retry, host);
             await WaitUntilAsync(() =>
             {
                 Render(window);
@@ -443,6 +437,70 @@ public sealed class LocalStateSaveNoticeTests
             using Avalonia.Media.Imaging.Bitmap? frame = window.GetLastRenderedFrame();
             Assert.NotNull(frame);
             frame.Save(System.IO.Path.Combine(outputDirectory, $"f08-save-failure-{theme}-{language}-{state}.png"));
+        }
+    }
+
+    /// <summary>
+    /// Owner decision 42 at the supported window sizes in both languages: with the longest detail sentence the
+    /// Retry tooltip opens beside the button inside the strip, clear of the status text and the composition rail,
+    /// and the hover state persists while it is open.
+    /// </summary>
+    [AvaloniaTheory]
+    [InlineData(980, 640, false)]
+    [InlineData(980, 640, true)]
+    [InlineData(1280, 800, false)]
+    [InlineData(1280, 800, true)]
+    [InlineData(1920, 1080, false)]
+    [InlineData(1920, 1080, true)]
+    public async Task RetryTooltipStaysClearOfStatusTextAndRail(double width, double height, bool chinese)
+    {
+        using var workspace = TempWorkspace.Create("f08-save-notice-tooltip");
+        (PresentationHostServices services, ScriptedStateFiles files) = await CreateScriptedServicesAsync(workspace);
+        using var window = new MainWindow(ReferenceMergeLaunch(), StartupTraceSession.Disabled, services,
+            ShellPreferenceSnapshot.Default)
+        { Width = width, Height = height };
+        window.Show();
+        try
+        {
+            await AwaitHistoryReadyAsync(window);
+            var shell = (MainWindowViewModel)window.DataContext!;
+            var preload = (ShellPreloadSession)window.FindControl<Border>("OptionalPreloadStatusHost")!.DataContext!;
+            await WaitUntilAsync(() => !preload.HasOptionalStatus &&
+                window.FindControl<Grid>("ShellInteractionHost")!.IsEnabled, TimeSpan.FromSeconds(45));
+            if (chinese)
+            {
+                shell.SelectedLanguage = "Traditional Chinese";
+                await WaitUntilAsync(() => files.Completed(PreferencesPath) >= 1);
+            }
+
+            // Layout only: present the longest detail sentence, the report-history size failure, directly.
+            LocalStateSaveNoticeViewModel notice = Notice(window);
+            notice.ObserveSave(LocalStateSaveTarget.ReportHistory, new ReportHistoryPersistenceException(
+                ReportHistoryPersistenceFailure.EntryTooLargeToPersist, "synthetic too large"));
+            Render(window);
+            Border host = window.FindControl<Border>(NoticeHostName)!;
+            Button retry = window.FindControl<Button>(RetryButtonName)!;
+            Assert.True(host.IsEffectivelyVisible);
+            Assert.True(window.FindControl<StackPanel>("CompositionBuildActionRail")!.IsEffectivelyVisible);
+            Assert.Equal(new Size(width, height), window.Bounds.Size);
+
+            window.MouseMove(new Point(4, 4), RawInputModifiers.None);
+            window.MouseMove(Bounds(retry, window).Center, RawInputModifiers.None);
+            await WaitUntilAsync(() => ToolTip.GetIsOpen(retry), TimeSpan.FromSeconds(5));
+            Render(window);
+            Assert.True(retry.IsPointerOver);
+            ToolTip tip = AssertRetryTooltipBesideButton(window, retry, host);
+            await WaitUntilAsync(() =>
+            {
+                Render(window);
+                return tip.Opacity >= 1;
+            });
+            Assert.True(retry.IsPointerOver);
+            SaveFrame(window, $"f08-save-failure-tooltip-{width:0}x{height:0}-{(chinese ? "zh" : "en")}.png");
+        }
+        finally
+        {
+            await CloseAndFlushAsync(window);
         }
     }
 
@@ -677,6 +735,74 @@ public sealed class LocalStateSaveNoticeTests
         notice.ObserveSave(LocalStateSaveTarget.ReportHistory, new IOException("late"));
         Assert.Equal([LocalStateSaveTarget.Preferences], retried);
         Assert.Equal("Preferences: failed", notice.DetailToolTip);
+    }
+
+    /// <summary>The approved reference state: the NT51923 standard Merge page with both inputs loaded.</summary>
+    private static UiLaunchOptions ReferenceMergeLaunch()
+    {
+        return UiLaunchOptions.Parse(["--workflow", "standard-merge", "--ic", "NT51923", "--ic-num", "single",
+            "--dp", RepositoryPaths.FromRepositoryRoot(ReferenceCase + "nt51923-dp-input.bin"),
+            "--tp", RepositoryPaths.FromRepositoryRoot(ReferenceCase + "nt51923-tp-input.bin")]);
+    }
+
+    /// <summary>
+    /// Owner decision 42: the open Retry tooltip sits beside the button on its left, centred on it inside the
+    /// strip, and covers neither the button, the status text nor the composition rail.
+    /// </summary>
+    private static ToolTip AssertRetryTooltipBesideButton(Window window, Button retry, Border host)
+    {
+        ToolTip tip = Assert.Single(window.GetVisualDescendants().OfType<ToolTip>());
+        Rect tipBounds = Bounds(tip, window);
+        Rect button = Bounds(retry, window);
+        Rect strip = Bounds(host, window);
+        Assert.InRange(button.Left - tipBounds.Right, 0, 16);
+        Assert.Equal(button.Center.Y, tipBounds.Center.Y, tolerance: 1);
+        Assert.True(tipBounds.Top >= strip.Top && tipBounds.Bottom <= strip.Bottom,
+            $"The Retry tooltip {tipBounds} leaves the strip {strip}.");
+        TextBlock[] texts = [.. host.GetVisualDescendants().OfType<TextBlock>()
+            .Where(block => block.IsEffectivelyVisible && block.FindAncestorOfType<Button>() is null)];
+        Assert.Equal(3, texts.Length);
+        foreach (TextBlock text in texts)
+        {
+            Rect ink = TextExtent(text, window);
+            Assert.False(tipBounds.Intersects(ink), $"The Retry tooltip {tipBounds} covers '{text.Text}' at {ink}.");
+        }
+
+        StackPanel rail = window.FindControl<StackPanel>("CompositionBuildActionRail")!;
+        if (rail.IsEffectivelyVisible)
+        {
+            Rect railBounds = Bounds(rail, window);
+            Assert.False(tipBounds.Intersects(railBounds), $"The Retry tooltip {tipBounds} covers the rail {railBounds}.");
+        }
+
+        return tip;
+    }
+
+    /// <summary>Saves the rendered window for owner review when NFC_VISUAL_OUTPUT_DIR is set.</summary>
+    private static void SaveFrame(Window window, string fileName)
+    {
+        string? outputDirectory = Environment.GetEnvironmentVariable("NFC_VISUAL_OUTPUT_DIR");
+        if (string.IsNullOrWhiteSpace(outputDirectory))
+        {
+            return;
+        }
+
+        Render(window);
+        _ = Directory.CreateDirectory(outputDirectory);
+        using Avalonia.Media.Imaging.Bitmap? frame = window.GetLastRenderedFrame();
+        Assert.NotNull(frame);
+        frame.Save(System.IO.Path.Combine(outputDirectory, fileName));
+    }
+
+    /// <summary>The laid-out text of a text block, not its stretched arrange slot.</summary>
+    private static Rect TextExtent(TextBlock block, Visual window)
+    {
+        Point origin = block.TranslatePoint(default, window)!.Value;
+        return new Rect(
+            origin.X + block.Padding.Left,
+            origin.Y + block.Padding.Top,
+            block.TextLayout.WidthIncludingTrailingWhitespace,
+            block.TextLayout.Height);
     }
 
     private static LocalStateSaveNoticeViewModel Notice(Window window)

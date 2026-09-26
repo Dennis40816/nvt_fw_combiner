@@ -503,8 +503,10 @@
             FontSize="{DynamicResource NfcFontSize13}"
             Foreground="{DynamicResource NfcWarningTextMutedBrush}"
             Text="·" />
+        <!-- The right margin keeps the detail clear of the Retry tooltip that opens beside the button. -->
         <TextBlock
             Grid.Column="3"
+            Margin="0,0,64,0"
             VerticalAlignment="Center"
             FontSize="{DynamicResource NfcFontSize13}"
             Foreground="{DynamicResource NfcWarningTextMutedBrush}"
@@ -521,9 +523,10 @@
             Classes="semanticAction secondary iconButton"
             AutomationProperties.Name="{ReflectionBinding RetryLabel}"
             Command="{ReflectionBinding RetryCommand}"
-            ToolTip.Placement="Top"
+            ToolTip.HorizontalOffset="-8"
+            ToolTip.Placement="Left"
             ToolTip.Tip="{ReflectionBinding RetryLabel}"
-            ToolTip.VerticalOffset="-16">
+            ToolTip.VerticalOffset="0">
           <Path
               Width="16"
               Height="16"
