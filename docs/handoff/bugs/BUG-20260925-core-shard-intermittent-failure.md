@@ -45,3 +45,6 @@ before the implementation commit):
   stays a start timeout, and readiness has a fixed deadline from that timestamp,
   checked before a ready file counts; both new regression tests failed on the
   previous rules and pass now.
+- Independent review (2026-09-26, codex/gpt-6-sol): APPROVED at `4a8882971`
+  (commits `0e12ae16d`, `7ed6802e4`, `4a8882971`; read-only), with later CI
+  core-shard runs still the evidence that the intermittent failure is gone.
