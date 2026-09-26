@@ -1,6 +1,6 @@
 # BUG-20260926-trunk-merge-flags-sealed-record: merging the trunk into wave 2 makes every descendant fail the structure gate
 
-Status: open
+Status: worked around on 2026-09-26 (wave 2 and its feature branches rebuilt by rebase with identical trees); the root fix is WS-GOV
 Severity: P1 (the required `policy / polytail` check fails for `feature/1.1.13/wave2` and every branch built on it, and would fail on `1.1.x` if wave 2 merged as it is)
 Found: 2026-09-26, Claude Code (Opus 5.5), while verifying the WS-GOV design commit, at `feature/1.1.13/ws-gov`@`c2b9c1468` (wave 2 `8682dd269` plus documents under `docs/handoff/` only)
 Where: merge `beb32b930` ("Merge 1.1.x (wave 1, #457) into the 1.1.13 wave 2 branch"); `scripts/validate_repository.py` `_record_changed_in_commits_after` and `_is_tree_transparent_containment_merge` (ADR 0061).

@@ -3,7 +3,10 @@
 Owner: Claude Code (Opus 5.5), design drafter. Board:
 [1.1.13 board](../1.1.13.md). Protocol: [handoff README](../README.md).
 Deliverables: [governance ADR draft](ADR-DRAFT-governance-reset.md) and
-[release workflow cleanup design](DESIGN-release-workflow-cleanup.md).
+[release workflow cleanup design](DESIGN-release-workflow-cleanup.md), both
+revised after the [independent design review](#design-review-2026-09-26). The
+owner decisions are at the end, in risk order
+([owner decisions](#owner-decisions-in-risk-order)).
 
 ## Dispatch envelope (commander, 2026-09-26)
 
@@ -33,6 +36,11 @@ Deliverables: [governance ADR draft](ADR-DRAFT-governance-reset.md) and
   commander arranges the independent design review. ADR numbers 0074 to 0077
   are taken; a capability-reuse record, if one were needed, binds checkpoint
   `84b084dd8` (these handoff documents are not governed paths, so none is).
+- **Revision (commander, 2026-09-26).** The branch was rebuilt by cherry-pick
+  onto the rebuilt wave 2 with identical trees (head `e60ba0062`); never merge
+  the trunk into it again. Take in every technical correction of the design
+  review (F-1 to F-9), list the owner decisions in risk order, in plain words
+  with a recommendation and consequences, at the end of this log, then stop.
 
 ## Ported from 1.1.12
 
@@ -93,7 +101,9 @@ which is not on the trunk; restated here so they survive branch cleanup.
 WS-GOVREV was dispatched on 2026-09-25 (`25330ce2e`) and committed no
 findings; no other branch, stash or worktree holds them. The answers below
 are the author's self-check against its six questions. They are **not** an
-independent review, and the independent design review remains required.
+independent review; they were written against the first draft (`a709af1be`,
+whose item numbers they use), and the independent design review below
+supersedes them where the two differ.
 
 1. **Fidelity.** WS-GOV decisions 4, 5, 9 and 10 are carried as decided (ADR
    items 9, 12 and 7, migration step 5); decisions 1 and 3 are carried (ADR
@@ -161,31 +171,57 @@ independent review, and the independent design review remains required.
    condition skips every version outside 1.x and 2.0.0
    ([bug](../bugs/BUG-20260926-release-promote-skips-other-versions.md)).
 
-## Owner decisions needed
+## Design review 2026-09-26
 
-ADR: O-1 frozen evidence location; O-2 R3 approval mechanism; O-3 pre-merge
-review-thread gate; O-4 `python-worker / verify`; O-5 G1 admission; O-6
-batches and timing; O-7 waivers. Release design: RO-1 v0.9.16 certification;
-RO-2 maintenance releases; RO-3 `published_at`; RO-4 commit binding and
-start; RO-5 self-approval exception and the 1.2.0 Codex requirement; RO-6
-`main-package`; RO-7 parallel candidate; RO-8 source CI at pre-tag; RO-9
-staging repository; RO-10 inventory additions. The risky ones for a one-at-a-time
-interview: O-1, O-2, RO-1 and RO-5.
+Reviewer `codex/gpt-6-astra`, implementation owner `claude-code`, fixed head
+`e60ba0062`; read-only (no build, test or workflow run). Verdict for both
+documents: **ACCEPT-WITH-CHANGES**; the scoped Polytail design verdict was
+FAIL because P1 design gaps were open, not because a check failed. The review
+also noted that removing history replay removes this class of merge and re-run
+conflicts, not every release failure or ordinary merge conflict, and that the
+268 s structure failure recorded below belongs to the pre-rebuild topology.
+
+| Finding | Severity | Taken in |
+| --- | --- | --- |
+| F-1 R3 approval not an executable contract | P1 | ADR items 6 to 9 (review and approval records bound to the full head SHA, role and evidence, dismissed on a new head; boundaries for trunk, release branches and `main`; both roles stated explicitly by one person holding both; no gate removed before its replacement); migration G0, G1-A, G1-B |
+| F-2 no reliable escalation for firmware semantics in `src/` | P1 | ADR items 3 and 4 (history-independent conservative authority map; unclassified and cross-class changes need a written classification; reviewer confirms byte, range, order, integrity and support impact; pull request fields are evidence carriers only) |
+| F-3 transition misses sealed-but-unmerged records | P1 | ADR migration steps 2 to 4 (state table; explicit one-time cutover authorization binding base and head; re-pin procedure) |
+| F-4 documentation skip and aggregator too loose | P1 | ADR item 13 (only the `prose` class skips product tests; the structure lane, pins, contracts, authority and document checks always run; unclassifiable changes run everything; aggregators fail on missing, failed, cancelled or unexpectedly skipped producers; negative tests) |
+| F-5 rolling parity cannot replace terminal certification | P1 | Design item 2 (the comparison is an additional gate; RO-1 rewritten as keep, retire with a claims and debt record approved by both owners, or defer; the 27-route debt listed; the promote gate requires the terminal chain for every version from 2.0.0 until RO-1; environment and secrets removed only after a verified replacement; no unchanged move to a manual workflow) |
+| F-6 RO-5 could turn verifiable review into self-report | P1 | Design item 4 (product-neutral exact-head reviewer evidence from an allowlisted principal other than the author; `CHANGES_REQUESTED` stays fail-closed; owner consent recorded separately, never derived; runtime identifier kept apart from the GitHub principal) |
+| F-7 recovery not split by tag and Release state | P1 | ADR item 11 and design item 5 (three paths; nothing merges into `main` while a tagged release is incomplete; floor checked again at pre-tag) |
+| F-8 staging too late and happy-path only | P2 | Design verification and batch R-1 (staging from R-1 with rejection, recovery, conflict, parity-failure and dry-run-refusal cases; dry-run artifacts non-promotable) |
+| F-9 waiver limits not carried over | P2 | ADR item 15 (all current fields, head and scope binding, eligible-owner approval, the six non-waivable areas unchanged) |
+
+Review notes taken in as well: the frozen-evidence guarantee is stated as
+snapshot equality, and a pin change needs owner approval (ADR item 2); G1-B's
+replacement approvals must not wait for G2 (migration step 1); RO-3 labels
+`mergedAt` as merge-derived; RO-6 states that the rehearsal proves no
+promotion authority; RO-7 and RO-8 carry the reviewer's conditions; RO-10 is
+approved item by item; G2 and R-6 keep the failing-project evidence and the
+attempt-to-artifact correspondence; ADR 0077 must be pinned before
+integration.
 
 ## Conflicts with other work
 
 - CI failure evidence (R3): owns `ci.yml` and `scripts/verify.py`; G2, the
-  composite action in `ci.yml` and design batch R-6 wait for it. Its
-  `overwrite: true` must not reach release artifacts.
-- Pre-built catalog ADR (0077): no number conflict (this draft uses `00XX`);
-  `package.ps1` changes (release batch R-1 and a catalog snapshot step) need one
+  composite action in `ci.yml` and design batch R-6 wait for it, and keep its
+  failing-project evidence (board decision 41) and attempt-to-artifact
+  correspondence. Its `overwrite: true` must not reach release artifacts.
+- Pre-built catalog ADR (0077): no number conflict (this draft uses `00XX`).
+  Its text is not on this branch; before integration, pin its version and
+  package diff and check catalog generation time, allowlist, provenance,
+  manifest and smoke together with release batch R-1. `package.ps1` needs one
   writer.
 - NVT marker (0076), TP SVN, F08 and the CI work are admitted under the record
-  system now; each needs the migration step 3 transition if G1 lands first.
-- WS-AI port: edits the same governed paths as G1 (`AGENTS.md`, skills,
+  system now; each follows the ADR's transition table if G1-B lands first.
+- WS-AI port: edits the same governed paths as G1-B (`AGENTS.md`, skills,
   validator frontmatter rules); same batch, one writer.
 - Formal 1.x comparator: owns the comparator; release batch R-5 owns only its
   release integration.
+- `BUG-20260926-trunk-merge-flags-sealed-record` exists on this branch and on
+  wave 2 with different status lines; this revision makes this branch's copy
+  identical to wave 2's so that later integration does not conflict.
 
 ## Checkpoints
 
@@ -222,3 +258,174 @@ bug); this branch then needs the same rebase. The follow-up commit changes
 prose and adds links only to existing files; its links were checked the same
 way, and the known blocker was not rerun.
 Next: stop; independent design review (commander).
+
+### 2026-09-26 Revision after the independent design review
+State: local
+Commits: the commit carrying this entry, on `e60ba0062`. The commander rebuilt
+this branch with identical trees: `c2b9c1468` became `a709af1be` and
+`9498af2e7` became `e60ba0062`; the structure failure above belongs to the
+pre-rebuild topology.
+Evidence: every technical correction of findings F-1 to F-9 is in the ADR draft
+and the release design (table above); the owner decisions are listed below in
+risk order. The bug copy now equals wave 2's blob `c6f1ad748`. Verification of
+this commit is recorded in the next entry.
+Open: the owner interview (commander); a re-review of the revised drafts if the
+commander wants one before the interview.
+Next: structure check of this commit, then stop.
+
+## Owner decisions in risk order
+
+One question at a time, highest risk first. Each item gives the question in
+plain words, the options with their consequences, and a recommendation. The
+review agreed with each recommendation, with the conditions stated. Items not
+listed here (O-3, O-4, RO-2, RO-3, RO-4, RO-6) follow the recommendation in the
+drafts, which the review supported; the owner confirms them with the batch
+that applies them.
+
+### 1. RO-1: Is the v0.9.16 terminal certification still owed before 2.0.0?
+
+ADR 0057 promises that, before 2.0.0, all 64 selected Standard Merge, AB
+Merge and CtrlRAM Replace routes are compared byte for byte with the old
+v0.9.16 release, and that your firmware-owner approval of the result is
+independently verified. That promise is why three unused jobs sit in the
+release workflow. 27 of the 64 routes still have no
+test input. The planned rolling comparison (each release against the previous
+one) catches accidental changes but does not prove the old-baseline promise.
+
+- **A. Keep it.** Before 2.0.0 the certification is rebuilt as its own
+  workflow bound to the 2.0.0 candidate, and the 27 routes get inputs or your
+  explicit disposition. Strongest evidence; real work before 2.0.0.
+- **B. Retire it.** You sign one record, as firmware owner and as release
+  owner, that says which support claims stay, which are withdrawn, what happens
+  to each of the 27 routes, and what you approve for each release instead. The
+  old jobs, environment and secrets go after the replacement has worked on a
+  real release. Less work; a weaker promise, written down.
+- **C. Decide later.** Nothing changes now. Until you decide, no 2.x release
+  can be promoted without the terminal chain (the R-1 gate makes that explicit
+  instead of silently skipping).
+
+Recommendation: C now, and choose A or B when 2.0.0 is planned. In every case
+the rolling comparison is added as an extra check, never as a replacement.
+
+### 2. O-2 and RO-5: Should agents use their own GitHub account?
+
+Today agents push and open pull requests as you. GitHub therefore cannot tell
+your approval from an agent's, and you cannot approve a pull request that your
+account opened. That is why every release uses the "owner self-approval
+exception", and why the 1.2.0 release would need the Codex review bot again.
+
+- **A. Separate agent account** (a machine user or an app). You approve agent
+  pull requests as a normal reviewer; GitHub binds the approval to the exact
+  commit and drops it when new commits arrive; the self-approval exception and
+  the Codex-only rule go away. Cost: a second account, its token on the
+  machine, and Git and `gh` settings per worktree; agents must never use your
+  token.
+- **B. Keep one shared account.** R3 approvals use an owner-only channel (a
+  protected-environment approval or an exact-commit approval comment that a
+  check reads), and the exception stays an explicit choice at each release.
+  GitHub cannot prove the approver was you; the documents say so. No setup
+  cost.
+
+Recommendation: A. Part two, whatever you choose: for a release you approve
+yourself, the required independent review becomes "a finished review of the
+exact commit by an approved reviewer account other than the author", from
+any product, instead of "the Codex bot". A requested change still blocks. The
+current Codex rule stays until the replacement is built and tested.
+
+### 3. O-5 and O-6: How does the switch-over happen?
+
+The old record check cannot check the batch that removes it, so the switch
+needs your one-time explicit permission. The review accepts that only if the
+new protections are proven first.
+
+- **A. Four steps.** G0: you change the GitHub settings (rulesets and, if
+  chosen, the agent account). G1-A: the new checks run alongside the old
+  ones and pass on a real pull request. G1-B: the switch, on your one-time
+  written authorization naming the exact base and head commits. G2: the CI
+  changes, after the CI evidence work. Old protection stays until the new one
+  works.
+- **B. Same, plus one extra old-style step** that seals the ADR alone before
+  G1-A. Same end state, one more round of the old ceremony.
+
+Recommendation: A. Timing: G1-B before the 1.1.13 release branch is cut if
+the reviews finish in time; otherwise 1.1.13 releases under the current trunk
+rule (decision 23) and G1-B follows. Until G1-B, branches never merge the
+trunk (rebase only).
+
+### 4. O-1: Keep the old records where they are?
+
+On 2026-09-25 you chose to move the 342 records and 108 owner attestations
+to an archive folder. Product files point at seven of them: the capability policy,
+whose hash is fixed in the application code, the Golden manifest, and the
+v0.9.16 plan.
+
+- **A. Freeze in place.** A README marks them historical, and a pin fails any
+  change. The guarantee becomes "today's content equals the frozen snapshot",
+  no longer "never changed in history". Changing a pin needs your approval.
+- **B. Move them.** The capability policy and the Golden manifest must change
+  (new hash in the application: a product and Golden change), or seven files
+  stay behind and the history is split. Benefit: a tidier folder.
+
+Recommendation: A. It reverses your 2026-09-25 choice.
+
+### 5. O-7: Old and new waivers
+
+- **A. Freeze the old waivers with the records.** A new waiver is a statement
+  in the pull request with every field required today (rule, scope and commit,
+  reason, risk, owner, issue, approver, dates, removal condition), approved by
+  the owner of the rule being waived. The six never-waivable areas stay
+  never-waivable: firmware range safety, processor write ranges, integrity
+  order, secrets and signing, release allowlists, independent Golden
+  expectations.
+- **B. Keep a waiver folder** for new waivers as files: more ceremony, same
+  limits.
+
+Recommendation: A.
+
+### 6. RO-9: Test the first release change in a throwaway repository?
+
+R-1 changes who may publish and when. Once a version is tagged it cannot be
+retried under the same number.
+
+- **A. Yes, before R-1 merges.** A scratch repository with the same rules
+  tries a good release, rejected versions (existing, equal, lower), recovery
+  after a tag, a Release conflict, parity failures and a refused dry run.
+  Cost: a few hours; deleting the scratch repository afterwards is your action.
+- **B. No.** Tests plus the first real release; a mistake may burn a version
+  number.
+
+Recommendation: A.
+
+### 7. RO-10: Add four items to the cleanup list?
+
+Each is approved separately; a declined item stays as it is.
+
+1. Remove the v1.1.0 manual-only packaging mode and every rule for versions
+   older than the current one (replaced by the release floor).
+2. Replace the promote condition that silently skips every version outside
+   1.x and 2.0.0.
+3. Replace the Codex-only review rule that returns at 1.2.0 (see question 2).
+4. Add a dry-run mode to the release workflow (ADR 0033 promises one).
+
+Recommendation: all four; each is small and removes a trap.
+
+### 8. RO-7: Run Golden and packaging in parallel in the release candidate?
+
+Up to about 4 minutes faster, less the setup of a second job (estimate from
+the 1.1.12 steps: 232 s and 332 s). Condition: both use the same commit, and
+the releasable candidate exists only after Golden passes.
+
+- **A. Yes**, in the optional speed batch after the CI evidence work.
+- **B. No**, keep them in sequence.
+
+Recommendation: A, low priority.
+
+### 9. RO-8: Start the release candidate before post-merge CI finishes?
+
+Today you wait about 9 minutes after the release merge before dispatching.
+The tag would still require a fresh, successful CI run on the same commit.
+
+- **A. Yes**, in the optional speed batch.
+- **B. No**, keep waiting.
+
+Recommendation: A, low priority.
