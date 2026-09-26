@@ -1,4 +1,5 @@
 using System.Text.Json;
+using NvtFwCombiner.Profiles.V2;
 
 namespace NvtFwCombiner.Infrastructure.Bundles;
 
@@ -78,7 +79,7 @@ internal sealed class TrustedProfileBundleDocumentProjection
                         ValidateAndClone(
                             entry,
                             maximumJsonDepth,
-                            ProfileBundleJsonContext.Default.FirmwareFamilyDocument)));
+                            ProfileBundleSemanticJsonContext.Default.FirmwareFamilyDocument)));
                     break;
                 case ProfileBundleEntryKind.CompositionProfile:
                     RequireCanonicalSchema(entry.Entry, CompositionProfileSchemaId);
@@ -87,7 +88,7 @@ internal sealed class TrustedProfileBundleDocumentProjection
                         ValidateAndClone(
                             entry,
                             maximumJsonDepth,
-                            ProfileBundleJsonContext.Default.CompositionProfileDocument)));
+                            ProfileBundleSemanticJsonContext.Default.CompositionProfileDocument)));
                     break;
                 case ProfileBundleEntryKind.Schema:
                 case ProfileBundleEntryKind.EvidenceManifest:

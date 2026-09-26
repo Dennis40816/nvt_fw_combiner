@@ -1,4 +1,5 @@
 using NvtFwCombiner.Domain.Composition;
+using NvtFwCombiner.Domain.Firmware;
 
 namespace NvtFwCombiner.Application.Composition;
 
@@ -34,12 +35,14 @@ public sealed partial class CompositionRunService
         // These three existing validators read FWConfig Backup/authority bytes, not relocated main Header addresses.
         // The final bank slice therefore has the same validation view after B-address restoration.
         ReadOnlySpan<byte> localOutput = output.Slice(checked((int)bank.OutputRange.Start), checked((int)bank.OutputRange.Length));
+        // NVT-END-FLAG-1113-01: the bank-local layout declares the end flag in local coordinates.
+        FirmwareNvtEndFlagResolution endFlag = bank.LocalComposition.V2Details.Provenance.ResolvedMap.NvtEndFlagResolution;
         CompositionIssue? issue = requirement.Local switch
         {
-            CompiledFirmwareConfigBackupVersionValidation version => ValidateFirmwareConfigBackupVersion(localOutput, version),
+            CompiledFirmwareConfigBackupVersionValidation version => ValidateFirmwareConfigBackupVersion(localOutput, endFlag, version),
             CompiledFirmwareConfigBackupPlacementAuthorityValidation authority =>
-                ValidateFirmwareConfigBackupPlacementAuthority(BankValidationInputs(inputs, bank), localOutput, authority),
-            CompiledFirmwareConfigBackupExpectedAddressValidation expected => ValidateFirmwareConfigBackupExpectedAddress(localOutput, expected),
+                ValidateFirmwareConfigBackupPlacementAuthority(BankValidationInputs(inputs, bank), localOutput, endFlag, authority),
+            CompiledFirmwareConfigBackupExpectedAddressValidation expected => ValidateFirmwareConfigBackupExpectedAddress(localOutput, endFlag, expected),
             _ => new CompositionIssue(requirement.IssueCode, "Unsupported bank final-output validation.", requirement.RuleId),
         };
         return issue is null ? null : new CompositionIssue(issue.Code, $"{bank.BankId}: {issue.Message}", requirement.RuleId, issue.Severity);

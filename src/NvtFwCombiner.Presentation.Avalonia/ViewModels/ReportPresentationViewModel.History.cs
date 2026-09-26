@@ -362,10 +362,25 @@ internal sealed partial class ReportPresentationViewModel
             return;
         }
 
-        var entry = new ReportHistoryEntryViewModel(
-            ++_reportHistorySequence,
-            CreateReportHistorySnapshot(LoadedReport, LoadedReportJson),
-            LoadedReport.ReportJsonUtf8ByteCount);
+        AddReportHistoryEntry(CreateReportHistoryEntry(LoadedReport, LoadedReportJson));
+    }
+
+    /// <summary>Creates the next history entry for a report without changing the history or its sequence.</summary>
+    private ReportHistoryEntryViewModel CreateReportHistoryEntry(ReportReviewViewModel report, string reportJson)
+    {
+        return new ReportHistoryEntryViewModel(
+            _reportHistorySequence + 1,
+            CreateReportHistorySnapshot(report, reportJson),
+            report.ReportJsonUtf8ByteCount);
+    }
+
+    /// <summary>
+    /// Adds an entry from <see cref="CreateReportHistoryEntry"/> as the newest report and drops the oldest ones past
+    /// the retention limits; it only updates the history and raises isolated notifications.
+    /// </summary>
+    private void AddReportHistoryEntry(ReportHistoryEntryViewModel entry)
+    {
+        _reportHistorySequence = entry.Sequence;
         PresentationObserver.Invoke(() => ReportHistoryEntries.Insert(0, entry));
         while (ReportHistoryEntries.Count > MaxReportHistoryEntries ||
                (ReportHistoryEntries.Count > 1 && ReportHistoryTotalBytes > MaximumReportHistoryStorageBytes))

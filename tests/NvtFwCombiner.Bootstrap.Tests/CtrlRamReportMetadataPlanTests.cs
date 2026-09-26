@@ -492,17 +492,20 @@ public sealed class CtrlRamReportMetadataPlanTests
     }
 
     /// <summary>
-    /// Known 1.1.12 limitation, fail-closed: a 512 KiB NT51950 Standard Base whose Display OSD half contains one
-    /// complete NVT marker has one marker in each AB bank and is classified as AB; its B bank is not a valid bank,
-    /// so the session is rejected and no Replace can run.
+    /// NVT-END-FLAG-1113-01 (owner decision 30): a 512 KiB NT51950 Standard Base whose Display OSD half contains a
+    /// complete NVT marker away from the B bank's end flag (0x76FFC) has no B-bank AB evidence, so it stays a
+    /// Standard Base and the session is accepted. The OSD marker is neither counted nor rejected.
     /// </summary>
-    [Fact]
-    public void Nt51950StandardOsdBaseWithTailNvtMarkerFailsClosed()
+    [Theory]
+    [InlineData(0x50000)]
+    [InlineData(0x76000)]
+    [InlineData(0x7FFFC)]
+    public void Nt51950StandardOsdBaseWithTailNvtMarkerIsStandard(int markerOffset)
     {
         const string caseId = "nt51950-fw200-single-auto-prj-676-20260717";
         byte[] candidate = CreateEnvelopeCandidate(caseId, 0x40000, 0x80000);
         byte[] marker = [0x00, 0x4E, 0x56, 0x54];
-        marker.CopyTo(candidate.AsSpan(0x50000));
+        marker.CopyTo(candidate.AsSpan(markerOffset));
         JsonElement fixtureCase = CanonicalGoldenTestData.LoadDirectCase("ctrlram-replace", caseId);
         JsonElement replacementArtifact = fixtureCase.GetProperty("artifacts").EnumerateArray().Single(
             static artifact => artifact.GetProperty("originalFileName").GetString() == "NF_Ctrlram.bin");
@@ -520,8 +523,78 @@ public sealed class CtrlRamReportMetadataPlanTests
         CtrlRamAuthoringSessionPreparation preparation = BootstrapTestHost.Canonical.CtrlRamAuthoring.PrepareSession(
             new AuthoringSessionState(ExperienceIds.CtrlRamReplace), "NT51950", "single", slotPaths, inputBytes);
 
+        Assert.True(preparation.AcceptedSession is not null,
+            string.Join("; ", preparation.Issues.Select(static issue => $"{issue.Code}: {issue.Message}")));
+        Assert.DoesNotContain(preparation.Issues, static issue =>
+            issue.Code.StartsWith("input.bank-reference.", StringComparison.Ordinal));
+    }
+
+    /// <summary>
+    /// NVT-END-FLAG-1113-01: a Standard Base whose declared end flag (0x36FFC) no longer holds the marker is
+    /// rejected even when a complete marker exists elsewhere in its TP section or its Display OSD half, and for the
+    /// same reason as a Base without any marker: the marker elsewhere neither counts nor turns the Base into AB.
+    /// </summary>
+    [Theory]
+    [InlineData(0x20000)]
+    [InlineData(0x50000)]
+    public void Nt51950StandardBaseWithMarkerOnlyOffTheEndFlagIsRejected(int markerOffset)
+    {
+        byte[] withoutAnyMarker = CreateEnvelopeCandidate("nt51950-fw200-single-auto-prj-676-20260717", 0x40000, 0x80000);
+        withoutAnyMarker[0x36FFC + 1] ^= 0xFF;
+        byte[] withMarkerElsewhere = [.. withoutAnyMarker];
+        byte[] marker = [0x00, 0x4E, 0x56, 0x54];
+        marker.CopyTo(withMarkerElsewhere.AsSpan(markerOffset));
+
+        CtrlRamAuthoringSessionPreparation moved = PrepareNt51950SingleSession(withMarkerElsewhere);
+        CtrlRamAuthoringSessionPreparation missing = PrepareNt51950SingleSession(withoutAnyMarker);
+
+        Assert.Null(moved.AcceptedSession);
+        Assert.Null(missing.AcceptedSession);
+        Assert.NotEmpty(missing.Issues);
+        Assert.Equal(
+            missing.Issues.Select(static issue => issue.Code).Order(StringComparer.Ordinal),
+            moved.Issues.Select(static issue => issue.Code).Order(StringComparer.Ordinal));
+        Assert.DoesNotContain(moved.Issues, static issue =>
+            issue.Code.StartsWith("input.bank-reference.", StringComparison.Ordinal));
+    }
+
+    /// <summary>
+    /// NVT-END-FLAG-1113-01 owner-accepted boundary: a complete NVT marker exactly at the B bank's declared end flag
+    /// (0x76FFC) of a 512 KiB NT51950 Standard Base is B-bank evidence by rule, so the Base is AB with an invalid B bank
+    /// and fails closed with the bank-reference reason.
+    /// </summary>
+    [Fact]
+    public void Nt51950StandardOsdBaseWithAMarkerAtTheBBankEndFlagIsAbWithAnInvalidBBank()
+    {
+        byte[] candidate = CreateEnvelopeCandidate("nt51950-fw200-single-auto-prj-676-20260717", 0x40000, 0x80000);
+        byte[] marker = [0x00, 0x4E, 0x56, 0x54];
+        marker.CopyTo(candidate.AsSpan(0x76FFC));
+
+        CtrlRamAuthoringSessionPreparation preparation = PrepareNt51950SingleSession(candidate);
+
         Assert.Null(preparation.AcceptedSession);
-        Assert.Contains(preparation.Issues, static issue => issue.Code.StartsWith("input.bank-reference.", StringComparison.Ordinal));
+        Assert.Contains(preparation.Issues, static issue =>
+            issue.Code.StartsWith("input.bank-reference.", StringComparison.Ordinal));
+    }
+
+    private static CtrlRamAuthoringSessionPreparation PrepareNt51950SingleSession(byte[] candidate)
+    {
+        const string caseId = "nt51950-fw200-single-auto-prj-676-20260717";
+        JsonElement fixtureCase = CanonicalGoldenTestData.LoadDirectCase("ctrlram-replace", caseId);
+        JsonElement replacementArtifact = fixtureCase.GetProperty("artifacts").EnumerateArray().Single(
+            static artifact => artifact.GetProperty("originalFileName").GetString() == "NF_Ctrlram.bin");
+        using var workspace = TempWorkspace.Create("nvt-fw-combiner-end-flag-base");
+        var slotPaths = new Dictionary<string, string>(StringComparer.Ordinal)
+        {
+            [CompositionSlotIds.ReplaceBase] = workspace.Write("reference.bin", candidate),
+            ["replace-ctrlram-nf"] = CanonicalGoldenTestData.ArtifactPath(replacementArtifact),
+        };
+        Dictionary<string, byte[]> inputBytes = slotPaths.ToDictionary(
+            static pair => pair.Key,
+            static pair => File.ReadAllBytes(pair.Value),
+            StringComparer.Ordinal);
+        return BootstrapTestHost.Canonical.CtrlRamAuthoring.PrepareSession(
+            new AuthoringSessionState(ExperienceIds.CtrlRamReplace), "NT51950", "single", slotPaths, inputBytes);
     }
 
     /// <summary>The shared firmware-inspection result preserves an exact CtrlRAM compilation failure.</summary>

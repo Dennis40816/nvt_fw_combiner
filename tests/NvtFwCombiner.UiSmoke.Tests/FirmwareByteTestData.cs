@@ -4,6 +4,10 @@ namespace NvtFwCombiner.UiSmoke.Tests;
 
 internal static class FirmwareByteTestData
 {
+    // NT51950/NT51951 read the TP Backup only at the layout-declared NVT end flag [0x36FFC, 0x37000)
+    // (NVT-END-FLAG-1113-01); the whole-image compatibility read of the other families still finds this marker.
+    internal const int UiTpBackupStart = 0x36000;
+
     internal static byte[] CreatePattern(int length, byte seed)
     {
         byte[] bytes = new byte[length];
@@ -43,7 +47,7 @@ internal static class FirmwareByteTestData
         ushort projectId)
     {
         const int tpLength = 0x40000;
-        const int backupStart = 0x1000;
+        const int backupStart = UiTpBackupStart;
         const int markerStart = backupStart + 0xFFC;
         byte[] image = new byte[tpLength];
         image[backupStart + FirmwareConfigLayout.FirmwareVersionOffset] = version;

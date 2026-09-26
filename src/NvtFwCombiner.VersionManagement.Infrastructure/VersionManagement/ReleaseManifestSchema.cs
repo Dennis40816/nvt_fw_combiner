@@ -7,6 +7,8 @@ namespace NvtFwCombiner.Infrastructure.VersionManagement;
 /// <summary>Loads canonical embedded schemas through one strict runtime authority.</summary>
 internal static class EmbeddedVersionManagementSchema
 {
+    private const string Draft202012SchemaId = "https://json-schema.org/draft/2020-12/schema";
+
     private static ReadOnlySpan<byte> Utf8Bom => [0xEF, 0xBB, 0xBF];
 
     private static readonly EvaluationOptions EvaluationOptions = new()
@@ -80,23 +82,77 @@ internal static class EmbeddedVersionManagementSchema
         using Stream stream = assembly.GetManifestResourceStream(resourceName) ??
             throw new InvalidOperationException(unavailableMessage);
         using var document = JsonDocument.Parse(stream);
-        if (document.RootElement.ValueKind != JsonValueKind.Object ||
-            !document.RootElement.TryGetProperty("$id", out JsonElement id) ||
+        return Build(document.RootElement, expectedId);
+    }
+
+    /// <summary>
+    /// Builds one schema only as a fully resolved Draft 2020-12 resource: a known dialect, local fragment
+    /// references and no nested resource, so evaluation never resolves or registers shared schema state
+    /// (the JsonSchema.Net 8.0.5 audit conditions of ADR 0075).
+    /// </summary>
+    internal static JsonSchema Build(JsonElement root, string expectedId)
+    {
+        if (root.ValueKind != JsonValueKind.Object ||
+            !root.TryGetProperty("$id", out JsonElement id) ||
             !string.Equals(id.GetString(), expectedId, StringComparison.Ordinal))
         {
             throw new InvalidOperationException("Canonical embedded schema identity is invalid.");
         }
+        if (!root.TryGetProperty("$schema", out JsonElement dialect) ||
+            dialect.ValueKind != JsonValueKind.String ||
+            !string.Equals(dialect.GetString(), Draft202012SchemaId, StringComparison.Ordinal))
+        {
+            throw new InvalidOperationException("Canonical embedded schema must declare the Draft 2020-12 dialect.");
+        }
+        RequireLocalReferences(root, isRoot: true);
         EvaluationResults metaValidation = MetaSchemas.Draft202012.Evaluate(
-            document.RootElement,
+            root,
             EvaluationOptions);
         _ = metaValidation.IsValid
             ? true
             : throw new InvalidOperationException("Canonical embedded schema is invalid.");
 
-        return JsonSchema.FromText(document.RootElement.GetRawText(), new BuildOptions
+        return JsonSchema.FromText(root.GetRawText(), new BuildOptions
         {
             SchemaRegistry = new SchemaRegistry(),
         });
+    }
+
+    private static void RequireLocalReferences(JsonElement element, bool isRoot)
+    {
+        if (element.ValueKind == JsonValueKind.Array)
+        {
+            foreach (JsonElement item in element.EnumerateArray())
+            {
+                RequireLocalReferences(item, isRoot: false);
+            }
+
+            return;
+        }
+
+        if (element.ValueKind != JsonValueKind.Object)
+        {
+            return;
+        }
+
+        foreach (JsonProperty property in element.EnumerateObject())
+        {
+            if (property.Name is "$ref" or "$dynamicRef" or "$recursiveRef")
+            {
+                if (property.Value.ValueKind != JsonValueKind.String ||
+                    !property.Value.GetString()!.StartsWith('#'))
+                {
+                    throw new InvalidOperationException(
+                        "Canonical embedded schema must use only local fragment references.");
+                }
+            }
+            else if (!isRoot && property.Name is "$id" or "$schema")
+            {
+                throw new InvalidOperationException("Canonical embedded schema cannot declare nested $id or $schema.");
+            }
+
+            RequireLocalReferences(property.Value, isRoot: false);
+        }
     }
 }
 

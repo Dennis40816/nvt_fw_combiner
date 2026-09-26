@@ -1,0 +1,9 @@
+{
+  "schemaVersion": 1,
+  "taskId": "CI-FAILURE-EVIDENCE-1113-01",
+  "authorityType": "release-owner",
+  "reviewedHead": "38b85b15b861027972a9ca6945411f57220c4c47",
+  "decision": "approved",
+  "reviewer": "Dennis Liu (release owner)",
+  "evidence": "The release owner explicitly approved exact final-evidence head 38b85b15b861027972a9ca6945411f57220c4c47 for CI-FAILURE-EVIDENCE-1113-01 on 2026-09-27, after first approving the same content at the superseded head 8ff601d7d94a150ad35b5b9bb2a62badb2903be0, which differed only in an unrelated skill sentence. Failed test projects upload their evidence, evidence artifacts are named by attempt, schema-3 manifests carry run and attempt provenance, and failed TRX files are uploaded unchanged (owner decision 41). The owner accepts the stated limitation that cross-attempt selection has not yet been verified by a controlled real GitHub re-run; until it is, a failed run is followed by a new workflow run rather than a re-run. This approval does not waive protected CI, the canonical verifier or any release gate."
+}

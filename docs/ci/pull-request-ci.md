@@ -33,6 +33,25 @@ Private firmware golden regression remains an approved-runner gate once private 
   path-escaping, symlinked, hash-mismatched, counter-drifted, or extra evidence.
   Producers publish from a clean allowlisted staging root, and the finalizer
   preserves each artifact name/root until ownership and collision checks pass.
+  A failed test shard still uploads each failed project's discovery list and
+  TRX unchanged (owner decision 41: the TRX keeps the failure messages and
+  output that VSTest also writes to `shard.log`), and its coverage pair only
+  after the same pairing and path normalization as passing evidence; coverage
+  that fails them, and every other file, stays out. The shard's failed-test
+  report in the job log and the step summary names the failed tests (from the
+  TRX, without their messages) and gives a fixed reason for any omitted
+  evidence; the raw omission diagnostic, which can hold runner or source
+  paths, goes to `shard.log`, an allowlisted public artifact, not a
+  confidential location. Two existing channels can still put raw exception
+  text in the job log: the shard's combined failure message for a failed
+  project (for example its failed command line) and the stderr line printed
+  when the step summary cannot be written. Each producer names its artifact
+  with the run attempt (`-attempt-<n>`) and records the run id and attempt in
+  its manifest; the finalizer requires a complete download of every attempt
+  and verifies each producer's newest one, so producers that "Re-run failed
+  jobs" did not re-run keep their earlier evidence. This is pending
+  verification by a real re-run; until then, after a failed run start a new
+  workflow run instead of re-running failed jobs.
   Coverage paths are normalized to verified repository-relative identities
   before hashing so the finalizer never trusts runner roots;
   missing, outside, ambiguous, or normalization-colliding identities fail at

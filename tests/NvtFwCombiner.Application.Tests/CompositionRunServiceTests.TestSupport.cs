@@ -49,9 +49,10 @@ public sealed partial class CompositionRunServiceTests
             0x1000,
             AddressSpaceMutability.Immutable,
             inputOversizePolicy: InputOversizePolicy.ExtractDeclaredRange);
+        // The output map covers the TP source view so it can declare the TP NVT end flag at 0xFFC.
         var plan = new CompositionPlan(
-            ImageInitialization.Blank("output-image", 4, 0xFF),
-            [source, new AddressSpace("output-image", 4, AddressSpaceMutability.Mutable)],
+            ImageInitialization.Blank("output-image", 0x1000, 0xFF),
+            [source, new AddressSpace("output-image", 0x1000, AddressSpaceMutability.Mutable)],
             [CompositionOperation.CopyRange(
                 "copy-tp",
                 100,
@@ -72,7 +73,8 @@ public sealed partial class CompositionRunServiceTests
                 CompositionKind.Merge),
             "synthetic-tp-maximum.bin",
             inputLengthRequirement: new CompiledSourceViewCoverageInputLengthRequirement(
-                maximumBytes: InputLengthPolicyLimits.MaximumTpFirmwareBytes));
+                maximumBytes: InputLengthPolicyLimits.MaximumTpFirmwareBytes),
+            nvtEndFlagStart: 0xFFC);
         byte[] tpBytes = new byte[sourceLength];
         if (sourceLength >= 0x1000)
         {
@@ -114,7 +116,8 @@ public sealed partial class CompositionRunServiceTests
         IReadOnlyList<CompiledValidationRequirement>? validationRequirements = null,
         bool allowOutputOverride = false,
         CompiledInputLengthRequirement? inputLengthRequirement = null,
-        CompiledInputArtifactClass? nonReferenceArtifactClass = null)
+        CompiledInputArtifactClass? nonReferenceArtifactClass = null,
+        long? nvtEndFlagStart = null)
     {
         return CompiledCompositionTestFactory.Create(
             plan,
@@ -124,7 +127,8 @@ public sealed partial class CompositionRunServiceTests
             validationRequirements,
             allowOutputOverride: allowOutputOverride,
             inputLengthRequirement: inputLengthRequirement,
-            nonReferenceArtifactClass: nonReferenceArtifactClass);
+            nonReferenceArtifactClass: nonReferenceArtifactClass,
+            nvtEndFlagStart: nvtEndFlagStart);
     }
 
     private sealed class FakeOutputWriter : ICompositionOutputWriter

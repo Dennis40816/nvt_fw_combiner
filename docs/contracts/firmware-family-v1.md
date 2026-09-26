@@ -167,8 +167,12 @@ A terminal expected count cannot exceed `searchLength - markerLength + 1`.
 
 For a concrete FWConfig structure, profile authoring uses the canonical NVT Backup form: marker bytes
 `00 4E 56 54`, `unique` selection, and result offset `-0xFFC` from marker start, which is equivalent to
-terminal `T - 0xFFF`. The containing region is read-only locator evidence only; it never grants a write
-or Replace range. The generic family schema does not infer FWConfig semantics from a structure-id string,
+terminal `T - 0xFFF`. A search range exactly as long as the marker declares the layout's NVT end flag
+(ADR 0076): a map declares it for every canonical NVT Backup locator it selects at one position, or for
+none, and runtime readers of that layout count only the marker at that position. Only families in the
+named migration inventory may resolve without a declaration; any other unresolved declaration makes the
+Backup unreadable. The containing region is read-only locator evidence only; it never grants a write or
+Replace range. The generic family schema does not infer FWConfig semantics from a structure-id string,
 and V2 metadata lowering remains non-executable until field/assertion evidence is complete.
 
 Every metadata structure declares one stable `artifactBindingId`; it matches the `artifactId` in

@@ -20,7 +20,7 @@ public sealed class FullImageMetadataSourceTests
     [InlineData("profiles/built-in/nt51917-nt51927-shared-facts/families/nt51927.json", "1.4.0", "1.4.1", "f6b87ff1b5c4ecbe4df9299ea2d10fc6d568d6d02d528a1119b5369465db2134")]
     [InlineData("profiles/built-in/nt51919-nt51929-nt51932-shared-facts/families/nt51929-nt51932.json", "1.3.0", "1.3.1", "6cd257c38e4c9ecb4e44c14d12027e44a6d484b8176112dceccb7328d153b617")]
     [InlineData("profiles/built-in/nt51928-standard-merge/families/nt51927-nt51928-v1.5.json", "1.5.0", "1.5.1", "538392be2e910627afe0283f947cb63f5e285e97a1d44dd50ea1f6985c177b20")]
-    [InlineData("profiles/built-in/nt51950-nt51951-standard-merge/families/nt51950-nt51951-dp-perspective.json", "1.4.0", "1.4.1", "02597d709affd69adfbd92fac4a9a75f245385fb7c0954a5de1c86035e7babf6")]
+    [InlineData("profiles/built-in/nt51950-nt51951-standard-merge/families/nt51950-nt51951-dp-perspective.json", "1.4.0", "1.4.2", "02597d709affd69adfbd92fac4a9a75f245385fb7c0954a5de1c86035e7babf6")]
     public void CanonicalFactsRecoverFrozenPreMigrationBytes(string sourcePath, string oldVersion, string newVersion, string baselineHash)
     {
         string raw = File.ReadAllText(RepositoryPaths.FromRepositoryRoot(sourcePath));
@@ -31,6 +31,9 @@ public sealed class FullImageMetadataSourceTests
         int versionOffset = prior.IndexOf(versionField, StringComparison.Ordinal);
         Assert.True(versionOffset > 0);
         prior = prior.Remove(versionOffset, versionField.Length).Insert(versionOffset, "\"familyVersion\": \"" + oldVersion + "\"");
+        // NVT-END-FLAG-1113-01 narrowed the NT51950/NT51951 FWConfig locators to the end flag; undo that admitted pin.
+        prior = prior.Replace("\"start\": 225276,\n              \"length\": 4",
+            "\"start\": 40960,\n              \"length\": 184320", StringComparison.Ordinal);
         prior = Regex.Replace(prior, "(\"familyId\": \"nt51929-nt51932\",\\s*\"familyVersion\": )\"1\\.3\\.1\"",
             "$1\"1.3.0\"", RegexOptions.CultureInvariant, TimeSpan.FromSeconds(1))
             .Replace("d2499758dd19908422f857e5b7a68c24c47ac57961418da82d10dec2f039f3e8", "6cd257c38e4c9ecb4e44c14d12027e44a6d484b8176112dceccb7328d153b617", StringComparison.Ordinal)

@@ -466,9 +466,81 @@
         </Grid>
     </StackPanel>
 
+    <StackPanel Grid.Row="4">
+    <Border
+        x:Name="LocalStateSaveNoticeHost"
+        Margin="28,0,28,12"
+        Padding="14,10"
+        Classes="statusNotice warning"
+        AutomationProperties.HelpText="{ReflectionBinding DetailToolTip}"
+        AutomationProperties.LiveSetting="Polite"
+        AutomationProperties.Name="{ReflectionBinding AccessibleStatus}"
+        IsVisible="{ReflectionBinding IsVisible}">
+      <Grid ColumnDefinitions="Auto,Auto,Auto,*,Auto" ColumnSpacing="{DynamicResource NfcSpace8}">
+        <Panel Width="18" Height="18" VerticalAlignment="Center">
+          <Path
+              Data="M9 1.8L16.8 15.6H1.2Z"
+              Fill="{DynamicResource NfcWarningAccentStrongBrush}"
+              Stroke="{DynamicResource NfcWarningAccentStrongBrush}"
+              StrokeJoin="Round"
+              StrokeThickness="1.6" />
+          <Path
+              Data="M9 6.6V10.6 M9 13V13.1"
+              Stroke="{DynamicResource NfcSurfaceBrush}"
+              StrokeLineCap="Round"
+              StrokeThickness="1.8" />
+        </Panel>
+        <TextBlock
+            Grid.Column="1"
+            VerticalAlignment="Center"
+            FontSize="{DynamicResource NfcFontSize13}"
+            FontWeight="Bold"
+            Foreground="{DynamicResource NfcWarningTextMutedBrush}"
+            Text="{ReflectionBinding Title}" />
+        <TextBlock
+            Grid.Column="2"
+            VerticalAlignment="Center"
+            FontSize="{DynamicResource NfcFontSize13}"
+            Foreground="{DynamicResource NfcWarningTextMutedBrush}"
+            Text="·" />
+        <!-- The right margin keeps the detail clear of the Retry tooltip that opens beside the button. -->
+        <TextBlock
+            Grid.Column="3"
+            Margin="0,0,64,0"
+            VerticalAlignment="Center"
+            FontSize="{DynamicResource NfcFontSize13}"
+            Foreground="{DynamicResource NfcWarningTextMutedBrush}"
+            Text="{ReflectionBinding Detail}"
+            TextTrimming="CharacterEllipsis"
+            ToolTip.Tip="{ReflectionBinding DetailToolTip}" />
+        <Button
+            x:Name="LocalStateSaveRetryButton"
+            Grid.Column="4"
+            Width="34"
+            Height="34"
+            MinWidth="34"
+            VerticalAlignment="Center"
+            Classes="semanticAction secondary iconButton"
+            AutomationProperties.Name="{ReflectionBinding RetryLabel}"
+            Command="{ReflectionBinding RetryCommand}"
+            ToolTip.HorizontalOffset="-8"
+            ToolTip.Placement="Left"
+            ToolTip.Tip="{ReflectionBinding RetryLabel}"
+            ToolTip.VerticalOffset="0">
+          <Path
+              Width="16"
+              Height="16"
+              Data="M12.6 12.6A6.5 6.5 0 1 1 14.28 6.32M14.28 1.32V6.32H9.28"
+              Stroke="{Binding $self.(TextElement.Foreground)}"
+              StrokeJoin="Round"
+              StrokeLineCap="Round"
+              StrokeThickness="1.8" />
+        </Button>
+      </Grid>
+    </Border>
+
     <Border
         x:Name="OptionalPreloadStatusHost"
-        Grid.Row="4"
         Margin="28,0,28,12"
         Padding="14,10"
         Background="{DynamicResource NfcSurfaceBrush}"
@@ -580,6 +652,7 @@
               </ItemsControl>
             </Expander>
     </Border>
+    </StackPanel>
     </Grid>
 
     <ContentControl

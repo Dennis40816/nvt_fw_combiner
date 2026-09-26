@@ -109,7 +109,8 @@ public sealed class FirmwareConfigGeneralParametersPilotTests
     [InlineData("NT51951", 0x7F)]
     public void CommonEventBufferSupplyIsIndependentOfIcFieldLists(string icId, byte value)
     {
-        const int start = 0x10000;
+        // NT51950/NT51951 declare the Backup only at the NVT end flag [0x36FFC, 0x37000) (ADR 0076).
+        int start = icId is "NT51950" or "NT51951" ? 0x36000 : 0x10000;
         byte[] dp = new byte[0x40000];
         dp[0] = 0x13;
         Assert.True(BootstrapTestHost.Canonical.Compiler.TryCompileStandardMerge(icId, dp,
@@ -174,7 +175,12 @@ public sealed class FirmwareConfigGeneralParametersPilotTests
             long start = bank.FirmwareConfig.FirmwareConfigBackupStart;
             Assert.Null(FirmwareConfigGeneralParametersProjector.ReadGeneralParameters(plan, bankBytes, start + 1));
             Assert.Null(FirmwareConfigGeneralParametersProjector.ReadGeneralParameters(plan, bankBytes.AsMemory(0, bankBytes.Length - 1), start));
+            // A marker outside the layout-declared end flag is neither counted nor rejected (ADR 0076) ...
             WriteMarker(bankBytes, 0xB000);
+            Assert.Equal(bank.EventBufferFormatVersion, FirmwareConfigGeneralParametersProjector.ReadGeneralParameters(
+                plan, bankBytes, start)?.EventBufferFormatVersion);
+            // ... and it cannot replace a missing end flag.
+            bankBytes.AsSpan(checked((int)start + 0xFFC), 4).Clear();
             Assert.Null(FirmwareConfigGeneralParametersProjector.ReadGeneralParameters(plan, bankBytes, start));
         }
     }

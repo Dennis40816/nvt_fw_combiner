@@ -19,8 +19,8 @@ public sealed partial class FirmwareInspectionSlotTests
         model.Merge.SelectedMergeMode = ExperienceIds.StandardMerge;
         byte[] good = CreateUiAbTpImage(0x81, 0, 1, 4, 1, 0x5102);
         byte[] bad = [.. good];
-        if (zero) { bad[0x1017] = 0; }
-        else { bad[0x1FFC] = 0xFF; }
+        if (zero) { bad[UiTpBackupStart + 0x17] = 0; }
+        else { bad[UiTpBackupStart + 0xFFC] = 0xFF; }
         await model.WorkflowSession.SetSlotFileAsync(CompositionSlotIds.MergeDp, workspace.Write("dp.bin", new byte[0x6000]), TestContext.Current.CancellationToken);
         await model.WorkflowSession.SetSlotFileAsync(CompositionSlotIds.MergeTp, workspace.Write("tp.bin", bad), TestContext.Current.CancellationToken);
         FirmwareSlotViewModel slot = model.Merge.MergeSlots.Single(static item => item.SlotId == CompositionSlotIds.MergeTp);

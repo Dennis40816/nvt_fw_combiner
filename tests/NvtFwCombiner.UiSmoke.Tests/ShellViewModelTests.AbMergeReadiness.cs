@@ -24,7 +24,8 @@ public sealed partial class FirmwareInspectionSlotTests
         model.WorkflowSession.SelectedIc = ic;
         model.Merge.SelectedMergeMode = ExperienceIds.AbMerge;
         byte[] good = ic == "NT51951" ? CreateUiAbFormatTpImage(0x84, 2) : CreateUiAbTpImage(0x81, 0, 1, 4, 1, 0x5102);
-        int backup = ic == "NT51951" ? 0x36000 : 0x1000;
+        // Both TP fixtures end their Backup at the NT51950/NT51951 layout-declared end flag (NVT-END-FLAG-1113-01).
+        const int backup = UiTpBackupStart;
         good[backup + 0x17] = 2;
         byte[] bad = [.. good];
         if (defect == "unreadable") { bad[backup + 0xFFC] = 0xFF; }

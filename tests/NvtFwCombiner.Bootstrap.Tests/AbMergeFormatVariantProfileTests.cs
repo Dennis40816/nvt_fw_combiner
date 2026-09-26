@@ -11,7 +11,7 @@ namespace NvtFwCombiner.Bootstrap.Tests;
 /// <summary>Independent synthetic byte evidence; not real Combiner or certified Golden evidence.</summary>
 public sealed class AbMergeFormatVariantProfileTests
 {
-    private const string BundleHash = "3fff3d0e923652ef52c360bc21d4e4191820e54bff04a6ba47558974d0adbab5";
+    private const string BundleHash = "283f2c2e8d1f5dbeb17d27d07094d37b3644286a0bb9ca07b6ff17dcb43bff21";
     private const int Capacity = 0x100000;
     private static readonly int[] HeaderOffsets = [0xA100, 0xA110, 0xA130];
 

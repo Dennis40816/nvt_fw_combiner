@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.1",
   "familyId": "nt51951-ctrlram-replace",
-  "familyVersion": "0.6.0",
+  "familyVersion": "0.6.1",
   "members": [
     {
       "memberId": "NT51951",
@@ -209,7 +209,7 @@
           "length": 4096,
           "locator": {
             "kind": "marker-relative",
-            "searchRange": { "addressSpaceId": "flash", "start": 0, "length": 225280 },
+            "searchRange": { "addressSpaceId": "flash", "start": 225276, "length": 4 },
             "markerHex": "004e5654",
             "selection": { "kind": "unique" },
             "resultOffset": -4092,

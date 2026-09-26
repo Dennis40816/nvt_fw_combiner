@@ -21,6 +21,8 @@ public sealed class CanonicalFullImageMetadataTests
     // 02597d709affd69adfbd92fac4a9a75f245385fb7c0954a5de1c86035e7babf6 (50/51)
     // Profile purposes are intentionally reduced to Inspection; source identity is now family/view,
     // with both bundle/family hashes. No expected locator/target is derived from the new views.
+    // NVT-END-FLAG-1113-01 (ADR 0076) amends only the NT51950/NT51951 FWConfig search range: from the
+    // template range [0xA000, 0x37000) to the layout-declared NVT end flag [0x36FFC, 0x37000).
 
     /// <summary>All fifteen old member/capacity cases retain selected targets, physical ranges and terminal display facts.</summary>
     [Theory]
@@ -33,12 +35,12 @@ public sealed class CanonicalFullImageMetadataTests
     [InlineData("NT51932", 0x40000, 0x0401A, null, 0, 0)]
     [InlineData("NT51928", 0x40000, -1, null, 0, 0)]
     [InlineData("NT51928", 0x80000, -1, null, 0, 0)]
-    [InlineData("NT51950", 0x40000, 0x3B016, "firmware-config-dp-replace", 0xA000, 0x2D000)]
-    [InlineData("NT51950", 0x80000, 0x3B016, "firmware-config-dp-replace", 0xA000, 0x2D000)]
-    [InlineData("NT51950", 0x100000, 0x3B016, "firmware-config-dp-replace", 0xA000, 0x2D000)]
-    [InlineData("NT51951", 0x40000, 0x05016, "firmware-config-dp-replace", 0xA000, 0x2D000)]
-    [InlineData("NT51951", 0x80000, 0x05016, "firmware-config-dp-replace", 0xA000, 0x2D000)]
-    [InlineData("NT51951", 0x100000, 0x05016, "firmware-config-dp-replace", 0xA000, 0x2D000)]
+    [InlineData("NT51950", 0x40000, 0x3B016, "firmware-config-dp-replace", 0x36FFC, 4)]
+    [InlineData("NT51950", 0x80000, 0x3B016, "firmware-config-dp-replace", 0x36FFC, 4)]
+    [InlineData("NT51950", 0x100000, 0x3B016, "firmware-config-dp-replace", 0x36FFC, 4)]
+    [InlineData("NT51951", 0x40000, 0x05016, "firmware-config-dp-replace", 0x36FFC, 4)]
+    [InlineData("NT51951", 0x80000, 0x05016, "firmware-config-dp-replace", 0x36FFC, 4)]
+    [InlineData("NT51951", 0x100000, 0x05016, "firmware-config-dp-replace", 0x36FFC, 4)]
     public void FullImageViewsMatchFrozenPreMigrationCases(string ic, int capacity, int dpcmiStart,
         string? configId, int searchStart, int searchLength)
     {

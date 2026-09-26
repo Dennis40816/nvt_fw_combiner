@@ -11,8 +11,11 @@ using NvtFwCombiner.TestSupport;
 namespace NvtFwCombiner.Bootstrap.Tests;
 
 /// <summary>
-/// AB-TWO-NVT-1112-01: a captured CtrlRAM Base is AB only when a published AB layout compiles at its length
-/// and either that layout's trusted AB structure holds or each canonical bank has exactly one complete NVT marker.
+/// AB-TWO-NVT-1112-01 as refined by NVT-END-FLAG-1113-01: a captured CtrlRAM Base is AB only when a published AB
+/// layout compiles at its length and either that layout's trusted AB structure holds or each canonical bank holds
+/// the NVT marker at the bank-local end flag that AB layout declares (NT51950/NT51951), or, for a layout without a
+/// declared end flag, exactly one marker in the bank. Markers away from a declared end flag are neither counted nor
+/// rejected.
 /// </summary>
 public sealed class CtrlRamTwoNvtClassificationTests
 {
@@ -104,16 +107,16 @@ public sealed class CtrlRamTwoNvtClassificationTests
     /// trusted AB structure retained from OSD-AB-REFERENCE-CLASSIFICATION-1111-01.
     /// </summary>
     [Theory]
-    [InlineData(0, "duplicate-marker", "input.bank-reference.metadata-ambiguous")]
+    [InlineData(0, "moved-marker", "input.bank-reference.metadata-unreadable")]
     [InlineData(0, "missing-marker", "input.bank-reference.metadata-unreadable")]
-    [InlineData(0x40000, "duplicate-marker", "input.bank-reference.metadata-ambiguous")]
+    [InlineData(0x40000, "moved-marker", "input.bank-reference.metadata-unreadable")]
     [InlineData(0x40000, "missing-marker", "input.bank-reference.metadata-unreadable")]
     public void DamagedOsdMarkerRemainsAbThroughTrustedStructure(int bankStart, string damage, string issueCode)
     {
         byte[] reference = RealAbReference(Nt51950Osd);
         switch (damage)
         {
-            case "duplicate-marker": NvtMarker.CopyTo(reference, bankStart + 0x1000); break;
+            case "moved-marker": reference[bankStart + 0x36FFC] ^= 1; NvtMarker.CopyTo(reference, bankStart + 0x1000); break;
             case "missing-marker": reference[bankStart + 0x36FFC] ^= 1; break;
             default: throw new ArgumentOutOfRangeException(nameof(damage));
         }
@@ -128,13 +131,53 @@ public sealed class CtrlRamTwoNvtClassificationTests
         Assert.Contains(inspected.Issues, issue => issue.Code == issueCode);
     }
 
-    /// <summary>Two NVT markers inside the same canonical bank are not AB evidence; the Standard/Unknown fallback decides.</summary>
+    /// <summary>
+    /// NVT-END-FLAG-1113-01: an extra complete marker away from a bank's end flag is neither counted nor rejected;
+    /// the real OSD AB Base keeps AB identity and both valid bank facts without an ambiguity issue.
+    /// </summary>
+    [Theory]
+    [InlineData(0x1000)]
+    [InlineData(0x40000 + 0x1000)]
+    [InlineData(0x80000 + 0x1000)]
+    public void MarkerAwayFromTheEndFlagIsIgnoredInARealOsdAbBase(int offset)
+    {
+        byte[] reference = WithMarker(RealAbReference(Nt51950Osd), offset);
+        _ = Assert.Single(CompileAbLayouts("NT51950", reference), static layout => layout.HasOneMarkerPerBank);
+
+        CtrlRamBaseInspection inspected = Inspect("NT51950", reference, IcNumberSelectionTokens.SingleChip);
+
+        Assert.Equal(CtrlRamBaseKind.AbFlash, inspected.Kind);
+        Assert.All(inspected.Banks, static bank => Assert.NotNull(bank.FirmwareConfig));
+        Assert.DoesNotContain(inspected.Issues, static issue => issue.Code == "input.bank-reference.metadata-ambiguous");
+    }
+
+    /// <summary>
+    /// NVT-END-FLAG-1113-01 boundary, accepted by the owner (position-only rule): a Standard Base whose Display OSD
+    /// half has a marker away from the B end flag has no B-bank evidence and stays Standard; a marker exactly at the
+    /// B end flag (0x76FFC) is B-bank evidence, so the Base is classified AB and its invalid B bank is reported.
+    /// </summary>
+    [Theory]
+    [InlineData(0x50000, CtrlRamBaseKind.StandardFlash)]
+    [InlineData(0x76000, CtrlRamBaseKind.StandardFlash)]
+    [InlineData(0x76FFC, CtrlRamBaseKind.AbFlash)]
+    public void OsdHalfMarkerCountsOnlyAtTheBEndFlag(int offset, CtrlRamBaseKind expected)
+    {
+        byte[] reference = WithMarker([.. StandardOutput("NT51950"), .. NonNvtTail(0x40000, 0xFF)], offset);
+
+        CtrlRamBaseInspection inspected = Inspect("NT51950", reference, IcNumberSelectionTokens.SingleChip);
+
+        Assert.Equal(expected, inspected.Kind);
+        Assert.Equal(expected == CtrlRamBaseKind.AbFlash, inspected.Issues.Any(static issue =>
+            issue.Code.StartsWith("input.bank-reference.", StringComparison.Ordinal)));
+    }
+
+    /// <summary>Markers away from a bank's declared scope are not AB evidence; the Standard/Unknown fallback decides.</summary>
     [Theory]
     [InlineData("NT51951", "osd-under-nt51951-geometry", CtrlRamBaseKind.StandardFlash)]
     [InlineData("NT51950", "nt51950-standard-extra-a-marker", CtrlRamBaseKind.StandardFlash)]
     [InlineData("NT51950", "nt51950-standard-in-b-extra-b-marker", CtrlRamBaseKind.Unknown)]
     [InlineData("NT51929", "nt51929-standard-extra-a-marker", CtrlRamBaseKind.Unknown)]
-    public void TwoNvtMarkersInOneBankAreNotAbEvidence(string ic, string shape, CtrlRamBaseKind fallback)
+    public void MarkersOutsideTheDeclaredBankScopeAreNotAbEvidence(string ic, string shape, CtrlRamBaseKind fallback)
     {
         byte[] reference = shape switch
         {
@@ -150,7 +193,7 @@ public sealed class CtrlRamTwoNvtClassificationTests
         Assert.All(layouts, static layout =>
         {
             Assert.False(layout.HasTrustedStructure);
-            Assert.Contains(layout.BankMarkerCounts, static count => count == 2);
+            Assert.False(layout.HasOneMarkerPerBank);
             Assert.Contains(layout.BankMarkerCounts, static count => count == 0);
         });
 
@@ -227,16 +270,18 @@ public sealed class CtrlRamTwoNvtClassificationTests
             int[] counts = [.. layout.V2Details.Provenance.ResolvedMap.ImageMap.Regions
                 .Where(static region => region.RegionId is "a-bank" or "b-bank")
                 .OrderBy(static region => region.Range.Start)
-                .Select(region => BankMarkerCount(reference, region.Range))];
+                .Select(region => BankMarkerCount(layout, reference, region.Range))];
             layouts.Add(new(counts, adapter.ValidateAbReference(layout, reference).HasTrustedAbStructure));
         }
         return layouts;
     }
 
-    private static int BankMarkerCount(byte[] reference, ByteRange range)
+    /// <summary>Counts bank evidence the way the classifier does: at the AB layout's declared end flag, if any.</summary>
+    private static int BankMarkerCount(CompiledComposition layout, byte[] reference, ByteRange range)
     {
         _ = FirmwareConfigMetadataReader.TryReadBackup(
-            reference.AsSpan(checked((int)range.Start), checked((int)range.Length)), out _, out int markers);
+            reference.AsSpan(checked((int)range.Start), checked((int)range.Length)),
+            layout.V2Details.Provenance.ResolvedMap.NvtEndFlagResolution, out _, out int markers);
         return markers;
     }
 

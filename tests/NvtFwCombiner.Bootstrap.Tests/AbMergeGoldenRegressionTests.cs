@@ -17,7 +17,7 @@ public sealed partial class AbMergeGoldenRegressionTests
     private const string Nt51929BundleDirectory = "nt51919-nt51929-nt51932-ab-merge";
     private const string Nt51929BundleContentHash = "ece8e9ee7a81b3f00ce04bd7c1aa053acde26835d75c3042bf1a86302d8de793";
     private const string Nt51950BundleDirectory = "nt51950-ab-merge";
-    private const string Nt51950BundleContentHash = "3fff3d0e923652ef52c360bc21d4e4191820e54bff04a6ba47558974d0adbab5";
+    private const string Nt51950BundleContentHash = "283f2c2e8d1f5dbeb17d27d07094d37b3644286a0bb9ca07b6ff17dcb43bff21";
 
     /// <summary>Verifies the supported NT51929 profile reproduces the supplied AB output byte-for-byte.</summary>
     [Fact]

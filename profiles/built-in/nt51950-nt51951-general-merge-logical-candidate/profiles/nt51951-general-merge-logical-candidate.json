@@ -37,8 +37,8 @@
   },
   "logicalOutputBinding": {
     "familyId": "nt51950-nt51951-dp-perspective",
-    "familyVersion": "1.4.1",
-    "familyContentHash": "17b04684520efb5297e8096dec5fe20e57532e1ae1cc80ac26d6b86c27cdfb54",
+    "familyVersion": "1.4.2",
+    "familyContentHash": "574fcdc65d603988ee0dbacdbf26e1ecf9e9c99ac6e42db7332cfb1b08b51433",
     "memberIds": [
       "NT51951"
     ]

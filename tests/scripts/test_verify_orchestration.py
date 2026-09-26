@@ -11,6 +11,8 @@ import io
 import json
 import locale
 import os
+import re
+import shutil
 import signal
 import subprocess
 import sys
@@ -450,6 +452,7 @@ class VerifyOrchestrationTests(unittest.TestCase):
         skipped: int,
         identities: tuple[str, ...] | None = None,
         outcomes: tuple[str, ...] | None = None,
+        error_messages: dict[str, str] | None = None,
     ) -> None:
         path.parent.mkdir(parents=True, exist_ok=True)
         identities = identities or tuple(
@@ -471,12 +474,19 @@ class VerifyOrchestrationTests(unittest.TestCase):
         )
         results = MODULE.ET.SubElement(root, "Results")
         for identity, outcome in zip(identities, outcomes, strict=True):
-            MODULE.ET.SubElement(
+            result = MODULE.ET.SubElement(
                 results,
                 "UnitTestResult",
                 testName=identity,
                 outcome=outcome,
             )
+            if error_messages and identity in error_messages:
+                error_info = MODULE.ET.SubElement(
+                    MODULE.ET.SubElement(result, "Output"), "ErrorInfo"
+                )
+                MODULE.ET.SubElement(error_info, "Message").text = error_messages[
+                    identity
+                ]
         summary = MODULE.ET.SubElement(root, "ResultSummary")
         MODULE.ET.SubElement(
             summary,
@@ -545,35 +555,71 @@ class VerifyOrchestrationTests(unittest.TestCase):
         )
         return json_report, cobertura_report
 
+    CI_RUN_ID = "36115221320"
+
+    @staticmethod
+    def ci_artifact_root(download_root: Path, owner: str, attempt: int = 1) -> Path:
+        return download_root / MODULE.ci_dotnet_evidence_artifact_name(owner, attempt)
+
+    def ci_run_environment(self, source_sha: str, *, attempt: int = 1) -> dict[str, str]:
+        return {
+            "GITHUB_SHA": source_sha,
+            "GITHUB_RUN_ID": self.CI_RUN_ID,
+            "GITHUB_RUN_ATTEMPT": str(attempt),
+        }
+
+    def ci_finalizer_environment(
+        self,
+        source_sha: str,
+        *,
+        attempt: int = 1,
+        build_result: str = "success",
+        test_result: str = "success",
+        download_outcome: str = "success",
+    ) -> dict[str, str]:
+        return {
+            **self.ci_run_environment(source_sha, attempt=attempt),
+            "NFC_CI_DOTNET_BUILD_RESULT": build_result,
+            "NFC_CI_DOTNET_TEST_RESULT": test_result,
+            "NFC_CI_DOTNET_DOWNLOAD_OUTCOME": download_outcome,
+        }
+
     def stage_complete_ci_dotnet_evidence(
         self,
         download_root: Path,
         source_sha: str,
         *,
         golden_total: int = 3,
+        attempt: int = 1,
+        owners: tuple[str, ...] | None = None,
     ) -> None:
         sdk_version = "10.0.301"
-        build_root = download_root / "dotnet-build-evidence"
-        build_log = build_root / "build/build.log"
-        build_log.parent.mkdir(parents=True)
-        build_log.write_text("build passed\n", encoding="utf-8")
-        self.write_ci_manifest(
-            build_root / "build/manifest.json",
-            {
-                "schemaVersion": 2,
-                "kind": "dotnet-build",
-                "sourceSha": source_sha,
-                "sdkVersion": sdk_version,
-                "success": True,
-                "files": {
-                    "build/build.log": hashlib.sha256(
-                        build_log.read_bytes()
-                    ).hexdigest()
+        provenance = {"runId": self.CI_RUN_ID, "runAttempt": attempt}
+        if owners is None or "build" in owners:
+            build_root = self.ci_artifact_root(download_root, "build", attempt)
+            build_log = build_root / "build/build.log"
+            build_log.parent.mkdir(parents=True)
+            build_log.write_text("build passed\n", encoding="utf-8")
+            self.write_ci_manifest(
+                build_root / "build/manifest.json",
+                {
+                    "schemaVersion": MODULE.CI_DOTNET_EVIDENCE_SCHEMA_VERSION,
+                    "kind": "dotnet-build",
+                    "sourceSha": source_sha,
+                    **provenance,
+                    "sdkVersion": sdk_version,
+                    "success": True,
+                    "files": {
+                        "build/build.log": hashlib.sha256(
+                            build_log.read_bytes()
+                        ).hexdigest()
+                    },
                 },
-            },
-        )
+            )
         for shard, projects in MODULE.CI_DOTNET_SHARDS.items():
-            artifact_root = download_root / f"dotnet-test-{shard}-evidence"
+            if owners is not None and shard not in owners:
+                continue
+            artifact_root = self.ci_artifact_root(download_root, shard, attempt)
             shard_root = artifact_root / "shards" / shard
             shard_log = shard_root / "shard.log"
             shard_log.parent.mkdir(parents=True)
@@ -635,9 +681,10 @@ class VerifyOrchestrationTests(unittest.TestCase):
             self.write_ci_manifest(
                 shard_root / "manifest.json",
                 {
-                    "schemaVersion": 2,
+                    "schemaVersion": MODULE.CI_DOTNET_EVIDENCE_SCHEMA_VERSION,
                     "kind": "dotnet-test-shard",
                     "sourceSha": source_sha,
+                    **provenance,
                     "sdkVersion": sdk_version,
                     "success": True,
                     "shard": shard,
@@ -5763,7 +5810,12 @@ class VerifyOrchestrationTests(unittest.TestCase):
             )
 
     def test_ci_dotnet_finalizer_fails_closed_when_evidence_is_missing(self) -> None:
-        with tempfile.TemporaryDirectory() as temporary:
+        with (
+            tempfile.TemporaryDirectory() as temporary,
+            patch.dict(
+                os.environ, self.ci_finalizer_environment("7" * 40), clear=False
+            ),
+        ):
             with self.assertRaisesRegex(RuntimeError, r"missing.*\.NET CI evidence"):
                 MODULE.finalize_ci_dotnet_evidence(Path(temporary))
 
@@ -5774,23 +5826,19 @@ class VerifyOrchestrationTests(unittest.TestCase):
             download_root = root / "ci-dotnet-downloads"
             self.stage_complete_ci_dotnet_evidence(download_root, source_sha)
             load_manifest = MagicMock()
+            build_artifact = MODULE.ci_dotnet_evidence_artifact_name("build", 1)
 
             with (
                 patch.dict(
                     os.environ,
-                    {
-                        "GITHUB_SHA": source_sha,
-                        "NFC_CI_DOTNET_BUILD_RESULT": "success",
-                        "NFC_CI_DOTNET_TEST_RESULT": "success",
-                    },
+                    self.ci_finalizer_environment(source_sha),
                     clear=False,
                 ),
                 patch.object(
                     MODULE,
                     "is_reparse_point",
                     side_effect=lambda path: (
-                        path.name == "manifest.json"
-                        and "dotnet-build-evidence" in path.parts
+                        path.name == "manifest.json" and build_artifact in path.parts
                     ),
                 ),
                 patch.object(MODULE, "load_ci_manifest", load_manifest),
@@ -5814,11 +5862,7 @@ class VerifyOrchestrationTests(unittest.TestCase):
                 contextlib.redirect_stdout(output),
                 patch.dict(
                     os.environ,
-                    {
-                        "GITHUB_SHA": source_sha,
-                        "NFC_CI_DOTNET_BUILD_RESULT": "success",
-                        "NFC_CI_DOTNET_TEST_RESULT": "success",
-                    },
+                    self.ci_finalizer_environment(source_sha),
                     clear=False,
                 ),
                 patch.object(MODULE, "ROOT", root),
@@ -5856,13 +5900,14 @@ class VerifyOrchestrationTests(unittest.TestCase):
                 root = Path(temporary)
                 download_root = root / "ci-dotnet-downloads"
                 self.stage_complete_ci_dotnet_evidence(download_root, source_sha)
+                build_root = self.ci_artifact_root(download_root, "build")
                 build_result = "success"
                 if mutation == "hash":
-                    (
-                        download_root / "dotnet-build-evidence/build/build.log"
-                    ).write_text("mutated\n", encoding="utf-8")
+                    (build_root / "build/build.log").write_text(
+                        "mutated\n", encoding="utf-8"
+                    )
                 elif mutation == "extra":
-                    (download_root / "dotnet-build-evidence/unexpected.txt").write_text(
+                    (build_root / "unexpected.txt").write_text(
                         "unexpected\n", encoding="utf-8"
                     )
                 else:
@@ -5870,11 +5915,9 @@ class VerifyOrchestrationTests(unittest.TestCase):
                 with (
                     patch.dict(
                         os.environ,
-                        {
-                            "GITHUB_SHA": source_sha,
-                            "NFC_CI_DOTNET_BUILD_RESULT": build_result,
-                            "NFC_CI_DOTNET_TEST_RESULT": "success",
-                        },
+                        self.ci_finalizer_environment(
+                            source_sha, build_result=build_result
+                        ),
                         clear=False,
                     ),
                     patch.object(MODULE, "ROOT", root),
@@ -5902,12 +5945,12 @@ class VerifyOrchestrationTests(unittest.TestCase):
                 download_root = root / "ci-dotnet-downloads"
                 self.stage_complete_ci_dotnet_evidence(download_root, source_sha)
                 core_manifest_path = (
-                    download_root
-                    / "dotnet-test-core-evidence/shards/core/manifest.json"
+                    self.ci_artifact_root(download_root, "core")
+                    / "shards/core/manifest.json"
                 )
                 if mutation == "cross-artifact":
                     collision = (
-                        download_root / "dotnet-test-ui-evidence/build/build.log"
+                        self.ci_artifact_root(download_root, "ui") / "build/build.log"
                     )
                     collision.parent.mkdir(parents=True)
                     collision.write_text("collision\n", encoding="utf-8")
@@ -5925,11 +5968,7 @@ class VerifyOrchestrationTests(unittest.TestCase):
                 with (
                     patch.dict(
                         os.environ,
-                        {
-                            "GITHUB_SHA": source_sha,
-                            "NFC_CI_DOTNET_BUILD_RESULT": "success",
-                            "NFC_CI_DOTNET_TEST_RESULT": "success",
-                        },
+                        self.ci_finalizer_environment(source_sha),
                         clear=False,
                     ),
                     patch.object(MODULE, "ROOT", root),
@@ -5964,7 +6003,7 @@ class VerifyOrchestrationTests(unittest.TestCase):
                 root = Path(temporary)
                 download_root = root / "ci-dotnet-downloads"
                 self.stage_complete_ci_dotnet_evidence(download_root, source_sha)
-                artifact_root = download_root / "dotnet-test-core-evidence"
+                artifact_root = self.ci_artifact_root(download_root, "core")
                 manifest_path = artifact_root / "shards/core/manifest.json"
                 manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
                 first = manifest["projects"][0]
@@ -5988,11 +6027,7 @@ class VerifyOrchestrationTests(unittest.TestCase):
                 with (
                     patch.dict(
                         os.environ,
-                        {
-                            "GITHUB_SHA": source_sha,
-                            "NFC_CI_DOTNET_BUILD_RESULT": "success",
-                            "NFC_CI_DOTNET_TEST_RESULT": "success",
-                        },
+                        self.ci_finalizer_environment(source_sha),
                         clear=False,
                     ),
                     patch.object(MODULE, "ROOT", root),
@@ -6023,11 +6058,7 @@ class VerifyOrchestrationTests(unittest.TestCase):
             with (
                 patch.dict(
                     os.environ,
-                    {
-                        "GITHUB_SHA": source_sha,
-                        "NFC_CI_DOTNET_BUILD_RESULT": "success",
-                        "NFC_CI_DOTNET_TEST_RESULT": "success",
-                    },
+                    self.ci_finalizer_environment(source_sha),
                     clear=False,
                 ),
                 patch.object(MODULE, "ROOT", root),
@@ -6039,6 +6070,736 @@ class VerifyOrchestrationTests(unittest.TestCase):
                 MODULE.finalize_ci_dotnet_evidence(download_root)
 
             self.assertEqual(["coverage"], events)
+
+    def test_ci_dotnet_finalizer_names_newest_failed_evidence_beside_successful_jobs(
+        self,
+    ) -> None:
+        source_sha = "c" * 40
+        for producer in ("build", "core"):
+            with (
+                self.subTest(producer=producer),
+                tempfile.TemporaryDirectory() as temporary,
+            ):
+                root = Path(temporary)
+                download_root = root / "ci-dotnet-downloads"
+                self.stage_complete_ci_dotnet_evidence(download_root, source_sha)
+                manifest_path = self.ci_artifact_root(download_root, producer) / (
+                    "build/manifest.json"
+                    if producer == "build"
+                    else "shards/core/manifest.json"
+                )
+                manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+                manifest["success"] = False
+                self.write_ci_manifest(manifest_path, manifest)
+                with (
+                    # Attempt 2 re-ran the producer, but only attempt 1 was downloaded.
+                    patch.dict(
+                        os.environ,
+                        self.ci_finalizer_environment(source_sha, attempt=2),
+                        clear=False,
+                    ),
+                    patch.object(MODULE, "ROOT", root),
+                    patch.object(MODULE, "COVERAGE_ROOT", root / "coverage"),
+                    patch.object(
+                        MODULE, "repository_sdk_version", return_value="10.0.301"
+                    ),
+                    patch.object(MODULE, "verify_coverage") as verify_coverage,
+                    self.assertRaisesRegex(
+                        RuntimeError,
+                        rf"^{producer} .NET CI evidence of run attempt 1, the newest "
+                        r"downloaded, reports a failed producer although its producer "
+                        r"job succeeded; .* start a new workflow run$",
+                    ),
+                ):
+                    MODULE.finalize_ci_dotnet_evidence(download_root)
+                verify_coverage.assert_not_called()
+
+    def test_ci_dotnet_finalizer_verifies_each_producers_newest_attempt(self) -> None:
+        # "Re-run failed jobs": core re-ran in attempt 3; the other producers carry over.
+        source_sha = "d" * 40
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            download_root = root / "ci-dotnet-downloads"
+            self.stage_complete_ci_dotnet_evidence(download_root, source_sha)
+            failed_path = (
+                self.ci_artifact_root(download_root, "core")
+                / "shards/core/manifest.json"
+            )
+            failed = json.loads(failed_path.read_text(encoding="utf-8"))
+            failed["success"] = False
+            failed["projects"] = []
+            self.write_ci_manifest(failed_path, failed)
+            self.stage_complete_ci_dotnet_evidence(
+                download_root, source_sha, attempt=3, owners=("core",)
+            )
+            output = io.StringIO()
+            with (
+                contextlib.redirect_stdout(output),
+                patch.dict(
+                    os.environ,
+                    self.ci_finalizer_environment(source_sha, attempt=3),
+                    clear=False,
+                ),
+                patch.object(MODULE, "ROOT", root),
+                patch.object(MODULE, "COVERAGE_ROOT", root / "coverage"),
+                patch.object(MODULE, "repository_sdk_version", return_value="10.0.301"),
+                patch.object(MODULE, "verify_coverage") as verify_coverage,
+            ):
+                MODULE.finalize_ci_dotnet_evidence(download_root)
+
+            verify_coverage.assert_called_once_with("dotnet", root / "coverage/dotnet")
+            self.assertIn(".NET CI evidence: 8 projects,", output.getvalue())
+
+    def test_ci_dotnet_finalizer_rejects_unverifiable_attempt_provenance(self) -> None:
+        source_sha = "e" * 40
+        run_id = self.CI_RUN_ID
+        cases = {
+            "download-failed": ".NET CI evidence download did not succeed: failure",
+            "no-run-attempt": "GITHUB_RUN_ID and GITHUB_RUN_ATTEMPT must name",
+            "unsuffixed-name": "unknown .NET CI evidence artifact: dotnet-test-core-evidence",
+            "unknown-producer": (
+                "unknown .NET CI evidence artifact: dotnet-test-extra-evidence-attempt-1"
+            ),
+            "zero-padded": (
+                "unknown .NET CI evidence artifact: dotnet-build-evidence-attempt-01"
+            ),
+            "future-attempt": (
+                ".NET CI evidence artifact is newer than run attempt 2: "
+                "dotnet-test-ui-evidence-attempt-3"
+            ),
+            "missing-producer": (
+                "missing .NET CI evidence producer artifacts: "
+                "dotnet-test-bootstrap-evidence"
+            ),
+            "manifest-attempt": (
+                f"core .NET CI evidence provenance does not match run {run_id} attempt 2"
+            ),
+            "manifest-run": (
+                f"build .NET CI evidence provenance does not match run {run_id} attempt 1"
+            ),
+            "boolean-attempt": (
+                f"build .NET CI evidence provenance does not match run {run_id} attempt 1"
+            ),
+        }
+        for case, message in cases.items():
+            with (
+                self.subTest(case=case),
+                tempfile.TemporaryDirectory() as temporary,
+            ):
+                root = Path(temporary)
+                download_root = root / "ci-dotnet-downloads"
+                self.stage_complete_ci_dotnet_evidence(download_root, source_sha)
+                self.stage_complete_ci_dotnet_evidence(
+                    download_root, source_sha, attempt=2, owners=("core",)
+                )
+                environment = self.ci_finalizer_environment(source_sha, attempt=2)
+                build_manifest_path = (
+                    self.ci_artifact_root(download_root, "build") / "build/manifest.json"
+                )
+                if case == "download-failed":
+                    environment["NFC_CI_DOTNET_DOWNLOAD_OUTCOME"] = "failure"
+                elif case == "no-run-attempt":
+                    environment["GITHUB_RUN_ATTEMPT"] = ""
+                elif case in {
+                    "unsuffixed-name",
+                    "unknown-producer",
+                    "zero-padded",
+                    "future-attempt",
+                }:
+                    name = message.rsplit(": ", 1)[1]
+                    (download_root / name).mkdir()
+                elif case == "missing-producer":
+                    shutil.rmtree(self.ci_artifact_root(download_root, "bootstrap"))
+                elif case == "manifest-attempt":
+                    core_manifest_path = (
+                        self.ci_artifact_root(download_root, "core", 2)
+                        / "shards/core/manifest.json"
+                    )
+                    core_manifest = json.loads(
+                        core_manifest_path.read_text(encoding="utf-8")
+                    )
+                    core_manifest["runAttempt"] = 1
+                    self.write_ci_manifest(core_manifest_path, core_manifest)
+                else:
+                    build_manifest = json.loads(
+                        build_manifest_path.read_text(encoding="utf-8")
+                    )
+                    if case == "manifest-run":
+                        build_manifest["runId"] = "1"
+                    else:
+                        build_manifest["runAttempt"] = True
+                    self.write_ci_manifest(build_manifest_path, build_manifest)
+                with (
+                    patch.dict(os.environ, environment, clear=False),
+                    patch.object(MODULE, "ROOT", root),
+                    patch.object(MODULE, "COVERAGE_ROOT", root / "coverage"),
+                    patch.object(
+                        MODULE, "repository_sdk_version", return_value="10.0.301"
+                    ),
+                    patch.object(MODULE, "verify_coverage") as verify_coverage,
+                    self.assertRaisesRegex(RuntimeError, f"^{re.escape(message)}"),
+                ):
+                    MODULE.finalize_ci_dotnet_evidence(download_root)
+                verify_coverage.assert_not_called()
+
+    def test_ci_dotnet_shard_uploads_normalized_failed_evidence_and_names_failed_tests(
+        self,
+    ) -> None:
+        project = MODULE.CiDotnetProject("tests/First/First.csproj")
+        failed_identity = "Probe.Tests.Broken(value: 1)"
+        sentinel = "NFC-TRX-MESSAGE-SENTINEL"
+
+        def fake_run(command: list[str], **kwargs: object) -> None:
+            if "--ListTests" in command:
+                self.write_vstest_discovery(
+                    Path(str(kwargs["log_path"])),
+                    ("Probe.Tests.Passing", "Probe.Tests.Broken"),
+                )
+            elif "--Collect:XPlat Code Coverage" in command:
+                results = Path(
+                    next(
+                        argument.split(":", 1)[1]
+                        for argument in command
+                        if argument.startswith("--ResultsDirectory:")
+                    )
+                )
+                # A runner-absolute source path inside the producer repository.
+                source = str(MODULE.ROOT / "src/Probe/Probe.cs")
+                self.write_ci_trx(
+                    results / "test-results.trx",
+                    total=2,
+                    skipped=0,
+                    identities=("Probe.Tests.Passing", failed_identity),
+                    outcomes=("Passed", "Failed"),
+                    error_messages={failed_identity: f"{sentinel} at {source}:line 7"},
+                )
+                self.write_ci_coverage_pair(
+                    results / "attempt",
+                    {"Probe.dll": {source: {}}},
+                    class_filenames=(source,),
+                )
+                (results / "attempt/sequence.dmp").write_bytes(b"not evidence")
+                (results / "testhost.log").write_text("not evidence\n", encoding="utf-8")
+                raise subprocess.CalledProcessError(1, command)
+
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            evidence_root = root / "artifacts/ci-dotnet-work"
+            upload_root = root / "artifacts/ci-dotnet-upload"
+            summary_path = root / "step-summary.md"
+            output = root / "output"
+            output.mkdir()
+            (output / f"{project.name}.dll").write_bytes(b"test assembly")
+            console = io.StringIO()
+            with (
+                contextlib.redirect_stdout(console),
+                patch.dict(
+                    os.environ,
+                    {
+                        **self.ci_run_environment("d" * 40, attempt=2),
+                        "GITHUB_STEP_SUMMARY": str(summary_path),
+                    },
+                    clear=False,
+                ),
+                patch.object(MODULE, "ROOT", root),
+                patch.object(MODULE, "SOLUTION", root / "NvtFwCombiner.slnx"),
+                patch.object(MODULE, "CI_DOTNET_EVIDENCE_ROOT", evidence_root),
+                patch.object(MODULE, "CI_DOTNET_UPLOAD_ROOT", upload_root),
+                patch.dict(MODULE.CI_DOTNET_SHARDS, {"probe": (project,)}),
+                patch.object(MODULE, "resolve_dotnet", return_value="dotnet"),
+                patch.object(
+                    MODULE,
+                    "resolve_coverlet_adapter_path",
+                    return_value=root / "adapter",
+                ),
+                patch.object(MODULE, "repository_sdk_version", return_value="10.0.301"),
+                patch.object(MODULE, "require_logged_sdk_version"),
+                patch.object(MODULE, "run", side_effect=fake_run),
+                patch.object(
+                    MODULE, "run_solution_restore_preserving_lock_projections"
+                ),
+                patch.object(
+                    MODULE,
+                    "find_project_release_output",
+                    return_value=(output, Path("bin/Release/net10.0")),
+                ),
+                patch.object(MODULE, "cleanup_dotnet_batch"),
+                self.assertRaisesRegex(RuntimeError, "First: Command"),
+            ):
+                MODULE.verify_ci_dotnet_test_shard("probe")
+
+            project_root = "shards/probe/results/First"
+            expected_evidence = {
+                f"{project_root}/discovered-tests.txt",
+                f"{project_root}/test-results.trx",
+                f"{project_root}/attempt/coverage.json",
+                f"{project_root}/attempt/coverage.cobertura.xml",
+            }
+            uploaded = {
+                path.relative_to(upload_root).as_posix()
+                for path in upload_root.rglob("*")
+                if path.is_file()
+            }
+            self.assertEqual(
+                {"shards/probe/manifest.json", *expected_evidence}, uploaded
+            )
+            manifest = json.loads(
+                (upload_root / "shards/probe/manifest.json").read_text(encoding="utf-8")
+            )
+            self.assertIs(False, manifest["success"])
+            self.assertEqual([], manifest["projects"])
+            self.assertEqual(expected_evidence, set(manifest["files"]))
+            self.assertEqual(
+                (self.CI_RUN_ID, 2), (manifest["runId"], manifest["runAttempt"])
+            )
+            # Option (i), pending owner acceptance: the TRX is uploaded unchanged.
+            uploaded_trx = (upload_root / project_root / "test-results.trx").read_bytes()
+            self.assertEqual(
+                (evidence_root / project_root / "test-results.trx").read_bytes(),
+                uploaded_trx,
+            )
+            self.assertIn(sentinel.encode("utf-8"), uploaded_trx)
+            # Coverage is uploaded only after the passing-evidence path normalization.
+            self.assertEqual(
+                {"Probe.dll": {"src/Probe/Probe.cs": {}}},
+                json.loads(
+                    (upload_root / project_root / "attempt/coverage.json").read_text(
+                        encoding="utf-8"
+                    )
+                ),
+            )
+            cobertura = MODULE.ET.parse(
+                upload_root / project_root / "attempt/coverage.cobertura.xml"
+            ).getroot()
+            self.assertEqual(
+                ["src/Probe/Probe.cs"],
+                [node.get("filename") for node in cobertura.iter("class")],
+            )
+            self.assertEqual(["."], [node.text for node in cobertura.iter("source")])
+            self.assertIn(
+                "  First: 1 failed test(s) in TRX\n"
+                f"    - {failed_identity}\n",
+                console.getvalue(),
+            )
+            summary = summary_path.read_text(encoding="utf-8")
+            self.assertIn("### .NET CI shard `probe` failures", summary)
+            self.assertIn(f"```text\n{failed_identity}\n```", summary)
+            for report in (console.getvalue(), summary):
+                self.assertNotIn(sentinel, report)
+
+    def test_ci_dotnet_shard_keeps_its_failure_when_failed_evidence_has_a_reparse_point(
+        self,
+    ) -> None:
+        project = MODULE.CiDotnetProject("tests/First/First.csproj")
+
+        def fake_run(command: list[str], **kwargs: object) -> None:
+            if "--ListTests" in command:
+                self.write_vstest_discovery(
+                    Path(str(kwargs["log_path"])), ("Probe.Tests.Broken",)
+                )
+            elif "--Collect:XPlat Code Coverage" in command:
+                results = Path(
+                    next(
+                        argument.split(":", 1)[1]
+                        for argument in command
+                        if argument.startswith("--ResultsDirectory:")
+                    )
+                )
+                self.write_ci_trx(
+                    results / "test-results.trx",
+                    total=1,
+                    skipped=0,
+                    identities=("Probe.Tests.Broken",),
+                    outcomes=("Failed",),
+                )
+                (results / "linked-attachment.xml").write_text("link\n", encoding="utf-8")
+                raise subprocess.CalledProcessError(1, command)
+
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary) / "NFC-RUNNER-ROOT-SENTINEL"
+            upload_root = root / "artifacts/ci-dotnet-upload"
+            summary_path = Path(temporary) / "step-summary.md"
+            output = root / "output"
+            output.mkdir(parents=True)
+            (output / f"{project.name}.dll").write_bytes(b"test assembly")
+            console = io.StringIO()
+            with (
+                contextlib.redirect_stdout(console),
+                patch.dict(
+                    os.environ,
+                    {
+                        **self.ci_run_environment("f" * 40),
+                        "GITHUB_STEP_SUMMARY": str(summary_path),
+                    },
+                    clear=False,
+                ),
+                patch.object(MODULE, "ROOT", root),
+                patch.object(MODULE, "SOLUTION", root / "NvtFwCombiner.slnx"),
+                patch.object(
+                    MODULE, "CI_DOTNET_EVIDENCE_ROOT", root / "artifacts/ci-dotnet-work"
+                ),
+                patch.object(MODULE, "CI_DOTNET_UPLOAD_ROOT", upload_root),
+                patch.dict(MODULE.CI_DOTNET_SHARDS, {"probe": (project,)}),
+                patch.object(MODULE, "resolve_dotnet", return_value="dotnet"),
+                patch.object(
+                    MODULE,
+                    "resolve_coverlet_adapter_path",
+                    return_value=root / "adapter",
+                ),
+                patch.object(MODULE, "repository_sdk_version", return_value="10.0.301"),
+                patch.object(MODULE, "require_logged_sdk_version"),
+                patch.object(MODULE, "run", side_effect=fake_run),
+                patch.object(
+                    MODULE, "run_solution_restore_preserving_lock_projections"
+                ),
+                patch.object(
+                    MODULE,
+                    "find_project_release_output",
+                    return_value=(output, Path("bin/Release/net10.0")),
+                ),
+                patch.object(MODULE, "cleanup_dotnet_batch"),
+                patch.object(
+                    MODULE,
+                    "is_reparse_point",
+                    side_effect=lambda path: path.name == "linked-attachment.xml",
+                ),
+                self.assertRaisesRegex(
+                    RuntimeError,
+                    r"^First: Command .*; First failure evidence not uploaded: "
+                    r"results failed the regular-file checks \(see shard\.log\)$",
+                ),
+            ):
+                MODULE.verify_ci_dotnet_test_shard("probe")
+
+            uploaded = {
+                path.relative_to(upload_root).as_posix()
+                for path in upload_root.rglob("*")
+                if path.is_file()
+            }
+            self.assertEqual(
+                {"shards/probe/manifest.json", "shards/probe/shard.log"}, uploaded
+            )
+            manifest = json.loads(
+                (upload_root / "shards/probe/manifest.json").read_text(encoding="utf-8")
+            )
+            self.assertIs(False, manifest["success"])
+            self.assertEqual({"shards/probe/shard.log"}, set(manifest["files"]))
+            # The raw diagnostic, runner path included, stays in the shard's own log.
+            shard_log = (upload_root / "shards/probe/shard.log").read_text(
+                encoding="utf-8"
+            )
+            self.assertIn(
+                f"First failure evidence: {MODULE.CI_FAILURE_EVIDENCE_REJECTED}: ",
+                shard_log,
+            )
+            self.assertIn("reparse-point", shard_log)
+            self.assertIn("NFC-RUNNER-ROOT-SENTINEL", shard_log)
+            report = console.getvalue()
+            self.assertIn(
+                "  First: no readable TRX; see shard.log in "
+                "dotnet-test-probe-evidence-attempt-1\n"
+                f"    note: {MODULE.CI_FAILURE_EVIDENCE_REJECTED} (details in shard.log)\n",
+                report,
+            )
+            for text in (report, summary_path.read_text(encoding="utf-8")):
+                self.assertNotIn("NFC-RUNNER-ROOT-SENTINEL", text)
+                self.assertNotIn("reparse-point", text)
+
+    def test_ci_dotnet_shard_keeps_raw_coverage_paths_out_of_the_log_and_summary(
+        self,
+    ) -> None:
+        project = MODULE.CiDotnetProject("tests/First/First.csproj")
+
+        def fake_run(command: list[str], **kwargs: object) -> None:
+            if "--ListTests" in command:
+                self.write_vstest_discovery(
+                    Path(str(kwargs["log_path"])), ("Probe.Tests.Broken",)
+                )
+            elif "--Collect:XPlat Code Coverage" in command:
+                results = Path(
+                    next(
+                        argument.split(":", 1)[1]
+                        for argument in command
+                        if argument.startswith("--ResultsDirectory:")
+                    )
+                )
+                self.write_ci_trx(
+                    results / "test-results.trx",
+                    total=1,
+                    skipped=0,
+                    identities=("Probe.Tests.Broken",),
+                    outcomes=("Failed",),
+                )
+                # A source path outside the repository cannot be normalized.
+                outside = str(
+                    MODULE.ROOT.parent / "NFC-SOURCE-PATH-SENTINEL" / "Probe.cs"
+                )
+                self.write_ci_coverage_pair(
+                    results / "attempt",
+                    {"Probe.dll": {outside: {}}},
+                    class_filenames=(outside,),
+                )
+                raise subprocess.CalledProcessError(1, command)
+
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary) / "NFC-RUNNER-ROOT-SENTINEL" / "repository"
+            upload_root = root / "artifacts/ci-dotnet-upload"
+            summary_path = Path(temporary) / "step-summary.md"
+            output = root / "output"
+            output.mkdir(parents=True)
+            (output / f"{project.name}.dll").write_bytes(b"test assembly")
+            console = io.StringIO()
+            with (
+                contextlib.redirect_stdout(console),
+                patch.dict(
+                    os.environ,
+                    {
+                        **self.ci_run_environment("a" * 40),
+                        "GITHUB_STEP_SUMMARY": str(summary_path),
+                    },
+                    clear=False,
+                ),
+                patch.object(MODULE, "ROOT", root),
+                patch.object(MODULE, "SOLUTION", root / "NvtFwCombiner.slnx"),
+                patch.object(
+                    MODULE, "CI_DOTNET_EVIDENCE_ROOT", root / "artifacts/ci-dotnet-work"
+                ),
+                patch.object(MODULE, "CI_DOTNET_UPLOAD_ROOT", upload_root),
+                patch.dict(MODULE.CI_DOTNET_SHARDS, {"probe": (project,)}),
+                patch.object(MODULE, "resolve_dotnet", return_value="dotnet"),
+                patch.object(
+                    MODULE,
+                    "resolve_coverlet_adapter_path",
+                    return_value=root / "adapter",
+                ),
+                patch.object(MODULE, "repository_sdk_version", return_value="10.0.301"),
+                patch.object(MODULE, "require_logged_sdk_version"),
+                patch.object(MODULE, "run", side_effect=fake_run),
+                patch.object(
+                    MODULE, "run_solution_restore_preserving_lock_projections"
+                ),
+                patch.object(
+                    MODULE,
+                    "find_project_release_output",
+                    return_value=(output, Path("bin/Release/net10.0")),
+                ),
+                patch.object(MODULE, "cleanup_dotnet_batch"),
+                self.assertRaisesRegex(RuntimeError, r"^First: Command "),
+            ):
+                MODULE.verify_ci_dotnet_test_shard("probe")
+
+            project_root = "shards/probe/results/First"
+            uploaded = {
+                path.relative_to(upload_root).as_posix()
+                for path in upload_root.rglob("*")
+                if path.is_file()
+            }
+            self.assertEqual(
+                {
+                    "shards/probe/manifest.json",
+                    "shards/probe/shard.log",
+                    f"{project_root}/discovered-tests.txt",
+                    f"{project_root}/test-results.trx",
+                },
+                uploaded,
+            )
+            shard_log = (upload_root / "shards/probe/shard.log").read_text(
+                encoding="utf-8"
+            )
+            self.assertIn(
+                f"First failure evidence: {MODULE.CI_COVERAGE_NOT_NORMALIZED}: ",
+                shard_log,
+            )
+            self.assertIn("NFC-SOURCE-PATH-SENTINEL", shard_log)
+            summary = summary_path.read_text(encoding="utf-8")
+            for text in (console.getvalue(), summary):
+                self.assertIn(
+                    f"note: {MODULE.CI_COVERAGE_NOT_NORMALIZED} (details in shard.log)",
+                    text,
+                )
+                self.assertIn("Probe.Tests.Broken", text)
+                for sentinel in ("NFC-SOURCE-PATH-SENTINEL", "NFC-RUNNER-ROOT-SENTINEL"):
+                    self.assertNotIn(sentinel, text)
+
+    def test_ci_failed_project_evidence_keeps_only_canonical_normalized_reports(
+        self,
+    ) -> None:
+        identity = "Probe.Tests.Broken"
+        canonical = {"discovered-tests.txt", "test-results.trx"}
+        coverage = {"attempt/coverage.json", "attempt/coverage.cobertura.xml"}
+        unpaired = MODULE.CI_COVERAGE_NOT_PAIRED
+        unnormalized = MODULE.CI_COVERAGE_NOT_NORMALIZED
+        pairing_error = "exactly one TRX and one paired coverage"
+        cases: dict[str, tuple[set[str], bool, str | None, str | None]] = {
+            "extra-names": (canonical | coverage, True, None, None),
+            "second-trx": (canonical, True, unpaired, pairing_error),
+            "broken-trx": (canonical | coverage, False, None, None),
+            "partial-coverage": (canonical, True, unpaired, pairing_error),
+            "divergent-coverage": (
+                canonical,
+                True,
+                unpaired,
+                "divergent coverage attachments",
+            ),
+            "invalid-coverage": (
+                canonical,
+                True,
+                unnormalized,
+                "invalid Coverlet JSON evidence",
+            ),
+            "absolute-inside": (canonical | coverage, True, None, None),
+            "absolute-outside": (
+                canonical,
+                True,
+                unnormalized,
+                "NFC-SOURCE-PATH-SENTINEL",
+            ),
+            "empty-results": (set(), False, None, None),
+        }
+        for case, (expected, names_failure, reason, raw_detail) in cases.items():
+            with (
+                self.subTest(case=case),
+                tempfile.TemporaryDirectory() as temporary,
+            ):
+                root = Path(temporary) / "repository"
+                results = root / "artifacts/ci-dotnet-work/results/First"
+                results.mkdir(parents=True)
+                source = "src/Probe/Probe.cs"
+                if case == "absolute-inside":
+                    source = str(root / "src/Probe/Probe.cs")
+                elif case == "absolute-outside":
+                    source = str(Path(temporary) / "NFC-SOURCE-PATH-SENTINEL/Probe.cs")
+                if case != "empty-results":
+                    self.write_vstest_discovery(
+                        results / "discovered-tests.txt", (identity,)
+                    )
+                    self.write_ci_trx(
+                        results / "test-results.trx",
+                        total=1,
+                        skipped=0,
+                        identities=(identity,),
+                        outcomes=("Failed",),
+                    )
+                    self.write_ci_coverage_pair(
+                        results / "attempt",
+                        {"Probe.dll": {source: {}}},
+                        class_filenames=(source,),
+                    )
+                if case == "extra-names":
+                    (results / "attempt/sequence.dmp").write_bytes(b"dump")
+                    (results / "attempt/coverage.json.bak").write_text("{}\n", encoding="utf-8")
+                    (results / "testhost.log").write_text("log\n", encoding="utf-8")
+                    (results / "nested").mkdir()
+                    (results / "nested/discovered-tests.txt").write_text(
+                        "other\n", encoding="utf-8"
+                    )
+                elif case == "second-trx":
+                    self.write_ci_trx(results / "nested/other.trx", total=1, skipped=0)
+                elif case == "broken-trx":
+                    (results / "test-results.trx").write_text("<TestRun", encoding="utf-8")
+                elif case == "partial-coverage":
+                    (results / "attempt/coverage.cobertura.xml").unlink()
+                elif case == "divergent-coverage":
+                    self.write_ci_coverage_pair(results / "other", {"Other.dll": {}})
+                elif case == "invalid-coverage":
+                    (results / "attempt/coverage.json").write_text(
+                        "not json", encoding="utf-8"
+                    )
+                with patch.object(MODULE, "ROOT", root):
+                    evidence = MODULE.collect_ci_failed_project_evidence(
+                        "First", results
+                    )
+
+                self.assertEqual(
+                    expected,
+                    {path.relative_to(results).as_posix() for path in evidence.paths},
+                )
+                self.assertEqual(
+                    (identity,) if names_failure else None, evidence.failed_tests
+                )
+                if reason is None or raw_detail is None:
+                    self.assertEqual((), evidence.omissions)
+                    self.assertEqual((), evidence.diagnostics)
+                else:
+                    # The public reason is fixed; only the diagnostic carries raw text.
+                    self.assertEqual((reason,), evidence.omissions)
+                    self.assertEqual(1, len(evidence.diagnostics))
+                    self.assertTrue(evidence.diagnostics[0].startswith(f"{reason}: "))
+                    self.assertIn(raw_detail, evidence.diagnostics[0])
+                    self.assertNotIn(raw_detail, evidence.omissions[0])
+                if coverage <= expected:
+                    self.assertEqual(
+                        {"Probe.dll": {"src/Probe/Probe.cs": {}}},
+                        json.loads(
+                            (results / "attempt/coverage.json").read_text(
+                                encoding="utf-8"
+                            )
+                        ),
+                    )
+                    cobertura = MODULE.ET.parse(
+                        results / "attempt/coverage.cobertura.xml"
+                    ).getroot()
+                    self.assertEqual(
+                        ["src/Probe/Probe.cs"],
+                        [node.get("filename") for node in cobertura.iter("class")],
+                    )
+
+    def test_ci_failed_test_report_is_bounded_and_sanitized(self) -> None:
+        many = tuple(f"Probe.Tests.Case{index:02d}" for index in range(55))
+        evidence = MODULE.CiFailedProjectEvidence
+        with tempfile.TemporaryDirectory() as temporary:
+            summary_path = Path(temporary) / "summary.md"
+            console = io.StringIO()
+            with (
+                contextlib.redirect_stdout(console),
+                patch.dict(
+                    os.environ, {"GITHUB_STEP_SUMMARY": str(summary_path)}, clear=False
+                ),
+            ):
+                MODULE.report_ci_failed_tests(
+                    "core",
+                    "dotnet-test-core-evidence-attempt-2",
+                    (
+                        ("Many.Tests", evidence((), many)),
+                        ("Crashed.Tests", evidence((), None)),
+                        ("Empty.Tests", evidence((), ())),
+                        ("Odd.Tests", evidence((), ("Probe.`Odd`\n```Case",))),
+                        (
+                            "Partial.Tests",
+                            evidence(
+                                (),
+                                ("Probe.Tests.Partial",),
+                                ("coverage not uploaded: invalid `x`\nevidence",),
+                            ),
+                        ),
+                    ),
+                )
+            summary = summary_path.read_text(encoding="utf-8")
+            for text in (console.getvalue(), summary):
+                self.assertIn("Probe.Tests.Case49", text)
+                self.assertNotIn("Probe.Tests.Case50", text)
+                self.assertIn("... 5 more in the TRX", text)
+                self.assertIn(
+                    "Crashed.Tests: no readable TRX; see shard.log in "
+                    "dotnet-test-core-evidence-attempt-2",
+                    text.replace("**", ""),
+                )
+                self.assertIn(
+                    "Empty.Tests: no failed test in TRX; see shard.log",
+                    text.replace("**", ""),
+                )
+                self.assertIn("Probe.'Odd' '''Case", text)
+                self.assertIn("note: coverage not uploaded: invalid 'x' evidence", text)
+            self.assertEqual(3, summary.count("```text"))
+
+        with (
+            patch.dict(os.environ, {"GITHUB_STEP_SUMMARY": ""}, clear=False),
+            contextlib.redirect_stdout(io.StringIO()) as quiet,
+        ):
+            MODULE.report_ci_failed_tests(
+                "core", "dotnet-test-core-evidence-attempt-1", ()
+            )
+        self.assertEqual("", quiet.getvalue())
 
     def test_ci_dotnet_shard_continues_after_ordinary_project_failure(self) -> None:
         first = MODULE.CiDotnetProject("tests/First/First.csproj")
@@ -6064,7 +6825,9 @@ class VerifyOrchestrationTests(unittest.TestCase):
             output.mkdir()
             (output / f"{second.name}.dll").write_bytes(b"test assembly")
             with (
-                patch.dict(os.environ, {"GITHUB_SHA": "3" * 40}, clear=False),
+                patch.dict(
+                    os.environ, self.ci_run_environment("3" * 40), clear=False
+                ),
                 patch.object(MODULE, "ROOT", root),
                 patch.object(MODULE, "SOLUTION", root / "NvtFwCombiner.slnx"),
                 patch.object(MODULE, "CI_DOTNET_EVIDENCE_ROOT", evidence_root),
@@ -6170,7 +6933,9 @@ class VerifyOrchestrationTests(unittest.TestCase):
             output.mkdir()
             (output / f"{project.name}.dll").write_bytes(b"test assembly")
             with (
-                patch.dict(os.environ, {"GITHUB_SHA": "9" * 40}, clear=False),
+                patch.dict(
+                    os.environ, self.ci_run_environment("9" * 40), clear=False
+                ),
                 patch.object(MODULE, "ROOT", root),
                 patch.object(MODULE, "SOLUTION", root / "NvtFwCombiner.slnx"),
                 patch.object(
@@ -6231,7 +6996,9 @@ class VerifyOrchestrationTests(unittest.TestCase):
             root = Path(temporary)
             resolve_adapter = MagicMock(return_value=root / "adapter")
             with (
-                patch.dict(os.environ, {"GITHUB_SHA": "4" * 40}, clear=False),
+                patch.dict(
+                    os.environ, self.ci_run_environment("4" * 40), clear=False
+                ),
                 patch.object(MODULE, "ROOT", root),
                 patch.object(MODULE, "SOLUTION", root / "NvtFwCombiner.slnx"),
                 patch.object(

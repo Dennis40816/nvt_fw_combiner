@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.2",
   "familyId": "nt51950-ab-merge",
-  "familyVersion": "0.7.0",
+  "familyVersion": "0.7.1",
   "abFormatPolicy": {
     "scopeId": "nt51950-partial-family-ab-event-buffer",
     "commonFormatId": "common",
@@ -458,6 +458,48 @@
         }
       ],
       "evidenceRefs": ["owner-decision-20260914-ab-primary-event-buffer"]
+    },
+    {
+      "metadataSetId": "ab-tp-fwconfig-backup-end-flag",
+      "structures": [
+        {
+          "structureId": "tp-a-fwconfig-backup",
+          "artifactBindingId": "tp-a-input",
+          "definitionReference": {
+            "familyId": "nt51917-nt51927-nt51928-canonical-container",
+            "familyVersion": "1.4.0",
+            "familyContentHash": "e3bf3f27d1640d51620c108bce28b22edde2551cb441cf47d1d8641bb6e455af",
+            "structureId": "firmware-config-general-parameters"
+          },
+          "locator": {
+            "kind": "marker-relative",
+            "searchRange": { "addressSpaceId": "flash", "start": 225276, "length": 4 },
+            "markerHex": "004e5654",
+            "selection": { "kind": "unique" },
+            "resultOffset": -4092,
+            "allowedResultRegionId": "a-tp-code"
+          }
+        },
+        {
+          "structureId": "tp-b-fwconfig-backup",
+          "artifactBindingId": "tp-b-input",
+          "definitionReference": {
+            "familyId": "nt51917-nt51927-nt51928-canonical-container",
+            "familyVersion": "1.4.0",
+            "familyContentHash": "e3bf3f27d1640d51620c108bce28b22edde2551cb441cf47d1d8641bb6e455af",
+            "structureId": "firmware-config-general-parameters"
+          },
+          "locator": {
+            "kind": "marker-relative",
+            "searchRange": { "addressSpaceId": "flash", "start": 225276, "length": 4 },
+            "markerHex": "004e5654",
+            "selection": { "kind": "unique" },
+            "resultOffset": -4092,
+            "allowedResultRegionId": "a-tp-code"
+          }
+        }
+      ],
+      "evidenceRefs": ["owner-decision-20260926-nvt-end-flag"]
     }
   ],
   "imageMaps": [
@@ -482,7 +524,8 @@
         "nt51950-ab-merge-shared-bank-placement"
       ],
       "metadataSetIds": [
-        "ab-primary-firmware-config"
+        "ab-primary-firmware-config",
+        "ab-tp-fwconfig-backup-end-flag"
       ],
       "evidenceRefs": [
         "owner-decision-20260914-ab-format-placement"
@@ -510,7 +553,8 @@
         "nt51950-ab-merge-shared-bank-placement"
       ],
       "metadataSetIds": [
-        "ab-primary-firmware-config"
+        "ab-primary-firmware-config",
+        "ab-tp-fwconfig-backup-end-flag"
       ],
       "evidenceRefs": [
         "owner-decision-20260914-ab-format-placement"
@@ -537,7 +581,8 @@
         "nt51950-ab-merge-shared-bank-placement"
       ],
       "metadataSetIds": [
-        "ab-primary-firmware-config"
+        "ab-primary-firmware-config",
+        "ab-tp-fwconfig-backup-end-flag"
       ],
       "evidenceRefs": [
         "owner-decision-20260914-ab-format-placement"
@@ -557,7 +602,7 @@
         "nt51950-ab-merge-512k-seed-anchors",
         "nt51950-ab-merge-shared-bank-placement"
       ],
-      "metadataSetIds": ["ab-primary-firmware-config"],
+      "metadataSetIds": ["ab-primary-firmware-config", "ab-tp-fwconfig-backup-end-flag"],
       "evidenceRefs": [ "nt51950-ab-combiner-audit-2026-07-14" ]
     },
     {
@@ -581,7 +626,8 @@
         "nt51951-ab-merge-1024k-seed-and-placement"
       ],
       "metadataSetIds": [
-        "ab-primary-firmware-config"
+        "ab-primary-firmware-config",
+        "ab-tp-fwconfig-backup-end-flag"
       ],
       "evidenceRefs": [
         "owner-decision-20260921-partial-ab-bank-consolidation"
@@ -598,7 +644,7 @@
       },
       "coveragePolicy": "complete-with-explicit-gaps",
       "regionSetIds": [ "nt51951-ab-merge-1024k-seed-and-placement" ],
-      "metadataSetIds": ["ab-primary-firmware-config"],
+      "metadataSetIds": ["ab-primary-firmware-config", "ab-tp-fwconfig-backup-end-flag"],
       "evidenceRefs": [ "nt51951-ab-combiner-topology-regression-2026-07-15" ]
     }
   ],

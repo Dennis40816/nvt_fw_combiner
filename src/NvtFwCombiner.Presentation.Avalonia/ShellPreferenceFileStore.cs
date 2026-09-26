@@ -40,6 +40,7 @@ public static class ShellPreferenceFileStore
         }
     }
 
+    /// <summary>Atomically saves one preference snapshot; failures and cancellation reach the caller.</summary>
     internal static async Task SaveAsync(
         ILocalFileStore files,
         string path,
@@ -48,28 +49,20 @@ public static class ShellPreferenceFileStore
     {
         ArgumentNullException.ThrowIfNull(files);
         ArgumentNullException.ThrowIfNull(preferences);
-        try
-        {
-            await files.WriteAsync(
-                    path,
-                    JsonSerializer.SerializeToUtf8Bytes(
-                        new ShellPreferenceFile(
-                            SchemaVersion,
-                            new(
-                                preferences.Theme,
-                                "Strict",
-                                preferences.Language,
-                                preferences.IsReducedMotionEnabled,
-                                preferences.ExpandInputDetailsByDefault)),
-                        LocalJsonDocument.Options),
-                    cancellationToken)
-                .ConfigureAwait(false);
-        }
-        catch (Exception exception) when (exception is
-            ArgumentException or IOException or NotSupportedException or OperationCanceledException or
-            UnauthorizedAccessException)
-        {
-        }
+        await files.WriteAsync(
+                path,
+                JsonSerializer.SerializeToUtf8Bytes(
+                    new ShellPreferenceFile(
+                        SchemaVersion,
+                        new(
+                            preferences.Theme,
+                            "Strict",
+                            preferences.Language,
+                            preferences.IsReducedMotionEnabled,
+                            preferences.ExpandInputDetailsByDefault)),
+                    LocalJsonDocument.Options),
+                cancellationToken)
+            .ConfigureAwait(false);
     }
 
     private sealed record ShellPreferenceFile(int SchemaVersion, ShellPreferenceFileEntry? Preferences);

@@ -19,11 +19,12 @@ internal sealed class AbMergeTopologyAdmissionResult(
 internal static class AbMergeTopologyAdmission
 {
     internal static AbMergeTopologyAdmissionResult Assess(
-        ReadOnlySpan<byte> tpA, ReadOnlySpan<byte> tpB, TopologySelection? selected)
+        ReadOnlySpan<byte> tpA, ReadOnlySpan<byte> tpB, TopologySelection? selected, FirmwareNvtEndFlagResolution declaredEndFlag)
     {
+        // NVT-END-FLAG-1113-01: each TP input is read at the NVT end flag the AB layout declares for it, if any.
         var issues = new List<CompositionIssue>();
-        CompositionIssue? issueA = FirmwareConfigChipCountDiagnostics.AssessPositive(tpA, CompositionAddressSpaceIds.TpAInput, out byte? countA);
-        CompositionIssue? issueB = FirmwareConfigChipCountDiagnostics.AssessPositive(tpB, CompositionAddressSpaceIds.TpBInput, out byte? countB);
+        CompositionIssue? issueA = FirmwareConfigChipCountDiagnostics.AssessPositive(tpA, declaredEndFlag, CompositionAddressSpaceIds.TpAInput, out byte? countA);
+        CompositionIssue? issueB = FirmwareConfigChipCountDiagnostics.AssessPositive(tpB, declaredEndFlag, CompositionAddressSpaceIds.TpBInput, out byte? countB);
         if (issueA is not null) { issues.Add(issueA); }
         if (issueB is not null) { issues.Add(issueB); }
         if (issues.Count != 0) { return new(countA, countB, issues); }
@@ -52,7 +53,7 @@ internal static class AbMergeTopologyAdmission
     {
         return TryGetAcceptedTpSourceView(composition, tpA, CompositionAddressSpaceIds.TpAInput, out ReadOnlySpan<byte> a) &&
             TryGetAcceptedTpSourceView(composition, tpB, CompositionAddressSpaceIds.TpBInput, out ReadOnlySpan<byte> b)
-            ? Assess(a, b, selected) : null;
+            ? Assess(a, b, selected, CompiledInputArtifactObservationService.DeclaredNvtEndFlag(composition)) : null;
     }
 
     internal static AbMergeTopologyAdmissionResult AssessCommonAcceptedPair(
@@ -64,6 +65,9 @@ internal static class AbMergeTopologyAdmission
         long? requiredA = null;
         long? requiredB = null;
         if (candidates.Count == 0) { return InvalidGeometry(); }
+        // F-1: candidates that disagree resolve to Unresolved, so the counts are unreadable (existing issue codes).
+        FirmwareNvtEndFlagResolution commonEndFlag = FirmwareNvtEndFlagResolution.Common(
+            candidates.Select(CompiledInputArtifactObservationService.DeclaredNvtEndFlag));
         foreach (CompiledComposition candidate in candidates)
         {
             if (!candidate.IsV2AbMergeRuntimeRoute ||
@@ -83,14 +87,16 @@ internal static class AbMergeTopologyAdmission
             }
             if (a.AdmissionIssue is not null || b.AdmissionIssue is not null)
             {
-                return Assess(tpA.Span[..checked((int)aRange.Length)], tpB.Span[..checked((int)bRange.Length)], selected);
+                return Assess(tpA.Span[..checked((int)aRange.Length)], tpB.Span[..checked((int)bRange.Length)], selected,
+                    commonEndFlag);
             }
             acceptedA = aRange;
             acceptedB = bRange;
             requiredA = a.RequiredEndExclusive;
             requiredB = b.RequiredEndExclusive;
         }
-        return Assess(tpA.Span[..checked((int)acceptedA!.Value.Length)], tpB.Span[..checked((int)acceptedB!.Value.Length)], selected);
+        return Assess(tpA.Span[..checked((int)acceptedA!.Value.Length)], tpB.Span[..checked((int)acceptedB!.Value.Length)], selected,
+            commonEndFlag);
     }
 
     private static AbMergeTopologyAdmissionResult InvalidGeometry()

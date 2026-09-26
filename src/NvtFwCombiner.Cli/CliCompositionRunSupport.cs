@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Text;
 using System.Text.Json;
 using NvtFwCombiner.Domain.Composition;
 
@@ -8,6 +9,10 @@ internal static class CliCompositionRunSupport
 {
     /// <summary>Issue printed when a requested report is not written after the Build output committed.</summary>
     internal const string CommittedReportFailedIssueCode = "cli.report.failed";
+
+    private static readonly UTF8Encoding ReportEncoding = new(
+        encoderShouldEmitUTF8Identifier: false,
+        throwOnInvalidBytes: true);
 
     internal static CliOutputTarget ResolveOutputTarget(string? requestedOutput, string defaultFileName)
     {
@@ -49,21 +54,146 @@ internal static class CliCompositionRunSupport
             "--report");
     }
 
-    internal static async Task WriteReportJsonAsync(
+    /// <summary>
+    /// Writes one report so that its destination is replaced whole or not at all: the UTF-8 report is
+    /// written and flushed to a new staging file in the destination directory and then renamed over the
+    /// destination. A failure or cancellation before that rename leaves the destination's earlier bytes,
+    /// or its absence, unchanged and deletes the staging file this write created (best effort: a failed
+    /// deletion keeps the original failure as the one reported). A pre-existing file with the staging
+    /// name is never deleted.
+    /// </summary>
+    internal static Task WriteReportJsonAsync(
         string reportPath,
         string reportJson,
         TextWriter output,
         CancellationToken cancellationToken)
     {
+        return WriteReportJsonAsync(
+            reportPath,
+            reportJson,
+            output,
+            $".nfc-report-{Guid.NewGuid():N}.tmp",
+            static (staging, content, token) => staging.WriteAsync(content, token),
+            cancellationToken);
+    }
+
+    /// <summary>
+    /// Writes one report as described above through the staging file named
+    /// <paramref name="stagingFileName"/> in the destination directory;
+    /// <paramref name="writeStagingContent"/> writes the complete report bytes into the open staging file.
+    /// The staging name must be a plain file name that does not name the report itself.
+    /// </summary>
+    internal static async Task WriteReportJsonAsync(
+        string reportPath,
+        string reportJson,
+        TextWriter output,
+        string stagingFileName,
+        Func<Stream, ReadOnlyMemory<byte>, CancellationToken, ValueTask> writeStagingContent,
+        CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(output);
+        ArgumentException.ThrowIfNullOrWhiteSpace(stagingFileName);
+        ArgumentNullException.ThrowIfNull(writeStagingContent);
         string fullPath = Path.GetFullPath(reportPath);
         string? directory = Path.GetDirectoryName(fullPath);
-        if (!string.IsNullOrWhiteSpace(directory))
+        if (string.IsNullOrWhiteSpace(directory) || string.IsNullOrWhiteSpace(Path.GetFileName(fullPath)))
         {
-            _ = Directory.CreateDirectory(directory);
+            throw new ArgumentException("Report path must resolve to a file path.", nameof(reportPath));
         }
 
-        await File.WriteAllTextAsync(fullPath, reportJson, cancellationToken).ConfigureAwait(false);
+        string stagingPath = ResolveStagingPath(directory, fullPath, stagingFileName);
+        byte[] content = ReportEncoding.GetBytes(reportJson);
+        cancellationToken.ThrowIfCancellationRequested();
+        _ = Directory.CreateDirectory(directory);
+        bool stagingCreated = false;
+        try
+        {
+            await using (var staging = new FileStream(
+                             stagingPath,
+                             FileMode.CreateNew,
+                             FileAccess.Write,
+                             FileShare.None,
+                             bufferSize: 0,
+                             FileOptions.Asynchronous | FileOptions.WriteThrough))
+            {
+                // Only a staging file this write created is ever deleted; an existing file of that name is not ours.
+                stagingCreated = true;
+                await writeStagingContent(staging, content, cancellationToken).ConfigureAwait(false);
+                await staging.FlushAsync(cancellationToken).ConfigureAwait(false);
+            }
+
+            cancellationToken.ThrowIfCancellationRequested();
+            File.Move(stagingPath, fullPath, overwrite: true);
+        }
+        catch
+        {
+            if (stagingCreated)
+            {
+                DeleteStagingFile(stagingPath);
+            }
+
+            throw;
+        }
+
         await output.WriteLineAsync($"Report: {fullPath}").ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Resolves the staging file as a new direct child of the report directory. A name that is not a plain
+    /// file name, or that names the report itself after path normalization (for example trailing dots),
+    /// case folding or Unicode normalization, would let the write skip the rename, so it is refused.
+    /// </summary>
+    private static string ResolveStagingPath(
+        string directory,
+        string reportFullPath,
+        string stagingFileName)
+    {
+        string stagingPath = Path.GetFullPath(Path.Combine(directory, stagingFileName));
+        return stagingFileName.IndexOfAny(Path.GetInvalidFileNameChars()) < 0 &&
+            IsEquivalentPath(Path.GetDirectoryName(stagingPath), directory) &&
+            !IsEquivalentPath(stagingPath, reportFullPath)
+                ? stagingPath
+                : throw new ArgumentException(
+                    "The staging file must be a plain file name in the report directory that does not name the report.",
+                    nameof(stagingFileName));
+    }
+
+    private static bool IsEquivalentPath(string? left, string right)
+    {
+        return left is not null &&
+            string.Equals(
+                NormalizeForComparison(left),
+                NormalizeForComparison(right),
+                StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static string NormalizeForComparison(string path)
+    {
+        try
+        {
+            return path.Normalize(NormalizationForm.FormC);
+        }
+        catch (ArgumentException)
+        {
+            // A path that is not valid Unicode is compared as written.
+            return path;
+        }
+    }
+
+    private static void DeleteStagingFile(string stagingPath)
+    {
+        try
+        {
+            File.Delete(stagingPath);
+        }
+        catch (IOException)
+        {
+            // The original report failure is the one reported; the destination is unchanged either way.
+        }
+        catch (UnauthorizedAccessException)
+        {
+            // The original report failure is the one reported; the destination is unchanged either way.
+        }
     }
 
     /// <summary>

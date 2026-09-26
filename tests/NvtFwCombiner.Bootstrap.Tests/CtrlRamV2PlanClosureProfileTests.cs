@@ -16,8 +16,8 @@ public sealed partial class CtrlRamV2PlanClosureProfileTests
     private const string Nt51929BundleHash = "309f29e33a8fb672e92ed441d6633fab829bee3bd4c94a93fd842a7f3bb157d0";
     private const string Nt51928BundleHash = "82a7a98f4883540595a3af22887fecef5f283fdff5e2af816b294c6345bd523d";
     private const string Nt51932BundleHash = "7edb1c8b3b2d4d47963b4602000bd6c62fa43a52f55f6e70bdfac79a8c2c1fcc";
-    private const string Nt51950BundleHash = "86c06344e50856d590dc58bb0485de06ec9dcef825076a92a83574a3a0d6b554";
-    private const string Nt51951BundleHash = "17380c4dfdc04123ee46504cf626f43365c9d506d798f2c1ada999f14c8d3c4c";
+    private const string Nt51950BundleHash = "601c352d42d08feb4eb7affd7d998f8027e017ee6e9ea933d200eea632282f11";
+    private const string Nt51951BundleHash = "59e947e701e3f36df03789783e312f15eaded9d9276f5a2dca28175d1ccec78f";
     private const string Nt51927BundleHash = "f44c1b82f3fc38905dee222a60be5b884f717b37cb3d8fafe8affd7c48353714";
 
     /// <summary>Normal-header profiles grant every owner-classified CRC word and no surrounding gap bytes.</summary>
@@ -546,10 +546,12 @@ public sealed partial class CtrlRamV2PlanClosureProfileTests
         int? markerOffset = null)
     {
         byte[] bytes = new byte[checked((int)capacity)];
-        bytes[23] = checked((byte)chipCount);
+        // NT51950/NT51951 read the FWConfig Backup only at the layout-declared NVT end flag [0x36FFC, 0x37000).
+        int backupStart = icId is "NT51950" or "NT51951" ? 0x36000 : 0;
+        bytes[backupStart + 23] = checked((byte)chipCount);
         int resolvedMarkerOffset = markerOffset ?? (StringComparer.Ordinal.Equals(icId, "NT51926")
             ? 0x3BFFC
-            : 0x0FFC);
+            : backupStart + 0x0FFC);
         bytes[resolvedMarkerOffset] = 0x00;
         bytes[resolvedMarkerOffset + 1] = 0x4E;
         bytes[resolvedMarkerOffset + 2] = 0x56;
