@@ -1,0 +1,9 @@
+{
+  "schemaVersion": 1,
+  "taskId": "CLASSIFY-EXACT-FALLTHROUGH-1112-01",
+  "authorityType": "firmware-owner",
+  "reviewedHead": "dc677115653658c33a5d61274b1294ee6f45d548",
+  "decision": "approved",
+  "reviewer": "Dennis Liu (firmware-owner; repository and release owner)",
+  "evidence": "On 2026-09-26 the owner explicitly selected 'R3 同意，授權跑完全程 (Recommended)' for the R3 item CLASSIFY-EXACT-FALLTHROUGH-1112-01 of the 1.1.12 review-fix batch, and then '可以，照建議做 (Recommended)' to re-finalize the same reviewed tree on a history that contains main after the first finalization (261241eb6, attested in e425dc004 on 1.1.12) could not enter a release pull request. The reviewed head f19d4156f is the tree-identical merge of the reviewed head ee634de0c onto main 405603dbe; technical final-evidence commit dc677115653658c33a5d61274b1294ee6f45d548 has it as its only parent and changes only the three independently reviewed final records; this separate direct-child commit adds exactly this owner attestation. Approved bounded scope: when an exact Standard Merge capability classifies a nonstandard-length flash as Unknown, Standard classification consults the existing envelope-prefix rule of CTRLRAM-OSD-ENVELOPE-CLASSIFY-1112-01; CtrlRAM length admission is unchanged. Exact-source CI, fresh release Golden executions, packaging and published-download smoke remain required; protected release approval remains the owner's. This is this candidate's owner approval, not a permanent gate waiver."
+}
