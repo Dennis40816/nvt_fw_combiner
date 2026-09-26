@@ -1,0 +1,44 @@
+{
+  "schemaVersion": 2,
+  "taskId": "F08-SAVE-NOTICE-1113-01",
+  "capability": "A failed local-state save (report history or shell preferences) shows a persistent, retryable status-bar notice that stays until a later save of that state succeeds and never blocks other work",
+  "integrationBase": "84b084dd8fd218730ce75adb93b5dc2c456dd3c6",
+  "risk": "R1",
+  "kind": "ui",
+  "state": "design-active",
+  "mutablePaths": [
+    "src/NvtFwCombiner.Presentation.Avalonia/LatestSnapshotPersistenceCoordinator.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/MainWindow.axaml",
+    "src/NvtFwCombiner.Presentation.Avalonia/MainWindow.axaml.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ShellPreferenceFileStore.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/LocalStateSaveNoticeViewModel.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ShellTextResources.Core.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ShellTextResources.Localized.cs",
+    "tests/NvtFwCombiner.UiSmoke.Tests/LocalStateSaveNoticeTests.cs",
+    "tests/NvtFwCombiner.UiSmoke.Tests/ShellViewModelTests.Preferences.cs"
+  ],
+  "implementationOwner": "claude-code",
+  "searchEvidence": [
+    "docs/handoff/bugs/BUG-20260925-persistence-failure-not-actionable.md and roadmap F08 (1.1.13 board, owner decision 27): LatestSnapshotPersistenceCoordinator records save exceptions only in LastFailure, which has no consumer outside ReportHistoryPersistenceTests; MainWindow queues report-history and preference snapshots but presents no failure and offers no retry.",
+    "rg -n 'LatestSnapshotPersistenceCoordinator|LastFailure|ShellPreferenceFileStore.SaveAsync|ReportHistoryFileStore.SaveAsync' src tests: MainWindow creates the only two coordinators and completes them on close; ShellPreferenceFileStore.SaveAsync catches ArgumentException, IOException, NotSupportedException, OperationCanceledException and UnauthorizedAccessException, so a preference save failure never reaches its coordinator.",
+    "rg -n 'Retry|statusNotice|HasOptionalStatus|ForegroundLoadingState|DisclosureStatusViewModel|SetShellToast' src/NvtFwCombiner.Presentation.Avalonia: ShellPreloadSession owns only the startup preparation status in the bottom row (Grid.Row 4, OptionalPreloadStatusHost) and, like ForegroundLoadingState, is a window-owned presentation object assigned to its host's DataContext; DisclosureStatusViewModel is an immutable card without an action; the report toast fades after three seconds. No existing owner presents a persistent local-state save failure; the statusNotice warning style, the warning tokens and the secondary icon-button role are reused.",
+    "RepositoryBoundaryTests.ShellNavigationOrchestrationUsesFocusedTypedChild caps the owner-approved MainWindowViewModel*.cs aggregate at 1,024 non-blank lines and the base uses 1,022, so the notice is not a new MainWindowViewModel partial. An earlier local, unpublished admission of this task (kept as backup/f08-save-notice-first-admission, cda1a7dc2) declared such a partial and was replaced before any implementation commit.",
+    "Owner decisions 33 and 34 (2026-09-26): the approved reference places a light warning strip aligned with the content in the bottom status row with an amber triangle, a bold title, a separator and one-line detail whose reason follows the actual failure; Retry is a round icon-only button with a bilingual tooltip and accessible name; text is 13 px and the strip keeps OptionalPreloadStatusHost's geometry."
+  ],
+  "semanticOwner": "LatestSnapshotPersistenceCoordinator remains the only owner of local-state save serialization, supersession and failure observation; it additionally reports each save that completes or fails (never a superseded one) and re-queues its latest captured snapshot on retry. LocalStateSaveNoticeViewModel is the only presentation owner of the failed-save notice; like ShellPreloadSession in the same status row, the window that owns both coordinators creates it, assigns it to the status-row host, relays language changes to it, posts save outcomes to it on the UI thread and detaches it when disposed. MainWindowViewModel is unchanged.",
+  "terminalContract": "When a report-history or shell-preference save fails, the bottom status row (Grid.Row 4, stacked above the startup preparation status with the same margin, padding, border and radius in the warning tone) shows one bilingual 13 px line: an amber warning icon, a bold title, a separator and a detail sentence whose reason follows the failure (access denied, disk full, file in use, report too large, or unexpected); its tooltip and accessible help text name each unsaved state (report history, preferences) with its diagnostic. A round icon-only Retry button with a bilingual tooltip and accessible name re-queues each failed coordinator's latest snapshot through the same coordinator; the shell stays interactive. The notice for a state disappears only when a later save of that state succeeds, whether from Retry or from the next automatic save; a failed retry keeps it. Superseded saves report nothing. After the window is disposed, later save outcomes and Retry no longer change the notice. A cancelled or failed preference save now propagates to its coordinator instead of being swallowed; saved bytes, file names, paths, size limits and the close flush are unchanged, and no firmware byte, range, CRC, naming or profile behavior changes.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": null,
+    "outcome": "not-required",
+    "evidence": "Bounded local R1 presentation correction of F08 (BUG-20260925-persistence-failure-not-actionable) inside the existing Presentation persistence owner and the window that owns it, following owner decisions 27, 33 and 34; no Application, public contract, profile or firmware change."
+  },
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": {
+    "reviewer": null,
+    "outcome": "pending",
+    "evidence": ""
+  }
+}
