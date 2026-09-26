@@ -82,7 +82,7 @@ release state.
 ```powershell
 $env:PYTHONUTF8 = "1"
 python tests/scripts/test_assess_refactor_progress.py
-python C:/Users/liusx/.codex/skills/.system/skill-creator/scripts/quick_validate.py `
+python "$env:USERPROFILE/.codex/skills/.system/skill-creator/scripts/quick_validate.py" `
   .agents/skills/assess-refactor-progress
 python scripts/validate_repository.py
 ```
