@@ -374,6 +374,22 @@ internal sealed partial class FirmwareArtifactClassificationResolver(
                 CompiledFirmwareArtifactClassifier.Classify(
                     exactCapability.CompiledComposition,
                     candidate);
+            // CLASSIFY-EXACT-FALLTHROUGH-1112-01: an Unknown direct result consults only the envelope prefix rule.
+            if (classification.Kind == CompiledFirmwareArtifactKind.Unknown &&
+                ResolveCurrentCompositions(snapshot, normalizedIcId) is { Length: > 0 } envelopeCompositions &&
+                TryClassifyStandardEnvelopePrefix(
+                    snapshot,
+                    normalizedIcId,
+                    envelopeCompositions,
+                    candidate,
+                    out CompiledFirmwareArtifactClassification? exactPrefix,
+                    out StandardCandidate? exactPrefixCandidate))
+            {
+                return IsCurrentSnapshot(snapshot)
+                    ? (exactPrefix, exactPrefixCandidate?.Capability, null)
+                    : (null, null, null);
+            }
+
             return IsCurrentSnapshot(snapshot) ? (classification, exactCapability, null) : (null, null, null);
         }
 

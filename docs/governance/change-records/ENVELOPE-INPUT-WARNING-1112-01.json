@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 2,
+  "taskId": "ENVELOPE-INPUT-WARNING-1112-01",
+  "capability": "Show the nonstandard-length warning for a CtrlRAM Display-OSD envelope Base during input inspection",
+  "integrationBase": "6b31408279b326cb8043a7a8a36cbf496964aa82",
+  "risk": "R1",
+  "kind": "ui",
+  "state": "final-complete",
+  "mutablePaths": [
+    "src/NvtFwCombiner.Application/InputInspection/CompiledInputArtifactInspectionService.cs",
+    "tests/NvtFwCombiner.Bootstrap.Tests/Nt51950Nt51951DiffDlmMaskCascade2GoldenTests.cs"
+  ],
+  "implementationOwner": "claude-code",
+  "searchEvidence": [
+    "Pull request #449 review (P2): ApplySourceEnvelopeWarning recognizes only ResolvedMapV2CompilationContext, so a nonstandard CtrlRAM envelope Base shows as Valid before Build and DP_NONSTANDARD_SIZE_WARNING appears only in the run report.",
+    "RuntimeReferenceReplaceV2CompilationContext.SourceEnvelope (CTRLRAM-OSD-ENVELOPE-1112-01) already carries the typed envelope that MemoryLayout and the report read."
+  ],
+  "semanticOwner": "CompiledInputArtifactInspectionService remains the only input-inspection owner; the envelope facts stay owned by the runtime compilation context.",
+  "terminalContract": "Input inspection of a CtrlRAM Replace reference slot whose compiled runtime reference-replace context carries a source envelope reports the envelope's unexpected-length warning with its expected outer lengths when the Base length is not one of them, exactly as for the Standard Merge source envelope. Standard-length Bases, other contexts, admission, output bytes, names and ranges are unchanged.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": null,
+    "outcome": "not-required",
+    "evidence": "Bounded local R1 correction of review findings on pull requests #448 and #449; reviewed with the batch in the fixed-head final review."
+  },
+  "implementationHead": "ee634de0cbba04b4d0a5dfd286ca88c736372d10",
+  "reviewedHead": "ee634de0cbba04b4d0a5dfd286ca88c736372d10",
+  "pathStateDigest": "61152bf487a5656f5c3af446092fe4e6b71dc0cd2f95d4c4e018d809892c4ccf",
+  "finalReview": {
+    "reviewer": "codex/gpt-6-sol",
+    "outcome": "approved",
+    "evidence": "Independent read-only final review by codex/gpt-6-sol: APPROVED at 8a9f2b84d and still applicable at exact head ee634de0cbba04b4d0a5dfd286ca88c736372d10, whose later diff does not change this record's implementation, tests or paths. Input inspection reuses the runtime reference-replace source envelope and warns on a nonstandard CtrlRAM Base length while a standard outer length stays Valid; the regression asserts warning code, expected lengths, next action and nonblocking admission."
+  },
+  "integrationPaths": [
+    "src/NvtFwCombiner.Application/InputInspection/CompiledInputArtifactInspectionService.cs"
+  ]
+}

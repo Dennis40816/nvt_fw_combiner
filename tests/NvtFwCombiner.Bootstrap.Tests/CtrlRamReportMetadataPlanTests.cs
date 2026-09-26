@@ -466,6 +466,64 @@ public sealed class CtrlRamReportMetadataPlanTests
         return candidate;
     }
 
+    /// <summary>
+    /// CLASSIFY-EXACT-FALLTHROUGH-1112-01: with the active Standard Merge envelope capability, a nonstandard-length
+    /// flash still classifies as Flash Code by its largest shorter published Standard prefix.
+    /// </summary>
+    [Fact]
+    public void NonstandardEnvelopeFlashIsFlashCodeWithTheExactStandardCapability()
+    {
+        byte[] candidate = CreateEnvelopeCandidate("nt51950-fw200-single-auto-prj-676-20260717", 0x40000, 0x60000);
+        Assert.True(
+            BootstrapTestHost.Canonical.Compiler.TryCompileStandardMerge(
+                "NT51950", candidate, ["dp-input", "tp-input"],
+                out _, out ResolvedCapability? capability, out IReadOnlyList<CompositionIssue> issues),
+            string.Join(" | ", issues.Select(static issue => issue.Message)));
+        var resolver = new FirmwareArtifactClassificationResolver(
+            BootstrapTestHost.Canonical.Catalog, BootstrapTestHost.Services.Compiler);
+
+        CompiledFirmwareArtifactClassification classification = Assert.IsType<CompiledFirmwareArtifactClassification>(
+            resolver.Resolve("NT51950", Assert.IsType<ResolvedCapability>(capability), candidate));
+
+        Assert.Equal(CompiledFirmwareArtifactKind.FlashCode, classification.Kind);
+        Assert.Equal(0x40000, classification.Signals.Single(
+            static signal => signal.Kind == CompiledFirmwareArtifactSignalKind.DeclaredContainerCapacity)
+            .RequiredEndExclusive);
+    }
+
+    /// <summary>
+    /// Known 1.1.12 limitation, fail-closed: a 512 KiB NT51950 Standard Base whose Display OSD half contains one
+    /// complete NVT marker has one marker in each AB bank and is classified as AB; its B bank is not a valid bank,
+    /// so the session is rejected and no Replace can run.
+    /// </summary>
+    [Fact]
+    public void Nt51950StandardOsdBaseWithTailNvtMarkerFailsClosed()
+    {
+        const string caseId = "nt51950-fw200-single-auto-prj-676-20260717";
+        byte[] candidate = CreateEnvelopeCandidate(caseId, 0x40000, 0x80000);
+        byte[] marker = [0x00, 0x4E, 0x56, 0x54];
+        marker.CopyTo(candidate.AsSpan(0x50000));
+        JsonElement fixtureCase = CanonicalGoldenTestData.LoadDirectCase("ctrlram-replace", caseId);
+        JsonElement replacementArtifact = fixtureCase.GetProperty("artifacts").EnumerateArray().Single(
+            static artifact => artifact.GetProperty("originalFileName").GetString() == "NF_Ctrlram.bin");
+        using var workspace = TempWorkspace.Create("nvt-fw-combiner-osd-tail-marker");
+        var slotPaths = new Dictionary<string, string>(StringComparer.Ordinal)
+        {
+            [CompositionSlotIds.ReplaceBase] = workspace.Write("reference.bin", candidate),
+            ["replace-ctrlram-nf"] = CanonicalGoldenTestData.ArtifactPath(replacementArtifact),
+        };
+        Dictionary<string, byte[]> inputBytes = slotPaths.ToDictionary(
+            static pair => pair.Key,
+            static pair => File.ReadAllBytes(pair.Value),
+            StringComparer.Ordinal);
+
+        CtrlRamAuthoringSessionPreparation preparation = BootstrapTestHost.Canonical.CtrlRamAuthoring.PrepareSession(
+            new AuthoringSessionState(ExperienceIds.CtrlRamReplace), "NT51950", "single", slotPaths, inputBytes);
+
+        Assert.Null(preparation.AcceptedSession);
+        Assert.Contains(preparation.Issues, static issue => issue.Code.StartsWith("input.bank-reference.", StringComparison.Ordinal));
+    }
+
     /// <summary>The shared firmware-inspection result preserves an exact CtrlRAM compilation failure.</summary>
     [Theory]
     [InlineData(

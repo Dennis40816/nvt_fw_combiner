@@ -33,30 +33,30 @@ NVT markers. Existing firmware support levels are unchanged.
 
 #### 2. A committed output survives an interrupted delivery or report
 
-- Before → After: Cancelling the additional loose delivery after the primary output was written, or a failure while preparing the report, could drop the committed output's path, size and SHA-256 from the result. The result now keeps the committed primary output and reports the delivery or report as failed.
-- Affected: Build with an additional loose delivery; the run result and its report.
+- Before → After: Cancelling the additional loose delivery after the primary output was written, or a failure while preparing the report, could drop the committed output's path, size and SHA-256 from the result. The result now keeps the committed primary output and reports the delivery or report as failed; in the desktop application the receipt appears in the selected language when the run is cancelled, or report preparation fails with a report-data, I/O or access error, after the output is written; the Build completed dialog is not shown for that result, and the progress ends as report unavailable.
+- Affected: Build with an additional loose delivery (desktop and CLI); report-preparation failures after the output is written in the desktop application.
 - Support status: unchanged/support-neutral.
 - Compatibility: output bytes, names and ranges are unchanged and processors are not rerun. Cancellation before the primary output is written behaves as before.
-- Verification: service and UI regressions for cancellation during delivery and during report preparation.
-- Limitations: retryable persistence failures (F08) and the remaining picker and report residuals (F20, F21) are scheduled for 1.1.13.
+- Verification: service and UI regressions for cancellation during delivery and during report preparation, and for report-materialization failures after the output is written, in both languages.
+- Limitations: in the CLI, a failure to write a requested report after the output is written still stops before the committed receipt is printed. In the desktop application, a result whose report is unavailable does not offer the latest-output shortcut; its path, size and SHA-256 stay in the run result. These, retryable persistence failures (F08) and the remaining picker and report residuals (F20, F21) are scheduled for 1.1.13.
 
 #### 3. NT51950/NT51951 CtrlRAM Replace accepts a Base with Display OSD
 
-- Before → After: CtrlRAM Replace required the Base length to equal a fixed map (NT51950 256 KiB, NT51951 512 KiB), so a flash carrying Display OSD, such as the owner's 0x80000 NT51950 2-IC flash, was rejected. A Base longer than the IC's largest CtrlRAM map is now accepted at any length when the IC's Standard Merge profile declares the Display OSD envelope: that map is the layout template and every byte beyond it is kept unchanged. A Base whose length is not a standard flash size (256 KiB, 512 KiB, 1 MiB) is recognized by its standard prefix and accepted with a nonstandard-size warning.
+- Before → After: CtrlRAM Replace required the Base length to equal a fixed map (NT51950 256 KiB, NT51951 512 KiB), so a flash carrying Display OSD, such as the owner's 0x80000 NT51950 2-IC flash, was rejected. A Base longer than the IC's largest CtrlRAM map is now accepted at any length when the IC's Standard Merge profile declares the Display OSD envelope: that map is the layout template and every byte beyond it is kept unchanged. A Base whose length is not a standard flash size (256 KiB, 512 KiB, 1 MiB) is recognized by its standard prefix and accepted with a nonstandard-size warning that input inspection shows before Build.
 - Affected: NT51950 and NT51951 CtrlRAM Replace (single and 2-IC cascade), its memory layout and its run report; firmware information shows such a flash as Flash Code.
 - Support status: unchanged/support-neutral.
 - Compatibility: a Base whose length equals a map behaves as before. Write ranges, Header/CRC authority and output naming are unchanged, and AB bank Replace keeps its own exact bank lengths. No profile, schema, contract or expected byte changes.
-- Verification: the owner's 0x80000 AUTO_PRJ-599 case on the NT51950 2-IC route reproduces the owner expected output, and with the registered Combiner differs from it only in the four approved CRC words; with the registered Combiner, NT51950 and NT51951 single and 2-IC Bases at 512 KiB and 1 MiB produce the exact-length Standard output inside the template and keep the tail; a nonstandard 0x60000 NT51950 2-IC Base keeps every byte and warns; a Base without a standard prefix stays rejected; a processor write into the tail fails closed.
-- Limitations: the Display OSD content beyond the layout template is kept byte-for-byte but is not inspected or validated. A nonstandard Base shorter than the full-flash map is rejected with the accepted exact lengths.
+- Verification: the owner's 0x80000 AUTO_PRJ-599 case on the NT51950 2-IC route reproduces the owner expected output, and with the registered Combiner differs from it only in the four approved CRC words; with the registered Combiner, NT51950 and NT51951 single and 2-IC Bases at 512 KiB and 1 MiB produce the exact-length Standard output inside the template and keep the tail; a nonstandard 0x60000 NT51950 2-IC Base keeps every byte and warns before and after Build; with the active Standard Merge capability a nonstandard flash still classifies as Flash Code; a Base without a standard prefix stays rejected; a processor write into the tail fails closed.
+- Limitations: the Display OSD content beyond the layout template is kept byte-for-byte but is not inspected or validated. A nonstandard Base shorter than the full-flash map is rejected with the accepted exact lengths. A complete NVT marker (`00 4E 56 54`) inside the Display OSD content makes the FWConfig Backup ambiguous: such a Base is rejected (a 512 KiB NT51950 Base as an invalid AB Base), or its Build fails without writing an output; no output is produced from it. Excluding such markers is scheduled for 1.1.13.
 
 #### 4. AB Bases are decided by two NVT markers
 
-- Before → After: when only one AB layout compiled at a Base's length, one plausible bank made it AB, so a 512 KiB NT51950 or 1 MiB NT51951 Standard Base with Display OSD was treated as AB. A Base is now AB only when it has the trusted AB structure or exactly one complete NVT marker (`00 4E 56 54`) in each canonical bank; markers in a Display OSD tail do not count.
+- Before → After: when only one AB layout compiled at a Base's length, one plausible bank made it AB, so a 512 KiB NT51950 or 1 MiB NT51951 Standard Base with Display OSD was treated as AB. A Base is now AB only when it has the trusted AB structure or exactly one complete NVT marker (`00 4E 56 54`) in each canonical bank; markers outside the canonical banks do not count.
 - Affected: CtrlRAM Replace Base classification for ICs with AB layouts.
 - Support status: unchanged/support-neutral.
 - Compatibility: every AB Golden input remains AB; bank issues are still reported, and equally evidenced layouts still report `input.bank-reference.ambiguous`. This supersedes the 1.1.11 single-candidate recognition for NT51929 and NT51951.
 - Verification: 27 characterization cases (one marker, one per bank, duplicate and tail markers, damaged-Backup structure, ambiguity), AB Golden regression and the full Bootstrap suite.
-- Limitations: a Base with two markers in the same bank, or with a marker only in a Display OSD tail, is not AB evidence; without the trusted AB structure it is classified as Standard or rejected as unrecognized.
+- Limitations: a Base with two markers in the same bank, or with markers only outside the canonical banks, is not AB evidence; without the trusted AB structure it is classified as Standard or rejected as unrecognized. The Display OSD half of a 512 KiB NT51950 Standard Base lies inside the second AB bank, so a complete NVT marker there makes the Base an invalid AB Base, which is rejected (see Product change 3).
 
 ### Security
 
@@ -79,6 +79,11 @@ hash-pinned trust checks, and no library-global schema registry is modified.
 - The 32-byte Header-backup/CRC difference carried from 1.1.11 is scheduled for
   1.1.13; that comparison is still not certified as byte-identical.
 - AB CtrlRAM routes retain their existing Candidate status.
+- A complete NVT marker inside Display OSD content blocks the NT51950/NT51951
+  CtrlRAM Base (Product changes 3 and 4); the Base is rejected or its Build
+  fails without an output. The CLI still omits the committed receipt when a
+  requested report cannot be written (Product change 2). Both are scheduled
+  for 1.1.13.
 
 ### Upgrade and rollback
 

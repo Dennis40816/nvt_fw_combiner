@@ -26,6 +26,9 @@ internal enum CompositionRunDeliveryState
 
     /// <summary>The complete report model is ready for review and history capture.</summary>
     ReportReady,
+
+    /// <summary>The Build artifact is committed, but its report ended without a reviewable model.</summary>
+    ReportUnavailable,
 }
 
 internal sealed class CompositionRunProgressStepViewModel
@@ -116,6 +119,7 @@ internal sealed class CompositionRunProgressViewModel : ObservableObject
         {
             CompositionRunDeliveryState.ArtifactCommitted => _text.GetCompositionArtifactCommittedLabel(),
             CompositionRunDeliveryState.ReportReady => _text.GetCompositionReportReadyLabel(),
+            CompositionRunDeliveryState.ReportUnavailable => _text.GetCompositionReportUnavailableLabel(),
             CompositionRunDeliveryState.Idle or
             CompositionRunDeliveryState.Running => _text.GetCompositionRunPhaseLabel(phase),
             _ => throw new ArgumentOutOfRangeException(nameof(DeliveryState), DeliveryState, null),
@@ -216,7 +220,7 @@ internal sealed class CompositionRunProgressViewModel : ObservableObject
             throw new InvalidOperationException("Applicable composition progress phases changed within one run.");
         }
 
-        if (DeliveryState == CompositionRunDeliveryState.ReportReady)
+        if (DeliveryState is CompositionRunDeliveryState.ReportReady or CompositionRunDeliveryState.ReportUnavailable)
         {
             return true;
         }
@@ -240,6 +244,21 @@ internal sealed class CompositionRunProgressViewModel : ObservableObject
         }
 
         DeliveryState = CompositionRunDeliveryState.ReportReady;
+        OnPropertyChanged(nameof(DeliveryState));
+        OnPropertyChanged(nameof(CurrentStepLabel));
+        OnPropertyChanged(nameof(AccessibleStatus));
+    }
+
+    /// <summary>Ends a committed-output delivery whose report cannot become reviewable.</summary>
+    internal void MarkReportUnavailable()
+    {
+        if (RunId is null ||
+            DeliveryState is CompositionRunDeliveryState.ReportReady or CompositionRunDeliveryState.ReportUnavailable)
+        {
+            return;
+        }
+
+        DeliveryState = CompositionRunDeliveryState.ReportUnavailable;
         OnPropertyChanged(nameof(DeliveryState));
         OnPropertyChanged(nameof(CurrentStepLabel));
         OnPropertyChanged(nameof(AccessibleStatus));
