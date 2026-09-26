@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 2,
+  "taskId": "CLI-REPORT-ATOMIC-1113-01",
+  "capability": "A failed or cancelled CLI --report write never leaves a partial or damaged report: the report is written to a staging file in the destination directory and renamed over the destination in one step, and every handled failure removes the staging file and leaves the destination unchanged",
+  "integrationBase": "84b084dd8fd218730ce75adb93b5dc2c456dd3c6",
+  "risk": "R1",
+  "kind": "behavior",
+  "state": "design-active",
+  "mutablePaths": [
+    "src/NvtFwCombiner.Cli/CliCompositionRunSupport.cs",
+    "tests/NvtFwCombiner.Bootstrap.Tests/CliReportAtomicWriteTests.cs"
+  ],
+  "implementationOwner": "claude-code",
+  "searchEvidence": [
+    "docs/handoff/bugs/BUG-20260926-cli-report-write-not-atomic.md (PR #457 review, P2): CliCompositionRunSupport.WriteReportJsonAsync(string, string, TextWriter, CancellationToken) truncates the destination and writes it with File.WriteAllTextAsync, so a cancellation, a full disk or another IOException during the write leaves partial JSON or a damaged earlier report while the CLI prints cli.report.failed ('was not written') and, after a commit, exits 0 (owner decision 25).",
+    "rg -n 'WriteReportJsonAsync|WriteAllText|File\\.' src/NvtFwCombiner.Cli: that method is the only CLI report file write. The five committed Build routes reach it through the result-aware overload (after and before a commit) and the General Replace diagnostic Preview calls it directly, so one change covers every --report.",
+    "rg -n 'File\\.Move\\(|File\\.Replace\\(|AtomicFileWriteScope|ILocalFileStore' src: ILocalFileStore.WriteAsync (LocalFileStore through Windows/UnixAtomicFileWriteScope) atomically writes application-owned files (Saved Rules, report history, preferences, runtime and format configuration). It holds a verified parent-directory handle and refuses a reparse-point parent, or one whose final path differs from the requested path, with Saved Rule messages; a local probe at this base refused a junction directory, a path through a junction and a subst drive, so reusing it would newly reject user-chosen --report destinations that work today. JsonSystemDiagnosticsExporter (System Information export to a user-chosen path) and AtomicFileCompositionOutputWriter (the CLI --output) use the plain pattern: staging file in the destination directory, File.Move with overwrite, delete on failure. Both are payload-specific adapters, not a port for arbitrary report text, so the CLI report owner adopts the same pattern instead of adding a second owner.",
+    "File.Move with overwrite renames inside one directory (MoveFileEx with MOVEFILE_REPLACE_EXISTING on Windows, rename on Unix), so the destination is replaced whole or not at all. File.Replace is not used: without a backup name, ReplaceFile can fail after removing the replaced file (ERROR_UNABLE_TO_MOVE_REPLACEMENT).",
+    "Coverage: no real CLI input fails a file write halfway deterministically, so a mid-write IOException, a full disk (HRESULT 0x80070070) and a mid-write cancellation are injected through the report writer's staging-content delegate; CLI regressions through CliApplication.RunAsync cover a committed Build replacing an existing report, a post-commit cancellation and a post-commit replace failure with an existing report."
+  ],
+  "semanticOwner": "CliCompositionRunSupport.WriteReportJsonAsync remains the only CLI report file writer (the owner admitted by CLI-REPORT-RECEIPT-1113-01 and CLI-REPORT-BUNDLE-GUARD-1113-01); its write becomes a same-directory staging file followed by one rename over the destination. The result-aware overload, its post-commit guard, the handled-failure classification, the handlers, the Application run result and the report JSON are unchanged.",
+  "terminalContract": "Every CLI --report (after a committed Build, before a commit, and the General Replace diagnostic Preview) is encoded as UTF-8 without a BOM, written and flushed to a new staging file in the destination directory and renamed over the destination by one File.Move; the Report line is printed only after the rename. A cancellation before the rename, or any exception while encoding, writing, flushing or renaming (an IOException such as a full disk, an access failure or another error), deletes the staging file it created and leaves the destination's earlier bytes, or its absence, unchanged; if that deletion itself fails, the original failure is still the one reported. After a commit such a failure still prints one cli.report.failed partial-success issue on stderr, no Report line and exit code 0 (owner decision 25); failures before a commit keep their existing propagation and exit codes. A successful write produces the same report bytes as before.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": null,
+    "outcome": "not-required",
+    "evidence": "Bounded local R1 correction of the existing CLI report writer, found by the PR #457 review, with no Application, profile, firmware byte, range, report-content or exit-code change."
+  },
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": {
+    "reviewer": null,
+    "outcome": "pending",
+    "evidence": ""
+  }
+}
