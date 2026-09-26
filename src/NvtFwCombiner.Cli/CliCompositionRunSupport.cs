@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Text;
 using System.Text.Json;
 using NvtFwCombiner.Domain.Composition;
 
@@ -8,6 +9,10 @@ internal static class CliCompositionRunSupport
 {
     /// <summary>Issue printed when a requested report is not written after the Build output committed.</summary>
     internal const string CommittedReportFailedIssueCode = "cli.report.failed";
+
+    private static readonly UTF8Encoding ReportEncoding = new(
+        encoderShouldEmitUTF8Identifier: false,
+        throwOnInvalidBytes: true);
 
     internal static CliOutputTarget ResolveOutputTarget(string? requestedOutput, string defaultFileName)
     {
@@ -49,21 +54,90 @@ internal static class CliCompositionRunSupport
             "--report");
     }
 
-    internal static async Task WriteReportJsonAsync(
+    /// <summary>
+    /// Writes one report so that its destination is replaced whole or not at all: the UTF-8 report is
+    /// written and flushed to a new staging file in the destination directory and then renamed over the
+    /// destination. A failure or cancellation before that rename deletes the staging file and leaves the
+    /// destination's earlier bytes, or its absence, unchanged.
+    /// </summary>
+    internal static Task WriteReportJsonAsync(
         string reportPath,
         string reportJson,
         TextWriter output,
         CancellationToken cancellationToken)
     {
+        return WriteReportJsonAsync(
+            reportPath,
+            reportJson,
+            output,
+            static (staging, content, token) => staging.WriteAsync(content, token),
+            cancellationToken);
+    }
+
+    /// <summary>
+    /// Writes one report as described above; <paramref name="writeStagingContent"/> writes the complete
+    /// report bytes into the open staging file.
+    /// </summary>
+    internal static async Task WriteReportJsonAsync(
+        string reportPath,
+        string reportJson,
+        TextWriter output,
+        Func<Stream, ReadOnlyMemory<byte>, CancellationToken, ValueTask> writeStagingContent,
+        CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(output);
+        ArgumentNullException.ThrowIfNull(writeStagingContent);
         string fullPath = Path.GetFullPath(reportPath);
         string? directory = Path.GetDirectoryName(fullPath);
-        if (!string.IsNullOrWhiteSpace(directory))
+        if (string.IsNullOrWhiteSpace(directory) || string.IsNullOrWhiteSpace(Path.GetFileName(fullPath)))
         {
-            _ = Directory.CreateDirectory(directory);
+            throw new ArgumentException("Report path must resolve to a file path.", nameof(reportPath));
         }
 
-        await File.WriteAllTextAsync(fullPath, reportJson, cancellationToken).ConfigureAwait(false);
+        byte[] content = ReportEncoding.GetBytes(reportJson);
+        cancellationToken.ThrowIfCancellationRequested();
+        _ = Directory.CreateDirectory(directory);
+        string stagingPath = Path.Combine(directory, $".nfc-report-{Guid.NewGuid():N}.tmp");
+        try
+        {
+            await using (var staging = new FileStream(
+                             stagingPath,
+                             FileMode.CreateNew,
+                             FileAccess.Write,
+                             FileShare.None,
+                             bufferSize: 0,
+                             FileOptions.Asynchronous | FileOptions.WriteThrough))
+            {
+                await writeStagingContent(staging, content, cancellationToken).ConfigureAwait(false);
+                await staging.FlushAsync(cancellationToken).ConfigureAwait(false);
+            }
+
+            cancellationToken.ThrowIfCancellationRequested();
+            File.Move(stagingPath, fullPath, overwrite: true);
+        }
+        catch
+        {
+            DeleteStagingFile(stagingPath);
+            throw;
+        }
+
         await output.WriteLineAsync($"Report: {fullPath}").ConfigureAwait(false);
+    }
+
+    private static void DeleteStagingFile(string stagingPath)
+    {
+        try
+        {
+            File.Delete(stagingPath);
+        }
+        catch (IOException)
+        {
+            // The original report failure is the one reported; the destination is unchanged either way.
+        }
+        catch (UnauthorizedAccessException)
+        {
+            // The original report failure is the one reported; the destination is unchanged either way.
+        }
     }
 
     /// <summary>
