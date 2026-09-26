@@ -1,0 +1,148 @@
+{
+  "schemaVersion": "1.0",
+  "kind": "predecessor-comparison-contract",
+  "certification": "none",
+  "terminal": false,
+  "modes": {
+    "rolling": {
+      "purpose": "release-gate",
+      "baseline": {
+        "kind": "previous-published-stable-release",
+        "tagPattern": "^v(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)$",
+        "annotatedTagRequired": true,
+        "peeledCommitAncestorOfCandidate": true,
+        "publishedReleaseVerifiedBy": "release-workflow"
+      },
+      "inputAuthority": {
+        "kind": "active-canonical-golden-at-candidate-commit",
+        "routeAuthority": "capability-policy-at-candidate-commit",
+        "ledger": "docs/contracts/predecessor-comparison-scenarios-v1.json"
+      },
+      "comparisonSet": "ledger-scenarios",
+      "tpWorkComparison": "direct-complete-output",
+      "outcomes": ["baseline-rejects", "both-reject", "candidate-rejects", "different", "equal", "invalid"],
+      "differenceDisposition": "release-declaration",
+      "declarationRequired": true,
+      "amendmentRead": false,
+      "results": ["blocked", "clear"]
+    },
+    "v0916-1x": {
+      "purpose": "milestone-consistency-check",
+      "milestones": ["1.1.13-final-candidate", "1.2.0-release-approval", "before-ro-1-decision"],
+      "baseline": {
+        "kind": "adr-0057-plan-baseline",
+        "plan": "docs/contracts/v0916-parity-certification-v1.json",
+        "executor": "amendment-baseline-executor"
+      },
+      "inputAuthority": {
+        "kind": "plan-canonical-input-authority",
+        "plan": "docs/contracts/v0916-parity-certification-v1.json",
+        "policyAndManifestAt": "canonicalInputAuthority.repositoryCommit"
+      },
+      "comparisonSet": "plan-routes-with-canonical-input",
+      "notCoveredSet": "canonicalInputAuthority.currentlyMissingRouteIds",
+      "proofKinds": ["canonical-binding-not-applicable-to-v0916", "exact-output", "exact-output-with-approved-semantic-correction", "tp-prefix-transitive"],
+      "differenceDisposition": "exact-plan-or-amendment-row",
+      "declarationRequired": false,
+      "amendment": "docs/contracts/v0916-parity-1x-amendment-v1.json",
+      "routeResults": ["consistent", "inconsistent", "invalid", "not-covered"],
+      "results": ["consistent", "inconsistent", "invalid"]
+    }
+  },
+  "executor": {
+    "materialization": "fresh-detached-git-worktree",
+    "cleanTreeRequired": true,
+    "forbiddenPreRestorePathSegments": ["bin", "obj"],
+    "sdkSource": "global.json",
+    "restore": {
+      "workingDirectory": ".",
+      "arguments": ["dotnet", "restore", "src/NvtFwCombiner.Cli/NvtFwCombiner.Cli.csproj", "--locked-mode", "--disable-parallel", "--runtime", "win-x64"]
+    },
+    "build": {
+      "workingDirectory": ".",
+      "arguments": ["dotnet", "build", "src/NvtFwCombiner.Cli/NvtFwCombiner.Cli.csproj", "--configuration", "Release", "--runtime", "win-x64", "--self-contained", "true", "--no-restore", "-m:1", "-p:ContinuousIntegrationBuild=true", "-p:PathMap={sourceRoot}=/_/src"]
+    },
+    "compilerHost": {
+      "status": "pending-executor-record",
+      "boardDecisions": ["1.1.12 board decision 79"]
+    },
+    "cliAssembly": "src/NvtFwCombiner.Cli/bin/Release/net10.0/win-x64/NvtFwCombiner.Cli.exe",
+    "runtimeClosureRoot": "src/NvtFwCombiner.Cli/bin/Release/net10.0/win-x64",
+    "lockFilesMustNotChange": true,
+    "lockFileSet": {
+      "members": "git-tracked-files-matching",
+      "pattern": "src/*/packages.lock.json",
+      "bytes": "git-blob",
+      "entry": ["path", "size", "sha256"],
+      "order": "path-ascending-ordinal",
+      "digest": "jcs-sha256"
+    },
+    "identityPinnedInAdvance": false,
+    "authorityTrees": ["external-tools", "profiles", "src", "tools/crc-worker"],
+    "recordedIdentity": ["authorityTrees", "cliSha256", "commit", "lockFileSetSha256", "resolvedSdkVersion", "runtimeClosureSha256", "tagObject", "tree"]
+  },
+  "environment": {
+    "perProcessTemporaryDirectories": true,
+    "temporaryRootMaxLength": 64,
+    "perUserSettingsFolder": "LocalApplicationData/NvtFwCombiner",
+    "perUserSettingsFiles": ["event-buffer-format.v1.json", "toolchain-runtime.v1.json"],
+    "perUserSettingsRedirection": "none",
+    "reportOfRecordPolicy": "per-user-settings-absent-before-and-after",
+    "customSettingsRuns": "diagnostic-only"
+  },
+  "perSideSafety": {
+    "owner": "scripts/v0916_parity_certification.py",
+    "authorityProducer": "typed-preview-of-the-same-executor-and-staged-inputs",
+    "checks": ["validate_report_sequence", "validate_report_projection_against_compiled_authority", "validate_semantic_report_ranges"],
+    "readerMayRelaxChecks": false
+  },
+  "typedRejection": {
+    "reportRequired": true,
+    "nonzeroExitRequired": true,
+    "errorIssueRequired": true,
+    "processFailureIssueCodes": ["external-tool.process.failed"]
+  },
+  "interfaces": {
+    "declarationSchema": {
+      "path": "docs/contracts/predecessor-comparison-declaration-v1.schema.json",
+      "status": "proposed"
+    },
+    "reportSchema": {
+      "path": "docs/contracts/predecessor-comparison-report-v1.schema.json",
+      "status": "proposed"
+    },
+    "reportReader": {
+      "status": "pending-reader-record",
+      "reason": "The P-0.5 spike has read the issue severities and report members of successful and rejected 1.x and v0.9.16 runs; the versioned reader rules and the revision of the proposed schemas are admitted by a separate record."
+    },
+    "declarationDirectory": "docs/contracts/predecessor-comparison-declarations"
+  },
+  "cliArgumentAliases": [],
+  "comparison": {
+    "outputAddressSpace": "output-file-offset",
+    "rangeNotation": "half-open",
+    "sizeMismatch": "bytes-beyond-the-shorter-output-differ",
+    "reportedRangeLimit": 32,
+    "rangeListDigest": "jcs-sha256",
+    "precursorBaseCompared": true
+  },
+  "declarationEntryKinds": ["accepted-gap", "baseline-rejects", "both-reject", "byte-difference", "candidate-rejects", "input-revision", "scenario-retired"],
+  "attributionMechanisms": ["derived-field", "precursor-carried", "stopped-write-preserved-bytes", "writes-different-bytes"],
+  "failureCodes": [
+    {"code": "PREDECESSOR_AMENDMENT_MISMATCH", "modes": ["v0916-1x"], "meaning": "The amendment's plan binding differs from the plan, an amendment row is not reproduced exactly, or the v0.9.16 baseline executor is not in effect."},
+    {"code": "PREDECESSOR_BASELINE_INVALID", "modes": ["rolling", "v0916-1x"], "meaning": "The baseline is not the mode's baseline: the declared previous published stable release as an annotated ancestor tag, or the plan's v0.9.16 tag object and peeled commit."},
+    {"code": "PREDECESSOR_CONTRACT_PENDING", "modes": ["rolling", "v0916-1x"], "meaning": "A formal run was requested while an interface this contract marks proposed or pending is not in effect: a proposed schema, the report reader, the compiler-host pinning or the v0.9.16 baseline executor."},
+    {"code": "PREDECESSOR_COVERAGE_INCOMPLETE", "modes": ["rolling"], "meaning": "A universe route whose active route evidence names a case has no active scenario for that case."},
+    {"code": "PREDECESSOR_COVERAGE_UNDISPOSED", "modes": ["rolling"], "meaning": "A universe route is neither compared, in the debt set, nor an accepted gap, a pending gap approval is still open, or a scenario retirement or input revision is not declared."},
+    {"code": "PREDECESSOR_ENVIRONMENT_INVALID", "modes": ["rolling", "v0916-1x"], "meaning": "A per-user settings file is present in a formal run or changes during any run, a process refuses its settings without writing a report, or a temporary root exceeds its length bound."},
+    {"code": "PREDECESSOR_EXECUTOR_INVALID", "modes": ["rolling", "v0916-1x"], "meaning": "Source materialization, SDK resolution, restore, lock-file state, build or executor identity failed."},
+    {"code": "PREDECESSOR_INPUT_INVALID", "modes": ["rolling", "v0916-1x"], "meaning": "Golden authority, case, artifact size or SHA-256 differs from the mode's input authority, or a staged input changed during a process."},
+    {"code": "PREDECESSOR_PROCESS_FAILED", "modes": ["rolling", "v0916-1x"], "meaning": "A CLI process crashed, timed out, exited without a report, or reported an external-tool process failure such as external-tool.process.failed; never a typed product rejection."},
+    {"code": "PREDECESSOR_RELEASE_NOTE_MISSING", "modes": ["rolling"], "meaning": "A declaration entry id is absent from the candidate version's CHANGELOG section."},
+    {"code": "PREDECESSOR_REPORT_INVALID", "modes": ["rolling", "v0916-1x"], "meaning": "A report disagrees with its capture, fails the compiled-authority, sequence or range checks, or carries an error issue on a run that produced output."},
+    {"code": "PREDECESSOR_SOURCE_MISMATCH", "modes": ["rolling", "v0916-1x"], "meaning": "The report does not come from the exact candidate source or does not bind the required digests."},
+    {"code": "PREDECESSOR_STALE_DECLARATION", "modes": ["rolling"], "meaning": "A declaration entry is not reproduced exactly by the run."},
+    {"code": "PREDECESSOR_UNAPPROVED_DIFFERENCE", "modes": ["v0916-1x"], "meaning": "A plan route's outputs differ, a side rejects, or a transitive check fails, and no plan or amendment row is reproduced exactly."},
+    {"code": "PREDECESSOR_UNDECLARED_CHANGE", "modes": ["rolling"], "meaning": "An outcome other than equal, or a coverage change, has no matching declaration entry."}
+  ]
+}

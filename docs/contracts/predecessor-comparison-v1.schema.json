@@ -1,0 +1,334 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://nvt.local/contracts/predecessor-comparison-v1.schema.json",
+  "title": "NVT FW Combiner predecessor comparison contract",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "kind",
+    "certification",
+    "terminal",
+    "modes",
+    "executor",
+    "environment",
+    "perSideSafety",
+    "typedRejection",
+    "interfaces",
+    "cliArgumentAliases",
+    "comparison",
+    "declarationEntryKinds",
+    "attributionMechanisms",
+    "failureCodes"
+  ],
+  "properties": {
+    "schemaVersion": { "const": "1.0" },
+    "kind": { "const": "predecessor-comparison-contract" },
+    "certification": { "const": "none" },
+    "terminal": { "const": false },
+    "modes": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["rolling", "v0916-1x"],
+      "properties": {
+        "rolling": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "purpose",
+            "baseline",
+            "inputAuthority",
+            "comparisonSet",
+            "tpWorkComparison",
+            "outcomes",
+            "differenceDisposition",
+            "declarationRequired",
+            "amendmentRead",
+            "results"
+          ],
+          "properties": {
+            "purpose": { "const": "release-gate" },
+            "baseline": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["kind", "tagPattern", "annotatedTagRequired", "peeledCommitAncestorOfCandidate", "publishedReleaseVerifiedBy"],
+              "properties": {
+                "kind": { "const": "previous-published-stable-release" },
+                "tagPattern": { "const": "^v(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)$" },
+                "annotatedTagRequired": { "const": true },
+                "peeledCommitAncestorOfCandidate": { "const": true },
+                "publishedReleaseVerifiedBy": { "const": "release-workflow" }
+              }
+            },
+            "inputAuthority": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["kind", "routeAuthority", "ledger"],
+              "properties": {
+                "kind": { "const": "active-canonical-golden-at-candidate-commit" },
+                "routeAuthority": { "const": "capability-policy-at-candidate-commit" },
+                "ledger": { "const": "docs/contracts/predecessor-comparison-scenarios-v1.json" }
+              }
+            },
+            "comparisonSet": { "const": "ledger-scenarios" },
+            "tpWorkComparison": { "const": "direct-complete-output" },
+            "outcomes": { "const": ["baseline-rejects", "both-reject", "candidate-rejects", "different", "equal", "invalid"] },
+            "differenceDisposition": { "const": "release-declaration" },
+            "declarationRequired": { "const": true },
+            "amendmentRead": { "const": false },
+            "results": { "const": ["blocked", "clear"] }
+          }
+        },
+        "v0916-1x": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "purpose",
+            "milestones",
+            "baseline",
+            "inputAuthority",
+            "comparisonSet",
+            "notCoveredSet",
+            "proofKinds",
+            "differenceDisposition",
+            "declarationRequired",
+            "amendment",
+            "routeResults",
+            "results"
+          ],
+          "properties": {
+            "purpose": { "const": "milestone-consistency-check" },
+            "milestones": { "const": ["1.1.13-final-candidate", "1.2.0-release-approval", "before-ro-1-decision"] },
+            "baseline": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["kind", "plan", "executor"],
+              "properties": {
+                "kind": { "const": "adr-0057-plan-baseline" },
+                "plan": { "const": "docs/contracts/v0916-parity-certification-v1.json" },
+                "executor": { "const": "amendment-baseline-executor" }
+              }
+            },
+            "inputAuthority": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["kind", "plan", "policyAndManifestAt"],
+              "properties": {
+                "kind": { "const": "plan-canonical-input-authority" },
+                "plan": { "const": "docs/contracts/v0916-parity-certification-v1.json" },
+                "policyAndManifestAt": { "const": "canonicalInputAuthority.repositoryCommit" }
+              }
+            },
+            "comparisonSet": { "const": "plan-routes-with-canonical-input" },
+            "notCoveredSet": { "const": "canonicalInputAuthority.currentlyMissingRouteIds" },
+            "proofKinds": {
+              "const": ["canonical-binding-not-applicable-to-v0916", "exact-output", "exact-output-with-approved-semantic-correction", "tp-prefix-transitive"]
+            },
+            "differenceDisposition": { "const": "exact-plan-or-amendment-row" },
+            "declarationRequired": { "const": false },
+            "amendment": { "const": "docs/contracts/v0916-parity-1x-amendment-v1.json" },
+            "routeResults": { "const": ["consistent", "inconsistent", "invalid", "not-covered"] },
+            "results": { "const": ["consistent", "inconsistent", "invalid"] }
+          }
+        }
+      }
+    },
+    "executor": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "materialization",
+        "cleanTreeRequired",
+        "forbiddenPreRestorePathSegments",
+        "sdkSource",
+        "restore",
+        "build",
+        "compilerHost",
+        "cliAssembly",
+        "runtimeClosureRoot",
+        "lockFilesMustNotChange",
+        "lockFileSet",
+        "identityPinnedInAdvance",
+        "authorityTrees",
+        "recordedIdentity"
+      ],
+      "properties": {
+        "materialization": { "const": "fresh-detached-git-worktree" },
+        "cleanTreeRequired": { "const": true },
+        "forbiddenPreRestorePathSegments": { "const": ["bin", "obj"] },
+        "sdkSource": { "const": "global.json" },
+        "restore": { "$ref": "#/$defs/command" },
+        "build": { "$ref": "#/$defs/command" },
+        "compilerHost": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["status", "boardDecisions"],
+          "properties": {
+            "status": { "enum": ["pending-executor-record"] },
+            "boardDecisions": { "const": ["1.1.12 board decision 79"] }
+          }
+        },
+        "cliAssembly": { "type": "string", "pattern": "^src/NvtFwCombiner\\.Cli/bin/Release/[a-z0-9.]+/win-x64/NvtFwCombiner\\.Cli\\.exe$" },
+        "runtimeClosureRoot": { "type": "string", "pattern": "^src/NvtFwCombiner\\.Cli/bin/Release/[a-z0-9.]+/win-x64$" },
+        "lockFilesMustNotChange": { "const": true },
+        "lockFileSet": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["members", "pattern", "bytes", "entry", "order", "digest"],
+          "properties": {
+            "members": { "const": "git-tracked-files-matching" },
+            "pattern": { "const": "src/*/packages.lock.json" },
+            "bytes": { "const": "git-blob" },
+            "entry": { "const": ["path", "size", "sha256"] },
+            "order": { "const": "path-ascending-ordinal" },
+            "digest": { "const": "jcs-sha256" }
+          }
+        },
+        "identityPinnedInAdvance": { "const": false },
+        "authorityTrees": { "const": ["external-tools", "profiles", "src", "tools/crc-worker"] },
+        "recordedIdentity": {
+          "const": ["authorityTrees", "cliSha256", "commit", "lockFileSetSha256", "resolvedSdkVersion", "runtimeClosureSha256", "tagObject", "tree"]
+        }
+      }
+    },
+    "environment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "perProcessTemporaryDirectories",
+        "temporaryRootMaxLength",
+        "perUserSettingsFolder",
+        "perUserSettingsFiles",
+        "perUserSettingsRedirection",
+        "reportOfRecordPolicy",
+        "customSettingsRuns"
+      ],
+      "properties": {
+        "perProcessTemporaryDirectories": { "const": true },
+        "temporaryRootMaxLength": { "const": 64 },
+        "perUserSettingsFolder": { "const": "LocalApplicationData/NvtFwCombiner" },
+        "perUserSettingsFiles": { "const": ["event-buffer-format.v1.json", "toolchain-runtime.v1.json"] },
+        "perUserSettingsRedirection": { "const": "none" },
+        "reportOfRecordPolicy": { "const": "per-user-settings-absent-before-and-after" },
+        "customSettingsRuns": { "const": "diagnostic-only" }
+      }
+    },
+    "perSideSafety": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["owner", "authorityProducer", "checks", "readerMayRelaxChecks"],
+      "properties": {
+        "owner": { "const": "scripts/v0916_parity_certification.py" },
+        "authorityProducer": { "const": "typed-preview-of-the-same-executor-and-staged-inputs" },
+        "checks": {
+          "const": ["validate_report_sequence", "validate_report_projection_against_compiled_authority", "validate_semantic_report_ranges"]
+        },
+        "readerMayRelaxChecks": { "const": false }
+      }
+    },
+    "typedRejection": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["reportRequired", "nonzeroExitRequired", "errorIssueRequired", "processFailureIssueCodes"],
+      "properties": {
+        "reportRequired": { "const": true },
+        "nonzeroExitRequired": { "const": true },
+        "errorIssueRequired": { "const": true },
+        "processFailureIssueCodes": { "const": ["external-tool.process.failed"] }
+      }
+    },
+    "interfaces": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["declarationSchema", "reportSchema", "reportReader", "declarationDirectory"],
+      "properties": {
+        "declarationSchema": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["path", "status"],
+          "properties": {
+            "path": { "const": "docs/contracts/predecessor-comparison-declaration-v1.schema.json" },
+            "status": { "enum": ["proposed"] }
+          }
+        },
+        "reportSchema": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["path", "status"],
+          "properties": {
+            "path": { "const": "docs/contracts/predecessor-comparison-report-v1.schema.json" },
+            "status": { "enum": ["proposed"] }
+          }
+        },
+        "reportReader": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["status", "reason"],
+          "properties": {
+            "status": { "enum": ["pending-reader-record"] },
+            "reason": { "type": "string", "minLength": 1 }
+          }
+        },
+        "declarationDirectory": { "const": "docs/contracts/predecessor-comparison-declarations" }
+      }
+    },
+    "cliArgumentAliases": {
+      "type": "array",
+      "maxItems": 0
+    },
+    "comparison": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["outputAddressSpace", "rangeNotation", "sizeMismatch", "reportedRangeLimit", "rangeListDigest", "precursorBaseCompared"],
+      "properties": {
+        "outputAddressSpace": { "const": "output-file-offset" },
+        "rangeNotation": { "const": "half-open" },
+        "sizeMismatch": { "const": "bytes-beyond-the-shorter-output-differ" },
+        "reportedRangeLimit": { "const": 32 },
+        "rangeListDigest": { "const": "jcs-sha256" },
+        "precursorBaseCompared": { "const": true }
+      }
+    },
+    "declarationEntryKinds": {
+      "const": ["accepted-gap", "baseline-rejects", "both-reject", "byte-difference", "candidate-rejects", "input-revision", "scenario-retired"]
+    },
+    "attributionMechanisms": {
+      "const": ["derived-field", "precursor-carried", "stopped-write-preserved-bytes", "writes-different-bytes"]
+    },
+    "failureCodes": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["code", "modes", "meaning"],
+        "properties": {
+          "code": { "type": "string", "pattern": "^PREDECESSOR_[A-Z_]+$" },
+          "modes": {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": { "enum": ["rolling", "v0916-1x"] }
+          },
+          "meaning": { "type": "string", "minLength": 1 }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "command": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["workingDirectory", "arguments"],
+      "properties": {
+        "workingDirectory": { "const": "." },
+        "arguments": {
+          "type": "array",
+          "minItems": 2,
+          "items": { "type": "string", "minLength": 1 }
+        }
+      }
+    }
+  }
+}
