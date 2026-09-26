@@ -440,6 +440,17 @@ the release design and this log; the ADR draft carries its allocated number
 Open: the re-review (commander).
 Next: structure check of this commit, then stop.
 
+### 2026-09-26 Structure check of the G0 re-review revision
+State: verified (documents only)
+Commits: `ba0227cdd` verified; the commit carrying this entry changes only
+this entry.
+Evidence: `python scripts/verify.py --structure-only` with TEMP, TMP and
+TMPDIR set to `<test-area>/temp`, at `ba0227cdd` -> `structure=PASS`, 306.5 s;
+`sync_derived` changed 0 files. A link and anchor check of the four changed
+documents passed before the commit.
+Open: the re-review (commander).
+Next: stop.
+
 ## Owner decisions in risk order
 
 One question at a time, highest risk first. Each item gives the question in
