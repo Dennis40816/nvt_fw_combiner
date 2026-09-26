@@ -160,6 +160,7 @@ internal sealed partial class MainWindowViewModel
                 () => IsReducedMotionEnabled,
                 () => Reports,
                 TryShowBuildCompleted,
+                BuildResult.RetainLatestCommittedOutput,
                 () => RefreshCommandState(),
                 NotifyShellRunStateChanged));
         RunSession.PropertyChanged += RunSession_OnPropertyChanged;

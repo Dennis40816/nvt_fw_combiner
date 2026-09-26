@@ -39,5 +39,6 @@ internal sealed record CompositionRunStateBindings(
     Func<bool> IsReducedMotionEnabled,
     Func<ReportPresentationViewModel> Reports,
     Func<CompositionRunResult, bool, bool> TryShowBuildCompleted,
+    Action<string> RetainLatestCommittedOutput,
     Action RefreshCommandState,
     Action NotifyShellRunStateChanged);
