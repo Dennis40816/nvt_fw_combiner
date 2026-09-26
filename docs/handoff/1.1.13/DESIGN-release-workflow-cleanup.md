@@ -301,6 +301,10 @@ Proposal:
 
   While a tagged release is incomplete, nothing merges into `main`: advancing
   `main` ends same-run recovery, and a new run cannot reuse the tagged version.
+  The owner's standing bypass on `main` (board decision 77) is never a
+  recovery or release shortcut: it does not bypass the tag ruleset, the
+  protected `release` environment or the release admission, and existing tags
+  and release artifacts are never rewritten.
   The Release Closure Record lists every failed run.
 - Same-run re-runs otherwise stay as the contract says: a failed candidate gets
   a new run. The release keeps the default `overwrite: false` for its
@@ -460,6 +464,10 @@ recommended and confirmed by the owner as board decision 67.
   integration, fix the ADR 0077 version and its package diff and check catalog
   generation time, allowlist, provenance, manifest and smoke together with
   R-1; `package.ps1` needs one writer.
+- **Rolling parity P-2:** R-1 and P-2 both edit
+  `scripts/v0916_parity_certification.py`; the board gives it one writer at a
+  time: the batch admitted first writes it, and the other integrates on the
+  head the first one merged.
 - **Formal 1.x comparator:** owns the comparator, the declaration format and
   the plan fixes (`BUG-20260925-v0916-plan-nt51950-tp-work-correction-missing`,
   `BUG-20260925-nt51950-cascade-ctrlram-plan-base`); this design owns only the

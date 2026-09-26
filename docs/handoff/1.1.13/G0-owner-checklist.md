@@ -1,14 +1,16 @@
 # G0 owner checklist: agent GitHub identity and rulesets
 
-Status: revised 2026-09-26 after the independent review of the first version
-(REJECT, findings F-1 to F-10), for re-review; not to be executed before that
-re-review passes. It implements board decisions 49 and 56 (agents get their
-own GitHub identity, a GitHub App first and a machine account as fallback,
-created by the owner), the G0 step of decision 50, decision 65 (key custody),
-decision 66 (trunk catch-up and an owner-only force-push means) and, for
-RS-1g, decision 67 (O-3). Design: [governance ADR draft](ADR-DRAFT-governance-reset.md),
-items 7 to 11; log: [WS-GOV](WS-GOV.md). Nothing here is done until the owner
-does it.
+Status: third version, 2026-09-26, revised after the second independent review
+(REJECT; findings F-5 to F-8 and F-11 to F-13); for re-review, and not to be
+executed before that re-review passes. It implements board decisions 49 and 56
+(agents get their own GitHub identity, a GitHub App first and a machine account
+as fallback, created by the owner), the G0 step of decision 50, decision 65
+(key custody), decision 66 (trunk catch-up and an owner-only force-push
+means), decision 67 (O-3, for RS-1g), decision 77 (a standing owner-only
+bypass on `main`, the trunk and release branches, never a review or release
+exemption) and decision 78 (pausing a ruleset when an admin bypass cannot be
+set). Design: [governance ADR draft](ADR-DRAFT-governance-reset.md), items 7
+to 11; log: [WS-GOV](WS-GOV.md). Nothing here is done until the owner does it.
 
 `<owner>/<repo>` stands for this repository's full name, as listed in
 [`agent-issue-tracker.md`](../../governance/agent-issue-tracker.md).
@@ -18,7 +20,8 @@ does it.
 After G0, agents push branches and open pull requests as the GitHub App, and
 you review and approve them as an ordinary reviewer. The rulesets make an
 approval, the required checks and resolved review threads mandatory on
-`main`, the trunk and release branches.
+`main`, the trunk and release branches, for everyone except you when you use
+the bypass under the procedure of part C.
 
 GitHub's ruleset settings dismiss an approval when new reviewable commits
 arrive and require the most recent push to be approved; they do not promise
@@ -29,18 +32,40 @@ in R-3, not by G0.
 
 | Who | Does | Never does |
 | --- | --- | --- |
-| Owner (you) | Every account, key and secret step: creates the app (or the machine account), completes the manifest conversion, installs the app, keeps its private key, sets up the token helper, changes every setting and ruleset, approves, merges, and uses the force-push bypass | - |
-| Agents | Prepare this checklist and non-secret files, draft the token helper for your review, set non-secret Git settings on request, run read-only checks and the verification of Part D; obtain one-hour installation tokens only through the helper | Create accounts or apps; read the private key, your password manager, DPAPI-protected data or credential stores; read or copy any long-lived token or your credentials; modify the helper; change settings or rulesets; approve pull requests or environments; use a bypass |
+| Owner (you) | Every account, key and secret step: creates the app (or the machine account), completes the manifest conversion, installs the app, keeps its private key, backs up and restores any credential setting, sets up the token helper, changes every setting and ruleset, approves, merges, and runs the bypass or pause procedure | - |
+| Agents | Prepare this checklist and non-secret files, draft the token helper for your review, set non-secret Git settings on request, run read-only checks and the verification of part D; obtain one-hour installation tokens only through the helper | Create accounts or apps; read the private key, your password manager, DPAPI-protected data, credential stores or credential settings you have not confirmed as non-secret; read or copy any long-lived token or your credentials; modify the helper; change settings or rulesets; approve pull requests or environments; use a bypass |
 
 **This is a rule, not a technical boundary (decision 65).** Agents run under
 your Windows user. Everything that user can open is technically within reach
 of an agent process: the App private key in your store, an unlocked password
-manager, DPAPI-protected files, Windows Credential Manager, the token helper
-and its configuration, your signed-in browser session, and any login of yours
-in `gh` or Git Credential Manager. Decision 65 accepts a procedural constraint:
-agents do not read, copy or use them, except through the helper's token
-interface. A technical boundary, such as a separate Windows account or
-service that holds the key, was not adopted.
+manager, DPAPI-protected files, Windows Credential Manager, Git credential
+settings, the token helper and its configuration, your signed-in browser
+session, and any login of yours in `gh` or Git Credential Manager. Decision 65
+accepts a procedural constraint: agents do not read, copy or use them, except
+through the helper's token interface. A technical boundary, such as a separate
+Windows account or service that holds the key, was not adopted.
+
+## Platform facts not verified locally
+
+This checklist relies on GitHub and Windows behavior that was taken from
+documentation and not verified on this repository or machine. G0 confirms
+each one where the last column says before relying on it; if one does not
+hold, stop and tell the commander.
+
+| Fact | Used in | Confirmed by |
+| --- | --- | --- |
+| The manifest conversion `POST /app-manifests/{code}/conversions` needs no token, works once within one hour and returns `pem` with the other credentials | A2 | the conversion succeeding |
+| An app name has at most 34 characters | A2 | the app form |
+| A Windows Credential Manager secret is limited to 2,560 bytes | A4 | your store's own check |
+| Installation tokens expire after one hour; `/installation/repositories` accepts only installation tokens | A6, D3a | D3a |
+| A personal repository offers "Repository admin" in a ruleset bypass list; the API form is `RepositoryRole` with `actor_id` 5 and `bypass_mode` `always`, which also permits direct and force pushes | part C | the ruleset page and its saved JSON; D6 |
+| `do_not_enforce_on_create` only exempts the required-status-checks rule when a branch is created; it skips no other rule, and the pull-request rule does not block creating a branch | RS-2, RS-3, D2 | the ruleset page's help text; D2 |
+| The UI settings of part C have the API names given there (`dismiss_stale_reviews_on_push` and the others) | part C | the saved ruleset JSON |
+| Rule insights list bypassed evaluations with actor and ref; the repository activity view lists pushes and force pushes with their actor | part C, D5, D6 | D5 and D6 |
+| On a personal repository a collaborator gets fixed access; the Collaborators page may offer no role selector | part B | that page |
+| `gh pr merge --match-head-commit <sha>` refuses to merge when the head moved | after G0 | its first use |
+| GitHub's test merge `refs/pull/<n>/merge` has the base and the head as parents | after G0 | step 2 of the catch-up checks the parents |
+| An approval may survive a new SHA with identical changes | top of this page, D4 | D4 |
 
 ## Before you start
 
@@ -53,11 +78,19 @@ service that holds the key, was not adopted.
       API in your own session; the bypass list is visible only to an admin),
       and your screenshot of every section. An agent can save the non-admin
       JSON read-only as a cross-check.
-- [ ] An agent saves the current non-secret Git settings of this repository
-      and the global scope (`git config --show-origin --get-regexp
-      "^(credential|user)\."`) to a local file outside every repository, for
-      the rollback. Those settings contain helper names and user names, no
-      secret; if a line ever looks like a secret, the agent stops and tells you.
+- [ ] Credential settings, by you alone: in your own terminal, not recorded
+      or logged, run `git config --show-origin --get-regexp "^credential\."`
+      inside this repository (it covers the system, global and repository
+      scopes) and save the raw output where only you keep it. Check it for
+      secrets, such as a password or a helper command that embeds a token.
+      Then give the agent only what you confirm as non-secret, per scope and
+      in order: whether `credential.helper` and
+      `credential.https://github.com.helper` exist, their values, and any
+      `credential.*.username`. Anything secret-bearing stays with you and you
+      restore it yourself (rollback).
+- [ ] An agent saves the repository's `user.name` and `user.email` settings
+      (`git config --local --get-regexp "^user\."`) and your confirmed
+      summary to a local file outside every repository, for the rollback.
 - [ ] You have 30 to 60 minutes; GitHub settings pages open in a browser
       signed in as you, with two-factor authentication.
 
@@ -96,7 +129,7 @@ secret and no `workflows` permission.
 | --- | --- | --- |
 | `metadata: read` | Required for every app | No |
 | `contents: write` | Push feature branches, read files, merge a pull request when you ask an agent to | No |
-| `pull_requests: write` | Open and update pull requests, post review records and replies | No |
+| `pull_requests: write` | Open, update and merge pull requests, post review records and replies | No |
 | `checks: read`, `statuses: read`, `actions: read` | Read CI results, logs and artifacts | Only if agents never read CI |
 
 Not requested: `workflows` (added by you, with your approval of the new
@@ -195,21 +228,21 @@ pages and packages. The webhook is inactive and subscribes to no event.
 - [ ] Agents use only that token interface: they never open the key store,
       change the helper or its configuration, or run the key-reading part on
       its own (the rule of decision 65).
-- [ ] Wire Git to the helper for this repository (all worktrees share this
-      setting; an agent may run these on your request, since they contain no
-      secret):
+- [ ] Wire Git to the helper at the repository scope (all worktrees share it;
+      an agent may run these on your request, since they contain no secret):
 
       ```text
-      git config --replace-all credential.https://github.com.helper ""
-      git config --add credential.https://github.com.helper "!<helper command> git"
+      git config --local --replace-all credential.https://github.com.helper ""
+      git config --local --add credential.https://github.com.helper "!<helper command> git"
       ```
 
-      The empty first entry stops Git from falling back to your stored
-      credentials for this repository.
+      The empty first entry stops Git from using the helpers of the system
+      and global scopes, and so your stored credentials, for this repository.
+      Part C explains how you push as yourself despite it.
 
 ### A7. Agent commit identity
 
-- [ ] With your approval, an agent sets, for this repository:
+- [ ] With your approval, an agent sets, at the repository scope:
       `user.name` = `<app-slug>[bot]` and `user.email` =
       `<bot-user-id>+<app-slug>[bot]@users.noreply.github.com`. Agent commits
       keep their co-author lines.
@@ -224,8 +257,9 @@ pages and packages. The webhook is inactive and subscribes to no event.
 - [ ] Do owner actions in the browser: approvals, merges, release dispatch and
       approval, settings. A signed-in browser session is also reachable by
       processes of your Windows user; it too is covered by the rule only.
-- [ ] When you need your own command-line access (for example the bypass in
-      Part C), sign in for that task and sign out afterwards.
+- [ ] When you need your own command-line access (the bypass procedure of
+      part C), sign in for that task only, through the owner path there, and
+      sign out afterwards.
 
 ## Part B: machine account (fallback, decision 56)
 
@@ -252,8 +286,11 @@ Steps:
 
 - [ ] Create the account in a private browser window, with its own email
       address and two-factor authentication.
-- [ ] Repository settings, **Collaborators**: invite it with the **Write**
-      role (not Maintain or Admin); accept the invitation as that account.
+- [ ] Repository settings, **Collaborators**: add the machine account. A
+      personal repository gives a collaborator the fixed collaborator access
+      the page describes (reading and pushing, no administration) and may show
+      no role selector; check on the page what it grants. Accept the
+      invitation as that account.
 - [ ] Token: prefer a fine-grained token limited to this repository if GitHub
       offers the repository; otherwise a classic token with only the `repo`
       scope and an expiry. Add the `workflow` scope only just before the
@@ -265,10 +302,14 @@ Steps:
       machine account's login, so Git Credential Manager picks that account,
       and set the commit identity to its noreply address. Do A8 as well.
 
-## Part C: ruleset changes, each for your approval
+## Part C: rulesets, bypass and pause
+
+### C1. Ruleset changes, each for your approval
 
 Settings, **Rules**, **Rulesets**. The UI takes branch-name patterns; the API
 takes full ref patterns, so both are listed. RS-2 and RS-3 are new rulesets.
+The API values are from the documentation (see the list of facts not
+verified locally); the JSON GitHub saves is the record.
 
 | ID | Ruleset | Setting | UI input | API value |
 | --- | --- | --- | --- | --- |
@@ -283,45 +324,109 @@ takes full ref patterns, so both are listed. RS-2 and RS-3 are new rulesets.
 | RS-1h | `main` | Allowed merge methods | Merge only | `allowed_merge_methods: ["merge"]` |
 | RS-1i | `main` | Block force pushes; Restrict deletions | on; on | rules `non_fast_forward`, `deletion` |
 | RS-1j | `main` | Require status checks to pass | unchanged: the saved checks with their sources, "Require branches to be up to date" and "Do not require status checks on creation" exactly as saved | unchanged: `required_status_checks` (each `context` with its `integration_id`), `strict_required_status_checks_policy`, `do_not_enforce_on_create` as saved |
-| RS-1k | `main` | Bypass list | see the force-push means below | see below |
+| RS-1k | `main` | Bypass list (decision 77) | Repository admin, Always allow | `[{"actor_type": "RepositoryRole", "actor_id": 5, "bypass_mode": "always"}]` |
 | RS-2 | new "trunk" | Target branches | Include by pattern: `*.*.x` | `"include": ["refs/heads/*.*.x"], "exclude": []` |
-| RS-2 | "trunk" | Rules | RS-1b to RS-1i; required checks: the same three contexts with the same sources as RS-1j, "up to date" off, "Do not require status checks on creation" on (so a branch can be created, for example a release branch cut from the trunk) | as RS-1b to RS-1i; `required_status_checks` copied from RS-1j, `strict_required_status_checks_policy: false`, `do_not_enforce_on_create: true` |
-| RS-2 | "trunk" | Bypass list | Repository admin, Always allow | `[{"actor_type": "RepositoryRole", "actor_id": 5, "bypass_mode": "always"}]` |
+| RS-2 | "trunk" | Rules | RS-1b to RS-1i; required checks: the same three contexts with the same sources as RS-1j, "up to date" off, "Do not require status checks on creation" on | as RS-1b to RS-1i; `required_status_checks` copied from RS-1j, `strict_required_status_checks_policy: false`, `do_not_enforce_on_create: true` |
+| RS-2 | "trunk" | Bypass list (decisions 66 and 77) | as RS-1k | as RS-1k |
 | RS-3 | new "release branches" | Target branches | Include by pattern: `*.*.*`; Exclude by pattern: `*.*.x` | `"include": ["refs/heads/*.*.*"], "exclude": ["refs/heads/*.*.x"]` |
-| RS-3 | "release branches" | Rules | RS-1b to RS-1h; Block force pushes on; **deletion allowed** (release closure deletes the branch after its tag); required checks as RS-2, including "Do not require status checks on creation" on, so the release branch can be cut | as RS-2 without `deletion` |
-| RS-3 | "release branches" | Bypass list | Repository admin, Always allow | as RS-2 |
+| RS-3 | "release branches" | Rules | RS-1b to RS-1h; Block force pushes on; **deletion allowed** (release closure deletes the branch after its tag); required checks as RS-2 | as RS-2 without `deletion` |
+| RS-3 | "release branches" | Bypass list (decisions 66 and 77) | as RS-1k | as RS-1k |
 | RS-4 | tag ruleset `refs/tags/v*` (existing) | Everything | confirm only: update and deletion restricted, bypass list **empty** | unchanged; the release policy requires an empty bypass list |
 
-Also confirm on each protected branch's effective rules (Part D, D1) that
-there is no "Require linear history" rule (merge commits are required), no
-signed-commit or deployment rule, and no other ruleset adding rules. The
-`actor_id` 5 is the admin role in the API; check it against the ruleset JSON
-GitHub saves, where the UI shows the role by name.
+Notes:
 
-**Force-push means (decision 66).** The means is owner-only: the Repository
-admin role, which on this personal repository is only you, is the bypass
-actor of RS-2 and RS-3; the app and the machine account never are.
+- "Do not require status checks on creation" (`do_not_enforce_on_create`) only
+  lets a new branch be created although its commit lacks the required checks.
+  It skips no other rule and does not promise that any branch can be
+  created. In RS-2 it lets the trunk itself be created, for example `1.2.x`
+  from `main`; in RS-3 it lets a release branch be cut from the trunk.
+- Confirm on each protected branch's effective rules (part D, D1) that there
+  is no "Require linear history" rule (merge commits are required), no
+  signed-commit or deployment rule, and no other ruleset adding rules.
+- The bypass actor is the Repository admin role, which on this personal
+  repository is only you; the app and the machine account never are. The
+  page may not offer that role: confirm it when you edit RS-1. If it is not
+  offered, leave every bypass list empty and use the pause procedure (C3,
+  decision 78) instead of the bypass.
+- Not part of G0: the branch-name allowlist and automatic branch deletion
+  (checklist A-5, approved item by item under decision 24); if you approve the
+  allowlist later, it must let the agent identity create `feature/*.*.*/**`
+  and you create `recovery/**`.
+- Unchanged: the protected `release` environment with you as the required
+  reviewer, the Codex review app, and the read-only default workflow token.
 
-- When: a protected branch must be force-pushed or deleted, for example when
-  the trunk has to be rebuilt as wave 2 was on 2026-09-26.
-- How: you, signed in as yourself for this task only (A8), run
-  `git push --force-with-lease=<branch>:<expected-old-sha> origin <new-sha>:refs/heads/<branch>`.
-  The push succeeds only through the bypass. Agents never run it.
-- Record: the board gets the date, branch, old and new SHA, reason and
-  decision reference; GitHub's rule insights (Settings, Rules, Insights)
-  should list the bypassed evaluation with the actor and ref, and the board
-  entry is the record if they do not.
-- `main` (RS-1k): open question for the owner (see the log). Recommended: no
-  bypass actor on `main`, which holds released code; for a true emergency you
-  can still, as admin, set RS-1 to Disabled for the push and back to Active.
-- If this repository does not offer the Repository admin role as a bypass
-  actor, stop and let the commander ask you (see the log for the options).
+### C2. Bypass procedure (decision 77)
 
-Not part of G0: the branch-name allowlist and automatic branch deletion
-(checklist A-5, approved item by item under decision 24); if you approve the
-allowlist later, it must let the agent identity create `feature/*.*.*/**`.
-Unchanged: the protected `release` environment with you as the required
-reviewer, the Codex review app, and the read-only default workflow token.
+A bypass skips **every** rule of its ruleset for you: the pull request,
+approvals, required checks, and the force-push and deletion protection. It
+is an owner action outside the normal flow, used only to force-push or delete
+a protected branch (for example rebuilding the trunk, as wave 2 needed on
+2026-09-26). It is never a review or release exemption. It does not bypass the
+tag ruleset (whose bypass list stays empty), the protected `release`
+environment or the release workflow's checks: releasing still needs an
+approved, fully checked pull request for the exact head, so a bypassed change
+is released only after it passes those again.
+
+Your push path. A6 routes every GitHub credential of this repository through
+the App helper, so a push from your usual checkout would go out as the app,
+which has no bypass. Use one of these, in your own terminal, with no token on
+the command line:
+
+- a one-command override:
+
+  ```text
+  git -c credential.https://github.com.helper= -c credential.https://github.com.helper=manager -c credential.https://github.com.username=<your-login> push --force-with-lease=<branch>:<old-sha> origin <new-sha>:refs/heads/<branch>
+  ```
+
+  The empty entry clears the App helper for this command only; Git Credential
+  Manager (`manager`, or the helper name your Git installation uses) then asks
+  you to sign in, in the browser. Afterwards remove the credential it stored
+  for your account (A8);
+- or a separate clone of your own, outside every worktree and without the
+  repository-level App helper, used only for owner pushes.
+
+Before:
+
+1. The board records the branch, the old SHA, the intended new SHA, the
+   reason and the time.
+2. A recovery ref keeps the old SHA: you push
+   `refs/heads/recovery/<branch>-<yyyymmdd>` pointing at it (outside every
+   protected pattern), and delete it when the board closes the matter.
+3. The commander stops related writes and releases: agents neither push nor
+   merge into that branch, no release run starts, and open pull requests into
+   it wait.
+
+During:
+
+4. You push through your path, with `--force-with-lease=<branch>:<old-sha>`
+   (or `git push origin --delete <branch>` for a deletion).
+
+After:
+
+5. You confirm the actor and the result: the repository's activity view for
+   that branch shows the push or force push by your account, and the
+   ruleset's rule insights list the bypass. Then check that the agent path is
+   unchanged: `git config --local --get-all
+   credential.https://github.com.helper` still shows the empty entry and the
+   App helper.
+6. An agent reads the branch's effective rules
+   (`GET /repos/<owner>/<repo>/rules/branches/<branch>`) and compares them
+   with C1; you confirm the bypass lists on the page.
+7. Approvals and evidence are renewed on the new head: open pull requests into
+   the branch are reviewed and approved again, checks run again, and nothing
+   approved before carries over.
+8. Existing tags and release artifacts are never rewritten.
+9. The board records the result, the recovery ref and the checks of steps 5
+   and 6; related writes resume.
+
+### C3. Pause procedure (decision 78, only without an admin bypass)
+
+1. Steps 1 to 3 of C2, and a bounded window (for example 30 minutes) whose
+   start and end the board records.
+2. You set the ruleset's enforcement to **Disabled**, push through your path
+   of C2, and set it back to **Active** at once. While it is disabled, no rule
+   of that ruleset protects any branch it covers, for any actor.
+3. Steps 5 to 9 of C2, with step 6 covering every branch the ruleset covers.
 
 ## Part D: verification
 
@@ -333,46 +438,66 @@ to its rule, in the WS-GOV log; you confirm.
 - [ ] **D1 Formal refs by snapshot.** An agent reads the effective rules of
       `main`, `1.1.x` and, if present, a release branch
       (`GET /repos/<owner>/<repo>/rules/branches/<branch>`) and compares every
-      rule with Part C; you compare the bypass lists, visible only to an
-      admin, in the UI.
+      rule with C1; you compare the bypass lists, visible only to an admin, in
+      the UI.
 - [ ] **D2 Disposable branches.** An agent creates `9.9.x` (trunk pattern) and
-      `9.9.9` (release pattern) from the trunk head, as the app. Then, each
-      with the rule named in GitHub's message: a direct push to `9.9.x` is
-      rejected (pull request required); a force push to `9.9.x` is rejected
-      (force push blocked); deleting `9.9.x` is rejected (deletion
+      `9.9.9` (release pattern) from the trunk head, as the agent identity.
+      Then, each with the rule named in GitHub's message: a direct push to
+      `9.9.x` is rejected (pull request required); a force push to `9.9.x` is
+      rejected (force push blocked); deleting `9.9.x` is rejected (deletion
       restricted); a force push to `9.9.9` is rejected.
-- [ ] **D3 App identity through real writes.** The agent pushes
+- [ ] **D3a App identity through real writes.** The agent pushes
       `feature/1.1.13/g0-check` (a one-line change under `docs/handoff/`)
       through the helper and opens a pull request into `9.9.x`: the pull
       request author and the pusher in its timeline are `<app-slug>[bot]`,
       and `gh api /installation/repositories` through the wrapper succeeds
       (only an installation token can call it) and lists only this
       repository. A successful public read alone proves no identity.
+- [ ] **D3b Machine-account identity (fallback only).** The same push and pull
+      request: the author and the pusher are the machine account; `gh api
+      user` through its `gh` login returns that account; and you check on the
+      account's settings that it can reach only this repository.
 - [ ] **D4 Approval behavior.** You approve the head in the browser. The agent
       pushes a commit that changes the diff: the approval is dismissed. You
       approve again; the agent pushes a new SHA with the same tree (an empty
       commit): record whether GitHub keeps or dismisses the approval. Either
       result is acceptable in G0, because the exact-head rule belongs to G1-A.
       An unresolved review thread blocks the merge until it is resolved.
-- [ ] **D5 Positive path.** With your approval on the current head, all
-      required checks green and every thread resolved, the pull request
-      merges into `9.9.x` (you press Merge, or tell the agent to).
-- [ ] **D6 Owner bypass.** You force-push `9.9.x` with the bypass, as in
-      Part C, and then delete it the same way; both succeed and are recorded.
+- [ ] **D5 Positive path without a bypass.** With your approval on the current
+      head, all required checks green and every thread resolved, the agent
+      identity, which has no bypass, merges the pull request into `9.9.x`
+      (`gh pr merge <n> --merge --match-head-commit <head-sha>` through the
+      wrapper). If you merge in the browser instead, leave the option to merge
+      without the requirements unchecked, and confirm in the rule insights
+      that the merge passed and was not a bypass.
+- [ ] **D6 Owner bypass.** Only now: you force-push `9.9.x` and then delete
+      it, each through your push path and the steps of C2 (a disposable
+      branch, so step 3 concerns only it); both succeed and are recorded with
+      the actor.
 - [ ] **D7 Cleanup.** The agent deletes `9.9.9` (deletion allowed) and closes
-      anything left open; the agent records all results and messages in the
-      log.
+      anything left open; you delete the recovery refs; the agent records all
+      results and messages in the log.
 
 ## Rollback
 
 - [ ] GitHub: set RS-2 and RS-3 to Disabled (or delete them), restore RS-1
-      from the saved JSON and screenshots, and uninstall or suspend the app
-      (or remove the machine account's access).
-- [ ] Git settings: an agent restores the saved non-secret settings: removes
-      the helper entries (`git config --unset-all
-      credential.https://github.com.helper`), restores `user.name`,
-      `user.email` and any `credential...username` from the backup, and stops
-      using the `gh` wrapper.
+      from your saved export and screenshots, and uninstall or suspend the
+      app (or remove the machine account's access).
+- [ ] Repository-scope Git settings, which are the only Git settings G0
+      changed. An agent works only from the non-secret facts you confirmed:
+  1. `git config --local --unset-all credential.https://github.com.helper`
+     removes the empty entry and the App helper together.
+  2. If that key had values at the repository scope before G0, add them back
+     in their original order, each with `git config --local --add
+     credential.https://github.com.helper "<value>"`, including an empty
+     entry where one was. If it had none, leave it unset.
+  3. `user.name` and `user.email`: set them back to the saved values, or
+     unset them if they did not exist at the repository scope before.
+  4. Machine-account path: the same for `credential.https://github.com.username`.
+  5. Stop using the `gh` wrapper.
+- [ ] Settings your backup marked secret-bearing: you restore them yourself.
+- [ ] You compare the result with your raw backup, in your own terminal
+      (`git config --show-origin --get-regexp "^credential\."`).
 - [ ] Your own command-line access, if you want it back: you sign in again
       yourself (`gh auth login`, the Git Credential Manager prompt), in your
       own session. Nothing secret is backed up or handed to an agent.
@@ -387,18 +512,29 @@ today's state.
   and release branches happens only through pull requests.
 - **Trunk catch-up until G1-B (decision 66).** RS-2 blocks decision 23's
   fast-forward. After a release, the trunk catches up with `main` through a
-  pull request from `main` into `1.1.x`, merged with a merge commit, only when
-  both checks pass on GitHub's test merge of that pull request
-  (`refs/pull/<n>/merge`), which has the same parents and tree as the merge
-  GitHub will create:
-  1. its tree equals both parent trees (`git rev-parse <m>^{tree}`,
-     `<m>^1^{tree}` and `<m>^2^{tree}` are one value);
-  2. the history gate in force passes with that commit as `HEAD`
-     (`python scripts/verify.py --structure-only`; CI checks the pull
-     request's head, not the merge).
-  After the merge the commander repeats check 1 on the real merge commit and
-  the structure check on the new trunk head. If either check fails, the
-  commander stops and asks you; the pull request is not merged.
+  pull request from `main` into `1.1.x`, merged with a merge commit:
+  1. Record the pull request's base SHA (the trunk head) and head SHA (the
+     `main` head): `gh pr view <n> --json baseRefOid,headRefOid`.
+  2. Fetch GitHub's test merge `refs/pull/<n>/merge` and confirm that its two
+     parents are exactly those SHAs.
+  3. Its tree equals both parent trees: `git rev-parse <m>^{tree}`,
+     `<m>^1^{tree}` and `<m>^2^{tree}` are one value.
+  4. The history gate in force passes with the test merge as `HEAD`
+     (`python scripts/verify.py --structure-only`); CI checks the pull
+     request's head, not the merge.
+  5. Just before merging, read both SHAs again; if either changed, return to
+     step 2. Merge with `gh pr merge <n> --merge --match-head-commit
+     <head-sha>`, or you press Merge after the agent confirms the SHAs.
+  6. After the merge, confirm that the merge commit's parents are the recorded
+     SHAs and that its tree equals both parent trees, and run the structure
+     check on the new trunk head.
+
+  If step 2, 3, 4 or 5 fails, nothing is merged: the commander stops and asks
+  you. If step 6 fails, the merge has already happened: the commander records
+  the merge commit, its parents and trees and the failing check in the board,
+  stops further integration into the trunk and every release, and you decide
+  what follows (for example a revert through a pull request, or a rebuild
+  under C2).
 - Releases: you approve the app-authored release pull request normally, so
   you dispatch `release.yml` with `owner_self_approval_exception` set to
   `false`. The exception and the Codex-only review rule stay in the code until

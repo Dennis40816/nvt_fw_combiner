@@ -1,4 +1,4 @@
-# ADR 00XX (draft): Retire capability-reuse history replay and reset the development flow
+# ADR 0080 (draft): Retire capability-reuse history replay and reset the development flow
 
 - Status: **Proposed** — revised after the independent design review, with
   the owner's decisions of 2026-09-26 recorded; awaiting the independent
@@ -8,12 +8,13 @@
   by Claude Code for WS-GOV ([log](WS-GOV.md), [1.1.13 board](../1.1.13.md))
 - Review: independent design review by `codex/gpt-6-astra` at `e60ba0062`,
   ACCEPT-WITH-CHANGES (P1 F-1 to F-7, P2 F-8 and F-9). This revision takes in
-  every technical correction ([log](WS-GOV.md#design-review-2026-09-26)).
-- Owner decisions: 2026-09-26, board decisions 49 to 52, 56 and 65 to 67
+  every technical correction ([log](WS-GOV.md#design-review-2026-09-26)), and
+  those of the two G0 checklist reviews of the same day, both REJECT
+  ([log](WS-GOV.md#g0-checklist-review-2026-09-26)).
+- Owner decisions: 2026-09-26, board decisions 49 to 52, 56, 65 to 67, 77 and 78
   and, for the release side, 47 and 53 to 55; O-3 and O-4 confirmed in
   decision 67 ([owner decisions](#owner-decisions-2026-09-26)).
-- Number: placeholder. The commander assigns it at integration; 0074 to 0077
-  are taken.
+- Number: 0080, allocated on the [1.1.13 board](../1.1.13.md) on 2026-09-26.
 - Risk: R2 governance by path; every part that changes approval authority is
   R3.
 - Supersedes (on acceptance): ADR 0054, ADR 0059, ADR 0061, ADR 0070,
@@ -272,13 +273,22 @@ conflicts or other release failures.
    `dismiss_stale_reviews_on_push`, `require_last_push_approval`, code-owner
    review from the derived CODEOWNERS and conversation resolution, and block
    force pushes; `main` and the trunk also block deletion, while a release
-   branch is deleted after its tag. The only bypass actor is the owner, through
-   the Repository admin role, on the trunk and release branches: the
-   force-push means of board decision 66, used by the owner alone and recorded
-   in the board; the agent identity is never a bypass actor, and the tag
-   ruleset keeps an empty bypass list. Whether `main` also gets it is an open
-   owner question ([log](WS-GOV.md#open-questions-after-the-g0-review)). The
-   exact parameters are in the [G0 owner checklist](G0-owner-checklist.md),
+   branch is deleted after its tag. The only bypass actor is the owner,
+   through the Repository admin role, on `main`, the trunk and release
+   branches: the standing force-push means of board decisions 66 and 77; the
+   agent identity is never a bypass actor, and the tag ruleset keeps an empty
+   bypass list. A bypass skips every rule of its ruleset, so it is an owner
+   action outside the normal flow and never a review or release exemption:
+   before it the old and new SHA and a recovery ref are recorded and related
+   writes and releases stop; afterwards the effective rules are verified,
+   approvals and evidence are renewed on the new head, and existing tags and
+   release artifacts are never rewritten. It does not bypass the tag ruleset,
+   the protected `release` environment or the release workflow's checks. If
+   this repository cannot name the admin role as a bypass actor, the ruleset
+   is paused for the push instead, for a bounded window with every agent's
+   related writes and releases stopped, and protection is restored and
+   verified afterwards (board decision 78). The exact parameters and both
+   procedures are in the [G0 owner checklist](G0-owner-checklist.md),
    part C.
 9. **No gate goes before its replacement.** The record gate stays active until
    the rulesets of item 8 and the checks of items 4, 6 and 7 are in force and
@@ -438,6 +448,12 @@ conflicts or other release failures.
   the byte, range, order, integrity and support impact.
 - A renamed required check blocks merges until the ruleset changes -> one
   maintenance window, no release in between.
+- A standing owner bypass skips every rule of its ruleset -> it is used only
+  under the procedure of board decision 77 (recorded SHAs and recovery ref,
+  stopped writes and releases, verified rules, renewed approvals and
+  evidence, untouched tags and release artifacts) and never as a review or
+  release exemption; without an admin bypass, the bounded pause of board
+  decision 78.
 - In-flight records at the cut-over -> the transition table below.
 
 ## Compatibility and migration
@@ -529,6 +545,7 @@ to the owner are in the [log](WS-GOV.md#owner-decisions-in-risk-order).
 | O-4 repository-script aggregate (board decision 67) | Stays required, renamed in G2; only the CRC-worker lane leaves with F11 | Dropping it from the required checks |
 | O-5 and O-6 switch-over (board decision 50) | Four steps, G0, G1-A, G1-B, G2; old protection stays until the new one works; G1-B on the owner's one-time written authorization naming base and head; before the 1.1.13 release branch if the reviews finish in time, otherwise 1.1.13 releases with the trunk rule of item 10 | An extra old-style step that seals this ADR alone first |
 | Trunk catch-up and force-push means (board decision 66) | After G0 and until G1-B, a pull request with a merge commit replaces decision 23's fast-forward, only when the merge tree equals both parent trees and the history gate in force passes, otherwise stop and ask; an owner-only bypass keeps a force-push means for protected branches, never for the agent identity | Any merge without the same-tree evidence; a bypass for the agent identity |
+| Bypass on `main` and its fallback (board decisions 77 and 78) | `main` also has the standing owner-only bypass, used only under the recorded procedure and never as a review or release exemption; if the admin role cannot be a bypass actor, the ruleset is paused for a bounded window instead | No bypass on `main` (the draft's recommendation); a separate break-glass app |
 | O-7 waivers (board decision 52) | Old waivers frozen with the records; a new waiver is a pull request statement with every current field, approved by the owner of the waived rule; the six non-waivable areas stay | A folder of new waiver files |
 
 O-3 and O-4 were relayed by the commander on 2026-09-26 as recommended and
