@@ -1,5 +1,12 @@
 # ADR 0079 (draft): Test architecture: selection groups, categories, class size and UI smoke scheduling
 
+> **Moved to ADR 0079.** The maintained text is now
+> `docs/adr/0079-test-architecture.md`, the T1 draft of admission
+> `TEST-ARCH-ADR-1113-01` (batch 2b, under design review, not yet committed).
+> This handoff draft stays unchanged below as the text that the 2026-09-26
+> design review (findings F-1 to F-6) and owner decisions 69 to 76 refer to,
+> and is no longer updated.
+
 - Status: **Proposed** — the owner decided every open question on 2026-09-26
   (board decisions 69 to 76, recorded in the 1.1.12 board on
   `feature/1.1.13/wave2` at `dbc96c268`); this draft enters `docs/adr/` through
