@@ -19,7 +19,8 @@ internal sealed class LatestSnapshotPersistenceCoordinator<TSnapshot>
     /// <param name="capture">Copies a snapshot into an immutable value before it is queued.</param>
     /// <param name="saveCompleted">
     /// Observes every save that finished (<see langword="null"/>) or failed (the exception), in queue order on a
-    /// background thread; a superseded save reports nothing.
+    /// background thread; a save superseded by a newer snapshot reports nothing, even when its write ignored the
+    /// cancellation and finished.
     /// </param>
     internal LatestSnapshotPersistenceCoordinator(
         Func<TSnapshot, CancellationToken, Task> saveAsync,
@@ -112,6 +113,7 @@ internal sealed class LatestSnapshotPersistenceCoordinator<TSnapshot>
         CancellationTokenSource cancellation)
     {
         bool isTerminal = false;
+        bool isLatest = false;
         Exception? failure = null;
         try
         {
@@ -133,7 +135,10 @@ internal sealed class LatestSnapshotPersistenceCoordinator<TSnapshot>
         {
             lock (_gate)
             {
-                if (ReferenceEquals(_latestCancellation, cancellation))
+                // Queue replaces the latest cancellation under this gate, so the save still owns it only when no
+                // newer snapshot superseded it, even if its write ignored the cancellation and finished anyway.
+                isLatest = ReferenceEquals(_latestCancellation, cancellation);
+                if (isLatest)
                 {
                     _latestCancellation = null;
                 }
@@ -142,7 +147,7 @@ internal sealed class LatestSnapshotPersistenceCoordinator<TSnapshot>
             cancellation.Dispose();
         }
 
-        if (isTerminal)
+        if (isTerminal && isLatest)
         {
             ReportSaveCompleted(failure);
         }

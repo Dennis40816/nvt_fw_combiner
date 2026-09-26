@@ -184,6 +184,63 @@ public sealed class LocalStateSaveNoticeTests
         }
     }
 
+    /// <summary>
+    /// A Retry whose in-flight write is superseded by a newer snapshot reports nothing, even when that write ignores
+    /// the cancellation and succeeds: the notice stays until the latest snapshot is saved.
+    /// </summary>
+    [AvaloniaFact]
+    public async Task SupersededRetryThatStillSucceedsKeepsNoticeUntilLatestSnapshotSaves()
+    {
+        using var workspace = TempWorkspace.Create("f08-save-notice-superseded");
+        (PresentationHostServices services, ScriptedStateFiles files) = await CreateScriptedServicesAsync(workspace);
+        using var window = new MainWindow(UiLaunchOptions.Empty, StartupTraceSession.Disabled, services,
+            ShellPreferenceSnapshot.Default);
+        WriteHold? retryWrite = null;
+        WriteHold? latestWrite = null;
+        window.Show();
+        try
+        {
+            await AwaitHistoryReadyAsync(window);
+            var shell = (MainWindowViewModel)window.DataContext!;
+            LocalStateSaveNoticeViewModel notice = Notice(window);
+            Border host = window.FindControl<Border>(NoticeHostName)!;
+            files.Fail(PreferencesPath, static () => new UnauthorizedAccessException("synthetic access denied"));
+            shell.ExpandInputDetailsByDefault = !shell.ExpandInputDetailsByDefault;
+            await WaitUntilAsync(() => notice.IsVisible);
+            ShellPreferenceSnapshot retried = shell.ExportShellPreferences();
+
+            // Retry starts a write that ignores its cancellation; a newer preference change then supersedes it.
+            files.Fail(PreferencesPath, null);
+            retryWrite = files.HoldNextWrite(PreferencesPath, ignoresCancellation: true);
+            notice.RetryCommand.Execute(null);
+            await retryWrite.Started.Task.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
+            latestWrite = files.HoldNextWrite(PreferencesPath);
+            shell.IsReducedMotionEnabled = !shell.IsReducedMotionEnabled;
+            ShellPreferenceSnapshot latest = shell.ExportShellPreferences();
+            Assert.NotEqual(retried, latest);
+
+            // The superseded write still succeeds, yet the latest snapshot is unsaved, so the notice stays.
+            retryWrite.Released.SetResult();
+            await latestWrite.Started.Task.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
+            Dispatcher.UIThread.RunJobs();
+            Assert.Equal(retried, await ShellPreferenceFileStore.LoadAsync(files, PreferencesPath));
+            Assert.True(notice.IsVisible);
+            Assert.True(host.IsVisible);
+
+            latestWrite.Released.SetResult();
+            await WaitUntilAsync(() => !notice.IsVisible);
+            Assert.False(host.IsVisible);
+            Assert.Equal(latest, await ShellPreferenceFileStore.LoadAsync(files, PreferencesPath));
+        }
+        finally
+        {
+            // A failed assertion must not leave a held write stalling the close flush.
+            _ = retryWrite?.Released.TrySetResult();
+            _ = latestWrite?.Released.TrySetResult();
+            await CloseAndFlushAsync(window);
+        }
+    }
+
     /// <summary>Once the window is disposed, a later save outcome and Retry no longer change the notice.</summary>
     [AvaloniaFact]
     public async Task DisposedWindowIgnoresLaterSaveOutcomes()
@@ -389,19 +446,29 @@ public sealed class LocalStateSaveNoticeTests
         }
     }
 
-    /// <summary>The coordinator reports finished and failed saves in order and never a superseded one.</summary>
+    /// <summary>
+    /// The coordinator reports finished and failed saves in queue order and never a superseded one, including an
+    /// in-flight write that ignores its cancellation and finishes after a newer snapshot was queued.
+    /// </summary>
     [Fact]
     public async Task CoordinatorReportsTerminalSavesButNotSupersededOnes()
     {
         TaskCompletionSource firstStarted = new(TaskCreationOptions.RunContinuationsAsynchronously);
         TaskCompletionSource releaseFirst = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        List<string> saved = [];
         List<string> outcomes = [];
         var coordinator = new LatestSnapshotPersistenceCoordinator<string>(
             async (snapshot, _) =>
             {
+                lock (saved)
+                {
+                    saved.Add(snapshot);
+                }
+
                 if (snapshot == "first")
                 {
                     firstStarted.SetResult();
+                    // The write ignores its cancellation and finishes after it was superseded.
                     await releaseFirst.Task;
                 }
                 else if (snapshot == "failed")
@@ -425,8 +492,14 @@ public sealed class LocalStateSaveNoticeTests
         releaseFirst.SetResult();
         await coordinator.WaitForIdleAsync().WaitAsync(TestContext.Current.CancellationToken);
 
-        Assert.Equal(["saved", "synthetic failure"], outcomes);
+        Assert.Equal(["first", "failed"], saved);
+        Assert.Equal(["synthetic failure"], outcomes);
         _ = Assert.IsType<IOException>(coordinator.LastFailure);
+
+        coordinator.Queue("latest");
+        await coordinator.WaitForIdleAsync().WaitAsync(TestContext.Current.CancellationToken);
+        Assert.Equal(["first", "failed", "latest"], saved);
+        Assert.Equal(["synthetic failure", "saved"], outcomes);
     }
 
     /// <summary>Retry re-queues the latest captured snapshot through the same serialized coordinator.</summary>
@@ -760,10 +833,15 @@ public sealed class LocalStateSaveNoticeTests
             services.CanonicalCatalogLoader, services.ExternalEnvironmentLoader, files), files);
     }
 
-    /// <summary>One held write: the test observes its start and decides when it continues.</summary>
-    private sealed class WriteHold(string path)
+    /// <summary>
+    /// One held write: the test observes its start and decides when it continues; a write that ignores
+    /// cancellation still completes after its save was superseded.
+    /// </summary>
+    private sealed class WriteHold(string path, bool ignoresCancellation)
     {
         internal string Path { get; } = path;
+
+        internal bool IgnoresCancellation { get; } = ignoresCancellation;
 
         internal TaskCompletionSource Started { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
@@ -794,9 +872,9 @@ public sealed class LocalStateSaveNoticeTests
             }
         }
 
-        internal WriteHold HoldNextWrite(string path)
+        internal WriteHold HoldNextWrite(string path, bool ignoresCancellation = false)
         {
-            var hold = new WriteHold(path);
+            var hold = new WriteHold(path, ignoresCancellation);
             lock (_gate)
             {
                 _hold = hold;
@@ -852,7 +930,9 @@ public sealed class LocalStateSaveNoticeTests
                     throw failure();
                 }
 
-                await inner.WriteAsync(path, bytes, cancellationToken).ConfigureAwait(false);
+                await inner.WriteAsync(path, bytes, hold?.IgnoresCancellation == true
+                    ? CancellationToken.None
+                    : cancellationToken).ConfigureAwait(false);
             }
             finally
             {
