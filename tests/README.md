@@ -5,6 +5,14 @@ The scheduling snapshot below was inspected on 2026-09-06 at
 `6c8552af6b5b497065a5b24867cc0e349de03e83` (`1.1.4`). Historical timings are
 explicitly **v1.1.3**, not fresh measurements of the current UI changes.
 
+[ADR 0079](../docs/adr/0079-test-architecture.md), accepted on 2026-09-26
+(board decision 81), sets the rules for test groups, execution categories, path
+selection, coverage on pull requests, class size, splits and test stability.
+A rule that needs a selector, CI or test change applies only once its own
+admitted batch (and, for selection and coverage on pull requests, the T4b
+activation) is in force; until then the current rules apply. This README keeps
+navigation and measurements only.
+
 ## v1.1.5 local scheduling change
 
 Public `--jobs` supports 1–4 workers; the default remains three. Four is an
