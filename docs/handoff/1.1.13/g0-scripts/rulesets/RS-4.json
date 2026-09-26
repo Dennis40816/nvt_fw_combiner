@@ -1,0 +1,7 @@
+{
+  "target": "tag",
+  "conditions": { "ref_name": { "include": ["refs/tags/v*"], "exclude": [] } },
+  "bypass_actors": [],
+  "required_rule_types": ["update", "deletion"],
+  "action": "confirm_only"
+}
