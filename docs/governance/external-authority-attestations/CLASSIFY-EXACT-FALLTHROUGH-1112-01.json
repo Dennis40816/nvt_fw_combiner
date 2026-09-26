@@ -1,0 +1,9 @@
+{
+  "schemaVersion": 1,
+  "taskId": "CLASSIFY-EXACT-FALLTHROUGH-1112-01",
+  "authorityType": "firmware-owner",
+  "reviewedHead": "261241eb6e066de2cbe03f89b7d55d9156220f1b",
+  "decision": "approved",
+  "reviewer": "Dennis Liu (firmware-owner; repository and release owner)",
+  "evidence": "On 2026-09-26 the owner explicitly selected 'R3 同意，授權跑完全程 (Recommended)' in response to the approval request for the 1.1.12 review-fix batch (reviewed head ee634de0cbba04b4d0a5dfd286ca88c736372d10, technical final-evidence commit 261241eb6e066de2cbe03f89b7d55d9156220f1b). Approved bounded scope: when an exact Standard Merge capability classifies a nonstandard-length flash as Unknown, Standard classification consults the existing envelope-prefix rule of CTRLRAM-OSD-ENVELOPE-CLASSIFY-1112-01; CtrlRAM length admission is unchanged. The owner had already reviewed the release notes and verified the three handoff decision 15 firmware checks for this release, and was told that the CHANGELOG 1.1.12 items 2 to 4 and its known issues were corrected afterwards. The final evidence commit has the reviewed head as its only parent and changes only the three independently reviewed final records; this separate direct-child commit adds exactly this owner attestation. The same approval authorizes the pull request into 1.1.12, its merge after green CI with no unresolved P0/P1 review finding, the replies that close the review threads of pull requests #448 and #449, the release pull request into main, its merge after green CI, and the release workflow dispatch; protected release approval remains the owner's. Exact-source CI, fresh release Golden executions, packaging and published-download smoke remain required. This is this candidate's owner approval, not a permanent gate waiver."
+}
