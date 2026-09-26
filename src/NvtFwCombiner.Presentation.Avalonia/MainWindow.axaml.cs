@@ -21,6 +21,7 @@ public sealed partial class MainWindow : Window, IDisposable
         _reportHistoryPersistence;
     private readonly LatestSnapshotPersistenceCoordinator<ShellPreferenceSnapshot>
         _shellPreferencePersistence;
+    private readonly LocalStateSaveNoticeViewModel _localStateSave;
     private readonly CancellationTokenSource _startupLoadCancellation = new();
     private readonly ForegroundLoadingState _preloadLoading;
     private readonly ShellPreloadSession _preloadSession;
@@ -65,14 +66,16 @@ public sealed partial class MainWindow : Window, IDisposable
                 ReportHistoryFileStore.DefaultHistoryPath,
                 snapshots,
                 cancellationToken),
-            snapshots => [.. snapshots]);
+            snapshots => [.. snapshots],
+            failure => PostLocalStateSaveOutcome(LocalStateSaveTarget.ReportHistory, failure));
         _shellPreferencePersistence = new(
             (snapshot, cancellationToken) => ShellPreferenceFileStore.SaveAsync(
                 hostServices.LocalFiles,
                 ShellPreferenceFileStore.DefaultPreferencesPath,
                 snapshot,
                 cancellationToken),
-            static snapshot => snapshot);
+            static snapshot => snapshot,
+            failure => PostLocalStateSaveOutcome(LocalStateSaveTarget.Preferences, failure));
         _startupTrace.Mark("main-window-constructor.started");
 
         InitializeComponent();
@@ -80,6 +83,10 @@ public sealed partial class MainWindow : Window, IDisposable
         _reportToastHoldTimer.Tick += ReportToastHoldTimer_OnTick;
         _reportToastFadeTimer.Tick += ReportToastFadeTimer_OnTick;
         MainWindowViewModel viewModel = CreateStartupViewModel(_hostServices, startupPreferences);
+        _localStateSave = new(() => viewModel.Text);
+        _localStateSave.Attach(LocalStateSaveTarget.ReportHistory, _reportHistoryPersistence.TryRetry);
+        _localStateSave.Attach(LocalStateSaveTarget.Preferences, _shellPreferencePersistence.TryRetry);
+        LocalStateSaveNoticeHost.DataContext = _localStateSave;
         viewModel.Settings.UpdateSourceBrowseRequested += Settings_UpdateSourceBrowseRequested;
         viewModel.Settings.ActivationRequested += Settings_ActivationRequested;
         _preloadSession = new(
@@ -234,6 +241,7 @@ public sealed partial class MainWindow : Window, IDisposable
         }
 
         _isDisposed = true;
+        _localStateSave.Detach();
         _startupLoadCancellation.Dispose();
         _preloadSession.Dispose();
         GC.SuppressFinalize(this);
@@ -559,6 +567,11 @@ public sealed partial class MainWindow : Window, IDisposable
             RefreshPreloadPresentation(viewModel);
         }
 
+        if (e.PropertyName == nameof(MainWindowViewModel.Text))
+        {
+            _localStateSave.ApplyLanguageChanged();
+        }
+
         if (IsShellPreferenceProperty(e.PropertyName))
         {
             _shellPreferencePersistence.Queue(viewModel.ExportShellPreferences());
@@ -648,6 +661,12 @@ public sealed partial class MainWindow : Window, IDisposable
             _reportToastHoldTimer.Stop();
             _reportToastFadeTimer.Stop();
         }
+    }
+
+    private void PostLocalStateSaveOutcome(LocalStateSaveTarget target, Exception? failure)
+    {
+        // Saves finish on the thread pool; the notice is UI-thread state and ignores outcomes once detached.
+        Dispatcher.UIThread.Post(() => _localStateSave.ObserveSave(target, failure));
     }
 
     private static bool IsShellPreferenceProperty(string? propertyName)
