@@ -499,6 +499,17 @@ the next entry.
 Open: the re-review (commander).
 Next: structure check of this commit, then stop.
 
+### 2026-09-26 Structure check of the G0 third revision
+State: verified (documents only)
+Commits: `878f4b1a7` verified; the commit carrying this entry changes only
+this entry.
+Evidence: `python scripts/verify.py --structure-only` with TEMP, TMP and
+TMPDIR set to `<test-area>/temp`, at `878f4b1a7` -> `structure=PASS`, 264.0 s;
+`sync_derived` changed 0 files. A link and anchor check of the four WS-GOV
+documents passed before the commit.
+Open: the re-review (commander).
+Next: stop.
+
 ## Owner decisions in risk order
 
 One question at a time, highest risk first. Each item gives the question in
