@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Reflection;
 using Avalonia;
 using Avalonia.Automation;
 using Avalonia.Controls;
@@ -247,6 +248,16 @@ public sealed class LocalStateSaveNoticeTests
     /// thread. A newer snapshot queued in that gap must still make the earlier, already-terminal success stale:
     /// the notice keeps the original failure until the newer snapshot's own save finishes.
     /// </summary>
+    /// <remarks>
+    /// Independent review finding F-3 (P2) on the first version of this test: a fixed sleep cannot prove A's
+    /// coordinator-level report already ran before B is queued. Under a slow background, B could queue first,
+    /// which would make the coordinator's own (already-fixed, 9f9d7f837) supersession check reject A instead --
+    /// keeping the notice correct for an unrelated reason and letting this test pass even against the pre-F-1
+    /// coordinator. This version blocks synchronously (never <c>await</c>, so the dispatcher queue stays
+    /// untouched) on the shell-preference coordinator's own <c>WaitForIdleAsync()</c>, which by construction
+    /// completes only once A's whole <c>PersistAfterAsync</c> -- the isLatest check and the report to
+    /// <c>PostLocalStateSaveOutcome</c> included -- has already run. B is queued only after that wait returns.
+    /// </remarks>
     [AvaloniaFact]
     public async Task StaleSuccessDeliveredAfterNewerSnapshotQueuedDoesNotClearNotice()
     {
@@ -254,6 +265,7 @@ public sealed class LocalStateSaveNoticeTests
         (PresentationHostServices services, ScriptedStateFiles files) = await CreateScriptedServicesAsync(workspace);
         using var window = new MainWindow(UiLaunchOptions.Empty, StartupTraceSession.Disabled, services,
             ShellPreferenceSnapshot.Default);
+        LatestSnapshotPersistenceCoordinator<ShellPreferenceSnapshot> coordinator = ShellPreferenceCoordinator(window);
         WriteHold? latestWrite = null;
         window.Show();
         try
@@ -266,26 +278,19 @@ public sealed class LocalStateSaveNoticeTests
             shell.ExpandInputDetailsByDefault = !shell.ExpandInputDetailsByDefault;
             await WaitUntilAsync(() => notice.IsVisible);
 
-            // A succeeds on an unheld write. Everything from here down to the RunJobs() call below uses only
-            // synchronous, non-yielding waits (Thread.Sleep), never `await`: this headless test host keeps
-            // draining the dispatcher queue across an awaited continuation, which would apply A's outcome (the
-            // very gap this test needs to hold open) before B is even queued.
+            // A succeeds on an unheld write. Block (never `await`) on the coordinator's own idle signal: this is
+            // provably waiting for A's coordinator-level report -- including the isLatest check and the post to
+            // the UI thread -- to have already run, not merely for the underlying write to finish. An `await`
+            // here would let this headless test host drain the dispatcher queue in the background and apply A's
+            // outcome before B is even queued, which is exactly the gap this test needs to hold open.
             files.Fail(PreferencesPath, null);
-            int before = files.Completed(PreferencesPath);
             shell.IsReducedMotionEnabled = !shell.IsReducedMotionEnabled;
             ShellPreferenceSnapshot a = shell.ExportShellPreferences();
-            DateTime deadline = DateTime.UtcNow + TimeSpan.FromSeconds(10);
-            while (files.Completed(PreferencesPath) <= before)
-            {
-                Assert.True(DateTime.UtcNow < deadline, "Timed out waiting for A's write to complete.");
-                Thread.Sleep(5);
-            }
-            // A's write finishing lets its coordinator finish its own supersession check and post to the UI
-            // thread; give that synchronous tail a moment to run. Still no `await`, so the dispatcher queue is
-            // untouched.
-            Thread.Sleep(200);
+            bool aReported = coordinator.WaitForIdleAsync().Wait(TimeSpan.FromSeconds(10));
+            Assert.True(aReported, "Timed out waiting for A's coordinator-level report.");
 
-            // B is queued, and held, only now: strictly after A already owns "latest" and has posted its outcome.
+            // B is queued, and held, only now: strictly after A's own report already ran, proven above rather
+            // than assumed from elapsed time.
             latestWrite = files.HoldNextWrite(PreferencesPath);
             shell.ExpandInputDetailsByDefault = !shell.ExpandInputDetailsByDefault;
             ShellPreferenceSnapshot latest = shell.ExportShellPreferences();
@@ -294,8 +299,7 @@ public sealed class LocalStateSaveNoticeTests
             // Draining the dispatcher now applies A's outcome. It must be recognized as stale and discarded: the
             // original failure stays, even though the access-denied write itself never ran again.
             Dispatcher.UIThread.RunJobs();
-            Assert.True(notice.IsVisible,
-                $"Completed={files.Completed(PreferencesPath)}, Detail='{notice.Detail}', ToolTip='{notice.DetailToolTip}'");
+            Assert.True(notice.IsVisible, $"Detail='{notice.Detail}', ToolTip='{notice.DetailToolTip}'");
             Assert.True(host.IsVisible);
             Assert.Equal("Preferences: synthetic access denied", notice.DetailToolTip);
             Assert.Equal(a, await ShellPreferenceFileStore.LoadAsync(files, PreferencesPath));
@@ -937,6 +941,20 @@ public sealed class LocalStateSaveNoticeTests
     private static LocalStateSaveNoticeViewModel Notice(Window window)
     {
         return Assert.IsType<LocalStateSaveNoticeViewModel>(window.FindControl<Border>(NoticeHostName)!.DataContext);
+    }
+
+    /// <summary>
+    /// The window's own preference-persistence coordinator, reached through reflection since it is a private
+    /// field. Used only as a deterministic synchronization point (<c>WaitForIdleAsync</c>,
+    /// <c>IsCurrentGeneration</c>): the field is internal-visible-to-tests <see cref="LatestSnapshotPersistenceCoordinator{TSnapshot}"/>
+    /// state, not a production seam added for this test.
+    /// </summary>
+    private static LatestSnapshotPersistenceCoordinator<ShellPreferenceSnapshot> ShellPreferenceCoordinator(
+        MainWindow window)
+    {
+        FieldInfo field = typeof(MainWindow).GetField("_shellPreferencePersistence",
+            BindingFlags.NonPublic | BindingFlags.Instance)!;
+        return (LatestSnapshotPersistenceCoordinator<ShellPreferenceSnapshot>)field.GetValue(window)!;
     }
 
     private static string Detail(ShellTextResources text, string reason)
