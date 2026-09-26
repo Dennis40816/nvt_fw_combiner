@@ -273,6 +273,18 @@ Open: the owner interview (commander); a re-review of the revised drafts if the
 commander wants one before the interview.
 Next: structure check of this commit, then stop.
 
+### 2026-09-26 Structure check of the revised head
+State: verified (documents only)
+Commits: `031d0c6e8` verified; the commit carrying this entry changes only
+this entry.
+Evidence: `python scripts/verify.py --structure-only` with TEMP, TMP and
+TMPDIR set to `<test-area>/temp`, at `031d0c6e8` -> `structure=PASS`, 253.5 s
+(254 s wall clock); `sync_derived` changed 0 files. A link and anchor check of
+the four changed documents passed before the commit. The rebuilt topology no
+longer triggers the trunk-merge failure.
+Open: the owner interview and any re-review (commander).
+Next: stop.
+
 ## Owner decisions in risk order
 
 One question at a time, highest risk first. Each item gives the question in
