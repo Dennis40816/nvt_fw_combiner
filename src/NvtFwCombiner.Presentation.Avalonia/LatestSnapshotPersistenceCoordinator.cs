@@ -8,24 +8,28 @@ internal sealed class LatestSnapshotPersistenceCoordinator<TSnapshot>
     private readonly Lock _gate = new();
     private readonly Func<TSnapshot, TSnapshot> _capture;
     private readonly Func<TSnapshot, CancellationToken, Task> _saveAsync;
-    private readonly Action<Exception?>? _saveCompleted;
+    private readonly Action<Exception?, long>? _saveCompleted;
     private CancellationTokenSource? _latestCancellation;
     private Task _tail = Task.CompletedTask;
     private TSnapshot? _latestSnapshot;
     private bool _hasLatestSnapshot;
     private bool _isCompleted;
+    private long _generation;
 
     /// <param name="saveAsync">Persists one captured snapshot.</param>
     /// <param name="capture">Copies a snapshot into an immutable value before it is queued.</param>
     /// <param name="saveCompleted">
-    /// Observes every save that finished (<see langword="null"/>) or failed (the exception), in queue order on a
-    /// background thread; a save superseded by a newer snapshot reports nothing, even when its write ignored the
-    /// cancellation and finished.
+    /// Observes every save that finished (<see langword="null"/>) or failed (the exception) together with the
+    /// request generation <see cref="Queue"/>/<see cref="TryRetry"/> assigned it, in queue order on a background
+    /// thread; a save superseded by a newer snapshot reports nothing, even when its write ignored the
+    /// cancellation and finished. The generation lets a caller that applies this outcome later (for example after
+    /// an <c>await</c> back to a UI thread) re-check with <see cref="IsCurrentGeneration"/> whether a newer
+    /// snapshot was queued in the meantime and, if so, discard the now-stale outcome instead of applying it.
     /// </param>
     internal LatestSnapshotPersistenceCoordinator(
         Func<TSnapshot, CancellationToken, Task> saveAsync,
         Func<TSnapshot, TSnapshot> capture,
-        Action<Exception?>? saveCompleted = null)
+        Action<Exception?, long>? saveCompleted = null)
     {
         ArgumentNullException.ThrowIfNull(saveAsync);
         ArgumentNullException.ThrowIfNull(capture);
@@ -103,14 +107,31 @@ internal sealed class LatestSnapshotPersistenceCoordinator<TSnapshot>
         _latestCancellation = cancellation;
         _latestSnapshot = capturedSnapshot;
         _hasLatestSnapshot = true;
+        long generation = ++_generation;
         Task predecessor = _tail;
-        _tail = Task.Run(() => PersistAfterAsync(predecessor, capturedSnapshot, cancellation));
+        _tail = Task.Run(() => PersistAfterAsync(predecessor, capturedSnapshot, cancellation, generation));
+    }
+
+    /// <summary>
+    /// True while <paramref name="generation"/> is still the most recently queued request: no <see cref="Queue"/>
+    /// or <see cref="TryRetry"/> call has run since it was assigned. A caller applying a deferred save outcome
+    /// (posted, for example, to a UI thread) calls this again at the point it actually applies the outcome, since
+    /// a newer snapshot can have been queued after the coordinator itself reported this one as latest but before
+    /// the deferred apply ran; when it returns <see langword="false"/> the outcome is stale and must be discarded.
+    /// </summary>
+    internal bool IsCurrentGeneration(long generation)
+    {
+        lock (_gate)
+        {
+            return generation == _generation;
+        }
     }
 
     private async Task PersistAfterAsync(
         Task predecessor,
         TSnapshot snapshot,
-        CancellationTokenSource cancellation)
+        CancellationTokenSource cancellation,
+        long generation)
     {
         bool isTerminal = false;
         bool isLatest = false;
@@ -149,7 +170,7 @@ internal sealed class LatestSnapshotPersistenceCoordinator<TSnapshot>
 
         if (isTerminal && isLatest)
         {
-            ReportSaveCompleted(failure);
+            ReportSaveCompleted(failure, generation);
         }
     }
 
@@ -173,7 +194,7 @@ internal sealed class LatestSnapshotPersistenceCoordinator<TSnapshot>
         }
     }
 
-    private void ReportSaveCompleted(Exception? failure)
+    private void ReportSaveCompleted(Exception? failure, long generation)
     {
         if (_saveCompleted is null)
         {
@@ -182,7 +203,7 @@ internal sealed class LatestSnapshotPersistenceCoordinator<TSnapshot>
 
         try
         {
-            _saveCompleted(failure);
+            _saveCompleted(failure, generation);
         }
         catch (Exception exception)
         {

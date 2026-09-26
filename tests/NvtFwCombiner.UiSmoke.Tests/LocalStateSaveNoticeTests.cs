@@ -241,6 +241,79 @@ public sealed class LocalStateSaveNoticeTests
         }
     }
 
+    /// <summary>
+    /// Independent review finding F-1 (P1) on the supersession fix itself: the coordinator can already own a save
+    /// as latest and report it, yet that report only reaches the notice after an <c>await</c> back to the UI
+    /// thread. A newer snapshot queued in that gap must still make the earlier, already-terminal success stale:
+    /// the notice keeps the original failure until the newer snapshot's own save finishes.
+    /// </summary>
+    [AvaloniaFact]
+    public async Task StaleSuccessDeliveredAfterNewerSnapshotQueuedDoesNotClearNotice()
+    {
+        using var workspace = TempWorkspace.Create("f08-save-notice-stale-outcome");
+        (PresentationHostServices services, ScriptedStateFiles files) = await CreateScriptedServicesAsync(workspace);
+        using var window = new MainWindow(UiLaunchOptions.Empty, StartupTraceSession.Disabled, services,
+            ShellPreferenceSnapshot.Default);
+        WriteHold? latestWrite = null;
+        window.Show();
+        try
+        {
+            await AwaitHistoryReadyAsync(window);
+            var shell = (MainWindowViewModel)window.DataContext!;
+            LocalStateSaveNoticeViewModel notice = Notice(window);
+            Border host = window.FindControl<Border>(NoticeHostName)!;
+            files.Fail(PreferencesPath, static () => new UnauthorizedAccessException("synthetic access denied"));
+            shell.ExpandInputDetailsByDefault = !shell.ExpandInputDetailsByDefault;
+            await WaitUntilAsync(() => notice.IsVisible);
+
+            // A succeeds on an unheld write. Everything from here down to the RunJobs() call below uses only
+            // synchronous, non-yielding waits (Thread.Sleep), never `await`: this headless test host keeps
+            // draining the dispatcher queue across an awaited continuation, which would apply A's outcome (the
+            // very gap this test needs to hold open) before B is even queued.
+            files.Fail(PreferencesPath, null);
+            int before = files.Completed(PreferencesPath);
+            shell.IsReducedMotionEnabled = !shell.IsReducedMotionEnabled;
+            ShellPreferenceSnapshot a = shell.ExportShellPreferences();
+            DateTime deadline = DateTime.UtcNow + TimeSpan.FromSeconds(10);
+            while (files.Completed(PreferencesPath) <= before)
+            {
+                Assert.True(DateTime.UtcNow < deadline, "Timed out waiting for A's write to complete.");
+                Thread.Sleep(5);
+            }
+            // A's write finishing lets its coordinator finish its own supersession check and post to the UI
+            // thread; give that synchronous tail a moment to run. Still no `await`, so the dispatcher queue is
+            // untouched.
+            Thread.Sleep(200);
+
+            // B is queued, and held, only now: strictly after A already owns "latest" and has posted its outcome.
+            latestWrite = files.HoldNextWrite(PreferencesPath);
+            shell.ExpandInputDetailsByDefault = !shell.ExpandInputDetailsByDefault;
+            ShellPreferenceSnapshot latest = shell.ExportShellPreferences();
+            Assert.NotEqual(a, latest);
+
+            // Draining the dispatcher now applies A's outcome. It must be recognized as stale and discarded: the
+            // original failure stays, even though the access-denied write itself never ran again.
+            Dispatcher.UIThread.RunJobs();
+            Assert.True(notice.IsVisible,
+                $"Completed={files.Completed(PreferencesPath)}, Detail='{notice.Detail}', ToolTip='{notice.DetailToolTip}'");
+            Assert.True(host.IsVisible);
+            Assert.Equal("Preferences: synthetic access denied", notice.DetailToolTip);
+            Assert.Equal(a, await ShellPreferenceFileStore.LoadAsync(files, PreferencesPath));
+
+            await latestWrite.Started.Task.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
+            latestWrite.Released.SetResult();
+            await WaitUntilAsync(() => !notice.IsVisible);
+            Assert.False(host.IsVisible);
+            Assert.Equal(latest, await ShellPreferenceFileStore.LoadAsync(files, PreferencesPath));
+        }
+        finally
+        {
+            // A failed assertion must not leave a held write stalling the close flush.
+            _ = latestWrite?.Released.TrySetResult();
+            await CloseAndFlushAsync(window);
+        }
+    }
+
     /// <summary>Once the window is disposed, a later save outcome and Retry no longer change the notice.</summary>
     [AvaloniaFact]
     public async Task DisposedWindowIgnoresLaterSaveOutcomes()
@@ -535,7 +608,7 @@ public sealed class LocalStateSaveNoticeTests
                 }
             },
             static snapshot => snapshot,
-            failure =>
+            (failure, _) =>
             {
                 lock (outcomes)
                 {
@@ -560,6 +633,62 @@ public sealed class LocalStateSaveNoticeTests
         Assert.Equal(["synthetic failure", "saved"], outcomes);
     }
 
+    /// <summary>
+    /// Independent review finding F-1 (P1): the coordinator can already own a save as latest (queue order, not
+    /// superseded while writing) and report its outcome, yet a caller that applies that outcome later — after an
+    /// <c>await</c> back to a UI thread, for example — must re-check freshness at that later point, because a
+    /// newer snapshot can be queued in between. The reported generation, checked again through
+    /// <see cref="LatestSnapshotPersistenceCoordinator{TSnapshot}.IsCurrentGeneration"/> once that newer snapshot
+    /// exists, must then read as stale even though the coordinator itself already reported the outcome as terminal
+    /// and latest.
+    /// </summary>
+    [Fact]
+    public async Task GenerationStaysCurrentOnlyUntilANewerSnapshotIsQueued()
+    {
+        TaskCompletionSource bStarted = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        TaskCompletionSource releaseB = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        List<(Exception? Failure, long Generation)> reported = [];
+        var coordinator = new LatestSnapshotPersistenceCoordinator<string>(
+            async (snapshot, _) =>
+            {
+                if (snapshot == "B")
+                {
+                    bStarted.SetResult();
+                    await releaseB.Task;
+                }
+            },
+            static snapshot => snapshot,
+            (failure, generation) =>
+            {
+                lock (reported)
+                {
+                    reported.Add((failure, generation));
+                }
+            });
+
+        coordinator.Queue("A");
+        await coordinator.WaitForIdleAsync().WaitAsync(TestContext.Current.CancellationToken);
+        (Exception? aFailure, long aGeneration) = Assert.Single(reported);
+        Assert.Null(aFailure);
+        // Nothing newer is queued yet: applying A's outcome right now would still be correct.
+        Assert.True(coordinator.IsCurrentGeneration(aGeneration));
+
+        // B is queued only after A's own completion already reported — the gap a UI dispatcher post leaves open.
+        coordinator.Queue("B");
+        await bStarted.Task.WaitAsync(TestContext.Current.CancellationToken);
+
+        // Applying A's outcome now must recognize it as stale, even though the coordinator already reported it as
+        // a terminal, non-superseded save; only B's own future report may still clear a notice for this state.
+        Assert.False(coordinator.IsCurrentGeneration(aGeneration));
+
+        releaseB.SetResult();
+        await coordinator.WaitForIdleAsync().WaitAsync(TestContext.Current.CancellationToken);
+        Assert.Equal(2, reported.Count);
+        (Exception? bFailure, long bGeneration) = reported[1];
+        Assert.Null(bFailure);
+        Assert.True(coordinator.IsCurrentGeneration(bGeneration));
+    }
+
     /// <summary>Retry re-queues the latest captured snapshot through the same serialized coordinator.</summary>
     [Fact]
     public async Task CoordinatorRetryRequeuesLatestCapturedSnapshot()
@@ -579,7 +708,7 @@ public sealed class LocalStateSaveNoticeTests
                 captures++;
                 return snapshot + "#captured";
             },
-            outcomes.Add);
+            (failure, _) => outcomes.Add(failure));
 
         Assert.False(coordinator.TryRetry());
         coordinator.Queue("latest");
@@ -612,7 +741,7 @@ public sealed class LocalStateSaveNoticeTests
                 return Task.CompletedTask;
             },
             static snapshot => snapshot,
-            _ =>
+            (_, _) =>
             {
                 observed++;
                 throw new InvalidOperationException("synthetic observer failure");

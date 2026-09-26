@@ -67,7 +67,8 @@ public sealed partial class MainWindow : Window, IDisposable
                 snapshots,
                 cancellationToken),
             snapshots => [.. snapshots],
-            failure => PostLocalStateSaveOutcome(LocalStateSaveTarget.ReportHistory, failure));
+            (failure, generation) => PostLocalStateSaveOutcome(
+                LocalStateSaveTarget.ReportHistory, failure, generation, IsReportHistoryGenerationCurrent));
         _shellPreferencePersistence = new(
             (snapshot, cancellationToken) => ShellPreferenceFileStore.SaveAsync(
                 hostServices.LocalFiles,
@@ -75,7 +76,8 @@ public sealed partial class MainWindow : Window, IDisposable
                 snapshot,
                 cancellationToken),
             static snapshot => snapshot,
-            failure => PostLocalStateSaveOutcome(LocalStateSaveTarget.Preferences, failure));
+            (failure, generation) => PostLocalStateSaveOutcome(
+                LocalStateSaveTarget.Preferences, failure, generation, IsShellPreferenceGenerationCurrent));
         _startupTrace.Mark("main-window-constructor.started");
 
         InitializeComponent();
@@ -663,10 +665,33 @@ public sealed partial class MainWindow : Window, IDisposable
         }
     }
 
-    private void PostLocalStateSaveOutcome(LocalStateSaveTarget target, Exception? failure)
+    private bool IsReportHistoryGenerationCurrent(long generation)
     {
-        // Saves finish on the thread pool; the notice is UI-thread state and ignores outcomes once detached.
-        Dispatcher.UIThread.Post(() => _localStateSave.ObserveSave(target, failure));
+        return _reportHistoryPersistence.IsCurrentGeneration(generation);
+    }
+
+    private bool IsShellPreferenceGenerationCurrent(long generation)
+    {
+        return _shellPreferencePersistence.IsCurrentGeneration(generation);
+    }
+
+    private void PostLocalStateSaveOutcome(
+        LocalStateSaveTarget target,
+        Exception? failure,
+        long generation,
+        Func<long, bool> isCurrentGeneration)
+    {
+        // Saves finish on the thread pool; the notice is UI-thread state and ignores outcomes once detached. A
+        // newer snapshot for this target can also be queued after the coordinator reported this generation as
+        // latest but before this post is drained here, so re-check freshness now and discard a stale outcome
+        // instead of letting it clear the notice while that newer snapshot is still unsaved.
+        Dispatcher.UIThread.Post(() =>
+        {
+            if (isCurrentGeneration(generation))
+            {
+                _localStateSave.ObserveSave(target, failure);
+            }
+        });
     }
 
     private static bool IsShellPreferenceProperty(string? propertyName)
