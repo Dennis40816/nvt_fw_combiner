@@ -192,7 +192,8 @@ public static class CompiledInputArtifactInspectionService
         return !inspection.BlocksBuild && slot.ArtifactClass == CompiledInputArtifactClass.TpFirmware &&
             inspection.AcceptedSnapshotRange is { } accepted &&
             FirmwareConfigChipCountDiagnostics.AssessPositive(
-                sourceBytes.Span.Slice(checked((int)accepted.Start), checked((int)accepted.Length)), addressSpaceId, out _) is { } countIssue
+                sourceBytes.Span.Slice(checked((int)accepted.Start), checked((int)accepted.Length)),
+                CompiledInputArtifactObservationService.DeclaredNvtEndFlag(composition), addressSpaceId, out _) is { } countIssue
             ? inspection with
             {
                 Severity = CompiledInputArtifactInspectionSeverity.Blocking,

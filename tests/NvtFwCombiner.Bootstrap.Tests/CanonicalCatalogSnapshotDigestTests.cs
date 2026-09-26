@@ -12,19 +12,22 @@ public sealed class CanonicalCatalogSnapshotDigestTests
 {
     // Pinned from the published snapshot of base 186036f8e (v1.1.11 product
     // behavior plus the Startup A unit 1/2 load changes, which keep results).
+    // Re-pinned by NVT-END-FLAG-1113-01 (ADR 0076): the policy source hash,
+    // the NT51950/NT51951 capability fingerprints and the dp-perspective
+    // family version/hash changed; every section length is unchanged.
     // A change here is a published catalog change and needs its own review.
     private const string PinnedSha256 =
-        "37ef0e538b60207086022067cf8aa6330a269d599242e5c4146af0d0cd92bf13";
+        "6d85e70911d7c1d40b96e20c25fbd0850e332ed1d9f759c4faf74e36ecd1af35";
     private const int PinnedLength = 483_532;
     private const int SequentialReloads = 5;
     private const int ConcurrentLoads = 4;
 
     private static readonly (string Name, int Length, string Sha256)[] PinnedSections =
     [
-        ("catalog", 341, "3761dd12c7d885df046442f8524120c52ae9df5be2420af665785767917aadc5"),
+        ("catalog", 341, "56c9798800193bb1b11cfd72b84507638248c7237a610966f6be983155d91267"),
         ("static-routes", 98_164, "8b89f41a7ffa923a93fbd5e7311987dab7533b67f636d2d8d748b80f61e609c8"),
-        ("dynamic-routes", 248_943, "c8d036f838a38624434215e57934ad2cb1813b08abf0f78381d3bad42c1b81af"),
-        ("full-image-plans", 106_364, "fa2db5740e4b3de6cdf84a3edc3b387c98ffc7cdc710be469587b16a6dbe7947"),
+        ("dynamic-routes", 248_943, "6c97d0013e0d0859a80a100fa3bc18b6fbac059572f83c9ddcfd28a651d7b170"),
+        ("full-image-plans", 106_364, "785fcf818458256d3683631d01a1450cf3f3d9569694ace53b86138088075851"),
         ("disclosure", 18_861, "c5f8148381d38b36373194f60de8a6450df680f910394a9dc257ad32ac32fe2f"),
         ("selector", 10_835, "41e00a86903342faa9c1a739234d06a3bf9f1423cba74b24ad83a0da1ac89d55"),
         ("certification", 24, "eb0edc192f3394a161de752c7d53cef86dd32bf94e352929b9f715db1efd5353"),

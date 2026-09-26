@@ -1,4 +1,5 @@
 using NvtFwCombiner.Domain.Composition;
+using NvtFwCombiner.Domain.Firmware;
 
 namespace NvtFwCombiner.Application.FlashMaps;
 
@@ -12,12 +13,17 @@ public static class FirmwareConfigChipCountDiagnostics
     /// <summary>A TP input has no unambiguous valid Backup from which to read IC Count.</summary>
     public const string UnreadableIssueCode = "firmware-config.chip-count-unreadable";
 
-    /// <summary>Assesses one canonical accepted TP prefix without inferring topology or a peer.</summary>
-    public static CompositionIssue? AssessPositive(ReadOnlySpan<byte> prefix, string slot, out byte? count)
+    /// <summary>
+    /// Assesses one canonical accepted TP prefix without inferring topology or a peer, reading its Backup at the
+    /// NVT end flag its layout declares, if any (NVT-END-FLAG-1113-01).
+    /// </summary>
+    public static CompositionIssue? AssessPositive(ReadOnlySpan<byte> prefix, FirmwareNvtEndFlagResolution declaredEndFlag,
+        string slot, out byte? count)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(slot);
         count = null;
-        if (!FirmwareConfigMetadataReader.TryReadBackup(prefix, out FirmwareConfigMetadata metadata) || !metadata.IsFirmwareVersionBarValid)
+        if (!FirmwareConfigMetadataReader.TryReadBackup(prefix, declaredEndFlag, out FirmwareConfigMetadata metadata, out _) ||
+            !metadata.IsFirmwareVersionBarValid)
         {
             return new CompositionIssue(UnreadableIssueCode,
                 $"{slot}: IC Count is unreadable; no unambiguous valid canonical NVT FWConfig Backup.", slot);

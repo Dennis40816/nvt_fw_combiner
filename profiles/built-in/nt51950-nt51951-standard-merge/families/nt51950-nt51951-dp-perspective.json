@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.1",
   "familyId": "nt51950-nt51951-dp-perspective",
-  "familyVersion": "1.4.1",
+  "familyVersion": "1.4.2",
   "members": [
     { "memberId": "NT51950", "displayName": "NT51950" },
     { "memberId": "NT51951", "displayName": "NT51951" }
@@ -171,8 +171,8 @@
             "kind": "marker-relative",
             "searchRange": {
               "addressSpaceId": "flash",
-              "start": 40960,
-              "length": 184320
+              "start": 225276,
+              "length": 4
             },
             "markerHex": "004e5654",
             "selection": { "kind": "unique" },
@@ -199,8 +199,8 @@
             "kind": "marker-relative",
             "searchRange": {
               "addressSpaceId": "flash",
-              "start": 40960,
-              "length": 184320
+              "start": 225276,
+              "length": 4
             },
             "markerHex": "004e5654",
             "selection": { "kind": "unique" },

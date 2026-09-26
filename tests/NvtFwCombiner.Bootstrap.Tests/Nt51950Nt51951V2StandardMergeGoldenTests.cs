@@ -7,7 +7,7 @@ namespace NvtFwCombiner.Bootstrap.Tests;
 public sealed class Nt51950Nt51951V2StandardMergeGoldenTests
 {
     private const string BundleDirectory = "nt51950-nt51951-standard-merge";
-    private const string BundleContentHash = "658e188b0724a9a1f5d3389f7bc685a75b1dacfd36e030d79c9d0f83d8135652";
+    private const string BundleContentHash = "17b45d347a18078e522b412d7c4c3000f01be4e81e091167cc5c78299988da49";
     private const int TpOverlayStart = 0x0A000;
     private const int TpOverlayLength = 0x2D000;
     private const int CustomerInfoStart = 0x37000;
@@ -89,12 +89,12 @@ public sealed class Nt51950Nt51951V2StandardMergeGoldenTests
     /// this is not direct owner Golden evidence.
     /// </summary>
     [Theory]
-    [InlineData("NT51950", 0x40000, "983046ff9bb50f89905064429449958bd665b0a9442fdd10f9b8f8c4cd33eee5")]
-    [InlineData("NT51950", 0x80000, "51292dd980ad34ed5123b51d59447b99b43c7fcdd4638c8e4705f57e33729f63")]
-    [InlineData("NT51950", 0x100000, "4266203f6d5e949dc6633f9dbca69d700d0cda73de0c4894d7438343c638d19a")]
-    [InlineData("NT51951", 0x40000, "983046ff9bb50f89905064429449958bd665b0a9442fdd10f9b8f8c4cd33eee5")]
-    [InlineData("NT51951", 0x80000, "51292dd980ad34ed5123b51d59447b99b43c7fcdd4638c8e4705f57e33729f63")]
-    [InlineData("NT51951", 0x100000, "4266203f6d5e949dc6633f9dbca69d700d0cda73de0c4894d7438343c638d19a")]
+    [InlineData("NT51950", 0x40000, "10047d065c9f0ad0d7450787cce779768d686132a21c199feda13d021bba3ce6")]
+    [InlineData("NT51950", 0x80000, "32d6f68d4796d4253d0ca6f3fab398deda0abf8b2853de0117888635f14c6670")]
+    [InlineData("NT51950", 0x100000, "7426263628547e127463f6e408dc869281cac90131dcb5d26ca4889158c9b24f")]
+    [InlineData("NT51951", 0x40000, "10047d065c9f0ad0d7450787cce779768d686132a21c199feda13d021bba3ce6")]
+    [InlineData("NT51951", 0x80000, "32d6f68d4796d4253d0ca6f3fab398deda0abf8b2853de0117888635f14c6670")]
+    [InlineData("NT51951", 0x100000, "7426263628547e127463f6e408dc869281cac90131dcb5d26ca4889158c9b24f")]
     public async Task SyntheticInputsMatchIndependentlyConstructedDpPerspectiveOutputAcrossCapacities(
         string icId,
         int capacity,
@@ -156,11 +156,12 @@ public sealed class Nt51950Nt51951V2StandardMergeGoldenTests
 
     private static void WriteSyntheticTpBackup(byte[] tp)
     {
-        // Metadata lies outside the TP overlay; independent output bytes and hashes remain unchanged.
-        tp[0x1000] = 0x81;
-        tp[0x1001] = 0x7E;
-        tp[0x1017] = 1;
-        "\0NVT"u8.CopyTo(tp.AsSpan(0x1FFC));
+        // The Backup ends at the layout-declared NVT end flag [0x36FFC, 0x37000) inside the TP overlay (ADR 0076),
+        // so the independently constructed output carries it.
+        tp[0x36000] = 0x81;
+        tp[0x36001] = 0x7E;
+        tp[0x36017] = 1;
+        "\0NVT"u8.CopyTo(tp.AsSpan(0x36FFC));
     }
 
     private static byte[] CreatePattern(int length, byte salt)

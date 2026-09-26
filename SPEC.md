@@ -482,7 +482,14 @@ authority. Current AB DPCMI resolution uses its per-bank CMD Page ranges
 The reference's "last `NVT`" behavior is legacy evidence only. The canonical
 FWConfig Backup rule for all executable profiles is exactly one complete
 `00 4E 56 54` marker, with the Backup start at its terminal `T - 0xFFF`.
-Zero or multiple markers fail closed with
+Where a layout declares its NVT end flag (ADR 0076; currently every
+NT51950/NT51951 Standard, DP Replace, General, CtrlRAM and AB layout, at
+`0x36FFC` of each bank or TP input), only that position counts and a marker
+anywhere else is neither counted nor rejected. Only layouts in the named
+migration inventory resolve without a declaration; they keep their existing
+template locators and existing compatibility read. A declaration that cannot
+be resolved makes the Backup unreadable instead of searching the whole image.
+Zero or multiple counted markers fail closed with
 `Expected exactly one NVT marker (00 4E 56 54), but found {count}.`
 
 For an NT51919/NT51929/NT51932 Cascade **Dynamic DiffDLM** run, the canonical
@@ -1711,8 +1718,9 @@ to each `0.10.x` version.
     Header field. TP FW, Common FW, PID, observed IC Count,
     X/Y sensor totals, Display and TP resolution, maximum operable fingers,
     report IRQ type, and whether the outermost IC is used as Master are typed
-    fields from that structure. Runtime requires exactly one NVT marker and
-    reports the observed marker count when that invariant fails. It also
+    fields from that structure. Runtime requires exactly one counted NVT
+    marker (only the declared end flag counts where a layout declares it, ADR
+    0076) and reports the counted marker count when that invariant fails. It also
     applies one shared zero-value policy. When a resolved workflow does not use
     IC Count for topology, ranges, or placement, `Chip_Num = 0` emits warning
     `firmware-config.chip-count-zero` with the operator action

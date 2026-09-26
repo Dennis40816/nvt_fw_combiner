@@ -460,7 +460,7 @@ internal sealed partial class BuiltInFirmwareInspection : IFirmwareInspection
     {
         metadata = default;
         return projection.IsKnownIcId(icId) &&
-            FirmwareConfigMetadataReader.TryReadBackup(image, out metadata);
+            FirmwareConfigMetadataReader.TryReadBackup(image, ResolveCtrlRamBaseNvtEndFlag(icId), out metadata, out _);
     }
 
     private static bool TryResolvePostbuildProfileForDisplay(

@@ -23,12 +23,12 @@ public sealed class AbCtrlRamRuntimeWiringTests
     [InlineData(0, "version-bar", "input.bank-reference.version-bar")]
     [InlineData(0, "zero-count", "input.bank-reference.count-zero")]
     [InlineData(0, "different-count", "input.bank-reference.count")]
-    [InlineData(0, "duplicate-marker", "input.bank-reference.metadata-ambiguous")]
+    [InlineData(0, "moved-marker", "input.bank-reference.metadata-unreadable")]
     [InlineData(0, "missing-marker", "input.bank-reference.metadata-unreadable")]
     [InlineData(0x40000, "version-bar", "input.bank-reference.version-bar")]
     [InlineData(0x40000, "zero-count", "input.bank-reference.count-zero")]
     [InlineData(0x40000, "different-count", "input.bank-reference.count")]
-    [InlineData(0x40000, "duplicate-marker", "input.bank-reference.metadata-ambiguous")]
+    [InlineData(0x40000, "moved-marker", "input.bank-reference.metadata-unreadable")]
     [InlineData(0x40000, "missing-marker", "input.bank-reference.metadata-unreadable")]
     public void Nt51950OsdDamagedBankRemainsTerminalAb(int bankStart, string damage, string issueCode)
     {
@@ -42,7 +42,11 @@ public sealed class AbCtrlRamRuntimeWiringTests
             case "version-bar": reference[backup + 1] ^= 1; break;
             case "zero-count": reference[backup + 0x17] = 0; break;
             case "different-count": reference[backup + 0x17] = 2; break;
-            case "duplicate-marker": new byte[] { 0, 0x4E, 0x56, 0x54 }.CopyTo(reference, bankStart + 0x1000); break;
+            // NVT-END-FLAG-1113-01: a second marker away from the end flag is ignored, so only a moved marker damages the bank.
+            case "moved-marker":
+                reference[backup + 0xFFC] ^= 1;
+                new byte[] { 0, 0x4E, 0x56, 0x54 }.CopyTo(reference, bankStart + 0x1000);
+                break;
             case "missing-marker": reference[backup + 0xFFC] ^= 1; break;
             default: throw new ArgumentOutOfRangeException(nameof(damage));
         }

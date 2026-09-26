@@ -40,8 +40,8 @@
   },
   "mapBinding": {
     "familyId": "nt51950-ab-merge",
-    "familyVersion": "0.7.0",
-    "familyContentHash": "7aa145d966d39de7ab5b62cb8c805f72a745eee181f5c77075aeb02f9e79aa20",
+    "familyVersion": "0.7.1",
+    "familyContentHash": "2aae7fb25976fbb51f6e3186d63c2f4303effe5d580b81c2cb8284c9b1065814",
     "mapIds": [ "nt51950-ab-merge-512k" ],
     "requiredRegionIds": [
       "ab-image",

@@ -17,7 +17,7 @@ public sealed class AbMergeTopologyAdmissionTests
     {
         byte[] tpA = Tp(a);
         byte[] tpB = Tp(b);
-        AbMergeTopologyAdmissionResult result = AbMergeTopologyAdmission.Assess(tpA, tpB, Selection(selected));
+        AbMergeTopologyAdmissionResult result = AbMergeTopologyAdmission.Assess(tpA, tpB, Selection(selected), declaredEndFlag: FirmwareNvtEndFlagResolution.LegacyCompatibility);
         Assert.True(result.Succeeded);
         Assert.Empty(result.Issues);
         Assert.Equal((byte)a, result.TpAChipCount);
@@ -39,7 +39,7 @@ public sealed class AbMergeTopologyAdmissionTests
     public void DifferentExactCountsAreRejectedBeforeMapSelection(int a, int b, int selected)
     {
         AbMergeTopologyAdmissionResult result = AbMergeTopologyAdmission.Assess(Tp(a), Tp(b),
-            selected == 0 ? null : Selection(selected));
+            selected == 0 ? null : Selection(selected), declaredEndFlag: FirmwareNvtEndFlagResolution.LegacyCompatibility);
         Assert.False(result.Succeeded);
         CompositionIssue issue = Assert.Single(result.Issues);
         Assert.Equal("AB_TP_TOPOLOGY_MISMATCH", issue.Code);
@@ -67,7 +67,7 @@ public sealed class AbMergeTopologyAdmissionTests
             default: throw new ArgumentOutOfRangeException(nameof(defect));
         }
 
-        AbMergeTopologyAdmissionResult result = AbMergeTopologyAdmission.Assess(bytes, bytes, Selection(2));
+        AbMergeTopologyAdmissionResult result = AbMergeTopologyAdmission.Assess(bytes, bytes, Selection(2), declaredEndFlag: FirmwareNvtEndFlagResolution.LegacyCompatibility);
         Assert.False(result.Succeeded);
         Assert.Null(result.TpAChipCount);
         Assert.Null(result.TpBChipCount);
@@ -83,7 +83,7 @@ public sealed class AbMergeTopologyAdmissionTests
     [InlineData(0, 0)]
     public void ZeroIsRetainedButBlocksBeforeClassification(int a, int b)
     {
-        AbMergeTopologyAdmissionResult result = AbMergeTopologyAdmission.Assess(Tp(a), Tp(b), Selection(1));
+        AbMergeTopologyAdmissionResult result = AbMergeTopologyAdmission.Assess(Tp(a), Tp(b), Selection(1), declaredEndFlag: FirmwareNvtEndFlagResolution.LegacyCompatibility);
         Assert.False(result.Succeeded);
         Assert.Equal((byte)a, result.TpAChipCount);
         Assert.Equal((byte)b, result.TpBChipCount);
@@ -101,7 +101,7 @@ public sealed class AbMergeTopologyAdmissionTests
     [Fact]
     public void InvalidPrecedesZeroOnOtherInput()
     {
-        AbMergeTopologyAdmissionResult result = AbMergeTopologyAdmission.Assess([], Tp(0), Selection(1));
+        AbMergeTopologyAdmissionResult result = AbMergeTopologyAdmission.Assess([], Tp(0), Selection(1), declaredEndFlag: FirmwareNvtEndFlagResolution.LegacyCompatibility);
         Assert.Null(result.TpAChipCount);
         Assert.Equal((byte)0, result.TpBChipCount);
         Assert.Equal(2, result.Issues.Count);
@@ -117,7 +117,7 @@ public sealed class AbMergeTopologyAdmissionTests
     [InlineData(3, 1, "TPA declares 3 IC but TPB declares 1 IC; AB Merge requires identical TP IC Counts.")]
     public void InputTopologyMismatchPrecedesSelectedMismatch(int a, int b, string expected)
     {
-        AbMergeTopologyAdmissionResult result = AbMergeTopologyAdmission.Assess(Tp(a), Tp(b), Selection(1));
+        AbMergeTopologyAdmissionResult result = AbMergeTopologyAdmission.Assess(Tp(a), Tp(b), Selection(1), declaredEndFlag: FirmwareNvtEndFlagResolution.LegacyCompatibility);
         Assert.False(result.Succeeded);
         AssertIssue(Assert.Single(result.Issues), "AB_TP_TOPOLOGY_MISMATCH", expected, CompositionAddressSpaceIds.TpBInput);
     }
@@ -128,7 +128,7 @@ public sealed class AbMergeTopologyAdmissionTests
     [InlineData(3, 1, "The selected topology 'test-selection' does not match TPA/TPB FWConfig Backup topology Cascade (3 IC).")]
     public void SelectedMismatchRetainsActualCounts(int observed, int selected, string expected)
     {
-        AbMergeTopologyAdmissionResult result = AbMergeTopologyAdmission.Assess(Tp(observed), Tp(observed), Selection(selected));
+        AbMergeTopologyAdmissionResult result = AbMergeTopologyAdmission.Assess(Tp(observed), Tp(observed), Selection(selected), declaredEndFlag: FirmwareNvtEndFlagResolution.LegacyCompatibility);
         Assert.False(result.Succeeded);
         Assert.Equal((byte)observed, result.TpAChipCount);
         AssertIssue(Assert.Single(result.Issues), "AB_TP_TOPOLOGY_SELECTION_MISMATCH", expected, "ab-topology");

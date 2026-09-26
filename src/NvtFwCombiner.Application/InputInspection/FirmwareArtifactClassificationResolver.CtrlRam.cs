@@ -92,8 +92,9 @@ internal sealed partial class FirmwareArtifactClassificationResolver
         byte? standardEventBufferFormat = null;
         if (kind is CtrlRamBaseKind.StandardTp or CtrlRamBaseKind.StandardFlash &&
             IsCurrentSnapshot(publication) &&
-            FirmwareConfigMetadataReader.TryReadBackup(candidate.Span, out FirmwareConfigMetadata standardConfig,
-                out _) && standardConfig.IsFirmwareVersionBarValid)
+            FirmwareConfigMetadataReader.TryReadBackup(candidate.Span,
+                ResolveStandardNvtEndFlag(exactStandard, consensusStandards),
+                out FirmwareConfigMetadata standardConfig, out _) && standardConfig.IsFirmwareVersionBarValid)
         {
             standardEventBufferFormat = exactStandard?.MetadataPlan.ResolutionToken == publication.ResolutionToken
                 ? FirmwareConfigGeneralParametersProjector.ReadGeneralParameters(
@@ -158,14 +159,18 @@ internal sealed partial class FirmwareArtifactClassificationResolver
         int plausibleBanks = hasStandard ? banks.Count(bank => CompiledFirmwareArtifactClassifier.Classify(standard!,
             reference.Span.Slice(checked((int)bank.Range.Start), checked((int)bank.Range.Length))).Kind ==
                 CompiledFirmwareArtifactKind.FlashCode) : 0;
+        // NVT-END-FLAG-1113-01: the AB layout declares each bank's NVT end flag in bank-local coordinates; only that
+        // position is bank evidence and markers anywhere else in the bank never count. A migration-inventory layout
+        // keeps the existing compatibility read; a failed declaration gives no marker evidence.
+        FirmwareNvtEndFlagResolution bankEndFlag = layout.V2Details.Provenance.ResolvedMap.NvtEndFlagResolution;
         var facts = new List<CtrlRamBaseBankInspection>(2);
         var issues = new List<CompositionIssue>();
         bool oneNvtMarkerPerBank = true;
         foreach (FirmwareRegion bank in banks)
         {
             ReadOnlyMemory<byte> bytes = reference.Slice(checked((int)bank.Range.Start), checked((int)bank.Range.Length));
-            bool readable = FirmwareConfigMetadataReader.TryReadBackup(bytes.Span, out FirmwareConfigMetadata config,
-                out int markers);
+            bool readable = FirmwareConfigMetadataReader.TryReadBackup(bytes.Span, bankEndFlag,
+                out FirmwareConfigMetadata config, out int markers);
             oneNvtMarkerPerBank &= markers == 1;
             bool valid = readable && config.IsFirmwareVersionBarValid && config.ChipNumber > 0;
             CompositionIssue[] bankIssues = valid ? [] :
@@ -204,6 +209,22 @@ internal sealed partial class FirmwareArtifactClassificationResolver
                 CompositionSlotIds.ReplaceBase));
         }
         return new([.. facts], [.. issues], validation.HasTrustedAbStructure, oneNvtMarkerPerBank);
+    }
+
+    /// <summary>
+    /// F-1: the declaration of the exact Standard layout, or the one shared by every consensus Standard layout. No
+    /// candidate, disagreeing candidates or a failed declaration give <see cref="FirmwareNvtEndFlagResolution.Unresolved"/>,
+    /// so the event-buffer read is skipped instead of searching the whole image.
+    /// </summary>
+    internal static FirmwareNvtEndFlagResolution ResolveStandardNvtEndFlag(
+        ResolvedCapability? exactStandard, IReadOnlyList<ResolvedCapability>? consensusStandards)
+    {
+        return FirmwareNvtEndFlagResolution.Common(exactStandard is not null
+            ? [exactStandard.CompiledComposition.V2Details.Provenance.ResolvedMap.NvtEndFlagResolution]
+            : consensusStandards is { Count: > 0 }
+                ? [.. consensusStandards.Select(static capability =>
+                    capability.CompiledComposition.V2Details.Provenance.ResolvedMap.NvtEndFlagResolution)]
+                : []);
     }
 
     private sealed record AbReferenceCandidateAssessment(

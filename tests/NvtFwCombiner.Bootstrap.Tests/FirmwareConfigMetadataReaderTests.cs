@@ -1,5 +1,6 @@
 using System.Buffers.Binary;
 using NvtFwCombiner.Application.FlashMaps;
+using NvtFwCombiner.Domain.Firmware;
 using NvtFwCombiner.TestSupport;
 
 namespace NvtFwCombiner.Bootstrap.Tests;
@@ -196,6 +197,80 @@ public sealed class FirmwareConfigMetadataReaderTests
         Assert.Equal(0x1000, last.StructureStart);
     }
 
+    /// <summary>
+    /// NVT-END-FLAG-1113-01: through a declared end flag only that marker counts. A complete marker elsewhere is
+    /// neither counted nor rejected, and without the end-flag marker the Backup is unreadable although a marker
+    /// exists elsewhere.
+    /// </summary>
+    [Theory]
+    [InlineData("51950", "nt51950-standard-merge-256k")]
+    [InlineData("51951", "nt51951-standard-merge-512k")]
+    public void DeclaredEndFlagReadCountsOnlyTheEndFlagMarker(string ic, string mapId)
+    {
+        byte[] image = File.ReadAllBytes(
+            CanonicalGoldenTestData.ArtifactPath("standard-merge", ic, "expected-output"));
+        FirmwareNvtEndFlagResolution endFlag = DpPerspectiveEndFlag(ic, mapId);
+
+        Assert.True(FirmwareConfigMetadataReader.TryReadBackup(image, endFlag, out FirmwareConfigMetadata declared,
+            out int markerCount));
+        Assert.Equal(1, markerCount);
+        Assert.Equal(0x36000, declared.StructureStart);
+        Assert.True(FirmwareConfigMetadataReader.TryReadBackup(image, out FirmwareConfigMetadata wholeImage));
+        Assert.Equal(wholeImage, declared);
+
+        byte[] extraMarker = [.. image];
+        WriteEndFlag(extraMarker, 0x20000);
+        Assert.True(FirmwareConfigMetadataReader.TryReadBackup(extraMarker, endFlag, out FirmwareConfigMetadata extra,
+            out markerCount));
+        Assert.Equal(1, markerCount);
+        Assert.Equal(declared, extra);
+
+        byte[] misplacedOnly = [.. extraMarker];
+        misplacedOnly[0x36FFD] ^= 0xFF;
+        Assert.False(FirmwareConfigMetadataReader.TryReadBackup(misplacedOnly, endFlag, out _, out markerCount));
+        Assert.Equal(0, markerCount);
+    }
+
+    /// <summary>A failed declaration is unreadable without searching the image, as is an end flag past the image end.</summary>
+    [Fact]
+    public void UnresolvedOrOutOfImageEndFlagIsUnreadable()
+    {
+        byte[] image = File.ReadAllBytes(
+            CanonicalGoldenTestData.ArtifactPath("standard-merge", "51950", "expected-output"));
+
+        Assert.False(FirmwareConfigMetadataReader.TryReadBackup(image, FirmwareNvtEndFlagResolution.Unresolved, out _,
+            out int markerCount));
+        Assert.Equal(0, markerCount);
+        Assert.False(FirmwareConfigMetadataReader.TryReadBackup(image.AsSpan(0, 0x36FFF),
+            DpPerspectiveEndFlag("51950", "nt51950-standard-merge-256k"), out _, out markerCount));
+        Assert.Equal(0, markerCount);
+    }
+
+    /// <summary>A migration-inventory layout keeps the existing compatibility read, ambiguity included.</summary>
+    [Theory]
+    [InlineData("51923")]
+    [InlineData("51927")]
+    [InlineData("51929")]
+    public void MigrationInventoryLayoutKeepsTheCompatibilityRead(string ic)
+    {
+        byte[] image = File.ReadAllBytes(
+            CanonicalGoldenTestData.ArtifactPath("standard-merge", ic, "expected-output"));
+        FirmwareNvtEndFlagResolution legacy = BuiltInFirmwareInspection.ResolveCtrlRamBaseNvtEndFlag($"NT{ic}");
+        Assert.True(legacy.UsesLegacyCompatibilityRead);
+
+        Assert.True(FirmwareConfigMetadataReader.TryReadBackup(image, legacy, out FirmwareConfigMetadata viaResolution,
+            out int resolutionCount));
+        Assert.True(FirmwareConfigMetadataReader.TryReadBackup(image, out FirmwareConfigMetadata compatibility,
+            out int compatibilityCount));
+        Assert.Equal(compatibility, viaResolution);
+        Assert.Equal(compatibilityCount, resolutionCount);
+
+        byte[] ambiguous = [.. image];
+        WriteEndFlag(ambiguous, 0x100);
+        Assert.False(FirmwareConfigMetadataReader.TryReadBackup(ambiguous, legacy, out _, out resolutionCount));
+        Assert.Equal(2, resolutionCount);
+    }
+
     /// <summary>NT51926 golden evidence identifies the owner-confirmed 1.4.1 Common FW codebase.</summary>
     [Fact]
     public void Nt51926GoldenReadsAsCommonFw141()
@@ -245,6 +320,13 @@ public sealed class FirmwareConfigMetadataReaderTests
         Assert.True(FirmwareConfigMetadataReader.TryReadBackup(image, out FirmwareConfigMetadata metadata));
 
         return metadata;
+    }
+
+    private static FirmwareNvtEndFlagResolution DpPerspectiveEndFlag(string ic, string mapId)
+    {
+        return BuiltInV2BundleRegistry.All["nt51950-nt51951-standard-merge"]
+            .GetFirmwareFamily($"nt{ic}-standard-merge-dp-perspective", "0.8.0")
+            .ResolveNvtEndFlag(mapId);
     }
 
     private static void WriteEndFlag(byte[] image, int start)

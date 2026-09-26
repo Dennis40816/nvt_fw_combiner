@@ -31,7 +31,7 @@ public sealed partial class SavedRuleCliCommandTests
             """;
     }
 
-    private static JsonObject ValidGeneralMergeV2RuleObject(
+    internal static JsonObject ValidGeneralMergeV2RuleObject(
         long capacity = 4,
         int fillByte = 0xA5)
     {
@@ -51,14 +51,14 @@ public sealed partial class SavedRuleCliCommandTests
               },
               "parentBinding": {
                 "bundleId": "nt51950-nt51951-general-merge-logical-candidate",
-                "bundleVersion": "1.1.10-full-image-metadata.1",
-                "bundleContentHash": "101a97d0101abae37e27568f21b7af9c491ef47af3d26b0a6d5d4f5cb0945a05",
+                "bundleVersion": "1.1.13-nvt-end-flag.1",
+                "bundleContentHash": "fefeeefd3442379b733f2bf65d4695632ca6d0dfa3128e296d02ec8553e9b126",
                 "profileId": "nt51950-general-merge-logical-candidate",
                 "profileVersion": "0.1.0",
-                "profileContentHash": "af9b5f2d3270cbcd920b69dca30361f2509587d33b26070f301419dab5b3d795",
+                "profileContentHash": "3c481798f62702defce1f10490cb0335ecababea23a658ad90bcc2417702ab51",
                 "familyId": "nt51950-nt51951-dp-perspective",
-                "familyVersion": "1.4.1",
-                "familyContentHash": "17b04684520efb5297e8096dec5fe20e57532e1ae1cc80ac26d6b86c27cdfb54",
+                "familyVersion": "1.4.2",
+                "familyContentHash": "574fcdc65d603988ee0dbacdbf26e1ecf9e9c99ac6e42db7332cfb1b08b51433",
                 "mapId": "logical-output"
               },
               "promotion": {

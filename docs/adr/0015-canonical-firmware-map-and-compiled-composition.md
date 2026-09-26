@@ -9,7 +9,8 @@
   meanings and evidence gates remain accepted
 - Amends: ADR 0003, ADR 0004, ADR 0005, ADR 0006, and ADR 0007
 - Amended by: ADR 0016, ADR 0017, ADR 0018, ADR 0019, ADR 0020, ADR 0023,
-  ADR 0024, ADR 0032, ADR 0042, ADR 0045, and ADR 0046
+  ADR 0024, ADR 0032, ADR 0042, ADR 0045, ADR 0046, and ADR 0076 (NVT end
+  flag, proposed)
 
 ## Context
 
