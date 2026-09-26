@@ -5,7 +5,7 @@
   "integrationBase": "dc677115653658c33a5d61274b1294ee6f45d548",
   "risk": "R1",
   "kind": "ui",
-  "state": "design-active",
+  "state": "final-complete",
   "mutablePaths": [
     "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/BuildResultViewModel.cs",
     "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/CompositionRunContracts.cs",
@@ -28,12 +28,19 @@
     "outcome": "not-required",
     "evidence": "Bounded local R1 correction of two residuals recorded at the 1.1.12 release (the CHANGELOG shortcut limitation and the F07-REVIEW-FIXES-1112-01 final review); reviewed in the 1.1.13 fixed-head final review."
   },
-  "implementationHead": null,
-  "reviewedHead": null,
-  "pathStateDigest": null,
+  "implementationHead": "1da2aa14ae280826ab373aa50de696bc134202b6",
+  "reviewedHead": "1da2aa14ae280826ab373aa50de696bc134202b6",
+  "pathStateDigest": "941bcc759dd8edae80051c9cd8690c784e9dc87de6d172f97e06f5f4270caf60",
   "finalReview": {
-    "reviewer": null,
-    "outcome": "pending",
-    "evidence": ""
-  }
+    "reviewer": "codex/gpt-6-sol",
+    "outcome": "approved",
+    "evidence": "Independent final review by codex/gpt-6-sol: APPROVED at exact head `1da2aa14ae280826ab373aa50de696bc134202b6`. Independent reviews were performed at `cb8bae53ff65b5629e354240f0424948ffd64e09` for the F07 and envelope changes (the declared UI changes keep the latest-output shortcut without opening the Build Completed modal when the report is unavailable, and failed generated-report publication restores the prior loaded report, history, sequence and toast before rethrowing) and at `0f080dccc4475a76af960007561569b20632d116` for the CLI change, followed by the batch review at `667086390f795576ea1e3c4235196b16e19a38a0`, which approved this record with every mutable path blob identical to the F07 head and no merge repair. All mutablePaths blobs remain identical to the batch-reviewed head; the sole intervening change resolves a handoff finding. No unexpected firmware byte, range, CRC, naming or profile change. Implementer tests at batch head `0696c2170`: Bootstrap 1906/1906, UiSmoke 1669/1669, Architecture 269/269 (reported, not rerun by the read-only reviewer)."
+  },
+  "integrationPaths": [
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/BuildResultViewModel.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/CompositionRunContracts.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/CompositionRunPresentationViewModel.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MainWindowViewModel.Construction.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReportPresentationViewModel.cs"
+  ]
 }

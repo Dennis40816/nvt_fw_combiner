@@ -5,7 +5,7 @@
   "integrationBase": "dc677115653658c33a5d61274b1294ee6f45d548",
   "risk": "R1",
   "kind": "behavior",
-  "state": "design-active",
+  "state": "final-complete",
   "mutablePaths": [
     "src/NvtFwCombiner.Cli/AbMergeCliCommandHandler.cs",
     "src/NvtFwCombiner.Cli/CliApplication.StandardMerge.cs",
@@ -30,12 +30,19 @@
     "outcome": "not-required",
     "evidence": "Bounded local R1 correction of the post-commit report and receipt order inside the existing CLI adapter owner, with no Application, profile, firmware byte, range or contract change."
   },
-  "implementationHead": null,
-  "reviewedHead": null,
-  "pathStateDigest": null,
+  "implementationHead": "1da2aa14ae280826ab373aa50de696bc134202b6",
+  "reviewedHead": "1da2aa14ae280826ab373aa50de696bc134202b6",
+  "pathStateDigest": "7f6beaacbd2cb440066b1e1d347e7d1145792b7db1ecbd8df945d1f3ba9dd402",
   "finalReview": {
-    "reviewer": null,
-    "outcome": "pending",
-    "evidence": ""
-  }
+    "reviewer": "codex/gpt-6-sol",
+    "outcome": "findings-incorporated",
+    "evidence": "Independent final review by codex/gpt-6-sol: APPROVED at exact head `1da2aa14ae280826ab373aa50de696bc134202b6` after incorporated findings. The review of `45b07a0ce95f6b9ef72243358cc4536a52061a9c` found P1 F-1 (a report path naming the automatically named committed output could overwrite the BIN after its receipt). The re-review of `0f080dccc4475a76af960007561569b20632d116` found F-1 resolved: the shared post-commit report guard compares the requested report with the actual committed firmware file path before writing, all five committed CLI routes use it, and three bundle regressions check the on-disk BIN size and SHA-256 against the printed receipt; loose automatic names are rejected by pre-run guards. Exit code 0 after a post-commit report failure matches the failed loose-delivery precedent (owner decision 25). The batch review at `667086390f795576ea1e3c4235196b16e19a38a0` confirmed blob identity with the CLI head and required one P3 handoff correction, resolved at the final head with all mutablePaths blobs unchanged. No firmware byte, range, CRC, naming or profile change. Implementer tests at batch head `0696c2170`: Bootstrap 1906/1906, Architecture 269/269 (reported, not rerun by the read-only reviewer)."
+  },
+  "integrationPaths": [
+    "src/NvtFwCombiner.Cli/AbMergeCliCommandHandler.cs",
+    "src/NvtFwCombiner.Cli/CliApplication.StandardMerge.cs",
+    "src/NvtFwCombiner.Cli/CliCompositionRunSupport.cs",
+    "src/NvtFwCombiner.Cli/MergeCliCommandHandler.cs",
+    "src/NvtFwCombiner.Cli/ReplaceCliCommandHandler.RunSupport.cs"
+  ]
 }

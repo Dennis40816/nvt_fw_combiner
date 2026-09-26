@@ -5,7 +5,7 @@
   "integrationBase": "dc677115653658c33a5d61274b1294ee6f45d548",
   "risk": "R1",
   "kind": "refactor",
-  "state": "design-active",
+  "state": "final-complete",
   "mutablePaths": [
     "src/NvtFwCombiner.Domain/Composition/V2CompilationContext.cs"
   ],
@@ -22,12 +22,15 @@
     "outcome": "not-required",
     "evidence": "Bounded local R1 comment-only correction of the deferred review finding F-10; reviewed in the 1.1.13 fixed-head final review."
   },
-  "implementationHead": null,
-  "reviewedHead": null,
-  "pathStateDigest": null,
+  "implementationHead": "1da2aa14ae280826ab373aa50de696bc134202b6",
+  "reviewedHead": "1da2aa14ae280826ab373aa50de696bc134202b6",
+  "pathStateDigest": "bea5588500ac041fc1efae5e8c00ca83f6137bb513d3c0668892f83b900695b8",
   "finalReview": {
-    "reviewer": null,
-    "outcome": "pending",
-    "evidence": ""
-  }
+    "reviewer": "codex/gpt-6-sol",
+    "outcome": "approved",
+    "evidence": "Independent final review by codex/gpt-6-sol: APPROVED at exact head `1da2aa14ae280826ab373aa50de696bc134202b6`. The independent review at `cb8bae53ff65b5629e354240f0424948ffd64e09` approved the documentation correction: the XML summary describes both existing template-anchor sources consistently with their current validation and changes no executable behavior. The batch review at `667086390f795576ea1e3c4235196b16e19a38a0` approved this record with its sole mutable path blob identical to that head. The blob remains identical at the final head; the sole intervening change resolves a handoff finding. No runtime, firmware byte, range, CRC, naming or profile change."
+  },
+  "integrationPaths": [
+    "src/NvtFwCombiner.Domain/Composition/V2CompilationContext.cs"
+  ]
 }
