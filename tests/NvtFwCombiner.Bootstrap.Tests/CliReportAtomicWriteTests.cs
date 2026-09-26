@@ -13,6 +13,7 @@ namespace NvtFwCombiner.Bootstrap.Tests;
 public sealed class CliReportAtomicWriteTests
 {
     private const int DiskFullHResult = unchecked((int)0x80070070);
+    private const string StagingFileName = ".nfc-report-test.tmp";
     private const string ReportJson = "{\"Status\":\"Succeeded\",\"Note\":\"übersetzt\"}";
     private static readonly UTF8Encoding Utf8WithoutBom = new(encoderShouldEmitUTF8Identifier: false);
     private static readonly byte[] EarlierReport = Utf8WithoutBom.GetBytes(
@@ -66,6 +67,7 @@ public sealed class CliReportAtomicWriteTests
                 reportPath,
                 ReportJson,
                 output,
+                StagingFileName,
                 async (stream, content, token) =>
                 {
                     writtenPath = WriteHalf(stream, content);
@@ -94,6 +96,7 @@ public sealed class CliReportAtomicWriteTests
                 reportPath,
                 ReportJson,
                 output,
+                StagingFileName,
                 async (stream, content, token) =>
                 {
                     writtenPath = WriteHalf(stream, content);
@@ -149,6 +152,7 @@ public sealed class CliReportAtomicWriteTests
                     reportPath,
                     ReportJson,
                     output,
+                    StagingFileName,
                     async (stream, content, token) =>
                     {
                         await stream.WriteAsync(content, token);
@@ -161,6 +165,42 @@ public sealed class CliReportAtomicWriteTests
         Assert.True(failure is IOException or UnauthorizedAccessException, failure.ToString());
         Assert.Equal(Utf8WithoutBom.GetByteCount(ReportJson), writtenLength);
         AssertEarlierReportKept(reportPath, output, writtenPath);
+    }
+
+    /// <summary>
+    /// A staging name that already belongs to another file fails the write before any report byte is
+    /// written, and neither that file nor the earlier report is deleted or changed.
+    /// </summary>
+    [Fact]
+    public async Task ExistingFileWithTheStagingNameIsNeitherDeletedNorChanged()
+    {
+        using var workspace = TempWorkspace.Create("nfc-cli-report-atomic-collision");
+        string reportPath = workspace.Write("reports/report.json", EarlierReport);
+        byte[] foreignBytes = Utf8WithoutBom.GetBytes("not created by this report write");
+        string foreignPath = workspace.Write($"reports/{StagingFileName}", foreignBytes);
+        bool contentWritten = false;
+        using var output = new StringWriter(CultureInfo.InvariantCulture);
+
+        IOException failure = await Assert.ThrowsAnyAsync<IOException>(() =>
+            CliCompositionRunSupport.WriteReportJsonAsync(
+                reportPath,
+                ReportJson,
+                output,
+                StagingFileName,
+                (stream, content, token) =>
+                {
+                    contentWritten = true;
+                    return stream.WriteAsync(content, token);
+                },
+                TestContext.Current.CancellationToken));
+
+        Assert.False(contentWritten, failure.ToString());
+        Assert.Equal(foreignBytes, await File.ReadAllBytesAsync(foreignPath, TestContext.Current.CancellationToken));
+        Assert.Equal(EarlierReport, await File.ReadAllBytesAsync(reportPath, TestContext.Current.CancellationToken));
+        Assert.Equal(
+            [foreignPath, reportPath],
+            Directory.GetFiles(Path.GetDirectoryName(reportPath)!).Order(StringComparer.Ordinal));
+        Assert.Empty(output.ToString());
     }
 
     /// <summary>A committed Build replaces an earlier report with its complete run report and leaves no staging file.</summary>

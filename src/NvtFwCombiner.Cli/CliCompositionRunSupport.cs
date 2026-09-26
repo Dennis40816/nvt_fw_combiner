@@ -57,8 +57,10 @@ internal static class CliCompositionRunSupport
     /// <summary>
     /// Writes one report so that its destination is replaced whole or not at all: the UTF-8 report is
     /// written and flushed to a new staging file in the destination directory and then renamed over the
-    /// destination. A failure or cancellation before that rename deletes the staging file and leaves the
-    /// destination's earlier bytes, or its absence, unchanged.
+    /// destination. A failure or cancellation before that rename leaves the destination's earlier bytes,
+    /// or its absence, unchanged and deletes the staging file this write created (best effort: a failed
+    /// deletion keeps the original failure as the one reported). A pre-existing file with the staging
+    /// name is never deleted.
     /// </summary>
     internal static Task WriteReportJsonAsync(
         string reportPath,
@@ -70,23 +72,34 @@ internal static class CliCompositionRunSupport
             reportPath,
             reportJson,
             output,
+            $".nfc-report-{Guid.NewGuid():N}.tmp",
             static (staging, content, token) => staging.WriteAsync(content, token),
             cancellationToken);
     }
 
     /// <summary>
-    /// Writes one report as described above; <paramref name="writeStagingContent"/> writes the complete
-    /// report bytes into the open staging file.
+    /// Writes one report as described above through the staging file named
+    /// <paramref name="stagingFileName"/> in the destination directory;
+    /// <paramref name="writeStagingContent"/> writes the complete report bytes into the open staging file.
     /// </summary>
     internal static async Task WriteReportJsonAsync(
         string reportPath,
         string reportJson,
         TextWriter output,
+        string stagingFileName,
         Func<Stream, ReadOnlyMemory<byte>, CancellationToken, ValueTask> writeStagingContent,
         CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(output);
+        ArgumentException.ThrowIfNullOrWhiteSpace(stagingFileName);
         ArgumentNullException.ThrowIfNull(writeStagingContent);
+        if (!StringComparer.Ordinal.Equals(Path.GetFileName(stagingFileName), stagingFileName))
+        {
+            throw new ArgumentException(
+                "The staging file must be a plain file name in the report directory.",
+                nameof(stagingFileName));
+        }
+
         string fullPath = Path.GetFullPath(reportPath);
         string? directory = Path.GetDirectoryName(fullPath);
         if (string.IsNullOrWhiteSpace(directory) || string.IsNullOrWhiteSpace(Path.GetFileName(fullPath)))
@@ -97,7 +110,8 @@ internal static class CliCompositionRunSupport
         byte[] content = ReportEncoding.GetBytes(reportJson);
         cancellationToken.ThrowIfCancellationRequested();
         _ = Directory.CreateDirectory(directory);
-        string stagingPath = Path.Combine(directory, $".nfc-report-{Guid.NewGuid():N}.tmp");
+        string stagingPath = Path.Combine(directory, stagingFileName);
+        bool stagingCreated = false;
         try
         {
             await using (var staging = new FileStream(
@@ -108,6 +122,8 @@ internal static class CliCompositionRunSupport
                              bufferSize: 0,
                              FileOptions.Asynchronous | FileOptions.WriteThrough))
             {
+                // Only a staging file this write created is ever deleted; an existing file of that name is not ours.
+                stagingCreated = true;
                 await writeStagingContent(staging, content, cancellationToken).ConfigureAwait(false);
                 await staging.FlushAsync(cancellationToken).ConfigureAwait(false);
             }
@@ -117,7 +133,11 @@ internal static class CliCompositionRunSupport
         }
         catch
         {
-            DeleteStagingFile(stagingPath);
+            if (stagingCreated)
+            {
+                DeleteStagingFile(stagingPath);
+            }
+
             throw;
         }
 
