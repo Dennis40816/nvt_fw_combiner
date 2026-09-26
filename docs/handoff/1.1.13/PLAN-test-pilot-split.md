@@ -3,7 +3,9 @@
 - Status: **approved plan, not started.** Board decision 74 (D-6) chose this
   class, with the class, fixture and shared-state review, the file list
   recomputed at the real branch point and active write locks respected;
-  decision 73 puts T2a and T2b in 1.1.13. It becomes a dispatch envelope when
+  decision 73 puts T2a and T2b in 1.1.13. The commander decided on 2026-09-26
+  that T2a starts after batch 2a is frozen, from the batch head, and that
+  `Roadmap.cs` stays in the residual class. It becomes a dispatch envelope when
   the commander schedules it. Revised on 2026-09-26 after the independent
   design review (findings F-5 and F-6 in the [log](WS-TEST.md)).
 - Rules: the split rules S1 to S10 of the
@@ -35,15 +37,16 @@
    helpers used by one to three other files. No partial declaration has an
    attribute, a base type, an interface, a constructor, `Dispose` or a
    fixture.
-4. **It feeds the other WS-TEST and WS-GOV work.** It separates document
-   checks (`RepositoryDocumentTests`: the 2,500-line ceiling and the roadmap
-   assertions), which WS-GOV G2 must move into the structure lane before
-   prose-only pull requests may skip product tests. It also gives the
-   process-heavy MSBuild batch its own class.
+4. **It feeds the other WS-TEST and WS-GOV work.** It starts separating the
+   document checks that WS-GOV G2 must move into the structure lane before
+   prose-only pull requests may skip product tests: `RepositoryDocumentTests`
+   gets the 2,500-line ceiling now, and the roadmap assertions when
+   `Roadmap.cs` leaves the residual class. It also gives the process-heavy
+   MSBuild batch its own class.
 5. **Few collisions.** Two existing files are edited by open branches or
-   worktrees (a third only by a branch that looks abandoned), two are linked
-   from the roadmap, and open branches add two new files; all of them stay in
-   a residual class (see [files to avoid](#files-to-avoid)).
+   worktrees, a third is held back while an old branch is unconfirmed, two are
+   linked from the roadmap, and open branches add two new files; all of them
+   stay in a residual class (see [files to avoid](#files-to-avoid)).
 6. **Cheap to measure.** Architecture.Tests runs last in the `core` CI shard
    and takes seconds to minutes locally, so before and after runs can be
    repeated on a quiet machine.
@@ -78,9 +81,9 @@ Every file keeps its topic part: `RepositoryBoundaryTests.<Topic>.cs` becomes
 | `BootstrapCliBoundaryTests` | 3 | 1,005 | 25 | BootstrapStructure, BootstrapCliConvergence, CliStructure |
 | `HostInfrastructureBoundaryTests` | 6 | 1,532 | 28 | InfrastructureConvergence, InfrastructureStructure, LauncherBootstrap, FirstInstallationProgress, VersionRegistry, StartupDiagnostics |
 | `RetirementBoundaryTests` | 7 | 546 | 19 | DpReplaceRetirement, LarCatalogRetirement, LarTerminalStructure, LegacyRetirementStructure, WorkbenchRetirement, WorkbenchRetirement.DpIdentity, MemoryNamingConvergence |
-| `RepositoryDocumentTests` | 2 | 251 | 9 | Roadmap, RepositoryShape (the ceiling also covers source files; G2 moves both) |
+| `RepositoryDocumentTests` | 1 | 38 | 1 | RepositoryShape (the ceiling also covers source files; G2 moves it); Roadmap joins when it leaves the residual class |
 | `RepositoryBoundaryTestSupport` (static helpers) | 2 | 367 | 0 | TestSupport and TestParallelism (both without tests), plus the helpers moved under rule S3 |
-| `RepositoryBoundaryTests` (residual) | 5 | 1,017 | 18 | the root file (class summary and `ArchitectureTestsRemainDependencyFree`), PresentationStructure and DesktopHostConvergence (linked from the roadmap), WorkbenchStructure (edited on nvt-marker and in the C-7 worktree), JsonSchemaConcurrency (edited on VersionManagement JSON) |
+| `RepositoryBoundaryTests` (residual) | 6 | 1,230 | 26 | the root file (class summary and `ArchitectureTestsRemainDependencyFree`), PresentationStructure and DesktopHostConvergence (linked from the roadmap), WorkbenchStructure (edited on nvt-marker and in the C-7 worktree), JsonSchemaConcurrency (edited on VersionManagement JSON), Roadmap (held back by the commander while `feature/1.1.x/roadmap-and-agent-workflow` is unconfirmed) |
 | **Total** | 78 | 11,229 | 231 | |
 
 The mapping covers every file exactly once (checked by a script over the file
@@ -122,7 +125,7 @@ branch point (step 0); a new hit moves that file to the residual class.
 | F08 (`feature/1.1.13/f08-save-notice`) | UiSmoke: `LocalStateSaveNoticeTests.cs`, `ShellViewModelTests.Preferences.cs` | no overlap: the pilot touches only Architecture.Tests |
 | CLI work (`feature/1.1.13/cli-hardening`; the execution-refusal item of decision 68) | Bootstrap CLI tests, for example `CliReportAtomicWriteTests.cs` | no overlap today; recheck `RepositoryBoundaryTests.CliStructure.cs` and `RepositoryBoundaryTests.BootstrapCliConvergence.cs` at the branch point, where CLI changes usually add structure checks |
 | Rolling parity (`<worktrees>/parity`) | a new repository-script test module | no overlap |
-| `feature/1.1.x/roadmap-and-agent-workflow` | `RepositoryBoundaryTests.Roadmap.cs` | last commit 2026-09-03, not merged: the commander confirms it is abandoned; otherwise `Roadmap.cs` also stays in the residual class |
+| `feature/1.1.x/roadmap-and-agent-workflow` | `RepositoryBoundaryTests.Roadmap.cs` | last commit 2026-09-03, not merged, status unconfirmed: `Roadmap.cs` stays in the residual class (commander, 2026-09-26) |
 
 ## Static review (E7), expected content
 
@@ -145,10 +148,13 @@ difference other than the class names must be explained.
 
 ## Steps
 
-0. **Preconditions.** Board decision 74. The commander rechecks the
-   [files to avoid](#files-to-avoid) and any new `RepositoryBoundaryTests.*.cs`,
-   creates `feature/1.1.13/test-pilot-split` from the trunk and records the
-   dispatch envelope. The implementer recomputes
+0. **Preconditions.** Board decision 74. Batch 2a is frozen. The commander
+   rechecks the [files to avoid](#files-to-avoid) (including
+   `RepositoryBoundaryTests.CliStructure.cs` and
+   `RepositoryBoundaryTests.BootstrapCliConvergence.cs`) and any new
+   `RepositoryBoundaryTests.*.cs`, creates `feature/1.1.13/test-pilot-split`
+   from the batch 2a head and records the dispatch envelope. The implementer
+   recomputes
    the file list, the mapping table, the helper uses and the E7 table at that
    branch point B, applies the test-area setup of the root `AGENTS.md`, and
    times only on a quiet machine (no other build, test or verifier; recorded
@@ -199,9 +205,9 @@ difference other than the class names must be explained.
   collection definitions. Any other line fails E3.
 - **E4 canary**, in a scratch worktree that is never committed: three
   deliberate violations, each failing exactly the expected moved test under
-  its new class name. (a) Two reversed rows in the roadmap's release sequence
-  fail
-  `RepositoryDocumentTests.NfcRoadmapHasOneOrderedVersionAllocationEntryPoint`.
+  its new class name. (a) A scratch Markdown file of 2,501 lines under
+  `docs/` fails
+  `RepositoryDocumentTests.RepositoryTextFilesStayBelowEmergencyCeiling`.
   (b) A text that a `BootstrapCliBoundaryTests` test requires to be absent,
   added to the CLI source file it reads, fails that test. (c) The same for one
   `PresentationBoundaryTests` or `ApplicationBoundaryTests` test. This proves
@@ -236,7 +242,7 @@ only.
   the MSBuild batch keeps at least twofold headroom.
 - No test body, test name, assertion, input path or product file changed.
 - Every new class is below 2,000 nonblank lines; the residual class holds only
-  the five listed files (seven after nvt-marker and VersionManagement JSON
+  the six listed files (eight after nvt-marker and VersionManagement JSON
   merge).
 - The log records the timing result, including a slower result if that is what
   E5 shows.
@@ -263,9 +269,10 @@ only.
   class and the batch; E5 gives the real number. The `core` CI shard gains the
   same seconds, because Architecture.Tests runs last in it.
 - WS-GOV G2 receives `RepositoryDocumentTests` as the explicit set of generic
-  document checks to move into the structure lane. The WS-TEST log lists the
-  other files that read documents as part of topic checks; those stay mapped to
-  the `architecture` group.
+  document checks to move into the structure lane: the line ceiling now, the
+  roadmap assertions after `Roadmap.cs` leaves the residual class. The WS-TEST
+  log lists the other files that read documents as part of topic checks; those
+  stay mapped to the `architecture` group.
 - What any test asserts does not change.
 
 ## After the pilot
@@ -274,7 +281,8 @@ only.
   decide whether later splits justify turning them into one small script
   (governance class, R2).
 - Move the residual files when their blockers clear: the roadmap owner updates
-  the two links, and nvt-marker merges.
+  the two links; nvt-marker and VersionManagement JSON merge; the old roadmap
+  branch is confirmed abandoned.
 - Next candidates, each scheduled by the commander under rule S7: U2a for the
   mixed UiSmoke classes after U0 and after F08 and the navigation focus work
   merge; the ProfileContract and Application aggregates after the pre-built

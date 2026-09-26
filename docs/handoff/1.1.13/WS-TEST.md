@@ -229,9 +229,11 @@ no WS-GOV or CI evidence file was changed here.
 
 1. **WS-GOV governance draft:** cite this ADR's amendment of ADR 0027's
    2026-08-12 section (item 9) in its "Amends" list and in G2 (review F-4).
+   The commander forwards it with WS-GOV's next revision.
 2. **WS-GOV G2:** replace the `prose` wording ("no test or script reads") with
    the joint definition of ADR item 3, and change the authority checker and the
-   list of document checks to migrate in the same batch (review F-4).
+   list of document checks to migrate in the same batch (review F-4). The
+   commander forwards it with WS-GOV's next revision.
 3. **WS-GOV G1-A or G1-B, optional:** a pull request field "adds or changes a
    run-time read of a repository file; declared in the selection map" (ADR
    item 5).
@@ -243,114 +245,150 @@ no WS-GOV or CI evidence file was changed here.
    a bug file; the UI handoff document at 2,499 lines is the most urgent.
 6. **Owner interview:** done; D-1 to D-8 were decided on 2026-09-26 (board
    decisions 69 to 76).
-7. **U0 go:** tell WS-TEST when the machine is quiet (after rolling parity
-   P-0.5); U0 does not start before that.
-8. **Pilot scheduling:** confirm the files to avoid at the branch point,
-   including whether `feature/1.1.x/roadmap-and-agent-workflow` is abandoned
+7. **U0 go:** pending. P-0.5 has finished, but the machine is not quiet yet;
+   the commander reports the window, which U0 does not share with the ADR 0077
+   Step 0 measurement.
+8. **Pilot scheduling:** decided. T2a starts from the batch 2a head after its
+   freeze; `Roadmap.cs` stays in the residual class; `CliStructure.cs` and
+   `BootstrapCliConvergence.cs` are rechecked at the branch point
    ([pilot plan](PLAN-test-pilot-split.md#files-to-avoid)).
+9. **T1 design review and owner acceptance:** the commander has sent the
+   design review of the ADR text and the record to `codex/gpt-6-astra`; after
+   it passes, the owner accepts the text explicitly before the implementation
+   commit sets Accepted.
 
 ## 1.1.13 batch plans (board decision 73)
 
 Board decision 73 puts T1, T2a, T2b and U0 into 1.1.13; T3 joins only if WS-GOV
-G1-A lands in 1.1.13, and T4b has no version deadline. These are plans only;
-none has started.
+G1-A lands in 1.1.13, and T4b has no version deadline. The commander decided
+the open points of these plans on 2026-09-26 (recorded in the checkpoint of that
+date). None of the batches has started; T1 exists only as an uncommitted draft.
 
 ### T1: ADR 0079 into `docs/adr/` (R2 admission)
 
-- **Outcome.** `docs/adr/0079-test-architecture.md`, status Accepted (board
-  decisions 69 to 76), carrying this draft's decisions without the handoff-only
-  material; the reciprocal "Amended by" entry in ADR 0027's header; a pointer
-  in `tests/README.md`; the pointer in `tests/AGENTS.md` only if no other batch
-  holds that file (G1-B and WS-AI also edit `AGENTS.md` files). No executable,
-  CI, test or product file changes: the rules take effect through T2 to T5.
-- **Branch.** `feature/1.1.13/test-architecture-adr` from the trunk at the
-  latest evidence checkpoint (today `84b084dd8`; newer after batch 2a merges),
-  rebased, never merged, when the checkpoint moves.
-- **Mode.** Before WS-GOV G1-B: the capability-reuse record below. After
-  G1-B: the pull request fields, an exact-head review and the owner's approval
-  instead.
-- **Record draft**, `docs/governance/change-records/TEST-ARCH-ADR-1113-01.json`
-  (schema 2), first committed as `design-active` in the admission commit:
+- **Outcome.** `docs/adr/0079-test-architecture.md`, carrying this workstream's
+  reviewed design and decisions 69 to 76 without the handoff-only material;
+  the reciprocal "Amended by" entry in ADR 0027's header; one pointer paragraph
+  in `tests/README.md`. `tests/AGENTS.md` is not part of T1 (commander). No
+  executable, CI, test or product file changes: the rules take effect through
+  T2 to T5.
+- **Status and effective point** (commander). The ADR stays **Proposed**:
+  decisions 69 to 76 answered its design questions and are not the owner's
+  acceptance of the text. After the design review the owner accepts the text
+  explicitly (as decision 46 did for ADR 0077); only then does the
+  implementation commit set Accepted. It takes effect when
+  `TEST-ARCH-ADR-1113-01` is integrated after that acceptance.
+- **Batch and base** (commander). T1 is in batch 2b, after batch 2a; its
+  `integrationBase` is the latest sealed evidence checkpoint once batch 2a has
+  merged (the draft carries `84b084dd8` provisionally). Branch
+  `feature/1.1.13/test-architecture-adr` from the trunk at that checkpoint,
+  rebased, never merged, if the checkpoint moves again.
+- **Mode** (commander). A capability-reuse record under the current rules,
+  because WS-GOV G1-B has not landed.
+- **Record draft**, `TEST-ARCH-ADR-1113-01` (schema 2), kept outside the
+  repository until the admission is staged, so that the validator never sees
+  an unstaged record:
 
 | Field | Draft value |
 | --- | --- |
 | `taskId` | `TEST-ARCH-ADR-1113-01` |
-| `capability` | Accept ADR 0079 (test architecture): test groups, execution categories and Golden membership, the path-selection, coverage and shadow-mode rules for the later selector, split and stability rules, and the amendment of ADR 0027's 2026-08-12 section (exact partitions; the 300-second rule replaced by measured targets); decision text only |
-| `integrationBase` | the latest sealed evidence checkpoint at admission |
+| `capability` | Accept ADR 0079 (test architecture): test groups, execution categories and Golden membership, the path-selection, coverage and shadow-mode rules for the later selector, class-size, split and stability rules, and the amendment of ADR 0027's 2026-08-12 section (verified exact partitions; the 300-second stop rule replaced by measured targets); decision text, the ADR 0027 header line and one README pointer only |
+| `integrationBase` | the latest sealed evidence checkpoint after batch 2a merges |
 | `risk`, `kind` | `R2`, `governance` |
 | `state` | `design-active`; `final-complete` in the evidence commit that is the reviewed head's only child |
-| `mutablePaths` | `docs/adr/0079-test-architecture.md`, `docs/adr/0027-evidence-preserving-performance-remediation.md`, `tests/README.md` (non-governed auxiliary evidence), and `tests/AGENTS.md` only if included |
+| `mutablePaths` | `docs/adr/0027-evidence-preserving-performance-remediation.md`, `docs/adr/0079-test-architecture.md`, `tests/README.md` (non-governed auxiliary evidence) |
 | `implementationOwner` | `claude-code` |
-| `searchEvidence` | the owner search over `docs/adr`, `docs/governance`, `docs/ci`, `tests/AGENTS.md` and `tests/README.md` for shard, unfiltered, narrow-test, category, trait and UiSmoke rules: no ADR owns test selection, categories or class splits; ADR 0027's 2026-08-12 amendment owns the CI sharding contract; `tests/AGENTS.md` and the runbook's narrow-test table own local test rules; `scripts/verify.py` owns the test inventory; board decisions 69 to 76 |
-| `semanticOwner` | ADR 0079 owns test selection, categories, split and stability rules; ADR 0027 keeps the CI sharding contract as amended; `scripts/verify.py` keeps the test inventory; the canonical Golden manifest keeps Golden membership; the authority map (ADR 0080) keeps authority classes; `tests/AGENTS.md` keeps per-test instructions |
-| `terminalContract` | ADR 0079 accepted; ADR 0027 carries the reciprocal amendment line; no new rule executes before T2 to T4 are admitted; the 300-second clause is replaced on acceptance by the measured targets recorded in ADR 0079 |
-| `disposition` | `extend-owner`: it amends ADR 0027 and adds no second owner for the inventory, Golden membership or authority classes |
-| `designReview` | `codex/gpt-6-astra`, `findings-incorporated`: the design review of `87ac3d6c1` (F-1 to F-6), taken in at `20dbfcdc3`, and board decisions 69 to 76 |
+| `searchEvidence` | six entries: ADR 0027's 2026-08-12 amendment is the only owner of the CI test partition; no ADR or contract owns test categories, path selection, coverage on selected runs, class size or split rules; `scripts/verify.py` owns the test inventory; the canonical manifest owns Golden membership; the coverage policy owns the coverage verdict; board decisions 69 to 76 and the ADR number allocation |
+| `semanticOwner` | ADR 0079 owns test selection, categories, split and stability rules; ADR 0027 keeps the CI sharding contract as amended; `scripts/verify.py` keeps the inventory; the canonical manifest keeps Golden membership; the coverage policy keeps the verdict; the authority map (ADR 0080) keeps authority classes; `tests/AGENTS.md` keeps per-test instructions |
+| `terminalContract` | ADR 0079 Proposed during the design review and set to Accepted in the implementation commit only after the owner's explicit acceptance; in force from the integration of this admission after that acceptance; measured targets filled at the final review with no placeholder left; the reciprocal ADR 0027 line; the README pointer; no other file |
+| `disposition` | `extend-owner` |
+| `designReview` | `blocked` until the design review of the ADR text and the record (arranged by the commander, `codex/gpt-6-astra`) |
 | `implementationHead`, `reviewedHead`, `pathStateDigest` | null until finalization |
-| `finalReview` | `pending`; then an independent reviewer (another runtime, or a fresh session) at the exact head |
+| `finalReview` | `pending`; then an independent reviewer at the exact head |
 
+- **Measured targets** (commander). Taken at the T1 final review from the 60
+  most recent `ci.yml` runs (final attempts, successful jobs), median and
+  about p90 for the whole run and the `ui`, `core`, `bootstrap` and finalizer
+  jobs. Reference values only, with no obligation attached. The draft states the
+  method and leaves the cells as placeholders.
 - **Review focus at the exact head.**
-  1. Fidelity: the ADR equals the reviewed draft plus decisions 69 to 76,
+  1. Fidelity: the ADR equals the reviewed design plus decisions 69 to 76,
      each cited by number, with no new rule.
   2. The ADR 0027 amendment changes only the stated clauses (unfiltered
      projects become verified exact partitions; the 300-second rule is
-     replaced on acceptance), the reciprocal line follows the ADR lifecycle
-     rules, and nothing says the old rule had lapsed.
-  3. The measured targets are present, dated, sourced (the refreshed CI
-     window) and labeled monitoring targets, not gates.
+     replaced when ADR 0079 takes effect), the reciprocal line follows the ADR
+     lifecycle rules, and nothing says the old rule had lapsed.
+  3. The measured targets are filled, dated and sourced, and carry no
+     obligation.
   4. No over-claim: every part that needs T3, T4 or G2 is marked decided but
      not yet in force; no firmware, release, approval or required-check
      authority changes.
   5. Consistency with the ADR 0080 draft: the joint prose definition, the
      authority classes and G2's role; whichever ADR is accepted second cites
      the first.
-  6. Self-contained: links resolve from `docs/adr/`; measurement tables and
-     links to this log are replaced by the facts they carry or by
-     commit-pinned references.
+  6. Self-contained: links resolve from `docs/adr/`, with no link to handoff
+     drafts.
   7. The record: exact paths, the latest checkpoint as base, R2 governance, an
      independent reviewer.
-- **Steps.** Refresh the CI window read-only (`gh run view`) for the measured
-  targets; admission commit (record staged as `design-active`);
-  implementation commit (ADR 0079, the ADR 0027 line, the pointers, the handoff
-  draft marked as moved); checks; exact-head review; evidence commit
-  (`final-complete`); pull request into the trunk or the commander's batch.
+- **Steps.** Design review (arranged, ADR text and record) -> owner's explicit
+  acceptance of the text -> branch from the trunk after batch 2a -> refresh the
+  CI window read-only for the measured targets -> admission commit (record
+  staged as `design-active`, re-pinned base) -> implementation commit (ADR 0079
+  with status Accepted, the ADR 0027 line, the README pointer) -> checks ->
+  exact-head review -> evidence commit (`final-complete`) -> batch 2b.
 - **Checks.** With the test-area setup: `python scripts/verify.py
   --structure-only` (governed documents, the record, links) and
   Architecture.Tests (the board's rule for document edits; the line ceiling
   and the roadmap checks).
-- **Open for the commander.** Record or pull request fields, depending on when
-  G1-B lands; `tests/AGENTS.md` in T1 or through G1-B and WS-AI; T1 in a batch
-  or as its own pull request.
+- **Draft now** (uncommitted, not staged): the three repository changes in
+  `<worktrees>/wstest`, and, outside the repository in the folder `wstest-t1`
+  of the agent's scratch area, `TEST-ARCH-ADR-1113-01.record-draft.json` (SHA-256
+  `c424f26e260b9b09f2c225757868cc8a3f93c9b88a0ee952d6fb66e9448c1378`) and
+  `TEST-ARCH-ADR-1113-01.proposal.patch` (SHA-256
+  `ac67dc2d970021069bb8e14a2ed9e105799527ffdcbd2d6b716845358b6bb3d7`; three
+  files, 776 insertions, 1 deletion; applies cleanly to `a19300b62`). The first
+  version, `proposal.v1.patch` (SHA-256
+  `f8ca5dfce6e04b910fff8896ed6e427e742d3ece49d6763d7d3bec870da541d5`), differs
+  only in the status paragraph and the decision 72 effective sentence, which
+  said Accepted before the commander's correction.
 
 ### T2a: mechanical split pilot (R1)
 
 The [pilot split plan](PLAN-test-pilot-split.md) is the executable plan. In
 short:
 
+- **Base** (commander). T2a starts after batch 2a is frozen, from the batch
+  head, so that it needs no rebase later.
 - **List.** Nine target classes, one static support class and a residual
   `RepositoryBoundaryTests`, covering all 78 files once; recomputed for the
-  trunk head `9b2a7369e`, whose Architecture test files equal `cf4e42697`.
+  trunk head `9b2a7369e`, whose Architecture test files equal `cf4e42697`, and
+  recomputed again at the batch 2a head.
 - **Files to avoid.** `WorkbenchStructure.cs` (nvt-marker; the C-7 worktree),
   `JsonSchemaConcurrency.cs` (VersionManagement JSON),
   `PresentationStructure.cs` and `DesktopHostConvergence.cs` (roadmap links)
-  stay in the residual class, and the two files that nvt-marker and
-  VersionManagement JSON add join it when they merge. F08's UiSmoke files, the
-  C-7 proposal's other test files and the CLI test files are outside
-  Architecture.Tests, so the pilot does not overlap them; the CLI structure
-  files are rechecked at the branch point.
+  and `Roadmap.cs` (commander: kept in the residual class while the old
+  `feature/1.1.x/roadmap-and-agent-workflow` branch is unconfirmed) stay in the
+  residual class, and the two files that nvt-marker and VersionManagement JSON
+  add join it when they merge. F08's UiSmoke files, the C-7 proposal's other
+  test files and the CLI test files are outside Architecture.Tests, so the
+  pilot does not overlap them; `CliStructure.cs` and
+  `BootstrapCliConvergence.cs` are rechecked at the branch point.
 - **Evidence.** E1 discovery mapping, E2 outcomes, E3 mechanical diff, E4
   canary, E5 timing (no change expected for T2a), E6 CI, E7 class, fixture and
   shared-state review.
 - **Mode.** R1, tests only, no capability-reuse record; an admission entry in
   this log, an exact-head review by the other runtime, its own pull request.
-  No dependency on G1-A or the CI evidence change. T2b (removing the
-  serialization) follows as a separate pull request after T2a merges.
+  T2b (removing the serialization) follows as a separate pull request after
+  T2a merges.
 - **Suggested staffing.** A clear-spec R1 task for one implementer, reviewed by
   the other runtime; the commander decides.
 
 ### U0: UiSmoke measurement (waits for the commander's go)
 
-- **Trigger.** The commander's go after rolling parity P-0.5; not before.
+- **Trigger** (commander). Rolling parity P-0.5 has finished, but other agents
+  still build and test; U0 starts only when the commander reports a quiet
+  machine. The ADR 0077 Step 0 measurement waits for the same kind of window,
+  and the two never run at the same time.
 - **Quiet machine.** Before each run, list the build, test and verifier
   processes of other agents (none may run) and record the list with the
   timing.
@@ -433,6 +471,36 @@ anchor, table, line-ending and private-string check and `git diff --check`
 passed.
 Open: commander to-dos 1 to 5, 7 and 8.
 Next: stop; U0 waits for the commander's go.
+
+### 2026-09-26 T1 draft prepared; commander decisions recorded
+State: local (the T1 draft is uncommitted)
+Commits: `9b6e9632f` (the handoff ADR draft marked as moved to ADR 0079); the
+commit carrying this entry (this log and the pilot plan). The T1 draft
+(`docs/adr/0079-test-architecture.md`, the ADR 0027 header line and the
+`tests/README.md` pointer) stays uncommitted and unstaged in
+`<worktrees>/wstest`, as the commander directed.
+Evidence: the commander decided on 2026-09-26: T1 through a capability-reuse
+record under the current rules, without `tests/AGENTS.md`, in batch 2b with the
+checkpoint after batch 2a as base; the ADR stays Proposed until the owner
+accepts the text after the design review, and takes effect when
+`TEST-ARCH-ADR-1113-01` is integrated after that acceptance; measured targets
+from 60 runs (final attempts, successful jobs, median and about p90), reference
+only; the design review of the ADR text and the record sent to
+`codex/gpt-6-astra`; T2a from the batch 2a head after its freeze, `Roadmap.cs`
+in the residual class, the CLI structure files rechecked at the branch point;
+U0 after the commander's go and never together with the ADR 0077 Step 0
+measurement; WS-GOV to-dos 1 and 2 forwarded with WS-GOV's next revision.
+T1 draft checks: the patch (SHA-256 `ac67dc2d…`, see the T1 plan) applies
+cleanly to `a19300b62` and touches only the three paths; a local link and
+anchor check of the three files passed (43 links); the files stay below the
+line ceiling (ADR 0079 767 lines, `tests/README.md` 1,629, ADR 0027 390); the
+record draft parses with allowed values. Not run: `verify.py --structure-only`
+(it fails by design while governed paths change without a staged record) and
+Architecture.Tests (other agents were running UiSmoke and Bootstrap tests);
+both run in the T1 admission.
+Open: the T1 design review result (commander); the owner's acceptance of the
+ADR text; the U0 go.
+Next: stop until the review result.
 
 ## Owner decisions in risk order
 
