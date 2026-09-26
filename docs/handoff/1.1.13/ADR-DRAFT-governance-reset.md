@@ -9,9 +9,9 @@
 - Review: independent design review by `codex/gpt-6-astra` at `e60ba0062`,
   ACCEPT-WITH-CHANGES (P1 F-1 to F-7, P2 F-8 and F-9). This revision takes in
   every technical correction ([log](WS-GOV.md#design-review-2026-09-26)).
-- Owner decisions: 2026-09-26, board decisions 49 to 52 and, for the release
-  side, 47 and 53 to 55; O-3 and O-4 as recommended
-  ([owner decisions](#owner-decisions-2026-09-26)).
+- Owner decisions: 2026-09-26, board decisions 49 to 52, 56 and 65 to 67
+  and, for the release side, 47 and 53 to 55; O-3 and O-4 confirmed in
+  decision 67 ([owner decisions](#owner-decisions-2026-09-26)).
 - Number: placeholder. The commander assigns it at integration; 0074 to 0077
   are taken.
 - Risk: R2 governance by path; every part that changes approval authority is
@@ -68,7 +68,9 @@ became the main cost and failure source of the development flow.
   Board decision 23 contains it for now: the trunk's first push is rebased,
   never merged, onto `main`, and after every release pull request the trunk is
   fast-forwarded to `main` before anything is finalized again. In effect the
-  trunk cannot finalize during a release.
+  trunk cannot finalize during a release. Once G0's trunk ruleset blocks direct
+  pushes, board decision 66 replaces that fast-forward with a same-tree pull
+  request merge (item 10).
 - **Trunk merged into a working branch, 2026-09-26.** `feature/1.1.13/wave2`
   merged `1.1.x` after #457 sealed `CLI-REPORT-BUNDLE-GUARD-1113-01`
   (`beb32b930`). Wave 2 had documentation-only commits of its own, so the merge
@@ -240,14 +242,19 @@ conflicts or other release failures.
      approving review from the owner's principal. Agents act under their own
      GitHub identity, a GitHub App (a machine account is the fallback), which
      the owner creates and holds the key of; agents never create accounts or
-     apps and never handle the owner's credentials (O-2, board decision 49;
-     setup in the [G0 owner checklist](G0-owner-checklist.md));
+     apps and never handle the owner's credentials (O-2, board decisions 49
+     and 56; setup in the [G0 owner checklist](G0-owner-checklist.md)). Under
+     one Windows user this separation is a rule, not a technical boundary
+     (board decision 65);
    - names its authority role and links the evidence it approves: the item 6
      review, and for `firmware` the byte and Golden evidence and the exact
      write-range audit, for `release` the release-owner evidence;
-   - is current: a new head dismisses it (ruleset `dismiss_stale_reviews_on_push`
-     and `require_last_push_approval`), and the authority check compares its
-     commit with the head.
+   - is current: the authority check (item 4) requires the approval's commit
+     to equal the head SHA, so every new SHA, one with an identical tree
+     included, needs a new approval. The ruleset settings
+     `dismiss_stale_reviews_on_push` and `require_last_push_approval` are a
+     first line that GitHub applies to new reviewable pushes; they are not the
+     exact-head guarantee.
    One person may hold both owner roles, but then approves each role
    explicitly, each with its own evidence. Firmware-semantic R3 still needs the
    firmware-owner review, byte and Golden evidence and the exact write-range
@@ -260,13 +267,19 @@ conflicts or other release failures.
    | Release pull request into `main` | the same over the whole release diff, the full suite with Golden, the release owner's approval of the exact release head, an up-to-date base |
    | Release workflow from `main` | ADR 0033 admission at the candidate, pre-tag and pre-Release boundaries; the protected `release` environment |
 
-   Rulesets on `main`, the trunk (`*.*.x`) and release branches (`*.*.*`
-   without `*.*.x`) require pull requests, the required checks,
+   Active branch rulesets on `main`, the trunk (`*.*.x`) and release branches
+   (`*.*.*` without `*.*.x`) require pull requests, the required checks,
    `dismiss_stale_reviews_on_push`, `require_last_push_approval`, code-owner
-   review from the derived CODEOWNERS and conversation resolution, have no
-   bypass actor, and block force pushes; `main` and the trunk also block
-   deletion, while a release branch is deleted after its tag. The exact
-   parameters are in the [G0 owner checklist](G0-owner-checklist.md), part C.
+   review from the derived CODEOWNERS and conversation resolution, and block
+   force pushes; `main` and the trunk also block deletion, while a release
+   branch is deleted after its tag. The only bypass actor is the owner, through
+   the Repository admin role, on the trunk and release branches: the
+   force-push means of board decision 66, used by the owner alone and recorded
+   in the board; the agent identity is never a bypass actor, and the tag
+   ruleset keeps an empty bypass list. Whether `main` also gets it is an open
+   owner question ([log](WS-GOV.md#open-questions-after-the-g0-review)). The
+   exact parameters are in the [G0 owner checklist](G0-owner-checklist.md),
+   part C.
 9. **No gate goes before its replacement.** The record gate stays active until
    the rulesets of item 8 and the checks of items 4, 6 and 7 are in force and
    have passed on at least one real pull request. The migration splits G1
@@ -281,8 +294,12 @@ conflicts or other release failures.
     back into the trunk), opens the release pull request into `main` with a
     merge commit and is deleted after its tag; after publication `main` is
     merged back into the trunk as an ordinary merge. With item 1 these merges no
-    longer conflict with sealed evidence; board decision 23 ends when G1-B
-    lands.
+    longer conflict with sealed evidence. Until G1-B lands, the trunk catches
+    up with `main` after a release by the fast-forward of board decision 23
+    before G0, and after G0, where the trunk ruleset blocks every direct push,
+    by a pull request with a merge commit (board decision 66) only when the
+    merge tree equals both parent trees and the history gate in force passes
+    on that merge; otherwise the commander stops and asks the owner.
 11. **Release recovery follows the tag and Release state:**
     - No tag yet: fix through a pull request into `main` and dispatch a new
       run.
@@ -300,8 +317,8 @@ conflicts or other release failures.
     pre-tag boundary. History is never rewritten, and the Release Closure
     Record lists every failed run.
 12. A pull request, including the release pull request, cannot merge with an
-    unresolved review thread (O-3, the ruleset's conversation resolution, as
-    recommended), so findings do not first
+    unresolved review thread (O-3, the ruleset's conversation resolution,
+    confirmed in board decision 67), so findings do not first
     surface after the merge. Resolved threads do not prove that a review
     finished; the completed item 6 record on the exact head does. The three
     release boundaries keep their P0/P1 check.
@@ -326,7 +343,8 @@ conflicts or other release failures.
     - Negative tests cover changed-path mapping, deletions and renames on both
       sides, cross-layer dependencies, an unclassified path, and a cancelled or
       skipped producer.
-14. Required checks (amends 1.1.12 WS-GOV decision 6; O-4 as recommended):
+14. Required checks (amends 1.1.12 WS-GOV decision 6; O-4, confirmed in board
+    decision 67):
     `policy / polytail` is renamed after what it runs (for example
     `repository / structure`). `python-worker / verify` is renamed (for example
     `python / repository-scripts`) and **stays required**: it aggregates the
@@ -407,12 +425,14 @@ conflicts or other release failures.
 
 - A same-runtime reviewer shares blind spots -> fresh session, another model,
   runtime identifier recorded.
-- Agents could reach the owner's credentials, because they run under the
-  owner's operating-system account -> agents use their own GitHub App
-  identity (board decision 49); the owner keeps the app's private key and
-  removes the owner's own GitHub credentials from agent-reachable stores, and
-  agents get only one-hour installation tokens through an owner-configured
-  helper (G0 checklist, A3 to A7).
+- Agents run under the owner's Windows user, so the app's private key, the
+  owner's password manager and credential stores, the token helper and the
+  owner's browser session are technically within their reach -> the owner
+  accepted a procedural rule (board decision 65): agents never read, copy or
+  use them and obtain one-hour installation tokens only through the
+  owner-configured helper; the documents state that this is a rule, not a
+  technical boundary. The machine-account fallback leaves agents a long-lived
+  token and rests on the rule alone (G0 checklist, part B).
 - An author under-declares risk -> the map sets a floor by path; unclassified
   and cross-class changes need a written classification; the reviewer confirms
   the byte, range, order, integrity and support impact.
@@ -425,9 +445,11 @@ conflicts or other release failures.
 1. **Sequence** (board decision 50). Old protection stays until the new one
    works.
    - **G0 (owner, GitHub settings):** the agent GitHub App (or the fallback
-     machine account), created and held by the owner, and the item 8
-     rulesets, each ruleset change approved one by one, applied in a
-     maintenance window, not during a release
+     machine account; board decision 56), created and held by the owner under
+     the key-custody rule of board decision 65, and the item 8 rulesets with
+     the owner-only bypass of board decision 66, each ruleset change approved
+     one by one, applied in a maintenance window, not during a release, and
+     verified on disposable branches
      ([G0 owner checklist](G0-owner-checklist.md)).
    - **G1-A (admitted under the current rules, with its own record):** the
      authority map and check, the review and approval checks, the derived
@@ -444,8 +466,9 @@ conflicts or other release failures.
 2. **G1-B admission (board decision 50).** The owner gives an explicit,
    one-time written cutover authorization that names the base SHA and the
    G1-B head SHA. G1-B lands before the 1.1.13 release branch is cut if the
-   reviews finish in time; otherwise 1.1.13 releases under board decision 23
-   and G1-B follows. The design and
+   reviews finish in time; otherwise 1.1.13 releases with the trunk rule of
+   item 10 (board decision 23 before G0, board decision 66 after it) and G1-B
+   follows. The design and
    fixed-head reviews run on that head, and the base commit's validator passes
    at the base as transition evidence. That the new validator no longer reads
    records is not itself an exemption from the old rules.
@@ -477,8 +500,9 @@ conflicts or other release failures.
   a clean tree passes; a pin change is classified `governance`.
 - Authority-check tests: each class; an unclassified path; a cross-class
   change; a rename or deletion counted on both sides; a declared risk below the
-  class; a missing role approval; an approval on an older head; one person with
-  both roles stating only one; an approval without evidence links.
+  class; a missing role approval; an approval on an older head; an approval
+  on a head that has since gained a new SHA with an identical tree; one person
+  with both roles stating only one; an approval without evidence links.
 - Scratch-repository topology tests pass structure validation: the 1.1.12
   re-run (`main` merged into a release branch after a later finalization), a
   trunk merge-back with new commits on both sides, and the trunk merged into a
@@ -499,11 +523,14 @@ to the owner are in the [log](WS-GOV.md#owner-decisions-in-risk-order).
 | Decision | Chosen | Rejected |
 | --- | --- | --- |
 | O-1 existing evidence (board decision 51) | Freeze in place with READMEs and pins; a pin change needs owner approval. Reverses the 2026-09-25 archive choice. | Moving to `docs/governance/archive/` (would change the runtime-pinned capability policy and the Golden manifest, or split the history) |
-| O-2 agent identity (board decision 49) | Agents get their own GitHub identity, a GitHub App (machine account as fallback), created and held by the owner; the owner approves agent pull requests as an ordinary reviewer. The self-approval exception and the Codex-only rule are retired only after their replacement evidence is built and tested. | One shared identity with an owner-only approval channel (procedural trust only) |
-| O-3 pre-merge thread gate (as recommended) | The ruleset's conversation resolution on `main`, the trunk and release branches | A readiness check with its own code and required check |
-| O-4 repository-script aggregate (as recommended) | Stays required, renamed in G2; only the CRC-worker lane leaves with F11 | Dropping it from the required checks |
-| O-5 and O-6 switch-over (board decision 50) | Four steps, G0, G1-A, G1-B, G2; old protection stays until the new one works; G1-B on the owner's one-time written authorization naming base and head; before the 1.1.13 release branch if the reviews finish in time, otherwise 1.1.13 releases under board decision 23 | An extra old-style step that seals this ADR alone first |
+| O-2 agent identity (board decisions 49 and 56) | Agents get their own GitHub identity, a GitHub App (machine account as fallback), created and held by the owner; the owner approves agent pull requests as an ordinary reviewer. The self-approval exception and the Codex-only rule are retired only after their replacement evidence is built and tested. | One shared identity with an owner-only approval channel (procedural trust only) |
+| Key custody (board decision 65) | The owner keeps the app's private key in the owner's own password manager or store; the token helper may run under the same Windows user; agents must not read the key, the password manager, DPAPI or credential stores; the documents say this is a rule, not a technical boundary; every account, key and secret step is the owner's | A separate Windows account or service holding the key (a technical boundary) |
+| O-3 pre-merge thread gate (board decision 67) | The ruleset's conversation resolution on `main`, the trunk and release branches | A readiness check with its own code and required check |
+| O-4 repository-script aggregate (board decision 67) | Stays required, renamed in G2; only the CRC-worker lane leaves with F11 | Dropping it from the required checks |
+| O-5 and O-6 switch-over (board decision 50) | Four steps, G0, G1-A, G1-B, G2; old protection stays until the new one works; G1-B on the owner's one-time written authorization naming base and head; before the 1.1.13 release branch if the reviews finish in time, otherwise 1.1.13 releases with the trunk rule of item 10 | An extra old-style step that seals this ADR alone first |
+| Trunk catch-up and force-push means (board decision 66) | After G0 and until G1-B, a pull request with a merge commit replaces decision 23's fast-forward, only when the merge tree equals both parent trees and the history gate in force passes, otherwise stop and ask; an owner-only bypass keeps a force-push means for protected branches, never for the agent identity | Any merge without the same-tree evidence; a bypass for the agent identity |
 | O-7 waivers (board decision 52) | Old waivers frozen with the records; a new waiver is a pull request statement with every current field, approved by the owner of the waived rule; the six non-waivable areas stay | A folder of new waiver files |
 
-O-3 and O-4 follow the draft's recommendation as relayed by the commander on
-2026-09-26; they have no separate board decision number.
+O-3 and O-4 were relayed by the commander on 2026-09-26 as recommended and
+confirmed by the owner as board decision 67. Board decision 66 reads the
+force-push means as an owner-only bypass until the owner says otherwise.

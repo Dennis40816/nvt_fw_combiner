@@ -5,10 +5,12 @@ Owner: Claude Code (Opus 5.5), design drafter. Board:
 Deliverables: [governance ADR draft](ADR-DRAFT-governance-reset.md) and
 [release workflow cleanup design](DESIGN-release-workflow-cleanup.md), both
 revised after the [independent design review](#design-review-2026-09-26), and
-the [G0 owner checklist](G0-owner-checklist.md). The owner decided every
-question on 2026-09-26 (board decisions 47 and 49 to 55; the others as
-recommended); the questions and answers are at the end
-([owner decisions](#owner-decisions-in-risk-order)).
+the [G0 owner checklist](G0-owner-checklist.md), revised after its own
+[review](#g0-checklist-review-2026-09-26). The owner decided every question
+on 2026-09-26 (board decisions 47, 49 to 56 and 65 to 67); the questions and
+answers are at the end ([owner decisions](#owner-decisions-in-risk-order)),
+followed by the [open questions](#open-questions-after-the-g0-review) the G0
+review left.
 
 ## Dispatch envelope (commander, 2026-09-26)
 
@@ -54,6 +56,14 @@ recommended); the questions and answers are at the end
   owner-configured helper without agents reading the key, and every ruleset
   change with its parameters for item-by-item approval. Agents never create
   accounts or handle the owner's credentials. Then stop for the re-review.
+- **G0 review revision (commander, 2026-09-26).** The independent review of
+  `7700a7150..6eb575c30` rejected the G0 checklist (F-1 to F-10). The owner
+  answered its questions as board decisions 65 (key custody is a rule, not a
+  technical boundary), 66 (trunk catch-up by a same-tree pull request merge
+  after G0; an owner-only force-push means) and 67 (the six unasked items
+  confirmed). Revise only the WS-GOV documents on this branch: F-1 to F-10
+  and a concrete owner-only bypass design, with alternatives if GitHub cannot
+  do it; run the structure check; no push, no trunk merge; then stop.
 
 ## Ported from 1.1.12
 
@@ -95,8 +105,8 @@ which is not on the trunk; restated here so they survive branch cleanup.
    otherwise; one consolidated ADR 0021.
 6. Rename `policy / polytail`; drop `python-worker / verify` from the required
    checks until WS-FLOW F11 decides the worker. (Second half amended on
-   2026-09-26, O-4 as recommended: the repository-script aggregate stays
-   required.)
+   2026-09-26, O-4, confirmed in board decision 67: the repository-script
+   aggregate stays required.)
 7. 1.1.12 release workflow: remove the `0.9.17`-`0.9.19` source options;
    parallel Golden and packaging candidate jobs; keep the v0.9.16 parity jobs.
    Not implemented in 1.1.12. The parity part is superseded by board decision
@@ -217,6 +227,32 @@ approved item by item; G2 and R-6 keep the failing-project evidence and the
 attempt-to-artifact correspondence; ADR 0077 must be pinned before
 integration.
 
+## G0 checklist review 2026-09-26
+
+Reviewer `codex/gpt-6-astra`, range `7700a7150..6eb575c30`; read-only.
+Verdict: **REJECT**, the G0 checklist could not be executed as written; no P0;
+the other decisions were found faithfully recorded. The owner then answered
+the review's questions as board decisions 65 to 67.
+
+| Finding | Severity | Taken in |
+| --- | --- | --- |
+| F-1 the helper did not isolate the key; the machine account gave agents a long-lived token | P1 | G0 checklist "who does what" and A4, A6, A8 state decision 65's rule and that it is not a technical boundary, covering the key, the password manager, DPAPI, credential stores, the helper and the owner's browser session; part B states that the machine account leaves agents a long-lived token, rests on the rule alone, and lists five added risks; ADR risks bullet |
+| F-2 the manifest flow lacked the conversion | P1 | Checklist A2: the owner completes `POST /app-manifests/{code}/conversions` in the owner's own terminal within the hour; the response never enters an agent transcript, Git or a general log; key generation in the settings is for rotation, not a substitute |
+| F-3 `workflows: write` granted early | P2 | Removed from the manifest; the PAT fallback adds `workflow` only before R-1 |
+| F-4 six unnumbered items shown as decided | P2 | Labeled as board decision 67 in the ADR, the release design and this log |
+| F-5 RS-2 against decision 23 | P1 | Decision 66 synced in ADR items 10 and migration step 2, the ADR decision table, design item 5, this log and the checklist's "After G0": test merge with equal trees and the history gate in force, else stop and ask |
+| F-6 verification could damage the trunk; negatives only | P1 | Checklist part D: destructive tests only on disposable `9.9.x` and `9.9.9`; formal refs by effective-rule snapshot; rule-specific messages; a positive merge after approval; app identity proved by real writes and `/installation/repositories` |
+| F-7 over-promise on new SHAs | P2 | Checklist opening and ADR item 7: the exact-head rule belongs to the G1-A authority check and R-3; same-tree new-SHA case added to part D, the ADR tests and the R-3 cases |
+| F-8 rollback left Git settings broken | P2 | Checklist: non-secret Git settings and the full `main` ruleset saved first; rollback restores helper, identity and rulesets; the owner signs in again personally |
+| F-9 ruleset details | P2 | Checklist part C: `target` and `enforcement` for every ruleset, UI inputs and API values in separate columns, RS-1j kept complete as saved, "Do not require status checks on creation" on for RS-2 and RS-3 so a release branch can be cut, and a check for linear-history and other rules |
+| F-10 R-1 and R-3 split | P2 | Release design batches: R-1 has additions 1, 2 and 4 of decision 54, R-3 has addition 3; R-3 rejection and acceptance cases added |
+
+Force-push means (decision 66): checklist part C makes the Repository admin
+role, which on this personal repository is only the owner, the bypass actor
+of the trunk and release-branch rulesets, never the app or the machine
+account, with how the owner uses and records it. The questions it leaves are
+at the end of this log.
+
 ## Conflicts with other work
 
 - CI failure evidence (R3): owns `ci.yml` and `scripts/verify.py`; G2, the
@@ -330,6 +366,19 @@ documents passed before the commit.
 Open: the independent re-review (commander).
 Next: stop.
 
+### 2026-09-26 Revision after the G0 review
+State: local
+Commits: the commit carrying this entry, on `6eb575c30`
+Evidence: findings F-1 to F-10 of the G0 review are taken in (table above);
+board decisions 56 and 65 to 67 are recorded in the ADR draft, the release
+design, the checklist and this log; the checklist is rewritten (decision 65
+rule, manifest conversion, no `workflows`, owner-only bypass, disposable-branch
+verification, full rollback, UI and API ruleset values). Verification of this
+commit is recorded in the next entry.
+Open: the two questions below (commander to ask the owner); the re-review
+(commander).
+Next: structure check of this commit, then stop.
+
 ## Owner decisions in risk order
 
 One question at a time, highest risk first. Each item gives the question in
@@ -339,9 +388,10 @@ review agreed with each recommendation, with the conditions stated.
 **Decided 2026-09-26.** The owner took the recommendation on all nine
 questions (board decisions 47 and 49 to 55, recorded in the
 [1.1.12 board](../1.1.12.md)); each item below states its decision, and the
-options not taken are marked rejected. The items not asked (O-3, O-4, RO-2,
-RO-3, RO-4, RO-6) follow the drafts' recommendations, as the commander relayed
-on 2026-09-26; they have no separate decision number.
+options not taken are marked rejected. The six items not asked (O-3, O-4,
+RO-2, RO-3, RO-4, RO-6) were relayed by the commander as recommended on
+2026-09-26 and confirmed by the owner as board decision 67. Board decisions 65
+and 66 answer the questions of the G0 review (below the decisions).
 
 ### 1. RO-1: Is the v0.9.16 terminal certification still owed before 2.0.0?
 
@@ -400,10 +450,10 @@ current Codex rule stays until the replacement is built and tested.
 **Decided 2026-09-26 (board decision 49): A.** The owner creates the agent
 identity and its key or token; agents never create accounts and never handle
 the owner's credentials. The self-approval exception and the Codex-only rule
-retire only after the replacement review evidence is built and tested. The
-commander added the same day, with the owner's agreement, that a GitHub App is
-the primary form and a machine account the fallback
-([G0 owner checklist](G0-owner-checklist.md)).
+retire only after the replacement review evidence is built and tested. A
+GitHub App is the primary form and a machine account the fallback (board
+decision 56; [G0 owner checklist](G0-owner-checklist.md)). Key custody is a
+rule, not a technical boundary (board decision 65).
 
 ### 3. O-5 and O-6: How does the switch-over happen?
 
@@ -422,8 +472,8 @@ new protections are proven first.
 
 Recommendation: A. Timing: G1-B before the 1.1.13 release branch is cut if
 the reviews finish in time; otherwise 1.1.13 releases under the current trunk
-rule (decision 23) and G1-B follows. Until G1-B, branches never merge the
-trunk (rebase only).
+rule (decision 23; after G0, decision 66's same-tree pull request merge) and
+G1-B follows. Until G1-B, branches never merge the trunk (rebase only).
 
 **Decided 2026-09-26 (board decision 50): A**, with the timing above; old
 protection stays until the new one works.
@@ -521,3 +571,33 @@ Recommendation: A, low priority.
 
 **Decided 2026-09-26 (board decision 55): A**, low priority; the tag still
 requires fresh, successful CI on the same commit.
+
+## Open questions after the G0 review
+
+For the commander to ask the owner, highest risk first. Board decision 66
+already reads the force-push means as owner-only.
+
+### A. Should `main` also carry the owner-only bypass?
+
+The G0 checklist gives the Repository admin role (only you, on this personal
+repository) an "always" bypass on the trunk and release-branch rulesets.
+
+- **A1. No bypass on `main`** (recommended). `main` holds released code and is
+  the release policy's source of authority. For a true emergency you can still,
+  as admin, set the `main` ruleset to Disabled for one push and back to Active,
+  recorded in the board.
+- **A2. The same bypass on `main`.** Faster in an emergency; a standing bypass
+  also lets a merge into `main` skip the requirements with one checkbox.
+
+### B. What if this repository cannot name the admin role as a bypass actor?
+
+GitHub is expected to offer "Repository admin" in the bypass list of a
+personal repository; G0 confirms it in the UI before relying on it.
+
+- **B1. Disable the ruleset for the push** (recommended fallback). Works for
+  any admin; while it is disabled, no rule of that ruleset protects the
+  branches for anyone, so agents are stopped for the window, and the board
+  records the window, the push and the old and new SHA.
+- **B2. A separate break-glass GitHub App** as the only bypass actor, its key
+  kept by you away from this machine. The bypass then names one specific
+  actor; the cost is a second app and key to keep, used rarely.
