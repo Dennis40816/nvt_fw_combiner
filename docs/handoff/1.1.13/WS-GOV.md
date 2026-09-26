@@ -319,6 +319,17 @@ Verification of this commit is recorded in the next entry.
 Open: the independent re-review (commander); G0 itself is the owner's action.
 Next: structure check of this commit, then stop.
 
+### 2026-09-26 Structure check of the decisions commit
+State: verified (documents only)
+Commits: `28bc715ba` verified; the commit carrying this entry changes only
+this entry.
+Evidence: `python scripts/verify.py --structure-only` with TEMP, TMP and
+TMPDIR set to `<test-area>/temp`, at `28bc715ba` -> `structure=PASS`, 267.7 s;
+`sync_derived` changed 0 files. A link and anchor check of the five changed
+documents passed before the commit.
+Open: the independent re-review (commander).
+Next: stop.
+
 ## Owner decisions in risk order
 
 One question at a time, highest risk first. Each item gives the question in
