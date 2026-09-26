@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 2,
+  "taskId": "ROADMAP-HISTORY-1113-01",
+  "capability": "Keep the canonical roadmap current and below the line ceiling by moving published-release sections verbatim to a same-directory history file, and record the owner's allocation after the 1.1.12 release",
+  "integrationBase": "84b084dd8fd218730ce75adb93b5dc2c456dd3c6",
+  "risk": "R2",
+  "kind": "governance",
+  "state": "design-active",
+  "mutablePaths": [
+    "docs/architecture/nfc_roadmap.md"
+  ],
+  "implementationOwner": "claude-code",
+  "searchEvidence": [
+    "Owner request 2026-09-26: 「Roadmap 也整理一下，歷史紀錄留存」. At 04369b738 (tree-identical to 8682dd269) docs/architecture/nfc_roadmap.md (blob 00baf161e) has 2,498 lines against the unchanged 2,500-line RepositoryTextFilesStayBelowEmergencyCeiling limit; the published-release sections `0.10.0` through `1.1.5` occupy lines 472-1989 (1,518 lines; `1.1.4` alone lines 794-1925).",
+    "git grep -n -I -o -E 'nfc_roadmap\\.md(#[A-Za-z0-9_.-]+)?' -- . ':!docs/architecture/nfc_roadmap.md' finds 113 references in 60 files and 17 distinct anchors. Eight anchors lie in the moved range; their 15 inbound links are in docs/references/verification-report.md (2), docs/references/ic-flashmap/README.md, tests/README.md (3), docs/ui/v1.1.x-settings-version-handoff.md, docs/ui/v1.1.x-custom-options-layout-handoff.md, six v1.1.4 docs/ui handoffs and docs/ui/post-v1.1.0-navigation-and-ctrlram-first-open-handoff.md. No governed document links to a moved anchor; change records name only the file path.",
+    "Inside the roadmap, one moved link (old line 1929) targets the retained 1.1.12 startup amendment and one retained link (old line 2124, Documentation work package) targets the moved Family reuse inventory; the links at old lines 875 and 1011 stay inside the moved block.",
+    "scripts/validate_repository.py governs only the exact nfc_roadmap.md path (minimum R2); the new history file and the edited docs/ui and docs/references files are not governed and cannot be mutable paths. validate_markdown_links checks target files, not anchors. RepositoryBoundaryTests.Roadmap requires unique ascending version rows under `## Current release sequence` that include VERSION 1.1.12, and the `## Explicit owner-unallocated queue` heading.",
+    "Allocation sources: docs/handoff/1.1.12.md owner decisions 13, 19, 21, 28-30, 32 and 35-39 and the 2026-09-25 P0-3 SVN facts (SVN at TP start + 0x24, confirmed by decision 36); docs/handoff/1.1.13.md scope table (TP SVN modeling is C-7, R3) and the #457 merge. Tag v1.1.12 (object ec3104f0e, 2026-09-26T04:39:44Z) peels to 30b17e699.",
+    "Reuse: docs/AGENTS.md makes nfc_roadmap.md the single allocation owner, and no archive, index or inventory exists for its released sections. A same-directory history file is the minimal split that keeps every relative link in the moved text valid."
+  ],
+  "semanticOwner": "docs/architecture/nfc_roadmap.md remains the only owner of current and future version allocation. docs/architecture/nfc_roadmap-history.md holds the moved published-release text verbatim and owns no allocation; the handoff boards keep detail.",
+  "terminalContract": "Move roadmap line 5 (the superseded 2026-09-19 evidence checkpoint) and lines 472-1989 (sections `0.10.0` through `1.1.5`) of blob 00baf161e, verbatim and in order, to the new non-governed docs/architecture/nfc_roadmap-history.md under a short provenance header; the only change inside moved text is the old line 1929 link, which becomes `nfc_roadmap.md#owner-approved-1112-startup-optimization--2026-09-25`. In the roadmap, a new 2026-09-26 evidence checkpoint and a history pointer replace line 5; a `## Moved release history` section of six one-line `Moved to` stubs replaces the moved block and keeps the anchors that dated records link to (114-ui-corrections-and-ab-dummy-dp, current-remaining-queue-small-impact-work-first, hover-only-ctrlram-endpoint-hierarchy--2026-09-09, small-region-grouping-accepted-information-model--2026-09-08, current-home-and-settings-inventory-follow-up, local-full-verifier-parallelization); the Family reuse inventory link names the history file. Current content: add `### Owner allocation after the 1.1.12 release — 2026-09-26` (v1.1.12 published; 1.1.13 in progress with owner decisions 13, 19, 21, 28-30, 32, 35, 37 and 38, including the pre-built profile catalog; 1.1.14 display-convention consistency under decision 39; TP SVN terminology); mark the `1.1.12` row published, rewrite the `1.1.13` and `1.1.14` rows, and label the links to the 1.1.12 release scope in the new text as the `1.1.12 release-scope disposition`. In the release-sequence and shared-audit `1.1.12` rows, say TP SVN instead of TP Header SVN and replace the pending Header-confirmation wording with the owner-confirmed field at TP start + `0x24` (decision 36) and the `1.1.13` C-7 R3 admission requirement. Dated amendments keep their words, including the `Owner-deferred TP Header SVN modeling — 2026-09-25` heading. Outside governed paths, besides the new history file: docs/ui/post-v1.1.0-navigation-and-ctrlram-first-open-handoff.md points its completed v1.1.5 link at the history file, and docs/references/ic-flashmap/README.md points its live `Next` allocation at the roadmap's `1.4.1` row and the original 2026-09-08 intake at the history file. No ceiling, test, validator, other record, historical record, product, profile or Golden change, and no allocation beyond the recorded owner decisions.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "codex/gpt-6-sol",
+    "outcome": "findings-incorporated",
+    "evidence": "Independently re-reviewed the uncommitted R2 roadmap-history proposal at 04369b738 against the prior four findings and the schema-v2 admission contract. The two live TP SVN rows now state the owner-confirmed field at TP start + 0x24 and the 1.1.13 C-7 R3 admission gate. The FlashMap “Next” text points to the current 1.4.1 allocation while retaining its dated intake in history; the release-scope links are accurately named. The removed seventh stub has no remaining inbound roadmap link, and the six retained stubs preserve their dated links. R2 governance classification, roadmap-only mutable-path ownership, and the terminal contract’s non-governed file list are appropriate. Findings are incorporated. Admission still requires the reviewed record to be staged and checkpoint validation; the separately assigned 1.1.13 board status corrections remain for wave 2."
+  },
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": {
+    "reviewer": null,
+    "outcome": "pending",
+    "evidence": ""
+  }
+}
