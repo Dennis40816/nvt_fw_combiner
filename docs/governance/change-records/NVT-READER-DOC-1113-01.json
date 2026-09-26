@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 2,
+  "taskId": "NVT-READER-DOC-1113-01",
+  "capability": "The two remaining XML documentation pointers to the pre-NVT-END-FLAG-1113-01 whole-image TryReadBackup overload are corrected to name the resolved-declaration overload, so a new consumer following IntelliSense is directed to the declared-position and Unresolved handling instead of a whole-image rescan",
+  "integrationBase": "38b85b15b861027972a9ca6945411f57220c4c47",
+  "risk": "R1",
+  "kind": "behavior",
+  "state": "design-active",
+  "mutablePaths": [
+    "src/NvtFwCombiner.Application/FlashMaps/FirmwareConfigMetadataReader.cs",
+    "src/NvtFwCombiner.Application/FlashMaps/FirmwareConfigVersionWritePlan.cs"
+  ],
+  "implementationOwner": "claude-code",
+  "searchEvidence": [
+    "docs/handoff/bugs/BUG-20260927-nvt-reader-doc-points-to-migration-overload.md: NVT-END-FLAG-1113-01 made the whole-image TryReadBackup(ReadOnlySpan{byte}, out FirmwareConfigMetadata[, out int]) overload migration-only, but two XML doc comments still tell runtime consumers to call the two-argument overload.",
+    "rg -n \"cref=\\\"TryReadBackup|cref=\\\"FirmwareConfigMetadataReader.TryReadBackup\" src: exactly two cref pointers to the two-argument overload exist in src/, both named by the bug: FirmwareConfigMetadataReader.cs:16 (TryReadAtAbsoluteAddress's doc) and FirmwareConfigVersionWritePlan.cs:67 (CreateFromCanonicalBackup's doc). No third stale pointer exists.",
+    "rg -n \"TryReadBackup\" --include=*.cs src: every production call site (CompositionRunService.FinalOutputValidations.cs, FirmwareConfigChipCountDiagnostics.cs, CompiledInputArtifactObservationService.cs, FirmwareArtifactClassificationResolver.CtrlRam.cs, BuiltInFirmwareInspection.cs, BuiltInFirmwareInspection.Metadata.cs) already passes a FirmwareNvtEndFlagResolution argument, matching tests/NvtFwCombiner.Architecture.Tests/RepositoryBoundaryTests.NvtEndFlagCallers.cs's NvtBackupReaderInventory and its UndeclaredBackupReadRegex assertion that no reader calls TryReadBackup without a declaration. No production consumer calls the two-argument or three-argument overload; this is a documentation-only defect, confirmed against the existing architecture test rather than by adding a new one.",
+    "The three-argument overload's own doc (FirmwareConfigMetadataReader.cs, TryReadBackup(ReadOnlySpan{byte}, out FirmwareConfigMetadata, out int)) already states 'Production code reads through a FirmwareNvtEndFlagResolution; this overload is deleted with the empty migration inventory.'; only the two-argument overload's own doc lacked an explicit migration-only marker before this record, even though it is the exact signature both stale pointers named."
+  ],
+  "semanticOwner": "FirmwareConfigMetadataReader and FirmwareConfigVersionWritePlan remain the sole owners of these XML doc comments; NVT-END-FLAG-1113-01's resolved-declaration overload and its ADR 0076 semantics are unchanged.",
+  "terminalContract": "No production behavior, byte, range, or public member signature changes. TryReadAtAbsoluteAddress's doc and FirmwareConfigVersionWritePlan.CreateFromCanonicalBackup's doc now cref TryReadBackup(ReadOnlySpan{byte}, FirmwareNvtEndFlagResolution, out FirmwareConfigMetadata, out int) instead of the two-argument overload. The two-argument TryReadBackup's own doc now states it is a migration-only whole-image compatibility read and names the same declaration overload for runtime use.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": null,
+    "outcome": "not-required",
+    "evidence": "Bounded local R1 documentation-only correction of two stale XML doc cref pointers left over from the finalized NVT-END-FLAG-1113-01 record; no Application, profile, firmware byte, range, or contract change, and no production consumer calls the overload the stale docs pointed to."
+  },
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": {
+    "reviewer": null,
+    "outcome": "pending",
+    "evidence": ""
+  }
+}
