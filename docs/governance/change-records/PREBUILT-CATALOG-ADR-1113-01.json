@@ -5,7 +5,7 @@
   "integrationBase": "84b084dd8fd218730ce75adb93b5dc2c456dd3c6",
   "risk": "R2",
   "kind": "governance",
-  "state": "design-active",
+  "state": "final-complete",
   "mutablePaths": [
     "docs/adr/0077-prebuilt-profile-catalog.md",
     "docs/adr/0049-unified-preload-lifecycle.md",
@@ -26,12 +26,17 @@
     "outcome": "findings-incorporated",
     "evidence": "Independent read-only design review of ADR 0077 by codex/gpt-6-astra, a reviewer distinct from implementationOwner claude-code. Round 1 at commit 377783ec711a6e772fb19bc35148b4830234e5d8 (same tree as ba6d0128f4732759f9ec3400b398b042f04071c4): verdict ACCEPT-WITH-CHANGES, with two P1 findings (F-1: the manifest's own hash inside the pre-built catalog did not externally bind the build-admitted identity; F-2: accepting the catalog silently changed the disposition of a damaged on-disk source after acceptance) and three P2 findings (F-3: the published-digest equivalence claim reached beyond what it measured; F-4: the proposed smoke checks did not prove the packaged executable actually uses the pre-built path; F-5: Step 0 was measurement guidance, not yet an explicit go/no-go gate). Round 2 (re-review) at commit 108bcfb0ec7b4856fcb7423fa6f540d2f23632f4, diffed against ba6d0128f (same tree as the round-1 baseline): verdict ACCEPT-WITH-CHANGES with no P1 remaining. F-1 through F-4 were closed at the design level (the manifest-set digest binds the build identity; the owner's Option A damaged-source policy is recorded as an explicit R3 trust-policy decision needing exact-head attestation; source-isolated processes now assert their admission source and cover General Replace parents and on-demand compilation; smoke now requires full pack-to-packaged-JSON correspondence and a headless probe proving admission-source=prebuilt). F-5 was only partially closed. Two P2 findings remained open after round 2: F-6, the disposition matrix labelled every packaged-file change as a JSON-admission failure even though a schema-valid bundleId edit is still JSON-admissible; and F-7, the Step 0 noise test compared only the raw (a)/(b) intervals without adding the one-time acceptance cost and its uncertainty before judging separation from noise. This revision (2b59f8ddd) closes both: the disposition matrix now distinguishes rejected damage from an admissible manifest edit and states the outcome for each, and the Step 0 gate now requires the acceptance-cost-inclusive projected candidate range to lie below the baseline before treating a gain as separated from noise. No P1 finding remains open in either round. On this basis the owner accepted ADR 0077 as decision 46 (2026-09-26): the ADR is accepted after the two independent design reviews, and implementation starts with the Step 0 attribution measurement and continues only past its gate."
   },
-  "implementationHead": null,
-  "reviewedHead": null,
-  "pathStateDigest": null,
+  "implementationHead": "460bb0540999f852c3e2638eb1e77aad4995b1d0",
+  "reviewedHead": "460bb0540999f852c3e2638eb1e77aad4995b1d0",
+  "pathStateDigest": "dfbddb1a978115fda5de4ed3be96c69e5cb3e4455b39e804b46786c3b54fcbd7",
   "finalReview": {
-    "reviewer": null,
-    "outcome": "pending",
-    "evidence": ""
-  }
+    "reviewer": "codex/gpt-6-astra",
+    "outcome": "findings-incorporated",
+    "evidence": "Independent read-only final re-review by codex/gpt-6-astra, distinct from implementationOwner claude-code, of exact head 1a8d2be33d30fdb5b4c927a410dfe63e4b8019ac. This continues the two prior design reviews and the final review at 0bdb0da5077203390dedd68dd7b3c2cbd2fe27d4, which required incorporation of F-8 (P2). The unpublished branch was reconstructed from base 04369b738c938b7bdfc6d3277f7c4a6420a36f62 with replacement admission 5bb13566f3a20ef2f8893eb2fdf29027408eccd2 as the implementation head's direct parent; the former head remains preserved on backup/pbc-before-f8. Compared with the former head, only terminalContract and five ADR 0077 wording locations changed; ADR 0049 and ADR 0075 are byte-identical. The revised terminalContract remains consistent with the unchanged capability, semanticOwner, and searchEvidence, and its admitted record blob is unchanged at the reviewed head. F-8 is closed: ADR acceptance and reciprocal links are recorded as completed under owner decision 46 dated 2026-09-26, while Step 0, B2a/B2b/B3, B4, B5, exact-head trust-policy attestation, and implementation and verification gates remain outstanding. No new findings. Verdict: APPROVED; scoped Polytail: PASS. No files were modified and no builds, tests, or validators were run; this review does not certify integration or release readiness. Batch integration review by codex/gpt-6-sol approved reviewed head 1e77dcf13e5339539556f157b91195378fc3f33e. All 11 design-active record blobs and their 108 disjoint mutable-path blobs are identical to their independently reviewed branch heads: ROADMAP-HISTORY at 7f8bbe001; CI-FAILURE-EVIDENCE at 935eac2bc; NVT-END-FLAG and NVT-END-FLAG-RELEASE-PIN at 0d1224c8d; VM-SCHEMA-LOCAL-REF and BUNDLE-JSON-CONTEXT-DEDUP at cb24f061b; CLI-REPORT-ATOMIC at 5647850c9; AGENT-MODEL-ROUTING at c1e34429b; REPORT-PUBLISH-ATOMIC at 08e2d9d9c; F08-SAVE-NOTICE at 10e63b976; and PREBUILT-CATALOG-ADR at 1a8d2be33. All 34 batch commits were accounted for, every admission preceded implementation, and the checkpoint-to-head governed diff is covered exactly once. The H1 test blob also matches its reviewed head, with only a later review note in its bug record. No batch interaction finding was identified. This read-only review did not execute tests or replace the required frozen-candidate checks and R3 owner attestations. Rebuilt reviewed head 460bb0540999f852c3e2638eb1e77aad4995b1d0: the full local verifier on the first evidence commit found that the model-routing skill edit had removed the phrase 'not hard requirements' required by an accepted skill-inventory test, so the unpublished model-routing implementation commit was corrected to restore it and the batch was rebuilt with the same 34 cherry-picks. Mechanical recheck by codex/gpt-6-luna confirmed that the rebuilt head differs from 1e77dcf13e5339539556f157b91195378fc3f33e only in that one skill sentence, that the other 33 patches match, and that all 11 record blobs are unchanged; the integrator reran tests/scripts/test_skill_inventory_validation.py at the rebuilt head (23 passed), and the .NET and other script lanes of that verifier run had passed on the identical product tree."
+  },
+  "integrationPaths": [
+    "docs/adr/0077-prebuilt-profile-catalog.md",
+    "docs/adr/0049-unified-preload-lifecycle.md",
+    "docs/adr/0075-bounded-catalog-bundle-preload.md"
+  ]
 }

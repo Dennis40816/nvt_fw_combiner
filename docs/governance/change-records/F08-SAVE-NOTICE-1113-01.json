@@ -5,7 +5,7 @@
   "integrationBase": "84b084dd8fd218730ce75adb93b5dc2c456dd3c6",
   "risk": "R1",
   "kind": "ui",
-  "state": "design-active",
+  "state": "final-complete",
   "mutablePaths": [
     "src/NvtFwCombiner.Presentation.Avalonia/LatestSnapshotPersistenceCoordinator.cs",
     "src/NvtFwCombiner.Presentation.Avalonia/MainWindow.axaml",
@@ -33,12 +33,21 @@
     "outcome": "not-required",
     "evidence": "Bounded local R1 presentation correction of F08 (BUG-20260925-persistence-failure-not-actionable) inside the existing Presentation persistence owner and the window that owns it, following owner decisions 27, 33 and 34; no Application, public contract, profile or firmware change."
   },
-  "implementationHead": null,
-  "reviewedHead": null,
-  "pathStateDigest": null,
+  "implementationHead": "460bb0540999f852c3e2638eb1e77aad4995b1d0",
+  "reviewedHead": "460bb0540999f852c3e2638eb1e77aad4995b1d0",
+  "pathStateDigest": "a5c3406a9ded58660e0b2b902f7e58032ac3ebe152784d8a588fe65fec1fff59",
   "finalReview": {
-    "reviewer": null,
-    "outcome": "pending",
-    "evidence": ""
-  }
+    "reviewer": "codex/gpt-6-sol",
+    "outcome": "findings-incorporated",
+    "evidence": "Independent codex/gpt-6-sol R1 exact-head review of F08-SAVE-NOTICE-1113-01 at 10e63b976588665937c3e68cba6013d105bf0ddc, continuing the reviews at 0e4305890, 3fc3c132e, and 844a45dee. The delta from 844a45dee changes only LocalStateSaveNoticeTests.cs; production code is identical. F-3 is closed: the test synchronously waits for the shell-preference coordinator’s tail task, which completes after A’s latest-generation decision and save-outcome callback, before queuing B or draining the UI dispatcher. Reflection failure is visible, and the wait is bounded. F-1 remains closed; no new P0–P3 findings. The implementation owner reports 10/10 red reproductions against pre-F-1 code, 5/5 green repetitions, UiSmoke 1698/1698, Architecture 269/269, and LocalStateSaveNoticeTests 29/29; this read-only review did not rerun them. Owner decision 42’s intentional Retry-tooltip placement deviation—left of the button within the strip, clear of status text and the composition rail—remains accepted. Scoped Polytail PASS; integration and release gates are separate. Batch integration review by codex/gpt-6-sol approved reviewed head 1e77dcf13e5339539556f157b91195378fc3f33e. All 11 design-active record blobs and their 108 disjoint mutable-path blobs are identical to their independently reviewed branch heads: ROADMAP-HISTORY at 7f8bbe001; CI-FAILURE-EVIDENCE at 935eac2bc; NVT-END-FLAG and NVT-END-FLAG-RELEASE-PIN at 0d1224c8d; VM-SCHEMA-LOCAL-REF and BUNDLE-JSON-CONTEXT-DEDUP at cb24f061b; CLI-REPORT-ATOMIC at 5647850c9; AGENT-MODEL-ROUTING at c1e34429b; REPORT-PUBLISH-ATOMIC at 08e2d9d9c; F08-SAVE-NOTICE at 10e63b976; and PREBUILT-CATALOG-ADR at 1a8d2be33. All 34 batch commits were accounted for, every admission preceded implementation, and the checkpoint-to-head governed diff is covered exactly once. The H1 test blob also matches its reviewed head, with only a later review note in its bug record. No batch interaction finding was identified. This read-only review did not execute tests or replace the required frozen-candidate checks and R3 owner attestations. Rebuilt reviewed head 460bb0540999f852c3e2638eb1e77aad4995b1d0: the full local verifier on the first evidence commit found that the model-routing skill edit had removed the phrase 'not hard requirements' required by an accepted skill-inventory test, so the unpublished model-routing implementation commit was corrected to restore it and the batch was rebuilt with the same 34 cherry-picks. Mechanical recheck by codex/gpt-6-luna confirmed that the rebuilt head differs from 1e77dcf13e5339539556f157b91195378fc3f33e only in that one skill sentence, that the other 33 patches match, and that all 11 record blobs are unchanged; the integrator reran tests/scripts/test_skill_inventory_validation.py at the rebuilt head (23 passed), and the .NET and other script lanes of that verifier run had passed on the identical product tree."
+  },
+  "integrationPaths": [
+    "src/NvtFwCombiner.Presentation.Avalonia/LatestSnapshotPersistenceCoordinator.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/MainWindow.axaml",
+    "src/NvtFwCombiner.Presentation.Avalonia/MainWindow.axaml.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ShellPreferenceFileStore.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/LocalStateSaveNoticeViewModel.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ShellTextResources.Core.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ShellTextResources.Localized.cs"
+  ]
 }

@@ -5,7 +5,7 @@
   "integrationBase": "84b084dd8fd218730ce75adb93b5dc2c456dd3c6",
   "risk": "R3",
   "kind": "release",
-  "state": "design-active",
+  "state": "final-complete",
   "mutablePaths": [
     ".github/workflows/ci.yml",
     "scripts/verify.py",
@@ -30,12 +30,16 @@
     "outcome": "findings-incorporated",
     "evidence": "Independent read-only R3 design review by codex/gpt-6-sol of the uncommitted proposal at head 5f4286113, based on 84b084dd8fd218730ce75adb93b5dc2c456dd3c6: CHANGES REQUIRED. Fixed omission reasons and absolute-path sentinel assertions address the prior P2 within the new failed-test report. Owner decision 41 is reflected as unchanged failed-TRX upload; shard.log is an allowlisted public artifact, not a confidentiality boundary. Before design admission, narrow the record and CI documentation claims that raw diagnostics reach only shard.log: existing project-failure aggregation and step-summary write errors can still emit raw exception text to the job log. Those channels do not require broader implementation changes for this scoped finding. Cross-attempt behavior remains unverified pending a controlled GitHub rerun; use a new workflow run after failure until then. No build, test, or workflow was run. The contract wording was narrowed as required."
   },
-  "implementationHead": null,
-  "reviewedHead": null,
-  "pathStateDigest": null,
+  "implementationHead": "460bb0540999f852c3e2638eb1e77aad4995b1d0",
+  "reviewedHead": "460bb0540999f852c3e2638eb1e77aad4995b1d0",
+  "pathStateDigest": "5903cacd5957dc8bd887a7228b6fe871b7c5782cfd8dc99a29358ab1f4e003f8",
   "finalReview": {
-    "reviewer": null,
-    "outcome": "pending",
-    "evidence": ""
-  }
+    "reviewer": "codex/gpt-6-sol",
+    "outcome": "approved",
+    "evidence": "Independent read-only R3 release-kind fixed-head review by codex/gpt-6-sol of CI-FAILURE-EVIDENCE-1113-01 at exact head 935eac2bcb1c2539519bfd54a353804169b87b59, comparing admission 036e5fe46 with implementation. No findings. The implementation matches the admitted, narrowed terminal contract: failed-project evidence uses the existing closed staging and passing-evidence coverage normalization; failed TRX files remain byte-unchanged under owner decision 41; public omission notes use fixed reasons; schema-3 manifests carry run and attempt provenance; the finalizer requires a successful complete download and selects each producer’s highest downloaded attempt. All governed mutable paths changed, the documented CI mirror is byte-identical, and no release permission or allowlist changed. Cross-attempt behavior still requires a controlled real GitHub re-run; until verified, start a new workflow run after failure. No build, test, or workflow was run for this review. Verdict: APPROVED; Polytail: PASS-WITH-HUMAN-GATE. Batch integration review by codex/gpt-6-sol approved reviewed head 1e77dcf13e5339539556f157b91195378fc3f33e. All 11 design-active record blobs and their 108 disjoint mutable-path blobs are identical to their independently reviewed branch heads: ROADMAP-HISTORY at 7f8bbe001; CI-FAILURE-EVIDENCE at 935eac2bc; NVT-END-FLAG and NVT-END-FLAG-RELEASE-PIN at 0d1224c8d; VM-SCHEMA-LOCAL-REF and BUNDLE-JSON-CONTEXT-DEDUP at cb24f061b; CLI-REPORT-ATOMIC at 5647850c9; AGENT-MODEL-ROUTING at c1e34429b; REPORT-PUBLISH-ATOMIC at 08e2d9d9c; F08-SAVE-NOTICE at 10e63b976; and PREBUILT-CATALOG-ADR at 1a8d2be33. All 34 batch commits were accounted for, every admission preceded implementation, and the checkpoint-to-head governed diff is covered exactly once. The H1 test blob also matches its reviewed head, with only a later review note in its bug record. No batch interaction finding was identified. This read-only review did not execute tests or replace the required frozen-candidate checks and R3 owner attestations. Rebuilt reviewed head 460bb0540999f852c3e2638eb1e77aad4995b1d0: the full local verifier on the first evidence commit found that the model-routing skill edit had removed the phrase 'not hard requirements' required by an accepted skill-inventory test, so the unpublished model-routing implementation commit was corrected to restore it and the batch was rebuilt with the same 34 cherry-picks. Mechanical recheck by codex/gpt-6-luna confirmed that the rebuilt head differs from 1e77dcf13e5339539556f157b91195378fc3f33e only in that one skill sentence, that the other 33 patches match, and that all 11 record blobs are unchanged; the integrator reran tests/scripts/test_skill_inventory_validation.py at the rebuilt head (23 passed), and the .NET and other script lanes of that verifier run had passed on the identical product tree."
+  },
+  "integrationPaths": [
+    ".github/workflows/ci.yml",
+    "scripts/verify.py"
+  ]
 }

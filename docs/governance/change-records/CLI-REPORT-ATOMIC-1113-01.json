@@ -5,7 +5,7 @@
   "integrationBase": "84b084dd8fd218730ce75adb93b5dc2c456dd3c6",
   "risk": "R1",
   "kind": "behavior",
-  "state": "design-active",
+  "state": "final-complete",
   "mutablePaths": [
     "src/NvtFwCombiner.Cli/CliCompositionRunSupport.cs",
     "tests/NvtFwCombiner.Bootstrap.Tests/CliReportAtomicWriteTests.cs"
@@ -26,12 +26,15 @@
     "outcome": "not-required",
     "evidence": "Bounded local R1 correction of the existing CLI report writer, found by the PR #457 review, with no Application, profile, firmware byte, range, report-content or exit-code change."
   },
-  "implementationHead": null,
-  "reviewedHead": null,
-  "pathStateDigest": null,
+  "implementationHead": "460bb0540999f852c3e2638eb1e77aad4995b1d0",
+  "reviewedHead": "460bb0540999f852c3e2638eb1e77aad4995b1d0",
+  "pathStateDigest": "d9f06fca8949a0245ba09fea23518993b19e9cc775538d875f6250558eadb043",
   "finalReview": {
-    "reviewer": null,
-    "outcome": "pending",
-    "evidence": ""
-  }
+    "reviewer": "codex/gpt-6-sol",
+    "outcome": "findings-incorporated",
+    "evidence": "Independent third-round review by codex/gpt-6-sol of exact head 5647850c912ce1460caf66b8dc71ac286f922154, continuing the reviews of c79826521 and 7568efdaa. F-1 remains closed, and the new pre-write staging-path validation closes F-3 for the reported same-name defect and tested aliases. The production GUID staging name remains valid; the staging check does not replace ProtectedPathGuard’s protected-path authority. The implementer reported five failing cases on the previous head, followed by 38/38 focused, 1924/1924 Bootstrap, and 269/269 Architecture tests on this head; this review was read-only and did not rerun them. LocalFileStore’s probe refused a junction directory, a path through a junction, and a subst drive. The CLI already refused the two probed junction paths through ProtectedPathGuard, so only subst was a newly refused destination among those probed; no other junction paths were assessed. Staging cleanup is best effort. On the previous head, the same-name, different-case, trailing-dot, and decomposed-Unicode cases completed without the expected exception, while the alternate-data-stream case failed during rename and left a zero-byte report. No new review finding remains; integration checks are separate. Batch integration review by codex/gpt-6-sol approved reviewed head 1e77dcf13e5339539556f157b91195378fc3f33e. All 11 design-active record blobs and their 108 disjoint mutable-path blobs are identical to their independently reviewed branch heads: ROADMAP-HISTORY at 7f8bbe001; CI-FAILURE-EVIDENCE at 935eac2bc; NVT-END-FLAG and NVT-END-FLAG-RELEASE-PIN at 0d1224c8d; VM-SCHEMA-LOCAL-REF and BUNDLE-JSON-CONTEXT-DEDUP at cb24f061b; CLI-REPORT-ATOMIC at 5647850c9; AGENT-MODEL-ROUTING at c1e34429b; REPORT-PUBLISH-ATOMIC at 08e2d9d9c; F08-SAVE-NOTICE at 10e63b976; and PREBUILT-CATALOG-ADR at 1a8d2be33. All 34 batch commits were accounted for, every admission preceded implementation, and the checkpoint-to-head governed diff is covered exactly once. The H1 test blob also matches its reviewed head, with only a later review note in its bug record. No batch interaction finding was identified. This read-only review did not execute tests or replace the required frozen-candidate checks and R3 owner attestations. Rebuilt reviewed head 460bb0540999f852c3e2638eb1e77aad4995b1d0: the full local verifier on the first evidence commit found that the model-routing skill edit had removed the phrase 'not hard requirements' required by an accepted skill-inventory test, so the unpublished model-routing implementation commit was corrected to restore it and the batch was rebuilt with the same 34 cherry-picks. Mechanical recheck by codex/gpt-6-luna confirmed that the rebuilt head differs from 1e77dcf13e5339539556f157b91195378fc3f33e only in that one skill sentence, that the other 33 patches match, and that all 11 record blobs are unchanged; the integrator reran tests/scripts/test_skill_inventory_validation.py at the rebuilt head (23 passed), and the .NET and other script lanes of that verifier run had passed on the identical product tree."
+  },
+  "integrationPaths": [
+    "src/NvtFwCombiner.Cli/CliCompositionRunSupport.cs"
+  ]
 }

@@ -5,7 +5,7 @@
   "integrationBase": "84b084dd8fd218730ce75adb93b5dc2c456dd3c6",
   "risk": "R1",
   "kind": "ui",
-  "state": "design-active",
+  "state": "final-complete",
   "mutablePaths": [
     "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReportPresentationViewModel.History.cs",
     "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReportPresentationViewModel.cs",
@@ -25,12 +25,16 @@
     "outcome": "not-required",
     "evidence": "Bounded local R1 correction of the generated-report publication admitted by F07-RESIDUALS-1113-01, found by the PR #457 automatic review (P2); no Application, profile, firmware byte, range or contract change."
   },
-  "implementationHead": null,
-  "reviewedHead": null,
-  "pathStateDigest": null,
+  "implementationHead": "460bb0540999f852c3e2638eb1e77aad4995b1d0",
+  "reviewedHead": "460bb0540999f852c3e2638eb1e77aad4995b1d0",
+  "pathStateDigest": "ecbf67eaae23edbecff811b32262a235468a37709f0538ddbe9da499ff9d3dd4",
   "finalReview": {
-    "reviewer": null,
-    "outcome": "pending",
-    "evidence": ""
-  }
+    "reviewer": "codex/gpt-6-sol",
+    "outcome": "findings-incorporated",
+    "evidence": "Independent codex/gpt-6-sol final review of exact head 08e2d9d9c2fbef0412e1be9c2b2c4c5b00962a6d, following the reviews of 3f1923efac64ab925bd66a8e5738c7be52327ae8 and 2e9f1e7f5b183b7651d577ecb1f1922f008be1d3. The unpublished branch was reconstructed with admission 21a55741c9021351c37eb267a2caf892edc0df2a as the direct parent of the first implementation commit; both implementation patches and their file contents match the earlier commits, and the former head remains on the backup branch. The only old-to-new head changes are searchEvidence[2], semanticOwner, and terminalContract in the record. F-1 and F-2 remain closed; F-3 is closed by defining atomicity and zero notifications for the outer report, while preserving independent cancellation and hook effects, including a synchronous hook publication. The shared history helper assigns sequence after entry construction and after the pre-open hook; the shared open helpers match the stated flow. The capability summary is read in that outer-report scope. All implementation changes are covered by mutablePaths. No build or tests were run in this read-only review; integration and CI gates remain separate. Batch integration review by codex/gpt-6-sol approved reviewed head 1e77dcf13e5339539556f157b91195378fc3f33e. All 11 design-active record blobs and their 108 disjoint mutable-path blobs are identical to their independently reviewed branch heads: ROADMAP-HISTORY at 7f8bbe001; CI-FAILURE-EVIDENCE at 935eac2bc; NVT-END-FLAG and NVT-END-FLAG-RELEASE-PIN at 0d1224c8d; VM-SCHEMA-LOCAL-REF and BUNDLE-JSON-CONTEXT-DEDUP at cb24f061b; CLI-REPORT-ATOMIC at 5647850c9; AGENT-MODEL-ROUTING at c1e34429b; REPORT-PUBLISH-ATOMIC at 08e2d9d9c; F08-SAVE-NOTICE at 10e63b976; and PREBUILT-CATALOG-ADR at 1a8d2be33. All 34 batch commits were accounted for, every admission preceded implementation, and the checkpoint-to-head governed diff is covered exactly once. The H1 test blob also matches its reviewed head, with only a later review note in its bug record. No batch interaction finding was identified. This read-only review did not execute tests or replace the required frozen-candidate checks and R3 owner attestations. Rebuilt reviewed head 460bb0540999f852c3e2638eb1e77aad4995b1d0: the full local verifier on the first evidence commit found that the model-routing skill edit had removed the phrase 'not hard requirements' required by an accepted skill-inventory test, so the unpublished model-routing implementation commit was corrected to restore it and the batch was rebuilt with the same 34 cherry-picks. Mechanical recheck by codex/gpt-6-luna confirmed that the rebuilt head differs from 1e77dcf13e5339539556f157b91195378fc3f33e only in that one skill sentence, that the other 33 patches match, and that all 11 record blobs are unchanged; the integrator reran tests/scripts/test_skill_inventory_validation.py at the rebuilt head (23 passed), and the .NET and other script lanes of that verifier run had passed on the identical product tree."
+  },
+  "integrationPaths": [
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReportPresentationViewModel.History.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReportPresentationViewModel.cs"
+  ]
 }

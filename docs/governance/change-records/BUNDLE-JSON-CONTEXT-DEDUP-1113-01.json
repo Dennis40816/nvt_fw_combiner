@@ -5,7 +5,7 @@
   "integrationBase": "84b084dd8fd218730ce75adb93b5dc2c456dd3c6",
   "risk": "R1",
   "kind": "refactor",
-  "state": "design-active",
+  "state": "final-complete",
   "mutablePaths": [
     "src/NvtFwCombiner.Infrastructure/Bundles/ProfileBundleJsonContext.cs",
     "src/NvtFwCombiner.Infrastructure/Bundles/TrustedProfileBundleDocumentProjection.cs",
@@ -29,12 +29,17 @@
     "outcome": "not-required",
     "evidence": "Bounded local R1 refactor (owner task, 1.1.13 board wave 4: duplicate JSON contexts) that removes one duplicate registration of two DTO roots with identical generation options; no dependency, profile, schema, contract, firmware byte, range or output change. Narrow tests: Infrastructure.Tests Bundles, ProfileContract.Tests, Bootstrap.Tests catalog, Architecture.Tests. Residual gates: independent fixed-head review and finalization."
   },
-  "implementationHead": null,
-  "reviewedHead": null,
-  "pathStateDigest": null,
+  "implementationHead": "460bb0540999f852c3e2638eb1e77aad4995b1d0",
+  "reviewedHead": "460bb0540999f852c3e2638eb1e77aad4995b1d0",
+  "pathStateDigest": "2bd201c70aad7bc231959c5a216f2898e097dcf4d0557ad69d3209571eef8e0d",
   "finalReview": {
-    "reviewer": null,
-    "outcome": "pending",
-    "evidence": ""
-  }
+    "reviewer": "codex/gpt-6-sol",
+    "outcome": "findings-incorporated",
+    "evidence": "Independent read-only review by codex/gpt-6-sol of exact head cb24f061b688a7416d4fc426016471739f80bbac found one generated metadata owner for each canonical family and profile root, with matching source-generation options and unchanged DTO converter and polymorphism declarations. The changed call sites deserialize only; no serialization path was changed. No other duplicate root registration was found, and the declared mutable paths match the reviewed diff. Correction to immutable admission searchEvidence: seven of the eight VersionManagement codec instances match MaxDepth to their strict-parse depth; the admission-file codec has no ParseStrict, uses the default depth of 64, and has a 4,096-byte limit. This correction does not change the deduplication conclusion. No build, tests, or independent byte comparison were run by this reviewer. Batch integration review by codex/gpt-6-sol approved reviewed head 1e77dcf13e5339539556f157b91195378fc3f33e. All 11 design-active record blobs and their 108 disjoint mutable-path blobs are identical to their independently reviewed branch heads: ROADMAP-HISTORY at 7f8bbe001; CI-FAILURE-EVIDENCE at 935eac2bc; NVT-END-FLAG and NVT-END-FLAG-RELEASE-PIN at 0d1224c8d; VM-SCHEMA-LOCAL-REF and BUNDLE-JSON-CONTEXT-DEDUP at cb24f061b; CLI-REPORT-ATOMIC at 5647850c9; AGENT-MODEL-ROUTING at c1e34429b; REPORT-PUBLISH-ATOMIC at 08e2d9d9c; F08-SAVE-NOTICE at 10e63b976; and PREBUILT-CATALOG-ADR at 1a8d2be33. All 34 batch commits were accounted for, every admission preceded implementation, and the checkpoint-to-head governed diff is covered exactly once. The H1 test blob also matches its reviewed head, with only a later review note in its bug record. No batch interaction finding was identified. This read-only review did not execute tests or replace the required frozen-candidate checks and R3 owner attestations. Rebuilt reviewed head 460bb0540999f852c3e2638eb1e77aad4995b1d0: the full local verifier on the first evidence commit found that the model-routing skill edit had removed the phrase 'not hard requirements' required by an accepted skill-inventory test, so the unpublished model-routing implementation commit was corrected to restore it and the batch was rebuilt with the same 34 cherry-picks. Mechanical recheck by codex/gpt-6-luna confirmed that the rebuilt head differs from 1e77dcf13e5339539556f157b91195378fc3f33e only in that one skill sentence, that the other 33 patches match, and that all 11 record blobs are unchanged; the integrator reran tests/scripts/test_skill_inventory_validation.py at the rebuilt head (23 passed), and the .NET and other script lanes of that verifier run had passed on the identical product tree."
+  },
+  "integrationPaths": [
+    "src/NvtFwCombiner.Infrastructure/Bundles/ProfileBundleJsonContext.cs",
+    "src/NvtFwCombiner.Infrastructure/Bundles/TrustedProfileBundleDocumentProjection.cs",
+    "src/NvtFwCombiner.Profiles/V2/ProfileBundleSemanticJsonContext.cs"
+  ]
 }

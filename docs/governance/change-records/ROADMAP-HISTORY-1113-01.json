@@ -5,7 +5,7 @@
   "integrationBase": "84b084dd8fd218730ce75adb93b5dc2c456dd3c6",
   "risk": "R2",
   "kind": "governance",
-  "state": "design-active",
+  "state": "final-complete",
   "mutablePaths": [
     "docs/architecture/nfc_roadmap.md"
   ],
@@ -26,12 +26,15 @@
     "outcome": "findings-incorporated",
     "evidence": "Independently re-reviewed the uncommitted R2 roadmap-history proposal at 04369b738 against the prior four findings and the schema-v2 admission contract. The two live TP SVN rows now state the owner-confirmed field at TP start + 0x24 and the 1.1.13 C-7 R3 admission gate. The FlashMap “Next” text points to the current 1.4.1 allocation while retaining its dated intake in history; the release-scope links are accurately named. The removed seventh stub has no remaining inbound roadmap link, and the six retained stubs preserve their dated links. R2 governance classification, roadmap-only mutable-path ownership, and the terminal contract’s non-governed file list are appropriate. Findings are incorporated. Admission still requires the reviewed record to be staged and checkpoint validation; the separately assigned 1.1.13 board status corrections remain for wave 2."
   },
-  "implementationHead": null,
-  "reviewedHead": null,
-  "pathStateDigest": null,
+  "implementationHead": "460bb0540999f852c3e2638eb1e77aad4995b1d0",
+  "reviewedHead": "460bb0540999f852c3e2638eb1e77aad4995b1d0",
+  "pathStateDigest": "4d8a7abd2f3e2215c7711855973f539e631c266e0d2007b6c347de3ff79d9e40",
   "finalReview": {
-    "reviewer": null,
-    "outcome": "pending",
-    "evidence": ""
-  }
+    "reviewer": "codex/gpt-6-sol",
+    "outcome": "approved",
+    "evidence": "Independent fixed-head R2 review of ROADMAP-HISTORY-1113-01 at exact head 7f8bbe0010b14fcf658db01f7622cdc2e82018e1 against base 04369b738 found the implementation consistent with the findings-incorporated design proposal and terminal contract. The 1,518 moved roadmap lines are verbatim except for the approved link correction; the superseded checkpoint is preserved verbatim. Six stubs retain the required anchors, current allocation and TP SVN wording reflect the recorded owner decisions, and the history, FlashMap, and navigation changes match the declared non-governed scope. The roadmap is the sole mutable path and appears in the diff; no other changes were found. Review was read-only; no build or tests were run. Batch integration review by codex/gpt-6-sol approved reviewed head 1e77dcf13e5339539556f157b91195378fc3f33e. All 11 design-active record blobs and their 108 disjoint mutable-path blobs are identical to their independently reviewed branch heads: ROADMAP-HISTORY at 7f8bbe001; CI-FAILURE-EVIDENCE at 935eac2bc; NVT-END-FLAG and NVT-END-FLAG-RELEASE-PIN at 0d1224c8d; VM-SCHEMA-LOCAL-REF and BUNDLE-JSON-CONTEXT-DEDUP at cb24f061b; CLI-REPORT-ATOMIC at 5647850c9; AGENT-MODEL-ROUTING at c1e34429b; REPORT-PUBLISH-ATOMIC at 08e2d9d9c; F08-SAVE-NOTICE at 10e63b976; and PREBUILT-CATALOG-ADR at 1a8d2be33. All 34 batch commits were accounted for, every admission preceded implementation, and the checkpoint-to-head governed diff is covered exactly once. The H1 test blob also matches its reviewed head, with only a later review note in its bug record. No batch interaction finding was identified. This read-only review did not execute tests or replace the required frozen-candidate checks and R3 owner attestations. Rebuilt reviewed head 460bb0540999f852c3e2638eb1e77aad4995b1d0: the full local verifier on the first evidence commit found that the model-routing skill edit had removed the phrase 'not hard requirements' required by an accepted skill-inventory test, so the unpublished model-routing implementation commit was corrected to restore it and the batch was rebuilt with the same 34 cherry-picks. Mechanical recheck by codex/gpt-6-luna confirmed that the rebuilt head differs from 1e77dcf13e5339539556f157b91195378fc3f33e only in that one skill sentence, that the other 33 patches match, and that all 11 record blobs are unchanged; the integrator reran tests/scripts/test_skill_inventory_validation.py at the rebuilt head (23 passed), and the .NET and other script lanes of that verifier run had passed on the identical product tree."
+  },
+  "integrationPaths": [
+    "docs/architecture/nfc_roadmap.md"
+  ]
 }

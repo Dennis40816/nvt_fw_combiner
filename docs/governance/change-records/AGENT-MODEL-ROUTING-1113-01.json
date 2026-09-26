@@ -5,7 +5,7 @@
   "integrationBase": "84b084dd8fd218730ce75adb93b5dc2c456dd3c6",
   "risk": "R2",
   "kind": "governance",
-  "state": "design-active",
+  "state": "final-complete",
   "mutablePaths": [
     "AGENTS.md",
     "docs/governance/agent-model-routing.md",
@@ -28,12 +28,17 @@
     "outcome": "findings-incorporated",
     "evidence": "Independent R2 design review by codex/gpt-6-sol examined the uncommitted worktree changes against base commit 71f81df2ea9166b135369752694ab6dd42ff5986. The record’s integration base, 84b084dd8fd218730ce75adb93b5dc2c456dd3c6, matches the latest change-record checkpoint inspected. The dated model mapping, owner-choice precedence, dispatch disclosure, inheritance wording, and unchanged risk and evidence gates are sound. Conditional acceptance requires resolving the overlapping task-class assignments against owner decision 56 and clarifying that the Terra search citations are examples. This is design feedback on uncommitted changes, not a fixed-head implementation review. F-1 (task-class overlap) and F-2 (Terra search examples) were incorporated before admission; the fixed-head final review verifies their closure."
   },
-  "implementationHead": null,
-  "reviewedHead": null,
-  "pathStateDigest": null,
+  "implementationHead": "460bb0540999f852c3e2638eb1e77aad4995b1d0",
+  "reviewedHead": "460bb0540999f852c3e2638eb1e77aad4995b1d0",
+  "pathStateDigest": "6b2b3d9ef503a0bdb1f7381ac1382366f0d79f1121577d50cd05f989615bbe2d",
   "finalReview": {
-    "reviewer": null,
-    "outcome": "pending",
-    "evidence": ""
-  }
+    "reviewer": "codex/gpt-6-sol",
+    "outcome": "findings-incorporated",
+    "evidence": "Independent read-only final review of AGENT-MODEL-ROUTING-1113-01 examined exact head 237245a205a17d682ef5558b6905905340f94936 against base 71f81df2ea9166b135369752694ab6dd42ff5986 and owner decision 56. The separate Claude and Codex tables close the prior task-routing finding, and the Terra citations are explicitly examples. The three declared mutable paths match the implementation diff; selection principles, disclosure, risk gates, and evidence obligations remain intact. Two P3 record-evidence inaccuracies remain: the admitted text describes an obsolete design-review state and understates the committed Terra search count by one. No build, tests, or repository validator were run for this review. Correct the admission evidence and obtain a new fixed-head review before finalization. Mechanical recheck by codex/gpt-6-luna following codex/gpt-6-sol’s fixed-head final review at 237245a205a17d682ef5558b6905905340f94936. At exact head c1e34429b9423f0bd0edbbd96e984478839accfc, the only differences from that reviewed head are the two intended admission-record text corrections: the design-review status now matches reviewer codex/gpt-6-sol and outcome findings-incorporated, and the repository-wide Terra count is described as roughly 90 (93 matches, excluding this record). The admission commit contains only the record; the implementation commit contains only the three specified files, whose blobs match the reviewed head. The implementation commit directly follows admission, which directly follows base 71f81df2ea9166b135369752694ab6dd42ff5986. All requested mechanical checks passed. Batch integration review by codex/gpt-6-sol approved reviewed head 1e77dcf13e5339539556f157b91195378fc3f33e. All 11 design-active record blobs and their 108 disjoint mutable-path blobs are identical to their independently reviewed branch heads: ROADMAP-HISTORY at 7f8bbe001; CI-FAILURE-EVIDENCE at 935eac2bc; NVT-END-FLAG and NVT-END-FLAG-RELEASE-PIN at 0d1224c8d; VM-SCHEMA-LOCAL-REF and BUNDLE-JSON-CONTEXT-DEDUP at cb24f061b; CLI-REPORT-ATOMIC at 5647850c9; AGENT-MODEL-ROUTING at c1e34429b; REPORT-PUBLISH-ATOMIC at 08e2d9d9c; F08-SAVE-NOTICE at 10e63b976; and PREBUILT-CATALOG-ADR at 1a8d2be33. All 34 batch commits were accounted for, every admission preceded implementation, and the checkpoint-to-head governed diff is covered exactly once. The H1 test blob also matches its reviewed head, with only a later review note in its bug record. No batch interaction finding was identified. This read-only review did not execute tests or replace the required frozen-candidate checks and R3 owner attestations. Rebuilt reviewed head 460bb0540999f852c3e2638eb1e77aad4995b1d0: the full local verifier on the first evidence commit found that the model-routing skill edit had removed the phrase 'not hard requirements' required by an accepted skill-inventory test, so the unpublished model-routing implementation commit was corrected to restore it and the batch was rebuilt with the same 34 cherry-picks. Mechanical recheck by codex/gpt-6-luna confirmed that the rebuilt head differs from 1e77dcf13e5339539556f157b91195378fc3f33e only in that one skill sentence, that the other 33 patches match, and that all 11 record blobs are unchanged; the integrator reran tests/scripts/test_skill_inventory_validation.py at the rebuilt head (23 passed), and the .NET and other script lanes of that verifier run had passed on the identical product tree."
+  },
+  "integrationPaths": [
+    "AGENTS.md",
+    "docs/governance/agent-model-routing.md",
+    ".agents/skills/supervised-branch-development/SKILL.md"
+  ]
 }
