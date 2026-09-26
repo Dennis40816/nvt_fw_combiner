@@ -532,12 +532,14 @@ internal sealed partial class ReportPresentationViewModel : ObservableObject
         ShellTextResources text = Text;
         string toastTitle = text.ReportToastTitle;
         string toastText = text.FormatReportGeneratedToast(action);
-        ReportHistoryEntryViewModel? historyEntry = report.IsEmpty ? null : CreateReportHistoryEntry(report, reportJson);
         bool open = show && !report.IsEmpty;
         if (open)
         {
             PrepareReportOpen();
         }
+
+        // The pre-open hook may itself publish a report, so the entry takes its sequence only after the hook.
+        ReportHistoryEntryViewModel? historyEntry = report.IsEmpty ? null : CreateReportHistoryEntry(report, reportJson);
 
         // Commit: nothing below can fail, because PresentationObserver isolates every notification sink.
         LoadedReport = report;

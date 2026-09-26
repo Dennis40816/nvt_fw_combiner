@@ -1,5 +1,7 @@
+using System.Reflection;
 using System.Security.Cryptography;
 using System.Text.Json;
+using System.Windows.Input;
 using NvtFwCombiner.Application.Authoring;
 using NvtFwCombiner.Application.Ports;
 using NvtFwCombiner.Domain.Composition;
@@ -461,7 +463,31 @@ public sealed partial class RunAndHexEditorTests
         Assert.Equal(2, reports.ReportHistoryEntries[0].Sequence);
         Assert.Same(previousEntry, reports.ReportHistoryEntries[1]);
         Assert.True(reports.IsReportModalOpen);
-        Assert.Contains("property LoadedReport", notifications);
+
+        // The successful publication keeps its order: history (persisted on its count), toast, report, then the
+        // open review, which hides the toast again.
+        string[] keyNotifications =
+        [
+            "history Add",
+            "property ReportHistoryCount",
+            "command ShowReportHistoryCommand",
+            "property HasReportToast",
+            "property LoadedReport",
+            "command ShowReportCommand",
+            "property IsReportModalOpen",
+        ];
+        Assert.Equal(
+            [
+                "history Add",
+                "property ReportHistoryCount",
+                "command ShowReportHistoryCommand",
+                "property HasReportToast",
+                "property LoadedReport",
+                "command ShowReportCommand",
+                "property IsReportModalOpen",
+                "property HasReportToast",
+            ],
+            notifications.Where(keyNotifications.Contains));
 
         // Both attempts ran the hook while the previous report was still loaded and nothing had been notified.
         Assert.Collection(
@@ -476,6 +502,54 @@ public sealed partial class RunAndHexEditorTests
                 Assert.Same(previousReport, observed.Report);
                 Assert.Equal(0, observed.NotificationCount);
             });
+    }
+
+    /// <summary>
+    /// A report that the pre-open hook publishes synchronously commits first, and the publication that opens its
+    /// report then takes the next history sequence, so sequences stay contiguous and unique and the opened report
+    /// is the loaded one.
+    /// </summary>
+    [Fact]
+    public void ReportPublishedFromPreOpenHookKeepsHistorySequenceContiguousAndUnique()
+    {
+        string hookJson = ReportJsonSamples.Succeeded(
+            runId: "hook-report",
+            startedAtUtc: "2026-07-02T00:00:00Z");
+        ReportReviewViewModel hookReport = ReportReviewViewModel.FromJson(hookJson, "preview report");
+        bool publishFromHook = false;
+        ReportPresentationViewModel? reports = null;
+        reports = new ReportPresentationViewModel(
+            () => ShellTextResources.For(ShellLanguage.English),
+            () =>
+            {
+                if (publishFromHook)
+                {
+                    publishFromHook = false;
+                    reports!.PublishGeneratedReport(hookReport, hookJson, "Preview", show: false);
+                }
+            });
+        string previousJson = ReportJsonSamples.Succeeded(runId: "previous-report");
+        reports.LoadReportJson(previousJson, "previous.json");
+        string openedJson = ReportJsonSamples.Succeeded(
+            runId: "opened-report",
+            startedAtUtc: "2026-07-03T00:00:00Z");
+        ReportReviewViewModel opened = ReportReviewViewModel.FromJson(openedJson, "build report");
+        publishFromHook = true;
+
+        reports.PublishGeneratedReport(opened, openedJson, "Build", show: true);
+
+        Assert.False(publishFromHook);
+        Assert.Equal([3, 2, 1], reports.ReportHistoryEntries.Select(entry => entry.Sequence));
+        Assert.Equal(
+            [openedJson, hookJson, previousJson],
+            reports.ReportHistoryEntries.Select(entry => entry.ReportJson));
+        Assert.Same(opened, reports.LoadedReport);
+        Assert.Equal(openedJson, reports.LoadedReportJson);
+        Assert.True(reports.IsReportModalOpen);
+
+        reports.PublishGeneratedReport(hookReport, hookJson, "Preview", show: false);
+
+        Assert.Equal([4, 3, 2, 1], reports.ReportHistoryEntries.Select(entry => entry.Sequence));
     }
 
     /// <summary>A report failure for a Build that committed no output keeps the original failure handling.</summary>
@@ -573,15 +647,19 @@ public sealed partial class RunAndHexEditorTests
     }
 
     /// <summary>
-    /// Records every notification the report owner raises: its properties, its history collection and the
-    /// commands that open the report or the history.
+    /// Records the report owner's property notifications, its history collection changes and the can-execute
+    /// changes of every public command it exposes, in the order they are raised.
     /// </summary>
     private static void RecordReportNotifications(ReportPresentationViewModel reports, List<string> notifications)
     {
         reports.PropertyChanged += (_, args) => notifications.Add($"property {args.PropertyName}");
         reports.ReportHistoryEntries.CollectionChanged += (_, args) => notifications.Add($"history {args.Action}");
-        reports.ShowReportCommand.CanExecuteChanged += (_, _) => notifications.Add("command ShowReport");
-        reports.ShowReportHistoryCommand.CanExecuteChanged += (_, _) => notifications.Add("command ShowReportHistory");
+        foreach (PropertyInfo property in typeof(ReportPresentationViewModel).GetProperties()
+                     .Where(property => typeof(ICommand).IsAssignableFrom(property.PropertyType)))
+        {
+            var command = (ICommand)property.GetValue(reports)!;
+            command.CanExecuteChanged += (_, _) => notifications.Add($"command {property.Name}");
+        }
     }
 
     /// <summary>Creates a Build result that either committed a small output or was blocked before output.</summary>
