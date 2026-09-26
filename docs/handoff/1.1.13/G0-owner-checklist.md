@@ -501,10 +501,10 @@ After:
    Active and that its rules and bypass list equal the export of step 4 (you
    compare on the page or with a new export; the agent compares the effective
    rules of every covered branch with C1).
-8. If step 6 or 7 fails, or the window passes before the ruleset is Active
-   again: stop. The freeze stays, nothing else happens, and you restore the
-   ruleset from the export (re-enable, or re-create it by importing the
-   export) until step 7 passes.
+8. **owner → owner.** If step 6 or 7 fails, or the window passes before the
+   ruleset is Active again: stop. The freeze stays, nothing else happens, and
+   you restore the ruleset from the export (re-enable, or re-create it by
+   importing the export) until step 7 passes.
 9. **owner → owner.** Confirm the actor of the push in the repository's
    activity view. A push made while the ruleset was disabled is not a bypass,
    so no bypass evaluation is expected.
