@@ -5,7 +5,7 @@
   "integrationBase": "38b85b15b861027972a9ca6945411f57220c4c47",
   "risk": "R2",
   "kind": "governance",
-  "state": "design-active",
+  "state": "final-complete",
   "mutablePaths": [
     "docs/adr/0027-evidence-preserving-performance-remediation.md",
     "docs/adr/0079-test-architecture.md",
@@ -28,12 +28,16 @@
     "outcome": "findings-incorporated",
     "evidence": "Independent R2 design re-review by codex/gpt-6-astra, separate from implementationOwner claude-code, of T1 ADR 0079 v4 against base 3a01877aaa7a9c9bc9ce908098c0f24450429560. Reviewed proposal patch SHA-256 583740da471cc01a12d12ed8cec03b73cbe441fa6c75f76e679e167c0ee6159d and pre-review record-draft SHA-256 344c56797f686cbc88f9cece586ba991d07ddbcad2b37d10235bfdd50a6ea045. Verdict: ACCEPT. Previous findings F-1 through F-5 are incorporated. Independent recomputation confirms the measured targets and nearest-rank p90 values, including core median 379.5 seconds displayed as 380. The Cost table changes only p90 numeric values relative to v3. Targets are non-binding references, not timing gates. One non-blocking editorial suggestion is to document whole-second rounding. Supplied job data supports aggregate recomputation but omits original job timestamps. Owner acceptance of the complete ADR, checkpoint repinning after batch 2a, staged admission validation, and subsequent exact-head review remain required. Review was read-only and offline; no build, tests, or verifier were run. The owner accepted the full text as decision 81 (board decision 81, 2026-09-26, docs/handoff/1.1.12.md on feature/1.1.13/wave2 at commit 557a9ee6ae1919c344c61426b049f9f0946d8eed). The rounding suggestion is taken in. The record-draft SHA-256 above is the reviewed file's value; the review text carried it with one extra character."
   },
-  "implementationHead": null,
-  "reviewedHead": null,
-  "pathStateDigest": null,
+  "implementationHead": "3b8d466939689b4da670d7cea6c48f496cff25b4",
+  "reviewedHead": "3b8d466939689b4da670d7cea6c48f496cff25b4",
+  "pathStateDigest": "531d172f86aa30df317410febbc665db79bfd4b73f467b15e0e106223856a3a1",
   "finalReview": {
-    "reviewer": null,
-    "outcome": "pending",
-    "evidence": ""
-  }
+    "reviewer": "codex/gpt-6-astra",
+    "outcome": "approved",
+    "evidence": "Independent read-only final review by codex/gpt-6-astra, separate from implementationOwner claude-code, of TEST-ARCH-ADR-1113-01 at exact head dc8133fc31f899750bf71bac7b289a3c4c519666 against base b7249de8f7931c4db53e9e5a3ed790e13a25da8e, with integrationBase 38b85b15b861027972a9ca6945411f57220c4c47. The implementation diff is byte-for-byte identical to the v5 proposal patch, SHA-256 66072450110dc9f430b39475d6b6389b2e2815ae698ad824cb0cc03f1941aed5. Differences from owner-accepted v4 are acceptance wording and decision 81 references, review-history updates, and rounding clarification; no other design semantics or measured values changed. Decisions 72 and 81 govern the replacement of the 300-second clauses; partition, selection and coverage activation remain deferred. The admission record and exact mutablePaths match the implementation, and terminalContract assigns decision 91's dated amendment to TEST-LOCAL-STATE-1113-01. The five handoff commits contain no governed-path changes or observed private information. No P0-P3 findings. Verdict APPROVED; scoped Polytail PASS. No files were modified and no build, tests or repository verifier were run. Record finalization and required integration checks remain outstanding. Batch integration review by codex/gpt-6-sol approved reviewed head 235629b1669d184ff4b692acf42f6114c3bac04c for the six design-active records in this batch. Each record blob matches its independently reviewed head: DOC-HYGIENE at 2e4e1fbf72e0b5f2d65839439e615b86cebc51cf; CLI-EXEC-REFUSAL at 8ccf2224a30a44a0ccd8cf1c7d5d1211003b6321; ROLLING-PARITY-CONTRACTS and V0916-1X-AMENDMENT at c1918642e12b69d4cba60ca796f14ee118657542; TEST-ARCH-ADR at dc8133fc31f899750bf71bac7b289a3c4c519666; and NVT-READER-DOC at ad9e33b23b9aa1572c2e3c2b4585f64de49f92a5. All 34 mutable paths match their reviewed heads except the TEST-ARCH-ADR auxiliary test README, whose two independent local-reference prose edits compose without conflict with its ADR pointer; its path-state digest must bind the combined blob at H. All 19 commits are accounted for, admissions precede implementations, and each of the 25 changed governed paths has exactly one record owner. This read-only review did not run builds, tests, or verifiers and does not replace the required R3 owner attestation or integration gates. The rebuilt batch head is 3b8d466939689b4da670d7cea6c48f496cff25b4. Compared with reviewed head 235629b1669d184ff4b692acf42f6114c3bac04c, its only tree difference is the predecessor schema contract test's reference to the Domain issue-code constant; the serialized value is unchanged. The other 19 batch commits have matching patch-ids, and all six design-active record blobs are identical between the two heads, as confirmed by codex/gpt-6-luna."
+  },
+  "integrationPaths": [
+    "docs/adr/0027-evidence-preserving-performance-remediation.md",
+    "docs/adr/0079-test-architecture.md"
+  ]
 }

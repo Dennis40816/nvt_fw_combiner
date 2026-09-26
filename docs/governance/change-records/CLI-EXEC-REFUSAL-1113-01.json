@@ -5,7 +5,7 @@
   "integrationBase": "38b85b15b861027972a9ca6945411f57220c4c47",
   "risk": "R2",
   "kind": "behavior",
-  "state": "design-active",
+  "state": "final-complete",
   "mutablePaths": [
     "docs/adr/0072-event-buffer-format-configuration.md",
     "src/NvtFwCombiner.Application/Composition/AcceptedSessionCompositionExecution.cs",
@@ -36,12 +36,21 @@
     "outcome": "findings-incorporated",
     "evidence": "The v1 (base c7982652179f20d49a0b38f51dfc2c82c8146c22) and v2 (patch SHA-256 a4ce1f55a5fc62fcac13359436866f746f8258c435ee5f359d7ebfc44c78e40e, base 5647850c912ce1460caf66b8dc71ac286f922154) proposals received ACCEPT-WITH-CHANGES from codex/gpt-6-astra, and their findings F-1 to F-6 are incorporated in v3. Independent R2 design re-review by codex/gpt-6-astra of CLI-EXEC-REFUSAL-1113-01 v3, implemented by claude-code. Reviewed proposal patch SHA-256 3364f934d20d49f908ea1c6a0ff4d20a2bfb474cca31272e5f6a7fbea9721a8c against base 5647850c912ce1460caf66b8dc71ac286f922154. F-1, F-2 and F-6 are closed. Admit/Create jointly own accepted-run admission before destination preparation, and execution consumes the admitted compilation, immutable inputs and processor without reacquisition. Lease acquisition followed by catalog observation and final lease validation establishes a common admission point under the production loaders’ monotonic generation semantics. Decision 68, refusal classifications, CLI/UI terminal behavior and record scope are consistent. The disclosed test limitations do not block design admission. Patch applicability was checked; no files were modified and no builds or tests were run. Test results remain implementer-reported. ACCEPT for design admission; final implementation and integration gates remain outstanding."
   },
-  "implementationHead": null,
-  "reviewedHead": null,
-  "pathStateDigest": null,
+  "implementationHead": "3b8d466939689b4da670d7cea6c48f496cff25b4",
+  "reviewedHead": "3b8d466939689b4da670d7cea6c48f496cff25b4",
+  "pathStateDigest": "daf2a43923548b9788cd73d58630e1e044465b79bfa1be027f38d96dd9f20462",
   "finalReview": {
-    "reviewer": null,
-    "outcome": "pending",
-    "evidence": ""
-  }
+    "reviewer": "codex/gpt-6-sol",
+    "outcome": "approved",
+    "evidence": "Independent R2 final review by codex/gpt-6-sol of CLI-EXEC-REFUSAL-1113-01 at exact head f8653d0a79a0a0273bb878b188bfb96eb2c642c8, implemented by claude-code. The twelve implementation and documentation file diffs are byte-for-byte identical to the accepted v3 proposal patch (SHA-256 3364f934d20d49f908ea1c6a0ff4d20a2bfb474cca31272e5f6a7fbea9721a8c); the admitted record differs from its draft only in designReview. Source and regression-test inspection found one admission before destination preparation that fixes the compilation, immutable inputs and processor lease; the required refusal priority and three lease reasons; blocked UI behavior without a new report; typed CLI exit 1 handling without changing the existing exit 70 boundary; and a narrowed AB catch. The eleven governed changed paths exactly match mutablePaths, and the excluded diagnostic document is non-governed. No firmware, range, CRC, naming or profile behavior changed. No P0–P3 findings. Review was read-only; reported test results and repository validation were not independently rerun. APPROVED for this exact-head final review; integration verification remains separate. After batch 2a merged, the unpublished branch was rebuilt on the new trunk: the admission record changed only its integrationBase to the new evidence checkpoint 38b85b15b861027972a9ca6945411f57220c4c47; the twelve implementation files keep identical blob ids and the implementation patch-id is unchanged, and the implementer reran Bootstrap 1979/1979, Application 1615/1615, UiSmoke 1702/1702 and Architecture 272/272 on the rebuilt head. Batch integration review by codex/gpt-6-sol approved reviewed head 235629b1669d184ff4b692acf42f6114c3bac04c for the six design-active records in this batch. Each record blob matches its independently reviewed head: DOC-HYGIENE at 2e4e1fbf72e0b5f2d65839439e615b86cebc51cf; CLI-EXEC-REFUSAL at 8ccf2224a30a44a0ccd8cf1c7d5d1211003b6321; ROLLING-PARITY-CONTRACTS and V0916-1X-AMENDMENT at c1918642e12b69d4cba60ca796f14ee118657542; TEST-ARCH-ADR at dc8133fc31f899750bf71bac7b289a3c4c519666; and NVT-READER-DOC at ad9e33b23b9aa1572c2e3c2b4585f64de49f92a5. All 34 mutable paths match their reviewed heads except the TEST-ARCH-ADR auxiliary test README, whose two independent local-reference prose edits compose without conflict with its ADR pointer; its path-state digest must bind the combined blob at H. All 19 commits are accounted for, admissions precede implementations, and each of the 25 changed governed paths has exactly one record owner. This read-only review did not run builds, tests, or verifiers and does not replace the required R3 owner attestation or integration gates. The rebuilt batch head is 3b8d466939689b4da670d7cea6c48f496cff25b4. Compared with reviewed head 235629b1669d184ff4b692acf42f6114c3bac04c, its only tree difference is the predecessor schema contract test's reference to the Domain issue-code constant; the serialized value is unchanged. The other 19 batch commits have matching patch-ids, and all six design-active record blobs are identical between the two heads, as confirmed by codex/gpt-6-luna."
+  },
+  "integrationPaths": [
+    "docs/adr/0072-event-buffer-format-configuration.md",
+    "src/NvtFwCombiner.Application/Composition/AcceptedSessionCompositionExecution.cs",
+    "src/NvtFwCombiner.Application/Composition/CompositionExecutionExperience.cs",
+    "src/NvtFwCombiner.Cli/AbMergeCliCommandHandler.cs",
+    "src/NvtFwCombiner.Cli/CliApplication.StandardMerge.cs",
+    "src/NvtFwCombiner.Cli/MergeCliCommandHandler.cs",
+    "src/NvtFwCombiner.Cli/ReplaceCliCommandHandler.RunSupport.cs"
+  ]
 }

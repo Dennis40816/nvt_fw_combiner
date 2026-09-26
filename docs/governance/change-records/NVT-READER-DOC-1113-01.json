@@ -5,7 +5,7 @@
   "integrationBase": "38b85b15b861027972a9ca6945411f57220c4c47",
   "risk": "R1",
   "kind": "behavior",
-  "state": "design-active",
+  "state": "final-complete",
   "mutablePaths": [
     "src/NvtFwCombiner.Application/FlashMaps/FirmwareConfigMetadataReader.cs",
     "src/NvtFwCombiner.Application/FlashMaps/FirmwareConfigVersionWritePlan.cs"
@@ -25,12 +25,16 @@
     "outcome": "not-required",
     "evidence": "Bounded local R1 documentation-only correction of two stale XML doc cref pointers left over from the finalized NVT-END-FLAG-1113-01 record; no Application, profile, firmware byte, range, or contract change, and no production consumer calls the overload the stale docs pointed to."
   },
-  "implementationHead": null,
-  "reviewedHead": null,
-  "pathStateDigest": null,
+  "implementationHead": "3b8d466939689b4da670d7cea6c48f496cff25b4",
+  "reviewedHead": "3b8d466939689b4da670d7cea6c48f496cff25b4",
+  "pathStateDigest": "6fe720f974a3aedfbd01cab09e1ed65efc18f5a9aa6b4e5f845e19999f4dffb2",
   "finalReview": {
-    "reviewer": null,
-    "outcome": "pending",
-    "evidence": ""
-  }
+    "reviewer": "codex/gpt-6-luna",
+    "outcome": "approved",
+    "evidence": "Independent static review by codex/gpt-6-luna approved exact head ad9e33b23b9aa1572c2e3c2b4585f64de49f92a5. The diff changes only XML documentation in the two declared mutable source files and adds the task change record; no executable code, signature, or behavior changed. Both cref references resolve to the declaration-taking overload, and all production call sites pass a FirmwareNvtEndFlagResolution; the only undeclared call is internal forwarding within the migration-only compatibility overload. The admission commit contains only the change record, whose mutablePaths match the two source files. No P0–P3 findings. Build and tests were not run per review instructions; implementation-reported results were Architecture 272/272, Application 1615/1615, and build with zero warnings. Batch integration review by codex/gpt-6-sol approved reviewed head 235629b1669d184ff4b692acf42f6114c3bac04c for the six design-active records in this batch. Each record blob matches its independently reviewed head: DOC-HYGIENE at 2e4e1fbf72e0b5f2d65839439e615b86cebc51cf; CLI-EXEC-REFUSAL at 8ccf2224a30a44a0ccd8cf1c7d5d1211003b6321; ROLLING-PARITY-CONTRACTS and V0916-1X-AMENDMENT at c1918642e12b69d4cba60ca796f14ee118657542; TEST-ARCH-ADR at dc8133fc31f899750bf71bac7b289a3c4c519666; and NVT-READER-DOC at ad9e33b23b9aa1572c2e3c2b4585f64de49f92a5. All 34 mutable paths match their reviewed heads except the TEST-ARCH-ADR auxiliary test README, whose two independent local-reference prose edits compose without conflict with its ADR pointer; its path-state digest must bind the combined blob at H. All 19 commits are accounted for, admissions precede implementations, and each of the 25 changed governed paths has exactly one record owner. This read-only review did not run builds, tests, or verifiers and does not replace the required R3 owner attestation or integration gates. The rebuilt batch head is 3b8d466939689b4da670d7cea6c48f496cff25b4. Compared with reviewed head 235629b1669d184ff4b692acf42f6114c3bac04c, its only tree difference is the predecessor schema contract test's reference to the Domain issue-code constant; the serialized value is unchanged. The other 19 batch commits have matching patch-ids, and all six design-active record blobs are identical between the two heads, as confirmed by codex/gpt-6-luna."
+  },
+  "integrationPaths": [
+    "src/NvtFwCombiner.Application/FlashMaps/FirmwareConfigMetadataReader.cs",
+    "src/NvtFwCombiner.Application/FlashMaps/FirmwareConfigVersionWritePlan.cs"
+  ]
 }
