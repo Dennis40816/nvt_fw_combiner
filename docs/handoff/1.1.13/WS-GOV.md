@@ -379,6 +379,17 @@ Open: the two questions below (commander to ask the owner); the re-review
 (commander).
 Next: structure check of this commit, then stop.
 
+### 2026-09-26 Structure check of the G0 revision
+State: verified (documents only)
+Commits: `c61e47749` verified; the commit carrying this entry changes only
+this entry.
+Evidence: `python scripts/verify.py --structure-only` with TEMP, TMP and
+TMPDIR set to `<test-area>/temp`, at `c61e47749` -> `structure=PASS`, 263.0 s;
+`sync_derived` changed 0 files. A link and anchor check of the four changed
+documents passed before the commit.
+Open: the two questions at the end of this log; the re-review (commander).
+Next: stop.
+
 ## Owner decisions in risk order
 
 One question at a time, highest risk first. Each item gives the question in
