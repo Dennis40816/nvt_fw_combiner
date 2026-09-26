@@ -394,8 +394,20 @@ internal sealed partial class ReportPresentationViewModel : ObservableObject
             return;
         }
 
+        PrepareReportOpen();
+        OpenLoadedReport();
+    }
+
+    /// <summary>Runs the fallible steps that precede opening the report review, before any report state changes.</summary>
+    private void PrepareReportOpen()
+    {
         CancelReportHistoryReopen();
         _beforeOpen();
+    }
+
+    /// <summary>Opens the review of the loaded report; it only assigns state and raises isolated notifications.</summary>
+    private void OpenLoadedReport()
+    {
         IsReportModalOpen = true;
         IsReportHistoryViewOpen = false;
         HasReportToast = false;
@@ -503,8 +515,10 @@ internal sealed partial class ReportPresentationViewModel : ObservableObject
     }
 
     /// <summary>
-    /// Publishes a generated report completely, or restores the previous report, history and toast before
-    /// rethrowing, so a failed publication never leaves the report behind a result that says it is unavailable.
+    /// Publishes a generated report completely or not at all. Every fallible step, including the pre-open hook,
+    /// completes before the first report state change or notification, and the commit that follows only assigns
+    /// state and raises isolated notifications, so a failed publication rethrows without any observer having seen
+    /// the report and never leaves it behind a result that says it is unavailable.
     /// </summary>
     internal void PublishGeneratedReport(
         ReportReviewViewModel report,
@@ -515,61 +529,30 @@ internal sealed partial class ReportPresentationViewModel : ObservableObject
         ArgumentNullException.ThrowIfNull(report);
         ArgumentNullException.ThrowIfNull(reportJson);
         ArgumentNullException.ThrowIfNull(action);
-        ReportPublicationState previous = CaptureReportPublicationState();
-        try
+        ShellTextResources text = Text;
+        string toastTitle = text.ReportToastTitle;
+        string toastText = text.FormatReportGeneratedToast(action);
+        ReportHistoryEntryViewModel? historyEntry = report.IsEmpty ? null : CreateReportHistoryEntry(report, reportJson);
+        bool open = show && !report.IsEmpty;
+        if (open)
         {
-            LoadedReport = report;
-            LoadedReportJson = reportJson;
-            CaptureLoadedReportInHistory();
-            SetReportToast(Text.FormatReportGeneratedToast(action));
-            NotifyReportChanged();
-            if (show)
-            {
-                ShowReport();
-            }
-        }
-        catch
-        {
-            RestoreReportPublicationState(previous);
-            throw;
-        }
-    }
-
-    private ReportPublicationState CaptureReportPublicationState()
-    {
-        return new ReportPublicationState(
-            LoadedReport,
-            LoadedReportJson,
-            [.. ReportHistoryEntries],
-            _reportHistorySequence,
-            ShellToastTitle,
-            ReportToastText,
-            HasReportToast,
-            ReportToastOpacity);
-    }
-
-    private void RestoreReportPublicationState(ReportPublicationState previous)
-    {
-        LoadedReport = previous.LoadedReport;
-        LoadedReportJson = previous.LoadedReportJson;
-        _reportHistorySequence = previous.HistorySequence;
-        if (!ReportHistoryEntries.SequenceEqual(previous.HistoryEntries))
-        {
-            PresentationObserver.Invoke(ReportHistoryEntries.Clear);
-            foreach (ReportHistoryEntryViewModel entry in previous.HistoryEntries)
-            {
-                PresentationObserver.Invoke(() => ReportHistoryEntries.Add(entry));
-            }
-
-            NotifyReportHistoryChanged();
+            PrepareReportOpen();
         }
 
-        ShellToastTitle = previous.ShellToastTitle;
-        ReportToastText = previous.ReportToastText;
-        HasReportToast = previous.HasReportToast;
-        ReportToastOpacity = previous.ReportToastOpacity;
-        NotifyShellToastChanged();
+        // Commit: nothing below can fail, because PresentationObserver isolates every notification sink.
+        LoadedReport = report;
+        LoadedReportJson = reportJson;
+        if (historyEntry is not null)
+        {
+            AddReportHistoryEntry(historyEntry);
+        }
+
+        SetShellToast(toastTitle, toastText);
         NotifyReportChanged();
+        if (open)
+        {
+            OpenLoadedReport();
+        }
     }
 
     private static string SanitizeFileName(string title)
@@ -594,15 +577,4 @@ internal sealed partial class ReportPresentationViewModel : ObservableObject
             FormatException or
             OverflowException;
     }
-
-    /// <summary>Report, history and toast state that one generated-report publication may replace.</summary>
-    private sealed record ReportPublicationState(
-        ReportReviewViewModel LoadedReport,
-        string LoadedReportJson,
-        IReadOnlyList<ReportHistoryEntryViewModel> HistoryEntries,
-        int HistorySequence,
-        string ShellToastTitle,
-        string ReportToastText,
-        bool HasReportToast,
-        double ReportToastOpacity);
 }
