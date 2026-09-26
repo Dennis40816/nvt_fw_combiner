@@ -537,6 +537,17 @@ repository. Verification of this commit is recorded in the next entry.
 Open: the final review (commander).
 Next: structure check of this commit, then stop.
 
+### 2026-09-27 Structure check of the G0 script rewrite
+State: verified (documents only)
+Commits: `3d2540e0c` verified; the commit carrying this entry changes only
+this entry.
+Evidence: `python scripts/verify.py --structure-only` with TEMP, TMP and
+TMPDIR set to `<test-area>/temp`, at `3d2540e0c` -> `structure=PASS`, 276.0 s;
+the working tree stayed clean. A link and anchor check of the four WS-GOV
+documents passed before the commit.
+Open: the final review (commander).
+Next: stop.
+
 ## Owner decisions in risk order
 
 One question at a time, highest risk first. Each item gives the question in
