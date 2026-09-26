@@ -441,19 +441,29 @@ After:
    activity view for that branch shows the push or force push by your
    account, and the ruleset's rule insights list the bypass. Then sign out of
    the credential the push stored (A8).
-6. **agent → none (App path) or agent → machine account (fallback).** The
-   agent path is unchanged: with the app, `git config --local --get-all
-   credential.https://github.com.helper` still shows the empty entry and the
-   App helper, and the `gh` wrapper still reaches
-   `/installation/repositories`; with the machine account,
-   `git config --local --get credential.https://github.com.username` still
-   shows its login and `gh api user --jq .login` returns it.
+6. The agent path is unchanged, checked in two steps:
+   - 6a. **agent → none.** Local settings: with the app,
+     `git config --local --get-all credential.https://github.com.helper`
+     still shows the empty entry and the App helper; with the machine
+     account, `git config --local --get credential.https://github.com.username`
+     still shows its login.
+   - 6b. **agent → App** (app path): the `gh` wrapper still reaches
+     `/installation/repositories`; or **agent → machine account** (fallback):
+     `gh api user --jq .login` still returns its login.
 7. **agent → none**, then **owner → owner.** An agent reads the branch's
    effective rules (`GET /repos/<owner>/<repo>/rules/branches/<branch>`) and
    compares them with C1; you confirm the bypass lists on the page.
-8. **owner → owner** and **agent → App.** Approvals and evidence are renewed on
-   the new head: you review and approve again any open pull request into the
-   branch, agents re-run its checks, and nothing approved before carries over.
+8. Approvals and evidence are renewed on the new head, and nothing approved
+   before carries over. The app keeps only `actions: read`, so it cannot
+   re-run workflows:
+   - **owner → owner.** You review and approve again any open pull request
+     into the branch.
+   - Checks that start by themselves (a push to the pull request's branch
+     triggers CI) need no operator; **agent → App** reads their results.
+   - **owner → owner.** A check that needs a manual re-run is re-run by you in
+     the browser; **agent → App** only reads its results.
+   - **agent → none.** Local verification an agent runs (for example the
+     structure check) is recorded with the commit it ran on.
 9. Existing tags and release artifacts are never rewritten.
 10. **agent → none.** The board records the result, the recovery ref and the
     checks of steps 5 to 7; related writes resume.
@@ -498,11 +508,12 @@ After:
 9. **owner → owner.** Confirm the actor of the push in the repository's
    activity view. A push made while the ruleset was disabled is not a bypass,
    so no bypass evaluation is expected.
-10. **agent → none (App path) or agent → machine account (fallback).** C2
-    step 6.
-11. **owner → owner** and **agent → App.** Renewed approvals and evidence on
-    the new head, as C2 step 8; tags and release artifacts are never
-    rewritten.
+10. C2 steps 6a (**agent → none**) and 6b (**agent → App**, or **agent →
+    machine account** on the fallback).
+11. Renewed approvals and evidence on the new head, split as C2 step 8
+    (**owner → owner** for approvals and manual re-runs, **agent → App** for
+    reading results, **agent → none** for local verification); tags and
+    release artifacts are never rewritten.
 12. **agent → none.** Only after step 7 passes, the commander lifts the freeze.
     The board records the disable and restore times, the export compared, the
     push result and actor, and the verification.
@@ -533,10 +544,10 @@ to its rule, in the WS-GOV log; you confirm.
       (only an installation token can call it) and lists only this
       repository. A successful public read alone proves no identity.
 - [ ] **D3b Machine-account identity (fallback only). agent → machine
-      account**, then **owner → owner.** The same push and pull request: the
-      author and the pusher are the machine account, and `gh api user --jq
-      .login` returns it; you check on the account's settings that it can
-      reach only this repository.
+      account**, then **owner → machine account.** The same push and pull
+      request: the author and the pusher are the machine account, and `gh api
+      user --jq .login` returns it; you sign in as the machine account and
+      check on its settings that it can reach only this repository.
 - [ ] **D4 Approval behavior. owner → owner** for approvals, **agent → App**
       for pushes. You approve the head in the browser. The agent pushes a
       commit that changes the diff: the approval is dismissed. You approve
