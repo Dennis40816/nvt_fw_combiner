@@ -75,7 +75,8 @@ rather than assigning permanent roles to model names. Routine lookup or
 mechanical work may use a faster model; ambiguous architecture, firmware
 changes, and release/security review merit stronger reasoning. The primary
 agent may also implement. Explicit owner choices take precedence when supported
-by tooling.
+by tooling. [`docs/governance/agent-model-routing.md`](docs/governance/agent-model-routing.md)
+records the current dated per-runtime model-tier defaults for these principles.
 
 Before dispatch, briefly disclose the configured model (or known inheritance),
 reasoning effort when exposed, role, read/write scope, and selection reason.

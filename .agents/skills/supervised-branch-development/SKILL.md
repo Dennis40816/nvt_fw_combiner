@@ -20,8 +20,11 @@ risk; model labels are not permanent role assignments. Use the strongest
 suitable reasoning model for complex architecture, decision, and review work;
 a capable implementation model for the selected cross-file/R2/R3 writer; and a
 faster, lower-cost model for bounded discovery, logs, tests, or mechanical work
-with exact paths. Sol, Terra, and Luna are current examples/default heuristics,
-not hard requirements. An explicit owner model request wins when the model is
+with exact paths.
+[`docs/governance/agent-model-routing.md`](../../../docs/governance/agent-model-routing.md)
+holds the current dated per-runtime defaults for these tiers; they are
+defaults, not hard requirements, and no model name is fixed here. An explicit
+owner model request wins when the model is
 available and suitable; otherwise disclose the limitation. A model choice never
 downgrades repository risk, required gates, or evidence.
 
