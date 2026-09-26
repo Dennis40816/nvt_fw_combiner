@@ -295,9 +295,12 @@ public sealed class LocalStateSaveNoticeTests
             TextBlock detail = Assert.Single(texts, block => block.Text == notice.Detail);
             Assert.All(texts, block => Assert.Equal(13, block.FontSize));
             Assert.Equal(FontWeight.Bold, title.FontWeight);
-            AssertBrush(title, title.Foreground, "NfcWarningTextStrongBrush");
-            AssertBrush(separator, separator.Foreground, "NfcWarningTextStrongBrush");
-            AssertBrush(detail, detail.Foreground, "NfcWarningTextBrush");
+            // The reference sets the title, separator and detail in one amber warning text colour.
+            foreach (TextBlock part in new[] { title, separator, detail })
+            {
+                AssertBrush(part, part.Foreground, "NfcWarningTextMutedBrush");
+                AssertContrast(part.Foreground, host.Background, minimum: 4.5);
+            }
             Assert.Equal(TextTrimming.CharacterEllipsis, detail.TextTrimming);
             Assert.Equal(notice.DetailToolTip, ToolTip.GetTip(detail));
             Panel icon = Assert.Single(host.GetVisualDescendants().OfType<Panel>(),
@@ -648,6 +651,28 @@ public sealed class LocalStateSaveNoticeTests
         foreach ((Point anchor, bool isInked, string part) in anatomy)
         {
             Assert.True(glyph.StrokeContains(pen, anchor) == isInked, $"Refresh glyph {part} at {anchor}.");
+        }
+    }
+
+    /// <summary>The WCAG 2 contrast ratio between two solid brushes meets the minimum.</summary>
+    private static void AssertContrast(IBrush? foreground, IBrush? background, double minimum)
+    {
+        Color text = Assert.IsType<ISolidColorBrush>(foreground, exactMatch: false).Color;
+        Color surface = Assert.IsType<ISolidColorBrush>(background, exactMatch: false).Color;
+        double lighter = Math.Max(Luminance(text), Luminance(surface));
+        double darker = Math.Min(Luminance(text), Luminance(surface));
+        double ratio = (lighter + 0.05) / (darker + 0.05);
+        Assert.True(ratio >= minimum, $"{text} on {surface} has contrast {ratio:F2}:1; expected at least {minimum:F1}:1.");
+
+        static double Luminance(Color color)
+        {
+            return (0.2126 * Linear(color.R)) + (0.7152 * Linear(color.G)) + (0.0722 * Linear(color.B));
+        }
+
+        static double Linear(byte component)
+        {
+            double value = component / 255.0;
+            return value <= 0.03928 ? value / 12.92 : Math.Pow((value + 0.055) / 1.055, 2.4);
         }
     }
 

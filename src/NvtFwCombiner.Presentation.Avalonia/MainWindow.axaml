@@ -495,19 +495,19 @@
             VerticalAlignment="Center"
             FontSize="{DynamicResource NfcFontSize13}"
             FontWeight="Bold"
-            Foreground="{DynamicResource NfcWarningTextStrongBrush}"
+            Foreground="{DynamicResource NfcWarningTextMutedBrush}"
             Text="{ReflectionBinding Title}" />
         <TextBlock
             Grid.Column="2"
             VerticalAlignment="Center"
             FontSize="{DynamicResource NfcFontSize13}"
-            Foreground="{DynamicResource NfcWarningTextStrongBrush}"
+            Foreground="{DynamicResource NfcWarningTextMutedBrush}"
             Text="·" />
         <TextBlock
             Grid.Column="3"
             VerticalAlignment="Center"
             FontSize="{DynamicResource NfcFontSize13}"
-            Foreground="{DynamicResource NfcWarningTextBrush}"
+            Foreground="{DynamicResource NfcWarningTextMutedBrush}"
             Text="{ReflectionBinding Detail}"
             TextTrimming="CharacterEllipsis"
             ToolTip.Tip="{ReflectionBinding DetailToolTip}" />
