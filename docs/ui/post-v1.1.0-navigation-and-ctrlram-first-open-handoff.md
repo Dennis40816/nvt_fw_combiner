@@ -5,7 +5,7 @@ allocation is owned by the NFC roadmap's
 [current sequence](../architecture/nfc_roadmap.md#current-release-sequence--2026-09-14):
 first-entry UI in `1.2.4`; conditional remaining cold/warm performance
 reassessment in `1.2.8`. Completed
-[`v1.1.5` performance work](../architecture/nfc_roadmap.md#115-startup-first-open-and-local-verification-performance)
+[`v1.1.5` performance work](../architecture/nfc_roadmap-history.md#115-startup-first-open-and-local-verification-performance)
 and its measured residuals retain their original evidence. Reassessment is
 not a commitment to optimize an unproven bottleneck or repeat shipped work.
 
