@@ -40,3 +40,8 @@ before the implementation commit):
   test-only change needs no governed integration coverage.
 - Residual: the fix is confirmed only by later CI core-shard runs; H2-H5 and the
   failure-evidence upload are separate items.
+- Review fix (2026-09-26, Codex F-1/F-2, P2): the helper keeps the winning start
+  event and the monotonic `STARTED` timestamp, so `STARTED` after the start budget
+  stays a start timeout, and readiness has a fixed deadline from that timestamp,
+  checked before a ready file counts; both new regression tests failed on the
+  previous rules and pass now.

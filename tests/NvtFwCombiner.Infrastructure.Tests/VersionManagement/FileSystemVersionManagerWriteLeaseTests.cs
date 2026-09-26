@@ -285,6 +285,87 @@ public sealed class FileSystemVersionManagerWriteLeaseTests
         }
     }
 
+    /// <summary>A STARTED line that arrives after the start budget cannot overturn the start timeout.</summary>
+    [Fact]
+    public async Task WindowsLeaseHolderStartedAfterStartBudgetStaysTimedOut()
+    {
+        if (!OperatingSystem.IsWindows())
+        {
+            return;
+        }
+        TimeSpan startBudget = TimeSpan.FromSeconds(1);
+        using Process process = CreateLeaseHolderProcess(
+            "Start-Sleep -Seconds 3;[Console]::Out.WriteLine('STARTED');Start-Sleep -Seconds 30");
+        Assert.True(process.Start());
+        var output = new LeaseHolderOutput(process);
+        try
+        {
+            long origin = Stopwatch.GetTimestamp();
+            LeaseHolderStartEvent winner = await WaitForLeaseHolderStartAsync(
+                process,
+                output,
+                startBudget,
+                TestContext.Current.CancellationToken);
+            // Classify only after the late STARTED line has arrived: the widest window for it to override.
+            long startedAt = await output.Started.WaitAsync(LeaseHolderStartBudget, TestContext.Current.CancellationToken);
+
+            string? failure = ClassifyLeaseHolderStart(winner, origin, startedAt, startBudget);
+
+            Assert.Equal(LeaseHolderStartEvent.Expired, winner);
+            Assert.Equal("child start timed out after 1s", failure);
+        }
+        finally
+        {
+            await StopLeaseHolderAsync(process);
+            _ = await output.CompleteAsync();
+        }
+    }
+
+    /// <summary>Readiness is due a fixed time after STARTED; a ready file seen after that deadline does not pass.</summary>
+    [Fact]
+    public async Task WindowsLeaseHolderReadyAfterDeadlineFromStartedStaysTimedOut()
+    {
+        if (!OperatingSystem.IsWindows())
+        {
+            return;
+        }
+        using var workspace = TempWorkspace.Create("nfc-version-lease-late-ready");
+        string readyPath = Path.Combine(workspace.Root, "lease-ready.txt");
+        TimeSpan readinessDeadline = TimeSpan.FromSeconds(1);
+        using Process process = CreateLeaseHolderProcess(
+            "[Console]::Out.WriteLine('STARTED');Start-Sleep -Seconds 3;" +
+            "[IO.File]::WriteAllText($env:NVT_LEASE_READY,'ready');Start-Sleep -Seconds 30");
+        process.StartInfo.Environment["NVT_LEASE_READY"] = readyPath;
+        Assert.True(process.Start());
+        var output = new LeaseHolderOutput(process);
+        try
+        {
+            long startedAt = await output.Started.WaitAsync(LeaseHolderStartBudget, TestContext.Current.CancellationToken);
+            // Begin the short-deadline check only once the ready file exists, well after that deadline.
+            Assert.Null(await WaitForReadyFileAsync(
+                readyPath,
+                process,
+                Stopwatch.GetTimestamp(),
+                LeaseHolderStartBudget,
+                TestContext.Current.CancellationToken));
+            Assert.True(Stopwatch.GetElapsedTime(startedAt) > readinessDeadline);
+
+            string? failure = await WaitForReadyFileAsync(
+                readyPath,
+                process,
+                startedAt,
+                readinessDeadline,
+                TestContext.Current.CancellationToken);
+
+            Assert.Equal("readiness timed out after 1s", failure);
+        }
+        finally
+        {
+            await StopLeaseHolderAsync(process);
+            _ = await output.CompleteAsync();
+        }
+    }
+
     /// <summary>
     /// Waits for the helper's STARTED marker within <paramref name="startBudget"/>, then for the ready file
     /// within <paramref name="readinessDeadline"/> measured from that marker.
@@ -297,18 +378,26 @@ public sealed class FileSystemVersionManagerWriteLeaseTests
         TimeSpan readinessDeadline,
         CancellationToken cancellationToken)
     {
-        var elapsed = Stopwatch.StartNew();
-        string? failure = await WaitForLeaseHolderStartAsync(process, output, startBudget, cancellationToken);
-        long startMs = elapsed.ElapsedMilliseconds;
-        failure ??= await WaitForReadyFileAsync(path, process, readinessDeadline, cancellationToken);
+        long origin = Stopwatch.GetTimestamp();
+        LeaseHolderStartEvent winner = await WaitForLeaseHolderStartAsync(process, output, startBudget, cancellationToken);
+        // One snapshot decides the start phase; a STARTED line read later cannot change it.
+        long? startedAt = output.Started.IsCompletedSuccessfully ? await output.Started : null;
+        string? failure = ClassifyLeaseHolderStart(winner, origin, startedAt, startBudget);
+        if (failure is null && startedAt is { } started)
+        {
+            failure = await WaitForReadyFileAsync(path, process, started, readinessDeadline, cancellationToken);
+        }
         cancellationToken.ThrowIfCancellationRequested();
         if (failure is null)
         {
             return;
         }
 
-        string state = $"PID={process.Id}; ElapsedMs={elapsed.ElapsedMilliseconds}; " +
-            $"Started={output.Started.IsCompleted}; StartMs={startMs}; " +
+        string startedMs = startedAt is { } observed
+            ? $"{(long)Stopwatch.GetElapsedTime(origin, observed).TotalMilliseconds}"
+            : "none";
+        string state = $"PID={process.Id}; ElapsedMs={(long)Stopwatch.GetElapsedTime(origin).TotalMilliseconds}; " +
+            $"StartEvent={winner}; Started={startedAt is not null}; StartedMs={startedMs}; " +
             $"HasExited={process.HasExited}; ReadyExists={File.Exists(path)}; CallerCancelled={cancellationToken.IsCancellationRequested}";
         // A sleeping child keeps both pipes open: reap it before awaiting complete diagnostic output.
         try
@@ -324,7 +413,8 @@ public sealed class FileSystemVersionManagerWriteLeaseTests
         }
     }
 
-    private static async Task<string?> WaitForLeaseHolderStartAsync(
+    /// <summary>Returns the first of STARTED, child exit or an expired start budget, draining stdout after an exit.</summary>
+    private static async Task<LeaseHolderStartEvent> WaitForLeaseHolderStartAsync(
         Process process,
         LeaseHolderOutput output,
         TimeSpan startBudget,
@@ -338,41 +428,59 @@ public sealed class FileSystemVersionManagerWriteLeaseTests
         cancellationToken.ThrowIfCancellationRequested();
         if (completed == exited)
         {
-            // STARTED can precede a fast exit while still buffered in the pipe: drain before deciding.
+            // STARTED can precede a fast exit while still buffered in the pipe: drain before classifying.
             _ = await Task.WhenAny(output.Stdout, Task.Delay(OutputDrainTimeout, CancellationToken.None));
+            return LeaseHolderStartEvent.Exited;
         }
-        return output.Started.IsCompleted
+        return completed == expired ? LeaseHolderStartEvent.Expired : LeaseHolderStartEvent.Started;
+    }
+
+    /// <summary>
+    /// Accepts STARTED only when its monotonic timestamp lies within the start budget from
+    /// <paramref name="origin"/>; the winning event names any failure.
+    /// </summary>
+    private static string? ClassifyLeaseHolderStart(
+        LeaseHolderStartEvent winner,
+        long origin,
+        long? startedAt,
+        TimeSpan startBudget)
+    {
+        return startedAt is { } observed && Stopwatch.GetElapsedTime(origin, observed) <= startBudget
             ? null
-            : completed == exited
+            : winner == LeaseHolderStartEvent.Exited && startedAt is null
                 ? "child exited before STARTED"
                 : $"child start timed out after {(int)startBudget.TotalSeconds}s";
     }
 
+    /// <summary>
+    /// Polls for the ready file until a fixed deadline measured from the STARTED timestamp; the deadline is
+    /// checked after each sample and before a present file is accepted.
+    /// </summary>
     private static async Task<string?> WaitForReadyFileAsync(
         string path,
         Process process,
+        long startedAt,
         TimeSpan readinessDeadline,
         CancellationToken cancellationToken)
     {
-        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        timeout.CancelAfter(readinessDeadline);
-        try
+        while (true)
         {
-            while (!File.Exists(path))
+            cancellationToken.ThrowIfCancellationRequested();
+            bool ready = File.Exists(path);
+            if (Stopwatch.GetElapsedTime(startedAt) > readinessDeadline)
             {
-                cancellationToken.ThrowIfCancellationRequested();
-                if (process.HasExited)
-                {
-                    return "child exited before READY";
-                }
-                await Task.Delay(TimeSpan.FromMilliseconds(25), timeout.Token);
+                return $"readiness timed out after {(int)readinessDeadline.TotalSeconds}s";
             }
+            if (ready)
+            {
+                return null;
+            }
+            if (process.HasExited)
+            {
+                return "child exited before READY";
+            }
+            await Task.Delay(TimeSpan.FromMilliseconds(25), cancellationToken);
         }
-        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
-        {
-            return $"readiness timed out after {(int)readinessDeadline.TotalSeconds}s";
-        }
-        return null;
     }
 
     private static Process CreateLeaseHolderProcess(string script)
@@ -404,10 +512,18 @@ public sealed class FileSystemVersionManagerWriteLeaseTests
         await process.WaitForExitAsync(CancellationToken.None).WaitAsync(TimeSpan.FromSeconds(5), CancellationToken.None);
     }
 
-    /// <summary>Captures both helper streams and observes the STARTED line as soon as it arrives.</summary>
+    /// <summary>The first event observed while waiting for the helper's STARTED line.</summary>
+    private enum LeaseHolderStartEvent
+    {
+        Started,
+        Exited,
+        Expired,
+    }
+
+    /// <summary>Captures both helper streams and timestamps the STARTED line as soon as it arrives.</summary>
     private sealed class LeaseHolderOutput
     {
-        private readonly TaskCompletionSource started = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        private readonly TaskCompletionSource<long> started = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
         public LeaseHolderOutput(Process process)
         {
@@ -415,7 +531,8 @@ public sealed class FileSystemVersionManagerWriteLeaseTests
             Stderr = process.StandardError.ReadToEndAsync(CancellationToken.None);
         }
 
-        public Task Started => started.Task;
+        /// <summary>Completes with the <see cref="Stopwatch"/> timestamp at which STARTED was read.</summary>
+        public Task<long> Started => started.Task;
 
         public Task<string> Stdout { get; }
 
@@ -434,7 +551,7 @@ public sealed class FileSystemVersionManagerWriteLeaseTests
                 _ = text.AppendLine(line);
                 if (string.Equals(line, "STARTED", StringComparison.Ordinal))
                 {
-                    _ = started.TrySetResult();
+                    _ = started.TrySetResult(Stopwatch.GetTimestamp());
                 }
             }
             return text.ToString();
