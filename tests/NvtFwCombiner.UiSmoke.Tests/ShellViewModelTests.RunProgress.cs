@@ -295,6 +295,38 @@ public sealed partial class RunAndHexEditorTests
             CompositionRunDeliveryState.ReportUnavailable,
             viewModel.RunSession.CompositionProgress.DeliveryState);
         Assert.Equal(progressLabel, viewModel.RunSession.CompositionProgress.CurrentStepLabel);
+        Assert.Equal(outputPath, viewModel.BuildResult.LatestCommittedOutputPath);
+        Assert.True(viewModel.IsLatestOutputActionVisible);
+    }
+
+    /// <summary>A committed output whose report is unavailable still offers the latest-output shortcut.</summary>
+    [Fact]
+    public async Task PostcommitReportUnavailableRetainsLatestOutputShortcut()
+    {
+        using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-postcommit-latest-output");
+        MainWindowViewModel viewModel = ConfigureRunnableGeneralMerge(workspace);
+        string outputPath = workspace.PathFor("output.bin");
+        viewModel.RunSession.CompositionProgress.PropertyChanged += (_, args) =>
+        {
+            if (args.PropertyName == nameof(CompositionRunProgressViewModel.DeliveryState) &&
+                viewModel.RunSession.CompositionProgress.DeliveryState == CompositionRunDeliveryState.ArtifactCommitted)
+            {
+                viewModel.RunSession.CancelActiveRun();
+            }
+        };
+        var notifications = new List<string?>();
+        viewModel.PropertyChanged += (_, args) => notifications.Add(args.PropertyName);
+        Assert.False(viewModel.IsLatestOutputActionVisible);
+
+        await viewModel.Merge.BuildMergeAsync(outputPath);
+
+        Assert.Equal("Build output committed; report unavailable", viewModel.RunSession.LastRunResult.Title);
+        Assert.False(viewModel.BuildResult.IsOpen);
+        Assert.Equal(string.Empty, viewModel.BuildResult.OutputPath);
+        Assert.Equal(outputPath, viewModel.BuildResult.LatestCommittedOutputPath);
+        Assert.True(viewModel.BuildResult.HasLatestCommittedOutput);
+        Assert.True(viewModel.IsLatestOutputActionVisible);
+        Assert.Contains(nameof(MainWindowViewModel.IsLatestOutputActionVisible), notifications);
     }
 
     /// <summary>A report-publication failure after commit reaches the fallback before any success modal opens.</summary>
@@ -322,11 +354,115 @@ public sealed partial class RunAndHexEditorTests
         Assert.Equal(outputPath, result.Output);
         Assert.False(result.Succeeded);
         Assert.False(harness.BuildResult.IsOpen);
+        Assert.Equal(outputPath, harness.BuildResult.LatestCommittedOutputPath);
         Assert.Equal(0, harness.ErrorReportLoads);
         Assert.False(harness.RunSession.IsRunInProgress);
         Assert.Equal(
             CompositionRunDeliveryState.ReportUnavailable,
             harness.RunSession.CompositionProgress.DeliveryState);
+        Assert.False(harness.Reports.HasLoadedReport);
+        Assert.Equal(string.Empty, harness.Reports.LoadedReportJson);
+        Assert.Empty(harness.Reports.ReportHistoryEntries);
+        Assert.Empty(harness.Reports.RunReportEntries);
+        Assert.False(harness.Reports.HasReportToast);
+    }
+
+    /// <summary>
+    /// A report publication that fails after the output commits leaves the previously loaded report, its history
+    /// and its notification exactly as they were.
+    /// </summary>
+    [Fact]
+    public async Task PostcommitReportPublicationFailureRestoresPreviousReport()
+    {
+        var harness = new ReportPublicationFailureHarness(
+            new InvalidOperationException("Synthetic report publication failure."));
+        string previousJson = ReportJsonSamples.Succeeded(runId: "previous-report");
+        harness.Reports.LoadReportJson(previousJson, "previous.json");
+        ReportReviewViewModel previousReport = harness.Reports.LoadedReport;
+        ReportHistoryEntryViewModel previousEntry = Assert.Single(harness.Reports.ReportHistoryEntries);
+        string previousToast = harness.Reports.ReportToastText;
+        List<ReportReviewViewModel> notifiedReports = [];
+        List<int> notifiedHistoryCounts = [];
+        harness.Reports.PropertyChanged += (_, args) =>
+        {
+            if (args.PropertyName == nameof(ReportPresentationViewModel.LoadedReport))
+            {
+                notifiedReports.Add(harness.Reports.LoadedReport);
+            }
+            else if (args.PropertyName == nameof(ReportPresentationViewModel.RunReportEntries))
+            {
+                notifiedHistoryCounts.Add(harness.Reports.RunReportEntries.Count);
+            }
+        };
+
+        UiRunResultViewModel? result = await harness.RunAsync(CreateSyntheticBuildResult("committed-output.bin"));
+
+        Assert.True(harness.PublicationFailed);
+        Assert.NotNull(result);
+        Assert.Equal("Build output committed; report unavailable", result.Title);
+        Assert.Same(previousReport, harness.Reports.LoadedReport);
+        Assert.Equal(previousJson, harness.Reports.LoadedReportJson);
+        Assert.Same(previousEntry, Assert.Single(harness.Reports.ReportHistoryEntries));
+        Assert.Same(previousEntry, Assert.Single(harness.Reports.RunReportEntries));
+        Assert.Equal(previousToast, harness.Reports.ReportToastText);
+        Assert.True(harness.Reports.HasReportToast);
+        Assert.False(harness.Reports.IsReportModalOpen);
+
+        // Bindings observe the restored report and history, not the partially published one.
+        Assert.Same(previousReport, notifiedReports[^1]);
+        Assert.Equal([2, 1], notifiedHistoryCounts);
+    }
+
+    /// <summary>
+    /// A generated report whose modal cannot open is not left published, and the next publication succeeds with
+    /// a contiguous history sequence.
+    /// </summary>
+    [Fact]
+    public void GeneratedReportThatCannotOpenIsRolledBack()
+    {
+        bool failOpen = false;
+        var reports = new ReportPresentationViewModel(
+            () => ShellTextResources.For(ShellLanguage.English),
+            () =>
+            {
+                if (failOpen)
+                {
+                    throw new InvalidOperationException("Synthetic report open failure.");
+                }
+            });
+        string previousJson = ReportJsonSamples.Succeeded(runId: "previous-report");
+        reports.LoadReportJson(previousJson, "previous.json");
+        ReportReviewViewModel previousReport = reports.LoadedReport;
+        ReportHistoryEntryViewModel previousEntry = Assert.Single(reports.ReportHistoryEntries);
+        string previousToastTitle = reports.ShellToastTitle;
+        string previousToast = reports.ReportToastText;
+        string generatedJson = ReportJsonSamples.Succeeded(
+            runId: "generated-report",
+            startedAtUtc: "2026-07-02T00:00:00Z");
+        ReportReviewViewModel generated = ReportReviewViewModel.FromJson(generatedJson, "build report");
+        failOpen = true;
+
+        InvalidOperationException exception = Assert.Throws<InvalidOperationException>(
+            () => reports.PublishGeneratedReport(generated, generatedJson, "Build", show: true));
+
+        Assert.Equal("Synthetic report open failure.", exception.Message);
+        Assert.Same(previousReport, reports.LoadedReport);
+        Assert.Equal(previousJson, reports.LoadedReportJson);
+        Assert.Same(previousEntry, Assert.Single(reports.ReportHistoryEntries));
+        Assert.Equal(previousToastTitle, reports.ShellToastTitle);
+        Assert.Equal(previousToast, reports.ReportToastText);
+        Assert.True(reports.HasReportToast);
+        Assert.False(reports.IsReportModalOpen);
+
+        failOpen = false;
+        reports.PublishGeneratedReport(generated, generatedJson, "Build", show: true);
+
+        Assert.Same(generated, reports.LoadedReport);
+        Assert.Equal(generatedJson, reports.LoadedReportJson);
+        Assert.Equal(2, reports.ReportHistoryEntries.Count);
+        Assert.Equal(2, reports.ReportHistoryEntries[0].Sequence);
+        Assert.Same(previousEntry, reports.ReportHistoryEntries[1]);
+        Assert.True(reports.IsReportModalOpen);
     }
 
     /// <summary>A report failure for a Build that committed no output keeps the original failure handling.</summary>
@@ -344,6 +480,7 @@ public sealed partial class RunAndHexEditorTests
         Assert.Equal("No output", failed.Output);
         Assert.Equal(1, ioHarness.ErrorReportLoads);
         Assert.False(ioHarness.BuildResult.IsOpen);
+        Assert.False(ioHarness.BuildResult.HasLatestCommittedOutput);
 
         var jsonHarness = new ReportPublicationFailureHarness(new JsonException("Synthetic report publication failure."));
 
@@ -379,6 +516,7 @@ public sealed partial class RunAndHexEditorTests
         Assert.False(result.Succeeded);
         Assert.Equal(("Build", "Synthetic pre-commit failure."), Assert.Single(errorReports));
         Assert.False(viewModel.BuildResult.IsOpen);
+        Assert.False(viewModel.BuildResult.HasLatestCommittedOutput);
         Assert.NotEqual(
             CompositionRunDeliveryState.ReportUnavailable,
             viewModel.RunSession.CompositionProgress.DeliveryState);
@@ -491,6 +629,7 @@ public sealed partial class RunAndHexEditorTests
                     static () => true,
                     () => Reports,
                     BuildResult.TryShow,
+                    BuildResult.RetainLatestCommittedOutput,
                     static () => { },
                     static () => { }));
             Owner.PropertyChanged += (_, args) =>

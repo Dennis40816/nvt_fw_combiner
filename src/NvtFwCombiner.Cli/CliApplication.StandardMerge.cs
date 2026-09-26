@@ -328,23 +328,19 @@ public static partial class CliApplication
                 new CompositionRunProgressFeed(),
                 cancellationToken)
             .ConfigureAwait(false);
-        CliCompositionRunSupport.EnsureReportDoesNotAliasProtectedPaths(
-            reportPath,
-            bindings,
-            new CliOutputTarget(outputTarget.OutputDirectory, result.OutputFileName),
-            build && !bundleBuild);
-        if (!string.IsNullOrWhiteSpace(reportPath))
-        {
-            await CliCompositionRunSupport.WriteReportJsonAsync(
-                    reportPath,
-                    CompositionRunReportJson.Serialize(result),
-                    output,
-                    cancellationToken)
-                .ConfigureAwait(false);
-        }
-        await PrintRunResultAsync(result, selectedProfile.IcId, output, error)
+        await CliCompositionRunSupport.WriteReportJsonAsync(
+                result,
+                string.IsNullOrWhiteSpace(reportPath) ? null : reportPath,
+                path => CliCompositionRunSupport.EnsureReportDoesNotAliasProtectedPaths(
+                    path,
+                    bindings,
+                    new CliOutputTarget(outputTarget.OutputDirectory, result.OutputFileName),
+                    build && !bundleBuild),
+                () => PrintRunResultAsync(result, selectedProfile.IcId, output, error),
+                output,
+                error,
+                cancellationToken)
             .ConfigureAwait(false);
-        await CliBundleOptions.PrintReceiptAsync(result, output).ConfigureAwait(false);
         return result.Succeeded ? Success : CompositionFailed;
     }
 

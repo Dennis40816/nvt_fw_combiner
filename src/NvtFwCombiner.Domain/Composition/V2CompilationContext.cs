@@ -131,7 +131,11 @@ public sealed class SourceEnvelopeExtent
 
     /// <summary>One profile-bound immutable DP slot.</summary>
     public string SourceSlotId { get; }
-    /// <summary>Existing canonical full-container root identity, used only for template anchors.</summary>
+    /// <summary>
+    /// Top-level region identity used only as the layout-template anchor: the canonical full-container root of a
+    /// profile-bound DP envelope, or, for a runtime reference-replace envelope, the top-level region at offset
+    /// zero of a template whose top-level regions tile <c>[0, LayoutTemplateCapacity)</c>.
+    /// </summary>
     public string RootRegionId { get; }
     /// <summary>Explicit profile-declared map identity used for layout facts.</summary>
     public string LayoutTemplateMapId { get; }

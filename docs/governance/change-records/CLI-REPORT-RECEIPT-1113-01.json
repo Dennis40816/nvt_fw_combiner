@@ -1,0 +1,48 @@
+{
+  "schemaVersion": 2,
+  "taskId": "CLI-REPORT-RECEIPT-1113-01",
+  "capability": "A CLI --report failure never hides a committed Build receipt: every CLI build route prints the committed output's name, size and SHA-256 before writing the requested report, and reports a later report failure or cancellation as a partial success",
+  "integrationBase": "dc677115653658c33a5d61274b1294ee6f45d548",
+  "risk": "R1",
+  "kind": "behavior",
+  "state": "final-complete",
+  "mutablePaths": [
+    "src/NvtFwCombiner.Cli/AbMergeCliCommandHandler.cs",
+    "src/NvtFwCombiner.Cli/CliApplication.StandardMerge.cs",
+    "src/NvtFwCombiner.Cli/CliCompositionRunSupport.cs",
+    "src/NvtFwCombiner.Cli/MergeCliCommandHandler.cs",
+    "src/NvtFwCombiner.Cli/ReplaceCliCommandHandler.RunSupport.cs",
+    "tests/NvtFwCombiner.Bootstrap.Tests/CliReportReceiptTests.cs"
+  ],
+  "implementationOwner": "claude-code",
+  "searchEvidence": [
+    "rg -n 'WriteReportJsonAsync|PrintReceiptAsync' src/NvtFwCombiner.Cli: four post-run call sites write --report before the result printer and CliBundleOptions.PrintReceiptAsync: CliApplication.StandardMerge.cs, AbMergeCliCommandHandler.cs, MergeCliCommandHandler.cs and ReplaceCliCommandHandler.RunSupport.cs (CompleteReplaceRunAsync, shared by ctrlram-replace and general-replace). The General Replace plan-only diagnostic Preview writes a report without a committed output and stays unchanged.",
+    "CliApplication.RunAsync catches only a requested cancellation, IOException, UnauthorizedAccessException and ArgumentException and returns 70 without printing the receipt; report serialization exceptions escape uncaught.",
+    "CompositionRunService: a loose additional delivery that fails or is cancelled after the primary commit keeps the run Succeeded, adds a delivery.<kind>.failed issue and sets IsDeliveryComplete=false; every CLI handler maps result.Succeeded to exit 0 and prints the issue on stderr. This committed-output-with-failed-delivery precedent sets the exit code for a failed report after commit.",
+    "AcceptedCompositionExecutionRequest.ReportPath is only a protected path inside the Application; the CLI alone writes --report through CliCompositionRunSupport.WriteReportJsonAsync, so the correction belongs to that CLI adapter owner, not CompositionRunService.",
+    "docs/handoff/bugs/BUG-20260925-cli-report-failure-hides-receipt.md and AUD-03 in docs/architecture/post-v1.1.8-audit-handoff.md."
+  ],
+  "semanticOwner": "CliCompositionRunSupport remains the only CLI owner of run-report writing; a result-aware WriteReportJsonAsync overload owns the order of the committed receipt (each handler's existing result printer followed by CliBundleOptions.PrintReceiptAsync) around the report write and the post-commit report-failure issue. The Standard Merge, AB Merge, General Merge and shared Replace handlers delegate to it; the Application run result and each handler's exit-code mapping are unchanged.",
+  "terminalContract": "When a Build result carries a committed output, every CLI build route prints its receipt (Status, Profile, Output, Size, SHA256, Committed and any bundle receipt) before the requested --report is checked, serialized and written. A later I/O, access, argument or serialization failure, or a cancellation, prints one cli.report.failed partial-success issue on stderr, writes no Report line and keeps exit code 0, the same code the CLI returns for a committed output whose loose additional delivery failed. Preview, failed and other uncommitted runs keep the report-before-receipt order, their failure propagation and exit codes. A successful committed run writes the same report, now listed after the receipt; output bytes, names, ranges and report content are unchanged.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": null,
+    "outcome": "not-required",
+    "evidence": "Bounded local R1 correction of the post-commit report and receipt order inside the existing CLI adapter owner, with no Application, profile, firmware byte, range or contract change."
+  },
+  "implementationHead": "1da2aa14ae280826ab373aa50de696bc134202b6",
+  "reviewedHead": "1da2aa14ae280826ab373aa50de696bc134202b6",
+  "pathStateDigest": "7f6beaacbd2cb440066b1e1d347e7d1145792b7db1ecbd8df945d1f3ba9dd402",
+  "finalReview": {
+    "reviewer": "codex/gpt-6-sol",
+    "outcome": "findings-incorporated",
+    "evidence": "Independent final review by codex/gpt-6-sol: APPROVED at exact head `1da2aa14ae280826ab373aa50de696bc134202b6` after incorporated findings. The review of `45b07a0ce95f6b9ef72243358cc4536a52061a9c` found P1 F-1 (a report path naming the automatically named committed output could overwrite the BIN after its receipt). The re-review of `0f080dccc4475a76af960007561569b20632d116` found F-1 resolved: the shared post-commit report guard compares the requested report with the actual committed firmware file path before writing, all five committed CLI routes use it, and three bundle regressions check the on-disk BIN size and SHA-256 against the printed receipt; loose automatic names are rejected by pre-run guards. Exit code 0 after a post-commit report failure matches the failed loose-delivery precedent (owner decision 25). The batch review at `667086390f795576ea1e3c4235196b16e19a38a0` confirmed blob identity with the CLI head and required one P3 handoff correction, resolved at the final head with all mutablePaths blobs unchanged. No firmware byte, range, CRC, naming or profile change. Implementer tests at batch head `0696c2170`: Bootstrap 1906/1906, Architecture 269/269 (reported, not rerun by the read-only reviewer)."
+  },
+  "integrationPaths": [
+    "src/NvtFwCombiner.Cli/AbMergeCliCommandHandler.cs",
+    "src/NvtFwCombiner.Cli/CliApplication.StandardMerge.cs",
+    "src/NvtFwCombiner.Cli/CliCompositionRunSupport.cs",
+    "src/NvtFwCombiner.Cli/MergeCliCommandHandler.cs",
+    "src/NvtFwCombiner.Cli/ReplaceCliCommandHandler.RunSupport.cs"
+  ]
+}

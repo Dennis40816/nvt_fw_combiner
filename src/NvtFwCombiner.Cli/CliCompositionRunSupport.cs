@@ -1,10 +1,14 @@
 using System.Globalization;
+using System.Text.Json;
 using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Cli;
 
 internal static class CliCompositionRunSupport
 {
+    /// <summary>Issue printed when a requested report is not written after the Build output committed.</summary>
+    internal const string CommittedReportFailedIssueCode = "cli.report.failed";
+
     internal static CliOutputTarget ResolveOutputTarget(string? requestedOutput, string defaultFileName)
     {
         string outputPath = string.IsNullOrWhiteSpace(requestedOutput)
@@ -60,6 +64,134 @@ internal static class CliCompositionRunSupport
 
         await File.WriteAllTextAsync(fullPath, reportJson, cancellationToken).ConfigureAwait(false);
         await output.WriteLineAsync($"Report: {fullPath}").ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Writes a run's requested report and prints its receipt in an order that cannot hide a committed
+    /// output. Without a committed output the report is written first and a failure propagates as before.
+    /// With one, the receipt is printed first and the report must not resolve to any file the run
+    /// committed; a rejected, failed or cancelled report becomes one partial-success issue and keeps the
+    /// run's exit code, as a failed loose delivery after the primary commit does.
+    /// </summary>
+    internal static async Task WriteReportJsonAsync(
+        CompositionRunResult result,
+        string? reportPath,
+        Action<string>? ensureReportPathAllowed,
+        Func<Task> printRunResultAsync,
+        TextWriter output,
+        TextWriter error,
+        CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(result);
+        ArgumentNullException.ThrowIfNull(printRunResultAsync);
+        ArgumentNullException.ThrowIfNull(output);
+        ArgumentNullException.ThrowIfNull(error);
+        if (result.CommittedOutputId is null)
+        {
+            if (reportPath is not null)
+            {
+                await WriteRunReportAsync(result, reportPath, ensureReportPathAllowed, output, cancellationToken)
+                    .ConfigureAwait(false);
+            }
+
+            await PrintRunReceiptAsync(result, printRunResultAsync, output).ConfigureAwait(false);
+            return;
+        }
+
+        await PrintRunReceiptAsync(result, printRunResultAsync, output).ConfigureAwait(false);
+        if (reportPath is null)
+        {
+            return;
+        }
+
+        try
+        {
+            await WriteRunReportAsync(result, reportPath, ensureReportPathAllowed, output, cancellationToken)
+                .ConfigureAwait(false);
+        }
+        catch (Exception exception) when (IsReportFailureAfterCommit(exception))
+        {
+            await PrintIssuesAsync(
+                    error,
+                    [new CompositionIssue(
+                        CommittedReportFailedIssueCode,
+                        $"Partial success: the Build output is committed, but the requested report '{reportPath}' was not written: {exception.Message}")])
+                .ConfigureAwait(false);
+        }
+    }
+
+    private static async Task WriteRunReportAsync(
+        CompositionRunResult result,
+        string reportPath,
+        Action<string>? ensureReportPathAllowed,
+        TextWriter output,
+        CancellationToken cancellationToken)
+    {
+        ensureReportPathAllowed?.Invoke(reportPath);
+        if (result.CommittedOutputId is { } committedOutputId)
+        {
+            ProtectedPathGuard.EnsureDoesNotAlias(
+                reportPath,
+                "Report path",
+                CreateCommittedFilePaths(result, committedOutputId),
+                "--report");
+        }
+
+        await WriteReportJsonAsync(
+                reportPath,
+                CompositionRunReportJson.Serialize(result),
+                output,
+                cancellationToken)
+            .ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Every file the run actually committed: the primary output, each artifact of the promoted bundle
+    /// (the receipt's bundle list) and each committed additional delivery, loose or bundled.
+    /// </summary>
+    private static List<ProtectedPathGuard.ProtectedPath> CreateCommittedFilePaths(
+        CompositionRunResult result,
+        string committedOutputId)
+    {
+        List<ProtectedPathGuard.ProtectedPath> committedFiles =
+        [
+            new(committedOutputId, "committed firmware output"),
+        ];
+        if (result.Report.BundleDelivery is { } bundle)
+        {
+            committedFiles.AddRange(bundle.Artifacts.Select(artifact =>
+                new ProtectedPathGuard.ProtectedPath(
+                    Path.Combine(bundle.ResolvedDirectory, artifact.DeliveredFileName),
+                    $"committed bundle {artifact.Role} artifact '{artifact.DeliveredFileName}'")));
+        }
+
+        committedFiles.AddRange(result.DeliveryArtifacts.Select(static artifact =>
+            new ProtectedPathGuard.ProtectedPath(
+                artifact.OutputPath,
+                $"committed {artifact.DeliveryKind} delivery '{artifact.OutputFileName}'")));
+        return committedFiles;
+    }
+
+    private static async Task PrintRunReceiptAsync(
+        CompositionRunResult result,
+        Func<Task> printRunResultAsync,
+        TextWriter output)
+    {
+        await printRunResultAsync().ConfigureAwait(false);
+        await CliBundleOptions.PrintReceiptAsync(result, output).ConfigureAwait(false);
+    }
+
+    private static bool IsReportFailureAfterCommit(Exception exception)
+    {
+        return exception is IOException or
+            UnauthorizedAccessException or
+            ArgumentException or
+            NotSupportedException or
+            JsonException or
+            InvalidOperationException or
+            FormatException or
+            OverflowException or
+            OperationCanceledException;
     }
 
     internal static async Task PrintIssuesAsync(

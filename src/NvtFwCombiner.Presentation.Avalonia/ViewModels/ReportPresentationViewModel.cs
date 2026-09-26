@@ -445,6 +445,11 @@ internal sealed partial class ReportPresentationViewModel : ObservableObject
         ReportToastText = text;
         HasReportToast = true;
         ReportToastOpacity = 1;
+        NotifyShellToastChanged();
+    }
+
+    private void NotifyShellToastChanged()
+    {
         PresentationObserver.Invoke(() => OnPropertyChanged(nameof(ShellToastTitle)));
         PresentationObserver.Invoke(() => OnPropertyChanged(nameof(ReportToastText)));
         PresentationObserver.Invoke(() => OnPropertyChanged(nameof(ShellToastAccessibleLabel)));
@@ -497,6 +502,10 @@ internal sealed partial class ReportPresentationViewModel : ObservableObject
         Volatile.Read(ref _reportRelocalizationIterationCancellation)?.Cancel();
     }
 
+    /// <summary>
+    /// Publishes a generated report completely, or restores the previous report, history and toast before
+    /// rethrowing, so a failed publication never leaves the report behind a result that says it is unavailable.
+    /// </summary>
     internal void PublishGeneratedReport(
         ReportReviewViewModel report,
         string reportJson,
@@ -506,15 +515,61 @@ internal sealed partial class ReportPresentationViewModel : ObservableObject
         ArgumentNullException.ThrowIfNull(report);
         ArgumentNullException.ThrowIfNull(reportJson);
         ArgumentNullException.ThrowIfNull(action);
-        LoadedReport = report;
-        LoadedReportJson = reportJson;
-        CaptureLoadedReportInHistory();
-        SetReportToast(Text.FormatReportGeneratedToast(action));
-        NotifyReportChanged();
-        if (show)
+        ReportPublicationState previous = CaptureReportPublicationState();
+        try
         {
-            ShowReport();
+            LoadedReport = report;
+            LoadedReportJson = reportJson;
+            CaptureLoadedReportInHistory();
+            SetReportToast(Text.FormatReportGeneratedToast(action));
+            NotifyReportChanged();
+            if (show)
+            {
+                ShowReport();
+            }
         }
+        catch
+        {
+            RestoreReportPublicationState(previous);
+            throw;
+        }
+    }
+
+    private ReportPublicationState CaptureReportPublicationState()
+    {
+        return new ReportPublicationState(
+            LoadedReport,
+            LoadedReportJson,
+            [.. ReportHistoryEntries],
+            _reportHistorySequence,
+            ShellToastTitle,
+            ReportToastText,
+            HasReportToast,
+            ReportToastOpacity);
+    }
+
+    private void RestoreReportPublicationState(ReportPublicationState previous)
+    {
+        LoadedReport = previous.LoadedReport;
+        LoadedReportJson = previous.LoadedReportJson;
+        _reportHistorySequence = previous.HistorySequence;
+        if (!ReportHistoryEntries.SequenceEqual(previous.HistoryEntries))
+        {
+            PresentationObserver.Invoke(ReportHistoryEntries.Clear);
+            foreach (ReportHistoryEntryViewModel entry in previous.HistoryEntries)
+            {
+                PresentationObserver.Invoke(() => ReportHistoryEntries.Add(entry));
+            }
+
+            NotifyReportHistoryChanged();
+        }
+
+        ShellToastTitle = previous.ShellToastTitle;
+        ReportToastText = previous.ReportToastText;
+        HasReportToast = previous.HasReportToast;
+        ReportToastOpacity = previous.ReportToastOpacity;
+        NotifyShellToastChanged();
+        NotifyReportChanged();
     }
 
     private static string SanitizeFileName(string title)
@@ -540,4 +595,14 @@ internal sealed partial class ReportPresentationViewModel : ObservableObject
             OverflowException;
     }
 
+    /// <summary>Report, history and toast state that one generated-report publication may replace.</summary>
+    private sealed record ReportPublicationState(
+        ReportReviewViewModel LoadedReport,
+        string LoadedReportJson,
+        IReadOnlyList<ReportHistoryEntryViewModel> HistoryEntries,
+        int HistorySequence,
+        string ShellToastTitle,
+        string ReportToastText,
+        bool HasReportToast,
+        double ReportToastOpacity);
 }
