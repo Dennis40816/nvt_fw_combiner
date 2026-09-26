@@ -5,7 +5,7 @@
   "integrationBase": "6b31408279b326cb8043a7a8a36cbf496964aa82",
   "risk": "R1",
   "kind": "ui",
-  "state": "design-active",
+  "state": "final-complete",
   "mutablePaths": [
     "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/CompositionRunPresentationViewModel.cs",
     "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/CompositionRunProgressViewModel.cs",
@@ -27,12 +27,18 @@
     "outcome": "not-required",
     "evidence": "Bounded local R1 correction of review findings on pull requests #448 and #449; reviewed with the batch in the fixed-head final review."
   },
-  "implementationHead": null,
-  "reviewedHead": null,
-  "pathStateDigest": null,
+  "implementationHead": "f19d4156f3ab8d7a150ff44be5d0b339e34961f6",
+  "reviewedHead": "f19d4156f3ab8d7a150ff44be5d0b339e34961f6",
+  "pathStateDigest": "6495acddc98f1d871a95a265e4100d98d98608af5b4ce9b0e9599b4a8ec10b57",
   "finalReview": {
-    "reviewer": null,
-    "outcome": "pending",
-    "evidence": ""
-  }
+    "reviewer": "codex/gpt-6-sol",
+    "outcome": "findings-incorporated",
+    "evidence": "Independent read-only final review by codex/gpt-6-sol: APPROVED, findings incorporated, at exact head f19d4156f3ab8d7a150ff44be5d0b339e34961f6. Its tree is identical to the previously reviewed ee634de0cbba04b4d0a5dfd286ca88c736372d10 tree, so that approval carries forward. Findings F-1 through F-4 were incorporated: generated-report publication precedes the Build Completed modal; regressions cover publication failures, post-commit projection failures, unchanged pre-commit handling, and both languages. The prior review recorded UiSmoke 1666/1666 and Architecture 269/269 at ee634de0c; those checks were not rerun for this review. Partial LoadedReport or history mutation on publication failure remains the tracked 1.1.13 residual."
+  },
+  "integrationPaths": [
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/CompositionRunPresentationViewModel.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/CompositionRunProgressViewModel.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ShellTextResources.RunProgress.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReportPresentationViewModel.cs"
+  ]
 }

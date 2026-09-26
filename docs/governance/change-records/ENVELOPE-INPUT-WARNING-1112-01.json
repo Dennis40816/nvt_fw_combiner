@@ -5,7 +5,7 @@
   "integrationBase": "6b31408279b326cb8043a7a8a36cbf496964aa82",
   "risk": "R1",
   "kind": "ui",
-  "state": "design-active",
+  "state": "final-complete",
   "mutablePaths": [
     "src/NvtFwCombiner.Application/InputInspection/CompiledInputArtifactInspectionService.cs",
     "tests/NvtFwCombiner.Bootstrap.Tests/Nt51950Nt51951DiffDlmMaskCascade2GoldenTests.cs"
@@ -23,12 +23,15 @@
     "outcome": "not-required",
     "evidence": "Bounded local R1 correction of review findings on pull requests #448 and #449; reviewed with the batch in the fixed-head final review."
   },
-  "implementationHead": null,
-  "reviewedHead": null,
-  "pathStateDigest": null,
+  "implementationHead": "f19d4156f3ab8d7a150ff44be5d0b339e34961f6",
+  "reviewedHead": "f19d4156f3ab8d7a150ff44be5d0b339e34961f6",
+  "pathStateDigest": "61152bf487a5656f5c3af446092fe4e6b71dc0cd2f95d4c4e018d809892c4ccf",
   "finalReview": {
-    "reviewer": null,
-    "outcome": "pending",
-    "evidence": ""
-  }
+    "reviewer": "codex/gpt-6-sol",
+    "outcome": "approved",
+    "evidence": "Independent read-only final review by codex/gpt-6-sol: APPROVED at exact head f19d4156f3ab8d7a150ff44be5d0b339e34961f6. Its tree is identical to the previously reviewed ee634de0cbba04b4d0a5dfd286ca88c736372d10 tree, so that approval carries forward. Input inspection reuses the runtime reference-replace source envelope to warn on a nonstandard CtrlRAM Base length while a standard outer length remains Valid. The reviewed regression asserts the warning code, expected lengths, next action, and nonblocking admission; it was not rerun for this review."
+  },
+  "integrationPaths": [
+    "src/NvtFwCombiner.Application/InputInspection/CompiledInputArtifactInspectionService.cs"
+  ]
 }
