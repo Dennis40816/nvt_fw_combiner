@@ -69,8 +69,8 @@ internal static class CliCompositionRunSupport
     /// <summary>
     /// Writes a run's requested report and prints its receipt in an order that cannot hide a committed
     /// output. Without a committed output the report is written first and a failure propagates as before.
-    /// With one, the receipt is printed first and the report must not resolve to the committed output
-    /// itself; a rejected, failed or cancelled report becomes one partial-success issue and keeps the
+    /// With one, the receipt is printed first and the report must not resolve to any file the run
+    /// committed; a rejected, failed or cancelled report becomes one partial-success issue and keeps the
     /// run's exit code, as a failed loose delivery after the primary commit does.
     /// </summary>
     internal static async Task WriteReportJsonAsync(
@@ -133,7 +133,7 @@ internal static class CliCompositionRunSupport
             ProtectedPathGuard.EnsureDoesNotAlias(
                 reportPath,
                 "Report path",
-                [new ProtectedPathGuard.ProtectedPath(committedOutputId, "committed firmware output")],
+                CreateCommittedFilePaths(result, committedOutputId),
                 "--report");
         }
 
@@ -143,6 +143,33 @@ internal static class CliCompositionRunSupport
                 output,
                 cancellationToken)
             .ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Every file the run actually committed: the primary output, each artifact of the promoted bundle
+    /// (the receipt's bundle list) and each committed additional delivery, loose or bundled.
+    /// </summary>
+    private static List<ProtectedPathGuard.ProtectedPath> CreateCommittedFilePaths(
+        CompositionRunResult result,
+        string committedOutputId)
+    {
+        List<ProtectedPathGuard.ProtectedPath> committedFiles =
+        [
+            new(committedOutputId, "committed firmware output"),
+        ];
+        if (result.Report.BundleDelivery is { } bundle)
+        {
+            committedFiles.AddRange(bundle.Artifacts.Select(artifact =>
+                new ProtectedPathGuard.ProtectedPath(
+                    Path.Combine(bundle.ResolvedDirectory, artifact.DeliveredFileName),
+                    $"committed bundle {artifact.Role} artifact '{artifact.DeliveredFileName}'")));
+        }
+
+        committedFiles.AddRange(result.DeliveryArtifacts.Select(static artifact =>
+            new ProtectedPathGuard.ProtectedPath(
+                artifact.OutputPath,
+                $"committed {artifact.DeliveryKind} delivery '{artifact.OutputFileName}'")));
+        return committedFiles;
     }
 
     private static async Task PrintRunReceiptAsync(

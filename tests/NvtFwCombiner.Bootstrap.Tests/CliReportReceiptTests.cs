@@ -163,6 +163,73 @@ public sealed class CliReportReceiptTests
             StringComparison.Ordinal);
     }
 
+    /// <summary>A report naming the DP source copy inside the committed bundle is refused; the copy keeps its receipt SHA-256.</summary>
+    [Fact]
+    public async Task ReportNamingBundleSourceCopyDoesNotOverwriteIt()
+    {
+        using var workspace = TempWorkspace.Create("nfc-cli-report-receipt-bundle-source");
+        string bundleParent = workspace.PathFor("bundles");
+        _ = Directory.CreateDirectory(bundleParent);
+        string sourceCopyPath = Path.Combine(bundleParent, "source_bundle", "dp.bin");
+
+        CliRunResult result = await CliTestHarness.RunAsync(
+            [
+                .. CreateArguments("standard-merge", "build", workspace),
+                "--bundle-parent",
+                bundleParent,
+                "--bundle-name",
+                "source_bundle",
+                "--report",
+                sourceCopyPath,
+            ],
+            TestContext.Current.CancellationToken);
+
+        Assert.True(result.ExitCode == 0, result.Error + Environment.NewLine + result.Output);
+        await AssertBundleArtifactMatchesReceiptAsync(result.Output, "source", sourceCopyPath);
+        Assert.Equal(
+            CreateStandardMergeDp(),
+            await File.ReadAllBytesAsync(sourceCopyPath, TestContext.Current.CancellationToken));
+        AssertReportFailedAfterCommit(result.Output, result.Error, sourceCopyPath);
+        Assert.Contains(
+            "Report path must not overwrite committed bundle source artifact 'dp.bin'.",
+            result.Error,
+            StringComparison.Ordinal);
+    }
+
+    /// <summary>A report naming the bundled A-bank FlashCode additional delivery is refused; the file keeps its receipt SHA-256.</summary>
+    [Fact]
+    public async Task ReportNamingBundledAdditionalDeliveryDoesNotOverwriteIt()
+    {
+        using var workspace = TempWorkspace.Create("nfc-cli-report-receipt-bundle-delivery");
+        string bundleParent = workspace.PathFor("bundles");
+        _ = Directory.CreateDirectory(bundleParent);
+        string[] arguments =
+        [
+            .. CreateArguments("ab-merge", "build", workspace),
+            "--bundle-parent",
+            bundleParent,
+            "--include-a-flashcode",
+        ];
+        CliRunResult probe = await CliTestHarness.RunAsync(
+            [.. arguments, "--bundle-name", "probe_bundle"],
+            TestContext.Current.CancellationToken);
+        Assert.True(probe.ExitCode == 0, probe.Error + Environment.NewLine + probe.Output);
+        string deliveryFileName = ReadReceiptArtifactFileName(probe.Output, "additional-delivery");
+        string deliveryPath = Path.Combine(bundleParent, "guarded_bundle", deliveryFileName);
+
+        CliRunResult result = await CliTestHarness.RunAsync(
+            [.. arguments, "--bundle-name", "guarded_bundle", "--report", deliveryPath],
+            TestContext.Current.CancellationToken);
+
+        Assert.True(result.ExitCode == 0, result.Error + Environment.NewLine + result.Output);
+        await AssertBundleArtifactMatchesReceiptAsync(result.Output, "additional-delivery", deliveryPath);
+        AssertReportFailedAfterCommit(result.Output, result.Error, deliveryPath);
+        Assert.Contains(
+            $"Report path must not overwrite committed bundle additional-delivery artifact '{deliveryFileName}'.",
+            result.Error,
+            StringComparison.Ordinal);
+    }
+
     /// <summary>Without a committed output the report still precedes the result and its failure keeps the existing software-error exit.</summary>
     [Fact]
     public async Task PreviewReportWriteFailureKeepsPreCommitBehavior()
@@ -244,6 +311,24 @@ public sealed class CliReportReceiptTests
         Assert.Contains($"SHA256: {sha256}", output, StringComparison.Ordinal);
         Assert.Contains($"Committed: {outputPath}", output, StringComparison.Ordinal);
         return sha256;
+    }
+
+    private static async Task AssertBundleArtifactMatchesReceiptAsync(string output, string role, string artifactPath)
+    {
+        byte[] delivered = await File.ReadAllBytesAsync(artifactPath, TestContext.Current.CancellationToken);
+        Assert.Contains(
+            $"  {role}: {Path.GetFileName(artifactPath)} ({Convert.ToHexStringLower(SHA256.HashData(delivered))})",
+            output,
+            StringComparison.Ordinal);
+    }
+
+    private static string ReadReceiptArtifactFileName(string output, string role)
+    {
+        string prefix = $"  {role}: ";
+        string line = Assert.Single(
+            output.ReplaceLineEndings("\n").Split('\n'),
+            candidate => candidate.StartsWith(prefix, StringComparison.Ordinal));
+        return line[prefix.Length..line.LastIndexOf(" (", StringComparison.Ordinal)];
     }
 
     private static void AssertReportFailedAfterCommit(string output, string error, string reportPath)
